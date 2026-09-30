@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agro.laboratorio-digital.com/schemas/product.schema.json",
+  "title": "Contrato de producto agro (product.yaml)",
+  "description": "Contrato de ED1 §5.1 con la extensión agro de ARQUITECTURA §5.1. Una sola fuente (P2): la valida scripts/validar-productos.ts en CI.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "slug",
+    "tipo",
+    "estado",
+    "familia",
+    "icp",
+    "peldano",
+    "siguiente_paso",
+    "plantilla",
+    "runtime",
+    "seo",
+    "monetizacion",
+    "relacionados",
+    "eventos",
+    "presupuesto",
+    "kill_switch",
+    "revision_agronomica",
+    "fuentes"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^agro-[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Identificador estable. Nombra el kill switch: ks:<id>."
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^/(herramientas/agro|agro)/([a-z0-9-]+/)*$",
+      "description": "Ruta en el host de ADR-19. Empieza y termina con /."
+    },
+    "tipo": {
+      "enum": ["utility", "saas"]
+    },
+    "estado": {
+      "enum": ["borrador", "activo", "pausado", "retirado"]
+    },
+    "familia": {
+      "const": "agro"
+    },
+    "icp": {
+      "const": false,
+      "description": "El agro no está en el ICP de ED1 (ARQUITECTURA §2.3)."
+    },
+    "peldano": {
+      "enum": [
+        "herramienta-gratuita",
+        "usuario-recurrente",
+        "cuenta",
+        "premium",
+        "saas-exportador",
+        "cadena",
+        "conectado",
+        "servicios"
+      ],
+      "description": "Peldaño de la escalera (ARQUITECTURA §2.4)."
+    },
+    "siguiente_paso": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "A dónde lleva el resultado: id de un producto o un peldaño."
+    },
+    "plantilla": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runtime": {
+      "enum": ["browser", "api"]
+    },
+    "seo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "description"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 70
+        },
+        "description": {
+          "type": "string",
+          "minLength": 50,
+          "maxLength": 170
+        }
+      }
+    },
+    "monetizacion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ads", "ads_en_procesamiento"],
+      "properties": {
+        "ads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ads_en_procesamiento": {
+          "const": false
+        }
+      }
+    },
+    "relacionados": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^agro-[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "description": "Solo ids de productos que existen (lo comprueba el validador)."
+    },
+    "eventos": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z]+\\.[a-z_]+$"
+      }
+    },
+    "presupuesto": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["api_requests_dia"],
+      "properties": {
+        "api_requests_dia": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "analytics_points_dia": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "d1_filas_escritas_dia": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "r2_gb": {
+          "type": "number",
+          "minimum": 0
+        },
+        "justificacion": {
+          "type": "string",
+          "minLength": 20
+        }
+      }
+    },
+    "kill_switch": {
+      "const": true
+    },
+    "revision_agronomica": {
+      "type": "string",
+      "pattern": "^(pendiente|no-aplica|aprobada:\\d{4}-\\d{2}-\\d{2}:[a-z0-9-]+)$",
+      "description": "pendiente | no-aplica | aprobada:<fecha>:<rol>. Se registra el rol, no el nombre (P4)."
+    },
+    "fuentes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 3
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "required": ["estado"],
+        "properties": {
+          "estado": {
+            "type": "string",
+            "const": "activo"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "revision_agronomica": {
+            "type": "string",
+            "not": {
+              "const": "pendiente"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": ["runtime"],
+        "properties": {
+          "runtime": {
+            "type": "string",
+            "const": "api"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "presupuesto": {
+            "type": "object",
+            "required": ["api_requests_dia", "justificacion"],
+            "properties": {
+              "api_requests_dia": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "justificacion": {
+                "type": "string",
+                "minLength": 20
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

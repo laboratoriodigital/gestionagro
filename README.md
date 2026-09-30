@@ -33,6 +33,7 @@ pnpm verificar
 | `pnpm test` | Vitest |
 | `pnpm test:cobertura` | Vitest con cobertura v8 |
 | `pnpm build` | Build de cada paquete que lo tenga |
+| `pnpm validar:productos` | Valida todos los `product.yaml` contra `schemas/product.schema.json` |
 
 ## Reglas de la casa
 

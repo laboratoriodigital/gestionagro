@@ -1,0 +1,28 @@
+# Contrato de la calculadora de DPV (ARQUITECTURA §5.1, HU-E1.3).
+id: agro-calculadora-dpv
+slug: /herramientas/agro/calculadora-dpv/
+tipo: utility
+estado: borrador
+familia: agro
+icp: false
+peldano: herramienta-gratuita
+siguiente_paso: agro-cuaderno
+plantilla: tool-agro
+runtime: browser
+seo:
+  title: "Calculadora de DPV (déficit de presión de vapor) para invernadero"
+  description: "Calcula el déficit de presión de vapor de tu invernadero con temperatura y humedad, y mira si está en rango para tu cultivo. Gratis y sin registro."
+monetizacion:
+  ads: []
+  ads_en_procesamiento: false
+# agro-dosis-por-bomba entra cuando exista (HU-E10.1): relacionados solo acepta productos existentes.
+relacionados: [agro-cuaderno]
+eventos: [tool.opened, tool.completed, tool.shared, tool.next_step]
+presupuesto:
+  api_requests_dia: 0
+  analytics_points_dia: 2000
+kill_switch: true
+revision_agronomica: pendiente
+fuentes:
+  - "FAO-56, ec. 11 (Allen et al., 1998)"
+  - "Shamshiri et al. (2018), International Agrophysics"

@@ -1,5 +1,5 @@
 /**
- * `pnpm verificar`: lint, typecheck, pruebas y build, en ese orden.
+ * `pnpm verificar`: lint, typecheck, contratos product.yaml, pruebas y build, en ese orden.
  *
  * Corre todos los pasos aunque uno falle y al final los resume juntos (P15), para no
  * descubrir una falla por corrida. Sale con código 1 si alguno falló.
@@ -11,7 +11,7 @@ import { spawnSync } from 'node:child_process';
 import { RAIZ } from './lib/repo.ts';
 import { type ResultadoPaso, resumir } from './lib/resumen.ts';
 
-const PASOS = ['lint', 'typecheck', 'test', 'build'] as const;
+const PASOS = ['lint', 'typecheck', 'validar:productos', 'test', 'build'] as const;
 
 const resultados: ResultadoPaso[] = PASOS.map((paso) => {
   console.log(`\n▶ ${paso}`);

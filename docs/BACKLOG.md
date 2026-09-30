@@ -259,7 +259,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E1.3 · Contrato `product.yaml` agro validado en CI
 **Como** dueño **quiero** que cada herramienta declare su contrato (peldaño, siguiente paso, presupuesto, kill switch, revisión agronómica) **para** que ninguna salga sin sus reglas.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** En sprint (rama `feat/e1.3-e1.7-contratos-y-fincas`)
 - **Criterios de aceptación:**
   1. Dado `schemas/product.schema.json` con la extensión agro de ARQUITECTURA §5.1, cuando un `product.yaml` omite `presupuesto`, `kill_switch`, `peldano` o `siguiente_paso`, entonces CI falla y nombra el campo.
   2. Un producto en estado `activo` con `revision_agronomica: pendiente` hace fallar CI.
@@ -274,7 +274,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E1.7 · Dos fincas de prueba y ningún nombre real
 **Como** desarrollador **quiero** fixtures de dos fincas de prueba distintas y una lista de términos prohibidos **para** que ninguna prueba dependa de la finca cero.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** En sprint (rama `feat/e1.3-e1.7-contratos-y-fincas`)
 - **Criterios de aceptación:**
   1. Existen `Finca Ensayo Uno` (hortaliza, 3 naves, ecológica) y `Finca Ensayo Dos` (flores, 5 bloques, convencional) en `tests/fixtures/`.
   2. `tests/terminos-prohibidos.json` contiene los nombres reales de la finca cero y de sus personas. La lista vive fuera del repositorio público si algún día se publica.
