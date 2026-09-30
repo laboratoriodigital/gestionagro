@@ -1,0 +1,49 @@
+{
+  "finca": {
+    "id": "0192f3a0-0000-7000-8000-000000000001",
+    "nombre": "Finca Ensayo Uno",
+    "municipio": "Municipio Ensayo A",
+    "regimen": "ecologico"
+  },
+  "cultivo": { "nombre": "Tomate", "variedad": "Variedad Ensayo T1", "unidad_cosecha": "kg" },
+  "areas": [
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000101",
+      "tipo": "nave",
+      "nombre": "Nave 1",
+      "area_m2": 600,
+      "plantas": 1500
+    },
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000102",
+      "tipo": "nave",
+      "nombre": "Nave 2",
+      "area_m2": 600,
+      "plantas": 1500
+    },
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000103",
+      "tipo": "nave",
+      "nombre": "Nave 3",
+      "area_m2": 450,
+      "plantas": 1100
+    }
+  ],
+  "personas": [
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000201",
+      "nombre": "Operaria Ensayo Uno",
+      "rol": "operario"
+    },
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000202",
+      "nombre": "Supervisor Ensayo Uno",
+      "rol": "supervisor"
+    },
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000203",
+      "nombre": "Propietaria Ensayo Uno",
+      "rol": "propietario"
+    }
+  ]
+}

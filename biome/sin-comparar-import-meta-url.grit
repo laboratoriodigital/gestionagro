@@ -1,0 +1,11 @@
+language js
+
+or {
+  `$a === $b`,
+  `$a == $b`,
+  `$a !== $b`,
+  `$a != $b`
+} as $cmp where {
+  or { $a <: `import.meta.url`, $b <: `import.meta.url` },
+  register_diagnostic(span=$cmp, message="No compares import.meta.url con una cadena: en Windows la ruta no coincide (P3). Usa fileURLToPath y path.resolve.")
+}

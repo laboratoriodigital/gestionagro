@@ -1,0 +1,29 @@
+# CI de cada pull request y de main (HU-E1.2, ARQUITECTURA §7.2).
+# Todo corre en un solo paso para que el resumen nombre TODAS las fallas (P15).
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Verificar (instalar, lint, typecheck, contratos, pruebas, build, licencias)
+        run: node scripts/verificar.ts --ci

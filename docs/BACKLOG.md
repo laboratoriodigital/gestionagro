@@ -219,7 +219,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E1.1 · Monorepo que corre igual en Windows y en CI
 **Como** desarrollador **quiero** un monorepo con pnpm, TypeScript estricto, Biome y Vitest **para** que cada paquete se pruebe igual en mi Windows y en Actions.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S1 · **Depende de:** HU-E0.1 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S1 · **Depende de:** HU-E0.1 · **Estado:** En sprint (rama `feat/e1.1-monorepo`; CA1 en Linux se comprueba con el CI de HU-E1.2)
 - **Criterios de aceptación:**
   1. Dado un clon limpio en Windows y en Linux, cuando corro `pnpm install && pnpm verificar`, entonces corren lint, typecheck, pruebas y build de todos los paquetes con el mismo resultado.
   2. `tsconfig` base con `strict`, `noUncheckedIndexedAccess` y `exactOptionalPropertyTypes`.
@@ -238,7 +238,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E1.2 · CI que dice todo lo que falla
 **Como** desarrollador **quiero** que cada pull request corra lint, typecheck, pruebas, build, licencias y guardias de documentación y resuma **todas** las fallas **para** no descubrir una falla por corrida.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** En sprint (rama `feat/e1.2-ci`; CA1, CA5 y CA6 se confirman con la primera corrida real en GitHub, P16)
 - **Criterios de aceptación:**
   1. Dado un pull request, cuando corre `ci.yml`, entonces el resumen de la corrida lista cada verificación con ✅ o ❌ y, debajo, cada falla con su mensaje (P15).
   2. Una dependencia con licencia AGPL o sin licencia hace fallar el build con el nombre del paquete.
@@ -259,7 +259,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E1.3 · Contrato `product.yaml` agro validado en CI
 **Como** dueño **quiero** que cada herramienta declare su contrato (peldaño, siguiente paso, presupuesto, kill switch, revisión agronómica) **para** que ninguna salga sin sus reglas.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** En sprint (rama `feat/e1.3-e1.7-contratos-y-fincas`)
 - **Criterios de aceptación:**
   1. Dado `schemas/product.schema.json` con la extensión agro de ARQUITECTURA §5.1, cuando un `product.yaml` omite `presupuesto`, `kill_switch`, `peldano` o `siguiente_paso`, entonces CI falla y nombra el campo.
   2. Un producto en estado `activo` con `revision_agronomica: pendiente` hace fallar CI.
@@ -274,7 +274,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E1.7 · Dos fincas de prueba y ningún nombre real
 **Como** desarrollador **quiero** fixtures de dos fincas de prueba distintas y una lista de términos prohibidos **para** que ninguna prueba dependa de la finca cero.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** En sprint (rama `feat/e1.3-e1.7-contratos-y-fincas`)
 - **Criterios de aceptación:**
   1. Existen `Finca Ensayo Uno` (hortaliza, 3 naves, ecológica) y `Finca Ensayo Dos` (flores, 5 bloques, convencional) en `tests/fixtures/`.
   2. `tests/terminos-prohibidos.json` contiene los nombres reales de la finca cero y de sus personas. La lista vive fuera del repositorio público si algún día se publica.

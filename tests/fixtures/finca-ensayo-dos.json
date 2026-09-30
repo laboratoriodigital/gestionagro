@@ -1,0 +1,68 @@
+{
+  "finca": {
+    "id": "0192f3a0-0000-7000-8000-000000000002",
+    "nombre": "Finca Ensayo Dos",
+    "municipio": "Municipio Ensayo B",
+    "regimen": "convencional"
+  },
+  "cultivo": { "nombre": "Rosa", "variedad": "Variedad Ensayo R1", "unidad_cosecha": "tallos" },
+  "areas": [
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000111",
+      "tipo": "bloque",
+      "nombre": "Bloque A",
+      "area_m2": 2000,
+      "plantas": 14000
+    },
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000112",
+      "tipo": "bloque",
+      "nombre": "Bloque B",
+      "area_m2": 2000,
+      "plantas": 14000
+    },
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000113",
+      "tipo": "bloque",
+      "nombre": "Bloque C",
+      "area_m2": 1800,
+      "plantas": 12500
+    },
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000114",
+      "tipo": "bloque",
+      "nombre": "Bloque D",
+      "area_m2": 1800,
+      "plantas": 12500
+    },
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000115",
+      "tipo": "bloque",
+      "nombre": "Bloque E",
+      "area_m2": 1500,
+      "plantas": 10000
+    }
+  ],
+  "personas": [
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000211",
+      "nombre": "Operario Ensayo Dos",
+      "rol": "operario"
+    },
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000212",
+      "nombre": "Operaria Ensayo Dos",
+      "rol": "operario"
+    },
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000213",
+      "nombre": "Supervisora Ensayo Dos",
+      "rol": "supervisor"
+    },
+    {
+      "id": "0192f3a0-0000-7000-8000-000000000214",
+      "nombre": "Propietario Ensayo Dos",
+      "rol": "propietario"
+    }
+  ]
+}
