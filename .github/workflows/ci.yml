@@ -25,5 +25,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Verificar (instalar, lint, typecheck, contratos, pruebas, build, licencias)
+      - name: Caché de los navegadores de Playwright
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Verificar (instalar, lint, typecheck, contratos, pruebas, build, e2e, licencias)
         run: node scripts/verificar.ts --ci

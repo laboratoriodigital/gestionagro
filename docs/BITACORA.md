@@ -262,6 +262,7 @@ No son errores. Son decisiones que cambiaron con información nueva.
 - **Una invocación de Worker gratuito admite 50 consultas a D1.** La sincronización sube en lotes de ≤ 25 operaciones.
 - **Los términos de Cloudflare prohíben esquivar cuotas, crear cuentas en masa y registrarse por terceros** (§2.2.1 a, c, e).
 - **`corepack enable` no sirve en la máquina del dueño** (30 sep 2026). Escribe los atajos en `C:\Program Files\nodejs` y falla con `EPERM: operation not permitted, open 'C:\Program Files\nodejs\pnpx'`. Con `--install-directory` tampoco: el corepack 0.33 de Node 22.18 busca `bin\pnpm.cjs`, que pnpm 12 ya no trae. pnpm se instala con `npm install -g pnpm@<versión de packageManager>`, que escribe en `AppData\Roaming\npm` (README, Arranque).
+- **La descarga de Chromium de Playwright no funciona en la máquina del dueño** (30 sep 2026): `Request to https://cdn.playwright.dev/… timed out`, con sandbox y sin él, aunque `curl` baja el mismo archivo. En Windows local, `playwright.config.ts` usa el Microsoft Edge instalado (`channel: msedge`, mismo motor Chromium); en CI se usa el Chromium de Playwright. `PW_CANAL` fuerza uno u otro.
 - **pnpm 11 se niega a correr cualquier script si una clave de dependencias no es un nombre de paquete** (`ERR_PNPM_INVALID_DEPENDENCY_NAME`). La guardia de `tests/repo/package-json.test.ts` lo repite para no depender de la versión de pnpm.
 
 ---

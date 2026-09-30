@@ -17,11 +17,14 @@
     "build": "pnpm -r --if-present run build",
     "verificar": "node scripts/verificar.ts",
     "validar:productos": "node scripts/validar-productos.ts",
-    "licencias": "node scripts/licencias.ts"
+    "licencias": "node scripts/licencias.ts",
+    "e2e": "playwright test"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@biomejs/biome": "^2.5.14",
     "@gestionagro/agro-schema": "workspace:*",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.20.4",
     "@vitest/coverage-v8": "^5.0.2",
     "ajv": "^8.20.0",

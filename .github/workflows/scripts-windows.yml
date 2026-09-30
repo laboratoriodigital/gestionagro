@@ -33,4 +33,4 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Verificar en Windows
-        run: node scripts/verificar.ts --ci
+        run: node scripts/verificar.ts --ci --sin-e2e
