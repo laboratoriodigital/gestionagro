@@ -1,0 +1,147 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
+import {
+  type Flujo,
+  revisarConcurrencia,
+  revisarPipefail,
+  revisarSecretos,
+  revisarTiempos,
+  secretosDocumentados,
+} from '../../scripts/lib/flujos.ts';
+import { listarArchivos, RAIZ } from '../../scripts/lib/repo.ts';
+
+const flujo = (yaml: string): Flujo => parse(yaml) as Flujo;
+
+describe('guardia de pipefail (P14)', () => {
+  it('rechaza «| tee» sin set -o pipefail', () => {
+    const f = flujo(`
+jobs:
+  a:
+    steps:
+      - name: pruebas
+        run: pnpm test | tee salida.txt
+`);
+    expect(revisarPipefail('x.yml', f)).toEqual([
+      expect.objectContaining({ motivo: expect.stringContaining('paso «pruebas»') }),
+    ]);
+  });
+
+  it('acepta «| tee» con set -o pipefail', () => {
+    const f = flujo(`
+jobs:
+  a:
+    steps:
+      - run: |
+          set -o pipefail
+          pnpm test | tee salida.txt
+`);
+    expect(revisarPipefail('x.yml', f)).toEqual([]);
+  });
+});
+
+describe('guardia de tiempos y concurrencia', () => {
+  it('exige timeout-minutes entre 1 y 15 en cada trabajo', () => {
+    const f = flujo(`
+jobs:
+  sin: { steps: [] }
+  largo: { timeout-minutes: 30, steps: [] }
+  bien: { timeout-minutes: 15, steps: [] }
+`);
+    expect(revisarTiempos('x.yml', f).map((h) => h.motivo)).toEqual([
+      expect.stringContaining('jobs.sin'),
+      expect.stringContaining('jobs.largo'),
+    ]);
+  });
+
+  it('exige cancelar la corrida vieja de la misma rama', () => {
+    expect(revisarConcurrencia('x.yml', flujo('jobs: {}'))).toHaveLength(1);
+    expect(
+      revisarConcurrencia('x.yml', flujo('concurrency: { group: ci, cancel-in-progress: true }')),
+    ).toHaveLength(1);
+    expect(
+      revisarConcurrencia(
+        'x.yml',
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: es una expresión de GitHub Actions, no de JS
+        flujo('concurrency: { group: "ci-${{ github.ref }}", cancel-in-progress: true }'),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('guardia de secretos documentados (P18)', () => {
+  const doc = '### 7.5 Secretos\n\nLista actual: `CF_API_TOKEN`, `CF_ACCOUNT_ID`.\n\n## 8. Otra';
+
+  it('lee la lista de ARQUITECTURA §7.5', () => {
+    expect(secretosDocumentados(doc)).toEqual(['CF_ACCOUNT_ID', 'CF_API_TOKEN']);
+  });
+
+  it('rechaza un secreto que el documento no nombra, y acepta GITHUB_TOKEN', () => {
+    const texto =
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: es una expresión de GitHub Actions, no de JS
+      'a: ${{ secrets.CF_API_TOKEN }}\nb: ${{ secrets.OTRO }}\nc: ${{ secrets.GITHUB_TOKEN }}';
+    expect(revisarSecretos('x.yml', texto, secretosDocumentados(doc))).toEqual([
+      expect.objectContaining({ motivo: expect.stringContaining('«OTRO»') }),
+    ]);
+  });
+
+  it('la sección real existe y trae los secretos de la arquitectura', () => {
+    const arquitectura = readFileSync(join(RAIZ, 'docs', 'ARQUITECTURA.md'), 'utf8');
+    expect(secretosDocumentados(arquitectura)).toEqual(
+      expect.arrayContaining(['CF_API_TOKEN', 'CF_ACCOUNT_ID', 'CORE_JWT_PRIVATE_KEY']),
+    );
+  });
+});
+
+describe('los flujos del repositorio', () => {
+  const archivos = listarArchivos((rel) => /^\.github\/workflows\/.+\.ya?ml$/.test(rel));
+  const arquitectura = readFileSync(join(RAIZ, 'docs', 'ARQUITECTURA.md'), 'utf8');
+  const documentados = secretosDocumentados(arquitectura);
+
+  it('existen ci.yml y scripts-windows.yml', () => {
+    expect(archivos).toEqual(
+      expect.arrayContaining(['.github/workflows/ci.yml', '.github/workflows/scripts-windows.yml']),
+    );
+  });
+
+  it('cumplen pipefail, tiempos, concurrencia y secretos', () => {
+    const hallazgos = archivos.flatMap((archivo) => {
+      const texto = readFileSync(join(RAIZ, archivo), 'utf8');
+      const f = parse(texto) as Flujo;
+      return [
+        ...revisarPipefail(archivo, f),
+        ...revisarTiempos(archivo, f),
+        ...revisarConcurrencia(archivo, f),
+        ...revisarSecretos(archivo, texto, documentados),
+      ];
+    });
+    expect(hallazgos).toEqual([]);
+  });
+
+  it('el flujo de Windows corre en windows-latest cuando cambian scripts/ y los lunes', () => {
+    const f = parse(readFileSync(join(RAIZ, '.github/workflows/scripts-windows.yml'), 'utf8'));
+    expect(f.jobs.windows['runs-on']).toBe('windows-latest');
+    expect(f.on.pull_request.paths).toContain('scripts/**');
+    expect(f.on.schedule[0].cron).toMatch(/ 1$/);
+  });
+});
+
+describe('plantilla de pull request (P5, P18)', () => {
+  it('pide control negativo y si cambió algo que un documento afirma', () => {
+    const plantilla = readFileSync(join(RAIZ, '.github', 'pull_request_template.md'), 'utf8');
+    expect(plantilla).toContain('## Control negativo');
+    expect(plantilla).toContain('## ¿Cambió algo que un documento afirma?');
+  });
+});
+
+describe('esperas por tiempo en las pruebas (P19)', () => {
+  // Se esperan estados, no tiempos. El nombre se arma para que este archivo no se acuse solo.
+  const prohibido = ['waitFor', 'Timeout('].join('');
+  it(`ninguna prueba usa ${prohibido}`, () => {
+    const conEspera = listarArchivos((rel) => /\.(ts|tsx|js|mjs)$/.test(rel)).filter((rel) =>
+      readFileSync(join(RAIZ, rel), 'utf8').includes(prohibido),
+    );
+    expect(conEspera).toEqual([]);
+  });
+});

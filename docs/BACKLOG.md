@@ -238,7 +238,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E1.2 · CI que dice todo lo que falla
 **Como** desarrollador **quiero** que cada pull request corra lint, typecheck, pruebas, build, licencias y guardias de documentación y resuma **todas** las fallas **para** no descubrir una falla por corrida.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S1 · **Depende de:** HU-E1.1 · **Estado:** En sprint (rama `feat/e1.2-ci`; CA1, CA5 y CA6 se confirman con la primera corrida real en GitHub, P16)
 - **Criterios de aceptación:**
   1. Dado un pull request, cuando corre `ci.yml`, entonces el resumen de la corrida lista cada verificación con ✅ o ❌ y, debajo, cada falla con su mensaje (P15).
   2. Una dependencia con licencia AGPL o sin licencia hace fallar el build con el nombre del paquete.

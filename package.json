@@ -16,7 +16,8 @@
     "test:cobertura": "vitest run --coverage",
     "build": "pnpm -r --if-present run build",
     "verificar": "node scripts/verificar.ts",
-    "validar:productos": "node scripts/validar-productos.ts"
+    "validar:productos": "node scripts/validar-productos.ts",
+    "licencias": "node scripts/licencias.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
