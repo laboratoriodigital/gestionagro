@@ -1,0 +1,20 @@
+# Dependencias y salidas de build
+node_modules/
+dist/
+coverage/
+.astro/
+.wrangler/
+*.tsbuildinfo
+
+# Entorno local
+.env
+.env.*
+.dev.vars
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Residuos que el dueño borra a mano (bitácora agro 1)
+_to_delete/

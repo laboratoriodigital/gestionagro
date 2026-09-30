@@ -1,0 +1,6 @@
+# Fin de línea LF en el repositorio, igual en Windows y en CI (P3)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.pdf binary
