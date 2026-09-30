@@ -1,6 +1,6 @@
 # Gestión Agro — Arquitectura
 
-**Estado:** propuesta para aprobación (Fase 0)
+**Estado:** aprobada (Fase 0), salvo ADR-19
 **Versión:** 0.1.0 · 30 sep 2026
 **Proyecto:** ED1 Agro (línea agrícola de laboratorio-digital.com), repositorio `laboratoriodigital/gestionagro`
 **Documentos que manda este:** `ECOSISTEMA-DIGITAL-ED1-v1.2.md` (ED1 §), `REVISION-HALLAZGOS-ED1.md` ([H1]–[H16]), `Estudio de mercado software para invernaderos y agricultura.md` (Estudio), `BITACORA-ecommerce.md` (bitácora ecommerce). El plan de trabajo vive en `BACKLOG.md` y lo que se rompa, en `BITACORA.md`.
@@ -27,29 +27,29 @@ Contradicciones con ED1 que este documento resuelve de forma explícita (no las 
 
 ## 1. Decisiones (ADR)
 
-Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`. Estado: **Propuesta** hasta que la apruebes, **Aceptada** después.
+Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`. Estado: **Propuesta** hasta que el dueño la apruebe, **Aceptada** después. Revisión del 30 sep 2026 (HU-E0.1): ADR-1 a ADR-18 aceptadas sin cambios; ADR-19 sigue propuesta hasta el spike.
 
-| ADR | Decisión | Por qué, en una línea | Alternativa descartada |
-|---|---|---|---|
-| 1 | La finca cero es un cliente más (mismo alta, mismos datos, mismas pruebas) | P6: lo que se escribe «para los demás» deja fuera al primero | Código o configuración especial para tu invernadero |
-| 2 | Gestión Agro entra antes de sus umbrales ED1 como **excepción de cliente cero** | Hay una operación real que registrar desde el trasplante | Esperar a Fase 7 (§33 ED1) |
-| 3 | Offline-first con IndexedDB; la nube es réplica, no fuente | 43 % de hogares rurales sin internet; costo; privacidad | App que depende de conexión |
-| 4 | Registros inmutables + catálogos con última-escritura-gana e historial | Sincronización simple y auditable | CRDT o fusión campo a campo |
-| 5 | Reportes, costos y carencias se calculan en el navegador | 10 ms de CPU del Worker gratuito; browser-first | Endpoints de reporte |
-| 6 | Multi-tenant por celdas; directorio `organización → celda, shard` en el CORE | Un despliegue para cientos de fincas; mudanza posible | Un repositorio/cuenta por finca (modelo de la tienda) |
-| 7 | Escalar pasando la celda a Workers Paid, no abriendo cuentas gratuitas | Cloudflare §2.2.1(c) | Celdas en cuentas gratuitas nuevas |
-| 8 | Celdas dedicadas solo en cuentas **del cliente** (Cadena/Exportador) | Cloudflare §2.2.1(a): no registrarse a nombre de terceros | Cuentas creadas por ED1 a nombre del cliente |
-| 9 | CORE v0 (identidad, organizaciones, membresías, directorio) se construye ya, mínimo | Primer producto con cuentas: extraer después cuesta migrar usuarios | Identidad dentro del Worker agro |
-| 10 | Tokens firmados con Ed25519 por el CORE y verificados en cada celda sin llamarlo | Cero consultas cruzadas; celdas en otras cuentas | Sesión en cookie consultada al CORE |
-| 11 | Sitio público y calculadoras con Astro (estático) + islas Preact; cuaderno como PWA Preact en `/agro/app/` | Static-first (§3.10 ED1), liviano en teléfonos baratos | SSR, React, app nativa |
-| 12 | API de celda con Hono sobre Workers; SQL escrito a mano con migraciones de `wrangler` | Pocas dependencias; una sola fuente del esquema | ORM con su propio generador |
-| 13 | Protocolo de sincronización versionado; el servidor **nunca descarta** un dato de campo por versión | P10: un teléfono puede pasar semanas con la versión vieja | Forzar actualización antes de subir |
-| 14 | QR de trazabilidad = página estática + datos en el fragmento `#` + firma de la celda | Cero costo por escaneo; funciona para siempre | Página dinámica por lote |
-| 15 | Fotos opcionales, comprimidas en el navegador y con cuota por plan | R2 gratuito da ~90 finca-año de fotos (§6.2) | Fotos ilimitadas |
-| 16 | Alertas operativas al dueño por Telegram; reporte semanal por GitHub Actions con métricas agregadas | Gratis y sin datos de usuarios en Actions ([H6]) | Email transaccional desde el día 1 |
-| 17 | Monorepo privado; `firmware/`, `hardware/` y `packages/agro-calc` se publican como espejo público cuando tengan su primera versión | Diseño abierto (Estudio) sin exponer el SaaS | Todo público desde el día 1 |
-| 18 | Herramientas del repositorio en Node/TypeScript, nunca scripts de bash para el operador | P3: tu máquina es Windows | Scripts `.sh` |
-| 19 | Rutas: calculadoras en `/herramientas/agro/<slug>/`, cuaderno en `/agro/app/` (pendiente del spike HU-E1.4) | SEO en el dominio principal (§11 ED1) | Subdominio (queda como plan B) |
+| ADR | Decisión | Por qué, en una línea | Alternativa descartada | Estado |
+|---|---|---|---|---|
+| 1 | La finca cero es un cliente más (mismo alta, mismos datos, mismas pruebas) | P6: lo que se escribe «para los demás» deja fuera al primero | Código o configuración especial para tu invernadero | Aceptada |
+| 2 | Gestión Agro entra antes de sus umbrales ED1 como **excepción de cliente cero** | Hay una operación real que registrar desde el trasplante | Esperar a Fase 7 (§33 ED1) | Aceptada |
+| 3 | Offline-first con IndexedDB; la nube es réplica, no fuente | 43 % de hogares rurales sin internet; costo; privacidad | App que depende de conexión | Aceptada |
+| 4 | Registros inmutables + catálogos con última-escritura-gana e historial | Sincronización simple y auditable | CRDT o fusión campo a campo | Aceptada |
+| 5 | Reportes, costos y carencias se calculan en el navegador | 10 ms de CPU del Worker gratuito; browser-first | Endpoints de reporte | Aceptada |
+| 6 | Multi-tenant por celdas; directorio `organización → celda, shard` en el CORE | Un despliegue para cientos de fincas; mudanza posible | Un repositorio/cuenta por finca (modelo de la tienda) | Aceptada |
+| 7 | Escalar pasando la celda a Workers Paid, no abriendo cuentas gratuitas | Cloudflare §2.2.1(c) | Celdas en cuentas gratuitas nuevas | Aceptada |
+| 8 | Celdas dedicadas solo en cuentas **del cliente** (Cadena/Exportador) | Cloudflare §2.2.1(a): no registrarse a nombre de terceros | Cuentas creadas por ED1 a nombre del cliente | Aceptada |
+| 9 | CORE v0 (identidad, organizaciones, membresías, directorio) se construye ya, mínimo | Primer producto con cuentas: extraer después cuesta migrar usuarios | Identidad dentro del Worker agro | Aceptada |
+| 10 | Tokens firmados con Ed25519 por el CORE y verificados en cada celda sin llamarlo | Cero consultas cruzadas; celdas en otras cuentas | Sesión en cookie consultada al CORE | Aceptada |
+| 11 | Sitio público y calculadoras con Astro (estático) + islas Preact; cuaderno como PWA Preact en `/agro/app/` | Static-first (§3.10 ED1), liviano en teléfonos baratos | SSR, React, app nativa | Aceptada |
+| 12 | API de celda con Hono sobre Workers; SQL escrito a mano con migraciones de `wrangler` | Pocas dependencias; una sola fuente del esquema | ORM con su propio generador | Aceptada |
+| 13 | Protocolo de sincronización versionado; el servidor **nunca descarta** un dato de campo por versión | P10: un teléfono puede pasar semanas con la versión vieja | Forzar actualización antes de subir | Aceptada |
+| 14 | QR de trazabilidad = página estática + datos en el fragmento `#` + firma de la celda | Cero costo por escaneo; funciona para siempre | Página dinámica por lote | Aceptada |
+| 15 | Fotos opcionales, comprimidas en el navegador y con cuota por plan | R2 gratuito da ~90 finca-año de fotos (§6.2) | Fotos ilimitadas | Aceptada |
+| 16 | Alertas operativas al dueño por Telegram; reporte semanal por GitHub Actions con métricas agregadas | Gratis y sin datos de usuarios en Actions ([H6]) | Email transaccional desde el día 1 | Aceptada |
+| 17 | Monorepo privado; `firmware/`, `hardware/` y `packages/agro-calc` se publican como espejo público cuando tengan su primera versión | Diseño abierto (Estudio) sin exponer el SaaS | Todo público desde el día 1 | Aceptada |
+| 18 | Herramientas del repositorio en Node/TypeScript, nunca scripts de bash para el operador | P3: tu máquina es Windows | Scripts `.sh` | Aceptada |
+| 19 | Rutas: calculadoras en `/herramientas/agro/<slug>/`, cuaderno en `/agro/app/` (pendiente del spike HU-E1.4) | SEO en el dominio principal (§11 ED1) | Subdominio (queda como plan B) | Propuesta: la decide el spike HU-E1.4 |
 
 ---
 
@@ -681,7 +681,7 @@ Se numeran HA para no chocar con [H1]–[H16].
 
 1. **Fecha estimada de trasplante y de primera cosecha.** El plan supone trasplante a mediados de diciembre de 2026 y primera cosecha a inicios de marzo de 2027. Si es antes, se reordena el backlog.
 2. **Dominio:** ¿`laboratorio-digital.com` ya sirve algo en Cloudflare? Decide el spike HU-E1.4.
-3. **¿El repositorio `gestionagro` es privado?** ADR-17 lo supone.
+3. **¿El repositorio `gestionagro` es privado?** Respondida el 30 sep 2026: privado al inicio. Hacerlo público se decide después según el consumo de minutos de Actions (ED1 §41). Mientras sea privado, `tests/terminos-prohibidos.json` vive en el repositorio; antes de publicarlo, sale del repositorio (HU-E1.7).
 4. **¿Hay agrónomo aliado** para revisar el DPV antes de publicarlo?
 
 ---

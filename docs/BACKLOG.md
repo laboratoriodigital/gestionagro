@@ -154,7 +154,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E0.1 · Aprobar las decisiones de arquitectura
 **Como** dueño **quiero** revisar y aceptar o corregir los ADR 1–19 **para** que el código no discuta decisiones abiertas.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S1 · **Depende de:** — · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S1 · **Depende de:** — · **Estado:** En sprint (CA1 cumplido el 30 sep 2026: ADR-1 a 18 aceptadas, ADR-19 espera el spike; CA2 con §15.3 respondida y §15.1, 15.2 y 15.4 pendientes)
 - **Criterios de aceptación:**
   1. Dado ARQUITECTURA §1, cuando termina la revisión, entonces cada ADR dice `Aceptada` o tiene su corrección escrita.
   2. Dadas las preguntas abiertas de ARQUITECTURA §15, cuando se responden, entonces las respuestas quedan en el documento y los supuestos de §1 de este backlog se actualizan.
