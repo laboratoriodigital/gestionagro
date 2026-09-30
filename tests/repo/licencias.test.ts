@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { revisarLicencias } from '../../scripts/lib/licencias.ts';
+import {
+  dependenciasDeclaradas,
+  faltantesEnListado,
+  revisarLicencias,
+} from '../../scripts/lib/licencias.ts';
 
 const pkg = (name: string) => [{ name, versions: ['1.0.0'] }];
 
@@ -27,6 +31,23 @@ describe('licencias de las dependencias (HU-E1.2)', () => {
   ])('rechaza «%s»', (licencia, motivo) => {
     expect(revisarLicencias({ [licencia]: pkg('malo') })).toEqual([
       expect.objectContaining({ paquete: 'malo@1.0.0', motivo }),
+    ]);
+  });
+});
+
+describe('la guardia de licencias se comprueba a sí misma (P17)', () => {
+  it('ignora los paquetes del workspace', () => {
+    expect(
+      dependenciasDeclaradas({
+        dependencies: { dexie: '^4', '@gestionagro/agro-schema': 'workspace:*' },
+        devDependencies: { vitest: '^5' },
+      }),
+    ).toEqual(['dexie', 'vitest']);
+  });
+
+  it('nombra lo declarado que no está en el listado', () => {
+    expect(faltantesEnListado({ MIT: pkg('vitest') }, ['vitest', 'dexie', 'dexie'])).toEqual([
+      'dexie',
     ]);
   });
 });

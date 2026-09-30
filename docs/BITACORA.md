@@ -83,7 +83,7 @@ Al 30 sep 2026 no hay código, así que ningún patrón tiene todavía «Lo impi
 - **Regla:** antes de dar una comprobación, preguntar qué respondería sin el cambio. Toda aserción nueva se ve en rojo con su defecto puesto.
 - **En Agro:** también aplica a las comprobaciones que se le piden al dueño («abre la app y mira que…»): tienen que distinguir.
 - **Lo impedirá:** plantilla de pull request con el campo «Control negativo: qué defecto se puso y cómo se vio en rojo» (HU-E1.2); Definición de Terminado (`BACKLOG.md` §2).
-- **Entradas:** —
+- **Entradas:** agro 6.
 
 #### P6 · Lo que se escribe para los que vienen después deja fuera al primero
 - **Regla:** el cliente cero también es un cliente: lo que se hace para «los demás» se corre contra él.
@@ -165,7 +165,7 @@ Al 30 sep 2026 no hay código, así que ningún patrón tiene todavía «Lo impi
   - El D1 local no reproduce el límite diario ni las 50 consultas por invocación.
   - Un emulador de ESP32 no reproduce un relé pegado.
 - **Lo impedirá:** cada doble documenta lo que no imita, y el límite de 50 consultas se simula en las pruebas del Worker (HU-E5.2).
-- **Entradas:** —
+- **Entradas:** agro 6.
 
 #### P18 · Un documento no lanza una excepción cuando miente
 - **Regla:** lo que un documento afirma del código lo ata una aserción; el redundante se borra.
@@ -363,3 +363,19 @@ Además, dos PR se fusionaron con el CI en rojo. Esta vez el rojo no hablaba del
 La regla: **una condición que dice «antes de X, haz Y» y no tiene guardia se incumple el día que X llega con prisa. Y un rojo por falta de minutos se ve igual que un rojo del código: hay que leer la causa antes de fusionar.**
 
 *Ficha:* agro · *(compartido)* · 🔴 Crítico · P13, P18, P19 · 0.1.0 · 2026-09-30
+
+**6 · La guardia de licencias solo miraba la raíz del monorepo.**
+
+*Qué pasó.* El 30 sep 2026, al agregar `dexie`, `zod` y `fake-indexeddb` en `apps/cuaderno` y `packages/agro-schema` (HU-E3.2), `pnpm licencias` siguió diciendo «✅ 59 dependencias con licencia permitida». Eran las mismas 59 de antes de instalar.
+
+*Causa raíz.* Sin `--recursive`, `pnpm licenses list` lista solo el proyecto de la raíz. HU-E1.2 se cerró con los controles negativos hechos sobre la función que clasifica licencias, no sobre el instrumento que le entrega la lista. Mientras todas las dependencias vivían en la raíz, las dos cosas daban lo mismo (P5). Una AGPL en cualquier paquete del workspace habría pasado en verde.
+
+*Cómo se reprodujo.* `pnpm licenses list --json` no contiene `dexie`; `pnpm -r licenses list --json` sí.
+
+*Arreglo.* `--recursive`, y la guardia se comprueba a sí misma: toda dependencia declarada en un `package.json` del workspace tiene que aparecer en el listado, o la corrida falla y la nombra.
+
+**Lo prueban** `tests/repo/licencias.test.ts` («la guardia de licencias se comprueba a sí misma») y la propia corrida de `pnpm licencias`. Control negativo: sin `--recursive` sale «❌ dexie / fake-indexeddb / zod: declarada en un package.json pero ausente del listado de licencias».
+
+La regla: **un control negativo tiene que poner el defecto también en el instrumento, no solo en la regla que el instrumento alimenta. Si la lista de entrada no se comprueba, «0 rechazos» puede querer decir «0 revisados».**
+
+*Ficha:* agro · *(mío)* · 🟠 Grave · P5, P17 · 0.1.0 · 2026-09-30

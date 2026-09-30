@@ -44,3 +44,26 @@ export function revisarLicencias(listado: ListadoDeLicencias): Rechazo[] {
   }
   return rechazos.sort((a, b) => a.paquete.localeCompare(b.paquete));
 }
+
+/** Dependencias de terceros que declara un `package.json` (sin los paquetes del workspace). */
+export function dependenciasDeclaradas(paquete: Readonly<Record<string, unknown>>): string[] {
+  const nombres: string[] = [];
+  for (const seccion of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+    const deps = paquete[seccion];
+    if (typeof deps !== 'object' || deps === null) continue;
+    for (const [nombre, rango] of Object.entries(deps as Record<string, unknown>)) {
+      if (typeof rango === 'string' && rango.startsWith('workspace:')) continue;
+      nombres.push(nombre);
+    }
+  }
+  return nombres;
+}
+
+/** Declaradas que no aparecen en el listado: el instrumento no las está mirando (P17). */
+export function faltantesEnListado(
+  listado: ListadoDeLicencias,
+  declaradas: readonly string[],
+): string[] {
+  const listadas = new Set(Object.values(listado).flatMap((ps) => ps.map((p) => p.name)));
+  return [...new Set(declaradas)].filter((d) => !listadas.has(d)).sort();
+}
