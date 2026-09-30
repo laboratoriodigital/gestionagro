@@ -11,7 +11,9 @@
 Dos carriles en paralelo desde el primer sprint:
 
 - **Carril A · Herramienta gratuita DPV.** Primera calculadora publicada al cierre del S4 (27 nov 2026).
-- **Carril B · Cuaderno de campo.** Registro local en tu invernadero desde el trasplante (S5, 11 dic 2026). Equipo de 4 sincronizado al cierre del S10 (5 mar 2027), a tiempo para la primera cosecha.
+- **Carril B · Cuaderno de campo.** Registro local en tu invernadero desde el S5 (11 dic 2026). Equipo de 4 sincronizado al cierre del S10 (5 mar 2027).
+
+> **Decisión del 30 sep 2026.** El trasplante es a mediados de octubre y la primera cosecha en enero de 2027, dos meses antes de lo que suponía este plan. El dueño decidió **mantener el orden** (la DPV primero). Consecuencias aceptadas: de octubre a diciembre la finca registra en papel; la primera cosecha se registra en papel hasta el S7 (HU-E6.1, 12–22 ene 2027); el equipo sincroniza después de la primera cosecha. La alternativa descartada era adelantar las 7 historias mínimas de §1.
 
 | Hito | Qué queda funcionando | Cierra | Fecha objetivo |
 |---|---|---|---|
@@ -39,8 +41,8 @@ Si alguno es falso, se reordena el plan.
 | Horas productivas por sprint | ~30 h (40 h − ceremonias − 20 % de colchón para imprevistos y bitácora) | — |
 | Escala de puntos | Fibonacci; **1 punto ≈ 3 h ideales** con asistencia de Claude | Se recalibra al cierre del S2 con la velocidad real |
 | Velocidad inicial | **10 puntos por sprint** (7 en sprints cortos) | — |
-| Trasplante | Mediados de diciembre de 2026 | Define H2. **Confirmar** |
-| Primera cosecha | Inicios de marzo de 2027 (~80 días después del trasplante) | Define el orden de E6. **Confirmar** |
+| Trasplante | Mediados de octubre de 2026 (confirmado el 30 sep 2026) | Antes de H2: la finca registra en papel hasta el S5 |
+| Primera cosecha | Enero de 2027 (confirmado el 30 sep 2026) | HU-E6.1 llega en el S7 (12–22 ene); si la cosecha empieza antes, esas semanas van en papel |
 | Laboratorio de hardware | Fuera de las 20 h de desarrollo | Si las usa, baja la velocidad |
 | Festivos | 12 oct, 2 nov, 16 nov, 8 dic, 25 dic 2026; 1 y 11 ene, 22, 25 y 26 mar 2027 | Sprints cortos: S6 y S12 |
 
@@ -82,7 +84,7 @@ Una historia entra a un sprint solo si:
 | Sprint | Fechas | Meta del sprint | Historias | Pts |
 |---|---|---|---|---|
 | **S1** | 5–16 oct 2026 | El repositorio sabe probarse solo y los contratos existen | HU-E0.1 (1), HU-E1.1 (3), HU-E1.2 (3), HU-E1.3 (2), HU-E1.7 (1) | 10 |
-| **S2** | 19–30 oct | La fórmula DPV existe y la app guarda en el teléfono | HU-E2.1 (2), HU-E1.4 (2), HU-E1.6 (3), HU-E3.2 (3) | 10 |
+| **S2** | 19–30 oct | La fórmula DPV existe y la app guarda en el teléfono | HU-E2.1 (2), HU-E1.6 (3), HU-E3.2 (3). Los 2 puntos del spike cancelado quedan de colchón para lo que se atrase del S1 | 8 |
 | **S3** | 3–13 nov | La calculadora funciona y el cuaderno se instala | HU-E2.2 (3), HU-E2.5 (2), HU-E3.1 (3), HU-E3.3 (2) | 10 |
 | **S4** | 17–27 nov | **H1:** DPV en producción; catálogos del cuaderno | HU-E1.5 (3), HU-E2.4 (1), HU-E2.6 (1), HU-E3.4 (2), HU-E3.5 (1), HU-E3.6 (2) | 10 |
 | **S5** | 30 nov–11 dic | **H2:** registrar el día a día del invernadero sin señal | HU-E3.7 (3), HU-E3.8 (1), HU-E3.9 (2), HU-E3.10 (3), HU-E3.14 (1) | 10 |
@@ -123,7 +125,7 @@ La velocidad real se anota al cierre de cada sprint en §7.
 | Épica | Objetivo | Hito | Pts |
 |---|---|---|---|
 | E0 · Decisiones y validación | Cerrar la Fase 0 del agro y medir la demanda | H0, H3, H7 | 7 |
-| E1 · Cimientos | Monorepo, CI, contratos, despliegue por anillos | H0, H1 | 17 |
+| E1 · Cimientos | Monorepo, CI, contratos, despliegue por anillos | H0, H1 | 15 (HU-E1.4 cancelada) |
 | E2 · Herramienta DPV | Primera herramienta gratuita, puerta al cuaderno | H1 | 12 |
 | E3 · Cuaderno offline | Registrar la operación sin señal | H2 | 29 |
 | E4 · Identidad y equipo (CORE v0) | Cuentas, organizaciones, invitaciones, roles | H3 | 14 |
@@ -154,7 +156,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E0.1 · Aprobar las decisiones de arquitectura
 **Como** dueño **quiero** revisar y aceptar o corregir los ADR 1–19 **para** que el código no discuta decisiones abiertas.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S1 · **Depende de:** — · **Estado:** En sprint (CA1 cumplido el 30 sep 2026: ADR-1 a 18 aceptadas, ADR-19 espera el spike; CA2 con §15.3 respondida y §15.1, 15.2 y 15.4 pendientes)
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S1 · **Depende de:** — · **Estado:** En sprint (CA1 cumplido el 30 sep 2026: ADR-1 a 18 aceptadas, ADR-19 espera el spike; CA2 cumplido: las cuatro preguntas de ARQUITECTURA §15 respondidas y §1 actualizado)
 - **Criterios de aceptación:**
   1. Dado ARQUITECTURA §1, cuando termina la revisión, entonces cada ADR dice `Aceptada` o tiene su corrección escrita.
   2. Dadas las preguntas abiertas de ARQUITECTURA §15, cuando se responden, entonces las respuestas quedan en el documento y los supuestos de §1 de este backlog se actualizan.
@@ -212,7 +214,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 | Tarea | Cuándo | Horas | Resultado |
 |---|---|---|---|
 | T-0.3 Entrevistas: 5 productores bajo invernadero, 3 asesores técnicos, 2 restaurantes o cadenas compradoras | Oct–nov | 10 h | `docs/validacion/entrevistas.md`: dolor confirmado o no (umbral 0 → 1–2) |
-| T-0.4 Conseguir agrónomo aliado que revise DPV y textos | Antes del S3 | 3 h | Nombre y fecha de revisión en el `product.yaml` de la DPV |
+| T-0.4 Conseguir agrónomo aliado que revise DPV y textos | Antes del S3 | 3 h | Resuelta el 30 sep 2026: el supervisor de la finca cero, agrónomo. Se registra en `product.yaml` por rol y fecha (`aprobada:<fecha>:agronomo-aliado`), no por nombre (P4) |
 | T-0.5 Documentar el día a día real del invernadero: quién registra qué y cuándo | S3–S5 | 3 h | Ajusta los formularios de E3 |
 
 ### E1 · Cimientos
@@ -284,9 +286,12 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
   - WI-E1.7.1 Fixtures (1 h).
   - WI-E1.7.2 Prueba de términos prohibidos con control negativo (1,5 h).
 
-#### HU-E1.4 · Spike: servir `/herramientas/agro/` en el dominio principal sin gastar cuota
+#### HU-E1.4 · Spike: servir `/herramientas/agro/` en el dominio principal sin gastar cuota — *Cancelada*
+
+> Cancelada el 30 sep 2026: el dueño eligió el subdominio `agro.laboratorio-digital.com` con las mismas rutas (ADR-19 aceptada). Se conserva como referencia si algún día se valida mudar al dominio principal.
+
 **Como** dueño **quiero** saber si un Worker con Static Assets puede servir rutas del dominio principal gratis **para** decidir ADR-19.
-- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 2 (caja de tiempo: 6 h) · **Sprint:** S2 · **Depende de:** HU-E0.1 (respuesta sobre el dominio) · **Estado:** Refinada
+- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 2 (caja de tiempo: 6 h) · **Sprint:** S2 · **Depende de:** HU-E0.1 (respuesta sobre el dominio) · **Estado:** Cancelada
 - **Criterios de aceptación:**
   1. Dado un Worker de prueba con assets en una ruta del dominio, cuando se piden 100 páginas, entonces las métricas de Cloudflare muestran 0 invocaciones del script, o se documenta que no es así.
   2. El resultado queda en ARQUITECTURA ADR-19 como `Aceptada` o con el plan B (subdominio) aplicado, con la fuente y la fecha.
@@ -317,7 +322,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E1.5 · Despliegue por anillos desde `celdas.json`
 **Como** dueño **quiero** que una fusión a `main` despliegue a staging y que publicar una versión despliegue a cada celda en su orden **para** no desplegar a mano ni en el orden equivocado.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S4 · **Depende de:** HU-E1.2, HU-E1.4 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S4 · **Depende de:** HU-E1.2 (HU-E1.4 cancelada; el host sale de ADR-19) · **Estado:** Refinada
 - **Criterios de aceptación:**
   1. `infrastructure/celdas.json` es la única lista de celdas. `scripts/generar-wrangler` produce la configuración por celda y una prueba compara (P2).
   2. Antes de desplegar, el flujo verifica el `CF_API_TOKEN` de esa celda con una lectura. Si falla, se detiene con el nombre de la celda y el permiso que falta (P12).
@@ -1168,7 +1173,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 | Riesgo | Señal temprana | Respuesta |
 |---|---|---|
 | La velocidad real es menor que 10 | Cierre del S2 por debajo de 8 | Se recorta H6 y H7 antes que H2 y H3; nunca se recortan pruebas ni la DoD |
-| El trasplante se adelanta | Fecha confirmada antes del 30 nov | Se adelantan las 7 historias de §1 y la DPV cede un sprint |
+| El trasplante se adelanta | Fecha confirmada antes del 30 nov | Ocurrió el 30 sep 2026 (mediados de octubre). El dueño mantuvo el orden; ver la decisión de §0. Si el papel no alcanza en la finca (menos de 5 registros al día o datos perdidos en noviembre), se reabre y se adelantan las 7 historias de §1 |
 | La DPV no pasa el umbral a 90 días | Completado < 60 % o impresiones planas | Criterio de pivote (ED1 §19.1): revisar herramienta o cultivo antes de la segunda calculadora |
 | La finca cero no usa el cuaderno a diario | Menos de 5 registros por día en enero | Revisión con el equipo de la finca (P20) antes de seguir con E4–E5 |
 | El laboratorio de hardware absorbe horas | Velocidad baja dos sprints seguidos | Se declara y se ajusta la capacidad en §1 |

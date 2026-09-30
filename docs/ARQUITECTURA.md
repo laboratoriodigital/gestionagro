@@ -1,6 +1,6 @@
 # Gestión Agro — Arquitectura
 
-**Estado:** aprobada (Fase 0), salvo ADR-19
+**Estado:** aprobada (Fase 0)
 **Versión:** 0.1.0 · 30 sep 2026
 **Proyecto:** ED1 Agro (línea agrícola de laboratorio-digital.com), repositorio `laboratoriodigital/gestionagro`
 **Documentos que manda este:** `ECOSISTEMA-DIGITAL-ED1-v1.2.md` (ED1 §), `REVISION-HALLAZGOS-ED1.md` ([H1]–[H16]), `Estudio de mercado software para invernaderos y agricultura.md` (Estudio), `BITACORA-ecommerce.md` (bitácora ecommerce). El plan de trabajo vive en `BACKLOG.md` y lo que se rompa, en `BITACORA.md`.
@@ -27,7 +27,7 @@ Contradicciones con ED1 que este documento resuelve de forma explícita (no las 
 
 ## 1. Decisiones (ADR)
 
-Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`. Estado: **Propuesta** hasta que el dueño la apruebe, **Aceptada** después. Revisión del 30 sep 2026 (HU-E0.1): ADR-1 a ADR-18 aceptadas sin cambios; ADR-19 sigue propuesta hasta el spike.
+Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`. Estado: **Propuesta** hasta que el dueño la apruebe, **Aceptada** después. Revisión del 30 sep 2026 (HU-E0.1): ADR-1 a ADR-18 aceptadas sin cambios. ADR-19 aceptada con el plan B por decisión del dueño: subdominio propio, mismas rutas; el spike HU-E1.4 se cancela.
 
 | ADR | Decisión | Por qué, en una línea | Alternativa descartada | Estado |
 |---|---|---|---|---|
@@ -49,7 +49,7 @@ Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`
 | 16 | Alertas operativas al dueño por Telegram; reporte semanal por GitHub Actions con métricas agregadas | Gratis y sin datos de usuarios en Actions ([H6]) | Email transaccional desde el día 1 | Aceptada |
 | 17 | Monorepo privado; `firmware/`, `hardware/` y `packages/agro-calc` se publican como espejo público cuando tengan su primera versión | Diseño abierto (Estudio) sin exponer el SaaS | Todo público desde el día 1 | Aceptada |
 | 18 | Herramientas del repositorio en Node/TypeScript, nunca scripts de bash para el operador | P3: tu máquina es Windows | Scripts `.sh` | Aceptada |
-| 19 | Rutas: calculadoras en `/herramientas/agro/<slug>/`, cuaderno en `/agro/app/` (pendiente del spike HU-E1.4) | SEO en el dominio principal (§11 ED1) | Subdominio (queda como plan B) | Propuesta: la decide el spike HU-E1.4 |
+| 19 | Host `agro.laboratorio-digital.com` con las rutas de siempre: calculadoras en `/herramientas/agro/<slug>/`, cuaderno en `/agro/app/`, QR en `/agro/t/` | Subdominio propio desde el día 1, sin spike. Las rutas no cambian, así que volver al dominio principal (o a otro dominio) es cambiar el host y redirigir; los QR impresos siguen sirviendo con la redirección | Dominio principal verificado por el spike HU-E1.4 (cancelado); rutas cortas en el subdominio | Aceptada (30 sep 2026) |
 
 ---
 
@@ -162,7 +162,7 @@ Se heredan todos los de ED1 §3 y los de las instrucciones del proyecto §4. Aqu
 ### 5.1 Sitio público y calculadoras
 
 - **Qué es:** un Worker con **Static Assets** que sirve páginas generadas por Astro. Las calculadoras son islas Preact. Ninguna ruta pública ejecuta el script del Worker (sin `run_worker_first`), así que no consumen la cuota de 100.000 solicitudes/día (ED1 §3.10, [H3]).
-- **Rutas (ADR-19):** `/herramientas/agro/calculadora-dpv/`, `/herramientas/agro/dosis-por-bomba/`, … y la tabla de contenidos `/herramientas/agro/`. El spike HU-E1.4 verifica que un Worker con assets pueda servir una ruta del dominio principal sin cobrar esas solicitudes. Si no puede, se usa `agro.<dominio>` y el ADR se corrige.
+- **Rutas (ADR-19):** en el host `agro.laboratorio-digital.com`: `/herramientas/agro/calculadora-dpv/`, `/herramientas/agro/dosis-por-bomba/`, … y la tabla de contenidos `/herramientas/agro/`. El Worker del sitio es dueño de todo el subdominio y sirve assets estáticos sin ejecutar el script, salvo `/api/*`. Si después se valida pasar al dominio principal o a un dominio nuevo, se cambia el host y se redirige con 301; las rutas no cambian.
 - **Contrato:** un `product.yaml` por herramienta (ED1 §5.1), validado por `schemas/product.schema.json` en CI. Extensión agro:
 
 ```yaml
@@ -661,7 +661,7 @@ Correspondencia con el modelo de madurez de ED1 §36 (el detalle por sprint est�
 | App vieja semanas sin actualizar | Alta | Medio | Protocolo N-1, nunca descartar, aviso visible |
 | Consumo de cuota compartido con el resto de ED1 | Media | Alto | Presupuesto por producto, vigía, etapa B |
 | Error de cálculo agronómico | Baja | Alto | Agrónomo aliado, fuentes, casos resueltos en pruebas, remitir a la etiqueta ICA |
-| El spike de rutas del dominio falla | Media | Bajo | Subdominio (ADR-19 plan B) |
+| El subdominio rinde menos en SEO que el dominio principal | Media | Bajo | Mismas rutas en ambos (ADR-19): mudar el host es un 301 |
 | Tiempo del dueño (20 h/semana) | Alta | Alto | Alcance por hitos, regla «¿cuántas veces pasa este mes?» (bitácora ecommerce 16) |
 | Falla del nodo de riego | Media | Alto | §5.11: estado seguro, watchdog, mando manual, dos canales |
 
@@ -679,10 +679,10 @@ Se numeran HA para no chocar con [H1]–[H16].
 
 ## 15. Preguntas abiertas
 
-1. **Fecha estimada de trasplante y de primera cosecha.** El plan supone trasplante a mediados de diciembre de 2026 y primera cosecha a inicios de marzo de 2027. Si es antes, se reordena el backlog.
-2. **Dominio:** ¿`laboratorio-digital.com` ya sirve algo en Cloudflare? Decide el spike HU-E1.4.
+1. **Fecha estimada de trasplante y de primera cosecha.** Respondida el 30 sep 2026: trasplante a mediados de octubre de 2026 y primera cosecha en enero de 2027. El dueño decidió mantener el orden del backlog (la DPV primero); ver BACKLOG §1.
+2. **Dominio:** respondida el 30 sep 2026: `laboratorio-digital.com` ya está en Cloudflare. El agro usa por ahora el subdominio `agro.laboratorio-digital.com` (ADR-19); un dominio propio se valida después si hace falta.
 3. **¿El repositorio `gestionagro` es privado?** Respondida el 30 sep 2026: privado al inicio. Hacerlo público se decide después según el consumo de minutos de Actions (ED1 §41). Mientras sea privado, `tests/terminos-prohibidos.json` vive en el repositorio; antes de publicarlo, sale del repositorio (HU-E1.7).
-4. **¿Hay agrónomo aliado** para revisar el DPV antes de publicarlo?
+4. **¿Hay agrónomo aliado** para revisar el DPV antes de publicarlo? Respondida el 30 sep 2026: sí, el supervisor de la finca cero, que es agrónomo. Como también es usuario del producto, su revisión no es independiente; se anota así en la revisión. En `product.yaml` se registra por rol (`aprobada:<fecha>:agronomo-aliado`), nunca por nombre, porque los nombres de la finca cero son términos prohibidos (P4).
 
 ---
 
