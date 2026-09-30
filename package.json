@@ -1,0 +1,27 @@
+{
+  "name": "gestionagro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gestión Agro: calculadoras agronómicas gratuitas y cuaderno de campo offline-first (ED1 Agro).",
+  "type": "module",
+  "packageManager": "pnpm@11.28.2",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:cobertura": "vitest run --coverage",
+    "build": "pnpm -r --if-present run build",
+    "verificar": "node scripts/verificar.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
+    "@types/node": "^22.20.4",
+    "@vitest/coverage-v8": "^5.0.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}

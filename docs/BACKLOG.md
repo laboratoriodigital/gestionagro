@@ -219,7 +219,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E1.1 · Monorepo que corre igual en Windows y en CI
 **Como** desarrollador **quiero** un monorepo con pnpm, TypeScript estricto, Biome y Vitest **para** que cada paquete se pruebe igual en mi Windows y en Actions.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S1 · **Depende de:** HU-E0.1 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S1 · **Depende de:** HU-E0.1 · **Estado:** En sprint (rama `feat/e1.1-monorepo`; CA1 en Linux se comprueba con el CI de HU-E1.2)
 - **Criterios de aceptación:**
   1. Dado un clon limpio en Windows y en Linux, cuando corro `pnpm install && pnpm verificar`, entonces corren lint, typecheck, pruebas y build de todos los paquetes con el mismo resultado.
   2. `tsconfig` base con `strict`, `noUncheckedIndexedAccess` y `exactOptionalPropertyTypes`.
