@@ -1,0 +1,134 @@
+---
+/**
+ * Layout de todas las páginas públicas. Todo el SEO llega ya calculado desde el contrato
+ * (src/lib/seo.ts): esta plantilla solo lo pinta. Sin fuentes externas, sin scripts de terceros.
+ */
+import '@gestionagro/ui/tokens.css';
+import type { Miga } from '../lib/seo.ts';
+
+interface Props {
+  title: string;
+  description: string;
+  canonical: string;
+  indexable: boolean;
+  og?: Record<string, string>;
+  migas?: Miga[];
+  jsonLd?: Record<string, unknown>;
+}
+
+const { title, description, canonical, indexable, og = {}, migas = [], jsonLd } = Astro.props;
+---
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {!indexable && <meta name="robots" content="noindex" />}
+    {Object.entries(og).map(([clave, valor]) => <meta property={`og:${clave}`} content={valor} />)}
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+  </head>
+  <body>
+    <a class="saltar" href="#contenido">Saltar al contenido</a>
+    <header class="cabecera">
+      <a class="marca" href="/herramientas/agro/">Gestión Agro</a>
+    </header>
+    {
+      migas.length > 0 && (
+        <nav aria-label="Migas de pan" class="migas">
+          <ol>
+            {migas.map((m, i) =>
+              i === migas.length - 1 ? (
+                <li aria-current="page">{m.nombre}</li>
+              ) : (
+                <li>
+                  <a href={new URL(m.url).pathname}>{m.nombre}</a>
+                </li>
+              ),
+            )}
+          </ol>
+        </nav>
+      )
+    }
+    <main id="contenido">
+      <slot />
+    </main>
+    <footer class="pie">
+      <p>Tus datos no salen de tu teléfono: las calculadoras funcionan en el navegador.</p>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    font-family: var(--fuente);
+    font-size: var(--texto-base);
+    line-height: var(--interlineado);
+    color: var(--color-texto);
+    background: var(--color-fondo);
+  }
+  main,
+  .migas,
+  .pie {
+    max-width: var(--ancho-lectura);
+    margin-inline: auto;
+    padding-inline: var(--espacio-3);
+  }
+  a {
+    color: var(--color-enlace);
+  }
+  h1 {
+    font-size: var(--texto-titulo);
+    line-height: 1.2;
+  }
+  .saltar {
+    position: absolute;
+    left: -9999px;
+  }
+  .saltar:focus {
+    left: var(--espacio-3);
+    top: var(--espacio-3);
+    background: var(--color-fondo);
+    padding: var(--espacio-2);
+  }
+  .cabecera {
+    background: var(--color-marca);
+    padding: var(--espacio-3);
+  }
+  .marca {
+    color: var(--color-marca-texto);
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    min-height: var(--objetivo-tactil);
+    align-items: center;
+  }
+  .migas ol {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espacio-2);
+    padding: 0;
+    font-size: var(--texto-pequeno);
+    color: var(--color-texto-suave);
+  }
+  .migas li + li::before {
+    content: '›';
+    margin-inline-end: var(--espacio-2);
+  }
+  .pie {
+    margin-top: var(--espacio-5);
+    padding-block: var(--espacio-4);
+    border-top: 1px solid var(--color-borde);
+    font-size: var(--texto-pequeno);
+    color: var(--color-texto-suave);
+  }
+</style>

@@ -4,11 +4,11 @@ fuentes:
   - "Allen, R. G., Pereira, L. S., Raes, D. y Smith, M. (1998). FAO Irrigation and Drainage Paper 56, ecuación 11."
 ---
 
-# Cómo se calcula el DPV
+## Cómo se calcula el DPV
 
 El déficit de presión de vapor (DPV) mide cuánta agua le «falta» al aire para saturarse. Con DPV bajo, la planta transpira poco y aparecen hongos; con DPV alto, transpira de más y cierra estomas.
 
-## Fórmulas
+### Fórmulas
 
 Temperatura en °C, humedad relativa en %, resultado en kPa.
 
@@ -19,7 +19,7 @@ Temperatura en °C, humedad relativa en %, resultado en kPa.
 3. DPV de la hoja, si se mide la temperatura de la hoja `Th`:
    `DPVh = es(Th) − es(T) × HR / 100`
 
-## Ejemplo resuelto
+### Ejemplo resuelto
 
 Nave de tomate a media mañana: 24 °C y 70 % de humedad relativa.
 
@@ -28,7 +28,7 @@ Nave de tomate a media mañana: 24 °C y 70 % de humedad relativa.
 
 Con la hoja a 24 °C y el aire a 26 °C y 60 %: `es(26) = 3,361 kPa`, la presión de vapor del aire es `3,361 × 0,60 = 2,017 kPa`, y `DPVh = 2,984 − 2,017 = 0,967 kPa`.
 
-## Qué se acepta
+### Qué se acepta
 
 - Temperatura de −10 a 60 °C y humedad de 0 a 100 %. Fuera de ese rango, o si el valor no es un número, la calculadora dice cuál campo está mal y no calcula. Nunca muestra 0 en lugar de un error.
 - Los mismos números los usan la calculadora, el cuaderno y el nodo de riego (tabla `packages/agro-calc/casos/dpv.json`).

@@ -1,0 +1,36 @@
+---
+/** Índice de herramientas agro. Solo lista lo activo; si no hay nada activo, no se indexa. */
+import Base from '../../../layouts/Base.astro';
+import { herramientas } from '../../../lib/contenido.ts';
+import { MIGAS_DE_HERRAMIENTAS, SITIO } from '../../../lib/seo.ts';
+
+const activas = herramientas.filter((h) => h.estado === 'activo');
+const canonical = `${SITIO}/herramientas/agro/`;
+const titulo = 'Herramientas agronómicas gratuitas';
+const descripcion =
+  'Calculadoras para invernadero y finca que funcionan en tu teléfono, sin registro y sin enviar tus datos.';
+---
+<Base
+  title={`${titulo} | Gestión Agro`}
+  description={descripcion}
+  canonical={canonical}
+  indexable={activas.length > 0}
+  og={{ type: 'website', title: titulo, description: descripcion, url: canonical, site_name: 'Gestión Agro', locale: 'es_CO' }}
+  migas={[...MIGAS_DE_HERRAMIENTAS]}
+>
+  <h1>{titulo}</h1>
+  <p>{descripcion}</p>
+  {
+    activas.length > 0 ? (
+      <ul>
+        {activas.map((h) => (
+          <li>
+            <a href={h.slug}>{h.nombre}</a>: {h.seo.description}
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p>La primera calculadora está en preparación.</p>
+    )
+  }
+</Base>

@@ -30,7 +30,7 @@ describe('contrato product.yaml (HU-E1.3)', () => {
   });
 
   // CA1: omitir un campo obligatorio falla y nombra el campo.
-  it.each(['presupuesto', 'kill_switch', 'peldano', 'siguiente_paso'])(
+  it.each(['presupuesto', 'kill_switch', 'peldano', 'siguiente_paso', 'nombre'])(
     'sin «%s» falla y lo nombra',
     (campo) => {
       expect(mensajes(sin(campo))).toContain(`falta el campo «${campo}»`);

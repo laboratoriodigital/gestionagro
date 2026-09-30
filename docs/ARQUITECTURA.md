@@ -167,6 +167,7 @@ Se heredan todos los de ED1 §3 y los de las instrucciones del proyecto §4. Aqu
 
 ```yaml
 id: agro-calculadora-dpv
+nombre: "Calculadora de DPV"   # nombre corto: migas, relacionados, índice
 slug: /herramientas/agro/calculadora-dpv/
 tipo: utility
 estado: borrador            # borrador | activo | pausado | retirado
@@ -182,7 +183,7 @@ seo:
 monetizacion:
   ads: []                   # sin anuncios mientras se valida
   ads_en_procesamiento: false
-relacionados: [agro-cuaderno, agro-dosis-por-bomba]
+relacionados: [agro-cuaderno]  # solo productos que existen; dosis entra con HU-E10.1
 eventos: [tool.opened, tool.completed, tool.shared, tool.next_step]
 presupuesto:
   api_requests_dia: 0

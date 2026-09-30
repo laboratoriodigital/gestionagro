@@ -299,7 +299,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E1.6 · Cascarón del sitio: layout, SEO, relacionados y eventos en lote
 **Como** visitante **quiero** páginas rápidas, legibles en el teléfono y con herramientas relacionadas **para** resolver y seguir.
-- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S2 · **Depende de:** HU-E1.3 · **Estado:** Refinada
+- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S2 · **Depende de:** HU-E1.3 · **Estado:** En sprint (rama `feat/e1.6-cascaron-sitio`: CA1 y CA2 hechos; CA3, CA4 y CA5 en la parte 2)
 - **Criterios de aceptación:**
   1. Dado un `product.yaml`, cuando se hace el build de Astro, entonces se generan el título, la descripción, el canonical, Open Graph, las migas y el sitemap sin escribirlos a mano.
   2. Los eventos `tool.opened`, `tool.completed`, `tool.shared` y `tool.next_step` se acumulan y salen en **un** `sendBeacon` por sesión. Una prueba cuenta las solicitudes: 1.

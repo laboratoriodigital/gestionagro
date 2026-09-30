@@ -1,0 +1,46 @@
+/*
+ * Tokens de diseño (HU-E1.6). Pensados para quien los usa: sol sobre la pantalla, guantes,
+ * teléfonos de gama baja (P20). Contraste AA como mínimo, objetivos táctiles de 48 px,
+ * fuentes del sistema (cero bytes de fuentes descargadas).
+ */
+:root {
+  --color-fondo: #ffffff;
+  --color-texto: #1a1a1a;
+  --color-texto-suave: #4a4a4a;
+  --color-marca: #1f6b3a;
+  --color-marca-texto: #ffffff;
+  --color-enlace: #0b5394;
+  --color-borde: #c8c8c8;
+  --color-superficie: #f4f6f3;
+  --color-alerta: #9c2a00;
+
+  --fuente: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --texto-base: 1.0625rem;
+  --texto-pequeno: 0.9375rem;
+  --texto-titulo: clamp(1.5rem, 5vw, 2.125rem);
+  --interlineado: 1.55;
+
+  --espacio-1: 0.25rem;
+  --espacio-2: 0.5rem;
+  --espacio-3: 1rem;
+  --espacio-4: 1.5rem;
+  --espacio-5: 2.5rem;
+
+  --ancho-lectura: 42rem;
+  --radio: 0.5rem;
+  --objetivo-tactil: 48px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-fondo: #121412;
+    --color-texto: #ececec;
+    --color-texto-suave: #b8b8b8;
+    --color-marca: #6cc28a;
+    --color-marca-texto: #0b1a10;
+    --color-enlace: #8cc4ff;
+    --color-borde: #3a3d3a;
+    --color-superficie: #1c201c;
+    --color-alerta: #ff9f7a;
+  }
+}

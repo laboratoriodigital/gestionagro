@@ -1,0 +1,104 @@
+---
+/**
+ * Página de cada herramienta, generada desde su `product.yaml` (HU-E1.6).
+ * El contenido completo se ve sin JavaScript (P20); la calculadora llega como isla (HU-E2.2).
+ */
+import type { Producto } from '../../../../../../scripts/lib/productos.ts';
+import Base from '../../../layouts/Base.astro';
+import { contenidoDe, herramientas, productoPorId } from '../../../lib/contenido.ts';
+import { segmentoDe, seoDeProducto } from '../../../lib/seo.ts';
+
+export function getStaticPaths() {
+  return herramientas.map((h) => ({
+    params: { herramienta: segmentoDe(h) },
+    props: { producto: h },
+  }));
+}
+
+interface Props {
+  producto: Producto;
+}
+
+const { producto } = Astro.props;
+const seo = seoDeProducto(producto);
+const secciones = contenidoDe(producto.carpeta);
+const relacionados = producto.relacionados
+  .map(productoPorId)
+  .filter((p): p is Producto => p !== undefined);
+---
+<Base
+  title={seo.title}
+  description={seo.description}
+  canonical={seo.canonical}
+  indexable={seo.indexable}
+  og={seo.og}
+  migas={seo.migas}
+  jsonLd={seo.jsonLd}
+>
+  <article data-producto={producto.id}>
+    <h1>{producto.nombre}</h1>
+    <p class="entrada">{producto.seo.description}</p>
+
+    <section aria-labelledby="titulo-calculadora" class="calculadora">
+      <h2 id="titulo-calculadora">Calcular</h2>
+      <p>La calculadora llega con la próxima versión.</p>
+    </section>
+
+    {secciones.map((s) => <s.Content />)}
+
+    {
+      producto.fuentes.length > 0 && (
+        <section aria-labelledby="titulo-fuentes">
+          <h2 id="titulo-fuentes">Fuentes</h2>
+          <ul>
+            {producto.fuentes.map((f) => (
+              <li>{f}</li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      relacionados.length > 0 && (
+        <nav aria-labelledby="titulo-relacionados">
+          <h2 id="titulo-relacionados">Sigue con</h2>
+          <ul>
+            {relacionados.map((r) => (
+              <li>
+                <a href={r.slug}>{r.nombre}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )
+    }
+  </article>
+</Base>
+
+<script>
+  import { crearColector, entornoDelNavegador } from '@gestionagro/eventos';
+
+  const articulo = document.querySelector<HTMLElement>('[data-producto]');
+  const producto = articulo?.dataset['producto'];
+  if (producto) {
+    const colector = crearColector({ producto, entorno: entornoDelNavegador() });
+    colector.registrar('tool.opened');
+    // La isla de la calculadora (HU-E2.2) registra tool.completed, tool.shared y tool.next_step aquí.
+    Object.assign(window, { agroEventos: colector });
+  }
+</script>
+
+<style>
+  .entrada {
+    font-size: 1.125rem;
+    color: var(--color-texto-suave);
+  }
+  .calculadora {
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    padding: var(--espacio-3);
+    margin-block: var(--espacio-4);
+  }
+</style>
