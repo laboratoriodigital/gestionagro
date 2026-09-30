@@ -1,0 +1,59 @@
+{
+  "nota": "Tabla única de casos del DPV (P2). La usan las pruebas de agro-calc y las del firmware del nodo (HU-E11.2). Valores calculados con FAO-56 ec. 11; tolerancia de comparación en kPa.",
+  "fuente": "Allen, R. G., Pereira, L. S., Raes, D. y Smith, M. (1998). FAO Irrigation and Drainage Paper 56, ecuación 11.",
+  "tolerancia_kPa": 0.001,
+  "aire": [
+    {
+      "temperaturaC": 24,
+      "humedadRelativaPct": 70,
+      "presionSaturacionKPa": 2.984,
+      "dpvKPa": 0.895
+    },
+    { "temperaturaC": 28, "humedadRelativaPct": 55, "presionSaturacionKPa": 3.78, "dpvKPa": 1.701 },
+    {
+      "temperaturaC": 22,
+      "humedadRelativaPct": 85,
+      "presionSaturacionKPa": 2.644,
+      "dpvKPa": 0.397
+    },
+    {
+      "temperaturaC": 16,
+      "humedadRelativaPct": 90,
+      "presionSaturacionKPa": 1.818,
+      "dpvKPa": 0.182
+    },
+    { "temperaturaC": 20, "humedadRelativaPct": 100, "presionSaturacionKPa": 2.338, "dpvKPa": 0 },
+    {
+      "temperaturaC": -10,
+      "humedadRelativaPct": 0,
+      "presionSaturacionKPa": 0.286,
+      "dpvKPa": 0.286
+    },
+    {
+      "temperaturaC": 60,
+      "humedadRelativaPct": 50,
+      "presionSaturacionKPa": 19.933,
+      "dpvKPa": 9.967
+    }
+  ],
+  "hoja": [
+    {
+      "temperaturaAireC": 26,
+      "humedadRelativaPct": 60,
+      "temperaturaHojaC": 24,
+      "dpvHojaKPa": 0.967
+    },
+    {
+      "temperaturaAireC": 24,
+      "humedadRelativaPct": 70,
+      "temperaturaHojaC": 24,
+      "dpvHojaKPa": 0.895
+    }
+  ],
+  "invalidos": [
+    { "campo": "humedadRelativaPct", "temperaturaC": 24, "humedadRelativaPct": 101 },
+    { "campo": "humedadRelativaPct", "temperaturaC": 24, "humedadRelativaPct": -0.5 },
+    { "campo": "temperaturaC", "temperaturaC": 60.1, "humedadRelativaPct": 50 },
+    { "campo": "temperaturaC", "temperaturaC": -10.1, "humedadRelativaPct": 50 }
+  ]
+}

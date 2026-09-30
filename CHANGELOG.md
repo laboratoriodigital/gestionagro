@@ -15,4 +15,5 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - `scripts-windows.yml`: la misma verificación en `windows-latest` cuando cambian `scripts/` o las dependencias, y los lunes.
 - `pnpm licencias`: falla con el nombre del paquete si una dependencia es AGPL o no declara licencia.
 - Guardias de flujos: `| tee` exige `set -o pipefail`, todo secreto usado está en ARQUITECTURA §7.5, `timeout-minutes` ≤ 15 y cancelación por rama. Ninguna prueba espera por tiempo (P19).
+- `packages/agro-calc`: `presionSaturacionKPa`, `dpvAireKPa` y `dpvHojaKPa` (FAO-56 ec. 11) con la tabla de casos `casos/dpv.json` que compartirá el firmware; un valor ilegible o fuera de rango lanza `ErrorDeMedida` con el campo, nunca 0 ni NaN (HU-E2.1).
 - Plantilla de pull request con «Control negativo» y «¿Cambió algo que un documento afirma?».

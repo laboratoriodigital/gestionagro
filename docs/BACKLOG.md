@@ -338,7 +338,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E2.1 · Función pura de DPV con fuente y casos
 **Como** desarrollador **quiero** `dpvAireKPa` y `dpvHojaKPa` en `packages/agro-calc` **para** que la calculadora, el cuaderno y el firmware den el mismo número.
-- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S2 · **Depende de:** HU-E1.1 · **Estado:** Refinada
+- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S2 · **Depende de:** HU-E1.1 · **Estado:** En sprint (rama `feat/e2.1-dpv`)
 - **Criterios de aceptación:**
   1. Dados los casos de ARQUITECTURA §5.2, cuando se ejecutan las pruebas, entonces coinciden a 0,001 kPa: 24 °C/70 % → 0,895; 28/55 → 1,701; 22/85 → 0,397; 16/90 → 0,182; hoja 24 °C con aire 26 °C/60 % → 0,967.
   2. HR fuera de 0–100 %, T fuera de −10 a 60 °C o un valor no numérico **lanzan error**. Nunca devuelven 0 ni `NaN` (P1).
