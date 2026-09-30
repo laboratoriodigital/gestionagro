@@ -1,8 +1,15 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
+    "lib": ["es2023", "dom"]
   },
-  "include": ["scripts/**/*.ts", "tests/**/*.ts", "packages/*/src/**/*.ts", "*.config.ts"],
+  "include": [
+    "scripts/**/*.ts",
+    "tests/**/*.ts",
+    "packages/*/src/**/*.ts",
+    "apps/*/src/**/*.ts",
+    "*.config.ts"
+  ],
   "exclude": ["node_modules", "**/dist"]
 }

@@ -1,0 +1,14 @@
+{
+  "name": "@gestionagro/cuaderno",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cuaderno de campo offline-first (PWA en /agro/app/). ARQUITECTURA §5.3.",
+  "type": "module",
+  "dependencies": {
+    "@gestionagro/agro-schema": "workspace:*",
+    "dexie": "^4.4.6"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.5"
+  }
+}

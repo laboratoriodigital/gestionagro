@@ -1,0 +1,13 @@
+{
+  "name": "@gestionagro/agro-schema",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Esquemas zod de catálogos y registros, con sus versiones. Única fuente para la app, la API y las pruebas (P2).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}

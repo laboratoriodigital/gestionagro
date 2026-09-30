@@ -83,7 +83,7 @@ Al 30 sep 2026 no hay código, así que ningún patrón tiene todavía «Lo impi
 - **Regla:** antes de dar una comprobación, preguntar qué respondería sin el cambio. Toda aserción nueva se ve en rojo con su defecto puesto.
 - **En Agro:** también aplica a las comprobaciones que se le piden al dueño («abre la app y mira que…»): tienen que distinguir.
 - **Lo impedirá:** plantilla de pull request con el campo «Control negativo: qué defecto se puso y cómo se vio en rojo» (HU-E1.2); Definición de Terminado (`BACKLOG.md` §2).
-- **Entradas:** —
+- **Entradas:** agro 6.
 
 #### P6 · Lo que se escribe para los que vienen después deja fuera al primero
 - **Regla:** el cliente cero también es un cliente: lo que se hace para «los demás» se corre contra él.
@@ -138,7 +138,7 @@ Al 30 sep 2026 no hay código, así que ningún patrón tiene todavía «Lo impi
 - **Regla:** llaves y tokens solo en los almacenes de secretos, nunca en una dirección, un pantallazo o un documento. Lo mismo, los datos de las personas.
 - **En Agro:** el código de invitación va en el fragmento `#`; el token en el encabezado, nunca en la query; el QR no lleva datos personales.
 - **Lo impedirá:** prueba que recorre las llamadas de la app y falla si un token o código aparece en una URL (HU-E4.4); lista de secretos atada a ARQUITECTURA §7.5 (HU-E1.2).
-- **Entradas:** —
+- **Entradas:** agro 5.
 
 #### P14 · Los fallos silenciosos del lenguaje y del shell
 - **Regla:** `| tee` sin `pipefail`, un `try/catch` que protege, dos funciones con el mismo nombre: no fallan, siguen.
@@ -165,19 +165,19 @@ Al 30 sep 2026 no hay código, así que ningún patrón tiene todavía «Lo impi
   - El D1 local no reproduce el límite diario ni las 50 consultas por invocación.
   - Un emulador de ESP32 no reproduce un relé pegado.
 - **Lo impedirá:** cada doble documenta lo que no imita, y el límite de 50 consultas se simula en las pruebas del Worker (HU-E5.2).
-- **Entradas:** —
+- **Entradas:** agro 6.
 
 #### P18 · Un documento no lanza una excepción cuando miente
 - **Regla:** lo que un documento afirma del código lo ata una aserción; el redundante se borra.
 - **En Agro:** ARQUITECTURA §7.5 (secretos), `celdas.json`, las rutas de ADR-19, los límites de cuota citados.
 - **Lo impedirá:** guardias de documentación en CI (HU-E1.2).
-- **Entradas:** agro 4.
+- **Entradas:** agro 4, agro 5.
 
 #### P19 · Un rojo que no significa nada enseña a no mirar los rojos
 - **Regla:** una guarda con falsos positivos o un intermitente se arregla o se quita.
 - **En Agro:** las pruebas e2e offline y de sincronización son candidatas a intermitencia. Se esperan estados, no tiempos.
 - **Lo impedirá:** regla de revisión: ningún `waitForTimeout` en Playwright (HU-E1.2).
-- **Entradas:** —
+- **Entradas:** agro 5.
 
 #### P20 · Lo que se le ofrece a alguien tiene que llegar por el camino que esa persona recorre
 - **Regla:** se prueba desde quien mira.
@@ -333,3 +333,49 @@ La regla: **antes de copiar una arquitectura de otra línea del ecosistema, se b
 La regla: **un modelo de escala que depende de la cuota gratuita de un proveedor se verifica contra sus términos, no solo contra su tabla de precios.**
 
 *Ficha:* agro · *(mío)* · 🟠 Grave · P18 · 0.0.0 · 2026-09-30
+
+**5 · Los Actions privados no arrancaban, el repositorio se hizo público y con él la lista de nombres reales.**
+
+*Qué pasó.* El 30 sep 2026, al empujar el S1, las primeras cuatro corridas de `ci` y `scripts-windows` terminaron en rojo en 2 a 5 segundos. Los PR #1 y #2 se fusionaron así. Para que corrieran, el dueño pasó el repositorio a público; con eso, las corridas siguientes quedaron en verde en Linux y Windows.
+
+*Síntoma literal:*
+
+```text
+The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings
+```
+
+*Causa raíz.* No era el código: los trabajos nunca arrancaron. Los repositorios privados gastan minutos de la organización; los públicos no. Según el dueño, los límites del mes estaban agotados. Que los haya agotado otra línea del ecosistema con repositorios en la misma organización es una hipótesis, *sin verificar*. Si es así, los 2.000 min/mes de ARQUITECTURA §7.2 no son del agro sino de toda la organización.
+
+*Lo que costó.* Al hacerlo público quedaron expuestos:
+- `tests/terminos-prohibidos.json`, con los nombres de personas de la finca cero. HU-E1.7 decía que la lista salía del repositorio **antes** de publicarlo, pero esa regla vivía en un documento, sin una guardia que la hiciera cumplir (P18);
+- los emails de autor de los primeros commits;
+- todo `docs/`.
+
+Además, dos PR se fusionaron con el CI en rojo. Esta vez el rojo no hablaba del código, pero fusionar sobre rojo es justo lo que P19 enseña a no hacer.
+
+*Arreglo.* El dueño aceptó la exposición y el repositorio vuelve a privado cuando se reinicien los minutos (ADR-17, excepción temporal). No se reescribe el historial.
+
+**Lo impedirá (propuesto, no construido):**
+- una prueba que falle si el repositorio es público y la lista sigue adentro (el flujo pasa `github.event.repository.private` a `verificar`);
+- proteger `main` exigiendo los chequeos `ci` en verde para fusionar;
+- medir los minutos de toda la organización en el reporte semanal (HU-E8.3).
+
+La regla: **una condición que dice «antes de X, haz Y» y no tiene guardia se incumple el día que X llega con prisa. Y un rojo por falta de minutos se ve igual que un rojo del código: hay que leer la causa antes de fusionar.**
+
+*Ficha:* agro · *(compartido)* · 🔴 Crítico · P13, P18, P19 · 0.1.0 · 2026-09-30
+
+**6 · La guardia de licencias solo miraba la raíz del monorepo.**
+
+*Qué pasó.* El 30 sep 2026, al agregar `dexie`, `zod` y `fake-indexeddb` en `apps/cuaderno` y `packages/agro-schema` (HU-E3.2), `pnpm licencias` siguió diciendo «✅ 59 dependencias con licencia permitida». Eran las mismas 59 de antes de instalar.
+
+*Causa raíz.* Sin `--recursive`, `pnpm licenses list` lista solo el proyecto de la raíz. HU-E1.2 se cerró con los controles negativos hechos sobre la función que clasifica licencias, no sobre el instrumento que le entrega la lista. Mientras todas las dependencias vivían en la raíz, las dos cosas daban lo mismo (P5). Una AGPL en cualquier paquete del workspace habría pasado en verde.
+
+*Cómo se reprodujo.* `pnpm licenses list --json` no contiene `dexie`; `pnpm -r licenses list --json` sí.
+
+*Arreglo.* `--recursive`, y la guardia se comprueba a sí misma: toda dependencia declarada en un `package.json` del workspace tiene que aparecer en el listado, o la corrida falla y la nombra.
+
+**Lo prueban** `tests/repo/licencias.test.ts` («la guardia de licencias se comprueba a sí misma») y la propia corrida de `pnpm licencias`. Control negativo: sin `--recursive` sale «❌ dexie / fake-indexeddb / zod: declarada en un package.json pero ausente del listado de licencias».
+
+La regla: **un control negativo tiene que poner el defecto también en el instrumento, no solo en la regla que el instrumento alimenta. Si la lista de entrada no se comprueba, «0 rechazos» puede querer decir «0 revisados».**
+
+*Ficha:* agro · *(mío)* · 🟠 Grave · P5, P17 · 0.1.0 · 2026-09-30
