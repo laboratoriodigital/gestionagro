@@ -438,7 +438,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.2 · Almacén local con esquema versionado
 **Como** desarrollador **quiero** Dexie sobre IndexedDB con esquemas de `packages/agro-schema`, ids UUIDv7 y migraciones locales **para** que ningún dato se pierda al actualizar la app.
-- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S2 · **Depende de:** HU-E1.1 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S2 · **Depende de:** HU-E1.1 · **Estado:** En sprint (rama `feat/e3.2-almacen-local`)
 - **Criterios de aceptación:**
   1. Guardar un registro y su operación de salida (`outbox`) es **una** transacción. Si falla una, no queda ninguna.
   2. Un registro con un campo de medida vacío o ilegible no se guarda y el error nombra el campo (P1).
