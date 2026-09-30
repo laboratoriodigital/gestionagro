@@ -1,0 +1,15 @@
+{
+  "name": "@gestionagro/agro-calc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cálculos agronómicos puros (DPV, carencias, drenaje, costos…), compartidos por la calculadora, el cuaderno y el firmware (ARQUITECTURA §5.2).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./casos/dpv.json": "./casos/dpv.json"
+  },
+  "files": [
+    "src",
+    "casos"
+  ]
+}
