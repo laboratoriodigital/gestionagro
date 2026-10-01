@@ -6,9 +6,22 @@
   "type": "module",
   "dependencies": {
     "@gestionagro/agro-schema": "workspace:*",
-    "dexie": "^4.4.6"
+    "@gestionagro/ui": "workspace:*",
+    "dexie": "^4.4.6",
+    "preact": "^10.29.8",
+    "preact-iso": "^2.12.2",
+    "workbox-window": "^7.4.1"
   },
   "devDependencies": {
-    "fake-indexeddb": "^6.2.5"
+    "@preact/preset-vite": "^2.10.6",
+    "fake-indexeddb": "^6.2.5",
+    "vite": "^8.3.1",
+    "vite-plugin-pwa": "^1.3.0",
+    "workbox-core": "^7.4.1",
+    "workbox-precaching": "^7.4.1",
+    "workbox-routing": "^7.4.1"
+  },
+  "scripts": {
+    "build": "vite build"
   }
 }

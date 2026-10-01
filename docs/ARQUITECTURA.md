@@ -225,7 +225,7 @@ Casos de prueba, calculados con esa fórmula:
 |---|---|---|
 | UI | Preact + `@preact/signals` + `preact-iso` | MIT |
 | Almacén local | Dexie sobre IndexedDB | Apache-2.0 |
-| Service worker | Workbox (precache del shell, estrategia *network-first* solo para `/api/*`) | MIT |
+| Service worker | Workbox: precache del shell. `/api/*` no se intercepta: va siempre a la red y nunca queda en caché (P7); los datos viven en IndexedDB (HU-E3.1) | MIT |
 | Validación | zod (esquemas de `packages/agro-schema`) | MIT |
 | PDF y QR | pdf-lib, qrcode-generator | MIT |
 | Firma/verificación | WebCrypto Ed25519 (nativo) | — |
