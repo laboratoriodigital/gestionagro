@@ -7,7 +7,9 @@
  */
 import { defineConfig, devices } from '@playwright/test';
 
-const PUERTO = 4321;
+// Puerto propio de las e2e, distinto del 4321 que se usa para revisar a mano: nunca se prueba
+// contra un servidor que alguien dejó abierto con otra configuración (P7).
+const PUERTO = 4329;
 const canal =
   process.env['PW_CANAL'] ??
   (process.env['CI'] ? undefined : process.platform === 'win32' ? 'msedge' : undefined);
@@ -30,6 +32,6 @@ export default defineConfig({
   webServer: {
     command: `node scripts/servir-estatico.ts apps/sitio/dist ${PUERTO} /agro/app/=apps/cuaderno/dist`,
     url: `http://localhost:${PUERTO}/herramientas/agro/`,
-    reuseExistingServer: !process.env['CI'],
+    reuseExistingServer: false,
   },
 });

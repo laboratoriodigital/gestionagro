@@ -430,3 +430,22 @@ La regla: **no midas una propiedad en las condiciones que apagan el instrumento.
 La regla: **antes de culpar a la app porque un evento no llega, comprueba que el instrumento lo puede producir: cuenta las veces que se ejecuta tu intercepción.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P9, P17, P19 · 0.1.0 · 2026-09-30
+
+**10 · Tres veces en un día, una barra invertida se perdió al escribir código desde la terminal.**
+
+*Qué pasó.* El 30 sep 2026 escribí código desde comandos de shell (heredocs y `node -e` con plantillas de JavaScript). Tres veces se perdió una barra invertida:
+1. HU-E2.2, regex del control negativo: el defecto no se aplicó. El control «falló» por otro motivo y lo noté porque no cuadraba.
+2. HU-E1.5: el esquema de `celdas.json` quedó con `\.` dentro de una cadena JSON. `JSON.parse` lo rechazó: `Bad escaped character in JSON`.
+3. HU-E1.5: la guardia de inyección de comandos quedó como `/${{s*(inputs.|…/`. **Ese regex no detecta nada**: la guardia pasaba en verde sobre cualquier flujo.
+
+*Cómo se descubrió el tercero.* Con su caso malo en la prueba unitaria: `expected [] to deeply equal [ ObjectContaining… ]`. Sin ese control negativo (P5), la guardia habría quedado puesta, verde e inútil.
+
+*Causa raíz.* Cada capa de shell y de plantilla consume un nivel de escapado. Un regex atraviesa dos o tres capas antes de llegar al archivo.
+
+*Arreglo.* Los dos regex se corrigieron con la herramienta de edición, que escribe el texto tal cual. Desde ahora, el código con barras invertidas (regex, JSON con escapes, rutas de Windows) se escribe con las herramientas de archivo, no con comandos de shell.
+
+**Lo prueba:** las pruebas unitarias de cada guardia traen su caso malo. Una guardia sin ese caso no se acepta.
+
+La regla: **lo que pasa por más de una capa de escapado no se escribe desde la terminal. Y una guardia nueva no está terminada hasta verla atrapar su defecto.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P5, P14 · 0.1.0 · 2026-09-30

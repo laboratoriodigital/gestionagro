@@ -23,6 +23,7 @@ interface Trabajo {
 }
 
 export interface Flujo {
+  name?: string;
   concurrency?: { group?: string; 'cancel-in-progress'?: unknown } | string;
   jobs?: Record<string, Trabajo>;
 }
@@ -59,11 +60,28 @@ export function revisarTiempos(archivo: string, flujo: Flujo): Hallazgo[] {
   });
 }
 
+/**
+ * CI: cancela la corrida vieja de la misma rama (ahorra minutos).
+ * Despliegue (flujos «desplegar…»): NUNCA cancela uno a medias; los encola en un solo grupo.
+ */
 export function revisarConcurrencia(archivo: string, flujo: Flujo): Hallazgo[] {
   const c = flujo.concurrency;
-  const ok =
-    typeof c === 'object' && c['cancel-in-progress'] === true && /github\.ref/.test(c.group ?? '');
-  return ok
+  const esDespliegue = /^desplegar/.test(flujo.name ?? '');
+  if (typeof c !== 'object') {
+    return [{ archivo, motivo: 'falta «concurrency»' }];
+  }
+  if (esDespliegue) {
+    return c['cancel-in-progress'] === false && c.group
+      ? []
+      : [
+          {
+            archivo,
+            motivo:
+              'un flujo de despliegue necesita «concurrency» con grupo y «cancel-in-progress: false»: cancelar a medias deja celdas a medio desplegar',
+          },
+        ];
+  }
+  return c['cancel-in-progress'] === true && /github\.ref/.test(c.group ?? '')
     ? []
     : [
         {
@@ -71,6 +89,26 @@ export function revisarConcurrencia(archivo: string, flujo: Flujo): Hallazgo[] {
           motivo: 'falta «concurrency» por rama (github.ref) con «cancel-in-progress: true»',
         },
       ];
+}
+
+/** Ninguna entrada de usuario se interpola dentro de un `run`: va por `env` (inyección de comandos). */
+export function revisarInyeccion(archivo: string, flujo: Flujo): Hallazgo[] {
+  const hallazgos: Hallazgo[] = [];
+  for (const [id, trabajo] of Object.entries(flujo.jobs ?? {})) {
+    for (const [i, paso] of (trabajo.steps ?? []).entries()) {
+      if (
+        /\$\{\{\s*(inputs\.|github\.event\.(issue|pull_request|comment|head_commit|release)\.)/.test(
+          paso.run ?? '',
+        )
+      ) {
+        hallazgos.push({
+          archivo,
+          motivo: `jobs.${id}, paso «${paso.name ?? i}»: interpola una entrada en el comando; pásala por env`,
+        });
+      }
+    }
+  }
+  return hallazgos;
 }
 
 /** Secretos que nombra el texto de un flujo, sin el que da GitHub. */
