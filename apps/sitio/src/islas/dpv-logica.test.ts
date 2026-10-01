@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   calcular,
   type Entradas,
+  enlaceAlCuaderno,
   entradasDeEnlace,
   PARAMETROS_COMPARTIDOS,
   paraCompartir,
@@ -117,5 +118,38 @@ describe('compartir por WhatsApp (HU-E2.4)', () => {
     const r = calcular(con(entradasDeEnlace('?t=abc&hr=70')));
     expect(r.aire).toBeNull();
     expect(r.errores.temperatura).toMatch(/No es un número válido/);
+  });
+});
+
+describe('de la calculadora al cuaderno (HU-E2.7, CA1)', () => {
+  const entradas = (cambios: Partial<Entradas> = {}): Entradas => ({
+    temperatura: '24,5',
+    humedad: '70',
+    temperaturaHoja: '',
+    cultivoEtapa: '',
+    ...cambios,
+  });
+  const enlace = (e: Entradas) => enlaceAlCuaderno(e, calcular(e));
+
+  it('lleva T y HR en el fragmento, con punto decimal, hacia Registrar', () => {
+    expect(enlace(entradas())).toBe('/agro/app/registrar/#t=24.5&hr=70');
+  });
+
+  it('con temperatura de hoja válida la lleva; ilegible, no hay resultado ni enlace', () => {
+    expect(enlace(entradas({ temperaturaHoja: '22' }))).toBe(
+      '/agro/app/registrar/#t=24.5&hr=70&th=22',
+    );
+    expect(enlace(entradas({ temperaturaHoja: '22,,1' }))).toBeNull();
+  });
+
+  it('sin resultado válido no hay enlace: nada a medias', () => {
+    expect(enlace(entradas({ humedad: '' }))).toBeNull();
+    expect(enlace(entradas({ humedad: '120' }))).toBeNull();
+  });
+
+  it('no lleva nada más que la lectura: ni cultivo ni otros datos (P13)', () => {
+    const url = enlace(entradas({ cultivoEtapa: 'tomate:produccion' })) ?? '';
+    expect([...new URLSearchParams(url.split('#')[1]).keys()]).toEqual(['t', 'hr']);
+    expect(url).not.toContain('?');
   });
 });

@@ -144,3 +144,40 @@ export function entradasDeEnlace(
     ...(hr !== null ? { humedad: hr.slice(0, 12) } : {}),
   };
 }
+
+/** Pantalla del cuaderno que recibe la lectura (HU-E3.8, CA3). Mismo dominio que el sitio. */
+export const REGISTRAR_EN_CUADERNO = '/agro/app/registrar/';
+
+/**
+ * Enlace «Guardar en mi cuaderno» (HU-E2.7, CA1): la lectura viaja en el fragmento `#t=…&hr=…`
+ * (y `th` si hay temperatura de hoja), que el navegador nunca envía al servidor (P13). Null si
+ * todavía no hay un resultado válido.
+ */
+export function enlaceAlCuaderno(e: Entradas, r: Resultado): string | null {
+  const t = leerNumero(e.temperatura);
+  const hr = leerNumero(e.humedad);
+  if (!r.aire || !t.ok || !hr.ok) return null;
+  const p = new URLSearchParams({ t: String(t.valor), hr: String(hr.valor) });
+  const th = leerNumero(e.temperaturaHoja);
+  if (r.hoja && th.ok) p.set('th', String(th.valor));
+  return `${REGISTRAR_EN_CUADERNO}#${p.toString()}`;
+}
+
+/** Nombre de la base del cuaderno en IndexedDB; una prueba exige que sea el del cuaderno (P2). */
+export const BASE_DEL_CUADERNO = 'gestionagro-cuaderno';
+
+/**
+ * ¿Este navegador ya usa el cuaderno? (HU-E2.7, CA2). Mismo dominio, así que la base es visible.
+ * Sin `indexedDB.databases()` (navegadores viejos) no se sabe: se responde que no, y lo peor que
+ * pasa es una línea de explicación de más.
+ */
+export async function cuadernoEnUso(
+  idb: IDBFactory | undefined = globalThis.indexedDB,
+): Promise<boolean> {
+  if (typeof idb?.databases !== 'function') return false;
+  try {
+    return (await idb.databases()).some((b) => b.name === BASE_DEL_CUADERNO);
+  } catch {
+    return false;
+  }
+}

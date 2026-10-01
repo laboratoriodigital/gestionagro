@@ -1,19 +1,22 @@
 /**
  * Isla de la calculadora de DPV (HU-E2.2). Calcula mientras se escribe, sin botón (CA1).
  * Campos de texto con teclado decimal: `type="number"` rechaza la coma en muchos teléfonos.
+ * «Guardar en mi cuaderno» lleva la lectura al cuaderno en el fragmento, sin red (HU-E2.7).
  */
 import { CULTIVOS_DPV } from '@gestionagro/agro-calc';
 import { useEffect, useState } from 'preact/hooks';
 import {
   type CampoDpv,
   calcular,
+  cuadernoEnUso,
   type Entradas,
+  enlaceAlCuaderno,
   entradasDeEnlace,
   paraCompartir,
 } from './dpv-logica.ts';
 
 interface ColectorDeEventos {
-  registrar: (nombre: 'tool.completed' | 'tool.shared') => void;
+  registrar: (nombre: 'tool.completed' | 'tool.shared' | 'tool.next_step') => void;
 }
 
 const OPCIONES = CULTIVOS_DPV.flatMap((c) =>
@@ -62,6 +65,11 @@ export default function CalculadoraDpv() {
     cultivoEtapa: '',
   });
   const [completado, setCompletado] = useState(false);
+  // null = todavía no se sabe; mientras tanto el botón dice lo general (CA2).
+  const [conCuaderno, setConCuaderno] = useState<boolean | null>(null);
+  useEffect(() => {
+    void cuadernoEnUso().then(setConCuaderno);
+  }, []);
   const r = calcular(entradas);
   const cambiar = (campo: keyof Entradas) => (valor: string) =>
     setEntradas({ ...entradas, [campo]: valor });
@@ -75,6 +83,8 @@ export default function CalculadoraDpv() {
 
   const compartir =
     typeof window === 'undefined' ? null : paraCompartir(entradas, r, window.location.href);
+
+  const alCuaderno = enlaceAlCuaderno(entradas, r);
 
   // CA6: tool.completed la primera vez que hay un resultado válido.
   useEffect(() => {
@@ -155,6 +165,30 @@ export default function CalculadoraDpv() {
         )}
       </output>
 
+      {alCuaderno && (
+        <div class="al-cuaderno">
+          {conCuaderno === false && (
+            <p class="ayuda" data-prueba="que-es-el-cuaderno">
+              El cuaderno de campo guarda tus lecturas en este teléfono: gratis, sin cuenta y sin
+              señal.
+            </p>
+          )}
+          <a
+            class="boton-cuaderno"
+            href={alCuaderno}
+            data-prueba="guardar-en-cuaderno"
+            onClick={() =>
+              (window as { agroEventos?: ColectorDeEventos }).agroEventos?.registrar(
+                'tool.next_step',
+              )
+            }
+          >
+            {conCuaderno === false
+              ? 'Abrir el cuaderno con esta lectura'
+              : 'Guardar en mi cuaderno'}
+          </a>
+        </div>
+      )}
       {compartir && (
         <a
           class="boton-compartir"

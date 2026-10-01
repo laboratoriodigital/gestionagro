@@ -586,3 +586,15 @@ La regla: **un formulario muestra todos sus errores en la misma vuelta. Si una v
 La regla: **«cargando» y «vacío» son estados distintos y la pantalla los dice distinto. Para probar que algo no se muestra, se vigila desde antes; esperar a que desaparezca no prueba nada.**
 
 *Ficha:* agro · *(mío)* · 🟡 Leve · P1, P19 · 0.1.0 · 2026-10-01
+
+**18 · El envío al salir de la página no se ve en las pruebas.**
+
+*Qué pasó.* El 1 oct 2026, en HU-E2.7, la e2e esperaba ver el lote de eventos con `tool.next_step` al tocar «Guardar en mi cuaderno». Nunca llegó, ni con la interceptación de página ni con la de contexto. Al registrar todas las solicitudes, no aparecía ningún POST: Playwright no informa las solicitudes que hace una página mientras se descarga, y `sendBeacon` en `pagehide` sale justo entonces.
+
+*Causa raíz.* El colector envía al ocultar la pestaña o al salir (`pagehide`), que es lo correcto en el navegador (P17: la herramienta no imita esa parte). La prueba confundió «no lo veo» con «no se envía».
+
+*Arreglo.* La e2e detiene esa navegación con `preventDefault`, comprueba que el clic contó `tool.next_step` y dispara el envío como al ocultar la pestaña, igual que `sitio.spec.ts`. La navegación se prueba aparte. Queda pendiente verificar en staging que Analytics Engine recibe `tool.next_step` (HU-E2.6).
+
+La regla: **antes de culpar al código porque una prueba no ve algo, se comprueba que la herramienta puede verlo. Lo que no puede, se prueba por otro camino y se anota qué falta verificar en el entorno real.**
+
+*Ficha:* agro · *(mío)* · 🟢 Menor · P17, P5 · 0.1.0 · 2026-10-01

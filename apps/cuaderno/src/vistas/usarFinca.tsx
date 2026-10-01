@@ -17,10 +17,18 @@ export function usarFinca(): EstadoFinca {
   return estado;
 }
 
-export function SinFinca() {
+export function SinFinca(props: { lecturaGuardada?: boolean }) {
   return (
-    <p>
-      Primero configura tu finca y sus áreas. <a href="/agro/app/">Ir a configurar</a>
-    </p>
+    <>
+      {props.lecturaGuardada && (
+        <p class="estado" data-prueba="lectura-guardada-para-despues">
+          Tu lectura de la calculadora quedó en este teléfono: cuando configures la finca, la
+          encontrarás en Registrar → Clima (hasta 2 horas).
+        </p>
+      )}
+      <p>
+        Primero configura tu finca y sus áreas. <a href="/agro/app/">Ir a configurar</a>
+      </p>
+    </>
   );
 }

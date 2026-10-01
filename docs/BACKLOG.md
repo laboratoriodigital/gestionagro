@@ -417,7 +417,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E2.7 · De la calculadora al cuaderno
 **Como** productor que calculó el DPV **quiero** guardar esa lectura **para** llevar el historial del clima de mi nave sin volver a escribirla.
-- **Peldaño:** herramienta gratuita → usuario recurrente · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** S6 · **Depende de:** HU-E3.8 · **Estado:** Refinada
+- **Peldaño:** herramienta gratuita → usuario recurrente · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** S6 · **Depende de:** HU-E3.8 · **Estado:** En sprint (rama `feat/e2.7-calculadora-a-cuaderno`. CA2: «instalado» = este navegador ya tiene la base del cuaderno (`indexedDB.databases()`, mismo dominio); sin finca, la lectura espera 2 h en el teléfono hasta que se configure. CA3: el envío real sale en `pagehide`; la e2e lo comprueba deteniendo la navegación, porque Playwright no ve solicitudes de una página que se descarga — verificar en staging con Analytics Engine)
 - **Criterios de aceptación:**
   1. Dado un resultado, cuando toco «Guardar en mi cuaderno», entonces se abre el cuaderno con un registro de clima prellenado (T, HR y T de hoja) para elegir la nave. Los datos pasan en el fragmento, sin red.
   2. Sin cuaderno instalado, se explica en una línea qué es y se ofrece abrirlo, sin pedir cuenta (ED1 §28).
