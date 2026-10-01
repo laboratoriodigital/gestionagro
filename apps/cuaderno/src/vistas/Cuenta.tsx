@@ -18,6 +18,7 @@ import {
   salirDeLaCuenta,
   urlDelCore,
 } from '../almacen/sesion.ts';
+import { FincaEnLaNube } from './FincaEnLaNube.tsx';
 
 const NOMBRE_ROL: Record<string, string> = {
   propietario: 'Propietario',
@@ -101,8 +102,7 @@ export function Cuenta() {
               ? 'Sesión activa.'
               : 'Sin sesión para sincronizar por ahora. Tus registros siguen guardados en este teléfono; la sesión se renueva sola cuando haya señal.'}
           </p>
-          <h2>Tus fincas en la nube</h2>
-          {sesion.organizaciones.length > 0 ? (
+          {sesion.organizaciones.length > 0 && (
             <ul data-prueba="cuenta-fincas">
               {sesion.organizaciones.map((o) => (
                 <li key={o.org_id}>
@@ -110,12 +110,9 @@ export function Cuenta() {
                 </li>
               ))}
             </ul>
-          ) : (
-            <p class="ayuda" data-prueba="cuenta-sin-fincas">
-              Tu finca todavía está solo en este teléfono. Pronto podrás subirla a tu cuenta sin
-              volver a escribir nada.
-            </p>
           )}
+          <FincaEnLaNube sesion={sesion} alCambiarSesion={setSesion} enLinea={enLinea} />
+          <h2>Tu cuenta</h2>
           <div class="acciones">
             <button type="button" class="secundario" onClick={() => void salir()}>
               Salir de la cuenta

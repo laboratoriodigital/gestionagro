@@ -5,7 +5,8 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, type Page, test } from '@playwright/test';
-import { APP } from './ayudas.ts';
+import { FINCA_ENSAYO_UNO } from '../fixtures/fincas.ts';
+import { APP, configurar } from './ayudas.ts';
 
 const { core } = JSON.parse(readFileSync('infrastructure/celdas.json', 'utf8')) as {
   core: { url_staging: string };
@@ -59,7 +60,9 @@ test('CA1 y CA4: entrar, canjear por POST, y ningún código ni token en la URL 
   await page.getByRole('button', { name: 'Entrar con Google' }).click();
   await expect(page.locator('[data-prueba="cuenta-usuario"]')).toContainText('Persona Ensayo');
   await expect(page.locator('[data-prueba="cuenta-estado"]')).toHaveText('Sesión activa.');
-  await expect(page.locator('[data-prueba="cuenta-sin-fincas"]')).toBeVisible();
+  await expect(page.locator('[data-prueba="finca-en-la-nube"]')).toContainText(
+    'Configura tu finca en «Áreas» para poder subirla.',
+  );
 
   expect(canjes).toHaveLength(1);
   expect(canjes[0]?.cuerpo).toMatchObject({
@@ -109,4 +112,109 @@ test('salir de la cuenta borra la sesión del teléfono y vuelve a ofrecer entra
   );
   await page.reload();
   await expect(page.getByRole('button', { name: 'Entrar con Google' })).toBeVisible();
+});
+
+/** La celda y el resto del CORE falsos: crear la organización, renovar hacia ella y el push. */
+async function nubeFalsa(page: Page, respuesta: (op: { id: string; entidad: string }) => object) {
+  const API = 'https://agro-api-c0-staging.ejemplo.test';
+  const permitir = { 'access-control-allow-origin': '*' };
+  let org = '';
+  await page.route(`${CORE}/api/core/organizaciones`, async (ruta) => {
+    org = (ruta.request().postDataJSON() as { id: string }).id;
+    await ruta.fulfill({
+      status: 201,
+      json: { org_id: org, nombre: 'Finca Ensayo Uno', ya_existia: false },
+      headers: permitir,
+    });
+  });
+  await page.route(`${CORE}/api/core/auth/refrescar`, async (ruta) => {
+    await ruta.fulfill({
+      json: {
+        ...sesion,
+        refresh: null,
+        org_id: org,
+        url_api: API,
+        organizaciones: [{ org_id: org, nombre: 'Finca Ensayo Uno', rol: 'propietario' }],
+      },
+      headers: permitir,
+    });
+  });
+  const lotes: number[] = [];
+  await page.route(`${API}/api/v1/sync/push`, async (ruta) => {
+    const { ops } = ruta.request().postDataJSON() as { ops: { id: string; entidad: string }[] };
+    lotes.push(ops.length);
+    await ruta.fulfill({ json: { acks: ops.map(respuesta) }, headers: permitir });
+  });
+  return lotes;
+}
+
+async function fincaConUnClima(page: Page) {
+  await configurar(page, FINCA_ENSAYO_UNO);
+  await page
+    .getByRole('navigation', { name: 'Secciones del cuaderno' })
+    .getByRole('link', { name: 'Registrar' })
+    .click();
+  await page
+    .getByLabel('Área', { exact: true })
+    .selectOption({ label: FINCA_ENSAYO_UNO.areas[0]?.nombre ?? '' });
+  await page.getByLabel('Temperatura del aire (°C)').fill('24');
+  await page.getByLabel('Humedad relativa (%)').fill('70');
+  await page.getByRole('button', { name: 'Guardar clima' }).click();
+  await expect(page.locator('[data-prueba="indicador-datos"]')).toHaveText(
+    '1 registro solo en este teléfono',
+  );
+}
+
+test('HU-E4.3 y E5.2: subir la finca deja todo en la nube y el indicador sin pendientes', async ({
+  page,
+}) => {
+  await fincaConUnClima(page);
+  await coreFalso(page);
+  const lotes = await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
+  await cuenta(page);
+  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await expect(page.locator('[data-prueba="nube-sin-subir"]')).toContainText(
+    '«Finca Ensayo Uno» está solo en este teléfono.',
+  );
+  await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
+  await expect(page.locator('[data-prueba="nube-vinculada"]')).toBeVisible();
+  await expect(page.locator('[data-prueba="nube-sync"]')).toContainText('Todo está en la nube.');
+  await expect(page.locator('[data-prueba="nube-pendientes"]')).toHaveText(
+    'Nada pendiente por subir.',
+  );
+  await expect(page.locator('[data-prueba="indicador-datos"]')).toHaveText(
+    'Sin registros pendientes',
+  );
+  expect(lotes.every((n) => n <= 25)).toBe(true);
+});
+
+test('HU-E3.14 CA3: lo que la nube no acepta se ve en rojo con su motivo, y sigue en el teléfono', async ({
+  page,
+}) => {
+  await fincaConUnClima(page);
+  await coreFalso(page);
+  await nubeFalsa(page, (op) =>
+    op.entidad === 'registro'
+      ? {
+          id: op.id,
+          estado: 'cuarentena',
+          motivo: 'Registro inválido: «datos.humedadRelativaPct» fuera de rango',
+        }
+      : { id: op.id, estado: 'aceptado' },
+  );
+  await cuenta(page);
+  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
+  await expect(page.locator('[data-prueba="nube-rechazos"]')).toContainText(
+    '«datos.humedadRelativaPct» fuera de rango',
+  );
+  await page.locator('[data-prueba="indicador-datos"]').click();
+  await expect(page.locator('[data-prueba="datos-rechazados"]')).toHaveText(
+    '1 dato no fue aceptado por la nube. Siguen en este teléfono; en «Cuenta» ves por qué.',
+  );
+  await page
+    .getByRole('navigation', { name: 'Secciones del cuaderno' })
+    .getByRole('link', { name: 'Historial' })
+    .click();
+  await expect(page.getByText('24').first()).toBeVisible(); // el registro sigue ahí
 });

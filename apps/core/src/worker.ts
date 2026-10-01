@@ -6,6 +6,7 @@
  *   debe parecer sano (P1).
  * - `GET /api/core/claves`: la clave pública con la que las celdas verifican los tokens (CA5).
  * - `/api/core/auth/*`: entrar con Google y renovar la sesión (HU-E4.2, `entrar.ts`).
+ * - `POST /api/core/organizaciones`: crear la organización de la finca del teléfono (HU-E4.3).
  *
  * Kill switch `ks:agro-core` (HU-E8.1): apagado, `/api/core/auth/*` responde 503 y nadie entra ni
  * renueva. Quien ya tiene un access token sigue sincronizando hasta que venza (12 h); el cuaderno
@@ -22,7 +23,7 @@ import {
   type LectorKv,
 } from '@gestionagro/kill-switch';
 import { type Firmante, firmanteDesde } from '@gestionagro/tokens';
-import { type Context, Hono } from 'hono';
+import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
 import { PRODUCTO_CORE } from './constantes.ts';
 import {
@@ -34,6 +35,7 @@ import {
   proveedorGoogle,
   renovar,
 } from './entrar.ts';
+import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 
 export { PRODUCTO_CORE };
 
@@ -114,18 +116,18 @@ export function crearApp(dependencias: Dependencias = {}) {
     return c.json({ claves: [publica] });
   });
 
-  // Solo el cuaderno puede leer las respuestas de canje y renovación desde el navegador.
-  app.use(
-    '/api/core/auth/*',
-    cors({
-      origin: (origen, c) => (origenesDe(c.env as Env).includes(origen) ? origen : null),
-      allowMethods: ['POST'],
-      allowHeaders: ['content-type'],
-      maxAge: 600,
-    }),
-  );
-
-  app.use('/api/core/auth/*', async (c, siguiente) => {
+  // Solo el cuaderno puede leer estas respuestas desde el navegador. Entrar, renovar y crear la
+  // organización comparten CORS, kill switch y configuración.
+  const corsDelCuaderno = cors({
+    origin: (origen, c) => (origenesDe(c.env as Env).includes(origen) ? origen : null),
+    allowMethods: ['POST'],
+    allowHeaders: ['authorization', 'content-type'],
+    maxAge: 600,
+  });
+  const conEntorno: MiddlewareHandler<{ Bindings: Env; Variables: { entorno: Entorno } }> = async (
+    c,
+    siguiente,
+  ) => {
     if (c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado(PRODUCTO_CORE))) {
       c.header('retry-after', '120');
       return c.json(
@@ -149,8 +151,13 @@ export function crearApp(dependencias: Dependencias = {}) {
     });
     await siguiente();
     return undefined;
-  });
+  };
+  for (const ruta of ['/api/core/auth/*', '/api/core/organizaciones']) {
+    app.use(ruta, corsDelCuaderno);
+    app.use(ruta, conEntorno);
+  }
 
+  app.post('/api/core/organizaciones', (c) => crearOrganizacionDeLaFinca(c, c.get('entorno')));
   app.get('/api/core/auth/google/inicio', (c) => inicio(c, c.get('entorno')));
   app.get('/api/core/auth/google/callback', (c) => callback(c, c.get('entorno')));
   app.post('/api/core/auth/canje', (c) => canje(c, c.get('entorno')));

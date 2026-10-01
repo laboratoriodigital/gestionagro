@@ -18,16 +18,20 @@
     "verificar": "node scripts/verificar.ts",
     "validar:productos": "node scripts/validar-productos.ts",
     "licencias": "node scripts/licencias.ts",
-    "e2e": "playwright test"
+    "e2e": "playwright test --project=telefono-360 && playwright test --project=rendimiento --no-deps --workers=1"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@biomejs/biome": "^2.5.14",
     "@gestionagro/agro-schema": "workspace:*",
+    "@gestionagro/d1": "workspace:*",
+    "@gestionagro/sync": "workspace:*",
+    "@gestionagro/tokens": "workspace:*",
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.20.4",
     "@vitest/coverage-v8": "^5.0.2",
     "ajv": "^8.20.0",
+    "fake-indexeddb": "^6.2.5",
     "typescript": "^7.0.2",
     "vitest": "^5.0.2",
     "yaml": "^2.9.1"

@@ -273,7 +273,7 @@ describe('GET /api/core/salud (prueba de humo del despliegue)', () => {
   });
 
   it('una ruta desconocida responde 404 en español', async () => {
-    const r = await app.fetch(new Request('https://core.test/api/core/organizaciones'), { DB: db });
+    const r = await app.fetch(new Request('https://core.test/api/core/ruta-inventada'), { DB: db });
     expect(r.status).toBe(404);
     expect(await r.json()).toEqual({
       estado: 'no-encontrado',

@@ -194,6 +194,8 @@ async function respuestaDeSesion(
     usuario,
     organizaciones: directorio.map(({ org_id, nombre, rol }) => ({ org_id, nombre, rol })),
     org_id: org?.org_id ?? null,
+    /** API de la celda de esa organización: a dónde sincroniza el teléfono (HU-E5.2). */
+    url_api: org?.url_api ?? null,
     aviso,
   });
 }

@@ -56,6 +56,20 @@ export interface VersionAnterior {
   reemplazada: string;
 }
 
+/**
+ * Operación que la celda puso en cuarentena (HU-E5.2, HU-E3.14 CA3). Sale de la cola de salida
+ * pero no se borra nada: el dato sigue en su tabla y aquí queda el motivo en palabras.
+ */
+export interface Rechazo {
+  /** Id de la operación. */
+  id: string;
+  entidad: Entidad;
+  entidad_id: string;
+  version: number;
+  motivo: string;
+  recibido: string;
+}
+
 export interface Meta {
   clave: string;
   valor: unknown;
@@ -75,6 +89,7 @@ export type CuadernoDb = Dexie & {
   registro: EntityTable<Registro, 'id'>;
   outbox: EntityTable<OperacionSalida, 'id'>;
   historial: EntityTable<VersionAnterior, 'id'>;
+  rechazo: EntityTable<Rechazo, 'id'>;
   meta: EntityTable<Meta, 'clave'>;
 };
 
@@ -155,6 +170,13 @@ export const VERSIONES_LOCALES: readonly VersionLocal[] = [
     version: 7,
     tablas: {
       categoria_calidad: 'id, finca_id', // categorías de una finca
+    },
+  },
+  {
+    // HU-E5.2: operaciones que la celda puso en cuarentena, con su motivo. Pocas: solo la clave.
+    version: 8,
+    tablas: {
+      rechazo: 'id',
     },
   },
 ];

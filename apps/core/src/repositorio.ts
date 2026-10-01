@@ -94,7 +94,13 @@ export interface Organizacion extends Ubicacion {
 /** Crea la organización en su ubicación y hace propietario a quien la crea, en una transacción. */
 export async function crearOrganizacion(
   db: BaseD1,
-  datos: { propietarioId: string; nombre: string; tipo: TipoDeOrganizacion },
+  datos: {
+    propietarioId: string;
+    nombre: string;
+    tipo: TipoDeOrganizacion;
+    /** Id que trae el teléfono, para que reintentar no cree dos (HU-E4.3). */
+    id?: string;
+  },
   reloj: Reloj = relojDelSistema,
 ): Promise<Organizacion> {
   const nombre = sinEspacios(datos.nombre, 'el nombre de la organización');
@@ -104,7 +110,7 @@ export async function crearOrganizacion(
   const ubicacion = await ubicacionNueva(db);
   const ahora = reloj();
   const org: Organizacion = {
-    id: uuidv7(() => ahora),
+    id: datos.id ?? uuidv7(() => ahora),
     nombre,
     tipo: datos.tipo,
     plan: 'gratuito',

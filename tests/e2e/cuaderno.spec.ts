@@ -69,11 +69,9 @@ test('CA5: noindex en todo /agro/app/, también en rutas internas', async ({ pag
   }
 });
 
-test('CA1: abierta una vez, carga completa sin señal en menos de 3 s con CPU ×4', async ({
-  page,
-  context,
-  browserName,
-}) => {
+test('CA1: abierta una vez, carga completa sin señal en menos de 3 s con CPU ×4', {
+  tag: '@rendimiento',
+}, async ({ page, context, browserName }) => {
   test.skip(browserName !== 'chromium', 'La emulación de CPU usa el protocolo de Chromium');
   await abrirControlada(page);
   const cdp = await context.newCDPSession(page);

@@ -8,7 +8,7 @@
 |---|---|---|
 | `ks:agro-calculadora-dpv` | La recepción de eventos (`POST /api/eventos` responde 503 y no escribe en Analytics Engine) | La calculadora: es una página estática que no pasa por el Worker |
 | `ks:agro-core` | Entrar con Google y renovar la sesión (`/api/core/auth/*` responde 503). La crea el despliegue del CORE aunque no tenga `product.yaml` | El cuaderno en el teléfono; quien ya entró sigue con su access hasta que vence (12 h) |
-| `ks:agro-cuaderno` | La API de la celda: `/api/v1/*` responde 503 con `Retry-After` (HU-E5.1). Cuando exista la sincronización (HU-E5.2), apaga la subida y la bajada de datos; el aviso al operario llega con HU-E8.6 | El cuaderno en el teléfono: registra y guarda sin señal ni sincronización |
+| `ks:agro-cuaderno` | La API de la celda: `/api/v1/*` responde 503 con `Retry-After` (HU-E5.1). Apaga la subida de datos (HU-E5.2): el teléfono espera lo que diga `Retry-After` y lo pendiente se queda en su cola. El aviso al operario en palabras llega con HU-E8.6 | El cuaderno en el teléfono: registra y guarda sin señal ni sincronización |
 
 Las claves las crea el despliegue en `encendido` para cada `product.yaml` con `kill_switch: true`. Un despliegue **nunca** cambia una clave que ya existe: lo que apagues sigue apagado.
 
