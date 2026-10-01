@@ -1,12 +1,17 @@
 {
   "$schema": "../schemas/celdas.schema.json",
-  "nota": "Única lista de celdas (ARQUITECTURA §5.5, P2). De aquí salen apps/sitio/wrangler.jsonc (scripts/generar-wrangler.ts) y el orden del despliegue (scripts/desplegar.ts). Ningún id de cuenta va aquí: cada celda nombra los secretos de GitHub que los tienen.",
+  "nota": "Única lista de celdas (ARQUITECTURA §5.5, P2). De aquí salen apps/sitio/wrangler.jsonc y apps/core/wrangler.jsonc (scripts/generar-wrangler.ts), la tabla celda del CORE (HU-E4.1) y el orden del despliegue (scripts/desplegar.ts). Ningún id de cuenta va aquí: cada celda nombra los secretos de GitHub que los tienen.",
   "sitio": {
     "celda": "c0",
     "worker": "agro-sitio",
     "dominio": "agro.laboratorio-digital.com",
     "zona": "laboratorio-digital.com",
     "dataset_eventos": "agro_eventos"
+  },
+  "core": {
+    "celda": "c0",
+    "worker": "agro-core",
+    "d1": "agro_core"
   },
   "celdas": [
     {
@@ -15,8 +20,11 @@
       "plan": "free",
       "anillo_despliegue": 0,
       "estado": "activa",
-      "secretos": { "token": "CF_API_TOKEN", "cuenta": "CF_ACCOUNT_ID" },
-      "shards": []
+      "secretos": {
+        "token": "CF_API_TOKEN",
+        "cuenta": "CF_ACCOUNT_ID"
+      },
+      "shards": ["agro_c0_s1"]
     }
   ]
 }

@@ -73,7 +73,10 @@ describe('claves de kill switch (CA2)', () => {
     const texto = readFileSync(join(RAIZ, 'scripts', 'desplegar.ts'), 'utf8');
     const asegura = texto.indexOf('clavesDeKillSwitch(cargarProductos())');
     expect(asegura).toBeGreaterThan(0);
-    expect(asegura).toBeLessThan(texto.indexOf('wrangler deploy -c'));
+    // Cómo se publica el Worker del sitio en desplegar.ts (texto literal de la plantilla).
+    const publica = texto.indexOf(`deploy -c $${'{'}ARCHIVO_DESPLIEGUE}`);
+    expect(publica).toBeGreaterThan(0);
+    expect(asegura).toBeLessThan(publica);
   });
 
   it('el nombre del KV sale de la celda y del destino (ARQUITECTURA §5.5)', () => {

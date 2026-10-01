@@ -23,3 +23,4 @@ _to_delete/
 test-results/
 playwright-report/
 apps/sitio/wrangler.despliegue.jsonc
+apps/core/wrangler.despliegue.jsonc

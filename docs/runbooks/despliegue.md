@@ -9,6 +9,12 @@ El Worker del sitio (`agro-sitio`) en la cuenta de la celda c0:
 - el cuaderno (`/agro/app/`);
 - `POST /api/eventos`.
 
+Y el CORE (HU-E4.1) en la misma cuenta, que es quien dice `core.celda` en `celdas.json`:
+- la base D1 `agro_core` (`agro_core_staging` en staging), creada por el despliegue si no existe;
+- sus migraciones (`infrastructure/migraciones/core/`);
+- la tabla `celda`, copiada de `celdas.json`;
+- el Worker `agro-core` en workers.dev, que hoy solo responde `GET /api/core/salud`.
+
 La API de la celda llega con HU-E5.1 y entra a este mismo recorrido.
 
 | Destino | Cuándo | Dónde |
@@ -16,10 +22,12 @@ La API de la celda llega con HU-E5.1 y entra a este mismo recorrido.
 | Staging | Solo, cada vez que el CI termina en verde en `main` | `https://agro-sitio-staging.<subdominio>.workers.dev` (la URL exacta queda en el resumen de la corrida) |
 | Producción | Al publicar una versión en GitHub | `https://agro.laboratorio-digital.com` |
 
+El CORE vive en workers.dev en los dos destinos: `https://agro-core-staging.<subdominio>.workers.dev` y `https://agro-core.<subdominio>.workers.dev`. Su dominio se decide con el login (HU-E4.2).
+
 Para cada celda, el flujo hace cuatro cosas:
 1. Verifica el token con lecturas y, si falta un permiso, lo nombra.
-2. Despliega.
-3. Corre la prueba de humo: páginas públicas, `noindex` del cuaderno y una API que rechaza lo inválido. La prueba no escribe eventos.
+2. Despliega lo que la celda aloja: el sitio y, si es la celda del CORE, la base, las migraciones, el directorio y el Worker del CORE, en ese orden.
+3. Corre la prueba de humo de cada cosa: páginas públicas, `noindex` del cuaderno y una API que rechaza lo inválido; en el CORE, que `/api/core/salud` responde 200 con las celdas activas de `celdas.json`. Las pruebas no escriben eventos ni datos.
 4. Si algo falla, se detiene y nombra las celdas que quedaron sin tocar.
 
 ## Publicar en producción
@@ -45,6 +53,9 @@ El resumen dice en qué celda se detuvo, qué permiso falta o qué parte del hum
 | «el token … no es válido o está vencido» | Crear un token nuevo con los permisos de ARQUITECTURA §7.5 y reemplazar el secreto |
 | «al token le falta «Account → Workers Scripts: Edit»…» | Editar el token en Cloudflare y agregar ese permiso |
 | «el token no ve la zona …» | Agregar «Zone → Workers Routes: Edit» para esa zona |
+| «al token le falta «Account → D1: Edit»…» | Editar el token en Cloudflare y agregar ese permiso. El valor del token no cambia, así que el secreto de GitHub sigue igual |
+| «migraciones del CORE falló» | El resumen cita el error de wrangler. Antes de reintentar, mira en Cloudflare → D1 → la base → Console qué tablas quedaron (no está verificado si wrangler deshace una migración a medias). Corrige la migración con un archivo **nuevo**, nunca editando uno ya aplicado |
+| «/api/core/salud: respondió 503 (sin-celdas…)» | El paso del directorio no corrió o `celdas.json` no tiene celdas activas. Vuelve a correr el flujo con `solo_celda` |
 | «la prueba de humo falló» | El Worker quedó desplegado. Revisa la ruta que falló; si es grave, vuelve a la versión anterior (abajo) |
 
 Para seguir después de corregir: Actions → desplegar → «Run workflow», con el mismo destino y `solo_celda` igual a la celda que falló.
@@ -61,5 +72,7 @@ Despliega exactamente ese código. Nada se borra: los datos del cuaderno viven e
 
 ## Lo que este runbook no cubre todavía
 
-- Kill switches por producto (HU-E8.1).
-- Despliegue de la API de la celda y migraciones de D1 (HU-E5.1, ARQUITECTURA §7.4).
+- Despliegue de la API de la celda y migraciones de sus shards (HU-E5.1, ARQUITECTURA §7.4).
+- Export de la base del CORE a R2 antes de migrar (§7.4); llega con los respaldos (HU-E8.4). Mientras tanto, la red es Time Travel de D1 (7 días en el plan gratuito).
+
+Kill switches: `docs/runbooks/kill-switch.md`.
