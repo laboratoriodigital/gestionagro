@@ -19,12 +19,14 @@ export interface Celda {
 
 export interface ConfigCeldas {
   sitio: { celda: string; worker: string; dominio: string; zona: string; dataset_eventos: string };
+  /** CORE v0 (ARQUITECTURA §5.4): su Worker y su base D1 viven en la cuenta de `celda`. */
+  core: { celda: string; worker: string; d1: string };
   celdas: Celda[];
 }
 
 const leerJson = (ruta: string) => JSON.parse(readFileSync(join(RAIZ, ruta), 'utf8'));
 
-/** Lee y valida celdas.json; lanza con todas las fallas, ids repetidos o un sitio sin celda. */
+/** Lee y valida celdas.json; lanza con todas las fallas, ids repetidos o un sitio o CORE sin celda. */
 export function cargarCeldas(
   datos: unknown = leerJson('infrastructure/celdas.json'),
 ): ConfigCeldas {
@@ -39,11 +41,15 @@ export function cargarCeldas(
   const ids = config.celdas.map((c) => c.id);
   const repetidos = ids.filter((id, i) => ids.indexOf(id) !== i);
   if (repetidos.length > 0) throw new Error(`celdas.json repite ids: ${repetidos.join(', ')}`);
-  const delSitio = config.celdas.find((c) => c.id === config.sitio.celda);
-  if (!delSitio)
-    throw new Error(`El sitio apunta a la celda «${config.sitio.celda}», que no existe`);
-  if (delSitio.estado === 'fuera')
-    throw new Error(`El sitio apunta a «${delSitio.id}», que está «fuera»`);
+  for (const [quien, celdaId] of [
+    ['El sitio', config.sitio.celda],
+    ['El CORE', config.core.celda],
+  ] as const) {
+    const celda = config.celdas.find((c) => c.id === celdaId);
+    if (!celda) throw new Error(`${quien} apunta a la celda «${celdaId}», que no existe`);
+    if (celda.estado === 'fuera')
+      throw new Error(`${quien} apunta a «${celda.id}», que está «fuera»`);
+  }
   return config;
 }
 

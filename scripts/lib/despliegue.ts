@@ -74,6 +74,8 @@ export async function verificarToken(
   cuenta: string | undefined,
   destino: Destino,
   zona: string,
+  /** La celda aloja el CORE: el despliegue crea su base D1 y le aplica migraciones (HU-E4.1). */
+  conD1 = false,
 ): Promise<string[]> {
   if (!token) return [`${celda.id}: falta el secreto ${celda.secretos.token} en GitHub`];
   if (!cuenta) return [`${celda.id}: falta el secreto ${celda.secretos.cuenta} en GitHub`];
@@ -112,6 +114,17 @@ export async function verificarToken(
     );
   } else if (kv.estado !== 200) {
     fallas.push(`${celda.id}: no se pudo leer los KV de la cuenta (HTTP ${kv.estado})`);
+  }
+
+  if (conD1) {
+    const d1 = await leer(fetchFn, `${API}/accounts/${cuenta}/d1/database?per_page=1`, token);
+    if (d1.estado === 403 || d1.estado === 401) {
+      fallas.push(
+        `${celda.id}: al token le falta «Account → D1: Edit» en la cuenta ${celda.cuenta}`,
+      );
+    } else if (d1.estado !== 200) {
+      fallas.push(`${celda.id}: no se pudo leer las bases D1 de la cuenta (HTTP ${d1.estado})`);
+    }
   }
 
   if (destino === 'produccion') {
@@ -185,6 +198,41 @@ export async function humo(fetchFn: Fetch, base: string): Promise<string[]> {
     fallas.push(`/api/eventos (POST inválido): respondió ${invalido.status}, se esperaba 400`);
   }
   return fallas;
+}
+
+/**
+ * Prueba de humo del CORE (HU-E4.1): la base responde, tiene las migraciones y el directorio
+ * tiene las celdas activas de celdas.json. Solo lee.
+ */
+export async function humoCore(
+  fetchFn: Fetch,
+  base: string,
+  celdasActivas: number,
+): Promise<string[]> {
+  const ruta = '/api/core/salud';
+  let r: Response;
+  try {
+    r = await fetchFn(`${base}${ruta}`);
+  } catch (e) {
+    return [`${ruta}: no respondió (${(e as Error).message})`];
+  }
+  let cuerpo: { estado?: string; motivo?: string; celdas?: number } = {};
+  try {
+    cuerpo = (await r.json()) as typeof cuerpo;
+  } catch {
+    return [`${ruta}: respondió ${r.status} sin JSON`];
+  }
+  if (r.status !== 200) {
+    return [
+      `${ruta}: respondió ${r.status} (${cuerpo.estado ?? '?'}: ${cuerpo.motivo ?? 'sin motivo'})`,
+    ];
+  }
+  if (cuerpo.celdas !== celdasActivas) {
+    return [
+      `${ruta}: el directorio tiene ${String(cuerpo.celdas)} celdas activas y celdas.json ${celdasActivas}`,
+    ];
+  }
+  return [];
 }
 
 /** URL de workers.dev que imprime `wrangler deploy` en staging. */

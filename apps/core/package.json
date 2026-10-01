@@ -1,0 +1,16 @@
+{
+  "name": "@gestionagro/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CORE v0: usuarios, organizaciones, membresías, invitaciones y directorio de celdas (ADR-9, ARQUITECTURA §5.4).",
+  "type": "module",
+  "scripts": {
+    "build": "wrangler deploy --dry-run --outdir .wrangler/dry-run --env= && wrangler deploy --dry-run --outdir .wrangler/dry-run-staging --env staging"
+  },
+  "dependencies": {
+    "hono": "^4.13.12"
+  },
+  "devDependencies": {
+    "wrangler": "^4.144.0"
+  }
+}

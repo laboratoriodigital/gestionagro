@@ -1,0 +1,184 @@
+/**
+ * Operaciones del CORE v0 sobre D1 (HU-E4.1): usuarios con su identidad de Google,
+ * organizaciones con su ubicación, membresías y el directorio que se consulta al iniciar sesión
+ * (ARQUITECTURA §5.4). Sin endpoints públicos todavía: los abre HU-E4.2 detrás del login.
+ *
+ * Presupuesto (≤ 1.000 filas escritas al día, §8.1): crear una organización escribe 2 filas
+ * (organización y membresía del propietario); crear un usuario, 2 (usuario e identidad).
+ */
+import { uuidv7 } from '@gestionagro/agro-schema';
+import { asignarUbicacion, type CeldaDelDirectorio, type Ubicacion } from './asignacion.ts';
+import type { BaseD1 } from './d1.ts';
+
+export const ROLES = ['propietario', 'supervisor', 'operario', 'asesor', 'auditor'] as const;
+export type Rol = (typeof ROLES)[number];
+export const TIPOS_DE_ORGANIZACION = ['finca', 'asesor', 'cadena'] as const;
+export type TipoDeOrganizacion = (typeof TIPOS_DE_ORGANIZACION)[number];
+
+/** Reloj inyectable (P8): milisegundos Unix. */
+export type Reloj = () => number;
+const relojDelSistema: Reloj = () => Date.now();
+const iso = (ms: number) => new Date(ms).toISOString();
+
+export class ErrorDelCore extends Error {
+  override name = 'ErrorDelCore';
+}
+
+const sinEspacios = (valor: string, campo: string) => {
+  const limpio = valor.trim();
+  if (!limpio) throw new ErrorDelCore(`Falta ${campo}`);
+  return limpio;
+};
+
+export async function leerCeldas(db: BaseD1): Promise<CeldaDelDirectorio[]> {
+  const { results } = await db
+    .prepare('SELECT id, estado, anillo_despliegue, shards FROM celda ORDER BY id')
+    .all<{ id: string; estado: 'activa' | 'fuera'; anillo_despliegue: number; shards: string }>();
+  return results.map((c) => ({ ...c, shards: JSON.parse(c.shards) as string[] }));
+}
+
+/** Ubicación para una organización nueva, según la regla de `asignacion.ts` (CA3). */
+export async function ubicacionNueva(db: BaseD1): Promise<Ubicacion> {
+  const [celdas, cargas, pilotos] = await Promise.all([
+    leerCeldas(db),
+    db
+      .prepare(
+        'SELECT celda_id, shard, count(*) AS organizaciones FROM organizacion GROUP BY celda_id, shard',
+      )
+      .all<{ celda_id: string; shard: string; organizaciones: number }>(),
+    db.prepare('SELECT count(*) AS n FROM organizacion WHERE anillo = 1').first<{ n: number }>(),
+  ]);
+  return asignarUbicacion(celdas, cargas.results, pilotos?.n ?? 0);
+}
+
+/**
+ * Usuario de una identidad de Google. Si la identidad ya existe, devuelve su usuario sin
+ * escribir nada; si no, crea usuario e identidad juntos.
+ */
+export async function usuarioDeIdentidad(
+  db: BaseD1,
+  datos: { sub: string; nombre: string; email: string },
+  reloj: Reloj = relojDelSistema,
+): Promise<{ id: string; nuevo: boolean }> {
+  const sub = sinEspacios(datos.sub, 'el identificador de Google');
+  const existente = await db
+    .prepare('SELECT usuario_id FROM identidad WHERE proveedor = ? AND sub = ?')
+    .bind('google', sub)
+    .first<{ usuario_id: string }>();
+  if (existente) return { id: existente.usuario_id, nuevo: false };
+  const ahora = reloj();
+  const id = uuidv7(() => ahora);
+  await db.batch([
+    db
+      .prepare('INSERT INTO usuario (id, nombre, email, creado) VALUES (?, ?, ?, ?)')
+      .bind(
+        id,
+        sinEspacios(datos.nombre, 'el nombre'),
+        sinEspacios(datos.email, 'el email'),
+        iso(ahora),
+      ),
+    db
+      .prepare('INSERT INTO identidad (proveedor, sub, usuario_id) VALUES (?, ?, ?)')
+      .bind('google', sub, id),
+  ]);
+  return { id, nuevo: true };
+}
+
+export interface Organizacion extends Ubicacion {
+  id: string;
+  nombre: string;
+  tipo: TipoDeOrganizacion;
+  plan: 'gratuito';
+}
+
+/** Crea la organización en su ubicación y hace propietario a quien la crea, en una transacción. */
+export async function crearOrganizacion(
+  db: BaseD1,
+  datos: { propietarioId: string; nombre: string; tipo: TipoDeOrganizacion },
+  reloj: Reloj = relojDelSistema,
+): Promise<Organizacion> {
+  const nombre = sinEspacios(datos.nombre, 'el nombre de la organización');
+  if (!TIPOS_DE_ORGANIZACION.includes(datos.tipo)) {
+    throw new ErrorDelCore(`Tipo de organización desconocido: ${String(datos.tipo)}`);
+  }
+  const ubicacion = await ubicacionNueva(db);
+  const ahora = reloj();
+  const org: Organizacion = {
+    id: uuidv7(() => ahora),
+    nombre,
+    tipo: datos.tipo,
+    plan: 'gratuito',
+    ...ubicacion,
+  };
+  await db.batch([
+    db
+      .prepare(
+        'INSERT INTO organizacion (id, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+      .bind(
+        org.id,
+        org.nombre,
+        org.tipo,
+        org.plan,
+        org.celda_id,
+        org.shard,
+        org.anillo,
+        iso(ahora),
+      ),
+    db
+      .prepare('INSERT INTO membresia (usuario_id, org_id, rol, creado) VALUES (?, ?, ?, ?)')
+      .bind(datos.propietarioId, org.id, 'propietario', iso(ahora)),
+  ]);
+  return org;
+}
+
+export async function agregarMembresia(
+  db: BaseD1,
+  datos: { usuarioId: string; orgId: string; rol: Rol },
+  reloj: Reloj = relojDelSistema,
+): Promise<void> {
+  if (!ROLES.includes(datos.rol)) throw new ErrorDelCore(`Rol desconocido: ${String(datos.rol)}`);
+  const ya = await db
+    .prepare('SELECT rol FROM membresia WHERE usuario_id = ? AND org_id = ?')
+    .bind(datos.usuarioId, datos.orgId)
+    .first<{ rol: Rol }>();
+  if (ya) throw new ErrorDelCore(`Esa persona ya es ${ya.rol} de esta organización`);
+  await db
+    .prepare('INSERT INTO membresia (usuario_id, org_id, rol, creado) VALUES (?, ?, ?, ?)')
+    .bind(datos.usuarioId, datos.orgId, datos.rol, iso(reloj()))
+    .run();
+}
+
+export interface EntradaDelDirectorio {
+  org_id: string;
+  nombre: string;
+  tipo: TipoDeOrganizacion;
+  rol: Rol;
+  celda_id: string;
+  shard: string;
+  anillo: 1 | 2;
+  /** Null hasta que la celda tenga su API (HU-E5.1). */
+  url_api: string | null;
+}
+
+/**
+ * Directorio de un usuario: sus organizaciones con la celda y el shard de cada una. Se consulta
+ * solo al iniciar sesión; después, celda y shard viajan en el token (§5.4).
+ */
+export async function directorioDeUsuario(
+  db: BaseD1,
+  usuarioId: string,
+): Promise<EntradaDelDirectorio[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT o.id AS org_id, o.nombre, o.tipo, m.rol, o.celda_id, o.shard, o.anillo, c.url_api
+         FROM membresia m
+         JOIN organizacion o ON o.id = m.org_id
+         JOIN celda c ON c.id = o.celda_id
+        WHERE m.usuario_id = ?
+        ORDER BY o.creado, o.id`,
+    )
+    .bind(usuarioId)
+    .all<EntradaDelDirectorio>();
+  return results;
+}

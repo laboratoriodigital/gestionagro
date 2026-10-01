@@ -256,6 +256,17 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
 | `invitacion` | código de un solo uso (hash), rol, expira, creada_por |
 | `celda` | id, url base de la API, clave pública vigente y anterior, estado |
 
+- **Dónde vive (HU-E4.1):**
+  - Worker `agro-core` en workers.dev, con la base D1 `agro_core` (con `_staging` en staging), en la cuenta de la celda que dice `core.celda` en `celdas.json`.
+  - Migraciones en `infrastructure/migraciones/core/`. Cada índice dice en la migración por qué existe (§6.2).
+  - El despliegue crea la base, aplica las migraciones y copia `celdas.json` a la tabla `celda` (P2). Una celda que sale de `celdas.json` queda `fuera`; nunca se borra (P21).
+  - Hoy solo responde `GET /api/core/salud`. Crear usuarios y organizaciones se abre detrás del login (HU-E4.2).
+- **Dónde nace una organización (regla escrita, nunca a mano):**
+  - **Celda:** la activa con shards que tenga menos organizaciones. A carga igual, la de anillo de despliegue menor y luego el id.
+  - **Shard:** el de esa celda con menos organizaciones. A carga igual, el primero de `celdas.json`.
+  - **Anillo de funciones (§7.3):** las 5 primeras organizaciones son pilotos (anillo 1); las demás, anillo 2. La finca cero es la primera que se crea (HU-E4.3).
+  - Sin celda posible, la creación falla con el motivo. No hay celda por defecto (P1).
+  - Código: `apps/core/src/asignacion.ts`.
 - **Login:** Google OIDC con PKCE (librería Arctic, MIT). Sin contraseñas. El enlace mágico por email llega cuando haya proveedor de email (ED1 §20.2).
 - **Tokens (ADR-10):**
   - Access token JWT Ed25519 de 12 h, con `sub`, `org`, `rol`, `celda`, `shard` y `anillo`.
@@ -516,10 +527,10 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 |---|---|---|
 | 0 · Local | `wrangler dev` con D1 local y las dos fincas de prueba | Todo |
 | 1 · Staging | Worker `agro-api-staging` + D1 `agro_staging` en c0, con fincas de prueba sembradas | Cada fusión a `main` |
-| 2 · Finca cero y pilotos | Organizaciones con `anillo: 1` en el CORE | Funciones nuevas vía flags en KV |
+| 2 · Finca cero y pilotos | Organizaciones con `anillo: 1` en el CORE (las 5 primeras, §5.4) | Funciones nuevas vía flags en KV |
 | 3 · Todas | Resto de organizaciones | La función cuando el anillo 2 pasa una semana sin fallas críticas |
 
-- **El código del servidor se despliega por celda**, en el orden de `anillo_despliegue` de `celdas.json`, celda por celda con `scripts/desplegar.ts` (no con matriz: así se detiene en la primera falla y nombra las que quedaron sin tocar). Staging sale cuando el CI termina en verde en `main`; producción, al publicar una versión. Hoy solo el sitio vive en c0; la API de la celda se suma con HU-E5.1. Procedimiento: `docs/runbooks/despliegue.md`.
+- **El código del servidor se despliega por celda**, en el orden de `anillo_despliegue` de `celdas.json`, celda por celda con `scripts/desplegar.ts` (no con matriz: así se detiene en la primera falla y nombra las que quedaron sin tocar). Staging sale cuando el CI termina en verde en `main`; producción, al publicar una versión. Hoy viven en c0 el sitio y el CORE (HU-E4.1); la API de la celda se suma con HU-E5.1. Procedimiento: `docs/runbooks/despliegue.md`.
 - **Las funciones se liberan por organización** con flags. En la tienda los anillos eran por repositorio; aquí son por organización y por celda.
 - **Una celda o una organización pueden marcarse `fuera`** para no recibir repartos. Cuando un despliegue se detiene, el resumen nombra las que quedaron sin tocar y cómo seguir (bitácora ecommerce 105).
 
@@ -532,7 +543,7 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 ### 7.5 Secretos
 
 - **Secretos de cada celda:** `CF_API_TOKEN` con alcance mínimo a esa cuenta y `CF_ACCOUNT_ID`. `celdas.json` nombra los secretos de cada celda; una prueba exige que estén en esta lista y que el flujo de despliegue los pase (HU-E1.5). Hoy viven a nivel de repositorio; una celda en otra cuenta (etapa C) tendrá los suyos. El flujo se los entrega a wrangler como `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`.
-- **Permisos del token de c0:** Account → Workers Scripts (Edit), Workers KV Storage (Edit), Account Analytics (Read), Account Settings (Read); User → Memberships (Read); Zone `laboratorio-digital.com` → Workers Routes (Edit). D1 (Edit) se agrega con la sincronización (S7–S8) y se rota el token.
+- **Permisos del token de c0:** Account → Workers Scripts (Edit), Workers KV Storage (Edit), Account Analytics (Read), Account Settings (Read); User → Memberships (Read); Zone `laboratorio-digital.com` → Workers Routes (Edit); Account → D1 (Edit), agregado el 1 oct 2026 para el CORE (HU-E4.1) editando el mismo token, sin rotarlo. El despliegue verifica D1 en la celda del CORE.
 - **Secretos de Worker:**
   - Clave privada Ed25519 del CORE.
   - Clave de firma de QR por celda.

@@ -646,7 +646,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E4.1 · CORE v0: organizaciones, membresías y directorio
 **Como** dueño del ecosistema **quiero** un CORE mínimo con usuarios, organizaciones, membresías, invitaciones y directorio de celdas **para** que el agro tenga cuentas sin construir el CORE completo de ED1.
-- **Peldaño:** cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S7 · **Depende de:** HU-E1.5 · **Estado:** Refinada
+- **Peldaño:** cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S7 · **Depende de:** HU-E1.5 · **Estado:** En sprint (rama `feat/e4.1-core-v0`. CA1 a CA4 hechos y probados con D1 local de wrangler; la prueba de CA1 lee la lista de tablas de ARQUITECTURA §5.4. CA3: regla en `apps/core/src/asignacion.ts`, con 5 organizaciones piloto en anillo 1. Sin endpoints públicos más allá de `/api/core/salud`: crear cuentas espera el login de HU-E4.2. Falta la corrida real: el despliegue a staging crea `agro_core_staging`)
 - **Criterios de aceptación:**
   1. Las tablas de ARQUITECTURA §5.4 existen como migraciones SQL de wrangler. Ninguna tabla fuera de esa lista (regla de tres).
   2. La tabla `celda` se genera desde `celdas.json` y una prueba las compara (P2).
