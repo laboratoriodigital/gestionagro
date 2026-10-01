@@ -27,6 +27,7 @@ import {
   estadoDeSincronizacion,
   sincronizarAhora,
 } from '../sincronizacion.ts';
+import { TuEquipo } from './TuEquipo.tsx';
 
 const hora = (ms: number) =>
   new Intl.DateTimeFormat('es-CO', {
@@ -140,6 +141,10 @@ export function FincaEnLaNube({
     }
   };
 
+  // HU-E4.4: solo el propietario de la finca de este teléfono invita.
+  const esPropietario =
+    sesion.organizaciones.find((o) => o.org_id === sesion.org_id)?.rol === 'propietario';
+
   if (estado === null) return <p>Cargando…</p>;
 
   return (
@@ -235,6 +240,7 @@ export function FincaEnLaNube({
               Sincronizar ahora
             </button>
           </div>
+          {esPropietario && finca && <TuEquipo finca={finca} enLinea={enLinea} />}
         </>
       )}
       {rechazos.length > 0 && (

@@ -441,3 +441,133 @@ test('HU-E5.6 CA3: si la nube ve la hora del teléfono adelantada, el aviso pide
     'Sin registros pendientes',
   );
 });
+
+test.describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
+  const permitir = { 'access-control-allow-origin': '*' };
+  const CODIGO = 'invitacion-e2e';
+  const ORG = '0199a1b2-0000-7000-8000-0000000000dd';
+
+  test('CA1: el propietario elige el rol y el mensaje sale listo para WhatsApp', async ({
+    page,
+  }) => {
+    await fincaConUnClima(page);
+    await coreFalso(page);
+    await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
+    const pedidos: unknown[] = [];
+    await page.route(`${CORE}/api/core/invitaciones`, async (ruta) => {
+      pedidos.push(ruta.request().postDataJSON());
+      await ruta.fulfill({
+        status: 201,
+        json: { codigo: CODIGO, rol: 'supervisor', expira: '2026-10-08T12:00:00.000Z' },
+        headers: permitir,
+      });
+    });
+    await cuenta(page);
+    await entrar(page);
+    await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
+    const equipo = page.locator('[data-prueba="tu-equipo"]');
+    await expect(equipo).toBeVisible();
+    await equipo.getByLabel('Rol').selectOption('supervisor');
+    await equipo.getByRole('button', { name: 'Preparar invitación' }).click();
+    const enviar = page.locator('[data-prueba="enviar-whatsapp"]');
+    await expect(enviar).toBeVisible();
+    const href = (await enviar.getAttribute('href')) ?? '';
+    expect(href.startsWith('https://wa.me/?text=')).toBe(true);
+    const mensaje = new URL(href).searchParams.get('text') ?? '';
+    expect(mensaje).toContain('Finca Ensayo Uno como supervisor');
+    expect(mensaje).toContain(`/agro/app/unirme/#invitacion=${CODIGO}`);
+    expect(pedidos).toEqual([{ rol: 'supervisor' }]);
+  });
+
+  test('CA2 y CA4: quien recibe el enlace entra con Google, se une y la finca baja a su teléfono', async ({
+    page,
+  }) => {
+    const urls: string[] = [];
+    const cuerpos: unknown[] = [];
+    page.on('request', (r) => {
+      if (r.resourceType() !== 'document') urls.push(r.url());
+    });
+    await coreFalso(page);
+    await page.route(`${CORE}/api/core/invitaciones/ver`, async (ruta) => {
+      cuerpos.push(ruta.request().postDataJSON());
+      await ruta.fulfill({
+        json: {
+          estado: 'vigente',
+          finca: 'Finca Ensayo Dos',
+          rol: 'operario',
+          invita: 'Persona Ensayo',
+          expira: '2026-10-08T12:00:00.000Z',
+        },
+        headers: permitir,
+      });
+    });
+    await page.route(`${CORE}/api/core/invitaciones/aceptar`, async (ruta) => {
+      cuerpos.push(ruta.request().postDataJSON());
+      await ruta.fulfill({
+        json: { org_id: ORG, finca: 'Finca Ensayo Dos', rol: 'operario' },
+        headers: permitir,
+      });
+    });
+    await page.route(`${CORE}/api/core/auth/refrescar`, async (ruta) => {
+      await ruta.fulfill({
+        json: {
+          ...sesion,
+          refresh: null,
+          org_id: ORG,
+          url_api: API_STAGING,
+          organizaciones: [{ org_id: ORG, nombre: 'Finca Ensayo Dos', rol: 'operario' }],
+        },
+        headers: permitir,
+      });
+    });
+    await page.route(`${API_STAGING}/api/v1/sync/pull?*`, async (ruta) => {
+      await ruta.fulfill({
+        json: { catalogos: [], registros: [], cursor: { registro: 0, catalogo: 0 }, mas: false },
+        headers: permitir,
+      });
+    });
+
+    await page.goto(`${APP}unirme/#invitacion=${CODIGO}`);
+    await expect(page.locator('[data-prueba="unirme-invitacion"]')).toContainText(
+      'Persona Ensayo te invita al cuaderno de Finca Ensayo Dos como operario.',
+    );
+    expect(new URL(page.url()).hash).toBe(''); // el código salió de la barra de direcciones
+    await entrar(page);
+    // Cuenta canjea la entrada y, con una invitación pendiente, vuelve a «Unirme».
+    await page.getByRole('button', { name: 'Unirme a Finca Ensayo Dos' }).click();
+    await expect(page.locator('[data-prueba="unirme-listo"]')).toContainText(
+      'Ya eres parte de Finca Ensayo Dos como operario.',
+    );
+    expect(cuerpos).toEqual([{ codigo: CODIGO }, { codigo: CODIGO }, { codigo: CODIGO }]);
+    for (const url of urls) expect(url).not.toContain(CODIGO);
+    expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe('{}');
+  });
+
+  test('CA3: un enlace usado o vencido dice por qué y a quién pedir otro', async ({ page }) => {
+    await page.route(`${CORE}/api/core/invitaciones/ver`, async (ruta) => {
+      await ruta.fulfill({
+        status: 410,
+        json: {
+          estado: 'no-sirve',
+          motivo: 'Este enlace ya se usó. Pídele a Persona Ensayo que te mande uno nuevo.',
+        },
+        headers: permitir,
+      });
+    });
+    await page.goto(`${APP}unirme/#invitacion=${CODIGO}`);
+    await expect(page.locator('[data-prueba="unirme-no-sirve"]')).toHaveText(
+      'Este enlace ya se usó. Pídele a Persona Ensayo que te mande uno nuevo.',
+    );
+    await expect(page.getByRole('button', { name: 'Entrar con Google' })).toHaveCount(0);
+  });
+
+  test('«Unirme» no aparece en el menú', async ({ page }) => {
+    await page.goto(`${APP}unirme/`);
+    await expect(page.locator('[data-prueba="unirme-sin-invitacion"]')).toBeVisible();
+    await expect(
+      page.getByRole('navigation', { name: 'Secciones del cuaderno' }).getByRole('link', {
+        name: 'Unirme',
+      }),
+    ).toHaveCount(0);
+  });
+});

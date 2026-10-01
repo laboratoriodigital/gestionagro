@@ -14,6 +14,8 @@ export const RUTAS_APP = [
   { segmento: 'insumos', titulo: 'Insumos' },
   { segmento: 'respaldo', titulo: 'Respaldo' },
   { segmento: 'cuenta', titulo: 'Cuenta' },
+  // A «Unirme» se llega desde el enlace de una invitación (HU-E4.4); no va en el menú.
+  { segmento: 'unirme', titulo: 'Unirme', enMenu: false },
 ] as const;
 
 export const rutaDe = (segmento: string): string =>

@@ -279,7 +279,10 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
   - El token lleva la organización si la persona tiene una sola o si la pide; sin ninguna, `org` va en null (crea la suya en HU-E4.3).
   - Kill switch `ks:agro-core` (en el KV de flags de la celda del CORE): apagado, nadie entra ni renueva; los access ya emitidos valen hasta que vencen.
   - Offline, el access vencido no impide registrar, solo sincronizar.
-- **Invitaciones sin email:** el propietario genera un enlace de un solo uso y lo comparte por WhatsApp (`wa.me/?text=…`). El código viaja en el **fragmento** `#`, no en la ruta ni en la query (P13).
+- **Invitaciones sin email (HU-E4.4, `apps/core/src/invitaciones.ts`):** el propietario genera un enlace de un solo uso que vence en 7 días y lo comparte por WhatsApp (`wa.me/?text=…`). El código viaja en el **fragmento** (`/agro/app/unirme/#invitacion=…`), no en la ruta ni en la query (P13); en D1 solo queda su hash.
+  - `POST /api/core/invitaciones` (solo `propietario`), `POST /api/core/invitaciones/ver` y `POST /api/core/invitaciones/aceptar`: el código va siempre en el cuerpo.
+  - Aceptar es un solo batch: marca la invitación usada solo si sigue sin usar y vigente, y crea la membresía con su rol. Dos aceptaciones a la vez dejan una sola membresía. Quien ya es miembro no la gasta.
+  - La persona invitada entra con Google; su token siguiente lleva la organización y el rol.
 - **Directorio:** se consulta **solo al iniciar sesión**. La celda y el shard viajan en el token, así que ninguna solicitud de sincronización toca el CORE.
 
 ### 5.5 Celda

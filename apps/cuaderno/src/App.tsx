@@ -18,6 +18,7 @@ import { NoEncontrada } from './vistas/NoEncontrada.tsx';
 import { Personas } from './vistas/Personas.tsx';
 import { Registrar } from './vistas/Registrar.tsx';
 import { Respaldo } from './vistas/Respaldo.tsx';
+import { Unirme } from './vistas/Unirme.tsx';
 
 const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> = {
   '': Inicio,
@@ -27,6 +28,7 @@ const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> =
   insumos: Insumos,
   respaldo: Respaldo,
   cuenta: Cuenta,
+  unirme: Unirme,
 };
 
 /** Con y sin «/» final: el enlace directo llega como /agro/app/insumos/ y la navegación como /agro/app/insumos. */
@@ -36,7 +38,7 @@ function Navegacion() {
   const { path } = useLocation();
   return (
     <nav class="navegacion" aria-label="Secciones del cuaderno">
-      {RUTAS_APP.map((r) => {
+      {RUTAS_APP.filter((r) => !('enMenu' in r) || r.enMenu).map((r) => {
         const ruta = rutaDe(r.segmento);
         return (
           <a
