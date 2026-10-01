@@ -5,7 +5,11 @@
     "municipio": "Municipio Ensayo B",
     "regimen": "convencional"
   },
-  "cultivo": { "nombre": "Rosa", "variedad": "Variedad Ensayo R1", "unidad_cosecha": "tallos" },
+  "cultivo": {
+    "nombre": "Rosa",
+    "variedad": "Variedad Ensayo R1",
+    "unidad_cosecha": "tallos"
+  },
   "areas": [
     {
       "id": "0192f3a0-0000-7000-8000-000000000111",
@@ -63,6 +67,28 @@
       "id": "0192f3a0-0000-7000-8000-000000000214",
       "nombre": "Propietario Ensayo Dos",
       "rol": "propietario"
+    }
+  ],
+  "insumos": [
+    {
+      "nombre_comercial": "Fertilizante Ensayo C",
+      "tipo": "fertilizante",
+      "registro_ica": "REG-ENSAYO-0003",
+      "ingrediente_activo": null,
+      "unidad": "kg",
+      "carencia_dias": 0,
+      "reentrada_horas": 0,
+      "permitido_ecologico": null
+    },
+    {
+      "nombre_comercial": "Insecticida Ensayo D",
+      "tipo": "fitosanitario",
+      "registro_ica": "REG-ENSAYO-0004",
+      "ingrediente_activo": "Sustancia de ensayo D",
+      "unidad": "mL",
+      "carencia_dias": 7,
+      "reentrada_horas": 24,
+      "permitido_ecologico": false
     }
   ]
 }

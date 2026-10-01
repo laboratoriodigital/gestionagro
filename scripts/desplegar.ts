@@ -12,6 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import { cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
 import {
+  causaDeWrangler,
   type Destino,
   humo,
   type ResultadoCelda,
@@ -82,7 +83,7 @@ for (const celda of plan.aDesplegar) {
     resultados.push({
       celda: celda.id,
       estado: 'fallo',
-      detalle: ['wrangler deploy falló; ver el registro de la corrida'],
+      detalle: ['wrangler deploy falló:', ...causaDeWrangler(salida)],
     });
     detenido = true;
     continue;

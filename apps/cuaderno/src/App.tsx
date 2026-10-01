@@ -1,11 +1,44 @@
 /**
- * Shell del cuaderno (HU-E3.1). Rutas bajo `/agro/app/`. Cada vista nueva (finca, registros…)
- * se agrega aquí con su historia.
+ * Shell del cuaderno (HU-E3.1). Rutas bajo `/agro/app/`, declaradas en `rutas.ts` (P2): cada
+ * pantalla se agrega allí y aquí su componente.
  */
-import { LocationProvider, Route, Router } from 'preact-iso';
+import type { ComponentType } from 'preact';
+import { LocationProvider, Route, Router, useLocation } from 'preact-iso';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
+import { RUTAS_APP, rutaDe } from './rutas.ts';
 import { Inicio } from './vistas/Inicio.tsx';
+import { Insumos } from './vistas/Insumos.tsx';
 import { NoEncontrada } from './vistas/NoEncontrada.tsx';
+import { Personas } from './vistas/Personas.tsx';
+
+const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> = {
+  '': Inicio,
+  personas: Personas,
+  insumos: Insumos,
+};
+
+/** Con y sin «/» final: el enlace directo llega como /agro/app/insumos/ y la navegación como /agro/app/insumos. */
+const sinBarraFinal = (ruta: string) => (ruta.endsWith('/') ? ruta.slice(0, -1) : ruta);
+
+function Navegacion() {
+  const { path } = useLocation();
+  return (
+    <nav class="navegacion" aria-label="Secciones del cuaderno">
+      {RUTAS_APP.map((r) => {
+        const ruta = rutaDe(r.segmento);
+        return (
+          <a
+            key={ruta}
+            href={ruta}
+            aria-current={sinBarraFinal(path) === sinBarraFinal(ruta) ? 'page' : undefined}
+          >
+            {r.titulo}
+          </a>
+        );
+      })}
+    </nav>
+  );
+}
 
 export function App() {
   return (
@@ -14,11 +47,18 @@ export function App() {
         <a class="marca" href="/agro/app/">
           Cuaderno de campo
         </a>
+        <Navegacion />
       </header>
       <AvisoActualizacion />
       <main id="contenido">
         <Router>
-          <Route path="/agro/app/" component={Inicio} />
+          {RUTAS_APP.flatMap((r) => {
+            const ruta = rutaDe(r.segmento);
+            const rutas = r.segmento ? [ruta, sinBarraFinal(ruta)] : [ruta];
+            return rutas.map((path) => (
+              <Route key={path} path={path} component={PANTALLAS[r.segmento]} />
+            ));
+          })}
           <Route default component={NoEncontrada} />
         </Router>
       </main>

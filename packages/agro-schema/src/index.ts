@@ -1,3 +1,4 @@
+export type { ZodType } from 'zod';
 export * from './catalogos.ts';
 export {
   fechaAgronomica as esquemaFechaAgronomica,

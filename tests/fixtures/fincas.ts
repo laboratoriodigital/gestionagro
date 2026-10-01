@@ -18,6 +18,16 @@ export interface FincaDePrueba {
     plantas: number;
   }[];
   personas: { id: string; nombre: string; rol: 'operario' | 'supervisor' | 'propietario' }[];
+  insumos: {
+    nombre_comercial: string;
+    tipo: 'bioinsumo' | 'fertilizante' | 'fitosanitario' | 'sustrato' | 'otro';
+    registro_ica: string | null;
+    ingrediente_activo: string | null;
+    unidad: string;
+    carencia_dias: number | null;
+    reentrada_horas: number | null;
+    permitido_ecologico: boolean | null;
+  }[];
 }
 
 export const FINCA_ENSAYO_UNO = uno as FincaDePrueba;

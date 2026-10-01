@@ -2,12 +2,45 @@
  * Piezas del despliegue por celdas (HU-E1.5). Funciones puras o con `fetch` inyectado, para
  * probarlas sin tocar Cloudflare.
  */
+import { RUTAS_APP, rutaDe } from '../../apps/cuaderno/src/rutas.ts';
 import type { Celda } from './celdas.ts';
 
 export type Destino = 'staging' | 'produccion';
 export type Fetch = typeof fetch;
 
 const API = 'https://api.cloudflare.com/client/v4';
+
+// biome-ignore lint/suspicious/noControlCharactersInRegex: quita los códigos de color ANSI
+const ANSI = /\u001b\[[0-9;]*[A-Za-z]/g;
+
+/**
+ * Qué hacer ante errores de Cloudflare **ya vistos** en una corrida real, por código (P15).
+ * Solo entra un código que se observó: uno supuesto mandaría a hacer lo que no es (P1).
+ */
+export const ACCIONES_POR_CODIGO: Readonly<Record<string, string>> = {
+  // Visto el 1 oct 2026 en el primer despliegue a staging (bitácora agro 11).
+  '10089':
+    'Activa Analytics Engine creando sus datasets: Cloudflare → Workers & Pages → Analytics Engine → crear dataset, con los nombres de «dataset_eventos» en infrastructure/celdas.json (y el mismo con «_staging» al final). Es gratis dentro de la cuota (ED1 §41).',
+};
+
+/**
+ * Causa de una falla de `wrangler deploy`, para el resumen de la corrida: el mensaje de error tal
+ * cual (P15: se cita el síntoma) y, si el código es conocido, qué hacer. Nada de «ver el registro».
+ */
+export function causaDeWrangler(salida: string): string[] {
+  const lineas = salida.replace(ANSI, '').split(/\r?\n/);
+  const inicio = lineas.findIndex((l) => /\[ERROR\]/.test(l));
+  if (inicio < 0) return ['sin mensaje de error de wrangler; revisa el registro de la corrida'];
+  const bloque: string[] = [];
+  for (const l of lineas.slice(inicio, inicio + 6)) {
+    const limpia = l.replace(/^[\s✘]*\[ERROR\]\s*/, '').trim();
+    if (!limpia || /^If you think this is a bug|^🪵/.test(limpia)) continue;
+    bloque.push(limpia);
+  }
+  const codigo = bloque.join(' ').match(/\[code: (\d+)\]/)?.[1];
+  const accion = codigo ? ACCIONES_POR_CODIGO[codigo] : undefined;
+  return accion ? [...bloque, `Qué hacer: ${accion}`] : bloque;
+}
 
 interface RespuestaCf {
   success?: boolean;
@@ -113,7 +146,8 @@ export async function humo(fetchFn: Fetch, base: string): Promise<string[]> {
   };
   await contiene('/herramientas/agro/', 'Herramientas agronómicas');
   await contiene('/herramientas/agro/calculadora-dpv/', 'Calculadora de DPV');
-  await contiene('/agro/app/', 'noindex');
+  // Cada ruta del cuaderno abre con un enlace directo, sin service worker todavía.
+  for (const { segmento } of RUTAS_APP) await contiene(rutaDe(segmento), 'noindex');
   await contiene('/agro/app/manifest.webmanifest', '"scope":"/agro/app/"');
   await contiene('/agro/app/sw.js', 'precache');
   const get = await pedir('/api/eventos');

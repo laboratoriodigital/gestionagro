@@ -9,6 +9,7 @@ import {
   secretosDeCeldas,
 } from '../../scripts/lib/celdas.ts';
 import {
+  causaDeWrangler,
   type Fetch,
   humo,
   resumenDespliegue,
@@ -196,6 +197,14 @@ describe('prueba de humo (CA5, P11)', () => {
     },
     'GET https://s.dev/agro/app/sw.js': { estado: 200, texto: 'precacheAndRoute precache' },
     'GET https://s.dev/agro/app/': { estado: 200, texto: '<meta name="robots" content="noindex">' },
+    'GET https://s.dev/agro/app/personas/': {
+      estado: 200,
+      texto: '<meta name="robots" content="noindex">',
+    },
+    'GET https://s.dev/agro/app/insumos/': {
+      estado: 200,
+      texto: '<meta name="robots" content="noindex">',
+    },
     'GET https://s.dev/api/eventos': { estado: 405, texto: 'Solo POST' },
     'POST https://s.dev/api/eventos': { estado: 400, texto: 'El lote no es JSON' },
   };
@@ -243,5 +252,39 @@ describe('resumen del despliegue (CA3, P15)', () => {
       ),
     ).toBe('https://agro-sitio-staging.mi-cuenta.workers.dev');
     expect(urlDeWorkersDev('sin url')).toBeNull();
+  });
+});
+
+describe('causa de una falla de wrangler en el resumen (P15)', () => {
+  // Salida real del primer despliegue a staging (1 oct 2026), con sus códigos de color.
+  const salidaReal = [
+    'Uploaded 19 of 19 assets',
+    '\u001b[31m✘ \u001b[41;31m[\u001b[41;97mERROR\u001b[41;31m]\u001b[0m \u001b[1mA request to the Cloudflare API (/accounts/***/workers/scripts/agro-sitio-staging) failed.\u001b[0m',
+    '  You need to enable Analytics Engine. Head to the Cloudflare Dashboard to enable: \u001b[4mhttps://dash.cloudflare.com/***/workers/analytics-engine\u001b[0m [code: 10089]',
+    '  If you think this is a bug, please open an issue at: https://github.com/cloudflare/workers-sdk/issues/new/choose',
+    '🪵  Logs were written to "/home/runner/.config/.wrangler/logs/wrangler.log"',
+  ].join('\n');
+
+  it('cita el error tal cual, sin colores, y dice qué hacer con el código conocido', () => {
+    const causa = causaDeWrangler(salidaReal);
+    expect(causa[0]).toBe(
+      'A request to the Cloudflare API (/accounts/***/workers/scripts/agro-sitio-staging) failed.',
+    );
+    expect(causa.join(' ')).toContain('You need to enable Analytics Engine');
+    expect(causa.at(-1)).toMatch(/^Qué hacer: Activa Analytics Engine creando sus datasets/);
+    expect(causa.join(' ')).not.toContain('\u001b');
+    expect(causa.join(' ')).not.toContain('If you think this is a bug');
+  });
+
+  it('con un código desconocido cita el error sin inventar una acción', () => {
+    const causa = causaDeWrangler(salidaReal.replace('10089', '99999'));
+    expect(causa.some((l) => l.startsWith('Qué hacer'))).toBe(false);
+    expect(causa.join(' ')).toContain('[code: 99999]');
+  });
+
+  it('sin bloque de error lo dice', () => {
+    expect(causaDeWrangler('todo raro')).toEqual([
+      'sin mensaje de error de wrangler; revisa el registro de la corrida',
+    ]);
   });
 });

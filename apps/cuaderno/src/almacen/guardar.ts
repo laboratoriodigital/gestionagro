@@ -5,7 +5,7 @@
  * queda ninguna. Un registro sin su operación nunca subiría; una operación sin registro subiría
  * algo que no existe.
  */
-import { type Registro, validarRegistro } from '@gestionagro/agro-schema';
+import { ErrorDeRegistro, type Registro, validarRegistro } from '@gestionagro/agro-schema';
 import { conEscritura } from '../actividad.ts';
 import type { CuadernoDb } from './db.ts';
 
@@ -13,15 +13,35 @@ import type { CuadernoDb } from './db.ts';
  * Valida y guarda. Lanza `ErrorDeRegistro` (con los campos) antes de tocar la base si el
  * registro no es válido, y el error de IndexedDB si la transacción falla.
  */
+export interface OpcionesDeGuardado {
+  ahora?: () => Date;
+  /**
+   * Un registro sobre un ciclo cerrado se rechaza salvo confirmación explícita de quien registra
+   * (HU-E3.4, CA3): por ejemplo, anotar tarde una labor que sí ocurrió antes del cierre.
+   */
+  confirmarCicloCerrado?: boolean;
+}
+
 export async function guardarRegistro(
   db: CuadernoDb,
   entrada: unknown,
-  ahora: () => Date = () => new Date(),
+  { ahora = () => new Date(), confirmarCicloCerrado = false }: OpcionesDeGuardado = {},
 ): Promise<Registro> {
   const registro = validarRegistro(entrada);
   // Cuenta como escritura en curso: una actualización no la interrumpe (HU-E3.1, CA2).
   await conEscritura(() =>
-    db.transaction('rw', db.registro, db.outbox, async () => {
+    db.transaction('rw', db.registro, db.outbox, db.ciclo, async () => {
+      if (registro.ciclo_id && !confirmarCicloCerrado) {
+        const ciclo = await db.ciclo.get(registro.ciclo_id);
+        if (ciclo?.estado === 'cerrado') {
+          throw new ErrorDeRegistro([
+            {
+              campo: 'ciclo_id',
+              motivo: `el ciclo de ${ciclo.cultivo} se cerró el ${ciclo.fecha_fin?.split('-').reverse().join('/')}; confirma si de verdad va en ese ciclo`,
+            },
+          ]);
+        }
+      }
       await db.registro.add(registro);
       await db.outbox.add({
         id: registro.id,

@@ -5,7 +5,11 @@
     "municipio": "Municipio Ensayo A",
     "regimen": "ecologico"
   },
-  "cultivo": { "nombre": "Tomate", "variedad": "Variedad Ensayo T1", "unidad_cosecha": "kg" },
+  "cultivo": {
+    "nombre": "Tomate",
+    "variedad": "Variedad Ensayo T1",
+    "unidad_cosecha": "kg"
+  },
   "areas": [
     {
       "id": "0192f3a0-0000-7000-8000-000000000101",
@@ -44,6 +48,28 @@
       "id": "0192f3a0-0000-7000-8000-000000000203",
       "nombre": "Propietaria Ensayo Uno",
       "rol": "propietario"
+    }
+  ],
+  "insumos": [
+    {
+      "nombre_comercial": "Bioinsumo Ensayo A",
+      "tipo": "bioinsumo",
+      "registro_ica": "REG-ENSAYO-0001",
+      "ingrediente_activo": "Organismo de ensayo",
+      "unidad": "L",
+      "carencia_dias": 0,
+      "reentrada_horas": 4,
+      "permitido_ecologico": true
+    },
+    {
+      "nombre_comercial": "Fungicida Ensayo B",
+      "tipo": "fitosanitario",
+      "registro_ica": "REG-ENSAYO-0002",
+      "ingrediente_activo": "Sustancia de ensayo B",
+      "unidad": "mL",
+      "carencia_dias": null,
+      "reentrada_horas": 12,
+      "permitido_ecologico": null
     }
   ]
 }

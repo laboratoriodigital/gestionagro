@@ -5,8 +5,9 @@
  * Se niega a pisar algo: si el sitio ya generó una página dentro de `/agro/app/`, dos productos
  * se estarían disputando la misma ruta, y eso se decide a mano.
  */
-import { cpSync, existsSync, readdirSync, rmSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { RUTAS_APP } from '../apps/cuaderno/src/rutas.ts';
 import { RAIZ } from './lib/repo.ts';
 
 const origen = join(RAIZ, 'apps', 'cuaderno', 'dist');
@@ -23,7 +24,11 @@ for (const [carpeta, nombre] of [
   }
 }
 
-if (existsSync(destino) && readdirSync(destino).some((a) => !existsSync(join(origen, a)))) {
+const esRutaDeLaApp = (nombre: string) => RUTAS_APP.some((r) => r.segmento === nombre);
+if (
+  existsSync(destino) &&
+  readdirSync(destino).some((a) => !existsSync(join(origen, a)) && !esRutaDeLaApp(a))
+) {
   console.error(
     '❌ El sitio generó archivos dentro de /agro/app/, que es del cuaderno. Revisa las rutas.',
   );
@@ -32,6 +37,12 @@ if (existsSync(destino) && readdirSync(destino).some((a) => !existsSync(join(ori
 
 rmSync(destino, { recursive: true, force: true });
 cpSync(origen, destino, { recursive: true });
+// Un index.html en cada ruta de la app: un enlace directo abre sin depender del service worker.
+for (const { segmento } of RUTAS_APP) {
+  if (!segmento) continue;
+  mkdirSync(join(destino, segmento), { recursive: true });
+  copyFileSync(join(destino, 'index.html'), join(destino, segmento, 'index.html'));
+}
 console.log(
   `✅ Cuaderno copiado a apps/sitio/dist/agro/app/ (${readdirSync(destino).length} entradas)`,
 );

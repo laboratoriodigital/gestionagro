@@ -52,16 +52,6 @@ h1 {
 .aviso-actualizacion p {
   margin: 0 0 var(--espacio-2);
 }
-.aviso-actualizacion button {
-  min-height: var(--objetivo-tactil);
-  font: inherit;
-  font-weight: 600;
-  padding-inline: var(--espacio-3);
-  border: 0;
-  border-radius: var(--radio);
-  background: var(--color-marca);
-  color: var(--color-marca-texto);
-}
 .pie {
   margin-top: var(--espacio-5);
   padding-block: var(--espacio-4);
@@ -169,4 +159,67 @@ button:disabled {
 }
 .resumen dd {
   margin: 0 0 var(--espacio-2);
+}
+.ciclo {
+  margin-block: var(--espacio-2);
+  padding-inline-start: var(--espacio-2);
+  border-inline-start: 4px solid var(--color-marca);
+}
+.ciclo p {
+  margin: 0;
+}
+.campo select,
+.campo input[type="date"] {
+  width: 100%;
+  min-height: var(--objetivo-tactil);
+  font: inherit;
+  font-size: 1.125rem;
+  padding: var(--espacio-2);
+  border: 2px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
+/* Después de la regla general de button: es más específica (noDescendingSpecificity). */
+.aviso-actualizacion button {
+  min-height: var(--objetivo-tactil);
+  font: inherit;
+  font-weight: 600;
+  padding-inline: var(--espacio-3);
+  border: 0;
+  border-radius: var(--radio);
+  background: var(--color-marca);
+  color: var(--color-marca-texto);
+}
+.navegacion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-1) var(--espacio-3);
+}
+.navegacion a {
+  color: var(--color-marca-texto);
+  min-height: var(--objetivo-tactil);
+  display: inline-flex;
+  align-items: center;
+}
+.navegacion a[aria-current="page"] {
+  font-weight: 700;
+  text-decoration-thickness: 3px;
+}
+.aviso-legal {
+  background: var(--color-superficie);
+  border-inline-start: 4px solid var(--color-borde);
+  padding: var(--espacio-2);
+}
+.detalle-insumo {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-pequeno);
+}
+.desconocida {
+  color: var(--color-alerta);
+  font-weight: 700;
+}
+.aviso-ecologico {
+  color: var(--color-alerta);
+  margin: var(--espacio-2) 0 0;
 }

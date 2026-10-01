@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fechaAgronomica, instanteDeUuidv7, uuidv7 } from './reloj.ts';
+import { diasEntre, fechaAgronomica, instanteDeUuidv7, uuidv7 } from './reloj.ts';
 
 const ceros = (n: number) => new Uint8Array(n);
 const unos = (n: number) => new Uint8Array(n).fill(0xff);
@@ -51,5 +51,29 @@ describe('fecha agronómica en el huso de la finca (P8)', () => {
     const ms = Date.parse('2026-10-01T04:59:00Z');
     expect(fechaAgronomica(ms, 'Pacific/Kiritimati')).toBe('2026-10-01');
     expect(fechaAgronomica(ms, 'America/Bogota')).toBe('2026-09-30');
+  });
+});
+
+describe('días entre fechas agronómicas (HU-E3.4, CA4, P8)', () => {
+  it.each([
+    ['2026-10-15', '2026-10-15', 0],
+    ['2026-10-15', '2026-11-01', 17], // cruza fin de mes
+    ['2026-10-15', '2027-01-10', 87], // cruza fin de año
+    ['2028-02-28', '2028-03-01', 2], // 29 de febrero
+    ['2027-02-28', '2027-03-01', 1], // año no bisiesto
+    ['2026-10-20', '2026-10-15', -5],
+  ])('de %s a %s: %d días', (desde, hasta, dias) => {
+    expect(diasEntre(desde, hasta)).toBe(dias);
+  });
+
+  it('no depende del huso del teléfono: usa el día agronómico de la finca', () => {
+    // 23:30 del 31 de diciembre en Bogotá ya es 1 de enero en UTC y en Kiritimati.
+    const ms = Date.parse('2027-01-01T04:30:00Z');
+    expect(diasEntre('2026-10-15', fechaAgronomica(ms))).toBe(77);
+    expect(diasEntre('2026-10-15', fechaAgronomica(ms, 'Pacific/Kiritimati'))).toBe(78);
+  });
+
+  it('una fecha ilegible lanza; no devuelve NaN (P1)', () => {
+    expect(() => diasEntre('15/10/2026', '2026-10-20')).toThrow(RangeError);
   });
 });

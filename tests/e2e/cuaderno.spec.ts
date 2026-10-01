@@ -123,7 +123,6 @@ test('CA3: ninguna respuesta de /api/*, ni de error ni buena, queda en la caché
 
 test('CA2: sin formularios abiertos, la versión nueva se ofrece y la app no se recarga sola', async ({
   page,
-  context,
 }) => {
   await abrirControlada(page);
   await configurarFincaMinima(page);

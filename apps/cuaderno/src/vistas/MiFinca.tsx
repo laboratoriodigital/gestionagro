@@ -3,13 +3,20 @@
  * (HU-E3.3, CA3 y CA4). Cada formulario abierto cuenta como actividad (HU-E3.1, CA2).
  */
 import { leerNumero } from '@gestionagro/agro-calc';
-import { type Area, ErrorDeValidacion, type Finca } from '@gestionagro/agro-schema';
+import {
+  type Area,
+  type Ciclo,
+  type Cultivo,
+  ErrorDeValidacion,
+  type Finca,
+} from '@gestionagro/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import type { CuadernoDb, VersionAnterior } from '../almacen/db.ts';
 import { crearSubarea, editarArea, historialDe, TIPOS_SUBAREA } from '../almacen/finca.ts';
 import { Campo, Opciones } from '../componentes/Campo.tsx';
 import { fechaHora, metros, NOMBRE_REGIMEN, NOMBRE_TIPO } from '../formato.ts';
+import { CicloDeArea } from './CicloDeArea.tsx';
 
 type Abierto = { tipo: 'editar' | 'subarea' | 'historial'; areaId: string } | null;
 
@@ -121,6 +128,8 @@ export function MiFinca(props: {
   db: CuadernoDb;
   finca: Finca;
   areas: Area[];
+  ciclos: Ciclo[];
+  cultivos: Cultivo[];
   alCambiar: () => void;
 }) {
   const [abierto, setAbierto] = useState<Abierto>(null);
@@ -146,6 +155,13 @@ export function MiFinca(props: {
             <p class="area-titulo">
               <strong>{a.nombre}</strong> · {NOMBRE_TIPO[a.tipo]} · {metros(a.area_m2)}
             </p>
+            <CicloDeArea
+              db={props.db}
+              area={a}
+              ciclo={props.ciclos.find((c) => c.estado === 'activo' && c.area_ids.includes(a.id))}
+              cultivos={props.cultivos}
+              alCambiar={props.alCambiar}
+            />
             {hijas(a.id).length > 0 && (
               <ul class="subareas" aria-label={`Camas y surcos de ${a.nombre}`}>
                 {hijas(a.id).map((s) => (

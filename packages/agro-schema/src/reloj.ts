@@ -58,3 +58,18 @@ export function fechaAgronomica(instanteMs: number, zona: string = ZONA_POR_DEFE
   const valor = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? '';
   return `${valor('year')}-${valor('month')}-${valor('day')}`;
 }
+
+const MS_POR_DIA = 86_400_000;
+
+/**
+ * Días entre dos fechas agronómicas `AAAA-MM-DD` (P8). Se cuentan en el calendario, sin horas
+ * ni husos: del 31/12 al 1/1 hay 1 día, en cualquier huso del teléfono.
+ */
+export function diasEntre(desde: string, hasta: string): number {
+  const ms = (f: string) => {
+    const [a, m, d] = f.split('-').map(Number);
+    if (!a || !m || !d) throw new RangeError(`Fecha agronómica inválida: «${f}»`);
+    return Date.UTC(a, m - 1, d);
+  };
+  return Math.round((ms(hasta) - ms(desde)) / MS_POR_DIA);
+}
