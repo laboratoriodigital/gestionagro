@@ -1,0 +1,278 @@
+{
+  "nota": "Contrato de versiones (HU-E5.5, ADR-13, P10): lo que la app 0.1.0, ya publicada, puede escribir. Un teléfono puede pasar semanas con esta versión: la API vigente tiene que aceptarlo para siempre. Este archivo no se edita ni se borra; una versión nueva de un esquema agrega su muestra en el archivo de la app que la publica.",
+  "app": "0.1.0",
+  "catalogos": [
+    {
+      "entidad": "finca",
+      "datos": {
+        "id": "0199a1b2-0000-7000-8000-000000000001",
+        "org_id": null,
+        "version": 1,
+        "actualizado": "2026-10-01T12:00:00.000Z",
+        "nombre": "Finca Ensayo Uno",
+        "municipio": "Municipio Ensayo",
+        "regimen": "ecologico"
+      }
+    },
+    {
+      "entidad": "area",
+      "datos": {
+        "id": "0199a1b2-0000-7000-8000-000000000002",
+        "org_id": null,
+        "version": 1,
+        "actualizado": "2026-10-01T12:00:00.000Z",
+        "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+        "padre_id": null,
+        "tipo": "nave",
+        "nombre": "Nave 1",
+        "area_m2": 500,
+        "capacidad_plantas": null,
+        "activa": true
+      }
+    },
+    {
+      "entidad": "cultivo",
+      "datos": {
+        "id": "0199a1b2-0000-7000-8000-000000000008",
+        "org_id": null,
+        "version": 1,
+        "actualizado": "2026-10-01T12:00:00.000Z",
+        "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+        "nombre": "Cultivo Ensayo",
+        "variedades": ["Variedad Ensayo"]
+      }
+    },
+    {
+      "entidad": "ciclo",
+      "datos": {
+        "id": "0199a1b2-0000-7000-8000-000000000007",
+        "org_id": null,
+        "version": 1,
+        "actualizado": "2026-10-01T12:00:00.000Z",
+        "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+        "area_ids": ["0199a1b2-0000-7000-8000-000000000002"],
+        "cultivo": "Cultivo Ensayo",
+        "variedad": "Variedad Ensayo",
+        "fecha_trasplante": "2026-10-15",
+        "plantas": 1000,
+        "estado": "activo",
+        "fecha_fin": null
+      }
+    },
+    {
+      "entidad": "persona",
+      "datos": {
+        "id": "0199a1b2-0000-7000-8000-000000000004",
+        "org_id": null,
+        "version": 1,
+        "actualizado": "2026-10-01T12:00:00.000Z",
+        "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+        "nombre": "Persona Ensayo",
+        "rol": "operario",
+        "usuario_id": null,
+        "activa": true
+      }
+    },
+    {
+      "entidad": "valor_jornal",
+      "datos": {
+        "id": "0199a1b2-0000-7000-8000-000000000009",
+        "org_id": null,
+        "version": 1,
+        "actualizado": "2026-10-01T12:00:00.000Z",
+        "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+        "persona_id": "0199a1b2-0000-7000-8000-000000000004",
+        "valor_cop": 60000,
+        "vigente_desde": "2026-10-01"
+      }
+    },
+    {
+      "entidad": "insumo",
+      "datos": {
+        "id": "0199a1b2-0000-7000-8000-000000000003",
+        "org_id": null,
+        "version": 1,
+        "actualizado": "2026-10-01T12:00:00.000Z",
+        "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+        "nombre_comercial": "Producto Ensayo",
+        "tipo": "bioinsumo",
+        "registro_ica": null,
+        "ingrediente_activo": null,
+        "unidad": "L",
+        "carencia_dias": 3,
+        "reentrada_horas": 12,
+        "permitido_ecologico": true
+      }
+    },
+    {
+      "entidad": "tipo_labor",
+      "datos": {
+        "id": "0199a1b2-0000-7000-8000-000000000005",
+        "org_id": null,
+        "version": 1,
+        "actualizado": "2026-10-01T12:00:00.000Z",
+        "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+        "nombre": "Deshoje"
+      }
+    },
+    {
+      "entidad": "categoria_calidad",
+      "datos": {
+        "id": "0199a1b2-0000-7000-8000-000000000006",
+        "org_id": null,
+        "version": 1,
+        "actualizado": "2026-10-01T12:00:00.000Z",
+        "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+        "nombre": "Primera"
+      }
+    }
+  ],
+  "registros": [
+    {
+      "id": "0199a1b2-0000-7000-8000-000000000010",
+      "org_id": null,
+      "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+      "area_ids": ["0199a1b2-0000-7000-8000-000000000002"],
+      "ciclo_id": null,
+      "tipo": "clima",
+      "v": 1,
+      "fecha_agronomica": "2026-10-01",
+      "instante_evento": "2026-10-01T12:00:00.000Z",
+      "autor_usuario_id": null,
+      "persona_ids": [],
+      "dispositivo_id": "telefono-muestra",
+      "origen": "manual",
+      "anula_id": null,
+      "datos": {
+        "temperaturaC": 24,
+        "humedadRelativaPct": 70,
+        "temperaturaHojaC": null,
+        "dpvKPa": 0.895
+      }
+    },
+    {
+      "id": "0199a1b2-0000-7000-8000-000000000011",
+      "org_id": null,
+      "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+      "area_ids": ["0199a1b2-0000-7000-8000-000000000002"],
+      "ciclo_id": null,
+      "tipo": "riego",
+      "v": 1,
+      "fecha_agronomica": "2026-10-01",
+      "instante_evento": "2026-10-01T12:00:00.000Z",
+      "autor_usuario_id": null,
+      "persona_ids": [],
+      "dispositivo_id": "telefono-muestra",
+      "origen": "manual",
+      "anula_id": null,
+      "datos": {
+        "unidad": "L_area",
+        "volumenAplicado": 100,
+        "volumenDrenado": 20,
+        "drenajePct": 20,
+        "ceEntradaDsM": 2.1,
+        "phEntrada": 6.2,
+        "ceDrenajeDsM": null,
+        "phDrenaje": null
+      }
+    },
+    {
+      "id": "0199a1b2-0000-7000-8000-000000000012",
+      "org_id": null,
+      "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+      "area_ids": ["0199a1b2-0000-7000-8000-000000000002"],
+      "ciclo_id": null,
+      "tipo": "riego",
+      "v": 2,
+      "fecha_agronomica": "2026-10-01",
+      "instante_evento": "2026-10-01T12:00:00.000Z",
+      "autor_usuario_id": null,
+      "persona_ids": [],
+      "dispositivo_id": "telefono-muestra",
+      "origen": "manual",
+      "anula_id": null,
+      "datos": {
+        "unidad": "L_area",
+        "volumenAplicado": 100,
+        "volumenDrenado": 20,
+        "drenajePct": 20,
+        "ceEntradaDsM": 2.1,
+        "phEntrada": 6.2,
+        "ceDrenajeDsM": null,
+        "phDrenaje": null,
+        "duracionMin": 12
+      }
+    },
+    {
+      "id": "0199a1b2-0000-7000-8000-000000000013",
+      "org_id": null,
+      "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+      "area_ids": ["0199a1b2-0000-7000-8000-000000000002"],
+      "ciclo_id": null,
+      "tipo": "labor",
+      "v": 1,
+      "fecha_agronomica": "2026-10-01",
+      "instante_evento": "2026-10-01T12:00:00.000Z",
+      "autor_usuario_id": null,
+      "persona_ids": ["0199a1b2-0000-7000-8000-000000000004"],
+      "dispositivo_id": "telefono-muestra",
+      "origen": "tablero",
+      "anula_id": null,
+      "datos": {
+        "labor_id": "0199a1b2-0000-7000-8000-000000000005",
+        "labor": "Deshoje",
+        "horasPorPersona": 1.5
+      }
+    },
+    {
+      "id": "0199a1b2-0000-7000-8000-000000000014",
+      "org_id": null,
+      "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+      "area_ids": ["0199a1b2-0000-7000-8000-000000000002"],
+      "ciclo_id": null,
+      "tipo": "aplicacion",
+      "v": 1,
+      "fecha_agronomica": "2026-10-01",
+      "instante_evento": "2026-10-01T12:00:00.000Z",
+      "autor_usuario_id": null,
+      "persona_ids": ["0199a1b2-0000-7000-8000-000000000004"],
+      "dispositivo_id": "telefono-muestra",
+      "origen": "manual",
+      "anula_id": null,
+      "datos": {
+        "insumo_id": "0199a1b2-0000-7000-8000-000000000003",
+        "insumo": "Producto Ensayo",
+        "dosis": 2,
+        "dosisUnidad": "cm³ por litro",
+        "volumenMezclaL": 20,
+        "equipo": null,
+        "carenciaDias": 3,
+        "reentradaHoras": 12
+      }
+    },
+    {
+      "id": "0199a1b2-0000-7000-8000-000000000015",
+      "org_id": null,
+      "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+      "area_ids": ["0199a1b2-0000-7000-8000-000000000002"],
+      "ciclo_id": null,
+      "tipo": "cosecha",
+      "v": 1,
+      "fecha_agronomica": "2026-10-01",
+      "instante_evento": "2026-10-01T12:00:00.000Z",
+      "autor_usuario_id": null,
+      "persona_ids": [],
+      "dispositivo_id": "telefono-muestra",
+      "origen": "manual",
+      "anula_id": null,
+      "datos": {
+        "cantidad": 12.5,
+        "unidad": "kg",
+        "categoria_id": "0199a1b2-0000-7000-8000-000000000006",
+        "categoria": "Primera",
+        "descarte": null,
+        "carenciaConfirmada": null
+      }
+    }
+  ]
+}

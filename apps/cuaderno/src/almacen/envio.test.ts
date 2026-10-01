@@ -167,3 +167,23 @@ describe('HU-E4.3 · subir la finca a la cuenta', () => {
     );
   });
 });
+
+describe('HU-E5.5 · la celda pide actualizar la app', () => {
+  it('el lote se acepta y el resultado trae el pedido en palabras', async () => {
+    const db = await telefono();
+    const fn = (async (_url: string, init?: RequestInit) => {
+      const { ops } = JSON.parse(String(init?.body)) as { ops: { id: string }[] };
+      return Response.json({
+        acks: ops.map((o) => ({ id: o.id, estado: 'aceptado' })),
+        actualizar: { minima: '0.2.0', motivo: 'Esta versión del cuaderno ya es vieja.' },
+      });
+    }) as unknown as typeof fetch;
+    const r = await enviarPendientes(db, destino, { fetchFn: fn });
+    expect(r).toMatchObject({
+      estado: 'al-dia',
+      enviados: 3,
+      actualizar: 'Esta versión del cuaderno ya es vieja.',
+    });
+    expect(await db.outbox.count()).toBe(0);
+  });
+});

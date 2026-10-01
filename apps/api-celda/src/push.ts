@@ -24,6 +24,7 @@ import {
   LOTE_MAXIMO,
   type OperacionValida,
   PROTOCOLO,
+  pedidoDeActualizar,
   validarOperacion,
 } from '@gestionagro/sync';
 import type { ContextoCelda } from './worker.ts';
@@ -43,7 +44,7 @@ const marcadores = (n: number) => Array.from({ length: n }, () => '?').join(', '
 
 export async function push(c: ContextoCelda, ahora: () => number): Promise<Response> {
   const { org, db } = c.get('sesion');
-  let cuerpo: { protocolo?: unknown; dispositivo?: unknown; ops?: unknown };
+  let cuerpo: { protocolo?: unknown; dispositivo?: unknown; app?: unknown; ops?: unknown };
   try {
     cuerpo = (await c.req.json()) as typeof cuerpo;
   } catch {
@@ -242,5 +243,6 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
     if (p.tipo === 'duplicado') return { id: p.id, estado: 'duplicado' };
     return { id: p.id, estado: (cambios.get(i) ?? 0) > 0 ? 'aceptado' : p.siCero };
   });
-  return c.json({ acks });
+  const actualizar = pedidoDeActualizar(cuerpo.app);
+  return c.json(actualizar ? { acks, actualizar } : { acks });
 }
