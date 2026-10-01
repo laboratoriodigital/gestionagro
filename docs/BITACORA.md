@@ -252,6 +252,7 @@ No son errores. Son decisiones que cambiaron con información nueva.
 | Celdas en cuentas gratuitas nuevas | Workers Paid o cuenta del cliente (ADR-7, ADR-8) | Términos de Cloudflare §2.2.1 |
 | Primera herramienta: «dosis por bomba» (orden de la lista del Estudio) | DPV | Sirve a la finca cero, no tiene riesgo legal de dosis y comparte sensor con la línea Conectada |
 | CORE en la Fase 3 de ED1 | CORE v0 ahora, mínimo (ADR-9) | Es el primer producto con cuentas; extraerlo después obliga a migrar usuarios |
+| Herramienta 2: «dosis por bomba» (E10) | Calendario de carencias en `/herramientas/agro/periodo-de-carencia/` (1 oct 2026) | Keyword Planner (HU-E0.2): dosis no trae búsquedas en ninguna de sus cuatro formas; «periodo de carencia» es el único término con más de 50 al mes en Colombia. El cálculo ya existe en el cuaderno. Dosis queda preparada hasta la medición del 25 feb 2027 |
 
 ---
 

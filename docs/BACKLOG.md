@@ -24,7 +24,7 @@ Dos carriles en paralelo desde el primer sprint:
 | **H4 · Cosecha a la mesa** | Cosecha por nave, lotes de venta, despachos, QR de trazabilidad | S7–S12 | 2 abr 2027 |
 | **H5 · Operación ZCOE** | Kill switch, vigía de cuota, respaldos, alertas y reporte semanal | S7–S12 | 2 abr 2027 |
 | **H6 · Números de la finca** | Costos por ciclo y nave, costo por kg, jornales, rendimiento por operario | S13–S14 | 30 abr 2027 |
-| **H7 · Cumplimiento y señal comercial** | Carpeta de cumplimiento en PDF, calculadora de dosis, lista de espera de planes con precio visible | S14–S15 | 14 may 2027 |
+| **H7 · Cumplimiento y señal comercial** | Carpeta de cumplimiento en PDF, calendario de carencias público, lista de espera de planes con precio visible | S14–S15 | 14 may 2027 |
 | **H8 · Conectado v0** (laboratorio, fuera de la capacidad de desarrollo) | Diseño de referencia y nodo de riego de una zona con estado seguro | Paralelo | Sin fecha |
 
 **Validación (umbrales de las instrucciones §8):** la DPV se evalúa a los 90 días de publicada, el 25 feb 2027. `tool.completed / tool.opened` debe ser ≥ 60 % y las impresiones deben crecer cada semana. Si no se cumple, se aplica el criterio de pivote de ED1 §19.1 antes de construir la segunda herramienta.
@@ -97,7 +97,7 @@ Una historia entra a un sprint solo si:
 | **S11** | 8–19 mar | Conflictos visibles; vigía de cuota; respaldos; revocar | HU-E5.4 (2), HU-E4.6 (1), HU-E8.2 (3), HU-E8.4 (3), HU-E6.6 (1) | 10 |
 | **S12** (corto) | 23 mar–2 abr | **H4 y H5:** QR de trazabilidad; plagas; alertas y reporte semanal | HU-E6.4 (3), HU-E3.11 (2), HU-E8.3 (2) | 7 |
 | **S13** | 5–16 abr | Costos de insumos y jornales; carencias; disponibilidad para la tienda | HU-E7.1 (3), HU-E7.2 (2), HU-E9.1 (2), HU-E6.5 (2) | 9 |
-| **S14** | 19–30 abr | **H6:** costo por kg y rendimiento; tabla DPV; calculadora de dosis | HU-E7.3 (2), HU-E7.4 (2), HU-E2.3 (2), HU-E10.1 (3) | 9 |
+| **S14** | 19–30 abr | **H6:** costo por kg y rendimiento; tabla DPV; calendario de carencias público | HU-E7.3 (2), HU-E7.4 (2), HU-E2.3 (2), HU-E10.1 (2) | 8 |
 | **S15** | 3–14 may | **H7:** carpeta de cumplimiento; señal de pago | HU-E9.2 (5), HU-E10.2 (2), HU-E0.6 (2) | 9 |
 
 **Preparadas, sin sprint** (tienen disparador, no fecha):
@@ -106,6 +106,7 @@ Una historia entra a un sprint solo si:
 |---|---|
 | HU-E8.5 · Mudar una finca de celda (5) | Etapa B o C de ARQUITECTURA §6.3. Construirla antes es resolver el problema de la etapa siguiente (bitácora ecommerce 16). Lo que sí nace desde hoy es lo que la hace posible: `org_id` en cada fila, celdas por configuración y `agro-export v1` |
 | HU-E9.3 · Autodiagnóstico ecológico/BPA (3) | Decisión de certificar |
+| HU-E10.3 · Dosis por bomba (3) | La medición del 25 feb 2027 (HU-E0.2, regla 3) encuentra búsquedas en Colombia con otras formas de decirlo («cuántos cc por litro», «cuánto echarle a la bomba») |
 | HU-E9.4 · Enlace de auditor (2) | Primera auditoría agendada |
 | HU-E11.3 · Contrato de reporte de dispositivos (3) | HU-E11.2 funcionando 30 días en el laboratorio |
 | HU-E11.4 · El riego ejecutado llena el cuaderno (2) | HU-E11.3 |
@@ -134,7 +135,7 @@ La velocidad real se anota al cierre de cada sprint en §7.
 | E7 · Costos y personal | Cuánto cuesta cada kilo | H6 | 9 |
 | E8 · Operación ZCOE | Cuota, kill switch, respaldos, alertas, mudanza | H5 | 11 (+5 preparada) |
 | E9 · Cumplimiento | Carencias, carpeta, auditoría | H6, H7 | 7 (+5 preparadas) |
-| E10 · Herramienta de dosis | Segunda herramienta gratuita | H7 | 5 |
+| E10 · Herramienta 2: calendario de carencias | Segunda herramienta gratuita, la de más búsquedas en Colombia (HU-E0.2) | H7 | 4 (+3 preparada) |
 | E11 · Línea Conectada | Laboratorio de hardware | H8 | 5 (+5 preparadas), fuera de capacidad |
 
 ---
@@ -169,7 +170,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E0.2 · Medir la demanda de búsqueda
 **Como** dueño **quiero** el volumen de búsqueda en Colombia y LATAM de ~20 términos de calculadoras agronómicas **para** decidir la segunda y la tercera herramienta con datos.
-- **Peldaño:** herramienta gratuita · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S6 · **Depende de:** H1 publicado (para ver impresiones reales) · **Estado:** En sprint (CA1 a CA3 con Keyword Planner el 1 oct 2026: rangos, marcados R. La recomendación pone el calendario de carencias como herramienta 2 y contradice a E10 «dosis por bomba», sin búsquedas; decide el dueño. Falta Search Console de la DPV en producción para afinar)
+- **Peldaño:** herramienta gratuita · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S6 · **Depende de:** H1 publicado (para ver impresiones reales) · **Estado:** En sprint (CA1 a CA3 con Keyword Planner el 1 oct 2026: rangos, marcados R. El dueño aceptó la recomendación el 1 oct 2026: el calendario de carencias reemplaza a «dosis por bomba» como herramienta 2 (E10) y dosis queda preparada. Falta Search Console de la DPV en producción para afinar)
 - **Criterios de aceptación:**
   1. Dada una lista de 20 términos (DPV, déficit de presión de vapor, dosis por bomba, carencia, solución nutritiva, drenaje en sustrato, grados-día…), cuando se consultan en Google Keyword Planner o Search Console, entonces queda una tabla con volumen, fuente y fecha en `docs/validacion/busquedas-2026-12.md`.
   2. Cada cifra dice si es dato verificado o estimación.
@@ -1046,7 +1047,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E9.1 · ¿Qué nave puedo cosechar hoy?
 **Como** supervisor **quiero** un calendario de carencias y reentradas por nave **para** no cosechar ni entrar donde no se debe.
-- **Peldaño:** premium (candidata a herramienta gratuita pública) · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E3.10 · **Estado:** Refinada
+- **Peldaño:** premium (su versión pública, para una aplicación, es HU-E10.1; las dos usan `vencimientoCarencia` y `vencimientoReentrada` de agro-calc, P2) · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E3.10 · **Estado:** Refinada
 - **Criterios de aceptación:**
   1. Vista de hoy: cada nave en verde (se puede), rojo (carencia o reentrada vigente, con fecha y hora de fin) o gris (carencia desconocida).
   2. Vista de 14 días hacia adelante.
@@ -1087,36 +1088,51 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
   2. Solo lectura verificada en la celda.
   3. Registro de accesos.
 
-### E10 · Herramienta 2: dosis por bomba
+### E10 · Herramienta 2: calendario de carencias
 
-#### HU-E10.1 · Calcular cuánto producto echar en la bomba
+> **Cambio del 1 oct 2026.** La herramienta 2 era «dosis por bomba». HU-E0.2 midió que ninguna de sus cuatro formas de búsqueda trae datos, y que «periodo de carencia» es el único término con más de 50 búsquedas al mes en Colombia (100–1 mil). El dueño aceptó la recomendación: el calendario de carencias pasa a ser la herramienta 2 y dosis queda preparada (HU-E10.3). El cálculo ya existe y está probado en el cuaderno (HU-E3.10).
+
+#### HU-E10.1 · ¿Desde cuándo puedo cosechar y entrar?
+**Como** productor que acaba de aplicar un producto **quiero** poner la fecha y hora de la aplicación con la carencia y la reentrada de la etiqueta **para** saber desde qué día puedo cosechar y desde qué hora puedo entrar a la nave.
+- **Peldaño:** herramienta gratuita → siguiente: registrar la aplicación en el cuaderno (HU-E10.2) · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S14 · **Depende de:** H1, HU-E3.10 · **Estado:** Refinada
+- **Criterios de aceptación:**
+  1. Entradas: fecha y hora de la aplicación (por defecto, ahora), carencia en días y reentrada en horas, copiadas de la etiqueta. Salida: «Cosechar desde el dd/mm» y «Entrar desde el dd/mm/aaaa hh:mm». Usa `vencimientoCarencia` y `vencimientoReentrada` de agro-calc y la tabla `casos/carencia.json`; la calculadora no tiene su propia copia del cálculo (P2). Ejemplo: aplicado el 10/12 a las 7:00 con 3 días y 12 h → cosechar desde el 13/12, entrar desde el 10/12/2026 19:00.
+  2. Carencia o reentrada vacía **no es cero**: se muestra «desconocida, mira la etiqueta» y no se da fecha (P1). Un valor ilegible o negativo se marca junto al campo, sin calcular.
+  3. Texto permanente: «Copia la carencia y la reentrada de la etiqueta del producto registrado ante el ICA. Esta herramienta solo cuenta los días». No hay catálogo de productos (instrucciones §7).
+  4. Fechas en hora de Colombia; pruebas con otro huso, fin de mes y 29 de febrero (P8). Ninguna solicitud al calcular.
+  5. Revisión agronómica aprobada antes de `activo`.
+- **Patrones:** P1, P2, P8.
+- **Presupuesto:** 0 solicitudes al calcular; eventos dentro del presupuesto de las calculadoras (ARQUITECTURA §8.1). Kill switch `ks:agro-periodo-de-carencia`.
+- **WI:**
+  - WI-E10.1.1 `product.yaml` y textos (1 h).
+  - WI-E10.1.2 Isla con las funciones de agro-calc (2,5 h).
+  - WI-E10.1.3 e2e en 360 px, con TZ distinta y control negativo (1,5 h).
+
+#### HU-E10.2 · Página útil y puente al cuaderno
+**Como** productor **quiero** entender qué son la carencia y la reentrada con un ejemplo de invernadero **para** confiar en la fecha y no cosechar antes de tiempo.
+- **Puntos:** 2 · **Sprint:** S15 · **Depende de:** HU-E10.1 · **Estado:** Refinada
+- **Criterios de aceptación:**
+  1. Pasa el quality gate, con preguntas frecuentes del tipo «¿la carencia cuenta desde el día de la aplicación?» y «¿qué pasa si la etiqueta no dice reentrada?».
+  2. Tiene «Guardar como aplicación en mi cuaderno», que prellena HU-E3.10 con la fecha, sin red, y emite `tool.next_step`.
+  3. La DPV y esta herramienta se enlazan como relacionadas.
+- **WI:**
+  - WI-E10.2.1 Contenido (2 h).
+  - WI-E10.2.2 Puente (1,5 h).
+
+#### HU-E10.3 · Calcular cuánto producto echar en la bomba — *Preparada*
 **Como** productor **quiero** convertir la dosis de la etiqueta (por hectárea o por litro) a la cantidad por bomba o tanque **para** preparar la mezcla sin errores.
-- **Peldaño:** herramienta gratuita → siguiente: registrar la aplicación en el cuaderno · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** S14 · **Depende de:** H1, resultado de HU-E0.2 · **Estado:** Refinada
+- **Puntos:** 3 · **Disparador:** la medición del 25 feb 2027 (HU-E0.2, regla 3) encuentra búsquedas en Colombia · **Estado:** Preparada (era HU-E10.1 hasta el 1 oct 2026)
 - **Criterios de aceptación:**
   1. Entradas:
      - dosis de etiqueta en cm³/L, mL/L, g/L, L/ha o kg/ha;
      - volumen de la bomba o tanque;
      - volumen de mezcla por hectárea o por área.
-     
+
      Salida: cantidad por bomba y número de bombas. Casos resueltos en `agro-calc`.
   2. Texto permanente: «Usa la dosis de la etiqueta del producto registrado ante el ICA. Esta herramienta solo convierte unidades». No hay catálogo de productos ni dosis sugeridas (instrucciones §7).
   3. Unidades incompatibles (g/L para un líquido que dice mL) avisan en lugar de convertir.
   4. Revisión agronómica aprobada antes de `activo`.
 - **Patrones:** P1.
-- **WI:**
-  - WI-E10.1.1 Funciones y casos (2,5 h).
-  - WI-E10.1.2 Isla (2,5 h).
-  - WI-E10.1.3 e2e (1,5 h).
-
-#### HU-E10.2 · Página útil y puente al cuaderno
-**Como** productor **quiero** entender la conversión con un ejemplo de bomba de espalda de 20 L **para** confiar.
-- **Puntos:** 2 · **Sprint:** S15 · **Depende de:** HU-E10.1 · **Estado:** Refinada
-- **Criterios de aceptación:**
-  1. Pasa el quality gate.
-  2. Tiene «Guardar como aplicación en mi cuaderno», que prellena HU-E3.10.
-- **WI:**
-  - WI-E10.2.1 Contenido (2 h).
-  - WI-E10.2.2 Puente (1,5 h).
 
 ### E11 · Línea Conectada (laboratorio, fuera de la capacidad de desarrollo)
 
