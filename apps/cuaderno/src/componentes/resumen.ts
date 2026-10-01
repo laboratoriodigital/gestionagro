@@ -3,6 +3,7 @@ import { formatearKPa, formatearPct } from '@gestionagro/agro-calc';
 import type { Registro } from '@gestionagro/agro-schema';
 import type { DatosAplicacionGuardada } from '../almacen/aplicaciones.ts';
 import type { DatosClimaGuardado } from '../almacen/clima.ts';
+import type { DatosCosechaGuardada } from '../almacen/cosecha.ts';
 import type { DatosRiegoGuardado } from '../almacen/riego.ts';
 
 export function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): string {
@@ -33,6 +34,12 @@ export function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): st
     const d = r.datos as DatosAplicacionGuardada;
     const quienes = r.persona_ids.map((id) => nombres.get(id) ?? 'Persona').join(', ');
     return `Aplicación · ${d.insumo} · ${coma(d.dosis)} ${d.dosisUnidad} · ${quienes}`;
+  }
+  if (r.tipo === 'cosecha') {
+    const d = r.datos as DatosCosechaGuardada;
+    const descarte = d.descarte === null ? '' : ` · descarte ${coma(d.descarte)}`;
+    const carencia = d.carenciaConfirmada ? ' · cosechada en carencia' : '';
+    return `Cosecha · ${coma(d.cantidad)} ${d.unidad} · ${d.categoria}${descarte}${carencia}`;
   }
   return r.tipo;
 }

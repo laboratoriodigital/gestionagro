@@ -9,6 +9,7 @@
 import { z } from 'zod';
 import {
   area,
+  categoriaCalidad,
   ciclo,
   cultivo,
   finca,
@@ -47,6 +48,7 @@ export const FILAS_EXPORTADAS = {
   valor_jornal: valorJornal,
   insumo,
   tipo_labor: tipoLabor,
+  categoria_calidad: categoriaCalidad,
   registro: registroBase,
   historial: versionAnterior,
 } as const;
@@ -70,6 +72,7 @@ export const agroExportV1 = z.strictObject({
     valor_jornal: tabla(valorJornal),
     insumo: tabla(insumo),
     tipo_labor: tabla(tipoLabor),
+    categoria_calidad: tabla(categoriaCalidad),
     registro: tabla(registroBase),
     historial: tabla(versionAnterior),
   }),

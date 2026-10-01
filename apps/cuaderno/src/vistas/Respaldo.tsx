@@ -34,6 +34,7 @@ const NOMBRE_TABLA: Record<TablaExportada, string> = {
   valor_jornal: 'Valores de jornal',
   insumo: 'Insumos',
   tipo_labor: 'Tipos de labor',
+  categoria_calidad: 'Categorías de calidad',
   registro: 'Registros',
   historial: 'Versiones anteriores',
 };
@@ -43,6 +44,7 @@ const NOMBRE_CSV: Record<string, string> = {
   riego: 'Riego',
   labor: 'Labores',
   aplicacion: 'Aplicaciones',
+  cosecha: 'Cosecha',
 };
 
 /** «Finca Ensayo Uno» → «finca-ensayo-uno», para el nombre del archivo. */

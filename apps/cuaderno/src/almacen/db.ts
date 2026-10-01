@@ -8,6 +8,7 @@
  */
 import type {
   Area,
+  CategoriaCalidad,
   Ciclo,
   Cultivo,
   Finca,
@@ -28,7 +29,8 @@ export type Entidad =
   | 'insumo'
   | 'cultivo'
   | 'valor_jornal'
-  | 'tipo_labor';
+  | 'tipo_labor'
+  | 'categoria_calidad';
 
 /** Operación pendiente de subir a la celda. Se escribe en la misma transacción que su dato. */
 export interface OperacionSalida {
@@ -69,6 +71,7 @@ export type CuadernoDb = Dexie & {
   cultivo: EntityTable<Cultivo, 'id'>;
   valor_jornal: EntityTable<ValorJornal, 'id'>;
   tipo_labor: EntityTable<TipoLabor, 'id'>;
+  categoria_calidad: EntityTable<CategoriaCalidad, 'id'>;
   registro: EntityTable<Registro, 'id'>;
   outbox: EntityTable<OperacionSalida, 'id'>;
   historial: EntityTable<VersionAnterior, 'id'>;
@@ -145,6 +148,13 @@ export const VERSIONES_LOCALES: readonly VersionLocal[] = [
     version: 6,
     tablas: {
       registro: 'id, fecha_agronomica, tipo, anula_id',
+    },
+  },
+  {
+    // HU-E6.1: catálogo de categorías de calidad de la cosecha.
+    version: 7,
+    tablas: {
+      categoria_calidad: 'id, finca_id', // categorías de una finca
     },
   },
 ];

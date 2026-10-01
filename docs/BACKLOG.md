@@ -828,7 +828,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E6.1 · Registrar la cosecha por nave
 **Como** operario **quiero** anotar los kilos cosechados por nave y calidad **para** saber cuánto produce cada nave y qué se puede vender.
-- **Peldaño:** usuario recurrente → Finca · **Prioridad:** Must (antes de la primera cosecha) · **Puntos:** 2 · **Sprint:** S7 · **Depende de:** HU-E3.4, HU-E3.10 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente → Finca · **Prioridad:** Must (antes de la primera cosecha) · **Puntos:** 2 · **Sprint:** S7 · **Depende de:** HU-E3.4, HU-E3.10 · **Estado:** En sprint (rama `feat/e6.1-registrar-cosecha`. CA1: unidad kg, tallos, cajas u otra; calidades en un catálogo de la finca que arranca vacío con «Primera, Segunda, Tercera» como sugerencia. CA2: el almacén vuelve a calcular la carencia al guardar y bloquea también si es desconocida; la confirmación guarda el motivo, la fecha y los insumos. Quién cosechó es opcional)
 - **Criterios de aceptación:**
   1. Kg (o la unidad del cultivo: tallos, cajas) por nave, categoría de calidad desde el catálogo y descarte.
   2. Si la nave está dentro del periodo de carencia, la app **bloquea** con el motivo y la fecha de vencimiento. Una confirmación explícita queda registrada en el registro.

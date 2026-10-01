@@ -271,6 +271,22 @@ export const COLUMNAS_CSV: Record<string, ColumnaCsv[]> = {
     { titulo: 'Reentrada (horas)', valor: num('reentradaHoras') },
     { titulo: 'Quién aplicó', valor: personasDe },
   ],
+  cosecha: [
+    { titulo: 'Cantidad', valor: num('cantidad') },
+    { titulo: 'Unidad', valor: txt('unidad') },
+    { titulo: 'Calidad', valor: txt('categoria') },
+    { titulo: 'Descarte', valor: num('descarte') },
+    {
+      titulo: 'Cosechada en carencia',
+      valor: (r) => {
+        const k = d(r)['carenciaConfirmada'] as { hasta: string | null; insumos: string[] } | null;
+        if (!k) return '';
+        const hasta = k.hasta ? `hasta ${k.hasta.split('-').reverse().join('/')}` : 'desconocida';
+        return celda(`sí, ${hasta} (${k.insumos.join(', ')})`);
+      },
+    },
+    { titulo: 'Quién cosechó', valor: personasDe },
+  ],
 };
 
 export const TIPOS_CSV = Object.keys(COLUMNAS_CSV);
