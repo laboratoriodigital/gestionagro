@@ -515,3 +515,23 @@ La regla: **una prueba con datos uniformes confirma el supuesto con que se escri
 La regla: **una regla que solo vigila al CI no protege los comandos de quien escribe el código. Si un paso decide si se hace el commit, su estado de salida tiene que ser el del paso, no el del último filtro.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P2, P14 · 0.1.0 · 2026-10-01
+
+**14 · La prueba del presupuesto de JS fallaba de vez en cuando, y además podía medir de menos.**
+
+*Qué pasó.* El 1 oct 2026 una corrida completa de `verificar` falló en la e2e «/herramientas/agro/calculadora-dpv/: JS < 50 KB con gzip». Repetida cuatro veces, falló una.
+
+*Síntoma literal:*
+
+```text
+Error: response.body: Test ended.
+```
+
+*Causa raíz.*
+- El oyente de respuestas leía el cuerpo de cada script con `await` dentro del evento, y la prueba no esperaba esas lecturas: si terminaba antes, la lectura reventaba (P19).
+- Lo más serio: la prueba medía al llegar a `load`. La isla de la calculadora (HU-E2.2) carga sus fragmentos después, así que el total podía no incluirlos (P17). Cuando se escribió la prueba (HU-E1.6) todavía no había isla, y entonces daba igual.
+
+*Arreglo.* Se guardan las promesas de cada cuerpo y se esperan todas. En las páginas con isla, primero se espera a que hidrate. Medido así, el JS de la página de la DPV es de 12.782 bytes con gzip. Pasó 6 de 6.
+
+La regla: **una prueba de presupuesto que mide «hasta load» deja de medir el día que la página carga algo después. Se mide hasta el estado en que la página está completa, y se esperan todas las lecturas que se abrieron.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P17, P19 · 0.1.0 · 2026-10-01

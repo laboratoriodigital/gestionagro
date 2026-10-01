@@ -588,7 +588,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.14 · Saber dónde está cada dato
 **Como** operario **quiero** ver si mis registros están solo en el teléfono, enviados o rechazados **para** no perder trabajo ni creer que algo se envió cuando no.
-- **Peldaño:** usuario recurrente → cuenta · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S5 · **Depende de:** HU-E3.2 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente → cuenta · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S5 · **Depende de:** HU-E3.2 · **Estado:** En sprint (rama `feat/e3.14-donde-esta-cada-dato`. CA1 y CA2 hechos; CA3, rechazados en rojo con su motivo, llega con la cuarentena de HU-E5.2: sin sincronización no hay quien rechace)
 - **Criterios de aceptación:**
   1. En la cabecera, un indicador dice cuántos registros están «solo en este teléfono». Tocarlo explica qué significa.
   2. Antes de existir la sincronización, el indicador recomienda exportar cada semana (HU-E3.13).

@@ -195,6 +195,29 @@ button:disabled {
   color: var(--color-marca);
   font-weight: 700;
 }
+.indicador-datos {
+  margin-block-start: var(--espacio-2);
+}
+.cabecera .indicador {
+  background: transparent;
+  border: 2px solid var(--color-marca-texto);
+  color: var(--color-marca-texto);
+  font-weight: 600;
+}
+.cabecera .indicador.pendiente {
+  background: var(--color-marca-texto);
+  color: var(--color-marca);
+}
+.explicacion-datos {
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  border-radius: var(--radio);
+  padding: var(--espacio-3);
+  margin-block-start: var(--espacio-2);
+}
+.explicacion-datos p {
+  margin: 0 0 var(--espacio-2);
+}
 .navegacion {
   display: flex;
   flex-wrap: wrap;
