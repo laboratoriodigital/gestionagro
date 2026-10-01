@@ -371,7 +371,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E2.5 · Página útil de la DPV
 **Como** productor que llega desde Google **quiero** entender qué es el DPV, un ejemplo con números de invernadero colombiano y respuestas a mis dudas **para** confiar en el resultado.
-- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S3 · **Depende de:** HU-E2.2, T-0.4 · **Estado:** Refinada
+- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S3 · **Depende de:** HU-E2.2, T-0.4 · **Estado:** En sprint (rama `feat/e2.5-pagina-dpv`. CA1, CA2 y CA4 hechos; CA4 enlaza al cuaderno, la otra herramienta relacionada entra con HU-E10.1. Falta CA3: aprobación del agrónomo)
 - **Criterios de aceptación:**
   1. La página responde las cuatro preguntas de ED1 §12.1 y pasa el quality gate: ejemplo resuelto (24 °C y 70 % en una nave de tomate a media mañana), al menos 5 preguntas frecuentes específicas y fuentes con fecha.
   2. Aclara que los rangos son de referencia y varían por cultivo, variedad y etapa.

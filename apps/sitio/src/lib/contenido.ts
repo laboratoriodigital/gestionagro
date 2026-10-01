@@ -4,6 +4,8 @@
  * La página se arma con el contrato y este contenido; nada se escribe dos veces (P2).
  */
 import type { MarkdownInstance } from 'astro';
+import { parse } from 'yaml';
+import type { PaginaDeHerramienta } from '../../../../scripts/lib/calidad.ts';
 import { cargarProductos, type Producto } from '../../../../scripts/lib/productos.ts';
 import { esHerramienta } from './seo.ts';
 
@@ -19,6 +21,20 @@ export function contenidoDe(carpeta: string): MarkdownInstance<Record<string, un
     .filter(([ruta]) => ruta.replace(/\\/g, '/').includes(prefijo))
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, m]) => m);
+}
+
+const paginas = import.meta.glob<string>('../../../../content/agro/*/pagina.yaml', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+
+/** Preguntas frecuentes y pasos de una herramienta, o null si no tiene. */
+export function paginaDe(carpeta: string): PaginaDeHerramienta | null {
+  const entrada = Object.entries(paginas).find(([ruta]) =>
+    ruta.replace(/\\/g, '/').includes(`/${carpeta}/pagina.yaml`),
+  );
+  return entrada ? (parse(entrada[1]) as PaginaDeHerramienta) : null;
 }
 
 export const productos: readonly Producto[] = cargarProductos();
