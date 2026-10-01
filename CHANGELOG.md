@@ -7,6 +7,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ### Corregido
 - Un error de la nube se mostraba como «sin señal» (bitácora agro 23). Ahora la celda responde cualquier falla inesperada con su causa y el cuaderno dice que fue la nube, y reintenta solo.
 - Según la prueba del dueño en staging (bitácora agro 22): un registro nuevo subía solo al recargar o al tocar «Sincronizar ahora». Ahora sube a los pocos segundos de guardarlo, y el cuaderno trae lo del equipo al volver a la app. Cuenta dice «Todo lo tuyo está en la nube. Lo del equipo se revisó a las hh:mm.» en vez de «Todo está en la nube».
+- La calculadora de DPV borraba lo que la persona escribía antes de que terminara de cargar (3G lenta): al activarse, dejaba los campos vacíos. Ahora conserva lo escrito (bitácora agro 21).
 
 ### Añadido
 - Batería de caos de la sincronización (HU-E5.6): ocho casos (lote duplicado, corte a la mitad, dos teléfonos sin señal, reloj adelantado, app vieja, celda en esencial, sesión vencida sin señal y cuota agotada), con las dos fincas de prueba, que terminan con cada registro una sola vez en la celda y en todos los teléfonos. Si la hora del teléfono está adelantada más de 10 min, la nube guarda el registro tal cual y el cuaderno pide corregir la hora.
