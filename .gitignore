@@ -18,3 +18,7 @@ Thumbs.db
 
 # Residuos que el dueño borra a mano (bitácora agro 1)
 _to_delete/
+
+# Salidas de Playwright
+test-results/
+playwright-report/
