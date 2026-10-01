@@ -1,0 +1,17 @@
+{
+  "nota": "Casos del porcentaje de drenaje (HU-E3.7). Los usan agro-calc y, más adelante, el nodo de riego (P2).",
+  "tolerancia_pct": 0.01,
+  "casos": [
+    { "volumenAplicado": 500, "volumenDrenado": 150, "drenajePct": 30 },
+    { "volumenAplicado": 1000, "volumenDrenado": 0, "drenajePct": 0 },
+    { "volumenAplicado": 250, "volumenDrenado": 62.5, "drenajePct": 25 },
+    { "volumenAplicado": 300, "volumenDrenado": 100, "drenajePct": 33.33 },
+    { "volumenAplicado": 1200, "volumenDrenado": 1200, "drenajePct": 100 }
+  ],
+  "invalidos": [
+    { "campo": "volumenAplicado", "volumenAplicado": 0, "volumenDrenado": 0 },
+    { "campo": "volumenDrenado", "volumenAplicado": 500, "volumenDrenado": 600 },
+    { "campo": "volumenAplicado", "volumenAplicado": -5, "volumenDrenado": 1 },
+    { "campo": "volumenDrenado", "volumenAplicado": 500, "volumenDrenado": -1 }
+  ]
+}

@@ -535,3 +535,28 @@ Error: response.body: Test ended.
 La regla: **una prueba de presupuesto que mide «hasta load» deja de medir el día que la página carga algo después. Se mide hasta el estado en que la página está completa, y se esperan todas las lecturas que se abrieron.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P17, P19 · 0.1.0 · 2026-10-01
+
+**15 · Un control negativo destruyó un archivo y otros dos dieron verde contra un build viejo.**
+
+*Qué pasó.* El 1 oct 2026, en HU-E3.7, corrí cuatro controles negativos seguidos. Cada uno respaldaba los archivos que iba a dañar y los restauraba después. El respaldo se nombraba por el nombre del archivo, y había dos `riego.ts`: `packages/agro-calc/src/riego.ts` y `apps/cuaderno/src/almacen/riego.ts`. El segundo respaldo pisó al primero. Al «restaurar», el `riego.ts` de agro-calc quedó con el contenido del cuaderno. Como aún no estaba en un commit, git no podía devolverlo.
+
+*Síntomas.*
+- El control B dijo `Tests  no tests`: el archivo de pruebas ni cargaba.
+- Los controles C (CE vacía como 0) y D (unidad sin recordar) dieron **4 passed**, con el defecto puesto. El build del cuaderno fallaba en silencio (salida a `/dev/null`), así que las e2e corrieron contra el build anterior, sin el defecto.
+
+*Causa raíz.*
+- Respaldos con nombres que pueden chocar (P2: dos cosas con el mismo nombre).
+- Un paso de build cuyo fallo no detenía el control (P14).
+
+Un control negativo que corre contra un build viejo da exactamente el verde falso que existe para impedir (P5).
+
+*Arreglo.*
+- El archivo se reescribió desde el contenido exacto de esta sesión.
+- Los respaldos llevan la ruta completa en el nombre.
+- Si el build falla, el control se detiene con «BUILD FALLÓ: control inválido».
+- Repetidos así, B, C y D fallan donde deben.
+- Al final se comprueba que `git diff` solo muestra los cambios reales.
+
+La regla: **el control negativo también es código que puede fallar. Respaldos con nombres únicos, cada paso con su estado de salida, y un «verde» solo vale si el defecto llegó de verdad a lo que se probó.**
+
+*Ficha:* agro · *(mío)* · 🟠 Grave · P5, P14, P2 · 0.1.0 · 2026-10-01

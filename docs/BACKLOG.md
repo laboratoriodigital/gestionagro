@@ -531,7 +531,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.7 · Registrar el riego en sustrato
 **Como** operario **quiero** anotar el riego de cada nave con volumen, CE y pH de entrada y de drenaje **para** saber si estoy regando de más o de menos.
-- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S5 · **Depende de:** HU-E3.4 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S5 · **Depende de:** HU-E3.4 · **Estado:** En sprint (rama `feat/e3.7-registro-riego`)
 - **Criterios de aceptación:**
   1. Dado un riego con volumen aplicado y volumen drenado (en mL por gotero o L por nave), cuando guardo, entonces veo el % de drenaje = drenado / aplicado × 100, calculado en `agro-calc` con sus casos.
   2. CE en dS/m y pH con rangos válidos (CE 0–10, pH 3–10). Fuera de rango, el campo avisa y no guarda. Vacío es «no medido», distinto de 0.

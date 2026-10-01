@@ -36,8 +36,41 @@ const climaV1 = z.strictObject({
  * Esquemas de `datos` por tipo y versión. La API acepta todas las versiones que alguna app
  * publicada escribió (ADR-13): aquí no se borra una versión, se agrega la siguiente.
  */
+/**
+ * `riego` v1 (HU-E3.7): volumen aplicado y drenado en la misma unidad, y la solución de entrada y
+ * de drenaje. Nulo = no medido, que no es 0 (P1). El % de drenaje lo calcula agro-calc.
+ */
+const riegoV1 = z
+  .strictObject({
+    unidad: z.enum(['mL_gotero', 'L_area']),
+    volumenAplicado: medida('de volumen', 0.001, 1_000_000),
+    volumenDrenado: medida('de volumen', 0, 1_000_000).nullable(),
+    drenajePct: z.number().min(0).max(100).nullable(),
+    ceEntradaDsM: medida('dS/m', 0, 10).nullable(),
+    phEntrada: medida('de pH', 3, 10).nullable(),
+    ceDrenajeDsM: medida('dS/m', 0, 10).nullable(),
+    phDrenaje: medida('de pH', 3, 10).nullable(),
+  })
+  .superRefine((r, ctx) => {
+    if ((r.volumenDrenado === null) !== (r.drenajePct === null)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['drenajePct'],
+        message: 'el % de drenaje va solo si se midió el drenaje',
+      });
+    }
+    if (r.volumenDrenado !== null && r.volumenDrenado > r.volumenAplicado) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['volumenDrenado'],
+        message: 'no puede ser mayor que lo aplicado',
+      });
+    }
+  });
+
 export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, z.ZodType>>>> = {
   clima: { 1: climaV1 },
+  riego: { 1: riegoV1 },
 };
 
 export type Registro = z.infer<typeof registroBase>;
