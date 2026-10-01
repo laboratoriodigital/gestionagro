@@ -133,6 +133,8 @@ export interface Producto {
   eventos: string[];
   revision_agronomica: string;
   fuentes: string[];
+  /** Si tiene clave `ks:<id>` en el KV de flags (HU-E8.1). */
+  kill_switch: boolean;
   /** Carpeta del contrato, relativa a la raíz (p. ej. `content/agro/calculadora-dpv`). */
   carpeta: string;
 }

@@ -957,7 +957,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E8.1 · Kill switch por producto
 **Como** dueño **quiero** apagar un producto desde KV sin desplegar **para** cortar un consumo o un fallo en un minuto.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S7 · **Depende de:** HU-E1.5 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S7 · **Depende de:** HU-E1.5 · **Estado:** En sprint (rama `feat/e8.1-kill-switch`. CA1 y CA2 hechos y probados con KV y Cloudflare falsos; apagar tarda hasta 2 min, no 1: 60 s de caché más la propagación de KV, corregido en ARQUITECTURA §8.2. CA3 espera a la sincronización (HU-E5.x) y al aviso de HU-E8.6: hoy `ks:agro-cuaderno` no apaga nada. CA4: prueba real del dueño en staging, anotada en el runbook)
 - **Criterios de aceptación:**
   1. Clave `ks:<product.id>` en KV. El Worker la lee con caché de hasta 60 s, y la prueba mide ese máximo (P7).
   2. Todos los `product.yaml` con `kill_switch: true` tienen su clave creada por el despliegue. CI lo verifica.

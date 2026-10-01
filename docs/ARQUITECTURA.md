@@ -568,7 +568,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 | Esencial | ≥ 90 % | Solo push de registros; pull en pausa | «Sincronización en pausa hasta las 19:00 (hora de Colombia). Tus registros están guardados en este teléfono» |
 | Bloqueo D1 | 100 % | D1 rechaza; la app espera sin perder nada | El mismo aviso, con la causa |
 
-- **Kill switch por producto en KV** (`ks:<product.id>`): se lee con caché en memoria de hasta 60 s. Apagar un producto tarda como máximo un minuto y está escrito así, para que nadie crea que es instantáneo (P7).
+- **Kill switch por producto en KV** (`ks:<product.id>`, valor `encendido` o `apagado`, en `agro-c{N}-flags`): se lee con caché en memoria de hasta 60 s. A eso se suma la propagación de KV, que Cloudflare da como hasta 60 s o más: **apagar un producto tarda hasta 2 minutos**, y está escrito así para que nadie crea que es instantáneo (P7). El despliegue crea las claves que faltan y nunca toca las que existen. Runbook: `docs/runbooks/kill-switch.md`.
 - KV gratuito permite 1.000 escrituras al día. El vigía escribe como máximo 24 al día y solo cuando cambia de nivel.
 
 ### 8.3 Respaldos

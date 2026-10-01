@@ -100,6 +100,20 @@ export async function verificarToken(
     fallas.push(`${celda.id}: no se pudo leer los Workers de la cuenta (HTTP ${scripts.estado})`);
   }
 
+  // HU-E8.1: el despliegue crea el KV de flags y sus claves de kill switch.
+  const kv = await leer(
+    fetchFn,
+    `${API}/accounts/${cuenta}/storage/kv/namespaces?per_page=1`,
+    token,
+  );
+  if (kv.estado === 403 || kv.estado === 401) {
+    fallas.push(
+      `${celda.id}: al token le falta «Account → Workers KV Storage: Edit» en la cuenta ${celda.cuenta}`,
+    );
+  } else if (kv.estado !== 200) {
+    fallas.push(`${celda.id}: no se pudo leer los KV de la cuenta (HTTP ${kv.estado})`);
+  }
+
   if (destino === 'produccion') {
     const zonas = await leer(fetchFn, `${API}/zones?name=${encodeURIComponent(zona)}`, token);
     const lista = (zonas.cuerpo.result as { id: string }[] | undefined) ?? [];
