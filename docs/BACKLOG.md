@@ -601,7 +601,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.12 · Historial por nave y corregir sin borrar
 **Como** supervisor **quiero** ver lo registrado por nave y día y corregir un error **para** que el cuaderno sea confiable sin perder la traza.
-- **Peldaño:** usuario recurrente → premium · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S6 · **Depende de:** HU-E3.7, HU-E3.9, HU-E3.10 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente → premium · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S6 · **Depende de:** HU-E3.7, HU-E3.9, HU-E3.10 · **Estado:** En sprint (rama `feat/e3.12-historial-corregir`. CA1: medido en e2e con la CPU ×4, 1.350 registros de 90 días cargan en 0,4–0,5 s medidos dentro de la página, también con toda la suite en paralelo; la lista muestra de a 50. CA2: «quién» es el teléfono que anotó y el que corrigió; con cuentas (E4) será la persona. Se corrige clima, riego, labor y aplicación; una corrección conserva área y fecha del evento)
 - **Criterios de aceptación:**
   1. El historial filtra por nave, tipo y rango de fechas, y carga 90 días en menos de 1 s en gama baja.
   2. «Corregir» crea un registro nuevo con `anula_id`. El historial muestra el vigente y, al tocarlo, la versión anulada con quién y cuándo.

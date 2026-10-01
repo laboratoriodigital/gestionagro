@@ -12,6 +12,7 @@ import {
   ErrorDeRegistro,
   ErrorDeValidacion,
   type Persona,
+  type Registro,
 } from '@gestionagro/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
@@ -24,6 +25,7 @@ import {
 } from '../almacen/labores.ts';
 import { leerPersonas } from '../almacen/personas.ts';
 import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
+import { AccionesDeFormulario, aTexto, EventoQueSeCorrige } from '../componentes/Correccion.tsx';
 
 const OTRA = '__otra';
 
@@ -52,16 +54,26 @@ export function ordenDeLabores(
   return lista;
 }
 
-export function FormularioLabor(props: { fincaId: string; areas: Area[]; alGuardar: () => void }) {
+export function FormularioLabor(props: {
+  fincaId: string;
+  areas: Area[];
+  alGuardar: () => void;
+  /** Labor vigente que se corrige (HU-E3.12). */
+  corrige?: Registro | undefined;
+  alCancelar?: () => void;
+}) {
+  const antes = props.corrige?.datos as { labor: string; horasPorPersona: number } | undefined;
   const [v, setV] = useState<Valores>({
-    areaId: props.areas.length === 1 ? (props.areas[0]?.id ?? '') : '',
-    labor: '',
+    areaId:
+      props.corrige?.area_ids[0] ?? (props.areas.length === 1 ? (props.areas[0]?.id ?? '') : ''),
+    labor: antes?.labor ?? '',
     otra: '',
-    personas: [],
-    horas: '',
+    personas: props.corrige ? [...props.corrige.persona_ids] : [],
+    horas: aTexto(antes?.horasPorPersona),
   });
   const [labores, setLabores] = useState<string[]>([]);
-  const [personas, setPersonas] = useState<Persona[]>([]);
+  // null = cargando: mientras tanto no se dice «no hay».
+  const [personas, setPersonas] = useState<Persona[] | null>(null);
   const [errores, setErrores] = useState<Errores>({});
   const [aviso, setAviso] = useState<string[]>([]);
   const [confirmado, setConfirmado] = useState(false);
@@ -112,13 +124,18 @@ export function FormularioLabor(props: { fincaId: string; areas: Area[]; alGuard
     setGuardado(null);
     if (Object.keys(err).length > 0 || !horas.ok) return;
     try {
-      await guardarLabor(cuaderno(), props.fincaId, {
-        areaId: v.areaId,
-        labor: nombreLabor,
-        personaIds: v.personas,
-        horasPorPersona: horas.valor,
-        confirmarMasDe12: confirmado,
-      });
+      await guardarLabor(
+        cuaderno(),
+        props.fincaId,
+        {
+          areaId: v.areaId,
+          labor: nombreLabor,
+          personaIds: v.personas,
+          horasPorPersona: horas.valor,
+          confirmarMasDe12: confirmado,
+        },
+        { corrige: props.corrige },
+      );
       const cuantas = v.personas.length;
       setV({ ...v, labor: '', otra: '', personas: [], horas: '' });
       setAviso([]);
@@ -150,16 +167,20 @@ export function FormularioLabor(props: { fincaId: string; areas: Area[]; alGuard
       noValidate
       data-prueba="formulario-labor"
     >
-      <h2>Labores</h2>
-      <CampoSeleccion
-        id="labor-area"
-        etiqueta="Área"
-        indicacion="Elige el área"
-        opciones={props.areas.map((a) => ({ valor: a.id, texto: a.nombre }))}
-        valor={v.areaId}
-        error={errores.areaId}
-        alCambiar={(x) => cambiar({ areaId: x })}
-      />
+      <h2>{props.corrige ? 'Corregir labor' : 'Labores'}</h2>
+      {props.corrige ? (
+        <EventoQueSeCorrige registro={props.corrige} areas={props.areas} />
+      ) : (
+        <CampoSeleccion
+          id="labor-area"
+          etiqueta="Área"
+          indicacion="Elige el área"
+          opciones={props.areas.map((a) => ({ valor: a.id, texto: a.nombre }))}
+          valor={v.areaId}
+          error={errores.areaId}
+          alCambiar={(x) => cambiar({ areaId: x })}
+        />
+      )}
       <Opciones
         nombre="labor-tipo"
         leyenda="Labor"
@@ -185,12 +206,13 @@ export function FormularioLabor(props: { fincaId: string; areas: Area[]; alGuard
         aria-describedby={errores.personas ? 'labor-personas-error' : undefined}
       >
         <legend>Quiénes la hicieron</legend>
-        {personas.length === 0 && (
+        {personas === null && <p class="ayuda">Cargando personas…</p>}
+        {personas?.length === 0 && (
           <p class="ayuda">
             Primero agrega las personas en <a href="/agro/app/personas">Personas</a>.
           </p>
         )}
-        {personas.map((p) => (
+        {personas?.map((p) => (
           <label class="opcion" key={p.id}>
             <input
               type="checkbox"
@@ -240,9 +262,11 @@ export function FormularioLabor(props: { fincaId: string; areas: Area[]; alGuard
           {guardado}
         </p>
       )}
-      <div class="acciones">
-        <button type="submit">Guardar labor</button>
-      </div>
+      <AccionesDeFormulario
+        corrigiendo={Boolean(props.corrige)}
+        texto="Guardar labor"
+        alCancelar={props.alCancelar}
+      />
     </form>
   );
 }

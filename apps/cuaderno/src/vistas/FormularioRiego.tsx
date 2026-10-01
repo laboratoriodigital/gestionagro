@@ -11,12 +11,13 @@ import {
   RANGO_CE_DS_M,
   RANGO_PH,
 } from '@gestionagro/agro-calc';
-import { type Area, ErrorDeRegistro } from '@gestionagro/agro-schema';
+import { type Area, ErrorDeRegistro, type Registro } from '@gestionagro/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';
-import { guardarRiego, type UnidadRiego } from '../almacen/riego.ts';
+import { type DatosRiegoGuardado, guardarRiego, type UnidadRiego } from '../almacen/riego.ts';
 import { Campo, Opciones } from '../componentes/Campo.tsx';
+import { AccionesDeFormulario, aTexto, EventoQueSeCorrige } from '../componentes/Correccion.tsx';
 
 const CLAVE_UNIDAD = 'gestionagro.unidad-riego';
 /** Igual que el esquema `riego` v2. */
@@ -89,12 +90,35 @@ function opcional(
   return { valor: leido.valor };
 }
 
-export function FormularioRiego(props: { fincaId: string; areas: Area[]; alGuardar: () => void }) {
-  const [v, setV] = useState<Valores>({
-    areas: props.areas.length === 1 ? [props.areas[0]?.id ?? ''] : [],
-    unidad: unidadRecordada(),
-    ...VACIO,
-  });
+export function FormularioRiego(props: {
+  fincaId: string;
+  areas: Area[];
+  alGuardar: () => void;
+  /** Riego vigente que se corrige (HU-E3.12). */
+  corrige?: Registro | undefined;
+  alCancelar?: () => void;
+}) {
+  const antes = props.corrige?.datos as DatosRiegoGuardado | undefined;
+  const [v, setV] = useState<Valores>(
+    props.corrige && antes
+      ? {
+          areas: props.corrige.area_ids.slice(0, 1),
+          unidad: antes.unidad,
+          aplicado: aTexto(antes.volumenAplicado),
+          // Los riegos v1 no tienen duración.
+          duracion: aTexto(props.corrige.v >= 2 ? antes.duracionMin : null),
+          drenado: aTexto(antes.volumenDrenado),
+          ceEntrada: aTexto(antes.ceEntradaDsM),
+          phEntrada: aTexto(antes.phEntrada),
+          ceDrenaje: aTexto(antes.ceDrenajeDsM),
+          phDrenaje: aTexto(antes.phDrenaje),
+        }
+      : {
+          areas: props.areas.length === 1 ? [props.areas[0]?.id ?? ''] : [],
+          unidad: unidadRecordada(),
+          ...VACIO,
+        },
+  );
   const [errores, setErrores] = useState<Partial<Record<keyof Valores | 'general', string>>>({});
   const [guardado, setGuardado] = useState<string | null>(null);
 
@@ -161,16 +185,22 @@ export function FormularioRiego(props: { fincaId: string; areas: Area[]; alGuard
     setGuardado(null);
     if (Object.keys(err).length > 0 || !aplicado.ok || !v.unidad) return;
     try {
-      const guardados = await guardarRiego(cuaderno(), props.fincaId, v.areas, {
-        unidad: v.unidad,
-        volumenAplicado: aplicado.valor,
-        duracionMin: duracion.valor,
-        volumenDrenado,
-        ceEntradaDsM: ceEntrada.valor,
-        phEntrada: phEntrada.valor,
-        ceDrenajeDsM: ceDrenaje.valor,
-        phDrenaje: phDrenaje.valor,
-      });
+      const guardados = await guardarRiego(
+        cuaderno(),
+        props.fincaId,
+        v.areas,
+        {
+          unidad: v.unidad,
+          volumenAplicado: aplicado.valor,
+          duracionMin: duracion.valor,
+          volumenDrenado,
+          ceEntradaDsM: ceEntrada.valor,
+          phEntrada: phEntrada.valor,
+          ceDrenajeDsM: ceDrenaje.valor,
+          phDrenaje: phDrenaje.valor,
+        },
+        { corrige: props.corrige },
+      );
       try {
         localStorage.setItem(CLAVE_UNIDAD, v.unidad);
       } catch {
@@ -210,25 +240,32 @@ export function FormularioRiego(props: { fincaId: string; areas: Area[]; alGuard
       noValidate
       data-prueba="formulario-riego"
     >
-      <h2>Riego</h2>
-      <fieldset class="opciones" aria-describedby={errores.areas ? 'riego-areas-error' : undefined}>
-        <legend>Áreas regadas</legend>
-        {props.areas.map((a) => (
-          <label class="opcion" key={a.id}>
-            <input
-              type="checkbox"
-              checked={v.areas.includes(a.id)}
-              onChange={() => alternarArea(a.id)}
-            />
-            {a.nombre}
-          </label>
-        ))}
-        {errores.areas && (
-          <p id="riego-areas-error" class="error">
-            {errores.areas}
-          </p>
-        )}
-      </fieldset>
+      <h2>{props.corrige ? 'Corregir riego' : 'Riego'}</h2>
+      {props.corrige ? (
+        <EventoQueSeCorrige registro={props.corrige} areas={props.areas} />
+      ) : (
+        <fieldset
+          class="opciones"
+          aria-describedby={errores.areas ? 'riego-areas-error' : undefined}
+        >
+          <legend>Áreas regadas</legend>
+          {props.areas.map((a) => (
+            <label class="opcion" key={a.id}>
+              <input
+                type="checkbox"
+                checked={v.areas.includes(a.id)}
+                onChange={() => alternarArea(a.id)}
+              />
+              {a.nombre}
+            </label>
+          ))}
+          {errores.areas && (
+            <p id="riego-areas-error" class="error">
+              {errores.areas}
+            </p>
+          )}
+        </fieldset>
+      )}
       <Opciones
         nombre="riego-unidad"
         leyenda="Unidad"
@@ -320,9 +357,11 @@ export function FormularioRiego(props: { fincaId: string; areas: Area[]; alGuard
           {guardado}
         </p>
       )}
-      <div class="acciones">
-        <button type="submit">Guardar riego</button>
-      </div>
+      <AccionesDeFormulario
+        corrigiendo={Boolean(props.corrige)}
+        texto="Guardar riego"
+        alCancelar={props.alCancelar}
+      />
     </form>
   );
 }

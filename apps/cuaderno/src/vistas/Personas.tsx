@@ -106,7 +106,8 @@ function FormularioPersona(props: {
 
 export function Personas() {
   const estado = usarFinca();
-  const [personas, setPersonas] = useState<Persona[]>([]);
+  // null = cargando: mientras tanto no se dice «no hay».
+  const [personas, setPersonas] = useState<Persona[] | null>(null);
   const [nueva, setNueva] = useState(false);
   const fincaId = !estado.cargando && estado.finca ? estado.finca.id : null;
 
@@ -119,8 +120,8 @@ export function Personas() {
   if (estado.cargando) return <p>Abriendo tu cuaderno…</p>;
   if (!estado.finca || !fincaId) return <SinFinca />;
 
-  const activas = personas.filter((p) => p.activa);
-  const inactivas = personas.filter((p) => !p.activa);
+  const activas = (personas ?? []).filter((p) => p.activa);
+  const inactivas = (personas ?? []).filter((p) => !p.activa);
   const cambiarActiva = async (p: Persona, activa: boolean) => {
     await editarPersona(cuaderno(), p.id, { activa });
     cargar();
@@ -133,7 +134,9 @@ export function Personas() {
         Quienes trabajan en la finca, tengan o no cuenta. Solo se guarda el nombre y el rol: ni
         cédula ni teléfono.
       </p>
-      {activas.length === 0 ? (
+      {personas === null ? (
+        <p class="ayuda">Cargando personas…</p>
+      ) : activas.length === 0 ? (
         <p class="ayuda">Todavía no hay personas.</p>
       ) : (
         <ul class="areas" data-prueba="personas-activas">
