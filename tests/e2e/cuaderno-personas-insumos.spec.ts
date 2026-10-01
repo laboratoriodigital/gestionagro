@@ -9,16 +9,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { RUTAS_APP } from '../../apps/cuaderno/src/rutas.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { configurar } from './ayudas.ts';
-
-const ROL = { operario: 'Operario', supervisor: 'Supervisor', propietario: 'Propietario' } as const;
-const TIPO = {
-  bioinsumo: 'Bioinsumo',
-  fertilizante: 'Fertilizante',
-  fitosanitario: 'Fitosanitario (plaguicida)',
-  sustrato: 'Sustrato',
-  otro: 'Otro',
-} as const;
+import { agregarInsumo, configurar, ROL } from './ayudas.ts';
 
 async function irA(page: Page, seccion: 'Personas' | 'Insumos') {
   await page
@@ -26,27 +17,6 @@ async function irA(page: Page, seccion: 'Personas' | 'Insumos') {
     .getByRole('link', { name: seccion })
     .click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(seccion);
-}
-
-async function agregarInsumo(page: Page, i: FincaDePrueba['insumos'][number]) {
-  await page.getByRole('button', { name: 'Agregar insumo' }).click();
-  await page.getByLabel('Nombre comercial').fill(i.nombre_comercial);
-  await page.getByLabel(TIPO[i.tipo]).check();
-  if (i.registro_ica) await page.getByLabel('Registro ICA (opcional)').fill(i.registro_ica);
-  if (i.ingrediente_activo)
-    await page.getByLabel('Ingrediente activo (opcional)').fill(i.ingrediente_activo);
-  await page.getByLabel('Unidad').selectOption(i.unidad);
-  if (i.carencia_dias !== null)
-    await page.getByLabel('Periodo de carencia (días)').fill(String(i.carencia_dias));
-  if (i.reentrada_horas !== null)
-    await page.getByLabel('Periodo de reentrada (horas)').fill(String(i.reentrada_horas));
-  const eco =
-    i.permitido_ecologico === true ? /^Sí/ : i.permitido_ecologico === false ? 'No' : 'No sé';
-  await page.getByRole('radio', { name: eco, exact: typeof eco === 'string' }).check();
-  await page.getByRole('button', { name: 'Guardar insumo' }).click();
-  await expect(
-    page.locator('[data-prueba="insumo"]').filter({ hasText: i.nombre_comercial }),
-  ).toHaveCount(1);
 }
 
 for (const f of FINCAS_DE_PRUEBA) {

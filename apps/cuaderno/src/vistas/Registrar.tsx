@@ -1,7 +1,6 @@
 /**
- * Registrar el día a día de la finca sin señal (S5): clima con su DPV (HU-E3.8), riego (HU-E3.7)
- * y labores (HU-E3.9).
- * Las aplicaciones se agregan aquí con su historia.
+ * Registrar el día a día de la finca sin señal (S5): clima con su DPV (HU-E3.8), riego (HU-E3.7),
+ * labores (HU-E3.9) y aplicaciones con su carencia (HU-E3.10).
  *
  * - El DPV y su indicación salen de `agro-calc` y del mismo catálogo de rangos que la calculadora
  *   pública (CA2, P2). El cultivo sale del ciclo activo del área.
@@ -23,6 +22,7 @@ import type { Area, Ciclo, Registro } from '@gestionagro/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';
+import type { DatosAplicacionGuardada } from '../almacen/aplicaciones.ts';
 import { leerCiclos } from '../almacen/ciclos.ts';
 import { type DatosClimaGuardado, guardarClima } from '../almacen/clima.ts';
 import { pendientesDeSubir, ultimosRegistros } from '../almacen/consultas.ts';
@@ -31,6 +31,7 @@ import { leerPersonas } from '../almacen/personas.ts';
 import type { DatosRiegoGuardado } from '../almacen/riego.ts';
 import { Campo, CampoSeleccion } from '../componentes/Campo.tsx';
 import { fechaHora } from '../formato.ts';
+import { FormularioAplicacion } from './FormularioAplicacion.tsx';
 import { FormularioLabor } from './FormularioLabor.tsx';
 import { FormularioRiego } from './FormularioRiego.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
@@ -245,6 +246,11 @@ function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): string {
     const quienes = r.persona_ids.map((id) => nombres.get(id) ?? 'Persona').join(', ');
     return `Labor · ${d.labor} · ${coma(d.horasPorPersona)} h por persona · ${quienes}`;
   }
+  if (r.tipo === 'aplicacion') {
+    const d = r.datos as DatosAplicacionGuardada;
+    const quienes = r.persona_ids.map((id) => nombres.get(id) ?? 'Persona').join(', ');
+    return `Aplicación · ${d.insumo} · ${coma(d.dosis)} ${d.dosisUnidad} · ${quienes}`;
+  }
   return r.tipo;
 }
 
@@ -275,6 +281,7 @@ const TIPOS = [
   { id: 'clima', titulo: 'Clima' },
   { id: 'riego', titulo: 'Riego' },
   { id: 'labor', titulo: 'Labores' },
+  { id: 'aplicacion', titulo: 'Aplicaciones' },
 ] as const;
 type TipoRegistro = (typeof TIPOS)[number]['id'];
 
@@ -334,6 +341,9 @@ export function Registrar() {
       </fieldset>
       {areas.length > 0 && tipo === 'clima' && (
         <FormularioClima fincaId={fincaId} areas={areas} ciclos={ciclos} alGuardar={cargar} />
+      )}
+      {areas.length > 0 && tipo === 'aplicacion' && estado.finca && (
+        <FormularioAplicacion finca={estado.finca} areas={areas} alGuardar={cargar} />
       )}
       {areas.length > 0 && tipo === 'labor' && (
         <FormularioLabor fincaId={fincaId} areas={areas} alGuardar={cargar} />

@@ -1,3 +1,4 @@
+export { vencimientoCarencia, vencimientoReentrada } from './carencia.ts';
 export {
   dpvAireKPa,
   dpvHojaKPa,

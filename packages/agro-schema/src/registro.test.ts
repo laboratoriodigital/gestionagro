@@ -114,3 +114,41 @@ describe('registro riego', () => {
     expect(camposDelError(riego(2, {}))).toEqual(['datos.duracionMin']);
   });
 });
+
+const aplicacion = (datos: Record<string, unknown>) => ({
+  ...clima({}),
+  tipo: 'aplicacion',
+  datos: {
+    insumo_id: FINCA,
+    insumo: 'Producto de ensayo',
+    dosis: 2,
+    dosisUnidad: 'cm³ por litro',
+    volumenMezclaL: null,
+    equipo: null,
+    carenciaDias: 3,
+    reentradaHoras: 4,
+    ...datos,
+  },
+});
+
+describe('registro aplicacion v1 (HU-E3.10)', () => {
+  it('acepta la dosis de la etiqueta con su unidad, y carencia o reentrada desconocidas como null', () => {
+    expect(camposDelError(aplicacion({}))).toEqual([]);
+    expect(camposDelError(aplicacion({ carenciaDias: null, reentradaHoras: null }))).toEqual([]);
+  });
+
+  it('sin dosis, con dosis 0 o sin unidad no se guarda', () => {
+    expect(camposDelError(aplicacion({ dosis: 0, dosisUnidad: ' ' }))).toEqual([
+      'datos.dosis',
+      'datos.dosisUnidad',
+    ]);
+    expect(camposDelError(aplicacion({ dosis: undefined }))).toEqual(['datos.dosis']);
+  });
+
+  it('una carencia desconocida no se guarda como 0 a escondidas: falta el campo es error', () => {
+    const { carenciaDias: _quitada, ...sinCarencia } = aplicacion({}).datos;
+    expect(camposDelError({ ...aplicacion({}), datos: sinCarencia })).toEqual([
+      'datos.carenciaDias',
+    ]);
+  });
+});
