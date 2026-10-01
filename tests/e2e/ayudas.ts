@@ -5,10 +5,27 @@ import { expect, type Page } from '@playwright/test';
 import type { FincaDePrueba } from '../fixtures/fincas.ts';
 
 export const APP = '/agro/app/';
-export const TIPO_PLURAL = { nave: 'Naves', bloque: 'Bloques', lote: 'Lotes' } as const;
+export const TIPO = { nave: 'Nave', bloque: 'Bloque', lote: 'Lote' } as const;
 export const REGIMEN = { ecologico: 'Ecológico', convencional: 'Convencional' } as const;
 
-export async function configurar(page: Page, f: FincaDePrueba) {
+type AreaDePrueba = Pick<FincaDePrueba['areas'][number], 'tipo' | 'nombre' | 'area_m2'>;
+
+/** Llena las filas del paso «Tus áreas»: cada área con su propio tipo. */
+export async function llenarAreas(page: Page, areas: readonly AreaDePrueba[]) {
+  for (const [i, a] of areas.entries()) {
+    if (i > 0) await page.getByRole('button', { name: 'Agregar otra área' }).click();
+    const fila = page.getByRole('group', { name: `Área ${i + 1}`, exact: true });
+    await fila.getByLabel('Tipo').selectOption({ label: TIPO[a.tipo as keyof typeof TIPO] });
+    await fila.getByLabel('Nombre').fill(a.nombre);
+    await fila.getByLabel('Tamaño (m²)').fill(String(a.area_m2));
+  }
+}
+
+export async function configurar(
+  page: Page,
+  f: FincaDePrueba,
+  areas: readonly AreaDePrueba[] = f.areas,
+) {
   await page.goto(APP);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tu finca');
   await page.getByLabel('Nombre de la finca').fill(f.finca.nombre);
@@ -17,18 +34,11 @@ export async function configurar(page: Page, f: FincaDePrueba) {
   await page.getByRole('button', { name: 'Siguiente' }).click();
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tus áreas');
-  const tipo = f.areas[0]?.tipo ?? 'nave';
-  await page.getByLabel(TIPO_PLURAL[tipo as keyof typeof TIPO_PLURAL]).check();
-  for (const [i, a] of f.areas.entries()) {
-    if (i > 0) await page.getByRole('button', { name: 'Agregar otra área' }).click();
-    const fila = page.getByRole('group', { name: `Área ${i + 1}`, exact: true });
-    await fila.getByLabel('Nombre').fill(a.nombre);
-    await fila.getByLabel('Tamaño (m²)').fill(String(a.area_m2));
-  }
+  await llenarAreas(page, areas);
   await page.getByRole('button', { name: 'Siguiente' }).click();
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Revisa y guarda');
-  await expect(page.locator('[data-prueba="resumen-areas"] li')).toHaveCount(f.areas.length);
+  await expect(page.locator('[data-prueba="resumen-areas"] li')).toHaveCount(areas.length);
   await page.getByRole('button', { name: 'Guardar mi finca' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(f.finca.nombre);
 }

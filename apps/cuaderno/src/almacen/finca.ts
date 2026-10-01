@@ -85,6 +85,41 @@ export async function crearFincaConAreas(
   return { finca, areas };
 }
 
+/** Agrega una nave, un bloque o un lote a una finca ya configurada. */
+export async function agregarArea(
+  db: CuadernoDb,
+  fincaId: string,
+  datos: DatosArea,
+  { ahora = () => new Date() }: Opciones = {},
+): Promise<Area> {
+  if (!(TIPOS_PRINCIPALES as readonly string[]).includes(datos.tipo)) {
+    throw new ErrorDeValidacion('Área', [
+      { campo: 'tipo', motivo: 'una cama o un surco va dentro de una nave, un bloque o un lote' },
+    ]);
+  }
+  const instante = ahora().toISOString();
+  return conEscritura(() =>
+    db.transaction('rw', db.finca, db.area, db.outbox, async () => {
+      const finca = await db.finca.get(fincaId);
+      if (!finca)
+        throw new ErrorDeValidacion('Área', [{ campo: 'finca_id', motivo: 'la finca no existe' }]);
+      const area = validarCatalogo('Área', esquemaArea, {
+        id: uuidv7(),
+        org_id: finca.org_id,
+        version: 1,
+        actualizado: instante,
+        finca_id: fincaId,
+        padre_id: null,
+        activa: true,
+        ...datos,
+      });
+      await db.area.add(area);
+      await db.outbox.add(operacion('area', area.id, 1, 'crear', instante));
+      return area;
+    }),
+  );
+}
+
 export async function crearSubarea(
   db: CuadernoDb,
   padreId: string,

@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import type { CuadernoDb } from '../almacen/db.ts';
 import { crearFincaConAreas, type DatosArea, TIPOS_PRINCIPALES } from '../almacen/finca.ts';
-import { Campo, Opciones } from '../componentes/Campo.tsx';
+import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
 import { metros, NOMBRE_REGIMEN, NOMBRE_TIPO } from '../formato.ts';
 
 type Regimen = 'ecologico' | 'convencional';
@@ -18,6 +18,8 @@ type TipoPrincipal = (typeof TIPOS_PRINCIPALES)[number];
 
 interface FilaArea {
   clave: number;
+  /** Cada área tiene su tipo: una finca puede tener naves y lotes a la vez. */
+  tipo: TipoPrincipal | '';
   nombre: string;
   m2: string;
 }
@@ -27,15 +29,17 @@ const REGIMENES = [
   { valor: 'convencional', texto: NOMBRE_REGIMEN['convencional'] ?? 'Convencional' },
 ] as const;
 
-const TIPOS = TIPOS_PRINCIPALES.map((t) => ({ valor: t, texto: `${NOMBRE_TIPO[t]}s` }));
+export const TIPOS_DE_AREA = TIPOS_PRINCIPALES.map((t) => ({
+  valor: t,
+  texto: NOMBRE_TIPO[t] ?? t,
+}));
 
 export function Asistente(props: { db: CuadernoDb; alTerminar: () => void }) {
   const [paso, setPaso] = useState<1 | 2 | 3>(1);
   const [nombre, setNombre] = useState('');
   const [municipio, setMunicipio] = useState('');
   const [regimen, setRegimen] = useState<Regimen | ''>('');
-  const [tipo, setTipo] = useState<TipoPrincipal | ''>('');
-  const [filas, setFilas] = useState<FilaArea[]>([{ clave: 1, nombre: '', m2: '' }]);
+  const [filas, setFilas] = useState<FilaArea[]>([{ clave: 1, tipo: '', nombre: '', m2: '' }]);
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [guardando, setGuardando] = useState(false);
   const titulo = useRef<HTMLHeadingElement>(null);
@@ -54,15 +58,20 @@ export function Asistente(props: { db: CuadernoDb; alTerminar: () => void }) {
 
   const areasValidas = (): DatosArea[] | null => {
     const e: Record<string, string> = {};
-    if (!tipo) e['tipo'] = 'Elige cómo divides la finca.';
     const areas: DatosArea[] = [];
     for (const f of filas) {
+      if (!f.tipo) e[`tipo-${f.clave}`] = 'Elige si es nave, bloque o lote.';
       if (!f.nombre.trim()) e[`nombre-${f.clave}`] = 'Escribe el nombre del área.';
       const m2 = leerNumero(f.m2);
       if (!m2.ok) e[`m2-${f.clave}`] = m2.motivo;
       else if (m2.valor <= 0) e[`m2-${f.clave}`] = 'El área debe ser mayor que 0 m².';
-      else if (tipo)
-        areas.push({ tipo, nombre: f.nombre.trim(), area_m2: m2.valor, capacidad_plantas: null });
+      else if (f.tipo)
+        areas.push({
+          tipo: f.tipo,
+          nombre: f.nombre.trim(),
+          area_m2: m2.valor,
+          capacidad_plantas: null,
+        });
     }
     setErrores(e);
     return Object.keys(e).length === 0 ? areas : null;
@@ -90,7 +99,7 @@ export function Asistente(props: { db: CuadernoDb; alTerminar: () => void }) {
     }
   };
 
-  const cambiarFila = (clave: number, campo: 'nombre' | 'm2', valor: string) =>
+  const cambiarFila = (clave: number, campo: 'tipo' | 'nombre' | 'm2', valor: string) =>
     setFilas(filas.map((f) => (f.clave === clave ? { ...f, [campo]: valor } : f)));
 
   return (
@@ -144,17 +153,22 @@ export function Asistente(props: { db: CuadernoDb; alTerminar: () => void }) {
           }}
           noValidate
         >
-          <Opciones
-            nombre="tipo"
-            leyenda="¿Cómo divides la finca?"
-            opciones={TIPOS}
-            valor={tipo}
-            error={errores['tipo']}
-            alCambiar={setTipo}
-          />
+          <p class="ayuda">
+            Agrega cada nave, bloque o lote. Puedes mezclar tipos. Las camas y surcos se agregan
+            después, dentro de cada área.
+          </p>
           {filas.map((f, i) => (
             <fieldset class="fila-area" key={f.clave}>
               <legend>Área {i + 1}</legend>
+              <CampoSeleccion
+                id={`area-tipo-${f.clave}`}
+                etiqueta="Tipo"
+                indicacion="Elige nave, bloque o lote"
+                opciones={TIPOS_DE_AREA}
+                valor={f.tipo}
+                error={errores[`tipo-${f.clave}`]}
+                alCambiar={(v) => cambiarFila(f.clave, 'tipo', v)}
+              />
               <Campo
                 id={`area-nombre-${f.clave}`}
                 etiqueta="Nombre"
@@ -187,7 +201,13 @@ export function Asistente(props: { db: CuadernoDb; alTerminar: () => void }) {
             onClick={() =>
               setFilas([
                 ...filas,
-                { clave: Math.max(...filas.map((f) => f.clave)) + 1, nombre: '', m2: '' },
+                // El tipo de la fila anterior se propone: casi siempre se repite. Se puede cambiar.
+                {
+                  clave: Math.max(...filas.map((f) => f.clave)) + 1,
+                  tipo: filas.at(-1)?.tipo ?? '',
+                  nombre: '',
+                  m2: '',
+                },
               ])
             }
           >
@@ -217,7 +237,8 @@ export function Asistente(props: { db: CuadernoDb; alTerminar: () => void }) {
               const m2 = leerNumero(f.m2);
               return (
                 <li key={f.clave}>
-                  {f.nombre.trim()} · {m2.ok ? metros(m2.valor) : ''}
+                  {f.nombre.trim()} · {f.tipo ? NOMBRE_TIPO[f.tipo] : ''} ·{' '}
+                  {m2.ok ? metros(m2.valor) : ''}
                 </li>
               );
             })}

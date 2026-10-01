@@ -1,6 +1,7 @@
 /**
- * La finca configurada: áreas con sus subáreas, edición con historial y nuevas camas o surcos
- * (HU-E3.3, CA3 y CA4). Cada formulario abierto cuenta como actividad (HU-E3.1, CA2).
+ * La finca configurada: áreas y sus camas o surcos, todas editables con historial; agregar
+ * áreas después del registro inicial (HU-E3.3, CA3 y CA4). Cada formulario abierto cuenta como
+ * actividad (HU-E3.1, CA2).
  */
 import { leerNumero } from '@gestionagro/agro-calc';
 import {
@@ -13,39 +14,61 @@ import {
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import type { CuadernoDb, VersionAnterior } from '../almacen/db.ts';
-import { crearSubarea, editarArea, historialDe, TIPOS_SUBAREA } from '../almacen/finca.ts';
-import { Campo, Opciones } from '../componentes/Campo.tsx';
+import {
+  agregarArea,
+  crearSubarea,
+  editarArea,
+  historialDe,
+  TIPOS_PRINCIPALES,
+  TIPOS_SUBAREA,
+} from '../almacen/finca.ts';
+import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
 import { fechaHora, metros, NOMBRE_REGIMEN, NOMBRE_TIPO } from '../formato.ts';
 import { CicloDeArea } from './CicloDeArea.tsx';
 
-type Abierto = { tipo: 'editar' | 'subarea' | 'historial'; areaId: string } | null;
+type Abierto =
+  | { tipo: 'editar' | 'subarea' | 'historial'; areaId: string }
+  | { tipo: 'nueva-area' }
+  | null;
+
+type TipoArea = Area['tipo'];
+
+const opcionesDe = (tipos: readonly TipoArea[]) =>
+  tipos.map((t) => ({ valor: t, texto: NOMBRE_TIPO[t] ?? t }));
 
 const mensaje = (error: unknown) =>
   error instanceof ErrorDeValidacion
     ? `No se guardó: ${error.campos.map((c) => c.motivo).join('; ')}.`
     : 'No se pudo guardar en el teléfono. Inténtalo otra vez.';
 
+/**
+ * Formulario de un área. `elegirTipo`: «principal» (nave, bloque o lote, en lista),
+ * «subarea» (cama o surco) o nada al editar, porque el tipo de un área no cambia.
+ */
 function FormularioArea(props: {
   titulo: string;
   inicial: { nombre: string; m2: string };
-  conTipo: boolean;
-  alGuardar: (datos: { nombre: string; area_m2: number; tipo?: 'cama' | 'surco' }) => Promise<void>;
+  elegirTipo?: 'principal' | 'subarea';
+  alGuardar: (datos: { nombre: string; area_m2: number; tipo?: TipoArea }) => Promise<void>;
   alCancelar: () => void;
 }) {
   const [nombre, setNombre] = useState(props.inicial.nombre);
   const [m2, setM2] = useState(props.inicial.m2);
-  const [tipo, setTipo] = useState<'cama' | 'surco' | ''>('');
+  const [tipo, setTipo] = useState<TipoArea | ''>('');
   const [errores, setErrores] = useState<Record<string, string>>({});
   useEffect(() => abrirFormulario(), []);
 
   const enviar = async (e: Event) => {
     e.preventDefault();
     const err: Record<string, string> = {};
+    if (props.elegirTipo && !tipo) {
+      err['tipo'] =
+        props.elegirTipo === 'subarea' ? 'Elige si es cama o surco.' : 'Elige nave, bloque o lote.';
+    }
     if (!nombre.trim()) err['nombre'] = 'Escribe el nombre.';
     const leido = leerNumero(m2);
     if (!leido.ok) err['m2'] = leido.motivo;
     else if (leido.valor <= 0) err['m2'] = 'El área debe ser mayor que 0 m².';
-    if (props.conTipo && !tipo) err['tipo'] = 'Elige si es cama o surco.';
     setErrores(err);
     if (Object.keys(err).length > 0 || !leido.ok) return;
     try {
@@ -62,11 +85,22 @@ function FormularioArea(props: {
   return (
     <form class="formulario-area" onSubmit={(e) => void enviar(e)} noValidate>
       <h3>{props.titulo}</h3>
-      {props.conTipo && (
+      {props.elegirTipo === 'subarea' && (
         <Opciones
           nombre="tipo-subarea"
           leyenda="Tipo"
-          opciones={TIPOS_SUBAREA.map((t) => ({ valor: t, texto: NOMBRE_TIPO[t] ?? t }))}
+          opciones={opcionesDe(TIPOS_SUBAREA)}
+          valor={tipo}
+          error={errores['tipo']}
+          alCambiar={setTipo}
+        />
+      )}
+      {props.elegirTipo === 'principal' && (
+        <CampoSeleccion
+          id="form-area-tipo"
+          etiqueta="Tipo"
+          indicacion="Elige nave, bloque o lote"
+          opciones={opcionesDe(TIPOS_PRINCIPALES)}
           valor={tipo}
           error={errores['tipo']}
           alCambiar={setTipo}
@@ -108,7 +142,7 @@ function Historial(props: { db: CuadernoDb; areaId: string }) {
     void historialDe(props.db, props.areaId).then(setVersiones);
   }, [props.areaId]);
   if (!versiones) return null;
-  if (versiones.length === 0) return <p class="ayuda">Esta área no tiene cambios anteriores.</p>;
+  if (versiones.length === 0) return <p class="ayuda">No tiene cambios anteriores.</p>;
   return (
     <ol class="historial" data-prueba="historial">
       {versiones.map((v) => {
@@ -121,6 +155,55 @@ function Historial(props: { db: CuadernoDb; areaId: string }) {
         );
       })}
     </ol>
+  );
+}
+
+/** Botones Editar e Historial y sus paneles; iguales para un área y para una cama o surco. */
+function EditarConHistorial(props: {
+  db: CuadernoDb;
+  area: Area;
+  abierto: Abierto;
+  alternar: (tipo: 'editar' | 'historial', areaId: string) => void;
+  alCerrar: () => void;
+  alGuardar: () => void;
+}) {
+  const a = props.area;
+  const abiertoAqui = props.abierto && 'areaId' in props.abierto && props.abierto.areaId === a.id;
+  return (
+    <>
+      <div class="acciones-area">
+        <button
+          type="button"
+          class="secundario"
+          onClick={() => props.alternar('editar', a.id)}
+          aria-label={`Editar ${a.nombre}`}
+        >
+          Editar
+        </button>
+        <button
+          type="button"
+          class="secundario"
+          onClick={() => props.alternar('historial', a.id)}
+          aria-label={`Historial de ${a.nombre}`}
+        >
+          Historial
+        </button>
+      </div>
+      {abiertoAqui && props.abierto?.tipo === 'editar' && (
+        <FormularioArea
+          titulo={`Editar ${a.nombre}`}
+          inicial={{ nombre: a.nombre, m2: String(a.area_m2).replace('.', ',') }}
+          alGuardar={async (d) => {
+            await editarArea(props.db, a.id, { nombre: d.nombre, area_m2: d.area_m2 });
+            props.alGuardar();
+          }}
+          alCancelar={props.alCerrar}
+        />
+      )}
+      {abiertoAqui && props.abierto?.tipo === 'historial' && (
+        <Historial db={props.db} areaId={a.id} />
+      )}
+    </>
   );
 }
 
@@ -139,8 +222,12 @@ export function MiFinca(props: {
     setAbierto(null);
     props.alCambiar();
   };
-  const alternar = (tipo: NonNullable<Abierto>['tipo'], areaId: string) =>
-    setAbierto(abierto?.tipo === tipo && abierto.areaId === areaId ? null : { tipo, areaId });
+  const alternar = (tipo: 'editar' | 'subarea' | 'historial', areaId: string) =>
+    setAbierto(
+      abierto && 'areaId' in abierto && abierto.tipo === tipo && abierto.areaId === areaId
+        ? null
+        : { tipo, areaId },
+    );
 
   return (
     <section aria-labelledby="titulo-finca">
@@ -165,21 +252,31 @@ export function MiFinca(props: {
             {hijas(a.id).length > 0 && (
               <ul class="subareas" aria-label={`Camas y surcos de ${a.nombre}`}>
                 {hijas(a.id).map((s) => (
-                  <li key={s.id}>
-                    {s.nombre} · {NOMBRE_TIPO[s.tipo]} · {metros(s.area_m2)}
+                  <li key={s.id} data-prueba="subarea">
+                    <p class="area-titulo">
+                      {s.nombre} · {NOMBRE_TIPO[s.tipo]} · {metros(s.area_m2)}
+                    </p>
+                    <EditarConHistorial
+                      db={props.db}
+                      area={s}
+                      abierto={abierto}
+                      alternar={alternar}
+                      alCerrar={() => setAbierto(null)}
+                      alGuardar={cerrarYRecargar}
+                    />
                   </li>
                 ))}
               </ul>
             )}
+            <EditarConHistorial
+              db={props.db}
+              area={a}
+              abierto={abierto}
+              alternar={alternar}
+              alCerrar={() => setAbierto(null)}
+              alGuardar={cerrarYRecargar}
+            />
             <div class="acciones-area">
-              <button
-                type="button"
-                class="secundario"
-                onClick={() => alternar('editar', a.id)}
-                aria-label={`Editar ${a.nombre}`}
-              >
-                Editar
-              </button>
               <button
                 type="button"
                 class="secundario"
@@ -188,50 +285,53 @@ export function MiFinca(props: {
               >
                 Agregar cama o surco
               </button>
-              <button
-                type="button"
-                class="secundario"
-                onClick={() => alternar('historial', a.id)}
-                aria-label={`Historial de ${a.nombre}`}
-              >
-                Historial
-              </button>
             </div>
-            {abierto?.areaId === a.id && abierto.tipo === 'editar' && (
-              <FormularioArea
-                titulo={`Editar ${a.nombre}`}
-                inicial={{ nombre: a.nombre, m2: String(a.area_m2).replace('.', ',') }}
-                conTipo={false}
-                alGuardar={async (d) => {
-                  await editarArea(props.db, a.id, { nombre: d.nombre, area_m2: d.area_m2 });
-                  cerrarYRecargar();
-                }}
-                alCancelar={() => setAbierto(null)}
-              />
-            )}
-            {abierto?.areaId === a.id && abierto.tipo === 'subarea' && (
-              <FormularioArea
-                titulo={`Nueva cama o surco en ${a.nombre}`}
-                inicial={{ nombre: '', m2: '' }}
-                conTipo
-                alGuardar={async (d) => {
-                  await crearSubarea(props.db, a.id, {
-                    tipo: d.tipo ?? 'cama',
-                    nombre: d.nombre,
-                    area_m2: d.area_m2,
-                    capacidad_plantas: null,
-                  });
-                  cerrarYRecargar();
-                }}
-                alCancelar={() => setAbierto(null)}
-              />
-            )}
-            {abierto?.areaId === a.id && abierto.tipo === 'historial' && (
-              <Historial db={props.db} areaId={a.id} />
-            )}
+            {abierto &&
+              'areaId' in abierto &&
+              abierto.areaId === a.id &&
+              abierto.tipo === 'subarea' && (
+                <FormularioArea
+                  titulo={`Nueva cama o surco en ${a.nombre}`}
+                  inicial={{ nombre: '', m2: '' }}
+                  elegirTipo="subarea"
+                  alGuardar={async (d) => {
+                    await crearSubarea(props.db, a.id, {
+                      tipo: d.tipo ?? 'cama',
+                      nombre: d.nombre,
+                      area_m2: d.area_m2,
+                      capacidad_plantas: null,
+                    });
+                    cerrarYRecargar();
+                  }}
+                  alCancelar={() => setAbierto(null)}
+                />
+              )}
           </li>
         ))}
       </ul>
+      {abierto?.tipo === 'nueva-area' ? (
+        <FormularioArea
+          titulo="Nueva área"
+          inicial={{ nombre: '', m2: '' }}
+          elegirTipo="principal"
+          alGuardar={async (d) => {
+            await agregarArea(props.db, props.finca.id, {
+              tipo: d.tipo ?? 'nave',
+              nombre: d.nombre,
+              area_m2: d.area_m2,
+              capacidad_plantas: null,
+            });
+            cerrarYRecargar();
+          }}
+          alCancelar={() => setAbierto(null)}
+        />
+      ) : (
+        <div class="acciones">
+          <button type="button" onClick={() => setAbierto({ tipo: 'nueva-area' })}>
+            Agregar área
+          </button>
+        </div>
+      )}
     </section>
   );
 }
