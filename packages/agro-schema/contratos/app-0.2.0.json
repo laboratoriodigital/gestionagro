@@ -1,0 +1,83 @@
+{
+  "nota": "Contrato de versiones (HU-E5.5, ADR-13, P10): lo que la app 0.2.0 agrega a lo que ya escribía la 0.1.0. Lleva la finca, el área y la cosecha de las que depende el lote para que la prueba de punta a punta pueda subirlo. Este archivo no se edita ni se borra.",
+  "app": "0.2.0",
+  "catalogos": [
+    {
+      "entidad": "finca",
+      "datos": {
+        "id": "0199a1b2-0000-7000-8000-000000000001",
+        "org_id": null,
+        "version": 1,
+        "actualizado": "2026-10-01T12:00:00.000Z",
+        "nombre": "Finca Ensayo Uno",
+        "municipio": "Municipio Ensayo",
+        "regimen": "ecologico"
+      }
+    },
+    {
+      "entidad": "area",
+      "datos": {
+        "id": "0199a1b2-0000-7000-8000-000000000002",
+        "org_id": null,
+        "version": 1,
+        "actualizado": "2026-10-01T12:00:00.000Z",
+        "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+        "padre_id": null,
+        "tipo": "nave",
+        "nombre": "Nave 1",
+        "area_m2": 500,
+        "capacidad_plantas": null,
+        "activa": true
+      }
+    }
+  ],
+  "registros": [
+    {
+      "id": "0199a1b2-0000-7000-8000-000000000015",
+      "org_id": null,
+      "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+      "area_ids": ["0199a1b2-0000-7000-8000-000000000002"],
+      "ciclo_id": null,
+      "tipo": "cosecha",
+      "v": 1,
+      "fecha_agronomica": "2026-10-01",
+      "instante_evento": "2026-10-01T12:00:00.000Z",
+      "autor_usuario_id": null,
+      "persona_ids": [],
+      "dispositivo_id": "telefono-muestra",
+      "origen": "manual",
+      "anula_id": null,
+      "datos": {
+        "cantidad": 12.5,
+        "unidad": "kg",
+        "categoria_id": "0199a1b2-0000-7000-8000-000000000006",
+        "categoria": "Primera",
+        "descarte": null,
+        "carenciaConfirmada": null
+      }
+    },
+    {
+      "id": "0199a1b2-0000-7000-8000-000000000020",
+      "org_id": null,
+      "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+      "area_ids": ["0199a1b2-0000-7000-8000-000000000002"],
+      "ciclo_id": null,
+      "tipo": "lote_venta",
+      "v": 1,
+      "fecha_agronomica": "2026-10-01",
+      "instante_evento": "2026-10-01T12:00:00.000Z",
+      "autor_usuario_id": null,
+      "persona_ids": [],
+      "dispositivo_id": "telefono-muestra",
+      "origen": "manual",
+      "anula_id": null,
+      "datos": {
+        "codigo": "C-0110-1",
+        "cosecha_ids": ["0199a1b2-0000-7000-8000-000000000015"],
+        "cantidad": 12.5,
+        "unidad": "kg",
+        "cultivo": "Cultivo Ensayo"
+      }
+    }
+  ]
+}

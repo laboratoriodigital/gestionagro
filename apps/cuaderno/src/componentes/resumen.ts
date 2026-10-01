@@ -4,6 +4,7 @@ import type { Registro } from '@gestionagro/agro-schema';
 import type { DatosAplicacionGuardada } from '../almacen/aplicaciones.ts';
 import type { DatosClimaGuardado } from '../almacen/clima.ts';
 import type { DatosCosechaGuardada } from '../almacen/cosecha.ts';
+import type { DatosLote } from '../almacen/lotes.ts';
 import type { DatosRiegoGuardado } from '../almacen/riego.ts';
 
 export function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): string {
@@ -40,6 +41,11 @@ export function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): st
     const descarte = d.descarte === null ? '' : ` · descarte ${coma(d.descarte)}`;
     const carencia = d.carenciaConfirmada ? ' · cosechada en carencia' : '';
     return `Cosecha · ${coma(d.cantidad)} ${d.unidad} · ${d.categoria}${descarte}${carencia}`;
+  }
+  if (r.tipo === 'lote_venta') {
+    const d = r.datos as DatosLote;
+    const n = d.cosecha_ids.length;
+    return `Lote ${d.codigo} · ${coma(d.cantidad)} ${d.unidad} · ${n} ${n === 1 ? 'cosecha' : 'cosechas'}`;
   }
   return r.tipo;
 }

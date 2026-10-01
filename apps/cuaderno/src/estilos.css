@@ -344,3 +344,14 @@ a.boton {
 .enlace-invitacion {
   overflow-wrap: anywhere;
 }
+
+/* Lotes de venta (HU-E6.2): el código se lee en voz alta al despachar. */
+.codigo-lote {
+  font-size: 1.25rem;
+  letter-spacing: 0.05em;
+}
+.lote-cosechas {
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: var(--espacio-3);
+}

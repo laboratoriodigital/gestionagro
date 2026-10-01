@@ -39,6 +39,7 @@ const TIPOS = [
   { valor: 'labor', texto: 'Labores' },
   { valor: 'aplicacion', texto: 'Aplicaciones' },
   { valor: 'cosecha', texto: 'Cosecha' },
+  { valor: 'lote_venta', texto: 'Lotes de venta' },
 ] as const;
 
 const POR_PAGINA = 50;
@@ -111,6 +112,12 @@ function Corregir(props: {
       return <FormularioAplicacion finca={props.finca} {...comunes} />;
     case 'cosecha':
       return <FormularioCosecha fincaId={props.finca.id} {...comunes} />;
+    case 'lote_venta':
+      return (
+        <p class="ayuda">
+          Las cosechas de un lote se cambian en <a href="/agro/app/lotes/">Lotes</a>.
+        </p>
+      );
     default:
       return <p class="ayuda">Este tipo de registro todavía no se puede corregir.</p>;
   }

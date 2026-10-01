@@ -1,0 +1,190 @@
+/**
+ * Lotes de venta (HU-E6.2): elegir cosechas que todavía no están en un lote y armar uno con su
+ * código corto. Cada lote dice de qué áreas y fechas viene (CA3); «Cambiar cosechas» lo corrige
+ * sin perder el código. Funciona sin señal.
+ */
+import { ErrorDeValidacion } from '@gestionagro/agro-schema';
+import { useEffect, useState } from 'preact/hooks';
+import { cuaderno } from '../almacen/abierto.ts';
+import {
+  armarLote,
+  type CosechaParaLote,
+  cosechasSinLote,
+  type Lote,
+  leerLotes,
+} from '../almacen/lotes.ts';
+import { SinFinca, usarFinca } from './usarFinca.tsx';
+import { SoloConsulta, usarPermisos } from './usarPermisos.tsx';
+
+const coma = (n: number) => n.toLocaleString('es-CO', { maximumFractionDigits: 3 });
+const fechaCorta = (f: string) => f.split('-').reverse().slice(0, 2).join('/');
+
+function ElegirCosechas(props: {
+  fincaId: string;
+  cosechas: CosechaParaLote[];
+  corrige?: Lote;
+  alTerminar: () => void;
+  alCancelar?: () => void;
+}) {
+  const [elegidas, setElegidas] = useState<Set<string>>(
+    new Set(props.corrige?.cosechas.map((c) => c.id) ?? []),
+  );
+  const [error, setError] = useState<string | null>(null);
+  const opciones = [...(props.corrige?.cosechas ?? []), ...props.cosechas];
+  const total = opciones.filter((c) => elegidas.has(c.id)).reduce((s, c) => s + c.cantidad, 0);
+  const unidades = [...new Set(opciones.filter((c) => elegidas.has(c.id)).map((c) => c.unidad))];
+
+  const alternar = (id: string) => {
+    const nuevas = new Set(elegidas);
+    if (nuevas.has(id)) nuevas.delete(id);
+    else nuevas.add(id);
+    setElegidas(nuevas);
+  };
+  const guardar = async () => {
+    setError(null);
+    try {
+      await armarLote(cuaderno(), props.fincaId, [...elegidas], {
+        corrige: props.corrige?.registro,
+      });
+      setElegidas(new Set());
+      props.alTerminar();
+    } catch (e) {
+      setError(
+        e instanceof ErrorDeValidacion
+          ? `No se armó el lote: ${e.campos.map((c) => c.motivo).join('; ')}.`
+          : 'No se pudo guardar en el teléfono. Inténtalo otra vez.',
+      );
+    }
+  };
+
+  if (opciones.length === 0) {
+    return <p class="ayuda">No hay cosechas sin lote. Las cosechas se anotan en Registrar.</p>;
+  }
+  return (
+    <fieldset class="lote-cosechas" data-prueba="elegir-cosechas">
+      <legend>
+        {props.corrige ? `Cosechas del lote ${props.corrige.codigo}` : 'Cosechas sin lote'}
+      </legend>
+      {opciones.map((c) => (
+        <div class="opcion" key={c.id}>
+          <input
+            id={`cosecha-${c.id}`}
+            type="checkbox"
+            checked={elegidas.has(c.id)}
+            onChange={() => alternar(c.id)}
+          />
+          <label for={`cosecha-${c.id}`}>
+            {c.area} · {fechaCorta(c.fecha)} · {c.categoria} · {coma(c.cantidad)} {c.unidad}
+          </label>
+        </div>
+      ))}
+      <p data-prueba="total-lote">
+        {elegidas.size === 0
+          ? 'Elige las cosechas que van juntas.'
+          : `${elegidas.size} ${elegidas.size === 1 ? 'cosecha' : 'cosechas'} · ${coma(total)} ${unidades.join(' + ')}`}
+      </p>
+      {error && (
+        <p class="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div class="acciones">
+        {props.alCancelar && (
+          <button type="button" class="secundario" onClick={props.alCancelar}>
+            Cancelar
+          </button>
+        )}
+        <button type="button" disabled={elegidas.size === 0} onClick={() => void guardar()}>
+          {props.corrige ? 'Guardar cambios' : 'Armar lote'}
+        </button>
+      </div>
+    </fieldset>
+  );
+}
+
+export function Lotes() {
+  const estado = usarFinca();
+  const permisos = usarPermisos();
+  const arma = permisos.puede('escribir', 'registro');
+  const [lotes, setLotes] = useState<Lote[] | null>(null);
+  const [cosechas, setCosechas] = useState<CosechaParaLote[]>([]);
+  const [cambiando, setCambiando] = useState<string | null>(null);
+  const fincaId = !estado.cargando && estado.finca ? estado.finca.id : null;
+
+  const cargar = () => {
+    if (!fincaId) return;
+    const db = cuaderno();
+    void Promise.all([leerLotes(db, fincaId), cosechasSinLote(db, fincaId)]).then(([l, c]) => {
+      setLotes(l);
+      setCosechas(c);
+      setCambiando(null);
+    });
+  };
+  useEffect(cargar, [fincaId]);
+
+  if (estado.cargando) return <p>Abriendo tu cuaderno…</p>;
+  if (!fincaId) return <SinFinca />;
+
+  return (
+    <section aria-labelledby="titulo-lotes">
+      <h1 id="titulo-lotes">Lotes de venta</h1>
+      <p>
+        Junta cosechas en un lote con un código corto para despacharlo y saber de dónde viene. Una
+        cosecha va en un solo lote.
+      </p>
+      {!arma && <SoloConsulta rol={permisos.rol} que="los lotes" />}
+      {arma && lotes !== null && (
+        <ElegirCosechas fincaId={fincaId} cosechas={cosechas} alTerminar={cargar} />
+      )}
+      <h2>Lotes armados</h2>
+      {lotes === null ? (
+        <p class="ayuda">Cargando lotes…</p>
+      ) : lotes.length === 0 ? (
+        <p class="ayuda">Todavía no hay lotes.</p>
+      ) : (
+        <ul class="areas" data-prueba="lotes">
+          {lotes.map((l) => (
+            <li class="area" key={l.registro.id} data-prueba="lote">
+              <p class="area-titulo">
+                <strong class="codigo-lote">{l.codigo}</strong> · {coma(l.cantidad)} {l.unidad}
+              </p>
+              <p class="detalle-insumo" data-prueba="origen-lote">
+                De{' '}
+                {l.origen
+                  .map((o) => `${o.area} (${o.fechas.map(fechaCorta).join(', ')})`)
+                  .join(', ')}
+              </p>
+              {l.avisos.map((a) => (
+                <p class="aviso-ecologico" key={a} data-prueba="aviso-lote">
+                  {a}
+                </p>
+              ))}
+              {cambiando === l.registro.id ? (
+                <ElegirCosechas
+                  fincaId={fincaId}
+                  cosechas={cosechas}
+                  corrige={l}
+                  alTerminar={cargar}
+                  alCancelar={() => setCambiando(null)}
+                />
+              ) : (
+                arma && (
+                  <div class="acciones-area">
+                    <button
+                      type="button"
+                      class="secundario"
+                      onClick={() => setCambiando(l.registro.id)}
+                      aria-label={`Cambiar las cosechas del lote ${l.codigo}`}
+                    >
+                      Cambiar cosechas
+                    </button>
+                  </div>
+                )
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
