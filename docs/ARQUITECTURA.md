@@ -519,7 +519,7 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 | 2 · Finca cero y pilotos | Organizaciones con `anillo: 1` en el CORE | Funciones nuevas vía flags en KV |
 | 3 · Todas | Resto de organizaciones | La función cuando el anillo 2 pasa una semana sin fallas críticas |
 
-- **El código del servidor se despliega por celda**, en el orden de `anillo_despliegue` de `celdas.json`, con matriz de Actions.
+- **El código del servidor se despliega por celda**, en el orden de `anillo_despliegue` de `celdas.json`, celda por celda con `scripts/desplegar.ts` (no con matriz: así se detiene en la primera falla y nombra las que quedaron sin tocar). Staging sale cuando el CI termina en verde en `main`; producción, al publicar una versión. Hoy solo el sitio vive en c0; la API de la celda se suma con HU-E5.1. Procedimiento: `docs/runbooks/despliegue.md`.
 - **Las funciones se liberan por organización** con flags. En la tienda los anillos eran por repositorio; aquí son por organización y por celda.
 - **Una celda o una organización pueden marcarse `fuera`** para no recibir repartos. Cuando un despliegue se detiene, el resumen nombra las que quedaron sin tocar y cómo seguir (bitácora ecommerce 105).
 
@@ -531,7 +531,8 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 
 ### 7.5 Secretos
 
-- **GitHub Environments por celda:** `CF_API_TOKEN` con alcance mínimo a esa cuenta y `CF_ACCOUNT_ID`.
+- **Secretos de cada celda:** `CF_API_TOKEN` con alcance mínimo a esa cuenta y `CF_ACCOUNT_ID`. `celdas.json` nombra los secretos de cada celda; una prueba exige que estén en esta lista y que el flujo de despliegue los pase (HU-E1.5). Hoy viven a nivel de repositorio; una celda en otra cuenta (etapa C) tendrá los suyos. El flujo se los entrega a wrangler como `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`.
+- **Permisos del token de c0:** Account → Workers Scripts (Edit), Workers KV Storage (Edit), Account Analytics (Read), Account Settings (Read); User → Memberships (Read); Zone `laboratorio-digital.com` → Workers Routes (Edit). D1 (Edit) se agrega con la sincronización (S7–S8) y se rota el token.
 - **Secretos de Worker:**
   - Clave privada Ed25519 del CORE.
   - Clave de firma de QR por celda.

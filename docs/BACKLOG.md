@@ -322,7 +322,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E1.5 · Despliegue por anillos desde `celdas.json`
 **Como** dueño **quiero** que una fusión a `main` despliegue a staging y que publicar una versión despliegue a cada celda en su orden **para** no desplegar a mano ni en el orden equivocado.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S4 · **Depende de:** HU-E1.2 (HU-E1.4 cancelada; el host sale de ADR-19) · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S4 · **Depende de:** HU-E1.2 (HU-E1.4 cancelada; el host sale de ADR-19) · **Estado:** En sprint (rama `feat/e1.5-despliegue`. CA1 a CA5 hechos y probados sin red; CA6, la corrida real contra staging, ocurre al fusionar a `main`)
 - **Criterios de aceptación:**
   1. `infrastructure/celdas.json` es la única lista de celdas. `scripts/generar-wrangler` produce la configuración por celda y una prueba compara (P2).
   2. Antes de desplegar, el flujo verifica el `CF_API_TOKEN` de esa celda con una lectura. Si falla, se detiene con el nombre de la celda y el permiso que falta (P12).

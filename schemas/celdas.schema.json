@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Celdas del agro (infrastructure/celdas.json)",
+  "description": "ARQUITECTURA §5.5 y §7.3. Una celda = un despliegue en una cuenta de Cloudflare.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sitio", "celdas"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "nota": { "type": "string" },
+    "sitio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["celda", "worker", "dominio", "zona", "dataset_eventos"],
+      "properties": {
+        "celda": { "type": "string", "pattern": "^c[0-9]+$" },
+        "worker": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "dominio": { "type": "string", "pattern": "^[a-z0-9.-]+\\.[a-z]{2,}$" },
+        "zona": { "type": "string", "pattern": "^[a-z0-9.-]+\\.[a-z]{2,}$" },
+        "dataset_eventos": { "type": "string", "pattern": "^[a-z0-9_]+$" }
+      }
+    },
+    "celdas": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "cuenta", "plan", "anillo_despliegue", "estado", "secretos", "shards"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^c[0-9]+$" },
+          "cuenta": { "type": "string", "minLength": 3 },
+          "plan": { "enum": ["free", "paid", "cliente"] },
+          "anillo_despliegue": { "type": "integer", "minimum": 0 },
+          "estado": { "enum": ["activa", "fuera"] },
+          "secretos": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["token", "cuenta"],
+            "properties": {
+              "token": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]+$" },
+              "cuenta": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]+$" }
+            }
+          },
+          "shards": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^agro_c[0-9]+_s[0-9]+$" }
+          }
+        }
+      }
+    }
+  }
+}

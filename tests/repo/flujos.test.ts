@@ -5,6 +5,7 @@ import { parse } from 'yaml';
 import {
   type Flujo,
   revisarConcurrencia,
+  revisarInyeccion,
   revisarPipefail,
   revisarSecretos,
   revisarTiempos,
@@ -70,6 +71,39 @@ jobs:
   });
 });
 
+describe('despliegue e inyección (HU-E1.5)', () => {
+  it('un flujo de despliegue no cancela a medias', () => {
+    const conCancelar = flujo(
+      'name: desplegar\nconcurrency: { group: d, cancel-in-progress: true }',
+    );
+    const sinCancelar = flujo(
+      'name: desplegar\nconcurrency: { group: d, cancel-in-progress: false }',
+    );
+    expect(revisarConcurrencia('d.yml', conCancelar)).toHaveLength(1);
+    expect(revisarConcurrencia('d.yml', sinCancelar)).toEqual([]);
+  });
+
+  it('rechaza interpolar una entrada dentro de un run; por env está bien', () => {
+    const expresion = ['$', '{{ inputs.solo_celda }}'].join('');
+    const f = flujo(
+      [
+        'jobs:',
+        '  a:',
+        '    steps:',
+        '      - name: malo',
+        `        run: node x.ts --solo "${expresion}"`,
+        '      - name: bien',
+        '        env:',
+        `          SOLO: ${expresion}`,
+        '        run: node x.ts --solo "$SOLO"',
+      ].join('\n'),
+    );
+    expect(revisarInyeccion('x.yml', f)).toEqual([
+      expect.objectContaining({ motivo: expect.stringContaining('paso «malo»') }),
+    ]);
+  });
+});
+
 describe('guardia de secretos documentados (P18)', () => {
   const doc = '### 7.5 Secretos\n\nLista actual: `CF_API_TOKEN`, `CF_ACCOUNT_ID`.\n\n## 8. Otra';
 
@@ -99,13 +133,17 @@ describe('los flujos del repositorio', () => {
   const arquitectura = readFileSync(join(RAIZ, 'docs', 'ARQUITECTURA.md'), 'utf8');
   const documentados = secretosDocumentados(arquitectura);
 
-  it('existen ci.yml y scripts-windows.yml', () => {
+  it('existen ci.yml, scripts-windows.yml y desplegar.yml', () => {
     expect(archivos).toEqual(
-      expect.arrayContaining(['.github/workflows/ci.yml', '.github/workflows/scripts-windows.yml']),
+      expect.arrayContaining([
+        '.github/workflows/ci.yml',
+        '.github/workflows/scripts-windows.yml',
+        '.github/workflows/desplegar.yml',
+      ]),
     );
   });
 
-  it('cumplen pipefail, tiempos, concurrencia y secretos', () => {
+  it('cumplen pipefail, tiempos, concurrencia, inyección y secretos', () => {
     const hallazgos = archivos.flatMap((archivo) => {
       const texto = readFileSync(join(RAIZ, archivo), 'utf8');
       const f = parse(texto) as Flujo;
@@ -113,6 +151,7 @@ describe('los flujos del repositorio', () => {
         ...revisarPipefail(archivo, f),
         ...revisarTiempos(archivo, f),
         ...revisarConcurrencia(archivo, f),
+        ...revisarInyeccion(archivo, f),
         ...revisarSecretos(archivo, texto, documentados),
       ];
     });

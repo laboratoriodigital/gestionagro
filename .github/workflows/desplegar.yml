@@ -1,0 +1,63 @@
+# Despliegue por celdas (HU-E1.5, ARQUITECTURA §7.3).
+# - Staging: cuando el CI termina en verde en main (nunca se despliega lo que no pasó el CI).
+# - Producción: al publicar una versión vX.Y.Z (la publica el dueño).
+# - A mano: «Run workflow», eligiendo destino y, para seguir después de una falla, una sola celda.
+# Un despliegue a medias no se cancela: la corrida nueva espera a que termine la anterior.
+name: desplegar
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      destino:
+        description: "staging o produccion"
+        required: true
+        default: staging
+        type: choice
+        options: [staging, produccion]
+      solo_celda:
+        description: "Opcional: desplegar solo esta celda (p. ej. c0)"
+        required: false
+        default: ""
+
+# Un solo grupo para todos los despliegues: nunca dos a la vez sobre las mismas cuentas.
+concurrency:
+  group: desplegar
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  desplegar:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ github.event_name == 'release' && 'produccion' || inputs.destino || 'staging' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # En workflow_run se despliega exactamente el commit que pasó el CI.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+      - name: Construir (sitio, cuaderno y validación de wrangler)
+        run: pnpm build
+      - name: Desplegar por celdas
+        # Las entradas van por variables de entorno, nunca interpoladas en el comando (inyección).
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          DESTINO: ${{ github.event_name == 'release' && 'produccion' || inputs.destino || 'staging' }}
+          SOLO_CELDA: ${{ inputs.solo_celda }}
+        run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA"
