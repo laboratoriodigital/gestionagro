@@ -2,6 +2,7 @@
  * Registro de riego en sustrato (HU-E3.7).
  *
  * - El % de drenaje lo calcula `agro-calc` desde los volúmenes (CA1); sin drenaje medido, no hay %.
+ * - Duración en minutos desde riego v2 (revisión del dueño, 1 oct 2026); los v1 no la tienen.
  * - CE y pH vacíos son «no medido», distinto de 0 (CA2, P1). Fuera de rango, el esquema lo rechaza.
  * - El mismo riego en varias áreas: un registro por área, cada uno con su ciclo activo, en una sola
  *   transacción (CA3).
@@ -18,6 +19,8 @@ export type UnidadRiego = 'mL_gotero' | 'L_area';
 export interface DatosRiego {
   unidad: UnidadRiego;
   volumenAplicado: number;
+  /** Minutos que duró el riego; nulo = no se anotó (riego v2). */
+  duracionMin: number | null;
   volumenDrenado: number | null;
   ceEntradaDsM: number | null;
   phEntrada: number | null;
@@ -57,7 +60,7 @@ export async function guardarRiego(
       area_ids: [areaId],
       ciclo_id: ciclo?.id ?? null,
       tipo: 'riego',
-      v: 1,
+      v: 2,
       fecha_agronomica: fechaAgronomica(momento.getTime()),
       instante_evento: momento.toISOString(),
       autor_usuario_id: null,

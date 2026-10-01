@@ -1,6 +1,7 @@
 /**
- * Registrar el día a día de la finca sin señal (S5). Hoy: clima de una nave con su DPV (HU-E3.8).
- * Riego, labores y aplicaciones se agregan aquí con sus historias.
+ * Registrar el día a día de la finca sin señal (S5): clima con su DPV (HU-E3.8), riego (HU-E3.7)
+ * y labores (HU-E3.9).
+ * Las aplicaciones se agregan aquí con su historia.
  *
  * - El DPV y su indicación salen de `agro-calc` y del mismo catálogo de rangos que la calculadora
  *   pública (CA2, P2). El cultivo sale del ciclo activo del área.
@@ -26,9 +27,11 @@ import { leerCiclos } from '../almacen/ciclos.ts';
 import { type DatosClimaGuardado, guardarClima } from '../almacen/clima.ts';
 import { pendientesDeSubir, ultimosRegistros } from '../almacen/consultas.ts';
 import { leerFinca } from '../almacen/finca.ts';
+import { leerPersonas } from '../almacen/personas.ts';
 import type { DatosRiegoGuardado } from '../almacen/riego.ts';
 import { Campo, CampoSeleccion } from '../componentes/Campo.tsx';
 import { fechaHora } from '../formato.ts';
+import { FormularioLabor } from './FormularioLabor.tsx';
 import { FormularioRiego } from './FormularioRiego.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 
@@ -218,7 +221,7 @@ function FormularioClima(props: {
 }
 
 /** Resumen de un registro en una línea, en palabras de finca. */
-function resumenDe(r: Registro): string {
+function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): string {
   const coma = (n: number) => String(n).replace('.', ',');
   if (r.tipo === 'clima') {
     const d = r.datos as DatosClimaGuardado;
@@ -232,7 +235,15 @@ function resumenDe(r: Registro): string {
       d.drenajePct === null ? 'drenaje no medido' : `drenaje ${formatearPct(d.drenajePct)}`;
     const ce = d.ceEntradaDsM === null ? '' : ` · CE ${coma(d.ceEntradaDsM)} dS/m`;
     const ph = d.phEntrada === null ? '' : ` · pH ${coma(d.phEntrada)}`;
-    return `Riego · ${coma(d.volumenAplicado)} ${unidad} · ${drenaje}${ce}${ph}`;
+    // Los riegos v1 no tienen duración.
+    const min = r.v >= 2 ? d.duracionMin : null;
+    const duracion = min === null ? '' : ` · ${coma(min)} min`;
+    return `Riego · ${coma(d.volumenAplicado)} ${unidad}${duracion} · ${drenaje}${ce}${ph}`;
+  }
+  if (r.tipo === 'labor') {
+    const d = r.datos as { labor: string; horasPorPersona: number };
+    const quienes = r.persona_ids.map((id) => nombres.get(id) ?? 'Persona').join(', ');
+    return `Labor · ${d.labor} · ${coma(d.horasPorPersona)} h por persona · ${quienes}`;
   }
   return r.tipo;
 }
@@ -240,6 +251,7 @@ function resumenDe(r: Registro): string {
 function UltimosRegistros(props: {
   registros: Registro[];
   areas: Area[];
+  personas: Map<string, string>;
   pendientes: Set<string>;
 }) {
   if (props.registros.length === 0) return <p class="ayuda">Todavía no hay registros.</p>;
@@ -251,7 +263,7 @@ function UltimosRegistros(props: {
           <p class="area-titulo">
             <strong>{nombre(r.area_ids[0])}</strong> · {fechaHora(r.instante_evento)}
           </p>
-          <p class="detalle-insumo">{resumenDe(r)}</p>
+          <p class="detalle-insumo">{resumenDe(r, props.personas)}</p>
           {props.pendientes.has(r.id) && <p class="ayuda">Solo en este teléfono</p>}
         </li>
       ))}
@@ -262,6 +274,7 @@ function UltimosRegistros(props: {
 const TIPOS = [
   { id: 'clima', titulo: 'Clima' },
   { id: 'riego', titulo: 'Riego' },
+  { id: 'labor', titulo: 'Labores' },
 ] as const;
 type TipoRegistro = (typeof TIPOS)[number]['id'];
 
@@ -271,6 +284,7 @@ export function Registrar() {
   const [ciclos, setCiclos] = useState<Ciclo[]>([]);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
+  const [personas, setPersonas] = useState<Map<string, string>>(new Map());
   // Un enlace con valores de clima (#t=…) abre directo en Clima (HU-E3.8, CA3).
   const [tipo, setTipo] = useState<TipoRegistro>('clima');
   const fincaId = !estado.cargando && estado.finca ? estado.finca.id : null;
@@ -290,6 +304,9 @@ export function Registrar() {
         ),
       );
       setPendientes(await pendientesDeSubir(db));
+      // Con las inactivas: una labor vieja sigue mostrando quién la hizo.
+      const todas = await leerPersonas(db, fincaId, { incluirInactivas: true });
+      setPersonas(new Map(todas.map((p) => [p.id, p.nombre])));
     })();
   };
   useEffect(cargar, [fincaId]);
@@ -318,11 +335,19 @@ export function Registrar() {
       {areas.length > 0 && tipo === 'clima' && (
         <FormularioClima fincaId={fincaId} areas={areas} ciclos={ciclos} alGuardar={cargar} />
       )}
+      {areas.length > 0 && tipo === 'labor' && (
+        <FormularioLabor fincaId={fincaId} areas={areas} alGuardar={cargar} />
+      )}
       {areas.length > 0 && tipo === 'riego' && (
         <FormularioRiego fincaId={fincaId} areas={areas} alGuardar={cargar} />
       )}
       <h2>Últimos registros</h2>
-      <UltimosRegistros registros={registros} areas={areas} pendientes={pendientes} />
+      <UltimosRegistros
+        registros={registros}
+        areas={areas}
+        personas={personas}
+        pendientes={pendientes}
+      />
     </section>
   );
 }

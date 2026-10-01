@@ -538,6 +538,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
   3. Se puede registrar el riego de varias naves de una vez con los mismos valores.
   4. Guardar funciona en modo avión y el registro queda «solo en este teléfono».
   5. El formulario se llena en menos de 30 s con una mano (4 campos visibles, teclado numérico).
+  6. *(Agregado por el dueño el 1 oct 2026.)* Duración del riego en minutos, opcional y visible junto a los volúmenes: esquema `riego` v2; los v1 siguen válidos.
 - **Patrones:** P1, P20.
 - **WI:**
   - WI-E3.7.1 `drenajePct` en agro-calc con casos (1 h).
@@ -559,7 +560,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.9 · Registrar labores
 **Como** operario **quiero** anotar qué labor hice, en qué nave, con quién y cuántas horas **para** que quede constancia y se puedan calcular los costos.
-- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S5 · **Depende de:** HU-E3.5 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S5 · **Depende de:** HU-E3.5 · **Estado:** En sprint (rama `feat/e3.9-registro-labores`. CA1: el catálogo arranca vacío y las cinco labores del ejemplo se ofrecen como sugerencia; entran al catálogo al usarlas. CA3: el aviso de más de 12 h no bloquea, pide confirmar)
 - **Criterios de aceptación:**
   1. Tipos de labor desde un catálogo editable (tutorado, deshoje, poda, polinización, limpieza…).
   2. Se eligen una o varias personas: modo tablero, sin necesidad de cuenta.

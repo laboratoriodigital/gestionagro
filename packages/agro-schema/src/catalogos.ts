@@ -108,6 +108,13 @@ export const valorJornal = z.strictObject({
   vigente_desde: fechaAgronomica,
 });
 
+/** Tipos de labor de la finca (HU-E3.9, CA1). Editable desde la app; arranca vacío. */
+export const tipoLabor = z.strictObject({
+  ...metaDeCatalogo,
+  finca_id: id,
+  nombre: texto,
+});
+
 export type Finca = z.infer<typeof finca>;
 export type Area = z.infer<typeof area>;
 export type Ciclo = z.infer<typeof ciclo>;
@@ -115,3 +122,4 @@ export type Persona = z.infer<typeof persona>;
 export type Insumo = z.infer<typeof insumo>;
 export type Cultivo = z.infer<typeof cultivo>;
 export type ValorJornal = z.infer<typeof valorJornal>;
+export type TipoLabor = z.infer<typeof tipoLabor>;
