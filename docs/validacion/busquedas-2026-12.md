@@ -1,6 +1,6 @@
 # Demanda de búsqueda de calculadoras agronómicas (HU-E0.2)
 
-**Estado:** plantilla lista; faltan las cifras. Las consulta el dueño con su cuenta de Google Ads (Keyword Planner) y Google Search Console.
+**Estado:** plantilla lista; faltan las cifras. Primer intento (1 oct 2026): se descargó la «Previsión» de una campaña, sin palabras clave y en 0, y no se usó; los pasos ahora dicen qué pestaña y cómo reconocer el archivo correcto. Las consulta el dueño con su cuenta de Google Ads (Keyword Planner) y Google Search Console.
 **Para qué:** decidir con datos el orden de las herramientas 2 a 5 (Estudio de mercado, tabla de herramientas candidatas).
 **Regla (P18):** ninguna cifra se escribe de memoria ni se estima sin decirlo. Cada celda lleva su tipo y su fuente.
 
@@ -18,11 +18,13 @@
 ### Keyword Planner (volumen mensual promedio de los últimos 12 meses)
 
 1. Entra a <https://ads.google.com> → **Herramientas** → **Planificador de palabras clave** → **Obtener el volumen de búsqueda y las previsiones**.
-2. Copia la lista del bloque «Lista para pegar» (abajo) y pégala completa.
-3. Arriba: **Ubicación = Colombia**, **Idioma = español**, **Red = Google**, **Rango = últimos 12 meses**.
-4. **Descargar** → «CSV». Guarda el archivo como `kp-colombia-AAAA-MM-DD.csv`.
-5. Repite con **Ubicación =** México, Perú, Ecuador, Chile, Argentina, Guatemala y Costa Rica, todas juntas (una sola consulta). Guárdalo como `kp-latam-AAAA-MM-DD.csv`.
-6. Pásame los dos CSV, o pega aquí las columnas «Palabra clave» y «Promedio de búsquedas mensuales». Yo lleno la tabla y escribo la recomendación.
+2. Copia la lista del bloque «Lista para pegar» (abajo), pégala completa y toca **Comenzar**.
+3. Arriba: **Ubicación = Colombia**, **Idioma = español**, **Red = Google**, **Rango = últimos 12 meses** (no un solo mes).
+4. Ve a la pestaña **«Métricas históricas»**. **No** uses «Previsión»: esa estima clics de un anuncio y sale en 0 sin campaña activa.
+5. **Descargar** (flecha arriba a la derecha) → **«Métricas de plan históricas»** → CSV. Guarda el archivo como `kp-colombia-AAAA-MM-DD.csv`.
+6. Comprueba antes de enviarlo: debe tener **una fila por término** y las columnas «Keyword» (o «Palabra clave») y «Avg. monthly searches» (o «Promedio de búsquedas mensuales»). Si ves «Estimated Clicks» o «Campaign», es la previsión: vuelve al paso 4.
+7. Cambia **Ubicación**: quita Colombia y agrega México, Perú, Ecuador, Chile, Argentina, Guatemala y Costa Rica. Revisa que el filtro diga «8 ubicaciones». Repite los pasos 4 a 6 y guárdalo como `kp-latam-AAAA-MM-DD.csv`.
+8. Pásame los dos CSV. Yo lleno la tabla y escribo la recomendación.
 
 > Si la cuenta no tiene campañas con gasto, Keyword Planner muestra rangos («100–1 mil»). Valen: se marcan **R**.
 
