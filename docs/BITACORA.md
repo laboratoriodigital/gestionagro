@@ -601,3 +601,19 @@ La regla: **«cargando» y «vacío» son estados distintos y la pantalla los di
 La regla: **antes de culpar al código porque una prueba no ve algo, se comprueba que la herramienta puede verlo. Lo que no puede, se prueba por otro camino y se anota qué falta verificar en el entorno real.**
 
 *Ficha:* agro · *(mío)* · 🟢 Menor · P17, P5 · 0.1.0 · 2026-10-01
+
+**19 · El dominio público servía staging, y el CI de `main` casi se pasa del tiempo.**
+
+*Qué pasó.* El 1 oct 2026, después de fusionar HU-E4.1, el dueño escribió que «Cloudflare desplegó pero no se ve» y que el cuaderno no pedía actualizar. Al revisar, `agro.laboratorio-digital.com` y `agro-sitio-staging…workers.dev` servían los mismos archivos: el dominio estaba conectado a mano, en el panel de Cloudflare, al Worker de staging. El Worker de producción (`agro-sitio`) nunca se había desplegado, porque producción sale al publicar una versión y no había ninguna. Que no hubiera aviso de actualización era correcto: los dos PRs no tocaban el cuaderno y el `sw.js` era idéntico. El mismo día, el CI de `main` tardó 13 min 41 s de 15; 10,5 min fueron para instalar los navegadores de Playwright.
+
+*Causa raíz.*
+- El dominio: la configuración generada solo declara el dominio en producción, pero wrangler no quita un dominio que se agregó desde el panel; el despliegue a staging lo dejaba ahí sin decir nada. Consecuencias: lo fusionado a `main` salía al dominio público sin publicar versión, el primer despliegue a producción iba a chocar por el dominio, y cada dirección guarda sus propios datos en el teléfono (otro origen, otra base local).
+- El CI: la clave de la caché de navegadores es el hash del lockfile, y en `main` solo valen las cachés creadas en `main`. Un lockfile nuevo (entró Hono) = sin caché = bajar Chromium y paquetes de Ubuntu, ese día con un espejo lento.
+
+*Arreglo.* El dueño quitó el dominio del Worker de staging y se publica v0.1.0, cuyo despliegue a producción conecta el dominio a `agro-sitio`. La caché del CI agrega `restore-keys` para traer los navegadores de la corrida anterior aunque cambie el lockfile.
+
+*Lo que falta.* Una guardia en el despliegue que falle si el Worker de staging tiene un dominio propio. Necesita leer los dominios de Workers con la API y comprobar antes que el token tiene ese permiso; queda para la siguiente historia de operación (HU-E8.2), para no agregar un rojo que no se ha visto funcionar (P19).
+
+La regla: **lo que se configura en el panel y no en el repositorio no existe para el despliegue. Un dominio, una ruta o un secreto agregado a mano se anota aquí el mismo día y se pasa a la configuración, o se quita.**
+
+*Ficha:* agro · *(dueño y mío)* · 🟠 Grave · P2, P16, P19 · 0.1.0 · 2026-10-01

@@ -4,7 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.1.0] - 2026-10-01
+
+Primera versión publicada: despliega por primera vez a producción el sitio (`agro.laboratorio-digital.com`, con la DPV en borrador y `noindex`), el cuaderno y el CORE.
+
 ### Corregido
+- El CI de `main` tardó 13 min 41 s de un límite de 15: con un lockfile nuevo la caché de los navegadores de Playwright no coincidía y los volvía a bajar. Ahora restaura la de la corrida anterior (bitácora agro 19).
 - Los vencimientos de un área evaluados en un momento pasado contaban también las aplicaciones posteriores; al corregir una cosecha vieja la habría bloqueado por una aplicación hecha después. Ahora solo cuentan las aplicaciones hasta ese momento.
 - Aplicaciones, Labores, Insumos y Personas decían «Primero agrega los insumos» o «Todavía no hay personas» mientras la lista aún cargaba; en un teléfono lento parecía que los datos no estaban (bitácora agro 17). Ahora dicen «Cargando…» hasta tener la respuesta.
 - Riego, según la prueba del dueño en staging (bitácora agro 16): un error en CE o pH ya no esconde el de «drenado mayor que lo aplicado»; el formulario muestra todos los errores a la vez. Los rangos se escriben con coma decimal.
