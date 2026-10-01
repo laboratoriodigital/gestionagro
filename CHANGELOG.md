@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ### Corregido
 - Según la prueba del dueño en staging (bitácora agro 22): un registro nuevo subía solo al recargar o al tocar «Sincronizar ahora». Ahora sube a los pocos segundos de guardarlo, y el cuaderno trae lo del equipo al volver a la app. Cuenta dice «Todo lo tuyo está en la nube. Lo del equipo se revisó a las hh:mm.» en vez de «Todo está en la nube».
+- La calculadora de DPV borraba lo que la persona escribía antes de que terminara de cargar (3G lenta): al activarse, dejaba los campos vacíos. Ahora conserva lo escrito (bitácora agro 21).
 
 ### Añadido
 - Versiones viejas que siguen sirviendo (HU-E5.5). Un teléfono con una versión vieja del cuaderno sigue subiendo todo; si es más vieja que la mínima, la nube lo acepta igual y el cuaderno dice arriba, en palabras, que conviene actualizar. Los registros se guardan con su versión y se traducen a la vigente al leerlos (un riego sin duración queda «no anotado», nunca 0). Contrato de versiones: muestras de todo lo que escribe la app 0.1.0, que la API vigente debe aceptar siempre.

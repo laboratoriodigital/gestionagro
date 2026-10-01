@@ -57,13 +57,22 @@ function CampoNumero(props: {
   );
 }
 
+/**
+ * Lo que la persona ya escribió en el HTML estático antes de que cargara la isla (3G lenta). Sin
+ * esto, al hidratar Preact deja los campos vacíos y lo escrito se pierde (bitácora agro 21).
+ */
+const yaEscrito = (id: string): string =>
+  typeof document === 'undefined'
+    ? ''
+    : ((document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null)?.value ?? '');
+
 export default function CalculadoraDpv() {
-  const [entradas, setEntradas] = useState<Entradas>({
-    temperatura: '',
-    humedad: '',
-    temperaturaHoja: '',
-    cultivoEtapa: '',
-  });
+  const [entradas, setEntradas] = useState<Entradas>(() => ({
+    temperatura: yaEscrito('temperatura'),
+    humedad: yaEscrito('humedad'),
+    temperaturaHoja: yaEscrito('temperaturaHoja'),
+    cultivoEtapa: yaEscrito('cultivo'),
+  }));
   const [completado, setCompletado] = useState(false);
   // null = todavía no se sabe; mientras tanto el botón dice lo general (CA2).
   const [conCuaderno, setConCuaderno] = useState<boolean | null>(null);
