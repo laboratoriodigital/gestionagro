@@ -1,0 +1,118 @@
+---
+/**
+ * Política de tratamiento de datos del cuaderno y de las calculadoras (HU-E0.5, Ley 1581 de
+ * 2012 y Decreto 1377 de 2013). Los datos que pueden cambiar (versión, responsable, terceros,
+ * cookies, almacenamiento) salen de `content/agro/privacidad/politica.json`, la misma fuente que
+ * usa el CORE para guardar la aceptación y las pruebas de coherencia (P2).
+ *
+ * Mientras sea borrador: no se indexa, lo dice arriba y marca lo que falta. Requiere revisión de
+ * abogado antes de quedar vigente (CA4).
+ */
+import politica from '../../../../../content/agro/privacidad/politica.json';
+import Base from '../../layouts/Base.astro';
+import { SITIO } from '../../lib/seo.ts';
+
+const canonical = `${SITIO}/agro/privacidad/`;
+const titulo = 'Política de tratamiento de datos';
+const descripcion =
+  'Qué datos guarda el cuaderno de campo de Gestión Agro, dónde viven, quién los ve y cómo exportarlos, corregirlos o borrarlos.';
+const borrador = politica.estado !== 'vigente';
+const pendiente = 'pendiente de completar';
+const r = politica.responsable;
+const fecha = new Intl.DateTimeFormat('es-CO', { dateStyle: 'long', timeZone: 'UTC' }).format(
+  new Date(`${politica.fecha}T00:00:00Z`),
+);
+---
+<Base
+  title={`${titulo} | Gestión Agro`}
+  description={descripcion}
+  canonical={canonical}
+  indexable={!borrador}
+  og={{ type: 'website', title: titulo, description: descripcion, url: canonical, site_name: 'Gestión Agro', locale: 'es_CO' }}
+>
+  <h1>{titulo}</h1>
+  <p>Versión {politica.version}, del {fecha}.</p>
+  {
+    borrador && (
+      <p class="aviso" data-prueba="politica-borrador">
+        <strong>Borrador: {politica.revision}.</strong> Este texto todavía no es la política
+        vigente. Lo marcado «{pendiente}» falta por completar.
+      </p>
+    )
+  }
+
+  <h2>En pocas palabras</h2>
+  <ul>
+    <li>Las calculadoras funcionan en tu teléfono: lo que escribes en ellas no se envía a ninguna parte.</li>
+    <li>El cuaderno guarda primero en tu teléfono. Si entras con tu cuenta, tus registros se copian a la nube para respaldarlos y para que tu equipo los vea.</li>
+    <li>No vendemos ni compartimos tus datos para publicidad. No hay anuncios ni rastreadores.</li>
+    <li>Puedes descargar todo, pedir que se corrija o que se borre.</li>
+  </ul>
+
+  <h2>Quién es el responsable</h2>
+  <ul data-prueba="politica-responsable">
+    <li>Nombre: {r.nombre ?? pendiente}</li>
+    <li>Identificación: {r.identificacion ?? pendiente}</li>
+    <li>Domicilio: {r.domicilio ?? pendiente}</li>
+    <li>Correo para datos personales: {r.correo ?? pendiente}</li>
+    <li>Teléfono: {r.telefono ?? pendiente}</li>
+  </ul>
+
+  <h2>Qué datos tratamos</h2>
+  <ul>
+    <li><strong>De tu cuenta</strong>, si entras con Google: tu nombre, tu correo y el identificador de tu cuenta de Google. No pedimos ni guardamos contraseñas.</li>
+    <li><strong>De tu finca</strong>: nombre, municipio, áreas, cultivos, insumos y lo que registras (riego, clima, labores, aplicaciones, cosecha).</li>
+    <li><strong>De las personas que trabajan en la finca</strong>: nombre y rol, y el valor del jornal si lo anotas. No pedimos cédula ni teléfono. Quien las anota es responsable de contarles que su nombre queda en el cuaderno.</li>
+    <li><strong>Del teléfono</strong>: un identificador del teléfono, generado al azar, para saber de qué teléfono vino cada registro.</li>
+  </ul>
+
+  <h2>Para qué los usamos</h2>
+  <ul>
+    <li>Llevar el cuaderno de tu finca y sincronizarlo entre los teléfonos de tu equipo.</li>
+    <li>Respaldarlo para que no lo pierdas si pierdes el teléfono.</li>
+    <li>Darte acceso con tu cuenta y dar a cada persona solo lo que su rol permite.</li>
+    <li>Mejorar las calculadoras con conteos agregados, sin identificar a nadie.</li>
+  </ul>
+
+  <h2>Dónde viven</h2>
+  <ul>
+    {politica.almacenamiento_en_el_telefono.map((x) => <li>{x}</li>)}
+    <li>En la nube, solo si entras con tu cuenta y subes tu finca: en los servidores de los encargados de abajo. Tus registros quedan separados de los de otras fincas.</li>
+  </ul>
+
+  <h2>Quién más los trata (encargados)</h2>
+  <ul data-prueba="politica-encargados">
+    {politica.encargados.map((e) => (
+      <li><strong>{e.quien}</strong>: {e.para} {e.donde}</li>
+    ))}
+  </ul>
+  <p>Como esos servidores están fuera de Colombia, al usar la nube aceptas que tus datos se transfieran a ellos para estos fines.</p>
+
+  <h2>Medición y cookies</h2>
+  <ul data-prueba="politica-medicion">
+    <li>{politica.medicion.calculadoras}</li>
+    <li>{politica.medicion.cuaderno}</li>
+    {politica.scripts_de_terceros.length === 0 && <li>Ninguna página carga scripts de terceros (analítica, publicidad, redes sociales).</li>}
+    {politica.cookies.map((c) => (
+      <li>Cookie «{c.nombre}»: {c.para}. {c.donde}; dura {c.dura}.</li>
+    ))}
+  </ul>
+
+  <h2>Quién ve tus datos</h2>
+  <p>Las personas de tu finca, según el rol que les des. Nadie de otra finca. Nosotros solo accedemos para resolver un problema que nos pidas o para cumplir la ley.</p>
+
+  <h2>Cuánto tiempo los guardamos</h2>
+  <p>Mientras uses el cuaderno. Si pides borrar tu cuenta, borramos tus datos de la nube, salvo lo que la ley nos obligue a conservar. Los respaldos se renuevan y los viejos desaparecen en pocas semanas. Lo que esté guardado en un teléfono solo se borra en ese teléfono.</p>
+
+  <h2>Tus derechos y cómo ejercerlos</h2>
+  <ul>
+    <li>Conocer, actualizar y corregir tus datos. En el cuaderno puedes corregir cualquier registro; queda la versión anterior para la trazabilidad.</li>
+    <li>Descargar todo: en el cuaderno, «Respaldo» → «Descargar respaldo completo».</li>
+    <li>Pedir que se borren o revocar tu autorización, y pedir prueba de la autorización que diste.</li>
+    <li>Escribir al correo del responsable de arriba. Respondemos consultas en máximo 10 días hábiles y reclamos en máximo 15 días hábiles.</li>
+    <li>Si no quedas conforme, acudir a la Superintendencia de Industria y Comercio.</li>
+  </ul>
+
+  <h2>Tu autorización</h2>
+  <p>Antes de entrar con tu cuenta por primera vez, el cuaderno te pide aceptar esta política. Guardamos la versión que aceptaste y la fecha. Si la política cambia en algo importante, te pediremos aceptarla de nuevo.</p>
+</Base>

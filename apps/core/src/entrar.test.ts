@@ -16,6 +16,7 @@ import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
 import { sentenciasDeCeldas } from './celdas.ts';
 import type { ProveedorGoogle } from './entrar.ts';
+import { POLITICA_VIGENTE } from './politica.ts';
 import { crearOrganizacion } from './repositorio.ts';
 import { VIDA_CODIGO_MS } from './sesiones.ts';
 import { crearApp, type Env } from './worker.ts';
@@ -112,7 +113,9 @@ afterEach(() => vi.restoreAllMocks());
 
 /** Inicio + regreso de Google: devuelve el código de entrada del fragmento. */
 async function entrarConGoogle(): Promise<string> {
-  const ida = await pedir(`/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}`);
+  const ida = await pedir(
+    `/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}&politica=${POLITICA_VIGENTE}`,
+  );
   const cookie = (ida.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
   const state = new URL(ida.headers.get('location') ?? '').searchParams.get('state');
   const vuelta = await pedir(`/api/core/auth/google/callback?code=code-bueno&state=${state}`, {
@@ -142,12 +145,16 @@ describe('inicio: solo vuelve a pantallas del cuaderno', () => {
     ['fuera del cuaderno', `${APP}/herramientas/agro/`],
     ['sin vuelta', ''],
   ])('rechaza %s', async (_caso, vuelta) => {
-    const r = await pedir(`/api/core/auth/google/inicio?vuelta=${encodeURIComponent(vuelta)}`);
+    const r = await pedir(
+      `/api/core/auth/google/inicio?vuelta=${encodeURIComponent(vuelta)}&politica=${POLITICA_VIGENTE}`,
+    );
     expect(r.status).toBe(400);
   });
 
   it('manda a Google con la dirección de regreso del CORE y guarda el estado en una cookie protegida', async () => {
-    const r = await pedir(`/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}`);
+    const r = await pedir(
+      `/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}&politica=${POLITICA_VIGENTE}`,
+    );
     expect(r.status).toBe(302);
     const google = new URL(r.headers.get('location') ?? '');
     expect(google.searchParams.get('redirect_uri')).toBe(`${CORE}/api/core/auth/google/callback`);
@@ -202,7 +209,9 @@ describe('CA1 · entrar, canjear y recibir los tokens', () => {
   });
 
   it('volver con un state distinto o cancelar en Google regresa a la app con el motivo, sin sesión', async () => {
-    const ida = await pedir(`/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}`);
+    const ida = await pedir(
+      `/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}&politica=${POLITICA_VIGENTE}`,
+    );
     const cookie = (ida.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
     const otro = await pedir('/api/core/auth/google/callback?code=code-bueno&state=otro', {
       headers: { cookie },
@@ -301,7 +310,9 @@ describe('CORS, configuración y kill switch', () => {
   it('sin un secreto responde 503 y nombra cuál falta en el log, no en la respuesta', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     env = { ...env, GOOGLE_CLIENT_SECRET: '' };
-    const r = await pedir(`/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}`);
+    const r = await pedir(
+      `/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}&politica=${POLITICA_VIGENTE}`,
+    );
     expect(r.status).toBe(503);
     expect(error.mock.calls.flat().join(' ')).toContain('GOOGLE_CLIENT_SECRET');
   });
@@ -374,7 +385,7 @@ describe('HU-E4.3 · crear la organización de la finca del teléfono', () => {
     const pedirAjeno = (ruta: string, init: RequestInit) =>
       ajeno.fetch(new Request(`${CORE}${ruta}`, init), env);
     const ida = await pedirAjeno(
-      `/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}`,
+      `/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}&politica=${POLITICA_VIGENTE}`,
       {},
     );
     const cookie = (ida.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
@@ -402,5 +413,42 @@ describe('HU-E4.3 · crear la organización de la finca del teléfono', () => {
     expect((await crear(s.acceso, { id: 'no-es-uuid', nombre: 'Finca Ensayo Uno' })).status).toBe(
       400,
     );
+  });
+});
+
+describe('HU-E0.5 CA3 · aceptar la política al entrar', () => {
+  it('sin aceptar la política vigente no se inicia el ingreso', async () => {
+    const sin = await pedir(`/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}`);
+    expect(sin.status).toBe(400);
+    expect(await sin.text()).toContain(`versión ${POLITICA_VIGENTE}`);
+    const vieja = await pedir(
+      `/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}&politica=0`,
+    );
+    expect(vieja.status).toBe(400);
+  });
+
+  it('la cuenta nueva guarda la versión aceptada y la fecha', async () => {
+    await entrarConGoogle();
+    const u = await db.prepare('SELECT politica_version, politica_aceptada FROM usuario').first();
+    expect(u).toEqual({
+      politica_version: POLITICA_VIGENTE,
+      politica_aceptada: new Date(T0).toISOString(),
+    });
+  });
+
+  it('volver a entrar con la misma versión no escribe; una cuenta sin aceptación la recibe', async () => {
+    await entrarConGoogle();
+    await db.prepare('UPDATE usuario SET politica_version = NULL, politica_aceptada = NULL').run();
+    reloj = T0 + 60_000;
+    await entrarConGoogle();
+    const u = await db.prepare('SELECT politica_version, politica_aceptada FROM usuario').first();
+    expect(u).toEqual({
+      politica_version: POLITICA_VIGENTE,
+      politica_aceptada: new Date(T0 + 60_000).toISOString(),
+    });
+    cuenta.escrituras = 0;
+    await entrarConGoogle();
+    // Solo la sesión nueva (1 escritura); la aceptación no se reescribe.
+    expect(cuenta.escrituras).toBe(1);
   });
 });

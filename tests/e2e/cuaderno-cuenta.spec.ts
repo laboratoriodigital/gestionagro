@@ -8,10 +8,13 @@ import { expect, type Page, test } from '@playwright/test';
 import { FINCA_ENSAYO_UNO } from '../fixtures/fincas.ts';
 import { APP, configurar } from './ayudas.ts';
 
-const { core } = JSON.parse(readFileSync('infrastructure/celdas.json', 'utf8')) as {
+// Las direcciones reales de staging: la CSP del cuaderno solo deja conectarse a ellas (HU-E0.5).
+const { core, celdas } = JSON.parse(readFileSync('infrastructure/celdas.json', 'utf8')) as {
   core: { url_staging: string };
+  celdas: { api_staging: string }[];
 };
 const CORE = core.url_staging;
+const API_STAGING = celdas[0]?.api_staging ?? '';
 
 const sesion = {
   acceso: 'acceso-e2e',
@@ -43,11 +46,37 @@ async function coreFalso(page: Page, conSesion: object = sesion) {
 
 const cuenta = (page: Page) => page.goto(`${APP}cuenta/`);
 
+/** Acepta la política (HU-E0.5) y toca «Entrar con Google». */
+async function entrar(page: Page) {
+  await page.getByLabel(/Leí y acepto la política de tratamiento de datos/).check();
+  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+}
+
 test('sin cuenta: el cuaderno no la exige y ofrece entrar con Google', async ({ page }) => {
   await cuenta(page);
   await expect(page.getByRole('heading', { level: 1, name: 'Cuenta' })).toBeVisible();
   await expect(page.getByText('El cuaderno funciona sin cuenta.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Entrar con Google' })).toBeEnabled();
+  // HU-E0.5, CA3: sin aceptar la política no se puede entrar; aceptada, sí.
+  const boton = page.getByRole('button', { name: 'Entrar con Google' });
+  await expect(boton).toBeDisabled();
+  await expect(
+    page.getByRole('link', { name: 'política de tratamiento de datos' }),
+  ).toHaveAttribute('href', '/agro/privacidad/');
+  await page.getByLabel(/Leí y acepto la política de tratamiento de datos/).check();
+  await expect(boton).toBeEnabled();
+});
+
+test('HU-E0.5 CA3: al entrar se manda la versión de la política aceptada', async ({ page }) => {
+  let pedido = '';
+  await page.route(`${CORE}/api/core/auth/google/inicio?*`, async (ruta) => {
+    pedido = ruta.request().url();
+    await ruta.fulfill({ status: 400, body: 'fin de la prueba' });
+  });
+  await cuenta(page);
+  await entrar(page);
+  await expect
+    .poll(() => new URL(pedido || 'http://x').searchParams.get('politica'))
+    .toBe(JSON.parse(readFileSync('content/agro/privacidad/politica.json', 'utf8')).version);
 });
 
 test('CA1 y CA4: entrar, canjear por POST, y ningún código ni token en la URL ni en localStorage', async ({
@@ -57,7 +86,7 @@ test('CA1 y CA4: entrar, canjear por POST, y ningún código ni token en la URL 
   const urls: string[] = [];
   page.on('request', (r) => urls.push(r.url()));
   await cuenta(page);
-  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await entrar(page);
   await expect(page.locator('[data-prueba="cuenta-usuario"]')).toContainText('Persona Ensayo');
   await expect(page.locator('[data-prueba="cuenta-estado"]')).toHaveText('Sesión activa.');
   await expect(page.locator('[data-prueba="finca-en-la-nube"]')).toContainText(
@@ -91,6 +120,7 @@ test('sin señal no se puede entrar, y se dice que se puede seguir registrando',
   context,
 }) => {
   await cuenta(page);
+  await page.getByLabel(/Leí y acepto la política de tratamiento de datos/).check();
   await expect(page.getByRole('button', { name: 'Entrar con Google' })).toBeEnabled();
   await context.setOffline(true);
   await expect(page.getByRole('button', { name: 'Entrar con Google' })).toBeDisabled();
@@ -104,7 +134,7 @@ test('salir de la cuenta borra la sesión del teléfono y vuelve a ofrecer entra
 }) => {
   await coreFalso(page);
   await cuenta(page);
-  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await entrar(page);
   await expect(page.locator('[data-prueba="cuenta-estado"]')).toBeVisible();
   await page.getByRole('button', { name: 'Salir de la cuenta' }).click();
   await expect(page.locator('[data-prueba="cuenta-mensaje"]')).toHaveText(
@@ -120,7 +150,7 @@ async function nubeFalsa(
   respuesta: (op: { id: string; entidad: string }) => object,
   extra: object = {},
 ) {
-  const API = 'https://agro-api-c0-staging.ejemplo.test';
+  const API = API_STAGING;
   const permitir = { 'access-control-allow-origin': '*' };
   let org = '';
   await page.route(`${CORE}/api/core/organizaciones`, async (ruta) => {
@@ -182,7 +212,7 @@ test('HU-E4.3 y E5.2: subir la finca deja todo en la nube y el indicador sin pen
   await coreFalso(page);
   const lotes = await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
   await cuenta(page);
-  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await entrar(page);
   await expect(page.locator('[data-prueba="nube-sin-subir"]')).toContainText(
     '«Finca Ensayo Uno» está solo en este teléfono.',
   );
@@ -215,7 +245,7 @@ test('HU-E3.14 CA3: lo que la nube no acepta se ve en rojo con su motivo, y sigu
       : { id: op.id, estado: 'aceptado' },
   );
   await cuenta(page);
-  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await entrar(page);
   await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
   await expect(page.locator('[data-prueba="nube-rechazos"]')).toContainText(
     '«datos.humedadRelativaPct» fuera de rango',
@@ -234,7 +264,7 @@ test('HU-E3.14 CA3: lo que la nube no acepta se ve en rojo con su motivo, y sigu
 test('HU-E5.3 CA4: un teléfono nuevo baja la finca de su cuenta y la ve en Áreas', async ({
   page,
 }) => {
-  const API = 'https://agro-api-c0-staging.ejemplo.test';
+  const API = API_STAGING;
   const permitir = { 'access-control-allow-origin': '*' };
   const ORG = '0199a1b2-0000-7000-8000-0000000000aa';
   const FINCA = '0199a1b2-0000-7000-8000-0000000000bb';
@@ -292,7 +322,7 @@ test('HU-E5.3 CA4: un teléfono nuevo baja la finca de su cuenta y la ve en Áre
     });
   });
   await cuenta(page);
-  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await entrar(page);
   await expect(page.locator('[data-prueba="nube-para-bajar"]')).toBeVisible();
   await page.getByRole('button', { name: 'Bajar «Finca Ensayo Dos» a este teléfono' }).click();
   await expect(page.locator('[data-prueba="nube-sync"]')).toContainText(
@@ -321,7 +351,7 @@ test('HU-E5.5 CA2: si la nube dice que esta versión es vieja, el aviso lo dice 
     },
   });
   await cuenta(page);
-  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await entrar(page);
   await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
   await expect(page.locator('[data-prueba="pedido-actualizar"]')).toContainText(
     'Esta versión del cuaderno ya es vieja.',
@@ -338,7 +368,7 @@ test('bitácora agro 22: lo que se registra con la finca en la nube sube solo, s
   await coreFalso(page);
   const lotes = await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
   await cuenta(page);
-  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await entrar(page);
   await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
   await expect(page.locator('[data-prueba="nube-sync"]')).toContainText(
     'Lo del equipo se revisó a las',
@@ -369,7 +399,7 @@ test('HU-E8.6: con la cuota agotada, el aviso dice hasta qué hora y que los dat
   await coreFalso(page);
   await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
   // La nube llegó a su límite: el push responde «bloqueo» (registrado después, manda).
-  await page.route('https://agro-api-c0-staging.ejemplo.test/api/v1/sync/push', async (ruta) => {
+  await page.route(`${API_STAGING}/api/v1/sync/push`, async (ruta) => {
     await ruta.fulfill({
       status: 503,
       headers: { 'access-control-allow-origin': '*', 'retry-after': '600' },
@@ -377,7 +407,7 @@ test('HU-E8.6: con la cuota agotada, el aviso dice hasta qué hora y que los dat
     });
   });
   await cuenta(page);
-  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await entrar(page);
   await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
   const aviso = page.locator('[data-prueba="aviso-pausa"]');
   await expect(aviso).toContainText('La sincronización está en pausa hasta las 19:00');
@@ -402,7 +432,7 @@ test('HU-E5.6 CA3: si la nube ve la hora del teléfono adelantada, el aviso pide
       : { id: op.id, estado: 'aceptado' },
   );
   await cuenta(page);
-  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await entrar(page);
   await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
   const aviso = page.locator('[data-prueba="aviso-reloj"]');
   await expect(aviso).toContainText('La hora de este teléfono está adelantada.');

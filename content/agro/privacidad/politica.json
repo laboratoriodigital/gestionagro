@@ -1,0 +1,43 @@
+{
+  "nota": "Fuente única de la política de tratamiento de datos (HU-E0.5, Ley 1581 de 2012). La página /agro/privacidad/, la aceptación que guarda el CORE y las pruebas de coherencia leen este archivo (P2). Cambiar lo que la política promete exige cambiar la versión.",
+  "version": "1",
+  "fecha": "2026-10-01",
+  "estado": "borrador",
+  "revision": "requiere revisión de abogado",
+  "responsable": {
+    "nombre": null,
+    "identificacion": null,
+    "domicilio": null,
+    "correo": null,
+    "telefono": null
+  },
+  "encargados": [
+    {
+      "quien": "Cloudflare, Inc.",
+      "para": "Alojar el sitio, la nube del cuaderno (bases de datos y respaldos) y contar los eventos anónimos de las calculadoras.",
+      "donde": "Servidores de Cloudflare fuera de Colombia, incluidos los Estados Unidos."
+    },
+    {
+      "quien": "Google LLC",
+      "para": "Entrar con tu cuenta de Google. Google nos entrega tu nombre, tu correo y un identificador de tu cuenta.",
+      "donde": "Servidores de Google fuera de Colombia, incluidos los Estados Unidos."
+    }
+  ],
+  "scripts_de_terceros": [],
+  "cookies": [
+    {
+      "nombre": "agro_oauth",
+      "donde": "Solo en el servidor de cuentas, mientras entras con Google",
+      "para": "Comprobar que la vuelta desde Google es la tuya (seguridad del ingreso)",
+      "dura": "10 minutos"
+    }
+  ],
+  "almacenamiento_en_el_telefono": [
+    "El cuaderno: tu finca, tus registros y tu sesión, en la base de datos del navegador del teléfono (IndexedDB).",
+    "La unidad de riego que usaste la última vez y, por hasta 2 horas, una lectura de la calculadora que quedó por guardar (almacenamiento local del navegador)."
+  ],
+  "medicion": {
+    "calculadoras": "Contamos de forma agregada cuántas veces se abre, se usa, se comparte y se pasa al cuaderno cada calculadora. Sin cookies, sin identificar a nadie y sin los valores que escribes.",
+    "cuaderno": "El cuaderno no tiene ninguna medición de uso."
+  }
+}

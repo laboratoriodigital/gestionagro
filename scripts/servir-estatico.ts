@@ -78,6 +78,32 @@ const redirecciones = new Map<string, { destino: string; estado: number }>(
     : [],
 );
 
+/**
+ * Cabeceras de `_headers` de la carpeta principal, como las aplica Workers Static Assets (P17):
+ * rutas exactas o terminadas en `*`. Así las e2e del cuaderno corren con la CSP real puesta.
+ */
+const archivoCabeceras = join(montajes.at(-1)?.carpeta ?? '', '_headers');
+const reglasDeCabeceras: { patron: string; cabeceras: [string, string][] }[] = [];
+if (existsSync(archivoCabeceras)) {
+  for (const linea of readFileSync(archivoCabeceras, 'utf8').split(/\r?\n/)) {
+    if (!linea.trim() || linea.trim().startsWith('#')) continue;
+    if (!/^\s/.test(linea)) {
+      reglasDeCabeceras.push({ patron: linea.trim(), cabeceras: [] });
+      continue;
+    }
+    const i = linea.indexOf(':');
+    reglasDeCabeceras.at(-1)?.cabeceras.push([linea.slice(0, i).trim(), linea.slice(i + 1).trim()]);
+  }
+}
+const cabecerasDe = (ruta: string): Record<string, string> =>
+  Object.fromEntries(
+    reglasDeCabeceras
+      .filter((r) =>
+        r.patron.endsWith('*') ? ruta.startsWith(r.patron.slice(0, -1)) : ruta === r.patron,
+      )
+      .flatMap((r) => r.cabeceras),
+  );
+
 createServer((solicitud, respuesta) => {
   const url = new URL(solicitud.url ?? '/', `http://localhost:${puerto}`);
   const redireccion = redirecciones.get(url.pathname);
@@ -120,6 +146,7 @@ createServer((solicitud, respuesta) => {
     'content-type': TIPOS[extname(ruta)] ?? 'application/octet-stream',
     // Sin caché HTTP: así las pruebas ven el service worker, no una copia del navegador.
     'cache-control': 'no-cache',
+    ...cabecerasDe(url.pathname),
   });
   const cuerpo = readFileSync(ruta);
   respuesta.end(

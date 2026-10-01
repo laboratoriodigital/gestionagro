@@ -59,23 +59,42 @@ export async function usuarioDeIdentidad(
   db: BaseD1,
   datos: { sub: string; nombre: string; email: string },
   reloj: Reloj = relojDelSistema,
+  /** Versión de la política que la persona aceptó al entrar (HU-E0.5, CA3). */
+  politica: string | null = null,
 ): Promise<{ id: string; nuevo: boolean }> {
   const sub = sinEspacios(datos.sub, 'el identificador de Google');
   const existente = await db
-    .prepare('SELECT usuario_id FROM identidad WHERE proveedor = ? AND sub = ?')
+    .prepare(
+      `SELECT i.usuario_id, u.politica_version FROM identidad i
+         JOIN usuario u ON u.id = i.usuario_id
+        WHERE i.proveedor = ? AND i.sub = ?`,
+    )
     .bind('google', sub)
-    .first<{ usuario_id: string }>();
-  if (existente) return { id: existente.usuario_id, nuevo: false };
+    .first<{ usuario_id: string; politica_version: string | null }>();
   const ahora = reloj();
+  if (existente) {
+    // Aceptó una versión nueva: se guarda cuál y cuándo. La misma versión no escribe nada.
+    if (politica && existente.politica_version !== politica) {
+      await db
+        .prepare('UPDATE usuario SET politica_version = ?, politica_aceptada = ? WHERE id = ?')
+        .bind(politica, iso(ahora), existente.usuario_id)
+        .run();
+    }
+    return { id: existente.usuario_id, nuevo: false };
+  }
   const id = uuidv7(() => ahora);
   await db.batch([
     db
-      .prepare('INSERT INTO usuario (id, nombre, email, creado) VALUES (?, ?, ?, ?)')
+      .prepare(
+        'INSERT INTO usuario (id, nombre, email, creado, politica_version, politica_aceptada) VALUES (?, ?, ?, ?, ?, ?)',
+      )
       .bind(
         id,
         sinEspacios(datos.nombre, 'el nombre'),
         sinEspacios(datos.email, 'el email'),
         iso(ahora),
+        politica,
+        politica ? iso(ahora) : null,
       ),
     db
       .prepare('INSERT INTO identidad (proveedor, sub, usuario_id) VALUES (?, ?, ?)')

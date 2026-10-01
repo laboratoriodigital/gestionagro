@@ -6,6 +6,7 @@
  * - Sin señal y con el access vencido se muestra «sin sesión para sincronizar», no un error (CA2).
  */
 import { useEffect, useState } from 'preact/hooks';
+import politica from '../../../../content/agro/privacidad/politica.json' with { type: 'json' };
 import { cuaderno } from '../almacen/abierto.ts';
 import {
   canjear,
@@ -33,6 +34,8 @@ export function Cuenta() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [entrando, setEntrando] = useState(false);
   const [enLinea, setEnLinea] = useState(navigator.onLine);
+  // HU-E0.5, CA3: entrar exige aceptar la política vigente; el CORE guarda versión y fecha.
+  const [acepta, setAcepta] = useState(false);
   const core = urlDelCore(location.hostname);
 
   useEffect(() => {
@@ -71,7 +74,9 @@ export function Cuenta() {
 
   const entrar = () => {
     const vuelta = `${location.origin}/agro/app/cuenta/`;
-    location.assign(`${core}/api/core/auth/google/inicio?vuelta=${encodeURIComponent(vuelta)}`);
+    location.assign(
+      `${core}/api/core/auth/google/inicio?vuelta=${encodeURIComponent(vuelta)}&politica=${encodeURIComponent(politica.version)}`,
+    );
   };
 
   const salir = async () => {
@@ -126,8 +131,28 @@ export function Cuenta() {
             El cuaderno funciona sin cuenta. Con una cuenta de Google, tus registros podrán
             respaldarse en la nube y tu equipo podrá anotar desde sus teléfonos.
           </p>
+          <div class="opcion">
+            <input
+              id="acepta-politica"
+              type="checkbox"
+              checked={acepta}
+              onChange={(e) => setAcepta((e.currentTarget as HTMLInputElement).checked)}
+            />
+            <label for="acepta-politica">
+              Leí y acepto la{' '}
+              <a href="/agro/privacidad/" target="_blank" rel="noopener">
+                política de tratamiento de datos
+              </a>{' '}
+              (versión {politica.version}).
+            </label>
+          </div>
           <div class="acciones">
-            <button type="button" disabled={!enLinea} onClick={entrar} data-prueba="entrar-google">
+            <button
+              type="button"
+              disabled={!enLinea || !acepta}
+              onClick={entrar}
+              data-prueba="entrar-google"
+            >
               Entrar con Google
             </button>
           </div>
