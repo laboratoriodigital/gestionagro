@@ -220,6 +220,8 @@ export interface CambioDeCatalogo {
 }
 
 export interface RespuestaPull {
+  /** Nivel de la celda (ARQUITECTURA §8.2): en `ahorro` el teléfono revisa cada 60 min. */
+  nivel?: 'normal' | 'alerta' | 'ahorro';
   catalogos: CambioDeCatalogo[];
   registros: Registro[];
   cursor: Cursor;

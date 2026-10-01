@@ -27,6 +27,7 @@ import {
   pedidoDeActualizar,
   validarOperacion,
 } from '@gestionagro/sync';
+import { nivelDeLaCelda, respuestaDePausa } from './nivel.ts';
 import type { ContextoCelda } from './worker.ts';
 
 type Plan =
@@ -44,6 +45,9 @@ const marcadores = (n: number) => Array.from({ length: n }, () => '?').join(', '
 
 export async function push(c: ContextoCelda, ahora: () => number): Promise<Response> {
   const { org, db } = c.get('sesion');
+  // Con la cuota de D1 agotada, escribir fallaría: se dice por qué y cuándo vuelve (HU-E8.6).
+  if ((await nivelDeLaCelda(c.env.FLAGS)) === 'bloqueo')
+    return respuestaDePausa(c, 'bloqueo', ahora());
   let cuerpo: { protocolo?: unknown; dispositivo?: unknown; app?: unknown; ops?: unknown };
   try {
     cuerpo = (await c.req.json()) as typeof cuerpo;

@@ -21,9 +21,23 @@ import type { CuadernoDb, VersionAnterior } from './db.ts';
 export const CLAVE_CURSOR = 'cursor_pull';
 
 export type ResultadoDeRecepcion =
-  | { estado: 'al-dia'; recibidos: number; conflictos: number }
+  | {
+      estado: 'al-dia';
+      recibidos: number;
+      conflictos: number;
+      /** Nivel que dijo la celda; en `ahorro` se revisa cada 60 min (ARQUITECTURA §8.2). */
+      nivel?: string;
+    }
   | { estado: 'sin-senal'; recibidos: number; conflictos: number }
-  | { estado: 'esperar'; recibidos: number; conflictos: number; ms: number; motivo: string }
+  | {
+      estado: 'esperar';
+      recibidos: number;
+      conflictos: number;
+      ms: number;
+      motivo: string;
+      causa?: string;
+      reanuda?: string;
+    }
   | { estado: 'sin-sesion' | 'error'; recibidos: number; conflictos: number; motivo: string };
 
 export async function leerCursor(db: CuadernoDb): Promise<Cursor> {
@@ -109,7 +123,7 @@ export async function recibirCambios(
   for (let n = 0; n < maxPaginas; n++) {
     const c = await leerCursor(db);
     let r: Response;
-    let cuerpo: Partial<RespuestaPull> & { motivo?: string };
+    let cuerpo: Partial<RespuestaPull> & { motivo?: string; estado?: string; reanuda?: string };
     try {
       r = await fetchFn(
         `${destino.api}/api/v1/sync/pull?registro=${c.registro}&catalogo=${c.catalogo}`,
@@ -131,6 +145,8 @@ export async function recibirCambios(
         conflictos,
         ms: Number.isFinite(pedido) && pedido > 0 ? pedido * 1000 : 60_000,
         motivo: cuerpo.motivo ?? 'La nube pidió una pausa.',
+        ...(cuerpo.estado ? { causa: cuerpo.estado } : {}),
+        ...(cuerpo.reanuda ? { reanuda: cuerpo.reanuda } : {}),
       };
     }
     if (
@@ -149,7 +165,11 @@ export async function recibirCambios(
     const hecho = await aplicarPagina(db, cuerpo as RespuestaPull, new Date(ahora()).toISOString());
     recibidos += hecho.recibidos;
     conflictos += hecho.conflictos;
-    if (!cuerpo.mas) return { estado: 'al-dia', recibidos, conflictos };
+    if (!cuerpo.mas) {
+      return cuerpo.nivel
+        ? { estado: 'al-dia', recibidos, conflictos, nivel: cuerpo.nivel }
+        : { estado: 'al-dia', recibidos, conflictos };
+    }
   }
   return { estado: 'al-dia', recibidos, conflictos };
 }

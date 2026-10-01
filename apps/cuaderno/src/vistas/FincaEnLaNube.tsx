@@ -20,6 +20,7 @@ import {
   estadoDelVinculo,
   subirFinca,
 } from '../almacen/vinculo.ts';
+import { causaDe, DATOS_A_SALVO, mensajeDePausa } from '../mensajes-de-pausa.ts';
 import {
   type EstadoDeSincronizacion,
   escucharSincronizacion,
@@ -27,7 +28,6 @@ import {
   sincronizarAhora,
 } from '../sincronizacion.ts';
 
-const minutos = (ms: number) => Math.max(1, Math.round(ms / 60_000));
 const hora = (ms: number) =>
   new Intl.DateTimeFormat('es-CO', {
     hour: 'numeric',
@@ -35,44 +35,39 @@ const hora = (ms: number) =>
     timeZone: 'America/Bogota',
   }).format(ms);
 
-/** Lo que bajó del equipo, en palabras (HU-E5.3). Vacío si no hay nada que decir. */
+/** Lo que bajó del equipo, en palabras (HU-E5.3). */
 function textoDeRecepcion(r: ResultadoDeRecepcion | undefined): string {
-  if (!r) return '';
+  if (r?.estado !== 'al-dia') return '';
   const bajados = r.recibidos > 0 ? ` Se bajaron ${r.recibidos} cambios del equipo.` : '';
   const chocan =
     r.conflictos > 0
       ? ` ${r.conflictos} cambios del equipo tocan algo que tú también editaste: se guardaron aparte, sin borrar el tuyo.`
       : '';
-  switch (r.estado) {
-    case 'al-dia':
-      return `${bajados}${chocan}`;
-    case 'sin-senal':
-      return `${bajados} Se cortó la señal al bajar lo del equipo; sigue cuando vuelva.`;
-    case 'esperar':
-      return `${bajados} ${r.motivo}`;
-    default:
-      return `${bajados} ${r.motivo}`;
-  }
+  return `${bajados}${chocan}`;
 }
 
+/**
+ * El estado de la sincronización en palabras. Toda pausa sale del catálogo de HU-E8.6
+ * (`mensajes-de-pausa.ts`): esta pantalla no escribe sus propios textos de pausa.
+ */
 export function textoDeSincronizacion(e: EstadoDeSincronizacion): string | null {
   if (e.tipo === 'enviando') return 'Sincronizando…';
-  if (e.tipo === 'sin-sesion')
-    return 'Sin sesión para sincronizar: se renueva sola cuando haya señal.';
+  const pausa = causaDe(e);
+  const enPalabras = (p: NonNullable<typeof pausa>) => {
+    const m = mensajeDePausa(p.causa, { ahora: Date.now(), ...p });
+    return `${m.que} ${m.datos} ${m.hacer}`;
+  };
+  // «ahorro» y «app vieja» no detienen la sincronización: se dicen junto al resultado.
+  if (pausa && pausa.causa !== 'ahorro' && pausa.causa !== 'app-vieja') return enPalabras(pausa);
   if (e.tipo !== 'resultado') return null;
   const r = e.resultado;
-  const enviados = r.enviados > 0 ? ` Se subieron ${r.enviados}.` : '';
-  switch (r.estado) {
-    case 'al-dia':
-      // «Lo tuyo»: lo del equipo solo se sabe hasta la última revisión, y se dice cuándo fue.
-      return `Todo lo tuyo está en la nube.${enviados}${textoDeRecepcion(e.recepcion)} Lo del equipo se revisó a las ${hora(e.cuando)}.`;
-    case 'sin-senal':
-      return `Sin señal: lo pendiente sube cuando vuelva.${enviados}`;
-    case 'esperar':
-      return `La nube pidió una pausa; se intenta de nuevo en ${minutos(r.ms)} min. Tus datos están en el teléfono.${enviados}`;
-    default:
-      return `${r.motivo} Tus datos siguen en este teléfono.`;
+  if (r.estado !== 'al-dia') {
+    return `${'motivo' in r ? r.motivo : 'No se pudo sincronizar.'} ${DATOS_A_SALVO}`;
   }
+  const enviados = r.enviados > 0 ? ` Se subieron ${r.enviados}.` : '';
+  // «Lo tuyo»: lo del equipo solo se sabe hasta la última revisión, y se dice cuándo fue.
+  const base = `Todo lo tuyo está en la nube.${enviados}${textoDeRecepcion(e.recepcion)} Lo del equipo se revisó a las ${hora(e.cuando)}.`;
+  return pausa ? `${base} ${enPalabras(pausa)}` : base;
 }
 
 export function FincaEnLaNube({

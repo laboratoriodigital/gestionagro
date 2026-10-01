@@ -16,6 +16,7 @@ import { estadoDelVinculo } from './almacen/vinculo.ts';
 import { DEMORA_TRAS_GUARDAR_MS, debeSincronizar } from './disparadores.ts';
 
 export const CADA_MS = 15 * 60_000;
+export const CADA_EN_AHORRO_MS = 60 * 60_000;
 
 export type EstadoDeSincronizacion =
   | { tipo: 'inactiva'; motivo: 'sin-cuenta' | 'sin-vincular' | 'otra-cuenta' }
@@ -106,10 +107,10 @@ async function una(): Promise<EstadoDeSincronizacion> {
     recibirCambios(db, { api: sesion.url_api ?? '', acceso: sesion.acceso }),
   );
   fallos = recepcion.estado === 'esperar' ? fallos + 1 : 0;
-  programar(
-    recepcion.estado === 'esperar' ? recepcion.ms : CADA_MS,
-    recepcion.estado === 'esperar',
-  );
+  // En «ahorro» la celda pide revisar menos seguido (ARQUITECTURA §8.2).
+  const cada =
+    recepcion.estado === 'al-dia' && recepcion.nivel === 'ahorro' ? CADA_EN_AHORRO_MS : CADA_MS;
+  programar(recepcion.estado === 'esperar' ? recepcion.ms : cada, recepcion.estado === 'esperar');
   return { tipo: 'resultado', resultado, recepcion, cuando: Date.now() };
 }
 
