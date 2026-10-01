@@ -23,6 +23,7 @@ import { cuaderno } from '../almacen/abierto.ts';
 import { type DatosClimaGuardado, guardarClima } from '../almacen/clima.ts';
 import { Campo, CampoSeleccion } from '../componentes/Campo.tsx';
 import { AccionesDeFormulario, aTexto, EventoQueSeCorrige } from '../componentes/Correccion.tsx';
+import { tomarLecturaPendiente } from '../lectura-pendiente.ts';
 
 interface Valores {
   areaId: string;
@@ -75,6 +76,7 @@ export function FormularioClima(props: {
   });
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [guardado, setGuardado] = useState<string | null>(null);
+  const [desdeCalculadora, setDesdeCalculadora] = useState(false);
 
   // CA3: valores que llegan desde la calculadora; se borran del enlace para no repetirlos.
   useEffect(() => {
@@ -82,7 +84,15 @@ export function FormularioClima(props: {
     const desdeEnlace = valoresDelFragmento(window.location.hash);
     if (Object.keys(desdeEnlace).length > 0) {
       setV((actual) => ({ ...actual, ...desdeEnlace }));
+      setDesdeCalculadora(true);
       history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+    // Llegó de la calculadora antes de que existiera la finca (HU-E2.7).
+    const pendiente = tomarLecturaPendiente();
+    if (pendiente && Object.keys(pendiente).length > 0) {
+      setV((actual) => ({ ...actual, ...pendiente }));
+      setDesdeCalculadora(true);
     }
   }, []);
 
@@ -138,6 +148,7 @@ export function FormularioClima(props: {
       );
       setV({ ...v, t: '', hr: '', th: '' });
       setGuardado('Guardado en este teléfono.');
+      setDesdeCalculadora(false);
       props.alGuardar();
     } catch (error) {
       if (error instanceof ErrorDeMedida) {
@@ -159,6 +170,11 @@ export function FormularioClima(props: {
       data-prueba="formulario-clima"
     >
       <h2>{props.corrige ? 'Corregir clima' : 'Clima'}</h2>
+      {desdeCalculadora && (
+        <p class="estado" data-prueba="lectura-de-calculadora">
+          Lectura traída de la calculadora. Revisa los valores, elige el área y guarda.
+        </p>
+      )}
       {props.corrige ? (
         <EventoQueSeCorrige registro={props.corrige} areas={props.areas} />
       ) : (

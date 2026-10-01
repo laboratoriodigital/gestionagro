@@ -11,8 +11,9 @@ import { leerFinca } from '../almacen/finca.ts';
 import { leerPersonas } from '../almacen/personas.ts';
 import { resumenDe } from '../componentes/resumen.ts';
 import { fechaHora } from '../formato.ts';
+import { guardarLecturaPendiente } from '../lectura-pendiente.ts';
 import { FormularioAplicacion } from './FormularioAplicacion.tsx';
-import { FormularioClima } from './FormularioClima.tsx';
+import { FormularioClima, valoresDelFragmento } from './FormularioClima.tsx';
 import { FormularioLabor } from './FormularioLabor.tsx';
 import { FormularioRiego } from './FormularioRiego.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
@@ -81,8 +82,20 @@ export function Registrar() {
   };
   useEffect(cargar, [fincaId]);
 
+  // Sin finca, una lectura que llega de la calculadora se guarda para después (HU-E2.7).
+  const sinFinca = !estado.cargando && !fincaId;
+  const [lecturaGuardada, setLecturaGuardada] = useState(false);
+  useEffect(() => {
+    if (!sinFinca) return;
+    const lectura = valoresDelFragmento(window.location.hash);
+    if (Object.keys(lectura).length === 0) return;
+    guardarLecturaPendiente(lectura);
+    history.replaceState(null, '', window.location.pathname);
+    setLecturaGuardada(true);
+  }, [sinFinca]);
+
   if (estado.cargando) return <p>Abriendo tu cuaderno…</p>;
-  if (!fincaId) return <SinFinca />;
+  if (!fincaId) return <SinFinca lecturaGuardada={lecturaGuardada} />;
 
   return (
     <section aria-labelledby="titulo-registrar">
