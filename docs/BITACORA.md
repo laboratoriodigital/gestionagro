@@ -83,7 +83,7 @@ Al 30 sep 2026 no hay código, así que ningún patrón tiene todavía «Lo impi
 - **Regla:** antes de dar una comprobación, preguntar qué respondería sin el cambio. Toda aserción nueva se ve en rojo con su defecto puesto.
 - **En Agro:** también aplica a las comprobaciones que se le piden al dueño («abre la app y mira que…»): tienen que distinguir.
 - **Lo impedirá:** plantilla de pull request con el campo «Control negativo: qué defecto se puso y cómo se vio en rojo» (HU-E1.2); Definición de Terminado (`BACKLOG.md` §2).
-- **Entradas:** agro 6.
+- **Entradas:** agro 6, agro 8.
 
 #### P6 · Lo que se escribe para los que vienen después deja fuera al primero
 - **Regla:** el cliente cero también es un cliente: lo que se hace para «los demás» se corre contra él.
@@ -165,7 +165,7 @@ Al 30 sep 2026 no hay código, así que ningún patrón tiene todavía «Lo impi
   - El D1 local no reproduce el límite diario ni las 50 consultas por invocación.
   - Un emulador de ESP32 no reproduce un relé pegado.
 - **Lo impedirá:** cada doble documenta lo que no imita, y el límite de 50 consultas se simula en las pruebas del Worker (HU-E5.2).
-- **Entradas:** agro 6.
+- **Entradas:** agro 6, agro 8.
 
 #### P18 · Un documento no lanza una excepción cuando miente
 - **Regla:** lo que un documento afirma del código lo ata una aserción; el redundante se borra.
@@ -400,3 +400,17 @@ ENOENT: no such file or directory, open 'D:\CoWork\gestionagro\apps\sitio\dist\s
 La regla: **una ruta relativa al archivo que se ejecuta supone que nadie lo mueve. Un empaquetador lo mueve.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P2, P16 · 0.1.0 · 2026-09-30
+
+**8 · La prueba «calcular no hace solicitudes» contaba con la red apagada, y así no veía ninguna.**
+
+*Qué pasó.* El 30 sep 2026, en HU-E2.2, la prueba e2e del CA5 apagaba la red (`context.setOffline(true)`), escribía valores y exigía que la lista de solicitudes estuviera vacía. Pasaba en verde.
+
+*Cómo se descubrió.* Con el control negativo: la isla haciendo `fetch('/api/medir')` en cada cálculo. La prueba siguió en verde. El defecto sí estaba en el build (`apps/sitio/dist/_astro/CalculadoraDpv.*.js` contenía `api/medir`).
+
+*Causa raíz.* Con el contexto sin conexión, Playwright no reporta en `page.on('request')` las solicitudes que la página intenta hacer. La lista vacía no significaba «no pidió nada», sino «no pude ver lo que pidió» (P17).
+
+*Arreglo.* Dos pruebas: una cuenta las solicitudes **con** la red encendida, y la otra comprueba que se calcula **sin** red. Con el mismo defecto, la primera falla y nombra `http://localhost:4321/api/medir`.
+
+La regla: **no midas una propiedad en las condiciones que apagan el instrumento. «Cero eventos» solo vale si el instrumento podía ver uno.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P5, P17 · 0.1.0 · 2026-09-30

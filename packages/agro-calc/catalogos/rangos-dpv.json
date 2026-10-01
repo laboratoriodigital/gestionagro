@@ -1,0 +1,19 @@
+{
+  "nota": "Rangos de referencia de DPV del aire por cultivo y etapa (ARQUITECTURA §5.2). Única fuente para la calculadora pública y el cuaderno (P2, HU-E3.8). Agregar un cultivo es agregar una fila con su fuente, nunca código. Un cultivo sin fila se calcula igual, sin indicación.",
+  "revision_agronomica": "pendiente",
+  "cultivos": [
+    {
+      "id": "tomate",
+      "nombre": "Tomate",
+      "etapas": [
+        {
+          "id": "produccion",
+          "nombre": "Producción",
+          "optimo_kPa": [0.5, 0.8],
+          "aceptable_kPa": [0.4, 1.2],
+          "fuente": "Shamshiri, R. R. et al. (2018). Review of optimum temperature, humidity, and vapour pressure deficit for microclimate evaluation and control in greenhouse cultivation of tomato. International Agrophysics."
+        }
+      ]
+    }
+  ]
+}

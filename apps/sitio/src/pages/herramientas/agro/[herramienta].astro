@@ -4,6 +4,7 @@
  * El contenido completo se ve sin JavaScript (P20); la calculadora llega como isla (HU-E2.2).
  */
 import type { Producto } from '../../../../../../scripts/lib/productos.ts';
+import CalculadoraDpv from '../../../islas/CalculadoraDpv.tsx';
 import Base from '../../../layouts/Base.astro';
 import { contenidoDe, herramientas, productoPorId } from '../../../lib/contenido.ts';
 import { segmentoDe, seoDeProducto } from '../../../lib/seo.ts';
@@ -41,7 +42,19 @@ const relacionados = producto.relacionados
 
     <section aria-labelledby="titulo-calculadora" class="calculadora">
       <h2 id="titulo-calculadora">Calcular</h2>
-      <p>La calculadora llega con la próxima versión.</p>
+      {
+        producto.id === 'agro-calculadora-dpv' ? (
+          <>
+            <CalculadoraDpv client:load />
+            <noscript>
+              <p>La calculadora necesita JavaScript. Abajo está el cálculo paso a paso para hacerlo a mano.</p>
+            </noscript>
+            <p class="privacidad">Los valores no salen de tu teléfono: el cálculo se hace aquí.</p>
+          </>
+        ) : (
+          <p>La calculadora llega con la próxima versión.</p>
+        )
+      }
     </section>
 
     {secciones.map((s) => <s.Content />)}
@@ -88,6 +101,72 @@ const relacionados = producto.relacionados
     Object.assign(window, { agroEventos: colector });
   }
 </script>
+
+<style is:global>
+  .calculadora-dpv .campo {
+    margin-block-end: var(--espacio-3);
+  }
+  .calculadora-dpv label,
+  .calculadora-dpv summary {
+    display: block;
+    font-weight: 600;
+    margin-block-end: var(--espacio-1);
+  }
+  .calculadora-dpv summary {
+    min-height: var(--objetivo-tactil);
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  .calculadora-dpv .unidad {
+    font-weight: 400;
+    color: var(--color-texto-suave);
+  }
+  .calculadora-dpv input,
+  .calculadora-dpv select {
+    width: 100%;
+    min-height: var(--objetivo-tactil);
+    font: inherit;
+    font-size: 1.25rem;
+    padding: var(--espacio-2);
+    border: 2px solid var(--color-borde);
+    border-radius: var(--radio);
+    background: var(--color-fondo);
+    color: var(--color-texto);
+  }
+  .calculadora-dpv input[aria-invalid='true'] {
+    border-color: var(--color-alerta);
+  }
+  .calculadora-dpv .error {
+    color: var(--color-alerta);
+    margin: var(--espacio-1) 0 0;
+  }
+  .calculadora-dpv .resultado {
+    display: grid;
+    gap: var(--espacio-2);
+    margin-block-start: var(--espacio-3);
+  }
+  .calculadora-dpv .valor {
+    font-size: 2rem;
+  }
+  .calculadora-dpv .fuente {
+    display: block;
+    color: var(--color-texto-suave);
+    margin-block-start: var(--espacio-1);
+  }
+  .calculadora-dpv .indicacion {
+    border-inline-start: 4px solid var(--color-marca);
+    padding-inline-start: var(--espacio-2);
+  }
+  .calculadora-dpv .nivel-bajo,
+  .calculadora-dpv .nivel-alto {
+    border-inline-start-color: var(--color-alerta);
+  }
+  .privacidad {
+    font-size: var(--texto-pequeno);
+    color: var(--color-texto-suave);
+  }
+</style>
 
 <style>
   .entrada {
