@@ -175,7 +175,7 @@ describe('CA1 · páginas de ≤ 200 con el cursor del teléfono, sin escribir n
       mas: false,
       cursor: p2.cuerpo.cursor,
     });
-  });
+  }, 60_000); // sube 250 registros antes de bajarlos: con toda la suite en paralelo pasa de 5 s
 
   it('atender un pull no escribe ninguna fila', async () => {
     await fincaConRegistros(ORG_UNO, 'Finca Ensayo Uno', 3);
