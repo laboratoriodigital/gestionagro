@@ -2,8 +2,9 @@
  * Inicio del cuaderno. Sin finca, abre el asistente (HU-E3.3); con finca, la muestra.
  * Pide almacenamiento persistente y dice el resultado en palabras (ARQUITECTURA §5.3, regla 6).
  */
-import type { Area, Finca } from '@gestionagro/agro-schema';
+import type { Area, Ciclo, Cultivo, Finca } from '@gestionagro/agro-schema';
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { leerCiclos, leerCultivos } from '../almacen/ciclos.ts';
 import { abrirCuaderno } from '../almacen/db.ts';
 import { leerFinca } from '../almacen/finca.ts';
 import { type EstadoPersistencia, pedirPersistencia } from '../almacen/persistencia.ts';
@@ -20,7 +21,10 @@ const TEXTO_PERSISTENCIA: Record<EstadoPersistencia, string> = {
 
 type Estado =
   | { cargando: true }
-  | { cargando: false; datos: { finca: Finca; areas: Area[] } | null };
+  | {
+      cargando: false;
+      datos: { finca: Finca; areas: Area[]; ciclos: Ciclo[]; cultivos: Cultivo[] } | null;
+    };
 
 export function Inicio() {
   const db = useMemo(() => abrirCuaderno(), []);
@@ -28,7 +32,17 @@ export function Inicio() {
   const [estado, setEstado] = useState<Estado>({ cargando: true });
 
   const cargar = () => {
-    void leerFinca(db).then((datos) => setEstado({ cargando: false, datos }));
+    void (async () => {
+      const base = await leerFinca(db);
+      const datos = base
+        ? {
+            ...base,
+            ciclos: await leerCiclos(db, base.finca.id),
+            cultivos: await leerCultivos(db, base.finca.id),
+          }
+        : null;
+      setEstado({ cargando: false, datos });
+    })();
   };
 
   useEffect(() => {
@@ -44,7 +58,14 @@ export function Inicio() {
       {estado.cargando ? (
         <p>Abriendo tu cuaderno…</p>
       ) : estado.datos ? (
-        <MiFinca db={db} finca={estado.datos.finca} areas={estado.datos.areas} alCambiar={cargar} />
+        <MiFinca
+          db={db}
+          finca={estado.datos.finca}
+          areas={estado.datos.areas}
+          ciclos={estado.datos.ciclos}
+          cultivos={estado.datos.cultivos}
+          alCambiar={cargar}
+        />
       ) : (
         <>
           <p class="bienvenida">

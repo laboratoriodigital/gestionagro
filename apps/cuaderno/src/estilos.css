@@ -160,6 +160,26 @@ button:disabled {
 .resumen dd {
   margin: 0 0 var(--espacio-2);
 }
+.ciclo {
+  margin-block: var(--espacio-2);
+  padding-inline-start: var(--espacio-2);
+  border-inline-start: 4px solid var(--color-marca);
+}
+.ciclo p {
+  margin: 0;
+}
+.campo select,
+.campo input[type="date"] {
+  width: 100%;
+  min-height: var(--objetivo-tactil);
+  font: inherit;
+  font-size: 1.125rem;
+  padding: var(--espacio-2);
+  border: 2px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
 /* Después de la regla general de button: es más específica (noDescendingSpecificity). */
 .aviso-actualizacion button {
   min-height: var(--objetivo-tactil);

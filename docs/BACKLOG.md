@@ -492,7 +492,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.4 · Ciclo de cultivo
 **Como** supervisor **quiero** registrar qué cultivo y variedad se sembró en cada nave, cuándo y cuántas plantas **para** calcular rendimiento y organizar las labores por ciclo.
-- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S4 · **Depende de:** HU-E3.3 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S4 · **Depende de:** HU-E3.3 · **Estado:** En sprint (rama `feat/e3.4-ciclo-de-cultivo`)
 - **Criterios de aceptación:**
   1. Dado un área, cuando creo un ciclo con cultivo, variedad, fecha de trasplante y número de plantas, entonces queda activo y los registros nuevos de esa área se asocian a él por defecto.
   2. Cultivo y variedad salen de un catálogo editable; agregar una variedad nueva no requiere código.

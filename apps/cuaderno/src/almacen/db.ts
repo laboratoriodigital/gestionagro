@@ -6,10 +6,18 @@
  * `migraciones.test.ts` abre cada versión anterior con datos de las dos fincas de prueba y exige
  * que la última no pierda ninguno (P4 al revés: probar la base que ya existe).
  */
-import type { Area, Ciclo, Finca, Insumo, Persona, Registro } from '@gestionagro/agro-schema';
+import type {
+  Area,
+  Ciclo,
+  Cultivo,
+  Finca,
+  Insumo,
+  Persona,
+  Registro,
+} from '@gestionagro/agro-schema';
 import { Dexie, type EntityTable, type Transaction } from 'dexie';
 
-export type Entidad = 'registro' | 'finca' | 'area' | 'ciclo' | 'persona' | 'insumo';
+export type Entidad = 'registro' | 'finca' | 'area' | 'ciclo' | 'persona' | 'insumo' | 'cultivo';
 
 /** Operación pendiente de subir a la celda. Se escribe en la misma transacción que su dato. */
 export interface OperacionSalida {
@@ -47,6 +55,7 @@ export type CuadernoDb = Dexie & {
   ciclo: EntityTable<Ciclo, 'id'>;
   persona: EntityTable<Persona, 'id'>;
   insumo: EntityTable<Insumo, 'id'>;
+  cultivo: EntityTable<Cultivo, 'id'>;
   registro: EntityTable<Registro, 'id'>;
   outbox: EntityTable<OperacionSalida, 'id'>;
   historial: EntityTable<VersionAnterior, 'id'>;
@@ -93,6 +102,14 @@ export const VERSIONES_LOCALES: readonly VersionLocal[] = [
           op.entidad_id ??= op.id;
           op.version ??= 1;
         });
+    },
+  },
+  {
+    // HU-E3.4: catálogo de cultivos y ciclos buscables por área (ciclo activo de una nave).
+    version: 3,
+    tablas: {
+      cultivo: 'id, finca_id', // cultivos y variedades de una finca
+      ciclo: 'id, finca_id, *area_ids', // ciclos de un área (multiEntry)
     },
   },
 ];

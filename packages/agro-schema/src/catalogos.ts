@@ -24,16 +24,52 @@ export const area = z.strictObject({
   activa: z.boolean(),
 });
 
-export const ciclo = z.strictObject({
+export const ciclo = z
+  .strictObject({
+    ...metaDeCatalogo,
+    finca_id: id,
+    area_ids: z.array(id).min(1, 'el ciclo necesita al menos un área'),
+    cultivo: texto,
+    variedad: texto,
+    fecha_trasplante: fechaAgronomica,
+    plantas: z.int().min(1).nullable(),
+    estado: z.enum(['activo', 'cerrado']),
+    fecha_fin: fechaAgronomica.nullable(),
+  })
+  .superRefine((c, ctx) => {
+    if (c.estado === 'cerrado' && c.fecha_fin === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fecha_fin'],
+        message: 'un ciclo cerrado necesita fecha de fin',
+      });
+    }
+    if (c.estado === 'activo' && c.fecha_fin !== null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fecha_fin'],
+        message: 'un ciclo activo no tiene fecha de fin',
+      });
+    }
+    // Fechas AAAA-MM-DD: se comparan como texto sin pasar por un huso horario (P8).
+    if (c.fecha_fin !== null && c.fecha_fin < c.fecha_trasplante) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fecha_fin'],
+        message: 'la fecha de fin no puede ser antes del trasplante',
+      });
+    }
+  });
+
+/**
+ * Catálogo de cultivos de la finca con sus variedades (HU-E3.4, CA2). Editable desde la app:
+ * agregar un cultivo o una variedad no requiere código. Arranca vacío: no hay cultivos de fábrica.
+ */
+export const cultivo = z.strictObject({
   ...metaDeCatalogo,
   finca_id: id,
-  area_ids: z.array(id).min(1, 'el ciclo necesita al menos un área'),
-  cultivo: texto,
-  variedad: texto,
-  fecha_trasplante: fechaAgronomica,
-  plantas: z.int().min(1).nullable(),
-  estado: z.enum(['activo', 'cerrado']),
-  fecha_fin: fechaAgronomica.nullable(),
+  nombre: texto,
+  variedades: z.array(texto),
 });
 
 export const persona = z.strictObject({
@@ -64,3 +100,4 @@ export type Area = z.infer<typeof area>;
 export type Ciclo = z.infer<typeof ciclo>;
 export type Persona = z.infer<typeof persona>;
 export type Insumo = z.infer<typeof insumo>;
+export type Cultivo = z.infer<typeof cultivo>;

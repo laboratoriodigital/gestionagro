@@ -16,7 +16,8 @@ import {
   validarCatalogo,
 } from '@gestionagro/agro-schema';
 import { conEscritura } from '../actividad.ts';
-import type { CuadernoDb, OperacionSalida, VersionAnterior } from './db.ts';
+import type { CuadernoDb, VersionAnterior } from './db.ts';
+import { actualizarVersionado, operacion } from './versionado.ts';
 
 export const TIPOS_PRINCIPALES = ['nave', 'bloque', 'lote'] as const;
 export const TIPOS_SUBAREA = ['cama', 'surco'] as const;
@@ -41,21 +42,6 @@ export type CambiosArea = Partial<
 interface Opciones {
   ahora?: () => Date;
 }
-
-const operacion = (
-  entidad: OperacionSalida['entidad'],
-  entidadId: string,
-  version: number,
-  op: OperacionSalida['op'],
-  creado: string,
-): OperacionSalida => ({
-  id: `${entidadId}@v${version}`,
-  entidad,
-  entidad_id: entidadId,
-  version,
-  op,
-  creado,
-});
 
 export async function crearFincaConAreas(
   db: CuadernoDb,
@@ -144,29 +130,18 @@ export async function editarArea(
 ): Promise<Area> {
   const instante = ahora().toISOString();
   return conEscritura(() =>
-    db.transaction('rw', db.area, db.historial, db.outbox, async () => {
-      const actual = await db.area.get(id);
-      if (!actual)
-        throw new ErrorDeValidacion('Área', [{ campo: 'id', motivo: 'el área no existe' }]);
-      const nueva = validarCatalogo('Área', esquemaArea, {
-        ...actual,
-        ...cambios,
-        version: actual.version + 1,
-        actualizado: instante,
-      });
-      const anterior: VersionAnterior = {
-        id: uuidv7(),
-        entidad: 'area',
-        entidad_id: id,
-        version: actual.version,
-        datos: actual,
-        reemplazada: instante,
-      };
-      await db.historial.add(anterior);
-      await db.area.put(nueva);
-      await db.outbox.add(operacion('area', id, nueva.version, 'actualizar', instante));
-      return nueva;
-    }),
+    db.transaction('rw', db.area, db.historial, db.outbox, () =>
+      actualizarVersionado<Area>(
+        db,
+        db.area,
+        'area',
+        'Área',
+        esquemaArea,
+        id,
+        () => cambios,
+        instante,
+      ),
+    ),
   );
 }
 
