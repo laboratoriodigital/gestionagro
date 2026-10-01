@@ -317,3 +317,90 @@ describe('CORS, configuración y kill switch', () => {
     expect((await pedir('/api/core/salud')).status).toBe(200);
   });
 });
+
+describe('HU-E4.3 · crear la organización de la finca del teléfono', () => {
+  const crear = (acceso: string | null, cuerpo: unknown) =>
+    pedir('/api/core/organizaciones', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: APP,
+        ...(acceso ? { authorization: `Bearer ${acceso}` } : {}),
+      },
+      body: JSON.stringify(cuerpo),
+    });
+  const ORG = '0199a1b2-0000-7000-8000-000000000001';
+
+  async function sesionNueva(): Promise<Sesion> {
+    const codigo = await entrarConGoogle();
+    return (await (
+      await post('/api/core/auth/canje', { codigo, dispositivo: 't1' })
+    ).json()) as Sesion;
+  }
+
+  it('crea la organización con la persona como propietaria; renovar con org_id da el token y la API de su celda', async () => {
+    const s = await sesionNueva();
+    const r = await crear(s.acceso, { id: ORG, nombre: 'Finca Ensayo Uno' });
+    expect(r.status).toBe(201);
+    expect(await r.json()).toEqual({ org_id: ORG, nombre: 'Finca Ensayo Uno', ya_existia: false });
+    const renovada = (await (
+      await post('/api/core/auth/refrescar', { refresh: s.refresh, org_id: ORG })
+    ).json()) as Sesion & { url_api: string };
+    const reclamos = await verificarAcceso(await clavePublica(), renovada.acceso, T0);
+    expect(reclamos).toMatchObject({
+      org: ORG,
+      rol: 'propietario',
+      celda: 'c0',
+      shard: 'agro_c0_s1',
+    });
+    expect(renovada.url_api).toBe(cargarCeldas().celdas[0]?.api_staging);
+  });
+
+  it('reintentar con el mismo id no crea otra (la respuesta se pudo perder sin señal)', async () => {
+    const s = await sesionNueva();
+    await crear(s.acceso, { id: ORG, nombre: 'Finca Ensayo Uno' });
+    const otra = await crear(s.acceso, { id: ORG, nombre: 'Finca Ensayo Uno' });
+    expect(otra.status).toBe(200);
+    expect(await otra.json()).toMatchObject({ ya_existia: true });
+    expect(
+      (await db.prepare('SELECT count(*) AS n FROM organizacion').first<{ n: number }>())?.n,
+    ).toBe(1);
+  });
+
+  it('el id de una finca ajena no da acceso a ella', async () => {
+    const s = await sesionNueva();
+    await crear(s.acceso, { id: ORG, nombre: 'Finca Ensayo Uno' });
+    const ajeno = crearApp({ google: () => googleFalso('google-sub-2'), ahora: () => reloj });
+    const pedirAjeno = (ruta: string, init: RequestInit) =>
+      ajeno.fetch(new Request(`${CORE}${ruta}`, init), env);
+    const ida = await pedirAjeno(
+      `/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}`,
+      {},
+    );
+    const cookie = (ida.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+    const state = new URL(ida.headers.get('location') ?? '').searchParams.get('state');
+    const vuelta = await pedirAjeno(
+      `/api/core/auth/google/callback?code=code-bueno&state=${state}`,
+      { headers: { cookie } },
+    );
+    const codigo = (vuelta.headers.get('location') ?? '').split('#entrar=')[1];
+    const s2 = (await (
+      await pedirAjeno('/api/core/auth/canje', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ codigo, dispositivo: 't2' }),
+      })
+    ).json()) as Sesion;
+    const r = await crear(s2.acceso, { id: ORG, nombre: 'Finca Ensayo Dos' });
+    expect(r.status).toBe(409);
+    expect(await r.json()).toMatchObject({ motivo: 'Esa finca es de otra cuenta.' });
+  });
+
+  it('sin token responde 401; sin id válido, 400', async () => {
+    expect((await crear(null, { id: ORG, nombre: 'Finca Ensayo Uno' })).status).toBe(401);
+    const s = await sesionNueva();
+    expect((await crear(s.acceso, { id: 'no-es-uuid', nombre: 'Finca Ensayo Uno' })).status).toBe(
+      400,
+    );
+  });
+});

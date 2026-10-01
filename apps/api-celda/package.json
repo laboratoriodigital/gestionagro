@@ -10,6 +10,7 @@
   "dependencies": {
     "@gestionagro/d1": "workspace:*",
     "@gestionagro/kill-switch": "workspace:*",
+    "@gestionagro/sync": "workspace:*",
     "@gestionagro/tokens": "workspace:*",
     "hono": "^4.13.12"
   },

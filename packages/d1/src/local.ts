@@ -18,15 +18,28 @@ export const RAIZ = join(import.meta.dirname, '..', '..', '..');
 export const dirMigraciones = (base: 'core' | 'celda') =>
   join(RAIZ, 'infrastructure', 'migraciones', base);
 
-/** Sentencias de un archivo SQL, sin comentarios de línea. */
+/**
+ * Sentencias de un archivo SQL, sin comentarios de línea. Una sentencia termina en «;» al final
+ * de una línea, salvo dentro de un `CREATE TRIGGER … BEGIN … END;`, que llega completo.
+ */
 export function sentenciasDe(sql: string): string[] {
-  return sql
-    .split(/\r?\n/)
-    .filter((l) => !l.trim().startsWith('--'))
-    .join('\n')
-    .split(/;\s*(?:\n|$)/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const sentencias: string[] = [];
+  let actual: string[] = [];
+  let enTrigger = false;
+  for (const linea of sql.split(/\r?\n/)) {
+    if (linea.trim().startsWith('--')) continue;
+    if (actual.length === 0 && /^\s*CREATE\s+TRIGGER\b/i.test(linea)) enTrigger = true;
+    actual.push(linea);
+    const cierra = enTrigger ? /^\s*END\s*;\s*$/i.test(linea) : /;\s*$/.test(linea);
+    if (cierra) {
+      sentencias.push(actual.join('\n').trim().replace(/;$/, ''));
+      actual = [];
+      enTrigger = false;
+    }
+  }
+  const resto = actual.join('\n').trim();
+  if (resto) sentencias.push(resto);
+  return sentencias.filter(Boolean);
 }
 
 export const migraciones = (base: 'core' | 'celda'): string[] =>

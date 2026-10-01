@@ -47,6 +47,9 @@ importers:
       '@gestionagro/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
+      '@gestionagro/sync':
+        specifier: workspace:*
+        version: link:../../packages/sync
       '@gestionagro/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
@@ -183,6 +186,12 @@ importers:
   packages/eventos: {}
 
   packages/kill-switch: {}
+
+  packages/sync:
+    dependencies:
+      '@gestionagro/agro-schema':
+        specifier: workspace:*
+        version: link:../agro-schema
 
   packages/tokens: {}
 

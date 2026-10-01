@@ -13,8 +13,8 @@
  * shards, los orígenes del cuaderno y las claves del CORE llegan por la configuración que arma el
  * despliegue desde `celdas.json`.
  *
- * Hoy `/api/v1/yo` es la única ruta con token: dice a qué organización y shard llegó la sesión.
- * Subir (HU-E5.2) y bajar (HU-E5.3) se montan sobre este mismo middleware.
+ * Rutas con token: `/api/v1/yo` (a qué organización y shard llegó la sesión) y
+ * `/api/v1/sync/push` (subir, HU-E5.2, `push.ts`). Bajar (HU-E5.3) se monta igual.
  */
 import type { BaseD1 } from '@gestionagro/d1';
 import {
@@ -25,6 +25,7 @@ import {
 import { type ClavePublica, TokenInvalido, verificarConClaves } from '@gestionagro/tokens';
 import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { push } from './push.ts';
 
 /** Producto cuyo kill switch apaga la sincronización (`content/agro/cuaderno/product.yaml`). */
 export const PRODUCTO_SYNC = 'agro-cuaderno';
@@ -204,6 +205,8 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       .first<{ n: number }>();
     return c.json({ org, rol, celda: c.env.CELDA, shard, registros: fila?.n ?? 0 });
   });
+
+  app.post('/api/v1/sync/push', (c) => push(c, ahora));
 
   app.notFound((c) =>
     c.json({ estado: 'no-encontrado', motivo: 'Ruta de la celda desconocida' }, 404),
