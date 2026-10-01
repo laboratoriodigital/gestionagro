@@ -1,5 +1,6 @@
 # Contrato de la calculadora de DPV (ARQUITECTURA §5.1, HU-E1.3).
 id: agro-calculadora-dpv
+nombre: "Calculadora de DPV"
 slug: /herramientas/agro/calculadora-dpv/
 tipo: utility
 estado: borrador

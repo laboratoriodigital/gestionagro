@@ -33,6 +33,7 @@ pnpm verificar
 | `pnpm test` | Vitest |
 | `pnpm test:cobertura` | Vitest con cobertura v8 |
 | `pnpm build` | Build de cada paquete que lo tenga |
+| `pnpm e2e` | Playwright contra `apps/sitio/dist` (corre `pnpm build` antes). En Windows usa el Microsoft Edge del sistema |
 | `pnpm licencias` | Falla si alguna dependencia es AGPL o no declara licencia |
 | `pnpm validar:productos` | Valida todos los `product.yaml` contra `schemas/product.schema.json` |
 

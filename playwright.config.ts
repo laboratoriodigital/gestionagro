@@ -1,0 +1,35 @@
+/**
+ * Pruebas e2e (ARQUITECTURA §10): teléfono de 360 px, sin esperas por tiempo (P19).
+ *
+ * Navegador: en CI, el Chromium de Playwright; en Windows local, el Microsoft Edge del sistema
+ * (mismo motor Chromium), porque la descarga de Chromium de Playwright no funciona en la máquina
+ * del dueño (bitácora agro, «Lo que el terreno enseñó»). `PW_CANAL` lo fuerza.
+ */
+import { defineConfig, devices } from '@playwright/test';
+
+const PUERTO = 4321;
+const canal =
+  process.env['PW_CANAL'] ??
+  (process.env['CI'] ? undefined : process.platform === 'win32' ? 'msedge' : undefined);
+
+export default defineConfig({
+  testDir: 'tests/e2e',
+  timeout: 30_000,
+  forbidOnly: Boolean(process.env['CI']),
+  retries: 0,
+  reporter: process.env['CI'] ? [['list'], ['github']] : 'list',
+  use: {
+    baseURL: `http://localhost:${PUERTO}`,
+    ...devices['Galaxy S9+'],
+    viewport: { width: 360, height: 740 },
+    locale: 'es-CO',
+    timezoneId: 'America/Bogota',
+    ...(canal ? { channel: canal } : {}),
+  },
+  projects: [{ name: 'telefono-360' }],
+  webServer: {
+    command: `node scripts/servir-estatico.ts apps/sitio/dist ${PUERTO}`,
+    url: `http://localhost:${PUERTO}/herramientas/agro/`,
+    reuseExistingServer: !process.env['CI'],
+  },
+});

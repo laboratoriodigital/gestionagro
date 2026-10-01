@@ -1,5 +1,6 @@
 /**
- * `pnpm verificar`: lint, typecheck, contratos product.yaml, pruebas, build y licencias.
+ * `pnpm verificar`: lint, typecheck, contratos product.yaml, pruebas, build, e2e y licencias.
+ * `--sin-e2e` omite el e2e (lo usa el flujo de Windows).
  *
  * Corre todos los pasos aunque uno falle y al final los resume juntos (P15), para no
  * descubrir una falla por corrida. Sale con código 1 si alguno falló.
@@ -18,14 +19,20 @@ import { RAIZ } from './lib/repo.ts';
 import { type ResultadoPaso, resumir } from './lib/resumen.ts';
 
 const enCI = process.argv.includes('--ci');
+/** El flujo de Windows lo omite: el e2e ya corre en Linux y allá los minutos cuentan doble. */
+const conE2e = !process.argv.includes('--sin-e2e');
 
 const PASOS: ReadonlyArray<{ paso: string; comando: string }> = [
   ...(enCI ? [{ paso: 'instalar', comando: 'pnpm install --frozen-lockfile' }] : []),
+  ...(enCI && conE2e
+    ? [{ paso: 'navegadores', comando: 'pnpm exec playwright install --with-deps chromium' }]
+    : []),
   { paso: 'lint', comando: 'pnpm run lint' },
   { paso: 'typecheck', comando: 'pnpm run typecheck' },
   { paso: 'validar:productos', comando: 'pnpm run validar:productos' },
   { paso: 'test', comando: 'pnpm run test' },
   { paso: 'build', comando: 'pnpm run build' },
+  ...(conE2e ? [{ paso: 'e2e', comando: 'pnpm run e2e' }] : []),
   { paso: 'licencias', comando: 'pnpm run licencias' },
 ];
 

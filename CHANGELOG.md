@@ -21,4 +21,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - `packages/agro-calc`: `presionSaturacionKPa`, `dpvAireKPa` y `dpvHojaKPa` (FAO-56 ec. 11) con la tabla de casos `casos/dpv.json` que compartirá el firmware; un valor ilegible o fuera de rango lanza `ErrorDeMedida` con el campo, nunca 0 ni NaN (HU-E2.1).
 - `packages/agro-schema` (HU-E3.2): esquemas zod v1 de finca, área, ciclo, persona, insumo y registro base, más `clima` v1; ningún campo de medida tiene `default` y el error nombra el campo. UUIDv7 y fecha agronómica con reloj inyectable (P8).
 - `apps/cuaderno`: almacén local con Dexie; guardar un registro y su operación de salida es una sola transacción; se pide `navigator.storage.persist()` y se guarda la respuesta. Prueba de migración desde cada versión local anterior con las dos fincas de prueba.
+- `apps/sitio` (HU-E1.6, parte 1): Astro estático en `agro.laboratorio-digital.com`. Cada herramienta se genera desde su `product.yaml` y su contenido en `content/agro/`: título, descripción, canonical, Open Graph, migas con JSON-LD, sitemap y robots. Un borrador lleva `noindex` y no entra al sitemap.
+- `packages/eventos`: los eventos de una sesión salen en un solo `sendBeacon`; `POST /api/eventos` en el Worker del sitio escribe un punto de Analytics Engine por lote y solo acepta productos que declaran eventos.
+- e2e con Playwright en un teléfono de 360 px (HU-E1.6, parte 2): contenido completo sin JavaScript y un solo `<h1>`, JS < 50 KB con gzip, LCP < 2,5 s con 4G lenta y CPU ×4, WCAG 2.1 AA con axe en modo claro y oscuro, y un solo envío de eventos por sesión. Corre dentro de `verificar` (paso `e2e`); el flujo de Windows lo omite con `--sin-e2e`.
+- `packages/ui`: tokens de diseño (contraste, objetivos táctiles de 48 px, fuentes del sistema).
+- Contrato `product.yaml`: campo obligatorio `nombre` (nombre corto).
 - Plantilla de pull request con «Control negativo» y «¿Cambió algo que un documento afirma?».

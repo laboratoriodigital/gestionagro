@@ -7,6 +7,7 @@
   "additionalProperties": false,
   "required": [
     "id",
+    "nombre",
     "slug",
     "tipo",
     "estado",
@@ -30,6 +31,12 @@
       "type": "string",
       "pattern": "^agro-[a-z0-9]+(-[a-z0-9]+)*$",
       "description": "Identificador estable. Nombra el kill switch: ks:<id>."
+    },
+    "nombre": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 40,
+      "description": "Nombre corto para migas, enlaces relacionados y el índice de herramientas."
     },
     "slug": {
       "type": "string",

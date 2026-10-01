@@ -1,0 +1,10 @@
+{
+  "name": "@gestionagro/eventos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Eventos de herramienta en lote: un sendBeacon por sesión (HU-E1.6).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

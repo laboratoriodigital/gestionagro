@@ -262,6 +262,7 @@ No son errores. Son decisiones que cambiaron con información nueva.
 - **Una invocación de Worker gratuito admite 50 consultas a D1.** La sincronización sube en lotes de ≤ 25 operaciones.
 - **Los términos de Cloudflare prohíben esquivar cuotas, crear cuentas en masa y registrarse por terceros** (§2.2.1 a, c, e).
 - **`corepack enable` no sirve en la máquina del dueño** (30 sep 2026). Escribe los atajos en `C:\Program Files\nodejs` y falla con `EPERM: operation not permitted, open 'C:\Program Files\nodejs\pnpx'`. Con `--install-directory` tampoco: el corepack 0.33 de Node 22.18 busca `bin\pnpm.cjs`, que pnpm 12 ya no trae. pnpm se instala con `npm install -g pnpm@<versión de packageManager>`, que escribe en `AppData\Roaming\npm` (README, Arranque).
+- **La descarga de Chromium de Playwright no funciona en la máquina del dueño** (30 sep 2026): `Request to https://cdn.playwright.dev/… timed out`, con sandbox y sin él, aunque `curl` baja el mismo archivo. En Windows local, `playwright.config.ts` usa el Microsoft Edge instalado (`channel: msedge`, mismo motor Chromium); en CI se usa el Chromium de Playwright. `PW_CANAL` fuerza uno u otro.
 - **pnpm 11 se niega a correr cualquier script si una clave de dependencias no es un nombre de paquete** (`ERR_PNPM_INVALID_DEPENDENCY_NAME`). La guardia de `tests/repo/package-json.test.ts` lo repite para no depender de la versión de pnpm.
 
 ---
@@ -379,3 +380,23 @@ La regla: **una condición que dice «antes de X, haz Y» y no tiene guardia se 
 La regla: **un control negativo tiene que poner el defecto también en el instrumento, no solo en la regla que el instrumento alimenta. Si la lista de entrada no se comprueba, «0 rechazos» puede querer decir «0 revisados».**
 
 *Ficha:* agro · *(mío)* · 🟠 Grave · P5, P17 · 0.1.0 · 2026-09-30
+
+**7 · La raíz del repositorio se calculaba desde la ubicación del archivo, y el build de Astro lo movió.**
+
+*Qué pasó.* El 30 sep 2026, en el primer `astro build` del sitio (HU-E1.6), la generación de páginas falló.
+
+*Síntoma literal:*
+
+```text
+ENOENT: no such file or directory, open 'D:\CoWork\gestionagro\apps\sitio\dist\schemas\product.schema.json'
+```
+
+*Causa raíz.* `scripts/lib/repo.ts` definía la raíz como «dos carpetas arriba de este archivo». Era cierto mientras el archivo se ejecutaba donde vive. Astro empaqueta el código en `apps/sitio/dist/.prerender/`, y desde ahí dos carpetas arriba es `apps/sitio/dist`.
+
+*Arreglo.* `encontrarRaiz` sube carpeta por carpeta hasta la que tiene `pnpm-workspace.yaml`. Funciona igual desde `scripts/`, desde las pruebas y desde el build.
+
+**Lo prueba** el paso `build` de `verificar`, que genera las páginas desde los contratos. Control negativo: con la ruta fija de antes, el build falla con el mensaje citado.
+
+La regla: **una ruta relativa al archivo que se ejecuta supone que nadie lo mueve. Un empaquetador lo mueve.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P2, P16 · 0.1.0 · 2026-09-30

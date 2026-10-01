@@ -1,5 +1,6 @@
 # Contrato del cuaderno de campo (ARQUITECTURA §5.3 y §8.1, HU-E1.3).
 id: agro-cuaderno
+nombre: "Cuaderno de campo"
 slug: /agro/app/
 tipo: saas
 estado: borrador

@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Ajv2020, type ErrorObject } from 'ajv/dist/2020.js';
 import { parse } from 'yaml';
-import { RAIZ } from './repo.ts';
+import { listarArchivos, RAIZ } from './repo.ts';
 
 export interface ErrorDeProducto {
   archivo: string;
@@ -117,3 +117,40 @@ export function validarArchivos(archivos: readonly string[], raiz = RAIZ): Error
 /** Todos los `product.yaml` del repositorio. */
 export const esContrato = (rel: string): boolean =>
   rel === 'product.yaml' || rel.endsWith('/product.yaml');
+
+/** Contrato ya validado (forma de `schemas/product.schema.json`). */
+export interface Producto {
+  id: string;
+  nombre: string;
+  slug: string;
+  tipo: 'utility' | 'saas';
+  estado: 'borrador' | 'activo' | 'pausado' | 'retirado';
+  peldano: string;
+  siguiente_paso: string;
+  runtime: 'browser' | 'api';
+  seo: { title: string; description: string };
+  relacionados: string[];
+  eventos: string[];
+  revision_agronomica: string;
+  fuentes: string[];
+  /** Carpeta del contrato, relativa a la raíz (p. ej. `content/agro/calculadora-dpv`). */
+  carpeta: string;
+}
+
+/**
+ * Lee y valida todos los contratos. Lanza con TODAS las fallas si alguno es inválido: un build
+ * no publica páginas desde un contrato roto.
+ */
+export function cargarProductos(raiz = RAIZ): Producto[] {
+  const archivos = listarArchivos(esContrato, raiz);
+  const errores = validarArchivos(archivos, raiz);
+  if (errores.length > 0) {
+    throw new Error(
+      `Contratos inválidos:\n${errores.map((e) => `- ${e.archivo}: ${e.mensaje}`).join('\n')}`,
+    );
+  }
+  return archivos.map((archivo) => ({
+    ...(parse(readFileSync(join(raiz, archivo), 'utf8')) as Omit<Producto, 'carpeta'>),
+    carpeta: archivo.replace(/\/?product\.yaml$/, ''),
+  }));
+}
