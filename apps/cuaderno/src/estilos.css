@@ -52,16 +52,6 @@ h1 {
 .aviso-actualizacion p {
   margin: 0 0 var(--espacio-2);
 }
-.aviso-actualizacion button {
-  min-height: var(--objetivo-tactil);
-  font: inherit;
-  font-weight: 600;
-  padding-inline: var(--espacio-3);
-  border: 0;
-  border-radius: var(--radio);
-  background: var(--color-marca);
-  color: var(--color-marca-texto);
-}
 .pie {
   margin-top: var(--espacio-5);
   padding-block: var(--espacio-4);
@@ -169,4 +159,15 @@ button:disabled {
 }
 .resumen dd {
   margin: 0 0 var(--espacio-2);
+}
+/* Después de la regla general de button: es más específica (noDescendingSpecificity). */
+.aviso-actualizacion button {
+  min-height: var(--objetivo-tactil);
+  font: inherit;
+  font-weight: 600;
+  padding-inline: var(--espacio-3);
+  border: 0;
+  border-radius: var(--radio);
+  background: var(--color-marca);
+  color: var(--color-marca-texto);
 }

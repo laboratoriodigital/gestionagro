@@ -466,7 +466,7 @@ La regla: **lo que pasa por más de una capa de escapado no se escribe desde la 
 - El resumen de la corrida decía «wrangler deploy falló; ver el registro de la corrida». Mandaba a buscar la causa en vez de nombrarla (P15).
 
 *Arreglo.*
-- El dueño activa Analytics Engine en Cloudflare.
+- El dueño activa Analytics Engine en Cloudflare. *(Después: en esta cuenta, «activar» es crear el primer dataset. Se crean `agro_eventos_staging` y `agro_eventos`, los nombres de `celdas.json`. El mensaje del resumen y el runbook se corrigieron.)*
 - `causaDeWrangler` cita en el resumen el error de wrangler, sin colores. Si el código ya se vio en una corrida real, agrega qué hacer. Solo entran códigos observados, no supuestos (P1).
 
 **Lo prueban** 3 pruebas de `tests/repo/despliegue.test.ts`, con la salida real de esta corrida. Control negativo: sin quitar los colores, fallan 2.

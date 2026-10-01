@@ -263,7 +263,7 @@ describe('causa de una falla de wrangler en el resumen (P15)', () => {
       'A request to the Cloudflare API (/accounts/***/workers/scripts/agro-sitio-staging) failed.',
     );
     expect(causa.join(' ')).toContain('You need to enable Analytics Engine');
-    expect(causa.at(-1)).toMatch(/^Qué hacer: Activa Analytics Engine/);
+    expect(causa.at(-1)).toMatch(/^Qué hacer: Activa Analytics Engine creando sus datasets/);
     expect(causa.join(' ')).not.toContain('\u001b');
     expect(causa.join(' ')).not.toContain('If you think this is a bug');
   });

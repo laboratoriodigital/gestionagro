@@ -19,7 +19,7 @@ const ANSI = /\u001b\[[0-9;]*[A-Za-z]/g;
 export const ACCIONES_POR_CODIGO: Readonly<Record<string, string>> = {
   // Visto el 1 oct 2026 en el primer despliegue a staging (bitácora agro 11).
   '10089':
-    'Activa Analytics Engine en la cuenta: Cloudflare → Workers & Pages → Analytics Engine → «Enable». Es gratis dentro de la cuota (ED1 §41).',
+    'Activa Analytics Engine creando sus datasets: Cloudflare → Workers & Pages → Analytics Engine → crear dataset, con los nombres de «dataset_eventos» en infrastructure/celdas.json (y el mismo con «_staging» al final). Es gratis dentro de la cuota (ED1 §41).',
 };
 
 /**
