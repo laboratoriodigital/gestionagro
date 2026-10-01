@@ -69,6 +69,44 @@ export interface PedidoPush {
 
 export interface RespuestaPush {
   acks: Ack[];
+  /**
+   * La app es más vieja que `APP_MINIMA` (HU-E5.5, CA2). El lote se aceptó igual: esto solo
+   * pide actualizar. Nunca se rechaza un dato de campo por venir de una app vieja (ADR-13).
+   */
+  actualizar?: { minima: string; motivo: string };
+}
+
+/**
+ * Versión mínima de la app que la celda considera al día. Subirla no rechaza nada: las apps más
+ * viejas siguen subiendo y reciben el pedido de actualizar. Se sube cuando una versión tiene un
+ * defecto que el teléfono debe dejar atrás; se anota el motivo en el CHANGELOG.
+ */
+export const APP_MINIMA = '0.1.0';
+
+/** Compara dos versiones X.Y.Z. Una que no se puede leer cuenta como la más vieja (0.0.0). */
+export function compararVersiones(a: string, b: string): number {
+  const partes = (v: string) => {
+    const m = /^(\d+)\.(\d+)\.(\d+)/.exec(v.trim());
+    return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : [0, 0, 0];
+  };
+  const [x, y] = [partes(a), partes(b)];
+  for (let i = 0; i < 3; i++) {
+    const d = (x[i] ?? 0) - (y[i] ?? 0);
+    if (d !== 0) return Math.sign(d);
+  }
+  return 0;
+}
+
+export const MOTIVO_ACTUALIZAR =
+  'Esta versión del cuaderno ya es vieja. Actualízala para seguir sincronizando sin problemas; lo que registraste se está enviando igual.';
+
+/** Lo que la celda agrega a la respuesta del push según la versión de la app que envía. */
+export function pedidoDeActualizar(
+  app: unknown,
+  minima: string = APP_MINIMA,
+): RespuestaPush['actualizar'] {
+  const version = typeof app === 'string' ? app : '';
+  return compararVersiones(version, minima) < 0 ? { minima, motivo: MOTIVO_ACTUALIZAR } : undefined;
 }
 
 /** Un catálogo validado: su esquema propio más los metadatos comunes (ADR-4). */

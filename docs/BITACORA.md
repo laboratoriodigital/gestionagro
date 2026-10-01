@@ -630,6 +630,21 @@ La regla: **una prueba que mide tiempo corre sola. Si falla solo con otras prueb
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P9, P17, P19 · 0.1.0 · 2026-10-01
 
+**22 · Un registro nuevo se quedaba en el teléfono hasta recargar, y el otro teléfono decía que todo estaba en la nube.**
+
+*Qué pasó.* El 1 oct 2026 el dueño probó HU-E5.3 en staging con dos navegadores. El registro nuevo de B no subió hasta recargar la página o tocar «Sincronizar ahora», aunque había internet. Mientras tanto, A decía «Todo está en la nube» y el registro de B le llegó varios minutos después.
+
+*Causa raíz.* La sincronización corría al abrir la app, al volver la señal y cada 15 min (ARQUITECTURA §5.6). Guardar un registro no la disparaba: una persona que anota y guarda el teléfono deja el dato solo en el teléfono hasta 15 min, o hasta que vuelve a abrir la app. Las pruebas de HU-E5.2 subían con el botón o al vincular, nunca después de un registro nuevo con la app ya abierta. Y el texto «Todo está en la nube» hablaba de lo propio, pero se leía como si incluyera lo del equipo, que A solo revisa en su siguiente vuelta: afirmaba más de lo que sabía.
+
+*Arreglo.*
+- A los 3 s de guardar, si hay algo en la cola, el cuaderno sincroniza. Las escrituras de la propia sincronización no cuentan. Nunca sin señal ni antes de la espera que pidió la nube.
+- Al volver a la app (`visibilitychange`), sincroniza, como máximo cada 30 s, para traer lo del equipo.
+- El texto dice «Todo lo tuyo está en la nube. Lo del equipo se revisó a las hh:mm.».
+- Las reglas están en `disparadores.ts`, con pruebas. Una e2e guarda un registro con la finca en la nube y exige que suba sin recargar; con el disparo quitado, falla.
+
+La regla: **un dato nuevo sale del teléfono por sí solo, sin un gesto más. Y un estado dice de qué habla y desde cuándo: «lo tuyo» no es «lo de todos».**
+
+*Ficha:* agro · *(mío)* · 🟠 Grave · P1, P15, P20 · 0.1.0 · 2026-10-01
 **21 · La calculadora borraba lo escrito antes de cargar.**
 
 *Qué pasó.* El 1 oct 2026 el CI de `main`, después de fusionar HU-E4.3/E5.2, falló en «Guardar en mi cuaderno»: al calcular, el resultado no apareció. El mismo código había pasado en el PR. Se reprodujo en local antes de diagnosticar (P9): 1 de 45 corridas con el código de `main`.

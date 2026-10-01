@@ -10,3 +10,4 @@ export {
 export * from './exportacion.ts';
 export * from './registro.ts';
 export * from './reloj.ts';
+export * from './versiones.ts';

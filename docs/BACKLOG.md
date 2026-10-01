@@ -780,7 +780,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E5.5 · Versiones viejas que siguen sirviendo
 **Como** operario que no actualiza la app **quiero** que mis registros suban igual **para** no perder días de trabajo.
-- **Peldaño:** cuenta · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S10 · **Depende de:** HU-E5.2 · **Estado:** Refinada
+- **Peldaño:** cuenta · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S10 · **Depende de:** HU-E5.2 · **Estado:** En sprint (rama `feat/e5.5-versiones-viejas`. CA1: `packages/agro-schema/contratos/app-0.1.0.json` guarda una muestra de cada tipo y versión de registro y de cada catálogo que escribe la app publicada; una prueba las sube a la API vigente. Los datos se guardan tal como llegan y `aVersionVigente` los traduce al leer (riego v1 → v2: duración «no anotada»). CA2: `APP_MINIMA` en `packages/sync`; con una app más vieja el lote entra y la respuesta pide actualizar, que el cuaderno muestra arriba en palabras. CA3: una prueba exige muestra para cada versión del código y que todas sigan entrando; quitar `riego v1` o su traductor la pone en rojo)
 - **Criterios de aceptación:**
   1. Cada operación lleva `v`. El servidor acepta todas las versiones que alguna app publicada escribió. Una prueba envía registros v1 a la API vigente.
   2. Si la app es más vieja que `app_minima`, el push **se acepta** y la respuesta pide actualizar. La app lo muestra en lenguaje simple.

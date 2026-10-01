@@ -22,7 +22,13 @@ export const esperaTrasFallo = (fallos: number): number =>
   Math.min(ESPERA_MINIMA_MS * 2 ** Math.max(0, fallos), ESPERA_MAXIMA_MS);
 
 export type ResultadoDeEnvio =
-  | { estado: 'al-dia'; enviados: number; rechazados: number }
+  | {
+      estado: 'al-dia';
+      enviados: number;
+      rechazados: number;
+      /** La celda pidió actualizar la app (HU-E5.5): lo subido se aceptó igual. */
+      actualizar?: string;
+    }
   | { estado: 'sin-senal'; enviados: number; rechazados: number }
   | { estado: 'esperar'; enviados: number; rechazados: number; ms: number }
   | {
@@ -118,11 +124,16 @@ export async function enviarPendientes(
   const { fetchFn = fetch, ahora = () => Date.now(), fallosPrevios = 0 } = opciones;
   let enviados = 0;
   let rechazados = 0;
+  let actualizar: string | undefined;
   for (;;) {
     const lote = await siguienteLote(db);
-    if (lote.length === 0) return { estado: 'al-dia', enviados, rechazados };
+    if (lote.length === 0) {
+      return actualizar
+        ? { estado: 'al-dia', enviados, rechazados, actualizar }
+        : { estado: 'al-dia', enviados, rechazados };
+    }
     let r: Response;
-    let cuerpo: { acks?: Ack[]; motivo?: string };
+    let cuerpo: { acks?: Ack[]; motivo?: string; actualizar?: { motivo?: string } };
     try {
       r = await fetchFn(`${destino.api}/api/v1/sync/push`, {
         method: 'POST',
@@ -163,6 +174,7 @@ export async function enviarPendientes(
         motivo: cuerpo.motivo ?? `La celda respondió ${r.status}`,
       };
     }
+    actualizar = cuerpo.actualizar?.motivo ?? actualizar;
     const hecho = await aplicarAcks(db, lote, cuerpo.acks, new Date(ahora()).toISOString());
     enviados += hecho.enviados;
     rechazados += hecho.rechazados;
