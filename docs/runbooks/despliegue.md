@@ -15,7 +15,9 @@ Y el CORE (HU-E4.1) en la misma cuenta, que es quien dice `core.celda` en `celda
 - la tabla `celda`, copiada de `celdas.json`;
 - el Worker `agro-core` en workers.dev, que hoy solo responde `GET /api/core/salud`.
 
-La API de la celda llega con HU-E5.1 y entra a este mismo recorrido.
+Y la API de cada celda (HU-E5.1), en todas las celdas activas, después del sitio y del CORE:
+- una base D1 por shard (`agro_c0_s1`, `agro_c0_s1_staging`), creada si no existe, con sus migraciones (`infrastructure/migraciones/celda/`);
+- el Worker `agro-api-<celda>` en workers.dev, con la clave pública del CORE del mismo destino.
 
 | Destino | Cuándo | Dónde |
 |---|---|---|
@@ -58,6 +60,9 @@ El resumen dice en qué celda se detuvo, qué permiso falta o qué parte del hum
 | «CORE desplegado en …, pero celdas.json dice …» | La URL de workers.dev del CORE cambió (otra cuenta o subdominio). Corrige `core.url` / `core.url_staging` en `celdas.json` por PR y agrega la dirección de regreso nueva en Google Cloud |
 | «al token le falta «Account → D1: Edit»…» | Editar el token en Cloudflare y agregar ese permiso. El valor del token no cambia, así que el secreto de GitHub sigue igual |
 | «migraciones del CORE falló» | El resumen cita el error de wrangler. Antes de reintentar, mira en Cloudflare → D1 → la base → Console qué tablas quedaron (no está verificado si wrangler deshace una migración a medias). Corrige la migración con un archivo **nuevo**, nunca editando uno ya aplicado |
+| «el CORE (…) no entregó su clave pública…» | La API de la celda se despliega después del CORE. Si el CORE está en otra celda, despliégalo primero; si es la misma, revisa la falla del CORE más arriba en el resumen |
+| «API de c0 desplegada en …, pero celdas.json dice …» | Corrige `api` / `api_staging` de esa celda en `celdas.json` por PR y vuelve a desplegar |
+| «/api/salud: respondió 503 (Falta …)» o «faltan tablas de la migración» | La configuración o una migración del shard no llegaron. Vuelve a correr el flujo con `solo_celda`; si se repite, cópiame el resumen |
 | «/api/core/salud: respondió 503 (sin-celdas…)» | El paso del directorio no corrió o `celdas.json` no tiene celdas activas. Vuelve a correr el flujo con `solo_celda` |
 | «la prueba de humo falló» | El Worker quedó desplegado. Revisa la ruta que falló; si es grave, vuelve a la versión anterior (abajo) |
 

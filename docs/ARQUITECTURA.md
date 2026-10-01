@@ -303,12 +303,20 @@ Ningún identificador de cuenta, base o dominio está en el código. Todo sale d
       "plan": "free",
       "anillo_despliegue": 0,
       "api": "https://agro-api-c0.<subdominio>.workers.dev",
+      "api_staging": "https://agro-api-c0-staging.<subdominio>.workers.dev",
       "shards": ["agro_c0_s1"],
       "estado": "activa"
     }
   ]
 }
 ```
+
+**Implementado en HU-E5.1:**
+- Worker `agro-api-<celda>` (`apps/api-celda`), con un binding D1 por shard cuyo nombre es el del shard. Su configuración (`apps/api-celda/wrangler.<celda>.jsonc`) se genera de `celdas.json`.
+- `celdas.json` nombra la URL de la API de cada celda por destino (`api`, `api_staging`). El despliegue falla si wrangler publica otra, y la copia a la tabla `celda` del CORE: el cuaderno la recibe en el directorio al entrar.
+- Migraciones de los shards en `infrastructure/migraciones/celda/`: `registro`, `catalogo` (todos los catálogos, con columna `entidad`), `entidad_historial` y `cuarentena`. Cada índice dice su costo; una prueba exige exactamente los justificados.
+- `/api/v1/*` verifica el token con la clave pública que el despliegue lee de `/api/core/claves`, sin llamar al CORE. Organización, rol y shard salen del token. `GET /api/salud` (sin token) es la prueba de humo.
+- Kill switch `ks:agro-cuaderno`: apagado, `/api/v1/*` responde 503 con `Retry-After`.
 
 La celda **c0 es tu cuenta actual**, la misma que atiende el resto de ED1. El agro declara su parte del presupuesto (§8) para no dejar sin cuota a los demás productos.
 
@@ -537,7 +545,7 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 | 2 · Finca cero y pilotos | Organizaciones con `anillo: 1` en el CORE (las 5 primeras, §5.4) | Funciones nuevas vía flags en KV |
 | 3 · Todas | Resto de organizaciones | La función cuando el anillo 2 pasa una semana sin fallas críticas |
 
-- **El código del servidor se despliega por celda**, en el orden de `anillo_despliegue` de `celdas.json`, celda por celda con `scripts/desplegar.ts` (no con matriz: así se detiene en la primera falla y nombra las que quedaron sin tocar). Staging sale cuando el CI termina en verde en `main`; producción, al publicar una versión. Hoy viven en c0 el sitio y el CORE (HU-E4.1); la API de la celda se suma con HU-E5.1. Procedimiento: `docs/runbooks/despliegue.md`.
+- **El código del servidor se despliega por celda**, en el orden de `anillo_despliegue` de `celdas.json`, celda por celda con `scripts/desplegar.ts` (no con matriz: así se detiene en la primera falla y nombra las que quedaron sin tocar). Staging sale cuando el CI termina en verde en `main`; producción, al publicar una versión. Hoy viven en c0 el sitio, el CORE (HU-E4.1) y la API de la celda (HU-E5.1). En cada celda el orden es: sitio, CORE y API, porque la API necesita la clave pública del CORE. Procedimiento: `docs/runbooks/despliegue.md`.
 - **Las funciones se liberan por organización** con flags. En la tienda los anillos eran por repositorio; aquí son por organización y por celda.
 - **Una celda o una organización pueden marcarse `fuera`** para no recibir repartos. Cuando un despliegue se detiene, el resumen nombra las que quedaron sin tocar y cómo seguir (bitácora ecommerce 105).
 

@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "@gestionagro/agro-schema": "workspace:*",
+    "@gestionagro/d1": "workspace:*",
     "@gestionagro/kill-switch": "workspace:*",
+    "@gestionagro/tokens": "workspace:*",
     "arctic": "^3.7.0",
     "hono": "^4.13.12"
   },

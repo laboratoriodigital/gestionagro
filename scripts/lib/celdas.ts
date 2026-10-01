@@ -14,11 +14,21 @@ export interface Celda {
   anillo_despliegue: number;
   estado: 'activa' | 'fuera';
   secretos: { token: string; cuenta: string };
+  /** URL de la API de la celda (HU-E5.1), por destino. */
+  api: string;
+  api_staging: string;
   shards: string[];
 }
 
 export interface ConfigCeldas {
-  sitio: { celda: string; worker: string; dominio: string; zona: string; dataset_eventos: string };
+  sitio: {
+    celda: string;
+    worker: string;
+    dominio: string;
+    url_staging: string;
+    zona: string;
+    dataset_eventos: string;
+  };
   /** CORE v0 (ARQUITECTURA §5.4): su Worker y su base D1 viven en la cuenta de `celda`. */
   core: { celda: string; worker: string; d1: string; url: string; url_staging: string };
   celdas: Celda[];

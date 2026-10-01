@@ -14,10 +14,12 @@
  *   cualquiera podría mandar el código de entrada a su propio sitio.
  * - Nada de esto escribe tokens, códigos ni el `code` de Google en el log.
  */
+
+import type { BaseD1 } from '@gestionagro/d1';
+import { type Firmante, firmarAcceso } from '@gestionagro/tokens';
 import { decodeIdToken, Google, generateCodeVerifier, generateState } from 'arctic';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
-import type { BaseD1 } from './d1.ts';
 import {
   directorioDeUsuario,
   type EntradaDelDirectorio,
@@ -30,7 +32,6 @@ import {
   type SesionActiva,
   SesionInvalida,
 } from './sesiones.ts';
-import { type Firmante, firmarAcceso } from './tokens.ts';
 
 export const RUTA_CALLBACK = '/api/core/auth/google/callback';
 const COOKIE = 'agro_oauth';

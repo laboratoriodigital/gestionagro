@@ -154,3 +154,29 @@ export async function verificarAcceso(
   if (reclamos.exp * 1000 <= ahoraMs) throw new TokenInvalido('El token venció');
   return reclamos;
 }
+
+/**
+ * Verifica con la clave que nombra el token (`kid`), entre las que publica el CORE: la vigente y
+ * la anterior mientras dure una rotación (ARQUITECTURA §7.5). Una clave desconocida no se prueba
+ * contra las demás: se rechaza diciendo cuál.
+ */
+export async function verificarConClaves(
+  claves: readonly ClavePublica[],
+  token: string,
+  ahoraMs: number,
+): Promise<Reclamos> {
+  let kid: string | undefined;
+  try {
+    const cabecera = JSON.parse(
+      new TextDecoder().decode(desdeBase64url(token.split('.')[0] ?? '')),
+    ) as { kid?: string; alg?: string };
+    if (cabecera.alg !== 'EdDSA') throw new TokenInvalido(`Algoritmo no aceptado: ${cabecera.alg}`);
+    kid = cabecera.kid;
+  } catch (e) {
+    if (e instanceof TokenInvalido) throw e;
+    throw new TokenInvalido('El token no se puede leer');
+  }
+  const clave = claves.find((c) => c.kid === kid);
+  if (!clave) throw new TokenInvalido(`Clave desconocida: ${String(kid)}`);
+  return verificarAcceso(clave, token, ahoraMs);
+}

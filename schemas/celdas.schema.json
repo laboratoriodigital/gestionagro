@@ -15,7 +15,7 @@
     "sitio": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["celda", "worker", "dominio", "zona", "dataset_eventos"],
+      "required": ["celda", "worker", "dominio", "zona", "dataset_eventos", "url_staging"],
       "properties": {
         "celda": {
           "type": "string",
@@ -28,6 +28,11 @@
         "dominio": {
           "type": "string",
           "pattern": "^[a-z0-9.-]+\\.[a-z]{2,}$"
+        },
+        "url_staging": {
+          "type": "string",
+          "pattern": "^https://[a-z0-9.-]+$",
+          "description": "URL del sitio en staging: origen permitido del cuaderno para el CORE y las celdas. El despliegue falla si no coincide con la de wrangler."
         },
         "zona": {
           "type": "string",
@@ -73,7 +78,17 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "cuenta", "plan", "anillo_despliegue", "estado", "secretos", "shards"],
+        "required": [
+          "id",
+          "cuenta",
+          "plan",
+          "anillo_despliegue",
+          "estado",
+          "secretos",
+          "shards",
+          "api",
+          "api_staging"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -92,6 +107,15 @@
           },
           "estado": {
             "enum": ["activa", "fuera"]
+          },
+          "api": {
+            "type": "string",
+            "pattern": "^https://[a-z0-9.-]+$",
+            "description": "URL de la API de la celda en producción (HU-E5.1). Va a la tabla celda del CORE y de ahí al cuaderno; el despliegue falla si no coincide con la de wrangler."
+          },
+          "api_staging": {
+            "type": "string",
+            "pattern": "^https://[a-z0-9.-]+$"
           },
           "secretos": {
             "type": "object",

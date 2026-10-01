@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Añadido
+- API de la celda (HU-E5.1): Worker `agro-api-<celda>` con un D1 por shard, migraciones de `registro`, `catalogo`, `entidad_historial` y `cuarentena`, todas con `org_id` y solo con los índices justificados. `/api/v1/*` verifica el token del CORE con su clave pública y toma organización, rol y shard del token; `ks:agro-cuaderno` la apaga con 503 y `Retry-After`. El despliegue crea las bases de los shards, les aplica las migraciones, carga la clave pública del CORE, verifica la URL contra `celdas.json` y la copia al directorio del CORE. `packages/tokens` y `packages/d1` comparten el código del CORE con las celdas.
 - Entrar con Google (HU-E4.2). Pantalla «Cuenta» en el cuaderno: la cuenta es opcional; sin señal se puede seguir registrando. El CORE hace el login con PKCE (Arctic), vuelve al cuaderno con un código de un solo uso en el fragmento y entrega por POST un access JWT Ed25519 de 12 h y un refresh de 60 días, rotado a lo sumo una vez al día. Los tokens se guardan en la base local, nunca en la URL ni en `localStorage`. `/api/core/claves` publica la clave pública para las celdas. Kill switch `ks:agro-core`. El despliegue carga los secretos de Google por stdin, genera la clave de firma solo si falta y prueba que el inicio mande a Google con el cliente y la dirección de regreso correctos.
 
 ## [0.1.0] - 2026-10-01

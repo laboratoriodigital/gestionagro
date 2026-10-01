@@ -1,15 +1,15 @@
 /**
  * CORE v0 contra un D1 local de verdad (HU-E4.1, CA1 a CA4). Qué no imita el D1 local: ver
- * `d1-local.ts` (P17).
+ * `@gestionagro/d1/local` (P17).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { BaseD1 } from '@gestionagro/d1';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
 import { PILOTOS_MAXIMOS, SinCeldaDisponible } from './asignacion.ts';
+import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
 import { sentenciasDeCeldas } from './celdas.ts';
-import type { BaseD1 } from './d1.ts';
-import { baseLocal, vaciar } from './d1-local.ts';
 import {
   agregarMembresia,
   crearOrganizacion,
@@ -23,14 +23,14 @@ import app from './worker.ts';
 let db: BaseD1;
 let cerrar: () => Promise<void>;
 beforeAll(async () => {
-  ({ db, cerrar } = await baseLocal());
+  ({ db, cerrar } = await baseDelCore());
 }, 60_000);
 afterAll(async () => cerrar?.());
-beforeEach(async () => vaciar(db));
+beforeEach(async () => vaciarCore(db));
 
 const real = cargarCeldas();
-const sincronizar = async (celdas = real.celdas) => {
-  for (const s of sentenciasDeCeldas(celdas)) await db.prepare(s).run();
+const sincronizar = async (celdas = real.celdas, destino: 'staging' | 'produccion' = 'staging') => {
+  for (const s of sentenciasDeCeldas(celdas, destino)) await db.prepare(s).run();
 };
 const contar = async (tabla: string) =>
   (await db.prepare(`SELECT count(*) AS n FROM ${tabla}`).first<{ n: number }>())?.n;
@@ -75,18 +75,21 @@ describe('CA2 · la tabla celda sale de celdas.json', () => {
     );
   });
 
-  it('volver a sincronizar actualiza estado y shards y conserva la URL de la API', async () => {
+  it('volver a sincronizar actualiza shards y la URL de la API del destino, y conserva las claves', async () => {
     await sincronizar();
-    await db.prepare("UPDATE celda SET url_api = 'https://api.ejemplo.test' WHERE id = 'c0'").run();
+    await db.prepare("UPDATE celda SET clave_publica = 'clave' WHERE id = 'c0'").run();
     const c0 = {
       ...real.celdas[0],
       id: 'c0',
       shards: ['agro_c0_s1', 'agro_c0_s2'],
     } as (typeof real.celdas)[0];
-    await sincronizar([c0]);
-    const fila = await db.prepare("SELECT url_api, shards FROM celda WHERE id = 'c0'").first();
+    await sincronizar([c0], 'produccion');
+    const fila = await db
+      .prepare("SELECT url_api, clave_publica, shards FROM celda WHERE id = 'c0'")
+      .first();
     expect(fila).toEqual({
-      url_api: 'https://api.ejemplo.test',
+      url_api: c0.api,
+      clave_publica: 'clave',
       shards: '["agro_c0_s1","agro_c0_s2"]',
     });
   });
@@ -132,7 +135,7 @@ describe('CA3 y CA4 · usuarios, organizaciones, membresías y directorio', () =
         celda_id: 'c0',
         shard: 'agro_c0_s1',
         anillo: 1,
-        url_api: null,
+        url_api: real.celdas[0]?.api_staging,
       },
     ]);
   });

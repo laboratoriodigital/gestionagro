@@ -15,9 +15,21 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import { sentenciasDeCeldas } from '../apps/core/src/celdas.ts';
 import { PRODUCTO_CORE } from '../apps/core/src/constantes.ts';
-import { generarClavePrivada } from '../apps/core/src/tokens.ts';
 import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
-import { wranglerDelCore, wranglerDelSitio } from './generar-wrangler.ts';
+import { generarClavePrivada } from '../packages/tokens/src/index.ts';
+import {
+  baseDelShard,
+  wranglerDeLaCelda,
+  wranglerDelCore,
+  wranglerDelSitio,
+} from './generar-wrangler.ts';
+import {
+  ARCHIVO_DESPLIEGUE_CELDA,
+  clavesDelCore,
+  configDeLaCelda,
+  escribirDespliegueCelda,
+  humoCelda,
+} from './lib/api-celda.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
 import {
   ARCHIVO_DESPLIEGUE_CORE,
@@ -64,6 +76,10 @@ if (destino !== 'staging' && destino !== 'produccion') {
 const solo = argumento('--solo') || undefined;
 // Producción es el entorno de nivel superior de wrangler.jsonc: «--env=» lo elige sin aviso.
 const entorno = destino === 'staging' ? '--env staging' : '--env=';
+
+/** Origen del cuaderno en el destino: el único que el CORE y las celdas aceptan (CORS). */
+const origenDelCuaderno = (config: ConfigCeldas) =>
+  destino === 'produccion' ? `https://${config.sitio.dominio}` : config.sitio.url_staging;
 
 interface Credenciales {
   token: string;
@@ -149,6 +165,15 @@ async function desplegarSitio(
       detalle: ['sitio: no se encontró la URL de workers.dev en la salida de wrangler'],
     };
   }
+  // El CORE y las celdas aceptan al cuaderno por el origen de celdas.json: debe ser este (P2).
+  if (base !== origenDelCuaderno(config)) {
+    return {
+      ok: false,
+      detalle: [
+        `sitio desplegado en ${base}, pero celdas.json dice ${origenDelCuaderno(config)}. Corrige sitio.url_staging por PR y vuelve a desplegar.`,
+      ],
+    };
+  }
   const fallas = await conReintentos(() => humo(fetch, base));
   if (fallas.length > 0) {
     return {
@@ -180,7 +205,7 @@ async function desplegarCore(
         flagsId: ns.id,
         origenesApp: [origenApp],
       }),
-      sentenciasDeCeldas(config.celdas),
+      sentenciasDeCeldas(config.celdas, dest),
     );
     notaD1 = `D1 ${nombre}${base.creada ? ' (creada)' : ''}`;
     console.log(`  ${notaD1}`);
@@ -270,6 +295,98 @@ async function desplegarCore(
   };
 }
 
+async function desplegarApiCelda(
+  config: ConfigCeldas,
+  celda: Celda,
+  cred: Credenciales,
+): Promise<Paso> {
+  const dest = destino as Destino;
+  const staging = dest === 'staging';
+  if (celda.shards.length === 0) {
+    return {
+      ok: false,
+      detalle: [`${celda.id}: no tiene shards en celdas.json; la API no tiene dónde guardar`],
+    };
+  }
+  const titulo = nombreKvFlags(celda.id, dest);
+  const bases: Record<string, string> = {};
+  const nuevas: string[] = [];
+  try {
+    for (const shard of celda.shards) {
+      const base = await asegurarBaseD1(
+        fetch,
+        cred.token,
+        cred.cuenta,
+        baseDelShard(shard, staging),
+      );
+      bases[shard] = base.id;
+      if (base.creada) nuevas.push(baseDelShard(shard, staging));
+    }
+    const ns = await asegurarNamespace(fetch, cred.token, cred.cuenta, titulo);
+    await asegurarClaves(
+      fetch,
+      cred.token,
+      cred.cuenta,
+      ns.id,
+      clavesDeKillSwitch(cargarProductos()),
+    );
+    const claves = await clavesDelCore(fetch, staging ? config.core.url_staging : config.core.url);
+    escribirDespliegueCelda(
+      configDeLaCelda(wranglerDeLaCelda(celda), dest, {
+        bases,
+        flagsId: ns.id,
+        clavesCore: claves,
+        origenesApp: [origenDelCuaderno(config)],
+      }),
+    );
+  } catch (e) {
+    return { ok: false, detalle: [`API de ${celda.id}: ${(e as Error).message}`] };
+  }
+
+  const c = `-c ${ARCHIVO_DESPLIEGUE_CELDA} ${entorno}`;
+  const pasos: [string, string][] = [
+    ...celda.shards.map((shard): [string, string] => [
+      `migraciones del shard ${shard}`,
+      `d1 migrations apply ${shard} --remote ${c}`,
+    ]),
+    [`wrangler deploy de la API de ${celda.id}`, `deploy ${c}`],
+  ];
+  let salidaDeploy = '';
+  for (const [nombrePaso, argumentos] of pasos) {
+    const r = wrangler('@gestionagro/api-celda', argumentos, cred);
+    if (!r.ok)
+      return { ok: false, detalle: [`${nombrePaso} falló:`, ...causaDeWrangler(r.salida)] };
+    salidaDeploy = r.salida;
+  }
+  const url = urlDeWorkersDev(salidaDeploy);
+  const configurada = staging ? celda.api_staging : celda.api;
+  if (url !== configurada) {
+    return {
+      ok: false,
+      detalle: [
+        `API de ${celda.id} desplegada en ${url ?? '(sin URL de workers.dev en la salida)'}, pero celdas.json dice ${configurada}. El directorio del CORE usa la de celdas.json: corrígela por PR y vuelve a desplegar.`,
+      ],
+    };
+  }
+  const fallas = await conReintentos(() => humoCelda(fetch, url, celda.shards.length));
+  if (fallas.length > 0) {
+    return {
+      ok: false,
+      detalle: [
+        `API de ${celda.id} desplegada en ${url}, pero la prueba de humo falló:`,
+        ...fallas,
+      ],
+    };
+  }
+  return {
+    ok: true,
+    detalle: [
+      `API: ${url}`,
+      `${celda.shards.length} shard(s) con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}; clave del CORE cargada`,
+    ],
+  };
+}
+
 const configCeldas = cargarCeldas();
 const plan = planDeDespliegue(configCeldas, solo);
 const resultados: ResultadoCelda[] = plan.fuera.map((c) => ({
@@ -296,34 +413,27 @@ for (const celda of plan.aDesplegar) {
     cuenta,
     destino,
     configCeldas.sitio.zona,
-    alojaCore,
+    true, // toda celda crea y migra las bases de sus shards (HU-E5.1)
   );
   if (fallasToken.length > 0 || !token || !cuenta) {
     resultados.push({ celda: celda.id, estado: 'fallo', detalle: fallasToken });
     detenido = true;
     continue;
   }
-  if (!alojaSitio && !alojaCore) {
-    // Las demás celdas recibirán la API de la celda (HU-E5.1).
-    resultados.push({
-      celda: celda.id,
-      estado: 'desplegada',
-      detalle: ['token verificado; aún no hay Workers de celda que desplegar'],
-    });
-    continue;
-  }
-
   const cred = { token, cuenta };
   const detalle: string[] = [];
   let paso: Paso = { ok: true, detalle: [] };
+  // En orden: el sitio, el CORE (la celda necesita su clave pública) y la API de la celda.
   if (alojaSitio) {
     paso = await desplegarSitio(configCeldas, celda, cred);
     detalle.push(...paso.detalle);
   }
   if (paso.ok && alojaCore) {
-    // El cuaderno que entra con Google: el que se acaba de desplegar, o el dominio de producción.
-    const origenApp = paso.url ?? `https://${configCeldas.sitio.dominio}`;
-    paso = await desplegarCore(configCeldas, celda, cred, origenApp);
+    paso = await desplegarCore(configCeldas, celda, cred, origenDelCuaderno(configCeldas));
+    detalle.push(...paso.detalle);
+  }
+  if (paso.ok) {
+    paso = await desplegarApiCelda(configCeldas, celda, cred);
     detalle.push(...paso.detalle);
   }
   resultados.push({ celda: celda.id, estado: paso.ok ? 'desplegada' : 'fallo', detalle });

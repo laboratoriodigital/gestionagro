@@ -14,15 +14,17 @@
  * Una configuración que falta (secreto, orígenes) responde 503 y lo dice en el log: nunca entra
  * con valores de fábrica (P1).
  */
+
+import type { BaseD1 } from '@gestionagro/d1';
 import {
   crearLectorKillSwitch,
   type LectorKillSwitch,
   type LectorKv,
 } from '@gestionagro/kill-switch';
+import { type Firmante, firmanteDesde } from '@gestionagro/tokens';
 import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { PRODUCTO_CORE } from './constantes.ts';
-import type { BaseD1 } from './d1.ts';
 import {
   callback,
   canje,
@@ -32,7 +34,6 @@ import {
   proveedorGoogle,
   renovar,
 } from './entrar.ts';
-import { type Firmante, firmanteDesde } from './tokens.ts';
 
 export { PRODUCTO_CORE };
 
