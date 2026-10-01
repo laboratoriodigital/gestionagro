@@ -1,6 +1,6 @@
 # Demanda de búsqueda de calculadoras agronómicas (HU-E0.2)
 
-**Estado:** plantilla lista; faltan las cifras. Primer intento (1 oct 2026): se descargó la «Previsión» de una campaña, sin palabras clave y en 0, y no se usó; los pasos ahora dicen qué pestaña y cómo reconocer el archivo correcto. Las consulta el dueño con su cuenta de Google Ads (Keyword Planner) y Google Search Console.
+**Estado:** cifras de Keyword Planner registradas el 1 oct 2026 (periodo: 1 sep 2025 – 31 ago 2026). Falta Search Console: la DPV necesita tiempo publicada para tener impresiones. Primer intento descartado: era la «Previsión» de una campaña, sin palabras clave y en 0.
 **Para qué:** decidir con datos el orden de las herramientas 2 a 5 (Estudio de mercado, tabla de herramientas candidatas).
 **Regla (P18):** ninguna cifra se escribe de memoria ni se estima sin decirlo. Cada celda lleva su tipo y su fuente.
 
@@ -68,33 +68,37 @@ liquidar jornal agrícola
 
 ## Resultados
 
-| # | Término | Herramienta candidata | Colombia | LATAM (8 países) | Fuente y fecha | Notas |
+| # | Término | Herramienta candidata | Colombia | LATAM (México, Perú, Chile, Argentina, Ecuador) | Fuente y fecha | Notas |
 |---|---|---|---|---|---|---|
-| 1 | déficit de presión de vapor | 3 · DPV (publicada) | | | | |
-| 2 | dpv invernadero | 3 · DPV (publicada) | | | | |
-| 3 | vpd invernadero | 3 · DPV (publicada) | | | | Sigla en inglés que también se busca |
-| 4 | calcular dpv | 3 · DPV (publicada) | | | | |
-| 5 | déficit de presión de vapor tomate | 3 · DPV (publicada) | | | | |
-| 6 | dosis por bomba de espalda | 1 · Dosis por bomba | | | | |
-| 7 | cuánto echar por bomba de 20 litros | 1 · Dosis por bomba | | | | Forma coloquial |
-| 8 | calibración de bomba de espalda | 1 · Dosis por bomba | | | | |
-| 9 | dosis por hectárea a litros | 1 · Dosis por bomba | | | | |
-| 10 | periodo de carencia | 2 · Calendario de carencias | | | | |
-| 11 | periodo de reentrada | 2 · Calendario de carencias | | | | |
-| 12 | calendario de carencias | 2 · Calendario de carencias | | | | |
-| 13 | solución nutritiva tomate | 4 · Solución nutritiva A y B | | | | |
-| 14 | solución de steiner | 4 · Solución nutritiva A y B | | | | |
-| 15 | cálculo de fertirriego | 4 · Solución nutritiva A y B | | | | |
-| 16 | tanque a y b fertirriego | 4 · Solución nutritiva A y B | | | | |
-| 17 | conductividad eléctrica solución nutritiva | 4 · Solución nutritiva A y B | | | | |
-| 18 | porcentaje de drenaje riego | Riego (ya en el cuaderno) | | | | Si es alto, el % de drenaje puede ser página pública |
-| 19 | drenaje en sustrato | Riego (ya en el cuaderno) | | | | |
-| 20 | grados día | 10 · Grados-día y DLI | | | | |
-| 21 | integral de luz diaria | 10 · Grados-día y DLI | | | | |
-| 22 | requisitos bpa ica | 5 · Autodiagnóstico BPA-ICA | | | | |
-| 23 | lista de chequeo bpa ica | 5 · Autodiagnóstico BPA-ICA | | | | |
-| 24 | costo de producción tomate invernadero | 6 · Costo de producción | | | | |
-| 25 | liquidar jornal agrícola | 7 · Jornales y recargos | | | | |
+| 1 | déficit de presión de vapor | 3 · DPV (publicada) | 50 (R) | 500 (R) | KP, 1 oct 2026 |  |
+| 2 | dpv invernadero | 3 · DPV (publicada) | — | — | KP, 1 oct 2026 |  |
+| 3 | vpd invernadero | 3 · DPV (publicada) | — | — | KP, 1 oct 2026 | Sigla en inglés que también se busca |
+| 4 | calcular dpv | 3 · DPV (publicada) | — | — | KP, 1 oct 2026 |  |
+| 5 | déficit de presión de vapor tomate | 3 · DPV (publicada) | — | — | KP, 1 oct 2026 |  |
+| 6 | dosis por bomba de espalda | 1 · Dosis por bomba | — | — | KP, 1 oct 2026 |  |
+| 7 | cuánto echar por bomba de 20 litros | 1 · Dosis por bomba | — | — | KP, 1 oct 2026 | Forma coloquial |
+| 8 | calibración de bomba de espalda | 1 · Dosis por bomba | — | — | KP, 1 oct 2026 |  |
+| 9 | dosis por hectárea a litros | 1 · Dosis por bomba | — | — | KP, 1 oct 2026 |  |
+| 10 | periodo de carencia | 2 · Calendario de carencias | 500 (R) | 500 (R) | KP, 1 oct 2026 | LATAM: −90 % a tres meses y −90 % anual. Puja alta en LATAM (161–57.725 COP): hay anunciantes |
+| 11 | periodo de reentrada | 2 · Calendario de carencias | 50 (R) | 50 (R) | KP, 1 oct 2026 |  |
+| 12 | calendario de carencias | 2 · Calendario de carencias | — | — | KP, 1 oct 2026 |  |
+| 13 | solución nutritiva tomate | 4 · Solución nutritiva A y B | — | — | KP, 1 oct 2026 |  |
+| 14 | solución de steiner | 4 · Solución nutritiva A y B | 50 (R) | 50 (R) | KP, 1 oct 2026 | Competencia media en LATAM (índice 35) |
+| 15 | cálculo de fertirriego | 4 · Solución nutritiva A y B | — | — | KP, 1 oct 2026 |  |
+| 16 | tanque a y b fertirriego | 4 · Solución nutritiva A y B | — | — | KP, 1 oct 2026 |  |
+| 17 | conductividad eléctrica solución nutritiva | 4 · Solución nutritiva A y B | — | — | KP, 1 oct 2026 |  |
+| 18 | porcentaje de drenaje riego | Riego (ya en el cuaderno) | — | — | KP, 1 oct 2026 | Si es alto, el % de drenaje puede ser página pública |
+| 19 | drenaje en sustrato | Riego (ya en el cuaderno) | — | — | KP, 1 oct 2026 |  |
+| 20 | grados día | 10 · Grados-día y DLI | 50 (R) | 50 (R) | KP, 1 oct 2026 |  |
+| 21 | integral de luz diaria | 10 · Grados-día y DLI | — | — | KP, 1 oct 2026 |  |
+| 22 | requisitos bpa ica | 5 · Autodiagnóstico BPA-ICA | — | — | KP, 1 oct 2026 |  |
+| 23 | lista de chequeo bpa ica | 5 · Autodiagnóstico BPA-ICA | 50 (R) | 50 (R) | KP, 1 oct 2026 | LATAM: −100 % a tres meses |
+| 24 | costo de producción tomate invernadero | 6 · Costo de producción | — | — | KP, 1 oct 2026 |  |
+| 25 | liquidar jornal agrícola | 7 · Jornales y recargos | — | — | KP, 1 oct 2026 |  |
+
+**Totales** (suma de los términos, según Keyword Planner): Colombia 750; LATAM 1.200 (México 441, Perú 266, Chile 198, Argentina 153, Ecuador 74). Guatemala y Costa Rica se pidieron y no traen datos.
+
+**Cómo leer las cifras.** Sin gasto activo, Keyword Planner redondea: «50» corresponde a un rango de 10–100 y «500» a uno de 100–1 mil. Por eso son **R** y no **V**. «—» es que no trae dato: menos de 10 al mes o nada.
 
 ### Consultas reales de Search Console que no estaban en la lista
 
@@ -110,9 +114,26 @@ Se escribe cuando la tabla tenga cifras. La regla, decidida antes de ver los dat
 2. **Desempate y veto**, de la tabla del estudio: una herramienta que lleva al cuaderno (carencias, BPA-ICA) gana a demanda parecida (±30 %). Una que necesita revisión agronómica antes de publicar (dosis, solución nutritiva) no se publica sin ella (instrucciones §7).
 3. Si ninguna herramienta pasa de **50 búsquedas al mes en Colombia**, la demanda no decide: se ordena por cercanía al cuaderno y se vuelve a medir con Search Console a los 90 días de la DPV (25 feb 2027).
 
+**Demanda por herramienta** (regla 1: Colombia + 0,3 × LATAM; todas con rangos):
+
+| Herramienta | Colombia | LATAM | Demanda |
+|---|---|---|---|
+| 2 · Calendario de carencias | 550 | 550 | **715** |
+| 3 · DPV (publicada) | 50 | 500 | 200 |
+| 4 · Solución nutritiva A y B | 50 | 50 | 65 |
+| 5 · Autodiagnóstico BPA-ICA | 50 | 50 | 65 |
+| 10 · Grados-día y DLI | 50 | 50 | 65 |
+| 1 · Dosis por bomba | — | — | 0 |
+| 6 · Costo de producción | — | — | 0 |
+| 7 · Jornales y recargos | — | — | 0 |
+
 | Orden | Herramienta | Demanda | Por qué |
 |---|---|---|---|
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
+| 2 | Calendario de carencias y reentradas | 715 (R) | La única con más de 50 búsquedas al mes en Colombia («periodo de carencia», 100–1 mil). Lleva al cuaderno, y el cálculo ya existe y está probado (`vencimientoCarencia`, HU-E3.10). Ojo: en LATAM cae −90 %; Colombia no muestra caída. |
+| 3 | Autodiagnóstico BPA-ICA | 65 (R) | Empate con 4 y 10 (±30 %). Gana el desempate de la regla 2: lleva al cuaderno, y la carpeta BPA es la razón para pagar. |
+| 4 | Grados-día y DLI | 65 (R) | Empate. No necesita revisión agronómica de dosis para publicarse. |
+| 5 | Solución nutritiva A y B | 65 (R) | Empate. Va después porque no se publica sin revisión agronómica (instrucciones §7). |
+
+**Lo que cambia frente al backlog.** El backlog tiene «dosis por bomba» como herramienta 2 (E10, H7). Ninguna de sus cuatro formas de búsqueda trae datos en Colombia ni en LATAM. Los datos no la apoyan como segunda. Antes de construirla conviene medir otras formas de decirlo (por ejemplo, «cuántos cc por litro», «cuánto echarle a la bomba») o reemplazarla por el calendario de carencias. **La decisión es del dueño.**
+
+**Límites de estos datos.** Son rangos, no cifras exactas; un mes de Search Console de la DPV en producción los afina. Se vuelve a medir a los 90 días de la DPV (25 feb 2027), como dice la regla 3.
