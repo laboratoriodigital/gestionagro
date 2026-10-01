@@ -235,3 +235,18 @@ describe('salud y configuración (CA4: todo sale de la configuración)', () => {
     expect((await pre('https://malo.test')).headers.get('access-control-allow-origin')).toBeNull();
   });
 });
+
+describe('bitácora agro 23 · una falla inesperada se responde en JSON con su causa', () => {
+  it('si D1 falla, 503 con «falla-celda» y Retry-After, nunca un 500 en texto', async () => {
+    const rota = {
+      prepare: () => {
+        throw new Error('D1_ERROR: algo salió mal');
+      },
+      batch: async () => [],
+    } as unknown as BaseD1;
+    const r = await yo(await token(), env({ [SHARD]: rota }));
+    expect(r.status).toBe(503);
+    expect(r.headers.get('retry-after')).toBe('60');
+    expect(await r.json()).toMatchObject({ estado: 'falla-celda' });
+  });
+});

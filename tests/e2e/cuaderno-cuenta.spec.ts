@@ -390,3 +390,24 @@ test('HU-E8.6: con la cuota agotada, el aviso dice hasta qué hora y que los dat
     '1 registro solo en este teléfono',
   );
 });
+
+test('HU-E5.6 CA3: si la nube ve la hora del teléfono adelantada, el aviso pide corregirla', async ({
+  page,
+}) => {
+  await fincaConUnClima(page);
+  await coreFalso(page);
+  await nubeFalsa(page, (op) =>
+    op.entidad === 'registro'
+      ? { id: op.id, estado: 'aceptado', aviso: 'reloj-corrido' }
+      : { id: op.id, estado: 'aceptado' },
+  );
+  await cuenta(page);
+  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
+  const aviso = page.locator('[data-prueba="aviso-reloj"]');
+  await expect(aviso).toContainText('La hora de este teléfono está adelantada.');
+  await expect(aviso).toContainText('activa «hora automática»');
+  await expect(page.locator('[data-prueba="indicador-datos"]')).toHaveText(
+    'Sin registros pendientes',
+  );
+});

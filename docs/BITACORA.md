@@ -630,6 +630,18 @@ La regla: **una prueba que mide tiempo corre sola. Si falla solo con otras prueb
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P9, P17, P19 · 0.1.0 · 2026-10-01
 
+**21 · La calculadora borraba lo escrito antes de cargar.**
+
+*Qué pasó.* El 1 oct 2026 el CI de `main`, después de fusionar HU-E4.3/E5.2, falló en «Guardar en mi cuaderno»: al calcular, el resultado no apareció. El mismo código había pasado en el PR. Se reprodujo en local antes de diagnosticar (P9): 1 de 45 corridas con el código de `main`.
+
+*Causa raíz.* La página de la calculadora trae los campos en el HTML estático (P20) y la isla Preact se activa después. Si la persona escribe antes de que cargue el JavaScript, Preact arranca con su estado vacío y deja los campos en blanco: lo escrito se pierde sin aviso. La prueba lo destapó de casualidad, al escribir apenas abría la página; en un teléfono con 3G lenta le pasa a una persona de verdad. Es P1 en la pantalla: un valor por defecto, el vacío, pisa lo que la persona escribió.
+
+*Arreglo.* La isla toma como valor inicial lo que ya está escrito en sus campos. Una e2e retrasa a propósito el JavaScript de la isla 1,5 s, escribe antes y exige que los valores sigan y que se calcule; con el arreglo quitado, falla. Las pruebas de la calculadora pasaron 150 de 150 en 10 repeticiones.
+
+La regla: **una isla que hidrata campos del HTML estático arranca con lo que ya tienen, no con su valor de fábrica. Toda isla con campos tiene una prueba que escribe antes de que cargue.**
+
+*Ficha:* agro · *(mío)* · 🟠 Grave · P1, P20, P9 · 0.1.0 · 2026-10-01
+
 **22 · Un registro nuevo se quedaba en el teléfono hasta recargar, y el otro teléfono decía que todo estaba en la nube.**
 
 *Qué pasó.* El 1 oct 2026 el dueño probó HU-E5.3 en staging con dos navegadores. El registro nuevo de B no subió hasta recargar la página o tocar «Sincronizar ahora», aunque había internet. Mientras tanto, A decía «Todo está en la nube» y el registro de B le llegó varios minutos después.
@@ -645,14 +657,18 @@ La regla: **una prueba que mide tiempo corre sola. Si falla solo con otras prueb
 La regla: **un dato nuevo sale del teléfono por sí solo, sin un gesto más. Y un estado dice de qué habla y desde cuándo: «lo tuyo» no es «lo de todos».**
 
 *Ficha:* agro · *(mío)* · 🟠 Grave · P1, P15, P20 · 0.1.0 · 2026-10-01
-**21 · La calculadora borraba lo escrito antes de cargar.**
 
-*Qué pasó.* El 1 oct 2026 el CI de `main`, después de fusionar HU-E4.3/E5.2, falló en «Guardar en mi cuaderno»: al calcular, el resultado no apareció. El mismo código había pasado en el PR. Se reprodujo en local antes de diagnosticar (P9): 1 de 45 corridas con el código de `main`.
+**23 · Un error de la celda se le decía al operario como «sin señal».**
 
-*Causa raíz.* La página de la calculadora trae los campos en el HTML estático (P20) y la isla Preact se activa después. Si la persona escribe antes de que cargue el JavaScript, Preact arranca con su estado vacío y deja los campos en blanco: lo escrito se pierde sin aviso. La prueba lo destapó de casualidad, al escribir apenas abría la página; en un teléfono con 3G lenta le pasa a una persona de verdad. Es P1 en la pantalla: un valor por defecto, el vacío, pisa lo que la persona escribió.
+*Qué pasó.* El 1 oct 2026, escribiendo el caso 8 de la batería de caos (HU-E5.6, cuota de D1 agotada), el teléfono respondió «sin señal» cuando D1 rechazó la escritura. Había señal: la celda sí respondió.
 
-*Arreglo.* La isla toma como valor inicial lo que ya está escrito en sus campos. Una e2e retrasa a propósito el JavaScript de la isla 1,5 s, escribe antes y exige que los valores sigan y que se calcule; con el arreglo quitado, falla. Las pruebas de la calculadora pasaron 150 de 150 en 10 repeticiones.
+*Causa raíz.* Ante un error inesperado, Hono responde un 500 con «Internal Server Error» en texto plano. El teléfono pedía y leía el JSON en el mismo `try`, y cualquier falla de ese bloque, incluida la de leer un texto que no es JSON, la contaba como falta de señal. Un error de la nube quedaba disfrazado de un problema del teléfono, y el operario habría buscado señal en vez de esperar (P15: el aviso no nombraba la causa). Ninguna prueba hacía fallar a la celda por dentro: todas usaban respuestas de error bien formadas.
 
-La regla: **una isla que hidrata campos del HTML estático arranca con lo que ya tienen, no con su valor de fábrica. Toda isla con campos tiene una prueba que escribe antes de que cargue.**
+*Arreglo.*
+- La celda responde cualquier error inesperado con 503 en JSON, `estado: falla-celda` y `Retry-After`, y lo deja en el log (`app.onError`).
+- El teléfono separa «no hubo respuesta» de «la respuesta no se pudo leer». Una respuesta buena cortada a mitad sigue siendo como no tenerla, y la cola no cambia (HU-E5.2, CA4). Un error que no es JSON se dice como error de la nube.
+- Pruebas: un 500 en texto plano da «error», no «sin señal»; una base que falla da 503 «falla-celda»; el caso 8 de la batería lo cubre de punta a punta.
 
-*Ficha:* agro · *(mío)* · 🟠 Grave · P1, P20, P9 · 0.1.0 · 2026-10-01
+La regla: **pedir y leer son dos fallas distintas. Una causa que se adivina en un `catch` amplio termina siendo la equivocada.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P15, P1, P17 · 0.1.0 · 2026-10-01

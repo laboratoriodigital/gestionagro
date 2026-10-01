@@ -165,6 +165,16 @@ function conCausa(causa: Causa, reanuda: string | undefined, ms: number) {
   return Number.isFinite(fecha) ? { causa, reanuda: fecha, ms } : { causa, ms };
 }
 
+/**
+ * No es una pausa: la celda vio la hora de este teléfono adelantada más de 10 min (ARQUITECTURA
+ * §5.7, P8). Los registros se guardaron, pero con la hora del teléfono; se pide corregirla.
+ */
+export const AVISO_RELOJ: Mensaje = {
+  que: 'La hora de este teléfono está adelantada.',
+  datos: 'Tus registros se guardaron, con la hora que marcaba el teléfono.',
+  hacer: 'Corrige la fecha y la hora en los ajustes del teléfono (activa «hora automática»).',
+};
+
 /** Las que merecen un aviso arriba en todas las pantallas; las demás se ven en Cuenta. */
 export const CAUSAS_CON_AVISO: ReadonlySet<Causa> = new Set([
   'esencial',

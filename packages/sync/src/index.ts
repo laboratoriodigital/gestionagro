@@ -57,7 +57,15 @@ export interface Ack {
   id: string;
   estado: EstadoAck;
   motivo?: string;
+  /**
+   * El registro dice haber pasado más de `RELOJ_CORRIDO_MS` después del reloj de la celda: el
+   * teléfono tiene la hora adelantada (ARQUITECTURA §5.7, P8). Se guarda igual; no se corrige en
+   * silencio, se avisa.
+   */
+  aviso?: 'reloj-corrido';
 }
+
+export const RELOJ_CORRIDO_MS = 10 * 60_000;
 
 export interface PedidoPush {
   protocolo: typeof PROTOCOLO;

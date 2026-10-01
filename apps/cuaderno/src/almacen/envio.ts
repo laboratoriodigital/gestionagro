@@ -15,6 +15,8 @@ import { type Ack, type Entidad, LOTE_MAXIMO, type Operacion, PROTOCOLO } from '
 import type { CuadernoDb, OperacionSalida } from './db.ts';
 
 export const ESPERA_MINIMA_MS = 30_000;
+/** Cuándo vio la celda por última vez el reloj de este teléfono adelantado (ARQUITECTURA §5.7). */
+export const CLAVE_RELOJ_CORRIDO = 'reloj_corrido';
 export const ESPERA_MAXIMA_MS = 30 * 60_000;
 
 /** Espera antes del siguiente intento después de `fallos` respuestas 429/503 seguidas. */
@@ -28,6 +30,8 @@ export type ResultadoDeEnvio =
       rechazados: number;
       /** La celda pidió actualizar la app (HU-E5.5): lo subido se aceptó igual. */
       actualizar?: string;
+      /** La celda vio el reloj de este teléfono adelantado (P8). */
+      relojCorrido?: boolean;
     }
   | { estado: 'sin-senal'; enviados: number; rechazados: number }
   | {
@@ -103,9 +107,11 @@ async function aplicarAcks(db: CuadernoDb, lote: Pieza[], acks: Ack[], instante:
   const porId = new Map(lote.map((p) => [p.op.id, p]));
   let enviados = 0;
   let rechazados = 0;
-  await db.transaction('rw', db.outbox, db.rechazo, async () => {
+  let relojCorrido = false;
+  await db.transaction('rw', db.outbox, db.rechazo, db.meta, async () => {
     for (const ack of acks) {
       const pieza = porId.get(ack.id);
+      if (pieza && ack.aviso === 'reloj-corrido') relojCorrido = true;
       if (!pieza || ack.estado === 'reintentar') continue;
       if (ack.estado === 'cuarentena') {
         await db.rechazo.put({
@@ -122,8 +128,11 @@ async function aplicarAcks(db: CuadernoDb, lote: Pieza[], acks: Ack[], instante:
       }
       await db.outbox.bulkDelete(pieza.cubre.map((o) => o.id));
     }
+    // Se recuerda para avisar aunque la persona no esté mirando cuando sincroniza (P8, P15).
+    if (relojCorrido)
+      await db.meta.put({ clave: CLAVE_RELOJ_CORRIDO, valor: instante, actualizado: instante });
   });
-  return { enviados, rechazados };
+  return { enviados, rechazados, relojCorrido };
 }
 
 export async function enviarPendientes(
@@ -135,12 +144,17 @@ export async function enviarPendientes(
   let enviados = 0;
   let rechazados = 0;
   let actualizar: string | undefined;
+  let relojCorrido = false;
   for (;;) {
     const lote = await siguienteLote(db);
     if (lote.length === 0) {
-      return actualizar
-        ? { estado: 'al-dia', enviados, rechazados, actualizar }
-        : { estado: 'al-dia', enviados, rechazados };
+      return {
+        estado: 'al-dia',
+        enviados,
+        rechazados,
+        ...(actualizar ? { actualizar } : {}),
+        ...(relojCorrido ? { relojCorrido } : {}),
+      };
     }
     let r: Response;
     let cuerpo: {
@@ -161,10 +175,17 @@ export async function enviarPendientes(
           ops: lote.map((p) => p.op),
         }),
       });
+    } catch {
+      // Sin respuesta no se sabe qué guardó la celda: la cola queda igual (CA4).
+      return { estado: 'sin-senal', enviados, rechazados };
+    }
+    try {
       cuerpo = (await r.json()) as typeof cuerpo;
     } catch {
-      // Sin respuesta completa no se sabe qué guardó la celda: la cola queda igual (CA4).
-      return { estado: 'sin-senal', enviados, rechazados };
+      // Una respuesta buena cortada a mitad es como no tenerla. Un error que no es JSON es un
+      // error de la nube, no falta de señal: se dice como es (bitácora agro 23, P15).
+      if (r.ok) return { estado: 'sin-senal', enviados, rechazados };
+      cuerpo = {};
     }
     if (r.status === 401)
       return { estado: 'sin-sesion', enviados, rechazados, motivo: cuerpo.motivo ?? 'Sin sesión' };
@@ -202,6 +223,7 @@ export async function enviarPendientes(
     const hecho = await aplicarAcks(db, lote, cuerpo.acks, new Date(ahora()).toISOString());
     enviados += hecho.enviados;
     rechazados += hecho.rechazados;
+    relojCorrido ||= hecho.relojCorrido;
     // Un lote sin avance (todo «reintentar») no se repite en seguida: espera el turno siguiente.
     if (hecho.enviados + hecho.rechazados === 0) {
       return { estado: 'esperar', enviados, rechazados, ms: ESPERA_MINIMA_MS };

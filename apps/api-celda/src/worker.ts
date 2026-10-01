@@ -210,6 +210,20 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
   app.post('/api/v1/sync/push', (c) => push(c, ahora));
   app.get('/api/v1/sync/pull', (c) => pull(c, ahora));
 
+  // Una falla inesperada (D1 que rechaza, un error del código) se responde en JSON con su causa:
+  // el teléfono la dice como es y reintenta; nunca la confunde con falta de señal (bitácora agro 23).
+  app.onError((error, c) => {
+    console.error('agro-api: falla inesperada:', error.message);
+    c.header('retry-after', '60');
+    return c.json(
+      {
+        estado: 'falla-celda',
+        motivo: 'La nube tuvo un problema y no guardó este envío; se reintenta sola.',
+      },
+      503,
+    );
+  });
+
   app.notFound((c) =>
     c.json({ estado: 'no-encontrado', motivo: 'Ruta de la celda desconocida' }, 404),
   );

@@ -187,3 +187,22 @@ describe('HU-E5.5 · la celda pide actualizar la app', () => {
     expect(await db.outbox.count()).toBe(0);
   });
 });
+
+describe('bitácora agro 23 · un error de la nube no es falta de señal', () => {
+  it('un 500 en texto plano se dice como error de la nube y la cola queda igual', async () => {
+    const db = await telefono();
+    const fn = (async () =>
+      new Response('Internal Server Error', { status: 500 })) as unknown as typeof fetch;
+    const r = await enviarPendientes(db, destino, { fetchFn: fn });
+    expect(r).toMatchObject({ estado: 'error', motivo: 'La celda respondió 500' });
+    expect(await db.outbox.count()).toBe(3);
+  });
+
+  it('una respuesta buena cortada a mitad sí es como no tenerla', async () => {
+    const db = await telefono();
+    const fn = (async () =>
+      new Response('{"acks":[{"id"', { status: 200 })) as unknown as typeof fetch;
+    expect((await enviarPendientes(db, destino, { fetchFn: fn })).estado).toBe('sin-senal');
+    expect(await db.outbox.count()).toBe(3);
+  });
+});

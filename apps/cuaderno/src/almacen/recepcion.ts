@@ -131,9 +131,17 @@ export async function recibirCambios(
           headers: { authorization: `Bearer ${destino.acceso}` },
         },
       );
+    } catch {
+      // Sin respuesta no se sabe qué guardó la celda: la cola queda igual (CA4).
+      return { estado: 'sin-senal', recibidos, conflictos };
+    }
+    try {
       cuerpo = (await r.json()) as typeof cuerpo;
     } catch {
-      return { estado: 'sin-senal', recibidos, conflictos };
+      // Una respuesta buena cortada a mitad es como no tenerla. Un error que no es JSON es un
+      // error de la nube, no falta de señal: se dice como es (bitácora agro 23, P15).
+      if (r.ok) return { estado: 'sin-senal', recibidos, conflictos };
+      cuerpo = {};
     }
     if (r.status === 401)
       return { estado: 'sin-sesion', recibidos, conflictos, motivo: cuerpo.motivo ?? 'Sin sesión' };

@@ -31,16 +31,32 @@ export const SHARD = 'agro_c0_s1';
 export const API = 'https://agro-api-c0.ejemplo.test';
 export const T0 = Date.UTC(2026, 9, 1, 12);
 
+export interface OpcionesDeRed {
+  /** La celda responde, pero la respuesta no llega después de N pedidos (corte a la mitad). */
+  cortarDespuesDe?: number;
+  /** Sin señal: ningún pedido sale del teléfono. */
+  sinSenal?: boolean;
+  /** Cada pedido llega dos veces a la celda (un reintento de la red); el teléfono ve el último. */
+  duplicar?: boolean;
+  /** KV de flags de la celda: nivel y kill switches. */
+  flags?: Record<string, string>;
+  /** Otra base para el shard (p. ej. una que falla). */
+  base?: BaseD1;
+}
+
 export interface Celda {
   db: BaseD1;
   cerrar: () => Promise<void>;
   vaciar: () => Promise<void>;
-  /** `fetch` del teléfono contra el Worker en memoria; cuenta los lotes y puede cortar. */
-  red: (opciones?: { cortarDespuesDe?: number; base?: BaseD1 }) => {
+  /** `fetch` del teléfono contra el Worker en memoria; cuenta los lotes y puede romperse. */
+  red: (opciones?: OpcionesDeRed) => {
     fn: typeof fetch;
     lotes: number[];
   };
-  acceso: (org: string, dispositivo?: string) => Promise<string>;
+  /** Token de la organización; `emitido` permite uno ya vencido (12 h después). */
+  acceso: (org: string, emitido?: number) => Promise<string>;
+  /** Reloj de la celda (ms Unix). Arranca en T0. */
+  reloj: { ahora: number };
   contar: (tabla: string) => Promise<number>;
 }
 
@@ -51,20 +67,25 @@ export async function montarCelda(): Promise<Celda> {
     base: 'celda',
   });
   const firmante: Firmante = await firmanteDesde(await generarClavePrivada());
-  const api = crearApp({ ahora: () => T0 });
+  const reloj = { ahora: T0 };
+  const api = crearApp({ ahora: () => reloj.ahora });
   return {
     db,
     cerrar,
     vaciar: () => vaciar(db, [...TABLAS_DEL_SHARD]),
-    red: ({ cortarDespuesDe, base = db } = {}) => {
+    reloj,
+    red: ({ cortarDespuesDe, sinSenal, duplicar, flags, base = db } = {}) => {
       const lotes: number[] = [];
       const env = {
         CELDA: 'c0',
         CORE_CLAVES: JSON.stringify([firmante.publica]),
         ORIGENES_APP: 'https://agro.ejemplo.test',
         [SHARD]: base,
+        ...(flags ? { FLAGS: { get: async (k: string) => flags[k] ?? null } } : {}),
       };
       const fn = (async (url: string, init?: RequestInit) => {
+        if (sinSenal) throw new TypeError('Failed to fetch');
+        if (duplicar) await api.fetch(new Request(url, init), env);
         const r = await api.fetch(new Request(url, init), env);
         lotes.push(JSON.parse(String(init?.body ?? '{}')).ops?.length ?? 0);
         if (cortarDespuesDe !== undefined && lotes.length > cortarDespuesDe) {
@@ -74,12 +95,12 @@ export async function montarCelda(): Promise<Celda> {
       }) as unknown as typeof fetch;
       return { fn, lotes };
     },
-    acceso: async (org) =>
+    acceso: async (org, emitido = T0) =>
       (
         await firmarAcceso(
           firmante,
           { sub: 'u1', org, rol: 'propietario', celda: 'c0', shard: SHARD, anillo: 1 },
-          T0,
+          emitido,
         )
       ).token,
     contar: async (tabla) =>
@@ -161,3 +182,62 @@ export function telefonoNuevo(
 ): Promise<Telefono> {
   return telefono(celda, nuevaBase(), org, null, dispositivo);
 }
+
+/** Anota `n` climas en la primera área del teléfono con SU reloj (puede estar corrido); devuelve los ids. */
+export async function anotar(db: CuadernoDb, n: number, reloj = T0): Promise<string[]> {
+  const finca = await db.finca.toCollection().first();
+  const area = (await db.area.toArray())[0];
+  if (!finca || !area) throw new Error('el teléfono no tiene finca');
+  const ids: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const r = await guardarClima(
+      db,
+      finca.id,
+      area.id,
+      { temperaturaC: 20 + (i % 10), humedadRelativaPct: 70, temperaturaHojaC: null },
+      { ahora: () => new Date(reloj + i * 1000) },
+    );
+    ids.push(r.id);
+  }
+  return ids;
+}
+
+/**
+ * La regla de la batería de caos (HU-E5.6, CA2): al final, cada registro creado en cualquier
+ * teléfono existe exactamente una vez en la celda y en todos los teléfonos, y no queda nada
+ * pendiente. Devuelve lo que falta, sobra o se repite; todo en cero es el éxito.
+ */
+export async function invariante(
+  celda: Celda,
+  telefonos: readonly CuadernoDb[],
+  creados: readonly string[],
+) {
+  const esperados = new Set(creados);
+  const enCelda = (
+    await celda.db.prepare('SELECT id FROM registro').all<{ id: string }>()
+  ).results.map((r) => r.id);
+  const conjunto = new Set(enCelda);
+  return {
+    celda: {
+      faltan: [...esperados].filter((id) => !conjunto.has(id)).length,
+      sobran: enCelda.filter((id) => !esperados.has(id)).length,
+      repetidos: enCelda.length - conjunto.size,
+    },
+    telefonos: await Promise.all(
+      telefonos.map(async (db) => {
+        const ids = new Set((await db.registro.toCollection().primaryKeys()) as string[]);
+        return {
+          faltan: [...esperados].filter((id) => !ids.has(id)).length,
+          sobran: [...ids].filter((id) => !esperados.has(id)).length,
+          pendientes: await db.outbox.filter((o) => o.entidad === 'registro').count(),
+        };
+      }),
+    ),
+  };
+}
+
+/** Lo que `invariante` devuelve cuando todo está bien. */
+export const sinDiferencias = (telefonos: number) => ({
+  celda: { faltan: 0, sobran: 0, repetidos: 0 },
+  telefonos: Array.from({ length: telefonos }, () => ({ faltan: 0, sobran: 0, pendientes: 0 })),
+});

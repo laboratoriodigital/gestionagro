@@ -805,7 +805,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E5.6 · Batería de caos de sincronización
 **Como** dueño **quiero** una batería que rompa la sincronización a propósito **para** saber que no se pierden datos antes de dárselo a otras fincas.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S10 · **Depende de:** HU-E5.3, HU-E5.5, HU-E8.6 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S10 · **Depende de:** HU-E5.3, HU-E5.5, HU-E8.6 · **Estado:** En sprint (rama `feat/e5.6-bateria-de-caos`. CA1: los ocho casos en `tests/caos/caos.test.ts`, con las dos fincas, sobre el arnés de teléfonos simulados (API real de la celda con D1 local y cuaderno real). CA2: `invariante()` comprueba al final de cada caso que cada registro creado existe una vez en la celda y en todos los teléfonos y que no queda nada pendiente. CA3: la celda marca `reloj-corrido` en el ack si el registro está más de 10 min en su futuro, lo guarda tal cual, y el cuaderno avisa que se corrija la hora. CA4: un defecto por caso, todos en rojo: (1) sin INSERT OR IGNORE → casos 1 y 2; (2) cola vaciada antes de la respuesta → 2, 3, 7 y 8; (3) lo que baja no se guarda → todos; (4) hora corregida en silencio → 4; (5) sin riego v1 → 5; (6) esencial frena el push → 6; (7) tokens vencidos aceptados → 7; (8) bloqueo ignorado → 8. La batería encontró un defecto real: un 500 de la celda se reportaba como «sin señal» (bitácora agro 23))
 - **Criterios de aceptación:**
   1. Casos en `tests/caos/`, todos con las dos fincas de prueba:
      - lote duplicado;
