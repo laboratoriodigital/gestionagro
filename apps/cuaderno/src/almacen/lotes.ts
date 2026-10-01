@@ -2,10 +2,11 @@
  * Lotes de venta (HU-E6.2): cosechas enteras agrupadas con un código corto, para despacharlas y
  * rastrearlas.
  *
- * - **Código** (CA1): inicial del cultivo, día y mes, consecutivo: `T-2703-2`. Se arma sin señal,
+ * - **Código** (CA1): inicial del cultivo, día, mes en letras y consecutivo: `T-27MAR-2`. El mes
+ *   va en letras porque `0110` se confundía (revisión del dueño en staging). Se arma sin señal,
  *   con lo que el teléfono conoce; el consecutivo nunca reutiliza uno visto, ni de un lote
  *   corregido. Si dos teléfonos sin señal arman el mismo código, al sincronizar el más reciente se
- *   muestra con una letra (`T-2703-2B`) y lo dice: nunca dos lotes se ven con el mismo código.
+ *   muestra con una letra (`T-27MAR-2B`) y lo dice: nunca dos lotes se ven con el mismo código.
  * - **Un kilo en un solo lote** (CA2): armar un lote con una cosecha que ya está en otro se niega
  *   con un mensaje. Si dos teléfonos sin señal la ponen en lotes distintos, la cosecha se queda en
  *   el lote más antiguo y el otro lo avisa.
@@ -82,8 +83,19 @@ async function lotesDe(db: CuadernoDb, fincaId: string) {
     .equals('lote_venta')
     .filter((r) => r.finca_id === fincaId)
     .toArray();
+  // Un lote corregido conserva su lugar: cuenta desde cuándo se armó la primera versión.
+  const porId = new Map(todos.map((l) => [l.id, l]));
+  const armado = (l: Registro) => {
+    let actual = l;
+    for (let n = 0; n < 1000 && actual.anula_id; n++) {
+      const previo = porId.get(actual.anula_id);
+      if (!previo) break;
+      actual = previo;
+    }
+    return actual.id;
+  };
   // El más antiguo primero: decide a quién le queda una cosecha o un código repetido.
-  const vigentes = (await soloVigentes(db, todos)).sort((a, b) => (a.id < b.id ? -1 : 1));
+  const vigentes = (await soloVigentes(db, todos)).sort((a, b) => (armado(a) < armado(b) ? -1 : 1));
   return { todos, vigentes };
 }
 
@@ -336,14 +348,16 @@ export async function armarLote(
   );
 }
 
-/** `T-2703-3`: el consecutivo sigue al mayor visto con esa inicial y ese día. */
+const MESES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+
+/** `T-27MAR-3`: el consecutivo sigue al mayor visto con esa inicial y ese día. */
 export function siguienteCodigo(
   existentes: readonly string[],
   inicial: string,
   fecha: string,
 ): string {
   const [, mes, dia] = fecha.split('-');
-  const prefijo = `${inicial}-${dia}${mes}-`;
+  const prefijo = `${inicial}-${dia}${MESES[Number(mes) - 1] ?? mes}-`;
   const mayor = existentes
     .filter((c) => c.startsWith(prefijo))
     .map((c) => Number(c.slice(prefijo.length)))

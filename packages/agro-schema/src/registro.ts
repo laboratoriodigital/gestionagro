@@ -152,11 +152,12 @@ const cosechaV1 = z
 
 /**
  * `lote_venta` v1 (HU-E6.2): cosechas enteras agrupadas para despacharlas, con un código corto
- * que se lee en voz alta (`T-2703-2`: inicial del cultivo, día y mes, consecutivo). La cantidad es
+ * que se lee en voz alta (`T-27MAR-2`: inicial del cultivo, día, mes en letras, consecutivo; los
+ * primeros lotes de staging usaban `T-2703-2` y siguen siendo válidos). La cantidad es
  * lo vendible: lo cosechado menos el descarte. Una cosecha va en un solo lote.
  */
 const loteVentaV1 = z.strictObject({
-  codigo: z.string().regex(/^[A-Z]-\d{4}-\d+$/, 'debe tener la forma T-2703-2'),
+  codigo: z.string().regex(/^[A-Z]-(?:\d{2}[A-Z]{3}|\d{4})-\d+$/, 'debe tener la forma T-27MAR-2'),
   cosecha_ids: z.array(id).min(1, 'debe tener al menos una cosecha'),
   cantidad: medida('de cantidad', 0.001, 100_000_000),
   unidad: texto,

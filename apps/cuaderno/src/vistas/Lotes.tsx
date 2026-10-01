@@ -44,6 +44,9 @@ function ElegirCosechas(props: {
   const total = opciones.filter((c) => elegidas.has(c.id)).reduce((s, c) => s + c.cantidad, 0);
   const unidades = [...new Set(opciones.filter((c) => elegidas.has(c.id)).map((c) => c.unidad))];
 
+  // Un id por formulario: la misma cosecha libre puede estar en «Cosechas sin lote» y en el
+  // lote que se está cambiando.
+  const idDe = (cosecha: string) => `cosecha-${props.corrige?.registro.id ?? 'nuevo'}-${cosecha}`;
   const alternar = (id: string) => {
     const nuevas = new Set(elegidas);
     if (nuevas.has(id)) nuevas.delete(id);
@@ -68,7 +71,12 @@ function ElegirCosechas(props: {
   };
 
   if (opciones.length === 0) {
-    return <p class="ayuda">No hay cosechas sin lote. Las cosechas se anotan en Registrar.</p>;
+    return (
+      <p class="ayuda" data-prueba="sin-cosechas-libres">
+        No hay cosechas sin lote: todas las anotadas ya están en uno. Para armar otro lote, anota la
+        cosecha en <a href="/agro/app/registrar/">Registrar</a>.
+      </p>
+    );
   }
   return (
     <fieldset class="lote-cosechas" data-prueba="elegir-cosechas">
@@ -78,12 +86,12 @@ function ElegirCosechas(props: {
       {opciones.map((c) => (
         <div class="opcion" key={c.id}>
           <input
-            id={`cosecha-${c.id}`}
+            id={idDe(c.id)}
             type="checkbox"
             checked={elegidas.has(c.id)}
             onChange={() => alternar(c.id)}
           />
-          <label for={`cosecha-${c.id}`}>
+          <label for={idDe(c.id)}>
             {c.area} · {fechaCorta(c.fecha)} · {c.categoria} · {coma(c.cantidad)} {c.unidad}
           </label>
         </div>
@@ -156,7 +164,8 @@ export function Lotes() {
         cosecha va en un solo lote.
       </p>
       {!arma && <SoloConsulta rol={permisos.rol} que="los lotes" />}
-      {arma && lotes !== null && (
+      {/* Mientras se cambia un lote, sus cosechas libres se eligen ahí, no en dos sitios. */}
+      {arma && lotes !== null && abierto?.tipo !== 'cambiar' && (
         <ElegirCosechas fincaId={fincaId} cosechas={cosechas} alTerminar={cargar} />
       )}
       <h2>Lotes armados</h2>

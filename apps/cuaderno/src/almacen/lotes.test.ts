@@ -25,11 +25,16 @@ describe('el código corto (CA1)', () => {
     expect(inicialDe([null])).toBe('M');
   });
 
+  it('el mes va en letras: 01/10 no se confunde con 0110', () => {
+    expect(siguienteCodigo([], 'T', '2026-10-01')).toBe('T-01OCT-1');
+    expect(siguienteCodigo([], 'T', '2027-01-10')).toBe('T-10ENE-1');
+  });
+
   it('el consecutivo sigue al mayor visto ese día con esa inicial, aunque falten números', () => {
-    expect(siguienteCodigo([], 'T', '2027-03-27')).toBe('T-2703-1');
+    expect(siguienteCodigo([], 'T', '2027-03-27')).toBe('T-27MAR-1');
     expect(
-      siguienteCodigo(['T-2703-1', 'T-2703-4', 'P-2703-9', 'T-2603-7'], 'T', '2027-03-27'),
-    ).toBe('T-2703-5');
+      siguienteCodigo(['T-27MAR-1', 'T-27MAR-4', 'P-27MAR-9', 'T-26MAR-7'], 'T', '2027-03-27'),
+    ).toBe('T-27MAR-5');
   });
 });
 
@@ -87,7 +92,7 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
     const [lote] = await leerLotes(db, finca.id);
     const inicial = f.cultivo.nombre.normalize('NFD')[0]?.toUpperCase();
     expect(lote).toMatchObject({
-      codigo: `${inicial}-2703-1`,
+      codigo: `${inicial}-27MAR-1`,
       cantidad: 40.5,
       unidad: f.cultivo.unidad_cosecha,
       avisos: [],
@@ -103,8 +108,8 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
     const c3 = await cosechar(a1.id, 5);
     await armarLote(db, finca.id, [c3.id], { ahora: LUEGO });
     expect((await leerLotes(db, finca.id)).map((l) => l.codigo)).toEqual([
-      `${inicial}-2703-2`,
-      `${inicial}-2703-1`,
+      `${inicial}-27MAR-2`,
+      `${inicial}-27MAR-1`,
     ]);
   });
 

@@ -72,7 +72,7 @@
       "origen": "manual",
       "anula_id": null,
       "datos": {
-        "codigo": "C-0110-1",
+        "codigo": "C-01OCT-1",
         "cosecha_ids": ["0199a1b2-0000-7000-8000-000000000015"],
         "cantidad": 12.5,
         "unidad": "kg",
@@ -102,7 +102,7 @@
         "lineas": [
           {
             "lote_id": "0199a1b2-0000-7000-8000-000000000020",
-            "codigo": "C-0110-1",
+            "codigo": "C-01OCT-1",
             "cantidad": 10
           }
         ],

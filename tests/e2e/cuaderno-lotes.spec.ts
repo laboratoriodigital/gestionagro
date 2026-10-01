@@ -21,12 +21,26 @@ async function cosechar(page: Page, area: string, cantidad: string) {
   await expect(page.getByText('Cosecha guardada en este teléfono.')).toBeVisible();
 }
 
-/** `ddmm` de hoy en Colombia: el código del lote usa la fecha de la finca (P8). */
+/** Día y mes en letras de hoy en Colombia (`01OCT`): el código del lote usa la fecha de la finca (P8). */
 const hoyEnColombia = () => {
   const [, m, d] = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' })
     .format(new Date())
     .split('-');
-  return { ddmm: `${d}${m}`, corta: `${d}/${m}` };
+  const meses = [
+    'ENE',
+    'FEB',
+    'MAR',
+    'ABR',
+    'MAY',
+    'JUN',
+    'JUL',
+    'AGO',
+    'SEP',
+    'OCT',
+    'NOV',
+    'DIC',
+  ];
+  return { ddmm: `${d}${meses[Number(m) - 1]}`, corta: `${d}/${m}` };
 };
 
 for (const f of FINCAS_DE_PRUEBA) {
@@ -56,7 +70,7 @@ for (const f of FINCAS_DE_PRUEBA) {
     await expect(lote.locator('[data-prueba="origen-lote"]')).toHaveText(
       `De ${a1.nombre} (${hoy.corta}), ${a2.nombre} (${hoy.corta})`,
     );
-    await expect(page.getByText('No hay cosechas sin lote.')).toBeVisible();
+    await expect(page.locator('[data-prueba="sin-cosechas-libres"]')).toBeVisible();
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
     // Cambiar las cosechas conserva el código.
@@ -125,4 +139,41 @@ test('HU-E6.3: despachar un lote sin señal, con cliente, precio y medio de pago
   );
   await expect(despacho).toHaveCount(1);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test('revisión del dueño: otro lote con una cosecha nueva, y sumarla a un lote tocando su texto', async ({
+  page,
+}) => {
+  const f = FINCAS_DE_PRUEBA[0];
+  const a1 = f?.areas[0];
+  if (!f || !a1) throw new Error('sin finca');
+  await configurar(page, f);
+  await cosechar(page, a1.nombre, '10');
+  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  const hoy = hoyEnColombia();
+  await page.getByText(`${a1.nombre} · ${hoy.corta} · Primera · 10 kg`).click();
+  await page.getByRole('button', { name: 'Armar lote' }).click();
+  // Sin cosechas libres, dice por qué y adónde ir.
+  await expect(page.locator('[data-prueba="sin-cosechas-libres"]')).toContainText(
+    'todas las anotadas ya están en uno',
+  );
+
+  // Una cosecha nueva sirve para otro lote…
+  await cosechar(page, a1.nombre, '20');
+  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  await page.getByText(`${a1.nombre} · ${hoy.corta} · Primera · 20 kg`).click();
+  await page.getByRole('button', { name: 'Armar lote' }).click();
+  await expect(page.locator('.codigo-lote')).toHaveText([`M-${hoy.ddmm}-2`, `M-${hoy.ddmm}-1`]);
+
+  // …o para sumarla a uno ya armado, tocando el texto de la cosecha.
+  await cosechar(page, a1.nombre, '5');
+  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  await page.getByRole('button', { name: `Cambiar las cosechas del lote M-${hoy.ddmm}-1` }).click();
+  await expect(page.getByRole('button', { name: 'Armar lote' })).toHaveCount(0);
+  await page.getByText(`${a1.nombre} · ${hoy.corta} · Primera · 5 kg`).click();
+  await expect(page.locator('[data-prueba="total-lote"]')).toHaveText('2 cosechas · 15 kg');
+  await page.getByRole('button', { name: 'Guardar cambios' }).click();
+  await expect(page.locator('[data-prueba="lote"]').nth(1)).toContainText(
+    `M-${hoy.ddmm}-1 · 15 kg`,
+  );
 });
