@@ -76,3 +76,21 @@ export async function agregarInsumo(page: Page, i: FincaDePrueba['insumos'][numb
     page.locator('[data-prueba="insumo"]').filter({ hasText: i.nombre_comercial }),
   ).toHaveCount(1);
 }
+
+/**
+ * Vigila el DOM desde ya y recuerda si `texto` apareció aunque sea un instante. Esperar a que
+ * desaparezca lo escondería: un «no hay» mientras carga es justo lo que se quiere atrapar.
+ */
+export async function vigilarTexto(page: Page, texto: string): Promise<() => Promise<boolean>> {
+  type Vistos = { __vistos?: Record<string, boolean> };
+  await page.evaluate((t) => {
+    const w = window as unknown as Vistos;
+    w.__vistos ??= {};
+    const vistos = w.__vistos;
+    vistos[t] = document.body.innerText.includes(t);
+    new MutationObserver(() => {
+      if (document.body.innerText.includes(t)) vistos[t] = true;
+    }).observe(document.body, { subtree: true, childList: true, characterData: true });
+  }, texto);
+  return () => page.evaluate((t) => Boolean((window as unknown as Vistos).__vistos?.[t]), texto);
+}

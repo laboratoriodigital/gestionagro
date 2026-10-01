@@ -5,7 +5,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { agregarInsumo, configurar, ROL } from './ayudas.ts';
+import { agregarInsumo, configurar, ROL, vigilarTexto } from './ayudas.ts';
 
 /** 10/12/2026 a las 9:30 en Bogotá. */
 const APLICADO = new Date('2026-12-10T14:30:00Z');
@@ -67,7 +67,13 @@ for (const f of FINCAS_DE_PRUEBA) {
       await page.clock.setFixedTime(APLICADO);
       const area = f.areas[f.areas.length - 1]?.nombre ?? '';
       const persona = await preparar(page, f);
+      // Con insumos y personas guardados, nunca debe decir que faltan, ni mientras carga.
+      const vioInsumos = await vigilarTexto(page, 'Primero agrega los insumos');
+      const vioPersonas = await vigilarTexto(page, 'Primero agrega las personas');
       await abrirAplicaciones(page);
+      await expect(page.getByLabel('Insumo', { exact: true })).toBeVisible();
+      expect(await vioInsumos()).toBe(false);
+      expect(await vioPersonas()).toBe(false);
       await context.setOffline(true);
       await aplicar(page, area, TRES_DIAS.nombre_comercial, persona);
       const guardada = page.locator('[data-prueba="aplicacion-guardada"]');

@@ -139,6 +139,14 @@ export const VERSIONES_LOCALES: readonly VersionLocal[] = [
       tipo_labor: 'id, finca_id', // labores de una finca
     },
   },
+  {
+    // HU-E3.12: qué registros quedaron anulados por una corrección. Sin anula_id (null) no entra
+    // al índice: solo cuesta en las correcciones, que son pocas.
+    version: 6,
+    tablas: {
+      registro: 'id, fecha_agronomica, tipo, anula_id',
+    },
+  },
 ];
 
 export const NOMBRE_POR_DEFECTO = 'gestionagro-cuaderno';

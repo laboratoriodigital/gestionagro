@@ -572,3 +572,17 @@ La regla: **el control negativo también es código que puede fallar. Respaldos 
 La regla: **un formulario muestra todos sus errores en la misma vuelta. Si una validación sale antes, las que vienen después quedan escondidas; las pruebas de errores incluyen uno con varios a la vez.**
 
 *Ficha:* agro · *(mío)* · 🟡 Leve · P15 · 0.1.0 · 2026-10-01
+
+**17 · «Primero agrega los insumos» con un insumo ya guardado.**
+
+*Qué pasó.* El 1 oct 2026 el dueño probó Aplicaciones en staging y no vio el insumo «Prueba 3 días» ni los plazos; luego lo vio y pensó que había sido un error suyo. Al reproducirlo en el navegador del panel, la pestaña dijo «Primero agrega los insumos en Insumos» con el insumo guardado (comprobado en IndexedDB). Dos segundos después, la lista apareció.
+
+*Causa raíz.* La lista arrancaba como `[]` y se llenaba al terminar la lectura de IndexedDB. Para la pantalla, «todavía no sé» y «no hay» eran el mismo valor, así que mientras cargaba afirmaba algo falso. En la máquina de desarrollo la lectura toma milisegundos y nadie lo ve; en un teléfono lento dura lo suficiente para leerlo, y quien lo lee cree que se perdieron datos. Es P1 en la pantalla: un valor por defecto que se hace pasar por un dato. Las e2e no lo atrapaban porque esperan hasta que aparece lo correcto, y esa espera esconde lo que se mostró antes.
+
+*Arreglo.*
+- Las listas de Aplicaciones, Labores, Insumos y Personas arrancan en `null` («cargando») y muestran «Cargando…»; el «no hay» solo sale con la respuesta en la mano.
+- La e2e instala un `MutationObserver` antes de abrir la pestaña y falla si el aviso apareció aunque sea un instante (`vigilarTexto`). Con la lista arrancando en `[]`, falla.
+
+La regla: **«cargando» y «vacío» son estados distintos y la pantalla los dice distinto. Para probar que algo no se muestra, se vigila desde antes; esperar a que desaparezca no prueba nada.**
+
+*Ficha:* agro · *(mío)* · 🟡 Leve · P1, P19 · 0.1.0 · 2026-10-01

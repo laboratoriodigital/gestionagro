@@ -16,14 +16,21 @@ import {
   type Finca,
   type Insumo,
   type Persona,
+  type Registro,
 } from '@gestionagro/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';
-import { type EstadoDeArea, estadosPorArea, guardarAplicacion } from '../almacen/aplicaciones.ts';
+import {
+  type DatosAplicacionGuardada,
+  type EstadoDeArea,
+  estadosPorArea,
+  guardarAplicacion,
+} from '../almacen/aplicaciones.ts';
 import { avisoEcologico, leerInsumos, plazo } from '../almacen/insumos.ts';
 import { leerPersonas } from '../almacen/personas.ts';
 import { Campo, CampoSeleccion } from '../componentes/Campo.tsx';
+import { AccionesDeFormulario, aTexto, EventoQueSeCorrige } from '../componentes/Correccion.tsx';
 import { Vencimientos } from '../componentes/Vencimientos.tsx';
 
 export const TEXTO_DOSIS =
@@ -63,7 +70,11 @@ export function FormularioAplicacion(props: {
   finca: Finca;
   areas: Area[];
   alGuardar: () => void;
+  /** Aplicación vigente que se corrige (HU-E3.12). */
+  corrige?: Registro | undefined;
+  alCancelar?: () => void;
 }) {
+  const antes = props.corrige?.datos as DatosAplicacionGuardada | undefined;
   const vacio = (): Valores => ({
     areas: props.areas.length === 1 ? [props.areas[0]?.id ?? ''] : [],
     insumoId: '',
@@ -73,9 +84,22 @@ export function FormularioAplicacion(props: {
     mezcla: '',
     equipo: '',
   });
-  const [v, setV] = useState<Valores>(vacio);
-  const [insumos, setInsumos] = useState<Insumo[]>([]);
-  const [personas, setPersonas] = useState<Persona[]>([]);
+  const inicial = (): Valores =>
+    props.corrige && antes
+      ? {
+          areas: props.corrige.area_ids.slice(0, 1),
+          insumoId: antes.insumo_id,
+          dosis: aTexto(antes.dosis),
+          dosisUnidad: antes.dosisUnidad,
+          personas: [...props.corrige.persona_ids],
+          mezcla: aTexto(antes.volumenMezclaL),
+          equipo: antes.equipo ?? '',
+        }
+      : vacio();
+  const [v, setV] = useState<Valores>(inicial);
+  // null = cargando: mientras tanto no se dice «no hay» (revisión del dueño, 1 oct 2026).
+  const [insumos, setInsumos] = useState<Insumo[] | null>(null);
+  const [personas, setPersonas] = useState<Persona[] | null>(null);
   const [errores, setErrores] = useState<Errores>({});
   const [guardadas, setGuardadas] = useState<{ area: Area; estado: EstadoDeArea | undefined }[]>(
     [],
@@ -92,7 +116,7 @@ export function FormularioAplicacion(props: {
   const tieneAlgo = Boolean(v.insumoId || v.dosis || v.dosisUnidad || v.mezcla || v.equipo);
   useEffect(() => (tieneAlgo ? abrirFormulario() : undefined), [tieneAlgo]);
 
-  const insumo = insumos.find((i) => i.id === v.insumoId);
+  const insumo = insumos?.find((i) => i.id === v.insumoId);
   const aviso = insumo ? avisoEcologico(props.finca, insumo) : null;
   const alternar = (lista: 'areas' | 'personas', id: string) =>
     setV({
@@ -122,14 +146,20 @@ export function FormularioAplicacion(props: {
     if (Object.keys(err).length > 0 || !dosis.ok) return;
     try {
       const db = cuaderno();
-      await guardarAplicacion(db, props.finca.id, v.areas, {
-        insumoId: v.insumoId,
-        dosis: dosis.valor,
-        dosisUnidad: v.dosisUnidad,
-        volumenMezclaL: mezcla,
-        equipo: v.equipo.trim() || null,
-        personaIds: v.personas,
-      });
+      await guardarAplicacion(
+        db,
+        props.finca.id,
+        v.areas,
+        {
+          insumoId: v.insumoId,
+          dosis: dosis.valor,
+          dosisUnidad: v.dosisUnidad,
+          volumenMezclaL: mezcla,
+          equipo: v.equipo.trim() || null,
+          personaIds: v.personas,
+        },
+        { corrige: props.corrige },
+      );
       const estados = await estadosPorArea(db, props.finca.id);
       setGuardadas(
         props.areas
@@ -161,29 +191,35 @@ export function FormularioAplicacion(props: {
       noValidate
       data-prueba="formulario-aplicacion"
     >
-      <h2>Aplicaciones</h2>
-      <fieldset
-        class="opciones"
-        aria-describedby={errores.areas ? 'aplicacion-areas-error' : undefined}
-      >
-        <legend>Áreas aplicadas</legend>
-        {props.areas.map((a) => (
-          <label class="opcion" key={a.id}>
-            <input
-              type="checkbox"
-              checked={v.areas.includes(a.id)}
-              onChange={() => alternar('areas', a.id)}
-            />
-            {a.nombre}
-          </label>
-        ))}
-        {errores.areas && (
-          <p id="aplicacion-areas-error" class="error">
-            {errores.areas}
-          </p>
-        )}
-      </fieldset>
-      {insumos.length === 0 ? (
+      <h2>{props.corrige ? 'Corregir aplicación' : 'Aplicaciones'}</h2>
+      {props.corrige ? (
+        <EventoQueSeCorrige registro={props.corrige} areas={props.areas} />
+      ) : (
+        <fieldset
+          class="opciones"
+          aria-describedby={errores.areas ? 'aplicacion-areas-error' : undefined}
+        >
+          <legend>Áreas aplicadas</legend>
+          {props.areas.map((a) => (
+            <label class="opcion" key={a.id}>
+              <input
+                type="checkbox"
+                checked={v.areas.includes(a.id)}
+                onChange={() => alternar('areas', a.id)}
+              />
+              {a.nombre}
+            </label>
+          ))}
+          {errores.areas && (
+            <p id="aplicacion-areas-error" class="error">
+              {errores.areas}
+            </p>
+          )}
+        </fieldset>
+      )}
+      {insumos === null ? (
+        <p class="ayuda">Cargando insumos…</p>
+      ) : insumos.length === 0 ? (
         <p class="ayuda">
           Primero agrega los insumos en <a href="/agro/app/insumos/">Insumos</a>.
         </p>
@@ -233,12 +269,13 @@ export function FormularioAplicacion(props: {
         aria-describedby={errores.personas ? 'aplicacion-personas-error' : undefined}
       >
         <legend>Quién aplicó</legend>
-        {personas.length === 0 && (
+        {personas === null && <p class="ayuda">Cargando personas…</p>}
+        {personas?.length === 0 && (
           <p class="ayuda">
             Primero agrega las personas en <a href="/agro/app/personas/">Personas</a>.
           </p>
         )}
-        {personas.map((p) => (
+        {personas?.map((p) => (
           <label class="opcion" key={p.id}>
             <input
               type="checkbox"
@@ -291,9 +328,11 @@ export function FormularioAplicacion(props: {
           ))}
         </div>
       )}
-      <div class="acciones">
-        <button type="submit">Guardar aplicación</button>
-      </div>
+      <AccionesDeFormulario
+        corrigiendo={Boolean(props.corrige)}
+        texto="Guardar aplicación"
+        alCancelar={props.alCancelar}
+      />
     </form>
   );
 }

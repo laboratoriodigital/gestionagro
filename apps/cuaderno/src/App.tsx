@@ -7,6 +7,7 @@ import { LocationProvider, Route, Router, useLocation } from 'preact-iso';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { IndicadorDatos } from './IndicadorDatos.tsx';
 import { RUTAS_APP, rutaDe } from './rutas.ts';
+import { Historial } from './vistas/Historial.tsx';
 import { Inicio } from './vistas/Inicio.tsx';
 import { Insumos } from './vistas/Insumos.tsx';
 import { NoEncontrada } from './vistas/NoEncontrada.tsx';
@@ -16,6 +17,7 @@ import { Registrar } from './vistas/Registrar.tsx';
 const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> = {
   '': Inicio,
   registrar: Registrar,
+  historial: Historial,
   personas: Personas,
   insumos: Insumos,
 };

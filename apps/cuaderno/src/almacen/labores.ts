@@ -18,10 +18,9 @@ import {
   validarCatalogo,
 } from '@gestionagro/agro-schema';
 import { conEscritura } from '../actividad.ts';
-import { cicloActivoDe } from './ciclos.ts';
-import { ultimosRegistros } from './consultas.ts';
+import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';
+import { soloVigentes, ultimosRegistros } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';
-import { idDispositivo } from './dispositivo.ts';
 import { guardarRegistro } from './guardar.ts';
 import { operacion } from './versionado.ts';
 
@@ -81,14 +80,21 @@ export async function horasDelDia(
   fincaId: string,
   personaId: string,
   fecha: string,
+  /** Registro que se está corrigiendo: sus horas se reemplazan, no se suman (HU-E3.12). */
+  sinContar?: string,
 ): Promise<number> {
-  const labores = await db.registro
+  const delDia = await db.registro
     .where('fecha_agronomica')
     .equals(fecha)
     .filter(
-      (r) => r.tipo === 'labor' && r.finca_id === fincaId && r.persona_ids.includes(personaId),
+      (r) =>
+        r.tipo === 'labor' &&
+        r.finca_id === fincaId &&
+        r.id !== sinContar &&
+        r.persona_ids.includes(personaId),
     )
     .toArray();
+  const labores = await soloVigentes(db, delDia);
   return labores.reduce(
     (suma, r) => suma + (r.datos as { horasPorPersona: number }).horasPorPersona,
     0,
@@ -108,10 +114,11 @@ export async function avisosDeHoras(
   personaIds: readonly string[],
   horas: number,
   fecha: string,
+  sinContar?: string,
 ): Promise<AvisoDeHoras[]> {
   const avisos: AvisoDeHoras[] = [];
   for (const personaId of personaIds) {
-    const total = (await horasDelDia(db, fincaId, personaId, fecha)) + horas;
+    const total = (await horasDelDia(db, fincaId, personaId, fecha, sinContar)) + horas;
     if (total > MAXIMO_HORAS_DIA) {
       const persona = await db.persona.get(personaId);
       avisos.push({ personaId, nombre: persona?.nombre ?? 'Una persona', total });
@@ -133,7 +140,7 @@ export async function guardarLabor(
   db: CuadernoDb,
   fincaId: string,
   datos: DatosLabor,
-  { ahora = () => new Date() }: Opciones = {},
+  { ahora = () => new Date(), corrige }: OpcionesDeRegistro = {},
 ): Promise<Registro> {
   if (datos.personaIds.length === 0) {
     throw new ErrorDeValidacion('Labor', [
@@ -143,10 +150,17 @@ export async function guardarLabor(
   if (!datos.labor.trim()) {
     throw new ErrorDeValidacion('Labor', [{ campo: 'labor', motivo: 'elige o escribe la labor' }]);
   }
-  const momento = ahora();
-  const fecha = fechaAgronomica(momento.getTime());
+  // Una corrección cuenta en el día del evento que corrige.
+  const fecha = corrige?.fecha_agronomica ?? fechaAgronomica(ahora().getTime());
   if (!datos.confirmarMasDe12) {
-    const avisos = await avisosDeHoras(db, fincaId, datos.personaIds, datos.horasPorPersona, fecha);
+    const avisos = await avisosDeHoras(
+      db,
+      fincaId,
+      datos.personaIds,
+      datos.horasPorPersona,
+      fecha,
+      corrige?.id,
+    );
     if (avisos.length > 0) {
       throw new ErrorDeValidacion(
         'Labor',
@@ -158,25 +172,21 @@ export async function guardarLabor(
     }
   }
   const tipo = await asegurarTipoLabor(db, fincaId, datos.labor, { ahora });
-  const ciclo = await cicloActivoDe(db, datos.areaId);
+  const cabecera = await cabeceraDeRegistro(db, {
+    fincaId,
+    areaId: datos.areaId,
+    tipo: 'labor',
+    v: 1,
+    personaIds: datos.personaIds,
+    // Un teléfono que registra a nombre de personas sin cuenta (ARQUITECTURA §5.3, regla 5).
+    origen: 'tablero',
+    ahora,
+    corrige,
+  });
   return guardarRegistro(
     db,
     {
-      id: uuidv7(() => momento.getTime()),
-      org_id: null,
-      finca_id: fincaId,
-      area_ids: [datos.areaId],
-      ciclo_id: ciclo?.id ?? null,
-      tipo: 'labor',
-      v: 1,
-      fecha_agronomica: fecha,
-      instante_evento: momento.toISOString(),
-      autor_usuario_id: null,
-      persona_ids: [...datos.personaIds],
-      dispositivo_id: await idDispositivo(db, ahora),
-      // Un teléfono que registra a nombre de personas sin cuenta (ARQUITECTURA §5.3, regla 5).
-      origen: 'tablero',
-      anula_id: null,
+      ...cabecera,
       datos: { labor_id: tipo.id, labor: tipo.nombre, horasPorPersona: datos.horasPorPersona },
     },
     { ahora },

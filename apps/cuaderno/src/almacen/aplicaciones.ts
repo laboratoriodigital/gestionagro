@@ -15,17 +15,12 @@ import {
   fechaAgronomica,
   type Insumo,
   type Registro,
-  uuidv7,
 } from '@gestionagro/agro-schema';
 import { fechaHora } from '../formato.ts';
-import { cicloActivoDe } from './ciclos.ts';
+import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';
+import { soloVigentes } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';
-import { idDispositivo } from './dispositivo.ts';
 import { guardarRegistros } from './guardar.ts';
-
-interface Opciones {
-  ahora?: () => Date;
-}
 
 export interface DatosAplicacion {
   insumoId: string;
@@ -53,10 +48,12 @@ export async function guardarAplicacion(
   fincaId: string,
   areaIds: readonly string[],
   datos: DatosAplicacion,
-  { ahora = () => new Date() }: Opciones = {},
+  { ahora = () => new Date(), corrige }: OpcionesDeRegistro = {},
 ): Promise<Registro[]> {
+  // Una corrección reemplaza un registro de una sola área: la del corregido.
+  const areas = corrige ? corrige.area_ids.slice(0, 1) : areaIds;
   const faltan = [];
-  if (areaIds.length === 0) faltan.push({ campo: 'area_ids', motivo: 'elige al menos un área' });
+  if (areas.length === 0) faltan.push({ campo: 'area_ids', motivo: 'elige al menos un área' });
   if (datos.personaIds.length === 0) {
     faltan.push({ campo: 'persona_ids', motivo: 'elige quién aplicó' });
   }
@@ -66,27 +63,27 @@ export async function guardarAplicacion(
   }
   if (faltan.length > 0 || !insumo) throw new ErrorDeValidacion('Aplicación', faltan);
 
-  const momento = ahora();
-  const dispositivo = await idDispositivo(db, ahora);
+  // Corregir la dosis no cambia la etiqueta que regía al aplicar; cambiar el insumo, sí.
+  const antes = corrige?.datos as DatosAplicacionGuardada | undefined;
+  const etiqueta =
+    antes && antes.insumo_id === insumo.id
+      ? { carenciaDias: antes.carenciaDias, reentradaHoras: antes.reentradaHoras }
+      : { carenciaDias: insumo.carencia_dias, reentradaHoras: insumo.reentrada_horas };
   const registros = [];
-  for (const areaId of areaIds) {
-    const ciclo = await cicloActivoDe(db, areaId);
-    registros.push({
-      id: uuidv7(() => momento.getTime()),
-      org_id: null,
-      finca_id: fincaId,
-      area_ids: [areaId],
-      ciclo_id: ciclo?.id ?? null,
+  for (const areaId of areas) {
+    const cabecera = await cabeceraDeRegistro(db, {
+      fincaId,
+      areaId,
       tipo: 'aplicacion',
       v: 1,
-      fecha_agronomica: fechaAgronomica(momento.getTime()),
-      instante_evento: momento.toISOString(),
-      autor_usuario_id: null,
-      persona_ids: [...datos.personaIds],
-      dispositivo_id: dispositivo,
+      personaIds: datos.personaIds,
       // Quien registra anota a nombre de quien aplicó, tenga o no cuenta (ARQUITECTURA §5.3).
       origen: 'tablero',
-      anula_id: null,
+      ahora,
+      corrige,
+    });
+    registros.push({
+      ...cabecera,
       datos: {
         insumo_id: insumo.id,
         insumo: insumo.nombre_comercial,
@@ -94,8 +91,7 @@ export async function guardarAplicacion(
         dosisUnidad: datos.dosisUnidad.trim(),
         volumenMezclaL: datos.volumenMezclaL,
         equipo: datos.equipo?.trim() || null,
-        carenciaDias: insumo.carencia_dias,
-        reentradaHoras: insumo.reentrada_horas,
+        ...etiqueta,
       } satisfies DatosAplicacionGuardada,
     });
   }
@@ -129,11 +125,15 @@ export async function estadosPorArea(
   ahora: Date = new Date(),
 ): Promise<Map<string, EstadoDeArea>> {
   const hoy = fechaAgronomica(ahora.getTime());
-  const aplicaciones = await db.registro
-    .where('tipo')
-    .equals('aplicacion')
-    .filter((r) => r.finca_id === fincaId)
-    .toArray();
+  // Una aplicación corregida cuenta una sola vez: con su versión vigente (HU-E3.12).
+  const aplicaciones = await soloVigentes(
+    db,
+    await db.registro
+      .where('tipo')
+      .equals('aplicacion')
+      .filter((r) => r.finca_id === fincaId)
+      .toArray(),
+  );
   const insumos = new Map<string, Insumo>();
   for (const i of await db.insumo.where('finca_id').equals(fincaId).toArray()) insumos.set(i.id, i);
 

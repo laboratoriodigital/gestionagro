@@ -282,7 +282,8 @@ function ListaInsumos(props: {
 
 export function Insumos() {
   const estado = usarFinca();
-  const [insumos, setInsumos] = useState<Insumo[]>([]);
+  // null = cargando: mientras tanto no se dice «no hay».
+  const [insumos, setInsumos] = useState<Insumo[] | null>(null);
   const [nuevo, setNuevo] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
   const finca = !estado.cargando ? estado.finca : null;
@@ -302,16 +303,20 @@ export function Insumos() {
         Los productos que usas, con los datos de su etiqueta. Con ellos la app te avisará cuándo
         puedes cosechar y entrar a una nave aplicada.
       </p>
-      <ListaInsumos
-        finca={finca}
-        insumos={insumos}
-        editando={editando}
-        alEditar={setEditando}
-        alGuardar={() => {
-          setEditando(null);
-          cargar();
-        }}
-      />
+      {insumos === null ? (
+        <p class="ayuda">Cargando insumos…</p>
+      ) : (
+        <ListaInsumos
+          finca={finca}
+          insumos={insumos}
+          editando={editando}
+          alEditar={setEditando}
+          alGuardar={() => {
+            setEditando(null);
+            cargar();
+          }}
+        />
+      )}
       {nuevo ? (
         <FormularioInsumo
           fincaId={finca.id}

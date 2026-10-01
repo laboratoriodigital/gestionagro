@@ -1,0 +1,38 @@
+/** Resumen de un registro en una línea, en palabras de finca. Lo usan Registrar e Historial (P2). */
+import { formatearKPa, formatearPct } from '@gestionagro/agro-calc';
+import type { Registro } from '@gestionagro/agro-schema';
+import type { DatosAplicacionGuardada } from '../almacen/aplicaciones.ts';
+import type { DatosClimaGuardado } from '../almacen/clima.ts';
+import type { DatosRiegoGuardado } from '../almacen/riego.ts';
+
+export function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): string {
+  const coma = (n: number) => String(n).replace('.', ',');
+  if (r.tipo === 'clima') {
+    const d = r.datos as DatosClimaGuardado;
+    const hoja = d.temperaturaHojaC !== null ? ` · hoja ${coma(d.temperaturaHojaC)} °C` : '';
+    return `Clima · ${coma(d.temperaturaC)} °C · ${coma(d.humedadRelativaPct)} % · DPV ${formatearKPa(d.dpvKPa)}${hoja}`;
+  }
+  if (r.tipo === 'riego') {
+    const d = r.datos as DatosRiegoGuardado;
+    const unidad = d.unidad === 'mL_gotero' ? 'mL por gotero' : 'L por área';
+    const drenaje =
+      d.drenajePct === null ? 'drenaje no medido' : `drenaje ${formatearPct(d.drenajePct)}`;
+    const ce = d.ceEntradaDsM === null ? '' : ` · CE ${coma(d.ceEntradaDsM)} dS/m`;
+    const ph = d.phEntrada === null ? '' : ` · pH ${coma(d.phEntrada)}`;
+    // Los riegos v1 no tienen duración.
+    const min = r.v >= 2 ? d.duracionMin : null;
+    const duracion = min === null ? '' : ` · ${coma(min)} min`;
+    return `Riego · ${coma(d.volumenAplicado)} ${unidad}${duracion} · ${drenaje}${ce}${ph}`;
+  }
+  if (r.tipo === 'labor') {
+    const d = r.datos as { labor: string; horasPorPersona: number };
+    const quienes = r.persona_ids.map((id) => nombres.get(id) ?? 'Persona').join(', ');
+    return `Labor · ${d.labor} · ${coma(d.horasPorPersona)} h por persona · ${quienes}`;
+  }
+  if (r.tipo === 'aplicacion') {
+    const d = r.datos as DatosAplicacionGuardada;
+    const quienes = r.persona_ids.map((id) => nombres.get(id) ?? 'Persona').join(', ');
+    return `Aplicación · ${d.insumo} · ${coma(d.dosis)} ${d.dosisUnidad} · ${quienes}`;
+  }
+  return r.tipo;
+}
