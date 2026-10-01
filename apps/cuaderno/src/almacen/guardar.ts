@@ -3,16 +3,13 @@
  *
  * El registro y su operación de salida se escriben en **una** transacción: si falla una, no
  * queda ninguna. Un registro sin su operación nunca subiría; una operación sin registro subiría
- * algo que no existe.
+ * algo que no existe. Varios registros a la vez (el mismo riego en tres naves) van en la misma
+ * transacción: o quedan todos o ninguno (HU-E3.7, CA3).
  */
 import { ErrorDeRegistro, type Registro, validarRegistro } from '@gestionagro/agro-schema';
 import { conEscritura } from '../actividad.ts';
 import type { CuadernoDb } from './db.ts';
 
-/**
- * Valida y guarda. Lanza `ErrorDeRegistro` (con los campos) antes de tocar la base si el
- * registro no es válido, y el error de IndexedDB si la transacción falla.
- */
 export interface OpcionesDeGuardado {
   ahora?: () => Date;
   /**
@@ -22,36 +19,52 @@ export interface OpcionesDeGuardado {
   confirmarCicloCerrado?: boolean;
 }
 
-export async function guardarRegistro(
+/**
+ * Valida todos y los guarda juntos. Lanza `ErrorDeRegistro` (con los campos) antes de tocar la
+ * base si alguno no es válido, y el error de IndexedDB si la transacción falla.
+ */
+export async function guardarRegistros(
   db: CuadernoDb,
-  entrada: unknown,
+  entradas: readonly unknown[],
   { ahora = () => new Date(), confirmarCicloCerrado = false }: OpcionesDeGuardado = {},
-): Promise<Registro> {
-  const registro = validarRegistro(entrada);
+): Promise<Registro[]> {
+  const registros = entradas.map((e) => validarRegistro(e));
   // Cuenta como escritura en curso: una actualización no la interrumpe (HU-E3.1, CA2).
   await conEscritura(() =>
     db.transaction('rw', db.registro, db.outbox, db.ciclo, async () => {
-      if (registro.ciclo_id && !confirmarCicloCerrado) {
-        const ciclo = await db.ciclo.get(registro.ciclo_id);
-        if (ciclo?.estado === 'cerrado') {
-          throw new ErrorDeRegistro([
-            {
-              campo: 'ciclo_id',
-              motivo: `el ciclo de ${ciclo.cultivo} se cerró el ${ciclo.fecha_fin?.split('-').reverse().join('/')}; confirma si de verdad va en ese ciclo`,
-            },
-          ]);
+      for (const registro of registros) {
+        if (registro.ciclo_id && !confirmarCicloCerrado) {
+          const ciclo = await db.ciclo.get(registro.ciclo_id);
+          if (ciclo?.estado === 'cerrado') {
+            throw new ErrorDeRegistro([
+              {
+                campo: 'ciclo_id',
+                motivo: `el ciclo de ${ciclo.cultivo} se cerró el ${ciclo.fecha_fin?.split('-').reverse().join('/')}; confirma si de verdad va en ese ciclo`,
+              },
+            ]);
+          }
         }
+        await db.registro.add(registro);
+        await db.outbox.add({
+          id: registro.id,
+          entidad: 'registro',
+          entidad_id: registro.id,
+          version: 1,
+          op: 'crear',
+          creado: ahora().toISOString(),
+        });
       }
-      await db.registro.add(registro);
-      await db.outbox.add({
-        id: registro.id,
-        entidad: 'registro',
-        entidad_id: registro.id,
-        version: 1,
-        op: 'crear',
-        creado: ahora().toISOString(),
-      });
     }),
   );
+  return registros;
+}
+
+export async function guardarRegistro(
+  db: CuadernoDb,
+  entrada: unknown,
+  opciones: OpcionesDeGuardado = {},
+): Promise<Registro> {
+  const [registro] = await guardarRegistros(db, [entrada], opciones);
+  if (!registro) throw new Error('guardarRegistros no devolvió el registro');
   return registro;
 }

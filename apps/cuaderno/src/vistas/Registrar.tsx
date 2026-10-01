@@ -15,6 +15,7 @@ import {
   dpvAireKPa,
   ErrorDeMedida,
   formatearKPa,
+  formatearPct,
   leerNumero,
 } from '@gestionagro/agro-calc';
 import type { Area, Ciclo, Registro } from '@gestionagro/agro-schema';
@@ -22,15 +23,13 @@ import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';
 import { leerCiclos } from '../almacen/ciclos.ts';
-import {
-  type DatosClimaGuardado,
-  guardarClima,
-  pendientesDeSubir,
-  ultimosClimas,
-} from '../almacen/clima.ts';
+import { type DatosClimaGuardado, guardarClima } from '../almacen/clima.ts';
+import { pendientesDeSubir, ultimosRegistros } from '../almacen/consultas.ts';
 import { leerFinca } from '../almacen/finca.ts';
+import type { DatosRiegoGuardado } from '../almacen/riego.ts';
 import { Campo, CampoSeleccion } from '../componentes/Campo.tsx';
 import { fechaHora } from '../formato.ts';
+import { FormularioRiego } from './FormularioRiego.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 
 interface Valores {
@@ -218,31 +217,53 @@ function FormularioClima(props: {
   );
 }
 
-function UltimosClimas(props: { registros: Registro[]; areas: Area[]; pendientes: Set<string> }) {
-  if (props.registros.length === 0) return <p class="ayuda">Todavía no hay registros de clima.</p>;
+/** Resumen de un registro en una línea, en palabras de finca. */
+function resumenDe(r: Registro): string {
+  const coma = (n: number) => String(n).replace('.', ',');
+  if (r.tipo === 'clima') {
+    const d = r.datos as DatosClimaGuardado;
+    const hoja = d.temperaturaHojaC !== null ? ` · hoja ${coma(d.temperaturaHojaC)} °C` : '';
+    return `Clima · ${coma(d.temperaturaC)} °C · ${coma(d.humedadRelativaPct)} % · DPV ${formatearKPa(d.dpvKPa)}${hoja}`;
+  }
+  if (r.tipo === 'riego') {
+    const d = r.datos as DatosRiegoGuardado;
+    const unidad = d.unidad === 'mL_gotero' ? 'mL por gotero' : 'L por área';
+    const drenaje =
+      d.drenajePct === null ? 'drenaje no medido' : `drenaje ${formatearPct(d.drenajePct)}`;
+    const ce = d.ceEntradaDsM === null ? '' : ` · CE ${coma(d.ceEntradaDsM)} dS/m`;
+    const ph = d.phEntrada === null ? '' : ` · pH ${coma(d.phEntrada)}`;
+    return `Riego · ${coma(d.volumenAplicado)} ${unidad} · ${drenaje}${ce}${ph}`;
+  }
+  return r.tipo;
+}
+
+function UltimosRegistros(props: {
+  registros: Registro[];
+  areas: Area[];
+  pendientes: Set<string>;
+}) {
+  if (props.registros.length === 0) return <p class="ayuda">Todavía no hay registros.</p>;
   const nombre = (id: string | undefined) => props.areas.find((a) => a.id === id)?.nombre ?? 'Área';
   return (
-    <ul class="areas" data-prueba="ultimos-climas">
-      {props.registros.map((r) => {
-        const d = r.datos as DatosClimaGuardado;
-        return (
-          <li class="area" key={r.id} data-prueba="registro-clima">
-            <p class="area-titulo">
-              <strong>{nombre(r.area_ids[0])}</strong> · {fechaHora(r.instante_evento)}
-            </p>
-            <p class="detalle-insumo">
-              {String(d.temperaturaC).replace('.', ',')} °C ·{' '}
-              {String(d.humedadRelativaPct).replace('.', ',')} % · DPV {formatearKPa(d.dpvKPa)}
-              {d.temperaturaHojaC !== null &&
-                ` · hoja ${String(d.temperaturaHojaC).replace('.', ',')} °C`}
-            </p>
-            {props.pendientes.has(r.id) && <p class="ayuda">Solo en este teléfono</p>}
-          </li>
-        );
-      })}
+    <ul class="areas" data-prueba="ultimos-registros">
+      {props.registros.map((r) => (
+        <li class="area" key={r.id} data-prueba={`registro-${r.tipo}`}>
+          <p class="area-titulo">
+            <strong>{nombre(r.area_ids[0])}</strong> · {fechaHora(r.instante_evento)}
+          </p>
+          <p class="detalle-insumo">{resumenDe(r)}</p>
+          {props.pendientes.has(r.id) && <p class="ayuda">Solo en este teléfono</p>}
+        </li>
+      ))}
     </ul>
   );
 }
+
+const TIPOS = [
+  { id: 'clima', titulo: 'Clima' },
+  { id: 'riego', titulo: 'Riego' },
+] as const;
+type TipoRegistro = (typeof TIPOS)[number]['id'];
 
 export function Registrar() {
   const estado = usarFinca();
@@ -250,6 +271,8 @@ export function Registrar() {
   const [ciclos, setCiclos] = useState<Ciclo[]>([]);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
+  // Un enlace con valores de clima (#t=…) abre directo en Clima (HU-E3.8, CA3).
+  const [tipo, setTipo] = useState<TipoRegistro>('clima');
   const fincaId = !estado.cargando && estado.finca ? estado.finca.id : null;
 
   const cargar = () => {
@@ -259,7 +282,13 @@ export function Registrar() {
       const datos = await leerFinca(db);
       setAreas((datos?.areas ?? []).filter((a) => a.padre_id === null && a.activa));
       setCiclos(await leerCiclos(db, fincaId));
-      setRegistros(await ultimosClimas(db, fincaId));
+      setRegistros(
+        await ultimosRegistros(
+          db,
+          fincaId,
+          TIPOS.map((t) => t.id),
+        ),
+      );
       setPendientes(await pendientesDeSubir(db));
     })();
   };
@@ -272,11 +301,28 @@ export function Registrar() {
     <section aria-labelledby="titulo-registrar">
       <h1 id="titulo-registrar">Registrar</h1>
       <p>Se guarda en este teléfono aunque no haya señal.</p>
-      {areas.length > 0 && (
+      <fieldset class="pestanas">
+        <legend class="solo-lectores">Qué vas a registrar</legend>
+        {TIPOS.map((t) => (
+          <button
+            type="button"
+            key={t.id}
+            class={tipo === t.id ? '' : 'secundario'}
+            aria-pressed={tipo === t.id}
+            onClick={() => setTipo(t.id)}
+          >
+            {t.titulo}
+          </button>
+        ))}
+      </fieldset>
+      {areas.length > 0 && tipo === 'clima' && (
         <FormularioClima fincaId={fincaId} areas={areas} ciclos={ciclos} alGuardar={cargar} />
       )}
-      <h2>Últimos registros de clima</h2>
-      <UltimosClimas registros={registros} areas={areas} pendientes={pendientes} />
+      {areas.length > 0 && tipo === 'riego' && (
+        <FormularioRiego fincaId={fincaId} areas={areas} alGuardar={cargar} />
+      )}
+      <h2>Últimos registros</h2>
+      <UltimosRegistros registros={registros} areas={areas} pendientes={pendientes} />
     </section>
   );
 }

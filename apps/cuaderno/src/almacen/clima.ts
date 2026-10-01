@@ -10,6 +10,7 @@
 import { dpvAireKPa } from '@gestionagro/agro-calc';
 import { fechaAgronomica, type Registro, uuidv7 } from '@gestionagro/agro-schema';
 import { cicloActivoDe } from './ciclos.ts';
+import { ultimosRegistros } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';
 import { idDispositivo } from './dispositivo.ts';
 import { guardarRegistro } from './guardar.ts';
@@ -66,22 +67,8 @@ export function recalcularDpv(r: Registro): number {
 }
 
 /** Últimos registros de clima de la finca, del más reciente al más viejo. */
-export async function ultimosClimas(
-  db: CuadernoDb,
-  fincaId: string,
-  limite = 10,
-): Promise<Registro[]> {
-  const climas = await db.registro
-    .where('tipo')
-    .equals('clima')
-    .filter((r) => r.finca_id === fincaId)
-    .toArray();
-  return climas.sort((a, b) => b.instante_evento.localeCompare(a.instante_evento)).slice(0, limite);
+export function ultimosClimas(db: CuadernoDb, fincaId: string, limite = 10): Promise<Registro[]> {
+  return ultimosRegistros(db, fincaId, ['clima'], limite);
 }
 
-/** Ids de registros que siguen en la cola de salida: «solo en este teléfono» (HU-E3.14). */
-export async function pendientesDeSubir(db: CuadernoDb): Promise<Set<string>> {
-  // Para un registro, el id de su operación de salida es el id del registro.
-  const ids = await db.outbox.filter((o) => o.entidad === 'registro').primaryKeys();
-  return new Set(ids.map(String));
-}
+export { pendientesDeSubir } from './consultas.ts';

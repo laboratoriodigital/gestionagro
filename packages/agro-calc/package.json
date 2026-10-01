@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./casos/dpv.json": "./casos/dpv.json",
-    "./catalogos/rangos-dpv.json": "./catalogos/rangos-dpv.json"
+    "./catalogos/rangos-dpv.json": "./catalogos/rangos-dpv.json",
+    "./casos/drenaje.json": "./casos/drenaje.json"
   },
   "files": [
     "src",
