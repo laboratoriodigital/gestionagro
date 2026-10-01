@@ -268,3 +268,13 @@ button:disabled {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+.aviso {
+  background: var(--color-superficie);
+  border: 2px solid var(--color-marca);
+  border-radius: var(--radio);
+  padding: var(--espacio-3);
+  margin-block: var(--espacio-3);
+}
+.aviso p {
+  margin: 0 0 var(--espacio-2);
+}

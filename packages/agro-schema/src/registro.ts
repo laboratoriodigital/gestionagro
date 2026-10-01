@@ -3,7 +3,7 @@
  * tipo y versión. Corregir es escribir otro registro con `anula_id`; nadie borra.
  */
 import { z } from 'zod';
-import { fechaAgronomica, id, instante, medida } from './comunes.ts';
+import { fechaAgronomica, id, instante, medida, texto } from './comunes.ts';
 
 export const registroBase = z.strictObject({
   id,
@@ -68,9 +68,23 @@ const riegoV1 = z
     }
   });
 
+/**
+ * `labor` v1 (HU-E3.9): qué labor y cuántas horas por persona, en medias horas. Las personas van
+ * en `persona_ids` del registro base (modo tablero: sin cuenta).
+ */
+const laborV1 = z.strictObject({
+  labor_id: id,
+  labor: texto,
+  horasPorPersona: medida('horas', 0.5, 24).refine(
+    (h) => Number.isInteger(h * 2),
+    'debe ir en medias horas (0,5; 1; 1,5…)',
+  ),
+});
+
 export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, z.ZodType>>>> = {
   clima: { 1: climaV1 },
   riego: { 1: riegoV1 },
+  labor: { 1: laborV1 },
 };
 
 export type Registro = z.infer<typeof registroBase>;

@@ -14,6 +14,7 @@ import type {
   Insumo,
   Persona,
   Registro,
+  TipoLabor,
   ValorJornal,
 } from '@gestionagro/agro-schema';
 import { Dexie, type EntityTable, type Transaction } from 'dexie';
@@ -26,7 +27,8 @@ export type Entidad =
   | 'persona'
   | 'insumo'
   | 'cultivo'
-  | 'valor_jornal';
+  | 'valor_jornal'
+  | 'tipo_labor';
 
 /** Operación pendiente de subir a la celda. Se escribe en la misma transacción que su dato. */
 export interface OperacionSalida {
@@ -66,6 +68,7 @@ export type CuadernoDb = Dexie & {
   insumo: EntityTable<Insumo, 'id'>;
   cultivo: EntityTable<Cultivo, 'id'>;
   valor_jornal: EntityTable<ValorJornal, 'id'>;
+  tipo_labor: EntityTable<TipoLabor, 'id'>;
   registro: EntityTable<Registro, 'id'>;
   outbox: EntityTable<OperacionSalida, 'id'>;
   historial: EntityTable<VersionAnterior, 'id'>;
@@ -127,6 +130,13 @@ export const VERSIONES_LOCALES: readonly VersionLocal[] = [
     version: 4,
     tablas: {
       valor_jornal: 'id, persona_id', // valores de una persona, el vigente es el más reciente
+    },
+  },
+  {
+    // HU-E3.9: catálogo de tipos de labor de la finca.
+    version: 5,
+    tablas: {
+      tipo_labor: 'id, finca_id', // labores de una finca
     },
   },
 ];

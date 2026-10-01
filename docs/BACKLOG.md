@@ -559,7 +559,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.9 · Registrar labores
 **Como** operario **quiero** anotar qué labor hice, en qué nave, con quién y cuántas horas **para** que quede constancia y se puedan calcular los costos.
-- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S5 · **Depende de:** HU-E3.5 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S5 · **Depende de:** HU-E3.5 · **Estado:** En sprint (rama `feat/e3.9-registro-labores`. CA1: el catálogo arranca vacío y las cinco labores del ejemplo se ofrecen como sugerencia; entran al catálogo al usarlas. CA3: el aviso de más de 12 h no bloquea, pide confirmar)
 - **Criterios de aceptación:**
   1. Tipos de labor desde un catálogo editable (tutorado, deshoje, poda, polinización, limpieza…).
   2. Se eligen una o varias personas: modo tablero, sin necesidad de cuenta.
