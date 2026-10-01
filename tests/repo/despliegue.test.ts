@@ -197,6 +197,14 @@ describe('prueba de humo (CA5, P11)', () => {
     },
     'GET https://s.dev/agro/app/sw.js': { estado: 200, texto: 'precacheAndRoute precache' },
     'GET https://s.dev/agro/app/': { estado: 200, texto: '<meta name="robots" content="noindex">' },
+    'GET https://s.dev/agro/app/personas/': {
+      estado: 200,
+      texto: '<meta name="robots" content="noindex">',
+    },
+    'GET https://s.dev/agro/app/insumos/': {
+      estado: 200,
+      texto: '<meta name="robots" content="noindex">',
+    },
     'GET https://s.dev/api/eventos': { estado: 405, texto: 'Solo POST' },
     'POST https://s.dev/api/eventos': { estado: 400, texto: 'El lote no es JSON' },
   };

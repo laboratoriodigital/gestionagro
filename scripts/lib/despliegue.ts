@@ -2,6 +2,7 @@
  * Piezas del despliegue por celdas (HU-E1.5). Funciones puras o con `fetch` inyectado, para
  * probarlas sin tocar Cloudflare.
  */
+import { RUTAS_APP, rutaDe } from '../../apps/cuaderno/src/rutas.ts';
 import type { Celda } from './celdas.ts';
 
 export type Destino = 'staging' | 'produccion';
@@ -145,7 +146,8 @@ export async function humo(fetchFn: Fetch, base: string): Promise<string[]> {
   };
   await contiene('/herramientas/agro/', 'Herramientas agronómicas');
   await contiene('/herramientas/agro/calculadora-dpv/', 'Calculadora de DPV');
-  await contiene('/agro/app/', 'noindex');
+  // Cada ruta del cuaderno abre con un enlace directo, sin service worker todavía.
+  for (const { segmento } of RUTAS_APP) await contiene(rutaDe(segmento), 'noindex');
   await contiene('/agro/app/manifest.webmanifest', '"scope":"/agro/app/"');
   await contiene('/agro/app/sw.js', 'precache');
   const get = await pedir('/api/eventos');

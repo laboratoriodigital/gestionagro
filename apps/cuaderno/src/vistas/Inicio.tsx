@@ -3,9 +3,9 @@
  * Pide almacenamiento persistente y dice el resultado en palabras (ARQUITECTURA §5.3, regla 6).
  */
 import type { Area, Ciclo, Cultivo, Finca } from '@gestionagro/agro-schema';
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
+import { cuaderno } from '../almacen/abierto.ts';
 import { leerCiclos, leerCultivos } from '../almacen/ciclos.ts';
-import { abrirCuaderno } from '../almacen/db.ts';
 import { leerFinca } from '../almacen/finca.ts';
 import { type EstadoPersistencia, pedirPersistencia } from '../almacen/persistencia.ts';
 import { Asistente } from './Asistente.tsx';
@@ -27,7 +27,7 @@ type Estado =
     };
 
 export function Inicio() {
-  const db = useMemo(() => abrirCuaderno(), []);
+  const db = cuaderno();
   const [persistencia, setPersistencia] = useState<EstadoPersistencia | null>(null);
   const [estado, setEstado] = useState<Estado>({ cargando: true });
 
@@ -50,7 +50,6 @@ export function Inicio() {
       setPersistencia('no-disponible'),
     );
     cargar();
-    return () => db.close();
   }, []);
 
   return (

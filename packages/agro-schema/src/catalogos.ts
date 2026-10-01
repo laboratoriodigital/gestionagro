@@ -95,9 +95,23 @@ export const insumo = z.strictObject({
   permitido_ecologico: z.boolean().nullable(),
 });
 
+/**
+ * Valor del jornal de una persona (HU-E3.5, CA1). Va aparte de la persona para que solo
+ * propietario y supervisor lo vean cuando existan los roles (HU-E4.5). Cada cambio es una fila
+ * nueva con la fecha desde la que rige: cambiarlo no altera costos pasados (HU-E7.2).
+ */
+export const valorJornal = z.strictObject({
+  ...metaDeCatalogo,
+  finca_id: id,
+  persona_id: id,
+  valor_cop: z.int('debe ser un valor entero en pesos').min(1, 'debe ser mayor que 0'),
+  vigente_desde: fechaAgronomica,
+});
+
 export type Finca = z.infer<typeof finca>;
 export type Area = z.infer<typeof area>;
 export type Ciclo = z.infer<typeof ciclo>;
 export type Persona = z.infer<typeof persona>;
 export type Insumo = z.infer<typeof insumo>;
 export type Cultivo = z.infer<typeof cultivo>;
+export type ValorJornal = z.infer<typeof valorJornal>;
