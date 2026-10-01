@@ -342,7 +342,8 @@ cursor local ───────GET  /api/v1/sync/pull?desde=<seq>&limite=200 
   - Cada operación lleva `v` (versión del esquema del registro).
   - El servidor acepta todas las versiones que alguna app publicada escribió y las traduce al leer.
   - Si la app es más vieja que `app_minima`, el push **se acepta igual** y la respuesta pide actualizar. Ningún dato de campo se pierde por venir de una app vieja.
-- **Pull que no pisa lo pendiente:** un cambio remoto sobre una entidad con edición local pendiente se guarda como conflicto y se muestra (§5.7).
+- **Pull que no pisa lo pendiente:** un cambio remoto sobre una entidad con edición local pendiente se guarda como conflicto y se muestra (§5.7). Implementado (HU-E5.3): el teléfono guarda la versión de la nube en su historial local (`<id>@v<versión>#nube`) y conserva la suya; al subirla, la celda la guarda como conflicto. Elegir cuál queda es HU-E5.4.
+- **Pull (HU-E5.3):** `GET /api/v1/sync/pull?registro=<seq>&catalogo=<seq>`, con dos cursores porque `seq` es por tabla. Hasta 200 cambios por página, catálogos primero; 2 lecturas, ninguna escritura. Cada página se aplica en el teléfono junto con su cursor, en una transacción. Lo que baja no entra a la cola de salida. Un teléfono sube primero y baja después.
 - **Frecuencia:** al abrir la app, al volver la señal y cada 15 min con la app abierta, con espera exponencial si la celda responde 429 o está degradada.
 
 ### 5.7 Modelo de datos
@@ -600,6 +601,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 | Bloqueo D1 | 100 % | D1 rechaza; la app espera sin perder nada | El mismo aviso, con la causa |
 
 - **Kill switch por producto en KV** (`ks:<product.id>`, valor `encendido` o `apagado`, en `agro-c{N}-flags`): se lee con caché en memoria de hasta 60 s. A eso se suma la propagación de KV, que Cloudflare da como hasta 60 s o más: **apagar un producto tarda hasta 2 minutos**, y está escrito así para que nadie crea que es instantáneo (P7). El despliegue crea las claves que faltan y nunca toca las que existen. Runbook: `docs/runbooks/kill-switch.md`.
+- **Nivel de la celda en KV:** clave `nivel` del KV de flags (`normal`, `alerta`, `ahorro`, `esencial`, `bloqueo`), leída con la misma caché de 60 s que los kill switches. Sin clave es `normal`. La escribe el vigía (HU-E8.2); el pull ya la respeta (HU-E5.3).
 - KV gratuito permite 1.000 escrituras al día. El vigía escribe como máximo 24 al día y solo cuando cambia de nivel.
 
 ### 8.3 Respaldos

@@ -12,8 +12,14 @@ import { escucharActividad } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';
 import type { Rechazo } from '../almacen/db.ts';
 import { type ResumenDeDatos, resumenDeDatos } from '../almacen/estado-datos.ts';
+import type { ResultadoDeRecepcion } from '../almacen/recepcion.ts';
 import { ErrorDeSesion, type Sesion, urlDelCore } from '../almacen/sesion.ts';
-import { type EstadoDelVinculo, estadoDelVinculo, subirFinca } from '../almacen/vinculo.ts';
+import {
+  bajarFinca,
+  type EstadoDelVinculo,
+  estadoDelVinculo,
+  subirFinca,
+} from '../almacen/vinculo.ts';
 import {
   type EstadoDeSincronizacion,
   escucharSincronizacion,
@@ -23,8 +29,28 @@ import {
 
 const minutos = (ms: number) => Math.max(1, Math.round(ms / 60_000));
 
+/** Lo que bajó del equipo, en palabras (HU-E5.3). Vacío si no hay nada que decir. */
+function textoDeRecepcion(r: ResultadoDeRecepcion | undefined): string {
+  if (!r) return '';
+  const bajados = r.recibidos > 0 ? ` Se bajaron ${r.recibidos} cambios del equipo.` : '';
+  const chocan =
+    r.conflictos > 0
+      ? ` ${r.conflictos} cambios del equipo tocan algo que tú también editaste: se guardaron aparte, sin borrar el tuyo.`
+      : '';
+  switch (r.estado) {
+    case 'al-dia':
+      return `${bajados}${chocan}`;
+    case 'sin-senal':
+      return `${bajados} Se cortó la señal al bajar lo del equipo; sigue cuando vuelva.`;
+    case 'esperar':
+      return `${bajados} ${r.motivo}`;
+    default:
+      return `${bajados} ${r.motivo}`;
+  }
+}
+
 export function textoDeSincronizacion(e: EstadoDeSincronizacion): string | null {
-  if (e.tipo === 'enviando') return 'Subiendo…';
+  if (e.tipo === 'enviando') return 'Sincronizando…';
   if (e.tipo === 'sin-sesion')
     return 'Sin sesión para sincronizar: se renueva sola cuando haya señal.';
   if (e.tipo !== 'resultado') return null;
@@ -32,7 +58,7 @@ export function textoDeSincronizacion(e: EstadoDeSincronizacion): string | null 
   const enviados = r.enviados > 0 ? ` Se subieron ${r.enviados}.` : '';
   switch (r.estado) {
     case 'al-dia':
-      return `Todo está en la nube.${enviados}`;
+      return `Todo está en la nube.${enviados}${textoDeRecepcion(e.recepcion)}`;
     case 'sin-senal':
       return `Sin señal: lo pendiente sube cuando vuelva.${enviados}`;
     case 'esperar':
@@ -97,6 +123,21 @@ export function FincaEnLaNube({
     }
   };
 
+  const bajar = async (orgId: string) => {
+    setSubiendo(true);
+    setError(null);
+    try {
+      alCambiarSesion(await bajarFinca(cuaderno(), urlDelCore(location.hostname), orgId));
+      await sincronizarAhora();
+    } catch (e) {
+      setError(
+        e instanceof ErrorDeSesion ? e.message : 'No se pudo bajar la finca. Intenta de nuevo.',
+      );
+    } finally {
+      setSubiendo(false);
+    }
+  };
+
   if (estado === null) return <p>Cargando…</p>;
 
   return (
@@ -109,6 +150,27 @@ export function FincaEnLaNube({
       )}
       {estado === 'sin-finca' && (
         <p class="ayuda">Configura tu finca en «Áreas» para poder subirla.</p>
+      )}
+      {estado === 'para-bajar' && (
+        <>
+          <p data-prueba="nube-para-bajar">
+            Este teléfono todavía no tiene finca. Si es la de tu cuenta, bájala con todo lo que ya
+            registró el equipo:
+          </p>
+          <div class="acciones">
+            {sesion.organizaciones.map((o) => (
+              <button
+                type="button"
+                key={o.org_id}
+                disabled={!enLinea || subiendo}
+                onClick={() => void bajar(o.org_id)}
+              >
+                {subiendo ? 'Bajando…' : `Bajar «${o.nombre}» a este teléfono`}
+              </button>
+            ))}
+          </div>
+          {!enLinea && <p class="ayuda">Necesitas señal para bajar la finca.</p>}
+        </>
       )}
       {estado === 'otra-cuenta' && (
         <p class="error" data-prueba="nube-otra-cuenta">
@@ -145,7 +207,9 @@ export function FincaEnLaNube({
       {estado === 'vinculada' && (
         <>
           <p class="exito" data-prueba="nube-vinculada">
-            «{finca}» está vinculada a tu cuenta.
+            {finca
+              ? `«${finca}» está vinculada a tu cuenta.`
+              : 'Este teléfono está bajando la finca de tu cuenta.'}
           </p>
           {resumen && (
             <p data-prueba="nube-pendientes">

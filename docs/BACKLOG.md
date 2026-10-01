@@ -767,7 +767,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E5.3 · Bajar lo que registraron los demás
 **Como** supervisor **quiero** ver en mi teléfono lo que registró el equipo **para** tener el cuaderno completo.
-- **Peldaño:** Finca · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S9 · **Depende de:** HU-E5.2 · **Estado:** Refinada
+- **Peldaño:** Finca · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S9 · **Depende de:** HU-E5.2 · **Estado:** En sprint (rama `feat/e5.3-bajar-cambios`. CA1: dos cursores, `registro` y `catalogo`, porque `seq` es por tabla; catálogos primero; 2 lecturas y ninguna escritura, medido. CA2: una edición pendiente no se pisa; la versión de la nube queda en el historial local como conflicto, y al subir la del teléfono la celda la guarda como conflicto: ninguna se pierde, HU-E5.4 dejará elegir. CA3: la celda lee la clave `nivel` de su KV y con «esencial» o «bloqueo» pausa el pull hasta las 19:00 de Colombia; el vigía que escribe esa clave es HU-E8.2, y el aviso completo, HU-E8.6. CA4: «Bajar «X» a este teléfono» en Cuenta, y una línea en el asistente para no volver a escribir la finca. Arnés de teléfonos simulados en `tests/integracion/arnes.ts`, base de HU-E5.6. Falta la prueba real con dos teléfonos en staging)
 - **Criterios de aceptación:**
   1. El pull usa el cursor `seq` guardado en el teléfono y trae hasta 200 cambios por página. El servidor no escribe nada para atender un pull.
   2. Aplicar cambios remotos nunca pisa una edición local pendiente. Si chocan, se registra un conflicto (HU-E5.4).

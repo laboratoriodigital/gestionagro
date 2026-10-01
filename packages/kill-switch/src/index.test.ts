@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { claveKillSwitch, crearLectorKillSwitch, MAX_EDAD_MS } from './index.ts';
+import {
+  claveKillSwitch,
+  crearLectorDeNivel,
+  crearLectorKillSwitch,
+  MAX_EDAD_MS,
+} from './index.ts';
 
 function kvFalso(inicial: Record<string, string> = {}) {
   const datos = new Map(Object.entries(inicial));
@@ -83,5 +88,39 @@ describe('kill switch por producto (HU-E8.1)', () => {
     expect(await lector.apagado('otro-producto')).toBe(false);
     expect(avisos).toHaveLength(2);
     expect(avisos[1]).toContain('ks:otro-producto');
+  });
+});
+
+describe('nivel de la celda (ARQUITECTURA §8.2)', () => {
+  it('lee el nivel con caché de 60 s; sin clave es «normal»', async () => {
+    let valor: string | null = null;
+    let lecturas = 0;
+    let t = 0;
+    const lector = crearLectorDeNivel({
+      kv: {
+        get: async () => {
+          lecturas++;
+          return valor;
+        },
+      },
+      ahora: () => t,
+    });
+    expect(await lector.nivel()).toBe('normal');
+    valor = 'esencial';
+    t = 59_000;
+    expect(await lector.nivel()).toBe('normal'); // caché
+    t = 60_000;
+    expect(await lector.nivel()).toBe('esencial');
+    expect(lecturas).toBe(2);
+  });
+
+  it('un valor desconocido es «normal» y queda en el log (P1)', async () => {
+    const avisos: string[] = [];
+    const lector = crearLectorDeNivel({
+      kv: { get: async () => 'rojo' },
+      avisar: (m) => avisos.push(m),
+    });
+    expect(await lector.nivel()).toBe('normal');
+    expect(avisos[0]).toContain('«rojo»');
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Cuándo sube el teléfono (ARQUITECTURA §5.6): al abrir la app, al volver la señal y cada 15 min
+ * Cuándo sube y baja el teléfono (ARQUITECTURA §5.6): al abrir la app, al volver la señal y cada 15 min
  * con la app abierta. Si la celda pide esperar (429 o 503), se espera cada vez más (HU-E5.2, CA5).
  *
  * Solo sube con la finca vinculada (HU-E4.3) y una sesión activa: sin eso, no intenta nada y el
@@ -9,6 +9,7 @@ import { conEscritura } from './actividad.ts';
 import { cuaderno } from './almacen/abierto.ts';
 import { idDispositivo } from './almacen/dispositivo.ts';
 import { enviarPendientes, type ResultadoDeEnvio } from './almacen/envio.ts';
+import { type ResultadoDeRecepcion, recibirCambios } from './almacen/recepcion.ts';
 import { estadoDeSesion, renovarSiHaceFalta, urlDelCore } from './almacen/sesion.ts';
 import { estadoDelVinculo } from './almacen/vinculo.ts';
 
@@ -18,7 +19,13 @@ export type EstadoDeSincronizacion =
   | { tipo: 'inactiva'; motivo: 'sin-cuenta' | 'sin-vincular' | 'otra-cuenta' }
   | { tipo: 'sin-sesion' }
   | { tipo: 'enviando' }
-  | { tipo: 'resultado'; resultado: ResultadoDeEnvio; cuando: number };
+  | {
+      tipo: 'resultado';
+      resultado: ResultadoDeEnvio;
+      /** Lo que bajó del equipo (HU-E5.3); no se baja si la subida no terminó. */
+      recepcion?: ResultadoDeRecepcion;
+      cuando: number;
+    };
 
 type Oyente = (e: EstadoDeSincronizacion) => void;
 const oyentes = new Set<Oyente>();
@@ -65,9 +72,19 @@ async function una(): Promise<EstadoDeSincronizacion> {
       { fallosPrevios: fallos },
     ),
   );
-  fallos = resultado.estado === 'esperar' ? fallos + 1 : 0;
-  programar(resultado.estado === 'esperar' ? resultado.ms : CADA_MS);
-  return { tipo: 'resultado', resultado, cuando: Date.now() };
+  if (resultado.estado !== 'al-dia') {
+    fallos = resultado.estado === 'esperar' ? fallos + 1 : 0;
+    programar(resultado.estado === 'esperar' ? resultado.ms : CADA_MS);
+    return { tipo: 'resultado', resultado, cuando: Date.now() };
+  }
+  // Primero sube lo propio, después baja lo del equipo: lo pendiente aquí no se pisa (HU-E5.3).
+  cambiar({ tipo: 'enviando' });
+  const recepcion = await conEscritura(() =>
+    recibirCambios(db, { api: sesion.url_api ?? '', acceso: sesion.acceso }),
+  );
+  fallos = recepcion.estado === 'esperar' ? fallos + 1 : 0;
+  programar(recepcion.estado === 'esperar' ? recepcion.ms : CADA_MS);
+  return { tipo: 'resultado', resultado, recepcion, cuando: Date.now() };
 }
 
 /** Sube lo pendiente ahora. Si ya hay una subida en curso, espera esa en vez de empezar otra. */

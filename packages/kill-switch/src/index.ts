@@ -57,3 +57,44 @@ export function crearLectorKillSwitch(opciones: {
     },
   };
 }
+
+/**
+ * Nivel de degradación de la celda (ARQUITECTURA §8.2), clave `nivel` del KV de flags. Lo escribe
+ * el vigía de cuota (HU-E8.2) solo cuando cambia; aquí se lee con la misma caché de 60 s.
+ * Sin clave, el nivel es `normal`: la celda arranca así. Un valor desconocido también, pero se
+ * escribe en el log (P1): un error al escribir el nivel no debe apagar la sincronización.
+ */
+export const NIVELES = ['normal', 'alerta', 'ahorro', 'esencial', 'bloqueo'] as const;
+export type Nivel = (typeof NIVELES)[number];
+export const CLAVE_NIVEL = 'nivel';
+
+export function crearLectorDeNivel(opciones: {
+  kv: LectorKv;
+  maxEdadMs?: number;
+  ahora?: () => number;
+  avisar?: (mensaje: string) => void;
+}): { nivel(): Promise<Nivel> } {
+  const {
+    kv,
+    maxEdadMs = MAX_EDAD_MS,
+    ahora = () => Date.now(),
+    avisar = (m) => console.error(m),
+  } = opciones;
+  let guardado: { nivel: Nivel; leido: number } | null = null;
+  return {
+    async nivel() {
+      const t = ahora();
+      if (guardado && t - guardado.leido < maxEdadMs) return guardado.nivel;
+      try {
+        const valor = (await kv.get(CLAVE_NIVEL))?.trim().toLowerCase() ?? 'normal';
+        const nivel = (NIVELES as readonly string[]).includes(valor) ? (valor as Nivel) : 'normal';
+        if (nivel !== valor) avisar(`nivel de la celda desconocido: «${valor}»; se usa «normal»`);
+        guardado = { nivel, leido: t };
+        return nivel;
+      } catch (e) {
+        avisar(`nivel de la celda: no se pudo leer (${String(e)})`);
+        return guardado?.nivel ?? 'normal';
+      }
+    },
+  };
+}

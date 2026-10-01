@@ -14,7 +14,7 @@
  * despliegue desde `celdas.json`.
  *
  * Rutas con token: `/api/v1/yo` (a qué organización y shard llegó la sesión) y
- * `/api/v1/sync/push` (subir, HU-E5.2, `push.ts`). Bajar (HU-E5.3) se monta igual.
+ * `/api/v1/sync/push` (subir, HU-E5.2, `push.ts`) y `/api/v1/sync/pull` (bajar, HU-E5.3, `pull.ts`).
  */
 import type { BaseD1 } from '@gestionagro/d1';
 import {
@@ -25,6 +25,7 @@ import {
 import { type ClavePublica, TokenInvalido, verificarConClaves } from '@gestionagro/tokens';
 import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { pull } from './pull.ts';
 import { push } from './push.ts';
 
 /** Producto cuyo kill switch apaga la sincronización (`content/agro/cuaderno/product.yaml`). */
@@ -207,6 +208,7 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
   });
 
   app.post('/api/v1/sync/push', (c) => push(c, ahora));
+  app.get('/api/v1/sync/pull', (c) => pull(c, ahora));
 
   app.notFound((c) =>
     c.json({ estado: 'no-encontrado', motivo: 'Ruta de la celda desconocida' }, 404),

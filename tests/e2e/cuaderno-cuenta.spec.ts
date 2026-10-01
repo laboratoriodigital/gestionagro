@@ -25,7 +25,7 @@ const sesion = {
 };
 
 /** CORE falso: el inicio «vuelve de Google» con un código; el canje entrega la sesión. */
-async function coreFalso(page: Page) {
+async function coreFalso(page: Page, conSesion: object = sesion) {
   const canjes: { url: string; cuerpo: unknown }[] = [];
   await page.route(`${CORE}/api/core/auth/google/inicio?*`, async (ruta) => {
     const vuelta = new URL(ruta.request().url()).searchParams.get('vuelta');
@@ -34,7 +34,7 @@ async function coreFalso(page: Page) {
   await page.route(`${CORE}/api/core/auth/canje`, async (ruta) => {
     canjes.push({ url: ruta.request().url(), cuerpo: ruta.request().postDataJSON() });
     await ruta.fulfill({
-      json: sesion,
+      json: conSesion,
       headers: { 'access-control-allow-origin': new URL(page.url()).origin },
     });
   });
@@ -139,6 +139,12 @@ async function nubeFalsa(page: Page, respuesta: (op: { id: string; entidad: stri
       headers: permitir,
     });
   });
+  await page.route(`${API}/api/v1/sync/pull?*`, async (ruta) => {
+    await ruta.fulfill({
+      json: { catalogos: [], registros: [], cursor: { registro: 0, catalogo: 0 }, mas: false },
+      headers: permitir,
+    });
+  });
   const lotes: number[] = [];
   await page.route(`${API}/api/v1/sync/push`, async (ruta) => {
     const { ops } = ruta.request().postDataJSON() as { ops: { id: string; entidad: string }[] };
@@ -217,4 +223,81 @@ test('HU-E3.14 CA3: lo que la nube no acepta se ve en rojo con su motivo, y sigu
     .getByRole('link', { name: 'Historial' })
     .click();
   await expect(page.getByText('24').first()).toBeVisible(); // el registro sigue ahí
+});
+
+test('HU-E5.3 CA4: un teléfono nuevo baja la finca de su cuenta y la ve en Áreas', async ({
+  page,
+}) => {
+  const API = 'https://agro-api-c0-staging.ejemplo.test';
+  const permitir = { 'access-control-allow-origin': '*' };
+  const ORG = '0199a1b2-0000-7000-8000-0000000000aa';
+  const FINCA = '0199a1b2-0000-7000-8000-0000000000bb';
+  const AREA = '0199a1b2-0000-7000-8000-0000000000cc';
+  const conFinca = {
+    ...sesion,
+    organizaciones: [{ org_id: ORG, nombre: 'Finca Ensayo Dos', rol: 'propietario' }],
+  };
+  await coreFalso(page, conFinca);
+  await page.route(`${CORE}/api/core/auth/refrescar`, async (ruta) => {
+    await ruta.fulfill({
+      json: { ...conFinca, refresh: null, org_id: ORG, url_api: API },
+      headers: permitir,
+    });
+  });
+  const actualizado = '2026-10-01T12:00:00.000Z';
+  await page.route(`${API}/api/v1/sync/pull?*`, async (ruta) => {
+    await ruta.fulfill({
+      headers: permitir,
+      json: {
+        catalogos: [
+          {
+            entidad: 'finca',
+            datos: {
+              id: FINCA,
+              org_id: ORG,
+              version: 1,
+              actualizado,
+              nombre: 'Finca Ensayo Dos',
+              municipio: 'Municipio Ensayo',
+              regimen: 'convencional',
+            },
+          },
+          {
+            entidad: 'area',
+            datos: {
+              id: AREA,
+              org_id: ORG,
+              version: 1,
+              actualizado,
+              finca_id: FINCA,
+              padre_id: null,
+              tipo: 'bloque',
+              nombre: 'Bloque 1',
+              area_m2: 800,
+              capacidad_plantas: null,
+              activa: true,
+            },
+          },
+        ],
+        registros: [],
+        cursor: { registro: 0, catalogo: 2 },
+        mas: false,
+      },
+    });
+  });
+  await cuenta(page);
+  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await expect(page.locator('[data-prueba="nube-para-bajar"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Bajar «Finca Ensayo Dos» a este teléfono' }).click();
+  await expect(page.locator('[data-prueba="nube-sync"]')).toContainText(
+    'Se bajaron 2 cambios del equipo.',
+  );
+  await page
+    .getByRole('navigation', { name: 'Secciones del cuaderno' })
+    .getByRole('link', { name: 'Áreas' })
+    .click();
+  await expect(page.getByText('Bloque 1')).toBeVisible();
+  await expect(page.locator('[data-prueba="indicador-datos"]')).toHaveText(
+    'Sin registros pendientes',
+  );
 });
