@@ -14,6 +14,10 @@
  *   se guarda en `entidad_historial` como conflicto. Nada se pierde (HU-E5.4 decidirá qué mostrar).
  * - **Lo que no sirve** va a `cuarentena` con el motivo en palabras, nunca se descarta (CA3, P1).
  *
+ * Permisos (HU-E4.5): el rol sale del token y la matriz de `@gestionagro/sync` decide. Un rol que
+ * no escribe nada (asesor, auditor) recibe 403 sin tocar la base. Una operación que ese rol no
+ * puede escribir va a cuarentena con el motivo en palabras: el lote sigue y nada se pierde.
+ *
  * Tenant (HU-E5.1): la organización sale del token. Un dato que dice ser de otra organización, de
  * otra finca, o un id que ya usa otra organización, va a cuarentena.
  */
@@ -21,10 +25,13 @@
 import type { SentenciaD1 } from '@gestionagro/d1';
 import {
   type Ack,
+  entidadesQuePuede,
   LOTE_MAXIMO,
+  motivoSinPermiso,
   type OperacionValida,
   PROTOCOLO,
   pedidoDeActualizar,
+  puede,
   RELOJ_CORRIDO_MS,
   validarOperacion,
 } from '@gestionagro/sync';
@@ -45,7 +52,16 @@ type Plan =
 const marcadores = (n: number) => Array.from({ length: n }, () => '?').join(', ');
 
 export async function push(c: ContextoCelda, ahora: () => number): Promise<Response> {
-  const { org, db } = c.get('sesion');
+  const { org, rol, db } = c.get('sesion');
+  if (entidadesQuePuede(rol, 'escribir').length === 0) {
+    return c.json(
+      {
+        estado: 'sin-permiso',
+        motivo: `Con el rol de ${rol} se consulta la finca, pero no se registra.`,
+      },
+      403,
+    );
+  }
   // Con la cuota de D1 agotada, escribir fallaría: se dice por qué y cuándo vuelve (HU-E8.6).
   if ((await nivelDeLaCelda(c.env.FLAGS)) === 'bloqueo')
     return respuestaDePausa(c, 'bloqueo', ahora());
@@ -114,6 +130,9 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
   });
 
   const planear = (op: OperacionValida, entrada: unknown): Plan => {
+    if (!puede(rol, 'escribir', op.entidad)) {
+      return cuarentena(op.id, motivoSinPermiso(rol, op.entidad), entrada);
+    }
     const datos = op.entidad === 'registro' ? op.registro : op.catalogo;
     if (datos.org_id !== null && datos.org_id !== org) {
       return cuarentena(op.id, 'El dato es de otra organización', entrada);

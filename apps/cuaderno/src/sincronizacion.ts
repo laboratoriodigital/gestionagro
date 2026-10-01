@@ -11,7 +11,7 @@ import { cuaderno } from './almacen/abierto.ts';
 import { idDispositivo } from './almacen/dispositivo.ts';
 import { enviarPendientes, type ResultadoDeEnvio } from './almacen/envio.ts';
 import { type ResultadoDeRecepcion, recibirCambios } from './almacen/recepcion.ts';
-import { estadoDeSesion, renovarSiHaceFalta, urlDelCore } from './almacen/sesion.ts';
+import { estadoDeSesion, renovarSiHaceFalta, rolEnLaFinca, urlDelCore } from './almacen/sesion.ts';
 import { estadoDelVinculo } from './almacen/vinculo.ts';
 import { DEMORA_TRAS_GUARDAR_MS, debeSincronizar } from './disparadores.ts';
 
@@ -104,7 +104,11 @@ async function una(): Promise<EstadoDeSincronizacion> {
   // Primero sube lo propio, después baja lo del equipo: lo pendiente aquí no se pisa (HU-E5.3).
   cambiar({ tipo: 'enviando' });
   const recepcion = await conEscritura(() =>
-    recibirCambios(db, { api: sesion.url_api ?? '', acceso: sesion.acceso }),
+    recibirCambios(db, {
+      api: sesion.url_api ?? '',
+      acceso: sesion.acceso,
+      rol: rolEnLaFinca(sesion),
+    }),
   );
   fallos = recepcion.estado === 'esperar' ? fallos + 1 : 0;
   // En «ahorro» la celda pide revisar menos seguido (ARQUITECTURA §8.2).

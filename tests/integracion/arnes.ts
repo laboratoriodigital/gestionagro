@@ -54,7 +54,7 @@ export interface Celda {
     lotes: number[];
   };
   /** Token de la organización; `emitido` permite uno ya vencido (12 h después). */
-  acceso: (org: string, emitido?: number) => Promise<string>;
+  acceso: (org: string, emitido?: number, rol?: string) => Promise<string>;
   /** Reloj de la celda (ms Unix). Arranca en T0. */
   reloj: { ahora: number };
   contar: (tabla: string) => Promise<number>;
@@ -95,11 +95,11 @@ export async function montarCelda(): Promise<Celda> {
       }) as unknown as typeof fetch;
       return { fn, lotes };
     },
-    acceso: async (org, emitido = T0) =>
+    acceso: async (org, emitido = T0, rol = 'propietario') =>
       (
         await firmarAcceso(
           firmante,
-          { sub: 'u1', org, rol: 'propietario', celda: 'c0', shard: SHARD, anillo: 1 },
+          { sub: 'u1', org, rol, celda: 'c0', shard: SHARD, anillo: 1 },
           emitido,
         )
       ).token,
@@ -111,7 +111,7 @@ export async function montarCelda(): Promise<Celda> {
 export interface Telefono {
   db: CuadernoDb;
   org: string;
-  destino: { api: string; acceso: string; dispositivo: string; app: string };
+  destino: { api: string; acceso: string; dispositivo: string; app: string; rol: string };
   /** Sube lo pendiente y baja lo del equipo, como la app (sincronizacion.ts). */
   sincronizar: (fetchFn: typeof fetch) => Promise<void>;
 }
@@ -122,13 +122,20 @@ async function telefono(
   org: string,
   fincaId: string | null,
   dispositivo: string,
+  rol = 'propietario',
 ): Promise<Telefono> {
   await db.meta.put({
     clave: CLAVE_VINCULO,
     valor: { org_id: org, finca_id: fincaId, vinculado: '2026-10-01T12:00:00.000Z' },
     actualizado: '',
   });
-  const destino = { api: API, acceso: await celda.acceso(org), dispositivo, app: '0.1.0' };
+  const destino = {
+    api: API,
+    acceso: await celda.acceso(org, T0, rol),
+    dispositivo,
+    app: '0.1.0',
+    rol,
+  };
   return {
     db,
     org,
@@ -174,13 +181,17 @@ export async function telefonoConFinca(
   return { ...(await telefono(celda, db, org, finca.id, 'telefono-1')), finca, areas };
 }
 
-/** Teléfono nuevo de la misma cuenta: sin finca, vinculado a la organización (HU-E5.3, CA4). */
+/**
+ * Teléfono nuevo sin finca, vinculado a la organización: de la misma cuenta (HU-E5.3, CA4) o de
+ * alguien del equipo con su rol (HU-E4.5).
+ */
 export function telefonoNuevo(
   celda: Celda,
   org: string,
   dispositivo = 'telefono-2',
+  rol = 'propietario',
 ): Promise<Telefono> {
-  return telefono(celda, nuevaBase(), org, null, dispositivo);
+  return telefono(celda, nuevaBase(), org, null, dispositivo, rol);
 }
 
 /** Anota `n` climas en la primera área del teléfono con SU reloj (puede estar corrido); devuelve los ids. */

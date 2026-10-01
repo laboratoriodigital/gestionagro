@@ -245,3 +245,5 @@ export function proximoReinicioDeCuota(ahoraMs: number): number {
   const d = new Date(ahoraMs);
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1);
 }
+
+export * from './permisos.ts';

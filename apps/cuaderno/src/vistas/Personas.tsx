@@ -10,6 +10,7 @@ import { cuaderno } from '../almacen/abierto.ts';
 import { crearPersona, definirJornal, editarPersona, leerPersonas } from '../almacen/personas.ts';
 import { Campo, Opciones } from '../componentes/Campo.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
+import { SoloConsulta, usarPermisos } from './usarPermisos.tsx';
 
 const ROLES = [
   { valor: 'operario', texto: 'Operario' },
@@ -83,7 +84,7 @@ function FormularioPersona(props: {
       <Campo
         id="persona-jornal"
         etiqueta="Valor del jornal en pesos (opcional)"
-        ayuda="Solo para calcular costos. Cuando haya cuentas, solo lo verán el propietario y el supervisor."
+        ayuda="Solo para calcular costos. Solo lo ven el propietario y el supervisor."
         decimal
         valor={jornal}
         error={errores['jornal']}
@@ -106,6 +107,8 @@ function FormularioPersona(props: {
 
 export function Personas() {
   const estado = usarFinca();
+  const permisos = usarPermisos();
+  const cambia = permisos.puede('escribir', 'persona');
   // null = cargando: mientras tanto no se dice «no hay».
   const [personas, setPersonas] = useState<Persona[] | null>(null);
   const [nueva, setNueva] = useState(false);
@@ -134,6 +137,7 @@ export function Personas() {
         Quienes trabajan en la finca, tengan o no cuenta. Solo se guarda el nombre y el rol: ni
         cédula ni teléfono.
       </p>
+      {!cambia && <SoloConsulta rol={permisos.rol} que="las personas de la finca" />}
       {personas === null ? (
         <p class="ayuda">Cargando personas…</p>
       ) : activas.length === 0 ? (
@@ -145,16 +149,18 @@ export function Personas() {
               <p class="area-titulo">
                 <strong>{p.nombre}</strong> · {NOMBRE_ROL[p.rol]}
               </p>
-              <div class="acciones-area">
-                <button
-                  type="button"
-                  class="secundario"
-                  onClick={() => void cambiarActiva(p, false)}
-                  aria-label={`Desactivar a ${p.nombre}`}
-                >
-                  Ya no trabaja aquí
-                </button>
-              </div>
+              {cambia && (
+                <div class="acciones-area">
+                  <button
+                    type="button"
+                    class="secundario"
+                    onClick={() => void cambiarActiva(p, false)}
+                    aria-label={`Desactivar a ${p.nombre}`}
+                  >
+                    Ya no trabaja aquí
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -169,11 +175,13 @@ export function Personas() {
           alCancelar={() => setNueva(false)}
         />
       ) : (
-        <div class="acciones">
-          <button type="button" onClick={() => setNueva(true)}>
-            Agregar persona
-          </button>
-        </div>
+        cambia && (
+          <div class="acciones">
+            <button type="button" onClick={() => setNueva(true)}>
+              Agregar persona
+            </button>
+          </div>
+        )
       )}
       {inactivas.length > 0 && (
         <details>
@@ -185,14 +193,16 @@ export function Personas() {
                 <p class="area-titulo">
                   {p.nombre} · {NOMBRE_ROL[p.rol]}
                 </p>
-                <button
-                  type="button"
-                  class="secundario"
-                  onClick={() => void cambiarActiva(p, true)}
-                  aria-label={`Reactivar a ${p.nombre}`}
-                >
-                  Reactivar
-                </button>
+                {cambia && (
+                  <button
+                    type="button"
+                    class="secundario"
+                    onClick={() => void cambiarActiva(p, true)}
+                    aria-label={`Reactivar a ${p.nombre}`}
+                  >
+                    Reactivar
+                  </button>
+                )}
               </li>
             ))}
           </ul>

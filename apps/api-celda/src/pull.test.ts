@@ -47,7 +47,7 @@ const token = async (org: string) =>
   (
     await firmarAcceso(
       firmante,
-      { sub: 'u1', org, rol: 'operario', celda: 'c0', shard: SHARD, anillo: 1 },
+      { sub: 'u1', org, rol: 'propietario', celda: 'c0', shard: SHARD, anillo: 1 },
       T0,
     )
   ).token;
