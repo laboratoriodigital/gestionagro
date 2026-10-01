@@ -15,7 +15,7 @@ const politica = JSON.parse(readFileSync('content/agro/privacidad/politica.json'
   revision: string;
   scripts_de_terceros: string[];
   cookies: { nombre: string }[];
-  encargados: { quien: string }[];
+  encargados: { quien: string; proveedor: string }[];
 };
 
 const PAGINAS = [
@@ -67,8 +67,8 @@ test('la CSP del cuaderno solo deja conectarse a la nube que nombra la política
   expect(csp).not.toContain('unsafe-inline');
   const conectar = /connect-src ([^;]+)/.exec(csp)?.[1]?.split(' ') ?? [];
   expect(conectar).toEqual(["'self'", ...conexionesDelCuaderno(cargarCeldas())]);
-  // Esas direcciones son de Cloudflare, que la política nombra como encargado.
-  expect(politica.encargados.map((e) => e.quien)).toContain('Cloudflare, Inc.');
+  // Esas direcciones son del proveedor de la nube que la política cuenta como aliado.
+  expect(politica.encargados.map((e) => e.proveedor)).toContain('Cloudflare, Inc.');
 });
 
 test('la página de la política existe, dice su versión y, mientras sea borrador, lo dice y no se indexa', async ({
@@ -81,6 +81,19 @@ test('la página de la política existe, dice su versión y, mientras sea borrad
   await expect(page.getByText(`Versión ${politica.version}`)).toBeVisible();
   for (const e of politica.encargados) {
     await expect(page.locator('[data-prueba="politica-encargados"]')).toContainText(e.quien);
+  }
+  // Lenguaje de finca, sin detalles técnicos ni de cómo está hecho (revisión del dueño, 1 oct 2026).
+  const texto = (await page.locator('main').textContent()) ?? '';
+  for (const tecnico of [
+    'Cloudflare',
+    'agro_oauth',
+    'IndexedDB',
+    'Worker',
+    'D1',
+    'token',
+    'servidor de cuentas',
+  ]) {
+    expect(texto, tecnico).not.toContain(tecnico);
   }
   if (politica.estado !== 'vigente') {
     await expect(page.locator('[data-prueba="politica-borrador"]')).toContainText(
