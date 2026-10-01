@@ -4,10 +4,16 @@
  */
 import { CULTIVOS_DPV } from '@gestionagro/agro-calc';
 import { useEffect, useState } from 'preact/hooks';
-import { type CampoDpv, calcular, type Entradas } from './dpv-logica.ts';
+import {
+  type CampoDpv,
+  calcular,
+  type Entradas,
+  entradasDeEnlace,
+  paraCompartir,
+} from './dpv-logica.ts';
 
 interface ColectorDeEventos {
-  registrar: (nombre: 'tool.completed') => void;
+  registrar: (nombre: 'tool.completed' | 'tool.shared') => void;
 }
 
 const OPCIONES = CULTIVOS_DPV.flatMap((c) =>
@@ -59,6 +65,16 @@ export default function CalculadoraDpv() {
   const r = calcular(entradas);
   const cambiar = (campo: keyof Entradas) => (valor: string) =>
     setEntradas({ ...entradas, [campo]: valor });
+
+  // HU-E2.4, CA3: un enlace compartido trae T y HR. Se lee al montar (no en el HTML estático).
+  useEffect(() => {
+    const desdeEnlace = entradasDeEnlace(window.location.search);
+    if (Object.keys(desdeEnlace).length > 0)
+      setEntradas((actuales) => ({ ...actuales, ...desdeEnlace }));
+  }, []);
+
+  const compartir =
+    typeof window === 'undefined' ? null : paraCompartir(entradas, r, window.location.href);
 
   // CA6: tool.completed la primera vez que hay un resultado válido.
   useEffect(() => {
@@ -138,6 +154,21 @@ export default function CalculadoraDpv() {
           <span class="espera">Escribe la temperatura y la humedad para ver el DPV.</span>
         )}
       </output>
+
+      {compartir && (
+        <a
+          class="boton-compartir"
+          href={compartir.enlaceWhatsApp}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-prueba="compartir-whatsapp"
+          onClick={() =>
+            (window as { agroEventos?: ColectorDeEventos }).agroEventos?.registrar('tool.shared')
+          }
+        >
+          Compartir por WhatsApp
+        </a>
+      )}
     </form>
   );
 }

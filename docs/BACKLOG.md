@@ -391,7 +391,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E2.4 · Compartir el resultado por WhatsApp
 **Como** productor **quiero** mandar el resultado a mi asesor o a mi grupo **para** discutirlo sin capturas de pantalla.
-- **Peldaño:** herramienta gratuita (adquisición por referidos) · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** S4 · **Depende de:** HU-E2.2 · **Estado:** Refinada
+- **Peldaño:** herramienta gratuita (adquisición por referidos) · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** S4 · **Depende de:** HU-E2.2 · **Estado:** En sprint (rama `feat/e2.4-compartir-whatsapp`. CA4: el texto no lleva emoji)
 - **Criterios de aceptación:**
   1. Dado un resultado, cuando toco «Compartir por WhatsApp», entonces se abre WhatsApp con un texto que incluye T, HR, DPV, indicación y enlace a la calculadora con los valores cargados.
   2. El enlace lleva solo T y HR, nunca datos personales (P13).
