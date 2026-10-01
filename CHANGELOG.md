@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Corregido
+- El resumen del despliegue cita el error de wrangler y, para códigos ya vistos (10089: Analytics Engine sin activar), dice qué hacer; antes decía «ver el registro» (bitácora agro 11).
 - `pnpm licencias` revisaba solo la raíz del monorepo; ahora recorre el workspace y falla si una dependencia declarada no aparece en el listado (bitácora agro 6).
 
 ### Añadido

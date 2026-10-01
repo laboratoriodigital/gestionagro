@@ -449,3 +449,28 @@ La regla: **antes de culpar a la app porque un evento no llega, comprueba que el
 La regla: **lo que pasa por más de una capa de escapado no se escribe desde la terminal. Y una guardia nueva no está terminada hasta verla atrapar su defecto.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P5, P14 · 0.1.0 · 2026-09-30
+
+**11 · La primera corrida real del despliegue: Analytics Engine no estaba activado, y el resumen no decía por qué falló.**
+
+*Qué pasó.* El 1 oct 2026 (UTC), al fusionar HU-E1.5, corrió por primera vez «desplegar» contra staging. Lo que salió bien: la verificación del token pasó, el build pasó, y wrangler subió los 19 archivos. Luego, al crear el Worker, falló.
+
+*Síntoma literal:*
+
+```text
+✘ [ERROR] A request to the Cloudflare API (/accounts/***/workers/scripts/agro-sitio-staging) failed.
+  You need to enable Analytics Engine. Head to the Cloudflare Dashboard to enable: https://dash.cloudflare.com/***/workers/analytics-engine [code: 10089]
+```
+
+*Causa raíz.*
+- Analytics Engine se activa una vez por cuenta, y la cuenta de c0 nunca lo había activado. Ni la verificación del token ni `wrangler deploy --dry-run` lo pueden ver: solo lo ve un despliegue real (P16).
+- El resumen de la corrida decía «wrangler deploy falló; ver el registro de la corrida». Mandaba a buscar la causa en vez de nombrarla (P15).
+
+*Arreglo.*
+- El dueño activa Analytics Engine en Cloudflare.
+- `causaDeWrangler` cita en el resumen el error de wrangler, sin colores. Si el código ya se vio en una corrida real, agrega qué hacer. Solo entran códigos observados, no supuestos (P1).
+
+**Lo prueban** 3 pruebas de `tests/repo/despliegue.test.ts`, con la salida real de esta corrida. Control negativo: sin quitar los colores, fallan 2.
+
+La regla: **un flujo que nunca corrió de verdad esconde la configuración de la cuenta. El primer despliegue también prueba el resumen: si la falla no se entiende sin abrir el registro, el resumen falló.**
+
+*Ficha:* agro · *(compartido)* · 🟠 Grave · P15, P16 · 0.1.0 · 2026-10-01

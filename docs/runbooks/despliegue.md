@@ -40,6 +40,7 @@ El resumen dice en qué celda se detuvo, qué permiso falta o qué parte del hum
 
 | Mensaje | Qué hacer |
 |---|---|
+| «You need to enable Analytics Engine» [code: 10089] | Cloudflare → Workers & Pages → Analytics Engine → «Enable», una vez por cuenta |
 | «falta el secreto CF_API_TOKEN en GitHub» | Sembrarlo en Settings → Secrets and variables → Actions |
 | «el token … no es válido o está vencido» | Crear un token nuevo con los permisos de ARQUITECTURA §7.5 y reemplazar el secreto |
 | «al token le falta «Account → Workers Scripts: Edit»…» | Editar el token en Cloudflare y agregar ese permiso |
