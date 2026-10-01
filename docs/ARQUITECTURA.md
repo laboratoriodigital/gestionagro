@@ -325,15 +325,19 @@ La celda **c0 es tu cuenta actual**, la misma que atiende el resto de ED1. El ag
 ```text
 TELÉFONO                                                        CELDA
 outbox (IndexedDB) ──POST /api/v1/sync/push  {protocolo:1, dispositivo, ops[≤25]}──►  valida (zod)
-                    ◄── acks [{id, estado: aceptado|duplicado|cuarentena, seq}] ─────  INSERT OR IGNORE por id
+                    ◄── acks [{id, estado: aceptado|duplicado|cuarentena|reintentar}] ─  INSERT OR IGNORE por id
 cursor local ───────GET  /api/v1/sync/pull?desde=<seq>&limite=200 ───────────────►  WHERE org=? AND seq>?
                     ◄── cambios + nuevo cursor ────────────────────────────────────
 ```
 
 - **Ids UUIDv7 generados en el teléfono.** Reintentar es inofensivo: el mismo id no se inserta dos veces.
-- **Lotes de ≤ 25 operaciones** por solicitud. D1 gratuito permite 50 consultas por invocación del Worker y cada operación es una o dos sentencias (ED1 §41).
+- **Lotes de ≤ 25 operaciones** por solicitud. D1 gratuito permite 50 consultas por invocación del Worker (ED1 §41). Implementado (HU-E5.2): 3 lecturas y una escritura por operación en un solo `batch`, que es una transacción; 25 operaciones = 28 consultas. Actualizar un catálogo es una sola sentencia porque un trigger guarda la versión anterior en `entidad_historial` (migración 0002).
+- **Orden de envío:** la finca primero, después los catálogos, al final los registros. Un catálogo editado varias veces viaja una vez, con su versión vigente. Protocolo compartido en `packages/sync`.
+- **`reintentar`:** si otro teléfono de la misma finca escribió el mismo catálogo en el mismo instante, la operación se queda en la cola y se reenvía; en la vuelta siguiente se guarda como conflicto. Ninguna versión se pierde.
+- **Tenant en el push:** una operación que dice ser de otra organización, de otra finca, o con un id que ya usa otra organización, va a cuarentena.
 - **El servidor no guarda cursores por dispositivo.** El cursor vive en el teléfono (`seq` monotónico por organización, asignado al insertar). Cero escrituras de contabilidad.
-- **Cuarentena, nunca descarte (P1).** Una operación que no valida se guarda con su motivo en `cuarentena` y el teléfono la muestra en rojo con el texto del motivo. Un humano decide.
+- **Cuarentena, nunca descarte (P1).** Una operación que no valida se guarda con su motivo en `cuarentena` y el teléfono la muestra en rojo con el texto del motivo (tabla local `rechazo`; el dato sigue en su tabla). Un humano decide.
+- **Vincular la finca (HU-E4.3):** `POST /api/core/organizaciones` con un id que genera el teléfono (idempotente). La sesión trae `url_api`, la API de la celda de esa organización. El vínculo vive en `meta`; los datos locales no se reescriben.
 - **Versiones (ADR-13, P10):**
   - Cada operación lleva `v` (versión del esquema del registro).
   - El servidor acepta todas las versiones que alguna app publicada escribió y las traduce al leer.

@@ -121,7 +121,10 @@ test.describe('presupuesto de rendimiento (CA4)', () => {
     });
   }
 
-  test('LCP < 2,5 s con 4G lenta y CPU ×4', async ({ page, browserName }) => {
+  test('LCP < 2,5 s con 4G lenta y CPU ×4', { tag: '@rendimiento' }, async ({
+    page,
+    browserName,
+  }) => {
     test.skip(browserName !== 'chromium', 'La emulación de red y CPU usa el protocolo de Chromium');
     const cdp = await page.context().newCDPSession(page);
     // Perfil «Slow 4G» de Lighthouse: 150 ms de latencia, 1,6 Mbps de bajada, 750 kbps de subida.

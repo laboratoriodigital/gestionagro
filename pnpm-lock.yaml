@@ -17,6 +17,15 @@ importers:
       '@gestionagro/agro-schema':
         specifier: workspace:*
         version: link:packages/agro-schema
+      '@gestionagro/d1':
+        specifier: workspace:*
+        version: link:packages/d1
+      '@gestionagro/sync':
+        specifier: workspace:*
+        version: link:packages/sync
+      '@gestionagro/tokens':
+        specifier: workspace:*
+        version: link:packages/tokens
       '@playwright/test':
         specifier: ^1.63.0
         version: 1.63.0
@@ -29,6 +38,9 @@ importers:
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
+      fake-indexeddb:
+        specifier: ^6.2.5
+        version: 6.2.5
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -94,6 +106,9 @@ importers:
       '@gestionagro/agro-schema':
         specifier: workspace:*
         version: link:../../packages/agro-schema
+      '@gestionagro/sync':
+        specifier: workspace:*
+        version: link:../../packages/sync
       '@gestionagro/ui':
         specifier: workspace:*
         version: link:../../packages/ui

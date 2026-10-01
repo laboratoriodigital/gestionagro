@@ -617,3 +617,15 @@ La regla: **antes de culpar al código porque una prueba no ve algo, se comprueb
 La regla: **lo que se configura en el panel y no en el repositorio no existe para el despliegue. Un dominio, una ruta o un secreto agregado a mano se anota aquí el mismo día y se pasa a la configuración, o se quita.**
 
 *Ficha:* agro · *(dueño y mío)* · 🟠 Grave · P2, P16, P19 · 0.1.0 · 2026-10-01
+
+**20 · La medición del Historial con CPU ×4 fallaba cuando había más pruebas en paralelo.**
+
+*Qué pasó.* El 1 oct 2026, al agregar dos e2e pesadas de HU-E4.3 y E5.2, la prueba «90 días cargan en menos de 1 s con la CPU ×4» falló en 1 de 2 corridas completas (1.464 y 1.654 ms), y pasó siempre sola.
+
+*Causa raíz.* Se comprobó antes de diagnosticar (P9): en el commit anterior, la suite pasó 3 de 3; con el código nuevo y sin las dos pruebas nuevas, también 3 de 3. El cambio de la app no la volvía lenta. La medición emula un teléfono lento frenando la CPU, pero corría al mismo tiempo que otras pruebas en los demás workers: medía la máquina ocupada además del teléfono. Dos pruebas más bastaron para pasar el umbral. El backlog decía que la cifra valía «también con toda la suite en paralelo»: era cierto con menos pruebas, y no era una garantía.
+
+*Arreglo.* Las tres pruebas con CPU ×4 (Historial, abrir sin señal y LCP del sitio) llevan la etiqueta `@rendimiento` y corren en un proyecto aparte de Playwright, después de las demás y con un solo worker (`pnpm e2e`). El umbral no cambió.
+
+La regla: **una prueba que mide tiempo corre sola. Si falla solo con otras pruebas al lado, se mide aparte; nunca se sube el umbral para que pase.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P9, P17, P19 · 0.1.0 · 2026-10-01

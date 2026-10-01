@@ -3,10 +3,12 @@
  * pantalla se agrega allí y aquí su componente.
  */
 import type { ComponentType } from 'preact';
+import { useEffect } from 'preact/hooks';
 import { LocationProvider, Route, Router, useLocation } from 'preact-iso';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { IndicadorDatos } from './IndicadorDatos.tsx';
 import { RUTAS_APP, rutaDe } from './rutas.ts';
+import { iniciarSincronizacion } from './sincronizacion.ts';
 import { Cuenta } from './vistas/Cuenta.tsx';
 import { Historial } from './vistas/Historial.tsx';
 import { Inicio } from './vistas/Inicio.tsx';
@@ -50,6 +52,9 @@ function Navegacion() {
 }
 
 export function App() {
+  // Sube lo pendiente al abrir, al volver la señal y cada 15 min (HU-E5.2). Sin finca vinculada
+  // no hace nada.
+  useEffect(() => iniciarSincronizacion(), []);
   return (
     <LocationProvider scope="/agro/app/">
       <header class="cabecera">

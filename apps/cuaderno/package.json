@@ -7,6 +7,7 @@
   "dependencies": {
     "@gestionagro/agro-calc": "workspace:*",
     "@gestionagro/agro-schema": "workspace:*",
+    "@gestionagro/sync": "workspace:*",
     "@gestionagro/ui": "workspace:*",
     "dexie": "^4.4.6",
     "preact": "^10.29.8",

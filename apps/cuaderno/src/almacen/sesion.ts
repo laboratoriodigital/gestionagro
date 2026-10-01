@@ -30,6 +30,8 @@ export interface Sesion {
   usuario: { nombre: string; email: string };
   organizaciones: Organizacion[];
   org_id: string | null;
+  /** API de la celda de esa organización (HU-E5.1); null sin organización. */
+  url_api?: string | null;
 }
 
 /** Lo que responde el CORE al canjear o renovar; `refresh` es null si no rotó. */

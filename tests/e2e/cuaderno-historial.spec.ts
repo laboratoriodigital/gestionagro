@@ -129,9 +129,9 @@ test('corregir un riego y una labor abre el formulario con lo guardado', async (
   await expect(items(page)).toHaveCount(2);
 });
 
-test('CA1: filtra por área, tipo y fechas, y 90 días cargan en menos de 1 s con la CPU ×4; cumple WCAG 2.1 AA', async ({
-  page,
-}) => {
+test('CA1: filtra por área, tipo y fechas, y 90 días cargan en menos de 1 s con la CPU ×4; cumple WCAG 2.1 AA', {
+  tag: '@rendimiento',
+}, async ({ page }) => {
   const f = FINCAS_DE_PRUEBA[0] as FincaDePrueba;
   await configurar(page, f);
   // 90 días × 15 registros, sembrados directo en IndexedDB para no tardar minutos en la UI.

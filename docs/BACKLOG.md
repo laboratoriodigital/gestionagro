@@ -590,7 +590,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.14 · Saber dónde está cada dato
 **Como** operario **quiero** ver si mis registros están solo en el teléfono, enviados o rechazados **para** no perder trabajo ni creer que algo se envió cuando no.
-- **Peldaño:** usuario recurrente → cuenta · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S5 · **Depende de:** HU-E3.2 · **Estado:** En sprint (rama `feat/e3.14-donde-esta-cada-dato`. CA1 y CA2 hechos; CA3, rechazados en rojo con su motivo, llega con la cuarentena de HU-E5.2: sin sincronización no hay quien rechace)
+- **Peldaño:** usuario recurrente → cuenta · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S5 · **Depende de:** HU-E3.2 · **Estado:** En sprint (rama `feat/e3.14-donde-esta-cada-dato`. CA1 y CA2 hechos; CA3 hecho con HU-E5.2: lo que la celda pone en cuarentena queda en la tabla local `rechazo` y se ve en rojo con su motivo en la cabecera y en Cuenta)
 - **Criterios de aceptación:**
   1. En la cabecera, un indicador dice cuántos registros están «solo en este teléfono». Tocarlo explica qué significa.
   2. Antes de existir la sincronización, el indicador recomienda exportar cada semana (HU-E3.13).
@@ -602,7 +602,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.12 · Historial por nave y corregir sin borrar
 **Como** supervisor **quiero** ver lo registrado por nave y día y corregir un error **para** que el cuaderno sea confiable sin perder la traza.
-- **Peldaño:** usuario recurrente → premium · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S6 · **Depende de:** HU-E3.7, HU-E3.9, HU-E3.10 · **Estado:** En sprint (rama `feat/e3.12-historial-corregir`. CA1: medido en e2e con la CPU ×4, 1.350 registros de 90 días cargan en 0,4–0,5 s medidos dentro de la página, también con toda la suite en paralelo; la lista muestra de a 50. CA2: «quién» es el teléfono que anotó y el que corrigió; con cuentas (E4) será la persona. Se corrige clima, riego, labor y aplicación; una corrección conserva área y fecha del evento)
+- **Peldaño:** usuario recurrente → premium · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S6 · **Depende de:** HU-E3.7, HU-E3.9, HU-E3.10 · **Estado:** En sprint (rama `feat/e3.12-historial-corregir`. CA1: medido en e2e con la CPU ×4, 1.350 registros de 90 días cargan en 0,4–0,5 s medidos dentro de la página; desde el 1 oct 2026 la medición corre sin otras pruebas en paralelo (bitácora agro 20); la lista muestra de a 50. CA2: «quién» es el teléfono que anotó y el que corrigió; con cuentas (E4) será la persona. Se corrige clima, riego, labor y aplicación; una corrección conserva área y fecha del evento)
 - **Criterios de aceptación:**
   1. El historial filtra por nave, tipo y rango de fechas, y carga 90 días en menos de 1 s en gama baja.
   2. «Corregir» crea un registro nuevo con `anula_id`. El historial muestra el vigente y, al tocarlo, la versión anulada con quién y cuándo.
@@ -680,7 +680,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E4.3 · Crear mi finca en la nube y subir lo que ya registré
 **Como** productor que usaba el cuaderno sin cuenta **quiero** que al crear la cuenta mi finca y mis registros suban **para** no perder nada ni volver a escribir.
-- **Peldaño:** usuario recurrente → cuenta · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S8 · **Depende de:** HU-E4.2, HU-E5.2 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente → cuenta · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S8 · **Depende de:** HU-E4.2, HU-E5.2 · **Estado:** En sprint (rama `feat/e4.3-e5.2-subir-finca`. CA1: «Subir mi finca a la nube» en Cuenta crea la organización con un id del teléfono (reintentar no crea otra), renueva la sesión hacia ella y encola por lotes todo lo que no estaba en la cola (lo importado). Los datos locales no se reescriben: el vínculo vive en `meta` y la celda pone la organización del token. CA2: pendiente, la finca cero se da de alta así en producción. CA3: si la cuenta ya tiene fincas, las nombra y pregunta; si el teléfono está vinculado a otra cuenta, no sube nada)
 - **Criterios de aceptación:**
   1. Dado un teléfono con la finca local, cuando creo la cuenta, entonces se crea la organización, la finca local se vincula a ella y todos sus registros entran al outbox.
   2. La finca cero se da de alta **por este flujo**, no a mano. Queda como prueba de aceptación de H3 (P6).
@@ -735,7 +735,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E5.1 · API de la celda con tenant en cada consulta
 **Como** desarrollador **quiero** el Worker `agro-api` con verificación de token, shard por organización y kill switch **para** recibir datos de muchas fincas sin mezclarlas.
-- **Peldaño:** cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S8 · **Depende de:** HU-E4.2, HU-E8.1 · **Estado:** En sprint (rama `feat/e5.1-api-celda`. CA1: la clave pública la lee el despliegue del CORE del mismo destino; solo `/api/v1/yo` usa el token hasta HU-E5.2. CA2: catálogos en una tabla `catalogo` con `entidad`, no una por catálogo; `seq` por organización en `registro` y `catalogo`; la prueba exige exactamente los índices justificados. CA3: la clave es `ks:agro-cuaderno`, la del `product.yaml` del cuaderno, que el despliegue ya crea; el texto original decía `ks:agro-cuaderno-sync`, que no existe en ningún contrato (P2). Probado con D1 local; falta la corrida real a staging)
+- **Peldaño:** cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S8 · **Depende de:** HU-E4.2, HU-E8.1 · **Estado:** En sprint (rama `feat/e5.1-api-celda`. CA1: la clave pública la lee el despliegue del CORE del mismo destino; solo `/api/v1/yo` usa el token hasta HU-E5.2. CA2: catálogos en una tabla `catalogo` con `entidad`, no una por catálogo; `seq` por organización en `registro` y `catalogo`; la prueba exige exactamente los índices justificados. CA3: la clave es `ks:agro-cuaderno`, la del `product.yaml` del cuaderno, que el despliegue ya crea; el texto original decía `ks:agro-cuaderno-sync`, que no existe en ningún contrato (P2). Probado con D1 local y en staging por el dueño el 1 oct 2026: salud, 401 sin token, `url_api` en el directorio del CORE y las tablas del shard)
 - **Criterios de aceptación:**
   1. Todo `/api/v1/*` exige un JWT válido firmado por el CORE (clave pública de la configuración). `org_id` y `shard` salen del token, nunca del cuerpo.
   2. Migraciones SQL de la celda: `registro`, catálogos, `entidad_historial` y `cuarentena`. Cada índice está justificado con su costo en filas escritas (bitácora agro, «Lo que el terreno enseñó»).
@@ -751,7 +751,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E5.2 · Subir registros sin duplicar ni perder
 **Como** operario **quiero** que lo que registré suba solo cuando hay señal **para** no tener que acordarme.
-- **Peldaño:** cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S8 · **Depende de:** HU-E5.1 · **Estado:** Refinada
+- **Peldaño:** cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S8 · **Depende de:** HU-E5.1 · **Estado:** En sprint (rama `feat/e4.3-e5.2-subir-finca`. CA1: 3 lecturas + 1 escritura por op en un batch, 25 ops = 28 consultas; la prueba cuenta cada consulta. CA2 y CA4: prueba de punta a punta teléfono → celda con D1 local, cortando la respuesta. CA3: cuarentena con motivo, tabla local `rechazo`. CA5: 429/503 esperan de 30 s a 30 min, o lo que diga `Retry-After`. Agregado: estado `reintentar` para cuando dos teléfonos escriben el mismo catálogo en el mismo instante, y la versión vieja o en conflicto de un catálogo va a `entidad_historial` (trigger, migración 0002). Falta la corrida real en staging)
 - **Criterios de aceptación:**
   1. El push sube lotes de ≤ 25 operaciones. La prueba simula el límite de 50 consultas por invocación y falla si un lote lo supera (P17).
   2. Reenviar el mismo lote devuelve `duplicado` para cada operación y no crea filas nuevas.

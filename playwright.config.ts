@@ -28,7 +28,12 @@ export default defineConfig({
     timezoneId: 'America/Bogota',
     ...(canal ? { channel: canal } : {}),
   },
-  projects: [{ name: 'telefono-360' }],
+  // Las mediciones con CPU ×4 (`@rendimiento`) corren después de las demás, sin otras pruebas
+  // compitiendo por la CPU: emulan un teléfono lento, no una máquina ocupada (bitácora agro 20).
+  projects: [
+    { name: 'telefono-360', grepInvert: /@rendimiento/ },
+    { name: 'rendimiento', grep: /@rendimiento/, dependencies: ['telefono-360'] },
+  ],
   webServer: {
     command: `node scripts/servir-estatico.ts apps/sitio/dist ${PUERTO} /agro/app/=apps/cuaderno/dist`,
     url: `http://localhost:${PUERTO}/herramientas/agro/`,
