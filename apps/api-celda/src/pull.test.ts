@@ -232,15 +232,66 @@ describe('CA1 · páginas de ≤ 200 con el cursor del teléfono, sin escribir n
   });
 });
 
-describe('CA3 · con la celda en «esencial», el pull se pausa y dice hasta cuándo', () => {
-  it('a las 18:59 de Bogotá pide esperar un minuto; el push sigue funcionando', async () => {
+describe('CA3 y HU-E8.6 · la celda según su nivel (ARQUITECTURA §8.2)', () => {
+  const conNivel = (nivel: string) => ({
+    get: async (k: string) => (k === 'nivel' ? nivel : 'encendido'),
+  });
+  const subirCon = async (nivel: string) => {
+    const id = nuevoId();
+    const r = await app.fetch(
+      new Request('https://api.ejemplo.test/api/v1/sync/push', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${await token(ORG_UNO)}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          protocolo: 1,
+          dispositivo: 't',
+          app: '0.1.0',
+          ops: [{ id, entidad: 'registro', entidad_id: id, version: 1, datos: {} }],
+        }),
+      }),
+      env({ FLAGS: conNivel(nivel) }),
+    );
+    return { estado: r.status, cuerpo: (await r.json()) as { estado?: string; reanuda?: string } };
+  };
+
+  it('«esencial» a las 18:59 de Bogotá: el pull espera un minuto y dice la causa; el push sigue', async () => {
     await fincaConRegistros(ORG_UNO, 'Finca Ensayo Uno', 1);
     ahora = Date.UTC(2026, 9, 1, 23, 59); // 18:59 en Bogotá
-    const flags = { get: async (k: string) => (k === 'nivel' ? 'esencial' : 'encendido') };
-    const r = await bajar(ORG_UNO, { registro: 0, catalogo: 0 }, env({ FLAGS: flags }));
+    const r = await bajar(
+      ORG_UNO,
+      { registro: 0, catalogo: 0 },
+      env({ FLAGS: conNivel('esencial') }),
+    );
     expect(r.estado).toBe(503);
     expect(r.cabeceras.get('retry-after')).toBe('60');
-    expect(r.cuerpo.motivo).toContain('hasta las 19:00 (hora de Colombia)');
+    expect(r.cuerpo).toMatchObject({ estado: 'esencial', reanuda: '2026-10-02T00:00:00.000Z' });
+    expect((await subirCon('esencial')).estado).toBe(200);
     ahora = T0;
+  });
+
+  it('«bloqueo»: ni sube ni baja, y los dos dicen la causa y cuándo vuelve', async () => {
+    await fincaConRegistros(ORG_UNO, 'Finca Ensayo Uno', 1);
+    const bajada = await bajar(
+      ORG_UNO,
+      { registro: 0, catalogo: 0 },
+      env({ FLAGS: conNivel('bloqueo') }),
+    );
+    expect(bajada).toMatchObject({ estado: 503, cuerpo: { estado: 'bloqueo' } });
+    const subida = await subirCon('bloqueo');
+    expect(subida).toMatchObject({ estado: 503, cuerpo: { estado: 'bloqueo' } });
+  });
+
+  it('«ahorro»: todo sigue y el pull lo dice para que el teléfono espacie las revisiones', async () => {
+    await fincaConRegistros(ORG_UNO, 'Finca Ensayo Uno', 1);
+    const r = await bajar(
+      ORG_UNO,
+      { registro: 0, catalogo: 0 },
+      env({ FLAGS: conNivel('ahorro') }),
+    );
+    expect(r.estado).toBe(200);
+    expect(r.cuerpo.nivel).toBe('ahorro');
   });
 });

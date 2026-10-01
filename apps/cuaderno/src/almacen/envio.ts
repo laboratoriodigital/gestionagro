@@ -30,12 +30,22 @@ export type ResultadoDeEnvio =
       actualizar?: string;
     }
   | { estado: 'sin-senal'; enviados: number; rechazados: number }
-  | { estado: 'esperar'; enviados: number; rechazados: number; ms: number }
+  | {
+      estado: 'esperar';
+      enviados: number;
+      rechazados: number;
+      ms: number;
+      /** Causa que dio la celda (`apagado`, `bloqueo`, `mudanza`…), para decirla en palabras (HU-E8.6). */
+      causa?: string;
+      /** Hora de reanudación que dio la celda, ISO. */
+      reanuda?: string;
+    }
   | {
       estado: 'sin-sesion' | 'sin-organizacion' | 'error';
       enviados: number;
       rechazados: number;
       motivo: string;
+      causa?: string;
     };
 
 export interface Destino {
@@ -133,7 +143,13 @@ export async function enviarPendientes(
         : { estado: 'al-dia', enviados, rechazados };
     }
     let r: Response;
-    let cuerpo: { acks?: Ack[]; motivo?: string; actualizar?: { motivo?: string } };
+    let cuerpo: {
+      acks?: Ack[];
+      motivo?: string;
+      estado?: string;
+      reanuda?: string;
+      actualizar?: { motivo?: string };
+    };
     try {
       r = await fetchFn(`${destino.api}/api/v1/sync/push`, {
         method: 'POST',
@@ -164,7 +180,14 @@ export async function enviarPendientes(
       const pedido = Number(r.headers.get('retry-after'));
       const ms =
         Number.isFinite(pedido) && pedido > 0 ? pedido * 1000 : esperaTrasFallo(fallosPrevios);
-      return { estado: 'esperar', enviados, rechazados, ms };
+      return {
+        estado: 'esperar',
+        enviados,
+        rechazados,
+        ms,
+        ...(cuerpo.estado ? { causa: cuerpo.estado } : {}),
+        ...(cuerpo.reanuda ? { reanuda: cuerpo.reanuda } : {}),
+      };
     }
     if (!r.ok || !Array.isArray(cuerpo.acks)) {
       return {
@@ -172,6 +195,7 @@ export async function enviarPendientes(
         enviados,
         rechazados,
         motivo: cuerpo.motivo ?? `La celda respondió ${r.status}`,
+        ...(cuerpo.estado ? { causa: cuerpo.estado } : {}),
       };
     }
     actualizar = cuerpo.actualizar?.motivo ?? actualizar;

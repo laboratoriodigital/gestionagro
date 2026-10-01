@@ -12,22 +12,15 @@
  *   de la celda y no viajan.
  */
 import type { Registro } from '@gestionagro/agro-schema';
-import { crearLectorDeNivel, type LectorKv } from '@gestionagro/kill-switch';
 import {
   type CambioDeCatalogo,
   type CatalogoValido,
   type EntidadDeCatalogo,
   PAGINA_MAXIMA,
-  proximoReinicioDeCuota,
   type RespuestaPull,
 } from '@gestionagro/sync';
+import { nivelDeLaCelda, respuestaDePausa } from './nivel.ts';
 import type { ContextoCelda } from './worker.ts';
-
-let lector: { kv: LectorKv; lector: ReturnType<typeof crearLectorDeNivel> } | null = null;
-const nivelDe = (kv: LectorKv) => {
-  if (lector?.kv !== kv) lector = { kv, lector: crearLectorDeNivel({ kv }) };
-  return lector.lector.nivel();
-};
 
 const cursor = (valor: string | undefined) => {
   const n = Number(valor ?? '0');
@@ -55,22 +48,8 @@ interface FilaRegistro {
 
 export async function pull(c: ContextoCelda, ahora: () => number): Promise<Response> {
   const { org, db } = c.get('sesion');
-  if (c.env.FLAGS) {
-    const nivel = await nivelDe(c.env.FLAGS);
-    if (nivel === 'esencial' || nivel === 'bloqueo') {
-      const reanuda = proximoReinicioDeCuota(ahora());
-      c.header('retry-after', String(Math.max(60, Math.ceil((reanuda - ahora()) / 1000))));
-      return c.json(
-        {
-          estado: 'esencial',
-          motivo:
-            'Bajar lo del equipo está en pausa hasta las 19:00 (hora de Colombia). Tus registros siguen subiendo y están guardados en este teléfono.',
-          reanuda: new Date(reanuda).toISOString(),
-        },
-        503,
-      );
-    }
-  }
+  const nivel = await nivelDeLaCelda(c.env.FLAGS);
+  if (nivel === 'esencial' || nivel === 'bloqueo') return respuestaDePausa(c, nivel, ahora());
   const desdeRegistro = cursor(c.req.query('registro'));
   const desdeCatalogo = cursor(c.req.query('catalogo'));
   if (desdeRegistro === null || desdeCatalogo === null) {
@@ -99,6 +78,8 @@ export async function pull(c: ContextoCelda, ahora: () => number): Promise<Respo
   const deRegistro = registros.results.slice(0, espacio);
 
   const respuesta: RespuestaPull = {
+    // En «ahorro» el teléfono espacia las revisiones (ARQUITECTURA §8.2).
+    nivel,
     catalogos: deCatalogo.map(
       (f): CambioDeCatalogo => ({
         entidad: f.entidad,

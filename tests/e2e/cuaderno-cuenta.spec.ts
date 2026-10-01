@@ -361,3 +361,32 @@ test('bitácora agro 22: lo que se registra con la finca en la nube sube solo, s
   await expect(indicador).toHaveText('Sin registros pendientes', { timeout: 15_000 });
   expect(lotes.length).toBe(antes + 1);
 });
+
+test('HU-E8.6: con la cuota agotada, el aviso dice hasta qué hora y que los datos están a salvo', async ({
+  page,
+}) => {
+  await fincaConUnClima(page);
+  await coreFalso(page);
+  await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
+  // La nube llegó a su límite: el push responde «bloqueo» (registrado después, manda).
+  await page.route('https://agro-api-c0-staging.ejemplo.test/api/v1/sync/push', async (ruta) => {
+    await ruta.fulfill({
+      status: 503,
+      headers: { 'access-control-allow-origin': '*', 'retry-after': '600' },
+      json: { estado: 'bloqueo', motivo: 'límite', reanuda: '2099-01-01T00:00:00.000Z' },
+    });
+  });
+  await cuenta(page);
+  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
+  const aviso = page.locator('[data-prueba="aviso-pausa"]');
+  await expect(aviso).toContainText('La sincronización está en pausa hasta las 19:00');
+  await expect(aviso).toContainText('(hora de Colombia)');
+  await expect(aviso).toContainText('Tus registros están guardados en este teléfono.');
+  await expect(page.locator('[data-prueba="nube-sync"]')).toContainText(
+    'la nube llegó a su límite de hoy',
+  );
+  await expect(page.locator('[data-prueba="indicador-datos"]')).toHaveText(
+    '1 registro solo en este teléfono',
+  );
+});

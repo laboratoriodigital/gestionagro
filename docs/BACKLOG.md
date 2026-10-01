@@ -972,7 +972,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E8.6 · «Sincronización en pausa» dicho como es
 **Como** operario **quiero** que la app me diga en palabras simples por qué no sincroniza y cuándo volverá **para** seguir trabajando tranquilo.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S10 · **Depende de:** HU-E5.2 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S10 · **Depende de:** HU-E5.2 · **Estado:** En sprint (rama `feat/e8.6-pausa-en-palabras`. CA1: catálogo único en `apps/cuaderno/src/mensajes-de-pausa.ts`, con sin señal, sin sesión, ahorro, esencial, bloqueo, kill switch, app vieja, mudanza y una pausa corta sin causa (429). La celda dice la causa en el 503: el push responde `bloqueo` y el pull distingue `esencial` de `bloqueo` y avisa `ahorro`, que espacia las revisiones a 60 min. «Mudanza» queda lista para cuando la celda la diga (HU-E8.5). CA2: cada mensaje tiene qué pasó, «Tus registros están guardados en este teléfono» y qué hacer; las pausas largas salen en un aviso bajo la cabecera y todas en Cuenta. CA3: la hora es el reinicio de 00:00 UTC dicho en hora de Colombia («las 19:00 de hoy / de mañana»), probado con el teléfono en Bogotá y en Kiritimati)
 - **Criterios de aceptación:**
   1. Un catálogo de mensajes cubre: sin señal, sin sesión, celda en «Ahorro», celda en «Esencial» o bloqueada (con «hasta las 19:00, hora de Colombia»), kill switch, app vieja y finca en mudanza.
   2. Cada mensaje dice qué pasó, que los datos están a salvo en el teléfono y qué hacer (P15).

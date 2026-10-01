@@ -603,6 +603,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 | Bloqueo D1 | 100 % | D1 rechaza; la app espera sin perder nada | El mismo aviso, con la causa |
 
 - **Kill switch por producto en KV** (`ks:<product.id>`, valor `encendido` o `apagado`, en `agro-c{N}-flags`): se lee con caché en memoria de hasta 60 s. A eso se suma la propagación de KV, que Cloudflare da como hasta 60 s o más: **apagar un producto tarda hasta 2 minutos**, y está escrito así para que nadie crea que es instantáneo (P7). El despliegue crea las claves que faltan y nunca toca las que existen. Runbook: `docs/runbooks/kill-switch.md`.
+- **Qué ve el usuario (HU-E8.6):** los textos de la tabla los da un solo catálogo en el cuaderno (`mensajes-de-pausa.ts`); la celda solo dice la causa en el 503 (`apagado`, `esencial`, `bloqueo`) y su hora de reanudación. El push responde `bloqueo` antes de intentar escribir; el pull se pausa en `esencial` y `bloqueo`, y en `ahorro` responde con `nivel` para que el teléfono revise cada 60 min. Las pausas largas salen en un aviso bajo la cabecera en todas las pantallas.
 - **Nivel de la celda en KV:** clave `nivel` del KV de flags (`normal`, `alerta`, `ahorro`, `esencial`, `bloqueo`), leída con la misma caché de 60 s que los kill switches. Sin clave es `normal`. La escribe el vigía (HU-E8.2); el pull ya la respeta (HU-E5.3).
 - KV gratuito permite 1.000 escrituras al día. El vigía escribe como máximo 24 al día y solo cuando cambia de nivel.
 
