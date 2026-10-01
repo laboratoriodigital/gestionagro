@@ -452,3 +452,157 @@ describe('HU-E0.5 CA3 · aceptar la política al entrar', () => {
     expect(cuenta.escrituras).toBe(1);
   });
 });
+
+describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
+  const ORG = '0199a1b2-0000-7000-8000-0000000000e1';
+
+  /** Entra con la cuenta de Google `sub` y devuelve su sesión (sin organización). */
+  async function sesionDe(sub: string): Promise<Sesion> {
+    const otra = crearApp({ google: () => googleFalso(sub), ahora: () => reloj });
+    const ir = (ruta: string, init: RequestInit = {}) =>
+      otra.fetch(new Request(`${CORE}${ruta}`, init), env);
+    const ida = await ir(
+      `/api/core/auth/google/inicio?vuelta=${encodeURIComponent(VUELTA)}&politica=${POLITICA_VIGENTE}`,
+    );
+    const cookie = (ida.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+    const state = new URL(ida.headers.get('location') ?? '').searchParams.get('state');
+    const vuelta = await ir(`/api/core/auth/google/callback?code=code-bueno&state=${state}`, {
+      headers: { cookie },
+    });
+    const codigo = (vuelta.headers.get('location') ?? '').split('#entrar=')[1];
+    return (await (
+      await post('/api/core/auth/canje', { codigo, dispositivo: sub })
+    ).json()) as Sesion;
+  }
+
+  const conToken = (ruta: string, acceso: string | null, cuerpo: unknown) =>
+    pedir(ruta, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: APP,
+        ...(acceso ? { authorization: `Bearer ${acceso}` } : {}),
+      },
+      body: JSON.stringify(cuerpo),
+    });
+
+  /** El propietario: crea la finca y renueva hacia ella. */
+  async function propietario(): Promise<Sesion> {
+    const s = await sesionDe('google-propietario');
+    await conToken('/api/core/organizaciones', s.acceso, { id: ORG, nombre: 'Finca Ensayo Uno' });
+    return (await (
+      await post('/api/core/auth/refrescar', { refresh: s.refresh, org_id: ORG })
+    ).json()) as Sesion;
+  }
+
+  async function invitar(rol = 'operario') {
+    const p = await propietario();
+    const r = await conToken('/api/core/invitaciones', p.acceso, { rol });
+    return { p, r, cuerpo: (await r.json()) as { codigo: string; expira: string } };
+  }
+
+  it('CA1: el propietario crea un código de un uso que vence en 7 días; D1 guarda solo su hash', async () => {
+    const { r, cuerpo } = await invitar();
+    expect(r.status).toBe(201);
+    expect(Date.parse(cuerpo.expira) - T0).toBe(7 * 24 * 60 * 60 * 1000);
+    const filas = JSON.stringify((await db.prepare('SELECT * FROM invitacion').all()).results);
+    expect(filas).not.toContain(cuerpo.codigo);
+    expect(filas).toContain(await hashDe(cuerpo.codigo));
+  });
+
+  it('solo el propietario invita, y con un rol válido', async () => {
+    const sinFinca = await sesionDe('google-otro');
+    expect(
+      (await conToken('/api/core/invitaciones', sinFinca.acceso, { rol: 'operario' })).status,
+    ).toBe(403);
+    expect((await conToken('/api/core/invitaciones', null, { rol: 'operario' })).status).toBe(401);
+    const p = await propietario();
+    expect((await conToken('/api/core/invitaciones', p.acceso, { rol: 'jefe' })).status).toBe(400);
+  });
+
+  it('CA2 y CA3: «ver» dice finca, rol, quién invita y hasta cuándo; el código va en el cuerpo, no en la URL', async () => {
+    const { cuerpo } = await invitar('supervisor');
+    const r = await post('/api/core/invitaciones/ver', { codigo: cuerpo.codigo });
+    expect(await r.json()).toMatchObject({
+      estado: 'vigente',
+      finca: 'Finca Ensayo Uno',
+      rol: 'supervisor',
+      invita: 'Persona Ensayo',
+    });
+    expect((await pedir(`/api/core/invitaciones/ver?codigo=${cuerpo.codigo}`)).status).toBe(404);
+    const mala = await post('/api/core/invitaciones/ver', { codigo: 'inventado' });
+    expect(mala.status).toBe(410);
+    expect(await mala.json()).toMatchObject({
+      motivo: expect.stringContaining('Pídele a quien te invitó'),
+    });
+  });
+
+  it('CA4: al aceptar, la persona queda con su rol y su token lo dice', async () => {
+    const { cuerpo } = await invitar('operario');
+    const operario = await sesionDe('google-operario');
+    const r = await conToken('/api/core/invitaciones/aceptar', operario.acceso, {
+      codigo: cuerpo.codigo,
+    });
+    expect(await r.json()).toEqual({ org_id: ORG, finca: 'Finca Ensayo Uno', rol: 'operario' });
+    const renovada = (await (
+      await post('/api/core/auth/refrescar', { refresh: operario.refresh, org_id: ORG })
+    ).json()) as Sesion;
+    expect(await verificarAcceso(await clavePublica(), renovada.acceso, T0)).toMatchObject({
+      org: ORG,
+      rol: 'operario',
+    });
+  });
+
+  it('CA1 y CA3: sirve una sola vez; usada o vencida dice por qué y a quién pedir otra', async () => {
+    const { cuerpo } = await invitar();
+    const uno = await sesionDe('google-uno');
+    await conToken('/api/core/invitaciones/aceptar', uno.acceso, { codigo: cuerpo.codigo });
+    // La misma persona otra vez: no falla, ya es suya.
+    expect(
+      await (
+        await conToken('/api/core/invitaciones/aceptar', uno.acceso, { codigo: cuerpo.codigo })
+      ).json(),
+    ).toMatchObject({ ya_aceptada: true });
+    const dos = await sesionDe('google-dos');
+    const usada = await conToken('/api/core/invitaciones/aceptar', dos.acceso, {
+      codigo: cuerpo.codigo,
+    });
+    expect(usada.status).toBe(410);
+    expect(await usada.json()).toMatchObject({
+      motivo: 'Este enlace ya se usó. Pídele a Persona Ensayo que te mande uno nuevo.',
+    });
+
+    const otra = await invitar();
+    reloj = T0 + 7 * 24 * 60 * 60 * 1000 + 1;
+    const vencida = await post('/api/core/invitaciones/ver', { codigo: otra.cuerpo.codigo });
+    expect(await vencida.json()).toMatchObject({
+      motivo: 'Este enlace venció. Pídele a Persona Ensayo que te mande uno nuevo.',
+    });
+  });
+
+  it('dos teléfonos con el mismo enlace al mismo tiempo: entra uno solo', async () => {
+    const { cuerpo } = await invitar();
+    const [a, b] = [await sesionDe('google-a'), await sesionDe('google-b')];
+    const respuestas = await Promise.all([
+      conToken('/api/core/invitaciones/aceptar', a.acceso, { codigo: cuerpo.codigo }),
+      conToken('/api/core/invitaciones/aceptar', b.acceso, { codigo: cuerpo.codigo }),
+    ]);
+    expect(respuestas.map((r) => r.status).sort()).toEqual([200, 410]);
+    expect(
+      (
+        await db
+          .prepare("SELECT count(*) AS n FROM membresia WHERE rol = 'operario'")
+          .first<{ n: number }>()
+      )?.n,
+    ).toBe(1);
+  });
+
+  it('quien ya es parte de la finca no gasta la invitación', async () => {
+    const { p, cuerpo } = await invitar();
+    const r = await conToken('/api/core/invitaciones/aceptar', p.acceso, { codigo: cuerpo.codigo });
+    expect(r.status).toBe(409);
+    expect(
+      (await db.prepare('SELECT usada FROM invitacion').first<{ usada: string | null }>())?.usada,
+    ).toBeNull();
+  });
+});

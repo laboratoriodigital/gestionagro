@@ -693,7 +693,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E4.4 · Invitar al equipo por WhatsApp
 **Como** propietario **quiero** invitar a mis operarios y al supervisor con un enlace por WhatsApp y un rol **para** que cada uno registre desde su teléfono.
-- **Peldaño:** cuenta → Finca · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S9 · **Depende de:** HU-E4.3 · **Estado:** Refinada
+- **Peldaño:** cuenta → Finca · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S9 · **Depende de:** HU-E4.3 · **Estado:** En sprint (rama `feat/e4.4-invitar-por-whatsapp`. CA1: «Tu equipo» en Cuenta, solo para el propietario: elige el rol, «Preparar invitación» y luego «Enviar por WhatsApp», un enlace `wa.me/?text=` sin destinatario. Son dos toques porque el navegador del teléfono bloquea abrir WhatsApp solo después de esperar a la nube. El CORE guarda solo el hash del código y vence a los 7 días. CA2: el código va en `#invitacion=`; «Unirme» lo guarda en la base local, lo quita de la barra y lo manda en el cuerpo de un POST; hay e2e. CA3: usado, vencido o inexistente dice el motivo y a quién pedir otro. CA4: sin sesión, acepta la política y entra con Google, y Cuenta lo devuelve a «Unirme»; al aceptar, la membresía nace con el rol de la invitación y la finca baja al teléfono. Dos aceptaciones a la vez: una entra y la otra recibe «ya se usó». Un teléfono que ya tiene finca no acepta, para no mezclar datos)
 - **Criterios de aceptación:**
   1. «Invitar» genera un enlace de un solo uso que vence en 7 días, con el rol elegido, y abre WhatsApp con el texto listo.
   2. El código va en el fragmento `#` y viaja al CORE en el cuerpo de un POST (P13). Hay prueba.

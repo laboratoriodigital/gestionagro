@@ -327,3 +327,20 @@ button:disabled {
 .bloqueo-carencia strong {
   color: var(--color-alerta);
 }
+/* HU-E4.4: el enlace «Enviar por WhatsApp» se ve y se toca como un botón. */
+a.boton {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--objetivo-tactil);
+  padding-inline: var(--espacio-3);
+  border: 2px solid var(--color-marca);
+  border-radius: var(--radio);
+  background: var(--color-marca);
+  color: var(--color-marca-texto);
+  font-weight: 600;
+  text-decoration: none;
+}
+/* Un enlace largo no se sale de una pantalla de 360 px. */
+.enlace-invitacion {
+  overflow-wrap: anywhere;
+}

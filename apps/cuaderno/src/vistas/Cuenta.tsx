@@ -6,8 +6,8 @@
  * - Sin señal y con el access vencido se muestra «sin sesión para sincronizar», no un error (CA2).
  */
 import { useEffect, useState } from 'preact/hooks';
-import politica from '../../../../content/agro/privacidad/politica.json' with { type: 'json' };
 import { cuaderno } from '../almacen/abierto.ts';
+import { codigoPendiente } from '../almacen/invitacion.ts';
 import {
   canjear,
   ErrorDeSesion,
@@ -19,6 +19,7 @@ import {
   salirDeLaCuenta,
   urlDelCore,
 } from '../almacen/sesion.ts';
+import { AceptarPolitica, urlDeEntrada } from '../componentes/AceptarPolitica.tsx';
 import { FincaEnLaNube } from './FincaEnLaNube.tsx';
 
 const NOMBRE_ROL: Record<string, string> = {
@@ -47,6 +48,8 @@ export function Cuenta() {
         setEntrando(true);
         try {
           setSesion(await canjear(db, regreso.codigo, core));
+          // Si se entró para aceptar una invitación (HU-E4.4), se sigue en «Unirme».
+          if (await codigoPendiente(db)) location.assign('/agro/app/unirme/');
           return;
         } catch (e) {
           setMensaje(
@@ -74,9 +77,7 @@ export function Cuenta() {
 
   const entrar = () => {
     const vuelta = `${location.origin}/agro/app/cuenta/`;
-    location.assign(
-      `${core}/api/core/auth/google/inicio?vuelta=${encodeURIComponent(vuelta)}&politica=${encodeURIComponent(politica.version)}`,
-    );
+    location.assign(urlDeEntrada(core, vuelta));
   };
 
   const salir = async () => {
@@ -131,21 +132,7 @@ export function Cuenta() {
             El cuaderno funciona sin cuenta. Con una cuenta de Google, tus registros podrán
             respaldarse en la nube y tu equipo podrá anotar desde sus teléfonos.
           </p>
-          <div class="opcion">
-            <input
-              id="acepta-politica"
-              type="checkbox"
-              checked={acepta}
-              onChange={(e) => setAcepta((e.currentTarget as HTMLInputElement).checked)}
-            />
-            <label for="acepta-politica">
-              Leí y acepto la{' '}
-              <a href="/agro/privacidad/" target="_blank" rel="noopener">
-                política de tratamiento de datos
-              </a>{' '}
-              (versión {politica.version}).
-            </label>
-          </div>
+          <AceptarPolitica acepta={acepta} alCambiar={setAcepta} />
           <div class="acciones">
             <button
               type="button"

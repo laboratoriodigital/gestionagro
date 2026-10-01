@@ -7,6 +7,7 @@
  * - `GET /api/core/claves`: la clave pública con la que las celdas verifican los tokens (CA5).
  * - `/api/core/auth/*`: entrar con Google y renovar la sesión (HU-E4.2, `entrar.ts`).
  * - `POST /api/core/organizaciones`: crear la organización de la finca del teléfono (HU-E4.3).
+ * - `POST /api/core/invitaciones[/ver|/aceptar]`: invitar al equipo por WhatsApp (HU-E4.4).
  *
  * Kill switch `ks:agro-core` (HU-E8.1): apagado, `/api/core/auth/*` responde 503 y nadie entra ni
  * renueva. Quien ya tiene un access token sigue sincronizando hasta que venza (12 h); el cuaderno
@@ -35,6 +36,7 @@ import {
   proveedorGoogle,
   renovar,
 } from './entrar.ts';
+import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 
 export { PRODUCTO_CORE };
@@ -152,12 +154,20 @@ export function crearApp(dependencias: Dependencias = {}) {
     await siguiente();
     return undefined;
   };
-  for (const ruta of ['/api/core/auth/*', '/api/core/organizaciones']) {
+  for (const ruta of [
+    '/api/core/auth/*',
+    '/api/core/organizaciones',
+    '/api/core/invitaciones',
+    '/api/core/invitaciones/*',
+  ]) {
     app.use(ruta, corsDelCuaderno);
     app.use(ruta, conEntorno);
   }
 
   app.post('/api/core/organizaciones', (c) => crearOrganizacionDeLaFinca(c, c.get('entorno')));
+  app.post('/api/core/invitaciones', (c) => crearInvitacion(c, c.get('entorno')));
+  app.post('/api/core/invitaciones/ver', (c) => verInvitacion(c, c.get('entorno')));
+  app.post('/api/core/invitaciones/aceptar', (c) => aceptarInvitacion(c, c.get('entorno')));
   app.get('/api/core/auth/google/inicio', (c) => inicio(c, c.get('entorno')));
   app.get('/api/core/auth/google/callback', (c) => callback(c, c.get('entorno')));
   app.post('/api/core/auth/canje', (c) => canje(c, c.get('entorno')));
