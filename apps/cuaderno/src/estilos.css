@@ -191,6 +191,10 @@ button:disabled {
   background: var(--color-marca);
   color: var(--color-marca-texto);
 }
+.exito {
+  color: var(--color-marca);
+  font-weight: 700;
+}
 .navegacion {
   display: flex;
   flex-wrap: wrap;

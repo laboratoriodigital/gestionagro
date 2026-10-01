@@ -8,6 +8,7 @@ export const BASE_APP = '/agro/app/';
 
 export const RUTAS_APP = [
   { segmento: '', titulo: 'Áreas' },
+  { segmento: 'registrar', titulo: 'Registrar' },
   { segmento: 'personas', titulo: 'Personas' },
   { segmento: 'insumos', titulo: 'Insumos' },
 ] as const;
