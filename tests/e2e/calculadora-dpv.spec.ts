@@ -158,3 +158,20 @@ test.describe('compartir por WhatsApp (HU-E2.4)', () => {
     expect(pendientes['tool.shared']).toBe(1);
   });
 });
+
+test('lo que se escribe antes de que cargue la calculadora no se pierde (3G lenta)', async ({
+  page,
+}) => {
+  // El JavaScript de la isla tarda: la persona alcanza a escribir en los campos del HTML estático.
+  await page.route('**/_astro/**/*.js', async (ruta) => {
+    await new Promise((listo) => setTimeout(listo, 1500));
+    await ruta.continue();
+  });
+  await page.goto('/herramientas/agro/calculadora-dpv/');
+  await page.getByLabel(/^Temperatura del aire/).fill('24');
+  await page.getByLabel(/^Humedad relativa/).fill('70');
+  await expect(page.locator('astro-island:not([ssr])')).toHaveCount(1, { timeout: 15_000 });
+  await expect(page.getByLabel(/^Temperatura del aire/)).toHaveValue('24');
+  await expect(page.getByLabel(/^Humedad relativa/)).toHaveValue('70');
+  await expect(page.locator('[data-prueba="dpv-aire"]')).toContainText('0,90 kPa');
+});

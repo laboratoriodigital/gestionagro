@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Corregido
+- La calculadora de DPV borraba lo que la persona escribía antes de que terminara de cargar (3G lenta): al activarse, dejaba los campos vacíos. Ahora conserva lo escrito (bitácora agro 21).
+
 ### Añadido
 - Subir la finca a la nube (HU-E4.3, HU-E5.2). En «Cuenta», «Subir mi finca a la nube» crea la organización (sin duplicarla si se reintenta) y la sincronización sube lo pendiente en lotes de 25: la finca primero, luego catálogos y registros. Sube al abrir la app, al volver la señal y cada 15 min; si la nube pide esperar, espera de 30 s a 30 min. Lo que la nube no acepta se ve en rojo con su motivo en la cabecera y en Cuenta, y sigue en el teléfono. Si la señal se corta a mitad, nada sale de la cola y la nube no duplica al reenviar. En la celda: `POST /api/v1/sync/push` con 3 lecturas y una escritura por operación, cuarentena por organización o finca ajena, e historial de versiones de catálogos con un trigger. En el CORE: `POST /api/core/organizaciones`. Prueba de punta a punta teléfono → celda con D1 local.
 - API de la celda (HU-E5.1): Worker `agro-api-<celda>` con un D1 por shard, migraciones de `registro`, `catalogo`, `entidad_historial` y `cuarentena`, todas con `org_id` y solo con los índices justificados. `/api/v1/*` verifica el token del CORE con su clave pública y toma organización, rol y shard del token; `ks:agro-cuaderno` la apaga con 503 y `Retry-After`. El despliegue crea las bases de los shards, les aplica las migraciones, carga la clave pública del CORE, verifica la URL contra `celdas.json` y la copia al directorio del CORE. `packages/tokens` y `packages/d1` comparten el código del CORE con las celdas.
