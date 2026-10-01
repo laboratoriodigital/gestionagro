@@ -17,6 +17,7 @@ import {
 } from '../almacen/insumos.ts';
 import { Campo, Opciones } from '../componentes/Campo.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
+import { SoloConsulta, usarPermisos } from './usarPermisos.tsx';
 
 const TIPOS = [
   { valor: 'bioinsumo', texto: 'Bioinsumo' },
@@ -228,6 +229,7 @@ function ListaInsumos(props: {
   finca: Finca;
   insumos: Insumo[];
   editando: string | null;
+  cambia: boolean;
   alEditar: (id: string | null) => void;
   alGuardar: () => void;
 }) {
@@ -262,16 +264,18 @@ function ListaInsumos(props: {
                 alCancelar={() => props.alEditar(null)}
               />
             ) : (
-              <div class="acciones-area">
-                <button
-                  type="button"
-                  class="secundario"
-                  onClick={() => props.alEditar(i.id)}
-                  aria-label={`Editar ${i.nombre_comercial}`}
-                >
-                  Editar
-                </button>
-              </div>
+              props.cambia && (
+                <div class="acciones-area">
+                  <button
+                    type="button"
+                    class="secundario"
+                    onClick={() => props.alEditar(i.id)}
+                    aria-label={`Editar ${i.nombre_comercial}`}
+                  >
+                    Editar
+                  </button>
+                </div>
+              )
             )}
           </li>
         );
@@ -282,6 +286,8 @@ function ListaInsumos(props: {
 
 export function Insumos() {
   const estado = usarFinca();
+  const permisos = usarPermisos();
+  const cambia = permisos.puede('escribir', 'insumo');
   // null = cargando: mientras tanto no se dice «no hay».
   const [insumos, setInsumos] = useState<Insumo[] | null>(null);
   const [nuevo, setNuevo] = useState(false);
@@ -303,6 +309,7 @@ export function Insumos() {
         Los productos que usas, con los datos de su etiqueta. Con ellos la app te avisará cuándo
         puedes cosechar y entrar a una nave aplicada.
       </p>
+      {!cambia && <SoloConsulta rol={permisos.rol} que="los insumos" />}
       {insumos === null ? (
         <p class="ayuda">Cargando insumos…</p>
       ) : (
@@ -310,6 +317,7 @@ export function Insumos() {
           finca={finca}
           insumos={insumos}
           editando={editando}
+          cambia={cambia}
           alEditar={setEditando}
           alGuardar={() => {
             setEditando(null);
@@ -327,11 +335,13 @@ export function Insumos() {
           alCancelar={() => setNuevo(false)}
         />
       ) : (
-        <div class="acciones">
-          <button type="button" onClick={() => setNuevo(true)}>
-            Agregar insumo
-          </button>
-        </div>
+        cambia && (
+          <div class="acciones">
+            <button type="button" onClick={() => setNuevo(true)}>
+              Agregar insumo
+            </button>
+          </div>
+        )
       )}
     </section>
   );

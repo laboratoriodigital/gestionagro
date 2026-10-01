@@ -622,7 +622,20 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 ## 9. Seguridad y privacidad
 
 - **Autorización en la celda:** el rol viene del token. Operario: registra y ve lo suyo y lo de su área, sin costos ni ventas. Supervisor: todo lo operativo. Propietario: todo. Asesor: lectura de varias fincas. Auditor: solo lectura, con enlace que caduca.
-- **Aislamiento de tenant:** `org_id` del token en toda consulta, con prueba estática y control negativo (§5.7).
+  - **La matriz es un dato (HU-E4.5):** `packages/sync/src/permisos.ts`, la misma para la celda y el teléfono (P2). Lo que no está en la matriz está negado. La celda decide; el teléfono solo esconde.
+
+    | Entidad | Leen | Escriben |
+    |---|---|---|
+    | registro | todos | propietario, supervisor, operario |
+    | tipo_labor, categoria_calidad | todos | propietario, supervisor, operario (se crean al registrar) |
+    | area, ciclo, cultivo, insumo, persona | todos | propietario, supervisor |
+    | finca | todos | propietario |
+    | valor_jornal (costos) | propietario, supervisor | propietario, supervisor |
+
+  - Al subir, una operación que el rol no puede escribir va a cuarentena con el motivo; un rol que no escribe nada (asesor, auditor) recibe 403. Al bajar, el filtro por entidad va en la consulta.
+  - Si el rol de una persona cambia, su teléfono borra lo que ya no le toca ver (salvo lo pendiente por subir) y baja de nuevo desde el principio.
+  - Pendiente: «lo de su área» espera a que se puedan asignar personas a áreas; hoy el operario ve toda la finca, sin costos. El auditor con enlace que caduca llega con la carpeta de cumplimiento (HU-E9.2).
+- **Aislamiento de tenant:** `org_id` del token en toda consulta, con prueba estática y control negativo (§5.7). La prueba es `tests/repo/org-id-en-consultas.test.ts` (HU-E4.5): lee cada consulta de la celda; las excepciones van con su motivo.
 - **CSP estricta** en la PWA (implementada con HU-E0.5: `_headers` generado desde `celdas.json` por `scripts/armar-despliegue.ts`; `script-src 'self'` y `connect-src` solo hacia el propio origen, el CORE y las API de las celdas; la prueba de humo del despliegue exige que llegue): sin scripts de terceros ni anuncios en ninguna vista del cuaderno (instrucciones §9, ED1 §13). El token se guarda en IndexedDB. El riesgo de XSS se mitiga con esa CSP, dependencias mínimas y tokens cortos.
 - **Política de tratamiento de datos (HU-E0.5):** `/agro/privacidad/`, desde `content/agro/privacidad/politica.json`. Entrar con Google exige aceptar la versión vigente; el CORE guarda en `usuario` la versión y la fecha (`politica_version`, `politica_aceptada`). Una e2e compara lo que la política declara con lo que cada página carga de verdad.
 - **Datos de operarios (Ley 1581):** mínimos. Nombre y rol; la cédula solo cuando exista nómina y con autorización escrita. Política de tratamiento y canal de reclamos antes del primer usuario externo (HU-E0.5). *Requiere revisión de un abogado.*

@@ -27,6 +27,7 @@ import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
 import { Vencimientos } from '../componentes/Vencimientos.tsx';
 import { fechaHora, metros, NOMBRE_REGIMEN, NOMBRE_TIPO } from '../formato.ts';
 import { CicloDeArea } from './CicloDeArea.tsx';
+import { SoloConsulta, usarPermisos } from './usarPermisos.tsx';
 
 type Abierto =
   | { tipo: 'editar' | 'subarea' | 'historial'; areaId: string }
@@ -166,6 +167,7 @@ function EditarConHistorial(props: {
   area: Area;
   abierto: Abierto;
   alternar: (tipo: 'editar' | 'historial', areaId: string) => void;
+  cambia: boolean;
   alCerrar: () => void;
   alGuardar: () => void;
 }) {
@@ -174,14 +176,16 @@ function EditarConHistorial(props: {
   return (
     <>
       <div class="acciones-area">
-        <button
-          type="button"
-          class="secundario"
-          onClick={() => props.alternar('editar', a.id)}
-          aria-label={`Editar ${a.nombre}`}
-        >
-          Editar
-        </button>
+        {props.cambia && (
+          <button
+            type="button"
+            class="secundario"
+            onClick={() => props.alternar('editar', a.id)}
+            aria-label={`Editar ${a.nombre}`}
+          >
+            Editar
+          </button>
+        )}
         <button
           type="button"
           class="secundario"
@@ -218,6 +222,8 @@ export function MiFinca(props: {
   alCambiar: () => void;
 }) {
   const [abierto, setAbierto] = useState<Abierto>(null);
+  const permisos = usarPermisos();
+  const cambia = permisos.puede('escribir', 'area');
   // Carencia y reentrada vigentes por área (HU-E3.10); se recalculan al volver a la pantalla.
   const [vencimientos, setVencimientos] = useState<Map<string, EstadoDeArea>>(new Map());
   useEffect(() => {
@@ -243,6 +249,7 @@ export function MiFinca(props: {
         {props.finca.municipio} · Producción {NOMBRE_REGIMEN[props.finca.regimen]?.toLowerCase()}
       </p>
       <h2>Áreas</h2>
+      {!cambia && <SoloConsulta rol={permisos.rol} que="las áreas y sus ciclos" />}
       <ul class="areas" data-prueba="areas">
         {principales.map((a) => (
           <li key={a.id} class="area" data-prueba="area">
@@ -255,6 +262,7 @@ export function MiFinca(props: {
               area={a}
               ciclo={props.ciclos.find((c) => c.estado === 'activo' && c.area_ids.includes(a.id))}
               cultivos={props.cultivos}
+              cambia={permisos.puede('escribir', 'ciclo')}
               alCambiar={props.alCambiar}
             />
             {hijas(a.id).length > 0 && (
@@ -269,6 +277,7 @@ export function MiFinca(props: {
                       area={s}
                       abierto={abierto}
                       alternar={alternar}
+                      cambia={cambia}
                       alCerrar={() => setAbierto(null)}
                       alGuardar={cerrarYRecargar}
                     />
@@ -281,19 +290,22 @@ export function MiFinca(props: {
               area={a}
               abierto={abierto}
               alternar={alternar}
+              cambia={cambia}
               alCerrar={() => setAbierto(null)}
               alGuardar={cerrarYRecargar}
             />
-            <div class="acciones-area">
-              <button
-                type="button"
-                class="secundario"
-                onClick={() => alternar('subarea', a.id)}
-                aria-label={`Agregar cama o surco en ${a.nombre}`}
-              >
-                Agregar cama o surco
-              </button>
-            </div>
+            {cambia && (
+              <div class="acciones-area">
+                <button
+                  type="button"
+                  class="secundario"
+                  onClick={() => alternar('subarea', a.id)}
+                  aria-label={`Agregar cama o surco en ${a.nombre}`}
+                >
+                  Agregar cama o surco
+                </button>
+              </div>
+            )}
             {abierto &&
               'areaId' in abierto &&
               abierto.areaId === a.id &&
@@ -334,11 +346,13 @@ export function MiFinca(props: {
           alCancelar={() => setAbierto(null)}
         />
       ) : (
-        <div class="acciones">
-          <button type="button" onClick={() => setAbierto({ tipo: 'nueva-area' })}>
-            Agregar área
-          </button>
-        </div>
+        cambia && (
+          <div class="acciones">
+            <button type="button" onClick={() => setAbierto({ tipo: 'nueva-area' })}>
+              Agregar área
+            </button>
+          </div>
+        )
       )}
     </section>
   );

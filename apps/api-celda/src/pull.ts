@@ -8,6 +8,9 @@
  *   (CA1); la prueba lo cuenta.
  * - Con la celda en nivel «esencial» o «bloqueo» (ARQUITECTURA §8.2), el pull se pausa y dice hasta
  *   cuándo (CA3): el push de registros sigue, que es lo que no se puede perder.
+ * - Permisos (HU-E4.5): solo baja lo que el rol puede leer según la matriz de `@gestionagro/sync`
+ *   (un operario no recibe el valor del jornal). El filtro va en la consulta: lo negado nunca sale
+ *   de la base.
  * - Lo que devuelve tiene la misma forma que el teléfono guarda: `seq` e `instante_recibido` son
  *   de la celda y no viajan.
  */
@@ -15,7 +18,9 @@ import type { Registro } from '@gestionagro/agro-schema';
 import {
   type CambioDeCatalogo,
   type CatalogoValido,
+  ENTIDADES_DE_CATALOGO,
   type EntidadDeCatalogo,
+  entidadesQuePuede,
   PAGINA_MAXIMA,
   type RespuestaPull,
 } from '@gestionagro/sync';
@@ -47,7 +52,7 @@ interface FilaRegistro {
 }
 
 export async function pull(c: ContextoCelda, ahora: () => number): Promise<Response> {
-  const { org, db } = c.get('sesion');
+  const { org, rol, db } = c.get('sesion');
   const nivel = await nivelDeLaCelda(c.env.FLAGS);
   if (nivel === 'esencial' || nivel === 'bloqueo') return respuestaDePausa(c, nivel, ahora());
   const desdeRegistro = cursor(c.req.query('registro'));
@@ -56,16 +61,21 @@ export async function pull(c: ContextoCelda, ahora: () => number): Promise<Respo
     return c.json({ estado: 'invalido', motivo: 'Cursor inválido' }, 400);
   }
 
-  const catalogos = await db
-    .prepare(
-      'SELECT seq, entidad, datos FROM catalogo WHERE org_id = ? AND seq > ? ORDER BY seq LIMIT ?',
-    )
-    .bind(org, desdeCatalogo, PAGINA_MAXIMA + 1)
-    .all<{ seq: number; entidad: EntidadDeCatalogo; datos: string }>();
+  const legibles = entidadesQuePuede(rol, 'leer');
+  const deCatalogos = ENTIDADES_DE_CATALOGO.filter((e) => legibles.includes(e));
+  const catalogos =
+    deCatalogos.length > 0
+      ? await db
+          .prepare(
+            `SELECT seq, entidad, datos FROM catalogo WHERE org_id = ? AND seq > ? AND entidad IN (${deCatalogos.map(() => '?').join(', ')}) ORDER BY seq LIMIT ?`,
+          )
+          .bind(org, desdeCatalogo, ...deCatalogos, PAGINA_MAXIMA + 1)
+          .all<{ seq: number; entidad: EntidadDeCatalogo; datos: string }>()
+      : { results: [] as { seq: number; entidad: EntidadDeCatalogo; datos: string }[] };
   const deCatalogo = catalogos.results.slice(0, PAGINA_MAXIMA);
   const espacio = PAGINA_MAXIMA - deCatalogo.length;
   const registros =
-    espacio > 0
+    espacio > 0 && legibles.includes('registro')
       ? await db
           .prepare(
             `SELECT seq, id, org_id, finca_id, area_ids, ciclo_id, tipo, v, fecha_agronomica,

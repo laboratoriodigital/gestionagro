@@ -18,6 +18,7 @@ import { FormularioCosecha } from './FormularioCosecha.tsx';
 import { FormularioLabor } from './FormularioLabor.tsx';
 import { FormularioRiego } from './FormularioRiego.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
+import { SoloConsulta, usarPermisos } from './usarPermisos.tsx';
 
 function UltimosRegistros(props: {
   registros: Registro[];
@@ -53,6 +54,7 @@ type TipoRegistro = (typeof TIPOS)[number]['id'];
 
 export function Registrar() {
   const estado = usarFinca();
+  const permisos = usarPermisos();
   const [areas, setAreas] = useState<Area[]>([]);
   const [ciclos, setCiclos] = useState<Ciclo[]>([]);
   const [registros, setRegistros] = useState<Registro[]>([]);
@@ -102,35 +104,41 @@ export function Registrar() {
   return (
     <section aria-labelledby="titulo-registrar">
       <h1 id="titulo-registrar">Registrar</h1>
-      <p>Se guarda en este teléfono aunque no haya señal.</p>
-      <fieldset class="pestanas">
-        <legend class="solo-lectores">Qué vas a registrar</legend>
-        {TIPOS.map((t) => (
-          <button
-            type="button"
-            key={t.id}
-            class={tipo === t.id ? '' : 'secundario'}
-            aria-pressed={tipo === t.id}
-            onClick={() => setTipo(t.id)}
-          >
-            {t.titulo}
-          </button>
-        ))}
-      </fieldset>
-      {areas.length > 0 && tipo === 'clima' && (
-        <FormularioClima fincaId={fincaId} areas={areas} ciclos={ciclos} alGuardar={cargar} />
-      )}
-      {areas.length > 0 && tipo === 'aplicacion' && estado.finca && (
-        <FormularioAplicacion finca={estado.finca} areas={areas} alGuardar={cargar} />
-      )}
-      {areas.length > 0 && tipo === 'cosecha' && (
-        <FormularioCosecha fincaId={fincaId} areas={areas} alGuardar={cargar} />
-      )}
-      {areas.length > 0 && tipo === 'labor' && (
-        <FormularioLabor fincaId={fincaId} areas={areas} alGuardar={cargar} />
-      )}
-      {areas.length > 0 && tipo === 'riego' && (
-        <FormularioRiego fincaId={fincaId} areas={areas} alGuardar={cargar} />
+      {permisos.rol !== undefined && !permisos.puede('escribir', 'registro') ? (
+        <SoloConsulta rol={permisos.rol} que="lo que registra el equipo" />
+      ) : (
+        <>
+          <p>Se guarda en este teléfono aunque no haya señal.</p>
+          <fieldset class="pestanas">
+            <legend class="solo-lectores">Qué vas a registrar</legend>
+            {TIPOS.map((t) => (
+              <button
+                type="button"
+                key={t.id}
+                class={tipo === t.id ? '' : 'secundario'}
+                aria-pressed={tipo === t.id}
+                onClick={() => setTipo(t.id)}
+              >
+                {t.titulo}
+              </button>
+            ))}
+          </fieldset>
+          {areas.length > 0 && tipo === 'clima' && (
+            <FormularioClima fincaId={fincaId} areas={areas} ciclos={ciclos} alGuardar={cargar} />
+          )}
+          {areas.length > 0 && tipo === 'aplicacion' && estado.finca && (
+            <FormularioAplicacion finca={estado.finca} areas={areas} alGuardar={cargar} />
+          )}
+          {areas.length > 0 && tipo === 'cosecha' && (
+            <FormularioCosecha fincaId={fincaId} areas={areas} alGuardar={cargar} />
+          )}
+          {areas.length > 0 && tipo === 'labor' && (
+            <FormularioLabor fincaId={fincaId} areas={areas} alGuardar={cargar} />
+          )}
+          {areas.length > 0 && tipo === 'riego' && (
+            <FormularioRiego fincaId={fincaId} areas={areas} alGuardar={cargar} />
+          )}
+        </>
       )}
       <h2>Últimos registros</h2>
       <UltimosRegistros

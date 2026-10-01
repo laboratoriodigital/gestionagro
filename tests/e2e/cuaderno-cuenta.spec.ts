@@ -571,3 +571,63 @@ test.describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
     ).toHaveCount(0);
   });
 });
+
+test.describe('HU-E4.5 · la interfaz esconde lo que el rol no puede (la celda decide)', () => {
+  const ORG = '0199a1b2-0000-7000-8000-0000000000ee';
+  const conRol = (rol: string) => ({
+    ...sesion,
+    org_id: ORG,
+    organizaciones: [{ org_id: ORG, nombre: 'Finca Ensayo Uno', rol }],
+  });
+  const ir = (page: Page, seccion: string) =>
+    page
+      .getByRole('navigation', { name: 'Secciones del cuaderno' })
+      .getByRole('link', { name: seccion })
+      .click();
+
+  test('operario: registra, pero no cambia áreas, insumos ni personas', async ({ page }) => {
+    await page.route(`${API_STAGING}/**`, (ruta) => ruta.abort());
+    await configurar(page, FINCA_ENSAYO_UNO);
+    await coreFalso(page, conRol('operario'));
+    await cuenta(page);
+    await entrar(page);
+    await expect(page.locator('[data-prueba="cuenta-usuario"]')).toContainText('Persona Ensayo');
+    await ir(page, 'Registrar');
+    await expect(page.getByRole('button', { name: 'Guardar clima' })).toBeVisible();
+    await ir(page, 'Insumos');
+    await expect(page.locator('[data-prueba="solo-consulta"]')).toHaveText(
+      'Con el rol de operario puedes consultar los insumos. Los cambios los hace quien administra la finca.',
+    );
+    await expect(page.getByRole('button', { name: 'Agregar insumo' })).toHaveCount(0);
+    await ir(page, 'Personas');
+    await expect(page.locator('[data-prueba="solo-consulta"]')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Agregar persona' })).toHaveCount(0);
+    await ir(page, 'Áreas');
+    await expect(page.locator('[data-prueba="solo-consulta"]')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Agregar área' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Iniciar ciclo/ })).toHaveCount(0);
+  });
+
+  test('asesor: consulta, sin formularios para registrar', async ({ page }) => {
+    await page.route(`${API_STAGING}/**`, (ruta) => ruta.abort());
+    await configurar(page, FINCA_ENSAYO_UNO);
+    await coreFalso(page, conRol('asesor'));
+    await cuenta(page);
+    await entrar(page);
+    await expect(page.locator('[data-prueba="cuenta-usuario"]')).toContainText('Persona Ensayo');
+    await ir(page, 'Registrar');
+    await expect(page.locator('[data-prueba="solo-consulta"]')).toHaveText(
+      'Con el rol de asesor puedes consultar lo que registra el equipo. Los cambios los hace quien administra la finca.',
+    );
+    await expect(page.getByRole('button', { name: 'Guardar clima' })).toHaveCount(0);
+  });
+
+  test('sin finca en la nube, el teléfono es de quien lo configuró y puede todo', async ({
+    page,
+  }) => {
+    await configurar(page, FINCA_ENSAYO_UNO);
+    await ir(page, 'Insumos');
+    await expect(page.getByRole('button', { name: 'Agregar insumo' })).toBeVisible();
+    await expect(page.locator('[data-prueba="solo-consulta"]')).toHaveCount(0);
+  });
+});

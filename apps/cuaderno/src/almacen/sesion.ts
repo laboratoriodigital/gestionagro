@@ -53,6 +53,10 @@ export function urlDelCore(
   return hostname === config.dominio ? config.url : config.url_staging;
 }
 
+/** El rol de esta persona en la finca de la sesión, o null si no hay finca en la nube. */
+export const rolEnLaFinca = (sesion: Sesion | null): string | null =>
+  sesion?.organizaciones.find((o) => o.org_id === sesion.org_id)?.rol ?? null;
+
 export async function leerSesion(db: CuadernoDb): Promise<Sesion | null> {
   const fila = await db.meta.get(CLAVE_SESION);
   return (fila?.valor as Sesion | undefined) ?? null;

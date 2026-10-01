@@ -9,16 +9,46 @@
  * - **Catálogos:** gana la versión mayor. Si este teléfono tiene una edición **pendiente** de esa
  *   entidad (en la cola de salida), no se pisa (CA2): la versión de la nube se guarda en el
  *   historial local como conflicto, para que la persona decida (HU-E5.4).
+ * - **Rol (HU-E4.5):** la celda solo baja lo que el rol puede leer. Si el rol de esta persona
+ *   cambia, el teléfono borra lo que ya no le toca ver (salvo lo que tiene pendiente por subir) y
+ *   vuelve a bajar desde el principio, para recibir lo que antes no le tocaba.
  */
 import {
   type CambioDeCatalogo,
   CURSOR_INICIAL,
   type Cursor,
+  ENTIDADES_DE_CATALOGO,
+  puede,
   type RespuestaPull,
 } from '@gestionagro/sync';
 import type { CuadernoDb, VersionAnterior } from './db.ts';
 
 export const CLAVE_CURSOR = 'cursor_pull';
+/** El rol con el que se bajó lo que hay en este teléfono. */
+export const CLAVE_ROL = 'rol_pull';
+
+/**
+ * Deja el teléfono acorde al rol: si cambió, borra lo que el rol ya no puede leer (sin tocar lo
+ * pendiente por subir) y reinicia el cursor. Devuelve si cambió.
+ */
+export async function ajustarAlRol(
+  db: CuadernoDb,
+  rol: string,
+  instante: string,
+): Promise<boolean> {
+  if ((await db.meta.get(CLAVE_ROL))?.valor === rol) return false;
+  const ocultas = ENTIDADES_DE_CATALOGO.filter((e) => !puede(rol, 'leer', e));
+  await db.transaction('rw', [db.meta, db.outbox, ...ocultas.map((e) => db.table(e))], async () => {
+    const pendientes = new Set((await db.outbox.toArray()).map((o) => o.entidad_id));
+    for (const e of ocultas) {
+      const ids = (await db.table(e).toCollection().primaryKeys()) as string[];
+      await db.table(e).bulkDelete(ids.filter((id) => !pendientes.has(id)));
+    }
+    await db.meta.put({ clave: CLAVE_CURSOR, valor: CURSOR_INICIAL, actualizado: instante });
+    await db.meta.put({ clave: CLAVE_ROL, valor: rol, actualizado: instante });
+  });
+  return true;
+}
 
 export type ResultadoDeRecepcion =
   | {
@@ -114,12 +144,13 @@ const stripOrg = (o: object) => ({ ...o, org_id: null });
 
 export async function recibirCambios(
   db: CuadernoDb,
-  destino: { api: string; acceso: string },
+  destino: { api: string; acceso: string; rol?: string | null },
   opciones: { fetchFn?: typeof fetch; ahora?: () => number; maxPaginas?: number } = {},
 ): Promise<ResultadoDeRecepcion> {
   const { fetchFn = fetch, ahora = () => Date.now(), maxPaginas = 500 } = opciones;
   let recibidos = 0;
   let conflictos = 0;
+  if (destino.rol) await ajustarAlRol(db, destino.rol, new Date(ahora()).toISOString());
   for (let n = 0; n < maxPaginas; n++) {
     const c = await leerCursor(db);
     let r: Response;

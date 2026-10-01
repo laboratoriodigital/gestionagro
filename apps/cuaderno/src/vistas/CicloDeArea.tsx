@@ -283,6 +283,8 @@ export function CicloDeArea(props: {
   area: Area;
   ciclo: Ciclo | undefined;
   cultivos: Cultivo[];
+  /** Si el rol puede iniciar y cerrar ciclos (HU-E4.5). */
+  cambia: boolean;
   alCambiar: () => void;
 }) {
   const [abierto, setAbierto] = useState<'iniciar' | 'cerrar' | null>(null);
@@ -306,27 +308,29 @@ export function CicloDeArea(props: {
       ) : (
         <p class="ayuda">Sin ciclo activo.</p>
       )}
-      <div class="acciones-area">
-        {c ? (
-          <button
-            type="button"
-            class="secundario"
-            onClick={() => setAbierto(abierto === 'cerrar' ? null : 'cerrar')}
-            aria-label={`Cerrar ciclo de ${props.area.nombre}`}
-          >
-            Cerrar ciclo
-          </button>
-        ) : (
-          <button
-            type="button"
-            class="secundario"
-            onClick={() => setAbierto(abierto === 'iniciar' ? null : 'iniciar')}
-            aria-label={`Iniciar ciclo en ${props.area.nombre}`}
-          >
-            Iniciar ciclo
-          </button>
-        )}
-      </div>
+      {props.cambia && (
+        <div class="acciones-area">
+          {c ? (
+            <button
+              type="button"
+              class="secundario"
+              onClick={() => setAbierto(abierto === 'cerrar' ? null : 'cerrar')}
+              aria-label={`Cerrar ciclo de ${props.area.nombre}`}
+            >
+              Cerrar ciclo
+            </button>
+          ) : (
+            <button
+              type="button"
+              class="secundario"
+              onClick={() => setAbierto(abierto === 'iniciar' ? null : 'iniciar')}
+              aria-label={`Iniciar ciclo en ${props.area.nombre}`}
+            >
+              Iniciar ciclo
+            </button>
+          )}
+        </div>
+      )}
       {abierto === 'iniciar' && !c && (
         <FormularioCiclo
           db={props.db}
