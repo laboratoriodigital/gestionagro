@@ -13,6 +13,7 @@ import { Insumos } from './vistas/Insumos.tsx';
 import { NoEncontrada } from './vistas/NoEncontrada.tsx';
 import { Personas } from './vistas/Personas.tsx';
 import { Registrar } from './vistas/Registrar.tsx';
+import { Respaldo } from './vistas/Respaldo.tsx';
 
 const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> = {
   '': Inicio,
@@ -20,6 +21,7 @@ const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> =
   historial: Historial,
   personas: Personas,
   insumos: Insumos,
+  respaldo: Respaldo,
 };
 
 /** Con y sin «/» final: el enlace directo llega como /agro/app/insumos/ y la navegación como /agro/app/insumos. */
