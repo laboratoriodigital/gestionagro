@@ -7,5 +7,6 @@ export {
   medida,
   texto,
 } from './comunes.ts';
+export * from './exportacion.ts';
 export * from './registro.ts';
 export * from './reloj.ts';

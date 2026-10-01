@@ -12,6 +12,7 @@ export const RUTAS_APP = [
   { segmento: 'historial', titulo: 'Historial' },
   { segmento: 'personas', titulo: 'Personas' },
   { segmento: 'insumos', titulo: 'Insumos' },
+  { segmento: 'respaldo', titulo: 'Respaldo' },
 ] as const;
 
 export const rutaDe = (segmento: string): string =>

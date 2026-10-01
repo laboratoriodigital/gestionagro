@@ -615,7 +615,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.13 · Exportar e importar todo
 **Como** propietario **quiero** descargar todo mi cuaderno en un archivo y poder restaurarlo **para** tener respaldo aunque pierda el teléfono, y para pasar datos entre teléfonos mientras no haya sincronización.
-- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S6 · **Depende de:** HU-E3.12 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S6 · **Depende de:** HU-E3.12 · **Estado:** En sprint (rama `feat/e3.13-exportar-importar`. CA1: el esquema JSON se genera desde agro-schema y una prueba exige que coincida; un respaldo real valida contra él con Ajv. CA2: si el teléfono ya tiene otra finca, el archivo se rechaza. La cola de salida y meta no viajan; lo importado no entra a la cola, E5 decide cómo subirlo. CA4: celdas de texto que empiezan por = + - @ llevan ' para que Excel no las ejecute)
 - **Criterios de aceptación:**
   1. Exporta en `agro-export v1` (JSON con recuento y hash por tabla) y en CSV por tipo de registro. Formato definido en `schemas/agro-export.schema.json`, la misma fuente que usarán el respaldo y la mudanza (P2).
   2. Importar **une**: agrega lo que falta por id y no reemplaza nada existente. Un archivo corrupto a la mitad no deja la base a medias (P21).

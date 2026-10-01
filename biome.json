@@ -6,7 +6,14 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!docs", "!**/coverage", "!**/dist", "!apps/sitio/wrangler.jsonc"]
+    "includes": [
+      "**",
+      "!docs",
+      "!**/coverage",
+      "!**/dist",
+      "!apps/sitio/wrangler.jsonc",
+      "!schemas/agro-export.schema.json"
+    ]
   },
   "plugins": ["./biome/sin-comparar-import-meta-url.grit"],
   "formatter": {
