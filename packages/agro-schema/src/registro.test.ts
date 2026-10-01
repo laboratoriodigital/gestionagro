@@ -83,3 +83,34 @@ describe('registro clima v1', () => {
     expect(camposDelError({ ...clima({}), nota: 'x' })).toEqual(['(registro)']);
   });
 });
+
+const riego = (v: number, datos: Record<string, unknown>) => ({
+  ...clima({}),
+  tipo: 'riego',
+  v,
+  datos: {
+    unidad: 'mL_gotero',
+    volumenAplicado: 500,
+    volumenDrenado: 150,
+    drenajePct: 30,
+    ceEntradaDsM: null,
+    phEntrada: null,
+    ceDrenajeDsM: null,
+    phDrenaje: null,
+    ...datos,
+  },
+});
+
+describe('registro riego', () => {
+  it('v1 sigue aceptándose sin duración: lo que ya se guardó no se rechaza (ADR-13)', () => {
+    expect(camposDelError(riego(1, {}))).toEqual([]);
+    expect(camposDelError(riego(1, { duracionMin: 12 }))).toEqual(['datos']);
+  });
+
+  it('v2 lleva la duración en minutos; sin anotar es null, nunca 0', () => {
+    expect(camposDelError(riego(2, { duracionMin: 12.5 }))).toEqual([]);
+    expect(camposDelError(riego(2, { duracionMin: null }))).toEqual([]);
+    expect(camposDelError(riego(2, { duracionMin: 0 }))).toEqual(['datos.duracionMin']);
+    expect(camposDelError(riego(2, {}))).toEqual(['datos.duracionMin']);
+  });
+});

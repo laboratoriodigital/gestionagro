@@ -560,3 +560,15 @@ Un control negativo que corre contra un build viejo da exactamente el verde fals
 La regla: **el control negativo también es código que puede fallar. Respaldos con nombres únicos, cada paso con su estado de salida, y un «verde» solo vale si el defecto llegó de verdad a lo que se probó.**
 
 *Ficha:* agro · *(mío)* · 🟠 Grave · P5, P14, P2 · 0.1.0 · 2026-10-01
+
+**16 · Un error en CE o pH escondía el aviso de «drenado mayor que lo aplicado».**
+
+*Qué pasó.* El 1 oct 2026 el dueño probó el riego en staging: con un error en la sección plegada de CE y pH, el formulario no decía que el volumen drenado era mayor que lo aplicado. Lo vio solo después de corregir CE y pH y volver a guardar.
+
+*Causa raíz.* El formulario validaba en dos tiempos. En el teléfono revisaba formato y rangos (CE, pH, números legibles) y, si algo fallaba, salía. La regla «drenado ≤ aplicado» solo la revisaba `agro-calc` al guardar. Con un error del primer tiempo, el segundo nunca corría: el operario corrige un campo, guarda, y aparece un error nuevo que estaba ahí desde el principio. Las pruebas de HU-E3.7 probaban cada error por separado, nunca juntos.
+
+*Arreglo.* El formulario corre las dos revisiones antes de decidir y muestra todos los errores a la vez, cada uno junto a su campo. Una e2e llena tres campos mal a la vez (duración 0, drenado 600 de 500, CE 12) y exige los tres mensajes; con la revisión del drenaje quitada, falla.
+
+La regla: **un formulario muestra todos sus errores en la misma vuelta. Si una validación sale antes, las que vienen después quedan escondidas; las pruebas de errores incluyen uno con varios a la vez.**
+
+*Ficha:* agro · *(mío)* · 🟡 Leve · P15 · 0.1.0 · 2026-10-01

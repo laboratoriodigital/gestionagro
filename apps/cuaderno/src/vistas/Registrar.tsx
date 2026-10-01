@@ -235,7 +235,10 @@ function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): string {
       d.drenajePct === null ? 'drenaje no medido' : `drenaje ${formatearPct(d.drenajePct)}`;
     const ce = d.ceEntradaDsM === null ? '' : ` · CE ${coma(d.ceEntradaDsM)} dS/m`;
     const ph = d.phEntrada === null ? '' : ` · pH ${coma(d.phEntrada)}`;
-    return `Riego · ${coma(d.volumenAplicado)} ${unidad} · ${drenaje}${ce}${ph}`;
+    // Los riegos v1 no tienen duración.
+    const min = r.v >= 2 ? d.duracionMin : null;
+    const duracion = min === null ? '' : ` · ${coma(min)} min`;
+    return `Riego · ${coma(d.volumenAplicado)} ${unidad}${duracion} · ${drenaje}${ce}${ph}`;
   }
   if (r.tipo === 'labor') {
     const d = r.datos as { labor: string; horasPorPersona: number };

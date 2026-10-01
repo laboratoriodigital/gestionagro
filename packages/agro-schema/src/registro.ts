@@ -40,33 +40,46 @@ const climaV1 = z.strictObject({
  * `riego` v1 (HU-E3.7): volumen aplicado y drenado en la misma unidad, y la solución de entrada y
  * de drenaje. Nulo = no medido, que no es 0 (P1). El % de drenaje lo calcula agro-calc.
  */
-const riegoV1 = z
-  .strictObject({
-    unidad: z.enum(['mL_gotero', 'L_area']),
-    volumenAplicado: medida('de volumen', 0.001, 1_000_000),
-    volumenDrenado: medida('de volumen', 0, 1_000_000).nullable(),
-    drenajePct: z.number().min(0).max(100).nullable(),
-    ceEntradaDsM: medida('dS/m', 0, 10).nullable(),
-    phEntrada: medida('de pH', 3, 10).nullable(),
-    ceDrenajeDsM: medida('dS/m', 0, 10).nullable(),
-    phDrenaje: medida('de pH', 3, 10).nullable(),
-  })
-  .superRefine((r, ctx) => {
-    if ((r.volumenDrenado === null) !== (r.drenajePct === null)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['drenajePct'],
-        message: 'el % de drenaje va solo si se midió el drenaje',
-      });
-    }
-    if (r.volumenDrenado !== null && r.volumenDrenado > r.volumenAplicado) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['volumenDrenado'],
-        message: 'no puede ser mayor que lo aplicado',
-      });
-    }
-  });
+const camposRiegoV1 = {
+  unidad: z.enum(['mL_gotero', 'L_area']),
+  volumenAplicado: medida('de volumen', 0.001, 1_000_000),
+  volumenDrenado: medida('de volumen', 0, 1_000_000).nullable(),
+  drenajePct: z.number().min(0).max(100).nullable(),
+  ceEntradaDsM: medida('dS/m', 0, 10).nullable(),
+  phEntrada: medida('de pH', 3, 10).nullable(),
+  ceDrenajeDsM: medida('dS/m', 0, 10).nullable(),
+  phDrenaje: medida('de pH', 3, 10).nullable(),
+};
+
+function reglasDeRiego(
+  r: { volumenAplicado: number; volumenDrenado: number | null; drenajePct: number | null },
+  ctx: z.RefinementCtx,
+) {
+  if ((r.volumenDrenado === null) !== (r.drenajePct === null)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['drenajePct'],
+      message: 'el % de drenaje va solo si se midió el drenaje',
+    });
+  }
+  if (r.volumenDrenado !== null && r.volumenDrenado > r.volumenAplicado) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['volumenDrenado'],
+      message: 'no puede ser mayor que lo aplicado',
+    });
+  }
+}
+
+const riegoV1 = z.strictObject(camposRiegoV1).superRefine(reglasDeRiego);
+
+/**
+ * `riego` v2 (revisión del dueño, 1 oct 2026): v1 más la duración del riego en minutos.
+ * Nulo = no se anotó, que no es 0 (P1).
+ */
+const riegoV2 = z
+  .strictObject({ ...camposRiegoV1, duracionMin: medida('minutos', 0.1, 1440).nullable() })
+  .superRefine(reglasDeRiego);
 
 /**
  * `labor` v1 (HU-E3.9): qué labor y cuántas horas por persona, en medias horas. Las personas van
@@ -83,7 +96,7 @@ const laborV1 = z.strictObject({
 
 export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, z.ZodType>>>> = {
   clima: { 1: climaV1 },
-  riego: { 1: riegoV1 },
+  riego: { 1: riegoV1, 2: riegoV2 },
   labor: { 1: laborV1 },
 };
 

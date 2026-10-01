@@ -1,6 +1,6 @@
 /**
  * Formulario rápido de riego (HU-E3.7). A la vista solo lo de todos los días: áreas, volumen
- * aplicado, volumen drenado y unidad, con teclado numérico (CA5). CE y pH van plegados.
+ * aplicado, duración, volumen drenado y unidad, con teclado numérico (CA5). CE y pH van plegados.
  * La unidad elegida se recuerda en el teléfono para la próxima vez.
  */
 import {
@@ -19,6 +19,8 @@ import { guardarRiego, type UnidadRiego } from '../almacen/riego.ts';
 import { Campo, Opciones } from '../componentes/Campo.tsx';
 
 const CLAVE_UNIDAD = 'gestionagro.unidad-riego';
+/** Igual que el esquema `riego` v2. */
+const RANGO_DURACION_MIN = [0.1, 1440] as const;
 const UNIDADES = [
   { valor: 'mL_gotero', texto: 'mL por gotero' },
   { valor: 'L_area', texto: 'L por área' },
@@ -37,6 +39,7 @@ interface Valores {
   areas: string[];
   unidad: UnidadRiego | '';
   aplicado: string;
+  duracion: string;
   drenado: string;
   ceEntrada: string;
   phEntrada: string;
@@ -46,6 +49,7 @@ interface Valores {
 
 const VACIO: Omit<Valores, 'areas' | 'unidad'> = {
   aplicado: '',
+  duracion: '',
   drenado: '',
   ceEntrada: '',
   phEntrada: '',
@@ -56,11 +60,16 @@ const VACIO: Omit<Valores, 'areas' | 'unidad'> = {
 const CAMPO_DE_ERROR: Record<string, keyof Valores> = {
   volumenAplicado: 'aplicado',
   volumenDrenado: 'drenado',
+  'datos.volumenAplicado': 'aplicado',
+  'datos.volumenDrenado': 'drenado',
+  'datos.duracionMin': 'duracion',
   'datos.ceEntradaDsM': 'ceEntrada',
   'datos.phEntrada': 'phEntrada',
   'datos.ceDrenajeDsM': 'ceDrenaje',
   'datos.phDrenaje': 'phDrenaje',
 };
+
+const coma = (n: number) => String(n).replace('.', ',');
 
 /** Medición opcional: vacío es «no medido» (null), nunca 0 (CA2, P1). */
 function opcional(
@@ -74,7 +83,7 @@ function opcional(
   if (leido.valor < rango[0] || leido.valor > rango[1]) {
     return {
       valor: null,
-      error: `Fuera de rango: debe estar entre ${rango[0]} y ${rango[1]}${unidad}.`,
+      error: `Fuera de rango: debe estar entre ${coma(rango[0])} y ${coma(rango[1])}${unidad}.`,
     };
   }
   return { valor: leido.valor };
@@ -90,7 +99,13 @@ export function FormularioRiego(props: { fincaId: string; areas: Area[]; alGuard
   const [guardado, setGuardado] = useState<string | null>(null);
 
   const tieneAlgo = Boolean(
-    v.aplicado || v.drenado || v.ceEntrada || v.phEntrada || v.ceDrenaje || v.phDrenaje,
+    v.aplicado ||
+      v.duracion ||
+      v.drenado ||
+      v.ceEntrada ||
+      v.phEntrada ||
+      v.ceDrenaje ||
+      v.phDrenaje,
   );
   useEffect(() => (tieneAlgo ? abrirFormulario() : undefined), [tieneAlgo]);
 
@@ -122,6 +137,18 @@ export function FormularioRiego(props: { fincaId: string; areas: Area[]; alGuard
       if (!drenado.ok) err.drenado = drenado.motivo;
       else volumenDrenado = drenado.valor;
     }
+    // Todo se revisa a la vez: un error en CE o pH no esconde el del drenaje (revisión del dueño).
+    if (aplicado.ok && volumenDrenado !== null) {
+      try {
+        drenajePct(aplicado.valor, volumenDrenado);
+      } catch (error) {
+        if (!(error instanceof ErrorDeMedida)) throw error;
+        const campo = CAMPO_DE_ERROR[error.campo] ?? 'drenado';
+        err[campo] = error.message.replace(/^«[^»]+»\s*/, '');
+      }
+    }
+    const duracion = opcional(v.duracion, RANGO_DURACION_MIN, ' minutos');
+    if (duracion.error) err.duracion = duracion.error;
     const ceEntrada = opcional(v.ceEntrada, RANGO_CE_DS_M, ' dS/m');
     const phEntrada = opcional(v.phEntrada, RANGO_PH, '');
     const ceDrenaje = opcional(v.ceDrenaje, RANGO_CE_DS_M, ' dS/m');
@@ -137,6 +164,7 @@ export function FormularioRiego(props: { fincaId: string; areas: Area[]; alGuard
       const guardados = await guardarRiego(cuaderno(), props.fincaId, v.areas, {
         unidad: v.unidad,
         volumenAplicado: aplicado.valor,
+        duracionMin: duracion.valor,
         volumenDrenado,
         ceEntradaDsM: ceEntrada.valor,
         phEntrada: phEntrada.valor,
@@ -216,6 +244,14 @@ export function FormularioRiego(props: { fincaId: string; areas: Area[]; alGuard
         valor={v.aplicado}
         error={errores.aplicado}
         alCambiar={(x) => setV({ ...v, aplicado: x })}
+      />
+      <Campo
+        id="riego-duracion"
+        etiqueta="Duración del riego en minutos (opcional)"
+        decimal
+        valor={v.duracion}
+        error={errores.duracion}
+        alCambiar={(x) => setV({ ...v, duracion: x })}
       />
       <Campo
         id="riego-drenado"

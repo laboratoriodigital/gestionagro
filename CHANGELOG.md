@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Corregido
+- Riego, según la prueba del dueño en staging (bitácora agro 16): un error en CE o pH ya no esconde el de «drenado mayor que lo aplicado»; el formulario muestra todos los errores a la vez. Los rangos se escriben con coma decimal.
 - Cuaderno, según la prueba del dueño en staging (bitácora agro 12): el tipo de área se elige por área (una finca puede tener naves y lotes); camas y surcos se editan con historial; «Agregar área» después del registro inicial; los insumos se editan con historial; «Otra unidad…» permite una unidad propia (bulto, galón…).
 - La raíz del sitio mostraba «Redirecting from / to /herramientas/agro/» y esperaba 2 segundos: era la página que genera Astro en modo estático. Ahora `_redirects` hace un 301 en el borde, sin ejecutar el Worker; la prueba de humo del despliegue y una e2e lo exigen, y el servidor de pruebas aplica `_redirects` como Cloudflare.
 - El resumen del despliegue cita el error de wrangler y, para códigos ya vistos (10089: Analytics Engine sin activar), dice qué hacer; antes decía «ver el registro» (bitácora agro 11).
@@ -39,6 +40,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Dónde está cada dato (HU-E3.14): indicador en la cabecera del cuaderno, «N registros solo en este teléfono», que se actualiza al guardar; al tocarlo explica qué significa, recomienda una copia semanal mientras no haya sincronización y advierte si el navegador no concedió almacenamiento permanente.
 - Registro de riego (HU-E3.7): pestaña «Riego» en Registrar con áreas, unidad (mL por gotero o L por área, recordada), volumen aplicado y drenado con el % de drenaje (`drenajePct` en agro-calc, con casos), y CE y pH de entrada y drenaje opcionales; vacío es «no medido». El mismo riego en varias áreas guarda un registro por área en una sola transacción (`guardarRegistros`). Lista única de últimos registros de clima y riego.
 - Registro de labores (HU-E3.9): pestaña «Labores» en Registrar con área, labor, personas y horas por persona en medias horas. Catálogo de labores por finca, editable: «Otra labor…» la agrega al guardar, sin duplicar por mayúsculas; las sugerencias (tutorado, deshoje, poda, polinización, limpieza) se ofrecen con el catálogo vacío. Las 3 labores más recientes van primero. Se registra en modo tablero (personas sin cuenta) y si alguien pasa de 12 h en el día se avisa y se pide confirmar. Esquema `labor` v1 y catálogo `tipo_labor` (Dexie v5).
+- Duración del riego en minutos (opcional, visible junto a los volúmenes), pedida por el dueño para la primera versión: esquema `riego` v2. Los riegos v1 ya guardados siguen siendo válidos y se muestran sin duración (ADR-13).
 - `packages/ui`: tokens de diseño (contraste, objetivos táctiles de 48 px, fuentes del sistema).
 - Contrato `product.yaml`: campo obligatorio `nombre` (nombre corto).
 - Plantilla de pull request con «Control negativo» y «¿Cambió algo que un documento afirma?».

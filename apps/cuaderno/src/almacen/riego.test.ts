@@ -18,6 +18,7 @@ const ahora = () => HOY;
 const base: DatosRiego = {
   unidad: 'mL_gotero',
   volumenAplicado: 500,
+  duracionMin: 12,
   volumenDrenado: 150,
   ceEntradaDsM: null,
   phEntrada: null,
@@ -48,7 +49,9 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
       volumenAplicado: 500,
       volumenDrenado: 150,
       drenajePct: 30,
+      duracionMin: 12,
     });
+    expect(r?.v).toBe(2);
   });
 
   it('CA2: sin drenaje ni CE ni pH medidos, quedan como no medidos, no como 0', async () => {
