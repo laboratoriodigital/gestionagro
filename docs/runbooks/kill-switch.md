@@ -53,7 +53,9 @@ Se hace una vez en staging, después del primer despliegue con kill switch, y se
 
 | Paso | Esperado | Resultado | Fecha y hora |
 |---|---|---|---|
-| Verificar encendido | 204 | | |
-| Poner `ks:agro-calculadora-dpv` = `apagado` en `agro-c0-flags-staging` | — | | |
-| Verificar cada 30 s hasta ver 503 | 503 antes de 2 min | | |
-| Volver a `encendido` y verificar hasta ver 204 | 204 antes de 2 min | | |
+| Verificar encendido | 204 | 204 | 1 oct 2026, 12:11:00 |
+| Poner `ks:agro-calculadora-dpv` = `apagado` en `agro-c0-flags-staging` | — | Hecho por el dueño | Entre 12:11:00 y 12:11:30 (no se anotó la hora exacta) |
+| Verificar cada 30 s hasta ver 503 | 503 antes de 2 min | 503 | 12:11:30 y 12:12:00 |
+| Volver a `encendido` y verificar hasta ver 204 | 204 antes de 2 min | 204 | 12:12:31 |
+
+**Lectura (1 oct 2026):** el apagado se vio en la primera verificación después del cambio y el encendido, en la siguiente. Del último 204 al 204 de vuelta pasaron 91 s. Como no se anotó la hora de cada cambio en el panel, la cifra exacta de cada propagación no se conoce: se sabe que fue menor que 30–60 s en esta prueba, dentro de los 2 minutos documentados. La próxima prueba anota también la hora de cada «Save».
