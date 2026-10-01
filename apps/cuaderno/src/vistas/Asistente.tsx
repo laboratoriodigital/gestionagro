@@ -110,6 +110,12 @@ export function Asistente(props: { db: CuadernoDb; alTerminar: () => void }) {
       </h1>
 
       {paso === 1 && (
+        <p class="ayuda" data-prueba="asistente-bajar">
+          ¿Tu finca ya está en otro teléfono? No la vuelvas a escribir:{' '}
+          <a href="/agro/app/cuenta/">bájala de la nube</a>.
+        </p>
+      )}
+      {paso === 1 && (
         <form
           onSubmit={(e) => {
             e.preventDefault();

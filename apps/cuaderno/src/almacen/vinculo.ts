@@ -22,7 +22,8 @@ const TAMANO_DE_LOTE_LOCAL = 500;
 
 export interface Vinculo {
   org_id: string;
-  finca_id: string;
+  /** Null en un teléfono que baja la finca de la nube, hasta que llegue (HU-E5.3). */
+  finca_id: string | null;
   vinculado: string;
 }
 
@@ -33,7 +34,9 @@ export type EstadoDelVinculo =
   | 'sin-subir'
   | 'vinculada'
   /** Vinculada a una organización que no es de esta cuenta: no se mezcla (CA3). */
-  | 'otra-cuenta';
+  | 'otra-cuenta'
+  /** Teléfono sin finca y cuenta con fincas en la nube: se ofrece bajarla (HU-E5.3, CA4). */
+  | 'para-bajar';
 
 export async function leerVinculo(db: CuadernoDb): Promise<Vinculo | null> {
   return ((await db.meta.get(CLAVE_VINCULO))?.valor as Vinculo | undefined) ?? null;
@@ -43,10 +46,13 @@ export async function estadoDelVinculo(
   db: CuadernoDb,
   sesion: Sesion | null,
 ): Promise<EstadoDelVinculo> {
-  if (!(await db.finca.toCollection().first())) return 'sin-finca';
-  if (!sesion) return 'sin-cuenta';
+  const finca = await db.finca.toCollection().first();
   const vinculo = await leerVinculo(db);
-  if (!vinculo) return 'sin-subir';
+  if (!sesion) return finca || vinculo ? 'sin-cuenta' : 'sin-finca';
+  if (!vinculo) {
+    if (finca) return 'sin-subir';
+    return sesion.organizaciones.length > 0 ? 'para-bajar' : 'sin-finca';
+  }
   return sesion.organizaciones.some((o) => o.org_id === vinculo.org_id)
     ? 'vinculada'
     : 'otra-cuenta';
@@ -166,4 +172,45 @@ export async function subirFinca(
     await db.meta.delete(CLAVE_ORG_PENDIENTE);
   });
   return { sesion: nueva, encoladas: await encolarTodo(db, ahora) };
+}
+
+/**
+ * Baja a este teléfono la finca de una organización de la cuenta (HU-E5.3, CA4): renueva la sesión
+ * hacia ella y guarda el vínculo; la sincronización baja todo con el pull. Solo en un teléfono sin
+ * finca: nunca mezcla dos fincas en un teléfono.
+ */
+export async function bajarFinca(
+  db: CuadernoDb,
+  core: string,
+  orgId: string,
+  opciones: { fetchFn?: typeof fetch; ahora?: () => number } = {},
+): Promise<Sesion> {
+  const { fetchFn = fetch, ahora = () => Date.now() } = opciones;
+  const sesion = await leerSesion(db);
+  if (!sesion) throw new ErrorDeSesion('Entra con tu cuenta para bajar la finca.');
+  if ((await db.finca.toCollection().first()) || (await leerVinculo(db))) {
+    throw new ErrorDeSesion(
+      'Este teléfono ya tiene una finca: no se mezclan dos fincas en un teléfono.',
+    );
+  }
+  const renovada = await pedir(fetchFn, `${core}/api/core/auth/refrescar`, {
+    refresh: sesion.refresh,
+    org_id: orgId,
+  });
+  if (renovada.estado !== 200 || renovada.datos['org_id'] !== orgId) {
+    throw new ErrorDeSesion(
+      String(renovada.datos['motivo'] ?? 'No se pudo abrir esa finca. Vuelve a intentarlo.'),
+    );
+  }
+  const nueva = {
+    ...(renovada.datos as unknown as Sesion),
+    refresh: (renovada.datos['refresh'] as string | null) ?? sesion.refresh,
+  };
+  const instante = new Date(ahora()).toISOString();
+  await db.transaction('rw', db.meta, async () => {
+    await db.meta.put({ clave: CLAVE_SESION, valor: nueva, actualizado: instante });
+    const vinculo: Vinculo = { org_id: orgId, finca_id: null, vinculado: instante };
+    await db.meta.put({ clave: CLAVE_VINCULO, valor: vinculo, actualizado: instante });
+  });
+  return nueva;
 }

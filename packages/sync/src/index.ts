@@ -156,3 +156,44 @@ export function validarOperacion(
     throw e;
   }
 }
+
+/**
+ * Pull (ARQUITECTURA §5.6, HU-E5.3):
+ *
+ *   GET /api/v1/sync/pull?registro=<seq>&catalogo=<seq>
+ *     → { catalogos: [{ entidad, datos }], registros: [Registro], cursor: { registro, catalogo }, mas }
+ *
+ * Dos cursores porque `seq` es por tabla. Hasta `PAGINA_MAXIMA` cambios por página, los catálogos
+ * primero: un registro nombra áreas y ciclos que el teléfono tiene que conocer antes. El cursor
+ * vive en el teléfono; la celda no escribe nada para atender un pull.
+ */
+export const PAGINA_MAXIMA = 200;
+
+export interface Cursor {
+  registro: number;
+  catalogo: number;
+}
+
+export const CURSOR_INICIAL: Cursor = { registro: 0, catalogo: 0 };
+
+export interface CambioDeCatalogo {
+  entidad: EntidadDeCatalogo;
+  datos: CatalogoValido;
+}
+
+export interface RespuestaPull {
+  catalogos: CambioDeCatalogo[];
+  registros: Registro[];
+  cursor: Cursor;
+  /** Hay más páginas: el teléfono pide la siguiente con el cursor nuevo. */
+  mas: boolean;
+}
+
+/**
+ * Cuándo se reinicia la cuota diaria de D1: a las 00:00 UTC, que son las 19:00 en Colombia
+ * (ARQUITECTURA §5.7, P8). La usa el aviso «sincronización en pausa hasta…».
+ */
+export function proximoReinicioDeCuota(ahoraMs: number): number {
+  const d = new Date(ahoraMs);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1);
+}
