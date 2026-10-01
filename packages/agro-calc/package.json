@@ -6,10 +6,12 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./casos/dpv.json": "./casos/dpv.json"
+    "./casos/dpv.json": "./casos/dpv.json",
+    "./catalogos/rangos-dpv.json": "./catalogos/rangos-dpv.json"
   },
   "files": [
     "src",
-    "casos"
+    "casos",
+    "catalogos"
   ]
 }

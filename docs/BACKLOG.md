@@ -357,7 +357,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E2.2 · Calcular el DPV del invernadero
 **Como** productor con invernadero **quiero** poner temperatura y humedad y ver el DPV con una indicación clara **para** decidir si ventilo, cierro o nebulizo.
-- **Peldaño:** herramienta gratuita → siguiente: guardar la lectura en el cuaderno (HU-E2.7) · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S3 · **Depende de:** HU-E2.1, HU-E1.6 · **Estado:** Refinada
+- **Peldaño:** herramienta gratuita → siguiente: guardar la lectura en el cuaderno (HU-E2.7) · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S3 · **Depende de:** HU-E2.1, HU-E1.6 · **Estado:** En sprint (rama `feat/e2.2-calculadora-dpv`. CA5: probado con la página abierta y sin red; abrirla de cero sin red depende de la caché HTTP del despliegue, HU-E1.5)
 - **Criterios de aceptación:**
   1. Dado T = 24 °C y HR = 70 %, cuando escribo los valores, entonces veo «0,90 kPa», con coma decimal, sin tocar un botón.
   2. Dado el cultivo «Tomate» y etapa «Producción», cuando el DPV está en 0,5–0,8 kPa, entonces se indica «en rango». Fuera de 0,4–1,2 kPa se indica «alto» o «bajo» con una acción sugerida en lenguaje de finca. Los rangos salen del catálogo y citan su fuente.
