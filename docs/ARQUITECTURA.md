@@ -388,7 +388,7 @@ registro(id UUIDv7, org_id, finca_id, area_ids[], ciclo_id, tipo, v,
 
 - **Corregir = anular.** Un registro nuevo con `anula_id` apunta al anterior. La app muestra el vigente y guarda el historial. Nadie borra.
 - **Reloj (P8):**
-  - Si `instante_evento` e `instante_recibido` difieren en más de 10 min a favor del teléfono, se marca «reloj del teléfono corrido» y se avisa. No se corrige en silencio.
+  - Si `instante_evento` e `instante_recibido` difieren en más de 10 min a favor del teléfono, se marca «reloj del teléfono corrido» y se avisa. No se corrige en silencio. Implementado (HU-E5.6): el ack del push trae `aviso: reloj-corrido` y el cuaderno pide corregir la hora en un aviso bajo la cabecera; el registro se guarda con su hora.
   - Carencias y reportes usan `fecha_agronomica`.
   - El límite diario de D1 se reinicia a las 00:00 UTC, que son las **19:00 en Bogotá**.
 - **Tenant en cada fila.** Toda tabla lleva `org_id` y toda consulta de la API lo exige desde el token, nunca desde el cuerpo. Una prueba recorre todas las consultas del Worker y falla si alguna no filtra por `org_id` (P5: se ve en rojo quitando un filtro).
@@ -641,6 +641,8 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
   - Un push cortado a la mitad.
   - Una app vieja contra la API nueva.
   - La celda en nivel «Esencial».
+  - Implementado (HU-E5.6) en `tests/caos/`, con dos casos más: token vencido sin señal y cuota de D1 agotada. Cada caso termina con la misma regla: cada registro existe exactamente una vez en la celda y en todos los teléfonos.
+- **Fallas de la celda:** cualquier error inesperado del Worker de la celda responde 503 en JSON con `estado: falla-celda` y `Retry-After`; el teléfono distingue «no hubo respuesta» (sin señal) de «la nube respondió con un error» (bitácora agro 23).
 - **Un flujo que nunca corrió no está probado (P16).** Despliegue, respaldo, restauración y mudanza tienen prueba de punta a punta antes de llamarse camino normal.
 - **El instrumento también miente (P17).** Si se usa `fake-indexeddb` o un doble de D1, se documenta qué propiedad del original no imita.
 

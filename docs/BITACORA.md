@@ -645,3 +645,18 @@ La regla: **una prueba que mide tiempo corre sola. Si falla solo con otras prueb
 La regla: **un dato nuevo sale del teléfono por sí solo, sin un gesto más. Y un estado dice de qué habla y desde cuándo: «lo tuyo» no es «lo de todos».**
 
 *Ficha:* agro · *(mío)* · 🟠 Grave · P1, P15, P20 · 0.1.0 · 2026-10-01
+
+**23 · Un error de la celda se le decía al operario como «sin señal».**
+
+*Qué pasó.* El 1 oct 2026, escribiendo el caso 8 de la batería de caos (HU-E5.6, cuota de D1 agotada), el teléfono respondió «sin señal» cuando D1 rechazó la escritura. Había señal: la celda sí respondió.
+
+*Causa raíz.* Ante un error inesperado, Hono responde un 500 con «Internal Server Error» en texto plano. El teléfono pedía y leía el JSON en el mismo `try`, y cualquier falla de ese bloque, incluida la de leer un texto que no es JSON, la contaba como falta de señal. Un error de la nube quedaba disfrazado de un problema del teléfono, y el operario habría buscado señal en vez de esperar (P15: el aviso no nombraba la causa). Ninguna prueba hacía fallar a la celda por dentro: todas usaban respuestas de error bien formadas.
+
+*Arreglo.*
+- La celda responde cualquier error inesperado con 503 en JSON, `estado: falla-celda` y `Retry-After`, y lo deja en el log (`app.onError`).
+- El teléfono separa «no hubo respuesta» de «la respuesta no se pudo leer». Una respuesta buena cortada a mitad sigue siendo como no tenerla, y la cola no cambia (HU-E5.2, CA4). Un error que no es JSON se dice como error de la nube.
+- Pruebas: un 500 en texto plano da «error», no «sin señal»; una base que falla da 503 «falla-celda»; el caso 8 de la batería lo cubre de punta a punta.
+
+La regla: **pedir y leer son dos fallas distintas. Una causa que se adivina en un `catch` amplio termina siendo la equivocada.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P15, P1, P17 · 0.1.0 · 2026-10-01

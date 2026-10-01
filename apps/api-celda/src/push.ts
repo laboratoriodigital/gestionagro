@@ -25,6 +25,7 @@ import {
   type OperacionValida,
   PROTOCOLO,
   pedidoDeActualizar,
+  RELOJ_CORRIDO_MS,
   validarOperacion,
 } from '@gestionagro/sync';
 import { nivelDeLaCelda, respuestaDePausa } from './nivel.ts';
@@ -242,10 +243,22 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
     escrituras.length > 0 ? await db.batch(escrituras.map((e) => e.sentencia)) : [];
   const cambios = new Map(escrituras.map((e, i) => [e.indice, resultados[i]?.meta.changes ?? 0]));
 
+  // Reloj del teléfono adelantado (ARQUITECTURA §5.7, P8): el registro dice haber pasado en el
+  // futuro de la celda. Se guarda igual y se avisa; nunca se corrige la hora en silencio.
+  const corridos = new Set(
+    validas
+      .filter(
+        (o) =>
+          o.entidad === 'registro' &&
+          Date.parse(o.registro.instante_evento) - ahora() > RELOJ_CORRIDO_MS,
+      )
+      .map((o) => o.id),
+  );
   const acks: Ack[] = planes.map((p, i) => {
     if (p.tipo === 'cuarentena') return { id: p.id, estado: 'cuarentena', motivo: p.motivo };
-    if (p.tipo === 'duplicado') return { id: p.id, estado: 'duplicado' };
-    return { id: p.id, estado: (cambios.get(i) ?? 0) > 0 ? 'aceptado' : p.siCero };
+    const aviso = corridos.has(p.id) ? { aviso: 'reloj-corrido' as const } : {};
+    if (p.tipo === 'duplicado') return { id: p.id, estado: 'duplicado', ...aviso };
+    return { id: p.id, estado: (cambios.get(i) ?? 0) > 0 ? 'aceptado' : p.siCero, ...aviso };
   });
   const actualizar = pedidoDeActualizar(cuerpo.app);
   return c.json(actualizar ? { acks, actualizar } : { acks });
