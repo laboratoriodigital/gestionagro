@@ -94,11 +94,21 @@ test('la raíz redirige con un 301 al índice de herramientas, sin página inter
 test.describe('presupuesto de rendimiento (CA4)', () => {
   for (const ruta of PAGINAS) {
     test(`${ruta}: JS < 50 KB con gzip`, async ({ page }) => {
-      const scripts: Buffer[] = [];
-      page.on('response', async (r) => {
-        if (r.request().resourceType() === 'script') scripts.push(await r.body());
+      // Se guardan las promesas y se esperan todas: leer el cuerpo sin esperarlo hacía que la
+      // prueba terminara antes («response.body: Test ended») una de cada cuatro veces (P19).
+      const cuerpos: Promise<Buffer>[] = [];
+      page.on('response', (r) => {
+        if (r.request().resourceType() === 'script') cuerpos.push(r.body());
       });
       await page.goto(ruta, { waitUntil: 'load' });
+      // La isla carga sus fragmentos después de «load»: se espera a que hidrate para contarlos
+      // todos (P17: medir solo hasta «load» se quedaba corto).
+      if ((await page.locator('astro-island').count()) > 0) {
+        await expect(page.locator('astro-island:not([ssr])')).toHaveCount(
+          await page.locator('astro-island').count(),
+        );
+      }
+      const scripts = await Promise.all(cuerpos);
       const enLinea = await page.$$eval(
         'script:not([src]):not([type="application/ld+json"])',
         (ss) => ss.map((s) => s.textContent ?? ''),
