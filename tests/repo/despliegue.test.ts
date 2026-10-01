@@ -104,19 +104,26 @@ describe('secretos de las celdas (P18)', () => {
 
 /** fetch falso: responde según la ruta; registra lo que se pidió. */
 function fetchFalso(
-  respuestas: Record<string, { estado: number; cuerpo?: unknown; texto?: string }>,
+  respuestas: Record<
+    string,
+    { estado: number; cuerpo?: unknown; texto?: string; cabeceras?: Record<string, string> }
+  >,
 ) {
   const pedidos: string[] = [];
   const fn = (async (entrada: string | URL | Request, init?: RequestInit) => {
     const url = String(entrada);
     const clave = `${init?.method ?? 'GET'} ${url}`;
     pedidos.push(clave);
-    const r = Object.entries(respuestas).find(([patron]) => clave.includes(patron))?.[1] ?? {
-      estado: 404,
-    };
+    // Primero la coincidencia exacta; si no hay, la parcial (para rutas de la API de Cloudflare).
+    const r = respuestas[clave] ??
+      Object.entries(respuestas).find(([patron]) => clave.includes(patron))?.[1] ?? {
+        estado: 404,
+      };
     const cuerpo = r.texto ?? JSON.stringify(r.cuerpo ?? {});
-    return new Response(r.estado === 204 ? null : cuerpo, {
+    const sinCuerpo = r.estado === 204 || (r.estado >= 300 && r.estado < 400);
+    return new Response(sinCuerpo ? null : cuerpo, {
       status: r.estado,
+      headers: r.cabeceras ?? {},
     });
   }) as Fetch;
   return { fn, pedidos };
@@ -186,6 +193,10 @@ describe('verificar el token antes de desplegar (CA2, P12)', () => {
 
 describe('prueba de humo (CA5, P11)', () => {
   const sano = {
+    'GET https://s.dev/': {
+      estado: 301,
+      cabeceras: { location: 'https://s.dev/herramientas/agro/' },
+    },
     'GET https://s.dev/herramientas/agro/calculadora-dpv/': {
       estado: 200,
       texto: 'Calculadora de DPV',
@@ -213,6 +224,14 @@ describe('prueba de humo (CA5, P11)', () => {
     const { fn, pedidos } = fetchFalso(sano);
     expect(await humo(fn, 'https://s.dev')).toEqual([]);
     expect(pedidos.filter((p) => p.startsWith('POST'))).toEqual(['POST https://s.dev/api/eventos']);
+  });
+
+  it('detecta una raíz que no redirige (la página intermedia de antes)', async () => {
+    const { fn } = fetchFalso({
+      ...sano,
+      'GET https://s.dev/': { estado: 200, texto: 'Redirecting to…' },
+    });
+    expect((await humo(fn, 'https://s.dev'))[0]).toMatch(/^\/: respondió 200/);
   });
 
   it('detecta una API que no valida y una app sin noindex', async () => {

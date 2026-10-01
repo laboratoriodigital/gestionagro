@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Corregido
+- La raíz del sitio mostraba «Redirecting from / to /herramientas/agro/» y esperaba 2 segundos: era la página que genera Astro en modo estático. Ahora `_redirects` hace un 301 en el borde, sin ejecutar el Worker; la prueba de humo del despliegue y una e2e lo exigen, y el servidor de pruebas aplica `_redirects` como Cloudflare.
 - El resumen del despliegue cita el error de wrangler y, para códigos ya vistos (10089: Analytics Engine sin activar), dice qué hacer; antes decía «ver el registro» (bitácora agro 11).
 - `pnpm licencias` revisaba solo la raíz del monorepo; ahora recorre el workspace y falla si una dependencia declarada no aparece en el listado (bitácora agro 6).
 
