@@ -5,6 +5,7 @@
  * Solo un producto `activo` se indexa. Un borrador se construye (para revisarlo en staging) pero
  * lleva `noindex` y no entra al sitemap.
  */
+import type { PaginaDeHerramienta } from '../../../../scripts/lib/calidad.ts';
 import type { Producto } from '../../../../scripts/lib/productos.ts';
 
 /** Host de ADR-19. Cambiarlo es el único paso para mudar a otro dominio. */
@@ -82,3 +83,38 @@ export const esHerramienta = (p: Producto): boolean =>
 /** Parte del slug bajo `/herramientas/agro/`, para las rutas de Astro. */
 export const segmentoDe = (p: Producto): string =>
   p.slug.replace(/^\/herramientas\/agro\//, '').replace(/\/$/, '');
+
+/**
+ * JSON-LD de una herramienta: migas, preguntas frecuentes (FAQPage) y pasos de uso (HowTo),
+ * todo derivado del contrato y de `pagina.yaml` (P2). Google ya no muestra resultados enriquecidos
+ * de HowTo y limita los de FAQ, pero otros buscadores y asistentes sí leen ese marcado.
+ */
+export function jsonLdDeHerramienta(
+  p: Producto,
+  pagina: PaginaDeHerramienta | null,
+): Record<string, unknown> {
+  const migas = seoDeProducto(p).jsonLd;
+  const { '@context': _contexto, ...migasSinContexto } = migas;
+  const grafo: Record<string, unknown>[] = [migasSinContexto];
+  if (pagina) {
+    grafo.push({
+      '@type': 'FAQPage',
+      mainEntity: pagina.preguntas.map((q) => ({
+        '@type': 'Question',
+        name: q.pregunta,
+        acceptedAnswer: { '@type': 'Answer', text: q.respuesta },
+      })),
+    });
+    grafo.push({
+      '@type': 'HowTo',
+      name: `Cómo usar la ${p.nombre.toLowerCase()}`,
+      step: pagina.pasos.map((paso, i) => ({
+        '@type': 'HowToStep',
+        position: i + 1,
+        name: paso.nombre,
+        text: paso.texto,
+      })),
+    });
+  }
+  return { '@context': 'https://schema.org', '@graph': grafo };
+}

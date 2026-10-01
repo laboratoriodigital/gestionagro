@@ -1,0 +1,29 @@
+# Preguntas frecuentes y pasos de la calculadora de DPV (HU-E2.5). Una sola fuente para lo que
+# se ve en la página y para el JSON-LD (FAQPage y HowTo) (P2). Pendiente de revisión agronómica.
+revision_agronomica: pendiente
+
+preguntas:
+  - pregunta: "¿Por qué mirar el DPV y no solo la humedad relativa?"
+    respuesta: "Porque la humedad relativa cambia de significado con la temperatura. Un 70 % a 16 °C da un DPV de 0,55 kPa; el mismo 70 % a 28 °C da 1,13 kPa, el doble. El DPV junta los dos datos y dice directamente qué tan fuerte el aire jala el agua de la hoja."
+  - pregunta: "¿A qué hora conviene medir?"
+    respuesta: "En los momentos extremos del día: al amanecer, cuando el DPV suele estar más bajo y hay riesgo de condensación, y entre el mediodía y las 2 de la tarde, cuando suele estar más alto. Medir siempre a las mismas horas permite comparar días y naves."
+  - pregunta: "¿Dónde pongo el termohigrómetro?"
+    respuesta: "A la altura del cultivo, en el centro de la nave, a la sombra y lejos de paredes, puertas, goteros y nebulizadores. Un sensor al sol directo marca varios grados de más y el DPV sale falso."
+  - pregunta: "¿Qué diferencia hay entre el DPV del aire y el DPV de la hoja?"
+    respuesta: "El DPV del aire usa solo la temperatura y la humedad del aire. El de la hoja usa además la temperatura de la hoja, que en un día soleado puede estar más caliente o más fría que el aire. Es más preciso, pero necesita un termómetro infrarrojo; si no lo tienes, el DPV del aire basta para manejar la nave."
+  - pregunta: "¿Por qué otra calculadora me da un número un poco distinto?"
+    respuesta: "Hay varias fórmulas para la presión de vapor de saturación y cada una redondea distinto. Esta usa la ecuación 11 de la guía FAO-56, que es la referencia en riego. Las diferencias entre fórmulas suelen ser de centésimas de kPa y no cambian la decisión."
+  - pregunta: "¿Sirve para flores, pimentón u otros cultivos?"
+    respuesta: "El cálculo sirve para cualquier cultivo. El rango de referencia, por ahora, solo está para tomate en producción; para otros cultivos la calculadora da el valor sin indicación hasta que tengamos un rango con su fuente."
+  - pregunta: "¿Los datos que escribo se envían a algún lado?"
+    respuesta: "No. La temperatura y la humedad que escribes no salen de tu teléfono: el cálculo se hace en la página. Lo único que se envía es un conteo anónimo de cuántas veces se abrió y se usó la calculadora, sin datos personales ni valores."
+
+pasos:
+  - nombre: "Mide"
+    texto: "Lee la temperatura y la humedad relativa en un termohigrómetro colgado a la altura del cultivo y a la sombra."
+  - nombre: "Escribe los valores"
+    texto: "Pon la temperatura en °C y la humedad en %. Puedes usar coma o punto decimal."
+  - nombre: "Elige el cultivo y la etapa"
+    texto: "Si tu cultivo está en la lista, verás si el DPV está en rango y qué hacer."
+  - nombre: "Anótalo"
+    texto: "Guarda la lectura en el cuaderno de campo para ver cómo cambia el clima de la nave día a día."
