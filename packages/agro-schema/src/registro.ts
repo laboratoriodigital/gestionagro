@@ -163,6 +163,33 @@ const loteVentaV1 = z.strictObject({
   cultivo: texto.nullable(),
 });
 
+export const TIPOS_DE_CLIENTE = ['consumidor', 'restaurante', 'tienda', 'cadena'] as const;
+export const MEDIOS_DE_PAGO = ['efectivo', 'transferencia', 'credito', 'otro'] as const;
+
+/**
+ * `despacho` v1 (HU-E6.3): a quién se vendió, de qué lotes, cuánto y a qué precio. El cliente va
+ * dentro del despacho (nombre y tipo), sin datos de contacto: la app sugiere los ya usados.
+ * Precio nulo = no se anotó; nunca cero (P1).
+ */
+const despachoV1 = z.strictObject({
+  cliente: z.strictObject({ nombre: texto, tipo: z.enum(TIPOS_DE_CLIENTE) }),
+  lineas: z
+    .array(
+      z.strictObject({
+        lote_id: id,
+        codigo: texto,
+        cantidad: medida('de cantidad', 0.001, 100_000_000),
+      }),
+    )
+    .min(1, 'debe tener al menos un lote'),
+  unidad: texto,
+  precio_unitario_cop: z
+    .int('debe ser un valor entero en pesos')
+    .min(1, 'debe ser mayor que 0')
+    .nullable(),
+  medio_pago: z.enum(MEDIOS_DE_PAGO),
+});
+
 export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, z.ZodType>>>> = {
   clima: { 1: climaV1 },
   riego: { 1: riegoV1, 2: riegoV2 },
@@ -170,6 +197,7 @@ export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, 
   aplicacion: { 1: aplicacionV1 },
   cosecha: { 1: cosechaV1 },
   lote_venta: { 1: loteVentaV1 },
+  despacho: { 1: despachoV1 },
 };
 
 export type Registro = z.infer<typeof registroBase>;

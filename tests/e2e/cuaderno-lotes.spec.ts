@@ -70,3 +70,59 @@ for (const f of FINCAS_DE_PRUEBA) {
     await expect(page.getByLabel(`${a2.nombre} · ${hoy.corta} · Primera · 12 kg`)).toBeVisible();
   });
 }
+
+test('HU-E6.3: despachar un lote sin señal, con cliente, precio y medio de pago; el saldo manda', async ({
+  page,
+  context,
+}) => {
+  const f = FINCAS_DE_PRUEBA[0];
+  const a1 = f?.areas[0];
+  if (!f || !a1) throw new Error('sin finca');
+  await configurar(page, f);
+  await context.setOffline(true);
+  await cosechar(page, a1.nombre, '42,5');
+  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  const hoy = hoyEnColombia();
+  await page.getByLabel(`${a1.nombre} · ${hoy.corta} · Primera · 42,5 kg`).check();
+  await page.getByRole('button', { name: 'Armar lote' }).click();
+  const codigo = `M-${hoy.ddmm}-1`;
+
+  const despachar = async (cantidad: string, precio: string) => {
+    await page.getByRole('button', { name: `Despachar el lote ${codigo}` }).click();
+    const formulario = page.locator('[data-prueba="formulario-despacho"]');
+    await formulario.getByLabel('Cliente').fill('Cliente Ensayo');
+    await formulario.getByLabel('Restaurante').check();
+    await formulario.getByLabel(`Cantidad del lote ${codigo} (kg)`).fill(cantidad);
+    await formulario.getByLabel('Precio por kg en pesos (opcional)').fill(precio);
+    await formulario.getByLabel('Transferencia').check();
+    await formulario.getByRole('button', { name: 'Guardar despacho' }).click();
+    return formulario;
+  };
+
+  // CA5: un precio que no se puede leer se dice; no se guarda como cero.
+  const primero = await despachar('10', 'tres mil');
+  await expect(
+    primero.getByText('Escribe el precio en pesos, sin decimales, o déjalo vacío.'),
+  ).toBeVisible();
+  await primero.getByLabel('Precio por kg en pesos (opcional)').fill('3.500');
+  await primero.getByRole('button', { name: 'Guardar despacho' }).click();
+
+  const despacho = page.locator('[data-prueba="despacho"]');
+  await expect(despacho).toHaveCount(1);
+  await expect(despacho).toContainText('Cliente Ensayo · restaurante');
+  await expect(despacho).toContainText(`${codigo}: 10 kg`);
+  await expect(despacho.locator('[data-prueba="precio-despacho"]')).toHaveText(
+    '$ 3.500 por kg · total $ 35.000 · transferencia',
+  );
+  await expect(page.locator('[data-prueba="saldo-lote"]')).toHaveText(
+    'Despachado 10 kg · quedan 32,5 kg',
+  );
+
+  // CA4: más de lo que queda avisa y no guarda.
+  const otro = await despachar('40', '');
+  await expect(otro.getByRole('alert')).toHaveText(
+    `No se guardó: al lote ${codigo} le quedan 32,5 kg y quieres despachar 40.`,
+  );
+  await expect(despacho).toHaveCount(1);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});

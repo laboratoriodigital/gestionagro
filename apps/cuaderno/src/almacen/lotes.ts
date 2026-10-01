@@ -11,6 +11,9 @@
  *   el lote más antiguo y el otro lo avisa.
  * - **Origen** (CA3): cada lote dice de qué áreas y fechas vienen sus cosechas.
  * - Corregir un lote (cambiar sus cosechas) es un registro nuevo con `anula_id` y el mismo código.
+ *   Los despachos apuntan al lote que existía al despachar: se siguen las correcciones hasta el
+ *   vigente (HU-E6.3). Un lote no se corrige por debajo de lo ya despachado.
+ * - **Saldo** (HU-E6.3): lo que queda por despachar. Solo lo ve quien ve los despachos.
  */
 import { ErrorDeValidacion, fechaAgronomica, type Registro } from '@gestionagro/agro-schema';
 import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';
@@ -46,6 +49,9 @@ export interface Lote {
   cosechas: CosechaParaLote[];
   /** Áreas y fechas de donde viene (CA3). */
   origen: { area: string; fechas: string[] }[];
+  /** Lo despachado y lo que queda (HU-E6.3). */
+  despachado: number;
+  saldo: number;
   avisos: string[];
 }
 
@@ -57,6 +63,8 @@ interface DatosCosecha {
 }
 
 const redondear = (n: number) => Math.round(n * 1000) / 1000;
+/** Número con coma decimal, como se escribe en Colombia. */
+const coma = (n: number) => String(n).replace('.', ',');
 const fechaCorta = (f: string) => f.split('-').reverse().slice(0, 2).join('/');
 
 /** Inicial del código: la primera letra del cultivo, sin tilde; `M` si hay varios o ninguno. */
@@ -77,6 +85,42 @@ async function lotesDe(db: CuadernoDb, fincaId: string) {
   // El más antiguo primero: decide a quién le queda una cosecha o un código repetido.
   const vigentes = (await soloVigentes(db, todos)).sort((a, b) => (a.id < b.id ? -1 : 1));
   return { todos, vigentes };
+}
+
+/** De cualquier versión de un lote (también una corregida) al id de su versión vigente. */
+export function vigenteDeCadaLote(todos: readonly Registro[]): (id: string) => string {
+  const siguiente = new Map(
+    todos.flatMap((l) => (l.anula_id ? [[l.anula_id, l.id] as const] : [])),
+  );
+  return (id) => {
+    let actual = id;
+    for (let n = 0; n < 1000 && siguiente.has(actual); n++)
+      actual = siguiente.get(actual) ?? actual;
+    return actual;
+  };
+}
+
+/** Lo despachado de cada lote vigente, por su id, sumando los despachos vigentes. */
+export async function despachadoPorLote(
+  db: CuadernoDb,
+  fincaId: string,
+  todos: readonly Registro[],
+  { sin }: { sin?: string } = {},
+): Promise<Map<string, number>> {
+  const vigenteDe = vigenteDeCadaLote(todos);
+  const despachos = await db.registro
+    .where('tipo')
+    .equals('despacho')
+    .filter((r) => r.finca_id === fincaId && r.id !== sin)
+    .toArray();
+  const suma = new Map<string, number>();
+  for (const d of await soloVigentes(db, despachos)) {
+    for (const l of (d.datos as { lineas: { lote_id: string; cantidad: number }[] }).lineas) {
+      const lote = vigenteDe(l.lote_id);
+      suma.set(lote, redondear((suma.get(lote) ?? 0) + l.cantidad));
+    }
+  }
+  return suma;
 }
 
 async function describirCosechas(db: CuadernoDb, cosechas: Registro[]): Promise<CosechaParaLote[]> {
@@ -112,7 +156,8 @@ export async function cosechasSinLote(db: CuadernoDb, fincaId: string): Promise<
 
 /** Los lotes vigentes de la finca, del más reciente al más antiguo, con su origen y avisos. */
 export async function leerLotes(db: CuadernoDb, fincaId: string): Promise<Lote[]> {
-  const { vigentes } = await lotesDe(db, fincaId);
+  const { todos, vigentes } = await lotesDe(db, fincaId);
+  const despachado = await despachadoPorLote(db, fincaId, todos);
   const ids = [...new Set(vigentes.flatMap((l) => (l.datos as DatosLote).cosecha_ids))];
   const cosechas = new Map(
     (
@@ -150,6 +195,12 @@ export async function leerLotes(db: CuadernoDb, fincaId: string): Promise<Lote[]
       if (anuladas.has(id))
         avisos.push(`${cual} se corrigió después de armar el lote. Revisa la cantidad.`);
     }
+    const salio = despachado.get(registro.id) ?? 0;
+    if (salio > d.cantidad) {
+      avisos.push(
+        `Se despachó más de lo que tiene el lote: ${coma(salio)} de ${coma(d.cantidad)} ${d.unidad}. Pasa cuando dos teléfonos despachan sin señal; revisa los despachos.`,
+      );
+    }
     const suyas = d.cosecha_ids.flatMap((id) => cosechas.get(id) ?? []);
     const porArea = new Map<string, Set<string>>();
     for (const c of suyas) porArea.set(c.area, (porArea.get(c.area) ?? new Set()).add(c.fecha));
@@ -158,6 +209,8 @@ export async function leerLotes(db: CuadernoDb, fincaId: string): Promise<Lote[]
       codigo,
       cantidad: d.cantidad,
       unidad: d.unidad,
+      despachado: salio,
+      saldo: redondear(d.cantidad - salio),
       cosechas: suyas,
       origen: [...porArea].map(([area, fechas]) => ({ area, fechas: [...fechas].sort() })),
       avisos,
@@ -228,6 +281,17 @@ export async function armarLote(
     throw new ErrorDeValidacion('Lote', [
       { campo: 'cosechas', motivo: 'todo lo elegido fue descarte; no queda nada para vender' },
     ]);
+  }
+  if (corrige) {
+    const salio = (await despachadoPorLote(db, fincaId, todos)).get(corrige.id) ?? 0;
+    if (cantidad < salio) {
+      throw new ErrorDeValidacion('Lote', [
+        {
+          campo: 'cosechas',
+          motivo: `de este lote ya se despacharon ${coma(salio)} ${(corrige.datos as DatosLote).unidad}; no puede quedar con menos`,
+        },
+      ]);
+    }
   }
   const cultivos = cosechas.map((c) => c.cultivo);
   const [primera] = cosechas;

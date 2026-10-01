@@ -20,6 +20,7 @@ import {
   ENTIDADES_DE_CATALOGO,
   puede,
   type RespuestaPull,
+  tiposNegados,
 } from '@gestionagro/sync';
 import type { CuadernoDb, VersionAnterior } from './db.ts';
 
@@ -38,11 +39,18 @@ export async function ajustarAlRol(
 ): Promise<boolean> {
   if ((await db.meta.get(CLAVE_ROL))?.valor === rol) return false;
   const ocultas = ENTIDADES_DE_CATALOGO.filter((e) => !puede(rol, 'leer', e));
-  await db.transaction('rw', [db.meta, db.outbox, ...ocultas.map((e) => db.table(e))], async () => {
+  const tipos = tiposNegados(rol, 'leer');
+  const tablas = [db.meta, db.outbox, db.registro, ...ocultas.map((e) => db.table(e))];
+  await db.transaction('rw', tablas, async () => {
     const pendientes = new Set((await db.outbox.toArray()).map((o) => o.entidad_id));
     for (const e of ocultas) {
       const ids = (await db.table(e).toCollection().primaryKeys()) as string[];
       await db.table(e).bulkDelete(ids.filter((id) => !pendientes.has(id)));
+    }
+    // Registros de un tipo que el rol no ve (los despachos llevan precios, HU-E6.3).
+    if (tipos.length > 0) {
+      const ids = (await db.registro.where('tipo').anyOf(tipos).primaryKeys()) as string[];
+      await db.registro.bulkDelete(ids.filter((id) => !pendientes.has(id)));
     }
     await db.meta.put({ clave: CLAVE_CURSOR, valor: CURSOR_INICIAL, actualizado: instante });
     await db.meta.put({ clave: CLAVE_ROL, valor: rol, actualizado: instante });

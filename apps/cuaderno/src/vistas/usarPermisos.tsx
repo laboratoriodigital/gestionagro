@@ -4,7 +4,14 @@
  *
  * Sin finca en la nube, el teléfono es de quien lo configuró: puede todo.
  */
-import { type Accion, type Entidad, NOMBRE_DE_ROL, puede, type Rol } from '@gestionagro/sync';
+import {
+  type Accion,
+  type Entidad,
+  NOMBRE_DE_ROL,
+  puede,
+  puedeRegistro,
+  type Rol,
+} from '@gestionagro/sync';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { leerSesion, rolEnLaFinca } from '../almacen/sesion.ts';
@@ -13,6 +20,8 @@ export interface Permisos {
   /** null: sin finca en la nube. undefined: todavía cargando. */
   rol: string | null | undefined;
   puede: (accion: Accion, entidad: Entidad) => boolean;
+  /** Para un tipo de registro con permisos propios (HU-E6.3). */
+  puedeRegistro: (accion: Accion, tipo: string) => boolean;
 }
 
 export function usarPermisos(): Permisos {
@@ -25,6 +34,8 @@ export function usarPermisos(): Permisos {
     // Mientras carga no se ofrece cambiar nada: es un instante y evita mostrar y quitar botones.
     puede: (accion, entidad) =>
       rol === undefined ? false : puede(rol ?? 'propietario', accion, entidad),
+    puedeRegistro: (accion, tipo) =>
+      rol === undefined ? false : puedeRegistro(rol ?? 'propietario', accion, tipo),
   };
 }
 

@@ -40,6 +40,7 @@ const TIPOS = [
   { valor: 'aplicacion', texto: 'Aplicaciones' },
   { valor: 'cosecha', texto: 'Cosecha' },
   { valor: 'lote_venta', texto: 'Lotes de venta' },
+  { valor: 'despacho', texto: 'Despachos' },
 ] as const;
 
 const POR_PAGINA = 50;

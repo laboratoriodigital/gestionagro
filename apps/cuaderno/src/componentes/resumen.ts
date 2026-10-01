@@ -4,6 +4,7 @@ import type { Registro } from '@gestionagro/agro-schema';
 import type { DatosAplicacionGuardada } from '../almacen/aplicaciones.ts';
 import type { DatosClimaGuardado } from '../almacen/clima.ts';
 import type { DatosCosechaGuardada } from '../almacen/cosecha.ts';
+import type { DatosDespacho } from '../almacen/despachos.ts';
 import type { DatosLote } from '../almacen/lotes.ts';
 import type { DatosRiegoGuardado } from '../almacen/riego.ts';
 
@@ -46,6 +47,15 @@ export function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): st
     const d = r.datos as DatosLote;
     const n = d.cosecha_ids.length;
     return `Lote ${d.codigo} · ${coma(d.cantidad)} ${d.unidad} · ${n} ${n === 1 ? 'cosecha' : 'cosechas'}`;
+  }
+  if (r.tipo === 'despacho') {
+    const d = r.datos as DatosDespacho;
+    const cantidad = d.lineas.reduce((s, l) => s + l.cantidad, 0);
+    const precio =
+      d.precio_unitario_cop === null
+        ? 'sin precio anotado'
+        : `$ ${d.precio_unitario_cop.toLocaleString('es-CO')} por ${d.unidad}`;
+    return `Despacho · ${d.cliente.nombre} · ${coma(cantidad)} ${d.unidad} · ${precio}`;
   }
   return r.tipo;
 }

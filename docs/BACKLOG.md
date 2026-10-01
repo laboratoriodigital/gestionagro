@@ -854,7 +854,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E6.3 · Despachos a mis clientes
 **Como** propietario **quiero** registrar a quién le vendí, cuánto, de qué lote y a qué precio **para** saber qué vendí y poder rastrear cualquier reclamo.
-- **Peldaño:** Finca · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S10 · **Depende de:** HU-E6.2, HU-E4.5 · **Estado:** Refinada
+- **Peldaño:** Finca · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S10 · **Depende de:** HU-E6.2, HU-E4.5 · **Estado:** En sprint (rama `feat/e6.3-despachos`. Registro `despacho` v1; su muestra está en el contrato `app-0.2.0.json`. CA1: el cliente va dentro del despacho (nombre y tipo, sin contacto) y la app sugiere los ya usados. Así se evita un catálogo nuevo, que obligaría a rehacer la tabla `catalogo` de la celda, que tiene un CHECK de entidades, y a cambiar `agro-export v1`. Se vuelve catálogo cuando haga falta editar un cliente o guardar su contacto. CA2: se despacha desde «Lotes», de uno o varios lotes con la misma unidad. CA3: la matriz tiene filas por tipo de registro (`MATRIZ_DE_REGISTROS`); el despacho es solo de propietario y supervisor. La celda no se lo manda a nadie más y pone en cuarentena el que suba otro rol. CA4: el saldo de un lote sigue sus correcciones; pedir más del saldo se niega con el motivo, y un lote no se corrige por debajo de lo despachado. Si dos teléfonos sin señal despachan de más, el lote lo avisa. CA5: el precio es entero en pesos o nulo («sin precio anotado»); lo que no se puede leer se dice como error)
 - **Criterios de aceptación:**
   1. Clientes por tipo: consumidor, restaurante, tienda, cadena.
   2. Despacho con cliente, lote(s), cantidad, precio en COP y medio de pago.

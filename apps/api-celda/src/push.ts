@@ -32,6 +32,7 @@ import {
   PROTOCOLO,
   pedidoDeActualizar,
   puede,
+  puedeRegistro,
   RELOJ_CORRIDO_MS,
   validarOperacion,
 } from '@gestionagro/sync';
@@ -132,6 +133,10 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
   const planear = (op: OperacionValida, entrada: unknown): Plan => {
     if (!puede(rol, 'escribir', op.entidad)) {
       return cuarentena(op.id, motivoSinPermiso(rol, op.entidad), entrada);
+    }
+    // Un tipo de registro con permisos propios (un despacho lleva precios, HU-E6.3).
+    if (op.entidad === 'registro' && !puedeRegistro(rol, 'escribir', op.registro.tipo)) {
+      return cuarentena(op.id, motivoSinPermiso(rol, 'registro', op.registro.tipo), entrada);
     }
     const datos = op.entidad === 'registro' ? op.registro : op.catalogo;
     if (datos.org_id !== null && datos.org_id !== org) {

@@ -362,7 +362,7 @@ cursor local ───────GET  /api/v1/sync/pull?desde=<seq>&limite=200 
 | `ciclo` | área(s), cultivo, variedad, fecha de siembra/trasplante, plantas, estado, fecha de fin |
 | `persona` | nombre, rol en la finca, usuario_id opcional, valor de jornal (solo visible a propietario/supervisor) |
 | `insumo` | nombre comercial, tipo (bioinsumo, fertilizante, fitosanitario, sustrato…), **registro ICA**, ingrediente activo, unidad, **carencia (días)** y **reentrada (horas)** copiadas de la etiqueta, permitido en ecológico (declarado por el usuario), precio |
-| `cliente` | nombre, tipo (consumidor, restaurante, tienda, cadena), contacto |
+| `cliente` | nombre, tipo (consumidor, restaurante, tienda, cadena), contacto. *Hoy (HU-E6.3) el cliente va dentro de cada despacho, con nombre y tipo y sin contacto. Pasa a ser catálogo cuando haga falta editarlo o guardar su contacto, junto con la migración que rehace el CHECK de `catalogo` y un `agro-export` v2* |
 | `catalogo_*` | cultivos, variedades, tipos de labor, plagas, categorías de calidad, rangos de DPV por cultivo y etapa |
 
 **Registros** (inmutables; tabla `registro` con columnas comunes y `datos` JSON validado por tipo y versión):
@@ -384,7 +384,7 @@ registro(id UUIDv7, org_id, finca_id, area_ids[], ciclo_id, tipo, v,
 | `monitoreo` | plaga o enfermedad, método (trampa, conteo), incidencia/severidad, foto opcional |
 | `cosecha` | área, kg (o tallos/cajas), categoría de calidad, descarte |
 | `lote_venta` | cosechas enteras que agrupa, código corto (`T-2703-2`), cantidad vendible (cosechado − descarte), unidad, cultivo. Implementado (HU-E6.2): una cosecha va en un solo lote; si dos teléfonos sin señal chocan en código o en cosecha, gana el lote más antiguo y el otro se muestra con letra y aviso (`apps/cuaderno/src/almacen/lotes.ts`) |
-| `despacho` | cliente, lote(s), cantidad, precio, medio de pago |
+| `despacho` | cliente (nombre y tipo), lote(s) con su cantidad, unidad, precio por unidad en COP (nulo = no anotado), medio de pago. Implementado (HU-E6.3): solo lo ven propietario y supervisor |
 | `movimiento_insumo` | entrada (compra, precio) o salida (vinculada a una aplicación) |
 | `jornal` | persona, fecha, horas o jornal, labores |
 | `nota` | texto libre, foto opcional |
@@ -631,6 +631,9 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
     | area, ciclo, cultivo, insumo, persona | todos | propietario, supervisor |
     | finca | todos | propietario |
     | valor_jornal (costos) | propietario, supervisor | propietario, supervisor |
+    | registro de tipo `despacho` (ventas, con precios; HU-E6.3) | propietario, supervisor | propietario, supervisor |
+
+  - Los tipos de registro con permisos propios están en `MATRIZ_DE_REGISTROS`; los demás siguen la fila `registro`. Al bajar, la celda los excluye en la consulta (`tipo NOT IN (…)`).
 
   - Al subir, una operación que el rol no puede escribir va a cuarentena con el motivo; un rol que no escribe nada (asesor, auditor) recibe 403. Al bajar, el filtro por entidad va en la consulta.
   - Si el rol de una persona cambia, su teléfono borra lo que ya no le toca ver (salvo lo pendiente por subir) y baja de nuevo desde el principio.
