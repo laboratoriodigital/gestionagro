@@ -1,0 +1,70 @@
+@import "@gestionagro/ui/tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: var(--fuente);
+  font-size: var(--texto-base);
+  line-height: var(--interlineado);
+  color: var(--color-texto);
+  background: var(--color-fondo);
+}
+a {
+  color: var(--color-enlace);
+}
+.cabecera {
+  background: var(--color-marca);
+  padding: var(--espacio-3);
+}
+.marca {
+  color: var(--color-marca-texto);
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  min-height: var(--objetivo-tactil);
+  align-items: center;
+}
+main,
+.pie {
+  max-width: var(--ancho-lectura);
+  margin-inline: auto;
+  padding-inline: var(--espacio-3);
+}
+h1 {
+  font-size: var(--texto-titulo);
+  line-height: 1.2;
+}
+.estado {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: var(--espacio-3);
+}
+.aviso-actualizacion {
+  background: var(--color-superficie);
+  border-block-end: 2px solid var(--color-marca);
+  padding: var(--espacio-2) var(--espacio-3);
+}
+.aviso-actualizacion p {
+  margin: 0 0 var(--espacio-2);
+}
+.aviso-actualizacion button {
+  min-height: var(--objetivo-tactil);
+  font: inherit;
+  font-weight: 600;
+  padding-inline: var(--espacio-3);
+  border: 0;
+  border-radius: var(--radio);
+  background: var(--color-marca);
+  color: var(--color-marca-texto);
+}
+.pie {
+  margin-top: var(--espacio-5);
+  padding-block: var(--espacio-4);
+  font-size: var(--texto-pequeno);
+  color: var(--color-texto-suave);
+}

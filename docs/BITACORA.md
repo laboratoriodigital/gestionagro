@@ -414,3 +414,19 @@ La regla: **una ruta relativa al archivo que se ejecuta supone que nadie lo muev
 La regla: **no midas una propiedad en las condiciones que apagan el instrumento. «Cero eventos» solo vale si el instrumento podía ver uno.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P5, P17 · 0.1.0 · 2026-09-30
+
+**9 · `context.route` no ve la petición con la que el navegador busca un service worker nuevo.**
+
+*Qué pasó.* El 30 sep 2026, en HU-E3.1, la prueba de actualización simulaba una versión nueva interceptando `**/agro/app/sw.js` con `context.route` y agregándole un byte. El aviso de versión nueva nunca aparecía.
+
+*Cómo se reprodujo.* Con una prueba de diagnóstico que contaba las veces que se ejecutaba la interceptación: `hits 0`, y el registro sin `waiting` ni `installing`. El navegador sí pidió el `sw.js`, pero Playwright no pasó esa petición por la ruta.
+
+*Causa raíz.* La búsqueda de actualizaciones del service worker la hace el navegador por su cuenta, fuera de lo que intercepta `context.route` (P17).
+
+*Arreglo.* Es el servidor de pruebas el que cambia un byte de `sw.js`, con `POST /__prueba/version-nueva`, una ruta que solo existe en `scripts/servir-estatico.ts`. Además, tras «Actualizar ahora» se espera la navegación como estado (`framenavigated`). Antes la prueba evaluaba en plena recarga y fallaba una de cada tres corridas (P19). Pasó cinco de cinco.
+
+*También en el camino.* El primer build de la PWA no registraba el service worker: compilé antes de agregar el componente que lo registra. Y `vite-plugin-pwa` importa `workbox-window` sin declararlo: `Rolldown failed to resolve import "workbox-window"`. Se agregó como dependencia.
+
+La regla: **antes de culpar a la app porque un evento no llega, comprueba que el instrumento lo puede producir: cuenta las veces que se ejecuta tu intercepción.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P9, P17, P19 · 0.1.0 · 2026-09-30

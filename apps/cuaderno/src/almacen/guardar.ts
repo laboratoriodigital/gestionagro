@@ -6,6 +6,7 @@
  * algo que no existe.
  */
 import { type Registro, validarRegistro } from '@gestionagro/agro-schema';
+import { conEscritura } from '../actividad.ts';
 import type { CuadernoDb } from './db.ts';
 
 /**
@@ -18,14 +19,17 @@ export async function guardarRegistro(
   ahora: () => Date = () => new Date(),
 ): Promise<Registro> {
   const registro = validarRegistro(entrada);
-  await db.transaction('rw', db.registro, db.outbox, async () => {
-    await db.registro.add(registro);
-    await db.outbox.add({
-      id: registro.id,
-      entidad: 'registro',
-      op: 'crear',
-      creado: ahora().toISOString(),
-    });
-  });
+  // Cuenta como escritura en curso: una actualización no la interrumpe (HU-E3.1, CA2).
+  await conEscritura(() =>
+    db.transaction('rw', db.registro, db.outbox, async () => {
+      await db.registro.add(registro);
+      await db.outbox.add({
+        id: registro.id,
+        entidad: 'registro',
+        op: 'crear',
+        creado: ahora().toISOString(),
+      });
+    }),
+  );
   return registro;
 }

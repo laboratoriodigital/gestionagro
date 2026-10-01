@@ -28,7 +28,7 @@ export default defineConfig({
   },
   projects: [{ name: 'telefono-360' }],
   webServer: {
-    command: `node scripts/servir-estatico.ts apps/sitio/dist ${PUERTO}`,
+    command: `node scripts/servir-estatico.ts apps/sitio/dist ${PUERTO} /agro/app/=apps/cuaderno/dist`,
     url: `http://localhost:${PUERTO}/herramientas/agro/`,
     reuseExistingServer: !process.env['CI'],
   },
