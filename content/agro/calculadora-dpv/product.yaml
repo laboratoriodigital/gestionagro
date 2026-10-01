@@ -16,7 +16,7 @@ seo:
 monetizacion:
   ads: []
   ads_en_procesamiento: false
-# agro-dosis-por-bomba entra cuando exista (HU-E10.1): relacionados solo acepta productos existentes.
+# agro-periodo-de-carencia entra cuando exista (HU-E10.1): relacionados solo acepta productos existentes.
 relacionados: [agro-cuaderno]
 eventos: [tool.opened, tool.completed, tool.shared, tool.next_step]
 presupuesto:

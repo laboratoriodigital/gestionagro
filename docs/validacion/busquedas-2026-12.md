@@ -136,4 +136,6 @@ Se escribe cuando la tabla tenga cifras. La regla, decidida antes de ver los dat
 
 **Lo que cambia frente al backlog.** El backlog tiene «dosis por bomba» como herramienta 2 (E10, H7). Ninguna de sus cuatro formas de búsqueda trae datos en Colombia ni en LATAM. Los datos no la apoyan como segunda. Antes de construirla conviene medir otras formas de decirlo (por ejemplo, «cuántos cc por litro», «cuánto echarle a la bomba») o reemplazarla por el calendario de carencias. **La decisión es del dueño.**
 
+**Decisión del dueño (1 oct 2026):** se acepta la recomendación. El calendario de carencias reemplaza a «dosis por bomba» como herramienta 2 (BACKLOG, E10: HU-E10.1 y HU-E10.2, ruta `/herramientas/agro/periodo-de-carencia/`). Dosis por bomba queda preparada (HU-E10.3) hasta la medición del 25 feb 2027, que incluirá las otras formas de decirlo.
+
 **Límites de estos datos.** Son rangos, no cifras exactas; un mes de Search Console de la DPV en producción los afina. Se vuelve a medir a los 90 días de la DPV (25 feb 2027), como dice la regla 3.

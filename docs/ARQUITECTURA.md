@@ -91,7 +91,7 @@ Nada en el modelo nombra al tomate. Cultivo, variedad, tipos de área, tipos de 
 
 | Peldaño ED1 (§38) | Qué ve el productor | Qué lo empuja al siguiente |
 |---|---|---|
-| Herramienta gratuita | Calculadora de DPV (luego dosis, carencias, fertirriego) | «Guarda esta lectura en tu cuaderno» |
+| Herramienta gratuita | Calculadora de DPV (luego carencias, BPA, grados-día; orden de HU-E0.2) | «Guarda esta lectura en tu cuaderno» |
 | Usuario recurrente | Cuaderno local en el teléfono, sin cuenta, un área | Lo usa a diario; teme perder el celular |
 | Cuenta | Google; sus datos suben y se sincronizan; invita al equipo | Necesita varias naves y personas |
 | Premium / Finca | Varias áreas y usuarios, costos, carpeta PDF, fotos | Auditoría, cliente que pide trazabilidad |
@@ -162,7 +162,7 @@ Se heredan todos los de ED1 §3 y los de las instrucciones del proyecto §4. Aqu
 ### 5.1 Sitio público y calculadoras
 
 - **Qué es:** un Worker con **Static Assets** que sirve páginas generadas por Astro. Las calculadoras son islas Preact. Ninguna ruta pública ejecuta el script del Worker (sin `run_worker_first`), así que no consumen la cuota de 100.000 solicitudes/día (ED1 §3.10, [H3]).
-- **Rutas (ADR-19):** en el host `agro.laboratorio-digital.com`: `/herramientas/agro/calculadora-dpv/`, `/herramientas/agro/dosis-por-bomba/`, … y la tabla de contenidos `/herramientas/agro/`. El Worker del sitio es dueño de todo el subdominio y sirve assets estáticos sin ejecutar el script, salvo `/api/*`. Si después se valida pasar al dominio principal o a un dominio nuevo, se cambia el host y se redirige con 301; las rutas no cambian.
+- **Rutas (ADR-19):** en el host `agro.laboratorio-digital.com`: `/herramientas/agro/calculadora-dpv/`, `/herramientas/agro/periodo-de-carencia/`, … y la tabla de contenidos `/herramientas/agro/`. El Worker del sitio es dueño de todo el subdominio y sirve assets estáticos sin ejecutar el script, salvo `/api/*`. Si después se valida pasar al dominio principal o a un dominio nuevo, se cambia el host y se redirige con 301; las rutas no cambian.
 - **Contrato:** un `product.yaml` por herramienta (ED1 §5.1), validado por `schemas/product.schema.json` en CI. Extensión agro:
 
 ```yaml
@@ -183,7 +183,7 @@ seo:
 monetizacion:
   ads: []                   # sin anuncios mientras se valida
   ads_en_procesamiento: false
-relacionados: [agro-cuaderno]  # solo productos que existen; dosis entra con HU-E10.1
+relacionados: [agro-cuaderno]  # solo productos que existen; carencias entra con HU-E10.1
 eventos: [tool.opened, tool.completed, tool.shared, tool.next_step]
 presupuesto:
   api_requests_dia: 0
