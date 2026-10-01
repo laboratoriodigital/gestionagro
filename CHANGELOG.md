@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Añadido
+- Entrar con Google (HU-E4.2). Pantalla «Cuenta» en el cuaderno: la cuenta es opcional; sin señal se puede seguir registrando. El CORE hace el login con PKCE (Arctic), vuelve al cuaderno con un código de un solo uso en el fragmento y entrega por POST un access JWT Ed25519 de 12 h y un refresh de 60 días, rotado a lo sumo una vez al día. Los tokens se guardan en la base local, nunca en la URL ni en `localStorage`. `/api/core/claves` publica la clave pública para las celdas. Kill switch `ks:agro-core`. El despliegue carga los secretos de Google por stdin, genera la clave de firma solo si falta y prueba que el inicio mande a Google con el cliente y la dirección de regreso correctos.
+
 ## [0.1.0] - 2026-10-01
 
 Primera versión publicada: despliega por primera vez a producción el sitio (`agro.laboratorio-digital.com`, con la DPV en borrador y `noindex`), el cuaderno y el CORE.

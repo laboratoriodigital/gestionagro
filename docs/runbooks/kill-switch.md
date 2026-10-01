@@ -7,6 +7,7 @@
 | Clave | Qué se apaga | Qué sigue funcionando |
 |---|---|---|
 | `ks:agro-calculadora-dpv` | La recepción de eventos (`POST /api/eventos` responde 503 y no escribe en Analytics Engine) | La calculadora: es una página estática que no pasa por el Worker |
+| `ks:agro-core` | Entrar con Google y renovar la sesión (`/api/core/auth/*` responde 503). La crea el despliegue del CORE aunque no tenga `product.yaml` | El cuaderno en el teléfono; quien ya entró sigue con su access hasta que vence (12 h) |
 | `ks:agro-cuaderno` | **Nada todavía.** Se usará cuando exista la sincronización (HU-E5.x, HU-E8.6) | Todo el cuaderno, que hoy vive en el teléfono |
 
 Las claves las crea el despliegue en `encendido` para cada `product.yaml` con `kill_switch: true`. Un despliegue **nunca** cambia una clave que ya existe: lo que apagues sigue apagado.

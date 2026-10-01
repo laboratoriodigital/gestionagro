@@ -17,9 +17,22 @@ const { version } = JSON.parse(
   version: string;
 };
 
+// Dónde vive el CORE (HU-E4.2). Un solo build sirve a staging y a producción: la app elige por
+// host. Sale de celdas.json, la fuente única (P2); el despliegue falla si no coincide.
+const { sitio, core } = JSON.parse(
+  readFileSync(new URL('../../infrastructure/celdas.json', import.meta.url), 'utf8'),
+) as { sitio: { dominio: string }; core: { url: string; url_staging: string } };
+
 export default defineConfig({
   base: '/agro/app/',
-  define: { __VERSION_APP__: JSON.stringify(version) },
+  define: {
+    __VERSION_APP__: JSON.stringify(version),
+    __CORE__: JSON.stringify({
+      dominio: sitio.dominio,
+      url: core.url,
+      url_staging: core.url_staging,
+    }),
+  },
   build: { outDir: 'dist', emptyOutDir: true, target: 'es2022' },
   plugins: [
     preact(),

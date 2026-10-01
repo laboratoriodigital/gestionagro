@@ -13,6 +13,7 @@ export const RUTAS_APP = [
   { segmento: 'personas', titulo: 'Personas' },
   { segmento: 'insumos', titulo: 'Insumos' },
   { segmento: 'respaldo', titulo: 'Respaldo' },
+  { segmento: 'cuenta', titulo: 'Cuenta' },
 ] as const;
 
 export const rutaDe = (segmento: string): string =>

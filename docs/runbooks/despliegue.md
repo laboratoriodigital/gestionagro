@@ -53,6 +53,9 @@ El resumen dice en qué celda se detuvo, qué permiso falta o qué parte del hum
 | «el token … no es válido o está vencido» | Crear un token nuevo con los permisos de ARQUITECTURA §7.5 y reemplazar el secreto |
 | «al token le falta «Account → Workers Scripts: Edit»…» | Editar el token en Cloudflare y agregar ese permiso |
 | «el token no ve la zona …» | Agregar «Zone → Workers Routes: Edit» para esa zona |
+| «falta el secreto GOOGLE_CLIENT_ID y/o GOOGLE_CLIENT_SECRET en GitHub» | Sembrarlos en Settings → Secrets and variables → Actions, con los valores del cliente OAuth «agro-core» de Google Cloud |
+| «entrar: Google recibe otro client_id…» o «la dirección de regreso es…» | El secreto de GitHub no es el del cliente «agro-core», o la URL del CORE cambió. Corrige el secreto, o agrega la dirección nueva en Google Cloud → APIs & Services → Credentials → agro-core → Authorized redirect URIs |
+| «CORE desplegado en …, pero celdas.json dice …» | La URL de workers.dev del CORE cambió (otra cuenta o subdominio). Corrige `core.url` / `core.url_staging` en `celdas.json` por PR y agrega la dirección de regreso nueva en Google Cloud |
 | «al token le falta «Account → D1: Edit»…» | Editar el token en Cloudflare y agregar ese permiso. El valor del token no cambia, así que el secreto de GitHub sigue igual |
 | «migraciones del CORE falló» | El resumen cita el error de wrangler. Antes de reintentar, mira en Cloudflare → D1 → la base → Console qué tablas quedaron (no está verificado si wrangler deshace una migración a medias). Corrige la migración con un archivo **nuevo**, nunca editando uno ya aplicado |
 | «/api/core/salud: respondió 503 (sin-celdas…)» | El paso del directorio no corrió o `celdas.json` no tiene celdas activas. Vuelve a correr el flujo con `solo_celda` |

@@ -260,17 +260,24 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
   - Worker `agro-core` en workers.dev, con la base D1 `agro_core` (con `_staging` en staging), en la cuenta de la celda que dice `core.celda` en `celdas.json`.
   - Migraciones en `infrastructure/migraciones/core/`. Cada índice dice en la migración por qué existe (§6.2).
   - El despliegue crea la base, aplica las migraciones y copia `celdas.json` a la tabla `celda` (P2). Una celda que sale de `celdas.json` queda `fuera`; nunca se borra (P21).
-  - Hoy solo responde `GET /api/core/salud`. Crear usuarios y organizaciones se abre detrás del login (HU-E4.2).
+  - Rutas: `GET /api/core/salud` (prueba de humo), `GET /api/core/claves` (clave pública de los tokens) y `/api/core/auth/*` (entrar con Google, HU-E4.2). Crear organizaciones desde la app llega con HU-E4.3.
+  - Sus URL (producción y staging) están en `celdas.json` (`core.url`, `core.url_staging`): el cuaderno elige por host, y el despliegue falla si no coinciden con las que publica wrangler.
 - **Dónde nace una organización (regla escrita, nunca a mano):**
   - **Celda:** la activa con shards que tenga menos organizaciones. A carga igual, la de anillo de despliegue menor y luego el id.
   - **Shard:** el de esa celda con menos organizaciones. A carga igual, el primero de `celdas.json`.
   - **Anillo de funciones (§7.3):** las 5 primeras organizaciones son pilotos (anillo 1); las demás, anillo 2. La finca cero es la primera que se crea (HU-E4.3).
   - Sin celda posible, la creación falla con el motivo. No hay celda por defecto (P1).
   - Código: `apps/core/src/asignacion.ts`.
-- **Login:** Google OIDC con PKCE (librería Arctic, MIT). Sin contraseñas. El enlace mágico por email llega cuando haya proveedor de email (ED1 §20.2).
+- **Login:** Google OIDC con PKCE (librería Arctic, MIT), con el CORE como cliente confidencial. Sin contraseñas. Implementado en HU-E4.2 (`apps/core/src/entrar.ts`):
+  1. El cuaderno abre `/api/core/auth/google/inicio?vuelta=<pantalla del cuaderno>`. El CORE solo acepta pantallas de `/agro/app/` en los orígenes que le pasa el despliegue (`ORIGENES_APP`), guarda `state`, `code_verifier` y la vuelta en una cookie `HttpOnly`, `Secure`, `SameSite=Lax` de 10 min, y redirige a Google.
+  2. Google vuelve a `/api/core/auth/google/callback`. El CORE canjea el `code`, crea o encuentra al usuario por su `sub` de Google, crea la sesión y vuelve al cuaderno con un **código de entrada** en el fragmento (`#entrar=…`): un secreto de un solo uso que vence en 2 minutos. En D1 solo queda su hash.
+  3. El cuaderno borra el fragmento de la barra de direcciones y canjea el código con un POST: recibe access y refresh en el cuerpo y los guarda en IndexedDB (`meta`, que no viaja en los respaldos).
+  - Dirección de regreso registrada en Google Cloud: `<url del CORE>/api/core/auth/google/callback`, para producción, staging y `http://localhost:8787`. El enlace mágico por email llega cuando haya proveedor de email (ED1 §20.2).
 - **Tokens (ADR-10):**
   - Access token JWT Ed25519 de 12 h, con `sub`, `org`, `rol`, `celda`, `shard` y `anillo`.
-  - Refresh token opaco de 60 días, rotado a lo sumo una vez al día. Cada rotación es una escritura en D1, así que no se hace por hora.
+  - Refresh token opaco de 60 días, rotado a lo sumo una vez al día. Cada rotación es una escritura en D1, así que no se hace por hora. El último giro se deduce de `sesion.expira` (giro + 60 días), sin columnas nuevas.
+  - El token lleva la organización si la persona tiene una sola o si la pide; sin ninguna, `org` va en null (crea la suya en HU-E4.3).
+  - Kill switch `ks:agro-core` (en el KV de flags de la celda del CORE): apagado, nadie entra ni renueva; los access ya emitidos valen hasta que vencen.
   - Offline, el access vencido no impide registrar, solo sincronizar.
 - **Invitaciones sin email:** el propietario genera un enlace de un solo uso y lo comparte por WhatsApp (`wa.me/?text=…`). El código viaja en el **fragmento** `#`, no en la ruta ni en la query (P13).
 - **Directorio:** se consulta **solo al iniciar sesión**. La celda y el shard viajan en el token, así que ninguna solicitud de sincronización toca el CORE.
@@ -550,6 +557,7 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
   - Tokens de servicio entre celdas.
   - Token del bot de Telegram.
 - **Rotación de claves:** la tabla `celda` guarda la clave vigente y la anterior.
+- **Cómo llegan los secretos al CORE (HU-E4.2):** `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` viven en GitHub y el despliegue los carga en el Worker con `wrangler secret bulk` por stdin, sin escribirlos en disco. `CORE_JWT_PRIVATE_KEY` no existe fuera del Worker: el despliegue la genera la primera vez que el Worker no la tiene y nunca la reemplaza (cambiarla cierra todas las sesiones). Staging y producción tienen claves distintas.
 - Una prueba exige que todo secreto que nombra un flujo esté listado en este documento (bitácora ecommerce 82). Lista actual: `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `CORE_JWT_PRIVATE_KEY`, `CELDA_QR_PRIVATE_KEY`, `CELDA_SERVICE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
 
 ---
@@ -595,7 +603,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 
 - **Autorización en la celda:** el rol viene del token. Operario: registra y ve lo suyo y lo de su área, sin costos ni ventas. Supervisor: todo lo operativo. Propietario: todo. Asesor: lectura de varias fincas. Auditor: solo lectura, con enlace que caduca.
 - **Aislamiento de tenant:** `org_id` del token en toda consulta, con prueba estática y control negativo (§5.7).
-- **CSP estricta** en la PWA: sin scripts de terceros ni anuncios en ninguna vista del cuaderno (instrucciones §9, ED1 §13). El token se guarda en IndexedDB. El riesgo de XSS se mitiga con esa CSP, dependencias mínimas y tokens cortos.
+- **CSP estricta** en la PWA (*pendiente: aún no hay cabecera CSP; con el login, los tokens ya viven en IndexedDB, así que entra antes del primer usuario externo, con HU-E0.5*): sin scripts de terceros ni anuncios en ninguna vista del cuaderno (instrucciones §9, ED1 §13). El token se guarda en IndexedDB. El riesgo de XSS se mitiga con esa CSP, dependencias mínimas y tokens cortos.
 - **Datos de operarios (Ley 1581):** mínimos. Nombre y rol; la cédula solo cuando exista nómina y con autorización escrita. Política de tratamiento y canal de reclamos antes del primer usuario externo (HU-E0.5). *Requiere revisión de un abogado.*
 - **Portabilidad:** el productor exporta todo en `agro-export v1` o CSV cuando quiera. Es también la respuesta a «¿de quién son mis datos?».
 - **Dispositivos perdidos:** el propietario revoca la sesión del dispositivo. Los datos locales de ese teléfono no se pueden borrar a distancia, y se dice así en la app.
