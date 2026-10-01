@@ -506,7 +506,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.5 · Personas de la finca
 **Como** supervisor **quiero** tener la lista de personas que trabajan, aunque no tengan cuenta **para** asignarles labores y cosechas.
-- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S4 · **Depende de:** HU-E3.3 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S4 · **Depende de:** HU-E3.3 · **Estado:** En sprint (rama `feat/e3.5-e3.6-personas-insumos`)
 - **Criterios de aceptación:**
   1. Una persona tiene nombre y rol en la finca. El valor del jornal es opcional y se guarda aparte, visible solo para propietario y supervisor.
   2. No se pide cédula ni teléfono (minimización de datos, Ley 1581).
@@ -517,7 +517,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.6 · Insumos con los datos de su etiqueta
 **Como** supervisor **quiero** registrar cada insumo con su registro ICA, carencia y reentrada tal como dice la etiqueta **para** que la app me avise antes de cosechar o entrar a una nave aplicada.
-- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S4 · **Depende de:** HU-E3.3 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S4 · **Depende de:** HU-E3.3 · **Estado:** En sprint (rama `feat/e3.5-e3.6-personas-insumos`)
 - **Criterios de aceptación:**
   1. Un insumo tiene nombre comercial, tipo, registro ICA, ingrediente activo, unidad, carencia (días), reentrada (horas) y «permitido en producción ecológica», declarado por el usuario.
   2. El formulario dice textualmente que los datos se copian de la etiqueta del producto registrado ante el ICA y que la app no recomienda productos ni dosis.
