@@ -20,6 +20,7 @@ import { type Firmante, firmarAcceso } from '@gestionagro/tokens';
 import { decodeIdToken, Google, generateCodeVerifier, generateState } from 'arctic';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import { POLITICA_VIGENTE } from './politica.ts';
 import {
   directorioDeUsuario,
   type EntradaDelDirectorio,
@@ -98,9 +99,17 @@ const redirectDe = (c: Context) => new URL(RUTA_CALLBACK, c.req.url).toString();
 export function inicio(c: Context, e: Entorno): Response {
   const vuelta = vueltaPermitida(c.req.query('vuelta'), e.origenes);
   if (!vuelta) return c.text('Esta dirección de regreso no es del cuaderno.', 400);
+  // HU-E0.5, CA3: sin aceptar la política vigente no se crea ni se abre una cuenta.
+  const politica = c.req.query('politica');
+  if (politica !== POLITICA_VIGENTE) {
+    return c.text(
+      `Para entrar, acepta la política de tratamiento de datos vigente (versión ${POLITICA_VIGENTE}) en el cuaderno.`,
+      400,
+    );
+  }
   const state = generateState();
   const verifier = generateCodeVerifier();
-  setCookie(c, COOKIE, JSON.stringify({ state, verifier, vuelta }), {
+  setCookie(c, COOKIE, JSON.stringify({ state, verifier, vuelta, politica }), {
     httpOnly: true,
     secure: true,
     sameSite: 'Lax',
@@ -115,7 +124,7 @@ const volverConError = (c: Context, vuelta: string, motivo: string) =>
   c.redirect(`${vuelta}#entrar-error=${motivo}`, 302);
 
 export async function callback(c: Context, e: Entorno): Promise<Response> {
-  let guardado: { state?: string; verifier?: string; vuelta?: string } = {};
+  let guardado: { state?: string; verifier?: string; vuelta?: string; politica?: string } = {};
   try {
     guardado = JSON.parse(getCookie(c, COOKIE) ?? '{}') as typeof guardado;
   } catch {
@@ -136,7 +145,7 @@ export async function callback(c: Context, e: Entorno): Promise<Response> {
   try {
     const persona = await e.google.identidad(code, guardado.verifier, redirectDe(c));
     const ahora = e.ahora();
-    const usuario = await usuarioDeIdentidad(e.db, persona, () => ahora);
+    const usuario = await usuarioDeIdentidad(e.db, persona, () => ahora, guardado.politica ?? null);
     const codigo = await crearSesion(e.db, usuario.id, ahora);
     return c.redirect(`${vuelta}#entrar=${codigo}`, 302);
   } catch (error) {

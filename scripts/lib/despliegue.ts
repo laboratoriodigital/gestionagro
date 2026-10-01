@@ -2,6 +2,7 @@
  * Piezas del despliegue por celdas (HU-E1.5). Funciones puras o con `fetch` inyectado, para
  * probarlas sin tocar Cloudflare.
  */
+import { POLITICA_VIGENTE } from '../../apps/core/src/politica.ts';
 import { RUTAS_APP, rutaDe } from '../../apps/cuaderno/src/rutas.ts';
 import type { Celda } from './celdas.ts';
 
@@ -189,6 +190,11 @@ export async function humo(fetchFn: Fetch, base: string): Promise<string[]> {
   // Cada ruta del cuaderno abre con un enlace directo, sin service worker todavía.
   for (const { segmento } of RUTAS_APP) await contiene(rutaDe(segmento), 'noindex');
   await contiene('/agro/app/manifest.webmanifest', '"scope":"/agro/app/"');
+  // La CSP del cuaderno llega de verdad, también en la raíz /agro/app/ (HU-E0.5, P16).
+  const app = await pedir('/agro/app/');
+  if (app && !(app.headers.get('content-security-policy') ?? '').includes("connect-src 'self'")) {
+    fallas.push('/agro/app/: no trae la cabecera Content-Security-Policy del cuaderno (_headers)');
+  }
   await contiene('/agro/app/sw.js', 'precache');
   const get = await pedir('/api/eventos');
   if (get && get.status !== 405)
@@ -253,9 +259,12 @@ export async function humoEntrar(
       fallas.push(`/api/core/claves: respondió ${claves.status} sin una clave pública`);
     }
     const vuelta = encodeURIComponent(`${esperado.origenApp}/agro/app/cuenta/`);
-    const inicio = await fetchFn(`${base}/api/core/auth/google/inicio?vuelta=${vuelta}`, {
-      redirect: 'manual',
-    });
+    const inicio = await fetchFn(
+      `${base}/api/core/auth/google/inicio?vuelta=${vuelta}&politica=${POLITICA_VIGENTE}`,
+      {
+        redirect: 'manual',
+      },
+    );
     const destino = new URL(inicio.headers.get('location') || 'about:blank');
     const callback = `${base}/api/core/auth/google/callback`;
     if (inicio.status !== 302 || destino.hostname !== 'accounts.google.com') {

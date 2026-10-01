@@ -224,7 +224,13 @@ describe('prueba de humo (CA5, P11)', () => {
     ...Object.fromEntries(
       RUTAS_APP.map(({ segmento }) => [
         `GET https://s.dev${rutaDe(segmento)}`,
-        { estado: 200, texto: '<meta name="robots" content="noindex">' },
+        {
+          estado: 200,
+          texto: '<meta name="robots" content="noindex">',
+          cabeceras: {
+            'content-security-policy': "default-src 'self'; connect-src 'self' https://x",
+          },
+        },
       ]),
     ),
     'GET https://s.dev/api/eventos': { estado: 405, texto: 'Solo POST' },
@@ -258,6 +264,19 @@ describe('prueba de humo (CA5, P11)', () => {
         '/api/eventos (POST inválido): respondió 204, se esperaba 400',
       ]),
     );
+  });
+
+  it('detecta un cuaderno que llega sin su CSP (HU-E0.5)', async () => {
+    const { fn } = fetchFalso({
+      ...sano,
+      'GET https://s.dev/agro/app/': {
+        estado: 200,
+        texto: '<meta name="robots" content="noindex">',
+      },
+    });
+    expect(await humo(fn, 'https://s.dev')).toEqual([
+      '/agro/app/: no trae la cabecera Content-Security-Policy del cuaderno (_headers)',
+    ]);
   });
 });
 
