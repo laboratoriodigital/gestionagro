@@ -169,7 +169,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E0.2 · Medir la demanda de búsqueda
 **Como** dueño **quiero** el volumen de búsqueda en Colombia y LATAM de ~20 términos de calculadoras agronómicas **para** decidir la segunda y la tercera herramienta con datos.
-- **Peldaño:** herramienta gratuita · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S6 · **Depende de:** H1 publicado (para ver impresiones reales) · **Estado:** En sprint (WI-E0.2.1 hecho: lista de 25 términos con variantes y plantilla en `docs/validacion/busquedas-2026-12.md`, con la regla de recomendación fijada antes de ver los datos. Falta WI-E0.2.2: la consulta en Keyword Planner y Search Console, con la cuenta del dueño)
+- **Peldaño:** herramienta gratuita · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S6 · **Depende de:** H1 publicado (para ver impresiones reales) · **Estado:** En sprint (CA1 a CA3 con Keyword Planner el 1 oct 2026: rangos, marcados R. La recomendación pone el calendario de carencias como herramienta 2 y contradice a E10 «dosis por bomba», sin búsquedas; decide el dueño. Falta Search Console de la DPV en producción para afinar)
 - **Criterios de aceptación:**
   1. Dada una lista de 20 términos (DPV, déficit de presión de vapor, dosis por bomba, carencia, solución nutritiva, drenaje en sustrato, grados-día…), cuando se consultan en Google Keyword Planner o Search Console, entonces queda una tabla con volumen, fuente y fecha en `docs/validacion/busquedas-2026-12.md`.
   2. Cada cifra dice si es dato verificado o estimación.
