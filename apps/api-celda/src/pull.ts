@@ -9,7 +9,7 @@
  * - Con la celda en nivel «esencial» o «bloqueo» (ARQUITECTURA §8.2), el pull se pausa y dice hasta
  *   cuándo (CA3): el push de registros sigue, que es lo que no se puede perder.
  * - Permisos (HU-E4.5): solo baja lo que el rol puede leer según la matriz de `@gestionagro/sync`
- *   (un operario no recibe el valor del jornal). El filtro va en la consulta: lo negado nunca sale
+ *   (un operario no recibe el valor del jornal ni los despachos, que llevan precios). El filtro va en la consulta: lo negado nunca sale
  *   de la base.
  * - Lo que devuelve tiene la misma forma que el teléfono guarda: `seq` e `instante_recibido` son
  *   de la celda y no viajan.
@@ -23,6 +23,7 @@ import {
   entidadesQuePuede,
   PAGINA_MAXIMA,
   type RespuestaPull,
+  tiposNegados,
 } from '@gestionagro/sync';
 import { nivelDeLaCelda, respuestaDePausa } from './nivel.ts';
 import type { ContextoCelda } from './worker.ts';
@@ -74,15 +75,19 @@ export async function pull(c: ContextoCelda, ahora: () => number): Promise<Respo
       : { results: [] as { seq: number; entidad: EntidadDeCatalogo; datos: string }[] };
   const deCatalogo = catalogos.results.slice(0, PAGINA_MAXIMA);
   const espacio = PAGINA_MAXIMA - deCatalogo.length;
+  // Tipos de registro que el rol no ve (un operario no ve los despachos, que llevan precios).
+  const ocultos = tiposNegados(rol, 'leer');
+  const sinOcultos =
+    ocultos.length > 0 ? ` AND tipo NOT IN (${ocultos.map(() => '?').join(', ')})` : '';
   const registros =
     espacio > 0 && legibles.includes('registro')
       ? await db
           .prepare(
             `SELECT seq, id, org_id, finca_id, area_ids, ciclo_id, tipo, v, fecha_agronomica,
                instante_evento, autor_usuario_id, persona_ids, dispositivo_id, origen, anula_id, datos
-             FROM registro WHERE org_id = ? AND seq > ? ORDER BY seq LIMIT ?`,
+             FROM registro WHERE org_id = ? AND seq > ?${sinOcultos} ORDER BY seq LIMIT ?`,
           )
-          .bind(org, desdeRegistro, espacio + 1)
+          .bind(org, desdeRegistro, ...ocultos, espacio + 1)
           .all<FilaRegistro>()
       : { results: [] as FilaRegistro[] };
   const deRegistro = registros.results.slice(0, espacio);

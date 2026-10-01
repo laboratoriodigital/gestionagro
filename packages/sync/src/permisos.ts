@@ -31,8 +31,28 @@ export const MATRIZ: Readonly<Record<Entidad, Readonly<Record<Accion, readonly R
   valor_jornal: { leer: ADMINISTRAN, escribir: ADMINISTRAN },
 };
 
+/**
+ * Tipos de registro con permisos propios (HU-E6.3). Los demás tipos siguen la fila `registro`.
+ * Un despacho lleva precios: solo propietario y supervisor lo ven y lo anotan.
+ */
+export const MATRIZ_DE_REGISTROS: Readonly<
+  Record<string, Readonly<Record<Accion, readonly Rol[]>>>
+> = {
+  despacho: { leer: ADMINISTRAN, escribir: ADMINISTRAN },
+};
+
 export const puede = (rol: string, accion: Accion, entidad: Entidad): boolean =>
   (MATRIZ[entidad]?.[accion] as readonly string[] | undefined)?.includes(rol) ?? false;
+
+/** Si el rol puede leer o escribir registros de ese tipo. */
+export const puedeRegistro = (rol: string, accion: Accion, tipo: string): boolean =>
+  ((MATRIZ_DE_REGISTROS[tipo]?.[accion] ?? MATRIZ.registro[accion]) as readonly string[]).includes(
+    rol,
+  );
+
+/** Tipos de registro con permisos propios que ese rol no puede hacer con esa acción. */
+export const tiposNegados = (rol: string, accion: Accion): string[] =>
+  Object.keys(MATRIZ_DE_REGISTROS).filter((t) => !puedeRegistro(rol, accion, t));
 
 /** Las entidades que ese rol puede hacer con esa acción. */
 export const entidadesQuePuede = (rol: string, accion: Accion): Entidad[] =>
@@ -59,6 +79,8 @@ const NOMBRE_DE_ENTIDAD: Readonly<Record<Entidad, string>> = {
   valor_jornal: 'el valor del jornal',
 };
 
-/** El motivo, en palabras, de una escritura negada. */
-export const motivoSinPermiso = (rol: string, entidad: Entidad) =>
-  `Con el rol de ${NOMBRE_DE_ROL[rol as Rol] ?? rol} no se pueden cambiar ${NOMBRE_DE_ENTIDAD[entidad]}. Pídeselo a quien administra la finca.`;
+const NOMBRE_DE_TIPO: Readonly<Record<string, string>> = { despacho: 'las ventas' };
+
+/** El motivo, en palabras, de una escritura negada; `tipo` para un registro con permisos propios. */
+export const motivoSinPermiso = (rol: string, entidad: Entidad, tipo?: string) =>
+  `Con el rol de ${NOMBRE_DE_ROL[rol as Rol] ?? rol} no se pueden cambiar ${(tipo && NOMBRE_DE_TIPO[tipo]) || NOMBRE_DE_ENTIDAD[entidad]}. Pídeselo a quien administra la finca.`;

@@ -2,10 +2,19 @@
  * Lotes de venta (HU-E6.2): elegir cosechas que todavía no están en un lote y armar uno con su
  * código corto. Cada lote dice de qué áreas y fechas viene (CA3); «Cambiar cosechas» lo corrige
  * sin perder el código. Funciona sin señal.
+ *
+ * Despachos (HU-E6.3): quien los ve (propietario y supervisor) ve el saldo de cada lote,
+ * «Despachar» y la lista de despachos.
  */
 import { ErrorDeValidacion } from '@gestionagro/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
+import {
+  clientesConocidos,
+  type DatosDespacho,
+  type Despacho,
+  leerDespachos,
+} from '../almacen/despachos.ts';
 import {
   armarLote,
   type CosechaParaLote,
@@ -13,6 +22,7 @@ import {
   type Lote,
   leerLotes,
 } from '../almacen/lotes.ts';
+import { FormularioDespacho, ListaDespachos } from './Despachos.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 import { SoloConsulta, usarPermisos } from './usarPermisos.tsx';
 
@@ -34,6 +44,9 @@ function ElegirCosechas(props: {
   const total = opciones.filter((c) => elegidas.has(c.id)).reduce((s, c) => s + c.cantidad, 0);
   const unidades = [...new Set(opciones.filter((c) => elegidas.has(c.id)).map((c) => c.unidad))];
 
+  // Un id por formulario: la misma cosecha libre puede estar en «Cosechas sin lote» y en el
+  // lote que se está cambiando.
+  const idDe = (cosecha: string) => `cosecha-${props.corrige?.registro.id ?? 'nuevo'}-${cosecha}`;
   const alternar = (id: string) => {
     const nuevas = new Set(elegidas);
     if (nuevas.has(id)) nuevas.delete(id);
@@ -58,7 +71,12 @@ function ElegirCosechas(props: {
   };
 
   if (opciones.length === 0) {
-    return <p class="ayuda">No hay cosechas sin lote. Las cosechas se anotan en Registrar.</p>;
+    return (
+      <p class="ayuda" data-prueba="sin-cosechas-libres">
+        No hay cosechas sin lote: todas las anotadas ya están en uno. Para armar otro lote, anota la
+        cosecha en <a href="/agro/app/registrar/">Registrar</a>.
+      </p>
+    );
   }
   return (
     <fieldset class="lote-cosechas" data-prueba="elegir-cosechas">
@@ -68,12 +86,12 @@ function ElegirCosechas(props: {
       {opciones.map((c) => (
         <div class="opcion" key={c.id}>
           <input
-            id={`cosecha-${c.id}`}
+            id={idDe(c.id)}
             type="checkbox"
             checked={elegidas.has(c.id)}
             onChange={() => alternar(c.id)}
           />
-          <label for={`cosecha-${c.id}`}>
+          <label for={idDe(c.id)}>
             {c.area} · {fechaCorta(c.fecha)} · {c.categoria} · {coma(c.cantidad)} {c.unidad}
           </label>
         </div>
@@ -106,18 +124,31 @@ export function Lotes() {
   const estado = usarFinca();
   const permisos = usarPermisos();
   const arma = permisos.puede('escribir', 'registro');
+  const veVentas = permisos.puedeRegistro('leer', 'despacho');
+  const despacha = permisos.puedeRegistro('escribir', 'despacho');
   const [lotes, setLotes] = useState<Lote[] | null>(null);
   const [cosechas, setCosechas] = useState<CosechaParaLote[]>([]);
-  const [cambiando, setCambiando] = useState<string | null>(null);
+  const [despachos, setDespachos] = useState<Despacho[]>([]);
+  const [clientes, setClientes] = useState<DatosDespacho['cliente'][]>([]);
+  const [abierto, setAbierto] = useState<{ tipo: 'cambiar' | 'despachar'; id: string } | null>(
+    null,
+  );
   const fincaId = !estado.cargando && estado.finca ? estado.finca.id : null;
 
   const cargar = () => {
     if (!fincaId) return;
     const db = cuaderno();
-    void Promise.all([leerLotes(db, fincaId), cosechasSinLote(db, fincaId)]).then(([l, c]) => {
+    void Promise.all([
+      leerLotes(db, fincaId),
+      cosechasSinLote(db, fincaId),
+      leerDespachos(db, fincaId),
+      clientesConocidos(db, fincaId),
+    ]).then(([l, c, d, k]) => {
       setLotes(l);
       setCosechas(c);
-      setCambiando(null);
+      setDespachos(d);
+      setClientes(k);
+      setAbierto(null);
     });
   };
   useEffect(cargar, [fincaId]);
@@ -133,7 +164,8 @@ export function Lotes() {
         cosecha va en un solo lote.
       </p>
       {!arma && <SoloConsulta rol={permisos.rol} que="los lotes" />}
-      {arma && lotes !== null && (
+      {/* Mientras se cambia un lote, sus cosechas libres se eligen ahí, no en dos sitios. */}
+      {arma && lotes !== null && abierto?.tipo !== 'cambiar' && (
         <ElegirCosechas fincaId={fincaId} cosechas={cosechas} alTerminar={cargar} />
       )}
       <h2>Lotes armados</h2>
@@ -148,6 +180,11 @@ export function Lotes() {
               <p class="area-titulo">
                 <strong class="codigo-lote">{l.codigo}</strong> · {coma(l.cantidad)} {l.unidad}
               </p>
+              {veVentas && l.despachado !== 0 && (
+                <p class="detalle-insumo" data-prueba="saldo-lote">
+                  Despachado {coma(l.despachado)} {l.unidad} · quedan {coma(l.saldo)} {l.unidad}
+                </p>
+              )}
               <p class="detalle-insumo" data-prueba="origen-lote">
                 De{' '}
                 {l.origen
@@ -159,31 +196,57 @@ export function Lotes() {
                   {a}
                 </p>
               ))}
-              {cambiando === l.registro.id ? (
+              {abierto?.tipo === 'despachar' && abierto.id === l.registro.id ? (
+                <FormularioDespacho
+                  fincaId={fincaId}
+                  lote={l}
+                  lotes={lotes}
+                  clientes={clientes}
+                  alTerminar={cargar}
+                  alCancelar={() => setAbierto(null)}
+                />
+              ) : abierto?.tipo === 'cambiar' && abierto.id === l.registro.id ? (
                 <ElegirCosechas
                   fincaId={fincaId}
                   cosechas={cosechas}
                   corrige={l}
                   alTerminar={cargar}
-                  alCancelar={() => setCambiando(null)}
+                  alCancelar={() => setAbierto(null)}
                 />
               ) : (
-                arma && (
+                (arma || despacha) && (
                   <div class="acciones-area">
-                    <button
-                      type="button"
-                      class="secundario"
-                      onClick={() => setCambiando(l.registro.id)}
-                      aria-label={`Cambiar las cosechas del lote ${l.codigo}`}
-                    >
-                      Cambiar cosechas
-                    </button>
+                    {despacha && l.saldo > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setAbierto({ tipo: 'despachar', id: l.registro.id })}
+                        aria-label={`Despachar el lote ${l.codigo}`}
+                      >
+                        Despachar
+                      </button>
+                    )}
+                    {arma && (
+                      <button
+                        type="button"
+                        class="secundario"
+                        onClick={() => setAbierto({ tipo: 'cambiar', id: l.registro.id })}
+                        aria-label={`Cambiar las cosechas del lote ${l.codigo}`}
+                      >
+                        Cambiar cosechas
+                      </button>
+                    )}
                   </div>
                 )
               )}
             </li>
           ))}
         </ul>
+      )}
+      {veVentas && (
+        <>
+          <h2>Despachos</h2>
+          <ListaDespachos despachos={despachos} />
+        </>
       )}
     </section>
   );

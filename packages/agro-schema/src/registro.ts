@@ -152,15 +152,43 @@ const cosechaV1 = z
 
 /**
  * `lote_venta` v1 (HU-E6.2): cosechas enteras agrupadas para despacharlas, con un código corto
- * que se lee en voz alta (`T-2703-2`: inicial del cultivo, día y mes, consecutivo). La cantidad es
+ * que se lee en voz alta (`T-27MAR-2`: inicial del cultivo, día, mes en letras, consecutivo; los
+ * primeros lotes de staging usaban `T-2703-2` y siguen siendo válidos). La cantidad es
  * lo vendible: lo cosechado menos el descarte. Una cosecha va en un solo lote.
  */
 const loteVentaV1 = z.strictObject({
-  codigo: z.string().regex(/^[A-Z]-\d{4}-\d+$/, 'debe tener la forma T-2703-2'),
+  codigo: z.string().regex(/^[A-Z]-(?:\d{2}[A-Z]{3}|\d{4})-\d+$/, 'debe tener la forma T-27MAR-2'),
   cosecha_ids: z.array(id).min(1, 'debe tener al menos una cosecha'),
   cantidad: medida('de cantidad', 0.001, 100_000_000),
   unidad: texto,
   cultivo: texto.nullable(),
+});
+
+export const TIPOS_DE_CLIENTE = ['consumidor', 'restaurante', 'tienda', 'cadena'] as const;
+export const MEDIOS_DE_PAGO = ['efectivo', 'transferencia', 'credito', 'otro'] as const;
+
+/**
+ * `despacho` v1 (HU-E6.3): a quién se vendió, de qué lotes, cuánto y a qué precio. El cliente va
+ * dentro del despacho (nombre y tipo), sin datos de contacto: la app sugiere los ya usados.
+ * Precio nulo = no se anotó; nunca cero (P1).
+ */
+const despachoV1 = z.strictObject({
+  cliente: z.strictObject({ nombre: texto, tipo: z.enum(TIPOS_DE_CLIENTE) }),
+  lineas: z
+    .array(
+      z.strictObject({
+        lote_id: id,
+        codigo: texto,
+        cantidad: medida('de cantidad', 0.001, 100_000_000),
+      }),
+    )
+    .min(1, 'debe tener al menos un lote'),
+  unidad: texto,
+  precio_unitario_cop: z
+    .int('debe ser un valor entero en pesos')
+    .min(1, 'debe ser mayor que 0')
+    .nullable(),
+  medio_pago: z.enum(MEDIOS_DE_PAGO),
 });
 
 export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, z.ZodType>>>> = {
@@ -170,6 +198,7 @@ export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, 
   aplicacion: { 1: aplicacionV1 },
   cosecha: { 1: cosechaV1 },
   lote_venta: { 1: loteVentaV1 },
+  despacho: { 1: despachoV1 },
 };
 
 export type Registro = z.infer<typeof registroBase>;

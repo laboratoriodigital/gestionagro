@@ -672,3 +672,29 @@ La regla: **un dato nuevo sale del teléfono por sí solo, sin un gesto más. Y 
 La regla: **pedir y leer son dos fallas distintas. Una causa que se adivina en un `catch` amplio termina siendo la equivocada.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P15, P1, P17 · 0.1.0 · 2026-10-01
+
+**24 · En «Cambiar cosechas» no se podía sumar una cosecha al lote, y el código `M-0110-1` se confundía.**
+
+*Qué pasó.* El 1 oct 2026 el dueño probó HU-E6.2 en staging e informó tres cosas:
+- No se podían agregar más lotes.
+- Al cambiar el lote que había creado, no podía añadir otra cosecha.
+- En el código del lote, el mes 10 se confundía: `0110` no se lee como «1 de octubre».
+
+*Causa raíz.*
+- Con «Cambiar cosechas» abierto, la misma cosecha libre salía en dos listas, «Cosechas sin lote» y la del lote, con el mismo `id` en su casilla. Tocar el texto de la cosecha marca la casilla del primer elemento con ese `id`, que es la de la otra lista. La e2e marcaba la casilla con `getByLabel` sobre la lista correcta, sin tocar el texto como lo hace una persona en el teléfono, y nunca abría las dos listas a la vez. Por eso no lo vio.
+- Cuando todas las cosechas anotadas ya estaban en un lote, la pantalla no ofrecía nada para elegir y solo decía «No hay cosechas sin lote», sin decir por qué ni qué hacer. Para el dueño, eso era «no se puede agregar más lotes».
+- `ddmm` pegado (`0110`) se lee como un número, no como una fecha.
+- Además, un lote corregido saltaba al primer lugar de la lista, porque se ordenaba por la versión vigente y no por cuándo se armó.
+
+*Arreglo.*
+- Cada lista usa sus propios `id`, y la de «Cosechas sin lote» se esconde mientras se cambia un lote.
+- Sin cosechas libres, la pantalla dice que todas ya están en un lote y lleva a Registrar.
+- El código lleva el mes en letras: `M-01OCT-1`. Los códigos viejos de staging siguen siendo válidos.
+- Los lotes se ordenan por su primera versión.
+- Una e2e reproduce lo del dueño tocando el texto de cada cosecha: arma un lote, arma otro con una cosecha nueva y suma una cosecha a un lote ya armado. Sin el arreglo, falla.
+
+Queda por confirmar con el dueño: si «agregar más lotes» quería decir partir una misma cosecha en varios lotes (hoy una cosecha entra entera en un solo lote).
+
+La regla: **la e2e toca la pantalla como la toca la persona: el texto, no solo la casilla. Y una lista vacía dice por qué está vacía y qué hacer.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P15, P16 · 0.1.0 · 2026-10-01

@@ -10,6 +10,25 @@ import { listarArchivos, RAIZ } from '../../scripts/lib/repo.ts';
 /** `registro` y, en la misma sentencia, un borrado de Dexie. */
 const BORRA_REGISTRO = /\bregistro\b[^;]*?\.(?:delete|bulkDelete|clear)\(/;
 
+/**
+ * Borrados permitidos, uno por uno y con su motivo. Ninguno toca la nube: el registro sigue en la
+ * celda y en los teléfonos de quien puede verlo.
+ */
+const EXCEPCIONES = [
+  {
+    archivo: 'apps/cuaderno/src/almacen/recepcion.ts',
+    fragmento: 'await db.registro.bulkDelete(ids.filter((id) => !pendientes.has(id)));',
+    motivo:
+      'si a una persona le quitan un rol, su teléfono deja de guardar los registros que ya no puede ver (los despachos llevan precios, HU-E4.5 y HU-E6.3)',
+  },
+] as const;
+
+const sinExcepciones = (rel: string) =>
+  EXCEPCIONES.filter((e) => e.archivo === rel).reduce(
+    (texto, e) => texto.replace(e.fragmento, ''),
+    readFileSync(join(RAIZ, rel), 'utf8'),
+  );
+
 describe('ningún código borra registros', () => {
   it.each([
     ['await db.registro.delete(id);'],
@@ -33,9 +52,13 @@ describe('ningún código borra registros', () => {
       (rel) => /^(apps|packages)\/.+\.(ts|tsx)$/.test(rel) && !/\.test\.tsx?$/.test(rel),
     );
     expect(archivos.length).toBeGreaterThan(20);
-    const culpables = archivos.filter((rel) =>
-      BORRA_REGISTRO.test(readFileSync(join(RAIZ, rel), 'utf8')),
-    );
+    const culpables = archivos.filter((rel) => BORRA_REGISTRO.test(sinExcepciones(rel)));
     expect(culpables).toEqual([]);
+  });
+
+  it('cada excepción sigue en su archivo (si no, se borra de la lista)', () => {
+    for (const e of EXCEPCIONES) {
+      expect(readFileSync(join(RAIZ, e.archivo), 'utf8')).toContain(e.fragmento);
+    }
   });
 });

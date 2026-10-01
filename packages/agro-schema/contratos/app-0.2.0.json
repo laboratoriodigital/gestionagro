@@ -1,5 +1,5 @@
 {
-  "nota": "Contrato de versiones (HU-E5.5, ADR-13, P10): lo que la app 0.2.0 agrega a lo que ya escribía la 0.1.0. Lleva la finca, el área y la cosecha de las que depende el lote para que la prueba de punta a punta pueda subirlo. Este archivo no se edita ni se borra.",
+  "nota": "Contrato de versiones (HU-E5.5, ADR-13, P10): lo que la app 0.2.0 agrega a lo que ya escribía la 0.1.0 (lotes de venta y despachos). Lleva la finca, el área, la cosecha y el lote de los que dependen, para que la prueba de punta a punta pueda subirlos. Una vez publicada la 0.2.0, este archivo no se edita ni se borra.",
   "app": "0.2.0",
   "catalogos": [
     {
@@ -72,11 +72,43 @@
       "origen": "manual",
       "anula_id": null,
       "datos": {
-        "codigo": "C-0110-1",
+        "codigo": "C-01OCT-1",
         "cosecha_ids": ["0199a1b2-0000-7000-8000-000000000015"],
         "cantidad": 12.5,
         "unidad": "kg",
         "cultivo": "Cultivo Ensayo"
+      }
+    },
+    {
+      "id": "0199a1b2-0000-7000-8000-000000000021",
+      "org_id": null,
+      "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+      "area_ids": ["0199a1b2-0000-7000-8000-000000000002"],
+      "ciclo_id": null,
+      "tipo": "despacho",
+      "v": 1,
+      "fecha_agronomica": "2026-10-01",
+      "instante_evento": "2026-10-01T12:00:00.000Z",
+      "autor_usuario_id": null,
+      "persona_ids": [],
+      "dispositivo_id": "telefono-muestra",
+      "origen": "manual",
+      "anula_id": null,
+      "datos": {
+        "cliente": {
+          "nombre": "Cliente Ensayo",
+          "tipo": "restaurante"
+        },
+        "lineas": [
+          {
+            "lote_id": "0199a1b2-0000-7000-8000-000000000020",
+            "codigo": "C-01OCT-1",
+            "cantidad": 10
+          }
+        ],
+        "unidad": "kg",
+        "precio_unitario_cop": 3500,
+        "medio_pago": "transferencia"
       }
     }
   ]

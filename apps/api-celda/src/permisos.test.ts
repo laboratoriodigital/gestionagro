@@ -11,8 +11,10 @@ import { baseLocal, RAIZ, vaciar } from '@gestionagro/d1/local';
 import {
   type Entidad,
   MATRIZ,
+  MATRIZ_DE_REGISTROS,
   motivoSinPermiso,
   puede,
+  puedeRegistro,
   type RespuestaPull,
   ROLES,
 } from '@gestionagro/sync';
@@ -157,6 +159,45 @@ describe.each(filas)('fila «%s» de la matriz', (entidad) => {
         ? pagina.registros.length > 0
         : pagina.catalogos.some((c) => c.entidad === entidad);
     expect(llego).toBe(puede(rol, 'leer', entidad));
+  });
+});
+
+/** Muestras de la app 0.2.0 para los tipos de registro con permisos propios (HU-E6.3). */
+const nuevos = JSON.parse(
+  readFileSync(join(RAIZ, 'packages', 'agro-schema', 'contratos', 'app-0.2.0.json'), 'utf8'),
+) as { registros: ({ id: string; tipo: string } & Record<string, unknown>)[] };
+const muestraDe = (tipo: string) => {
+  const m = nuevos.registros.find((r) => r.tipo === tipo);
+  if (!m) throw new Error(`el contrato 0.2.0 no trae ${tipo}`);
+  return registroOp(
+    m,
+    uuidv7(() => T0 + ++n),
+  );
+};
+
+describe.each(Object.keys(MATRIZ_DE_REGISTROS))('fila de registros «%s» de la matriz', (tipo) => {
+  it.each(escriben)(
+    'escribir como %s: entra si la matriz lo permite; si no, cuarentena',
+    async (rol) => {
+      const op = muestraDe(tipo);
+      const [ack] = (await subir(rol, [op])).cuerpo['acks'] as {
+        estado: string;
+        motivo?: string;
+      }[];
+      expect(ack).toEqual(
+        puedeRegistro(rol, 'escribir', tipo)
+          ? { id: op.id, estado: 'aceptado' }
+          : { id: op.id, estado: 'cuarentena', motivo: motivoSinPermiso(rol, 'registro', tipo) },
+      );
+    },
+  );
+
+  it.each([...ROLES])('leer como %s: baja solo si la matriz lo permite', async (rol) => {
+    await subir('propietario', [muestraDe(tipo)]);
+    const pagina = await bajar(rol);
+    expect(pagina.registros.some((r) => r.tipo === tipo)).toBe(puedeRegistro(rol, 'leer', tipo));
+    // Los demás registros siguen llegando a quien puede leerlos.
+    expect(pagina.registros.some((r) => r.tipo !== tipo)).toBe(puede(rol, 'leer', 'registro'));
   });
 });
 
