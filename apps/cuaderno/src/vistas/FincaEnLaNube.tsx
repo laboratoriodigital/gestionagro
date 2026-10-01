@@ -28,6 +28,12 @@ import {
 } from '../sincronizacion.ts';
 
 const minutos = (ms: number) => Math.max(1, Math.round(ms / 60_000));
+const hora = (ms: number) =>
+  new Intl.DateTimeFormat('es-CO', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'America/Bogota',
+  }).format(ms);
 
 /** Lo que bajó del equipo, en palabras (HU-E5.3). Vacío si no hay nada que decir. */
 function textoDeRecepcion(r: ResultadoDeRecepcion | undefined): string {
@@ -58,7 +64,8 @@ export function textoDeSincronizacion(e: EstadoDeSincronizacion): string | null 
   const enviados = r.enviados > 0 ? ` Se subieron ${r.enviados}.` : '';
   switch (r.estado) {
     case 'al-dia':
-      return `Todo está en la nube.${enviados}${textoDeRecepcion(e.recepcion)}`;
+      // «Lo tuyo»: lo del equipo solo se sabe hasta la última revisión, y se dice cuándo fue.
+      return `Todo lo tuyo está en la nube.${enviados}${textoDeRecepcion(e.recepcion)} Lo del equipo se revisó a las ${hora(e.cuando)}.`;
     case 'sin-senal':
       return `Sin señal: lo pendiente sube cuando vuelva.${enviados}`;
     case 'esperar':

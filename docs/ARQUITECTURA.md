@@ -346,7 +346,7 @@ cursor local ───────GET  /api/v1/sync/pull?desde=<seq>&limite=200 
   - **Contrato de versiones:** cada app publicada deja en `packages/agro-schema/contratos/app-<versión>.json` una muestra de todo lo que escribe. Esos archivos no se editan ni se borran, y una prueba exige que la API vigente los acepte todos (P10).
 - **Pull que no pisa lo pendiente:** un cambio remoto sobre una entidad con edición local pendiente se guarda como conflicto y se muestra (§5.7). Implementado (HU-E5.3): el teléfono guarda la versión de la nube en su historial local (`<id>@v<versión>#nube`) y conserva la suya; al subirla, la celda la guarda como conflicto. Elegir cuál queda es HU-E5.4.
 - **Pull (HU-E5.3):** `GET /api/v1/sync/pull?registro=<seq>&catalogo=<seq>`, con dos cursores porque `seq` es por tabla. Hasta 200 cambios por página, catálogos primero; 2 lecturas, ninguna escritura. Cada página se aplica en el teléfono junto con su cursor, en una transacción. Lo que baja no entra a la cola de salida. Un teléfono sube primero y baja después.
-- **Frecuencia:** al abrir la app, al volver la señal y cada 15 min con la app abierta, con espera exponencial si la celda responde 429 o está degradada.
+- **Frecuencia:** al abrir la app, al volver la señal, cada 15 min con la app abierta, a los 3 s de guardar algo (si hay algo en la cola) y al volver a la app (como máximo cada 30 s). Espera exponencial si la celda responde 429 o está degradada; esa espera manda sobre todo lo demás (bitácora agro 22). Costo: unas 2 solicitudes por registro guardado, dentro de las ~100 por finca al día de §6.2 para 20 registros diarios.
 
 ### 5.7 Modelo de datos
 

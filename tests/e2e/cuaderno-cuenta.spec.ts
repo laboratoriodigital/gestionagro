@@ -188,7 +188,9 @@ test('HU-E4.3 y E5.2: subir la finca deja todo en la nube y el indicador sin pen
   );
   await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
   await expect(page.locator('[data-prueba="nube-vinculada"]')).toBeVisible();
-  await expect(page.locator('[data-prueba="nube-sync"]')).toContainText('Todo está en la nube.');
+  await expect(page.locator('[data-prueba="nube-sync"]')).toContainText(
+    'Todo lo tuyo está en la nube.',
+  );
   await expect(page.locator('[data-prueba="nube-pendientes"]')).toHaveText(
     'Nada pendiente por subir.',
   );
@@ -327,4 +329,35 @@ test('HU-E5.5 CA2: si la nube dice que esta versión es vieja, el aviso lo dice 
   await expect(page.locator('[data-prueba="indicador-datos"]')).toHaveText(
     'Sin registros pendientes',
   );
+});
+
+test('bitácora agro 22: lo que se registra con la finca en la nube sube solo, sin recargar', async ({
+  page,
+}) => {
+  await fincaConUnClima(page);
+  await coreFalso(page);
+  const lotes = await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
+  await cuenta(page);
+  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
+  await expect(page.locator('[data-prueba="nube-sync"]')).toContainText(
+    'Lo del equipo se revisó a las',
+  );
+  const antes = lotes.length;
+  // Un registro nuevo, sin tocar «Sincronizar ahora» ni recargar.
+  await page
+    .getByRole('navigation', { name: 'Secciones del cuaderno' })
+    .getByRole('link', { name: 'Registrar' })
+    .click();
+  await page
+    .getByLabel('Área', { exact: true })
+    .selectOption({ label: FINCA_ENSAYO_UNO.areas[0]?.nombre ?? '' });
+  await page.getByLabel('Temperatura del aire (°C)').fill('25');
+  await page.getByLabel('Humedad relativa (%)').fill('65');
+  await page.getByRole('button', { name: 'Guardar clima' }).click();
+  const indicador = page.locator('[data-prueba="indicador-datos"]');
+  await expect(indicador).toHaveText('1 registro solo en este teléfono');
+  // Sube solo a los pocos segundos de guardar.
+  await expect(indicador).toHaveText('Sin registros pendientes', { timeout: 15_000 });
+  expect(lotes.length).toBe(antes + 1);
 });
