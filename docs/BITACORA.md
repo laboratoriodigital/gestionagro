@@ -144,7 +144,7 @@ Al 30 sep 2026 no hay código, así que ningún patrón tiene todavía «Lo impi
 - **Regla:** `| tee` sin `pipefail`, un `try/catch` que protege, dos funciones con el mismo nombre: no fallan, siguen.
 - **En Agro:** TypeScript estricto (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) y Biome con `noShadow` y sin `catch` vacíos.
 - **Lo impedirá:** configuración de tsc y Biome (HU-E1.1); prueba de flujos que exige `pipefail` (HU-E1.2).
-- **Entradas:** —
+- **Entradas:** agro 13.
 
 #### P15 · Un aviso tiene que llegar a donde alguien mira, y nombrar la causa
 - **Regla:** el aviso va donde está la persona, dice qué pasó y qué hacer.
@@ -498,3 +498,20 @@ La regla: **un flujo que nunca corrió de verdad esconde la configuración de la
 La regla: **una prueba con datos uniformes confirma el supuesto con que se escribió. Las fincas de prueba tienen que traer la variedad del terreno (tipos mezclados, unidades raras), y cada catálogo necesita su camino de «corregir después».**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P4, P20 · 0.1.0 · 2026-10-01
+
+**13 · Un commit salió con una prueba en rojo porque mi comando revisaba la salida de `tail`, no la de `verificar`.**
+
+*Qué pasó.* El 1 oct 2026, al cerrar HU-E3.8, corrí `pnpm verificar 2>&1 | tail -1 && git add -A && git commit …`. `verificar` falló: la prueba de humo del despliegue ya revisaba la ruta nueva `/agro/app/registrar/`, y su respuesta simulada tenía las rutas escritas a mano. Aun así, el commit se hizo.
+
+*Síntoma literal:* la última línea de la salida fue `[ELIFECYCLE] Command failed with exit code 1.` y, justo debajo, el hash del commit nuevo.
+
+*Causa raíz.* Sin `pipefail`, el estado de salida de `a | tail` es el de `tail`, que siempre termina bien (P14). La regla existía para los flujos de CI y la guardia la exige allí, pero yo no la aplicaba en mis propios comandos.
+
+*Arreglo.*
+- La respuesta simulada de la prueba de humo se genera desde `RUTAS_APP`: una ruta nueva no vuelve a romperla (P2).
+- Como el commit no estaba subido, se corrigió con `--amend`; la historia no lleva un commit en rojo.
+- Desde ahora, los comandos con tubería antes de un commit llevan `set -o pipefail`.
+
+La regla: **una regla que solo vigila al CI no protege los comandos de quien escribe el código. Si un paso decide si se hace el commit, su estado de salida tiene que ser el del paso, no el del último filtro.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P2, P14 · 0.1.0 · 2026-10-01

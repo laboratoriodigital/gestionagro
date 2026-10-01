@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { RUTAS_APP, rutaDe } from '../../apps/cuaderno/src/rutas.ts';
 import { RUTA_WRANGLER_SITIO, textoWranglerDelSitio } from '../../scripts/generar-wrangler.ts';
 import {
   type ConfigCeldas,
@@ -207,15 +208,13 @@ describe('prueba de humo (CA5, P11)', () => {
       texto: '{"scope":"/agro/app/"}',
     },
     'GET https://s.dev/agro/app/sw.js': { estado: 200, texto: 'precacheAndRoute precache' },
-    'GET https://s.dev/agro/app/': { estado: 200, texto: '<meta name="robots" content="noindex">' },
-    'GET https://s.dev/agro/app/personas/': {
-      estado: 200,
-      texto: '<meta name="robots" content="noindex">',
-    },
-    'GET https://s.dev/agro/app/insumos/': {
-      estado: 200,
-      texto: '<meta name="robots" content="noindex">',
-    },
+    // Cada ruta del cuaderno, de la misma lista que usa la prueba de humo (P2).
+    ...Object.fromEntries(
+      RUTAS_APP.map(({ segmento }) => [
+        `GET https://s.dev${rutaDe(segmento)}`,
+        { estado: 200, texto: '<meta name="robots" content="noindex">' },
+      ]),
+    ),
     'GET https://s.dev/api/eventos': { estado: 405, texto: 'Solo POST' },
     'POST https://s.dev/api/eventos': { estado: 400, texto: 'El lote no es JSON' },
   };

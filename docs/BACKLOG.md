@@ -548,7 +548,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.8 · Registrar el clima con DPV calculado
 **Como** operario **quiero** anotar temperatura y humedad de la nave y ver el DPV al instante **para** tener el historial del clima sin sensores.
-- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S5 · **Depende de:** HU-E2.1, HU-E3.4 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S5 · **Depende de:** HU-E2.1, HU-E3.4 · **Estado:** En sprint (rama `feat/e3.8-registro-clima`. CA3: el cuaderno ya lee `#t=…&hr=…&th=…`; el botón de la calculadora es HU-E2.7)
 - **Criterios de aceptación:**
   1. El registro `clima` guarda T, HR, T de hoja opcional y el DPV calculado, recalculable desde los datos crudos.
   2. La indicación de rango usa el mismo catálogo que la calculadora pública (P2).
