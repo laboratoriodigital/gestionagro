@@ -115,6 +115,13 @@ export const tipoLabor = z.strictObject({
   nombre: texto,
 });
 
+/** Categorías de calidad de la cosecha (HU-E6.1, CA1). Editable desde la app; arranca vacío. */
+export const categoriaCalidad = z.strictObject({
+  ...metaDeCatalogo,
+  finca_id: id,
+  nombre: texto,
+});
+
 export type Finca = z.infer<typeof finca>;
 export type Area = z.infer<typeof area>;
 export type Ciclo = z.infer<typeof ciclo>;
@@ -123,3 +130,4 @@ export type Insumo = z.infer<typeof insumo>;
 export type Cultivo = z.infer<typeof cultivo>;
 export type ValorJornal = z.infer<typeof valorJornal>;
 export type TipoLabor = z.infer<typeof tipoLabor>;
+export type CategoriaCalidad = z.infer<typeof categoriaCalidad>;

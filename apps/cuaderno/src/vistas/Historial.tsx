@@ -28,6 +28,7 @@ import { resumenDe } from '../componentes/resumen.ts';
 import { fechaHora } from '../formato.ts';
 import { FormularioAplicacion } from './FormularioAplicacion.tsx';
 import { FormularioClima } from './FormularioClima.tsx';
+import { FormularioCosecha } from './FormularioCosecha.tsx';
 import { FormularioLabor } from './FormularioLabor.tsx';
 import { FormularioRiego } from './FormularioRiego.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
@@ -37,6 +38,7 @@ const TIPOS = [
   { valor: 'riego', texto: 'Riego' },
   { valor: 'labor', texto: 'Labores' },
   { valor: 'aplicacion', texto: 'Aplicaciones' },
+  { valor: 'cosecha', texto: 'Cosecha' },
 ] as const;
 
 const POR_PAGINA = 50;
@@ -107,6 +109,8 @@ function Corregir(props: {
       return <FormularioLabor fincaId={props.finca.id} {...comunes} />;
     case 'aplicacion':
       return <FormularioAplicacion finca={props.finca} {...comunes} />;
+    case 'cosecha':
+      return <FormularioCosecha fincaId={props.finca.id} {...comunes} />;
     default:
       return <p class="ayuda">Este tipo de registro todavía no se puede corregir.</p>;
   }

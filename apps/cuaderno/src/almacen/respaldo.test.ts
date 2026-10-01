@@ -14,6 +14,7 @@ import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../../../../tests/fixtures
 import { guardarAplicacion } from './aplicaciones.ts';
 import { agregarCultivo, agregarVariedad, iniciarCiclo } from './ciclos.ts';
 import { guardarClima } from './clima.ts';
+import { guardarCosecha } from './cosecha.ts';
 import { abrirCuaderno, type CuadernoDb } from './db.ts';
 import { crearFincaConAreas, editarArea } from './finca.ts';
 import { crearInsumo } from './insumos.ts';
@@ -119,6 +120,20 @@ async function cuadernoLleno(f: FincaDePrueba) {
       dosisUnidad: 'cm³; por litro', // con «;», que en CSV va entre comillas
       volumenMezclaL: 20,
       equipo: '=bomba', // una «fórmula» que Excel no debe ejecutar
+      personaIds: [p0.id],
+    },
+    { ahora },
+  );
+  const [, b] = areas;
+  await guardarCosecha(
+    db,
+    finca.id,
+    {
+      areaId: b?.id ?? a.id,
+      cantidad: 120.5,
+      unidad: 'kg',
+      categoria: 'Primera',
+      descarte: null,
       personaIds: [p0.id],
     },
     { ahora },
@@ -276,6 +291,8 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
     expect(filas).toHaveLength(3);
     expect(filas[1]).toMatch(/^10\/12\/2026;10:00;[^;]+;[^;]+;anulado;24,5;70;;/);
     expect(filas[2]).toMatch(/;vigente;25;70;;/);
+    const cosecha = await csvDeTipo(db, finca.id, 'cosecha');
+    expect(cosecha).toContain(';vigente;120,5;kg;Primera;;;');
     const riego = await csvDeTipo(db, finca.id, 'riego');
     expect(riego).toContain(';mL por gotero;500;12,5;;;2,1;;;');
     const aplicacion = await csvDeTipo(db, finca.id, 'aplicacion');

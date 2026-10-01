@@ -320,3 +320,10 @@ button:disabled {
   text-align: end;
   font-variant-numeric: tabular-nums;
 }
+/* Cosecha en carencia (HU-E6.1): el bloqueo se ve en rojo. */
+.bloqueo-carencia {
+  border-color: var(--color-alerta);
+}
+.bloqueo-carencia strong {
+  color: var(--color-alerta);
+}

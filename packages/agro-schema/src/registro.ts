@@ -117,11 +117,45 @@ const aplicacionV1 = z.strictObject({
     .nullable(),
 });
 
+/**
+ * `cosecha` v1 (HU-E6.1): cantidad en la unidad del cultivo (kg, tallos, cajas…), categoría de
+ * calidad del catálogo y descarte en la misma unidad (nulo = no se anotó, que no es 0, P1).
+ * Si el área estaba en carencia y se cosechó de todas formas, la confirmación queda aquí con lo
+ * que la app mostró (CA2): nunca se pierde que se cosechó dentro del periodo.
+ */
+const cosechaV1 = z
+  .strictObject({
+    cantidad: medida('de cantidad', 0.001, 1_000_000),
+    unidad: texto,
+    categoria_id: id,
+    categoria: texto,
+    descarte: medida('de cantidad', 0, 1_000_000).nullable(),
+    carenciaConfirmada: z
+      .strictObject({
+        tipo: z.enum(['hasta', 'desconocida']),
+        /** Primer día en que se podía cosechar; nulo si la carencia era desconocida. */
+        hasta: fechaAgronomica.nullable(),
+        insumos: z.array(texto).min(1),
+      })
+      .nullable(),
+  })
+  .superRefine((c, ctx) => {
+    const k = c.carenciaConfirmada;
+    if (k && (k.tipo === 'hasta') !== (k.hasta !== null)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['carenciaConfirmada', 'hasta'],
+        message: 'la fecha va solo si la carencia era conocida',
+      });
+    }
+  });
+
 export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, z.ZodType>>>> = {
   clima: { 1: climaV1 },
   riego: { 1: riegoV1, 2: riegoV2 },
   labor: { 1: laborV1 },
   aplicacion: { 1: aplicacionV1 },
+  cosecha: { 1: cosechaV1 },
 };
 
 export type Registro = z.infer<typeof registroBase>;

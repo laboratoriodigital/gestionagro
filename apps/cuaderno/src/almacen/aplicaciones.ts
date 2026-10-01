@@ -139,6 +139,8 @@ export async function estadosPorArea(
 
   const estados = new Map<string, EstadoDeArea>();
   for (const r of aplicaciones) {
+    // Al evaluar un momento pasado (corregir una cosecha vieja), lo aplicado después no cuenta.
+    if (Date.parse(r.instante_evento) > ahora.getTime()) continue;
     const d = r.datos as DatosAplicacionGuardada;
     const actual = insumos.get(d.insumo_id);
     const carenciaDias = d.carenciaDias ?? actual?.carencia_dias ?? null;
