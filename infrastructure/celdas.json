@@ -5,6 +5,7 @@
     "celda": "c0",
     "worker": "agro-sitio",
     "dominio": "agro.laboratorio-digital.com",
+    "url_staging": "https://agro-sitio-staging.laboratoriodigital-la.workers.dev",
     "zona": "laboratorio-digital.com",
     "dataset_eventos": "agro_eventos"
   },
@@ -22,6 +23,8 @@
       "plan": "free",
       "anillo_despliegue": 0,
       "estado": "activa",
+      "api": "https://agro-api-c0.laboratoriodigital-la.workers.dev",
+      "api_staging": "https://agro-api-c0-staging.laboratoriodigital-la.workers.dev",
       "secretos": {
         "token": "CF_API_TOKEN",
         "cuenta": "CF_ACCOUNT_ID"

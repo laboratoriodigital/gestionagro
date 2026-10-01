@@ -11,7 +11,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { type ConfigCeldas, cargarCeldas } from './lib/celdas.ts';
+import { type Celda, type ConfigCeldas, cargarCeldas } from './lib/celdas.ts';
 import { RAIZ } from './lib/repo.ts';
 
 /** Fecha de compatibilidad del runtime de Workers. Cambiarla es una decisión, no un descuido. */
@@ -75,6 +75,49 @@ export function wranglerDelCore(config: ConfigCeldas): Record<string, unknown> {
   };
 }
 
+/** Migraciones de los shards de una celda, relativas a apps/api-celda. */
+export const MIGRACIONES_CELDA = '../../infrastructure/migraciones/celda';
+
+export const rutaWranglerCelda = (celdaId: string) =>
+  join(RAIZ, 'apps', 'api-celda', `wrangler.${celdaId}.jsonc`);
+
+/** Nombre de la base de un shard en el destino: el mismo, con `_staging` en staging. */
+export const baseDelShard = (shard: string, staging: boolean) =>
+  staging ? `${shard}_staging` : shard;
+
+/**
+ * API de una celda (HU-E5.1): un Worker por celda, `agro-api-<celda>`, con un binding D1 por
+ * shard, cuyo nombre es el del shard. El token dice el shard y el Worker toma ese binding.
+ * Los ids de las bases, el KV de flags y la clave pública del CORE los agrega el despliegue.
+ */
+export function wranglerDeLaCelda(celda: Celda): Record<string, unknown> {
+  const bases = (staging: boolean) =>
+    celda.shards.map((shard) => ({
+      binding: shard,
+      database_name: baseDelShard(shard, staging),
+      migrations_dir: MIGRACIONES_CELDA,
+    }));
+  const nombre = `agro-api-${celda.id}`;
+  return {
+    $schema: 'node_modules/wrangler/config-schema.json',
+    name: nombre,
+    main: 'src/worker.ts',
+    compatibility_date: FECHA_COMPATIBILIDAD,
+    workers_dev: true,
+    vars: { CELDA: celda.id },
+    d1_databases: bases(false),
+    observability: { enabled: true },
+    env: {
+      staging: {
+        name: `${nombre}-staging`,
+        workers_dev: true,
+        vars: { CELDA: celda.id },
+        d1_databases: bases(true),
+      },
+    },
+  };
+}
+
 const CABECERA =
   '// GENERADO por scripts/generar-wrangler.ts desde infrastructure/celdas.json. No editar a mano.\n';
 const comoTexto = (config: Record<string, unknown>) =>
@@ -84,10 +127,16 @@ export const textoWranglerDelSitio = (config: ConfigCeldas): string =>
   comoTexto(wranglerDelSitio(config));
 export const textoWranglerDelCore = (config: ConfigCeldas): string =>
   comoTexto(wranglerDelCore(config));
+export const textoWranglerDeLaCelda = (celda: Celda): string => comoTexto(wranglerDeLaCelda(celda));
 
 if (process.argv[1]?.endsWith('generar-wrangler.ts')) {
   const config = cargarCeldas();
   writeFileSync(RUTA_WRANGLER_SITIO, textoWranglerDelSitio(config));
   writeFileSync(RUTA_WRANGLER_CORE, textoWranglerDelCore(config));
-  console.log(`✅ ${RUTA_WRANGLER_SITIO}\n✅ ${RUTA_WRANGLER_CORE}`);
+  const deCeldas = config.celdas.map((celda) => {
+    writeFileSync(rutaWranglerCelda(celda.id), textoWranglerDeLaCelda(celda));
+    return rutaWranglerCelda(celda.id);
+  });
+  for (const ruta of [RUTA_WRANGLER_SITIO, RUTA_WRANGLER_CORE, ...deCeldas])
+    console.log(`✅ ${ruta}`);
 }

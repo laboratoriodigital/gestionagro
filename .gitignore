@@ -24,3 +24,4 @@ test-results/
 playwright-report/
 apps/sitio/wrangler.despliegue.jsonc
 apps/core/wrangler.despliegue.jsonc
+apps/api-celda/wrangler.despliegue.jsonc

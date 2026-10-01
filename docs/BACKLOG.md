@@ -735,11 +735,11 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E5.1 · API de la celda con tenant en cada consulta
 **Como** desarrollador **quiero** el Worker `agro-api` con verificación de token, shard por organización y kill switch **para** recibir datos de muchas fincas sin mezclarlas.
-- **Peldaño:** cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S8 · **Depende de:** HU-E4.2, HU-E8.1 · **Estado:** Refinada
+- **Peldaño:** cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S8 · **Depende de:** HU-E4.2, HU-E8.1 · **Estado:** En sprint (rama `feat/e5.1-api-celda`. CA1: la clave pública la lee el despliegue del CORE del mismo destino; solo `/api/v1/yo` usa el token hasta HU-E5.2. CA2: catálogos en una tabla `catalogo` con `entidad`, no una por catálogo; `seq` por organización en `registro` y `catalogo`; la prueba exige exactamente los índices justificados. CA3: la clave es `ks:agro-cuaderno`, la del `product.yaml` del cuaderno, que el despliegue ya crea; el texto original decía `ks:agro-cuaderno-sync`, que no existe en ningún contrato (P2). Probado con D1 local; falta la corrida real a staging)
 - **Criterios de aceptación:**
   1. Todo `/api/v1/*` exige un JWT válido firmado por el CORE (clave pública de la configuración). `org_id` y `shard` salen del token, nunca del cuerpo.
   2. Migraciones SQL de la celda: `registro`, catálogos, `entidad_historial` y `cuarentena`. Cada índice está justificado con su costo en filas escritas (bitácora agro, «Lo que el terreno enseñó»).
-  3. `ks:agro-cuaderno-sync` apagado → 503 con mensaje en español y `Retry-After`.
+  3. `ks:agro-cuaderno` apagado → 503 con mensaje en español y `Retry-After`. *(Corregido el 1 oct 2026: decía `ks:agro-cuaderno-sync`; el kill switch sale del `product.yaml` del cuaderno.)*
   4. Ningún identificador de cuenta, base o dominio en el código; todo sale de la configuración generada (ADR-6).
 - **Patrones:** P2, P13.
 - **Presupuesto:** ≤ 20.000 solicitudes/día y ≤ 20.000 filas escritas/día para todo el cuaderno en c0.

@@ -74,7 +74,7 @@ export async function verificarToken(
   cuenta: string | undefined,
   destino: Destino,
   zona: string,
-  /** La celda aloja el CORE: el despliegue crea su base D1 y le aplica migraciones (HU-E4.1). */
+  /** El despliegue crea y migra bases D1 en esta celda (CORE, HU-E4.1; shards, HU-E5.1). */
   conD1 = false,
 ): Promise<string[]> {
   if (!token) return [`${celda.id}: falta el secreto ${celda.secretos.token} en GitHub`];

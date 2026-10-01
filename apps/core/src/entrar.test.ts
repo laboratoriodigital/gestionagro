@@ -1,17 +1,23 @@
 /**
  * Entrar con Google (HU-E4.2, CA1, CA3, CA4 y CA5 del lado del CORE) contra un D1 local y un
- * Google falso. Lo que el D1 local no imita: ver `d1-local.ts` (P17). Que Google acepte el
+ * Google falso. Lo que el D1 local no imita: ver `@gestionagro/d1/local` (P17). Que Google acepte el
  * cliente y la dirección de regreso se comprueba en staging (P16).
  */
+
+import type { BaseD1, SentenciaD1 } from '@gestionagro/d1';
+import {
+  type ClavePublica,
+  generarClavePrivada,
+  hashDe,
+  verificarAcceso,
+} from '@gestionagro/tokens';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
+import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
 import { sentenciasDeCeldas } from './celdas.ts';
-import type { BaseD1, SentenciaD1 } from './d1.ts';
-import { baseLocal, vaciar } from './d1-local.ts';
 import type { ProveedorGoogle } from './entrar.ts';
 import { crearOrganizacion } from './repositorio.ts';
 import { VIDA_CODIGO_MS } from './sesiones.ts';
-import { type ClavePublica, generarClavePrivada, hashDe, verificarAcceso } from './tokens.ts';
 import { crearApp, type Env } from './worker.ts';
 
 const APP = 'https://agro.ejemplo.test';
@@ -23,7 +29,7 @@ let db: BaseD1;
 let cerrar: () => Promise<void>;
 let clave: string;
 beforeAll(async () => {
-  ({ db, cerrar } = await baseLocal());
+  ({ db, cerrar } = await baseDelCore());
   clave = await generarClavePrivada();
 }, 60_000);
 afterAll(async () => cerrar?.());
@@ -89,8 +95,8 @@ const post = (ruta: string, cuerpo: unknown, origen = APP) =>
   });
 
 beforeEach(async () => {
-  await vaciar(db);
-  for (const s of sentenciasDeCeldas(cargarCeldas().celdas)) await db.prepare(s).run();
+  await vaciarCore(db);
+  for (const s of sentenciasDeCeldas(cargarCeldas().celdas, 'staging')) await db.prepare(s).run();
   reloj = T0;
   const contado = contandoEscrituras(db);
   cuenta = contado.cuenta;

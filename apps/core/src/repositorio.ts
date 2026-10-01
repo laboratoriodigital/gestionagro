@@ -7,8 +7,8 @@
  * (organización y membresía del propietario); crear un usuario, 2 (usuario e identidad).
  */
 import { uuidv7 } from '@gestionagro/agro-schema';
+import type { BaseD1 } from '@gestionagro/d1';
 import { asignarUbicacion, type CeldaDelDirectorio, type Ubicacion } from './asignacion.ts';
-import type { BaseD1 } from './d1.ts';
 
 export const ROLES = ['propietario', 'supervisor', 'operario', 'asesor', 'auditor'] as const;
 export type Rol = (typeof ROLES)[number];
@@ -157,7 +157,7 @@ export interface EntradaDelDirectorio {
   celda_id: string;
   shard: string;
   anillo: 1 | 2;
-  /** Null hasta que la celda tenga su API (HU-E5.1). */
+  /** API de la celda del destino, copiada de celdas.json en cada despliegue (HU-E5.1). */
   url_api: string | null;
 }
 

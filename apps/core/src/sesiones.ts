@@ -14,8 +14,8 @@
  * Escrituras por persona y día: 1 sesión al entrar (2 filas con el índice de `refresh_hash`),
  * 1 canje y como máximo 1 rotación por teléfono.
  */
-import type { BaseD1 } from './d1.ts';
-import { hashDe, secretoAlAzar } from './tokens.ts';
+import type { BaseD1 } from '@gestionagro/d1';
+import { hashDe, secretoAlAzar } from '@gestionagro/tokens';
 
 export const VIDA_CODIGO_MS = 2 * 60 * 1000;
 export const VIDA_REFRESH_MS = 60 * 24 * 60 * 60 * 1000;
