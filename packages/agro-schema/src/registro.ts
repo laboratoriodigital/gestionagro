@@ -42,14 +42,22 @@ export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, 
 
 export type Registro = z.infer<typeof registroBase>;
 
-export class ErrorDeRegistro extends Error {
-  override readonly name = 'ErrorDeRegistro';
+/** Datos que no cumplen su esquema. Nombra cada campo con su motivo (P1). */
+export class ErrorDeValidacion extends Error {
+  override readonly name: string = 'ErrorDeValidacion';
   /** Campos con problema, con su ruta (`datos.temperaturaC`) y el motivo. */
   readonly campos: ReadonlyArray<{ campo: string; motivo: string }>;
 
-  constructor(campos: ReadonlyArray<{ campo: string; motivo: string }>) {
-    super(`Registro inválido: ${campos.map((c) => `«${c.campo}» ${c.motivo}`).join('; ')}`);
+  constructor(entidad: string, campos: ReadonlyArray<{ campo: string; motivo: string }>) {
+    super(`${entidad} inválido: ${campos.map((c) => `«${c.campo}» ${c.motivo}`).join('; ')}`);
     this.campos = campos;
+  }
+}
+
+export class ErrorDeRegistro extends ErrorDeValidacion {
+  override readonly name = 'ErrorDeRegistro';
+  constructor(campos: ReadonlyArray<{ campo: string; motivo: string }>) {
+    super('Registro', campos);
   }
 }
 
@@ -72,4 +80,11 @@ export function validarRegistro(entrada: unknown): Registro {
   const datos = esquema.safeParse(base.data.datos);
   if (!datos.success) throw new ErrorDeRegistro(aCampos(datos.error, 'datos'));
   return { ...base.data, datos: datos.data };
+}
+
+/** Valida un catálogo (finca, área…) contra su esquema. Lanza ErrorDeValidacion con los campos. */
+export function validarCatalogo<T>(entidad: string, esquema: z.ZodType<T>, entrada: unknown): T {
+  const r = esquema.safeParse(entrada);
+  if (!r.success) throw new ErrorDeValidacion(entidad, aCampos(r.error, ''));
+  return r.data;
 }

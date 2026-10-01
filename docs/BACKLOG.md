@@ -461,7 +461,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.1 · PWA instalable que no pierde datos al actualizarse
 **Como** operario **quiero** abrir el cuaderno desde un ícono en mi teléfono aunque no haya señal **para** registrar en la nave.
-- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S3 · **Depende de:** HU-E3.2, HU-E1.6 · **Estado:** En sprint (rama `feat/e3.1-pwa-cuaderno`. CA2: «operaciones pendientes» = escrituras en curso, no la cola de salida; el texto dice «podrás aplicarla cuando termines» porque nunca se aplica sola. El caso «formulario abierto» tiene prueba unitaria; su e2e llega con el primer formulario, HU-E3.3)
+- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S3 · **Depende de:** HU-E3.2, HU-E1.6 · **Estado:** En sprint (rama `feat/e3.1-pwa-cuaderno`. CA2: «operaciones pendientes» = escrituras en curso, no la cola de salida; el texto dice «podrás aplicarla cuando termines» porque nunca se aplica sola. El caso «formulario abierto» tiene e2e con el asistente de HU-E3.3)
 - **Criterios de aceptación:**
   1. Dado que el cuaderno se abrió una vez con señal, cuando lo abro en modo avión, entonces carga completo en menos de 3 s en un teléfono de gama baja (perfil de CPU ×4 en Playwright).
   2. Hay una versión nueva y hay operaciones pendientes o un formulario abierto: la app **no** se recarga sola y muestra «Hay una actualización; se aplicará cuando termines».
@@ -478,7 +478,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.3 · Configurar mi finca y mis naves
 **Como** propietario **quiero** crear mi finca, su régimen (ecológico o convencional) y sus áreas (naves, bloques o lotes) con su tamaño **para** registrar cada cosa en su lugar.
-- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S3 · **Depende de:** HU-E3.2 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** S3 · **Depende de:** HU-E3.2 · **Estado:** En sprint (rama `feat/e3.3-finca-y-naves`)
 - **Criterios de aceptación:**
   1. Dado un teléfono sin datos, cuando abro el cuaderno, entonces un asistente de 3 pasos crea la finca (nombre, municipio, régimen) y sus áreas (tipo, nombre, m²).
   2. Nombre y municipio arrancan **vacíos**; no hay valores de ejemplo que puedan quedarse (bitácora ecommerce, «configuración de fábrica»).
