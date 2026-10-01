@@ -5,6 +5,7 @@
   "description": "Cuaderno de campo offline-first (PWA en /agro/app/). ARQUITECTURA §5.3.",
   "type": "module",
   "dependencies": {
+    "@gestionagro/agro-calc": "workspace:*",
     "@gestionagro/agro-schema": "workspace:*",
     "@gestionagro/ui": "workspace:*",
     "dexie": "^4.4.6",

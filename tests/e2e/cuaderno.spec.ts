@@ -13,7 +13,21 @@ async function abrirControlada(page: Page) {
   await expect
     .poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null))
     .toBe(true);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tu cuaderno de campo');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tu finca');
+}
+
+/** Configura una finca mínima: así ningún formulario queda abierto. */
+async function configurarFincaMinima(page: Page) {
+  await page.getByLabel('Nombre de la finca').fill('Finca Ensayo Uno');
+  await page.getByLabel('Municipio').fill('Municipio Ensayo A');
+  await page.getByLabel('Ecológico').check();
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+  await page.getByLabel('Naves').check();
+  await page.getByLabel('Nombre', { exact: true }).fill('Nave 1');
+  await page.getByLabel('Tamaño (m²)').fill('600');
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+  await page.getByRole('button', { name: 'Guardar mi finca' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Finca Ensayo Uno');
 }
 
 test('CA4: manifest con nombre, íconos, scope, color y display standalone', async ({ page }) => {
@@ -67,7 +81,7 @@ test('CA1: abierta una vez, carga completa sin señal en menos de 3 s con CPU ×
   await context.setOffline(true);
   const inicio = Date.now();
   await page.reload();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tu cuaderno de campo');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tu finca');
   await expect(page.getByText(/^Versión \d+\.\d+\.\d+$/)).toBeVisible();
   const ms = Date.now() - inicio;
   expect(ms, `carga sin señal: ${ms} ms`).toBeLessThan(3000);
@@ -107,8 +121,12 @@ test('CA3: ninguna respuesta de /api/*, ni de error ni buena, queda en la caché
   await context.setOffline(false);
 });
 
-test('CA2: una versión nueva se ofrece y la app no se recarga sola', async ({ page, context }) => {
+test('CA2: sin formularios abiertos, la versión nueva se ofrece y la app no se recarga sola', async ({
+  page,
+  context,
+}) => {
   await abrirControlada(page);
+  await configurarFincaMinima(page);
   await page.evaluate(() => Object.assign(window, { marcaDeSesion: 'sigue-aqui' }));
   // Versión nueva: el servidor de pruebas sirve el mismo sw.js con un byte distinto.
   // (context.route no ve la petición con la que el navegador busca un sw.js nuevo; P17.)
@@ -129,4 +147,19 @@ test('CA2: una versión nueva se ofrece y la app no se recarga sola', async ({ p
     await page.evaluate(() => (window as { marcaDeSesion?: string }).marcaDeSesion),
   ).toBeUndefined();
   await expect(aviso).toHaveCount(0);
+});
+
+test('CA2: con un formulario abierto la versión nueva solo avisa, y el botón llega al terminar', async ({
+  page,
+}) => {
+  // El asistente de la finca (HU-E3.3) es un formulario abierto mientras se ve.
+  await abrirControlada(page);
+  expect((await page.request.post('/__prueba/version-nueva')).status()).toBe(204);
+  await page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => r?.update()));
+  const aviso = page.locator('[data-prueba="aviso-actualizacion"]');
+  await expect(aviso).toContainText('podrás aplicarla cuando termines');
+  await expect(page.getByRole('button', { name: 'Actualizar ahora' })).toHaveCount(0);
+  // Terminar el asistente cierra el formulario: ahora sí se ofrece.
+  await configurarFincaMinima(page);
+  await expect(page.getByRole('button', { name: 'Actualizar ahora' })).toBeVisible();
 });

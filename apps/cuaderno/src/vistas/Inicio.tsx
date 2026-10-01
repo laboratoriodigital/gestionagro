@@ -1,10 +1,14 @@
 /**
- * Inicio del cuaderno. Pide almacenamiento persistente y dice el resultado en palabras
- * (ARQUITECTURA §5.3, regla 6). La configuración de la finca llega con HU-E3.3.
+ * Inicio del cuaderno. Sin finca, abre el asistente (HU-E3.3); con finca, la muestra.
+ * Pide almacenamiento persistente y dice el resultado en palabras (ARQUITECTURA §5.3, regla 6).
  */
-import { useEffect, useState } from 'preact/hooks';
+import type { Area, Finca } from '@gestionagro/agro-schema';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { abrirCuaderno } from '../almacen/db.ts';
+import { leerFinca } from '../almacen/finca.ts';
 import { type EstadoPersistencia, pedirPersistencia } from '../almacen/persistencia.ts';
+import { Asistente } from './Asistente.tsx';
+import { MiFinca } from './MiFinca.tsx';
 
 const TEXTO_PERSISTENCIA: Record<EstadoPersistencia, string> = {
   concedida: 'Este teléfono guardará tus registros de forma permanente.',
@@ -14,27 +18,47 @@ const TEXTO_PERSISTENCIA: Record<EstadoPersistencia, string> = {
     'Este navegador no permite pedir almacenamiento permanente. Cuando exista la exportación, haz una copia cada semana.',
 };
 
+type Estado =
+  | { cargando: true }
+  | { cargando: false; datos: { finca: Finca; areas: Area[] } | null };
+
 export function Inicio() {
+  const db = useMemo(() => abrirCuaderno(), []);
   const [persistencia, setPersistencia] = useState<EstadoPersistencia | null>(null);
+  const [estado, setEstado] = useState<Estado>({ cargando: true });
+
+  const cargar = () => {
+    void leerFinca(db).then((datos) => setEstado({ cargando: false, datos }));
+  };
 
   useEffect(() => {
-    const db = abrirCuaderno();
     pedirPersistencia(db, navigator.storage).then(setPersistencia, () =>
       setPersistencia('no-disponible'),
     );
+    cargar();
     return () => db.close();
   }, []);
 
   return (
-    <section aria-labelledby="titulo-inicio">
-      <h1 id="titulo-inicio">Tu cuaderno de campo</h1>
-      <p>Funciona sin señal. Lo que registres se guarda primero en este teléfono.</p>
+    <>
+      {estado.cargando ? (
+        <p>Abriendo tu cuaderno…</p>
+      ) : estado.datos ? (
+        <MiFinca db={db} finca={estado.datos.finca} areas={estado.datos.areas} alCambiar={cargar} />
+      ) : (
+        <>
+          <p class="bienvenida">
+            Tu cuaderno de campo funciona sin señal. Lo que registres se guarda primero en este
+            teléfono. Empieza por tu finca.
+          </p>
+          <Asistente db={db} alTerminar={cargar} />
+        </>
+      )}
       <p class="estado" data-prueba="persistencia" aria-live="polite">
         {persistencia
           ? TEXTO_PERSISTENCIA[persistencia]
           : 'Revisando el almacenamiento del teléfono…'}
       </p>
-      <p>Pronto podrás configurar tu finca y sus naves desde aquí.</p>
-    </section>
+    </>
   );
 }

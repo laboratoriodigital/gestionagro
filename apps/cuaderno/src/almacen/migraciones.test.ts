@@ -9,7 +9,13 @@
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { SEMILLAS } from '../../../../tests/fixtures/semillas.ts';
-import { abrirCuaderno, type CuadernoDb, VERSIONES_LOCALES, type VersionLocal } from './db.ts';
+import {
+  abrirCuaderno,
+  type CuadernoDb,
+  type OperacionSalida,
+  VERSIONES_LOCALES,
+  type VersionLocal,
+} from './db.ts';
 
 async function sembrar(db: CuadernoDb): Promise<void> {
   await db.open();
@@ -21,12 +27,16 @@ async function sembrar(db: CuadernoDb): Promise<void> {
     if (existe('registro')) await db.registro.bulkAdd(s.registros);
     if (existe('outbox')) {
       await db.outbox.bulkAdd(
-        s.registros.map((r) => ({
-          id: r.id,
-          entidad: 'registro' as const,
-          op: 'crear' as const,
-          creado: r.instante_evento,
-        })),
+        // Forma de v1, sin entidad_id ni versión: la migración a v2 tiene que completarlas.
+        s.registros.map(
+          (r) =>
+            ({
+              id: r.id,
+              entidad: 'registro',
+              op: 'crear',
+              creado: r.instante_evento,
+            }) as unknown as OperacionSalida,
+        ),
       );
     }
   }
@@ -77,6 +87,23 @@ async function perdidasAlMigrar(versiones: readonly VersionLocal[]): Promise<str
 describe('migraciones del almacén local', () => {
   it('ninguna versión anterior pierde datos al abrir la última', async () => {
     expect(await perdidasAlMigrar(VERSIONES_LOCALES)).toEqual([]);
+  });
+
+  it('la migración a v2 completa entidad_id y versión en la cola de salida de v1', async () => {
+    const indexedDB = new IDBFactory();
+    const v1 = abrirCuaderno({
+      indexedDB,
+      IDBKeyRange,
+      nombre: 'v1-a-v2',
+      versiones: VERSIONES_LOCALES.slice(0, 1),
+    });
+    await sembrar(v1);
+    v1.close();
+    const ultima = abrirCuaderno({ indexedDB, IDBKeyRange, nombre: 'v1-a-v2' });
+    const ops = await ultima.outbox.toArray();
+    expect(ops.length).toBeGreaterThan(0);
+    for (const op of ops) expect(op).toMatchObject({ entidad_id: op.id, version: 1 });
+    ultima.close();
   });
 
   it('la semilla trae datos de las dos fincas en cada tabla que prueba', () => {

@@ -32,7 +32,14 @@ describe.each(SEMILLAS.map((s) => [s.finca.nombre, s] as const))(
     // CA1: si falla la operación de salida, el registro tampoco queda.
     it('si la operación de salida falla, no queda el registro', async () => {
       const db = nuevaDb();
-      await db.outbox.add({ id: registro.id, entidad: 'registro', op: 'crear', creado: 'antes' });
+      await db.outbox.add({
+        id: registro.id,
+        entidad: 'registro',
+        entidad_id: registro.id,
+        version: 1,
+        op: 'crear',
+        creado: 'antes',
+      });
       await expect(guardarRegistro(db, registro)).rejects.toThrow();
       expect(await db.registro.count()).toBe(0);
     });

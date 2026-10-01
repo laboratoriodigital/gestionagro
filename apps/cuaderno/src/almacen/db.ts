@@ -9,13 +9,30 @@
 import type { Area, Ciclo, Finca, Insumo, Persona, Registro } from '@gestionagro/agro-schema';
 import { Dexie, type EntityTable, type Transaction } from 'dexie';
 
+export type Entidad = 'registro' | 'finca' | 'area' | 'ciclo' | 'persona' | 'insumo';
+
 /** Operación pendiente de subir a la celda. Se escribe en la misma transacción que su dato. */
 export interface OperacionSalida {
-  /** Igual al id de la entidad: reintentar no duplica (ARQUITECTURA §5.6). */
+  /**
+   * Id de la operación. Para un registro (inmutable) es su id; para un catálogo,
+   * `<entidad_id>@v<version>`, porque una misma área se edita varias veces. Reintentar no duplica.
+   */
   id: string;
-  entidad: 'registro' | 'finca' | 'area' | 'ciclo' | 'persona' | 'insumo';
+  entidad: Entidad;
+  entidad_id: string;
+  version: number;
   op: 'crear' | 'actualizar';
   creado: string;
+}
+
+/** Versión reemplazada de un catálogo (ADR-4: última escritura gana, con historial). */
+export interface VersionAnterior {
+  id: string;
+  entidad: Exclude<Entidad, 'registro'>;
+  entidad_id: string;
+  version: number;
+  datos: unknown;
+  reemplazada: string;
 }
 
 export interface Meta {
@@ -32,6 +49,7 @@ export type CuadernoDb = Dexie & {
   insumo: EntityTable<Insumo, 'id'>;
   registro: EntityTable<Registro, 'id'>;
   outbox: EntityTable<OperacionSalida, 'id'>;
+  historial: EntityTable<VersionAnterior, 'id'>;
   meta: EntityTable<Meta, 'clave'>;
 };
 
@@ -58,6 +76,23 @@ export const VERSIONES_LOCALES: readonly VersionLocal[] = [
       registro: 'id, fecha_agronomica, tipo', // historial por día y por tipo (HU-E3.12)
       outbox: 'id, creado', // envío en orden de creación (HU-E5.2)
       meta: 'clave',
+    },
+  },
+  {
+    // HU-E3.3: historial de versiones de catálogos, y la cola de salida con entidad y versión.
+    version: 2,
+    tablas: {
+      historial: 'id, entidad_id', // versiones anteriores de un área, una finca…
+    },
+    migrar: async (tx) => {
+      // Las operaciones de v1 eran solo registros: su entidad es ella misma y su versión, 1.
+      await tx
+        .table('outbox')
+        .toCollection()
+        .modify((op: Partial<OperacionSalida> & { id: string }) => {
+          op.entidad_id ??= op.id;
+          op.version ??= 1;
+        });
     },
   },
 ];

@@ -26,6 +26,8 @@ export async function guardarRegistro(
       await db.outbox.add({
         id: registro.id,
         entidad: 'registro',
+        entidad_id: registro.id,
+        version: 1,
         op: 'crear',
         creado: ahora().toISOString(),
       });
