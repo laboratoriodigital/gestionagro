@@ -144,6 +144,19 @@ export async function humo(fetchFn: Fetch, base: string): Promise<string[]> {
     const cuerpo = await r.text();
     if (!cuerpo.includes(texto)) fallas.push(`${ruta}: no contiene «${texto}»`);
   };
+  // La raíz redirige de verdad (HTTP 301 por _redirects), sin página intermedia.
+  const raiz = await pedir('/');
+  if (raiz) {
+    const destinoRaiz = raiz.headers.get('location') ?? '';
+    if (
+      ![301, 302, 307, 308].includes(raiz.status) ||
+      !destinoRaiz.endsWith('/herramientas/agro/')
+    ) {
+      fallas.push(
+        `/: respondió ${raiz.status} hacia «${destinoRaiz}», se esperaba una redirección a /herramientas/agro/`,
+      );
+    }
+  }
   await contiene('/herramientas/agro/', 'Herramientas agronómicas');
   await contiene('/herramientas/agro/calculadora-dpv/', 'Calculadora de DPV');
   // Cada ruta del cuaderno abre con un enlace directo, sin service worker todavía.

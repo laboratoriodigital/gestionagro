@@ -58,8 +58,33 @@ for (const m of montajes) {
  */
 let versionDePrueba = 0;
 
+/**
+ * Reglas exactas de `_redirects` de la carpeta principal, como las aplica Workers Static Assets
+ * (P17: el doble imita la propiedad de la que dependen las pruebas). Solo rutas exactas, sin
+ * comodines: es lo único que usa el sitio hoy.
+ */
+const archivoRedirecciones = join(montajes.at(-1)?.carpeta ?? '', '_redirects');
+const redirecciones = new Map<string, { destino: string; estado: number }>(
+  existsSync(archivoRedirecciones)
+    ? readFileSync(archivoRedirecciones, 'utf8')
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l && !l.startsWith('#'))
+        .map((l) => l.split(/\s+/))
+        .map(([origen = '', destino = '', estado = '302']) => [
+          origen,
+          { destino, estado: Number(estado) },
+        ])
+    : [],
+);
+
 createServer((solicitud, respuesta) => {
   const url = new URL(solicitud.url ?? '/', `http://localhost:${puerto}`);
+  const redireccion = redirecciones.get(url.pathname);
+  if (redireccion) {
+    respuesta.writeHead(redireccion.estado, { location: redireccion.destino }).end();
+    return;
+  }
   if (url.pathname === '/__prueba/version-nueva' && solicitud.method === 'POST') {
     versionDePrueba++;
     respuesta.writeHead(204).end();

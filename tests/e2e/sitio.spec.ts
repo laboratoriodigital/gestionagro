@@ -78,6 +78,19 @@ test.describe('página útil de la DPV (HU-E2.5)', () => {
   });
 });
 
+test('la raíz redirige con un 301 al índice de herramientas, sin página intermedia', async ({
+  page,
+}) => {
+  const r = await page.request.get('/', { maxRedirects: 0 });
+  expect(r.status()).toBe(301);
+  expect(r.headers()['location']).toBe('/herramientas/agro/');
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/herramientas\/agro\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'Herramientas agronómicas gratuitas',
+  );
+});
+
 test.describe('presupuesto de rendimiento (CA4)', () => {
   for (const ruta of PAGINAS) {
     test(`${ruta}: JS < 50 KB con gzip`, async ({ page }) => {

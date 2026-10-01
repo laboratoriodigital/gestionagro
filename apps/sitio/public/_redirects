@@ -1,0 +1,3 @@
+# Redirecciones de Workers Static Assets: las resuelve Cloudflare en el borde, sin ejecutar el Worker.
+# La raíz del subdominio lleva al índice de herramientas (ADR-19).
+/  /herramientas/agro/  301
