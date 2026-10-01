@@ -78,7 +78,9 @@ test('CA2: sin cuaderno, explica en una línea qué es, lo abre sin pedir cuenta
   );
   await page.getByRole('link', { name: 'Abrir el cuaderno con esta lectura' }).click();
   await expect(page.locator('[data-prueba="lectura-guardada-para-despues"]')).toBeVisible();
-  await expect(page.getByText(/cuenta|contraseña|correo/i)).toHaveCount(0);
+  // Nada en la pantalla pide cuenta (ED1 §28). El enlace «Cuenta» del menú es opcional y no
+  // cuenta como pedirla: se mira solo el contenido.
+  await expect(page.locator('main').getByText(/cuenta|contraseña|correo/i)).toHaveCount(0);
 
   await configurar(page, f);
   await page

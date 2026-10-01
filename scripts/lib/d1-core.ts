@@ -74,18 +74,52 @@ export async function asegurarBaseD1(
 export function configDelCore(
   generada: Record<string, unknown>,
   destino: Destino,
-  baseId: string,
+  despliegue: {
+    baseId: string;
+    /** KV de flags de la celda, para el kill switch `ks:agro-core` (HU-E4.2). */
+    flagsId: string;
+    /** Orígenes del cuaderno que pueden entrar (CORS y `vuelta`). */
+    origenesApp: readonly string[];
+  },
 ): Record<string, unknown> {
-  const conId = (bases: unknown) =>
-    (bases as Record<string, unknown>[]).map((b) => ({ ...b, database_id: baseId }));
-  if (destino === 'produccion') {
-    return { ...generada, d1_databases: conId(generada['d1_databases']) };
-  }
+  const agregar = (bloque: Record<string, unknown>) => ({
+    ...bloque,
+    d1_databases: (bloque['d1_databases'] as Record<string, unknown>[]).map((b) => ({
+      ...b,
+      database_id: despliegue.baseId,
+    })),
+    kv_namespaces: [{ binding: 'FLAGS', id: despliegue.flagsId }],
+    vars: { ORIGENES_APP: despliegue.origenesApp.join(',') },
+  });
+  if (destino === 'produccion') return agregar(generada);
   const env = generada['env'] as Record<string, Record<string, unknown>>;
-  const staging = env['staging'] ?? {};
+  return { ...generada, env: { ...env, staging: agregar(env['staging'] ?? {}) } };
+}
+
+/**
+ * Secretos que el despliegue carga en el Worker del CORE (ARQUITECTURA §7.5). La clave de firma
+ * se genera solo si el Worker no tiene una: cambiarla invalidaría todas las sesiones.
+ */
+export async function secretosDelCore(
+  existentes: readonly string[],
+  google: { id: string | undefined; secreto: string | undefined },
+  nuevaClave: () => Promise<string>,
+): Promise<Record<string, string>> {
+  const faltan = [
+    ...(google.id ? [] : ['GOOGLE_CLIENT_ID']),
+    ...(google.secreto ? [] : ['GOOGLE_CLIENT_SECRET']),
+  ];
+  if (faltan.length > 0) {
+    throw new Error(
+      `falta el secreto ${faltan.join(' y ')} en GitHub (Settings → Secrets and variables → Actions)`,
+    );
+  }
   return {
-    ...generada,
-    env: { ...env, staging: { ...staging, d1_databases: conId(staging['d1_databases']) } },
+    GOOGLE_CLIENT_ID: google.id ?? '',
+    GOOGLE_CLIENT_SECRET: google.secreto ?? '',
+    ...(existentes.includes('CORE_JWT_PRIVATE_KEY')
+      ? {}
+      : { CORE_JWT_PRIVATE_KEY: await nuevaClave() }),
   };
 }
 

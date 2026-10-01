@@ -58,6 +58,9 @@ jobs:
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          # HU-E4.2: el despliegue los carga como secretos del Worker del CORE, por stdin.
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           DESTINO: ${{ github.event_name == 'release' && 'produccion' || inputs.destino || 'staging' }}
           SOLO_CELDA: ${{ inputs.solo_celda }}
         run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA"

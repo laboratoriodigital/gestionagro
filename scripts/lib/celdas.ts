@@ -20,7 +20,7 @@ export interface Celda {
 export interface ConfigCeldas {
   sitio: { celda: string; worker: string; dominio: string; zona: string; dataset_eventos: string };
   /** CORE v0 (ARQUITECTURA §5.4): su Worker y su base D1 viven en la cuenta de `celda`. */
-  core: { celda: string; worker: string; d1: string };
+  core: { celda: string; worker: string; d1: string; url: string; url_staging: string };
   celdas: Celda[];
 }
 

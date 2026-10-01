@@ -42,9 +42,17 @@
     "core": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["celda", "worker", "d1"],
-      "description": "CORE v0 (ARQUITECTURA §5.4): vive en la cuenta de esta celda, con su Worker y su base D1.",
+      "required": ["celda", "worker", "d1", "url", "url_staging"],
+      "description": "CORE v0 (ARQUITECTURA §5.4): vive en la cuenta de esta celda, con su Worker y su base D1. Las URL las usa el cuaderno para entrar con Google (HU-E4.2); el despliegue falla si no coinciden con las que publica wrangler.",
       "properties": {
+        "url": {
+          "type": "string",
+          "pattern": "^https://[a-z0-9.-]+$"
+        },
+        "url_staging": {
+          "type": "string",
+          "pattern": "^https://[a-z0-9.-]+$"
+        },
         "celda": {
           "type": "string",
           "pattern": "^c[0-9]+$"

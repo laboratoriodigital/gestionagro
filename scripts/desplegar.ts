@@ -14,6 +14,9 @@
 import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import { sentenciasDeCeldas } from '../apps/core/src/celdas.ts';
+import { PRODUCTO_CORE } from '../apps/core/src/constantes.ts';
+import { generarClavePrivada } from '../apps/core/src/tokens.ts';
+import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
 import { wranglerDelCore, wranglerDelSitio } from './generar-wrangler.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
 import {
@@ -23,12 +26,14 @@ import {
   configDelCore,
   escribirDespliegueCore,
   nombreD1Core,
+  secretosDelCore,
 } from './lib/d1-core.ts';
 import {
   causaDeWrangler,
   type Destino,
   humo,
   humoCore,
+  humoEntrar,
   type ResultadoCelda,
   resumenDespliegue,
   urlDeWorkersDev,
@@ -64,16 +69,25 @@ interface Credenciales {
   token: string;
   cuenta: string;
 }
-type Paso = { ok: true; detalle: string[] } | { ok: false; detalle: string[] };
+interface Paso {
+  ok: boolean;
+  detalle: string[];
+  /** URL pública de lo desplegado (el sitio se la pasa al CORE como origen permitido). */
+  url?: string;
+}
 
-/** Corre wrangler dentro de un paquete con las credenciales de la celda. */
-function wrangler(paquete: string, argumentos: string, cred: Credenciales) {
+/**
+ * Corre wrangler dentro de un paquete con las credenciales de la celda. `entrada` va por stdin:
+ * así los secretos nunca tocan el disco ni la línea de comandos (P13).
+ */
+function wrangler(paquete: string, argumentos: string, cred: Credenciales, entrada?: string) {
   const r = spawnSync(`pnpm --filter ${paquete} exec wrangler ${argumentos}`, {
     cwd: RAIZ,
     shell: true,
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
     env: { ...process.env, CLOUDFLARE_API_TOKEN: cred.token, CLOUDFLARE_ACCOUNT_ID: cred.cuenta },
+    ...(entrada === undefined ? {} : { input: entrada }),
   });
   const salida = `${r.stdout ?? ''}${r.stderr ?? ''}`;
   process.stdout.write(salida);
@@ -142,22 +156,36 @@ async function desplegarSitio(
       detalle: [`sitio desplegado en ${base}, pero la prueba de humo falló:`, ...fallas],
     };
   }
-  return { ok: true, detalle: [`sitio: ${base}`, notaKv] };
+  return { ok: true, detalle: [`sitio: ${base}`, notaKv], url: base };
 }
 
-async function desplegarCore(config: ConfigCeldas, cred: Credenciales): Promise<Paso> {
-  const nombre = nombreD1Core(config.core.d1, destino as Destino);
+async function desplegarCore(
+  config: ConfigCeldas,
+  celda: Celda,
+  cred: Credenciales,
+  origenApp: string,
+): Promise<Paso> {
+  const dest = destino as Destino;
+  const nombre = nombreD1Core(config.core.d1, dest);
+  const titulo = nombreKvFlags(celda.id, dest);
   let notaD1: string;
   try {
     const base = await asegurarBaseD1(fetch, cred.token, cred.cuenta, nombre);
+    // HU-E4.2: el kill switch del CORE vive en el mismo KV de flags de la celda.
+    const ns = await asegurarNamespace(fetch, cred.token, cred.cuenta, titulo);
+    await asegurarClaves(fetch, cred.token, cred.cuenta, ns.id, [claveKillSwitch(PRODUCTO_CORE)]);
     escribirDespliegueCore(
-      configDelCore(wranglerDelCore(config), destino as Destino, base.id),
+      configDelCore(wranglerDelCore(config), dest, {
+        baseId: base.id,
+        flagsId: ns.id,
+        origenesApp: [origenApp],
+      }),
       sentenciasDeCeldas(config.celdas),
     );
     notaD1 = `D1 ${nombre}${base.creada ? ' (creada)' : ''}`;
     console.log(`  ${notaD1}`);
   } catch (e) {
-    return { ok: false, detalle: [`base D1 ${nombre}: ${(e as Error).message}`] };
+    return { ok: false, detalle: [`CORE (${nombre}, ${titulo}): ${(e as Error).message}`] };
   }
 
   const c = `-c ${ARCHIVO_DESPLIEGUE_CORE} ${entorno}`;
@@ -174,13 +202,58 @@ async function desplegarCore(config: ConfigCeldas, cred: Credenciales): Promise<
     salidaDeploy = r.salida;
   }
   const url = urlDeWorkersDev(salidaDeploy);
-  if (!url)
+  const configurada = dest === 'produccion' ? config.core.url : config.core.url_staging;
+  if (url !== configurada) {
     return {
       ok: false,
-      detalle: ['CORE: no se encontró la URL de workers.dev en la salida de wrangler'],
+      detalle: [
+        `CORE desplegado en ${url ?? '(sin URL de workers.dev en la salida)'}, pero celdas.json dice ${configurada}. El cuaderno usa la de celdas.json: corrígela por PR y vuelve a desplegar.`,
+      ],
     };
+  }
+
+  // Secretos del Worker (HU-E4.2): Google siempre; la clave de firma, solo si no tiene una.
+  const lista = wrangler('@gestionagro/core', `secret list --format json ${c}`, cred);
+  let existentes: string[] = [];
+  try {
+    existentes = (
+      JSON.parse(lista.salida.slice(lista.salida.indexOf('['))) as { name: string }[]
+    ).map((s) => s.name);
+  } catch {
+    return {
+      ok: false,
+      detalle: ['no se pudo leer la lista de secretos del CORE (wrangler secret list)'],
+    };
+  }
+  let secretos: Record<string, string>;
+  try {
+    secretos = await secretosDelCore(
+      existentes,
+      { id: process.env['GOOGLE_CLIENT_ID'], secreto: process.env['GOOGLE_CLIENT_SECRET'] },
+      generarClavePrivada,
+    );
+  } catch (e) {
+    return { ok: false, detalle: [`CORE: ${(e as Error).message}`] };
+  }
+  const carga = wrangler('@gestionagro/core', `secret bulk ${c}`, cred, JSON.stringify(secretos));
+  if (!carga.ok) {
+    return {
+      ok: false,
+      detalle: ['carga de secretos del CORE falló:', ...causaDeWrangler(carga.salida)],
+    };
+  }
+  const notaClave = secretos['CORE_JWT_PRIVATE_KEY']
+    ? 'clave de firma nueva generada'
+    : 'clave de firma existente conservada';
+
   const activas = config.celdas.filter((x) => x.estado === 'activa').length;
-  const fallas = await conReintentos(() => humoCore(fetch, url, activas));
+  const fallas = await conReintentos(async () => [
+    ...(await humoCore(fetch, url, activas)),
+    ...(await humoEntrar(fetch, url, {
+      clienteId: process.env['GOOGLE_CLIENT_ID'] ?? '',
+      origenApp,
+    })),
+  ]);
   if (fallas.length > 0) {
     return {
       ok: false,
@@ -192,6 +265,7 @@ async function desplegarCore(config: ConfigCeldas, cred: Credenciales): Promise<
     detalle: [
       `CORE: ${url}`,
       `${notaD1}: migraciones aplicadas y ${activas} celdas activas en el directorio`,
+      `Entrar con Google: responde, ${notaClave}, vuelve a ${origenApp}`,
     ],
   };
 }
@@ -247,7 +321,9 @@ for (const celda of plan.aDesplegar) {
     detalle.push(...paso.detalle);
   }
   if (paso.ok && alojaCore) {
-    paso = await desplegarCore(configCeldas, cred);
+    // El cuaderno que entra con Google: el que se acaba de desplegar, o el dominio de producción.
+    const origenApp = paso.url ?? `https://${configCeldas.sitio.dominio}`;
+    paso = await desplegarCore(configCeldas, celda, cred, origenApp);
     detalle.push(...paso.detalle);
   }
   resultados.push({ celda: celda.id, estado: paso.ok ? 'desplegada' : 'fallo', detalle });

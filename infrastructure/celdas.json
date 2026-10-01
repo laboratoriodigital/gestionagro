@@ -11,7 +11,9 @@
   "core": {
     "celda": "c0",
     "worker": "agro-core",
-    "d1": "agro_core"
+    "d1": "agro_core",
+    "url": "https://agro-core.laboratoriodigital-la.workers.dev",
+    "url_staging": "https://agro-core-staging.laboratoriodigital-la.workers.dev"
   },
   "celdas": [
     {

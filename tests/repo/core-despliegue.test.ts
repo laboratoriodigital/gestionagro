@@ -12,8 +12,13 @@ import {
   wranglerDelCore,
 } from '../../scripts/generar-wrangler.ts';
 import { cargarCeldas } from '../../scripts/lib/celdas.ts';
-import { asegurarBaseD1, configDelCore, nombreD1Core } from '../../scripts/lib/d1-core.ts';
-import { type Fetch, humoCore, verificarToken } from '../../scripts/lib/despliegue.ts';
+import {
+  asegurarBaseD1,
+  configDelCore,
+  nombreD1Core,
+  secretosDelCore,
+} from '../../scripts/lib/d1-core.ts';
+import { type Fetch, humoCore, humoEntrar, verificarToken } from '../../scripts/lib/despliegue.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 
 const real = cargarCeldas();
@@ -41,10 +46,18 @@ describe('configuración del CORE (P2, ADR-6)', () => {
 
   it('el id de la base va solo al destino que se despliega', () => {
     const generada = wranglerDelCore(real);
-    const prod = configDelCore(generada, 'produccion', 'id-prod');
+    const prod = configDelCore(generada, 'produccion', {
+      baseId: 'id-prod',
+      flagsId: 'kv-prod',
+      origenesApp: ['https://agro.ejemplo.test'],
+    });
     expect(JSON.stringify(prod['d1_databases'])).toContain('"database_id":"id-prod"');
     expect(JSON.stringify(prod['env'])).not.toContain('database_id');
-    const staging = configDelCore(generada, 'staging', 'id-stg');
+    const staging = configDelCore(generada, 'staging', {
+      baseId: 'id-stg',
+      flagsId: 'kv-stg',
+      origenesApp: ['https://stg.ejemplo.test', 'http://localhost:4321'],
+    });
     expect(JSON.stringify(staging['d1_databases'])).not.toContain('database_id');
     expect(JSON.stringify(staging['env'])).toContain(
       '"database_name":"agro_core_staging","migrations_dir"',
@@ -72,6 +85,83 @@ describe('configuración del CORE (P2, ADR-6)', () => {
       'apps/core/wrangler.despliegue.jsonc',
     );
     expect(existsSync(join(RAIZ, 'apps', 'core', 'wrangler.jsonc'))).toBe(true);
+  });
+});
+
+describe('entrar con Google en el despliegue (HU-E4.2)', () => {
+  it('el CORE del destino lleva el KV de flags y los orígenes del cuaderno; el otro, no', () => {
+    const generada = wranglerDelCore(real);
+    const prod = configDelCore(generada, 'produccion', {
+      baseId: 'b',
+      flagsId: 'kv-prod',
+      origenesApp: ['https://agro.ejemplo.test'],
+    });
+    expect(prod['kv_namespaces']).toEqual([{ binding: 'FLAGS', id: 'kv-prod' }]);
+    expect(prod['vars']).toEqual({ ORIGENES_APP: 'https://agro.ejemplo.test' });
+    expect(JSON.stringify(prod['env'])).not.toContain('ORIGENES_APP');
+  });
+
+  it('carga Google siempre y genera la clave de firma solo si el Worker no tiene una', async () => {
+    const google = { id: 'cliente', secreto: 'secreto' };
+    const nueva = async () => 'clave-nueva';
+    expect(await secretosDelCore([], google, nueva)).toEqual({
+      GOOGLE_CLIENT_ID: 'cliente',
+      GOOGLE_CLIENT_SECRET: 'secreto',
+      CORE_JWT_PRIVATE_KEY: 'clave-nueva',
+    });
+    expect(await secretosDelCore(['CORE_JWT_PRIVATE_KEY'], google, nueva)).not.toHaveProperty(
+      'CORE_JWT_PRIVATE_KEY',
+    );
+  });
+
+  it('sin los secretos de Google en GitHub falla nombrándolos', async () => {
+    await expect(
+      secretosDelCore([], { id: undefined, secreto: undefined }, async () => 'x'),
+    ).rejects.toThrow('falta el secreto GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en GitHub');
+  });
+
+  it('los secretos van a wrangler por stdin, nunca en un archivo ni en la línea de comandos (P13)', () => {
+    const texto = readFileSync(join(RAIZ, 'scripts', 'desplegar.ts'), 'utf8');
+    expect(texto).toMatch(/`secret bulk \$\{c\}`, cred, JSON\.stringify\(secretos\)\)/);
+    expect(texto).not.toMatch(/writeFileSync\([^)]*secretos/);
+  });
+
+  it('el flujo pasa los secretos de Google al paso de despliegue', () => {
+    const flujo = readFileSync(join(RAIZ, '.github', 'workflows', 'desplegar.yml'), 'utf8');
+    for (const secreto of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET']) {
+      expect(flujo).toContain(`${secreto}: \${{ secrets.${secreto} }}`);
+    }
+  });
+
+  const inicioQueVaA = (location: string, estado = 302) =>
+    (async (url: string) =>
+      String(url).includes('/claves')
+        ? Response.json({ claves: [{ x: 'a' }] })
+        : new Response(null, { status: estado, headers: { location } })) as unknown as Fetch;
+  const base = 'https://core.ejemplo.test';
+  const bien = `https://accounts.google.com/o/oauth2/v2/auth?client_id=cliente&redirect_uri=${encodeURIComponent(`${base}/api/core/auth/google/callback`)}`;
+
+  it('la prueba de humo pasa cuando el inicio manda a Google con el cliente y el regreso correctos', async () => {
+    expect(
+      await humoEntrar(inicioQueVaA(bien), base, {
+        clienteId: 'cliente',
+        origenApp: 'https://agro.ejemplo.test',
+      }),
+    ).toEqual([]);
+  });
+
+  it('falla con otro client_id, otra dirección de regreso o sin redirección', async () => {
+    const esperado = { clienteId: 'otro', origenApp: 'https://agro.ejemplo.test' };
+    expect(await humoEntrar(inicioQueVaA(bien), base, esperado)).toEqual([
+      'entrar: Google recibe otro client_id que el del secreto GOOGLE_CLIENT_ID',
+    ]);
+    const otroRegreso = bien.replace('core.ejemplo.test', 'otro.test');
+    expect(
+      (await humoEntrar(inicioQueVaA(otroRegreso), base, { ...esperado, clienteId: 'cliente' }))[0],
+    ).toMatch(/la dirección de regreso es https:\/\/otro\.test/);
+    expect(
+      (await humoEntrar(inicioQueVaA('', 503), base, { ...esperado, clienteId: 'cliente' }))[0],
+    ).toMatch(/respondió 503/);
   });
 });
 

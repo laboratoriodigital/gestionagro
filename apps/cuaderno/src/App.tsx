@@ -7,6 +7,7 @@ import { LocationProvider, Route, Router, useLocation } from 'preact-iso';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { IndicadorDatos } from './IndicadorDatos.tsx';
 import { RUTAS_APP, rutaDe } from './rutas.ts';
+import { Cuenta } from './vistas/Cuenta.tsx';
 import { Historial } from './vistas/Historial.tsx';
 import { Inicio } from './vistas/Inicio.tsx';
 import { Insumos } from './vistas/Insumos.tsx';
@@ -22,6 +23,7 @@ const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> =
   personas: Personas,
   insumos: Insumos,
   respaldo: Respaldo,
+  cuenta: Cuenta,
 };
 
 /** Con y sin «/» final: el enlace directo llega como /agro/app/insumos/ y la navegación como /agro/app/insumos. */
