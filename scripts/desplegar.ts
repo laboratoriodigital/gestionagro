@@ -1,8 +1,9 @@
 /**
  * `node scripts/desplegar.ts --destino staging|produccion [--solo c0]` (HU-E1.5).
  *
- * Por cada celda activa, en orden de anillo: verifica el token (P12), despliega el Worker del
- * sitio con wrangler y corre la prueba de humo (P11). Se detiene en la primera celda que falle y
+ * Por cada celda activa, en orden de anillo: verifica el token (P12), asegura el KV de flags y
+ * las claves de kill switch (HU-E8.1), despliega el Worker del sitio con wrangler y corre la
+ * prueba de humo (P11). Se detiene en la primera celda que falle y
  * nombra las que quedaron sin tocar (bitácora ecommerce 105). Lo corre `.github/workflows/desplegar.yml`.
  *
  * Hoy solo el sitio vive en una celda (c0). La API de la celda (HU-E5.1) se agregará a este mismo
@@ -10,6 +11,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
+import { wranglerDelSitio } from './generar-wrangler.ts';
 import { cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
 import {
   causaDeWrangler,
@@ -20,6 +22,16 @@ import {
   urlDeWorkersDev,
   verificarToken,
 } from './lib/despliegue.ts';
+import {
+  ARCHIVO_DESPLIEGUE,
+  asegurarClaves,
+  asegurarNamespace,
+  clavesDeKillSwitch,
+  configDeDespliegue,
+  escribirConfigDeDespliegue,
+  nombreKvFlags,
+} from './lib/kv-flags.ts';
+import { cargarProductos } from './lib/productos.ts';
 import { RAIZ } from './lib/repo.ts';
 
 const argumento = (nombre: string) => {
@@ -68,9 +80,35 @@ for (const celda of plan.aDesplegar) {
     continue;
   }
 
+  // HU-E8.1: KV de flags y claves de kill switch, antes de publicar el Worker que las lee.
+  const titulo = nombreKvFlags(celda.id, destino);
+  let notaKv: string;
+  try {
+    const ns = await asegurarNamespace(fetch, token ?? '', cuenta ?? '', titulo);
+    const claves = await asegurarClaves(
+      fetch,
+      token ?? '',
+      cuenta ?? '',
+      ns.id,
+      clavesDeKillSwitch(cargarProductos()),
+    );
+    escribirConfigDeDespliegue(configDeDespliegue(wranglerDelSitio(config), destino, ns.id));
+    notaKv = `KV ${titulo}${ns.creado ? ' (creado)' : ''}: ${claves.creadas.length} claves creadas en «encendido», ${claves.existentes.length} ya existían y no se tocaron`;
+    console.log(`  ${notaKv}`);
+  } catch (e) {
+    resultados.push({
+      celda: celda.id,
+      estado: 'fallo',
+      detalle: [`KV de flags ${titulo}: ${(e as Error).message}`],
+    });
+    detenido = true;
+    continue;
+  }
+
   // Producción es el entorno de nivel superior de wrangler.jsonc: «--env=» lo elige sin aviso.
   const entorno = destino === 'staging' ? '--env staging' : '--env=';
-  const r = spawnSync(`pnpm --filter @gestionagro/sitio exec wrangler deploy ${entorno}`, {
+  const comando = `pnpm --filter @gestionagro/sitio exec wrangler deploy -c ${ARCHIVO_DESPLIEGUE} ${entorno}`;
+  const r = spawnSync(comando, {
     cwd: RAIZ,
     shell: true,
     encoding: 'utf8',
@@ -120,7 +158,7 @@ for (const celda of plan.aDesplegar) {
     detenido = true;
     continue;
   }
-  resultados.push({ celda: celda.id, estado: 'desplegada', detalle: [base] });
+  resultados.push({ celda: celda.id, estado: 'desplegada', detalle: [base, notaKv] });
 }
 
 const resumen = resumenDespliegue(destino, resultados);

@@ -6,8 +6,16 @@
  * - `indexes[0]` y `blobs[0]`: id del producto;
  * - `doubles[i]`: cuántas veces pasó `EVENTOS[i]` (tool.opened, tool.completed, tool.shared,
  *   tool.next_step). Las consultas de HU-E2.6 leen `double1 … double4` en ese orden.
+ *
+ * Kill switch (HU-E8.1): con `ks:<producto>` en `apagado`, el lote se rechaza con 503 y no se
+ * escribe nada. La calculadora sigue funcionando: es un asset estático que no pasa por aquí.
  */
 import { EVENTOS, type Lote, VERSION_DEL_LOTE } from '@gestionagro/eventos';
+import {
+  crearLectorKillSwitch,
+  type LectorKillSwitch,
+  type LectorKv,
+} from '@gestionagro/kill-switch';
 
 /** Productos que emiten eventos. Una prueba lo ata a los `product.yaml` (P2). */
 export const PRODUCTOS_CON_EVENTOS: readonly string[] = ['agro-calculadora-dpv'];
@@ -23,6 +31,15 @@ export interface Env {
   /** Binding de Workers Analytics Engine. */
   EVENTOS?: DatasetDeAnalytics;
   ASSETS: { fetch: (solicitud: Request) => Promise<Response> };
+  /** KV de flags de la celda (`agro-c0-flags`); lo agrega el despliegue (HU-E8.1). */
+  FLAGS?: LectorKv;
+}
+
+// Uno por isolate: la caché de 60 s vive mientras viva el isolate.
+let lector: { kv: LectorKv; lector: LectorKillSwitch } | null = null;
+function lectorDe(kv: LectorKv): LectorKillSwitch {
+  if (lector?.kv !== kv) lector = { kv, lector: crearLectorKillSwitch({ kv }) };
+  return lector.lector;
 }
 
 const respuesta = (estado: number, mensaje?: string) =>
@@ -70,6 +87,12 @@ export async function atenderEventos(solicitud: Request, env: Env): Promise<Resp
     return respuesta(503, 'Eventos no disponibles');
   }
   const { producto, eventos } = lote as Lote;
+  if (env.FLAGS && (await lectorDe(env.FLAGS).apagado(producto))) {
+    return new Response('Producto apagado', {
+      status: 503,
+      headers: { 'content-type': 'text/plain; charset=utf-8', 'retry-after': '60' },
+    });
+  }
   env.EVENTOS.writeDataPoint({
     indexes: [producto],
     blobs: [producto],

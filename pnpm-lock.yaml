@@ -99,6 +99,9 @@ importers:
       '@gestionagro/eventos':
         specifier: workspace:*
         version: link:../../packages/eventos
+      '@gestionagro/kill-switch':
+        specifier: workspace:*
+        version: link:../../packages/kill-switch
       '@gestionagro/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -128,6 +131,8 @@ importers:
         version: 4.6.5
 
   packages/eventos: {}
+
+  packages/kill-switch: {}
 
   packages/ui: {}
 

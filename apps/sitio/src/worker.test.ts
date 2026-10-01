@@ -76,6 +76,36 @@ describe('POST /api/eventos', () => {
   });
 });
 
+describe('kill switch (HU-E8.1)', () => {
+  const conFlags = (valor: string | null) => {
+    const { env, puntos } = envDePrueba();
+    // Un KV nuevo por prueba: la caché del Worker es por KV, como por isolate.
+    return { env: { ...env, FLAGS: { get: async () => valor } }, puntos };
+  };
+
+  it('con ks:<producto> en «apagado» responde 503 con Retry-After y no escribe nada', async () => {
+    const { env, puntos } = conFlags('apagado');
+    const r = await worker.fetch(post(loteValido), env);
+    expect(r.status).toBe(503);
+    expect(r.headers.get('retry-after')).toBe('60');
+    expect(await r.text()).toBe('Producto apagado');
+    expect(puntos).toEqual([]);
+  });
+
+  it('encendido, o sin clave, escribe como siempre', async () => {
+    for (const valor of ['encendido', null]) {
+      const { env, puntos } = conFlags(valor);
+      expect((await worker.fetch(post(loteValido), env)).status).toBe(204);
+      expect(puntos).toHaveLength(1);
+    }
+  });
+
+  it('un lote inválido se rechaza con 400 aunque el producto esté apagado: primero se valida', async () => {
+    const { env } = conFlags('apagado');
+    expect((await worker.fetch(post('{roto'), env)).status).toBe(400);
+  });
+});
+
 describe('productos con eventos (P2)', () => {
   it('son exactamente los contratos que declaran eventos tool.*', () => {
     const declarados = cargarProductos()

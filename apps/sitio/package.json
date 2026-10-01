@@ -11,6 +11,7 @@
     "@astrojs/preact": "^6.0.5",
     "@gestionagro/agro-calc": "workspace:*",
     "@gestionagro/eventos": "workspace:*",
+    "@gestionagro/kill-switch": "workspace:*",
     "@gestionagro/ui": "workspace:*",
     "astro": "^7.3.5",
     "preact": "^10.29.8",

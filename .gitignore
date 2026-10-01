@@ -22,3 +22,4 @@ _to_delete/
 # Salidas de Playwright
 test-results/
 playwright-report/
+apps/sitio/wrangler.despliegue.jsonc

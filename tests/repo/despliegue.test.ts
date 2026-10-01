@@ -132,6 +132,7 @@ function fetchFalso(
 
 const tokenActivo = {
   'tokens/verify': { estado: 200, cuerpo: { success: true, result: { status: 'active' } } },
+  'storage/kv/namespaces': { estado: 200, cuerpo: { success: true, result: [] } },
 };
 
 describe('verificar el token antes de desplegar (CA2, P12)', () => {
@@ -180,6 +181,17 @@ describe('verificar el token antes de desplegar (CA2, P12)', () => {
     expect(
       (await verificarToken(fn, c0, 't', 'a', 'produccion', 'laboratorio-digital.com'))[0],
     ).toMatch(/no ve la zona laboratorio-digital.com; le falta «Zone → Workers Routes: Edit»/);
+  });
+
+  it('sin Workers KV nombra ese permiso (HU-E8.1: el despliegue crea el KV de flags)', async () => {
+    const { fn } = fetchFalso({
+      ...tokenActivo,
+      'workers/scripts': { estado: 200, cuerpo: { result: [] } },
+      'storage/kv/namespaces': { estado: 403 },
+    });
+    expect(await verificarToken(fn, c0, 't', 'a', 'staging', 'x.com')).toEqual([
+      'c0: al token le falta «Account → Workers KV Storage: Edit» en la cuenta ED1 principal',
+    ]);
   });
 
   it('en staging no pide la zona', async () => {
