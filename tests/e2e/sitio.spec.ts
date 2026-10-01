@@ -27,7 +27,7 @@ test.describe('sin JavaScript (CA3, P20)', () => {
     await expect(page.getByRole('heading', { name: 'Cómo se calcula el DPV' })).toBeVisible();
     await expect(page.getByText('0,895 kPa', { exact: false }).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Fuentes' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Cuaderno de campo' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Cuaderno de campo', exact: true })).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Migas de pan' })).toBeVisible();
   });
 
@@ -39,6 +39,43 @@ test.describe('sin JavaScript (CA3, P20)', () => {
       expect(ancho).toBeLessThanOrEqual(360);
     });
   }
+});
+
+test.describe('página útil de la DPV (HU-E2.5)', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('responde las cuatro preguntas y trae ejemplo, preguntas frecuentes y fuentes, sin JavaScript', async ({
+    page,
+  }) => {
+    await page.goto(DPV);
+    for (const titulo of [
+      'Para qué sirve',
+      'Ejemplo resuelto',
+      'Qué hacer con el resultado',
+      'Preguntas frecuentes',
+      'Fuentes',
+    ]) {
+      await expect(page.getByRole('heading', { level: 2, name: titulo })).toBeVisible();
+    }
+    await expect(page.locator('.preguntas summary')).toHaveCount(7);
+    await expect(page.getByText('Los rangos son de referencia')).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'cuaderno de campo', exact: true }),
+    ).toHaveAttribute('href', '/agro/app/');
+  });
+
+  test('el JSON-LD es válido y trae migas, preguntas y pasos', async ({ page }) => {
+    await page.goto(DPV);
+    const bloques = await page.locator('script[type="application/ld+json"]').allTextContents();
+    expect(bloques).toHaveLength(1);
+    const datos = JSON.parse(bloques[0] ?? '{}') as {
+      '@graph': { '@type': string; mainEntity?: unknown[]; step?: unknown[] }[];
+    };
+    const tipos = datos['@graph'].map((n) => n['@type']);
+    expect(tipos).toEqual(['BreadcrumbList', 'FAQPage', 'HowTo']);
+    expect(datos['@graph'][1]?.mainEntity).toHaveLength(7);
+    expect(datos['@graph'][2]?.step).toHaveLength(4);
+  });
 });
 
 test.describe('presupuesto de rendimiento (CA4)', () => {

@@ -6,8 +6,8 @@
 import type { Producto } from '../../../../../../scripts/lib/productos.ts';
 import CalculadoraDpv from '../../../islas/CalculadoraDpv.tsx';
 import Base from '../../../layouts/Base.astro';
-import { contenidoDe, herramientas, productoPorId } from '../../../lib/contenido.ts';
-import { segmentoDe, seoDeProducto } from '../../../lib/seo.ts';
+import { contenidoDe, herramientas, paginaDe, productoPorId } from '../../../lib/contenido.ts';
+import { jsonLdDeHerramienta, segmentoDe, seoDeProducto } from '../../../lib/seo.ts';
 
 export function getStaticPaths() {
   return herramientas.map((h) => ({
@@ -23,6 +23,7 @@ interface Props {
 const { producto } = Astro.props;
 const seo = seoDeProducto(producto);
 const secciones = contenidoDe(producto.carpeta);
+const pagina = paginaDe(producto.carpeta);
 const relacionados = producto.relacionados
   .map(productoPorId)
   .filter((p): p is Producto => p !== undefined);
@@ -34,7 +35,7 @@ const relacionados = producto.relacionados
   indexable={seo.indexable}
   og={seo.og}
   migas={seo.migas}
-  jsonLd={seo.jsonLd}
+  jsonLd={jsonLdDeHerramienta(producto, pagina)}
 >
   <article data-producto={producto.id}>
     <h1>{producto.nombre}</h1>
@@ -58,6 +59,20 @@ const relacionados = producto.relacionados
     </section>
 
     {secciones.map((s) => <s.Content />)}
+
+    {
+      pagina && pagina.preguntas.length > 0 && (
+        <section aria-labelledby="titulo-preguntas" class="preguntas">
+          <h2 id="titulo-preguntas">Preguntas frecuentes</h2>
+          {pagina.preguntas.map((q) => (
+            <details>
+              <summary>{q.pregunta}</summary>
+              <p>{q.respuesta}</p>
+            </details>
+          ))}
+        </section>
+      )
+    }
 
     {
       producto.fuentes.length > 0 && (
@@ -161,6 +176,17 @@ const relacionados = producto.relacionados
   .calculadora-dpv .nivel-bajo,
   .calculadora-dpv .nivel-alto {
     border-inline-start-color: var(--color-alerta);
+  }
+  .preguntas details {
+    border-block-end: 1px solid var(--color-borde);
+    padding-block: var(--espacio-2);
+  }
+  .preguntas summary {
+    font-weight: 600;
+    min-height: var(--objetivo-tactil);
+    display: flex;
+    align-items: center;
+    cursor: pointer;
   }
   .privacidad {
     font-size: var(--texto-pequeno);
