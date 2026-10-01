@@ -7,7 +7,14 @@ import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { FINCAS_DE_PRUEBA } from '../../../../tests/fixtures/fincas.ts';
 import { abrirCuaderno } from './db.ts';
-import { crearFincaConAreas, crearSubarea, editarArea, historialDe, leerFinca } from './finca.ts';
+import {
+  agregarArea,
+  crearFincaConAreas,
+  crearSubarea,
+  editarArea,
+  historialDe,
+  leerFinca,
+} from './finca.ts';
 
 const nuevaDb = () => abrirCuaderno({ indexedDB: new IDBFactory(), IDBKeyRange });
 
@@ -150,5 +157,43 @@ describe('reglas de la configuración (HU-E3.3)', () => {
       nombre: 'Surco 1',
     }).catch((e: unknown) => e);
     expect(campos(error)).toEqual(['padre_id']);
+  });
+});
+
+describe('agregar áreas después del registro inicial (revisión del dueño)', () => {
+  const finca = {
+    nombre: 'Finca Ensayo Dos',
+    municipio: 'Municipio Ensayo B',
+    regimen: 'convencional' as const,
+  };
+
+  it('agrega un área de otro tipo y la encola', async () => {
+    const db = abrirCuaderno({ indexedDB: new IDBFactory(), IDBKeyRange });
+    const { finca: creada } = await crearFincaConAreas(db, finca, [
+      { tipo: 'bloque', nombre: 'Bloque A', area_m2: 2000, capacidad_plantas: null },
+    ]);
+    const lote = await agregarArea(db, creada.id, {
+      tipo: 'lote',
+      nombre: 'Lote 1',
+      area_m2: 5000,
+      capacidad_plantas: null,
+    });
+    expect(lote).toMatchObject({ finca_id: creada.id, padre_id: null, tipo: 'lote', version: 1 });
+    expect((await leerFinca(db))?.areas.map((a) => a.nombre)).toEqual(['Bloque A', 'Lote 1']);
+    expect(await db.outbox.get(`${lote.id}@v1`)).toMatchObject({ op: 'crear' });
+  });
+
+  it('una cama no se agrega como área principal', async () => {
+    const db = abrirCuaderno({ indexedDB: new IDBFactory(), IDBKeyRange });
+    const { finca: creada } = await crearFincaConAreas(db, finca, [
+      { tipo: 'bloque', nombre: 'Bloque A', area_m2: 2000, capacidad_plantas: null },
+    ]);
+    const error = await agregarArea(db, creada.id, {
+      tipo: 'cama',
+      nombre: 'Cama',
+      area_m2: 20,
+      capacidad_plantas: null,
+    }).catch((e: unknown) => e);
+    expect(campos(error)).toEqual(['tipo']);
   });
 });

@@ -73,3 +73,40 @@ export function Opciones<T extends string>(props: {
     </fieldset>
   );
 }
+
+/** Lista desplegable con etiqueta y error junto al campo. Arranca en «Elige…»: sin valor de fábrica. */
+export function CampoSeleccion<T extends string>(props: {
+  id: string;
+  etiqueta: string;
+  opciones: readonly { valor: T; texto: string }[];
+  valor: T | '';
+  indicacion?: string;
+  error?: string | undefined;
+  alCambiar: (valor: T | '') => void;
+}) {
+  const idError = `${props.id}-error`;
+  return (
+    <div class="campo">
+      <label for={props.id}>{props.etiqueta}</label>
+      <select
+        id={props.id}
+        value={props.valor}
+        aria-invalid={props.error ? 'true' : 'false'}
+        aria-describedby={props.error ? idError : undefined}
+        onChange={(e) => props.alCambiar((e.currentTarget as HTMLSelectElement).value as T | '')}
+      >
+        <option value="">{props.indicacion ?? 'Elige una opción'}</option>
+        {props.opciones.map((o) => (
+          <option value={o.valor} key={o.valor}>
+            {o.texto}
+          </option>
+        ))}
+      </select>
+      {props.error && (
+        <p id={idError} class="error">
+          {props.error}
+        </p>
+      )}
+    </div>
+  );
+}

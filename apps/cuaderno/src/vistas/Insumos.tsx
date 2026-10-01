@@ -10,6 +10,7 @@ import { cuaderno } from '../almacen/abierto.ts';
 import {
   avisoEcologico,
   crearInsumo,
+  editarInsumo,
   leerInsumos,
   plazo,
   TEXTO_ETIQUETA,
@@ -29,6 +30,8 @@ const NOMBRE_TIPO = Object.fromEntries(TIPOS.map((t) => [t.valor, t.texto])) as 
   string
 >;
 const UNIDADES = ['L', 'mL', 'kg', 'g', 'cc', 'unidad'] as const;
+/** «Otra unidad…»: el productor escribe la suya (bulto, galón, caneca…). */
+const OTRA = '__otra__';
 const ECOLOGICO = [
   { valor: 'si', texto: 'Sí, la etiqueta o la certificadora lo permiten' },
   { valor: 'no', texto: 'No' },
@@ -48,19 +51,31 @@ function leerPlazo(texto: string, unidad: string): { valor: number | null; error
   return { valor: leido.valor };
 }
 
+const textoPlazo = (v: number | null | undefined) =>
+  v === null || v === undefined ? '' : String(v);
+const ecologicoDe = (v: boolean | null | undefined): 'si' | 'no' | 'no-se' | '' =>
+  v === true ? 'si' : v === false ? 'no' : v === null ? 'no-se' : '';
+
+/** Crear (sin `inicial`) o editar (con `inicial`; guarda la versión anterior en el historial). */
 function FormularioInsumo(props: {
   fincaId: string;
+  inicial?: Insumo;
   alTerminar: () => void;
   alCancelar: () => void;
 }) {
-  const [nombre, setNombre] = useState('');
-  const [tipo, setTipo] = useState<Insumo['tipo'] | ''>('');
-  const [ica, setIca] = useState('');
-  const [ingrediente, setIngrediente] = useState('');
-  const [unidad, setUnidad] = useState('');
-  const [carencia, setCarencia] = useState('');
-  const [reentrada, setReentrada] = useState('');
-  const [ecologico, setEcologico] = useState<'si' | 'no' | 'no-se' | ''>('');
+  const i = props.inicial;
+  const unidadConocida = i ? (UNIDADES as readonly string[]).includes(i.unidad) : true;
+  const [nombre, setNombre] = useState(i?.nombre_comercial ?? '');
+  const [tipo, setTipo] = useState<Insumo['tipo'] | ''>(i?.tipo ?? '');
+  const [ica, setIca] = useState(i?.registro_ica ?? '');
+  const [ingrediente, setIngrediente] = useState(i?.ingrediente_activo ?? '');
+  const [unidad, setUnidad] = useState(i ? (unidadConocida ? i.unidad : OTRA) : '');
+  const [unidadOtra, setUnidadOtra] = useState(i && !unidadConocida ? i.unidad : '');
+  const [carencia, setCarencia] = useState(textoPlazo(i?.carencia_dias));
+  const [reentrada, setReentrada] = useState(textoPlazo(i?.reentrada_horas));
+  const [ecologico, setEcologico] = useState<'si' | 'no' | 'no-se' | ''>(
+    ecologicoDe(i?.permitido_ecologico),
+  );
   const [errores, setErrores] = useState<Record<string, string>>({});
   useEffect(() => abrirFormulario(), []);
 
@@ -69,7 +84,9 @@ function FormularioInsumo(props: {
     const err: Record<string, string> = {};
     if (!nombre.trim()) err['nombre'] = 'Escribe el nombre comercial.';
     if (!tipo) err['tipo'] = 'Elige el tipo de insumo.';
+    const unidadFinal = unidad === OTRA ? unidadOtra.trim() : unidad;
     if (!unidad) err['unidad'] = 'Elige la unidad.';
+    else if (!unidadFinal) err['unidadOtra'] = 'Escribe la unidad, por ejemplo «bulto 25 kg».';
     const c = leerPlazo(carencia, 'días');
     const r = leerPlazo(reentrada, 'horas');
     if (c.error) err['carencia'] = c.error;
@@ -78,16 +95,18 @@ function FormularioInsumo(props: {
     setErrores(err);
     if (Object.keys(err).length > 0 || !tipo) return;
     try {
-      await crearInsumo(cuaderno(), props.fincaId, {
+      const datos = {
         nombre_comercial: nombre.trim(),
         tipo,
         registro_ica: ica.trim() || null,
         ingrediente_activo: ingrediente.trim() || null,
-        unidad,
+        unidad: unidadFinal,
         carencia_dias: c.valor,
         reentrada_horas: r.valor,
         permitido_ecologico: ecologico === 'si' ? true : ecologico === 'no' ? false : null,
-      });
+      };
+      if (i) await editarInsumo(cuaderno(), i.id, datos);
+      else await crearInsumo(cuaderno(), props.fincaId, datos);
       props.alTerminar();
     } catch (error) {
       setErrores({
@@ -101,7 +120,7 @@ function FormularioInsumo(props: {
 
   return (
     <form class="formulario-area" onSubmit={(e) => void guardar(e)} noValidate>
-      <h2>Nuevo insumo</h2>
+      <h2>{i ? `Editar ${i.nombre_comercial}` : 'Nuevo insumo'}</h2>
       <p class="aviso-legal" data-prueba="texto-etiqueta">
         {TEXTO_ETIQUETA}
       </p>
@@ -141,9 +160,20 @@ function FormularioInsumo(props: {
               {u}
             </option>
           ))}
+          <option value={OTRA}>Otra unidad…</option>
         </select>
         {errores['unidad'] && <p class="error">{errores['unidad']}</p>}
       </div>
+      {unidad === OTRA && (
+        <Campo
+          id="insumo-unidad-otra"
+          etiqueta="Nombre de la unidad"
+          ayuda="Como aparece en la etiqueta o como lo compras: bulto 25 kg, galón, caneca…"
+          valor={unidadOtra}
+          error={errores['unidadOtra']}
+          alCambiar={setUnidadOtra}
+        />
+      )}
       <Campo
         id="insumo-carencia"
         etiqueta="Periodo de carencia (días)"
@@ -179,7 +209,7 @@ function FormularioInsumo(props: {
         <button type="button" class="secundario" onClick={props.alCancelar}>
           Cancelar
         </button>
-        <button type="submit">Guardar insumo</button>
+        <button type="submit">{i ? 'Guardar cambios' : 'Guardar insumo'}</button>
       </div>
     </form>
   );
@@ -194,7 +224,13 @@ function Plazo(props: { etiqueta: string; valor: number | null; unidad: 'días' 
   );
 }
 
-function ListaInsumos(props: { finca: Finca; insumos: Insumo[] }) {
+function ListaInsumos(props: {
+  finca: Finca;
+  insumos: Insumo[];
+  editando: string | null;
+  alEditar: (id: string | null) => void;
+  alGuardar: () => void;
+}) {
   if (props.insumos.length === 0) return <p class="ayuda">Todavía no hay insumos.</p>;
   return (
     <ul class="areas" data-prueba="insumos">
@@ -218,6 +254,25 @@ function ListaInsumos(props: { finca: Finca; insumos: Insumo[] }) {
                 {aviso}
               </p>
             )}
+            {props.editando === i.id ? (
+              <FormularioInsumo
+                fincaId={props.finca.id}
+                inicial={i}
+                alTerminar={props.alGuardar}
+                alCancelar={() => props.alEditar(null)}
+              />
+            ) : (
+              <div class="acciones-area">
+                <button
+                  type="button"
+                  class="secundario"
+                  onClick={() => props.alEditar(i.id)}
+                  aria-label={`Editar ${i.nombre_comercial}`}
+                >
+                  Editar
+                </button>
+              </div>
+            )}
           </li>
         );
       })}
@@ -229,6 +284,7 @@ export function Insumos() {
   const estado = usarFinca();
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [nuevo, setNuevo] = useState(false);
+  const [editando, setEditando] = useState<string | null>(null);
   const finca = !estado.cargando ? estado.finca : null;
 
   const cargar = () => {
@@ -246,7 +302,16 @@ export function Insumos() {
         Los productos que usas, con los datos de su etiqueta. Con ellos la app te avisará cuándo
         puedes cosechar y entrar a una nave aplicada.
       </p>
-      <ListaInsumos finca={finca} insumos={insumos} />
+      <ListaInsumos
+        finca={finca}
+        insumos={insumos}
+        editando={editando}
+        alEditar={setEditando}
+        alGuardar={() => {
+          setEditando(null);
+          cargar();
+        }}
+      />
       {nuevo ? (
         <FormularioInsumo
           fincaId={finca.id}

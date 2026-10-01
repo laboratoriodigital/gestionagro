@@ -22,7 +22,7 @@ async function configurarFincaMinima(page: Page) {
   await page.getByLabel('Municipio').fill('Municipio Ensayo A');
   await page.getByLabel('Ecológico').check();
   await page.getByRole('button', { name: 'Siguiente' }).click();
-  await page.getByLabel('Naves').check();
+  await page.getByLabel('Tipo').selectOption({ label: 'Nave' });
   await page.getByLabel('Nombre', { exact: true }).fill('Nave 1');
   await page.getByLabel('Tamaño (m²)').fill('600');
   await page.getByRole('button', { name: 'Siguiente' }).click();

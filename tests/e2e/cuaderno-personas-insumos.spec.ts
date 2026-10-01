@@ -181,3 +181,46 @@ test('el paquete de despliegue trae un index.html en cada ruta del cuaderno', as
     expect(readFileSync(archivo, 'utf8')).toContain('noindex');
   }
 });
+
+test.describe('insumos: editar y unidad propia (revisión del dueño, 1 oct 2026)', () => {
+  const f = FINCAS_DE_PRUEBA[0] as FincaDePrueba;
+
+  test('un insumo se edita con sus datos cargados y guarda la versión anterior', async ({
+    page,
+  }) => {
+    await configurar(page, f);
+    await irA(page, 'Insumos');
+    const sinCarencia = f.insumos.find((i) => i.carencia_dias === null);
+    if (!sinCarencia) throw new Error('la finca de prueba necesita un insumo sin carencia');
+    await agregarInsumo(page, sinCarencia);
+    await page.getByRole('button', { name: `Editar ${sinCarencia.nombre_comercial}` }).click();
+    await expect(page.getByLabel('Nombre comercial')).toHaveValue(sinCarencia.nombre_comercial);
+    await expect(page.getByLabel('Periodo de carencia (días)')).toHaveValue('');
+    await page.getByLabel('Periodo de carencia (días)').fill('3');
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    const item = page
+      .locator('[data-prueba="insumo"]')
+      .filter({ hasText: sinCarencia.nombre_comercial });
+    await expect(item).toContainText('Carencia: 3 días');
+    await expect(item.locator('.desconocida').filter({ hasText: 'Carencia' })).toHaveCount(0);
+  });
+
+  test('«Otra unidad…» guarda una unidad propia y la conserva al editar', async ({ page }) => {
+    await configurar(page, f);
+    await irA(page, 'Insumos');
+    await page.getByRole('button', { name: 'Agregar insumo' }).click();
+    await page.getByLabel('Nombre comercial').fill('Abono Ensayo Bulto');
+    await page.getByLabel('Fertilizante').check();
+    await page.getByLabel('Unidad').selectOption({ label: 'Otra unidad…' });
+    await page.getByRole('button', { name: 'Guardar insumo' }).click();
+    await expect(page.getByText('Escribe la unidad, por ejemplo «bulto 25 kg».')).toBeVisible();
+    await page.getByLabel('Nombre de la unidad').fill('bulto 25 kg');
+    await page.getByRole('radio', { name: 'No sé' }).check();
+    await page.getByRole('button', { name: 'Guardar insumo' }).click();
+    const item = page.locator('[data-prueba="insumo"]').filter({ hasText: 'Abono Ensayo Bulto' });
+    await expect(item).toContainText('Fertilizante · bulto 25 kg');
+    await page.getByRole('button', { name: 'Editar Abono Ensayo Bulto' }).click();
+    await expect(page.getByLabel('Unidad', { exact: true })).toHaveValue('__otra__');
+    await expect(page.getByLabel('Nombre de la unidad')).toHaveValue('bulto 25 kg');
+  });
+});

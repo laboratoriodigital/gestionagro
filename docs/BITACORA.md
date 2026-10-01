@@ -77,7 +77,7 @@ Al 30 sep 2026 no hay código, así que ningún patrón tiene todavía «Lo impi
 - **Regla:** ninguna prueba nombra a un cliente real; se prueba con uno de prueba y, además, con OTRO.
 - **En Agro:** la finca cero es la tuya, y es justo el nombre que no puede aparecer en el código. Las pruebas usan `Finca Ensayo Uno` (hortaliza) y `Finca Ensayo Dos` (flores). También aplica al revés: probar la base que ya existe, no solo la recién creada (bitácora ecommerce 111).
 - **Lo impedirá:** `tests/terminos-prohibidos.json` + prueba de marca (HU-E1.7); prueba de migración de IndexedDB desde la versión anterior (HU-E3.2).
-- **Entradas:** —
+- **Entradas:** agro 12.
 
 #### P5 · Una comprobación que da lo mismo con el defecto y sin él no comprueba nada
 - **Regla:** antes de dar una comprobación, preguntar qué respondería sin el cambio. Toda aserción nueva se ve en rojo con su defecto puesto.
@@ -183,7 +183,7 @@ Al 30 sep 2026 no hay código, así que ningún patrón tiene todavía «Lo impi
 - **Regla:** se prueba desde quien mira.
 - **En Agro:** el operario con guantes, sol en la pantalla y señal intermitente; el comprador que escanea el QR; el rastreador que no ejecuta JavaScript.
 - **Lo impedirá:** e2e en viewport de 360 px y modo offline; SEO horneado (HU-E2.5).
-- **Entradas:** —
+- **Entradas:** agro 12.
 
 #### P21 · Lo que borra antes de escribir convierte un fallo en una pérdida
 - **Regla:** escribir primero, verificar, borrar después.
@@ -474,3 +474,27 @@ La regla: **lo que pasa por más de una capa de escapado no se escribe desde la 
 La regla: **un flujo que nunca corrió de verdad esconde la configuración de la cuenta. El primer despliegue también prueba el resumen: si la falla no se entiende sin abrir el registro, el resumen falló.**
 
 *Ficha:* agro · *(compartido)* · 🟠 Grave · P15, P16 · 0.1.0 · 2026-10-01
+
+**12 · Tres supuestos míos sobre cómo se usa una finca, corregidos por el dueño al probar en el teléfono.**
+
+*Qué pasó.* El 1 oct 2026 el dueño probó en staging el cuaderno de HU-E3.3 a HU-E3.6 y encontró cinco huecos. Ninguno era un fallo de las pruebas: las pruebas comprobaban lo que yo había supuesto.
+1. El asistente pedía un solo tipo de área para toda la finca («¿Cómo divides la finca?»). Una finca real tiene naves y lotes a la vez.
+2. Las camas y los surcos no se podían editar; solo las áreas principales.
+3. Después del registro inicial no había forma de agregar otra área.
+4. Los insumos no se podían editar.
+5. La unidad del insumo era una lista cerrada (L, mL, kg, g, cc, unidad). En la finca se compra por bulto, galón o caneca.
+
+*Causa raíz.* Diseñé los formularios desde el modelo de datos, que sí permitía todo eso, y no desde el recorrido de quien los usa. Las fincas de prueba eran homogéneas (todas naves o todas bloques) y ningún caso recorría «volver después a agregar o corregir».
+
+*Arreglo.*
+- Tipo por área en el asistente.
+- Editar e historial también para camas y surcos.
+- «Agregar área» en la pantalla de Áreas.
+- Editar insumos con historial.
+- «Otra unidad…» con texto libre, que se conserva al editar.
+
+**Lo prueban** 6 e2e nuevas, entre ellas una finca con naves y lotes. Control negativo: sin la validación del tipo por área, sin edición de camas, con «editar» que crea otro insumo y con la unidad propia ignorada, cada una falla su prueba.
+
+La regla: **una prueba con datos uniformes confirma el supuesto con que se escribió. Las fincas de prueba tienen que traer la variedad del terreno (tipos mezclados, unidades raras), y cada catálogo necesita su camino de «corregir después».**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P4, P20 · 0.1.0 · 2026-10-01
