@@ -5,6 +5,7 @@
 import type { ComponentType } from 'preact';
 import { LocationProvider, Route, Router, useLocation } from 'preact-iso';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
+import { IndicadorDatos } from './IndicadorDatos.tsx';
 import { RUTAS_APP, rutaDe } from './rutas.ts';
 import { Inicio } from './vistas/Inicio.tsx';
 import { Insumos } from './vistas/Insumos.tsx';
@@ -50,6 +51,7 @@ export function App() {
           Cuaderno de campo
         </a>
         <Navegacion />
+        <IndicadorDatos />
       </header>
       <AvisoActualizacion />
       <main id="contenido">
