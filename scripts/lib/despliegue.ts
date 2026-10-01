@@ -235,6 +235,44 @@ export async function humoCore(
   return [];
 }
 
+/**
+ * Prueba de humo de «entrar con Google» (HU-E4.2). Sin iniciar sesión: comprueba que hay clave
+ * pública y que el inicio manda a Google con el cliente de los secretos y la dirección de regreso
+ * que se registró en Google Cloud. No sigue la redirección ni crea usuarios (P11).
+ */
+export async function humoEntrar(
+  fetchFn: Fetch,
+  base: string,
+  esperado: { clienteId: string; origenApp: string },
+): Promise<string[]> {
+  const fallas: string[] = [];
+  try {
+    const claves = await fetchFn(`${base}/api/core/claves`);
+    const cuerpo = (await claves.json().catch(() => ({}))) as { claves?: unknown[] };
+    if (claves.status !== 200 || cuerpo.claves?.length !== 1) {
+      fallas.push(`/api/core/claves: respondió ${claves.status} sin una clave pública`);
+    }
+    const vuelta = encodeURIComponent(`${esperado.origenApp}/agro/app/cuenta/`);
+    const inicio = await fetchFn(`${base}/api/core/auth/google/inicio?vuelta=${vuelta}`, {
+      redirect: 'manual',
+    });
+    const destino = new URL(inicio.headers.get('location') || 'about:blank');
+    const callback = `${base}/api/core/auth/google/callback`;
+    if (inicio.status !== 302 || destino.hostname !== 'accounts.google.com') {
+      fallas.push(`entrar: respondió ${inicio.status}, se esperaba 302 a accounts.google.com`);
+    } else if (destino.searchParams.get('client_id') !== esperado.clienteId) {
+      fallas.push('entrar: Google recibe otro client_id que el del secreto GOOGLE_CLIENT_ID');
+    } else if (destino.searchParams.get('redirect_uri') !== callback) {
+      fallas.push(
+        `entrar: la dirección de regreso es ${destino.searchParams.get('redirect_uri')}, se esperaba ${callback}`,
+      );
+    }
+  } catch (e) {
+    fallas.push(`entrar: no respondió (${(e as Error).message})`);
+  }
+  return fallas;
+}
+
 /** URL de workers.dev que imprime `wrangler deploy` en staging. */
 export function urlDeWorkersDev(salida: string): string | null {
   return salida.match(/https:\/\/[a-z0-9.-]+\.workers\.dev/)?.[0] ?? null;
