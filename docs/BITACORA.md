@@ -629,3 +629,15 @@ La regla: **lo que se configura en el panel y no en el repositorio no existe par
 La regla: **una prueba que mide tiempo corre sola. Si falla solo con otras pruebas al lado, se mide aparte; nunca se sube el umbral para que pase.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P9, P17, P19 · 0.1.0 · 2026-10-01
+
+**21 · La calculadora borraba lo escrito antes de cargar.**
+
+*Qué pasó.* El 1 oct 2026 el CI de `main`, después de fusionar HU-E4.3/E5.2, falló en «Guardar en mi cuaderno»: al calcular, el resultado no apareció. El mismo código había pasado en el PR. Se reprodujo en local antes de diagnosticar (P9): 1 de 45 corridas con el código de `main`.
+
+*Causa raíz.* La página de la calculadora trae los campos en el HTML estático (P20) y la isla Preact se activa después. Si la persona escribe antes de que cargue el JavaScript, Preact arranca con su estado vacío y deja los campos en blanco: lo escrito se pierde sin aviso. La prueba lo destapó de casualidad, al escribir apenas abría la página; en un teléfono con 3G lenta le pasa a una persona de verdad. Es P1 en la pantalla: un valor por defecto, el vacío, pisa lo que la persona escribió.
+
+*Arreglo.* La isla toma como valor inicial lo que ya está escrito en sus campos. Una e2e retrasa a propósito el JavaScript de la isla 1,5 s, escribe antes y exige que los valores sigan y que se calcule; con el arreglo quitado, falla. Las pruebas de la calculadora pasaron 150 de 150 en 10 repeticiones.
+
+La regla: **una isla que hidrata campos del HTML estático arranca con lo que ya tienen, no con su valor de fábrica. Toda isla con campos tiene una prueba que escribe antes de que cargue.**
+
+*Ficha:* agro · *(mío)* · 🟠 Grave · P1, P20, P9 · 0.1.0 · 2026-10-01
