@@ -5,9 +5,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { configurar } from './ayudas.ts';
-
-const ROL = { operario: 'Operario', supervisor: 'Supervisor', propietario: 'Propietario' } as const;
+import { configurar, ROL } from './ayudas.ts';
 
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date('2027-01-15T15:00:00Z'));

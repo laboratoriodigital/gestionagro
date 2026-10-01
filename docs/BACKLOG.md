@@ -573,7 +573,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.10 · Registrar aplicaciones y ver cuándo vence la carencia
 **Como** supervisor **quiero** anotar cada aplicación con el insumo, la dosis de la etiqueta y la nave **para** saber cuándo se puede cosechar y cuándo entrar de nuevo.
-- **Peldaño:** usuario recurrente → premium (carpeta) · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S5 · **Depende de:** HU-E3.6 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente → premium (carpeta) · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S5 · **Depende de:** HU-E3.6 · **Estado:** En sprint (rama `feat/e3.10-aplicaciones-carencia`. CA1: la fecha mostrada es el primer día en que se cosecha (aplicado el 10/12 con 3 días → se cosecha desde el 13/12); lo confirma el agrónomo aliado. Carencia y reentrada se copian del insumo al aplicar; si eran desconocidas, completar el insumo levanta el bloqueo. La reentrada desconocida también va en rojo)
 - **Criterios de aceptación:**
   1. Dado un insumo con carencia de 3 días aplicado el 10 de diciembre en la nave 2, cuando guardo, entonces la nave 2 muestra «No cosechar hasta el 13/12» y «Reentrada desde <fecha y hora>».
   2. La dosis se registra como texto y número con la etiqueta «según etiqueta del producto». La app no sugiere dosis (instrucciones §7).

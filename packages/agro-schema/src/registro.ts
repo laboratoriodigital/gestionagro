@@ -94,10 +94,34 @@ const laborV1 = z.strictObject({
   ),
 });
 
+/**
+ * `aplicacion` v1 (HU-E3.10). La dosis es la de la etiqueta, como número y unidad tal como la
+ * escribe la etiqueta: la app no sugiere dosis (CA2). Carencia y reentrada se copian del insumo
+ * al aplicar; nulo = desconocida en la etiqueta, que bloquea, nunca 0 (CA4, P1). Quién aplicó va
+ * en `persona_ids` del registro base.
+ */
+const aplicacionV1 = z.strictObject({
+  insumo_id: id,
+  insumo: texto,
+  dosis: medida('de dosis', 0.0001, 1_000_000),
+  dosisUnidad: texto,
+  /** Litros de mezcla preparados; nulo = no se anotó. */
+  volumenMezclaL: medida('L', 0.01, 1_000_000).nullable(),
+  /** Bomba de espalda, estacionaria…; nulo = no se anotó. */
+  equipo: z.string().trim().min(1).nullable(),
+  carenciaDias: z.int().min(0).max(365).nullable(),
+  reentradaHoras: z
+    .int()
+    .min(0)
+    .max(24 * 365)
+    .nullable(),
+});
+
 export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, z.ZodType>>>> = {
   clima: { 1: climaV1 },
   riego: { 1: riegoV1, 2: riegoV2 },
   labor: { 1: laborV1 },
+  aplicacion: { 1: aplicacionV1 },
 };
 
 export type Registro = z.infer<typeof registroBase>;

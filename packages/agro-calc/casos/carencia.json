@@ -1,0 +1,97 @@
+{
+  "nota": "Vencimientos de carencia y reentrada (HU-E3.10). La carencia se cuenta en días de calendario desde la fecha agronómica de la aplicación; la fecha que sale es el primer día en que se puede cosechar. La reentrada se cuenta en horas desde el instante de la aplicación (P8).",
+  "carencia": [
+    {
+      "caso": "CA1 del backlog",
+      "fechaAplicacion": "2026-12-10",
+      "dias": 3,
+      "puedeCosecharDesde": "2026-12-13"
+    },
+    {
+      "caso": "carencia 0: el mismo día",
+      "fechaAplicacion": "2026-12-10",
+      "dias": 0,
+      "puedeCosecharDesde": "2026-12-10"
+    },
+    {
+      "caso": "fin de mes de 31",
+      "fechaAplicacion": "2027-01-30",
+      "dias": 3,
+      "puedeCosecharDesde": "2027-02-02"
+    },
+    {
+      "caso": "fin de mes de 30",
+      "fechaAplicacion": "2027-04-29",
+      "dias": 2,
+      "puedeCosecharDesde": "2027-05-01"
+    },
+    {
+      "caso": "cambio de año",
+      "fechaAplicacion": "2026-12-30",
+      "dias": 3,
+      "puedeCosecharDesde": "2027-01-02"
+    },
+    {
+      "caso": "febrero de año no bisiesto",
+      "fechaAplicacion": "2027-02-27",
+      "dias": 2,
+      "puedeCosecharDesde": "2027-03-01"
+    },
+    {
+      "caso": "llega al 29 de febrero",
+      "fechaAplicacion": "2028-02-27",
+      "dias": 2,
+      "puedeCosecharDesde": "2028-02-29"
+    },
+    {
+      "caso": "pasa por el 29 de febrero",
+      "fechaAplicacion": "2028-02-28",
+      "dias": 2,
+      "puedeCosecharDesde": "2028-03-01"
+    },
+    {
+      "caso": "aplicado el 29 de febrero",
+      "fechaAplicacion": "2028-02-29",
+      "dias": 1,
+      "puedeCosecharDesde": "2028-03-01"
+    },
+    {
+      "caso": "carencia larga",
+      "fechaAplicacion": "2026-10-15",
+      "dias": 60,
+      "puedeCosecharDesde": "2026-12-14"
+    }
+  ],
+  "reentrada": [
+    {
+      "caso": "4 horas",
+      "instante": "2026-12-10T14:30:00.000Z",
+      "horas": 4,
+      "entrarDesde": "2026-12-10T18:30:00.000Z"
+    },
+    {
+      "caso": "0 horas: de inmediato",
+      "instante": "2026-12-10T14:30:00.000Z",
+      "horas": 0,
+      "entrarDesde": "2026-12-10T14:30:00.000Z"
+    },
+    {
+      "caso": "pasa la medianoche UTC",
+      "instante": "2026-12-10T22:00:00.000Z",
+      "horas": 12,
+      "entrarDesde": "2026-12-11T10:00:00.000Z"
+    },
+    {
+      "caso": "pasa por el 29 de febrero",
+      "instante": "2028-02-28T20:00:00.000Z",
+      "horas": 48,
+      "entrarDesde": "2028-03-01T20:00:00.000Z"
+    }
+  ],
+  "invalidos": [
+    { "campo": "fechaAplicacion", "fechaAplicacion": "2027-02-29", "dias": 1 },
+    { "campo": "fechaAplicacion", "fechaAplicacion": "10/12/2026", "dias": 1 },
+    { "campo": "carenciaDias", "fechaAplicacion": "2026-12-10", "dias": -1 },
+    { "campo": "carenciaDias", "fechaAplicacion": "2026-12-10", "dias": 1.5 }
+  ]
+}

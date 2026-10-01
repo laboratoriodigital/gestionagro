@@ -13,6 +13,7 @@ import {
 } from '@gestionagro/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
+import { type EstadoDeArea, estadosPorArea } from '../almacen/aplicaciones.ts';
 import type { CuadernoDb, VersionAnterior } from '../almacen/db.ts';
 import {
   agregarArea,
@@ -23,6 +24,7 @@ import {
   TIPOS_SUBAREA,
 } from '../almacen/finca.ts';
 import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
+import { Vencimientos } from '../componentes/Vencimientos.tsx';
 import { fechaHora, metros, NOMBRE_REGIMEN, NOMBRE_TIPO } from '../formato.ts';
 import { CicloDeArea } from './CicloDeArea.tsx';
 
@@ -216,6 +218,11 @@ export function MiFinca(props: {
   alCambiar: () => void;
 }) {
   const [abierto, setAbierto] = useState<Abierto>(null);
+  // Carencia y reentrada vigentes por área (HU-E3.10); se recalculan al volver a la pantalla.
+  const [vencimientos, setVencimientos] = useState<Map<string, EstadoDeArea>>(new Map());
+  useEffect(() => {
+    void estadosPorArea(props.db, props.finca.id).then(setVencimientos);
+  }, [props.db, props.finca.id, props.areas]);
   const principales = props.areas.filter((a) => a.padre_id === null);
   const hijas = (id: string) => props.areas.filter((a) => a.padre_id === id);
   const cerrarYRecargar = () => {
@@ -242,6 +249,7 @@ export function MiFinca(props: {
             <p class="area-titulo">
               <strong>{a.nombre}</strong> · {NOMBRE_TIPO[a.tipo]} · {metros(a.area_m2)}
             </p>
+            <Vencimientos estado={vencimientos.get(a.id)} />
             <CicloDeArea
               db={props.db}
               area={a}
