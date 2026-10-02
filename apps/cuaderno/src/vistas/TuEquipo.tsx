@@ -15,6 +15,7 @@ import {
   ROLES_PARA_INVITAR,
 } from '../almacen/invitacion.ts';
 import { ErrorDeSesion, urlDelCore } from '../almacen/sesion.ts';
+import { PersonasConAcceso } from './PersonasConAcceso.tsx';
 
 const QUE_HACE: Record<string, string> = {
   operario: 'registra el trabajo del día',
@@ -102,6 +103,7 @@ export function TuEquipo(props: { finca: string; enLinea: boolean }) {
           </p>
         </div>
       )}
+      <PersonasConAcceso enLinea={props.enLinea} />
     </div>
   );
 }

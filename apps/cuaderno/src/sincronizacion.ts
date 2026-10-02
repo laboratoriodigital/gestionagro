@@ -13,7 +13,11 @@ import { enviarPendientes, type ResultadoDeEnvio } from './almacen/envio.ts';
 import { type ResultadoDeRecepcion, recibirCambios } from './almacen/recepcion.ts';
 import { estadoDeSesion, rolEnLaFinca, urlDelCore } from './almacen/sesion.ts';
 import { estadoDelVinculo, sesionDeLaFinca } from './almacen/vinculo.ts';
-import { DEMORA_TRAS_GUARDAR_MS, debeSincronizar } from './disparadores.ts';
+import {
+  DEMORA_TRAS_GUARDAR_MS,
+  debeSincronizar,
+  ENTRE_REVISIONES_AL_VOLVER_MS,
+} from './disparadores.ts';
 
 export const CADA_MS = 15 * 60_000;
 export const CADA_EN_AHORRO_MS = 60 * 60_000;
@@ -156,8 +160,15 @@ export function iniciarSincronizacion(): () => void {
   const alVerse = () => {
     if (document.visibilityState === 'visible') void quizas('visible');
   };
+  // En un computador la pestaña casi nunca se oculta: volver a la ventana o tocar la página es
+  // «volver a la app» (bitácora agro 26). Lo barato primero: sin abrir la base si es muy pronto.
+  const alVolver = () => {
+    if (Date.now() - ultima >= ENTRE_REVISIONES_AL_VOLVER_MS) void quizas('visible');
+  };
   window.addEventListener('online', alVolverLaSenal);
   document.addEventListener('visibilitychange', alVerse);
+  window.addEventListener('focus', alVolver);
+  document.addEventListener('pointerdown', alVolver, { capture: true, passive: true });
   // Después de guardar: espera unos segundos a que termine lo que se anota seguido. Las
   // escrituras de la propia sincronización no cuentan (`quizas` mira si hay una corriendo).
   const dejarActividad = escucharActividad((a) => {
@@ -170,6 +181,8 @@ export function iniciarSincronizacion(): () => void {
   return () => {
     window.removeEventListener('online', alVolverLaSenal);
     document.removeEventListener('visibilitychange', alVerse);
+    window.removeEventListener('focus', alVolver);
+    document.removeEventListener('pointerdown', alVolver, { capture: true });
     dejarActividad();
     if (proxima) clearTimeout(proxima);
     if (tras) clearTimeout(tras);

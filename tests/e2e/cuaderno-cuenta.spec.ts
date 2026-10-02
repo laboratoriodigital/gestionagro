@@ -41,6 +41,16 @@ async function coreFalso(page: Page, conSesion: object = sesion) {
       headers: { 'access-control-allow-origin': new URL(page.url()).origin },
     });
   });
+  // Cuenta lista los teléfonos y el equipo (HU-E4.6): por defecto, vacíos. Ninguna prueba sale
+  // al CORE de staging de verdad; las que los prueban registran sus propias respuestas después.
+  for (const [ruta, json] of [
+    ['telefonos/ver', { telefonos: [] }],
+    ['equipo/ver', { miembros: [] }],
+  ] as const) {
+    await page.route(`${CORE}/api/core/${ruta}`, (r) =>
+      r.fulfill({ json, headers: { 'access-control-allow-origin': '*' } }),
+    );
+  }
   return canjes;
 }
 
@@ -392,6 +402,42 @@ test('bitácora agro 22: lo que se registra con la finca en la nube sube solo, s
   expect(lotes.length).toBe(antes + 1);
 });
 
+test('bitácora agro 26: en el computador, volver a la ventana o tocar la página trae lo del equipo', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await fincaConUnClima(page);
+  await coreFalso(page);
+  await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
+  let pulls = 0;
+  await page.route(`${API_STAGING}/api/v1/sync/pull?*`, async (ruta) => {
+    pulls++;
+    await ruta.fulfill({
+      json: { catalogos: [], registros: [], cursor: { registro: 0, catalogo: 0 }, mas: false },
+      headers: { 'access-control-allow-origin': '*' },
+    });
+  });
+  await cuenta(page);
+  await entrar(page);
+  await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
+  await expect(page.locator('[data-prueba="nube-sync"]')).toContainText(
+    'Lo del equipo se revisó a las',
+  );
+  const antes = pulls;
+  // Muy pronto: no vuelve a pedir.
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.clock.fastForward(1_000);
+  expect(pulls).toBe(antes);
+  // Pasados 30 s, volver a la ventana revisa lo del equipo.
+  await page.clock.fastForward(31_000);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect.poll(() => pulls).toBe(antes + 1);
+  // Y también tocar la página.
+  await page.clock.fastForward(31_000);
+  await page.locator('h1').click();
+  await expect.poll(() => pulls).toBe(antes + 2);
+});
+
 test('HU-E8.6: con la cuota agotada, el aviso dice hasta qué hora y que los datos están a salvo', async ({
   page,
 }) => {
@@ -635,5 +681,108 @@ test.describe('HU-E4.5 · la interfaz esconde lo que el rol no puede (la celda d
     await expect(page.locator('[data-prueba="solo-consulta"]')).toHaveCount(0);
     await ir(page, 'Lotes');
     await expect(page.getByRole('heading', { level: 2, name: 'Despachos' })).toBeVisible();
+  });
+});
+
+test.describe('HU-E4.6 · revocar un teléfono o una persona', () => {
+  const permitir = { 'access-control-allow-origin': '*' };
+
+  test('CA1 y CA2: retirar un teléfono perdido dice que tarda hasta 12 h y que lo guardado no se borra', async ({
+    page,
+  }) => {
+    const canjes = await coreFalso(page);
+    const retirados: unknown[] = [];
+    let este = '';
+    await page.route(`${CORE}/api/core/telefonos/ver`, (r) =>
+      r.fulfill({
+        json: {
+          telefonos: [
+            { id: 'sesion-1', dispositivo: este, creado: '2026-09-01T12:00:00.000Z' },
+            { id: 'sesion-2', dispositivo: 'otro-telefono', creado: '2026-09-15T12:00:00.000Z' },
+          ].filter((t) => !retirados.some((x) => (x as { id: string }).id === t.id)),
+        },
+        headers: permitir,
+      }),
+    );
+    await page.route(`${CORE}/api/core/telefonos/retirar`, async (r) => {
+      retirados.push(r.request().postDataJSON());
+      await r.fulfill({ json: { id: 'sesion-2', retirado: true }, headers: permitir });
+    });
+    await cuenta(page);
+    // El id de este teléfono es el que mandó al canjear.
+    page.on('request', (r) => {
+      if (r.url().endsWith('/api/core/auth/canje'))
+        este = (r.postDataJSON() as { dispositivo: string }).dispositivo;
+    });
+    await entrar(page);
+    await expect.poll(() => canjes.length).toBe(1);
+    const lista = page.locator('[data-prueba="tus-telefonos"]');
+    await expect(lista.locator('[data-prueba="telefono"]')).toHaveCount(2);
+    await expect(lista).toContainText('Este teléfono · entró el 1 de septiembre de 2026');
+    // Este teléfono no se retira desde aquí (para eso está «Salir de la cuenta»).
+    await expect(lista.getByRole('button', { name: 'Retirar acceso' })).toHaveCount(1);
+    await lista.getByRole('button', { name: 'Retirar acceso' }).click();
+    await expect(lista.locator('[data-prueba="confirmar-retirar"]')).toContainText(
+      'Deja de sincronizar en máximo 12 horas. Lo que ya está guardado en él no se puede borrar a distancia.',
+    );
+    await lista.getByRole('button', { name: 'Sí, retirar acceso' }).click();
+    await expect(lista.getByRole('status')).toContainText('deja de sincronizar en máximo 12 horas');
+    expect(retirados).toEqual([{ id: 'sesion-2' }]);
+    await expect(lista.locator('[data-prueba="telefono"]')).toHaveCount(1);
+  });
+
+  test('el propietario cambia el rol de alguien y le quita el acceso, con confirmación', async ({
+    page,
+  }) => {
+    await fincaConUnClima(page);
+    await coreFalso(page);
+    await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
+    const pedidos: { ruta: string; cuerpo: unknown }[] = [];
+    let quitado = false;
+    await page.route(`${CORE}/api/core/equipo/ver`, (r) =>
+      r.fulfill({
+        json: {
+          miembros: [
+            { usuario_id: 'u1', nombre: 'Persona Ensayo', rol: 'propietario', tu: true },
+            ...(quitado
+              ? []
+              : [{ usuario_id: 'u2', nombre: 'Persona Ensayo Dos', rol: 'operario', tu: false }]),
+          ],
+        },
+        headers: permitir,
+      }),
+    );
+    for (const ruta of ['rol', 'quitar']) {
+      await page.route(`${CORE}/api/core/equipo/${ruta}`, async (r) => {
+        pedidos.push({ ruta, cuerpo: r.request().postDataJSON() });
+        if (ruta === 'quitar') quitado = true;
+        await r.fulfill({ json: {}, headers: permitir });
+      });
+    }
+    await cuenta(page);
+    await entrar(page);
+    await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
+    const acceso = page.locator('[data-prueba="personas-con-acceso"]');
+    await expect(acceso.locator('[data-prueba="miembro"]')).toHaveCount(2);
+    await expect(acceso).toContainText('Persona Ensayo · propietario (tú)');
+    // Nadie se cambia ni se quita a sí mismo.
+    await expect(acceso.getByRole('button', { name: 'Quitar acceso' })).toHaveCount(1);
+    await acceso.getByLabel('Rol de Persona Ensayo Dos').selectOption('supervisor');
+    await expect(acceso.getByRole('status')).toContainText(
+      'Persona Ensayo Dos ahora es supervisor',
+    );
+    await acceso.getByRole('button', { name: 'Quitar acceso' }).click();
+    await expect(acceso.locator('[data-prueba="confirmar-quitar"]')).toContainText(
+      'Lo que ya está guardado en su teléfono no se puede borrar a distancia. Lo que anotó se queda en la finca.',
+    );
+    await acceso.getByRole('button', { name: 'Sí, quitar acceso' }).click();
+    await expect(acceso.getByRole('status')).toHaveText(
+      'Persona Ensayo Dos ya no tiene acceso a la finca.',
+    );
+    await expect(acceso.locator('[data-prueba="miembro"]')).toHaveCount(1);
+    expect(pedidos).toEqual([
+      { ruta: 'rol', cuerpo: { usuario_id: 'u2', rol: 'supervisor' } },
+      { ruta: 'quitar', cuerpo: { usuario_id: 'u2' } },
+    ]);
   });
 });
