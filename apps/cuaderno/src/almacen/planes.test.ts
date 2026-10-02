@@ -63,6 +63,12 @@ describe('planes con precio visible (HU-E0.6)', () => {
     expect(incluye('finca', 'Rendimiento por persona')).toBe(
       funcionActiva('rendimiento_operario', 'finca'),
     );
+    // Carpeta de cumplimiento: del plan Finca, y ya no «pronto» (HU-E9.2).
+    expect(propio('finca', 'Carpeta de cumplimiento')).toBe(
+      funcionActiva('carpeta_cumplimiento', 'finca'),
+    );
+    expect(incluye('finca', 'Carpeta de cumplimiento en PDF para auditorías (pronto)')).toBe(false);
+    expect(incluye('gratuito', 'Carpeta')).toBe(funcionActiva('carpeta_cumplimiento', 'gratuito'));
     // Calendario de carencias: hoy gratis.
     expect(incluye('gratuito', 'Calendario de carencias')).toBe(
       funcionActiva('calendario_carencias', 'gratuito'),

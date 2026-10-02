@@ -105,6 +105,10 @@ test('HU-E10.2 · CA2: «Guardar como aplicación en mi cuaderno» lleva la fech
   await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
   await page.getByRole('radio', { name: ROL[p.rol], exact: true }).check();
   await page.getByRole('button', { name: 'Guardar persona' }).click();
+  // Se espera a que quede guardada: navegar enseguida cortaba la escritura en CI (P19).
+  await expect(
+    page.locator('[data-prueba="personas-activas"] li').filter({ hasText: p.nombre }),
+  ).toHaveCount(1);
   await page.goto('/agro/app/insumos/');
   await agregarInsumo(page, TRES_DIAS);
 
