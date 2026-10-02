@@ -1,0 +1,27 @@
+# HU-E8.3: averigua el número del chat del dueño con el bot de Telegram (TELEGRAM_CHAT_ID).
+# Manual. Antes, escríbele /start al bot. El token sale del secreto; nunca se imprime.
+name: telegram-chat
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: telegram-chat-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  chat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Leer los chats que le escribieron al bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: node scripts/telegram-chat.ts

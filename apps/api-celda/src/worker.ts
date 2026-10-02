@@ -25,6 +25,7 @@ import {
 import { type ClavePublica, TokenInvalido, verificarConClaves } from '@gestionagro/tokens';
 import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { avisarSiCambio } from './avisos.ts';
 import { pull } from './pull.ts';
 import { push } from './push.ts';
 import { clavesQr, firmarLote } from './qr.ts';
@@ -55,6 +56,11 @@ export interface Env {
   CF_CUENTA?: string;
   /** Clave Ed25519 con que la celda firma los QR de trazabilidad (HU-E6.4); la genera el despliegue. */
   CELDA_QR_PRIVATE_KEY?: string;
+  /** Bot y chat de Telegram del dueño (HU-E8.3), por secreto del despliegue. */
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_ID?: string;
+  /** produccion o staging: las alertas de staging llevan [staging]. */
+  DESTINO?: string;
   /** Plan de la cuenta de la celda (celdas.json): el vigía conoce las cuotas del gratuito. */
   PLAN?: string;
   /** Un binding D1 por shard, con el nombre del shard. */
@@ -272,5 +278,18 @@ export async function vueltaDelVigia(env: Env, ahora: number, fetchFn: typeof fe
     env.PLAN,
   );
   (v.fallas.length > 0 || v.nivel !== 'normal' ? console.error : console.log)(resumen(v));
-  return v;
+  // Alerta al dueño por Telegram, solo si cambió lo que hay que decir (HU-E8.3).
+  const aviso = await avisarSiCambio(
+    env.FLAGS as KvDeFlags,
+    v,
+    {
+      celda: env.CELDA ?? '?',
+      destino: env.DESTINO ?? 'produccion',
+      telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
+    },
+    fetchFn,
+  );
+  if (aviso.startsWith('fallo'))
+    console.error(`vigía: la alerta no salió; se reintenta en la próxima vuelta. ${aviso}`);
+  return { ...v, aviso };
 }

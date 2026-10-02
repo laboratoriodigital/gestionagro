@@ -64,6 +64,8 @@ export function configDeLaCelda(
         CORE_CLAVES: JSON.stringify(despliegue.clavesCore),
         ORIGENES_APP: despliegue.origenesApp.join(','),
         CF_CUENTA: despliegue.cuenta,
+        // Las alertas de staging llevan [staging] (HU-E8.3).
+        DESTINO: destino,
       },
     };
   };
@@ -110,24 +112,38 @@ export async function humoCelda(fetchFn: Fetch, base: string, shards: number): P
  * - `CF_METRICAS_TOKEN` (HU-E8.2), si está en GitHub. Si falta, se avisa: el vigía no puede medir.
  * - `CELDA_QR_PRIVATE_KEY` (HU-E6.4), **solo si el Worker no tiene una**: cambiarla haría que las
  *   etiquetas ya impresas dejen de verificarse.
+ * - `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` (HU-E8.3), si están los dos. Si falta alguno, se
+ *   avisa: el vigía no puede alertar al dueño.
  */
 export async function secretosDeLaCelda(
   existentes: readonly string[],
   tokenMetricas: string | undefined,
   nombreSecretoMetricas: string,
   nuevaClave: () => Promise<string>,
+  telegram: { token?: string | undefined; chat?: string | undefined } = {},
 ): Promise<{ secretos: Record<string, string>; avisos: string[]; claveNueva: boolean }> {
   const claveNueva = !existentes.includes('CELDA_QR_PRIVATE_KEY');
+  const conTelegram = Boolean(telegram.token && telegram.chat);
   return {
     secretos: {
       ...(tokenMetricas ? { CF_METRICAS_TOKEN: tokenMetricas } : {}),
       ...(claveNueva ? { CELDA_QR_PRIVATE_KEY: await nuevaClave() } : {}),
+      ...(conTelegram
+        ? { TELEGRAM_BOT_TOKEN: telegram.token ?? '', TELEGRAM_CHAT_ID: telegram.chat ?? '' }
+        : {}),
     },
-    avisos: tokenMetricas
-      ? []
-      : [
-          `⚠ falta el secreto ${nombreSecretoMetricas}: el vigía de cuota no puede medir y dejará la celda en «alerta»`,
-        ],
+    avisos: [
+      ...(tokenMetricas
+        ? []
+        : [
+            `⚠ falta el secreto ${nombreSecretoMetricas}: el vigía de cuota no puede medir y dejará la celda en «alerta»`,
+          ]),
+      ...(conTelegram
+        ? []
+        : [
+            '⚠ falta TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID: el vigía no puede alertar por Telegram (docs/runbooks/vigia-de-cuota.md)',
+          ]),
+    ],
     claveNueva,
   };
 }

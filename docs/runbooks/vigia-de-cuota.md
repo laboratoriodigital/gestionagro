@@ -49,3 +49,16 @@ Para probarlo sin esperar a la hora en punto: **Settings** → **Triggers** → 
 ## Cambiar el nivel a mano
 
 Se puede editar la clave `nivel` en el KV, como un kill switch (ver `kill-switch.md`). Ten en cuenta que el vigía la vuelve a escribir en su siguiente vuelta si el consumo dice otra cosa.
+
+## Alertas por Telegram (HU-E8.3)
+
+El vigía le escribe al dueño por Telegram cuando cambia el nivel de la celda o lo que no pudo medir, con el nivel, la cuota más usada y la causa. No repite el mismo mensaje cada hora: solo avisa cuando la situación cambia. Si Telegram falla, queda en el log y lo intenta otra vez en la hora siguiente. Las alertas de staging llegan con `[staging]` delante.
+
+Una sola vez:
+
+1. En Telegram, abre el bot (`@notiagrobot`) y escríbele `/start`.
+2. En GitHub: **Actions** → **telegram-chat** → **Run workflow**. En el resumen de la corrida sale el número de tu chat (por ejemplo `123456789 · private · Tu nombre`). Hazlo dentro de las 24 horas siguientes al `/start`: Telegram solo guarda los mensajes de ese plazo.
+3. En GitHub: **Settings** → **Secrets and variables** → **Actions** → **New repository secret**, con nombre `TELEGRAM_CHAT_ID` y ese número como valor. El token del bot va en `TELEGRAM_BOT_TOKEN`.
+4. En el despliegue siguiente, la primera vuelta del vigía te manda el primer mensaje con el nivel actual.
+
+Sin los dos secretos, el despliegue sigue igual pero lo avisa en su resumen.

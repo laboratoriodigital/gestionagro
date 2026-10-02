@@ -415,6 +415,7 @@ async function desplegarApiCelda(
     tokenMetricas,
     celda.secretos.metricas,
     generarClavePrivada,
+    { token: process.env['TELEGRAM_BOT_TOKEN'], chat: process.env['TELEGRAM_CHAT_ID'] },
   );
   const avisoMetricas = deLaCelda.avisos;
   if (Object.keys(deLaCelda.secretos).length > 0) {
