@@ -17,6 +17,7 @@
     "@gestionagro/ui": "workspace:*",
     "@noble/ed25519": "^3.2.0",
     "astro": "^7.3.5",
+    "pdf-lib": "^1.17.1",
     "preact": "^10.29.8",
     "yaml": "^2.9.1"
   },

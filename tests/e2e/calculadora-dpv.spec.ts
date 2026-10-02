@@ -8,7 +8,9 @@ const DPV = '/herramientas/agro/calculadora-dpv/';
 async function abrir(page: Page) {
   await page.goto(DPV);
   // La isla está lista cuando Astro la hidrata.
-  await expect(page.locator('astro-island:not([ssr])')).toHaveCount(1);
+  await expect(
+    page.locator('section:has(#titulo-calculadora) astro-island:not([ssr])'),
+  ).toHaveCount(1);
 }
 
 const aire = (page: Page) => page.locator('[data-prueba="dpv-aire"]');
@@ -18,14 +20,15 @@ test('CA1: 24 °C y 70 % muestran «0,90 kPa» sin tocar un botón', async ({ pa
   await page.getByLabel('Temperatura del aire').fill('24');
   await page.getByLabel('Humedad relativa').fill('70');
   await expect(aire(page)).toHaveText('0,90 kPa');
-  await expect(page.getByRole('button')).toHaveCount(0);
+  // La calculadora no tiene botón (CA1); el de la tabla imprimible (HU-E2.3) va en otra sección.
+  await expect(page.locator('section:has(#titulo-calculadora)').getByRole('button')).toHaveCount(0);
 });
 
 test('CA2: tomate en producción dice «En rango» y cita la fuente; fuera de rango sugiere una acción', async ({
   page,
 }) => {
   await abrir(page);
-  await page.getByLabel('Cultivo y etapa').selectOption('tomate:produccion');
+  await page.getByLabel('Cultivo y etapa', { exact: true }).selectOption('tomate:produccion');
   await page.getByLabel('Temperatura del aire').fill('24');
   await page.getByLabel('Humedad relativa').fill('80');
   const indicacion = page.locator('[data-prueba="indicacion"]');
@@ -71,7 +74,7 @@ test('CA5: calcular no hace ninguna solicitud', async ({ page }) => {
   await page.getByLabel('Temperatura del aire').fill('22');
   await page.getByLabel('Humedad relativa').fill('85');
   await expect(aire(page)).toHaveText('0,40 kPa');
-  await page.getByLabel('Cultivo y etapa').selectOption('tomate:produccion');
+  await page.getByLabel('Cultivo y etapa', { exact: true }).selectOption('tomate:produccion');
   await expect(page.locator('[data-prueba="indicacion"]')).toBeVisible();
   expect(solicitudes).toEqual([]);
 });
@@ -104,7 +107,7 @@ test.describe('compartir por WhatsApp (HU-E2.4)', () => {
   }) => {
     await abrir(page);
     await expect(page.locator('[data-prueba="compartir-whatsapp"]')).toHaveCount(0);
-    await page.getByLabel('Cultivo y etapa').selectOption('tomate:produccion');
+    await page.getByLabel('Cultivo y etapa', { exact: true }).selectOption('tomate:produccion');
     await page.getByLabel('Temperatura del aire').fill('24');
     await page.getByLabel('Humedad relativa').fill('70');
     await page.getByText('Opción avanzada: temperatura de la hoja').click();
@@ -125,7 +128,9 @@ test.describe('compartir por WhatsApp (HU-E2.4)', () => {
 
   test('CA3: abrir el enlace compartido muestra el mismo resultado', async ({ page }) => {
     await page.goto(`${DPV}?t=24&hr=70`);
-    await expect(page.locator('astro-island:not([ssr])')).toHaveCount(1);
+    await expect(
+      page.locator('section:has(#titulo-calculadora) astro-island:not([ssr])'),
+    ).toHaveCount(1);
     await expect(page.getByLabel('Temperatura del aire')).toHaveValue('24');
     await expect(page.getByLabel('Humedad relativa')).toHaveValue('70');
     await expect(aire(page)).toHaveText('0,90 kPa');
@@ -170,7 +175,9 @@ test('lo que se escribe antes de que cargue la calculadora no se pierde (3G lent
   await page.goto('/herramientas/agro/calculadora-dpv/');
   await page.getByLabel(/^Temperatura del aire/).fill('24');
   await page.getByLabel(/^Humedad relativa/).fill('70');
-  await expect(page.locator('astro-island:not([ssr])')).toHaveCount(1, { timeout: 15_000 });
+  await expect(
+    page.locator('section:has(#titulo-calculadora) astro-island:not([ssr])'),
+  ).toHaveCount(1, { timeout: 15_000 });
   await expect(page.getByLabel(/^Temperatura del aire/)).toHaveValue('24');
   await expect(page.getByLabel(/^Humedad relativa/)).toHaveValue('70');
   await expect(page.locator('[data-prueba="dpv-aire"]')).toContainText('0,90 kPa');

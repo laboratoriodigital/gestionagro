@@ -430,7 +430,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E2.3 · Tabla de DPV imprimible
 **Como** supervisor **quiero** una tabla de temperatura × humedad con el DPV coloreado según mi cultivo **para** pegarla en la nave y decidir sin teléfono.
-- **Peldaño:** herramienta gratuita · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** S14 · **Depende de:** HU-E2.2 · **Estado:** Refinada
+- **Peldaño:** herramienta gratuita · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** S14 · **Depende de:** HU-E2.2 · **Estado:** En sprint (rama `feat/e2.3-tabla-dpv`. En la página de la calculadora de DPV, «Tabla para pegar en la nave»: cultivo y etapa, temperatura cada 2 °C y humedad cada 5 % (por defecto 12–34 °C y 40–95 %), y papel carta o A4. CA1: una hoja horizontal; cada nivel lleva un tono y una marca escrita (--, -, sin marca, +, ++), así que se lee en blanco y negro. Un rango que no cabe (más de 16 temperaturas o 14 humedades) se marca junto al campo. CA2: cada celda sale de `dpvAireKPa` y `clasificarDpv` de agro-calc, y una prueba compara 10 celdas elegidas al azar con semilla fija. CA3: pdf-lib (MIT, ya aprobado en §dependencias) arma el PDF en el navegador. El generador va en un trozo aparte de 422 KB que solo baja al tocar el botón: la página sigue bajo los 50 KB de JS. La fuente estándar del PDF no tiene «−» Unicode: las marcas van en ASCII, y una prueba arma el PDF con cada cultivo del catálogo)
 - **Criterios de aceptación:**
   1. Dado el cultivo y un rango de T (p. ej. 12–34 °C) y de HR (40–95 %), cuando imprimo, entonces sale una tabla en una hoja A4 o carta, legible en blanco y negro (patrón además del color).
   2. Los valores coinciden con `agro-calc`. La prueba compara 10 celdas al azar.
