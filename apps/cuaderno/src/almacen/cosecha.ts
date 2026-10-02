@@ -35,6 +35,8 @@ export interface DatosCosechaGuardada {
   categoria_id: string;
   categoria: string;
   descarte: number | null;
+  /** v2 (HU-E7.4). Undefined en una cosecha v1: se lee como nulo. */
+  horasPorPersona?: number | null;
   carenciaConfirmada: {
     tipo: 'hasta' | 'desconocida';
     hasta: string | null;
@@ -105,6 +107,8 @@ export interface DatosCosecha {
   categoria: string;
   descarte: number | null;
   personaIds: string[];
+  /** Horas que cosechó cada persona (HU-E7.4); nulo u omitido = no se anotaron. */
+  horasPorPersona?: number | null;
   /** Cosechar dentro del periodo de carencia, sabiéndolo (CA2). */
   confirmarCarencia?: boolean;
 }
@@ -117,6 +121,12 @@ export async function guardarCosecha(
 ): Promise<Registro> {
   if (!datos.categoria.trim()) {
     throw new ErrorDeValidacion('Cosecha', [{ campo: 'categoria', motivo: 'elige la calidad' }]);
+  }
+  const horas = datos.horasPorPersona ?? null;
+  if (horas !== null && datos.personaIds.length === 0) {
+    throw new ErrorDeValidacion('Cosecha', [
+      { campo: 'persona_ids', motivo: 'elige quién cosechó para anotar sus horas' },
+    ]);
   }
   if (datos.descarte !== null && datos.descarte > datos.cantidad) {
     throw new ErrorDeValidacion('Cosecha', [
@@ -137,7 +147,7 @@ export async function guardarCosecha(
     fincaId,
     areaId: area,
     tipo: 'cosecha',
-    v: 1,
+    v: 2,
     personaIds: datos.personaIds,
     // Con personas elegidas, se anota a nombre de ellas aunque no tengan cuenta (modo tablero).
     origen: datos.personaIds.length > 0 ? 'tablero' : 'manual',
@@ -154,6 +164,7 @@ export async function guardarCosecha(
         categoria_id: categoria.id,
         categoria: categoria.nombre,
         descarte: datos.descarte,
+        horasPorPersona: horas,
         carenciaConfirmada: bloqueo,
       } satisfies DatosCosechaGuardada,
     },

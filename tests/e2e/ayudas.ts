@@ -94,3 +94,32 @@ export async function vigilarTexto(page: Page, texto: string): Promise<() => Pro
   }, texto);
   return () => page.evaluate((t) => Boolean((window as unknown as Vistos).__vistos?.[t]), texto);
 }
+
+/** Una sesión con la finca en ese plan y con ese rol, como la daría el CORE. */
+export async function conPlan(page: Page, plan: string, rol = 'propietario') {
+  await page.evaluate(
+    ([elPlan, elRol]) =>
+      new Promise<void>((resolver) => {
+        const pedido = indexedDB.open('gestionagro-cuaderno');
+        pedido.onsuccess = () => {
+          const tx = pedido.result.transaction('meta', 'readwrite');
+          const org = '0199a1b2-0000-7000-8000-0000000000fa';
+          tx.objectStore('meta').put({
+            clave: 'sesion',
+            valor: {
+              acceso: 'acceso',
+              acceso_vence: Date.now() + 3_600_000,
+              refresh: 'refresh',
+              refresh_vence: Date.now() + 86_400_000,
+              usuario: { nombre: 'Persona Ensayo', email: 'ensayo@example.com' },
+              organizaciones: [{ org_id: org, nombre: 'Finca Ensayo', rol: elRol, plan: elPlan }],
+              org_id: org,
+            },
+            actualizado: '',
+          });
+          tx.oncomplete = () => resolver();
+        };
+      }),
+    [plan, rol] as const,
+  );
+}

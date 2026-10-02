@@ -30,4 +30,9 @@ export {
   type NivelDpv,
 } from './rangos-dpv.ts';
 export { formatearCantidad, type Rendimiento, rendimiento } from './rendimiento.ts';
+export {
+  type CosechaConPersonas,
+  type RendimientoDePersona,
+  rendimientoPorOperario,
+} from './rendimiento-operario.ts';
 export { drenajePct, formatearPct, RANGO_CE_DS_M, RANGO_PH } from './riego.ts';

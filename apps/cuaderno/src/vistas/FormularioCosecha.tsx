@@ -1,5 +1,6 @@
 /**
  * Formulario de cosecha (HU-E6.1). Área, cantidad y unidad, calidad, descarte y quién cosechó.
+ * Con personas elegidas, sus horas (HU-E7.4, opcional): son las del rendimiento por operario.
  *
  * - Al elegir el área se ve si está en carencia: en rojo, con el motivo y la fecha. Guardar exige
  *   marcar «Cosechar de todas formas», y eso queda en el registro (CA2). El almacén vuelve a
@@ -42,6 +43,7 @@ interface Valores {
   otraCategoria: string;
   descarte: string;
   personas: string[];
+  horas: string;
 }
 
 type Errores = Partial<Record<keyof Valores | 'general' | 'carencia', string>>;
@@ -66,6 +68,7 @@ export function FormularioCosecha(props: {
     otraCategoria: '',
     descarte: aTexto(antes?.descarte),
     personas: props.corrige ? [...props.corrige.persona_ids] : [],
+    horas: aTexto(antes?.horasPorPersona ?? undefined),
   });
   // null = cargando: mientras tanto no se dice «no hay».
   const [categorias, setCategorias] = useState<string[] | null>(null);
@@ -126,6 +129,15 @@ export function FormularioCosecha(props: {
         err.descarte = 'No puede ser mayor que lo cosechado.';
       } else descarte = d.valor;
     }
+    // Sin personas, las horas no serían de nadie: no se piden ni se guardan.
+    let horasPorPersona: number | null = null;
+    if (v.personas.length > 0 && v.horas.trim()) {
+      const h = leerNumero(v.horas);
+      if (!h.ok) err.horas = h.motivo;
+      else if (h.valor < 0.5 || h.valor > 24 || !Number.isInteger(h.valor * 2)) {
+        err.horas = 'Van en medias horas, entre 0,5 y 24 (por ejemplo 1,5).';
+      } else horasPorPersona = h.valor;
+    }
     if (bloqueo && !confirmado) err.carencia = motivoDelBloqueo(bloqueo);
     setErrores(err);
     setGuardado(null);
@@ -141,11 +153,12 @@ export function FormularioCosecha(props: {
           categoria,
           descarte,
           personaIds: v.personas,
+          horasPorPersona,
           confirmarCarencia: confirmado,
         },
         { corrige: props.corrige },
       );
-      setV({ ...v, cantidad: '', descarte: '', otraCategoria: '', personas: [] });
+      setV({ ...v, cantidad: '', descarte: '', otraCategoria: '', personas: [], horas: '' });
       setConfirmado(false);
       setGuardado(
         bloqueo
@@ -289,6 +302,17 @@ export function FormularioCosecha(props: {
           </label>
         ))}
       </fieldset>
+      {v.personas.length > 0 && (
+        <Campo
+          id="cosecha-horas"
+          etiqueta="Horas que cosechó cada persona (opcional)"
+          ayuda="En medias horas: 1,5 sí; 1,3 no. Sirven para saber cuánto cosecha cada uno por hora."
+          decimal
+          valor={v.horas}
+          error={errores.horas}
+          alCambiar={(x) => setV({ ...v, horas: x })}
+        />
+      )}
       {errores.general && (
         <p class="error" role="alert">
           {errores.general}

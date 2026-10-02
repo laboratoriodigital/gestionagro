@@ -11,6 +11,14 @@ describe('funciones por plan', () => {
     }
   });
 
+  it('el rendimiento por operario es del plan Exportador y de Cadena (ARQUITECTURA §2.4)', () => {
+    expect(funcionActiva('rendimiento_operario', 'gratuito')).toBe(false);
+    expect(funcionActiva('rendimiento_operario', 'finca')).toBe(false);
+    expect(funcionActiva('rendimiento_operario', 'exportador')).toBe(true);
+    expect(funcionActiva('rendimiento_operario', 'cadena')).toBe(true);
+    expect(funcionActiva('rendimiento_operario', 'plan-que-no-existe')).toBe(false);
+  });
+
   it('apagado en el gratuito, sigue en los pagos; un plan desconocido cuenta como el gratuito', () => {
     const tabla = { calendario_carencias: { gratuito: false, finca: true } };
     expect(funcionActiva('calendario_carencias', 'gratuito', tabla)).toBe(false);

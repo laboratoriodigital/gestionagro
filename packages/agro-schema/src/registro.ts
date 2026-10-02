@@ -164,32 +164,50 @@ const movimientoInsumoV1 = z
  * Si el área estaba en carencia y se cosechó de todas formas, la confirmación queda aquí con lo
  * que la app mostró (CA2): nunca se pierde que se cosechó dentro del periodo.
  */
-const cosechaV1 = z
+const camposCosechaV1 = {
+  cantidad: medida('de cantidad', 0.001, 1_000_000),
+  unidad: texto,
+  categoria_id: id,
+  categoria: texto,
+  descarte: medida('de cantidad', 0, 1_000_000).nullable(),
+  carenciaConfirmada: z
+    .strictObject({
+      tipo: z.enum(['hasta', 'desconocida']),
+      /** Primer día en que se podía cosechar; nulo si la carencia era desconocida. */
+      hasta: fechaAgronomica.nullable(),
+      insumos: z.array(texto).min(1),
+    })
+    .nullable(),
+};
+
+const carenciaCoherente = (
+  c: { carenciaConfirmada: { tipo: string; hasta: string | null } | null },
+  ctx: z.RefinementCtx,
+) => {
+  const k = c.carenciaConfirmada;
+  if (k && (k.tipo === 'hasta') !== (k.hasta !== null)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['carenciaConfirmada', 'hasta'],
+      message: 'la fecha va solo si la carencia era conocida',
+    });
+  }
+};
+
+const cosechaV1 = z.strictObject(camposCosechaV1).superRefine(carenciaCoherente);
+
+/**
+ * `cosecha` v2 (HU-E7.4): agrega las horas que cosechó cada persona, para el rendimiento por
+ * operario. Nulo = no se anotó, que no es 0 horas (P1). Van en medias horas, como en las labores.
+ */
+const cosechaV2 = z
   .strictObject({
-    cantidad: medida('de cantidad', 0.001, 1_000_000),
-    unidad: texto,
-    categoria_id: id,
-    categoria: texto,
-    descarte: medida('de cantidad', 0, 1_000_000).nullable(),
-    carenciaConfirmada: z
-      .strictObject({
-        tipo: z.enum(['hasta', 'desconocida']),
-        /** Primer día en que se podía cosechar; nulo si la carencia era desconocida. */
-        hasta: fechaAgronomica.nullable(),
-        insumos: z.array(texto).min(1),
-      })
+    ...camposCosechaV1,
+    horasPorPersona: medida('horas', 0.5, 24)
+      .refine((h) => Number.isInteger(h * 2), 'debe ir en medias horas (0,5; 1; 1,5…)')
       .nullable(),
   })
-  .superRefine((c, ctx) => {
-    const k = c.carenciaConfirmada;
-    if (k && (k.tipo === 'hasta') !== (k.hasta !== null)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['carenciaConfirmada', 'hasta'],
-        message: 'la fecha va solo si la carencia era conocida',
-      });
-    }
-  });
+  .superRefine(carenciaCoherente);
 
 /**
  * `lote_venta` v1 (HU-E6.2): cosechas enteras agrupadas para despacharlas, con un código corto
@@ -253,7 +271,7 @@ export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, 
   riego: { 1: riegoV1, 2: riegoV2 },
   labor: { 1: laborV1 },
   aplicacion: { 1: aplicacionV1, 2: aplicacionV2 },
-  cosecha: { 1: cosechaV1 },
+  cosecha: { 1: cosechaV1, 2: cosechaV2 },
   lote_venta: { 1: loteVentaV1 },
   despacho: { 1: despachoV1 },
   monitoreo: { 1: monitoreoV1 },

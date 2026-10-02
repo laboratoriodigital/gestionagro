@@ -1,11 +1,12 @@
 /**
  * Rendimiento por nave y por planta (HU-E6.6) en un teléfono de 360 px, con las dos fincas de
- * prueba (P4). El cálculo con casos está en agro-calc y en el almacén; aquí, la pantalla.
+ * prueba (P4), y por operario (HU-E7.4). El cálculo con casos está en agro-calc y en el almacén;
+ * aquí, la pantalla.
  */
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA } from '../fixtures/fincas.ts';
-import { configurar } from './ayudas.ts';
+import { configurar, conPlan, ROL } from './ayudas.ts';
 
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
 
@@ -52,3 +53,79 @@ for (const f of FINCAS_DE_PRUEBA) {
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   });
 }
+
+const FINCA = FINCAS_DE_PRUEBA[0];
+
+async function cosechar(
+  page: Page,
+  area: string,
+  cantidad: string,
+  persona: string,
+  horas: string,
+) {
+  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
+  const form = page.locator('[data-prueba="formulario-cosecha"]');
+  await page.getByLabel('Área', { exact: true }).selectOption({ label: area });
+  await page.getByLabel('Cantidad cosechada').fill(cantidad);
+  await form.getByLabel('kg', { exact: true }).check();
+  await form.getByLabel('Primera', { exact: true }).check();
+  // Las horas aparecen solo al elegir quién cosechó.
+  await expect(form.getByLabel(/^Horas que cosechó cada persona/)).toHaveCount(0);
+  await form.getByLabel(persona, { exact: true }).check();
+  if (horas) await form.getByLabel(/^Horas que cosechó cada persona/).fill(horas);
+  await page.getByRole('button', { name: 'Guardar cosecha' }).click();
+  await expect(page.getByText('Cosecha guardada en este teléfono.')).toBeVisible();
+}
+
+async function prepararConPersona(page: Page, plan: string, rol = 'propietario') {
+  const f = FINCA;
+  const area = f?.areas[0];
+  const p = f?.personas[0];
+  if (!f || !area || !p) throw new Error('faltan datos de la finca de prueba');
+  await configurar(page, f);
+  await conPlan(page, plan, rol);
+  await nav(page).getByRole('link', { name: 'Personas' }).click();
+  await page.getByRole('button', { name: 'Agregar persona' }).click();
+  await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
+  await page.getByRole('radio', { name: ROL[p.rol], exact: true }).check();
+  await page.getByRole('button', { name: 'Guardar persona' }).click();
+  return { area: area.nombre, persona: p.nombre };
+}
+
+test('HU-E7.4 · CA1 y CA3: con el plan Exportador, kg por hora de cada persona y las cosechas que no entran', async ({
+  page,
+}) => {
+  const { area, persona } = await prepararConPersona(page, 'exportador');
+  await cosechar(page, area, '60', persona, '4');
+  await cosechar(page, area, '500', persona, '');
+  await nav(page).getByRole('link', { name: 'Rendimiento' }).click();
+  const seccion = page.locator('[data-prueba="rendimiento-por-persona"]');
+  const fila = seccion.locator('[data-prueba="fila-persona"]');
+  await expect(fila).toHaveCount(1);
+  await expect(fila).toContainText(persona);
+  // La cosecha sin horas no baja el promedio: 60 kg en 4 h.
+  await expect(fila).toContainText('15 kg/h · 60 kg en 4 h');
+  await expect(seccion.locator('[data-prueba="cosechas-fuera"]')).toHaveText(
+    'No entran al cálculo: 1 cosecha sin horas.',
+  );
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test('HU-E7.4: con el plan Finca dice que viene con el plan Exportador', async ({ page }) => {
+  await prepararConPersona(page, 'finca');
+  await nav(page).getByRole('link', { name: 'Rendimiento' }).click();
+  await expect(page.locator('[data-prueba="rendimiento-persona-plan"]')).toContainText(
+    'viene con el plan Exportador',
+  );
+  await expect(page.locator('[data-prueba="tabla-por-persona"]')).toHaveCount(0);
+});
+
+test('HU-E7.4 · CA2: un operario no ve el rendimiento por persona', async ({ page }) => {
+  if (!FINCA) throw new Error('falta la finca de prueba');
+  await configurar(page, FINCA);
+  await conPlan(page, 'exportador', 'operario');
+  await nav(page).getByRole('link', { name: 'Rendimiento' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Rendimiento' })).toBeVisible();
+  await expect(page.locator('[data-prueba="rendimiento-por-persona"]')).toHaveCount(0);
+});
