@@ -920,7 +920,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E7.2 · Jornales y mano de obra
 **Como** propietario **quiero** que las horas de labores se conviertan en costo de mano de obra por nave **para** conocer el costo real.
-- **Peldaño:** herramienta de negocio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E3.9, HU-E3.5 · **Estado:** Refinada
+- **Peldaño:** herramienta de negocio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E3.9, HU-E3.5 · **Estado:** En sprint (rama `feat/e7.2-mano-de-obra`. CA1: `valor_jornal` admite `persona_id` nulo, que es el valor general de la finca; es una ampliación compatible con las apps de antes (P10). Rige el valor de la persona o, si no tiene, el general, siempre el que regía el día de la labor; cambiarlo no toca lo pasado. `valorVigente` de agro-calc, con casos. CA2: «Costos» → «Mano de obra por nave», con el periodo (este mes, el mes pasado o todo) y un jornal de 8 h. Sin valor que rija, se dice «sin valor de jornal» y no se suma 0 (P1). Una labor en varias áreas reparte sus horas por partes iguales. CA3: la pantalla dice que no liquida nómina, recargos, horas extra ni prestaciones. Plan Finca y propietario o supervisor, como el resto de «Costos»)
 - **Criterios de aceptación:**
   1. Valor de jornal por persona o general, con la fecha desde la que rige. Cambiarlo no altera los costos pasados.
   2. Costo de labores por nave y periodo.

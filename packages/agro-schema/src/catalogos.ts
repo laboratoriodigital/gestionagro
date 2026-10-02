@@ -99,11 +99,13 @@ export const insumo = z.strictObject({
  * Valor del jornal de una persona (HU-E3.5, CA1). Va aparte de la persona para que solo
  * propietario y supervisor lo vean cuando existan los roles (HU-E4.5). Cada cambio es una fila
  * nueva con la fecha desde la que rige: cambiarlo no altera costos pasados (HU-E7.2).
+ * Sin persona (`persona_id` nulo) es el **valor general** de la finca, para quien no tiene uno
+ * propio (HU-E7.2, CA1). Ampliar a nulo no rompe lo que escriben las apps de antes (P10).
  */
 export const valorJornal = z.strictObject({
   ...metaDeCatalogo,
   finca_id: id,
-  persona_id: id,
+  persona_id: id.nullable(),
   valor_cop: z.int('debe ser un valor entero en pesos').min(1, 'debe ser mayor que 0'),
   vigente_desde: fechaAgronomica,
 });
