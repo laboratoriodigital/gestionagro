@@ -1,0 +1,9 @@
+{
+  "nota": "Funciones del cuaderno que se encienden o apagan por plan, sin tocar el código: se cambia aquí, se hace commit y se despliega (ED1: Git como plano de control). Un plan que no esté aquí cuenta como el gratuito. El calendario de carencias está encendido en el gratuito para traer y retener usuarios (análisis de palabras clave, HU-E0.2; Estudio de mercado: peldaño usuario recurrente). Apagarlo en el gratuito lo deja en los planes pagos; la carencia de cada área en «Áreas» sigue siendo gratis siempre (HU-E3.10).",
+  "calendario_carencias": {
+    "gratuito": true,
+    "finca": true,
+    "exportador": true,
+    "cadena": true
+  }
+}
