@@ -4,6 +4,7 @@
  * El contenido completo se ve sin JavaScript (P20); la calculadora llega como isla (HU-E2.2).
  */
 import type { Producto } from '../../../../../../scripts/lib/productos.ts';
+import CalculadoraCarencia from '../../../islas/CalculadoraCarencia.tsx';
 import CalculadoraDpv from '../../../islas/CalculadoraDpv.tsx';
 import Base from '../../../layouts/Base.astro';
 import { contenidoDe, herramientas, paginaDe, productoPorId } from '../../../lib/contenido.ts';
@@ -49,6 +50,14 @@ const relacionados = producto.relacionados
             <CalculadoraDpv client:load />
             <noscript>
               <p>La calculadora necesita JavaScript. Abajo está el cálculo paso a paso para hacerlo a mano.</p>
+            </noscript>
+            <p class="privacidad">Los valores no salen de tu teléfono: el cálculo se hace aquí.</p>
+          </>
+        ) : producto.id === 'agro-periodo-de-carencia' ? (
+          <>
+            <CalculadoraCarencia client:load />
+            <noscript>
+              <p>La calculadora necesita JavaScript. Abajo está cómo contar los días a mano.</p>
             </noscript>
             <p class="privacidad">Los valores no salen de tu teléfono: el cálculo se hace aquí.</p>
           </>
@@ -215,6 +224,11 @@ const relacionados = producto.relacionados
     color: var(--color-marca-texto);
     font-weight: 600;
     text-decoration: none;
+  }
+  .calculadora-dpv .aviso-etiqueta {
+    border-inline-start: 4px solid var(--color-borde);
+    padding-inline-start: var(--espacio-2);
+    font-size: var(--texto-pequeno);
   }
   .privacidad {
     font-size: var(--texto-pequeno);

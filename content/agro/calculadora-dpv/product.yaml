@@ -16,8 +16,7 @@ seo:
 monetizacion:
   ads: []
   ads_en_procesamiento: false
-# agro-periodo-de-carencia entra cuando exista (HU-E10.1): relacionados solo acepta productos existentes.
-relacionados: [agro-cuaderno]
+relacionados: [agro-cuaderno, agro-periodo-de-carencia]
 eventos: [tool.opened, tool.completed, tool.shared, tool.next_step]
 presupuesto:
   api_requests_dia: 0
