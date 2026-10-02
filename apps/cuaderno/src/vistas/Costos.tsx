@@ -1,6 +1,6 @@
 /**
- * Costos (HU-E7.1): la bodega de insumos con su costo promedio ponderado, las compras y ajustes,
- * y el costo de los insumos aplicados por nave y ciclo. Los costos son del plan Finca
+ * Costos (HU-E7.1 y HU-E7.2): la bodega de insumos con su costo promedio ponderado, las compras y
+ * ajustes, el costo de los insumos aplicados por nave y ciclo, y la mano de obra por nave. Los costos son del plan Finca
  * (ARQUITECTURA §2.4) y solo los ven propietario y supervisor (§9); el campo no se bloquea nunca:
  * una existencia negativa se avisa (CA3).
  */
@@ -18,6 +18,7 @@ import {
 import { leerInsumos } from '../almacen/insumos.ts';
 import { leerSesion, planDeLaFinca } from '../almacen/sesion.ts';
 import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
+import { ManoDeObra } from './ManoDeObra.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 import { usarPermisos } from './usarPermisos.tsx';
 
@@ -285,6 +286,13 @@ export function Costos() {
             ))}
           </tbody>
         </table>
+      )}
+      {permisos.puede('leer', 'valor_jornal') && (
+        <ManoDeObra
+          fincaId={fincaId}
+          areas={nombres.areas}
+          puedeCambiar={permisos.puede('escribir', 'valor_jornal')}
+        />
       )}
     </section>
   );
