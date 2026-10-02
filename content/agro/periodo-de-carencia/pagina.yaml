@@ -1,0 +1,30 @@
+# Preguntas frecuentes y pasos de la calculadora de carencia y reentrada (HU-E10.1). Una sola
+# fuente para lo que se ve en la página y para el JSON-LD (FAQPage y HowTo). Pendiente de revisión
+# agronómica.
+revision_agronomica: pendiente
+
+preguntas:
+  - pregunta: "¿Qué diferencia hay entre periodo de carencia y periodo de reentrada?"
+    respuesta: "La carencia protege a quien se come la cosecha: son los días que deben pasar entre la aplicación y la cosecha. La reentrada protege a quien trabaja: son las horas que deben pasar antes de entrar al área tratada sin equipo de protección. Un producto puede tener una carencia larga y una reentrada corta, o al revés."
+  - pregunta: "¿El día de la aplicación cuenta como el primer día de carencia?"
+    respuesta: "No. El día de la aplicación es el día cero. Con una carencia de 3 días aplicada el 10, se cuentan el 11, el 12 y el 13, y se cosecha desde el 13. La calculadora ya hace esa cuenta por ti."
+  - pregunta: "¿Qué hago si apliqué dos productos el mismo día?"
+    respuesta: "Calcula cada uno y quédate con la fecha más lejana: manda el producto con la carencia más larga y, para entrar, el de la reentrada más larga. Si vuelves a aplicar antes de que se cumpla la carencia, la cuenta empieza otra vez desde la nueva aplicación."
+  - pregunta: "¿Qué pasa si la etiqueta no trae la carencia o la reentrada?"
+    respuesta: "Deja el campo vacío. La calculadora dirá que la carencia o la reentrada es desconocida y no dará fecha, porque un cero sería decir que se puede cosechar o entrar el mismo día. Pregunta a tu asesor técnico o al distribuidor antes de cosechar."
+  - pregunta: "¿Por qué la hora de entrada sale distinta si mi teléfono está en otra zona horaria?"
+    respuesta: "No sale distinta: la calculadora siempre cuenta en hora de Colombia, que es la de la finca. Si tu teléfono quedó en otra zona por un viaje, la fecha y la hora que ves siguen siendo las de aquí."
+  - pregunta: "¿Puedo cosechar antes si lavo la fruta?"
+    respuesta: "No. La carencia está pensada para que el residuo baje dentro y sobre la planta con el tiempo, y lavar no asegura que llegue a un nivel aceptado. Respeta la fecha de la etiqueta y, si vendes a exportación, la que pida tu comprador."
+  - pregunta: "¿Los datos que escribo se envían a algún lado?"
+    respuesta: "No. La fecha, la hora y los días que escribes no salen de tu teléfono: el cálculo se hace en la página. Lo único que se envía es un conteo anónimo de cuántas veces se abrió y se usó la calculadora, sin datos personales ni valores."
+
+pasos:
+  - nombre: "Busca la etiqueta"
+    texto: "Toma la etiqueta del producto que aplicaste y busca el periodo de carencia en días y el periodo de reentrada en horas."
+  - nombre: "Escribe cuándo aplicaste"
+    texto: "La fecha y la hora ya vienen con el momento actual; cámbialas si aplicaste antes."
+  - nombre: "Copia los dos datos"
+    texto: "Escribe la carencia y la reentrada tal como vienen en la etiqueta. Si falta uno, déjalo vacío."
+  - nombre: "Avisa y anota"
+    texto: "Pon las fechas en la puerta de la nave y anota la aplicación en el cuaderno de campo."

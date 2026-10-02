@@ -167,6 +167,9 @@ importers:
       '@gestionagro/agro-calc':
         specifier: workspace:*
         version: link:../../packages/agro-calc
+      '@gestionagro/agro-schema':
+        specifier: workspace:*
+        version: link:../../packages/agro-schema
       '@gestionagro/eventos':
         specifier: workspace:*
         version: link:../../packages/eventos
