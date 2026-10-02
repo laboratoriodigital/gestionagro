@@ -73,7 +73,7 @@ describe('CA3 · toda consulta de la celda filtra por el org_id del token', () =
   it('encuentra las consultas (si el patrón deja de verlas, esta prueba no probaría nada)', () => {
     expect(consultas.length).toBeGreaterThanOrEqual(10);
     expect(new Set(consultas.map((c) => c.archivo))).toEqual(
-      new Set(['push.ts', 'pull.ts', 'worker.ts']),
+      new Set(['push.ts', 'pull.ts', 'qr.ts', 'worker.ts']),
     );
   });
 

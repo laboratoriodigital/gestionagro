@@ -27,6 +27,7 @@ import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { pull } from './pull.ts';
 import { push } from './push.ts';
+import { clavesQr, firmarLote } from './qr.ts';
 import { type KvDeFlags, resumen, vigilar } from './vigia.ts';
 
 /** Producto cuyo kill switch apaga la sincronización (`content/agro/cuaderno/product.yaml`). */
@@ -52,6 +53,8 @@ export interface Env {
   CF_METRICAS_TOKEN?: string;
   /** Cuenta de Cloudflare cuyas cuotas se miden; la pone el despliegue. */
   CF_CUENTA?: string;
+  /** Clave Ed25519 con que la celda firma los QR de trazabilidad (HU-E6.4); la genera el despliegue. */
+  CELDA_QR_PRIVATE_KEY?: string;
   /** Plan de la cuenta de la celda (celdas.json): el vigía conoce las cuotas del gratuito. */
   PLAN?: string;
   /** Un binding D1 por shard, con el nombre del shard. */
@@ -130,6 +133,8 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       return c.json({ estado: 'shard-con-falla', motivo: fallas.join('; ') }, 503);
     return c.json({ estado: 'ok', celda: c.env.CELDA, shards: shards.length });
   });
+
+  app.get('/api/claves-qr', (c) => clavesQr(c));
 
   app.use(
     '/api/v1/*',
@@ -215,6 +220,7 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
   });
 
   app.post('/api/v1/sync/push', (c) => push(c, ahora));
+  app.post('/api/v1/lotes/firmar', (c) => firmarLote(c));
   app.get('/api/v1/sync/pull', (c) => pull(c, ahora));
 
   // Una falla inesperada (D1 que rechaza, un error del código) se responde en JSON con su causa:

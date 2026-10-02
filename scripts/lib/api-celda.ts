@@ -104,3 +104,30 @@ export async function humoCelda(fetchFn: Fetch, base: string, shards: number): P
   }
   return fallas;
 }
+
+/**
+ * Secretos del Worker de la celda:
+ * - `CF_METRICAS_TOKEN` (HU-E8.2), si está en GitHub. Si falta, se avisa: el vigía no puede medir.
+ * - `CELDA_QR_PRIVATE_KEY` (HU-E6.4), **solo si el Worker no tiene una**: cambiarla haría que las
+ *   etiquetas ya impresas dejen de verificarse.
+ */
+export async function secretosDeLaCelda(
+  existentes: readonly string[],
+  tokenMetricas: string | undefined,
+  nombreSecretoMetricas: string,
+  nuevaClave: () => Promise<string>,
+): Promise<{ secretos: Record<string, string>; avisos: string[]; claveNueva: boolean }> {
+  const claveNueva = !existentes.includes('CELDA_QR_PRIVATE_KEY');
+  return {
+    secretos: {
+      ...(tokenMetricas ? { CF_METRICAS_TOKEN: tokenMetricas } : {}),
+      ...(claveNueva ? { CELDA_QR_PRIVATE_KEY: await nuevaClave() } : {}),
+    },
+    avisos: tokenMetricas
+      ? []
+      : [
+          `⚠ falta el secreto ${nombreSecretoMetricas}: el vigía de cuota no puede medir y dejará la celda en «alerta»`,
+        ],
+    claveNueva,
+  };
+}

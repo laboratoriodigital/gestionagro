@@ -419,6 +419,12 @@ Costos por ciclo y por área, costo por kg, rendimiento (kg/m², kg/planta, kg/h
 - La página verifica con las claves públicas de las celdas horneadas en el build. Con una firma válida muestra «verificado por Gestión Agro», y con una inválida lo dice en rojo.
 - Costo por escaneo: cero. Funciona aunque la finca cambie de celda o ya no sea cliente.
 - Nunca incluye datos personales (P13, Ley 1581).
+- **Implementado (HU-E6.4):**
+  - Formato y verificación en `packages/trazabilidad`, sin dependencias. El fragmento es `datos[.firma]`, con `datos` en JSON base64url y la firma Ed25519 sobre ese texto.
+  - Firma: `POST /api/v1/lotes/firmar` (`apps/api-celda/src/qr.ts`), con los datos que la celda tiene guardados.
+  - La clave `CELDA_QR_PRIVATE_KEY` la genera el despliegue una sola vez y nunca la reemplaza: cambiarla haría que las etiquetas impresas dejen de verificarse.
+  - Página: `/agro/t/` (`apps/sitio/src/pages/agro/t/`), que verifica con @noble/ed25519.
+  - Las claves públicas las lee el despliegue de `GET /api/claves-qr` de cada celda activa y las pone en `#claves-qr` de la página antes de subir el sitio. Por eso el orden por celda es CORE → API → sitio.
 
 ### 5.10 Integraciones
 
@@ -586,6 +592,7 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
   - Token del bot de Telegram.
 - **Rotación de claves:** la tabla `celda` guarda la clave vigente y la anterior.
 - **Cómo llegan los secretos al CORE (HU-E4.2):** `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` viven en GitHub y el despliegue los carga en el Worker con `wrangler secret bulk` por stdin, sin escribirlos en disco. `CORE_JWT_PRIVATE_KEY` no existe fuera del Worker: el despliegue la genera la primera vez que el Worker no la tiene y nunca la reemplaza (cambiarla cierra todas las sesiones). Staging y producción tienen claves distintas.
+- **Clave del QR de cada celda (HU-E6.4):** `CELDA_QR_PRIVATE_KEY` no existe fuera del Worker de la celda. El despliegue la genera la primera vez que el Worker no la tiene y nunca la reemplaza. Su parte pública la publica la celda en `/api/claves-qr` y va dentro de la página `/agro/t/`.
 - **Token de métricas de cada celda (HU-E8.2):** `CF_METRICAS_TOKEN` es un token de **solo lectura** (permiso «Account → Account Analytics: Read») de la cuenta de la celda. El despliegue lo carga en el Worker de la celda con `wrangler secret bulk` por stdin, y el vigía lo usa cada hora para leer las métricas. No sirve para desplegar ni para escribir: por eso es aparte del de despliegue. `celdas.json` lo nombra en `secretos.metricas`.
 - Una prueba exige que todo secreto que nombra un flujo esté listado en este documento (bitácora ecommerce 82). Lista actual: `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `CF_METRICAS_TOKEN`, `CORE_JWT_PRIVATE_KEY`, `CELDA_QR_PRIVATE_KEY`, `CELDA_SERVICE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
 

@@ -23,6 +23,7 @@ import {
   leerLotes,
 } from '../almacen/lotes.ts';
 import { FormularioDespacho, ListaDespachos } from './Despachos.tsx';
+import { EtiquetaQr } from './EtiquetaQr.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 import { SoloConsulta, usarPermisos } from './usarPermisos.tsx';
 
@@ -130,9 +131,10 @@ export function Lotes() {
   const [cosechas, setCosechas] = useState<CosechaParaLote[]>([]);
   const [despachos, setDespachos] = useState<Despacho[]>([]);
   const [clientes, setClientes] = useState<DatosDespacho['cliente'][]>([]);
-  const [abierto, setAbierto] = useState<{ tipo: 'cambiar' | 'despachar'; id: string } | null>(
-    null,
-  );
+  const [abierto, setAbierto] = useState<{
+    tipo: 'cambiar' | 'despachar' | 'etiqueta';
+    id: string;
+  } | null>(null);
   const fincaId = !estado.cargando && estado.finca ? estado.finca.id : null;
 
   const cargar = () => {
@@ -205,6 +207,8 @@ export function Lotes() {
                   alTerminar={cargar}
                   alCancelar={() => setAbierto(null)}
                 />
+              ) : abierto?.tipo === 'etiqueta' && abierto.id === l.registro.id ? (
+                <EtiquetaQr lote={l} alCerrar={() => setAbierto(null)} />
               ) : abierto?.tipo === 'cambiar' && abierto.id === l.registro.id ? (
                 <ElegirCosechas
                   fincaId={fincaId}
@@ -216,6 +220,16 @@ export function Lotes() {
               ) : (
                 (arma || despacha) && (
                   <div class="acciones-area">
+                    {arma && (
+                      <button
+                        type="button"
+                        class="secundario"
+                        onClick={() => setAbierto({ tipo: 'etiqueta', id: l.registro.id })}
+                        aria-label={`Etiqueta QR del lote ${l.codigo}`}
+                      >
+                        Etiqueta QR
+                      </button>
+                    )}
                     {despacha && l.saldo > 0 && (
                       <button
                         type="button"
