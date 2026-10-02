@@ -33,12 +33,15 @@ export const MATRIZ: Readonly<Record<Entidad, Readonly<Record<Accion, readonly R
 
 /**
  * Tipos de registro con permisos propios (HU-E6.3). Los demás tipos siguen la fila `registro`.
- * Un despacho lleva precios: solo propietario y supervisor lo ven y lo anotan.
+ * Un despacho y un movimiento de bodega llevan precios: solo propietario y supervisor los ven y
+ * los anotan.
  */
 export const MATRIZ_DE_REGISTROS: Readonly<
   Record<string, Readonly<Record<Accion, readonly Rol[]>>>
 > = {
   despacho: { leer: ADMINISTRAN, escribir: ADMINISTRAN },
+  // Compras y ajustes de bodega, con precios (HU-E7.1).
+  movimiento_insumo: { leer: ADMINISTRAN, escribir: ADMINISTRAN },
 };
 
 export const puede = (rol: string, accion: Accion, entidad: Entidad): boolean =>
@@ -79,7 +82,10 @@ const NOMBRE_DE_ENTIDAD: Readonly<Record<Entidad, string>> = {
   valor_jornal: 'el valor del jornal',
 };
 
-const NOMBRE_DE_TIPO: Readonly<Record<string, string>> = { despacho: 'las ventas' };
+const NOMBRE_DE_TIPO: Readonly<Record<string, string>> = {
+  despacho: 'las ventas',
+  movimiento_insumo: 'la bodega',
+};
 
 /** El motivo, en palabras, de una escritura negada; `tipo` para un registro con permisos propios. */
 export const motivoSinPermiso = (rol: string, entidad: Entidad, tipo?: string) =>

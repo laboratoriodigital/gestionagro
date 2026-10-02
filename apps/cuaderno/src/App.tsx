@@ -11,6 +11,7 @@ import { AvisoDeReemplazo } from './AvisoDeReemplazo.tsx';
 import { IndicadorDatos } from './IndicadorDatos.tsx';
 import { RUTAS_APP, rutaDe } from './rutas.ts';
 import { iniciarSincronizacion } from './sincronizacion.ts';
+import { Costos } from './vistas/Costos.tsx';
 import { Cuenta } from './vistas/Cuenta.tsx';
 import { Historial } from './vistas/Historial.tsx';
 import { Inicio } from './vistas/Inicio.tsx';
@@ -34,6 +35,7 @@ const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> =
   unirme: Unirme,
   lotes: Lotes,
   rendimiento: Rendimiento,
+  costos: Costos,
 };
 
 /** Con y sin «/» final: el enlace directo llega como /agro/app/insumos/ y la navegación como /agro/app/insumos. */

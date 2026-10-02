@@ -118,6 +118,47 @@ const aplicacionV1 = z.strictObject({
 });
 
 /**
+ * `aplicacion` v2 (HU-E7.1): v1 más la cantidad del producto que se gastó, en la unidad del
+ * insumo. De ella sale la salida de bodega: no hay un registro de salida aparte (P2), y corregir la
+ * aplicación corrige la bodega. Nulo = no se anotó, que no es 0 (P1).
+ */
+const aplicacionV2 = aplicacionV1.extend({
+  cantidadUsada: medida('de cantidad usada', 0.0001, 1_000_000).nullable(),
+});
+
+/**
+ * `movimiento_insumo` v1 (HU-E7.1, ARQUITECTURA §5.7): una entrada a bodega (compra, con su
+ * precio total en pesos o nulo si no se anotó) o un ajuste de inventario (cantidad con signo, sin
+ * precio). Las salidas salen de las aplicaciones.
+ */
+const movimientoInsumoV1 = z
+  .strictObject({
+    insumo_id: id,
+    insumo: texto,
+    clase: z.enum(['compra', 'ajuste']),
+    cantidad: z.number().refine((x) => Number.isFinite(x) && x !== 0, 'no puede ser 0'),
+    unidad: texto,
+    precio_total_cop: z.int('debe ser un valor entero en pesos').min(1).nullable(),
+    nota: z.string().trim().max(280).nullable(),
+  })
+  .superRefine((m, ctx) => {
+    if (m.clase === 'compra' && m.cantidad <= 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['cantidad'],
+        message: 'una compra suma: debe ser mayor que 0',
+      });
+    }
+    if (m.clase === 'ajuste' && m.precio_total_cop !== null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['precio_total_cop'],
+        message: 'un ajuste no lleva precio',
+      });
+    }
+  });
+
+/**
  * `cosecha` v1 (HU-E6.1): cantidad en la unidad del cultivo (kg, tallos, cajas…), categoría de
  * calidad del catálogo y descarte en la misma unidad (nulo = no se anotó, que no es 0, P1).
  * Si el área estaba en carencia y se cosechó de todas formas, la confirmación queda aquí con lo
@@ -211,11 +252,12 @@ export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, 
   clima: { 1: climaV1 },
   riego: { 1: riegoV1, 2: riegoV2 },
   labor: { 1: laborV1 },
-  aplicacion: { 1: aplicacionV1 },
+  aplicacion: { 1: aplicacionV1, 2: aplicacionV2 },
   cosecha: { 1: cosechaV1 },
   lote_venta: { 1: loteVentaV1 },
   despacho: { 1: despachoV1 },
   monitoreo: { 1: monitoreoV1 },
+  movimiento_insumo: { 1: movimientoInsumoV1 },
 };
 
 export type Registro = z.infer<typeof registroBase>;

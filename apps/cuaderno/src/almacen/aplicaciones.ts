@@ -30,6 +30,12 @@ export interface DatosAplicacion {
   equipo: string | null;
   /** Quién aplicó (responsable). */
   personaIds: string[];
+  /**
+   * Cuánto producto se gastó en total, en la unidad del insumo (HU-E7.1); null si no se anotó.
+   * Con varias áreas se reparte en proporción a sus m²: cada registro lleva su parte, y la suma
+   * es lo que salió de bodega.
+   */
+  cantidadUsada?: number | null;
 }
 
 export interface DatosAplicacionGuardada {
@@ -41,6 +47,39 @@ export interface DatosAplicacionGuardada {
   equipo: string | null;
   carenciaDias: number | null;
   reentradaHoras: number | null;
+  /** v2 (HU-E7.1): la parte de este registro; null = no se anotó (o un registro v1). */
+  cantidadUsada: number | null;
+}
+
+/**
+ * Lo que la dosis y la mezcla dicen que se gastó, si la dosis va «por litro» en la unidad del
+ * insumo (`mL/L` con un insumo en mL): dosis × litros. Es una sugerencia que la persona confirma;
+ * nunca se guarda sola (P1). Nulo si no se puede deducir.
+ */
+export function cantidadSugerida(
+  dosis: number,
+  dosisUnidad: string,
+  litros: number | null,
+  unidadInsumo: string,
+): number | null {
+  if (litros === null || !(dosis > 0)) return null;
+  const limpio = (t: string) => t.toLocaleLowerCase('es').replace(/\s+/g, '');
+  // «mL/L», «mL / litro», «mL por litro» → «ml».
+  const por = limpio(dosisUnidad).match(/^(.+?)(?:\/l|\/litro|porlitro|porl)$/);
+  if (!por || por[1] !== limpio(unidadInsumo)) return null;
+  return Math.round(dosis * litros * 1e4) / 1e4;
+}
+
+/** Reparte una cantidad entre áreas según sus m²; la última se lleva lo que deja el redondeo. */
+export function repartirPorArea(total: number, m2: readonly number[]): number[] {
+  const suma = m2.reduce((a, b) => a + b, 0);
+  const partes = m2.map((x) =>
+    suma > 0
+      ? Math.round(((total * x) / suma) * 1e4) / 1e4
+      : Math.round((total / m2.length) * 1e4) / 1e4,
+  );
+  const resto = Math.round((total - partes.slice(0, -1).reduce((a, b) => a + b, 0)) * 1e4) / 1e4;
+  return [...partes.slice(0, -1), resto];
 }
 
 export async function guardarAplicacion(
@@ -70,12 +109,19 @@ export async function guardarAplicacion(
       ? { carenciaDias: antes.carenciaDias, reentradaHoras: antes.reentradaHoras }
       : { carenciaDias: insumo.carencia_dias, reentradaHoras: insumo.reentrada_horas };
   const registros = [];
-  for (const areaId of areas) {
+  const cantidades =
+    datos.cantidadUsada === null || datos.cantidadUsada === undefined
+      ? areas.map(() => null)
+      : repartirPorArea(
+          datos.cantidadUsada,
+          await Promise.all(areas.map(async (id) => (await db.area.get(id))?.area_m2 ?? 0)),
+        );
+  for (const [i, areaId] of areas.entries()) {
     const cabecera = await cabeceraDeRegistro(db, {
       fincaId,
       areaId,
       tipo: 'aplicacion',
-      v: 1,
+      v: 2,
       personaIds: datos.personaIds,
       // Quien registra anota a nombre de quien aplicó, tenga o no cuenta (ARQUITECTURA §5.3).
       origen: 'tablero',
@@ -92,6 +138,7 @@ export async function guardarAplicacion(
         volumenMezclaL: datos.volumenMezclaL,
         equipo: datos.equipo?.trim() || null,
         ...etiqueta,
+        cantidadUsada: cantidades[i] ?? null,
       } satisfies DatosAplicacionGuardada,
     });
   }

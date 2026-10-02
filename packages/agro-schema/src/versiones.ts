@@ -24,6 +24,11 @@ export const TRADUCTORES: Readonly<Record<string, Readonly<Record<number, Paso>>
     // v2 agregó la duración. Un riego v1 no la anotó: «no se anotó», que no es 0 minutos.
     1: (d) => ({ ...d, duracionMin: null }),
   },
+  aplicacion: {
+    // v2 agregó la cantidad usada (HU-E7.1). Una aplicación v1 no la anotó: «no se anotó», que no
+    // es 0; esa aplicación no descuenta de bodega ni suma costo, y la pantalla lo dice.
+    1: (d) => ({ ...d, cantidadUsada: null }),
+  },
 };
 
 export class VersionSinTraductor extends Error {

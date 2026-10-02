@@ -1,0 +1,76 @@
+{
+  "nota": "Casos de la bodega con costo promedio ponderado (HU-E7.1). Cantidades en la unidad del insumo; precios en pesos. Sin precio, el costo es nulo: nunca cero (P1).",
+  "tolerancia": 0.0001,
+  "casos": [
+    {
+      "nombre": "dos compras a precios distintos y una salida",
+      "movimientos": [
+        { "id": "c1", "tipo": "entrada", "cantidad": 1000, "precioTotal": 80000 },
+        { "id": "c2", "tipo": "entrada", "cantidad": 1000, "precioTotal": 100000 },
+        { "id": "a1", "tipo": "salida", "cantidad": 500 }
+      ],
+      "existencia": 1500,
+      "costoUnitario": 90,
+      "salidas": { "a1": 45000 },
+      "quedoNegativa": false
+    },
+    {
+      "nombre": "la compra después de una salida promedia con lo que queda",
+      "movimientos": [
+        { "id": "c1", "tipo": "entrada", "cantidad": 1000, "precioTotal": 80000 },
+        { "id": "a1", "tipo": "salida", "cantidad": 600 },
+        { "id": "c2", "tipo": "entrada", "cantidad": 400, "precioTotal": 40000 },
+        { "id": "a2", "tipo": "salida", "cantidad": 100 }
+      ],
+      "existencia": 700,
+      "costoUnitario": 90,
+      "salidas": { "a1": 48000, "a2": 9000 },
+      "quedoNegativa": false
+    },
+    {
+      "nombre": "una compra sin precio deja el costo sin conocer",
+      "movimientos": [
+        { "id": "c1", "tipo": "entrada", "cantidad": 1000, "precioTotal": 80000 },
+        { "id": "c2", "tipo": "entrada", "cantidad": 500, "precioTotal": null },
+        { "id": "a1", "tipo": "salida", "cantidad": 200 }
+      ],
+      "existencia": 1300,
+      "costoUnitario": null,
+      "salidas": { "a1": null },
+      "quedoNegativa": false
+    },
+    {
+      "nombre": "gastar más de lo que hay avisa sin bloquear; la compra siguiente fija el costo",
+      "movimientos": [
+        { "id": "c1", "tipo": "entrada", "cantidad": 100, "precioTotal": 10000 },
+        { "id": "a1", "tipo": "salida", "cantidad": 150 },
+        { "id": "c2", "tipo": "entrada", "cantidad": 200, "precioTotal": 30000 },
+        { "id": "a2", "tipo": "salida", "cantidad": 50 }
+      ],
+      "existencia": 100,
+      "costoUnitario": 150,
+      "salidas": { "a1": 15000, "a2": 7500 },
+      "quedoNegativa": true
+    },
+    {
+      "nombre": "un ajuste por conteo suma o resta al costo vigente",
+      "movimientos": [
+        { "id": "c1", "tipo": "entrada", "cantidad": 1000, "precioTotal": 50000 },
+        { "id": "j1", "tipo": "ajuste", "cantidad": -100 },
+        { "id": "a1", "tipo": "salida", "cantidad": 100 }
+      ],
+      "existencia": 800,
+      "costoUnitario": 50,
+      "salidas": { "a1": 5000 },
+      "quedoNegativa": false
+    },
+    {
+      "nombre": "sin compras: salidas sin costo conocido y existencia negativa",
+      "movimientos": [{ "id": "a1", "tipo": "salida", "cantidad": 20 }],
+      "existencia": -20,
+      "costoUnitario": null,
+      "salidas": { "a1": null },
+      "quedoNegativa": true
+    }
+  ]
+}
