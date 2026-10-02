@@ -8,10 +8,12 @@
     "@gestionagro/agro-calc": "workspace:*",
     "@gestionagro/agro-schema": "workspace:*",
     "@gestionagro/sync": "workspace:*",
+    "@gestionagro/trazabilidad": "workspace:*",
     "@gestionagro/ui": "workspace:*",
     "dexie": "^4.4.6",
     "preact": "^10.29.8",
     "preact-iso": "^2.12.2",
+    "qrcode-generator": "^2.0.4",
     "workbox-window": "^7.4.1"
   },
   "devDependencies": {

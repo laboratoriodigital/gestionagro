@@ -11,8 +11,14 @@ import {
   textoWranglerDeLaCelda,
   wranglerDeLaCelda,
 } from '../../scripts/generar-wrangler.ts';
-import { clavesDelCore, configDeLaCelda, humoCelda } from '../../scripts/lib/api-celda.ts';
+import {
+  clavesDelCore,
+  configDeLaCelda,
+  humoCelda,
+  secretosDeLaCelda,
+} from '../../scripts/lib/api-celda.ts';
 import { cargarCeldas } from '../../scripts/lib/celdas.ts';
+import { clavesQrDe, conClavesQr } from '../../scripts/lib/claves-qr.ts';
 import type { Fetch } from '../../scripts/lib/despliegue.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 
@@ -138,5 +144,56 @@ describe('prueba de humo de la celda', () => {
     expect(
       await humoCelda(celdaFalsa({ estado: 200, cuerpo: { shards: 1 } }, 200), 'https://api', 1),
     ).toEqual(['/api/v1/yo sin token: respondió 200, se esperaba 401']);
+  });
+});
+
+describe('HU-E6.4 · claves del QR en la página y clave de firma de la celda', () => {
+  const PAGINA =
+    '<main><script type="application/json" id="claves-qr">[]</script><h1>Trazabilidad</h1></main>';
+
+  it('pone las claves dentro de la página, sin que una clave pueda cerrar el bloque', () => {
+    const html = conClavesQr(PAGINA, [{ kid: 'k1', x: 'abc' }]);
+    expect(html).toContain('id="claves-qr">[{"kid":"k1","x":"abc"}]</script>');
+    expect(conClavesQr(PAGINA, [{ kid: '</script>', x: 'y' }])).not.toContain('"</script>');
+    expect(() => conClavesQr('<main></main>', [])).toThrow('no tiene el bloque #claves-qr');
+  });
+
+  it('la plantilla de la página trae el bloque que el despliegue reemplaza', () => {
+    expect(
+      readFileSync(join(RAIZ, 'apps', 'sitio', 'src', 'pages', 'agro', 't', 'index.astro'), 'utf8'),
+    ).toContain('<script type="application/json" id="claves-qr" is:inline>[]</script>');
+  });
+
+  it('lee las claves de la celda, y dice por qué si no las da', async () => {
+    const fetchFn = (async () =>
+      Response.json({ claves: [{ kid: 'k1', x: 'abc', otro: 'no' }] })) as unknown as Fetch;
+    expect(await clavesQrDe(fetchFn, 'https://api')).toEqual([{ kid: 'k1', x: 'abc' }]);
+    const sin = (async () =>
+      Response.json({ estado: 'sin-configurar' }, { status: 503 })) as unknown as Fetch;
+    await expect(clavesQrDe(sin, 'https://api')).rejects.toThrow('HTTP 503');
+  });
+
+  it('la clave de firma se genera solo si la celda no tiene una; el token de métricas, si existe', async () => {
+    const nueva = async () => 'clave-nueva';
+    expect(await secretosDeLaCelda([], 'tok', 'CF_METRICAS_TOKEN', nueva)).toEqual({
+      secretos: { CF_METRICAS_TOKEN: 'tok', CELDA_QR_PRIVATE_KEY: 'clave-nueva' },
+      avisos: [],
+      claveNueva: true,
+    });
+    const r = await secretosDeLaCelda(
+      ['CELDA_QR_PRIVATE_KEY'],
+      undefined,
+      'CF_METRICAS_TOKEN',
+      nueva,
+    );
+    expect(r.secretos).toEqual({});
+    expect(r.claveNueva).toBe(false);
+    expect(r.avisos[0]).toContain('falta el secreto CF_METRICAS_TOKEN');
+  });
+
+  it('el sitio se publica después de la API de la celda, que es de donde salen las claves', () => {
+    const texto = readFileSync(join(RAIZ, 'scripts', 'desplegar.ts'), 'utf8');
+    const bucle = texto.slice(texto.indexOf('for (const celda of plan.aDesplegar)'));
+    expect(bucle.indexOf('desplegarApiCelda(')).toBeLessThan(bucle.indexOf('desplegarSitio('));
   });
 });

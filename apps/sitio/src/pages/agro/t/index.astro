@@ -1,0 +1,127 @@
+---
+/**
+ * Página del QR de trazabilidad (HU-E6.4, ARQUITECTURA §5.9, ADR-14). Estática: lee el fragmento
+ * `#…` del QR, que no viaja a ningún servidor, y verifica la firma de la celda aquí mismo con
+ * Ed25519 (@noble/ed25519, para que funcione también en teléfonos sin Ed25519 en WebCrypto).
+ * Escanear no cuesta ninguna solicitud a la nube.
+ *
+ * Las claves públicas de las celdas van dentro de la página: el despliegue reemplaza el `[]` de
+ * `#claves-qr` por las que publica cada celda (`/api/claves-qr`) antes de subir el sitio.
+ *
+ * Los datos del fragmento los escribió quien imprimió la etiqueta: se pintan como texto
+ * (`textContent`), nunca como HTML. No se indexa: cada QR es distinto y no es contenido.
+ */
+import Base from '../../../layouts/Base.astro';
+import { SITIO } from '../../../lib/seo.ts';
+
+const titulo = 'Trazabilidad de un lote';
+---
+<Base
+  title={`${titulo} | Gestión Agro`}
+  description="De qué finca, nave y fecha viene el producto de esta etiqueta, verificado por Gestión Agro."
+  canonical={`${SITIO}/agro/t/`}
+  indexable={false}
+>
+  <script type="application/json" id="claves-qr" is:inline>[]</script>
+  <h1>{titulo}</h1>
+  <div id="qr-estado" class="qr-estado" role="status" aria-live="polite">Revisando la etiqueta…</div>
+  <dl id="qr-datos" class="qr-datos" hidden></dl>
+  <p class="qr-nota">
+    Esta página lee los datos del código QR en tu teléfono; no se envían a ningún lado.
+  </p>
+</Base>
+
+<style>
+  .qr-estado {
+    padding: var(--espacio-3);
+    border-radius: var(--radio);
+    border: 2px solid var(--color-borde);
+    font-weight: 600;
+  }
+  .qr-estado[data-estado='verificado'] {
+    border-color: var(--color-marca);
+  }
+  .qr-estado[data-estado='no-coincide'],
+  .qr-estado[data-estado='danado'] {
+    border-color: var(--color-alerta);
+    color: var(--color-alerta);
+  }
+  .qr-datos dt {
+    font-weight: 600;
+    margin-top: var(--espacio-2);
+  }
+  .qr-datos dd {
+    margin: 0;
+  }
+  .qr-nota {
+    color: var(--color-texto-suave);
+    font-size: var(--texto-pequeno);
+  }
+</style>
+
+<script>
+  import { verifyAsync } from '@noble/ed25519';
+  import { type ClavePublicaQr, type DatosQr, leerQr } from '@gestionagro/trazabilidad';
+
+  const MENSAJES = {
+    verificado: 'Verificado por Gestión Agro: estos datos son los que la finca registró.',
+    'sin-verificar':
+      'Sin verificar: esta etiqueta se imprimió sin conexión. Los datos los escribió la finca y Gestión Agro no los ha confirmado.',
+    'no-coincide':
+      'Esta etiqueta no coincide con lo que confirmó Gestión Agro: fue cambiada. No confíes en estos datos.',
+    'clave-desconocida':
+      'No se pudo confirmar esta etiqueta en esta página. Los datos son los que trae el código.',
+    danado: 'No se pudo leer el código de esta etiqueta. Vuelve a escanearlo.',
+    vacio: 'Escanea el código QR de una etiqueta de lote para ver de dónde viene.',
+  } as const;
+
+  const fecha = (f: string) => f.split('-').reverse().join('/');
+
+  function filas(d: DatosQr): [string, string][] {
+    const cosecha = d.d[0] === d.d[1] ? fecha(d.d[0]) : `del ${fecha(d.d[0])} al ${fecha(d.d[1])}`;
+    return [
+      ['Lote', d.l],
+      ['Finca', `${d.f}, ${d.m}`],
+      ['Producción', d.r === 'ecologico' ? 'Ecológica' : 'Convencional'],
+      ...(d.c ? ([['Cultivo', d.va ? `${d.c} · ${d.va}` : d.c]] as [string, string][]) : []),
+      [d.a.length === 1 ? 'Área' : 'Áreas', d.a.join(', ')],
+      ['Cosecha', cosecha],
+    ];
+  }
+
+  async function mostrar() {
+    const estado = document.getElementById('qr-estado');
+    const lista = document.getElementById('qr-datos');
+    if (!estado || !lista) return;
+    const frag = location.hash.replace(/^#/, '');
+    if (!frag) {
+      estado.textContent = MENSAJES.vacio;
+      estado.dataset['estado'] = 'vacio';
+      return;
+    }
+    let claves: ClavePublicaQr[] = [];
+    try {
+      claves = JSON.parse(document.getElementById('claves-qr')?.textContent ?? '[]');
+    } catch {
+      claves = [];
+    }
+    const r = await leerQr(frag, claves, (publica, mensaje, firma) =>
+      verifyAsync(firma, mensaje, publica),
+    );
+    estado.textContent = MENSAJES[r.estado];
+    estado.dataset['estado'] = r.estado;
+    lista.replaceChildren();
+    if (r.estado === 'danado' || !r.datos) return;
+    for (const [nombre, valor] of filas(r.datos)) {
+      const dt = document.createElement('dt');
+      dt.textContent = nombre;
+      const dd = document.createElement('dd');
+      dd.textContent = valor;
+      lista.append(dt, dd);
+    }
+    lista.hidden = false;
+  }
+
+  void mostrar();
+  window.addEventListener('hashchange', () => void mostrar());
+</script>

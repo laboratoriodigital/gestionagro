@@ -29,8 +29,10 @@ import {
   configDeLaCelda,
   escribirDespliegueCelda,
   humoCelda,
+  secretosDeLaCelda,
 } from './lib/api-celda.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
+import { type ClaveQr, clavesQrDe, ponerClavesEnLaPagina } from './lib/claves-qr.ts';
 import {
   ARCHIVO_DESPLIEGUE_CORE,
   ARCHIVO_SQL_CELDAS,
@@ -150,6 +152,29 @@ async function desplegarSitio(
     return { ok: false, detalle: [`KV de flags ${titulo}: ${(e as Error).message}`] };
   }
 
+  // Claves del QR de cada celda activa, dentro de /agro/t/ (HU-E6.4). Sin la de la celda que
+  // aloja el sitio, que se acaba de desplegar, no se publica: los QR firmados saldrían «sin
+  // confirmar». Una celda que no responde se avisa y no detiene el sitio.
+  const clavesQr: ClaveQr[] = [];
+  const avisosQr: string[] = [];
+  for (const otra of config.celdas.filter((x) => x.estado === 'activa')) {
+    try {
+      clavesQr.push(
+        ...(await clavesQrDe(fetch, destino === 'staging' ? otra.api_staging : otra.api)),
+      );
+    } catch (e) {
+      if (otra.id === celda.id) {
+        return { ok: false, detalle: [`sitio: ${(e as Error).message}`] };
+      }
+      avisosQr.push(`⚠ QR: ${(e as Error).message}; sus etiquetas saldrán «sin confirmar»`);
+    }
+  }
+  try {
+    ponerClavesEnLaPagina(clavesQr);
+  } catch (e) {
+    return { ok: false, detalle: [`sitio: ${(e as Error).message}`] };
+  }
+
   const deploy = wrangler('@gestionagro/sitio', `deploy -c ${ARCHIVO_DESPLIEGUE} ${entorno}`, cred);
   if (!deploy.ok) {
     return {
@@ -181,7 +206,16 @@ async function desplegarSitio(
       detalle: [`sitio desplegado en ${base}, pero la prueba de humo falló:`, ...fallas],
     };
   }
-  return { ok: true, detalle: [`sitio: ${base}`, notaKv], url: base };
+  return {
+    ok: true,
+    detalle: [
+      `sitio: ${base}`,
+      notaKv,
+      `QR de trazabilidad: ${clavesQr.length} clave(s) de celda en /agro/t/`,
+      ...avisosQr,
+    ],
+    url: base,
+  };
 }
 
 async function desplegarCore(
@@ -359,27 +393,43 @@ async function desplegarApiCelda(
       return { ok: false, detalle: [`${nombrePaso} falló:`, ...causaDeWrangler(r.salida)] };
     salidaDeploy = r.salida;
   }
-  // Vigía de cuota (HU-E8.2): su token de solo lectura, por stdin. Sin él, el vigía no mide y
-  // deja la celda en «alerta» cada hora: se dice aquí y en el resumen, no se oculta (P1).
+  // Secretos de la celda, por stdin (P13): el token del vigía (HU-E8.2) y la clave de firma del QR
+  // (HU-E6.4), que solo se genera si el Worker no tiene una. Lo que falta se dice (P1).
   const tokenMetricas = process.env[celda.secretos.metricas];
-  const avisoMetricas: string[] = [];
-  if (tokenMetricas) {
+  const lista = wrangler('@gestionagro/api-celda', `secret list --format json ${c}`, cred);
+  let existentes: string[] = [];
+  try {
+    existentes = (
+      JSON.parse(lista.salida.slice(lista.salida.indexOf('['))) as { name: string }[]
+    ).map((x) => x.name);
+  } catch {
+    return {
+      ok: false,
+      detalle: [
+        `no se pudo leer la lista de secretos de la API de ${celda.id} (wrangler secret list)`,
+      ],
+    };
+  }
+  const deLaCelda = await secretosDeLaCelda(
+    existentes,
+    tokenMetricas,
+    celda.secretos.metricas,
+    generarClavePrivada,
+  );
+  const avisoMetricas = deLaCelda.avisos;
+  if (Object.keys(deLaCelda.secretos).length > 0) {
     const carga = wrangler(
       '@gestionagro/api-celda',
       `secret bulk ${c}`,
       cred,
-      JSON.stringify({ CF_METRICAS_TOKEN: tokenMetricas }),
+      JSON.stringify(deLaCelda.secretos),
     );
     if (!carga.ok) {
       return {
         ok: false,
-        detalle: ['carga del token de métricas falló:', ...causaDeWrangler(carga.salida)],
+        detalle: ['carga de secretos de la celda falló:', ...causaDeWrangler(carga.salida)],
       };
     }
-  } else {
-    avisoMetricas.push(
-      `⚠ falta el secreto ${celda.secretos.metricas}: el vigía de cuota no puede medir y dejará la celda en «alerta»`,
-    );
   }
   const url = urlDeWorkersDev(salidaDeploy);
   const configurada = staging ? celda.api_staging : celda.api;
@@ -407,6 +457,9 @@ async function desplegarApiCelda(
       `API: ${url}`,
       `${celda.shards.length} shard(s) con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}; clave del CORE cargada`,
       tokenMetricas ? 'vigía de cuota: token de métricas cargado; corre cada hora' : '',
+      deLaCelda.claveNueva
+        ? 'QR de trazabilidad: clave de firma nueva generada'
+        : 'QR de trazabilidad: clave de firma existente conservada',
       ...avisoMetricas,
     ].filter(Boolean),
   };
@@ -448,17 +501,18 @@ for (const celda of plan.aDesplegar) {
   const cred = { token, cuenta };
   const detalle: string[] = [];
   let paso: Paso = { ok: true, detalle: [] };
-  // En orden: el sitio, el CORE (la celda necesita su clave pública) y la API de la celda.
-  if (alojaSitio) {
-    paso = await desplegarSitio(configCeldas, celda, cred);
-    detalle.push(...paso.detalle);
-  }
-  if (paso.ok && alojaCore) {
+  // En orden: el CORE (la celda necesita su clave pública), la API de la celda y el sitio, que
+  // lleva dentro las claves públicas del QR de las celdas (HU-E6.4).
+  if (alojaCore) {
     paso = await desplegarCore(configCeldas, celda, cred, origenDelCuaderno(configCeldas));
     detalle.push(...paso.detalle);
   }
   if (paso.ok) {
     paso = await desplegarApiCelda(configCeldas, celda, cred);
+    detalle.push(...paso.detalle);
+  }
+  if (paso.ok && alojaSitio) {
+    paso = await desplegarSitio(configCeldas, celda, cred);
     detalle.push(...paso.detalle);
   }
   resultados.push({ celda: celda.id, estado: paso.ok ? 'desplegada' : 'fallo', detalle });

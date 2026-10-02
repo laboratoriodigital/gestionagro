@@ -65,6 +65,9 @@ importers:
       '@gestionagro/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
+      '@gestionagro/trazabilidad':
+        specifier: workspace:*
+        version: link:../../packages/trazabilidad
       hono:
         specifier: ^4.13.12
         version: 4.13.12
@@ -109,6 +112,9 @@ importers:
       '@gestionagro/sync':
         specifier: workspace:*
         version: link:../../packages/sync
+      '@gestionagro/trazabilidad':
+        specifier: workspace:*
+        version: link:../../packages/trazabilidad
       '@gestionagro/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -121,6 +127,9 @@ importers:
       preact-iso:
         specifier: ^2.12.2
         version: 2.12.2(preact-render-to-string@6.7.0)(preact@10.29.8)
+      qrcode-generator:
+        specifier: ^2.0.4
+        version: 2.0.4
       workbox-window:
         specifier: ^7.4.1
         version: 7.4.1
@@ -164,9 +173,15 @@ importers:
       '@gestionagro/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
+      '@gestionagro/trazabilidad':
+        specifier: workspace:*
+        version: link:../../packages/trazabilidad
       '@gestionagro/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@noble/ed25519':
+        specifier: ^3.2.0
+        version: 3.2.0
       astro:
         specifier: ^7.3.5
         version: 7.3.5(@types/node@22.20.4)(terser@5.51.2)(yaml@2.9.1)
@@ -209,6 +224,8 @@ importers:
         version: link:../agro-schema
 
   packages/tokens: {}
+
+  packages/trazabilidad: {}
 
   packages/ui: {}
 
@@ -1693,6 +1710,9 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
       '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
+
+  '@noble/ed25519@3.2.0':
+    resolution: {integrity: sha512-criDgRlnUA09hchYrTy/JUWPIEap5rZxQe6wDWzRx51oWWpDRcUpuNzlgPxDJaOK6AsW9c0wKcj3rKRv6t+bPQ==}
 
   '@oslojs/asn1@1.0.0':
     resolution: {integrity: sha512-zw/wn0sj0j0QKbIXfIlnEcTviaCzYOY3V5rAyjR6YtOByFtJiT574+8p9Wlach0lZH9fddD4yb9laEAIl4vXQA==}
@@ -3370,6 +3390,9 @@ packages:
 
   property-information@7.2.0:
     resolution: {integrity: sha512-IAtzIB6sUiWaJYrX9smp3V46pBGbBeLFRGdh25kg1334VcBlD8HzhPeNIWQH9zhGmo2itIe25EHt9dQP7G5hmg==}
+
+  qrcode-generator@2.0.4:
+    resolution: {integrity: sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==}
 
   radix3@1.1.2:
     resolution: {integrity: sha512-b484I/7b8rDEdSDKckSSBA8knMpcdsXudlE/LNL639wFoHKwLbEkQFZHWEYwDC0wa0FKUcCY+GAF73Z7wxNVFA==}
@@ -5450,6 +5473,8 @@ snapshots:
       '@tybys/wasm-util': 0.10.4
     optional: true
 
+  '@noble/ed25519@3.2.0': {}
+
   '@oslojs/asn1@1.0.0':
     dependencies:
       '@oslojs/binary': 1.0.0
@@ -7087,6 +7112,8 @@ snapshots:
   process-ancestry@0.1.0: {}
 
   property-information@7.2.0: {}
+
+  qrcode-generator@2.0.4: {}
 
   radix3@1.1.2: {}
 

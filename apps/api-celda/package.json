@@ -12,6 +12,7 @@
     "@gestionagro/kill-switch": "workspace:*",
     "@gestionagro/sync": "workspace:*",
     "@gestionagro/tokens": "workspace:*",
+    "@gestionagro/trazabilidad": "workspace:*",
     "hono": "^4.13.12"
   },
   "devDependencies": {
