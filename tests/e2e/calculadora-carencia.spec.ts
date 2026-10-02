@@ -4,10 +4,23 @@
  */
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import { FINCA_ENSAYO_UNO, type FincaDePrueba } from '../fixtures/fincas.ts';
+import { agregarInsumo, configurar, ROL } from './ayudas.ts';
 
 const PAGINA = '/herramientas/agro/periodo-de-carencia/';
 /** 10/12/2026 a las 7:00 en Colombia; en Tokio ya son las 21:00. */
 const AHORA = new Date('2026-12-10T12:00:00Z');
+
+const TRES_DIAS: FincaDePrueba['insumos'][number] = {
+  nombre_comercial: 'Producto Tres Días',
+  tipo: 'fitosanitario',
+  registro_ica: 'REG-ENSAYO-0099',
+  ingrediente_activo: 'Sustancia de ensayo',
+  unidad: 'mL',
+  carencia_dias: 3,
+  reentrada_horas: 12,
+  permitido_ecologico: true,
+};
 
 test.use({ timezoneId: 'Asia/Tokyo' });
 
@@ -74,4 +87,55 @@ test('la página cumple WCAG 2.1 AA y no se desplaza de lado en 360 px', async (
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('HU-E10.2 · CA2: «Guardar como aplicación en mi cuaderno» lleva la fecha y la hora, sin red, y la carencia cuenta desde ahí', async ({
+  page,
+  context,
+}) => {
+  const f = FINCA_ENSAYO_UNO;
+  const area = f.areas[0];
+  const p = f.personas[0];
+  if (!area || !p) throw new Error('faltan datos de la finca de prueba');
+  // Se anota el 11/12 a las 20:00 en Colombia; la aplicación fue el 10/12 a las 7:00.
+  await page.clock.setFixedTime(new Date('2026-12-12T01:00:00Z'));
+  await configurar(page, f);
+  await page.goto('/agro/app/personas/');
+  await page.getByRole('button', { name: 'Agregar persona' }).click();
+  await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
+  await page.getByRole('radio', { name: ROL[p.rol], exact: true }).check();
+  await page.getByRole('button', { name: 'Guardar persona' }).click();
+  await page.goto('/agro/app/insumos/');
+  await agregarInsumo(page, TRES_DIAS);
+
+  await page.goto(PAGINA);
+  await expect(
+    page.locator('section:has(#titulo-calculadora) astro-island:not([ssr])'),
+  ).toHaveCount(1);
+  await page.getByLabel('Fecha de la aplicación').fill('2026-12-10');
+  await page.getByLabel('Hora de la aplicación').fill('07:00');
+  await page.getByLabel('Carencia de la etiqueta').fill('3');
+  await context.setOffline(true);
+  // El navegador ya usa el cuaderno: el botón dice «Guardar».
+  await page.getByRole('link', { name: 'Guardar como aplicación en mi cuaderno' }).click();
+
+  await expect(page.getByRole('heading', { level: 2, name: 'Aplicaciones' })).toBeVisible();
+  const cuando = page.locator('[data-prueba="aplicacion-cuando"]');
+  await expect(cuando.getByLabel('Fecha')).toHaveValue('2026-12-10');
+  await expect(cuando.getByLabel('Hora')).toHaveValue('07:00');
+  // El fragmento no se queda en la dirección.
+  expect(new URL(page.url()).hash).toBe('');
+  const form = page.locator('[data-prueba="formulario-aplicacion"]');
+  await form.getByLabel(area.nombre, { exact: true }).check();
+  await page
+    .getByLabel('Insumo', { exact: true })
+    .selectOption({ label: TRES_DIAS.nombre_comercial });
+  await page.getByLabel('Cantidad', { exact: true }).fill('2');
+  await page.getByLabel(/^Unidad, como en la etiqueta/).fill('cm³ por litro');
+  await form.getByLabel(p.nombre, { exact: true }).check();
+  await page.getByRole('button', { name: 'Guardar aplicación' }).click();
+  // Desde el 10/12, no desde el 11/12 en que se anotó (sería «hasta el 14/12»).
+  await expect(page.locator('[data-prueba="aplicacion-guardada"]')).toContainText(
+    'No cosechar hasta el 13/12 (Producto Tres Días)',
+  );
 });

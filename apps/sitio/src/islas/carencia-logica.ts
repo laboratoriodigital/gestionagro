@@ -5,8 +5,7 @@
  * cálculo (P2). Todo pasa en el teléfono; nada sale a la red (CA4).
  *
  * - La fecha y la hora de la aplicación son las de Colombia, aunque el teléfono tenga otro huso
- *   (P8). Colombia no cambia la hora en el año (UTC−5 fijo), así que la hora escrita se lleva a un
- *   instante con ese desfase.
+ *   (P8): `instanteEnColombia` de agro-schema, la misma que usa el cuaderno (P2).
  * - Una carencia o una reentrada vacía no es 0: es «desconocida» y no se da fecha (CA2, P1).
  */
 import {
@@ -15,7 +14,8 @@ import {
   vencimientoCarencia,
   vencimientoReentrada,
 } from '@gestionagro/agro-calc';
-import { fechaAgronomica } from '@gestionagro/agro-schema';
+import { fechaAgronomica, instanteEnColombia } from '@gestionagro/agro-schema';
+import { REGISTRAR_EN_CUADERNO } from './cuaderno.ts';
 
 export interface EntradasCarencia {
   /** `AAAA-MM-DD`, como lo da `<input type="date">`. */
@@ -38,9 +38,6 @@ export interface ResultadoCarencia {
   cosechar: Salida;
   entrar: Salida;
 }
-
-/** Colombia: UTC−5 todo el año (sin horario de verano desde 1993). */
-const DESFASE_COLOMBIA = '-05:00';
 
 const HORA_COLOMBIA = new Intl.DateTimeFormat('es-CO', {
   timeZone: 'America/Bogota',
@@ -109,8 +106,8 @@ export function calcularCarencia(e: EntradasCarencia): ResultadoCarencia {
   let entrar: Salida = { tipo: 'espera' };
   if (horas === null) entrar = { tipo: 'desconocida' };
   else if (horas !== undefined && fechaValida && horaValida) {
-    const instante = Date.parse(`${e.fecha}T${e.hora}:00${DESFASE_COLOMBIA}`);
-    if (Number.isNaN(instante)) errores.fecha = 'Elige la fecha de la aplicación.';
+    const instante = instanteEnColombia(e.fecha, e.hora);
+    if (instante === null) errores.fecha = 'Elige la fecha de la aplicación.';
     else {
       const ms = conError('reentrada', () => vencimientoReentrada(instante, horas));
       if (ms !== undefined) {
@@ -121,4 +118,15 @@ export function calcularCarencia(e: EntradasCarencia): ResultadoCarencia {
   // Con la fecha mal escrita no se calcula nada.
   if (errores.fecha) cosechar = { tipo: 'espera' };
   return { errores, cosechar, entrar };
+}
+
+/**
+ * «Guardar como aplicación en mi cuaderno» (HU-E10.2, CA2): abre Registrar → Aplicaciones con la
+ * fecha y la hora de la aplicación, en el fragmento: no sale a la red. Sin fecha y hora válidas,
+ * no hay enlace. La carencia y la reentrada no viajan: el cuaderno las toma del insumo.
+ */
+export function enlaceAplicacionAlCuaderno(e: EntradasCarencia): string | null {
+  if (instanteEnColombia(e.fecha, e.hora) === null) return null;
+  const p = new URLSearchParams({ aplicacion: '1', fecha: e.fecha, hora: e.hora });
+  return `${REGISTRAR_EN_CUADERNO}#${p.toString()}`;
 }

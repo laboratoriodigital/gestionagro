@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { ahoraEnColombia, calcularCarencia, type EntradasCarencia } from './carencia-logica.ts';
+import {
+  ahoraEnColombia,
+  calcularCarencia,
+  type EntradasCarencia,
+  enlaceAplicacionAlCuaderno,
+} from './carencia-logica.ts';
 
 const con = (e: Partial<EntradasCarencia>): EntradasCarencia => ({
   fecha: '2026-12-10',
@@ -71,5 +76,18 @@ describe('calculadora de carencia y reentrada (HU-E10.1)', () => {
         hora: '23:30',
       });
     });
+  });
+});
+
+describe('puente al cuaderno (HU-E10.2, CA2)', () => {
+  it('lleva la fecha y la hora en el fragmento, sin red', () => {
+    expect(enlaceAplicacionAlCuaderno(con({ carencia: '3' }))).toBe(
+      '/agro/app/registrar/#aplicacion=1&fecha=2026-12-10&hora=07%3A00',
+    );
+  });
+
+  it('sin una fecha y una hora reales no hay enlace', () => {
+    expect(enlaceAplicacionAlCuaderno(con({ fecha: '' }))).toBeNull();
+    expect(enlaceAplicacionAlCuaderno(con({ fecha: '2027-02-29' }))).toBeNull();
   });
 });
