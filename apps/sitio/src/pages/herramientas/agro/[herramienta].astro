@@ -6,6 +6,7 @@
 import type { Producto } from '../../../../../../scripts/lib/productos.ts';
 import CalculadoraCarencia from '../../../islas/CalculadoraCarencia.tsx';
 import CalculadoraDpv from '../../../islas/CalculadoraDpv.tsx';
+import TablaDpvImprimible from '../../../islas/TablaDpvImprimible.tsx';
 import Base from '../../../layouts/Base.astro';
 import { contenidoDe, herramientas, paginaDe, productoPorId } from '../../../lib/contenido.ts';
 import { jsonLdDeHerramienta, segmentoDe, seoDeProducto } from '../../../lib/seo.ts';
@@ -66,6 +67,21 @@ const relacionados = producto.relacionados
         )
       }
     </section>
+
+    {
+      producto.id === 'agro-calculadora-dpv' && (
+        <section aria-labelledby="titulo-tabla" class="calculadora">
+          <h2 id="titulo-tabla">Tabla para pegar en la nave</h2>
+          <p>
+            Imprime el DPV de cada temperatura y humedad, marcado según tu cultivo, y decide sin sacar el teléfono.
+          </p>
+          <TablaDpvImprimible client:visible />
+          <noscript>
+            <p>La tabla necesita JavaScript para armar el PDF.</p>
+          </noscript>
+        </section>
+      )
+    }
 
     {secciones.map((s) => <s.Content />)}
 
@@ -229,6 +245,29 @@ const relacionados = producto.relacionados
     border-inline-start: 4px solid var(--color-borde);
     padding-inline-start: var(--espacio-2);
     font-size: var(--texto-pequeno);
+  }
+  .calculadora-dpv button.boton-compartir {
+    border: 0;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .calculadora-dpv button.boton-compartir:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .calculadora-dpv fieldset.rango {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 var(--espacio-2);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    margin: 0 0 var(--espacio-3);
+    padding: var(--espacio-2) var(--espacio-3);
+  }
+  .calculadora-dpv fieldset.rango legend {
+    font-weight: 600;
+    padding-inline: var(--espacio-1);
   }
   .privacidad {
     font-size: var(--texto-pequeno);

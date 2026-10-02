@@ -104,6 +104,12 @@ test.describe('presupuesto de rendimiento (CA4)', () => {
       // La isla carga sus fragmentos después de «load»: se espera a que hidrate para contarlos
       // todos (P17: medir solo hasta «load» se quedaba corto).
       if ((await page.locator('astro-island').count()) > 0) {
+        // Una isla `client:visible` (la tabla de DPV) hidrata al verse: se recorren todas para
+        // medir el peor caso. El PDF no cuenta: se carga solo al pedirlo.
+        await page.locator('astro-island').evaluateAll((islas) => {
+          // La isla es `display: contents`, sin caja: se desplaza hasta lo que pinta.
+          for (const i of islas) (i.firstElementChild ?? i).scrollIntoView();
+        });
         await expect(page.locator('astro-island:not([ssr])')).toHaveCount(
           await page.locator('astro-island').count(),
         );
