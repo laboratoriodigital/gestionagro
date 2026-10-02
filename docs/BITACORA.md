@@ -252,6 +252,9 @@ No son errores. Son decisiones que cambiaron con información nueva.
 | Celdas en cuentas gratuitas nuevas | Workers Paid o cuenta del cliente (ADR-7, ADR-8) | Términos de Cloudflare §2.2.1 |
 | Primera herramienta: «dosis por bomba» (orden de la lista del Estudio) | DPV | Sirve a la finca cero, no tiene riesgo legal de dosis y comparte sensor con la línea Conectada |
 | CORE en la Fase 3 de ED1 | CORE v0 ahora, mínimo (ADR-9) | Es el primer producto con cuentas; extraerlo después obliga a migrar usuarios |
+| Fotos de monitoreo en todos los planes (30 al mes en el gratuito) | Solo en el plan Finca (2 oct 2026) | El dueño lo corrigió: la escalera de ARQUITECTURA §2.4 ya las ponía en Premium/Finca (bitácora agro 29) |
+| Un catálogo `cliente` | El cliente va dentro del despacho, con nombre y tipo (HU-E6.3) | Un catálogo nuevo obliga a rehacer el CHECK de `catalogo` en la celda y a un `agro-export` v2. Pasa a catálogo cuando haga falta editar un cliente o guardar su contacto |
+| Reporte semanal con Search Console | Search Console después (2 oct 2026) | Decisión del dueño: pide una cuenta de servicio de Google; el reporte dice que falta |
 | Herramienta 2: «dosis por bomba» (E10) | Calendario de carencias en `/herramientas/agro/periodo-de-carencia/` (1 oct 2026) | Keyword Planner (HU-E0.2): dosis no trae búsquedas en ninguna de sus cuatro formas; «periodo de carencia» es el único término con más de 50 al mes en Colombia. El cálculo ya existe en el cuaderno. Dosis queda preparada hasta la medición del 25 feb 2027 |
 
 ---
@@ -266,6 +269,11 @@ No son errores. Son decisiones que cambiaron con información nueva.
 - **La descarga de Chromium de Playwright no funciona en la máquina del dueño** (30 sep 2026): `Request to https://cdn.playwright.dev/… timed out`, con sandbox y sin él, aunque `curl` baja el mismo archivo. En Windows local, `playwright.config.ts` usa el Microsoft Edge instalado (`channel: msedge`, mismo motor Chromium); en CI se usa el Chromium de Playwright. `PW_CANAL` fuerza uno u otro.
 - **El Miniflare que trae wrangler 4.144 es la 5 alfa, con otra API** (1 oct 2026): `new Miniflare({ modules, script, d1Databases })` falla con `Unrecognized keys`, y `workers: [{…}]` tampoco sirve. Las pruebas del CORE levantan D1 local con `getPlatformProxy` de wrangler, que es la interfaz estable (`apps/core/src/d1-local.ts`).
 - **`wrangler d1 migrations apply` contesta «yes» solo en CI** (`isNonInteractiveOrCI`), y si alguien contestara «no» sale con código 0 sin aplicar nada. Por eso la prueba de humo del CORE consulta la base: una migración que no corrió se ve como 503.
+- **La API de Telegram exige el token del bot en la ruta de la URL** (HU-E8.3). No hay otra forma de llamarla; es una excepción dicha a P13, y la URL nunca va al log (ARQUITECTURA §7.5).
+- **`visibility: hidden` esconde pero conserva el espacio:** al imprimir, una etiqueta de 5 × 5 cm sacaba 12 hojas (bitácora agro 28). Para imprimir solo una parte, se saca lo demás con `display: none`.
+- **Un flujo `workflow_dispatch` solo aparece en Actions cuando el archivo está en la rama por defecto.** «telegram-chat» no se podía correr desde su rama.
+- **Safari no codifica WebP en `canvas.toBlob`**: devuelve PNG. La foto del monitoreo cae a JPEG ahí.
+- **IndexedDB no indexa claves nulas.** Un `valor_jornal` general (sin persona) no aparece por el índice `persona_id`; se busca recorriendo la tabla, que es pequeña.
 - **pnpm 11 se niega a correr cualquier script si una clave de dependencias no es un nombre de paquete** (`ERR_PNPM_INVALID_DEPENDENCY_NAME`). La guardia de `tests/repo/package-json.test.ts` lo repite para no depender de la versión de pnpm.
 
 ---
@@ -772,3 +780,26 @@ La regla: **en una prueba de sincronización, la invariante no es «la nube no p
 La regla: **lo que se imprime se prueba sobre el documento impreso: hojas y tamaño, no solo la caja en pantalla.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P16, P17 · 0.1.0 · 2026-10-01
+
+**29 · Puse fotos en el plan gratuito sin mirar la escalera, que ya las ponía en el plan Finca.**
+
+*Qué pasó.* El 1 oct 2026, en HU-E3.11 (monitoreo), decidí por mi cuenta que el plan gratuito tuviera 30 fotos al mes. El dueño respondió «la foto puede ser algo premium» y después: «recuerda las premisas para el diseño y toma de decisiones». Y el 2 oct: «recuerda siempre validar tus implementaciones contra la arquitectura, el ecosistema y el estudio de mercado».
+
+*Causa raíz.*
+- ARQUITECTURA §2.4 (la escalera aplicada al producto) ya decía que las fotos son del peldaño Premium/Finca. Decidí la cuota mirando solo el presupuesto de R2 de §6.2, que es una razón técnica, sin mirar la de producto.
+- No había un paso fijo para contrastar cada decisión con las premisas antes de escribirla. Revisaba la historia y sus criterios de aceptación, pero no lo que la historia no dice y otro documento sí.
+- No es la primera vez: la entrada 1 de «Afirmaciones mías que resultaron falsas» tiene la misma forma, una propuesta hecha sin verificar el documento que la decidía.
+
+*Arreglo.*
+- Las fotos son del plan Finca (commit `674f600`). El plan llega en la sesión y un plan desconocido cuenta como el gratuito.
+- Desde HU-E7.1, cada historia empieza contrastando la decisión con las tres fuentes, y el mensaje al dueño dice qué premisa la respalda o que ninguna la cubre:
+  - **ARQUITECTURA**: las cinco decisiones de §0, la escalera de §2.4, los principios P de §3, la matriz de §9 y las cifras de §6.2.
+  - **ED1**: costo cero, browser-first, utility-first, owner-first y budget-first, con la revisión [H1]–[H16].
+  - **Estudio de mercado**: para quién es, qué duele y qué paga cada segmento.
+- Lo que la historia decide distinto de lo escrito se anota en «Cambios de rumbo».
+
+**Lo prueban** las pruebas de HU-E3.11: con el plan gratuito no se ofrece la foto. Una e2e lo exige y otra prueba el plan Finca. La regla de proceso no tiene control negativo automático; su control es esta entrada.
+
+La regla: **una decisión de producto se valida contra el documento que la decide, no contra el que la hace posible. Primero la escalera y el estudio; después la cuota.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P18, P20 · 0.1.0 · 2026-10-02
