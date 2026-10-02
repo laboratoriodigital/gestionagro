@@ -6,7 +6,7 @@
  * Despachos (HU-E6.3): quien los ve (propietario y supervisor) ve el saldo de cada lote,
  * «Despachar» y la lista de despachos.
  */
-import { ErrorDeValidacion } from '@gestionagro/agro-schema';
+import { ErrorDeValidacion, fechaAgronomica } from '@gestionagro/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import {
@@ -15,6 +15,7 @@ import {
   type Despacho,
   leerDespachos,
 } from '../almacen/despachos.ts';
+import { disponibilidadCsv } from '../almacen/disponibilidad.ts';
 import {
   armarLote,
   type CosechaParaLote,
@@ -22,6 +23,7 @@ import {
   type Lote,
   leerLotes,
 } from '../almacen/lotes.ts';
+import { corto, descargar } from '../descargar.ts';
 import { FormularioDespacho, ListaDespachos } from './Despachos.tsx';
 import { EtiquetaQr } from './EtiquetaQr.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
@@ -255,6 +257,34 @@ export function Lotes() {
             </li>
           ))}
         </ul>
+      )}
+      {veVentas && lotes !== null && estado.finca && (
+        <div data-prueba="disponibilidad">
+          <h2>Para la tienda en línea</h2>
+          <p class="ayuda">
+            Un archivo con lo que queda de cada lote, para actualizar el catálogo de la tienda sin
+            volver a contar. Se abre en Excel o en la hoja de la tienda.
+          </p>
+          {lotes.some((l) => l.saldo > 0) ? (
+            <button
+              type="button"
+              class="secundario"
+              onClick={() => {
+                const nombre = estado.finca?.nombre ?? '';
+                const hoy = fechaAgronomica(Date.now());
+                descargar(
+                  `disponibilidad-${corto(nombre)}-${hoy}.csv`,
+                  disponibilidadCsv(lotes, nombre),
+                  'text/csv;charset=utf-8',
+                );
+              }}
+            >
+              Descargar disponibilidad
+            </button>
+          ) : (
+            <p class="ayuda">No queda nada por vender en los lotes.</p>
+          )}
+        </div>
       )}
       {veVentas && (
         <>

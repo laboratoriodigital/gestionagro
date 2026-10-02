@@ -894,7 +894,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E6.5 · Disponibilidad para la tienda en línea
 **Como** propietario que también vende en la Tienda del ecosistema **quiero** exportar lo que tengo disponible por producto **para** actualizar mi catálogo sin volver a contar.
-- **Peldaño:** puente entre verticales de ED1 · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E6.3 · **Estado:** Refinada
+- **Peldaño:** puente entre verticales de ED1 · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E6.3 · **Estado:** En sprint (rama `feat/e6.5-disponibilidad-tienda`. Cambio de rumbo del 2 oct 2026: la documentación de la Tienda no está en este repositorio y el dueño pidió que el cuaderno propusiera el formato; la Tienda lo confirma al importarlo, y si su hoja pide otro, cambia solo `disponibilidad.ts`. Formato v1: UTF-8 con BOM, comas, CRLF y comillas RFC 4180. Columnas `producto, categoria, disponible, unidad, lote, cosechado_desde, cosechado_hasta, finca`, una fila por lote con saldo, `disponible` con punto decimal y fechas `AAAA-MM-DD`. Un lote sin cultivo deja el producto vacío (P1). Las celdas que empiezan con `= + - @` llevan apóstrofo para que la hoja no las ejecute. En «Lotes» → «Para la tienda en línea», solo para quien ve las ventas, porque el saldo sale de los despachos (§9). Funciona sin señal)
 - **Criterios de aceptación:**
   1. CSV con producto, kg disponibles (cosechado − despachado) y lote, con el formato de columnas que lee la hoja de la Tienda. El formato se confirma leyendo la documentación de la Tienda, no se supone (P9).
   2. No hay conexión directa entre sistemas en esta versión.
