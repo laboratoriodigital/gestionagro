@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diasEntre, fechaAgronomica, instanteDeUuidv7, uuidv7 } from './reloj.ts';
+import { diasEntre, fechaAgronomica, instanteDeUuidv7, sumarDias, uuidv7 } from './reloj.ts';
 
 const ceros = (n: number) => new Uint8Array(n);
 const unos = (n: number) => new Uint8Array(n).fill(0xff);
@@ -75,5 +75,22 @@ describe('días entre fechas agronómicas (HU-E3.4, CA4, P8)', () => {
 
   it('una fecha ilegible lanza; no devuelve NaN (P1)', () => {
     expect(() => diasEntre('15/10/2026', '2026-10-20')).toThrow(RangeError);
+  });
+});
+
+describe('sumar días a una fecha agronómica (HU-E9.1, P8)', () => {
+  it.each([
+    ['2026-10-02', 0, '2026-10-02'],
+    ['2026-10-25', 13, '2026-11-07'], // cruza fin de mes
+    ['2026-12-25', 13, '2027-01-07'], // cruza fin de año
+    ['2028-02-28', 1, '2028-02-29'], // 29 de febrero
+    ['2027-02-28', 1, '2027-03-01'], // año no bisiesto
+  ])('%s + %d = %s', (fecha, n, esperado) => {
+    expect(sumarDias(fecha, n)).toBe(esperado);
+    expect(diasEntre(fecha, esperado)).toBe(n);
+  });
+
+  it('una fecha ilegible lanza (P1)', () => {
+    expect(() => sumarDias('02/10/2026', 1)).toThrow(RangeError);
   });
 });

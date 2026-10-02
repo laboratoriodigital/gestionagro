@@ -18,6 +18,7 @@ import {
   type ResumenDeImportacion,
   TIPOS_CSV,
 } from '../almacen/respaldo.ts';
+import { corto, descargar } from '../descargar.ts';
 import { fechaHora } from '../formato.ts';
 import { usarFinca } from './usarFinca.tsx';
 
@@ -46,27 +47,6 @@ const NOMBRE_CSV: Record<string, string> = {
   aplicacion: 'Aplicaciones',
   cosecha: 'Cosecha',
 };
-
-/** «Finca Ensayo Uno» → «finca-ensayo-uno», para el nombre del archivo. */
-const corto = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-
-function descargar(nombre: string, contenido: string, tipo: string) {
-  const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nombre;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  // Se libera después: algunos navegadores leen el enlace cuando el clic ya terminó.
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}
 
 export function Respaldo() {
   const estado = usarFinca();

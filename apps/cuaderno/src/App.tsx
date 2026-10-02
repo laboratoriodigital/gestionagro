@@ -11,6 +11,7 @@ import { AvisoDeReemplazo } from './AvisoDeReemplazo.tsx';
 import { IndicadorDatos } from './IndicadorDatos.tsx';
 import { RUTAS_APP, rutaDe } from './rutas.ts';
 import { iniciarSincronizacion } from './sincronizacion.ts';
+import { Carencias } from './vistas/Carencias.tsx';
 import { Costos } from './vistas/Costos.tsx';
 import { Cuenta } from './vistas/Cuenta.tsx';
 import { Historial } from './vistas/Historial.tsx';
@@ -28,6 +29,7 @@ const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> =
   '': Inicio,
   registrar: Registrar,
   historial: Historial,
+  carencias: Carencias,
   personas: Personas,
   insumos: Insumos,
   respaldo: Respaldo,

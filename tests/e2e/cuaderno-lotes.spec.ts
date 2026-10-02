@@ -2,6 +2,7 @@
  * Lotes de venta (HU-E6.2) en un teléfono de 360 px y sin señal, con las dos fincas de prueba (P4).
  * Que una cosecha no entre en dos lotes se prueba en el almacén (`lotes.test.ts`).
  */
+import { readFileSync } from 'node:fs';
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA } from '../fixtures/fincas.ts';
@@ -176,4 +177,40 @@ test('revisión del dueño: otro lote con una cosecha nueva, y sumarla a un lote
   await expect(page.locator('[data-prueba="lote"]').nth(1)).toContainText(
     `M-${hoy.ddmm}-1 · 15 kg`,
   );
+});
+
+test('HU-E6.5 · CA1: descargar la disponibilidad para la tienda, sin señal, con lo que queda de cada lote', async ({
+  page,
+  context,
+}) => {
+  const f = FINCAS_DE_PRUEBA[0];
+  const a1 = f?.areas[0];
+  if (!f || !a1) throw new Error('falta la finca de prueba');
+  await configurar(page, f);
+  await context.setOffline(true);
+  await cosechar(page, a1.nombre, '30,5');
+  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  const hoy = hoyEnColombia();
+  // Sin lotes con saldo no hay nada que descargar.
+  await expect(page.locator('[data-prueba="disponibilidad"]')).toContainText(
+    'No queda nada por vender en los lotes.',
+  );
+  await page.getByLabel(`${a1.nombre} · ${hoy.corta} · Primera · 30,5 kg`).check();
+  await page.getByRole('button', { name: 'Armar lote' }).click();
+  const [descarga] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Descargar disponibilidad' }).click(),
+  ]);
+  expect(descarga.suggestedFilename()).toMatch(
+    /^disponibilidad-finca-ensayo-uno-\d{4}-\d{2}-\d{2}\.csv$/,
+  );
+  const texto = readFileSync(await descarga.path(), 'utf8');
+  const [cabecera, fila] = texto.replace(/^﻿/, '').split('\r\n');
+  expect(cabecera).toBe(
+    'producto,categoria,disponible,unidad,lote,cosechado_desde,cosechado_hasta,finca',
+  );
+  // Sin ciclo no se sabe el cultivo: el producto va vacío, no inventado (P1).
+  expect(fila).toMatch(new RegExp(`^,Primera,30\\.5,kg,M-${hoy.ddmm}-1,\\d{4}-\\d{2}-\\d{2},`));
+  expect(fila?.endsWith(`,${f.finca.nombre}`)).toBe(true);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });

@@ -433,7 +433,7 @@ Costos por ciclo y por área, costo por kg, rendimiento (kg/m², kg/planta, kg/h
 |---|---|---|
 | WhatsApp (compartir) | Desde la primera herramienta | Enlaces `wa.me` con texto; gratis |
 | WhatsApp (alertas) | Planes pagos | WhatsApp Business Platform con presupuesto y kill switch propios; nunca en el plan gratuito |
-| Tienda del ecosistema | Hito «Cosecha a la mesa» | Exportar disponibilidad (producto, kg, lote) en CSV con el formato que lee la hoja de la Tienda; sin API cruzada hasta que la Tienda la tenga |
+| Tienda del ecosistema | Hito «Cosecha a la mesa» | Exportar disponibilidad en CSV (HU-E6.5), formato v1 propuesto por el cuaderno y descrito en `apps/cuaderno/src/almacen/disponibilidad.ts`: `producto, categoria, disponible, unidad, lote, cosechado_desde, cosechado_hasta, finca`, una fila por lote con saldo. La Tienda lo confirma al importarlo. Sin API cruzada hasta que la Tienda la tenga |
 | DIAN | Cuando haya ventas facturables desde aquí | Adaptador a un proveedor autorizado (ED1 §5.3); fuera del MVP |
 | Clima | Después | OpenWeather Agro u otro con nivel gratuito, cacheado por municipio y día |
 | Satélite, maquinaria | No planeado | Estudio: baja relevancia para el ICP agro |

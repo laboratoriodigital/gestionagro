@@ -471,3 +471,71 @@ a.boton {
     border: 0;
   }
 }
+
+/* ¿Qué puedo cosechar hoy? (HU-E9.1): el color siempre va con un símbolo y un texto. */
+.estado-cosecha {
+  border-inline-start-width: 6px;
+}
+.estado-cosecha.verde {
+  border-inline-start-color: var(--color-marca);
+}
+.estado-cosecha.rojo {
+  border-inline-start-color: var(--color-alerta);
+}
+.estado-cosecha.gris {
+  border-inline-start-color: var(--color-texto-suave);
+  background: var(--color-superficie);
+}
+.sello-cosecha {
+  display: inline-block;
+  font-weight: 700;
+}
+.estado-cosecha.verde .sello-cosecha {
+  color: var(--color-marca);
+}
+.estado-cosecha.rojo .sello-cosecha {
+  color: var(--color-alerta);
+}
+.estado-cosecha.gris .sello-cosecha {
+  color: var(--color-texto-suave);
+}
+/* Dos semanas por área, siete días por fila: cabe en 360 px sin desplazar de lado. */
+.dias-cosecha {
+  list-style: none;
+  padding: 0;
+  margin: var(--espacio-2) 0 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--espacio-1);
+}
+.dia-cosecha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding-block: var(--espacio-1);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.fecha-cosecha {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.dia-cosecha.verde {
+  background: var(--color-marca);
+  border-color: var(--color-marca);
+  color: var(--color-marca-texto);
+}
+.dia-cosecha.rojo {
+  border-color: var(--color-alerta);
+  color: var(--color-alerta);
+}
+.dia-cosecha.gris {
+  background: var(--color-superficie);
+  color: var(--color-texto-suave);
+}
+.hora-cosecha {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
