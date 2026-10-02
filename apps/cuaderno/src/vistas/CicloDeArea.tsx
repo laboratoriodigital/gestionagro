@@ -296,41 +296,43 @@ export function CicloDeArea(props: {
 
   return (
     <div class="ciclo" data-prueba="ciclo">
-      {c ? (
-        <p>
-          <strong>
-            {c.cultivo} · {c.variedad}
-          </strong>{' '}
-          · trasplante {fecha(c.fecha_trasplante)} ·{' '}
-          <span data-prueba="dias">día {diasDesdeTrasplante(c)}</span>
-          {c.plantas !== null && ` · ${c.plantas.toLocaleString('es-CO')} plantas`}
-        </p>
-      ) : (
-        <p class="ayuda">Sin ciclo activo.</p>
-      )}
-      {props.cambia && (
-        <div class="acciones-area">
-          {c ? (
-            <button
-              type="button"
-              class="secundario"
-              onClick={() => setAbierto(abierto === 'cerrar' ? null : 'cerrar')}
-              aria-label={`Cerrar ciclo de ${props.area.nombre}`}
-            >
-              Cerrar ciclo
-            </button>
-          ) : (
-            <button
-              type="button"
-              class="secundario"
-              onClick={() => setAbierto(abierto === 'iniciar' ? null : 'iniciar')}
-              aria-label={`Iniciar ciclo en ${props.area.nombre}`}
-            >
-              Iniciar ciclo
-            </button>
-          )}
-        </div>
-      )}
+      <div class="ciclo-fila">
+        {c ? (
+          <p>
+            <strong>
+              {c.cultivo} · {c.variedad}
+            </strong>{' '}
+            · trasplante {fecha(c.fecha_trasplante)} ·{' '}
+            <span data-prueba="dias">día {diasDesdeTrasplante(c)}</span>
+            {c.plantas !== null && ` · ${c.plantas.toLocaleString('es-CO')} plantas`}
+          </p>
+        ) : (
+          <p class="ayuda">Sin ciclo activo.</p>
+        )}
+        {props.cambia && (
+          <div class="ciclo-accion">
+            {c ? (
+              <button
+                type="button"
+                class="secundario"
+                onClick={() => setAbierto(abierto === 'cerrar' ? null : 'cerrar')}
+                aria-label={`Cerrar ciclo de ${props.area.nombre}`}
+              >
+                Cerrar ciclo
+              </button>
+            ) : (
+              <button
+                type="button"
+                class="secundario"
+                onClick={() => setAbierto(abierto === 'iniciar' ? null : 'iniciar')}
+                aria-label={`Iniciar ciclo en ${props.area.nombre}`}
+              >
+                Iniciar ciclo
+              </button>
+            )}
+          </div>
+        )}
+      </div>
       {abierto === 'iniciar' && !c && (
         <FormularioCiclo
           db={props.db}

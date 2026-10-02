@@ -1,0 +1,62 @@
+{
+  "nota": "Casos del rendimiento por m² y por planta (HU-E6.6). Comercial = cosechado − descarte. Sin plantas, por planta es nulo, no cero (P1).",
+  "tolerancia": 0.0001,
+  "casos": [
+    {
+      "cosechado": 1200,
+      "descarte": 0,
+      "areaM2": 500,
+      "plantas": 1500,
+      "comercial": 1200,
+      "porM2": 2.4,
+      "porPlanta": 0.8,
+      "descartePct": 0
+    },
+    {
+      "cosechado": 1200,
+      "descarte": 200,
+      "areaM2": 500,
+      "plantas": 1000,
+      "comercial": 1000,
+      "porM2": 2,
+      "porPlanta": 1,
+      "descartePct": 16.6667
+    },
+    {
+      "cosechado": 350,
+      "descarte": 35,
+      "areaM2": 800,
+      "plantas": null,
+      "comercial": 315,
+      "porM2": 0.39375,
+      "porPlanta": null,
+      "descartePct": 10
+    },
+    {
+      "cosechado": 0,
+      "descarte": 0,
+      "areaM2": 500,
+      "plantas": 1000,
+      "comercial": 0,
+      "porM2": 0,
+      "porPlanta": 0,
+      "descartePct": null
+    },
+    {
+      "cosechado": 40,
+      "descarte": 40,
+      "areaM2": 120,
+      "plantas": 400,
+      "comercial": 0,
+      "porM2": 0,
+      "porPlanta": 0,
+      "descartePct": 100
+    }
+  ],
+  "invalidos": [
+    { "campo": "descarte", "cosechado": 10, "descarte": 11, "areaM2": 100, "plantas": null },
+    { "campo": "areaM2", "cosechado": 10, "descarte": 0, "areaM2": 0, "plantas": null },
+    { "campo": "plantas", "cosechado": 10, "descarte": 0, "areaM2": 100, "plantas": 0 },
+    { "campo": "cosechado", "cosechado": -1, "descarte": 0, "areaM2": 100, "plantas": null }
+  ]
+}

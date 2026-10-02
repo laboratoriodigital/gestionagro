@@ -17,4 +17,5 @@ export {
   type Indicacion,
   type NivelDpv,
 } from './rangos-dpv.ts';
+export { formatearCantidad, type Rendimiento, rendimiento } from './rendimiento.ts';
 export { drenajePct, formatearPct, RANGO_CE_DS_M, RANGO_PH } from './riego.ts';

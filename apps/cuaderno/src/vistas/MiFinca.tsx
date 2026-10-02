@@ -11,6 +11,7 @@ import {
   ErrorDeValidacion,
   type Finca,
 } from '@gestionagro/agro-schema';
+import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { type EstadoDeArea, estadosPorArea } from '../almacen/aplicaciones.ts';
@@ -161,7 +162,11 @@ function Historial(props: { db: CuadernoDb; areaId: string }) {
   );
 }
 
-/** Botones Editar e Historial y sus paneles; iguales para un área y para una cama o surco. */
+/**
+ * Botones Editar e Historial y sus paneles; iguales para un área y para una cama o surco. `extra`
+ * va en la misma fila (en un área: «+ Cama o surco»), para que las herramientas no se apilen
+ * (revisión del dueño, 1 oct 2026).
+ */
 function EditarConHistorial(props: {
   db: CuadernoDb;
   area: Area;
@@ -170,16 +175,17 @@ function EditarConHistorial(props: {
   cambia: boolean;
   alCerrar: () => void;
   alGuardar: () => void;
+  extra?: ComponentChildren;
 }) {
   const a = props.area;
   const abiertoAqui = props.abierto && 'areaId' in props.abierto && props.abierto.areaId === a.id;
   return (
     <>
-      <div class="acciones-area">
+      <div class="herramientas-area">
         {props.cambia && (
           <button
             type="button"
-            class="secundario"
+            class="herramienta"
             onClick={() => props.alternar('editar', a.id)}
             aria-label={`Editar ${a.nombre}`}
           >
@@ -188,12 +194,13 @@ function EditarConHistorial(props: {
         )}
         <button
           type="button"
-          class="secundario"
+          class="herramienta"
           onClick={() => props.alternar('historial', a.id)}
           aria-label={`Historial de ${a.nombre}`}
         >
           Historial
         </button>
+        {props.extra}
       </div>
       {abiertoAqui && props.abierto?.tipo === 'editar' && (
         <FormularioArea
@@ -293,19 +300,19 @@ export function MiFinca(props: {
               cambia={cambia}
               alCerrar={() => setAbierto(null)}
               alGuardar={cerrarYRecargar}
+              extra={
+                cambia && (
+                  <button
+                    type="button"
+                    class="herramienta"
+                    onClick={() => alternar('subarea', a.id)}
+                    aria-label={`Agregar cama o surco en ${a.nombre}`}
+                  >
+                    + Cama o surco
+                  </button>
+                )
+              }
             />
-            {cambia && (
-              <div class="acciones-area">
-                <button
-                  type="button"
-                  class="secundario"
-                  onClick={() => alternar('subarea', a.id)}
-                  aria-label={`Agregar cama o surco en ${a.nombre}`}
-                >
-                  Agregar cama o surco
-                </button>
-              </div>
-            )}
             {abierto &&
               'areaId' in abierto &&
               abierto.areaId === a.id &&
