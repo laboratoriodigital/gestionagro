@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Corregido
+- Según la prueba del dueño en staging (bitácora agro 26): lo anotado en el celular llegaba al computador solo al tocar «Sincronizar ahora» o a los 15 min. En un computador la pestaña casi nunca se oculta, así que «volver a la app» no ocurría. Ahora el cuaderno también trae lo del equipo cuando su ventana recibe el foco o cuando se toca la página, como máximo cada 30 s.
 - Según la prueba del dueño en staging (bitácora agro 25): una cuenta que está en dos fincas (la suya y la que la invitó) dejaba de sincronizar al volver a entrar con Google. El teléfono decía que estaba vinculado, pero la nube rechazaba cada envío. Ahora el teléfono pide siempre la sesión de su finca, y si tiene la de otra, la renueva en ese momento.
 - Según la prueba del dueño en staging (bitácora agro 24), en los lotes de venta:
   - El código lleva el mes en letras (`M-01OCT-1`), porque `M-0110-1` se confundía.

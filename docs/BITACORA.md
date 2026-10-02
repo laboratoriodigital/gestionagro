@@ -714,8 +714,24 @@ La regla: **la e2e toca la pantalla como la toca la persona: el texto, no solo l
 - La usan la sincronización y Cuenta.
 - Pruebas con una cuenta en dos fincas: con el access vigente y con el access vencido. Con la renovación forzada quitada, falla.
 
-*Pendiente:* confirmar con el dueño que este era su caso (cuentas y roles con los que probó). Si no lo era, la causa sigue abierta.
+*Confirmado:* el dueño lo vio en su cuenta, que tenía dos fincas (entrada 26).
 
 La regla: **un estado como «vinculada» se comprueba con lo que la nube va a recibir (el token), no con una lista que lo hace parecer posible. Y el arnés de pruebas no debe saltarse al servidor que arma ese token.**
 
 *Ficha:* agro · *(mío)* · 🟠 Grave · P15, P16, P17 · 0.1.0 · 2026-10-01
+
+**26 · Del celular al computador, lo nuevo llegaba solo con el botón.**
+
+*Qué pasó.* El 1 oct 2026 el dueño confirmó el caso de la entrada 25: su cuenta tenía dos fincas («prueba1» y «celular») y, al elegir una, sincronizó bien. Pero también vio que los cambios del PC llegaban al celular casi de inmediato, y los del celular al PC solo tocando «Sincronizar ahora».
+
+*Causa raíz.* El celular sube lo suyo a los 3 s de guardar (entrada 22). Pero un teléfono o computador solo baja lo del equipo al abrir, cada 15 min y al volver a verse (`visibilitychange`). En el celular, cambiar de app oculta la pestaña y al volver la muestra, así que cada regreso trae lo del PC. En un computador la pestaña casi nunca se oculta: pasar a otra ventana y volver no dispara nada. El arreglo de la entrada 22 se pensó y se probó solo en el teléfono.
+
+*Arreglo.*
+- Además de `visibilitychange`, el cuaderno revisa lo del equipo cuando su ventana recibe el foco y cuando la persona toca la página, como máximo cada 30 s.
+- Si es muy pronto, no abre la base.
+- La revisión automática sigue cada 15 min, para no gastar la cuota diaria de la nube (ARQUITECTURA §6.2).
+- Una e2e con el reloj adelantado exige que el foco y el toque bajen lo del equipo, y que no lo hagan antes de 30 s. Sin los disparadores nuevos, falla.
+
+La regla: **«volver a la app» no se ve igual en un teléfono que en un computador. Un disparador se prueba en cada tipo de equipo donde se va a usar.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P16, P20 · 0.1.0 · 2026-10-01

@@ -5,8 +5,10 @@
  *
  * - **Después de guardar:** a los 3 s de la última escritura, para juntar en un solo viaje lo que
  *   se anota seguido. Solo si hay algo en la cola.
- * - **Al volver a la app:** cuando el cuaderno vuelve a verse, como máximo cada 30 s, para traer lo
- *   del equipo.
+ * - **Al volver a la app:** cuando el cuaderno vuelve a verse, cuando su ventana recibe el foco o
+ *   cuando la persona toca la página, como máximo cada 30 s, para traer lo del equipo. En un
+ *   computador la pestaña casi nunca se oculta: sin el foco y el toque, lo del celular llegaba al
+ *   PC solo con el botón o a los 15 min (bitácora agro 26).
  * - Nunca sin señal, nunca mientras corre otra sincronización y nunca antes de la espera que pidió
  *   la nube (429, 503): esa espera manda (HU-E5.2, CA5).
  */

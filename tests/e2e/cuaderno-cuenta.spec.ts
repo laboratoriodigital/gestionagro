@@ -392,6 +392,42 @@ test('bitácora agro 22: lo que se registra con la finca en la nube sube solo, s
   expect(lotes.length).toBe(antes + 1);
 });
 
+test('bitácora agro 26: en el computador, volver a la ventana o tocar la página trae lo del equipo', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await fincaConUnClima(page);
+  await coreFalso(page);
+  await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
+  let pulls = 0;
+  await page.route(`${API_STAGING}/api/v1/sync/pull?*`, async (ruta) => {
+    pulls++;
+    await ruta.fulfill({
+      json: { catalogos: [], registros: [], cursor: { registro: 0, catalogo: 0 }, mas: false },
+      headers: { 'access-control-allow-origin': '*' },
+    });
+  });
+  await cuenta(page);
+  await entrar(page);
+  await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
+  await expect(page.locator('[data-prueba="nube-sync"]')).toContainText(
+    'Lo del equipo se revisó a las',
+  );
+  const antes = pulls;
+  // Muy pronto: no vuelve a pedir.
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.clock.fastForward(1_000);
+  expect(pulls).toBe(antes);
+  // Pasados 30 s, volver a la ventana revisa lo del equipo.
+  await page.clock.fastForward(31_000);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect.poll(() => pulls).toBe(antes + 1);
+  // Y también tocar la página.
+  await page.clock.fastForward(31_000);
+  await page.locator('h1').click();
+  await expect.poll(() => pulls).toBe(antes + 2);
+});
+
 test('HU-E8.6: con la cuota agotada, el aviso dice hasta qué hora y que los datos están a salvo', async ({
   page,
 }) => {
