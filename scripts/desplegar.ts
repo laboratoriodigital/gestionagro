@@ -337,6 +337,7 @@ async function desplegarApiCelda(
         flagsId: ns.id,
         clavesCore: claves,
         origenesApp: [origenDelCuaderno(config)],
+        cuenta: cred.cuenta,
       }),
     );
   } catch (e) {
@@ -357,6 +358,28 @@ async function desplegarApiCelda(
     if (!r.ok)
       return { ok: false, detalle: [`${nombrePaso} falló:`, ...causaDeWrangler(r.salida)] };
     salidaDeploy = r.salida;
+  }
+  // Vigía de cuota (HU-E8.2): su token de solo lectura, por stdin. Sin él, el vigía no mide y
+  // deja la celda en «alerta» cada hora: se dice aquí y en el resumen, no se oculta (P1).
+  const tokenMetricas = process.env[celda.secretos.metricas];
+  const avisoMetricas: string[] = [];
+  if (tokenMetricas) {
+    const carga = wrangler(
+      '@gestionagro/api-celda',
+      `secret bulk ${c}`,
+      cred,
+      JSON.stringify({ CF_METRICAS_TOKEN: tokenMetricas }),
+    );
+    if (!carga.ok) {
+      return {
+        ok: false,
+        detalle: ['carga del token de métricas falló:', ...causaDeWrangler(carga.salida)],
+      };
+    }
+  } else {
+    avisoMetricas.push(
+      `⚠ falta el secreto ${celda.secretos.metricas}: el vigía de cuota no puede medir y dejará la celda en «alerta»`,
+    );
   }
   const url = urlDeWorkersDev(salidaDeploy);
   const configurada = staging ? celda.api_staging : celda.api;
@@ -383,7 +406,9 @@ async function desplegarApiCelda(
     detalle: [
       `API: ${url}`,
       `${celda.shards.length} shard(s) con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}; clave del CORE cargada`,
-    ],
+      tokenMetricas ? 'vigía de cuota: token de métricas cargado; corre cada hora' : '',
+      ...avisoMetricas,
+    ].filter(Boolean),
   };
 }
 

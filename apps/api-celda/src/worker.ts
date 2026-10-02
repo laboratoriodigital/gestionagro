@@ -27,6 +27,7 @@ import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { pull } from './pull.ts';
 import { push } from './push.ts';
+import { type KvDeFlags, resumen, vigilar } from './vigia.ts';
 
 /** Producto cuyo kill switch apaga la sincronización (`content/agro/cuaderno/product.yaml`). */
 export const PRODUCTO_SYNC = 'agro-cuaderno';
@@ -47,6 +48,12 @@ export interface Env {
   /** Orígenes del cuaderno, separados por coma. */
   ORIGENES_APP?: string;
   FLAGS?: LectorKv;
+  /** Token de solo lectura de métricas de la cuenta (HU-E8.2), por secreto del despliegue. */
+  CF_METRICAS_TOKEN?: string;
+  /** Cuenta de Cloudflare cuyas cuotas se miden; la pone el despliegue. */
+  CF_CUENTA?: string;
+  /** Plan de la cuenta de la celda (celdas.json): el vigía conoce las cuotas del gratuito. */
+  PLAN?: string;
   /** Un binding D1 por shard, con el nombre del shard. */
   [shard: string]: unknown;
 }
@@ -230,4 +237,34 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
   return app;
 }
 
-export default crearApp();
+/** Lo mínimo del contexto de un evento programado: esperar a que termine la vuelta. */
+interface ContextoProgramado {
+  waitUntil(promesa: Promise<unknown>): void;
+}
+
+const app = crearApp();
+
+export default {
+  fetch: app.fetch,
+  /** Cron Trigger de la celda, cada hora: el vigía de cuota (HU-E8.2). */
+  scheduled(_evento: unknown, env: Env, ctx: ContextoProgramado) {
+    ctx.waitUntil(vueltaDelVigia(env, Date.now()));
+  },
+};
+
+export async function vueltaDelVigia(env: Env, ahora: number, fetchFn: typeof fetch = fetch) {
+  if (!env.FLAGS) {
+    console.error('vigía: la celda no tiene el KV de flags; no puede escribir el nivel');
+    return null;
+  }
+  const v = await vigilar(
+    env.FLAGS as KvDeFlags,
+    env.CF_METRICAS_TOKEN,
+    env.CF_CUENTA,
+    ahora,
+    fetchFn,
+    env.PLAN,
+  );
+  (v.fallas.length > 0 || v.nivel !== 'normal' ? console.error : console.log)(resumen(v));
+  return v;
+}

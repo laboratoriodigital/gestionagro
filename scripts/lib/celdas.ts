@@ -13,7 +13,8 @@ export interface Celda {
   plan: 'free' | 'paid' | 'cliente';
   anillo_despliegue: number;
   estado: 'activa' | 'fuera';
-  secretos: { token: string; cuenta: string };
+  /** Nombres de los secretos de GitHub: token de despliegue, cuenta y token de métricas (HU-E8.2). */
+  secretos: { token: string; cuenta: string; metricas: string };
   /** URL de la API de la celda (HU-E5.1), por destino. */
   api: string;
   api_staging: string;

@@ -27,7 +27,8 @@
       "api_staging": "https://agro-api-c0-staging.laboratoriodigital-la.workers.dev",
       "secretos": {
         "token": "CF_API_TOKEN",
-        "cuenta": "CF_ACCOUNT_ID"
+        "cuenta": "CF_ACCOUNT_ID",
+        "metricas": "CF_METRICAS_TOKEN"
       },
       "shards": ["agro_c0_s1"]
     }

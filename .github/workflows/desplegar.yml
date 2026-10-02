@@ -58,6 +58,8 @@ jobs:
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          # HU-E8.2: token de solo lectura de métricas, para el vigía de cuota de la celda.
+          CF_METRICAS_TOKEN: ${{ secrets.CF_METRICAS_TOKEN }}
           # HU-E4.2: el despliegue los carga como secretos del Worker del CORE, por stdin.
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}

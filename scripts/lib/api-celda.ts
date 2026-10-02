@@ -45,6 +45,8 @@ export function configDeLaCelda(
     flagsId: string;
     clavesCore: readonly unknown[];
     origenesApp: readonly string[];
+    /** Cuenta de Cloudflare cuyas cuotas mide el vigía (HU-E8.2). */
+    cuenta: string;
   },
 ): Record<string, unknown> {
   const agregar = (bloque: Record<string, unknown>) => {
@@ -61,6 +63,7 @@ export function configDeLaCelda(
         ...(bloque['vars'] as Record<string, string>),
         CORE_CLAVES: JSON.stringify(despliegue.clavesCore),
         ORIGENES_APP: despliegue.origenesApp.join(','),
+        CF_CUENTA: despliegue.cuenta,
       },
     };
   };
