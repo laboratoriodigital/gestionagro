@@ -20,6 +20,8 @@ export interface Organizacion {
   org_id: string;
   nombre: string;
   rol: string;
+  /** Plan de la finca (HU-E3.11); falta en sesiones de antes de este cambio. */
+  plan?: string;
 }
 
 export interface Sesion {
@@ -52,6 +54,10 @@ export function urlDelCore(
 ): string {
   return hostname === config.dominio ? config.url : config.url_staging;
 }
+
+/** El plan de la finca de la sesión; sin finca en la nube o sin dato, el gratuito. */
+export const planDeLaFinca = (sesion: Sesion | null): string =>
+  sesion?.organizaciones.find((o) => o.org_id === sesion.org_id)?.plan ?? 'gratuito';
 
 /** El rol de esta persona en la finca de la sesión, o null si no hay finca en la nube. */
 export const rolEnLaFinca = (sesion: Sesion | null): string | null =>

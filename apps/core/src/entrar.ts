@@ -201,7 +201,12 @@ async function respuestaDeSesion(
     refresh: sesion.refresh,
     refresh_vence: sesion.refreshVence,
     usuario,
-    organizaciones: directorio.map(({ org_id, nombre, rol }) => ({ org_id, nombre, rol })),
+    organizaciones: directorio.map(({ org_id, nombre, rol, plan }) => ({
+      org_id,
+      nombre,
+      rol,
+      plan,
+    })),
     org_id: org?.org_id ?? null,
     /** API de la celda de esa organización: a dónde sincroniza el teléfono (HU-E5.2). */
     url_api: org?.url_api ?? null,

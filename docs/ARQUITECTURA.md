@@ -288,6 +288,7 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
   - `POST /api/core/equipo/{ver,rol,quitar}`: el propietario ve quién tiene acceso, cambia roles y quita personas. Quitar borra la membresía; los registros siguen en la celda.
   - En los dos casos, el access ya emitido vale hasta 12 h. Nadie cambia su propio acceso.
 - **Una cuenta en varias fincas (bitácora agro 25):** el teléfono pide siempre el token de la finca de su vínculo (`sesionDeLaFinca`). Sin pedirla, el CORE da un token sin finca.
+- **Plan en la sesión (HU-E3.11):** cada organización de la sesión trae su `plan`, para que el teléfono ofrezca solo lo de su peldaño (§2.4). Por ejemplo, las fotos son del plan Finca. Sin dato, cuenta como gratuito.
 - **Directorio:** se consulta **solo al iniciar sesión**. La celda y el shard viajan en el token, así que ninguna solicitud de sincronización toca el CORE.
 
 ### 5.5 Celda
