@@ -562,3 +562,9 @@ a.boton {
   flex: 1 1 0;
   min-width: 0;
 }
+
+/* Planes (HU-E0.6): el precio se lee primero. */
+.precio-plan {
+  font-size: 1.25rem;
+  margin: var(--espacio-1) 0;
+}

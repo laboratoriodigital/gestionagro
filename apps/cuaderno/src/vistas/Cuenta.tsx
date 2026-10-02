@@ -120,6 +120,13 @@ export function Cuenta() {
           )}
           <FincaEnLaNube sesion={sesion} alCambiarSesion={setSesion} enLinea={enLinea} />
           <TusDispositivos enLinea={enLinea} />
+          <h2>Planes</h2>
+          <p>
+            Mira qué trae cada plan y cuánto costará.{' '}
+            <a href="/agro/app/planes/" data-prueba="ver-planes">
+              Ver los planes
+            </a>
+          </p>
           <h2>Tu cuenta</h2>
           <div class="acciones">
             <button type="button" class="secundario" onClick={() => void salir()}>

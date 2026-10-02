@@ -67,7 +67,10 @@ export function Carencias() {
     return (
       <section aria-labelledby="titulo-carencias" data-prueba="carencias-plan">
         <h1 id="titulo-carencias">¿Qué puedo cosechar hoy?</h1>
-        <p>El calendario de los próximos 14 días, nave por nave, viene con el plan Finca.</p>
+        <p>
+          El calendario de los próximos 14 días, nave por nave, viene con el plan Finca.{' '}
+          <a href="/agro/app/planes/">Ver los planes</a>
+        </p>
         <p class="ayuda">
           Mientras tanto, cada área muestra en <a href="/agro/app/">Áreas</a> hasta cuándo no se
           puede cosechar ni entrar.

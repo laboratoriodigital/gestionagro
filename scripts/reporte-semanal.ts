@@ -10,8 +10,9 @@
  *   días. Nunca nombres ni correos. Las bases de las fincas no se tocan desde aquí.
  * - **Nube:** consumo de la semana en la cuenta de Cloudflare (Workers y D1), con las mismas
  *   consultas del vigía (HU-E8.2).
- * - Lo que aún no se mide se dice: Search Console (decisión del dueño: después) e intención de
- *   pago (llega con la lista de espera, HU-E0.6).
+ * - **Intención de pago (HU-E0.6):** fincas que tocaron «Me interesa» en la lista de espera, sobre
+ *   las cuentas, y por plan.
+ * - Lo que aún no se mide se dice: Search Console (decisión del dueño: después).
  *
  * Una sección que no se puede leer dice por qué y el reporte sale igual (P1).
  * Funciones con `fetch` inyectado, para probarlas sin tocar Cloudflare ni GitHub.
@@ -117,7 +118,11 @@ export async function cuentasDelCore(
         (SELECT count(*) FROM membresia WHERE rol != 'propietario') AS equipo,
         (SELECT count(*) FROM usuario WHERE creado < ?2) AS antiguas,
         (SELECT count(DISTINCT s.usuario_id) FROM sesion s JOIN usuario u ON u.id = s.usuario_id
-          WHERE u.creado < ?2 AND datetime(s.expira, '-60 days') >= datetime(?2)) AS volvieron`;
+          WHERE u.creado < ?2 AND datetime(s.expira, '-60 days') >= datetime(?2)) AS volvieron,
+        (SELECT count(DISTINCT org_id) FROM interes_plan) AS interesadas,
+        (SELECT count(DISTINCT org_id) FROM interes_plan WHERE plan = 'finca') AS interes_finca,
+        (SELECT count(DISTINCT org_id) FROM interes_plan WHERE plan = 'exportador') AS interes_exportador,
+        (SELECT count(DISTINCT org_id) FROM interes_plan WHERE plan = 'cadena') AS interes_cadena`;
     const resultado = (await pedir(`/${id}/query`, {
       method: 'POST',
       body: JSON.stringify({ sql, params: [hace(7), hace(30)] }),
@@ -128,12 +133,18 @@ export async function cuentasDelCore(
       f['antiguas'] === 0
         ? 'sin cuentas de más de 30 días todavía'
         : `${n(f['volvieron'] ?? 0)} de ${n(f['antiguas'] ?? 0)} (${Math.round(((f['volvieron'] ?? 0) / (f['antiguas'] ?? 1)) * 100)} %)`;
+    const cuentas = f['cuentas'] ?? 0;
+    const intencion =
+      cuentas === 0
+        ? 'sin cuentas todavía'
+        : `${n(f['interesadas'] ?? 0)} fincas de ${n(cuentas)} cuentas (${Math.round(((f['interesadas'] ?? 0) / cuentas) * 100)} %) · Finca ${n(f['interes_finca'] ?? 0)}, Exportador ${n(f['interes_exportador'] ?? 0)}, Cadena ${n(f['interes_cadena'] ?? 0)}`;
     return {
       titulo,
       lineas: [
         `- Cuentas: ${n(f['cuentas'] ?? 0)} (nuevas esta semana: ${n(f['nuevas'] ?? 0)})`,
         `- Fincas en la nube: ${n(f['fincas'] ?? 0)} · personas invitadas a equipos: ${n(f['equipo'] ?? 0)}`,
         `- Retorno a 30 días (cuentas de más de 30 días que usaron la app en los últimos 30): ${retorno}`,
+        `- Intención de pago (tocaron «Me interesa» en la lista de espera): ${intencion}`,
       ],
     };
   } catch (e) {
@@ -196,7 +207,6 @@ export function comoMarkdown(secciones: readonly Seccion[], fecha: string): stri
     '## Lo que todavía no se mide',
     '',
     '- Impresiones y clics en Google (Search Console): decisión del dueño, para después.',
-    '- Intención de pago: llega con la lista de espera de planes (HU-E0.6).',
     '',
   ].join('\n');
 }

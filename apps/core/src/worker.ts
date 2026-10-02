@@ -10,6 +10,8 @@
  * - `POST /api/core/invitaciones[/ver|/aceptar]`: invitar al equipo por WhatsApp (HU-E4.4).
  * - `POST /api/core/equipo/{ver,rol,quitar}` y `/api/core/telefonos/{ver,retirar}`: el equipo de
  *   la finca y los teléfonos de la cuenta (HU-E4.6, `equipo.ts`).
+ * - `POST /api/core/interes[/ver]`: la lista de espera de planes con precio visible (HU-E0.6,
+ *   `interes.ts`).
  *
  * Kill switch `ks:agro-core` (HU-E8.1): apagado, `/api/core/auth/*` responde 503 y nadie entra ni
  * renueva. Quien ya tiene un access token sigue sincronizando hasta que venza (12 h); el cuaderno
@@ -39,6 +41,7 @@ import {
   renovar,
 } from './entrar.ts';
 import { cambiarRol, quitarDelEquipo, retirarTelefono, verEquipo, verTelefonos } from './equipo.ts';
+import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 
@@ -164,6 +167,8 @@ export function crearApp(dependencias: Dependencias = {}) {
     '/api/core/invitaciones/*',
     '/api/core/equipo/*',
     '/api/core/telefonos/*',
+    '/api/core/interes',
+    '/api/core/interes/*',
   ]) {
     app.use(ruta, corsDelCuaderno);
     app.use(ruta, conEntorno);
@@ -178,6 +183,8 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/api/core/equipo/quitar', (c) => quitarDelEquipo(c, c.get('entorno')));
   app.post('/api/core/telefonos/ver', (c) => verTelefonos(c, c.get('entorno')));
   app.post('/api/core/telefonos/retirar', (c) => retirarTelefono(c, c.get('entorno')));
+  app.post('/api/core/interes', (c) => marcarInteres(c, c.get('entorno')));
+  app.post('/api/core/interes/ver', (c) => verInteres(c, c.get('entorno')));
   app.get('/api/core/auth/google/inicio', (c) => inicio(c, c.get('entorno')));
   app.get('/api/core/auth/google/callback', (c) => callback(c, c.get('entorno')));
   app.post('/api/core/auth/canje', (c) => canje(c, c.get('entorno')));

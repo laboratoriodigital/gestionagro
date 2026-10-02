@@ -20,6 +20,7 @@ import { Insumos } from './vistas/Insumos.tsx';
 import { Lotes } from './vistas/Lotes.tsx';
 import { NoEncontrada } from './vistas/NoEncontrada.tsx';
 import { Personas } from './vistas/Personas.tsx';
+import { Planes } from './vistas/Planes.tsx';
 import { Registrar } from './vistas/Registrar.tsx';
 import { Rendimiento } from './vistas/Rendimiento.tsx';
 import { Respaldo } from './vistas/Respaldo.tsx';
@@ -38,6 +39,7 @@ const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> =
   lotes: Lotes,
   rendimiento: Rendimiento,
   costos: Costos,
+  planes: Planes,
 };
 
 /** Con y sin «/» final: el enlace directo llega como /agro/app/insumos/ y la navegación como /agro/app/insumos. */

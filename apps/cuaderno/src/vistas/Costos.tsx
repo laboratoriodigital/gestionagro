@@ -200,7 +200,8 @@ export function Costos() {
         {titulo}
         <p>
           Los costos vienen con el plan Finca: lo que tienes en bodega y cuánto vale, cuánto cuesta
-          lo que se aplica en cada nave y, después, la mano de obra y el costo por kilo.
+          lo que se aplica en cada nave, la mano de obra y el costo por kilo.{' '}
+          <a href="/agro/app/planes/">Ver los planes</a>
         </p>
         <p class="ayuda">
           Mientras tanto, anota la cantidad usada en cada aplicación: cuando tengas el plan, la

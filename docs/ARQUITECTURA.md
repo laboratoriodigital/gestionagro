@@ -255,6 +255,7 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
 | `membresia` | usuario × organización × rol |
 | `invitacion` | código de un solo uso (hash), rol, expira, creada_por |
 | `celda` | id, url base de la API, clave pública vigente y anterior, estado |
+| `interes_plan` | usuario × organización × plan (`finca`, `exportador`, `cadena`) con su fecha: la lista de espera con precio visible (HU-E0.6). Sin cobro ni tarjeta |
 
 - **Dónde vive (HU-E4.1):**
   - Worker `agro-core` en workers.dev, con la base D1 `agro_core` (con `_staging` en staging), en la cuenta de la celda que dice `core.celda` en `celdas.json`.

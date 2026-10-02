@@ -724,4 +724,55 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
       ).toBe(404);
     });
   });
+
+  describe('HU-E0.6 · lista de espera de planes', () => {
+    it('CA1: el propietario marca «Me interesa» sin cobro; repetirlo no escribe otra vez', async () => {
+      const p = await propietario();
+      const r = await conToken('/api/core/interes', p.acceso, { plan: 'finca' });
+      expect(r.status).toBe(200);
+      expect(await r.json()).toEqual({ plan: 'finca', nuevo: true });
+      // Repetido: INSERT OR IGNORE no escribe ninguna fila, que es lo que D1 cuenta.
+      const otra = await conToken('/api/core/interes', p.acceso, { plan: 'finca' });
+      expect(await otra.json()).toEqual({ plan: 'finca', nuevo: false });
+      await conToken('/api/core/interes', p.acceso, { plan: 'exportador' });
+      // Dos planes, dos filas, aunque se tocó tres veces (presupuesto ≤ 50 escrituras al día).
+      const filas = await db
+        .prepare('SELECT org_id, plan FROM interes_plan ORDER BY plan')
+        .all<{ org_id: string; plan: string }>();
+      expect(filas.results).toEqual([
+        { org_id: ORG, plan: 'exportador' },
+        { org_id: ORG, plan: 'finca' },
+      ]);
+      const vistos = await conToken('/api/core/interes/ver', p.acceso, {});
+      expect(await vistos.json()).toEqual({ planes: ['exportador', 'finca'] });
+    });
+
+    it('solo el propietario: un operario no es intención de pago de la finca', async () => {
+      const { cuerpo } = await invitar('operario');
+      const o = await sesionDe('google-operario');
+      await conToken('/api/core/invitaciones/aceptar', o.acceso, { codigo: cuerpo.codigo });
+      const renovada = (await (
+        await post('/api/core/auth/refrescar', { refresh: o.refresh, org_id: ORG })
+      ).json()) as Sesion;
+      const r = await conToken('/api/core/interes', renovada.acceso, { plan: 'finca' });
+      expect(r.status).toBe(403);
+    });
+
+    it.each([
+      ['sin sesión', null, { plan: 'finca' }, 401],
+      ['un plan que no existe', 'propietario', { plan: 'oro' }, 400],
+      ['el plan gratuito', 'propietario', { plan: 'gratuito' }, 400],
+    ] as const)('%s se rechaza', async (_c, quien, cuerpo, estado) => {
+      const acceso = quien ? (await propietario()).acceso : null;
+      expect((await conToken('/api/core/interes', acceso, cuerpo)).status).toBe(estado);
+    });
+
+    it('una cuenta sin finca en la nube no puede avisar todavía', async () => {
+      const s = await sesionDe('google-sin-finca');
+      expect((await conToken('/api/core/interes', s.acceso, { plan: 'finca' })).status).toBe(403);
+      expect(await (await conToken('/api/core/interes/ver', s.acceso, {})).json()).toEqual({
+        planes: [],
+      });
+    });
+  });
 });
