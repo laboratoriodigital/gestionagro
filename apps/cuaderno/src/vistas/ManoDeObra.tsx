@@ -7,23 +7,12 @@ import { HORAS_POR_JORNAL, leerNumero, valorVigente } from '@gestionagro/agro-ca
 import { ErrorDeValidacion, fechaAgronomica, type Persona } from '@gestionagro/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
-import { type ManoDeObraDeArea, manoDeObraPorArea, type Periodo } from '../almacen/mano-de-obra.ts';
+import { type ManoDeObraDeArea, manoDeObraPorArea } from '../almacen/mano-de-obra.ts';
+import { type ClavePeriodo, OPCIONES_DE_PERIODO, periodoDe } from '../almacen/periodos.ts';
 import { definirJornal, definirJornalGeneral, leerPersonas } from '../almacen/personas.ts';
 import { Campo, CampoSeleccion } from '../componentes/Campo.tsx';
 
 const pesos = (n: number) => `$ ${Math.round(n).toLocaleString('es-CO')}`;
-
-type ClavePeriodo = 'mes' | 'mes-pasado' | 'todo';
-function periodoDe(clave: ClavePeriodo, hoy: string): Periodo {
-  const [a, m] = hoy.split('-').map(Number) as [number, number];
-  const inicio = (anio: number, mes: number) => `${anio}-${String(mes).padStart(2, '0')}-01`;
-  const fin = (anio: number, mes: number) =>
-    new Date(Date.UTC(anio, mes, 0)).toISOString().slice(0, 10);
-  if (clave === 'mes') return { desde: inicio(a, m), hasta: hoy };
-  const [ap, mp] = m === 1 ? [a - 1, 12] : [a, m - 1];
-  if (clave === 'mes-pasado') return { desde: inicio(ap, mp), hasta: fin(ap, mp) };
-  return { desde: null, hasta: null };
-}
 
 export function ManoDeObra(props: {
   fincaId: string;
@@ -96,11 +85,7 @@ export function ManoDeObra(props: {
       <CampoSeleccion
         id="mano-periodo"
         etiqueta="Periodo"
-        opciones={[
-          { valor: 'mes', texto: 'Este mes' },
-          { valor: 'mes-pasado', texto: 'El mes pasado' },
-          { valor: 'todo', texto: 'Todo' },
-        ]}
+        opciones={OPCIONES_DE_PERIODO}
         valor={clave}
         alCambiar={(x) => setClave((x || 'mes') as ClavePeriodo)}
       />

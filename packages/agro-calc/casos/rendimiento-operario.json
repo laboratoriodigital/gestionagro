@@ -1,0 +1,109 @@
+{
+  "nota": "Casos del rendimiento por operario (HU-E7.4). Una cosecha en equipo reparte la cantidad por partes iguales; sin horas no entra a la tasa y se cuenta aparte (P1); cada unidad va por separado.",
+  "casos": [
+    {
+      "nombre": "una persona, dos cosechas",
+      "cosechas": [
+        { "personaIds": ["ana"], "cantidad": 60, "unidad": "kg", "horasPorPersona": 4 },
+        { "personaIds": ["ana"], "cantidad": 30, "unidad": "kg", "horasPorPersona": 2 }
+      ],
+      "esperado": [
+        {
+          "personaId": "ana",
+          "unidad": "kg",
+          "cantidad": 90,
+          "horas": 6,
+          "porHora": 15,
+          "sinHoras": 0
+        }
+      ]
+    },
+    {
+      "nombre": "en equipo, la cantidad se reparte por partes iguales",
+      "cosechas": [
+        { "personaIds": ["ana", "beto"], "cantidad": 100, "unidad": "kg", "horasPorPersona": 4 }
+      ],
+      "esperado": [
+        {
+          "personaId": "ana",
+          "unidad": "kg",
+          "cantidad": 50,
+          "horas": 4,
+          "porHora": 12.5,
+          "sinHoras": 0
+        },
+        {
+          "personaId": "beto",
+          "unidad": "kg",
+          "cantidad": 50,
+          "horas": 4,
+          "porHora": 12.5,
+          "sinHoras": 0
+        }
+      ]
+    },
+    {
+      "nombre": "sin horas no entra a la tasa ni baja el promedio: se cuenta aparte",
+      "cosechas": [
+        { "personaIds": ["ana"], "cantidad": 60, "unidad": "kg", "horasPorPersona": 4 },
+        { "personaIds": ["ana"], "cantidad": 500, "unidad": "kg", "horasPorPersona": null }
+      ],
+      "esperado": [
+        {
+          "personaId": "ana",
+          "unidad": "kg",
+          "cantidad": 60,
+          "horas": 4,
+          "porHora": 15,
+          "sinHoras": 1
+        }
+      ]
+    },
+    {
+      "nombre": "solo cosechas sin horas: no hay tasa, no es 0",
+      "cosechas": [
+        { "personaIds": ["beto"], "cantidad": 40, "unidad": "kg", "horasPorPersona": null }
+      ],
+      "esperado": [
+        {
+          "personaId": "beto",
+          "unidad": "kg",
+          "cantidad": 0,
+          "horas": 0,
+          "porHora": null,
+          "sinHoras": 1
+        }
+      ]
+    },
+    {
+      "nombre": "kilos y tallos no se suman",
+      "cosechas": [
+        { "personaIds": ["ana"], "cantidad": 20, "unidad": "kg", "horasPorPersona": 2 },
+        { "personaIds": ["ana"], "cantidad": 900, "unidad": "tallos", "horasPorPersona": 3 }
+      ],
+      "esperado": [
+        {
+          "personaId": "ana",
+          "unidad": "kg",
+          "cantidad": 20,
+          "horas": 2,
+          "porHora": 10,
+          "sinHoras": 0
+        },
+        {
+          "personaId": "ana",
+          "unidad": "tallos",
+          "cantidad": 900,
+          "horas": 3,
+          "porHora": 300,
+          "sinHoras": 0
+        }
+      ]
+    },
+    {
+      "nombre": "una cosecha sin personas no es de nadie",
+      "cosechas": [{ "personaIds": [], "cantidad": 20, "unidad": "kg", "horasPorPersona": null }],
+      "esperado": []
+    }
+  ]
+}

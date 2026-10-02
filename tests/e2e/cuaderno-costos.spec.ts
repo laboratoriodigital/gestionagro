@@ -4,7 +4,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 import { FINCA_ENSAYO_UNO, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { agregarInsumo, configurar, ROL } from './ayudas.ts';
+import { agregarInsumo, configurar, conPlan, ROL } from './ayudas.ts';
 
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
 
@@ -18,36 +18,6 @@ const INSUMO: FincaDePrueba['insumos'][number] = {
   reentrada_horas: 1,
   permitido_ecologico: true,
 };
-
-/** Una sesión con la finca en el plan Finca y rol propietario, como la daría el CORE. */
-async function conPlanFinca(page: Page) {
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolver) => {
-        const pedido = indexedDB.open('gestionagro-cuaderno');
-        pedido.onsuccess = () => {
-          const tx = pedido.result.transaction('meta', 'readwrite');
-          const org = '0199a1b2-0000-7000-8000-0000000000fa';
-          tx.objectStore('meta').put({
-            clave: 'sesion',
-            valor: {
-              acceso: 'acceso',
-              acceso_vence: Date.now() + 3_600_000,
-              refresh: 'refresh',
-              refresh_vence: Date.now() + 86_400_000,
-              usuario: { nombre: 'Persona Ensayo', email: 'ensayo@example.com' },
-              organizaciones: [
-                { org_id: org, nombre: 'Finca Ensayo', rol: 'propietario', plan: 'finca' },
-              ],
-              org_id: org,
-            },
-            actualizado: '',
-          });
-          tx.oncomplete = () => resolver();
-        };
-      }),
-  );
-}
 
 test('con el plan gratuito, «Costos» dice qué trae el plan Finca', async ({ page }) => {
   await configurar(page, FINCA_ENSAYO_UNO);
@@ -66,7 +36,7 @@ test('CA1, CA2 y CA3: compra, aplicación con cantidad, bodega y costo por nave,
   const p = f.personas[0];
   if (!area || !p) throw new Error('faltan datos de la finca de prueba');
   await configurar(page, f);
-  await conPlanFinca(page);
+  await conPlan(page, 'finca');
   await nav(page).getByRole('link', { name: 'Personas' }).click();
   await page.getByRole('button', { name: 'Agregar persona' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
@@ -128,7 +98,7 @@ test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su
   const p = f.personas[0];
   if (!area || !p) throw new Error('faltan datos de la finca de prueba');
   await configurar(page, f);
-  await conPlanFinca(page);
+  await conPlan(page, 'finca');
   await nav(page).getByRole('link', { name: 'Personas' }).click();
   await page.getByRole('button', { name: 'Agregar persona' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);

@@ -7,6 +7,7 @@ import { formatearCantidad } from '@gestionagro/agro-calc';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { type GrupoDeRendimiento, rendimientoDeLaFinca } from '../almacen/rendimiento.ts';
+import { RendimientoPorPersona } from './RendimientoPorPersona.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 
 const fechaCorta = (f: string) => f.split('-').reverse().join('/');
@@ -84,6 +85,7 @@ export function Rendimiento() {
           </div>
         ))
       )}
+      <RendimientoPorPersona fincaId={fincaId} />
     </section>
   );
 }

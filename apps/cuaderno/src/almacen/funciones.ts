@@ -8,7 +8,7 @@ import configFunciones from '../../../../content/agro/cuaderno/funciones.json' w
 };
 
 export type Funcion = Exclude<keyof typeof configFunciones, 'nota'>;
-type TablaDeFunciones = Record<Funcion, Record<string, boolean>>;
+type TablaDeFunciones = Partial<Record<Funcion, Record<string, boolean>>>;
 
 /** ¿Está encendida la función para ese plan? Un plan desconocido cuenta como el gratuito. */
 export function funcionActiva(
@@ -17,5 +17,7 @@ export function funcionActiva(
   tabla: TablaDeFunciones = configFunciones,
 ): boolean {
   const porPlan = tabla[funcion];
+  // Una función que no está en la tabla está apagada: nunca se enciende por omisión.
+  if (!porPlan) return false;
   return porPlan[plan] ?? porPlan['gratuito'] ?? false;
 }

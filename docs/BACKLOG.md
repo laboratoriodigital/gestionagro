@@ -944,7 +944,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E7.4 · Rendimiento por operario
 **Como** supervisor **quiero** ver kg cosechados por hora y labores por persona **para** organizar el trabajo y reconocer a quien rinde.
-- **Peldaño:** Exportador (flores: dolor principal del Estudio) · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** S14 · **Depende de:** HU-E6.1, HU-E3.9 · **Estado:** Refinada
+- **Peldaño:** Exportador (flores: dolor principal del Estudio) · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** S14 · **Depende de:** HU-E6.1, HU-E3.9 · **Estado:** En sprint (rama `feat/e7.4-rendimiento-operario`. CA1: la cosecha no guardaba horas, así que pasa a `cosecha` v2 con `horasPorPersona` opcional (nulo = no se anotó, P1). El traductor lleva la v1 a nulo, y la muestra está en el contrato `app-0.2.0.json` (P10). El formulario pide las horas solo con personas elegidas, en medias horas. `rendimientoPorOperario` de agro-calc, con casos: una cosecha en equipo se reparte por partes iguales y cada unidad (kg, tallos) va aparte. «Rendimiento» → «Por persona», con periodo (este mes, el mes pasado o todo; `periodos.ts` compartido con Mano de obra), muestra la cosecha por hora y las horas en labores. Es del plan Exportador por el interruptor de `funciones.json`, y en los demás planes dice que viene con él. CA2: solo propietario y supervisor; el operario no ve la sección. CA3: dice cuántas cosechas no entran por falta de horas o de quién cosechó. `conPlan` de las e2e pasa a `ayudas.ts`, donde antes había dos copias)
 - **Criterios de aceptación:**
   1. Kg/hora por persona y periodo, a partir de cosechas con personas y horas.
   2. Visible solo para propietario y supervisor.

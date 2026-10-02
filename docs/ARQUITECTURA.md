@@ -393,7 +393,7 @@ registro(id UUIDv7, org_id, finca_id, area_ids[], ciclo_id, tipo, v,
 | `labor` | tipo (tutorado, deshoje, poda, polinización, limpieza…), horas, personas |
 | `aplicacion` | insumo, dosis **según etiqueta** (texto + número), volumen de mezcla, equipo, área, responsable → vence carencia y reentrada |
 | `monitoreo` | plaga o enfermedad, método (trampa, conteo), incidencia/severidad, foto opcional |
-| `cosecha` | área, kg (o tallos/cajas), categoría de calidad, descarte |
+| `cosecha` | área, kg (o tallos/cajas), categoría de calidad, descarte; desde v2, horas de cada persona que cosechó (HU-E7.4, nulo si no se anotaron) |
 | `lote_venta` | cosechas enteras que agrupa, código corto (`T-27MAR-2`, con el mes en letras), cantidad vendible (cosechado − descarte), unidad, cultivo. Implementado (HU-E6.2): una cosecha va en un solo lote; si dos teléfonos sin señal chocan en código o en cosecha, gana el lote más antiguo y el otro se muestra con letra y aviso (`apps/cuaderno/src/almacen/lotes.ts`) |
 | `despacho` | cliente (nombre y tipo), lote(s) con su cantidad, unidad, precio por unidad en COP (nulo = no anotado), medio de pago. Implementado (HU-E6.3): solo lo ven propietario y supervisor |
 | `movimiento_insumo` | entrada (compra, precio) o salida (vinculada a una aplicación) |
