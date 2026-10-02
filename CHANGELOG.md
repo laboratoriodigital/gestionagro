@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Corregido
+- Según la prueba del dueño (bitácora agro 28): imprimir la etiqueta QR sacaba 12 hojas. Ahora sale una sola, de 5 × 5 cm.
 - Según la revisión del dueño: en «Áreas», los botones de cada área estaban apilados en tres filas de anchos distintos. Ahora el estado del ciclo va con su botón en una franja, y Editar, Historial y «+ Cama o surco» quedan en una sola fila de botones iguales.
 - Según la prueba del dueño en staging (bitácora agro 26): lo anotado en el celular llegaba al computador solo al tocar «Sincronizar ahora» o a los 15 min. En un computador la pestaña casi nunca se oculta, así que «volver a la app» no ocurría. Ahora el cuaderno también trae lo del equipo cuando su ventana recibe el foco o cuando se toca la página, como máximo cada 30 s.
 - Según la prueba del dueño en staging (bitácora agro 25): una cuenta que está en dos fincas (la suya y la que la invitó) dejaba de sincronizar al volver a entrar con Google. El teléfono decía que estaba vinculado, pero la nube rechazaba cada envío. Ahora el teléfono pide siempre la sesión de su finca, y si tiene la de otra, la renueva en ese momento.
@@ -18,6 +19,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - La calculadora de DPV borraba lo que la persona escribía antes de que terminara de cargar (3G lenta): al activarse, dejaba los campos vacíos. Ahora conserva lo escrito (bitácora agro 21).
 
 ### Añadido
+- Compartir la etiqueta QR (pedido del dueño). «Compartir» abre el menú del teléfono con la etiqueta como imagen y el enlace, para mandarla por WhatsApp o guardarla. En un computador, copia el enlace.
 - Monitoreo de plagas y enfermedades (HU-E3.11). En Registrar → «Monitoreo» se anota qué se vio en trampas o plantas, cómo se midió, el nivel y, si hace falta, una foto. Los nombres ya anotados se sugieren al escribir. Con el plan Finca se puede adjuntar una foto: se achica en el teléfono a 150 KB como máximo y se queda en él, sin señal, y la app dice cuántas fotos van del mes y cuántas da el plan. Con el plan gratuito el monitoreo se guarda igual, sin foto.
 - QR de trazabilidad (HU-E6.4). Cada lote tiene «Etiqueta QR», para imprimir en 5 × 5 cm. Quien la escanea ve de qué finca, cultivo, área y fechas viene el producto, sin instalar nada y sin datos personales. Con señal, la nube confirma la etiqueta con su firma y la página dice «Verificado por Gestión Agro». Sin señal, sale «sin confirmar» y se puede confirmar después. Si alguien cambia la etiqueta, la página lo dice en rojo.
 - Rendimiento por nave y por planta (HU-E6.6). La pantalla «Rendimiento» compara, para cada cultivo, cuánto rinde cada nave por metro cuadrado y por planta con lo que se vende (lo cosechado menos el descarte), y el porcentaje de descarte. Si el ciclo no tiene anotadas sus plantas, dice «sin dato» en vez de inventar un cero.

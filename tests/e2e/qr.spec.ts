@@ -139,3 +139,108 @@ test('CA1 y CA4: sin señal, el lote da una etiqueta de 5 × 5 cm «sin confirma
   await expect(page.locator('#qr-datos')).toContainText(codigo);
   await expect(page.locator('#qr-datos')).toContainText(FINCA_ENSAYO_UNO.finca.nombre);
 });
+
+test('revisión del dueño: imprimir la etiqueta da una sola hoja de 5 × 5 cm', async ({ page }) => {
+  // window.print abre el diálogo del sistema: aquí se reemplaza y se genera el PDF como lo haría.
+  await page.addInitScript(() => {
+    window.print = () => undefined;
+  });
+  await configurar(page, FINCA_ENSAYO_UNO);
+  const area = FINCA_ENSAYO_UNO.areas[0];
+  if (!area) throw new Error('sin áreas');
+  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
+  await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
+  await page.getByLabel('Cantidad cosechada').fill('20');
+  const form = page.locator('[data-prueba="formulario-cosecha"]');
+  await form.getByLabel('kg', { exact: true }).check();
+  await form.getByLabel('Primera', { exact: true }).check();
+  await page.getByRole('button', { name: 'Guardar cosecha' }).click();
+  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  await page.locator('[data-prueba="elegir-cosechas"] input[type=checkbox]').first().check();
+  await page.getByRole('button', { name: 'Armar lote' }).click();
+  const codigo = (await page.locator('.codigo-lote').first().textContent()) ?? '';
+  await page.getByRole('button', { name: `Etiqueta QR del lote ${codigo}` }).click();
+  await page.getByRole('button', { name: 'Imprimir' }).click();
+  const pdf = (await page.pdf({ preferCSSPageSize: true })).toString('latin1');
+  const hojas = pdf.match(/\/Type\s*\/Page(?!s)/g) ?? [];
+  expect(hojas).toHaveLength(1);
+  const caja = pdf.match(/\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/);
+  // 5 cm = 141,7 puntos PDF.
+  expect(Math.round(Number(caja?.[1]))).toBe(142);
+  expect(Math.round(Number(caja?.[2]))).toBe(142);
+});
+
+/** Arma un lote sin señal y abre su etiqueta; devuelve el código del lote. */
+async function abrirEtiqueta(page: Page): Promise<string> {
+  await configurar(page, FINCA_ENSAYO_UNO);
+  const area = FINCA_ENSAYO_UNO.areas[0];
+  if (!area) throw new Error('sin áreas');
+  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
+  await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
+  await page.getByLabel('Cantidad cosechada').fill('20');
+  const form = page.locator('[data-prueba="formulario-cosecha"]');
+  await form.getByLabel('kg', { exact: true }).check();
+  await form.getByLabel('Primera', { exact: true }).check();
+  await page.getByRole('button', { name: 'Guardar cosecha' }).click();
+  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  await page.locator('[data-prueba="elegir-cosechas"] input[type=checkbox]').first().check();
+  await page.getByRole('button', { name: 'Armar lote' }).click();
+  const codigo = (await page.locator('.codigo-lote').first().textContent()) ?? '';
+  await page.getByRole('button', { name: `Etiqueta QR del lote ${codigo}` }).click();
+  return codigo;
+}
+
+test('revisión del dueño: compartir con el menú del teléfono manda la etiqueta como imagen y el enlace', async ({
+  page,
+}) => {
+  // El menú nativo no existe en la prueba: se reemplaza y se guarda lo que recibió.
+  await page.addInitScript(() => {
+    const w = window as unknown as { compartido?: unknown };
+    Object.assign(navigator, {
+      canShare: (d: { files?: File[] }) => Boolean(d.files?.every((f) => f.type === 'image/png')),
+      share: async (d: { title: string; text: string; files: File[] }) => {
+        const [f] = d.files;
+        const imagen = f ? await createImageBitmap(f) : null;
+        w.compartido = {
+          titulo: d.title,
+          texto: d.text,
+          archivo: f?.name,
+          tipo: f?.type,
+          lado: imagen ? [imagen.width, imagen.height] : null,
+        };
+      },
+    });
+  });
+  const codigo = await abrirEtiqueta(page);
+  await page.getByRole('button', { name: 'Compartir' }).click();
+  const enlace =
+    (await page.locator('[data-prueba="enlace-qr"]').getAttribute('href')) ?? 'sin enlace';
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { compartido?: unknown }).compartido))
+    .toEqual({
+      titulo: `Lote ${codigo} · ${FINCA_ENSAYO_UNO.finca.nombre}`,
+      texto: `Lote ${codigo} · ${FINCA_ENSAYO_UNO.finca.nombre}. De dónde viene: ${enlace}`,
+      archivo: `lote-${codigo}.png`,
+      tipo: 'image/png',
+      lado: [720, 720],
+    });
+});
+
+test('sin menú de compartir (un computador): copia el enlace y lo dice', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.addInitScript(() => {
+    Object.assign(navigator, { share: undefined });
+  });
+  await abrirEtiqueta(page);
+  await page.getByRole('button', { name: 'Compartir' }).click();
+  await expect(page.locator('[data-prueba="aviso-compartir"]')).toHaveText(
+    'Enlace copiado: pégalo donde quieras compartirlo.',
+  );
+  const enlace = await page.locator('[data-prueba="enlace-qr"]').getAttribute('href');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(enlace);
+});

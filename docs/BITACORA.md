@@ -756,3 +756,19 @@ La regla: **«volver a la app» no se ve igual en un teléfono que en un computa
 La regla: **en una prueba de sincronización, la invariante no es «la nube no pierde nada», es «todos los teléfonos terminan iguales, y lo que no quedó está guardado y se dice».**
 
 *Ficha:* agro · *(mío)* · 🟠 Grave · P1, P15, P16 · 0.1.0 · 2026-10-01
+
+**28 · Imprimir una etiqueta de 5 × 5 cm sacaba 12 hojas.**
+
+*Qué pasó.* El 1 oct 2026 el dueño imprimió la etiqueta QR de un lote y el PDF salió con 12 hojas.
+
+*Causa raíz.*
+- La hoja de estilo de impresión escondía el resto de la página con `visibility: hidden` y dejaba visible la etiqueta. `visibility` esconde, pero el elemento sigue ocupando su lugar, así que el navegador imprimió todo el alto de la página en hojas de 5 × 5 cm.
+- La prueba de HU-E6.4 medía el tamaño de la etiqueta con `emulateMedia('print')`, pero no contaba las hojas del documento impreso. Medía una pieza, no el resultado.
+
+*Arreglo.*
+- «Imprimir» copia la etiqueta a un contenedor propio en la raíz de la página, y la impresión quita todo lo demás con `display: none`. Al terminar, se limpia.
+- Una e2e genera el PDF y exige una sola hoja de 5 × 5 cm (142 × 142 puntos). Con el código anterior daba 10.
+
+La regla: **lo que se imprime se prueba sobre el documento impreso: hojas y tamaño, no solo la caja en pantalla.**
+
+*Ficha:* agro · *(mío)* · 🟡 Medio · P16, P17 · 0.1.0 · 2026-10-01
