@@ -1,6 +1,7 @@
 /**
  * Registrar el día a día de la finca sin señal (S5): clima con su DPV (HU-E3.8), riego (HU-E3.7),
- * labores (HU-E3.9), aplicaciones con su carencia (HU-E3.10) y cosecha (HU-E6.1). Cada formulario vive en su archivo.
+ * labores (HU-E3.9), aplicaciones con su carencia (HU-E3.10), cosecha (HU-E6.1) y monitoreo
+ * (HU-E3.11). Cada formulario vive en su archivo.
  */
 import type { Area, Ciclo, Registro } from '@gestionagro/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
@@ -16,6 +17,7 @@ import { FormularioAplicacion } from './FormularioAplicacion.tsx';
 import { FormularioClima, valoresDelFragmento } from './FormularioClima.tsx';
 import { FormularioCosecha } from './FormularioCosecha.tsx';
 import { FormularioLabor } from './FormularioLabor.tsx';
+import { FormularioMonitoreo } from './FormularioMonitoreo.tsx';
 import { FormularioRiego } from './FormularioRiego.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 import { SoloConsulta, usarPermisos } from './usarPermisos.tsx';
@@ -49,6 +51,7 @@ const TIPOS = [
   { id: 'labor', titulo: 'Labores' },
   { id: 'aplicacion', titulo: 'Aplicaciones' },
   { id: 'cosecha', titulo: 'Cosecha' },
+  { id: 'monitoreo', titulo: 'Monitoreo' },
 ] as const;
 type TipoRegistro = (typeof TIPOS)[number]['id'];
 
@@ -134,6 +137,9 @@ export function Registrar() {
           )}
           {areas.length > 0 && tipo === 'labor' && (
             <FormularioLabor fincaId={fincaId} areas={areas} alGuardar={cargar} />
+          )}
+          {areas.length > 0 && tipo === 'monitoreo' && (
+            <FormularioMonitoreo fincaId={fincaId} areas={areas} alGuardar={cargar} />
           )}
           {areas.length > 0 && tipo === 'riego' && (
             <FormularioRiego fincaId={fincaId} areas={areas} alGuardar={cargar} />

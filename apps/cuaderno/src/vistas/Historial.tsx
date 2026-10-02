@@ -30,6 +30,7 @@ import { FormularioAplicacion } from './FormularioAplicacion.tsx';
 import { FormularioClima } from './FormularioClima.tsx';
 import { FormularioCosecha } from './FormularioCosecha.tsx';
 import { FormularioLabor } from './FormularioLabor.tsx';
+import { FormularioMonitoreo } from './FormularioMonitoreo.tsx';
 import { FormularioRiego } from './FormularioRiego.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 
@@ -39,6 +40,7 @@ const TIPOS = [
   { valor: 'labor', texto: 'Labores' },
   { valor: 'aplicacion', texto: 'Aplicaciones' },
   { valor: 'cosecha', texto: 'Cosecha' },
+  { valor: 'monitoreo', texto: 'Monitoreo' },
   { valor: 'lote_venta', texto: 'Lotes de venta' },
   { valor: 'despacho', texto: 'Despachos' },
 ] as const;
@@ -113,6 +115,8 @@ function Corregir(props: {
       return <FormularioAplicacion finca={props.finca} {...comunes} />;
     case 'cosecha':
       return <FormularioCosecha fincaId={props.finca.id} {...comunes} />;
+    case 'monitoreo':
+      return <FormularioMonitoreo fincaId={props.finca.id} {...comunes} />;
     case 'lote_venta':
       return (
         <p class="ayuda">

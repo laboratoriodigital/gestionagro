@@ -631,7 +631,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E3.11 · Monitoreo de plagas y enfermedades
 **Como** supervisor **quiero** registrar lo que veo en trampas y plantas, con foto si hace falta **para** actuar a tiempo y tener la evidencia del manejo integrado.
-- **Peldaño:** usuario recurrente → premium · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S12 · **Depende de:** HU-E3.4 · **Estado:** Refinada
+- **Peldaño:** usuario recurrente → premium · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S12 · **Depende de:** HU-E3.4 · **Estado:** En sprint (rama `feat/e3.11-monitoreo`. CA1: registro `monitoreo` v1, con su muestra en `app-0.2.0.json`: qué se vio, si es plaga o enfermedad, cómo se midió (trampa, conteo u observación), nivel bajo, medio o alto, cantidad si se contó y nota. El catálogo editable son los nombres ya anotados, que se sugieren al escribir; uno nuevo entra al guardarlo. No hay tabla nueva en la celda ni plagas de fábrica. CA2: la foto se comprime en el teléfono a WebP, o JPEG donde no hay WebP, de ≤ 150 KB y lado ≤ 1.280 px. Queda en la tabla local `foto`, versión 10, en la misma transacción que el registro, que solo lleva su id. Subirla a la nube espera a R2 (HU-E8.4). CA3: cuota por plan en `content/agro/cuaderno/fotos.json`; se muestra «x de y fotos este mes» y sin cupo no deja adjuntar. Mientras las fotos vivan solo en el teléfono, se cuentan por teléfono)
 - **Criterios de aceptación:**
   1. Plaga o enfermedad desde un catálogo editable, método (trampa, conteo, observación) e incidencia o severidad en escala simple.
   2. La foto se comprime en el teléfono a ≤ 150 KB (WebP). Sin sincronización, se queda local.

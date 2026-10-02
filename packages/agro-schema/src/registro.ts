@@ -164,6 +164,22 @@ const loteVentaV1 = z.strictObject({
   cultivo: texto.nullable(),
 });
 
+/**
+ * `monitoreo` v1 (HU-E3.11): lo que se vio en trampas y plantas, para actuar a tiempo y como
+ * evidencia del manejo integrado. La foto, si hay, vive en el teléfono (`foto_id`): el registro
+ * nunca lleva la imagen.
+ */
+const monitoreoV1 = z.strictObject({
+  plaga: texto,
+  clase: z.enum(['plaga', 'enfermedad']),
+  metodo: z.enum(['trampa', 'conteo', 'observacion']),
+  nivel: z.enum(['bajo', 'medio', 'alto']),
+  /** Individuos en la trampa o contados; nulo si se observó sin contar. */
+  cantidad: z.int('debe ser un número entero').min(0).max(1_000_000).nullable(),
+  foto_id: id.nullable(),
+  nota: z.string().trim().max(280, 'la nota es de máximo 280 letras').nullable(),
+});
+
 export const TIPOS_DE_CLIENTE = ['consumidor', 'restaurante', 'tienda', 'cadena'] as const;
 export const MEDIOS_DE_PAGO = ['efectivo', 'transferencia', 'credito', 'otro'] as const;
 
@@ -199,6 +215,7 @@ export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, 
   cosecha: { 1: cosechaV1 },
   lote_venta: { 1: loteVentaV1 },
   despacho: { 1: despachoV1 },
+  monitoreo: { 1: monitoreoV1 },
 };
 
 export type Registro = z.infer<typeof registroBase>;
