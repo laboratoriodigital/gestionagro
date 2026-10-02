@@ -1,5 +1,5 @@
 /**
- * Costos (HU-E7.1 y HU-E7.2): la bodega de insumos con su costo promedio ponderado, las compras y
+ * Costos (HU-E7.1, HU-E7.2 y HU-E7.3): el costo por kilo y el margen por ciclo, la bodega de insumos con su costo promedio ponderado, las compras y
  * ajustes, el costo de los insumos aplicados por nave y ciclo, y la mano de obra por nave. Los costos son del plan Finca
  * (ARQUITECTURA §2.4) y solo los ven propietario y supervisor (§9); el campo no se bloquea nunca:
  * una existencia negativa se avisa (CA3).
@@ -18,6 +18,7 @@ import {
 import { leerInsumos } from '../almacen/insumos.ts';
 import { leerSesion, planDeLaFinca } from '../almacen/sesion.ts';
 import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
+import { CostoPorKilo } from './CostoPorKilo.tsx';
 import { ManoDeObra } from './ManoDeObra.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 import { usarPermisos } from './usarPermisos.tsx';
@@ -222,6 +223,7 @@ export function Costos() {
   return (
     <section aria-labelledby="titulo-costos">
       {titulo}
+      <CostoPorKilo fincaId={fincaId} />
       <h2>Bodega</h2>
       {bodega === null ? (
         <p class="ayuda">Calculando…</p>

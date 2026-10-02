@@ -1,6 +1,11 @@
 export { type Bodega, bodega, type Movimiento } from './bodega.ts';
 export { vencimientoCarencia, vencimientoReentrada } from './carencia.ts';
 export {
+  type CostoUnitario,
+  costoUnitario,
+  type EntradaCostoUnitario,
+} from './costo-unitario.ts';
+export {
   dpvAireKPa,
   dpvHojaKPa,
   presionSaturacionKPa,

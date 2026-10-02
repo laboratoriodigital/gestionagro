@@ -25,11 +25,37 @@ export interface Periodo {
   hasta: string | null;
 }
 
+export interface ManoDeObraDeAreaYCiclo extends ManoDeObraDeArea {
+  /** El ciclo del registro, si el área es de ese ciclo; null si no hay. */
+  cicloId: string | null;
+}
+
+/** Por área, sumando sus ciclos. */
 export async function manoDeObraPorArea(
   db: CuadernoDb,
   fincaId: string,
   periodo: Periodo,
 ): Promise<ManoDeObraDeArea[]> {
+  const por = new Map<string, ManoDeObraDeArea>();
+  for (const f of await manoDeObraPorAreaYCiclo(db, fincaId, periodo)) {
+    const fila = por.get(f.areaId) ?? { areaId: f.areaId, horas: 0, costo: 0, sinValor: 0 };
+    fila.horas += f.horas;
+    fila.costo += f.costo;
+    fila.sinValor += f.sinValor;
+    por.set(f.areaId, fila);
+  }
+  return [...por.values()].map((f) => ({ ...f, horas: Math.round(f.horas * 100) / 100 }));
+}
+
+/**
+ * Por área y ciclo (HU-E7.3). Una labor en varias áreas lleva el ciclo de la primera: en las otras
+ * cuenta para su ciclo solo si el área también es de él; si no, va al área sin ciclo.
+ */
+export async function manoDeObraPorAreaYCiclo(
+  db: CuadernoDb,
+  fincaId: string,
+  periodo: Periodo,
+): Promise<ManoDeObraDeAreaYCiclo[]> {
   const labores = (
     await soloVigentes(
       db,
@@ -52,11 +78,17 @@ export async function manoDeObraPorArea(
       .filter((v) => v.persona_id === personaId)
       .map((v) => ({ desde: v.vigente_desde, valor: v.valor_cop, actualizado: v.actualizado }));
   const general = deQuien(null);
-  const por = new Map<string, ManoDeObraDeArea>();
+  const areasDelCiclo = new Map(
+    (await db.ciclo.where('finca_id').equals(fincaId).toArray()).map((c) => [c.id, c.area_ids]),
+  );
+  const por = new Map<string, ManoDeObraDeAreaYCiclo>();
   for (const r of labores) {
     const horas = (r.datos as { horasPorPersona: number }).horasPorPersona;
     for (const areaId of r.area_ids) {
-      const fila = por.get(areaId) ?? { areaId, horas: 0, costo: 0, sinValor: 0 };
+      const cicloId =
+        r.ciclo_id && areasDelCiclo.get(r.ciclo_id)?.includes(areaId) ? r.ciclo_id : null;
+      const clave = `${areaId}|${cicloId ?? ''}`;
+      const fila = por.get(clave) ?? { areaId, cicloId, horas: 0, costo: 0, sinValor: 0 };
       for (const personaId of r.persona_ids) {
         const valor =
           valorVigente(deQuien(personaId), r.fecha_agronomica) ??
@@ -68,8 +100,8 @@ export async function manoDeObraPorArea(
         if (costo === null) fila.sinValor += 1;
         else fila.costo += costo;
       }
-      por.set(areaId, fila);
+      por.set(clave, fila);
     }
   }
-  return [...por.values()].map((f) => ({ ...f, horas: Math.round(f.horas * 100) / 100 }));
+  return [...por.values()];
 }
