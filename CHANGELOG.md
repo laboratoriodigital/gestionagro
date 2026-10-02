@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Corregido
+- Según la revisión del dueño: en «Áreas», los botones de cada área estaban apilados en tres filas de anchos distintos. Ahora el estado del ciclo va con su botón en una franja, y Editar, Historial y «+ Cama o surco» quedan en una sola fila de botones iguales.
 - Según la prueba del dueño en staging (bitácora agro 26): lo anotado en el celular llegaba al computador solo al tocar «Sincronizar ahora» o a los 15 min. En un computador la pestaña casi nunca se oculta, así que «volver a la app» no ocurría. Ahora el cuaderno también trae lo del equipo cuando su ventana recibe el foco o cuando se toca la página, como máximo cada 30 s.
 - Según la prueba del dueño en staging (bitácora agro 25): una cuenta que está en dos fincas (la suya y la que la invitó) dejaba de sincronizar al volver a entrar con Google. El teléfono decía que estaba vinculado, pero la nube rechazaba cada envío. Ahora el teléfono pide siempre la sesión de su finca, y si tiene la de otra, la renueva en ese momento.
 - Según la prueba del dueño en staging (bitácora agro 24), en los lotes de venta:
@@ -17,6 +18,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - La calculadora de DPV borraba lo que la persona escribía antes de que terminara de cargar (3G lenta): al activarse, dejaba los campos vacíos. Ahora conserva lo escrito (bitácora agro 21).
 
 ### Añadido
+- Rendimiento por nave y por planta (HU-E6.6). La pantalla «Rendimiento» compara, para cada cultivo, cuánto rinde cada nave por metro cuadrado y por planta con lo que se vende (lo cosechado menos el descarte), y el porcentaje de descarte. Si el ciclo no tiene anotadas sus plantas, dice «sin dato» en vez de inventar un cero.
 - Vigía de cuota de la celda (HU-E8.2). Cada hora mide cuánto de las cuotas gratuitas de Cloudflare se usó en toda la cuenta (Workers, D1, KV y R2) y fija el nivel de la celda: normal, alerta, ahorro, esencial o bloqueo. Lo escribe solo cuando cambia. Si no puede medir, no dice «normal»: deja «alerta» y explica qué faltó. Necesita un token de solo lectura de métricas (`CF_METRICAS_TOKEN`); cómo crearlo está en `docs/runbooks/vigia-de-cuota.md`.
 - Dos teléfonos que editan lo mismo sin señal (HU-E5.4). Gana el cambio que llega último a la nube, y el otro queda guardado. El teléfono cuyo cambio fue reemplazado lo dice bajo la cabecera («Tu cambio en el área «Nave 1» fue reemplazado por el de…») y ofrece «Volver a poner mi cambio» o «Dejar el de la nube». Antes, ese teléfono podía quedarse con su versión para siempre, distinta a la de los demás.
 - Revocar un teléfono o una persona (HU-E4.6). En Cuenta, «Tus teléfonos» muestra dónde entraste con tu cuenta y deja retirar el acceso de uno perdido. En «Tu equipo», quien administra la finca ve quién tiene acceso, le cambia el rol o le quita el acceso, siempre con confirmación. La app dice lo que pasa: deja de sincronizar en máximo 12 horas, lo guardado en ese teléfono no se puede borrar a distancia y lo que la persona anotó se queda en la finca.

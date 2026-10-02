@@ -869,7 +869,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E6.6 · Rendimiento por nave y por planta
 **Como** propietario **quiero** ver kg/m² y kg/planta por nave y ciclo **para** comparar naves y decidir.
-- **Peldaño:** Finca · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** S11 · **Depende de:** HU-E6.1 · **Estado:** Refinada
+- **Peldaño:** Finca · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** S11 · **Depende de:** HU-E6.1 · **Estado:** En sprint (rama `feat/e6.6-rendimiento`. CA1: `rendimiento` de agro-calc, con casos en `casos/rendimiento.json`. Usa lo comercial, es decir lo cosechado menos el descarte. Por planta queda nulo, «sin dato», si el ciclo no tiene plantas. CA2: pantalla «Rendimiento», con una tabla por cultivo y una fila por ciclo y nave, la mejor primero: por m², por planta y % de descarte. Las cosechas sin ciclo van aparte)
 - **Criterios de aceptación:**
   1. Calculado en el navegador (ADR-5) con funciones de `agro-calc` probadas con casos.
   2. Compara naves del mismo ciclo en una tabla simple.

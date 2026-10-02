@@ -19,6 +19,7 @@ import { Lotes } from './vistas/Lotes.tsx';
 import { NoEncontrada } from './vistas/NoEncontrada.tsx';
 import { Personas } from './vistas/Personas.tsx';
 import { Registrar } from './vistas/Registrar.tsx';
+import { Rendimiento } from './vistas/Rendimiento.tsx';
 import { Respaldo } from './vistas/Respaldo.tsx';
 import { Unirme } from './vistas/Unirme.tsx';
 
@@ -32,6 +33,7 @@ const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> =
   cuenta: Cuenta,
   unirme: Unirme,
   lotes: Lotes,
+  rendimiento: Rendimiento,
 };
 
 /** Con y sin «/» final: el enlace directo llega como /agro/app/insumos/ y la navegación como /agro/app/insumos. */

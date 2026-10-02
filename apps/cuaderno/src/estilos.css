@@ -168,6 +168,42 @@ button:disabled {
 .ciclo p {
   margin: 0;
 }
+/* El estado del ciclo y su botón en una franja; en pantallas angostas el botón baja solo. */
+.ciclo-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+}
+.ciclo-fila p {
+  flex: 1 1 8rem;
+}
+/* Herramientas de un área (Editar, Historial, + Cama o surco): una fila de botones iguales y
+   livianos, para que no compitan con el ciclo (revisión del dueño, 1 oct 2026). */
+.herramientas-area {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: var(--espacio-2);
+  margin-block: var(--espacio-3) 0;
+  padding-block-start: var(--espacio-3);
+  border-block-start: 1px solid var(--color-borde);
+}
+button.herramienta {
+  padding-inline: var(--espacio-1);
+  border: 1px solid var(--color-borde);
+  background: transparent;
+  color: var(--color-texto);
+  font-weight: 600;
+  font-size: var(--texto-pequeno);
+  line-height: 1.2;
+}
+.subareas .herramientas-area {
+  border-block-start: 0;
+  padding-block-start: 0;
+  margin-block: var(--espacio-1) var(--espacio-2);
+}
 .campo select,
 .campo input[type="date"] {
   width: 100%;
@@ -354,4 +390,22 @@ a.boton {
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
   padding: var(--espacio-3);
+}
+
+/* Rendimiento (HU-E6.6): la tabla cabe en 360 px; la nave lleva su detalle debajo. */
+.tabla-rendimiento {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.tabla-rendimiento th,
+.tabla-rendimiento td {
+  padding: var(--espacio-2, 0.5rem) 0.25rem;
+  border-block-end: 1px solid var(--color-borde);
+  text-align: start;
+  vertical-align: top;
+}
+.tabla-rendimiento th[scope="row"] .detalle-insumo {
+  display: block;
+  font-weight: normal;
 }
