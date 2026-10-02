@@ -57,6 +57,21 @@ export interface VersionAnterior {
 }
 
 /**
+ * Foto de un monitoreo (HU-E3.11), comprimida en el teléfono a WebP de ≤ 150 KB. Vive aquí: el
+ * registro solo lleva su id. Subirla a la nube llega con R2 (HU-E8.4 y siguientes).
+ */
+export interface Foto {
+  id: string;
+  registro_id: string;
+  tipo: string;
+  datos: Blob;
+  /** Bytes. */
+  tamano: number;
+  /** Instante ISO: la cuota del mes cuenta por él. */
+  creado: string;
+}
+
+/**
  * Una versión de este teléfono que perdió un conflicto en la nube (HU-E5.4): otro teléfono editó
  * lo mismo sin señal y llegó después. Se guarda lo que había aquí para avisarlo y poder volver a
  * ponerlo. No se borra: `resuelto` dice qué decidió la persona.
@@ -109,6 +124,7 @@ export type CuadernoDb = Dexie & {
   historial: EntityTable<VersionAnterior, 'id'>;
   rechazo: EntityTable<Rechazo, 'id'>;
   reemplazo: EntityTable<AvisoDeReemplazo, 'id'>;
+  foto: EntityTable<Foto, 'id'>;
   meta: EntityTable<Meta, 'clave'>;
 };
 
@@ -203,6 +219,13 @@ export const VERSIONES_LOCALES: readonly VersionLocal[] = [
     version: 9,
     tablas: {
       reemplazo: 'id',
+    },
+  },
+  {
+    // HU-E3.11: fotos de los monitoreos; por `creado` se cuentan las del mes (cuota por plan).
+    version: 10,
+    tablas: {
+      foto: 'id, creado',
     },
   },
 ];

@@ -1,0 +1,11 @@
+{
+  "nota": "Cuota de fotos por plan (ADR-15, HU-E3.11): fotos por finca al mes. R2 gratuito da unos 90 finca-año de fotos a 150 KB y 2 al día (ARQUITECTURA §6.2). Mientras las fotos vivan solo en el teléfono, se cuentan por teléfono.",
+  "tamano_maximo_kb": 150,
+  "lado_maximo_px": 1280,
+  "por_plan": {
+    "gratuito": 30,
+    "finca": 120,
+    "exportador": 300,
+    "cadena": 300
+  }
+}

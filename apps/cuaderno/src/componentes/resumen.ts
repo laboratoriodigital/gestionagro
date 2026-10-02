@@ -6,6 +6,7 @@ import type { DatosClimaGuardado } from '../almacen/clima.ts';
 import type { DatosCosechaGuardada } from '../almacen/cosecha.ts';
 import type { DatosDespacho } from '../almacen/despachos.ts';
 import type { DatosLote } from '../almacen/lotes.ts';
+import type { DatosMonitoreoGuardado } from '../almacen/monitoreo.ts';
 import type { DatosRiegoGuardado } from '../almacen/riego.ts';
 
 export function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): string {
@@ -47,6 +48,13 @@ export function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): st
     const d = r.datos as DatosLote;
     const n = d.cosecha_ids.length;
     return `Lote ${d.codigo} · ${coma(d.cantidad)} ${d.unidad} · ${n} ${n === 1 ? 'cosecha' : 'cosechas'}`;
+  }
+  if (r.tipo === 'monitoreo') {
+    const d = r.datos as DatosMonitoreoGuardado;
+    const metodo = { trampa: 'trampa', conteo: 'conteo', observacion: 'observación' }[d.metodo];
+    const cantidad = d.cantidad === null ? '' : ` · ${d.cantidad} individuos`;
+    const foto = d.foto_id ? ' · con foto' : '';
+    return `Monitoreo · ${d.plaga} · nivel ${d.nivel} · ${metodo}${cantidad}${foto}`;
   }
   if (r.tipo === 'despacho') {
     const d = r.datos as DatosDespacho;
