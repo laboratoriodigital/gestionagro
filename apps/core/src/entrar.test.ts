@@ -605,4 +605,123 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
       (await db.prepare('SELECT usada FROM invitacion').first<{ usada: string | null }>())?.usada,
     ).toBeNull();
   });
+
+  describe('HU-E4.6 · revocar un teléfono o una persona, y cambiar roles', () => {
+    /** Propietario y un operario que aceptó su invitación. */
+    async function equipo() {
+      const { p, cuerpo } = await invitar('operario');
+      const o = await sesionDe('google-operario');
+      await conToken('/api/core/invitaciones/aceptar', o.acceso, { codigo: cuerpo.codigo });
+      const miembros = (await (await conToken('/api/core/equipo/ver', p.acceso, {})).json()) as {
+        miembros: { usuario_id: string; nombre: string; rol: string; tu: boolean }[];
+      };
+      const operario = miembros.miembros.find((m) => !m.tu);
+      if (!operario) throw new Error('sin operario');
+      return { p, o, operario, miembros: miembros.miembros };
+    }
+    const tokenDe = async (s: Sesion) =>
+      verificarAcceso(
+        await clavePublica(),
+        (
+          (await (
+            await post('/api/core/auth/refrescar', { refresh: s.refresh, org_id: ORG })
+          ).json()) as Sesion
+        ).acceso,
+        reloj,
+      );
+
+    it('el propietario ve quién tiene acceso y con qué rol', async () => {
+      const { miembros } = await equipo();
+      expect(miembros.map((m) => [m.rol, m.tu])).toEqual(
+        expect.arrayContaining([
+          ['propietario', true],
+          ['operario', false],
+        ]),
+      );
+    });
+
+    it('cambiar el rol: el token siguiente lo trae', async () => {
+      const { p, o, operario } = await equipo();
+      const r = await conToken('/api/core/equipo/rol', p.acceso, {
+        usuario_id: operario.usuario_id,
+        rol: 'supervisor',
+      });
+      expect(r.status).toBe(200);
+      expect(await tokenDe(o)).toMatchObject({ org: ORG, rol: 'supervisor' });
+    });
+
+    it('CA1 y CA3: quitar a alguien: su próximo token ya no trae la finca; sus datos no se tocan', async () => {
+      const { p, o, operario } = await equipo();
+      const r = await conToken('/api/core/equipo/quitar', p.acceso, {
+        usuario_id: operario.usuario_id,
+      });
+      expect(r.status).toBe(200);
+      expect(await tokenDe(o)).toMatchObject({ org: null });
+      // La cuenta sigue existiendo: lo que anotó vive en la celda, no en la membresía.
+      expect(
+        (
+          await db
+            .prepare('SELECT count(*) AS n FROM usuario WHERE id = ?')
+            .bind(operario.usuario_id)
+            .first<{ n: number }>()
+        )?.n,
+      ).toBe(1);
+    });
+
+    it('solo el propietario maneja el equipo, y nadie se cambia ni se quita a sí mismo', async () => {
+      const { p, o, operario } = await equipo();
+      for (const ruta of [
+        '/api/core/equipo/ver',
+        '/api/core/equipo/quitar',
+        '/api/core/equipo/rol',
+      ]) {
+        const renovada = (await (
+          await post('/api/core/auth/refrescar', { refresh: o.refresh, org_id: ORG })
+        ).json()) as Sesion;
+        expect(
+          (
+            await conToken(ruta, renovada.acceso, {
+              usuario_id: operario.usuario_id,
+              rol: 'propietario',
+            })
+          ).status,
+        ).toBe(403);
+      }
+      const propio = (await verificarAcceso(await clavePublica(), p.acceso, reloj)).sub;
+      expect(
+        (await conToken('/api/core/equipo/quitar', p.acceso, { usuario_id: propio })).status,
+      ).toBe(400);
+      expect(
+        (await conToken('/api/core/equipo/rol', p.acceso, { usuario_id: propio, rol: 'operario' }))
+          .status,
+      ).toBe(400);
+    });
+
+    it('CA1: retirar un teléfono: su refresh deja de servir; los demás teléfonos siguen', async () => {
+      const uno = await sesionDe('google-dueno');
+      const dos = await sesionDe('google-dueno');
+      const vistos = (await (await conToken('/api/core/telefonos/ver', uno.acceso, {})).json()) as {
+        telefonos: { id: string; dispositivo: string }[];
+      };
+      expect(vistos.telefonos).toHaveLength(2);
+      const [perdido] = vistos.telefonos;
+      if (!perdido) throw new Error('sin teléfonos');
+      expect(
+        (await conToken('/api/core/telefonos/retirar', uno.acceso, { id: perdido.id })).status,
+      ).toBe(200);
+      const quedan = (await (await conToken('/api/core/telefonos/ver', uno.acceso, {})).json()) as {
+        telefonos: unknown[];
+      };
+      expect(quedan.telefonos).toHaveLength(1);
+      const r1 = await post('/api/core/auth/refrescar', { refresh: uno.refresh });
+      const r2 = await post('/api/core/auth/refrescar', { refresh: dos.refresh });
+      expect([r1.status, r2.status].sort()).toEqual([200, 401]);
+      // Nadie retira teléfonos de otra cuenta.
+      const ajeno = await sesionDe('google-ajeno');
+      const [otro] = quedan.telefonos as { id: string }[];
+      expect(
+        (await conToken('/api/core/telefonos/retirar', ajeno.acceso, { id: otro?.id })).status,
+      ).toBe(404);
+    });
+  });
 });

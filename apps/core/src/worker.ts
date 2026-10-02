@@ -8,6 +8,8 @@
  * - `/api/core/auth/*`: entrar con Google y renovar la sesión (HU-E4.2, `entrar.ts`).
  * - `POST /api/core/organizaciones`: crear la organización de la finca del teléfono (HU-E4.3).
  * - `POST /api/core/invitaciones[/ver|/aceptar]`: invitar al equipo por WhatsApp (HU-E4.4).
+ * - `POST /api/core/equipo/{ver,rol,quitar}` y `/api/core/telefonos/{ver,retirar}`: el equipo de
+ *   la finca y los teléfonos de la cuenta (HU-E4.6, `equipo.ts`).
  *
  * Kill switch `ks:agro-core` (HU-E8.1): apagado, `/api/core/auth/*` responde 503 y nadie entra ni
  * renueva. Quien ya tiene un access token sigue sincronizando hasta que venza (12 h); el cuaderno
@@ -36,6 +38,7 @@ import {
   proveedorGoogle,
   renovar,
 } from './entrar.ts';
+import { cambiarRol, quitarDelEquipo, retirarTelefono, verEquipo, verTelefonos } from './equipo.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 
@@ -159,6 +162,8 @@ export function crearApp(dependencias: Dependencias = {}) {
     '/api/core/organizaciones',
     '/api/core/invitaciones',
     '/api/core/invitaciones/*',
+    '/api/core/equipo/*',
+    '/api/core/telefonos/*',
   ]) {
     app.use(ruta, corsDelCuaderno);
     app.use(ruta, conEntorno);
@@ -168,6 +173,11 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/api/core/invitaciones', (c) => crearInvitacion(c, c.get('entorno')));
   app.post('/api/core/invitaciones/ver', (c) => verInvitacion(c, c.get('entorno')));
   app.post('/api/core/invitaciones/aceptar', (c) => aceptarInvitacion(c, c.get('entorno')));
+  app.post('/api/core/equipo/ver', (c) => verEquipo(c, c.get('entorno')));
+  app.post('/api/core/equipo/rol', (c) => cambiarRol(c, c.get('entorno')));
+  app.post('/api/core/equipo/quitar', (c) => quitarDelEquipo(c, c.get('entorno')));
+  app.post('/api/core/telefonos/ver', (c) => verTelefonos(c, c.get('entorno')));
+  app.post('/api/core/telefonos/retirar', (c) => retirarTelefono(c, c.get('entorno')));
   app.get('/api/core/auth/google/inicio', (c) => inicio(c, c.get('entorno')));
   app.get('/api/core/auth/google/callback', (c) => callback(c, c.get('entorno')));
   app.post('/api/core/auth/canje', (c) => canje(c, c.get('entorno')));

@@ -21,6 +21,7 @@ import {
 import { sesionDeLaFinca } from '../almacen/vinculo.ts';
 import { AceptarPolitica, urlDeEntrada } from '../componentes/AceptarPolitica.tsx';
 import { FincaEnLaNube } from './FincaEnLaNube.tsx';
+import { TusTelefonos } from './TusTelefonos.tsx';
 
 const NOMBRE_ROL: Record<string, string> = {
   propietario: 'Propietario',
@@ -118,6 +119,7 @@ export function Cuenta() {
             </ul>
           )}
           <FincaEnLaNube sesion={sesion} alCambiarSesion={setSesion} enLinea={enLinea} />
+          <TusTelefonos enLinea={enLinea} />
           <h2>Tu cuenta</h2>
           <div class="acciones">
             <button type="button" class="secundario" onClick={() => void salir()}>

@@ -283,6 +283,11 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
   - `POST /api/core/invitaciones` (solo `propietario`), `POST /api/core/invitaciones/ver` y `POST /api/core/invitaciones/aceptar`: el código va siempre en el cuerpo.
   - Aceptar es un solo batch: marca la invitación usada solo si sigue sin usar y vigente, y crea la membresía con su rol. Dos aceptaciones a la vez dejan una sola membresía. Quien ya es miembro no la gasta.
   - La persona invitada entra con Google; su token siguiente lleva la organización y el rol.
+- **Revocar (HU-E4.6, `apps/core/src/equipo.ts`):**
+  - `POST /api/core/telefonos/{ver,retirar}`: cada cuenta ve y retira sus propios teléfonos. Retirar revoca la sesión.
+  - `POST /api/core/equipo/{ver,rol,quitar}`: el propietario ve quién tiene acceso, cambia roles y quita personas. Quitar borra la membresía; los registros siguen en la celda.
+  - En los dos casos, el access ya emitido vale hasta 12 h. Nadie cambia su propio acceso.
+- **Una cuenta en varias fincas (bitácora agro 25):** el teléfono pide siempre el token de la finca de su vínculo (`sesionDeLaFinca`). Sin pedirla, el CORE da un token sin finca.
 - **Directorio:** se consulta **solo al iniciar sesión**. La celda y el shard viajan en el token, así que ninguna solicitud de sincronización toca el CORE.
 
 ### 5.5 Celda
