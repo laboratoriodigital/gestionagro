@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- Según la revisión del dueño: en Cuenta, «Tus teléfonos» se llama ahora «Tus dispositivos», porque también se entra desde un computador. La lista es plana: una fila por dispositivo con la fecha corta y el botón «Retirar» al lado, sin tarjetas.
+
 ### Corregido
 - Según la prueba del dueño (bitácora agro 28): imprimir la etiqueta QR sacaba 12 hojas. Ahora sale una sola, de 5 × 5 cm.
 - Según la revisión del dueño: en «Áreas», los botones de cada área estaban apilados en tres filas de anchos distintos. Ahora el estado del ciclo va con su botón en una franja, y Editar, Historial y «+ Cama o surco» quedan en una sola fila de botones iguales.

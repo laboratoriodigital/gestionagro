@@ -687,7 +687,7 @@ test.describe('HU-E4.5 · la interfaz esconde lo que el rol no puede (la celda d
 test.describe('HU-E4.6 · revocar un teléfono o una persona', () => {
   const permitir = { 'access-control-allow-origin': '*' };
 
-  test('CA1 y CA2: retirar un teléfono perdido dice que tarda hasta 12 h y que lo guardado no se borra', async ({
+  test('CA1 y CA2: retirar un dispositivo perdido dice que tarda hasta 12 h y que lo guardado no se borra', async ({
     page,
   }) => {
     const canjes = await coreFalso(page);
@@ -716,19 +716,26 @@ test.describe('HU-E4.6 · revocar un teléfono o una persona', () => {
     });
     await entrar(page);
     await expect.poll(() => canjes.length).toBe(1);
-    const lista = page.locator('[data-prueba="tus-telefonos"]');
-    await expect(lista.locator('[data-prueba="telefono"]')).toHaveCount(2);
-    await expect(lista).toContainText('Este teléfono · entró el 1 de septiembre de 2026');
-    // Este teléfono no se retira desde aquí (para eso está «Salir de la cuenta»).
-    await expect(lista.getByRole('button', { name: 'Retirar acceso' })).toHaveCount(1);
-    await lista.getByRole('button', { name: 'Retirar acceso' }).click();
+    const lista = page.locator('[data-prueba="tus-dispositivos"]');
+    await expect(lista.locator('[data-prueba="dispositivo"]')).toHaveCount(2);
+    await expect(lista).toContainText('Este dispositivo · desde el 1 sep 2026');
+    await expect(lista).toContainText('Otro dispositivo · desde el 15 sep 2026');
+    // Este dispositivo no se retira desde aquí (para eso está «Salir de la cuenta»).
+    await expect(lista.getByRole('button', { name: /^Retirar acceso/ })).toHaveCount(1);
+    await lista
+      .getByRole('button', {
+        name: 'Retirar acceso al dispositivo que entró el 15 de septiembre de 2026',
+      })
+      .click();
     await expect(lista.locator('[data-prueba="confirmar-retirar"]')).toContainText(
       'Deja de sincronizar en máximo 12 horas. Lo que ya está guardado en él no se puede borrar a distancia.',
     );
     await lista.getByRole('button', { name: 'Sí, retirar acceso' }).click();
     await expect(lista.getByRole('status')).toContainText('deja de sincronizar en máximo 12 horas');
+    // Lista plana: las filas no son tarjetas.
+    await expect(lista.locator('.area')).toHaveCount(0);
     expect(retirados).toEqual([{ id: 'sesion-2' }]);
-    await expect(lista.locator('[data-prueba="telefono"]')).toHaveCount(1);
+    await expect(lista.locator('[data-prueba="dispositivo"]')).toHaveCount(1);
   });
 
   test('el propietario cambia el rol de alguien y le quita el acceso, con confirmación', async ({
