@@ -68,6 +68,7 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
       CORE_CLAVES: '[{"kid":"k1"}]',
       ORIGENES_APP: 'https://agro.ejemplo.test',
       CF_CUENTA: 'cuenta-ensayo',
+      DESTINO: 'staging',
     });
     expect(JSON.stringify(env['d1_databases'])).toContain(`"database_id":"id-${c0.shards[0]}"`);
     expect(JSON.stringify(staging['d1_databases'])).not.toContain('database_id');
@@ -175,8 +176,15 @@ describe('HU-E6.4 · claves del QR en la página y clave de firma de la celda', 
 
   it('la clave de firma se genera solo si la celda no tiene una; el token de métricas, si existe', async () => {
     const nueva = async () => 'clave-nueva';
-    expect(await secretosDeLaCelda([], 'tok', 'CF_METRICAS_TOKEN', nueva)).toEqual({
-      secretos: { CF_METRICAS_TOKEN: 'tok', CELDA_QR_PRIVATE_KEY: 'clave-nueva' },
+    expect(
+      await secretosDeLaCelda([], 'tok', 'CF_METRICAS_TOKEN', nueva, { token: 'bot', chat: '1' }),
+    ).toEqual({
+      secretos: {
+        CF_METRICAS_TOKEN: 'tok',
+        CELDA_QR_PRIVATE_KEY: 'clave-nueva',
+        TELEGRAM_BOT_TOKEN: 'bot',
+        TELEGRAM_CHAT_ID: '1',
+      },
       avisos: [],
       claveNueva: true,
     });
@@ -189,6 +197,7 @@ describe('HU-E6.4 · claves del QR en la página y clave de firma de la celda', 
     expect(r.secretos).toEqual({});
     expect(r.claveNueva).toBe(false);
     expect(r.avisos[0]).toContain('falta el secreto CF_METRICAS_TOKEN');
+    expect(r.avisos[1]).toContain('falta TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID');
   });
 
   it('el sitio se publica después de la API de la celda, que es de donde salen las claves', () => {

@@ -594,8 +594,11 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 - **Rotación de claves:** la tabla `celda` guarda la clave vigente y la anterior.
 - **Cómo llegan los secretos al CORE (HU-E4.2):** `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` viven en GitHub y el despliegue los carga en el Worker con `wrangler secret bulk` por stdin, sin escribirlos en disco. `CORE_JWT_PRIVATE_KEY` no existe fuera del Worker: el despliegue la genera la primera vez que el Worker no la tiene y nunca la reemplaza (cambiarla cierra todas las sesiones). Staging y producción tienen claves distintas.
 - **Clave del QR de cada celda (HU-E6.4):** `CELDA_QR_PRIVATE_KEY` no existe fuera del Worker de la celda. El despliegue la genera la primera vez que el Worker no la tiene y nunca la reemplaza. Su parte pública la publica la celda en `/api/claves-qr` y va dentro de la página `/agro/t/`.
+- **Telegram del dueño (HU-E8.3, ADR-16):** `TELEGRAM_BOT_TOKEN` (el bot) y `TELEGRAM_CHAT_ID` (el chat del dueño con el bot) viven en GitHub, y el despliegue los carga en el Worker de cada celda por stdin. El vigía avisa con ellos.
+  - **Excepción a P13, dicha:** la API de Telegram exige el token del bot en la ruta de la URL; no hay otra forma. La llamada va solo de la celda a Telegram por HTTPS, y la URL nunca se escribe en el log (solo el estado HTTP; una prueba lo exige).
+  - El chat se averigua con el flujo manual «telegram-chat», no pegando el token en un navegador.
 - **Token de métricas de cada celda (HU-E8.2):** `CF_METRICAS_TOKEN` es un token de **solo lectura** (permiso «Account → Account Analytics: Read») de la cuenta de la celda. El despliegue lo carga en el Worker de la celda con `wrangler secret bulk` por stdin, y el vigía lo usa cada hora para leer las métricas. No sirve para desplegar ni para escribir: por eso es aparte del de despliegue. `celdas.json` lo nombra en `secretos.metricas`.
-- Una prueba exige que todo secreto que nombra un flujo esté listado en este documento (bitácora ecommerce 82). Lista actual: `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `CF_METRICAS_TOKEN`, `CORE_JWT_PRIVATE_KEY`, `CELDA_QR_PRIVATE_KEY`, `CELDA_SERVICE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+- Una prueba exige que todo secreto que nombra un flujo esté listado en este documento (bitácora ecommerce 82). Lista actual: `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `CF_METRICAS_TOKEN`, `CORE_JWT_PRIVATE_KEY`, `CELDA_QR_PRIVATE_KEY`, `CELDA_SERVICE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
 
 ---
 

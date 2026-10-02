@@ -1014,7 +1014,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E8.3 · Alertas al dueño y reporte semanal
 **Como** dueño **quiero** una alerta en Telegram cuando la celda sube de nivel o algo falla, y un reporte semanal con las métricas de validación **para** operar sin mirar tableros a diario.
-- **Peldaño:** transversal · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S12 · **Depende de:** HU-E8.2 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S12 · **Depende de:** HU-E8.2 · **Estado:** En sprint (rama `feat/e8.3-alertas-telegram`, primera parte. CA1: el vigía le escribe al dueño por Telegram (`apps/api-celda/src/avisos.ts`) con el nivel, lo que eso significa, la cuota más usada y lo que no pudo medir. Solo avisa cuando cambia el nivel o las fallas: la firma del último aviso queda en el KV. CA2: si Telegram falla, queda en el log y la firma no se guarda, así que se reintenta en la hora siguiente. Secretos `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`; el chat se averigua con el flujo manual «telegram-chat». El token va en la URL de Telegram: excepción a P13 dicha en ARQUITECTURA §7.5. Faltan CA3 y CA4, el reporte semanal: falta decidir cómo leer Search Console sin datos de fincas)
 - **Criterios de aceptación:**
   1. El cron envía un mensaje al bot de Telegram del dueño con nivel, cuota y causa.
   2. Si Telegram falla, se deja constancia en el log y se reintenta en la siguiente hora; no se silencia (P1).
