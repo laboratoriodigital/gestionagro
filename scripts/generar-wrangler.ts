@@ -104,15 +104,19 @@ export function wranglerDeLaCelda(celda: Celda): Record<string, unknown> {
     main: 'src/worker.ts',
     compatibility_date: FECHA_COMPATIBILIDAD,
     workers_dev: true,
-    vars: { CELDA: celda.id },
+    vars: { CELDA: celda.id, PLAN: celda.plan },
     d1_databases: bases(false),
+    // El vigía de cuota (HU-E8.2), cada hora. Uno por destino: 2 de los 5 Cron Triggers que da la
+    // cuenta gratuita.
+    triggers: { crons: ['0 * * * *'] },
     observability: { enabled: true },
     env: {
       staging: {
         name: `${nombre}-staging`,
         workers_dev: true,
-        vars: { CELDA: celda.id },
+        vars: { CELDA: celda.id, PLAN: celda.plan },
         d1_databases: bases(true),
+        triggers: { crons: ['0 * * * *'] },
       },
     },
   };

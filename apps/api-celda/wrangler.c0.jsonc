@@ -6,7 +6,8 @@
   "compatibility_date": "2026-09-30",
   "workers_dev": true,
   "vars": {
-    "CELDA": "c0"
+    "CELDA": "c0",
+    "PLAN": "free"
   },
   "d1_databases": [
     {
@@ -15,6 +16,11 @@
       "migrations_dir": "../../infrastructure/migraciones/celda"
     }
   ],
+  "triggers": {
+    "crons": [
+      "0 * * * *"
+    ]
+  },
   "observability": {
     "enabled": true
   },
@@ -23,7 +29,8 @@
       "name": "agro-api-c0-staging",
       "workers_dev": true,
       "vars": {
-        "CELDA": "c0"
+        "CELDA": "c0",
+        "PLAN": "free"
       },
       "d1_databases": [
         {
@@ -31,7 +38,12 @@
           "database_name": "agro_c0_s1_staging",
           "migrations_dir": "../../infrastructure/migraciones/celda"
         }
-      ]
+      ],
+      "triggers": {
+        "crons": [
+          "0 * * * *"
+        ]
+      }
     }
   }
 }

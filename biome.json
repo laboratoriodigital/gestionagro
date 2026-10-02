@@ -12,6 +12,7 @@
       "!**/coverage",
       "!**/dist",
       "!apps/sitio/wrangler.jsonc",
+      "!apps/api-celda/wrangler.c*.jsonc",
       "!schemas/agro-export.schema.json"
     ]
   },

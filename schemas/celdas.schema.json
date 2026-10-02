@@ -120,13 +120,18 @@
           "secretos": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["token", "cuenta"],
+            "required": ["token", "cuenta", "metricas"],
             "properties": {
               "token": {
                 "type": "string",
                 "pattern": "^[A-Z][A-Z0-9_]+$"
               },
               "cuenta": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]+$"
+              },
+              "metricas": {
+                "description": "Secreto con un token de solo lectura de métricas de la cuenta (Account Analytics: Read), para el vigía de cuota (HU-E8.2).",
                 "type": "string",
                 "pattern": "^[A-Z][A-Z0-9_]+$"
               }

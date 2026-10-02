@@ -586,7 +586,8 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
   - Token del bot de Telegram.
 - **Rotación de claves:** la tabla `celda` guarda la clave vigente y la anterior.
 - **Cómo llegan los secretos al CORE (HU-E4.2):** `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` viven en GitHub y el despliegue los carga en el Worker con `wrangler secret bulk` por stdin, sin escribirlos en disco. `CORE_JWT_PRIVATE_KEY` no existe fuera del Worker: el despliegue la genera la primera vez que el Worker no la tiene y nunca la reemplaza (cambiarla cierra todas las sesiones). Staging y producción tienen claves distintas.
-- Una prueba exige que todo secreto que nombra un flujo esté listado en este documento (bitácora ecommerce 82). Lista actual: `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `CORE_JWT_PRIVATE_KEY`, `CELDA_QR_PRIVATE_KEY`, `CELDA_SERVICE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+- **Token de métricas de cada celda (HU-E8.2):** `CF_METRICAS_TOKEN` es un token de **solo lectura** (permiso «Account → Account Analytics: Read») de la cuenta de la celda. El despliegue lo carga en el Worker de la celda con `wrangler secret bulk` por stdin, y el vigía lo usa cada hora para leer las métricas. No sirve para desplegar ni para escribir: por eso es aparte del de despliegue. `celdas.json` lo nombra en `secretos.metricas`.
+- Una prueba exige que todo secreto que nombra un flujo esté listado en este documento (bitácora ecommerce 82). Lista actual: `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `CF_METRICAS_TOKEN`, `CORE_JWT_PRIVATE_KEY`, `CELDA_QR_PRIVATE_KEY`, `CELDA_SERVICE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
 
 ---
 
@@ -619,6 +620,12 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 - **Qué ve el usuario (HU-E8.6):** los textos de la tabla los da un solo catálogo en el cuaderno (`mensajes-de-pausa.ts`); la celda solo dice la causa en el 503 (`apagado`, `esencial`, `bloqueo`) y su hora de reanudación. El push responde `bloqueo` antes de intentar escribir; el pull se pausa en `esencial` y `bloqueo`, y en `ahorro` responde con `nivel` para que el teléfono revise cada 60 min. Las pausas largas salen en un aviso bajo la cabecera en todas las pantallas.
 - **Nivel de la celda en KV:** clave `nivel` del KV de flags (`normal`, `alerta`, `ahorro`, `esencial`, `bloqueo`), leída con la misma caché de 60 s que los kill switches. Sin clave es `normal`. La escribe el vigía (HU-E8.2); el pull ya la respeta (HU-E5.3).
 - KV gratuito permite 1.000 escrituras al día. El vigía escribe como máximo 24 al día y solo cuando cambia de nivel.
+- **Vigía (HU-E8.2, `apps/api-celda/src/vigia.ts`):**
+  - Corre con el Cron Trigger horario de la celda.
+  - Lee las métricas de toda la cuenta en la API GraphQL de Cloudflare: Workers, D1 (filas leídas y escritas), KV (lecturas, y la mayor de escrituras, borrados y listados) y R2 (operaciones de clase A y B del mes).
+  - Compara contra las cuotas del plan gratuito.
+  - Si no puede leer algo, el nivel queda al menos en «alerta» y no baja (P1).
+  - Token de solo lectura `CF_METRICAS_TOKEN` (§7.5). Runbook: `docs/runbooks/vigia-de-cuota.md`.
 
 ### 8.3 Respaldos
 

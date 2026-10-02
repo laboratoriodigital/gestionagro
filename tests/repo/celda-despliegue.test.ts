@@ -50,19 +50,31 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
     flagsId: 'kv',
     clavesCore: [{ kid: 'k1' }],
     origenesApp: ['https://agro.ejemplo.test'],
+    cuenta: 'cuenta-ensayo',
   };
 
-  it('ids de bases, KV, clave del CORE y orígenes van solo al destino; CELDA se conserva', () => {
+  it('ids de bases, KV, clave del CORE, orígenes y cuenta van solo al destino; CELDA y PLAN se conservan', () => {
     const staging = configDeLaCelda(wranglerDeLaCelda(c0), 'staging', despliegue);
     const env = (staging['env'] as Record<string, Record<string, unknown>>)['staging'] ?? {};
     expect(env['vars']).toEqual({
       CELDA: c0.id,
+      PLAN: c0.plan,
       CORE_CLAVES: '[{"kid":"k1"}]',
       ORIGENES_APP: 'https://agro.ejemplo.test',
+      CF_CUENTA: 'cuenta-ensayo',
     });
     expect(JSON.stringify(env['d1_databases'])).toContain(`"database_id":"id-${c0.shards[0]}"`);
     expect(JSON.stringify(staging['d1_databases'])).not.toContain('database_id');
-    expect(staging['vars']).toEqual({ CELDA: c0.id });
+    expect(staging['vars']).toEqual({ CELDA: c0.id, PLAN: c0.plan });
+  });
+
+  it('HU-E8.2: el vigía corre cada hora en los dos destinos', () => {
+    const g = wranglerDeLaCelda(c0) as {
+      triggers: unknown;
+      env: { staging: { triggers: unknown } };
+    };
+    expect(g.triggers).toEqual({ crons: ['0 * * * *'] });
+    expect(g.env.staging.triggers).toEqual({ crons: ['0 * * * *'] });
   });
 
   it('un shard sin id de base no se despliega', () => {
