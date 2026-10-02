@@ -7,8 +7,9 @@
  *   sugieren al escribir; uno nuevo entra al guardarlo. Arranca vacío: no hay plagas de fábrica.
  * - **Foto opcional** (CA2), ya comprimida (`fotos.ts`): se guarda en el teléfono junto con el
  *   registro, en la misma transacción. El registro solo lleva su id.
- * - **Cuota de fotos** por plan (CA3, ADR-15), de `content/agro/cuaderno/fotos.json`. Mientras
- *   las fotos vivan solo aquí, se cuentan las de este teléfono en el mes de Colombia.
+ * - **Cuota de fotos** por plan (CA3, ADR-15), de `content/agro/cuaderno/fotos.json`. Las fotos
+ *   son de los planes pagos: el gratuito no adjunta (decisión del dueño). Mientras las fotos vivan
+ *   solo aquí, se cuentan las de este teléfono en el mes de Colombia.
  */
 import {
   ErrorDeValidacion,
@@ -46,6 +47,10 @@ export interface DatosMonitoreo {
 }
 
 export type Plan = keyof typeof configFotos.por_plan;
+
+/** Un plan que no está en la configuración cuenta como el gratuito: sin fotos (P1). */
+export const comoPlan = (plan: string): Plan =>
+  plan in configFotos.por_plan ? (plan as Plan) : 'gratuito';
 export const TAMANO_MAXIMO_FOTO = configFotos.tamano_maximo_kb * 1024;
 
 const normal = (s: string) => s.trim().replace(/\s+/g, ' ');
@@ -107,7 +112,9 @@ export async function guardarMonitoreo(
       motivos.push({ campo: 'foto', motivo: 'la foto pesa más de 150 KB' });
     }
     const cuota = await cuotaDeFotos(db, plan, ahora);
-    if (cuota.usadas >= cuota.limite) {
+    if (cuota.limite === 0) {
+      motivos.push({ campo: 'foto', motivo: 'las fotos de monitoreo vienen con el plan Finca' });
+    } else if (cuota.usadas >= cuota.limite) {
       motivos.push({
         campo: 'foto',
         motivo: `ya usaste las ${cuota.limite} fotos de este mes; guarda el monitoreo sin foto`,

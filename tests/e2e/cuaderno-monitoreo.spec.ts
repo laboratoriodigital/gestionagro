@@ -1,7 +1,8 @@
 /**
  * Monitoreo de plagas y enfermedades (HU-E3.11) en un teléfono de 360 px y sin señal, con las dos
- * fincas de prueba (P4). La foto es ruido de 2.400 × 1.800 px, lo que peor se comprime: tiene que
- * quedar en ≤ 150 KB.
+ * fincas de prueba (P4). Las fotos son del plan Finca (ARQUITECTURA §2.4): con el gratuito no se
+ * ofrecen. La foto es ruido de 2.400 × 1.800 px, lo que peor se comprime: tiene que quedar en
+ * ≤ 150 KB.
  */
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -31,14 +32,70 @@ async function fotoGrande(page: Page): Promise<Buffer> {
   return Buffer.from(base64, 'base64');
 }
 
+/** Una sesión con la finca en el plan Finca, como la daría el CORE. */
+async function conPlanFinca(page: Page) {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolver) => {
+        const pedido = indexedDB.open('gestionagro-cuaderno');
+        pedido.onsuccess = () => {
+          const tx = pedido.result.transaction('meta', 'readwrite');
+          const org = '0199a1b2-0000-7000-8000-0000000000f9';
+          tx.objectStore('meta').put({
+            clave: 'sesion',
+            valor: {
+              acceso: 'acceso',
+              acceso_vence: Date.now() + 3_600_000,
+              refresh: 'refresh',
+              refresh_vence: Date.now() + 86_400_000,
+              usuario: { nombre: 'Persona Ensayo', email: 'ensayo@example.com' },
+              organizaciones: [
+                { org_id: org, nombre: 'Finca Ensayo', rol: 'propietario', plan: 'finca' },
+              ],
+              org_id: org,
+            },
+            actualizado: '',
+          });
+          tx.oncomplete = () => resolver();
+        };
+      }),
+  );
+}
+
+test('CA3: con el plan gratuito no se ofrecen fotos, y el monitoreo se guarda igual', async ({
+  page,
+}) => {
+  const f = FINCAS_DE_PRUEBA[0];
+  const area = f?.areas[0];
+  if (!f || !area) throw new Error('sin finca');
+  await configurar(page, f);
+  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await page.getByRole('button', { name: 'Monitoreo', exact: true }).click();
+  const form = page.locator('[data-prueba="formulario-monitoreo"]');
+  await expect(form.locator('[data-prueba="fotos-plan"]')).toHaveText(
+    'Las fotos de monitoreo vienen con el plan Finca. El monitoreo se guarda igual, sin foto.',
+  );
+  await expect(form.getByLabel('Foto (opcional)')).toHaveCount(0);
+  await form.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
+  await form.getByLabel('Qué viste').fill('Enfermedad Ensayo');
+  await form.getByLabel('Enfermedad', { exact: true }).check();
+  await form.getByLabel('Observación').check();
+  await form.getByLabel('Bajo').check();
+  await form.getByRole('button', { name: 'Guardar monitoreo' }).click();
+  await expect(page.locator('[data-prueba="registro-monitoreo"]')).toContainText(
+    'Monitoreo · Enfermedad Ensayo · nivel bajo · observación',
+  );
+});
+
 for (const f of FINCAS_DE_PRUEBA) {
-  test(`${f.finca.nombre} · CA1, CA2 y CA3: monitoreo con foto liviana, sin señal`, async ({
+  test(`${f.finca.nombre} · CA1, CA2 y CA3: plan Finca, monitoreo con foto liviana, sin señal`, async ({
     page,
     context,
   }) => {
     const area = f.areas[0];
     if (!area) throw new Error('sin áreas');
     await configurar(page, f);
+    await conPlanFinca(page);
     const png = await fotoGrande(page);
     expect(png.length).toBeGreaterThan(150 * 1024);
     await context.setOffline(true);
@@ -52,7 +109,7 @@ for (const f of FINCAS_DE_PRUEBA) {
     await form.getByLabel('Individuos en la trampa (opcional)').fill('12');
     await form.getByLabel('Medio').check();
     await expect(form.locator('[data-prueba="cuota-fotos"]')).toContainText(
-      '0 de 30 fotos este mes en este teléfono',
+      '0 de 120 fotos este mes en este teléfono',
     );
     await form.getByLabel('Foto (opcional)').setInputFiles({
       name: 'trampa.png',
@@ -72,7 +129,7 @@ for (const f of FINCAS_DE_PRUEBA) {
     await form.getByRole('button', { name: 'Guardar monitoreo' }).click();
     await expect(page.getByText('Monitoreo guardado en este teléfono.')).toBeVisible();
     await expect(form.locator('[data-prueba="cuota-fotos"]')).toContainText(
-      '1 de 30 fotos este mes',
+      '1 de 120 fotos este mes',
     );
     const r = page.locator('[data-prueba="registro-monitoreo"]');
     await expect(r).toContainText(

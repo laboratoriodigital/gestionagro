@@ -178,6 +178,8 @@ export interface EntradaDelDirectorio {
   org_id: string;
   nombre: string;
   tipo: TipoDeOrganizacion;
+  /** Plan de la organización: el teléfono lo usa para lo que depende del plan (fotos, HU-E3.11). */
+  plan: 'gratuito' | 'finca' | 'exportador' | 'cadena';
   rol: Rol;
   celda_id: string;
   shard: string;
@@ -196,7 +198,7 @@ export async function directorioDeUsuario(
 ): Promise<EntradaDelDirectorio[]> {
   const { results } = await db
     .prepare(
-      `SELECT o.id AS org_id, o.nombre, o.tipo, m.rol, o.celda_id, o.shard, o.anillo, c.url_api
+      `SELECT o.id AS org_id, o.nombre, o.tipo, o.plan, m.rol, o.celda_id, o.shard, o.anillo, c.url_api
          FROM membresia m
          JOIN organizacion o ON o.id = m.org_id
          JOIN celda c ON c.id = o.celda_id

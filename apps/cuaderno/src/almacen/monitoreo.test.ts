@@ -9,6 +9,7 @@ import { FINCAS_DE_PRUEBA } from '../../../../tests/fixtures/fincas.ts';
 import { abrirCuaderno } from './db.ts';
 import { crearFincaConAreas } from './finca.ts';
 import {
+  comoPlan,
   cuotaDeFotos,
   type DatosMonitoreo,
   type DatosMonitoreoGuardado,
@@ -118,7 +119,12 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
 
   it('CA2: la foto queda en el teléfono con el registro, y el registro solo lleva su id', async () => {
     const { db, finca, base } = await preparar();
-    const r = await guardarMonitoreo(db, finca.id, { ...base, foto: foto() }, { ahora: HOY });
+    const r = await guardarMonitoreo(
+      db,
+      finca.id,
+      { ...base, foto: foto() },
+      { ahora: HOY, plan: 'finca' },
+    );
     const id = (r.datos as DatosMonitoreoGuardado).foto_id;
     expect(id).toBeTruthy();
     const guardada = await db.foto.get(id ?? '');
@@ -128,28 +134,44 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
 
   it('CA2: una foto de más de 150 KB no se guarda, ni el registro', async () => {
     const { db, finca, base } = await preparar();
-    const e = await guardarMonitoreo(db, finca.id, {
-      ...base,
-      foto: foto(TAMANO_MAXIMO_FOTO + 1),
-    }).catch((x: unknown) => x);
+    const e = await guardarMonitoreo(
+      db,
+      finca.id,
+      {
+        ...base,
+        foto: foto(TAMANO_MAXIMO_FOTO + 1),
+      },
+      { plan: 'finca' },
+    ).catch((x: unknown) => x);
     expect(motivos(e)).toEqual(['la foto pesa más de 150 KB']);
     expect(await db.registro.count()).toBe(0);
   });
 
-  it('CA3: «x de y fotos este mes» por plan; sin cupo no guarda la foto', async () => {
+  it('CA3: las fotos son del plan Finca (ARQUITECTURA §2.4): el gratuito no adjunta, y lo dice', async () => {
     const { db, finca, base } = await preparar();
-    expect(await cuotaDeFotos(db, 'gratuito', HOY)).toEqual({ usadas: 0, limite: 30 });
+    expect(await cuotaDeFotos(db, 'gratuito', HOY)).toEqual({ usadas: 0, limite: 0 });
+    const e = await guardarMonitoreo(db, finca.id, { ...base, foto: foto() }, { ahora: HOY }).catch(
+      (x: unknown) => x,
+    );
+    expect(motivos(e)).toEqual(['las fotos de monitoreo vienen con el plan Finca']);
+    // Sin foto, el monitoreo se guarda igual.
+    await guardarMonitoreo(db, finca.id, base, { ahora: HOY });
+    expect(comoPlan('plan-que-no-existe')).toBe('gratuito');
+  });
+
+  it('CA3: «x de y fotos este mes» del plan; sin cupo no guarda la foto', async () => {
+    const { db, finca, base } = await preparar();
     expect((await cuotaDeFotos(db, 'finca', HOY)).limite).toBe(120);
-    for (let i = 0; i < 30; i++) {
-      await db.foto.add({
+    await db.foto.bulkAdd(
+      Array.from({ length: 120 }, (_, i) => ({
         id: `f${i}`,
         registro_id: 'r',
         tipo: 'image/webp',
         datos: new Blob([]),
         tamano: 1,
         creado: '2027-03-10T15:00:00.000Z',
-      });
-    }
+      })),
+    );
     // Una del mes pasado no cuenta.
     await db.foto.add({
       id: 'vieja',
@@ -159,14 +181,18 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
       tamano: 1,
       creado: '2027-02-27T15:00:00.000Z',
     });
-    expect(await cuotaDeFotos(db, 'gratuito', HOY)).toEqual({ usadas: 30, limite: 30 });
-    const e = await guardarMonitoreo(db, finca.id, { ...base, foto: foto() }, { ahora: HOY }).catch(
-      (x: unknown) => x,
-    );
+    expect(await cuotaDeFotos(db, 'finca', HOY)).toEqual({ usadas: 120, limite: 120 });
+    const e = await guardarMonitoreo(
+      db,
+      finca.id,
+      { ...base, foto: foto() },
+      {
+        ahora: HOY,
+        plan: 'finca',
+      },
+    ).catch((x: unknown) => x);
     expect(motivos(e)).toEqual([
-      'ya usaste las 30 fotos de este mes; guarda el monitoreo sin foto',
+      'ya usaste las 120 fotos de este mes; guarda el monitoreo sin foto',
     ]);
-    // Sin foto, sí.
-    await guardarMonitoreo(db, finca.id, base, { ahora: HOY });
   });
 });

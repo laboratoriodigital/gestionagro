@@ -131,6 +131,7 @@ describe('CA3 y CA4 · usuarios, organizaciones, membresías y directorio', () =
         org_id: org.id,
         nombre: 'Finca Ensayo Uno',
         tipo: 'finca',
+        plan: 'gratuito',
         rol: 'propietario',
         celda_id: 'c0',
         shard: 'agro_c0_s1',

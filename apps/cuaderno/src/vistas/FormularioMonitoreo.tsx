@@ -10,12 +10,15 @@ import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';
 import { comprimirFoto } from '../almacen/fotos.ts';
 import {
+  comoPlan,
   cuotaDeFotos,
   type DatosMonitoreo,
   type DatosMonitoreoGuardado,
   guardarMonitoreo,
+  type Plan,
   plagasConocidas,
 } from '../almacen/monitoreo.ts';
+import { leerSesion, planDeLaFinca } from '../almacen/sesion.ts';
 import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
 import { AccionesDeFormulario, EventoQueSeCorrige } from '../componentes/Correccion.tsx';
 
@@ -60,13 +63,18 @@ export function FormularioMonitoreo(props: {
   const [comprimiendo, setComprimiendo] = useState(false);
   const [conocidas, setConocidas] = useState<{ nombre: string; clase: string }[]>([]);
   const [cuota, setCuota] = useState<{ usadas: number; limite: number } | null>(null);
+  const [plan, setPlan] = useState<Plan>('gratuito');
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [guardado, setGuardado] = useState<string | null>(null);
 
   const cargar = () => {
     const db = cuaderno();
     void plagasConocidas(db, props.fincaId).then(setConocidas);
-    void cuotaDeFotos(db).then(setCuota);
+    void (async () => {
+      const elPlan = comoPlan(planDeLaFinca(await leerSesion(db)));
+      setPlan(elPlan);
+      setCuota(await cuotaDeFotos(db, elPlan));
+    })();
   };
   useEffect(cargar, [props.fincaId]);
   const tieneAlgo = Boolean(v.plaga || v.clase || v.metodo || v.nivel || foto);
@@ -118,7 +126,7 @@ export function FormularioMonitoreo(props: {
         cuaderno(),
         props.fincaId,
         { ...v, cantidad, foto },
-        { corrige: props.corrige },
+        { corrige: props.corrige, plan },
       );
       setV({
         ...vacio,
@@ -232,29 +240,35 @@ export function FormularioMonitoreo(props: {
         error={errores['nivel']}
         alCambiar={(x) => setV({ ...v, nivel: x })}
       />
-      <div class="campo">
-        <label for="monitoreo-foto">Foto (opcional)</label>
-        <p class="ayuda" data-prueba="cuota-fotos">
-          {cuota
-            ? `${cuota.usadas} de ${cuota.limite} fotos este mes en este teléfono. Se guarda liviana (máximo 150 KB) y se queda en el teléfono.`
-            : 'Cargando…'}
+      {cuota?.limite === 0 ? (
+        <p class="ayuda" data-prueba="fotos-plan">
+          Las fotos de monitoreo vienen con el plan Finca. El monitoreo se guarda igual, sin foto.
         </p>
-        <input
-          id="monitoreo-foto"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          disabled={sinCupo || comprimiendo}
-          onChange={(e) => void elegirFoto((e.currentTarget as HTMLInputElement).files?.[0])}
-        />
-        {comprimiendo && <p class="ayuda">Preparando la foto…</p>}
-        {foto && (
-          <p class="ayuda" data-prueba="foto-lista">
-            Foto lista: {kb(foto.datos.size)}.
+      ) : (
+        <div class="campo">
+          <label for="monitoreo-foto">Foto (opcional)</label>
+          <p class="ayuda" data-prueba="cuota-fotos">
+            {cuota
+              ? `${cuota.usadas} de ${cuota.limite} fotos este mes en este teléfono. Se guarda liviana (máximo 150 KB) y se queda en el teléfono.`
+              : 'Cargando…'}
           </p>
-        )}
-        {errores['foto'] && <p class="error">{errores['foto']}</p>}
-      </div>
+          <input
+            id="monitoreo-foto"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            disabled={sinCupo || comprimiendo}
+            onChange={(e) => void elegirFoto((e.currentTarget as HTMLInputElement).files?.[0])}
+          />
+          {comprimiendo && <p class="ayuda">Preparando la foto…</p>}
+          {foto && (
+            <p class="ayuda" data-prueba="foto-lista">
+              Foto lista: {kb(foto.datos.size)}.
+            </p>
+          )}
+          {errores['foto'] && <p class="error">{errores['foto']}</p>}
+        </div>
+      )}
       <Campo
         id="monitoreo-nota"
         etiqueta="Nota (opcional)"

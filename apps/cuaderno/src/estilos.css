@@ -441,21 +441,33 @@ a.boton {
 .etiqueta-estado {
   font-size: 7pt;
 }
+/* Al imprimir, la etiqueta se copia a #impresion, en la raíz de la página, y se quita todo lo
+   demás con display: none. Con visibility: hidden el resto seguía ocupando su espacio y salían
+   12 hojas de 5 × 5 cm (revisión del dueño, 1 oct 2026). */
+#impresion {
+  display: none;
+}
 @media print {
   @page {
     size: 5cm 5cm;
     margin: 0;
   }
-  body * {
-    visibility: hidden;
+  html.imprimiendo body > :not(#impresion) {
+    display: none;
   }
-  .etiqueta-imprimible,
-  .etiqueta-imprimible * {
-    visibility: visible;
+  html.imprimiendo,
+  html.imprimiendo body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
   }
-  .etiqueta-imprimible {
-    position: fixed;
-    inset: 0;
+  html.imprimiendo #impresion {
+    display: block;
+    width: 5cm;
+    height: 5cm;
+    overflow: hidden;
+  }
+  #impresion .etiqueta-imprimible {
     border: 0;
   }
 }
