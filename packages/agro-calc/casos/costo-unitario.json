@@ -1,0 +1,138 @@
+{
+  "nota": "Casos del costo por unidad y el margen de un ciclo (HU-E7.3). Costo = insumos + mano de obra; por unidad = costo / vendible (cosechado − descarte); margen = ingresos − costo. Lo desconocido nunca suma 0: marca el resultado incompleto (P1).",
+  "casos": [
+    {
+      "nombre": "ciclo completo con ventas",
+      "entrada": {
+        "insumos": 300000,
+        "manoDeObra": 500000,
+        "costosSinDato": 0,
+        "vendible": 400,
+        "ingresos": 1400000,
+        "ventas": 3,
+        "ventasSinPrecio": 0
+      },
+      "esperado": {
+        "costo": 800000,
+        "costoCompleto": true,
+        "porUnidad": 2000,
+        "margen": 600000,
+        "margenCompleto": true
+      }
+    },
+    {
+      "nombre": "vende por debajo del costo: el margen es negativo",
+      "entrada": {
+        "insumos": 300000,
+        "manoDeObra": 500000,
+        "costosSinDato": 0,
+        "vendible": 400,
+        "ingresos": 600000,
+        "ventas": 2,
+        "ventasSinPrecio": 0
+      },
+      "esperado": {
+        "costo": 800000,
+        "costoCompleto": true,
+        "porUnidad": 2000,
+        "margen": -200000,
+        "margenCompleto": true
+      }
+    },
+    {
+      "nombre": "sin cosecha vendible no hay costo por unidad (nunca divide por cero)",
+      "entrada": {
+        "insumos": 120000,
+        "manoDeObra": 0,
+        "costosSinDato": 0,
+        "vendible": 0,
+        "ingresos": 0,
+        "ventas": 0,
+        "ventasSinPrecio": 0
+      },
+      "esperado": {
+        "costo": 120000,
+        "costoCompleto": true,
+        "porUnidad": null,
+        "margen": null,
+        "margenCompleto": true
+      }
+    },
+    {
+      "nombre": "sin ventas no hay margen, ni siquiera negativo",
+      "entrada": {
+        "insumos": 100000,
+        "manoDeObra": 200000,
+        "costosSinDato": 0,
+        "vendible": 150,
+        "ingresos": 0,
+        "ventas": 0,
+        "ventasSinPrecio": 0
+      },
+      "esperado": {
+        "costo": 300000,
+        "costoCompleto": true,
+        "porUnidad": 2000,
+        "margen": null,
+        "margenCompleto": true
+      }
+    },
+    {
+      "nombre": "un jornal sin valor deja el costo incompleto: es «al menos»",
+      "entrada": {
+        "insumos": 100000,
+        "manoDeObra": 200000,
+        "costosSinDato": 1,
+        "vendible": 150,
+        "ingresos": 450000,
+        "ventas": 1,
+        "ventasSinPrecio": 0
+      },
+      "esperado": {
+        "costo": 300000,
+        "costoCompleto": false,
+        "porUnidad": 2000,
+        "margen": 150000,
+        "margenCompleto": false
+      }
+    },
+    {
+      "nombre": "un despacho sin precio deja el margen incompleto",
+      "entrada": {
+        "insumos": 100000,
+        "manoDeObra": 200000,
+        "costosSinDato": 0,
+        "vendible": 150,
+        "ingresos": 450000,
+        "ventas": 2,
+        "ventasSinPrecio": 1
+      },
+      "esperado": {
+        "costo": 300000,
+        "costoCompleto": true,
+        "porUnidad": 2000,
+        "margen": 150000,
+        "margenCompleto": false
+      }
+    },
+    {
+      "nombre": "redondea a pesos enteros",
+      "entrada": {
+        "insumos": 1000,
+        "manoDeObra": 0,
+        "costosSinDato": 0,
+        "vendible": 3,
+        "ingresos": 0,
+        "ventas": 0,
+        "ventasSinPrecio": 0
+      },
+      "esperado": {
+        "costo": 1000,
+        "costoCompleto": true,
+        "porUnidad": 333,
+        "margen": null,
+        "margenCompleto": true
+      }
+    }
+  ]
+}

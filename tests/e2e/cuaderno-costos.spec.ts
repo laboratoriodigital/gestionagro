@@ -166,4 +166,28 @@ test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su
   await expect(page.locator('[data-prueba="mano-de-obra"]')).toContainText(
     'la app no liquida nómina, recargos, horas extra ni prestaciones',
   );
+
+  // HU-E7.3: sin cosecha no hay costo por kilo; con 40 kg vendibles, $ 32.000 son $ 800 por kg.
+  const porKilo = page.locator('[data-prueba="costo-por-kilo"]');
+  await expect(porKilo.locator('[data-prueba="costo-por-unidad"]')).toHaveText(
+    'Todavía no hay cosecha vendible: no hay costo por unidad.',
+  );
+  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
+  const cosecha = page.locator('[data-prueba="formulario-cosecha"]');
+  await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
+  await page.getByLabel('Cantidad cosechada').fill('40');
+  await cosecha.getByLabel('kg', { exact: true }).check();
+  await cosecha.getByLabel('Primera', { exact: true }).check();
+  await page.getByRole('button', { name: 'Guardar cosecha' }).click();
+  await expect(page.getByText('Cosecha guardada en este teléfono.')).toBeVisible();
+  await nav(page).getByRole('link', { name: 'Costos' }).click();
+  await expect(porKilo.locator('[data-prueba="costo-por-unidad"]')).toHaveText(
+    'Cuesta $ 800 por kg vendible (40 kg)',
+  );
+  await expect(porKilo.locator('[data-prueba="margen"]')).toHaveText(
+    'Todavía no hay ventas de este ciclo.',
+  );
+  // CA3: dice qué no está incluido.
+  await expect(porKilo).toContainText('No incluye arriendo, depreciación del invernadero');
 });
