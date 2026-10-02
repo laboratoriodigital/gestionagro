@@ -7,6 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { guardarClima } from '../../apps/cuaderno/src/almacen/clima.ts';
 import { editarArea } from '../../apps/cuaderno/src/almacen/finca.ts';
 import { leerCursor, recibirCambios } from '../../apps/cuaderno/src/almacen/recepcion.ts';
+import { avisosDeReemplazo, reaplicar } from '../../apps/cuaderno/src/almacen/reemplazos.ts';
 import { FINCAS_DE_PRUEBA } from '../fixtures/fincas.ts';
 import { type Celda, montarCelda, T0, telefonoConFinca, telefonoNuevo } from './arnes.ts';
 
@@ -69,15 +70,29 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
     expect((await a.db.area.get(area.id))?.nombre).toBe('Nombre del teléfono A');
     const guardada = await a.db.historial.get(`${area.id}@v2#nube`);
     expect(guardada?.datos).toMatchObject({ nombre: 'Nombre del teléfono B' });
-    // Cuando A sube, la celda guarda su versión como conflicto: ninguna se pierde.
+    // HU-E5.4 CA1: A llega después y gana; la versión de B queda en el historial como conflicto.
     await a.sincronizar(c.red().fn);
-    expect(await c.contar('entidad_historial')).toBeGreaterThanOrEqual(2); // la v1 editada y el conflicto
     const conflictos = await c.db
       .prepare("SELECT datos FROM entidad_historial WHERE motivo = 'conflicto'")
       .all<{ datos: string }>();
     expect(conflictos.results.map((r) => JSON.parse(r.datos).nombre)).toEqual([
-      'Nombre del teléfono A',
+      'Nombre del teléfono B',
     ]);
+    // HU-E5.4 CA2: B baja la de A, la tiene igual que la nube y ve el aviso con lo suyo.
+    await b.sincronizar(c.red().fn);
+    expect((await b.db.area.get(area.id))?.nombre).toBe('Nombre del teléfono A');
+    const [aviso] = await avisosDeReemplazo(b.db);
+    expect(aviso?.texto).toBe(
+      `Tu cambio en el área «Nombre del teléfono B» fue reemplazado por el de otra persona del equipo, que editó lo mismo sin señal.`,
+    );
+    expect(await avisosDeReemplazo(a.db)).toEqual([]); // A ganó: nada que avisar
+    // B vuelve a poner su cambio: es una edición más, sube y llega a A.
+    await reaplicar(b.db, aviso?.aviso.id ?? '');
+    expect(await avisosDeReemplazo(b.db)).toEqual([]);
+    await b.sincronizar(c.red().fn);
+    await a.sincronizar(c.red().fn);
+    expect((await a.db.area.get(area.id))?.nombre).toBe('Nombre del teléfono B');
+    expect((await b.db.area.get(area.id))?.version).toBe((await a.db.area.get(area.id))?.version);
   });
 
   it('la celda no escribe nada para atender los pulls', async () => {

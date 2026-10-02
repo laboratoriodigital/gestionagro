@@ -57,6 +57,24 @@ export interface VersionAnterior {
 }
 
 /**
+ * Una versión de este teléfono que perdió un conflicto en la nube (HU-E5.4): otro teléfono editó
+ * lo mismo sin señal y llegó después. Se guarda lo que había aquí para avisarlo y poder volver a
+ * ponerlo. No se borra: `resuelto` dice qué decidió la persona.
+ */
+export interface AvisoDeReemplazo {
+  id: string;
+  entidad: Exclude<Entidad, 'registro'>;
+  entidad_id: string;
+  version: number;
+  /** La versión de este teléfono que la nube reemplazó. */
+  datos: unknown;
+  /** La cuenta que escribió la que ganó. */
+  por_usuario: string | null;
+  recibido: string;
+  resuelto: null | 'reaplicado' | 'aceptado';
+}
+
+/**
  * Operación que la celda puso en cuarentena (HU-E5.2, HU-E3.14 CA3). Sale de la cola de salida
  * pero no se borra nada: el dato sigue en su tabla y aquí queda el motivo en palabras.
  */
@@ -90,6 +108,7 @@ export type CuadernoDb = Dexie & {
   outbox: EntityTable<OperacionSalida, 'id'>;
   historial: EntityTable<VersionAnterior, 'id'>;
   rechazo: EntityTable<Rechazo, 'id'>;
+  reemplazo: EntityTable<AvisoDeReemplazo, 'id'>;
   meta: EntityTable<Meta, 'clave'>;
 };
 
@@ -177,6 +196,13 @@ export const VERSIONES_LOCALES: readonly VersionLocal[] = [
     version: 8,
     tablas: {
       rechazo: 'id',
+    },
+  },
+  {
+    // HU-E5.4: versiones de este teléfono que perdieron un conflicto en la nube. Pocas: solo la clave.
+    version: 9,
+    tablas: {
+      reemplazo: 'id',
     },
   },
 ];

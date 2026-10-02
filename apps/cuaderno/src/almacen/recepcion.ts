@@ -9,6 +9,9 @@
  * - **Catálogos:** gana la versión mayor. Si este teléfono tiene una edición **pendiente** de esa
  *   entidad (en la cola de salida), no se pisa (CA2): la versión de la nube se guarda en el
  *   historial local como conflicto, para que la persona decida (HU-E5.4).
+ * - **Conflicto perdido (HU-E5.4):** si la versión que baja ganó en la nube contra una de este
+ *   teléfono (`reemplazo` nombra a este teléfono y la versión que tiene), se guarda un aviso con
+ *   lo que había aquí, para decirlo y ofrecer volver a ponerlo.
  * - **Rol (HU-E4.5):** la celda solo baja lo que el rol puede leer. Si el rol de esta persona
  *   cambia, el teléfono borra lo que ya no le toca ver (salvo lo que tiene pendiente por subir) y
  *   vuelve a bajar desde el principio, para recibir lo que antes no le tocaba.
@@ -23,6 +26,7 @@ import {
   tiposNegados,
 } from '@gestionagro/sync';
 import type { CuadernoDb, VersionAnterior } from './db.ts';
+import { idDispositivo } from './dispositivo.ts';
 
 export const CLAVE_CURSOR = 'cursor_pull';
 /** El rol con el que se bajó lo que hay en este teléfono. */
@@ -87,6 +91,8 @@ export async function aplicarPagina(
   db: CuadernoDb,
   pagina: RespuestaPull,
   instante: string,
+  /** Este teléfono: para reconocer una versión suya que perdió un conflicto. */
+  dispositivo = '',
 ): Promise<{ recibidos: number; conflictos: number }> {
   let recibidos = 0;
   let conflictos = 0;
@@ -95,13 +101,20 @@ export async function aplicarPagina(
     db.outbox,
     db.historial,
     db.meta,
+    db.reemplazo,
     ...new Set(pagina.catalogos.map((c) => db.table(c.entidad))),
   ];
   await db.transaction('rw', tablas, async () => {
     // Entidades con una edición local que todavía no sube: una lectura de la cola por página.
     const pendientes = new Set((await db.outbox.toArray()).map((o) => o.entidad_id));
     for (const cambio of pagina.catalogos) {
-      const r = await aplicarCatalogo(db, cambio, pendientes.has(cambio.datos.id), instante);
+      const r = await aplicarCatalogo(
+        db,
+        cambio,
+        pendientes.has(cambio.datos.id),
+        instante,
+        dispositivo,
+      );
       if (r === 'recibido') recibidos++;
       if (r === 'conflicto') conflictos++;
     }
@@ -117,9 +130,10 @@ export async function aplicarPagina(
 
 async function aplicarCatalogo(
   db: CuadernoDb,
-  { entidad, datos }: CambioDeCatalogo,
+  { entidad, datos, reemplazo }: CambioDeCatalogo,
   pendiente: boolean,
   instante: string,
+  dispositivo: string,
 ): Promise<'recibido' | 'conflicto' | 'nada'> {
   const tabla = db.table(entidad);
   const local = (await tabla.get(datos.id)) as { version: number } | undefined;
@@ -143,6 +157,25 @@ async function aplicarCatalogo(
     return 'conflicto';
   }
   if (local && local.version === datos.version) return 'nada';
+  // Lo que hay aquí es la versión de este teléfono que perdió en la nube: se avisa (HU-E5.4).
+  if (
+    local &&
+    reemplazo &&
+    dispositivo &&
+    reemplazo.dispositivo === dispositivo &&
+    reemplazo.version === local.version
+  ) {
+    await db.reemplazo.put({
+      id: `${datos.id}@v${local.version}`,
+      entidad,
+      entidad_id: datos.id,
+      version: local.version,
+      datos: local,
+      por_usuario: reemplazo.por_usuario,
+      recibido: instante,
+      resuelto: null,
+    });
+  }
   await tabla.put(datos);
   return 'recibido';
 }
@@ -158,6 +191,7 @@ export async function recibirCambios(
   const { fetchFn = fetch, ahora = () => Date.now(), maxPaginas = 500 } = opciones;
   let recibidos = 0;
   let conflictos = 0;
+  const dispositivo = await idDispositivo(db);
   if (destino.rol) await ajustarAlRol(db, destino.rol, new Date(ahora()).toISOString());
   for (let n = 0; n < maxPaginas; n++) {
     const c = await leerCursor(db);
@@ -209,7 +243,12 @@ export async function recibirCambios(
         motivo: cuerpo.motivo ?? `La celda respondió ${r.status}`,
       };
     }
-    const hecho = await aplicarPagina(db, cuerpo as RespuestaPull, new Date(ahora()).toISOString());
+    const hecho = await aplicarPagina(
+      db,
+      cuerpo as RespuestaPull,
+      new Date(ahora()).toISOString(),
+      dispositivo,
+    );
     recibidos += hecho.recibidos;
     conflictos += hecho.conflictos;
     if (!cuerpo.mas) {

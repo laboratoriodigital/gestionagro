@@ -222,9 +222,21 @@ export interface Cursor {
 
 export const CURSOR_INICIAL: Cursor = { registro: 0, catalogo: 0 };
 
+/** A qué teléfono se le reemplazó su versión al ganar esta (HU-E5.4). */
+export interface Reemplazo {
+  /** La versión que perdió. */
+  version: number;
+  /** El teléfono que la había escrito. */
+  dispositivo: string;
+  /** La cuenta que escribió la que ganó. */
+  por_usuario: string | null;
+}
+
 export interface CambioDeCatalogo {
   entidad: EntidadDeCatalogo;
   datos: CatalogoValido;
+  /** Solo si esta versión ganó un conflicto: el teléfono que perdió lo avisa. */
+  reemplazo?: Reemplazo;
 }
 
 export interface RespuestaPull {

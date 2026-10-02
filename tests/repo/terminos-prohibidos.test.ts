@@ -108,7 +108,8 @@ describe('ningún término prohibido en el repositorio (P4, HU-E1.7)', () => {
     expect(archivos.length).toBeGreaterThan(5);
   });
 
-  it('no aparece ninguno', () => {
+  // Lee todo el repositorio: con la suite entera en paralelo pasó de los 5 s por defecto.
+  it('no aparece ninguno', { timeout: 30_000 }, () => {
     const coincidencias = archivos.flatMap((archivo) =>
       buscarEnTexto(archivo, readFileSync(join(RAIZ, archivo), 'utf8'), lista),
     );

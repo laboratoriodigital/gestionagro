@@ -22,6 +22,7 @@ import {
   type EntidadDeCatalogo,
   entidadesQuePuede,
   PAGINA_MAXIMA,
+  type Reemplazo,
   type RespuestaPull,
   tiposNegados,
 } from '@gestionagro/sync';
@@ -68,11 +69,23 @@ export async function pull(c: ContextoCelda, ahora: () => number): Promise<Respo
     deCatalogos.length > 0
       ? await db
           .prepare(
-            `SELECT seq, entidad, datos FROM catalogo WHERE org_id = ? AND seq > ? AND entidad IN (${deCatalogos.map(() => '?').join(', ')}) ORDER BY seq LIMIT ?`,
+            `SELECT seq, entidad, datos, reemplazo FROM catalogo WHERE org_id = ? AND seq > ? AND entidad IN (${deCatalogos.map(() => '?').join(', ')}) ORDER BY seq LIMIT ?`,
           )
           .bind(org, desdeCatalogo, ...deCatalogos, PAGINA_MAXIMA + 1)
-          .all<{ seq: number; entidad: EntidadDeCatalogo; datos: string }>()
-      : { results: [] as { seq: number; entidad: EntidadDeCatalogo; datos: string }[] };
+          .all<{
+            seq: number;
+            entidad: EntidadDeCatalogo;
+            datos: string;
+            reemplazo: string | null;
+          }>()
+      : {
+          results: [] as {
+            seq: number;
+            entidad: EntidadDeCatalogo;
+            datos: string;
+            reemplazo: string | null;
+          }[],
+        };
   const deCatalogo = catalogos.results.slice(0, PAGINA_MAXIMA);
   const espacio = PAGINA_MAXIMA - deCatalogo.length;
   // Tipos de registro que el rol no ve (un operario no ve los despachos, que llevan precios).
@@ -99,6 +112,7 @@ export async function pull(c: ContextoCelda, ahora: () => number): Promise<Respo
       (f): CambioDeCatalogo => ({
         entidad: f.entidad,
         datos: JSON.parse(f.datos) as CatalogoValido,
+        ...(f.reemplazo ? { reemplazo: JSON.parse(f.reemplazo) as Reemplazo } : {}),
       }),
     ),
     registros: deRegistro.map(({ seq: _seq, area_ids, persona_ids, datos, ...r }) => ({

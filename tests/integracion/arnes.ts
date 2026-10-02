@@ -21,6 +21,7 @@ import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { crearApp, TABLAS_DEL_SHARD } from '../../apps/api-celda/src/worker.ts';
 import { guardarClima } from '../../apps/cuaderno/src/almacen/clima.ts';
 import { abrirCuaderno, type CuadernoDb } from '../../apps/cuaderno/src/almacen/db.ts';
+import { CLAVE_DISPOSITIVO } from '../../apps/cuaderno/src/almacen/dispositivo.ts';
 import { enviarPendientes } from '../../apps/cuaderno/src/almacen/envio.ts';
 import { crearFincaConAreas } from '../../apps/cuaderno/src/almacen/finca.ts';
 import { recibirCambios } from '../../apps/cuaderno/src/almacen/recepcion.ts';
@@ -124,6 +125,9 @@ async function telefono(
   dispositivo: string,
   rol = 'propietario',
 ): Promise<Telefono> {
+  // La celda conoce al teléfono por el `dispositivo` de sus envíos; la app lo saca de
+  // `idDispositivo`. Aquí son el mismo, como en la app (HU-E5.4).
+  await db.meta.put({ clave: CLAVE_DISPOSITIVO, valor: dispositivo, actualizado: '' });
   await db.meta.put({
     clave: CLAVE_VINCULO,
     valor: { org_id: org, finca_id: fincaId, vinculado: '2026-10-01T12:00:00.000Z' },
