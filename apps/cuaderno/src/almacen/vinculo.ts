@@ -13,7 +13,13 @@
 import { uuidv7 } from '@gestionagro/agro-schema';
 import { ENTIDADES_DE_CATALOGO } from '@gestionagro/sync';
 import type { CuadernoDb, OperacionSalida } from './db.ts';
-import { CLAVE_SESION, ErrorDeSesion, leerSesion, type Sesion } from './sesion.ts';
+import {
+  CLAVE_SESION,
+  ErrorDeSesion,
+  leerSesion,
+  renovarSiHaceFalta,
+  type Sesion,
+} from './sesion.ts';
 
 export const CLAVE_VINCULO = 'vinculo';
 /** Id de la organización que se está creando: el mismo en cada reintento. */
@@ -56,6 +62,27 @@ export async function estadoDelVinculo(
   return sesion.organizaciones.some((o) => o.org_id === vinculo.org_id)
     ? 'vinculada'
     : 'otra-cuenta';
+}
+
+/**
+ * La sesión con la que este teléfono sincroniza su finca (bitácora agro 25). Una cuenta que está
+ * en dos fincas (la suya y la que la invitó) recibe del CORE una sesión sin finca si no pide cuál:
+ * el teléfono pide siempre la de su vínculo, y si tiene la de otra, la renueva en ese momento.
+ */
+export async function sesionDeLaFinca(
+  db: CuadernoDb,
+  core: string,
+  opciones: Parameters<typeof renovarSiHaceFalta>[2] = {},
+): ReturnType<typeof renovarSiHaceFalta> {
+  const vinculo = await leerVinculo(db);
+  const org = vinculo?.org_id ?? null;
+  const r = await renovarSiHaceFalta(db, core, { ...opciones, org });
+  const otra =
+    r.sesion &&
+    vinculo &&
+    r.sesion.org_id !== vinculo.org_id &&
+    r.sesion.organizaciones.some((o) => o.org_id === vinculo.org_id);
+  return otra ? renovarSiHaceFalta(db, core, { ...opciones, org, forzar: true }) : r;
 }
 
 /** Pone en la cola lo que falte, sin duplicar lo que ya está. Devuelve cuántas operaciones agregó. */

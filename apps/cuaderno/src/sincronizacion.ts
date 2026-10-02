@@ -11,8 +11,8 @@ import { cuaderno } from './almacen/abierto.ts';
 import { idDispositivo } from './almacen/dispositivo.ts';
 import { enviarPendientes, type ResultadoDeEnvio } from './almacen/envio.ts';
 import { type ResultadoDeRecepcion, recibirCambios } from './almacen/recepcion.ts';
-import { estadoDeSesion, renovarSiHaceFalta, rolEnLaFinca, urlDelCore } from './almacen/sesion.ts';
-import { estadoDelVinculo } from './almacen/vinculo.ts';
+import { estadoDeSesion, rolEnLaFinca, urlDelCore } from './almacen/sesion.ts';
+import { estadoDelVinculo, sesionDeLaFinca } from './almacen/vinculo.ts';
 import { DEMORA_TRAS_GUARDAR_MS, debeSincronizar } from './disparadores.ts';
 
 export const CADA_MS = 15 * 60_000;
@@ -73,7 +73,7 @@ async function quizas(motivo: 'guardado' | 'visible') {
 
 async function una(): Promise<EstadoDeSincronizacion> {
   const db = cuaderno();
-  const { sesion } = await renovarSiHaceFalta(db, urlDelCore(location.hostname));
+  const { sesion } = await sesionDeLaFinca(db, urlDelCore(location.hostname));
   const vinculo = await estadoDelVinculo(db, sesion);
   if (!sesion) return { tipo: 'inactiva', motivo: 'sin-cuenta' };
   if (vinculo === 'otra-cuenta') return { tipo: 'inactiva', motivo: 'otra-cuenta' };

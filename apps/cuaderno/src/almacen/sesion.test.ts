@@ -17,6 +17,7 @@ import {
   type Sesion,
   urlDelCore,
 } from './sesion.ts';
+import { CLAVE_VINCULO, sesionDeLaFinca } from './vinculo.ts';
 
 const CORE = 'https://core.ejemplo.test';
 const T0 = Date.UTC(2026, 9, 1, 12);
@@ -185,5 +186,73 @@ describe('URL del CORE por host (celdas.json)', () => {
     expect(urlDelCore('agro.ejemplo.test', config)).toBe('https://core');
     expect(urlDelCore('agro-sitio-staging.x.workers.dev', config)).toBe('https://core-stg');
     expect(urlDelCore('localhost', config)).toBe('https://core-stg');
+  });
+});
+
+describe('bitácora agro 25 · una cuenta en dos fincas sincroniza la de este teléfono', () => {
+  const FINCA = '0199a1b2-0000-7000-8000-0000000000a1';
+  const OTRA = '0199a1b2-0000-7000-8000-0000000000a2';
+  const dos = [
+    { org_id: OTRA, nombre: 'Finca Ensayo Uno', rol: 'propietario' },
+    { org_id: FINCA, nombre: 'Finca Ensayo Dos', rol: 'operario' },
+  ];
+  /** Volvió a entrar con Google: con dos fincas, el CORE da una sesión sin finca. */
+  const sinFinca = async () => {
+    const db = nueva();
+    await canjear(
+      db,
+      'c',
+      CORE,
+      coreFalso({
+        '/api/core/auth/canje': { estado: 200, cuerpo: respuesta({ organizaciones: dos }) },
+      }).fn,
+      () => T0,
+    );
+    await db.meta.put({
+      clave: CLAVE_VINCULO,
+      valor: { org_id: FINCA, finca_id: null, vinculado: '' },
+      actualizado: '',
+    });
+    return db;
+  };
+  const conFinca = respuesta({ acceso: 'acceso-2', organizaciones: dos, org_id: FINCA });
+
+  it('con el access vigente pero sin finca, renueva enseguida pidiendo la de este teléfono', async () => {
+    const db = await sinFinca();
+    const { fn, pedidos } = coreFalso({
+      '/api/core/auth/refrescar': { estado: 200, cuerpo: conFinca },
+    });
+    const r = await sesionDeLaFinca(db, CORE, {
+      fetchFn: fn,
+      ahora: () => T0,
+      enLinea: () => true,
+    });
+    expect(pedidos.map((p) => p.cuerpo['org_id'])).toEqual([FINCA]);
+    expect(r.sesion).toMatchObject({ acceso: 'acceso-2', org_id: FINCA });
+  });
+
+  it('al renovar un access vencido, pide la finca de este teléfono aunque la sesión no la tenga', async () => {
+    const db = await sinFinca();
+    const { fn, pedidos } = coreFalso({
+      '/api/core/auth/refrescar': { estado: 200, cuerpo: conFinca },
+    });
+    await sesionDeLaFinca(db, CORE, {
+      fetchFn: fn,
+      ahora: () => T0 + 13 * HORA,
+      enLinea: () => true,
+    });
+    expect(pedidos.map((p) => p.cuerpo['org_id'])).toEqual([FINCA]);
+  });
+
+  it('con la sesión ya en su finca y vigente, no pide nada', async () => {
+    const db = await sinFinca();
+    await db.meta.put({
+      clave: CLAVE_SESION,
+      valor: { ...(await leerSesion(db)), org_id: FINCA },
+      actualizado: '',
+    });
+    const { fn, pedidos } = coreFalso({});
+    await sesionDeLaFinca(db, CORE, { fetchFn: fn, ahora: () => T0, enLinea: () => true });
+    expect(pedidos).toEqual([]);
   });
 });

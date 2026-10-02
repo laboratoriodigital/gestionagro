@@ -698,3 +698,24 @@ Queda por confirmar con el dueño: si «agregar más lotes» quería decir parti
 La regla: **la e2e toca la pantalla como la toca la persona: el texto, no solo la casilla. Y una lista vacía dice por qué está vacía y qué hacer.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P15, P16 · 0.1.0 · 2026-10-01
+
+**25 · Una cuenta en dos fincas dejaba de sincronizar, y el teléfono decía que estaba vinculado.**
+
+*Qué pasó.* El 1 oct 2026, después de probar invitaciones y roles en staging, el dueño informó que los registros ya no se sincronizaban entre teléfonos.
+
+*Causa raíz.*
+- El CORE pone la finca en el token solo si la persona tiene una sola o si la pide (HU-E4.2). Con invitaciones (HU-E4.4), una cuenta puede quedar en dos fincas: la suya y la que la invitó.
+- Al volver a entrar con Google, el canje no pide finca, así que el token llega sin finca. El teléfono veía su finca en la lista de la cuenta y se daba por «vinculado», sincronizaba con ese token y la celda respondía 403 «sin organización» a cada envío.
+- Al renovar, el teléfono pedía `sesion.org_id`, que era nulo, así que la sesión nunca se corregía sola.
+- Las pruebas usaban siempre cuentas con una sola finca. El arnés de teléfonos simulados arma el token a mano con la finca puesta, y no pasa por el CORE.
+
+*Arreglo.*
+- `sesionDeLaFinca` (`vinculo.ts`) pide siempre la finca del vínculo del teléfono. Si la sesión es de otra finca, o no tiene ninguna, la renueva en ese momento aunque el access siga vigente.
+- La usan la sincronización y Cuenta.
+- Pruebas con una cuenta en dos fincas: con el access vigente y con el access vencido. Con la renovación forzada quitada, falla.
+
+*Pendiente:* confirmar con el dueño que este era su caso (cuentas y roles con los que probó). Si no lo era, la causa sigue abierta.
+
+La regla: **un estado como «vinculada» se comprueba con lo que la nube va a recibir (el token), no con una lista que lo hace parecer posible. Y el arnés de pruebas no debe saltarse al servidor que arma ese token.**
+
+*Ficha:* agro · *(mío)* · 🟠 Grave · P15, P16, P17 · 0.1.0 · 2026-10-01

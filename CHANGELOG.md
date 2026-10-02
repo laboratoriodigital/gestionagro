@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Corregido
+- Según la prueba del dueño en staging (bitácora agro 25): una cuenta que está en dos fincas (la suya y la que la invitó) dejaba de sincronizar al volver a entrar con Google. El teléfono decía que estaba vinculado, pero la nube rechazaba cada envío. Ahora el teléfono pide siempre la sesión de su finca, y si tiene la de otra, la renueva en ese momento.
 - Según la prueba del dueño en staging (bitácora agro 24), en los lotes de venta:
   - El código lleva el mes en letras (`M-01OCT-1`), porque `M-0110-1` se confundía.
   - Al cambiar las cosechas de un lote, tocar una cosecha libre marcaba la casilla de la otra lista y no se podía sumar al lote. Ahora se puede.
