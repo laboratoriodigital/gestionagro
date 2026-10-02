@@ -10,6 +10,7 @@ export const RUTAS_APP = [
   { segmento: '', titulo: 'Áreas' },
   { segmento: 'registrar', titulo: 'Registrar' },
   { segmento: 'historial', titulo: 'Historial' },
+  { segmento: 'carencias', titulo: 'Carencias' },
   { segmento: 'lotes', titulo: 'Lotes' },
   { segmento: 'rendimiento', titulo: 'Rendimiento' },
   { segmento: 'costos', titulo: 'Costos' },

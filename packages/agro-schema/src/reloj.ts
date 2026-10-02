@@ -73,3 +73,10 @@ export function diasEntre(desde: string, hasta: string): number {
   };
   return Math.round((ms(hasta) - ms(desde)) / MS_POR_DIA);
 }
+
+/** La fecha agronómica `n` días después de `fecha` (P8): en el calendario, sin horas ni husos. */
+export function sumarDias(fecha: string, n: number): string {
+  const [a, m, d] = fecha.split('-').map(Number);
+  if (!a || !m || !d) throw new RangeError(`Fecha agronómica inválida: «${fecha}»`);
+  return new Date(Date.UTC(a, m - 1, d + n)).toISOString().slice(0, 10);
+}
