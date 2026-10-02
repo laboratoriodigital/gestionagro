@@ -1,3 +1,4 @@
+export { type Bodega, bodega, type Movimiento } from './bodega.ts';
 export { vencimientoCarencia, vencimientoReentrada } from './carencia.ts';
 export {
   dpvAireKPa,

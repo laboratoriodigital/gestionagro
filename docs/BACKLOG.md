@@ -907,7 +907,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E7.1 · Costo de los insumos
 **Como** propietario **quiero** registrar compras de insumos y que cada aplicación descuente lo usado **para** saber cuánto gasto por nave y ciclo y cuánto me queda en bodega.
-- **Peldaño:** herramienta de negocio · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** S13 · **Depende de:** HU-E3.10 · **Estado:** Refinada
+- **Peldaño:** herramienta de negocio · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** S13 · **Depende de:** HU-E3.10 · **Estado:** En sprint (rama `feat/e7.1-costo-insumos`. CA1: la entrada es el registro `movimiento_insumo` v1, compra con precio total o sin él, o ajuste por conteo. La salida es la cantidad usada de la aplicación, que pasa a v2 con traductor desde v1. No hay registro de salida aparte (P2): corregir la aplicación corrige la bodega. Con varias áreas, la cantidad se reparte por m². El formulario sugiere dosis × litros cuando la dosis va por litro en la unidad del insumo; es solo una sugerencia que se confirma (P1). CA2: `bodega` de agro-calc, con casos. Una compra sin precio deja el costo «sin dato», nunca cero. CA3: una existencia negativa se avisa y no bloquea nada en el campo. Pantalla «Costos», que es del plan Finca (ARQUITECTURA §2.4) y solo de propietario y supervisor; `movimiento_insumo` entra a `MATRIZ_DE_REGISTROS`)
 - **Criterios de aceptación:**
   1. Entrada de bodega con cantidad, unidad y precio. Salida automática al registrar una aplicación con cantidad.
   2. Costo promedio ponderado calculado en `agro-calc` con casos.

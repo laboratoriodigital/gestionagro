@@ -22,6 +22,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';
 import {
+  cantidadSugerida,
   type DatosAplicacionGuardada,
   type EstadoDeArea,
   estadosPorArea,
@@ -44,6 +45,8 @@ interface Valores {
   personas: string[];
   mezcla: string;
   equipo: string;
+  /** Cantidad de producto gastada, en la unidad del insumo (HU-E7.1). */
+  cantidad: string;
 }
 
 type Errores = Partial<Record<keyof Valores | 'general', string>>;
@@ -55,6 +58,7 @@ const CAMPO_DE_ERROR: Record<string, keyof Valores> = {
   'datos.dosis': 'dosis',
   'datos.dosisUnidad': 'dosisUnidad',
   'datos.volumenMezclaL': 'mezcla',
+  'datos.cantidadUsada': 'cantidad',
 };
 
 function Plazo(props: { etiqueta: string; valor: number | null; unidad: 'días' | 'horas' }) {
@@ -83,6 +87,7 @@ export function FormularioAplicacion(props: {
     personas: [],
     mezcla: '',
     equipo: '',
+    cantidad: '',
   });
   const inicial = (): Valores =>
     props.corrige && antes
@@ -94,6 +99,7 @@ export function FormularioAplicacion(props: {
           personas: [...props.corrige.persona_ids],
           mezcla: aTexto(antes.volumenMezclaL),
           equipo: antes.equipo ?? '',
+          cantidad: aTexto(antes.cantidadUsada ?? null),
         }
       : vacio();
   const [v, setV] = useState<Valores>(inicial);
@@ -113,11 +119,19 @@ export function FormularioAplicacion(props: {
     })();
   }, [props.finca.id]);
 
-  const tieneAlgo = Boolean(v.insumoId || v.dosis || v.dosisUnidad || v.mezcla || v.equipo);
+  const tieneAlgo = Boolean(
+    v.insumoId || v.dosis || v.dosisUnidad || v.mezcla || v.equipo || v.cantidad,
+  );
   useEffect(() => (tieneAlgo ? abrirFormulario() : undefined), [tieneAlgo]);
 
   const insumo = insumos?.find((i) => i.id === v.insumoId);
   const aviso = insumo ? avisoEcologico(props.finca, insumo) : null;
+  const dosisLeida = leerNumero(v.dosis);
+  const mezclaLeida = leerNumero(v.mezcla);
+  const sugerida =
+    insumo && dosisLeida.ok && mezclaLeida.ok
+      ? cantidadSugerida(dosisLeida.valor, v.dosisUnidad, mezclaLeida.valor, insumo.unidad)
+      : null;
   const alternar = (lista: 'areas' | 'personas', id: string) =>
     setV({
       ...v,
@@ -134,6 +148,13 @@ export function FormularioAplicacion(props: {
     else if (dosis.valor <= 0) err.dosis = 'La dosis debe ser mayor que 0.';
     if (!v.dosisUnidad.trim()) err.dosisUnidad = 'Escribe la unidad como dice la etiqueta.';
     if (v.personas.length === 0) err.personas = 'Elige quién aplicó.';
+    let cantidad: number | null = null;
+    if (v.cantidad.trim()) {
+      const c = leerNumero(v.cantidad);
+      if (!c.ok) err.cantidad = c.motivo;
+      else if (c.valor <= 0) err.cantidad = 'Debe ser mayor que 0, o déjalo vacío.';
+      else cantidad = c.valor;
+    }
     let mezcla: number | null = null;
     if (v.mezcla.trim()) {
       const m = leerNumero(v.mezcla);
@@ -157,6 +178,7 @@ export function FormularioAplicacion(props: {
           volumenMezclaL: mezcla,
           equipo: v.equipo.trim() || null,
           personaIds: v.personas,
+          cantidadUsada: cantidad,
         },
         { corrige: props.corrige },
       );
@@ -291,8 +313,8 @@ export function FormularioAplicacion(props: {
           </p>
         )}
       </fieldset>
-      <details class="avanzado" open={Boolean(errores.mezcla)}>
-        <summary>Mezcla y equipo (opcional)</summary>
+      <details class="avanzado" open={Boolean(errores.mezcla || errores.cantidad)}>
+        <summary>Mezcla, equipo y cantidad usada (opcional)</summary>
         <Campo
           id="aplicacion-mezcla"
           etiqueta="Litros de mezcla preparados"
@@ -307,6 +329,27 @@ export function FormularioAplicacion(props: {
           valor={v.equipo}
           alCambiar={(x) => setV({ ...v, equipo: x })}
         />
+        <Campo
+          id="aplicacion-cantidad"
+          etiqueta={`Producto gastado en total${insumo ? ` (${insumo.unidad})` : ''}`}
+          ayuda="Para descontarla de la bodega. Si se aplicó en varias áreas, el total: se reparte por sus metros."
+          decimal
+          valor={v.cantidad}
+          error={errores.cantidad}
+          alCambiar={(x) => setV({ ...v, cantidad: x })}
+        />
+        {sugerida !== null && insumo && v.cantidad.trim() === '' && (
+          <p class="ayuda" data-prueba="cantidad-sugerida">
+            Según la dosis y la mezcla: {aTexto(sugerida)} {insumo.unidad}.{' '}
+            <button
+              type="button"
+              class="secundario"
+              onClick={() => setV({ ...v, cantidad: aTexto(sugerida) })}
+            >
+              Usar {aTexto(sugerida)} {insumo.unidad}
+            </button>
+          </p>
+        )}
       </details>
       {errores.general && (
         <p class="error" role="alert">
