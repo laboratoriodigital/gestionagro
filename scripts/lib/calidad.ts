@@ -4,7 +4,8 @@
  *
  * - Las cuatro preguntas de ED1 §12.1: «Para qué sirve» (problema, qué hacer ya, qué obtiene) y
  *   «Qué hacer con el resultado» (siguiente paso).
- * - Un «Ejemplo resuelto» con números.
+ * - Un «Ejemplo resuelto» con números de verdad: una cifra con coma (0,90 kPa), una fecha (13/12)
+ *   o una hora (19:00), dentro de esa sección.
  * - Al menos 5 preguntas frecuentes, específicas (respuestas de 80 caracteres o más, sin repetir).
  * - Pasos de uso para el JSON-LD HowTo.
  * - Fuentes con año y relacionados definidos en el contrato.
@@ -63,7 +64,8 @@ export function revisarCalidad(p: Producto, c: ContenidoLeido): string[] {
     if (!texto.split('\n').some((linea) => linea.trim() === seccion))
       fallas.push(`falta la sección «${seccion.slice(3)}»`);
   }
-  if (!/\d+,\d+\s*kPa|\d+,\d+/.test(texto)) fallas.push('el ejemplo resuelto no trae números');
+  const ejemplo = texto.split(/^## /m).find((s) => s.startsWith('Ejemplo resuelto')) ?? '';
+  if (!/\d+[,/:]\d+/.test(ejemplo)) fallas.push('el ejemplo resuelto no trae números');
 
   const palabras = texto.split(/\s+/).filter((w) => /\p{L}/u.test(w)).length;
   if (palabras < MINIMO_PALABRAS)

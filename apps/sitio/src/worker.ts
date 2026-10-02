@@ -18,7 +18,10 @@ import {
 } from '@gestionagro/kill-switch';
 
 /** Productos que emiten eventos. Una prueba lo ata a los `product.yaml` (P2). */
-export const PRODUCTOS_CON_EVENTOS: readonly string[] = ['agro-calculadora-dpv'];
+export const PRODUCTOS_CON_EVENTOS: readonly string[] = [
+  'agro-calculadora-dpv',
+  'agro-periodo-de-carencia',
+];
 
 const TAMANO_MAXIMO_BYTES = 2048;
 const CUENTA_MAXIMA = 100;

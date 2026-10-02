@@ -30,6 +30,17 @@ describe('cada regla se ve en rojo con su defecto (P5)', () => {
     ).toContain('falta la sección «Ejemplo resuelto»');
   });
 
+  it('con un ejemplo resuelto sin números', () => {
+    expect(
+      con((c) => ({
+        ...c,
+        markdown: c.markdown.map((m) =>
+          m.includes('## Ejemplo resuelto') ? '## Ejemplo resuelto\n\nMide y escribe.\n' : m,
+        ),
+      })),
+    ).toContain('el ejemplo resuelto no trae números');
+  });
+
   it('con menos de 5 preguntas frecuentes', () => {
     expect(
       con((c) => ({

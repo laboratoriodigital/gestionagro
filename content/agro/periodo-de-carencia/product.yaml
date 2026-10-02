@@ -1,0 +1,30 @@
+# Contrato de la calculadora de carencia y reentrada (ARQUITECTURA §5.1, HU-E10.1).
+# Herramienta 2 de la escalera, elegida por el análisis de palabras clave (HU-E0.2).
+id: agro-periodo-de-carencia
+nombre: "Calculadora de carencia y reentrada"
+slug: /herramientas/agro/periodo-de-carencia/
+tipo: utility
+estado: borrador
+familia: agro
+icp: false
+peldano: herramienta-gratuita
+siguiente_paso: agro-cuaderno
+plantilla: tool-agro
+runtime: browser
+seo:
+  title: "Periodo de carencia y reentrada: ¿cuándo cosechar y entrar?"
+  description: "Con la fecha de la aplicación y la carencia y reentrada de la etiqueta, mira desde qué día puedes cosechar y desde qué hora entrar. Gratis y sin registro."
+monetizacion:
+  ads: []
+  ads_en_procesamiento: false
+relacionados: [agro-cuaderno, agro-calculadora-dpv]
+eventos: [tool.opened, tool.completed, tool.next_step]
+presupuesto:
+  api_requests_dia: 0
+  analytics_points_dia: 2000
+kill_switch: true
+revision_agronomica: pendiente
+fuentes:
+  - "Decreto 1843 de 1991, Ministerio de Salud de Colombia (uso y manejo de plaguicidas)"
+  - "Resolución ICA 30021 de 2017 (Buenas Prácticas Agrícolas en la producción primaria de vegetales)"
+  - "FAO y OMS (2014), Código Internacional de Conducta para la Gestión de Plaguicidas"
