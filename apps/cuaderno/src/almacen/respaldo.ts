@@ -202,13 +202,17 @@ const HORA = new Intl.DateTimeFormat('es-CO', {
   hour12: false,
 });
 
-interface ColumnaCsv {
+/**
+ * Una columna de un tipo de registro. La comparten el CSV para Excel y la carpeta en PDF
+ * (HU-E9.2, P2): el valor es el texto limpio, y cada formato aplica su escape al escribir.
+ */
+export interface ColumnaDeRegistro {
   titulo: string;
-  /** Texto ya listo; los números van con coma decimal y sin celda() para no anteponer «'». */
-  valor: (r: Registro, c: ContextoCsv) => string;
+  /** Texto listo para leer; los números van con coma decimal. */
+  valor: (r: Registro, c: ContextoDeRegistros) => string;
 }
 
-interface ContextoCsv {
+export interface ContextoDeRegistros {
   areas: Map<string, string>;
   personas: Map<string, string>;
   ciclos: Map<string, Ciclo>;
@@ -217,25 +221,25 @@ interface ContextoCsv {
 
 const d = (r: Registro) => r.datos as Record<string, unknown>;
 const num = (campo: string) => (r: Registro) => numero(d(r)[campo] as number | null | undefined);
-const txt = (campo: string) => (r: Registro) => celda(String(d(r)[campo] ?? ''));
-const personasDe = (r: Registro, c: ContextoCsv) =>
-  celda(r.persona_ids.map((id) => c.personas.get(id) ?? id).join(', '));
+const txt = (campo: string) => (r: Registro) => String(d(r)[campo] ?? '');
+const personasDe = (r: Registro, c: ContextoDeRegistros) =>
+  r.persona_ids.map((id) => c.personas.get(id) ?? id).join(', ');
 
-const COMUNES: ColumnaCsv[] = [
+export const COLUMNAS_COMUNES: ColumnaDeRegistro[] = [
   { titulo: 'Fecha', valor: (r) => r.fecha_agronomica.split('-').reverse().join('/') },
   { titulo: 'Hora', valor: (r) => HORA.format(new Date(r.instante_evento)) },
-  { titulo: 'Área', valor: (r, c) => celda(r.area_ids.map((a) => c.areas.get(a) ?? a).join(', ')) },
+  { titulo: 'Área', valor: (r, c) => r.area_ids.map((a) => c.areas.get(a) ?? a).join(', ') },
   {
     titulo: 'Ciclo',
     valor: (r, c) => {
       const ciclo = r.ciclo_id ? c.ciclos.get(r.ciclo_id) : undefined;
-      return ciclo ? celda(`${ciclo.cultivo} ${ciclo.variedad} (${ciclo.fecha_trasplante})`) : '';
+      return ciclo ? `${ciclo.cultivo} ${ciclo.variedad} (${ciclo.fecha_trasplante})` : '';
     },
   },
   { titulo: 'Estado', valor: (r, c) => (c.anulados.has(r.id) ? 'anulado' : 'vigente') },
 ];
 
-export const COLUMNAS_CSV: Record<string, ColumnaCsv[]> = {
+export const COLUMNAS_CSV: Record<string, ColumnaDeRegistro[]> = {
   clima: [
     { titulo: 'Temperatura (°C)', valor: num('temperaturaC') },
     { titulo: 'Humedad relativa (%)', valor: num('humedadRelativaPct') },
@@ -282,14 +286,45 @@ export const COLUMNAS_CSV: Record<string, ColumnaCsv[]> = {
         const k = d(r)['carenciaConfirmada'] as { hasta: string | null; insumos: string[] } | null;
         if (!k) return '';
         const hasta = k.hasta ? `hasta ${k.hasta.split('-').reverse().join('/')}` : 'desconocida';
-        return celda(`sí, ${hasta} (${k.insumos.join(', ')})`);
+        return `sí, ${hasta} (${k.insumos.join(', ')})`;
       },
     },
     { titulo: 'Quién cosechó', valor: personasDe },
   ],
+  monitoreo: [
+    { titulo: 'Plaga o enfermedad', valor: txt('plaga') },
+    { titulo: 'Tipo', valor: (r) => (d(r)['clase'] === 'enfermedad' ? 'enfermedad' : 'plaga') },
+    {
+      titulo: 'Cómo se midió',
+      valor: (r) =>
+        ({ trampa: 'trampa', conteo: 'conteo en plantas', observacion: 'observación' })[
+          String(d(r)['metodo'])
+        ] ?? '',
+    },
+    { titulo: 'Nivel', valor: txt('nivel') },
+    { titulo: 'Cantidad', valor: num('cantidad') },
+    { titulo: 'Foto', valor: (r) => (d(r)['foto_id'] ? 'sí' : '') },
+    { titulo: 'Nota', valor: txt('nota') },
+    { titulo: 'Quién', valor: personasDe },
+  ],
 };
 
 export const TIPOS_CSV = Object.keys(COLUMNAS_CSV);
+
+/** Nombres de áreas, personas y ciclos, y qué registros fueron corregidos. */
+export async function contextoDeRegistros(
+  db: CuadernoDb,
+  registros: readonly Registro[],
+): Promise<ContextoDeRegistros> {
+  return {
+    areas: new Map((await db.area.toArray()).map((a) => [a.id, a.nombre])),
+    personas: new Map((await db.persona.toArray()).map((p) => [p.id, p.nombre])),
+    ciclos: new Map((await db.ciclo.toArray()).map((c) => [c.id, c])),
+    anulados: new Set(
+      registros.map((r) => r.anula_id).filter((x): x is string => typeof x === 'string'),
+    ),
+  };
+}
 
 /**
  * CSV de un tipo de registro, del más viejo al más nuevo, con vigentes y anulados (la columna
@@ -298,7 +333,7 @@ export const TIPOS_CSV = Object.keys(COLUMNAS_CSV);
 export async function csvDeTipo(db: CuadernoDb, fincaId: string, tipo: string): Promise<string> {
   const propias = COLUMNAS_CSV[tipo];
   if (!propias) throw new Error(`No hay CSV para el tipo «${tipo}»`);
-  const columnas = [...COMUNES, ...propias];
+  const columnas = [...COLUMNAS_COMUNES, ...propias];
   const registros = (
     await db.registro
       .where('tipo')
@@ -306,17 +341,12 @@ export async function csvDeTipo(db: CuadernoDb, fincaId: string, tipo: string): 
       .filter((r) => r.finca_id === fincaId)
       .toArray()
   ).sort((a, b) => a.instante_evento.localeCompare(b.instante_evento) || a.id.localeCompare(b.id));
-  const contexto: ContextoCsv = {
-    areas: new Map((await db.area.toArray()).map((a) => [a.id, a.nombre])),
-    personas: new Map((await db.persona.toArray()).map((p) => [p.id, p.nombre])),
-    ciclos: new Map((await db.ciclo.toArray()).map((c) => [c.id, c])),
-    anulados: new Set(
-      registros.map((r) => r.anula_id).filter((x): x is string => typeof x === 'string'),
-    ),
-  };
+  const contexto = await contextoDeRegistros(db, registros);
+  // Los números van sin celda() para no anteponer «'» a un negativo: Excel los lee como número.
+  const escapar = (v: string) => (/^-?\d+(,\d+)?$/.test(v) ? v : celda(v));
   const lineas = [
     columnas.map((c) => celda(c.titulo)).join(SEPARADOR),
-    ...registros.map((r) => columnas.map((c) => c.valor(r, contexto)).join(SEPARADOR)),
+    ...registros.map((r) => columnas.map((c) => escapar(c.valor(r, contexto))).join(SEPARADOR)),
   ];
   return `${BOM}${lineas.join('\r\n')}\r\n`;
 }

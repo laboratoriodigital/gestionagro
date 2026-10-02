@@ -20,6 +20,7 @@ import {
 } from '../almacen/respaldo.ts';
 import { corto, descargar } from '../descargar.ts';
 import { fechaHora } from '../formato.ts';
+import { CarpetaCumplimiento } from './CarpetaCumplimiento.tsx';
 import { usarFinca } from './usarFinca.tsx';
 
 const CLAVE_ULTIMO = 'ultimo_respaldo';
@@ -46,6 +47,7 @@ const NOMBRE_CSV: Record<string, string> = {
   labor: 'Labores',
   aplicacion: 'Aplicaciones',
   cosecha: 'Cosecha',
+  monitoreo: 'Monitoreo',
 };
 
 export function Respaldo() {
@@ -174,6 +176,7 @@ export function Respaldo() {
               </button>
             ))}
           </div>
+          <CarpetaCumplimiento fincaId={finca.id} nombreFinca={finca.nombre} />
         </>
       ) : (
         <p class="ayuda">

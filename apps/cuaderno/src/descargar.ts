@@ -12,8 +12,8 @@ export const corto = (s: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
-export function descargar(nombre: string, contenido: string, tipo: string) {
-  const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
+export function descargar(nombre: string, contenido: string | Uint8Array, tipo: string) {
+  const url = URL.createObjectURL(new Blob([contenido as BlobPart], { type: tipo }));
   const a = document.createElement('a');
   a.href = url;
   a.download = nombre;

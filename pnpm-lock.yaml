@@ -124,6 +124,9 @@ importers:
       dexie:
         specifier: ^4.4.6
         version: 4.4.6
+      pdf-lib:
+        specifier: ^1.17.1
+        version: 1.17.1
       preact:
         specifier: ^10.29.8
         version: 10.29.8(preact-render-to-string@6.7.0)
@@ -155,10 +158,16 @@ importers:
       workbox-core:
         specifier: ^7.4.1
         version: 7.4.1
+      workbox-expiration:
+        specifier: ^7.4.1
+        version: 7.4.1
       workbox-precaching:
         specifier: ^7.4.1
         version: 7.4.1
       workbox-routing:
+        specifier: ^7.4.1
+        version: 7.4.1
+      workbox-strategies:
         specifier: ^7.4.1
         version: 7.4.1
 

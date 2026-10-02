@@ -33,7 +33,19 @@ export default defineConfig({
       url_staging: core.url_staging,
     }),
   },
-  build: { outDir: 'dist', emptyOutDir: true, target: 'es2022' },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    target: 'es2022',
+    rollupOptions: {
+      output: {
+        // La carpeta en PDF (HU-E9.2) y pdf-lib van en un trozo con nombre fijo, que el service
+        // worker no precarga: solo lo descarga quien pide la carpeta (ED1 budget-first).
+        manualChunks: (id: string) =>
+          id.includes('pdf-lib') || id.includes('carpeta-pdf') ? 'carpeta-pdf' : undefined,
+      },
+    },
+  },
   plugins: [
     preact(),
     VitePWA({
@@ -43,7 +55,10 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: false,
       scope: '/agro/app/',
-      injectManifest: { globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'] },
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,png,svg,webmanifest}'],
+        globIgnores: ['**/carpeta-pdf-*.js'],
+      },
       manifest: {
         id: '/agro/app/',
         name: 'Cuaderno de campo · Gestión Agro',
