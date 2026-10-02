@@ -57,7 +57,7 @@ describe('CA1 · las tablas son las de ARQUITECTURA §5.4, y ninguna más', () =
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name <> 'd1_migrations' ORDER BY name",
       )
       .all<{ name: string }>();
-    expect(delDocumento).toHaveLength(7);
+    expect(delDocumento).toHaveLength(8);
     expect(results.map((r) => r.name)).toEqual(delDocumento);
   });
 });

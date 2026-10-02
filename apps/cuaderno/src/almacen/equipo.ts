@@ -23,7 +23,8 @@ export interface Telefono {
   creado: string;
 }
 
-async function pedir<T>(
+/** POST al CORE con la sesión de este teléfono. Todo con señal: no espera en la cola. */
+export async function pedirAlCore<T>(
   db: CuadernoDb,
   core: string,
   ruta: string,
@@ -48,7 +49,8 @@ async function pedir<T>(
 }
 
 export const leerEquipo = async (db: CuadernoDb, core: string, fetchFn: typeof fetch = fetch) =>
-  (await pedir<{ miembros: Miembro[] }>(db, core, '/api/core/equipo/ver', {}, fetchFn)).miembros;
+  (await pedirAlCore<{ miembros: Miembro[] }>(db, core, '/api/core/equipo/ver', {}, fetchFn))
+    .miembros;
 
 export const cambiarRol = (
   db: CuadernoDb,
@@ -56,17 +58,17 @@ export const cambiarRol = (
   usuarioId: string,
   rol: string,
   fetchFn: typeof fetch = fetch,
-) => pedir(db, core, '/api/core/equipo/rol', { usuario_id: usuarioId, rol }, fetchFn);
+) => pedirAlCore(db, core, '/api/core/equipo/rol', { usuario_id: usuarioId, rol }, fetchFn);
 
 export const quitarDelEquipo = (
   db: CuadernoDb,
   core: string,
   usuarioId: string,
   fetchFn: typeof fetch = fetch,
-) => pedir(db, core, '/api/core/equipo/quitar', { usuario_id: usuarioId }, fetchFn);
+) => pedirAlCore(db, core, '/api/core/equipo/quitar', { usuario_id: usuarioId }, fetchFn);
 
 export const leerTelefonos = async (db: CuadernoDb, core: string, fetchFn: typeof fetch = fetch) =>
-  (await pedir<{ telefonos: Telefono[] }>(db, core, '/api/core/telefonos/ver', {}, fetchFn))
+  (await pedirAlCore<{ telefonos: Telefono[] }>(db, core, '/api/core/telefonos/ver', {}, fetchFn))
     .telefonos;
 
 export const retirarTelefono = (
@@ -74,4 +76,4 @@ export const retirarTelefono = (
   core: string,
   id: string,
   fetchFn: typeof fetch = fetch,
-) => pedir(db, core, '/api/core/telefonos/retirar', { id }, fetchFn);
+) => pedirAlCore(db, core, '/api/core/telefonos/retirar', { id }, fetchFn);

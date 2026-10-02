@@ -59,7 +59,18 @@ describe('cuentas del CORE: solo conteos', () => {
               result: [
                 {
                   results: [
-                    { cuentas: 12, nuevas: 3, fincas: 4, equipo: 5, antiguas: 8, volvieron: 6 },
+                    {
+                      cuentas: 12,
+                      nuevas: 3,
+                      fincas: 4,
+                      equipo: 5,
+                      antiguas: 8,
+                      volvieron: 6,
+                      interesadas: 3,
+                      interes_finca: 2,
+                      interes_exportador: 1,
+                      interes_cadena: 0,
+                    },
                   ],
                 },
               ],
@@ -71,6 +82,7 @@ describe('cuentas del CORE: solo conteos', () => {
       '- Cuentas: 12 (nuevas esta semana: 3)',
       '- Fincas en la nube: 4 · personas invitadas a equipos: 5',
       '- Retorno a 30 días (cuentas de más de 30 días que usaron la app en los últimos 30): 6 de 8 (75 %)',
+      '- Intención de pago (tocaron «Me interesa» en la lista de espera): 3 fincas de 12 cuentas (25 %) · Finca 2, Exportador 1, Cadena 0',
     ]);
     const consulta = JSON.parse(pedidos[1]?.cuerpo ?? '{}') as { sql: string };
     expect(consulta.sql).not.toMatch(/\bnombre\b|\bemail\b/);
@@ -117,6 +129,7 @@ describe('consumo de la nube y el issue', () => {
     expect(md).toContain('Solo métricas agregadas: ningún dato de fincas ni de personas.');
     expect(md).toContain('## Prueba');
     expect(md).toContain('Search Console');
-    expect(md).toContain('HU-E0.6');
+    // La intención de pago ya se mide (HU-E0.6): no figura como pendiente.
+    expect(md).not.toContain('Intención de pago: llega');
   });
 });

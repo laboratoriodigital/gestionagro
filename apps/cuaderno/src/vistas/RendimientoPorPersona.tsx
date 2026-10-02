@@ -49,7 +49,8 @@ export function RendimientoPorPersona(props: { fincaId: string }) {
       {acceso === 'plan' ? (
         <p class="ayuda" data-prueba="rendimiento-persona-plan">
           Cuánto cosecha cada persona por hora viene con el plan Exportador. Mientras tanto, anota
-          las horas de quien cosecha: cuando tengas el plan, el cálculo sale de esos registros.
+          las horas de quien cosecha: cuando tengas el plan, el cálculo sale de esos registros.{' '}
+          <a href="/agro/app/planes/">Ver los planes</a>
         </p>
       ) : (
         <>

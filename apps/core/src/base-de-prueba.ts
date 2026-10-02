@@ -8,6 +8,7 @@ export const baseDelCore = () =>
 /** En orden de dependencias. */
 export const vaciarCore = (db: BaseD1) =>
   vaciar(db, [
+    'interes_plan',
     'invitacion',
     'membresia',
     'sesion',
