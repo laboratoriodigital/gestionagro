@@ -328,7 +328,7 @@ describe('CA3 · lo que no valida va a cuarentena con su motivo; nunca se descar
 });
 
 describe('catálogos: la última escritura gana y ninguna versión se pierde (ADR-4)', () => {
-  it('v2 reemplaza a v1, que queda en el historial; reenviar v1 se guarda como conflicto', async () => {
+  it('HU-E5.4 CA1: dos teléfonos editan sin señal: gana el último que llega y el otro queda en el historial', async () => {
     const { finca } = await fincaEnLaNube(ORG_UNO);
     const v2 = await push(ORG_UNO, [fincaOp(finca, 'Finca Ensayo Uno', 2, 'Otro municipio')]);
     expect(v2.cuerpo.acks[0]?.estado).toBe('aceptado');
@@ -336,18 +336,70 @@ describe('catálogos: la última escritura gana y ninguna versión se pierde (AD
       motivo: 'edicion',
       version: 1,
     });
-    const v1Otra = await push(ORG_UNO, [
-      fincaOp(finca, 'Finca Ensayo Uno', 1, 'Municipio de otro teléfono'),
-    ]);
-    expect(v1Otra.cuerpo.acks[0]?.estado).toBe('aceptado');
-    expect(
-      await db
-        .prepare("SELECT count(*) AS n FROM entidad_historial WHERE motivo = 'conflicto'")
-        .first(),
-    ).toEqual({ n: 1 });
+    // Otro teléfono editó la v1 sin señal y llega después: gana, con la versión siguiente.
+    const otro = await push(
+      ORG_UNO,
+      [fincaOp(finca, 'Finca Ensayo Uno', 2, 'Municipio de otro teléfono')],
+      db,
+      { dispositivo: 'telefono-2' },
+    );
+    expect(otro.cuerpo.acks[0]?.estado).toBe('aceptado');
+    const vigente = await db
+      .prepare('SELECT version, datos, reemplazo FROM catalogo WHERE id = ?')
+      .bind(finca)
+      .first<{ version: number; datos: string; reemplazo: string }>();
+    expect(vigente?.version).toBe(3);
+    expect(JSON.parse(vigente?.datos ?? '{}')).toMatchObject({
+      version: 3,
+      municipio: 'Municipio de otro teléfono',
+    });
+    // A quién se le reemplazó: el teléfono 1, que lo avisará al bajar.
+    expect(JSON.parse(vigente?.reemplazo ?? '{}')).toEqual({
+      version: 2,
+      dispositivo: 'telefono-1',
+      por_usuario: 'u1',
+    });
+    const perdida = await db
+      .prepare("SELECT version, datos FROM entidad_historial WHERE motivo = 'conflicto'")
+      .first<{ version: number; datos: string }>();
+    expect(perdida?.version).toBe(2);
+    expect(JSON.parse(perdida?.datos ?? '{}')).toMatchObject({ municipio: 'Otro municipio' });
+    // Reenviar lo que la celda ya tiene (la v1 o la v2 del historial) no pisa nada.
+    for (const [version, municipio] of [
+      [1, 'Municipio Ensayo'],
+      [2, 'Otro municipio'],
+    ] as const) {
+      const r = await push(ORG_UNO, [fincaOp(finca, 'Finca Ensayo Uno', version, municipio)]);
+      expect(r.cuerpo.acks[0]?.estado).toBe('duplicado');
+    }
     expect(
       await db.prepare('SELECT version FROM catalogo WHERE id = ?').bind(finca).first(),
-    ).toEqual({ version: 2 });
+    ).toEqual({ version: 3 });
+  });
+
+  it('HU-E5.4: dos ediciones seguidas del mismo teléfono no se avisan como conflicto', async () => {
+    const { finca } = await fincaEnLaNube(ORG_UNO);
+    await push(ORG_UNO, [fincaOp(finca, 'Finca Ensayo Uno', 2, 'Municipio a')]);
+    await push(ORG_UNO, [fincaOp(finca, 'Finca Ensayo Uno', 2, 'Municipio b')]);
+    expect(
+      await db.prepare('SELECT version, reemplazo FROM catalogo WHERE id = ?').bind(finca).first(),
+    ).toEqual({ version: 3, reemplazo: null });
+  });
+
+  it('HU-E5.4 CA3: los registros nunca generan conflicto: el mismo id es siempre el mismo registro', async () => {
+    const { finca, area } = await fincaEnLaNube(ORG_UNO);
+    const op = climaOp(finca, area, 70);
+    expect((await push(ORG_UNO, [op])).cuerpo.acks[0]?.estado).toBe('aceptado');
+    const otro = await push(ORG_UNO, [climaOp(finca, area, 40, op.id)], db, {
+      dispositivo: 'telefono-2',
+    });
+    expect(otro.cuerpo.acks[0]?.estado).toBe('duplicado');
+    expect(await contar('entidad_historial')).toBe(0);
+    const guardado = await db
+      .prepare('SELECT datos FROM registro WHERE id = ?')
+      .bind(op.id)
+      .first<{ datos: string }>();
+    expect(JSON.parse(guardado?.datos ?? '{}')).toMatchObject({ humedadRelativaPct: 70 });
   });
 
   it('si otro teléfono escribió en el mismo instante, responde «reintentar» y no pierde la versión', async () => {
@@ -369,15 +421,22 @@ describe('catálogos: la última escritura gana y ninguna versión se pierde (AD
     const v2 = fincaOp(finca, 'Finca Ensayo Uno', 2, 'Municipio v2');
     const r = await push(ORG_UNO, [v2], conCarrera);
     expect(r.cuerpo.acks[0]?.estado).toBe('reintentar');
+    // En la vuelta siguiente decide la regla de HU-E5.4: gana la que llega última, y la v3 del
+    // otro teléfono queda en el historial.
     const otra = await push(ORG_UNO, [v2]);
     expect(otra.cuerpo.acks[0]?.estado).toBe('aceptado');
-    const conflicto = await db
-      .prepare("SELECT datos FROM entidad_historial WHERE motivo = 'conflicto'")
-      .first<{ datos: string }>();
-    expect(JSON.parse(conflicto?.datos ?? '{}')).toMatchObject({
-      version: 2,
-      municipio: 'Municipio v2',
-    });
+    const vigente = await db
+      .prepare('SELECT version, datos FROM catalogo WHERE id = ?')
+      .bind(finca)
+      .first<{ version: number; datos: string }>();
+    expect(vigente?.version).toBe(4);
+    expect(JSON.parse(vigente?.datos ?? '{}')).toMatchObject({ municipio: 'Municipio v2' });
+    expect(
+      await db
+        .prepare('SELECT version FROM entidad_historial WHERE entidad_id = ? AND version = 3')
+        .bind(finca)
+        .first(),
+    ).toEqual({ version: 3 });
   });
 });
 

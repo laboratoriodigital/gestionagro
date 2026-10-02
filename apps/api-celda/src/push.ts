@@ -2,16 +2,19 @@
  * `POST /api/v1/sync/push` (HU-E5.2, ARQUITECTURA §5.6): sube un lote de ≤ 25 operaciones.
  *
  * Presupuesto de consultas (CA1, P17): D1 gratuito admite 50 por invocación. Este endpoint hace
- * 3 lecturas (registros y catálogos ya guardados, y la finca de la organización) y UNA escritura
- * por operación, todas en un solo `batch`, que es una transacción: o queda el lote o no queda nada.
- * 25 operaciones = 28 consultas.
+ * 4 lecturas (registros y catálogos ya guardados, la finca de la organización y las versiones
+ * anteriores de los catálogos del lote) y UNA escritura por operación, todas en un solo `batch`,
+ * que es una transacción: o queda el lote o no queda nada. 25 operaciones = 29 consultas.
  *
  * Por operación:
  * - **Registro:** `INSERT OR IGNORE` por id. Si ya estaba, `duplicado` (CA2).
  * - **Catálogo:** si es nuevo, se inserta; si trae una versión mayor, se actualiza y el trigger
- *   guarda la anterior en `entidad_historial`; si trae la misma versión con los mismos datos,
- *   `duplicado`; si trae una versión menor o la misma con otros datos (dos teléfonos sin señal),
- *   se guarda en `entidad_historial` como conflicto. Nada se pierde (HU-E5.4 decidirá qué mostrar).
+ *   guarda la anterior en `entidad_historial`. Si trae datos que la celda ya tiene (la versión
+ *   vigente o la misma versión en el historial), `duplicado`: un reenvío no pisa lo que vino
+ *   después. Si trae una versión menor o la misma con otros datos, dos teléfonos editaron sin
+ *   señal (HU-E5.4): **gana la última que llega**. Se guarda con la versión siguiente, la anterior
+ *   pasa al historial como «conflicto» y `reemplazo` dice a qué teléfono se le reemplazó, para
+ *   que lo avise al bajar. Nada se pierde.
  * - **Lo que no sirve** va a `cuarentena` con el motivo en palabras, nunca se descarta (CA3, P1).
  *
  * Permisos (HU-E4.5): el rol sale del token y la matriz de `@gestionagro/sync` decide. Un rol que
@@ -51,9 +54,11 @@ type Plan =
     };
 
 const marcadores = (n: number) => Array.from({ length: n }, () => '?').join(', ');
+/** Los datos de un catálogo sin su número de versión: para saber si ya se tenían. */
+const sinVersion = (datos: string) => JSON.stringify({ ...JSON.parse(datos), version: 0 });
 
 export async function push(c: ContextoCelda, ahora: () => number): Promise<Response> {
-  const { org, rol, db } = c.get('sesion');
+  const { org, rol, usuario, db } = c.get('sesion');
   if (entidadesQuePuede(rol, 'escribir').length === 0) {
     return c.json(
       {
@@ -96,7 +101,10 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
   const idsCatalogo = validas.filter((o) => o.entidad !== 'registro').map((o) => o.entidad_id);
 
   // Las 3 lecturas.
-  const [registros, catalogos, fincaDeLaOrg] = await Promise.all([
+  const anteriores = validas
+    .filter((o) => o.entidad !== 'registro')
+    .map((o) => `${o.entidad_id}@v${o.version}`);
+  const [registros, catalogos, fincaDeLaOrg, historial] = await Promise.all([
     idsRegistro.length > 0
       ? db
           .prepare(
@@ -117,7 +125,16 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
       .prepare("SELECT id FROM catalogo WHERE org_id = ? AND entidad = 'finca' LIMIT 1")
       .bind(org)
       .first<{ id: string }>(),
+    anteriores.length > 0
+      ? db
+          .prepare(
+            `SELECT id, datos FROM entidad_historial WHERE org_id = ? AND id IN (${marcadores(anteriores.length)})`,
+          )
+          .bind(org, ...anteriores)
+          .all<{ id: string; datos: string }>()
+      : { results: [] },
   ]);
+  const yaVisto = new Map(historial.results.map((h) => [h.id, sinVersion(h.datos)]));
   const registroGuardado = new Map(registros.results.map((r) => [r.id, r]));
   const catalogoGuardado = new Map(catalogos.results.map((r) => [r.id, r]));
   // La finca del lote cuenta para las operaciones que vienen después en el mismo lote.
@@ -216,31 +233,49 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
           `INSERT INTO catalogo (id, org_id, seq, entidad, version, v, datos, actualizado, dispositivo_id)
            VALUES (?, ?, (SELECT coalesce(max(seq), 0) + 1 FROM catalogo WHERE org_id = ?), ?, ?, 1, ?, ?, ?)
            ON CONFLICT (id) DO UPDATE SET version = excluded.version, datos = excluded.datos,
-             actualizado = excluded.actualizado, dispositivo_id = excluded.dispositivo_id, seq = excluded.seq
+             actualizado = excluded.actualizado, dispositivo_id = excluded.dispositivo_id, seq = excluded.seq,
+             reemplazo = NULL
            WHERE excluded.version > catalogo.version AND catalogo.org_id = excluded.org_id`,
         )
         .bind(cat.id, org, org, op.entidad, cat.version, texto, cat.actualizado, dispositivo);
       return { tipo: 'escritura', id: op.id, sentencia, siCero: 'reintentar' };
     }
-    if (cat.version === guardado.version && JSON.stringify(JSON.parse(guardado.datos)) === texto) {
+    // Lo que la celda ya tiene (la vigente, o esa misma versión en el historial) es un reenvío.
+    const propio = sinVersion(texto);
+    if (
+      sinVersion(guardado.datos) === propio ||
+      yaVisto.get(`${op.entidad_id}@v${cat.version}`) === propio
+    ) {
       return { tipo: 'duplicado', id: op.id };
     }
-    // Versión menor, o la misma con otros datos: dos teléfonos editaron sin señal. Se guarda.
+    // Versión menor, o la misma con otros datos: dos teléfonos editaron sin señal (HU-E5.4, CA1).
+    // Gana esta, que llegó después: va con la versión siguiente y el trigger guarda la anterior en
+    // el historial como «conflicto». Si la anterior también era de este teléfono (dos ediciones
+    // suyas seguidas), no hay a quién avisar.
     const sentencia = db
       .prepare(
-        `INSERT OR IGNORE INTO entidad_historial (id, org_id, entidad, entidad_id, version, datos, reemplazada, motivo)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'conflicto')`,
+        `UPDATE catalogo SET
+           version = version + 1,
+           datos = json_set(?, '$.version', version + 1),
+           actualizado = ?,
+           dispositivo_id = ?,
+           seq = (SELECT coalesce(max(seq), 0) + 1 FROM catalogo WHERE org_id = ?),
+           reemplazo = CASE WHEN dispositivo_id = ? THEN NULL
+             ELSE json_object('version', version, 'dispositivo', dispositivo_id, 'por_usuario', ?) END
+         WHERE id = ? AND org_id = ? AND entidad = ?`,
       )
       .bind(
-        `${op.id}#${dispositivo}`,
+        texto,
+        cat.actualizado,
+        dispositivo,
+        org,
+        dispositivo,
+        usuario,
+        op.entidad_id,
         org,
         op.entidad,
-        op.entidad_id,
-        cat.version,
-        texto,
-        instante,
       );
-    return { tipo: 'escritura', id: op.id, sentencia, siCero: 'aceptado' };
+    return { tipo: 'escritura', id: op.id, sentencia, siCero: 'reintentar' };
   };
 
   const planes: Plan[] = validadas.map(({ entrada, r }, i) =>

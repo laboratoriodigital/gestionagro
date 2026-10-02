@@ -7,6 +7,7 @@ import { useEffect } from 'preact/hooks';
 import { LocationProvider, Route, Router, useLocation } from 'preact-iso';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { AvisoDePausa } from './AvisoDePausa.tsx';
+import { AvisoDeReemplazo } from './AvisoDeReemplazo.tsx';
 import { IndicadorDatos } from './IndicadorDatos.tsx';
 import { RUTAS_APP, rutaDe } from './rutas.ts';
 import { iniciarSincronizacion } from './sincronizacion.ts';
@@ -71,6 +72,7 @@ export function App() {
       </header>
       <AvisoActualizacion />
       <AvisoDePausa />
+      <AvisoDeReemplazo />
       <main id="contenido">
         <Router>
           {RUTAS_APP.flatMap((r) => {

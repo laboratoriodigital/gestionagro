@@ -786,3 +786,61 @@ test.describe('HU-E4.6 · revocar un teléfono o una persona', () => {
     ]);
   });
 });
+
+test('HU-E5.4 CA2: si otra persona reemplazó mi cambio, lo dice y puedo volver a ponerlo', async ({
+  page,
+}) => {
+  await fincaConUnClima(page);
+  await coreFalso(page);
+  const subidas: {
+    dispositivo: string;
+    ops: { entidad: string; datos: Record<string, unknown> }[];
+  }[] = [];
+  await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
+  page.on('request', (r) => {
+    if (r.url().endsWith('/api/v1/sync/push') && r.method() === 'POST')
+      subidas.push(r.postDataJSON());
+  });
+  await cuenta(page);
+  await entrar(page);
+  await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
+  await expect(page.locator('[data-prueba="nube-pendientes"]')).toHaveText(
+    'Nada pendiente por subir.',
+  );
+  const area = subidas.flatMap((s) => s.ops).find((o) => o.entidad === 'area')?.datos;
+  const dispositivo = subidas[0]?.dispositivo;
+  if (!area || !dispositivo) throw new Error('no subió el área');
+  const version = area['version'] as number;
+  // La nube: otra persona editó la misma área sin señal y ganó.
+  let entregado = false;
+  await page.route(`${API_STAGING}/api/v1/sync/pull?*`, async (ruta) => {
+    const catalogos = entregado
+      ? []
+      : [
+          {
+            entidad: 'area',
+            datos: { ...area, version: version + 1, nombre: 'Nombre de otro teléfono' },
+            reemplazo: { version, dispositivo, por_usuario: null },
+          },
+        ];
+    entregado = true;
+    await ruta.fulfill({
+      json: { catalogos, registros: [], cursor: { registro: 0, catalogo: 99 }, mas: false },
+      headers: { 'access-control-allow-origin': '*' },
+    });
+  });
+  await page.getByRole('button', { name: 'Sincronizar ahora' }).click();
+  const aviso = page.locator('[data-prueba="aviso-reemplazo"]');
+  await expect(aviso).toContainText(
+    `Tu cambio en el área «${String(area['nombre'])}» fue reemplazado por el de otra persona del equipo, que editó lo mismo sin señal.`,
+  );
+  const antes = subidas.length;
+  await aviso.getByRole('button', { name: 'Volver a poner mi cambio' }).click();
+  await expect(aviso).toHaveCount(0);
+  await expect.poll(() => subidas.length).toBeGreaterThan(antes);
+  const reaplicada = subidas
+    .slice(antes)
+    .flatMap((s) => s.ops)
+    .find((o) => o.entidad === 'area')?.datos;
+  expect(reaplicada).toMatchObject({ nombre: area['nombre'], version: version + 2 });
+});

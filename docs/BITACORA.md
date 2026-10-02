@@ -735,3 +735,24 @@ La regla: **un estado como «vinculada» se comprueba con lo que la nube va a re
 La regla: **«volver a la app» no se ve igual en un teléfono que en un computador. Un disparador se prueba en cada tipo de equipo donde se va a usar.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P16, P20 · 0.1.0 · 2026-10-01
+
+**27 · El teléfono que perdía un conflicto se quedaba con su versión para siempre.**
+
+*Qué pasó.* El 1 oct 2026, diseñando HU-E5.4, encontré que dos teléfonos que editan la misma área sin señal terminaban con datos distintos. Nadie lo había reportado: solo se nota al comparar los dos teléfonos.
+
+*Causa raíz.*
+- A y B editan la v1, y los dos suben su «v2».
+- La celda aceptaba la primera que llegaba y guardaba la segunda en el historial como conflicto. Al teléfono que llegó segundo le respondía «aceptado» y su cola quedaba vacía.
+- Al bajar, ese teléfono recibía la v2 del otro, con el mismo número que la suya. El teléfono ignora una versión igual a la que tiene (`local.version === datos.version`), así que conservaba la suya.
+- Resultado: dos teléfonos de la misma finca con dos «v2» distintas, sin aviso.
+- Las pruebas de HU-E5.2 y E5.3 miraban que la celda no perdiera ninguna versión, pero no que los dos teléfonos terminaran iguales.
+
+*Arreglo (HU-E5.4).*
+- La celda guarda la versión que gana con un número nuevo (la vigente + 1), así que todo teléfono la baja.
+- La que pierde queda en el historial, y `reemplazo` dice de qué teléfono era.
+- Ese teléfono lo avisa y ofrece volver a poner su cambio.
+- La prueba de dos teléfonos ahora exige que, después de sincronizar, los dos tengan el mismo nombre y la misma versión.
+
+La regla: **en una prueba de sincronización, la invariante no es «la nube no pierde nada», es «todos los teléfonos terminan iguales, y lo que no quedó está guardado y se dice».**
+
+*Ficha:* agro · *(mío)* · 🟠 Grave · P1, P15, P16 · 0.1.0 · 2026-10-01
