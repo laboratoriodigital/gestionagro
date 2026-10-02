@@ -1,0 +1,44 @@
+{
+  "nota": "Casos de mano de obra (HU-E7.2). Un jornal son 8 horas. Sin un valor que rija, el costo es nulo: nunca 0 (P1).",
+  "vigencia": [
+    {
+      "nombre": "rige el más reciente que ya empezó",
+      "valores": [
+        { "desde": "2026-01-01", "valor": 60000 },
+        { "desde": "2026-07-01", "valor": 65000 }
+      ],
+      "fecha": "2026-08-15",
+      "esperado": 65000
+    },
+    {
+      "nombre": "un cambio no toca lo pasado",
+      "valores": [
+        { "desde": "2026-01-01", "valor": 60000 },
+        { "desde": "2026-07-01", "valor": 65000 }
+      ],
+      "fecha": "2026-06-30",
+      "esperado": 60000
+    },
+    {
+      "nombre": "antes del primer valor no hay costo",
+      "valores": [{ "desde": "2026-07-01", "valor": 65000 }],
+      "fecha": "2026-06-30",
+      "esperado": null
+    },
+    {
+      "nombre": "dos valores del mismo día: gana el anotado después",
+      "valores": [
+        { "desde": "2026-07-01", "valor": 65000, "actualizado": "2026-07-01T10:00:00.000Z" },
+        { "desde": "2026-07-01", "valor": 66000, "actualizado": "2026-07-01T12:00:00.000Z" }
+      ],
+      "fecha": "2026-07-01",
+      "esperado": 66000
+    }
+  ],
+  "costo": [
+    { "horas": 8, "valor": 64000, "esperado": 64000 },
+    { "horas": 4, "valor": 64000, "esperado": 32000 },
+    { "horas": 1.5, "valor": 60000, "esperado": 11250 },
+    { "horas": 4, "valor": null, "esperado": null }
+  ]
+}

@@ -7,6 +7,12 @@ export {
   TEMPERATURA_MAX_C,
   TEMPERATURA_MIN_C,
 } from './dpv.ts';
+export {
+  costoDeHoras,
+  HORAS_POR_JORNAL,
+  type ValorConVigencia,
+  valorVigente,
+} from './mano-de-obra.ts';
 export { ErrorDeMedida, exigirRango } from './medida.ts';
 export { formatearKPa, type Lectura, leerNumero } from './numeros.ts';
 export {

@@ -119,3 +119,51 @@ test('CA1, CA2 y CA3: compra, aplicación con cantidad, bodega y costo por nave,
     'Se aplicó más de lo que entró: falta registrar alguna compra o un ajuste.',
   );
 });
+
+test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su nave, este mes', async ({
+  page,
+}) => {
+  const f = FINCA_ENSAYO_UNO;
+  const area = f.areas[0];
+  const p = f.personas[0];
+  if (!area || !p) throw new Error('faltan datos de la finca de prueba');
+  await configurar(page, f);
+  await conPlanFinca(page);
+  await nav(page).getByRole('link', { name: 'Personas' }).click();
+  await page.getByRole('button', { name: 'Agregar persona' }).click();
+  await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
+  await page.getByRole('radio', { name: ROL[p.rol], exact: true }).check();
+  await page.getByRole('button', { name: 'Guardar persona' }).click();
+
+  // El valor general del jornal, desde el primero del año.
+  await nav(page).getByRole('link', { name: 'Costos' }).click();
+  const jornal = page.locator('[data-prueba="formulario-jornal"]');
+  await jornal.getByLabel('Valor del jornal en pesos').fill('64.000');
+  await jornal.getByLabel('Rige desde').fill('2026-01-01');
+  await jornal.getByRole('button', { name: 'Guardar valor' }).click();
+  await expect(jornal.getByRole('status')).toContainText('no cambia lo anterior');
+  await expect(page.locator('[data-prueba="valores-jornal"]')).toContainText(
+    'General de la finca: $ 64.000',
+  );
+  await expect(page.locator('[data-prueba="valores-jornal"]')).toContainText(
+    `${p.nombre}: el general`,
+  );
+
+  // Una labor de 4 horas.
+  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await page.getByRole('button', { name: 'Labores', exact: true }).click();
+  const form = page.locator('[data-prueba="formulario-labor"]');
+  await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
+  await form.getByLabel('Tutorado').check();
+  await form.getByLabel(p.nombre, { exact: true }).check();
+  await page.getByLabel('Horas por persona').fill('4');
+  await page.getByRole('button', { name: 'Guardar labor' }).click();
+
+  await nav(page).getByRole('link', { name: 'Costos' }).click();
+  const tabla = page.locator('[data-prueba="mano-por-area"]');
+  await expect(tabla).toContainText(area.nombre);
+  await expect(tabla).toContainText('$ 32.000');
+  await expect(page.locator('[data-prueba="mano-de-obra"]')).toContainText(
+    'la app no liquida nómina, recargos, horas extra ni prestaciones',
+  );
+});

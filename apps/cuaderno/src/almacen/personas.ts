@@ -137,3 +137,39 @@ export async function jornalVigente(
         b.actualizado.localeCompare(a.actualizado),
     )[0];
 }
+
+/**
+ * El valor general del jornal de la finca, para quien no tiene uno propio (HU-E7.2, CA1): un
+ * `valor_jornal` sin persona, con la fecha desde la que rige.
+ */
+export async function definirJornalGeneral(
+  db: CuadernoDb,
+  fincaId: string,
+  valorCop: number,
+  vigenteDesde: string,
+  { ahora = () => new Date() }: Opciones = {},
+): Promise<ValorJornal> {
+  const instante = ahora().toISOString();
+  return conEscritura(() =>
+    db.transaction('rw', db.finca, db.valor_jornal, db.outbox, async () => {
+      const finca = await db.finca.get(fincaId);
+      if (!finca)
+        throw new ErrorDeValidacion('Jornal', [
+          { campo: 'finca_id', motivo: 'la finca no existe' },
+        ]);
+      const valor = validarCatalogo('Jornal', esquemaValorJornal, {
+        id: uuidv7(),
+        org_id: finca.org_id,
+        version: 1,
+        actualizado: instante,
+        finca_id: fincaId,
+        persona_id: null,
+        valor_cop: valorCop,
+        vigente_desde: vigenteDesde,
+      });
+      await db.valor_jornal.add(valor);
+      await db.outbox.add(operacion('valor_jornal', valor.id, 1, 'crear', instante));
+      return valor;
+    }),
+  );
+}
