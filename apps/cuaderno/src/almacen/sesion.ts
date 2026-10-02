@@ -146,12 +146,21 @@ export async function canjear(
 export async function renovarSiHaceFalta(
   db: CuadernoDb,
   core: string,
-  opciones: { fetchFn?: typeof fetch; ahora?: () => number; enLinea?: () => boolean } = {},
+  opciones: {
+    fetchFn?: typeof fetch;
+    ahora?: () => number;
+    enLinea?: () => boolean;
+    /** La finca de este teléfono: la sesión se pide para ella (bitácora agro 25). */
+    org?: string | null;
+    /** Renovar aunque el access siga vigente: la sesión es de otra finca. */
+    forzar?: boolean;
+  } = {},
 ): Promise<{ sesion: Sesion | null; aviso: string | null }> {
   const { fetchFn = fetch, ahora = () => Date.now(), enLinea = () => navigator.onLine } = opciones;
   const sesion = await leerSesion(db);
   const estado = estadoDeSesion(sesion, ahora());
-  if (!sesion || estado === 'activa' || estado === 'sin-cuenta') return { sesion, aviso: null };
+  if (!sesion || estado === 'sin-cuenta') return { sesion, aviso: null };
+  if (estado === 'activa' && !opciones.forzar) return { sesion, aviso: null };
   if (estado === 'vencida') {
     await salirDeLaCuenta(db);
     return { sesion: null, aviso: 'La sesión venció. Vuelve a entrar con Google.' };
@@ -164,7 +173,7 @@ export async function renovarSiHaceFalta(
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         refresh: sesion.refresh,
-        ...(sesion.org_id ? { org_id: sesion.org_id } : {}),
+        ...((opciones.org ?? sesion.org_id) ? { org_id: opciones.org ?? sesion.org_id } : {}),
       }),
     });
   } catch {

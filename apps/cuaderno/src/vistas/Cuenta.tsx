@@ -14,11 +14,11 @@ import {
   estadoDeSesion,
   leerRegreso,
   MENSAJES_DE_ERROR,
-  renovarSiHaceFalta,
   type Sesion,
   salirDeLaCuenta,
   urlDelCore,
 } from '../almacen/sesion.ts';
+import { sesionDeLaFinca } from '../almacen/vinculo.ts';
 import { AceptarPolitica, urlDeEntrada } from '../componentes/AceptarPolitica.tsx';
 import { FincaEnLaNube } from './FincaEnLaNube.tsx';
 
@@ -61,7 +61,7 @@ export function Cuenta() {
       } else if (regreso && 'error' in regreso) {
         setMensaje(MENSAJES_DE_ERROR[regreso.error] ?? 'No se pudo entrar. Intenta de nuevo.');
       }
-      const r = await renovarSiHaceFalta(db, core);
+      const r = await sesionDeLaFinca(db, core);
       setSesion(r.sesion);
       if (r.aviso) setMensaje(r.aviso);
     };
