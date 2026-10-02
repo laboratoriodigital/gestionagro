@@ -1,0 +1,37 @@
+# HU-E8.3: reporte semanal de validación, los lunes a las 07:00 hora de Colombia (12:00 UTC),
+# como issue del repositorio. Solo métricas agregadas: nunca datos de fincas ([H6]).
+name: reporte-semanal
+
+on:
+  schedule:
+    - cron: "0 12 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: reporte-semanal-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  reporte:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+      - name: Armar y publicar el reporte
+        env:
+          CF_METRICAS_TOKEN: ${{ secrets.CF_METRICAS_TOKEN }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/reporte-semanal.ts
