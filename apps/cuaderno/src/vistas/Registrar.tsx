@@ -13,7 +13,7 @@ import { leerPersonas } from '../almacen/personas.ts';
 import { resumenDe } from '../componentes/resumen.ts';
 import { fechaHora } from '../formato.ts';
 import { guardarLecturaPendiente } from '../lectura-pendiente.ts';
-import { FormularioAplicacion } from './FormularioAplicacion.tsx';
+import { aplicacionDelFragmento, FormularioAplicacion } from './FormularioAplicacion.tsx';
 import { FormularioClima, valoresDelFragmento } from './FormularioClima.tsx';
 import { FormularioCosecha } from './FormularioCosecha.tsx';
 import { FormularioLabor } from './FormularioLabor.tsx';
@@ -66,6 +66,16 @@ export function Registrar() {
   // Un enlace con valores de clima (#t=…) abre directo en Clima (HU-E3.8, CA3).
   const [tipo, setTipo] = useState<TipoRegistro>('clima');
   const fincaId = !estado.cargando && estado.finca ? estado.finca.id : null;
+  // La calculadora de carencias (#aplicacion=…) abre Aplicaciones con su fecha y hora (HU-E10.2).
+  const [cuandoInicial, setCuandoInicial] = useState<{ fecha: string; hora: string }>();
+  useEffect(() => {
+    if (!fincaId) return;
+    const cuando = aplicacionDelFragmento(window.location.hash);
+    if (!cuando) return;
+    setTipo('aplicacion');
+    setCuandoInicial(cuando);
+    history.replaceState(null, '', window.location.pathname);
+  }, [fincaId]);
 
   const cargar = () => {
     if (!fincaId) return;
@@ -130,7 +140,12 @@ export function Registrar() {
             <FormularioClima fincaId={fincaId} areas={areas} ciclos={ciclos} alGuardar={cargar} />
           )}
           {areas.length > 0 && tipo === 'aplicacion' && estado.finca && (
-            <FormularioAplicacion finca={estado.finca} areas={areas} alGuardar={cargar} />
+            <FormularioAplicacion
+              finca={estado.finca}
+              areas={areas}
+              alGuardar={cargar}
+              cuandoInicial={cuandoInicial}
+            />
           )}
           {areas.length > 0 && tipo === 'cosecha' && (
             <FormularioCosecha fincaId={fincaId} areas={areas} alGuardar={cargar} />

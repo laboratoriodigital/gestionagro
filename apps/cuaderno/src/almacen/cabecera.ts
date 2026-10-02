@@ -15,6 +15,11 @@ export interface OpcionesDeRegistro {
   ahora?: () => Date;
   /** Registro vigente que este reemplaza. */
   corrige?: Registro | undefined;
+  /**
+   * Cuándo pasó, si no fue ahora (HU-E10.2): la aplicación de la mañana anotada en la noche. De
+   * aquí salen la fecha agronómica y la carencia; el id sigue siendo el momento de anotarlo.
+   */
+  cuando?: Date | undefined;
 }
 
 type Cabecera = Omit<Registro, 'datos'>;
@@ -30,6 +35,7 @@ export async function cabeceraDeRegistro(
     origen: Registro['origen'];
     ahora: () => Date;
     corrige?: Registro | undefined;
+    cuando?: Date | undefined;
   },
 ): Promise<Cabecera> {
   const momento = p.ahora();
@@ -60,8 +66,8 @@ export async function cabeceraDeRegistro(
     ...comunes,
     area_ids: [p.areaId],
     ciclo_id: ciclo?.id ?? null,
-    fecha_agronomica: fechaAgronomica(momento.getTime()),
-    instante_evento: momento.toISOString(),
+    fecha_agronomica: fechaAgronomica((p.cuando ?? momento).getTime()),
+    instante_evento: (p.cuando ?? momento).toISOString(),
     anula_id: null,
   };
 }

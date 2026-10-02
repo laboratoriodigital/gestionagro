@@ -7,6 +7,8 @@
  * - Al elegir el insumo se ven su carencia y su reentrada; desconocidas, en rojo (CA4).
  * - En una finca ecológica aparece el mismo aviso de Insumos; no bloquea (CA5, HU-E3.6).
  * - Al guardar se ve, por área, hasta cuándo no se cosecha y desde cuándo se puede entrar (CA1).
+ * - «Cuándo se aplicó» (HU-E10.2): vacío es ahora. Una aplicación de la mañana anotada en la noche
+ *   o al otro día cuenta su carencia desde que se aplicó. Llega lleno desde la calculadora.
  */
 import { leerNumero } from '@gestionagro/agro-calc';
 import {
@@ -15,6 +17,7 @@ import {
   ErrorDeValidacion,
   type Finca,
   type Insumo,
+  instanteEnColombia,
   type Persona,
   type Registro,
 } from '@gestionagro/agro-schema';
@@ -34,6 +37,18 @@ import { Campo, CampoSeleccion } from '../componentes/Campo.tsx';
 import { AccionesDeFormulario, aTexto, EventoQueSeCorrige } from '../componentes/Correccion.tsx';
 import { Vencimientos } from '../componentes/Vencimientos.tsx';
 
+/**
+ * La fecha y la hora que trae la calculadora de carencias en el fragmento (HU-E10.2):
+ * `#aplicacion=1&fecha=AAAA-MM-DD&hora=HH:MM`. Solo si son una fecha y una hora reales (P1).
+ */
+export function aplicacionDelFragmento(hash: string): { fecha: string; hora: string } | null {
+  const p = new URLSearchParams(hash.replace(/^#/, ''));
+  if (!p.has('aplicacion')) return null;
+  const fecha = p.get('fecha') ?? '';
+  const hora = p.get('hora') ?? '';
+  return instanteEnColombia(fecha, hora) === null ? null : { fecha, hora };
+}
+
 export const TEXTO_DOSIS =
   'Escribe la dosis tal como dice la etiqueta del producto registrado ante el ICA. Esta app no sugiere dosis.';
 
@@ -47,9 +62,12 @@ interface Valores {
   equipo: string;
   /** Cantidad de producto gastada, en la unidad del insumo (HU-E7.1). */
   cantidad: string;
+  /** Cuándo se aplicó, en hora de Colombia; vacío = ahora (HU-E10.2). */
+  fecha: string;
+  hora: string;
 }
 
-type Errores = Partial<Record<keyof Valores | 'general', string>>;
+type Errores = Partial<Record<keyof Valores | 'cuando' | 'general', string>>;
 
 const CAMPO_DE_ERROR: Record<string, keyof Valores> = {
   area_ids: 'areas',
@@ -77,6 +95,8 @@ export function FormularioAplicacion(props: {
   /** Aplicación vigente que se corrige (HU-E3.12). */
   corrige?: Registro | undefined;
   alCancelar?: () => void;
+  /** Fecha y hora que trae la calculadora de carencias (HU-E10.2). */
+  cuandoInicial?: { fecha: string; hora: string } | undefined;
 }) {
   const antes = props.corrige?.datos as DatosAplicacionGuardada | undefined;
   const vacio = (): Valores => ({
@@ -88,6 +108,8 @@ export function FormularioAplicacion(props: {
     mezcla: '',
     equipo: '',
     cantidad: '',
+    fecha: '',
+    hora: '',
   });
   const inicial = (): Valores =>
     props.corrige && antes
@@ -100,8 +122,10 @@ export function FormularioAplicacion(props: {
           mezcla: aTexto(antes.volumenMezclaL),
           equipo: antes.equipo ?? '',
           cantidad: aTexto(antes.cantidadUsada ?? null),
+          fecha: '',
+          hora: '',
         }
-      : vacio();
+      : { ...vacio(), ...props.cuandoInicial };
   const [v, setV] = useState<Valores>(inicial);
   // null = cargando: mientras tanto no se dice «no hay» (revisión del dueño, 1 oct 2026).
   const [insumos, setInsumos] = useState<Insumo[] | null>(null);
@@ -148,6 +172,13 @@ export function FormularioAplicacion(props: {
     else if (dosis.valor <= 0) err.dosis = 'La dosis debe ser mayor que 0.';
     if (!v.dosisUnidad.trim()) err.dosisUnidad = 'Escribe la unidad como dice la etiqueta.';
     if (v.personas.length === 0) err.personas = 'Elige quién aplicó.';
+    let cuando: Date | undefined;
+    if (!props.corrige && (v.fecha || v.hora)) {
+      const ms = instanteEnColombia(v.fecha, v.hora);
+      if (ms === null)
+        err.cuando = 'Escribe la fecha y la hora, o deja las dos vacías si fue ahora.';
+      else cuando = new Date(ms);
+    }
     let cantidad: number | null = null;
     if (v.cantidad.trim()) {
       const c = leerNumero(v.cantidad);
@@ -180,7 +211,7 @@ export function FormularioAplicacion(props: {
           personaIds: v.personas,
           cantidadUsada: cantidad,
         },
-        { corrige: props.corrige },
+        { corrige: props.corrige, cuando },
       );
       const estados = await estadosPorArea(db, props.finca.id);
       setGuardadas(
@@ -194,7 +225,7 @@ export function FormularioAplicacion(props: {
       if (error instanceof ErrorDeValidacion || error instanceof ErrorDeRegistro) {
         const nuevos: Errores = {};
         for (const c of error.campos) {
-          const campo = CAMPO_DE_ERROR[c.campo];
+          const campo = c.campo === 'cuando' ? 'cuando' : CAMPO_DE_ERROR[c.campo];
           if (campo) nuevos[campo] = c.motivo;
         }
         setErrores(Object.keys(nuevos).length > 0 ? nuevos : { general: error.message });
@@ -235,6 +266,39 @@ export function FormularioAplicacion(props: {
           {errores.areas && (
             <p id="aplicacion-areas-error" class="error">
               {errores.areas}
+            </p>
+          )}
+        </fieldset>
+      )}
+      {!props.corrige && (
+        <fieldset
+          class="opciones"
+          data-prueba="aplicacion-cuando"
+          aria-describedby={errores.cuando ? 'aplicacion-cuando-error' : undefined}
+        >
+          <legend>Cuándo se aplicó</legend>
+          <p class="ayuda">Déjalo vacío si la aplicaste ahora.</p>
+          <div class="campo">
+            <label for="aplicacion-fecha">Fecha</label>
+            <input
+              id="aplicacion-fecha"
+              type="date"
+              value={v.fecha}
+              onInput={(e) => setV({ ...v, fecha: (e.currentTarget as HTMLInputElement).value })}
+            />
+          </div>
+          <div class="campo">
+            <label for="aplicacion-hora">Hora</label>
+            <input
+              id="aplicacion-hora"
+              type="time"
+              value={v.hora}
+              onInput={(e) => setV({ ...v, hora: (e.currentTarget as HTMLInputElement).value })}
+            />
+          </div>
+          {errores.cuando && (
+            <p id="aplicacion-cuando-error" class="error">
+              {errores.cuando}
             </p>
           )}
         </fieldset>

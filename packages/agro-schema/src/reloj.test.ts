@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { diasEntre, fechaAgronomica, instanteDeUuidv7, sumarDias, uuidv7 } from './reloj.ts';
+import {
+  diasEntre,
+  fechaAgronomica,
+  instanteDeUuidv7,
+  instanteEnColombia,
+  sumarDias,
+  uuidv7,
+} from './reloj.ts';
 
 const ceros = (n: number) => new Uint8Array(n);
 const unos = (n: number) => new Uint8Array(n).fill(0xff);
@@ -92,5 +99,26 @@ describe('sumar días a una fecha agronómica (HU-E9.1, P8)', () => {
 
   it('una fecha ilegible lanza (P1)', () => {
     expect(() => sumarDias('02/10/2026', 1)).toThrow(RangeError);
+  });
+});
+
+describe('instante de una fecha y una hora de Colombia (HU-E10.2, P8)', () => {
+  it('7:00 del 10/12 en Colombia son las 12:00 UTC', () => {
+    expect(instanteEnColombia('2026-12-10', '07:00')).toBe(Date.parse('2026-12-10T12:00:00Z'));
+  });
+
+  it('23:30 del 31/12 sigue siendo el 31 en Colombia', () => {
+    const ms = instanteEnColombia('2026-12-31', '23:30');
+    expect(ms === null ? null : fechaAgronomica(ms)).toBe('2026-12-31');
+  });
+
+  it.each([
+    ['2027-02-29', '08:00'],
+    ['2026-13-01', '08:00'],
+    ['2026-12-10', '24:00'],
+    ['2026-12-10', '7:00'],
+    ['10/12/2026', '07:00'],
+  ])('%s %s no es una fecha y hora reales: null (P1)', (fecha, hora) => {
+    expect(instanteEnColombia(fecha, hora)).toBeNull();
   });
 });

@@ -80,3 +80,17 @@ export function sumarDias(fecha: string, n: number): string {
   if (!a || !m || !d) throw new RangeError(`Fecha agronómica inválida: «${fecha}»`);
   return new Date(Date.UTC(a, m - 1, d + n)).toISOString().slice(0, 10);
 }
+
+/** Colombia: UTC−5 todo el año (sin horario de verano desde 1993). */
+const DESFASE_COLOMBIA = '-05:00';
+
+/**
+ * El instante (ms Unix) de una fecha `AAAA-MM-DD` y una hora `HH:MM` escritas en hora de Colombia,
+ * con cualquier huso del teléfono (P8). Null si no son una fecha y una hora reales.
+ */
+export function instanteEnColombia(fecha: string, hora: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) return null;
+  const ms = Date.parse(`${fecha}T${hora}:00${DESFASE_COLOMBIA}`);
+  // Date.parse acepta el 31/02 y lo corre: se compara de vuelta para rechazarlo.
+  return Number.isNaN(ms) || fechaAgronomica(ms) !== fecha ? null : ms;
+}

@@ -2,6 +2,7 @@
  * Isla de la calculadora de carencia y reentrada (HU-E10.1). Calcula mientras se escribe, sin
  * botón. La fecha y la hora arrancan en «ahora» de Colombia al cargar en el teléfono, nunca en
  * la del momento en que se armó la página. Días y horas en campos de texto con teclado numérico.
+ * «Guardar como aplicación en mi cuaderno» lleva la fecha y la hora al cuaderno, sin red (HU-E10.2).
  */
 import { useEffect, useState } from 'preact/hooks';
 import {
@@ -9,11 +10,13 @@ import {
   type CampoCarencia,
   calcularCarencia,
   type EntradasCarencia,
+  enlaceAplicacionAlCuaderno,
   type Salida,
 } from './carencia-logica.ts';
+import { cuadernoEnUso } from './cuaderno.ts';
 
 interface ColectorDeEventos {
-  registrar: (nombre: 'tool.completed') => void;
+  registrar: (nombre: 'tool.completed' | 'tool.next_step') => void;
 }
 
 /** Lo ya escrito en el HTML estático antes de que cargara la isla (bitácora agro 21). */
@@ -81,6 +84,11 @@ export default function CalculadoraCarencia() {
     reentrada: yaEscrito('reentrada'),
   }));
   const [completado, setCompletado] = useState(false);
+  // null = todavía no se sabe; mientras tanto el botón dice lo general.
+  const [conCuaderno, setConCuaderno] = useState<boolean | null>(null);
+  useEffect(() => {
+    void cuadernoEnUso().then(setConCuaderno);
+  }, []);
 
   // CA1: por defecto, ahora en Colombia. Se pone al montar, si la persona no escribió otra cosa.
   useEffect(() => {
@@ -95,6 +103,7 @@ export default function CalculadoraCarencia() {
   const r = calcularCarencia(e);
   const cambiar = (campo: CampoCarencia) => (valor: string) => setE({ ...e, [campo]: valor });
   const escribioAlgo = e.carencia.trim() !== '' || e.reentrada.trim() !== '';
+  const alCuaderno = escribioAlgo ? enlaceAplicacionAlCuaderno(e) : null;
 
   useEffect(() => {
     const hayFecha = r.cosechar.tipo === 'fecha' || r.entrar.tipo === 'fecha';
@@ -167,6 +176,30 @@ export default function CalculadoraCarencia() {
           </span>
         )}
       </output>
+      {alCuaderno && (
+        <div class="al-cuaderno">
+          {conCuaderno === false && (
+            <p class="ayuda" data-prueba="que-es-el-cuaderno">
+              El cuaderno de campo guarda tus aplicaciones en este teléfono y te dice cada día qué
+              nave puedes cosechar: gratis, sin cuenta y sin señal.
+            </p>
+          )}
+          <a
+            class="boton-cuaderno"
+            href={alCuaderno}
+            data-prueba="aplicacion-al-cuaderno"
+            onClick={() =>
+              (window as { agroEventos?: ColectorDeEventos }).agroEventos?.registrar(
+                'tool.next_step',
+              )
+            }
+          >
+            {conCuaderno === false
+              ? 'Abrir el cuaderno con esta aplicación'
+              : 'Guardar como aplicación en mi cuaderno'}
+          </a>
+        </div>
+      )}
     </form>
   );
 }

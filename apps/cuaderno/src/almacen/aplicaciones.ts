@@ -82,16 +82,36 @@ export function repartirPorArea(total: number, m2: readonly number[]): number[] 
   return [...partes.slice(0, -1), resto];
 }
 
+/** Hasta cuántos días atrás se anota una aplicación (HU-E10.2). */
+export const MAXIMO_ATRAS_DIAS = 90;
+const MAXIMO_ATRAS_MS = MAXIMO_ATRAS_DIAS * 86_400_000;
+/** Un reloj de teléfono un poco adelantado no debe impedir anotar. */
+const TOLERANCIA_FUTURO_MS = 5 * 60_000;
+
 export async function guardarAplicacion(
   db: CuadernoDb,
   fincaId: string,
   areaIds: readonly string[],
   datos: DatosAplicacion,
-  { ahora = () => new Date(), corrige }: OpcionesDeRegistro = {},
+  { ahora = () => new Date(), corrige, cuando }: OpcionesDeRegistro = {},
 ): Promise<Registro[]> {
   // Una corrección reemplaza un registro de una sola área: la del corregido.
   const areas = corrige ? corrige.area_ids.slice(0, 1) : areaIds;
   const faltan = [];
+  // Una aplicación anotada después (HU-E10.2): nunca en el futuro, y no de hace meses por un error
+  // al escribir el año (P1). Una corrección conserva el momento del evento corregido.
+  if (cuando && !corrige) {
+    const ms = cuando.getTime();
+    if (Number.isNaN(ms)) faltan.push({ campo: 'cuando', motivo: 'no es una fecha y hora reales' });
+    else if (ms > ahora().getTime() + TOLERANCIA_FUTURO_MS) {
+      faltan.push({ campo: 'cuando', motivo: 'no puede ser en el futuro' });
+    } else if (ahora().getTime() - ms > MAXIMO_ATRAS_MS) {
+      faltan.push({
+        campo: 'cuando',
+        motivo: `es de hace más de ${MAXIMO_ATRAS_DIAS} días: revisa la fecha`,
+      });
+    }
+  }
   if (areas.length === 0) faltan.push({ campo: 'area_ids', motivo: 'elige al menos un área' });
   if (datos.personaIds.length === 0) {
     faltan.push({ campo: 'persona_ids', motivo: 'elige quién aplicó' });
@@ -127,6 +147,7 @@ export async function guardarAplicacion(
       origen: 'tablero',
       ahora,
       corrige,
+      cuando: corrige ? undefined : cuando,
     });
     registros.push({
       ...cabecera,

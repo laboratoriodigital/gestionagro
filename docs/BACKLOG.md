@@ -1110,7 +1110,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E10.2 · Página útil y puente al cuaderno
 **Como** productor **quiero** entender qué son la carencia y la reentrada con un ejemplo de invernadero **para** confiar en la fecha y no cosechar antes de tiempo.
-- **Puntos:** 2 · **Sprint:** S15 · **Depende de:** HU-E10.1 · **Estado:** Refinada
+- **Puntos:** 2 · **Sprint:** S15 · **Depende de:** HU-E10.1 · **Estado:** En sprint (rama `feat/e10.2-carencia-al-cuaderno`. CA1 y CA3 quedaron hechos en HU-E10.1: las preguntas frecuentes de la página y los enlaces entre la DPV y esta herramienta. CA2: «Guardar como aplicación en mi cuaderno» abre Registrar → Aplicaciones con `#aplicacion=1&fecha=…&hora=…`, sin red, y emite `tool.next_step`. La carencia y la reentrada no viajan: el cuaderno las toma del insumo. Para que la fecha sirva, el formulario de aplicación gana «Cuándo se aplicó» (vacío = ahora). La cabecera separa cuándo pasó (`instante_evento` y fecha agronómica, de donde sale la carencia) de cuándo se anotó (el id UUIDv7), como ya hacían las correcciones. No se acepta en el futuro ni de hace más de 90 días (P1). `instanteEnColombia` de agro-schema es la única conversión de fecha y hora de Colombia, para la calculadora y el cuaderno (P2). Lo compartido entre calculadoras y cuaderno pasa a `islas/cuaderno.ts`. Control negativo: sin «cuando», la misma aplicación daría un día más de carencia)
 - **Criterios de aceptación:**
   1. Pasa el quality gate, con preguntas frecuentes del tipo «¿la carencia cuenta desde el día de la aplicación?» y «¿qué pasa si la etiqueta no dice reentrada?».
   2. Tiene «Guardar como aplicación en mi cuaderno», que prellena HU-E3.10 con la fecha, sin red, y emite `tool.next_step`.
