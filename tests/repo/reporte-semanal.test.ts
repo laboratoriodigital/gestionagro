@@ -35,7 +35,7 @@ describe('herramientas: eventos agregados por producto, esta semana y la anterio
     }));
     const s = await eventosDeHerramientas(fn, 't', 'c', 'agro_eventos');
     expect(s.lineas).toEqual([
-      '- agro-calculadora-dpv: tool.opened 120 (antes 80) · tool.completed 45 (antes 30) · tool.shared 5 (antes 2) · tool.next_step 3 (antes 1)',
+      '- agro-calculadora-dpv: tool.opened 120 (antes 80) · tool.completed 45 (antes 30) · tool.shared 5 (antes 2) · tool.next_step 3 (antes 1) · completado 38 % (antes 38 %)',
     ]);
     expect(pedidos[0]?.cuerpo).toContain('SUM(_sample_interval * double1)');
   });

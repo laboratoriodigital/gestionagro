@@ -76,7 +76,14 @@ export async function eventosDeHerramientas(
           const prev = Number(antes?.[`e${i}`] ?? 0);
           return `${e} ${n(ahora)} (antes ${n(prev)})`;
         });
-        return `- ${p}: ${valores.join(' · ')}`;
+        // HU-E2.6, CA3: la tasa de completado, la métrica de los 90 días de la herramienta.
+        const tasa = (fila: Record<string, unknown> | undefined) => {
+          const abiertas = Number(fila?.[`e${EVENTOS.indexOf('tool.opened')}`] ?? 0);
+          return abiertas > 0
+            ? `${Math.round((100 * Number(fila?.[`e${EVENTOS.indexOf('tool.completed')}`] ?? 0)) / abiertas)} %`
+            : '—';
+        };
+        return `- ${p}: ${valores.join(' · ')} · completado ${tasa(f)} (antes ${tasa(antes)})`;
       }),
     };
   } catch (e) {
