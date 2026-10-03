@@ -11,6 +11,7 @@ import { type ManoDeObraDeArea, manoDeObraPorArea } from '../almacen/mano-de-obr
 import { type ClavePeriodo, OPCIONES_DE_PERIODO, periodoDe } from '../almacen/periodos.ts';
 import { definirJornal, definirJornalGeneral, leerPersonas } from '../almacen/personas.ts';
 import { Campo, CampoSeleccion } from '../componentes/Campo.tsx';
+import { TablaDeslizable } from '../componentes/TablaDeslizable.tsx';
 
 const pesos = (n: number) => `$ ${Math.round(n).toLocaleString('es-CO')}`;
 
@@ -94,29 +95,31 @@ export function ManoDeObra(props: {
       ) : filas.length === 0 ? (
         <p class="ayuda">No hay labores en este periodo.</p>
       ) : (
-        <table class="tabla-rendimiento" data-prueba="mano-por-area">
-          <thead>
-            <tr>
-              <th scope="col">Nave</th>
-              <th scope="col">Horas</th>
-              <th scope="col">Costo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filas.map((f) => (
-              <tr key={f.areaId}>
-                <th scope="row">{props.areas.get(f.areaId) ?? 'Área'}</th>
-                <td>{f.horas.toLocaleString('es-CO')}</td>
-                <td>
-                  {pesos(f.costo)}
-                  {f.sinValor > 0 && (
-                    <span class="detalle-insumo"> · {f.sinValor} sin valor de jornal</span>
-                  )}
-                </td>
+        <TablaDeslizable nombre="Mano de obra por nave">
+          <table class="tabla-rendimiento" data-prueba="mano-por-area">
+            <thead>
+              <tr>
+                <th scope="col">Nave</th>
+                <th scope="col">Horas</th>
+                <th scope="col">Costo</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filas.map((f) => (
+                <tr key={f.areaId}>
+                  <th scope="row">{props.areas.get(f.areaId) ?? 'Área'}</th>
+                  <td>{f.horas.toLocaleString('es-CO')}</td>
+                  <td>
+                    {pesos(f.costo)}
+                    {f.sinValor > 0 && (
+                      <span class="detalle-insumo"> · {f.sinValor} sin valor de jornal</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TablaDeslizable>
       )}
       <p class="ayuda">
         Un jornal son {HORAS_POR_JORNAL} horas. Es el costo para saber cuánto cuesta producir: la

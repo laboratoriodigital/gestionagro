@@ -269,7 +269,7 @@ export function Historial() {
             {entradas.slice(paginas.desde, paginas.hasta).map((e) => {
               const r = e.registro;
               return (
-                <li key={r.id} class="area" data-prueba={`historial-${r.tipo}`}>
+                <li key={r.id} class="area entrada-historial" data-prueba={`historial-${r.tipo}`}>
                   <p class="area-titulo">
                     <strong>{nombreArea(r.area_ids[0])}</strong> · {fechaHora(r.instante_evento)}
                     {e.anteriores.length > 0 && <span class="etiqueta"> · Corregido</span>}

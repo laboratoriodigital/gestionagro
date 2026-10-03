@@ -83,7 +83,7 @@ Nada en el modelo nombra al tomate. Cultivo, variedad, tipos de área, tipos de 
 2. **El SaaS antes de los umbrales** contradice la regla de tres y el roadmap (ED1 §3.11, §33, [H1]). La excepción se acota así:
    - Se construye solo lo que la finca cero usa esta temporada.
    - Toda abstracción de plataforma (Product Engine, Automation Engine) sigue esperando sus tres casos.
-   - El plan Finca no se cobra hasta que se cumplan los umbrales de la etapa 4 → 7.
+   - El plan Finca no se cobra hasta que se cumplan los umbrales de la etapa 4 → 7. *(Excepción del dueño, 3 oct 2026: si un cliente pide pagarlo, se cobra en línea con Bold, HU-E0.7. Un cliente que paga es la señal más fuerte que puede dar la validación; los umbrales siguen decidiendo cuándo se ofrece a todos.)*
 3. **CORE v0 se adelanta a la Fase 3** (ADR-9). Es el primer caso real de cuentas en ED1. Se construye **mínimo** (§5.4) y sin nada de lo que ED1 lista como arquitectura objetivo del CORE (billing, entitlements configurables, auditoría general).
 4. **Hallazgo nuevo para ED1:** aislar cuotas en «otra cuenta de Cloudflare» (ED1 §14.1, §25.1) roza la prohibición de esquivar cuotas de Cloudflare (§6.5). Se propone reformular ED1 como aislamiento de **riesgo** con cuenta paga o del cliente. Ver §14.
 
@@ -251,11 +251,12 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
 | `usuario` | id, nombre, email, creado |
 | `identidad` | proveedor (`google`), `sub`, usuario_id |
 | `sesion` | refresh token (hash), dispositivo, creado, expira, revocado |
-| `organizacion` | id, nombre, tipo (`finca`, `asesor`, `cadena`), plan, **celda_id**, **shard**, anillo |
+| `organizacion` | id, nombre, tipo (`finca`, `asesor`, `cadena`), plan, `plan_vence` (HU-E0.7: vencido, el directorio entrega «gratuito»), **celda_id**, **shard**, anillo |
 | `membresia` | usuario × organización × rol |
 | `invitacion` | código de un solo uso (hash), rol, expira, creada_por |
 | `celda` | id, url base de la API, clave pública vigente y anterior, estado |
 | `interes_plan` | usuario × organización × plan (`finca`, `exportador`, `cadena`) con su fecha: la lista de espera con precio visible (HU-E0.6). Sin cobro ni tarjeta |
+| `pago` | un cobro de Bold por intento: orden, organización, quién, plan, meses, monto que calculó el CORE, ambiente, estado (`esperando`, `aprobado`, `rechazado`, `revisar`) y la transacción (HU-E0.7). Sin datos de tarjeta ni del comprador |
 
 - **Dónde vive (HU-E4.1):**
   - Worker `agro-core` en workers.dev, con la base D1 `agro_core` (con `_staging` en staging), en la cuenta de la celda que dice `core.celda` en `celdas.json`.
@@ -594,12 +595,13 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
   - Token del bot de Telegram.
 - **Rotación de claves:** la tabla `celda` guarda la clave vigente y la anterior.
 - **Cómo llegan los secretos al CORE (HU-E4.2):** `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` viven en GitHub y el despliegue los carga en el Worker con `wrangler secret bulk` por stdin, sin escribirlos en disco. `CORE_JWT_PRIVATE_KEY` no existe fuera del Worker: el despliegue la genera la primera vez que el Worker no la tiene y nunca la reemplaza (cambiarla cierra todas las sesiones). Staging y producción tienen claves distintas.
+- **Llaves de Bold (HU-E0.7):** `BOLD_IDENTIDAD_PRUEBAS` y `BOLD_SECRETA_PRUEBAS` van a staging; `BOLD_IDENTIDAD_PRODUCCION` y `BOLD_SECRETA_PRODUCCION`, a producción. El despliegue las carga en el Worker del CORE como `BOLD_IDENTIDAD`, `BOLD_SECRETA` y `BOLD_AMBIENTE`, por stdin. Son opcionales: sin las dos llaves, pagar en línea responde «no disponible» y nada más cambia. Con una sola, el despliegue falla nombrando la que falta. La llave secreta nunca sale del CORE: la página recibe el cobro ya firmado.
 - **Clave del QR de cada celda (HU-E6.4):** `CELDA_QR_PRIVATE_KEY` no existe fuera del Worker de la celda. El despliegue la genera la primera vez que el Worker no la tiene y nunca la reemplaza. Su parte pública la publica la celda en `/api/claves-qr` y va dentro de la página `/agro/t/`.
 - **Telegram del dueño (HU-E8.3, ADR-16):** `TELEGRAM_BOT_TOKEN` (el bot) y `TELEGRAM_CHAT_ID` (el chat del dueño con el bot) viven en GitHub, y el despliegue los carga en el Worker de cada celda por stdin. El vigía avisa con ellos.
   - **Excepción a P13, dicha:** la API de Telegram exige el token del bot en la ruta de la URL; no hay otra forma. La llamada va solo de la celda a Telegram por HTTPS, y la URL nunca se escribe en el log (solo el estado HTTP; una prueba lo exige).
   - El chat se averigua con el flujo manual «telegram-chat», no pegando el token en un navegador.
 - **Token de métricas de cada celda (HU-E8.2):** `CF_METRICAS_TOKEN` es un token de **solo lectura** (permiso «Account → Account Analytics: Read») de la cuenta de la celda. El despliegue lo carga en el Worker de la celda con `wrangler secret bulk` por stdin, y el vigía lo usa cada hora para leer las métricas. No sirve para desplegar ni para escribir: por eso es aparte del de despliegue. `celdas.json` lo nombra en `secretos.metricas`.
-- Una prueba exige que todo secreto que nombra un flujo esté listado en este documento (bitácora ecommerce 82). Lista actual: `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `CF_METRICAS_TOKEN`, `CORE_JWT_PRIVATE_KEY`, `CELDA_QR_PRIVATE_KEY`, `CELDA_SERVICE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+- Una prueba exige que todo secreto que nombra un flujo esté listado en este documento (bitácora ecommerce 82). Lista actual: `CF_API_TOKEN`, `CF_ACCOUNT_ID`, `CF_METRICAS_TOKEN`, `CORE_JWT_PRIVATE_KEY`, `CELDA_QR_PRIVATE_KEY`, `CELDA_SERVICE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `BOLD_IDENTIDAD_PRUEBAS`, `BOLD_SECRETA_PRUEBAS`, `BOLD_IDENTIDAD_PRODUCCION`, `BOLD_SECRETA_PRODUCCION`.
 
 ---
 

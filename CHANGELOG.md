@@ -5,10 +5,20 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Pagar el plan Finca en línea con Bold (PSE, Nequi o tarjeta) desde Planes: un mes a la vez, sin débito automático. Al volver de Bold, el plan queda activo, y si la persona no vuelve, se activa solo en 15 minutos o menos. Planes y Cuenta dicen hasta cuándo vale, y una semana antes avisan. Al vencer, la finca vuelve al plan Gratis sin perder ningún registro. Sin las llaves de Bold, pagar dice que no está disponible.
+- La política de datos (versión 2) nombra a Bold como aliado para los pagos. Su programa solo se carga al tocar «Pagar».
+- Con el plan Finca, el calendario de carencias se imprime en una hoja horizontal para la puerta de la nave: cada área con hoy y los próximos 14 días, legible en blanco y negro. Verlo en el teléfono sigue gratis.
 - Varias fincas en un mismo teléfono (HU-E4.7). En Cuenta, cada finca de la nube se abre en este teléfono, y sin cuenta se agrega otra finca. Cada una guarda lo suyo, sin mezclarse; cambiar es un toque desde la cabecera, que dice en qué finca se está. Con una sola finca, nada cambia.
 
 ### Cambiado
+- Revisión de diseño del cuaderno con una temporada completa de datos, en un teléfono de 360 px (pedido del dueño, 3 oct 2026):
+  - **La cabecera** ocupa 120 px en vez de 290: el nombre y los indicadores en una fila, y las secciones en otra que se desliza de lado, con la abierta resaltada y siempre a la vista.
+  - **Las tablas** (costo por kilo, bodega, insumos y mano de obra por nave, rendimiento) ya no hacen la página más ancha que el teléfono. Se deslizan dentro de su caja, con la nave o la persona fija a la izquierda y las cifras en un solo renglón.
+  - **Las pestañas** (Registrar, Costos, Lotes) van en columnas parejas.
+  - **El historial** pone «Corregir» al lado de cada registro, no debajo: la lista mide la mitad.
+  - **Textos:** «Producción ecológica» (decía «ecológico»). El nombre de un área ya no repite su tipo («Nave 1 · 600 m²»). El aviso de almacenamiento manda a «Respaldo» y a «Cuenta» (decía «cuando exista la exportación»). Cuenta dice «cuánto cuesta» cada plan.
 - Según el pedido del dueño (3 oct 2026), la página de entrada de las herramientas presenta cada calculadora por la pregunta que responde y qué se necesita para usarla, y ofrece el cuaderno como siguiente paso. Antes decía «La primera calculadora está en preparación», aunque las dos ya se podían usar. Sigue sin pedirle a Google que la indexe hasta que haya una herramienta aprobada.
+- Según el dueño (3 oct 2026), el archivo «Para la tienda» trae las columnas de la hoja «Catálogo» de la Tienda (ID, Nombre, Categoría, Formato, Precio, Precio antes, Stock, Umbral bajo, Variantes, Imágenes, Descripción, Destacado, Activo, Referencia). Trae una fila por producto y categoría, con el stock en unidades enteras y los lotes en la referencia. El precio lo pone quien vende. Un lote sin cultivo no va en el archivo, y la pantalla dice cuántos.
 - El reporte semanal dice, por herramienta, qué parte de quienes la abrieron llegó a un resultado (tasa de completado), esta semana y la anterior.
 - Según la segunda revisión del dueño (3 oct 2026):
   - Cuenta dice el plan de la finca y lista las fincas de la cuenta con su rol, su plan y cuál está en este teléfono. Antes de subir una finca a una cuenta que ya tiene otras, pregunta si es una de ellas.

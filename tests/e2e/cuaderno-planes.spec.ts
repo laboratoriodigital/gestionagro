@@ -56,9 +56,9 @@ test('CA1: el propietario toca «Me interesa» y queda anotado en el CORE, sin c
   await configurar(page, FINCA_ENSAYO_UNO);
   await conPlan(page, 'finca');
   await page.goto('/agro/app/planes/');
-  // Su plan no se ofrece: ya lo tiene.
+  // Su plan no se ofrece en la lista de espera: ya lo tiene. Se puede renovar (HU-E0.7).
   await expect(plan(page, 'finca')).toContainText('tu plan');
-  await expect(plan(page, 'finca').getByRole('button')).toHaveCount(0);
+  await expect(plan(page, 'finca').getByRole('button')).toHaveText(['Renovar un mes · COP 39.000']);
   await page.getByRole('button', { name: 'Me interesa el plan Exportador' }).click();
   await expect(plan(page, 'exportador').getByRole('status')).toContainText(
     'quedó anotado. Te contaremos antes de que empiece. No se cobra nada.',
@@ -120,4 +120,127 @@ test('revisión del dueño: Cuenta dice el plan y las fincas; antes de subir otr
   );
   await pregunta.getByRole('button', { name: 'No, es otra finca' }).click();
   await expect(page.getByRole('button', { name: 'Subirla como finca nueva' })).toBeVisible();
+});
+
+test.describe('HU-E0.7 · pagar el plan Finca con Bold', () => {
+  const ORDEN = 'agro-0199a1b2-0000-7000-8000-0000000000b0';
+  const VENCE = '2026-11-02T15:00:00.000Z';
+
+  /** CORE y Bold falsos: crear el cobro, el checkout que vuelve aprobado, confirmar y renovar. */
+  async function nubeDePago(page: Page, estado: 'aprobado' | 'esperando') {
+    const creados: unknown[] = [];
+    await page.route(`${CORE}/api/core/pago/crear`, async (r) => {
+      const cuerpo = r.request().postDataJSON() as { plan: string; vuelta: string };
+      creados.push(cuerpo);
+      await r.fulfill({
+        headers: permitir,
+        json: {
+          orden: ORDEN,
+          pruebas: true,
+          libreria: 'https://checkout.bold.co/library/boldPaymentButton.js',
+          checkout: {
+            orderId: ORDEN,
+            currency: 'COP',
+            amount: '39000',
+            apiKey: 'identidad',
+            integritySignature: 'firma',
+            description: 'Plan Finca de Gestión Agro, un mes',
+            redirectionUrl: `${cuerpo.vuelta}?pago=${ORDEN}`,
+          },
+        },
+      });
+    });
+    // El checkout de Bold: abre y, como el comprador pagó, vuelve a la dirección de vuelta.
+    await page.route('https://checkout.bold.co/library/boldPaymentButton.js', (r) =>
+      r.fulfill({
+        contentType: 'text/javascript',
+        body: 'window.BoldCheckout = class { constructor(d) { this.d = d; } open() { location.assign(this.d.redirectionUrl); } };',
+      }),
+    );
+    await page.route(`${CORE}/api/core/pago/confirmar`, (r) =>
+      r.fulfill({
+        headers: permitir,
+        json:
+          estado === 'aprobado'
+            ? { estado, motivo: null, plan: 'finca', plan_vence: VENCE }
+            : {
+                estado,
+                motivo:
+                  'Bold todavía no tiene noticias de este pago. Si ya pagaste, espera unos minutos.',
+              },
+      }),
+    );
+    await page.route(`${CORE}/api/core/auth/refrescar`, (r) =>
+      r.fulfill({
+        headers: permitir,
+        json: {
+          acceso: 'acceso-2',
+          acceso_vence: Date.now() + 3_600_000,
+          refresh: null,
+          refresh_vence: Date.now() + 86_400_000,
+          usuario: { nombre: 'Persona Ensayo', email: 'ensayo@example.com' },
+          organizaciones: [
+            {
+              org_id: '0199a1b2-0000-7000-8000-0000000000fa',
+              nombre: 'Finca Ensayo',
+              rol: 'propietario',
+              plan: 'finca',
+              plan_vence: VENCE,
+            },
+          ],
+          org_id: '0199a1b2-0000-7000-8000-0000000000fa',
+          aviso: null,
+        },
+      }),
+    );
+    return creados;
+  }
+
+  test('CA1 y CA2: el propietario paga un mes, vuelve de Bold y el plan queda activo', async ({
+    page,
+  }) => {
+    await coreConLista(page);
+    const creados = await nubeDePago(page, 'aprobado');
+    await configurar(page, FINCA_ENSAYO_UNO);
+    await conPlan(page, 'gratuito');
+    await page.goto('/agro/app/planes/');
+    await plan(page, 'finca').getByRole('button', { name: 'Pagar un mes · COP 39.000' }).click();
+    await expect(page.locator('[data-prueba="pago-estado"]')).toContainText(
+      '¡Pago confirmado! Tu plan está activo hasta el 02/11/2026',
+    );
+    // El monto no lo manda la página: solo el plan y a dónde volver.
+    expect(creados).toEqual([
+      { plan: 'finca', vuelta: `${new URL(page.url()).origin}/agro/app/planes/` },
+    ]);
+    // La orden salió de la dirección: recargar no la confirma otra vez.
+    expect(new URL(page.url()).search).toBe('');
+    await expect(plan(page, 'finca')).toContainText('tu plan');
+    await expect(page.locator('[data-prueba="plan-vence"]')).toContainText(
+      'Tu plan Finca vale hasta el 02/11/2026.',
+    );
+    const { violations } = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+    expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+
+  test('si Bold todavía no sabe del pago, lo dice y deja verificar después', async ({ page }) => {
+    await coreConLista(page);
+    await nubeDePago(page, 'esperando');
+    await configurar(page, FINCA_ENSAYO_UNO);
+    await conPlan(page, 'gratuito');
+    await page.goto(`/agro/app/planes/?pago=${ORDEN}`);
+    const estado = page.locator('[data-prueba="pago-estado"]');
+    await expect(estado).toContainText('Bold todavía no tiene noticias de este pago');
+    await expect(estado.getByRole('button', { name: 'Verificar ahora' })).toBeVisible();
+    await expect(plan(page, 'gratuito')).toContainText('tu plan');
+  });
+
+  test('un operario no ve el botón de pagar', async ({ page }) => {
+    await coreConLista(page);
+    await configurar(page, FINCA_ENSAYO_UNO);
+    await conPlan(page, 'gratuito', 'operario');
+    await page.goto('/agro/app/planes/');
+    await expect(page.locator('[data-prueba="pagar-plan"]')).toHaveCount(0);
+  });
 });

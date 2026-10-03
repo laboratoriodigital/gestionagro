@@ -12,6 +12,11 @@
       "migrations_dir": "../../infrastructure/migraciones/core"
     }
   ],
+  "triggers": {
+    "crons": [
+      "*/15 * * * *"
+    ]
+  },
   "observability": {
     "enabled": true
   },
@@ -25,7 +30,12 @@
           "database_name": "agro_core_staging",
           "migrations_dir": "../../infrastructure/migraciones/core"
         }
-      ]
+      ],
+      "triggers": {
+        "crons": [
+          "*/15 * * * *"
+        ]
+      }
     }
   }
 }

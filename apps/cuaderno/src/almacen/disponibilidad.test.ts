@@ -5,10 +5,17 @@
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { FINCAS_DE_PRUEBA } from '../../../../tests/fixtures/fincas.ts';
+import { agregarCultivo, agregarVariedad, iniciarCiclo } from './ciclos.ts';
 import { guardarCosecha } from './cosecha.ts';
 import { abrirCuaderno } from './db.ts';
 import { registrarDespacho } from './despachos.ts';
-import { celda, disponibilidadCsv, filasDeDisponibilidad } from './disponibilidad.ts';
+import {
+  celda,
+  disponibilidadCsv,
+  filasDeDisponibilidad,
+  idDeProducto,
+  lotesSinCultivo,
+} from './disponibilidad.ts';
 import { crearFincaConAreas } from './finca.ts';
 import { armarLote, type Lote, leerLotes } from './lotes.ts';
 
@@ -38,6 +45,23 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
     );
     const [a1, a2] = areas;
     if (!a1 || !a2) throw new Error('faltan áreas');
+    // La cosecha toma el cultivo del ciclo de su área: sin ciclo, el lote no tiene producto.
+    const cultivo = await agregarCultivo(db, finca.id, f.cultivo.nombre, { ahora: AYER });
+    await agregarVariedad(db, cultivo.id, f.cultivo.variedad, { ahora: AYER });
+    for (const a of [a1, a2]) {
+      await iniciarCiclo(
+        db,
+        {
+          fincaId: finca.id,
+          areaId: a.id,
+          cultivo: f.cultivo.nombre,
+          variedad: f.cultivo.variedad,
+          fechaTrasplante: '2026-12-01',
+          plantas: null,
+        },
+        { ahora: AYER },
+      );
+    }
     const cosecha = (areaId: string, cantidad: number, categoria: string, ahora = HOY) =>
       guardarCosecha(
         db,
@@ -72,27 +96,39 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
     const csv = disponibilidadCsv(await leerLotes(db, finca.id), f.finca.nombre);
     expect(csv.startsWith('﻿')).toBe(true);
     const [cabecera, ...resto] = filas(csv);
+    // Las columnas de la pestaña «Catálogo» de la Tienda, en su orden visible.
     expect(cabecera).toEqual([
-      'producto',
-      'categoria',
-      'disponible',
-      'unidad',
-      'lote',
-      'cosechado_desde',
-      'cosechado_hasta',
-      'finca',
+      'ID',
+      'Nombre',
+      'Categoría',
+      'Formato',
+      'Precio',
+      'Precio antes',
+      'Stock',
+      'Umbral bajo',
+      'Variantes',
+      'Imágenes',
+      'Descripción',
+      'Destacado',
+      'Activo',
+      'Referencia',
     ]);
-    // El segundo lote se despachó entero: no sale.
+    // El segundo lote se despachó entero: no sale. Del primero quedan 32,5 kg: 32 unidades de 1 kg.
     expect(resto).toHaveLength(1);
-    expect(resto[0]?.slice(1, 7)).toEqual([
-      'Primera',
-      '32.5',
-      'kg',
-      (l1.datos as { codigo: string }).codigo,
-      '2027-03-26',
-      '2027-03-27',
-    ]);
-    expect(resto[0]?.[7]).toBe(f.finca.nombre);
+    const [fila] = filasDeDisponibilidad(await leerLotes(db, finca.id), f.finca.nombre);
+    const cultivo = f.cultivo.nombre;
+    expect(fila).toMatchObject({
+      Categoría: cultivo,
+      Nombre: `${cultivo} (Primera)`,
+      Formato: '1 kg',
+      Precio: '',
+      Stock: '32',
+      Descripción: `Cosechado en ${f.finca.nombre} entre el 26/03/2027 y el 27/03/2027.`,
+      Destacado: 'No',
+      Activo: 'Sí',
+      Referencia: (l1.datos as { codigo: string }).codigo,
+    });
+    expect(fila?.ID).toMatch(/^[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?$/); // la regla de la Tienda
   });
 
   it('sin lotes con saldo, solo la cabecera', async () => {
@@ -115,30 +151,59 @@ describe('celdas seguras para la hoja', () => {
     expect(celda(valor)).toBe(esperado);
   });
 
-  it('control negativo: un nombre de finca con fórmula no llega como fórmula al CSV', () => {
-    const lote = {
-      registro: { datos: { cultivo: 'Tomate' } },
-      codigo: 'T-27MAR-1',
+  const lote = (
+    cultivo: string | null,
+    saldo: number,
+    codigo = 'T-27MAR-1',
+    categoria = 'Primera',
+  ) =>
+    ({
+      registro: { datos: { cultivo } },
+      codigo,
       unidad: 'kg',
-      saldo: 4,
-      cosechas: [{ fecha: '2027-03-27', categoria: 'Primera' }],
-    } as unknown as Lote;
-    const csv = disponibilidadCsv([lote], '=1+1');
-    expect(csv).toContain(",'=1+1\r\n");
-    expect(csv).not.toContain(',=1+1');
-    expect(filasDeDisponibilidad([lote], 'Finca')[0]?.producto).toBe('Tomate');
+      saldo,
+      cosechas: [{ fecha: '2027-03-27', categoria }],
+    }) as unknown as Lote;
+
+  it('control negativo: un producto con fórmula no llega como fórmula al CSV', () => {
+    const csv = disponibilidadCsv([lote('=1+1', 4)], 'Finca');
+    expect(csv).toContain(",'=1+1,");
+    expect(csv).not.toContain(',=1+1,');
   });
 
-  it('un lote sin cultivo deja el producto vacío; no lo inventa (P1)', () => {
-    const lote = {
-      registro: { datos: { cultivo: null } },
-      codigo: 'X-27MAR-1',
-      unidad: 'kg',
-      saldo: 0.125,
-      cosechas: [{ fecha: '2027-03-27', categoria: 'Primera' }],
-    } as unknown as Lote;
-    const [fila] = filas(disponibilidadCsv([lote], 'Finca')).slice(1);
-    expect(fila?.[0]).toBe('');
-    expect(fila?.[2]).toBe('0.125');
+  it('suma los lotes del mismo cultivo y categoría; separa las categorías', () => {
+    const productos = filasDeDisponibilidad(
+      [
+        lote('Tomate', 4.5),
+        lote('Tomate', 3, 'T-28MAR-1'),
+        lote('Tomate', 2, 'T-28MAR-2', 'Segunda'),
+      ],
+      'Finca',
+    );
+    expect(productos.map((p) => [p.ID, p.Stock, p.Referencia])).toEqual([
+      ['tomate-primera', '7', 'T-27MAR-1 T-28MAR-1'],
+      ['tomate-segunda', '2', 'T-28MAR-2'],
+    ]);
+  });
+
+  it('el ID sigue la regla de la Tienda: sin tildes, minúsculas y guiones', () => {
+    expect(idDeProducto('Pimentón Rojo', 'Primera y Segunda')).toBe(
+      'pimenton-rojo-primera-y-segunda',
+    );
+    expect(idDeProducto('Ají  dulce!', 'Extra')).toBe('aji-dulce-extra');
+  });
+
+  it('muchos lotes: la referencia cabe en 60 letras y dice cuántos más', () => {
+    const muchos = Array.from({ length: 12 }, (_x, i) => lote('Tomate', 1, `T-${10 + i}MAR-1`));
+    const [fila] = filasDeDisponibilidad(muchos, 'Finca');
+    expect(fila?.Referencia.length).toBeLessThanOrEqual(60);
+    expect(fila?.Referencia).toMatch(/ y \d+ más$/);
+    expect(fila?.Stock).toBe('12');
+  });
+
+  it('un lote sin cultivo no sale y se cuenta aparte; menos de una unidad tampoco (P1)', () => {
+    const lotes = [lote(null, 5), lote('Tomate', 0.125)];
+    expect(filasDeDisponibilidad(lotes, 'Finca')).toEqual([]);
+    expect(lotesSinCultivo(lotes)).toBe(1);
   });
 });

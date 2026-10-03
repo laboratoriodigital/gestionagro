@@ -5,7 +5,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { agregarInsumo, configurar, ROL } from './ayudas.ts';
+import { agregarInsumo, configurar, conPlan, ROL } from './ayudas.ts';
 
 /** 10/12/2026 a las 9:30 en Bogotá; en Tokio ya es el 11/12. */
 const APLICADO = new Date('2026-12-10T14:30:00Z');
@@ -94,3 +94,35 @@ for (const f of FINCAS_DE_PRUEBA) {
     });
   });
 }
+
+test('el calendario impreso es del plan Finca: una hoja horizontal con cada área y sus 14 días', async ({
+  page,
+}) => {
+  // window.print abre el diálogo del sistema: aquí se reemplaza y se genera el PDF como lo haría.
+  await page.addInitScript(() => {
+    window.print = () => undefined;
+  });
+  const f = FINCAS_DE_PRUEBA[0];
+  if (!f) throw new Error('falta la finca de prueba');
+  await configurar(page, f);
+  await nav(page).getByRole('link', { name: 'Carencias' }).click();
+  // Gratis: se ve en el teléfono, pero imprimirlo es del plan Finca.
+  await expect(page.locator('[data-prueba="imprimible-plan"]')).toContainText(
+    'viene con el plan Finca',
+  );
+  await expect(page.getByRole('button', { name: 'Imprimir el calendario' })).toHaveCount(0);
+
+  await conPlan(page, 'finca');
+  await page.reload();
+  await page.getByRole('button', { name: 'Imprimir el calendario' }).click();
+  const hoja = page.locator('#impresion.hoja');
+  await expect(hoja.locator('tbody tr')).toHaveCount(f.areas.length);
+  await expect(hoja.locator('thead th')).toHaveCount(2 + 14);
+  await expect(hoja).toContainText(`¿Qué se puede cosechar? · ${f.finca.nombre}`);
+  await expect(hoja).toContainText('Vuelve a imprimir después de cada aplicación');
+  const pdf = (await page.pdf({ preferCSSPageSize: true })).toString('latin1');
+  expect(pdf.match(/\/Type\s*\/Page(?!s)/g) ?? []).toHaveLength(1);
+  // Carta horizontal: 11 × 8,5 pulgadas = 792 × 612 puntos PDF.
+  const caja = pdf.match(/\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/);
+  expect([Math.round(Number(caja?.[1])), Math.round(Number(caja?.[2]))]).toEqual([792, 612]);
+});

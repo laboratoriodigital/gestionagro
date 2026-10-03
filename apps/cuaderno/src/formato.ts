@@ -11,6 +11,16 @@ const FECHA_HORA = new Intl.DateTimeFormat('es-CO', {
 
 export const fechaHora = (iso: string): string => FECHA_HORA.format(new Date(iso)).replace(',', '');
 
+const FECHA = new Intl.DateTimeFormat('es-CO', {
+  timeZone: 'America/Bogota',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+});
+
+/** dd/mm/aaaa de un instante, en el día de la finca. */
+export const fechaCorta = (iso: string): string => FECHA.format(new Date(iso));
+
 export const metros = (m2: number): string =>
   `${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 }).format(m2)} m²`;
 

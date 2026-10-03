@@ -4,6 +4,7 @@
  * cliente y la dirección de regreso se comprueba en staging (P16).
  */
 
+import { createHash } from 'node:crypto';
 import type { BaseD1, SentenciaD1 } from '@gestionagro/d1';
 import {
   type ClavePublica,
@@ -16,10 +17,11 @@ import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
 import { sentenciasDeCeldas } from './celdas.ts';
 import type { ProveedorGoogle } from './entrar.ts';
+import { conciliarPagos } from './pagos.ts';
 import { POLITICA_VIGENTE } from './politica.ts';
 import { crearOrganizacion } from './repositorio.ts';
 import { VIDA_CODIGO_MS } from './sesiones.ts';
-import { crearApp, type Env } from './worker.ts';
+import { crearApp, type Env, proveedorDePagoDe } from './worker.ts';
 
 const APP = 'https://agro.ejemplo.test';
 const CORE = 'https://core.ejemplo.test';
@@ -773,6 +775,267 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
       expect(await (await conToken('/api/core/interes/ver', s.acceso, {})).json()).toEqual({
         planes: [],
       });
+    });
+  });
+
+  describe('HU-E0.7 · pagar el plan Finca con Bold', () => {
+    const IDENTIDAD = 'identidad-pruebas';
+    const SECRETA = 'secreta-pruebas';
+    const VUELTA_PAGO = `${APP}/agro/app/planes/`;
+    /** Lo que contesta el Bold falso a la consulta de una orden; se cambia en cada prueba. */
+    let bold: { status: number; cuerpo: unknown };
+    let consultas: string[];
+    const boldFalso = (async (url: string | URL | Request, init?: RequestInit) => {
+      consultas.push(`${String(url)} ${new Headers(init?.headers).get('authorization')}`);
+      return Response.json(bold.cuerpo, { status: bold.status });
+    }) as typeof fetch;
+    const conBold = crearApp({ google: () => googleFalso(), ahora: () => reloj, fetch: boldFalso });
+    const pagar = (ruta: string, acceso: string | null, cuerpo: unknown) =>
+      conBold.fetch(
+        new Request(`${CORE}${ruta}`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            origin: APP,
+            ...(acceso ? { authorization: `Bearer ${acceso}` } : {}),
+          },
+          body: JSON.stringify(cuerpo),
+        }),
+        env,
+      );
+    const aprobado = (total = 39000) => ({
+      status: 200,
+      cuerpo: { payment_status: 'APPROVED', total, transaction_id: 'TX-ENSAYO-1' },
+    });
+    interface Cobro {
+      orden: string;
+      pruebas: boolean;
+      checkout: Record<string, string>;
+    }
+    async function cobro(acceso: string): Promise<Cobro> {
+      const r = await pagar('/api/core/pago/crear', acceso, { plan: 'finca', vuelta: VUELTA_PAGO });
+      expect(r.status).toBe(200);
+      return (await r.json()) as Cobro;
+    }
+    /** El plan de la finca según una sesión renovada; guarda el refresh si rotó (una vez al día). */
+    const planDeLaFinca = async (quien: { refresh: string }) => {
+      const r = (await (
+        await post('/api/core/auth/refrescar', { refresh: quien.refresh, org_id: ORG })
+      ).json()) as {
+        refresh: string | null;
+        organizaciones: { org_id: string; plan: string; plan_vence: string | null }[];
+      };
+      if (r.refresh) quien.refresh = r.refresh;
+      return r.organizaciones.find((o) => o.org_id === ORG);
+    };
+
+    /** El propietario, con un refresh que sirve: si renovar no lo rotó, sigue el de la entrada. */
+    async function duena(): Promise<{ acceso: string; refresh: string }> {
+      const s = await sesionDe('google-propietario');
+      await conToken('/api/core/organizaciones', s.acceso, { id: ORG, nombre: 'Finca Ensayo Uno' });
+      const r = (await (
+        await post('/api/core/auth/refrescar', { refresh: s.refresh, org_id: ORG })
+      ).json()) as Sesion;
+      return { acceso: r.acceso, refresh: r.refresh ?? s.refresh ?? '' };
+    }
+
+    beforeEach(() => {
+      env = { ...env, BOLD_IDENTIDAD: IDENTIDAD, BOLD_SECRETA: SECRETA, BOLD_AMBIENTE: 'pruebas' };
+      bold = { status: 404, cuerpo: { message: 'NO_TRANSACTION_FOUND' } };
+      consultas = [];
+    });
+
+    it('CA1: el CORE pone el monto de planes.json y firma el cobro como pide Bold', async () => {
+      const p = await duena();
+      const c = await cobro(p.acceso);
+      expect(c.pruebas).toBe(true);
+      expect(c.checkout).toMatchObject({
+        orderId: c.orden,
+        currency: 'COP',
+        amount: '39000',
+        apiKey: IDENTIDAD,
+        redirectionUrl: `${VUELTA_PAGO}?pago=${c.orden}`,
+      });
+      expect(c.orden).toMatch(/^agro-[0-9a-f-]{36}$/);
+      const esperada = createHash('sha256').update(`${c.orden}39000COP${SECRETA}`).digest('hex');
+      expect(c.checkout['integritySignature']).toBe(esperada);
+      // La llave secreta nunca sale del CORE.
+      expect(JSON.stringify(c)).not.toContain(SECRETA);
+      const fila = await db
+        .prepare('SELECT estado, monto_cop, plan FROM pago WHERE id = ?')
+        .bind(c.orden)
+        .first();
+      expect(fila).toEqual({ estado: 'esperando', monto_cop: 39000, plan: 'finca' });
+    });
+
+    it('CA2 y CA3: aprobado activa el plan un mes; confirmar otra vez no cobra ni extiende', async () => {
+      const p = await duena();
+      const c = await cobro(p.acceso);
+      // Antes de que Bold sepa algo: sigue esperando y el plan no cambia.
+      const espera = await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
+      expect(await espera.json()).toMatchObject({ estado: 'esperando' });
+      expect((await planDeLaFinca(p))?.plan).toBe('gratuito');
+
+      bold = aprobado();
+      const r = await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
+      const vence = new Date(T0 + 30 * 24 * 3600 * 1000).toISOString();
+      expect(await r.json()).toEqual({
+        estado: 'aprobado',
+        motivo: null,
+        plan: 'finca',
+        plan_vence: vence,
+      });
+      expect(consultas.at(-1)).toBe(
+        `https://payments.api.bold.co/v2/payment-voucher/${c.orden} x-api-key ${IDENTIDAD}`,
+      );
+      const otra = await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
+      expect(await otra.json()).toMatchObject({ estado: 'aprobado', plan_vence: vence });
+      expect(consultas).toHaveLength(2); // la segunda confirmación no le pregunta a Bold
+      expect(await planDeLaFinca(p)).toMatchObject({ plan: 'finca', plan_vence: vence });
+    });
+
+    it('pagar antes de vencer suma el mes al vencimiento, no a hoy', async () => {
+      const p = await duena();
+      bold = aprobado();
+      for (const _vez of [1, 2]) {
+        const c = await cobro(p.acceso);
+        await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
+        reloj += 3600 * 1000;
+      }
+      expect((await planDeLaFinca(p))?.plan_vence).toBe(
+        new Date(T0 + 60 * 24 * 3600 * 1000).toISOString(),
+      );
+    });
+
+    it('CA4: al vencer, la finca vuelve al plan gratuito sin tocar nada más', async () => {
+      const p = await duena();
+      bold = aprobado();
+      const c = await cobro(p.acceso);
+      await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
+      reloj = T0 + 30 * 24 * 3600 * 1000 - 1;
+      expect((await planDeLaFinca(p))?.plan).toBe('finca');
+      reloj = T0 + 30 * 24 * 3600 * 1000;
+      expect(await planDeLaFinca(p)).toMatchObject({ plan: 'gratuito', plan_vence: null });
+    });
+
+    it.each([
+      ['otro monto', aprobado(1000), 'revisar'],
+      ['rechazado', { status: 200, cuerpo: { payment_status: 'REJECTED' } }, 'rechazado'],
+      ['en proceso', { status: 200, cuerpo: { payment_status: 'PENDING' } }, 'esperando'],
+    ] as const)('%s: no activa el plan y dice por qué', async (_c, respuesta, estado) => {
+      const p = await duena();
+      const c = await cobro(p.acceso);
+      bold = respuesta;
+      const r = (await (
+        await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden })
+      ).json()) as { estado: string; motivo: string };
+      expect(r.estado).toBe(estado);
+      expect(r.motivo.length).toBeGreaterThan(10);
+      expect((await planDeLaFinca(p))?.plan).toBe('gratuito');
+    });
+
+    it('Bold caído: el pago sigue esperando y se puede verificar después', async () => {
+      const p = await duena();
+      const c = await cobro(p.acceso);
+      bold = { status: 500, cuerpo: {} };
+      const r = await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
+      expect(await r.json()).toMatchObject({ estado: 'esperando' });
+      bold = aprobado();
+      const despues = await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
+      expect(await despues.json()).toMatchObject({ estado: 'aprobado' });
+    });
+
+    it('CA1: solo el propietario paga; un operario no', async () => {
+      const { cuerpo } = await invitar('operario');
+      const o = await sesionDe('google-operario');
+      await conToken('/api/core/invitaciones/aceptar', o.acceso, { codigo: cuerpo.codigo });
+      const renovada = (await (
+        await post('/api/core/auth/refrescar', { refresh: o.refresh, org_id: ORG })
+      ).json()) as Sesion;
+      const r = await pagar('/api/core/pago/crear', renovada.acceso, {
+        plan: 'finca',
+        vuelta: VUELTA_PAGO,
+      });
+      expect(r.status).toBe(403);
+    });
+
+    it.each([
+      ['sin sesión', false, { plan: 'finca', vuelta: VUELTA_PAGO }, 401],
+      ['un plan sin cobro en línea', true, { plan: 'exportador', vuelta: VUELTA_PAGO }, 400],
+      ['el gratuito', true, { plan: 'gratuito', vuelta: VUELTA_PAGO }, 400],
+      [
+        'una vuelta fuera del cuaderno',
+        true,
+        { plan: 'finca', vuelta: 'https://otro.test/x' },
+        400,
+      ],
+      ['una vuelta a otra ruta', true, { plan: 'finca', vuelta: `${APP}/admin/` }, 400],
+    ] as const)('%s se rechaza', async (_c, conSesion, cuerpo, estado) => {
+      const acceso = conSesion ? (await duena()).acceso : null;
+      expect((await pagar('/api/core/pago/crear', acceso, cuerpo)).status).toBe(estado);
+    });
+
+    it('nadie confirma el pago de otra finca', async () => {
+      const p = await duena();
+      const c = await cobro(p.acceso);
+      const otra = await sesionDe('google-otra-finca');
+      const ORG2 = '0199a1b2-0000-7000-8000-0000000000e2';
+      await conToken('/api/core/organizaciones', otra.acceso, {
+        id: ORG2,
+        nombre: 'Finca Ensayo Dos',
+      });
+      const suya = (await (
+        await post('/api/core/auth/refrescar', { refresh: otra.refresh, org_id: ORG2 })
+      ).json()) as Sesion;
+      bold = aprobado();
+      const r = await pagar('/api/core/pago/confirmar', suya.acceso, { orden: c.orden });
+      expect(r.status).toBe(404);
+      expect((await planDeLaFinca(p))?.plan).toBe('gratuito');
+    });
+
+    it('la conciliación activa el plan de quien pagó y no volvió a la pantalla', async () => {
+      const p = await duena();
+      const c = await cobro(p.acceso);
+      const proveedor = proveedorDePagoDe(env, boldFalso);
+      // Sin noticias todavía: no cierra nada.
+      expect(await conciliarPagos(db, proveedor, reloj)).toEqual({ revisados: 1, cerrados: 0 });
+      bold = aprobado();
+      expect(await conciliarPagos(db, proveedor, reloj)).toEqual({ revisados: 1, cerrados: 1 });
+      expect((await planDeLaFinca(p))?.plan).toBe('finca');
+      // Ya no queda nada esperando: la siguiente vuelta es una sola lectura.
+      expect(await conciliarPagos(db, proveedor, reloj)).toEqual({ revisados: 0, cerrados: 0 });
+      // Y confirmar después contesta lo mismo, sin preguntar otra vez.
+      const antes = consultas.length;
+      const r = await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
+      expect(await r.json()).toMatchObject({ estado: 'aprobado', plan: 'finca' });
+      expect(consultas).toHaveLength(antes);
+    });
+
+    it('un día sin noticias: el cobro queda vencido y el plan no cambia', async () => {
+      const p = await duena();
+      await cobro(p.acceso);
+      reloj += 24 * 3600 * 1000 + 1;
+      const proveedor = proveedorDePagoDe(env, boldFalso);
+      expect(await conciliarPagos(db, proveedor, reloj)).toEqual({ revisados: 1, cerrados: 1 });
+      const fila = await db.prepare('SELECT estado, producto, proveedor FROM pago').first();
+      expect(fila).toEqual({ estado: 'vencido', producto: 'agro', proveedor: 'bold' });
+    });
+
+    it('sin llaves, la conciliación no consulta nada', async () => {
+      expect(await conciliarPagos(db, null, reloj)).toEqual({ revisados: 0, cerrados: 0 });
+      expect(consultas).toEqual([]);
+    });
+
+    it('sin las llaves de Bold, pagar no está disponible y nada más cambia', async () => {
+      const { BOLD_SECRETA: _sinSecreta, ...sinSecreta } = env;
+      env = sinSecreta;
+      const p = await duena();
+      const r = await pagar('/api/core/pago/crear', p.acceso, {
+        plan: 'finca',
+        vuelta: VUELTA_PAGO,
+      });
+      expect(r.status).toBe(503);
+      expect(await r.json()).toMatchObject({ estado: 'no-disponible' });
     });
   });
 });

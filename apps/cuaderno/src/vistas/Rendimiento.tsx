@@ -12,6 +12,7 @@ import {
   type GrupoDeRendimiento,
   rendimientoDeLaFinca,
 } from '../almacen/rendimiento.ts';
+import { TablaDeslizable } from '../componentes/TablaDeslizable.tsx';
 import { RendimientoPorPersona } from './RendimientoPorPersona.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 
@@ -158,49 +159,51 @@ function TablaDeRendimiento(props: { grupos: GrupoDeRendimiento[] }) {
       {filas.length === 0 ? (
         <p class="ayuda">Nada con estos filtros.</p>
       ) : (
-        <table class="tabla-rendimiento">
-          <thead>
-            <tr>
-              <th scope="col">Nave y ciclo</th>
-              <th scope="col">Por m²</th>
-              <th scope="col">Por planta</th>
-              <th scope="col">Descarte</th>
-              <th scope="col">Vendible</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filas.map((f) => (
-              <tr key={f.clave} data-prueba="rendimiento-fila">
-                <th scope="row">
-                  {f.areas}
-                  <span class="detalle-insumo">
-                    {f.cultivo}
-                    {f.ciclo
-                      ? ` ${f.ciclo.variedad}, desde ${fechaCorta(f.ciclo.trasplante)}${f.ciclo.estado === 'cerrado' ? ' (cerrado)' : ''}`
-                      : ''}{' '}
-                    · {f.cosechas} {f.cosechas === 1 ? 'cosecha' : 'cosechas'}
-                  </span>
-                </th>
-                <td>
-                  {formatearCantidad(f.resultado.porM2)} {f.unidad}/m²
-                </td>
-                <td>
-                  {f.resultado.porPlanta === null
-                    ? 'sin dato'
-                    : `${formatearCantidad(f.resultado.porPlanta, 3)} ${f.unidad}`}
-                </td>
-                <td>
-                  {f.resultado.descartePct === null
-                    ? '—'
-                    : `${formatearCantidad(f.resultado.descartePct, 1)} %`}
-                </td>
-                <td>
-                  {formatearCantidad(f.resultado.comercial)} {f.unidad}
-                </td>
+        <TablaDeslizable nombre="Tabla de rendimiento por nave">
+          <table class="tabla-rendimiento">
+            <thead>
+              <tr>
+                <th scope="col">Nave y ciclo</th>
+                <th scope="col">Por m²</th>
+                <th scope="col">Por planta</th>
+                <th scope="col">Descarte</th>
+                <th scope="col">Vendible</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filas.map((f) => (
+                <tr key={f.clave} data-prueba="rendimiento-fila">
+                  <th scope="row">
+                    {f.areas}
+                    <span class="detalle-insumo">
+                      {f.cultivo}
+                      {f.ciclo
+                        ? ` ${f.ciclo.variedad}, desde ${fechaCorta(f.ciclo.trasplante)}${f.ciclo.estado === 'cerrado' ? ' (cerrado)' : ''}`
+                        : ''}{' '}
+                      · {f.cosechas} {f.cosechas === 1 ? 'cosecha' : 'cosechas'}
+                    </span>
+                  </th>
+                  <td>
+                    {formatearCantidad(f.resultado.porM2)} {f.unidad}/m²
+                  </td>
+                  <td>
+                    {f.resultado.porPlanta === null
+                      ? 'sin dato'
+                      : `${formatearCantidad(f.resultado.porPlanta, 3)} ${f.unidad}`}
+                  </td>
+                  <td>
+                    {f.resultado.descartePct === null
+                      ? '—'
+                      : `${formatearCantidad(f.resultado.descartePct, 1)} %`}
+                  </td>
+                  <td>
+                    {formatearCantidad(f.resultado.comercial)} {f.unidad}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TablaDeslizable>
       )}
       {filas.some((f) => f.resultado.porPlanta === null) && (
         <p class="ayuda">«Sin dato» por planta: el ciclo no tiene anotado cuántas plantas tiene.</p>

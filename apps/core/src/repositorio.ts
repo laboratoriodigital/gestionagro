@@ -180,6 +180,8 @@ export interface EntradaDelDirectorio {
   tipo: TipoDeOrganizacion;
   /** Plan de la organización: el teléfono lo usa para lo que depende del plan (fotos, HU-E3.11). */
   plan: 'gratuito' | 'finca' | 'exportador' | 'cadena';
+  /** Hasta cuándo vale un plan pagado (HU-E0.7); null si no vence. */
+  plan_vence: string | null;
   rol: Rol;
   celda_id: string;
   shard: string;
@@ -191,21 +193,30 @@ export interface EntradaDelDirectorio {
 /**
  * Directorio de un usuario: sus organizaciones con la celda y el shard de cada una. Se consulta
  * solo al iniciar sesión; después, celda y shard viajan en el token (§5.4).
+ *
+ * Un plan pagado que ya venció se entrega como «gratuito» (HU-E0.7): vence al leerlo, sin tarea
+ * programada, y la finca no pierde nada, porque el plan solo decide qué funciones se ven.
  */
 export async function directorioDeUsuario(
   db: BaseD1,
   usuarioId: string,
+  ahora: number = Date.now(),
 ): Promise<EntradaDelDirectorio[]> {
+  const hoy = new Date(ahora).toISOString();
+  const vencido = 'o.plan_vence IS NOT NULL AND o.plan_vence <= ?';
   const { results } = await db
     .prepare(
-      `SELECT o.id AS org_id, o.nombre, o.tipo, o.plan, m.rol, o.celda_id, o.shard, o.anillo, c.url_api
+      `SELECT o.id AS org_id, o.nombre, o.tipo,
+              CASE WHEN ${vencido} THEN 'gratuito' ELSE o.plan END AS plan,
+              CASE WHEN ${vencido} THEN NULL ELSE o.plan_vence END AS plan_vence,
+              m.rol, o.celda_id, o.shard, o.anillo, c.url_api
          FROM membresia m
          JOIN organizacion o ON o.id = m.org_id
          JOIN celda c ON c.id = o.celda_id
         WHERE m.usuario_id = ?
         ORDER BY o.creado, o.id`,
     )
-    .bind(usuarioId)
+    .bind(hoy, hoy, usuarioId)
     .all<EntradaDelDirectorio>();
   return results;
 }

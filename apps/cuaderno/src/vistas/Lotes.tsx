@@ -15,7 +15,11 @@ import {
   type Despacho,
   leerDespachos,
 } from '../almacen/despachos.ts';
-import { disponibilidadCsv } from '../almacen/disponibilidad.ts';
+import {
+  disponibilidadCsv,
+  filasDeDisponibilidad,
+  lotesSinCultivo,
+} from '../almacen/disponibilidad.ts';
 import {
   armarLote,
   type CosechaParaLote,
@@ -323,10 +327,21 @@ export function Lotes() {
         <div data-prueba="disponibilidad">
           <h2>Para la tienda en línea</h2>
           <p class="ayuda">
-            Un archivo con lo que queda de cada lote, para actualizar el catálogo de la tienda sin
-            volver a contar. Se abre en Excel o en la hoja de la tienda.
+            Un archivo con lo que queda por vender, listo para la hoja «Catálogo» de la tienda: una
+            fila por producto y categoría, en unidades de 1 kg (o de la unidad de la cosecha), con
+            sus lotes. El precio va vacío: ponlo tú en la hoja, porque la tienda no publica un
+            producto sin precio.
           </p>
-          {lotes.some((l) => l.saldo > 0) ? (
+          {lotesSinCultivo(lotes) > 0 && (
+            <p class="aviso" data-prueba="lotes-sin-cultivo">
+              {lotesSinCultivo(lotes) === 1
+                ? '1 lote con saldo no tiene cultivo y no va en el archivo'
+                : `${lotesSinCultivo(lotes)} lotes con saldo no tienen cultivo y no van en el archivo`}
+              : su nave no tenía un ciclo iniciado cuando se cosechó. Inicia los ciclos en «Áreas»
+              para que las próximas cosechas lo lleven.
+            </p>
+          )}
+          {filasDeDisponibilidad(lotes, estado.finca.nombre).length > 0 ? (
             <button
               type="button"
               class="secundario"
@@ -343,7 +358,11 @@ export function Lotes() {
               Descargar disponibilidad
             </button>
           ) : (
-            <p class="ayuda">No queda nada por vender en los lotes.</p>
+            <p class="ayuda">
+              {lotes.some((l) => l.saldo > 0)
+                ? 'No hay productos con cultivo para la tienda.'
+                : 'No queda nada por vender en los lotes.'}
+            </p>
           )}
         </div>
       )}

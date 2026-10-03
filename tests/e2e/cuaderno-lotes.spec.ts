@@ -90,6 +90,12 @@ for (const f of FINCAS_DE_PRUEBA) {
     await page.getByRole('button', { name: 'Guardar cambios' }).click();
     await expect(lote.locator('.codigo-lote')).toHaveText(`M-${hoy.ddmm}-1`);
     await expect(lote).toContainText('30,5 kg');
+    // La cosecha que salió del lote vuelve a estar libre, en «Nuevo lote». Mirarla aquí sin
+    // cambiar de pestaña dependía de alcanzar el formulario mientras se cerraba.
+    await page
+      .locator('[data-prueba="pestanas-lotes"]')
+      .getByRole('button', { name: 'Nuevo lote', exact: true })
+      .click();
     await expect(page.getByLabel(`${a2.nombre} · ${hoy.corta} · Primera · 12 kg`)).toBeVisible();
   });
 }
@@ -207,37 +213,56 @@ test('revisión del dueño: otro lote con una cosecha nueva, y sumarla a un lote
   );
 });
 
-test('HU-E6.5 · CA1: descargar la disponibilidad para la tienda, sin señal, con lo que queda de cada lote', async ({
+test('HU-E6.5 · CA1: descargar la disponibilidad para la tienda, sin señal, con las columnas de su catálogo', async ({
   page,
   context,
 }) => {
   const f = FINCAS_DE_PRUEBA[0];
-  const a1 = f?.areas[0];
-  if (!f || !a1) throw new Error('falta la finca de prueba');
+  const [a1, a2] = f?.areas ?? [];
+  if (!f || !a1 || !a2) throw new Error('falta la finca de prueba');
   await configurar(page, f);
+  // La segunda nave tiene ciclo: su cosecha lleva el cultivo. La primera no.
+  const trasplante = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  await page.getByRole('button', { name: `Iniciar ciclo en ${a2.nombre}` }).click();
+  await page.getByLabel('Cultivo', { exact: true }).selectOption({ label: 'Otro cultivo…' });
+  await page.getByLabel('Nombre del cultivo').fill(f.cultivo.nombre);
+  await page.getByLabel('Nombre de la variedad').fill(f.cultivo.variedad);
+  await page.getByLabel('Fecha de trasplante').fill(trasplante);
+  await page.getByRole('button', { name: 'Iniciar ciclo', exact: true }).click();
+  await expect(page.locator('[data-prueba="area"]').filter({ hasText: a2.nombre })).toContainText(
+    f.cultivo.nombre,
+  );
   await context.setOffline(true);
   await cosechar(page, a1.nombre, '30,5');
+  await cosechar(page, a2.nombre, '12,5');
   await nav(page).getByRole('link', { name: 'Lotes' }).click();
   const hoy = hoyEnColombia();
+  const pestana = (nombre: string) =>
+    page
+      .locator('[data-prueba="pestanas-lotes"]')
+      .getByRole('button', { name: nombre, exact: true })
+      .click();
   // Sin lotes con saldo no hay nada que descargar.
-  await page
-    .locator('[data-prueba="pestanas-lotes"]')
-    .getByRole('button', { name: 'Para la tienda', exact: true })
-    .click();
+  await pestana('Para la tienda');
   await expect(page.locator('[data-prueba="disponibilidad"]')).toContainText(
     'No queda nada por vender en los lotes.',
   );
-  await page
-    .locator('[data-prueba="pestanas-lotes"]')
-    .getByRole('button', { name: 'Nuevo lote', exact: true })
-    .click();
-
-  await page.getByLabel(`${a1.nombre} · ${hoy.corta} · Primera · 30,5 kg`).check();
-  await page.getByRole('button', { name: 'Armar lote' }).click();
-  await page
-    .locator('[data-prueba="pestanas-lotes"]')
-    .getByRole('button', { name: 'Para la tienda', exact: true })
-    .click();
+  for (const [area, kg] of [
+    [a1.nombre, '30,5'],
+    [a2.nombre, '12,5'],
+  ] as const) {
+    await pestana('Nuevo lote');
+    await page.getByLabel(new RegExp(`^${area} · ${hoy.corta} · Primera · ${kg} kg`)).check();
+    await page.getByRole('button', { name: 'Armar lote' }).click();
+    await expect(page.locator('[data-prueba="lote"]').filter({ hasText: `${kg} kg` })).toHaveCount(
+      1,
+    );
+  }
+  await pestana('Para la tienda');
+  // El lote sin cultivo no va: no se le inventa un nombre (P1), y la pantalla lo dice.
+  await expect(page.locator('[data-prueba="lotes-sin-cultivo"]')).toContainText(
+    '1 lote con saldo no tiene cultivo y no va en el archivo',
+  );
   const [descarga] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Descargar disponibilidad' }).click(),
@@ -246,12 +271,16 @@ test('HU-E6.5 · CA1: descargar la disponibilidad para la tienda, sin señal, co
     /^disponibilidad-finca-ensayo-uno-\d{4}-\d{2}-\d{2}\.csv$/,
   );
   const texto = readFileSync(await descarga.path(), 'utf8');
-  const [cabecera, fila] = texto.replace(/^﻿/, '').split('\r\n');
-  expect(cabecera).toBe(
-    'producto,categoria,disponible,unidad,lote,cosechado_desde,cosechado_hasta,finca',
+  const filas = texto.replace(/^﻿/, '').trimEnd().split('\r\n');
+  expect(filas[0]).toBe(
+    'ID,Nombre,Categoría,Formato,Precio,Precio antes,Stock,Umbral bajo,Variantes,Imágenes,Descripción,Destacado,Activo,Referencia',
   );
-  // Sin ciclo no se sabe el cultivo: el producto va vacío, no inventado (P1).
-  expect(fila).toMatch(new RegExp(`^,Primera,30\\.5,kg,M-${hoy.ddmm}-1,\\d{4}-\\d{2}-\\d{2},`));
-  expect(fila?.endsWith(`,${f.finca.nombre}`)).toBe(true);
+  expect(filas).toHaveLength(2);
+  // 12,5 kg son 12 unidades de 1 kg; el precio lo pone quien vende.
+  expect(filas[1]).toMatch(
+    new RegExp(
+      `^[a-z0-9-]+-primera,${f.cultivo.nombre} \\(Primera\\),${f.cultivo.nombre},1 kg,,,12,,,,Cosechado en ${f.finca.nombre} el \\d{2}/\\d{2}/\\d{4}\\.,No,Sí,[A-Z]-${hoy.ddmm}-\\d$`,
+    ),
+  );
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });

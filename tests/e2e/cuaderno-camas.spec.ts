@@ -37,7 +37,7 @@ test('plan Finca: aplicar en una cama bloquea cosechar su nave, no la cama vecin
     await page.getByLabel('Tamaño (m²)').fill('40');
     await page.getByRole('button', { name: 'Guardar' }).click();
     await expect(page.getByRole('list', { name: `Camas y surcos de ${nave}` })).toContainText(
-      `Cama ${n} · Cama · 40 m²`,
+      `Cama ${n} · 40 m²`,
     );
   }
   await nav(page).getByRole('link', { name: 'Personas' }).click();

@@ -16,6 +16,7 @@ import {
 } from '../almacen/rendimiento-operario.ts';
 import { leerSesion, planDeLaFinca, rolEnLaFinca } from '../almacen/sesion.ts';
 import { CampoSeleccion } from '../componentes/Campo.tsx';
+import { TablaDeslizable } from '../componentes/TablaDeslizable.tsx';
 
 /** Quien administra la finca (§9). Sin finca en la nube, el teléfono es de quien lo configuró. */
 const ADMINISTRAN = [null, 'propietario', 'supervisor'];
@@ -66,34 +67,36 @@ export function RendimientoPorPersona(props: { fincaId: string }) {
           ) : datos.personas.length === 0 ? (
             <p class="ayuda">No hay cosechas ni labores con personas en este periodo.</p>
           ) : (
-            <table class="tabla-rendimiento" data-prueba="tabla-por-persona">
-              <thead>
-                <tr>
-                  <th scope="col">Persona</th>
-                  <th scope="col">Cosecha por hora</th>
-                  <th scope="col">Horas en labores</th>
-                </tr>
-              </thead>
-              <tbody>
-                {datos.personas.map((p) => (
-                  <tr key={p.personaId} data-prueba="fila-persona">
-                    <th scope="row">{p.nombre}</th>
-                    <td>
-                      {p.cosecha.length === 0
-                        ? '—'
-                        : p.cosecha.map((c) => (
-                            <span class="detalle-insumo" key={c.unidad}>
-                              {c.porHora === null
-                                ? `sin horas (${c.unidad})`
-                                : `${formatearCantidad(c.porHora)} ${c.unidad}/h · ${formatearCantidad(c.cantidad)} ${c.unidad} en ${formatearCantidad(c.horas)} h`}
-                            </span>
-                          ))}
-                    </td>
-                    <td>{formatearCantidad(p.horasLabor)} h</td>
+            <TablaDeslizable nombre="Rendimiento por persona">
+              <table class="tabla-rendimiento" data-prueba="tabla-por-persona">
+                <thead>
+                  <tr>
+                    <th scope="col">Persona</th>
+                    <th scope="col">Cosecha por hora</th>
+                    <th scope="col">Horas en labores</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {datos.personas.map((p) => (
+                    <tr key={p.personaId} data-prueba="fila-persona">
+                      <th scope="row">{p.nombre}</th>
+                      <td>
+                        {p.cosecha.length === 0
+                          ? '—'
+                          : p.cosecha.map((c) => (
+                              <span class="detalle-insumo" key={c.unidad}>
+                                {c.porHora === null
+                                  ? `sin horas (${c.unidad})`
+                                  : `${formatearCantidad(c.porHora)} ${c.unidad}/h · ${formatearCantidad(c.cantidad)} ${c.unidad} en ${formatearCantidad(c.horas)} h`}
+                              </span>
+                            ))}
+                      </td>
+                      <td>{formatearCantidad(p.horasLabor)} h</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TablaDeslizable>
           )}
           {datos && (datos.cosechasSinHoras > 0 || datos.cosechasSinPersona > 0) && (
             <p class="aviso-ecologico" data-prueba="cosechas-fuera">

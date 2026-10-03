@@ -20,9 +20,11 @@ import {
   type Sesion,
   salirDeLaCuenta,
   urlDelCore,
+  vencimientoDelPlan,
 } from '../almacen/sesion.ts';
 import { sesionDeLaFinca } from '../almacen/vinculo.ts';
 import { AceptarPolitica, urlDeEntrada } from '../componentes/AceptarPolitica.tsx';
+import { fechaCorta } from '../formato.ts';
 import { FincaEnLaNube } from './FincaEnLaNube.tsx';
 import { FincasDelTelefono, irAFinca, usarFincasLocales } from './FincasDelTelefono.tsx';
 import { TusDispositivos } from './TusDispositivos.tsx';
@@ -155,8 +157,10 @@ export function Cuenta() {
           </p>
           {sesion.org_id && (
             <p data-prueba="cuenta-plan">
-              Plan de esta finca: <strong>{nombreDelPlan(planDeLaFinca(sesion))}</strong> ·{' '}
-              <a href="/agro/app/planes/">Ver los planes</a>
+              Plan de esta finca: <strong>{nombreDelPlan(planDeLaFinca(sesion))}</strong>
+              {vencimientoDelPlan(sesion) &&
+                ` hasta el ${fechaCorta(vencimientoDelPlan(sesion) ?? '')}`}{' '}
+              · <a href="/agro/app/planes/">Ver los planes</a>
             </p>
           )}
           {sesion.organizaciones.length > 0 && (
@@ -183,7 +187,7 @@ export function Cuenta() {
           <TusDispositivos enLinea={enLinea} />
           <h2>Planes</h2>
           <p>
-            Mira qué trae cada plan y cuánto costará.{' '}
+            Mira qué trae cada plan y cuánto cuesta.{' '}
             <a href="/agro/app/planes/" data-prueba="ver-planes">
               Ver los planes
             </a>

@@ -77,6 +77,11 @@ describe('planes con precio visible (HU-E0.6)', () => {
     // Logo en la etiqueta QR: del plan Finca.
     expect(propio('finca', 'logo de tu finca')).toBe(funcionActiva('marca_en_etiqueta', 'finca'));
     expect(incluye('gratuito', 'logo')).toBe(funcionActiva('marca_en_etiqueta', 'gratuito'));
+    // Calendario impreso: del plan Finca; verlo en el teléfono sigue gratis.
+    expect(propio('finca', 'Calendario de carencias impreso')).toBe(
+      funcionActiva('calendario_imprimible', 'finca'),
+    );
+    expect(incluye('gratuito', 'impreso')).toBe(funcionActiva('calendario_imprimible', 'gratuito'));
     // Calendario de carencias: hoy gratis.
     expect(incluye('gratuito', 'Calendario de carencias')).toBe(
       funcionActiva('calendario_carencias', 'gratuito'),
