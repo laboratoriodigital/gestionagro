@@ -126,8 +126,14 @@ export async function analizarArchivo(
   const [aqui] = await db.finca.toArray();
   if (aqui && aqui.id !== archivo.finca_id) {
     const nombre = archivo.tablas.finca.filas.find((f) => f.id === archivo.finca_id)?.nombre;
+    // Dos fincas con el mismo nombre confunden: se dice que son distintas (revisión del dueño,
+    // 3 oct 2026), y en todo caso cómo cargar el respaldo sin mezclarlas.
+    const cual =
+      nombre === aqui.nombre
+        ? `el respaldo es de otra finca, aunque también se llama «${nombre}»`
+        : `el respaldo es de otra finca${nombre ? ` («${nombre}»)` : ''}; este teléfono ya tiene «${aqui.nombre}»`;
     motivos.push(
-      `el respaldo es de otra finca${nombre ? ` («${nombre}»)` : ''}; este teléfono ya tiene «${aqui.nombre}»`,
+      `${cual}. Para no mezclarlas, ábrelo en un cuaderno vacío: otro navegador o una ventana de incógnito`,
     );
   }
   if (motivos.length > 0) throw new ErrorDeImportacion(motivos);
