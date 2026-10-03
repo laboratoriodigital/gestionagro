@@ -10,6 +10,7 @@ import { leerCiclos } from '../almacen/ciclos.ts';
 import { pendientesDeSubir, ultimosRegistros } from '../almacen/consultas.ts';
 import { leerFinca } from '../almacen/finca.ts';
 import { leerPersonas } from '../almacen/personas.ts';
+import { Paginador, usarPaginacion } from '../componentes/Paginador.tsx';
 import { resumenDe } from '../componentes/resumen.ts';
 import { fechaHora } from '../formato.ts';
 import { guardarLecturaPendiente } from '../lectura-pendiente.ts';
@@ -22,26 +23,54 @@ import { FormularioRiego } from './FormularioRiego.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 import { SoloConsulta, usarPermisos } from './usarPermisos.tsx';
 
+/**
+ * Los registros de la finca, del más reciente al más viejo, por páginas y con filtro por tipo
+ * (revisión del dueño, 3 oct 2026: antes solo se veían los últimos 10).
+ */
 function UltimosRegistros(props: {
   registros: Registro[];
   areas: Area[];
   personas: Map<string, string>;
   pendientes: Set<string>;
 }) {
+  const [filtro, setFiltro] = useState('');
+  const lista = filtro ? props.registros.filter((r) => r.tipo === filtro) : props.registros;
+  const p = usarPaginacion(lista.length, 10);
   if (props.registros.length === 0) return <p class="ayuda">Todavía no hay registros.</p>;
   const nombre = (id: string | undefined) => props.areas.find((a) => a.id === id)?.nombre ?? 'Área';
   return (
-    <ul class="areas" data-prueba="ultimos-registros">
-      {props.registros.map((r) => (
-        <li class="area" key={r.id} data-prueba={`registro-${r.tipo}`}>
-          <p class="area-titulo">
-            <strong>{nombre(r.area_ids[0])}</strong> · {fechaHora(r.instante_evento)}
-          </p>
-          <p class="detalle-insumo">{resumenDe(r, props.personas)}</p>
-          {props.pendientes.has(r.id) && <p class="ayuda">Solo en este teléfono</p>}
-        </li>
-      ))}
-    </ul>
+    <>
+      <div class="campo">
+        <label for="ultimos-tipo">Mostrar</label>
+        <select
+          id="ultimos-tipo"
+          value={filtro}
+          onChange={(e) => {
+            setFiltro((e.currentTarget as HTMLSelectElement).value);
+            p.reiniciar();
+          }}
+        >
+          <option value="">Todos los tipos</option>
+          {TIPOS.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.titulo}
+            </option>
+          ))}
+        </select>
+      </div>
+      <ul class="lista-plana" data-prueba="ultimos-registros">
+        {lista.slice(p.desde, p.hasta).map((r) => (
+          <li key={r.id} data-prueba={`registro-${r.tipo}`}>
+            <p class="area-titulo">
+              <strong>{nombre(r.area_ids[0])}</strong> · {fechaHora(r.instante_evento)}
+            </p>
+            <p class="detalle-insumo">{resumenDe(r, props.personas)}</p>
+            {props.pendientes.has(r.id) && <p class="ayuda">Solo en este teléfono</p>}
+          </li>
+        ))}
+      </ul>
+      <Paginador id="registrar" total={lista.length} p={p} que="registros" />
+    </>
   );
 }
 
@@ -89,6 +118,7 @@ export function Registrar() {
           db,
           fincaId,
           TIPOS.map((t) => t.id),
+          Number.POSITIVE_INFINITY,
         ),
       );
       setPendientes(await pendientesDeSubir(db));
@@ -161,7 +191,7 @@ export function Registrar() {
           )}
         </>
       )}
-      <h2>Últimos registros</h2>
+      <h2>Registros de la finca</h2>
       <UltimosRegistros
         registros={registros}
         areas={areas}

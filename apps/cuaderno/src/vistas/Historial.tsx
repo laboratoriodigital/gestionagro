@@ -24,6 +24,7 @@ import { idDispositivo } from '../almacen/dispositivo.ts';
 import { leerFinca } from '../almacen/finca.ts';
 import { leerPersonas } from '../almacen/personas.ts';
 import { CampoSeleccion } from '../componentes/Campo.tsx';
+import { Paginador, usarPaginacion } from '../componentes/Paginador.tsx';
 import { resumenDe } from '../componentes/resumen.ts';
 import { fechaHora } from '../formato.ts';
 import { FormularioAplicacion } from './FormularioAplicacion.tsx';
@@ -144,7 +145,6 @@ export function Historial() {
   const [dispositivo, setDispositivo] = useState('');
   const [entradas, setEntradas] = useState<EntradaDeHistorial[] | null>(null);
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
-  const [visibles, setVisibles] = useState(POR_PAGINA);
   const [abiertas, setAbiertas] = useState<Set<string>>(new Set());
   const [corrigiendo, setCorrigiendo] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -176,10 +176,12 @@ export function Historial() {
         }),
       );
       setPendientes(await pendientesDeSubir(db));
-      setVisibles(POR_PAGINA);
     })();
   };
   useEffect(consultar, [finca?.id, filtro]);
+  const paginas = usarPaginacion(entradas?.length ?? 0, POR_PAGINA);
+  // Otro filtro, otra lista: se vuelve a la primera página. Corregir un registro no la cambia.
+  useEffect(() => paginas.reiniciar(), [filtro]);
 
   if (estado.cargando) return <p>Abriendo tu cuaderno…</p>;
   if (!finca) return <SinFinca />;
@@ -262,7 +264,7 @@ export function Historial() {
             {entradas.length === 1 ? '1 registro' : `${entradas.length} registros`}
           </p>
           <ul class="areas" data-prueba="historial">
-            {entradas.slice(0, visibles).map((e) => {
+            {entradas.slice(paginas.desde, paginas.hasta).map((e) => {
               const r = e.registro;
               return (
                 <li key={r.id} class="area" data-prueba={`historial-${r.tipo}`}>
@@ -318,17 +320,7 @@ export function Historial() {
               );
             })}
           </ul>
-          {visibles < entradas.length && (
-            <div class="acciones">
-              <button
-                type="button"
-                class="secundario"
-                onClick={() => setVisibles(visibles + POR_PAGINA)}
-              >
-                Ver más ({entradas.length - visibles} restantes)
-              </button>
-            </div>
-          )}
+          <Paginador id="historial" total={entradas.length} p={paginas} que="registros" />
         </>
       )}
     </section>

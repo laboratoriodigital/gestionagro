@@ -226,7 +226,16 @@ test('CA1: filtra por área, tipo y fechas, y 90 días cargan en menos de 1 s co
   const ms = Math.round(await medida);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   expect(ms, `90 días tardaron ${ms} ms`).toBeLessThan(1000);
-  await expect(page.getByRole('button', { name: 'Ver más (1300 restantes)' })).toBeVisible();
+  // Por páginas (revisión del dueño, 3 oct 2026): 50 por página, y se puede ir a la siguiente.
+  const paginador = page.locator('[data-prueba="paginador-historial"]');
+  await expect(paginador).toContainText('Del 1 al 50 de 1350 registros');
+  await expect(paginador).toContainText('Página 1 de 27');
+  await paginador.getByRole('button', { name: 'Siguiente' }).click();
+  await expect(paginador).toContainText('Del 51 al 100 de 1350 registros');
+  await expect(items(page)).toHaveCount(50);
+  await paginador.getByLabel('Ver por página').selectOption('100');
+  await expect(paginador).toContainText('Página 1 de 14');
+  await expect(items(page)).toHaveCount(100);
 
   const area = f.areas[0]?.nombre ?? '';
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area });

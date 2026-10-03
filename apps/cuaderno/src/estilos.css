@@ -568,3 +568,27 @@ a.boton {
   font-size: 1.25rem;
   margin: var(--espacio-1) 0;
 }
+
+/* Paginador (revisión del dueño, 3 oct 2026). */
+.paginador {
+  display: grid;
+  gap: var(--espacio-2);
+  margin-block: var(--espacio-3);
+}
+.paginador .ayuda {
+  margin: 0;
+}
+.paginador-botones {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+}
+.paginador-pagina {
+  font-weight: 600;
+  text-align: center;
+}
+.paginador-tamano {
+  max-width: 12rem;
+  margin: 0;
+}
