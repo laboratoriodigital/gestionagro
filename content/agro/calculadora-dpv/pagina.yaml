@@ -19,8 +19,8 @@ preguntas:
     respuesta: "El DPV del aire usa solo la temperatura y la humedad del aire. El de la hoja usa además la temperatura de la hoja, que en un día soleado puede estar más caliente o más fría que el aire. Es más preciso, pero necesita un termómetro infrarrojo; si no lo tienes, el DPV del aire basta para manejar la nave."
   - pregunta: "¿Por qué otra calculadora me da un número un poco distinto?"
     respuesta: "Hay varias fórmulas para la presión de vapor de saturación y cada una redondea distinto. Esta usa la ecuación 11 de la guía FAO-56, que es la referencia en riego. Las diferencias entre fórmulas suelen ser de centésimas de kPa y no cambian la decisión."
-  - pregunta: "¿Sirve para flores, pimentón u otros cultivos?"
-    respuesta: "El cálculo sirve para cualquier cultivo. El rango de referencia, por ahora, solo está para tomate en producción; para otros cultivos la calculadora da el valor sin indicación hasta que tengamos un rango con su fuente."
+  - pregunta: "¿Sirve para rosas, pimentón, pepino u otros cultivos?"
+    respuesta: "El cálculo sirve para cualquier cultivo. Hay rango de referencia, cada uno con su fuente, para tomate, rosa, pimentón y pepino en producción. Para otros cultivos la calculadora da el valor sin indicación, hasta que tengamos un rango con su fuente: no inventa uno."
   - pregunta: "¿Los datos que escribo se envían a algún lado?"
     respuesta: "No. La temperatura y la humedad que escribes no salen de tu teléfono: el cálculo se hace en la página. Lo único que se envía es un conteo anónimo de cuántas veces se abrió y se usó la calculadora, sin datos personales ni valores."
 

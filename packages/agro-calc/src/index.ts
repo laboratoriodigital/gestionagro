@@ -25,6 +25,7 @@ export {
   CULTIVOS_DPV,
   type CultivoDpv,
   clasificarDpv,
+  cultivoDpvDe,
   type EtapaDpv,
   type Indicacion,
   type NivelDpv,

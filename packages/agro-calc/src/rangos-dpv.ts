@@ -15,6 +15,8 @@ export interface EtapaDpv {
 export interface CultivoDpv {
   id: string;
   nombre: string;
+  /** Otros nombres con que se anota el cultivo, sin tildes ni mayúsculas. */
+  sinonimos: readonly string[];
   etapas: readonly EtapaDpv[];
 }
 
@@ -66,6 +68,27 @@ export function clasificarDpv(dpvKPa: number, etapa: EtapaDpv): Indicacion {
             ? 'algo-alto'
             : 'alto';
   return { nivel, ...INDICACIONES[nivel] };
+}
+
+/** Sin tildes, en minúsculas y con un solo espacio: «Pimentón  Rojo» → «pimenton rojo». */
+const llano = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * El cultivo del catálogo para lo que el productor anotó en el ciclo: «Tomate Chonto orgánico» es
+ * tomate, «Pimiento rojo» es pimentón. Vale si el nombre anotado empieza por el nombre o un
+ * sinónimo, palabra completa. Sin coincidencia, undefined: el DPV se da sin indicación (P1).
+ */
+export function cultivoDpvDe(anotado: string): CultivoDpv | undefined {
+  const texto = llano(anotado);
+  return CULTIVOS_DPV.find((c) =>
+    [c.nombre, ...c.sinonimos].map(llano).some((s) => texto === s || texto.startsWith(`${s} `)),
+  );
 }
 
 export function buscarEtapa(cultivoId: string, etapaId: string): EtapaDpv | undefined {

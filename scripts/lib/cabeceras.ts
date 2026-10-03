@@ -40,14 +40,53 @@ export function cspDelCuaderno(config: ConfigCeldas): string {
   ].join('; ');
 }
 
+/**
+ * Páginas públicas del sitio (revisión de seguridad, 3 oct 2026: se servían sin cabeceras).
+ * Las calculadoras traen scripts en línea de Astro (las islas), así que su CSP no limita los
+ * scripts todavía: impide que otra página las enmarque y cierra object, base y formularios.
+ */
+export const CSP_PUBLICA = [
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+/**
+ * La página del QR muestra datos que trae el código escaneado: CSP estricta. Solo su script
+ * propio (lo empaqueta Astro aparte) y ninguna conexión: verifica la firma ahí mismo.
+ */
+export const CSP_QR = [
+  "default-src 'none'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+/** Un año de HTTPS obligatorio para el dominio del sitio. */
+export const HSTS = 'max-age=31536000';
+
 export function textoDeCabeceras(config: ConfigCeldas): string {
-  const bloque = (ruta: string) =>
-    [
-      ruta,
-      `  Content-Security-Policy: ${cspDelCuaderno(config)}`,
-      '  X-Content-Type-Options: nosniff',
-      '  Referrer-Policy: no-referrer',
-    ].join('\n');
-  // El comodín también cubre /agro/app/ (la prueba de humo del despliegue lo comprueba, P16).
-  return `# Generado por scripts/armar-despliegue.ts desde infrastructure/celdas.json. No editar a mano.\n${bloque('/agro/app/*')}\n`;
+  const bloque = (ruta: string, cabeceras: [string, string][]) =>
+    [ruta, ...cabeceras.map(([k, v]) => `  ${k}: ${v}`)].join('\n');
+  const comunes = (csp: string, referrer: string): [string, string][] => [
+    ['Content-Security-Policy', csp],
+    ['X-Content-Type-Options', 'nosniff'],
+    ['Referrer-Policy', referrer],
+    ['Strict-Transport-Security', HSTS],
+  ];
+  // Reglas que no se pisan entre sí: Workers Static Assets junta las cabeceras de todas las que
+  // coinciden, y un Referrer-Policy repetido dejaría el último, más laxo, en el cuaderno.
+  // El comodín del cuaderno también cubre /agro/app/ (la prueba de humo lo comprueba, P16).
+  return `# Generado por scripts/armar-despliegue.ts desde infrastructure/celdas.json. No editar a mano.\n${[
+    bloque('/agro/app/*', comunes(cspDelCuaderno(config), 'no-referrer')),
+    bloque('/agro/t/*', comunes(CSP_QR, 'no-referrer')),
+    bloque('/agro/privacidad/*', comunes(CSP_PUBLICA, 'strict-origin-when-cross-origin')),
+    bloque('/herramientas/*', comunes(CSP_PUBLICA, 'strict-origin-when-cross-origin')),
+  ].join('\n')}\n`;
 }

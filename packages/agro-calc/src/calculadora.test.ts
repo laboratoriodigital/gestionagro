@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { dpvAireKPa } from './dpv.ts';
 import { formatearKPa, leerNumero } from './numeros.ts';
-import { buscarEtapa, CULTIVOS_DPV, clasificarDpv, type EtapaDpv } from './rangos-dpv.ts';
+import {
+  buscarEtapa,
+  CULTIVOS_DPV,
+  clasificarDpv,
+  cultivoDpvDe,
+  type EtapaDpv,
+} from './rangos-dpv.ts';
 
 describe('leer números como los escribe el productor (CA3)', () => {
   it.each([
@@ -68,7 +74,7 @@ describe('indicación de rango desde el catálogo (CA2)', () => {
   });
 
   it('un cultivo sin fila en el catálogo no tiene rango inventado', () => {
-    expect(buscarEtapa('rosa', 'produccion')).toBeUndefined();
+    expect(buscarEtapa('lechuga', 'produccion')).toBeUndefined();
   });
 
   it('cada etapa del catálogo es coherente: óptimo dentro del aceptable, y con fuente', () => {
@@ -81,4 +87,40 @@ describe('indicación de rango desde el catálogo (CA2)', () => {
       }
     }
   });
+});
+
+describe('rosa, pimentón y pepino (3 oct 2026): cada rango con su fuente y su año', () => {
+  it.each(['rosa', 'pimenton', 'pepino'])(
+    '%s está en el catálogo, coherente y con fuente',
+    (id) => {
+      const etapa = buscarEtapa(id, 'produccion') as EtapaDpv;
+      expect(etapa).toBeDefined();
+      const [omin, omax] = etapa.optimo_kPa;
+      const [amin, amax] = etapa.aceptable_kPa;
+      // El rango óptimo cae dentro del aceptable: si no, una banda de aviso quedaría vacía.
+      expect(amin).toBeLessThan(omin);
+      expect(omin).toBeLessThan(omax);
+      expect(omax).toBeLessThan(amax);
+      expect(etapa.fuente).toMatch(/\((19|20)\d{2}\)/);
+    },
+  );
+
+  it.each([
+    ['Tomate Chonto orgánico', 'tomate'],
+    ['tomate', 'tomate'],
+    ['Pimiento rojo', 'pimenton'],
+    ['PIMENTÓN', 'pimenton'],
+    ['Ají dulce', 'pimenton'],
+    ['Pepino cohombro', 'pepino'],
+    ['Rosas Freedom', 'rosa'],
+  ])('«%s» se reconoce como %s', (anotado, id) => {
+    expect(cultivoDpvDe(anotado)?.id).toBe(id);
+  });
+
+  it.each(['Tomatera', 'Rosal', 'Lechuga', ''])(
+    '«%s» no se confunde con otro cultivo: sin indicación (P1)',
+    (anotado) => {
+      expect(cultivoDpvDe(anotado)).toBeUndefined();
+    },
+  );
 });

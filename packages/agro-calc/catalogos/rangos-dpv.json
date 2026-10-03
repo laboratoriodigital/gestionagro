@@ -1,10 +1,11 @@
 {
-  "nota": "Rangos de referencia de DPV del aire por cultivo y etapa (ARQUITECTURA §5.2). Única fuente para la calculadora pública y el cuaderno (P2, HU-E3.8). Agregar un cultivo es agregar una fila con su fuente, nunca código. Un cultivo sin fila se calcula igual, sin indicación.",
+  "nota": "Rangos de referencia de DPV del aire por cultivo y etapa (ARQUITECTURA §5.2). Única fuente para la calculadora pública, la tabla imprimible y el cuaderno (P2, HU-E3.8). Agregar un cultivo es agregar una fila con su fuente, nunca código. Un cultivo sin fila se calcula igual, sin indicación. `sinonimos`: otros nombres con los que el productor anota el cultivo en el cuaderno (sin tildes ni mayúsculas). Rosa, pimentón y pepino entraron el 3 oct 2026: son los cultivos bajo invernadero que nombra el Estudio de mercado para la DPV (flores y hortalizas), y sus rangos son una propuesta armada con las fuentes citadas; los confirma o ajusta el agrónomo antes de publicar (docs/validacion/revision-agronomica.md).",
   "revision_agronomica": "pendiente",
   "cultivos": [
     {
       "id": "tomate",
       "nombre": "Tomate",
+      "sinonimos": ["tomate", "jitomate"],
       "etapas": [
         {
           "id": "produccion",
@@ -12,6 +13,48 @@
           "optimo_kPa": [0.5, 0.8],
           "aceptable_kPa": [0.4, 1.2],
           "fuente": "Shamshiri, R. R. et al. (2018). Review of optimum temperature, humidity, and vapour pressure deficit for microclimate evaluation and control in greenhouse cultivation of tomato. International Agrophysics."
+        }
+      ]
+    },
+    {
+      "id": "rosa",
+      "nombre": "Rosa",
+      "sinonimos": ["rosa", "rosas"],
+      "etapas": [
+        {
+          "id": "produccion",
+          "nombre": "Producción de tallos",
+          "optimo_kPa": [0.6, 1.0],
+          "aceptable_kPa": [0.4, 1.3],
+          "fuente": "Arve, L. E. et al. (2013). High relative air humidity and continuous light reduce stomata functionality by affecting the ABA regulation in rose leaves. Plant, Cell & Environment. Liu, F., Wu, Y. y Cohen, Y. (2007). High vapor pressure deficits decrease leaf area and increase leaf water transport in flower stems in soilless culture. Acta Horticulturae 751."
+        }
+      ]
+    },
+    {
+      "id": "pimenton",
+      "nombre": "Pimentón",
+      "sinonimos": ["pimenton", "pimiento", "aji dulce", "pimenton dulce"],
+      "etapas": [
+        {
+          "id": "produccion",
+          "nombre": "Producción",
+          "optimo_kPa": [0.5, 1.0],
+          "aceptable_kPa": [0.3, 1.5],
+          "fuente": "Bakker, J. C. (1991). Analysis of humidity effects on growth and production of glasshouse fruit vegetables. Tesis doctoral, Universidad Agrícola de Wageningen. Yu, X. et al. (2023). Systemic effects of the vapor pressure deficit on the physiology and productivity of protected vegetables. Vegetable Research."
+        }
+      ]
+    },
+    {
+      "id": "pepino",
+      "nombre": "Pepino",
+      "sinonimos": ["pepino", "pepino cohombro", "cohombro"],
+      "etapas": [
+        {
+          "id": "produccion",
+          "nombre": "Producción",
+          "optimo_kPa": [0.5, 0.9],
+          "aceptable_kPa": [0.4, 1.4],
+          "fuente": "Bakker, J. C. (1991). Analysis of humidity effects on growth and production of glasshouse fruit vegetables. Tesis doctoral, Universidad Agrícola de Wageningen. Yu, X. et al. (2023). Systemic effects of the vapor pressure deficit on the physiology and productivity of protected vegetables. Vegetable Research."
         }
       ]
     }

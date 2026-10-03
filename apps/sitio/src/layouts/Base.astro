@@ -28,7 +28,15 @@ const { title, description, canonical, indexable, og = {}, migas = [], jsonLd } 
     <link rel="canonical" href={canonical} />
     {!indexable && <meta name="robots" content="noindex" />}
     {Object.entries(og).map(([clave, valor]) => <meta property={`og:${clave}`} content={valor} />)}
-    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    {
+      /* «<» escapado: un texto con «</script>» en el contenido no puede cerrar la etiqueta. */
+      jsonLd && (
+        <script
+          type="application/ld+json"
+          set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')}
+        />
+      )
+    }
   </head>
   <body>
     <a class="saltar" href="#contenido">Saltar al contenido</a>

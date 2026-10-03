@@ -71,12 +71,12 @@ for (const f of FINCAS_DE_PRUEBA) {
       await page.getByLabel('Temperatura del aire (°C)').fill('24');
       await page.getByLabel('Humedad relativa (%)').fill('70');
       await expect(page.locator('[data-prueba="clima-dpv"]')).toContainText('0,90 kPa');
-      // Tomate tiene rango en el catálogo; rosa todavía no: no se inventa una indicación.
-      if (f.cultivo.nombre === 'Tomate') {
-        await expect(page.locator('[data-prueba="clima-indicacion"]')).toContainText('Algo alto');
-      } else {
-        await expect(page.locator('[data-prueba="clima-indicacion"]')).toHaveCount(0);
-      }
+      // Cada cultivo con su rango del catálogo: 0,90 kPa es «algo alto» para tomate (0,5–0,8) y
+      // «en rango» para rosa (0,6–1,0, desde el 3 oct 2026). Un cultivo sin fila no tendría
+      // indicación (lo prueba agro-calc).
+      await expect(page.locator('[data-prueba="clima-indicacion"]')).toContainText(
+        f.cultivo.nombre === 'Tomate' ? 'Algo alto' : 'En rango',
+      );
     });
   });
 }

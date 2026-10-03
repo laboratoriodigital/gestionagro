@@ -38,6 +38,13 @@ Marca cada línea: **de acuerdo** o **ajustar** (con el texto que propone).
    - cuándo medir: al amanecer, y entre el mediodía y las 2 de la tarde;
    - dónde colgar el termohigrómetro.
 5. «Para otros cultivos, la calculadora da el valor sin indicación». Antes de agregar otro cultivo hace falta su rango con su fuente.
+5b. **Rosa, pimentón y pepino (agregados el 3 oct 2026, pedido del dueño).** Son propuestas armadas con las fuentes citadas, no rangos copiados de una tabla: confirmar o ajustar cada uno.
+
+    | Cultivo | En rango | Aviso fuera de | Fuentes y razonamiento |
+    |---|---|---|---|
+    | Rosa (producción de tallos) | 0,6–1,0 kPa | 0,4–1,3 kPa | Arve et al. (2013): con humedad del 90 % (DPV ≈ 0,23 kPa), los estomas funcionan mal y la flor dura menos en florero; el testigo estaba en ≈ 0,7 kPa. Liu, Wu y Cohen (2007): DPV alto reduce el área foliar del tallo. |
+    | Pimentón (producción) | 0,5–1,0 kPa | 0,3–1,5 kPa | Bakker (1991): entre 0,3 y 0,9 kPa la cosecha de pimentón no cambió. Yu et al. (2023): en hortalizas bajo cubierta, el óptimo diurno es 0,5–1,5 kPa y hay estrés por encima de 1,5. |
+    | Pepino (producción) | 0,5–0,9 kPa | 0,4–1,4 kPa | Bakker (1991): el pepino rindió más con humedad alta de día, dentro de 0,3–0,9 kPa. Yu et al. (2023): estrés por encima de 1,5 kPa. |
 
 ### Calculadora de carencia y reentrada
 

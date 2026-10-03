@@ -35,7 +35,17 @@ permissions:
 
 jobs:
   desplegar:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # Revisión de seguridad (3 oct 2026): el filtro «branches: [main]» de workflow_run mira solo el
+    # NOMBRE de la rama. Un PR desde un fork con una rama llamada «main» pasaba el filtro, y este
+    # trabajo corría su código con todos los secretos. Solo se despliega lo que llegó a main de
+    # este repositorio por un push.
+    if: >-
+      github.event_name != 'workflow_run' || (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: ${{ github.event_name == 'release' && 'produccion' || inputs.destino || 'staging' }}

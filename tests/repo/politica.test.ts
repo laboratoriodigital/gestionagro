@@ -7,7 +7,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { POLITICA_VIGENTE } from '../../apps/core/src/politica.ts';
-import { conexionesDelCuaderno, cspDelCuaderno } from '../../scripts/lib/cabeceras.ts';
+import {
+  conexionesDelCuaderno,
+  cspDelCuaderno,
+  textoDeCabeceras,
+} from '../../scripts/lib/cabeceras.ts';
 import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 
@@ -67,6 +71,55 @@ describe('CSP del cuaderno (ARQUITECTURA §9)', () => {
           ...config.celdas.flatMap((c) => [c.api, c.api_staging]),
         ]),
       ].sort(),
+    );
+  });
+});
+
+describe('cabeceras de las páginas públicas (revisión de seguridad, 3 oct 2026)', () => {
+  const texto = textoDeCabeceras(cargarCeldas());
+  const reglas = new Map(
+    texto
+      .split(/\n(?=\/)/)
+      .filter((b) => b.startsWith('/'))
+      .map((b) => {
+        const [ruta, ...lineas] = b.trim().split('\n');
+        return [
+          ruta ?? '',
+          Object.fromEntries(
+            lineas.map((l) =>
+              l
+                .trim()
+                .split(/: (.*)/s)
+                .slice(0, 2),
+            ),
+          ),
+        ];
+      }),
+  );
+
+  it.each(['/agro/app/*', '/agro/t/*', '/agro/privacidad/*', '/herramientas/*'])(
+    '%s no se deja enmarcar y lleva nosniff y HTTPS obligatorio',
+    (ruta) => {
+      const r = reglas.get(ruta) as Record<string, string> | undefined;
+      expect(r?.['Content-Security-Policy']).toContain("frame-ancestors 'none'");
+      expect(r?.['Content-Security-Policy']).toContain("object-src 'none'");
+      expect(r?.['X-Content-Type-Options']).toBe('nosniff');
+      expect(r?.['Strict-Transport-Security']).toMatch(/^max-age=\d{8,}/);
+    },
+  );
+
+  it('la página del QR, que muestra datos de afuera, solo ejecuta su script propio', () => {
+    const csp = (reglas.get('/agro/t/*') as Record<string, string>)['Content-Security-Policy'];
+    expect(csp).toContain("default-src 'none'");
+    expect(/script-src ([^;]+)/.exec(csp ?? '')?.[1]).toBe("'self'");
+  });
+
+  it('ninguna regla pisa a otra: el cuaderno conserva su Referrer-Policy estricta', () => {
+    const rutas = [...reglas.keys()];
+    for (const a of rutas)
+      for (const b of rutas) if (a !== b) expect(a.startsWith(b.replace('*', ''))).toBe(false);
+    expect((reglas.get('/agro/app/*') as Record<string, string>)['Referrer-Policy']).toBe(
+      'no-referrer',
     );
   });
 });
