@@ -97,16 +97,20 @@ describe('cabeceras de las páginas públicas (revisión de seguridad, 3 oct 202
       }),
   );
 
-  it.each(['/agro/app/*', '/agro/t/*', '/agro/privacidad/*', '/herramientas/*'])(
-    '%s no se deja enmarcar y lleva nosniff y HTTPS obligatorio',
-    (ruta) => {
-      const r = reglas.get(ruta) as Record<string, string> | undefined;
-      expect(r?.['Content-Security-Policy']).toContain("frame-ancestors 'none'");
-      expect(r?.['Content-Security-Policy']).toContain("object-src 'none'");
-      expect(r?.['X-Content-Type-Options']).toBe('nosniff');
-      expect(r?.['Strict-Transport-Security']).toMatch(/^max-age=\d{8,}/);
-    },
-  );
+  it.each([
+    '/agro/app/*',
+    '/agro/t/*',
+    '/agro/privacidad/*',
+    '/agro/guia/*',
+    '/agro/vendedores/*',
+    '/herramientas/*',
+  ])('%s no se deja enmarcar y lleva nosniff y HTTPS obligatorio', (ruta) => {
+    const r = reglas.get(ruta) as Record<string, string> | undefined;
+    expect(r?.['Content-Security-Policy']).toContain("frame-ancestors 'none'");
+    expect(r?.['Content-Security-Policy']).toContain("object-src 'none'");
+    expect(r?.['X-Content-Type-Options']).toBe('nosniff');
+    expect(r?.['Strict-Transport-Security']).toMatch(/^max-age=\d{8,}/);
+  });
 
   it('la página del QR, que muestra datos de afuera, solo ejecuta su script propio', () => {
     const csp = (reglas.get('/agro/t/*') as Record<string, string>)['Content-Security-Policy'];

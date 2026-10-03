@@ -118,7 +118,8 @@ export function App() {
         </Router>
       </main>
       <footer class="pie">
-        {marca.nombre} · {marca.cuaderno} · versión {__VERSION_APP__}
+        {marca.nombre} · {marca.cuaderno} · versión {__VERSION_APP__} ·{' '}
+        <a href="/agro/guia/">Cómo se usa</a>
       </footer>
     </LocationProvider>
   );

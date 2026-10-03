@@ -34,6 +34,8 @@ Para cada celda, el flujo hace cuatro cosas:
 
 ## Publicar en producción
 
+Antes de la primera versión en `cultivopro.co`, mira [ambientes-github.md](ambientes-github.md): el ambiente `produccion` tiene que aceptar el tag `v*`, y el dominio no puede estar en el Worker de staging.
+
 1. Confirma que `main` está en verde y que staging se ve bien.
 2. En `CHANGELOG.md`, renombra «[Sin publicar]» a la versión con su fecha, y sube la versión en `package.json` de la raíz. Hazlo en un PR.
 3. Publica la versión:

@@ -81,7 +81,7 @@ test('CA1: abierta una vez, carga completa sin señal en menos de 3 s con CPU ×
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tu finca');
   await expect(
-    page.getByText(/^CultivoPro · Cuaderno de campo · versión \d+\.\d+\.\d+$/),
+    page.getByText(/^CultivoPro · Cuaderno de campo · versión \d+\.\d+\.\d+ · Cómo se usa$/),
   ).toBeVisible();
   const ms = Date.now() - inicio;
   expect(ms, `carga sin señal: ${ms} ms`).toBeLessThan(3000);

@@ -1,0 +1,342 @@
+---
+/**
+ * Guía del productor (pedido del dueño, 3 oct 2026): cómo se usa CultivoPro, para campesinos y
+ * productores pequeños y medianos. Frases cortas, palabras de finca, pasos con el nombre exacto de
+ * cada botón, sin palabras técnicas (memoria: textos públicos sin técnica). Se lee en el teléfono
+ * y se imprime para dejarla en la finca. Si un botón cambia de nombre en la app, cambia aquí.
+ */
+import Base from '../../layouts/Base.astro';
+import { NOMBRE_DEL_SITIO, SITIO } from '../../lib/seo.ts';
+
+const canonical = `${SITIO}/agro/guia/`;
+const titulo = `Cómo usar ${NOMBRE_DEL_SITIO}`;
+const descripcion =
+  'Guía paso a paso para llevar el cuaderno de campo en el celular, aunque no haya señal, y usar las calculadoras gratis.';
+const secciones = [
+  ['que-es', '¿Qué es?'],
+  ['empezar', 'Empezar en 5 minutos'],
+  ['anotar', 'Anotar lo del día'],
+  ['cosechar', '¿Ya puedo cosechar?'],
+  ['vender', 'Vender con etiqueta QR'],
+  ['equipo', 'Trabajar con su equipo'],
+  ['copia', 'No perder nada'],
+  ['calculadoras', 'Las calculadoras gratis'],
+  ['planes', '¿Cuánto cuesta?'],
+  ['dudas', 'Dudas que llegan seguido'],
+] as const;
+---
+<Base
+  title={`${titulo} | ${NOMBRE_DEL_SITIO}`}
+  description={descripcion}
+  canonical={canonical}
+  indexable={true}
+  og={{ type: 'website', title: titulo, description: descripcion, url: canonical, site_name: NOMBRE_DEL_SITIO, locale: 'es_CO' }}
+>
+  <article class="guia" data-prueba="guia">
+    <h1>{titulo}</h1>
+    <p class="entrada">
+      Un cuaderno de campo en su celular para anotar lo que pasa en la finca: riegos,
+      fumigaciones, cosechas y plagas. <strong>Funciona aunque no haya señal.</strong>
+    </p>
+
+    <nav aria-labelledby="titulo-indice" class="indice">
+      <h2 id="titulo-indice">En esta guía</h2>
+      <ol>
+        {secciones.map(([id, nombre]) => (
+          <li>
+            <a href={`#${id}`}>{nombre}</a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+
+    <section id="que-es">
+      <h2>1. ¿Qué es?</h2>
+      <p>
+        Es como el cuaderno donde usted ya anota lo de la finca, pero en el celular. Lo bueno es
+        que hace las cuentas por usted:
+      </p>
+      <ul>
+        <li>le dice <strong>qué nave puede cosechar hoy</strong> después de fumigar;</li>
+        <li>le dice cuánto le cuesta producir un kilo;</li>
+        <li>le arma la carpeta para la visita del ICA o del comprador;</li>
+        <li>y le da una etiqueta con código QR para cada lote que vende.</li>
+      </ul>
+      <p>Lo que anota es suyo. Se guarda en su celular y solo usted decide con quién compartirlo.</p>
+    </section>
+
+    <section id="empezar">
+      <h2>2. Empezar en 5 minutos</h2>
+      <p class="necesita">
+        <strong>Necesita:</strong> un celular con internet solo esta primera vez.
+      </p>
+      <ol class="pasos">
+        <li>
+          Abra <strong>{SITIO.replace('https://', '')}</strong> en el navegador del celular (Chrome
+          o el que use) y toque <strong>«Abrir el cuaderno de campo»</strong>.
+        </li>
+        <li>
+          Póngalo en su pantalla, como una aplicación más: en el menú del navegador (los tres
+          puntos ⋮) toque <strong>«Agregar a la pantalla principal»</strong> o
+          <strong>«Instalar»</strong>. Así lo abre con un toque, aunque no tenga señal.
+        </li>
+        <li>
+          Escriba el <strong>nombre de su finca</strong>, el <strong>municipio</strong> y si produce
+          <strong>ecológico o convencional</strong>. Toque <strong>«Siguiente»</strong>.
+        </li>
+        <li>
+          Escriba sus <strong>naves, bloques o lotes</strong>, con el tamaño en metros cuadrados. Si
+          tiene camas o surcos, los agrega después.
+        </li>
+        <li>Listo. Desde ahí puede empezar a anotar.</li>
+      </ol>
+      <p class="consejo">
+        Consejo: escriba las naves con el mismo nombre que usan en la finca («Nave 1», «La de
+        abajo»). Así todos se entienden.
+      </p>
+    </section>
+
+    <section id="anotar">
+      <h2>3. Anotar lo del día</h2>
+      <p>Toque <strong>«Registrar»</strong> y elija qué va a anotar:</p>
+      <dl class="tipos">
+        <dt>Clima</dt>
+        <dd>La temperatura y la humedad del termohigrómetro. Le dice si la nave está muy seca o muy húmeda.</dd>
+        <dt>Riego</dt>
+        <dd>Cuánta agua dio y cuánta salió de drenaje.</dd>
+        <dt>Labores</dt>
+        <dd>Deshoje, poda, tutorado, limpieza: quién lo hizo y cuántas horas.</dd>
+        <dt>Aplicaciones</dt>
+        <dd>
+          Cada fumigación o abono: el producto, la cantidad, en qué nave y quién lo aplicó. Primero
+          registre el producto en <strong>«Insumos»</strong>, con la carencia y la reentrada de la
+          etiqueta.
+        </dd>
+        <dt>Cosecha</dt>
+        <dd>Los kilos (o tallos, o cajas) de cada nave, por calidad.</dd>
+        <dt>Monitoreo</dt>
+        <dd>Las plagas o enfermedades que vio, y cuántas plantas tienen el problema.</dd>
+      </dl>
+      <p>
+        <strong>Sin señal también se guarda.</strong> Arriba verá cuántos registros están «solo en
+        este teléfono». Cuando vuelva la señal, se suben solos si su finca está en internet (vea
+        «No perder nada»).
+      </p>
+      <p class="consejo">
+        ¿Se equivocó? En <strong>«Historial»</strong> toque <strong>«Corregir»</strong>. Lo anterior
+        no se borra: queda guardado, como cuando uno tacha en el cuaderno y escribe al lado.
+      </p>
+    </section>
+
+    <section id="cosechar">
+      <h2>4. ¿Ya puedo cosechar?</h2>
+      <p>
+        Toque <strong>«Carencias»</strong>. Cada nave sale en <strong>verde ✓</strong> si se puede
+        cosechar, en <strong>rojo ✕</strong> si todavía no (con el día en que ya se puede), o en
+        <strong>gris ?</strong> si falta la carencia del producto en «Insumos».
+      </p>
+      <p>
+        También le muestra los próximos 14 días y a qué hora se puede volver a entrar después de
+        fumigar. Con el plan Finca lo imprime para pegarlo en la puerta de la nave.
+      </p>
+      <p class="aviso-guia">
+        La carencia y la reentrada siempre se copian de la <strong>etiqueta del producto</strong>.
+        {NOMBRE_DEL_SITIO} solo cuenta los días; no recomienda productos ni dosis.
+      </p>
+    </section>
+
+    <section id="vender">
+      <h2>5. Vender con etiqueta QR</h2>
+      <ol class="pasos">
+        <li>Toque <strong>«Lotes»</strong> y luego <strong>«Nuevo lote»</strong>.</li>
+        <li>Marque las cosechas que van juntas y toque <strong>«Armar lote»</strong>.</li>
+        <li>
+          Toque <strong>«Etiqueta QR»</strong>. La puede imprimir, o mandarla por WhatsApp al
+          comprador.
+        </li>
+      </ol>
+      <p>
+        Quien escanee el código ve de qué finca, de qué nave y de qué fecha viene. Si su finca está
+        en internet, la etiqueta sale <strong>verificada</strong>: nadie la puede cambiar.
+      </p>
+    </section>
+
+    <section id="equipo">
+      <h2>6. Trabajar con su equipo</h2>
+      <p>
+        Para que el supervisor y los operarios anoten desde su propio celular, la finca tiene que
+        estar en internet:
+      </p>
+      <ol class="pasos">
+        <li>
+          Toque <strong>«Cuenta»</strong>, acepte la política de datos y toque
+          <strong>«Entrar con Google»</strong> (con su correo de Gmail).
+        </li>
+        <li>Toque <strong>«Subir mi finca a la nube»</strong>.</li>
+        <li>
+          En <strong>«Tu equipo»</strong>, elija el rol de la persona (operario, supervisor o
+          asesor), toque <strong>«Preparar invitación»</strong> y luego
+          <strong>«Enviar por WhatsApp»</strong>.
+        </li>
+        <li>La persona abre el mensaje, entra con su Gmail y ya está en la finca.</li>
+      </ol>
+      <p>
+        Cada uno ve y anota según su rol: el operario anota, pero no cambia las naves ni los
+        productos. Si alguien deja de trabajar con usted, en «Tu equipo» le quita el acceso.
+      </p>
+    </section>
+
+    <section id="copia">
+      <h2>7. No perder nada</h2>
+      <p>Lo que anota queda en su celular. Si el celular se pierde o se daña, se puede perder. Para evitarlo:</p>
+      <ul>
+        <li>
+          <strong>Lo mejor:</strong> suba su finca a internet (paso 6). Si cambia de celular, entra
+          con su Gmail y la finca baja completa.
+        </li>
+        <li>
+          <strong>Sin cuenta:</strong> una vez por semana toque <strong>«Respaldo»</strong> y
+          <strong>«Descargar respaldo completo»</strong>. Guarde el archivo en su correo o en una
+          memoria.
+        </li>
+      </ul>
+    </section>
+
+    <section id="calculadoras">
+      <h2>8. Las calculadoras gratis</h2>
+      <p>Sin cuenta y sin registro, en <a href="/herramientas/agro/">{SITIO.replace('https://', '')}</a>:</p>
+      <ul>
+        <li>
+          <strong>DPV:</strong> escriba la temperatura y la humedad, y le dice si la nave está muy
+          seca o muy húmeda para tomate, rosa, pimentón o pepino. Trae una tabla para imprimir.
+        </li>
+        <li>
+          <strong>Carencia y reentrada:</strong> con la fecha de la fumigación y lo que dice la
+          etiqueta, le dice desde qué día puede cosechar y desde qué hora entrar.
+        </li>
+      </ul>
+      <p>Las dos se comparten por WhatsApp con un toque.</p>
+    </section>
+
+    <section id="planes">
+      <h2>9. ¿Cuánto cuesta?</h2>
+      <ul>
+        <li>
+          <strong>Gratis:</strong> el cuaderno, las calculadoras, su equipo, el calendario de
+          cosecha en el celular y las etiquetas QR.
+        </li>
+        <li>
+          <strong>Plan Finca:</strong> los costos (cuánto le cuesta el kilo y cuánto gana), fotos de
+          plagas, registro por cama o surco, el logo de su finca en la etiqueta, el calendario para
+          imprimir y la carpeta para auditorías. Se paga mes a mes en <strong>«Cuenta» →
+          «Ver los planes»</strong>, con PSE, Nequi o tarjeta. Si no lo renueva, vuelve al plan
+          Gratis <strong>sin perder nada</strong> de lo anotado.
+        </li>
+      </ul>
+    </section>
+
+    <section id="dudas">
+      <h2>10. Dudas que llegan seguido</h2>
+      <details>
+        <summary>¿Necesito internet todo el tiempo?</summary>
+        <p>No. Solo para abrirlo la primera vez y para subir lo anotado cuando haya señal. Puede anotar en la nave sin señal.</p>
+      </details>
+      <details>
+        <summary>¿Sirve en un celular sencillo?</summary>
+        <p>Sí. Funciona en el navegador de cualquier celular Android o iPhone de los últimos años. No ocupa casi espacio.</p>
+      </details>
+      <details>
+        <summary>¿Quién ve lo que anoto?</summary>
+        <p>Usted, y las personas que usted invite a su finca. Nadie más. No vendemos sus datos.</p>
+      </details>
+      <details>
+        <summary>¿Me sirve para el ICA o para el comprador?</summary>
+        <p>Le ayuda a tener todo anotado y en orden, que es lo que piden. Con el plan Finca saca la carpeta en PDF. La certificación la da la entidad que audita, no {NOMBRE_DEL_SITIO}.</p>
+      </details>
+      <details>
+        <summary>¿Me dice qué producto echar?</summary>
+        <p>No. Eso lo decide usted con su agrónomo y con la etiqueta del producto. {NOMBRE_DEL_SITIO} le ayuda a anotarlo y a contar los días.</p>
+      </details>
+      <details>
+        <summary>Cambié de celular, ¿qué hago?</summary>
+        <p>Si subió su finca a internet: en el celular nuevo abra el cuaderno, toque «Cuenta», entre con su Gmail y baje su finca. Si no, use el archivo de «Respaldo».</p>
+      </details>
+    </section>
+
+    <p class="imprimir-nota">Puede imprimir esta guía y dejarla en la finca.</p>
+  </article>
+</Base>
+
+<style>
+  .guia {
+    font-size: 1.125rem;
+  }
+  .guia h2 {
+    margin-block-start: var(--espacio-5);
+    scroll-margin-top: var(--espacio-3);
+  }
+  .entrada {
+    font-size: 1.1875rem;
+  }
+  .indice {
+    background: var(--color-superficie);
+    border-radius: var(--radio);
+    padding: var(--espacio-2) var(--espacio-3);
+  }
+  .indice h2 {
+    margin-block-start: var(--espacio-2);
+    font-size: 1.125rem;
+  }
+  .indice a {
+    display: inline-block;
+    min-height: var(--objetivo-tactil);
+    padding-block: var(--espacio-2);
+  }
+  .pasos > li {
+    margin-block-end: var(--espacio-3);
+  }
+  .tipos dt {
+    font-weight: 700;
+    margin-block-start: var(--espacio-3);
+  }
+  .tipos dd {
+    margin-inline-start: 0;
+  }
+  .necesita,
+  .consejo,
+  .aviso-guia {
+    border-inline-start: 4px solid var(--color-marca);
+    background: var(--color-superficie);
+    padding: var(--espacio-2) var(--espacio-3);
+    border-radius: var(--radio);
+  }
+  .aviso-guia {
+    border-inline-start-color: var(--color-alerta);
+  }
+  details {
+    border-block-end: 1px solid var(--color-borde);
+    padding-block: var(--espacio-2);
+  }
+  summary {
+    font-weight: 600;
+    min-height: var(--objetivo-tactil);
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  .imprimir-nota {
+    color: var(--color-texto-suave);
+  }
+  @media print {
+    .indice,
+    .imprimir-nota {
+      display: none;
+    }
+    details > p {
+      display: block;
+    }
+    .guia h2 {
+      break-after: avoid;
+    }
+  }
+</style>

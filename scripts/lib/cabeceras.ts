@@ -87,6 +87,8 @@ export function textoDeCabeceras(config: ConfigCeldas): string {
     bloque('/agro/app/*', comunes(cspDelCuaderno(config), 'no-referrer')),
     bloque('/agro/t/*', comunes(CSP_QR, 'no-referrer')),
     bloque('/agro/privacidad/*', comunes(CSP_PUBLICA, 'strict-origin-when-cross-origin')),
+    bloque('/agro/guia/*', comunes(CSP_PUBLICA, 'strict-origin-when-cross-origin')),
+    bloque('/agro/vendedores/*', comunes(CSP_PUBLICA, 'strict-origin-when-cross-origin')),
     bloque('/herramientas/*', comunes(CSP_PUBLICA, 'strict-origin-when-cross-origin')),
   ].join('\n')}\n`;
 }

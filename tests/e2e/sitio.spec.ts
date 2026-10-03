@@ -12,7 +12,12 @@ import { gzipSync } from 'node:zlib';
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-const PAGINAS = ['/herramientas/agro/', '/herramientas/agro/calculadora-dpv/'] as const;
+const PAGINAS = [
+  '/herramientas/agro/',
+  '/herramientas/agro/calculadora-dpv/',
+  '/agro/guia/',
+  '/agro/vendedores/',
+] as const;
 const DPV = '/herramientas/agro/calculadora-dpv/';
 const PRESUPUESTO_JS_GZIP_BYTES = 50 * 1024;
 const PRESUPUESTO_LCP_MS = 2500;
