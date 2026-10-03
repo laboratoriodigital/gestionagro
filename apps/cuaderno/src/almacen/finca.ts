@@ -196,3 +196,35 @@ export async function historialDe(db: CuadernoDb, entidadId: string): Promise<Ve
   const versiones = await db.historial.where('entidad_id').equals(entidadId).toArray();
   return versiones.sort((a, b) => b.version - a.version);
 }
+
+/**
+ * Si un área se puede eliminar (revisión del dueño, 3 oct 2026): solo si no tiene nada asociado,
+ * ni registros, ni ciclos, ni camas o surcos activos. Si no, el motivo en palabras.
+ */
+export async function motivoParaNoEliminar(db: CuadernoDb, areaId: string): Promise<string | null> {
+  const registros = await db.registro.filter((r) => r.area_ids.includes(areaId)).count();
+  if (registros > 0) {
+    return `tiene ${registros === 1 ? '1 registro' : `${registros} registros`}: su historia no se borra`;
+  }
+  const ciclos = await db.ciclo.filter((c) => c.area_ids.includes(areaId)).count();
+  if (ciclos > 0) return 'tiene un ciclo de cultivo';
+  const hijas = await db.area.filter((a) => a.padre_id === areaId && a.activa).count();
+  if (hijas > 0) {
+    return `tiene ${hijas === 1 ? '1 cama o surco' : `${hijas} camas o surcos`}: elimínalos primero`;
+  }
+  return null;
+}
+
+/**
+ * Elimina un área sin nada asociado. Es una baja (`activa: false`), no un borrado: el cambio viaja
+ * a los demás teléfonos como cualquier otro y su historial queda (P21).
+ */
+export async function eliminarArea(
+  db: CuadernoDb,
+  areaId: string,
+  opciones: Opciones = {},
+): Promise<Area> {
+  const motivo = await motivoParaNoEliminar(db, areaId);
+  if (motivo) throw new ErrorDeValidacion('Área', [{ campo: 'area', motivo }]);
+  return editarArea(db, areaId, { activa: false }, opciones);
+}

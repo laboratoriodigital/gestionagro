@@ -20,7 +20,9 @@ import {
   agregarArea,
   crearSubarea,
   editarArea,
+  eliminarArea,
   historialDe,
+  motivoParaNoEliminar,
   TIPOS_PRINCIPALES,
   TIPOS_SUBAREA,
 } from '../almacen/finca.ts';
@@ -185,6 +187,9 @@ function EditarConHistorial(props: {
 }) {
   const a = props.area;
   const abiertoAqui = props.abierto && 'areaId' in props.abierto && props.abierto.areaId === a.id;
+  // Eliminar (revisión del dueño, 3 oct 2026): solo sin nada asociado; si no, se dice por qué.
+  const [eliminar, setEliminar] = useState<{ motivo: string | null } | null>(null);
+  const [errorAlEliminar, setErrorAlEliminar] = useState<string | null>(null);
   return (
     <>
       <div class="herramientas-area">
@@ -207,7 +212,57 @@ function EditarConHistorial(props: {
           Historial
         </button>
         {props.extra}
+        {props.cambia && (
+          <button
+            type="button"
+            class="herramienta"
+            onClick={() =>
+              void motivoParaNoEliminar(props.db, a.id).then((motivo) => setEliminar({ motivo }))
+            }
+            aria-label={`Eliminar ${a.nombre}`}
+          >
+            Eliminar
+          </button>
+        )}
       </div>
+      {eliminar && (
+        <div class="aviso" data-prueba="eliminar-area">
+          {eliminar.motivo ? (
+            <p>
+              No se puede eliminar «{a.nombre}»: {eliminar.motivo}.
+            </p>
+          ) : (
+            <p>¿Eliminar «{a.nombre}»? No tiene registros, ciclos ni camas.</p>
+          )}
+          {errorAlEliminar && (
+            <p class="error" role="alert">
+              {errorAlEliminar}
+            </p>
+          )}
+          <div class="acciones">
+            <button type="button" class="secundario" onClick={() => setEliminar(null)}>
+              {eliminar.motivo ? 'Entendido' : 'Cancelar'}
+            </button>
+            {!eliminar.motivo && (
+              <button
+                type="button"
+                onClick={() =>
+                  void eliminarArea(props.db, a.id)
+                    .then(() => {
+                      setEliminar(null);
+                      props.alGuardar();
+                    })
+                    .catch((e: unknown) =>
+                      setErrorAlEliminar(e instanceof Error ? e.message : 'No se pudo eliminar.'),
+                    )
+                }
+              >
+                Sí, eliminar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       {abiertoAqui && props.abierto?.tipo === 'editar' && (
         <FormularioArea
           titulo={`Editar ${a.nombre}`}
@@ -242,12 +297,13 @@ export function MiFinca(props: {
   useEffect(() => {
     void estadosPorArea(props.db, props.finca.id).then(setVencimientos);
   }, [props.db, props.finca.id, props.areas]);
-  const principales = props.areas.filter((a) => a.padre_id === null);
-  const hijas = (id: string) => props.areas.filter((a) => a.padre_id === id);
+  const activas = props.areas.filter((a) => a.activa);
+  const principales = activas.filter((a) => a.padre_id === null);
+  const hijas = (id: string) => activas.filter((a) => a.padre_id === id);
   // Con muchas naves, camas y surcos, cada área se pliega (revisión del dueño, 3 oct 2026).
   const plegables = usarPlegables(
     principales.map((a) => a.id),
-    props.areas.length <= ABIERTAS_HASTA,
+    activas.length <= ABIERTAS_HASTA,
   );
   /** Lo que se ve con el área cerrada: si hoy no se puede cosechar o entrar, o no se sabe. */
   const sello = (id: string) => {
