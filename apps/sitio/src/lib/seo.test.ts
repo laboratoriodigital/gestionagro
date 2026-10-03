@@ -25,7 +25,7 @@ describe('SEO derivado del contrato (HU-E1.6, CA1)', () => {
   });
 
   it('el host es el de ADR-19', () => {
-    expect(SITIO).toBe('https://agro.laboratorio-digital.com');
+    expect(SITIO).toBe('https://cultivopro.co');
   });
 
   it('un borrador no se indexa; uno activo sí', () => {

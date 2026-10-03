@@ -22,7 +22,7 @@ Y la API de cada celda (HU-E5.1), en todas las celdas activas, después del siti
 | Destino | Cuándo | Dónde |
 |---|---|---|
 | Staging | Solo, cada vez que el CI termina en verde en `main` | `https://agro-sitio-staging.<subdominio>.workers.dev` (la URL exacta queda en el resumen de la corrida) |
-| Producción | Al publicar una versión en GitHub | `https://agro.laboratorio-digital.com` |
+| Producción | Al publicar una versión en GitHub | `https://cultivopro.co` |
 
 El CORE vive en workers.dev en los dos destinos: `https://agro-core-staging.<subdominio>.workers.dev` y `https://agro-core.<subdominio>.workers.dev`. Su dominio se decide con el login (HU-E4.2).
 

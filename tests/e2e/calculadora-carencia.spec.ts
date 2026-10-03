@@ -143,3 +143,27 @@ test('HU-E10.2 · CA2: «Guardar como aplicación en mi cuaderno» lleva la fech
     'No cosechar hasta el 13/12 (Producto Tres Días)',
   );
 });
+
+test('compartir por WhatsApp: el mensaje lleva las fechas, y el enlace abre la calculadora con los mismos valores', async ({
+  page,
+}) => {
+  await abrir(page);
+  await expect(page.locator('[data-prueba="compartir-whatsapp"]')).toHaveCount(0);
+  await page.getByLabel('Carencia de la etiqueta').fill('3');
+  await page.getByLabel('Reentrada de la etiqueta').fill('12');
+  const href =
+    (await page.locator('[data-prueba="compartir-whatsapp"]').getAttribute('href')) ?? '';
+  const texto = new URL(href).searchParams.get('text') ?? '';
+  expect(texto).toContain(
+    'se puede cosechar desde el 13/12 y se puede entrar desde el 10/12/2026 19:00',
+  );
+  const enlace = new URL(texto.split('Calcúlalo aquí: ')[1] ?? '').pathname;
+  const busqueda = new URL(texto.split('Calcúlalo aquí: ')[1] ?? '').search;
+  // Quien recibe el enlace ve lo mismo, aunque abra la página otro día.
+  await page.clock.setFixedTime(new Date('2026-12-20T15:00:00Z'));
+  await page.goto(`${enlace}${busqueda}`);
+  await expect(page.locator('astro-island:not([ssr])')).toHaveCount(1);
+  await expect(page.getByLabel('Fecha de la aplicación')).toHaveValue('2026-12-10');
+  await expect(page.getByLabel('Carencia de la etiqueta')).toHaveValue('3');
+  await expect(page.locator('[data-prueba="cosechar"]')).toHaveText('13/12');
+});

@@ -4,9 +4,9 @@
   "sitio": {
     "celda": "c0",
     "worker": "agro-sitio",
-    "dominio": "agro.laboratorio-digital.com",
+    "dominio": "cultivopro.co",
     "url_staging": "https://agro-sitio-staging.laboratoriodigital-la.workers.dev",
-    "zona": "laboratorio-digital.com",
+    "zona": "cultivopro.co",
     "dataset_eventos": "agro_eventos"
   },
   "core": {

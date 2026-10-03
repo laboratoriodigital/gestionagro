@@ -2,7 +2,7 @@
   "name": "@gestionagro/sitio",
   "version": "0.1.0",
   "private": true,
-  "description": "Sitio público en agro.laboratorio-digital.com: /herramientas/agro/*, /agro/t/ y páginas legales (ADR-11, ADR-19).",
+  "description": "Sitio público en cultivopro.co: /herramientas/agro/*, /agro/t/ y páginas legales (ADR-11, ADR-19).",
   "type": "module",
   "scripts": {
     "build": "astro build && node ../../scripts/armar-despliegue.ts && wrangler deploy --dry-run --outdir .wrangler/dry-run --env= && wrangler deploy --dry-run --outdir .wrangler/dry-run-staging --env staging"

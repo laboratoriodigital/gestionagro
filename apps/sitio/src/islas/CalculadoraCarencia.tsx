@@ -11,12 +11,14 @@ import {
   calcularCarencia,
   type EntradasCarencia,
   enlaceAplicacionAlCuaderno,
+  entradasDeEnlaceCarencia,
+  paraCompartirCarencia,
   type Salida,
 } from './carencia-logica.ts';
 import { cuadernoEnUso } from './cuaderno.ts';
 
 interface ColectorDeEventos {
-  registrar: (nombre: 'tool.completed' | 'tool.next_step') => void;
+  registrar: (nombre: 'tool.completed' | 'tool.shared' | 'tool.next_step') => void;
 }
 
 /** Lo ya escrito en el HTML estático antes de que cargara la isla (bitácora agro 21). */
@@ -91,12 +93,15 @@ export default function CalculadoraCarencia() {
   }, []);
 
   // CA1: por defecto, ahora en Colombia. Se pone al montar, si la persona no escribió otra cosa.
+  // Un enlace compartido trae sus valores, y esos mandan (como en la DPV, HU-E2.4).
   useEffect(() => {
     const ahora = ahoraEnColombia(Date.now());
+    const desdeEnlace = entradasDeEnlaceCarencia(window.location.search);
     setE((actual) => ({
       ...actual,
-      fecha: actual.fecha || ahora.fecha,
-      hora: actual.hora || ahora.hora,
+      ...desdeEnlace,
+      fecha: desdeEnlace.fecha || actual.fecha || ahora.fecha,
+      hora: desdeEnlace.hora || actual.hora || ahora.hora,
     }));
   }, []);
 
@@ -104,6 +109,8 @@ export default function CalculadoraCarencia() {
   const cambiar = (campo: CampoCarencia) => (valor: string) => setE({ ...e, [campo]: valor });
   const escribioAlgo = e.carencia.trim() !== '' || e.reentrada.trim() !== '';
   const alCuaderno = escribioAlgo ? enlaceAplicacionAlCuaderno(e) : null;
+  const compartir =
+    typeof window === 'undefined' ? null : paraCompartirCarencia(e, r, window.location.href);
 
   useEffect(() => {
     const hayFecha = r.cosechar.tipo === 'fecha' || r.entrar.tipo === 'fecha';
@@ -199,6 +206,20 @@ export default function CalculadoraCarencia() {
               : 'Guardar como aplicación en mi cuaderno'}
           </a>
         </div>
+      )}
+      {compartir && (
+        <a
+          class="boton-compartir"
+          href={compartir.enlaceWhatsApp}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-prueba="compartir-whatsapp"
+          onClick={() =>
+            (window as { agroEventos?: ColectorDeEventos }).agroEventos?.registrar('tool.shared')
+          }
+        >
+          Compartir por WhatsApp
+        </a>
       )}
     </form>
   );

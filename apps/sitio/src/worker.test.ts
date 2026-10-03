@@ -12,7 +12,7 @@ function envDePrueba(conDataset = true) {
 }
 
 const post = (cuerpo: unknown) =>
-  new Request('https://agro.laboratorio-digital.com/api/eventos', {
+  new Request('https://cultivopro.co/api/eventos', {
     method: 'POST',
     body: typeof cuerpo === 'string' ? cuerpo : JSON.stringify(cuerpo),
   });
@@ -54,10 +54,7 @@ describe('POST /api/eventos', () => {
 
   it('solo acepta POST', async () => {
     const { env } = envDePrueba();
-    const r = await worker.fetch(
-      new Request('https://agro.laboratorio-digital.com/api/eventos'),
-      env,
-    );
+    const r = await worker.fetch(new Request('https://cultivopro.co/api/eventos'), env);
     expect(r.status).toBe(405);
   });
 
@@ -68,10 +65,7 @@ describe('POST /api/eventos', () => {
 
   it('lo que no es /api/ va a los assets', async () => {
     const { env } = envDePrueba();
-    const r = await worker.fetch(
-      new Request('https://agro.laboratorio-digital.com/herramientas/agro/'),
-      env,
-    );
+    const r = await worker.fetch(new Request('https://cultivopro.co/herramientas/agro/'), env);
     expect(await r.text()).toBe('asset');
   });
 });

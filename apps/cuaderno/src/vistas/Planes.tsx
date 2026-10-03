@@ -110,6 +110,8 @@ export function Planes() {
     null,
   );
   const [pago, setPago] = useState<FaseDelPago | null>(null);
+  // El plan cuyo botón se tocó: lo que pase con el pago se dice ahí, no arriba, fuera de la vista.
+  const [pagando, setPagando] = useState<string | null>(null);
   const [enLinea, setEnLinea] = useState(navigator.onLine);
   const core = urlDelCore(location.hostname);
 
@@ -144,6 +146,7 @@ export function Planes() {
   };
 
   const pagar = async (plan: string) => {
+    setPagando(plan);
     setPago({ fase: 'abriendo' });
     try {
       const cobro = await crearCobro(cuaderno(), core, plan, `${location.origin}/agro/app/planes/`);
@@ -231,7 +234,7 @@ export function Planes() {
             ' Renuévalo para no perder lo que trae. Si vence, tu finca vuelve al plan Gratis y no pierdes ningún registro.'}
         </p>
       )}
-      {pago && <EstadoDelPago pago={pago} alVerificar={(o) => void confirmar(o)} />}
+      {pago && !pagando && <EstadoDelPago pago={pago} alVerificar={(o) => void confirmar(o)} />}
       <p class="aviso-legal" data-prueba="aviso-precio">
         {AVISO_PRECIO}
       </p>
@@ -268,6 +271,9 @@ export function Planes() {
                     nada.
                   </p>
                   {!enLinea && <p class="ayuda">Necesitas señal para pagar.</p>}
+                  {pago && pagando === p.id && (
+                    <EstadoDelPago pago={pago} alVerificar={(o) => void confirmar(o)} />
+                  )}
                 </div>
               )}
               {CON_ESPERA.has(p.id) &&

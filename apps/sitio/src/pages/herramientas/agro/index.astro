@@ -21,6 +21,9 @@ const canonical = `${SITIO}/herramientas/agro/`;
 const titulo = 'Herramientas agronómicas gratuitas';
 const descripcion =
   'Calculadoras para invernadero y finca que funcionan en tu teléfono, sin registro y sin enviar tus datos.';
+// Compartir la página por WhatsApp (pedido del dueño, 3 oct 2026): un enlace, sin JavaScript.
+const mensaje = `Calculadoras gratis para el invernadero: DPV, carencia y reentrada. Funcionan en el teléfono y sin registro: ${canonical}`;
+const enlaceWhatsApp = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
 ---
 <Base
   title={`${titulo} | Gestión Agro`}
@@ -67,6 +70,23 @@ const descripcion =
       </section>
     ) : (
       <p>Las calculadoras están en preparación.</p>
+    )
+  }
+
+  {
+    disponibles.length > 0 && (
+      <p class="compartir-pagina">
+        ¿Conoces a alguien con invernadero?{' '}
+        <a
+          class="boton secundario"
+          href={enlaceWhatsApp}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-prueba="compartir-herramientas"
+        >
+          Compartir por WhatsApp
+        </a>
+      </p>
     )
   }
 
@@ -158,6 +178,9 @@ const descripcion =
     background: transparent;
     color: var(--color-enlace);
     border: 2px solid currentColor;
+  }
+  .compartir-pagina {
+    margin-block-start: var(--espacio-4);
   }
   .siguiente {
     margin-block-start: var(--espacio-5);

@@ -49,7 +49,7 @@ Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`
 | 16 | Alertas operativas al dueño por Telegram; reporte semanal por GitHub Actions con métricas agregadas | Gratis y sin datos de usuarios en Actions ([H6]) | Email transaccional desde el día 1 | Aceptada |
 | 17 | Monorepo privado; `firmware/`, `hardware/` y `packages/agro-calc` se publican como espejo público cuando tengan su primera versión | Diseño abierto (Estudio) sin exponer el SaaS | Todo público desde el día 1 | Aceptada. Excepción temporal: público desde el 30 sep 2026 hasta que se reinicien los minutos de Actions de octubre; luego vuelve a privado (bitácora agro 5) |
 | 18 | Herramientas del repositorio en Node/TypeScript, nunca scripts de bash para el operador | P3: tu máquina es Windows | Scripts `.sh` | Aceptada |
-| 19 | Host `agro.laboratorio-digital.com` con las rutas de siempre: calculadoras en `/herramientas/agro/<slug>/`, cuaderno en `/agro/app/`, QR en `/agro/t/` | Subdominio propio desde el día 1, sin spike. Las rutas no cambian, así que volver al dominio principal (o a otro dominio) es cambiar el host y redirigir; los QR impresos siguen sirviendo con la redirección | Dominio principal verificado por el spike HU-E1.4 (cancelado); rutas cortas en el subdominio | Aceptada (30 sep 2026) |
+| 19 | Host `cultivopro.co` (era `agro.laboratorio-digital.com` hasta el 3 oct 2026, que redirige con 301) con las rutas de siempre: calculadoras en `/herramientas/agro/<slug>/`, cuaderno en `/agro/app/`, QR en `/agro/t/` | Subdominio propio desde el día 1, sin spike. Las rutas no cambian, así que volver al dominio principal (o a otro dominio) es cambiar el host y redirigir; los QR impresos siguen sirviendo con la redirección | Dominio principal verificado por el spike HU-E1.4 (cancelado); rutas cortas en el subdominio | Aceptada (30 sep 2026) |
 
 ---
 
@@ -162,7 +162,7 @@ Se heredan todos los de ED1 §3 y los de las instrucciones del proyecto §4. Aqu
 ### 5.1 Sitio público y calculadoras
 
 - **Qué es:** un Worker con **Static Assets** que sirve páginas generadas por Astro. Las calculadoras son islas Preact. Ninguna ruta pública ejecuta el script del Worker (sin `run_worker_first`), así que no consumen la cuota de 100.000 solicitudes/día (ED1 §3.10, [H3]).
-- **Rutas (ADR-19):** en el host `agro.laboratorio-digital.com`: `/herramientas/agro/calculadora-dpv/`, `/herramientas/agro/periodo-de-carencia/`, … y la tabla de contenidos `/herramientas/agro/`. El Worker del sitio es dueño de todo el subdominio y sirve assets estáticos sin ejecutar el script, salvo `/api/*`. Si después se valida pasar al dominio principal o a un dominio nuevo, se cambia el host y se redirige con 301; las rutas no cambian.
+- **Rutas (ADR-19):** en el host `cultivopro.co` (de `celdas.json`; el sitio, la CSP del cuaderno y el CORE lo leen de ahí): `/herramientas/agro/calculadora-dpv/`, `/herramientas/agro/periodo-de-carencia/`, … y la tabla de contenidos `/herramientas/agro/`. El Worker del sitio es dueño de todo el subdominio y sirve assets estáticos sin ejecutar el script, salvo `/api/*`. Si después se valida pasar al dominio principal o a un dominio nuevo, se cambia el host y se redirige con 301; las rutas no cambian.
 - **Contrato:** un `product.yaml` por herramienta (ED1 §5.1), validado por `schemas/product.schema.json` en CI. Extensión agro:
 
 ```yaml
@@ -771,7 +771,7 @@ Se numeran HA para no chocar con [H1]–[H16].
 ## 15. Preguntas abiertas
 
 1. **Fecha estimada de trasplante y de primera cosecha.** Respondida el 30 sep 2026: trasplante a mediados de octubre de 2026 y primera cosecha en enero de 2027. El dueño decidió mantener el orden del backlog (la DPV primero); ver BACKLOG §1.
-2. **Dominio:** respondida el 30 sep 2026: `laboratorio-digital.com` ya está en Cloudflare. El agro usa por ahora el subdominio `agro.laboratorio-digital.com` (ADR-19); un dominio propio se valida después si hace falta.
+2. **Dominio:** respondida el 30 sep 2026: `laboratorio-digital.com` ya está en Cloudflare. El agro usó el subdominio `agro.laboratorio-digital.com` hasta el 3 oct 2026, cuando el dueño eligió el dominio definitivo `cultivopro.co` (ADR-19); un dominio propio se valida después si hace falta.
 3. **¿El repositorio `gestionagro` es privado?** Respondida el 30 sep 2026: privado al inicio. Hacerlo público se decide después según el consumo de minutos de Actions (ED1 §41). Mientras sea privado, `tests/terminos-prohibidos.json` vive en el repositorio; antes de publicarlo, sale del repositorio (HU-E1.7). *(Hoy: el 30 sep 2026 se hizo público sin sacar la lista, porque los Actions privados no arrancaban por facturación. El dueño aceptó la exposición y vuelve a privado al reiniciarse los minutos. Bitácora agro 5.)*
 4. **¿Hay agrónomo aliado** para revisar el DPV antes de publicarlo? Respondida el 30 sep 2026: sí, el supervisor de la finca cero, que es agrónomo. Como también es usuario del producto, su revisión no es independiente; se anota así en la revisión. En `product.yaml` se registra por rol (`aprobada:<fecha>:agronomo-aliado`), nunca por nombre, porque los nombres de la finca cero son términos prohibidos (P4).
 

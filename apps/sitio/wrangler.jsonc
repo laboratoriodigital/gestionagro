@@ -14,7 +14,7 @@
   "workers_dev": false,
   "routes": [
     {
-      "pattern": "agro.laboratorio-digital.com",
+      "pattern": "cultivopro.co",
       "custom_domain": true
     }
   ],
