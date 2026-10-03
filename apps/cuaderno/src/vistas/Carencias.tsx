@@ -4,8 +4,12 @@
  * carencia o la reentrada de la etiqueta (P1). El color nunca va solo: lleva un símbolo y un texto.
  * Se enciende o apaga por plan en `content/agro/cuaderno/funciones.json`; apagada, la carencia de
  * cada área sigue en «Áreas» (HU-E3.10).
+ *
+ * Con el plan Finca, el calendario se imprime en una hoja horizontal para la puerta de la nave
+ * (`calendario_imprimible`, decisión del dueño del 3 oct 2026): el mismo contenido, en blanco y
+ * negro se lee igual, porque cada día lleva su símbolo.
  */
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import {
   type Color,
@@ -18,7 +22,9 @@ import {
 import { leerFinca } from '../almacen/finca.ts';
 import { funcionActiva } from '../almacen/funciones.ts';
 import { leerSesion, planDeLaFinca } from '../almacen/sesion.ts';
+import { imprimirSolo, PAPEL_HOJA } from '../componentes/imprimir.ts';
 import { ControlesPlegables, Plegable, usarPlegables } from '../componentes/Plegables.tsx';
+import { fechaHora } from '../formato.ts';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 
 const SIMBOLO: Record<Color, string> = { verde: '✓', rojo: '✕', gris: '?' };
@@ -47,10 +53,69 @@ function textoDelDia(d: DiaDelCalendario): string {
   return d.color === 'verde' ? 'se puede cosechar' : 'no cosechar';
 }
 
+/** La hoja para la puerta de la nave: hoy y los 14 días, un área por fila. */
+function CalendarioImprimible({
+  filas,
+  finca,
+  hojaRef,
+}: {
+  filas: FilaDelCalendario[];
+  finca: string;
+  hojaRef: preact.Ref<HTMLDivElement>;
+}) {
+  const dias = filas[0]?.dias ?? [];
+  return (
+    <div class="calendario-imprimible" ref={hojaRef} data-prueba="calendario-imprimible">
+      <p class="titulo-impreso">
+        <strong>¿Qué se puede cosechar? · {finca}</strong> · impreso el{' '}
+        {fechaHora(new Date().toISOString())}
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Área</th>
+            <th scope="col">Hoy</th>
+            {dias.map((d) => (
+              <th scope="col" key={d.fecha}>
+                {cabeceraDeDia(d.fecha)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((f) => (
+            <tr key={f.area.id}>
+              <th scope="row">{f.nombre}</th>
+              <td class={f.hoy.color}>
+                {SIMBOLO[f.hoy.color]} {ESTADO_HOY[f.hoy.color]}
+                {f.hoy.carencia && <span class="detalle-impreso">{f.hoy.carencia}</span>}
+                {f.hoy.reentrada && <span class="detalle-impreso">{f.hoy.reentrada}</span>}
+              </td>
+              {f.dias.map((d) => (
+                <td key={d.fecha} class={d.color}>
+                  {SIMBOLO[d.color]}
+                  {d.entrarDesde && <span class="detalle-impreso">{d.entrarDesde}</span>}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="leyenda-impresa">
+        ✓ se puede cosechar · ✕ no cosechar (con una hora: desde esa hora se puede entrar) · ? falta
+        la carencia o la reentrada del producto. Vuelve a imprimir después de cada aplicación: esta
+        hoja no se actualiza sola.
+      </p>
+    </div>
+  );
+}
+
 export function Carencias() {
   const estado = usarFinca();
   const [filas, setFilas] = useState<FilaDelCalendario[] | null>(null);
   const [activa, setActiva] = useState<boolean | null>(null);
+  const [imprimible, setImprimible] = useState(false);
+  const hoja = useRef<HTMLDivElement>(null);
   const fincaId = !estado.cargando && estado.finca ? estado.finca.id : null;
   const visibles = filas ? distintasDeSuNave(filas) : [];
   const ocultas = (filas?.length ?? 0) - visibles.length;
@@ -61,6 +126,7 @@ export function Carencias() {
     void (async () => {
       const plan = planDeLaFinca(await leerSesion(db));
       setActiva(funcionActiva('calendario_carencias', plan));
+      setImprimible(funcionActiva('calendario_imprimible', plan));
       const d = await leerFinca(db);
       setFilas(await calendarioDeCarencias(db, fincaId, d?.areas ?? []));
     })();
@@ -177,6 +243,34 @@ export function Carencias() {
             Lo que se aplica en una nave cuenta también para sus camas y surcos. Los días son los de
             Colombia, aunque el teléfono tenga otra hora.
           </p>
+          <h2>Para la puerta de la nave</h2>
+          {imprimible ? (
+            <>
+              <p class="ayuda">
+                Una hoja horizontal con hoy y los próximos {DIAS_DEL_CALENDARIO} días de cada área,
+                para que el equipo la vea sin sacar el teléfono.
+              </p>
+              <div class="acciones">
+                <button
+                  type="button"
+                  class="secundario"
+                  onClick={() => imprimirSolo(hoja.current, PAPEL_HOJA)}
+                >
+                  Imprimir el calendario
+                </button>
+              </div>
+              <CalendarioImprimible
+                filas={visibles}
+                finca={estado.finca?.nombre ?? ''}
+                hojaRef={hoja}
+              />
+            </>
+          ) : (
+            <p class="ayuda" data-prueba="imprimible-plan">
+              Imprimirlo para pegarlo en la puerta de la nave viene con el plan Finca.{' '}
+              <a href="/agro/app/planes/">Ver los planes</a>
+            </p>
+          )}
         </>
       )}
     </section>

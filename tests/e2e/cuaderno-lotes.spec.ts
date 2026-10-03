@@ -90,6 +90,12 @@ for (const f of FINCAS_DE_PRUEBA) {
     await page.getByRole('button', { name: 'Guardar cambios' }).click();
     await expect(lote.locator('.codigo-lote')).toHaveText(`M-${hoy.ddmm}-1`);
     await expect(lote).toContainText('30,5 kg');
+    // La cosecha que salió del lote vuelve a estar libre, en «Nuevo lote». Mirarla aquí sin
+    // cambiar de pestaña dependía de alcanzar el formulario mientras se cerraba.
+    await page
+      .locator('[data-prueba="pestanas-lotes"]')
+      .getByRole('button', { name: 'Nuevo lote', exact: true })
+      .click();
     await expect(page.getByLabel(`${a2.nombre} · ${hoy.corta} · Primera · 12 kg`)).toBeVisible();
   });
 }

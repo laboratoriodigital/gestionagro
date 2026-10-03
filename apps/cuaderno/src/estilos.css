@@ -456,11 +456,8 @@ a.boton {
 #impresion {
   display: none;
 }
+/* Imprimir solo una parte (componentes/imprimir.ts): el papel lo pone un @page de cada impresión. */
 @media print {
-  @page {
-    size: 5cm 5cm;
-    margin: 0;
-  }
   html.imprimiendo body > :not(#impresion) {
     display: none;
   }
@@ -472,6 +469,8 @@ a.boton {
   }
   html.imprimiendo #impresion {
     display: block;
+  }
+  html.imprimiendo #impresion.etiqueta {
     width: 5cm;
     height: 5cm;
     overflow: hidden;
@@ -651,4 +650,69 @@ label.boton.secundario {
   background: transparent;
   color: var(--color-texto);
   cursor: pointer;
+}
+
+/* Calendario de carencias para la puerta de la nave (HU-E9.1, plan Finca): en pantalla no se ve,
+   solo sale al imprimir (componentes/imprimir.ts). Colores fijos de papel, no del tema, y cada
+   día con su símbolo: en blanco y negro se lee igual. */
+.calendario-imprimible {
+  display: none;
+}
+@media print {
+  #impresion.hoja .calendario-imprimible {
+    display: block;
+    color: #000;
+    background: #fff;
+    font-size: 9pt;
+    line-height: 1.25;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  #impresion.hoja .titulo-impreso {
+    font-size: 12pt;
+    margin: 0 0 0.3cm;
+  }
+  #impresion.hoja table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  #impresion.hoja th,
+  #impresion.hoja td {
+    border: 1px solid #555;
+    padding: 0.08cm 0.1cm;
+    text-align: center;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+  }
+  #impresion.hoja thead th:first-child,
+  #impresion.hoja tbody th {
+    width: 3.6cm;
+    text-align: start;
+  }
+  #impresion.hoja thead th:nth-child(2) {
+    width: 3.6cm;
+  }
+  #impresion.hoja tbody tr {
+    break-inside: avoid;
+  }
+  #impresion.hoja td.verde {
+    background: #d9eedf;
+  }
+  #impresion.hoja td.rojo {
+    background: #f6d5c8;
+    font-weight: 700;
+  }
+  #impresion.hoja td.gris {
+    background: #e8e8e8;
+  }
+  #impresion.hoja .detalle-impreso {
+    display: block;
+    font-size: 7.5pt;
+    font-weight: 400;
+  }
+  #impresion.hoja .leyenda-impresa {
+    margin: 0.3cm 0 0;
+    font-size: 8pt;
+  }
 }

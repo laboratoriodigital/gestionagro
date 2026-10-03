@@ -18,6 +18,7 @@ import {
 } from '../almacen/sesion.ts';
 import { estadoDelVinculo } from '../almacen/vinculo.ts';
 import { CodigoQr, imagenDeEtiqueta } from '../componentes/CodigoQr.tsx';
+import { imprimirSolo, PAPEL_ETIQUETA } from '../componentes/imprimir.ts';
 import { descargar } from '../descargar.ts';
 import { fechaHora } from '../formato.ts';
 
@@ -45,27 +46,6 @@ async function nube(): Promise<{ api: string; acceso: string } | { motivo: strin
     };
   }
   return { api: sesion.url_api, acceso: sesion.acceso };
-}
-
-/**
- * Imprime solo la etiqueta: la copia a #impresion, en la raíz de la página, y la hoja de estilo
- * de impresión quita todo lo demás (`estilos.css`). Una sola hoja de 5 × 5 cm.
- */
-function imprimir(etiqueta: HTMLElement | null) {
-  if (!etiqueta) return;
-  document.getElementById('impresion')?.remove();
-  const contenedor = document.createElement('div');
-  contenedor.id = 'impresion';
-  contenedor.append(etiqueta.cloneNode(true));
-  document.body.append(contenedor);
-  document.documentElement.classList.add('imprimiendo');
-  const limpiar = () => {
-    document.documentElement.classList.remove('imprimiendo');
-    contenedor.remove();
-  };
-  // En el teléfono el diálogo es asíncrono: se limpia cuando termina.
-  window.addEventListener('afterprint', limpiar, { once: true });
-  window.print();
 }
 
 /**
@@ -203,7 +183,7 @@ export function EtiquetaQr(props: { lote: Lote; alCerrar: () => void }) {
         >
           Compartir
         </button>
-        <button type="button" onClick={() => imprimir(etiquetaRef.current)}>
+        <button type="button" onClick={() => imprimirSolo(etiquetaRef.current, PAPEL_ETIQUETA)}>
           Imprimir
         </button>
       </div>
