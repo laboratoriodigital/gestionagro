@@ -23,6 +23,8 @@ import {
   type Lote,
   leerLotes,
 } from '../almacen/lotes.ts';
+import { Paginador, usarPaginacion } from '../componentes/Paginador.tsx';
+import { ControlesPlegables, Plegable, usarPlegables } from '../componentes/Plegables.tsx';
 import { corto, descargar } from '../descargar.ts';
 import { FormularioDespacho, ListaDespachos } from './Despachos.tsx';
 import { EtiquetaQr } from './EtiquetaQr.tsx';
@@ -130,6 +132,10 @@ export function Lotes() {
   const veVentas = permisos.puedeRegistro('leer', 'despacho');
   const despacha = permisos.puedeRegistro('escribir', 'despacho');
   const [lotes, setLotes] = useState<Lote[] | null>(null);
+  // Muchos lotes: por páginas y plegables (revisión del dueño, 3 oct 2026).
+  const paginas = usarPaginacion(lotes?.length ?? 0, 25);
+  const pagina = (lotes ?? []).slice(paginas.desde, paginas.hasta);
+  const plegables = usarPlegables(pagina.map((l) => l.registro.id));
   const [cosechas, setCosechas] = useState<CosechaParaLote[]>([]);
   const [despachos, setDespachos] = useState<Despacho[]>([]);
   const [clientes, setClientes] = useState<DatosDespacho['cliente'][]>([]);
@@ -178,85 +184,109 @@ export function Lotes() {
       ) : lotes.length === 0 ? (
         <p class="ayuda">Todavía no hay lotes.</p>
       ) : (
-        <ul class="areas" data-prueba="lotes">
-          {lotes.map((l) => (
-            <li class="area" key={l.registro.id} data-prueba="lote">
-              <p class="area-titulo">
-                <strong class="codigo-lote">{l.codigo}</strong> · {coma(l.cantidad)} {l.unidad}
-              </p>
-              {veVentas && l.despachado !== 0 && (
-                <p class="detalle-insumo" data-prueba="saldo-lote">
-                  Despachado {coma(l.despachado)} {l.unidad} · quedan {coma(l.saldo)} {l.unidad}
-                </p>
-              )}
-              <p class="detalle-insumo" data-prueba="origen-lote">
-                De{' '}
-                {l.origen
-                  .map((o) => `${o.area} (${o.fechas.map(fechaCorta).join(', ')})`)
-                  .join(', ')}
-              </p>
-              {l.avisos.map((a) => (
-                <p class="aviso-ecologico" key={a} data-prueba="aviso-lote">
-                  {a}
-                </p>
-              ))}
-              {abierto?.tipo === 'despachar' && abierto.id === l.registro.id ? (
-                <FormularioDespacho
-                  fincaId={fincaId}
-                  lote={l}
-                  lotes={lotes}
-                  clientes={clientes}
-                  alTerminar={cargar}
-                  alCancelar={() => setAbierto(null)}
-                />
-              ) : abierto?.tipo === 'etiqueta' && abierto.id === l.registro.id ? (
-                <EtiquetaQr lote={l} alCerrar={() => setAbierto(null)} />
-              ) : abierto?.tipo === 'cambiar' && abierto.id === l.registro.id ? (
-                <ElegirCosechas
-                  fincaId={fincaId}
-                  cosechas={cosechas}
-                  corrige={l}
-                  alTerminar={cargar}
-                  alCancelar={() => setAbierto(null)}
-                />
-              ) : (
-                (arma || despacha) && (
-                  <div class="acciones-area">
-                    {arma && (
-                      <button
-                        type="button"
-                        class="secundario"
-                        onClick={() => setAbierto({ tipo: 'etiqueta', id: l.registro.id })}
-                        aria-label={`Etiqueta QR del lote ${l.codigo}`}
-                      >
-                        Etiqueta QR
-                      </button>
-                    )}
-                    {despacha && l.saldo > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setAbierto({ tipo: 'despachar', id: l.registro.id })}
-                        aria-label={`Despachar el lote ${l.codigo}`}
-                      >
-                        Despachar
-                      </button>
-                    )}
-                    {arma && (
-                      <button
-                        type="button"
-                        class="secundario"
-                        onClick={() => setAbierto({ tipo: 'cambiar', id: l.registro.id })}
-                        aria-label={`Cambiar las cosechas del lote ${l.codigo}`}
-                      >
-                        Cambiar cosechas
-                      </button>
-                    )}
-                  </div>
-                )
-              )}
-            </li>
-          ))}
-        </ul>
+        <>
+          {pagina.length > 1 && <ControlesPlegables p={plegables} que="lotes" id="lotes" />}
+          <ul class="areas" data-prueba="lotes">
+            {pagina.map((l) => (
+              <li class="area" key={l.registro.id} data-prueba="lote">
+                <Plegable
+                  id={l.registro.id}
+                  p={plegables}
+                  resumen={
+                    <span class="area-titulo">
+                      <strong class="codigo-lote">{l.codigo}</strong> · {coma(l.cantidad)}{' '}
+                      {l.unidad}
+                      {veVentas && (
+                        <span class="detalle-insumo">
+                          {' '}
+                          ·{' '}
+                          {l.saldo > 0 ? `quedan ${coma(l.saldo)} ${l.unidad}` : 'todo despachado'}
+                        </span>
+                      )}
+                      {l.avisos.length > 0 && (
+                        <span class="sello-area desconocida"> · revisar</span>
+                      )}
+                    </span>
+                  }
+                >
+                  {veVentas && l.despachado !== 0 && (
+                    <p class="detalle-insumo" data-prueba="saldo-lote">
+                      {l.saldo > 0
+                        ? `Despachado ${coma(l.despachado)} ${l.unidad} · quedan ${coma(l.saldo)} ${l.unidad}`
+                        : `Todo despachado (${coma(l.despachado)} ${l.unidad}): no queda nada por despachar.`}
+                    </p>
+                  )}
+                  <p class="detalle-insumo" data-prueba="origen-lote">
+                    De{' '}
+                    {l.origen
+                      .map((o) => `${o.area} (${o.fechas.map(fechaCorta).join(', ')})`)
+                      .join(', ')}
+                  </p>
+                  {l.avisos.map((a) => (
+                    <p class="aviso-ecologico" key={a} data-prueba="aviso-lote">
+                      {a}
+                    </p>
+                  ))}
+                  {abierto?.tipo === 'despachar' && abierto.id === l.registro.id ? (
+                    <FormularioDespacho
+                      fincaId={fincaId}
+                      lote={l}
+                      lotes={lotes}
+                      clientes={clientes}
+                      alTerminar={cargar}
+                      alCancelar={() => setAbierto(null)}
+                    />
+                  ) : abierto?.tipo === 'etiqueta' && abierto.id === l.registro.id ? (
+                    <EtiquetaQr lote={l} alCerrar={() => setAbierto(null)} />
+                  ) : abierto?.tipo === 'cambiar' && abierto.id === l.registro.id ? (
+                    <ElegirCosechas
+                      fincaId={fincaId}
+                      cosechas={cosechas}
+                      corrige={l}
+                      alTerminar={cargar}
+                      alCancelar={() => setAbierto(null)}
+                    />
+                  ) : (
+                    (arma || despacha) && (
+                      <div class="acciones-area">
+                        {arma && (
+                          <button
+                            type="button"
+                            class="secundario"
+                            onClick={() => setAbierto({ tipo: 'etiqueta', id: l.registro.id })}
+                            aria-label={`Etiqueta QR del lote ${l.codigo}`}
+                          >
+                            Etiqueta QR
+                          </button>
+                        )}
+                        {despacha && l.saldo > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setAbierto({ tipo: 'despachar', id: l.registro.id })}
+                            aria-label={`Despachar el lote ${l.codigo}`}
+                          >
+                            Despachar
+                          </button>
+                        )}
+                        {arma && (
+                          <button
+                            type="button"
+                            class="secundario"
+                            onClick={() => setAbierto({ tipo: 'cambiar', id: l.registro.id })}
+                            aria-label={`Cambiar las cosechas del lote ${l.codigo}`}
+                          >
+                            Cambiar cosechas
+                          </button>
+                        )}
+                      </div>
+                    )
+                  )}
+                </Plegable>
+              </li>
+            ))}
+          </ul>
+          <Paginador id="lotes" total={lotes.length} p={paginas} que="lotes" />
+        </>
       )}
       {veVentas && lotes !== null && estado.finca && (
         <div data-prueba="disponibilidad">

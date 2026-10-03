@@ -568,3 +568,56 @@ a.boton {
   font-size: 1.25rem;
   margin: var(--espacio-1) 0;
 }
+
+/* Paginador (revisión del dueño, 3 oct 2026). */
+.paginador {
+  display: grid;
+  gap: var(--espacio-2);
+  margin-block: var(--espacio-3);
+}
+.paginador .ayuda {
+  margin: 0;
+}
+.paginador-botones {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+}
+.paginador-pagina {
+  font-weight: 600;
+  text-align: center;
+}
+.paginador-tamano {
+  max-width: 12rem;
+  margin: 0;
+}
+
+/* Plegables (revisión del dueño, 3 oct 2026): el resumen se toca en toda su fila. */
+.plegable > summary {
+  cursor: pointer;
+  min-height: var(--objetivo-tactil);
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  flex-wrap: wrap;
+  list-style-position: outside;
+}
+.plegable > summary::marker {
+  color: var(--color-marca);
+}
+.plegable[open] > summary {
+  margin-block-end: var(--espacio-2);
+}
+.controles-plegables {
+  margin-block: var(--espacio-2);
+}
+
+.sello-area {
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+}
+.sello-area.en-carencia,
+.sello-area.desconocida {
+  color: var(--color-alerta);
+}

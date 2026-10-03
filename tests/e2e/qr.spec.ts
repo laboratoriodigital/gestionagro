@@ -122,7 +122,15 @@ test('CA1 y CA4: sin señal, el lote da una etiqueta de 5 × 5 cm «sin confirma
   const etiqueta = page.locator('[data-prueba="etiqueta-qr"]');
   await expect(etiqueta.getByRole('img', { name: `Código QR del lote ${codigo}` })).toBeVisible();
   await expect(etiqueta.locator('.etiqueta-estado')).toHaveText('Sin confirmar');
-  await expect(etiqueta.locator('[data-prueba="estado-etiqueta"]')).toContainText('sin confirmar');
+  // Dice por qué no está confirmada y qué hacer (revisión del dueño, 3 oct 2026).
+  await expect(etiqueta.locator('[data-prueba="estado-etiqueta"]')).toContainText(
+    'No hay señal. Inténtalo cuando la haya.',
+  );
+  // «Intentar confirmar» responde: dice que lo intentó, a qué hora, y por qué sigue igual.
+  await etiqueta.getByRole('button', { name: 'Intentar confirmar' }).click();
+  await expect(etiqueta.locator('[data-prueba="estado-etiqueta"]')).toContainText(
+    /Se intentó a las \d{2}:\d{2} y sigue sin confirmar\./,
+  );
   // CA4: al imprimir mide 5 × 5 cm (96 px por pulgada).
   await page.emulateMedia({ media: 'print' });
   const caja = await etiqueta.locator('.etiqueta-imprimible').boundingBox();
@@ -228,7 +236,7 @@ test('revisión del dueño: compartir con el menú del teléfono manda la etique
     });
 });
 
-test('sin menú de compartir (un computador): copia el enlace y lo dice', async ({
+test('sin menú de compartir (un computador): descarga la imagen, copia el enlace y lo dice', async ({
   page,
   context,
 }) => {
@@ -237,9 +245,13 @@ test('sin menú de compartir (un computador): copia el enlace y lo dice', async 
     Object.assign(navigator, { share: undefined });
   });
   await abrirEtiqueta(page);
-  await page.getByRole('button', { name: 'Compartir' }).click();
-  await expect(page.locator('[data-prueba="aviso-compartir"]')).toHaveText(
-    'Enlace copiado: pégalo donde quieras compartirlo.',
+  const [descarga] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Compartir' }).click(),
+  ]);
+  expect(descarga.suggestedFilename()).toMatch(/^lote-.+\.png$/);
+  await expect(page.locator('[data-prueba="aviso-compartir"]')).toContainText(
+    'La imagen de la etiqueta quedó en tus descargas y el enlace, copiado',
   );
   const enlace = await page.locator('[data-prueba="enlace-qr"]').getAttribute('href');
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(enlace);

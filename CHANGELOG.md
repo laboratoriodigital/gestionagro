@@ -5,9 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Cambiado
+- Según la revisión del dueño con la temporada simulada (3 oct 2026):
+  - Áreas, Carencias y Lotes se pliegan: cada área o lote se abre por su cuenta, y hay «Abrir todas» y «Cerrar todas». Con más de 6, arrancan cerrados y el resumen dice lo esencial (en Áreas, si la nave está en carencia; en Lotes, cuánto queda).
+  - En Carencias, una cama o surco igual a su nave ya no se repite.
+  - Registrar muestra todos los registros, 10 por página, con filtro por tipo. Registrar e Historial tienen el mismo paginador: anterior, siguiente, la página y cuántos ver por página.
+  - Rendimiento es una sola tabla con filtros por cultivo, área y ciclo, ordenable, y con el total vendible.
+  - Un lote despachado completo dice «Todo despachado»: por eso no tiene «Despachar».
 - Según la revisión del dueño: en Cuenta, «Tus teléfonos» se llama ahora «Tus dispositivos», porque también se entra desde un computador. La lista es plana: una fila por dispositivo con la fecha corta y el botón «Retirar» al lado, sin tarjetas.
 
 ### Corregido
+- Según la revisión del dueño (3 oct 2026): «Intentar confirmar» en la etiqueta QR parecía no hacer nada. Ahora dice que lo intentó, a qué hora y por qué sigue sin confirmar (sin señal, sin cuenta, sesión vencida o finca sin subir), con qué hacer. En un computador, «Compartir» descarga además la imagen de la etiqueta.
 - Según la prueba del dueño (bitácora agro 28): imprimir la etiqueta QR sacaba 12 hojas. Ahora sale una sola, de 5 × 5 cm.
 - Según la revisión del dueño: en «Áreas», los botones de cada área estaban apilados en tres filas de anchos distintos. Ahora el estado del ciclo va con su botón en una franja, y Editar, Historial y «+ Cama o surco» quedan en una sola fila de botones iguales.
 - Según la prueba del dueño en staging (bitácora agro 26): lo anotado en el celular llegaba al computador solo al tocar «Sincronizar ahora» o a los 15 min. En un computador la pestaña casi nunca se oculta, así que «volver a la app» no ocurría. Ahora el cuaderno también trae lo del equipo cuando su ventana recibe el foco o cuando se toca la página, como máximo cada 30 s.
