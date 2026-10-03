@@ -197,6 +197,27 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
   - WI-E0.5.3 Aceptación versionada en el CORE (1,5 h).
   - WI-E0.5.4 Prueba de coherencia política ↔ scripts cargados (1,5 h).
 
+#### HU-E0.7 · Pagar el plan Finca con Bold
+**Como** propietario que quiere el plan Finca **quiero** pagarlo en línea con PSE, Nequi o tarjeta **para** tenerlo activo sin escribirle a nadie.
+- **Peldaño:** premium → SaaS · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** por decidir · **Depende de:** HU-E0.6 · **Estado:** Propuesta (pedido del dueño, 3 oct 2026: «si un cliente quiere pagar el plan Finca, pasarela Bold; el ecommerce ya la implementa»).
+- **Contraste:**
+  - ARQUITECTURA §2.3 dice que el plan Finca no se cobra hasta los umbrales de la etapa 4 → 7. Cobrar antes es una excepción que decide el dueño y queda como ADR. Un cliente que pide pagar es la mejor señal de intención, mejor que «Me interesa».
+  - ED1 §5.3 pide un adaptador en el CORE para poder cambiar de proveedor, y contempla la factura electrónica DIAN y el IVA de servicios digitales.
+  - La Tienda ya cobra con el Botón de pagos de Bold (su `PAGOS-BOLD.md`). De ahí se reutiliza el método:
+    - la firma SHA-256 de pedido, monto, COP y llave secreta;
+    - el monto lo calcula el servidor, nunca la página;
+    - la verdad se le pregunta a la API autenticada de Bold (`payment-voucher`);
+    - las llaves de pruebas y de producción van aparte.
+- **Diseño:** `POST /api/core/pago/crear` arma el cobro con el precio de `planes.json`. La página de Planes abre el checkout de Bold (CSP con `checkout.bold.co`). Al volver, `/api/core/pago/confirmar` consulta a Bold, y solo con «aprobado» y el monto exacto se cambia `organizacion.plan` y se fija `plan_vence`. Esto lleva una migración del CORE y una tabla `pago` sin datos de tarjeta. El cobro es mensual sin débito automático: una semana antes del vencimiento se avisa, y al vencer la finca vuelve al gratuito sin perder un solo dato. Las llaves van como secretos del Worker del CORE.
+- **Mientras tanto, sin código:** un link de pago creado en el panel de Bold, y el dueño cambia el plan de esa organización en el CORE a mano.
+- **Criterios de aceptación:**
+  1. Solo el propietario paga. El monto sale del servidor y Bold recibe exactamente ese.
+  2. Un pago aprobado activa el plan en la próxima renovación de la sesión. Uno rechazado, pendiente o por otro monto no lo activa, y se dice por qué.
+  3. Pagar dos veces o recargar la página no cobra ni activa dos veces.
+  4. Al vencer, la finca vuelve al gratuito y conserva todo lo registrado.
+  5. Probado en el ambiente de pruebas de Bold, con las tarjetas de prueba, antes de usar las llaves de producción.
+- **WI:** migración y tabla `pago` (2 h); crear y confirmar el cobro (4 h); página de Planes (3 h); vencimiento y aviso (2 h); pruebas con Bold de pruebas (3 h).
+
 #### HU-E0.6 · Lista de espera de planes con precio visible
 **Como** productor que ya usa el cuaderno **quiero** ver qué incluye el plan Finca y el Exportador y cuánto costarán **para** decidir si me interesa.
 - **Peldaño:** premium → SaaS · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S15 · **Depende de:** HU-E4.3 · **Estado:** En sprint (rama `feat/e0.6-lista-de-espera`. CA1: tabla `interes_plan` en el CORE (migración 0004 y ARQUITECTURA §5.4): una fila por persona, finca y plan, con `INSERT OR IGNORE`, así que repetir no escribe. `POST /api/core/interes` y `/interes/ver`. Solo el propietario avisa, porque es quien decidiría pagar; el operario ve un texto, no el botón. CA2: `content/agro/cuaderno/planes.json` con los «Precios propuestos» del Estudio y el aviso de precio de lanzamiento tentativo. Una prueba ata los precios a la tabla del Estudio y lo que promete cada plan a `funciones.json` y `fotos.json`; lo que no existe dice «pronto». CA3: el reporte semanal cuenta las fincas que tocaron «Me interesa» sobre las cuentas, y por plan. CA4: «Planes» no está en el menú; se llega desde Cuenta y desde los avisos de Costos, Carencias y Rendimiento por persona, nunca desde un formulario de registro. Una e2e lo exige)
@@ -908,7 +929,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E6.5 · Disponibilidad para la tienda en línea
 **Como** propietario que también vende en la Tienda del ecosistema **quiero** exportar lo que tengo disponible por producto **para** actualizar mi catálogo sin volver a contar.
-- **Peldaño:** puente entre verticales de ED1 · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E6.3 · **Estado:** En sprint (rama `feat/e6.5-disponibilidad-tienda`. Cambio de rumbo del 2 oct 2026: la documentación de la Tienda no está en este repositorio y el dueño pidió que el cuaderno propusiera el formato; la Tienda lo confirma al importarlo, y si su hoja pide otro, cambia solo `disponibilidad.ts`. Formato v1: UTF-8 con BOM, comas, CRLF y comillas RFC 4180. Columnas `producto, categoria, disponible, unidad, lote, cosechado_desde, cosechado_hasta, finca`, una fila por lote con saldo, `disponible` con punto decimal y fechas `AAAA-MM-DD`. Un lote sin cultivo deja el producto vacío (P1). Las celdas que empiezan con `= + - @` llevan apóstrofo para que la hoja no las ejecute. En «Lotes» → «Para la tienda en línea», solo para quien ve las ventas, porque el saldo sale de los despachos (§9). Funciona sin señal)
+- **Peldaño:** puente entre verticales de ED1 · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E6.3 · **Estado:** En sprint (rama `feat/e6.5-disponibilidad-tienda`; formato v2 en `feat/herramientas-entrada`. El 3 oct 2026 el dueño dio las columnas reales de la pestaña «Catálogo» de la Tienda, y se leyeron en su CONTRATOS §4: ID, Nombre, Categoría, Formato, Precio, Precio antes, Stock, Umbral bajo, Variantes, Imágenes, Descripción, Destacado, Activo y Referencia, en ese orden visible; la hoja las lee por nombre. La v1 proponía columnas propias y no se podía pegar en la hoja. La Tienda vende productos, no lotes: una fila por cultivo y categoría de cosecha, con la suma de los lotes. `Stock` es entero en la Tienda, así que van unidades de «1 kg» sin la fracción. El precio va vacío, porque el de un despacho no es el de la tienda (P1), y la pantalla avisa que la Tienda no publica sin precio. El `ID` sigue su regla (minúsculas, sin tildes, guiones) y sale igual cada vez. Los lotes van en `Referencia` (hasta 60 letras) y las fechas en `Descripción`. Un lote sin cultivo no sale, y la pantalla dice cuántos quedaron fuera)
 - **Criterios de aceptación:**
   1. CSV con producto, kg disponibles (cosechado − despachado) y lote, con el formato de columnas que lee la hoja de la Tienda. El formato se confirma leyendo la documentación de la Tienda, no se supone (P9).
   2. No hay conexión directa entre sistemas en esta versión.

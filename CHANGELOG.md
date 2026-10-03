@@ -9,6 +9,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ### Cambiado
 - Según el pedido del dueño (3 oct 2026), la página de entrada de las herramientas presenta cada calculadora por la pregunta que responde y qué se necesita para usarla, y ofrece el cuaderno como siguiente paso. Antes decía «La primera calculadora está en preparación», aunque las dos ya se podían usar. Sigue sin pedirle a Google que la indexe hasta que haya una herramienta aprobada.
+- Según el dueño (3 oct 2026), el archivo «Para la tienda» trae las columnas de la hoja «Catálogo» de la Tienda (ID, Nombre, Categoría, Formato, Precio, Precio antes, Stock, Umbral bajo, Variantes, Imágenes, Descripción, Destacado, Activo, Referencia). Trae una fila por producto y categoría, con el stock en unidades enteras y los lotes en la referencia. El precio lo pone quien vende. Un lote sin cultivo no va en el archivo, y la pantalla dice cuántos.
 - El reporte semanal dice, por herramienta, qué parte de quienes la abrieron llegó a un resultado (tasa de completado), esta semana y la anterior.
 - Según la segunda revisión del dueño (3 oct 2026):
   - Cuenta dice el plan de la finca y lista las fincas de la cuenta con su rol, su plan y cuál está en este teléfono. Antes de subir una finca a una cuenta que ya tiene otras, pregunta si es una de ellas.
