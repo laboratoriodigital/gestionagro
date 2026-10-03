@@ -39,6 +39,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Según la revisión del dueño: en Cuenta, «Tus teléfonos» se llama ahora «Tus dispositivos», porque también se entra desde un computador. La lista es plana: una fila por dispositivo con la fecha corta y el botón «Retirar» al lado, sin tarjetas.
 
 ### Corregido
+- Revisión de seguridad antes de cerrar la versión (docs/seguridad/revision-2026-10-03.md):
+  - **Crítico:** el despliegue podía ejecutar el código de un PR desde un fork con todos los secretos. El filtro de rama de workflow_run solo miraba el nombre «main». Ahora solo despliega lo que llegó por push a main de este repositorio, y una prueba lo exige.
+  - Las páginas públicas (calculadoras, política y QR) llevan cabeceras de seguridad: la del QR, CSP estricta. Las demás no se dejan enmarcar, y todas llevan nosniff y HTTPS obligatorio.
+  - El JSON-LD escapa «<».
 - «Se bajaron 1 cambios del equipo» ahora dice «Se bajó 1 cambio del equipo».
 - Una aplicación en una cama no impedía cosechar su nave entera, ni una en la nave cosechar sus camas. Hoy no pasaba porque la app no dejaba aplicar por cama, pero se cerró antes de abrir esa opción: la cosecha mira el área, las que la contienen y las que contiene.
 - Según la revisión del dueño (3 oct 2026): «Intentar confirmar» en la etiqueta QR parecía no hacer nada. Ahora dice que lo intentó, a qué hora y por qué sigue sin confirmar (sin señal, sin cuenta, sesión vencida o finca sin subir), con qué hacer. En un computador, «Compartir» descarga además la imagen de la etiqueta.
