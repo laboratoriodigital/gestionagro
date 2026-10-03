@@ -5,6 +5,7 @@
 import type { ComponentType } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { LocationProvider, Route, Router, useLocation } from 'preact-iso';
+import marca from '../../../content/marca.json' with { type: 'json' };
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { AvisoDePausa } from './AvisoDePausa.tsx';
 import { AvisoDeReemplazo } from './AvisoDeReemplazo.tsx';
@@ -88,7 +89,13 @@ export function App() {
       <header class="cabecera">
         <div class="cabecera-fila">
           <a class="marca" href="/agro/app/">
-            Cuaderno de campo
+            <svg class="marca-hoja" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M20.5 3.5C11 3.5 4.5 8.6 4.5 16.6c0 1.2.1 2.2.4 3.2 1.3-6.4 5.7-10.4 11-12.4-4.6 3.1-7.8 7.3-9 13 9.2-.6 13.6-7.3 13.6-16.9z"
+              />
+            </svg>
+            {marca.nombre}
           </a>
           <FincaActiva />
           <IndicadorDatos />
@@ -110,7 +117,9 @@ export function App() {
           <Route default component={NoEncontrada} />
         </Router>
       </main>
-      <footer class="pie">Versión {__VERSION_APP__}</footer>
+      <footer class="pie">
+        {marca.nombre} · {marca.cuaderno} · versión {__VERSION_APP__}
+      </footer>
     </LocationProvider>
   );
 }

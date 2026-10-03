@@ -63,7 +63,7 @@ test.describe('página pública /agro/t/ (CA2)', () => {
     await conClaves(page, [clave]);
     await page.goto(`/agro/t/#${frag}`);
     await expect(estado(page)).toHaveText(
-      'Verificado por Gestión Agro: estos datos son los que la finca registró.',
+      'Verificado por CultivoPro: estos datos son los que la finca registró.',
     );
     const datos = page.locator('#qr-datos');
     await expect(datos).toContainText('T-27MAR-2');

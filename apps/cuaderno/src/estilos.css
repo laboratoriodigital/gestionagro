@@ -29,8 +29,10 @@ a {
   gap: var(--espacio-1) var(--espacio-2);
 }
 .marca {
+  gap: var(--espacio-2);
+  letter-spacing: -0.01em;
   color: var(--color-marca-texto);
-  font-weight: 700;
+  font-weight: 800;
   text-decoration: none;
   display: inline-flex;
   min-height: var(--objetivo-tactil);
@@ -38,7 +40,12 @@ a {
 }
 .cabecera-fila .marca {
   margin-inline-end: auto;
-  font-size: 1rem;
+  font-size: 1.125rem;
+}
+.marca-hoja {
+  width: 1.375rem;
+  height: 1.375rem;
+  flex: none;
 }
 main,
 .pie {

@@ -144,7 +144,7 @@ test.describe('HU-E0.7 · pagar el plan Finca con Bold', () => {
             amount: '39000',
             apiKey: 'identidad',
             integritySignature: 'firma',
-            description: 'Plan Finca de Gestión Agro, un mes',
+            description: 'Plan Finca de CultivoPro, un mes',
             redirectionUrl: `${cuerpo.vuelta}?pago=${ORDEN}`,
           },
         },

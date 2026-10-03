@@ -7,6 +7,7 @@
  * (--, -, +, ++). La fuente estándar del PDF solo tiene caracteres latinos: nada de símbolos raros.
  */
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import marcaPublica from '../../../../content/marca.json' with { type: 'json' };
 import { MARCA, NOMBRE_NIVEL, type TablaDpv } from './tabla-dpv.ts';
 
 export type Papel = 'carta' | 'a4';
@@ -36,7 +37,7 @@ export async function pdfDeTabla(
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle('Tabla de DPV');
-  doc.setCreator('Gestión Agro');
+  doc.setCreator(marcaPublica.nombre);
   const [ancho, alto] = TAMANO[papel];
   const hoja = doc.addPage([ancho, alto]);
   const normal = await doc.embedFont(StandardFonts.Helvetica);

@@ -1,4 +1,6 @@
-# Gestión Agro
+# CultivoPro
+
+Antes «Gestión Agro» (nombre interno del repositorio: `gestionagro`). Marca y dominio definitivos desde el 3 oct 2026: **CultivoPro**, en `cultivopro.co` (`content/marca.json`).
 
 Calculadoras agronómicas gratuitas y un cuaderno de campo offline-first para fincas bajo invernadero y agroindustria. Línea agrícola de ED1.
 

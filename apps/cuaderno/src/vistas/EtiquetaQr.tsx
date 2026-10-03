@@ -4,6 +4,7 @@
  * después. Al imprimir solo sale la etiqueta.
  */
 import { useEffect, useRef, useState } from 'preact/hooks';
+import marcaPublica from '../../../../content/marca.json' with { type: 'json' };
 import { cuaderno } from '../almacen/abierto.ts';
 import { type Etiqueta, etiquetaDelLote } from '../almacen/etiqueta.ts';
 import { funcionActiva } from '../almacen/funciones.ts';
@@ -149,7 +150,7 @@ export function EtiquetaQr(props: { lote: Lote; alCerrar: () => void }) {
         aria-live="polite"
       >
         {etiqueta.firmada
-          ? 'Etiqueta verificada por la nube: quien la escanee verá «Verificado por Gestión Agro».'
+          ? `Etiqueta verificada por la nube: quien la escanee verá «Verificado por ${marcaPublica.nombre}».`
           : ultimoIntento
             ? `Se intentó a las ${ultimoIntento.slice(11)} y sigue sin confirmar. ${etiqueta.motivo ?? ''}`
             : etiqueta.motivo}

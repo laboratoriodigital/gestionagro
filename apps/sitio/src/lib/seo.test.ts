@@ -12,7 +12,7 @@ const con = (cambios: Partial<Producto>): Producto => ({ ...dpv, ...cambios });
 describe('SEO derivado del contrato (HU-E1.6, CA1)', () => {
   it('sale todo del product.yaml, sin escribirlo a mano', () => {
     const seo = seoDeProducto(dpv);
-    expect(seo.title).toBe(`${dpv.seo.title} | Gestión Agro`);
+    expect(seo.title).toBe(`${dpv.seo.title} | CultivoPro`);
     expect(seo.description).toBe(dpv.seo.description);
     expect(seo.canonical).toBe(`${SITIO}/herramientas/agro/calculadora-dpv/`);
     expect(seo.og).toMatchObject({ url: seo.canonical, title: dpv.seo.title, locale: 'es_CO' });

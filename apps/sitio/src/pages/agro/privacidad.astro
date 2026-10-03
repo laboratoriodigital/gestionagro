@@ -12,12 +12,11 @@
  */
 import politica from '../../../../../content/agro/privacidad/politica.json';
 import Base from '../../layouts/Base.astro';
-import { SITIO } from '../../lib/seo.ts';
+import { NOMBRE_DEL_SITIO, SITIO } from '../../lib/seo.ts';
 
 const canonical = `${SITIO}/agro/privacidad/`;
 const titulo = 'Política de tratamiento de datos';
-const descripcion =
-  'Cómo cuidamos la información que guardas en el cuaderno de campo de Gestión Agro y qué puedes hacer con ella.';
+const descripcion = `Cómo cuidamos la información que guardas en el cuaderno de campo de ${NOMBRE_DEL_SITIO} y qué puedes hacer con ella.`;
 const borrador = politica.estado !== 'vigente';
 const pendiente = 'por completar';
 const r = politica.responsable;
@@ -26,11 +25,11 @@ const fecha = new Intl.DateTimeFormat('es-CO', { dateStyle: 'long', timeZone: 'U
 );
 ---
 <Base
-  title={`${titulo} | Gestión Agro`}
+  title={`${titulo} | ${NOMBRE_DEL_SITIO}`}
   description={descripcion}
   canonical={canonical}
   indexable={!borrador}
-  og={{ type: 'website', title: titulo, description: descripcion, url: canonical, site_name: 'Gestión Agro', locale: 'es_CO' }}
+  og={{ type: 'website', title: titulo, description: descripcion, url: canonical, site_name: NOMBRE_DEL_SITIO, locale: 'es_CO' }}
 >
   <h1>{titulo}</h1>
   <p>Versión {politica.version}, del {fecha}.</p>
