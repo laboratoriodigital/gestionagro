@@ -8,8 +8,13 @@
  *   riego por goteo con un gotero de 2 L/h por planta.
  * - Propietaria, supervisor y dos operarias. Lunes a viernes de 7:00 a 15:00; sábado de 7:00 a 12:00.
  * - Trasplante el lunes 1 de junio de 2026; cosecha lunes, miércoles y viernes desde el 10 de agosto;
- *   cierre del ciclo el sábado 26 de septiembre de 2026 (17 semanas).
- * - Solo insumos permitidos en producción ecológica.
+ *   la temporada llega hasta el viernes 2 de octubre de 2026 con los ciclos activos, para que al
+ *   importarla haya carencias vigentes.
+ * - Errores y casos a propósito, para probar lo que la app debe decir (revisión del dueño, 3 oct
+ *   2026): un insecticida no permitido en ecológico, un producto sin carencia ni reentrada en la
+ *   etiqueta, neem el jueves 1 de octubre (en carencia el sábado 3), una aplicación sin compra que
+ *   deja la bodega en negativo, una compra sin precio, una cosecha corregida después de armar su
+ *   lote, una cosecha dentro de la carencia confirmada, clima extremo y un drenaje alto.
  *
  * Todo sale de un generador con semilla: la misma semilla da la misma temporada. El `Libro` que
  * devuelve es la verdad de la simulación (lo que «pasó» en la finca), contra la que se comparan
@@ -24,7 +29,7 @@ import {
 } from '@gestionagro/agro-schema';
 import { cantidadSugerida, guardarAplicacion } from '../almacen/aplicaciones.ts';
 import { registrarMovimiento } from '../almacen/bodega.ts';
-import { agregarCultivo, agregarVariedad, cerrarCiclo, iniciarCiclo } from '../almacen/ciclos.ts';
+import { agregarCultivo, agregarVariedad, iniciarCiclo } from '../almacen/ciclos.ts';
 import { guardarClima } from '../almacen/clima.ts';
 import { guardarCosecha } from '../almacen/cosecha.ts';
 import type { CuadernoDb } from '../almacen/db.ts';
@@ -38,7 +43,7 @@ import { crearPersona, definirJornal, definirJornalGeneral } from '../almacen/pe
 import { guardarRiego } from '../almacen/riego.ts';
 
 export const INICIO = '2026-06-01';
-export const FIN = '2026-09-26';
+export const FIN = '2026-10-02';
 export const PRIMERA_COSECHA = '2026-08-10';
 export const AREA_NAVE = 600;
 export const CAMAS_POR_NAVE = 8;
@@ -84,7 +89,7 @@ export interface CompraLibro {
   instante: string;
   insumo: string;
   cantidad: number;
-  precio: number;
+  precio: number | null;
 }
 export interface AplicacionLibro {
   fecha: string;
@@ -92,8 +97,8 @@ export interface AplicacionLibro {
   insumo: string;
   /** Por nave, en la unidad del insumo. */
   cantidadPorNave: Map<string, number>;
-  carenciaDias: number;
-  reentradaHoras: number;
+  carenciaDias: number | null;
+  reentradaHoras: number | null;
 }
 export interface LaborLibro {
   fecha: string;
@@ -133,7 +138,10 @@ export interface Libro {
   camas: Area[];
   ciclos: Map<string, string>;
   personas: { propietaria: Persona; supervisor: Persona; operarias: Persona[] };
-  insumos: Map<string, { id: string; unidad: string; carencia: number; reentrada: number }>;
+  insumos: Map<
+    string,
+    { id: string; unidad: string; carencia: number | null; reentrada: number | null }
+  >;
   jornales: { general: { desde: string; valor: number }[]; supervisor: number };
   compras: CompraLibro[];
   aplicaciones: AplicacionLibro[];
@@ -192,13 +200,34 @@ const INSUMOS = [
   },
   {
     clave: 'fertilizante',
-    nombre: 'Fertilizante Orgánico Ensayo',
+    nombre: 'Abono Ensayo Líquido',
     tipo: 'fertilizante' as const,
     unidad: 'mL',
     carencia: 0,
     reentrada: 0,
     empaque: 20_000,
     precio: 260_000,
+  },
+  {
+    clave: 'convencional',
+    nombre: 'Insecticida Ensayo Convencional',
+    tipo: 'fitosanitario' as const,
+    unidad: 'mL',
+    carencia: 7,
+    reentrada: 24,
+    empaque: 1000,
+    precio: 85_000,
+    ecologico: false,
+  },
+  {
+    clave: 'sinetiqueta',
+    nombre: 'Producto Ensayo Sin Etiqueta',
+    tipo: 'otro' as const,
+    unidad: 'mL',
+    carencia: null,
+    reentrada: null,
+    empaque: 1000,
+    precio: 40_000,
   },
 ];
 
@@ -277,7 +306,7 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
 
   const insumos = new Map<
     string,
-    { id: string; unidad: string; carencia: number; reentrada: number }
+    { id: string; unidad: string; carencia: number | null; reentrada: number | null }
   >();
   for (const [i, x] of INSUMOS.entries()) {
     const creado = await crearInsumo(
@@ -291,7 +320,7 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
         unidad: x.unidad,
         carencia_dias: x.carencia,
         reentrada_horas: x.reentrada,
-        permitido_ecologico: true,
+        permitido_ecologico: 'ecologico' in x ? (x.ecologico ?? null) : true,
       },
       { ahora: preparar },
     );
@@ -348,6 +377,7 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
   const pendientes = new Map<string, number>(naves.map((n) => [n.id, 0]));
   const nombre = (n: Area) => n.nombre;
 
+  let compraSinPrecio = false;
   const comprarSiFalta = async (clave: string, necesita: number, fecha: string) => {
     const x = INSUMOS.find((i) => i.clave === clave);
     const ins = insumos.get(clave);
@@ -355,7 +385,10 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
     while ((existencia.get(clave) ?? 0) < necesita) {
       const empaques = 2;
       const cantidad = x.empaque * empaques;
-      const precio = x.precio * empaques;
+      // Una compra de fertilizante se anotó sin precio: el costo queda «sin dato» (P1).
+      const sinPrecio = clave === 'fertilizante' && semanaDe(fecha) >= 9 && !compraSinPrecio;
+      if (sinPrecio) compraSinPrecio = true;
+      const precio = sinPrecio ? null : x.precio * empaques;
       const ahora = momento(fecha, '07:15');
       await registrarMovimiento(
         db,
@@ -381,6 +414,7 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
     hora: string,
     dosis: number,
     litrosPorNave: number,
+    sinComprar = false,
   ) => {
     const ins = insumos.get(clave);
     if (!ins) throw new Error(clave);
@@ -388,7 +422,7 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
     const litros = litrosPorNave * navesAplicadas.length;
     const cantidad = cantidadSugerida(dosis, unidadDosis, litros, ins.unidad);
     if (cantidad === null) throw new Error(`Sin cantidad sugerida para ${clave}`);
-    await comprarSiFalta(clave, cantidad, fecha);
+    if (!sinComprar) await comprarSiFalta(clave, cantidad, fecha);
     const ahora = momento(fecha, hora);
     await guardarAplicacion(
       db,
@@ -416,7 +450,8 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
       reentradaHoras: ins.reentrada,
     });
     for (const n of navesAplicadas) {
-      const desde = sumarDias(fecha, ins.carencia);
+      // Sin carencia en la etiqueta no se sabe cuándo cosechar: la finca no vuelve a cosechar ahí.
+      const desde = ins.carencia === null ? '9999-12-31' : sumarDias(fecha, ins.carencia);
       if (desde > (cosecharDesde.get(n.id) ?? INICIO)) cosecharDesde.set(n.id, desde);
     }
   };
@@ -467,11 +502,22 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
         ['07:00', 13 + (al() - 0.5) * 3, 91 + (al() - 0.5) * 10],
         [sabado ? '11:30' : '13:00', 28.5 + (al() - 0.5) * 5, 55 + (al() - 0.5) * 20],
       ] as const) {
+        // Dos lecturas extremas: mediodía muy seco (Nave 1) y madrugada saturada (Nave 2).
+        const extremo =
+          fecha === '2026-09-15' && hora !== '07:00' && nave === naves[0]
+            ? { t: 34.5, hr: 32 }
+            : fecha === '2026-09-16' && hora === '07:00' && nave === naves[1]
+              ? { t: 15, hr: 99 }
+              : null;
         await guardarClima(
           db,
           finca.id,
           nave.id,
-          { temperaturaC: r1(t), humedadRelativaPct: Math.round(hr), temperaturaHojaC: null },
+          {
+            temperaturaC: extremo?.t ?? r1(t),
+            humedadRelativaPct: extremo?.hr ?? Math.round(hr),
+            temperaturaHojaC: null,
+          },
           { ahora: momento(fecha, hora) },
         );
         libro.climas += 1;
@@ -482,7 +528,9 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
     const lPorPlanta = Math.min(2.2, 0.6 + (semana - 1) * 0.2);
     for (const nave of naves) {
       const aplicado = Math.round(PLANTAS_POR_NAVE * lPorPlanta * (0.95 + al() * 0.1));
-      const drenado = Math.round(aplicado * (0.15 + al() * 0.13));
+      // Un día de drenaje muy alto en la Nave 3 (45 %), con la CE del drenaje subida.
+      const drenajeAlto = fecha === '2026-09-10' && nave === naves[2];
+      const drenado = Math.round(aplicado * (drenajeAlto ? 0.45 : 0.15 + al() * 0.13));
       const datos = {
         unidad: 'L_area' as const,
         volumenAplicado: aplicado,
@@ -490,7 +538,7 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
         volumenDrenado: drenado,
         ceEntradaDsM: r1(1.8 + (al() - 0.5) * 0.4),
         phEntrada: r1(6.3 + (al() - 0.5) * 0.4),
-        ceDrenajeDsM: r1(2.3 + (al() - 0.5) * 0.4),
+        ceDrenajeDsM: drenajeAlto ? 3.6 : r1(2.3 + (al() - 0.5) * 0.4),
         phDrenaje: r1(6.5 + (al() - 0.5) * 0.4),
       };
       // Un error de digitación el día 10 en la Nave 1 (un cero de más), corregido a las 8:00.
@@ -516,11 +564,24 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
 
     // Aplicaciones del calendario de manejo.
     if (semana % 4 === 1 && dia === 2) {
-      await aplicar('trichoderma', naves, fecha, '08:00', 2, 200);
+      // La última (semana 17) va con más dosis y sin anotar la compra: la bodega queda en negativo.
+      await aplicar(
+        'trichoderma',
+        naves,
+        fecha,
+        '08:00',
+        semana === 17 ? 2.5 : 2,
+        200,
+        semana === 17,
+      );
     }
     if (dia === 1 && !cosechaHoy) await aplicar('fertilizante', naves, fecha, '08:00', 3, 500);
     if (dia === 1 && cosechaHoy) await aplicar('fertilizante', naves, fecha, '14:00', 3, 500);
     if (semana >= 3 && dia === 2) await aplicar('bt', naves, fecha, '08:30', 1, 200);
+    // Una sola vez, un insecticida que no está permitido en producción ecológica (Nave 3).
+    if (semana === 7 && dia === 3) {
+      await aplicar('convencional', [naves[2] as Area], fecha, '08:30', 1, 200);
+    }
     if (sabado && oidioPendiente.length > 0) {
       await aplicar('azufre', oidioPendiente, fecha, '07:45', 2, 200);
       oidioPendiente = [];
@@ -586,6 +647,8 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
           oidioPendiente.push(nave);
         }
       }
+      // El último jueves (1 de octubre) la Nave 2 lleva neem: sigue en carencia el sábado 3.
+      if (fecha === '2026-10-01') altas.splice(0, altas.length, naves[1] as Area);
       if (altas.length > 0) await aplicar('neem', altas, fecha, '13:30', 2.5, 200);
     }
 
@@ -742,6 +805,36 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
       }
     }
 
+    if (fecha === FIN) {
+      await aplicar('sinetiqueta', [naves[3] as Area], fecha, '14:00', 1, 200);
+    }
+    // Una cosecha corregida después de armar su lote (21 de septiembre): el lote lo avisa.
+    if (fecha === '2026-09-21' && cosechadoHoy[0]) {
+      const vieja = cosechadoHoy[0];
+      const registro = (await db.registro.get(vieja.id)) as Registro;
+      const corregida = await guardarCosecha(
+        db,
+        finca.id,
+        {
+          areaId: vieja.nave,
+          cantidad: vieja.cantidad - 3,
+          unidad: 'kg',
+          categoria: vieja.categoria,
+          descarte: Math.min(vieja.descarte, vieja.cantidad - 3),
+          personaIds: vieja.personaIds,
+          horasPorPersona: vieja.horasPorPersona,
+          confirmarCarencia: vieja.enCarencia,
+        },
+        { ahora: momento(fecha, '14:50'), corrige: registro },
+      );
+      libro.cosechas[libro.cosechas.indexOf(vieja)] = {
+        ...vieja,
+        id: corregida.id,
+        cantidad: vieja.cantidad - 3,
+      };
+      libro.correcciones += 1;
+    }
+
     // Labores: lo que queda de la jornada de cada operaria, repartido por naves; el supervisor
     // revisa cada nave una hora (media en sábado).
     const jornada = sabado ? JORNADA.sabado : JORNADA.semana;
@@ -762,9 +855,5 @@ export async function simularTemporada(db: CuadernoDb, semilla = 2026): Promise<
     void nombre;
   }
 
-  for (const nave of naves) {
-    const c = ciclos.get(nave.id);
-    if (c) await cerrarCiclo(db, c, FIN, true, { ahora: momento(FIN, '11:45') });
-  }
   return libro;
 }

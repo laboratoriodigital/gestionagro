@@ -224,10 +224,13 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
       });
     }
     await db.registro.bulkAdd(registros);
-    const inicio = performance.now();
+    // Tiempo de CPU del proceso, no de reloj: con las demás pruebas en paralelo el reloj mide la
+    // máquina cargada, no el cálculo (revisión, 3 oct 2026).
+    const inicio = process.cpuUsage();
     const c = await armarCarpeta(db, finca.id, { desde: '2026-04-01', hasta: '2026-09-29' });
     const pdf = await PDFDocument.load(await pdfDeCarpeta(c, 'a4', '02/10/2026 09:00'));
-    const ms = performance.now() - inicio;
+    const uso = process.cpuUsage(inicio);
+    const ms = (uso.user + uso.system) / 1000;
     expect(c.secciones.find((s) => s.titulo === 'Riegos')?.filas).toHaveLength(364);
     expect(pdf.getPageCount()).toBeGreaterThan(10);
     // En un computador de desarrollo; un teléfono de gama baja es unas 4 veces más lento: < 10 s.
