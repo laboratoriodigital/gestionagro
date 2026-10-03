@@ -5,6 +5,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Cambiado
+- Según la segunda revisión del dueño (3 oct 2026):
+  - Cuenta dice el plan de la finca y lista las fincas de la cuenta con su rol, su plan y cuál está en este teléfono. Antes de subir una finca a una cuenta que ya tiene otras, pregunta si es una de ellas.
+  - Costos y Lotes van por pestañas, como Registrar. El costo por kilo es una tabla (cuesta, costos, ventas, ganancia) con el total de la finca y, debajo, qué datos faltan; la bodega también es una tabla.
+  - Un área, cama o surco sin registros, ciclos ni camas se puede eliminar; si tiene algo, dice por qué no.
+  - Con el plan Finca: aplicaciones, cosecha y monitoreo por cama o surco; el monitoreo anota las plantas revisadas y las afectadas y dice la incidencia; y el logo de la finca sale en la etiqueta QR.
 - Según la revisión del dueño con la temporada simulada (3 oct 2026):
   - Áreas, Carencias y Lotes se pliegan: cada área o lote se abre por su cuenta, y hay «Abrir todas» y «Cerrar todas». Con más de 6, arrancan cerrados y el resumen dice lo esencial (en Áreas, si la nave está en carencia; en Lotes, cuánto queda).
   - En Carencias, una cama o surco igual a su nave ya no se repite.
@@ -14,6 +19,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Según la revisión del dueño: en Cuenta, «Tus teléfonos» se llama ahora «Tus dispositivos», porque también se entra desde un computador. La lista es plana: una fila por dispositivo con la fecha corta y el botón «Retirar» al lado, sin tarjetas.
 
 ### Corregido
+- Una aplicación en una cama no impedía cosechar su nave entera, ni una en la nave cosechar sus camas. Hoy no pasaba porque la app no dejaba aplicar por cama, pero se cerró antes de abrir esa opción: la cosecha mira el área, las que la contienen y las que contiene.
 - Según la revisión del dueño (3 oct 2026): «Intentar confirmar» en la etiqueta QR parecía no hacer nada. Ahora dice que lo intentó, a qué hora y por qué sigue sin confirmar (sin señal, sin cuenta, sesión vencida o finca sin subir), con qué hacer. En un computador, «Compartir» descarga además la imagen de la etiqueta.
 - Según la prueba del dueño (bitácora agro 28): imprimir la etiqueta QR sacaba 12 hojas. Ahora sale una sola, de 5 × 5 cm.
 - Según la revisión del dueño: en «Áreas», los botones de cada área estaban apilados en tres filas de anchos distintos. Ahora el estado del ciclo va con su botón en una franja, y Editar, Historial y «+ Cama o surco» quedan en una sola fila de botones iguales.
