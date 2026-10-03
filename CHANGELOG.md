@@ -4,7 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.2.0] - 2026-10-03
+
 ### Agregado
+- Guía del productor en /agro/guia/: cómo usar CultivoPro paso a paso, con el nombre exacto de cada botón, en palabras de finca y para imprimir. Se llega desde la página de las herramientas y desde el pie del cuaderno.
+- Guía para presentar CultivoPro en /agro/vendedores/: la visita de 10 minutos, qué es gratis y qué se paga, qué responder y qué nunca prometer. No se indexa.
 - La calculadora de DPV, su tabla imprimible y el cuaderno dan el rango de referencia también para **rosa, pimentón y pepino**, los cultivos bajo invernadero que nombra el Estudio de mercado. Cada rango lleva su fuente y queda para la revisión del agrónomo. El cuaderno reconoce el cultivo aunque se anote con su variedad o con otro nombre («Tomate Chonto», «Pimiento rojo», «Ají dulce»).
 - «Compartir por WhatsApp» en la calculadora de carencia y reentrada, como en la de DPV: el mensaje lleva la aplicación y las fechas, y el enlace abre la calculadora con los mismos valores. La página de entrada de las herramientas también se comparte por WhatsApp.
 - Pagar el plan Finca en línea con Bold (PSE, Nequi o tarjeta) desde Planes: un mes a la vez, sin débito automático. Al volver de Bold, el plan queda activo, y si la persona no vuelve, se activa solo en 15 minutos o menos. Planes y Cuenta dicen hasta cuándo vale, y una semana antes avisan. Al vencer, la finca vuelve al plan Gratis sin perder ningún registro. Sin las llaves de Bold, pagar dice que no está disponible.
