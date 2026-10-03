@@ -65,14 +65,19 @@ export function renglones(texto: string, fuente: PDFFont, ancho: number): string
 
 const fechaCorta = (f: string) => f.split('-').reverse().join('/');
 
+/**
+ * `marca` llega de quien llama: si este trozo importara `content/marca.json`, el empaquetador
+ * pondría la marca aquí y la pantalla principal bajaría el generador (≈420 KB) para leer el nombre.
+ */
 export async function pdfDeCarpeta(
   carpeta: Carpeta,
   papel: Papel,
   generada: string,
+  marca: string,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle(apto(`Registros de ${carpeta.finca}`));
-  doc.setCreator('Gestión Agro');
+  doc.setCreator(marca);
   const normal = await doc.embedFont(StandardFonts.Helvetica);
   const negrita = await doc.embedFont(StandardFonts.HelveticaBold);
   const [ancho, alto] = TAMANO[papel];
@@ -199,7 +204,7 @@ export async function pdfDeCarpeta(
   hojas.forEach((h, i) => {
     h.drawText(
       apto(
-        `Página ${i + 1} de ${hojas.length} · ${carpeta.finca} · ${periodo} · Generada con el cuaderno de campo Gestión Agro`,
+        `Página ${i + 1} de ${hojas.length} · ${carpeta.finca} · ${periodo} · Generada con el cuaderno de campo de ${marca}`,
       ),
       { x: MARGEN, y: MARGEN - 14, size: 7, font: normal, color: GRIS },
     );

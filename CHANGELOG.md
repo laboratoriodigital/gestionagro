@@ -12,6 +12,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Varias fincas en un mismo teléfono (HU-E4.7). En Cuenta, cada finca de la nube se abre en este teléfono, y sin cuenta se agrega otra finca. Cada una guarda lo suyo, sin mezclarse; cambiar es un toque desde la cabecera, que dice en qué finca se está. Con una sola finca, nada cambia.
 
 ### Cambiado
+- La marca pasa a ser **CultivoPro** (decisión del dueño, 3 oct 2026). El nombre y una hoja como logo van en la cabecera del sitio y del cuaderno, y el nombre va en el texto de la página principal, el pie de página y el título de la pestaña. También en la app instalada, la página del QR («Verificado por CultivoPro»), los PDF, el cobro en Bold y el reporte semanal. Antes, la página principal y el cuaderno no decían el nombre en ninguna parte visible. El nombre vive en `content/marca.json`.
 - El sitio pasa a su dominio definitivo, `cultivopro.co`, con las mismas rutas. `agro.laboratorio-digital.com` redirige con 301 (runbook `cambio-de-dominio.md`). El dominio se lee de `celdas.json`: el sitio ya no lo repite.
 - Según la prueba del dueño (3 oct 2026): al tocar «Pagar» sin el pago en línea disponible, parecía que nada pasaba. El aviso salía arriba de la página, fuera de la vista. Ahora sale debajo del botón que se tocó.
 - Revisión de diseño del cuaderno con una temporada completa de datos, en un teléfono de 360 px (pedido del dueño, 3 oct 2026):

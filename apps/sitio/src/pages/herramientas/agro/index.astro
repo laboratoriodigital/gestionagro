@@ -1,7 +1,7 @@
 ---
 /**
  * Página de entrada de las herramientas agro: a ella llegan quienes abren un enlace compartido o
- * tocan «Gestión Agro» en la cabecera. Presenta cada herramienta por la pregunta que responde
+ * tocan el nombre en la cabecera. Presenta cada herramienta por la pregunta que responde
  * (`entrada` de su `pagina.yaml`, P2) y lleva al cuaderno como siguiente paso.
  *
  * Lista las herramientas publicadas (`activo`) y las que esperan revisión (`borrador`), que ya se
@@ -10,7 +10,7 @@
  */
 import Base from '../../../layouts/Base.astro';
 import { herramientas, paginaDe, productoPorId } from '../../../lib/contenido.ts';
-import { MIGAS_DE_HERRAMIENTAS, SITIO } from '../../../lib/seo.ts';
+import { MIGAS_DE_HERRAMIENTAS, NOMBRE_DEL_SITIO, SITIO } from '../../../lib/seo.ts';
 
 const disponibles = herramientas
   .filter((h) => h.estado === 'activo' || h.estado === 'borrador')
@@ -22,21 +22,21 @@ const titulo = 'Herramientas agronómicas gratuitas';
 const descripcion =
   'Calculadoras para invernadero y finca que funcionan en tu teléfono, sin registro y sin enviar tus datos.';
 // Compartir la página por WhatsApp (pedido del dueño, 3 oct 2026): un enlace, sin JavaScript.
-const mensaje = `Calculadoras gratis para el invernadero: DPV, carencia y reentrada. Funcionan en el teléfono y sin registro: ${canonical}`;
+const mensaje = `Calculadoras gratis de ${NOMBRE_DEL_SITIO} para el invernadero: DPV, carencia y reentrada. Funcionan en el teléfono y sin registro: ${canonical}`;
 const enlaceWhatsApp = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
 ---
 <Base
-  title={`${titulo} | Gestión Agro`}
+  title={`${titulo} | ${NOMBRE_DEL_SITIO}`}
   description={descripcion}
   canonical={canonical}
   indexable={indexable}
-  og={{ type: 'website', title: titulo, description: descripcion, url: canonical, site_name: 'Gestión Agro', locale: 'es_CO' }}
+  og={{ type: 'website', title: titulo, description: descripcion, url: canonical, site_name: NOMBRE_DEL_SITIO, locale: 'es_CO' }}
   migas={[...MIGAS_DE_HERRAMIENTAS]}
 >
   <h1>{titulo}</h1>
   <p class="entrada">
-    Respuestas rápidas para el día a día del invernadero y la finca, hechas para usarse en el
-    teléfono, en medio de la nave.
+    <strong>{NOMBRE_DEL_SITIO}</strong> reúne respuestas rápidas para el día a día del invernadero y
+    la finca, hechas para usarse en el teléfono, en medio de la nave.
   </p>
   <ul class="garantias" data-prueba="garantias">
     <li>Gratis y sin registro.</li>

@@ -35,8 +35,8 @@ test('CA4: manifest con nombre, íconos, scope, color y display standalone', asy
   expect(r.ok()).toBe(true);
   const m = await r.json();
   expect(m).toMatchObject({
-    name: 'Cuaderno de campo · Gestión Agro',
-    short_name: 'Cuaderno',
+    name: 'CultivoPro · Cuaderno de campo',
+    short_name: 'CultivoPro',
     start_url: APP,
     scope: APP,
     display: 'standalone',
@@ -80,7 +80,9 @@ test('CA1: abierta una vez, carga completa sin señal en menos de 3 s con CPU ×
   const inicio = Date.now();
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tu finca');
-  await expect(page.getByText(/^Versión \d+\.\d+\.\d+$/)).toBeVisible();
+  await expect(
+    page.getByText(/^CultivoPro · Cuaderno de campo · versión \d+\.\d+\.\d+$/),
+  ).toBeVisible();
   const ms = Date.now() - inicio;
   expect(ms, `carga sin señal: ${ms} ms`).toBeLessThan(3000);
   await context.setOffline(false);

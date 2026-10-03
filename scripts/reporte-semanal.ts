@@ -19,6 +19,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { FUENTES } from '../apps/api-celda/src/vigia.ts';
+import marca from '../content/marca.json' with { type: 'json' };
 import { EVENTOS } from '../packages/eventos/src/index.ts';
 import { cargarCeldas } from './lib/celdas.ts';
 
@@ -207,7 +208,7 @@ export async function consumoDeLaNube(
 
 export function comoMarkdown(secciones: readonly Seccion[], fecha: string): string {
   return [
-    `Reporte semanal de validación de Gestión Agro, semana que termina el ${fecha}.`,
+    `Reporte semanal de validación de ${marca.nombre}, semana que termina el ${fecha}.`,
     'Solo métricas agregadas: ningún dato de fincas ni de personas.',
     '',
     ...secciones.flatMap((s) => [`## ${s.titulo}`, '', ...s.lineas, '']),

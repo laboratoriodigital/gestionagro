@@ -145,7 +145,7 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
     expect(c.secciones[5]?.filas[0]?.celdas).toContain('Cliente Ensayo');
 
     // El PDF se arma aunque una nota traiga un emoji, y dice que no certifica ninguna norma.
-    const bytes = await pdfDeCarpeta(c, 'carta', '02/10/2026 09:00');
+    const bytes = await pdfDeCarpeta(c, 'carta', '02/10/2026 09:00', 'CultivoPro');
     const pdf = await PDFDocument.load(bytes);
     expect(pdf.getPageCount()).toBeGreaterThanOrEqual(1);
     expect(pdf.getTitle()).toBe(`Registros de ${f.finca.nombre}`);
@@ -234,7 +234,7 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
         hasta: '2026-09-29',
       });
       const documento = await PDFDocument.load(
-        await pdfDeCarpeta(carpeta, 'a4', '02/10/2026 09:00'),
+        await pdfDeCarpeta(carpeta, 'a4', '02/10/2026 09:00', 'CultivoPro'),
       );
       const uso = process.cpuUsage(inicio);
       return { carpeta, documento, ms: (uso.user + uso.system) / 1000 };

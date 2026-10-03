@@ -23,6 +23,7 @@ import type { BaseD1 } from '@gestionagro/d1';
 import { TokenInvalido, verificarAcceso } from '@gestionagro/tokens';
 import type { Context } from 'hono';
 import planes from '../../../content/agro/cuaderno/planes.json' with { type: 'json' };
+import marca from '../../../content/marca.json' with { type: 'json' };
 import type { Entorno } from './entrar.ts';
 import type { EstadoEnElProveedor, ProveedorDePago } from './proveedor-de-pago.ts';
 
@@ -142,7 +143,7 @@ export async function crearPago(c: Context, e: EntornoDePago): Promise<Response>
   const preparado = await e.proveedor.prepararCobro({
     orden,
     monto,
-    descripcion: `Plan ${nombre} de Gestión Agro, un mes`,
+    descripcion: `Plan ${nombre} de ${marca.nombre}, un mes`,
     vuelta: destino.toString(),
   });
   return c.json({ orden, pruebas: e.proveedor.ambiente === 'pruebas', ...preparado });

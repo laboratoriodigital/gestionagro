@@ -70,7 +70,7 @@ test.describe('página de entrada de las herramientas', () => {
     const compartir = page.locator('[data-prueba="compartir-herramientas"]');
     const texto = new URL((await compartir.getAttribute('href')) ?? '').searchParams.get('text');
     expect(texto).toMatch(
-      /^Calculadoras gratis para el invernadero: .+ https:\/\/[^ ]+\/herramientas\/agro\/$/,
+      /^Calculadoras gratis de CultivoPro para el invernadero: .+ https:\/\/[^ ]+\/herramientas\/agro\/$/,
     );
     await dpv.click();
     await expect(page.locator('h1')).toHaveText('Calculadora de DPV');

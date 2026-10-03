@@ -12,13 +12,13 @@
  * (`textContent`), nunca como HTML. No se indexa: cada QR es distinto y no es contenido.
  */
 import Base from '../../../layouts/Base.astro';
-import { SITIO } from '../../../lib/seo.ts';
+import { NOMBRE_DEL_SITIO, SITIO } from '../../../lib/seo.ts';
 
 const titulo = 'Trazabilidad de un lote';
 ---
 <Base
-  title={`${titulo} | Gestión Agro`}
-  description="De qué finca, nave y fecha viene el producto de esta etiqueta, verificado por Gestión Agro."
+  title={`${titulo} | ${NOMBRE_DEL_SITIO}`}
+  description={`De qué finca, nave y fecha viene el producto de esta etiqueta, verificado por ${NOMBRE_DEL_SITIO}.`}
   canonical={`${SITIO}/agro/t/`}
   indexable={false}
 >
@@ -62,13 +62,16 @@ const titulo = 'Trazabilidad de un lote';
 <script>
   import { verifyAsync } from '@noble/ed25519';
   import { type ClavePublicaQr, type DatosQr, leerQr } from '@gestionagro/trazabilidad';
+  import marca from '../../../../../../content/marca.json';
+
+  const NOMBRE_DEL_SITIO = marca.nombre;
 
   const MENSAJES = {
-    verificado: 'Verificado por Gestión Agro: estos datos son los que la finca registró.',
+    verificado: `Verificado por ${NOMBRE_DEL_SITIO}: estos datos son los que la finca registró.`,
     'sin-verificar':
-      'Sin verificar: esta etiqueta se imprimió sin conexión. Los datos los escribió la finca y Gestión Agro no los ha confirmado.',
+      `Sin verificar: esta etiqueta se imprimió sin conexión. Los datos los escribió la finca y ${NOMBRE_DEL_SITIO} no los ha confirmado.`,
     'no-coincide':
-      'Esta etiqueta no coincide con lo que confirmó Gestión Agro: fue cambiada. No confíes en estos datos.',
+      `Esta etiqueta no coincide con lo que confirmó ${NOMBRE_DEL_SITIO}: fue cambiada. No confíes en estos datos.`,
     'clave-desconocida':
       'No se pudo confirmar esta etiqueta en esta página. Los datos son los que trae el código.',
     danado: 'No se pudo leer el código de esta etiqueta. Vuelve a escanearlo.',

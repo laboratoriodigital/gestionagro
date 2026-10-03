@@ -4,7 +4,7 @@
  * (src/lib/seo.ts): esta plantilla solo lo pinta. Sin fuentes externas, sin scripts de terceros.
  */
 import '@gestionagro/ui/tokens.css';
-import type { Miga } from '../lib/seo.ts';
+import { type Miga, NOMBRE_DEL_SITIO } from '../lib/seo.ts';
 
 interface Props {
   title: string;
@@ -33,7 +33,10 @@ const { title, description, canonical, indexable, og = {}, migas = [], jsonLd } 
   <body>
     <a class="saltar" href="#contenido">Saltar al contenido</a>
     <header class="cabecera">
-      <a class="marca" href="/herramientas/agro/">Gestión Agro</a>
+      <a class="marca" href="/herramientas/agro/">
+        <svg class="marca-hoja" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20.5 3.5C11 3.5 4.5 8.6 4.5 16.6c0 1.2.1 2.2.4 3.2 1.3-6.4 5.7-10.4 11-12.4-4.6 3.1-7.8 7.3-9 13 9.2-.6 13.6-7.3 13.6-16.9z"/></svg>
+        <span>{NOMBRE_DEL_SITIO}</span>
+      </a>
     </header>
     {
       migas.length > 0 && (
@@ -56,7 +59,7 @@ const { title, description, canonical, indexable, og = {}, migas = [], jsonLd } 
       <slot />
     </main>
     <footer class="pie">
-      <p>Tus datos no salen de tu teléfono: las calculadoras funcionan en el navegador.</p>
+      <p><strong>{NOMBRE_DEL_SITIO}</strong> · Tus datos no salen de tu teléfono: las calculadoras funcionan en el navegador.</p>
       <p><a href="/agro/privacidad/">Política de tratamiento de datos</a></p>
     </footer>
   </body>
@@ -106,11 +109,19 @@ const { title, description, canonical, indexable, og = {}, migas = [], jsonLd } 
   }
   .marca {
     color: var(--color-marca-texto);
-    font-weight: 700;
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
     text-decoration: none;
     display: inline-flex;
+    gap: var(--espacio-2);
     min-height: var(--objetivo-tactil);
     align-items: center;
+  }
+  .marca-hoja {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: none;
   }
   .migas ol {
     list-style: none;

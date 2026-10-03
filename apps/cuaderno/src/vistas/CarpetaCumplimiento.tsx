@@ -6,6 +6,7 @@
  */
 import { fechaAgronomica, sumarDias } from '@gestionagro/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
+import marca from '../../../../content/marca.json' with { type: 'json' };
 import { cuaderno } from '../almacen/abierto.ts';
 import { armarCarpeta } from '../almacen/carpeta.ts';
 import type { Papel } from '../almacen/carpeta-pdf.ts';
@@ -55,7 +56,12 @@ export function CarpetaCumplimiento(props: { fincaId: string; nombreFinca: strin
     try {
       const carpeta = await armarCarpeta(cuaderno(), props.fincaId, { desde, hasta });
       const { pdfDeCarpeta } = await import('../almacen/carpeta-pdf.ts');
-      const bytes = await pdfDeCarpeta(carpeta, papel, fechaHora(new Date().toISOString()));
+      const bytes = await pdfDeCarpeta(
+        carpeta,
+        papel,
+        fechaHora(new Date().toISOString()),
+        marca.nombre,
+      );
       descargar(
         `carpeta-${corto(props.nombreFinca)}-${desde}-a-${hasta}.pdf`,
         bytes,

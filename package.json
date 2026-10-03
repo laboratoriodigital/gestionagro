@@ -2,7 +2,7 @@
   "name": "gestionagro",
   "version": "0.1.0",
   "private": true,
-  "description": "Gestión Agro: calculadoras agronómicas gratuitas y cuaderno de campo offline-first (ED1 Agro).",
+  "description": "CultivoPro: calculadoras agronómicas gratuitas y cuaderno de campo offline-first (ED1 Agro).",
   "type": "module",
   "packageManager": "pnpm@11.28.2",
   "engines": {

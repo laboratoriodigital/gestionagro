@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import preact from '@preact/preset-vite';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import marca from '../../content/marca.json' with { type: 'json' };
 
 const { version } = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
@@ -61,8 +62,8 @@ export default defineConfig({
       },
       manifest: {
         id: '/agro/app/',
-        name: 'Cuaderno de campo · Gestión Agro',
-        short_name: 'Cuaderno',
+        name: `${marca.nombre} · ${marca.cuaderno}`,
+        short_name: marca.nombre,
         description: 'Registra riego, clima, labores, aplicaciones y cosecha sin señal.',
         lang: 'es-CO',
         start_url: '/agro/app/',
