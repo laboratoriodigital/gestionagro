@@ -139,3 +139,21 @@ export async function calendarioDeCarencias(
 ): Promise<FilaDelCalendario[]> {
   return calendarioDeAreas(areas, await estadosPorArea(db, fincaId, ahora), ahora);
 }
+
+/**
+ * Una cama o un surco igual a su nave no se repite: hereda lo de ella (revisión del dueño,
+ * 3 oct 2026: con 32 camas la lista se volvía interminable). Se muestra si algo la distingue.
+ */
+export function distintasDeSuNave(filas: readonly FilaDelCalendario[]): FilaDelCalendario[] {
+  const porId = new Map(filas.map((f) => [f.area.id, f]));
+  const igual = (a: FilaDelCalendario, b: FilaDelCalendario) =>
+    a.hoy.carencia === b.hoy.carencia &&
+    a.hoy.reentrada === b.hoy.reentrada &&
+    a.dias.every(
+      (d, i) => d.color === b.dias[i]?.color && d.entrarDesde === b.dias[i]?.entrarDesde,
+    );
+  return filas.filter((f) => {
+    const padre = f.area.padre_id ? porId.get(f.area.padre_id) : undefined;
+    return !padre || !igual(f, padre);
+  });
+}

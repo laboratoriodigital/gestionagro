@@ -4,7 +4,7 @@
  */
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { FINCAS_DE_PRUEBA } from '../fixtures/fincas.ts';
+import { FINCA_ENSAYO_UNO, FINCAS_DE_PRUEBA } from '../fixtures/fincas.ts';
 import { APP, configurar } from './ayudas.ts';
 
 test('CA2: nombre, municipio y régimen arrancan vacíos, y vacíos no avanzan', async ({ page }) => {
@@ -155,4 +155,40 @@ test.describe('ajustes de la revisión del dueño (1 oct 2026)', () => {
       'Versión 1: Cama 1 · 25 m²',
     );
   });
+});
+
+test('revisión del dueño: con muchas áreas se pliegan; se abren una a una o todas a la vez', async ({
+  page,
+}) => {
+  const f = FINCA_ENSAYO_UNO;
+  const naves = Array.from({ length: 7 }, (_, i) => ({
+    tipo: 'nave' as const,
+    nombre: `Nave ${i + 1}`,
+    area_m2: 600,
+  }));
+  await configurar(page, f, naves);
+  const area = (n: number) =>
+    page
+      .locator('[data-prueba="area"]')
+      .filter({ has: page.locator('summary', { hasText: new RegExp(`^Nave ${n} `) }) });
+  const detalles = page.locator('[data-prueba="area"] details');
+  await expect(detalles).toHaveCount(7);
+  // Más de 6: arrancan cerradas, con el resumen a la vista.
+  await expect(page.locator('[data-prueba="area"] details[open]')).toHaveCount(0);
+  await expect(area(3).locator('summary')).toContainText('Nave 3 · Nave · 600 m²');
+  // Una sola, por su cuenta.
+  await area(3).locator('summary').click();
+  await expect(page.locator('[data-prueba="area"] details[open]')).toHaveCount(1);
+  await expect(
+    area(3)
+      .getByRole('button', { name: /Editar/ })
+      .first(),
+  ).toBeVisible();
+  // Todas a la vez, y otra vez cerradas.
+  await page.getByRole('button', { name: 'Abrir todas las áreas' }).click();
+  await expect(page.locator('[data-prueba="area"] details[open]')).toHaveCount(7);
+  await area(5).locator('summary').click();
+  await expect(page.locator('[data-prueba="area"] details[open]')).toHaveCount(6);
+  await page.getByRole('button', { name: 'Cerrar todas las áreas' }).click();
+  await expect(page.locator('[data-prueba="area"] details[open]')).toHaveCount(0);
 });

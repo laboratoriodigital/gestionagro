@@ -12,11 +12,13 @@ import {
   calendarioDeCarencias,
   DIAS_DEL_CALENDARIO,
   type DiaDelCalendario,
+  distintasDeSuNave,
   type FilaDelCalendario,
 } from '../almacen/calendario.ts';
 import { leerFinca } from '../almacen/finca.ts';
 import { funcionActiva } from '../almacen/funciones.ts';
 import { leerSesion, planDeLaFinca } from '../almacen/sesion.ts';
+import { ControlesPlegables, Plegable, usarPlegables } from '../componentes/Plegables.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 
 const SIMBOLO: Record<Color, string> = { verde: '✓', rojo: '✕', gris: '?' };
@@ -50,6 +52,9 @@ export function Carencias() {
   const [filas, setFilas] = useState<FilaDelCalendario[] | null>(null);
   const [activa, setActiva] = useState<boolean | null>(null);
   const fincaId = !estado.cargando && estado.finca ? estado.finca.id : null;
+  const visibles = filas ? distintasDeSuNave(filas) : [];
+  const ocultas = (filas?.length ?? 0) - visibles.length;
+  const plegables = usarPlegables(visibles.map((f) => f.area.id));
   useEffect(() => {
     if (!fincaId) return;
     const db = cuaderno();
@@ -93,7 +98,7 @@ export function Carencias() {
       ) : (
         <>
           <ul class="areas" data-prueba="carencias-hoy">
-            {filas.map((f) => (
+            {visibles.map((f) => (
               <li
                 key={f.area.id}
                 class={`area estado-cosecha ${f.hoy.color}`}
@@ -112,34 +117,55 @@ export function Carencias() {
             ))}
           </ul>
 
+          {ocultas > 0 && (
+            <p class="ayuda" data-prueba="carencias-ocultas">
+              {ocultas === 1
+                ? '1 cama o surco está igual que su nave: no se repite.'
+                : `${ocultas} camas o surcos están igual que su nave: no se repiten.`}
+            </p>
+          )}
+
           <h2>Los próximos {DIAS_DEL_CALENDARIO} días</h2>
+          {visibles.length > 1 && <ControlesPlegables p={plegables} que="áreas" id="carencias" />}
           <ul class="areas" data-prueba="carencias-calendario">
-            {filas.map((f) => (
+            {visibles.map((f) => (
               <li key={f.area.id} class="area" data-prueba="carencia-calendario">
-                <h3 class="area-titulo">{f.nombre}</h3>
-                <ol class="dias-cosecha">
-                  {f.dias.map((d) => (
-                    <li
-                      key={d.fecha}
-                      class={`dia-cosecha ${d.color}`}
-                      data-color={d.color}
-                      title={`${fechaLarga(d.fecha)}: ${textoDelDia(d)}`}
-                    >
-                      <span class="fecha-cosecha" aria-hidden="true">
-                        {cabeceraDeDia(d.fecha)}
+                <Plegable
+                  id={f.area.id}
+                  p={plegables}
+                  resumen={
+                    <>
+                      <h3 class="area-titulo">{f.nombre}</h3>
+                      <span class={`sello-cosecha ${f.hoy.color}`}>
+                        <span aria-hidden="true">{SIMBOLO[f.hoy.color]}</span> hoy
                       </span>
-                      <span aria-hidden="true">{SIMBOLO[d.color]}</span>
-                      {d.entrarDesde && (
-                        <span class="hora-cosecha" aria-hidden="true">
-                          {d.entrarDesde}
+                    </>
+                  }
+                >
+                  <ol class="dias-cosecha">
+                    {f.dias.map((d) => (
+                      <li
+                        key={d.fecha}
+                        class={`dia-cosecha ${d.color}`}
+                        data-color={d.color}
+                        title={`${fechaLarga(d.fecha)}: ${textoDelDia(d)}`}
+                      >
+                        <span class="fecha-cosecha" aria-hidden="true">
+                          {cabeceraDeDia(d.fecha)}
                         </span>
-                      )}
-                      <span class="solo-lectores">
-                        {fechaLarga(d.fecha)}: {textoDelDia(d)}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
+                        <span aria-hidden="true">{SIMBOLO[d.color]}</span>
+                        {d.entrarDesde && (
+                          <span class="hora-cosecha" aria-hidden="true">
+                            {d.entrarDesde}
+                          </span>
+                        )}
+                        <span class="solo-lectores">
+                          {fechaLarga(d.fecha)}: {textoDelDia(d)}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </Plegable>
               </li>
             ))}
           </ul>

@@ -6,7 +6,7 @@ import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { afterEach, describe, expect, it } from 'vitest';
 import { FINCAS_DE_PRUEBA } from '../../../../tests/fixtures/fincas.ts';
 import { guardarAplicacion } from './aplicaciones.ts';
-import { calendarioDeCarencias, DIAS_DEL_CALENDARIO } from './calendario.ts';
+import { calendarioDeCarencias, DIAS_DEL_CALENDARIO, distintasDeSuNave } from './calendario.ts';
 import { abrirCuaderno } from './db.ts';
 import { crearFincaConAreas, crearSubarea } from './finca.ts';
 import { crearInsumo } from './insumos.ts';
@@ -97,6 +97,19 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
     });
     expect(filas[0]?.dias[0]?.entrarDesde).toBe('13:30');
     expect(filas[3]?.hoy).toEqual({ color: 'verde', carencia: null, reentrada: null });
+  });
+
+  it('una cama igual a su nave no se repite; una distinta sí (revisión del dueño, 3 oct 2026)', async () => {
+    const { n1, cama, insumo, aplicar, calendario } = await preparar();
+    const tres = await insumo('Producto Tres Días', 3, 4);
+    await aplicar([n1.id], tres.id, '2026-12-10T14:30:00Z');
+    const igual = distintasDeSuNave(await calendario('2026-12-10T15:00:00Z'));
+    expect(igual.map((x) => x.nombre)).not.toContain('Nave 1 › Cama 2');
+    // Algo aplicado solo en la cama la distingue de su nave.
+    const uno = await insumo('Producto Siete Días', 7, 4);
+    await aplicar([cama.id], uno.id, '2026-12-10T14:40:00Z');
+    const distinta = distintasDeSuNave(await calendario('2026-12-10T15:00:00Z'));
+    expect(distinta.map((x) => x.nombre)).toContain('Nave 1 › Cama 2');
   });
 
   it('CA2: 14 días hacia adelante; el día en que termina la carencia ya es verde', async () => {

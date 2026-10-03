@@ -592,3 +592,32 @@ a.boton {
   max-width: 12rem;
   margin: 0;
 }
+
+/* Plegables (revisión del dueño, 3 oct 2026): el resumen se toca en toda su fila. */
+.plegable > summary {
+  cursor: pointer;
+  min-height: var(--objetivo-tactil);
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  flex-wrap: wrap;
+  list-style-position: outside;
+}
+.plegable > summary::marker {
+  color: var(--color-marca);
+}
+.plegable[open] > summary {
+  margin-block-end: var(--espacio-2);
+}
+.controles-plegables {
+  margin-block: var(--espacio-2);
+}
+
+.sello-area {
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+}
+.sello-area.en-carencia,
+.sello-area.desconocida {
+  color: var(--color-alerta);
+}

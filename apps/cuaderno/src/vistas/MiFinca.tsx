@@ -25,6 +25,12 @@ import {
   TIPOS_SUBAREA,
 } from '../almacen/finca.ts';
 import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
+import {
+  ABIERTAS_HASTA,
+  ControlesPlegables,
+  Plegable,
+  usarPlegables,
+} from '../componentes/Plegables.tsx';
 import { Vencimientos } from '../componentes/Vencimientos.tsx';
 import { fechaHora, metros, NOMBRE_REGIMEN, NOMBRE_TIPO } from '../formato.ts';
 import { CicloDeArea } from './CicloDeArea.tsx';
@@ -238,6 +244,23 @@ export function MiFinca(props: {
   }, [props.db, props.finca.id, props.areas]);
   const principales = props.areas.filter((a) => a.padre_id === null);
   const hijas = (id: string) => props.areas.filter((a) => a.padre_id === id);
+  // Con muchas naves, camas y surcos, cada área se pliega (revisión del dueño, 3 oct 2026).
+  const plegables = usarPlegables(
+    principales.map((a) => a.id),
+    props.areas.length <= ABIERTAS_HASTA,
+  );
+  /** Lo que se ve con el área cerrada: si hoy no se puede cosechar o entrar, o no se sabe. */
+  const sello = (id: string) => {
+    const e = vencimientos.get(id);
+    if (!e) return null;
+    if (e.carencia.tipo === 'desconocida' || e.reentrada.tipo === 'desconocida')
+      return <span class="sello-area desconocida">? carencia desconocida</span>;
+    if (e.carencia.tipo === 'hasta')
+      return <span class="sello-area en-carencia">✕ en carencia</span>;
+    if (e.reentrada.tipo === 'desde')
+      return <span class="sello-area en-carencia">✕ sin entrar</span>;
+    return null;
+  };
   const cerrarYRecargar = () => {
     setAbierto(null);
     props.alCambiar();
@@ -257,82 +280,92 @@ export function MiFinca(props: {
       </p>
       <h2>Áreas</h2>
       {!cambia && <SoloConsulta rol={permisos.rol} que="las áreas y sus ciclos" />}
+      {principales.length > 1 && <ControlesPlegables p={plegables} que="áreas" id="areas" />}
       <ul class="areas" data-prueba="areas">
         {principales.map((a) => (
           <li key={a.id} class="area" data-prueba="area">
-            <p class="area-titulo">
-              <strong>{a.nombre}</strong> · {NOMBRE_TIPO[a.tipo]} · {metros(a.area_m2)}
-            </p>
-            <Vencimientos estado={vencimientos.get(a.id)} />
-            <CicloDeArea
-              db={props.db}
-              area={a}
-              ciclo={props.ciclos.find((c) => c.estado === 'activo' && c.area_ids.includes(a.id))}
-              cultivos={props.cultivos}
-              cambia={permisos.puede('escribir', 'ciclo')}
-              alCambiar={props.alCambiar}
-            />
-            {hijas(a.id).length > 0 && (
-              <ul class="subareas" aria-label={`Camas y surcos de ${a.nombre}`}>
-                {hijas(a.id).map((s) => (
-                  <li key={s.id} data-prueba="subarea">
-                    <p class="area-titulo">
-                      {s.nombre} · {NOMBRE_TIPO[s.tipo]} · {metros(s.area_m2)}
-                    </p>
-                    <EditarConHistorial
-                      db={props.db}
-                      area={s}
-                      abierto={abierto}
-                      alternar={alternar}
-                      cambia={cambia}
-                      alCerrar={() => setAbierto(null)}
-                      alGuardar={cerrarYRecargar}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-            <EditarConHistorial
-              db={props.db}
-              area={a}
-              abierto={abierto}
-              alternar={alternar}
-              cambia={cambia}
-              alCerrar={() => setAbierto(null)}
-              alGuardar={cerrarYRecargar}
-              extra={
-                cambia && (
-                  <button
-                    type="button"
-                    class="herramienta"
-                    onClick={() => alternar('subarea', a.id)}
-                    aria-label={`Agregar cama o surco en ${a.nombre}`}
-                  >
-                    + Cama o surco
-                  </button>
-                )
+            <Plegable
+              id={a.id}
+              p={plegables}
+              resumen={
+                <span class="area-titulo">
+                  <strong>{a.nombre}</strong> · {NOMBRE_TIPO[a.tipo]} · {metros(a.area_m2)}
+                  {hijas(a.id).length > 0 && ` · ${hijas(a.id).length} camas o surcos`}{' '}
+                  {sello(a.id)}
+                </span>
               }
-            />
-            {abierto &&
-              'areaId' in abierto &&
-              abierto.areaId === a.id &&
-              abierto.tipo === 'subarea' && (
-                <FormularioArea
-                  titulo={`Nueva cama o surco en ${a.nombre}`}
-                  inicial={{ nombre: '', m2: '' }}
-                  elegirTipo="subarea"
-                  alGuardar={async (d) => {
-                    await crearSubarea(props.db, a.id, {
-                      tipo: d.tipo ?? 'cama',
-                      nombre: d.nombre,
-                      area_m2: d.area_m2,
-                      capacidad_plantas: null,
-                    });
-                    cerrarYRecargar();
-                  }}
-                  alCancelar={() => setAbierto(null)}
-                />
+            >
+              <Vencimientos estado={vencimientos.get(a.id)} />
+              <CicloDeArea
+                db={props.db}
+                area={a}
+                ciclo={props.ciclos.find((c) => c.estado === 'activo' && c.area_ids.includes(a.id))}
+                cultivos={props.cultivos}
+                cambia={permisos.puede('escribir', 'ciclo')}
+                alCambiar={props.alCambiar}
+              />
+              {hijas(a.id).length > 0 && (
+                <ul class="subareas" aria-label={`Camas y surcos de ${a.nombre}`}>
+                  {hijas(a.id).map((s) => (
+                    <li key={s.id} data-prueba="subarea">
+                      <p class="area-titulo">
+                        {s.nombre} · {NOMBRE_TIPO[s.tipo]} · {metros(s.area_m2)}
+                      </p>
+                      <EditarConHistorial
+                        db={props.db}
+                        area={s}
+                        abierto={abierto}
+                        alternar={alternar}
+                        cambia={cambia}
+                        alCerrar={() => setAbierto(null)}
+                        alGuardar={cerrarYRecargar}
+                      />
+                    </li>
+                  ))}
+                </ul>
               )}
+              <EditarConHistorial
+                db={props.db}
+                area={a}
+                abierto={abierto}
+                alternar={alternar}
+                cambia={cambia}
+                alCerrar={() => setAbierto(null)}
+                alGuardar={cerrarYRecargar}
+                extra={
+                  cambia && (
+                    <button
+                      type="button"
+                      class="herramienta"
+                      onClick={() => alternar('subarea', a.id)}
+                      aria-label={`Agregar cama o surco en ${a.nombre}`}
+                    >
+                      + Cama o surco
+                    </button>
+                  )
+                }
+              />
+              {abierto &&
+                'areaId' in abierto &&
+                abierto.areaId === a.id &&
+                abierto.tipo === 'subarea' && (
+                  <FormularioArea
+                    titulo={`Nueva cama o surco en ${a.nombre}`}
+                    inicial={{ nombre: '', m2: '' }}
+                    elegirTipo="subarea"
+                    alGuardar={async (d) => {
+                      await crearSubarea(props.db, a.id, {
+                        tipo: d.tipo ?? 'cama',
+                        nombre: d.nombre,
+                        area_m2: d.area_m2,
+                        capacidad_plantas: null,
+                      });
+                      cerrarYRecargar();
+                    }}
+                    alCancelar={() => setAbierto(null)}
+                  />
+                )}
+            </Plegable>
           </li>
         ))}
       </ul>
