@@ -24,6 +24,10 @@ import {
   leerLotes,
 } from '../almacen/lotes.ts';
 import { Paginador, usarPaginacion } from '../componentes/Paginador.tsx';
+import { Pestanas } from '../componentes/Pestanas.tsx';
+
+type PestanaLotes = 'lotes' | 'nuevo' | 'despachos' | 'tienda';
+
 import { ControlesPlegables, Plegable, usarPlegables } from '../componentes/Plegables.tsx';
 import { corto, descargar } from '../descargar.ts';
 import { FormularioDespacho, ListaDespachos } from './Despachos.tsx';
@@ -132,6 +136,10 @@ export function Lotes() {
   const veVentas = permisos.puedeRegistro('leer', 'despacho');
   const despacha = permisos.puedeRegistro('escribir', 'despacho');
   const [lotes, setLotes] = useState<Lote[] | null>(null);
+  // Una pestaña a la vez (revisión del dueño, 3 oct 2026). Sin lotes, se empieza por armar uno.
+  const [pestana, setPestana] = useState<PestanaLotes | null>(null);
+  const actual: PestanaLotes =
+    pestana ?? (lotes !== null && lotes.length === 0 ? 'nuevo' : 'lotes');
   // Muchos lotes: por páginas y plegables (revisión del dueño, 3 oct 2026).
   const paginas = usarPaginacion(lotes?.length ?? 0, 25);
   const pagina = (lotes ?? []).slice(paginas.desde, paginas.hasta);
@@ -174,12 +182,35 @@ export function Lotes() {
         cosecha va en un solo lote.
       </p>
       {!arma && <SoloConsulta rol={permisos.rol} que="los lotes" />}
+      <Pestanas
+        etiqueta="Qué hacer con los lotes"
+        opciones={[
+          { id: 'lotes' as const, titulo: 'Lotes' },
+          ...(arma ? [{ id: 'nuevo' as const, titulo: 'Nuevo lote' }] : []),
+          ...(veVentas
+            ? [
+                { id: 'despachos' as const, titulo: 'Despachos' },
+                { id: 'tienda' as const, titulo: 'Para la tienda' },
+              ]
+            : []),
+        ]}
+        actual={actual}
+        alCambiar={setPestana}
+        prueba="pestanas-lotes"
+      />
       {/* Mientras se cambia un lote, sus cosechas libres se eligen ahí, no en dos sitios. */}
-      {arma && lotes !== null && abierto?.tipo !== 'cambiar' && (
-        <ElegirCosechas fincaId={fincaId} cosechas={cosechas} alTerminar={cargar} />
+      {actual === 'nuevo' && arma && lotes !== null && abierto?.tipo !== 'cambiar' && (
+        <ElegirCosechas
+          fincaId={fincaId}
+          cosechas={cosechas}
+          alTerminar={() => {
+            cargar();
+            setPestana('lotes');
+          }}
+        />
       )}
-      <h2>Lotes armados</h2>
-      {lotes === null ? (
+      {actual === 'lotes' && <h2>Lotes armados</h2>}
+      {actual !== 'lotes' ? null : lotes === null ? (
         <p class="ayuda">Cargando lotes…</p>
       ) : lotes.length === 0 ? (
         <p class="ayuda">Todavía no hay lotes.</p>
@@ -288,7 +319,7 @@ export function Lotes() {
           <Paginador id="lotes" total={lotes.length} p={paginas} que="lotes" />
         </>
       )}
-      {veVentas && lotes !== null && estado.finca && (
+      {actual === 'tienda' && veVentas && lotes !== null && estado.finca && (
         <div data-prueba="disponibilidad">
           <h2>Para la tienda en línea</h2>
           <p class="ayuda">
@@ -316,7 +347,7 @@ export function Lotes() {
           )}
         </div>
       )}
-      {veVentas && (
+      {actual === 'despachos' && veVentas && (
         <>
           <h2>Despachos</h2>
           <ListaDespachos despachos={despachos} />

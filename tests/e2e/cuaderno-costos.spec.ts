@@ -48,6 +48,10 @@ test('CA1, CA2 y CA3: compra, aplicación con cantidad, bodega y costo por nave,
 
   // Compra de 1.000 mL por $ 80.000.
   await nav(page).getByRole('link', { name: 'Costos' }).click();
+  await page
+    .locator('[data-prueba="pestanas-costos"]')
+    .getByRole('button', { name: 'Bodega', exact: true })
+    .click();
   const compra = page.locator('[data-prueba="formulario-bodega"]');
   await compra.getByLabel('Insumo').selectOption({ label: 'Producto Bodega (mL)' });
   await compra.getByLabel('Cantidad (mL)').fill('1000');
@@ -72,12 +76,24 @@ test('CA1, CA2 y CA3: compra, aplicación con cantidad, bodega y costo por nave,
   await expect(page.locator('[data-prueba="aplicacion-guardada"]')).toBeVisible();
 
   await nav(page).getByRole('link', { name: 'Costos' }).click();
+  await page
+    .locator('[data-prueba="pestanas-costos"]')
+    .getByRole('button', { name: 'Bodega', exact: true })
+    .click();
   const existencia = page.locator('[data-prueba="existencia"]');
-  await expect(existencia).toContainText('Producto Bodega · quedan 960 mL');
-  await expect(existencia).toContainText('$ 80 por mL · en bodega $ 76.800');
+  await expect(existencia.locator('th')).toHaveText('Producto Bodega');
+  await expect(existencia.locator('td')).toHaveText(['960 mL', '$ 80 por mL', '$ 76.800']);
+  await expect(page.locator('[data-prueba="aviso-negativa"]')).toHaveCount(0);
+  await page
+    .locator('[data-prueba="pestanas-costos"]')
+    .getByRole('button', { name: 'Insumos por nave', exact: true })
+    .click();
   await expect(page.locator('[data-prueba="costo-por-area"]')).toContainText(`${area.nombre}`);
   await expect(page.locator('[data-prueba="costo-por-area"]')).toContainText('$ 3.200');
-  await expect(page.locator('[data-prueba="aviso-negativa"]')).toHaveCount(0);
+  await page
+    .locator('[data-prueba="pestanas-costos"]')
+    .getByRole('button', { name: 'Bodega', exact: true })
+    .click();
 
   // CA3: un ajuste que deja la bodega en negativo avisa, sin bloquear nada.
   const ajuste = page.locator('[data-prueba="formulario-bodega"]');
@@ -107,6 +123,10 @@ test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su
 
   // El valor general del jornal, desde el primero del año.
   await nav(page).getByRole('link', { name: 'Costos' }).click();
+  await page
+    .locator('[data-prueba="pestanas-costos"]')
+    .getByRole('button', { name: 'Mano de obra', exact: true })
+    .click();
   const jornal = page.locator('[data-prueba="formulario-jornal"]');
   await jornal.getByLabel('Valor del jornal en pesos').fill('64.000');
   await jornal.getByLabel('Rige desde').fill('2026-01-01');
@@ -130,6 +150,10 @@ test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su
   await page.getByRole('button', { name: 'Guardar labor' }).click();
 
   await nav(page).getByRole('link', { name: 'Costos' }).click();
+  await page
+    .locator('[data-prueba="pestanas-costos"]')
+    .getByRole('button', { name: 'Mano de obra', exact: true })
+    .click();
   const tabla = page.locator('[data-prueba="mano-por-area"]');
   await expect(tabla).toContainText(area.nombre);
   await expect(tabla).toContainText('$ 32.000');
@@ -138,10 +162,12 @@ test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su
   );
 
   // HU-E7.3: sin cosecha no hay costo por kilo; con 40 kg vendibles, $ 32.000 son $ 800 por kg.
+  await page
+    .locator('[data-prueba="pestanas-costos"]')
+    .getByRole('button', { name: 'Costo por kilo', exact: true })
+    .click();
   const porKilo = page.locator('[data-prueba="costo-por-kilo"]');
-  await expect(porKilo.locator('[data-prueba="costo-por-unidad"]')).toHaveText(
-    'Todavía no hay cosecha vendible: no hay costo por unidad.',
-  );
+  await expect(porKilo.locator('[data-prueba="costo-por-unidad"]')).toHaveText('sin cosecha');
   await nav(page).getByRole('link', { name: 'Registrar' }).click();
   await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
   const cosecha = page.locator('[data-prueba="formulario-cosecha"]');
@@ -152,12 +178,9 @@ test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su
   await page.getByRole('button', { name: 'Guardar cosecha' }).click();
   await expect(page.getByText('Cosecha guardada en este teléfono.')).toBeVisible();
   await nav(page).getByRole('link', { name: 'Costos' }).click();
-  await expect(porKilo.locator('[data-prueba="costo-por-unidad"]')).toHaveText(
-    'Cuesta $ 800 por kg vendible (40 kg)',
-  );
-  await expect(porKilo.locator('[data-prueba="margen"]')).toHaveText(
-    'Todavía no hay ventas de este ciclo.',
-  );
+  // «Costo por kilo» es la primera pestaña: abre ahí.
+  await expect(porKilo.locator('[data-prueba="costo-por-unidad"]')).toHaveText('$ 800 por kg');
+  await expect(porKilo.locator('[data-prueba="margen"]')).toHaveText('sin ventas');
   // CA3: dice qué no está incluido.
   await expect(porKilo).toContainText('No incluye arriendo, depreciación del invernadero');
 });
