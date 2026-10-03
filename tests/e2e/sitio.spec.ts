@@ -66,6 +66,12 @@ test.describe('página de entrada de las herramientas', () => {
         name: 'Abrir el cuaderno de campo',
       }),
     ).toHaveAttribute('href', '/agro/app/');
+    // Compartir la página por WhatsApp: un enlace, sin JavaScript.
+    const compartir = page.locator('[data-prueba="compartir-herramientas"]');
+    const texto = new URL((await compartir.getAttribute('href')) ?? '').searchParams.get('text');
+    expect(texto).toMatch(
+      /^Calculadoras gratis para el invernadero: .+ https:\/\/[^ ]+\/herramientas\/agro\/$/,
+    );
     await dpv.click();
     await expect(page.locator('h1')).toHaveText('Calculadora de DPV');
   });

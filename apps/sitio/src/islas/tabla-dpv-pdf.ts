@@ -122,7 +122,7 @@ export async function pdfDeTabla(
     });
   }
   hoja.drawText(
-    'DPV calculado con la ecuación 11 de FAO-56. Referencia para decidir; la decisión es tuya. agro.laboratorio-digital.com',
+    'DPV calculado con la ecuación 11 de FAO-56. Referencia para decidir; la decisión es tuya. cultivopro.co',
     { x: margen, y: margen - 12, size: 8, font: normal, color: GRIS },
   );
   return doc.save();

@@ -71,7 +71,7 @@ describe('calculadora de DPV (HU-E2.2)', () => {
 });
 
 describe('compartir por WhatsApp (HU-E2.4)', () => {
-  const URL_DPV = 'https://agro.laboratorio-digital.com/herramientas/agro/calculadora-dpv/';
+  const URL_DPV = 'https://cultivopro.co/herramientas/agro/calculadora-dpv/';
 
   it('CA1: el texto trae T, HR, DPV, la indicación y el enlace con los valores', () => {
     const e = con({ temperatura: '24', humedad: '70', cultivoEtapa: 'tomate:produccion' });

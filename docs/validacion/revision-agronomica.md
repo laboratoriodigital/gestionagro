@@ -19,7 +19,7 @@ Esto no reemplaza la revisión agronómica. Comprueba que lo que dice la página
 | DPV en staging | 24 °C, 70 %, tomate en producción | 0,90 kPa, «Algo alto», con su acción y la fuente |
 | Ejemplo de la carencia en staging | 10/12/2026 a las 7:00, 3 días y 12 h | «Cosechar desde el 13/12» y «Entrar desde el 10/12/2026 19:00», como dice el ejemplo |
 | Pruebas automáticas | Casos de `agro-calc`, otro huso horario, fin de mes y de año, 29 de febrero, sin red y accesibilidad en modo claro y oscuro | En verde |
-| Producción | `agro.laboratorio-digital.com` | Sigue en la versión 0.1.0: la DPV responde, pero la calculadora de carencia y la política de datos dan 404. Se corrige al publicar la próxima versión (ver «Después de aprobar») |
+| Producción | `agro.laboratorio-digital.com` (el dominio definitivo es `cultivopro.co` desde el 3 oct 2026) | Sigue en la versión 0.1.0: la DPV responde, pero la calculadora de carencia y la política de datos dan 404. Se corrige al publicar la próxima versión (ver «Después de aprobar») |
 
 ## Qué debe confirmar el agrónomo
 

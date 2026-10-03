@@ -30,7 +30,7 @@
 
 ### Search Console (impresiones reales de la DPV, solo verificadas)
 
-1. <https://search.google.com/search-console> → propiedad `agro.laboratorio-digital.com` → **Rendimiento** → **Resultados de búsqueda**.
+1. <https://search.google.com/search-console> → propiedad `cultivopro.co` → **Rendimiento** → **Resultados de búsqueda**.
 2. Fechas: **últimos 3 meses**. Pestaña **Consultas**. Exportar → «CSV».
 3. Guárdalo como `gsc-AAAA-MM-DD.csv`. De ahí salen las impresiones **V** de los términos de la DPV y las consultas que la gente escribe y no estaban en la lista.
 

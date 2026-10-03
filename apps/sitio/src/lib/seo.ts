@@ -5,11 +5,16 @@
  * Solo un producto `activo` se indexa. Un borrador se construye (para revisarlo en staging) pero
  * lleva `noindex` y no entra al sitemap.
  */
+
+import celdas from '../../../../infrastructure/celdas.json' with { type: 'json' };
 import type { PaginaDeHerramienta } from '../../../../scripts/lib/calidad.ts';
 import type { Producto } from '../../../../scripts/lib/productos.ts';
 
-/** Host de ADR-19. Cambiarlo es el único paso para mudar a otro dominio. */
-export const SITIO = 'https://agro.laboratorio-digital.com';
+/**
+ * Host del sitio, de `infrastructure/celdas.json` (P2): el mismo que usan el Worker, la CSP y el
+ * CORE. Mudar de dominio es cambiarlo allí (ADR-19; `cultivopro.co` desde el 3 oct 2026).
+ */
+export const SITIO = `https://${celdas.sitio.dominio}`;
 export const NOMBRE_DEL_SITIO = 'Gestión Agro';
 
 export interface Miga {

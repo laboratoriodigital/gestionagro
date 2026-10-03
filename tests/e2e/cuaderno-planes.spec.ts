@@ -236,6 +236,30 @@ test.describe('HU-E0.7 · pagar el plan Finca con Bold', () => {
     await expect(plan(page, 'gratuito')).toContainText('tu plan');
   });
 
+  test('sin las llaves de Bold, lo dice junto al botón que se tocó (revisión del dueño, 3 oct 2026)', async ({
+    page,
+  }) => {
+    await coreConLista(page);
+    await page.route(`${CORE}/api/core/pago/crear`, (r) =>
+      r.fulfill({
+        status: 503,
+        headers: permitir,
+        json: {
+          estado: 'no-disponible',
+          motivo: 'El pago en línea todavía no está disponible. Escríbenos y lo activamos a mano.',
+        },
+      }),
+    );
+    await configurar(page, FINCA_ENSAYO_UNO);
+    await conPlan(page, 'gratuito');
+    await page.goto('/agro/app/planes/');
+    await plan(page, 'finca').getByRole('button', { name: 'Pagar un mes · COP 39.000' }).click();
+    // Antes salía arriba de la página, fuera de la vista: parecía que el botón no hacía nada.
+    const estado = plan(page, 'finca').locator('[data-prueba="pago-estado"]');
+    await expect(estado).toContainText('El pago en línea todavía no está disponible');
+    await expect(estado).toBeInViewport();
+  });
+
   test('un operario no ve el botón de pagar', async ({ page }) => {
     await coreConLista(page);
     await configurar(page, FINCA_ENSAYO_UNO);

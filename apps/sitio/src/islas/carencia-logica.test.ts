@@ -4,6 +4,8 @@ import {
   calcularCarencia,
   type EntradasCarencia,
   enlaceAplicacionAlCuaderno,
+  entradasDeEnlaceCarencia,
+  paraCompartirCarencia,
 } from './carencia-logica.ts';
 
 const con = (e: Partial<EntradasCarencia>): EntradasCarencia => ({
@@ -89,5 +91,37 @@ describe('puente al cuaderno (HU-E10.2, CA2)', () => {
   it('sin una fecha y una hora reales no hay enlace', () => {
     expect(enlaceAplicacionAlCuaderno(con({ fecha: '' }))).toBeNull();
     expect(enlaceAplicacionAlCuaderno(con({ fecha: '2027-02-29' }))).toBeNull();
+  });
+});
+
+describe('compartir por WhatsApp, como la DPV', () => {
+  const URL_CARENCIA = 'https://cultivopro.co/herramientas/agro/periodo-de-carencia/?viejo=1#x';
+
+  it('el mensaje dice la aplicación y las fechas, y el enlace trae los mismos valores', () => {
+    const e = con({ carencia: '3', reentrada: '12' });
+    const c = paraCompartirCarencia(e, calcularCarencia(e), URL_CARENCIA);
+    expect(c?.texto).toBe(
+      'Aplicación del 10/12/2026 a las 07:00 (carencia de 3 días y reentrada de 12 h): se puede cosechar desde el 13/12 y se puede entrar desde el 10/12/2026 19:00. Copia la carencia y la reentrada de la etiqueta del producto. Calcúlalo aquí: https://cultivopro.co/herramientas/agro/periodo-de-carencia/?f=2026-12-10&h=07%3A00&c=3&r=12',
+    );
+    expect(c?.enlaceWhatsApp).toBe(`https://wa.me/?text=${encodeURIComponent(c?.texto ?? '')}`);
+    // Abrir el enlace da la misma calculadora: ida y vuelta.
+    expect(entradasDeEnlaceCarencia(new URL(c?.enlaceCalculadora ?? '').search)).toEqual({
+      fecha: '2026-12-10',
+      hora: '07:00',
+      carencia: '3',
+      reentrada: '12',
+    });
+  });
+
+  it('sin ninguna fecha no hay nada que compartir; con la carencia desconocida, solo la entrada', () => {
+    expect(paraCompartirCarencia(con({}), calcularCarencia(con({})), URL_CARENCIA)).toBeNull();
+    const e = con({ reentrada: '4' });
+    expect(paraCompartirCarencia(e, calcularCarencia(e), URL_CARENCIA)?.texto).toContain(
+      '(reentrada de 4 h): se puede entrar desde el 10/12/2026 11:00.',
+    );
+  });
+
+  it('un enlace con valores sin forma no los carga', () => {
+    expect(entradasDeEnlaceCarencia('?f=mañana&h=7&c=3')).toEqual({ carencia: '3' });
   });
 });

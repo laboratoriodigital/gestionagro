@@ -31,7 +31,7 @@ const conCeldas = (celdas: Partial<ConfigCeldas['celdas'][number]>[]): ConfigCel
 
 describe('celdas.json, fuente única (HU-E1.5, CA1)', () => {
   it('el real es válido y el sitio vive en una celda activa', () => {
-    expect(real.sitio.dominio).toBe('agro.laboratorio-digital.com');
+    expect(real.sitio.dominio).toBe('cultivopro.co');
     expect(real.celdas.find((c) => c.id === real.sitio.celda)?.estado).toBe('activa');
   });
 

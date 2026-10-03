@@ -5,12 +5,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- «Compartir por WhatsApp» en la calculadora de carencia y reentrada, como en la de DPV: el mensaje lleva la aplicación y las fechas, y el enlace abre la calculadora con los mismos valores. La página de entrada de las herramientas también se comparte por WhatsApp.
 - Pagar el plan Finca en línea con Bold (PSE, Nequi o tarjeta) desde Planes: un mes a la vez, sin débito automático. Al volver de Bold, el plan queda activo, y si la persona no vuelve, se activa solo en 15 minutos o menos. Planes y Cuenta dicen hasta cuándo vale, y una semana antes avisan. Al vencer, la finca vuelve al plan Gratis sin perder ningún registro. Sin las llaves de Bold, pagar dice que no está disponible.
 - La política de datos (versión 2) nombra a Bold como aliado para los pagos. Su programa solo se carga al tocar «Pagar».
 - Con el plan Finca, el calendario de carencias se imprime en una hoja horizontal para la puerta de la nave: cada área con hoy y los próximos 14 días, legible en blanco y negro. Verlo en el teléfono sigue gratis.
 - Varias fincas en un mismo teléfono (HU-E4.7). En Cuenta, cada finca de la nube se abre en este teléfono, y sin cuenta se agrega otra finca. Cada una guarda lo suyo, sin mezclarse; cambiar es un toque desde la cabecera, que dice en qué finca se está. Con una sola finca, nada cambia.
 
 ### Cambiado
+- El sitio pasa a su dominio definitivo, `cultivopro.co`, con las mismas rutas. `agro.laboratorio-digital.com` redirige con 301 (runbook `cambio-de-dominio.md`). El dominio se lee de `celdas.json`: el sitio ya no lo repite.
+- Según la prueba del dueño (3 oct 2026): al tocar «Pagar» sin el pago en línea disponible, parecía que nada pasaba. El aviso salía arriba de la página, fuera de la vista. Ahora sale debajo del botón que se tocó.
 - Revisión de diseño del cuaderno con una temporada completa de datos, en un teléfono de 360 px (pedido del dueño, 3 oct 2026):
   - **La cabecera** ocupa 120 px en vez de 290: el nombre y los indicadores en una fila, y las secciones en otra que se desliza de lado, con la abierta resaltada y siempre a la vista.
   - **Las tablas** (costo por kilo, bodega, insumos y mano de obra por nave, rendimiento) ya no hacen la página más ancha que el teléfono. Se deslizan dentro de su caja, con la nave o la persona fija a la izquierda y las cifras en un solo renglón.

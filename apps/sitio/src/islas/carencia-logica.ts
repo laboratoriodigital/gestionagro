@@ -130,3 +130,64 @@ export function enlaceAplicacionAlCuaderno(e: EntradasCarencia): string | null {
   const p = new URLSearchParams({ aplicacion: '1', fecha: e.fecha, hora: e.hora });
   return `${REGISTRAR_EN_CUADERNO}#${p.toString()}`;
 }
+
+/** Los valores que viajan en un enlace compartido: fecha, hora, carencia y reentrada. */
+export const PARAMETROS_COMPARTIDOS_CARENCIA = ['f', 'h', 'c', 'r'] as const;
+
+export interface CompartirCarencia {
+  texto: string;
+  enlaceCalculadora: string;
+  enlaceWhatsApp: string;
+}
+
+/**
+ * Mensaje para WhatsApp con la aplicación y lo que salió, y el enlace que abre la calculadora con
+ * los mismos valores (como la DPV, HU-E2.4). Sin emoji. Null mientras no haya ninguna fecha.
+ */
+export function paraCompartirCarencia(
+  e: EntradasCarencia,
+  r: ResultadoCarencia,
+  urlCalculadora: string,
+): CompartirCarencia | null {
+  if (r.cosechar.tipo !== 'fecha' && r.entrar.tipo !== 'fecha') return null;
+  const url = new URL(urlCalculadora);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('f', e.fecha);
+  url.searchParams.set('h', e.hora);
+  if (e.carencia.trim()) url.searchParams.set('c', e.carencia.trim());
+  if (e.reentrada.trim()) url.searchParams.set('r', e.reentrada.trim());
+  const etiqueta = [
+    e.carencia.trim() ? `carencia de ${e.carencia.trim()} días` : null,
+    e.reentrada.trim() ? `reentrada de ${e.reentrada.trim()} h` : null,
+  ].filter(Boolean);
+  const salida = [
+    r.cosechar.tipo === 'fecha' ? `se puede cosechar desde el ${r.cosechar.texto}` : null,
+    r.entrar.tipo === 'fecha' ? `se puede entrar desde el ${r.entrar.texto}` : null,
+  ].filter(Boolean);
+  const texto = [
+    `Aplicación del ${diaMes(e.fecha)}/${e.fecha.slice(0, 4)} a las ${e.hora}${etiqueta.length ? ` (${etiqueta.join(' y ')})` : ''}: ${salida.join(' y ')}.`,
+    'Copia la carencia y la reentrada de la etiqueta del producto.',
+    `Calcúlalo aquí: ${url.toString()}`,
+  ].join(' ');
+  return {
+    texto,
+    enlaceCalculadora: url.toString(),
+    enlaceWhatsApp: `https://wa.me/?text=${encodeURIComponent(texto)}`,
+  };
+}
+
+/** Lee fecha, hora, carencia y reentrada de un enlace compartido. Lo que no tiene forma, no entra. */
+export function entradasDeEnlaceCarencia(busqueda: string): Partial<EntradasCarencia> {
+  const p = new URLSearchParams(busqueda);
+  const f = p.get('f');
+  const h = p.get('h');
+  const c = p.get('c');
+  const r = p.get('r');
+  return {
+    ...(f && /^\d{4}-\d{2}-\d{2}$/.test(f) ? { fecha: f } : {}),
+    ...(h && /^\d{2}:\d{2}$/.test(h) ? { hora: h } : {}),
+    ...(c !== null ? { carencia: c.slice(0, 6) } : {}),
+    ...(r !== null ? { reentrada: r.slice(0, 6) } : {}),
+  };
+}
