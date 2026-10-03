@@ -12,7 +12,7 @@ import {
   mensajeAFirmar,
 } from '../../packages/trazabilidad/src/index.ts';
 import { FINCA_ENSAYO_UNO } from '../fixtures/fincas.ts';
-import { configurar } from './ayudas.ts';
+import { configurar, conPlan } from './ayudas.ts';
 
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
 
@@ -256,3 +256,69 @@ test('sin menú de compartir (un computador): descarga la imagen, copia el enlac
   const enlace = await page.locator('[data-prueba="enlace-qr"]').getAttribute('href');
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(enlace);
 });
+
+/** Un PNG de 1 × 1 px, como logo de prueba. */
+const LOGO_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+test('revisión del dueño: con el plan Finca, el logo de la finca sale en la etiqueta; con el gratuito, no', async ({
+  page,
+}) => {
+  await configurar(page, FINCA_ENSAYO_UNO);
+  await conPlan(page, 'finca');
+  await page.goto('/agro/app/');
+  const codigo = await abrirEtiquetaDesdeAqui(page);
+  const etiqueta = page.locator('[data-prueba="etiqueta-qr"]');
+  await expect(etiqueta.locator('.etiqueta-logo')).toHaveCount(0);
+  await etiqueta.getByLabel('Poner el logo de la finca').setInputFiles({
+    name: 'logo.png',
+    mimeType: 'image/png',
+    buffer: LOGO_PNG,
+  });
+  await expect(etiqueta.locator('.etiqueta-imprimible .etiqueta-logo')).toHaveAttribute(
+    'alt',
+    `Logo de ${FINCA_ENSAYO_UNO.finca.nombre}`,
+  );
+  await expect(etiqueta.locator('.etiqueta-codigo')).toContainText(codigo);
+  // Sigue al volver a abrir la etiqueta: se guardó en el teléfono.
+  await etiqueta.getByRole('button', { name: 'Cerrar' }).click();
+  await page.getByRole('button', { name: `Etiqueta QR del lote ${codigo}` }).click();
+  await expect(page.locator('[data-prueba="etiqueta-qr"] .etiqueta-logo')).toHaveCount(1);
+  await page
+    .locator('[data-prueba="etiqueta-qr"]')
+    .getByRole('button', { name: 'Quitar el logo' })
+    .click();
+  await expect(page.locator('[data-prueba="etiqueta-qr"] .etiqueta-logo')).toHaveCount(0);
+});
+
+test('con el plan gratuito, la etiqueta dice que el logo viene con el plan Finca', async ({
+  page,
+}) => {
+  await abrirEtiqueta(page);
+  await expect(page.locator('[data-prueba="logo-etiqueta"]')).toContainText(
+    'viene con el plan Finca',
+  );
+  await expect(page.getByLabel('Poner el logo de la finca')).toHaveCount(0);
+});
+
+/** Como abrirEtiqueta, sin configurar la finca otra vez. Devuelve el código del lote. */
+async function abrirEtiquetaDesdeAqui(page: Page): Promise<string> {
+  const area = FINCA_ENSAYO_UNO.areas[0];
+  if (!area) throw new Error('sin áreas');
+  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
+  await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
+  await page.getByLabel('Cantidad cosechada').fill('20');
+  const form = page.locator('[data-prueba="formulario-cosecha"]');
+  await form.getByLabel('kg', { exact: true }).check();
+  await form.getByLabel('Primera', { exact: true }).check();
+  await page.getByRole('button', { name: 'Guardar cosecha' }).click();
+  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  await page.locator('[data-prueba="elegir-cosechas"] input[type=checkbox]').first().check();
+  await page.getByRole('button', { name: 'Armar lote' }).click();
+  const codigo = (await page.locator('.codigo-lote').first().textContent()) ?? '';
+  await page.getByRole('button', { name: `Etiqueta QR del lote ${codigo}` }).click();
+  return codigo;
+}

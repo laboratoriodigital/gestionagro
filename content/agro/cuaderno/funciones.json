@@ -1,5 +1,5 @@
 {
-  "nota": "Funciones del cuaderno que se encienden o apagan por plan, sin tocar el código: se cambia aquí, se hace commit y se despliega (ED1: Git como plano de control). Un plan que no esté aquí cuenta como el gratuito. El calendario de carencias está encendido en el gratuito para traer y retener usuarios (análisis de palabras clave, HU-E0.2; Estudio de mercado: peldaño usuario recurrente). Apagarlo en el gratuito lo deja en los planes pagos; la carencia de cada área en «Áreas» sigue siendo gratis siempre (HU-E3.10). El rendimiento por operario es del peldaño SaaS Exportador (ARQUITECTURA §2.4; Estudio: dolor principal en flores), HU-E7.4. La carpeta de cumplimiento en PDF es del plan Finca en adelante (ARQUITECTURA §2.4), HU-E9.2. Los registros por cama o surco y las plantas revisadas y afectadas del monitoreo son del plan Finca en adelante (revisión del dueño, 3 oct 2026).",
+  "nota": "Funciones del cuaderno que se encienden o apagan por plan, sin tocar el código: se cambia aquí, se hace commit y se despliega (ED1: Git como plano de control). Un plan que no esté aquí cuenta como el gratuito. El calendario de carencias está encendido en el gratuito para traer y retener usuarios (análisis de palabras clave, HU-E0.2; Estudio de mercado: peldaño usuario recurrente). Apagarlo en el gratuito lo deja en los planes pagos; la carencia de cada área en «Áreas» sigue siendo gratis siempre (HU-E3.10). El rendimiento por operario es del peldaño SaaS Exportador (ARQUITECTURA §2.4; Estudio: dolor principal en flores), HU-E7.4. La carpeta de cumplimiento en PDF es del plan Finca en adelante (ARQUITECTURA §2.4), HU-E9.2. Los registros por cama o surco y las plantas revisadas y afectadas del monitoreo son del plan Finca en adelante (revisión del dueño, 3 oct 2026). El logo de la finca en la etiqueta QR es del plan Finca en adelante (revisión del dueño, 3 oct 2026).",
   "calendario_carencias": {
     "gratuito": true,
     "finca": true,
@@ -19,6 +19,12 @@
     "cadena": true
   },
   "registros_por_cama": {
+    "gratuito": false,
+    "finca": true,
+    "exportador": true,
+    "cadena": true
+  },
+  "marca_en_etiqueta": {
     "gratuito": false,
     "finca": true,
     "exportador": true,

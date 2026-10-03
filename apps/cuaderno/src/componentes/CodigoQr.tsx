@@ -46,6 +46,8 @@ export async function imagenDeEtiqueta(datos: {
   codigo: string;
   finca: string;
   estado: string;
+  /** El logo de la finca (plan Finca), como data URL; null sin logo. */
+  logo?: string | null;
 }): Promise<Blob> {
   const lado = 720;
   const lienzo = document.createElement('canvas');
@@ -65,6 +67,15 @@ export async function imagenDeEtiqueta(datos: {
       if (oscuro(f, c))
         ctx.fillRect(inicio + c * modulo, 24 + 2 * modulo + f * modulo, modulo, modulo);
     }
+  }
+  if (datos.logo) {
+    // Abajo a la izquierda, sin tocar el QR: así se sigue leyendo igual.
+    const imagen = new Image();
+    imagen.src = datos.logo;
+    await imagen.decode();
+    const alto = 84;
+    const ancho = Math.min(150, (imagen.width / imagen.height) * alto);
+    ctx.drawImage(imagen, 24, 588, ancho, alto);
   }
   ctx.textAlign = 'center';
   ctx.font = 'bold 48px sans-serif';
