@@ -32,6 +32,9 @@ export interface DatosMonitoreoGuardado {
   cantidad: number | null;
   foto_id: string | null;
   nota: string | null;
+  /** v2: plantas revisadas y afectadas; nulo si no se contaron. Undefined en un v1. */
+  plantasRevisadas?: number | null;
+  plantasAfectadas?: number | null;
 }
 
 export interface DatosMonitoreo {
@@ -44,6 +47,9 @@ export interface DatosMonitoreo {
   nota: string;
   /** La foto ya comprimida, o null. */
   foto: { datos: Blob; tipo: string } | null;
+  /** Plantas revisadas y afectadas (v2); nulo u omitido = no se contaron. */
+  plantasRevisadas?: number | null;
+  plantasAfectadas?: number | null;
 }
 
 export type Plan = keyof typeof configFotos.por_plan;
@@ -128,7 +134,7 @@ export async function guardarMonitoreo(
     fincaId,
     areaId: datos.areaId,
     tipo: 'monitoreo',
-    v: 1,
+    v: 2,
     personaIds: [],
     origen: 'manual',
     ahora,
@@ -145,6 +151,8 @@ export async function guardarMonitoreo(
       // Corregir sin foto nueva conserva la de antes.
       foto_id: fotoId ?? (corrige?.datos as DatosMonitoreoGuardado | undefined)?.foto_id ?? null,
       nota: normal(datos.nota) || null,
+      plantasRevisadas: datos.plantasRevisadas ?? null,
+      plantasAfectadas: datos.plantasAfectadas ?? null,
     } satisfies DatosMonitoreoGuardado,
   });
   const instante = ahora().toISOString();

@@ -12,7 +12,7 @@ import { leerFinca } from '../almacen/finca.ts';
 import { leerPersonas } from '../almacen/personas.ts';
 import { Paginador, usarPaginacion } from '../componentes/Paginador.tsx';
 import { resumenDe } from '../componentes/resumen.ts';
-import { fechaHora } from '../formato.ts';
+import { fechaHora, nombreDeArea } from '../formato.ts';
 import { guardarLecturaPendiente } from '../lectura-pendiente.ts';
 import { aplicacionDelFragmento, FormularioAplicacion } from './FormularioAplicacion.tsx';
 import { FormularioClima, valoresDelFragmento } from './FormularioClima.tsx';
@@ -37,7 +37,7 @@ function UltimosRegistros(props: {
   const lista = filtro ? props.registros.filter((r) => r.tipo === filtro) : props.registros;
   const p = usarPaginacion(lista.length, 10);
   if (props.registros.length === 0) return <p class="ayuda">Todavía no hay registros.</p>;
-  const nombre = (id: string | undefined) => props.areas.find((a) => a.id === id)?.nombre ?? 'Área';
+  const nombre = (id: string | undefined) => nombreDeArea(props.areas, id);
   return (
     <>
       <div class="campo">
@@ -88,6 +88,7 @@ export function Registrar() {
   const estado = usarFinca();
   const permisos = usarPermisos();
   const [areas, setAreas] = useState<Area[]>([]);
+  const [todasLasAreas, setTodasLasAreas] = useState<Area[]>([]);
   const [ciclos, setCiclos] = useState<Ciclo[]>([]);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
@@ -112,6 +113,8 @@ export function Registrar() {
     void (async () => {
       const datos = await leerFinca(db);
       setAreas((datos?.areas ?? []).filter((a) => a.padre_id === null && a.activa));
+      // Para nombrar los registros de una cama o un surco (revisión del dueño, 3 oct 2026).
+      setTodasLasAreas(datos?.areas ?? []);
       setCiclos(await leerCiclos(db, fincaId));
       setRegistros(
         await ultimosRegistros(
@@ -194,7 +197,7 @@ export function Registrar() {
       <h2>Registros de la finca</h2>
       <UltimosRegistros
         registros={registros}
-        areas={areas}
+        areas={todasLasAreas}
         personas={personas}
         pendientes={pendientes}
       />

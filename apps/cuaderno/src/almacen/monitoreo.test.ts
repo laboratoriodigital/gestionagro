@@ -63,8 +63,31 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
       cantidad: 12,
       foto_id: null,
       nota: null,
+      plantasRevisadas: null,
+      plantasAfectadas: null,
     } satisfies DatosMonitoreoGuardado);
+    expect(r.v).toBe(2);
     expect(await db.outbox.get(r.id)).toBeDefined();
+    // Plantas revisadas y afectadas: la incidencia del muestreo (revisión del dueño, 3 oct 2026).
+    const conPlantas = await guardarMonitoreo(
+      db,
+      finca.id,
+      { ...base, metodo: 'conteo', plantasRevisadas: 20, plantasAfectadas: 3 },
+      { ahora: HOY },
+    );
+    expect(conPlantas.datos).toMatchObject({ plantasRevisadas: 20, plantasAfectadas: 3 });
+    // Más afectadas que revisadas, o afectadas sin revisadas, no se guarda (P1).
+    await expect(
+      guardarMonitoreo(
+        db,
+        finca.id,
+        { ...base, plantasRevisadas: 5, plantasAfectadas: 6 },
+        { ahora: HOY },
+      ),
+    ).rejects.toThrow(/no pueden ser más que las revisadas/);
+    await expect(
+      guardarMonitoreo(db, finca.id, { ...base, plantasAfectadas: 2 }, { ahora: HOY }),
+    ).rejects.toThrow(/escribe cuántas plantas revisaste/);
     // Observar sin contar no guarda una cantidad.
     const obs = await guardarMonitoreo(
       db,

@@ -20,6 +20,7 @@ import {
 } from '../almacen/monitoreo.ts';
 import { leerSesion, planDeLaFinca } from '../almacen/sesion.ts';
 import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
+import { CampoCama, usarCamas } from '../componentes/CampoCama.tsx';
 import { AccionesDeFormulario, EventoQueSeCorrige } from '../componentes/Correccion.tsx';
 
 const CLASES = [
@@ -38,6 +39,14 @@ const NIVELES = [
 ] as const;
 
 const kb = (bytes: number) => `${Math.round(bytes / 1024)} KB`;
+
+/** «15» (%): afectadas sobre revisadas; null si falta uno de los dos o no son números. */
+export function incidencia(revisadas: string, afectadas: string): string | null {
+  const r = leerNumero(revisadas);
+  const a = leerNumero(afectadas);
+  if (!r.ok || !a.ok || r.valor <= 0 || a.valor < 0 || a.valor > r.valor) return null;
+  return (Math.round((a.valor / r.valor) * 1000) / 10).toLocaleString('es-CO');
+}
 
 export function FormularioMonitoreo(props: {
   fincaId: string;
@@ -59,6 +68,19 @@ export function FormularioMonitoreo(props: {
     nota: antes?.nota ?? '',
   };
   const [v, setV] = useState(vacio);
+  // Plan Finca: la cama o el surco, y las plantas revisadas y afectadas (revisión del dueño, 3 oct 2026).
+  const camas = usarCamas();
+  const [camaId, setCamaId] = useState('');
+  const [revisadas, setRevisadas] = useState(
+    antes?.plantasRevisadas === null || antes?.plantasRevisadas === undefined
+      ? ''
+      : String(antes.plantasRevisadas),
+  );
+  const [afectadas, setAfectadas] = useState(
+    antes?.plantasAfectadas === null || antes?.plantasAfectadas === undefined
+      ? ''
+      : String(antes.plantasAfectadas),
+  );
   const [foto, setFoto] = useState<{ datos: Blob; tipo: string } | null>(null);
   const [comprimiendo, setComprimiendo] = useState(false);
   const [conocidas, setConocidas] = useState<{ nombre: string; clase: string }[]>([]);
@@ -118,6 +140,26 @@ export function FormularioMonitoreo(props: {
         err['cantidad'] = 'Escribe un número entero, o déjalo vacío.';
       } else cantidad = leida.valor;
     }
+    const entero = (texto: string, campo: string, minimo: number): number | null => {
+      if (!texto.trim()) return null;
+      const leida = leerNumero(texto);
+      if (!leida.ok || !Number.isInteger(leida.valor) || leida.valor < minimo) {
+        err[campo] = 'Escribe un número entero, o déjalo vacío.';
+        return null;
+      }
+      return leida.valor;
+    };
+    const plantasRevisadas = camas.porCama ? entero(revisadas, 'revisadas', 1) : null;
+    const plantasAfectadas = camas.porCama ? entero(afectadas, 'afectadas', 0) : null;
+    if (plantasAfectadas !== null && plantasRevisadas === null && !err['revisadas']) {
+      err['revisadas'] = 'Escribe cuántas plantas revisaste.';
+    } else if (
+      plantasAfectadas !== null &&
+      plantasRevisadas !== null &&
+      plantasAfectadas > plantasRevisadas
+    ) {
+      err['afectadas'] = 'No pueden ser más que las revisadas.';
+    }
     setErrores(err);
     setGuardado(null);
     if (Object.keys(err).length > 0) return;
@@ -125,9 +167,18 @@ export function FormularioMonitoreo(props: {
       await guardarMonitoreo(
         cuaderno(),
         props.fincaId,
-        { ...v, cantidad, foto },
+        {
+          ...v,
+          areaId: camaId || v.areaId,
+          cantidad,
+          foto,
+          plantasRevisadas,
+          plantasAfectadas,
+        },
         { corrige: props.corrige, plan },
       );
+      setRevisadas('');
+      setAfectadas('');
       setV({
         ...vacio,
         areaId: v.areaId,
@@ -177,7 +228,18 @@ export function FormularioMonitoreo(props: {
           opciones={props.areas.map((a) => ({ valor: a.id, texto: a.nombre }))}
           valor={v.areaId}
           error={errores['areaId']}
-          alCambiar={(x) => setV({ ...v, areaId: x })}
+          alCambiar={(x) => {
+            setV({ ...v, areaId: x });
+            setCamaId('');
+          }}
+        />
+      )}
+      {!props.corrige && camas.porCama && (
+        <CampoCama
+          id="monitoreo-cama"
+          camas={camas.camasDe(v.areaId)}
+          valor={camaId}
+          alCambiar={setCamaId}
         />
       )}
       <div class="campo">
@@ -231,6 +293,31 @@ export function FormularioMonitoreo(props: {
           error={errores['cantidad']}
           alCambiar={(x) => setV({ ...v, cantidad: x })}
         />
+      )}
+      {camas.porCama && (
+        <div class="filtros" data-prueba="monitoreo-plantas">
+          <Campo
+            id="monitoreo-revisadas"
+            etiqueta="Plantas revisadas (opcional)"
+            decimal
+            valor={revisadas}
+            error={errores['revisadas']}
+            alCambiar={setRevisadas}
+          />
+          <Campo
+            id="monitoreo-afectadas"
+            etiqueta="Plantas con la plaga o el síntoma (opcional)"
+            decimal
+            valor={afectadas}
+            error={errores['afectadas']}
+            alCambiar={setAfectadas}
+          />
+        </div>
+      )}
+      {camas.porCama && incidencia(revisadas, afectadas) !== null && (
+        <p class="ayuda" data-prueba="monitoreo-incidencia">
+          Incidencia: {incidencia(revisadas, afectadas)} % de las plantas revisadas.
+        </p>
       )}
       <Opciones
         nombre="monitoreo-nivel"

@@ -26,7 +26,7 @@ import { leerPersonas } from '../almacen/personas.ts';
 import { CampoSeleccion } from '../componentes/Campo.tsx';
 import { Paginador, usarPaginacion } from '../componentes/Paginador.tsx';
 import { resumenDe } from '../componentes/resumen.ts';
-import { fechaHora } from '../formato.ts';
+import { fechaHora, nombreDeArea } from '../formato.ts';
 import { FormularioAplicacion } from './FormularioAplicacion.tsx';
 import { FormularioClima } from './FormularioClima.tsx';
 import { FormularioCosecha } from './FormularioCosecha.tsx';
@@ -140,6 +140,7 @@ export function Historial() {
     hasta: hoy,
   });
   const [areas, setAreas] = useState<Area[]>([]);
+  const [todasLasAreas, setTodasLasAreas] = useState<Area[]>([]);
   const [ciclos, setCiclos] = useState<Ciclo[]>([]);
   const [nombres, setNombres] = useState<Map<string, string>>(new Map());
   const [dispositivo, setDispositivo] = useState('');
@@ -155,6 +156,7 @@ export function Historial() {
     void (async () => {
       const datos = await leerFinca(db);
       setAreas((datos?.areas ?? []).filter((a) => a.padre_id === null));
+      setTodasLasAreas(datos?.areas ?? []);
       setCiclos(await leerCiclos(db, finca.id));
       const todas = await leerPersonas(db, finca.id, { incluirInactivas: true });
       setNombres(new Map(todas.map((p) => [p.id, p.nombre])));
@@ -186,7 +188,7 @@ export function Historial() {
   if (estado.cargando) return <p>Abriendo tu cuaderno…</p>;
   if (!finca) return <SinFinca />;
 
-  const nombreArea = (id: string | undefined) => areas.find((a) => a.id === id)?.nombre ?? 'Área';
+  const nombreArea = (id: string | undefined) => nombreDeArea(todasLasAreas, id);
   const alternar = (id: string) => {
     const nuevas = new Set(abiertas);
     if (nuevas.has(id)) nuevas.delete(id);

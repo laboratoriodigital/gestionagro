@@ -1,5 +1,5 @@
 {
-  "nota": "Contrato de versiones (HU-E5.5, ADR-13, P10): lo que la app 0.2.0 agrega a lo que ya escribía la 0.1.0 (lotes de venta, despachos, monitoreo, aplicación v2, cosecha v2 y movimientos de bodega). Lleva la finca, el área, la cosecha y el lote de los que dependen, para que la prueba de punta a punta pueda subirlos. Una vez publicada la 0.2.0, este archivo no se edita ni se borra.",
+  "nota": "Contrato de versiones (HU-E5.5, ADR-13, P10): lo que la app 0.2.0 agrega a lo que ya escribía la 0.1.0 (lotes de venta, despachos, monitoreo, aplicación v2, cosecha v2, monitoreo v2 y movimientos de bodega). Lleva la finca, el área, la cosecha y el lote de los que dependen, para que la prueba de punta a punta pueda subirlos. Una vez publicada la 0.2.0, este archivo no se edita ni se borra.",
   "app": "0.2.0",
   "catalogos": [
     {
@@ -159,6 +159,33 @@
         "cantidad": 12,
         "foto_id": "0199a1b2-0000-7000-8000-000000000023",
         "nota": null
+      }
+    },
+    {
+      "id": "0199a1b2-0000-7000-8000-000000000032",
+      "org_id": null,
+      "finca_id": "0199a1b2-0000-7000-8000-000000000001",
+      "area_ids": ["0199a1b2-0000-7000-8000-000000000002"],
+      "ciclo_id": null,
+      "tipo": "monitoreo",
+      "v": 2,
+      "fecha_agronomica": "2026-10-01",
+      "instante_evento": "2026-10-01T12:00:00.000Z",
+      "autor_usuario_id": null,
+      "persona_ids": [],
+      "dispositivo_id": "telefono-muestra",
+      "origen": "manual",
+      "anula_id": null,
+      "datos": {
+        "plaga": "Plaga Ensayo",
+        "clase": "plaga",
+        "metodo": "conteo",
+        "nivel": "medio",
+        "cantidad": 4,
+        "foto_id": "0199a1b2-0000-7000-8000-000000000023",
+        "nota": null,
+        "plantasRevisadas": 20,
+        "plantasAfectadas": 3
       }
     },
     {

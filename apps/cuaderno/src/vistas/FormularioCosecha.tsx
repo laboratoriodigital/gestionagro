@@ -30,6 +30,7 @@ import {
 } from '../almacen/cosecha.ts';
 import { leerPersonas } from '../almacen/personas.ts';
 import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
+import { CampoCama, usarCamas } from '../componentes/CampoCama.tsx';
 import { AccionesDeFormulario, aTexto, EventoQueSeCorrige } from '../componentes/Correccion.tsx';
 
 const OTRA = '__otra';
@@ -74,6 +75,10 @@ export function FormularioCosecha(props: {
   const [categorias, setCategorias] = useState<string[] | null>(null);
   const [personas, setPersonas] = useState<Persona[] | null>(null);
   const [bloqueo, setBloqueo] = useState<BloqueoPorCarencia | null>(null);
+  // Plan Finca: cosechar una cama o un surco (revisión del dueño, 3 oct 2026).
+  const camas = usarCamas();
+  const [camaId, setCamaId] = useState('');
+  const areaCosechada = camaId || v.areaId;
   const [confirmado, setConfirmado] = useState(false);
   const [errores, setErrores] = useState<Errores>({});
   const [guardado, setGuardado] = useState<string | null>(null);
@@ -91,13 +96,13 @@ export function FormularioCosecha(props: {
   // CA2: el bloqueo se ve al elegir el área, antes de escribir nada más.
   useEffect(() => {
     setConfirmado(false);
-    if (!v.areaId) {
+    if (!areaCosechada) {
       setBloqueo(null);
       return;
     }
     const momento = props.corrige ? new Date(props.corrige.instante_evento) : new Date();
-    void bloqueoPorCarencia(cuaderno(), props.fincaId, v.areaId, momento).then(setBloqueo);
-  }, [v.areaId, props.fincaId]);
+    void bloqueoPorCarencia(cuaderno(), props.fincaId, areaCosechada, momento).then(setBloqueo);
+  }, [areaCosechada, props.fincaId]);
 
   const tieneAlgo = Boolean(v.cantidad || v.descarte || v.otraUnidad || v.otraCategoria);
   useEffect(() => (tieneAlgo ? abrirFormulario() : undefined), [tieneAlgo]);
@@ -147,7 +152,7 @@ export function FormularioCosecha(props: {
         cuaderno(),
         props.fincaId,
         {
-          areaId: v.areaId,
+          areaId: areaCosechada,
           cantidad: cantidad.valor,
           unidad,
           categoria,
@@ -202,7 +207,18 @@ export function FormularioCosecha(props: {
           opciones={props.areas.map((a) => ({ valor: a.id, texto: a.nombre }))}
           valor={v.areaId}
           error={errores.areaId}
-          alCambiar={(x) => setV({ ...v, areaId: x })}
+          alCambiar={(x) => {
+            setV({ ...v, areaId: x });
+            setCamaId('');
+          }}
+        />
+      )}
+      {!props.corrige && camas.porCama && (
+        <CampoCama
+          id="cosecha-cama"
+          camas={camas.camasDe(v.areaId)}
+          valor={camaId}
+          alCambiar={setCamaId}
         />
       )}
       {bloqueo && (
