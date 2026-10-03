@@ -7,16 +7,35 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { type Etiqueta, etiquetaDelLote } from '../almacen/etiqueta.ts';
 import type { Lote } from '../almacen/lotes.ts';
-import { estadoDeSesion, leerSesion } from '../almacen/sesion.ts';
+import { estadoDeSesion, leerSesion, renovarSiHaceFalta, urlDelCore } from '../almacen/sesion.ts';
 import { estadoDelVinculo } from '../almacen/vinculo.ts';
 import { CodigoQr, imagenDeEtiqueta } from '../componentes/CodigoQr.tsx';
+import { descargar } from '../descargar.ts';
+import { fechaHora } from '../formato.ts';
 
-async function nube() {
+/**
+ * La nube que firma la etiqueta, o por qué no se puede ahora: el motivo se muestra tal cual, con
+ * lo que hay que hacer (revisión del dueño, 3 oct 2026: «Intentar confirmar» parecía no hacer nada).
+ */
+async function nube(): Promise<{ api: string; acceso: string } | { motivo: string }> {
   const db = cuaderno();
-  const sesion = await leerSesion(db);
-  if (!navigator.onLine || !sesion?.url_api) return null;
-  if (estadoDeSesion(sesion, Date.now()) !== 'activa') return null;
-  if ((await estadoDelVinculo(db, sesion)) !== 'vinculada') return null;
+  if (!navigator.onLine) return { motivo: 'No hay señal. Inténtalo cuando la haya.' };
+  let sesion = await leerSesion(db);
+  if (!sesion) {
+    return { motivo: 'Para confirmarla, entra con tu cuenta y sube tu finca a la nube en Cuenta.' };
+  }
+  if (estadoDeSesion(sesion, Date.now()) === 'por-renovar') {
+    sesion = (await renovarSiHaceFalta(db, urlDelCore(location.hostname))).sesion;
+  }
+  if (!sesion || estadoDeSesion(sesion, Date.now()) !== 'activa') {
+    return { motivo: 'Tu sesión venció: vuelve a entrar con tu cuenta en Cuenta.' };
+  }
+  if ((await estadoDelVinculo(db, sesion)) !== 'vinculada' || !sesion.url_api) {
+    return {
+      motivo:
+        'Esta finca todavía no está en la nube: súbela en Cuenta y después vuelve a intentarlo.',
+    };
+  }
   return { api: sesion.url_api, acceso: sesion.acceso };
 }
 
@@ -44,19 +63,20 @@ function imprimir(etiqueta: HTMLElement | null) {
 /**
  * Compartir con el menú nativo del teléfono (Web Share API): la etiqueta como imagen y el enlace,
  * para mandarla por WhatsApp o guardarla. Donde no se pueden compartir archivos, se comparte el
- * enlace; donde no hay menú de compartir (un computador), se copia el enlace. Devuelve qué pasó.
+ * enlace; donde no hay menú de compartir (un computador), se descarga la imagen y se copia el
+ * enlace. Devuelve qué pasó.
  */
 async function compartir(e: Etiqueta): Promise<string> {
   const titulo = `Lote ${e.datos.l} · ${e.datos.f}`;
   const texto = `${titulo}. De dónde viene: ${e.enlace}`;
   try {
+    const imagen = await imagenDeEtiqueta({
+      enlace: e.enlace,
+      codigo: e.datos.l,
+      finca: e.datos.f,
+      estado: e.firmada ? 'Verificado' : 'Sin confirmar',
+    });
     if (navigator.share) {
-      const imagen = await imagenDeEtiqueta({
-        enlace: e.enlace,
-        codigo: e.datos.l,
-        finca: e.datos.f,
-        estado: e.firmada ? 'Verificado' : 'Sin confirmar',
-      });
       const archivo = new File([imagen], `lote-${e.datos.l}.png`, { type: 'image/png' });
       if (navigator.canShare?.({ files: [archivo] })) {
         await navigator.share({ title: titulo, text: texto, files: [archivo] });
@@ -65,8 +85,10 @@ async function compartir(e: Etiqueta): Promise<string> {
       }
       return '';
     }
-    await navigator.clipboard.writeText(e.enlace);
-    return 'Enlace copiado: pégalo donde quieras compartirlo.';
+    // En un computador: la imagen a las descargas y el enlace al portapapeles.
+    descargar(`lote-${e.datos.l}.png`, new Uint8Array(await imagen.arrayBuffer()), 'image/png');
+    await navigator.clipboard.writeText(e.enlace).catch(() => undefined);
+    return 'La imagen de la etiqueta quedó en tus descargas y el enlace, copiado: adjúntala o pégalo donde quieras compartirlo.';
   } catch (error) {
     // Cerrar el menú sin elegir no es un error.
     if (error instanceof DOMException && error.name === 'AbortError') return '';
@@ -77,16 +99,21 @@ async function compartir(e: Etiqueta): Promise<string> {
 export function EtiquetaQr(props: { lote: Lote; alCerrar: () => void }) {
   const [etiqueta, setEtiqueta] = useState<Etiqueta | null>(null);
   const [intento, setIntento] = useState(0);
+  const [intentando, setIntentando] = useState(false);
+  const [ultimoIntento, setUltimoIntento] = useState<string | null>(null);
   const [aviso, setAviso] = useState('');
   const etiquetaRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     void (async () => {
-      setEtiqueta(
-        await etiquetaDelLote(cuaderno(), props.lote, {
-          origen: location.origin,
-          nube: await nube(),
-        }),
-      );
+      const n = await nube();
+      const lista = await etiquetaDelLote(cuaderno(), props.lote, {
+        origen: location.origin,
+        nube: 'motivo' in n ? null : n,
+      });
+      // El motivo de la nube es más preciso que el genérico del almacén.
+      setEtiqueta(lista.firmada || !('motivo' in n) ? lista : { ...lista, motivo: n.motivo });
+      if (intento > 0) setUltimoIntento(fechaHora(new Date().toISOString()));
+      setIntentando(false);
     })();
   }, [props.lote.registro.id, intento]);
 
@@ -100,10 +127,17 @@ export function EtiquetaQr(props: { lote: Lote; alCerrar: () => void }) {
         <p class="etiqueta-finca">{d.f}</p>
         <p class="etiqueta-estado">{etiqueta.firmada ? 'Verificado' : 'Sin confirmar'}</p>
       </div>
-      <p class={etiqueta.firmada ? 'exito' : 'ayuda'} data-prueba="estado-etiqueta">
+      <p
+        class={etiqueta.firmada ? 'exito' : 'ayuda'}
+        data-prueba="estado-etiqueta"
+        role="status"
+        aria-live="polite"
+      >
         {etiqueta.firmada
           ? 'Etiqueta verificada por la nube: quien la escanee verá «Verificado por Gestión Agro».'
-          : etiqueta.motivo}
+          : ultimoIntento
+            ? `Se intentó a las ${ultimoIntento.slice(11)} y sigue sin confirmar. ${etiqueta.motivo ?? ''}`
+            : etiqueta.motivo}
       </p>
       <p>
         <a href={etiqueta.enlace} target="_blank" rel="noopener" data-prueba="enlace-qr">
@@ -115,8 +149,16 @@ export function EtiquetaQr(props: { lote: Lote; alCerrar: () => void }) {
           Cerrar
         </button>
         {!etiqueta.firmada && (
-          <button type="button" class="secundario" onClick={() => setIntento(intento + 1)}>
-            Intentar confirmar
+          <button
+            type="button"
+            class="secundario"
+            disabled={intentando}
+            onClick={() => {
+              setIntentando(true);
+              setIntento(intento + 1);
+            }}
+          >
+            {intentando ? 'Intentando…' : 'Intentar confirmar'}
           </button>
         )}
         <button

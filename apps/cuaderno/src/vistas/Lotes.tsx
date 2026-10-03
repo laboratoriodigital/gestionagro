@@ -186,7 +186,9 @@ export function Lotes() {
               </p>
               {veVentas && l.despachado !== 0 && (
                 <p class="detalle-insumo" data-prueba="saldo-lote">
-                  Despachado {coma(l.despachado)} {l.unidad} · quedan {coma(l.saldo)} {l.unidad}
+                  {l.saldo > 0
+                    ? `Despachado ${coma(l.despachado)} ${l.unidad} · quedan ${coma(l.saldo)} ${l.unidad}`
+                    : `Todo despachado (${coma(l.despachado)} ${l.unidad}): no queda nada por despachar.`}
                 </p>
               )}
               <p class="detalle-insumo" data-prueba="origen-lote">
