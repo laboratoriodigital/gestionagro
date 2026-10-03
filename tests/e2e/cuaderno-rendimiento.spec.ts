@@ -39,10 +39,10 @@ for (const f of FINCAS_DE_PRUEBA) {
     await expect(page.getByText('Cosecha guardada en este teléfono.')).toBeVisible();
 
     await nav(page).getByRole('link', { name: 'Rendimiento' }).click();
-    const grupo = page.locator('[data-prueba="rendimiento-cultivo"]');
-    await expect(grupo.getByRole('heading', { level: 2 })).toHaveText(f.cultivo.nombre);
-    const fila = grupo.locator('[data-prueba="rendimiento-fila"]');
+    const tabla = page.locator('[data-prueba="rendimiento-tabla"]');
+    const fila = tabla.locator('[data-prueba="rendimiento-fila"]');
     await expect(fila).toHaveCount(1);
+    await expect(fila.locator('th')).toContainText(f.cultivo.nombre);
     // Comercial = 2 por m² × 0,9 = 1,8 por m²; por planta = comercial / 1.000.
     await expect(fila.locator('td').nth(0)).toHaveText('1,8 kg/m²');
     const porPlanta = ((cosechado * 0.9) / 1000).toLocaleString('es-CO', {
@@ -50,6 +50,21 @@ for (const f of FINCAS_DE_PRUEBA) {
     });
     await expect(fila.locator('td').nth(1)).toHaveText(`${porPlanta} kg`);
     await expect(fila.locator('td').nth(2)).toHaveText('10 %');
+    await expect(fila.locator('td').nth(3)).toHaveText(
+      `${(cosechado * 0.9).toLocaleString('es-CO', { maximumFractionDigits: 2 })} kg`,
+    );
+    // Filtros (revisión del dueño, 3 oct 2026): por cultivo, por área y por estado del ciclo.
+    await tabla.getByLabel('Cultivo').selectOption(f.cultivo.nombre);
+    await expect(fila).toHaveCount(1);
+    await tabla.getByLabel('Área').fill('no existe');
+    await expect(fila).toHaveCount(0);
+    await expect(tabla).toContainText('Nada con estos filtros.');
+    await tabla.getByLabel('Área').fill(area.nombre);
+    await expect(fila).toHaveCount(1);
+    await tabla.getByLabel('Ciclo').selectOption('cerrado');
+    await expect(fila).toHaveCount(0);
+    await tabla.getByLabel('Ciclo').selectOption('activo');
+    await expect(fila).toHaveCount(1);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   });
 }
