@@ -12,7 +12,7 @@ plantilla: tool-agro
 runtime: browser
 seo:
   title: "Calculadora de DPV (déficit de presión de vapor) para invernadero"
-  description: "Calcula el déficit de presión de vapor de tu invernadero con temperatura y humedad, y mira si está en rango para tu cultivo. Gratis y sin registro."
+  description: "Calcula el déficit de presión de vapor (DPV) de tu invernadero y mira si está en rango para tomate, rosa, pimentón o pepino. Gratis y sin registro."
 monetizacion:
   ads: []
   ads_en_procesamiento: false
@@ -26,3 +26,7 @@ revision_agronomica: pendiente
 fuentes:
   - "FAO-56, ec. 11 (Allen et al., 1998)"
   - "Shamshiri et al. (2018), International Agrophysics"
+  - "Bakker (1991), tesis doctoral, Universidad Agrícola de Wageningen"
+  - "Yu et al. (2023), Vegetable Research"
+  - "Liu, Wu y Cohen (2007), Acta Horticulturae 751"
+  - "Arve et al. (2013), Plant, Cell & Environment"

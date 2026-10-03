@@ -9,8 +9,8 @@
  */
 import {
   buscarEtapa,
-  CULTIVOS_DPV,
   clasificarDpv,
+  cultivoDpvDe,
   dpvAireKPa,
   ErrorDeMedida,
   formatearKPa,
@@ -50,7 +50,7 @@ export function valoresDelFragmento(hash: string): Partial<Valores> {
 /** Etapa del catálogo de rangos para el cultivo del ciclo, si el cultivo tiene una sola etapa. */
 function etapaDelCiclo(ciclo: Ciclo | undefined) {
   if (!ciclo) return undefined;
-  const cultivo = CULTIVOS_DPV.find((c) => c.nombre.toLowerCase() === ciclo.cultivo.toLowerCase());
+  const cultivo = cultivoDpvDe(ciclo.cultivo);
   const [unica] = cultivo?.etapas ?? [];
   return cultivo && cultivo.etapas.length === 1 && unica
     ? buscarEtapa(cultivo.id, unica.id)
