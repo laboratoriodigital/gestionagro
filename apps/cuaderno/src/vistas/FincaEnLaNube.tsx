@@ -12,6 +12,7 @@ import { escucharActividad } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';
 import type { Rechazo } from '../almacen/db.ts';
 import { type ResumenDeDatos, resumenDeDatos } from '../almacen/estado-datos.ts';
+import { anotarFincaActiva, tomarFincaPorBajar } from '../almacen/fincas-locales.ts';
 import type { ResultadoDeRecepcion } from '../almacen/recepcion.ts';
 import { ErrorDeSesion, type Sesion, urlDelCore } from '../almacen/sesion.ts';
 import {
@@ -39,7 +40,12 @@ const hora = (ms: number) =>
 /** Lo que bajó del equipo, en palabras (HU-E5.3). */
 function textoDeRecepcion(r: ResultadoDeRecepcion | undefined): string {
   if (r?.estado !== 'al-dia') return '';
-  const bajados = r.recibidos > 0 ? ` Se bajaron ${r.recibidos} cambios del equipo.` : '';
+  const bajados =
+    r.recibidos === 1
+      ? ' Se bajó 1 cambio del equipo.'
+      : r.recibidos > 1
+        ? ` Se bajaron ${r.recibidos} cambios del equipo.`
+        : '';
   const chocan =
     r.conflictos > 0
       ? ` ${r.conflictos} cambios del equipo tocan algo que tú también editaste: se guardaron aparte, sin borrar el tuyo.`
@@ -95,6 +101,8 @@ export function FincaEnLaNube({
       setFinca((await db.finca.toCollection().first())?.nombre ?? null);
       setResumen(await resumenDeDatos(db));
       setRechazos(await db.rechazo.toArray());
+      // HU-E4.7: el nombre y el vínculo de esta finca, al día en la lista del teléfono.
+      await anotarFincaActiva(db);
     };
     void cargar();
     const dejarSync = escucharSincronizacion((e) => {
@@ -141,6 +149,13 @@ export function FincaEnLaNube({
       setSubiendo(false);
     }
   };
+
+  // HU-E4.7: una finca que se pidió abrir desde la lista de la nube baja sola, una vez, con señal.
+  useEffect(() => {
+    if (estado !== 'para-bajar' || !enLinea || subiendo) return;
+    const org = tomarFincaPorBajar();
+    if (org && sesion.organizaciones.some((o) => o.org_id === org)) void bajar(org);
+  }, [estado, enLinea]);
 
   // HU-E4.4: solo el propietario de la finca de este teléfono invita.
   const esPropietario =

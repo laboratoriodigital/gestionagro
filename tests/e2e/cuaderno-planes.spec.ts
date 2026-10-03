@@ -105,9 +105,11 @@ test('revisión del dueño: Cuenta dice el plan y las fincas; antes de subir otr
   await expect(page.locator('[data-prueba="cuenta-plan"]')).toContainText(
     'Plan de esta finca: Exportador',
   );
-  await expect(page.locator('[data-prueba="cuenta-fincas"]')).toContainText(
-    'Finca Ensayo · Propietario · plan Exportador · en este teléfono',
-  );
+  // La finca de este teléfono no está vinculada a la de la nube: se ofrece abrir esa aparte
+  // (HU-E4.7), en vez de decir que ya está aquí.
+  const fincas = page.locator('[data-prueba="cuenta-fincas"]');
+  await expect(fincas).toContainText('Finca Ensayo · Propietario · plan Exportador');
+  await expect(fincas.getByRole('button', { name: 'Abrir en este teléfono' })).toBeVisible();
   // La cuenta ya tiene una finca en la nube: primero se pregunta.
   const pregunta = page.locator('[data-prueba="nube-pregunta"]');
   await expect(pregunta).toContainText('Tu cuenta ya tiene en la nube: Finca Ensayo.');

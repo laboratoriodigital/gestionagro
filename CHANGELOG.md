@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- Varias fincas en un mismo teléfono (HU-E4.7). En Cuenta, cada finca de la nube se abre en este teléfono, y sin cuenta se agrega otra finca. Cada una guarda lo suyo, sin mezclarse; cambiar es un toque desde la cabecera, que dice en qué finca se está. Con una sola finca, nada cambia.
+
 ### Cambiado
 - Según la segunda revisión del dueño (3 oct 2026):
   - Cuenta dice el plan de la finca y lista las fincas de la cuenta con su rol, su plan y cuál está en este teléfono. Antes de subir una finca a una cuenta que ya tiene otras, pregunta si es una de ellas.
@@ -19,6 +22,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Según la revisión del dueño: en Cuenta, «Tus teléfonos» se llama ahora «Tus dispositivos», porque también se entra desde un computador. La lista es plana: una fila por dispositivo con la fecha corta y el botón «Retirar» al lado, sin tarjetas.
 
 ### Corregido
+- «Se bajaron 1 cambios del equipo» ahora dice «Se bajó 1 cambio del equipo».
 - Una aplicación en una cama no impedía cosechar su nave entera, ni una en la nave cosechar sus camas. Hoy no pasaba porque la app no dejaba aplicar por cama, pero se cerró antes de abrir esa opción: la cosecha mira el área, las que la contienen y las que contiene.
 - Según la revisión del dueño (3 oct 2026): «Intentar confirmar» en la etiqueta QR parecía no hacer nada. Ahora dice que lo intentó, a qué hora y por qué sigue sin confirmar (sin señal, sin cuenta, sesión vencida o finca sin subir), con qué hacer. En un computador, «Compartir» descarga además la imagen de la etiqueta.
 - Según la prueba del dueño (bitácora agro 28): imprimir la etiqueta QR sacaba 12 hojas. Ahora sale una sola, de 5 × 5 cm.

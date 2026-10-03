@@ -240,6 +240,15 @@ button.herramienta {
   color: var(--color-marca-texto);
   font-weight: 600;
 }
+.cabecera .finca-activa {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--objetivo-tactil);
+  margin-block-start: var(--espacio-2);
+  padding: 0 var(--espacio-3);
+  border-radius: var(--radio);
+  text-decoration: none;
+}
 .cabecera .indicador.pendiente {
   background: var(--color-marca-texto);
   color: var(--color-marca);

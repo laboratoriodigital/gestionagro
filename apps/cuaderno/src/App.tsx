@@ -8,6 +8,7 @@ import { LocationProvider, Route, Router, useLocation } from 'preact-iso';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { AvisoDePausa } from './AvisoDePausa.tsx';
 import { AvisoDeReemplazo } from './AvisoDeReemplazo.tsx';
+import { FincaActiva } from './FincaActiva.tsx';
 import { IndicadorDatos } from './IndicadorDatos.tsx';
 import { RUTAS_APP, rutaDe } from './rutas.ts';
 import { iniciarSincronizacion } from './sincronizacion.ts';
@@ -76,6 +77,7 @@ export function App() {
           Cuaderno de campo
         </a>
         <Navegacion />
+        <FincaActiva />
         <IndicadorDatos />
       </header>
       <AvisoActualizacion />

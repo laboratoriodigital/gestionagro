@@ -110,6 +110,7 @@ Una historia entra a un sprint solo si:
 | HU-E9.4 · Enlace de auditor (2) | Primera auditoría agendada |
 | HU-E11.3 · Contrato de reporte de dispositivos (3) | HU-E11.2 funcionando 30 días en el laboratorio |
 | HU-E11.4 · El riego ejecutado llena el cuaderno (2) | HU-E11.3 |
+| HU-E7.5 · Varias bodegas de insumos en una finca (5) | Una finca con sectores o almacenes separados que lo pida. Es un catálogo nuevo: rehacer el CHECK de `catalogo` en la celda y un `agro-export` v2 (decisión del dueño, 3 oct 2026) |
 
 **Ceremonias para un equipo de uno** (~1,5 h por sprint):
 - Planeación de 30 min el lunes.
@@ -733,15 +734,15 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E4.7 · Varias fincas en un mismo teléfono
 **Como** propietario con dos fincas (o asesor de varias) **quiero** pasar de una a otra en el mismo teléfono **para** no usar un navegador por finca.
-- **Peldaño:** cuenta → Finca · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** por planear · **Depende de:** HU-E4.3 · **Estado:** Propuesta (revisión del dueño, 3 oct 2026: «tampoco tengo la opción de ver varias»).
+- **Peldaño:** cuenta → Finca · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** fuera de sprint, a pedido del dueño · **Depende de:** HU-E4.3 · **Estado:** En sprint (rama `feat/e4.7-varias-fincas`; revisión del dueño, 3 oct 2026: «tampoco tengo la opción de ver varias». CA1: cada finca de la nube dice «abierta en este teléfono», «Cambiar a esta finca» o «Abrir en este teléfono»; abrir crea una base nueva, le pasa la sesión y baja la finca sola al recargar. CA2: con dos o más fincas, la cabecera dice «Finca: … · cambiar» y lleva a Cuenta. CA3: una base por finca, con su cola y su vínculo; la sesión es una sola y pasa a la finca abierta. CA4: sin cuenta, «Agregar otra finca en este teléfono» en Cuenta; con una sola finca nada cambia, ni la cabecera ni el almacenamiento local).
 - **Contraste:** ARQUITECTURA §9 ya prevé al asesor que lee varias fincas; hoy el cuaderno guarda una sola finca por teléfono (una base local y un vínculo). El Estudio pone a los asesores técnicos como canal de adquisición: cada asesor trae a sus clientes.
-- **Diseño:** una base local por finca (`gestionagro-cuaderno-<org>`) y la «finca activa» en el teléfono; `cuaderno()` abre la de la finca activa. Cambiar de finca recarga la app con la otra base: nada se mezcla (P21) y el aislamiento de datos queda en el teléfono como en la celda. Las calculadoras buscan cualquier base con ese prefijo.
+- **Diseño:** una base local por finca y la «finca activa» en el teléfono; `cuaderno()` abre la de la finca activa (`almacen/fincas-locales.ts`). La base de siempre (`gestionagro-cuaderno`) conserva su nombre, así que no hay migración; las demás son `gestionagro-cuaderno-<uuid v7>`, porque una finca solo local no tiene organización. La lista de fincas y cuál está activa van en `localStorage` (no son secretos y se leen antes de abrir la base). El refresh token rota al renovarse: dos copias de la sesión se invalidarían entre sí, por eso hay una sola y se traslada, con el id del teléfono, al cambiar de finca. Una finca que no está abierta no sincroniza: lo suyo sube cuando se abre, y Cuenta lo dice. Cambiar de finca recarga la app con la otra base: nada se mezcla (P21) y el aislamiento de datos queda en el teléfono como en la celda. Las calculadoras buscan cualquier base con ese prefijo.
 - **Criterios de aceptación:**
   1. En Cuenta, «Tus fincas en la nube» deja abrir cualquiera: la baja si no está en el teléfono y la deja como activa.
   2. La cabecera dice en qué finca se está, y cambiar es un toque.
   3. Lo que se registra va a la finca activa; las colas, sesiones y vínculos son de cada finca.
   4. Una finca solo local (sin cuenta) sigue funcionando como hoy.
-- **WI:** base por finca y migración de la actual (3 h); selector y cabecera (2 h); sincronización por finca (2 h); pruebas de aislamiento (2 h).
+- **WI:** base por finca y traslado de la sesión (3 h); selector y cabecera (2 h); bajada automática (1 h); pruebas de aislamiento con control negativo (2 h).
 
 ### E5 · Sincronización y celda
 
@@ -968,8 +969,8 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
   - WI-E7.4.3 Pruebas (1 h).
 
 #### HU-E7.5 · Varias bodegas de insumos
-**Como** propietario de una finca grande **quiero** llevar los insumos en varias bodegas (la central y la de cada sector) y trasladar entre ellas **para** saber qué hay dónde y quién lo gastó.
-- **Peldaño:** Exportador (fincas grandes y empresas) · **Prioridad:** Could · **Puntos:** 5 · **Sprint:** por planear · **Depende de:** HU-E7.1 · **Estado:** Propuesta (revisión del dueño, 3 oct 2026: «insumos en más de una bodega, para planes premium»).
+**Como** propietario de una finca grande **quiero** llevar los insumos en varias bodegas o almacenes de la misma finca (la central y la de cada sector) y trasladar entre ellas **para** saber qué hay dónde y quién lo gastó.
+- **Peldaño:** Exportador (fincas grandes y empresas) · **Prioridad:** Could · **Puntos:** 5 · **Sprint:** preparada, sin sprint (§3) · **Depende de:** HU-E7.1 · **Estado:** Preparada (revisión del dueño, 3 oct 2026: «insumos en más de una bodega, para planes premium». El dueño aclaró que se refería a varias bodegas o almacenes en una finca, y la dejó en la hoja de ruta por lo que implica técnicamente).
 - **Contraste:** el Estudio pone el inventario de insumos en el MVP; varias bodegas son de fincas con sectores o varias sedes (peldaño Exportador, ARQUITECTURA §2.4). Es un catálogo nuevo: según la bitácora (HU-E6.3), obliga a rehacer el CHECK de `catalogo` en la celda y a un `agro-export` v2, así que va en su propia historia.
 - **Diseño:** catálogo `bodega` (nombre, área opcional); `movimiento_insumo` v2 con `bodega_id` y la clase `traslado` (sale de una, entra a otra, mismo costo); la aplicación v3 dice de qué bodega salió. Con una sola bodega todo sigue como hoy: la bodega «Principal» se crea sola y los v1 son de ella (traductor, P10). El costo promedio sigue siendo por insumo en toda la finca; la existencia es por bodega.
 - **Criterios de aceptación:**

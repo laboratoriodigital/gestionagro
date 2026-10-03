@@ -20,7 +20,10 @@ export async function cuadernoEnUso(
 ): Promise<boolean> {
   if (typeof idb?.databases !== 'function') return false;
   try {
-    return (await idb.databases()).some((b) => b.name === BASE_DEL_CUADERNO);
+    // Con varias fincas en el teléfono (HU-E4.7), las demás bases llevan el nombre y un guion.
+    return (await idb.databases()).some(
+      (b) => b.name === BASE_DEL_CUADERNO || b.name?.startsWith(`${BASE_DEL_CUADERNO}-`) === true,
+    );
   } catch {
     return false;
   }

@@ -7,6 +7,7 @@
  */
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
+import { baseActiva } from '../almacen/fincas-locales.ts';
 import { codigoPendiente } from '../almacen/invitacion.ts';
 import { PLANES } from '../almacen/planes.ts';
 import {
@@ -23,6 +24,7 @@ import {
 import { sesionDeLaFinca } from '../almacen/vinculo.ts';
 import { AceptarPolitica, urlDeEntrada } from '../componentes/AceptarPolitica.tsx';
 import { FincaEnLaNube } from './FincaEnLaNube.tsx';
+import { FincasDelTelefono, irAFinca, usarFincasLocales } from './FincasDelTelefono.tsx';
 import { TusDispositivos } from './TusDispositivos.tsx';
 
 /** «Exportador», desde la lista de planes; un plan desconocido se nombra tal cual. */
@@ -37,6 +39,35 @@ const NOMBRE_ROL: Record<string, string> = {
   auditor: 'Auditor',
 };
 
+/** En la lista de la nube: la finca abierta, una que está en el teléfono, o una por bajar. */
+function AccionDeFinca({
+  local,
+  disabled,
+  enLinea,
+  alAbrir,
+}: {
+  local: { base: string } | undefined;
+  disabled: boolean;
+  enLinea: boolean;
+  alAbrir: (base: string | null) => void;
+}) {
+  if (local?.base === baseActiva())
+    return <span class="detalle-insumo"> · abierta en este teléfono</span>;
+  return (
+    <>
+      {' '}
+      <button
+        type="button"
+        class="secundario"
+        disabled={disabled || (!local && !enLinea)}
+        onClick={() => alAbrir(local?.base ?? null)}
+      >
+        {local ? 'Cambiar a esta finca' : 'Abrir en este teléfono'}
+      </button>
+    </>
+  );
+}
+
 export function Cuenta() {
   const [sesion, setSesion] = useState<Sesion | null | undefined>(undefined); // undefined = cargando
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -45,6 +76,13 @@ export function Cuenta() {
   // HU-E0.5, CA3: entrar exige aceptar la política vigente; el CORE guarda versión y fecha.
   const [acepta, setAcepta] = useState(false);
   const core = urlDelCore(location.hostname);
+  // HU-E4.7: las fincas de este teléfono, para abrir o cambiar a las de la nube.
+  const locales = usarFincasLocales();
+  const [abriendo, setAbriendo] = useState(false);
+  const abrir = (base: string | null, bajar?: { org_id: string; nombre: string }) => {
+    setAbriendo(true);
+    void irAFinca(base, bajar).catch(() => setAbriendo(false));
+  };
 
   useEffect(() => {
     const db = cuaderno();
@@ -129,15 +167,19 @@ export function Cuenta() {
                   <li key={o.org_id}>
                     <strong>{o.nombre}</strong> · {NOMBRE_ROL[o.rol] ?? o.rol} · plan{' '}
                     {nombreDelPlan(o.plan)}
-                    {o.org_id === sesion.org_id && (
-                      <span class="detalle-insumo"> · en este teléfono</span>
-                    )}
+                    <AccionDeFinca
+                      local={locales.find((l) => l.org_id === o.org_id)}
+                      disabled={abriendo}
+                      enLinea={enLinea}
+                      alAbrir={(base) => abrir(base, base ? undefined : o)}
+                    />
                   </li>
                 ))}
               </ul>
             </>
           )}
           <FincaEnLaNube sesion={sesion} alCambiarSesion={setSesion} enLinea={enLinea} />
+          <FincasDelTelefono lista={locales} />
           <TusDispositivos enLinea={enLinea} />
           <h2>Planes</h2>
           <p>
@@ -172,6 +214,7 @@ export function Cuenta() {
             </button>
           </div>
           {!enLinea && <p class="ayuda">Necesitas señal para entrar. Puedes seguir registrando.</p>}
+          <FincasDelTelefono lista={locales} />
         </>
       )}
     </section>
