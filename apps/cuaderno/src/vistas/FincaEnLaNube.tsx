@@ -110,6 +110,7 @@ export function FincaEnLaNube({
     };
   }, [sesion]);
 
+  const [respuesta, setRespuesta] = useState<'misma' | 'otra' | null>(null);
   const subir = async () => {
     setSubiendo(true);
     setError(null);
@@ -188,10 +189,31 @@ export function FincaEnLaNube({
       {estado === 'sin-subir' && (
         <>
           {sesion.organizaciones.length > 0 ? (
-            <p data-prueba="nube-pregunta">
-              Tu cuenta ya tiene en la nube: {sesion.organizaciones.map((o) => o.nombre).join(', ')}
-              . Si «{finca}» es otra finca, súbela como una finca nueva.
-            </p>
+            // Revisión del dueño (3 oct 2026): «no me preguntó por la finca anterior». Se pregunta
+            // de verdad, con las dos respuestas, antes de subir una segunda finca.
+            <div class="aviso" data-prueba="nube-pregunta">
+              <p>
+                Tu cuenta ya tiene en la nube:{' '}
+                <strong>{sesion.organizaciones.map((o) => o.nombre).join(', ')}</strong>. ¿«
+                {finca}» es una de ellas?
+              </p>
+              <div class="acciones">
+                <button type="button" class="secundario" onClick={() => setRespuesta('misma')}>
+                  Sí, es una de ellas
+                </button>
+                <button type="button" class="secundario" onClick={() => setRespuesta('otra')}>
+                  No, es otra finca
+                </button>
+              </div>
+              {respuesta === 'misma' && (
+                <p data-prueba="nube-misma">
+                  Este teléfono no puede juntar dos copias de una misma finca. Para trabajar con la
+                  de la nube, ábrela en un cuaderno vacío (otro navegador o una ventana de
+                  incógnito), entra con tu cuenta y elige bajarla. Lo anotado aquí se queda en este
+                  teléfono: descárgalo en Respaldo para no perderlo.
+                </p>
+              )}
+            </div>
           ) : (
             <p data-prueba="nube-sin-subir">
               «{finca}» está solo en este teléfono. Súbela para respaldarla y, después, invitar a tu
@@ -199,14 +221,20 @@ export function FincaEnLaNube({
             </p>
           )}
           <div class="acciones">
-            <button
-              type="button"
-              disabled={!enLinea || subiendo}
-              onClick={() => void subir()}
-              data-prueba="subir-finca"
-            >
-              {subiendo ? 'Subiendo…' : 'Subir mi finca a la nube'}
-            </button>
+            {(sesion.organizaciones.length === 0 || respuesta === 'otra') && (
+              <button
+                type="button"
+                disabled={!enLinea || subiendo}
+                onClick={() => void subir()}
+                data-prueba="subir-finca"
+              >
+                {subiendo
+                  ? 'Subiendo…'
+                  : sesion.organizaciones.length > 0
+                    ? 'Subirla como finca nueva'
+                    : 'Subir mi finca a la nube'}
+              </button>
+            )}
           </div>
           {!enLinea && <p class="ayuda">Necesitas señal para subir la finca.</p>}
         </>

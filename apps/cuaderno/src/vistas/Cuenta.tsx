@@ -8,12 +8,14 @@
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { codigoPendiente } from '../almacen/invitacion.ts';
+import { PLANES } from '../almacen/planes.ts';
 import {
   canjear,
   ErrorDeSesion,
   estadoDeSesion,
   leerRegreso,
   MENSAJES_DE_ERROR,
+  planDeLaFinca,
   type Sesion,
   salirDeLaCuenta,
   urlDelCore,
@@ -22,6 +24,10 @@ import { sesionDeLaFinca } from '../almacen/vinculo.ts';
 import { AceptarPolitica, urlDeEntrada } from '../componentes/AceptarPolitica.tsx';
 import { FincaEnLaNube } from './FincaEnLaNube.tsx';
 import { TusDispositivos } from './TusDispositivos.tsx';
+
+/** «Exportador», desde la lista de planes; un plan desconocido se nombra tal cual. */
+const nombreDelPlan = (plan: string | undefined) =>
+  PLANES.find((p) => p.id === (plan ?? 'gratuito'))?.nombre ?? plan ?? 'Gratis';
 
 const NOMBRE_ROL: Record<string, string> = {
   propietario: 'Propietario',
@@ -109,14 +115,27 @@ export function Cuenta() {
               ? 'Sesión activa.'
               : 'Sin sesión para sincronizar por ahora. Tus registros siguen guardados en este teléfono; la sesión se renueva sola cuando haya señal.'}
           </p>
+          {sesion.org_id && (
+            <p data-prueba="cuenta-plan">
+              Plan de esta finca: <strong>{nombreDelPlan(planDeLaFinca(sesion))}</strong> ·{' '}
+              <a href="/agro/app/planes/">Ver los planes</a>
+            </p>
+          )}
           {sesion.organizaciones.length > 0 && (
-            <ul data-prueba="cuenta-fincas">
-              {sesion.organizaciones.map((o) => (
-                <li key={o.org_id}>
-                  {o.nombre} · {NOMBRE_ROL[o.rol] ?? o.rol}
-                </li>
-              ))}
-            </ul>
+            <>
+              <h2>Tus fincas en la nube</h2>
+              <ul class="lista-plana" data-prueba="cuenta-fincas">
+                {sesion.organizaciones.map((o) => (
+                  <li key={o.org_id}>
+                    <strong>{o.nombre}</strong> · {NOMBRE_ROL[o.rol] ?? o.rol} · plan{' '}
+                    {nombreDelPlan(o.plan)}
+                    {o.org_id === sesion.org_id && (
+                      <span class="detalle-insumo"> · en este teléfono</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
           <FincaEnLaNube sesion={sesion} alCambiarSesion={setSesion} enLinea={enLinea} />
           <TusDispositivos enLinea={enLinea} />
