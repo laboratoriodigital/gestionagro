@@ -55,6 +55,7 @@ El resumen dice en qué celda se detuvo, qué permiso falta o qué parte del hum
 | «el token … no es válido o está vencido» | Crear un token nuevo con los permisos de ARQUITECTURA §7.5 y reemplazar el secreto |
 | «al token le falta «Account → Workers Scripts: Edit»…» | Editar el token en Cloudflare y agregar ese permiso |
 | «el token no ve la zona …» | Agregar «Zone → Workers Routes: Edit» para esa zona |
+| «falta el secreto BOLD_SECRETA_PRUEBAS en GitHub» (o cualquiera de las cuatro de Bold) | Hay una llave de Bold sin su pareja. Siembra las dos del ambiente (identidad y secreta, del panel de Bold › Integraciones › Botón de pagos), o borra la que quedó sola: sin ninguna, pagar en línea dice «no disponible» |
 | «falta el secreto GOOGLE_CLIENT_ID y/o GOOGLE_CLIENT_SECRET en GitHub» | Sembrarlos en Settings → Secrets and variables → Actions, con los valores del cliente OAuth «agro-core» de Google Cloud |
 | «entrar: Google recibe otro client_id…» o «la dirección de regreso es…» | El secreto de GitHub no es el del cliente «agro-core», o la URL del CORE cambió. Corrige el secreto, o agrega la dirección nueva en Google Cloud → APIs & Services → Credentials → agro-core → Authorized redirect URIs |
 | «CORE desplegado en …, pero celdas.json dice …» | La URL de workers.dev del CORE cambió (otra cuenta o subdominio). Corrige `core.url` / `core.url_staging` en `celdas.json` por PR y agrega la dirección de regreso nueva en Google Cloud |

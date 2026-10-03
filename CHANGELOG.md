@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Pagar el plan Finca en línea con Bold (PSE, Nequi o tarjeta) desde Planes: un mes a la vez, sin débito automático. Al volver de Bold, el plan queda activo, y si la persona no vuelve, se activa solo en 15 minutos o menos. Planes y Cuenta dicen hasta cuándo vale, y una semana antes avisan. Al vencer, la finca vuelve al plan Gratis sin perder ningún registro. Sin las llaves de Bold, pagar dice que no está disponible.
+- La política de datos (versión 2) nombra a Bold como aliado para los pagos. Su programa solo se carga al tocar «Pagar».
 - Con el plan Finca, el calendario de carencias se imprime en una hoja horizontal para la puerta de la nave: cada área con hoy y los próximos 14 días, legible en blanco y negro. Verlo en el teléfono sigue gratis.
 - Varias fincas en un mismo teléfono (HU-E4.7). En Cuenta, cada finca de la nube se abre en este teléfono, y sin cuenta se agrega otra finca. Cada una guarda lo suyo, sin mezclarse; cambiar es un toque desde la cabecera, que dice en qué finca se está. Con una sola finca, nada cambia.
 

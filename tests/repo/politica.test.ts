@@ -38,11 +38,21 @@ describe('política de tratamiento de datos (CA4)', () => {
   });
 });
 
+const politicaCompleta = JSON.parse(
+  readFileSync(join(RAIZ, 'content', 'agro', 'privacidad', 'politica.json'), 'utf8'),
+) as { scripts_al_pagar?: string[]; encargados: { proveedor: string }[] };
+
 describe('CSP del cuaderno (ARQUITECTURA §9)', () => {
   const csp = cspDelCuaderno(cargarCeldas());
 
   it('solo código propio: sin comodines, sin «unsafe-*», sin scripts de terceros', () => {
-    expect(csp).not.toMatch(/\*|unsafe-|https?:(?!\/\/agro-)/);
+    // El programa de pago que declara la política (HU-E0.7) es lo único ajeno, y solo como script.
+    const declarados = politicaCompleta.scripts_al_pagar ?? [];
+    expect(declarados).toEqual(['https://checkout.bold.co']);
+    expect(politicaCompleta.encargados.map((e) => e.proveedor)).toContain('Bold');
+    expect(/script-src ([^;]+)/.exec(csp)?.[1]).toBe(["'self'", ...declarados].join(' '));
+    const sinElPago = declarados.reduce((t, o) => t.split(o).join(''), csp);
+    expect(sinElPago).not.toMatch(/\*|unsafe-|https?:(?!\/\/agro-)/);
     expect(csp).toContain("script-src 'self'");
     expect(csp).toContain("object-src 'none'");
   });

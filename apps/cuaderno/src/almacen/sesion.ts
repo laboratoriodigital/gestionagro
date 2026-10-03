@@ -22,6 +22,8 @@ export interface Organizacion {
   rol: string;
   /** Plan de la finca (HU-E3.11); falta en sesiones de antes de este cambio. */
   plan?: string;
+  /** Hasta cuándo vale un plan pagado en línea (HU-E0.7); null o ausente si no vence. */
+  plan_vence?: string | null;
 }
 
 export interface Sesion {
@@ -58,6 +60,10 @@ export function urlDelCore(
 /** El plan de la finca de la sesión; sin finca en la nube o sin dato, el gratuito. */
 export const planDeLaFinca = (sesion: Sesion | null): string =>
   sesion?.organizaciones.find((o) => o.org_id === sesion.org_id)?.plan ?? 'gratuito';
+
+/** Hasta cuándo vale el plan pagado de la finca de la sesión; null si no vence (HU-E0.7). */
+export const vencimientoDelPlan = (sesion: Sesion | null): string | null =>
+  sesion?.organizaciones.find((o) => o.org_id === sesion.org_id)?.plan_vence ?? null;
 
 /** El rol de esta persona en la finca de la sesión, o null si no hay finca en la nube. */
 export const rolEnLaFinca = (sesion: Sesion | null): string | null =>

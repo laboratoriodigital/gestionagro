@@ -57,7 +57,7 @@ describe('CA1 · las tablas son las de ARQUITECTURA §5.4, y ninguna más', () =
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name <> 'd1_migrations' ORDER BY name",
       )
       .all<{ name: string }>();
-    expect(delDocumento).toHaveLength(8);
+    expect(delDocumento).toHaveLength(9);
     expect(results.map((r) => r.name)).toEqual(delDocumento);
   });
 });
@@ -132,6 +132,7 @@ describe('CA3 y CA4 · usuarios, organizaciones, membresías y directorio', () =
         nombre: 'Finca Ensayo Uno',
         tipo: 'finca',
         plan: 'gratuito',
+        plan_vence: null,
         rol: 'propietario',
         celda_id: 'c0',
         shard: 'agro_c0_s1',

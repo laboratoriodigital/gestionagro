@@ -114,6 +114,30 @@ describe('entrar con Google en el despliegue (HU-E4.2)', () => {
     );
   });
 
+  it('Bold es opcional: con las dos llaves las carga con su ambiente; con una sola, falla', async () => {
+    const google = { id: 'cliente', secreto: 'secreto' };
+    const nueva = async () => 'x';
+    const pruebas = { identidad: 'id', secreta: 'sec', ambiente: 'pruebas' } as const;
+    expect(await secretosDelCore(['CORE_JWT_PRIVATE_KEY'], google, nueva, pruebas)).toEqual({
+      GOOGLE_CLIENT_ID: 'cliente',
+      GOOGLE_CLIENT_SECRET: 'secreto',
+      BOLD_IDENTIDAD: 'id',
+      BOLD_SECRETA: 'sec',
+      BOLD_AMBIENTE: 'pruebas',
+    });
+    const sinNinguna = { identidad: undefined, secreta: undefined, ambiente: 'pruebas' } as const;
+    expect(
+      await secretosDelCore(['CORE_JWT_PRIVATE_KEY'], google, nueva, sinNinguna),
+    ).not.toHaveProperty('BOLD_IDENTIDAD');
+    await expect(
+      secretosDelCore([], google, nueva, {
+        identidad: 'id',
+        secreta: undefined,
+        ambiente: 'produccion',
+      }),
+    ).rejects.toThrow('falta el secreto BOLD_SECRETA_PRODUCCION en GitHub');
+  });
+
   it('sin los secretos de Google en GitHub falla nombrándolos', async () => {
     await expect(
       secretosDelCore([], { id: undefined, secreto: undefined }, async () => 'x'),

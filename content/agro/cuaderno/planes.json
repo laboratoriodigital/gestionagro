@@ -1,5 +1,5 @@
 {
-  "nota": "Planes con precio visible (HU-E0.6). Los precios son los «Precios propuestos» del Estudio de mercado, como precio de lanzamiento tentativo (CA2): no se cobra nada, «Me interesa» solo deja la señal. Lo que el código limita por plan sale de funciones.json y fotos.json; una prueba ata este archivo a esos dos. Lo que todavía no existe dice «pronto».",
+  "nota": "Planes con precio visible (HU-E0.6). Los precios son los «Precios propuestos» del Estudio de mercado, como precio de lanzamiento tentativo (CA2): no se cobra nada, «Me interesa» solo deja la señal. Lo que el código limita por plan sale de funciones.json y fotos.json; una prueba ata este archivo a esos dos. Lo que todavía no existe dice «pronto». `cobro_mensual_cop` es lo que el CORE cobra en línea por un mes (HU-E0.7): un número exacto, dentro del rango de `precio`, que fija el dueño; un plan sin él no se puede pagar en línea.",
   "aviso_precio": "Precio de lanzamiento tentativo. Hoy no se cobra nada: si te interesa, avísanos y te contamos antes de que empiece.",
   "planes": [
     {
@@ -19,6 +19,7 @@
       "id": "finca",
       "nombre": "Finca",
       "precio": "COP 39.000 a 59.000 al mes",
+      "cobro_mensual_cop": 39000,
       "para_quien": "Para la finca que quiere saber cuánto le cuesta producir.",
       "incluye": [
         "Todo lo del plan Gratis",

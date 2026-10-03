@@ -290,6 +290,18 @@ async function desplegarCore(
       existentes,
       { id: process.env['GOOGLE_CLIENT_ID'], secreto: process.env['GOOGLE_CLIENT_SECRET'] },
       generarClavePrivada,
+      // HU-E0.7: staging cobra con las llaves de pruebas de Bold; producción, con las reales.
+      dest === 'produccion'
+        ? {
+            identidad: process.env['BOLD_IDENTIDAD_PRODUCCION'],
+            secreta: process.env['BOLD_SECRETA_PRODUCCION'],
+            ambiente: 'produccion',
+          }
+        : {
+            identidad: process.env['BOLD_IDENTIDAD_PRUEBAS'],
+            secreta: process.env['BOLD_SECRETA_PRUEBAS'],
+            ambiente: 'pruebas',
+          },
     );
   } catch (e) {
     return { ok: false, detalle: [`CORE: ${(e as Error).message}`] };

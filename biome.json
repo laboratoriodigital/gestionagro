@@ -13,6 +13,7 @@
       "!**/dist",
       "!apps/sitio/wrangler.jsonc",
       "!apps/api-celda/wrangler.c*.jsonc",
+      "!apps/core/wrangler.jsonc",
       "!schemas/agro-export.schema.json"
     ]
   },

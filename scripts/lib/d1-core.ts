@@ -99,15 +99,28 @@ export function configDelCore(
 /**
  * Secretos que el despliegue carga en el Worker del CORE (ARQUITECTURA §7.5). La clave de firma
  * se genera solo si el Worker no tiene una: cambiarla invalidaría todas las sesiones.
+ *
+ * Bold (HU-E0.7) es opcional: sin sus dos llaves, pagar en línea dice «no disponible» y lo demás
+ * sigue. Con una sola, falla: media configuración no cobra (P1). Staging usa las de pruebas y
+ * producción las de producción; el ambiente viaja con ellas.
  */
 export async function secretosDelCore(
   existentes: readonly string[],
   google: { id: string | undefined; secreto: string | undefined },
   nuevaClave: () => Promise<string>,
+  bold: {
+    identidad: string | undefined;
+    secreta: string | undefined;
+    ambiente: 'pruebas' | 'produccion';
+  } | null = null,
 ): Promise<Record<string, string>> {
+  const sufijo = bold?.ambiente === 'produccion' ? 'PRODUCCION' : 'PRUEBAS';
+  const mediaBold = bold && Boolean(bold.identidad) !== Boolean(bold.secreta);
   const faltan = [
     ...(google.id ? [] : ['GOOGLE_CLIENT_ID']),
     ...(google.secreto ? [] : ['GOOGLE_CLIENT_SECRET']),
+    ...(mediaBold && !bold.identidad ? [`BOLD_IDENTIDAD_${sufijo}`] : []),
+    ...(mediaBold && !bold.secreta ? [`BOLD_SECRETA_${sufijo}`] : []),
   ];
   if (faltan.length > 0) {
     throw new Error(
@@ -117,6 +130,13 @@ export async function secretosDelCore(
   return {
     GOOGLE_CLIENT_ID: google.id ?? '',
     GOOGLE_CLIENT_SECRET: google.secreto ?? '',
+    ...(bold?.identidad && bold.secreta
+      ? {
+          BOLD_IDENTIDAD: bold.identidad,
+          BOLD_SECRETA: bold.secreta,
+          BOLD_AMBIENTE: bold.ambiente,
+        }
+      : {}),
     ...(existentes.includes('CORE_JWT_PRIVATE_KEY')
       ? {}
       : { CORE_JWT_PRIVATE_KEY: await nuevaClave() }),

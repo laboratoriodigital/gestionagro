@@ -52,6 +52,8 @@ export function wranglerDelSitio(config: ConfigCeldas): Record<string, unknown> 
   };
 }
 
+export const CRON_CONCILIACION = '*/15 * * * *';
+
 export function wranglerDelCore(config: ConfigCeldas): Record<string, unknown> {
   const { core } = config;
   const base = (nombre: string) => [
@@ -64,12 +66,16 @@ export function wranglerDelCore(config: ConfigCeldas): Record<string, unknown> {
     compatibility_date: FECHA_COMPATIBILIDAD,
     workers_dev: true,
     d1_databases: base(core.d1),
+    // La conciliación de pagos (HU-E0.7), cada 15 min. Con el vigía de la celda son 4 de los 5
+    // Cron Triggers que da la cuenta gratuita.
+    triggers: { crons: [CRON_CONCILIACION] },
     observability: { enabled: true },
     env: {
       staging: {
         name: `${core.worker}-staging`,
         workers_dev: true,
         d1_databases: base(`${core.d1}_staging`),
+        triggers: { crons: [CRON_CONCILIACION] },
       },
     },
   };

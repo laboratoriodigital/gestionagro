@@ -66,6 +66,11 @@ jobs:
           # HU-E4.2: el despliegue los carga como secretos del Worker del CORE, por stdin.
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          # HU-E0.7: llaves del Botón de pagos de Bold. Opcionales: sin ellas, pagar no está disponible.
+          BOLD_IDENTIDAD_PRUEBAS: ${{ secrets.BOLD_IDENTIDAD_PRUEBAS }}
+          BOLD_SECRETA_PRUEBAS: ${{ secrets.BOLD_SECRETA_PRUEBAS }}
+          BOLD_IDENTIDAD_PRODUCCION: ${{ secrets.BOLD_IDENTIDAD_PRODUCCION }}
+          BOLD_SECRETA_PRODUCCION: ${{ secrets.BOLD_SECRETA_PRODUCCION }}
           DESTINO: ${{ github.event_name == 'release' && 'produccion' || inputs.destino || 'staging' }}
           SOLO_CELDA: ${{ inputs.solo_celda }}
         run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA"

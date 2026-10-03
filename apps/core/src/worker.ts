@@ -12,6 +12,8 @@
  *   la finca y los teléfonos de la cuenta (HU-E4.6, `equipo.ts`).
  * - `POST /api/core/interes[/ver]`: la lista de espera de planes con precio visible (HU-E0.6,
  *   `interes.ts`).
+ * - `POST /api/core/pago/{crear,confirmar}`: pagar el plan en línea con Bold (HU-E0.7, `pagos.ts`).
+ *   Sin las llaves de Bold responde 503 «no disponible»; entrar y lo demás siguen igual.
  *
  * Kill switch `ks:agro-core` (HU-E8.1): apagado, `/api/core/auth/*` responde 503 y nadie entra ni
  * renueva. Quien ya tiene un access token sigue sincronizando hasta que venza (12 h); el cuaderno
@@ -44,6 +46,8 @@ import { cambiarRol, quitarDelEquipo, retirarTelefono, verEquipo, verTelefonos }
 import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
+import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
+import { type ProveedorDePago, proveedorBold } from './proveedor-de-pago.ts';
 
 export { PRODUCTO_CORE };
 
@@ -58,11 +62,17 @@ export interface Env {
   GOOGLE_CLIENT_SECRET?: string;
   /** Orígenes del cuaderno separados por coma; los pone el despliegue. */
   ORIGENES_APP?: string;
+  /** Llaves del Botón de pagos de Bold y su ambiente (HU-E0.7); opcionales. */
+  BOLD_IDENTIDAD?: string;
+  BOLD_SECRETA?: string;
+  BOLD_AMBIENTE?: string;
 }
 
 export interface Dependencias {
   google?: (env: Env) => ProveedorGoogle;
   ahora?: () => number;
+  /** Para hablar con Bold; las pruebas pasan uno falso. */
+  fetch?: typeof fetch;
 }
 
 // Por isolate: importar la clave y la caché de 60 s del kill switch viven mientras viva el isolate.
@@ -87,6 +97,20 @@ const faltaConfiguracion = (c: Context, que: string) => {
   console.error(`agro-core: falta ${que}`);
   return c.json({ estado: 'sin-configurar', motivo: 'Entrar no está disponible todavía' }, 503);
 };
+
+/**
+ * El proveedor de pagos del CORE (ED1 §5.3), hoy Bold. Sus llaves completas o ninguna: media
+ * configuración no cobra (P1).
+ */
+export function proveedorDePagoDe(env: Env, fetchFn: typeof fetch): ProveedorDePago | null {
+  const ambiente = env.BOLD_AMBIENTE;
+  if (!env.BOLD_IDENTIDAD || !env.BOLD_SECRETA) return null;
+  if (ambiente !== 'pruebas' && ambiente !== 'produccion') return null;
+  return proveedorBold(
+    { identidad: env.BOLD_IDENTIDAD, secreta: env.BOLD_SECRETA, ambiente },
+    fetchFn,
+  );
+}
 
 export function crearApp(dependencias: Dependencias = {}) {
   const ahora = dependencias.ahora ?? (() => Date.now());
@@ -169,6 +193,7 @@ export function crearApp(dependencias: Dependencias = {}) {
     '/api/core/telefonos/*',
     '/api/core/interes',
     '/api/core/interes/*',
+    '/api/core/pago/*',
   ]) {
     app.use(ruta, corsDelCuaderno);
     app.use(ruta, conEntorno);
@@ -185,6 +210,14 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/api/core/telefonos/retirar', (c) => retirarTelefono(c, c.get('entorno')));
   app.post('/api/core/interes', (c) => marcarInteres(c, c.get('entorno')));
   app.post('/api/core/interes/ver', (c) => verInteres(c, c.get('entorno')));
+  const conPago = (
+    c: Context<{ Bindings: Env; Variables: { entorno: Entorno } }>,
+  ): EntornoDePago => ({
+    ...c.get('entorno'),
+    proveedor: proveedorDePagoDe(c.env, dependencias.fetch ?? ((...a) => fetch(...a))),
+  });
+  app.post('/api/core/pago/crear', (c) => crearPago(c, conPago(c)));
+  app.post('/api/core/pago/confirmar', (c) => confirmarPago(c, conPago(c)));
   app.get('/api/core/auth/google/inicio', (c) => inicio(c, c.get('entorno')));
   app.get('/api/core/auth/google/callback', (c) => callback(c, c.get('entorno')));
   app.post('/api/core/auth/canje', (c) => canje(c, c.get('entorno')));
@@ -196,4 +229,29 @@ export function crearApp(dependencias: Dependencias = {}) {
   return app;
 }
 
-export default crearApp();
+const app = crearApp();
+
+/** Lo mínimo del contexto de un evento programado: esperar a que termine la vuelta. */
+interface ContextoProgramado {
+  waitUntil(promesa: Promise<unknown>): void;
+}
+
+export default {
+  fetch: app.fetch,
+  /**
+   * Cron Trigger cada 15 min (HU-E0.7): concilia los pagos que siguen esperando, por si alguien
+   * pagó y no volvió a la pantalla. Sin llaves del proveedor no hace nada.
+   */
+  scheduled(_evento: unknown, env: Env, ctx: ContextoProgramado) {
+    ctx.waitUntil(
+      conciliarPagos(
+        env.DB,
+        proveedorDePagoDe(env, (...a) => fetch(...a)),
+        Date.now(),
+      ).then((r) => {
+        if (r.revisados > 0)
+          console.log(`agro-core: conciliados ${r.cerrados} de ${r.revisados} pagos`);
+      }),
+    );
+  },
+};

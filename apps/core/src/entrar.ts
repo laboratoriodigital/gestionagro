@@ -177,7 +177,7 @@ async function respuestaDeSesion(
   sesion: SesionActiva,
   pedida: string | undefined,
 ) {
-  const directorio = await directorioDeUsuario(e.db, sesion.usuarioId);
+  const directorio = await directorioDeUsuario(e.db, sesion.usuarioId, e.ahora());
   const { org, aviso } = elegirOrganizacion(directorio, pedida);
   const usuario = await e.db
     .prepare('SELECT nombre, email FROM usuario WHERE id = ?')
@@ -201,11 +201,12 @@ async function respuestaDeSesion(
     refresh: sesion.refresh,
     refresh_vence: sesion.refreshVence,
     usuario,
-    organizaciones: directorio.map(({ org_id, nombre, rol, plan }) => ({
+    organizaciones: directorio.map(({ org_id, nombre, rol, plan, plan_vence }) => ({
       org_id,
       nombre,
       rol,
       plan,
+      plan_vence,
     })),
     org_id: org?.org_id ?? null,
     /** API de la celda de esa organización: a dónde sincroniza el teléfono (HU-E5.2). */
