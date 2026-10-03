@@ -58,7 +58,7 @@ for (const f of FINCAS_DE_PRUEBA) {
       await page.getByLabel('Tamaño (m²)').fill('25,5');
       await page.getByRole('button', { name: 'Guardar' }).click();
       await expect(page.getByRole('list', { name: `Camas y surcos de ${primera}` })).toContainText(
-        'Cama 1 · Cama · 25,5 m²',
+        'Cama 1 · 25,5 m²',
       );
     });
 
@@ -101,12 +101,14 @@ test.describe('ajustes de la revisión del dueño (1 oct 2026)', () => {
 
   test('cada área tiene su tipo: una finca puede tener naves y lotes', async ({ page }) => {
     await configurar(page, f, [
-      { tipo: 'nave', nombre: 'Nave 1', area_m2: 600 },
+      { tipo: 'nave', nombre: 'Norte', area_m2: 600 },
       { tipo: 'lote', nombre: 'Lote 1', area_m2: 1500 },
     ]);
     const areas = page.locator('[data-prueba="area"]');
-    await expect(areas.filter({ hasText: 'Nave 1 · Nave' })).toHaveCount(1);
-    await expect(areas.filter({ hasText: 'Lote 1 · Lote' })).toHaveCount(1);
+    await expect(areas.filter({ hasText: 'Norte · Nave · 600 m²' })).toHaveCount(1);
+    // Si el nombre ya dice el tipo, no se repite (revisión de diseño, 3 oct 2026).
+    await expect(areas.filter({ hasText: 'Lote 1 · 1.500 m²' })).toHaveCount(1);
+    await expect(areas.filter({ hasText: 'Lote 1 · Lote' })).toHaveCount(0);
   });
 
   test('un área sin tipo no avanza y lo dice junto al campo', async ({ page }) => {
@@ -131,7 +133,7 @@ test.describe('ajustes de la revisión del dueño (1 oct 2026)', () => {
     await page.getByRole('button', { name: 'Guardar' }).click();
     await expect(page.locator('[data-prueba="area"]')).toHaveCount(f.areas.length + 1);
     await expect(
-      page.locator('[data-prueba="area"]').filter({ hasText: 'Bloque Nuevo · Bloque · 800 m²' }),
+      page.locator('[data-prueba="area"]').filter({ hasText: 'Bloque Nuevo · 800 m²' }),
     ).toHaveCount(1);
   });
 
@@ -149,7 +151,7 @@ test.describe('ajustes de la revisión del dueño (1 oct 2026)', () => {
     await page.getByLabel('Tamaño (m²)').fill('30');
     await page.getByRole('button', { name: 'Guardar' }).click();
     const cama = page.locator('[data-prueba="subarea"]').filter({ hasText: 'Cama 1 norte' });
-    await expect(cama).toContainText('Cama 1 norte · Cama · 30 m²');
+    await expect(cama).toContainText('Cama 1 norte · 30 m²');
     await page.getByRole('button', { name: 'Historial de Cama 1 norte' }).click();
     await expect(page.locator('[data-prueba="historial"]')).toContainText(
       'Versión 1: Cama 1 · 25 m²',
@@ -175,7 +177,7 @@ test('revisión del dueño: con muchas áreas se pliegan; se abren una a una o t
   await expect(detalles).toHaveCount(7);
   // Más de 6: arrancan cerradas, con el resumen a la vista.
   await expect(page.locator('[data-prueba="area"] details[open]')).toHaveCount(0);
-  await expect(area(3).locator('summary')).toContainText('Nave 3 · Nave · 600 m²');
+  await expect(area(3).locator('summary')).toContainText('Nave 3 · 600 m²');
   // Una sola, por su cuenta.
   await area(3).locator('summary').click();
   await expect(page.locator('[data-prueba="area"] details[open]')).toHaveCount(1);

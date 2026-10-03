@@ -187,7 +187,7 @@ export function Cuenta() {
           <TusDispositivos enLinea={enLinea} />
           <h2>Planes</h2>
           <p>
-            Mira qué trae cada plan y cuánto costará.{' '}
+            Mira qué trae cada plan y cuánto cuesta.{' '}
             <a href="/agro/app/planes/" data-prueba="ver-planes">
               Ver los planes
             </a>

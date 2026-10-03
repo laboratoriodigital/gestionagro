@@ -57,6 +57,19 @@ const mensaje = (error: unknown) =>
  * Formulario de un área. `elegirTipo`: «principal» (nave, bloque o lote, en lista),
  * «subarea» (cama o surco) o nada al editar, porque el tipo de un área no cambia.
  */
+
+/** «Producción ecológica»: el adjetivo concuerda con «producción». */
+const PRODUCCION: Record<string, string> = {
+  ecologico: 'Producción ecológica',
+  convencional: 'Producción convencional',
+};
+
+/** «Nave · 600 m²», o solo «600 m²» si el nombre ya dice el tipo («Nave 1»). */
+function conTipo(a: { nombre: string; tipo: string; area_m2: number }): string {
+  const tipo = NOMBRE_TIPO[a.tipo] ?? a.tipo;
+  const dice = a.nombre.toLowerCase().startsWith(tipo.toLowerCase());
+  return dice ? metros(a.area_m2) : `${tipo} · ${metros(a.area_m2)}`;
+}
 function FormularioArea(props: {
   titulo: string;
   inicial: { nombre: string; m2: string };
@@ -332,7 +345,8 @@ export function MiFinca(props: {
     <section aria-labelledby="titulo-finca">
       <h1 id="titulo-finca">{props.finca.nombre}</h1>
       <p>
-        {props.finca.municipio} · Producción {NOMBRE_REGIMEN[props.finca.regimen]?.toLowerCase()}
+        {props.finca.municipio} ·{' '}
+        {PRODUCCION[props.finca.regimen] ?? NOMBRE_REGIMEN[props.finca.regimen]}
       </p>
       <h2>Áreas</h2>
       {!cambia && <SoloConsulta rol={permisos.rol} que="las áreas y sus ciclos" />}
@@ -345,7 +359,7 @@ export function MiFinca(props: {
               p={plegables}
               resumen={
                 <span class="area-titulo">
-                  <strong>{a.nombre}</strong> · {NOMBRE_TIPO[a.tipo]} · {metros(a.area_m2)}
+                  <strong>{a.nombre}</strong> · {conTipo(a)}
                   {hijas(a.id).length > 0 && ` · ${hijas(a.id).length} camas o surcos`}{' '}
                   {sello(a.id)}
                 </span>
@@ -365,7 +379,7 @@ export function MiFinca(props: {
                   {hijas(a.id).map((s) => (
                     <li key={s.id} data-prueba="subarea">
                       <p class="area-titulo">
-                        {s.nombre} · {NOMBRE_TIPO[s.tipo]} · {metros(s.area_m2)}
+                        {s.nombre} · {conTipo(s)}
                       </p>
                       <EditarConHistorial
                         db={props.db}

@@ -3,7 +3,7 @@
  * pantalla se agrega allí y aquí su componente.
  */
 import type { ComponentType } from 'preact';
-import { useEffect } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import { LocationProvider, Route, Router, useLocation } from 'preact-iso';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { AvisoDePausa } from './AvisoDePausa.tsx';
@@ -46,10 +46,23 @@ const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> =
 /** Con y sin «/» final: el enlace directo llega como /agro/app/insumos/ y la navegación como /agro/app/insumos. */
 const sinBarraFinal = (ruta: string) => (ruta.endsWith('/') ? ruta.slice(0, -1) : ruta);
 
+/**
+ * Las secciones en una sola fila que se desliza de lado: en un teléfono de 360 px, once enlaces en
+ * tres filas se comían un tercio de la pantalla en cada vista. La sección abierta se lleva a la
+ * vista al cambiar de pantalla, sin mover la página.
+ */
 function Navegacion() {
   const { path } = useLocation();
+  const nav = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const barra = nav.current;
+    const actual = barra?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!barra || !actual) return;
+    const centro = actual.offsetLeft - (barra.clientWidth - actual.offsetWidth) / 2;
+    barra.scrollTo({ left: Math.max(0, centro) });
+  }, [path]);
   return (
-    <nav class="navegacion" aria-label="Secciones del cuaderno">
+    <nav class="navegacion" aria-label="Secciones del cuaderno" ref={nav}>
       {RUTAS_APP.filter((r) => !('enMenu' in r) || r.enMenu).map((r) => {
         const ruta = rutaDe(r.segmento);
         return (
@@ -73,12 +86,14 @@ export function App() {
   return (
     <LocationProvider scope="/agro/app/">
       <header class="cabecera">
-        <a class="marca" href="/agro/app/">
-          Cuaderno de campo
-        </a>
+        <div class="cabecera-fila">
+          <a class="marca" href="/agro/app/">
+            Cuaderno de campo
+          </a>
+          <FincaActiva />
+          <IndicadorDatos />
+        </div>
         <Navegacion />
-        <FincaActiva />
-        <IndicadorDatos />
       </header>
       <AvisoActualizacion />
       <AvisoDePausa />

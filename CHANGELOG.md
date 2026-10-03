@@ -11,6 +11,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Varias fincas en un mismo teléfono (HU-E4.7). En Cuenta, cada finca de la nube se abre en este teléfono, y sin cuenta se agrega otra finca. Cada una guarda lo suyo, sin mezclarse; cambiar es un toque desde la cabecera, que dice en qué finca se está. Con una sola finca, nada cambia.
 
 ### Cambiado
+- Revisión de diseño del cuaderno con una temporada completa de datos, en un teléfono de 360 px (pedido del dueño, 3 oct 2026):
+  - **La cabecera** ocupa 120 px en vez de 290: el nombre y los indicadores en una fila, y las secciones en otra que se desliza de lado, con la abierta resaltada y siempre a la vista.
+  - **Las tablas** (costo por kilo, bodega, insumos y mano de obra por nave, rendimiento) ya no hacen la página más ancha que el teléfono. Se deslizan dentro de su caja, con la nave o la persona fija a la izquierda y las cifras en un solo renglón.
+  - **Las pestañas** (Registrar, Costos, Lotes) van en columnas parejas.
+  - **El historial** pone «Corregir» al lado de cada registro, no debajo: la lista mide la mitad.
+  - **Textos:** «Producción ecológica» (decía «ecológico»). El nombre de un área ya no repite su tipo («Nave 1 · 600 m²»). El aviso de almacenamiento manda a «Respaldo» y a «Cuenta» (decía «cuando exista la exportación»). Cuenta dice «cuánto cuesta» cada plan.
 - Según el pedido del dueño (3 oct 2026), la página de entrada de las herramientas presenta cada calculadora por la pregunta que responde y qué se necesita para usarla, y ofrece el cuaderno como siguiente paso. Antes decía «La primera calculadora está en preparación», aunque las dos ya se podían usar. Sigue sin pedirle a Google que la indexe hasta que haya una herramienta aprobada.
 - Según el dueño (3 oct 2026), el archivo «Para la tienda» trae las columnas de la hoja «Catálogo» de la Tienda (ID, Nombre, Categoría, Formato, Precio, Precio antes, Stock, Umbral bajo, Variantes, Imágenes, Descripción, Destacado, Activo, Referencia). Trae una fila por producto y categoría, con el stock en unidades enteras y los lotes en la referencia. El precio lo pone quien vende. Un lote sin cultivo no va en el archivo, y la pantalla dice cuántos.
 - El reporte semanal dice, por herramienta, qué parte de quienes la abrieron llegó a un resultado (tasa de completado), esta semana y la anterior.

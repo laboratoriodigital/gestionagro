@@ -14,9 +14,9 @@ import { MiFinca } from './MiFinca.tsx';
 const TEXTO_PERSISTENCIA: Record<EstadoPersistencia, string> = {
   concedida: 'Este teléfono guardará tus registros de forma permanente.',
   negada:
-    'El navegador podría borrar tus registros si el teléfono se queda sin espacio. Cuando exista la exportación, haz una copia cada semana.',
+    'El navegador podría borrar tus registros si el teléfono se queda sin espacio. Descarga una copia cada semana en «Respaldo», o sube tu finca a la nube en «Cuenta».',
   'no-disponible':
-    'Este navegador no permite pedir almacenamiento permanente. Cuando exista la exportación, haz una copia cada semana.',
+    'Este navegador no permite pedir almacenamiento permanente. Descarga una copia cada semana en «Respaldo», o sube tu finca a la nube en «Cuenta».',
 };
 
 type Estado =

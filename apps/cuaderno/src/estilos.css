@@ -16,9 +16,17 @@ body {
 a {
   color: var(--color-enlace);
 }
+/* Cabecera: el nombre y los indicadores en una fila; las secciones en otra que se desliza de
+   lado. Así la cabecera ocupa lo mismo en todas las pantallas, sin comerse la vista. */
 .cabecera {
   background: var(--color-marca);
-  padding: var(--espacio-3);
+  padding: var(--espacio-2) var(--espacio-3) 0;
+}
+.cabecera-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-1) var(--espacio-2);
 }
 .marca {
   color: var(--color-marca-texto);
@@ -27,6 +35,10 @@ a {
   display: inline-flex;
   min-height: var(--objetivo-tactil);
   align-items: center;
+}
+.cabecera-fila .marca {
+  margin-inline-end: auto;
+  font-size: 1rem;
 }
 main,
 .pie {
@@ -231,22 +243,26 @@ button.herramienta {
   color: var(--color-marca);
   font-weight: 700;
 }
+/* El botón y su explicación son parte de la fila: la explicación baja a ocupar todo el ancho. */
 .indicador-datos {
-  margin-block-start: var(--espacio-2);
+  display: contents;
 }
 .cabecera .indicador {
   background: transparent;
   border: 2px solid var(--color-marca-texto);
   color: var(--color-marca-texto);
   font-weight: 600;
+  font-size: 0.8125rem;
+  padding: 0 var(--espacio-2);
+  border-radius: 999px;
 }
 .cabecera .finca-activa {
   display: inline-flex;
   align-items: center;
   min-height: var(--objetivo-tactil);
-  margin-block-start: var(--espacio-2);
-  padding: 0 var(--espacio-3);
-  border-radius: var(--radio);
+  padding: 0 var(--espacio-2);
+  border-radius: 999px;
+  font-size: var(--texto-pequeno);
   text-decoration: none;
 }
 .cabecera .indicador.pendiente {
@@ -265,18 +281,44 @@ button.herramienta {
 }
 .navegacion {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--espacio-1) var(--espacio-3);
+  gap: var(--espacio-1);
+  margin-inline: calc(-1 * var(--espacio-3));
+  padding: var(--espacio-2) var(--espacio-3);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  /* Un borde que se desvanece dice que hay más secciones a la derecha. */
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--espacio-3),
+    #000 calc(100% - 2rem),
+    transparent
+  );
+}
+.navegacion::-webkit-scrollbar {
+  display: none;
 }
 .navegacion a {
+  flex: none;
   color: var(--color-marca-texto);
   min-height: var(--objetivo-tactil);
   display: inline-flex;
   align-items: center;
+  padding: 0 var(--espacio-3);
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.navegacion a:hover {
+  text-decoration: underline;
 }
 .navegacion a[aria-current="page"] {
-  font-weight: 700;
-  text-decoration-thickness: 3px;
+  background: var(--color-marca-texto);
+  color: var(--color-marca);
+}
+.navegacion a:last-child {
+  margin-inline-end: 2rem;
 }
 .aviso-legal {
   background: var(--color-superficie);
@@ -295,11 +337,17 @@ button.herramienta {
   color: var(--color-alerta);
   margin: var(--espacio-2) 0 0;
 }
+/* Pestañas parejas: columnas del mismo ancho, así las filas no quedan desiguales. */
 .pestanas {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.75rem, 1fr));
   gap: var(--espacio-2);
   margin-block: var(--espacio-3);
+}
+.pestanas button {
+  width: 100%;
+  padding-inline: var(--espacio-2);
+  font-size: var(--texto-pequeno);
 }
 .pestanas {
   border: 0;
@@ -402,6 +450,27 @@ a.boton {
 }
 
 /* Rendimiento (HU-E6.6): la tabla cabe en 360 px; la nave lleva su detalle debajo. */
+/* Historial (HU-E3.12): lo registrado a la izquierda y «Corregir» a la derecha, en la misma fila.
+   Con 50 registros por página, un botón por fila hacía la lista el doble de larga. */
+.entrada-historial {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--espacio-2);
+  align-items: start;
+}
+.entrada-historial > * {
+  grid-column: 1 / -1;
+}
+.entrada-historial > .area-titulo,
+.entrada-historial > .detalle-insumo {
+  grid-column: 1;
+}
+.entrada-historial > .acciones {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  margin: 0;
+  flex-direction: column;
+}
 .tabla-rendimiento {
   width: 100%;
   border-collapse: collapse;
@@ -417,6 +486,33 @@ a.boton {
 .tabla-rendimiento th[scope="row"] .detalle-insumo {
   display: block;
   font-weight: normal;
+}
+/* En el teléfono, una tabla ancha se desliza dentro de su caja, no la página entera: la primera
+   columna (la nave o la persona) se queda quieta y las cifras no se parten en renglones. */
+.tabla-desliza {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  margin-inline: calc(-1 * var(--espacio-3));
+  padding-inline: var(--espacio-3);
+}
+.tabla-desliza:focus-visible {
+  outline: 3px solid var(--color-marca);
+  outline-offset: 2px;
+}
+.tabla-desliza .tabla-rendimiento td {
+  white-space: nowrap;
+  padding-inline: var(--espacio-2);
+}
+.tabla-desliza .tabla-rendimiento th[scope="row"],
+.tabla-desliza .tabla-rendimiento thead th:first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background: var(--color-fondo);
+  min-width: 7.5rem;
+  max-width: 9.5rem;
+  padding-inline-end: var(--espacio-2);
+  box-shadow: 1px 0 0 var(--color-borde);
 }
 
 /* Etiqueta QR de un lote (HU-E6.4): 5 × 5 cm al imprimir; al imprimir solo sale ella. */

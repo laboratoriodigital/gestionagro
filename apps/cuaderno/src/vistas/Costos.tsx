@@ -23,6 +23,7 @@ import { CostoPorKilo } from './CostoPorKilo.tsx';
 
 type PestanaCostos = 'resumen' | 'bodega' | 'insumos' | 'mano';
 
+import { TablaDeslizable } from '../componentes/TablaDeslizable.tsx';
 import { ManoDeObra } from './ManoDeObra.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 import { usarPermisos } from './usarPermisos.tsx';
@@ -254,45 +255,48 @@ export function Costos() {
           ) : bodega.length === 0 ? (
             <p class="ayuda">Todavía no hay compras ni aplicaciones con cantidad.</p>
           ) : (
-            <table class="tabla-rendimiento" data-prueba="bodega">
-              <thead>
-                <tr>
-                  <th scope="col">Insumo</th>
-                  <th scope="col">Queda</th>
-                  <th scope="col">Costo</th>
-                  <th scope="col">En bodega</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bodega.map((b) => (
-                  <tr key={b.insumoId} data-prueba="existencia">
-                    <th scope="row">
-                      {b.insumo}
-                      {b.quedoNegativa && (
-                        <span class="detalle-insumo desconocida" data-prueba="aviso-negativa">
-                          Se aplicó más de lo que entró: falta registrar alguna compra o un ajuste.
-                        </span>
-                      )}
-                      {b.sinCantidad > 0 && (
-                        <span class="detalle-insumo">
-                          {b.sinCantidad === 1 ? '1 aplicación' : `${b.sinCantidad} aplicaciones`}{' '}
-                          sin cantidad anotada: no se descontaron.
-                        </span>
-                      )}
-                    </th>
-                    <td class={b.existencia < 0 ? 'desconocida' : ''}>
-                      {cantidad(b.existencia)} {b.unidad}
-                    </td>
-                    <td>
-                      {b.costoUnitario === null
-                        ? 'sin dato'
-                        : `${pesos(b.costoUnitario)} por ${b.unidad}`}
-                    </td>
-                    <td>{b.valor === null ? '—' : pesos(b.valor)}</td>
+            <TablaDeslizable nombre="Bodega de insumos">
+              <table class="tabla-rendimiento" data-prueba="bodega">
+                <thead>
+                  <tr>
+                    <th scope="col">Insumo</th>
+                    <th scope="col">Queda</th>
+                    <th scope="col">Costo</th>
+                    <th scope="col">En bodega</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {bodega.map((b) => (
+                    <tr key={b.insumoId} data-prueba="existencia">
+                      <th scope="row">
+                        {b.insumo}
+                        {b.quedoNegativa && (
+                          <span class="detalle-insumo desconocida" data-prueba="aviso-negativa">
+                            Se aplicó más de lo que entró: falta registrar alguna compra o un
+                            ajuste.
+                          </span>
+                        )}
+                        {b.sinCantidad > 0 && (
+                          <span class="detalle-insumo">
+                            {b.sinCantidad === 1 ? '1 aplicación' : `${b.sinCantidad} aplicaciones`}{' '}
+                            sin cantidad anotada: no se descontaron.
+                          </span>
+                        )}
+                      </th>
+                      <td class={b.existencia < 0 ? 'desconocida' : ''}>
+                        {cantidad(b.existencia)} {b.unidad}
+                      </td>
+                      <td>
+                        {b.costoUnitario === null
+                          ? 'sin dato'
+                          : `${pesos(b.costoUnitario)} por ${b.unidad}`}
+                      </td>
+                      <td>{b.valor === null ? '—' : pesos(b.valor)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TablaDeslizable>
           )}
           {bodega?.some((b) => b.costoUnitario === null) && (
             <p class="ayuda">
@@ -310,35 +314,37 @@ export function Costos() {
           {porArea.length === 0 ? (
             <p class="ayuda">Todavía no hay aplicaciones.</p>
           ) : (
-            <table class="tabla-rendimiento" data-prueba="costo-por-area">
-              <thead>
-                <tr>
-                  <th scope="col">Nave y ciclo</th>
-                  <th scope="col">Costo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {porArea.map((c) => (
-                  <tr key={`${c.areaId}|${c.cicloId}`}>
-                    <th scope="row">
-                      {nombres.areas.get(c.areaId) ?? 'Área'}
-                      <span class="detalle-insumo">
-                        {c.cicloId
-                          ? ` · ${nombres.ciclos.get(c.cicloId) ?? 'ciclo'}`
-                          : ' · sin ciclo'}{' '}
-                        · {c.aplicaciones} {c.aplicaciones === 1 ? 'aplicación' : 'aplicaciones'}
-                      </span>
-                    </th>
-                    <td>
-                      {pesos(c.costo)}
-                      {c.sinCosto > 0 && (
-                        <span class="detalle-insumo"> · {c.sinCosto} sin costo</span>
-                      )}
-                    </td>
+            <TablaDeslizable nombre="Insumos por nave">
+              <table class="tabla-rendimiento" data-prueba="costo-por-area">
+                <thead>
+                  <tr>
+                    <th scope="col">Nave y ciclo</th>
+                    <th scope="col">Costo</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {porArea.map((c) => (
+                    <tr key={`${c.areaId}|${c.cicloId}`}>
+                      <th scope="row">
+                        {nombres.areas.get(c.areaId) ?? 'Área'}
+                        <span class="detalle-insumo">
+                          {c.cicloId
+                            ? ` · ${nombres.ciclos.get(c.cicloId) ?? 'ciclo'}`
+                            : ' · sin ciclo'}{' '}
+                          · {c.aplicaciones} {c.aplicaciones === 1 ? 'aplicación' : 'aplicaciones'}
+                        </span>
+                      </th>
+                      <td>
+                        {pesos(c.costo)}
+                        {c.sinCosto > 0 && (
+                          <span class="detalle-insumo"> · {c.sinCosto} sin costo</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TablaDeslizable>
           )}
         </>
       )}
