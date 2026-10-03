@@ -264,7 +264,7 @@ describe.each(FINCAS_DE_PRUEBA.map((f) => [f.finca.nombre, f] as const))('%s', (
 
     const otra = await cuadernoLleno(f);
     expect(await motivos(analizarArchivo(otra.db, texto))).toEqual([
-      `el respaldo es de otra finca («${f.finca.nombre}»); este teléfono ya tiene «${f.finca.nombre}»`,
+      `el respaldo es de otra finca, aunque también se llama «${f.finca.nombre}». Para no mezclarlas, ábrelo en un cuaderno vacío: otro navegador o una ventana de incógnito`,
     ]);
     expect(Object.values(await conteos(destino)).every((n) => n === 0)).toBe(true);
   });
