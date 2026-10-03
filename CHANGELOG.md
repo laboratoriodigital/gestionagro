@@ -8,6 +8,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Varias fincas en un mismo teléfono (HU-E4.7). En Cuenta, cada finca de la nube se abre en este teléfono, y sin cuenta se agrega otra finca. Cada una guarda lo suyo, sin mezclarse; cambiar es un toque desde la cabecera, que dice en qué finca se está. Con una sola finca, nada cambia.
 
 ### Cambiado
+- Según el pedido del dueño (3 oct 2026), la página de entrada de las herramientas presenta cada calculadora por la pregunta que responde y qué se necesita para usarla, y ofrece el cuaderno como siguiente paso. Antes decía «La primera calculadora está en preparación», aunque las dos ya se podían usar. Sigue sin pedirle a Google que la indexe hasta que haya una herramienta aprobada.
+- El reporte semanal dice, por herramienta, qué parte de quienes la abrieron llegó a un resultado (tasa de completado), esta semana y la anterior.
 - Según la segunda revisión del dueño (3 oct 2026):
   - Cuenta dice el plan de la finca y lista las fincas de la cuenta con su rol, su plan y cuál está en este teléfono. Antes de subir una finca a una cuenta que ya tiene otras, pregunta si es una de ellas.
   - Costos y Lotes van por pestañas, como Registrar. El costo por kilo es una tabla (cuesta, costos, ventas, ganancia) con el total de la finca y, debajo, qué datos faltan; la bodega también es una tabla.

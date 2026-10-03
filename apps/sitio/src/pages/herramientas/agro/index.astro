@@ -1,10 +1,22 @@
 ---
-/** Índice de herramientas agro. Solo lista lo activo; si no hay nada activo, no se indexa. */
+/**
+ * Página de entrada de las herramientas agro: a ella llegan quienes abren un enlace compartido o
+ * tocan «Gestión Agro» en la cabecera. Presenta cada herramienta por la pregunta que responde
+ * (`entrada` de su `pagina.yaml`, P2) y lleva al cuaderno como siguiente paso.
+ *
+ * Lista las herramientas publicadas (`activo`) y las que esperan revisión (`borrador`), que ya se
+ * pueden abrir por enlace. Solo se indexa cuando hay alguna `activa`: un borrador no se le pide a
+ * Google (sitemap.ts).
+ */
 import Base from '../../../layouts/Base.astro';
-import { herramientas } from '../../../lib/contenido.ts';
+import { herramientas, paginaDe, productoPorId } from '../../../lib/contenido.ts';
 import { MIGAS_DE_HERRAMIENTAS, SITIO } from '../../../lib/seo.ts';
 
-const activas = herramientas.filter((h) => h.estado === 'activo');
+const disponibles = herramientas
+  .filter((h) => h.estado === 'activo' || h.estado === 'borrador')
+  .map((h) => ({ producto: h, entrada: paginaDe(h.carpeta)?.entrada }));
+const indexable = herramientas.some((h) => h.estado === 'activo');
+const cuaderno = productoPorId('agro-cuaderno');
 const canonical = `${SITIO}/herramientas/agro/`;
 const titulo = 'Herramientas agronómicas gratuitas';
 const descripcion =
@@ -14,23 +26,146 @@ const descripcion =
   title={`${titulo} | Gestión Agro`}
   description={descripcion}
   canonical={canonical}
-  indexable={activas.length > 0}
+  indexable={indexable}
   og={{ type: 'website', title: titulo, description: descripcion, url: canonical, site_name: 'Gestión Agro', locale: 'es_CO' }}
   migas={[...MIGAS_DE_HERRAMIENTAS]}
 >
   <h1>{titulo}</h1>
-  <p>{descripcion}</p>
+  <p class="entrada">
+    Respuestas rápidas para el día a día del invernadero y la finca, hechas para usarse en el
+    teléfono, en medio de la nave.
+  </p>
+  <ul class="garantias" data-prueba="garantias">
+    <li>Gratis y sin registro.</li>
+    <li>Funcionan sin señal una vez abiertas.</li>
+    <li>Lo que escribes no sale de tu teléfono.</li>
+  </ul>
+
   {
-    activas.length > 0 ? (
-      <ul>
-        {activas.map((h) => (
-          <li>
-            <a href={h.slug}>{h.nombre}</a>: {h.seo.description}
-          </li>
-        ))}
-      </ul>
+    disponibles.length > 0 ? (
+      <section aria-labelledby="titulo-herramientas">
+        <h2 id="titulo-herramientas">¿Qué necesitas resolver hoy?</h2>
+        <ul class="tarjetas">
+          {disponibles.map(({ producto, entrada }) => (
+            <li class="tarjeta" data-prueba="tarjeta-herramienta">
+              <h3>
+                <a href={producto.slug}>{entrada?.pregunta ?? producto.nombre}</a>
+              </h3>
+              <p class="nombre">{producto.nombre}</p>
+              {entrada && (
+                <p>
+                  <strong>Necesitas:</strong> {entrada.necesitas}
+                </p>
+              )}
+              {entrada?.incluye && <p>{entrada.incluye}</p>}
+              <a class="boton" href={producto.slug} aria-hidden="true" tabindex="-1">
+                Abrir la calculadora
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     ) : (
-      <p>La primera calculadora está en preparación.</p>
+      <p>Las calculadoras están en preparación.</p>
+    )
+  }
+
+  {
+    cuaderno && (
+      <section aria-labelledby="titulo-cuaderno" class="siguiente" data-prueba="al-cuaderno">
+        <h2 id="titulo-cuaderno">Para llevar la cuenta de la finca</h2>
+        <p>
+          El cuaderno de campo guarda en tu teléfono el clima, las aplicaciones, las labores y las
+          cosechas de cada nave, y cada día te dice qué puedes cosechar. Gratis, sin cuenta y sin
+          señal. Si trabajas con un equipo, con una cuenta lo llevan entre todos.
+        </p>
+        <a class="boton secundario" href={cuaderno.slug}>
+          Abrir el cuaderno de campo
+        </a>
+      </section>
     )
   }
 </Base>
+
+<style>
+  .entrada {
+    font-size: 1.125rem;
+  }
+  .garantias {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espacio-2);
+  }
+  .garantias li {
+    background: var(--color-superficie);
+    border-radius: var(--radio);
+    padding: var(--espacio-1) var(--espacio-3);
+    font-size: var(--texto-pequeno);
+  }
+  .garantias li::before {
+    content: '✓ ';
+    color: var(--color-marca);
+    font-weight: 700;
+  }
+  .tarjetas {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: var(--espacio-3);
+  }
+  .tarjeta {
+    border: 1px solid var(--color-borde);
+    border-inline-start: 4px solid var(--color-marca);
+    border-radius: var(--radio);
+    padding: var(--espacio-3);
+  }
+  .tarjeta h3 {
+    margin: 0;
+    font-size: 1.1875rem;
+    line-height: 1.3;
+  }
+  .tarjeta h3 a {
+    color: var(--color-texto);
+    text-decoration: none;
+  }
+  .tarjeta h3 a:hover,
+  .tarjeta h3 a:focus-visible {
+    text-decoration: underline;
+  }
+  .tarjeta .nombre {
+    margin-block: var(--espacio-1) var(--espacio-2);
+    color: var(--color-texto-suave);
+    font-size: var(--texto-pequeno);
+  }
+  .tarjeta p {
+    margin-block: var(--espacio-1);
+  }
+  .boton {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--objetivo-tactil);
+    margin-block-start: var(--espacio-2);
+    padding-inline: var(--espacio-3);
+    border-radius: var(--radio);
+    background: var(--color-marca);
+    color: var(--color-marca-texto);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .boton.secundario {
+    background: transparent;
+    color: var(--color-enlace);
+    border: 2px solid currentColor;
+  }
+  .siguiente {
+    margin-block-start: var(--espacio-5);
+    padding: var(--espacio-3);
+    background: var(--color-superficie);
+    border-radius: var(--radio);
+  }
+  .siguiente h2 {
+    margin-block-start: 0;
+  }
+</style>

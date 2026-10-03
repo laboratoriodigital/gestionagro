@@ -41,6 +41,36 @@ test.describe('sin JavaScript (CA3, P20)', () => {
   }
 });
 
+test.describe('página de entrada de las herramientas', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('presenta cada herramienta por su pregunta, lleva a ella y al cuaderno, sin JavaScript', async ({
+    page,
+  }) => {
+    await page.goto('/herramientas/agro/');
+    // Antes decía «en preparación» mientras las dos esperaban la revisión agronómica.
+    await expect(page.getByText('en preparación')).toHaveCount(0);
+    await expect(page.locator('[data-prueba="garantias"] li')).toHaveCount(3);
+    const tarjetas = page.locator('[data-prueba="tarjeta-herramienta"]');
+    await expect(tarjetas).toHaveCount(2);
+    const dpv = page.getByRole('link', {
+      name: '¿Tu invernadero está muy seco o muy húmedo para el cultivo?',
+    });
+    await expect(dpv).toHaveAttribute('href', DPV);
+    await expect(tarjetas.first()).toContainText('Trae una tabla para imprimir');
+    await expect(
+      page.getByRole('link', { name: /^¿Desde qué día puedes cosechar/ }),
+    ).toHaveAttribute('href', '/herramientas/agro/periodo-de-carencia/');
+    await expect(
+      page.locator('[data-prueba="al-cuaderno"]').getByRole('link', {
+        name: 'Abrir el cuaderno de campo',
+      }),
+    ).toHaveAttribute('href', '/agro/app/');
+    await dpv.click();
+    await expect(page.locator('h1')).toHaveText('Calculadora de DPV');
+  });
+});
+
 test.describe('página útil de la DPV (HU-E2.5)', () => {
   test.use({ javaScriptEnabled: false });
 

@@ -41,6 +41,18 @@ describe('cada regla se ve en rojo con su defecto (P5)', () => {
     ).toContain('el ejemplo resuelto no trae números');
   });
 
+  it('sin la pregunta con la que se presenta en la página de entrada', () => {
+    expect(
+      con((c) => ({
+        ...c,
+        pagina: c.pagina && {
+          ...c.pagina,
+          entrada: { pregunta: 'Calculadora de DPV', necesitas: '' },
+        },
+      })),
+    ).toMatch(/entrada\.pregunta.*entrada\.necesitas/);
+  });
+
   it('con menos de 5 preguntas frecuentes', () => {
     expect(
       con((c) => ({

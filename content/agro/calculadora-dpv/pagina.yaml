@@ -2,6 +2,12 @@
 # se ve en la página y para el JSON-LD (FAQPage y HowTo) (P2). Pendiente de revisión agronómica.
 revision_agronomica: pendiente
 
+# Cómo se presenta en la página de entrada de las herramientas.
+entrada:
+  pregunta: "¿Tu invernadero está muy seco o muy húmedo para el cultivo?"
+  necesitas: "La temperatura y la humedad que marca tu termohigrómetro."
+  incluye: "Trae una tabla para imprimir y pegar en la nave."
+
 preguntas:
   - pregunta: "¿Por qué mirar el DPV y no solo la humedad relativa?"
     respuesta: "Porque la humedad relativa cambia de significado con la temperatura. Un 70 % a 16 °C da un DPV de 0,55 kPa; el mismo 70 % a 28 °C da 1,13 kPa, el doble. El DPV junta los dos datos y dice directamente qué tan fuerte el aire jala el agua de la hoja."

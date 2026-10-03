@@ -25,6 +25,11 @@ export interface PaginaDeHerramienta {
   revision_agronomica: string;
   preguntas: { pregunta: string; respuesta: string }[];
   pasos: { nombre: string; texto: string }[];
+  /**
+   * Cómo se presenta en la página de entrada de las herramientas: la pregunta del productor que
+   * responde, qué necesita tener a mano y, si hay, qué más trae.
+   */
+  entrada: { pregunta: string; necesitas: string; incluye?: string };
 }
 
 export const MINIMO_PREGUNTAS = 5;
@@ -91,6 +96,13 @@ export function revisarCalidad(p: Producto, c: ContenidoLeido): string[] {
     }
     if ((c.pagina.pasos ?? []).length < 2)
       fallas.push('pagina.yaml necesita al menos 2 pasos de uso');
+    const entrada = c.pagina.entrada;
+    if (!entrada?.pregunta?.trim().endsWith('?'))
+      fallas.push(
+        'pagina.yaml necesita «entrada.pregunta»: la pregunta que responde la herramienta',
+      );
+    if (!entrada?.necesitas?.trim())
+      fallas.push('pagina.yaml necesita «entrada.necesitas»: qué tener a mano para usarla');
   }
 
   for (const f of p.fuentes) {

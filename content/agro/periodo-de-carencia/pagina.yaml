@@ -3,6 +3,11 @@
 # agronómica.
 revision_agronomica: pendiente
 
+# Cómo se presenta en la página de entrada de las herramientas.
+entrada:
+  pregunta: "¿Desde qué día puedes cosechar y desde qué hora entrar después de aplicar?"
+  necesitas: "La fecha y la hora de la aplicación, y la carencia y la reentrada de la etiqueta."
+
 preguntas:
   - pregunta: "¿Qué diferencia hay entre periodo de carencia y periodo de reentrada?"
     respuesta: "La carencia protege a quien se come la cosecha: son los días que deben pasar entre la aplicación y la cosecha. La reentrada protege a quien trabaja: son las horas que deben pasar antes de entrar al área tratada sin equipo de protección. Un producto puede tener una carencia larga y una reentrada corta, o al revés."

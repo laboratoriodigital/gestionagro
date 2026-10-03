@@ -406,7 +406,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E2.6 · Publicar, indexar y medir
 **Como** dueño **quiero** la DPV en producción, en el sitemap y en Search Console, con la tasa de completado visible **para** empezar el reloj de 90 días.
-- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S4 · **Depende de:** HU-E1.5, HU-E2.5 · **Estado:** Refinada
+- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S4 · **Depende de:** HU-E1.5, HU-E2.5 · **Estado:** En sprint (rama `feat/herramientas-entrada`, 3 oct 2026. CA3: el reporte semanal trae la tasa de completado de cada herramienta, esta semana y la anterior. CA4 ya lo cubre el kill switch de HU-E8.1. CA1 y CA2 esperan la revisión agronómica: en `docs/validacion/revision-agronomica.md` está lo que ya se validó (las cuentas de los ejemplos y las dos calculadoras en staging), lo que debe confirmar el agrónomo y los pasos para publicar. La pregunta más importante es si la carencia se cuenta en días de calendario o en horas. Producción sigue en la 0.1.0: la calculadora de carencia y la política de datos dan 404 hasta la próxima versión)
 - **Criterios de aceptación:**
   1. El `product.yaml` pasa a `activo` y CI lo acepta (revisión agronómica aprobada).
   2. La URL está en el sitemap, se solicitó su indexación y la fecha queda en `docs/validacion/dpv.md`.
