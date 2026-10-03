@@ -655,7 +655,9 @@ test.describe('HU-E4.5 · la interfaz esconde lo que el rol no puede (la celda d
     // HU-E6.3: los despachos llevan precios; el operario no los ve.
     await ir(page, 'Lotes');
     await expect(page.getByRole('heading', { level: 1, name: 'Lotes de venta' })).toBeVisible();
-    await expect(page.getByRole('heading', { level: 2, name: 'Despachos' })).toHaveCount(0);
+    await expect(
+      page.locator('[data-prueba="pestanas-lotes"]').getByRole('button', { name: 'Despachos' }),
+    ).toHaveCount(0);
   });
 
   test('asesor: consulta, sin formularios para registrar', async ({ page }) => {
@@ -680,7 +682,9 @@ test.describe('HU-E4.5 · la interfaz esconde lo que el rol no puede (la celda d
     await expect(page.getByRole('button', { name: 'Agregar insumo' })).toBeVisible();
     await expect(page.locator('[data-prueba="solo-consulta"]')).toHaveCount(0);
     await ir(page, 'Lotes');
-    await expect(page.getByRole('heading', { level: 2, name: 'Despachos' })).toBeVisible();
+    await expect(
+      page.locator('[data-prueba="pestanas-lotes"]').getByRole('button', { name: 'Despachos' }),
+    ).toBeVisible();
   });
 });
 

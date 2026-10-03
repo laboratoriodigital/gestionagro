@@ -34,6 +34,7 @@ import {
 import { avisoEcologico, leerInsumos, plazo } from '../almacen/insumos.ts';
 import { leerPersonas } from '../almacen/personas.ts';
 import { Campo, CampoSeleccion } from '../componentes/Campo.tsx';
+import { usarCamas } from '../componentes/CampoCama.tsx';
 import { AccionesDeFormulario, aTexto, EventoQueSeCorrige } from '../componentes/Correccion.tsx';
 import { Vencimientos } from '../componentes/Vencimientos.tsx';
 
@@ -127,6 +128,25 @@ export function FormularioAplicacion(props: {
         }
       : { ...vacio(), ...props.cuandoInicial };
   const [v, setV] = useState<Valores>(inicial);
+  // Plan Finca: aplicar solo en algunas camas o surcos (revisión del dueño, 3 oct 2026).
+  const camas = usarCamas();
+  /** Una cama marcada aplica solo ahí: la nave entera se desmarca, y al revés. */
+  const alternarCama = (naveId: string, camaId: string) =>
+    setV({
+      ...v,
+      areas: v.areas.includes(camaId)
+        ? v.areas.filter((x) => x !== camaId)
+        : [...v.areas.filter((x) => x !== naveId), camaId],
+    });
+  const alternarNave = (naveId: string) => {
+    const deLaNave = new Set(camas.camasDe(naveId).map((c) => c.id));
+    setV({
+      ...v,
+      areas: v.areas.includes(naveId)
+        ? v.areas.filter((x) => x !== naveId)
+        : [...v.areas.filter((x) => !deLaNave.has(x)), naveId],
+    });
+  };
   // null = cargando: mientras tanto no se dice «no hay» (revisión del dueño, 1 oct 2026).
   const [insumos, setInsumos] = useState<Insumo[] | null>(null);
   const [personas, setPersonas] = useState<Persona[] | null>(null);
@@ -214,8 +234,15 @@ export function FormularioAplicacion(props: {
         { corrige: props.corrige, cuando },
       );
       const estados = await estadosPorArea(db, props.finca.id);
+      // Las naves y las camas aplicadas; una cama se nombra con su nave.
+      const elegibles = [
+        ...props.areas,
+        ...props.areas.flatMap((a) =>
+          camas.camasDe(a.id).map((c) => ({ ...c, nombre: `${a.nombre} · ${c.nombre}` })),
+        ),
+      ];
       setGuardadas(
-        props.areas
+        elegibles
           .filter((a) => v.areas.includes(a.id))
           .map((a) => ({ area: a, estado: estados.get(a.id) })),
       );
@@ -258,11 +285,33 @@ export function FormularioAplicacion(props: {
               <input
                 type="checkbox"
                 checked={v.areas.includes(a.id)}
-                onChange={() => alternar('areas', a.id)}
+                onChange={() => (camas.porCama ? alternarNave(a.id) : alternar('areas', a.id))}
               />
               {a.nombre}
             </label>
           ))}
+          {camas.porCama &&
+            props.areas
+              .filter((a) => camas.camasDe(a.id).length > 0)
+              .map((a) => (
+                <details
+                  key={`camas-${a.id}`}
+                  class="camas-aplicacion"
+                  open={camas.camasDe(a.id).some((c) => v.areas.includes(c.id))}
+                >
+                  <summary>Solo algunas camas de {a.nombre}</summary>
+                  {camas.camasDe(a.id).map((c) => (
+                    <label class="opcion" key={c.id}>
+                      <input
+                        type="checkbox"
+                        checked={v.areas.includes(c.id)}
+                        onChange={() => alternarCama(a.id, c.id)}
+                      />
+                      {a.nombre} · {c.nombre}
+                    </label>
+                  ))}
+                </details>
+              ))}
           {errores.areas && (
             <p id="aplicacion-areas-error" class="error">
               {errores.areas}

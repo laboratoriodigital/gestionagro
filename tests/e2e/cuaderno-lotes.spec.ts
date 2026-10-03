@@ -71,8 +71,16 @@ for (const f of FINCAS_DE_PRUEBA) {
     await expect(lote.locator('[data-prueba="origen-lote"]')).toHaveText(
       `De ${a1.nombre} (${hoy.corta}), ${a2.nombre} (${hoy.corta})`,
     );
+    await page
+      .locator('[data-prueba="pestanas-lotes"]')
+      .getByRole('button', { name: 'Nuevo lote', exact: true })
+      .click();
     await expect(page.locator('[data-prueba="sin-cosechas-libres"]')).toBeVisible();
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page
+      .locator('[data-prueba="pestanas-lotes"]')
+      .getByRole('button', { name: 'Lotes', exact: true })
+      .click();
 
     // Cambiar las cosechas conserva el código.
     await page
@@ -122,6 +130,10 @@ test('HU-E6.3: despachar un lote sin señal, con cliente, precio y medio de pago
   await primero.getByLabel('Precio por kg en pesos (opcional)').fill('3.500');
   await primero.getByRole('button', { name: 'Guardar despacho' }).click();
 
+  await page
+    .locator('[data-prueba="pestanas-lotes"]')
+    .getByRole('button', { name: 'Despachos', exact: true })
+    .click();
   const despacho = page.locator('[data-prueba="despacho"]');
   await expect(despacho).toHaveCount(1);
   await expect(despacho).toContainText('Cliente Ensayo · restaurante');
@@ -129,6 +141,10 @@ test('HU-E6.3: despachar un lote sin señal, con cliente, precio y medio de pago
   await expect(despacho.locator('[data-prueba="precio-despacho"]')).toHaveText(
     '$ 3.500 por kg · total $ 35.000 · transferencia',
   );
+  await page
+    .locator('[data-prueba="pestanas-lotes"]')
+    .getByRole('button', { name: 'Lotes', exact: true })
+    .click();
   await expect(page.locator('[data-prueba="saldo-lote"]')).toHaveText(
     'Despachado 10 kg · quedan 32,5 kg',
   );
@@ -138,6 +154,10 @@ test('HU-E6.3: despachar un lote sin señal, con cliente, precio y medio de pago
   await expect(otro.getByRole('alert')).toHaveText(
     `No se guardó: al lote ${codigo} le quedan 32,5 kg y quieres despachar 40.`,
   );
+  await page
+    .locator('[data-prueba="pestanas-lotes"]')
+    .getByRole('button', { name: 'Despachos', exact: true })
+    .click();
   await expect(despacho).toHaveCount(1);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
@@ -155,6 +175,10 @@ test('revisión del dueño: otro lote con una cosecha nueva, y sumarla a un lote
   await page.getByText(`${a1.nombre} · ${hoy.corta} · Primera · 10 kg`).click();
   await page.getByRole('button', { name: 'Armar lote' }).click();
   // Sin cosechas libres, dice por qué y adónde ir.
+  await page
+    .locator('[data-prueba="pestanas-lotes"]')
+    .getByRole('button', { name: 'Nuevo lote', exact: true })
+    .click();
   await expect(page.locator('[data-prueba="sin-cosechas-libres"]')).toContainText(
     'todas las anotadas ya están en uno',
   );
@@ -162,6 +186,10 @@ test('revisión del dueño: otro lote con una cosecha nueva, y sumarla a un lote
   // Una cosecha nueva sirve para otro lote…
   await cosechar(page, a1.nombre, '20');
   await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  await page
+    .locator('[data-prueba="pestanas-lotes"]')
+    .getByRole('button', { name: 'Nuevo lote', exact: true })
+    .click();
   await page.getByText(`${a1.nombre} · ${hoy.corta} · Primera · 20 kg`).click();
   await page.getByRole('button', { name: 'Armar lote' }).click();
   await expect(page.locator('.codigo-lote')).toHaveText([`M-${hoy.ddmm}-2`, `M-${hoy.ddmm}-1`]);
@@ -192,11 +220,24 @@ test('HU-E6.5 · CA1: descargar la disponibilidad para la tienda, sin señal, co
   await nav(page).getByRole('link', { name: 'Lotes' }).click();
   const hoy = hoyEnColombia();
   // Sin lotes con saldo no hay nada que descargar.
+  await page
+    .locator('[data-prueba="pestanas-lotes"]')
+    .getByRole('button', { name: 'Para la tienda', exact: true })
+    .click();
   await expect(page.locator('[data-prueba="disponibilidad"]')).toContainText(
     'No queda nada por vender en los lotes.',
   );
+  await page
+    .locator('[data-prueba="pestanas-lotes"]')
+    .getByRole('button', { name: 'Nuevo lote', exact: true })
+    .click();
+
   await page.getByLabel(`${a1.nombre} · ${hoy.corta} · Primera · 30,5 kg`).check();
   await page.getByRole('button', { name: 'Armar lote' }).click();
+  await page
+    .locator('[data-prueba="pestanas-lotes"]')
+    .getByRole('button', { name: 'Para la tienda', exact: true })
+    .click();
   const [descarga] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Descargar disponibilidad' }).click(),

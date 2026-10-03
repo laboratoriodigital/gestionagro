@@ -54,7 +54,16 @@ export function resumenDe(r: Registro, nombres: ReadonlyMap<string, string>): st
     const metodo = { trampa: 'trampa', conteo: 'conteo', observacion: 'observación' }[d.metodo];
     const cantidad = d.cantidad === null ? '' : ` · ${d.cantidad} individuos`;
     const foto = d.foto_id ? ' · con foto' : '';
-    return `Monitoreo · ${d.plaga} · nivel ${d.nivel} · ${metodo}${cantidad}${foto}`;
+    // v2: la incidencia del muestreo (revisión del dueño, 3 oct 2026).
+    const r2 = d.plantasRevisadas ?? null;
+    const a2 = d.plantasAfectadas ?? null;
+    const plantas =
+      r2 === null
+        ? ''
+        : a2 === null
+          ? ` · ${r2} plantas revisadas`
+          : ` · ${a2} de ${r2} plantas (${coma(Math.round((a2 / r2) * 1000) / 10)} %)`;
+    return `Monitoreo · ${d.plaga} · nivel ${d.nivel} · ${metodo}${cantidad}${plantas}${foto}`;
   }
   if (r.tipo === 'despacho') {
     const d = r.datos as DatosDespacho;

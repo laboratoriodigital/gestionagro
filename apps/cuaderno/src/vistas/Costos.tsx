@@ -18,7 +18,11 @@ import {
 import { leerInsumos } from '../almacen/insumos.ts';
 import { leerSesion, planDeLaFinca } from '../almacen/sesion.ts';
 import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
+import { Pestanas } from '../componentes/Pestanas.tsx';
 import { CostoPorKilo } from './CostoPorKilo.tsx';
+
+type PestanaCostos = 'resumen' | 'bodega' | 'insumos' | 'mano';
+
 import { ManoDeObra } from './ManoDeObra.tsx';
 import { SinFinca, usarFinca } from './usarFinca.tsx';
 import { usarPermisos } from './usarPermisos.tsx';
@@ -159,6 +163,8 @@ export function Costos() {
   const estado = usarFinca();
   const permisos = usarPermisos();
   const [plan, setPlan] = useState<string | null>(null);
+  // Una pestaña a la vez (revisión del dueño, 3 oct 2026: la pantalla era muy larga).
+  const [pestana, setPestana] = useState<PestanaCostos>('resumen');
   const [bodega, setBodega] = useState<ExistenciaDeInsumo[] | null>(null);
   const [porArea, setPorArea] = useState<CostoDeArea[]>([]);
   const [insumos, setInsumos] = useState<Insumo[]>([]);
@@ -221,76 +227,122 @@ export function Costos() {
     );
   }
 
+  const pestanas = [
+    { id: 'resumen' as const, titulo: 'Costo por kilo' },
+    { id: 'bodega' as const, titulo: 'Bodega' },
+    { id: 'insumos' as const, titulo: 'Insumos por nave' },
+    ...(permisos.puede('leer', 'valor_jornal')
+      ? [{ id: 'mano' as const, titulo: 'Mano de obra' }]
+      : []),
+  ];
   return (
     <section aria-labelledby="titulo-costos">
       {titulo}
-      <CostoPorKilo fincaId={fincaId} />
-      <h2>Bodega</h2>
-      {bodega === null ? (
-        <p class="ayuda">Calculando…</p>
-      ) : bodega.length === 0 ? (
-        <p class="ayuda">Todavía no hay compras ni aplicaciones con cantidad.</p>
-      ) : (
-        <ul class="areas" data-prueba="bodega">
-          {bodega.map((b) => (
-            <li class="area" key={b.insumoId} data-prueba="existencia">
-              <p class="area-titulo">
-                <strong>{b.insumo}</strong> · quedan {cantidad(b.existencia)} {b.unidad}
-              </p>
-              <p class="detalle-insumo">
-                {b.costoUnitario === null
-                  ? 'Costo sin dato: alguna compra no tiene precio.'
-                  : `${pesos(b.costoUnitario)} por ${b.unidad}${b.valor === null ? '' : ` · en bodega ${pesos(b.valor)}`}`}
-              </p>
-              {b.quedoNegativa && (
-                <p class="aviso-ecologico" data-prueba="aviso-negativa">
-                  Se aplicó más de lo que entró: falta registrar alguna compra o un ajuste.
-                </p>
-              )}
-              {b.sinCantidad > 0 && (
-                <p class="ayuda">
-                  {b.sinCantidad === 1 ? '1 aplicación' : `${b.sinCantidad} aplicaciones`} sin
-                  cantidad anotada: no se descontaron.
-                </p>
-              )}
-            </li>
-          ))}
-        </ul>
+      <Pestanas
+        etiqueta="Qué ver de los costos"
+        opciones={pestanas}
+        actual={pestana}
+        alCambiar={setPestana}
+        prueba="pestanas-costos"
+      />
+      {pestana === 'resumen' && <CostoPorKilo fincaId={fincaId} />}
+      {pestana === 'bodega' && (
+        <>
+          <h2>Bodega</h2>
+          {bodega === null ? (
+            <p class="ayuda">Calculando…</p>
+          ) : bodega.length === 0 ? (
+            <p class="ayuda">Todavía no hay compras ni aplicaciones con cantidad.</p>
+          ) : (
+            <table class="tabla-rendimiento" data-prueba="bodega">
+              <thead>
+                <tr>
+                  <th scope="col">Insumo</th>
+                  <th scope="col">Queda</th>
+                  <th scope="col">Costo</th>
+                  <th scope="col">En bodega</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bodega.map((b) => (
+                  <tr key={b.insumoId} data-prueba="existencia">
+                    <th scope="row">
+                      {b.insumo}
+                      {b.quedoNegativa && (
+                        <span class="detalle-insumo desconocida" data-prueba="aviso-negativa">
+                          Se aplicó más de lo que entró: falta registrar alguna compra o un ajuste.
+                        </span>
+                      )}
+                      {b.sinCantidad > 0 && (
+                        <span class="detalle-insumo">
+                          {b.sinCantidad === 1 ? '1 aplicación' : `${b.sinCantidad} aplicaciones`}{' '}
+                          sin cantidad anotada: no se descontaron.
+                        </span>
+                      )}
+                    </th>
+                    <td class={b.existencia < 0 ? 'desconocida' : ''}>
+                      {cantidad(b.existencia)} {b.unidad}
+                    </td>
+                    <td>
+                      {b.costoUnitario === null
+                        ? 'sin dato'
+                        : `${pesos(b.costoUnitario)} por ${b.unidad}`}
+                    </td>
+                    <td>{b.valor === null ? '—' : pesos(b.valor)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {bodega?.some((b) => b.costoUnitario === null) && (
+            <p class="ayuda">
+              «Sin dato»: alguna compra no tiene precio. Anótalo en la próxima compra.
+            </p>
+          )}
+          {permisos.puedeRegistro('escribir', 'movimiento_insumo') && (
+            <FormularioMovimiento fincaId={fincaId} insumos={insumos} alGuardar={cargar} />
+          )}
+        </>
       )}
-      {permisos.puedeRegistro('escribir', 'movimiento_insumo') && (
-        <FormularioMovimiento fincaId={fincaId} insumos={insumos} alGuardar={cargar} />
+      {pestana === 'insumos' && (
+        <>
+          <h2>Insumos aplicados por nave</h2>
+          {porArea.length === 0 ? (
+            <p class="ayuda">Todavía no hay aplicaciones.</p>
+          ) : (
+            <table class="tabla-rendimiento" data-prueba="costo-por-area">
+              <thead>
+                <tr>
+                  <th scope="col">Nave y ciclo</th>
+                  <th scope="col">Costo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {porArea.map((c) => (
+                  <tr key={`${c.areaId}|${c.cicloId}`}>
+                    <th scope="row">
+                      {nombres.areas.get(c.areaId) ?? 'Área'}
+                      <span class="detalle-insumo">
+                        {c.cicloId
+                          ? ` · ${nombres.ciclos.get(c.cicloId) ?? 'ciclo'}`
+                          : ' · sin ciclo'}{' '}
+                        · {c.aplicaciones} {c.aplicaciones === 1 ? 'aplicación' : 'aplicaciones'}
+                      </span>
+                    </th>
+                    <td>
+                      {pesos(c.costo)}
+                      {c.sinCosto > 0 && (
+                        <span class="detalle-insumo"> · {c.sinCosto} sin costo</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
       )}
-      <h2>Insumos aplicados por nave</h2>
-      {porArea.length === 0 ? (
-        <p class="ayuda">Todavía no hay aplicaciones.</p>
-      ) : (
-        <table class="tabla-rendimiento" data-prueba="costo-por-area">
-          <thead>
-            <tr>
-              <th scope="col">Nave y ciclo</th>
-              <th scope="col">Costo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {porArea.map((c) => (
-              <tr key={`${c.areaId}|${c.cicloId}`}>
-                <th scope="row">
-                  {nombres.areas.get(c.areaId) ?? 'Área'}
-                  <span class="detalle-insumo">
-                    {c.cicloId ? ` · ${nombres.ciclos.get(c.cicloId) ?? 'ciclo'}` : ' · sin ciclo'}{' '}
-                    · {c.aplicaciones} {c.aplicaciones === 1 ? 'aplicación' : 'aplicaciones'}
-                  </span>
-                </th>
-                <td>
-                  {pesos(c.costo)}
-                  {c.sinCosto > 0 && <span class="detalle-insumo"> · {c.sinCosto} sin costo</span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {permisos.puede('leer', 'valor_jornal') && (
+      {pestana === 'mano' && permisos.puede('leer', 'valor_jornal') && (
         <ManoDeObra
           fincaId={fincaId}
           areas={nombres.areas}

@@ -6,8 +6,16 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { type Etiqueta, etiquetaDelLote } from '../almacen/etiqueta.ts';
+import { funcionActiva } from '../almacen/funciones.ts';
 import type { Lote } from '../almacen/lotes.ts';
-import { estadoDeSesion, leerSesion, renovarSiHaceFalta, urlDelCore } from '../almacen/sesion.ts';
+import { guardarLogo, leerLogo, prepararLogo, quitarLogo } from '../almacen/marca.ts';
+import {
+  estadoDeSesion,
+  leerSesion,
+  planDeLaFinca,
+  renovarSiHaceFalta,
+  urlDelCore,
+} from '../almacen/sesion.ts';
 import { estadoDelVinculo } from '../almacen/vinculo.ts';
 import { CodigoQr, imagenDeEtiqueta } from '../componentes/CodigoQr.tsx';
 import { descargar } from '../descargar.ts';
@@ -66,7 +74,7 @@ function imprimir(etiqueta: HTMLElement | null) {
  * enlace; donde no hay menú de compartir (un computador), se descarga la imagen y se copia el
  * enlace. Devuelve qué pasó.
  */
-async function compartir(e: Etiqueta): Promise<string> {
+async function compartir(e: Etiqueta, logo: string | null): Promise<string> {
   const titulo = `Lote ${e.datos.l} · ${e.datos.f}`;
   const texto = `${titulo}. De dónde viene: ${e.enlace}`;
   try {
@@ -75,6 +83,7 @@ async function compartir(e: Etiqueta): Promise<string> {
       codigo: e.datos.l,
       finca: e.datos.f,
       estado: e.firmada ? 'Verificado' : 'Sin confirmar',
+      logo,
     });
     if (navigator.share) {
       const archivo = new File([imagen], `lote-${e.datos.l}.png`, { type: 'image/png' });
@@ -103,6 +112,29 @@ export function EtiquetaQr(props: { lote: Lote; alCerrar: () => void }) {
   const [ultimoIntento, setUltimoIntento] = useState<string | null>(null);
   const [aviso, setAviso] = useState('');
   const etiquetaRef = useRef<HTMLDivElement>(null);
+  // El logo de la finca (plan Finca, revisión del dueño, 3 oct 2026).
+  const [conMarca, setConMarca] = useState(false);
+  const [logo, setLogo] = useState<string | null>(null);
+  const [avisoLogo, setAvisoLogo] = useState<string | null>(null);
+  useEffect(() => {
+    const db = cuaderno();
+    void (async () => {
+      setConMarca(funcionActiva('marca_en_etiqueta', planDeLaFinca(await leerSesion(db))));
+      setLogo(await leerLogo(db));
+    })();
+  }, []);
+  const elegirLogo = async (archivo: File | undefined) => {
+    if (!archivo) return;
+    setAvisoLogo(null);
+    try {
+      const dataUrl = await prepararLogo(archivo);
+      await guardarLogo(cuaderno(), dataUrl);
+      setLogo(dataUrl);
+    } catch (e) {
+      setAvisoLogo(e instanceof Error ? e.message : 'No se pudo usar esa imagen.');
+    }
+  };
+  const marca = conMarca ? logo : null;
   useEffect(() => {
     void (async () => {
       const n = await nube();
@@ -123,7 +155,10 @@ export function EtiquetaQr(props: { lote: Lote; alCerrar: () => void }) {
     <div class="etiqueta" data-prueba="etiqueta-qr">
       <div class="etiqueta-imprimible" ref={etiquetaRef}>
         <CodigoQr texto={etiqueta.enlace} titulo={`Código QR del lote ${d.l}`} />
-        <p class="etiqueta-codigo">{d.l}</p>
+        <p class="etiqueta-codigo">
+          {marca && <img class="etiqueta-logo" src={marca} alt={`Logo de ${d.f}`} />}
+          {d.l}
+        </p>
         <p class="etiqueta-finca">{d.f}</p>
         <p class="etiqueta-estado">{etiqueta.firmada ? 'Verificado' : 'Sin confirmar'}</p>
       </div>
@@ -164,13 +199,51 @@ export function EtiquetaQr(props: { lote: Lote; alCerrar: () => void }) {
         <button
           type="button"
           class="secundario"
-          onClick={() => void compartir(etiqueta).then(setAviso)}
+          onClick={() => void compartir(etiqueta, marca).then(setAviso)}
         >
           Compartir
         </button>
         <button type="button" onClick={() => imprimir(etiquetaRef.current)}>
           Imprimir
         </button>
+      </div>
+      <div class="logo-etiqueta" data-prueba="logo-etiqueta">
+        {conMarca ? (
+          <>
+            <label class="boton secundario">
+              {logo ? 'Cambiar el logo de la finca' : 'Poner el logo de la finca'}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                class="solo-lectores"
+                onChange={(e) => void elegirLogo((e.currentTarget as HTMLInputElement).files?.[0])}
+              />
+            </label>
+            {logo && (
+              <button
+                type="button"
+                class="secundario"
+                onClick={() =>
+                  void quitarLogo(cuaderno()).then(() => {
+                    setLogo(null);
+                  })
+                }
+              >
+                Quitar el logo
+              </button>
+            )}
+            {avisoLogo && (
+              <p class="error" role="alert">
+                {avisoLogo}
+              </p>
+            )}
+          </>
+        ) : (
+          <p class="ayuda">
+            El logo de tu finca en la etiqueta viene con el plan Finca.{' '}
+            <a href="/agro/app/planes/">Ver los planes</a>
+          </p>
+        )}
       </div>
       {aviso && (
         <p class="ayuda" role="status" data-prueba="aviso-compartir">

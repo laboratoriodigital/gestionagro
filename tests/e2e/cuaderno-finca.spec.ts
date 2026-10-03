@@ -192,3 +192,44 @@ test('revisión del dueño: con muchas áreas se pliegan; se abren una a una o t
   await page.getByRole('button', { name: 'Cerrar todas las áreas' }).click();
   await expect(page.locator('[data-prueba="area"] details[open]')).toHaveCount(0);
 });
+
+test('revisión del dueño: un área nueva sin nada asociado se elimina; una con registros dice por qué no', async ({
+  page,
+}) => {
+  const f = FINCA_ENSAYO_UNO;
+  const primera = f.areas[0]?.nombre ?? '';
+  await configurar(page, f);
+  await page.getByRole('button', { name: 'Agregar área' }).click();
+  await page.getByLabel('Tipo').selectOption({ label: 'Bloque' });
+  await page.getByLabel('Nombre', { exact: true }).fill('Bloque Nuevo');
+  await page.getByLabel('Tamaño (m²)').fill('800');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.locator('[data-prueba="area"]')).toHaveCount(f.areas.length + 1);
+
+  await page.getByRole('button', { name: 'Eliminar Bloque Nuevo' }).click();
+  const aviso = page.locator('[data-prueba="eliminar-area"]');
+  await expect(aviso).toContainText('¿Eliminar «Bloque Nuevo»?');
+  await aviso.getByRole('button', { name: 'Sí, eliminar' }).click();
+  await expect(page.locator('[data-prueba="area"]')).toHaveCount(f.areas.length);
+  await expect(page.getByText('Bloque Nuevo')).toHaveCount(0);
+
+  // Con un registro, no: dice por qué.
+  await page
+    .getByRole('navigation', { name: 'Secciones del cuaderno' })
+    .getByRole('link', { name: 'Registrar' })
+    .click();
+  await page.getByLabel('Área', { exact: true }).selectOption({ label: primera });
+  await page.getByLabel('Temperatura del aire (°C)').fill('24');
+  await page.getByLabel('Humedad relativa (%)').fill('70');
+  await page.getByRole('button', { name: 'Guardar clima' }).click();
+  await expect(page.getByText('Guardado en este teléfono.')).toBeVisible();
+  await page
+    .getByRole('navigation', { name: 'Secciones del cuaderno' })
+    .getByRole('link', { name: 'Áreas' })
+    .click();
+  await page.getByRole('button', { name: `Eliminar ${primera}` }).click();
+  await expect(page.locator('[data-prueba="eliminar-area"]')).toContainText(
+    `No se puede eliminar «${primera}»: tiene 1 registro`,
+  );
+  await expect(page.getByRole('button', { name: 'Sí, eliminar' })).toHaveCount(0);
+});

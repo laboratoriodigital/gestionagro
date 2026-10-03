@@ -239,6 +239,37 @@ const monitoreoV1 = z.strictObject({
   nota: z.string().trim().max(280, 'la nota es de máximo 280 letras').nullable(),
 });
 
+/**
+ * `monitoreo` v2 (revisión del dueño, 3 oct 2026): las plantas revisadas y las afectadas, de las
+ * que sale la incidencia en %. Es lo que se muestrea en el manejo integrado; seguir planta por
+ * planta no lo es. Nulo = no se contó, que no es 0 (P1).
+ */
+const monitoreoV2 = monitoreoV1
+  .extend({
+    plantasRevisadas: z.int('debe ser un número entero').min(1).max(1_000_000).nullable(),
+    plantasAfectadas: z.int('debe ser un número entero').min(0).max(1_000_000).nullable(),
+  })
+  .superRefine((m, ctx) => {
+    if (m.plantasAfectadas !== null && m.plantasRevisadas === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['plantasRevisadas'],
+        message: 'escribe cuántas plantas revisaste',
+      });
+    }
+    if (
+      m.plantasAfectadas !== null &&
+      m.plantasRevisadas !== null &&
+      m.plantasAfectadas > m.plantasRevisadas
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['plantasAfectadas'],
+        message: 'no pueden ser más que las revisadas',
+      });
+    }
+  });
+
 export const TIPOS_DE_CLIENTE = ['consumidor', 'restaurante', 'tienda', 'cadena'] as const;
 export const MEDIOS_DE_PAGO = ['efectivo', 'transferencia', 'credito', 'otro'] as const;
 
@@ -274,7 +305,7 @@ export const ESQUEMAS_DE_DATOS: Readonly<Record<string, Readonly<Record<number, 
   cosecha: { 1: cosechaV1, 2: cosechaV2 },
   lote_venta: { 1: loteVentaV1 },
   despacho: { 1: despachoV1 },
-  monitoreo: { 1: monitoreoV1 },
+  monitoreo: { 1: monitoreoV1, 2: monitoreoV2 },
   movimiento_insumo: { 1: movimientoInsumoV1 },
 };
 

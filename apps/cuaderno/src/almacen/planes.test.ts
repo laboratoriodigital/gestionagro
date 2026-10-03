@@ -69,6 +69,14 @@ describe('planes con precio visible (HU-E0.6)', () => {
     );
     expect(incluye('finca', 'Carpeta de cumplimiento en PDF para auditorías (pronto)')).toBe(false);
     expect(incluye('gratuito', 'Carpeta')).toBe(funcionActiva('carpeta_cumplimiento', 'gratuito'));
+    // Registros por cama o surco: del plan Finca (revisión del dueño, 3 oct 2026).
+    expect(propio('finca', 'por cama o surco')).toBe(funcionActiva('registros_por_cama', 'finca'));
+    expect(incluye('gratuito', 'por cama o surco')).toBe(
+      funcionActiva('registros_por_cama', 'gratuito'),
+    );
+    // Logo en la etiqueta QR: del plan Finca.
+    expect(propio('finca', 'logo de tu finca')).toBe(funcionActiva('marca_en_etiqueta', 'finca'));
+    expect(incluye('gratuito', 'logo')).toBe(funcionActiva('marca_en_etiqueta', 'gratuito'));
     // Calendario de carencias: hoy gratis.
     expect(incluye('gratuito', 'Calendario de carencias')).toBe(
       funcionActiva('calendario_carencias', 'gratuito'),

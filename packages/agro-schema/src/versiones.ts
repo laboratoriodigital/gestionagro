@@ -29,6 +29,10 @@ export const TRADUCTORES: Readonly<Record<string, Readonly<Record<number, Paso>>
     // es 0; esa aplicación no descuenta de bodega ni suma costo, y la pantalla lo dice.
     1: (d) => ({ ...d, cantidadUsada: null }),
   },
+  monitoreo: {
+    // v2 agregó las plantas revisadas y afectadas. Un monitoreo v1 no las contó: nulo, no 0.
+    1: (d) => ({ ...d, plantasRevisadas: null, plantasAfectadas: null }),
+  },
   cosecha: {
     // v2 agregó las horas de cada persona (HU-E7.4). Una cosecha v1 no las anotó: «no se
     // anotó», que no es 0 horas; no entra al rendimiento por operario, y la pantalla lo cuenta.

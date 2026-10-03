@@ -26,3 +26,14 @@ export const NOMBRE_REGIMEN: Record<string, string> = {
   ecologico: 'Ecológico',
   convencional: 'Convencional',
 };
+
+/** «Nave 1» o, para una cama o un surco, «Nave 1 · Cama 2». Una sola regla para las listas (P2). */
+export function nombreDeArea(
+  areas: readonly { id: string; nombre: string; padre_id: string | null }[],
+  id: string | undefined,
+): string {
+  const area = areas.find((a) => a.id === id);
+  if (!area) return 'Área';
+  const padre = area.padre_id ? areas.find((a) => a.id === area.padre_id) : undefined;
+  return padre ? `${padre.nombre} · ${area.nombre}` : area.nombre;
+}

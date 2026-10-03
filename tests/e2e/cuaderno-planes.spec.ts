@@ -95,3 +95,27 @@ test('CA4: a Planes se llega por enlaces; registrar no muestra planes ni ventana
     .click();
   await expect(page.getByRole('heading', { level: 1, name: 'Planes' })).toBeVisible();
 });
+
+test('revisión del dueño: Cuenta dice el plan y las fincas; antes de subir otra finca, pregunta', async ({
+  page,
+}) => {
+  await configurar(page, FINCA_ENSAYO_UNO);
+  await conPlan(page, 'exportador');
+  await page.goto('/agro/app/cuenta/');
+  await expect(page.locator('[data-prueba="cuenta-plan"]')).toContainText(
+    'Plan de esta finca: Exportador',
+  );
+  await expect(page.locator('[data-prueba="cuenta-fincas"]')).toContainText(
+    'Finca Ensayo · Propietario · plan Exportador · en este teléfono',
+  );
+  // La cuenta ya tiene una finca en la nube: primero se pregunta.
+  const pregunta = page.locator('[data-prueba="nube-pregunta"]');
+  await expect(pregunta).toContainText('Tu cuenta ya tiene en la nube: Finca Ensayo.');
+  await expect(page.getByRole('button', { name: 'Subirla como finca nueva' })).toHaveCount(0);
+  await pregunta.getByRole('button', { name: 'Sí, es una de ellas' }).click();
+  await expect(page.locator('[data-prueba="nube-misma"]')).toContainText(
+    'no puede juntar dos copias de una misma finca',
+  );
+  await pregunta.getByRole('button', { name: 'No, es otra finca' }).click();
+  await expect(page.getByRole('button', { name: 'Subirla como finca nueva' })).toBeVisible();
+});

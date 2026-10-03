@@ -80,17 +80,43 @@ export async function asegurarCategoria(
 export type BloqueoPorCarencia = NonNullable<DatosCosechaGuardada['carenciaConfirmada']>;
 
 /** ¿El área está en carencia en ese momento? Null si se puede cosechar. */
+/**
+ * La carencia que impide cosechar un área (HU-E6.1, CA2). Con camas y surcos (revisión del dueño,
+ * 3 oct 2026) cuenta lo aplicado en el área, en las que la contienen (lo de la nave vale para sus
+ * camas) y en las que contiene (cosechar la nave entera incluye la cama en carencia). Manda lo más
+ * restrictivo: una carencia desconocida, o la fecha más lejana (P1).
+ */
 export async function bloqueoPorCarencia(
   db: CuadernoDb,
   fincaId: string,
   areaId: string,
   momento: Date,
 ): Promise<BloqueoPorCarencia | null> {
-  const carencia = (await estadosPorArea(db, fincaId, momento)).get(areaId)?.carencia;
-  if (!carencia || carencia.tipo === 'libre') return null;
-  return carencia.tipo === 'hasta'
-    ? { tipo: 'hasta', hasta: carencia.fecha, insumos: [carencia.insumo] }
-    : { tipo: 'desconocida', hasta: null, insumos: [...carencia.insumos] };
+  const estados = await estadosPorArea(db, fincaId, momento);
+  const areas = await db.area.where('finca_id').equals(fincaId).toArray();
+  const porId = new Map(areas.map((x) => [x.id, x]));
+  const relacionadas = new Set<string>([areaId]);
+  for (let p = porId.get(areaId)?.padre_id; p; p = porId.get(p)?.padre_id) relacionadas.add(p);
+  const hijas = (id: string): string[] =>
+    areas.filter((x) => x.padre_id === id).flatMap((x) => [x.id, ...hijas(x.id)]);
+  for (const h of hijas(areaId)) relacionadas.add(h);
+
+  let peor = null as BloqueoPorCarencia | null;
+  for (const id of relacionadas) {
+    const c = estados.get(id)?.carencia;
+    if (!c || c.tipo === 'libre') continue;
+    const donde = id === areaId ? '' : ` en ${porId.get(id)?.nombre ?? 'otra área'}`;
+    if (c.tipo === 'desconocida') {
+      const insumos = c.insumos.map((i) => `${i}${donde}`);
+      peor =
+        peor?.tipo === 'desconocida'
+          ? { ...peor, insumos: [...new Set([...peor.insumos, ...insumos])] }
+          : { tipo: 'desconocida', hasta: null, insumos };
+    } else if (peor?.tipo !== 'desconocida' && (!peor || c.fecha > (peor.hasta ?? ''))) {
+      peor = { tipo: 'hasta', hasta: c.fecha, insumos: [`${c.insumo}${donde}`] };
+    }
+  }
+  return peor;
 }
 
 /** Texto del bloqueo, el mismo en la pantalla y en el error (CA2). */

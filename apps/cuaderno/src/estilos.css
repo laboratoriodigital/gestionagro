@@ -621,3 +621,25 @@ a.boton {
 .sello-area.desconocida {
   color: var(--color-alerta);
 }
+
+/* Logo de la finca en la etiqueta QR (revisión del dueño, 3 oct 2026): junto al código, sin tapar
+   el QR, para que se siga leyendo igual. */
+.etiqueta-logo {
+  height: 0.75cm;
+  max-width: 1.5cm;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-inline-end: 0.12cm;
+}
+.logo-etiqueta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+  align-items: center;
+  margin-block: var(--espacio-2);
+}
+label.boton.secundario {
+  background: transparent;
+  color: var(--color-texto);
+  cursor: pointer;
+}
