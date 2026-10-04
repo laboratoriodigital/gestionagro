@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="512" height="512">
+  <title>CultivoPro</title>
+  <!-- La hoja del ícono de la app (scripts/generar-iconos.ts): dos círculos de radio 13,44 que se cruzan, inclinados 45°, con el nervio recortado (relleno evenodd, sin máscaras: se ve igual en cualquier programa). Verde de la marca (#1f6b3a). -->
+  <path fill="#1f6b3a" fill-rule="evenodd" d="M4.54 4.54A13.44 13.44 0 0 1 19.46 19.46A13.44 13.44 0 0 1 4.54 4.54ZM5.082 4.658L19.342 18.918L18.918 19.342L4.658 5.082Z" />
+</svg>

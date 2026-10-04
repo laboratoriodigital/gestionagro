@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <title>CultivoPro</title>
+  <!-- Ícono de CultivoPro: la hoja blanca sobre el verde de la marca, igual que el de la app. -->
+  <rect width="24" height="24" rx="5" fill="#1f6b3a" />
+  <path fill="#fff" fill-rule="evenodd" d="M4.54 4.54A13.44 13.44 0 0 1 19.46 19.46A13.44 13.44 0 0 1 4.54 4.54ZM5.082 4.658L19.342 18.918L18.918 19.342L4.658 5.082Z" />
+</svg>

@@ -1,5 +1,6 @@
 {
   "nota": "Marca pública del producto (decisión del dueño, 3 oct 2026, con el dominio cultivopro.co). Única fuente del nombre (P2): la leen el sitio, el cuaderno, el CORE (la descripción del cobro en Bold), los PDF y el reporte semanal. Una prueba (tests/repo/marca.test.ts) exige que ningún archivo de apps/ diga el nombre anterior y que el título y el manifiesto del cuaderno digan este.",
+  "archivos": "apps/sitio/public/marca/ (cultivopro.co/marca/): la hoja, el ícono (favicon), el logo verde y el blanco, en SVG y PNG. La hoja es la misma del ícono de la app (scripts/generar-iconos.ts).",
   "nombre": "CultivoPro",
   "lema": "Herramientas y cuaderno de campo para tu invernadero",
   "cuaderno": "Cuaderno de campo"

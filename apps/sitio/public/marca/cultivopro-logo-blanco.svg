@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 156 28" width="780" height="140">
+  <title>CultivoPro</title>
+  <!-- Logo en blanco, para fondos verdes u oscuros (como la cabecera del sitio). -->
+  <path fill="#fff" fill-rule="evenodd" d="M6.54 6.54A13.44 13.44 0 0 1 21.46 21.46A13.44 13.44 0 0 1 6.54 6.54ZM7.082 6.658L21.342 20.918L20.918 21.342L6.658 7.082Z" />
+  <text x="32" y="20.5" fill="#fff" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif" font-size="18" font-weight="800" letter-spacing="-0.2">CultivoPro</text>
+</svg>
