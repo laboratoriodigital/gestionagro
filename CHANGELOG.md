@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.3.0] - 2026-10-04
+
+### Agregado
+- Publicación continua: al fusionar un PR a main se despliega staging y, si la versión de package.json es nueva, se publica sola (tag y notas del CHANGELOG) y se despliega a producción en la misma corrida. Lo único a mano es aprobar el PR. Un PR que no sube la versión solo llega a staging.
+
+## [0.2.1] - 2026-10-04
+
 ### Agregado
 - El logo de CultivoPro en archivos para descargar (cultivopro.co/marca/): la hoja, el ícono, el logo verde y el blanco, en SVG y PNG. El sitio tiene favicon. Hay una sola hoja, la dibujada a mano con el nervio curvo, que el dueño prefirió: va en las cabeceras, el favicon, el ícono de la app instalada y el logo. Antes el ícono de la app tenía otra hoja. La guía del vendedor enlaza los logos.
 

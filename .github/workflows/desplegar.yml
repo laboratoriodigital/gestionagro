@@ -1,8 +1,15 @@
-# Despliegue por celdas (HU-E1.5, ARQUITECTURA §7.3).
-# - Staging: cuando el CI termina en verde en main (nunca se despliega lo que no pasó el CI).
-# - Producción: al publicar una versión vX.Y.Z (la publica el dueño).
-# - A mano: «Run workflow», eligiendo destino y, para seguir después de una falla, una sola celda.
-# Un despliegue a medias no se cancela: la corrida nueva espera a que termine la anterior.
+# Despliegue por celdas (HU-E1.5, ARQUITECTURA §7.3), con publicación continua (4 oct 2026).
+#
+# Al fusionar un PR a main, sin más pasos a mano que aprobar el PR:
+#   1. El CI termina en verde por un push a main → se despliega staging.
+#   2. Si la versión de package.json todavía no tiene tag, se publica: tag vX.Y.Z y versión en
+#      GitHub con las notas de su sección del CHANGELOG.
+#   3. Se despliega producción con ese mismo commit, en esta misma corrida. (Una versión creada con
+#      el token de Actions no dispara otros flujos: por eso no se espera al evento «release».)
+# Un PR que no sube la versión solo llega a staging.
+#
+# A mano: «Run workflow» eligiendo destino (y, para seguir después de una falla, una sola celda),
+# o una versión publicada a mano. Un despliegue a medias no se cancela: la corrida nueva espera.
 name: desplegar
 
 on:
@@ -34,53 +41,88 @@ permissions:
   contents: read
 
 jobs:
-  desplegar:
+  staging:
     # Revisión de seguridad (3 oct 2026): el filtro «branches: [main]» de workflow_run mira solo el
     # NOMBRE de la rama. Un PR desde un fork con una rama llamada «main» pasaba el filtro, y este
     # trabajo corría su código con todos los secretos. Solo se despliega lo que llegó a main de
     # este repositorio por un push.
     if: >-
-      github.event_name != 'workflow_run' || (
+      github.event_name == 'workflow_run' && (
         github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.event == 'push' &&
         github.event.workflow_run.head_branch == 'main' &&
         github.event.workflow_run.head_repository.full_name == github.repository
       )
+    uses: ./.github/workflows/desplegar-destino.yml
+    with:
+      destino: staging
+      ref: ${{ github.event.workflow_run.head_sha }}
+    secrets: inherit
+
+  version:
+    # ¿La versión del commit ya está publicada? Solo si no, sigue la publicación.
+    needs: staging
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: ${{ github.event_name == 'release' && 'produccion' || inputs.destino || 'staging' }}
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.leer.outputs.version }}
+      publicar: ${{ steps.leer.outputs.publicar }}
     steps:
       - uses: actions/checkout@v7
         with:
-          # En workflow_run se despliega exactamente el commit que pasó el CI.
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-      - uses: pnpm/action-setup@v6
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - id: leer
+        name: Leer la versión y buscar su tag
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
+            echo "publicar=false" >> "$GITHUB_OUTPUT"
+            echo "La versión $VERSION ya está publicada: solo staging."
+          else
+            echo "publicar=true" >> "$GITHUB_OUTPUT"
+            echo "La versión $VERSION es nueva: se publica y se despliega a producción."
+          fi
+
+  publicar:
+    needs: version
+    if: needs.version.outputs.publicar == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: pnpm
-      - name: Instalar
-        run: pnpm install --frozen-lockfile
-      - name: Construir (sitio, cuaderno y validación de wrangler)
-        run: pnpm build
-      - name: Desplegar por celdas
-        # Las entradas van por variables de entorno, nunca interpoladas en el comando (inyección).
+      - name: Crear la versión con las notas del CHANGELOG
         env:
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          # HU-E8.2: token de solo lectura de métricas, para el vigía de cuota de la celda.
-          CF_METRICAS_TOKEN: ${{ secrets.CF_METRICAS_TOKEN }}
-          # HU-E8.3: alertas del vigía al dueño por Telegram.
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # HU-E4.2: el despliegue los carga como secretos del Worker del CORE, por stdin.
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          # HU-E0.7: llaves del Botón de pagos de Bold. Opcionales: sin ellas, pagar no está disponible.
-          BOLD_IDENTIDAD_PRUEBAS: ${{ secrets.BOLD_IDENTIDAD_PRUEBAS }}
-          BOLD_SECRETA_PRUEBAS: ${{ secrets.BOLD_SECRETA_PRUEBAS }}
-          BOLD_IDENTIDAD_PRODUCCION: ${{ secrets.BOLD_IDENTIDAD_PRODUCCION }}
-          BOLD_SECRETA_PRODUCCION: ${{ secrets.BOLD_SECRETA_PRODUCCION }}
-          DESTINO: ${{ github.event_name == 'release' && 'produccion' || inputs.destino || 'staging' }}
-          SOLO_CELDA: ${{ inputs.solo_celda }}
-        run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA"
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          node scripts/notas-de-version.ts "$VERSION" > notas.md
+          gh release create "v$VERSION" --target "$SHA" --title "v$VERSION" --notes-file notas.md
+
+  produccion:
+    needs: [version, publicar]
+    uses: ./.github/workflows/desplegar-destino.yml
+    with:
+      destino: produccion
+      ref: ${{ github.event.workflow_run.head_sha }}
+    secrets: inherit
+
+  a-mano:
+    # «Run workflow», o una versión publicada a mano en GitHub.
+    if: github.event_name != 'workflow_run'
+    uses: ./.github/workflows/desplegar-destino.yml
+    with:
+      destino: ${{ github.event_name == 'release' && 'produccion' || inputs.destino }}
+      ref: ${{ github.sha }}
+      solo_celda: ${{ inputs.solo_celda || '' }}
+    secrets: inherit

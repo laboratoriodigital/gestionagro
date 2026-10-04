@@ -92,7 +92,8 @@ describe('orden del despliegue (CA3, CA4)', () => {
 });
 
 describe('secretos de las celdas (P18)', () => {
-  const flujo = readFileSync(join(RAIZ, '.github', 'workflows', 'desplegar.yml'), 'utf8');
+  // Los secretos se pasan en el flujo reutilizable que despliega cada destino (4 oct 2026).
+  const flujo = readFileSync(join(RAIZ, '.github', 'workflows', 'desplegar-destino.yml'), 'utf8');
   const documentados = secretosDocumentados(
     readFileSync(join(RAIZ, 'docs', 'ARQUITECTURA.md'), 'utf8'),
   );

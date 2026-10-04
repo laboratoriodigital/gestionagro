@@ -1,0 +1,70 @@
+# Despliegue de un destino (staging o produccion), reutilizable: lo llama desplegar.yml.
+# Cada destino corre en su ambiente de GitHub, que pone sus propios secretos y reglas
+# (docs/runbooks/ambientes-github.md). Las entradas van por variables de entorno, nunca
+# interpoladas en los comandos (inyección).
+name: desplegar-destino
+
+on:
+  workflow_call:
+    inputs:
+      destino:
+        description: "staging o produccion"
+        required: true
+        type: string
+      ref:
+        description: "El commit exacto que se despliega"
+        required: true
+        type: string
+      solo_celda:
+        description: "Opcional: desplegar solo esta celda"
+        required: false
+        default: ""
+        type: string
+
+# Su propio grupo por destino: el flujo que lo llama ya tiene el grupo «desplegar», y pedir el
+# mismo grupo desde aquí lo dejaría esperándose a sí mismo.
+concurrency:
+  group: desplegar-${{ inputs.destino }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.destino }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+      - name: Construir (sitio, cuaderno y validación de wrangler)
+        run: pnpm build
+      - name: Desplegar por celdas
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          # HU-E8.2: token de solo lectura de métricas, para el vigía de cuota de la celda.
+          CF_METRICAS_TOKEN: ${{ secrets.CF_METRICAS_TOKEN }}
+          # HU-E8.3: alertas del vigía al dueño por Telegram.
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # HU-E4.2: el despliegue los carga como secretos del Worker del CORE, por stdin.
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          # HU-E0.7: llaves del Botón de pagos de Bold. Cada ambiente tiene solo las suyas.
+          BOLD_IDENTIDAD_PRUEBAS: ${{ secrets.BOLD_IDENTIDAD_PRUEBAS }}
+          BOLD_SECRETA_PRUEBAS: ${{ secrets.BOLD_SECRETA_PRUEBAS }}
+          BOLD_IDENTIDAD_PRODUCCION: ${{ secrets.BOLD_IDENTIDAD_PRODUCCION }}
+          BOLD_SECRETA_PRODUCCION: ${{ secrets.BOLD_SECRETA_PRODUCCION }}
+          DESTINO: ${{ inputs.destino }}
+          SOLO_CELDA: ${{ inputs.solo_celda }}
+        run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA"

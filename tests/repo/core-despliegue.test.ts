@@ -151,7 +151,8 @@ describe('entrar con Google en el despliegue (HU-E4.2)', () => {
   });
 
   it('el flujo pasa los secretos de Google al paso de despliegue', () => {
-    const flujo = readFileSync(join(RAIZ, '.github', 'workflows', 'desplegar.yml'), 'utf8');
+    // Los secretos se pasan en el flujo reutilizable que despliega cada destino (4 oct 2026).
+    const flujo = readFileSync(join(RAIZ, '.github', 'workflows', 'desplegar-destino.yml'), 'utf8');
     for (const secreto of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET']) {
       expect(flujo).toContain(`${secreto}: \${{ secrets.${secreto} }}`);
     }
