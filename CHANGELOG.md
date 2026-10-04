@@ -8,6 +8,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ### Agregado
 - Publicación continua: al fusionar un PR a main se despliega staging y, si la versión de package.json es nueva, se publica sola (tag y notas del CHANGELOG) y se despliega a producción en la misma corrida. Lo único a mano es aprobar el PR. Un PR que no sube la versión solo llega a staging.
+- Análisis de cómo integrar la Tienda al ecosistema digital (`docs/analisis/integracion-tienda-ecosistema.md`), con su conclusión: construir la Tienda 3.0 sobre esta plataforma y no trasladar el código de la 2.0.
+
+### Cambiado
+- Planes ya no dice «Hoy no se cobra nada»: el plan Finca se paga en línea desde la 0.2.0. El aviso dice que ese plan se paga ahí mismo, un mes a la vez, y que los demás todavía no se cobran.
+- La documentación queda al día con lo publicado: arquitectura (ambientes, publicación continua, cabeceras de seguridad, marca), bitácora, backlog (historias terminadas y nuevas, y la hoja de ruta) y README.
 
 ## [0.2.1] - 2026-10-04
 

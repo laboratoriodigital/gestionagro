@@ -1,7 +1,7 @@
 # Gestión Agro — Arquitectura
 
 **Estado:** aprobada (Fase 0)
-**Versión:** 0.1.0 · 30 sep 2026
+**Versión:** 0.1.0 · 30 sep 2026 (al día con el producto v0.3.0 · 4 oct 2026)
 **Proyecto:** ED1 Agro (línea agrícola de laboratorio-digital.com), repositorio `laboratoriodigital/gestionagro`
 **Documentos que manda este:** `ECOSISTEMA-DIGITAL-ED1-v1.2.md` (ED1 §), `REVISION-HALLAZGOS-ED1.md` ([H1]–[H16]), `Estudio de mercado software para invernaderos y agricultura.md` (Estudio), `BITACORA-ecommerce.md` (bitácora ecommerce). El plan de trabajo vive en `BACKLOG.md` y lo que se rompa, en `BITACORA.md`.
 
@@ -194,6 +194,8 @@ fuentes:
   - "FAO-56, ec. 11 (Allen et al., 1998)"
 ```
 
+- **Marca (3 oct 2026):** el producto se llama **CultivoPro**. El nombre, el lema y el trazo de la hoja viven en `content/marca.json` (P2). `scripts/generar-iconos.ts` dibuja de ese trazo, sin dependencias y siempre igual, el favicon, los íconos de la app y los archivos de `/marca/`; `scripts/exportar-logo.ts` exporta los logos con el nombre. `tests/repo/marca.test.ts` e `iconos.test.ts` exigen que no quede el nombre anterior y que los archivos coincidan con el trazo.
+- **Guías para la gente de campo (3 oct 2026):** `/agro/guia/` (para el productor) y `/agro/vendedores/` (para quien vende el plan), en lenguaje sencillo y sin términos técnicos.
 - **Eventos:** se acumulan en la página y salen **una vez** por sesión con `navigator.sendBeacon` a `/api/eventos` del Worker del sitio, que los escribe en Workers Analytics Engine ([H4]). Una sesión cuesta una invocación del Worker. Muestreo configurable en `product.yaml` si una herramienta crece.
 - **Quality gate** (ED1 §12.2) en CI: ejemplo resuelto, FAQ específica, fuente de cada fórmula, relacionados definidos, Core Web Vitals y WCAG AA. Agro agrega un control: **`revision_agronomica` aprobada antes de pasar a `activo`**.
 
@@ -542,7 +544,7 @@ Por eso ADR-7 y ADR-8. Abrir cuentas gratuitas para ganar cuota pone en riesgo *
 - **GitHub flow:** `main` protegida; ramas `feat/…`, `fix/…`, `docs/…`; pull request con CI en verde para fusionar.
 - **Commits en español**, pequeños.
 - **Versión semántica única del producto** (`X.Y.Z`) en `package.json` de la raíz. Es la fuente de la versión de la app, la API y el `CHANGELOG.md` (P2).
-- **Etiquetas** `vX.Y.Z` al publicar.
+- **Etiquetas** `vX.Y.Z` al publicar. Las crea el flujo de despliegue al fusionar un PR que sube la versión (§7.3, publicación continua), no una persona.
 
 | Cambio | Versión |
 |---|---|
@@ -570,11 +572,17 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 | Anillo | Qué es | Qué recibe primero |
 |---|---|---|
 | 0 · Local | `wrangler dev` con D1 local y las dos fincas de prueba | Todo |
-| 1 · Staging | Worker `agro-api-staging` + D1 `agro_staging` en c0, con fincas de prueba sembradas | Cada fusión a `main` |
+| 1 · Staging | Workers `agro-sitio-staging`, `agro-core-staging` y `agro-api-c0-staging` (en `workers.dev`, de `celdas.json`) con sus propias D1 y fincas de prueba, en c0 | Cada fusión a `main` |
 | 2 · Finca cero y pilotos | Organizaciones con `anillo: 1` en el CORE (las 5 primeras, §5.4) | Funciones nuevas vía flags en KV |
 | 3 · Todas | Resto de organizaciones | La función cuando el anillo 2 pasa una semana sin fallas críticas |
 
-- **El código del servidor se despliega por celda**, en el orden de `anillo_despliegue` de `celdas.json`, celda por celda con `scripts/desplegar.ts` (no con matriz: así se detiene en la primera falla y nombra las que quedaron sin tocar). Staging sale cuando el CI termina en verde en `main`; producción, al publicar una versión. Hoy viven en c0 el sitio, el CORE (HU-E4.1) y la API de la celda (HU-E5.1). En cada celda el orden es: sitio, CORE y API, porque la API necesita la clave pública del CORE. Procedimiento: `docs/runbooks/despliegue.md`.
+- **El código del servidor se despliega por celda**, en el orden de `anillo_despliegue` de `celdas.json`, celda por celda con `scripts/desplegar.ts` (no con matriz: así se detiene en la primera falla y nombra las que quedaron sin tocar). Staging sale cuando el CI termina en verde en `main`; producción, al publicar una versión.
+- **Publicación continua (4 oct 2026, v0.3.0).** El único paso a mano es aprobar y fusionar el PR. `.github/workflows/desplegar.yml`, en la misma corrida:
+  1. Despliega staging.
+  2. Mira si la versión de `package.json` ya tiene tag. Si no, crea el tag `vX.Y.Z` y la versión en GitHub con las notas de su sección del CHANGELOG (`scripts/notas-de-version.ts`).
+  3. Despliega producción con ese mismo commit.
+
+  Un PR que no sube la versión solo llega a staging. Para publicar, el PR sube la versión (§7.1) y agrega su sección fechada `## [X.Y.Z] - AAAA-MM-DD`. `tests/repo/version.test.ts` no deja fusionar una versión sin su sección. La versión se crea dentro del mismo flujo porque una versión creada con el token de Actions no dispara otros flujos. Cada destino corre en su **ambiente de GitHub** (`staging`, `produccion`), con sus propios secretos, desde el flujo reutilizable `desplegar-destino.yml` (procedimiento: `docs/runbooks/ambientes-github.md`). A mano siguen «Run workflow» (destino y, para retomar, una sola celda) y publicar una versión desde GitHub. Hoy viven en c0 el sitio, el CORE (HU-E4.1) y la API de la celda (HU-E5.1). En cada celda el orden es: sitio, CORE y API, porque la API necesita la clave pública del CORE. Procedimiento: `docs/runbooks/despliegue.md`.
 - **Las funciones se liberan por organización** con flags. En la tienda los anillos eran por repositorio; aquí son por organización y por celda.
 - **Una celda o una organización pueden marcarse `fuera`** para no recibir repartos. Cuando un despliegue se detiene, el resumen nombra las que quedaron sin tocar y cómo seguir (bitácora ecommerce 105).
 
@@ -586,8 +594,8 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 
 ### 7.5 Secretos
 
-- **Secretos de cada celda:** `CF_API_TOKEN` con alcance mínimo a esa cuenta y `CF_ACCOUNT_ID`. `celdas.json` nombra los secretos de cada celda; una prueba exige que estén en esta lista y que el flujo de despliegue los pase (HU-E1.5). Hoy viven a nivel de repositorio; una celda en otra cuenta (etapa C) tendrá los suyos. El flujo se los entrega a wrangler como `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`.
-- **Permisos del token de c0:** Account → Workers Scripts (Edit), Workers KV Storage (Edit), Account Analytics (Read), Account Settings (Read); User → Memberships (Read); Zone `laboratorio-digital.com` → Workers Routes (Edit); Account → D1 (Edit), agregado el 1 oct 2026 para el CORE (HU-E4.1) editando el mismo token, sin rotarlo. El despliegue verifica D1 en la celda del CORE.
+- **Secretos de cada celda:** `CF_API_TOKEN` con alcance mínimo a esa cuenta y `CF_ACCOUNT_ID`. `celdas.json` nombra los secretos de cada celda; una prueba exige que estén en esta lista y que el flujo de despliegue los pase (HU-E1.5). Desde el 3 oct 2026 viven en los **ambientes de GitHub** `staging` y `produccion`, no a nivel de repositorio: cada destino ve solo los suyos, y `produccion` acepta la rama `main` y los tags `v*`. Una celda en otra cuenta (etapa C) tendrá los suyos. El flujo se los entrega a wrangler como `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`.
+- **Permisos del token de c0:** Account → Workers Scripts (Edit), Workers KV Storage (Edit), Account Analytics (Read), Account Settings (Read); User → Memberships (Read); Zone `laboratorio-digital.com` y, desde el 3 oct 2026, zone `cultivopro.co` → Workers Routes (Edit); Account → D1 (Edit), agregado el 1 oct 2026 para el CORE (HU-E4.1) editando el mismo token, sin rotarlo. El despliegue verifica D1 en la celda del CORE.
 - **Secretos de Worker:**
   - Clave privada Ed25519 del CORE.
   - Clave de firma de QR por celda.
@@ -671,6 +679,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
   - Pendiente: «lo de su área» espera a que se puedan asignar personas a áreas; hoy el operario ve toda la finca, sin costos. El auditor con enlace que caduca llega con la carpeta de cumplimiento (HU-E9.2).
 - **Aislamiento de tenant:** `org_id` del token en toda consulta, con prueba estática y control negativo (§5.7). La prueba es `tests/repo/org-id-en-consultas.test.ts` (HU-E4.5): lee cada consulta de la celda; las excepciones van con su motivo.
 - **CSP estricta** en la PWA (implementada con HU-E0.5: `_headers` generado desde `celdas.json` por `scripts/armar-despliegue.ts`; `script-src 'self'` y `connect-src` solo hacia el propio origen, el CORE y las API de las celdas; la prueba de humo del despliegue exige que llegue): sin scripts de terceros ni anuncios en ninguna vista del cuaderno (instrucciones §9, ED1 §13). El token se guarda en IndexedDB. El riesgo de XSS se mitiga con esa CSP, dependencias mínimas y tokens cortos.
+- **Cabeceras de seguridad por ruta (revisión del 3 oct 2026, `docs/seguridad/revision-2026-10-03.md`):** `scripts/lib/cabeceras.ts` arma el `_headers` del sitio. El cuaderno (`/agro/app/*`) lleva su CSP; la página del QR (`/agro/t/*`), una más estricta, sin conexiones; las páginas públicas (`/herramientas/*`, `/agro/privacidad/*`, `/agro/guia/*`, `/agro/vendedores/*`), la CSP pública. Todas llevan HSTS, `nosniff`, `frame-ancestors` y su política de referer. El script de Bold (`https://checkout.bold.co`) solo entra en `script-src` del cuaderno, que es donde se paga. El JSON-LD escapa `<` para que un texto no cierre su `<script>`.
 - **Política de tratamiento de datos (HU-E0.5):** `/agro/privacidad/`, desde `content/agro/privacidad/politica.json`. Entrar con Google exige aceptar la versión vigente; el CORE guarda en `usuario` la versión y la fecha (`politica_version`, `politica_aceptada`). Una e2e compara lo que la política declara con lo que cada página carga de verdad.
 - **Datos de operarios (Ley 1581):** mínimos. Nombre y rol; la cédula solo cuando exista nómina y con autorización escrita. Política de tratamiento y canal de reclamos antes del primer usuario externo (HU-E0.5). *Requiere revisión de un abogado.*
 - **Portabilidad:** el productor exporta todo en `agro-export v1` o CSV cuando quiera. Es también la respuesta a «¿de quién son mis datos?».
@@ -765,6 +774,7 @@ Se numeran HA para no chocar con [H1]–[H16].
 - **HA1 · Aislar cuotas con otra cuenta roza los términos de Cloudflare.** ED1 §14.1 y §25.1 proponen otra cuenta «para aislar cuotas». Cloudflare §2.2.1(c) prohíbe esquivar cuotas. Propuesta: reformular como aislamiento de **riesgo** (abuso, reputación) en una cuenta **paga** o del cliente, nunca como fuente de cuota gratuita extra.
 - **HA2 · Registrarse a nombre de terceros.** Si ED1 crea cuentas de proveedores a nombre de sus clientes, choca con Cloudflare §2.2.1(a). Recomendación para la línea ecommerce: verificar con los términos de Google el modelo de «una cuenta de Google por tienda creada por ED1». *No lo he verificado; es una pregunta, no una conclusión.*
 - **HA3 · CORE v0 nace en el agro.** Cuando la Fase 3 de ED1 llegue, el CORE no se diseña desde cero: se extiende el v0 (tablas de §5.4), que ya tendrá usuarios reales.
+- **HA4 · La Tienda 3.0 sobre esta plataforma (4 oct 2026).** `docs/analisis/integracion-tienda-ecosistema.md` recomienda construir la Tienda 3.0 sobre el CORE, las celdas y el despliegue de este repositorio (opción B de las decisiones D1 y D2 de su `TRASLADO-3.0.md`): cada tienda es una fila y no un repositorio, con dominios propios por Cloudflare for SaaS y llaves de Bold por comercio cifradas en D1. La 2.0 se mantiene hasta migrar. El CORE y los paquetes salen a un monorepo de plataforma cuando la Tienda sea su segundo consumidor, no antes.
 
 ---
 

@@ -45,3 +45,11 @@ pnpm verificar
 - Una aserción nueva se ve en rojo con su defecto puesto antes de fusionarla (P5).
 - Ninguna prueba nombra una finca o una persona real: se usan `Finca Ensayo Uno` y `Finca Ensayo Dos` (P4).
 - Estructura de carpetas: ARQUITECTURA §11.
+
+## Cómo se publica
+
+Lo único que se hace a mano es aprobar y fusionar el pull request (ARQUITECTURA §7.3):
+
+- **Un PR sin cambio de versión** llega a staging al fusionarse.
+- **Un PR que sube la versión** en `package.json` (parche para un arreglo, menor para una función nueva; ARQUITECTURA §7.1) y agrega su sección `## [X.Y.Z] - AAAA-MM-DD` en el `CHANGELOG.md` llega a staging y, en la misma corrida, se publica como `vX.Y.Z`, con esas notas, y se despliega a producción en `cultivopro.co`. El CI no deja fusionar una versión sin su sección.
+- **A mano**, en Actions → «desplegar» → «Run workflow», se elige staging o producción, y una sola celda para retomar un despliegue a medias.

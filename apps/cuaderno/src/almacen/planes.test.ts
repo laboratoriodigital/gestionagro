@@ -23,9 +23,14 @@ describe('planes con precio visible (HU-E0.6)', () => {
     expect([...CON_ESPERA].sort()).toEqual(['cadena', 'exportador', 'finca']);
   });
 
-  it('CA2: el precio se marca como tentativo y dice que hoy no se cobra', () => {
+  it('CA2: el precio se marca como tentativo, y el aviso dice cuáles planes ya se pagan en línea', () => {
     expect(AVISO_PRECIO).toContain('Precio de lanzamiento tentativo');
-    expect(AVISO_PRECIO).toContain('no se cobra nada');
+    // Desde HU-E0.7 un plan con cobro mensual se paga en línea: el aviso no puede decir que no se
+    // cobra nada, y nombra cada plan que se puede pagar.
+    const pagables = PLANES.filter((p) => 'cobro_mensual_cop' in p);
+    expect(pagables.length).toBeGreaterThan(0);
+    expect(AVISO_PRECIO).not.toContain('no se cobra nada');
+    for (const p of pagables) expect(AVISO_PRECIO).toContain(`plan ${p.nombre}`);
   });
 
   it('CA2: cada precio es el de «Precios propuestos» del Estudio de mercado', () => {

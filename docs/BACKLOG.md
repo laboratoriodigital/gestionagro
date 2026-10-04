@@ -111,6 +111,8 @@ Una historia entra a un sprint solo si:
 | HU-E11.3 · Contrato de reporte de dispositivos (3) | HU-E11.2 funcionando 30 días en el laboratorio |
 | HU-E11.4 · El riego ejecutado llena el cuaderno (2) | HU-E11.3 |
 | HU-E7.5 · Varias bodegas de insumos en una finca (5) | Una finca con sectores o almacenes separados que lo pida. Es un catálogo nuevo: rehacer el CHECK de `catalogo` en la celda y un `agro-export` v2 (decisión del dueño, 3 oct 2026) |
+| HU-E2.9 · Calculadora de grados-día (2) | La medición del 25 feb 2027 y la revisión agronómica de la DPV y la carencia |
+| Tienda 3.0 sobre esta plataforma (fuera de este backlog) | Decisión del dueño sobre D1 y D2 del `TRASLADO-3.0.md` de la Tienda y una temporada de uso real de CultivoPro (`docs/analisis/integracion-tienda-ecosistema.md` §10) |
 
 **Ceremonias para un equipo de uno** (~1,5 h por sprint):
 - Planeación de 30 min el lunes.
@@ -126,9 +128,9 @@ La velocidad real se anota al cierre de cada sprint en §7.
 
 | Épica | Objetivo | Hito | Pts |
 |---|---|---|---|
-| E0 · Decisiones y validación | Cerrar la Fase 0 del agro y medir la demanda | H0, H3, H7 | 7 |
-| E1 · Cimientos | Monorepo, CI, contratos, despliegue por anillos | H0, H1 | 15 (HU-E1.4 cancelada) |
-| E2 · Herramienta DPV | Primera herramienta gratuita, puerta al cuaderno | H1 | 12 |
+| E0 · Decisiones y validación | Cerrar la Fase 0 del agro y medir la demanda; marca, guías y cobro | H0, H3, H7 | 17 |
+| E1 · Cimientos | Monorepo, CI, contratos, despliegue por anillos, publicación continua y seguridad | H0, H1 | 20 (HU-E1.4 cancelada) |
+| E2 · Herramienta DPV | Primera herramienta gratuita, puerta al cuaderno | H1 | 13 (+2 preparada) |
 | E3 · Cuaderno offline | Registrar la operación sin señal | H2 | 29 |
 | E4 · Identidad y equipo (CORE v0) | Cuentas, organizaciones, invitaciones, roles | H3 | 14 |
 | E5 · Sincronización y celda | Varios teléfonos, un solo cuaderno | H3 | 16 |
@@ -199,7 +201,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E0.7 · Pagar el plan Finca con Bold
 **Como** propietario que quiere el plan Finca **quiero** pagarlo en línea con PSE, Nequi o tarjeta **para** tenerlo activo sin escribirle a nadie.
-- **Peldaño:** premium → SaaS · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** fuera de sprint, a pedido del dueño · **Depende de:** HU-E0.6 · **Estado:** En sprint (rama `feat/e0.7-pago-bold`; pedido del dueño, 3 oct 2026: «si un cliente quiere pagar el plan Finca, pasarela Bold; el ecommerce ya la implementa». El dueño pidió validar qué del modelo de la Tienda sirve: se tomó el método (monto y firma en el servidor, la vuelta verificada con la API de Bold, «revisar» si el monto no coincide, llaves por ambiente, vencido a las 24 h). Se cambió lo que la Tienda hacía por ser Apps Script y por vender existencias: adaptador `ProveedorDePago` (ED1 §5.3), conciliación por Cron Trigger cada 15 min, y el pago con su producto y proveedor (HA3). Migración 0005: `organizacion.plan_vence` y tabla `pago`; el plan vencido se lee «gratuito» sin tarea programada. CA1: solo el propietario; el monto sale de `cobro_mensual_cop` de `planes.json` (39.000, lo fija el dueño). CA2 y CA3: solo «aprobado» con el monto exacto activa el plan, una vez. CA4: al vencer, gratuito, sin tocar datos. CA5: pendiente, la prueba con las llaves de pruebas en staging (`docs/runbooks/pagos-bold.md`). Política de datos v2 con Bold como aliado; la CSP del cuaderno deja cargar su programa solo como script. Falta decidir la factura electrónica DIAN con el contador)
+- **Peldaño:** premium → SaaS · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** fuera de sprint, a pedido del dueño · **Depende de:** HU-E0.6 · **Estado:** Terminada (fusionada a `main` el 3 oct 2026 y en producción desde la v0.2.0; el dueño probó el pago con las llaves de pruebas y funcionó. Rama `feat/e0.7-pago-bold`; pedido del dueño, 3 oct 2026: «si un cliente quiere pagar el plan Finca, pasarela Bold; el ecommerce ya la implementa». El dueño pidió validar qué del modelo de la Tienda sirve: se tomó el método (monto y firma en el servidor, la vuelta verificada con la API de Bold, «revisar» si el monto no coincide, llaves por ambiente, vencido a las 24 h). Se cambió lo que la Tienda hacía por ser Apps Script y por vender existencias: adaptador `ProveedorDePago` (ED1 §5.3), conciliación por Cron Trigger cada 15 min, y el pago con su producto y proveedor (HA3). Migración 0005: `organizacion.plan_vence` y tabla `pago`; el plan vencido se lee «gratuito» sin tarea programada. CA1: solo el propietario; el monto sale de `cobro_mensual_cop` de `planes.json` (39.000, lo fija el dueño). CA2 y CA3: solo «aprobado» con el monto exacto activa el plan, una vez. CA4: al vencer, gratuito, sin tocar datos. CA5: hecho por el dueño en staging con las llaves de pruebas (`docs/runbooks/pagos-bold.md`). Política de datos v2 con Bold como aliado; la CSP del cuaderno deja cargar su programa solo como script. Falta decidir la factura electrónica DIAN con el contador)
 - **Contraste:**
   - ARQUITECTURA §2.3 dice que el plan Finca no se cobra hasta los umbrales de la etapa 4 → 7. Cobrar antes es una excepción que decide el dueño y queda como ADR. Un cliente que pide pagar es la mejor señal de intención, mejor que «Me interesa».
   - ED1 §5.3 pide un adaptador en el CORE para poder cambiar de proveedor, y contempla la factura electrónica DIAN y el IVA de servicios digitales.
@@ -239,6 +241,14 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 | T-0.3 Entrevistas: 5 productores bajo invernadero, 3 asesores técnicos, 2 restaurantes o cadenas compradoras | Oct–nov | 10 h | `docs/validacion/entrevistas.md`: dolor confirmado o no (umbral 0 → 1–2) |
 | T-0.4 Conseguir agrónomo aliado que revise DPV y textos | Antes del S3 | 3 h | Resuelta el 30 sep 2026: el supervisor de la finca cero, agrónomo. Se registra en `product.yaml` por rol y fecha (`aprobada:<fecha>:agronomo-aliado`), no por nombre (P4) |
 | T-0.5 Documentar el día a día real del invernadero: quién registra qué y cuándo | S3–S5 | 3 h | Ajusta los formularios de E3 |
+
+#### HU-E0.8 · Marca CultivoPro y dominio `cultivopro.co`
+**Como** dueño **quiero** que el producto tenga nombre, logo y dominio propios **para** que el productor lo reconozca y lo recomiende.
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** fuera de sprint, a pedido del dueño · **Estado:** Terminada (3 oct 2026, v0.2.0 y v0.2.1: el nombre, el lema y la hoja dibujada viven en `content/marca.json`; cabeceras, favicon, ícono de la app y logos en `/marca/` salen de ahí; `docs/runbooks/cambio-de-dominio.md`; ADR-19)
+
+#### HU-E0.9 · Guías para el productor y para el vendedor
+**Como** productor o vendedor **quiero** una guía sencilla de cómo se usa y cómo se vende **para** empezar sin ayuda.
+- **Peldaño:** usuario recurrente · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** fuera de sprint · **Estado:** Terminada (3 oct 2026, v0.2.0: `/agro/guia/` y `/agro/vendedores/`, en lenguaje de campo, sin términos técnicos)
 
 ### E1 · Cimientos
 
@@ -362,6 +372,24 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
   - WI-E1.5.5 Smoke tests (1,5 h).
   - WI-E1.5.6 Corrida real y ajuste (1,5 h).
 
+#### HU-E1.8 · Publicación continua: solo se aprueba el PR
+**Como** dueño **quiero** que fusionar un PR que sube la versión la publique y la despliegue a producción **para** que lo único manual sea aprobar el PR.
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** fuera de sprint, a pedido del dueño (4 oct 2026) · **Depende de:** HU-E1.5, HU-E1.9 · **Estado:** Terminada en rama `feat/publicacion-automatica`. La v0.3.0 es la primera que sale sola al fusionar
+- **Criterios de aceptación:**
+  1. Una fusión a `main` despliega staging. Si la versión de `package.json` no tiene tag, el mismo flujo crea el tag y la versión en GitHub con las notas de su sección del CHANGELOG, y despliega producción con ese commit (ARQUITECTURA §7.3).
+  2. Un PR que no sube la versión solo llega a staging.
+  3. CI no deja fusionar una versión sin su sección fechada en el CHANGELOG (`tests/repo/version.test.ts`; control negativo: con una versión sin sección, la prueba sale en rojo).
+  4. A mano siguen «Run workflow» por destino y por celda, y publicar una versión desde GitHub.
+- **Patrones:** P2, P16.
+
+#### HU-E1.9 · Ambientes de GitHub por destino
+**Como** dueño **quiero** los secretos de staging y de producción separados **para** que un despliegue de pruebas nunca vea las llaves reales.
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** fuera de sprint · **Depende de:** HU-E1.5 · **Estado:** Terminada (3 oct 2026: el dueño movió los secretos a los ambientes `staging` y `produccion` y agregó la regla de tags `v*` en producción; `docs/runbooks/ambientes-github.md`)
+
+#### HU-E1.10 · Revisión de seguridad antes de cerrar la versión
+**Como** dueño **quiero** buscar y remediar las vulnerabilidades críticas y altas **para** abrir la versión a productores sin exponerlos.
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** fuera de sprint · **Estado:** Terminada (fusionada el 3 oct 2026, en la v0.2.0; `docs/seguridad/revision-2026-10-03.md`: la guardia del origen en `workflow_run`, las cabeceras de seguridad por ruta y el JSON-LD escapado, cada uno con su prueba)
+
 ### E2 · Herramienta DPV
 
 #### HU-E2.1 · Función pura de DPV con fuente y casos
@@ -427,7 +455,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E2.6 · Publicar, indexar y medir
 **Como** dueño **quiero** la DPV en producción, en el sitemap y en Search Console, con la tasa de completado visible **para** empezar el reloj de 90 días.
-- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S4 · **Depende de:** HU-E1.5, HU-E2.5 · **Estado:** En sprint (rama `feat/herramientas-entrada`, 3 oct 2026. CA3: el reporte semanal trae la tasa de completado de cada herramienta, esta semana y la anterior. CA4 ya lo cubre el kill switch de HU-E8.1. CA1 y CA2 esperan la revisión agronómica: en `docs/validacion/revision-agronomica.md` está lo que ya se validó (las cuentas de los ejemplos y las dos calculadoras en staging), lo que debe confirmar el agrónomo y los pasos para publicar. La pregunta más importante es si la carencia se cuenta en días de calendario o en horas. Producción sigue en la 0.1.0: la calculadora de carencia y la política de datos dan 404 hasta la próxima versión)
+- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S4 · **Depende de:** HU-E1.5, HU-E2.5 · **Estado:** En sprint (rama `feat/herramientas-entrada`, 3 oct 2026. CA3: el reporte semanal trae la tasa de completado de cada herramienta, esta semana y la anterior. CA4 ya lo cubre el kill switch de HU-E8.1. CA1 y CA2 esperan la revisión agronómica: en `docs/validacion/revision-agronomica.md` está lo que ya se validó (las cuentas de los ejemplos y las dos calculadoras en staging), lo que debe confirmar el agrónomo y los pasos para publicar. La pregunta más importante es si la carencia se cuenta en días de calendario o en horas. Desde el 3 oct 2026 producción está en `cultivopro.co` con la v0.2.1, que trae la calculadora de carencia y la política de datos. Desde la v0.3.0, cada versión llega a producción al fusionar su PR (HU-E1.8))
 - **Criterios de aceptación:**
   1. El `product.yaml` pasa a `activo` y CI lo acepta (revisión agronómica aprobada).
   2. La URL está en el sitemap, se solicitó su indexación y la fecha queda en `docs/validacion/dpv.md`.
@@ -461,6 +489,14 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
   - WI-E2.3.1 Tabla y estilos de impresión (2 h).
   - WI-E2.3.2 PDF (2 h).
   - WI-E2.3.3 Pruebas (1 h).
+
+#### HU-E2.8 · DPV para rosa, pimentón y pepino
+**Como** productor de esos cultivos **quiero** el rango de DPV de mi cultivo **para** usar la calculadora sin traducir de tomate.
+- **Peldaño:** herramienta gratuita (tráfico) · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** fuera de sprint · **Estado:** Terminada (3 oct 2026, v0.2.0: `packages/agro-calc/catalogos/rangos-dpv.json` con sus sinónimos y `cultivoDpvDe`; elegidos con el Estudio de mercado: flores de exportación y hortalizas bajo cubierta)
+
+#### HU-E2.9 · Calculadora de grados-día — *Preparada*
+**Como** productor **quiero** saber cuántos grados-día lleva mi ciclo **para** estimar la cosecha con el clima que ya registro.
+- **Peldaño:** herramienta gratuita → cuaderno (usa el registro de clima de HU-E3.8) · **Puntos:** 2 · **Disparador:** la medición de búsquedas del 25 feb 2027 (HU-E0.2) y la revisión agronómica de las dos primeras calculadoras · **Estado:** Preparada (propuesta del 3 oct 2026; sin decisión del dueño)
 
 ### E3 · Cuaderno offline
 
@@ -929,7 +965,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E6.5 · Disponibilidad para la tienda en línea
 **Como** propietario que también vende en la Tienda del ecosistema **quiero** exportar lo que tengo disponible por producto **para** actualizar mi catálogo sin volver a contar.
-- **Peldaño:** puente entre verticales de ED1 · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E6.3 · **Estado:** En sprint (rama `feat/e6.5-disponibilidad-tienda`; formato v2 en `feat/herramientas-entrada`. El 3 oct 2026 el dueño dio las columnas reales de la pestaña «Catálogo» de la Tienda, y se leyeron en su CONTRATOS §4: ID, Nombre, Categoría, Formato, Precio, Precio antes, Stock, Umbral bajo, Variantes, Imágenes, Descripción, Destacado, Activo y Referencia, en ese orden visible; la hoja las lee por nombre. La v1 proponía columnas propias y no se podía pegar en la hoja. La Tienda vende productos, no lotes: una fila por cultivo y categoría de cosecha, con la suma de los lotes. `Stock` es entero en la Tienda, así que van unidades de «1 kg» sin la fracción. El precio va vacío, porque el de un despacho no es el de la tienda (P1), y la pantalla avisa que la Tienda no publica sin precio. El `ID` sigue su regla (minúsculas, sin tildes, guiones) y sale igual cada vez. Los lotes van en `Referencia` (hasta 60 letras) y las fechas en `Descripción`. Un lote sin cultivo no sale, y la pantalla dice cuántos quedaron fuera)
+- **Peldaño:** puente entre verticales de ED1 · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E6.3 · **Estado:** En sprint (rama `feat/e6.5-disponibilidad-tienda`; formato v2 fusionado a `main` el 3 oct 2026, en la v0.2.0. El 3 oct 2026 el dueño dio las columnas reales de la pestaña «Catálogo» de la Tienda, y se leyeron en su CONTRATOS §4: ID, Nombre, Categoría, Formato, Precio, Precio antes, Stock, Umbral bajo, Variantes, Imágenes, Descripción, Destacado, Activo y Referencia, en ese orden visible; la hoja las lee por nombre. La v1 proponía columnas propias y no se podía pegar en la hoja. La Tienda vende productos, no lotes: una fila por cultivo y categoría de cosecha, con la suma de los lotes. `Stock` es entero en la Tienda, así que van unidades de «1 kg» sin la fracción. El precio va vacío, porque el de un despacho no es el de la tienda (P1), y la pantalla avisa que la Tienda no publica sin precio. El `ID` sigue su regla (minúsculas, sin tildes, guiones) y sale igual cada vez. Los lotes van en `Referencia` (hasta 60 letras) y las fechas en `Descripción`. Un lote sin cultivo no sale, y la pantalla dice cuántos quedaron fuera)
 - **Criterios de aceptación:**
   1. CSV con producto, kg disponibles (cosechado − despachado) y lote, con el formato de columnas que lee la hoja de la Tienda. El formato se confirma leyendo la documentación de la Tienda, no se supone (P9).
   2. No hay conexión directa entre sistemas en esta versión.
@@ -1046,7 +1082,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E8.4 · Respaldo semanal y restauración probada
 **Como** dueño **quiero** un respaldo semanal por finca en R2 y una restauración probada **para** recuperar una finca sin depender de Time Travel.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S11 · **Depende de:** HU-E3.13, HU-E5.1 · **Estado:** Refinada
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S11 · **Depende de:** HU-E3.13, HU-E5.1 · **Estado:** Refinada; espera la señal del dueño («aún no el respaldo en la nube, yo te aviso», 3 oct 2026). La Tienda 3.0 también la necesita (`docs/analisis/integracion-tienda-ecosistema.md` §8)
 - **Criterios de aceptación:**
   1. El cron exporta cada organización en `agro-export v1` a R2. Retención: 4 semanales y 3 mensuales.
   2. Restaurar **une** (agrega lo que falta) y nunca reemplaza el presente con el pasado (bitácora ecommerce 77).
@@ -1094,7 +1130,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E9.1 · ¿Qué nave puedo cosechar hoy?
 **Como** supervisor **quiero** un calendario de carencias y reentradas por nave **para** no cosechar ni entrar donde no se debe.
-- **Peldaño:** usuario recurrente, gratis (era premium; cambio de rumbo del 2 oct 2026: el análisis de palabras clave de HU-E0.2 ya lo había hecho gratis para traer tráfico, el Estudio de mercado pone el «calendario de carencias» en el peldaño usuario recurrente, la escalera de ARQUITECTURA §2.4 no lo pone en Premium/Finca, y cada área ya muestra su carencia gratis desde HU-E3.10. Lo que se paga es exportarlo, con la carpeta de HU-E9.2). Su versión pública, para una aplicación, es HU-E10.1; las dos usan `vencimientoCarencia` y `vencimientoReentrada` de agro-calc (P2) · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E3.10 · **Estado:** En sprint (rama `feat/e9.1-calendario-carencias`. Pantalla «Carencias»: «¿Qué puedo cosechar hoy?». CA1: cada área en verde (✓), rojo (✕, con el día de fin de la carencia y la hora de la reentrada) o gris (?, falta la carencia o la reentrada de la etiqueta); el color siempre va con símbolo y texto. Una cama o surco hereda lo aplicado en su nave. CA2: 14 días en dos filas de siete, que caben en 360 px sin desplazar de lado; el día en que termina la reentrada muestra la hora. CA3: `sumarDias` en agro-schema (el calendario, nunca horas), probado con el teléfono en Bogotá, Kiritimati y Pago Pago, fin de mes, fin de año y 29 de febrero; la e2e corre con el teléfono en Tokio. Pedido del dueño: se enciende o apaga por plan en `content/agro/cuaderno/funciones.json`, con un commit y sin tocar código; hoy está encendido en todos. Apagado en un plan, la pantalla dice que viene con el plan Finca y la carencia de cada área sigue en «Áreas». Decisión del dueño del 3 oct 2026: imprimir el calendario para la puerta de la nave es del plan Finca (`calendario_imprimible`), en carta horizontal, con hoy y los 14 días por área, en rama `feat/e9.1-calendario-imprimible`)
+- **Peldaño:** usuario recurrente, gratis (era premium; cambio de rumbo del 2 oct 2026: el análisis de palabras clave de HU-E0.2 ya lo había hecho gratis para traer tráfico, el Estudio de mercado pone el «calendario de carencias» en el peldaño usuario recurrente, la escalera de ARQUITECTURA §2.4 no lo pone en Premium/Finca, y cada área ya muestra su carencia gratis desde HU-E3.10. Lo que se paga es exportarlo, con la carpeta de HU-E9.2). Su versión pública, para una aplicación, es HU-E10.1; las dos usan `vencimientoCarencia` y `vencimientoReentrada` de agro-calc (P2) · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S13 · **Depende de:** HU-E3.10 · **Estado:** En sprint (rama `feat/e9.1-calendario-carencias`. Pantalla «Carencias»: «¿Qué puedo cosechar hoy?». CA1: cada área en verde (✓), rojo (✕, con el día de fin de la carencia y la hora de la reentrada) o gris (?, falta la carencia o la reentrada de la etiqueta); el color siempre va con símbolo y texto. Una cama o surco hereda lo aplicado en su nave. CA2: 14 días en dos filas de siete, que caben en 360 px sin desplazar de lado; el día en que termina la reentrada muestra la hora. CA3: `sumarDias` en agro-schema (el calendario, nunca horas), probado con el teléfono en Bogotá, Kiritimati y Pago Pago, fin de mes, fin de año y 29 de febrero; la e2e corre con el teléfono en Tokio. Pedido del dueño: se enciende o apaga por plan en `content/agro/cuaderno/funciones.json`, con un commit y sin tocar código; hoy está encendido en todos. Apagado en un plan, la pantalla dice que viene con el plan Finca y la carencia de cada área sigue en «Áreas». Decisión del dueño del 3 oct 2026: imprimir el calendario para la puerta de la nave es del plan Finca (`calendario_imprimible`), en carta horizontal, con hoy y los 14 días por área: fusionado a `main` el 3 oct 2026, en la v0.2.0)
 - **Criterios de aceptación:**
   1. Vista de hoy: cada nave en verde (se puede), rojo (carencia o reentrada vigente, con fecha y hora de fin) o gris (carencia desconocida).
   2. Vista de 14 días hacia adelante.
