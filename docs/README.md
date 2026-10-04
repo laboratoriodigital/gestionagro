@@ -1,4 +1,4 @@
-# docs/ — Gestión Agro
+# docs/ — CultivoPro
 
 Qué es cada documento y cuál manda sobre qué. Cada tema tiene una sola fuente (P2); los demás la citan.
 
@@ -14,4 +14,9 @@ Qué es cada documento y cuál manda sobre qué. Cada tema tiene una sola fuente
 
 Orden de precedencia ante una contradicción: documentos de ED1 → `ARQUITECTURA.md` → `BACKLOG.md`. Si una instrucción nueva contradice alguno, se señala antes de actuar (instrucciones del proyecto §1).
 
-Carpetas que irán apareciendo: `validacion/` (búsquedas, entrevistas, métricas de la DPV) y `runbooks/` (kill switch, despliegue, restauración).
+Carpetas:
+
+- `runbooks/`: procedimientos paso a paso (despliegue, ambientes de GitHub, pagos con Bold, cambio de dominio, kill switch, vigía de cuota).
+- `validacion/`: búsquedas, revisión agronómica y métricas de las herramientas.
+- `seguridad/`: revisiones de seguridad, con cada hallazgo, su arreglo y su prueba.
+- `analisis/`: análisis de arquitectura que miran más allá de este producto, por ejemplo `integracion-tienda-ecosistema.md` (cómo integrar la Tienda al ecosistema y si conviene migrarla a esta arquitectura). Proponen; las decisiones van a `ARQUITECTURA.md` cuando el dueño las toma.

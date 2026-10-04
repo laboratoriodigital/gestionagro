@@ -19,6 +19,8 @@ interface Paso {
 
 interface Trabajo {
   'timeout-minutes'?: unknown;
+  /** Un trabajo que llama a otro flujo (workflow_call): su tiempo lo pone el flujo llamado. */
+  uses?: string;
   steps?: Paso[];
 }
 
@@ -48,6 +50,9 @@ export function revisarPipefail(archivo: string, flujo: Flujo): Hallazgo[] {
 
 export function revisarTiempos(archivo: string, flujo: Flujo): Hallazgo[] {
   return Object.entries(flujo.jobs ?? {}).flatMap(([id, trabajo]) => {
+    // GitHub no acepta «timeout-minutes» en un trabajo con «uses»: lo cuida el flujo llamado,
+    // que también pasa por esta revisión.
+    if (typeof trabajo.uses === 'string') return [];
     const t = trabajo['timeout-minutes'];
     return typeof t === 'number' && t > 0 && t <= TIEMPO_MAXIMO_MIN
       ? []
