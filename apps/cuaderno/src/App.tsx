@@ -90,11 +90,7 @@ export function App() {
         <div class="cabecera-fila">
           <a class="marca" href="/agro/app/">
             <svg class="marca-hoja" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path
-                fill="currentColor"
-                fill-rule="evenodd"
-                d="M4.54 4.54A13.44 13.44 0 0 1 19.46 19.46A13.44 13.44 0 0 1 4.54 4.54ZM5.082 4.658L19.342 18.918L18.918 19.342L4.658 5.082Z"
-              />
+              <path fill="currentColor" d={marca.hoja.d} />
             </svg>
             {marca.nombre}
           </a>

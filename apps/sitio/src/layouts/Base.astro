@@ -4,6 +4,7 @@
  * (src/lib/seo.ts): esta plantilla solo lo pinta. Sin fuentes externas, sin scripts de terceros.
  */
 import '@gestionagro/ui/tokens.css';
+import marca from '../../../../content/marca.json';
 import { type Miga, NOMBRE_DEL_SITIO } from '../lib/seo.ts';
 
 interface Props {
@@ -44,7 +45,7 @@ const { title, description, canonical, indexable, og = {}, migas = [], jsonLd } 
     <a class="saltar" href="#contenido">Saltar al contenido</a>
     <header class="cabecera">
       <a class="marca" href="/herramientas/agro/">
-        <svg class="marca-hoja" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M4.54 4.54A13.44 13.44 0 0 1 19.46 19.46A13.44 13.44 0 0 1 4.54 4.54ZM5.082 4.658L19.342 18.918L18.918 19.342L4.658 5.082Z" /></svg>
+        <svg class="marca-hoja" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d={marca.hoja.d} /></svg>
         <span>{NOMBRE_DEL_SITIO}</span>
       </a>
     </header>
