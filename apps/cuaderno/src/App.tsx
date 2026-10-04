@@ -90,10 +90,7 @@ export function App() {
         <div class="cabecera-fila">
           <a class="marca" href="/agro/app/">
             <svg class="marca-hoja" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path
-                fill="currentColor"
-                d="M20.5 3.5C11 3.5 4.5 8.6 4.5 16.6c0 1.2.1 2.2.4 3.2 1.3-6.4 5.7-10.4 11-12.4-4.6 3.1-7.8 7.3-9 13 9.2-.6 13.6-7.3 13.6-16.9z"
-              />
+              <path fill="currentColor" d={marca.hoja.d} />
             </svg>
             {marca.nombre}
           </a>

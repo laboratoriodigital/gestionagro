@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- El logo de CultivoPro en archivos para descargar (cultivopro.co/marca/): la hoja, el ícono, el logo verde y el blanco, en SVG y PNG. El sitio tiene favicon. Hay una sola hoja, la dibujada a mano con el nervio curvo, que el dueño prefirió: va en las cabeceras, el favicon, el ícono de la app instalada y el logo. Antes el ícono de la app tenía otra hoja. La guía del vendedor enlaza los logos.
+
 ## [0.2.0] - 2026-10-03
 
 ### Agregado
