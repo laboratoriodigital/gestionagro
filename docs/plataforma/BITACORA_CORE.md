@@ -276,6 +276,7 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 ## Lo que el terreno enseñó, y no fue culpa de nadie
 
 - **El cuello de botella del agro no fue construir, fue validar.** Del 30 sep al 5 oct 2026 hubo 217 commits, y 57 de las 81 historias quedaron «En sprint», casi todas esperando la prueba del dueño. Planear por puntos de construcción habría prometido fechas que la validación no puede cumplir. Por eso el CORE cuenta la velocidad por lo validado y limita a 4 las historias en espera (`BACKLOG_CORE.md` §2.6).
+- **Dos sesiones en la misma carpeta comparten la rama.** El 5 oct 2026, al crear `feat/c1-sprint` en `D:CoWorkgestionagro`, aparecieron `apps/core/src/drive.ts` y un cambio en `worker.ts` que no eran del CORE: otra sesión trabajaba ahí en el respaldo del agro en Drive. `git switch` se lleva los cambios sin confirmar a la rama nueva, así que esa sesión habría terminado haciendo commit en la rama del CORE. Nada se mezcló, porque el commit solo llevaba `docs/`: la carpeta volvió a `main` con sus cambios intactos, y el CORE se trabaja desde entonces en una copia aparte (`git worktree add ../gestionagro-core`), con su propio `node_modules` (pnpm lo arma en 9 s desde su almacén). Antes de cambiar de rama, se mira `git status`: lo que no es tuyo no se lleva.
 - **Una referencia se abre antes de copiarla.** El enlace de diseño `codapress.co.uk/x` lleva a la página 404 del sitio. Lo que el dueño señalaba era esa página, la tipografía y la trama, y la portada confirmó el resto. Se tomó lo de las dos.
 
 ---
