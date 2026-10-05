@@ -377,7 +377,7 @@ Formato de cada historia:
 - **Work items:** WI-C1.1.1 `[código]` esquema · WI-C1.1.2 `[código]` `@ed1/productos` · WI-C1.1.3 `[prueba]` casos inválidos uno por uno · WI-C1.1.4 `[prueba]` comparación byte a byte de lo generado · WI-C1.1.5 `[doc]` ARQUITECTURA §5.4.
 
 #### HU-C1.2 · `planes.json` con precio por periodo
-- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1 · **Estado:** Refinada
+- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1 · **Estado:** En validación (rama `feat/c2-sprint`. Las reglas viven en `@ed1/productos` (`fallasDeCobro`, `PERIODOS`), y la prueba lee los `planes.json` desde `productos.json`. CA5 cambió: el plan Finca ya lleva los cuatro periodos con la propuesta de PLATAFORMA §4.2 (111.000, 210.000 y 390.000), porque el dueño aceptó las recomendaciones del plan; cambiarlos es editar el archivo. Nada se cobra por más de un mes hasta HU-C5.3. Una prueba exige que `PERIODOS` diga lo mismo que la siembra de `periodo` en la 0006)
 - Como dueño, quiero fijar el precio de 1, 3, 6 y 12 meses de cada plan en el mismo archivo que lee la página de precios, para que el cobro y lo que se muestra no se separen.
 - **Respaldo:** PLATAFORMA §4.2 y §4.8; ADR-22; ED1 §5.3.
 - **CA1.** Cada plan puede llevar `cobro` con claves de periodo. Un periodo sin monto no se ofrece en ese plan.

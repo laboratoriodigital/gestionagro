@@ -1,5 +1,5 @@
 {
-  "nota": "Planes con precio visible (HU-E0.6). Los precios son los «Precios propuestos» del Estudio de mercado, como precio de lanzamiento tentativo (CA2). «Me interesa» solo deja la señal, sin cobrar. Desde el 3 oct 2026 (HU-E0.7) el plan Finca también se paga en línea; el aviso lo dice, y una prueba no deja que diga «no se cobra nada» mientras algún plan tenga `cobro_mensual_cop`. Lo que el código limita por plan sale de funciones.json y fotos.json; una prueba ata este archivo a esos dos. Lo que todavía no existe dice «pronto». `cobro_mensual_cop` es lo que el CORE cobra en línea por un mes (HU-E0.7): un número exacto, dentro del rango de `precio`, que fija el dueño; un plan sin él no se puede pagar en línea.",
+  "nota": "Planes con precio visible (HU-E0.6). Los precios son los «Precios propuestos» del Estudio de mercado, como precio de lanzamiento tentativo (CA2). «Me interesa» solo deja la señal, sin cobrar. Desde el 3 oct 2026 (HU-E0.7) el plan Finca también se paga en línea; el aviso lo dice, y una prueba no deja que diga «no se cobra nada» mientras algún plan tenga `cobro_mensual_cop`. Lo que el código limita por plan sale de funciones.json y fotos.json; una prueba ata este archivo a esos dos. Lo que todavía no existe dice «pronto». `cobro_mensual_cop` es lo que el CORE cobra en línea por un mes (HU-E0.7): un número exacto, dentro del rango de `precio`, que fija el dueño; un plan sin él no se puede pagar en línea. `cobro` (HU-C1.2, ADR-22) da el monto por periodo de 1, 3, 6 y 12 meses: `cobro[1]` es igual a `cobro_mensual_cop` mientras existan los dos, y a más meses el mes no sale más caro. Los montos de 3, 6 y 12 meses son la propuesta de PLATAFORMA §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo), aceptada por el dueño con las recomendaciones del plan del CORE. Hasta HU-C5.3 el CORE sigue cobrando un mes.",
   "aviso_precio": "Precio de lanzamiento tentativo. El plan Finca ya lo puedes pagar aquí mismo, un mes a la vez. Los demás todavía no se cobran: si te interesan, avísanos y te contamos antes de que empiecen.",
   "planes": [
     {
@@ -20,6 +20,7 @@
       "nombre": "Finca",
       "precio": "COP 39.000 a 59.000 al mes",
       "cobro_mensual_cop": 39000,
+      "cobro": { "1": 39000, "3": 111000, "6": 210000, "12": 390000 },
       "para_quien": "Para la finca que quiere saber cuánto le cuesta producir.",
       "incluye": [
         "Todo lo del plan Gratis",

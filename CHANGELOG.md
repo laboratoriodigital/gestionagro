@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El plan Finca tiene precio para 1, 3, 6 y 12 meses (COP 39.000, 111.000, 210.000 y 390.000), con las reglas que los cuidan: a más meses, el mes nunca sale más caro. Todavía se cobra un mes a la vez (HU-C1.2).
 - Cada celda dice de qué producto es, y los nombres de sus bases llevan ese producto (HU-C1.4).
 - Los tokens de diseño v2 del ecosistema (`@ed1/ui/v2`, ADR-29): tinta y papel con un acento cobalto, el verde de CultivoPro como tema, modo claro y oscuro, y movimiento que se apaga si la persona lo pide. Una sola hoja de 3 KB, generada desde una única fuente, con el contraste AA comprobado por una prueba. El sitio y el cuaderno siguen con la v1 (HU-C6.1).
 - Los productos del CORE como dato: `infrastructure/productos.json` (por ahora, CultivoPro) con su esquema y el paquete `@ed1/productos`. Agregar un producto será un archivo y un despliegue, no una migración (HU-C1.1).
