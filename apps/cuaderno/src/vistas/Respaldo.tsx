@@ -5,6 +5,7 @@
  *   confirmar, y si algo falla no queda nada a medias (CA2, P21).
  * - Funciona en un teléfono nuevo, sin finca: así se restaura el cuaderno al cambiar de teléfono.
  * - La última descarga se recuerda en `meta` para avisar si hace mucho que no se respalda.
+ * - Copia en el Google Drive de la persona (HU-E8.4, etapa 1): `CopiaEnDrive.tsx`.
  */
 import { fechaAgronomica, type TablaExportada } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
@@ -21,6 +22,7 @@ import {
 import { corto, descargar } from '../descargar.ts';
 import { fechaHora } from '../formato.ts';
 import { CarpetaCumplimiento } from './CarpetaCumplimiento.tsx';
+import { CopiaEnDrive } from './CopiaEnDrive.tsx';
 import { usarFinca } from './usarFinca.tsx';
 
 const CLAVE_ULTIMO = 'ultimo_respaldo';
@@ -96,16 +98,14 @@ export function Respaldo() {
     descargar(`${tipo}-${corto(finca.nombre)}-${hoy}.csv`, csv, 'text/csv;charset=utf-8');
   };
 
-  const elegirArchivo = async (e: Event) => {
-    const entrada = e.currentTarget as HTMLInputElement;
-    const archivo = entrada.files?.[0];
+  /** La misma revisión para un archivo elegido y para una copia traída de Drive (P2). */
+  const revisarTexto = async (texto: string) => {
     setResumen(null);
     setErrores([]);
     setImportado(null);
-    if (!archivo) return;
     setTrabajando(true);
     try {
-      setResumen(await analizarArchivo(cuaderno(), await archivo.text()));
+      setResumen(await analizarArchivo(cuaderno(), texto));
     } catch (error) {
       setErrores(
         error instanceof ErrorDeImportacion
@@ -114,6 +114,16 @@ export function Respaldo() {
       );
     } finally {
       setTrabajando(false);
+    }
+  };
+
+  const elegirArchivo = async (e: Event) => {
+    const entrada = e.currentTarget as HTMLInputElement;
+    const archivo = entrada.files?.[0];
+    if (!archivo) return;
+    try {
+      await revisarTexto(await archivo.text());
+    } finally {
       entrada.value = ''; // permite elegir el mismo archivo otra vez
     }
   };
@@ -183,6 +193,8 @@ export function Respaldo() {
           Todavía no hay finca en este teléfono. Puedes restaurar un respaldo abajo.
         </p>
       )}
+
+      <CopiaEnDrive hayFinca={Boolean(finca)} alTraer={revisarTexto} />
 
       <h2>Importar</h2>
       <p class="ayuda">

@@ -30,6 +30,14 @@ import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
 import { PRODUCTO_CORE } from './constantes.ts';
 import {
+  callbackDrive,
+  canjeDrive,
+  type EntornoDrive,
+  inicioDrive,
+  type ProveedorDrive,
+  proveedorDrive,
+} from './drive.ts';
+import {
   callback,
   canje,
   type Entorno,
@@ -66,6 +74,8 @@ export interface Env {
 
 export interface Dependencias {
   google?: (env: Env) => ProveedorGoogle;
+  /** Permiso de Drive del productor (HU-E8.4); las pruebas pasan uno falso. */
+  drive?: (env: Env) => ProveedorDrive;
   ahora?: () => number;
   /** Para hablar con Bold; las pruebas pasan uno falso. */
   fetch?: typeof fetch;
@@ -113,6 +123,9 @@ export function crearApp(dependencias: Dependencias = {}) {
   const google =
     dependencias.google ??
     ((env: Env) => proveedorGoogle(env.GOOGLE_CLIENT_ID ?? '', env.GOOGLE_CLIENT_SECRET ?? ''));
+  const drive =
+    dependencias.drive ??
+    ((env: Env) => proveedorDrive(env.GOOGLE_CLIENT_ID ?? '', env.GOOGLE_CLIENT_SECRET ?? ''));
   const app = new Hono<{ Bindings: Env; Variables: { entorno: Entorno } }>();
 
   app.get('/api/core/salud', async (c) => {
@@ -190,6 +203,7 @@ export function crearApp(dependencias: Dependencias = {}) {
     '/api/core/interes',
     '/api/core/interes/*',
     '/api/core/pago/*',
+    '/api/core/drive/*',
   ]) {
     app.use(ruta, corsDelCuaderno);
     app.use(ruta, conEntorno);
@@ -218,6 +232,18 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.get('/api/core/auth/google/callback', (c) => callback(c, c.get('entorno')));
   app.post('/api/core/auth/canje', (c) => canje(c, c.get('entorno')));
   app.post('/api/core/auth/refrescar', (c) => renovar(c, c.get('entorno')));
+  // Copia en el Drive del productor (HU-E8.4, etapa 1): mismo CORS, kill switch y configuración.
+  const conDrive = (
+    c: Context<{ Bindings: Env; Variables: { entorno: Entorno } }>,
+  ): EntornoDrive => ({
+    drive: drive(c.env),
+    secreto: c.env.CORE_JWT_PRIVATE_KEY ?? '',
+    origenes: c.get('entorno').origenes,
+    ahora,
+  });
+  app.get('/api/core/drive/inicio', (c) => inicioDrive(c, conDrive(c)));
+  app.get('/api/core/drive/callback', (c) => callbackDrive(c, conDrive(c)));
+  app.post('/api/core/drive/canje', (c) => canjeDrive(c, conDrive(c)));
 
   app.notFound((c) =>
     c.json({ estado: 'no-encontrado', motivo: 'Ruta del CORE desconocida' }, 404),

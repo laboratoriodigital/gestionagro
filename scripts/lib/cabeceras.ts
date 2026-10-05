@@ -8,6 +8,10 @@
  *
  * La única excepción es el programa de pago de Bold (HU-E0.7), que la política declara en
  * `scripts_al_pagar`: se carga solo al tocar «Pagar», y la CSP lo permite solo como script.
+ *
+ * Conexiones de terceros: solo las que la política declara en `conexiones_de_terceros`. Hoy, la
+ * API de Google Drive, para la copia que la persona guarda en su propio Drive (HU-E8.4, etapa 1).
+ * No carga ningún script de Google.
  */
 import politica from '../../content/agro/privacidad/politica.json' with { type: 'json' };
 import type { ConfigCeldas } from './celdas.ts';
@@ -19,6 +23,8 @@ export function conexionesDelCuaderno(config: ConfigCeldas): string[] {
       config.core.url,
       config.core.url_staging,
       ...config.celdas.flatMap((c) => [c.api, c.api_staging]),
+      // Las de terceros solo si la política las declara (HU-E8.4: Google Drive).
+      ...(politica.conexiones_de_terceros ?? []),
     ]),
   ].sort();
 }

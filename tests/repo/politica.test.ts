@@ -44,7 +44,11 @@ describe('política de tratamiento de datos (CA4)', () => {
 
 const politicaCompleta = JSON.parse(
   readFileSync(join(RAIZ, 'content', 'agro', 'privacidad', 'politica.json'), 'utf8'),
-) as { scripts_al_pagar?: string[]; encargados: { proveedor: string }[] };
+) as {
+  scripts_al_pagar?: string[];
+  conexiones_de_terceros?: string[];
+  encargados: { proveedor: string }[];
+};
 
 describe('CSP del cuaderno (ARQUITECTURA §9)', () => {
   const csp = cspDelCuaderno(cargarCeldas());
@@ -55,20 +59,26 @@ describe('CSP del cuaderno (ARQUITECTURA §9)', () => {
     expect(declarados).toEqual(['https://checkout.bold.co']);
     expect(politicaCompleta.encargados.map((e) => e.proveedor)).toContain('Bold');
     expect(/script-src ([^;]+)/.exec(csp)?.[1]).toBe(["'self'", ...declarados].join(' '));
-    const sinElPago = declarados.reduce((t, o) => t.split(o).join(''), csp);
+    // Lo único ajeno: el pago (como script) y las conexiones que la política declara.
+    const conexiones = politicaCompleta.conexiones_de_terceros ?? [];
+    const sinElPago = [...declarados, ...conexiones].reduce((t, o) => t.split(o).join(''), csp);
     expect(sinElPago).not.toMatch(/\*|unsafe-|https?:(?!\/\/agro-)/);
     expect(csp).toContain("script-src 'self'");
     expect(csp).toContain("object-src 'none'");
   });
 
-  it('solo se conecta al CORE y a las API de las celdas de celdas.json (P2)', () => {
+  it('solo se conecta al CORE, a las API de las celdas y a lo que la política declara (P2, P18)', () => {
     const config = cargarCeldas();
+    const terceros = politicaCompleta.conexiones_de_terceros ?? [];
+    expect(terceros).toEqual(['https://www.googleapis.com']);
+    expect(politicaCompleta.encargados.map((e) => e.proveedor)).toContain('Google LLC');
     expect(conexionesDelCuaderno(config)).toEqual(
       [
         ...new Set([
           config.core.url,
           config.core.url_staging,
           ...config.celdas.flatMap((c) => [c.api, c.api_staging]),
+          ...terceros,
         ]),
       ].sort(),
     );
