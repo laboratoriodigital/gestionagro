@@ -28,3 +28,13 @@ describe('la calculadora apunta al cuaderno real (HU-E2.7)', () => {
     expect(REGISTRAR_EN_CUADERNO).toBe(`${BASE_APP}registrar/`);
   });
 });
+
+describe('la política declara el mismo Drive que usa la copia (HU-E8.4)', () => {
+  it('el origen de almacen/drive.ts está en conexiones_de_terceros de la política', async () => {
+    const { ORIGEN_DRIVE } = await import('../../apps/cuaderno/src/almacen/drive.ts');
+    const politica = (await import('../../content/agro/privacidad/politica.json', {
+      with: { type: 'json' },
+    })) as { default: { conexiones_de_terceros: string[] } };
+    expect(politica.default.conexiones_de_terceros).toContain(ORIGEN_DRIVE);
+  });
+});
