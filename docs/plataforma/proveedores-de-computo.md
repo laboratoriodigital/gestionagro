@@ -1,6 +1,6 @@
 # Análisis: otros proveedores de cómputo y servicios para el ecosistema
 
-_5 de octubre de 2026. Responde al pedido del dueño: «Analizar la posibilidad de integrar al ecosistema digital otras herramientas que ofrecen servicios de cómputo también con límites decentes como Vercel y otros que consideren aporten al ecosistema y al esquema de crecimiento y gobernanza visionado». Alimenta `ECOSISTEMA-DIGITAL-ED1-v1.3.md` §22.2 y §22.3._
+_5 de octubre de 2026. Responde al pedido del dueño: «Analizar la posibilidad de integrar al ecosistema digital otras herramientas que ofrecen servicios de cómputo también con límites decentes como Vercel y otros que consideren aporten al ecosistema y al esquema de crecimiento y gobernanza visionado». Alimenta `../ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md` §22.2 y §22.3. Al día con las decisiones de la tarde del 5 oct 2026 (una sola cuenta de Cloudflare) y con el estudio de ecommerce v1.3, que corrigió lo que este análisis decía de WhatsApp (§7, trampa 10)._
 
 > **Cómo se verificó.** El proxy bloqueó casi todos los sitios oficiales y el cupo de búsquedas de la sesión se agotó. El investigador usó tres caminos:
 > - los **repositorios oficiales de documentación** de cada proveedor en GitHub, con la fecha de su último commit **(V)**;
@@ -18,12 +18,12 @@ _5 de octubre de 2026. Responde al pedido del dueño: «Analizar la posibilidad 
 | Capacidad que falta o es débil | Recomendación | Estado |
 |---|---|---|
 | **Una copia de los datos fuera de Cloudflare** (plan de salida, ED1 §20.3) | Un bucket en **Google Cloud Storage** o en **Backblaze B2** para el respaldo mensual cifrado | **Adoptar ya**, con la Tienda 3.0 (M0) |
-| **Correo transaccional** mientras el CORE siga en la cuenta gratuita, y como respaldo del correo de Cloudflare | **Resend** (3.000 al mes, 100 al día) o **Brevo** (300 al día), detrás del adaptador `CorreoTransaccional` | **Adoptar** cuando llegue el enlace mágico, si el CORE no está aún en la cuenta paga |
+| **Correo transaccional** antes de Workers Paid, y como respaldo del correo de Cloudflare | **Resend** (3.000 al mes, 100 al día) o **Brevo** (300 al día), detrás del adaptador `CorreoTransaccional` | **Adoptar** si el enlace mágico llega antes que Workers Paid |
 | **Errores y crons vigilados desde fuera** (un Worker caído no se avisa a sí mismo) | **Sentry Developer** (tope duro) para errores y **Healthchecks.io** para los crons | **Adoptar** con la Tienda 3.0 |
 | **Búsqueda** en catálogos grandes | **Orama** (código abierto, Apache-2.0) **dentro del navegador o del Worker**: no es un proveedor | Adoptar cuando una tienda pase de unos 500 productos |
-| **Cómputo pesado o largo** (conversores con servidor de ED1 §15, procesar imágenes o PDF a escala) | Primero **Containers de Cloudflare** (cuenta paga). En reserva, **Google Cloud Run en São Paulo** | **Reserva**, con disparador (§4) |
+| **Cómputo pesado o largo** (conversores con servidor de ED1 §15, procesar imágenes o PDF a escala) | Primero **Containers de Cloudflare** (con Workers Paid). En reserva, **Google Cloud Run en São Paulo** | **Reserva**, con disparador (§4) |
 | **Postgres** (consultas relacionales que D1 no da, residencia en Suramérica) | **Neon** (100 proyectos gratis en una cuenta, región São Paulo) | **Reserva** |
-| **Mensajería con clientes** | `wa.me` (gratis) y Telegram para el dueño. **WhatsApp Cloud API** cuando un comercio pague sus avisos: Meta cobra cada mensaje desde el 1 oct 2026 | Reserva |
+| **Mensajería con clientes** | `wa.me` (gratis) y Telegram para el dueño. **WhatsApp Cloud API** cuando se demuestre ahorro de atención (estudio de ecommerce §11.1). El costo no es la barrera: dentro de la ventana de atención, los mensajes de servicio y las plantillas de utilidad no se cobran. Lo es habilitar el canal | Reserva |
 
 **Lo que se descarta, con su motivo:**
 
@@ -112,13 +112,13 @@ Un proveedor entra al ecosistema solo si pasa estos ocho criterios. Se registran
 
 | Proveedor | Gratis | Veredicto |
 |---|---|---|
-| **Correo de Cloudflare** | Free: solo destinatarios verificados. Paid: 3.000 al mes y después USD 0,35 por 1.000 (r) | **Primera opción** en la cuenta paga (TIENDA-3.0 §15.5) |
-| **Resend** | 3.000 al mes, 100 al día (S) | **Respaldo**, o principal mientras el CORE esté en la cuenta gratuita |
+| **Correo de Cloudflare** | Free: solo destinatarios verificados. Paid: 3.000 al mes y después USD 0,35 por 1.000 (r) | **Primera opción**, con Workers Paid en la cuenta (TIENDA-3.0 §15.5) |
+| **Resend** | 3.000 al mes, 100 al día (S) | **Respaldo**, o principal si el correo hace falta antes que Workers Paid |
 | **Brevo** | 300 al día (S); empresa de la UE | Alternativa a Resend |
 | **Amazon SES** | Sin capa gratis para cuentas nuevas desde el 21-jul-2026; precios nuevos (r) | Reserva a escala, con `sa-east-1` |
 | Postmark · MailerSend · SendGrid · Mailgun | 100 al mes · 500 al mes · sin plan gratis (N) · N | Descartar |
 
-**Para cualquiera de ellos:** SPF, DKIM y DMARC del dominio que envía. Los correos de las tiendas salen del dominio de tiendas, no del ecosistema ([V10]).
+**Para cualquiera de ellos:** SPF, DKIM y DMARC del dominio que envía. Los correos de las tiendas salen de `laboratorio-digital.app` y los del CORE de `laboratorio-digital.com`, para que la reputación de una tienda no toque la entrada al ecosistema ([V10], ADR-27).
 
 ### 3.4 Observabilidad
 
@@ -167,13 +167,13 @@ Un proveedor entra al ecosistema solo si pasa estos ocho criterios. Se registran
 | **Google Cloud Storage** o **Backblaze B2** | Respaldo mensual cifrado fuera de Cloudflare | **Ya**, con la Tienda 3.0 (M0). Es el plan de salida de ED1 §20.3 | Centavos |
 | **Sentry** Developer | Errores de Workers y PWA | Ya, con la Tienda 3.0 | USD 0 |
 | **Healthchecks.io** | Crons vigilados desde fuera | Ya | USD 0 |
-| **Resend** o **Brevo** | Enlace mágico y avisos del CORE mientras siga en la cuenta gratuita, y respaldo del correo de Cloudflare | Cuando llegue el enlace mágico (`PLATAFORMA.md` §4.11) | USD 0 en su capa gratis |
+| **Resend** o **Brevo** | Enlace mágico y avisos del CORE si llegan antes que Workers Paid, y respaldo del correo de Cloudflare | Cuando llegue el enlace mágico sin Workers Paid (`PLATAFORMA.md` §4.11) | USD 0 en su capa gratis |
 | **Orama** | Búsqueda en la tienda | Una tienda con más de unos 500 productos | USD 0 |
 | **Cloud Run** (São Paulo) | Cómputo pesado | Un producto que necesite más de 5 min de CPU o más de lo que dan los Containers, o residencia en Suramérica | Su capa gratis, con corte automatizado |
 | **Neon** | Postgres | Un producto con consultas relacionales que D1 no resuelva, o datos que deban quedarse en Suramérica | USD 0 en Free |
 | **Upstash Redis** | Contadores y límites | KV, Durable Objects y el binding de rate limiting no alcanzan | USD 0 en Free |
 | **Inngest** | Flujos durables | Queues y Workflows no alcanzan | USD 0 en Free |
-| **WhatsApp Cloud API** | Avisos a compradores | Los comercios pagan sus mensajes | Unos USD 0,0008 por mensaje de utilidad en Colombia (S) |
+| **WhatsApp Cloud API** | Avisos automáticos a compradores | Se demuestra ahorro de atención y la contribución por pedido soporta su costo (estudio de ecommerce §11.1) | Gratis dentro de la ventana de atención para servicio y utilidad; fuera de ella, unos USD 0,0008 por plantilla de utilidad en Colombia (S), más la cuota del intermediario |
 
 ---
 
@@ -228,7 +228,10 @@ Un proveedor entra al ecosistema solo si pasa estos ocho criterios. Se registran
    - el almacenamiento de Actions se acumula por hora, así que borrar artefactos no baja lo ya cobrado (V).
 8. **Oracle:** una sola cuenta por persona; las cuentas inactivas se suspenden (V).
 9. **Backblaze B2 y la Bandwidth Alliance:** el egreso gratis hacia Cloudflare hay que reconfirmarlo (V, la ausencia en la documentación de Cloudflare).
-10. **WhatsApp:** desde el 1 oct 2026 Meta cobra los mensajes de servicio y las plantillas de utilidad dentro de la ventana de 24 h. Lo que era gratis ya no lo es (informe de pagos y normas).
+10. **WhatsApp, corregido el 5 oct 2026.** La primera versión de este análisis decía que desde el 1 oct 2026 Meta cobra los mensajes de servicio y las plantillas de utilidad dentro de la ventana de 24 h. **Era falso.**
+    - La documentación oficial, leída el 5 oct 2026 por el estudio de ecommerce (§11.1 [C5], S111), dice lo contrario: dentro de la ventana de atención, los mensajes que no son plantilla y las plantillas de utilidad no se cobran. Hay además 72 horas sin cargo cuando la persona llega por un anuncio.
+    - Lo que no está confirmado es un tope de 1.000 mensajes de servicio gratis al mes por número, que afirma una fuente secundaria. Está en el radar del estudio (§17.1).
+    - La trampa real es otra: habilitar el canal pide verificar el negocio, plantillas aprobadas, el consentimiento del comprador y la cuota de un intermediario.
 
 ---
 
@@ -266,4 +269,5 @@ Consultadas el 5 oct 2026. (V) en el repositorio oficial de documentación en Gi
 - Orama: `oramasearch/orama` LICENSE.md (V).
 - GitHub: repositorios `github/docs` y `github/site-policy` (V).
 - Lista comunitaria: https://github.com/ripienaar/free-for-dev (S).
-- WhatsApp y normas colombianas: ver las fuentes de `docs/arquitectura/TIENDA-3.0.md`.
+- WhatsApp: estudio de ecommerce v1.3 (`../tienda/ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10-v1.3.md`) §11.1, S88, S111 y S113.
+- Normas colombianas: ver las fuentes de `../tienda/TIENDA-3.0.md`.

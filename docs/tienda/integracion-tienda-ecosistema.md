@@ -1,15 +1,16 @@
 # Análisis: integración de la Tienda al ecosistema digital
 
-_4 de octubre de 2026. Mirada de arquitecto de nube y de soluciones, pedida por el dueño. Contrasta la Tienda 2.0 (`laboratoriodigital/tienda`, «Tienda Panel», 1.0.0), su documento de traslado a la 3.0 (`tienda/docs/TRASLADO-3.0.md`) y su plan de flota (`PLAN-4.0.md`) con ED1 (`docs/ECOSISTEMA-DIGITAL-ED1-v1.2.md`) y con la arquitectura de CultivoPro (`docs/ARQUITECTURA.md`), que ya corre en producción con cuentas, pagos y varias fincas._
+_4 de octubre de 2026. Mirada de arquitecto de nube y de soluciones, pedida por el dueño. Contrasta la Tienda 2.0 (`laboratoriodigital/tienda`, «Tienda Panel», 1.0.0), su documento de traslado a la 3.0 (`tienda/docs/TRASLADO-3.0.md`) y su plan de flota (`PLAN-4.0.md`) con ED1 (la v1.2, hoy en `docs/ecosistema/historia/`) y con la arquitectura de CultivoPro (`docs/ARQUITECTURA.md`), que ya corre en producción con cuentas, pagos y varias fincas._
 
 _Ajustado el 5 de octubre de 2026 con la validación del estudio de mercado de ecommerce (`VALIDACION-ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md`, en esta carpeta). Cada cambio lleva la etiqueta de su hallazgo, por ejemplo **[V6]**._
 
 > **Puesto al día el 5 oct 2026, tras las decisiones del dueño.** Este análisis recomendó; el diseño ya está escrito:
-> - `docs/arquitectura/PLATAFORMA.md`: el CORE con dimensión de producto, las cuentas, los agentes y el repositorio.
-> - `docs/arquitectura/TIENDA-3.0.md`: el producto, con su modelo de datos probado.
+> - `../plataforma/PLATAFORMA.md`: el CORE con dimensión de producto, la cuenta, los dominios, los agentes y el repositorio.
+> - `TIENDA-3.0.md` (en esta carpeta): el producto, con su modelo de datos probado.
 >
 > Lo que cambia frente a este análisis:
-> - **§6:** el monorepo de la plataforma es **este repositorio renombrado**, no uno nuevo con la historia movida (PLATAFORMA §6.1; ADR-26).
+> - **§6:** el monorepo de la plataforma es **este repositorio, renombrado a `laboratoriodigital/plataforma`** (decisión del dueño de la tarde del 5 oct), no uno nuevo con la historia movida (PLATAFORMA §6.1; ADR-26).
+> - **§4.2, punto 2:** el dominio aparte de las tiendas es `laboratorio-digital.app`, compartido con los proyectos nuevos, y sin la Public Suffix List (ADR-27; PLATAFORMA §3.3–§3.4). Todo vive en la cuenta de Cloudflare de siempre (ADR-23).
 > - **§4.3 y §8:** Bold sí tiene **webhooks firmados**, y la Tienda 3.0 los usa como camino principal (TIENDA-3.0 §9.4).
 > - **La Tienda 3.0 se diseña desde cero:** la migración de la 2.0 deja de ser un requisito de diseño y pasa a scripts de carga (TIENDA-3.0 §17).
 > - **La 2.0 tiene dos tiendas en operación** (dato del dueño).
@@ -76,7 +77,7 @@ Y los **contratos de datos** de TRASLADO §7 (producto, combinación, estados de
 ## 4. La arquitectura propuesta para la Tienda 3.0
 
 ```
-                         tienda-de-ana.co · …   (sin dominio propio: un dominio aparte, nunca uno del ecosistema [V10])
+                         mitienda.co · …        (sin dominio propio: <nombre>.laboratorio-digital.app [V10])
                                               │ (dominios propios: Cloudflare for SaaS)
  Comprador ──► Worker del sitio de tiendas ── assets estáticos (estilos y scripts, iguales para todas)
                │  fichas y catálogo de SU tienda: HTML y JSON horneados en R2 [V6],
@@ -111,7 +112,7 @@ Y los **contratos de datos** de TRASLADO §7 (producto, combinación, estados de
    - **[V6]** Se hornea también el HTML de cada ficha, con su JSON-LD (`Product`/`Offer`) y su Open Graph. Sin eso, Google y la vista previa de un enlace en WhatsApp ven una página sin producto (ED1 §12; P20, «el rastreador que no ejecuta JavaScript»).
    - El Worker resuelve la tienda por el `Host` y entrega ese HTML. Lo común (estilos y scripts) sigue como asset estático gratuito.
 2. **Dominios propios a escala.** *Cloudflare for SaaS* (hostnames personalizados), que ED1 §14.1 ya prevé. Un dominio del comercio apunta a nuestro Worker, y el Worker resuelve qué tienda es por el `Host`. Sin tocar el DNS de nadie más que el suyo.
-   - **[V10]** Las tiendas sin dominio propio van en un dominio registrable separado de los del ecosistema, nunca como subdominio de `cultivopro.co` ni de `laboratorio-digital.com` (ED1 §14.1). Una tienda fraudulenta no puede arrastrar la reputación de los dominios del ecosistema.
+   - **[V10]** Las tiendas sin dominio propio van en un dominio registrable separado de los del ecosistema, nunca como subdominio de `cultivopro.co` ni de `laboratorio-digital.com` (ED1 §14.1). *(Hoy: `laboratorio-digital.app`, ADR-27.)* Una tienda fraudulenta no puede arrastrar la reputación de los dominios del ecosistema.
    - Con eso van los términos de uso, el reporte, `abuse@` y la suspensión con un clic.
 3. **El panel del comerciante** (paridad con la 2.0): productos con variantes y fotos, pedidos y estados, ajustes por grupos, cupones, envíos, tablero, colaborador. Es el trabajo más grande. Se hace como PWA Preact, como el cuaderno, con sus mismos componentes (`packages/ui`).
 4. **Fotos:** comprimir en el navegador y subir a R2 (ADR-15 de CultivoPro), en vez de Drive → Actions → webp. Más rápido para el comerciante y sin pasos de servidor.
@@ -184,14 +185,14 @@ La 2.0 cuesta USD 0 en infraestructura, pero su costo real es tiempo de montaje 
 Sirve mientras la 3.0 se construye:
 
 1. **CultivoPro → Tienda:** el CSV de disponibilidad ya sale con las columnas del Catálogo. El paso siguiente es un **feed firmado**: la celda agro publica `disponibilidad.json` de una finca, firmado con su llave de QR (que ya existe), y el maestro de la tienda del productor lo lee en el montaje en vez de importar el CSV a mano.
-2. **Marca y sitio principal:** `laboratorio-digital.com` como vitrina de los dos productos, con enlaces cruzados. Las calculadoras de CultivoPro traerán tráfico cuando pasen la revisión agronómica y se indexen. Hoy siguen en borrador, y su demanda medida es pequeña (`docs/validacion/busquedas-2026-12.md`).
+2. **Marca y sitio principal:** `laboratorio-digital.com` como vitrina de los dos productos, con enlaces cruzados. Las calculadoras de CultivoPro traerán tráfico cuando pasen la revisión agronómica y se indexen. Hoy siguen en borrador, y su demanda medida es pequeña (`docs/agro/validacion/busquedas-2026-12.md`).
 3. **Medición común:** que la Tienda 2.0 mande sus eventos agregados al mismo Analytics Engine (decisión 35 de la Tienda), para un solo reporte semanal del ecosistema.
 4. **Aprendizaje compartido:** las bitácoras de ambos repositorios ya se citan entre sí (patrones P1–P21). Conviene una lista común de patrones del ecosistema.
 
 ## 10. Qué tiene que decidir el dueño
 
 1. **D1 y D2 de la Tienda 3.0:** aceptar la opción B (base multi-comercio y un despliegue) como base de la 3.0. Es la recomendación de este análisis.
-2. **Cuándo arranca la 3.0** frente a lo que falta en CultivoPro: respaldo semanal, revisión agronómica y prueba real en la finca cero. Recomendación: después de que CultivoPro tenga su primera temporada de uso real. Así el CORE llega a la Tienda probado con usuarios. **[V1] [V8]** Y con una condición medible, no solo de calendario: las métricas de §16.3 del estudio de ecommerce (`ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md`), es decir, pago real, soporte por comercio, retención y cobro confiable. Se toman en los comercios reales de la línea, con los umbrales fijados antes de medir.
+2. **Cuándo arranca la 3.0** frente a lo que falta en CultivoPro: respaldo semanal, revisión agronómica y prueba real en la finca cero. Recomendación: después de que CultivoPro tenga su primera temporada de uso real. Así el CORE llega a la Tienda probado con usuarios. **[V1] [V8]** Y con una condición medible, no solo de calendario: las métricas de §16.3 del estudio de ecommerce (hoy `ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10-v1.3.md`, en esta carpeta), es decir, pago real, soporte por comercio, retención y cobro confiable. Se toman en los comercios reales de la línea, con los umbrales fijados antes de medir.
 3. **Proveedor de correo transaccional:** lo necesitan los dos productos (aviso de vencimiento del plan en CultivoPro, correo del día en la Tienda).
 4. **Términos de la Tienda:** quién responde si una actualización tumba una tienda (TRASLADO D5) y la aclaración de que el dinero va a la cuenta de Bold del comercio.
 5. **El monorepo de la plataforma:** crearlo al arrancar la 3.0, no antes.

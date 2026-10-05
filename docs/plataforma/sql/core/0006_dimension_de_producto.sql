@@ -1,4 +1,4 @@
--- CORE · dimensión de producto (ARQUITECTURA-PLATAFORMA §4). Fase EXPANDIR de §7.4: el código v0
+-- CORE · dimensión de producto (docs/plataforma/PLATAFORMA.md §4). Fase EXPANDIR de §7.4: el código v0
 -- sigue funcionando entre la migración y el despliegue del Worker nuevo, porque cada columna nueva
 -- trae el valor que el v0 supone ('agro', 'activa').
 --
@@ -8,7 +8,7 @@
 -- 3.26 eso reescribe las claves foráneas de las demás tablas hacia la vieja.
 -- `defer_foreign_keys` deja las claves foráneas para el final de la transacción de la migración.
 --
--- Los catálogos (producto, tipos, roles, planes, precios) se siembran aquí solo con lo que ya
+-- Los catálogos (producto, tipos, roles, planes, periodos, precios) se siembran aquí solo con lo que ya
 -- nombran las filas de hoy. El despliegue los pone al día desde infrastructure/productos.json y
 -- content/<producto>/planes.json (P2), como hace con `celda` desde celdas.json.
 --
@@ -51,13 +51,22 @@ CREATE TABLE plan (
   PRIMARY KEY (producto, id)
 ) WITHOUT ROWID;
 
--- Precio de un plan por periodo de prepago (decisión del dueño, 5 oct 2026: mensual, trimestral
--- y anual). Un precio no se edita: uno nuevo entra con su `vigente_desde` y el anterior queda como
--- historia (P21). El cobro guarda el monto que cobró, así que la historia no cambia el pasado.
+-- Periodos de prepago (decisión del dueño, 5 oct 2026: 1, 3, 6 y 12 meses). Es una tabla de
+-- referencia y no un CHECK (R1): el periodo de 6 meses llegó horas después del diseño con 1, 3 y 12,
+-- y con un CHECK habría obligado a rehacer `plan_precio` y `pago`. Un periodo nuevo es un INSERT.
+-- Qué periodos ofrece cada plan lo dice `plan_precio`: un plan sin precio a 6 meses no se vende así.
+CREATE TABLE periodo (
+  meses INTEGER PRIMARY KEY CHECK (meses BETWEEN 1 AND 36),
+  nombre TEXT NOT NULL
+);
+
+-- Precio de un plan por periodo. Un precio no se edita: uno nuevo entra con su `vigente_desde` y el
+-- anterior queda como historia (P21). El cobro guarda el monto que cobró, así que la historia no
+-- cambia el pasado.
 CREATE TABLE plan_precio (
   producto TEXT NOT NULL,
   plan TEXT NOT NULL,
-  meses INTEGER NOT NULL CHECK (meses IN (1, 3, 12)),
+  meses INTEGER NOT NULL REFERENCES periodo (meses),
   monto_cop INTEGER NOT NULL CHECK (monto_cop >= 1000),
   vigente_desde TEXT NOT NULL,
   PRIMARY KEY (producto, plan, meses, vigente_desde),
@@ -79,6 +88,8 @@ INSERT INTO plan (producto, id, nombre, gratuito, estado) VALUES
   ('agro', 'finca', 'Finca', 0, 'activo'),
   ('agro', 'exportador', 'Exportador', 0, 'activo'),
   ('agro', 'cadena', 'Cadena', 0, 'activo');
+INSERT INTO periodo (meses, nombre)
+  VALUES (1, 'mensual'), (3, 'trimestral'), (6, 'semestral'), (12, 'anual');
 INSERT INTO plan_precio (producto, plan, meses, monto_cop, vigente_desde)
   VALUES ('agro', 'finca', 1, 39000, '2026-10-03T00:00:00.000Z');
 
@@ -191,7 +202,7 @@ CREATE TABLE pago_nueva (
   org_id TEXT NOT NULL,
   usuario_id TEXT NOT NULL REFERENCES usuario (id),
   plan TEXT NOT NULL,
-  meses INTEGER NOT NULL CHECK (meses IN (1, 3, 12)),
+  meses INTEGER NOT NULL REFERENCES periodo (meses),
   monto_cop INTEGER NOT NULL CHECK (monto_cop > 0),
   ambiente TEXT NOT NULL CHECK (ambiente IN ('pruebas', 'produccion')),
   estado TEXT NOT NULL CHECK (estado IN ('esperando', 'aprobado', 'rechazado', 'revisar', 'vencido')),

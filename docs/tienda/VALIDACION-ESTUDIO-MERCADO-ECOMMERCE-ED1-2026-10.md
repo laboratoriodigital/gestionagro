@@ -1,9 +1,9 @@
 # Validación del estudio de mercado de ecommerce a la luz del ecosistema digital
 
-_5 de octubre de 2026. Valida `ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md` (versión 1.0, corte del 4 oct 2026) contra dos cosas:_
+_5 de octubre de 2026. Valida el estudio de mercado de ecommerce en su versión 1.0 (corte del 4 oct 2026). Sus ajustes dieron la 1.1, y las respuestas del dueño, la 1.2, que hoy está en `historia/ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10-v1.2.md`. **La versión vigente es la 1.3**, del dueño (`ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10-v1.3.md`, en esta carpeta): suma los complementos [C1]–[C13] sin cambiar las conclusiones, y la arquitectura los integró el mismo día (§5.1). La validación se hizo contra dos cosas:_
 
-- _ED1: `docs/ECOSISTEMA-DIGITAL-ED1-v1.2.md` y sus hallazgos [H1]–[H16] (`docs/REVISION-HALLAZGOS-ED1.md`)._
-- _Lo que el ecosistema ya construyó, midió o decidió: la línea ecommerce y su Tienda 2.0 (`docs/BITACORA-ecommerce.md`), la plataforma que corre en producción con CultivoPro (`docs/ARQUITECTURA.md` y el código del CORE y de la celda, v0.3.0), el análisis de la Tienda 3.0 (`integracion-tienda-ecosistema.md`) y el método de demanda de búsqueda (`docs/validacion/busquedas-2026-12.md`)._
+- _ED1: la versión 1.2 (hoy en `docs/ecosistema/historia/ECOSISTEMA-DIGITAL-ED1-v1.2.md`) y sus hallazgos [H1]–[H16] (`docs/ecosistema/REVISION-HALLAZGOS-ED1.md`)._
+- _Lo que el ecosistema ya construyó, midió o decidió: la línea ecommerce y su Tienda 2.0 (`docs/tienda/BITACORA-ecommerce.md`), la plataforma que corre en producción con CultivoPro (`docs/ARQUITECTURA.md` y el código del CORE y de la celda, v0.3.0), el análisis de la Tienda 3.0 (`integracion-tienda-ecosistema.md`) y el método de demanda de búsqueda (`docs/agro/validacion/busquedas-2026-12.md`)._
 
 _Los ajustes ya están aplicados en el estudio, que pasa a la versión 1.1. Cada cambio lleva la etiqueta de su hallazgo, por ejemplo **[V3]**. Los hallazgos se numeran V para no chocar con [H1]–[H16] de ED1 ni con HA1–HA4 de ARQUITECTURA §14._
 
@@ -97,7 +97,7 @@ Y seis precisiones:
 
 **Qué dice el estudio.** «No se estimaron volumen de búsqueda, CPC, CAC, conversión o disposición a pagar de ED1. Deben medirse» (§2.4). Aun así, §12.5 abre su tabla de canales con el «SEO de intención operativa».
 
-**Qué tiene el ecosistema.** HU-E0.2 (`docs/validacion/busquedas-2026-12.md`):
+**Qué tiene el ecosistema.** HU-E0.2 (`docs/agro/validacion/busquedas-2026-12.md`):
 
 - Unos 25 términos en Keyword Planner, para Colombia y siete países de LATAM.
 - Cada cifra con su tipo: V verificada, R rango, E estimación.
@@ -244,7 +244,7 @@ La lección del estudio sobre los tickets bajos (§7.3) vale para ED1 mismo: cob
 - **Juntar tres fases en 90 días contradice ED1**, salvo que se declare como excepción, igual que el agro con el ADR-2. Aquí la excepción tiene mejor razón que la del agro:
   - el ecommerce **sí** es el ICP de ED1 (ED1 §2.1);
   - las cuentas y el cobro ya existen, así que el piloto no pide plataforma nueva.
-- **Los umbrales de §16.3 «se establecen tras las primeras semanas».** El ecosistema aprendió a fijarlos **antes** de ver los datos, para no acomodarlos a lo que salga (`busquedas-2026-12.md`, regla).
+- **Los umbrales de §16.3 «se establecen tras las primeras semanas».** El ecosistema aprendió a fijarlos **antes** de ver los datos, para no acomodarlos a lo que salga (`../agro/validacion/busquedas-2026-12.md`, regla).
 
 **Ajuste.**
 
@@ -307,7 +307,7 @@ La lección del estudio sobre los tickets bajos (§7.3) vale para ED1 mismo: cob
 
 ### V11 · Correcciones menores
 
-1. **Documento de referencia.** ED1 está en el repositorio (`docs/ECOSISTEMA-DIGITAL-ED1-v1.2.md`); ya no es un «archivo suministrado». El encabezado y S01 lo dicen.
+1. **Documento de referencia.** ED1 está en el repositorio (la v1.2, hoy en `docs/ecosistema/historia/`); ya no es un «archivo suministrado». El encabezado y S01 lo dicen.
 2. **Una cita que nadie puede comprobar.** §10.3 cerraba con «los QR específicos mencionados en conversaciones anteriores». Un documento del repositorio no puede apoyarse en una conversación que el repositorio no tiene (P18). Queda una frase neutra.
 3. **«Owner-first».** En ED1, el *owner* es el dueño del ecosistema (ED1 §3.7), no el comerciante. Que el comerciante se atienda solo sirve a ese principio porque cada pedido que necesita al desarrollador consume las horas del dueño (ED1 §25). §3.1 del estudio lo precisa.
 4. **Un nombre, un significado (P2).** En el ecosistema, «producto» ya es el contrato de una herramienta o un SaaS (`product.yaml`, `schemas/product.schema.json`). El producto de un comercio necesita otro nombre en el código y en los esquemas de la tienda. §9.5 lo anota.
@@ -339,7 +339,7 @@ La lección del estudio sobre los tickets bajos (§7.3) vale para ED1 mismo: cob
 Cuatro ajustes que salen de esta validación, marcados en el texto con su etiqueta:
 
 - **§4 y §4.2, punto 1, HTML por producto [V6]:** el catálogo horneado por tienda incluye el HTML de cada ficha, no solo el JSON.
-- **§4.2, punto 2, dominios [V10]:** las tiendas sin dominio propio van en un dominio registrable separado de los del ecosistema, con términos de uso, reporte, `abuse@` y suspensión con un clic (ED1 §14.1).
+- **§4.2, punto 2, dominios [V10]:** las tiendas sin dominio propio van en un dominio registrable separado de los del ecosistema, con términos de uso, reporte, `abuse@` y suspensión con un clic (ED1 §14.1). *(Hoy: `laboratorio-digital.app`, decisión del dueño de la tarde del 5 oct, ADR-27; sin la Public Suffix List, que Cloudflare no admite en una zona propia, `../plataforma/PLATAFORMA.md` §3.4.)*
 - **§4.1, fila del CORE [V9]:** no es «agregar un tipo». Es darle la dimensión de producto a la organización, el plan y el rol, y abrir la vuelta del login y del pago a la app de cada producto, con su migración planeada.
 - **§10, punto 2 [V1, V8]:** el arranque de la 3.0 suma una condición medible: las métricas de §16.3 del estudio, tomadas en los comercios reales de la línea.
 
@@ -352,15 +352,29 @@ Y una corrección de paso (P18): **§9, punto 2** decía que las calculadoras de
 | 1 | ¿Cuántos comercios tiene hoy la línea ecommerce, entre la Tienda Básica y la 2.0? [V1] | «Hay dos tiendas 2.0 operando» | Corrige V1 (§3) y la fila de la línea ecommerce del estudio (§3.3). Cuáles pagan, cuánto y cuánto soporte piden sigue pendiente: es la primera medición de §16.3 |
 | 2 | ¿Se miden los 25 términos de §12.6 antes de construir? [V2] | «Se miden las keyword, pero no es bloqueante para este proyecto» | Se miden; no detienen la Tienda 3.0. Siguen decidiendo qué herramientas gratuitas se construyen (ED1 v1.3 §19.1) |
 | 3 | ¿El ecommerce entra como excepción declarada, como el agro con el ADR-2? [V8] | «Sí, es una excepción declarada» | ARQUITECTURA ADR-21. ED1 v1.3 §2.1 y §33 |
-| 4 | ¿Prepago trimestral o anual de los planes? [V4] | «Todas las opciones de planes» | Mensual, trimestral y anual, prepagados (ADR-22; `docs/arquitectura/PLATAFORMA.md` §4.8) |
-| 5 | ¿Contador y abogado antes del primer cobro real? [V4, V10] | «Sin contador y abogado por ahora, hagamos todo con rigor técnico» | Cada obligación se traduce en un control técnico verificable (`docs/arquitectura/TIENDA-3.0.md` §14). Facturación electrónica: solo los ganchos |
+| 4 | ¿Prepago trimestral o anual de los planes? [V4] | «Todas las opciones de planes» | Mensual, trimestral y anual, prepagados (ADR-22; `docs/plataforma/PLATAFORMA.md` §4.8). En la tarde sumó el semestral: 1, 3, 6 y 12 meses (§5.1) |
+| 5 | ¿Contador y abogado antes del primer cobro real? [V4, V10] | «Sin contador y abogado por ahora, hagamos todo con rigor técnico» | Cada obligación se traduce en un control técnico verificable (`docs/tienda/TIENDA-3.0.md` §14). Facturación electrónica: con el estudio v1.3, se integra el facturador del comercio en vez de emitir (TIENDA-3.0 §14.5) |
 | 6 | ¿El CORE gana la dimensión de producto cuando arranque la 3.0? [V9] | «El core gana dimensión de producto, dejémoslo listo para crecer» | ARQUITECTURA ADR-20; diseño y migración probada en `PLATAFORMA.md` §4 |
 
 **El mismo día, el dueño agregó tres pedidos:**
 
-1. Integrar los principios de preparación para agentes de isitagentready.com «hasta donde lo permita el modelo». Está en `PLATAFORMA.md` §5.
+1. Integrar los principios de preparación para agentes de isitagentready.com «hasta donde lo permita el modelo». Está en `../plataforma/PLATAFORMA.md` §5.
 2. Diseñar la Tienda 3.0 **desde cero**: «la migración de la tienda 2.0 no es requisito, podemos generar scripts luego para subir su data». Está en `TIENDA-3.0.md`, y los scripts en su §17.
-3. Analizar su cuenta paga de Cloudflare (`cuenta-cloudflare-paga.md`) y otros proveedores de cómputo (`proveedores-de-computo.md`). Todo se integra en `ECOSISTEMA-DIGITAL-ED1-v1.3.md`.
+3. Analizar su cuenta paga de Cloudflare y otros proveedores de cómputo (hoy `../plataforma/cuenta-cloudflare.md` y `../plataforma/proveedores-de-computo.md`). Todo se integró en ED1 v1.3, y en la tarde en la v1.4 (`../ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md`).
+
+### 5.1 Decisiones de la tarde (5 oct 2026)
+
+Con el estudio definitivo (v1.3) en el repositorio, el dueño sumó cinco pedidos:
+
+| # | Pedido del dueño | Qué cambia |
+|---|---|---|
+| 7 | «Usar la misma cuenta actual de Cloudflare donde ya se viene usando todo» | Una sola cuenta, con Workers Paid desde el M0 de la Tienda. Sin cuenta paga aparte, sin mudanza del CORE ni graduación (ADR-23, aceptada; `../plataforma/PLATAFORMA.md` §3.1–§3.2). Corrige [V3] en un punto: el cron que faltaba llega con Workers Paid en la misma cuenta |
+| 8 | «Dominios a utilizar: principal laboratorio-digital.com; las tiendas y nuevos proyectos, laboratorio-digital.app; el proyecto agro y sus derivados o similares futuros, cultivopro.co» | ADR-27, aceptada. Es el dominio aparte que pedía [V10]. Sin la Public Suffix List, por un límite de Cloudflare (`PLATAFORMA.md` §3.3–§3.4) |
+| 9 | «Planes de 1-3-6-12 meses» | ADR-22 con el semestral. Los periodos pasan a una tabla de referencia (`PLATAFORMA.md` §4.3) |
+| 10 | «Renombrar repositorio de gestionagro a plataforma» | ADR-26, aceptada. El dueño lo renombra en GitHub (`../runbooks/renombrar-repositorio.md`) |
+| — | «Organizar docs/ con la nueva realidad del proyecto» | `docs/` por producto: ecosistema, plataforma, agro y tienda (`../README.md`) |
+
+**Lo que el estudio v1.3 le sumó a la arquitectura** (`TIENDA-3.0.md` 0.2): formas de pago con contraentrega y su recaudo [C3][C7]; link de pago en el cobro [C3]; cuatro niveles de plan como hipótesis y solo la suscripción como ingreso planeable [C9][C11]; integrar el facturador del comercio [C6]; tarifas de Bold con el depósito inmediato [C4]; catálogo para Meta y reconciliación de eventos [C3][C5]; insumos de la 2.0 para la carga, confirmados en su versión 1.0.0 [C12]. Y una corrección: lo que la arquitectura decía de WhatsApp desde el 1 oct 2026 era falso según la fuente oficial que leyó el estudio [C5].
 
 ## 6. Fuentes de esta validación
 
@@ -368,12 +382,12 @@ Las fuentes nuevas entran al registro del estudio (§18.5) con los identificador
 
 **Del ecosistema (dato interno), al 5 oct 2026:**
 
-- `docs/BITACORA-ecommerce.md`: entradas 66, 67 y 93, y la de la versión 1.0.0 (decisión 36).
-- `docs/analisis/integracion-tienda-ecosistema.md`.
+- `docs/tienda/BITACORA-ecommerce.md`: entradas 66, 67 y 93, y la de la versión 1.0.0 (decisión 36).
+- `docs/tienda/integracion-tienda-ecosistema.md`.
 - `docs/ARQUITECTURA.md`: §5.4, §5.5, §8.1, §8.2, §9, ADR-7 y §14.
 - `docs/BACKLOG.md`: §1, HU-E0.2, HU-E0.7 y HU-E8.4.
-- `docs/validacion/busquedas-2026-12.md`.
-- `docs/REVISION-HALLAZGOS-ED1.md`: [H12] y [H16].
+- `docs/agro/validacion/busquedas-2026-12.md`.
+- `docs/ecosistema/REVISION-HALLAZGOS-ED1.md`: [H12] y [H16].
 - `docs/BITACORA.md` (agro): «Lo que el terreno enseñó» y entrada 4.
 - Código (v0.3.0):
   - `infrastructure/migraciones/core/0001_core_v0.sql`, `0004_interes_en_planes.sql` y `0005_pago_de_planes.sql`;

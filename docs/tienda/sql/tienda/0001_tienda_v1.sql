@@ -1,5 +1,5 @@
 -- Tienda 3.0 · shard de una celda de tiendas (`tienda_c{N}_s{k}`), migración 0001.
--- Fuente del diseño: docs/ARQUITECTURA-TIENDA-3.0.md §5. Probada con node:sqlite 3.50 (falta D1).
+-- Fuente del diseño: docs/tienda/TIENDA-3.0.md §5. Probada con node:sqlite 3.50 (falta D1).
 --
 -- Reglas de este esquema (las vigilan pruebas, como en la celda agro):
 -- 1. Toda tabla lleva `org_id`. El panel lo toma del token; lo público, del Host ya resuelto por
@@ -76,6 +76,83 @@ INSERT INTO ref_transicion_cobro (de, a) VALUES
   ('aprobado', 'reembolsado'), ('aprobado_sin_existencias', 'reembolsado'), ('revisar', 'reembolsado'),
   ('revisar', 'aprobado');
 
+-- Por dónde llegó el pedido. `exige_aceptacion`: el comprador lo hizo en la web (o lo confirmó desde
+-- el enlace de un agente) y, pasado `pendiente`, tiene que traer la prueba de que aceptó los términos
+-- (trigger `pedido_aceptacion`). Lo anota el comercio (`panel`) o viene de una carga: no la exige.
+-- Un canal nuevo (un punto de venta, un marketplace) es un INSERT (R1).
+CREATE TABLE ref_canal (
+  id TEXT PRIMARY KEY,
+  exige_aceptacion INTEGER NOT NULL CHECK (exige_aceptacion IN (0, 1))
+) WITHOUT ROWID;
+INSERT INTO ref_canal (id, exige_aceptacion) VALUES
+  ('whatsapp', 1), ('en_linea', 1), ('agente', 1), ('panel', 0), ('carga', 0);
+
+-- Proveedores con los que el comercio conecta su cuenta, y los campos de su credencial. Cobrar con
+-- otra pasarela o integrar un facturador (Alegra, del nivel intermedio del estudio v1.3 §13.6) es
+-- sembrar filas, no rehacer `credencial` (R1).
+CREATE TABLE ref_campo_credencial (
+  proveedor TEXT NOT NULL,
+  campo TEXT NOT NULL,
+  proposito TEXT NOT NULL CHECK (proposito IN ('pago', 'factura')),
+  PRIMARY KEY (proveedor, campo)
+) WITHOUT ROWID;
+INSERT INTO ref_campo_credencial (proveedor, campo, proposito) VALUES
+  ('bold', 'identidad', 'pago'), ('bold', 'secreta', 'pago'),
+  ('alegra', 'usuario', 'factura'), ('alegra', 'token', 'factura');
+
+CREATE TABLE ref_pasarela (
+  id TEXT PRIMARY KEY
+) WITHOUT ROWID;
+INSERT INTO ref_pasarela (id) VALUES ('bold');
+
+-- Por qué cambió el inventario. `traslado` llegará con las bodegas (TIENDA-3.0 §7.5): un INSERT.
+CREATE TABLE ref_motivo_inventario (
+  id TEXT PRIMARY KEY
+) WITHOUT ROWID;
+INSERT INTO ref_motivo_inventario (id) VALUES
+  ('venta'), ('cancelacion'), ('devolucion'), ('ajuste'), ('carga'), ('conteo');
+
+CREATE TABLE ref_tipo_evento (
+  id TEXT PRIMARY KEY
+) WITHOUT ROWID;
+INSERT INTO ref_tipo_evento (id) VALUES
+  ('estado'), ('nota'), ('pago'), ('envio'), ('recaudo'), ('contacto_leido');
+
+-- Cómo paga el comprador (estudio de ecommerce v1.3, §8.1 [C3] y §11.3 [C7]). Solo `en_linea` lo
+-- verifica la plataforma, con Bold; los demás los confirma el comercio, y por eso un pedido pagado
+-- por fuera queda `confirmado`, nunca `pagado` («un pedido enviado al chat no figura como pagado»).
+-- `recaudo`: la plata la cobra un tercero al entregar y llega después, en una liquidación.
+-- Un medio nuevo (Bre-B, por ejemplo) es un INSERT (R1).
+CREATE TABLE ref_forma_pago (
+  id TEXT PRIMARY KEY,
+  verifica_plataforma INTEGER NOT NULL CHECK (verifica_plataforma IN (0, 1)),
+  recaudo INTEGER NOT NULL CHECK (recaudo IN (0, 1))
+) WITHOUT ROWID;
+INSERT INTO ref_forma_pago (id, verifica_plataforma, recaudo) VALUES
+  ('a_convenir', 0, 0),       -- se acuerda en el chat de WhatsApp (el camino de siempre)
+  ('en_linea', 1, 0),         -- botón o link de pago del Bold del comercio
+  ('contraentrega', 0, 1),    -- la transportadora cobra al entregar
+  ('transferencia', 0, 0),    -- a la cuenta del comercio; el comprobante llega por el chat
+  ('efectivo', 0, 0);         -- al recoger en el local
+
+-- La plata de una contraentrega: por recaudar mientras viaja; recaudada al entregarse; devuelta si
+-- el comprador no la recibe (el comercio paga la ida y, según su contrato, la vuelta); perdida si la
+-- transportadora no responde por ella. Que llegue a la cuenta del comercio es `liquidado`, aparte.
+CREATE TABLE ref_estado_contraentrega (
+  id TEXT PRIMARY KEY,
+  terminal INTEGER NOT NULL CHECK (terminal IN (0, 1))
+) WITHOUT ROWID;
+INSERT INTO ref_estado_contraentrega (id, terminal) VALUES
+  ('por_recaudar', 0), ('recaudado', 1), ('devuelto', 1), ('perdido', 1);
+
+CREATE TABLE ref_transicion_contraentrega (
+  de TEXT NOT NULL REFERENCES ref_estado_contraentrega (id),
+  a TEXT NOT NULL REFERENCES ref_estado_contraentrega (id),
+  PRIMARY KEY (de, a)
+) WITHOUT ROWID;
+INSERT INTO ref_transicion_contraentrega (de, a) VALUES
+  ('por_recaudar', 'recaudado'), ('por_recaudar', 'devuelto'), ('por_recaudar', 'perdido');
+
 -- Solicitudes del comprador con radicado (Ley 1480 art. 50 lit. g, modificado por la Ley 2439 de
 -- 2024) y de los titulares de datos (Ley 1581 arts. 14 y 15). `dias_habiles` y `prorroga` son los
 -- plazos de respuesta; el vencimiento se calcula en código con el calendario de festivos de Colombia.
@@ -96,8 +173,10 @@ INSERT INTO ref_tipo_solicitud (id, dias_habiles, prorroga) VALUES
 -- Una fila por organización `tienda` del CORE que vive en este shard.
 CREATE TABLE tienda (
   org_id TEXT PRIMARY KEY,
+  -- Sin «--»: ese espacio es de la plataforma (<slug>--staging, TIENDA-3.0 §4.1).
   slug TEXT NOT NULL UNIQUE CHECK (
     length(slug) BETWEEN 3 AND 40 AND slug NOT GLOB '*[^a-z0-9-]*' AND slug NOT GLOB '-*' AND slug NOT GLOB '*-'
+    AND slug NOT GLOB '*--*'
   ),
   nombre TEXT NOT NULL CHECK (length(nombre) BETWEEN 1 AND 80),
   estado TEXT NOT NULL CHECK (estado IN ('borrador', 'abierta', 'cerrada', 'suspendida', 'baja')),
@@ -138,20 +217,21 @@ CREATE TABLE llave (
   PRIMARY KEY (org_id, proposito, version)
 ) WITHOUT ROWID;
 
--- Credenciales del comercio con su proveedor de pagos. Cifradas con la DEK `credenciales`;
+-- Credenciales del comercio con su pasarela o su facturador. Cifradas con la DEK `credenciales`;
 -- AAD = org_id|proveedor|ambiente|campo, para que un cifrado no sirva copiado a otra fila.
 CREATE TABLE credencial (
   org_id TEXT NOT NULL REFERENCES tienda (org_id),
-  proveedor TEXT NOT NULL CHECK (proveedor IN ('bold')),
+  proveedor TEXT NOT NULL,
   ambiente TEXT NOT NULL CHECK (ambiente IN ('pruebas', 'produccion')),
-  campo TEXT NOT NULL CHECK (campo IN ('identidad', 'secreta')),
+  campo TEXT NOT NULL,
   cifrado BLOB NOT NULL,
   iv BLOB NOT NULL CHECK (length(iv) = 12),
   llave_version INTEGER NOT NULL,
   huella TEXT NOT NULL,                 -- últimos 4 caracteres, para reconocerla en el panel
   guardada TEXT NOT NULL,
   verificada TEXT,                      -- última prueba exitosa contra el proveedor
-  PRIMARY KEY (org_id, proveedor, ambiente, campo)
+  PRIMARY KEY (org_id, proveedor, ambiente, campo),
+  FOREIGN KEY (proveedor, campo) REFERENCES ref_campo_credencial (proveedor, campo)
 ) WITHOUT ROWID;
 
 -- 2. Catálogo -------------------------------------------------------------------------------
@@ -274,7 +354,7 @@ CREATE TABLE movimiento_inventario (
   variante_id TEXT NOT NULL,
   delta INTEGER NOT NULL CHECK (delta <> 0),
   stock_resultante INTEGER,
-  motivo TEXT NOT NULL CHECK (motivo IN ('venta', 'cancelacion', 'devolucion', 'ajuste', 'carga', 'conteo')),
+  motivo TEXT NOT NULL REFERENCES ref_motivo_inventario (id),
   ref TEXT,                              -- pedido o importación que lo causó
   instante TEXT NOT NULL,
   FOREIGN KEY (org_id, variante_id) REFERENCES variante (org_id, id)
@@ -342,7 +422,10 @@ CREATE TABLE pedido (
   codigo TEXT NOT NULL CHECK (length(codigo) = 6 AND codigo NOT GLOB '*[^0-9A-HJKMNP-TV-Z]*'),
   numero INTEGER NOT NULL CHECK (numero > 1000),
   estado TEXT NOT NULL REFERENCES ref_estado_pedido (id),
-  canal TEXT NOT NULL CHECK (canal IN ('whatsapp', 'en_linea', 'panel', 'agente', 'carga')),
+  canal TEXT NOT NULL REFERENCES ref_canal (id),
+  -- Se elige mientras el pedido está pendiente (trigger `pedido_forma_fija`). Pasar de `a_convenir`
+  -- a `en_linea` es cobrar con un link de pago un pedido que llegó por el chat.
+  forma_pago TEXT NOT NULL DEFAULT 'a_convenir' REFERENCES ref_forma_pago (id),
   subtotal_cop INTEGER NOT NULL CHECK (subtotal_cop >= 0),
   descuento_cop INTEGER NOT NULL DEFAULT 0 CHECK (descuento_cop >= 0),
   envio_cop INTEGER NOT NULL DEFAULT 0 CHECK (envio_cop >= 0),
@@ -353,7 +436,7 @@ CREATE TABLE pedido (
   ciudad TEXT,                           -- en claro: decide envío y estadística; sola no identifica
   seguimiento_huella TEXT CHECK (seguimiento_huella IS NULL OR (length(seguimiento_huella) = 64 AND seguimiento_huella NOT GLOB '*[^0-9a-f]*')),
   atencion TEXT CHECK (atencion IS NULL OR atencion IN ('sin_existencias', 'monto', 'datos')),
-  transportadora TEXT,
+  transportadora TEXT,                   -- con la guía, la ve el comprador en el seguimiento
   guia TEXT,
   agente TEXT,                           -- identidad del agente si llegó por MCP y la firmó (Web Bot Auth)
   -- Prueba de la aceptación (Ley 1480 arts. 48 y 50): la huella de los términos y la política que
@@ -372,7 +455,11 @@ CREATE TABLE pedido (
   UNIQUE (org_id, numero),
   CHECK (total_cop = subtotal_cop - descuento_cop + envio_cop),
   CHECK ((terminos_huella IS NULL) = (aceptado IS NULL)),
-  CHECK (estado = 'pendiente' OR canal IN ('panel', 'carga') OR aceptado IS NOT NULL)
+  -- Esperar o tener un pago en línea es solo de `en_linea`; confirmar a mano nunca lo es: lo que
+  -- dice «pagado» lo verificó Bold. Un pedido web cuyo pago fue rechazado vuelve a `pendiente` y
+  -- puede cambiar de forma (por ejemplo, a transferencia) antes de que el comercio lo confirme.
+  CHECK (estado NOT IN ('por_pagar', 'pagado') OR forma_pago = 'en_linea'),
+  CHECK (estado <> 'confirmado' OR forma_pago <> 'en_linea')
 ) WITHOUT ROWID;
 -- Los dos UNIQUE cuestan 2 filas por pedido: el código lo pide el comprador (seguimiento) y el
 -- número el comercio. Costo: 1 fila más por pedido. El panel lista por estado y fecha.
@@ -422,7 +509,7 @@ CREATE TABLE pedido_evento (
   id INTEGER PRIMARY KEY,
   pedido_id TEXT NOT NULL,
   instante TEXT NOT NULL,
-  tipo TEXT NOT NULL CHECK (tipo IN ('estado', 'nota', 'pago', 'envio', 'contacto_leido')),
+  tipo TEXT NOT NULL REFERENCES ref_tipo_evento (id),
   de TEXT,
   a TEXT,
   actor TEXT NOT NULL,
@@ -432,6 +519,31 @@ CREATE TABLE pedido_evento (
 -- Costo: 1 fila por evento. La ficha del pedido muestra su historia.
 CREATE INDEX evento_por_pedido ON pedido_evento (org_id, pedido_id, id);
 
+-- La contraentrega de un pedido: nace al despacharlo y sigue la plata hasta la cuenta del
+-- comercio. La transportadora y la guía están en el pedido (una sola fuente, P2). Sus costos
+-- (comisión de recaudo, flete de ida y de vuelta) entran en el margen del pedido en el panel.
+CREATE TABLE contraentrega (
+  org_id TEXT NOT NULL,
+  pedido_id TEXT NOT NULL,
+  estado TEXT NOT NULL REFERENCES ref_estado_contraentrega (id),
+  monto_cop INTEGER NOT NULL CHECK (monto_cop > 0),        -- lo que cobra la transportadora al entregar
+  comision_cop INTEGER CHECK (comision_cop IS NULL OR comision_cop >= 0),          -- recaudo, con su IVA
+  flete_ida_cop INTEGER CHECK (flete_ida_cop IS NULL OR flete_ida_cop >= 0),
+  flete_vuelta_cop INTEGER CHECK (flete_vuelta_cop IS NULL OR flete_vuelta_cop >= 0),
+  liquidado TEXT,                        -- cuándo llegó la plata a la cuenta del comercio
+  liquidacion_ref TEXT,                  -- el número de la liquidación de la transportadora
+  cambiado_por TEXT NOT NULL,
+  creado TEXT NOT NULL,
+  actualizado TEXT NOT NULL,
+  PRIMARY KEY (org_id, pedido_id),
+  FOREIGN KEY (org_id, pedido_id) REFERENCES pedido (org_id, id),
+  CHECK (liquidado IS NULL OR estado = 'recaudado'),
+  CHECK (flete_vuelta_cop IS NULL OR estado = 'devuelto')
+) WITHOUT ROWID;
+-- Lo que falta por recaudar o por liquidar, para el tablero. Costo: 1 fila mientras está abierta.
+CREATE INDEX contraentrega_abierta ON contraentrega (org_id, estado)
+  WHERE estado = 'por_recaudar' OR (estado = 'recaudado' AND liquidado IS NULL);
+
 -- 5. Cobro en línea y apartados -------------------------------------------------------------
 
 -- Un intento de pago. `id` es la referencia que viaja a Bold (`<codigo>-<intento>`).
@@ -440,7 +552,7 @@ CREATE TABLE cobro (
   org_id TEXT NOT NULL,
   id TEXT NOT NULL CHECK (id NOT GLOB '*[^0-9A-Z-]*'),
   pedido_id TEXT NOT NULL,
-  proveedor TEXT NOT NULL CHECK (proveedor IN ('bold')),
+  proveedor TEXT NOT NULL REFERENCES ref_pasarela (id),
   ambiente TEXT NOT NULL CHECK (ambiente IN ('pruebas', 'produccion')),
   monto_cop INTEGER NOT NULL CHECK (monto_cop >= 1000),
   estado TEXT NOT NULL REFERENCES ref_estado_cobro (id),
@@ -642,4 +754,75 @@ WHEN NEW.stock IS NOT OLD.stock AND NEW.stock IS NOT NULL AND OLD.stock IS NOT N
 BEGIN
   INSERT INTO movimiento_inventario (org_id, variante_id, delta, stock_resultante, motivo, ref, instante)
   VALUES (NEW.org_id, NEW.id, NEW.stock - OLD.stock, NEW.stock, coalesce(NEW.cambio_motivo, 'ajuste'), NEW.cambio_ref, NEW.actualizado);
+END;
+
+-- La forma de pago se elige mientras el pedido está pendiente. Después, cambiarla escondería de qué
+-- camino salió la plata.
+CREATE TRIGGER pedido_forma_fija BEFORE UPDATE OF forma_pago ON pedido
+WHEN NEW.forma_pago <> OLD.forma_pago AND OLD.estado <> 'pendiente'
+BEGIN
+  SELECT RAISE(ABORT, 'forma-de-pago-fija');
+END;
+
+-- Solo las transiciones de `ref_transicion_contraentrega`.
+CREATE TRIGGER contraentrega_transicion BEFORE UPDATE OF estado ON contraentrega
+WHEN NEW.estado <> OLD.estado
+  AND NOT EXISTS (SELECT 1 FROM ref_transicion_contraentrega WHERE de = OLD.estado AND a = NEW.estado)
+BEGIN
+  SELECT RAISE(ABORT, 'transicion-de-contraentrega-invalida');
+END;
+
+-- Una contraentrega es de un pedido que se paga así.
+CREATE TRIGGER contraentrega_de_su_pedido BEFORE INSERT ON contraentrega
+WHEN NOT EXISTS (SELECT 1 FROM pedido p WHERE p.org_id = NEW.org_id AND p.id = NEW.pedido_id AND p.forma_pago = 'contraentrega')
+BEGIN
+  SELECT RAISE(ABORT, 'pedido-sin-contraentrega');
+END;
+
+-- El recaudo también deja su historia en el pedido.
+CREATE TRIGGER contraentrega_historial AFTER UPDATE OF estado ON contraentrega
+WHEN NEW.estado <> OLD.estado
+BEGIN
+  INSERT INTO pedido_evento (org_id, pedido_id, instante, tipo, de, a, actor)
+  VALUES (NEW.org_id, NEW.pedido_id, NEW.actualizado, 'recaudo', OLD.estado, NEW.estado, NEW.cambiado_por);
+END;
+
+-- Despachar contra entrega exige la guía y la fila del recaudo, en el mismo lote.
+CREATE TRIGGER pedido_despachado_contraentrega BEFORE UPDATE OF estado ON pedido
+WHEN NEW.forma_pago = 'contraentrega' AND NEW.estado = 'despachado' AND OLD.estado <> 'despachado'
+  AND (NEW.guia IS NULL OR NOT EXISTS (SELECT 1 FROM contraentrega c WHERE c.org_id = NEW.org_id AND c.pedido_id = NEW.id))
+BEGIN
+  SELECT RAISE(ABORT, 'contraentrega-sin-guia');
+END;
+
+-- Entregar un pedido contra entrega es recaudar su plata: la fila pasa a `recaudado` primero.
+CREATE TRIGGER pedido_entregado_recaudado BEFORE UPDATE OF estado ON pedido
+WHEN NEW.forma_pago = 'contraentrega' AND NEW.estado = 'entregado' AND OLD.estado <> 'entregado'
+  AND NOT EXISTS (SELECT 1 FROM contraentrega c WHERE c.org_id = NEW.org_id AND c.pedido_id = NEW.id AND c.estado = 'recaudado')
+BEGIN
+  SELECT RAISE(ABORT, 'contraentrega-por-recaudar');
+END;
+
+-- Devolver uno que viajaba contra entrega dice qué pasó con la plata: devuelta o perdida.
+CREATE TRIGGER pedido_devuelto_contraentrega BEFORE UPDATE OF estado ON pedido
+WHEN NEW.forma_pago = 'contraentrega' AND NEW.estado = 'devuelto' AND OLD.estado = 'despachado'
+  AND NOT EXISTS (SELECT 1 FROM contraentrega c WHERE c.org_id = NEW.org_id AND c.pedido_id = NEW.id AND c.estado IN ('devuelto', 'perdido'))
+BEGIN
+  SELECT RAISE(ABORT, 'contraentrega-sin-cerrar');
+END;
+
+-- Un pedido de un canal que exige aceptación no pasa de `pendiente` sin la prueba de que la persona
+-- aceptó los términos (Ley 1480 arts. 48 y 50). Era un CHECK con los canales escritos; con los
+-- canales en una tabla de referencia, son dos triggers: al crearlo y al cambiarle el estado.
+CREATE TRIGGER pedido_aceptacion_al_crear BEFORE INSERT ON pedido
+WHEN NEW.estado <> 'pendiente' AND NEW.aceptado IS NULL
+  AND EXISTS (SELECT 1 FROM ref_canal WHERE id = NEW.canal AND exige_aceptacion = 1)
+BEGIN
+  SELECT RAISE(ABORT, 'pedido-sin-aceptacion');
+END;
+CREATE TRIGGER pedido_aceptacion BEFORE UPDATE OF estado ON pedido
+WHEN NEW.estado <> 'pendiente' AND NEW.aceptado IS NULL
+  AND EXISTS (SELECT 1 FROM ref_canal WHERE id = NEW.canal AND exige_aceptacion = 1)
+BEGIN
+  SELECT RAISE(ABORT, 'pedido-sin-aceptacion');
 END;

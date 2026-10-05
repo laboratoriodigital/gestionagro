@@ -1,9 +1,9 @@
-# Gestión Agro — Arquitectura
+# Arquitectura — CultivoPro y la plataforma ED1
 
 **Estado:** aprobada (Fase 0)
 **Versión:** 0.1.0 · 30 sep 2026 (al día con el producto v0.3.0 · 4 oct 2026)
-**Proyecto:** ED1 Agro (línea agrícola de laboratorio-digital.com), repositorio `laboratoriodigital/gestionagro`
-**Documentos que manda este:** `ECOSISTEMA-DIGITAL-ED1-v1.3.md` (ED1 §; la v1.2 queda como historia, con la misma numeración), `REVISION-HALLAZGOS-ED1.md` ([H1]–[H16]), `Estudio de mercado software para invernaderos y agricultura.md` (Estudio), `BITACORA-ecommerce.md` (bitácora ecommerce). El plan de trabajo vive en `BACKLOG.md` y lo que se rompa, en `BITACORA.md`.
+**Proyecto:** CultivoPro (antes «Gestión Agro»), línea agrícola de ED1 en `cultivopro.co`, y las piezas de la plataforma que ya corren: CORE v0, celdas y despliegue. Repositorio `laboratoriodigital/plataforma` (antes `gestionagro`, ADR-26)
+**Documentos que manda este:** `ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md` (ED1 §; la v1.3 y la v1.2 quedan como historia en `ecosistema/historia/`, con la misma numeración), `ecosistema/REVISION-HALLAZGOS-ED1.md` ([H1]–[H16]), `agro/ESTUDIO-MERCADO-AGRO-2026-09.md` (Estudio), `tienda/BITACORA-ecommerce.md` (bitácora ecommerce). El plan de trabajo vive en `BACKLOG.md` y lo que se rompa, en `BITACORA.md`. Lo que viene está diseñado en `plataforma/PLATAFORMA.md` y `tienda/TIENDA-3.0.md`, y pasa aquí con el pull request que lo construye.
 
 > **Regla de este documento (P2, P18).** Cada número, límite o decisión se escribe una sola vez aquí y los demás documentos lo citan por su sección. Si el código contradice este documento, el que se corrige es uno de los dos en el mismo pull request, nunca «después».
 
@@ -27,7 +27,7 @@ Contradicciones con ED1 que este documento resuelve de forma explícita (no las 
 
 ## 1. Decisiones (ADR)
 
-Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`. Estado: **Propuesta** hasta que el dueño la apruebe, **Aceptada** después. Revisión del 30 sep 2026 (HU-E0.1): ADR-1 a ADR-18 aceptadas sin cambios. ADR-19 aceptada con el plan B por decisión del dueño: subdominio propio, mismas rutas; el spike HU-E1.4 se cancela. Decisiones del dueño del 5 oct 2026: ADR-20 a ADR-22 aceptadas. ADR-23 a ADR-26 quedan propuestas. Su diseño está en `docs/arquitectura/PLATAFORMA.md` y `TIENDA-3.0.md`, y pasa a §5 en el pull request que implementa cada pieza (P18).
+Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`. Estado: **Propuesta** hasta que el dueño la apruebe, **Aceptada** después. Revisión del 30 sep 2026 (HU-E0.1): ADR-1 a ADR-18 aceptadas sin cambios. ADR-19 aceptada con el plan B por decisión del dueño: subdominio propio, mismas rutas; el spike HU-E1.4 se cancela. Decisiones del dueño del 5 oct 2026: ADR-20 a ADR-22 aceptadas en la mañana; ADR-23, ADR-26 y ADR-27 en la tarde. ADR-24 y ADR-25 quedan propuestas. Su diseño está en `docs/plataforma/PLATAFORMA.md` y `docs/tienda/TIENDA-3.0.md`, y pasa a §5 en el pull request que implementa cada pieza (P18).
 
 | ADR | Decisión | Por qué, en una línea | Alternativa descartada | Estado |
 |---|---|---|---|---|
@@ -52,11 +52,12 @@ Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`
 | 19 | Host `cultivopro.co` (era `agro.laboratorio-digital.com` hasta el 3 oct 2026, que redirige con 301) con las rutas de siempre: calculadoras en `/herramientas/agro/<slug>/`, cuaderno en `/agro/app/`, QR en `/agro/t/` | Subdominio propio desde el día 1, sin spike. Las rutas no cambian, así que volver al dominio principal (o a otro dominio) es cambiar el host y redirigir; los QR impresos siguen sirviendo con la redirección | Dominio principal verificado por el spike HU-E1.4 (cancelado); rutas cortas en el subdominio | Aceptada (30 sep 2026) |
 | 20 | El CORE gana la **dimensión de producto**: tablas de referencia (producto, tipos, roles, planes, precios por periodo), claves foráneas compuestas, y sesión y token (`aud`) por producto (`PLATAFORMA.md` §4) | La Tienda 3.0 es el segundo producto del CORE: sin la dimensión, los `CHECK` del agro la impiden y los datos se mezclan | Un CORE por producto, o agregar tipos a los `CHECK` | Aceptada (5 oct 2026). Diseño y migración 0006: propuestos y probados con `node:sqlite` |
 | 21 | La Tienda 3.0 entra como **excepción declarada** (como ADR-2), diseñada **desde cero** sobre la plataforma. Los datos de las tiendas 2.0 se cargan después con scripts (`TIENDA-3.0.md`) | Dos tiendas 2.0 en operación y una plataforma probada. La 2.0 no escala: es una cuenta, una hoja y un repositorio por tienda | Esperar a la Fase 7 de ED1, o trasladar la 2.0 | Aceptada (5 oct 2026) |
-| 22 | Planes **prepagados de 1, 3 y 12 meses**, sin débito automático (`PLATAFORMA.md` §4.8) | La comisión fija de Bold pesa más del 5 % en un plan mensual de COP 39.000 y un 3,1 % en el anual | Solo mensual; débito automático (Bold no lo ofrece) | Aceptada (5 oct 2026). Meses calendario y crédito al cambiar de plan: propuestos |
-| 23 | **Cuentas con un propósito declarado.** La gratuita valida; la paga (Workers Paid) aloja lo que cobra. Un producto **gradúa** mudando sus celdas, y nunca se reparte entre cuentas gratuitas (`PLATAFORMA.md` §3) | Con la cuenta paga, la etapa B (§6.3) es graduar sin otra suscripción. Lo que vende no puede cortarse a las 19:00 | Todo en la gratuita; o una cuenta gratuita por producto (HA1) | Propuesta |
+| 22 | Planes **prepagados de 1, 3, 6 y 12 meses**, sin débito automático. Los periodos son una tabla de referencia (`PLATAFORMA.md` §4.3, §4.8) | La comisión fija de Bold pesa el 5,2 % en un plan mensual de COP 39.000, el 3,3 % en el semestral y el 3,1 % en el anual | Solo mensual; débito automático (Bold no lo ofrece) | Aceptada (5 oct 2026; el semestral, en la tarde). Meses calendario y crédito al cambiar de plan: propuestos |
+| 23 | **Una sola cuenta de Cloudflare, la de siempre**, para todos los productos. Workers Paid se activa en ella con el M0 de la Tienda 3.0. Los productos se aíslan por presupuesto, kill switch y celdas, y ninguno se reparte entre cuentas gratuitas (`PLATAFORMA.md` §3.1–§3.2) | «Usar la misma cuenta actual de Cloudflare donde ya se viene usando todo» (dueño). Nada que mudar, y Workers Paid es por cuenta: el agro gana sus límites sin otra suscripción | Una cuenta paga aparte para lo que cobra, con graduación de productos (propuesta de la mañana, HA6) | Aceptada (5 oct 2026, tarde) |
 | 24 | **Legible por agentes**: capa estática (`robots.txt` con señales, `llms.txt`, Markdown, habilidades, catálogo de API), luego OAuth del CORE y MCP. En comercio, el agente prepara y una persona paga (`PLATAFORMA.md` §5) | Pedido del dueño (isitagentready.com). Lo estático no cuesta, y lo demás tiene presupuesto y kill switch | Esperar a que los borradores sean estándar; o «Markdown for Agents» con plan Pro en cada zona | Propuesta |
 | 25 | Reconstruir tablas en D1 **solo con la receta** de `PLATAFORMA.md` §4.4 (`defer_foreign_keys`, apagarlo y guarda de huérfanas). Ninguna FK con `ON DELETE CASCADE`. Lo que crece va en tablas de referencia, no en `CHECK` | Con FK diferidas, rehacer una padre falla al confirmar; el arreglo habitual (apagar el pragma) deja pasar violaciones reales sin avisar. Comprobado con `node:sqlite` | Confiar en `defer_foreign_keys` solo | Propuesta. Falta comprobarlo en D1 local y staging |
-| 26 | El monorepo de la plataforma es **este repositorio renombrado**, con la Tienda como `apps/tienda-*` (`PLATAFORMA.md` §6) | Renombrar conserva secretos, ambientes, issues e historia. Mover con `filter-repo` obliga a recrear secretos (P12) | Repositorio nuevo con la historia movida (`analisis/integracion-tienda-ecosistema.md` §6) | Propuesta |
+| 26 | El monorepo de la plataforma es **este repositorio, renombrado a `laboratoriodigital/plataforma`**, con la Tienda como `apps/tienda-*` (`PLATAFORMA.md` §6) | Renombrar conserva secretos, ambientes, issues e historia. Mover con `filter-repo` obliga a recrear secretos (P12) | Repositorio nuevo con la historia movida (`docs/tienda/integracion-tienda-ecosistema.md` §6) | Aceptada (5 oct 2026, tarde). El renombre en GitHub lo hace el dueño (`docs/runbooks/renombrar-repositorio.md`) |
+| 27 | **Tres dominios:** `laboratorio-digital.com` para el ecosistema y el CORE (`cuenta.`); `laboratorio-digital.app` para las tiendas y los proyectos nuevos, en el primer nivel y sin Public Suffix List; `cultivopro.co` para el agro y sus derivados (`PLATAFORMA.md` §3.3–§3.4) | Decisión del dueño. Las tiendas quedan aparte del ecosistema ([V10]). Cloudflare no admite como zona un dominio de la PSL (HA9) | Un dominio de tiendas inscrito en la PSL (propuesta de la mañana) | Aceptada (5 oct 2026, tarde) |
 
 ---
 
@@ -517,7 +518,7 @@ Con Workers Paid (50 millones de filas escritas al mes, unas 1,6 millones al dí
 | Etapa | Disparador | Qué se hace | Costo |
 |---|---|---|---|
 | A · Validación | Hoy | c0 en tu cuenta actual, plan gratuito, presupuesto agro declarado | 0 |
-| B · Crecimiento | La celda supera el 50 % de cualquier cuota diaria 7 días seguidos, **o** entra el primer cliente pago | La cuenta de c0 pasa a Workers Paid. Si el agro necesita aislarse del resto de ED1, se abre una **cuenta paga** propia del agro y se mudan las fincas (§6.4) | USD 5/mes, cubierto por un plan Finca (COP 39.000–59.000) |
+| B · Crecimiento | La celda supera el 50 % de cualquier cuota diaria 7 días seguidos, **o** entra el primer cliente pago, **o** arranca el M0 de la Tienda 3.0, lo que pase primero | La cuenta del ecosistema pasa a Workers Paid (ADR-23). Es la misma cuenta de c0: sin otra cuenta y sin mudar fincas | USD 5/mes por la cuenta, compartidos con la Tienda; los cubre un plan Finca (COP 39.000–59.000) |
 | C · Cadena | Una exportadora o cooperativa con cientos de proveedores | Celda dedicada **en la cuenta de Cloudflare del cliente**, con acceso de miembro para ED1; el cliente paga su plan | Del cliente |
 
 ### 6.4 Mudar una finca de celda (operación de rutina)
@@ -718,7 +719,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 ## 11. Estructura del monorepo
 
 ```text
-gestionagro/
+plataforma/                 (antes gestionagro, ADR-26)
 ├── apps/
 │   ├── sitio/              Astro: /herramientas/agro/*, /agro/t/ (QR), páginas legales
 │   ├── cuaderno/           PWA Preact: /agro/app/
@@ -737,7 +738,8 @@ gestionagro/
 ├── hardware/               Esquemas y lista de materiales (espejo público)
 ├── scripts/                Herramientas en Node/TS (Windows): generar wrangler, sembrar fincas de prueba
 ├── tests/                  e2e, caos de sincronización, fixtures de las dos fincas de prueba
-└── docs/                   ARQUITECTURA.md, BACKLOG.md, BITACORA.md, ADR, runbooks
+└── docs/                   ARQUITECTURA.md, BACKLOG.md y BITACORA.md en la raíz; ecosistema/, plataforma/, agro/,
+                            tienda/, runbooks/ y seguridad/ (mapa en docs/README.md)
 ```
 
 ---
@@ -781,11 +783,12 @@ Se numeran HA para no chocar con [H1]–[H16].
 - **HA1 · Aislar cuotas con otra cuenta roza los términos de Cloudflare.** ED1 §14.1 y §25.1 proponen otra cuenta «para aislar cuotas». Cloudflare §2.2.1(c) prohíbe esquivar cuotas. Propuesta: reformular como aislamiento de **riesgo** (abuso, reputación) en una cuenta **paga** o del cliente, nunca como fuente de cuota gratuita extra.
 - **HA2 · Registrarse a nombre de terceros.** Si ED1 crea cuentas de proveedores a nombre de sus clientes, choca con Cloudflare §2.2.1(a). Recomendación para la línea ecommerce: verificar con los términos de Google el modelo de «una cuenta de Google por tienda creada por ED1». *No lo he verificado; es una pregunta, no una conclusión.*
 - **HA3 · CORE v0 nace en el agro.** Cuando la Fase 3 de ED1 llegue, el CORE no se diseña desde cero: se extiende el v0 (tablas de §5.4), que ya tendrá usuarios reales.
-- **HA4 · La Tienda 3.0 sobre esta plataforma (4 oct 2026).** `docs/analisis/integracion-tienda-ecosistema.md` recomienda construir la Tienda 3.0 sobre el CORE, las celdas y el despliegue de este repositorio (opción B de las decisiones D1 y D2 de su `TRASLADO-3.0.md`): cada tienda es una fila y no un repositorio, con dominios propios por Cloudflare for SaaS y llaves de Bold por comercio cifradas en D1. La 2.0 se mantiene hasta migrar. El CORE y los paquetes salen a un monorepo de plataforma cuando la Tienda sea su segundo consumidor, no antes.
-- **HA5 · El CORE con dimensión de producto (5 oct 2026).** ED1 §5 dice que el CORE «no debe conocer detalles específicos de cada producto». Sí debe conocer **qué productos existen y qué declara cada uno**: tipos, roles, planes y precios, política, orígenes y celdas. Propuesta: ED1 §5.4 (ya escrita en `ECOSISTEMA-DIGITAL-ED1-v1.3.md`). Diseño en `docs/arquitectura/PLATAFORMA.md` §4.
-- **HA6 · Cuentas con propósito y graduación (5 oct 2026).** Con una cuenta paga, el aislamiento de HA1 queda así: la gratuita valida, la paga aloja lo que cobra, y lo que trae contenido no confiable va en una cuenta paga propia. Propuesta: ED1 §22.2. Detalle en `PLATAFORMA.md` §3 y `analisis/cuenta-cloudflare-paga.md`.
+- **HA4 · La Tienda 3.0 sobre esta plataforma (4 oct 2026).** `docs/tienda/integracion-tienda-ecosistema.md` recomienda construir la Tienda 3.0 sobre el CORE, las celdas y el despliegue de este repositorio (opción B de las decisiones D1 y D2 de su `TRASLADO-3.0.md`): cada tienda es una fila y no un repositorio, con dominios propios por Cloudflare for SaaS y llaves de Bold por comercio cifradas en D1. La 2.0 se mantiene hasta migrar. El CORE y los paquetes salen a un monorepo de plataforma cuando la Tienda sea su segundo consumidor, no antes.
+- **HA5 · El CORE con dimensión de producto (5 oct 2026).** ED1 §5 dice que el CORE «no debe conocer detalles específicos de cada producto». Sí debe conocer **qué productos existen y qué declara cada uno**: tipos, roles, planes y precios, política, orígenes y celdas. Propuesta: ED1 §5.4 (escrita desde la v1.3; vigente en la v1.4). Diseño en `docs/plataforma/PLATAFORMA.md` §4.
+- **HA6 · Cuentas con propósito y graduación (5 oct 2026).** Con una cuenta paga, el aislamiento de HA1 quedaba así: la gratuita valida, la paga aloja lo que cobra, y lo que trae contenido no confiable va en una cuenta paga propia. *(Hoy: reemplazado en la tarde por ADR-23, una sola cuenta. Queda de HA6 solo lo del contenido no confiable, que se evalúa cuando exista ese producto; ED1 v1.4 §22.2.)*
 - **HA7 · Legible por agentes (5 oct 2026).** Un principio nuevo, ED1 §3.12, que extiende static-first y browser-first al lado del agente. Detalle en `PLATAFORMA.md` §5.
 - **HA8 · Reconstruir tablas en D1 (5 oct 2026).** Con claves foráneas diferidas, rehacer una tabla padre falla al confirmar. Apagar `defer_foreign_keys` dentro de la transacción pone el contador en cero y deja pasar violaciones reales. La receta con guarda está en `PLATAFORMA.md` §4.4 (ADR-25). Propuesta: nota en ED1 §20.3 y §22.1.
+- **HA9 · La Public Suffix List y Cloudflare no se combinan (5 oct 2026).** ED1 §14.1 proponía pedir la PSL para los sitios de usuarios, y la arquitectura de la mañana, para el dominio de tiendas. Cloudflare no admite como zona un dominio inscrito en la PSL, salvo en Enterprise (documentación y comunidad de Cloudflare, por resumen). Las tiendas en `laboratorio-digital.app` se aíslan por origen, sin cookies propias y con suspensión rápida (`PLATAFORMA.md` §3.4). Propuesta: nota en ED1 §14.1 (escrita en la v1.4).
 
 ---
 
@@ -793,7 +796,7 @@ Se numeran HA para no chocar con [H1]–[H16].
 
 1. **Fecha estimada de trasplante y de primera cosecha.** Respondida el 30 sep 2026: trasplante a mediados de octubre de 2026 y primera cosecha en enero de 2027. El dueño decidió mantener el orden del backlog (la DPV primero); ver BACKLOG §1.
 2. **Dominio:** respondida el 30 sep 2026: `laboratorio-digital.com` ya está en Cloudflare. El agro usó el subdominio `agro.laboratorio-digital.com` hasta el 3 oct 2026, cuando el dueño eligió el dominio definitivo `cultivopro.co` (ADR-19); un dominio propio se valida después si hace falta.
-3. **¿El repositorio `gestionagro` es privado?** Respondida el 30 sep 2026: privado al inicio. Hacerlo público se decide después según el consumo de minutos de Actions (ED1 §41). Mientras sea privado, `tests/terminos-prohibidos.json` vive en el repositorio; antes de publicarlo, sale del repositorio (HU-E1.7). *(Hoy: el 30 sep 2026 se hizo público sin sacar la lista, porque los Actions privados no arrancaban por facturación. El dueño aceptó la exposición y vuelve a privado al reiniciarse los minutos. Bitácora agro 5.)*
+3. **¿El repositorio (hoy `plataforma`, antes `gestionagro`) es privado?** Respondida el 30 sep 2026: privado al inicio. Hacerlo público se decide después según el consumo de minutos de Actions (ED1 §41). Mientras sea privado, `tests/terminos-prohibidos.json` vive en el repositorio; antes de publicarlo, sale del repositorio (HU-E1.7). *(Hoy: el 30 sep 2026 se hizo público sin sacar la lista, porque los Actions privados no arrancaban por facturación. El dueño aceptó la exposición y vuelve a privado al reiniciarse los minutos. Bitácora agro 5.)*
 4. **¿Hay agrónomo aliado** para revisar el DPV antes de publicarlo? Respondida el 30 sep 2026: sí, el supervisor de la finca cero, que es agrónomo. Como también es usuario del producto, su revisión no es independiente; se anota así en la revisión. En `product.yaml` se registra por rol (`aprobada:<fecha>:agronomo-aliado`), nunca por nombre, porque los nombres de la finca cero son términos prohibidos (P4).
 
 ---

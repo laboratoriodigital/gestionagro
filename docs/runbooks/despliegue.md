@@ -41,7 +41,7 @@ Antes de la primera versión en `cultivopro.co`, mira [ambientes-github.md](ambi
 3. Publica la versión:
 
    ```bash
-   gh release create v0.2.0 --repo laboratoriodigital/gestionagro --target main --title "v0.2.0" --notes-from-tag
+   gh release create v0.2.0 --repo laboratoriodigital/plataforma --target main --title "v0.2.0" --notes-from-tag
    ```
 
 4. Mira la corrida «desplegar» en la pestaña Actions. El resumen dice el estado de cada celda.

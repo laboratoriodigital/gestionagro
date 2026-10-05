@@ -105,22 +105,68 @@ db.exec(`
 INSERT INTO producto (id, nombre, estado, actualizado) VALUES ('tienda', 'Tienda', 'activo', '2026-10-05T00:00:00.000Z');
 INSERT INTO producto_tipo (producto, tipo) VALUES ('tienda', 'comercio');
 INSERT INTO producto_rol (producto, rol, administra, invitable) VALUES ('tienda', 'propietario', 1, 1), ('tienda', 'colaborador', 0, 1);
-INSERT INTO plan (producto, id, nombre, gratuito, estado) VALUES ('tienda', 'prueba', 'Prueba', 1, 'activo'), ('tienda', 'tienda', 'Tienda', 0, 'activo');
-INSERT INTO plan_precio (producto, plan, meses, monto_cop, vigente_desde) VALUES ('tienda', 'tienda', 1, 39000, '2026-10-05T00:00:00.000Z'), ('tienda', 'tienda', 3, 111000, '2026-10-05T00:00:00.000Z'), ('tienda', 'tienda', 12, 390000, '2026-10-05T00:00:00.000Z');
+INSERT INTO plan (producto, id, nombre, gratuito, estado) VALUES ('tienda', 'gratis', 'Gratis', 1, 'activo'), ('tienda', 'entrada', 'Entrada', 0, 'activo');
+INSERT INTO plan_precio (producto, plan, meses, monto_cop, vigente_desde) VALUES
+  ('tienda', 'entrada', 1, 29900, '2026-10-05T00:00:00.000Z'), ('tienda', 'entrada', 3, 85000, '2026-10-05T00:00:00.000Z'),
+  ('tienda', 'entrada', 6, 161000, '2026-10-05T00:00:00.000Z'), ('tienda', 'entrada', 12, 299000, '2026-10-05T00:00:00.000Z');
 INSERT INTO celda (id, producto, url_api, estado, anillo_despliegue, shards) VALUES ('c1', 'tienda', 'https://api-c1', 'activa', 0, '["tienda_c1_s1"]');
-INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('t1', 'tienda', 'Comercio Ensayo Uno', 'comercio', 'prueba', 'c1', 'tienda_c1_s1', 1, '2026-10-05T00:00:00.000Z');
+INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('t1', 'tienda', 'Comercio Ensayo Uno', 'comercio', 'gratis', 'c1', 'tienda_c1_s1', 1, '2026-10-05T00:00:00.000Z');
 INSERT INTO membresia (usuario_id, org_id, producto, rol, creado) VALUES ('u2', 't1', 'tienda', 'propietario', '2026-10-05T00:00:00.000Z');
 `);
 ok(true, 'un segundo producto entra con datos, sin migración');
+const periodos = db.prepare('SELECT group_concat(meses) m FROM (SELECT meses FROM periodo ORDER BY meses)').get().m;
+ok(periodos === '1,3,6,12', `periodos sembrados: ${periodos} (mensual, trimestral, semestral y anual)`);
+ok(db.prepare("SELECT COUNT(*) n FROM plan_precio WHERE producto = 'tienda' AND plan = 'entrada'").get().n === 4, 'un plan con precio en los cuatro periodos');
+try {
+  db.exec(`
+  INSERT INTO periodo (meses, nombre) VALUES (24, 'bienal');
+  INSERT INTO plan_precio (producto, plan, meses, monto_cop, vigente_desde) VALUES ('tienda', 'entrada', 24, 560000, '2026-10-05T00:00:00.000Z');
+  `);
+  ok(true, 'un periodo nuevo entra con dos INSERT, sin rehacer ninguna tabla (R1)');
+} catch (e) {
+  ok(false, `periodo nuevo: ${e.message}`);
+}
 
 debeFallar("INSERT INTO membresia (usuario_id, org_id, producto, rol, creado) VALUES ('u1', 't1', 'tienda', 'operario', 'x')", 'un rol del agro en una tienda');
 debeFallar("INSERT INTO membresia (usuario_id, org_id, rol, creado) VALUES ('u1', 't1', 'colaborador', 'x')", 'una membresía sin producto (v0) en una tienda');
 debeFallar("INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('t2', 'tienda', 'X', 'comercio', 'finca', 'c1', 'tienda_c1_s1', 2, 'x')", 'una tienda con un plan del agro');
-debeFallar("INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('t3', 'tienda', 'X', 'comercio', 'prueba', 'c0', 'agro_c0_s1', 2, 'x')", 'una tienda en una celda del agro');
-debeFallar("INSERT INTO pago (id, producto, proveedor, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, creado, actualizado) VALUES ('p9', 'tienda', 'bold', 'o1', 'u1', 'tienda', 1, 39000, 'pruebas', 'esperando', 'x', 'x')", 'un pago de tienda a nombre de una finca');
-debeFallar("INSERT INTO pago (id, producto, proveedor, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, creado, actualizado) VALUES ('p8', 'tienda', 'bold', 't1', 'u2', 'tienda', 2, 78000, 'pruebas', 'esperando', 'x', 'x')", 'un pago por 2 meses (solo 1, 3 o 12)');
-debeFallar("INSERT INTO plan_precio (producto, plan, meses, monto_cop, vigente_desde) VALUES ('tienda', 'tienda', 1, 500, 'y')", 'un precio por debajo del mínimo de Bold');
-debeFallar("INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('t4', 'tienda', 'X', 'finca', 'prueba', 'c1', 'tienda_c1_s1', 2, 'x')", 'una tienda de tipo finca');
+debeFallar("INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('t3', 'tienda', 'X', 'comercio', 'gratis', 'c0', 'agro_c0_s1', 2, 'x')", 'una tienda en una celda del agro');
+debeFallar("INSERT INTO pago (id, producto, proveedor, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, creado, actualizado) VALUES ('p9', 'tienda', 'bold', 'o1', 'u1', 'entrada', 1, 29900, 'pruebas', 'esperando', 'x', 'x')", 'un pago de tienda a nombre de una finca');
+debeFallar("INSERT INTO pago (id, producto, proveedor, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, creado, actualizado) VALUES ('p8', 'tienda', 'bold', 't1', 'u2', 'entrada', 2, 59800, 'pruebas', 'esperando', 'x', 'x')", 'un pago por 2 meses (no es un periodo)');
+debeFallar("INSERT INTO plan_precio (producto, plan, meses, monto_cop, vigente_desde) VALUES ('tienda', 'entrada', 1, 500, 'y')", 'un precio por debajo del mínimo de Bold');
+debeFallar("INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('t4', 'tienda', 'X', 'finca', 'gratis', 'c1', 'tienda_c1_s1', 2, 'x')", 'una tienda de tipo finca');
+debeFallar("INSERT INTO alcance (producto, id, descripcion, mueve_dinero) VALUES ('tienda', 'tienda:cobro:llaves', 'Cambiar las llaves de cobro', 1)", 'un alcance para agentes que mueve dinero');
+debeFallar("INSERT INTO identidad (proveedor, sub, usuario_id) VALUES ('desconocido', 'x1', 'u1')", 'un proveedor de identidad que no está en la tabla de referencia');
+
+// La guarda con datos reales: una fila vieja que no cabe en el modelo nuevo (un pago de 2 meses, que
+// el v0 permitía con CHECK (meses > 0)) detiene la 0006 entera, en vez de pasar callada (§4.4, W4).
+const db2 = new DatabaseSync(':memory:');
+db2.exec('PRAGMA foreign_keys = ON');
+const aplicarEn = (base, archivo) => {
+  base.exec('BEGIN');
+  try {
+    base.exec(readFileSync(archivo, 'utf8'));
+    base.exec('COMMIT');
+  } catch (e) {
+    base.exec('ROLLBACK');
+    throw e;
+  }
+};
+for (const f of readdirSync(reales).filter((x) => x.endsWith('.sql')).sort()) aplicarEn(db2, join(reales, f));
+db2.exec(`
+INSERT INTO celda (id, url_api, estado, anillo_despliegue, shards) VALUES ('c0', 'https://api-c0', 'activa', 0, '["agro_c0_s1"]');
+INSERT INTO usuario (id, nombre, email, creado) VALUES ('u1', 'Persona Uno', 'uno@example.com', '2026-10-01T00:00:00.000Z');
+INSERT INTO organizacion (id, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('o1', 'Finca Ensayo Uno', 'finca', 'finca', 'c0', 'agro_c0_s1', 1, '2026-10-01T00:00:00.000Z');
+INSERT INTO pago (id, producto, proveedor, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, creado, actualizado) VALUES ('agro-9', 'agro', 'bold', 'o1', 'u1', 'finca', 2, 78000, 'pruebas', 'aprobado', '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z');
+`);
+const archivo0006 = readdirSync(propuestas).find((x) => x.startsWith('0006'));
+try {
+  aplicarEn(db2, join(propuestas, archivo0006));
+  ok(false, 'un pago viejo de 2 meses detiene la 0006 (pasó)');
+} catch (e) {
+  const intacta = db2.prepare("SELECT COUNT(*) n FROM sqlite_master WHERE name = 'periodo'").get().n === 0;
+  ok(/huerfanas = 0/.test(e.message) && intacta, `un pago viejo de 2 meses detiene la 0006 entera y la base queda como estaba → ${e.message}`);
+}
 
 console.log(fallas === 0 ? '\nTODO EN VERDE' : `\n${fallas} FALLA(S)`);
 process.exit(fallas === 0 ? 0 : 1);

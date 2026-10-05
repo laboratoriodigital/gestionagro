@@ -1,4 +1,4 @@
-# Gestión Agro — Plan de trabajo y backlog
+# CultivoPro — Plan de trabajo y backlog
 
 **Versión:** 0.1.0 · 30 sep 2026
 **Dueño del producto y desarrollador:** Sebas
@@ -104,7 +104,7 @@ Una historia entra a un sprint solo si:
 
 | Historia | Disparador |
 |---|---|
-| HU-E8.5 · Mudar una finca de celda (5) | Etapa B o C de ARQUITECTURA §6.3. Construirla antes es resolver el problema de la etapa siguiente (bitácora ecommerce 16). Lo que sí nace desde hoy es lo que la hace posible: `org_id` en cada fila, celdas por configuración y `agro-export v1` |
+| HU-E8.5 · Mudar una finca de celda (5) | Etapa C de ARQUITECTURA §6.3, o una celda c2 cuando c0 se llene. Desde ADR-23 (una sola cuenta), la etapa B ya no muda fincas: es la misma cuenta con Workers Paid. Construirla antes es resolver el problema de la etapa siguiente (bitácora ecommerce 16). Lo que sí nace desde hoy es lo que la hace posible: `org_id` en cada fila, celdas por configuración y `agro-export v1` |
 | HU-E9.3 · Autodiagnóstico ecológico/BPA (3) | Decisión de certificar |
 | HU-E10.3 · Dosis por bomba (3) | La medición del 25 feb 2027 (HU-E0.2, regla 3) encuentra búsquedas en Colombia con otras formas de decirlo («cuántos cc por litro», «cuánto echarle a la bomba») |
 | HU-E9.4 · Enlace de auditor (2) | Primera auditoría agendada |
@@ -112,7 +112,7 @@ Una historia entra a un sprint solo si:
 | HU-E11.4 · El riego ejecutado llena el cuaderno (2) | HU-E11.3 |
 | HU-E7.5 · Varias bodegas de insumos en una finca (5) | Una finca con sectores o almacenes separados que lo pida. Es un catálogo nuevo: rehacer el CHECK de `catalogo` en la celda y un `agro-export` v2 (decisión del dueño, 3 oct 2026) |
 | HU-E2.9 · Calculadora de grados-día (2) | La medición del 25 feb 2027 y la revisión agronómica de la DPV y la carencia |
-| Tienda 3.0 sobre esta plataforma (fuera de este backlog) | Decisión del dueño sobre D1 y D2 del `TRASLADO-3.0.md` de la Tienda y una temporada de uso real de CultivoPro (`docs/analisis/integracion-tienda-ecosistema.md` §10) |
+| Tienda 3.0 sobre esta plataforma (fuera de este backlog: sus hitos M0 a M8 están en `docs/tienda/TIENDA-3.0.md` §19) | Decidida el 5 oct 2026 como excepción declarada, desde cero (ADR-21). Su M0 necesita las fases P0 y P1 de la plataforma y Workers Paid en la cuenta (`docs/plataforma/PLATAFORMA.md` §7) |
 
 **Ceremonias para un equipo de uno** (~1,5 h por sprint):
 - Planeación de 30 min el lunes.
@@ -175,7 +175,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 **Como** dueño **quiero** el volumen de búsqueda en Colombia y LATAM de ~20 términos de calculadoras agronómicas **para** decidir la segunda y la tercera herramienta con datos.
 - **Peldaño:** herramienta gratuita · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** S6 · **Depende de:** H1 publicado (para ver impresiones reales) · **Estado:** En sprint (CA1 a CA3 con Keyword Planner el 1 oct 2026: rangos, marcados R. El dueño aceptó la recomendación el 1 oct 2026: el calendario de carencias reemplaza a «dosis por bomba» como herramienta 2 (E10) y dosis queda preparada. Falta Search Console de la DPV en producción para afinar)
 - **Criterios de aceptación:**
-  1. Dada una lista de 20 términos (DPV, déficit de presión de vapor, dosis por bomba, carencia, solución nutritiva, drenaje en sustrato, grados-día…), cuando se consultan en Google Keyword Planner o Search Console, entonces queda una tabla con volumen, fuente y fecha en `docs/validacion/busquedas-2026-12.md`.
+  1. Dada una lista de 20 términos (DPV, déficit de presión de vapor, dosis por bomba, carencia, solución nutritiva, drenaje en sustrato, grados-día…), cuando se consultan en Google Keyword Planner o Search Console, entonces queda una tabla con volumen, fuente y fecha en `docs/agro/validacion/busquedas-2026-12.md`.
   2. Cada cifra dice si es dato verificado o estimación.
   3. La tabla termina con una recomendación de orden para las herramientas 2 a 5.
 - **Patrones:** P18.
@@ -238,7 +238,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 | Tarea | Cuándo | Horas | Resultado |
 |---|---|---|---|
-| T-0.3 Entrevistas: 5 productores bajo invernadero, 3 asesores técnicos, 2 restaurantes o cadenas compradoras | Oct–nov | 10 h | `docs/validacion/entrevistas.md`: dolor confirmado o no (umbral 0 → 1–2) |
+| T-0.3 Entrevistas: 5 productores bajo invernadero, 3 asesores técnicos, 2 restaurantes o cadenas compradoras | Oct–nov | 10 h | `docs/agro/validacion/entrevistas.md`: dolor confirmado o no (umbral 0 → 1–2) |
 | T-0.4 Conseguir agrónomo aliado que revise DPV y textos | Antes del S3 | 3 h | Resuelta el 30 sep 2026: el supervisor de la finca cero, agrónomo. Se registra en `product.yaml` por rol y fecha (`aprobada:<fecha>:agronomo-aliado`), no por nombre (P4) |
 | T-0.5 Documentar el día a día real del invernadero: quién registra qué y cuándo | S3–S5 | 3 h | Ajusta los formularios de E3 |
 
@@ -455,10 +455,10 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E2.6 · Publicar, indexar y medir
 **Como** dueño **quiero** la DPV en producción, en el sitemap y en Search Console, con la tasa de completado visible **para** empezar el reloj de 90 días.
-- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S4 · **Depende de:** HU-E1.5, HU-E2.5 · **Estado:** En sprint (rama `feat/herramientas-entrada`, 3 oct 2026. CA3: el reporte semanal trae la tasa de completado de cada herramienta, esta semana y la anterior. CA4 ya lo cubre el kill switch de HU-E8.1. CA1 y CA2 esperan la revisión agronómica: en `docs/validacion/revision-agronomica.md` está lo que ya se validó (las cuentas de los ejemplos y las dos calculadoras en staging), lo que debe confirmar el agrónomo y los pasos para publicar. La pregunta más importante es si la carencia se cuenta en días de calendario o en horas. Desde el 3 oct 2026 producción está en `cultivopro.co` con la v0.2.1, que trae la calculadora de carencia y la política de datos. Desde la v0.3.0, cada versión llega a producción al fusionar su PR (HU-E1.8))
+- **Peldaño:** herramienta gratuita · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** S4 · **Depende de:** HU-E1.5, HU-E2.5 · **Estado:** En sprint (rama `feat/herramientas-entrada`, 3 oct 2026. CA3: el reporte semanal trae la tasa de completado de cada herramienta, esta semana y la anterior. CA4 ya lo cubre el kill switch de HU-E8.1. CA1 y CA2 esperan la revisión agronómica: en `docs/agro/validacion/revision-agronomica.md` está lo que ya se validó (las cuentas de los ejemplos y las dos calculadoras en staging), lo que debe confirmar el agrónomo y los pasos para publicar. La pregunta más importante es si la carencia se cuenta en días de calendario o en horas. Desde el 3 oct 2026 producción está en `cultivopro.co` con la v0.2.1, que trae la calculadora de carencia y la política de datos. Desde la v0.3.0, cada versión llega a producción al fusionar su PR (HU-E1.8))
 - **Criterios de aceptación:**
   1. El `product.yaml` pasa a `activo` y CI lo acepta (revisión agronómica aprobada).
-  2. La URL está en el sitemap, se solicitó su indexación y la fecha queda en `docs/validacion/dpv.md`.
+  2. La URL está en el sitemap, se solicitó su indexación y la fecha queda en `docs/agro/validacion/dpv.md`.
   3. Una consulta de Analytics Engine documentada devuelve `tool.completed / tool.opened` por semana.
   4. El kill switch `ks:agro-calculadora-dpv` apaga el envío de eventos sin romper la calculadora.
 - **WI:**
@@ -1082,7 +1082,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 
 #### HU-E8.4 · Respaldo semanal y restauración probada
 **Como** dueño **quiero** un respaldo semanal por finca en R2 y una restauración probada **para** recuperar una finca sin depender de Time Travel.
-- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S11 · **Depende de:** HU-E3.13, HU-E5.1 · **Estado:** Refinada; espera la señal del dueño («aún no el respaldo en la nube, yo te aviso», 3 oct 2026). La Tienda 3.0 también la necesita (`docs/analisis/integracion-tienda-ecosistema.md` §8)
+- **Peldaño:** transversal · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** S11 · **Depende de:** HU-E3.13, HU-E5.1 · **Estado:** Refinada; espera la señal del dueño («aún no el respaldo en la nube, yo te aviso», 3 oct 2026). La Tienda 3.0 también la necesita (`docs/tienda/integracion-tienda-ecosistema.md` §8)
 - **Criterios de aceptación:**
   1. El cron exporta cada organización en `agro-export v1` a R2. Retención: 4 semanales y 3 mensuales.
   2. Restaurar **une** (agrega lo que falta) y nunca reemplaza el presente con el pasado (bitácora ecommerce 77).
@@ -1110,8 +1110,8 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
   - WI-E8.3.3 Pruebas (1 h).
 
 #### HU-E8.5 · Mudar una finca de celda — *Preparada*
-**Como** dueño **quiero** mover una finca a otra celda sin que sus usuarios pierdan un registro **para** escalar (etapa B) o dar celda propia a un cliente Cadena (etapa C).
-- **Peldaño:** Cadena · **Prioridad:** Could (hasta que llegue el disparador) · **Puntos:** 5 · **Sprint:** — · **Disparador:** ARQUITECTURA §6.3, etapa B o C · **Depende de:** HU-E8.4 · **Estado:** Preparada
+**Como** dueño **quiero** mover una finca a otra celda sin que sus usuarios pierdan un registro **para** escalar a una celda nueva cuando c0 se llene o dar celda propia a un cliente Cadena (etapa C).
+- **Peldaño:** Cadena · **Prioridad:** Could (hasta que llegue el disparador) · **Puntos:** 5 · **Sprint:** — · **Disparador:** ARQUITECTURA §6.3, etapa C, o c0 llena (desde ADR-23 la etapa B no muda fincas) · **Depende de:** HU-E8.4 · **Estado:** Preparada
 - **Criterios de aceptación:**
   1. Sigue los 6 pasos de ARQUITECTURA §6.4, con el mismo `agro-export v1`.
   2. Probada primero entre dos celdas locales con las dos fincas de prueba, de punta a punta (P16).

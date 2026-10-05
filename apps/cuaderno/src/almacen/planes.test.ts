@@ -42,7 +42,8 @@ describe('planes con precio visible (HU-E0.6)', () => {
         '..',
         '..',
         'docs',
-        'Estudio de mercado software para invernaderos y agricultura.md',
+        'agro',
+        'ESTUDIO-MERCADO-AGRO-2026-09.md',
       ),
       'utf8',
     );

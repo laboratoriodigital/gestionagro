@@ -3,7 +3,7 @@
 
 **Versión:** 1.3: complementada el 5 de octubre de 2026 con el informe «Ecommerce en Colombia y Latinoamérica» (complementos **[C1]–[C13]**, anexo §20). La 1.2 fue validada a la luz del ecosistema y puesta al día con las respuestas del dueño ese mismo día (ver «Control de versiones»).  
 **Fecha de corte:** 4 de octubre de 2026, hora de Colombia. Lo agregado en la versión 1.1 se consultó el 5 de octubre de 2026. Lo agregado en la versión 1.3 se consultó el 30 de septiembre de 2026; tres páginas se reabrieron el 5 de octubre (§18.6).  
-**Documento de referencia:** `docs/ECOSISTEMA-DIGITAL-ED1-v1.2.md`, versión del 28 de septiembre de 2026. Desde la versión 1.1, también lo que el ecosistema ya construyó, midió o decidió (§3.3).  
+**Documento de referencia:** `docs/ecosistema/historia/ECOSISTEMA-DIGITAL-ED1-v1.2.md`, versión del 28 de septiembre de 2026. Desde la versión 1.1, también lo que el ecosistema ya construyó, midió o decidió (§3.3).  
 **Validación:** `VALIDACION-ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md`, en esta misma carpeta: hallazgos [V1]–[V11] y por qué cambió cada sección.  
 **Complemento:** informe «Ecommerce en Colombia y Latinoamérica: funcionalidades, proveedores, precios y modelos de monetización», del 30 de septiembre de 2026 [S132]. De ahí salen los complementos [C1]–[C13]; el anexo §20 dice qué entró, qué no y por qué.  
 **Naturaleza del trabajo:** investigación documental de fuentes públicas; análisis competitivo, tecnológico y económico; recomendaciones e hipótesis de validación.  
@@ -18,7 +18,7 @@
 |---|---|---|
 | 1.0 | 4 oct 2026 | Investigación documental, con ED1 v1.2 como única fuente sobre el proyecto |
 | 1.1 | 5 oct 2026 | Validación a la luz del ecosistema. Lo que ya existe (§3.3) **[V1]**; medir la demanda antes de construir (§12.6) **[V2]**; cuotas corregidas y restricciones de la cuenta (§9.4) **[V3]**; cobro y economía unitaria de los planes de ED1 (§10.4, §13) **[V4]**; paquete de herramientas (§15) **[V5]**; HTML por producto en la tienda alojada (§12.3) **[V6]**; tarifas de WhatsApp y regla de Meta sobre IA (§11.1, §12.1) **[V7]**; fases y umbrales de ED1 (§16) **[V8]**; lo que la plataforma ya resuelve y lo que falta (§8.1, §16.4) **[V9]**; datos personales, términos y antiabuso (§14.1) **[V10]**; correcciones menores **[V11]** |
-| 1.2 | 5 oct 2026 | Respuestas del dueño (validación §5): hay dos tiendas 2.0 en operación, no dos comercios en la Tienda Básica (§3.3, S80); la Tienda 3.0 entra como excepción declarada y se diseña desde cero, con los datos actuales cargados por scripts (§15.3). Arquitectura en `docs/arquitectura/` |
+| 1.2 | 5 oct 2026 | Respuestas del dueño (validación §5): hay dos tiendas 2.0 en operación, no dos comercios en la Tienda Básica (§3.3, S80); la Tienda 3.0 entra como excepción declarada y se diseña desde cero, con los datos actuales cargados por scripts (§15.3). Arquitectura en `docs/plataforma/` y `docs/tienda/` |
 | 1.3 | 5 oct 2026 | Complemento con el informe «Ecommerce en Colombia y Latinoamérica» (30 sep 2026), sin cambiar las conclusiones de la 1.2. Contexto de mercado adicional (§4.1, §4.2) **[C1]**; precios de plataformas y tasa efectiva de VTEX (§6.3, §7.1) **[C2]**; cómo empaqueta y cobra el mercado lo básico y lo premium (§8.1, §8.4) **[C3]**; más tarifas de pasarelas, PayU→Rapyd y Addi (§10.2, §10.5) **[C4]**; fuente primaria de WhatsApp y herramientas de marketing (§11.1, §11.6) **[C5]**; precios de facturación (§11.2) **[C6]**; entrega y contraentrega (§11.3) **[C7]**; comisiones de marketplaces (§11.4) **[C8]**; modelos de monetización observados y líneas por uso (§13.1, §13.2) **[C9]**; escenarios de costo total del comercio (§7.4) **[C10]**; hipótesis de empaquetado y precio (§13.6) **[C11]**; límites de infraestructura y camino 2.0 → 3.0 (§9.4, §15.3) **[C12]**; radar, pendientes y control editorial (§17, §19) **[C13]**. Fuentes S94–S133 (§18.6) |
 
 ---
@@ -1184,11 +1184,11 @@ El paquete conserva el objetivo ED1 de cinco herramientas iniciales, pero sus in
 |---|---|---|
 | Complementos para tiendas existentes | El problema persiste con plataforma y el cliente no quiere migrar | Utilidades premium, app, conector o servicio |
 | Comercio social y pedidos | Hay operación frecuente fuera de una tienda y pago por ordenarla | Catálogo/pedidos/conciliación con tienda opcional |
-| Tienda alojada para los comercios de la línea **[V1]** | Los comercios reales pagan, se quedan y piden un soporte que cabe en su contribución (§16.3) | Hoy, las dos tiendas 2.0 siguen vendiendo. La 3.0 se construye como excepción declarada, diseñada desde cero sobre la plataforma del ecosistema, y los datos de las tiendas actuales se cargan con scripts (decisiones del dueño del 5 oct 2026; `docs/arquitectura/TIENDA-3.0.md`) |
+| Tienda alojada para los comercios de la línea **[V1]** | Los comercios reales pagan, se quedan y piden un soporte que cabe en su contribución (§16.3) | Hoy, las dos tiendas 2.0 siguen vendiendo. La 3.0 se construye como excepción declarada, diseñada desde cero sobre la plataforma del ecosistema, y los datos de las tiendas actuales se cargan con scripts (decisiones del dueño del 5 oct 2026; `docs/tienda/TIENDA-3.0.md`) |
 
 Los tres pueden compartir datos y herramientas. Los dos primeros no necesitan una plataforma universal antes de tener usuarios, y el tercero ya la tiene (§3.3).
 
-**[C12] Lo que queda del informe complementario para el camino 2.0 → 3.0.** Ese informe propuso migrar la tienda por etapas, con el backend actual y uno nuevo conviviendo detrás del mismo contrato de puertas. La decisión del dueño del 5 de octubre (3.0 diseñada desde cero, datos cargados con scripts) la reemplaza y es la que vale. De aquella propuesta quedan tres insumos para `docs/arquitectura/TIENDA-3.0.md`, todos tomados de la arquitectura 0.22.3 de la Tienda Panel y por verificar en la 1.0.0 [S131]:
+**[C12] Lo que queda del informe complementario para el camino 2.0 → 3.0.** Ese informe propuso migrar la tienda por etapas, con el backend actual y uno nuevo conviviendo detrás del mismo contrato de puertas. La decisión del dueño del 5 de octubre (3.0 diseñada desde cero, datos cargados con scripts) la reemplaza y es la que vale. De aquella propuesta quedan tres insumos para `docs/tienda/TIENDA-3.0.md`, todos tomados de la arquitectura 0.22.3 de la Tienda Panel y por verificar en la 1.0.0 [S131]:
 
 | Insumo | Contenido | Para qué sirve |
 |---|---|---|
@@ -1345,7 +1345,7 @@ El registro de cambios debe conservar fecha, URL, condición anterior, condició
 
 | ID | Responsable y recurso | Fecha/período | Evidencia utilizada / límite |
 |---|---|---|---|
-| S01 | ED1 — `docs/ECOSISTEMA-DIGITAL-ED1-v1.2.md`, en este repositorio **[V11]** | 28 sep 2026 | Público, arquitectura, principios y objetivos internos; no evidencia de mercado |
+| S01 | ED1 — `docs/ecosistema/historia/ECOSISTEMA-DIGITAL-ED1-v1.2.md`, en este repositorio **[V11]** | 28 sep 2026 | Público, arquitectura, principios y objetivos internos; no evidencia de mercado |
 | S02 | CCCE, [Informe de cierre ecommerce 2025 / Versión pública](https://ccce.org.co/noticias/informe-de-cierre-ecommerce-2025-version-publica/) | Publicación listada 24 feb 2026; datos 2025 | Resumen de ventas, transacciones y pagos; informe completo no recuperado |
 | S03 | CCCE, [Primer informe público trimestral 2026](https://ccce.org.co/noticias/primer-informe-publico-trimestral-de-comercio-electronico-2026/) | Publicación listada 20 may 2026; Q1 2026 | Crecimiento de transacciones del resumen |
 | S04 | CCCE, [Publicaciones](https://ccce.org.co/publicaciones/) | Entrada de coyuntura 15 jul 2026; EMICRON 2024 | Describe universo de micronegocios y análisis de madurez; acceso al artículo completo no recuperado |
@@ -1446,13 +1446,13 @@ Consultadas el 5 de octubre de 2026. S80–S87 son dato interno del ecosistema; 
 
 | ID | Responsable y recurso | Fecha/período | Evidencia utilizada / límite |
 |---|---|---|---|
-| S80 | Ecosistema, `docs/BITACORA-ecommerce.md` (copia de referencia de la bitácora de la línea ecommerce) | Hasta 30 sep 2026 | Entradas 66 y 67 (comercios reales en la Tienda Básica; dos productos), 93 (primera tienda de la 2.0 actualizada por la flota) y la de la versión 1.0.0 (decisión 36: un solo producto, la Tienda 2.0). Sin precios ni pagos de los comercios |
-| S81 | Ecosistema, `docs/analisis/integracion-tienda-ecosistema.md` | 4 oct 2026 | Lo que la Tienda 2.0 hace (§1–§2) y la propuesta de la 3.0 sobre la plataforma (§4) |
+| S80 | Ecosistema, `docs/tienda/BITACORA-ecommerce.md` (copia de referencia de la bitácora de la línea ecommerce) | Hasta 30 sep 2026 | Entradas 66 y 67 (comercios reales en la Tienda Básica; dos productos), 93 (primera tienda de la 2.0 actualizada por la flota) y la de la versión 1.0.0 (decisión 36: un solo producto, la Tienda 2.0). Sin precios ni pagos de los comercios |
+| S81 | Ecosistema, `docs/tienda/integracion-tienda-ecosistema.md` | 4 oct 2026 | Lo que la Tienda 2.0 hace (§1–§2) y la propuesta de la 3.0 sobre la plataforma (§4) |
 | S82 | Ecosistema, `docs/ARQUITECTURA.md` | Al día con la v0.3.0, 4 oct 2026 | CORE (§5.4), celdas (§5.5), presupuesto por producto (§8.1), niveles de degradación (§8.2), seguridad (§9), ADR-7 y hallazgos para ED1 (§14) |
 | S83 | Ecosistema, `docs/BACKLOG.md` | 4 oct 2026 | Capacidad del dueño (§1); cobro con Bold y factura electrónica pendiente (HU-E0.7); respaldo semanal pendiente (HU-E8.4) |
-| S84 | Ecosistema, `docs/validacion/busquedas-2026-12.md` | 1 oct 2026 | Método de medición de la demanda de búsqueda y su resultado en el agro |
+| S84 | Ecosistema, `docs/agro/validacion/busquedas-2026-12.md` | 1 oct 2026 | Método de medición de la demanda de búsqueda y su resultado en el agro |
 | S85 | Ecosistema, código de la v0.3.0 | 4 oct 2026 | Migraciones del CORE (`infrastructure/migraciones/core/`); vuelta del login y del pago (`apps/core/src/entrar.ts`, `pagos.ts`); adaptador de pago (`proveedor-de-pago.ts`) y sus pruebas; Cron Triggers (`apps/core/wrangler.jsonc`, `apps/api-celda/wrangler.c0.jsonc`); precio del plan (`content/agro/cuaderno/planes.json`); prueba de aislamiento (`tests/repo/org-id-en-consultas.test.ts`) |
-| S86 | Ecosistema, `docs/REVISION-HALLAZGOS-ED1.md` | 28 sep 2026 | [H12]: 500 MB por base y 10 bases por cuenta; [H16]: CAC en horas |
+| S86 | Ecosistema, `docs/ecosistema/REVISION-HALLAZGOS-ED1.md` | 28 sep 2026 | [H12]: 500 MB por base y 10 bases por cuenta; [H16]: CAC en horas |
 | S87 | Ecosistema, `docs/BITACORA.md` (agro) | Hasta 4 oct 2026 | «Lo que el terreno enseñó»: índices como filas escritas, 50 consultas por invocación y términos de Cloudflare §2.2.1; entrada 4 |
 | S88 | Leadsales, [Precios de WhatsApp Business API en 2026](https://leadsales.io/blog/whatsapp-business-api-cuanto-cuesta/) | 2026 | Tarifas por mensaje en Colombia. Secundaria: confirmar en S49 |
 | S89 | respond.io, [WhatsApp AI chatbot policy](https://respond.io/blog/whatsapp-ai-chatbot-policy) | Sin fecha editorial confirmada | Regla de Meta, desde el 15 ene 2026, para proveedores de IA. Secundaria |
@@ -1575,7 +1575,7 @@ Además, sin etiqueta propia: seis términos de búsqueda (§12.6), campos de la
 | Tabla de factura electrónica por país | A pendientes (§17.2) | Sin fuente primaria revisada |
 | Proveedores nombrados sin página abierta: Mipaquete, Aveonline, 99minutos, Treble y otros | No se registran como fuente | El estudio solo registra lo que se abrió (§18) |
 | Ruta de migración de la tienda por etapas | Reemplazada | Decisión del dueño del 5 oct 2026: la 3.0 se diseña desde cero y los datos se cargan con scripts. Quedan tres insumos (§15.3) |
-| Diagrama de arquitectura objetivo y hoja de ruta de fases | Fuera | Pertenecen a `docs/arquitectura/TIENDA-3.0.md`, no al estudio de mercado. Sus umbrales no tenían base medida |
+| Diagrama de arquitectura objetivo y hoja de ruta de fases | Fuera | Pertenecen a `docs/tienda/TIENDA-3.0.md`, no al estudio de mercado. Sus umbrales no tenían base medida |
 | Posicionamiento «kit para vender por WhatsApp» y tabla frente a competidores | Fuera | Es propuesta de producto sin validación; el estudio ya trata el comercio social como hipótesis de entrada (§6.1, §15.3) |
 | Estimaciones de consultoras como tamaño de mercado | Solo contexto | §2.2 no admite cifras sin método accesible para un TAM |
 | «Un 3PL ahorra 15–30 %» como hecho | Entra como afirmación del proveedor | Es Melonn hablando de su propio servicio (§11.3) |

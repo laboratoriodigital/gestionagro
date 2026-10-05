@@ -4,6 +4,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- ED1 v1.4 (`docs/ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md`), con las decisiones del dueño del 5 oct 2026: una sola cuenta de Cloudflare con Workers Paid cuando llegue la Tienda 3.0, los tres dominios del ecosistema (`laboratorio-digital.com`, `laboratorio-digital.app` y `cultivopro.co`), planes de 1, 3, 6 y 12 meses y el estudio de mercado de ecommerce definitivo. ADR-23, ADR-26 y ADR-27, aceptados.
+- Diseño de la Tienda 3.0, versión 0.2 (`docs/tienda/TIENDA-3.0.md`): contraentrega con su recaudo, links de pago, cuatro niveles de plan como hipótesis, el facturador del comercio integrado, el catálogo para Meta y una lista de paridad con la Tienda 2.0. Las pruebas de su modelo de datos pasan a 82 comprobaciones, y las del CORE a 35.
+- Runbook para renombrar el repositorio en GitHub, con lo que no se renombra nunca (`docs/runbooks/renombrar-repositorio.md`).
+
+### Cambiado
+- `docs/` se organiza por producto: `ecosistema/`, `plataforma/`, `agro/` y `tienda/`, con `ARQUITECTURA.md`, `BACKLOG.md` y `BITACORA.md` en la raíz. El mapa de las rutas viejas y nuevas está en `docs/README.md`.
+- El repositorio pasa a llamarse `plataforma` (ADR-26): el `README.md`, el `name` del `package.json` de la raíz y los comandos de los runbooks. Los nombres que guardan los teléfonos no cambian.
+
 ## [0.3.0] - 2026-10-04
 
 ### Agregado

@@ -1,8 +1,8 @@
 {
-  "name": "gestionagro",
+  "name": "plataforma",
   "version": "0.3.0",
   "private": true,
-  "description": "CultivoPro: calculadoras agronómicas gratuitas y cuaderno de campo offline-first (ED1 Agro).",
+  "description": "Plataforma ED1: CultivoPro (calculadoras agronómicas gratuitas y cuaderno de campo offline-first) y el CORE. La Tienda 3.0, en diseño (docs/tienda).",
   "type": "module",
   "packageManager": "pnpm@11.28.2",
   "engines": {
