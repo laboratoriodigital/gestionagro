@@ -25,6 +25,7 @@
     "@biomejs/biome": "^2.5.14",
     "@ed1/agro-schema": "workspace:*",
     "@ed1/d1": "workspace:*",
+    "@ed1/productos": "workspace:*",
     "@ed1/sync": "workspace:*",
     "@ed1/tokens": "workspace:*",
     "@playwright/test": "^1.63.0",

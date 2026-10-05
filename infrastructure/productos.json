@@ -1,0 +1,28 @@
+{
+  "$schema": "../schemas/productos.schema.json",
+  "nota": "Única lista de productos del CORE (PLATAFORMA §4.2, ADR-20, HU-C1.1). El despliegue la copia a las tablas producto, producto_tipo, producto_rol, plan y plan_precio (HU-C2.3); un producto o un plan que sale de aquí queda «retirado», nunca se borra (P21). La Tienda entra en su M0 y la cuenta ED1 (ADR-28) en HU-C7.3, cada una con su política: no se declara lo que todavía no existe (P1).",
+  "productos": [
+    {
+      "id": "agro",
+      "nombre": "CultivoPro",
+      "estado": "activo",
+      "excepcion": "ADR-2",
+      "app": {
+        "origenes": "celdas.json › sitio",
+        "rutas_de_vuelta": ["/agro/app/"]
+      },
+      "tipos": ["finca", "asesor", "cadena"],
+      "roles": [
+        { "id": "propietario", "administra": true, "invitable": true },
+        { "id": "supervisor", "administra": false, "invitable": true },
+        { "id": "operario", "administra": false, "invitable": true },
+        { "id": "asesor", "administra": false, "invitable": true },
+        { "id": "auditor", "administra": false, "invitable": false }
+      ],
+      "planes": "content/agro/cuaderno/planes.json",
+      "politica": "content/agro/privacidad/politica.json",
+      "prefijo_de_cobro": "agro",
+      "gracia_dias": 0
+    }
+  ]
+}
