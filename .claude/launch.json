@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sitio-estatico",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/servir-estatico.ts",
+        "apps/sitio/dist",
+        "4321",
+        "/agro/app/=apps/cuaderno/dist"
+      ],
+      "port": 4321
+    }
+  ]
+}
