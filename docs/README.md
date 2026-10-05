@@ -13,6 +13,8 @@ docs/
 ├── ecosistema/            ED1: la arquitectura, los principios y las fases del ecosistema
 │   └── historia/          las versiones anteriores de ED1, que no se editan
 ├── plataforma/            lo que comparten los productos: CORE, cuenta, dominios, agentes y proveedores
+│   ├── BACKLOG_CORE.md    plan, sprints e historias del CORE
+│   ├── BITACORA_CORE.md   lo que se rompió y se aprendió en el CORE (la bitácora core)
 │   └── sql/               migraciones propuestas del CORE, con su prueba
 ├── agro/                  CultivoPro: su estudio de mercado y sus mediciones
 │   └── validacion/
@@ -36,6 +38,8 @@ docs/
 | `ecosistema/historia/` | ED1 v1.2 (28 sep 2026) y v1.3 (5 oct 2026, en la mañana), con la misma numeración | Nunca |
 | `ecosistema/REVISION-HALLAZGOS-ED1.md` | Hallazgos [H1]–[H16] de ED1 | No se edita aquí |
 | `plataforma/PLATAFORMA.md` | El diseño del CORE con dimensión de producto, la cuenta de Cloudflare, los dominios, los tokens v2, los planes por periodo, la preparación para agentes y el repositorio | Cambia el diseño. Cada pieza pasa a `ARQUITECTURA.md` en el pull request que la implementa |
+| `plataforma/BACKLOG_CORE.md` | Hitos, sprints, épicas, historias, work items y velocidad del CORE, con la dirección de diseño del frontend del ecosistema | Planeación y cierre de cada sprint del CORE |
+| `plataforma/BITACORA_CORE.md` | Lo que se rompió y se aprendió en el CORE («bitácora core N»), con las mismas convenciones que las otras bitácoras para unirlas | Algo se rompe o se aprende en el CORE. Una entrada nueva va al final |
 | `plataforma/cuenta-cloudflare.md` | La cuenta del ecosistema con Workers Paid: cifras, lista para activarlo y control de gasto | Cambian los precios, el plan o la cuenta |
 | `plataforma/proveedores-de-computo.md` | Otros proveedores de cómputo y servicios, con los criterios de gobierno para integrarlos | Entra o sale un proveedor |
 | `plataforma/sql/` | Las migraciones propuestas del CORE (0006 a 0009) y su prueba con `node:sqlite` (ver su `README.md`) | Con el diseño |

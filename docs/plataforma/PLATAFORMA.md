@@ -141,7 +141,7 @@ Las otras dos cuentas del dueño (una gratuita y otra con algunos servicios pago
 - **Las tiendas 2.0 ya están en esta cuenta**, y las 3.0 también lo estarán. El día del cambio, la redirección es una regla de la misma zona.
 - **El aislamiento que importa es por producto, y ya existe:** presupuesto declarado, kill switch y celdas con sus propias bases (ARQUITECTURA §8). La cuenta es la unidad de facturación, no la de aislamiento.
 
-**Lo que se acepta a cambio:** todo depende de una cuenta. Una suspensión o un compromiso de la cuenta tumbaría todos los productos a la vez. La respuesta no es repartir, sino poder salir (§3.5): exportaciones semanales fuera de Cloudflare, dominios con recuperación aparte y la cuenta con segundo factor.
+**Lo que se acepta a cambio:** todo depende de una cuenta. Una suspensión o un compromiso de la cuenta tumbaría todos los productos a la vez. La respuesta no es repartir, sino poder salir (§3.5): una copia mensual cifrada fuera de Cloudflare, dominios con recuperación aparte y la cuenta con segundo factor.
 
 ### 3.2 Workers Paid en la misma cuenta
 
@@ -237,7 +237,7 @@ Antes de pedirlo hay que confirmar que Cloudflare acepte una entrada de la PSL *
    - segundo factor;
    - contactos de recuperación propios;
    - los tres dominios con un registrador y un correo que no dependan de Cloudflare.
-6. **Plan de salida:** exportaciones semanales fuera de Cloudflare (`proveedores-de-computo.md` §4). Es lo que convierte «todo en una cuenta» en un riesgo aceptable.
+6. **Plan de salida:** respaldo semanal en R2 y una copia mensual cifrada fuera de Cloudflare (ED1 §20.3; `proveedores-de-computo.md` §4). La frecuencia final la decide el dueño (D-C5 de `BACKLOG_CORE.md`; bitácora core 1). Es lo que convierte «todo en una cuenta» en un riesgo aceptable.
 7. **Contenido arbitrario de usuarios, aparte.** Un producto que lo aloje, como el hosting temporal de ED1 §14, se evalúa cuando exista. Es el único caso en que una cuenta propia aislaría un riesgo real (HA1): una suspensión por abuso no debe tumbar las tiendas.
 
 ### 3.6 Dónde vive cada pieza
@@ -820,7 +820,7 @@ plataforma/
 
 ## 7. Hoja de ruta de la plataforma
 
-Supone las 20 horas por semana del dueño, con Claude haciendo los commits (ARQUITECTURA §13). Cada fase deja algo funcionando y en producción. Ninguna rompe lo que ya funciona.
+Supone las 20 horas por semana del dueño, con Claude haciendo los commits (ARQUITECTURA §13). Cada fase deja algo funcionando y en producción. Ninguna rompe lo que ya funciona. Las historias, los sprints y las fechas de estas fases están en `BACKLOG_CORE.md`, que suma el sistema de diseño y la cuenta.
 
 | Fase | Duración estimada | Deja funcionando | Criterio de aceptación |
 |---|---|---|---|
@@ -847,7 +847,7 @@ Supone las 20 horas por semana del dueño, con Claude haciendo los commits (ARQU
 |---|---|---|---|
 | La reconstrucción de tablas se comporta distinto en D1 que en `node:sqlite` | Media | Alto | La receta se prueba en D1 local y en staging antes de producción. Respaldo: el paso de verificación en `desplegar.ts` (§4.4) y Time Travel |
 | Un cuaderno viejo deja de entrar por el cambio de emisor o de URL | Media | Alto | Tres versiones de tokens (§4.6). La URL de workers.dev sigue viva: el CORE no se muda. Prueba con un token v1 real |
-| Todo en una cuenta: una suspensión o un compromiso tumba todos los productos a la vez | Baja | Alto | Exportaciones semanales fuera de Cloudflare (`proveedores-de-computo.md` §4). Dominios con recuperación aparte (ED1 §20.3). Segundo factor y tokens por propósito. Nada de contenido arbitrario de usuarios en la cuenta (§3.5) |
+| Todo en una cuenta: una suspensión o un compromiso tumba todos los productos a la vez | Baja | Alto | Copia mensual cifrada fuera de Cloudflare (ED1 §20.3; `proveedores-de-computo.md` §4). Dominios con recuperación aparte (ED1 §20.3). Segundo factor y tokens por propósito. Nada de contenido arbitrario de usuarios en la cuenta (§3.5) |
 | Una tienda fraudulenta hace que se marque todo `laboratorio-digital.app`, que no está en la PSL | Baja | Alto | Ficha legal antes de publicar, reporte y suspensión con un clic. Escape a un segundo nivel inscrito en la PSL (§3.4) |
 | Factura sorpresa con Workers Paid (sin tope duro) | Media | Medio | Presupuesto en dinero por producto, vigía con proyección, alertas de facturación, límites de CPU y subrequests por Worker, y el WAF de la zona |
 | Los borradores de agentes (Server Card, Agent Skills) cambian de ruta | Alta | Bajo | Se sirven en la ruta vigente y en la recomendada, y una prueba las fija. Son archivos horneados: cambiarlos es barato |
