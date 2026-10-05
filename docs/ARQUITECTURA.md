@@ -50,7 +50,7 @@ Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`
 | 17 | Monorepo privado; `firmware/`, `hardware/` y `packages/agro-calc` se publican como espejo público cuando tengan su primera versión | Diseño abierto (Estudio) sin exponer el SaaS | Todo público desde el día 1 | Aceptada. Excepción temporal: público desde el 30 sep 2026 hasta que se reinicien los minutos de Actions de octubre; luego vuelve a privado (bitácora agro 5) |
 | 18 | Herramientas del repositorio en Node/TypeScript, nunca scripts de bash para el operador | P3: tu máquina es Windows | Scripts `.sh` | Aceptada |
 | 19 | Host `cultivopro.co` (era `agro.laboratorio-digital.com` hasta el 3 oct 2026, que redirige con 301) con las rutas de siempre: calculadoras en `/herramientas/agro/<slug>/`, cuaderno en `/agro/app/`, QR en `/agro/t/` | Subdominio propio desde el día 1, sin spike. Las rutas no cambian, así que volver al dominio principal (o a otro dominio) es cambiar el host y redirigir; los QR impresos siguen sirviendo con la redirección | Dominio principal verificado por el spike HU-E1.4 (cancelado); rutas cortas en el subdominio | Aceptada (30 sep 2026) |
-| 20 | El CORE gana la **dimensión de producto**: tablas de referencia (producto, tipos, roles, planes, precios por periodo), claves foráneas compuestas, y sesión y token (`aud`) por producto (`PLATAFORMA.md` §4) | La Tienda 3.0 es el segundo producto del CORE: sin la dimensión, los `CHECK` del agro la impiden y los datos se mezclan | Un CORE por producto, o agregar tipos a los `CHECK` | Aceptada (5 oct 2026). Diseño y migración 0006: propuestos y probados con `node:sqlite` |
+| 20 | El CORE gana la **dimensión de producto**: tablas de referencia (producto, tipos, roles, planes, precios por periodo), claves foráneas compuestas, y sesión y token (`aud`) por producto (`PLATAFORMA.md` §4) | La Tienda 3.0 es el segundo producto del CORE: sin la dimensión, los `CHECK` del agro la impiden y los datos se mezclan | Un CORE por producto, o agregar tipos a los `CHECK` | Aceptada (5 oct 2026). Migración 0006 en `infrastructure/migraciones/core/` (HU-C2.2): probada en el D1 local de workerd, compatible con el código v0. Se aplica en staging al fusionar y en producción con la siguiente versión publicada |
 | 21 | La Tienda 3.0 entra como **excepción declarada** (como ADR-2), diseñada **desde cero** sobre la plataforma. Los datos de las tiendas 2.0 se cargan después con scripts (`TIENDA-3.0.md`) | Dos tiendas 2.0 en operación y una plataforma probada. La 2.0 no escala: es una cuenta, una hoja y un repositorio por tienda | Esperar a la Fase 7 de ED1, o trasladar la 2.0 | Aceptada (5 oct 2026) |
 | 22 | Planes **prepagados de 1, 3, 6 y 12 meses**, sin débito automático. Los periodos son una tabla de referencia (`PLATAFORMA.md` §4.3, §4.8) | La comisión fija de Bold pesa el 5,2 % en un plan mensual de COP 39.000, el 3,3 % en el semestral y el 3,1 % en el anual | Solo mensual; débito automático (Bold no lo ofrece) | Aceptada (5 oct 2026; el semestral, en la tarde). Meses calendario y crédito al cambiar de plan: propuestos |
 | 23 | **Una sola cuenta de Cloudflare, la de siempre**, para todos los productos. Workers Paid se activa en ella con el M0 de la Tienda 3.0. Los productos se aíslan por presupuesto, kill switch y celdas, y ninguno se reparte entre cuentas gratuitas (`PLATAFORMA.md` §3.1–§3.2) | «Usar la misma cuenta actual de Cloudflare donde ya se viene usando todo» (dueño). Nada que mudar, y Workers Paid es por cuenta: el agro gana sus límites sin otra suscripción | Una cuenta paga aparte para lo que cobra, con graduación de productos (propuesta de la mañana, HA6) | Aceptada (5 oct 2026, tarde) |
@@ -263,13 +263,20 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
 |---|---|
 | `usuario` | id, nombre, email, creado |
 | `identidad` | proveedor (`google`), `sub`, usuario_id |
-| `sesion` | refresh token (hash), dispositivo, creado, expira, revocado |
-| `organizacion` | id, nombre, tipo (`finca`, `asesor`, `cadena`), plan, `plan_vence` (HU-E0.7: vencido, el directorio entrega «gratuito»), **celda_id**, **shard**, anillo |
-| `membresia` | usuario × organización × rol |
-| `invitacion` | código de un solo uso (hash), rol, expira, creada_por |
-| `celda` | id, url base de la API, clave pública vigente y anterior, estado |
+| `sesion` | refresh token (hash), **producto** (un refresh sirve a uno solo, 0006), dispositivo, creado, expira, revocado |
+| `organizacion` | id, **producto**, nombre, tipo y plan (claves foráneas compuestas a los del producto, 0006), estado (`activa`, `mudando`, `suspendida`, `baja`), `plan_vence` (HU-E0.7: vencido, el directorio entrega «gratuito»), **celda_id**, **shard**, anillo |
+| `membresia` | usuario × organización × rol, con el producto de la organización: un rol de otro producto lo rechaza la base (0006) |
+| `invitacion` | código de un solo uso (hash), rol del producto de la organización, expira, creada_por |
+| `celda` | id, **producto** (0006), url base de la API, clave pública vigente y anterior, estado |
 | `interes_plan` | usuario × organización × plan (`finca`, `exportador`, `cadena`) con su fecha: la lista de espera con precio visible (HU-E0.6). Sin cobro ni tarjeta |
-| `pago` | un cobro de Bold por intento: orden, organización, quién, plan, meses, monto que calculó el CORE, ambiente, estado (`esperando`, `aprobado`, `rechazado`, `revisar`) y la transacción (HU-E0.7). Sin datos de tarjeta ni del comprador |
+| `pago` | un cobro de Bold por intento: orden, organización, quién, plan, meses, monto que calculó el CORE, ambiente, estado (`esperando`, `aprobado`, `rechazado`, `revisar`) y la transacción (HU-E0.7). Desde la 0006, `meses` es un periodo de la tabla `periodo` y `periodo_desde`/`periodo_hasta` dicen lo que cubrió. Sin datos de tarjeta ni del comprador |
+| `producto` | Los productos del CORE (ADR-20, 0006): id, nombre y estado (`activo`, `pausado`, `retirado`). La siembra la migración con el agro; el despliegue la pone al día desde `infrastructure/productos.json` (HU-C2.3) |
+| `producto_tipo` | Los tipos de organización de cada producto (0006) |
+| `producto_rol` | Los roles de cada producto, con `administra` e `invitable` (0006) |
+| `plan` | Los planes de cada producto, con `gratuito` y estado (0006) |
+| `periodo` | Los periodos de prepago: 1, 3, 6 y 12 meses (ADR-22). Uno nuevo es un INSERT, no un CHECK (0006) |
+| `plan_precio` | Precio de cada plan por periodo, con `vigente_desde`: un precio no se edita, entra uno nuevo (0006) |
+| `aceptacion_politica` | Qué versión de la política de cada producto aceptó cada persona y cuándo (0006). Reemplaza a `usuario.politica_*`, que se retira al contraer |
 
 - **Dónde vive (HU-E4.1):**
   - Worker `agro-core` en workers.dev, con la base D1 `agro_core` (con `_staging` en staging), en la cuenta de la celda que dice `core.celda` en `celdas.json`.

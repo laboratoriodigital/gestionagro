@@ -13,6 +13,7 @@ export const vaciarCore = (db: BaseD1) =>
     'invitacion',
     'membresia',
     'sesion',
+    'aceptacion_politica',
     'identidad',
     'organizacion',
     'usuario',

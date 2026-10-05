@@ -422,7 +422,7 @@ Formato de cada historia:
 - **Work items:** WI-C2.1.1 `[prueba]` W1–W4 en D1 local · WI-C2.1.2 `[doc]` resultado en PLATAFORMA §4.4 y bitácora core · WI-C2.1.3 `[doc]` ADR-25 en ARQUITECTURA.
 
 #### HU-C2.2 · Migración 0006: el producto en la base, compatible con el v0
-- **Capa:** base · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C2 · **Depende de:** HU-C2.1 · **Estado:** Refinada
+- **Capa:** base · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C2 · **Depende de:** HU-C2.1 · **Estado:** En validación (rama `feat/c2-sprint`. CA1: la 0006 está en `infrastructure/migraciones/core/`. CA2: `apps/core/src/producto-en-la-base.test.ts`, 12 pruebas en el D1 local, cada rechazo por su razón exacta; control negativo: sin la clave foránea del rol, los dos casos de rol se ven en rojo. CA3: la batería entera del CORE y de integración corre sobre la 0006 con el código v0 sin cambios; solo cambiaron dos pruebas de esquema (la lista de tablas de ARQUITECTURA §5.4 y un INSERT sin columnas). CA4b: `desplegar.ts` corre `pragma_foreign_key_check` en remoto antes de migrar y se detiene si hay huérfanas o si no lo puede saber; probado el lector, falta verlo en staging (P16). WI-C2.2.4 y WI-C2.2.5: staging al fusionar; producción con la siguiente versión publicada, con la exportación y la marca de Time Travel anotadas en ese PR)
 - Como plataforma, quiero que toda organización, membresía, invitación, sesión, interés y pago pertenezca a un producto, y que la base rechace los cruces imposibles.
 - **Respaldo:** PLATAFORMA §4.3; ADR-20; R2 y R3.
 - **CA1.** `docs/plataforma/sql/core/0006_dimension_de_producto.sql` pasa a `infrastructure/migraciones/core/`, con la receta y la guarda.

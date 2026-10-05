@@ -37,8 +37,10 @@ import {
   ARCHIVO_DESPLIEGUE_CORE,
   ARCHIVO_SQL_CELDAS,
   asegurarBaseD1,
+  CONSULTA_HUERFANAS,
   configDelCore,
   escribirDespliegueCore,
+  huerfanasDeLaSalida,
   nombreD1Core,
   secretosDelCore,
 } from './lib/d1-core.ts';
@@ -257,6 +259,31 @@ async function desplegarCore(
   }
 
   const c = `-c ${ARCHIVO_DESPLIEGUE_CORE} ${entorno}`;
+  // HU-C2.2, CA4b: sin huérfanas antes de migrar. Si las hay, o no se sabe, no se migra (P1).
+  const revision = wrangler(
+    '@ed1/core',
+    `d1 execute DB --remote --json --command "${CONSULTA_HUERFANAS}" ${c}`,
+    cred,
+  );
+  const huerfanas = revision.ok ? huerfanasDeLaSalida(revision.salida) : null;
+  if (huerfanas === null) {
+    return {
+      ok: false,
+      detalle: [
+        'no se pudo revisar si la base del CORE tiene filas huérfanas; no se migra sin saberlo:',
+        ...causaDeWrangler(revision.salida),
+      ],
+    };
+  }
+  if (huerfanas.length > 0) {
+    return {
+      ok: false,
+      detalle: [
+        `la base del CORE tiene ${huerfanas.length} fila(s) huérfana(s); la guarda de las migraciones las rechazaría. Resolverlas antes de migrar (PLATAFORMA §4.4):`,
+        ...huerfanas,
+      ],
+    };
+  }
   const pasos: [string, string][] = [
     ['migraciones del CORE', `d1 migrations apply DB --remote ${c}`],
     ['directorio de celdas', `d1 execute DB --remote --file ${ARCHIVO_SQL_CELDAS} ${c}`],

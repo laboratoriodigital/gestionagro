@@ -1,7 +1,8 @@
-// Prueba de las migraciones propuestas del CORE contra las reales 0001–0005 (node:sqlite).
-// Uso: node probar-core.mjs <dir-migraciones-reales> <dir-propuestas>
+// Prueba de las migraciones del CORE (node:sqlite): siembra datos con el esquema v0 (las reales
+// 0001–0005), y después aplica en orden el resto de las reales (la 0006 desde HU-C2.2) y las
+// propuestas. Uso: node probar-core.mjs <dir-migraciones-reales> <dir-propuestas>
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 const [reales, propuestas] = process.argv.slice(2);
@@ -33,7 +34,15 @@ const aplicar = (archivo) => {
   }
 };
 
-for (const f of readdirSync(reales).filter((x) => x.endsWith('.sql')).sort()) aplicar(join(reales, f));
+// El esquema v0 es hasta la 0005: los datos de abajo se escriben como los escribe ese código.
+const esV0 = (f) => f.slice(0, 4) <= '0005';
+const sqlDe = (dir) => readdirSync(dir).filter((x) => x.endsWith('.sql'));
+const delV0 = sqlDe(reales).filter(esV0).sort().map((f) => join(reales, f));
+const despuesDelV0 = [
+  ...sqlDe(reales).filter((f) => !esV0(f)).map((f) => join(reales, f)),
+  ...sqlDe(propuestas).map((f) => join(propuestas, f)),
+].sort((a, b) => basename(a).localeCompare(basename(b)));
+for (const archivo of delV0) aplicar(archivo);
 
 // Datos de hoy, escritos como los escribe el código v0.
 db.exec(`
@@ -64,9 +73,10 @@ const tablas = ['celda', 'usuario', 'identidad', 'organizacion', 'membresia', 'i
 const contar = () => Object.fromEntries(tablas.map((t) => [t, db.prepare(`SELECT COUNT(*) n FROM ${t}`).get().n]));
 const antes = contar();
 
-for (const f of readdirSync(propuestas).filter((x) => x.endsWith('.sql')).sort()) {
+for (const archivo of despuesDelV0) {
+  const f = basename(archivo);
   try {
-    aplicar(join(propuestas, f));
+    aplicar(archivo);
     ok(true, `migración ${f} aplicada`);
   } catch (e) {
     ok(false, e.message);
@@ -152,16 +162,16 @@ const aplicarEn = (base, archivo) => {
     throw e;
   }
 };
-for (const f of readdirSync(reales).filter((x) => x.endsWith('.sql')).sort()) aplicarEn(db2, join(reales, f));
+for (const archivo of delV0) aplicarEn(db2, archivo);
 db2.exec(`
 INSERT INTO celda (id, url_api, estado, anillo_despliegue, shards) VALUES ('c0', 'https://api-c0', 'activa', 0, '["agro_c0_s1"]');
 INSERT INTO usuario (id, nombre, email, creado) VALUES ('u1', 'Persona Uno', 'uno@example.com', '2026-10-01T00:00:00.000Z');
 INSERT INTO organizacion (id, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('o1', 'Finca Ensayo Uno', 'finca', 'finca', 'c0', 'agro_c0_s1', 1, '2026-10-01T00:00:00.000Z');
 INSERT INTO pago (id, producto, proveedor, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, creado, actualizado) VALUES ('agro-9', 'agro', 'bold', 'o1', 'u1', 'finca', 2, 78000, 'pruebas', 'aprobado', '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z');
 `);
-const archivo0006 = readdirSync(propuestas).find((x) => x.startsWith('0006'));
+const archivo0006 = despuesDelV0.find((x) => basename(x).startsWith('0006'));
 try {
-  aplicarEn(db2, join(propuestas, archivo0006));
+  aplicarEn(db2, archivo0006);
   ok(false, 'un pago viejo de 2 meses detiene la 0006 (pasó)');
 } catch (e) {
   const intacta = db2.prepare("SELECT COUNT(*) n FROM sqlite_master WHERE name = 'periodo'").get().n === 0;

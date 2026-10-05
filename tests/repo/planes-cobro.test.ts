@@ -39,7 +39,7 @@ describe('los planes reales', () => {
 
   it('los periodos son los de la migración 0006 (P2): la tabla `periodo` y PERIODOS dicen lo mismo', () => {
     const sql = readFileSync(
-      join(RAIZ, 'docs/plataforma/sql/core/0006_dimension_de_producto.sql'),
+      join(RAIZ, 'infrastructure/migraciones/core/0006_dimension_de_producto.sql'),
       'utf8',
     );
     const siembra = /INSERT INTO periodo \(meses, nombre\)\s*VALUES ([^;]+);/.exec(sql)?.[1] ?? '';
