@@ -411,7 +411,7 @@ Formato de cada historia:
 ### EC2 · El producto en la base
 
 #### HU-C2.1 · La receta de reconstrucción, probada en D1 local
-- **Capa:** base · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C1 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** base · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C1 · **Depende de:** — · **Estado:** En validación (rama `feat/c1-sprint`, `packages/d1/src/receta.test.ts`. D1 local se comporta igual que `node:sqlite` en V1 y W1–W4, y acepta la función de tabla: CA3 no hace falta. Hallazgo: la guarda revisa toda la base (bitácora core 2), lo que agrega un paso antes de migrar producción a HU-C2.2. Control negativo: sin la guarda, W4 y el caso de la huérfana vieja se ven en rojo)
 - Como plataforma, quiero saber si D1 se comporta como `node:sqlite` al rehacer tablas con claves foráneas, antes de migrar datos reales.
 - **Respaldo:** PLATAFORMA §4.4 (falta verificar en D1, P17); R4 y R5; ED1 §20.3 [HA8].
 - **CA1.** Una prueba con `getPlatformProxy` corre W1–W4 de PLATAFORMA §4.4 contra el D1 local y anota qué pasó en cada caso.
@@ -429,6 +429,7 @@ Formato de cada historia:
 - **CA2.** La matriz de PLATAFORMA §6.4 corre en D1 local: los diez cruces inválidos de §4.3 fallan uno por uno.
 - **CA3.** **Compatibilidad v0:** entre la migración y el Worker nuevo, el código de hoy escribe y lee (los `INSERT` reales del v0, con `DEFAULT 'agro'`).
 - **CA4.** Antes de aplicarla en producción: exportación de la base y marca de Time Travel anotada en el PR. Se aplica en staging, se valida y después en producción.
+- **CA4b.** Antes de aplicarla en cada base, `PRAGMA foreign_key_check` vacío: la guarda revisa toda la base, y una huérfana vieja la detendría por algo que no hizo (bitácora core 2). El despliegue lo comprueba y, si hay filas, se detiene nombrándolas antes de migrar.
 - **CA5 ❌.** Un pago viejo de 2 meses (dato que el v0 permitía) detiene la migración entera y deja la base como estaba.
 - **Clientes instalados (P10):** ninguno lo nota. Es la fase de expandir.
 - **Consumo:** unos pocos miles de filas escritas, menos del 5 % de un día de cuota (PLATAFORMA §4.3).

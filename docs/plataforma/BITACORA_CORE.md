@@ -151,8 +151,9 @@ Al 5 oct 2026 el CORE v0 tiene las guardias que heredó del agro (pruebas del CO
 #### P17 · El instrumento también miente
 - **Regla:** un doble que simplifica una propiedad que el código real promete miente el día que alguien depende de ella.
 - **En el CORE:** la receta de reconstrucción se probó en `node:sqlite`, no en D1. El D1 local no reproduce la cuota diaria ni el límite de consultas por invocación. Un proveedor OAuth con un doble que no rota de verdad el refresh no prueba la detección de reuso.
-- **Lo impedirá:** HU-C2.1, HU-C9.1.
-- **Entradas:** —
+- **Lo impedirá:** HU-C9.1.
+- **Lo impide hoy:** la receta de reconstrucción corre en el D1 local de workerd, no solo en `node:sqlite` (`packages/d1/src/receta.test.ts`, HU-C2.1).
+- **Entradas:** core 2.
 
 #### P18 · Un documento no lanza una excepción cuando miente
 - **Regla:** lo que un documento afirma del código lo ata una aserción; el redundante se borra.
@@ -189,8 +190,9 @@ Al 5 oct 2026 el CORE v0 tiene las guardias que heredó del agro (pruebas del CO
 #### PC2 · Un arreglo que pone un contador en cero también esconde lo que contaba
 - **Regla:** cuando el arreglo conocido de un error es apagar una verificación, se agrega otra verificación que falle si había algo real que contar.
 - **Por qué:** rehacer una tabla padre en D1 falla al confirmar. El arreglo habitual (apagar `defer_foreign_keys` antes de confirmar) pone en cero el contador de violaciones diferidas, y con eso deja pasar callada una fila huérfana real (casos W1–W4 de PLATAFORMA §4.4, [HA8]). La guarda de huérfanas es la verificación que faltaba.
-- **Lo impedirá:** HU-C2.1 y la receta R5.
-- **Entradas:** —
+- **Lo impedirá:** la receta R5 en cada migración que rehace una tabla (HU-C2.2).
+- **Lo impide hoy:** `packages/d1/src/receta.test.ts` corre W2 y W4 en el D1 local de workerd. Sin la guarda, W4 confirma con la huérfana y la prueba se ve en rojo (comprobado el 5 oct 2026).
+- **Entradas:** core 2.
 
 ---
 
@@ -303,3 +305,27 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 La regla: **cuando un documento cita a otro como fuente de una cifra, la cifra se copia con el otro abierto. Una cita que no dice lo que el citado dice es peor que ninguna, porque parece verificada.**
 
 *Ficha:* core · *(mío)* · 🟡 Medio · P18, P2 · 0.3.0 · 2026-10-05
+
+**2 · La guarda de huérfanas revisa toda la base, no solo la tabla que se rehace.**
+
+*Qué pasó.* El 5 oct 2026, en HU-C2.1, corrí por primera vez en el D1 local de workerd los cinco casos de la receta de PLATAFORMA §4.4, que solo se habían probado con `node:sqlite`. Corrían uno tras otro sobre la misma base. W3 (la guarda, sin pérdida de datos) tenía que confirmar, y no confirmó.
+
+*Síntoma literal:*
+
+```text
+{"caso":"W3","confirmo":false,"error":"D1_ERROR: CHECK constraint failed: huerfanas = 0: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_CHECK)", …}
+```
+
+*Causa raíz.* La guarda cuenta `SELECT COUNT(*) FROM pragma_foreign_key_check`, sin filtrar por tabla: revisa **toda** la base. W2, que corrió antes, había dejado a propósito una huérfana real en `h_W2`, y esa fila hizo fallar la migración de W3, que no perdía nada. D1 no tenía nada que ver: se comporta igual que `node:sqlite` en los cinco casos y acepta la función de tabla. Lo que no estaba escrito era el alcance de la guarda. En `node:sqlite` no se vio porque cada caso corría en su propia base.
+
+*Cómo se reprodujo.* Una prueba conserva la huérfana de W2 y corre W3 después: falla. Al borrar las tablas de W2, W3 confirma.
+
+*Arreglo.*
+- Cada caso de la prueba limpia sus tablas al terminar, y un caso aparte demuestra la propiedad.
+- Se decidió **no** filtrar la guarda por tabla: una huérfana vieja en producción es un dato roto, y detenerse es lo correcto (P1). La consecuencia se escribió donde se aplica: antes de migrar una base con la guarda, `PRAGMA foreign_key_check` tiene que salir vacío, y el despliegue lo comprobará (HU-C2.2, CA4b; PLATAFORMA §4.4).
+
+**Lo prueba** `packages/d1/src/receta.test.ts`, «la guarda revisa TODA la base». Control negativo: sin la guarda, W4 y ese caso se ven en rojo.
+
+La regla: **una verificación global falla por cosas que no hizo quien la corre. Antes de confiar en ella en producción, se mira qué hay ya en la base; si no, la primera migración sana que llegue cargará con un fallo ajeno.**
+
+*Ficha:* core · *(del terreno)* · 🟡 Medio · PC2, P17, P1 · 0.3.0 · 2026-10-05
