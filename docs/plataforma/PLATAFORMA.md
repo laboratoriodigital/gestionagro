@@ -237,7 +237,7 @@ Antes de pedirlo hay que confirmar que Cloudflare acepte una entrada de la PSL *
    - segundo factor;
    - contactos de recuperación propios;
    - los tres dominios con un registrador y un correo que no dependan de Cloudflare.
-6. **Plan de salida:** respaldo semanal en R2 y una copia mensual cifrada fuera de Cloudflare (ED1 §20.3; `proveedores-de-computo.md` §4). La frecuencia final la decide el dueño (D-C5 de `BACKLOG_CORE.md`; bitácora core 1). Es lo que convierte «todo en una cuenta» en un riesgo aceptable.
+6. **Plan de salida:** respaldo semanal en R2 y una copia semanal cifrada fuera de Cloudflare, en el Google Drive del dueño (ADR-30, decisión D-C5 del 5 oct 2026; ED1 §20.3; bitácora core 1). Es lo que convierte «todo en una cuenta» en un riesgo aceptable.
 7. **Contenido arbitrario de usuarios, aparte.** Un producto que lo aloje, como el hosting temporal de ED1 §14, se evalúa cuando exista. Es el único caso en que una cuenta propia aislaría un riesgo real (HA1): una suspensión por abuso no debe tumbar las tiendas.
 
 ### 3.6 Dónde vive cada pieza

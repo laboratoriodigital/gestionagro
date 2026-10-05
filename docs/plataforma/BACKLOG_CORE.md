@@ -56,9 +56,9 @@ Si alguno es falso, se reordena el plan.
 
 ### 2.1 GitHub flow
 
-- `main` protegida. Todo cambio entra por PR **a `main`**, que el dueño aprueba y fusiona.
-- Cada rama sale de `origin/main` actualizado y vive poco: una historia, una rama.
-- **Nombre de rama:** `<tipo>/c<épica>.<n>-<tema>`, por ejemplo `feat/c3.1-entrar-con-producto` o `docs/core-plan-y-backlog`.
+- `main` protegida. Todo cambio entra por PR **a `main`**, que el dueño aprueba y fusiona. El asistente hace el commit, el push y el PR (pedido del dueño, 5 oct 2026).
+- Cada rama sale de `origin/main` actualizado y vive poco.
+- **Una rama y un PR por sprint, con un commit por historia** (`feat/c1-sprint`). Con el repositorio privado, cada PR gasta dos corridas completas del CI (la del PR y la de `main` al fusionar), unos 12 minutos de los 2.000 del mes. Siete PR por sprint serían siete veces eso para el mismo código (bitácora core, «Cambios de rumbo»). Una historia que urge o que tiene otro riesgo va en su propia rama: `<tipo>/c<épica>.<n>-<tema>`, por ejemplo `fix/c3.1-vuelta-del-cuaderno`.
 - Si dos ramas tocan el mismo archivo, se prueba `git merge-tree --write-tree origin/main <rama>` antes del push. Cuando el dueño fusiona una, la otra se actualiza con `git merge origin/main`.
 - Una historia que depende de otra sin fusionar lo dice, y espera.
 
@@ -269,8 +269,8 @@ Cada uno con sus estados, sin JavaScript salvo donde se dice:
 
 | Sprint | Fechas | Meta del sprint | Historias | Pts |
 |---|---|---|---|---|
-| **C1** (festivo) | 6–16 oct 2026 | El CORE sabe qué productos existen, la receta se prueba en D1 y el diseño tiene sus tokens | HU-C0.1 (1), HU-C0.2 (2), HU-C1.1 (3), HU-C1.3 (2), HU-C2.1 (3), HU-C6.1 (3), HU-C7.1 (2) | 16 |
-| **C2** | 19–30 oct | **HC0.** La 0006 en staging, el despliegue copia los productos y el CORE tiene versión propia | HU-C0.3 (3), HU-C1.2 (2), HU-C1.4 (2), HU-C2.2 (5), HU-C2.3 (3), HU-C3.6 (2), HU-C6.2 (2) | 19 |
+| **C1** (festivo) | 6–16 oct 2026 | El CORE sabe qué productos existen, la receta se prueba en D1, el diseño tiene sus tokens y el CI gasta según lo que cambió | HU-C0.1 (1), HU-C0.2 (2), HU-C1.1 (3), HU-C1.3 (2), HU-C2.1 (3), HU-C6.1 (3), HU-C7.1 (2), HU-C11.6 (3) | 19 |
+| **C2** | 19–30 oct | **HC0.** La 0006 en staging, el despliegue copia los productos, el CORE tiene versión propia y las pruebas cuestan menos | HU-C0.3 (3), HU-C1.2 (2), HU-C1.4 (2), HU-C2.2 (5), HU-C2.3 (3), HU-C3.6 (2), HU-C6.2 (2), HU-C11.7 (5) | 24 |
 | **C3** (festivo) | 3–13 nov | Entrar, organizaciones y equipo saben de productos; auditoría; componentes base | HU-C2.4 (3), HU-C3.1 (5), HU-C3.2 (3), HU-C3.3 (2), HU-C6.3 (5) | 18 |
 | **C4** (festivo) | 17–27 nov | **HC1.** Dos productos en staging; tokens N; el vigía en modo pago | HU-C3.4 (2), HU-C3.5 (2), HU-C3.7 (3), HU-C4.1 (3), HU-C4.2 (1), HU-C11.1 (5) | 16 |
 | **C5** (festivo) | 30 nov–11 dic | El CORE emite v2 y la cuenta abre en su dominio | HU-C4.3 (3), HU-C4.4 (2), HU-C4.6 (3), HU-C6.4 (3), HU-C7.2 (3), HU-C7.3 (3) | 17 |
@@ -282,7 +282,7 @@ Cada uno con sus estados, sin JavaScript salvo donde se dice:
 | **C10** | 22 feb–5 mar | **HC6.** Refresh rotado, revocar, MCP del cuaderno y mis datos | HU-C9.5 (3), HU-C9.6 (3), HU-C9.7 (5), HU-C7.7 (5) | 16 |
 | **C11** | 8–19 mar | **HC7.** Entrar con correo, avisos por correo y la copia fuera de Cloudflare | HU-C10.1 (3), HU-C10.2 (5), HU-C10.3 (2), HU-C11.4 (5) | 15 |
 
-**Total:** 182 puntos en 11 sprints. Si la velocidad real del C1 y el C2 supera los 20, el plan se acorta: lo que manda el orden es el camino crítico de la Tienda (HC1 → HC3 → HC4), no las fechas.
+**Total:** 190 puntos en 11 sprints (182 del plan inicial y 8 de las dos historias de eficiencia del CI, HU-C11.6 y HU-C11.7, agregadas al arrancar). El C2 queda por encima de 20: si la velocidad del C1 no lo sostiene, HU-C11.7 pasa al C3. Si la velocidad real del C1 y el C2 supera los 20, el plan se acorta: lo que manda el orden es el camino crítico de la Tienda (HC1 → HC3 → HC4), no las fechas.
 
 **Lo que la Tienda espera del CORE** (TIENDA-3.0 §19):
 
@@ -312,7 +312,7 @@ El panel de la Tienda (M2) entra con Google mientras llega el enlace por correo 
 | EC8 · Legible por agentes, capa estática | `robots.txt`, `llms.txt`, gemelos, habilidades y su verificación | HC5 | 13 |
 | EC9 · OAuth 2.1 y MCP | El CORE como servidor de autorización y el MCP del cuaderno | HC6 | 24 |
 | EC10 · Correo | Enlace mágico y avisos por correo | HC7 | 10 |
-| EC11 · Operación de la plataforma | Vigía en modo pago, límites, despliegue por producto, copia fuera de Cloudflare y gobierno de la cuenta | HC1–HC7 | 17 |
+| EC11 · Operación de la plataforma | Vigía en modo pago, límites, despliegue por producto, copia fuera de Cloudflare, gobierno de la cuenta y un CI que gasta lo justo | HC0–HC7 | 25 |
 
 ---
 
@@ -708,7 +708,7 @@ Formato de cada historia:
 ### EC7 · Cuenta ED1
 
 #### HU-C7.1 · La cuenta como app de primera parte (decisión de arquitectura)
-- **Capa:** arquitectura · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C1 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** arquitectura · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C1 · **Depende de:** — · **Estado:** En validación (ADR-28 aceptada por el dueño el 5 oct 2026; falta fusionar el PR del C1)
 - Como plataforma, quiero decidir cómo entra una persona a su cuenta sin organización, sin romper la regla de que toda sesión tiene producto (R2).
 - **Respaldo:** ED1 §16 (la cuenta en `cuenta.laboratorio-digital.com`); PLATAFORMA §4.1 y §4.6. **Ningún documento decide esto todavía.**
 - **CA1.** Un ADR propuesto compara: (a) un producto `cuenta` en `productos.json`, sin tipos ni planes, con sesión propia y tokens `aud = cuenta` que solo abren `/api/core/cuenta/*`; (b) la cuenta sin token, con cookie de sesión del CORE en su propio origen.
@@ -935,14 +935,16 @@ Formato de cada historia:
 - **Work items:** WI-C11.3.1 `[ci]` · WI-C11.3.2 `[prueba]`.
 
 #### HU-C11.4 · Copia fuera de Cloudflare y simulacro de restauración
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C11 · **Depende de:** decisión D-C5 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C11 · **Depende de:** ADR-30 · **Estado:** Refinada
 - Como dueño, quiero poder recuperar todo aunque la cuenta de Cloudflare quede suspendida.
-- **Respaldo:** ED1 §20.3; PLATAFORMA §3.5 (6); `proveedores-de-computo.md` §4; bitácora core 1.
-- **CA1.** Copia de las bases del CORE y de las celdas, cifrada antes de salir, en Google Cloud Storage o Backblaze B2, con la frecuencia de la decisión D-C5.
+- **Respaldo:** ED1 §20.3; ADR-30 (D-C5: el Google Drive del dueño, 15 GB); bitácora core 1. Es la etapa 2 del respaldo en Drive que el dueño ya decidió para el agro; la etapa 1 (el Drive de cada productor) es del backlog del agro.
+- **CA1.** Copia semanal de las bases del CORE y de las celdas, **cifrada antes de salir**, en una carpeta del Google Drive del dueño. La llave de cifrado no vive en Google.
+- **CA1b.** Antes de construir: leer en la documentación oficial de Google qué permiso sirve (la propuesta es `drive.file`, que solo ve lo que la app crea) y reusar el flujo de «Entrar con Google» del CORE. La credencial es un secreto del Worker, nunca un archivo.
+- **CA1c.** El vigía avisa al 70 % de los 15 GB, contando lo que el Drive ya tiene (P7: lee la cuota de Drive, no un contador propio). Las copias viejas rotan: las 8 últimas semanales y una por mes.
 - **CA2.** Simulacro trimestral: restaurar en una base vacía y comparar recuentos y huellas.
 - **CA3 ❌.** Una copia que no se puede descifrar o que no cuadra en el simulacro avisa por Telegram con la causa.
 - **CA4.** La llave de cifrado no vive en la misma cuenta que la copia.
-- **Work items:** WI-C11.4.1 `[código]` · WI-C11.4.2 `[prueba]` · WI-C11.4.3 `[dueño]` crear el bucket y su credencial de solo escritura.
+- **Work items:** WI-C11.4.1 `[código]` · WI-C11.4.2 `[prueba]` · WI-C11.4.3 `[dueño]` autorizar la app en su cuenta de Google con los pasos exactos que se le darán · WI-C11.4.4 `[dueño]` revisión del abogado cuando haya presupuesto (copias de datos de terceros en una cuenta personal).
 
 #### HU-C11.5 · Gobierno de la cuenta y credenciales por propósito
 - **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C1.3 · **Estado:** Refinada
@@ -951,6 +953,28 @@ Formato de cada historia:
 - **CA2.** Lista de comprobación del dueño: segundo factor, contactos de recuperación y los tres dominios con un registrador y un correo fuera de Cloudflare.
 - **CA3 ❌.** Un token con más permisos de los declarados hace fallar la verificación y nombra el permiso de más.
 - **Work items:** WI-C11.5.1 `[código]` · WI-C11.5.2 `[dueño]` lista de comprobación.
+
+#### HU-C11.6 · El CI gasta según lo que cambió
+- **Capa:** CI · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C1 · **Depende de:** — · **Estado:** En sprint
+- Como dueño, quiero que un cambio que solo toca documentos no gaste minutos en compilar ni en abrir navegadores, para que los 2.000 minutos del mes alcancen.
+- **Respaldo:** ED1 §25 (presupuesto de GitHub Actions) y §41 (2.000 min/mes en privado); ARQUITECTURA §7.2 (menos de 8 minutos); pedido del dueño (5 oct 2026): «máxima eficiencia en la ejecución de recursos».
+- **Medición de partida** (corrida del 5 oct 2026, PR #91, solo documentos): instalar 9,7 s · navegadores 15,9 s · lint 2,0 s · typecheck 3,2 s · contratos 0,9 s · pruebas 102,5 s · build 14,7 s · e2e 211,6 s · licencias 2,0 s. Unos 6 minutos por corrida, dos corridas por PR.
+- **CA1.** `verificar --ci` calcula los archivos cambiados (contra la base del PR, o contra el padre en `main`). Si **todos** son documentos (`docs/**`, `*.md` de la raíz), no corre navegadores, typecheck, build ni e2e, y el resumen dice qué saltó y por qué.
+- **CA2.** El contenido de `content/**` no es documentación: alimenta el sitio y el build. Un cambio ahí corre todo.
+- **CA3 ❌.** Si no se puede calcular el cambio (sin la base, historia superficial, error de git), corre **todo** y lo dice (P1: ante la duda, el camino caro, nunca el barato callado).
+- **CA4.** Las pruebas de repositorio y el lint corren siempre: son las que leen los documentos (P18).
+- **Work items:** WI-C11.6.1 `[código]` `scripts/lib/alcance.ts` con su tabla de casos · WI-C11.6.2 `[código]` `verificar.ts` salta pasos y lo dice · WI-C11.6.3 `[ci]` `fetch-depth: 0` en `ci.yml` · WI-C11.6.4 `[prueba]` control negativo: un archivo de `content/` en la lista hace correr todo.
+
+#### HU-C11.7 · Pruebas de base de datos que cuestan menos
+- **Capa:** pruebas · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** C2 · **Depende de:** HU-C2.1 · **Estado:** Refinada
+- Como dueño, quiero que las pruebas que usan la base local tarden lo que vale la lógica y no lo que vale el viaje a la base, porque corren dos veces en cada PR.
+- **Respaldo:** pedido del dueño; P17 (el instrumento también miente).
+- **Medición de partida** (local, 8 núcleos, 5 oct 2026): 1.258 pruebas en 101 archivos; la suma de los archivos es 195 s. `apps/api-celda/src/permisos.test.ts` (101 pruebas) tarda 37,1 s y `apps/core/src/entrar.test.ts` (59), 33,8 s. Cada prueba de `permisos` vuelve a subir la finca entera por el API, y cada sentencia es un viaje al D1 local de `getPlatformProxy`. En el CI, con 2 núcleos, eso es casi todo el paso de pruebas (102,5 s).
+- **CA1 (spike de 1 h, primero).** Medir cuánto cuesta un viaje al D1 local y qué parte de los 195 s es preparación y no aserción. Con el número, elegir entre: (a) preparar una vez por grupo y no por prueba donde las pruebas no se pisan; (b) un instrumento en proceso (`node:sqlite`, el mismo motor) para la lógica, con el D1 local reservado al contrato.
+- **CA2.** Si se elige (b), la batería completa corre también con el D1 local en `main` y en la corrida semanal, y una prueba compara los dos instrumentos en los casos que P17 nombra (claves foráneas, lotes, mensajes de error). El doble documenta lo que no imita.
+- **CA3 ❌.** Ninguna prueba pierde su control negativo al cambiar de instrumento: se vuelve a poner el defecto en tres pruebas elegidas y se ven en rojo.
+- **CA4.** La suma baja al menos a la mitad, medida igual que la de partida.
+- **Work items:** WI-C11.7.1 `[prueba]` spike y medición · WI-C11.7.2 `[código]` la opción elegida · WI-C11.7.3 `[doc]` `packages/d1` y bitácora core con los números.
 
 ---
 
@@ -968,15 +992,15 @@ Formato de cada historia:
 
 ## 9. Decisiones del dueño para empezar
 
-Se piden todas al principio. Cada una trae su recomendación; mientras no se decida, el plan sigue con ella.
+Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la noche:** D-C1 a D-C4 con la recomendación, y D-C5 con el Google Drive del dueño.
 
-| # | Decisión | Recomendación | La necesita |
-|---|---|---|---|
-| D-C1 | Tipografía propia autoalojada (Geist y Geist Mono) o fuentes del sistema | Propia, solo en la cuenta, con presupuesto de 70 KB | HU-C6.2 (C2) |
-| D-C2 | La cuenta como producto `cuenta` con sesión propia, o con cookie del CORE | Producto `cuenta` (HU-C7.1) | HU-C7.3 (C5) |
-| D-C3 | El nombre público del ecosistema en la cuenta («Laboratorio Digital»?) | El del dominio, hasta la Fase 0 de ED1 | HU-C7.2 (C5) |
-| D-C4 | El reparto de las horas entre el CORE, la Tienda y el agro | CORE primero hasta HC1; después, dos carriles con el límite de §2.6 | Planeación del C1 |
-| D-C5 | Frecuencia de la copia fuera de Cloudflare: semanal o mensual | Semanal dentro de Cloudflare (R2) y **mensual cifrada fuera**, como dicen ED1 §20.3 y `proveedores-de-computo.md` (bitácora core 1) | HU-C11.4 (C11) |
+| # | Decisión | Decidido | ADR | La necesita |
+|---|---|---|---|---|
+| D-C1 | Tipografía propia autoalojada (Geist y Geist Mono) o fuentes del sistema | **Propia**, solo en la cuenta, con presupuesto de 70 KB | ADR-29 | HU-C6.2 (C2) |
+| D-C2 | La cuenta como producto `cuenta` con sesión propia, o con cookie del CORE | **Producto `cuenta`** | ADR-28 | HU-C7.3 (C5) |
+| D-C3 | El nombre público del ecosistema en la cuenta | **«Laboratorio Digital»**, hasta la Fase 0 de ED1 | ADR-29 | HU-C7.2 (C5) |
+| D-C4 | El reparto de las horas entre el CORE, la Tienda y el agro | **CORE primero hasta HC1** (27 nov); después, dos carriles con el límite de §2.6 | — | Planeación del C1 |
+| D-C5 | Dónde va la copia fuera de Cloudflare | **El Google Drive del dueño** (15 GB): semanal y cifrada, además del respaldo semanal en R2 | ADR-30 | HU-C11.4 (C11) |
 | — | Las de PLATAFORMA §9: presupuesto en dólares por producto, `ai-train`, precios de 3, 6 y 12 meses, gracia de la tienda | Las de PLATAFORMA §9 | HU-C11.1, HU-C8.1, HU-C1.2 |
 
 **Tareas que solo puede hacer el dueño** (con fecha para no frenar el camino crítico):
@@ -988,7 +1012,7 @@ Se piden todas al principio. Cada una trae su recomendación; mientras no se dec
 | Activar Workers Paid y las alertas de facturación | C4 (17 nov) | PLATAFORMA §3.2; HU-C11.1 |
 | Agregar la zona `laboratorio-digital.app` | 30 nov (Tienda M0) | PLATAFORMA §9.5 |
 | URL de vuelta de Google para `cuenta.laboratorio-digital.com` | C5 | HU-C4.6, con los pasos exactos |
-| Bucket fuera de Cloudflare y su credencial de solo escritura | C11 | HU-C11.4 |
+| Autorizar la copia en su Google Drive | C11 | HU-C11.4, con los pasos exactos |
 | Datos del responsable del tratamiento | C10 | HU-C7.7 |
 
 ---
@@ -1012,7 +1036,7 @@ Se piden todas al principio. Cada una trae su recomendación; mientras no se dec
 
 | Sprint | Comprometido | Validado por el dueño | Nota |
 |---|---|---|---|
-| C1 | 16 | — | — |
+| C1 | 19 | — | Se agregó HU-C11.6 al arrancar (eficiencia del CI, pedido del dueño) |
 
 ---
 
@@ -1028,4 +1052,4 @@ Se piden todas al principio. Cada una trae su recomendación; mientras no se dec
 | P5 · OAuth y MCP | HU-C9.1 a HU-C9.7 |
 | P6 · Correo | HU-C10.1 a HU-C10.3 |
 | Nuevo en este plan (ED1 §16 y el pedido de diseño) | EC6 (HU-C6.1 a HU-C6.6), EC7 (HU-C7.1 a HU-C7.8) |
-| Operación común | HU-C11.1 a HU-C11.5 |
+| Operación común | HU-C11.1 a HU-C11.7 |

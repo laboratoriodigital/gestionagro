@@ -265,6 +265,8 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 |---|---|---|
 | Commits con `Co-Authored-By: Claude…` y `Claude-Session:` en el cuerpo | `tipo(alcance): descripción`, sin la marca de Claude Code en commits ni en PR (5 oct 2026) | Decisión del dueño al abrir el proyecto del CORE. La vigila HU-C0.2 |
 | Una sola versión del producto en la raíz (ARQUITECTURA §7.1) | El CORE con su propia versión y etiquetas `core-vX.Y.Z` (HU-C0.3) | PLATAFORMA §6.3: con dos productos y un CORE, publicar uno no puede obligar a publicar los demás |
+| La copia fuera de Cloudflare en Google Cloud Storage o Backblaze B2 (`proveedores-de-computo.md` §4) | En el Google Drive del dueño, semanal y cifrada (ADR-30, 5 oct 2026) | Decisión del dueño (D-C5): 15 GB gratis, y el mismo camino que ya eligió para el respaldo del agro por etapas. Lo que cambia: la cuota es de una cuenta personal, así que el vigía mide lo que Drive tiene, no lo que creemos haber subido (P7) |
+| Una rama y un PR por historia (`entrega-por-partes`, bitácora agro) | Una rama y un PR por sprint, con un commit por historia (5 oct 2026) | El repositorio volvió a privado: cada PR gasta dos corridas completas del CI, unos 12 minutos de 2.000 al mes. El dueño pidió máxima eficiencia y valida por sprint en la revisión del viernes. Lo que urge va en su propia rama |
 | La hoja de ruta P0–P6 sin interfaz propia del CORE (PLATAFORMA §7) | Con un sistema de diseño (EC6) y la cuenta en `cuenta.laboratorio-digital.com` (EC7) desde el primer sprint | Pedido del dueño: frontend bonito, minimalista y moderno desde el inicio; ED1 §16 ya preveía la cuenta |
 
 ---
@@ -293,7 +295,7 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 
 *Arreglo.*
 - PLATAFORMA §3.1, §3.5 y §8 dicen ahora lo mismo que ED1: semanal a R2 y mensual cifrada fuera de Cloudflare.
-- La frecuencia final queda como decisión del dueño (D-C5 de `BACKLOG_CORE.md` §9), con la de ED1 como recomendación, porque ED1 manda sobre PLATAFORMA (`docs/README.md`, orden de precedencia).
+- La frecuencia final queda como decisión del dueño (D-C5 de `BACKLOG_CORE.md` §9), con la de ED1 como recomendación, porque ED1 manda sobre PLATAFORMA (`docs/README.md`, orden de precedencia). *(Hoy: el dueño decidió el mismo día una copia semanal y cifrada en su Google Drive, ADR-30.)*
 - Cuando HU-C11.4 la construya, la frecuencia vivirá en un solo archivo de configuración, y una prueba atará el runbook a ese archivo.
 
 **Lo prueba:** nada todavía; es un documento. La guardia llega con HU-C11.4.
