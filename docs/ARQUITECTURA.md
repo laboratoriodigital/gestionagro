@@ -553,7 +553,7 @@ Por eso ADR-7 y ADR-8. Abrir cuentas gratuitas para ganar cuota pone en riesgo *
 ### 7.1 Flujo de trabajo
 
 - **GitHub flow:** `main` protegida; ramas `feat/…`, `fix/…`, `docs/…`; pull request con CI en verde para fusionar.
-- **Commits en español**, pequeños.
+- **Commits en español**, pequeños, con la forma `tipo(alcance): descripción` (feat, fix, docs, refactor, test, ci, build, perf, chore o revert; alcance en minúsculas; 72 caracteres o menos) y **sin la marca de Claude Code** en commits ni en PR (decisión del dueño, 5 oct 2026). La guardia `scripts/verificar-commits.ts` revisa en el CI los commits, el título y la descripción de cada PR (HU-C0.2, `docs/plataforma/BACKLOG_CORE.md` §2.2).
 - **Versión semántica única del producto** (`X.Y.Z`) en `package.json` de la raíz. Es la fuente de la versión de la app, la API y el `CHANGELOG.md` (P2).
 - **Etiquetas** `vX.Y.Z` al publicar. Las crea el flujo de despliegue al fusionar un PR que sube la versión (§7.3, publicación continua), no una persona.
 

@@ -341,7 +341,7 @@ Formato de cada historia:
 - **Work items:** WI-C0.1.1 `[doc]` backlog · WI-C0.1.2 `[doc]` bitácora · WI-C0.1.3 `[doc]` mapa de `docs/README.md`, fila en `../BACKLOG.md` y CHANGELOG · WI-C0.1.4 `[doc]` corregir la frecuencia de la copia en PLATAFORMA §3.5 y §8.
 
 #### HU-C0.2 · Convención de commits y PR, con su guardia
-- **Capa:** CI · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C1 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** CI · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C1 · **Depende de:** — · **Estado:** En validación (rama `feat/c1-sprint`: `scripts/verificar-commits.ts`, 27 pruebas. Control negativo contra la historia real: el commit 9ce2e03 del PR #90 sale con tres fallas, largo y las dos formas de la marca)
 - Como dueño, quiero que el CI rechace un commit que no siga `tipo(alcance): descripción` o que lleve la marca de Claude Code, para que la historia del repositorio se lea igual siempre sin depender de que alguien se acuerde.
 - **Respaldo:** pedido del dueño (5 oct 2026); P18 (una regla escrita sin guardia se incumple: bitácora agro 5).
 - **CA1.** `scripts/lib/commits.ts` valida cada commit del PR (`git log origin/main..HEAD`) y el título del PR: tipo de la lista, alcance opcional en minúsculas, descripción de 72 caracteres o menos.

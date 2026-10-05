@@ -21,14 +21,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # La historia completa: verificar compara contra la base del cambio (HU-C11.6). Este
-          # repositorio pesa poco.
+          # La historia completa: verificar compara contra la base del cambio (HU-C11.6) y la
+          # guardia de commits lee los del PR (HU-C0.2). Este repositorio pesa poco.
           fetch-depth: 0
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
+      # Antes de instalar: un commit fuera de la convención se sabe en un segundo, y la corrida
+      # se detiene ahí en vez de gastar minutos que habrá que repetir con el commit corregido.
+      - name: Convención de commits y del PR
+        if: github.event_name == 'pull_request'
+        env:
+          COMMITS_DESDE: ${{ github.event.pull_request.base.sha }}
+          COMMITS_HASTA: ${{ github.event.pull_request.head.sha }}
+          PR_TITULO: ${{ github.event.pull_request.title }}
+          PR_CUERPO: ${{ github.event.pull_request.body }}
+        run: node scripts/verificar-commits.ts
       # Con un lockfile nuevo no hay coincidencia exacta: restore-keys trae los navegadores de la
       # corrida anterior y Playwright solo baja lo que cambió (bitácora agro 19).
       - name: Caché de los navegadores de Playwright
