@@ -14,7 +14,7 @@
 import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import { sentenciasDeCeldas } from '../apps/core/src/celdas.ts';
-import { PRODUCTO_CORE } from '../apps/core/src/constantes.ts';
+import { killSwitchesDelCore } from '../apps/core/src/constantes.ts';
 import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
 import { generarClavePrivada } from '../packages/tokens/src/index.ts';
 import {
@@ -63,6 +63,7 @@ import {
   nombreKvFlags,
 } from './lib/kv-flags.ts';
 import { cargarProductos } from './lib/productos.ts';
+import { cargarProductos as cargarRegistroDeProductos } from './lib/registro-productos.ts';
 import { RAIZ } from './lib/repo.ts';
 
 const argumento = (nombre: string) => {
@@ -232,7 +233,15 @@ async function desplegarCore(
     const base = await asegurarBaseD1(fetch, cred.token, cred.cuenta, nombre);
     // HU-E4.2: el kill switch del CORE vive en el mismo KV de flags de la celda.
     const ns = await asegurarNamespace(fetch, cred.token, cred.cuenta, titulo);
-    await asegurarClaves(fetch, cred.token, cred.cuenta, ns.id, [claveKillSwitch(PRODUCTO_CORE)]);
+    // HU-C3.6: el de todo el CORE (con su nombre de antes), el de pagos y uno por producto.
+    const productos = cargarRegistroDeProductos().productos.map((p) => p.id);
+    await asegurarClaves(
+      fetch,
+      cred.token,
+      cred.cuenta,
+      ns.id,
+      killSwitchesDelCore(productos).map(claveKillSwitch),
+    );
     escribirDespliegueCore(
       configDelCore(wranglerDelCore(config), dest, {
         baseId: base.id,

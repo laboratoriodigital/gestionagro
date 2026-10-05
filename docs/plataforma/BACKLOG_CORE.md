@@ -507,7 +507,7 @@ Formato de cada historia:
 - **Work items:** WI-C3.5.1 `[código]` · WI-C3.5.2 `[prueba]` matriz origen × producto.
 
 #### HU-C3.6 · Kill switches del CORE por producto
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1 · **Estado:** En validación (rama `feat/c2-sprint`. Hasta HU-C3.1 toda solicitud cuenta como del agro, porque la sesión aún no dice su producto: está escrito en el Worker. El despliegue asegura `ks:agro-core`, `ks:core`, `ks:core:pagos` y una `ks:core:<producto>` por producto de `productos.json`. 5 pruebas nuevas; control negativo: sin la revisión de pagos, «pagar responde 503» se ve en rojo. Runbook al día)
 - Como dueño, quiero apagar la entrada, la renovación o los pagos de un solo producto, para que un problema en la tienda no apague el agro.
 - **Respaldo:** PLATAFORMA §4.10; ED1 §3.9 y §25.1.
 - **CA1.** `ks:core` apaga todo el CORE, `ks:core:<producto>` lo de un producto y `ks:core:pagos` los cobros de todos. Durante la transición, `ks:agro-core` sigue valiendo: cualquiera de las dos en `apagado` apaga.
