@@ -1,0 +1,38 @@
+/*
+ * GENERADO por scripts/recortar-fuentes.ts. Geist y Geist Mono (SIL OFL 1.1, ver fuentes/OFL.txt),
+ * recortadas al latín y autoalojadas (ADR-29, HU-C6.2). Ninguna fuente se pide a un tercero.
+ */
+
+@font-face {
+  font-family: 'Geist';
+  src: url('./fuentes/geist.woff2') format('woff2');
+  font-weight: 300 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Respaldo';
+  src: local('Arial');
+  size-adjust: 104.76%;
+  ascent-override: 95.94%;
+  descent-override: 28.16%;
+  line-gap-override: 0.00%;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('./fuentes/geist-mono.woff2') format('woff2');
+  font-weight: 300 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono Respaldo';
+  src: local('Courier New');
+  size-adjust: 99.98%;
+  ascent-override: 100.52%;
+  descent-override: 29.50%;
+  line-gap-override: 0.00%;
+}

@@ -152,6 +152,7 @@ Al 5 oct 2026 el CORE v0 tiene las guardias que heredó del agro (pruebas del CO
 - **Regla:** un doble que simplifica una propiedad que el código real promete miente el día que alguien depende de ella.
 - **En el CORE:** la receta de reconstrucción se probó en `node:sqlite`, no en D1. El D1 local no reproduce la cuota diaria ni el límite de consultas por invocación. Un proveedor OAuth con un doble que no rota de verdad el refresh no prueba la detección de reuso.
 - **Lo impedirá:** HU-C9.1.
+- **Entradas también:** core 5.
 - **Lo impide hoy:** la receta de reconstrucción corre en el D1 local de workerd, no solo en `node:sqlite` (`packages/d1/src/receta.test.ts`, HU-C2.1).
 - **Entradas:** core 2.
 
@@ -371,3 +372,26 @@ La regla: **una guardia de texto se prueba también contra el texto de quien exp
 La regla: **una regla que depende de que alguien se acuerde se olvida en el primer comando con prisa. Si no puede tener guardia, va en la memoria que se carga sola, no en la de la conversación.**
 
 *Ficha:* core · *(mío)* · 🟡 Medio · P14, P18 · 0.3.0 · 2026-10-05
+
+**5 · La fuente de respaldo salía 31 % más ancha, porque el ancho medio de un TTF variable no es el de un texto.**
+
+*Qué pasó.* El 5 oct 2026, en HU-C6.2, generé la hoja `@font-face` de Geist con una fuente de respaldo local (Arial) ajustada a sus métricas, para que la página no salte al llegar la fuente propia. Las métricas las leí del propio TTF: unidades por em, ascendente y descendente de `hhea`, y el ancho medio de `OS/2`.
+
+*Síntoma literal:*
+
+```text
+font-family: 'Geist Respaldo';
+size-adjust: 131.62%;
+```
+
+*Causa raíz.* `xAvgCharWidth` de una fuente variable promedia **todos** sus glifos, incluidos los anchos, no las letras de un texto. Geist no es 31 % más ancha que Arial. Con ese ajuste, el respaldo habría ocupado un tercio más y la página **sí** habría saltado al llegar Geist: lo contrario de lo que se buscaba. Ninguna prueba lo habría visto, porque el número tenía forma de número (P17). Lo atrapó mirar el resultado con la pregunta «¿es razonable?».
+
+*Arreglo.*
+- Las métricas salen del ancho promedio de las minúsculas ponderado por frecuencia, el que publica `@capsizecss/metrics` (el mismo que usa next/font): Geist y Arial dan 104,76 %.
+- No se instaló el paquete: pesa 27 MB en 29.597 archivos, y se instalaría en cada corrida del CI por cuatro filas. Las cuatro filas van en `scripts/recortar-fuentes.ts`, con su fuente y su versión citadas.
+
+**Lo prueba** `tests/repo/ui-fuentes.test.ts`: el ajuste de Geist frente a Arial queda entre 95 % y 115 %. Control negativo: con un ancho como el del TTF, el ajuste pasa de 115 % y la prueba lo atrapa.
+
+La regla: **un número que viene de un instrumento se mira con «¿es razonable?» antes de usarlo. Y cuatro datos se copian con su fuente, no se instalan con 27 MB.**
+
+*Ficha:* core · *(mío)* · 🟡 Medio · P17, P5 · 0.3.0 · 2026-10-05

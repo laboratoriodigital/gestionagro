@@ -663,7 +663,7 @@ Formato de cada historia:
 - **Work items:** WI-C6.1.1 `[diseño]` paleta y escala · WI-C6.1.2 `[código]` hojas · WI-C6.1.3 `[prueba]` contraste · WI-C6.1.4 `[prueba]` lint de colores sueltos.
 
 #### HU-C6.2 · Tipografía autoalojada
-- **Capa:** diseño · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C6.1, decisión D-C1 · **Estado:** Refinada
+- **Capa:** diseño · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C6.1, decisión D-C1 · **Estado:** En validación (rama `feat/c2-sprint`. `scripts/recortar-fuentes.ts` recorta Geist (28 KB) y Geist Mono (29 KB) al latín y al eje de peso 300–600, y genera `fuentes.css` con un respaldo local de métricas ajustadas. Los archivos van al repositorio: el build no recorta y nadie descarga de un tercero. 8 pruebas: peso por fuente y total, la licencia OFL junto a los archivos, la hoja igual a lo generado, solo URLs propias y un ajuste de respaldo razonable. Falta medir el CLS en una página real: llega con la cuenta, HU-C6.6)
 - Como persona, quiero que la cuenta se vea con carácter y cargue igual de rápido.
 - **Respaldo:** §4.4 de este documento.
 - **CA1.** Geist y Geist Mono en `woff2`, recortadas, con su licencia OFL en el paquete y una prueba que exige el archivo de licencia junto a cada fuente.

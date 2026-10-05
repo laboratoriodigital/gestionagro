@@ -7,6 +7,11 @@
   "exports": {
     "./tokens.css": "./src/tokens.css",
     "./v2/tokens": "./src/v2/tokens.ts",
-    "./v2/tokens.css": "./src/v2/tokens.css"
+    "./v2/tokens.css": "./src/v2/tokens.css",
+    "./v2/fuentes.css": "./src/v2/fuentes.css"
+  },
+  "devDependencies": {
+    "geist": "1.7.2",
+    "subset-font": "2.9.0"
   }
 }

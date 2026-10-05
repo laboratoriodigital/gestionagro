@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Las fuentes del sistema de diseño v2: Geist y Geist Mono, recortadas al español (57 KB las dos) y servidas desde el mismo sitio, con un respaldo ajustado para que la página no salte mientras cargan (HU-C6.2, ADR-29).
 - El despliegue copia los productos y los precios de sus archivos a la base del CORE, antes que las celdas, y después comprueba que la base diga lo mismo. Un precio nuevo entra como fila nueva y el anterior queda como historia; un plan o un producto que sale del archivo queda retirado, nunca borrado (HU-C2.3).
 - La base del CORE sabe de productos (migración 0006, ADR-20): tablas de productos, tipos, roles, planes, periodos y precios, y claves foráneas que hacen imposibles los cruces entre productos. Lo que ya funciona sigue igual: es la fase de expandir. Antes de migrar, el despliegue comprueba que la base no tenga filas huérfanas (HU-C2.2).
 - El CORE se puede apagar por producto (`ks:core:<producto>`) o solo en sus cobros (`ks:core:pagos`), además de entero (`ks:core`, o su nombre de antes, `ks:agro-core`). El despliegue crea las claves que falten, encendidas (HU-C3.6).
