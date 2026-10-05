@@ -7,7 +7,7 @@ Desde el 5 oct 2026 este repositorio es la **plataforma** del ecosistema (`labor
 ```text
 docs/
 ├── README.md              este mapa
-├── ARQUITECTURA.md        lo construido: decisiones (ADR-1 a ADR-27), componentes, cuotas, secretos y despliegue
+├── ARQUITECTURA.md        lo construido: decisiones (ADR-1 a ADR-30), componentes, cuotas, secretos y despliegue
 ├── BACKLOG.md             qué se construye y cuándo
 ├── BITACORA.md            lo que se rompió y lo que se aprendió (la bitácora agro)
 ├── ecosistema/            ED1: la arquitectura, los principios y las fases del ecosistema
@@ -31,7 +31,7 @@ docs/
 
 | Documento | Es la fuente de | Se actualiza cuando |
 |---|---|---|
-| `ARQUITECTURA.md` | Decisiones (ADR-1 a ADR-27), componentes construidos, cuotas y capacidad, secretos, despliegue | Cambia una decisión, un límite o un componente. Va en el mismo pull request que el código |
+| `ARQUITECTURA.md` | Decisiones (ADR-1 a ADR-30), componentes construidos, cuotas y capacidad, secretos, despliegue | Cambia una decisión, un límite o un componente. Va en el mismo pull request que el código |
 | `BACKLOG.md` | Hitos, sprints, historias, work items y velocidad | Planeación y cierre de cada sprint |
 | `BITACORA.md` | Lo que se rompió, las afirmaciones falsas, los cambios de rumbo y los patrones | Algo se rompe o se aprende. Una entrada nueva va al final |
 | `ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md` | Arquitectura, principios y fases de ED1 (se cita como ED1 §N). Vigente desde la tarde del 5 oct 2026: la cuenta única, los dominios, los periodos de plan, el repositorio y el estudio de ecommerce definitivo (registro en su §43) | Por pedido del dueño, una versión nueva es un archivo nuevo. Ninguna se edita después de publicada: la anterior pasa a `historia/` |

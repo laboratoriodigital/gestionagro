@@ -20,12 +20,18 @@ importers:
       '@ed1/d1':
         specifier: workspace:*
         version: link:packages/d1
+      '@ed1/productos':
+        specifier: workspace:*
+        version: link:packages/productos
       '@ed1/sync':
         specifier: workspace:*
         version: link:packages/sync
       '@ed1/tokens':
         specifier: workspace:*
         version: link:packages/tokens
+      '@ed1/ui':
+        specifier: workspace:*
+        version: link:packages/ui
       '@playwright/test':
         specifier: ^1.63.0
         version: 1.63.0
@@ -243,6 +249,8 @@ importers:
         version: 4.6.5
 
   packages/kill-switch: {}
+
+  packages/productos: {}
 
   packages/sync:
     dependencies:

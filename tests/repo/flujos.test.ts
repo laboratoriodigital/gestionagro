@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
@@ -158,11 +158,36 @@ describe('los flujos del repositorio', () => {
     expect(hallazgos).toEqual([]);
   });
 
-  it('el flujo de Windows corre en windows-latest cuando cambian scripts/ y los lunes', () => {
+  it('el flujo de Windows corre en windows-latest (o en el runner propio) cuando cambian scripts/ y los lunes', () => {
     const f = parse(readFileSync(join(RAIZ, '.github/workflows/scripts-windows.yml'), 'utf8'));
-    expect(f.jobs.windows['runs-on']).toBe('windows-latest');
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: es una expresión de GitHub Actions, no de JavaScript
+    expect(f.jobs.windows['runs-on']).toBe("${{ vars.RUNNER_CI || 'windows-latest' }}");
     expect(f.on.pull_request.paths).toContain('scripts/**');
     expect(f.on.schedule[0].cron).toMatch(/ 1$/);
+  });
+});
+
+describe('el runner propio es temporal (docs/runbooks/runner-propio.md)', () => {
+  const flujos = readdirSync(join(RAIZ, '.github/workflows')).filter((f) => f.endsWith('.yml'));
+  const texto = (f: string) => readFileSync(join(RAIZ, '.github/workflows', f), 'utf8');
+
+  it('ningún flujo fija «self-hosted»: solo se llega a él por la variable RUNNER_CI, y sin ella vuelve a GitHub', () => {
+    for (const f of flujos) {
+      for (const linea of texto(f)
+        .split('\n')
+        .filter((l) => /^\s*runs-on:/.test(l))) {
+        expect(linea, `${f}: ${linea.trim()}`).not.toMatch(/runs-on:\s*\[?\s*['"]?self-hosted/);
+        if (linea.includes('vars.RUNNER_CI')) {
+          expect(linea, f).toMatch(/\|\| '(ubuntu|windows)-latest'/);
+        }
+      }
+    }
+  });
+
+  it('los despliegues siguen en los equipos de GitHub: los secretos de producción no pasan por un equipo personal', () => {
+    for (const f of flujos.filter((x) => x.startsWith('desplegar'))) {
+      expect(texto(f), f).not.toContain('RUNNER_CI');
+    }
   });
 });
 

@@ -13,6 +13,7 @@
 
 ## Definición de Terminado
 
+- [ ] Título y commits con `tipo(alcance): descripción`, de 72 caracteres o menos y sin la marca de Claude Code (la guardia del CI lo revisa, HU-C0.2)
 - [ ] CI en verde: lint, typecheck, contratos, pruebas, build y licencias
 - [ ] Pruebas unitarias para la lógica nueva, con casos reales resueltos
 - [ ] Probado con las dos fincas de prueba; ningún nombre real (P4)

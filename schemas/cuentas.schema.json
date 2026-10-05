@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cuentas de Cloudflare de la plataforma (infrastructure/cuentas.json)",
+  "description": "PLATAFORMA §3.5 regla 1, ADR-23, HU-C1.3. Declara la cuenta de la plataforma y las que quedan fuera. Ningún identificador de cuenta va aquí: siguen en los secretos de GitHub (P13).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cuentas", "fuera_de_la_plataforma"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "nota": { "type": "string" },
+    "cuentas": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["nombre", "proposito", "plan", "duenio", "recuperacion"],
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "minLength": 3,
+            "description": "El nombre con que la nombra cada celda en celdas.json."
+          },
+          "proposito": { "type": "string", "minLength": 10 },
+          "plan": {
+            "enum": ["free", "paid"],
+            "description": "free hasta activar Workers Paid (PLATAFORMA §3.2)."
+          },
+          "duenio": {
+            "enum": ["plataforma", "cliente"],
+            "description": "cliente: una celda dedicada en la cuenta del cliente (ADR-8)."
+          },
+          "recuperacion": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["segundo_factor", "contactos"],
+            "description": "Recuperación fuera de la cuenta (ED1 §20.3). «pendiente» es una tarea del dueño, dicha y no escondida (P1).",
+            "properties": {
+              "segundo_factor": { "enum": ["activo", "pendiente"] },
+              "contactos": { "enum": ["declarados", "pendiente"] }
+            }
+          }
+        }
+      }
+    },
+    "fuera_de_la_plataforma": {
+      "type": "array",
+      "description": "Cuentas del dueño donde ningún producto se despliega. Si algún día se usan, pasan a «cuentas» con su propósito.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["nombre", "motivo"],
+        "properties": {
+          "nombre": { "type": "string", "minLength": 3 },
+          "motivo": { "type": "string", "minLength": 10 }
+        }
+      }
+    }
+  }
+}
