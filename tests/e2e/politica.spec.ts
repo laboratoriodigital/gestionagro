@@ -11,6 +11,7 @@ import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 
 const politica = JSON.parse(readFileSync('content/agro/privacidad/politica.json', 'utf8')) as {
   version: string;
+  responsable: Record<string, string | null>;
   estado: string;
   revision: string;
   scripts_de_terceros: string[];
@@ -108,4 +109,23 @@ test('las calculadoras enlazan la política', async ({ page }) => {
   await expect(
     page.getByRole('link', { name: 'Política de tratamiento de datos' }),
   ).toHaveAttribute('href', '/agro/privacidad/');
+});
+
+test('el responsable de la política es el del archivo, y lo que falta dice «por completar»', async ({
+  page,
+}) => {
+  await page.goto('/agro/privacidad/');
+  const lista = page.locator('[data-prueba="politica-responsable"]');
+  const esperado = {
+    Nombre: politica.responsable['nombre'],
+    Identificación: politica.responsable['identificacion'],
+    Domicilio: politica.responsable['domicilio'],
+    'Correo para temas de datos personales': politica.responsable['correo'],
+    Teléfono: politica.responsable['telefono'],
+  };
+  for (const [etiqueta, valor] of Object.entries(esperado)) {
+    await expect(lista.locator('li', { hasText: new RegExp(`^${etiqueta}:`) })).toHaveText(
+      `${etiqueta}: ${valor ?? 'por completar'}`,
+    );
+  }
 });

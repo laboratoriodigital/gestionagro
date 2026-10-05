@@ -12,12 +12,14 @@
  *   consultas del vigía (HU-E8.2).
  * - **Intención de pago (HU-E0.6):** fincas que tocaron «Me interesa» en la lista de espera, sobre
  *   las cuentas, y por plan.
- * - Lo que aún no se mide se dice: Search Console (decisión del dueño: después).
+ * - **Google (Search Console):** impresiones y clics de la semana y de la anterior, con una cuenta
+ *   de servicio de solo lectura (secreto `GOOGLE_SEARCH_CONSOLE_CLAVE`). Sin ella, el reporte lo dice.
  *
  * Una sección que no se puede leer dice por qué y el reporte sale igual (P1).
  * Funciones con `fetch` inyectado, para probarlas sin tocar Cloudflare ni GitHub.
  */
 import { execFileSync } from 'node:child_process';
+import { createSign } from 'node:crypto';
 import { FUENTES } from '../apps/api-celda/src/vigia.ts';
 import marca from '../content/marca.json' with { type: 'json' };
 import { EVENTOS } from '../packages/eventos/src/index.ts';
@@ -206,16 +208,163 @@ export async function consumoDeLaNube(
   return { titulo, lineas };
 }
 
+const TITULO_GOOGLE = 'Google (Search Console, impresiones y clics de la semana)';
+const ALCANCE_SC = 'https://www.googleapis.com/auth/webmasters.readonly';
+const TOKEN_GOOGLE = 'https://oauth2.googleapis.com/token';
+/** Una consulta de búsqueda solo se nombra con al menos esto: bajo ese número, no dice nada. */
+const MIN_IMPRESIONES_CONSULTA = 10;
+
+const base64url = (x: Buffer | string) => Buffer.from(x).toString('base64url');
+
+/** Token de acceso de una cuenta de servicio de Google (JWT RS256, sin dependencias). */
+async function tokenDeGoogle(
+  fetchFn: Fetch,
+  cuenta: { client_email: string; private_key: string },
+  ahora: number,
+): Promise<string> {
+  const iat = Math.floor(ahora / 1000);
+  const cabecera = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  const reclamos = base64url(
+    JSON.stringify({
+      iss: cuenta.client_email,
+      scope: ALCANCE_SC,
+      aud: TOKEN_GOOGLE,
+      iat,
+      exp: iat + 3600,
+    }),
+  );
+  const firma = createSign('RSA-SHA256')
+    .update(`${cabecera}.${reclamos}`)
+    .sign(cuenta.private_key)
+    .toString('base64url');
+  const r = await fetchFn(TOKEN_GOOGLE, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: `${cabecera}.${reclamos}.${firma}`,
+    }),
+  });
+  const cuerpo = (await r.json().catch(() => ({}))) as {
+    access_token?: string;
+    error?: string;
+    error_description?: string;
+  };
+  if (r.status !== 200 || !cuerpo.access_token) {
+    throw new Error(
+      `Google no dio acceso a la cuenta de servicio (${cuerpo.error_description ?? cuerpo.error ?? `HTTP ${r.status}`})`,
+    );
+  }
+  return cuerpo.access_token;
+}
+
+const coma1 = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',');
+const dia = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+/**
+ * Impresiones y clics en Google de la propiedad de Search Console, esta semana y la anterior
+ * (HU-E2.6, HU-E8.3). Solo agregados: totales, las consultas con al menos 10 impresiones y las
+ * páginas propias. Search Console muestra los datos con unos 2 días de retraso, así que «esta
+ * semana» son los 7 días que terminan anteayer.
+ */
+export async function buscadorDeGoogle(
+  fetchFn: Fetch,
+  clave: string,
+  propiedad: string,
+  ahora: number,
+): Promise<Seccion> {
+  let cuenta: { client_email?: string; private_key?: string };
+  try {
+    cuenta = JSON.parse(clave) as typeof cuenta;
+  } catch {
+    return falla(TITULO_GOOGLE, 'la clave de la cuenta de servicio no es un JSON válido');
+  }
+  if (!cuenta.client_email || !cuenta.private_key) {
+    return falla(TITULO_GOOGLE, 'a la clave le faltan client_email o private_key');
+  }
+  try {
+    const token = await tokenDeGoogle(
+      fetchFn,
+      { client_email: cuenta.client_email, private_key: cuenta.private_key },
+      ahora,
+    );
+    const consultar = async (desde: number, hasta: number, dimension?: 'query' | 'page') => {
+      const r = await fetchFn(
+        `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(propiedad)}/searchAnalytics/query`,
+        {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+          body: JSON.stringify({
+            startDate: dia(desde),
+            endDate: dia(hasta),
+            ...(dimension ? { dimensions: [dimension], rowLimit: 5 } : {}),
+          }),
+        },
+      );
+      if (r.status === 403 || r.status === 404) {
+        throw new Error(
+          `la cuenta de servicio ${cuenta.client_email} no tiene acceso a ${propiedad}: agrégala como usuario en Search Console`,
+        );
+      }
+      const cuerpo = (await r.json().catch(() => null)) as {
+        rows?: { keys?: string[]; clicks: number; impressions: number; position: number }[];
+      } | null;
+      if (r.status !== 200) throw new Error(`Search Console respondió ${r.status}`);
+      return cuerpo?.rows ?? [];
+    };
+    const fin = ahora - 2 * DIA;
+    const [esta, anterior, consultas, paginas] = await Promise.all([
+      consultar(fin - 6 * DIA, fin),
+      consultar(fin - 13 * DIA, fin - 7 * DIA),
+      consultar(fin - 6 * DIA, fin, 'query'),
+      consultar(fin - 6 * DIA, fin, 'page'),
+    ]);
+    const a = esta[0];
+    const p = anterior[0];
+    if (!a && !p) {
+      return {
+        titulo: TITULO_GOOGLE,
+        lineas: [
+          'Sin datos todavía. Google tarda unos días en mostrar un sitio nuevo, y no hay nada que indexar mientras ninguna herramienta esté activa.',
+        ],
+      };
+    }
+    const lineas = [
+      `- Impresiones: ${n(a?.impressions ?? 0)} (antes ${n(p?.impressions ?? 0)}) · clics: ${n(a?.clicks ?? 0)} (antes ${n(p?.clicks ?? 0)})${a ? ` · posición media: ${coma1(a.position)}` : ''}`,
+    ];
+    const visibles = consultas.filter((f) => f.impressions >= MIN_IMPRESIONES_CONSULTA);
+    lineas.push(
+      visibles.length > 0
+        ? `- Consultas con más impresiones: ${visibles.map((f) => `«${f.keys?.[0] ?? ''}» (${n(f.impressions)})`).join(', ')}`
+        : `- Consultas: ninguna llega a ${MIN_IMPRESIONES_CONSULTA} impresiones, y por debajo de eso no se nombran.`,
+    );
+    if (paginas.length > 0) {
+      lineas.push(
+        `- Páginas con más impresiones: ${paginas.map((f) => `${f.keys?.[0] ?? ''} (${n(f.impressions)})`).join(', ')}`,
+      );
+    }
+    return { titulo: TITULO_GOOGLE, lineas };
+  } catch (e) {
+    return falla(TITULO_GOOGLE, (e as Error).message);
+  }
+}
+
 export function comoMarkdown(secciones: readonly Seccion[], fecha: string): string {
+  // Con la sección de Google (aunque diga que falta algo), ya no es «lo que todavía no se mide».
+  const conGoogle = secciones.some((s) => s.titulo === TITULO_GOOGLE);
   return [
     `Reporte semanal de validación de ${marca.nombre}, semana que termina el ${fecha}.`,
     'Solo métricas agregadas: ningún dato de fincas ni de personas.',
     '',
     ...secciones.flatMap((s) => [`## ${s.titulo}`, '', ...s.lineas, '']),
-    '## Lo que todavía no se mide',
-    '',
-    '- Impresiones y clics en Google (Search Console): decisión del dueño, para después.',
-    '',
+    ...(conGoogle
+      ? []
+      : [
+          '## Lo que todavía no se mide',
+          '',
+          '- Impresiones y clics en Google (Search Console): sin configurar.',
+          '',
+        ]),
   ].join('\n');
 }
 
@@ -223,6 +372,7 @@ async function principal() {
   const token = process.env['CF_METRICAS_TOKEN'] ?? '';
   const tokenD1 = process.env['CF_API_TOKEN'] ?? '';
   const cuenta = process.env['CF_ACCOUNT_ID'] ?? '';
+  const clave = process.env['GOOGLE_SEARCH_CONSOLE_CLAVE'] ?? '';
   const ahora = Date.now();
   const config = cargarCeldas();
   const secciones: Seccion[] =
@@ -240,6 +390,14 @@ async function principal() {
           await cuentasDelCore(fetch, tokenD1, cuenta, `${config.core.d1}_staging`, ahora),
           await consumoDeLaNube(fetch, token, cuenta, ahora),
         ];
+  secciones.push(
+    clave
+      ? await buscadorDeGoogle(fetch, clave, `sc-domain:${config.sitio.zona}`, ahora)
+      : falla(
+          TITULO_GOOGLE,
+          'falta el secreto GOOGLE_SEARCH_CONSOLE_CLAVE; los pasos están en docs/runbooks/search-console.md',
+        ),
+  );
   const fecha = new Date(ahora).toISOString().slice(0, 10);
   const cuerpo = comoMarkdown(secciones, fecha);
   console.log(cuerpo);

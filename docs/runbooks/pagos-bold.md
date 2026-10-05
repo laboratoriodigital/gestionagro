@@ -39,6 +39,6 @@ Solo después: `BOLD_IDENTIDAD_PRODUCCION` y `BOLD_SECRETA_PRODUCCION` en GitHub
 
 ## Lo que no hace todavía
 
-- **Factura electrónica (DIAN):** el pago no la emite. Mientras tanto, se factura a mano con el comprobante de Bold. Hay que decidirlo con el contador antes del primer cobro real (ED1 §5.3).
+- **Factura electrónica (DIAN):** el pago no la emite. **Decisión provisional del dueño (5 oct 2026):** por ahora se entrega una factura simple, hecha a mano, con el comprobante de Bold, mientras se define con el contador qué hacer de forma definitiva. Esa decisión **no está validada por el contador**: antes del primer cobro real hay que confirmarle que esta factura simple es suficiente para el caso (ED1 §5.3). La app no genera ni guarda facturas.
 - **Débito automático:** no hay. Se paga mes a mes. Una semana antes del vencimiento, Planes lo avisa; al vencer, la finca vuelve al plan Gratis sin perder nada.
 - **Cambiar el precio:** `cobro_mensual_cop` del plan en `content/agro/cuaderno/planes.json`. Lo fija el dueño, dentro del rango que muestra el plan. Hoy es 39.000.
