@@ -28,6 +28,7 @@
     "@ed1/productos": "workspace:*",
     "@ed1/sync": "workspace:*",
     "@ed1/tokens": "workspace:*",
+    "@ed1/ui": "workspace:*",
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.20.4",
     "@vitest/coverage-v8": "^5.0.2",

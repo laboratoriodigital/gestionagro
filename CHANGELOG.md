@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Los tokens de diseño v2 del ecosistema (`@ed1/ui/v2`, ADR-29): tinta y papel con un acento cobalto, el verde de CultivoPro como tema, modo claro y oscuro, y movimiento que se apaga si la persona lo pide. Una sola hoja de 3 KB, generada desde una única fuente, con el contraste AA comprobado por una prueba. El sitio y el cuaderno siguen con la v1 (HU-C6.1).
 - Los productos del CORE como dato: `infrastructure/productos.json` (por ahora, CultivoPro) con su esquema y el paquete `@ed1/productos`. Agregar un producto será un archivo y un despliegue, no una migración (HU-C1.1).
 - ED1 v1.4 (`docs/ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md`), con las decisiones del dueño del 5 oct 2026: una sola cuenta de Cloudflare con Workers Paid cuando llegue la Tienda 3.0, los tres dominios del ecosistema (`laboratorio-digital.com`, `laboratorio-digital.app` y `cultivopro.co`), planes de 1, 3, 6 y 12 meses y el estudio de mercado de ecommerce definitivo. ADR-23, ADR-26 y ADR-27, aceptados.
 - Diseño de la Tienda 3.0, versión 0.2 (`docs/tienda/TIENDA-3.0.md`): contraentrega con su recaudo, links de pago, cuatro niveles de plan como hipótesis, el facturador del comercio integrado, el catálogo para Meta y una lista de paridad con la Tienda 2.0. Las pruebas de su modelo de datos pasan a 82 comprobaciones, y las del CORE a 35.

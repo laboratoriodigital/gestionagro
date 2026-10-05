@@ -332,7 +332,7 @@ Formato de cada historia:
 ### EC0 · Gobierno del proyecto
 
 #### HU-C0.1 · Plan, backlog y bitácora del CORE en el repositorio
-- **Capa:** proceso · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** C1 · **Depende de:** — · **Estado:** En validación (rama `docs/core-plan-y-backlog`)
+- **Capa:** proceso · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** C1 · **Depende de:** — · **Estado:** Terminada (PR #91, fusionado el 5 oct 2026)
 - Como dueño, quiero el plan del CORE y su bitácora en el repositorio, para decidir el orden con el mismo método que el agro y unir después todas las bitácoras.
 - **Respaldo:** PLATAFORMA §7; ED1 §3.8 (Git como plano de control); bitácora agro, «Cómo se une con las otras bitácoras».
 - **CA1.** Existen `docs/plataforma/BACKLOG_CORE.md` y `docs/plataforma/BITACORA_CORE.md`, y `docs/README.md` los nombra.
@@ -654,7 +654,7 @@ Formato de cada historia:
 ### EC6 · Sistema de diseño ED1
 
 #### HU-C6.1 · Tokens v2 en tres capas, claro y oscuro
-- **Capa:** diseño · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C1 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** diseño · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C1 · **Depende de:** — · **Estado:** En validación (rama `feat/c1-sprint`. La fuente única es `packages/ui/src/v2/tokens.ts`; `scripts/generar-ui.ts` escribe una sola hoja, `v2/tokens.css`, de 3 KB, en vez de una por capa: una solicitud menos por página. Primitivos, semánticos del ecosistema (tinta, papel y acento cobalto) y el tema de CultivoPro (su verde). 52 pruebas: contraste AA calculado de cada pareja en cada tema y modo, la hoja idéntica a lo generado y ningún color suelto en los componentes ni en la cuenta. Controles negativos: un gris claro como texto suave no llega a 4,5:1, y un token editado a mano en el CSS pone la prueba en rojo)
 - Como plataforma, quiero una sola fuente de color, tipo, espacio y movimiento para todas las apps, con un tema por producto.
 - **Respaldo:** §4.3 de este documento; ED1 §1 (una identidad de marca) y §3.5; P2.
 - **CA1.** `@ed1/ui/v2` con primitivos, semánticos y temas `ecosistema` y `cultivopro`. La v1 queda intacta.
