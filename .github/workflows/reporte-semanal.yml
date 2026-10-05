@@ -33,5 +33,6 @@ jobs:
           CF_METRICAS_TOKEN: ${{ secrets.CF_METRICAS_TOKEN }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          GOOGLE_SEARCH_CONSOLE_CLAVE: ${{ secrets.GOOGLE_SEARCH_CONSOLE_CLAVE }}
           GH_TOKEN: ${{ github.token }}
         run: node scripts/reporte-semanal.ts

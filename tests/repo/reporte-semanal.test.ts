@@ -2,8 +2,10 @@
  * Reporte semanal (HU-E8.3, CA3 y CA4) con Cloudflare falso: solo agregados, cada sección que no
  * se puede leer lo dice, y nunca pide nombres ni correos.
  */
+import { createVerify, generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
+  buscadorDeGoogle,
   comoMarkdown,
   consumoDeLaNube,
   cuentasDelCore,
@@ -96,6 +98,131 @@ describe('cuentas del CORE: solo conteos', () => {
     const caida = cloudflare(() => ({ estado: 403, json: {} }));
     expect((await cuentasDelCore(caida.fn, 't', 'c', 'agro_core', AHORA)).lineas[0]).toContain(
       'D1 respondió 403',
+    );
+  });
+});
+
+describe('Google (Search Console), con una cuenta de servicio de verdad y Google falso', () => {
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const clave = JSON.stringify({
+    client_email: 'lector@proyecto.iam.gserviceaccount.com',
+    private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
+  });
+  const PROPIEDAD = 'sc-domain:cultivopro.co';
+  const FILAS_TOTAL = { rows: [{ clicks: 3, impressions: 120, ctr: 0.025, position: 14.26 }] };
+
+  /** Google falso: valida la firma del JWT y responde a cada consulta según sus dimensiones. */
+  function google(opciones: { acceso?: boolean; datos?: boolean } = {}) {
+    const { acceso = true, datos = true } = opciones;
+    const consultas: { startDate: string; endDate: string; dimensions?: string[] }[] = [];
+    let jwt: { cabecera: Record<string, string>; reclamos: Record<string, unknown> } | null = null;
+    const fn = (async (url: string, init?: RequestInit) => {
+      if (url === 'https://oauth2.googleapis.com/token') {
+        const asercion = new URLSearchParams(String(init?.body)).get('assertion') ?? '';
+        const [h, c, f] = asercion.split('.') as [string, string, string];
+        const valida = createVerify('RSA-SHA256')
+          .update(`${h}.${c}`)
+          .verify(publicKey, Buffer.from(f, 'base64url'));
+        if (!valida) return Response.json({ error: 'invalid_grant' }, { status: 400 });
+        jwt = {
+          cabecera: JSON.parse(Buffer.from(h, 'base64url').toString()),
+          reclamos: JSON.parse(Buffer.from(c, 'base64url').toString()),
+        };
+        return Response.json({ access_token: 'tok' });
+      }
+      if (!acceso) return Response.json({ error: { message: 'sin permiso' } }, { status: 403 });
+      const cuerpo = JSON.parse(String(init?.body)) as (typeof consultas)[number];
+      consultas.push(cuerpo);
+      const cabeceras = (init?.headers ?? {}) as Record<string, string>;
+      expect(cabeceras['authorization']).toBe('Bearer tok');
+      if (!datos) return Response.json({});
+      const [dimension] = cuerpo.dimensions ?? [];
+      if (dimension === 'query') {
+        return Response.json({
+          rows: [
+            { keys: ['periodo de carencia'], clicks: 2, impressions: 80, position: 9 },
+            { keys: ['consulta rara de una persona'], clicks: 0, impressions: 1, position: 40 },
+          ],
+        });
+      }
+      if (dimension === 'page') {
+        return Response.json({
+          rows: [
+            { keys: ['https://cultivopro.co/herramientas/agro/'], clicks: 3, impressions: 120 },
+          ],
+        });
+      }
+      return Response.json(
+        cuerpo.startDate < '2026-09-27'
+          ? { rows: [{ clicks: 1, impressions: 60, position: 20 }] }
+          : FILAS_TOTAL,
+      );
+    }) as unknown as typeof fetch;
+    return { fn, consultas, jwt: () => jwt };
+  }
+
+  it('firma el JWT con RS256 para el alcance de solo lectura y compara esta semana con la anterior', async () => {
+    const g = google();
+    const s = await buscadorDeGoogle(g.fn, clave, PROPIEDAD, AHORA);
+    expect(g.jwt()?.cabecera).toEqual({ alg: 'RS256', typ: 'JWT' });
+    expect(g.jwt()?.reclamos).toMatchObject({
+      iss: 'lector@proyecto.iam.gserviceaccount.com',
+      scope: 'https://www.googleapis.com/auth/webmasters.readonly',
+      aud: 'https://oauth2.googleapis.com/token',
+    });
+    expect(s.lineas[0]).toBe(
+      '- Impresiones: 120 (antes 60) · clics: 3 (antes 1) · posición media: 14,3',
+    );
+    // «Esta semana» termina anteayer (Search Console tarda ~2 días): del 27/09 al 03/10 (7 días).
+    expect(g.consultas[0]).toMatchObject({ startDate: '2026-09-27', endDate: '2026-10-03' });
+    expect(g.consultas[1]).toMatchObject({ startDate: '2026-09-20', endDate: '2026-09-26' });
+  });
+
+  it('nombra solo las consultas con 10 impresiones o más, y las páginas propias', async () => {
+    const s = await buscadorDeGoogle(google().fn, clave, PROPIEDAD, AHORA);
+    expect(s.lineas.join('\n')).toContain('«periodo de carencia» (80)');
+    expect(s.lineas.join('\n')).not.toContain('consulta rara');
+    expect(s.lineas.at(-1)).toBe(
+      '- Páginas con más impresiones: https://cultivopro.co/herramientas/agro/ (120)',
+    );
+  });
+
+  it('sin datos dice por qué y no inventa ceros', async () => {
+    const s = await buscadorDeGoogle(google({ datos: false }).fn, clave, PROPIEDAD, AHORA);
+    expect(s.lineas).toHaveLength(1);
+    expect(s.lineas[0]).toContain('Sin datos todavía');
+    expect(s.lineas[0]).not.toContain('Impresiones: 0');
+  });
+
+  it('sin acceso a la propiedad dice a quién agregar; una clave rota o incompleta, también', async () => {
+    const sin = await buscadorDeGoogle(google({ acceso: false }).fn, clave, PROPIEDAD, AHORA);
+    expect(sin.lineas[0]).toContain(
+      'lector@proyecto.iam.gserviceaccount.com no tiene acceso a sc-domain:cultivopro.co',
+    );
+    expect((await buscadorDeGoogle(google().fn, '{roto', PROPIEDAD, AHORA)).lineas[0]).toContain(
+      'no es un JSON válido',
+    );
+    expect(
+      (await buscadorDeGoogle(google().fn, '{"client_email":"a@b"}', PROPIEDAD, AHORA)).lineas[0],
+    ).toContain('le faltan client_email o private_key');
+    const otra = generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey;
+    const ajena = JSON.stringify({
+      client_email: 'x@y',
+      private_key: otra.export({ type: 'pkcs8', format: 'pem' }).toString(),
+    });
+    expect((await buscadorDeGoogle(google().fn, ajena, PROPIEDAD, AHORA)).lineas[0]).toContain(
+      'Google no dio acceso a la cuenta de servicio (invalid_grant)',
+    );
+  });
+
+  it('el issue ya no la lista como «lo que todavía no se mide» cuando la sección existe', () => {
+    const conGoogle = comoMarkdown(
+      [{ titulo: 'Google (Search Console, impresiones y clics de la semana)', lineas: ['- x'] }],
+      '2026-10-05',
+    );
+    expect(conGoogle).not.toContain('Lo que todavía no se mide');
+    expect(comoMarkdown([{ titulo: 'Otra', lineas: [] }], '2026-10-05')).toContain(
+      'Lo que todavía no se mide',
     );
   });
 });
