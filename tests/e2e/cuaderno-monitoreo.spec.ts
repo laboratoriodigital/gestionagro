@@ -124,5 +124,48 @@ for (const f of FINCAS_DE_PRUEBA) {
     );
     expect(tamanos).toHaveLength(1);
     expect(tamanos[0]).toBeLessThanOrEqual(150 * 1024);
+
+    // Revisión del dueño (5 oct 2026): la foto se puede ver, no solo guardar.
+    const verFoto = r.getByRole('button', { name: 'Ver foto' });
+    await verFoto.click();
+    const imagen = r.locator('[data-prueba="foto-del-registro-imagen"]');
+    await expect(imagen).toBeVisible();
+    await expect(imagen).toHaveAttribute('alt', /^Foto de Plaga Ensayo en /);
+    // Que la imagen cargó de verdad (no un cuadro roto), con el tamaño ya achicado.
+    const ancho = await imagen.evaluate((img) => (img as HTMLImageElement).naturalWidth);
+    expect(ancho).toBeGreaterThan(0);
+    expect(ancho).toBeLessThanOrEqual(1280);
+    await r.getByRole('button', { name: 'Ocultar foto' }).click();
+    await expect(imagen).toHaveCount(0);
+
+    // Una foto que no está en este teléfono (el registro llegó de otro) se dice, no se rompe.
+    await page.evaluate(
+      () =>
+        new Promise<void>((listo) => {
+          const pedido = indexedDB.open('gestionagro-cuaderno');
+          pedido.onsuccess = () => {
+            const tx = pedido.result.transaction('foto', 'readwrite');
+            tx.objectStore('foto').clear();
+            tx.oncomplete = () => {
+              pedido.result.close();
+              listo();
+            };
+          };
+        }),
+    );
+    await verFoto.click();
+    await expect(r.locator('[data-prueba="foto-en-otro-telefono"]')).toHaveText(
+      'Esta foto se tomó en otro teléfono. Por ahora las fotos se quedan en el teléfono donde se toman.',
+    );
+    await expect(imagen).toHaveCount(0);
+
+    // En Historial, el mismo registro también ofrece su foto.
+    await page
+      .getByRole('navigation', { name: 'Secciones del cuaderno' })
+      .getByRole('link', { name: 'Historial' })
+      .click();
+    const enHistorial = page.locator('[data-prueba="historial-monitoreo"]');
+    await enHistorial.getByRole('button', { name: 'Ver foto' }).click();
+    await expect(enHistorial.locator('[data-prueba="foto-en-otro-telefono"]')).toBeVisible();
   });
 }

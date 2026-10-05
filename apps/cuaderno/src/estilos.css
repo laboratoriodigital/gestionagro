@@ -819,3 +819,11 @@ label.boton.secundario {
     font-size: 8pt;
   }
 }
+/* Foto de un monitoreo (HU-E3.11): ocupa el ancho del registro, nunca más. */
+.foto-del-registro img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: var(--espacio-2);
+  border-radius: var(--radio);
+}

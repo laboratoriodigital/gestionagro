@@ -11,6 +11,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Plan de trabajo y backlog refinado del CORE (`docs/plataforma/BACKLOG_CORE.md`): 8 hitos, 11 sprints, 12 épicas y 65 historias refinadas (más 5 preparadas) con sus work items, la dirección de diseño del frontend del ecosistema y la cuenta en `cuenta.laboratorio-digital.com`. Y su bitácora (`docs/plataforma/BITACORA_CORE.md`), con las convenciones de las otras dos para unirlas.
 
 ### Corregido
+- Monitoreo (HU-E3.11, revisión del dueño, 5 oct 2026): las fotos se guardaban en el teléfono pero ninguna pantalla las mostraba. Ahora «Ver foto» las abre en Registrar y en Historial, solo al tocarlo. Si el registro llegó de otro teléfono, dice que la foto se quedó en el teléfono donde se tomó, en vez de mostrar un cuadro roto.
 - PLATAFORMA decía «exportaciones semanales fuera de Cloudflare» citando un documento que dice mensual. Ahora dice lo mismo que ED1 §20.3: semanal en R2 y mensual cifrada fuera (bitácora core 1).
 
 ### Cambiado
