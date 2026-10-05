@@ -561,8 +561,8 @@ Por eso ADR-7 y ADR-8. Abrir cuentas gratuitas para ganar cuota pone en riesgo *
 
 - **GitHub flow:** `main` protegida; ramas `feat/…`, `fix/…`, `docs/…`; pull request con CI en verde para fusionar.
 - **Commits en español**, pequeños, con la forma `tipo(alcance): descripción` (feat, fix, docs, refactor, test, ci, build, perf, chore o revert; alcance en minúsculas; 72 caracteres o menos) y **sin la marca de Claude Code** en commits ni en PR (decisión del dueño, 5 oct 2026). La guardia `scripts/verificar-commits.ts` revisa en el CI los commits, el título y la descripción de cada PR (HU-C0.2, `docs/plataforma/BACKLOG_CORE.md` §2.2).
-- **Versión semántica única del producto** (`X.Y.Z`) en `package.json` de la raíz. Es la fuente de la versión de la app, la API y el `CHANGELOG.md` (P2).
-- **Etiquetas** `vX.Y.Z` al publicar. Las crea el flujo de despliegue al fusionar un PR que sube la versión (§7.3, publicación continua), no una persona.
+- **Versión semántica por producto** (`X.Y.Z`, HU-C0.3, PLATAFORMA §6.3). El agro (CultivoPro): `package.json` de la raíz, `CHANGELOG.md` y etiquetas `vX.Y.Z`; es la fuente de la versión del sitio, el cuaderno y la API de la celda (P2). El CORE: `apps/core/package.json`, `apps/core/CHANGELOG.md` y etiquetas `core-vX.Y.Z`, desde la línea base `core-v0.1.0` (el CORE de la v0.3.0). Un PR que cambia el código del CORE lo anota en su CHANGELOG: la guardia del CI lo exige.
+- **Etiquetas** `vX.Y.Z` y `core-vX.Y.Z` al publicar. Las crea el flujo de despliegue al fusionar un PR que sube la versión de ese producto (§7.3, publicación continua), no una persona.
 
 | Cambio | Versión |
 |---|---|
@@ -596,9 +596,9 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 
 - **El código del servidor se despliega por celda**, en el orden de `anillo_despliegue` de `celdas.json`, celda por celda con `scripts/desplegar.ts` (no con matriz: así se detiene en la primera falla y nombra las que quedaron sin tocar). Staging sale cuando el CI termina en verde en `main`; producción, al publicar una versión.
 - **Publicación continua (4 oct 2026, v0.3.0).** El único paso a mano es aprobar y fusionar el PR. `.github/workflows/desplegar.yml`, en la misma corrida:
-  1. Despliega staging.
-  2. Mira si la versión de `package.json` ya tiene tag. Si no, crea el tag `vX.Y.Z` y la versión en GitHub con las notas de su sección del CHANGELOG (`scripts/notas-de-version.ts`).
-  3. Despliega producción con ese mismo commit.
+  1. Despliega staging (todo).
+  2. `scripts/decidir-publicacion.ts` mira si la versión del agro y la del CORE ya tienen su etiqueta. Por cada una que no, crea la etiqueta (`vX.Y.Z` o `core-vX.Y.Z`) y la versión en GitHub con las notas de su CHANGELOG (`scripts/notas-de-version.ts`, con `--core` para el del CORE).
+  3. Despliega a producción, con ese mismo commit, **solo lo que se publicó** (`desplegar.ts --productos`): el CORE sin el agro, el agro sin el CORE, o los dos con el CORE primero. Así, publicar el agro no lleva a producción cambios del CORE que nadie publicó (HU-C0.3).
 
   Un PR que no sube la versión solo llega a staging. Para publicar, el PR sube la versión (§7.1) y agrega su sección fechada `## [X.Y.Z] - AAAA-MM-DD`. `tests/repo/version.test.ts` no deja fusionar una versión sin su sección. La versión se crea dentro del mismo flujo porque una versión creada con el token de Actions no dispara otros flujos. Cada destino corre en su **ambiente de GitHub** (`staging`, `produccion`), con sus propios secretos, desde el flujo reutilizable `desplegar-destino.yml` (procedimiento: `docs/runbooks/ambientes-github.md`). A mano siguen «Run workflow» (destino y, para retomar, una sola celda) y publicar una versión desde GitHub. Hoy viven en c0 el sitio, el CORE (HU-E4.1) y la API de la celda (HU-E5.1). En cada celda el orden es: sitio, CORE y API, porque la API necesita la clave pública del CORE. Procedimiento: `docs/runbooks/despliegue.md`.
 - **Las funciones se liberan por organización** con flags. En la tienda los anillos eran por repositorio; aquí son por organización y por celda.

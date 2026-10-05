@@ -20,6 +20,11 @@ on:
         required: false
         default: ""
         type: string
+      productos:
+        description: "Qué productos: core, agro o los dos (core,agro). Vacío: todos (HU-C0.3)"
+        required: false
+        default: ""
+        type: string
 
 # Su propio grupo por destino: el flujo que lo llama ya tiene el grupo «desplegar», y pedir el
 # mismo grupo desde aquí lo dejaría esperándose a sí mismo.
@@ -67,4 +72,5 @@ jobs:
           BOLD_SECRETA_PRODUCCION: ${{ secrets.BOLD_SECRETA_PRODUCCION }}
           DESTINO: ${{ inputs.destino }}
           SOLO_CELDA: ${{ inputs.solo_celda }}
-        run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA"
+          PRODUCTOS: ${{ inputs.productos }}
+        run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA" --productos "$PRODUCTOS"

@@ -2,6 +2,8 @@
  * `node scripts/notas-de-version.ts 0.3.0`: imprime la sección `## [0.3.0]` del CHANGELOG, que el
  * flujo de publicación usa como notas de la versión en GitHub. Sin sección para esa versión, sale
  * con error: no se publica una versión sin decir qué trae.
+ *
+ * Con `--core`, lo mismo con la versión y el CHANGELOG del CORE (`apps/core/`, HU-C0.3).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -20,11 +22,24 @@ export function notasDe(changelog: string, version: string): string | null {
 export const versionDelProducto = (): string =>
   (JSON.parse(readFileSync(join(RAIZ, 'package.json'), 'utf8')) as { version: string }).version;
 
+/** La versión del CORE (HU-C0.3): la de `apps/core/package.json`. */
+export const versionDelCore = (): string =>
+  (
+    JSON.parse(readFileSync(join(RAIZ, 'apps', 'core', 'package.json'), 'utf8')) as {
+      version: string;
+    }
+  ).version;
+
+export const CHANGELOG_DEL_CORE = join('apps', 'core', 'CHANGELOG.md');
+
 if (process.argv[1]?.endsWith('notas-de-version.ts')) {
-  const version = process.argv[2] ?? versionDelProducto();
-  const notas = notasDe(readFileSync(join(RAIZ, 'CHANGELOG.md'), 'utf8'), version);
+  const delCore = process.argv.includes('--core');
+  const argumentos = process.argv.slice(2).filter((a) => a !== '--core');
+  const version = argumentos[0] ?? (delCore ? versionDelCore() : versionDelProducto());
+  const archivo = delCore ? CHANGELOG_DEL_CORE : 'CHANGELOG.md';
+  const notas = notasDe(readFileSync(join(RAIZ, archivo), 'utf8'), version);
   if (!notas) {
-    console.error(`❌ CHANGELOG.md no tiene la sección «## [${version}]».`);
+    console.error(`❌ ${archivo} no tiene la sección «## [${version}]».`);
     process.exit(1);
   }
   console.log(notas);

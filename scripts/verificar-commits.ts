@@ -11,6 +11,7 @@
 import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import { leerLog, revisar } from './lib/commits.ts';
+import { cambiaElCodigoDelCore } from './lib/publicacion.ts';
 import { RAIZ } from './lib/repo.ts';
 
 const desde = process.env['COMMITS_DESDE']?.trim();
@@ -36,6 +37,25 @@ const hallazgos = revisar(
   commits,
   titulo === undefined ? undefined : { titulo, cuerpo: process.env['PR_CUERPO'] ?? '' },
 );
+
+// HU-C0.3: el CORE se publica con su propia versión. Un PR que cambia su código lo anota en su
+// CHANGELOG, para que quien publique sepa que hay CORE nuevo que subir (y no solo el agro).
+const diff = spawnSync('git', ['diff', '--name-only', `${desde}...${hasta}`], {
+  cwd: RAIZ,
+  encoding: 'utf8',
+});
+if (diff.status !== 0) {
+  hallazgos.push({ donde: 'archivos del PR', falla: `git diff falló: ${diff.stderr.trim()}` });
+} else {
+  const archivos = diff.stdout.split(/\r?\n/).filter(Boolean);
+  if (cambiaElCodigoDelCore(archivos) && !archivos.includes('apps/core/CHANGELOG.md')) {
+    hallazgos.push({
+      donde: 'archivos del PR',
+      falla:
+        'cambia el código del CORE (apps/core/src) y no lo anota en apps/core/CHANGELOG.md, en «Sin publicar». Para llevarlo a producción, sube además la versión de apps/core/package.json',
+    });
+  }
+}
 
 const lineas =
   hallazgos.length === 0

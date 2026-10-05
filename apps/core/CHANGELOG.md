@@ -1,0 +1,20 @@
+# Registro de cambios del CORE
+
+Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versión semántica propia del CORE en `apps/core/package.json`, con etiquetas `core-vX.Y.Z` (HU-C0.3, PLATAFORMA §6.3). El CORE va a producción solo cuando sube esta versión: una publicación del agro no lo arrastra. Lo que cambia el código del CORE se anota aquí en el mismo PR; la guardia del CI lo exige.
+
+## [Sin publicar]
+
+### Agregado
+- La base sabe de productos (migración 0006, ADR-20): productos, tipos, roles, planes, periodos de 1, 3, 6 y 12 meses y precios, con claves foráneas que hacen imposibles los cruces entre productos. Es la fase de expandir: el código de hoy sigue igual (HU-C2.2).
+- El despliegue copia el catálogo de productos y precios desde `infrastructure/productos.json` y cada `planes.json`, y comprueba que la base diga lo mismo antes de publicar el Worker (HU-C2.3).
+- Antes de migrar, el despliegue revisa que la base no tenga filas huérfanas (HU-C2.2).
+- La copia del cuaderno en el Drive del productor: pedir el permiso de Google Drive (`/api/core/drive/*`, HU-E8.4, etapa 1). **El cuaderno que la usa necesita este CORE en producción:** la publicación que la lleve sube la versión del agro y la del CORE.
+- Kill switches por producto (`ks:core:<producto>`), para los pagos (`ks:core:pagos`) y para todo el CORE (`ks:core`, además de `ks:agro-core`) (HU-C3.6).
+
+### Cambiado
+- Los paquetes internos pasan a `@ed1/*`, y el CORE deja de importar el paquete del agro: su Worker pesa 13,7 KB menos.
+
+## [0.1.0] - 2026-10-04
+
+### Agregado
+- La línea base: el CORE v0 tal como está en producción con CultivoPro v0.3.0 (etiqueta `core-v0.1.0` sobre el mismo commit). Entrar con Google, organizaciones, invitaciones, equipo y teléfonos, directorio de celdas, interés en planes y pago del plan Finca con Bold. Su historia está en el `CHANGELOG.md` de la raíz hasta la v0.3.0.

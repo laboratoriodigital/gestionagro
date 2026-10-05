@@ -71,6 +71,7 @@ import {
   nombreKvFlags,
 } from './lib/kv-flags.ts';
 import { cargarProductos } from './lib/productos.ts';
+import { productosADesplegar } from './lib/publicacion.ts';
 import {
   cargarProductos as cargarRegistroDeProductos,
   catalogoDelRepositorio,
@@ -84,10 +85,14 @@ const argumento = (nombre: string) => {
 
 const destino = argumento('--destino') as Destino | undefined;
 if (destino !== 'staging' && destino !== 'produccion') {
-  console.error('❌ Uso: node scripts/desplegar.ts --destino staging|produccion [--solo c0]');
+  console.error(
+    '❌ Uso: node scripts/desplegar.ts --destino staging|produccion [--solo c0] [--productos core,agro]',
+  );
   process.exit(1);
 }
 const solo = argumento('--solo') || undefined;
+// HU-C0.3: qué productos se despliegan. Sin la opción, todos (staging y el «Run workflow» a mano).
+const productos = productosADesplegar(argumento('--productos'));
 // Producción es el entorno de nivel superior de wrangler.jsonc: «--env=» lo elige sin aviso.
 const entorno = destino === 'staging' ? '--env staging' : '--env=';
 
@@ -245,13 +250,13 @@ async function desplegarCore(
     // HU-E4.2: el kill switch del CORE vive en el mismo KV de flags de la celda.
     const ns = await asegurarNamespace(fetch, cred.token, cred.cuenta, titulo);
     // HU-C3.6: el de todo el CORE (con su nombre de antes), el de pagos y uno por producto.
-    const productos = cargarRegistroDeProductos().productos.map((p) => p.id);
+    const idsDeProductos = cargarRegistroDeProductos().productos.map((p) => p.id);
     await asegurarClaves(
       fetch,
       cred.token,
       cred.cuenta,
       ns.id,
-      killSwitchesDelCore(productos).map(claveKillSwitch),
+      killSwitchesDelCore(idsDeProductos).map(claveKillSwitch),
     );
     escribirDespliegueCore(
       configDelCore(wranglerDelCore(config), dest, {
@@ -592,17 +597,21 @@ for (const celda of plan.aDesplegar) {
   let paso: Paso = { ok: true, detalle: [] };
   // En orden: el CORE (la celda necesita su clave pública), la API de la celda y el sitio, que
   // lleva dentro las claves públicas del QR de las celdas (HU-E6.4).
-  if (alojaCore) {
+  if (alojaCore && productos.has('core')) {
     paso = await desplegarCore(configCeldas, celda, cred, origenDelCuaderno(configCeldas));
     detalle.push(...paso.detalle);
+  } else if (alojaCore) {
+    detalle.push('CORE: sin publicar en este despliegue (su versión no cambió)');
   }
-  if (paso.ok) {
+  if (paso.ok && productos.has('agro')) {
     paso = await desplegarApiCelda(configCeldas, celda, cred);
     detalle.push(...paso.detalle);
-  }
-  if (paso.ok && alojaSitio) {
-    paso = await desplegarSitio(configCeldas, celda, cred);
-    detalle.push(...paso.detalle);
+    if (paso.ok && alojaSitio) {
+      paso = await desplegarSitio(configCeldas, celda, cred);
+      detalle.push(...paso.detalle);
+    }
+  } else if (!productos.has('agro')) {
+    detalle.push('agro: sin publicar en este despliegue (su versión no cambió)');
   }
   resultados.push({ celda: celda.id, estado: paso.ok ? 'desplegada' : 'fallo', detalle });
   if (!paso.ok) detenido = true;

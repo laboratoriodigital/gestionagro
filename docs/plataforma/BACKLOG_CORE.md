@@ -352,7 +352,7 @@ Formato de cada historia:
 - **Work items:** WI-C0.2.1 `[código]` validador con su tabla de casos buenos y malos · WI-C0.2.2 `[ci]` paso en `ci.yml` con `fetch-depth: 0` · WI-C0.2.3 `[doc]` plantilla de PR y `ARQUITECTURA.md` §7.1 · WI-C0.2.4 `[prueba]` control negativo: un commit con la marca pone el CI en rojo.
 
 #### HU-C0.3 · Versión propia del CORE (`core-vX.Y.Z`)
-- **Capa:** CI y despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C2 · **Depende de:** HU-C0.2 · **Estado:** Refinada
+- **Capa:** CI y despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C2 · **Depende de:** HU-C0.2 · **Estado:** En validación (rama `feat/c2-sprint`. `scripts/lib/publicacion.ts` decide y `desplegar.ts --productos` despliega solo lo publicado. Línea base `core-v0.1.0` = el CORE de la v0.3.0, que es lo que hay en producción: así, fusionar este PR no publica nada solo. Se agregó una guardia que no estaba en los CA: un PR que cambia `apps/core/src` sin anotar `apps/core/CHANGELOG.md` falla, porque la otra línea de trabajo también toca el CORE (el respaldo en Drive) y tiene que saber que publicar el agro ya no lo arrastra. 12 pruebas; control negativo: la guardia marcó esta misma rama mientras el CHANGELOG del CORE no estaba en un commit. Falta verlo en una publicación real, P16)
 - Como dueño, quiero publicar el CORE cuando cambia el CORE, con su versión y su registro de cambios, para no publicar el agro por un cambio de cuenta ni al revés.
 - **Respaldo:** PLATAFORMA §6.3; ARQUITECTURA §7.3 (publicación continua).
 - **CA1.** `apps/core/package.json` lleva la versión del CORE, y `apps/core/CHANGELOG.md` su sección fechada. `tests/repo/version.test.ts` exige la sección para la versión del CORE igual que para la raíz.

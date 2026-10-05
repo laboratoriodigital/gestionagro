@@ -2,11 +2,13 @@
 #
 # Al fusionar un PR a main, sin más pasos a mano que aprobar el PR:
 #   1. El CI termina en verde por un push a main → se despliega staging.
-#   2. Si la versión de package.json todavía no tiene tag, se publica: tag vX.Y.Z y versión en
-#      GitHub con las notas de su sección del CHANGELOG.
-#   3. Se despliega producción con ese mismo commit, en esta misma corrida. (Una versión creada con
-#      el token de Actions no dispara otros flujos: por eso no se espera al evento «release».)
-# Un PR que no sube la versión solo llega a staging.
+#   2. Si la versión del agro (package.json) o la del CORE (apps/core/package.json) no tiene su
+#      etiqueta, se publica: vX.Y.Z o core-vX.Y.Z, y la versión en GitHub con las notas de su
+#      CHANGELOG (HU-C0.3).
+#   3. Se despliega a producción solo lo que se publicó, con ese mismo commit, en esta misma corrida.
+#      (Una versión creada con el token de Actions no dispara otros flujos: por eso no se espera al
+#      evento «release».)
+# Un PR que no sube ninguna versión solo llega a staging.
 #
 # A mano: «Run workflow» eligiendo destino (y, para seguir después de una falla, una sola celda),
 # o una versión publicada a mano. Un despliegue a medias no se cancela: la corrida nueva espera.
@@ -60,34 +62,32 @@ jobs:
     secrets: inherit
 
   version:
-    # ¿La versión del commit ya está publicada? Solo si no, sigue la publicación.
+    # ¿Qué versiones del commit son nuevas? Dos productos con versión propia (HU-C0.3): el agro
+    # (package.json, etiquetas vX.Y.Z) y el CORE (apps/core/package.json, core-vX.Y.Z). Cada uno se
+    # publica y va a producción solo cuando sube su versión.
     needs: staging
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      version: ${{ steps.leer.outputs.version }}
-      publicar: ${{ steps.leer.outputs.publicar }}
+      version_agro: ${{ steps.leer.outputs.version_agro }}
+      publicar_agro: ${{ steps.leer.outputs.publicar_agro }}
+      version_core: ${{ steps.leer.outputs.version_core }}
+      publicar_core: ${{ steps.leer.outputs.publicar_core }}
+      productos: ${{ steps.leer.outputs.productos }}
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
       - id: leer
-        name: Leer la versión y buscar su tag
-        run: |
-          set -euo pipefail
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
-            echo "publicar=false" >> "$GITHUB_OUTPUT"
-            echo "La versión $VERSION ya está publicada: solo staging."
-          else
-            echo "publicar=true" >> "$GITHUB_OUTPUT"
-            echo "La versión $VERSION es nueva: se publica y se despliega a producción."
-          fi
+        name: Leer las versiones y buscar sus etiquetas
+        run: node scripts/decidir-publicacion.ts
 
   publicar:
     needs: version
-    if: needs.version.outputs.publicar == 'true'
+    if: needs.version.outputs.productos != ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -99,22 +99,35 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - name: Crear la versión con las notas del CHANGELOG
+      - name: Crear la versión del agro con las notas del CHANGELOG
+        if: needs.version.outputs.publicar_agro == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.version.outputs.version }}
+          VERSION: ${{ needs.version.outputs.version_agro }}
           SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           node scripts/notas-de-version.ts "$VERSION" > notas.md
           gh release create "v$VERSION" --target "$SHA" --title "v$VERSION" --notes-file notas.md
+      - name: Crear la versión del CORE con las notas de su CHANGELOG
+        if: needs.version.outputs.publicar_core == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version_core }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          node scripts/notas-de-version.ts --core "$VERSION" > notas-core.md
+          gh release create "core-v$VERSION" --target "$SHA" --title "CORE v$VERSION" --notes-file notas-core.md --latest=false
 
   produccion:
+    # Solo lo que subió de versión: el agro sin el CORE, el CORE sin el agro, o los dos.
     needs: [version, publicar]
     uses: ./.github/workflows/desplegar-destino.yml
     with:
       destino: produccion
       ref: ${{ github.event.workflow_run.head_sha }}
+      productos: ${{ needs.version.outputs.productos }}
     secrets: inherit
 
   a-mano:
