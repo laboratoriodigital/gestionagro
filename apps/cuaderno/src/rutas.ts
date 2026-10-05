@@ -12,8 +12,9 @@ export const RUTAS_APP = [
   { segmento: 'historial', titulo: 'Historial' },
   { segmento: 'carencias', titulo: 'Carencias' },
   { segmento: 'lotes', titulo: 'Lotes' },
-  { segmento: 'rendimiento', titulo: 'Rendimiento' },
-  { segmento: 'costos', titulo: 'Costos' },
+  // Solo con la finca creada (pedido del dueño, 5 oct 2026): antes no hay nada que medir.
+  { segmento: 'rendimiento', titulo: 'Rendimiento', requiereFinca: true },
+  { segmento: 'costos', titulo: 'Costos', requiereFinca: true },
   { segmento: 'personas', titulo: 'Personas' },
   { segmento: 'insumos', titulo: 'Insumos' },
   { segmento: 'respaldo', titulo: 'Respaldo' },
