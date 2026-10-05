@@ -18,6 +18,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - El CI gasta según lo que cambió: si un PR solo toca documentos (`docs/` o un `.md` de la raíz), no abre navegadores ni compila, y corre solo las pruebas que leen documentos. El resumen dice qué saltó y por qué. Si no puede calcular el cambio, corre todo (HU-C11.6).
 
 ### Corregido
+- Menú y Costos según haya finca (revisión del dueño, 5 oct 2026). Rendimiento y Costos aparecen en el menú solo cuando la finca existe, y lo hacen apenas se crea o se restaura, sin recargar. Costos sin finca se quedaba para siempre en «Abriendo tu cuaderno…»: ahora dice que primero se configure la finca.
 - Monitoreo (HU-E3.11, revisión del dueño, 5 oct 2026): las fotos se guardaban en el teléfono pero ninguna pantalla las mostraba. Ahora «Ver foto» las abre en Registrar y en Historial, solo al tocarlo. Si el registro llegó de otro teléfono, dice que la foto se quedó en el teléfono donde se tomó, en vez de mostrar un cuadro roto.
 - La receta para rehacer tablas en D1 (ADR-25) se comprobó en el D1 local de workerd, no solo en el SQLite de Node: funciona igual. Y se supo algo nuevo: su guarda revisa toda la base, así que una fila huérfana vieja en cualquier tabla detendría la migración. Antes de migrar producción se revisa la base (HU-C2.1, bitácora core 2).
 - PLATAFORMA decía «exportaciones semanales fuera de Cloudflare» citando un documento que dice mensual. Ahora dice lo mismo que ED1 §20.3: semanal en R2 y mensual cifrada fuera (bitácora core 1).

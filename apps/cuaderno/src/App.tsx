@@ -3,12 +3,15 @@
  * pantalla se agrega allí y aquí su componente.
  */
 import type { ComponentType } from 'preact';
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { LocationProvider, Route, Router, useLocation } from 'preact-iso';
 import marca from '../../../content/marca.json' with { type: 'json' };
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { AvisoDePausa } from './AvisoDePausa.tsx';
 import { AvisoDeReemplazo } from './AvisoDeReemplazo.tsx';
+import { escucharActividad } from './actividad.ts';
+import { cuaderno } from './almacen/abierto.ts';
+import { leerFinca } from './almacen/finca.ts';
 import { FincaActiva } from './FincaActiva.tsx';
 import { IndicadorDatos } from './IndicadorDatos.tsx';
 import { RUTAS_APP, rutaDe } from './rutas.ts';
@@ -52,8 +55,26 @@ const sinBarraFinal = (ruta: string) => (ruta.endsWith('/') ? ruta.slice(0, -1) 
  * tres filas se comían un tercio de la pantalla en cada vista. La sección abierta se lleva a la
  * vista al cambiar de pantalla, sin mover la página.
  */
+/**
+ * ¿Hay finca en este teléfono? Se mira al abrir y después de cada escritura (crear la finca,
+ * restaurar un respaldo), como `FincaActiva`. Mientras no se sabe, se cuenta que sí: es el caso de
+ * todos los días, y así el menú no salta al abrir.
+ */
+function usarHayFinca(): boolean {
+  const [hay, setHay] = useState(true);
+  useEffect(() => {
+    const mirar = () => void leerFinca(cuaderno()).then((d) => setHay(Boolean(d?.finca)));
+    mirar();
+    return escucharActividad((a) => {
+      if (a.escriturasEnCurso === 0) mirar();
+    });
+  }, []);
+  return hay;
+}
+
 function Navegacion() {
   const { path } = useLocation();
+  const hayFinca = usarHayFinca();
   const nav = useRef<HTMLElement>(null);
   useEffect(() => {
     const barra = nav.current;
@@ -64,7 +85,9 @@ function Navegacion() {
   }, [path]);
   return (
     <nav class="navegacion" aria-label="Secciones del cuaderno" ref={nav}>
-      {RUTAS_APP.filter((r) => !('enMenu' in r) || r.enMenu).map((r) => {
+      {RUTAS_APP.filter(
+        (r) => (!('enMenu' in r) || r.enMenu) && (hayFinca || !('requiereFinca' in r)),
+      ).map((r) => {
         const ruta = rutaDe(r.segmento);
         return (
           <a
