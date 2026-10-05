@@ -134,7 +134,7 @@ Al 5 oct 2026 el CORE v0 tiene las guardias que heredó del agro (pruebas del CO
 - **Regla:** `| tee` sin `pipefail`, un `try/catch` que protege, dos funciones con el mismo nombre: no fallan, siguen.
 - **En el CORE:** el validador de commits y los scripts de versión llevan su estado de salida; ningún `catch` amplio adivina la causa de un error de entrada (bitácora agro 23).
 - **Lo impedirá:** las guardias de flujos que ya existen; HU-C0.2.
-- **Entradas:** —
+- **Entradas:** core 4.
 
 #### P15 · Un aviso tiene que llegar a donde alguien mira, y nombrar la causa
 - **Regla:** el aviso va donde está la persona, dice qué pasó y qué hacer.
@@ -357,3 +357,17 @@ Co-Authored-By: Claude, Claude-Session ni «Generated with Claude Code»». Los 
 La regla: **una guardia de texto se prueba también contra el texto de quien explica la regla. Lo que se busca es la forma de la cosa, no las palabras que la nombran.**
 
 *Ficha:* core · *(mío)* · 🟡 Medio · P19, P5 · 0.3.0 · 2026-10-05
+
+**4 · Un commit salió con el lint en rojo porque el comando revisaba la salida de `tail`: la bitácora agro 13, otra vez.**
+
+*Qué pasó.* El 5 oct 2026, al cerrar HU-C3.6, corrí `pnpm run lint 2>&1 | tail -1 && git add -A && git commit …`. El lint falló (`noShadow` en una prueba y en el Worker) y el commit se hizo igual. Lo vi porque la última línea decía `[ELIFECYCLE] Command failed with exit code 1.` justo antes del hash del commit nuevo.
+
+*Causa raíz.* Sin `pipefail`, el estado de `a | tail` es el de `tail`. La regla ya existía (bitácora agro 13: «los comandos con tubería antes de un commit llevan `set -o pipefail`»), pero el shell de cada comando empieza de cero y la regla vivía en mi memoria de la sesión, no en el comando. Es P14 y, sobre todo, P18: una regla escrita sin guardia.
+
+*Arreglo.* El commit no estaba subido: se corrigió el lint y se rehízo con `--amend`. En la misma corrección, `set -o pipefail` detuvo el segundo intento, que también tenía un error. Desde ahora, todo comando mío que decide un commit empieza con `set -o pipefail`, y la regla quedó en la memoria del proyecto, que se carga en cada sesión.
+
+**Lo prueba:** nada automático: es un comando del asistente, no del repositorio. La guardia real es el CI, que corre el lint en cada PR.
+
+La regla: **una regla que depende de que alguien se acuerde se olvida en el primer comando con prisa. Si no puede tener guardia, va en la memoria que se carga sola, no en la de la conversación.**
+
+*Ficha:* core · *(mío)* · 🟡 Medio · P14, P18 · 0.3.0 · 2026-10-05
