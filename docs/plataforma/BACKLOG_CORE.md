@@ -389,7 +389,7 @@ Formato de cada historia:
 - **Work items:** WI-C1.2.1 `[código]` formato y validación · WI-C1.2.2 `[prueba]` reglas con su control negativo · WI-C1.2.3 `[dueño]` montos de 3, 6 y 12 meses.
 
 #### HU-C1.3 · `cuentas.json` y `dominios.json`
-- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C1 · **Depende de:** — · **Estado:** En validación (rama `feat/c1-sprint`, 14 pruebas. CA2 ajustado a PLATAFORMA §3.4: `dominios.json` lleva solo los reservados de `proyecto` y `marca`; los de `infraestructura` y `suplantacion` ya los siembra la migración de la base de control de la Tienda, y la prueba los lee de ahí cuando exista, para no tener dos listas (P2). Los contactos de recuperación y el segundo factor quedan «pendiente» a la vista en `cuentas.json`: tarea del dueño)
+- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C1 · **Depende de:** — · **Estado:** En validación (rama `feat/c1-sprint`, 14 pruebas. CA2 ajustado a PLATAFORMA §3.4: `dominios.json` lleva solo los reservados de `proyecto` y `marca`; los de `infraestructura` y `suplantacion` ya los siembra la migración de la base de control de la Tienda, y la prueba los lee de ahí cuando exista, para no tener dos listas (P2). El segundo factor y los contactos de recuperación de la cuenta quedaron hechos por el dueño el 5 oct 2026, y `cuentas.json` lo dice)
 - Como dueño, quiero declarada la cuenta de Cloudflare y los nombres reservados de los dominios, para que una celda no apunte a una cuenta que nadie declaró y una tienda no tome un nombre de la plataforma.
 - **Respaldo:** PLATAFORMA §3.4 y §3.5; ADR-23 y ADR-27.
 - **CA1.** `cuentas.json` declara la cuenta principal (nombre, plan, dueño, contactos de recuperación) y las que quedan fuera. **Sin identificadores de cuenta**: esos siguen en los secretos de GitHub.
@@ -1009,7 +1009,7 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 | Tarea | Antes de | Detalle |
 |---|---|---|
 | Renombrar el repositorio en GitHub | C2 | `docs/runbooks/renombrar-repositorio.md` |
-| Contactos de recuperación de la cuenta y los tres dominios | C2 | HU-C1.3 |
+| Contactos de recuperación de la cuenta y los tres dominios | ~~C2~~ Hecho (5 oct 2026): segundo factor y contactos de la cuenta de Cloudflare. Falta confirmar que el registrador de los tres dominios tenga un correo de recuperación que no dependa de Cloudflare | HU-C1.3 |
 | Activar Workers Paid y las alertas de facturación | C4 (17 nov) | PLATAFORMA §3.2; HU-C11.1 |
 | Agregar la zona `laboratorio-digital.app` | 30 nov (Tienda M0) | PLATAFORMA §9.5 |
 | URL de vuelta de Google para `cuenta.laboratorio-digital.com` | C5 | HU-C4.6, con los pasos exactos |

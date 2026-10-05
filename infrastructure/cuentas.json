@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/cuentas.schema.json",
-  "nota": "Cuentas de Cloudflare de la plataforma (PLATAFORMA §3.5, ADR-23, HU-C1.3). Una sola, la de siempre, para todos los productos: se aíslan por presupuesto, kill switch y celdas, no por cuenta. Cada celda de celdas.json nombra una cuenta de aquí. Sin identificadores de cuenta (P13): siguen en los secretos de GitHub. Lo «pendiente» es tarea del dueño (BACKLOG_CORE §9).",
+  "nota": "Cuentas de Cloudflare de la plataforma (PLATAFORMA §3.5, ADR-23, HU-C1.3). Una sola, la de siempre, para todos los productos: se aíslan por presupuesto, kill switch y celdas, no por cuenta. Cada celda de celdas.json nombra una cuenta de aquí. Sin identificadores de cuenta (P13): siguen en los secretos de GitHub. Lo «pendiente» es tarea del dueño (BACKLOG_CORE §9). El dueño confirmó el 5 oct 2026 el segundo factor y los contactos de recuperación de la cuenta.",
   "cuentas": [
     {
       "nombre": "ED1 principal",
@@ -8,8 +8,8 @@
       "plan": "free",
       "duenio": "plataforma",
       "recuperacion": {
-        "segundo_factor": "pendiente",
-        "contactos": "pendiente"
+        "segundo_factor": "activo",
+        "contactos": "declarados"
       }
     }
   ],
