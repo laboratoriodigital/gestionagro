@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dominios del ecosistema (infrastructure/dominios.json)",
+  "description": "ADR-27, PLATAFORMA §3.3 y §3.4, HU-C1.3. Los tres dominios con su papel, y los nombres de laboratorio-digital.app que una tienda no puede tomar por ser de un proyecto o una marca. Los de infraestructura y suplantación los siembra la migración de la base de control de la Tienda.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["dominios", "reservados_app"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "nota": { "type": "string" },
+    "dominios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["dominio", "papel", "cuenta", "zona_activa"],
+        "properties": {
+          "dominio": { "type": "string", "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)+$" },
+          "papel": { "type": "string", "minLength": 10 },
+          "cuenta": {
+            "type": "string",
+            "description": "La cuenta de cuentas.json donde vive la zona."
+          },
+          "zona_activa": {
+            "type": "boolean",
+            "description": "false mientras el dominio no sea zona de la cuenta (laboratorio-digital.app hasta el M0 de la Tienda)."
+          }
+        }
+      }
+    },
+    "reservados_app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proyecto", "marca"],
+      "properties": {
+        "proyecto": { "$ref": "#/$defs/nombres" },
+        "marca": { "$ref": "#/$defs/nombres" }
+      }
+    }
+  },
+  "$defs": {
+    "nombres": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+        "description": "Un nombre de primer nivel de laboratorio-digital.app. Nunca con «--», que queda para la plataforma (staging)."
+      }
+    }
+  }
+}

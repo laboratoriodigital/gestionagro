@@ -365,7 +365,7 @@ Formato de cada historia:
 ### EC1 · Producto como dato
 
 #### HU-C1.1 · `infrastructure/productos.json`, su esquema y su lector
-- **Capa:** datos · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C1 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** datos · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C1 · **Depende de:** — · **Estado:** En validación (rama `feat/c1-sprint`. CA1: la validación corre en las pruebas de repositorio (`tests/repo/registro-productos.test.ts`, 18 pruebas) y no en `validar:productos`, que valida los `product.yaml` de las herramientas: son dos cosas distintas que ED1 llama igual, por eso el módulo se llama `registro-productos.ts`. CA4: `@ed1/productos` da tipos y reglas sin leer archivos ni cargar Ajv, para que el Worker del CORE lo pueda usar. CA5: ningún generador lee todavía el registro, así que lo generado no cambia; la comparación byte a byte llega con HU-C1.4. Además, una prueba ata los roles y tipos del agro a `ROLES_INVITABLES` y a los `CHECK` de la 0001 mientras haya dos copias; su control negativo (auditor invitable) la pone en rojo)
 - Como plataforma, quiero que la lista de productos sea un archivo versionado, para que agregar un producto sea un archivo y un despliegue y no una migración.
 - **Respaldo:** PLATAFORMA §4.2; ED1 §5.4; R1 de PLATAFORMA §2.
 - **CA1.** `schemas/productos.schema.json` valida el archivo en CI (`pnpm validar:productos` crece o se agrega uno nuevo, con el mismo informe de todas las fallas, P15).
@@ -389,7 +389,7 @@ Formato de cada historia:
 - **Work items:** WI-C1.2.1 `[código]` formato y validación · WI-C1.2.2 `[prueba]` reglas con su control negativo · WI-C1.2.3 `[dueño]` montos de 3, 6 y 12 meses.
 
 #### HU-C1.3 · `cuentas.json` y `dominios.json`
-- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C1 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C1 · **Depende de:** — · **Estado:** En validación (rama `feat/c1-sprint`, 14 pruebas. CA2 ajustado a PLATAFORMA §3.4: `dominios.json` lleva solo los reservados de `proyecto` y `marca`; los de `infraestructura` y `suplantacion` ya los siembra la migración de la base de control de la Tienda, y la prueba los lee de ahí cuando exista, para no tener dos listas (P2). Los contactos de recuperación y el segundo factor quedan «pendiente» a la vista en `cuentas.json`: tarea del dueño)
 - Como dueño, quiero declarada la cuenta de Cloudflare y los nombres reservados de los dominios, para que una celda no apunte a una cuenta que nadie declaró y una tienda no tome un nombre de la plataforma.
 - **Respaldo:** PLATAFORMA §3.4 y §3.5; ADR-23 y ADR-27.
 - **CA1.** `cuentas.json` declara la cuenta principal (nombre, plan, dueño, contactos de recuperación) y las que quedan fuera. **Sin identificadores de cuenta**: esos siguen en los secretos de GitHub.
