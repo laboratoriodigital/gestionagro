@@ -19,6 +19,7 @@
   "celdas": [
     {
       "id": "c0",
+      "producto": "agro",
       "cuenta": "ED1 principal",
       "plan": "free",
       "anillo_despliegue": 0,

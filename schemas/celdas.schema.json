@@ -80,6 +80,7 @@
         "additionalProperties": false,
         "required": [
           "id",
+          "producto",
           "cuenta",
           "plan",
           "anillo_despliegue",
@@ -94,9 +95,15 @@
             "type": "string",
             "pattern": "^c[0-9]+$"
           },
+          "producto": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{2,24}$",
+            "description": "El producto de la celda (PLATAFORMA §4.9, HU-C1.4): uno de infrastructure/productos.json. Una celda sirve a un solo producto."
+          },
           "cuenta": {
             "type": "string",
-            "minLength": 3
+            "minLength": 3,
+            "description": "La cuenta de Cloudflare donde vive: una de infrastructure/cuentas.json."
           },
           "plan": {
             "enum": ["free", "paid", "cliente"]
@@ -141,7 +148,8 @@
             "type": "array",
             "items": {
               "type": "string",
-              "pattern": "^agro_c[0-9]+_s[0-9]+$"
+              "pattern": "^[a-z0-9-]{2,24}_c[0-9]+_s[0-9]+$",
+              "description": "<producto>_c<N>_s<k>: el prefijo es el producto de la celda, y el número el de la celda (cargarCeldas lo exige)."
             }
           }
         }

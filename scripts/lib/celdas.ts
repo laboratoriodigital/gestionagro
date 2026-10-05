@@ -9,6 +9,8 @@ import { RAIZ } from './repo.ts';
 
 export interface Celda {
   id: string;
+  /** El producto al que sirve (HU-C1.4): uno de `infrastructure/productos.json`. */
+  producto: string;
   cuenta: string;
   plan: 'free' | 'paid' | 'cliente';
   anillo_despliegue: number;
@@ -52,6 +54,15 @@ export function cargarCeldas(
   const ids = config.celdas.map((c) => c.id);
   const repetidos = ids.filter((id, i) => ids.indexOf(id) !== i);
   if (repetidos.length > 0) throw new Error(`celdas.json repite ids: ${repetidos.join(', ')}`);
+  // Los shards se llaman <producto>_c<N>_s<k> (PLATAFORMA §4.9): el nombre dice de quién es la base.
+  const shardsAjenos = config.celdas.flatMap((c) =>
+    c.shards.filter((s) => !s.startsWith(`${c.producto}_${c.id}_s`)).map((s) => `${c.id}: ${s}`),
+  );
+  if (shardsAjenos.length > 0) {
+    throw new Error(
+      `celdas.json tiene shards que no llevan el producto y la celda en el nombre: ${shardsAjenos.join(', ')}`,
+    );
+  }
   for (const [quien, celdaId] of [
     ['El sitio', config.sitio.celda],
     ['El CORE', config.core.celda],

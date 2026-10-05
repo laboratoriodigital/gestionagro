@@ -399,7 +399,7 @@ Formato de cada historia:
 - **Work items:** WI-C1.3.1 `[código]` dos esquemas · WI-C1.3.2 `[prueba]` hostnames declarados y sin identificadores · WI-C1.3.3 `[dueño]` contactos de recuperación de la cuenta y de los tres dominios.
 
 #### HU-C1.4 · `celdas.json` v2: producto y cuenta por celda
-- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1, HU-C1.3 · **Estado:** Refinada
+- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1, HU-C1.3 · **Estado:** En validación (rama `feat/c2-sprint`. `cuenta` ya existía en `celdas.json`; se agregó `producto` y el patrón de shards pasa de `agro_c…` fijo a `<producto>_c<N>_s<k>`, exigido por `cargarCeldas`. c0 ya cumplía: `agro_c0_s1`. Lo generado quedó idéntico byte a byte. 3 pruebas nuevas, con controles negativos: una celda sin producto y un shard `tienda_c0_s2` en una celda del agro)
 - Como plataforma, quiero que cada celda diga de qué producto es y en qué cuenta vive, para asignar organizaciones solo a celdas de su producto.
 - **Respaldo:** PLATAFORMA §4.9.
 - **CA1.** Cada celda declara `producto` (c0 es `agro`) y `cuenta` (una de `cuentas.json`).

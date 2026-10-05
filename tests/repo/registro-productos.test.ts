@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { type Producto, productoPorId, rolesInvitables, rolesQueAdministran } from '@ed1/productos';
 import { describe, expect, it } from 'vitest';
 import { ROLES_INVITABLES } from '../../apps/core/src/invitaciones.ts';
+import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 import { cargarProductos, fallasDeProductos } from '../../scripts/lib/registro-productos.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 
@@ -151,5 +152,29 @@ describe('las reglas que el esquema no puede decir', () => {
     expect(() => cargarProductos(con({ ...ensayo(), roles: [] }))).toThrow(
       /productos.json inválido/,
     );
+  });
+});
+
+describe('cada celda es de un producto declarado (HU-C1.4, PLATAFORMA §4.9)', () => {
+  const celdasReales = () =>
+    JSON.parse(readFileSync(join(RAIZ, 'infrastructure/celdas.json'), 'utf8')) as {
+      celdas: { id: string; producto: string; shards: string[] }[];
+    };
+
+  it('toda celda nombra un producto de productos.json', () => {
+    const ids = new Set(cargarProductos().productos.map((p) => p.id));
+    for (const c of cargarCeldas().celdas) expect(ids, c.id).toContain(c.producto);
+  });
+
+  it('una celda sin producto no pasa el esquema', () => {
+    const datos = celdasReales();
+    delete (datos.celdas[0] as { producto?: string }).producto;
+    expect(() => cargarCeldas(datos)).toThrow(/producto/);
+  });
+
+  it('un shard sin el prefijo <producto>_<celda> se rechaza y se nombra', () => {
+    const datos = celdasReales();
+    (datos.celdas[0] as { shards: string[] }).shards = ['agro_c0_s1', 'tienda_c0_s2'];
+    expect(() => cargarCeldas(datos)).toThrow(/c0: tienda_c0_s2/);
   });
 });
