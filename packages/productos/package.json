@@ -1,0 +1,10 @@
+{
+  "name": "@ed1/productos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Productos del CORE (infrastructure/productos.json, PLATAFORMA §4.2, ADR-20): tipos y reglas, sin leer archivos ni validar esquemas, para que lo pueda usar un Worker sin cargar Ajv.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

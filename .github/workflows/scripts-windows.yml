@@ -23,7 +23,8 @@ permissions:
 
 jobs:
   windows:
-    runs-on: windows-latest
+    # Con el runner propio (que es Windows), corre ahí; si no, en los equipos Windows de GitHub.
+    runs-on: ${{ vars.RUNNER_CI || 'windows-latest' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7

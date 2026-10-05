@@ -237,7 +237,7 @@ Antes de pedirlo hay que confirmar que Cloudflare acepte una entrada de la PSL *
    - segundo factor;
    - contactos de recuperación propios;
    - los tres dominios con un registrador y un correo que no dependan de Cloudflare.
-6. **Plan de salida:** respaldo semanal en R2 y una copia mensual cifrada fuera de Cloudflare (ED1 §20.3; `proveedores-de-computo.md` §4). La frecuencia final la decide el dueño (D-C5 de `BACKLOG_CORE.md`; bitácora core 1). Es lo que convierte «todo en una cuenta» en un riesgo aceptable.
+6. **Plan de salida:** respaldo semanal en R2 y una copia semanal cifrada fuera de Cloudflare, en el Google Drive del dueño (ADR-30, decisión D-C5 del 5 oct 2026; ED1 §20.3; bitácora core 1). Es lo que convierte «todo en una cuenta» en un riesgo aceptable.
 7. **Contenido arbitrario de usuarios, aparte.** Un producto que lo aloje, como el hosting temporal de ED1 §14, se evalúa cuando exista. Es el único caso en que una cuenta propia aislaría un riesgo real (HA1): una suspensión por abuso no debe tumbar las tiendas.
 
 ### 3.6 Dónde vive cada pieza
@@ -426,11 +426,10 @@ DROP TABLE _guarda_fk;
 
 - **Por qué la guarda:** sin ella, la migración que pierde datos se ve igual que la que no los pierde. Con ella, una sola fila huérfana revierte la migración entera, porque `wrangler` corre cada archivo en una transacción.
 - **Ninguna FK con `ON DELETE CASCADE` (R4):** la investigación de la cuenta encontró en la documentación de D1 que `defer_foreign_keys` no impide las cascadas. El `DELETE` implícito del `DROP TABLE` borraría las hijas.
-- **Falta verificar en D1 (P17):** el instrumento fue `node:sqlite`, no D1.
-  - Antes de aplicar la 0006 en staging, una prueba con `getPlatformProxy` (el D1 local de `packages/d1`) corre W1–W4.
-  - Comprueba que D1 acepte `pragma_foreign_key_check` como función de tabla y que apagar el pragma ponga el contador en cero igual.
-  - Si D1 no acepta la función de tabla, la guarda se reemplaza por un paso de `scripts/desplegar.ts`: correr `PRAGMA foreign_key_check` después de migrar y detener el despliegue si devuelve filas.
-  - Esa variante es peor, porque la migración ya quedó aplicada. Por eso se prueba primero.
+- **Verificado en el D1 local de workerd el 5 oct 2026** (HU-C2.1, `packages/d1/src/receta.test.ts`). Los cinco casos dan lo mismo que con `node:sqlite`: V1 falla al confirmar, W1 confirma, W2 confirma callado con la huérfana, W3 confirma y W4 vuelve atrás entero. D1 acepta `pragma_foreign_key_check` como función de tabla, así que la guarda va dentro de la migración y no hace falta la variante en `scripts/desplegar.ts`.
+  - El mensaje de V1 en D1 es otro: «Durable Object was reset and rolled back to its last known good state because the application left the database in a state where constraints were violated: FOREIGN KEY constraint failed».
+- **La guarda revisa toda la base, no solo la tabla que se rehace** (bitácora core 2). Una huérfana vieja en cualquier tabla detiene cualquier migración que lleve la guarda, aunque esa migración no pierda nada. Es lo que se quiere (P1), con una consecuencia: **antes de aplicar una migración con la guarda en producción, se corre `PRAGMA foreign_key_check` sobre la base de producción** y se resuelve lo que aparezca. Si no, la migración falla en producción por algo que no hizo, y parece culpa suya.
+- **Falta staging** (P16): se comprueba al aplicar la 0006 en staging (HU-C2.2).
 
 ### 4.5 Las migraciones siguientes
 

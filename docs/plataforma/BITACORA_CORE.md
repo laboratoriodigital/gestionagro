@@ -151,8 +151,9 @@ Al 5 oct 2026 el CORE v0 tiene las guardias que heredó del agro (pruebas del CO
 #### P17 · El instrumento también miente
 - **Regla:** un doble que simplifica una propiedad que el código real promete miente el día que alguien depende de ella.
 - **En el CORE:** la receta de reconstrucción se probó en `node:sqlite`, no en D1. El D1 local no reproduce la cuota diaria ni el límite de consultas por invocación. Un proveedor OAuth con un doble que no rota de verdad el refresh no prueba la detección de reuso.
-- **Lo impedirá:** HU-C2.1, HU-C9.1.
-- **Entradas:** —
+- **Lo impedirá:** HU-C9.1.
+- **Lo impide hoy:** la receta de reconstrucción corre en el D1 local de workerd, no solo en `node:sqlite` (`packages/d1/src/receta.test.ts`, HU-C2.1).
+- **Entradas:** core 2.
 
 #### P18 · Un documento no lanza una excepción cuando miente
 - **Regla:** lo que un documento afirma del código lo ata una aserción; el redundante se borra.
@@ -163,8 +164,9 @@ Al 5 oct 2026 el CORE v0 tiene las guardias que heredó del agro (pruebas del CO
 #### P19 · Un rojo que no significa nada enseña a no mirar los rojos
 - **Regla:** una guarda con falsos positivos o un intermitente se arregla o se quita.
 - **En el CORE:** el validador de commits mira solo el rango del PR, no la historia; las capturas visuales solo en Linux; las pruebas de tiempo, solas.
-- **Lo impedirá:** HU-C0.2, HU-C6.4, HU-C6.6.
-- **Entradas:** —
+- **Lo impedirá:** HU-C6.4, HU-C6.6.
+- **Lo impide hoy:** la guardia de commits reconoce solo la forma real de la marca, y `tests/repo/commits.test.ts` lleva como caso el cuerpo que la primera versión marcó por error (bitácora core 3).
+- **Entradas:** core 3.
 
 #### P20 · Lo que se le ofrece a alguien tiene que llegar por el camino que esa persona recorre
 - **Regla:** se prueba desde quien mira.
@@ -189,8 +191,9 @@ Al 5 oct 2026 el CORE v0 tiene las guardias que heredó del agro (pruebas del CO
 #### PC2 · Un arreglo que pone un contador en cero también esconde lo que contaba
 - **Regla:** cuando el arreglo conocido de un error es apagar una verificación, se agrega otra verificación que falle si había algo real que contar.
 - **Por qué:** rehacer una tabla padre en D1 falla al confirmar. El arreglo habitual (apagar `defer_foreign_keys` antes de confirmar) pone en cero el contador de violaciones diferidas, y con eso deja pasar callada una fila huérfana real (casos W1–W4 de PLATAFORMA §4.4, [HA8]). La guarda de huérfanas es la verificación que faltaba.
-- **Lo impedirá:** HU-C2.1 y la receta R5.
-- **Entradas:** —
+- **Lo impedirá:** la receta R5 en cada migración que rehace una tabla (HU-C2.2).
+- **Lo impide hoy:** `packages/d1/src/receta.test.ts` corre W2 y W4 en el D1 local de workerd. Sin la guarda, W4 confirma con la huérfana y la prueba se ve en rojo (comprobado el 5 oct 2026).
+- **Entradas:** core 2.
 
 ---
 
@@ -265,6 +268,9 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 |---|---|---|
 | Commits con `Co-Authored-By: Claude…` y `Claude-Session:` en el cuerpo | `tipo(alcance): descripción`, sin la marca de Claude Code en commits ni en PR (5 oct 2026) | Decisión del dueño al abrir el proyecto del CORE. La vigila HU-C0.2 |
 | Una sola versión del producto en la raíz (ARQUITECTURA §7.1) | El CORE con su propia versión y etiquetas `core-vX.Y.Z` (HU-C0.3) | PLATAFORMA §6.3: con dos productos y un CORE, publicar uno no puede obligar a publicar los demás |
+| La copia fuera de Cloudflare en Google Cloud Storage o Backblaze B2 (`proveedores-de-computo.md` §4) | En el Google Drive del dueño, semanal y cifrada (ADR-30, 5 oct 2026) | Decisión del dueño (D-C5): 15 GB gratis, y el mismo camino que ya eligió para el respaldo del agro por etapas. Lo que cambia: la cuota es de una cuenta personal, así que el vigía mide lo que Drive tiene, no lo que creemos haber subido (P7) |
+| Los tres dominios con un registrador y un correo de recuperación fuera de Cloudflare (PLATAFORMA §3.5 regla 5) | Los tres registrados en Cloudflare, como ya estaban (5 oct 2026) | No fue una decisión nueva: al preguntar, el dueño dijo que todos están en Cloudflare. Queda como riesgo aceptado, mitigado con el segundo factor y los contactos de la cuenta, y se vuelve a presentar en HU-C11.5 |
+| Una rama y un PR por historia (`entrega-por-partes`, bitácora agro) | Una rama y un PR por sprint, con un commit por historia (5 oct 2026) | El repositorio volvió a privado: cada PR gasta dos corridas completas del CI, unos 12 minutos de 2.000 al mes. El dueño pidió máxima eficiencia y valida por sprint en la revisión del viernes. Lo que urge va en su propia rama |
 | La hoja de ruta P0–P6 sin interfaz propia del CORE (PLATAFORMA §7) | Con un sistema de diseño (EC6) y la cuenta en `cuenta.laboratorio-digital.com` (EC7) desde el primer sprint | Pedido del dueño: frontend bonito, minimalista y moderno desde el inicio; ED1 §16 ya preveía la cuenta |
 
 ---
@@ -272,6 +278,8 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 ## Lo que el terreno enseñó, y no fue culpa de nadie
 
 - **El cuello de botella del agro no fue construir, fue validar.** Del 30 sep al 5 oct 2026 hubo 217 commits, y 57 de las 81 historias quedaron «En sprint», casi todas esperando la prueba del dueño. Planear por puntos de construcción habría prometido fechas que la validación no puede cumplir. Por eso el CORE cuenta la velocidad por lo validado y limita a 4 las historias en espera (`BACKLOG_CORE.md` §2.6).
+- **Dos sesiones en la misma carpeta comparten la rama.** El 5 oct 2026, al crear `feat/c1-sprint` en `D:CoWorkgestionagro`, aparecieron `apps/core/src/drive.ts` y un cambio en `worker.ts` que no eran del CORE: otra sesión trabajaba ahí en el respaldo del agro en Drive. `git switch` se lleva los cambios sin confirmar a la rama nueva, así que esa sesión habría terminado haciendo commit en la rama del CORE. Nada se mezcló, porque el commit solo llevaba `docs/`: la carpeta volvió a `main` con sus cambios intactos, y el CORE se trabaja desde entonces en una copia aparte (`git worktree add ../gestionagro-core`), con su propio `node_modules` (pnpm lo arma en 9 s desde su almacén). Antes de cambiar de rama, se mira `git status`: lo que no es tuyo no se lleva.
+- **Un trabajo de Actions en cola que nunca arranca puede ser GitHub.** El 5 oct 2026 los trabajos del PR #92 (`ci` y `scripts-windows`) quedaron en cola sin hora de inicio. No era el código ni los minutos (cuando faltan minutos, el trabajo falla en segundos con el mensaje de facturación: bitácora agro 5): githubstatus.com tenía un incidente abierto en Actions desde las 19:11 UTC. Antes de cancelar, relanzar o cambiar algo, se mira el estado de GitHub (`https://www.githubstatus.com/api/v2/incidents/unresolved.json`) y si el trabajo tiene `started_at`.
 - **Una referencia se abre antes de copiarla.** El enlace de diseño `codapress.co.uk/x` lleva a la página 404 del sitio. Lo que el dueño señalaba era esa página, la tipografía y la trama, y la portada confirmó el resto. Se tomó lo de las dos.
 
 ---
@@ -293,7 +301,7 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 
 *Arreglo.*
 - PLATAFORMA §3.1, §3.5 y §8 dicen ahora lo mismo que ED1: semanal a R2 y mensual cifrada fuera de Cloudflare.
-- La frecuencia final queda como decisión del dueño (D-C5 de `BACKLOG_CORE.md` §9), con la de ED1 como recomendación, porque ED1 manda sobre PLATAFORMA (`docs/README.md`, orden de precedencia).
+- La frecuencia final queda como decisión del dueño (D-C5 de `BACKLOG_CORE.md` §9), con la de ED1 como recomendación, porque ED1 manda sobre PLATAFORMA (`docs/README.md`, orden de precedencia). *(Hoy: el dueño decidió el mismo día una copia semanal y cifrada en su Google Drive, ADR-30.)*
 - Cuando HU-C11.4 la construya, la frecuencia vivirá en un solo archivo de configuración, y una prueba atará el runbook a ese archivo.
 
 **Lo prueba:** nada todavía; es un documento. La guardia llega con HU-C11.4.
@@ -301,3 +309,51 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 La regla: **cuando un documento cita a otro como fuente de una cifra, la cifra se copia con el otro abierto. Una cita que no dice lo que el citado dice es peor que ninguna, porque parece verificada.**
 
 *Ficha:* core · *(mío)* · 🟡 Medio · P18, P2 · 0.3.0 · 2026-10-05
+
+**2 · La guarda de huérfanas revisa toda la base, no solo la tabla que se rehace.**
+
+*Qué pasó.* El 5 oct 2026, en HU-C2.1, corrí por primera vez en el D1 local de workerd los cinco casos de la receta de PLATAFORMA §4.4, que solo se habían probado con `node:sqlite`. Corrían uno tras otro sobre la misma base. W3 (la guarda, sin pérdida de datos) tenía que confirmar, y no confirmó.
+
+*Síntoma literal:*
+
+```text
+{"caso":"W3","confirmo":false,"error":"D1_ERROR: CHECK constraint failed: huerfanas = 0: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_CHECK)", …}
+```
+
+*Causa raíz.* La guarda cuenta `SELECT COUNT(*) FROM pragma_foreign_key_check`, sin filtrar por tabla: revisa **toda** la base. W2, que corrió antes, había dejado a propósito una huérfana real en `h_W2`, y esa fila hizo fallar la migración de W3, que no perdía nada. D1 no tenía nada que ver: se comporta igual que `node:sqlite` en los cinco casos y acepta la función de tabla. Lo que no estaba escrito era el alcance de la guarda. En `node:sqlite` no se vio porque cada caso corría en su propia base.
+
+*Cómo se reprodujo.* Una prueba conserva la huérfana de W2 y corre W3 después: falla. Al borrar las tablas de W2, W3 confirma.
+
+*Arreglo.*
+- Cada caso de la prueba limpia sus tablas al terminar, y un caso aparte demuestra la propiedad.
+- Se decidió **no** filtrar la guarda por tabla: una huérfana vieja en producción es un dato roto, y detenerse es lo correcto (P1). La consecuencia se escribió donde se aplica: antes de migrar una base con la guarda, `PRAGMA foreign_key_check` tiene que salir vacío, y el despliegue lo comprobará (HU-C2.2, CA4b; PLATAFORMA §4.4).
+
+**Lo prueba** `packages/d1/src/receta.test.ts`, «la guarda revisa TODA la base». Control negativo: sin la guarda, W4 y ese caso se ven en rojo.
+
+La regla: **una verificación global falla por cosas que no hizo quien la corre. Antes de confiar en ella en producción, se mira qué hay ya en la base; si no, la primera migración sana que llegue cargará con un fallo ajeno.**
+
+*Ficha:* core · *(del terreno)* · 🟡 Medio · PC2, P17, P1 · 0.3.0 · 2026-10-05
+
+**3 · La guardia de commits marcó el commit que la creaba, porque el mensaje describía la regla.**
+
+*Qué pasó.* El 5 oct 2026, antes de abrir el PR del sprint C1, corrí la guardia de HU-C0.2 sobre los commits de la rama. Marcó el commit 4ee3d35, el que crea la guardia.
+
+*Síntoma literal:*
+
+```text
+- commit 4ee3d35 «ci(commits): guardia de la convención de commits y del PR»: lleva la marca de Claude Code (Co-Authored-By: Claude)
+- commit 4ee3d35 «ci(commits): guardia de la convención de commits y del PR»: lleva la marca de Claude Code («Generated with Claude Code»)
+```
+
+*Causa raíz.* El cuerpo del commit explicaba la regla: «sin
+Co-Authored-By: Claude, Claude-Session ni «Generated with Claude Code»». Los patrones buscaban las palabras, no la forma de la marca. Y el corte de línea dejó una línea que empezaba igual que el trailer. Las pruebas de la guardia traían la marca real y textos inocentes, pero no un texto que **hablara** de la marca, que es justo lo que escribe quien documenta la regla.
+
+*Cómo se reprodujo.* `COMMITS_DESDE=origin/main node scripts/verificar-commits.ts` en la rama.
+
+*Arreglo.* La guardia reconoce solo las formas reales: el trailer `Co-Authored-By: Claude … <correo>` al principio de línea, `Claude-Session:` seguido de una dirección, y el enlace `Generated with [Claude Code](https://…)`. No hubo que reescribir la historia de la rama: con la guardia corregida, el commit pasa.
+
+**Lo prueba** `tests/repo/commits.test.ts`, «no confunde un texto que DESCRIBE la regla con la marca», con el cuerpo real de 4ee3d35. Control negativo: el commit 9ce2e03 del PR #90, que sí lleva la marca, sigue saliendo con sus tres fallas.
+
+La regla: **una guardia de texto se prueba también contra el texto de quien explica la regla. Lo que se busca es la forma de la cosa, no las palabras que la nombran.**
+
+*Ficha:* core · *(mío)* · 🟡 Medio · P19, P5 · 0.3.0 · 2026-10-05

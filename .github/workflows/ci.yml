@@ -16,15 +16,32 @@ permissions:
 
 jobs:
   verificar:
-    runs-on: ubuntu-latest
+    # Los equipos de GitHub, salvo que la variable del repositorio RUNNER_CI diga otra cosa: el runner
+    # propio del dueño se usa mientras GitHub Actions no arranca trabajos (docs/runbooks/runner-propio.md).
+    # Borrar la variable devuelve el CI a GitHub sin tocar este archivo.
+    runs-on: ${{ vars.RUNNER_CI || 'ubuntu-latest' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          # La historia completa: verificar compara contra la base del cambio (HU-C11.6) y la
+          # guardia de commits lee los del PR (HU-C0.2). Este repositorio pesa poco.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
+      # Antes de instalar: un commit fuera de la convención se sabe en un segundo, y la corrida
+      # se detiene ahí en vez de gastar minutos que habrá que repetir con el commit corregido.
+      - name: Convención de commits y del PR
+        if: github.event_name == 'pull_request'
+        env:
+          COMMITS_DESDE: ${{ github.event.pull_request.base.sha }}
+          COMMITS_HASTA: ${{ github.event.pull_request.head.sha }}
+          PR_TITULO: ${{ github.event.pull_request.title }}
+          PR_CUERPO: ${{ github.event.pull_request.body }}
+        run: node scripts/verificar-commits.ts
       # Con un lockfile nuevo no hay coincidencia exacta: restore-keys trae los navegadores de la
       # corrida anterior y Playwright solo baja lo que cambió (bitácora agro 19).
       - name: Caché de los navegadores de Playwright
@@ -34,4 +51,10 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: playwright-${{ runner.os }}-
       - name: Verificar (instalar, lint, typecheck, contratos, pruebas, build, e2e, licencias)
+        # Contra qué se compara el cambio: la base del PR o el main de antes del push. Si el cambio
+        # solo toca documentos, verificar salta lo que no puede cambiar de resultado (HU-C11.6).
+        env:
+          # En el runner propio (Windows), el Edge del equipo: la descarga de Chromium no funciona ahí.
+          PW_CANAL: ${{ vars.RUNNER_CI == 'self-hosted' && 'msedge' || '' }}
+          VERIFICAR_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: node scripts/verificar.ts --ci

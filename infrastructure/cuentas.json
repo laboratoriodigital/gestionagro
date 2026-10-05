@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/cuentas.schema.json",
+  "nota": "Cuentas de Cloudflare de la plataforma (PLATAFORMA §3.5, ADR-23, HU-C1.3). Una sola, la de siempre, para todos los productos: se aíslan por presupuesto, kill switch y celdas, no por cuenta. Cada celda de celdas.json nombra una cuenta de aquí. Sin identificadores de cuenta (P13): siguen en los secretos de GitHub. Lo «pendiente» es tarea del dueño (BACKLOG_CORE §9). El dueño confirmó el 5 oct 2026 el segundo factor y los contactos de recuperación de la cuenta.",
+  "cuentas": [
+    {
+      "nombre": "ED1 principal",
+      "proposito": "Todos los productos del ecosistema: el CORE, CultivoPro y, desde su M0, la Tienda 3.0. Zonas laboratorio-digital.com y cultivopro.co; laboratorio-digital.app entra con el M0 de la Tienda.",
+      "plan": "free",
+      "duenio": "plataforma",
+      "recuperacion": {
+        "segundo_factor": "activo",
+        "contactos": "declarados"
+      }
+    }
+  ],
+  "fuera_de_la_plataforma": [
+    {
+      "nombre": "Gratuita del dueño",
+      "motivo": "Ningún producto se despliega aquí. Repartir un producto entre cuentas gratuitas para sumar cuota choca con los términos de Cloudflare (ADR-7, bitácora agro 4)."
+    },
+    {
+      "nombre": "Con servicios pagos del dueño",
+      "motivo": "Ajena a la plataforma. Si algún día se usa, se declara arriba con su propósito (PLATAFORMA §3.1)."
+    }
+  ]
+}

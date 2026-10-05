@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Productos del CORE (infrastructure/productos.json)",
+  "description": "PLATAFORMA §4.2, ADR-20, HU-C1.1. Cada producto declara sus tipos de organización, sus roles, sus planes y su política. El despliegue lo copia a las tablas de referencia del CORE (HU-C2.3). Agregar un producto es un archivo y un despliegue, no una migración.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["productos"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "nota": { "type": "string" },
+    "productos": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/producto" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]{2,24}$",
+      "description": "Minúsculas, números y guiones, de 2 a 24 caracteres: el mismo CHECK que la tabla producto de la migración 0006."
+    },
+    "origen": {
+      "type": "string",
+      "pattern": "^https://[a-z0-9.-]+$"
+    },
+    "rol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "administra", "invitable"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "administra": {
+          "type": "boolean",
+          "description": "Quien tiene este rol paga, invita, cambia roles y quita personas. Reemplaza al «propietario» escrito en el código."
+        },
+        "invitable": {
+          "type": "boolean",
+          "description": "Se puede ofrecer en una invitación."
+        }
+      }
+    },
+    "producto": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "nombre",
+        "estado",
+        "app",
+        "tipos",
+        "roles",
+        "planes",
+        "politica",
+        "prefijo_de_cobro",
+        "gracia_dias"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "nombre": { "type": "string", "minLength": 2 },
+        "estado": {
+          "enum": ["activo", "pausado", "retirado"],
+          "description": "Un producto que sale del archivo no se borra de la base: queda retirado (P21)."
+        },
+        "excepcion": {
+          "type": "string",
+          "pattern": "^ADR-[0-9]+$",
+          "description": "La excepción declarada que lo trae antes de su fase o fuera del ICP (ED1 §2.1)."
+        },
+        "app": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["origenes", "rutas_de_vuelta"],
+          "properties": {
+            "origenes": {
+              "description": "De dónde viene la app del producto. El agro los toma de celdas.json › sitio, su única fuente; los productos nuevos los declaran aquí.",
+              "oneOf": [
+                { "const": "celdas.json › sitio" },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["produccion", "staging"],
+                  "properties": {
+                    "produccion": { "$ref": "#/$defs/origen" },
+                    "staging": { "$ref": "#/$defs/origen" }
+                  }
+                }
+              ]
+            },
+            "rutas_de_vuelta": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "type": "string", "pattern": "^/([a-z0-9-]+/)*$" }
+            }
+          }
+        },
+        "tipos": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/rol" }
+        },
+        "planes": {
+          "type": "string",
+          "pattern": "^content/[a-z0-9/_-]+\\.json$",
+          "description": "Ruta del planes.json del producto, el mismo que lee su página de precios (P2)."
+        },
+        "politica": {
+          "type": "string",
+          "pattern": "^content/[a-z0-9/_-]+\\.json$"
+        },
+        "prefijo_de_cobro": {
+          "$ref": "#/$defs/id",
+          "description": "Prefijo de la referencia de cada pago (agro-<uuidv7>). Único entre productos."
+        },
+        "gracia_dias": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30,
+          "description": "Días que el plan pagado sigue vigente después de vencer (PLATAFORMA §4.8)."
+        }
+      }
+    }
+  }
+}

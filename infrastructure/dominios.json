@@ -1,0 +1,28 @@
+{
+  "$schema": "../schemas/dominios.schema.json",
+  "nota": "Los dominios del ecosistema (ADR-27, PLATAFORMA §3.3–§3.4, HU-C1.3). Los reservados de laboratorio-digital.app por proyecto o marca salen de aquí: el despliegue de la Tienda los copia a tienda_control.slug_reservado (P2). Los de infraestructura y suplantación los siembra esa migración. Todo hostname de laboratorio-digital.app que use un Worker del repositorio tiene que estar declarado aquí.",
+  "dominios": [
+    {
+      "dominio": "laboratorio-digital.com",
+      "papel": "El ecosistema: el sitio principal y el CORE (cuenta.laboratorio-digital.com). No sirve contenido de comercios ni de usuarios; las dos tiendas 2.0 son la excepción heredada.",
+      "cuenta": "ED1 principal",
+      "zona_activa": true
+    },
+    {
+      "dominio": "laboratorio-digital.app",
+      "papel": "Las tiendas sin dominio propio y los proyectos nuevos, en un solo espacio de nombres de primer nivel, sin Public Suffix List.",
+      "cuenta": "ED1 principal",
+      "zona_activa": false
+    },
+    {
+      "dominio": "cultivopro.co",
+      "papel": "CultivoPro y sus derivados: el sitio, las calculadoras, el cuaderno y lo que venga, como mcp.cultivopro.co.",
+      "cuenta": "ED1 principal",
+      "zona_activa": true
+    }
+  ],
+  "reservados_app": {
+    "proyecto": [],
+    "marca": ["laboratorio", "laboratorio-digital", "cultivopro", "ed1"]
+  }
+}

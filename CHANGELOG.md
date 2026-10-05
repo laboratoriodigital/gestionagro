@@ -5,12 +5,20 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Los tokens de diseño v2 del ecosistema (`@ed1/ui/v2`, ADR-29): tinta y papel con un acento cobalto, el verde de CultivoPro como tema, modo claro y oscuro, y movimiento que se apaga si la persona lo pide. Una sola hoja de 3 KB, generada desde una única fuente, con el contraste AA comprobado por una prueba. El sitio y el cuaderno siguen con la v1 (HU-C6.1).
+- Los productos del CORE como dato: `infrastructure/productos.json` (por ahora, CultivoPro) con su esquema y el paquete `@ed1/productos`. Agregar un producto será un archivo y un despliegue, no una migración (HU-C1.1).
 - ED1 v1.4 (`docs/ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md`), con las decisiones del dueño del 5 oct 2026: una sola cuenta de Cloudflare con Workers Paid cuando llegue la Tienda 3.0, los tres dominios del ecosistema (`laboratorio-digital.com`, `laboratorio-digital.app` y `cultivopro.co`), planes de 1, 3, 6 y 12 meses y el estudio de mercado de ecommerce definitivo. ADR-23, ADR-26 y ADR-27, aceptados.
 - Diseño de la Tienda 3.0, versión 0.2 (`docs/tienda/TIENDA-3.0.md`): contraentrega con su recaudo, links de pago, cuatro niveles de plan como hipótesis, el facturador del comercio integrado, el catálogo para Meta y una lista de paridad con la Tienda 2.0. Las pruebas de su modelo de datos pasan a 82 comprobaciones, y las del CORE a 35.
 - Runbook para renombrar el repositorio en GitHub, con lo que no se renombra nunca (`docs/runbooks/renombrar-repositorio.md`).
 - Plan de trabajo y backlog refinado del CORE (`docs/plataforma/BACKLOG_CORE.md`): 8 hitos, 11 sprints, 12 épicas y 65 historias refinadas (más 5 preparadas) con sus work items, la dirección de diseño del frontend del ecosistema y la cuenta en `cuenta.laboratorio-digital.com`. Y su bitácora (`docs/plataforma/BITACORA_CORE.md`), con las convenciones de las otras dos para unirlas.
 
+### Cambiado
+- El CI puede correr en un runner propio mientras GitHub Actions no arranca trabajos: lo decide la variable del repositorio `RUNNER_CI`, y sin ella vuelve solo a los equipos de GitHub. Ahí usa el Edge del equipo. Los despliegues siguen en GitHub (`docs/runbooks/runner-propio.md`).
+- El CI revisa la convención de commits del PR, su título y su descripción: `tipo(alcance): descripción`, 72 caracteres o menos y sin la marca de Claude Code. Corre antes de instalar, así que un commit mal escrito se sabe en segundos (HU-C0.2).
+- El CI gasta según lo que cambió: si un PR solo toca documentos (`docs/` o un `.md` de la raíz), no abre navegadores ni compila, y corre solo las pruebas que leen documentos. El resumen dice qué saltó y por qué. Si no puede calcular el cambio, corre todo (HU-C11.6).
+
 ### Corregido
+- La receta para rehacer tablas en D1 (ADR-25) se comprobó en el D1 local de workerd, no solo en el SQLite de Node: funciona igual. Y se supo algo nuevo: su guarda revisa toda la base, así que una fila huérfana vieja en cualquier tabla detendría la migración. Antes de migrar producción se revisa la base (HU-C2.1, bitácora core 2).
 - PLATAFORMA decía «exportaciones semanales fuera de Cloudflare» citando un documento que dice mensual. Ahora dice lo mismo que ED1 §20.3: semanal en R2 y mensual cifrada fuera (bitácora core 1).
 
 ### Cambiado

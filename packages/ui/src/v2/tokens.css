@@ -1,0 +1,124 @@
+/*
+ * GENERADO por scripts/generar-ui.ts desde packages/ui/src/v2/tokens.ts. No editar a mano:
+ * una prueba compara este archivo con lo que genera (P2). Tokens v2 del ecosistema (ADR-29).
+ */
+
+:root {
+  color-scheme: light dark;
+  --gris-0: #ffffff;
+  --gris-50: #f6f6f5;
+  --gris-100: #ececea;
+  --gris-200: #d9d9d6;
+  --gris-300: #bdbdb9;
+  --gris-400: #9a9a96;
+  --gris-500: #76766f;
+  --gris-600: #5a5a54;
+  --gris-700: #41413c;
+  --gris-800: #2a2a26;
+  --gris-900: #171715;
+  --gris-1000: #0b0b0a;
+  --fuente-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --fuente-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Consolas, 'Liberation Mono', monospace;
+  --texto-base: 1.0625rem;
+  --texto-pequeno: 0.875rem;
+  --texto-etiqueta: 0.75rem;
+  --texto-titulo-3: 1.33rem;
+  --texto-titulo-2: clamp(1.66rem, 3.2vw, 2.08rem);
+  --texto-titulo-1: clamp(2.08rem, 5vw, 3.25rem);
+  --texto-display: clamp(2.5rem, 8vw, 6rem);
+  --peso-display: 350;
+  --peso-texto: 400;
+  --peso-fuerte: 600;
+  --interletrado-display: -0.03em;
+  --interletrado-etiqueta: 0.08em;
+  --interlineado: 1.55;
+  --interlineado-display: 1.02;
+  --espacio-1: 0.25rem;
+  --espacio-2: 0.5rem;
+  --espacio-3: 0.75rem;
+  --espacio-4: 1rem;
+  --espacio-6: 1.5rem;
+  --espacio-8: 2rem;
+  --espacio-12: 3rem;
+  --espacio-16: 4rem;
+  --espacio-24: 6rem;
+  --espacio-40: 10rem;
+  --radio-campo: 12px;
+  --radio-tarjeta: 24px;
+  --radio-pildora: 999px;
+  --borde-ancho: 1px;
+  --objetivo-tactil: 48px;
+  --ancho-lectura: 42rem;
+  --ancho-pagina: 80rem;
+  --tiempo-corto: 150ms;
+  --tiempo-medio: 250ms;
+  --tiempo-largo: 400ms;
+  --curva-salida: cubic-bezier(0.2, 0, 0, 1);
+
+  --superficie: #ffffff;
+  --superficie-2: #f6f6f5;
+  --texto: #0b0b0a;
+  --texto-suave: #5a5a54;
+  --borde: #d9d9d6;
+  --acento: #2340d0;
+  --acento-texto: #ffffff;
+  --foco: #2340d0;
+  --peligro: #b3261e;
+  --exito: #1d6b3f;
+  --aviso: #8a5300;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='claro']) {
+    --superficie: #0b0b0a;
+    --superficie-2: #171715;
+    --texto: #f6f6f5;
+    --texto-suave: #bdbdb9;
+    --borde: #2a2a26;
+    --acento: #94a9ff;
+    --acento-texto: #0b0b0a;
+    --foco: #94a9ff;
+    --peligro: #ff9a8f;
+    --exito: #7fd4a0;
+    --aviso: #f0b45a;
+  }
+}
+
+:root[data-tema='oscuro'] {
+  --superficie: #0b0b0a;
+  --superficie-2: #171715;
+  --texto: #f6f6f5;
+  --texto-suave: #bdbdb9;
+  --borde: #2a2a26;
+  --acento: #94a9ff;
+  --acento-texto: #0b0b0a;
+  --foco: #94a9ff;
+  --peligro: #ff9a8f;
+  --exito: #7fd4a0;
+  --aviso: #f0b45a;
+}
+
+:root[data-producto='cultivopro'] {
+  --acento: #1f6b3a;
+  --foco: #1f6b3a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-producto='cultivopro']:not([data-tema='claro']) {
+    --acento: #6cc28a;
+    --foco: #6cc28a;
+  }
+}
+
+:root[data-producto='cultivopro'][data-tema='oscuro'] {
+  --acento: #6cc28a;
+  --foco: #6cc28a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --tiempo-corto: 0ms;
+    --tiempo-medio: 0ms;
+    --tiempo-largo: 0ms;
+  }
+}
