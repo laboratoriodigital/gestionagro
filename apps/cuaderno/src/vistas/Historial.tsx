@@ -24,6 +24,7 @@ import { idDispositivo } from '../almacen/dispositivo.ts';
 import { leerFinca } from '../almacen/finca.ts';
 import { leerPersonas } from '../almacen/personas.ts';
 import { CampoSeleccion } from '../componentes/Campo.tsx';
+import { FotoDelRegistro } from '../componentes/FotoDelRegistro.tsx';
 import { Paginador, usarPaginacion } from '../componentes/Paginador.tsx';
 import { resumenDe } from '../componentes/resumen.ts';
 import { fechaHora, nombreDeArea } from '../formato.ts';
@@ -275,6 +276,7 @@ export function Historial() {
                     {e.anteriores.length > 0 && <span class="etiqueta"> · Corregido</span>}
                   </p>
                   <p class="detalle-insumo">{resumenDe(r, nombres)}</p>
+                  <FotoDelRegistro registro={r} area={nombreArea(r.area_ids[0])} />
                   {pendientes.has(r.id) && <p class="ayuda">Solo en este teléfono</p>}
                   {corrigiendo === r.id ? (
                     <Corregir

@@ -10,6 +10,7 @@ import { leerCiclos } from '../almacen/ciclos.ts';
 import { pendientesDeSubir, ultimosRegistros } from '../almacen/consultas.ts';
 import { leerFinca } from '../almacen/finca.ts';
 import { leerPersonas } from '../almacen/personas.ts';
+import { FotoDelRegistro } from '../componentes/FotoDelRegistro.tsx';
 import { Paginador, usarPaginacion } from '../componentes/Paginador.tsx';
 import { resumenDe } from '../componentes/resumen.ts';
 import { fechaHora, nombreDeArea } from '../formato.ts';
@@ -65,6 +66,7 @@ function UltimosRegistros(props: {
               <strong>{nombre(r.area_ids[0])}</strong> · {fechaHora(r.instante_evento)}
             </p>
             <p class="detalle-insumo">{resumenDe(r, props.personas)}</p>
+            <FotoDelRegistro registro={r} area={nombre(r.area_ids[0])} />
             {props.pendientes.has(r.id) && <p class="ayuda">Solo en este teléfono</p>}
           </li>
         ))}
