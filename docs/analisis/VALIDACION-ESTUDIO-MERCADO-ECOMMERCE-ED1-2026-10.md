@@ -13,7 +13,7 @@ _Los ajustes ya están aplicados en el estudio, que pasa a la versión 1.1. Cada
 
 - **Su método es el mejor que tiene hoy el ecosistema para estudiar un mercado.** Cada cifra lleva fuente y tipo de evidencia, los límites se dicen y hay una lista de afirmaciones que se evitan. Conviene usarlo de plantilla. Las cifras que se comprobaron de nuevo coinciden: el cierre 2025 de la CCCE (COP 145,4 billones, 684,6 millones de transacciones, +11,1 % en valor y +19,9 % en número) y el contenido de la Ley 2439 de 2024.
 - **Solo leyó ED1.** No sabía tres cosas:
-  1. El ecosistema **ya opera tiendas**: la línea ecommerce tiene comercios reales con cobro por Bold, y un único producto vigente, la Tienda 2.0, al que esos comercios se migran.
+  1. El ecosistema **ya opera tiendas**: hay dos tiendas 2.0 en operación (dato del dueño, 5 oct 2026, §5), con cobro por Bold, y la 2.0 es el único producto vigente.
   2. **Ya tiene la plataforma** que el estudio da por construir: cuentas, organizaciones y roles; cobro con adaptador y conciliación; aislamiento por cliente; cuotas vigiladas.
   3. Ya hay **un análisis que recomienda la Tienda 3.0** sobre esa plataforma.
 - **Por eso su pregunta ya no es la del dueño.** El estudio pregunta «¿se construye un SaaS de tiendas?». La pregunta real es **«¿se sigue con la 2.0 más herramientas, o se invierte en la 3.0, y con qué señal?»**. La señal que el estudio pide (pago real, soporte por comercio, retención, cobro confiable) se puede **empezar a medir ya** con los comercios reales de la línea, antes de cualquier piloto nuevo. Son pocos, así que no reemplazan el piloto; pero son conducta real, no respuestas de entrevista.
@@ -70,7 +70,8 @@ Y seis precisiones:
 **Qué tiene el ecosistema (dato interno).**
 
 - **La línea ecommerce, con comercios reales.**
-  - La bitácora ecommerce cuenta dos comercios en producción, en la línea anterior, la «Tienda Básica» (entradas 66 y 67). Uno de ellos es la tienda de la finca cero, es decir, del propio dueño.
+  - **Dos tiendas 2.0 en operación**, según el dueño (5 oct 2026, §5).
+  - *Corrección:* la primera redacción de esta validación las ubicaba en la línea anterior, la «Tienda Básica», por las entradas 66 y 67 de la bitácora ecommerce. El dato vigente es el del dueño.
   - La **Tienda 2.0** («Tienda Panel», 1.0.0, 30 sep 2026) es hoja de Google, Apps Script y un Worker por tienda, con catálogo horneado, cobro con Bold y una flota por anillos en `laboratoriodigital/tiendas`. Su primera tienda ya se despliega y se actualiza con esa flota (entrada 93).
   - La decisión 36 deja un solo producto, la 2.0. Los comercios se migran a ella uno por uno, y la 3.0 empieza de cero desde `TRASLADO-3.0.md` (entrada de la versión 1.0.0).
 - **La plataforma**, en producción con CultivoPro (v0.3.0):
@@ -82,7 +83,7 @@ Y seis precisiones:
 
 **Por qué importa.**
 
-- **La evidencia que el estudio pide en §16.3 se empieza a medir hoy** con esos comercios, sin piloto nuevo y sin escribir código: si pagan y cuánto, cuántos minutos de soporte piden al mes, si siguen y cuántos cobros necesitaron revisión a mano. Son dos, y uno es del dueño: sirven para descubrir, no para estimar demanda, y no reemplazan el piloto pagado de §16.1.
+- **La evidencia que el estudio pide en §16.3 se empieza a medir hoy** con esos comercios, sin piloto nuevo y sin escribir código: si pagan y cuánto, cuántos minutos de soporte piden al mes, si siguen y cuántos cobros necesitaron revisión a mano. Son dos: sirven para descubrir, no para estimar demanda, y no reemplazan el piloto pagado de §16.1.
 - **La tienda alojada no cuesta «alto desde cero».** El CORE, el cobro, el aislamiento, el despliegue y la operación ya existen. Lo que falta es lo que nombra el análisis de la Tienda: el panel del comerciante, el catálogo horneado por tienda, los dominios propios, el correo y la migración. Son meses de trabajo, de costo **medio**, no alto.
 - **A los dos caminos de §15.3 les falta el que ya está en marcha:** mantener la 2.0 y migrarla a la 3.0 cuando se cumplan condiciones.
 
@@ -344,14 +345,22 @@ Cuatro ajustes que salen de esta validación, marcados en el texto con su etique
 
 Y una corrección de paso (P18): **§9, punto 2** decía que las calculadoras de CultivoPro «ya traen tráfico». Siguen en borrador, sin indexar, y su demanda medida es pequeña.
 
-## 5. Lo que el repositorio no sabe y debe dar el dueño
+## 5. Lo que el repositorio no sabía: respuestas del dueño (5 oct 2026)
 
-1. **¿Cuántos comercios tiene hoy la línea ecommerce, entre la Tienda Básica y la 2.0?** Cuáles pagan, cuánto, desde cuándo, y cuánto soporte piden al mes. Con eso se empiezan a medir, en una tarde, cuatro de las métricas de §16.3 [V1].
-2. **¿Se miden en Keyword Planner los 25 términos de §12.6 antes de construir la primera herramienta?** Los CSV no se suben al repositorio; solo las cifras, como en el agro [V2].
-3. **¿El ecommerce entra como excepción declarada,** igual que el agro con el ADR-2, para usar desde ya las cuentas y el cobro? ¿O espera la Fase 7? [V8]
-4. **¿Prepago trimestral o anual de los planes,** para que la tarifa fija de Bold pese menos? [V4]
-5. **¿Contador y abogado antes del primer cobro real de un plan?** El contador, para la factura electrónica y el IVA o su exclusión. El abogado, para los términos, el contrato de transmisión de datos y el antiabuso [V4, V10].
-6. **¿El CORE gana la dimensión de producto cuando arranque la 3.0,** con su migración planeada? [V9]
+| # | Pregunta | Respuesta del dueño | Qué cambia |
+|---|---|---|---|
+| 1 | ¿Cuántos comercios tiene hoy la línea ecommerce, entre la Tienda Básica y la 2.0? [V1] | «Hay dos tiendas 2.0 operando» | Corrige V1 (§3) y la fila de la línea ecommerce del estudio (§3.3). Cuáles pagan, cuánto y cuánto soporte piden sigue pendiente: es la primera medición de §16.3 |
+| 2 | ¿Se miden los 25 términos de §12.6 antes de construir? [V2] | «Se miden las keyword, pero no es bloqueante para este proyecto» | Se miden; no detienen la Tienda 3.0. Siguen decidiendo qué herramientas gratuitas se construyen (ED1 v1.3 §19.1) |
+| 3 | ¿El ecommerce entra como excepción declarada, como el agro con el ADR-2? [V8] | «Sí, es una excepción declarada» | ARQUITECTURA ADR-21. ED1 v1.3 §2.1 y §33 |
+| 4 | ¿Prepago trimestral o anual de los planes? [V4] | «Todas las opciones de planes» | Mensual, trimestral y anual, prepagados (ADR-22; `docs/arquitectura/PLATAFORMA.md` §4.8) |
+| 5 | ¿Contador y abogado antes del primer cobro real? [V4, V10] | «Sin contador y abogado por ahora, hagamos todo con rigor técnico» | Cada obligación se traduce en un control técnico verificable (`docs/arquitectura/TIENDA-3.0.md` §14). Facturación electrónica: solo los ganchos |
+| 6 | ¿El CORE gana la dimensión de producto cuando arranque la 3.0? [V9] | «El core gana dimensión de producto, dejémoslo listo para crecer» | ARQUITECTURA ADR-20; diseño y migración probada en `PLATAFORMA.md` §4 |
+
+**El mismo día, el dueño agregó tres pedidos:**
+
+1. Integrar los principios de preparación para agentes de isitagentready.com «hasta donde lo permita el modelo». Está en `PLATAFORMA.md` §5.
+2. Diseñar la Tienda 3.0 **desde cero**: «la migración de la tienda 2.0 no es requisito, podemos generar scripts luego para subir su data». Está en `TIENDA-3.0.md`, y los scripts en su §17.
+3. Analizar su cuenta paga de Cloudflare (`cuenta-cloudflare-paga.md`) y otros proveedores de cómputo (`proveedores-de-computo.md`). Todo se integra en `ECOSISTEMA-DIGITAL-ED1-v1.3.md`.
 
 ## 6. Fuentes de esta validación
 

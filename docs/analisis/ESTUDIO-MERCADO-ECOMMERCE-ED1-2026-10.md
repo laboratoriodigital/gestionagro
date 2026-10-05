@@ -1,7 +1,7 @@
 # Estudio de mercado y vigilancia tecnológica de herramientas de ecommerce
 ## Colombia, Latinoamérica y referentes globales — Implicaciones para ED1
 
-**Versión:** 1.1: validada a la luz del ecosistema el 5 de octubre de 2026 (ver «Control de versiones»).  
+**Versión:** 1.2: validada a la luz del ecosistema el 5 de octubre de 2026 y puesta al día con las respuestas del dueño del mismo día (ver «Control de versiones»).  
 **Fecha de corte:** 4 de octubre de 2026, hora de Colombia. Lo agregado en la versión 1.1 se consultó el 5 de octubre de 2026.  
 **Documento de referencia:** `docs/ECOSISTEMA-DIGITAL-ED1-v1.2.md`, versión del 28 de septiembre de 2026. Desde la versión 1.1, también lo que el ecosistema ya construyó, midió o decidió (§3.3).  
 **Validación:** `VALIDACION-ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md`, en esta misma carpeta: hallazgos [V1]–[V11] y por qué cambió cada sección.  
@@ -17,6 +17,7 @@
 |---|---|---|
 | 1.0 | 4 oct 2026 | Investigación documental, con ED1 v1.2 como única fuente sobre el proyecto |
 | 1.1 | 5 oct 2026 | Validación a la luz del ecosistema. Lo que ya existe (§3.3) **[V1]**; medir la demanda antes de construir (§12.6) **[V2]**; cuotas corregidas y restricciones de la cuenta (§9.4) **[V3]**; cobro y economía unitaria de los planes de ED1 (§10.4, §13) **[V4]**; paquete de herramientas (§15) **[V5]**; HTML por producto en la tienda alojada (§12.3) **[V6]**; tarifas de WhatsApp y regla de Meta sobre IA (§11.1, §12.1) **[V7]**; fases y umbrales de ED1 (§16) **[V8]**; lo que la plataforma ya resuelve y lo que falta (§8.1, §16.4) **[V9]**; datos personales, términos y antiabuso (§14.1) **[V10]**; correcciones menores **[V11]** |
+| 1.2 | 5 oct 2026 | Respuestas del dueño (validación §5): hay dos tiendas 2.0 en operación, no dos comercios en la Tienda Básica (§3.3, S80); la Tienda 3.0 entra como excepción declarada y se diseña desde cero, con los datos actuales cargados por scripts (§15.3). Arquitectura en `docs/arquitectura/` |
 
 ---
 
@@ -129,7 +130,7 @@ Dato interno, al 5 de octubre de 2026. Cambia el punto de partida del resto del 
 
 | Pieza | Estado | Qué resuelve de este estudio | Fuente |
 |---|---|---|---|
-| Línea ecommerce | Dos comercios reales en producción, en la línea anterior («Tienda Básica»); uno es la tienda de la finca cero. La Tienda 2.0 («Tienda Panel», 1.0.0) es el único producto vigente: hoja de Google, Apps Script y un Worker por tienda, catálogo horneado, cobro con Bold y flota por anillos. Los comercios se migran a ella uno por uno | Conducta real de pago, soporte y retención, que se empieza a medir ya (§16.1); el camino «2.0 → 3.0» (§15.3) | S80 |
+| Línea ecommerce | Dos tiendas 2.0 en operación (dato del dueño, 5 oct 2026; la versión 1.1 las ubicaba en la línea anterior, la «Tienda Básica»). La Tienda 2.0 («Tienda Panel», 1.0.0) es el único producto vigente: hoja de Google, Apps Script y un Worker por tienda, catálogo horneado, cobro con Bold y flota por anillos | Conducta real de pago, soporte y retención, que se empieza a medir ya (§16.1); el camino «2.0 → 3.0» (§15.3) | S80. El dueño precisó el 5 oct 2026 que hay dos tiendas 2.0 en operación |
 | Tienda 3.0 (propuesta) | Análisis del 4 oct 2026: construirla sobre la plataforma, con cada tienda como una fila y no como un repositorio; la 2.0 sigue hasta migrar | La arquitectura de la «Tienda alojada completa» (§15.1) | S81 |
 | CORE (cuentas) | En producción con CultivoPro: Google, organizaciones, membresías, roles, invitaciones y planes con vencimiento; tokens Ed25519 que cada celda verifica sin llamar al CORE | Administración y roles (§8.1); recuperación de cuenta con Google (§16.4). Sus valores todavía son del agro (§16.4) | S82, S85 |
 | Cobro | Bold detrás de un adaptador; monto calculado en el servidor; verificación por API; conciliación cada 15 min; estado «revisar» si el monto no coincide | El flujo de §10.4, ya construido para los planes de CultivoPro | S83, S85 |
@@ -876,7 +877,7 @@ El paquete conserva el objetivo ED1 de cinco herramientas iniciales, pero sus in
 |---|---|---|
 | Complementos para tiendas existentes | El problema persiste con plataforma y el cliente no quiere migrar | Utilidades premium, app, conector o servicio |
 | Comercio social y pedidos | Hay operación frecuente fuera de una tienda y pago por ordenarla | Catálogo/pedidos/conciliación con tienda opcional |
-| Tienda alojada para los comercios de la línea **[V1]** | Los comercios reales pagan, se quedan y piden un soporte que cabe en su contribución (§16.3) | Hoy, migrar de la Tienda Básica a la 2.0. Con la señal, construir la 3.0 sobre la plataforma del ecosistema (S81) |
+| Tienda alojada para los comercios de la línea **[V1]** | Los comercios reales pagan, se quedan y piden un soporte que cabe en su contribución (§16.3) | Hoy, las dos tiendas 2.0 siguen vendiendo. La 3.0 se construye como excepción declarada, diseñada desde cero sobre la plataforma del ecosistema, y los datos de las tiendas actuales se cargan con scripts (decisiones del dueño del 5 oct 2026; `docs/arquitectura/TIENDA-3.0.md`) |
 
 Los tres pueden compartir datos y herramientas. Los dos primeros no necesitan una plataforma universal antes de tener usuarios, y el tercero ya la tiene (§3.3).
 
