@@ -2,7 +2,7 @@
  * Piezas comunes de los formularios cuando corrigen un registro (HU-E3.12). Al corregir, el área
  * y la fecha son las del evento: no se cambian, se muestran.
  */
-import type { Area, Registro } from '@gestionagro/agro-schema';
+import type { Area, Registro } from '@ed1/agro-schema';
 import { fechaHora } from '../formato.ts';
 
 /** Número guardado → texto del campo, con coma decimal. Nulo = campo vacío («no medido»). */

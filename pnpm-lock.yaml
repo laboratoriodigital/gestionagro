@@ -14,16 +14,16 @@ importers:
       '@biomejs/biome':
         specifier: ^2.5.14
         version: 2.5.14
-      '@gestionagro/agro-schema':
+      '@ed1/agro-schema':
         specifier: workspace:*
         version: link:packages/agro-schema
-      '@gestionagro/d1':
+      '@ed1/d1':
         specifier: workspace:*
         version: link:packages/d1
-      '@gestionagro/sync':
+      '@ed1/sync':
         specifier: workspace:*
         version: link:packages/sync
-      '@gestionagro/tokens':
+      '@ed1/tokens':
         specifier: workspace:*
         version: link:packages/tokens
       '@playwright/test':
@@ -56,19 +56,19 @@ importers:
 
   apps/api-celda:
     dependencies:
-      '@gestionagro/d1':
+      '@ed1/d1':
         specifier: workspace:*
         version: link:../../packages/d1
-      '@gestionagro/kill-switch':
+      '@ed1/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
-      '@gestionagro/sync':
+      '@ed1/sync':
         specifier: workspace:*
         version: link:../../packages/sync
-      '@gestionagro/tokens':
+      '@ed1/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
-      '@gestionagro/trazabilidad':
+      '@ed1/trazabilidad':
         specifier: workspace:*
         version: link:../../packages/trazabilidad
       hono:
@@ -81,16 +81,16 @@ importers:
 
   apps/core:
     dependencies:
-      '@gestionagro/agro-schema':
-        specifier: workspace:*
-        version: link:../../packages/agro-schema
-      '@gestionagro/d1':
+      '@ed1/d1':
         specifier: workspace:*
         version: link:../../packages/d1
-      '@gestionagro/kill-switch':
+      '@ed1/ids':
+        specifier: workspace:*
+        version: link:../../packages/ids
+      '@ed1/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
-      '@gestionagro/tokens':
+      '@ed1/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
       arctic:
@@ -106,19 +106,19 @@ importers:
 
   apps/cuaderno:
     dependencies:
-      '@gestionagro/agro-calc':
+      '@ed1/agro-calc':
         specifier: workspace:*
         version: link:../../packages/agro-calc
-      '@gestionagro/agro-schema':
+      '@ed1/agro-schema':
         specifier: workspace:*
         version: link:../../packages/agro-schema
-      '@gestionagro/sync':
+      '@ed1/sync':
         specifier: workspace:*
         version: link:../../packages/sync
-      '@gestionagro/trazabilidad':
+      '@ed1/trazabilidad':
         specifier: workspace:*
         version: link:../../packages/trazabilidad
-      '@gestionagro/ui':
+      '@ed1/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       dexie:
@@ -176,22 +176,22 @@ importers:
       '@astrojs/preact':
         specifier: ^6.0.5
         version: 6.0.5(@babel/core@7.29.7(supports-color@10.2.2))(@types/node@22.20.4)(esbuild@0.28.2)(preact@10.29.8)(supports-color@10.2.2)(terser@5.51.2)(yaml@2.9.1)
-      '@gestionagro/agro-calc':
+      '@ed1/agro-calc':
         specifier: workspace:*
         version: link:../../packages/agro-calc
-      '@gestionagro/agro-schema':
+      '@ed1/agro-schema':
         specifier: workspace:*
         version: link:../../packages/agro-schema
-      '@gestionagro/eventos':
+      '@ed1/eventos':
         specifier: workspace:*
         version: link:../../packages/eventos
-      '@gestionagro/kill-switch':
+      '@ed1/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
-      '@gestionagro/trazabilidad':
+      '@ed1/trazabilidad':
         specifier: workspace:*
         version: link:../../packages/trazabilidad
-      '@gestionagro/ui':
+      '@ed1/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@noble/ed25519':
@@ -210,7 +210,7 @@ importers:
         specifier: ^2.9.1
         version: 2.9.1
     devDependencies:
-      '@gestionagro/cuaderno':
+      '@ed1/cuaderno':
         specifier: workspace:*
         version: link:../cuaderno
       wrangler:
@@ -221,6 +221,9 @@ importers:
 
   packages/agro-schema:
     dependencies:
+      '@ed1/ids':
+        specifier: workspace:*
+        version: link:../ids
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -233,11 +236,17 @@ importers:
 
   packages/eventos: {}
 
+  packages/ids:
+    dependencies:
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+
   packages/kill-switch: {}
 
   packages/sync:
     dependencies:
-      '@gestionagro/agro-schema':
+      '@ed1/agro-schema':
         specifier: workspace:*
         version: link:../agro-schema
 

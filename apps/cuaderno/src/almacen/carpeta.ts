@@ -6,7 +6,7 @@
  * No afirma cumplir ninguna norma (CA2): dice «registros de la finca para el periodo». La
  * estructura se revisa contra la lista de verificación de la certificación que se elija (T-0.4).
  */
-import type { Registro } from '@gestionagro/agro-schema';
+import type { Registro } from '@ed1/agro-schema';
 import type { CuadernoDb } from './db.ts';
 import { type DatosDespacho, leerDespachos } from './despachos.ts';
 import { leerLotes } from './lotes.ts';

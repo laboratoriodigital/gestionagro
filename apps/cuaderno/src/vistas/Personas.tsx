@@ -2,8 +2,8 @@
  * Personas de la finca (HU-E3.5): quienes trabajan, tengan o no cuenta. Solo nombre y rol; el
  * valor del jornal es opcional y va aparte. Desactivar no borra: conserva el historial.
  */
-import { leerNumero } from '@gestionagro/agro-calc';
-import { ErrorDeValidacion, fechaAgronomica, type Persona } from '@gestionagro/agro-schema';
+import { leerNumero } from '@ed1/agro-calc';
+import { ErrorDeValidacion, fechaAgronomica, type Persona } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';

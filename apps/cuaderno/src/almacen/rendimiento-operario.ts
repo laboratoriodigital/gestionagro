@@ -4,8 +4,8 @@
  * Solo cosechas vigentes: una corregida cuenta una vez. Las cosechas sin horas o sin quién
  * cosechó no entran al cálculo y se cuentan para decirlo (CA3, P1).
  */
-import { type RendimientoDePersona, rendimientoPorOperario } from '@gestionagro/agro-calc';
-import type { Registro } from '@gestionagro/agro-schema';
+import { type RendimientoDePersona, rendimientoPorOperario } from '@ed1/agro-calc';
+import type { Registro } from '@ed1/agro-schema';
 import { soloVigentes } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';
 import type { Periodo } from './mano-de-obra.ts';

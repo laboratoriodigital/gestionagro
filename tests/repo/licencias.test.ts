@@ -39,7 +39,7 @@ describe('la guardia de licencias se comprueba a sí misma (P17)', () => {
   it('ignora los paquetes del workspace', () => {
     expect(
       dependenciasDeclaradas({
-        dependencies: { dexie: '^4', '@gestionagro/agro-schema': 'workspace:*' },
+        dependencies: { dexie: '^4', '@ed1/agro-schema': 'workspace:*' },
         devDependencies: { vitest: '^5' },
       }),
     ).toEqual(['dexie', 'vitest']);

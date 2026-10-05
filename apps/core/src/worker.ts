@@ -23,13 +23,9 @@
  * con valores de fábrica (P1).
  */
 
-import type { BaseD1 } from '@gestionagro/d1';
-import {
-  crearLectorKillSwitch,
-  type LectorKillSwitch,
-  type LectorKv,
-} from '@gestionagro/kill-switch';
-import { type Firmante, firmanteDesde } from '@gestionagro/tokens';
+import type { BaseD1 } from '@ed1/d1';
+import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
+import { type Firmante, firmanteDesde } from '@ed1/tokens';
 import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
 import { PRODUCTO_CORE } from './constantes.ts';

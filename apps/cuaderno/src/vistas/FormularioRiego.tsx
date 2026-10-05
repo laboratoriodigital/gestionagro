@@ -10,8 +10,8 @@ import {
   leerNumero,
   RANGO_CE_DS_M,
   RANGO_PH,
-} from '@gestionagro/agro-calc';
-import { type Area, ErrorDeRegistro, type Registro } from '@gestionagro/agro-schema';
+} from '@ed1/agro-calc';
+import { type Area, ErrorDeRegistro, type Registro } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';

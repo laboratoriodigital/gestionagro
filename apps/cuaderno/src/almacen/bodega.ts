@@ -10,8 +10,8 @@
  * - **Existencia negativa** se avisa sin bloquear nada en el campo (CA3).
  * - **Costo por nave y ciclo:** el costo de cada salida, por el área y el ciclo de su aplicación.
  */
-import { bodega, type Movimiento } from '@gestionagro/agro-calc';
-import { aVersionVigente, ErrorDeValidacion, type Registro } from '@gestionagro/agro-schema';
+import { bodega, type Movimiento } from '@ed1/agro-calc';
+import { aVersionVigente, ErrorDeValidacion, type Registro } from '@ed1/agro-schema';
 import type { DatosAplicacionGuardada } from './aplicaciones.ts';
 import { cabeceraDeRegistro } from './cabecera.ts';
 import { soloVigentes } from './consultas.ts';

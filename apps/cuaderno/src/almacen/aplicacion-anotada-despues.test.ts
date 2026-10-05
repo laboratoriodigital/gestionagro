@@ -2,7 +2,7 @@
  * Una aplicación anotada después de hecha (HU-E10.2): la carencia cuenta desde cuándo se aplicó,
  * no desde cuándo se anotó (P1, P8). Sobre fake-indexeddb, con las dos fincas de prueba (P4).
  */
-import { ErrorDeValidacion, instanteDeUuidv7, instanteEnColombia } from '@gestionagro/agro-schema';
+import { ErrorDeValidacion, instanteDeUuidv7, instanteEnColombia } from '@ed1/agro-schema';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { FINCAS_DE_PRUEBA } from '../../../../tests/fixtures/fincas.ts';

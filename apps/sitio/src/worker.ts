@@ -10,12 +10,8 @@
  * Kill switch (HU-E8.1): con `ks:<producto>` en `apagado`, el lote se rechaza con 503 y no se
  * escribe nada. La calculadora sigue funcionando: es un asset estático que no pasa por aquí.
  */
-import { EVENTOS, type Lote, VERSION_DEL_LOTE } from '@gestionagro/eventos';
-import {
-  crearLectorKillSwitch,
-  type LectorKillSwitch,
-  type LectorKv,
-} from '@gestionagro/kill-switch';
+import { EVENTOS, type Lote, VERSION_DEL_LOTE } from '@ed1/eventos';
+import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
 
 /** Productos que emiten eventos. Una prueba lo ata a los `product.yaml` (P2). */
 export const PRODUCTOS_CON_EVENTOS: readonly string[] = [

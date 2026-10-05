@@ -3,7 +3,7 @@
  * su número y se encola «actualizar». Una sola copia de este procedimiento para áreas, ciclos y
  * cultivos (P2).
  */
-import { ErrorDeValidacion, uuidv7, validarCatalogo, type ZodType } from '@gestionagro/agro-schema';
+import { ErrorDeValidacion, uuidv7, validarCatalogo, type ZodType } from '@ed1/agro-schema';
 import { Dexie } from 'dexie';
 
 import type { CuadernoDb, Entidad, OperacionSalida, VersionAnterior } from './db.ts';

@@ -15,7 +15,7 @@ import {
   fechaAgronomica,
   instanteDeUuidv7,
   type Registro,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { leerCiclos } from '../almacen/ciclos.ts';

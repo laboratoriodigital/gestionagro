@@ -4,8 +4,8 @@
  * (CA2; bitácora ecommerce, «la configuración de fábrica»). Mientras está abierto cuenta como
  * formulario abierto: una actualización no lo interrumpe (HU-E3.1, CA2).
  */
-import { leerNumero } from '@gestionagro/agro-calc';
-import { ErrorDeValidacion } from '@gestionagro/agro-schema';
+import { leerNumero } from '@ed1/agro-calc';
+import { ErrorDeValidacion } from '@ed1/agro-schema';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import type { CuadernoDb } from '../almacen/db.ts';

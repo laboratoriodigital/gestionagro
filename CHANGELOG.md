@@ -12,6 +12,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ### Cambiado
 - `docs/` se organiza por producto: `ecosistema/`, `plataforma/`, `agro/` y `tienda/`, con `ARQUITECTURA.md`, `BACKLOG.md` y `BITACORA.md` en la raíz. El mapa de las rutas viejas y nuevas está en `docs/README.md`.
 - El repositorio pasa a llamarse `plataforma` (ADR-26): el `README.md`, el `name` del `package.json` de la raíz y los comandos de los runbooks. Los nombres que guardan los teléfonos no cambian.
+- Los paquetes internos pasan de `@gestionagro/*` a `@ed1/*`. `uuidv7` y el esquema `id` salen a un paquete neutro, `@ed1/ids`, y el CORE deja de importar el paquete del agro: su Worker compilado pesa 13,7 KB menos. `@ed1/agro-schema` los sigue exportando (PLATAFORMA §6.1).
 
 ## [0.3.0] - 2026-10-04
 

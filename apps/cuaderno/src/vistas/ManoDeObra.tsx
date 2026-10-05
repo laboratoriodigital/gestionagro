@@ -3,8 +3,8 @@
  * jornal, general o por persona, con la fecha desde la que rige (cambiarlo no toca lo pasado).
  * Un jornal son 8 horas. No liquida nómina ni recargos: lo dice (CA3).
  */
-import { HORAS_POR_JORNAL, leerNumero, valorVigente } from '@gestionagro/agro-calc';
-import { ErrorDeValidacion, fechaAgronomica, type Persona } from '@gestionagro/agro-schema';
+import { HORAS_POR_JORNAL, leerNumero, valorVigente } from '@ed1/agro-calc';
+import { ErrorDeValidacion, fechaAgronomica, type Persona } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { type ManoDeObraDeArea, manoDeObraPorArea } from '../almacen/mano-de-obra.ts';

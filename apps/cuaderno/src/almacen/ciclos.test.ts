@@ -2,7 +2,7 @@
  * Ciclos de cultivo (HU-E3.4) sobre fake-indexeddb, con las dos fincas de prueba (P4).
  * El reloj se fija: «hoy» es el 15/01/2027 en Bogotá (P8).
  */
-import { type Area, ErrorDeValidacion, uuidv7 } from '@gestionagro/agro-schema';
+import { type Area, ErrorDeValidacion, uuidv7 } from '@ed1/agro-schema';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { FINCAS_DE_PRUEBA } from '../../../../tests/fixtures/fincas.ts';

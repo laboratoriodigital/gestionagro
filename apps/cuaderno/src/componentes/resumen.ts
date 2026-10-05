@@ -1,6 +1,6 @@
 /** Resumen de un registro en una línea, en palabras de finca. Lo usan Registrar e Historial (P2). */
-import { formatearKPa, formatearPct } from '@gestionagro/agro-calc';
-import type { Registro } from '@gestionagro/agro-schema';
+import { formatearKPa, formatearPct } from '@ed1/agro-calc';
+import type { Registro } from '@ed1/agro-schema';
 import type { DatosAplicacionGuardada } from '../almacen/aplicaciones.ts';
 import type { DatosClimaGuardado } from '../almacen/clima.ts';
 import type { DatosCosechaGuardada } from '../almacen/cosecha.ts';

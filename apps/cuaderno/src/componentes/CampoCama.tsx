@@ -4,7 +4,7 @@
  * una cama ahorra producto; la carencia de la cama cuenta para cosechar su nave y la de la nave
  * para sus camas (`bloqueoPorCarencia`).
  */
-import type { Area } from '@gestionagro/agro-schema';
+import type { Area } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { leerFinca } from '../almacen/finca.ts';

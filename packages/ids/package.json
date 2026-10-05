@@ -1,0 +1,13 @@
+{
+  "name": "@ed1/ids",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ids de la plataforma: UUIDv7 (RFC 9562), su instante y su esquema. Neutro: lo usan el CORE y todos los productos sin depender de ninguno (R2, PLATAFORMA §6.1).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}

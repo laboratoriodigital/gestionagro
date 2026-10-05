@@ -7,8 +7,8 @@
  * Idempotente: el teléfono genera el id (UUIDv7). Si la respuesta se pierde y el teléfono
  * reintenta, recibe la misma organización y no se crea otra.
  */
-import { id as esquemaId } from '@gestionagro/agro-schema';
-import { TokenInvalido, verificarAcceso } from '@gestionagro/tokens';
+import { id as esquemaId } from '@ed1/ids';
+import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import { SinCeldaDisponible } from './asignacion.ts';
 import type { Entorno } from './entrar.ts';

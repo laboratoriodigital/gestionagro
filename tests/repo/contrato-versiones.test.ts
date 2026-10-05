@@ -12,8 +12,8 @@
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ESQUEMAS_DE_DATOS } from '@gestionagro/agro-schema';
-import { ENTIDADES_DE_CATALOGO, validarOperacion } from '@gestionagro/sync';
+import { ESQUEMAS_DE_DATOS } from '@ed1/agro-schema';
+import { ENTIDADES_DE_CATALOGO, validarOperacion } from '@ed1/sync';
 import { describe, expect, it } from 'vitest';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 

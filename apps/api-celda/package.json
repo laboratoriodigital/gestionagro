@@ -1,5 +1,5 @@
 {
-  "name": "@gestionagro/api-celda",
+  "name": "@ed1/api-celda",
   "version": "0.1.0",
   "private": true,
   "description": "API de la celda: un Worker por celda con un D1 por shard, protocolo de sincronización v1 (ARQUITECTURA §5.5, HU-E5.1).",
@@ -8,11 +8,11 @@
     "build": "node ../../scripts/validar-wrangler-celdas.ts"
   },
   "dependencies": {
-    "@gestionagro/d1": "workspace:*",
-    "@gestionagro/kill-switch": "workspace:*",
-    "@gestionagro/sync": "workspace:*",
-    "@gestionagro/tokens": "workspace:*",
-    "@gestionagro/trazabilidad": "workspace:*",
+    "@ed1/d1": "workspace:*",
+    "@ed1/kill-switch": "workspace:*",
+    "@ed1/sync": "workspace:*",
+    "@ed1/tokens": "workspace:*",
+    "@ed1/trazabilidad": "workspace:*",
     "hono": "^4.13.12"
   },
   "devDependencies": {

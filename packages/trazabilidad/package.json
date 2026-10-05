@@ -1,5 +1,5 @@
 {
-  "name": "@gestionagro/trazabilidad",
+  "name": "@ed1/trazabilidad",
   "version": "0.1.0",
   "private": true,
   "description": "QR de trazabilidad de un lote (HU-E6.4, ADR-14): los datos que lleva, cómo se codifican en el fragmento y cómo se verifica la firma de la celda. Sin dependencias: lo usan la celda, el cuaderno y la página pública.",

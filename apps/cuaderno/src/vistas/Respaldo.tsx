@@ -6,7 +6,7 @@
  * - Funciona en un teléfono nuevo, sin finca: así se restaura el cuaderno al cambiar de teléfono.
  * - La última descarga se recuerda en `meta` para avisar si hace mucho que no se respalda.
  */
-import { fechaAgronomica, type TablaExportada } from '@gestionagro/agro-schema';
+import { fechaAgronomica, type TablaExportada } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import {

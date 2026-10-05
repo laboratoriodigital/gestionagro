@@ -14,7 +14,7 @@
  * Nadie cambia su propio rol ni se quita a sí mismo: una finca nunca se queda sin quien la
  * administre por un toque equivocado.
  */
-import { TokenInvalido, verificarAcceso } from '@gestionagro/tokens';
+import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import type { Entorno } from './entrar.ts';
 import { ROLES_INVITABLES } from './invitaciones.ts';

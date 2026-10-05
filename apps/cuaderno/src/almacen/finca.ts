@@ -14,7 +14,7 @@ import {
   type Finca,
   uuidv7,
   validarCatalogo,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { conEscritura } from '../actividad.ts';
 import type { CuadernoDb, VersionAnterior } from './db.ts';
 import { actualizarVersionado, operacion } from './versionado.ts';

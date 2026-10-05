@@ -1,10 +1,10 @@
 /**
  * CORE v0 contra un D1 local de verdad (HU-E4.1, CA1 a CA4). Qué no imita el D1 local: ver
- * `@gestionagro/d1/local` (P17).
+ * `@ed1/d1/local` (P17).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { BaseD1 } from '@gestionagro/d1';
+import type { BaseD1 } from '@ed1/d1';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
 import { PILOTOS_MAXIMOS, SinCeldaDisponible } from './asignacion.ts';

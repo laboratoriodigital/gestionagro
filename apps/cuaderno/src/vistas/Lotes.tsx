@@ -6,7 +6,7 @@
  * Despachos (HU-E6.3): quien los ve (propietario y supervisor) ve el saldo de cada lote,
  * «Despachar» y la lista de despachos.
  */
-import { ErrorDeValidacion, fechaAgronomica } from '@gestionagro/agro-schema';
+import { ErrorDeValidacion, fechaAgronomica } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import {

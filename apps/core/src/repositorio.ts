@@ -6,8 +6,9 @@
  * Presupuesto (≤ 1.000 filas escritas al día, §8.1): crear una organización escribe 2 filas
  * (organización y membresía del propietario); crear un usuario, 2 (usuario e identidad).
  */
-import { uuidv7 } from '@gestionagro/agro-schema';
-import type { BaseD1 } from '@gestionagro/d1';
+
+import type { BaseD1 } from '@ed1/d1';
+import { uuidv7 } from '@ed1/ids';
 import { asignarUbicacion, type CeldaDelDirectorio, type Ubicacion } from './asignacion.ts';
 
 export const ROLES = ['propietario', 'supervisor', 'operario', 'asesor', 'auditor'] as const;

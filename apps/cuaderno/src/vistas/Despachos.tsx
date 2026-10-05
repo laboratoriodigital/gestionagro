@@ -2,8 +2,8 @@
  * Despachar un lote y ver los despachos (HU-E6.3). Vive en «Lotes»: se despacha de un lote, y se
  * pueden sumar otros con la misma unidad. Solo lo ven propietario y supervisor (CA3).
  */
-import { leerNumero } from '@gestionagro/agro-calc';
-import { ErrorDeValidacion } from '@gestionagro/agro-schema';
+import { leerNumero } from '@ed1/agro-calc';
+import { ErrorDeValidacion } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';

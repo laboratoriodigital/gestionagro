@@ -4,8 +4,8 @@
  * los mismos campos con lo suyo, sin firma: «sin confirmar», y se puede reimprimir firmada después.
  * La firma se guarda en el teléfono: reimprimir no vuelve a pedirla.
  */
-import type { Registro } from '@gestionagro/agro-schema';
-import { codificar, type DatosQr, enlaceQr, fragmento } from '@gestionagro/trazabilidad';
+import type { Registro } from '@ed1/agro-schema';
+import { codificar, type DatosQr, enlaceQr, fragmento } from '@ed1/trazabilidad';
 import type { CuadernoDb } from './db.ts';
 import type { Lote } from './lotes.ts';
 

@@ -3,7 +3,7 @@
  * labores (HU-E3.9), aplicaciones con su carencia (HU-E3.10), cosecha (HU-E6.1) y monitoreo
  * (HU-E3.11). Cada formulario vive en su archivo.
  */
-import type { Area, Ciclo, Registro } from '@gestionagro/agro-schema';
+import type { Area, Ciclo, Registro } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { leerCiclos } from '../almacen/ciclos.ts';

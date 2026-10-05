@@ -1,17 +1,12 @@
 /**
  * Entrar con Google (HU-E4.2, CA1, CA3, CA4 y CA5 del lado del CORE) contra un D1 local y un
- * Google falso. Lo que el D1 local no imita: ver `@gestionagro/d1/local` (P17). Que Google acepte el
+ * Google falso. Lo que el D1 local no imita: ver `@ed1/d1/local` (P17). Que Google acepte el
  * cliente y la dirección de regreso se comprueba en staging (P16).
  */
 
 import { createHash } from 'node:crypto';
-import type { BaseD1, SentenciaD1 } from '@gestionagro/d1';
-import {
-  type ClavePublica,
-  generarClavePrivada,
-  hashDe,
-  verificarAcceso,
-} from '@gestionagro/tokens';
+import type { BaseD1, SentenciaD1 } from '@ed1/d1';
+import { type ClavePublica, generarClavePrivada, hashDe, verificarAcceso } from '@ed1/tokens';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';

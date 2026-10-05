@@ -1,18 +1,13 @@
 /**
  * Subir registros sin duplicar ni perder (HU-E5.2, lado de la celda) contra el D1 local de un
  * shard, con las dos fincas de prueba (P4). Lo que el D1 local no imita: ver
- * `@gestionagro/d1/local` (P17); el límite de 50 consultas por invocación se cuenta aquí.
+ * `@ed1/d1/local` (P17); el límite de 50 consultas por invocación se cuenta aquí.
  */
-import { uuidv7 } from '@gestionagro/agro-schema';
-import type { BaseD1, SentenciaD1 } from '@gestionagro/d1';
-import { baseLocal, vaciar } from '@gestionagro/d1/local';
-import { LOTE_MAXIMO, type Operacion } from '@gestionagro/sync';
-import {
-  type Firmante,
-  firmanteDesde,
-  firmarAcceso,
-  generarClavePrivada,
-} from '@gestionagro/tokens';
+import { uuidv7 } from '@ed1/agro-schema';
+import type { BaseD1, SentenciaD1 } from '@ed1/d1';
+import { baseLocal, vaciar } from '@ed1/d1/local';
+import { LOTE_MAXIMO, type Operacion } from '@ed1/sync';
+import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { FINCA_ENSAYO_DOS, FINCA_ENSAYO_UNO } from '../../../tests/fixtures/fincas.ts';
 import { crearApp, type Env, TABLAS_DEL_SHARD } from './worker.ts';

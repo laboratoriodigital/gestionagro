@@ -1,6 +1,6 @@
 /**
  * Qué puede hacer en este teléfono la persona de la sesión (HU-E4.5). La matriz es la misma de la
- * celda (`@gestionagro/sync`): aquí solo se esconde lo que la celda negaría de todos modos.
+ * celda (`@ed1/sync`): aquí solo se esconde lo que la celda negaría de todos modos.
  *
  * Sin finca en la nube, el teléfono es de quien lo configuró: puede todo.
  */
@@ -11,7 +11,7 @@ import {
   puede,
   puedeRegistro,
   type Rol,
-} from '@gestionagro/sync';
+} from '@ed1/sync';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { leerSesion, rolEnLaFinca } from '../almacen/sesion.ts';

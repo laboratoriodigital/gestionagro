@@ -15,7 +15,7 @@ import {
   type EtapaDpv,
   leerNumero,
   type NivelDpv,
-} from '@gestionagro/agro-calc';
+} from '@ed1/agro-calc';
 
 export const PASO_TEMPERATURA = 2;
 export const PASO_HUMEDAD = 5;

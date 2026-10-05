@@ -1,7 +1,7 @@
 /**
  * Historial y corrección sin borrar (HU-E3.12) sobre fake-indexeddb, con las dos fincas (P4).
  */
-import { ErrorDeRegistro, type Registro, uuidv7 } from '@gestionagro/agro-schema';
+import { ErrorDeRegistro, type Registro, uuidv7 } from '@ed1/agro-schema';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { FINCAS_DE_PRUEBA } from '../../../../tests/fixtures/fincas.ts';

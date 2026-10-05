@@ -1,48 +1,12 @@
 /**
- * Ids y fechas (ARQUITECTURA §5.6 y §5.7, P8).
- *
- * El reloj y el azar se reciben como parámetros para que las pruebas los muevan: el reloj es
- * una entrada que nadie declara, y aquí se declara.
+ * Fechas (ARQUITECTURA §5.6 y §5.7, P8). Los ids (UUIDv7) viven en `@ed1/ids`, que es neutro
+ * (R2): se reexportan aquí para que nada de lo que ya los importa de este paquete se rompa.
  */
 
-export type Reloj = () => number;
-export type Aleatorio = (bytes: number) => Uint8Array;
-
-const relojDelSistema: Reloj = () => Date.now();
-const aleatorioDelSistema: Aleatorio = (bytes) => crypto.getRandomValues(new Uint8Array(bytes));
+export { type Aleatorio, instanteDeUuidv7, type Reloj, uuidv7 } from '@ed1/ids';
 
 /** Huso de la finca cero; cada finca podrá declarar el suyo cuando haga falta. */
 export const ZONA_POR_DEFECTO = 'America/Bogota';
-
-/**
- * UUID versión 7 (RFC 9562): 48 bits de milisegundos Unix y 74 bits al azar. Se genera en el
- * teléfono; reintentar un envío con el mismo id es inofensivo (ARQUITECTURA §5.6).
- */
-export function uuidv7(
-  reloj: Reloj = relojDelSistema,
-  aleatorio: Aleatorio = aleatorioDelSistema,
-): string {
-  const ms = reloj();
-  if (!Number.isSafeInteger(ms) || ms < 0 || ms >= 2 ** 48) {
-    throw new RangeError(`Reloj inválido para UUIDv7: ${ms}`);
-  }
-  const b = aleatorio(16);
-  if (b.length !== 16) throw new RangeError('La fuente de azar debe dar 16 bytes');
-  let t = ms;
-  for (let i = 5; i >= 0; i--) {
-    b[i] = t % 256;
-    t = Math.floor(t / 256);
-  }
-  b[6] = ((b[6] ?? 0) & 0x0f) | 0x70; // versión 7
-  b[8] = ((b[8] ?? 0) & 0x3f) | 0x80; // variante RFC
-  const hex = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-
-/** Milisegundos Unix guardados en un UUIDv7. */
-export function instanteDeUuidv7(id: string): number {
-  return Number.parseInt(id.replace(/-/g, '').slice(0, 12), 16);
-}
 
 /**
  * Fecha agronómica `YYYY-MM-DD`: el día **local de la finca** en que pasó algo. Carencias,

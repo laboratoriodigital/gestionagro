@@ -4,7 +4,7 @@
  * comparar. Lo comercial es lo cosechado menos el descarte. Sin plantas anotadas en el ciclo,
  * «por planta» dice «sin dato», nunca cero (P1).
  */
-import { formatearCantidad } from '@gestionagro/agro-calc';
+import { formatearCantidad } from '@ed1/agro-calc';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import {

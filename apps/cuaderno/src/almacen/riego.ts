@@ -7,8 +7,8 @@
  * - El mismo riego en varias áreas: un registro por área, cada uno con su ciclo activo, en una sola
  *   transacción (CA3).
  */
-import { drenajePct } from '@gestionagro/agro-calc';
-import type { Registro } from '@gestionagro/agro-schema';
+import { drenajePct } from '@ed1/agro-calc';
+import type { Registro } from '@ed1/agro-schema';
 import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';
 import type { CuadernoDb } from './db.ts';
 import { guardarRegistros } from './guardar.ts';

@@ -3,14 +3,14 @@
  * áreas después del registro inicial (HU-E3.3, CA3 y CA4). Cada formulario abierto cuenta como
  * actividad (HU-E3.1, CA2).
  */
-import { leerNumero } from '@gestionagro/agro-calc';
+import { leerNumero } from '@ed1/agro-calc';
 import {
   type Area,
   type Ciclo,
   type Cultivo,
   ErrorDeValidacion,
   type Finca,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';

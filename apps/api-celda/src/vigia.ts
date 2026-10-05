@@ -13,7 +13,7 @@
  * Si no puede leer una fuente, no lo toma como «normal» (CA3, P1): el nivel es al menos «alerta»,
  * y nunca baja uno más alto que ya estaba, porque no sabe si el consumo bajó.
  */
-import type { LectorKv } from '@gestionagro/kill-switch';
+import type { LectorKv } from '@ed1/kill-switch';
 
 export const NIVELES = ['normal', 'alerta', 'ahorro', 'esencial', 'bloqueo'] as const;
 export type NivelDeCelda = (typeof NIVELES)[number];

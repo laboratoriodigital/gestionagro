@@ -26,7 +26,7 @@ import {
   type Persona,
   type Registro,
   sumarDias,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { cantidadSugerida, guardarAplicacion } from '../almacen/aplicaciones.ts';
 import { registrarMovimiento } from '../almacen/bodega.ts';
 import { agregarCultivo, agregarVariedad, iniciarCiclo } from '../almacen/ciclos.ts';

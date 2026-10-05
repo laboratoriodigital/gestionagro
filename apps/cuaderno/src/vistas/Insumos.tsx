@@ -2,8 +2,8 @@
  * Insumos con los datos de su etiqueta (HU-E3.6). La app no recomienda productos ni dosis.
  * Carencia o reentrada vacía se muestra «desconocida» en rojo, nunca como 0 (CA4, P1).
  */
-import { leerNumero } from '@gestionagro/agro-calc';
-import { ErrorDeValidacion, type Finca, type Insumo } from '@gestionagro/agro-schema';
+import { leerNumero } from '@ed1/agro-calc';
+import { ErrorDeValidacion, type Finca, type Insumo } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';

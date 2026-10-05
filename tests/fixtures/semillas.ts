@@ -9,7 +9,7 @@ import {
   type Persona,
   type Registro,
   uuidv7,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from './fincas.ts';
 
 const ACTUALIZADO = '2026-10-15T12:00:00.000Z';

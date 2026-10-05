@@ -6,14 +6,14 @@
  * - Personas activas de la finca, tengan o no cuenta (CA2).
  * - Horas por persona en medias horas; más de 12 h de alguien en el día pide confirmar (CA3).
  */
-import { leerNumero } from '@gestionagro/agro-calc';
+import { leerNumero } from '@ed1/agro-calc';
 import {
   type Area,
   ErrorDeRegistro,
   ErrorDeValidacion,
   type Persona,
   type Registro,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';

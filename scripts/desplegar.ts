@@ -175,7 +175,7 @@ async function desplegarSitio(
     return { ok: false, detalle: [`sitio: ${(e as Error).message}`] };
   }
 
-  const deploy = wrangler('@gestionagro/sitio', `deploy -c ${ARCHIVO_DESPLIEGUE} ${entorno}`, cred);
+  const deploy = wrangler('@ed1/sitio', `deploy -c ${ARCHIVO_DESPLIEGUE} ${entorno}`, cred);
   if (!deploy.ok) {
     return {
       ok: false,
@@ -255,7 +255,7 @@ async function desplegarCore(
   ];
   let salidaDeploy = '';
   for (const [nombrePaso, argumentos] of pasos) {
-    const r = wrangler('@gestionagro/core', argumentos, cred);
+    const r = wrangler('@ed1/core', argumentos, cred);
     if (!r.ok)
       return { ok: false, detalle: [`${nombrePaso} falló:`, ...causaDeWrangler(r.salida)] };
     salidaDeploy = r.salida;
@@ -272,7 +272,7 @@ async function desplegarCore(
   }
 
   // Secretos del Worker (HU-E4.2): Google siempre; la clave de firma, solo si no tiene una.
-  const lista = wrangler('@gestionagro/core', `secret list --format json ${c}`, cred);
+  const lista = wrangler('@ed1/core', `secret list --format json ${c}`, cred);
   let existentes: string[] = [];
   try {
     existentes = (
@@ -306,7 +306,7 @@ async function desplegarCore(
   } catch (e) {
     return { ok: false, detalle: [`CORE: ${(e as Error).message}`] };
   }
-  const carga = wrangler('@gestionagro/core', `secret bulk ${c}`, cred, JSON.stringify(secretos));
+  const carga = wrangler('@ed1/core', `secret bulk ${c}`, cred, JSON.stringify(secretos));
   if (!carga.ok) {
     return {
       ok: false,
@@ -400,7 +400,7 @@ async function desplegarApiCelda(
   ];
   let salidaDeploy = '';
   for (const [nombrePaso, argumentos] of pasos) {
-    const r = wrangler('@gestionagro/api-celda', argumentos, cred);
+    const r = wrangler('@ed1/api-celda', argumentos, cred);
     if (!r.ok)
       return { ok: false, detalle: [`${nombrePaso} falló:`, ...causaDeWrangler(r.salida)] };
     salidaDeploy = r.salida;
@@ -408,7 +408,7 @@ async function desplegarApiCelda(
   // Secretos de la celda, por stdin (P13): el token del vigía (HU-E8.2) y la clave de firma del QR
   // (HU-E6.4), que solo se genera si el Worker no tiene una. Lo que falta se dice (P1).
   const tokenMetricas = process.env[celda.secretos.metricas];
-  const lista = wrangler('@gestionagro/api-celda', `secret list --format json ${c}`, cred);
+  const lista = wrangler('@ed1/api-celda', `secret list --format json ${c}`, cred);
   let existentes: string[] = [];
   try {
     existentes = (
@@ -432,7 +432,7 @@ async function desplegarApiCelda(
   const avisoMetricas = deLaCelda.avisos;
   if (Object.keys(deLaCelda.secretos).length > 0) {
     const carga = wrangler(
-      '@gestionagro/api-celda',
+      '@ed1/api-celda',
       `secret bulk ${c}`,
       cred,
       JSON.stringify(deLaCelda.secretos),

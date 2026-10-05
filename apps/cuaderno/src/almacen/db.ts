@@ -17,7 +17,7 @@ import type {
   Registro,
   TipoLabor,
   ValorJornal,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { Dexie, type EntityTable, type Transaction } from 'dexie';
 
 export type Entidad =

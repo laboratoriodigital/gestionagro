@@ -3,11 +3,13 @@
  * Vacío, texto o NaN son error y el error nombra el campo; «no medido» se escribe `null`,
  * nunca 0.
  */
+import { id } from '@ed1/ids';
 import { z } from 'zod';
 
 z.config(z.locales.es());
 
-export const id = z.uuid({ version: 'v7', error: 'debe ser un UUIDv7' });
+/** El id de todo registro y catálogo, un UUIDv7. Vive en `@ed1/ids`, que es neutro (R2). */
+export { id };
 
 /** Día local de la finca, `YYYY-MM-DD`, que además existe en el calendario. */
 export const fechaAgronomica = z

@@ -15,7 +15,7 @@ import {
   type Registro,
   uuidv7,
   validarCatalogo,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { conEscritura } from '../actividad.ts';
 import { estadosPorArea } from './aplicaciones.ts';
 import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';

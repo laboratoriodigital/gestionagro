@@ -6,7 +6,7 @@
  * corregido. El evento sigue siendo el mismo, así que conserva área, ciclo, fecha agronómica e
  * instante del evento; el id nuevo (UUIDv7) guarda cuándo se corrigió.
  */
-import { fechaAgronomica, type Registro, uuidv7 } from '@gestionagro/agro-schema';
+import { fechaAgronomica, type Registro, uuidv7 } from '@ed1/agro-schema';
 import { cicloActivoDe } from './ciclos.ts';
 import type { CuadernoDb } from './db.ts';
 import { idDispositivo } from './dispositivo.ts';

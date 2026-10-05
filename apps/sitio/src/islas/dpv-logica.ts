@@ -13,7 +13,7 @@ import {
   formatearKPa,
   type Indicacion,
   leerNumero,
-} from '@gestionagro/agro-calc';
+} from '@ed1/agro-calc';
 import { REGISTRAR_EN_CUADERNO } from './cuaderno.ts';
 
 export { BASE_DEL_CUADERNO, cuadernoEnUso, REGISTRAR_EN_CUADERNO } from './cuaderno.ts';

@@ -10,8 +10,8 @@
  * - El vínculo vive en `meta` (clave `vinculo`): los datos locales no se reescriben, la celda pone
  *   la organización del token en cada fila (HU-E5.1).
  */
-import { uuidv7 } from '@gestionagro/agro-schema';
-import { ENTIDADES_DE_CATALOGO } from '@gestionagro/sync';
+import { uuidv7 } from '@ed1/agro-schema';
+import { ENTIDADES_DE_CATALOGO } from '@ed1/sync';
 import type { CuadernoDb, OperacionSalida } from './db.ts';
 import {
   CLAVE_SESION,

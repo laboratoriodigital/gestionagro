@@ -3,14 +3,14 @@
  * Cultivo y variedad se eligen del catálogo de la finca o se agregan aquí mismo (CA2).
  * Cada formulario abierto cuenta como actividad (HU-E3.1, CA2).
  */
-import { leerNumero } from '@gestionagro/agro-calc';
+import { leerNumero } from '@ed1/agro-calc';
 import {
   type Area,
   type Ciclo,
   type Cultivo,
   ErrorDeValidacion,
   fechaAgronomica,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import {

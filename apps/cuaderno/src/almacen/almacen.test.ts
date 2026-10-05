@@ -6,7 +6,7 @@
  * diferencias entre motores (Chrome Android frente a Safari iOS). Esas propiedades se prueban
  * en el teléfono (HU-E3.1, e2e) y se vigilan con el indicador «solo en este teléfono».
  */
-import { ErrorDeRegistro } from '@gestionagro/agro-schema';
+import { ErrorDeRegistro } from '@ed1/agro-schema';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { SEMILLAS } from '../../../../tests/fixtures/semillas.ts';

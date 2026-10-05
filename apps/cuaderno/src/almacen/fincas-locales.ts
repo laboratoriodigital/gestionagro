@@ -12,7 +12,7 @@
  * - Cambiar de finca recarga la app con la otra base: ninguna pantalla queda con datos de la
  *   anterior.
  */
-import { uuidv7 } from '@gestionagro/agro-schema';
+import { uuidv7 } from '@ed1/agro-schema';
 import { type CuadernoDb, NOMBRE_POR_DEFECTO } from './db.ts';
 import { CLAVE_DISPOSITIVO } from './dispositivo.ts';
 import { CLAVE_SESION } from './sesion.ts';

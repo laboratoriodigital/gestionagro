@@ -3,8 +3,8 @@
  * falta, una foto. Los nombres ya anotados se sugieren al escribir (catálogo editable, CA1). La
  * foto se comprime aquí a ≤ 150 KB antes de guardarla (CA2) y se dice «x de y fotos este mes» (CA3).
  */
-import { leerNumero } from '@gestionagro/agro-calc';
-import { type Area, ErrorDeValidacion, type Registro } from '@gestionagro/agro-schema';
+import { leerNumero } from '@ed1/agro-calc';
+import { type Area, ErrorDeValidacion, type Registro } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';

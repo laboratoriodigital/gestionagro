@@ -758,9 +758,10 @@ El análisis de integración (§6) proponía crear `laboratoriodigital/plataform
 
 1. **En GitHub, lo hace el dueño:** Settings › General › Repository name. Desde aquí no hay herramienta para hacerlo. Los pasos, lo que hay que revisar después y lo que no se toca están en `../runbooks/renombrar-repositorio.md`.
 2. **En el repositorio, ya hecho** (pull request de la reorganización de `docs/`, 5 oct 2026): `README.md`, `docs/README.md`, el `name` del `package.json` de la raíz y los comandos `gh … --repo` de los runbooks.
-3. **En P0, un pull request mecánico aparte:**
-   - los paquetes pasan de `@gestionagro/*` a `@ed1/*` (140 archivos), con el lockfile regenerado con `pnpm`, nunca a mano;
-   - `uuidv7` e `id` salen de `@gestionagro/agro-schema` a un paquete neutro (`@ed1/ids`). Hoy el CORE importa un paquete del agro (R2).
+3. **Hecho en un pull request mecánico aparte** (5 oct 2026, el de los paquetes internos):
+   - los paquetes pasaron de `@gestionagro/*` a `@ed1/*`: 137 archivos de código, con el lockfile regenerado con `pnpm`, nunca a mano;
+   - `uuidv7` e `id` salieron de `@ed1/agro-schema` a un paquete neutro, `@ed1/ids`. El CORE ya no importa el paquete del agro (R2), y su Worker compilado pesa 13,7 KB menos. `@ed1/agro-schema` los reexporta, así que nada de lo que ya los importaba de ahí se rompió;
+   - lo compilado salió igual salvo lo que explica el cambio: `_headers` y las configuraciones de wrangler, idénticos byte a byte; los paquetes de JavaScript, con el código de los ids reordenado.
 
 **Lo que no se renombra nunca** (P10: hay teléfonos con la versión vieja): la base IndexedDB `gestionagro-cuaderno` y sus `gestionagro-cuaderno-<id>`, las claves `gestionagro.*` del almacenamiento local del cuaderno, los nombres de los Workers, las bases D1 y los espacios KV, la cookie `agro_oauth` y el emisor `agro-core` (este, solo con la transición de §4.6).
 
@@ -775,7 +776,7 @@ plataforma/
 │   ├── tienda-panel/        Panel PWA del comercio
 │   └── tienda-api/          API de la celda de tiendas + horno (cola) + crons
 ├── packages/
-│   ├── tokens/ d1/ kill-switch/ eventos/ ui/ ids/   comunes
+│   ├── tokens/ d1/ kill-switch/ eventos/ ui/ ids/   comunes (ids/ ya existe, con uuidv7 e id)
 │   ├── productos/           tipos y lectura de infrastructure/productos.json
 │   ├── pagos/               ProveedorDePago (sale de apps/core: ahora lo usan el CORE y la tienda)
 │   ├── cifrado/             cifrado de sobre (AES-256-GCM), índices ciegos (HMAC), rotación de KEK
@@ -823,7 +824,7 @@ Supone las 20 horas por semana del dueño, con Claude haciendo los commits (ARQU
 
 | Fase | Duración estimada | Deja funcionando | Criterio de aceptación |
 |---|---|---|---|
-| **P0 · Preparar** | 1 semana | Paquetes `@ed1/*` y `@ed1/ids` (el repositorio ya se llama `plataforma`). `productos.json`, `cuentas.json` y `dominios.json`, con sus esquemas | CI en verde. Lo generado (wrangler, `_headers`, tabla `celda`) es **idéntico byte a byte** al de antes |
+| **P0 · Preparar** | 1 semana | Paquetes `@ed1/*` y `@ed1/ids`: **hechos** (5 oct 2026). Falta `productos.json`, `cuentas.json` y `dominios.json`, con sus esquemas. El renombre del repositorio en GitHub lo hace el dueño | CI en verde. Lo generado (wrangler, `_headers`, tabla `celda`) es **idéntico byte a byte** al de antes |
 | **P1 · Producto en el CORE** | 2 semanas | Migraciones 0006 y 0008 (receta probada en D1 local y staging). API con producto (expandir). Tokens N (verifican v1 y v2). Asignación por producto. Kill switches por producto | Staging con dos productos (agro y una tienda de prueba sembrada) y las pruebas de §6.4 en verde. En producción, el agro idéntico para el usuario |
 | **P2 · Tokens v2 y sesión por producto** | 1 semana | N+1 (emitir v2) y N+2 (contraer, 12 h después). `cuenta.laboratorio-digital.com` con su redirección de Google | Un cuaderno instalado con la URL vieja sigue entrando y sincronizando. Un token de tienda no abre la celda del agro |
 | **P3 · Planes por periodo** | 1 semana | `periodo` y `plan_precio` desde `planes.json`. Cobros de 1, 3, 6 y 12 meses. Meses calendario. Crédito al cambiar de plan. La pantalla de planes del cuaderno con los cuatro periodos | Las pruebas de reloj (P8). Un pago real de prueba de 6 meses en el ambiente de pruebas de Bold |

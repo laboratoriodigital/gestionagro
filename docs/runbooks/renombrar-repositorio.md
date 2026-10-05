@@ -33,7 +33,7 @@ Se conservan los issues, los pull requests, las revisiones, las etiquetas `vX.Y.
    - *Settings › Webhooks* y *GitHub Apps*: cada uno con su última entrega en verde;
    - los comandos `gh … --repo`: con el nombre nuevo (la redirección también cubre el viejo).
 4. **Cloudflare: nada.** Los Workers se despliegan desde Actions con tokens, no desde una conexión de Cloudflare con GitHub. Si algún día se conecta Workers Builds, se conecta al nombre nuevo.
-5. **El repositorio por dentro ya está al día**: `README.md`, `docs/`, el `name` del `package.json` de la raíz y los comandos de los runbooks.
+5. **El repositorio por dentro ya está al día**: `README.md`, `docs/`, el `name` del `package.json` de la raíz, los comandos de los runbooks y los paquetes internos, que se llaman `@ed1/*` (antes `@gestionagro/*`, `PLATAFORMA.md` §6.1). Ninguno depende del nombre del repositorio.
 
 ## Lo que no se renombra (P10)
 
@@ -43,7 +43,6 @@ Se conservan los issues, los pull requests, las revisiones, las etiquetas `vX.Y.
 | Las claves `gestionagro.*` del almacenamiento local del cuaderno (finca activa, lista de fincas, lectura pendiente, unidad de riego) | Igual que la base |
 | Los Workers `agro-sitio`, `agro-core` y `agro-api-c0` (y sus `-staging`), las bases D1 `agro_core` y `agro_c0_s1`, y los espacios KV de flags | Son los recursos en producción. Renombrarlos es crear otros y migrar |
 | La cookie `agro_oauth` y el emisor `agro-core` | El emisor cambia solo con la transición de tokens v2, en tres versiones (`PLATAFORMA.md` §4.6) |
-| Los paquetes `@gestionagro/*` | Van en P0, en un pull request mecánico aparte, con el lockfile regenerado con `pnpm` (`PLATAFORMA.md` §6.1) |
 | Las etiquetas `vX.Y.Z` y el CHANGELOG | Son la historia de CultivoPro |
 
 ## Cómo se comprueba

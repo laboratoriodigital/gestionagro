@@ -8,17 +8,17 @@
  *   clave Ed25519 (`CELDA_QR_PRIVATE_KEY`). No firma lo que mande el teléfono: lo que certifica
  *   es lo que está en la nube. Una solicitud por lote (presupuesto de la historia).
  *
- * Solo campos de `@gestionagro/trazabilidad` (CA3): ningún dato personal.
+ * Solo campos de `@ed1/trazabilidad` (CA3): ningún dato personal.
  */
-import { puedeRegistro } from '@gestionagro/sync';
-import { firmanteDesde } from '@gestionagro/tokens';
+import { puedeRegistro } from '@ed1/sync';
+import { firmanteDesde } from '@ed1/tokens';
 import {
   type ClavePublicaQr,
   codificar,
   type DatosQr,
   fragmento,
   mensajeAFirmar,
-} from '@gestionagro/trazabilidad';
+} from '@ed1/trazabilidad';
 import type { ContextoCelda, Env } from './worker.ts';
 
 const marcadores = (n: number) => Array.from({ length: n }, () => '?').join(', ');
