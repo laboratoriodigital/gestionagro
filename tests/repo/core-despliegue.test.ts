@@ -17,6 +17,7 @@ import {
   configDelCore,
   huerfanasDeLaSalida,
   nombreD1Core,
+  resultadosDeLaSalida,
   secretosDelCore,
 } from '../../scripts/lib/d1-core.ts';
 import { type Fetch, humoCore, humoEntrar, verificarToken } from '../../scripts/lib/despliegue.ts';
@@ -291,5 +292,14 @@ describe('sin huérfanas antes de migrar el CORE (HU-C2.2, CA4b)', () => {
     ['un JSON roto', '[{"results":[}]'],
   ])('con %s no se sabe, y no se migra (P1)', (_caso, salida) => {
     expect(huerfanasDeLaSalida(salida)).toBeNull();
+  });
+});
+
+describe('leer varias consultas de wrangler d1 execute --json (HU-C2.3)', () => {
+  it('devuelve las filas de cada consulta, en orden, aunque haya texto antes', () => {
+    const salida =
+      '🌀 Executing on remote database agro_core_staging:\n' +
+      '[{"results":[{"id":"agro"}],"success":true},{"results":[],"success":true}]';
+    expect(resultadosDeLaSalida(salida)).toEqual([[{ id: 'agro' }], []]);
   });
 });

@@ -13,6 +13,11 @@
  */
 import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
+import {
+  CONSULTAS_DEL_CATALOGO,
+  diferenciasDelCatalogo,
+  sentenciasDelCatalogo,
+} from '../apps/core/src/catalogo.ts';
 import { sentenciasDeCeldas } from '../apps/core/src/celdas.ts';
 import { killSwitchesDelCore } from '../apps/core/src/constantes.ts';
 import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
@@ -42,6 +47,7 @@ import {
   escribirDespliegueCore,
   huerfanasDeLaSalida,
   nombreD1Core,
+  resultadosDeLaSalida,
   secretosDelCore,
 } from './lib/d1-core.ts';
 import {
@@ -65,7 +71,10 @@ import {
   nombreKvFlags,
 } from './lib/kv-flags.ts';
 import { cargarProductos } from './lib/productos.ts';
-import { cargarProductos as cargarRegistroDeProductos } from './lib/registro-productos.ts';
+import {
+  cargarProductos as cargarRegistroDeProductos,
+  catalogoDelRepositorio,
+} from './lib/registro-productos.ts';
 import { RAIZ } from './lib/repo.ts';
 
 const argumento = (nombre: string) => {
@@ -250,7 +259,12 @@ async function desplegarCore(
         flagsId: ns.id,
         origenesApp: [origenApp],
       }),
-      sentenciasDeCeldas(config.celdas, dest),
+      // HU-C2.3: el catálogo de productos va antes que las celdas, porque una celda nombra su
+      // producto. Los dos salen de sus archivos (P2) en el mismo SQL.
+      [
+        ...sentenciasDelCatalogo(catalogoDelRepositorio(), new Date().toISOString()),
+        ...sentenciasDeCeldas(config.celdas, dest),
+      ],
     );
     notaD1 = `D1 ${nombre}${base.creada ? ' (creada)' : ''}`;
     console.log(`  ${notaD1}`);
@@ -286,11 +300,37 @@ async function desplegarCore(
   }
   const pasos: [string, string][] = [
     ['migraciones del CORE', `d1 migrations apply DB --remote ${c}`],
-    ['directorio de celdas', `d1 execute DB --remote --file ${ARCHIVO_SQL_CELDAS} ${c}`],
+    [
+      'catálogo de productos y directorio de celdas',
+      `d1 execute DB --remote --file ${ARCHIVO_SQL_CELDAS} ${c}`,
+    ],
     ['wrangler deploy del CORE', `deploy ${c}`],
   ];
   let salidaDeploy = '';
   for (const [nombrePaso, argumentos] of pasos) {
+    if (nombrePaso === 'wrangler deploy del CORE') {
+      // HU-C2.3: antes de publicar el Worker, la base tiene que decir lo mismo que el archivo.
+      // No se le cree a wrangler que aplicó: se lee (P16).
+      const lectura = wrangler(
+        '@ed1/core',
+        `d1 execute DB --remote --json --command "${CONSULTAS_DEL_CATALOGO}" ${c}`,
+        cred,
+      );
+      const filas = lectura.ok ? resultadosDeLaSalida(lectura.salida) : null;
+      const diferencias =
+        filas === null
+          ? ['no se pudo leer el catálogo de la base', ...causaDeWrangler(lectura.salida)]
+          : diferenciasDelCatalogo(catalogoDelRepositorio(), filas);
+      if (diferencias.length > 0) {
+        return {
+          ok: false,
+          detalle: [
+            'el catálogo de la base no es el de productos.json y planes.json:',
+            ...diferencias,
+          ],
+        };
+      }
+    }
     const r = wrangler('@ed1/core', argumentos, cred);
     if (!r.ok)
       return { ok: false, detalle: [`${nombrePaso} falló:`, ...causaDeWrangler(r.salida)] };

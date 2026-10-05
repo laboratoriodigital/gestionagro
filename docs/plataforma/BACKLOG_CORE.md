@@ -437,7 +437,7 @@ Formato de cada historia:
 - **Work items:** WI-C2.2.1 `[código]` migración · WI-C2.2.2 `[prueba]` matriz en D1 local · WI-C2.2.3 `[prueba]` compatibilidad v0 · WI-C2.2.4 `[infra]` aplicar en staging · WI-C2.2.5 `[dueño]` validar y aprobar producción · WI-C2.2.6 `[doc]` ADR-20 y ARQUITECTURA §5.4.
 
 #### HU-C2.3 · El despliegue copia `productos.json` a la base
-- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C2 · **Depende de:** HU-C1.1, HU-C1.2, HU-C2.2 · **Estado:** Refinada
+- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C2 · **Depende de:** HU-C1.1, HU-C1.2, HU-C2.2 · **Estado:** En validación (rama `feat/c2-sprint`. `apps/core/src/catalogo.ts` escribe el catálogo en el mismo SQL que las celdas, antes que ellas, y `desplegar.ts` lo lee de vuelta y lo compara con el archivo antes de publicar el Worker (P16). CA3 cambió de forma: cada despliegue reescribe el catálogo, así que una fila editada a mano se corrige sola; lo que la prueba garantiza es que la diferencia se nombra si el despliegue no pudo corregirla. 6 pruebas en el D1 local; control negativo: una fila de plan editada a mano y un precio metido a mano se nombran. El plan gratuito ya no se adivina por su nombre: `planes.json` lo marca con `"gratuito": true`, con su regla (exactamente uno, sin cobro). Falta verlo en staging, P16)
 - Como plataforma, quiero que las tablas `producto`, `producto_tipo`, `producto_rol`, `plan` y `plan_precio` sean siempre el archivo, como hoy `celda` es `celdas.json`.
 - **Respaldo:** PLATAFORMA §4.2; P2; P21.
 - **CA1.** Tras desplegar, las tablas de referencia coinciden con el archivo, y la prueba de humo lo comprueba consultando la base.

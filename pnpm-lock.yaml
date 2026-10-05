@@ -96,6 +96,9 @@ importers:
       '@ed1/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
+      '@ed1/productos':
+        specifier: workspace:*
+        version: link:../../packages/productos
       '@ed1/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens

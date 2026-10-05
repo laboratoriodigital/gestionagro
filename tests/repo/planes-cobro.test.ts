@@ -4,7 +4,13 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fallasDeCobro, PERIODOS, type PlanConCobro } from '@ed1/productos';
+import {
+  fallasDeCobro,
+  fallasDeGratuito,
+  fallasDePlanes,
+  PERIODOS,
+  type PlanConCobro,
+} from '@ed1/productos';
 import { describe, expect, it } from 'vitest';
 import { cargarProductos } from '../../scripts/lib/registro-productos.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
@@ -21,7 +27,7 @@ describe('los planes reales', () => {
   it.each(cargarProductos().productos.map((p) => [p.id, p.planes]))(
     '%s (%s) cumple las reglas del cobro por periodo',
     (_producto, ruta) => {
-      expect(fallasDeCobro(leer(ruta).planes)).toEqual([]);
+      expect(fallasDePlanes(leer(ruta).planes)).toEqual([]);
     },
   );
 
@@ -81,6 +87,30 @@ describe('las reglas', () => {
   it('rechaza un cobro[1] distinto del cobro mensual mientras existan los dos campos', () => {
     expect(fallasDeCobro([finca({ 1: 40000 }, 39000)])).toEqual([
       '«finca»: cobro["1"] (40000) no es cobro_mensual_cop (39000)',
+    ]);
+  });
+});
+
+describe('el plan gratuito (HU-C2.3)', () => {
+  it('uno, sin cobro', () => {
+    expect(fallasDeGratuito([{ id: 'gratis', gratuito: true }, finca({ 1: 39000 })])).toEqual([]);
+  });
+
+  it('ninguno, o dos, se rechaza nombrándolos', () => {
+    expect(fallasDeGratuito([finca({ 1: 39000 })])).toEqual([
+      'tiene que haber exactamente un plan con "gratuito": true, y hay 0',
+    ]);
+    expect(
+      fallasDeGratuito([
+        { id: 'a', gratuito: true },
+        { id: 'b', gratuito: true },
+      ]),
+    ).toEqual(['tiene que haber exactamente un plan con "gratuito": true, y hay 2 (a, b)']);
+  });
+
+  it('un gratuito con cobro se rechaza', () => {
+    expect(fallasDeGratuito([{ id: 'gratis', gratuito: true, cobro: { 1: 1000 } }])).toEqual([
+      '«gratis» es gratuito y tiene cobro',
     ]);
   });
 });

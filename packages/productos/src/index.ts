@@ -107,15 +107,48 @@ export function rolesQueAdministran(producto: Producto): string[] {
  */
 export const PERIODOS = [1, 3, 6, 12] as const;
 
+/** Cómo se llama cada periodo en la tabla `periodo` (los de la siembra de la 0006). */
+export const NOMBRE_DE_PERIODO: Record<(typeof PERIODOS)[number], string> = {
+  1: 'mensual',
+  3: 'trimestral',
+  6: 'semestral',
+  12: 'anual',
+};
+
 /** Mínimo de un cobro con Bold, en pesos. */
 export const MONTO_MINIMO_COP = 1000;
 
 export interface PlanConCobro {
   id: string;
+  /** El plan que se entrega sin pagar o al vencer (HU-C2.3). Exactamente uno por producto. */
+  gratuito?: boolean;
   /** Lo que el CORE cobra por un mes (HU-E0.7). Convive con `cobro` mientras haya dos campos. */
   cobro_mensual_cop?: number;
   /** Monto por periodo: la clave son meses de `PERIODOS`. Un periodo sin monto no se ofrece. */
   cobro?: Record<string, number>;
+}
+
+/**
+ * Exactamente un plan gratuito por producto, y sin cobro (HU-C2.3): es el que el directorio entrega
+ * sin pagar o al vencer, así que no se adivina por su nombre.
+ */
+export function fallasDeGratuito(planes: readonly PlanConCobro[]): string[] {
+  const fallas: string[] = [];
+  const gratuitos = planes.filter((p) => p.gratuito === true);
+  if (gratuitos.length !== 1) {
+    fallas.push(
+      `tiene que haber exactamente un plan con "gratuito": true, y hay ${gratuitos.length}${gratuitos.length > 1 ? ` (${gratuitos.map((p) => p.id).join(', ')})` : ''}`,
+    );
+  }
+  for (const p of gratuitos.filter((x) => x.cobro || x.cobro_mensual_cop !== undefined)) {
+    fallas.push(`«${p.id}» es gratuito y tiene cobro`);
+  }
+  return fallas;
+}
+
+/** Todas las reglas de los planes de un producto: el gratuito y los precios por periodo. */
+export function fallasDePlanes(planes: readonly PlanConCobro[]): string[] {
+  return [...fallasDeGratuito(planes), ...fallasDeCobro(planes)];
 }
 
 /** Reglas de los precios por periodo de los planes de un producto. Todas las fallas a la vez (P15). */

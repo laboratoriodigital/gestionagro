@@ -5,6 +5,7 @@
     {
       "id": "gratuito",
       "nombre": "Gratis",
+      "gratuito": true,
       "precio": "COP 0",
       "para_quien": "Para empezar y para la finca pequeña.",
       "incluye": [
