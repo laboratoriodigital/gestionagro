@@ -955,7 +955,7 @@ Formato de cada historia:
 - **Work items:** WI-C11.5.1 `[código]` · WI-C11.5.2 `[dueño]` lista de comprobación.
 
 #### HU-C11.6 · El CI gasta según lo que cambió
-- **Capa:** CI · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C1 · **Depende de:** — · **Estado:** En sprint
+- **Capa:** CI · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C1 · **Depende de:** — · **Estado:** En validación (rama `feat/c1-sprint`. Probado de punta a punta con `VERIFICAR_BASE` en local: con solo documentos salta navegadores, typecheck, build y e2e, y corre 7 de los 101 archivos de prueba, 104 pruebas en 25 s. Falta verlo en la corrida real del PR)
 - Como dueño, quiero que un cambio que solo toca documentos no gaste minutos en compilar ni en abrir navegadores, para que los 2.000 minutos del mes alcancen.
 - **Respaldo:** ED1 §25 (presupuesto de GitHub Actions) y §41 (2.000 min/mes en privado); ARQUITECTURA §7.2 (menos de 8 minutos); pedido del dueño (5 oct 2026): «máxima eficiencia en la ejecución de recursos».
 - **Medición de partida** (corrida del 5 oct 2026, PR #91, solo documentos): instalar 9,7 s · navegadores 15,9 s · lint 2,0 s · typecheck 3,2 s · contratos 0,9 s · pruebas 102,5 s · build 14,7 s · e2e 211,6 s · licencias 2,0 s. Unos 6 minutos por corrida, dos corridas por PR.

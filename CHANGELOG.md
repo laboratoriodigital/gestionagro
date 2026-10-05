@@ -10,6 +10,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Runbook para renombrar el repositorio en GitHub, con lo que no se renombra nunca (`docs/runbooks/renombrar-repositorio.md`).
 - Plan de trabajo y backlog refinado del CORE (`docs/plataforma/BACKLOG_CORE.md`): 8 hitos, 11 sprints, 12 épicas y 65 historias refinadas (más 5 preparadas) con sus work items, la dirección de diseño del frontend del ecosistema y la cuenta en `cuenta.laboratorio-digital.com`. Y su bitácora (`docs/plataforma/BITACORA_CORE.md`), con las convenciones de las otras dos para unirlas.
 
+### Cambiado
+- El CI gasta según lo que cambió: si un PR solo toca documentos (`docs/` o un `.md` de la raíz), no abre navegadores ni compila, y corre solo las pruebas que leen documentos. El resumen dice qué saltó y por qué. Si no puede calcular el cambio, corre todo (HU-C11.6).
+
 ### Corregido
 - PLATAFORMA decía «exportaciones semanales fuera de Cloudflare» citando un documento que dice mensual. Ahora dice lo mismo que ED1 §20.3: semanal en R2 y mensual cifrada fuera (bitácora core 1).
 

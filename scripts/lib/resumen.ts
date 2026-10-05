@@ -5,6 +5,11 @@ export interface ResultadoPaso {
   segundos: number;
   /** El paso no corrió porque uno anterior del que depende falló. */
   omitido?: boolean;
+  /**
+   * El paso no hizo falta para este cambio (HU-C11.6), con el motivo. Cuenta como en verde:
+   * no es una falla, pero el resumen lo dice para que nadie crea que corrió.
+   */
+  saltado?: string;
   /** Salida del paso (stdout y stderr), para citar la falla en el resumen de CI. */
   salida?: string;
 }
@@ -26,10 +31,10 @@ export function colaDeSalida(salida: string, lineas = LINEAS_DE_DETALLE): string
  * Con `detalle`, cada paso fallido lleva debajo las últimas líneas de su salida.
  */
 export function resumir(resultados: readonly ResultadoPaso[], { detalle = false } = {}): string {
-  const icono = (r: ResultadoPaso) => (r.ok ? '✅' : r.omitido ? '⏭️' : '❌');
-  const filas = resultados.map(
-    (r) => `| ${icono(r)} | ${r.paso} | ${r.omitido ? 'omitido' : `${r.segundos.toFixed(1)} s`} |`,
-  );
+  const icono = (r: ResultadoPaso) => (r.saltado ? '➖' : r.ok ? '✅' : r.omitido ? '⏭️' : '❌');
+  const tiempo = (r: ResultadoPaso) =>
+    r.saltado ? `saltado: ${r.saltado}` : r.omitido ? 'omitido' : `${r.segundos.toFixed(1)} s`;
+  const filas = resultados.map((r) => `| ${icono(r)} | ${r.paso} | ${tiempo(r)} |`);
   const fallas = resultados.filter((r) => !r.ok && !r.omitido).map((r) => r.paso);
   const omitidos = resultados.filter((r) => r.omitido).map((r) => r.paso);
   const cierre =

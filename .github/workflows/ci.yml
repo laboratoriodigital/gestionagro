@@ -20,6 +20,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          # La historia completa: verificar compara contra la base del cambio (HU-C11.6). Este
+          # repositorio pesa poco.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
@@ -34,4 +38,8 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: playwright-${{ runner.os }}-
       - name: Verificar (instalar, lint, typecheck, contratos, pruebas, build, e2e, licencias)
+        # Contra qué se compara el cambio: la base del PR o el main de antes del push. Si el cambio
+        # solo toca documentos, verificar salta lo que no puede cambiar de resultado (HU-C11.6).
+        env:
+          VERIFICAR_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: node scripts/verificar.ts --ci
