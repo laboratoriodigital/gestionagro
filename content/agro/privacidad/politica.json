@@ -1,14 +1,14 @@
 {
-  "nota": "Fuente única de la política de tratamiento de datos (HU-E0.5, Ley 1581 de 2012). La página /agro/privacidad/, la aceptación que guarda el CORE y las pruebas de coherencia leen este archivo (P2). Lo que se muestra va en lenguaje cercano y sin detalles técnicos; los campos «proveedor» y «nombre» son internos: los usan las pruebas y no aparecen en la página. Cambiar lo que la política promete exige cambiar la versión. Versión 2 (3 oct 2026): Bold como aliado para pagar un plan en línea (HU-E0.7); su programa solo se carga al tocar «Pagar» («scripts_al_pagar»), nunca al abrir una página.",
+  "nota": "Los datos del responsable se editan aquí mismo: docs/runbooks/datos-del-responsable.md dice cómo y qué falta para «vigente». Fuente única de la política de tratamiento de datos (HU-E0.5, Ley 1581 de 2012). La página /agro/privacidad/, la aceptación que guarda el CORE y las pruebas de coherencia leen este archivo (P2). Lo que se muestra va en lenguaje cercano y sin detalles técnicos; los campos «proveedor» y «nombre» son internos: los usan las pruebas y no aparecen en la página. Cambiar lo que la política promete exige cambiar la versión. Versión 2 (3 oct 2026): Bold como aliado para pagar un plan en línea (HU-E0.7); su programa solo se carga al tocar «Pagar» («scripts_al_pagar»), nunca al abrir una página.",
   "version": "2",
   "fecha": "2026-10-03",
   "estado": "borrador",
   "revision": "requiere revisión de abogado",
   "responsable": {
-    "nombre": null,
+    "nombre": "CultivoPro.co",
     "identificacion": null,
-    "domicilio": null,
-    "correo": null,
+    "domicilio": "Medellín, Colombia",
+    "correo": "laboratoriodigital.la@gmail.com",
     "telefono": null
   },
   "encargados": [
