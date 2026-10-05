@@ -112,6 +112,7 @@ Una historia entra a un sprint solo si:
 | HU-E11.4 · El riego ejecutado llena el cuaderno (2) | HU-E11.3 |
 | HU-E7.5 · Varias bodegas de insumos en una finca (5) | Una finca con sectores o almacenes separados que lo pida. Es un catálogo nuevo: rehacer el CHECK de `catalogo` en la celda y un `agro-export` v2 (decisión del dueño, 3 oct 2026) |
 | HU-E2.9 · Calculadora de grados-día (2) | La medición del 25 feb 2027 y la revisión agronómica de la DPV y la carencia |
+| CORE con dimensión de producto, sistema de diseño y cuenta ED1 (fuera de este backlog: `docs/plataforma/BACKLOG_CORE.md`) | Decidido el 5 oct 2026 (ADR-20). Arranca en el sprint C1 (6 oct 2026). Lo que toca al cuaderno (pantalla de planes con cuatro periodos, MCP del cuaderno) está allí, con su historia |
 | Tienda 3.0 sobre esta plataforma (fuera de este backlog: sus hitos M0 a M8 están en `docs/tienda/TIENDA-3.0.md` §19) | Decidida el 5 oct 2026 como excepción declarada, desde cero (ADR-21). Su M0 necesita las fases P0 y P1 de la plataforma y Workers Paid en la cuenta (`docs/plataforma/PLATAFORMA.md` §7) |
 
 **Ceremonias para un equipo de uno** (~1,5 h por sprint):
