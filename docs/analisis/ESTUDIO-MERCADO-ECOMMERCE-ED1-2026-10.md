@@ -1,14 +1,22 @@
 # Estudio de mercado y vigilancia tecnológica de herramientas de ecommerce
 ## Colombia, Latinoamérica y referentes globales — Implicaciones para ED1
 
-**Versión:** 1.0  
-**Fecha de corte:** 4 de octubre de 2026, hora de Colombia.  
-**Documento de referencia:** `ECOSISTEMA-DIGITAL-ED1-v1.2.md`, versión del 28 de septiembre de 2026, suministrado por el usuario.  
+**Versión:** 1.1: validada a la luz del ecosistema el 5 de octubre de 2026 (ver «Control de versiones»).  
+**Fecha de corte:** 4 de octubre de 2026, hora de Colombia. Lo agregado en la versión 1.1 se consultó el 5 de octubre de 2026.  
+**Documento de referencia:** `docs/ECOSISTEMA-DIGITAL-ED1-v1.2.md`, versión del 28 de septiembre de 2026. Desde la versión 1.1, también lo que el ecosistema ya construyó, midió o decidió (§3.3).  
+**Validación:** `VALIDACION-ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md`, en esta misma carpeta: hallazgos [V1]–[V11] y por qué cambió cada sección.  
 **Naturaleza del trabajo:** investigación documental de fuentes públicas; análisis competitivo, tecnológico y económico; recomendaciones e hipótesis de validación.  
 **Alcance temporal:** información accesible al corte. No representa resultados de todo octubre ni del cierre de 2026.  
 **Moneda:** COP, MXN, ARS o USD según cada fuente; no se convierten cifras entre monedas sin una tasa y fecha explícitas.
 
-> **Resultado principal del análisis:** ED1 tiene una oportunidad que merece validación en herramientas operativas para pequeños comercios colombianos que venden por WhatsApp, redes y tiendas existentes. La investigación no demuestra todavía disposición a pagar por otra plataforma de tiendas. Conviene comprobar primero la utilidad recurrente de resolver catálogo, precio, pedido, cobro y conciliación, y decidir después si se construye un SaaS de ecommerce completo.
+> **Resultado principal del análisis:** ED1 tiene una oportunidad que merece validación en herramientas operativas para pequeños comercios colombianos que venden por WhatsApp, redes y tiendas existentes. La investigación documental no demuestra por sí sola disposición a pagar por otra plataforma de tiendas. **[V1]** Pero el ecosistema ya opera tiendas, con comercios reales y un producto vigente (la Tienda 2.0), y ya tiene la plataforma que una tienda alojada necesita (§3.3). La decisión no es si se construye un SaaS de ecommerce: es si se sigue con la 2.0 más herramientas o se invierte en la 3.0. Conviene comprobar primero, con esos comercios y con las herramientas, la utilidad recurrente de resolver catálogo, precio, pedido, cobro y conciliación, y decidir la inversión con esa señal.
+
+### Control de versiones
+
+| Versión | Fecha | Cambios |
+|---|---|---|
+| 1.0 | 4 oct 2026 | Investigación documental, con ED1 v1.2 como única fuente sobre el proyecto |
+| 1.1 | 5 oct 2026 | Validación a la luz del ecosistema. Lo que ya existe (§3.3) **[V1]**; medir la demanda antes de construir (§12.6) **[V2]**; cuotas corregidas y restricciones de la cuenta (§9.4) **[V3]**; cobro y economía unitaria de los planes de ED1 (§10.4, §13) **[V4]**; paquete de herramientas (§15) **[V5]**; HTML por producto en la tienda alojada (§12.3) **[V6]**; tarifas de WhatsApp y regla de Meta sobre IA (§11.1, §12.1) **[V7]**; fases y umbrales de ED1 (§16) **[V8]**; lo que la plataforma ya resuelve y lo que falta (§8.1, §16.4) **[V9]**; datos personales, términos y antiabuso (§14.1) **[V10]**; correcciones menores **[V11]** |
 
 ---
 
@@ -23,14 +31,16 @@
 5. **El QR dinámico con monto tiene vías comerciales documentadas.** Nequi publica una API que genera el QR por cobro y permite consultar su estado; exige contrato vigente, certificación y pruebas. La fuente no permite concluir costo cero. Bre-B ofrece pagos por QR, pero su documentación general no demuestra acceso universal a una API gratuita para cualquier sitio. [S45–S46]
 6. **La venta mediante agentes de IA ya tiene documentación técnica.** Se revisaron ACP de OpenAI, UCP de Google y catálogos para agentes de Shopify. Un estándar abierto no equivale a activación comercial inmediata: OpenAI señala que Instant Checkout está disponible para socios aprobados. [S72–S74]
 7. **Hay un ecosistema de herramientas complementarias.** Facturación, contabilidad, logística y marketplaces cuentan con APIs o integraciones documentadas. Esto abre posibilidades para productos que mejoren una tienda existente, además de crear tiendas nuevas. [S51–S57]
+8. **[V1] El ecosistema ya opera tiendas y tiene la plataforma.** La línea ecommerce tiene comercios reales con cobro por Bold, y un producto vigente, la Tienda 2.0. CultivoPro tiene en producción cuentas, organizaciones y roles, cobro con adaptador y conciliación, aislamiento por cliente y vigía de cuota. Un análisis recomienda construir la Tienda 3.0 sobre esa plataforma. Es dato interno, comprobable en el repositorio, no evidencia de mercado. [S80–S82, S85]
 
 ### 1.2 Recomendaciones para ED1 — juicio del consultor
 
-- **Entrada inicial:** calculadora de rentabilidad por pedido, preparación de catálogo y cotizador/pedido para WhatsApp, con procesamiento local cuando sea posible.
-- **Primer producto de pago a contrastar:** administración sencilla de pedidos y conciliación, con exportación de datos y conexiones a proveedores existentes.
+- **Entrada inicial:** calculadora de rentabilidad por pedido, preparación de catálogo y cotizador/pedido para WhatsApp, con procesamiento local cuando sea posible. **[V2]** Antes de construirlas, medir su demanda de búsqueda con el método que el ecosistema ya usó (§12.6).
+- **Primer producto de pago a contrastar:** administración sencilla de pedidos y conciliación, con exportación de datos y conexiones a proveedores existentes. **[V1]** La primera evidencia de pago, soporte y retención se toma de los comercios reales de la línea ecommerce, antes de un piloto nuevo. El cobro con Bold y su conciliación ya existen (§10.4).
 - **Alternativa de monetización temprana:** implementación, preparación de catálogo y automatización acotada para comercios; convertir lo repetible en software después de observar varios casos.
 - **Posponer:** marketplace propio, OMS empresarial, logística propia, motor contable/fiscal completo y agentes autónomos que ejecuten pagos sin controles comerciales probados.
-- **Mantener la premisa ED1:** infraestructura sin gasto recurrente durante validación, dentro de cuotas. Contabilizar aparte pagos, mensajería, IA, soporte y trabajo humano.
+- **Mantener la premisa ED1:** infraestructura sin gasto recurrente durante validación, dentro de cuotas. Contabilizar aparte pagos, mensajería, IA, soporte y trabajo humano. **[V3]** Las cuotas gratuitas se comparten con CultivoPro y queda un solo Cron Trigger libre en la cuenta: lo transaccional de una tienda pide Workers Paid (USD 5 al mes) o compartir el despachador (§9.4).
+- **[V4] Antes del primer cobro real de un plan:** términos y condiciones, factura electrónica y la decisión sobre el IVA o su exclusión, con contador y abogado (§13.3, §14.1).
 
 Estas recomendaciones no son cuotas de mercado, pronósticos de ventas ni resultados de entrevistas. El plan de comprobación está en la sección 16.
 
@@ -62,6 +72,7 @@ La unidad competitiva no es solamente la página de tienda: también es la combi
 | **Inferencia** | Interpretación que conecta varios hallazgos | Una conclusión razonada, revisable |
 | **Hipótesis/propuesta** | Segmento, precio, experimento o prioridad ED1 | Algo que requiere comprobación con usuarios o datos propios |
 | **No confirmado** | Acceso insuficiente, ambigüedad o ausencia de evidencia | No se transforma en afirmación negativa ni en dato inventado |
+| **Dato interno [V1]** | Código, bitácoras, decisiones y mediciones del propio ecosistema, en este repositorio | Lo que el ecosistema ya construyó, midió o decidió; no es evidencia del mercado |
 
 Se priorizaron fuentes primarias: gremios, autoridades, responsables de los estándares, documentación de fabricantes y reportes de las propias empresas. El blog de AMVO se utiliza con una salvedad expresa: la cifra mexicana allí atribuida al EVO 2026 no sustituye la revisión integral de su base metodológica. No se utilizaron estimaciones anónimas ni cifras de consultoras sin acceso al método para calcular un TAM de software.
 
@@ -73,7 +84,7 @@ Se priorizaron fuentes primarias: gremios, autoridades, responsables de los est�
 4. Contraste de fuentes que podían inducir errores: precios regionales, cargo de plataforma frente a procesamiento de pago, datos nominales frente a reales, API pública frente a contratación comercial.
 5. Construcción de matrices, diagnóstico e hipótesis de validación.
 
-Se revisaron proveedores representativos, no todos los productos existentes. El registro final contiene 79 entradas: el documento ED1 y 78 referencias externas, algunas con más de un recurso enlazado. Algunas páginas son dinámicas y no contienen una fecha editorial verificable; se identifican como observaciones al corte, no como archivos históricos certificados.
+Se revisaron proveedores representativos, no todos los productos existentes. El registro final contiene 79 entradas: el documento ED1 y 78 referencias externas, algunas con más de un recurso enlazado. **[V1]** La versión 1.1 suma S80–S93 (§18.5): ocho de dato interno del ecosistema y seis externas. Algunas páginas son dinámicas y no contienen una fecha editorial verificable; se identifican como observaciones al corte, no como archivos históricos certificados.
 
 ### 2.4 Límites que afectan la decisión
 
@@ -85,6 +96,8 @@ Se revisaron proveedores representativos, no todos los productos existentes. El 
 - El resumen CCCE fue accesible; los enlaces a sus informes completos no se recuperaron. Las cifras se atribuyen a ese resumen y no se supone conocer toda su metodología.
 - La edición CAPECE 2025–2026 se identificó, pero no se recuperó su informe completo. Se distingue de los datos visibles de la edición 2024–2025.
 - Los precios pueden variar por impuestos, periodicidad, promoción, volumen, tipo de negocio y negociación. No se prometen tarifas de contratación.
+- **[V1]** La versión 1.0 solo conoció ED1. La 1.1 incorpora lo que el ecosistema ya tiene (§3.3), pero no los datos comerciales de sus comercios (cuáles pagan, cuánto, soporte, retención), que no están en este repositorio: los da el dueño (§16.1).
+- **[V11]** En la versión 1.1 no se pudieron abrir de nuevo los precios de Tiendanube Colombia (S16) ni el tarifario de Bold (S39): se usan como los observó la 1.0. Sí se comprobaron los totales de 2025 de la CCCE y el contenido de la Ley 2439 de 2024.
 
 ---
 
@@ -102,13 +115,30 @@ ED1 plantea herramientas gratuitas útiles como adquisición, retorno y cuenta c
 | Browser-first | Imágenes, cálculos, CSV y lectura local de QR | ¿La operación puede realizarse sin subir datos? |
 | Costo cero en validación | Limitar cómputo, almacenamiento y automatización | ¿Qué sucede al agotar cada cuota? |
 | Regla de tres | Extraer componentes desde comercios y flujos reales | ¿Hay suficientes usos distintos para justificar una abstracción? |
-| Owner-first | Edición y administración por el comerciante | ¿Una operación cotidiana todavía requiere al desarrollador? |
+| Owner-first **[V11]** | Edición y administración por el comerciante. En ED1 el *owner* es el dueño del ecosistema (S01 §3.7): que el comerciante se atienda solo es lo que protege sus horas (S01 §25) | ¿Una operación cotidiana todavía requiere al desarrollador o al dueño? |
 
 **Inferencia:** una herramienta que prepara el catálogo o identifica pérdidas por pedido puede atraer al mismo usuario que luego necesita pedidos e inventario. Una herramienta genérica con tráfico alto pero sin presencia de comerciantes puede aportar menos al vertical ecommerce. Debe probarse mediante segmentación voluntaria y observación de uso, no asumirse por el nombre de la herramienta.
 
 ### 3.2 Dos ventas que deben mantenerse separadas
 
 ED1 puede vender una suscripción a un comerciante; ese comerciante, a su vez, vende productos a sus clientes. Son relaciones distintas. Sus cobros, facturas, impuestos, devoluciones, credenciales y reportes no deben mezclarse. El ingreso bruto procesado por una tienda tampoco es ingreso de ED1.
+
+### 3.3 Lo que el ecosistema ya tiene **[V1] [V9]**
+
+Dato interno, al 5 de octubre de 2026. Cambia el punto de partida del resto del estudio: varias capacidades que aquí se proponen ya existen y se reutilizan; otras existen, pero todavía hablan de otro producto.
+
+| Pieza | Estado | Qué resuelve de este estudio | Fuente |
+|---|---|---|---|
+| Línea ecommerce | Dos comercios reales en producción, en la línea anterior («Tienda Básica»); uno es la tienda de la finca cero. La Tienda 2.0 («Tienda Panel», 1.0.0) es el único producto vigente: hoja de Google, Apps Script y un Worker por tienda, catálogo horneado, cobro con Bold y flota por anillos. Los comercios se migran a ella uno por uno | Conducta real de pago, soporte y retención, que se empieza a medir ya (§16.1); el camino «2.0 → 3.0» (§15.3) | S80 |
+| Tienda 3.0 (propuesta) | Análisis del 4 oct 2026: construirla sobre la plataforma, con cada tienda como una fila y no como un repositorio; la 2.0 sigue hasta migrar | La arquitectura de la «Tienda alojada completa» (§15.1) | S81 |
+| CORE (cuentas) | En producción con CultivoPro: Google, organizaciones, membresías, roles, invitaciones y planes con vencimiento; tokens Ed25519 que cada celda verifica sin llamar al CORE | Administración y roles (§8.1); recuperación de cuenta con Google (§16.4). Sus valores todavía son del agro (§16.4) | S82, S85 |
+| Cobro | Bold detrás de un adaptador; monto calculado en el servidor; verificación por API; conciliación cada 15 min; estado «revisar» si el monto no coincide | El flujo de §10.4, ya construido para los planes de CultivoPro | S83, S85 |
+| Datos por cliente | Celdas con shards de D1; `org_id` en cada fila, con una prueba que lo exige en cada consulta; exportación portable | Aislamiento por comercio y exportación (§8.1, §9.2, §16.4) | S82, S85 |
+| Operación | Kill switch por producto; vigía horario de cuota con niveles de degradación; alertas al dueño por Telegram; reporte semanal | Presupuesto por producto y degradación (§9.4) | S82 |
+| Medición de demanda | Método con Keyword Planner: tipos de dato y regla de decisión fijada antes de ver los datos (1 oct 2026) | La medición que la versión 1.0 no hizo (§12.6) | S84 |
+| Respaldo semanal de D1 | Diseñado; espera la señal del dueño | La restauración probada de §16.4: todavía no | S83 |
+
+Lo que le falta a una tienda alojada no es la plataforma. Es el panel del comerciante, el catálogo horneado por tienda, los dominios propios, el correo transaccional y la migración de los comercios (S81, §4.2).
 
 ---
 
@@ -318,22 +348,22 @@ Las siguientes matrices son una **síntesis de requisitos y diseño** a partir d
 
 ### 8.1 Capacidades básicas de una tienda operable
 
-| Dominio | Capacidad mínima | Criterio de aceptación propuesto | Prioridad ED1 |
-|---|---|---|---|
-| Catálogo | Producto, precio, SKU interno, imágenes, categorías | El comerciante publica y corrige sin editar código | Alta si se valida catálogo |
-| Variantes | Talla/color u otras opciones con SKU y stock | El pedido conserva variante y precio correctos | Alta para productos físicos |
-| Experiencia | Móvil, navegación y búsqueda proporcional al catálogo | El cliente encuentra y entiende el producto | Alta |
-| Carrito | Cantidades, subtotal y desglose | El total se recalcula con reglas de servidor al cobrar | Alta en fase transaccional |
-| Pedido | Identificador, cliente, ítems, totales y estados | Se puede reconstruir qué se compró y qué falta | Alta |
-| Cobro | Medio local y estado verificable | No se marca pagado por una captura o un retorno del navegador | Alta |
-| Entrega | Dirección, retiro/entrega, costo y seguimiento | El cliente conoce costo y condiciones antes de confirmar | Alta |
-| Inventario | Existencia y cambios por operación | Se previenen o identifican sobreventas | Según frecuencia de pedidos |
-| Administración | Acceso, roles básicos y auditoría | Cada comercio ve solo sus datos | Alta al ofrecer SaaS |
-| Posventa | Contacto, novedades, devoluciones y reembolsos | Hay proceso y registro, no solo una página de compra | Alta |
-| Datos | Exportación de catálogo, clientes y pedidos | Se obtiene una copia utilizable sin intervención del desarrollador | Alta |
-| SEO | URLs, metadatos, sitemap y contenido de producto | Datos visibles y estructurados consistentes | Alta |
-| Seguridad | TLS, secretos, validación y respaldo | No hay credenciales privadas en el frontend | Alta |
-| Analítica | Eventos y resultado comercial | Pedido enviado, pago aprobado y entrega se distinguen | Alta |
+| Dominio | Capacidad mínima | Criterio de aceptación propuesto | Prioridad ED1 | En el ecosistema hoy **[V9]** |
+|---|---|---|---|---|
+| Catálogo | Producto, precio, SKU interno, imágenes, categorías | El comerciante publica y corrige sin editar código | Alta si se valida catálogo | Tienda 2.0: catálogo en la hoja, con su contrato de columnas. El cuaderno de CultivoPro ya exporta con esas columnas (S80, S81) |
+| Variantes | Talla/color u otras opciones con SKU y stock | El pedido conserva variante y precio correctos | Alta para productos físicos | Tienda 2.0: combinaciones con su precio (S80, S81) |
+| Experiencia | Móvil, navegación y búsqueda proporcional al catálogo | El cliente encuentra y entiende el producto | Alta | Tienda 2.0: página horneada (S81) |
+| Carrito | Cantidades, subtotal y desglose | El total se recalcula con reglas de servidor al cobrar | Alta en fase transaccional | Tienda 2.0: el backend valida, registra y cobra (S81) |
+| Pedido | Identificador, cliente, ítems, totales y estados | Se puede reconstruir qué se compró y qué falta | Alta | Tienda 2.0: estados del pedido en su contrato (S81) |
+| Cobro | Medio local y estado verificable | No se marca pagado por una captura o un retorno del navegador | Alta | Bold con verificación por API, en la Tienda 2.0 y en CultivoPro, que suma adaptador y conciliación cada 15 min (S81, S85) |
+| Entrega | Dirección, retiro/entrega, costo y seguimiento | El cliente conoce costo y condiciones antes de confirmar | Alta | Tienda 2.0: envíos, y rastreo con un secreto aparte (S81) |
+| Inventario | Existencia y cambios por operación | Se previenen o identifican sobreventas | Según frecuencia de pedidos | Tienda 2.0: aparta las unidades antes de cobrar (S81) |
+| Administración | Acceso, roles básicos y auditoría | Cada comercio ve solo sus datos | Alta al ofrecer SaaS | CORE: roles, y aislamiento por `org_id` con una prueba; sus valores todavía son del agro (S82, S85) |
+| Posventa | Contacto, novedades, devoluciones y reembolsos | Hay proceso y registro, no solo una página de compra | Alta | No confirmado en el repositorio |
+| Datos | Exportación de catálogo, clientes y pedidos | Se obtiene una copia utilizable sin intervención del desarrollador | Alta | CultivoPro: exportación portable (`agro-export v1`). La Tienda 2.0 conserva la hoja del comercio (S81, S82) |
+| SEO | URLs, metadatos, sitemap y contenido de producto | Datos visibles y estructurados consistentes | Alta | Tienda 2.0: HTML horneado por tienda. La 3.0 tiene que hornear el HTML de cada ficha (§12.3) |
+| Seguridad | TLS, secretos, validación y respaldo | No hay credenciales privadas en el frontend | Alta | CSP por ruta, secretos por ambiente de GitHub y revisión de seguridad del 3 oct 2026 (S82). El respaldo semanal está pendiente (S83) |
+| Analítica | Eventos y resultado comercial | Pedido enviado, pago aprobado y entrega se distinguen | Alta | Analytics Engine y reporte semanal en CultivoPro; la Tienda tiene su propio contrato de eventos (S81) |
 
 ### 8.2 Capacidades avanzadas y su justificación
 
@@ -410,9 +440,16 @@ El navegador puede calcular una vista previa, preparar archivos o decodificar un
 
 ### 9.4 Infraestructura y cuotas
 
-Cloudflare documenta solicitudes gratuitas e ilimitadas para assets estáticos y distingue la ejecución del script Worker. D1 Free publica 5 millones de filas leídas al día, 100.000 escritas y 5 GB de almacenamiento incluido. Workers Free publica 100.000 solicitudes al día; las condiciones se deben comprobar antes de cada expansión. [S67–S69]
+Cloudflare documenta solicitudes gratuitas e ilimitadas para assets estáticos y distingue la ejecución del script Worker. D1 Free publica 5 millones de filas leídas al día, 100.000 escritas y 5 GB de almacenamiento incluido **por cuenta**. **[V3]** El límite de diseño es 500 MB por base, con 10 bases por cuenta [S86]. Workers Free publica 100.000 solicitudes al día; las condiciones se deben comprobar antes de cada expansión. [S67–S69]
 
-**Propuesta ED1:** estimar llamadas, filas leídas/escritas, almacenamiento y mensajes por comercio activo; mantener límites por producto y comercio, alertas, exportación y un modo de degradación explícito. Un escaneo sin índice o un webhook repetido puede consumir más presupuesto que la interfaz pública.
+**[V3] Cuatro restricciones que ya muerden en la cuenta del ecosistema** (dato interno):
+
+- **Un índice también es una fila escrita.** D1 cuenta cada entrada de índice como fila escrita. Un pedido que entra a una tabla con dos índices son 3 filas, así que las 100.000 escrituras diarias son unas 33.000 inserciones de ese tipo. Además, una invocación del Worker gratuito admite 50 consultas a D1. [S87]
+- **Las cuotas son de la cuenta, y ya tienen dueño.** La cuenta atiende a CultivoPro, que declaró hasta el 25 % de las solicitudes al Worker y el 21 % de las filas escritas. Un producto de ecommerce en la misma cuenta declara su parte y su kill switch (S01 §25.1). [S82]
+- **No se abre otra cuenta gratuita para ganar cuota.** Lo prohíben los términos de Cloudflare, §2.2.1(c). Escalar es pasar a Workers Paid, USD 5 al mes. [S82, S87]
+- **Queda un solo Cron Trigger libre.** El plan gratuito da 5 por cuenta (S01 §41), y ya hay 4: el CORE y la API de la celda de CultivoPro, cada uno en producción y en staging. Una tienda que concilie pagos o libere por tiempo las unidades apartadas necesita un cron: comparte el despachador (S01 §7.1) o pasa a Workers Paid. [S85]
+
+**Propuesta ED1:** estimar llamadas, filas leídas/escritas, almacenamiento y mensajes por comercio activo; mantener límites por producto y comercio, alertas, exportación y un modo de degradación explícito. Un escaneo sin índice o un webhook repetido puede consumir más presupuesto que la interfaz pública. **[V3]** El vigía horario de cuota y sus niveles de degradación ya existen y se reutilizan. Pasar a Workers Paid les cambia la vara: deja de haber tope diario y lo que hay que vigilar es el gasto del mes. [S82]
 
 GitHub Actions sirve para construcción, pruebas y despliegue del software. Sus términos identifican como uso indebido, entre otros, su utilización como CDN o parte de una aplicación serverless con carga desproporcionada. No debe convertirse en el procesador de pedidos o archivos de clientes para eludir costos de ejecución. [S70]
 
@@ -420,7 +457,7 @@ GitHub Actions sirve para construcción, pruebas y despliegue del software. Sus 
 
 - Distinguir el núcleo, plugins, temas, servicios cloud y marcas: cada uno puede tener condiciones diferentes.
 - Saleor publica BSD-3-Clause. Vendure publica GPLv3 y explica excepciones de plugins y separación de consumidores de su API. PrestaShop dispone de una guía de compatibilidad de licencias. Esto no autoriza a atribuir una licencia única a todo el stack. [S30, S33–S34]
-- Mantener un modelo exportable de producto, variante, cliente, pedido y evento de pago.
+- Mantener un modelo exportable de producto, variante, cliente, pedido y evento de pago. **[V11]** En el ecosistema, «producto» ya nombra el contrato de una herramienta o un SaaS (`product.yaml`, `schemas/product.schema.json`). El producto de un comercio necesita otro nombre en el código y en los esquemas de la tienda: una palabra, un significado (patrón P2 de las bitácoras del ecosistema, «una sola fuente»).
 - Preservar URLs o redirecciones al migrar; medir pérdida de integraciones y de configuración.
 - Evitar que el formato del proveedor sea el único registro del negocio. Un archivo exportado sin relaciones ni estados puede ser insuficiente para continuar operando.
 
@@ -466,7 +503,7 @@ EMVCo publica especificaciones para QR de pago y herramientas de autoevaluación
 
 **Propuesta de posicionamiento para ED1:** indicar exactamente “contenido leído”, “formato soportado”, “monto coincide/no coincide con la referencia” o “estado confirmado por proveedor”. Evitar la etiqueta “transferencia verificada” si solo se ha procesado una fotografía o el texto de un QR.
 
-Este estudio no revalida los QR específicos mencionados en conversaciones anteriores: en esta solicitud se recibió el documento ED1, no esos archivos ni una integración bancaria operativa.
+**[V11]** Este estudio no valida ningún QR concreto ni una integración bancaria en operación: describe qué puede comprobar cada nivel y qué queda fuera.
 
 ### 10.4 Flujo técnico recomendado — propuesta
 
@@ -478,6 +515,14 @@ Este estudio no revalida los QR específicos mencionados en conversaciones anter
 6. Se actualiza el pedido y se gestionan pendientes, expirados, duplicados, devoluciones y discrepancias.
 
 La API QR Nequi documenta consulta de estado; no se le atribuye un webhook específico no comprobado. La documentación de Bold advierte que ciertas notificaciones pueden demorarse hasta diez minutos. La interfaz debe contemplar el estado pendiente, no depender del retorno inmediato al navegador. [S38, S45, S79]
+
+**[V4] En el ecosistema, este flujo ya corre** (dato interno):
+
+- CultivoPro cobra su plan con Bold así. El monto sale del servidor, la firma se calcula en el CORE, la verdad se le pregunta a la API de Bold, un estado «revisar» recoge el monto que no coincide y una conciliación cada 15 min activa a quien pagó y no volvió. [S83, S85]
+- La Tienda 2.0 también cobra con Bold. [S80, S81]
+- El proveedor que ED1 pide elegir antes de monetizar (S01 §5.3) ya está elegido, y el adaptador permite cambiarlo.
+- A una tienda alojada le falta una sola cosa: que el adaptador use las llaves de **cada comercio**, cifradas, en vez de las del ecosistema, porque en una tienda el vendedor es el comercio (§3.2; S81 §4.3).
+- Vender los planes de ED1 fuera de Colombia es otro asunto: ED1 contempla un *Merchant of Record* internacional para los impuestos de otros países (S01 §5.3), y este estudio no lo evaluó.
 
 ### 10.5 Expansión regional y financiación
 
@@ -506,6 +551,13 @@ Los programas de financiación y las formas de pago recurrente introducen contra
 | WhatsApp Business Platform | Mensajería programática y automatización | Cobro por mensajes entregados según mercado/categoría; reglas y excepciones |
 
 La documentación oficial describe catálogo en la app y un modelo por mensaje para Platform, con mensajes de servicio y ciertos mensajes de utilidad en respuesta al usuario sin cargo de Meta. Puede existir además costo del proveedor intermediario. No se recuperó una tarifa única aplicable a cualquier automatización colombiana. [S49–S50]
+
+**[V7] Tarifas en Colombia** (fuente secundaria que cita la tabla de Meta; confirmar en S49 antes de contratar):
+
+- Por plantilla entregada: marketing, USD 0,0125; utilidad, USD 0,0008; autenticación, USD 0,0008.
+- Las de utilidad no se cobran dentro de la ventana de 24 h de atención. [S88]
+- Con esas tarifas, avisar el estado de 300 pedidos al mes, con tres mensajes de utilidad cada uno, cuesta unos USD 0,72 al mes (inferencia).
+- El costo del canal no es la barrera. Lo son la verificación del negocio, las plantillas aprobadas, el consentimiento del comprador y la cuota del intermediario.
 
 **Propuesta ED1:** empezar con mensajes preparados y estados de pedido propios. Adoptar Platform cuando se demuestre ahorro de atención y la contribución por pedido soporte su costo. Diferenciar el costo del canal de una función de IA que atienda esos mensajes.
 
@@ -567,6 +619,12 @@ Estos son modelos propuestos, no precios de mercado observados. Los primeros pro
 
 La tabla expresa posibilidades y controles de diseño. No se afirma que IA garantice rentabilidad o que todos los servicios permitan ejecutarla sin costo.
 
+**[V7] Una regla de Meta limita la atención con IA por WhatsApp.**
+
+- Desde el 15 de enero de 2026, Meta no deja usar WhatsApp Business Platform a los proveedores de IA cuando un asistente de propósito general es la función principal. [S89–S90]
+- Siguen permitidas la IA que una empresa usa para atender a sus propios clientes y las automatizaciones estructuradas: confirmar un pedido, recordar un pago.
+- Para ED1, la «atención asistida» de cada comercio cabe en la regla. Un asistente de IA de ED1 por WhatsApp como producto propio cae en la zona prohibida (inferencia; revisar el texto vigente de Meta antes de diseñarlo).
+
 ### 12.2 Comercio mediante agentes: alcance comprobado
 
 - **ACP/OpenAI:** la especificación describe sesiones de checkout; construir con el protocolo está abierto, mientras Instant Checkout requiere aprobación del socio. [S72]
@@ -582,6 +640,12 @@ Google documenta marcado `Product`/`Offer` para experiencias de merchant listing
 GS1 explica la asignación de GTIN y su uso en canales de venta. ED1 puede verificar formatos o generar la representación gráfica de un identificador legítimo; no debería inventar GTIN comerciales y venderlos como asignaciones válidas de GS1. Un SKU interno es otra cosa. [S64]
 
 **Herramientas propuestas:** verificador local de CSV, diagnóstico de fichas, generador de sitemap para catálogo, comprobador de consistencia de precio/disponibilidad y preparador de feeds. Requieren especificaciones vigentes y límites claros; no se deben presentar como certificación de aprobación del canal.
+
+**[V6] Requisito de una tienda alojada: el HTML de cada ficha.**
+
+- El marcado `Product`/`Offer`, el título, la descripción y el Open Graph tienen que estar en el HTML que se entrega, no pintados después con JavaScript. ED1 lo pide para cada página (S01 §12), y la bitácora del agro lo volvió regla: «el rastreador que no ejecuta JavaScript».
+- De eso dependen las fichas en Google y la vista previa de un enlace en WhatsApp, que es el canal principal del público de ED1.
+- La Tienda 2.0 hornea el HTML de cada tienda. El diseño de la 3.0 debe hornear también el de cada producto, y no solo un catálogo en JSON (S81, §4.2).
 
 ### 12.4 Analítica y rendimiento
 
@@ -603,6 +667,60 @@ Para ED1, medir además: comerciante activado, catálogo utilizable, pedido crea
 | Publicidad pagada | Experimentos acotados tras conocer activación | CAC y recuperación, no solo clics |
 
 No se asignan volúmenes de búsqueda ni presupuesto rentable sin medición. El posicionamiento debe comunicar la tarea resuelta; “gratis” es una condición de acceso, no una prueba de valor.
+
+### 12.6 Medir la demanda antes de construir **[V2]**
+
+El ecosistema ya midió la demanda de búsqueda de sus calculadoras del agro, y la medición cambió una decisión: la herramienta que el estudio de mercado del agro ponía primera no tenía búsquedas en ninguna de sus formas. Aquí se usa el mismo método. [S84]
+
+1. **Keyword Planner**, en «Métricas históricas» de los últimos 12 meses, nunca en «Previsión». Primero Colombia; después México, Perú, Ecuador, Chile, Argentina, Guatemala y Costa Rica. En español y en la red de Google.
+2. **Cada cifra con su tipo:** V (verificada: Keyword Planner con gasto, o Search Console), R (rango, sin gasto activo) o E (estimación, diciendo de dónde sale). Los CSV no se suben al repositorio; solo las cifras.
+3. **La regla de decisión, fijada antes de ver los datos:**
+   - Demanda de una herramienta = suma de Colombia de sus términos + 0,3 × suma de LATAM. Con rangos se usa el punto medio y la herramienta se marca «con rangos».
+   - Desempate (±30 %): gana la que lleva al producto que se paga (pedidos y conciliación).
+   - Veto: lo que no se puede publicar sin que su promesa se lea mal (la lectura de QR, §15.2) espera a su piloto controlado.
+   - Si ninguna pasa de 50 búsquedas al mes en Colombia, la demanda no decide. Se ordena por cercanía al producto que se paga y se vuelve a medir con Search Console a los 90 días de publicar.
+
+Lista para pegar. Son 25 términos, y la lista es una hipótesis de cómo se busca, no un resultado:
+
+```text
+calcular margen de ganancia
+calculadora de precio de venta
+cómo calcular el precio de venta
+punto de equilibrio
+margen de utilidad
+comisión bold
+cuánto cobra bold
+comisión wompi
+comisión mercado pago colombia
+comisiones pasarelas de pago colombia
+catálogo de whatsapp
+cómo hacer un catálogo de productos
+plantilla catálogo de productos
+importar productos tiendanube
+formato de cotización
+cotización por whatsapp
+cuenta de cobro
+plantilla cuenta de cobro
+cómo mejorar mi tienda online
+fichas de producto
+verificar pago nequi
+comprobante nequi falso
+qr bre-b
+calculadora de iva
+retención en la fuente
+```
+
+| Términos | Herramienta (§15.2) |
+|---|---|
+| Margen, precio de venta, punto de equilibrio, utilidad | 1 · Rentabilidad del pedido |
+| Comisiones de Bold, Wompi, Mercado Pago y pasarelas | 1 · Costo de cobrar, dentro de la rentabilidad |
+| Catálogo, plantilla, importar productos | 2 · Catálogo listo para vender |
+| Cotización, cuenta de cobro | 3 · Cotización o pedido para WhatsApp |
+| Mejorar la tienda, fichas de producto | 4 · Diagnóstico de fichas |
+| Verificar un pago, comprobante, QR Bre-B | 5 · Lectura de QR (piloto controlado) |
+| IVA, retención en la fuente | Candidatas de ED1 §10.4 al quinto lugar |
+
+Los resultados se registran como en el agro, en un documento de validación propio de la línea ecommerce, con fuente y fecha por cifra.
 
 ---
 
@@ -644,6 +762,13 @@ Para la suscripción ED1:
 
 Para una operación de tienda, medir margen de producto después de costos de pago, empaque, envío subsidiado, devolución y publicidad. Para LTV, usar cohortes y retención observada; no asumir permanencia indefinida ni extrapolar un mes sin cancelaciones.
 
+**[V4] Entradas propias de ED1 para estas fórmulas:**
+
+- **Comisión de recaudo.** ED1 cobra con Bold, mes a mes y sin débito automático. Con la tarifa observada en §10.2, la parte fija pesa más del 5 % en un plan de COP 39.000 (§13.4).
+- **Impuestos.** Si el servicio cumple las condiciones de la DIAN para la computación en la nube, está excluido de IVA (Estatuto Tributario, art. 476, num. 24); si no, lleva el 19 %. *No confirmado: lo decide el contador.* [S91]
+- **CAC.** Mientras la adquisición sea orgánica, el gasto de adquisición son horas del dueño, y el CAC se mide en horas o en su valor (S01 §18; S86, [H16]).
+- **Costos fijos.** En validación son USD 0 a 5 de infraestructura al mes, más las horas del dueño, que ED1 declara como el límite real de su presupuesto (S01 §25). [S82, S83]
+
 ### 13.4 Escenarios ilustrativos: no son previsión de ingresos
 
 | Escenario hipotético | Comercios pagadores | Precio mensual supuesto | Facturación bruta aritmética |
@@ -653,6 +778,19 @@ Para una operación de tienda, medir margen de producto después de costos de pa
 | Operación inicial | 200 | COP 49.000 | COP 9.800.000/mes |
 
 Los precios no se derivan de una encuesta ni se recomiendan como tarifa final. No incluyen impuestos, recaudo, cancelaciones, adquisición, soporte ni consumo. Si la contribución hipotética fuera COP 25.000 por comercio y los costos fijos COP 1.000.000/mes, el equilibrio aritmético sería 40 comercios. Si el soporte reduce esa contribución a cero, aumentar clientes no resuelve el modelo.
+
+**[V4] El recaudo, con la tarifa observada de Bold** (inferencia, antes del IVA de la comisión; S39):
+
+| Cobro | Comisión | Peso sobre lo cobrado |
+|---|---:|---:|
+| COP 29.000 por PSE o billetera | 2,89 % + 900 = COP 1.738 | 6,0 % |
+| COP 39.000 por PSE o billetera | COP 2.027 | 5,2 % |
+| COP 39.000 con tarjeta | 2,99 % + 900 = COP 2.066 | 5,3 % |
+| COP 49.000 por PSE o billetera | COP 2.316 | 4,7 % |
+| COP 468.000 por PSE (doce meses de una vez) | COP 14.425 | 3,1 % |
+
+- Lo que vale para el pedido de bajo valor (§7.3) vale para la suscripción de ED1: cobrar mes a mes paga la tarifa fija doce veces al año. Hipótesis a probar: el prepago trimestral o anual.
+- Los costos fijos de COP 1.000.000 de arriba son un supuesto aritmético. El costo fijo real de la validación son las horas del dueño (§13.3).
 
 Para publicidad en herramientas: `ingreso = vistas monetizables / 1.000 × RPM observado`. Sin RPM propio no se calcula ingreso esperado. Las vistas de compradores dentro de tiendas no deben confundirse con audiencia monetizable de utilidades.
 
@@ -673,10 +811,12 @@ El Estatuto del Consumidor —Ley 1480— incluye disposiciones sobre comercio e
 | Identificación del vendedor | Datos y canales de contacto del comercio | Información exigible según operación |
 | Oferta/precio | Producto, total, envío y condiciones claros | Impuestos y forma de presentar el precio |
 | Compra | Resumen, aceptación y evidencia del pedido | Conservación y obligaciones aplicables |
-| Posventa | Flujo de consultas, reclamos, devoluciones y reversión | Plazos, excepciones y texto vigente |
-| Datos personales | Finalidad, permisos, retención y controles por comercio | Roles de ED1/comerciante/proveedores y régimen aplicable |
+| Posventa | Flujo de consultas, reclamos, devoluciones y reversión. **[V10]** La Ley 2439 de 2024 pide devolver el dinero del retracto en máximo 15 días calendario y ofrecer un canal de quejas fácil de encontrar: la tienda alojada tiene que hacerlo posible | Plazos, excepciones y texto vigente [S76, S93] |
+| Datos personales | Finalidad, permisos, retención y controles por comercio. **[V10]** En una tienda alojada, ED1 es encargado del tratamiento de cada comercio, que es el responsable: contrato de transmisión de datos con cada uno y una política que lo diga | Roles de ED1/comerciante/proveedores y régimen aplicable. Requiere abogado [S92] |
 | Facturación | Integración o proceso de emisión | Obligación y habilitación del comerciante |
 | Comunicaciones | Consentimientos y preferencias | Reglas del canal y de contacto comercial |
+| Antiabuso **[V10]** | Tiendas de terceros en la infraestructura de ED1: dominio registrable separado para las tiendas sin dominio propio, términos de uso, reporte, `abuse@` y suspensión con un clic (S01 §14.1) | Qué verifica Bold al abrir la cuenta de cada comercio y qué le queda a ED1 |
+| Las ventas de ED1 **[V4]** | Términos y condiciones de los planes pagos (S01 §20.1); factura electrónica de ED1 a sus clientes; IVA o exclusión como computación en la nube | Contador y abogado, antes del primer cobro real [S83, S91] |
 
 El cuadro es una agenda de implementación, no una enumeración exhaustiva de obligaciones legales. ED1 ya incluye privacidad y Ley 1581 en su visión; el diseño final debe revisar los tratamientos concretos y las responsabilidades contractuales. [S01]
 
@@ -703,12 +843,12 @@ La evaluación usa cinco criterios: cercanía al público ED1, posibilidad de ej
 | Calculadora de contribución por pedido | Alta | Bajo, navegador | Media | Supuestos fiscales/tarifarios editables | P0 |
 | Preparador de catálogo CSV/imágenes | Alta | Bajo–medio, navegador | Media–alta | Compatibilidad y preservación de datos | P0 |
 | Cotizador/pedido para WhatsApp | Alta | Bajo para exportar; medio para historial | Alta | No llamar pago a un pedido enviado | P0 |
-| Lectura/comparación local de QR | Alta para el caso del proyecto | Bajo–medio | Desconocida | Describir límites de lo comprobado | P1, piloto controlado |
+| Lectura/comparación local de QR | Alta para el caso del proyecto | Bajo–medio | Desconocida | Describir límites de lo comprobado. **[V5]** El comerciante quiere saber si le llegó la plata, y un decodificador no lo responde | P1, piloto controlado; fuera del paquete inicial (§15.2) |
 | Validador de datos de producto/feed | Alta para tiendas existentes | Medio | Media | Especificación y diagnóstico actualizados | P1 |
 | Historial y bandeja de pedidos | Alta | Medio | Alta | Autenticación, aislamiento y exportación | P1 tras comprobar uso |
 | Conciliación con proveedor contratado | Alta | Medio–alto | Alta | Acceso, costos y fuente bancaria fiable | P1 condicionada |
 | Conector contable | Alta | Medio–alto | Alta | Plan y localización fiscal del cliente | P2 |
-| Tienda alojada completa | Alta | Alto | Alta | Soporte, checkout, inventario y posventa | P2 tras piloto pagado |
+| Tienda alojada completa | Alta | **[V1]** Medio: reutiliza cuentas, cobro, aislamiento y operación del ecosistema (§3.3); faltan el panel, el catálogo horneado por tienda, los dominios propios y la migración | Alta | Soporte, checkout, inventario y posventa. **[V10]** Antiabuso para tiendas de terceros | P2, tras la señal de los comercios reales de la línea (§16.1) y un piloto pagado |
 | Marketplace propio | Indeterminada | Muy alto | Indeterminada | Dos lados del mercado, liquidación y disputas | Posponer |
 | Suite empresarial componible | Baja para validación inicial | Muy alto | Dependiente de contratos | Implementación y operación complejas | Posponer |
 
@@ -716,15 +856,17 @@ P0 = comprobar primero; P1 = siguiente experimento o dependencia; P2 = inversió
 
 ### 15.2 Paquete inicial propuesto
 
-**Herramienta 1 — Rentabilidad del pedido:** precio, costo de producto, cargo de pago editable, empaque, envío y descuento. Resultado descargable y explicación de supuestos. Monetización posterior: escenarios guardados, lotes y conexión con ventas reales.
+**Herramienta 1 — Rentabilidad del pedido:** precio, costo de producto, cargo de pago editable, empaque, envío y descuento. Resultado descargable y explicación de supuestos. Monetización posterior: escenarios guardados, lotes y conexión con ventas reales. **[V5]** Trae el costo de cobrar con tarifas fechadas por proveedor: las de §10.2, que el radar de §17.1 revisa cada mes. Es la pregunta local que mejor se responde con contexto colombiano, y ED1 la pone entre sus prioridades (S01 §10.4).
 
-**Herramienta 2 — Catálogo listo para vender:** importar CSV, señalar campos faltantes, revisar variantes, preparar imágenes y exportar por destino. Monetización posterior: historial, plantillas y sincronización.
+**Herramienta 2 — Catálogo listo para vender:** importar CSV, señalar campos faltantes, revisar variantes, preparar imágenes y exportar por destino. Monetización posterior: historial, plantillas y sincronización. **[V5]** Exporta primero al formato de catálogo del ecosistema: las columnas de la hoja «Catálogo» de la Tienda, que el cuaderno de CultivoPro ya produce. Después, a los de Tiendanube, Shopify y WooCommerce. Así hay un solo contrato de producto. [S80, S81]
 
-**Herramienta 3 — Cotización/pedido para WhatsApp:** producto, cantidad, entrega y vigencia; producir mensaje y documento legible. Monetización posterior: seguimiento, estados y colaboración.
+**Herramienta 3 — Cotización/pedido para WhatsApp:** producto, cantidad, entrega y vigencia; producir mensaje y documento legible. Monetización posterior: seguimiento, estados y colaboración. **[V5]** Lo que lleve datos del comprador viaja en el fragmento `#` del enlace, que no llega a ningún servidor; nunca en la ruta ni en la consulta. Así viajan las invitaciones de CultivoPro. [S82]
 
-**Herramienta 4 — Diagnóstico de ficha/tienda:** evaluar datos de producto, claridad del precio, contacto y consistencia técnica según reglas verificables. Monetización posterior: informe, lote o servicio de mejora.
+**Herramienta 4 — Diagnóstico de ficha/tienda:** evaluar datos de producto, claridad del precio, contacto y consistencia técnica según reglas verificables. Monetización posterior: informe, lote o servicio de mejora. **[V5]** Trabaja sobre lo que el comerciante exporta o pega: CSV, feed o HTML. Leer una tienda desde su URL no se puede hacer en el navegador (CORS), y pediría un Worker que descargue páginas ajenas, con su costo y su riesgo de abuso. Espera a que un ingreso lo pague (S01 §15.1).
 
-**Herramienta 5 — Lectura y comparación de QR:** empezar por decodificación y formato soportado, con monto comparado contra referencia aportada. Mantener separada una futura integración de confirmación bancaria. Solo lanzar después de validar decodificación, mensajes y límites con ejemplos legítimos.
+**Herramienta 5 — Lectura y comparación de QR:** empezar por decodificación y formato soportado, con monto comparado contra referencia aportada. Mantener separada una futura integración de confirmación bancaria. Solo lanzar después de validar decodificación, mensajes y límites con ejemplos legítimos. **[V5]** Sale del paquete inicial. §15.1 la pone en P1, como piloto controlado, y quien la use quiere saber si le llegó la plata, algo que un decodificador no responde. El «QR para negocios» de ED1 §10.4 es otra herramienta: generar un QR para el catálogo, el chat o el link de pago.
+
+**[V5] El quinto lugar del paquete inicial** lo decide la medición de §12.6, entre los candidatos de este estudio y los de ED1 §10.4 (por ejemplo, el IVA en el precio).
 
 El paquete conserva el objetivo ED1 de cinco herramientas iniciales, pero sus integrantes deben ajustarse a entrevistas y uso real. Si el QR atrae principalmente compradores ajenos al público pagador, no asumir que tiene el mismo valor de embudo que catálogo/pedidos.
 
@@ -734,8 +876,9 @@ El paquete conserva el objetivo ED1 de cinco herramientas iniciales, pero sus in
 |---|---|---|
 | Complementos para tiendas existentes | El problema persiste con plataforma y el cliente no quiere migrar | Utilidades premium, app, conector o servicio |
 | Comercio social y pedidos | Hay operación frecuente fuera de una tienda y pago por ordenarla | Catálogo/pedidos/conciliación con tienda opcional |
+| Tienda alojada para los comercios de la línea **[V1]** | Los comercios reales pagan, se quedan y piden un soporte que cabe en su contribución (§16.3) | Hoy, migrar de la Tienda Básica a la 2.0. Con la señal, construir la 3.0 sobre la plataforma del ecosistema (S81) |
 
-Ambos pueden compartir datos y herramientas. No necesitan una plataforma universal antes de tener usuarios.
+Los tres pueden compartir datos y herramientas. Los dos primeros no necesitan una plataforma universal antes de tener usuarios, y el tercero ya la tiene (§3.3).
 
 ---
 
@@ -743,16 +886,22 @@ Ambos pueden compartir datos y herramientas. No necesitan una plataforma univers
 
 ### 16.1 Primeros 90 días — propuesta
 
-| Período | Trabajo | Evidencia exigida | Decisión |
-|---|---|---|---|
-| Días 1–15 | 15–20 entrevistas con comercios de al menos dos segmentos | Ejemplos de tareas, frecuencia, tiempo y alternativa actual | Seleccionar problema concreto |
-| Días 16–30 | Prototipos de las primeras utilidades; acompañar 5–10 usos reales | Resultado utilizable, errores y tiempo ahorrado | Publicar/iterar o descartar |
-| Días 31–45 | Publicación de 3–5 herramientas y contenido propio | Completado, público, retorno y siguiente necesidad | Elegir la herramienta de entrada |
-| Días 46–60 | Piloto asistido con historial/pedidos; solicitar pago por alcance concreto | Pago real, soporte y uso recurrente | Validar monetización o revisar propuesta |
-| Días 61–75 | Una integración de pago o administración, si hay contrato y necesidad | Pruebas de estado, duplicados, fallos y exportación | Confirmar confiabilidad y costo |
-| Días 76–90 | Análisis de cohortes y economía | Retención, contribución y dependencia del soporte | Elegir complemento, SaaS acotado o pivote |
+| Período | Trabajo | Evidencia exigida | Decisión | Fase ED1 **[V8]** |
+|---|---|---|---|---|
+| Días 1–15 | 15–20 entrevistas con comercios de al menos dos segmentos. **[V1]** Incluyen a los comercios reales de la línea ecommerce, con sus datos de pago, soporte y retención. **[V2]** Medición de la demanda de búsqueda (§12.6) | Ejemplos de tareas, frecuencia, tiempo y alternativa actual; cifras de búsqueda con su tipo | Seleccionar problema concreto y las herramientas que se construyen | 0 · Decisiones |
+| Días 16–30 | Prototipos de las primeras utilidades; acompañar 5–10 usos reales | Resultado utilizable, errores y tiempo ahorrado | Publicar/iterar o descartar | 1 · Utility MVP |
+| Días 31–45 | Publicación de 3–5 herramientas y contenido propio | Completado, público, retorno y siguiente necesidad | Elegir la herramienta de entrada | 1–2 · Utility MVP y Growth |
+| Días 46–60 | Piloto asistido con historial/pedidos; solicitar pago por alcance concreto | Pago real, soporte y uso recurrente | Validar monetización o revisar propuesta | 3–4 · Cuenta y monetización, como excepción declarada |
+| Días 61–75 | Una integración de pago o administración, si hay contrato y necesidad. **[V4]** El cobro con Bold ya existe: integrarlo es usarlo, no construirlo | Pruebas de estado, duplicados, fallos y exportación | Confirmar confiabilidad y costo | 4 · Monetización |
+| Días 76–90 | Análisis de cohortes y economía | Retención, contribución y dependencia del soporte | Elegir complemento, SaaS acotado o pivote | Insumo de la Fase 7 (S01 §33) |
 
 Los tamaños de muestra sirven para descubrimiento y pilotos, no para estimar con representatividad estadística la demanda nacional.
+
+**[V8] Una excepción que conviene declarar.**
+
+- ED1 mide cada fase a 90 días (S01 §19.1) y no agrega una capa sin justificar la anterior (S01 §36). Este plan junta las fases 1 a 4 en un trimestre.
+- Eso es una excepción, como la que el agro declaró en su ADR-2, y tiene mejor razón que la del agro: el ecommerce sí es el público objetivo de ED1 (S01 §2.1), y las cuentas y el cobro ya existen (§3.3).
+- Si el dueño la acepta, queda escrita como decisión. Si no, el plan se estira a una fase por trimestre.
 
 ### 16.2 Preguntas de entrevista
 
@@ -781,11 +930,28 @@ ED1 propone como puntos de partida ≥60 % de herramientas completadas, ≥15 % 
 | Costo por uso | Solicitudes, filas, mensajes y servicios por tarea | Dentro de presupuesto declarado |
 | Retención | Comercios activos de cohorte al período siguiente | Segmentar por frecuencia natural de la tarea |
 
+**[V8] Los umbrales se fijan antes del día 1, no después de ver los datos.**
+
+- El ecosistema aprendió a escribir la regla antes de medir, para no acomodarla a lo que salga (S84).
+- Cada métrica de esta tabla lleva su número antes de empezar. Lo fija el dueño, con la frecuencia natural de la tarea como guía.
+- «Establecer tras las primeras semanas» queda solo para lo que no se puede anticipar, y se dice cuál es.
+
 ### 16.4 Pruebas de integración necesarias
 
 Para un piloto de pagos: estado pendiente, aprobación, rechazo, expiración, evento repetido, firma inválida, monto/moneda diferentes, demora, indisponibilidad y reembolso según el proveedor. Para catálogo: CSV inválido, variantes duplicadas, precios incoherentes, tamaño de imágenes y exportación/importación. Para SaaS: acceso entre comercios, recuperación de cuenta y restauración de datos.
 
 Estas son pruebas propuestas. No se reportan como realizadas en este estudio.
+
+**[V9] Lo que la plataforma del ecosistema ya prueba, y lo que le falta** (dato interno; S82, S83, S85):
+
+- **Ya se prueba:**
+  - el acceso entre clientes, con una prueba que lee cada consulta y falla si alguna no filtra por `org_id`;
+  - la recuperación de cuenta, porque se entra con Google y sin contraseñas;
+  - los cobros aprobados, rechazados, repetidos, con otro monto o sin regreso del comprador, en el cobro de los planes de CultivoPro;
+  - la sincronización con caos: lotes repetidos, cortes a la mitad, relojes corridos, versiones viejas y cuota agotada.
+- **Falta:**
+  - **la restauración.** El respaldo semanal de D1 a R2 que pide ED1 §20.3 está diseñado y espera la señal del dueño; hoy la red es el Time Travel de 7 días. Ningún piloto pagado debería guardar pedidos de terceros sin un respaldo restaurado al menos una vez;
+  - **un CORE que no sea solo del agro.** Su esquema fija con `CHECK` los tipos de organización, los planes, los roles y el producto de cada pago, todos del agro, y la vuelta del login y del pago solo acepta la app del agro. ED1 §5 pide un CORE que no conozca los detalles de cada producto. Darle la dimensión de producto es una migración planeada (SQLite no cambia un `CHECK` sin rehacer la tabla), no una línea.
 
 ---
 
@@ -821,12 +987,21 @@ El registro de cambios debe conservar fecha, URL, condición anterior, condició
 | API del banco/entidad Bre-B | Confirmación y referencia de pedidos | Documentación y contrato del proveedor específico |
 | Wompi/PayU/PayPal/ePayco: costo final ED1 | Comparación económica homogénea | Cotización según volumen, cuenta, moneda y liquidación |
 | Mensajería por comercio | Economía de automatización | Mezcla real de categorías y presupuesto |
-| Demanda, CAC y disposición a pagar | Viabilidad de negocio | Embudo y pilotos pagados |
+| Demanda, CAC y disposición a pagar | Viabilidad de negocio | Embudo y pilotos pagados; la demanda de búsqueda, con el método de §12.6 **[V2]** |
+| Datos comerciales de los comercios de la línea **[V1]** | Primera conducta real de pago, soporte y retención | Los da el dueño: cuáles pagan, cuánto, desde cuándo y cuánto soporte piden al mes |
+| Señal del vertical inmobiliario **[V8]** | ED1 elige el primer vertical SaaS entre ecommerce e inmobiliario (S01 §33) | Un estudio equivalente, o la decisión explícita de no esperarlo |
 | Licencias/versiones del stack elegido | Viabilidad técnica y de distribución | Revisión de versiones concretas antes de implementar |
 
 ### 17.3 Decisión de inversión recomendada
 
 **Autorizar experimentos de herramientas y servicios con costo controlado; condicionar el desarrollo de la tienda SaaS a uso recurrente, pagos reales y operación sostenible.** Si la señal favorece complementos, ED1 puede monetizar sin reemplazar la plataforma del cliente. Si favorece comercio social, el primer SaaS debe resolver pedidos y cobro con claridad antes de añadir funciones empresariales.
+
+**[V1] [V8] Lo que esa decisión significa en este ecosistema:**
+
+- La «tienda SaaS» ya existe en su forma 2.0. Lo que se condiciona es la inversión en la 3.0 sobre la plataforma (S81).
+- Las condiciones son las métricas de §16.3, medidas primero con los comercios reales de la línea y después con el piloto.
+- Antes de esa inversión hacen falta tres cosas de la plataforma: el respaldo restaurado, el CORE con la dimensión de producto y el HTML por producto (§16.4, §12.3).
+- Esta decisión es la mitad de la de la Fase 7 de ED1. La otra mitad es la señal del inmobiliario, o la decisión explícita de no esperarla (§17.2).
 
 ---
 
@@ -838,7 +1013,7 @@ El registro de cambios debe conservar fecha, URL, condición anterior, condició
 
 | ID | Responsable y recurso | Fecha/período | Evidencia utilizada / límite |
 |---|---|---|---|
-| S01 | ED1 — `ECOSISTEMA-DIGITAL-ED1-v1.2.md`, archivo suministrado | 28 sep 2026 | Público, arquitectura, principios y objetivos internos; no evidencia de mercado |
+| S01 | ED1 — `docs/ECOSISTEMA-DIGITAL-ED1-v1.2.md`, en este repositorio **[V11]** | 28 sep 2026 | Público, arquitectura, principios y objetivos internos; no evidencia de mercado |
 | S02 | CCCE, [Informe de cierre ecommerce 2025 / Versión pública](https://ccce.org.co/noticias/informe-de-cierre-ecommerce-2025-version-publica/) | Publicación listada 24 feb 2026; datos 2025 | Resumen de ventas, transacciones y pagos; informe completo no recuperado |
 | S03 | CCCE, [Primer informe público trimestral 2026](https://ccce.org.co/noticias/primer-informe-publico-trimestral-de-comercio-electronico-2026/) | Publicación listada 20 may 2026; Q1 2026 | Crecimiento de transacciones del resumen |
 | S04 | CCCE, [Publicaciones](https://ccce.org.co/publicaciones/) | Entrada de coyuntura 15 jul 2026; EMICRON 2024 | Describe universo de micronegocios y análisis de madurez; acceso al artículo completo no recuperado |
@@ -933,6 +1108,27 @@ El registro de cambios debe conservar fecha, URL, condición anterior, condició
 | S78 | NielsenIQ/Ebit, [Webshoppers](https://nielseniq.com/global/pt/landing-page/ebit/nielseniq-ebit-brasil/webshoppers/) | Fuente brasileña identificada; no cifra 2026 atribuida |
 | S79 | Bold, [Consulta de transacciones](https://www.developers.bold.co/pagos-en-linea/consulta-de-transacciones) | Consulta de estado y posible demora tras retorno del comprador |
 
+### 18.5 Fuentes de la versión 1.1 **[V1]–[V11]**
+
+Consultadas el 5 de octubre de 2026. S80–S87 son dato interno del ecosistema; S88–S93 son externas.
+
+| ID | Responsable y recurso | Fecha/período | Evidencia utilizada / límite |
+|---|---|---|---|
+| S80 | Ecosistema, `docs/BITACORA-ecommerce.md` (copia de referencia de la bitácora de la línea ecommerce) | Hasta 30 sep 2026 | Entradas 66 y 67 (comercios reales en la Tienda Básica; dos productos), 93 (primera tienda de la 2.0 actualizada por la flota) y la de la versión 1.0.0 (decisión 36: un solo producto, la Tienda 2.0). Sin precios ni pagos de los comercios |
+| S81 | Ecosistema, `docs/analisis/integracion-tienda-ecosistema.md` | 4 oct 2026 | Lo que la Tienda 2.0 hace (§1–§2) y la propuesta de la 3.0 sobre la plataforma (§4) |
+| S82 | Ecosistema, `docs/ARQUITECTURA.md` | Al día con la v0.3.0, 4 oct 2026 | CORE (§5.4), celdas (§5.5), presupuesto por producto (§8.1), niveles de degradación (§8.2), seguridad (§9), ADR-7 y hallazgos para ED1 (§14) |
+| S83 | Ecosistema, `docs/BACKLOG.md` | 4 oct 2026 | Capacidad del dueño (§1); cobro con Bold y factura electrónica pendiente (HU-E0.7); respaldo semanal pendiente (HU-E8.4) |
+| S84 | Ecosistema, `docs/validacion/busquedas-2026-12.md` | 1 oct 2026 | Método de medición de la demanda de búsqueda y su resultado en el agro |
+| S85 | Ecosistema, código de la v0.3.0 | 4 oct 2026 | Migraciones del CORE (`infrastructure/migraciones/core/`); vuelta del login y del pago (`apps/core/src/entrar.ts`, `pagos.ts`); adaptador de pago (`proveedor-de-pago.ts`) y sus pruebas; Cron Triggers (`apps/core/wrangler.jsonc`, `apps/api-celda/wrangler.c0.jsonc`); precio del plan (`content/agro/cuaderno/planes.json`); prueba de aislamiento (`tests/repo/org-id-en-consultas.test.ts`) |
+| S86 | Ecosistema, `docs/REVISION-HALLAZGOS-ED1.md` | 28 sep 2026 | [H12]: 500 MB por base y 10 bases por cuenta; [H16]: CAC en horas |
+| S87 | Ecosistema, `docs/BITACORA.md` (agro) | Hasta 4 oct 2026 | «Lo que el terreno enseñó»: índices como filas escritas, 50 consultas por invocación y términos de Cloudflare §2.2.1; entrada 4 |
+| S88 | Leadsales, [Precios de WhatsApp Business API en 2026](https://leadsales.io/blog/whatsapp-business-api-cuanto-cuesta/) | 2026 | Tarifas por mensaje en Colombia. Secundaria: confirmar en S49 |
+| S89 | respond.io, [WhatsApp AI chatbot policy](https://respond.io/blog/whatsapp-ai-chatbot-policy) | Sin fecha editorial confirmada | Regla de Meta, desde el 15 ene 2026, para proveedores de IA. Secundaria |
+| S90 | ENTER.CO, [Meta bloqueará el uso de chatbots de IA de terceros en WhatsApp a partir de 2026](https://www.enter.co/?p=577334) | Sin fecha editorial confirmada | La misma regla, en español. Secundaria |
+| S91 | DIAN, [Oficio 1447 de 2019](https://normograma.dian.gov.co/dian/compilacion/docs/oficio_dian_1447_2019.htm) | 2019 | Exclusión de IVA de la computación en la nube (Estatuto Tributario, art. 476, num. 24) y sus condiciones. Consultado por resumen, no en texto completo |
+| S92 | Función Pública, [Decreto 1377 de 2013](https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=53646) | 2013 | Art. 25: contrato de transmisión de datos personales entre responsable y encargado |
+| S93 | Holland & Knight, [Ley 2439 de 2024: modificaciones al Estatuto del Consumidor](https://www.hklaw.com/en/insights/publications/2025/01/ley-2439-de-2024-modificaciones-al-estatuto-del-consumidor-en-colombia) | 13 ene 2025 | Resumen: devolución del retracto en 15 días calendario, información del producto y canal de quejas. El texto vigente es S76 |
+
 ---
 
 ## 19. Control editorial de afirmaciones
@@ -949,5 +1145,8 @@ El registro de cambios debe conservar fecha, URL, condición anterior, condició
 | “Hay demanda comprobada para el SaaS ED1” | La oportunidad es una hipótesis que requiere pilotos y pago real |
 | “Los datos de distintos países son un TAM LATAM homogéneo” | Los períodos, denominadores y métodos no son directamente sumables |
 | “Los escenarios son ingresos esperados” | Son aritmética de supuestos declarados, sin probabilidad ni demanda estimada |
+| “ED1 todavía no tiene una tienda” **[V1]** | El ecosistema opera tiendas con comercios reales y tiene un producto vigente, la Tienda 2.0 |
+| “Una tienda cabe gratis en la cuota de Cloudflare” **[V3]** | Las cuotas gratuitas son de la cuenta y se comparten con CultivoPro; queda un solo Cron Trigger libre |
+| “Avisar por WhatsApp es caro” **[V7]** | En Colombia, un mensaje de utilidad cuesta unos USD 0,0008, según una fuente secundaria; lo que cuesta es habilitar el canal |
 
-**Conclusión de inversión:** comprobar un problema pequeño, frecuente y pagable del comerciante; convertir la operación validada en producto. El estudio permite orientar esa elección con evidencia documental y delimita expresamente lo que todavía no se sabe.
+**Conclusión de inversión:** comprobar un problema pequeño, frecuente y pagable del comerciante; convertir la operación validada en producto. El estudio permite orientar esa elección con evidencia documental y delimita expresamente lo que todavía no se sabe. **[V1]** En este ecosistema, la comprobación empieza por los comercios que ya atiende y por la plataforma que ya corre, no desde cero.
