@@ -4,6 +4,16 @@ _4 de octubre de 2026. Mirada de arquitecto de nube y de soluciones, pedida por 
 
 _Ajustado el 5 de octubre de 2026 con la validación del estudio de mercado de ecommerce (`VALIDACION-ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md`, en esta carpeta). Cada cambio lleva la etiqueta de su hallazgo, por ejemplo **[V6]**._
 
+> **Puesto al día el 5 oct 2026, tras las decisiones del dueño.** Este análisis recomendó; el diseño ya está escrito:
+> - `docs/arquitectura/PLATAFORMA.md`: el CORE con dimensión de producto, las cuentas, los agentes y el repositorio.
+> - `docs/arquitectura/TIENDA-3.0.md`: el producto, con su modelo de datos probado.
+>
+> Lo que cambia frente a este análisis:
+> - **§6:** el monorepo de la plataforma es **este repositorio renombrado**, no uno nuevo con la historia movida (PLATAFORMA §6.1; ADR-26).
+> - **§4.3 y §8:** Bold sí tiene **webhooks firmados**, y la Tienda 3.0 los usa como camino principal (TIENDA-3.0 §9.4).
+> - **La Tienda 3.0 se diseña desde cero:** la migración de la 2.0 deja de ser un requisito de diseño y pasa a scripts de carga (TIENDA-3.0 §17).
+> - **La 2.0 tiene dos tiendas en operación** (dato del dueño).
+
 ## Conclusión, primero
 
 **Sí conviene llevar la Tienda a esta arquitectura, pero como Tienda 3.0 construida sobre la plataforma del ecosistema, no como un traslado del código de la 2.0.**
@@ -138,7 +148,7 @@ ED1 §23.3.1 pide un **monorepo privado para CORE, Admin y SaaS**. La forma de l
 
 1. **Hoy:** el CORE vive en `gestionagro`, y está bien (bitácora: «el CORE nace aquí», ARQUITECTURA §14 HA3). Un solo consumidor no justifica mudarlo (regla de tres, ED1 §3.11).
 2. **Cuando arranque la Tienda 3.0 (el segundo consumidor):** se crea el monorepo de la plataforma (p. ej. `laboratoriodigital/plataforma`) con `apps/core`, `packages/` (tokens, d1, kill-switch, eventos, ui, sync), `scripts/` de despliegue y los verticales como apps: `apps/agro-*` (CultivoPro) y `apps/tienda-*`. Se **mueve** con su historial (`git filter-repo`), no se copia. Los nombres `agro-core` y `agro_core` pasan a `core` con una migración de nombres planeada (la base D1 no se renombra: se crea la nueva y se copia).
-3. **La 2.0 y Orgánico** quedan en sus repositorios hasta migrar. Las tiendas migradas no necesitan repositorio propio.
+3. **La 2.0 y la Tienda Básica** quedan en sus repositorios hasta migrar. Las tiendas migradas no necesitan repositorio propio.
 
 Un repositorio por vertical, que consuma paquetes publicados, solo conviene cuando un vertical necesite otro ritmo de versión o un equipo aparte. Hoy, con un solo operador, el monorepo es más barato: un CI, un despliegue y una sola fuente de los contratos.
 
