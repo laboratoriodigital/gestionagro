@@ -951,7 +951,7 @@ Formato de cada historia:
 - **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C1.3 · **Estado:** Refinada
 - **Respaldo:** PLATAFORMA §3.5 (4 y 5); R6; causa 4 de la Tienda 2.0 (permisos que se pisan).
 - **CA1.** Los tokens de despliegue, de métricas y de Cloudflare for SaaS, cada uno verificado con la acción que va a hacer antes de usarse (P12).
-- **CA2.** Lista de comprobación del dueño: segundo factor, contactos de recuperación y los tres dominios con un registrador y un correo fuera de Cloudflare.
+- **CA2.** Lista de comprobación del dueño: segundo factor y contactos de recuperación (hechos el 5 oct 2026). Los tres dominios están registrados en Cloudflare: una suspensión de la cuenta los arrastraría. Se presenta al dueño el costo y el paso de transferir al menos `laboratorio-digital.com` a otro registrador, o se deja escrito que acepta el riesgo (PLATAFORMA §3.5 regla 5).
 - **CA3 ❌.** Un token con más permisos de los declarados hace fallar la verificación y nombra el permiso de más.
 - **Work items:** WI-C11.5.1 `[código]` · WI-C11.5.2 `[dueño]` lista de comprobación.
 
@@ -1009,7 +1009,7 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 | Tarea | Antes de | Detalle |
 |---|---|---|
 | Renombrar el repositorio en GitHub | C2 | `docs/runbooks/renombrar-repositorio.md` |
-| Contactos de recuperación de la cuenta y los tres dominios | ~~C2~~ Hecho (5 oct 2026): segundo factor y contactos de la cuenta de Cloudflare. Falta confirmar que el registrador de los tres dominios tenga un correo de recuperación que no dependa de Cloudflare | HU-C1.3 |
+| Contactos de recuperación de la cuenta y los tres dominios | ~~C2~~ Hecho (5 oct 2026): segundo factor y contactos de la cuenta de Cloudflare. Los tres dominios están registrados en Cloudflare (el dueño, 5 oct 2026): su recuperación depende de la misma cuenta. Riesgo aceptado por ahora, mitigado con el segundo factor y los contactos; se decide en HU-C11.5 si alguno pasa a otro registrador | HU-C1.3 |
 | Activar Workers Paid y las alertas de facturación | C4 (17 nov) | PLATAFORMA §3.2; HU-C11.1 |
 | Agregar la zona `laboratorio-digital.app` | 30 nov (Tienda M0) | PLATAFORMA §9.5 |
 | URL de vuelta de Google para `cuenta.laboratorio-digital.com` | C5 | HU-C4.6, con los pasos exactos |

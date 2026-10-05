@@ -16,7 +16,10 @@ permissions:
 
 jobs:
   verificar:
-    runs-on: ubuntu-latest
+    # Los equipos de GitHub, salvo que la variable del repositorio RUNNER_CI diga otra cosa: el runner
+    # propio del dueño se usa mientras GitHub Actions no arranca trabajos (docs/runbooks/runner-propio.md).
+    # Borrar la variable devuelve el CI a GitHub sin tocar este archivo.
+    runs-on: ${{ vars.RUNNER_CI || 'ubuntu-latest' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
@@ -51,5 +54,7 @@ jobs:
         # Contra qué se compara el cambio: la base del PR o el main de antes del push. Si el cambio
         # solo toca documentos, verificar salta lo que no puede cambiar de resultado (HU-C11.6).
         env:
+          # En el runner propio (Windows), el Edge del equipo: la descarga de Chromium no funciona ahí.
+          PW_CANAL: ${{ vars.RUNNER_CI == 'self-hosted' && 'msedge' || '' }}
           VERIFICAR_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: node scripts/verificar.ts --ci

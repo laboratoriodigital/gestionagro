@@ -13,6 +13,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Plan de trabajo y backlog refinado del CORE (`docs/plataforma/BACKLOG_CORE.md`): 8 hitos, 11 sprints, 12 épicas y 65 historias refinadas (más 5 preparadas) con sus work items, la dirección de diseño del frontend del ecosistema y la cuenta en `cuenta.laboratorio-digital.com`. Y su bitácora (`docs/plataforma/BITACORA_CORE.md`), con las convenciones de las otras dos para unirlas.
 
 ### Cambiado
+- El CI puede correr en un runner propio mientras GitHub Actions no arranca trabajos: lo decide la variable del repositorio `RUNNER_CI`, y sin ella vuelve solo a los equipos de GitHub. Ahí usa el Edge del equipo. Los despliegues siguen en GitHub (`docs/runbooks/runner-propio.md`).
 - El CI revisa la convención de commits del PR, su título y su descripción: `tipo(alcance): descripción`, 72 caracteres o menos y sin la marca de Claude Code. Corre antes de instalar, así que un commit mal escrito se sabe en segundos (HU-C0.2).
 - El CI gasta según lo que cambió: si un PR solo toca documentos (`docs/` o un `.md` de la raíz), no abre navegadores ni compila, y corre solo las pruebas que leen documentos. El resumen dice qué saltó y por qué. Si no puede calcular el cambio, corre todo (HU-C11.6).
 

@@ -82,11 +82,11 @@ describe('la marca de Claude Code', () => {
 
   it('no confunde un texto que DESCRIBE la regla con la marca (bitácora core 3)', () => {
     // El cuerpo real del commit 4ee3d35, que la primera versión de la guardia marcó dos veces.
-    const describe = [
+    const cuerpo = [
       'caracteres contados como letras, sin punto final y sin',
       'Co-Authored-By: Claude, Claude-Session ni «Generated with Claude Code».',
     ].join('\n');
-    expect(fallasDeMarca(describe)).toEqual([]);
+    expect(fallasDeMarca(cuerpo)).toEqual([]);
     expect(fallasDeMarca('Claude-Session: en el cuerpo, nunca')).toEqual([]);
   });
 });

@@ -43,6 +43,11 @@ function calcularAlcance(): Alcance | null {
 const alcance = calcularAlcance();
 const soloDocumentos = alcance?.soloDocumentos === true;
 const SALTA_CON_DOCUMENTOS = 'solo cambiaron documentos';
+/**
+ * Con un navegador del equipo (`PW_CANAL`, como el Edge del runner propio), no hay nada que
+ * descargar: Playwright usa el instalado (docs/runbooks/runner-propio.md).
+ */
+const canalDelEquipo = process.env['PW_CANAL']?.trim();
 
 /** Con un cambio solo de documentos, las únicas pruebas que pueden cambiar son las que los leen. */
 function comandoDePruebas(): string {
@@ -80,6 +85,15 @@ for (const { paso, comando, saltaConDocumentos } of PASOS) {
   // Sin instalación no hay nada que verificar: se dice, en vez de sumar fallas falsas.
   if (resultados[0]?.paso === 'instalar' && !resultados[0].ok) {
     resultados.push({ paso, ok: false, omitido: true, segundos: 0 });
+    continue;
+  }
+  if (paso === 'navegadores' && canalDelEquipo) {
+    resultados.push({
+      paso,
+      ok: true,
+      saltado: `usa el navegador del equipo (${canalDelEquipo})`,
+      segundos: 0,
+    });
     continue;
   }
   if (soloDocumentos && saltaConDocumentos) {

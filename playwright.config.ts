@@ -3,7 +3,9 @@
  *
  * Navegador: en CI, el Chromium de Playwright; en Windows local, el Microsoft Edge del sistema
  * (mismo motor Chromium), porque la descarga de Chromium de Playwright no funciona en la máquina
- * del dueño (bitácora agro, «Lo que el terreno enseñó»). `PW_CANAL` lo fuerza.
+ * del dueño (bitácora agro, «Lo que el terreno enseñó»). `PW_CANAL` lo fuerza; vacío cuenta como
+ * no puesto, porque el flujo de CI lo pasa vacío en los equipos de GitHub y `msedge` en el runner
+ * propio (`docs/runbooks/runner-propio.md`).
  */
 import { defineConfig, devices } from '@playwright/test';
 
@@ -11,7 +13,7 @@ import { defineConfig, devices } from '@playwright/test';
 // contra un servidor que alguien dejó abierto con otra configuración (P7).
 const PUERTO = 4329;
 const canal =
-  process.env['PW_CANAL'] ??
+  process.env['PW_CANAL'] ||
   (process.env['CI'] ? undefined : process.platform === 'win32' ? 'msedge' : undefined);
 
 export default defineConfig({
