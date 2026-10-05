@@ -164,8 +164,9 @@ Al 5 oct 2026 el CORE v0 tiene las guardias que heredó del agro (pruebas del CO
 #### P19 · Un rojo que no significa nada enseña a no mirar los rojos
 - **Regla:** una guarda con falsos positivos o un intermitente se arregla o se quita.
 - **En el CORE:** el validador de commits mira solo el rango del PR, no la historia; las capturas visuales solo en Linux; las pruebas de tiempo, solas.
-- **Lo impedirá:** HU-C0.2, HU-C6.4, HU-C6.6.
-- **Entradas:** —
+- **Lo impedirá:** HU-C6.4, HU-C6.6.
+- **Lo impide hoy:** la guardia de commits reconoce solo la forma real de la marca, y `tests/repo/commits.test.ts` lleva como caso el cuerpo que la primera versión marcó por error (bitácora core 3).
+- **Entradas:** core 3.
 
 #### P20 · Lo que se le ofrece a alguien tiene que llegar por el camino que esa persona recorre
 - **Regla:** se prueba desde quien mira.
@@ -330,3 +331,27 @@ La regla: **cuando un documento cita a otro como fuente de una cifra, la cifra s
 La regla: **una verificación global falla por cosas que no hizo quien la corre. Antes de confiar en ella en producción, se mira qué hay ya en la base; si no, la primera migración sana que llegue cargará con un fallo ajeno.**
 
 *Ficha:* core · *(del terreno)* · 🟡 Medio · PC2, P17, P1 · 0.3.0 · 2026-10-05
+
+**3 · La guardia de commits marcó el commit que la creaba, porque el mensaje describía la regla.**
+
+*Qué pasó.* El 5 oct 2026, antes de abrir el PR del sprint C1, corrí la guardia de HU-C0.2 sobre los commits de la rama. Marcó el commit 4ee3d35, el que crea la guardia.
+
+*Síntoma literal:*
+
+```text
+- commit 4ee3d35 «ci(commits): guardia de la convención de commits y del PR»: lleva la marca de Claude Code (Co-Authored-By: Claude)
+- commit 4ee3d35 «ci(commits): guardia de la convención de commits y del PR»: lleva la marca de Claude Code («Generated with Claude Code»)
+```
+
+*Causa raíz.* El cuerpo del commit explicaba la regla: «sin
+Co-Authored-By: Claude, Claude-Session ni «Generated with Claude Code»». Los patrones buscaban las palabras, no la forma de la marca. Y el corte de línea dejó una línea que empezaba igual que el trailer. Las pruebas de la guardia traían la marca real y textos inocentes, pero no un texto que **hablara** de la marca, que es justo lo que escribe quien documenta la regla.
+
+*Cómo se reprodujo.* `COMMITS_DESDE=origin/main node scripts/verificar-commits.ts` en la rama.
+
+*Arreglo.* La guardia reconoce solo las formas reales: el trailer `Co-Authored-By: Claude … <correo>` al principio de línea, `Claude-Session:` seguido de una dirección, y el enlace `Generated with [Claude Code](https://…)`. No hubo que reescribir la historia de la rama: con la guardia corregida, el commit pasa.
+
+**Lo prueba** `tests/repo/commits.test.ts`, «no confunde un texto que DESCRIBE la regla con la marca», con el cuerpo real de 4ee3d35. Control negativo: el commit 9ce2e03 del PR #90, que sí lleva la marca, sigue saliendo con sus tres fallas.
+
+La regla: **una guardia de texto se prueba también contra el texto de quien explica la regla. Lo que se busca es la forma de la cosa, no las palabras que la nombran.**
+
+*Ficha:* core · *(mío)* · 🟡 Medio · P19, P5 · 0.3.0 · 2026-10-05

@@ -30,11 +30,22 @@ const ASUNTO = new RegExp(`^(${TIPOS.join('|')})(\\(([a-z0-9][a-z0-9.-]*)\\))?(!
 const FUSION =
   /^Merge (pull request #\d+ from |branch '|remote-tracking branch '|[0-9a-f]{7,40} into )/;
 
-/** La marca de Claude Code en sus tres formas, en el cuerpo de un commit o de un PR. */
+/**
+ * La marca de Claude Code en sus tres formas reales, en el cuerpo de un commit o de un PR: el
+ * trailer con su correo, la sesión con su dirección y el enlace en Markdown. Solo las formas
+ * reales: un texto que DESCRIBE la regla («sin Co-Authored-By: Claude…») no es la marca, y
+ * marcarlo sería un rojo que no significa nada (P19, bitácora core 3).
+ */
 const MARCA = [
-  { patron: /Co-Authored-By:\s*Claude/i, nombre: 'Co-Authored-By: Claude' },
-  { patron: /Claude-Session:/i, nombre: 'Claude-Session' },
-  { patron: /Generated with \[?Claude Code/i, nombre: '«Generated with Claude Code»' },
+  {
+    patron: /^Co-Authored-By:[ \t]*Claude\b[^\n]*<[^>\s]+@[^>\s]+>/im,
+    nombre: 'Co-Authored-By: Claude',
+  },
+  { patron: /^Claude-Session:[ \t]*https?:\/\//im, nombre: 'Claude-Session' },
+  {
+    patron: /Generated with \[Claude Code\]\(https?:\/\//i,
+    nombre: '«Generated with Claude Code»',
+  },
 ];
 
 /** Fallas del asunto (primera línea) de un commit o del título de un PR. */

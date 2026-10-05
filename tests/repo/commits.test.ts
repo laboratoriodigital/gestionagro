@@ -63,7 +63,7 @@ describe('el asunto', () => {
 describe('la marca de Claude Code', () => {
   it.each([
     ['Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>', 'Co-Authored-By: Claude'],
-    ['co-authored-by:   claude', 'Co-Authored-By: Claude'],
+    ['co-authored-by:   claude <noreply@anthropic.com>', 'Co-Authored-By: Claude'],
     ['Claude-Session: https://claude.ai/code/session_x', 'Claude-Session'],
     [
       '🤖 Generated with [Claude Code](https://claude.com/claude-code)',
@@ -78,6 +78,16 @@ describe('la marca de Claude Code', () => {
   it('no confunde la palabra «Claude» en un texto normal con la marca', () => {
     expect(fallasDeMarca('docs: el asistente (Claude) hace los commits')).toEqual([]);
     expect(fallasDeMarca('Co-Authored-By: Persona Ensayo <ensayo@example.com>')).toEqual([]);
+  });
+
+  it('no confunde un texto que DESCRIBE la regla con la marca (bitácora core 3)', () => {
+    // El cuerpo real del commit 4ee3d35, que la primera versión de la guardia marcó dos veces.
+    const describe = [
+      'caracteres contados como letras, sin punto final y sin',
+      'Co-Authored-By: Claude, Claude-Session ni «Generated with Claude Code».',
+    ].join('\n');
+    expect(fallasDeMarca(describe)).toEqual([]);
+    expect(fallasDeMarca('Claude-Session: en el cuerpo, nunca')).toEqual([]);
   });
 });
 
