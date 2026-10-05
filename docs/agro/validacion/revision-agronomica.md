@@ -81,5 +81,5 @@ Marca cada línea: **de acuerdo** o **ajustar** (con el texto que propone).
    - la calculadora de carencia;
    - la política de datos;
    - la página de entrada nueva.
-3. **En Search Console:** pedir la indexación de `/herramientas/agro/` y de cada calculadora, y anotar la fecha en `docs/validacion/dpv.md` (HU-E2.6, CA2). Ese día empieza el reloj de 90 días.
+3. **En Search Console:** pedir la indexación de `/herramientas/agro/` y de cada calculadora, y anotar la fecha en `docs/agro/validacion/dpv.md` (HU-E2.6, CA2). Ese día empieza el reloj de 90 días.
 4. **La métrica:** el reporte semanal ya trae, por herramienta, las veces que se abrió, se completó, se compartió y se llevó al cuaderno, y desde hoy también la **tasa de completado** de esta semana y la anterior (HU-E2.6, CA3).

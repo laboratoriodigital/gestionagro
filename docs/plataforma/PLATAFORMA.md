@@ -1,22 +1,24 @@
 # Plataforma ED1 — el CORE con dimensión de producto
 
-**Estado:** propuesta de arquitectura, con las decisiones del dueño del 5 oct 2026 ya incorporadas
-**Versión:** 0.1 · 5 oct 2026
-**Alcance:** el CORE como servicio de todos los productos (identidad, organizaciones, roles, planes, cobros y directorio), las cuentas de Cloudflare, la preparación para agentes y el repositorio. El producto de comercio electrónico que se construye encima está en `TIENDA-3.0.md`, en esta carpeta.
-**Documentos que manda este:** `ECOSISTEMA-DIGITAL-ED1-v1.3.md` (ED1 §N), `ARQUITECTURA.md` (ADR-N, P1–P21, §N), `analisis/cuenta-cloudflare-paga.md`, `analisis/proveedores-de-computo.md`.
+**Estado:** propuesta de arquitectura, con las decisiones del dueño del 5 oct 2026 ya incorporadas (las de la mañana y las de la tarde)
+**Versión:** 0.2 · 5 oct 2026
+**Alcance:** el CORE como servicio de todos los productos (identidad, organizaciones, roles, planes, cobros y directorio), la cuenta de Cloudflare, los dominios, la preparación para agentes y el repositorio. El producto de comercio electrónico que se construye encima está en `../tienda/TIENDA-3.0.md`.
+**Documentos que manda este:** `../ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md` (ED1 §N), `../ARQUITECTURA.md` (ADR-N, P1–P21, §N), y en esta carpeta `cuenta-cloudflare.md` y `proveedores-de-computo.md`.
 
 > **Cómo se usa.** Este documento propone; `ARQUITECTURA.md` decide. Cada pieza pasa allí, con su ADR y su tabla en §5.4, en el mismo pull request que la implementa (P18). Hasta entonces, el diseño vive aquí. El SQL de §4 no es un borrador: está en `sql/core/`, con su prueba (`sql/probar-core.mjs`), corrida contra las migraciones reales 0001–0005 del CORE.
+>
+> **Versión 0.2 (5 oct 2026, tarde).** Cuatro decisiones nuevas del dueño cambian §3, §4.8, §6 y §9: todo en la cuenta de Cloudflare de siempre, los tres dominios del ecosistema, planes de 1, 3, 6 y 12 meses y el repositorio renombrado a `plataforma`. Al verificar los dominios apareció además un límite de Cloudflare que cambia el diseño anterior: no admite como zona un dominio de la Public Suffix List (§3.4).
 
 ---
 
 ## 0. Resumen
 
-**Lo que decidió el dueño el 5 oct 2026**, en respuesta a la validación del estudio de ecommerce (`analisis/VALIDACION-ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md` §5):
+**Lo que decidió el dueño el 5 oct 2026**, en respuesta a la validación del estudio de ecommerce (`../tienda/VALIDACION-ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md` §5):
 
 1. Hay dos tiendas 2.0 en operación.
 2. Las palabras clave se miden, pero no bloquean este proyecto.
 3. El ecommerce entra como **excepción declarada**, como el agro con ADR-2.
-4. Se ofrecen **todos los periodos de plan**: mensual, trimestral y anual, prepagados.
+4. Se ofrecen **todos los periodos de plan**, prepagados: mensual, trimestral y anual. En la tarde sumó el semestral (decisión 9).
 5. Sin contador ni abogado por ahora. Todo se hace con rigor técnico.
 6. **El CORE gana la dimensión de producto y queda listo para crecer.**
 
@@ -24,6 +26,13 @@ El mismo día pidió además:
 
 - Integrar los principios de preparación para agentes de isitagentready.com «hasta donde lo permita el modelo».
 - Diseñar la Tienda 3.0 **desde cero**. Los datos de las tiendas actuales se cargan después con scripts.
+
+**En la tarde**, con el estudio de ecommerce definitivo (v1.3, `../tienda/ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10-v1.3.md`), sumó cuatro más:
+
+7. **Una sola cuenta de Cloudflare:** «la misma cuenta actual, donde ya se viene usando todo» (§3.1).
+8. **Los dominios:** `laboratorio-digital.com` es el principal; `laboratorio-digital.app`, el de las tiendas y los proyectos nuevos; `cultivopro.co`, el del agro y sus derivados (§3.3).
+9. **Planes de 1, 3, 6 y 12 meses** (§4.8).
+10. **El repositorio pasa de `gestionagro` a `plataforma`** (§6.1).
 
 **Las ocho decisiones de este documento:**
 
@@ -36,18 +45,22 @@ El mismo día pidió además:
    - Nuevos reclamos: `aud` (el producto), `plan`, `plan_vence` y `auth_time`.
    - El emisor pasa de `agro-core` a `ed1-core`, con un periodo de aceptación de ambos.
    - El refresh token sirve a un solo producto (§4.6).
-3. **Planes de 1, 3 y 12 meses, prepagados.**
+3. **Planes de 1, 3, 6 y 12 meses, prepagados.**
+   - Los periodos son una **tabla de referencia**, no un `CHECK`: el de 6 meses llegó horas después del diseño con 1, 3 y 12, y con un `CHECK` habría obligado a rehacer dos tablas (§4.3).
    - Se cuentan en meses calendario en America/Bogota.
    - Cambiar de plan convierte en días lo que quedaba del anterior.
    - No hay débito automático (§4.8).
-4. **Tres cuentas con un propósito declarado cada una** (§3):
-   - La gratuita principal es el laboratorio de validación.
-   - La paga es la plataforma comercial.
-   - La segunda gratuita se declara o se cierra.
-   - Un producto **gradúa** de una cuenta a otra mudando sus celdas. Nunca se reparte entre cuentas gratuitas (HA1).
-5. **El CORE se queda en la cuenta principal en esta etapa**, con un dominio estable (`cuenta.laboratorio-digital.com`). Se muda a la cuenta paga cuando se cumpla un disparador escrito (§3.5).
-6. **El monorepo de la plataforma es este repositorio, renombrado.** No se crea un repositorio nuevo con `git filter-repo`: renombrar conserva los secretos, los ambientes, los issues y la historia de las PR (§6). Esto corrige `analisis/integracion-tienda-ecosistema.md` §6.
-7. **Preparación para agentes como principio** (se propone como ED1 §3.12):
+4. **Una sola cuenta de Cloudflare, la de siempre** (§3.1–§3.2).
+   - Workers Paid se activa en ella cuando la Tienda 3.0 lo necesita, en su M0. Desde entonces el exceso se factura en vez de cortar el servicio, para todos los productos.
+   - Cada producto se aísla por presupuesto, kill switch y celdas, no por cuenta.
+   - El CORE se queda donde está: no hay mudanza, ni puente, ni disparador.
+5. **Tres dominios, con un papel cada uno** (§3.3, ADR-27).
+   - `laboratorio-digital.com`: el ecosistema y el CORE (`cuenta.laboratorio-digital.com`).
+   - `laboratorio-digital.app`: las tiendas y los proyectos nuevos, en un solo espacio de nombres de primer nivel.
+   - `cultivopro.co`: el agro y sus derivados.
+   - **Sin Public Suffix List**, porque Cloudflare no la admite en una zona propia. Lo que daba se cubre de otra forma (§3.4).
+6. **El monorepo de la plataforma es este repositorio, renombrado a `laboratoriodigital/plataforma`.** No se crea uno nuevo con `git filter-repo`: renombrar conserva los secretos, los ambientes, los issues y la historia de las PR (§6). Esto corrige `../tienda/integracion-tienda-ecosistema.md` §6.
+7. **Preparación para agentes como principio** (ED1 §3.12):
    - Primero, la capa estática y gratuita: reglas para bots de IA, señales de contenido, `llms.txt`, gemelos en Markdown, catálogo de API y habilidades.
    - Después, capacidades: MCP y el CORE como servidor de autorización OAuth 2.1.
    - En comercio, el agente prepara y **una persona paga** (§5).
@@ -73,7 +86,7 @@ Hoy el CORE (`apps/core`) atiende un solo producto, y lo nombra en doce sitios:
 | `membresia.rol` e `invitacion.rol` | `CHECK (rol IN ('propietario','supervisor','operario','asesor','auditor'))` | Clave foránea a `producto_rol (producto, rol)` |
 | `interes_plan.plan` | `CHECK` con los planes del agro | Clave foránea a `plan` |
 | `pago.producto` | `CHECK (producto IN ('agro'))` | Clave foránea a `producto` |
-| `pago.meses` | `CHECK (meses > 0)`; el código siempre escribe 1 | `CHECK (meses IN (1, 3, 12))` y precio por periodo en `plan_precio` |
+| `pago.meses` | `CHECK (meses > 0)`; el código siempre escribe 1 | Clave foránea a `periodo` (1, 3, 6 y 12) y precio por periodo en `plan_precio` |
 | `identidad.proveedor` | `CHECK (proveedor IN ('google'))` | Clave foránea a `proveedor_identidad` (llega `correo`) |
 | `usuario.politica_*` | Una política (la del agro) | `aceptacion_politica (usuario, producto, versión)` |
 | `entrar.ts › vueltaPermitida` | Solo pantallas bajo `/agro/app/` | Rutas de vuelta declaradas por cada producto |
@@ -85,9 +98,9 @@ Hoy el CORE (`apps/core`) atiende un solo producto, y lo nombra en doce sitios:
 
 - **D1 cuenta cada índice como una fila escrita** (bitácora agro, «Lo que el terreno enseñó»). Cada índice nuevo va con su costo.
 - **50 consultas por invocación** en el plan gratuito y 1.000 en el pago (ED1 §41). Ningún flujo del CORE debe pasar de 30.
-- **Cron Triggers: 5 por cuenta en el plan gratuito, y ya se usan 4.** Son el CORE y la API de la celda c0, en producción y en staging. Ningún producto nuevo cabe con cron propio en la cuenta principal.
+- **Cron Triggers: 5 por cuenta en el plan gratuito, y ya se usan 4.** Son el CORE y la API de la celda c0, en producción y en staging. Ningún producto nuevo cabe con cron propio hasta activar Workers Paid, que da 250 (§3.2).
 - **El que se actualiza corre su versión vieja (P10).** Hay cuadernos instalados con la URL del CORE y el emisor de hoy. Todo cambio de contrato se expande, se migra y se contrae.
-- **D1 aplica siempre las claves foráneas.** No se pueden apagar, solo diferir (cuenta paga, informe de investigación; ver `analisis/cuenta-cloudflare-paga.md`).
+- **D1 aplica siempre las claves foráneas.** No se pueden apagar, solo diferir (informe de investigación de la cuenta; ver `cuenta-cloudflare.md`).
 
 ---
 
@@ -102,123 +115,142 @@ Se heredan los de ED1 §3 y los patrones P1–P21. Estos seis son reglas nuevas 
 | **R3 · Lo imposible lo rechaza la base** | Las claves foráneas compuestas (`(org_id, producto)`, `(producto, rol)`, `(celda_id, producto)`) hacen imposibles los cruces entre productos | El código se equivoca; la base no se olvida. La prueba lo demuestra con los cruces inválidos (§4.3) |
 | **R4 · Ninguna clave foránea con `ON DELETE CASCADE`** | Ni en el CORE ni en las celdas | En D1, `DROP TABLE` de una padre hace un `DELETE` implícito. Con `CASCADE` se llevaría a las hijas al rehacer la tabla |
 | **R5 · Toda reconstrucción, con la receta de §4.4** | `defer_foreign_keys` encendido, rehacer, apagarlo y correr la guarda de huérfanas | El arreglo habitual deja pasar violaciones reales (§4.4) |
-| **R6 · Un permiso por producto y por cuenta** | Cada producto tiene su kill switch, su presupuesto y sus credenciales. Ninguna credencial cruza cuentas si no es imprescindible | P12. Es la causa 4 de la Tienda 2.0: cuatro permisos que se pisan |
+| **R6 · Un permiso por producto y por propósito** | Cada producto tiene su kill switch, su presupuesto y sus credenciales. Cada credencial sirve a un propósito, con el alcance mínimo | P12. Es la causa 4 de la Tienda 2.0: cuatro permisos que se pisan. Con una sola cuenta, el aislamiento entre productos descansa en esta regla (§3.1) |
 
 ---
 
-## 3. Cuentas, dominios y crecimiento
+## 3. Cuenta, dominios y crecimiento
 
-### 3.1 Hoy
+### 3.1 Una sola cuenta: la de siempre
 
-| Cuenta | Plan | Qué aloja | Fuente |
-|---|---|---|---|
-| **A · ED1 principal** (`laboratoriodigital-la.workers.dev`) | Gratuito | Zonas `laboratorio-digital.com` y `cultivopro.co`. Celda c0 del agro: sitio, CORE y API, cada uno con staging. **Las dos tiendas 2.0**, que son subdominios de `laboratorio-digital.com`, y su Worker tiene que estar en la cuenta de la zona (`tienda/docs/DESPLIEGUE.md`, «Dominio propio») | `infrastructure/celdas.json` |
-| **B · segunda gratuita** | Gratuito | Ningún documento de los repositorios dice qué aloja | Pendiente del dueño (§9) |
-| **C · cuenta paga** | Paga (el dueño paga «algunos servicios») | No se sabe qué servicios. La lista de comprobación está en `analisis/cuenta-cloudflare-paga.md` §2 | Pendiente del dueño |
+El dueño lo decidió el 5 oct 2026, en la tarde: «usar la misma cuenta actual de Cloudflare donde ya se viene usando todo». Es la cuenta ED1 principal (`laboratoriodigital-la.workers.dev`).
 
-### 3.2 Propuesta: una cuenta, un propósito
+| En la cuenta, hoy | Qué hay | Fuente |
+|---|---|---|
+| Zonas | `laboratorio-digital.com` y `cultivopro.co`. Se suma `laboratorio-digital.app` con el M0 de la Tienda 3.0 (§3.3) | Panel de Cloudflare |
+| CultivoPro, celda c0 | Sitio, CORE y API de la celda, cada uno con staging | `infrastructure/celdas.json` |
+| Tiendas 2.0 | Las dos en operación, en subdominios de `laboratorio-digital.com`. Su Worker tiene que estar en la cuenta de la zona | `tienda/docs/DESPLIEGUE.md` de la Tienda 2.0, «Dominio propio» |
+| Plan | Gratuito. Workers Paid se activa con el M0 de la Tienda 3.0 (§3.2) | — |
 
-```text
- CUENTA A · LABORATORIO (gratuita)          CUENTA C · PLATAFORMA (paga, Workers Paid)
- ─────────────────────────────────          ───────────────────────────────────────────
- Productos ANTES de sus umbrales             Productos que COBRAN o que ya los cumplieron
- · sitios estáticos y herramientas          · Tienda 3.0: despacho, API, panel, horno,
- · agro c0 (validación, plan gratuito)        R2, KV, colas, crons (TIENDA-3.0.md)
- · CORE (esta etapa) en                     · zona del dominio de tiendas (Cloudflare for SaaS)
-   cuenta.laboratorio-digital.com           · celdas del agro cuando gradúe (c2, …)
- · tiendas 2.0 hasta que se carguen         · CORE, cuando se cumpla su disparador (§3.5)
-   en la 3.0
-        │                                              ▲
-        └──── un producto «gradúa»: celda nueva en C, ─┘
-              mudanza de organizaciones (ARQUITECTURA §6.4), retiro de la vieja
+Las otras dos cuentas del dueño (una gratuita y otra con algunos servicios pagos) **quedan fuera de la plataforma**: ningún producto se despliega en ellas. Si algún día se usan, se declaran con su propósito (§3.5).
 
- CUENTA B (gratuita): un propósito declarado, sin producción (p. ej. pruebas de proveedores),
- o se cierra. Nunca una segunda mitad de un producto para sumar cuota.
- CUENTAS DE CLIENTES: celdas dedicadas en la cuenta del cliente (ADR-8).
-```
+**Por qué una sola, y no una cuenta paga aparte para lo que cobra**, como proponía la versión 0.1:
 
-**Por qué así:**
+- **No hay nada que mudar.** La llave de firma del CORE, la URL que tienen los cuadernos instalados y las zonas se quedan donde están. Mudar el CORE pedía un Worker puente, 90 días de convivencia y mover la zona o servirla como hostname personalizado.
+- **Workers Paid es por cuenta.** Los mismos USD 5 al mes le dan sus límites a **todos** los productos. El agro deja de cortarse a las 19:00 sin otra suscripción, y el CORE gana crons y correo.
+- **Las tiendas 2.0 ya están en esta cuenta**, y las 3.0 también lo estarán. El día del cambio, la redirección es una regla de la misma zona.
+- **El aislamiento que importa es por producto, y ya existe:** presupuesto declarado, kill switch y celdas con sus propias bases (ARQUITECTURA §8). La cuenta es la unidad de facturación, no la de aislamiento.
 
-- **Free-first sigue valiendo para validar.** Un producto que todavía no prueba su demanda corre en la cuenta gratuita, con su presupuesto y su kill switch (ED1 §3.9).
-- **Lo que cobra corre donde los límites suben pagando.** Una tienda que vende no puede quedarse sin servicio a las 19:00 porque otro producto agotó la cuota diaria de la cuenta.
-  - En el plan gratuito, D1 rechaza consultas al pasar el límite hasta el reinicio de las 00:00 UTC.
-  - En Workers Paid el exceso se factura en vez de cortar el servicio. Ver `analisis/cuenta-cloudflare-paga.md` §1.
-- **Graduar ya está diseñado.** Mudar una organización de celda es una operación de rutina en el agro (ARQUITECTURA §6.4). Graduar un producto es aplicarla a todas sus organizaciones.
+**Lo que se acepta a cambio:** todo depende de una cuenta. Una suspensión o un compromiso de la cuenta tumbaría todos los productos a la vez. La respuesta no es repartir, sino poder salir (§3.5): exportaciones semanales fuera de Cloudflare, dominios con recuperación aparte y la cuenta con segundo factor.
 
-### 3.3 Reglas de gobierno
+### 3.2 Workers Paid en la misma cuenta
 
-1. **Cada cuenta declara su propósito** en `infrastructure/cuentas.json`, con nombre, plan, propósito, dueño y contactos de recuperación.
+**Cuándo:** con el M0 de la Tienda 3.0 (TIENDA-3.0 §19), que lo necesita para existir. Necesita crons (hay 5 y se usan 4), colas con retención, más de 10 ms de CPU para hornear y 1.000 consultas por invocación. Se activa antes solo si el agro o el CORE lo necesitan primero, por ejemplo para el correo del enlace mágico (§4.11).
+
+**Qué cambia para todos los productos** (cifras en `cuenta-cloudflare.md` §1):
+
+- El exceso **se factura en vez de cortar el servicio**. Un producto ya no deja sin base a los demás a las 19:00 de Colombia.
+- 250 crons por cuenta, 1.000 consultas a D1 por invocación, hasta 5 minutos de CPU, bases de 10 GB, Time Travel de 30 días y correo a cualquier destinatario.
+- Lo incluido es **de la cuenta**, no de cada producto: 10 millones de solicitudes y 50 millones de filas escritas al mes, entre otros. Cada producto declara su parte en su `product.yaml`, como hoy declara su parte de la cuota gratuita (ARQUITECTURA §8.1).
+
+**Qué cambia en la operación** (P1, P16):
+
+1. **El vigía cambia de vara.**
+   - Hoy compara contra cuotas diarias y degrada por niveles.
+   - Con Workers Paid, compara el consumo del mes contra lo incluido y proyecta el costo en dólares (§4.10).
+   - El código ya lo espera: cada celda declara su `plan` en `celdas.json` (`free`, `paid` o `cliente`), y `vigia.ts` falla a propósito con `paid` («las cuotas del plan «paid» no están definidas en el vigía», P1).
+   - El pull request que activa Workers Paid cambia `plan` a `paid` y le da al vigía sus cuotas del mes, con su prueba.
+2. **Presupuesto en dinero por producto** (`product.yaml › presupuesto.usd_mes`), y las **alertas de facturación** de Cloudflare como segunda red. No hay tope duro de gasto (investigación, sin verificar).
+3. **Límites por Worker** (`limits.cpu_ms`, `limits.subrequests`) y workers.dev apagado en producción, para que un error no se vuelva factura (`cuenta-cloudflare.md` §5).
+4. **Los kill switches siguen siendo por producto.** Con el 100 % del presupuesto en dinero, el vigía apaga la capacidad que el producto declare, nunca la venta.
+
+**Lo que no cambia:** HA1. Escalar es pagar, no abrir cuentas. Un producto nunca se reparte entre cuentas gratuitas para sumar cuota (ARQUITECTURA §6.5).
+
+### 3.3 Dominios (ADR-27)
+
+| Dominio | Para qué | Regla |
+|---|---|---|
+| `laboratorio-digital.com` | El ecosistema: el sitio principal y el CORE (`cuenta.laboratorio-digital.com`, Workers Custom Domain) | No sirve contenido de comercios ni de usuarios ([V10], ED1 §14.1). Las dos tiendas 2.0 que viven ahí son la excepción heredada: al cargarse en la 3.0 se redirigen con 301 a su dirección nueva (TIENDA-3.0 §17.3) |
+| `laboratorio-digital.app` | Las tiendas sin dominio propio (`<slug>.laboratorio-digital.app`); los servicios de la tienda (`panel.`, `img.`, `mcp.`, `origen.`), y los **proyectos nuevos** del ecosistema (`<proyecto>.laboratorio-digital.app`) | Un solo espacio de nombres de primer nivel, compartido por tiendas y proyectos. Un nombre lo toma una tienda o lo reserva la plataforma, nunca los dos (§3.4) |
+| `cultivopro.co` | El agro y sus derivados (ADR-19): el sitio y las calculadoras, el cuaderno (`/agro/app/`) y lo que venga, como `mcp.cultivopro.co` (§5.5). Un producto agrícola nuevo que se le parezca vive aquí | — |
+| Dominios de los comercios | La tienda en el dominio del comercio | Hostname personalizado de Cloudflare for SaaS en la zona `laboratorio-digital.app`. `www` es el canónico; la raíz, solo si el DNS del comercio hace CNAME flattening. Detalle en TIENDA-3.0 §4 |
+
+**Las tres zonas van en la misma cuenta.** Lo exigen los Workers Custom Domains, los dominios personalizados de R2 y Cloudflare for SaaS: la zona, el Worker y el bucket tienen que estar en la misma cuenta (`cuenta-cloudflare.md` §1).
+
+**Qué trae `.app`:**
+
+- **Solo HTTPS, de fábrica.** El dominio de nivel superior `.app` está entero en la lista de precarga HSTS de los navegadores (conocimiento previo, no consultado en esta sesión).
+  - Toda dirección de la zona necesita certificado. Cloudflare lo da gratis (Universal SSL) para la raíz y el primer nivel (`*.laboratorio-digital.app`).
+  - Por eso las tiendas y los proyectos van en el **primer nivel**. Una dirección como `x.y.laboratorio-digital.app` pediría un certificado avanzado: Advanced Certificate Manager, USD 10 al mes por zona (por resumen, sin verificar).
+- **La reputación del ecosistema queda aparte.** Una tienda fraudulenta en `.app` no arrastra a `laboratorio-digital.com`, al CORE ni a su correo (§4.11).
+
+### 3.4 Sin la Public Suffix List, y qué la reemplaza
+
+La versión 0.1 proponía pedir que el dominio de tiendas entrara en la **Public Suffix List** (PSL), para que cada tienda fuera un «sitio» aparte para el navegador.
+
+**Con la zona en Cloudflare eso no se puede.**
+
+- Cloudflare exige que el dominio de una zona esté un nivel por debajo de un sufijo de la PSL. Un dominio inscrito en ella deja de ser registrable y no se puede agregar como zona, salvo en el plan Enterprise.
+- Fuente: documentación de Cloudflare y su comunidad, por resumen del buscador, el 5 oct 2026.
+- Y la zona tiene que estar en Cloudflare para servir las tiendas (§3.3).
+
+**Lo que la PSL daba, el diseño ya lo da:**
+
+| Riesgo que cubre la PSL | Cómo queda cubierto sin ella |
+|---|---|
+| Una tienda pone cookies que lee otra | Las tiendas no usan cookies. El carrito va en `localStorage` y el panel en IndexedDB, que son **por origen**: cada `<slug>.laboratorio-digital.app` es un origen distinto |
+| Un script de terceros comparte su cookie entre tiendas (`_ga` o `_fbp` en `.laboratorio-digital.app`) | GA4 y el píxel de Meta solo en tiendas con dominio propio (TIENDA-3.0 §4.1 y §11.6). Los comercios no pueden subir JavaScript |
+| Una tienda fraudulenta arrastra la reputación de las demás (listas de bloqueo, Safe Browsing) | Ficha legal completa antes de publicar, reporte en el pie de cada tienda, suspensión con un clic y ningún directorio común de tiendas (TIENDA-3.0 §4.4). Es el riesgo que queda: está en §8 |
+
+**El escape, si ese riesgo se cumple** (por ejemplo, una marca de Safe Browsing sobre todo el dominio):
+
+- Las tiendas sin dominio propio pasan a un segundo nivel: `<slug>.t.laboratorio-digital.app`.
+- `t.laboratorio-digital.app` se inscribe en la PSL y lleva un certificado comodín de segundo nivel.
+- Las direcciones viejas responden 301.
+
+Antes de pedirlo hay que confirmar que Cloudflare acepte una entrada de la PSL **dentro** de una zona propia. No se hace mientras no haga falta.
+
+**El espacio de nombres compartido** (tiendas y proyectos en el primer nivel):
+
+- **La base de control guarda los reservados.** `tienda_control.slug_reservado` lista los nombres que una tienda no puede tomar, con su motivo:
+  - `infraestructura`: `www`, `panel`, `img`, `mcp`, `origen`, `correo`…;
+  - `suplantacion`: `admin`, `soporte`, `pagos`, `cuenta`…;
+  - `proyecto` y `marca`.
+- **Los de `proyecto` y `marca` salen de un archivo,** `infrastructure/dominios.json`, que el despliegue copia a la base (P2). Una prueba exige que todo hostname de `laboratorio-digital.app` que aparezca en una configuración de Worker del repositorio esté en ese archivo.
+- **La base lo hace cumplir en los dos sentidos.** Una tienda no toma un nombre reservado, y no se reserva un nombre que ya tiene tienda. El despliegue que lo intente falla con el nombre, en vez de quitarle la dirección a un comercio (P1). Probado en `../tienda/sql/probar-tienda.mjs`.
+- **`--` dentro de un nombre queda para la plataforma.** El staging de la tienda usa `<slug>--staging.laboratorio-digital.app`, con rutas propias del Worker de staging, más específicas que el comodín de producción.
+
+### 3.5 Reglas de gobierno de la cuenta
+
+1. **La cuenta se declara** en `infrastructure/cuentas.json`: nombre, plan, dueño, contactos de recuperación y las cuentas que quedan fuera de la plataforma.
    - Ningún identificador de cuenta va en ese archivo. Los identificadores siguen en los secretos de GitHub, como hoy.
-   - Una prueba exige que cada celda de `celdas.json` nombre una cuenta declarada.
-2. **Ningún producto se reparte entre cuentas gratuitas.** Todas las celdas de un producto en etapa gratuita van en la misma cuenta.
-   - Es la lectura prudente de Cloudflare §2.2.1(c), que prohíbe esquivar cuotas (HA1).
-   - El texto de los términos no se pudo volver a leer el 5 oct 2026 (egreso bloqueado): la lectura es la del 30 sep 2026 (ARQUITECTURA §6.5).
-3. **La cuenta paga lleva alertas de facturación**, una por producto de uso (Workers, D1, R2, Queues, correo).
-   - El presupuesto de cada producto en `product.yaml` se expresa también en dinero al mes.
-   - El vigía la compara contra lo incluido en el plan (§4.10).
-   - Según la investigación (sin verificar), Cloudflare no tiene un tope duro de gasto. Las alertas y el kill switch son lo único que hay.
-4. **Credenciales por cuenta y por propósito:**
-   - un token de despliegue por cuenta, con el alcance mínimo;
-   - un token de métricas de solo lectura por cuenta;
-   - un token de Cloudflare for SaaS solo con el permiso de hostnames personalizados de la zona de tiendas.
-5. **Recuperación fuera de la cuenta operativa** (ED1 §20.3).
-   - Segundo factor en todas las cuentas.
-   - Contactos de recuperación distintos.
-   - Los dominios registrados con un registrador y un correo que no dependan de la cuenta que los sirve.
+   - Una prueba exige que cada celda de `celdas.json` nombre una cuenta declarada: hoy, la principal; mañana, la de un cliente con celda dedicada (ADR-8).
+2. **Ningún producto se reparte entre cuentas gratuitas** (HA1). Es la lectura prudente de Cloudflare §2.2.1(c), que prohíbe esquivar cuotas. El texto de los términos no se pudo volver a leer el 5 oct 2026 (egreso bloqueado): la lectura es la del 30 sep 2026 (ARQUITECTURA §6.5).
+3. **Con Workers Paid, alertas de facturación** por cada producto de uso (Workers, D1, R2, Queues, correo), y el presupuesto de cada producto también en dinero (§3.2).
+4. **Credenciales por propósito, con el alcance mínimo:**
+   - un token de despliegue;
+   - un token de métricas de solo lectura;
+   - un token de Cloudflare for SaaS solo con el permiso de hostnames personalizados de la zona `laboratorio-digital.app`.
 
-### 3.4 Graduar un producto (gratuita → paga)
+   Los tres en los ambientes de GitHub, como hoy.
+5. **Recuperación fuera de la cuenta** (ED1 §20.3):
+   - segundo factor;
+   - contactos de recuperación propios;
+   - los tres dominios con un registrador y un correo que no dependan de Cloudflare.
+6. **Plan de salida:** exportaciones semanales fuera de Cloudflare (`proveedores-de-computo.md` §4). Es lo que convierte «todo en una cuenta» en un riesgo aceptable.
+7. **Contenido arbitrario de usuarios, aparte.** Un producto que lo aloje, como el hosting temporal de ED1 §14, se evalúa cuando exista. Es el único caso en que una cuenta propia aislaría un riesgo real (HA1): una suspensión por abuso no debe tumbar las tiendas.
 
-**Disparadores.** Gradúa con el primero que se cumpla:
+### 3.6 Dónde vive cada pieza
 
-- su consumo pasa el 50 % de su presupuesto declarado 7 días seguidos;
-- entra su primer cliente que paga;
-- necesita algo que solo da la cuenta paga: cron propio, colas con retención, CPU de más de 10 ms o correo a cualquier destinatario.
+Todo en la misma cuenta. Lo que cambia por etapa es qué existe:
 
-**Procedimiento:**
-
-1. Agregar en `celdas.json` una celda nueva en la cuenta C, con estado `activa`. La celda vieja queda `fuera` para organizaciones nuevas.
-2. Desplegar. La asignación pone las organizaciones nuevas en la celda nueva (§4.9).
-3. Mudar las organizaciones existentes con el procedimiento de ARQUITECTURA §6.4: congelar, exportar, importar, verificar con recuentos y huellas, conmutar y retirar. Se mudan por anillos: primero los pilotos.
-4. Cuando la celda vieja no tiene organizaciones durante 30 días, se retira. Sus bases se exportan a R2 antes de borrarlas (P21).
-
-**El agro hoy:** la etapa B de ARQUITECTURA §6.3 dice «la cuenta de c0 pasa a Workers Paid, o se abre una cuenta paga propia del agro». Con la cuenta C, la etapa B es **graduar a C**. No hace falta una suscripción nueva: comparte los USD 5 de C.
-
-### 3.5 Dónde vive cada pieza, por etapa
-
-| Pieza | T0 · hoy | T1 · Tienda 3.0 en construcción | T2 · tiendas cargadas | T3 · consolidación |
-|---|---|---|---|---|
-| CORE | A (`agro-core` en workers.dev) | A, con `cuenta.laboratorio-digital.com` y dimensión de producto | A | **C**, cuando se cumpla el disparador del CORE |
-| Agro (sitio y celda) | A (c0) | A | A | A o **C** (graduado, §3.4) |
-| Tienda 3.0 (despacho, API, panel, celdas) | — | **C** (c1) | C | C |
-| Zona de tiendas (dominio aparte) | — | **C** | C | C |
-| Tiendas 2.0 | A | A (siguen vendiendo) | Retiradas tras la carga y 30 días sin volver atrás | — |
-| Zona `laboratorio-digital.com` | A | A | A | **C** (cuando ya no sirva Workers de A) |
-
-**Disparador del CORE.** El CORE se muda a C con el primero que se cumpla:
-
-- **la cuenta A pasa el 50 % de cualquier cuota diaria 7 días seguidos.** Así se mide la etapa B, y un CORE caído deja sin entrada a todos los productos;
-- **el CORE necesita algo que solo da C**: otro cron, colas para el correo o más de 50 consultas por invocación;
-- **la tienda tiene más de 20 comercios activos.** Su panel depende del CORE para entrar y renovar.
-
-**Cómo se muda el CORE sin cerrar sesiones:**
-
-1. **La llave de firma.** La privada no sale de su Worker (ARQUITECTURA §7.5). El CORE nuevo nace con otra, y publica la del viejo como `anterior` en `/api/core/claves`. Las celdas aceptan las dos por `kid` (`verificarConClaves`), y los access tokens viejos valen hasta su vencimiento: 12 h.
-2. **Los datos.** `wrangler d1 export` del CORE viejo e importación en el nuevo, con 2 minutos de escrituras en pausa. Se pausa con un kill switch de mantenimiento: entrar y renovar responden 503 con `Retry-After`, y el cuaderno sigue registrando sin señal.
-3. **La dirección.** Los clientes nuevos usan `cuenta.laboratorio-digital.com` desde T1. Los cuadernos instalados con la URL de workers.dev llegan a un **Worker puente** en A, que reenvía `/api/core/*` al nuevo. El puente vive hasta que la versión mínima de la app (`APP_MINIMA`) ya no use la URL vieja, y como mínimo 90 días.
-4. **El dominio estable.** Mientras la zona `laboratorio-digital.com` siga en A, el Worker del CORE en C no puede tomarla como Custom Domain: Cloudflare exige que la zona esté en la misma cuenta. Hay dos caminos:
-   - mudar la zona a C (T3; exige cambiar los servidores de nombres en el registrador);
-   - servir `cuenta.laboratorio-digital.com` como hostname personalizado de la zona SaaS de C, que es O2O porque la zona de A también está en Cloudflare.
-
-   Se elige en el momento. Cualquiera de los dos se prueba primero en staging (P16).
-
-### 3.6 Dominios
-
-| Dominio | Para qué | Dónde | Regla |
+| Pieza | Hoy | Tienda 3.0 en construcción (M0–M3) | Tiendas cargadas (M6) |
 |---|---|---|---|
-| `laboratorio-digital.com` | El ecosistema: sitio principal y CORE (`cuenta.`) | Zona en A (T0–T2) | Nunca sirve contenido de comercios ni de usuarios ([V10], ED1 §14.1). Las tiendas 2.0 que hoy viven ahí son la excepción heredada y salen en T2, con redirección 301 a su dirección nueva |
-| `cultivopro.co` | El agro (ADR-19) | Zona en A | — |
-| **Dominio de tiendas** (por registrar; el dueño elige el nombre) | Las tiendas sin dominio propio: `<slug>.<dominio de tiendas>`. Además: el panel (`panel.`), las imágenes (`img.`) y el origen de respaldo de Cloudflare for SaaS | Zona en **C** | Un dominio registrable aparte, que se pide incluir en la **Public Suffix List**. Así cada tienda es su propio «sitio» para el navegador: no comparte cookies, y la reputación de una no arrastra a las demás |
-| Dominios de los comercios | La tienda en el dominio del comercio | DNS del comercio; hostname personalizado en la zona de tiendas de C | `www` como canónico. El dominio raíz, solo si el DNS del comercio hace CNAME flattening; si no, se redirige desde su proveedor. El «apex proxying» de Cloudflare es de Enterprise. Detalle en TIENDA-3.0 §4 |
+| CORE | `agro-core` en workers.dev | Más `cuenta.laboratorio-digital.com` (P2 de §7), con la URL de workers.dev viva para los cuadernos instalados (P10) | Igual |
+| CultivoPro | c0 | c0, con los límites de Workers Paid | c0. Una celda c2 cuando c0 se llene (ARQUITECTURA §6.3) |
+| Tienda 3.0 | — | Despacho, API, panel y horno, en la celda c1 | c1 y sus shards |
+| Zona `laboratorio-digital.app` | — | Entra a la cuenta en M0 | Igual |
+| Tiendas 2.0 | Subdominios de `laboratorio-digital.com` | Siguen vendiendo | Redirigidas con 301, y retiradas tras 30 días sin volver atrás |
 
 ---
 
@@ -229,14 +261,14 @@ Se heredan los de ED1 §3 y los patrones P1–P21. Estos seis son reglas nuevas 
 ```text
  producto ─┬─< producto_tipo        (agro: finca, asesor, cadena · tienda: comercio)
            ├─< producto_rol         (agro: propietario…auditor · tienda: propietario, colaborador)
-           ├─< plan ──< plan_precio (por periodo: 1, 3, 12 meses; con historia)
+           ├─< plan ──< plan_precio (por periodo de `periodo`: 1, 3, 6 o 12 meses; con historia)
            ├─< celda                (cada celda es de un producto)
            └─< aceptacion_politica  (cada producto, su política)
 
  organizacion (producto, tipo, plan, plan_vence, estado, celda, shard, anillo)
    ├─< membresia  (usuario × organización, con un rol DEL producto de la organización)
    ├─< invitacion (rol del producto)
-   ├─< interes_plan, pago (plan del producto; meses ∈ {1, 3, 12})
+   ├─< interes_plan, pago (plan del producto; meses de `periodo`)
    └─  [producto] en la sesión: un refresh sirve a un solo producto
 
  usuario ─< identidad (google | correo) · ─< sesion (por producto) · ─< aceptacion_politica
@@ -277,7 +309,7 @@ La lista de productos es un archivo versionado, como `celdas.json` (P2). El desp
       "estado": "activo",
       "excepcion": "ADR-21",
       "app": {
-        "origenes": { "produccion": "https://panel.<dominio de tiendas>", "staging": "https://tienda-panel-staging.<cuenta C>.workers.dev" },
+        "origenes": { "produccion": "https://panel.laboratorio-digital.app", "staging": "https://panel--staging.laboratorio-digital.app" },
         "rutas_de_vuelta": ["/"]
       },
       "tipos": ["comercio"],
@@ -301,22 +333,26 @@ La lista de productos es un archivo versionado, como `celdas.json` (P2). El desp
   ```json
   { "id": "finca", "nombre": "Finca", "precio": "COP 39.000 a 59.000 al mes",
     "cobro_mensual_cop": 39000,
-    "cobro": { "1": 39000, "3": 111000, "12": 390000 } }
+    "cobro": { "1": 39000, "3": 111000, "6": 210000, "12": 390000 } }
   ```
 
-  Mientras existan los dos campos, una prueba exige que `cobro["1"]` sea igual a `cobro_mensual_cop`. También exige que `cobro["3"] ≤ 3 × cobro["1"]`, que `cobro["12"] ≤ 12 × cobro["1"]` y que todo monto sea un entero ≥ 1.000, el mínimo de Bold. `planes.test.ts` no cambia: ata el `precio` visible al estudio, no a `cobro`.
+  - Las claves de `cobro` son periodos de la tabla `periodo`. Un periodo sin monto no se ofrece en ese plan.
+  - Mientras existan los dos campos, una prueba exige que `cobro["1"]` sea igual a `cobro_mensual_cop`.
+  - También exige que **a más meses, el mes no salga más caro**: `cobro[n] / n` no crece con `n`, así que `cobro["6"] ≤ 6 × cobro["1"]` y `cobro["12"] ≤ 2 × cobro["6"]`.
+  - Todo monto es un entero de al menos COP 1.000, el mínimo de Bold.
+  - `planes.test.ts` no cambia: ata el `precio` visible al estudio, no a `cobro`.
 
-  Los montos de 3 y 12 meses los fija el dueño. Los del ejemplo son una propuesta: 5 % menos en el trimestre y «dos meses de regalo» en el año, redondeados a miles (§4.8).
+  Los montos de 3, 6 y 12 meses los fija el dueño. Los del ejemplo son una propuesta: 5 % menos en el trimestre, 10 % menos en el semestre y «dos meses de regalo» en el año, redondeados a miles hacia abajo (§4.8).
 
 ### 4.3 Modelo de datos: la migración 0006
 
-`sql/core/0006_dimension_de_producto.sql` está escrito y probado. La prueba es `node docs/arquitectura/sql/probar-core.mjs infrastructure/migraciones/core docs/arquitectura/sql/core`, con Node 22.5 o posterior por `node:sqlite`.
+`sql/core/0006_dimension_de_producto.sql` está escrito y probado. La prueba es `node docs/plataforma/sql/probar-core.mjs infrastructure/migraciones/core docs/plataforma/sql/core`, con Node 22.5 o posterior por `node:sqlite`.
 
 La prueba:
 
 - aplica las migraciones reales 0001–0005, cada una en su transacción, como `wrangler`;
 - siembra los datos que escribe el código v0;
-- aplica las propuestas 0006 a 0009 y hace 29 comprobaciones.
+- aplica las propuestas 0006 a 0009 y hace 35 comprobaciones.
 
 **Qué hace la 0006, tabla por tabla:**
 
@@ -326,13 +362,14 @@ La prueba:
 | `producto_tipo` (nueva) | Tipos de organización de cada producto | PK `(producto, tipo)` |
 | `producto_rol` (nueva) | Roles, con `administra` e `invitable` | PK `(producto, rol)` |
 | `plan` (nueva) | Planes de cada producto; `gratuito` 0/1; `estado` | PK `(producto, id)` |
-| `plan_precio` (nueva) | Precio por periodo, con `vigente_desde`; nunca se edita, entra uno nuevo | PK `(producto, plan, meses, vigente_desde)`; `meses ∈ {1,3,12}`; `monto_cop ≥ 1000` |
+| `periodo` (nueva) | Los periodos de prepago: 1 (mensual), 3 (trimestral), 6 (semestral) y 12 (anual). Uno nuevo es un `INSERT` | PK `meses`, de 1 a 36 |
+| `plan_precio` (nueva) | Precio por periodo, con `vigente_desde`; nunca se edita, entra uno nuevo | PK `(producto, plan, meses, vigente_desde)`; `meses` → `periodo`; `monto_cop ≥ 1000` |
 | `celda` | + `producto` | `UNIQUE (id, producto)`, para que `organizacion` lo exija |
 | `organizacion` | + `producto`, + `estado` (`activa`, `mudando`, `suspendida`, `baja`); `tipo` y `plan` sin `CHECK` | `UNIQUE (id, producto)`. FK a `(producto, tipo)`, a `(producto, plan)` y a `(celda_id, producto)`. Índice `organizacion_por_celda (producto, celda_id, shard)` para la asignación (1 fila por organización) |
 | `membresia` | + `producto` | FK a `(org_id, producto)` → organización y a `(producto, rol)` → rol. Se recrea `membresia_por_finca` |
 | `invitacion` | + `producto` | Las mismas dos FK |
 | `interes_plan` | + `producto` | FK a la organización y al plan del producto |
-| `pago` | `meses ∈ {1,3,12}`; + `periodo_desde`, `periodo_hasta` (lo que cubrió el pago, escrito al aprobarlo) | FK a la organización y al plan del producto. Se recrean `pago_org` y `pago_esperando` |
+| `pago` | `meses` → `periodo`; + `periodo_desde`, `periodo_hasta` (lo que cubrió el pago, escrito al aprobarlo) | FK a la organización, al plan del producto y al periodo. Se recrean `pago_org` y `pago_esperando` |
 | `sesion` | + `producto` | Se recrea `sesion_por_usuario` |
 | `aceptacion_politica` (nueva) | `(usuario, producto, versión, aceptada)`. Se llena con `usuario.politica_*` | PK `(usuario_id, producto, version)` |
 
@@ -343,16 +380,20 @@ La prueba:
 - Las 9 tablas conservan sus filas, `plan_vence` incluido.
 - `PRAGMA foreign_key_check` vacío, `integrity_check = ok` y las claves foráneas siguen activas.
 - `membresia` apunta a `organizacion` y no a una tabla intermedia `_nueva`.
-- Un segundo producto entra **solo con datos**: un tipo, dos roles, dos planes, tres precios, una celda, una organización y una membresía.
+- Un segundo producto entra **solo con datos**: un tipo, dos roles, dos planes, cuatro precios (uno por periodo), una celda, una organización y una membresía.
+- Los cuatro periodos están sembrados, y uno nuevo (24 meses en la prueba) entra con dos `INSERT`, sin rehacer ninguna tabla (R1).
+- **La guarda, con datos reales:** un pago viejo de 2 meses, que el v0 permitía con `CHECK (meses > 0)`, detiene la 0006 entera y deja la base como estaba. Sin la guarda, la migración habría pasado callada con una fila huérfana (§4.4, W4).
 - Se rechazan, uno por uno:
   - un rol del agro en una tienda;
   - una membresía v0, sin producto, en una tienda;
   - una tienda con un plan del agro;
   - una tienda en una celda del agro;
   - un pago de tienda a nombre de una finca;
-  - un pago por 2 meses;
+  - un pago por 2 meses, que no es un periodo;
   - un precio menor de COP 1.000;
-  - una tienda de tipo `finca`.
+  - una tienda de tipo `finca`;
+  - un alcance para agentes que mueve dinero (0009);
+  - un proveedor de identidad que no está en la tabla de referencia (0007).
 
 **Costo.** Cada fila copiada cuenta una vez por tabla y una por índice. Con el volumen de hoy (decenas de organizaciones y cientos de sesiones), la 0006 escribe unos pocos miles de filas: menos del 5 % de un día de la cuota gratuita.
 
@@ -384,7 +425,7 @@ DROP TABLE _guarda_fk;
 ```
 
 - **Por qué la guarda:** sin ella, la migración que pierde datos se ve igual que la que no los pierde. Con ella, una sola fila huérfana revierte la migración entera, porque `wrangler` corre cada archivo en una transacción.
-- **Ninguna FK con `ON DELETE CASCADE` (R4):** la investigación de la cuenta paga encontró en la documentación de D1 que `defer_foreign_keys` no impide las cascadas. El `DELETE` implícito del `DROP TABLE` borraría las hijas.
+- **Ninguna FK con `ON DELETE CASCADE` (R4):** la investigación de la cuenta encontró en la documentación de D1 que `defer_foreign_keys` no impide las cascadas. El `DELETE` implícito del `DROP TABLE` borraría las hijas.
 - **Falta verificar en D1 (P17):** el instrumento fue `node:sqlite`, no D1.
   - Antes de aplicar la 0006 en staging, una prueba con `getPlatformProxy` (el D1 local de `packages/d1`) corre W1–W4.
   - Comprueba que D1 acepte `pragma_foreign_key_check` como función de tabla y que apagar el pragma ponga el contador en cero igual.
@@ -400,7 +441,7 @@ DROP TABLE _guarda_fk;
 | `0009_oauth_para_agentes.sql` | P5 de la plataforma (§5.4) | `alcance` (por producto, con `mueve_dinero CHECK = 0`), `cliente_oauth`, `concesion_oauth`, `codigo_oauth` (PKCE S256 obligatorio) y `refresco_oauth` (rotación y detección de reuso) |
 | `00xx_contraer_*.sql` | Una versión después de que ningún código lea lo viejo | Quita `usuario.politica_*`, los `DEFAULT 'agro'` de transición y la aceptación de tokens v1 (§4.6) |
 
-Las cuatro están en `sql/core/`. La prueba las aplica encadenadas sobre 0001–0005: «TODO EN VERDE», sin huérfanas. Además comprueba que se rechaza un alcance que mueve dinero y un proveedor de identidad desconocido.
+Las cuatro están en `sql/core/`. La prueba las aplica encadenadas sobre 0001–0005: «TODO EN VERDE», sin huérfanas. Además comprueba que se rechazan un alcance que mueve dinero y un proveedor de identidad desconocido.
 
 ### 4.6 Tokens v2
 
@@ -413,7 +454,7 @@ Las cuatro están en `sql/core/`. La prueba las aplica encadenadas sobre 0001–
 | `plan`, `plan_vence` | — | El plan vigente, con el vencimiento y la gracia ya aplicados | La API del producto aplica sus límites sin llamar al CORE |
 | `auth_time` | — | Instante de la última entrada **interactiva** con Google o correo | Lo que mueve dinero pide una entrada reciente (TIENDA-3.0 §12) |
 | `ver` | — | `2` | Las celdas distinguen sin adivinar |
-| Cabecera `kid` | Sí | Igual | Rotación y mudanza del CORE (§3.5) |
+| Cabecera `kid` | Sí | Igual | Rotación de la llave de firma |
 
 **Transición, en tres versiones (P10):**
 
@@ -436,7 +477,7 @@ Las cuatro están en `sql/core/`. La prueba las aplica encadenadas sobre 0001–
 | `POST /api/core/invitaciones[/ver\|/aceptar]` | Roles del agro; enlace a `/agro/app/unirme/` | Roles invitables del producto. El enlace es la pantalla «unirme» de la app del producto, con el código en el fragmento, como hoy (P13) |
 | `POST /api/core/equipo/*` · `…/telefonos/*` | «Propietario» escrito en el código | Lo puede hacer quien tiene un rol con `administra` |
 | `POST /api/core/interes[/ver]` | Planes del agro | Planes del producto de la organización |
-| `POST /api/core/pago/crear` | Un mes; monto de `planes.json` del cuaderno | + `meses` ∈ {1, 3, 12}. El monto sale de `plan_precio` vigente, que el despliegue copia de `planes.json`. La referencia lleva el prefijo del producto (`tienda-<uuidv7>`) |
+| `POST /api/core/pago/crear` | Un mes; monto de `planes.json` del cuaderno | + `meses`: un periodo con precio vigente para ese plan (1, 3, 6 o 12). El monto sale de `plan_precio`, que el despliegue copia de `planes.json`. La referencia lleva el prefijo del producto (`tienda-<uuidv7>`) |
 | `POST /api/core/pago/confirmar` · cron | Activa un mes | Activa `meses` con meses calendario (§4.8) y escribe `periodo_desde` y `periodo_hasta` |
 | `POST /api/core/servicio/planes` (nueva) | — | Celda → CORE, una vez al día. Devuelve `plan` y `plan_vence` de las organizaciones de esa celda (§4.13) |
 | `GET /.well-known/jwks.json` (nueva) | — | §4.6 |
@@ -446,7 +487,7 @@ CORS: `ORIGENES_APP` pasa a ser la unión de los orígenes de todos los producto
 
 ### 4.8 Planes y cobros por periodo
 
-1. **Prepago, sin débito automático.** Cada pago compra 1, 3 o 12 meses. Bold no guarda la tarjeta y el CORE tampoco. Así funciona hoy (HU-E0.7) y así lo pide el estudio, sin débito automático (estudio ecommerce §13.4).
+1. **Prepago, sin débito automático.** Cada pago compra 1, 3, 6 o 12 meses. Bold no guarda la tarjeta y el CORE tampoco. Así funciona hoy (HU-E0.7) y así lo pide el estudio, sin débito automático (estudio ecommerce §13.4).
 2. **Meses calendario en America/Bogota, no 30 días.** Hoy un mes son 30 días (`DIAS_POR_MES`). Con 12 meses serían 360: cinco días menos de lo que la persona cree que pagó.
    - `sumarMeses(desde, n)` suma meses en la fecha local de Bogotá, que no tiene horario de verano (UTC−5 fijo), y conserva la hora.
    - Si el día no existe en el mes de llegada, recorta al último día: 31 de enero + 1 mes = 28 o 29 de febrero.
@@ -464,22 +505,25 @@ CORS: `ORIGENES_APP` pasa a ser la unión de los orígenes de todos los producto
    - Cada producto puede declarar `gracia_dias`: 0 en el agro y 7 en la tienda. Una tienda no puede dejar de vender de un día para otro porque se olvidó pagar.
    - En la gracia, el token lleva el plan pagado y la app muestra el aviso.
    - Avisos a 7 días y a 1 día del vencimiento, por correo cuando exista (§4.11). Los dispara el cron que el CORE ya tiene, no uno nuevo.
-6. **Costo de cobrar** (Bold, PSE o billetera a 2,89 % + COP 900; estudio ecommerce §10.2, tarifa observada):
+6. **Costo de cobrar** (Bold, PSE o billetera a 2,89 % + COP 900, antes del IVA de la comisión; estudio ecommerce §10.2, tarifa observada):
 
    | Pago | Monto | Comisión | % |
    |---|---|---|---|
    | 1 mes | 39.000 | 2.027 | 5,2 % |
    | 3 meses | 111.000 | 4.108 | 3,7 % |
+   | 6 meses | 210.000 | 6.969 | 3,3 % |
    | 12 meses | 390.000 | 12.171 | 3,1 % |
 
-   En un año, doce pagos mensuales cuestan COP 24.324 en comisiones. Uno anual cuesta 12.171.
+   - En un año, las comisiones suman COP 24.324 con doce pagos mensuales, 16.432 con cuatro trimestrales, 13.938 con dos semestrales y 12.171 con uno anual.
+   - **El plazo también es un precio** (estudio §10.2 [C4]): el depósito inmediato de Bold cuesta 3,59 % + COP 900. El CORE cobra con el depósito normal.
 7. **Facturación electrónica.** No es parte de este diseño, porque no hay contador que fije la obligación (decisión 5 del dueño). El hueco queda listo:
    - `pago.periodo_desde` y `pago.periodo_hasta` dicen qué se cobró y por cuánto tiempo;
-   - un adaptador `DocumentoFiscal` (como `ProveedorDePago`) puede emitirla después sin tocar el modelo.
+   - un adaptador `DocumentoFiscal` (como `ProveedorDePago`) puede emitirla después sin tocar el modelo;
+   - el primer candidato es la facturación que Bold incluye en la cuenta de quien cobra con ellos (estudio §11.2 [C6]), antes que contratar un proveedor aparte. Falta revisar su alcance.
 
 ### 4.9 Celdas por producto
 
-- **`celdas.json` v2:** cada celda declara su `producto` (obligatorio, con `agro` en c0) y su `cuenta`, que nombra una de `cuentas.json`.
+- **`celdas.json` v2:** cada celda declara su `producto` (obligatorio, con `agro` en c0) y su `cuenta`, que nombra una de `cuentas.json`: hoy siempre la principal, y la del cliente en una celda dedicada (ADR-8).
   - Los shards se llaman `<producto>_c<N>_s<k>`, como `tienda_c1_s1`. Una prueba exige que el prefijo sea el producto de su celda.
   - Los ids de celda siguen siendo `c<N>` y no se repiten entre productos: c0 es el agro y c1 la primera de la tienda.
 - **Asignación por producto:**
@@ -494,13 +538,13 @@ CORS: `ORIGENES_APP` pasa a ser la unión de los orígenes de todos los producto
 
 | Clave (KV de flags) | Apaga | Dónde |
 |---|---|---|
-| `ks:core` (y `ks:agro-core` mientras dure la transición: cualquiera de las dos en `apagado` apaga) | Todo el CORE: entrar, renovar, pagar | KV de la cuenta del CORE |
+| `ks:core` (y `ks:agro-core` mientras dure la transición: cualquiera de las dos en `apagado` apaga) | Todo el CORE: entrar, renovar, pagar | KV de flags del CORE |
 | `ks:core:<producto>` | Entrar, renovar y pagar de un producto | Ídem |
 | `ks:core:pagos` | Los cobros de planes de todos los productos | Ídem |
 | `ks:<producto>…` | Lo propio de cada producto (`ks:agro-cuaderno`, `ks:tienda`, `ks:tienda:<org>`, `ks:tienda-mcp`) | KV de la celda del producto |
 
-- **Vigía en la cuenta paga.** En la cuenta gratuita el vigía compara contra cuotas diarias y degrada por niveles (ARQUITECTURA §8.2).
-  - En la cuenta paga no hay corte: se factura. El vigía compara el consumo del mes contra lo incluido en Workers Paid, prorrateado por día, y **proyecta el costo del mes en dólares**.
+- **Vigía con Workers Paid.** En el plan gratuito, el vigía compara contra cuotas diarias y degrada por niveles (ARQUITECTURA §8.2).
+  - Con Workers Paid no hay corte: se factura. El vigía compara el consumo del mes contra lo incluido en Workers Paid, prorrateado por día, y **proyecta el costo del mes en dólares**.
   - Avisa por Telegram al 50, 75 y 90 % de lo incluido, o cuando el costo proyectado pase el **presupuesto mensual en dinero** de cada producto (`product.yaml › presupuesto.usd_mes`).
   - Con el 100 % del presupuesto en dinero aplica la degradación que el producto declare: el kill switch de una capacidad, nunca el de la venta.
 - **Las alertas de facturación de Cloudflare** son la segunda red, por si el vigía falla (P1).
@@ -519,8 +563,9 @@ CORS: `ORIGENES_APP` pasa a ser la unión de los orígenes de todos los producto
 
 **El proveedor de correo.**
 
-- En la cuenta gratuita, el servicio de correo de Cloudflare solo envía a direcciones verificadas. En la paga envía a cualquiera: 3.000 al mes incluidos, en beta pública desde abril de 2026 (investigación, por resumen).
-- Por eso el enlace mágico es un **disparador para mudar el CORE a C** (§3.5). La alternativa, mientras tanto, es un proveedor externo por HTTP detrás del adaptador `CorreoTransaccional`. Ver `analisis/proveedores-de-computo.md`.
+- Con el plan gratuito, el servicio de correo de Cloudflare solo envía a direcciones verificadas. Con Workers Paid envía a cualquiera: 3.000 al mes incluidos, en beta pública desde abril de 2026 (investigación, por resumen).
+- Por eso **el enlace mágico llega con Workers Paid** (§3.2). Si hiciera falta antes, va un proveedor externo por HTTP detrás del adaptador `CorreoTransaccional`. Ver `proveedores-de-computo.md`.
+- **El correo del CORE sale de `laboratorio-digital.com`, y el de las tiendas de `laboratorio-digital.app`** (TIENDA-3.0 §15.5). Una tienda que acumule reportes de spam no afecta la entrega de los enlaces para entrar.
 
 ### 4.12 Auditoría
 
@@ -571,7 +616,7 @@ Son 16 comprobaciones en cinco grupos. Las de comercio no puntúan en un sitio q
 
 ### 5.2 El principio, y lo que el modelo no permite
 
-**ED1 §3.12 (propuesto), «legible por agentes»:** todo lo público de un producto se puede leer, entender y usar por un agente sin ejecutar JavaScript, sin adivinar y sin costo extra para el ecosistema.
+**ED1 §3.12 (desde la v1.3), «legible por agentes»:** todo lo público de un producto se puede leer, entender y usar por un agente sin ejecutar JavaScript, sin adivinar y sin costo extra para el ecosistema.
 
 Es la extensión natural de tres principios que ya existen:
 
@@ -639,7 +684,7 @@ Sirve para que el agente **de una persona**, por ejemplo Claude o ChatGPT con MC
 | Metadatos | `GET /.well-known/oauth-authorization-server` (RFC 8414): `issuer`, `authorization_endpoint`, `token_endpoint`, `registration_endpoint`, `revocation_endpoint`, `jwks_uri`, `code_challenge_methods_supported: ["S256"]`, `grant_types_supported: ["authorization_code", "refresh_token"]` y los `scopes_supported` de todos los productos |
 | Registro del cliente | **Client ID Metadata Documents** (el `client_id` es una URL HTTPS con los metadatos del cliente; es lo que pide la especificación de autorización de MCP desde 2025-11-25, según conocimiento previo, sin verificar en esta sesión) y **registro dinámico** (RFC 7591) como respaldo. Tope de registros por IP. Un cliente se puede bloquear (`cliente_oauth.estado`) |
 | Autorizar | `GET /oauth/authorize`. La persona entra con Google o correo, como siempre, elige la organización (solo las del producto del recurso pedido) y ve una pantalla de consentimiento: quién pide, qué alcances, sobre qué organización y hasta cuándo |
-| Recurso | El parámetro `resource` (RFC 8707) es obligatorio. El token sale con `aud` = ese recurso (por ejemplo `https://mcp.<dominio de tiendas>`). Un token para el MCP de la tienda no sirve en la API del agro |
+| Recurso | El parámetro `resource` (RFC 8707) es obligatorio. El token sale con `aud` = ese recurso (por ejemplo `https://mcp.laboratorio-digital.app`). Un token para el MCP de la tienda no sirve en la API del agro |
 | Token | El mismo formato de §4.6, con `scope`, `azp` (el cliente) y `cnc` (la concesión), y **1 hora** de vida. Refresh rotado en cada uso; **reusar uno ya rotado revoca la concesión entera**, porque es señal de robo (`refresco_oauth.rotado`) |
 | Alcances | Por producto, en la tabla `alcance` (0009). La regla está escrita en la base: `mueve_dinero = 0`. Ningún alcance de agente cambia datos de cobro, llaves de pago, números de WhatsApp ni el ambiente de cobro: eso sigue pidiendo a la persona una entrada reciente en la app (TIENDA-3.0 §12). Ejemplos: `agro:registros:leer`, `agro:registros:escribir`, `tienda:pedidos:leer`, `tienda:pedidos:estado`, `tienda:catalogo:leer`, `tienda:catalogo:escribir` |
 | Revocar | `POST /oauth/revoke`. En la app, «Aplicaciones conectadas» lista las concesiones con su último uso y las retira con un toque |
@@ -652,8 +697,8 @@ Sirve para que el agente **de una persona**, por ejemplo Claude o ChatGPT con MC
 | Servidor | Dónde | Herramientas | Autenticación | Costo y límites |
 |---|---|---|---|---|
 | **Tienda, público** (uno por tienda) | `https://<tienda>/mcp`, en el despacho de la tienda | `buscar_productos`, `ver_producto`, `consultar_disponibilidad`, `preparar_pedido` (deja el pedido `pendiente` y devuelve el enlace para que **la persona** lo confirme por WhatsApp o pague con Bold), `seguimiento` (con código y secreto) | Ninguna. Es lo mismo que ve un comprador | Lee lo horneado en R2, salvo disponibilidad y pedido. Límite por IP y por tienda. `ks:tienda-mcp`. Detalle en TIENDA-3.0 §13.4 |
-| **Tienda, del comercio** | `https://mcp.<dominio de tiendas>` | Pedidos (listar, cambiar estado), inventario (ajustar), catálogo (crear, editar, publicar) | OAuth del CORE (§5.4), `aud` = este recurso | Presupuesto del panel. Nada que mueva dinero |
-| **Cuaderno** | `https://mcp.cultivopro.co` (cuando el agro gradúe, o en c0 con su presupuesto) | Leer registros y calendario de carencias; registrar una labor o una nota | OAuth del CORE; `aud` = este recurso | El mismo protocolo de la celda: las escrituras entran como operaciones con `dispositivo = mcp:<cliente>` y pasan por la misma validación y cuarentena (P1) |
+| **Tienda, del comercio** | `https://mcp.laboratorio-digital.app` | Pedidos (listar, cambiar estado), inventario (ajustar), catálogo (crear, editar, publicar) | OAuth del CORE (§5.4), `aud` = este recurso | Presupuesto del panel. Nada que mueva dinero |
+| **Cuaderno** | `https://mcp.cultivopro.co`, en c0 y con su presupuesto | Leer registros y calendario de carencias; registrar una labor o una nota | OAuth del CORE; `aud` = este recurso | El mismo protocolo de la celda: las escrituras entran como operaciones con `dispositivo = mcp:<cliente>` y pasan por la misma validación y cuarentena (P1) |
 
 Cada servidor publica su **Server Card** (`/.well-known/mcp/server-card.json`): identidad, documentación, endpoint remoto (Streamable HTTP) y versiones del protocolo. No lista sus herramientas.
 
@@ -699,7 +744,7 @@ Así se cumple el art. 50 de la Ley 1480 (resumen, aceptación expresa y verific
 
 ### 6.1 El monorepo de la plataforma es este repositorio, renombrado
 
-El análisis de integración (§6) proponía crear `laboratoriodigital/plataforma` y **mover** la historia con `git filter-repo` cuando la Tienda fuera el segundo consumidor. Ese momento llegó. Se corrige el cómo: **se renombra este repositorio**, por ejemplo a `laboratoriodigital/plataforma`, y la Tienda entra como `apps/tienda-*`.
+El análisis de integración (§6) proponía crear `laboratoriodigital/plataforma` y **mover** la historia con `git filter-repo` cuando la Tienda fuera el segundo consumidor. Ese momento llegó, y se corrige el cómo: **se renombra este repositorio**. El dueño eligió el nombre el 5 oct 2026: `laboratoriodigital/gestionagro` pasa a `laboratoriodigital/plataforma`, y la Tienda entra como `apps/tienda-*`.
 
 | | Repositorio nuevo + `filter-repo` | Renombrar este |
 |---|---|---|
@@ -709,11 +754,15 @@ El análisis de integración (§6) proponía crear `laboratoriodigital/plataform
 | Clones locales | Clonar de nuevo | Siguen funcionando por la redirección. Se actualiza el `remote` cuando convenga |
 | Costo | Medio día, con riesgo en secretos | Minutos |
 
-**Lo que el renombre exige**, en un solo PR mecánico al empezar P0:
+**Lo que el renombre exige, en tres partes:**
 
-1. Los paquetes pasan de `@gestionagro/*` a `@ed1/*`, con reemplazo en todo el repositorio y el lockfile regenerado con `pnpm`, nunca a mano.
-2. `uuidv7` e `id` salen de `@gestionagro/agro-schema` a un paquete neutro (`@ed1/ids`). Hoy el CORE importa un paquete del agro (R2).
-3. `README.md` y `docs/README.md` nombran la plataforma y sus productos.
+1. **En GitHub, lo hace el dueño:** Settings › General › Repository name. Desde aquí no hay herramienta para hacerlo. Los pasos, lo que hay que revisar después y lo que no se toca están en `../runbooks/renombrar-repositorio.md`.
+2. **En el repositorio, ya hecho** (pull request de la reorganización de `docs/`, 5 oct 2026): `README.md`, `docs/README.md`, el `name` del `package.json` de la raíz y los comandos `gh … --repo` de los runbooks.
+3. **En P0, un pull request mecánico aparte:**
+   - los paquetes pasan de `@gestionagro/*` a `@ed1/*` (140 archivos), con el lockfile regenerado con `pnpm`, nunca a mano;
+   - `uuidv7` e `id` salen de `@gestionagro/agro-schema` a un paquete neutro (`@ed1/ids`). Hoy el CORE importa un paquete del agro (R2).
+
+**Lo que no se renombra nunca** (P10: hay teléfonos con la versión vieja): la base IndexedDB `gestionagro-cuaderno` y sus `gestionagro-cuaderno-<id>`, las claves `gestionagro.*` del almacenamiento local del cuaderno, los nombres de los Workers, las bases D1 y los espacios KV, la cookie `agro_oauth` y el emisor `agro-core` (este, solo con la transición de §4.6).
 
 ### 6.2 Estructura
 
@@ -734,8 +783,9 @@ plataforma/
 │   ├── agro-calc/ agro-schema/ sync/ trazabilidad/    del agro
 │   └── tienda-schema/ tienda-horno/                   de la tienda
 ├── content/ (agro/, tienda/, marca.json, agentes.json)
-├── infrastructure/ (productos.json, cuentas.json, celdas.json, migraciones/{core,celda,tienda,tienda-control})
-├── schemas/ scripts/ tests/ docs/ (arquitectura/, runbooks/, …)
+├── infrastructure/ (productos.json, cuentas.json, dominios.json, celdas.json, migraciones/{core,celda,tienda,tienda-control})
+├── schemas/ scripts/ tests/
+└── docs/ (ecosistema/, plataforma/, agro/, tienda/, runbooks/, seguridad/)
 ```
 
 `packages/pagos` se extrae ahora porque la Tienda es su segundo consumidor. Con la regla de tres (ED1 §3.11), el resto de los paquetes comunes se extrae cuando lo use el tercero.
@@ -749,7 +799,7 @@ plataforma/
   - Hoy hay una sola versión, en el `package.json` de la raíz. Pasa a una por producto (`apps/<producto>/package.json`) y una del CORE.
   - Etiquetas `agro-vX.Y.Z`, `tienda-vX.Y.Z` y `core-vX.Y.Z`. Las `vX.Y.Z` existentes quedan como historia del agro.
   - `desplegar.yml` publica el producto cuya versión subió, por celdas y anillos, como hoy.
-- **Despliegue por producto y por cuenta.** Cada destino carga solo los secretos de su cuenta y su producto (R6). El orden es CORE → celdas de cada producto → sitios (§4.9).
+- **Despliegue por producto.** Cada destino carga solo los secretos de su producto (R6). El orden es CORE → celdas de cada producto → sitios (§4.9).
 
 ### 6.4 Pruebas nuevas de la plataforma
 
@@ -760,7 +810,8 @@ plataforma/
 | Compatibilidad v0 | Entre migrar y desplegar, el código v0 escribe y lee | Quitar un `DEFAULT 'agro'` |
 | Tokens v1/v2 | Lo que acepta cada versión de §4.6 | Aceptar un `aud` ajeno |
 | `productos.json` ↔ base | Tras el despliegue, las tablas de referencia son el archivo | Editar una fila a mano |
-| `planes.json` | `cobro["1"] = cobro_mensual_cop`, cotas por periodo, mínimo de Bold | Un trimestral más caro que tres meses |
+| `planes.json` | `cobro["1"] = cobro_mensual_cop`; a más meses, el mes no sale más caro; solo periodos de `periodo`; mínimo de Bold | Un semestral más caro que seis meses |
+| `dominios.json` | Todo hostname de `laboratorio-digital.app` en una configuración de Worker está declarado, y los reservados llegan a `slug_reservado` | Una ruta nueva sin declarar |
 | Meses calendario | Casos de §4.8 con `TZ=America/Bogota` y `TZ=Pacific/Kiritimati` | Volver a 30 días |
 | Agentes | `verificar-agentes.ts` (§5.8) | Quitar o alterar una habilidad |
 
@@ -772,19 +823,19 @@ Supone las 20 horas por semana del dueño, con Claude haciendo los commits (ARQU
 
 | Fase | Duración estimada | Deja funcionando | Criterio de aceptación |
 |---|---|---|---|
-| **P0 · Preparar** | 1 semana | Renombre del repositorio y de `@ed1/*`, `@ed1/ids`, `productos.json`, `cuentas.json` y sus esquemas. Cuenta C revisada (`analisis/cuenta-cloudflare-paga.md` §2) | CI en verde. Lo generado (wrangler, `_headers`, tabla `celda`) es **idéntico byte a byte** al de antes |
+| **P0 · Preparar** | 1 semana | Paquetes `@ed1/*` y `@ed1/ids` (el repositorio ya se llama `plataforma`). `productos.json`, `cuentas.json` y `dominios.json`, con sus esquemas | CI en verde. Lo generado (wrangler, `_headers`, tabla `celda`) es **idéntico byte a byte** al de antes |
 | **P1 · Producto en el CORE** | 2 semanas | Migraciones 0006 y 0008 (receta probada en D1 local y staging). API con producto (expandir). Tokens N (verifican v1 y v2). Asignación por producto. Kill switches por producto | Staging con dos productos (agro y una tienda de prueba sembrada) y las pruebas de §6.4 en verde. En producción, el agro idéntico para el usuario |
 | **P2 · Tokens v2 y sesión por producto** | 1 semana | N+1 (emitir v2) y N+2 (contraer, 12 h después). `cuenta.laboratorio-digital.com` con su redirección de Google | Un cuaderno instalado con la URL vieja sigue entrando y sincronizando. Un token de tienda no abre la celda del agro |
-| **P3 · Planes por periodo** | 1 semana | `plan_precio` desde `planes.json`. Cobros de 1, 3 y 12 meses. Meses calendario. Crédito al cambiar de plan. La pantalla de planes del cuaderno con los tres periodos | Las pruebas de reloj (P8). Un pago real de prueba de 3 meses en el ambiente de pruebas de Bold |
+| **P3 · Planes por periodo** | 1 semana | `periodo` y `plan_precio` desde `planes.json`. Cobros de 1, 3, 6 y 12 meses. Meses calendario. Crédito al cambiar de plan. La pantalla de planes del cuaderno con los cuatro periodos | Las pruebas de reloj (P8). Un pago real de prueba de 6 meses en el ambiente de pruebas de Bold |
 | **P4 · Agentes, capa estática** | 1 semana | En `cultivopro.co`: `robots.txt` con agentes y señales, `llms.txt`, gemelos `.md`, `Link`, habilidades, `security.txt` y JSON-LD. `verificar-agentes.ts` en la prueba de humo | Las comprobaciones propias en verde contra staging y producción |
 | **P5 · OAuth y MCP** | 3 semanas | Migración 0009. Servidor de autorización. Consentimiento y «Aplicaciones conectadas». MCP del cuaderno (lectura). Después, el MCP del comercio (tras el M2 de la Tienda) | Un cliente MCP real conecta, lee, y su concesión se revoca. Reusar un refresh revoca la concesión |
-| **P6 · Correo y mudanza del CORE** | Cuando se cumpla el disparador (§3.5) | Adaptador de correo, 0007 (enlace mágico) y procedimiento de §3.5 | Simulacro completo en staging antes de producción (P16) |
+| **P6 · Correo** | 1 semana, con Workers Paid activo (§3.2) | Adaptador de correo y 0007 (enlace mágico). Avisos de vencimiento por correo | Un enlace llega a un correo que no es de Google y entra. Un enlace usado o vencido no vuelve a servir |
 
 **Con la Tienda 3.0** (TIENDA-3.0 §19):
 
-- Su M0 necesita P0 y P1.
+- Su M0 necesita P0, P1 y Workers Paid activado en la cuenta (§3.2).
 - Su M2 (panel) necesita P2.
-- Cobrar su plan con 3 y 12 meses necesita P3.
+- Cobrar su plan con 3, 6 y 12 meses necesita P3.
 - Su MCP de comercio está dentro de P5.
 
 ---
@@ -794,25 +845,32 @@ Supone las 20 horas por semana del dueño, con Claude haciendo los commits (ARQU
 | Riesgo | Prob. | Impacto | Mitigación |
 |---|---|---|---|
 | La reconstrucción de tablas se comporta distinto en D1 que en `node:sqlite` | Media | Alto | La receta se prueba en D1 local y en staging antes de producción. Respaldo: el paso de verificación en `desplegar.ts` (§4.4) y Time Travel |
-| Un cuaderno viejo deja de entrar por el cambio de emisor o de URL | Media | Alto | Tres versiones de tokens (§4.6). La URL de workers.dev sigue viva (puente si el CORE se muda). Prueba con un token v1 real |
-| Concentrar productos en la cuenta C sube el riesgo de que una suspensión los tumbe todos | Baja | Alto | Exportaciones semanales fuera de Cloudflare (`analisis/proveedores-de-computo.md` §4). Dominios con recuperación aparte (ED1 §20.3). El agro se queda en A mientras no gradúe |
-| Factura sorpresa en la cuenta paga (sin tope duro) | Media | Medio | Presupuesto en dinero por producto, vigía con proyección, alertas de facturación, límites de CPU y subrequests por Worker, y el WAF de la zona |
+| Un cuaderno viejo deja de entrar por el cambio de emisor o de URL | Media | Alto | Tres versiones de tokens (§4.6). La URL de workers.dev sigue viva: el CORE no se muda. Prueba con un token v1 real |
+| Todo en una cuenta: una suspensión o un compromiso tumba todos los productos a la vez | Baja | Alto | Exportaciones semanales fuera de Cloudflare (`proveedores-de-computo.md` §4). Dominios con recuperación aparte (ED1 §20.3). Segundo factor y tokens por propósito. Nada de contenido arbitrario de usuarios en la cuenta (§3.5) |
+| Una tienda fraudulenta hace que se marque todo `laboratorio-digital.app`, que no está en la PSL | Baja | Alto | Ficha legal antes de publicar, reporte y suspensión con un clic. Escape a un segundo nivel inscrito en la PSL (§3.4) |
+| Factura sorpresa con Workers Paid (sin tope duro) | Media | Medio | Presupuesto en dinero por producto, vigía con proyección, alertas de facturación, límites de CPU y subrequests por Worker, y el WAF de la zona |
 | Los borradores de agentes (Server Card, Agent Skills) cambian de ruta | Alta | Bajo | Se sirven en la ruta vigente y en la recomendada, y una prueba las fija. Son archivos horneados: cambiarlos es barato |
 | Un agente abusa de los pedidos | Media | Medio | Los agentes no apartan. Límites por IP y por tienda. `ks:tienda-mcp` |
 | El tiempo del dueño | Alta | Alto | Fases cortas que dejan algo en producción. La Tienda 2.0 sigue vendiendo mientras tanto |
 
 ---
 
-## 9. Decisiones que quedan para el dueño
+## 9. Decisiones y tareas que quedan para el dueño
 
-1. **El nombre del dominio de tiendas** (§3.6), para registrarlo en la cuenta C y pedir su inclusión en la Public Suffix List.
-2. **El propósito de la cuenta B**, o cerrarla (§3.2).
-3. **Qué servicios paga hoy la cuenta C**, con la lista de `analisis/cuenta-cloudflare-paga.md` §2, y si se activa Workers Paid en ella.
-4. **El presupuesto mensual en dólares** de cada producto en la cuenta C (§4.10).
-5. **`ai-train`**: si el contenido del ecosistema se ofrece para entrenar modelos (§5.3). La propuesta es `no`, que es lo que Cloudflare pone por defecto. `search` y `ai-input` en `yes`, que es lo que da visibilidad en asistentes.
-6. **Los precios de 3 y 12 meses** de cada plan (§4.2, §4.8), y la gracia de la tienda (7 días propuestos).
-7. **El nombre nuevo del repositorio** (§6.1).
-8. **Escribir a Bold** (soporte.online@bold.co) para preguntar si existe un esquema para plataformas que integran en nombre de sus comercios. Hoy cada comercio entrega sus llaves, y Bold dice que la secreta no se comparte con terceros: hace falta la autorización expresa del comercio en los términos de la tienda (TIENDA-3.0 §9).
+Ya decididas el 5 oct 2026 y fuera de esta lista: el nombre del dominio de tiendas (`laboratorio-digital.app`), qué cuenta se usa (la de siempre), los periodos (1, 3, 6 y 12 meses) y el nombre del repositorio (`plataforma`).
+
+**Decisiones:**
+
+1. **El presupuesto mensual en dólares** de cada producto, para cuando la cuenta tenga Workers Paid (§3.2, §4.10).
+2. **`ai-train`**: si el contenido del ecosistema se ofrece para entrenar modelos (§5.3). La propuesta es `no`, que es lo que Cloudflare pone por defecto, con `search` y `ai-input` en `yes`, que es lo que da visibilidad en asistentes.
+3. **Los precios de 3, 6 y 12 meses** de cada plan (§4.2, §4.8), y la gracia de la tienda (7 días propuestos).
+
+**Tareas que solo puede hacer el dueño:**
+
+4. **Renombrar el repositorio en GitHub** (`../runbooks/renombrar-repositorio.md`).
+5. **Agregar `laboratorio-digital.app` a la cuenta como zona**, con su registrador y su correo de recuperación fuera de Cloudflare (ED1 §20.3), antes del M0 de la Tienda.
+6. **Activar Workers Paid** en la cuenta cuando arranque el M0 (USD 5 al mes, en el panel de Cloudflare), y las alertas de facturación (§3.2).
+7. **Escribir a Bold** (soporte.online@bold.co) para preguntar si existe un esquema para plataformas que integran en nombre de sus comercios. Hoy cada comercio entrega sus llaves, y Bold dice que la secreta no se comparte con terceros: hace falta la autorización expresa del comercio en los términos de la tienda (TIENDA-3.0 §9).
 
 ---
 
@@ -824,17 +882,18 @@ Pasan a `ARQUITECTURA.md` §1, con su estado. Los «aceptados» ya los decidió 
 |---|---|---|
 | 20 | El CORE gana la dimensión de producto: tablas de referencia, FK compuestas, sesión y token por producto (§4) | Aceptada (decisión 6 del dueño). El diseño detallado queda propuesto |
 | 21 | La Tienda 3.0 entra como **excepción declarada**, diseñada desde cero sobre la plataforma. Los datos de las tiendas actuales se cargan después con scripts | Aceptada (decisión 3 y mensaje del 5 oct) |
-| 22 | Planes prepagados de 1, 3 y 12 meses, sin débito automático | Aceptada (decisión 4). Meses calendario y crédito al cambiar de plan: propuesta (§4.8) |
-| 23 | Cuentas con un propósito declarado: gratuita para validar, paga para lo que cobra; graduar mudando celdas; nunca repartir un producto entre cuentas gratuitas | Propuesta |
+| 22 | Planes prepagados de 1, 3, 6 y 12 meses, sin débito automático. Los periodos, en una tabla de referencia | Aceptada (decisiones 4 y 9). Meses calendario y crédito al cambiar de plan: propuesta (§4.8) |
+| 23 | Una sola cuenta de Cloudflare, la de siempre, con Workers Paid desde el M0 de la Tienda. Los productos se aíslan por presupuesto, kill switch y celdas. Nunca se reparte un producto entre cuentas gratuitas (§3.1–§3.2) | Aceptada (decisión 7). Reemplaza la propuesta de la 0.1: cuentas por propósito y graduación |
 | 24 | Preparación para agentes como principio: capa estática primero, OAuth y MCP después, comercio con traspaso a una persona | Propuesta (pedido del dueño) |
 | 25 | Reconstruir tablas solo con la receta de §4.4, sin `ON DELETE CASCADE` y con lo que crece en tablas de referencia | Propuesta |
-| 26 | El monorepo de la plataforma es este repositorio renombrado | Propuesta |
+| 26 | El monorepo de la plataforma es este repositorio, renombrado a `laboratoriodigital/plataforma` (§6.1) | Aceptada (decisión 10). El renombre en GitHub lo hace el dueño |
+| 27 | Tres dominios: `laboratorio-digital.com` (ecosistema y CORE), `laboratorio-digital.app` (tiendas y proyectos nuevos, en el primer nivel y sin PSL) y `cultivopro.co` (agro y derivados) (§3.3–§3.4) | Aceptada (decisión 8). Sin PSL por el límite de Cloudflare del 5 oct |
 
 ---
 
 ## Fuentes
 
-Consultadas el 5 oct 2026. El proxy de la sesión bloqueó isitagentready.com, blog.cloudflare.com, developers.cloudflare.com y cloudflare.com. Lo marcado **(resumen)** sale del resumen del buscador sobre esa página, no de la página leída. Las cifras de Cloudflare están en `analisis/cuenta-cloudflare-paga.md`, con su fuente una por una.
+Consultadas el 5 oct 2026. El proxy de la sesión bloqueó isitagentready.com, blog.cloudflare.com, developers.cloudflare.com, community.cloudflare.com y cloudflare.com. Lo marcado **(resumen)** sale del resumen del buscador sobre esa página, no de la página leída. Las cifras de Cloudflare están en `cuenta-cloudflare.md`, con su fuente una por una.
 
 **Preparación para agentes**
 - Cloudflare, *Agent Readiness score*: https://isitagentready.com/ · https://blog.cloudflare.com/agent-readiness/ (resumen). Secundarias: https://www.searchenginejournal.com/all-you-need-to-know-about-cloudflares-agent-readiness-score/ · https://nohacks.co/blog/cloudflare-agent-readiness-score (resumen).
@@ -856,6 +915,12 @@ Consultadas el 5 oct 2026. El proxy de la sesión bloqueó isitagentready.com, b
 - SQLite, *ALTER TABLE* (procedimiento de 12 pasos y reescritura de FK al renombrar): https://www.sqlite.org/lang_altertable.html.
 - SQLite, *PRAGMA defer_foreign_keys* y el contador puesto en cero al apagarlo: https://www.sqlite.org/pragma.html#pragma_defer_foreign_keys y `src/pragma.c`. Comprobado con `node:sqlite` 3.50.4: `sql/probar-core.mjs` y los casos W1–W4 de §4.4.
 - D1, claves foráneas siempre activas y `defer_foreign_keys` sin efecto sobre `ON DELETE CASCADE`: https://developers.cloudflare.com/d1/sql-api/foreign-keys/ (resumen).
+
+**Dominios y Public Suffix List**
+- Cloudflare, *Onboard a domain*: el dominio de una zona tiene que estar un nivel por debajo de un sufijo de la PSL: https://developers.cloudflare.com/fundamentals/manage-domains/add-site/ (resumen).
+- Comunidad de Cloudflare, *How to add a domain which is on public suffix list* y *Add a PSL domain*: un dominio de la PSL no se agrega como zona, salvo en Enterprise: https://community.cloudflare.com/t/how-to-add-a-domain-which-is-on-public-suffix-list/467396 · https://community.cloudflare.com/t/add-a-psl-public-suffix-list-domain/266190 (resumen).
+- Public Suffix List, guías de la sección privada (registro TXT `_psl`, dos años de registro por delante): https://github.com/publicsuffix/list/wiki/Guidelines (resumen).
+- `.app` en la lista de precarga HSTS: conocimiento previo, no consultado en esta sesión.
 
 **Pagos y normas**
 - Bold, webhooks (`x-bold-signature`), consulta de transacciones, links de pago, llaves y tarifas: ver las fuentes de TIENDA-3.0 §9.

@@ -1,4 +1,4 @@
--- CORE · servidor de autorización OAuth 2.1 para agentes (MCP), ARQUITECTURA-PLATAFORMA §5.4.
+-- CORE · servidor de autorización OAuth 2.1 para agentes (MCP), docs/plataforma/PLATAFORMA.md §5.4.
 -- Una concesión = una persona autoriza a un cliente (agente) sobre una organización y un recurso
 -- (RFC 8707), con alcances del producto. Ningún alcance mueve dinero (lo exige `alcance`).
 

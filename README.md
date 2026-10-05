@@ -1,13 +1,17 @@
-# CultivoPro
+# Plataforma ED1
 
-Antes «Gestión Agro» (nombre interno del repositorio: `gestionagro`). Marca y dominio definitivos desde el 3 oct 2026: **CultivoPro**, en `cultivopro.co` (`content/marca.json`).
+El monorepo de la plataforma del ecosistema digital ED1 de Laboratorio Digital (`laboratoriodigital/plataforma`; antes `gestionagro`, ADR-26).
 
-Calculadoras agronómicas gratuitas y un cuaderno de campo offline-first para fincas bajo invernadero y agroindustria. Línea agrícola de ED1.
+| Producto | Estado | Dónde |
+|---|---|---|
+| **CultivoPro** (antes «Gestión Agro»): calculadoras agronómicas gratuitas y un cuaderno de campo offline-first para fincas bajo invernadero y agroindustria | En producción | `cultivopro.co` (`content/marca.json`) |
+| **CORE**: identidad, organizaciones, roles, planes y cobros de todos los productos | v0 en producción; la dimensión de producto, diseñada | `cuenta.laboratorio-digital.com` (diseño) |
+| **Tienda 3.0**: tiendas en línea para pequeños comercios que venden por WhatsApp | Diseñada, con su modelo de datos probado | `laboratorio-digital.app` (diseño) |
 
-- Qué es y por qué está hecho así: [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md)
+- Qué es y por qué está hecho así: [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) (lo construido) y [`docs/plataforma/PLATAFORMA.md`](docs/plataforma/PLATAFORMA.md) (lo que viene)
 - Qué se construye y cuándo: [`docs/BACKLOG.md`](docs/BACKLOG.md)
 - Qué se rompió y qué se aprendió: [`docs/BITACORA.md`](docs/BITACORA.md)
-- Qué documento manda sobre qué: [`docs/README.md`](docs/README.md)
+- Qué documento manda sobre qué, y dónde está cada uno: [`docs/README.md`](docs/README.md)
 
 ## Arranque
 

@@ -45,7 +45,7 @@ Los secretos (Cloudflare, Google, Bold, Telegram) están en el **repositorio**, 
 3. **Fusionar el PR de la versión** (`release/v0.2.0`: versión 0.2.0 en `package.json` y el CHANGELOG fechado).
 4. **Publicar:**
    ```bash
-   gh release create v0.2.0 --repo laboratoriodigital/gestionagro --target main --title "v0.2.0" --notes-from-tag
+   gh release create v0.2.0 --repo laboratoriodigital/plataforma --target main --title "v0.2.0" --notes-from-tag
    ```
 5. **Mirar la corrida** «desplegar» en Actions. Si pusiste el revisor, apruébala. Al terminar:
    - el CORE de producción tiene las rutas nuevas y las migraciones 0002 a 0005;

@@ -25,7 +25,7 @@ Los enlaces compartidos y las etiquetas QR que se hayan impreso con `agro.labora
 
 ## Search Console
 
-Crea la propiedad de tipo **Dominio** con `cultivopro.co`. Pega el registro TXT que da Google en Cloudflare › DNS de `cultivopro.co`, con nombre `@`. Como es la raíz, no pasa lo del subdominio (`agro.` no tenía registro). Anota la fecha en `docs/validacion/dpv.md` cuando pidas la indexación.
+Crea la propiedad de tipo **Dominio** con `cultivopro.co`. Pega el registro TXT que da Google en Cloudflare › DNS de `cultivopro.co`, con nombre `@`. Como es la raíz, no pasa lo del subdominio (`agro.` no tenía registro). Anota la fecha en `docs/agro/validacion/dpv.md` cuando pidas la indexación.
 
 ## Lo que no cambia
 

@@ -34,8 +34,8 @@ const mas = (min) => new Date(Date.parse(T) + min * 60000).toISOString();
 
 // Dos comercios de prueba, con datos distintos (P4).
 const semilla = lote([
-  ["INSERT INTO tienda (org_id, slug, nombre, estado, plan, creado, actualizado) VALUES ('A', 'ensayo-uno', 'Comercio Ensayo Uno', 'abierta', 'tienda', ?, ?)", T, T],
-  ["INSERT INTO tienda (org_id, slug, nombre, estado, plan, creado, actualizado) VALUES ('B', 'ensayo-dos', 'Comercio Ensayo Dos', 'abierta', 'prueba', ?, ?)", T, T],
+  ["INSERT INTO tienda (org_id, slug, nombre, estado, plan, creado, actualizado) VALUES ('A', 'ensayo-uno', 'Comercio Ensayo Uno', 'abierta', 'entrada', ?, ?)", T, T],
+  ["INSERT INTO tienda (org_id, slug, nombre, estado, plan, creado, actualizado) VALUES ('B', 'ensayo-dos', 'Comercio Ensayo Dos', 'abierta', 'gratis', ?, ?)", T, T],
   ["INSERT INTO producto (org_id, id, slug, nombre, estado, opciones, creado, actualizado) VALUES ('A', 'p1', 'vestido', 'Vestido', 'activo', '[{\"nombre\":\"Talla\",\"valores\":[\"S\",\"M\"]}]', ?, ?)", T, T],
   ["INSERT INTO variante (org_id, id, producto_id, clave, precio_cop, stock, actualizado) VALUES ('A', 'v1', 'p1', 'S', 80000, 1, ?)", T],
   ["INSERT INTO variante (org_id, id, producto_id, clave, precio_cop, stock, actualizado) VALUES ('A', 'v2', 'p1', 'M', 80000, 5, ?)", T],
@@ -52,8 +52,8 @@ const pedirEnLinea = (codigo, numero, variante, cantidad, ahora, venceMin = 15) 
     // Vencimiento perezoso: lo vencido de esas variantes se libera antes de apartar.
     ["UPDATE apartado SET estado = 'vencido', cerrado = ? WHERE org_id = 'A' AND variante_id = ? AND estado = 'activo' AND vence <= ?", ahora, variante, ahora],
     ["UPDATE tienda SET ultimo_numero = ultimo_numero + 1 WHERE org_id = 'A'"],
-    [`INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, subtotal_cop, total_cop, cambiado_por, creado, actualizado, terminos_huella, aceptado)
-      VALUES ('A', ?, ?, (SELECT ultimo_numero FROM tienda WHERE org_id = 'A'), 'por_pagar', 'en_linea', ?, ?, 'comprador', ?, ?, ?, ?)`, pid, codigo, 80000 * cantidad, 80000 * cantidad, ahora, ahora, 'a'.repeat(64), ahora],
+    [`INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, forma_pago, subtotal_cop, total_cop, cambiado_por, creado, actualizado, terminos_huella, aceptado)
+      VALUES ('A', ?, ?, (SELECT ultimo_numero FROM tienda WHERE org_id = 'A'), 'por_pagar', 'en_linea', 'en_linea', ?, ?, 'comprador', ?, ?, ?, ?)`, pid, codigo, 80000 * cantidad, 80000 * cantidad, ahora, ahora, 'a'.repeat(64), ahora],
     ["INSERT INTO pedido_linea (org_id, pedido_id, linea, producto_id, variante_id, nombre, precio_unitario_cop, cantidad, total_cop) VALUES ('A', ?, 1, 'p1', ?, 'Vestido', 80000, ?, ?)", pid, variante, cantidad, 80000 * cantidad],
     ["INSERT INTO cobro (org_id, id, pedido_id, proveedor, ambiente, monto_cop, estado, token_huella, vence, creado, actualizado) VALUES ('A', ?, ?, 'bold', 'pruebas', ?, 'esperando', ?, ?, ?, ?)", cid, pid, 80000 * cantidad, `tok-${codigo}`, mas(venceMin), ahora, ahora],
     ["INSERT INTO apartado (org_id, cobro_id, variante_id, cantidad, estado, vence, creado) VALUES ('A', ?, ?, ?, 'activo', ?, ?)", cid, variante, cantidad, mas(venceMin), ahora],
@@ -138,6 +138,95 @@ const radicar = lote([
 ]);
 ok(radicar.ok && uno("SELECT radicado FROM solicitud WHERE id = 'sol-1'").radicado === 1, `una solicitud de retracto recibe el radicado 1 ${radicar.error ?? ''}`);
 
+// 6c. Link de pago (estudio v1.3 [C3]): un pedido que llegó por el chat se cobra en línea con el
+//     Bold del comercio. Pasa a `en_linea` mientras está pendiente, aparta y espera como el botón.
+const pedirPorChat = (id, codigo, forma, variante, cantidad, ahora) => lote([
+  ["UPDATE tienda SET ultimo_numero = ultimo_numero + 1 WHERE org_id = 'A'"],
+  [`INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, forma_pago, subtotal_cop, envio_cop, total_cop, cambiado_por, creado, actualizado, terminos_huella, aceptado)
+    VALUES ('A', ?, ?, (SELECT ultimo_numero FROM tienda WHERE org_id = 'A'), 'pendiente', 'whatsapp', ?, ?, 10000, ?, 'comprador', ?, ?, ?, ?)`, id, codigo, forma, 80000 * cantidad, 80000 * cantidad + 10000, ahora, ahora, 'b'.repeat(64), ahora],
+  ["INSERT INTO pedido_linea (org_id, pedido_id, linea, producto_id, variante_id, nombre, precio_unitario_cop, cantidad, total_cop) VALUES ('A', ?, 1, 'p1', ?, 'Vestido', 80000, ?, ?)", id, variante, cantidad, 80000 * cantidad],
+]);
+const pl = pedirPorChat('ped-KKKKK1', 'KKKKK1', 'a_convenir', 'v2', 1, mas(70));
+const link = lote([
+  ["UPDATE pedido SET forma_pago = 'en_linea', estado = 'por_pagar', cambiado_por = 'usuario:u1', actualizado = ? WHERE org_id = 'A' AND id = 'ped-KKKKK1'", mas(71)],
+  ["INSERT INTO cobro (org_id, id, pedido_id, proveedor, ambiente, monto_cop, estado, token_huella, vence, creado, actualizado) VALUES ('A', 'KKKKK1-1', 'ped-KKKKK1', 'bold', 'pruebas', 90000, 'esperando', 'tok-K', ?, ?, ?)", mas(131), mas(71), mas(71)],
+  ["INSERT INTO apartado (org_id, cobro_id, variante_id, cantidad, estado, vence, creado) VALUES ('A', 'KKKKK1-1', 'v2', 1, 'activo', ?, ?)", mas(131), mas(71)],
+]);
+ok(pl.ok && link.ok && variante('v2').reservado === 1, `un pedido del chat se cobra con un link de pago: pasa a en línea y aparta ${pl.error ?? ''}${link.error ?? ''}`);
+const al = aprobar('KKKKK1', mas(90));
+ok(al.ok && uno("SELECT estado FROM pedido WHERE id = 'ped-KKKKK1'").estado === 'pagado', `Bold aprueba el link y el pedido queda pagado ${al.error ?? ''}`);
+const chatPagado = lote([["UPDATE pedido SET estado = 'pagado', cambiado_por = 'usuario:u1', actualizado = ? WHERE org_id = 'A' AND id = 'ped-W'", mas(91)]]);
+ok(!chatPagado.ok, `un pedido enviado al chat no figura como pagado sin Bold: ${chatPagado.error}`);
+
+// 6d. Contraentrega (estudio v1.3 [C3][C7]): confirmar antes de despachar, despachar con guía,
+//     recaudar al entregar y liquidar después; o devolver, con el flete de vuelta y la unidad de
+//     regreso al inventario.
+const confirmarDescontando = (id, variante, ahora) => lote([
+  ["UPDATE variante SET stock = stock - 1, cambio_motivo = 'venta', cambio_ref = ?, actualizado = ? WHERE org_id = 'A' AND id = ?", id, ahora, variante],
+  ["UPDATE pedido_linea SET descontado = 1 WHERE org_id = 'A' AND pedido_id = ?", id],
+  ["UPDATE pedido SET estado = 'confirmado', cambiado_por = 'usuario:u1', actualizado = ? WHERE org_id = 'A' AND id = ?", ahora, id],
+]);
+const despachar = (id, guia, ahora) => lote([
+  ["INSERT INTO contraentrega (org_id, pedido_id, estado, monto_cop, comision_cop, flete_ida_cop, cambiado_por, creado, actualizado) VALUES ('A', ?, 'por_recaudar', (SELECT total_cop FROM pedido WHERE org_id = 'A' AND id = ?), 3213, 10000, 'usuario:u1', ?, ?)", id, id, ahora, ahora],
+  ["UPDATE pedido SET estado = 'despachado', transportadora = 'Transportadora Ensayo', guia = ?, cambiado_por = 'usuario:u1', actualizado = ? WHERE org_id = 'A' AND id = ?", guia, ahora, id],
+]);
+const ce1 = pedirPorChat('ped-CE1', 'CEEEE1', 'contraentrega', 'v2', 1, mas(100));
+const conf1 = confirmarDescontando('ped-CE1', 'v2', mas(101));
+ok(ce1.ok && conf1.ok, `un pedido contra entrega se confirma con el comprador antes de despachar, y descuenta ${ce1.error ?? ''}${conf1.error ?? ''}`);
+const sinFila = lote([["UPDATE pedido SET estado = 'despachado', guia = 'G-1', cambiado_por = 'usuario:u1', actualizado = ? WHERE org_id = 'A' AND id = 'ped-CE1'", mas(102)]]);
+ok(!sinFila.ok && /contraentrega-sin-guia/.test(sinFila.error), `despachar contra entrega sin la fila del recaudo se rechaza: ${sinFila.error}`);
+const d1 = despachar('ped-CE1', 'G-0001', mas(103));
+ok(d1.ok && uno("SELECT estado, monto_cop FROM contraentrega WHERE pedido_id = 'ped-CE1'").monto_cop === 90000, `despachar crea el recaudo por el total del pedido ${d1.error ?? ''}`);
+const entregarSinRecaudo = lote([["UPDATE pedido SET estado = 'entregado', cambiado_por = 'usuario:u1', actualizado = ? WHERE org_id = 'A' AND id = 'ped-CE1'", mas(104)]]);
+ok(!entregarSinRecaudo.ok && /contraentrega-por-recaudar/.test(entregarSinRecaudo.error), `entregar con la plata por recaudar se rechaza: ${entregarSinRecaudo.error}`);
+const entregar = lote([
+  ["UPDATE contraentrega SET estado = 'recaudado', cambiado_por = 'usuario:u1', actualizado = ? WHERE org_id = 'A' AND pedido_id = 'ped-CE1'", mas(105)],
+  ["UPDATE pedido SET estado = 'entregado', cambiado_por = 'usuario:u1', actualizado = ? WHERE org_id = 'A' AND id = 'ped-CE1'", mas(105)],
+]);
+ok(entregar.ok, `entregar y recaudar van en el mismo lote ${entregar.error ?? ''}`);
+const liquidar = lote([["UPDATE contraentrega SET liquidado = ?, liquidacion_ref = 'LQ-77', actualizado = ? WHERE org_id = 'A' AND pedido_id = 'ped-CE1'", mas(60 * 48), mas(60 * 48)]]);
+ok(liquidar.ok, `la liquidación de la transportadora se anota aparte ${liquidar.error ?? ''}`);
+ok(uno("SELECT COUNT(*) n FROM pedido_evento WHERE pedido_id = 'ped-CE1' AND tipo = 'recaudo' AND de = 'por_recaudar' AND a = 'recaudado'").n === 1, 'el historial del pedido registra el recaudo');
+
+const stockAntes = variante('v2').stock;
+const ce2 = pedirPorChat('ped-CE2', 'CEEEE2', 'contraentrega', 'v2', 1, mas(110));
+const conf2 = confirmarDescontando('ped-CE2', 'v2', mas(111));
+const d2 = despachar('ped-CE2', 'G-0002', mas(112));
+const devolver = lote([
+  ["UPDATE contraentrega SET estado = 'devuelto', flete_vuelta_cop = 10000, cambiado_por = 'usuario:u1', actualizado = ? WHERE org_id = 'A' AND pedido_id = 'ped-CE2'", mas(60 * 72)],
+  ["UPDATE variante SET stock = stock + 1, cambio_motivo = 'devolucion', cambio_ref = 'ped-CE2', actualizado = ? WHERE org_id = 'A' AND id = 'v2'", mas(60 * 72)],
+  ["UPDATE pedido_linea SET descontado = 0 WHERE org_id = 'A' AND pedido_id = 'ped-CE2'"],
+  ["UPDATE pedido SET estado = 'devuelto', cambiado_por = 'usuario:u1', actualizado = ? WHERE org_id = 'A' AND id = 'ped-CE2'", mas(60 * 72)],
+]);
+ok(ce2.ok && conf2.ok && d2.ok && devolver.ok && variante('v2').stock === stockAntes, `un pedido contra entrega devuelto regresa la unidad y anota el flete de vuelta ${devolver.error ?? ''}`);
+ok(uno("SELECT COUNT(*) n FROM movimiento_inventario WHERE ref = 'ped-CE2' AND motivo = 'devolucion' AND delta = 1").n === 1, 'el libro de inventario registra la devolución');
+const costo = uno("SELECT monto_cop - comision_cop - flete_ida_cop - flete_vuelta_cop m FROM contraentrega WHERE pedido_id = 'ped-CE2'");
+ok(costo.m === 90000 - 3213 - 20000, `el margen del devuelto descuenta comisión y los dos fletes (${costo.m}; la plata no llegó)`);
+
+const rechaza = (nombre, sql, patron) => {
+  const r = lote([[sql]]);
+  ok(!r.ok && (!patron || patron.test(r.error)), `se rechaza ${nombre}: ${r.error ?? 'NO FALLÓ'}`);
+};
+rechaza('liquidar un recaudo devuelto', "UPDATE contraentrega SET liquidado = 'x' WHERE org_id = 'A' AND pedido_id = 'ped-CE2'", /liquidado IS NULL OR estado = 'recaudado'/);
+rechaza('un recaudo devuelto que vuelve a estar por recaudar', "UPDATE contraentrega SET estado = 'por_recaudar' WHERE org_id = 'A' AND pedido_id = 'ped-CE2'", /transicion-de-contraentrega-invalida/);
+rechaza('una contraentrega para un pedido que no se paga así', "INSERT INTO contraentrega (org_id, pedido_id, estado, monto_cop, cambiado_por, creado, actualizado) VALUES ('A', 'ped-W', 'por_recaudar', 168000, 'x', 'x', 'x')", /pedido-sin-contraentrega/);
+rechaza('cambiar la forma de pago de un pedido ya despachado', "UPDATE pedido SET forma_pago = 'a_convenir' WHERE org_id = 'A' AND id = 'ped-CE1'", /forma-de-pago-fija/);
+rechaza('un pedido confirmado a mano como pago en línea', "INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, forma_pago, subtotal_cop, total_cop, cambiado_por, creado, actualizado) VALUES ('A', 'x4', 'XXXXX9', 1996, 'confirmado', 'panel', 'en_linea', 1000, 1000, 'usuario:u1', 'x', 'x')", /forma_pago <> 'en_linea'/);
+rechaza('un pedido por pagar sin pago en línea', "INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, forma_pago, subtotal_cop, total_cop, cambiado_por, creado, actualizado, terminos_huella, aceptado) VALUES ('A', 'x5', 'XXXXXA', 1995, 'por_pagar', 'whatsapp', 'transferencia', 1000, 1000, 'comprador', 'x', 'x', ?, 'x')".replace('?', `'${'c'.repeat(64)}'`), /forma_pago = 'en_linea'/);
+rechaza('una forma de pago que no existe', "INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, forma_pago, subtotal_cop, total_cop, cambiado_por, creado, actualizado) VALUES ('A', 'x6', 'XXXXXB', 1994, 'pendiente', 'whatsapp', 'trueque', 1000, 1000, 'comprador', 'x', 'x')", /FOREIGN KEY/);
+// 6e. Lo que crece entra con un INSERT (R1): un facturador, un canal nuevo.
+const alegra = lote([["INSERT INTO credencial (org_id, proveedor, ambiente, campo, cifrado, iv, llave_version, huella, guardada) VALUES ('A', 'alegra', 'produccion', 'token', x'00', x'000000000000000000000000', 1, 'ab12', ?)", T]]);
+ok(alegra.ok, `la credencial del facturador del comercio (Alegra) entra sin rehacer tablas ${alegra.error ?? ''}`);
+const pos = lote([
+  ["INSERT INTO ref_canal (id, exige_aceptacion) VALUES ('pos', 0)"],
+  ["INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, forma_pago, subtotal_cop, total_cop, cambiado_por, creado, actualizado) VALUES ('A', 'ped-POS', 'PPPPP1', 1990, 'confirmado', 'pos', 'efectivo', 80000, 80000, 'usuario:u1', ?, ?)", T, T],
+]);
+ok(pos.ok, `un canal nuevo (punto de venta) es un INSERT, y su venta en efectivo no pide aceptación web ${pos.error ?? ''}`);
+rechaza('un campo de credencial que el proveedor no tiene', "INSERT INTO credencial (org_id, proveedor, ambiente, campo, cifrado, iv, llave_version, huella, guardada) VALUES ('A', 'bold', 'pruebas', 'token', x'00', x'000000000000000000000000', 1, 'x', 'x')", /FOREIGN KEY/);
+rechaza('un motivo de inventario que no existe (el libro lo rechaza y el cambio no queda)', "UPDATE variante SET stock = stock - 1, cambio_motivo = 'regalo' WHERE org_id = 'A' AND id = 'v2'", /FOREIGN KEY/);
+rechaza('un pedido de un canal que no existe', "INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, subtotal_cop, total_cop, cambiado_por, creado, actualizado) VALUES ('A', 'x7', 'XXXXXC', 1993, 'pendiente', 'telegrama', 1000, 1000, 'comprador', 'x', 'x')", /FOREIGN KEY/);
+rechaza('un nombre corto con «--» (es de la plataforma)', "INSERT INTO tienda (org_id, slug, nombre, estado, plan, creado, actualizado) VALUES ('D', 'ensayo--staging', 'X', 'borrador', 'gratis', 'x', 'x')", /CHECK/);
+
 // 7. Negativos de integridad.
 const negativos = [
   ['un total que no cuadra', "INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, subtotal_cop, total_cop, cambiado_por, creado, actualizado) VALUES ('A', 'x1', 'XXXXX5', 1999, 'pendiente', 'whatsapp', 100, 90, 'comprador', 'x', 'x')"],
@@ -152,8 +241,8 @@ const negativos = [
   ['reactivar un apartado cerrado', "UPDATE apartado SET estado = 'activo' WHERE cobro_id = 'AAAAA1-1'"],
   ['dos publicaciones en curso', "INSERT INTO publicacion (org_id, version, estado, pedida_por, pedida) VALUES ('A', 1, 'en_cola', 'u1', 'x'), ('A', 2, 'horneando', 'u1', 'x')"],
   ['una sección de ajustes que no existe', "INSERT INTO ajuste (org_id, seccion, esquema, datos, actualizado, actualizado_por) VALUES ('A', 'inventada', 1, '{}', 'x', 'u1')"],
-  ['un slug con mayúsculas', "INSERT INTO tienda (org_id, slug, nombre, estado, plan, creado, actualizado) VALUES ('C', 'Ensayo', 'X', 'borrador', 'prueba', 'x', 'x')"],
-  ['un pedido en línea sin la aceptación de los términos', "INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, subtotal_cop, total_cop, cambiado_por, creado, actualizado) VALUES ('A', 'x3', 'XXXXX7', 1997, 'por_pagar', 'en_linea', 1000, 1000, 'comprador', 'x', 'x')"],
+  ['un slug con mayúsculas', "INSERT INTO tienda (org_id, slug, nombre, estado, plan, creado, actualizado) VALUES ('C', 'Ensayo', 'X', 'borrador', 'gratis', 'x', 'x')"],
+  ['un pedido en línea sin la aceptación de los términos', "INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, forma_pago, subtotal_cop, total_cop, cambiado_por, creado, actualizado) VALUES ('A', 'x3', 'XXXXX7', 1997, 'por_pagar', 'en_linea', 'en_linea', 1000, 1000, 'comprador', 'x', 'x')"],
   ['confirmar un pedido de WhatsApp que la persona no aceptó', "UPDATE pedido SET estado = 'confirmado', cambiado_por = 'usuario:u1' WHERE org_id = 'A' AND id = 'ped-W'"],
   ['un producto sin retracto y sin motivo', "INSERT INTO producto (org_id, id, slug, nombre, estado, retracto, creado, actualizado) VALUES ('A', 'p9', 'pastel', 'Pastel', 'activo', 'no_aplica', 'x', 'x')"],
   ['un cobro rechazado que pasa a aprobado', "UPDATE cobro SET estado = 'aprobado' WHERE org_id = 'A' AND id = 'DDDDD8-1'"],
@@ -179,11 +268,22 @@ ok(cascadas.length === 0, `ninguna clave foránea con ON DELETE ${cascadas.join(
 // Base de control.
 const ctl = new DatabaseSync(':memory:');
 ctl.exec(readFileSync(archivoControl, 'utf8'));
-ctl.exec("INSERT INTO dominio (hostname, org_id, celda_id, tipo, rol, estado, creado) VALUES ('ensayo-uno.tiendas.example', 'A', 'c1', 'plataforma', 'canonico', 'activo', 'x')");
+ctl.exec("INSERT INTO dominio (hostname, org_id, celda_id, tipo, rol, estado, creado) VALUES ('ensayo-uno.laboratorio-digital.app', 'A', 'c1', 'plataforma', 'canonico', 'activo', 'x')");
 const dosCanonicos = (() => { try { ctl.exec("INSERT INTO dominio (hostname, org_id, celda_id, tipo, rol, estado, creado) VALUES ('www.ensayo-uno.example', 'A', 'c1', 'propio', 'canonico', 'activo', 'x')"); return false; } catch { return true; } })();
 ok(dosCanonicos, 'la base de control no deja dos canónicos activos en una tienda');
 const hostMalo = (() => { try { ctl.exec("INSERT INTO dominio (hostname, org_id, celda_id, tipo, rol, estado, creado) VALUES ('Tienda.Example', 'A', 'c1', 'propio', 'alias', 'pendiente', 'x')"); return false; } catch { return true; } })();
 ok(hostMalo, 'la base de control no acepta un hostname con mayúsculas');
+const falla = (base, sql) => { try { base.exec(sql); return null; } catch (e) { return e.message; } };
+ctl.exec("INSERT INTO slug (slug, org_id, celda_id, creado) VALUES ('ensayo-uno', 'A', 'c1', 'x')");
+const tomarReservado = falla(ctl, "INSERT INTO slug (slug, org_id, celda_id, creado) VALUES ('panel', 'B', 'c1', 'x')");
+ok(/slug-reservado/.test(tomarReservado ?? ''), `una tienda no toma un nombre reservado de la plataforma: ${tomarReservado}`);
+const reservarTomado = falla(ctl, "INSERT INTO slug_reservado (slug, motivo) VALUES ('ensayo-uno', 'proyecto')");
+ok(/slug-en-uso/.test(reservarTomado ?? ''), `un proyecto nuevo no reserva el nombre de una tienda que ya existe: ${reservarTomado}`);
+ok(falla(ctl, "INSERT INTO slug_reservado (slug, motivo) VALUES ('proyecto-nuevo', 'proyecto')") === null, 'un proyecto nuevo reserva su nombre en <nombre>.laboratorio-digital.app');
+const dobleGuion = falla(ctl, "INSERT INTO slug (slug, org_id, celda_id, creado) VALUES ('ensayo-dos--staging', 'B', 'c1', 'x')");
+ok(/CHECK/.test(dobleGuion ?? ''), `un nombre con «--» queda para la plataforma: ${dobleGuion}`);
+const motivoMalo = falla(ctl, "INSERT INTO slug_reservado (slug, motivo) VALUES ('otro', 'capricho')");
+ok(/FOREIGN KEY/.test(motivoMalo ?? '') || /FOREIGN KEY/.test(String(motivoMalo)), `un motivo de reserva que no existe: ${motivoMalo}`);
 
 console.log(fallas === 0 ? '\nTODO EN VERDE' : `\n${fallas} FALLA(S)`);
 process.exit(fallas === 0 ? 0 : 1);
