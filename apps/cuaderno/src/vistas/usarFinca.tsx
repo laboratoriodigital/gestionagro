@@ -2,7 +2,7 @@
  * La finca de este teléfono para las pantallas que la necesitan. Sin finca, esas pantallas
  * mandan a configurarla primero.
  */
-import type { Finca } from '@gestionagro/agro-schema';
+import type { Finca } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { leerFinca } from '../almacen/finca.ts';

@@ -17,7 +17,7 @@ import {
   type Registro,
   uuidv7,
   validarRegistro,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import configFotos from '../../../../content/agro/cuaderno/fotos.json' with { type: 'json' };
 import { conEscritura } from '../actividad.ts';
 import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';

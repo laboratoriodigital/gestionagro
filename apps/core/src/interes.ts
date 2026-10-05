@@ -10,7 +10,7 @@
  * Solo quien administra la finca marca interés: es quien decidiría pagar. Un operario que toca
  * «Me interesa» no es intención de pago de la finca.
  */
-import { TokenInvalido, verificarAcceso } from '@gestionagro/tokens';
+import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import type { Entorno } from './entrar.ts';
 

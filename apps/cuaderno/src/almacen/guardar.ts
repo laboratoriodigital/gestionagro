@@ -6,7 +6,7 @@
  * algo que no existe. Varios registros a la vez (el mismo riego en tres naves) van en la misma
  * transacción: o quedan todos o ninguno (HU-E3.7, CA3).
  */
-import { ErrorDeRegistro, type Registro, validarRegistro } from '@gestionagro/agro-schema';
+import { ErrorDeRegistro, type Registro, validarRegistro } from '@ed1/agro-schema';
 import { conEscritura } from '../actividad.ts';
 import type { CuadernoDb } from './db.ts';
 

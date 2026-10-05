@@ -3,7 +3,7 @@
  * Campos de texto con teclado decimal: `type="number"` rechaza la coma en muchos teléfonos.
  * «Guardar en mi cuaderno» lleva la lectura al cuaderno en el fragmento, sin red (HU-E2.7).
  */
-import { CULTIVOS_DPV } from '@gestionagro/agro-calc';
+import { CULTIVOS_DPV } from '@ed1/agro-calc';
 import { useEffect, useState } from 'preact/hooks';
 import {
   type CampoDpv,

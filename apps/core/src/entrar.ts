@@ -15,8 +15,8 @@
  * - Nada de esto escribe tokens, códigos ni el `code` de Google en el log.
  */
 
-import type { BaseD1 } from '@gestionagro/d1';
-import { type Firmante, firmarAcceso } from '@gestionagro/tokens';
+import type { BaseD1 } from '@ed1/d1';
+import { type Firmante, firmarAcceso } from '@ed1/tokens';
 import { decodeIdToken, Google, generateCodeVerifier, generateState } from 'arctic';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';

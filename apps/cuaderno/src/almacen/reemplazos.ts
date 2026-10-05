@@ -3,7 +3,7 @@
  * editó lo mismo sin señal y llegó después. Se dicen con lo que se reemplazó y por quién, y se
  * ofrece volver a poner el propio, que es una edición más (versión nueva, sube como cualquier otra).
  */
-import { FILAS_EXPORTADAS, type ZodType } from '@gestionagro/agro-schema';
+import { FILAS_EXPORTADAS, type ZodType } from '@ed1/agro-schema';
 import type { AvisoDeReemplazo, CuadernoDb } from './db.ts';
 import { actualizarVersionado } from './versionado.ts';
 

@@ -1,5 +1,5 @@
 {
-  "name": "@gestionagro/kill-switch",
+  "name": "@ed1/kill-switch",
   "version": "0.1.0",
   "private": true,
   "description": "Kill switch por producto en KV, con caché en memoria de hasta 60 s (HU-E8.1).",

@@ -10,8 +10,8 @@
  *   las cosechas de su lote según cuánto puso cada una. Un despacho sin precio no suma 0: deja el
  *   margen incompleto.
  */
-import { type CostoUnitario, costoUnitario } from '@gestionagro/agro-calc';
-import type { Ciclo, Registro } from '@gestionagro/agro-schema';
+import { type CostoUnitario, costoUnitario } from '@ed1/agro-calc';
+import type { Ciclo, Registro } from '@ed1/agro-schema';
 import { costoDeInsumosPorArea } from './bodega.ts';
 import { soloVigentes } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';

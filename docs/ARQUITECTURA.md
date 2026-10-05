@@ -351,7 +351,7 @@ cursor local ───────GET  /api/v1/sync/pull?desde=<seq>&limite=200 
                     ◄── cambios + nuevo cursor ────────────────────────────────────
 ```
 
-- **Ids UUIDv7 generados en el teléfono.** Reintentar es inofensivo: el mismo id no se inserta dos veces.
+- **Ids UUIDv7 generados en el teléfono** (`packages/ids`, que también usa el CORE). Reintentar es inofensivo: el mismo id no se inserta dos veces.
 - **Lotes de ≤ 25 operaciones** por solicitud. D1 gratuito permite 50 consultas por invocación del Worker (ED1 §41). Implementado (HU-E5.2): 3 lecturas y una escritura por operación en un solo `batch`, que es una transacción; 25 operaciones = 28 consultas. Actualizar un catálogo es una sola sentencia porque un trigger guarda la versión anterior en `entidad_historial` (migración 0002).
 - **Orden de envío:** la finca primero, después los catálogos, al final los registros. Un catálogo editado varias veces viaja una vez, con su versión vigente. Protocolo compartido en `packages/sync`.
 - **`reintentar`:** si otro teléfono de la misma finca escribió el mismo catálogo en el mismo instante, la operación se queda en la cola y se reenvía; en la vuelta siguiente decide la regla de conflictos. Ninguna versión se pierde.
@@ -725,10 +725,15 @@ plataforma/                 (antes gestionagro, ADR-26)
 │   ├── cuaderno/           PWA Preact: /agro/app/
 │   ├── api-celda/          Worker Hono de la celda (/api/v1/*), cron despachador
 │   └── core/               Worker CORE v0 (identidad, organizaciones, directorio)
-├── packages/
+├── packages/               todos con el alcance @ed1/* (antes @gestionagro/*)
 │   ├── agro-calc/          Cálculos puros (DPV, carencias, drenaje, costos…) + tabla de casos
 │   ├── agro-schema/        Esquemas zod de registros y catálogos, versiones y traductores
+│   ├── ids/                UUIDv7 y su esquema: neutro, lo usan el CORE y los productos (R2)
+│   ├── d1/                 Lo que el CORE y las celdas usan de D1, y el D1 local para pruebas
+│   ├── tokens/             Tokens Ed25519 del CORE: firmar y verificar con la misma función
+│   ├── kill-switch/        Kill switch por producto en KV
 │   ├── sync/               Protocolo de sincronización (cliente y servidor comparten tipos)
+│   ├── trazabilidad/       QR de trazabilidad de un lote: datos, fragmento y firma
 │   ├── ui/                 Componentes y tokens de diseño
 │   └── eventos/            Cliente de eventos en lote (tool.opened, tool.completed…)
 ├── content/agro/           Textos, FAQ, ejemplos y fuentes de cada herramienta (Markdown)

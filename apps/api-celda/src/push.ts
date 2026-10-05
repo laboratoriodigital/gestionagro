@@ -17,7 +17,7 @@
  *   que lo avise al bajar. Nada se pierde.
  * - **Lo que no sirve** va a `cuarentena` con el motivo en palabras, nunca se descarta (CA3, P1).
  *
- * Permisos (HU-E4.5): el rol sale del token y la matriz de `@gestionagro/sync` decide. Un rol que
+ * Permisos (HU-E4.5): el rol sale del token y la matriz de `@ed1/sync` decide. Un rol que
  * no escribe nada (asesor, auditor) recibe 403 sin tocar la base. Una operación que ese rol no
  * puede escribir va a cuarentena con el motivo en palabras: el lote sigue y nada se pierde.
  *
@@ -25,7 +25,7 @@
  * otra finca, o un id que ya usa otra organización, va a cuarentena.
  */
 
-import type { SentenciaD1 } from '@gestionagro/d1';
+import type { SentenciaD1 } from '@ed1/d1';
 import {
   type Ack,
   entidadesQuePuede,
@@ -38,7 +38,7 @@ import {
   puedeRegistro,
   RELOJ_CORRIDO_MS,
   validarOperacion,
-} from '@gestionagro/sync';
+} from '@ed1/sync';
 import { nivelDeLaCelda, respuestaDePausa } from './nivel.ts';
 import type { ContextoCelda } from './worker.ts';
 

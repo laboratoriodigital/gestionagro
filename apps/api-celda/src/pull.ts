@@ -8,13 +8,13 @@
  *   (CA1); la prueba lo cuenta.
  * - Con la celda en nivel «esencial» o «bloqueo» (ARQUITECTURA §8.2), el pull se pausa y dice hasta
  *   cuándo (CA3): el push de registros sigue, que es lo que no se puede perder.
- * - Permisos (HU-E4.5): solo baja lo que el rol puede leer según la matriz de `@gestionagro/sync`
+ * - Permisos (HU-E4.5): solo baja lo que el rol puede leer según la matriz de `@ed1/sync`
  *   (un operario no recibe el valor del jornal ni los despachos, que llevan precios). El filtro va en la consulta: lo negado nunca sale
  *   de la base.
  * - Lo que devuelve tiene la misma forma que el teléfono guarda: `seq` e `instante_recibido` son
  *   de la celda y no viajan.
  */
-import type { Registro } from '@gestionagro/agro-schema';
+import type { Registro } from '@ed1/agro-schema';
 import {
   type CambioDeCatalogo,
   type CatalogoValido,
@@ -25,7 +25,7 @@ import {
   type Reemplazo,
   type RespuestaPull,
   tiposNegados,
-} from '@gestionagro/sync';
+} from '@ed1/sync';
 import { nivelDeLaCelda, respuestaDePausa } from './nivel.ts';
 import type { ContextoCelda } from './worker.ts';
 

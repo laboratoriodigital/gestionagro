@@ -16,7 +16,7 @@ import {
   type TipoLabor,
   uuidv7,
   validarCatalogo,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { conEscritura } from '../actividad.ts';
 import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';
 import { soloVigentes, ultimosRegistros } from './consultas.ts';

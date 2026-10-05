@@ -1,3 +1,4 @@
+import * as ids from '@ed1/ids';
 import { describe, expect, it } from 'vitest';
 import {
   diasEntre,
@@ -8,34 +9,10 @@ import {
   uuidv7,
 } from './reloj.ts';
 
-const ceros = (n: number) => new Uint8Array(n);
-const unos = (n: number) => new Uint8Array(n).fill(0xff);
-const FORMATO_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-
-describe('UUIDv7', () => {
-  it('lleva versión 7, variante RFC y el instante del reloj', () => {
-    const ms = Date.UTC(2026, 9, 15, 13, 0, 0);
-    for (const azar of [ceros, unos]) {
-      const u = uuidv7(() => ms, azar);
-      expect(u).toMatch(FORMATO_V7);
-      expect(instanteDeUuidv7(u)).toBe(ms);
-    }
-  });
-
-  it('ordena por tiempo como texto', () => {
-    const a = uuidv7(() => 1_000, unos);
-    const b = uuidv7(() => 1_001, ceros);
-    expect(a < b).toBe(true);
-  });
-
-  it('un reloj inválido lanza en vez de inventar un id', () => {
-    expect(() => uuidv7(() => Number.NaN)).toThrow(RangeError);
-    expect(() => uuidv7(() => -1)).toThrow(RangeError);
-  });
-
-  it('con el azar del sistema no repite', () => {
-    const ids = new Set(Array.from({ length: 1000 }, () => uuidv7(() => 5)));
-    expect(ids.size).toBe(1000);
+describe('los ids, desde @ed1/ids', () => {
+  it('este paquete los reexporta: quien ya los importaba de aquí no se rompe', () => {
+    expect(uuidv7).toBe(ids.uuidv7);
+    expect(instanteDeUuidv7).toBe(ids.instanteDeUuidv7);
   });
 });
 

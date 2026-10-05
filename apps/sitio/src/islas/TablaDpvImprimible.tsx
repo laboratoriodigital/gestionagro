@@ -3,7 +3,7 @@
  * papel; el PDF se arma en el teléfono al tocar el botón. El generador (con pdf-lib) se carga
  * solo entonces, para que la página siga liviana.
  */
-import { CULTIVOS_DPV } from '@gestionagro/agro-calc';
+import { CULTIVOS_DPV } from '@ed1/agro-calc';
 import { useState } from 'preact/hooks';
 import {
   armarTabla,

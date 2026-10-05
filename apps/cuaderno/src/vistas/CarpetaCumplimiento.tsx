@@ -4,7 +4,7 @@
  * generador. Es del plan Finca (interruptor en `funciones.json`, CA4) y la pide quien administra la
  * finca. No afirma cumplir ninguna norma (CA2).
  */
-import { fechaAgronomica, sumarDias } from '@gestionagro/agro-schema';
+import { fechaAgronomica, sumarDias } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import marca from '../../../../content/marca.json' with { type: 'json' };
 import { cuaderno } from '../almacen/abierto.ts';

@@ -17,7 +17,7 @@ import {
   validarCatalogo,
   validarRegistro,
   type ZodType,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 
 export const PROTOCOLO = 1;
 /** D1 gratuito admite 50 consultas por invocación; la celda usa 3 lecturas y 1 escritura por op. */

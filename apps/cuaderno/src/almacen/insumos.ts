@@ -13,7 +13,7 @@ import {
   type Insumo,
   uuidv7,
   validarCatalogo,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { conEscritura } from '../actividad.ts';
 import type { CuadernoDb } from './db.ts';
 import { actualizarVersionado, operacion } from './versionado.ts';

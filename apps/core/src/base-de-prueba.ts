@@ -1,6 +1,6 @@
-/** D1 local del CORE para sus pruebas (ver `@gestionagro/d1/local`, P17). */
-import type { BaseD1 } from '@gestionagro/d1';
-import { baseLocal, vaciar } from '@gestionagro/d1/local';
+/** D1 local del CORE para sus pruebas (ver `@ed1/d1/local`, P17). */
+import type { BaseD1 } from '@ed1/d1';
+import { baseLocal, vaciar } from '@ed1/d1/local';
 
 export const baseDelCore = () =>
   baseLocal({ configuracion: 'apps/core/wrangler.jsonc', binding: 'DB', base: 'core' });

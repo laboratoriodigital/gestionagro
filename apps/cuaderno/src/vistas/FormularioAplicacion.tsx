@@ -10,7 +10,7 @@
  * - «Cuándo se aplicó» (HU-E10.2): vacío es ahora. Una aplicación de la mañana anotada en la noche
  *   o al otro día cuenta su carencia desde que se aplicó. Llega lleno desde la calculadora.
  */
-import { leerNumero } from '@gestionagro/agro-calc';
+import { leerNumero } from '@ed1/agro-calc';
 import {
   type Area,
   ErrorDeRegistro,
@@ -20,7 +20,7 @@ import {
   instanteEnColombia,
   type Persona,
   type Registro,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';

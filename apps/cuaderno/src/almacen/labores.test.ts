@@ -1,7 +1,7 @@
 /**
  * Labores (HU-E3.9) sobre fake-indexeddb, con las dos fincas de prueba (P4).
  */
-import { ErrorDeRegistro, ErrorDeValidacion } from '@gestionagro/agro-schema';
+import { ErrorDeRegistro, ErrorDeValidacion } from '@ed1/agro-schema';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { FINCAS_DE_PRUEBA } from '../../../../tests/fixtures/fincas.ts';

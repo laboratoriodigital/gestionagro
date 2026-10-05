@@ -6,7 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { type AgroExportV1, hashDeFilas, TABLAS_EXPORTADAS } from '@gestionagro/agro-schema';
+import { type AgroExportV1, hashDeFilas, TABLAS_EXPORTADAS } from '@ed1/agro-schema';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';

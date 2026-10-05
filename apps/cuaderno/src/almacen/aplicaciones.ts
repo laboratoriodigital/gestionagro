@@ -9,13 +9,8 @@
  *   instante de la aplicación (CA3, P8). Los cálculos son de `agro-calc` (P2).
  * - La misma mezcla en varias áreas: un registro por área, en una transacción, como el riego.
  */
-import { vencimientoCarencia, vencimientoReentrada } from '@gestionagro/agro-calc';
-import {
-  ErrorDeValidacion,
-  fechaAgronomica,
-  type Insumo,
-  type Registro,
-} from '@gestionagro/agro-schema';
+import { vencimientoCarencia, vencimientoReentrada } from '@ed1/agro-calc';
+import { ErrorDeValidacion, fechaAgronomica, type Insumo, type Registro } from '@ed1/agro-schema';
 import { fechaHora } from '../formato.ts';
 import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';
 import { soloVigentes } from './consultas.ts';

@@ -2,7 +2,7 @@
  * Eliminar un área (revisión del dueño, 3 oct 2026): solo sin nada asociado, y como baja que viaja
  * a los demás teléfonos, no como borrado (P21). Sobre fake-indexeddb, con las dos fincas (P4).
  */
-import { ErrorDeValidacion } from '@gestionagro/agro-schema';
+import { ErrorDeValidacion } from '@ed1/agro-schema';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { FINCAS_DE_PRUEBA } from '../../../../tests/fixtures/fincas.ts';

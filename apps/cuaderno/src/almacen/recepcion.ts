@@ -24,7 +24,7 @@ import {
   puede,
   type RespuestaPull,
   tiposNegados,
-} from '@gestionagro/sync';
+} from '@ed1/sync';
 import type { CuadernoDb, VersionAnterior } from './db.ts';
 import { idDispositivo } from './dispositivo.ts';
 

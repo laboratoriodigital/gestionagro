@@ -8,15 +8,10 @@
  *
  * Lo que no imita (P17): la red de verdad, los límites de D1 en Cloudflare y el CORE.
  */
-import { uuidv7 } from '@gestionagro/agro-schema';
-import type { BaseD1 } from '@gestionagro/d1';
-import { baseLocal, vaciar } from '@gestionagro/d1/local';
-import {
-  type Firmante,
-  firmanteDesde,
-  firmarAcceso,
-  generarClavePrivada,
-} from '@gestionagro/tokens';
+import { uuidv7 } from '@ed1/agro-schema';
+import type { BaseD1 } from '@ed1/d1';
+import { baseLocal, vaciar } from '@ed1/d1/local';
+import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { crearApp, TABLAS_DEL_SHARD } from '../../apps/api-celda/src/worker.ts';
 import { guardarClima } from '../../apps/cuaderno/src/almacen/clima.ts';

@@ -7,14 +7,14 @@
  *   revisarlo al guardar: la pantalla no es la que decide.
  * - Unidad y calidad sin valor de fábrica (HU-E3.3, CA2). «Otra…» agrega al catálogo al guardar.
  */
-import { leerNumero } from '@gestionagro/agro-calc';
+import { leerNumero } from '@ed1/agro-calc';
 import {
   type Area,
   ErrorDeRegistro,
   ErrorDeValidacion,
   type Persona,
   type Registro,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';

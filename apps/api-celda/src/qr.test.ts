@@ -4,15 +4,10 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { BaseD1 } from '@gestionagro/d1';
-import { baseLocal, RAIZ, vaciar } from '@gestionagro/d1/local';
-import {
-  type Firmante,
-  firmanteDesde,
-  firmarAcceso,
-  generarClavePrivada,
-} from '@gestionagro/tokens';
-import { CAMPOS, type ClavePublicaQr, leerQr } from '@gestionagro/trazabilidad';
+import type { BaseD1 } from '@ed1/d1';
+import { baseLocal, RAIZ, vaciar } from '@ed1/d1/local';
+import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
+import { CAMPOS, type ClavePublicaQr, leerQr } from '@ed1/trazabilidad';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { crearApp, type Env, TABLAS_DEL_SHARD } from './worker.ts';
 

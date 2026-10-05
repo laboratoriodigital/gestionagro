@@ -7,8 +7,8 @@
  * - Agrupadas por cultivo, para comparar naves del mismo cultivo (CA2). Solo cosechas vigentes:
  *   una corregida cuenta una vez.
  */
-import { type Rendimiento, rendimiento } from '@gestionagro/agro-calc';
-import type { Registro } from '@gestionagro/agro-schema';
+import { type Rendimiento, rendimiento } from '@ed1/agro-calc';
+import type { Registro } from '@ed1/agro-schema';
 import { soloVigentes } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';
 

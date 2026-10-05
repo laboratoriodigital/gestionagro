@@ -4,8 +4,8 @@
  * (ARQUITECTURA §2.4) y solo los ven propietario y supervisor (§9); el campo no se bloquea nunca:
  * una existencia negativa se avisa (CA3).
  */
-import { leerNumero } from '@gestionagro/agro-calc';
-import { ErrorDeValidacion, type Insumo } from '@gestionagro/agro-schema';
+import { leerNumero } from '@ed1/agro-calc';
+import { ErrorDeValidacion, type Insumo } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import {

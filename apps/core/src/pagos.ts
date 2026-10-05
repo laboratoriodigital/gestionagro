@@ -18,9 +18,10 @@
  * automático. Sin las llaves del proveedor, pagar responde que no está disponible y nada más
  * cambia (P1).
  */
-import { uuidv7 } from '@gestionagro/agro-schema';
-import type { BaseD1 } from '@gestionagro/d1';
-import { TokenInvalido, verificarAcceso } from '@gestionagro/tokens';
+
+import type { BaseD1 } from '@ed1/d1';
+import { uuidv7 } from '@ed1/ids';
+import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import planes from '../../../content/agro/cuaderno/planes.json' with { type: 'json' };
 import marca from '../../../content/marca.json' with { type: 'json' };

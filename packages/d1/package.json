@@ -1,5 +1,5 @@
 {
-  "name": "@gestionagro/d1",
+  "name": "@ed1/d1",
   "version": "0.1.0",
   "private": true,
   "description": "Lo que el CORE y las celdas usan de D1, y el D1 local de wrangler para sus pruebas (P2, P17).",

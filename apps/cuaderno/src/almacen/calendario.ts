@@ -10,7 +10,7 @@
  * - Un área hereda lo aplicado en las áreas que la contienen: si se fumigó la nave, sus camas
  *   tampoco se pueden cosechar.
  */
-import { type Area, fechaAgronomica, sumarDias } from '@gestionagro/agro-schema';
+import { type Area, fechaAgronomica, sumarDias } from '@ed1/agro-schema';
 import {
   type EstadoCarencia,
   type EstadoDeArea,

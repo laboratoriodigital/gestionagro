@@ -8,8 +8,8 @@
  * - El registro va al ciclo activo del área, si lo hay (HU-E3.4, CA1).
  * - Con `corrige`, reemplaza a un registro anterior sin borrarlo (HU-E3.12).
  */
-import { dpvAireKPa } from '@gestionagro/agro-calc';
-import type { Registro } from '@gestionagro/agro-schema';
+import { dpvAireKPa } from '@ed1/agro-calc';
+import type { Registro } from '@ed1/agro-schema';
 import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';
 import { ultimosRegistros } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';

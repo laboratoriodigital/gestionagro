@@ -1,4 +1,4 @@
-import { CULTIVOS_DPV, clasificarDpv, dpvAireKPa } from '@gestionagro/agro-calc';
+import { CULTIVOS_DPV, clasificarDpv, dpvAireKPa } from '@ed1/agro-calc';
 import { PDFDocument } from 'pdf-lib';
 import { describe, expect, it } from 'vitest';
 import { armarTabla, ENTRADAS_POR_DEFECTO, type EntradasTabla } from './tabla-dpv.ts';

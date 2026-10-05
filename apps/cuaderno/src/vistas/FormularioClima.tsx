@@ -15,8 +15,8 @@ import {
   ErrorDeMedida,
   formatearKPa,
   leerNumero,
-} from '@gestionagro/agro-calc';
-import type { Area, Ciclo, Registro } from '@gestionagro/agro-schema';
+} from '@ed1/agro-calc';
+import type { Area, Ciclo, Registro } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import { cuaderno } from '../almacen/abierto.ts';

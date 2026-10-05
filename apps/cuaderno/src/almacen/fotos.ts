@@ -4,7 +4,7 @@
  * JPEG, que todos saben. Baja la calidad y, si no alcanza, el tamaño, hasta caber. Si ni así cabe,
  * lo dice: nunca guarda una foto más pesada que la cuota.
  */
-import { ErrorDeValidacion } from '@gestionagro/agro-schema';
+import { ErrorDeValidacion } from '@ed1/agro-schema';
 import configFotos from '../../../../content/agro/cuaderno/fotos.json' with { type: 'json' };
 import { TAMANO_MAXIMO_FOTO } from './monitoreo.ts';
 

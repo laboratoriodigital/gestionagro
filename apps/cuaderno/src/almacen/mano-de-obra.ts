@@ -6,7 +6,7 @@
  * pasado (CA1). Sin ningún valor que rija, el costo de esa persona no se conoce: se cuenta para
  * decirlo, nunca se suma como 0 (P1). No liquida nómina ni recargos (CA3).
  */
-import { costoDeHoras, type ValorConVigencia, valorVigente } from '@gestionagro/agro-calc';
+import { costoDeHoras, type ValorConVigencia, valorVigente } from '@ed1/agro-calc';
 import { soloVigentes } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';
 

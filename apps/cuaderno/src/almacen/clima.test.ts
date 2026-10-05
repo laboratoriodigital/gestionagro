@@ -1,8 +1,8 @@
 /**
  * Registro de clima (HU-E3.8) sobre fake-indexeddb, con las dos fincas de prueba (P4).
  */
-import { ErrorDeMedida } from '@gestionagro/agro-calc';
-import casos from '@gestionagro/agro-calc/casos/dpv.json' with { type: 'json' };
+import { ErrorDeMedida } from '@ed1/agro-calc';
+import casos from '@ed1/agro-calc/casos/dpv.json' with { type: 'json' };
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
 import { FINCAS_DE_PRUEBA } from '../../../../tests/fixtures/fincas.ts';

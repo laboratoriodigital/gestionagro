@@ -13,8 +13,8 @@ import {
   leerNumero,
   vencimientoCarencia,
   vencimientoReentrada,
-} from '@gestionagro/agro-calc';
-import { fechaAgronomica, instanteEnColombia } from '@gestionagro/agro-schema';
+} from '@ed1/agro-calc';
+import { fechaAgronomica, instanteEnColombia } from '@ed1/agro-schema';
 import { REGISTRAR_EN_CUADERNO } from './cuaderno.ts';
 
 export interface EntradasCarencia {

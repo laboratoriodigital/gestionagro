@@ -14,7 +14,7 @@
  * El código viaja siempre en el cuerpo de un POST, nunca en una URL (CA2, P13): en el enlace va en
  * el fragmento `#`, que no llega a ningún servidor.
  */
-import { hashDe, secretoAlAzar, TokenInvalido, verificarAcceso } from '@gestionagro/tokens';
+import { hashDe, secretoAlAzar, TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import type { Entorno } from './entrar.ts';
 import type { Rol } from './repositorio.ts';

@@ -4,8 +4,8 @@
  * `content/agro/cuaderno/funciones.json`) y solo para propietario y supervisor (CA2, §9). Dice
  * cuántas cosechas no entran porque no tienen horas o quién cosechó (CA3, P1).
  */
-import { formatearCantidad } from '@gestionagro/agro-calc';
-import { fechaAgronomica } from '@gestionagro/agro-schema';
+import { formatearCantidad } from '@ed1/agro-calc';
+import { fechaAgronomica } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { funcionActiva } from '../almacen/funciones.ts';

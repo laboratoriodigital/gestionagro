@@ -2,7 +2,7 @@
  * Inicio del cuaderno. Sin finca, abre el asistente (HU-E3.3); con finca, la muestra.
  * Pide almacenamiento persistente y dice el resultado en palabras (ARQUITECTURA §5.3, regla 6).
  */
-import type { Area, Ciclo, Cultivo, Finca } from '@gestionagro/agro-schema';
+import type { Area, Ciclo, Cultivo, Finca } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { leerCiclos, leerCultivos } from '../almacen/ciclos.ts';

@@ -1,15 +1,10 @@
 /**
  * API de la celda (HU-E5.1) contra el D1 local de un shard y tokens firmados con una clave de
- * prueba. Lo que el D1 local no imita: ver `@gestionagro/d1/local` (P17).
+ * prueba. Lo que el D1 local no imita: ver `@ed1/d1/local` (P17).
  */
-import type { BaseD1 } from '@gestionagro/d1';
-import { baseLocal, vaciar } from '@gestionagro/d1/local';
-import {
-  type Firmante,
-  firmanteDesde,
-  firmarAcceso,
-  generarClavePrivada,
-} from '@gestionagro/tokens';
+import type { BaseD1 } from '@ed1/d1';
+import { baseLocal, vaciar } from '@ed1/d1/local';
+import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { crearApp, type Env, TABLAS_DEL_SHARD } from './worker.ts';
 

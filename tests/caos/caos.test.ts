@@ -11,9 +11,9 @@
  * el D1 local de wrangler y el cuaderno real sobre fake-indexeddb. Lo que no imita (P17): la red
  * de verdad, los límites de D1 en Cloudflare y el CORE.
  */
-import { uuidv7 } from '@gestionagro/agro-schema';
-import type { BaseD1 } from '@gestionagro/d1';
-import { APP_MINIMA } from '@gestionagro/sync';
+import { uuidv7 } from '@ed1/agro-schema';
+import type { BaseD1 } from '@ed1/d1';
+import { APP_MINIMA } from '@ed1/sync';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { enviarPendientes } from '../../apps/cuaderno/src/almacen/envio.ts';
 import { editarArea } from '../../apps/cuaderno/src/almacen/finca.ts';

@@ -5,7 +5,7 @@
  * Un registro corregido queda **anulado**: otro registro lo nombra en `anula_id` (HU-E3.12).
  * Sigue guardado para la traza, pero ninguna cuenta, aviso ni lista de vigentes lo usa.
  */
-import type { Registro } from '@gestionagro/agro-schema';
+import type { Registro } from '@ed1/agro-schema';
 import type { CuadernoDb } from './db.ts';
 
 /** Ids de los registros anulados por una corrección. Usa el índice `anula_id` (v6). */

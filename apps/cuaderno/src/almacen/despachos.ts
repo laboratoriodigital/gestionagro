@@ -9,14 +9,14 @@
  * - **Precio** (CA5): nulo es «no se anotó», nunca cero. Lo que la pantalla no puede leer no llega
  *   aquí: se dice como error.
  * - **Quién los ve** (CA3): solo propietario y supervisor (`MATRIZ_DE_REGISTROS` de
- *   `@gestionagro/sync`); la celda no se los manda a nadie más.
+ *   `@ed1/sync`); la celda no se los manda a nadie más.
  */
 import {
   ErrorDeValidacion,
   type MEDIOS_DE_PAGO,
   type Registro,
   type TIPOS_DE_CLIENTE,
-} from '@gestionagro/agro-schema';
+} from '@ed1/agro-schema';
 import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';
 import { soloVigentes } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';

@@ -3,7 +3,7 @@
  * secciones, el periodo, los anulados marcados, los caracteres que la fuente del PDF no escribe y
  * el tiempo con 6 meses de registros (CA3).
  */
-import { type Registro, uuidv7 } from '@gestionagro/agro-schema';
+import { type Registro, uuidv7 } from '@ed1/agro-schema';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { describe, expect, it } from 'vitest';

@@ -16,7 +16,7 @@
  *   vigente (HU-E6.3). Un lote no se corrige por debajo de lo ya despachado.
  * - **Saldo** (HU-E6.3): lo que queda por despachar. Solo lo ve quien ve los despachos.
  */
-import { ErrorDeValidacion, fechaAgronomica, type Registro } from '@gestionagro/agro-schema';
+import { ErrorDeValidacion, fechaAgronomica, type Registro } from '@ed1/agro-schema';
 import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';
 import { soloVigentes } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';

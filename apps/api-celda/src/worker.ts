@@ -16,13 +16,9 @@
  * Rutas con token: `/api/v1/yo` (a qué organización y shard llegó la sesión) y
  * `/api/v1/sync/push` (subir, HU-E5.2, `push.ts`) y `/api/v1/sync/pull` (bajar, HU-E5.3, `pull.ts`).
  */
-import type { BaseD1 } from '@gestionagro/d1';
-import {
-  crearLectorKillSwitch,
-  type LectorKillSwitch,
-  type LectorKv,
-} from '@gestionagro/kill-switch';
-import { type ClavePublica, TokenInvalido, verificarConClaves } from '@gestionagro/tokens';
+import type { BaseD1 } from '@ed1/d1';
+import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
+import { type ClavePublica, TokenInvalido, verificarConClaves } from '@ed1/tokens';
 import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { avisarSiCambio } from './avisos.ts';
