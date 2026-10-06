@@ -74,7 +74,8 @@ export async function verificarToken(
   token: string | undefined,
   cuenta: string | undefined,
   destino: Destino,
-  zona: string,
+  /** Las zonas con dominio propio que despliega esta celda: el sitio y, si lo aloja, el CORE. */
+  zona: string | readonly string[],
   /** El despliegue crea y migra bases D1 en esta celda (CORE, HU-E4.1; shards, HU-E5.1). */
   conD1 = false,
 ): Promise<string[]> {
@@ -128,19 +129,19 @@ export async function verificarToken(
     }
   }
 
-  if (destino === 'produccion') {
-    const zonas = await leer(fetchFn, `${API}/zones?name=${encodeURIComponent(zona)}`, token);
+  for (const z of destino === 'produccion' ? [zona].flat() : []) {
+    const zonas = await leer(fetchFn, `${API}/zones?name=${encodeURIComponent(z)}`, token);
     const lista = (zonas.cuerpo.result as { id: string }[] | undefined) ?? [];
     const zonaId = lista[0]?.id;
     if (zonas.estado !== 200 || !zonaId) {
       fallas.push(
-        `${celda.id}: el token no ve la zona ${zona}; le falta «Zone → Workers Routes: Edit» en esa zona`,
+        `${celda.id}: el token no ve la zona ${z}; le falta «Zone → Workers Routes: Edit» en esa zona`,
       );
     } else {
       const rutas = await leer(fetchFn, `${API}/zones/${zonaId}/workers/routes`, token);
       if (rutas.estado !== 200) {
         fallas.push(
-          `${celda.id}: al token le falta «Zone → Workers Routes: Edit» en ${zona} (HTTP ${rutas.estado})`,
+          `${celda.id}: al token le falta «Zone → Workers Routes: Edit» en ${z} (HTTP ${rutas.estado})`,
         );
       }
     }

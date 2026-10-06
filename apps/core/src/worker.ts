@@ -6,7 +6,7 @@
  *   debe parecer sano (P1).
  * - `GET /api/core/claves`: la clave pública con la que las celdas verifican los tokens (CA5).
  * - `GET /.well-known/jwks.json`: las mismas llaves en el formato estándar (HU-C4.2, `jwks.ts`).
- * - `/api/core/auth/*`: entrar con Google y renovar la sesión (HU-E4.2, `entrar.ts`).
+ * - `/api/core/auth/*`: entrar con Google, renovar la sesión y salir (HU-E4.2, HU-C7.3, `entrar.ts`).
  * - `POST /api/core/organizaciones`: crear la organización de la finca del teléfono (HU-E4.3).
  * - `POST /api/core/invitaciones[/ver|/aceptar]`: invitar al equipo por WhatsApp (HU-E4.4).
  * - `POST /api/core/equipo/{ver,rol,quitar}` y `/api/core/telefonos/{ver,retirar}`: el equipo de
@@ -46,6 +46,7 @@ import {
   type ProveedorGoogle,
   proveedorGoogle,
   renovar,
+  salir,
 } from './entrar.ts';
 import {
   cambiarRol,
@@ -322,6 +323,7 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.get('/api/core/auth/google/callback', (c) => callback(c, c.get('entorno')));
   app.post('/api/core/auth/canje', (c) => canje(c, c.get('entorno')));
   app.post('/api/core/auth/refrescar', (c) => renovar(c, c.get('entorno')));
+  app.post('/api/core/auth/salir', (c) => salir(c, c.get('entorno')));
   // Copia en el Drive del productor (HU-E8.4, etapa 1): mismo CORS, kill switch y configuración.
   const conDrive = (
     c: Context<{ Bindings: Env; Variables: { entorno: Entorno } }>,

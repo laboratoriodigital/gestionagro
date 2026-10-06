@@ -1,0 +1,39 @@
+{
+  "nota": "Política de tratamiento de datos de la cuenta de Laboratorio Digital (HU-C7.3, ADR-28). Fuente única: la pinta apps/cuenta/src/pages/privacidad.astro y el CORE pide aceptar esta versión al entrar a la cuenta. Es un borrador escrito para que el dueño lo revise: el nombre del responsable queda por completar a propósito, porque la cuenta es de todo el ecosistema y no de CultivoPro; la identificación y el teléfono faltan igual que en la del agro (docs/runbooks/datos-del-responsable.md).",
+  "version": "1",
+  "fecha": "2026-10-06",
+  "estado": "borrador",
+  "revision": "requiere revisión de abogado",
+  "responsable": {
+    "nombre": null,
+    "identificacion": null,
+    "domicilio": "Medellín, Colombia",
+    "correo": "laboratoriodigital.la@gmail.com",
+    "telefono": null
+  },
+  "encargados": [
+    {
+      "quien": "Proveedores de servicios en la nube",
+      "para": "Nos ayudan a guardar de forma segura tu cuenta y a mantener la página funcionando.",
+      "proveedor": "Cloudflare"
+    },
+    {
+      "quien": "Google",
+      "para": "Te permite entrar con tu cuenta de Google, sin crear otra contraseña. Solo recibimos tu nombre y tu correo.",
+      "proveedor": "Google"
+    }
+  ],
+  "transferencia": "Algunos de estos aliados tienen sus servidores fuera de Colombia. Tu información puede guardarse allí, siempre para los fines que aquí te contamos y con medidas para protegerla.",
+  "scripts_de_terceros": [],
+  "scripts_al_pagar": [],
+  "conexiones_de_terceros": [],
+  "cookies": [
+    {
+      "nombre": "agro_oauth",
+      "texto": "Mientras entras con tu cuenta usamos una cookie técnica y temporal, solo para que el ingreso sea seguro. Desaparece a los pocos minutos."
+    }
+  ],
+  "almacenamiento_en_el_navegador": [
+    "La cuenta recuerda en este navegador que ya entraste, para no pedírtelo cada vez. Al tocar «Salir» lo olvida, y la sesión se cierra también de nuestro lado."
+  ]
+}

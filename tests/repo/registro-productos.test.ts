@@ -215,9 +215,10 @@ describe('el catálogo del CORE trae la política y los planes de cada producto 
   it('y sus planes, los mismos de su planes.json (HU-C3.4)', async () => {
     const { CATALOGO } = await import('../../apps/core/src/productos.ts');
     for (const p of cargarProductos().productos) {
-      const archivo = JSON.parse(readFileSync(join(RAIZ, p.planes), 'utf8')) as {
-        planes: { id: string }[];
-      };
+      // Un producto sin organizaciones (la cuenta, ADR-28) no tiene planes.
+      const archivo = (
+        p.planes ? JSON.parse(readFileSync(join(RAIZ, p.planes), 'utf8')) : { planes: [] }
+      ) as { planes: { id: string }[] };
       expect(
         CATALOGO.planes[p.id]?.map((x) => x.id),
         p.id,

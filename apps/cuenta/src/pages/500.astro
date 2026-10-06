@@ -1,0 +1,12 @@
+---
+import { PaginaDeError } from '@ed1/ui/v2/componentes';
+import Base from '../layouts/Base.astro';
+---
+<Base titulo="Algo falló de nuestro lado" descripcion="La cuenta tuvo un problema y no pudo responder.">
+  <PaginaDeError
+    codigo="500"
+    titulo="Algo falló de nuestro lado."
+    texto="No es nada que hayas hecho. Vuelve a intentarlo en unos minutos."
+    volver={{ texto: 'Volver al inicio', href: '/' }}
+  />
+</Base>

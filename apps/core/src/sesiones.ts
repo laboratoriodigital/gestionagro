@@ -103,6 +103,8 @@ export async function aceptarPolitica(
 
 export interface SesionActiva {
   usuarioId: string;
+  /** El producto de la sesión (HU-C3.1): solo entrega organizaciones de ese producto (HU-C4.4). */
+  producto: string;
   /** Refresh nuevo cuando se emitió o rotó; null si sigue valiendo el que la app ya tiene. */
   refresh: string | null;
   refreshVence: number;
@@ -120,7 +122,7 @@ export async function canjearCodigo(
     .prepare(
       `UPDATE sesion SET refresh_hash = ?, dispositivo = ?, expira = ?
         WHERE refresh_hash = ? AND dispositivo = ? AND revocado IS NULL AND expira > ?
-        RETURNING usuario_id`,
+        RETURNING usuario_id, producto`,
     )
     .bind(
       await hashDe(refresh),
@@ -130,25 +132,26 @@ export async function canjearCodigo(
       SIN_CANJEAR,
       iso(ahora),
     )
-    .first<{ usuario_id: string }>();
+    .first<{ usuario_id: string; producto: string }>();
   if (!fila) {
     throw new SesionInvalida(
       'Este enlace de entrada ya se usó o venció. Vuelve a tocar «Entrar con Google».',
     );
   }
-  return { usuarioId: fila.usuario_id, refresh, refreshVence: vence };
+  return { usuarioId: fila.usuario_id, producto: fila.producto, refresh, refreshVence: vence };
 }
 
 export async function refrescar(db: BaseD1, refresh: string, ahora: number): Promise<SesionActiva> {
   const hash = await hashDe(refresh);
   const sesion = await db
     .prepare(
-      'SELECT id, usuario_id, expira, revocado, dispositivo FROM sesion WHERE refresh_hash = ?',
+      'SELECT id, usuario_id, producto, expira, revocado, dispositivo FROM sesion WHERE refresh_hash = ?',
     )
     .bind(hash)
     .first<{
       id: string;
       usuario_id: string;
+      producto: string;
       expira: string;
       revocado: string | null;
       dispositivo: string;
@@ -164,7 +167,12 @@ export async function refrescar(db: BaseD1, refresh: string, ahora: number): Pro
   }
   const ultimoGiro = expira - VIDA_REFRESH_MS;
   if (ahora - ultimoGiro < ROTAR_CADA_MS) {
-    return { usuarioId: sesion.usuario_id, refresh: null, refreshVence: expira };
+    return {
+      usuarioId: sesion.usuario_id,
+      producto: sesion.producto,
+      refresh: null,
+      refreshVence: expira,
+    };
   }
   const nuevo = secretoAlAzar();
   const vence = ahora + VIDA_REFRESH_MS;
@@ -175,5 +183,33 @@ export async function refrescar(db: BaseD1, refresh: string, ahora: number): Pro
   // Dos refrescos simultáneos del mismo teléfono: el segundo ya no encuentra el hash viejo.
   if (!r.meta.changes)
     throw new SesionInvalida('La sesión cambió mientras se renovaba. Intenta de nuevo.');
-  return { usuarioId: sesion.usuario_id, refresh: nuevo, refreshVence: vence };
+  return {
+    usuarioId: sesion.usuario_id,
+    producto: sesion.producto,
+    refresh: nuevo,
+    refreshVence: vence,
+  };
+}
+
+/**
+ * De qué producto es la sesión de un refresh, y de quién, sin renovarla (HU-C4.4). Se mira antes
+ * de renovar: un refresh presentado desde otra app no debe rotar ni dejar sin sesión a su dueño.
+ */
+export async function duenoDelRefresh(
+  db: BaseD1,
+  refresh: string,
+): Promise<{ usuarioId: string; producto: string } | null> {
+  const fila = await db
+    .prepare('SELECT usuario_id, producto FROM sesion WHERE refresh_hash = ? AND dispositivo <> ?')
+    .bind(await hashDe(refresh), SIN_CANJEAR)
+    .first<{ usuario_id: string; producto: string }>();
+  return fila ? { usuarioId: fila.usuario_id, producto: fila.producto } : null;
+}
+
+/** Cierra la sesión de ese refresh (HU-C7.3). Una ya cerrada se queda como estaba. */
+export async function cerrarSesion(db: BaseD1, refresh: string, ahora: number): Promise<void> {
+  await db
+    .prepare('UPDATE sesion SET revocado = ? WHERE refresh_hash = ? AND revocado IS NULL')
+    .bind(iso(ahora), await hashDe(refresh))
+    .run();
 }

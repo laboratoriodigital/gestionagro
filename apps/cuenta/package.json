@@ -1,0 +1,16 @@
+{
+  "name": "@ed1/cuenta",
+  "version": "0.1.0",
+  "private": true,
+  "description": "La cuenta del ecosistema en cuenta.laboratorio-digital.com (ED1 §16, ADR-28): páginas estáticas que sirve el Worker del CORE como assets (HU-C7.2).",
+  "type": "module",
+  "scripts": {
+    "build": "astro build && node ../../scripts/verificar-cuenta.ts"
+  },
+  "dependencies": {
+    "@astrojs/preact": "^6.0.5",
+    "@ed1/ui": "workspace:*",
+    "astro": "^7.3.5",
+    "preact": "^10.29.8"
+  }
+}

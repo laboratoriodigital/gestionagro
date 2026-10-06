@@ -17,6 +17,7 @@
     "hono": "^4.13.12"
   },
   "devDependencies": {
+    "@ed1/cuenta": "workspace:*",
     "wrangler": "^4.144.0"
   }
 }

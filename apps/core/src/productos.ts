@@ -10,6 +10,7 @@ import type { BaseD1 } from '@ed1/d1';
 import type { Producto, RegistroDeProductos } from '@ed1/productos';
 import planesAgro from '../../../content/agro/cuaderno/planes.json' with { type: 'json' };
 import politicaAgro from '../../../content/agro/privacidad/politica.json' with { type: 'json' };
+import politicaCuenta from '../../../content/cuenta/privacidad/politica.json' with { type: 'json' };
 import registro from '../../../infrastructure/productos.json' with { type: 'json' };
 
 export interface CatalogoDelCore {
@@ -34,8 +35,9 @@ export interface PlanDelProducto {
  */
 export const CATALOGO: CatalogoDelCore = {
   productos: (registro as RegistroDeProductos).productos,
-  politicas: { agro: politicaAgro.version },
-  planes: { agro: planesAgro.planes },
+  politicas: { agro: politicaAgro.version, cuenta: politicaCuenta.version },
+  // La cuenta (ADR-28) no tiene planes: no tiene organizaciones.
+  planes: { agro: planesAgro.planes, cuenta: [] },
 };
 
 /**

@@ -555,7 +555,7 @@ Formato de cada historia:
 - **Work items:** WI-C4.3.1 `[código]` · WI-C4.3.2 `[prueba]` · WI-C4.3.3 `[doc]` ARQUITECTURA §5.4.
 
 #### HU-C4.4 · Refresh por producto
-- **Capa:** sesión · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C5 · **Depende de:** HU-C3.1 · **Estado:** Refinada
+- **Capa:** sesión · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C5 · **Depende de:** HU-C3.1 · **Estado:** En validación (rama `feat/c5-sprint`. El origen se mira **antes** de renovar (`duenoDelRefresh`): un intento desde otra app no rota el refresh ni deja sin sesión a su dueño. Sin `Origin` tampoco pasa. El directorio se filtra por el producto de la sesión, también en el canje. El rechazo deja una fila `refresh_rechazado` con el origen; es la única «renovación» que se audita, porque es un posible robo y no gasta escrituras en el uso normal. CA3 ya lo cumplía `elegirOrganizacion`; ahora lo prueba. 3 pruebas; controles negativos: sin el filtro del directorio, CA1 en rojo; sin la revisión del origen, CA2 en rojo)
 - Como persona, quiero que un refresh robado de una app no saque tokens de otra.
 - **Respaldo:** PLATAFORMA §4.6 (sesión por producto); bitácora agro 25 (cuenta en dos fincas).
 - **CA1.** `POST /api/core/auth/refrescar` exige un `Origin` del producto de la sesión y solo entrega tokens de organizaciones de ese producto.
@@ -574,7 +574,7 @@ Formato de cada historia:
 - **Work items:** WI-C4.5.1 `[código]` · WI-C4.5.2 `[prueba]` · WI-C4.5.3 `[dueño]` aprobar la contracción con el registro de la semana.
 
 #### HU-C4.6 · `cuenta.laboratorio-digital.com`
-- **Capa:** infraestructura · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C1.3 · **Estado:** Refinada
+- **Capa:** infraestructura · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C1.3 · **Estado:** En validación (rama `feat/c5-sprint`. `celdas.json › core` declara `dominio` y `zona` (el esquema exige los dos juntos); `generar-wrangler.ts` pone el Custom Domain arriba y `routes: []` en staging, con `workers_dev` encendido (CA2). La verificación del token ahora revisa cada zona con dominio de la celda, no solo la del sitio. El despliegue de producción dice si el dominio ya responde, sin detenerse: el certificado nuevo tarda, y los cuadernos usan workers.dev. CA3 es del dueño: las dos URL de vuelta, con los pasos en `docs/runbooks/despliegue.md`. 4 pruebas; control negativo dentro de CA4: un staging que hereda las rutas del CORE se nombra. Se crea de verdad con la primera publicación del CORE que lo lleve)
 - Como persona, quiero entrar al ecosistema por una dirección que diga de quién es.
 - **Respaldo:** PLATAFORMA §3.3 y §3.6; ADR-27; bitácora agro 19 (dominio en el Worker equivocado).
 - **CA1.** El Worker del CORE de producción tiene el Workers Custom Domain `cuenta.laboratorio-digital.com`, declarado en `celdas.json` y generado (no puesto a mano en el panel).
@@ -681,7 +681,7 @@ Formato de cada historia:
 - **Work items:** WI-C6.3.1 `[diseño]` · WI-C6.3.2 `[código]` · WI-C6.3.3 `[prueba]` estados.
 
 #### HU-C6.4 · Galería viva y control visual
-- **Capa:** diseño y prueba · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C6.3 · **Estado:** Refinada
+- **Capa:** diseño y prueba · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C6.3 · **Estado:** En validación (rama `feat/c5-sprint`. `/_galeria/` y `/_galeria/oscuro/` en la cuenta; Astro ignora las páginas que empiezan con «_», así que salen de una ruta dinámica. CA2 cambió de forma: en vez de capturas por píxel se comparan los **estilos calculados** de cada muestra (radios, colores, tamaños, espacios) a 360 y 1280 px, en `tests/e2e/galeria.spec.ts-instantaneas/`. Dan lo mismo en Windows y en Linux (P3), sin una referencia que solo se puede hacer en Linux, y la diferencia se lee como texto. No ven cómo dibuja las letras cada sistema: las capturas por píxel quedan para cuando haya una referencia de Linux. axe sin violaciones en claro y en oscuro. **La galería encontró un error real:** el texto de «cargando» se desvanecía y a media animación bajaba a 4,19:1; ahora se mueve un punto y el texto queda quieto. CA3, control negativo: con el radio del botón en `--radio-campo`, la comparación sale en rojo con `999px` → `12px` a la vista)
 - Como dueño, quiero ver todos los componentes en una página y saber cuándo uno cambió sin querer.
 - **Respaldo:** P5, P20.
 - **CA1.** `/_galeria/` en la cuenta, con `noindex`, todos los componentes y estados en claro y oscuro.
@@ -719,7 +719,7 @@ Formato de cada historia:
 - **Work items:** WI-C7.1.1 `[doc]` ADR-28 propuesto · WI-C7.1.2 `[dueño]` decisión.
 
 #### HU-C7.2 · `apps/cuenta`: el esqueleto estático
-- **Capa:** app · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C4.6, HU-C6.3 · **Estado:** Refinada
+- **Capa:** app · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C4.6, HU-C6.3 · **Estado:** En validación (rama `feat/c5-sprint`. `apps/cuenta`: portada, 404 y 500 con los componentes v2, y una hoja propia solo con tokens. `generar-wrangler.ts` le da al CORE `assets` con `run_worker_first` en las tres rutas y la 404 de Workers Static Assets; `@ed1/core` depende de `@ed1/cuenta` para que el build salga en orden. `_headers` con CSP `'self'`, `noindex` y `Disallow: /`. `scripts/verificar-cuenta.ts` corre con el build y lo detiene ante un `<script>`, un estilo en línea o una página indexable. Vista a 375 y 1280 px, en claro y oscuro: Geist carga y ninguna página tiene scripts. Astro deja su runtime de Preact en `_astro/`, que nadie carga: solo pesa en lo que se sube. Se ajustó un componente: el encabezado sin enlaces ya no muestra un «Menú» vacío. 4 pruebas en `tests/repo/cuenta.test.ts`, con sus controles negativos: un `/*` en las rutas del Worker y un `unsafe-inline` en la CSP se nombran)
 - Como persona, quiero que la cuenta abra rápido en mi teléfono y se vea como el resto del ecosistema.
 - **Respaldo:** ED1 §3.10 y §16; §4 de este documento.
 - **CA1.** Astro estático con `@ed1/ui` v2, servido como assets del Worker del CORE. El Worker corre primero **solo** en `/api/core/*`, `/oauth/*` y `/.well-known/*`.
@@ -728,7 +728,7 @@ Formato de cada historia:
 - **Work items:** WI-C7.2.1 `[código]` app · WI-C7.2.2 `[código]` generación de su configuración · WI-C7.2.3 `[prueba]` rutas estáticas · WI-C7.2.4 `[doc]` ARQUITECTURA §5.
 
 #### HU-C7.3 · Entrar a la cuenta y salir
-- **Capa:** app y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C7.1, HU-C7.2, HU-C3.1 · **Estado:** Refinada
+- **Capa:** app y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C7.1, HU-C7.2, HU-C3.1 · **Estado:** En validación (rama `feat/c5-sprint`. La cuenta entra al registro como producto **sin organizaciones** (`organizaciones: false`): el esquema y las reglas no le piden tipos, roles, planes, cobros ni presupuesto, y la copia del catálogo la escribe sin ellos. Sus orígenes son los del CORE, porque comparten origen. Entrar es un formulario `GET` al CORE con la casilla de la política obligatoria: funciona sin JavaScript. El único script de la cuenta (la sesión) va en archivo y canjea el código, muestra quién entró, ofrece volver a la app de la que se vino (solo a un origen declarado en el registro, CA2) y sale. `POST /api/core/auth/salir` cierra la sesión en el CORE, con la misma revisión de origen que renovar (CA3). CA4: el token de la cuenta no trae organización (v1) y su `aud` es `cuenta` (v2); la celda rechaza los dos. Política de la cuenta en **borrador** (`content/cuenta/privacidad/politica.json` y `/privacidad/`): el nombre del responsable queda «por completar» porque la cuenta es del ecosistema y no de CultivoPro. 13 pruebas nuevas (4 del CORE, 1 de la celda, 4 e2e y 4 de repositorio) con axe sin violaciones. Controles negativos: sin cerrar la sesión, CA3 en rojo; con la vuelta a cualquier origen, CA2 en rojo. Falta WI-C7.3.3: el dueño revisa los textos y la política)
 - Como persona, quiero entrar con Google a mi cuenta, y salir cuando quiera.
 - **Respaldo:** ED1 §5.2 y §16.
 - **CA1.** «Entrar con Google» pide aceptar la política vigente (como el cuaderno) y vuelve a la cuenta.
@@ -1041,6 +1041,7 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 | C2 | 24 | 24 (PR #97, fusionado el 5 oct 2026) | Las 8 historias en un día. Una regla nueva que no estaba en los CA: la guardia del CHANGELOG del CORE, porque otra línea de trabajo también lo toca |
 | C3 | 18 | — (PR del 6 oct 2026, en revisión) | Las 5 historias en un día. Dos cambios de forma, dichos en cada historia: la auditoría es la 0007 y entrar con correo pasa a 0008; los componentes base son de Preact servidos como HTML, no de Astro, para probarlos sin levantar Vite |
 | C4 | 16 → 13 | — (rama lista el 6 oct 2026; su PR se abre al fusionar el del C3) | Las 5 historias en un día. HU-C3.7 pasó al C5 porque necesita HU-C4.3, y HU-C4.3 necesita la fase N en producción: el orden lo pone la transición de tokens (P10), no la capacidad |
+| C5 | 20 | — (PR del 6 oct 2026, en revisión) | 5 de las 7 historias (14 puntos) en el primer PR: HU-C4.4, HU-C4.6, HU-C6.4, HU-C7.2 y HU-C7.3. HU-C4.3 y HU-C3.7 esperan a que la fase N esté en producción (PR de la versión 0.4.0): el CORE no puede emitir v2 antes de que las celdas de producción lo entiendan |
 
 ---
 

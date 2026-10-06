@@ -7,6 +7,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [0.4.0] - 2026-10-06
 
 ### Agregado
+- Se puede entrar a la cuenta de Laboratorio Digital con Google, aceptando su política de datos (todavía en borrador), ver con qué nombre se entró, volver a la aplicación de la que se venía y salir. Salir cierra la sesión también en el servidor (HU-C7.3).
+- Una galería con todos los componentes de la cuenta y sus estados, en claro y en oscuro, con una prueba que avisa si alguno cambió sin querer (HU-C6.4).
+- La cuenta de Laboratorio Digital tiene su primera página, en `cuenta.laboratorio-digital.com`: dice qué va a reunir y que pronto se podrá entrar con Google. Es estática, sin JavaScript, y no aparece en buscadores (HU-C7.2).
 - El vigía de la celda ya sabe medir con Workers Paid: proyecta el costo del mes en dólares, avisa por Telegram al 50, 75 y 90 % de lo incluido y al pasar el presupuesto, y con el presupuesto agotado apaga solo lo que cada producto declare, nunca la venta. Se activa cuando la cuenta pase a Workers Paid (HU-C11.1).
 - Las celdas aceptan los tokens del CORE en sus dos formatos, el de hoy y el del ecosistema (con producto y plan), y cada celda acepta solo los de su producto. Es el primer paso de la transición: nadie tiene que volver a entrar (HU-C4.1).
 - El CORE publica sus llaves públicas en el formato estándar (`/.well-known/jwks.json`), para verificadores que no son nuestros (HU-C4.2).
@@ -35,6 +38,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - El CI gasta según lo que cambió: si un PR solo toca documentos (`docs/` o un `.md` de la raíz), no abre navegadores ni compila, y corre solo las pruebas que leen documentos. El resumen dice qué saltó y por qué. Si no puede calcular el cambio, corre todo (HU-C11.6).
 
 ### Corregido
+- El aviso de «cargando» de los componentes v2 ya no desvanece el texto: a media animación quedaba con poco contraste. Ahora se mueve un punto a su lado (HU-C6.4).
 - Menú y Costos según haya finca (revisión del dueño, 5 oct 2026). Rendimiento y Costos aparecen en el menú solo cuando la finca existe, y lo hacen apenas se crea o se restaura, sin recargar. Costos sin finca se quedaba para siempre en «Abriendo tu cuaderno…»: ahora dice que primero se configure la finca.
 - Monitoreo (HU-E3.11, revisión del dueño, 5 oct 2026): las fotos se guardaban en el teléfono pero ninguna pantalla las mostraba. Ahora «Ver foto» las abre en Registrar y en Historial, solo al tocarlo. Si el registro llegó de otro teléfono, dice que la foto se quedó en el teléfono donde se tomó, en vez de mostrar un cuadro roto.
 - La receta para rehacer tablas en D1 (ADR-25) se comprobó en el D1 local de workerd, no solo en el SQLite de Node: funciona igual. Y se supo algo nuevo: su guarda revisa toda la base, así que una fila huérfana vieja en cualquier tabla detendría la migración. Antes de migrar producción se revisa la base (HU-C2.1, bitácora core 2).

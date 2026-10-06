@@ -26,7 +26,19 @@ Y la API de cada celda (HU-E5.1), en todas las celdas activas, después del siti
 | Staging | Solo, cada vez que el CI termina en verde en `main` | `https://agro-sitio-staging.<subdominio>.workers.dev` (la URL exacta queda en el resumen de la corrida) |
 | Producción | Al publicar una versión en GitHub | `https://cultivopro.co` |
 
-El CORE vive en workers.dev en los dos destinos: `https://agro-core-staging.<subdominio>.workers.dev` y `https://agro-core.<subdominio>.workers.dev`. Su dominio se decide con el login (HU-E4.2).
+El CORE vive en workers.dev en los dos destinos: `https://agro-core-staging.<subdominio>.workers.dev` y `https://agro-core.<subdominio>.workers.dev`. En producción tiene además su dominio propio, `https://cuenta.laboratorio-digital.com` (HU-C4.6): lo declara `celdas.json › core.dominio` y wrangler lo crea como Custom Domain al desplegar, con su registro DNS. La URL de workers.dev no se apaga: los cuadernos instalados la usan. Staging nunca lleva el dominio (una prueba lo exige).
+
+### El dominio de la cuenta: lo que hace el dueño, una vez
+
+Antes de la primera publicación que lo lleve:
+
+1. En Cloudflare, zona **laboratorio-digital.com** → **DNS** → **Records**: no debe existir un registro llamado `cuenta`. Si existe, dime antes de publicar: el Custom Domain no se crea encima de otro registro.
+2. En Google Cloud: **APIs y servicios** → **Credenciales** → el cliente OAuth de «Entrar con Google» → **URI de redireccionamiento autorizados** → agrega estas dos, sin borrar las que ya están:
+   - `https://cuenta.laboratorio-digital.com/api/core/auth/google/callback`
+   - `https://cuenta.laboratorio-digital.com/api/core/drive/callback`
+3. **Guardar.** Google puede tardar unos minutos en aplicarlo.
+
+Después de publicar, el resumen del despliegue dice si el dominio ya responde. Si dice que todavía no, mira otra vez en unos minutos: el certificado tarda en salir.
 
 Para cada celda, el flujo hace cuatro cosas:
 1. Verifica el token con lecturas y, si falta un permiso, lo nombra.

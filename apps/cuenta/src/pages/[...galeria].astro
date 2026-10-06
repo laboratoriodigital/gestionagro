@@ -1,0 +1,113 @@
+---
+/**
+ * Galería viva del sistema de diseño v2 (HU-C6.4): cada componente en sus estados, en claro
+ * (`/_galeria/`) y en oscuro (`/_galeria/oscuro/`). La ruta empieza con «_» y Astro ignora las
+ * páginas con ese nombre: por eso sale de una ruta dinámica. No se indexa, como toda la cuenta.
+ *
+ * Cada muestra lleva `data-muestra`: la prueba e2e lee sus estilos calculados y los compara con
+ * los guardados, y corre axe sobre la página (tests/e2e/galeria.spec.ts).
+ */
+import {
+  Aviso,
+  Boton,
+  Campo,
+  Confirmacion,
+  Contenido,
+  Etiqueta,
+  Grupo,
+  ResumenDeErrores,
+  Tarjeta,
+} from '@ed1/ui/v2/componentes';
+import Base from '../layouts/Base.astro';
+
+export function getStaticPaths() {
+  return [
+    { params: { galeria: '_galeria' }, props: { tema: 'claro' as const } },
+    { params: { galeria: '_galeria/oscuro' }, props: { tema: 'oscuro' as const } },
+  ];
+}
+
+const { tema } = Astro.props;
+const otro =
+  tema === 'claro'
+    ? { texto: 'Ver en oscuro', href: '/_galeria/oscuro/' }
+    : { texto: 'Ver en claro', href: '/_galeria/' };
+const sesiones = ['Portátil · Bogotá', 'Teléfono · Medellín'];
+---
+<Base titulo="Galería" descripcion="Los componentes de la cuenta en todos sus estados." tema={tema}>
+  <main class="galeria">
+    <h1 class="galeria__titulo">Galería</h1>
+    <p class="galeria__texto">
+      Cada componente en sus estados, en {tema}. <a href={otro.href}>{otro.texto}</a>
+    </p>
+
+    <section class="galeria__seccion" data-muestra="etiqueta">
+      <h2>Etiqueta</h2>
+      <p>Último ingreso <Etiqueta>06 OCT 2026 · 05:31</Etiqueta></p>
+    </section>
+
+    <section class="galeria__seccion" data-muestra="botones">
+      <h2>Botones</h2>
+      <div class="galeria__fila">
+        <Boton>Guardar cambios</Boton>
+        <Boton variante="secundario">Cancelar</Boton>
+        <Boton variante="texto">Ver historial</Boton>
+        <Boton href="#botones" variante="secundario">Un enlace</Boton>
+        <Boton ocupado>Guardando</Boton>
+        <Boton deshabilitado={{ motivo: 'Primero acepta la política.', id: 'motivo-galeria' }}>
+          Continuar
+        </Boton>
+      </div>
+    </section>
+
+    <section class="galeria__seccion" data-muestra="avisos">
+      <h2>Avisos</h2>
+      <Aviso tono="info" titulo="Para que sepas"><p>Un dato que conviene tener a la vista.</p></Aviso>
+      <Aviso tono="exito" titulo="Guardamos tu teléfono"><p>Te escribiremos ahí si alguien entra desde otro equipo.</p></Aviso>
+      <Aviso tono="aviso" titulo="Tu plan vence pronto"><p>Quedan tres días.</p></Aviso>
+      <Aviso tono="peligro" titulo="No pudimos guardar"><p>Revisa tu conexión e inténtalo de nuevo.</p></Aviso>
+    </section>
+
+    <section class="galeria__seccion" data-muestra="formulario">
+      <h2>Formulario</h2>
+      <ResumenDeErrores
+        errores={[
+          { campo: 'g-correo', mensaje: 'Ese correo no parece completo.' },
+          { campo: 'g-telefono', mensaje: 'Falta el teléfono.' },
+        ]}
+      />
+      <Grupo titulo="Tus datos">
+        <Campo id="g-nombre" nombre="nombre" etiqueta="Nombre" valor="Ana Restrepo" requerido />
+        <Campo id="g-correo" nombre="correo" etiqueta="Correo" tipo="email" valor="ana@" requerido error="Ese correo no parece completo." />
+        <Campo id="g-telefono" nombre="telefono" etiqueta="Teléfono" tipo="tel" ayuda="Con indicativo, por ejemplo +57." error="Falta el teléfono." requerido />
+        <Campo id="g-empresa" nombre="empresa" etiqueta="Empresa" />
+      </Grupo>
+    </section>
+
+    <section class="galeria__seccion" data-muestra="contenido">
+      <h2>Contenido</h2>
+      <Tarjeta titulo="Cargando">
+        <Contenido estado={{ tipo: 'cargando' }} titulo="Sesiones" vacio={{ porque: '' }} elemento={() => null} />
+      </Tarjeta>
+      <Tarjeta titulo="Vacío">
+        <Contenido
+          estado={{ tipo: 'listo', elementos: [] }}
+          titulo="Aplicaciones"
+          vacio={{ porque: 'Todavía no has conectado ninguna aplicación.', accion: <Boton variante="secundario">Cómo conectar una</Boton> }}
+          elemento={() => null}
+        />
+      </Tarjeta>
+      <Tarjeta titulo="Error">
+        <Contenido estado={{ tipo: 'error', causa: 'No pudimos leer tus pagos. Revisa tu conexión.' }} titulo="Pagos" vacio={{ porque: '' }} elemento={() => null} />
+      </Tarjeta>
+      <Tarjeta titulo="Lista" pie={<Confirmacion abrir="Cerrar todas las sesiones" consecuencia="Vas a tener que entrar otra vez en cada equipo." confirmar="Sí, cerrarlas" accion="#contenido" />}>
+        <Contenido
+          estado={{ tipo: 'listo', elementos: sesiones }}
+          titulo="Sesiones abiertas"
+          vacio={{ porque: '' }}
+          elemento={(s: string) => <span>{s} <Etiqueta>HACE 2 H</Etiqueta></span>}
+        />
+      </Tarjeta>
+    </section>
+  </main>
+</Base>

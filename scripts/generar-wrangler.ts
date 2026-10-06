@@ -13,6 +13,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { RegistroDeProductos } from '@ed1/productos';
 import { type Celda, type ConfigCeldas, cargarCeldas } from './lib/celdas.ts';
+import { RUTAS_DEL_WORKER } from './lib/cuenta.ts';
 import { cargarProductos } from './lib/registro-productos.ts';
 import { RAIZ } from './lib/repo.ts';
 
@@ -66,7 +67,17 @@ export function wranglerDelCore(config: ConfigCeldas): Record<string, unknown> {
     name: core.worker,
     main: 'src/worker.ts',
     compatibility_date: FECHA_COMPATIBILIDAD,
+    // HU-C4.6: el dominio propio, solo en producción. workers.dev sigue vivo: los cuadernos
+    // instalados llaman a esa URL (P10).
+    // HU-C7.2: la cuenta son assets del CORE. El Worker corre primero solo en sus rutas: una página
+    // pública nunca gasta una invocación. Lo exige una prueba (CA3).
+    assets: {
+      directory: '../cuenta/dist',
+      run_worker_first: [...RUTAS_DEL_WORKER],
+      not_found_handling: '404-page',
+    },
     workers_dev: true,
+    ...(core.dominio ? { routes: [{ pattern: core.dominio, custom_domain: true }] } : {}),
     d1_databases: base(core.d1),
     // La conciliación de pagos (HU-E0.7), cada 15 min. Con el vigía de la celda son 4 de los 5
     // Cron Triggers que da la cuenta gratuita.
@@ -76,6 +87,7 @@ export function wranglerDelCore(config: ConfigCeldas): Record<string, unknown> {
       staging: {
         name: `${core.worker}-staging`,
         workers_dev: true,
+        routes: [],
         d1_databases: base(`${core.d1}_staging`),
         triggers: { crons: [CRON_CONCILIACION] },
       },
@@ -107,11 +119,11 @@ export function presupuestoDeLaCelda(
   registro: RegistroDeProductos = cargarProductos(),
 ): { PRESUPUESTO_USD_MES: string; AL_AGOTARSE: string } {
   const activos = registro.productos.filter((p) => p.estado !== 'retirado');
-  const suma = activos.reduce((s, p) => s + p.presupuesto.usd_mes, 0);
+  const suma = activos.reduce((s, p) => s + (p.presupuesto?.usd_mes ?? 0), 0);
   const propio = registro.productos.find((p) => p.id === celda.producto);
   return {
     PRESUPUESTO_USD_MES: String(suma),
-    AL_AGOTARSE: (propio?.presupuesto.al_agotarse ?? []).join(','),
+    AL_AGOTARSE: (propio?.presupuesto?.al_agotarse ?? []).join(','),
   };
 }
 

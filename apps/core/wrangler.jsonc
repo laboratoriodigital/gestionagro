@@ -4,7 +4,22 @@
   "name": "agro-core",
   "main": "src/worker.ts",
   "compatibility_date": "2026-09-30",
+  "assets": {
+    "directory": "../cuenta/dist",
+    "run_worker_first": [
+      "/api/core/*",
+      "/oauth/*",
+      "/.well-known/*"
+    ],
+    "not_found_handling": "404-page"
+  },
   "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "cuenta.laboratorio-digital.com",
+      "custom_domain": true
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
@@ -24,6 +39,7 @@
     "staging": {
       "name": "agro-core-staging",
       "workers_dev": true,
+      "routes": [],
       "d1_databases": [
         {
           "binding": "DB",

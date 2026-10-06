@@ -50,11 +50,13 @@ export function catalogoDelRepositorio(
     estado: p.estado,
     tipos: p.tipos,
     roles: p.roles,
-    planes: (leerJson(p.planes) as { planes: PlanDelArchivo[] }).planes.map((plan) => ({
-      id: plan.id,
-      nombre: plan.nombre,
-      ...(plan.gratuito === undefined ? {} : { gratuito: plan.gratuito }),
-      ...(plan.cobro === undefined ? {} : { cobro: plan.cobro }),
-    })),
+    planes: (p.planes ? (leerJson(p.planes) as { planes: PlanDelArchivo[] }).planes : []).map(
+      (plan) => ({
+        id: plan.id,
+        nombre: plan.nombre,
+        ...(plan.gratuito === undefined ? {} : { gratuito: plan.gratuito }),
+        ...(plan.cobro === undefined ? {} : { cobro: plan.cobro }),
+      }),
+    ),
   }));
 }
