@@ -17,7 +17,7 @@
 | Hito | Qué queda funcionando | Fase de PLATAFORMA §7 | Cierra | Fecha objetivo | Desbloquea |
 |---|---|---|---|---|---|
 | **HC0 · Producto como dato** | `productos.json`, `cuentas.json`, `dominios.json` y `celdas.json` v2 con sus esquemas; convención de commits con guardia; versión propia del CORE | P0 | C2 | 30 oct 2026 | — |
-| **HC1 · Producto en el CORE** | Migraciones 0006 y 0007 con la receta probada en D1; API por producto (expandir); kill switches por producto; tokens N (verifican v1 y v2); vigía en modo pago | P1 | C4 | 27 nov 2026 | **Tienda M0** (con Workers Paid y la zona `.app`) |
+| **HC1 · Producto en el CORE** | Migraciones 0006 y 0007 con la receta probada en D1; API por producto (expandir); kill switches por producto; tokens N (verifican v1 y v2); vigía en modo pago | P1 | C4 | 27 nov 2026 · **cumplido el 6 oct 2026** | **Tienda M0** (con la zona `.app`; Workers Paid solo si hace falta) |
 | **HC2 · Cuenta v0 con el sistema de diseño** | `@ed1/ui` v2 (tokens, tipografía, componentes, galería y presupuestos); `cuenta.laboratorio-digital.com`: entrar y ver mis organizaciones; el CORE emite v2 | parte de P2 | C6 | 23 dic 2026 | — |
 | **HC3 · Tokens v2 cerrados** | v1 contraído; sesión por producto | P2 | C7 | 22 ene 2027 | **Tienda M2** (panel) |
 | **HC4 · Planes por periodo** | 1, 3, 6 y 12 meses, meses calendario, crédito al cambiar de plan, gracia, celdas al día. **CORE 1.0.0** | P3 | C7 | 22 ene 2027 | **Tienda M4** (cobro del plan) |
@@ -274,7 +274,7 @@ Cada uno con sus estados, sin JavaScript salvo donde se dice:
 | **C3** (festivo) | 3–13 nov | Entrar, organizaciones y equipo saben de productos; auditoría; componentes base | HU-C2.4 (3), HU-C3.1 (5), HU-C3.2 (3), HU-C3.3 (2), HU-C6.3 (5) | 18 |
 | **C4** (festivo) | 17–27 nov | Pagos y CORS por producto; tokens N; el vigía en modo pago | HU-C3.4 (2), HU-C3.5 (2), HU-C4.1 (3), HU-C4.2 (1), HU-C11.1 (5) | 13 |
 | **C5** (festivo) | 30 nov–11 dic | **HC1.** El CORE emite v2, dos productos en staging y la cuenta abre en su dominio | HU-C3.7 (3), HU-C4.3 (3), HU-C4.4 (2), HU-C4.6 (3), HU-C6.4 (3), HU-C7.2 (3), HU-C7.3 (3) | 20 |
-| **C6** (corto) | 14–23 dic | **HC2.** Mis organizaciones; precios por periodo en la base; movimiento y presupuestos. Solo staging desde el 18 dic | HU-C5.1 (2), HU-C5.2 (2), HU-C6.5 (2), HU-C6.6 (2), HU-C7.4 (3), HU-C11.2 (2) | 13 |
+| **C6** (corto) | 14–23 dic | **HC2.** Mis organizaciones; precios por periodo en la base; movimiento y presupuestos. Solo staging desde el 18 dic | HU-C5.1 (2), HU-C5.2 (2), HU-C6.5 (2), HU-C6.6 (2), HU-C7.4 (3) | 11 |
 | — | 24 dic–8 ene | Pausa y congelamiento. Se anota lo que falle en staging | — | — |
 | **C7** (festivo) | 12–22 ene 2027 | **HC3 y HC4. CORE 1.0.0:** v1 contraído, pagar por periodo, gracia, celdas al día | HU-C4.5 (2), HU-C5.3 (3), HU-C5.4 (2), HU-C5.5 (2), HU-C5.6 (3), HU-C5.7 (2), HU-C11.5 (2) | 16 |
 | **C8** | 25 ene–5 feb | **HC5.** Lo legible por agentes; la cuenta muestra sesiones, pagos y actividad | HU-C7.5 (3), HU-C7.6 (2), HU-C7.8 (2), HU-C8.1 (2), HU-C8.2 (3), HU-C8.3 (3), HU-C8.4 (2), HU-C8.5 (3) | 20 |
@@ -288,7 +288,7 @@ Cada uno con sus estados, sin JavaScript salvo donde se dice:
 
 | Hito de la Tienda | Necesita | Lo da | Desde |
 |---|---|---|---|
-| M0 · Fundación | P0, P1, Workers Paid y la zona `laboratorio-digital.app` | HC1 + tareas del dueño (§9) | ~~30 nov~~ 11 dic 2026 (HC1 pasó al C5; «Cambios de rumbo» de la bitácora del CORE). Lo de M0 que no pide P1 puede arrancar antes |
+| M0 · Fundación | P0, P1, ~~Workers Paid~~ y la zona `laboratorio-digital.app` | HC1 + tareas del dueño (§9) | **HC1 cumplido el 6 oct 2026**: dos productos en staging, tokens v2 y la fase N en producción. Workers Paid ya no es condición: se activa solo si hace falta (decisión del dueño, 6 oct 2026) |
 | M2 · Panel | P2 | HC3 | 25 ene 2027 |
 | M4 · Plan por periodo | P3 | HC4 | 25 ene 2027 |
 | M7 · Agentes | P5 | HC6 | 8 mar 2027 |
@@ -516,7 +516,7 @@ Formato de cada historia:
 - **Work items:** WI-C3.6.1 `[código]` · WI-C3.6.2 `[prueba]` · WI-C3.6.3 `[doc]` `docs/runbooks/kill-switch.md`.
 
 #### HU-C3.7 · Staging con dos productos
-- **Capa:** prueba de aceptación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** ~~C4~~ C5 · **Depende de:** HU-C3.1 a HU-C3.6, **HU-C4.3** · **Estado:** En validación (rama `feat/c5-tokens-v2`. `infrastructure/productos-de-prueba.json` declara `ensayo` (un tipo, dos roles, dos planes con 7 días de gracia) y su celda `c9`, que solo existe en el directorio de staging y apunta a la API de c0, que rechaza sus tokens. Se valida con el esquema y las reglas de `productos.json`, y además no puede pisar un producto, un prefijo ni una celda de verdad. `registroDelDestino` es lo único que el despliegue usa: los de prueba van solo a staging. El CORE los atiende solo con `DESTINO=staging`, una variable que pone el despliegue; sin ella, como producción. Crear una organización toma ahora el producto del `aud` del token (cierra lo pendiente de HU-C3.2 CA1), y la cuenta, que no tiene organizaciones, no puede crear una. La app de ensayo es un Worker solo de assets, `ed1-ensayo-staging`, con su propio origen. CA2 queda en una prueba del CORE: la misma persona entra al agro y a ensayo, crea un espacio en cada uno y cada sesión ve solo lo suyo (control negativo: sin el filtro por producto, en rojo). CA3, dos redes: el despliegue de producción se detiene si la base tiene un producto de prueba, y su prueba de humo exige que entrar a «ensayo» responda que no existe. 12 pruebas nuevas. Falta WI-C3.7.3, la validación del dueño en staging: pasos en `docs/runbooks/despliegue.md`) *(Antes: Refinada, movida al C5 el 6 oct 2026: para entrar a un segundo producto y crear allí su organización, el token tiene que decir su producto, y eso es HU-C4.3, que solo puede salir con la fase N ya en producción. Sin eso, el dueño no tendría qué validar en staging)
+- **Capa:** prueba de aceptación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** ~~C4~~ C5 · **Depende de:** HU-C3.1 a HU-C3.6, **HU-C4.3** · **Estado:** Terminada (validada por el dueño en staging el 6 oct 2026: la misma cuenta ve en Ensayo solo su espacio, con `aud: ensayo` y `celda: c9`, y en el cuaderno solo sus fincas. PR #106. `infrastructure/productos-de-prueba.json` declara `ensayo` (un tipo, dos roles, dos planes con 7 días de gracia) y su celda `c9`, que solo existe en el directorio de staging y apunta a la API de c0, que rechaza sus tokens. Se valida con el esquema y las reglas de `productos.json`, y además no puede pisar un producto, un prefijo ni una celda de verdad. `registroDelDestino` es lo único que el despliegue usa: los de prueba van solo a staging. El CORE los atiende solo con `DESTINO=staging`, una variable que pone el despliegue; sin ella, como producción. Crear una organización toma ahora el producto del `aud` del token (cierra lo pendiente de HU-C3.2 CA1), y la cuenta, que no tiene organizaciones, no puede crear una. La app de ensayo es un Worker solo de assets, `ed1-ensayo-staging`, con su propio origen. CA2 queda en una prueba del CORE: la misma persona entra al agro y a ensayo, crea un espacio en cada uno y cada sesión ve solo lo suyo (control negativo: sin el filtro por producto, en rojo). CA3, dos redes: el despliegue de producción se detiene si la base tiene un producto de prueba, y su prueba de humo exige que entrar a «ensayo» responda que no existe. 12 pruebas nuevas. Falta WI-C3.7.3, la validación del dueño en staging: pasos en `docs/runbooks/despliegue.md`) *(Antes: Refinada, movida al C5 el 6 oct 2026: para entrar a un segundo producto y crear allí su organización, el token tiene que decir su producto, y eso es HU-C4.3, que solo puede salir con la fase N ya en producción. Sin eso, el dueño no tendría qué validar en staging)
 - Como dueño, quiero ver en staging dos productos funcionando a la vez, para aceptar la fase P1 sin esperar a la Tienda.
 - **Respaldo:** PLATAFORMA §7 (criterio de P1); P4 y P11.
 - **CA1.** Un producto de ensayo (`ensayo`, con un tipo, dos roles, dos planes y una celda) se siembra **solo** en D1 local y en staging, como las fincas de prueba.
@@ -988,6 +988,8 @@ Formato de cada historia:
 | HU-C9.8 · MCP del cuaderno con escritura (3) | HU-C9.7 un mes en uso. Las escrituras entran como operaciones con `dispositivo = mcp:<cliente>` y pasan por la cuarentena (PLATAFORMA §5.5) |
 | HU-C11.6 · Consola del dueño v0 (5) | El tercer producto con cuentas y pagos (ED1 §3.11 y §31.1). Mientras tanto, el reporte semanal y los tableros |
 | HU-C12.1 · Sitio principal `laboratorio-digital.com` con el sistema de diseño (5) | La marca pública del ecosistema (ED1 Fase 0, decisión D-C3) |
+| HU-C11.1 · Activar el vigía en modo pago (lo que queda: cambiar `plan` a `paid`) | El dueño activa Workers Paid. Decisión del 6 oct 2026: solo cuando sea estrictamente necesario y no haya otra salida para seguir avanzando o creciendo. El código ya está (C4) |
+| HU-C11.2 · Límites por Worker (2) | El mismo: `limits.cpu_ms` y `limits.subrequests` solo existen en el plan pagado (documentación de Cloudflare, leída el 6 oct 2026). En el gratuito la CPU ya está en 10 ms y las subsolicitudes en 50, fijas. Su CA2 (apagar workers.dev en los Workers nuevos de producción) puede hacerse antes si hace falta |
 
 ---
 
@@ -1010,7 +1012,7 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 |---|---|---|
 | Renombrar el repositorio en GitHub | C2 | `docs/runbooks/renombrar-repositorio.md` |
 | Contactos de recuperación de la cuenta y los tres dominios | ~~C2~~ Hecho (5 oct 2026): segundo factor y contactos de la cuenta de Cloudflare. Los tres dominios están registrados en Cloudflare (el dueño, 5 oct 2026): su recuperación depende de la misma cuenta. Riesgo aceptado por ahora, mitigado con el segundo factor y los contactos; se decide en HU-C11.5 si alguno pasa a otro registrador | HU-C1.3 |
-| Activar Workers Paid y las alertas de facturación | C4 (17 nov) | PLATAFORMA §3.2; HU-C11.1 |
+| Activar Workers Paid y las alertas de facturación | ~~C4 (17 nov)~~ Solo cuando sea estrictamente necesario (decisión del dueño, 6 oct 2026) | PLATAFORMA §3.2; HU-C11.1 y HU-C11.2, preparadas |
 | Agregar la zona `laboratorio-digital.app` | 30 nov (Tienda M0) | PLATAFORMA §9.5 |
 | URL de vuelta de Google para `cuenta.laboratorio-digital.com` | C5 | HU-C4.6, con los pasos exactos |
 | Autorizar la copia en su Google Drive | C11 | HU-C11.4, con los pasos exactos |
