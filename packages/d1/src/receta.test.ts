@@ -16,6 +16,8 @@ beforeAll(async () => {
     configuracion: 'apps/core/wrangler.jsonc',
     binding: 'DB',
     base: 'core',
+    // Prueba D1 mismo: siempre en workerd (HU-C11.7, P17).
+    instrumento: 'workerd',
   }));
 }, 60_000);
 afterAll(async () => cerrar?.());

@@ -581,6 +581,7 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
  → resumen de la corrida con TODAS las fallas nombradas (P15)
 ```
 
+- **Dos instrumentos para la base de las pruebas (HU-C11.7):** en los PR, una base en proceso sobre `node:sqlite` (`packages/d1/src/sqlite.ts`); en `main`, el D1 local de workerd (`D1_INSTRUMENTO=workerd`), así una diferencia entre los dos aparece al fusionar. Las pruebas que prueban D1 mismo (la receta de reconstrucción, la matriz de producto) usan siempre workerd.
 - Toda tubería en los flujos lleva `set -o pipefail`. Una prueba de los flujos lo exige (P14).
 - Las herramientas de `scripts/` también corren en `windows-latest`. Por costo de minutos, solo cuando cambian `scripts/` o una vez por semana (P3).
 - Minutos: repo privado, 2.000 min/mes (ED1 §41). Objetivo: menos de 8 min por corrida y cancelar la corrida vieja de la misma rama.

@@ -153,7 +153,7 @@ Al 5 oct 2026 el CORE v0 tiene las guardias que heredó del agro (pruebas del CO
 - **En el CORE:** la receta de reconstrucción se probó en `node:sqlite`, no en D1. El D1 local no reproduce la cuota diaria ni el límite de consultas por invocación. Un proveedor OAuth con un doble que no rota de verdad el refresh no prueba la detección de reuso.
 - **Lo impedirá:** HU-C9.1.
 - **Entradas también:** core 5.
-- **Lo impide hoy:** la receta de reconstrucción corre en el D1 local de workerd, no solo en `node:sqlite` (`packages/d1/src/receta.test.ts`, HU-C2.1).
+- **Lo impide hoy:** la receta de reconstrucción corre en el D1 local de workerd, no solo en `node:sqlite` (`packages/d1/src/receta.test.ts`, HU-C2.1). Y el instrumento rápido de las pruebas (`packages/d1/src/sqlite.ts`, HU-C11.7) escribe lo que no imita, sus propias pruebas se ven en rojo si pierde una propiedad (claves foráneas, lotes atómicos), y el CI de `main` repite toda la batería en workerd.
 - **Entradas:** core 2.
 
 #### P18 · Un documento no lanza una excepción cuando miente

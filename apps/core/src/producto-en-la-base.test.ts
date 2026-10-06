@@ -20,7 +20,8 @@ const ejecutar = async (sql: string) => {
 };
 
 beforeAll(async () => {
-  ({ db, cerrar } = await baseDelCore());
+  // Prueba D1 mismo: siempre en workerd, nunca en el instrumento en proceso (HU-C11.7, P17).
+  ({ db, cerrar } = await baseDelCore('workerd'));
   // El agro, como lo escribe el código v0 (sin producto: lo pone el DEFAULT de la 0006).
   await ejecutar(`
     INSERT INTO celda (id, url_api, estado, anillo_despliegue, shards) VALUES ('c0', 'https://api-c0', 'activa', 0, '["agro_c0_s1"]');
