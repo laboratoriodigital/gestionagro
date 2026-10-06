@@ -100,9 +100,9 @@ export const TEMAS: Record<string, Record<Modo, Partial<Semanticos>>> = {
 /** Tipo: base de 17 px y escala 1,25; la display crece con la pantalla. */
 export const TIPO = {
   'fuente-sans':
-    "'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    "'Geist', 'Geist Respaldo', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   'fuente-mono':
-    "'Geist Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Consolas, 'Liberation Mono', monospace",
+    "'Geist Mono', 'Geist Mono Respaldo', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Consolas, 'Liberation Mono', monospace",
   'texto-base': '1.0625rem',
   'texto-pequeno': '0.875rem',
   'texto-etiqueta': '0.75rem',

@@ -1,4 +1,8 @@
--- CORE · dimensión de producto (docs/plataforma/PLATAFORMA.md §4). Fase EXPANDIR de §7.4: el código v0
+-- CORE · dimensión de producto (docs/plataforma/PLATAFORMA.md §4, ADR-20, HU-C2.2). Pasó de
+-- docs/plataforma/sql/core/ a este directorio el 5 oct 2026, con su receta comprobada en el D1 local
+-- de workerd (HU-C2.1) y su matriz en apps/core/src/producto-en-la-base.test.ts.
+-- Antes de aplicarla, el despliegue exige pragma_foreign_key_check vacío (bitácora core 2).
+-- Fase EXPANDIR de §7.4: el código v0
 -- sigue funcionando entre la migración y el despliegue del Worker nuevo, porque cada columna nueva
 -- trae el valor que el v0 supone ('agro', 'activa').
 --

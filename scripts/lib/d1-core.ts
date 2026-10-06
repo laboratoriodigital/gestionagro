@@ -159,3 +159,47 @@ export function escribirDespliegueCore(
   mkdirSync(join(dir, '.wrangler'), { recursive: true });
   writeFileSync(join(dir, ARCHIVO_SQL_CELDAS), `${sentenciasCeldas.join('\n')}\n`);
 }
+
+/**
+ * Antes de migrar, la base no puede tener filas huérfanas (HU-C2.2, CA4b; bitácora core 2): la
+ * guarda de las migraciones que rehacen tablas revisa TODA la base, y una huérfana vieja haría
+ * fallar la migración por algo que no hizo. Se pregunta con la función de tabla, que D1 acepta
+ * (HU-C2.1), y sin comillas internas para que el comando sirva igual en cualquier shell.
+ */
+export const CONSULTA_HUERFANAS = 'SELECT * FROM pragma_foreign_key_check LIMIT 20';
+
+/**
+ * Las filas de cada consulta en la salida de `wrangler d1 execute --json`, en orden, o `null` si la
+ * salida no se pudo leer o alguna consulta no tuvo éxito: entonces no se sabe (P1). La salida puede
+ * traer texto antes del JSON (wrangler escribe a qué base se conecta).
+ */
+export function resultadosDeLaSalida(salida: string): Record<string, unknown>[][] | null {
+  const inicio = salida.indexOf('[');
+  const fin = salida.lastIndexOf(']');
+  if (inicio < 0 || fin < inicio) return null;
+  try {
+    const lotes = JSON.parse(salida.slice(inicio, fin + 1)) as {
+      results?: Record<string, unknown>[];
+      success?: boolean;
+    }[];
+    if (!Array.isArray(lotes) || lotes.some((l) => l.success === false || !l.results)) return null;
+    return lotes.map((l) => l.results ?? []);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lee la salida de `wrangler d1 execute --json` con `CONSULTA_HUERFANAS`. Devuelve una frase por
+ * huérfana, o `null` si la salida no se pudo leer: entonces no se sabe, y no se migra (P1).
+ */
+export function huerfanasDeLaSalida(salida: string): string[] | null {
+  const lotes = resultadosDeLaSalida(salida);
+  if (lotes === null) return null;
+  return lotes
+    .flat()
+    .map(
+      (f) =>
+        `${String(f['table'] ?? '?')} (fila ${String(f['rowid'] ?? '?')}) apunta a una fila de ${String(f['parent'] ?? '?')} que no existe`,
+    );
+}

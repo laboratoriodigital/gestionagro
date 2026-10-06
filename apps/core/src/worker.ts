@@ -28,7 +28,7 @@ import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed
 import { type Firmante, firmanteDesde } from '@ed1/tokens';
 import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
-import { PRODUCTO_CORE } from './constantes.ts';
+import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
 import {
   callbackDrive,
   canjeDrive,
@@ -169,15 +169,27 @@ export function crearApp(dependencias: Dependencias = {}) {
     c,
     siguiente,
   ) => {
-    if (c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado(PRODUCTO_CORE))) {
-      c.header('retry-after', '120');
-      return c.json(
-        {
-          estado: 'apagado',
-          motivo: 'Entrar está en pausa. Tus registros siguen guardados en el teléfono.',
-        },
-        503,
-      );
+    if (c.env.FLAGS) {
+      const flags = lectorDe(c.env.FLAGS);
+      // Hasta HU-C3.1 toda solicitud es del agro: la sesión todavía no dice su producto.
+      const producto = 'agro';
+      const esPago = c.req.path.startsWith('/api/core/pago/');
+      const todo =
+        (await flags.apagado(KS_CORE)) ||
+        (await flags.apagado(PRODUCTO_CORE)) ||
+        (await flags.apagado(ksDelProducto(producto)));
+      if (todo || (esPago && (await flags.apagado(KS_PAGOS)))) {
+        c.header('retry-after', '120');
+        return c.json(
+          {
+            estado: 'apagado',
+            motivo: todo
+              ? 'Entrar está en pausa. Tus registros siguen guardados en el teléfono.'
+              : 'Pagar está en pausa por un momento. Tu plan sigue igual: intenta más tarde.',
+          },
+          503,
+        );
+      }
     }
     const faltan = (
       ['CORE_JWT_PRIVATE_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'ORIGENES_APP'] as const

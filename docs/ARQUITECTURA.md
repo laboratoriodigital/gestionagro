@@ -50,7 +50,7 @@ Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`
 | 17 | Monorepo privado; `firmware/`, `hardware/` y `packages/agro-calc` se publican como espejo público cuando tengan su primera versión | Diseño abierto (Estudio) sin exponer el SaaS | Todo público desde el día 1 | Aceptada. Excepción temporal: público desde el 30 sep 2026 hasta que se reinicien los minutos de Actions de octubre; luego vuelve a privado (bitácora agro 5) |
 | 18 | Herramientas del repositorio en Node/TypeScript, nunca scripts de bash para el operador | P3: tu máquina es Windows | Scripts `.sh` | Aceptada |
 | 19 | Host `cultivopro.co` (era `agro.laboratorio-digital.com` hasta el 3 oct 2026, que redirige con 301) con las rutas de siempre: calculadoras en `/herramientas/agro/<slug>/`, cuaderno en `/agro/app/`, QR en `/agro/t/` | Subdominio propio desde el día 1, sin spike. Las rutas no cambian, así que volver al dominio principal (o a otro dominio) es cambiar el host y redirigir; los QR impresos siguen sirviendo con la redirección | Dominio principal verificado por el spike HU-E1.4 (cancelado); rutas cortas en el subdominio | Aceptada (30 sep 2026) |
-| 20 | El CORE gana la **dimensión de producto**: tablas de referencia (producto, tipos, roles, planes, precios por periodo), claves foráneas compuestas, y sesión y token (`aud`) por producto (`PLATAFORMA.md` §4) | La Tienda 3.0 es el segundo producto del CORE: sin la dimensión, los `CHECK` del agro la impiden y los datos se mezclan | Un CORE por producto, o agregar tipos a los `CHECK` | Aceptada (5 oct 2026). Diseño y migración 0006: propuestos y probados con `node:sqlite` |
+| 20 | El CORE gana la **dimensión de producto**: tablas de referencia (producto, tipos, roles, planes, precios por periodo), claves foráneas compuestas, y sesión y token (`aud`) por producto (`PLATAFORMA.md` §4) | La Tienda 3.0 es el segundo producto del CORE: sin la dimensión, los `CHECK` del agro la impiden y los datos se mezclan | Un CORE por producto, o agregar tipos a los `CHECK` | Aceptada (5 oct 2026). Migración 0006 en `infrastructure/migraciones/core/` (HU-C2.2): probada en el D1 local de workerd, compatible con el código v0. Se aplica en staging al fusionar y en producción con la siguiente versión publicada |
 | 21 | La Tienda 3.0 entra como **excepción declarada** (como ADR-2), diseñada **desde cero** sobre la plataforma. Los datos de las tiendas 2.0 se cargan después con scripts (`TIENDA-3.0.md`) | Dos tiendas 2.0 en operación y una plataforma probada. La 2.0 no escala: es una cuenta, una hoja y un repositorio por tienda | Esperar a la Fase 7 de ED1, o trasladar la 2.0 | Aceptada (5 oct 2026) |
 | 22 | Planes **prepagados de 1, 3, 6 y 12 meses**, sin débito automático. Los periodos son una tabla de referencia (`PLATAFORMA.md` §4.3, §4.8) | La comisión fija de Bold pesa el 5,2 % en un plan mensual de COP 39.000, el 3,3 % en el semestral y el 3,1 % en el anual | Solo mensual; débito automático (Bold no lo ofrece) | Aceptada (5 oct 2026; el semestral, en la tarde). Meses calendario y crédito al cambiar de plan: propuestos |
 | 23 | **Una sola cuenta de Cloudflare, la de siempre**, para todos los productos. Workers Paid se activa en ella con el M0 de la Tienda 3.0. Los productos se aíslan por presupuesto, kill switch y celdas, y ninguno se reparte entre cuentas gratuitas (`PLATAFORMA.md` §3.1–§3.2) | «Usar la misma cuenta actual de Cloudflare donde ya se viene usando todo» (dueño). Nada que mudar, y Workers Paid es por cuenta: el agro gana sus límites sin otra suscripción | Una cuenta paga aparte para lo que cobra, con graduación de productos (propuesta de la mañana, HA6) | Aceptada (5 oct 2026, tarde) |
@@ -263,13 +263,20 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
 |---|---|
 | `usuario` | id, nombre, email, creado |
 | `identidad` | proveedor (`google`), `sub`, usuario_id |
-| `sesion` | refresh token (hash), dispositivo, creado, expira, revocado |
-| `organizacion` | id, nombre, tipo (`finca`, `asesor`, `cadena`), plan, `plan_vence` (HU-E0.7: vencido, el directorio entrega «gratuito»), **celda_id**, **shard**, anillo |
-| `membresia` | usuario × organización × rol |
-| `invitacion` | código de un solo uso (hash), rol, expira, creada_por |
-| `celda` | id, url base de la API, clave pública vigente y anterior, estado |
+| `sesion` | refresh token (hash), **producto** (un refresh sirve a uno solo, 0006), dispositivo, creado, expira, revocado |
+| `organizacion` | id, **producto**, nombre, tipo y plan (claves foráneas compuestas a los del producto, 0006), estado (`activa`, `mudando`, `suspendida`, `baja`), `plan_vence` (HU-E0.7: vencido, el directorio entrega «gratuito»), **celda_id**, **shard**, anillo |
+| `membresia` | usuario × organización × rol, con el producto de la organización: un rol de otro producto lo rechaza la base (0006) |
+| `invitacion` | código de un solo uso (hash), rol del producto de la organización, expira, creada_por |
+| `celda` | id, **producto** (0006), url base de la API, clave pública vigente y anterior, estado |
 | `interes_plan` | usuario × organización × plan (`finca`, `exportador`, `cadena`) con su fecha: la lista de espera con precio visible (HU-E0.6). Sin cobro ni tarjeta |
-| `pago` | un cobro de Bold por intento: orden, organización, quién, plan, meses, monto que calculó el CORE, ambiente, estado (`esperando`, `aprobado`, `rechazado`, `revisar`) y la transacción (HU-E0.7). Sin datos de tarjeta ni del comprador |
+| `pago` | un cobro de Bold por intento: orden, organización, quién, plan, meses, monto que calculó el CORE, ambiente, estado (`esperando`, `aprobado`, `rechazado`, `revisar`) y la transacción (HU-E0.7). Desde la 0006, `meses` es un periodo de la tabla `periodo` y `periodo_desde`/`periodo_hasta` dicen lo que cubrió. Sin datos de tarjeta ni del comprador |
+| `producto` | Los productos del CORE (ADR-20, 0006): id, nombre y estado (`activo`, `pausado`, `retirado`). La siembra la migración con el agro; el despliegue la pone al día desde `infrastructure/productos.json` (HU-C2.3) |
+| `producto_tipo` | Los tipos de organización de cada producto (0006) |
+| `producto_rol` | Los roles de cada producto, con `administra` e `invitable` (0006) |
+| `plan` | Los planes de cada producto, con `gratuito` y estado (0006) |
+| `periodo` | Los periodos de prepago: 1, 3, 6 y 12 meses (ADR-22). Uno nuevo es un INSERT, no un CHECK (0006) |
+| `plan_precio` | Precio de cada plan por periodo, con `vigente_desde`: un precio no se edita, entra uno nuevo (0006) |
+| `aceptacion_politica` | Qué versión de la política de cada producto aceptó cada persona y cuándo (0006). Reemplaza a `usuario.politica_*`, que se retira al contraer |
 
 - **Dónde vive (HU-E4.1):**
   - Worker `agro-core` en workers.dev, con la base D1 `agro_core` (con `_staging` en staging), en la cuenta de la celda que dice `core.celda` en `celdas.json`.
@@ -554,8 +561,8 @@ Por eso ADR-7 y ADR-8. Abrir cuentas gratuitas para ganar cuota pone en riesgo *
 
 - **GitHub flow:** `main` protegida; ramas `feat/…`, `fix/…`, `docs/…`; pull request con CI en verde para fusionar.
 - **Commits en español**, pequeños, con la forma `tipo(alcance): descripción` (feat, fix, docs, refactor, test, ci, build, perf, chore o revert; alcance en minúsculas; 72 caracteres o menos) y **sin la marca de Claude Code** en commits ni en PR (decisión del dueño, 5 oct 2026). La guardia `scripts/verificar-commits.ts` revisa en el CI los commits, el título y la descripción de cada PR (HU-C0.2, `docs/plataforma/BACKLOG_CORE.md` §2.2).
-- **Versión semántica única del producto** (`X.Y.Z`) en `package.json` de la raíz. Es la fuente de la versión de la app, la API y el `CHANGELOG.md` (P2).
-- **Etiquetas** `vX.Y.Z` al publicar. Las crea el flujo de despliegue al fusionar un PR que sube la versión (§7.3, publicación continua), no una persona.
+- **Versión semántica por producto** (`X.Y.Z`, HU-C0.3, PLATAFORMA §6.3). El agro (CultivoPro): `package.json` de la raíz, `CHANGELOG.md` y etiquetas `vX.Y.Z`; es la fuente de la versión del sitio, el cuaderno y la API de la celda (P2). El CORE: `apps/core/package.json`, `apps/core/CHANGELOG.md` y etiquetas `core-vX.Y.Z`, desde la línea base `core-v0.1.0` (el CORE de la v0.3.0). Un PR que cambia el código del CORE lo anota en su CHANGELOG: la guardia del CI lo exige.
+- **Etiquetas** `vX.Y.Z` y `core-vX.Y.Z` al publicar. Las crea el flujo de despliegue al fusionar un PR que sube la versión de ese producto (§7.3, publicación continua), no una persona.
 
 | Cambio | Versión |
 |---|---|
@@ -574,6 +581,7 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
  → resumen de la corrida con TODAS las fallas nombradas (P15)
 ```
 
+- **Dos instrumentos para la base de las pruebas (HU-C11.7):** en los PR, una base en proceso sobre `node:sqlite` (`packages/d1/src/sqlite.ts`); en `main`, el D1 local de workerd (`D1_INSTRUMENTO=workerd`), así una diferencia entre los dos aparece al fusionar. Las pruebas que prueban D1 mismo (la receta de reconstrucción, la matriz de producto) usan siempre workerd.
 - Toda tubería en los flujos lleva `set -o pipefail`. Una prueba de los flujos lo exige (P14).
 - Las herramientas de `scripts/` también corren en `windows-latest`. Por costo de minutos, solo cuando cambian `scripts/` o una vez por semana (P3).
 - Minutos: repo privado, 2.000 min/mes (ED1 §41). Objetivo: menos de 8 min por corrida y cancelar la corrida vieja de la misma rama.
@@ -589,9 +597,9 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 
 - **El código del servidor se despliega por celda**, en el orden de `anillo_despliegue` de `celdas.json`, celda por celda con `scripts/desplegar.ts` (no con matriz: así se detiene en la primera falla y nombra las que quedaron sin tocar). Staging sale cuando el CI termina en verde en `main`; producción, al publicar una versión.
 - **Publicación continua (4 oct 2026, v0.3.0).** El único paso a mano es aprobar y fusionar el PR. `.github/workflows/desplegar.yml`, en la misma corrida:
-  1. Despliega staging.
-  2. Mira si la versión de `package.json` ya tiene tag. Si no, crea el tag `vX.Y.Z` y la versión en GitHub con las notas de su sección del CHANGELOG (`scripts/notas-de-version.ts`).
-  3. Despliega producción con ese mismo commit.
+  1. Despliega staging (todo).
+  2. `scripts/decidir-publicacion.ts` mira si la versión del agro y la del CORE ya tienen su etiqueta. Por cada una que no, crea la etiqueta (`vX.Y.Z` o `core-vX.Y.Z`) y la versión en GitHub con las notas de su CHANGELOG (`scripts/notas-de-version.ts`, con `--core` para el del CORE).
+  3. Despliega a producción, con ese mismo commit, **solo lo que se publicó** (`desplegar.ts --productos`): el CORE sin el agro, el agro sin el CORE, o los dos con el CORE primero. Así, publicar el agro no lleva a producción cambios del CORE que nadie publicó (HU-C0.3).
 
   Un PR que no sube la versión solo llega a staging. Para publicar, el PR sube la versión (§7.1) y agrega su sección fechada `## [X.Y.Z] - AAAA-MM-DD`. `tests/repo/version.test.ts` no deja fusionar una versión sin su sección. La versión se crea dentro del mismo flujo porque una versión creada con el token de Actions no dispara otros flujos. Cada destino corre en su **ambiente de GitHub** (`staging`, `produccion`), con sus propios secretos, desde el flujo reutilizable `desplegar-destino.yml` (procedimiento: `docs/runbooks/ambientes-github.md`). A mano siguen «Run workflow» (destino y, para retomar, una sola celda) y publicar una versión desde GitHub. Hoy viven en c0 el sitio, el CORE (HU-E4.1) y la API de la celda (HU-E5.1). En cada celda el orden es: sitio, CORE y API, porque la API necesita la clave pública del CORE. Procedimiento: `docs/runbooks/despliegue.md`.
 - **Las funciones se liberan por organización** con flags. En la tienda los anillos eran por repositorio; aquí son por organización y por celda.

@@ -324,6 +324,33 @@ describe('CORS, configuración y kill switch', () => {
     expect(r.headers.get('retry-after')).toBe('120');
     expect((await pedir('/api/core/salud')).status).toBe(200);
   });
+
+  // HU-C3.6: un kill switch por producto y uno para los pagos (PLATAFORMA §4.10).
+  const conApagado = (llave: string) => {
+    env = { ...env, FLAGS: { get: async (k: string) => (k === llave ? 'apagado' : null) } };
+  };
+
+  it.each(['ks:core', 'ks:core:agro'])('con %s apagado, entrar responde 503', async (llave) => {
+    conApagado(llave);
+    const r = await post('/api/core/auth/canje', { codigo: 'x', dispositivo: 't1' });
+    expect(r.status).toBe(503);
+    expect(((await r.json()) as { motivo: string }).motivo).toMatch(/Entrar está en pausa/);
+  });
+
+  it('el kill switch de otro producto no apaga el agro (control negativo)', async () => {
+    conApagado('ks:core:ensayo');
+    const r = await post('/api/core/auth/canje', { codigo: 'x', dispositivo: 't1' });
+    expect(r.status).not.toBe(503);
+  });
+
+  it('con ks:core:pagos apagado, pagar responde 503 y entrar sigue funcionando', async () => {
+    conApagado('ks:core:pagos');
+    const pago = await post('/api/core/pago/crear', { plan: 'finca' });
+    expect(pago.status).toBe(503);
+    expect(((await pago.json()) as { motivo: string }).motivo).toMatch(/Pagar está en pausa/);
+    const entrar = await post('/api/core/auth/canje', { codigo: 'x', dispositivo: 't1' });
+    expect(entrar.status).not.toBe(503);
+  });
 });
 
 describe('HU-E4.3 · crear la organización de la finca del teléfono', () => {

@@ -11,8 +11,10 @@ El Worker del sitio (`agro-sitio`) en la cuenta de la celda c0:
 
 Y el CORE (HU-E4.1) en la misma cuenta, que es quien dice `core.celda` en `celdas.json`:
 - la base D1 `agro_core` (`agro_core_staging` en staging), creada por el despliegue si no existe;
+- antes de migrar, la revisión de filas huérfanas: si la base tiene alguna, o si no se puede saber, no se migra (HU-C2.2, bitácora core 2);
 - sus migraciones (`infrastructure/migraciones/core/`);
-- la tabla `celda`, copiada de `celdas.json`;
+- el catálogo de productos y precios, copiado de `infrastructure/productos.json` y de cada `planes.json`, y la tabla `celda`, copiada de `celdas.json`, en ese orden (HU-C2.3);
+- la comparación del catálogo de la base con los archivos: si no coinciden, el Worker no se publica y el resumen nombra cada diferencia;
 - el Worker `agro-core` en workers.dev, que hoy solo responde `GET /api/core/salud`.
 
 Y la API de cada celda (HU-E5.1), en todas las celdas activas, después del sitio y del CORE:
@@ -62,6 +64,9 @@ El resumen dice en qué celda se detuvo, qué permiso falta o qué parte del hum
 | «entrar: Google recibe otro client_id…» o «la dirección de regreso es…» | El secreto de GitHub no es el del cliente «agro-core», o la URL del CORE cambió. Corrige el secreto, o agrega la dirección nueva en Google Cloud → APIs & Services → Credentials → agro-core → Authorized redirect URIs |
 | «CORE desplegado en …, pero celdas.json dice …» | La URL de workers.dev del CORE cambió (otra cuenta o subdominio). Corrige `core.url` / `core.url_staging` en `celdas.json` por PR y agrega la dirección de regreso nueva en Google Cloud |
 | «al token le falta «Account → D1: Edit»…» | Editar el token en Cloudflare y agregar ese permiso. El valor del token no cambia, así que el secreto de GitHub sigue igual |
+| «la base del CORE tiene N fila(s) huérfana(s)…» | Una fila apunta a otra que ya no existe. La guarda de las migraciones la rechazaría (bitácora core 2). Mira la lista del resumen en Cloudflare → D1 → la base → Console, decide si la fila se borra o se arregla, y vuelve a desplegar. No se migra con huérfanas |
+| «no se pudo revisar si la base del CORE tiene filas huérfanas» | wrangler no pudo consultar la base: el resumen cita su error. Suele ser el permiso de D1 del token. Sin la revisión no se migra (P1) |
+| «el catálogo de la base no es el de productos.json y planes.json» | El SQL del catálogo no se aplicó entero, o alguien editó la base a mano entre los dos pasos. Vuelve a correr el despliegue: reescribe el catálogo. Si la diferencia sigue, es un error del código de `apps/core/src/catalogo.ts` |
 | «migraciones del CORE falló» | El resumen cita el error de wrangler. Antes de reintentar, mira en Cloudflare → D1 → la base → Console qué tablas quedaron (no está verificado si wrangler deshace una migración a medias). Corrige la migración con un archivo **nuevo**, nunca editando uno ya aplicado |
 | «el CORE (…) no entregó su clave pública…» | La API de la celda se despliega después del CORE. Si el CORE está en otra celda, despliégalo primero; si es la misma, revisa la falla del CORE más arriba en el resumen |
 | «API de c0 desplegada en …, pero celdas.json dice …» | Corrige `api` / `api_staging` de esa celda en `celdas.json` por PR y vuelve a desplegar |

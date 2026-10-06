@@ -57,7 +57,8 @@ describe('CA1 · las tablas son las de ARQUITECTURA §5.4, y ninguna más', () =
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name <> 'd1_migrations' ORDER BY name",
       )
       .all<{ name: string }>();
-    expect(delDocumento).toHaveLength(9);
+    // 9 del CORE v0 y 7 de la dimensión de producto (migración 0006, HU-C2.2).
+    expect(delDocumento).toHaveLength(16);
     expect(results.map((r) => r.name)).toEqual(delDocumento);
   });
 });
@@ -222,7 +223,9 @@ describe('CA3 y CA4 · usuarios, organizaciones, membresías y directorio', () =
     const { id } = await persona(1);
     await expect(
       db
-        .prepare("INSERT INTO membresia VALUES (?, 'org-inexistente', 'operario', '2026-10-01')")
+        .prepare(
+          "INSERT INTO membresia (usuario_id, org_id, rol, creado) VALUES (?, 'org-inexistente', 'operario', '2026-10-01')",
+        )
         .bind(id)
         .run(),
     ).rejects.toThrow(/FOREIGN KEY/);
@@ -234,11 +237,12 @@ describe('CA3 y CA4 · usuarios, organizaciones, membresías y directorio', () =
     await expect(
       db
         .prepare(
-          "INSERT INTO invitacion VALUES ('h', ?, 'jefe', '2026-10-08', ?, '2026-10-01', NULL, NULL)",
+          "INSERT INTO invitacion (codigo_hash, org_id, rol, expira, creada_por, creada) VALUES ('h', ?, 'jefe', '2026-10-08', ?, '2026-10-01')",
         )
         .bind(org.id, id)
         .run(),
-    ).rejects.toThrow(/CHECK/);
+      // Desde la 0006 el rol es una fila de producto_rol, no un CHECK: lo rechaza la clave foránea.
+    ).rejects.toThrow(/FOREIGN KEY/);
   });
 
   it('nombres vacíos no se guardan: no hay valores de fábrica (P1)', async () => {

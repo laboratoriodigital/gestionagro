@@ -352,7 +352,7 @@ Formato de cada historia:
 - **Work items:** WI-C0.2.1 `[código]` validador con su tabla de casos buenos y malos · WI-C0.2.2 `[ci]` paso en `ci.yml` con `fetch-depth: 0` · WI-C0.2.3 `[doc]` plantilla de PR y `ARQUITECTURA.md` §7.1 · WI-C0.2.4 `[prueba]` control negativo: un commit con la marca pone el CI en rojo.
 
 #### HU-C0.3 · Versión propia del CORE (`core-vX.Y.Z`)
-- **Capa:** CI y despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C2 · **Depende de:** HU-C0.2 · **Estado:** Refinada
+- **Capa:** CI y despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C2 · **Depende de:** HU-C0.2 · **Estado:** En validación (rama `feat/c2-sprint`. `scripts/lib/publicacion.ts` decide y `desplegar.ts --productos` despliega solo lo publicado. Línea base `core-v0.1.0` = el CORE de la v0.3.0, que es lo que hay en producción: así, fusionar este PR no publica nada solo. Se agregó una guardia que no estaba en los CA: un PR que cambia `apps/core/src` sin anotar `apps/core/CHANGELOG.md` falla, porque la otra línea de trabajo también toca el CORE (el respaldo en Drive) y tiene que saber que publicar el agro ya no lo arrastra. 12 pruebas; control negativo: la guardia marcó esta misma rama mientras el CHANGELOG del CORE no estaba en un commit. Falta verlo en una publicación real, P16)
 - Como dueño, quiero publicar el CORE cuando cambia el CORE, con su versión y su registro de cambios, para no publicar el agro por un cambio de cuenta ni al revés.
 - **Respaldo:** PLATAFORMA §6.3; ARQUITECTURA §7.3 (publicación continua).
 - **CA1.** `apps/core/package.json` lleva la versión del CORE, y `apps/core/CHANGELOG.md` su sección fechada. `tests/repo/version.test.ts` exige la sección para la versión del CORE igual que para la raíz.
@@ -377,7 +377,7 @@ Formato de cada historia:
 - **Work items:** WI-C1.1.1 `[código]` esquema · WI-C1.1.2 `[código]` `@ed1/productos` · WI-C1.1.3 `[prueba]` casos inválidos uno por uno · WI-C1.1.4 `[prueba]` comparación byte a byte de lo generado · WI-C1.1.5 `[doc]` ARQUITECTURA §5.4.
 
 #### HU-C1.2 · `planes.json` con precio por periodo
-- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1 · **Estado:** Refinada
+- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1 · **Estado:** En validación (rama `feat/c2-sprint`. Las reglas viven en `@ed1/productos` (`fallasDeCobro`, `PERIODOS`), y la prueba lee los `planes.json` desde `productos.json`. CA5 cambió: el plan Finca ya lleva los cuatro periodos con la propuesta de PLATAFORMA §4.2 (111.000, 210.000 y 390.000), porque el dueño aceptó las recomendaciones del plan; cambiarlos es editar el archivo. Nada se cobra por más de un mes hasta HU-C5.3. Una prueba exige que `PERIODOS` diga lo mismo que la siembra de `periodo` en la 0006)
 - Como dueño, quiero fijar el precio de 1, 3, 6 y 12 meses de cada plan en el mismo archivo que lee la página de precios, para que el cobro y lo que se muestra no se separen.
 - **Respaldo:** PLATAFORMA §4.2 y §4.8; ADR-22; ED1 §5.3.
 - **CA1.** Cada plan puede llevar `cobro` con claves de periodo. Un periodo sin monto no se ofrece en ese plan.
@@ -399,7 +399,7 @@ Formato de cada historia:
 - **Work items:** WI-C1.3.1 `[código]` dos esquemas · WI-C1.3.2 `[prueba]` hostnames declarados y sin identificadores · WI-C1.3.3 `[dueño]` contactos de recuperación de la cuenta y de los tres dominios.
 
 #### HU-C1.4 · `celdas.json` v2: producto y cuenta por celda
-- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1, HU-C1.3 · **Estado:** Refinada
+- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1, HU-C1.3 · **Estado:** En validación (rama `feat/c2-sprint`. `cuenta` ya existía en `celdas.json`; se agregó `producto` y el patrón de shards pasa de `agro_c…` fijo a `<producto>_c<N>_s<k>`, exigido por `cargarCeldas`. c0 ya cumplía: `agro_c0_s1`. Lo generado quedó idéntico byte a byte. 3 pruebas nuevas, con controles negativos: una celda sin producto y un shard `tienda_c0_s2` en una celda del agro)
 - Como plataforma, quiero que cada celda diga de qué producto es y en qué cuenta vive, para asignar organizaciones solo a celdas de su producto.
 - **Respaldo:** PLATAFORMA §4.9.
 - **CA1.** Cada celda declara `producto` (c0 es `agro`) y `cuenta` (una de `cuentas.json`).
@@ -422,7 +422,7 @@ Formato de cada historia:
 - **Work items:** WI-C2.1.1 `[prueba]` W1–W4 en D1 local · WI-C2.1.2 `[doc]` resultado en PLATAFORMA §4.4 y bitácora core · WI-C2.1.3 `[doc]` ADR-25 en ARQUITECTURA.
 
 #### HU-C2.2 · Migración 0006: el producto en la base, compatible con el v0
-- **Capa:** base · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C2 · **Depende de:** HU-C2.1 · **Estado:** Refinada
+- **Capa:** base · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C2 · **Depende de:** HU-C2.1 · **Estado:** En validación (rama `feat/c2-sprint`. CA1: la 0006 está en `infrastructure/migraciones/core/`. CA2: `apps/core/src/producto-en-la-base.test.ts`, 12 pruebas en el D1 local, cada rechazo por su razón exacta; control negativo: sin la clave foránea del rol, los dos casos de rol se ven en rojo. CA3: la batería entera del CORE y de integración corre sobre la 0006 con el código v0 sin cambios; solo cambiaron dos pruebas de esquema (la lista de tablas de ARQUITECTURA §5.4 y un INSERT sin columnas). CA4b: `desplegar.ts` corre `pragma_foreign_key_check` en remoto antes de migrar y se detiene si hay huérfanas o si no lo puede saber; probado el lector, falta verlo en staging (P16). WI-C2.2.4 y WI-C2.2.5: staging al fusionar; producción con la siguiente versión publicada, con la exportación y la marca de Time Travel anotadas en ese PR)
 - Como plataforma, quiero que toda organización, membresía, invitación, sesión, interés y pago pertenezca a un producto, y que la base rechace los cruces imposibles.
 - **Respaldo:** PLATAFORMA §4.3; ADR-20; R2 y R3.
 - **CA1.** `docs/plataforma/sql/core/0006_dimension_de_producto.sql` pasa a `infrastructure/migraciones/core/`, con la receta y la guarda.
@@ -437,7 +437,7 @@ Formato de cada historia:
 - **Work items:** WI-C2.2.1 `[código]` migración · WI-C2.2.2 `[prueba]` matriz en D1 local · WI-C2.2.3 `[prueba]` compatibilidad v0 · WI-C2.2.4 `[infra]` aplicar en staging · WI-C2.2.5 `[dueño]` validar y aprobar producción · WI-C2.2.6 `[doc]` ADR-20 y ARQUITECTURA §5.4.
 
 #### HU-C2.3 · El despliegue copia `productos.json` a la base
-- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C2 · **Depende de:** HU-C1.1, HU-C1.2, HU-C2.2 · **Estado:** Refinada
+- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C2 · **Depende de:** HU-C1.1, HU-C1.2, HU-C2.2 · **Estado:** En validación (rama `feat/c2-sprint`. `apps/core/src/catalogo.ts` escribe el catálogo en el mismo SQL que las celdas, antes que ellas, y `desplegar.ts` lo lee de vuelta y lo compara con el archivo antes de publicar el Worker (P16). CA3 cambió de forma: cada despliegue reescribe el catálogo, así que una fila editada a mano se corrige sola; lo que la prueba garantiza es que la diferencia se nombra si el despliegue no pudo corregirla. 6 pruebas en el D1 local; control negativo: una fila de plan editada a mano y un precio metido a mano se nombran. El plan gratuito ya no se adivina por su nombre: `planes.json` lo marca con `"gratuito": true`, con su regla (exactamente uno, sin cobro). Falta verlo en staging, P16)
 - Como plataforma, quiero que las tablas `producto`, `producto_tipo`, `producto_rol`, `plan` y `plan_precio` sean siempre el archivo, como hoy `celda` es `celdas.json`.
 - **Respaldo:** PLATAFORMA §4.2; P2; P21.
 - **CA1.** Tras desplegar, las tablas de referencia coinciden con el archivo, y la prueba de humo lo comprueba consultando la base.
@@ -507,7 +507,7 @@ Formato de cada historia:
 - **Work items:** WI-C3.5.1 `[código]` · WI-C3.5.2 `[prueba]` matriz origen × producto.
 
 #### HU-C3.6 · Kill switches del CORE por producto
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C1.1 · **Estado:** En validación (rama `feat/c2-sprint`. Hasta HU-C3.1 toda solicitud cuenta como del agro, porque la sesión aún no dice su producto: está escrito en el Worker. El despliegue asegura `ks:agro-core`, `ks:core`, `ks:core:pagos` y una `ks:core:<producto>` por producto de `productos.json`. 5 pruebas nuevas; control negativo: sin la revisión de pagos, «pagar responde 503» se ve en rojo. Runbook al día)
 - Como dueño, quiero apagar la entrada, la renovación o los pagos de un solo producto, para que un problema en la tienda no apague el agro.
 - **Respaldo:** PLATAFORMA §4.10; ED1 §3.9 y §25.1.
 - **CA1.** `ks:core` apaga todo el CORE, `ks:core:<producto>` lo de un producto y `ks:core:pagos` los cobros de todos. Durante la transición, `ks:agro-core` sigue valiendo: cualquiera de las dos en `apagado` apaga.
@@ -663,7 +663,7 @@ Formato de cada historia:
 - **Work items:** WI-C6.1.1 `[diseño]` paleta y escala · WI-C6.1.2 `[código]` hojas · WI-C6.1.3 `[prueba]` contraste · WI-C6.1.4 `[prueba]` lint de colores sueltos.
 
 #### HU-C6.2 · Tipografía autoalojada
-- **Capa:** diseño · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C6.1, decisión D-C1 · **Estado:** Refinada
+- **Capa:** diseño · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C2 · **Depende de:** HU-C6.1, decisión D-C1 · **Estado:** En validación (rama `feat/c2-sprint`. `scripts/recortar-fuentes.ts` recorta Geist (28 KB) y Geist Mono (29 KB) al latín y al eje de peso 300–600, y genera `fuentes.css` con un respaldo local de métricas ajustadas. Los archivos van al repositorio: el build no recorta y nadie descarga de un tercero. 8 pruebas: peso por fuente y total, la licencia OFL junto a los archivos, la hoja igual a lo generado, solo URLs propias y un ajuste de respaldo razonable. Falta medir el CLS en una página real: llega con la cuenta, HU-C6.6)
 - Como persona, quiero que la cuenta se vea con carácter y cargue igual de rápido.
 - **Respaldo:** §4.4 de este documento.
 - **CA1.** Geist y Geist Mono en `woff2`, recortadas, con su licencia OFL en el paquete y una prueba que exige el archivo de licencia junto a cada fuente.
@@ -967,7 +967,7 @@ Formato de cada historia:
 - **Work items:** WI-C11.6.1 `[código]` `scripts/lib/alcance.ts` con su tabla de casos · WI-C11.6.2 `[código]` `verificar.ts` salta pasos y lo dice · WI-C11.6.3 `[ci]` `fetch-depth: 0` en `ci.yml` · WI-C11.6.4 `[prueba]` control negativo: un archivo de `content/` en la lista hace correr todo.
 
 #### HU-C11.7 · Pruebas de base de datos que cuestan menos
-- **Capa:** pruebas · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** C2 · **Depende de:** HU-C2.1 · **Estado:** Refinada
+- **Capa:** pruebas · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** C2 · **Depende de:** HU-C2.1 · **Estado:** En validación (rama `feat/c2-sprint`. CA1, el spike: 12 a 14 ms por sentencia en el D1 de `getPlatformProxy`, 5 ms en lote y 1,5 s para levantar la base. Se eligió (b): `packages/d1/src/sqlite.ts`, una base en proceso sobre `node:sqlite` que imita lo que el código usa de D1 (claves foráneas, lotes atómicos con `meta.changes`, booleanos, `undefined` rechazado y el prefijo `D1_ERROR`). CA2: la receta y la matriz de producto piden workerd siempre, y el CI de `main` corre todo en workerd (`D1_INSTRUMENTO`); en local, las 1.488 pruebas pasan con los dos. CA3: sin claves foráneas fallan 2 pruebas, y con un lote no atómico, 1. CA4: la suma de los archivos bajó de 195 s a 93 s, con 230 pruebas más que en la medición de partida; `permisos` de 37 a 6 s)
 - Como dueño, quiero que las pruebas que usan la base local tarden lo que vale la lógica y no lo que vale el viaje a la base, porque corren dos veces en cada PR.
 - **Respaldo:** pedido del dueño; P17 (el instrumento también miente).
 - **Medición de partida** (local, 8 núcleos, 5 oct 2026): 1.258 pruebas en 101 archivos; la suma de los archivos es 195 s. `apps/api-celda/src/permisos.test.ts` (101 pruebas) tarda 37,1 s y `apps/core/src/entrar.test.ts` (59), 33,8 s. Cada prueba de `permisos` vuelve a subir la finca entera por el API, y cada sentencia es un viaje al D1 local de `getPlatformProxy`. En el CI, con 2 núcleos, eso es casi todo el paso de pruebas (102,5 s).
@@ -1037,7 +1037,8 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 
 | Sprint | Comprometido | Validado por el dueño | Nota |
 |---|---|---|---|
-| C1 | 19 | — | Se agregó HU-C11.6 al arrancar (eficiencia del CI, pedido del dueño) |
+| C1 | 19 | 19 (PR #92, fusionado el 5 oct 2026) | Se agregó HU-C11.6 al arrancar (eficiencia del CI, pedido del dueño). Terminado el mismo día del arranque, como en el agro: el cuello de botella sigue siendo validar |
+| C2 | 24 | — (PR del 5 oct 2026, en revisión) | Las 8 historias en un día. Una regla nueva que no estaba en los CA: la guardia del CHANGELOG del CORE, porque otra línea de trabajo también lo toca |
 
 ---
 

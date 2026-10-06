@@ -7,10 +7,12 @@
 | Clave | Qué se apaga | Qué sigue funcionando |
 |---|---|---|
 | `ks:agro-calculadora-dpv` | La recepción de eventos (`POST /api/eventos` responde 503 y no escribe en Analytics Engine) | La calculadora: es una página estática que no pasa por el Worker |
-| `ks:agro-core` | Entrar con Google y renovar la sesión (`/api/core/auth/*` responde 503), y pedir el permiso de Google Drive para la copia del productor (`/api/core/drive/*`). La crea el despliegue del CORE aunque no tenga `product.yaml` | El cuaderno en el teléfono; quien ya entró sigue con su access hasta que vence (12 h) |
+| `ks:core` (o su nombre de antes, `ks:agro-core`: cualquiera de las dos apaga) | Todo el CORE: entrar con Google y renovar la sesión (`/api/core/auth/*`), organizaciones, invitaciones, equipo, teléfonos, interés, pagos y el permiso de Google Drive (`/api/core/drive/*`). Responden 503 | El cuaderno en el teléfono; quien ya entró sigue con su access hasta que vence (12 h) |
+| `ks:core:<producto>` (hoy, `ks:core:agro`) | Lo mismo, pero solo para ese producto (HU-C3.6). Apagar el de otro producto no toca el agro | Los demás productos |
+| `ks:core:pagos` | Solo los cobros de planes (`/api/core/pago/*`), de todos los productos. Responde 503 «Pagar está en pausa» | Entrar, el equipo y todo lo demás; los planes ya pagados siguen igual |
 | `ks:agro-cuaderno` | La API de la celda: `/api/v1/*` responde 503 con `Retry-After` (HU-E5.1). Apaga la subida de datos (HU-E5.2): el teléfono espera lo que diga `Retry-After` y lo pendiente se queda en su cola. El aviso al operario en palabras llega con HU-E8.6 | El cuaderno en el teléfono: registra y guarda sin señal ni sincronización |
 
-Las claves las crea el despliegue en `encendido` para cada `product.yaml` con `kill_switch: true`. Un despliegue **nunca** cambia una clave que ya existe: lo que apagues sigue apagado.
+Las claves las crea el despliegue en `encendido`: una por cada `product.yaml` con `kill_switch: true`, y las del CORE (`ks:agro-core`, `ks:core`, `ks:core:pagos` y una `ks:core:<producto>` por cada producto de `infrastructure/productos.json`). Un despliegue **nunca** cambia una clave que ya existe: lo que apagues sigue apagado.
 
 ## Cuánto tarda
 

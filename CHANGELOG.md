@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Las fuentes del sistema de diseño v2: Geist y Geist Mono, recortadas al español (57 KB las dos) y servidas desde el mismo sitio, con un respaldo ajustado para que la página no salte mientras cargan (HU-C6.2, ADR-29).
+- El despliegue copia los productos y los precios de sus archivos a la base del CORE, antes que las celdas, y después comprueba que la base diga lo mismo. Un precio nuevo entra como fila nueva y el anterior queda como historia; un plan o un producto que sale del archivo queda retirado, nunca borrado (HU-C2.3).
+- La base del CORE sabe de productos (migración 0006, ADR-20): tablas de productos, tipos, roles, planes, periodos y precios, y claves foráneas que hacen imposibles los cruces entre productos. Lo que ya funciona sigue igual: es la fase de expandir. Antes de migrar, el despliegue comprueba que la base no tenga filas huérfanas (HU-C2.2).
+- El CORE se puede apagar por producto (`ks:core:<producto>`) o solo en sus cobros (`ks:core:pagos`), además de entero (`ks:core`, o su nombre de antes, `ks:agro-core`). El despliegue crea las claves que falten, encendidas (HU-C3.6).
+- El plan Finca tiene precio para 1, 3, 6 y 12 meses (COP 39.000, 111.000, 210.000 y 390.000), con las reglas que los cuidan: a más meses, el mes nunca sale más caro. Todavía se cobra un mes a la vez (HU-C1.2).
+- Cada celda dice de qué producto es, y los nombres de sus bases llevan ese producto (HU-C1.4).
 - Los tokens de diseño v2 del ecosistema (`@ed1/ui/v2`, ADR-29): tinta y papel con un acento cobalto, el verde de CultivoPro como tema, modo claro y oscuro, y movimiento que se apaga si la persona lo pide. Una sola hoja de 3 KB, generada desde una única fuente, con el contraste AA comprobado por una prueba. El sitio y el cuaderno siguen con la v1 (HU-C6.1).
 - Los productos del CORE como dato: `infrastructure/productos.json` (por ahora, CultivoPro) con su esquema y el paquete `@ed1/productos`. Agregar un producto será un archivo y un despliegue, no una migración (HU-C1.1).
 - ED1 v1.4 (`docs/ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md`), con las decisiones del dueño del 5 oct 2026: una sola cuenta de Cloudflare con Workers Paid cuando llegue la Tienda 3.0, los tres dominios del ecosistema (`laboratorio-digital.com`, `laboratorio-digital.app` y `cultivopro.co`), planes de 1, 3, 6 y 12 meses y el estudio de mercado de ecommerce definitivo. ADR-23, ADR-26 y ADR-27, aceptados.
@@ -13,6 +19,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Plan de trabajo y backlog refinado del CORE (`docs/plataforma/BACKLOG_CORE.md`): 8 hitos, 11 sprints, 12 épicas y 65 historias refinadas (más 5 preparadas) con sus work items, la dirección de diseño del frontend del ecosistema y la cuenta en `cuenta.laboratorio-digital.com`. Y su bitácora (`docs/plataforma/BITACORA_CORE.md`), con las convenciones de las otras dos para unirlas.
 
 ### Cambiado
+- Las pruebas que usan la base de datos cuestan la mitad: en los PR corren sobre una base en proceso con el mismo motor, y el CI de `main` las repite contra el D1 local de Cloudflare para no perder fidelidad (HU-C11.7).
+- El CORE tiene su propia versión y su propio registro de cambios (`apps/core/CHANGELOG.md`, etiquetas `core-vX.Y.Z`): va a producción solo cuando sube su versión, y publicar CultivoPro ya no lo arrastra. **La próxima publicación que lleve el respaldo en Drive sube las dos versiones**, porque el cuaderno usa rutas nuevas del CORE (HU-C0.3).
 - El CI puede correr en un runner propio mientras GitHub Actions no arranca trabajos: lo decide la variable del repositorio `RUNNER_CI`, y sin ella vuelve solo a los equipos de GitHub. Ahí usa el Edge del equipo. Los despliegues siguen en GitHub (`docs/runbooks/runner-propio.md`).
 - El CI revisa la convención de commits del PR, su título y su descripción: `tipo(alcance): descripción`, 72 caracteres o menos y sin la marca de Claude Code. Corre antes de instalar, así que un commit mal escrito se sabe en segundos (HU-C0.2).
 - El CI gasta según lo que cambió: si un PR solo toca documentos (`docs/` o un `.md` de la raíz), no abre navegadores ni compila, y corre solo las pruebas que leen documentos. El resumen dice qué saltó y por qué. Si no puede calcular el cambio, corre todo (HU-C11.6).

@@ -13,8 +13,13 @@
  */
 import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
+import {
+  CONSULTAS_DEL_CATALOGO,
+  diferenciasDelCatalogo,
+  sentenciasDelCatalogo,
+} from '../apps/core/src/catalogo.ts';
 import { sentenciasDeCeldas } from '../apps/core/src/celdas.ts';
-import { PRODUCTO_CORE } from '../apps/core/src/constantes.ts';
+import { killSwitchesDelCore } from '../apps/core/src/constantes.ts';
 import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
 import { generarClavePrivada } from '../packages/tokens/src/index.ts';
 import {
@@ -37,9 +42,12 @@ import {
   ARCHIVO_DESPLIEGUE_CORE,
   ARCHIVO_SQL_CELDAS,
   asegurarBaseD1,
+  CONSULTA_HUERFANAS,
   configDelCore,
   escribirDespliegueCore,
+  huerfanasDeLaSalida,
   nombreD1Core,
+  resultadosDeLaSalida,
   secretosDelCore,
 } from './lib/d1-core.ts';
 import {
@@ -63,6 +71,11 @@ import {
   nombreKvFlags,
 } from './lib/kv-flags.ts';
 import { cargarProductos } from './lib/productos.ts';
+import { productosADesplegar } from './lib/publicacion.ts';
+import {
+  cargarProductos as cargarRegistroDeProductos,
+  catalogoDelRepositorio,
+} from './lib/registro-productos.ts';
 import { RAIZ } from './lib/repo.ts';
 
 const argumento = (nombre: string) => {
@@ -72,10 +85,14 @@ const argumento = (nombre: string) => {
 
 const destino = argumento('--destino') as Destino | undefined;
 if (destino !== 'staging' && destino !== 'produccion') {
-  console.error('❌ Uso: node scripts/desplegar.ts --destino staging|produccion [--solo c0]');
+  console.error(
+    '❌ Uso: node scripts/desplegar.ts --destino staging|produccion [--solo c0] [--productos core,agro]',
+  );
   process.exit(1);
 }
 const solo = argumento('--solo') || undefined;
+// HU-C0.3: qué productos se despliegan. Sin la opción, todos (staging y el «Run workflow» a mano).
+const productos = productosADesplegar(argumento('--productos'));
 // Producción es el entorno de nivel superior de wrangler.jsonc: «--env=» lo elige sin aviso.
 const entorno = destino === 'staging' ? '--env staging' : '--env=';
 
@@ -232,14 +249,27 @@ async function desplegarCore(
     const base = await asegurarBaseD1(fetch, cred.token, cred.cuenta, nombre);
     // HU-E4.2: el kill switch del CORE vive en el mismo KV de flags de la celda.
     const ns = await asegurarNamespace(fetch, cred.token, cred.cuenta, titulo);
-    await asegurarClaves(fetch, cred.token, cred.cuenta, ns.id, [claveKillSwitch(PRODUCTO_CORE)]);
+    // HU-C3.6: el de todo el CORE (con su nombre de antes), el de pagos y uno por producto.
+    const idsDeProductos = cargarRegistroDeProductos().productos.map((p) => p.id);
+    await asegurarClaves(
+      fetch,
+      cred.token,
+      cred.cuenta,
+      ns.id,
+      killSwitchesDelCore(idsDeProductos).map(claveKillSwitch),
+    );
     escribirDespliegueCore(
       configDelCore(wranglerDelCore(config), dest, {
         baseId: base.id,
         flagsId: ns.id,
         origenesApp: [origenApp],
       }),
-      sentenciasDeCeldas(config.celdas, dest),
+      // HU-C2.3: el catálogo de productos va antes que las celdas, porque una celda nombra su
+      // producto. Los dos salen de sus archivos (P2) en el mismo SQL.
+      [
+        ...sentenciasDelCatalogo(catalogoDelRepositorio(), new Date().toISOString()),
+        ...sentenciasDeCeldas(config.celdas, dest),
+      ],
     );
     notaD1 = `D1 ${nombre}${base.creada ? ' (creada)' : ''}`;
     console.log(`  ${notaD1}`);
@@ -248,13 +278,64 @@ async function desplegarCore(
   }
 
   const c = `-c ${ARCHIVO_DESPLIEGUE_CORE} ${entorno}`;
+  // HU-C2.2, CA4b: sin huérfanas antes de migrar. Si las hay, o no se sabe, no se migra (P1).
+  const revision = wrangler(
+    '@ed1/core',
+    `d1 execute DB --remote --json --command "${CONSULTA_HUERFANAS}" ${c}`,
+    cred,
+  );
+  const huerfanas = revision.ok ? huerfanasDeLaSalida(revision.salida) : null;
+  if (huerfanas === null) {
+    return {
+      ok: false,
+      detalle: [
+        'no se pudo revisar si la base del CORE tiene filas huérfanas; no se migra sin saberlo:',
+        ...causaDeWrangler(revision.salida),
+      ],
+    };
+  }
+  if (huerfanas.length > 0) {
+    return {
+      ok: false,
+      detalle: [
+        `la base del CORE tiene ${huerfanas.length} fila(s) huérfana(s); la guarda de las migraciones las rechazaría. Resolverlas antes de migrar (PLATAFORMA §4.4):`,
+        ...huerfanas,
+      ],
+    };
+  }
   const pasos: [string, string][] = [
     ['migraciones del CORE', `d1 migrations apply DB --remote ${c}`],
-    ['directorio de celdas', `d1 execute DB --remote --file ${ARCHIVO_SQL_CELDAS} ${c}`],
+    [
+      'catálogo de productos y directorio de celdas',
+      `d1 execute DB --remote --file ${ARCHIVO_SQL_CELDAS} ${c}`,
+    ],
     ['wrangler deploy del CORE', `deploy ${c}`],
   ];
   let salidaDeploy = '';
   for (const [nombrePaso, argumentos] of pasos) {
+    if (nombrePaso === 'wrangler deploy del CORE') {
+      // HU-C2.3: antes de publicar el Worker, la base tiene que decir lo mismo que el archivo.
+      // No se le cree a wrangler que aplicó: se lee (P16).
+      const lectura = wrangler(
+        '@ed1/core',
+        `d1 execute DB --remote --json --command "${CONSULTAS_DEL_CATALOGO}" ${c}`,
+        cred,
+      );
+      const filas = lectura.ok ? resultadosDeLaSalida(lectura.salida) : null;
+      const diferencias =
+        filas === null
+          ? ['no se pudo leer el catálogo de la base', ...causaDeWrangler(lectura.salida)]
+          : diferenciasDelCatalogo(catalogoDelRepositorio(), filas);
+      if (diferencias.length > 0) {
+        return {
+          ok: false,
+          detalle: [
+            'el catálogo de la base no es el de productos.json y planes.json:',
+            ...diferencias,
+          ],
+        };
+      }
+    }
     const r = wrangler('@ed1/core', argumentos, cred);
     if (!r.ok)
       return { ok: false, detalle: [`${nombrePaso} falló:`, ...causaDeWrangler(r.salida)] };
@@ -516,17 +597,21 @@ for (const celda of plan.aDesplegar) {
   let paso: Paso = { ok: true, detalle: [] };
   // En orden: el CORE (la celda necesita su clave pública), la API de la celda y el sitio, que
   // lleva dentro las claves públicas del QR de las celdas (HU-E6.4).
-  if (alojaCore) {
+  if (alojaCore && productos.has('core')) {
     paso = await desplegarCore(configCeldas, celda, cred, origenDelCuaderno(configCeldas));
     detalle.push(...paso.detalle);
+  } else if (alojaCore) {
+    detalle.push('CORE: sin publicar en este despliegue (su versión no cambió)');
   }
-  if (paso.ok) {
+  if (paso.ok && productos.has('agro')) {
     paso = await desplegarApiCelda(configCeldas, celda, cred);
     detalle.push(...paso.detalle);
-  }
-  if (paso.ok && alojaSitio) {
-    paso = await desplegarSitio(configCeldas, celda, cred);
-    detalle.push(...paso.detalle);
+    if (paso.ok && alojaSitio) {
+      paso = await desplegarSitio(configCeldas, celda, cred);
+      detalle.push(...paso.detalle);
+    }
+  } else if (!productos.has('agro')) {
+    detalle.push('agro: sin publicar en este despliegue (su versión no cambió)');
   }
   resultados.push({ celda: celda.id, estado: paso.ok ? 'desplegada' : 'fallo', detalle });
   if (!paso.ok) detenido = true;

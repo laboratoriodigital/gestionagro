@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fallasDelRegistro, type RegistroDeProductos } from '@ed1/productos';
 import { Ajv2020 } from 'ajv/dist/2020.js';
+import type { PlanDelArchivo, ProductoDelCatalogo } from '../../apps/core/src/catalogo.ts';
 import { RAIZ } from './repo.ts';
 
 const leerJson = (ruta: string) => JSON.parse(readFileSync(join(RAIZ, ruta), 'utf8'));
@@ -34,4 +35,26 @@ export function cargarProductos(
   const fallas = fallasDeProductos(datos);
   if (fallas.length > 0) throw new Error(`productos.json inválido:\n- ${fallas.join('\n- ')}`);
   return datos as RegistroDeProductos;
+}
+
+/**
+ * El catálogo que el despliegue escribe en la base del CORE (HU-C2.3): cada producto del registro
+ * con los planes de su `planes.json`. La fuente sigue siendo el archivo (P2).
+ */
+export function catalogoDelRepositorio(
+  registro: RegistroDeProductos = cargarProductos(),
+): ProductoDelCatalogo[] {
+  return registro.productos.map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    estado: p.estado,
+    tipos: p.tipos,
+    roles: p.roles,
+    planes: (leerJson(p.planes) as { planes: PlanDelArchivo[] }).planes.map((plan) => ({
+      id: plan.id,
+      nombre: plan.nombre,
+      ...(plan.gratuito === undefined ? {} : { gratuito: plan.gratuito }),
+      ...(plan.cobro === undefined ? {} : { cobro: plan.cobro }),
+    })),
+  }));
 }

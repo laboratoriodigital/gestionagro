@@ -15,7 +15,9 @@ import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 import {
   asegurarBaseD1,
   configDelCore,
+  huerfanasDeLaSalida,
   nombreD1Core,
+  resultadosDeLaSalida,
   secretosDelCore,
 } from '../../scripts/lib/d1-core.ts';
 import { type Fetch, humoCore, humoEntrar, verificarToken } from '../../scripts/lib/despliegue.ts';
@@ -266,5 +268,38 @@ describe('prueba de humo del CORE', () => {
     expect(await humoCore(responde(200, { estado: 'ok', celdas: 2 }), 'https://x', 1)).toEqual([
       '/api/core/salud: el directorio tiene 2 celdas activas y celdas.json 1',
     ]);
+  });
+});
+
+describe('sin huérfanas antes de migrar el CORE (HU-C2.2, CA4b)', () => {
+  it('sin filas en foreign_key_check, se puede migrar', () => {
+    const salida = `[{"results":[],"success":true,"meta":{"duration":0.2}}]`;
+    expect(huerfanasDeLaSalida(salida)).toEqual([]);
+  });
+
+  it('con huérfanas, las nombra una por una', () => {
+    const salida =
+      'Executing on remote database agro_core:\n' +
+      '[{"results":[{"table":"membresia","rowid":7,"parent":"organizacion","fkid":0}],"success":true}]';
+    expect(huerfanasDeLaSalida(salida)).toEqual([
+      'membresia (fila 7) apunta a una fila de organizacion que no existe',
+    ]);
+  });
+
+  it.each([
+    ['una salida sin JSON', 'X [ERROR] no autorizado'],
+    ['un lote que no tuvo éxito', '[{"results":[],"success":false}]'],
+    ['un JSON roto', '[{"results":[}]'],
+  ])('con %s no se sabe, y no se migra (P1)', (_caso, salida) => {
+    expect(huerfanasDeLaSalida(salida)).toBeNull();
+  });
+});
+
+describe('leer varias consultas de wrangler d1 execute --json (HU-C2.3)', () => {
+  it('devuelve las filas de cada consulta, en orden, aunque haya texto antes', () => {
+    const salida =
+      '🌀 Executing on remote database agro_core_staging:\n' +
+      '[{"results":[{"id":"agro"}],"success":true},{"results":[],"success":true}]';
+    expect(resultadosDeLaSalida(salida)).toEqual([[{ id: 'agro' }], []]);
   });
 });

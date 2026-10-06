@@ -55,6 +55,9 @@ jobs:
         # solo toca documentos, verificar salta lo que no puede cambiar de resultado (HU-C11.6).
         env:
           # En el runner propio (Windows), el Edge del equipo: la descarga de Chromium no funciona ahí.
+          # Los PR prueban la base con el instrumento en proceso (rápido); main, con el D1 local de
+          # workerd (fiel), para que una diferencia entre los dos aparezca al fusionar (HU-C11.7, P17).
+          D1_INSTRUMENTO: ${{ github.event_name == 'push' && 'workerd' || 'sqlite' }}
           PW_CANAL: ${{ vars.RUNNER_CI == 'self-hosted' && 'msedge' || '' }}
           VERIFICAR_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: node scripts/verificar.ts --ci
