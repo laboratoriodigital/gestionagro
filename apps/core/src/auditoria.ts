@@ -4,6 +4,7 @@
  * Una fila por hecho: una entrada, una invitación aceptada, un cambio de rol, una persona quitada,
  * un teléfono retirado y un pago cerrado (que, si se aprobó, es también el cambio de plan). No se
  * registran lecturas ni renovaciones: cada fila cuesta escrituras de la cuota (ARQUITECTURA §6.2).
+ * La excepción es una renovación rechazada por venir de otra app (HU-C4.4): es un posible robo.
  *
  * La fila se escribe en el mismo lote que el hecho, con `INSERT … SELECT … WHERE EXISTS`: queda
  * solo si el hecho quedó. Nunca hay una auditoría de algo que no pasó, ni un hecho sin su fila.
@@ -19,7 +20,9 @@ export type Accion =
   | 'rol_cambiado'
   | 'persona_quitada'
   | 'telefono_retirado'
-  | 'pago_cerrado';
+  | 'pago_cerrado'
+  /** Un refresh presentado desde la app de otro producto (HU-C4.4): posible robo. */
+  | 'refresh_rechazado';
 
 export interface Hecho {
   instante: string;

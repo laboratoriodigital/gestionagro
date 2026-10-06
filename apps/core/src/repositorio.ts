@@ -254,10 +254,15 @@ export interface EntradaDelDirectorio {
  * Un plan pagado que ya venció se entrega como «gratuito» (HU-E0.7): vence al leerlo, sin tarea
  * programada, y la finca no pierde nada, porque el plan solo decide qué funciones se ven.
  */
+/**
+ * Las organizaciones de la persona. Con `producto`, solo las de ese producto (HU-C4.4): una sesión
+ * del agro no ve ni recibe tokens de las organizaciones de otro producto.
+ */
 export async function directorioDeUsuario(
   db: BaseD1,
   usuarioId: string,
   ahora: number = Date.now(),
+  producto?: string,
 ): Promise<EntradaDelDirectorio[]> {
   const hoy = new Date(ahora).toISOString();
   const vencido = 'o.plan_vence IS NOT NULL AND o.plan_vence <= ?';
@@ -270,10 +275,10 @@ export async function directorioDeUsuario(
          FROM membresia m
          JOIN organizacion o ON o.id = m.org_id
          JOIN celda c ON c.id = o.celda_id
-        WHERE m.usuario_id = ?
+        WHERE m.usuario_id = ?${producto ? ' AND o.producto = ?' : ''}
         ORDER BY o.creado, o.id`,
     )
-    .bind(hoy, hoy, usuarioId)
+    .bind(hoy, hoy, usuarioId, ...(producto ? [producto] : []))
     .all<EntradaDelDirectorio>();
   return results;
 }

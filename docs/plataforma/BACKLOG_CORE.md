@@ -555,7 +555,7 @@ Formato de cada historia:
 - **Work items:** WI-C4.3.1 `[código]` · WI-C4.3.2 `[prueba]` · WI-C4.3.3 `[doc]` ARQUITECTURA §5.4.
 
 #### HU-C4.4 · Refresh por producto
-- **Capa:** sesión · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C5 · **Depende de:** HU-C3.1 · **Estado:** Refinada
+- **Capa:** sesión · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C5 · **Depende de:** HU-C3.1 · **Estado:** En validación (rama `feat/c5-sprint`. El origen se mira **antes** de renovar (`duenoDelRefresh`): un intento desde otra app no rota el refresh ni deja sin sesión a su dueño. Sin `Origin` tampoco pasa. El directorio se filtra por el producto de la sesión, también en el canje. El rechazo deja una fila `refresh_rechazado` con el origen; es la única «renovación» que se audita, porque es un posible robo y no gasta escrituras en el uso normal. CA3 ya lo cumplía `elegirOrganizacion`; ahora lo prueba. 3 pruebas; controles negativos: sin el filtro del directorio, CA1 en rojo; sin la revisión del origen, CA2 en rojo)
 - Como persona, quiero que un refresh robado de una app no saque tokens de otra.
 - **Respaldo:** PLATAFORMA §4.6 (sesión por producto); bitácora agro 25 (cuenta en dos fincas).
 - **CA1.** `POST /api/core/auth/refrescar` exige un `Origin` del producto de la sesión y solo entrega tokens de organizaciones de ese producto.

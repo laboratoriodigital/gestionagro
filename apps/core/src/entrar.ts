@@ -38,6 +38,7 @@ import {
   aceptarPolitica,
   canjearCodigo,
   crearSesion,
+  duenoDelRefresh,
   productoDelCodigo,
   refrescar,
   type SesionActiva,
@@ -235,7 +236,7 @@ async function respuestaDeSesion(
   sesion: SesionActiva,
   pedida: string | undefined,
 ) {
-  const directorio = await directorioDeUsuario(e.db, sesion.usuarioId, e.ahora());
+  const directorio = await directorioDeUsuario(e.db, sesion.usuarioId, e.ahora(), sesion.producto);
   const { org, aviso } = elegirOrganizacion(directorio, pedida);
   const usuario = await e.db
     .prepare('SELECT nombre, email FROM usuario WHERE id = ?')
@@ -325,6 +326,28 @@ export async function renovar(c: Context, e: Entorno): Promise<Response> {
   const datos = await cuerpo(c);
   const refresh = texto(datos['refresh']);
   if (!refresh) return c.json({ estado: 'invalido', motivo: 'Falta el refresh' }, 400);
+  // HU-C4.4: el refresh solo se usa desde la app de su producto. Se mira antes de renovar, para que
+  // un intento desde otra app no rote el refresh de su dueño; y queda en la auditoría.
+  const dueno = await duenoDelRefresh(e.db, refresh);
+  if (dueno) {
+    const pedido = productoDe(e.catalogo, dueno.producto);
+    const origen = c.req.header('origin');
+    if (
+      !('producto' in pedido) ||
+      !origen ||
+      !origenesDelProducto(pedido.producto, e.origenes).includes(origen)
+    ) {
+      await filaDeAuditoria(e.db, {
+        instante: new Date(e.ahora()).toISOString(),
+        producto: dueno.producto,
+        org_id: null,
+        usuario_id: dueno.usuarioId,
+        accion: 'refresh_rechazado',
+        detalle: { origen: origen ?? null },
+      }).run();
+      return c.json({ estado: 'otro-producto', motivo: 'Esta sesión es de otra aplicación.' }, 403);
+    }
+  }
   try {
     return await respuestaDeSesion(
       c,

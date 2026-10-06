@@ -471,6 +471,8 @@ describe('HU-C3.2 · organizaciones, invitaciones y equipo por producto', () => 
     });
 
   /** Un espacio del producto de ensayo, con quien entra como su «dueno», y su token. */
+  /** El refresh vigente de la última sesión de `dueno()` (HU-C4.4). */
+  let refreshDelDueno = '';
   async function dueno(): Promise<string> {
     for (const s of sentenciasDelCatalogo([ensayo], '2026-10-06T00:00:00.000Z')) {
       await db.prepare(s).run();
@@ -506,6 +508,7 @@ describe('HU-C3.2 · organizaciones, invitaciones y equipo por producto', () => 
         body: JSON.stringify({ refresh: canje.refresh, org_id: ORG }),
       })
     ).json()) as Sesion;
+    refreshDelDueno = conOrg.refresh ?? canje.refresh ?? '';
     return conOrg.acceso;
   }
 
@@ -536,6 +539,100 @@ describe('HU-C3.2 · organizaciones, invitaciones y equipo por producto', () => 
       rol: 'colaborador',
     });
     expect(codigo).toBeTruthy();
+  });
+
+  describe('HU-C4.4 · refresh por producto', () => {
+    const FINCA = '0199a1b2-0000-7000-8000-00000000c404';
+    const OTRO = '0199a1b2-0000-7000-8000-00000000c405';
+    const refrescarDesde = (origen: string, refresh: string, org_id?: string) =>
+      ir('/api/core/auth/refrescar', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: origen },
+        body: JSON.stringify({ refresh, ...(org_id ? { org_id } : {}) }),
+      });
+    /** La misma persona, también en una finca del agro. */
+    async function tambienEnElAgro() {
+      const usuario = (await db.prepare('SELECT id FROM usuario').first<{ id: string }>())?.id;
+      await db
+        .prepare(
+          "INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES (?, 'agro', 'Finca', 'finca', 'gratuito', 'c0', 'agro_c0_s1', 1, '2026-11-30')",
+        )
+        .bind(FINCA)
+        .run();
+      await db
+        .prepare(
+          "INSERT INTO membresia (usuario_id, org_id, producto, rol, creado) VALUES (?, ?, 'agro', 'propietario', '2026-11-30')",
+        )
+        .bind(usuario, FINCA)
+        .run();
+    }
+
+    it('CA1 · solo entrega organizaciones del producto de la sesión', async () => {
+      await dueno();
+      await tambienEnElAgro();
+      const r = await refrescarDesde(ENSAYO, refreshDelDueno);
+      expect(r.status).toBe(200);
+      const sesion = (await r.json()) as Sesion & { organizaciones: { org_id: string }[] };
+      expect(sesion.organizaciones.map((o) => o.org_id)).toEqual([ORG]);
+      // Pedir la finca del agro con la sesión de ensayo no da un token de esa finca.
+      const pedida = (await (await refrescarDesde(ENSAYO, refreshDelDueno, FINCA)).json()) as {
+        org_id: string | null;
+        aviso: string | null;
+      };
+      expect(pedida.org_id).not.toBe(FINCA);
+      expect(pedida.aviso).toBe('No perteneces a la organización pedida.');
+    });
+
+    it('CA2 ❌ · desde la app de otro producto: 403, en la auditoría, y el refresh sigue sirviéndole a su dueño', async () => {
+      await dueno();
+      const r = await refrescarDesde(APP, refreshDelDueno);
+      expect(r.status).toBe(403);
+      expect(await r.json()).toMatchObject({ estado: 'otro-producto' });
+      expect(
+        await db
+          .prepare("SELECT producto, detalle FROM auditoria WHERE accion = 'refresh_rechazado'")
+          .first(),
+      ).toEqual({ producto: 'ensayo', detalle: JSON.stringify({ origen: APP }) });
+      expect((await refrescarDesde(ENSAYO, refreshDelDueno)).status).toBe(200);
+      // Sin Origin tampoco.
+      expect(
+        (
+          await ir('/api/core/auth/refrescar', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ refresh: refreshDelDueno }),
+          })
+        ).status,
+      ).toBe(403);
+    });
+
+    it('CA3 · con dos organizaciones del mismo producto, sin pedir una no hay token de ninguna', async () => {
+      await dueno();
+      const usuario = (await db.prepare('SELECT id FROM usuario').first<{ id: string }>())?.id;
+      await db
+        .prepare(
+          "INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES (?, 'ensayo', 'Otro comercio', 'comercio', 'gratis', 'c9', 'ensayo_c9_s1', 1, '2026-11-30')",
+        )
+        .bind(OTRO)
+        .run();
+      await db
+        .prepare(
+          "INSERT INTO membresia (usuario_id, org_id, producto, rol, creado) VALUES (?, ?, 'ensayo', 'colaborador', '2026-11-30')",
+        )
+        .bind(usuario, OTRO)
+        .run();
+      const sinPedir = (await (await refrescarDesde(ENSAYO, refreshDelDueno)).json()) as Sesion & {
+        org_id: string | null;
+      };
+      expect(sinPedir.org_id).toBeNull();
+      expect(await verificarAcceso(await clavePublica(), sinPedir.acceso, reloj)).toMatchObject({
+        org: null,
+      });
+      const pidiendo = (await (await refrescarDesde(ENSAYO, refreshDelDueno, OTRO)).json()) as {
+        org_id: string;
+      };
+      expect(pidiendo.org_id).toBe(OTRO);
+    });
   });
 
   describe('HU-C3.5 · CORS y origen por producto', () => {

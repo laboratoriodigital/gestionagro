@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Renovar la sesión solo funciona desde la app de su producto, y entrega solo las organizaciones de ese producto. Un intento desde otra app recibe 403, no gasta el refresh de su dueño y queda en la auditoría (HU-C4.4).
 - CORS por producto: el CORE deja leer a la app de cada producto del catálogo, y una sesión solo se usa desde la app de su producto, aunque la otra app también esté permitida. Las solicitudes con sesión tienen que traer `Origin`, como lo hace todo navegador (HU-C3.5).
 - «Me interesa» y el pago usan los planes del producto de la organización, con el prefijo de cobro y la pantalla de vuelta de ese producto. Quien paga es quien tiene el rol que administra, no «propietario» escrito en el código. Sigue cobrando un mes (HU-C3.4).
 - `GET /.well-known/jwks.json`: las llaves públicas del CORE en formato estándar (JWK `OKP`/`Ed25519`), las mismas de `/api/core/claves`. Durante una rotación se publica también la anterior, declarada en `CORE_CLAVE_ANTERIOR`; la parte privada nunca sale (HU-C4.2).
