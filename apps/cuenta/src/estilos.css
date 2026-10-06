@@ -152,3 +152,36 @@
   border-radius: var(--radio-campo);
   background: var(--superficie-2);
 }
+
+/* ── Tus espacios (HU-C7.4) ────────────────────────────────────────────── */
+
+.portada__espacios {
+  display: grid;
+  gap: var(--espacio-4);
+  max-width: var(--ancho-lectura);
+  margin-top: var(--espacio-12);
+}
+
+.portada__espacios[hidden],
+.portada__espacios [hidden] {
+  display: none;
+}
+
+.portada__subtitulo {
+  margin: 0;
+  font-size: var(--texto-titulo-2);
+  font-weight: var(--peso-fuerte);
+}
+
+.portada__lista {
+  display: grid;
+  gap: var(--espacio-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portada__detalle {
+  margin: 0;
+  color: var(--texto-suave);
+}

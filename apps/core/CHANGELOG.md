@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- `POST /api/core/cuenta/espacios`: los espacios de la persona en todos los productos, con rol, plan y la dirección de cada app. Solo con un token de la cuenta (HU-C7.4).
 - Dos productos en staging (HU-C3.7): con `DESTINO=staging`, el CORE atiende además los productos de prueba (`infrastructure/productos-de-prueba.json`). En producción no existen: el despliegue se detiene si aparece uno en la base, y la prueba de humo exige que el CORE diga que no existe. Crear una organización toma el producto del token, y la cuenta no puede crear una.
 - Los tokens de acceso son del formato del ecosistema (v2): dicen su producto, el plan vigente con la gracia ya aplicada y cuándo fue la última entrada con Google. Las celdas de producción los aceptan desde CultivoPro 0.4.0; los tokens anteriores siguen valiendo hasta que vencen (HU-C4.3).
 - La cuenta del ecosistema es el producto `cuenta`, sin organizaciones (ADR-28), con su política. `POST /api/core/auth/salir` cierra una sesión en el CORE, solo desde la app de su producto (HU-C7.3).

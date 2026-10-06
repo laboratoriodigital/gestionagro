@@ -11,6 +11,8 @@
  * - `POST /api/core/invitaciones[/ver|/aceptar]`: invitar al equipo por WhatsApp (HU-E4.4).
  * - `POST /api/core/equipo/{ver,rol,quitar}` y `/api/core/telefonos/{ver,retirar}`: el equipo de
  *   la finca y los teléfonos de la cuenta (HU-E4.6, `equipo.ts`).
+ * - `POST /api/core/cuenta/espacios`: los espacios de la persona en todos los productos, solo con un
+ *   token de la cuenta (HU-C7.4, `cuenta.ts`).
  * - `POST /api/core/interes[/ver]`: la lista de espera de planes con precio visible (HU-E0.6,
  *   `interes.ts`).
  * - `POST /api/core/pago/{crear,confirmar}`: pagar el plan en línea con Bold (HU-E0.7, `pagos.ts`).
@@ -30,6 +32,7 @@ import { type ClavePublica, type Firmante, firmanteDesde, verificarAcceso } from
 import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
 import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
+import { espaciosDeLaCuenta } from './cuenta.ts';
 import {
   callbackDrive,
   canjeDrive,
@@ -295,6 +298,7 @@ export function crearApp(dependencias: Dependencias = {}) {
     '/api/core/pago/*',
     '/api/core/drive/*',
     '/api/core/auditoria/*',
+    '/api/core/cuenta/*',
   ]) {
     app.use(ruta, corsDelCuaderno);
     app.use(ruta, conEntorno);
@@ -314,6 +318,9 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/api/core/telefonos/retirar', (c) => retirarTelefono(c, c.get('entorno')));
   app.post('/api/core/auditoria/ver', (c) => verAuditoria(c, c.get('entorno')));
   app.post('/api/core/interes', (c) => marcarInteres(c, c.get('entorno')));
+  app.post('/api/core/cuenta/espacios', (c) =>
+    espaciosDeLaCuenta(c, { ...c.get('entorno'), destino: c.env.DESTINO }),
+  );
   app.post('/api/core/interes/ver', (c) => verInteres(c, c.get('entorno')));
   const conPago = (
     c: Context<{ Bindings: Env; Variables: { entorno: Entorno } }>,

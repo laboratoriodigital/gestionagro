@@ -738,7 +738,7 @@ Formato de cada historia:
 - **Work items:** WI-C7.3.1 `[código]` · WI-C7.3.2 `[prueba]` e2e · WI-C7.3.3 `[dueño]` textos.
 
 #### HU-C7.4 · Mis espacios en todos los productos
-- **Capa:** app y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C6 · **Depende de:** HU-C7.3 · **Estado:** Refinada
+- **Capa:** app y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C6 · **Depende de:** HU-C7.3 · **Estado:** En validación (rama `feat/c6-sprint`. `POST /api/core/cuenta/espacios` (`apps/core/src/cuenta.ts`) responde solo a un token de la cuenta (`aud = cuenta`, ADR-28): el de una app ve lo de su producto por su lado. Lista lo que sale de la membresía en todos los productos, con el plan del token (con la gracia) y la dirección que abre la app de cada uno, la de staging o la de producción según `DESTINO`. La cuenta renueva con su refresh, pide los espacios y pinta una tarjeta por cada uno con las clases de `Tarjeta`, solo con texto (nada de HTML que venga de afuera). Estados: cargando, vacío con qué hacer y error con su causa y «Intentar de nuevo». 5 pruebas: 3 del CORE con dos productos y la cuenta de la misma persona, y 2 e2e con axe. Controles negativos: sin la revisión del `aud`, el token del agro ve todo y la prueba sale en rojo; CA3, quitar la membresía saca el espacio de la lista. Revisada en capturas a 360 px, en claro y en oscuro)
 - Como persona que tiene una finca y colabora en una tienda, quiero verlas juntas y abrir cada una con un toque.
 - **Respaldo:** ED1 §16 («qué ve cada persona sale de la membresía y del plan»).
 - **CA1.** Inicio muestra una tarjeta por organización: producto, nombre, rol, plan y vencimiento, y el botón que abre la app del producto.

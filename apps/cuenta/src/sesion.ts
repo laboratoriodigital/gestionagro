@@ -103,7 +103,145 @@ async function canjear(codigo: string): Promise<Guardado | null> {
   }
   const g = { refresh: cuerpo.refresh, nombre: cuerpo.usuario?.nombre ?? '' };
   localStorage.setItem(CLAVE, JSON.stringify(g));
+  acceso = (cuerpo as { acceso?: string }).acceso ?? null;
   return g;
+}
+
+// ── Tus espacios (HU-C7.4) ─────────────────────────────────────────────────
+
+interface Espacio {
+  org_id: string;
+  nombre: string;
+  producto_nombre: string;
+  rol: string;
+  plan_nombre: string;
+  plan_vence: string | null;
+  abrir: string | null;
+}
+
+/** El acceso de esta visita: el del canje, o uno renovado con el refresh guardado. */
+let acceso: string | null = null;
+
+const FECHA = new Intl.DateTimeFormat('es-CO', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'America/Bogota',
+});
+/** «28 feb 2027»: la fecha de Bogotá como dato, sin los «de» de la frase. */
+const fecha = (iso: string) =>
+  FECHA.formatToParts(new Date(iso))
+    .filter((p) => p.type === 'day' || p.type === 'month' || p.type === 'year')
+    .map((p) => p.value.replace('.', ''))
+    .join(' ');
+
+type EstadoDeEspacios = 'cargando' | 'vacio' | 'error' | 'lista';
+
+function mostrarEspacios(estado: EstadoDeEspacios, causa?: string) {
+  const partes: Record<EstadoDeEspacios, string> = {
+    cargando: '[data-espacios-cargando]',
+    vacio: '[data-espacios-vacio]',
+    error: '[data-espacios-error]',
+    lista: '[data-espacios-lista]',
+  };
+  for (const [nombre, selector] of Object.entries(partes)) {
+    for (const el of todos(selector)) el.hidden = nombre !== estado;
+  }
+  if (causa) for (const el of todos('[data-espacios-causa]')) el.textContent = causa;
+}
+
+const nodo = <K extends keyof HTMLElementTagNameMap>(
+  etiqueta: K,
+  clase: string,
+  texto?: string,
+) => {
+  const el = document.createElement(etiqueta);
+  if (clase) el.className = clase;
+  if (texto !== undefined) el.textContent = texto;
+  return el;
+};
+
+/** Una tarjeta por espacio, con las clases de `Tarjeta` del sistema de diseño. Solo texto: nada de HTML. */
+function tarjeta(e: Espacio): HTMLLIElement {
+  const li = document.createElement('li');
+  const caja = nodo('section', 'ed1-tarjeta');
+  caja.append(nodo('h3', 'ed1-tarjeta__titulo', e.nombre));
+  const cuerpo = nodo('div', 'ed1-tarjeta__cuerpo');
+  const rol = e.rol.charAt(0).toUpperCase() + e.rol.slice(1);
+  cuerpo.append(nodo('p', 'portada__detalle', `${e.producto_nombre} · ${rol}`));
+  const plan = nodo('p', 'portada__detalle', `Plan ${e.plan_nombre}`);
+  if (e.plan_vence) {
+    plan.append(' · vence ', nodo('span', 'ed1-etiqueta', fecha(e.plan_vence)));
+  }
+  cuerpo.append(plan);
+  caja.append(cuerpo);
+  if (e.abrir) {
+    const pie = nodo('div', 'ed1-tarjeta__pie');
+    const enlace = nodo('a', 'ed1-boton ed1-boton--primario', `Abrir en ${e.producto_nombre}`);
+    enlace.href = e.abrir;
+    pie.append(enlace);
+    caja.append(pie);
+  }
+  li.append(caja);
+  return li;
+}
+
+/** Renueva con el refresh guardado. Si la sesión ya no sirve, la olvida y lo dice. */
+async function renovar(g: Guardado): Promise<string | null> {
+  const r = await fetch('/api/core/auth/refrescar', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ refresh: g.refresh }),
+  }).catch(() => null);
+  const cuerpo = (await r?.json().catch(() => ({}))) as {
+    acceso?: string;
+    refresh?: string | null;
+    motivo?: string;
+  };
+  if (r?.status === 401 || r?.status === 403) {
+    localStorage.removeItem(CLAVE);
+    pintar(null);
+    mostrarError(cuerpo.motivo ?? 'Tu sesión venció. Vuelve a entrar.');
+    return null;
+  }
+  if (!r?.ok || !cuerpo.acceso) return null;
+  if (cuerpo.refresh)
+    localStorage.setItem(CLAVE, JSON.stringify({ ...g, refresh: cuerpo.refresh }));
+  return cuerpo.acceso;
+}
+
+async function cargarEspacios() {
+  const g = leer();
+  if (!g) return;
+  mostrarEspacios('cargando');
+  acceso ??= await renovar(g);
+  if (!leer()) return; // la sesión venció al renovar: ya se dijo
+  if (!acceso) {
+    mostrarEspacios(
+      'error',
+      'No pudimos traer tus espacios. Revisa tu conexión e intenta de nuevo.',
+    );
+    return;
+  }
+  const r = await fetch('/api/core/cuenta/espacios', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${acceso}` },
+    body: '{}',
+  }).catch(() => null);
+  const cuerpo = (await r?.json().catch(() => ({}))) as { espacios?: Espacio[]; motivo?: string };
+  if (!r?.ok || !cuerpo.espacios) {
+    acceso = null;
+    mostrarEspacios('error', cuerpo.motivo ?? 'No pudimos traer tus espacios. Intenta de nuevo.');
+    return;
+  }
+  if (cuerpo.espacios.length === 0) {
+    mostrarEspacios('vacio');
+    return;
+  }
+  for (const lista of todos('[data-espacios-lista]')) {
+    lista.replaceChildren(...cuerpo.espacios.map(tarjeta));
+  }
+  mostrarEspacios('lista');
 }
 
 async function salir(boton: HTMLButtonElement) {
@@ -124,6 +262,7 @@ async function salir(boton: HTMLButtonElement) {
     }
   }
   localStorage.removeItem(CLAVE);
+  acceso = null;
   boton.disabled = false;
   boton.removeAttribute('aria-busy');
   pintar(null);
@@ -147,6 +286,10 @@ async function iniciar() {
   for (const boton of todos<HTMLButtonElement>('button[data-salir]')) {
     boton.addEventListener('click', () => void salir(boton));
   }
+  for (const boton of todos<HTMLButtonElement>('button[data-espacios-reintentar]')) {
+    boton.addEventListener('click', () => void cargarEspacios());
+  }
+  if (g) await cargarEspacios();
 }
 
 if (typeof document !== 'undefined') void iniciar();

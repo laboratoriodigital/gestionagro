@@ -62,6 +62,29 @@ const apps = registro.productos
         <button class="ed1-boton ed1-boton--secundario" type="button" data-salir>Salir</button>
       </div>
     </section>
+
+    <section class="portada__espacios" data-con-sesion hidden aria-labelledby="titulo-espacios">
+      <h2 class="portada__subtitulo" id="titulo-espacios">Tus espacios</h2>
+      <p class="ed1-contenido ed1-contenido--cargando" role="status" data-espacios-cargando>
+        Cargando tus espacios…
+      </p>
+      <div class="ed1-contenido ed1-contenido--vacio" data-espacios-vacio hidden>
+        <p>
+          Todavía no tienes espacios en nuestras aplicaciones. Cuando crees uno, o alguien te
+          invite al suyo, aparece aquí.
+        </p>
+        <a class="ed1-boton ed1-boton--secundario" href="https://cultivopro.co/agro/app/">
+          Conocer CultivoPro
+        </a>
+      </div>
+      <div class="ed1-contenido ed1-contenido--error" role="alert" data-espacios-error hidden>
+        <p data-espacios-causa>No pudimos traer tus espacios.</p>
+        <button class="ed1-boton ed1-boton--secundario" type="button" data-espacios-reintentar>
+          Intentar de nuevo
+        </button>
+      </div>
+      <ul class="portada__lista" aria-labelledby="titulo-espacios" data-espacios-lista hidden></ul>
+    </section>
   </main>
 </Base>
 
