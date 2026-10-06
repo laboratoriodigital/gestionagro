@@ -91,6 +91,9 @@ test('HU-C7.4 · CA1: una tarjeta por espacio de cada producto, con su plan y el
   );
   await expect(page.getByRole('link', { name: 'Abrir en Ensayo' })).toBeVisible();
   expect(pedidos).toEqual([{ ruta: 'espacios', autorizacion: 'Bearer acceso-cuenta' }]);
+  // axe mide el estado final: el revelado al desplazar (HU-C6.5) baja la opacidad solo mientras
+  // un elemento entra a la pantalla, y a media animación el contraste no es el que se lee.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
@@ -184,6 +187,9 @@ test('HU-C7.3 · si el canje falla, lo dice junto a la acción', async ({ page }
 test('HU-C7.3 · la portada y la política no tienen violaciones de accesibilidad', async ({
   page,
 }) => {
+  // axe mide el estado final: el revelado al desplazar (HU-C6.5) baja la opacidad solo mientras
+  // un elemento entra a la pantalla, y a media animación el contraste no es el que se lee.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   for (const ruta of ['/', '/privacidad/']) {
     await page.goto(`${CUENTA}${ruta}`);
     const { violations } = await new AxeBuilder({ page })

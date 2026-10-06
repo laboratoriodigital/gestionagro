@@ -690,7 +690,7 @@ Formato de cada historia:
 - **Work items:** WI-C6.4.1 `[código]` galería · WI-C6.4.2 `[prueba]` axe y capturas.
 
 #### HU-C6.5 · Movimiento con propósito, sin JavaScript
-- **Capa:** diseño · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C6.3 · **Estado:** Refinada
+- **Capa:** diseño · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C6.3 · **Estado:** En validación (rama `feat/c6-sprint`. `.ed1-revelar` en `componentes.css`: la animación vive dentro de `@supports (animation-timeline: view())` y de `prefers-reduced-motion: no-preference`; fuera de ese bloque nada empieza oculto. Se usa en las tarjetas de «Tus espacios» y en los títulos de la política. Las transiciones ya usaban los tiempos de 150 a 400 ms de los tokens. 3 e2e: CA1 con la línea de tiempo activa, CA2 con «reducir movimiento» y CA3 quitando el bloque `@supports` de la hoja en vivo. Control negativo: un `opacity: 0` fuera del bloque deja el texto oculto sin la función, y CA3 sale en rojo. **Hallazgo:** el minificador juntaba las declaraciones en el atajo `animation`, que no acepta la línea de tiempo, y el navegador descartaba la regla (bitácora core 7). Las pruebas de accesibilidad de la cuenta miden el estado final, con «reducir movimiento»: a media animación, lo que entra a la pantalla tiene menos contraste)
 - Como persona, quiero que la página se sienta viva sin que tarde ni maree.
 - **Respaldo:** §4.2 de este documento (el revelado de Coda Press).
 - **CA1.** Revelado al desplazar con `animation-timeline: view()` dentro de `@supports`, y transiciones de 150 a 400 ms.

@@ -420,3 +420,21 @@ La regla: **un número que viene de un instrumento se mira con «¿es razonable?
 La regla: **lo que el CI prueba en un PR es ese PR contra la base de ese momento. Lo que depende de cómo se juntan dos cambios se revisa también después de fusionar, en `main`.**
 
 *Ficha:* core · *(compartido)* · 🟢 Bajo · P16, P18 · core-0.2.0 · 2026-10-06
+
+**7 · El minificador juntó la animación en el atajo `animation`, y el navegador descartó la regla entera.**
+
+*Qué pasó.* El 6 oct 2026, en HU-C6.5, el revelado al desplazar de la cuenta no se movía. La e2e de CA1 decía que la animación de los títulos era `none`.
+
+*Síntoma literal.* En la hoja compilada: «.ed1-revelar{animation:linear both ed1-revelar view();animation-range:entry entry 60%}». En el navegador, la misma regla leída con `cssRules` era «.ed1-revelar { animation-range: entry entry 60%; }»: la declaración `animation` no estaba.
+
+*Causa raíz.* En la fuente estaban `animation: ed1-revelar linear both` y `animation-timeline: view()`, por separado. Al minificar, el CSS de Astro y Vite las juntó en el atajo, con `view()` adentro. Chrome no acepta la línea de tiempo dentro de `animation` (el atajo solo la reinicia), así que la declaración entera es inválida y se descarta en silencio. El primer sospechoso fue otro: este Windows pide «reducir movimiento» cuando sus animaciones están apagadas. Fijar `reducedMotion: 'no-preference'` en la prueba no lo arregló, y por eso se miró la hoja.
+
+*Cómo se reprodujo.* Leyendo la regla del CSS de `dist` y `document.styleSheets` en una prueba con Playwright.
+
+*Arreglo.* Propiedades largas (`animation-name`, `animation-timing-function`, `animation-fill-mode`, `animation-range`) y la línea de tiempo en su propia regla, `:where(.ed1-revelar)`, que el minificador no junta con la otra.
+
+**Lo prueba** `tests/e2e/cuenta-movimiento.spec.ts`, CA1: lee `animationName` y la opacidad en el navegador, sobre la hoja compilada. Control negativo: con la regla de antes, la animación es `none` y la prueba sale en rojo.
+
+La regla: **el CSS que importa se prueba en el navegador, sobre lo compilado. Lo que se escribió no es lo que llega: el minificador también decide.**
+
+*Ficha:* core · *(del terreno)* · 🟢 Bajo · P17, P5 · core-0.2.0 · 2026-10-06

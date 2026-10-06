@@ -182,6 +182,7 @@ function tarjeta(e: Espacio): HTMLLIElement {
     pie.append(enlace);
     caja.append(pie);
   }
+  li.className = 'ed1-revelar';
   li.append(caja);
   return li;
 }
