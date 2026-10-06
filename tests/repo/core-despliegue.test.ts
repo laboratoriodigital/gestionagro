@@ -101,8 +101,23 @@ describe('entrar con Google en el despliegue (HU-E4.2)', () => {
       origenesApp: ['https://agro.ejemplo.test'],
     });
     expect(prod['kv_namespaces']).toEqual([{ binding: 'FLAGS', id: 'kv-prod' }]);
-    expect(prod['vars']).toEqual({ ORIGENES_APP: 'https://agro.ejemplo.test' });
+    // DESTINO: el CORE de producción nunca atiende los productos de prueba (HU-C3.7).
+    expect(prod['vars']).toEqual({
+      ORIGENES_APP: 'https://agro.ejemplo.test',
+      DESTINO: 'produccion',
+    });
     expect(JSON.stringify(prod['env'])).not.toContain('ORIGENES_APP');
+    const staging = configDelCore(generada, 'staging', {
+      baseId: 'b',
+      flagsId: 'kv-staging',
+      origenesApp: ['https://agro.ejemplo.test'],
+    });
+    expect(
+      (staging['env'] as Record<string, Record<string, unknown>>)['staging']?.['vars'],
+    ).toEqual({
+      ORIGENES_APP: 'https://agro.ejemplo.test',
+      DESTINO: 'staging',
+    });
   });
 
   it('carga Google siempre y genera la clave de firma solo si el Worker no tiene una', async () => {

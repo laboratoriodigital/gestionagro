@@ -56,6 +56,7 @@ import {
   humo,
   humoCore,
   humoEntrar,
+  humoSinProductosDePrueba,
   type ResultadoCelda,
   resumenDespliegue,
   urlDeWorkersDev,
@@ -71,6 +72,11 @@ import {
   nombreKvFlags,
 } from './lib/kv-flags.ts';
 import { cargarProductos } from './lib/productos.ts';
+import {
+  cargarProductosDePrueba,
+  productosDePruebaEn,
+  registroDelDestino,
+} from './lib/productos-de-prueba.ts';
 import { productosADesplegar } from './lib/publicacion.ts';
 import {
   cargarProductos as cargarRegistroDeProductos,
@@ -250,7 +256,9 @@ async function desplegarCore(
     // HU-E4.2: el kill switch del CORE vive en el mismo KV de flags de la celda.
     const ns = await asegurarNamespace(fetch, cred.token, cred.cuenta, titulo);
     // HU-C3.6: el de todo el CORE (con su nombre de antes), el de pagos y uno por producto.
-    const idsDeProductos = cargarRegistroDeProductos().productos.map((p) => p.id);
+    // HU-C3.7: en staging, también los productos de prueba.
+    const registro = registroDelDestino(dest, cargarRegistroDeProductos());
+    const idsDeProductos = registro.productos.map((p) => p.id);
     await asegurarClaves(
       fetch,
       cred.token,
@@ -266,9 +274,13 @@ async function desplegarCore(
       }),
       // HU-C2.3: el catálogo de productos va antes que las celdas, porque una celda nombra su
       // producto. Los dos salen de sus archivos (P2) en el mismo SQL.
+      // HU-C3.7: en staging, también los productos de prueba y sus celdas de directorio.
       [
-        ...sentenciasDelCatalogo(catalogoDelRepositorio(), new Date().toISOString()),
-        ...sentenciasDeCeldas(config.celdas, dest),
+        ...sentenciasDelCatalogo(catalogoDelRepositorio(registro), new Date().toISOString()),
+        ...sentenciasDeCeldas(
+          [...config.celdas, ...(dest === 'staging' ? cargarProductosDePrueba().celdas : [])],
+          dest,
+        ),
       ],
     );
     notaD1 = `D1 ${nombre}${base.creada ? ' (creada)' : ''}`;
@@ -325,7 +337,19 @@ async function desplegarCore(
       const diferencias =
         filas === null
           ? ['no se pudo leer el catálogo de la base', ...causaDeWrangler(lectura.salida)]
-          : diferenciasDelCatalogo(catalogoDelRepositorio(), filas);
+          : [
+              ...diferenciasDelCatalogo(
+                catalogoDelRepositorio(registroDelDestino(dest, cargarRegistroDeProductos())),
+                filas,
+              ),
+              // HU-C3.7, CA3: un producto de prueba en la base de producción detiene el despliegue.
+              ...(dest === 'produccion'
+                ? productosDePruebaEn(
+                    filas,
+                    cargarProductosDePrueba().productos.map((p) => p.id),
+                  )
+                : []),
+            ];
       if (diferencias.length > 0) {
         return {
           ok: false,
@@ -398,9 +422,19 @@ async function desplegarCore(
     ? 'clave de firma nueva generada'
     : 'clave de firma existente conservada';
 
-  const activas = config.celdas.filter((x) => x.estado === 'activa').length;
+  // HU-C3.7: en staging, el directorio tiene además las celdas de los productos de prueba.
+  const activas =
+    config.celdas.filter((x) => x.estado === 'activa').length +
+    (dest === 'staging' ? cargarProductosDePrueba().celdas.length : 0);
   const fallas = await conReintentos(async () => [
     ...(await humoCore(fetch, url, activas)),
+    ...(dest === 'produccion'
+      ? await humoSinProductosDePrueba(
+          fetch,
+          url,
+          cargarProductosDePrueba().productos.map((p) => p.id),
+        )
+      : []),
     ...(await humoEntrar(fetch, url, {
       clienteId: process.env['GOOGLE_CLIENT_ID'] ?? '',
       origenApp,
@@ -438,6 +472,45 @@ async function notaDelDominio(fetchFn: typeof fetch, dominio: string): Promise<s
   } catch (e) {
     return `⚠️ dominio ${dominio}: todavía no responde (${(e as Error).message}); el certificado puede tardar unos minutos`;
   }
+}
+
+/**
+ * HU-C3.7: la app del producto de ensayo, solo en staging. Solo assets: su origen tiene que ser el
+ * que declara `productos-de-prueba.json`, porque el CORE solo acepta ese (P2).
+ */
+async function desplegarEnsayo(cred: Credenciales): Promise<Paso> {
+  const deploy = wrangler('@ed1/ensayo', 'deploy --env staging', cred);
+  if (!deploy.ok) {
+    return {
+      ok: false,
+      detalle: ['ensayo: wrangler deploy falló:', ...causaDeWrangler(deploy.salida)],
+    };
+  }
+  const url = urlDeWorkersDev(deploy.salida);
+  const declarado = cargarProductosDePrueba().productos.find((p) => p.id === 'ensayo')?.app
+    .origenes;
+  const esperado = typeof declarado === 'object' ? declarado.staging : undefined;
+  if (!url || url !== esperado) {
+    return {
+      ok: false,
+      detalle: [
+        `ensayo desplegado en ${url ?? '?'}, pero productos-de-prueba.json dice ${esperado ?? '?'}. Corrígelo por PR.`,
+      ],
+    };
+  }
+  const fallas = await conReintentos(async () => {
+    try {
+      const r = await fetch(`${url}/`);
+      return r.status === 200 && (await r.text()).includes('Ensayo')
+        ? []
+        : [`ensayo: ${url}/ respondió ${r.status}`];
+    } catch (e) {
+      return [`ensayo: ${url}/ no respondió (${(e as Error).message})`];
+    }
+  });
+  return fallas.length > 0
+    ? { ok: false, detalle: fallas }
+    : { ok: true, detalle: [`ensayo (segundo producto, solo staging): ${url}`] };
 }
 
 async function desplegarApiCelda(
@@ -623,6 +696,10 @@ for (const celda of plan.aDesplegar) {
   if (alojaCore && productos.has('core')) {
     paso = await desplegarCore(configCeldas, celda, cred, origenDelCuaderno(configCeldas));
     detalle.push(...paso.detalle);
+    if (paso.ok && destino === 'staging') {
+      paso = await desplegarEnsayo(cred);
+      detalle.push(...paso.detalle);
+    }
   } else if (alojaCore) {
     detalle.push('CORE: sin publicar en este despliegue (su versión no cambió)');
   }

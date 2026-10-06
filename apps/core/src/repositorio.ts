@@ -245,6 +245,11 @@ export interface EntradaDelDirectorio {
   anillo: 1 | 2;
   /** API de la celda del destino, copiada de celdas.json en cada despliegue (HU-E5.1). */
   url_api: string | null;
+  /** El producto de la organización: el `aud` del token v2 (HU-C4.3). */
+  producto: string;
+  /** El plan pagado y su vencimiento tal como están, sin la gracia: el token la aplica (HU-C4.3). */
+  plan_pagado: string;
+  vence_pagado: string | null;
 }
 
 /**
@@ -271,7 +276,8 @@ export async function directorioDeUsuario(
       `SELECT o.id AS org_id, o.nombre, o.tipo,
               CASE WHEN ${vencido} THEN 'gratuito' ELSE o.plan END AS plan,
               CASE WHEN ${vencido} THEN NULL ELSE o.plan_vence END AS plan_vence,
-              m.rol, o.celda_id, o.shard, o.anillo, c.url_api
+              m.rol, o.celda_id, o.shard, o.anillo, c.url_api,
+              o.producto, o.plan AS plan_pagado, o.plan_vence AS vence_pagado
          FROM membresia m
          JOIN organizacion o ON o.id = m.org_id
          JOIN celda c ON c.id = o.celda_id

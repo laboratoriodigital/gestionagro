@@ -165,6 +165,23 @@ const CABECERA =
 const comoTexto = (config: Record<string, unknown>) =>
   `${CABECERA}${JSON.stringify(config, null, 2)}\n`;
 
+/**
+ * La app del producto de ensayo (HU-C3.7): solo assets, sin código de Worker. Existe solo en
+ * staging: el despliegue nunca la publica en producción, y su configuración de arriba no se usa.
+ */
+export const WORKER_ENSAYO = 'ed1-ensayo';
+export const RUTA_WRANGLER_ENSAYO = join(RAIZ, 'apps', 'ensayo', 'wrangler.jsonc');
+export function wranglerDeEnsayo(): Record<string, unknown> {
+  return {
+    $schema: 'node_modules/wrangler/config-schema.json',
+    name: WORKER_ENSAYO,
+    compatibility_date: FECHA_COMPATIBILIDAD,
+    assets: { directory: './dist' },
+    workers_dev: true,
+    env: { staging: { name: `${WORKER_ENSAYO}-staging`, workers_dev: true } },
+  };
+}
+
 export const textoWranglerDelSitio = (config: ConfigCeldas): string =>
   comoTexto(wranglerDelSitio(config));
 export const textoWranglerDelCore = (config: ConfigCeldas): string =>
@@ -179,6 +196,7 @@ if (process.argv[1]?.endsWith('generar-wrangler.ts')) {
     writeFileSync(rutaWranglerCelda(celda.id), textoWranglerDeLaCelda(celda));
     return rutaWranglerCelda(celda.id);
   });
-  for (const ruta of [RUTA_WRANGLER_SITIO, RUTA_WRANGLER_CORE, ...deCeldas])
+  writeFileSync(RUTA_WRANGLER_ENSAYO, comoTexto(wranglerDeEnsayo()));
+  for (const ruta of [RUTA_WRANGLER_SITIO, RUTA_WRANGLER_CORE, RUTA_WRANGLER_ENSAYO, ...deCeldas])
     console.log(`✅ ${ruta}`);
 }

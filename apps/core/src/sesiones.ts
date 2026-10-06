@@ -105,6 +105,8 @@ export interface SesionActiva {
   usuarioId: string;
   /** El producto de la sesión (HU-C3.1): solo entrega organizaciones de ese producto (HU-C4.4). */
   producto: string;
+  /** Cuándo entró con Google (ms): `auth_time` del token v2. Renovar no lo cambia (HU-C4.3). */
+  autenticada: number;
   /** Refresh nuevo cuando se emitió o rotó; null si sigue valiendo el que la app ya tiene. */
   refresh: string | null;
   refreshVence: number;
@@ -122,7 +124,7 @@ export async function canjearCodigo(
     .prepare(
       `UPDATE sesion SET refresh_hash = ?, dispositivo = ?, expira = ?
         WHERE refresh_hash = ? AND dispositivo = ? AND revocado IS NULL AND expira > ?
-        RETURNING usuario_id, producto`,
+        RETURNING usuario_id, producto, creado`,
     )
     .bind(
       await hashDe(refresh),
@@ -132,26 +134,33 @@ export async function canjearCodigo(
       SIN_CANJEAR,
       iso(ahora),
     )
-    .first<{ usuario_id: string; producto: string }>();
+    .first<{ usuario_id: string; producto: string; creado: string }>();
   if (!fila) {
     throw new SesionInvalida(
       'Este enlace de entrada ya se usó o venció. Vuelve a tocar «Entrar con Google».',
     );
   }
-  return { usuarioId: fila.usuario_id, producto: fila.producto, refresh, refreshVence: vence };
+  return {
+    usuarioId: fila.usuario_id,
+    producto: fila.producto,
+    autenticada: Date.parse(fila.creado),
+    refresh,
+    refreshVence: vence,
+  };
 }
 
 export async function refrescar(db: BaseD1, refresh: string, ahora: number): Promise<SesionActiva> {
   const hash = await hashDe(refresh);
   const sesion = await db
     .prepare(
-      'SELECT id, usuario_id, producto, expira, revocado, dispositivo FROM sesion WHERE refresh_hash = ?',
+      'SELECT id, usuario_id, producto, creado, expira, revocado, dispositivo FROM sesion WHERE refresh_hash = ?',
     )
     .bind(hash)
     .first<{
       id: string;
       usuario_id: string;
       producto: string;
+      creado: string;
       expira: string;
       revocado: string | null;
       dispositivo: string;
@@ -170,6 +179,7 @@ export async function refrescar(db: BaseD1, refresh: string, ahora: number): Pro
     return {
       usuarioId: sesion.usuario_id,
       producto: sesion.producto,
+      autenticada: Date.parse(sesion.creado),
       refresh: null,
       refreshVence: expira,
     };
@@ -186,6 +196,7 @@ export async function refrescar(db: BaseD1, refresh: string, ahora: number): Pro
   return {
     usuarioId: sesion.usuario_id,
     producto: sesion.producto,
+    autenticada: Date.parse(sesion.creado),
     refresh: nuevo,
     refreshVence: vence,
   };

@@ -14,6 +14,7 @@
       "!apps/sitio/wrangler.jsonc",
       "!apps/api-celda/wrangler.c*.jsonc",
       "!apps/core/wrangler.jsonc",
+      "!apps/ensayo/wrangler.jsonc",
       "!packages/ui/src/v2/tokens.css",
       "!packages/ui/src/v2/fuentes.css",
       "!schemas/agro-export.schema.json"

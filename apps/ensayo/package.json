@@ -1,0 +1,13 @@
+{
+  "name": "@ed1/ensayo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "La app del producto de ensayo (HU-C3.7): existe solo en staging, para validar que el CORE atiende a dos productos a la vez.",
+  "type": "module",
+  "scripts": {
+    "build": "node ../../scripts/armar-ensayo.ts && wrangler deploy --dry-run --outdir .wrangler/dry-run-staging --env staging"
+  },
+  "devDependencies": {
+    "wrangler": "^4.144.0"
+  }
+}

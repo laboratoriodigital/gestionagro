@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="core" content="{{CORE}}" />
+    <meta name="politica" content="{{POLITICA}}" />
+    <title>Ensayo · segundo producto de staging</title>
+    <link rel="stylesheet" href="/ensayo.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Ensayo</h1>
+      <p class="suave">
+        Un segundo producto que existe solo en staging, para comprobar que el CORE atiende a dos a la
+        vez. Entra con la misma cuenta de Google que usas en el cuaderno de staging: aquí solo debes ver
+        lo de Ensayo, y allá solo tus fincas.
+      </p>
+
+      <p class="error" data-error hidden></p>
+
+      <section data-sin-sesion>
+        <form method="get" action="{{CORE}}/api/core/auth/google/inicio">
+          <input type="hidden" name="producto" value="ensayo" />
+          <input type="hidden" name="politica" value="{{POLITICA}}" />
+          <input type="hidden" name="vuelta" value="" data-vuelta />
+          <label><input type="checkbox" name="acepto" value="si" required /> Acepto la política de prueba de Ensayo.</label>
+          <button type="submit">Entrar con Google</button>
+        </form>
+      </section>
+
+      <section data-con-sesion hidden>
+        <p>Entraste como <strong data-nombre></strong>.</p>
+        <h2>Tus espacios en Ensayo</h2>
+        <ul data-espacios></ul>
+        <p class="suave" data-sin-espacios hidden>Todavía no tienes ninguno.</p>
+        <button type="button" data-crear>Crear un espacio de prueba</button>
+        <h2>Lo que dice tu sesión</h2>
+        <pre data-token></pre>
+        <button type="button" data-salir>Salir</button>
+      </section>
+    </main>
+    <script type="module" src="/ensayo.js"></script>
+  </body>
+</html>
