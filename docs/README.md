@@ -19,6 +19,8 @@ docs/
 ├── agro/                  CultivoPro: su estudio de mercado y sus mediciones
 │   └── validacion/
 ├── tienda/                la Tienda 3.0 y la línea ecommerce
+│   ├── BACKLOG_TIENDA3.md plan, sprints e historias de la Tienda 3.0
+│   ├── BITACORA_TIENDA3.md lo que se rompió y se aprendió en la Tienda 3.0 (la bitácora tienda3)
 │   ├── historia/          el estudio de mercado anterior
 │   └── sql/               migraciones propuestas de la tienda, con su prueba
 ├── runbooks/              procedimientos paso a paso
@@ -46,6 +48,8 @@ docs/
 | `agro/ESTUDIO-MERCADO-AGRO-2026-09.md` | Mercado, competencia, precios y visión de hardware del agro: el «Estudio» que citan ARQUITECTURA y BACKLOG | Nueva investigación. `planes.test.ts` ata sus precios a la página de planes |
 | `agro/validacion/` | Demanda de búsqueda, revisión agronómica y métricas de las herramientas | Cada medición |
 | `tienda/TIENDA-3.0.md` | El diseño del producto de comercio electrónico, con su modelo de datos probado | Cambia el diseño |
+| `tienda/BACKLOG_TIENDA3.md` | Hitos, sprints, épicas, historias, work items y velocidad de la Tienda 3.0, con la dirección de diseño de la vitrina y del panel | Planeación y cierre de cada sprint de la Tienda |
+| `tienda/BITACORA_TIENDA3.md` | Lo que se rompió y se aprendió en la Tienda 3.0 («bitácora tienda3 N»), con las mismas convenciones que las otras bitácoras para unirlas | Algo se rompe o se aprende en la Tienda 3.0. Una entrada nueva va al final |
 | `tienda/ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10-v1.3.md` | El mercado de ecommerce: competencia, pagos, entrega, facturación y precios. Es del dueño, y el definitivo | Por el dueño. Una versión nueva es un archivo nuevo; la anterior pasa a `historia/` |
 | `tienda/VALIDACION-ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md` | La validación del estudio contra el ecosistema ([V1]–[V11]) y las respuestas del dueño | — |
 | `tienda/integracion-tienda-ecosistema.md` | Por qué la Tienda 3.0 va sobre esta plataforma | — |

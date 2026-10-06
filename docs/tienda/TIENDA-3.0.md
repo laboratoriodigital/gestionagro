@@ -778,6 +778,7 @@ botón       = { orderId, currency: "COP", amount, apiKey: <identidad>, integrit
 - **La vuelta no lleva secretos.** Bold le agrega `?bold-order-id=…&bold-tx-status=…`, y esos parámetros **nunca se creen**.
 - La página guarda el token opaco del cobro en `sessionStorage` antes de abrir Bold. Al volver, pregunta con él (§9.5).
 - Si el token se perdió (la persona volvió en otro navegador), la página ofrece el enlace de seguimiento, que llegó en el acuse.
+- **Nota del plan (6 oct 2026):** en el pago en línea el acuse puede no haber salido del navegador que empezó (no hay mensaje de WhatsApp, y el correo es opcional). Por eso la página entrega el enlace de seguimiento **antes** de abrir Bold, para copiarlo o mandárselo por WhatsApp, y lo guarda en el `localStorage` de la tienda (`BACKLOG_TIENDA3.md` HU-T11.9; bitácora tienda3 3).
 
 ### 9.4 Avisos de Bold (webhooks)
 
@@ -993,6 +994,7 @@ La CSP de cada tienda se calcula al hornear según sus ajustes y va en el manifi
 ### 11.5 Fotos
 
 - **El panel comprime en el navegador.** Genera WebP de 400, 800 y 1600 px y sube las derivadas. El original no sale del teléfono (browser-first).
+  - **Nota del plan (6 oct 2026):** Safari no codifica WebP en `canvas.toBlob` y devuelve PNG (bitácora agro, terreno). Ahí las derivadas salen en JPEG, y la ruta (`<ancho>.<formato>`) y `medio.formatos` dicen el formato real (`BACKLOG_TIENDA3.md` HU-T8.3; bitácora tienda3 2).
 - **Las fotos se sirven** desde `img.laboratorio-digital.app/<org>/<huella>/<ancho>.webp`, que es un dominio personalizado de R2, sin Worker, con `Cache-Control: public, max-age=31536000, immutable`.
 - **La página usa `srcset`**, carga diferida y medidas explícitas, sin saltos de diseño.
 
@@ -1315,7 +1317,7 @@ Lo incluido lo comparten el agro y el CORE. Hoy consumen una fracción, que el v
 
 1. **Time Travel de D1:** 30 días en el plan pago, cualquier minuto.
 2. **`tienda-export` semanal** por tienda en R2. Se guardan 4 semanales y 3 mensuales.
-3. **Una copia mensual fuera de Cloudflare,** ya cifrada, porque los datos personales van en sus sobres. El proveedor se elige en `../plataforma/proveedores-de-computo.md`. Cubre la suspensión de la cuenta (ED1 §20.3), que con todo en una cuenta es el riesgo mayor (`PLATAFORMA.md` §3.1).
+3. **Una copia semanal fuera de Cloudflare,** ya cifrada, porque los datos personales van en sus sobres. Va al Google Drive del dueño, con la llave fuera de Google (ADR-30, que reemplazó la copia mensual con proveedor por elegir que decía esta sección: bitácora tienda3 4). La construye HU-C11.4 del CORE, y HU-T17.3 le suma las bases de la Tienda. Cubre la suspensión de la cuenta (ED1 §20.3), que con todo en una cuenta es el riesgo mayor (`PLATAFORMA.md` §3.1).
 4. **Simulacro trimestral** en staging (P16): restaurar una tienda de prueba en un shard vacío y comparar huellas tabla por tabla. Restaurar es **unir** lo que falta, nunca reemplazar el presente (bitácora ecommerce 77).
 
 ### 15.5 Correo
@@ -1470,6 +1472,8 @@ Con las tarifas de Workers Paid reunidas en `../plataforma/cuenta-cloudflare.md`
 ## 19. Hitos
 
 Supone 20 horas por semana del dueño, con Claude haciendo los commits. Cada hito deja algo en staging o en producción, con sus pruebas, y no rompe lo anterior.
+
+> **Las historias, los sprints y las fechas de estos hitos están en `BACKLOG_TIENDA3.md`** (6 oct 2026), que es la fuente del plan. Dos cambios frente a esta tabla: el **tablero** pasa de M5 a M2, porque el anexo C lo exige antes de cargar una tienda (bitácora tienda3 1), y las fechas salen de la velocidad que el dueño alcanza a validar, no de estas semanas (`BACKLOG_TIENDA3.md` §6.2).
 
 | Hito | Semanas | Depende de | Deja funcionando | Criterio de aceptación |
 |---|---|---|---|---|
