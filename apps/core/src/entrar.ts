@@ -26,6 +26,7 @@ import {
   type MotivoDeProducto,
   origenesDelProducto,
   PRODUCTO_POR_DEFECTO,
+  planEnElToken,
   productoDe,
   vueltaDelProducto,
 } from './productos.ts';
@@ -243,6 +244,8 @@ async function respuestaDeSesion(
     .prepare('SELECT nombre, email FROM usuario WHERE id = ?')
     .bind(sesion.usuarioId)
     .first<{ nombre: string; email: string }>();
+  // HU-C4.3 (fase N+1): tokens v2. El producto es el de la organización o, sin ella, el de la
+  // sesión. Las celdas los aceptan desde la fase N (HU-C4.1); los v1 ya emitidos valen hasta su exp.
   const acceso = await firmarAcceso(
     e.firmante,
     {
@@ -252,8 +255,12 @@ async function respuestaDeSesion(
       celda: org?.celda_id ?? null,
       shard: org?.shard ?? null,
       anillo: org?.anillo ?? null,
+      aud: org?.producto ?? sesion.producto,
+      ...(org ? planEnElToken(e.catalogo, org, e.ahora()) : {}),
+      auth_time: Math.floor(sesion.autenticada / 1000),
     },
     e.ahora(),
+    2,
   );
   return c.json({
     acceso: acceso.token,

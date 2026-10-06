@@ -157,3 +157,23 @@ export function origenesDeTodos(
     .flatMap((p) => origenesDelProducto(p, origenesDeLaCelda));
   return [...new Set(todos)];
 }
+
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * El plan que va en el token v2 (HU-C4.3, PLATAFORMA §4.6): el pagado mientras no haya vencido con
+ * la gracia de su producto, y si venció, el gratuito de ese producto. `plan_vence` (segundos) ya
+ * trae la gracia: la celda aplica sus límites sin llamar al CORE ni saber de gracias.
+ */
+export function planEnElToken(
+  catalogo: CatalogoDelCore,
+  org: { producto: string; plan_pagado: string; vence_pagado: string | null },
+  ahora: number,
+): { plan: string; plan_vence: number | null } {
+  if (!org.vence_pagado) return { plan: org.plan_pagado, plan_vence: null };
+  const gracia = catalogo.productos.find((p) => p.id === org.producto)?.gracia_dias ?? 0;
+  const vence = Date.parse(org.vence_pagado) + gracia * DIA_MS;
+  if (ahora < vence) return { plan: org.plan_pagado, plan_vence: Math.floor(vence / 1000) };
+  const gratuito = planesDe(catalogo, org.producto).find((p) => p.gratuito)?.id ?? 'gratuito';
+  return { plan: gratuito, plan_vence: null };
+}

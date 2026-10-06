@@ -546,7 +546,7 @@ Formato de cada historia:
 - **Work items:** WI-C4.2.1 `[código]` · WI-C4.2.2 `[prueba]`.
 
 #### HU-C4.3 · Tokens N+1: el CORE emite v2
-- **Capa:** tokens · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C4.1 desplegada en todas las celdas, HU-C3.1 · **Estado:** Refinada
+- **Capa:** tokens · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C4.1 desplegada en todas las celdas, HU-C3.1 · **Estado:** En validación (rama `feat/c5-tokens-v2`. La fase N está en producción desde el 6 oct 2026 a las 17:18 UTC (CultivoPro 0.4.0), así que la publicación que lleve esto puede salir desde las 05:18 UTC del 7 oct. `respuestaDeSesion` firma v2: `aud` es el producto de la organización o, sin ella, el de la sesión; `plan` y `plan_vence` salen de `planEnElToken`, que aplica la gracia del producto (de `productos.json`, porque la base no la guarda) y, vencida, da el gratuito **de ese producto**; `auth_time` es `sesion.creado`, que solo escribe entrar con Google: renovar no lo toca. El directorio trae además el producto y el plan pagado sin la gracia, para el token; la respuesta al teléfono no cambia. 8 pruebas: los reclamos de CA1, sin organización, CA2 (un v1 firmado sigue abriendo las rutas del CORE), CA3 y la gracia con un producto de 7 días. Control negativo: con `auth_time` tomado de la hora de renovar, CA3 en rojo)
 - Como app de un producto, quiero tokens con `aud`, `plan`, `plan_vence`, `auth_time` y `ver`, para aplicar mis límites sin llamar al CORE.
 - **Respaldo:** PLATAFORMA §4.6.
 - **CA1.** El CORE emite `iss = ed1-core`, `aud` = producto de la organización, `plan` y `plan_vence` con la gracia aplicada, `auth_time` de la última entrada interactiva y `ver = 2`.

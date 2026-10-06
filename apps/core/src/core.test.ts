@@ -139,6 +139,9 @@ describe('CA3 y CA4 · usuarios, organizaciones, membresías y directorio', () =
         shard: 'agro_c0_s1',
         anillo: 1,
         url_api: real.celdas[0]?.api_staging,
+        producto: 'agro',
+        plan_pagado: 'gratuito',
+        vence_pagado: null,
       },
     ]);
   });

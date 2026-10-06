@@ -1131,6 +1131,66 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
     return { p, r, cuerpo: (await r.json()) as { codigo: string; expira: string } };
   }
 
+  describe('HU-C4.3 · el CORE emite tokens v2', () => {
+    const leer = async (acceso: string) => verificarAcceso(await clavePublica(), acceso, reloj);
+
+    it('CA1 · ed1-core, ver 2, aud del producto de la organización, plan y auth_time', async () => {
+      const entrada = reloj;
+      const p = await propietario();
+      expect(await leer(p.acceso)).toMatchObject({
+        iss: 'ed1-core',
+        ver: 2,
+        aud: 'agro',
+        org: ORG,
+        plan: 'gratuito',
+        plan_vence: null,
+        auth_time: Math.floor(entrada / 1000),
+      });
+    });
+
+    it('sin organización, el aud es el producto de la sesión y no hay plan', async () => {
+      const s = await sesionDe('google-sin-finca');
+      const r = await leer(s.acceso);
+      expect(r).toMatchObject({ iss: 'ed1-core', aud: 'agro', org: null });
+      expect(r.plan).toBeUndefined();
+    });
+
+    it('CA3 ❌ · renovar no cambia auth_time: solo entrar con Google lo hace', async () => {
+      const entrada = reloj;
+      const s = await sesionDe('google-propietario');
+      await conToken('/api/core/organizaciones', s.acceso, { id: ORG, nombre: 'Finca Ensayo Uno' });
+      reloj += 2 * 24 * 60 * 60 * 1000; // pasa la rotación diaria del refresh
+      const r = (await (
+        await post('/api/core/auth/refrescar', { refresh: s.refresh, org_id: ORG })
+      ).json()) as Sesion;
+      expect(r.refresh).toBeTruthy();
+      expect(r.refresh).not.toBe(s.refresh);
+      expect((await leer(r.acceso)).auth_time).toBe(Math.floor(entrada / 1000));
+      expect((await leer(r.acceso)).iat).toBe(Math.floor(reloj / 1000));
+    });
+
+    it('CA2 · un token v1 ya emitido sigue sirviendo hasta su exp', async () => {
+      const p = await propietario();
+      const usuario = (await leer(p.acceso)).sub;
+      const v1 = (
+        await firmarAcceso(
+          await firmanteDesde(clave),
+          {
+            sub: usuario,
+            org: ORG,
+            rol: 'propietario',
+            celda: 'c0',
+            shard: 'agro_c0_s1',
+            anillo: 1,
+          },
+          reloj,
+        )
+      ).token;
+      expect((await leer(v1)).iss).toBe('agro-core');
+      expect((await conToken('/api/core/equipo/ver', v1, {})).status).toBe(200);
+    });
+  });
+
   it('CA1: el propietario crea un código de un uso que vence en 7 días; D1 guarda solo su hash', async () => {
     const { r, cuerpo } = await invitar();
     expect(r.status).toBe(201);

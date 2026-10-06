@@ -297,7 +297,7 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
   3. El cuaderno borra el fragmento de la barra de direcciones y canjea el código con un POST: recibe access y refresh en el cuerpo y los guarda en IndexedDB (`meta`, que no viaja en los respaldos).
   - Dirección de regreso registrada en Google Cloud: `<url del CORE>/api/core/auth/google/callback`, para producción, staging y `http://localhost:8787`. El enlace mágico por email llega cuando haya proveedor de email (ED1 §20.2).
 - **Tokens (ADR-10):**
-  - Access token JWT Ed25519 de 12 h, con `sub`, `org`, `rol`, `celda`, `shard` y `anillo`.
+  - Access token JWT Ed25519 de 12 h, con `sub`, `org`, `rol`, `celda`, `shard` y `anillo`. Desde HU-C4.3 es v2 (PLATAFORMA §4.6): `iss = ed1-core`, `ver = 2`, `aud` (el producto de la organización, o el de la sesión sin organización), `plan` y `plan_vence` con la gracia del producto ya aplicada, y `auth_time` (la última entrada con Google; renovar no lo cambia). Las celdas aceptan v1 y v2 desde la fase N (HU-C4.1).
   - Refresh token opaco de 60 días, rotado a lo sumo una vez al día. Cada rotación es una escritura en D1, así que no se hace por hora. El último giro se deduce de `sesion.expira` (giro + 60 días), sin columnas nuevas.
   - El token lleva la organización si la persona tiene una sola o si la pide; sin ninguna, `org` va en null (crea la suya en HU-E4.3).
   - Kill switch `ks:agro-core` (en el KV de flags de la celda del CORE): apagado, nadie entra ni renueva; los access ya emitidos valen hasta que vencen.
