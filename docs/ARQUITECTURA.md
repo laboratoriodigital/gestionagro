@@ -317,6 +317,7 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
   - El Worker corre primero **solo** en `/api/core/*`, `/oauth/*` y `/.well-known/*`; una página nunca gasta una invocación. La página 404 la sirve Workers Static Assets (`not_found_handling: 404-page`).
   - Sin JavaScript: los componentes v2 de Preact se usan sin `client:*` y llegan como HTML. CSP `'self'` en `_headers`, `noindex` en cada página y `Disallow: /` en `robots.txt`. `scripts/verificar-cuenta.ts` revisa el build y lo detiene si algo de eso no se cumple.
   - Al ser el mismo origen que el CORE, la cuenta llama a `/api/core/*` sin CORS.
+  - **Entrar y salir (HU-C7.3):** la cuenta es el producto `cuenta` de `productos.json`, sin organizaciones. Se entra con un formulario `GET` a `/api/core/auth/google/inicio?producto=cuenta`, que exige la casilla de su política; su único script (la sesión, en archivo) canjea el código y guarda el refresh en el navegador. `POST /api/core/auth/salir` cierra la sesión en el CORE. El token de la cuenta no trae organización, así que ninguna celda lo acepta.
 
 ### 5.5 Celda
 

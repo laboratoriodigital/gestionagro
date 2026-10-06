@@ -1,6 +1,6 @@
 /**
- * Lo que la cuenta (HU-C7.2) promete y se revisa en su build: páginas estáticas sin JavaScript ni
- * estilos en línea, que no se indexan, con una CSP que solo deja lo propio. Lo usan
+ * Lo que la cuenta (HU-C7.2) promete y se revisa en su build: páginas estáticas sin código ni
+ * estilos en línea (su único script, la sesión, va en archivo), que no se indexan, con una CSP que solo deja lo propio. Lo usan
  * `scripts/verificar-cuenta.ts` (al compilar) y las pruebas.
  */
 
@@ -10,8 +10,9 @@ export const RUTAS_DEL_WORKER = ['/api/core/*', '/oauth/*', '/.well-known/*'] as
 /** Lo que una página de la cuenta no puede traer, con el porqué. */
 export function fallasDeUnaPagina(ruta: string, html: string): string[] {
   const fallas: string[] = [];
-  if (/<script\b/i.test(html))
-    fallas.push(`${ruta}: trae un <script>; la cuenta no manda JavaScript`);
+  // Un script propio en archivo sí (la sesión, HU-C7.3); uno en línea, no: la CSP lo bloquea.
+  if (/<script\b(?![^>]*\bsrc=)/i.test(html))
+    fallas.push(`${ruta}: trae un <script> en línea; la CSP lo bloquea`);
   if (/<style\b/i.test(html)) fallas.push(`${ruta}: trae un <style> en línea; la CSP lo bloquea`);
   if (/\sstyle=/i.test(html)) fallas.push(`${ruta}: trae un atributo style=; la CSP lo bloquea`);
   if (/\son[a-z]+=/i.test(html)) fallas.push(`${ruta}: trae un manejador en línea (on…=)`);

@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/productos.schema.json",
-  "nota": "Única lista de productos del CORE (PLATAFORMA §4.2, ADR-20, HU-C1.1). El despliegue la copia a las tablas producto, producto_tipo, producto_rol, plan y plan_precio (HU-C2.3); un producto o un plan que sale de aquí queda «retirado», nunca se borra (P21). `presupuesto.usd_mes` del agro (USD 10 encima de la base) es la propuesta, la misma vara de la Tienda (TIENDA-3.0 §15.1), hasta que el dueño la fije; `al_agotarse` va vacío porque el agro todavía no tiene una capacidad accesoria que apagar (su MCP llega en HU-C9.7): con el presupuesto agotado, solo avisa. La Tienda entra en su M0 y la cuenta ED1 (ADR-28) en HU-C7.3, cada una con su política: no se declara lo que todavía no existe (P1).",
+  "nota": "Única lista de productos del CORE (PLATAFORMA §4.2, ADR-20, HU-C1.1). El despliegue la copia a las tablas producto, producto_tipo, producto_rol, plan y plan_precio (HU-C2.3); un producto o un plan que sale de aquí queda «retirado», nunca se borra (P21). `presupuesto.usd_mes` del agro (USD 10 encima de la base) es la propuesta, la misma vara de la Tienda (TIENDA-3.0 §15.1), hasta que el dueño la fije; `al_agotarse` va vacío porque el agro todavía no tiene una capacidad accesoria que apagar (su MCP llega en HU-C9.7): con el presupuesto agotado, solo avisa. La Tienda entra en su M0, con su política: no se declara lo que todavía no existe (P1). La cuenta del ecosistema (ADR-28, HU-C7.3) es un producto sin organizaciones: sin tipos, roles, planes ni cobros. Su app vive en el mismo origen que el CORE, así que sus orígenes son los del CORE.",
   "productos": [
     {
       "id": "agro",
@@ -13,17 +13,56 @@
       },
       "tipos": ["finca", "asesor", "cadena"],
       "roles": [
-        { "id": "propietario", "administra": true, "invitable": true },
-        { "id": "supervisor", "administra": false, "invitable": true },
-        { "id": "operario", "administra": false, "invitable": true },
-        { "id": "asesor", "administra": false, "invitable": true },
-        { "id": "auditor", "administra": false, "invitable": false }
+        {
+          "id": "propietario",
+          "administra": true,
+          "invitable": true
+        },
+        {
+          "id": "supervisor",
+          "administra": false,
+          "invitable": true
+        },
+        {
+          "id": "operario",
+          "administra": false,
+          "invitable": true
+        },
+        {
+          "id": "asesor",
+          "administra": false,
+          "invitable": true
+        },
+        {
+          "id": "auditor",
+          "administra": false,
+          "invitable": false
+        }
       ],
       "planes": "content/agro/cuaderno/planes.json",
       "politica": "content/agro/privacidad/politica.json",
       "prefijo_de_cobro": "agro",
       "gracia_dias": 0,
-      "presupuesto": { "usd_mes": 10, "al_agotarse": [] }
+      "presupuesto": {
+        "usd_mes": 10,
+        "al_agotarse": []
+      }
+    },
+    {
+      "id": "cuenta",
+      "nombre": "Laboratorio Digital",
+      "estado": "activo",
+      "organizaciones": false,
+      "app": {
+        "origenes": {
+          "produccion": "https://cuenta.laboratorio-digital.com",
+          "staging": "https://agro-core-staging.laboratoriodigital-la.workers.dev"
+        },
+        "rutas_de_vuelta": ["/"]
+      },
+      "tipos": [],
+      "roles": [],
+      "politica": "content/cuenta/privacidad/politica.json"
     }
   ]
 }

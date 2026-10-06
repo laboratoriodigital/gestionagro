@@ -69,13 +69,44 @@ describe('HU-C7.2 · lo que la cuenta promete', () => {
   it('el verificador del build nombra lo que la CSP bloquearía', () => {
     const buena = '<html><head><meta name="robots" content="noindex, nofollow"></head></html>';
     expect(fallasDeUnaPagina('index.html', buena)).toEqual([]);
+    // Un script propio en archivo (la sesión, HU-C7.3) sí.
+    expect(
+      fallasDeUnaPagina('index.html', `${buena}<script type="module" src="/_astro/a.js"></script>`),
+    ).toEqual([]);
     expect(
       fallasDeUnaPagina('x.html', '<script>1</script><p style="color:red" onclick="x()">'),
     ).toEqual([
-      'x.html: trae un <script>; la cuenta no manda JavaScript',
+      'x.html: trae un <script> en línea; la CSP lo bloquea',
       'x.html: trae un atributo style=; la CSP lo bloquea',
       'x.html: trae un manejador en línea (on…=)',
       'x.html: no dice noindex; la cuenta es personal',
     ]);
+  });
+});
+
+describe('HU-C7.3 · la política de la cuenta', () => {
+  const politica = JSON.parse(
+    readFileSync(join(RAIZ, 'content', 'cuenta', 'privacidad', 'politica.json'), 'utf8'),
+  );
+
+  it('el CORE pide aceptar esta misma versión (P2)', async () => {
+    const { CATALOGO } = await import('../../apps/core/src/productos.ts');
+    expect(CATALOGO.politicas['cuenta']).toBe(politica.version);
+  });
+
+  it('no pasa a «vigente» sin los datos del responsable ni la revisión del abogado', () => {
+    const faltan = Object.entries(politica.responsable).filter(([, v]) => !v);
+    if (politica.estado === 'vigente') {
+      expect(faltan).toEqual([]);
+      expect(politica.revision).not.toContain('requiere');
+    } else {
+      expect(politica.revision).toBe('requiere revisión de abogado');
+    }
+  });
+
+  it('no declara nada de terceros que la CSP de la cuenta no deja (P18)', () => {
+    expect(politica.scripts_de_terceros).toEqual([]);
+    expect(politica.scripts_al_pagar).toEqual([]);
+    expect(politica.conexiones_de_terceros).toEqual([]);
   });
 });

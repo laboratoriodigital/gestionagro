@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Se puede entrar a la cuenta de Laboratorio Digital con Google, aceptando su política de datos (todavía en borrador), ver con qué nombre se entró, volver a la aplicación de la que se venía y salir. Salir cierra la sesión también en el servidor (HU-C7.3).
 - Una galería con todos los componentes de la cuenta y sus estados, en claro y en oscuro, con una prueba que avisa si alguno cambió sin querer (HU-C6.4).
 - La cuenta de Laboratorio Digital tiene su primera página, en `cuenta.laboratorio-digital.com`: dice qué va a reunir y que pronto se podrá entrar con Google. Es estática, sin JavaScript, y no aparece en buscadores (HU-C7.2).
 - El vigía de la celda ya sabe medir con Workers Paid: proyecta el costo del mes en dólares, avisa por Telegram al 50, 75 y 90 % de lo incluido y al pasar el presupuesto, y con el presupuesto agotado apaga solo lo que cada producto declare, nunca la venta. Se activa cuando la cuenta pase a Workers Paid (HU-C11.1).

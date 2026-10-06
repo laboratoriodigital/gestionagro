@@ -36,4 +36,4 @@ if (fallas.length > 0) {
   console.error(`❌ La cuenta no cumple lo que promete:\n- ${fallas.join('\n- ')}`);
   process.exit(1);
 }
-console.log(`✅ Cuenta: ${paginas.length} páginas estáticas, sin JavaScript ni estilos en línea.`);
+console.log(`✅ Cuenta: ${paginas.length} páginas estáticas, sin código ni estilos en línea.`);

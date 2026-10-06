@@ -119,11 +119,11 @@ export function presupuestoDeLaCelda(
   registro: RegistroDeProductos = cargarProductos(),
 ): { PRESUPUESTO_USD_MES: string; AL_AGOTARSE: string } {
   const activos = registro.productos.filter((p) => p.estado !== 'retirado');
-  const suma = activos.reduce((s, p) => s + p.presupuesto.usd_mes, 0);
+  const suma = activos.reduce((s, p) => s + (p.presupuesto?.usd_mes ?? 0), 0);
   const propio = registro.productos.find((p) => p.id === celda.producto);
   return {
     PRESUPUESTO_USD_MES: String(suma),
-    AL_AGOTARSE: (propio?.presupuesto.al_agotarse ?? []).join(','),
+    AL_AGOTARSE: (propio?.presupuesto?.al_agotarse ?? []).join(','),
   };
 }
 

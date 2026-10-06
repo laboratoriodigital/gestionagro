@@ -281,3 +281,21 @@ describe('HU-C4.1 · la celda acepta solo tokens de su producto', () => {
     expect(JSON.stringify(await salud.json())).toContain('PRODUCTO');
   });
 });
+
+describe('HU-C7.3 · CA4 ❌: un token de la cuenta no abre una celda', () => {
+  it('ni en v2 (aud = cuenta) ni en v1 (sin organización)', async () => {
+    const deLaCuenta = (
+      await firmarAcceso(
+        firmante,
+        { sub: 'u1', org: null, rol: null, celda: null, shard: null, anillo: null, aud: 'cuenta' },
+        T0,
+        2,
+      )
+    ).token;
+    expect((await yo(deLaCuenta)).status).toBe(401);
+    const v1 = await token({ org: null, rol: null, celda: null, shard: null, anillo: null });
+    const r = await yo(v1);
+    expect(r.status).toBe(403);
+    expect(await r.json()).toMatchObject({ estado: 'sin-organizacion' });
+  });
+});

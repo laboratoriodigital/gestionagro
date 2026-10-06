@@ -24,10 +24,10 @@ const finca = (cobro: Record<string, number>, mensual?: number): PlanConCobro =>
 });
 
 describe('los planes reales', () => {
-  it.each(cargarProductos().productos.map((p) => [p.id, p.planes]))(
+  it.each(cargarProductos().productos.flatMap((p) => (p.planes ? [[p.id, p.planes]] : [])))(
     '%s (%s) cumple las reglas del cobro por periodo',
     (_producto, ruta) => {
-      expect(fallasDePlanes(leer(ruta).planes)).toEqual([]);
+      expect(fallasDePlanes(leer(ruta ?? '').planes)).toEqual([]);
     },
   );
 

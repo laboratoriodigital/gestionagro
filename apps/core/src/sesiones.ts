@@ -205,3 +205,11 @@ export async function duenoDelRefresh(
     .first<{ usuario_id: string; producto: string }>();
   return fila ? { usuarioId: fila.usuario_id, producto: fila.producto } : null;
 }
+
+/** Cierra la sesión de ese refresh (HU-C7.3). Una ya cerrada se queda como estaba. */
+export async function cerrarSesion(db: BaseD1, refresh: string, ahora: number): Promise<void> {
+  await db
+    .prepare('UPDATE sesion SET revocado = ? WHERE refresh_hash = ? AND revocado IS NULL')
+    .bind(iso(ahora), await hashDe(refresh))
+    .run();
+}

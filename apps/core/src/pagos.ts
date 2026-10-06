@@ -125,7 +125,7 @@ export async function crearPago(c: Context, e: EntornoDePago): Promise<Response>
   const destino = new URL(vuelta);
   // Letras, números y guiones: lo que Bold acepta como código de orden. El prefijo dice de qué
   // producto es el cobro en el panel del proveedor.
-  const orden = `${delCatalogo.producto.prefijo_de_cobro}-${uuidv7()}`;
+  const orden = `${delCatalogo.producto.prefijo_de_cobro ?? delCatalogo.producto.id}-${uuidv7()}`;
   const ahora = new Date(e.ahora()).toISOString();
   await e.db
     .prepare(

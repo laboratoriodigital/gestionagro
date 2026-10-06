@@ -814,6 +814,90 @@ describe('HU-C3.2 · organizaciones, invitaciones y equipo por producto', () => 
   });
 });
 
+describe('HU-C7.3 · entrar a la cuenta y salir', () => {
+  // La cuenta vive en el mismo origen que el CORE: en staging, el del CORE de staging.
+  const CUENTA = 'https://agro-core-staging.laboratoriodigital-la.workers.dev';
+  // El despliegue copia el catálogo a la base; aquí, el producto de la cuenta como lo copiaría.
+  beforeEach(async () => {
+    const productoCuenta = {
+      id: 'cuenta',
+      nombre: 'Laboratorio Digital',
+      estado: 'activo' as const,
+      tipos: [],
+      roles: [],
+      planes: [],
+    };
+    for (const sql of sentenciasDelCatalogo([productoCuenta], '2026-10-06T00:00:00.000Z'))
+      await db.prepare(sql).run();
+  });
+  const desde = (ruta: string, cuerpo: unknown, origen = CUENTA) =>
+    pedir(ruta, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: origen },
+      body: JSON.stringify(cuerpo),
+    });
+
+  async function entrarALaCuenta(): Promise<Sesion> {
+    const ida = await pedir(
+      `/api/core/auth/google/inicio?producto=cuenta&vuelta=${encodeURIComponent(`${CUENTA}/`)}&politica=1`,
+    );
+    expect(ida.status).toBe(302);
+    const cookie = (ida.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+    const state = new URL(ida.headers.get('location') ?? '').searchParams.get('state');
+    const vuelta = await pedir(`/api/core/auth/google/callback?code=code-bueno&state=${state}`, {
+      headers: { cookie },
+    });
+    const destino = vuelta.headers.get('location') ?? '';
+    expect(destino.startsWith(`${CUENTA}/#entrar=`)).toBe(true);
+    const r = await desde('/api/core/auth/canje', {
+      codigo: destino.split('#entrar=')[1],
+      dispositivo: 'navegador',
+    });
+    expect(r.status).toBe(200);
+    return (await r.json()) as Sesion;
+  }
+
+  it('CA1 · entra con la política de la cuenta, vuelve a la cuenta y no trae organizaciones', async () => {
+    const sesion = (await entrarALaCuenta()) as Sesion & { organizaciones: unknown[] };
+    expect(sesion.organizaciones).toEqual([]);
+    expect(await db.prepare('SELECT producto, version FROM aceptacion_politica').first()).toEqual({
+      producto: 'cuenta',
+      version: '1',
+    });
+    expect(await db.prepare('SELECT producto FROM sesion').first()).toEqual({ producto: 'cuenta' });
+    // Sin aceptar la política de la cuenta (la del agro es otra) no se entra.
+    expect(
+      (
+        await pedir(
+          `/api/core/auth/google/inicio?producto=cuenta&vuelta=${encodeURIComponent(`${CUENTA}/`)}&politica=${POLITICA_VIGENTE}`,
+        )
+      ).status,
+    ).toBe(400);
+  });
+
+  it('CA3 · salir cierra la sesión en el CORE: el refresh ya no renueva', async () => {
+    const { refresh } = await entrarALaCuenta();
+    expect((await desde('/api/core/auth/refrescar', { refresh })).status).toBe(200);
+    const r = await desde('/api/core/auth/salir', { refresh });
+    expect(await r.json()).toEqual({ estado: 'fuera' });
+    expect((await desde('/api/core/auth/refrescar', { refresh })).status).toBe(401);
+    // Salir otra vez no es un error.
+    expect((await desde('/api/core/auth/salir', { refresh })).status).toBe(200);
+  });
+
+  it('salir desde la app de otro producto no cierra nada', async () => {
+    const { refresh } = await entrarALaCuenta();
+    expect((await desde('/api/core/auth/salir', { refresh }, APP)).status).toBe(403);
+    expect((await desde('/api/core/auth/refrescar', { refresh })).status).toBe(200);
+  });
+
+  it('CA4 ❌ · el token de la cuenta no trae organización: ninguna celda lo acepta', async () => {
+    const { acceso } = await entrarALaCuenta();
+    const reclamos = await verificarAcceso(await clavePublica(), acceso, reloj);
+    expect(reclamos).toMatchObject({ org: null, celda: null, shard: null });
+  });
+});
+
 describe('CORS, configuración y kill switch', () => {
   it('solo el cuaderno puede leer el canje desde el navegador', async () => {
     const pre = (origen: string) =>

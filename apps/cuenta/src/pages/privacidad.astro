@@ -1,0 +1,92 @@
+---
+/**
+ * Política de tratamiento de datos de la cuenta (HU-C7.3, Ley 1581 de 2012). Lo que puede cambiar
+ * sale de `content/cuenta/privacidad/politica.json`, la misma fuente con la que el CORE pide
+ * aceptarla (P2). Mientras sea borrador lo dice arriba y marca lo que falta.
+ *
+ * Tono cercano y sin detalles técnicos, como la del cuaderno.
+ */
+import politica from '../../../../content/cuenta/privacidad/politica.json';
+import Base from '../layouts/Base.astro';
+
+const borrador = politica.estado !== 'vigente';
+const pendiente = 'por completar';
+const r = politica.responsable;
+const fecha = new Intl.DateTimeFormat('es-CO', { dateStyle: 'long', timeZone: 'UTC' }).format(
+  new Date(`${politica.fecha}T00:00:00Z`),
+);
+---
+<Base
+  titulo="Política de tratamiento de datos"
+  descripcion="Cómo cuidamos la información de tu cuenta de Laboratorio Digital y qué puedes hacer con ella."
+>
+  <main class="texto-legal">
+    <h1>Política de tratamiento de datos de tu cuenta</h1>
+    <p>Versión {politica.version}, del {fecha}.</p>
+    {
+      borrador && (
+        <p class="texto-legal__aviso" data-prueba="politica-borrador">
+          <strong>Borrador: {politica.revision}.</strong> Este texto todavía no es la política
+          vigente; lo marcado «{pendiente}» se completará antes.
+        </p>
+      )
+    }
+    <p>
+      Tu cuenta de Laboratorio Digital es la misma con la que entras a nuestras aplicaciones. Aquí
+      te contamos qué guarda, para qué y cómo puedes consultarla, corregirla o pedir que la borremos.
+      Lo que guardas dentro de cada aplicación tiene su propia política.
+    </p>
+
+    <h2>Quién responde por tus datos</h2>
+    <ul>
+      <li>Nombre: {r.nombre ?? pendiente}</li>
+      <li>Identificación: {r.identificacion ?? pendiente}</li>
+      <li>Domicilio: {r.domicilio ?? pendiente}</li>
+      <li>Correo para temas de datos personales: {r.correo ?? pendiente}</li>
+      <li>Teléfono: {r.telefono ?? pendiente}</li>
+    </ul>
+
+    <h2>Qué información guardamos</h2>
+    <ul>
+      <li>Tu nombre y tu correo, que nos da Google cuando entras. No te pedimos contraseñas.</li>
+      <li>Desde qué equipos entraste y cuándo, para que puedas ver tus sesiones y cerrarlas.</li>
+      <li>Qué versión de esta política aceptaste y cuándo.</li>
+    </ul>
+
+    <h2>Para qué la usamos</h2>
+    <ul>
+      <li>Para que entres a tu cuenta y a nuestras aplicaciones con una sola identidad.</li>
+      <li>Para mostrarte en un solo lugar tus aplicaciones, tus sesiones y tus pagos.</li>
+      <li>Para cuidar tu cuenta: si alguien entra desde otro equipo, que lo puedas ver.</li>
+    </ul>
+    <p>No vendemos tu información ni la usamos para publicidad.</p>
+
+    <h2>Quiénes nos ayudan</h2>
+    <ul>
+      {politica.encargados.map((e) => <li><strong>{e.quien}</strong>: {e.para}</li>)}
+    </ul>
+    <p>{politica.transferencia}</p>
+
+    <h2>Cookies y lo que guarda tu navegador</h2>
+    <ul>
+      {politica.scripts_de_terceros.length === 0 && <li>No usamos herramientas de publicidad ni de seguimiento.</li>}
+      {politica.cookies.map((c) => <li>{c.texto}</li>)}
+      {politica.almacenamiento_en_el_navegador.map((x) => <li>{x}</li>)}
+    </ul>
+
+    <h2>Tus derechos</h2>
+    <ul>
+      <li>Conocer, actualizar y corregir tu información.</li>
+      <li>Pedir que la borremos, retirar tu autorización o pedirnos copia de la autorización que nos diste.</li>
+      <li>Escribirnos al correo de arriba. Respondemos las consultas en máximo 10 días hábiles y los reclamos en máximo 15 días hábiles.</li>
+      <li>Si no quedas conforme, puedes acudir a la Superintendencia de Industria y Comercio.</li>
+    </ul>
+
+    <h2>Tu autorización</h2>
+    <p>
+      Al entrar a tu cuenta te pedimos aceptar esta política, y guardamos qué versión aceptaste y
+      cuándo. Si algún día cambia en algo importante, te avisaremos y te pediremos aceptarla de nuevo.
+    </p>
+    <p><a href="/">Volver a tu cuenta</a></p>
+  </main>
+</Base>

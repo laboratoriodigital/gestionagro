@@ -27,16 +27,18 @@ export interface Producto {
     origenes: 'celdas.json › sitio' | { produccion: string; staging: string };
     rutas_de_vuelta: string[];
   };
+  /** false para un producto sin organizaciones, como la cuenta (ADR-28). */
+  organizaciones?: boolean;
   tipos: string[];
   roles: RolDeProducto[];
-  /** Ruta del `planes.json` del producto. */
-  planes: string;
+  /** Ruta del `planes.json` del producto. Solo con organizaciones. */
+  planes?: string;
   /** Ruta de la política de datos del producto. */
   politica: string;
-  prefijo_de_cobro: string;
-  gracia_dias: number;
+  prefijo_de_cobro?: string;
+  gracia_dias?: number;
   /** Con Workers Paid: USD al mes encima de la base y lo que se apaga al agotarlo (HU-C11.1). */
-  presupuesto: { usd_mes: number; al_agotarse: string[] };
+  presupuesto?: { usd_mes: number; al_agotarse: string[] };
 }
 
 export interface RegistroDeProductos {
@@ -61,17 +63,18 @@ export function fallasDelRegistro(
   for (const id of repetidos(productos.map((p) => p.id))) {
     fallas.push(`el producto «${id}» está dos veces`);
   }
-  for (const prefijo of repetidos(productos.map((p) => p.prefijo_de_cobro))) {
+  for (const prefijo of repetidos(productos.flatMap((p) => p.prefijo_de_cobro ?? []))) {
     fallas.push(`dos productos usan el prefijo de cobro «${prefijo}»`);
   }
   for (const p of productos) {
-    if (!p.roles.some((r) => r.administra)) {
+    const conOrganizaciones = tieneOrganizaciones(p);
+    if (conOrganizaciones && !p.roles.some((r) => r.administra)) {
       fallas.push(`«${p.id}» no tiene ningún rol que administre: nadie podría pagar ni invitar`);
     }
     for (const rol of repetidos(p.roles.map((r) => r.id))) {
       fallas.push(`«${p.id}» declara dos veces el rol «${rol}»`);
     }
-    if (!p.roles.some((r) => r.invitable)) {
+    if (conOrganizaciones && !p.roles.some((r) => r.invitable)) {
       fallas.push(`«${p.id}» no tiene ningún rol invitable: nadie podría sumarse a un equipo`);
     }
     // HU-C11.1, CA3: el presupuesto apaga capacidades propias del producto, nunca la venta. Ni el
@@ -88,11 +91,17 @@ export function fallasDelRegistro(
         ['planes', p.planes],
         ['politica', p.politica],
       ] as const) {
-        if (!existe(ruta)) fallas.push(`«${p.id}».${campo} apunta a «${ruta}», que no existe`);
+        if (ruta !== undefined && !existe(ruta))
+          fallas.push(`«${p.id}».${campo} apunta a «${ruta}», que no existe`);
       }
     }
   }
   return fallas;
+}
+
+/** Si el producto tiene organizaciones: todos, salvo los que dicen `organizaciones: false` (ADR-28). */
+export function tieneOrganizaciones(producto: Producto): boolean {
+  return producto.organizaciones !== false;
 }
 
 /** El producto con ese id, o `undefined`. Uno retirado se devuelve igual: hay filas que lo nombran. */

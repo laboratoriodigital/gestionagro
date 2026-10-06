@@ -1,21 +1,70 @@
 ---
-import { Aviso } from '@ed1/ui/v2/componentes';
+/**
+ * La portada de la cuenta (HU-C7.2, HU-C7.3). Sin sesión: el formulario para entrar con Google, que
+ * pide aceptar la política de la cuenta y funciona aun sin JavaScript (un GET al CORE, en el mismo
+ * origen). Con sesión: quién entró, volver a la app de la que se vino y salir.
+ *
+ * Las apps a las que se puede volver salen del registro de productos (P2): solo esos orígenes.
+ */
+import { Aviso, Boton } from '@ed1/ui/v2/componentes';
+import politica from '../../../../content/cuenta/privacidad/politica.json';
+import celdas from '../../../../infrastructure/celdas.json';
+import registro from '../../../../infrastructure/productos.json';
 import Base from '../layouts/Base.astro';
+
+const apps = registro.productos
+  .filter((p) => p.organizaciones !== false && p.estado === 'activo')
+  .map((p) => ({
+    nombre: p.nombre,
+    origenes:
+      p.app.origenes === 'celdas.json › sitio'
+        ? [`https://${celdas.sitio.dominio}`, celdas.sitio.url_staging]
+        : [p.app.origenes.produccion, p.app.origenes.staging],
+  }));
 ---
 <Base
   titulo="Laboratorio Digital"
   descripcion="Tu cuenta de Laboratorio Digital: tus aplicaciones, tus sesiones y tus pagos en un solo lugar."
 >
-  <main class="portada">
+  <main class="portada" data-apps={JSON.stringify(apps)}>
     <h1 class="portada__titulo">Tu cuenta, en un solo lugar.</h1>
     <p class="portada__texto">
       Aquí vas a ver las aplicaciones que usas con tu cuenta, desde qué equipos entraste y lo que
       has pagado. Todo lo tuyo, sin tener que buscarlo en cada aplicación.
     </p>
-    <div class="portada__aviso">
-      <Aviso titulo="La estamos preparando">
-        <p>Muy pronto vas a poder entrar aquí con tu cuenta de Google.</p>
+
+    <div class="portada__aviso" data-error hidden>
+      <Aviso tono="peligro" titulo="Algo no salió bien">
+        <p data-error-texto>No pudimos completar la entrada. Intenta de nuevo.</p>
       </Aviso>
     </div>
+
+    <section class="portada__accion" data-sin-sesion>
+      <p class="portada__nota" data-vuelve-aviso hidden>
+        Después de entrar puedes volver a <strong data-vuelve-nombre></strong>.
+      </p>
+      <form class="portada__formulario" method="get" action="/api/core/auth/google/inicio">
+        <input type="hidden" name="producto" value="cuenta" />
+        <input type="hidden" name="politica" value={politica.version} />
+        <input type="hidden" name="vuelta" value="https://cuenta.laboratorio-digital.com/" data-vuelta />
+        <label class="portada__acepto">
+          <input type="checkbox" name="acepto" value="si" required />
+          <span>Leí y acepto la <a href="/privacidad/">política de tratamiento de datos</a>.</span>
+        </label>
+        <Boton tipo="submit">Entrar con Google</Boton>
+      </form>
+    </section>
+
+    <section class="portada__accion" data-con-sesion hidden>
+      <p class="portada__nota">Entraste como <strong data-nombre></strong>.</p>
+      <div class="portada__botones">
+        <a class="ed1-boton ed1-boton--primario" data-vuelve-enlace hidden href="/">Volver</a>
+        <button class="ed1-boton ed1-boton--secundario" type="button" data-salir>Salir</button>
+      </div>
+    </section>
   </main>
 </Base>
+
+<script>
+  import '../sesion.ts';
+</script>

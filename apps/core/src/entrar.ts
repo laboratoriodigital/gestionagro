@@ -37,6 +37,7 @@ import {
 import {
   aceptarPolitica,
   canjearCodigo,
+  cerrarSesion,
   crearSesion,
   duenoDelRefresh,
   productoDelCodigo,
@@ -322,12 +323,12 @@ export async function canje(c: Context, e: Entorno): Promise<Response> {
   }
 }
 
-export async function renovar(c: Context, e: Entorno): Promise<Response> {
-  const datos = await cuerpo(c);
-  const refresh = texto(datos['refresh']);
-  if (!refresh) return c.json({ estado: 'invalido', motivo: 'Falta el refresh' }, 400);
-  // HU-C4.4: el refresh solo se usa desde la app de su producto. Se mira antes de renovar, para que
-  // un intento desde otra app no rote el refresh de su dueño; y queda en la auditoría.
+/**
+ * HU-C4.4: un refresh solo se usa desde la app de su producto. Se mira antes de tocarlo, para que un
+ * intento desde otra app no rote ni cierre la sesión de su dueño; y queda en la auditoría. Devuelve
+ * la respuesta de rechazo, o null si puede seguir.
+ */
+async function desdeOtraApp(c: Context, e: Entorno, refresh: string): Promise<Response | null> {
   const dueno = await duenoDelRefresh(e.db, refresh);
   if (dueno) {
     const pedido = productoDe(e.catalogo, dueno.producto);
@@ -348,6 +349,15 @@ export async function renovar(c: Context, e: Entorno): Promise<Response> {
       return c.json({ estado: 'otro-producto', motivo: 'Esta sesión es de otra aplicación.' }, 403);
     }
   }
+  return null;
+}
+
+export async function renovar(c: Context, e: Entorno): Promise<Response> {
+  const datos = await cuerpo(c);
+  const refresh = texto(datos['refresh']);
+  if (!refresh) return c.json({ estado: 'invalido', motivo: 'Falta el refresh' }, 400);
+  const rechazo = await desdeOtraApp(c, e, refresh);
+  if (rechazo) return rechazo;
   try {
     return await respuestaDeSesion(
       c,
@@ -360,4 +370,17 @@ export async function renovar(c: Context, e: Entorno): Promise<Response> {
       return c.json({ estado: 'sin-sesion', motivo: error.message }, 401);
     throw error;
   }
+}
+
+/**
+ * Salir (HU-C7.3): cierra la sesión del refresh en el CORE, no solo en el navegador. Responde lo
+ * mismo si ya estaba cerrada o no existe: salir dos veces no es un error.
+ */
+export async function salir(c: Context, e: Entorno): Promise<Response> {
+  const refresh = texto((await cuerpo(c))['refresh']);
+  if (!refresh) return c.json({ estado: 'invalido', motivo: 'Falta el refresh' }, 400);
+  const rechazo = await desdeOtraApp(c, e, refresh);
+  if (rechazo) return rechazo;
+  await cerrarSesion(e.db, refresh, e.ahora());
+  return c.json({ estado: 'fuera' });
 }
