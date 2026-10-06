@@ -419,7 +419,7 @@ Formato de cada historia, el del CORE:
 ### ET0 · Gobierno del proyecto
 
 #### HU-T0.1 · Plan, backlog y bitácora de la Tienda 3.0 en el repositorio
-- **Capa:** proceso · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** En validación (rama `docs/t0-plan-y-backlog`)
+- **Capa:** proceso · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** Terminada (PR #101, fusionado el 6 oct 2026)
 - Como dueño, quiero el plan de la Tienda y su bitácora en el repositorio, con el método del CORE, para decidir el orden y unir después todas las bitácoras en el segundo cerebro de ED1.
 - **Respaldo:** TIENDA §19; BACKLOG_CORE §2–§4 (el método); bitácoras agro y core, «Cómo se une con las otras bitácoras».
 - **CA1.** Existen `docs/tienda/BACKLOG_TIENDA3.md` y `docs/tienda/BITACORA_TIENDA3.md`, y los nombran `docs/README.md`, `docs/BACKLOG.md` y `BACKLOG_CORE.md`.
@@ -449,10 +449,10 @@ Formato de cada historia, el del CORE:
 ### ET1 · Cimientos de código
 
 #### HU-T1.1 · `@ed1/dinero`: pesos enteros, el total y su reparto
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T0 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T0 · **Depende de:** — · **Estado:** En validación (rama `feat/t0-sprint`. `packages/dinero`, 32 pruebas en 0,5 s. CA1 cambió en un punto: el porcentaje redondea con **techo**, porque el piso que escribía TIENDA §6 favorece al comercio y contradice su promesa (bitácora tienda3 5). CA2, la parte de workerd: el paquete no usa `Intl`, ni reloj, ni azar, ni módulos de Node, y la guardia `tests/repo/tienda-paquetes-puros.test.ts` lo exige; correrlo dentro de workerd llega con la API (HU-T2.4), que lo ejecuta en cada prueba. Es más barato atacar la causa (`Intl`) que levantar workerd por cada función pura. Controles negativos: con `Math.floor`, 1 prueba en rojo; con un `pesos()` que devuelve 0 en vez de lanzar, 10)
 - Como comprador, quiero que el total que veo en el teléfono sea el que cobra el servidor y el que dice la página horneada.
 - **Respaldo:** TIENDA §6; P2 (una sola fuente para navegador, API y horno); P17 (`Intl` cambia entre runtimes).
-- **CA1.** Funciones puras: subtotal; descuento por porcentaje (`⌊subtotal × % / 100⌋`, a favor del comprador), por valor (`min`) y envío gratis; envío con `gratis_desde`; total; reparto del descuento por mayor residuo; formato `$80.000` propio, sin `Intl`.
+- **CA1.** Funciones puras: subtotal; descuento por porcentaje (`⌈subtotal × % / 100⌉`, a favor del comprador), por valor (`min`) y envío gratis; envío con `gratis_desde`; total; reparto del descuento por mayor residuo; formato `$80.000` propio, sin `Intl`.
 - **CA2.** La tabla de casos de TIENDA §6 y los límites de COP 1.000 a 5.000.000 para cobrar en línea; la misma salida en Node y en workerd.
 - **CA3 ❌.** Un monto que no es entero, es negativo o no se puede leer lanza nombrando el campo: **nunca vale 0** (bitácora ecommerce, crítico «`Number(celda) || 0`»). Un reparto que no suma exacto pone la prueba en rojo.
 - **Patrones en riesgo:** P1, P2, P17.

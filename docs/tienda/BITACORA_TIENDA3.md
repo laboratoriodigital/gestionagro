@@ -379,3 +379,21 @@ La regla: **una decisión nueva en ARQUITECTURA se busca en todos los diseños q
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Medio · P18, P2 · tienda-0.0.0 · 2026-10-06
 
+
+**5 · TIENDA prometía que el redondeo del cupón favorece al comprador, y la fórmula que escribía favorece al comercio.**
+
+*Qué pasó.* El 6 oct 2026, al escribir `@ed1/dinero` (HU-T1.1), copié la fórmula del descuento por porcentaje de TIENDA §6 y, al ponerle el comentario, no cuadraba con su propia frase.
+
+*Síntoma literal.* TIENDA §6, punto 3.2: «`porcentaje`: `⌊subtotal × % / 100⌋`; el redondeo favorece al comprador».
+
+*Causa raíz.* El piso **del descuento** hace el descuento más pequeño, y por eso el total más grande: con un subtotal de 33.333 y 10 %, el descuento exacto es 3.333,3; el piso da 3.333 y el comprador paga 30.000, cuando la promesa dice 29.999. La frase y la fórmula se escribieron pensando en cosas distintas (el piso «del total» sí favorecería al comprador). Ninguna prueba ataba la promesa a la fórmula: era un documento (P18).
+
+*Cómo se reprodujo.* Con ese caso, a mano y en la prueba.
+
+*Arreglo.* Manda la promesa, que es la decisión de producto y la que protege al consumidor: `⌈subtotal × % / 100⌉`. TIENDA §6 se corrigió con su nota. La diferencia nunca pasa de un peso por pedido.
+
+**Lo prueba** `packages/dinero/src/index.test.ts`, «porcentaje: el redondeo favorece al comprador», con el caso de 33.333. Control negativo: con `Math.floor`, la prueba se ve en rojo.
+
+La regla: **cuando un documento da una fórmula y una promesa sobre ella, la prueba se escribe contra la promesa, con un caso donde las dos lecturas den distinto.**
+
+*Ficha:* tienda3 · *(mío)* · ⚪ Menor · P18, P5 · tienda-0.0.0 · 2026-10-06

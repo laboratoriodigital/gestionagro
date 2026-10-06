@@ -540,7 +540,7 @@ KV (flags de la celda): ks:tienda · ks:tienda:<org> · ks:tienda-cobros · ks:t
 3. **Orden del cálculo:**
    1. Subtotal: suma de `precio × cantidad`.
    2. Descuento del cupón:
-      - `porcentaje`: `⌊subtotal × % / 100⌋`; el redondeo favorece al comprador.
+      - `porcentaje`: `⌈subtotal × % / 100⌉`; el redondeo favorece al comprador. *(Hasta el 6 oct 2026 decía `⌊…⌋` con esta misma promesa, y el piso del descuento favorece al comercio: bitácora tienda3 5. Lo implementa `@ed1/dinero`, HU-T1.1.)*
       - `valor`: `min(valor, subtotal)`.
       - `envio_gratis`: no descuenta; pone el envío en 0.
    3. Envío: el de la opción, o 0 si `subtotal − descuento ≥ gratis_desde_cop`.
