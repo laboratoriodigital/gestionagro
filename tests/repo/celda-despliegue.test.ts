@@ -59,11 +59,12 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
     cuenta: 'cuenta-ensayo',
   };
 
-  it('ids de bases, KV, clave del CORE, orígenes y cuenta van solo al destino; CELDA y PLAN se conservan', () => {
+  it('ids de bases, KV, clave del CORE, orígenes y cuenta van solo al destino; CELDA, PRODUCTO y PLAN se conservan', () => {
     const staging = configDeLaCelda(wranglerDeLaCelda(c0), 'staging', despliegue);
     const env = (staging['env'] as Record<string, Record<string, unknown>>)['staging'] ?? {};
     expect(env['vars']).toEqual({
       CELDA: c0.id,
+      PRODUCTO: c0.producto,
       PLAN: c0.plan,
       CORE_CLAVES: '[{"kid":"k1"}]',
       ORIGENES_APP: 'https://agro.ejemplo.test',
@@ -72,7 +73,7 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
     });
     expect(JSON.stringify(env['d1_databases'])).toContain(`"database_id":"id-${c0.shards[0]}"`);
     expect(JSON.stringify(staging['d1_databases'])).not.toContain('database_id');
-    expect(staging['vars']).toEqual({ CELDA: c0.id, PLAN: c0.plan });
+    expect(staging['vars']).toEqual({ CELDA: c0.id, PRODUCTO: c0.producto, PLAN: c0.plan });
   });
 
   it('HU-E8.2: el vigía corre cada hora en los dos destinos', () => {

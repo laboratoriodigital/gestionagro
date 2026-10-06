@@ -18,7 +18,12 @@
  */
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
-import { type ClavePublica, TokenInvalido, verificarConClaves } from '@ed1/tokens';
+import {
+  aceptarEnProducto,
+  type ClavePublica,
+  TokenInvalido,
+  verificarConClaves,
+} from '@ed1/tokens';
 import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { avisarSiCambio } from './avisos.ts';
@@ -41,6 +46,8 @@ const SHARD = /^agro_c[0-9]+_s[0-9]+$/;
 export interface Env {
   /** Id de esta celda (`c0`); el token debe nombrarla. */
   CELDA?: string;
+  /** Producto de esta celda (celdas.json): solo acepta tokens de ese producto (HU-C4.1). */
+  PRODUCTO?: string;
   /** Claves públicas del CORE (JSON), las lee el despliegue de `/api/core/claves`. */
   CORE_CLAVES?: string;
   /** Orígenes del cuaderno, separados por coma. */
@@ -105,6 +112,7 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
   app.get('/api/salud', async (c) => {
     const faltan = [
       ...(c.env.CELDA ? [] : ['CELDA']),
+      ...(c.env.PRODUCTO ? [] : ['PRODUCTO']),
       ...(clavesDe(c.env).length > 0 ? [] : ['CORE_CLAVES']),
       ...(origenesDe(c.env).length > 0 ? [] : ['ORIGENES_APP']),
     ];
@@ -163,9 +171,23 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
     const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
     if (!token)
       return c.json({ estado: 'sin-sesion', motivo: 'Entra con tu cuenta para sincronizar.' }, 401);
-    let reclamos: Awaited<ReturnType<typeof verificarConClaves>>;
+    const producto = c.env.PRODUCTO;
+    if (!producto) {
+      console.error('agro-api: la celda no sabe de qué producto es (falta PRODUCTO)');
+      return c.json(
+        {
+          estado: 'falla-celda',
+          motivo: 'La nube no está lista. Tus registros siguen en el teléfono.',
+        },
+        503,
+      );
+    }
+    let reclamos: ReturnType<typeof aceptarEnProducto>;
     try {
-      reclamos = await verificarConClaves(clavesDe(c.env), token, ahora());
+      reclamos = aceptarEnProducto(
+        await verificarConClaves(clavesDe(c.env), token, ahora()),
+        producto,
+      );
     } catch (e) {
       if (!(e instanceof TokenInvalido)) throw e;
       return c.json(

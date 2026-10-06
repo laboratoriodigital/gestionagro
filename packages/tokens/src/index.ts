@@ -6,6 +6,10 @@
  * - **Refresh token y código de entrada:** secretos opacos al azar. En D1 solo se guarda su hash
  *   SHA-256: quien lea la base no puede usarlos.
  *
+ * Dos formatos conviven mientras dura la transición de PLATAFORMA §4.6 (P10): v1 (`agro-core`,
+ * sin producto) y v2 (`ed1-core`, con `aud`, `plan` y `ver: 2`). Fase N (HU-C4.1): las celdas
+ * aceptan los dos y el CORE sigue emitiendo v1. En N+1 (HU-C4.3) emite v2; en N+2 se contrae.
+ *
  * La clave privada solo existe como secreto del Worker (`CORE_JWT_PRIVATE_KEY`, PKCS#8 en
  * base64). La genera el despliegue la primera vez y nunca la escribe en disco ni en el
  * repositorio. Solo WebCrypto: corre igual en el Worker, en Node y en las pruebas.
@@ -13,6 +17,12 @@
 
 export const DURACION_ACCESO_MS = 12 * 60 * 60 * 1000;
 export const EMISOR = 'agro-core';
+export const EMISOR_V2 = 'ed1-core';
+const EMISORES = [EMISOR, EMISOR_V2] as const;
+/** Un token sin `aud` (v1) solo puede ser del agro: es el único producto que existía al emitirlo. */
+export const PRODUCTO_SIN_AUD = 'agro';
+/** Sin `plan` en el token, el mínimo: dicho aquí y no adivinado en cada celda. */
+export const PLAN_SIN_RECLAMO = 'gratuito';
 
 export interface ClavePublica {
   kty: 'OKP';
@@ -39,7 +49,23 @@ export interface Reclamos {
   celda: string | null;
   shard: string | null;
   anillo: number | null;
+  /** v2: el producto de la organización. Una celda solo acepta el suyo. */
+  aud?: string;
+  /** v2: el plan vigente, con vencimiento y gracia ya aplicados por el CORE. */
+  plan?: string;
+  plan_vence?: number | null;
+  /** v2: instante (s) de la última entrada interactiva; lo que mueve dinero pide una reciente. */
+  auth_time?: number;
+  ver?: 2;
 }
+
+/** Lo que una celda usa, ya con los valores de v1 resueltos: el producto y el plan nunca faltan. */
+export interface Acceso extends Reclamos {
+  producto: string;
+  plan: string;
+}
+
+export type DatosDeAcceso = Omit<Reclamos, 'iss' | 'iat' | 'exp' | 'ver'>;
 
 const texto = new TextEncoder();
 
@@ -108,14 +134,23 @@ export async function generarClavePrivada(): Promise<string> {
 
 const parte = (objeto: unknown) => base64url(texto.encode(JSON.stringify(objeto)));
 
+/**
+ * Firma un token de acceso. El CORE emite v1 hasta HU-C4.3; v2 exige `aud`, porque un token v2
+ * sin producto es justo lo que la transición quiere dejar de tener.
+ */
 export async function firmarAcceso(
   firmante: Firmante,
-  datos: Omit<Reclamos, 'iss' | 'iat' | 'exp'>,
+  datos: DatosDeAcceso,
   ahoraMs: number,
+  version: 1 | 2 = 1,
 ): Promise<{ token: string; vence: number }> {
   const iat = Math.floor(ahoraMs / 1000);
   const exp = iat + DURACION_ACCESO_MS / 1000;
-  const reclamos: Reclamos = { iss: EMISOR, iat, exp, ...datos };
+  if (version === 2 && !datos.aud) throw new Error('Un token v2 nombra su producto (aud)');
+  const reclamos: Reclamos =
+    version === 2
+      ? { iss: EMISOR_V2, iat, exp, ...datos, ver: 2 }
+      : { iss: EMISOR, iat, exp, ...datos };
   const cuerpo = `${parte({ alg: 'EdDSA', typ: 'JWT', kid: firmante.publica.kid })}.${parte(reclamos)}`;
   const firma = new Uint8Array(
     await crypto.subtle.sign({ name: 'Ed25519' }, firmante.privada, texto.encode(cuerpo)),
@@ -150,7 +185,13 @@ export async function verificarAcceso(
   );
   if (!valida) throw new TokenInvalido('La firma no corresponde');
   const reclamos = JSON.parse(new TextDecoder().decode(desdeBase64url(cuerpo))) as Reclamos;
-  if (reclamos.iss !== EMISOR) throw new TokenInvalido(`Emisor desconocido: ${reclamos.iss}`);
+  if (!(EMISORES as readonly string[]).includes(reclamos.iss)) {
+    throw new TokenInvalido(`Emisor desconocido: ${reclamos.iss}`);
+  }
+  // v2 se reconoce sin adivinar: su emisor, su versión y su producto van juntos.
+  if (reclamos.iss === EMISOR_V2 && (reclamos.ver !== 2 || !reclamos.aud)) {
+    throw new TokenInvalido('Un token de ed1-core trae ver 2 y su producto');
+  }
   if (reclamos.exp * 1000 <= ahoraMs) throw new TokenInvalido('El token venció');
   return reclamos;
 }
@@ -179,4 +220,20 @@ export async function verificarConClaves(
   const clave = claves.find((c) => c.kid === kid);
   if (!clave) throw new TokenInvalido(`Clave desconocida: ${String(kid)}`);
   return verificarAcceso(clave, token, ahoraMs);
+}
+
+/**
+ * Lo que decide una celda de `producto` (fase N): un token v2 vale solo con su `aud`; uno sin
+ * `aud` (v1) vale solo en el agro. Devuelve el producto y el plan resueltos.
+ */
+export function aceptarEnProducto(reclamos: Reclamos, producto: string): Acceso {
+  const delToken = reclamos.aud ?? PRODUCTO_SIN_AUD;
+  if (delToken !== producto) {
+    throw new TokenInvalido(
+      reclamos.aud
+        ? `El token es de ${reclamos.aud} y esta celda es de ${producto}`
+        : `Un token sin producto solo vale en ${PRODUCTO_SIN_AUD}, no en ${producto}`,
+    );
+  }
+  return { ...reclamos, producto: delToken, plan: reclamos.plan ?? PLAN_SIN_RECLAMO };
 }

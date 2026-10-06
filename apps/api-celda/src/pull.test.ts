@@ -33,6 +33,7 @@ let ahora = T0;
 const app = crearApp({ ahora: () => ahora });
 const env = (extra: Partial<Env> = {}, base: BaseD1 = db): Env => ({
   CELDA: 'c0',
+  PRODUCTO: 'agro',
   CORE_CLAVES: JSON.stringify([firmante.publica]),
   ORIGENES_APP: 'https://agro.ejemplo.test',
   [SHARD]: base,

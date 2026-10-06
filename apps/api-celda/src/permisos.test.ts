@@ -64,6 +64,7 @@ async function pedir(rol: string, ruta: string, cuerpo?: object) {
     }),
     {
       CELDA: 'c0',
+      PRODUCTO: 'agro',
       CORE_CLAVES: JSON.stringify([firmante.publica]),
       ORIGENES_APP: 'https://agro.ejemplo.test',
       [SHARD]: db,

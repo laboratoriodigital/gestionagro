@@ -68,6 +68,7 @@ function contando(base: BaseD1) {
 const app = crearApp({ ahora: () => T0 });
 const env = (base: BaseD1 = db): Env => ({
   CELDA: 'c0',
+  PRODUCTO: 'agro',
   CORE_CLAVES: JSON.stringify([firmante.publica]),
   ORIGENES_APP: 'https://agro.ejemplo.test',
   [SHARD]: base,
