@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Las celdas aceptan los tokens del CORE en sus dos formatos, el de hoy y el del ecosistema (con producto y plan), y cada celda acepta solo los de su producto. Es el primer paso de la transición: nadie tiene que volver a entrar (HU-C4.1).
+- El CORE publica sus llaves públicas en el formato estándar (`/.well-known/jwks.json`), para verificadores que no son nuestros (HU-C4.2).
 - Los componentes base del sistema de diseño v2 (`@ed1/ui/v2/componentes`): encabezado, botón, campo, resumen de errores, tarjeta, aviso, lista con sus estados de cargando, vacío y error, pie, confirmación de lo irreversible y página de error. Llegan como HTML sin JavaScript, con una sola hoja de estilos hecha solo de tokens, en claro y oscuro (HU-C6.3).
 - Cada aplicación del ecosistema entra con su propia sesión y su propia política de datos: un enlace de entrada de una no sirve en otra. El cuaderno entra igual que siempre (HU-C3.1).
 - El CORE lleva un registro de lo que toca seguridad o dinero en cada finca (quién entró, quién aceptó una invitación, qué rol cambió, qué se pagó), y quien la administra lo puede ver (HU-C2.4).

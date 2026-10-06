@@ -5,6 +5,7 @@
  *   tiene el directorio; con 0 responde 503, porque un CORE que no puede crear organizaciones no
  *   debe parecer sano (P1).
  * - `GET /api/core/claves`: la clave pública con la que las celdas verifican los tokens (CA5).
+ * - `GET /.well-known/jwks.json`: las mismas llaves en el formato estándar (HU-C4.2, `jwks.ts`).
  * - `/api/core/auth/*`: entrar con Google y renovar la sesión (HU-E4.2, `entrar.ts`).
  * - `POST /api/core/organizaciones`: crear la organización de la finca del teléfono (HU-E4.3).
  * - `POST /api/core/invitaciones[/ver|/aceptar]`: invitar al equipo por WhatsApp (HU-E4.4).
@@ -25,7 +26,7 @@
 
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
-import { type Firmante, firmanteDesde } from '@ed1/tokens';
+import { type ClavePublica, type Firmante, firmanteDesde } from '@ed1/tokens';
 import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
 import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
@@ -56,6 +57,7 @@ import {
 } from './equipo.ts';
 import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
+import { claveAnteriorDe, clavesPublicadas } from './jwks.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
 import { CATALOGO, type CatalogoDelCore } from './productos.ts';
@@ -70,6 +72,8 @@ export interface Env {
   FLAGS?: LectorKv;
   /** Secretos del Worker, cargados por el despliegue (ARQUITECTURA §7.5). */
   CORE_JWT_PRIVATE_KEY?: string;
+  /** JWK pública de la llave anterior mientras dura una rotación (HU-C4.2); no es secreta. */
+  CORE_CLAVE_ANTERIOR?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   /** Orígenes del cuaderno separados por coma; los pone el despliegue. */
@@ -160,11 +164,25 @@ export function crearApp(dependencias: Dependencias = {}) {
     }
   });
 
+  const publicadas = async (env: Env): Promise<ClavePublica[] | null> => {
+    if (!env.CORE_JWT_PRIVATE_KEY) return null;
+    const { publica } = await firmanteDe(env.CORE_JWT_PRIVATE_KEY);
+    return clavesPublicadas(publica, claveAnteriorDe(env.CORE_CLAVE_ANTERIOR));
+  };
+
   app.get('/api/core/claves', async (c) => {
-    if (!c.env.CORE_JWT_PRIVATE_KEY)
-      return faltaConfiguracion(c, 'el secreto CORE_JWT_PRIVATE_KEY');
-    const { publica } = await firmanteDe(c.env.CORE_JWT_PRIVATE_KEY);
-    return c.json({ claves: [publica] });
+    const claves = await publicadas(c.env);
+    if (!claves) return faltaConfiguracion(c, 'el secreto CORE_JWT_PRIVATE_KEY');
+    return c.json({ claves });
+  });
+
+  // Público por naturaleza: cualquiera puede leer las llaves públicas, desde cualquier origen.
+  app.get('/.well-known/jwks.json', async (c) => {
+    const claves = await publicadas(c.env);
+    if (!claves) return faltaConfiguracion(c, 'el secreto CORE_JWT_PRIVATE_KEY');
+    c.header('access-control-allow-origin', '*');
+    c.header('cache-control', 'public, max-age=300');
+    return c.json({ keys: claves });
   });
 
   // Solo el cuaderno puede leer estas respuestas desde el navegador. Entrar, renovar y crear la

@@ -528,7 +528,7 @@ Formato de cada historia:
 ### EC4 · Tokens v2 y sesión por producto
 
 #### HU-C4.1 · Tokens N: las celdas verifican v1 y v2
-- **Capa:** tokens · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C4 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** tokens · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C4 · **Depende de:** — · **Estado:** En validación (rama `feat/c4-sprint`. `verificarAcceso` acepta los dos emisores, y un token de `ed1-core` sin `ver: 2` o sin `aud` se rechaza aunque la firma sea buena: v2 se reconoce sin adivinar. `aceptarEnProducto` decide lo de cada celda y resuelve el plan (`gratuito` si no viene). La celda sabe su producto por `PRODUCTO`, que sale de `celdas.json` como `CELDA` y `PLAN`; sin él no acepta a nadie y la salud lo nombra. `firmarAcceso` ya puede firmar v2 (lo usan las pruebas; el CORE sigue emitiendo v1 hasta HU-C4.3). 9 pruebas nuevas, firmadas de verdad con Ed25519: la matriz v1/v2 × celda del agro/de ensayo en el paquete, y la celda respondiendo 401 a un token de otro producto. Control negativo: sin `aceptarEnProducto` en la celda, 2 se ven en rojo. WI-C4.1.3: la celda va con la publicación del agro, así que **N tiene que estar en producción antes de HU-C4.3**)
 - Como plataforma, quiero que todas las celdas acepten los dos formatos antes de que el CORE emita el nuevo, para que ningún cuaderno instalado quede fuera.
 - **Respaldo:** PLATAFORMA §4.6 (fase N); ADR-10.
 - **CA1.** `packages/tokens` acepta `iss` ∈ {`agro-core`, `ed1-core`}. Un token sin `aud` lo acepta **solo** una celda del agro. Sin `plan`, el plan es `gratuito`.
@@ -538,7 +538,7 @@ Formato de cada historia:
 - **Work items:** WI-C4.1.1 `[código]` · WI-C4.1.2 `[prueba]` contrato v1/v2 · WI-C4.1.3 `[infra]` desplegar en todas las celdas antes de HU-C4.3.
 
 #### HU-C4.2 · JWKS estándar
-- **Capa:** tokens · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** C4 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** tokens · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** C4 · **Depende de:** — · **Estado:** En validación (rama `feat/c4-sprint`. `apps/core/src/jwks.ts`; `/api/core/claves` y `/.well-known/jwks.json` publican lo mismo, la segunda con `access-control-allow-origin: *` y 5 minutos de caché. El CORE aún no rota su llave: «la anterior» llega como variable `CORE_CLAVE_ANTERIOR` con su JWK pública cuando haya una rotación, y de ella se copian solo los campos públicos. 5 pruebas: un token del CORE se verifica con lo publicado; CA2 pega la JWK **privada** como anterior y exige que `d` no salga. Control negativo: copiando la JWK tal cual, CA2 se ve en rojo)
 - Como verificador que no es nuestro, quiero las llaves del CORE en el formato estándar.
 - **Respaldo:** PLATAFORMA §4.6 (JWKS); RFC 7517 y RFC 8037.
 - **CA1.** `GET /.well-known/jwks.json` publica la llave vigente y la anterior como JWK `OKP`/`Ed25519`, con su `kid`.
