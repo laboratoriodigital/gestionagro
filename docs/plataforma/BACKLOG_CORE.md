@@ -699,7 +699,7 @@ Formato de cada historia:
 - **Work items:** WI-C6.5.1 `[código]` · WI-C6.5.2 `[prueba]`.
 
 #### HU-C6.6 · Presupuestos y CSP en el CI
-- **Capa:** CI · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C6.4, HU-C7.2 · **Estado:** Refinada
+- **Capa:** CI · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C6.4, HU-C7.2 · **Estado:** En validación (rama `feat/c6-sprint`. `tests/e2e/cuenta-presupuestos.spec.ts` mide cada página de la cuenta en el navegador: hoy la portada lleva 1,9 KB de JS y 3,3 KB de CSS con gzip, y 56 KB de fuentes, todo del mismo origen; el CLS de la portada queda dentro de 0,05 con la fuente ya cargada, y el LCP con CPU ×4 y 4G lenta queda dentro de 2,0 s, en el proyecto `@rendimiento`. CA2, en dos lugares: la e2e falla si un recurso viene de otro origen, y `scripts/verificar-cuenta.ts` detiene el build si un `<script>` o un `<link>` cargan de afuera (además de lo en línea, que ya revisaba). WI-C6.6.2 cambió de forma: sin Lighthouse CI. El CLS y la accesibilidad (axe) se miden en las mismas e2e, sin otro navegador ni minutos de más (plan gratuito). Control negativo: un script y una hoja de un tercero se nombran; un enlace a otra página, no)
 - Como dueño, quiero que el CI rechace una pantalla que se pase de peso o que necesite `'unsafe-inline'`.
 - **Respaldo:** §4.7 de este documento; ED1 §23.2; bitácora agro 14 y 20.
 - **CA1.** Los topes de §4.7 en las pruebas de la cuenta; las de tiempo en el proyecto `@rendimiento`.

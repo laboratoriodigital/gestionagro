@@ -82,6 +82,22 @@ describe('HU-C7.2 · lo que la cuenta promete', () => {
       'x.html: no dice noindex; la cuenta es personal',
     ]);
   });
+
+  it('HU-C6.6, CA2 ❌: un script o una hoja de un tercero se nombran; un enlace a otra página, no', () => {
+    const buena = '<html><head><meta name="robots" content="noindex, nofollow"></head></html>';
+    expect(
+      fallasDeUnaPagina(
+        'x.html',
+        `${buena}<script src="https://cdn.ejemplo.test/a.js"></script><link rel="stylesheet" href="//fuentes.ejemplo.test/b.css">`,
+      ),
+    ).toEqual([
+      'x.html: un <script> carga algo de otro origen; la CSP lo bloquea',
+      'x.html: un <link> carga algo de otro origen; la CSP lo bloquea',
+    ]);
+    expect(
+      fallasDeUnaPagina('x.html', `${buena}<a href="https://cultivopro.co/">CultivoPro</a>`),
+    ).toEqual([]);
+  });
 });
 
 describe('HU-C7.3 · la política de la cuenta', () => {

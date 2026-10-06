@@ -13,6 +13,12 @@ export function fallasDeUnaPagina(ruta: string, html: string): string[] {
   // Un script propio en archivo sí (la sesión, HU-C7.3); uno en línea, no: la CSP lo bloquea.
   if (/<script\b(?![^>]*\bsrc=)/i.test(html))
     fallas.push(`${ruta}: trae un <script> en línea; la CSP lo bloquea`);
+  // HU-C6.6, CA2: nada que cargue código o estilos de otro origen.
+  for (const m of html.matchAll(/<(script|link)\b[^>]*\b(?:src|href)="(https?:)?\/\/[^"]+"/gi)) {
+    fallas.push(
+      `${ruta}: un <${m[1]?.toLowerCase()}> carga algo de otro origen; la CSP lo bloquea`,
+    );
+  }
   if (/<style\b/i.test(html)) fallas.push(`${ruta}: trae un <style> en línea; la CSP lo bloquea`);
   if (/\sstyle=/i.test(html)) fallas.push(`${ruta}: trae un atributo style=; la CSP lo bloquea`);
   if (/\son[a-z]+=/i.test(html)) fallas.push(`${ruta}: trae un manejador en línea (on…=)`);
