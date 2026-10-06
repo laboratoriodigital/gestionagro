@@ -9,6 +9,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Los días hábiles de Colombia con sus festivos (`@ed1/calendario`), para contar los plazos de las solicitudes de las tiendas y de la Ley 1581. Los comparten la Tienda y el CORE (HU-T1.2).
 - El cifrado con que las tiendas guardarán las llaves de cobro de cada comercio y los datos de sus compradores (`@ed1/cifrado`): una llave por tienda y propósito, cada dato atado a su fila, búsqueda por celular sin guardarlo a la vista y cambio de la llave maestra sin perder nada (HU-T1.3).
 - Las reglas de los ajustes, los permisos y la carga de una tienda (`@ed1/tienda-schema`): qué le falta a una tienda para publicar, dicho campo por campo; qué puede el propietario y qué el colaborador, y qué pide volver a entrar; y el formato para cargar o llevarse una tienda entera, que revisa todo el archivo y dice todos los problemas a la vez (HU-T1.4).
+- La galería de la Tienda 3.0 (`packages/ui/galeria-tienda/`): ocho pantallas estáticas de la vitrina y del panel con los dos comercios de prueba, para elegir el estilo antes de construir. Sin JavaScript, sin terceros y con el contraste de cada color comprobado (HU-T3.1).
 
 ## [0.4.0] - 2026-10-06
 

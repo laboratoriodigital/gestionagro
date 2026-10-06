@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es-CO" data-producto="tienda">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Pedidos · Panel de Comercio Ensayo Uno</title>
+<link rel="stylesheet" href="../src/v2/fuentes.css">
+<link rel="stylesheet" href="../src/v2/tokens.css">
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<header class="barra"><span class="etiqueta">Comercio Ensayo Uno</span><span class="etiqueta">Propietario</span></header>
+<main class="contenido">
+  <h1>Pedidos</h1>
+  <div class="aviso" role="status">
+    <strong>2 cosas necesitan tu atención</strong>
+    <span>El pedido <span class="cifra">#1039</span> se pagó por <span class="cifra">$170.000</span> y valía <span class="cifra">$189.000</span>. <a href="panel-pedido.html">Revisarlo</a></span>
+    <span>Un pago llegó cuando ya no había existencias del Saco Niebla: repón o devuelve el dinero antes del <span class="cifra">27 oct</span>. <a href="index.html">Ver</a></span>
+  </div>
+  <nav class="filtros" aria-label="Filtrar pedidos">
+    <a class="filtro" href="index.html" aria-current="true">Por confirmar <span class="cifra">4</span></a>
+    <a class="filtro" href="index.html">Por despachar <span class="cifra">3</span></a>
+    <a class="filtro" href="index.html">En camino <span class="cifra">6</span></a>
+    <a class="filtro" href="index.html">Contra entrega <span class="cifra">5</span></a>
+    <a class="filtro" href="index.html">Todos</a>
+  </nav>
+  <ul class="pedidos">
+    <li class="pedido"><a href="panel-pedido.html"><span class="cifra">#1045 · 10:42</span><span class="pedido__total cifra">$218.000</span><span class="estado estado--pendiente">Por confirmar</span><span class="pedido__quien">María F. · contra entrega · Envigado</span></a></li>
+    <li class="pedido"><a href="panel-pedido.html"><span class="cifra">#1044 · 09:15</span><span class="pedido__total cifra">$129.000</span><span class="estado estado--pendiente">Por confirmar</span><span class="pedido__quien">Juan P. · transferencia · Medellín</span></a></li>
+    <li class="pedido"><a href="panel-pedido.html"><span class="cifra">#1043 · ayer</span><span class="pedido__total cifra">$378.000</span><span class="estado estado--pagado">Pagado</span><span class="pedido__quien">Laura G. · en línea · Bogotá</span></a></li>
+    <li class="pedido"><a href="panel-pedido.html"><span class="cifra">#1042 · ayer</span><span class="pedido__total cifra">$189.000</span><span class="estado estado--despachado">Despachado</span><span class="pedido__quien">Andrés R. · en línea · Cali</span></a></li>
+  </ul>
+</main>
+<nav class="navegacion" aria-label="Panel">
+  <a href="index.html">Inicio</a>
+  <a href="panel-pedidos.html" aria-current="page">Pedidos</a>
+  <a href="index.html">Productos</a>
+  <a href="index.html">Más</a>
+</nav>
+</body>
+</html>
