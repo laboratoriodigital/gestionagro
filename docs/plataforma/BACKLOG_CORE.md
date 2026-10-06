@@ -596,7 +596,7 @@ Formato de cada historia:
 - **Work items:** WI-C5.1.1 `[código]` · WI-C5.1.2 `[prueba]` batería del reloj.
 
 #### HU-C5.2 · Precios por periodo en la base
-- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C1.2, HU-C2.3 · **Estado:** Refinada
+- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C1.2, HU-C2.3 · **Estado:** En validación (rama `feat/c6-sprint`. CA1 ya lo entregó HU-C2.3: el despliegue copia `cobro` a `plan_precio` con su `vigente_desde`, un precio distinto entra como fila nueva y el anterior queda como historia, y la lectura de vuelta lo compara. Lo que faltaba era la prueba de CA2: un precio para un periodo que no está en `periodo` lo rechaza la base por su clave foránea, con la razón exacta, en `node:sqlite` y en el D1 de workerd. Se cuenta en la velocidad lo que de verdad costó: menos de 1 punto)
 - Como plataforma, quiero que `plan_precio` tenga el precio vigente de cada plan y periodo, con su historia.
 - **Respaldo:** PLATAFORMA §4.3 (`periodo`, `plan_precio`); ADR-22.
 - **CA1.** El despliegue copia `cobro` a `plan_precio` con `vigente_desde`; un cambio de precio es una fila nueva.

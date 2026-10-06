@@ -95,6 +95,11 @@ describe('la dimensión de producto en D1 (HU-C2.2)', () => {
       "INSERT INTO pago (id, producto, proveedor, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, creado, actualizado) VALUES ('p8', 'ensayo', 'bold', 't1', 'u1', 'entrada', 2, 59800, 'pruebas', 'esperando', 'x', 'x')",
     ],
     [
+      // HU-C5.2, CA2: el precio de un periodo que no existe en `periodo`.
+      'un precio por 2 meses, que no es un periodo',
+      "INSERT INTO plan_precio (producto, plan, meses, monto_cop, vigente_desde) VALUES ('ensayo', 'entrada', 2, 59800, 'z')",
+    ],
+    [
       'un espacio de otro producto con el tipo «finca»',
       "INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('t4', 'ensayo', 'X', 'finca', 'gratis', 'c1', 'ensayo_c1_s1', 2, 'x')",
     ],
