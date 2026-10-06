@@ -19,6 +19,11 @@ const canal =
 export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 30_000,
+  // En CI, 2 workers: el repositorio privado corre en equipos de GitHub de 2 núcleos, donde
+  // Playwright tomaba 1 por defecto y las 204 pruebas iban en fila (~4 min, 5 oct 2026). Las
+  // mediciones `@rendimiento` siguen con 1 worker (`--workers=1` en el script `e2e`). En local,
+  // el valor por defecto: la mitad de los núcleos.
+  ...(process.env['CI'] ? { workers: 2 } : {}),
   forbidOnly: Boolean(process.env['CI']),
   retries: 0,
   reporter: process.env['CI'] ? [['list'], ['github']] : 'list',
