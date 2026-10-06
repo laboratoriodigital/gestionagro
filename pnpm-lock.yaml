@@ -266,10 +266,17 @@ importers:
   packages/trazabilidad: {}
 
   packages/ui:
+    dependencies:
+      preact:
+        specifier: ^10.29.8
+        version: 10.29.8(preact-render-to-string@6.7.0)
     devDependencies:
       geist:
         specifier: 1.7.2
         version: 1.7.2(next@16.3.8(@babel/core@7.29.7(supports-color@10.2.2))(@playwright/test@1.63.0)(@types/node@22.20.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
+      preact-render-to-string:
+        specifier: ^6.7.0
+        version: 6.7.0(preact@10.29.8)
       subset-font:
         specifier: 2.9.0
         version: 2.9.0

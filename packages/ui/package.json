@@ -8,10 +8,16 @@
     "./tokens.css": "./src/tokens.css",
     "./v2/tokens": "./src/v2/tokens.ts",
     "./v2/tokens.css": "./src/v2/tokens.css",
-    "./v2/fuentes.css": "./src/v2/fuentes.css"
+    "./v2/fuentes.css": "./src/v2/fuentes.css",
+    "./v2/componentes": "./src/v2/componentes/index.ts",
+    "./v2/componentes.css": "./src/v2/componentes.css"
   },
   "devDependencies": {
     "geist": "1.7.2",
+    "preact-render-to-string": "^6.7.0",
     "subset-font": "2.9.0"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
   }
 }

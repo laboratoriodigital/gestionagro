@@ -672,7 +672,7 @@ Formato de cada historia:
 - **Work items:** WI-C6.2.1 `[código]` recorte y `@font-face` · WI-C6.2.2 `[prueba]` peso y licencia · WI-C6.2.3 `[dueño]` decisión D-C1.
 
 #### HU-C6.3 · Componentes base
-- **Capa:** diseño · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C3 · **Depende de:** HU-C6.1 · **Estado:** Refinada
+- **Capa:** diseño · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C3 · **Depende de:** HU-C6.1 · **Estado:** En validación (rama `feat/c3-sprint`. CA1 cambió de forma: los componentes son de Preact y no de Astro (`packages/ui/src/v2/componentes/`), con una sola hoja `componentes.css`. Astro los entrega como HTML estático cuando se usan sin `client:*`, así que no mandan JavaScript, y las pruebas los renderizan con `preact-render-to-string` sin levantar Vite; la app que los use necesita la integración de Preact de Astro, que el sitio ya usa. Ni el menú del teléfono ni la confirmación usan JavaScript: los dos son `<details>`. CA3: el estado es una unión con etiqueta, y «cargando» no tiene elementos; un `@ts-expect-error` en la prueba lo exige al compilador. 35 pruebas: nada que la CSP bloquee en ninguna muestra, el motivo del deshabilitado asociado con `aria-describedby`, el error junto al campo, todos los errores en el resumen, los tres estados distintos y una hoja con estilo para cada clase que se pinta. Controles negativos: un estilo en línea se detecta; la prueba de la hoja encontró cuatro clases sin estilo antes de escribirlas; un `#fff` en `componentes.css` lo marca la prueba de colores sueltos. Vistos en una página de muestra a 640 y 1280 px, en claro y oscuro, con el menú y la confirmación abiertos; la comparación automática de capturas llega con la galería, HU-C6.4)
 - Como app del ecosistema, quiero componentes con todos sus estados resueltos, para no reinventar el error, el vacío ni la confirmación.
 - **Respaldo:** §4.5 de este documento; bitácora agro 16 y 17.
 - **CA1.** Los componentes de §4.5 como componentes de Astro con su CSS, sin JavaScript salvo el menú del teléfono si `<details>` no alcanza.
@@ -1038,7 +1038,8 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 | Sprint | Comprometido | Validado por el dueño | Nota |
 |---|---|---|---|
 | C1 | 19 | 19 (PR #92, fusionado el 5 oct 2026) | Se agregó HU-C11.6 al arrancar (eficiencia del CI, pedido del dueño). Terminado el mismo día del arranque, como en el agro: el cuello de botella sigue siendo validar |
-| C2 | 24 | — (PR del 5 oct 2026, en revisión) | Las 8 historias en un día. Una regla nueva que no estaba en los CA: la guardia del CHANGELOG del CORE, porque otra línea de trabajo también lo toca |
+| C2 | 24 | 24 (PR #97, fusionado el 5 oct 2026) | Las 8 historias en un día. Una regla nueva que no estaba en los CA: la guardia del CHANGELOG del CORE, porque otra línea de trabajo también lo toca |
+| C3 | 18 | — (PR del 6 oct 2026, en revisión) | Las 5 historias en un día. Dos cambios de forma, dichos en cada historia: la auditoría es la 0007 y entrar con correo pasa a 0008; los componentes base son de Preact servidos como HTML, no de Astro, para probarlos sin levantar Vite |
 
 ---
 
