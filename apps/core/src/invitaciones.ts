@@ -16,6 +16,7 @@
  */
 import { hashDe, secretoAlAzar, TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
+import { filaDeAuditoria } from './auditoria.ts';
 import type { Entorno } from './entrar.ts';
 import type { Rol } from './repositorio.ts';
 
@@ -165,6 +166,22 @@ export async function aceptarInvitacion(c: Context, e: Entorno): Promise<Respons
          SELECT ?, org_id, rol, ? FROM invitacion WHERE codigo_hash = ? AND usada_por = ? AND usada = ?`,
       )
       .bind(sesion.sub, iso(ahora), hash, sesion.sub, iso(ahora)),
+    // HU-C2.4: la fila queda solo si la invitación quedó usada por esta persona en este instante.
+    filaDeAuditoria(
+      e.db,
+      {
+        instante: iso(ahora),
+        producto: 'agro',
+        org_id: d.org_id,
+        usuario_id: sesion.sub,
+        accion: 'invitacion_aceptada',
+        detalle: { rol: d.rol },
+      },
+      {
+        sql: 'SELECT 1 FROM invitacion WHERE codigo_hash = ? AND usada_por = ? AND usada = ?',
+        valores: [hash, sesion.sub, iso(ahora)],
+      },
+    ),
   ]);
   if (!marca?.meta.changes || !alta?.meta.changes) {
     // Otro teléfono la usó en el mismo instante: se dice como ya usada.

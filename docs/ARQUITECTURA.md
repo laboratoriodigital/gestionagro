@@ -277,6 +277,7 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
 | `periodo` | Los periodos de prepago: 1, 3, 6 y 12 meses (ADR-22). Uno nuevo es un INSERT, no un CHECK (0006) |
 | `plan_precio` | Precio de cada plan por periodo, con `vigente_desde`: un precio no se edita, entra uno nuevo (0006) |
 | `aceptacion_politica` | Qué versión de la política de cada producto aceptó cada persona y cuándo (0006). Reemplaza a `usuario.politica_*`, que se retira al contraer |
+| `auditoria` | Lo que tocó seguridad o dinero, una fila por hecho (0007, HU-C2.4): entradas, invitaciones aceptadas, cambios de rol, personas quitadas, teléfonos retirados y pagos cerrados. Se escribe en el mismo lote que el hecho y solo si el hecho quedó. Sin lecturas ni renovaciones. La ve quien administra (`POST /api/core/auditoria/ver`) |
 
 - **Dónde vive (HU-E4.1):**
   - Worker `agro-core` en workers.dev, con la base D1 `agro_core` (con `_staging` en staging), en la cuenta de la celda que dice `core.celda` en `celdas.json`.

@@ -20,6 +20,7 @@ import { type Firmante, firmarAcceso } from '@ed1/tokens';
 import { decodeIdToken, Google, generateCodeVerifier, generateState } from 'arctic';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import { filaDeAuditoria } from './auditoria.ts';
 import { POLITICA_VIGENTE } from './politica.ts';
 import {
   directorioDeUsuario,
@@ -147,6 +148,15 @@ export async function callback(c: Context, e: Entorno): Promise<Response> {
     const ahora = e.ahora();
     const usuario = await usuarioDeIdentidad(e.db, persona, () => ahora, guardado.politica ?? null);
     const codigo = await crearSesion(e.db, usuario.id, ahora);
+    // HU-C2.4: la entrada con Google es un hecho de seguridad; renovar no lo es.
+    await filaDeAuditoria(e.db, {
+      instante: new Date(ahora).toISOString(),
+      producto: 'agro',
+      org_id: null,
+      usuario_id: usuario.id,
+      accion: 'entrada',
+      detalle: { proveedor: 'google' },
+    }).run();
     return c.redirect(`${vuelta}#entrar=${codigo}`, 302);
   } catch (error) {
     console.error('agro-core: no se pudo completar la entrada con Google:', (error as Error).name);

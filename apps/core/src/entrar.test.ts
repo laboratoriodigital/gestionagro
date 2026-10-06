@@ -472,8 +472,8 @@ describe('HU-E0.5 CA3 · aceptar la política al entrar', () => {
     });
     cuenta.escrituras = 0;
     await entrarConGoogle();
-    // Solo la sesión nueva (1 escritura); la aceptación no se reescribe.
-    expect(cuenta.escrituras).toBe(1);
+    // La sesión nueva y la fila de auditoría de la entrada (HU-C2.4); la aceptación no se reescribe.
+    expect(cuenta.escrituras).toBe(2);
   });
 });
 
@@ -749,6 +749,73 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
     });
   });
 
+  describe('HU-C2.4 · auditoría de lo que toca seguridad o dinero', () => {
+    const acciones = async () =>
+      (
+        await db
+          .prepare('SELECT accion, org_id, producto FROM auditoria ORDER BY id')
+          .all<{ accion: string; org_id: string | null; producto: string }>()
+      ).results;
+
+    it('CA1: entrada, invitación aceptada, cambio de rol, persona quitada y teléfono retirado dejan su fila', async () => {
+      const { p, cuerpo } = await invitar('operario');
+      const o = await sesionDe('google-operario');
+      await conToken('/api/core/invitaciones/aceptar', o.acceso, { codigo: cuerpo.codigo });
+      const vistos = (await (await conToken('/api/core/equipo/ver', p.acceso, {})).json()) as {
+        miembros: { usuario_id: string; tu: boolean }[];
+      };
+      const operario = vistos.miembros.find((m) => !m.tu)?.usuario_id;
+      await conToken('/api/core/equipo/rol', p.acceso, { usuario_id: operario, rol: 'supervisor' });
+      await conToken('/api/core/equipo/quitar', p.acceso, { usuario_id: operario });
+      const tel = (await (await conToken('/api/core/telefonos/ver', o.acceso, {})).json()) as {
+        telefonos: { id: string }[];
+      };
+      await conToken('/api/core/telefonos/retirar', o.acceso, { id: tel.telefonos[0]?.id });
+      expect((await acciones()).map((a) => a.accion)).toEqual([
+        'entrada',
+        'entrada',
+        'invitacion_aceptada',
+        'rol_cambiado',
+        'persona_quitada',
+        'telefono_retirado',
+      ]);
+      expect((await acciones()).every((a) => a.producto === 'agro')).toBe(true);
+    });
+
+    it('CA2: ver el equipo, renovar y un intento que no cambia nada no escriben auditoría', async () => {
+      const p = await propietario();
+      const antes = (await acciones()).length;
+      await conToken('/api/core/equipo/ver', p.acceso, {});
+      await post('/api/core/auth/refrescar', { refresh: p.refresh, org_id: ORG });
+      // Quitar a alguien que no está: 404 y ninguna fila (el hecho no ocurrió).
+      expect(
+        (await conToken('/api/core/equipo/quitar', p.acceso, { usuario_id: 'nadie' })).status,
+      ).toBe(404);
+      expect((await acciones()).length).toBe(antes);
+    });
+
+    it('CA3 y CA4: solo quien administra la ve, y solo la de su finca', async () => {
+      const { p, cuerpo } = await invitar('operario');
+      const o = await sesionDe('google-operario');
+      await conToken('/api/core/invitaciones/aceptar', o.acceso, { codigo: cuerpo.codigo });
+      // Un hecho de otra finca no debe aparecer.
+      await db
+        .prepare(
+          "INSERT INTO auditoria (instante, producto, org_id, usuario_id, accion) VALUES ('2026-10-01', 'agro', 'otra-finca', NULL, 'rol_cambiado')",
+        )
+        .run();
+      const r = await conToken('/api/core/auditoria/ver', p.acceso, {});
+      expect(r.status).toBe(200);
+      const { hechos } = (await r.json()) as { hechos: { accion: string; quien: string }[] };
+      expect(hechos.map((h) => h.accion)).toEqual(['invitacion_aceptada']);
+      const delOperario = (await (
+        await post('/api/core/auth/refrescar', { refresh: o.refresh, org_id: ORG })
+      ).json()) as Sesion;
+      expect((await conToken('/api/core/auditoria/ver', delOperario.acceso, {})).status).toBe(403);
+      expect((await conToken('/api/core/auditoria/ver', null, {})).status).toBe(401);
+    });
+  });
+
   describe('HU-E0.6 · lista de espera de planes', () => {
     it('CA1: el propietario marca «Me interesa» sin cobro; repetirlo no escribe otra vez', async () => {
       const p = await propietario();
@@ -914,6 +981,13 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
       expect(await otra.json()).toMatchObject({ estado: 'aprobado', plan_vence: vence });
       expect(consultas).toHaveLength(2); // la segunda confirmación no le pregunta a Bold
       expect(await planDeLaFinca(p)).toMatchObject({ plan: 'finca', plan_vence: vence });
+      // HU-C2.4: el pago cerrado deja una sola fila, aunque se confirmó dos veces.
+      const pagos = await db
+        .prepare("SELECT detalle FROM auditoria WHERE accion = 'pago_cerrado'")
+        .all<{ detalle: string }>();
+      expect(pagos.results.map((f) => JSON.parse(f.detalle))).toEqual([
+        { pago: c.orden, estado: 'aprobado', plan: 'finca', meses: 1, monto_cop: 39000 },
+      ]);
     });
 
     it('pagar antes de vencer suma el mes al vencimiento, no a hoy', async () => {

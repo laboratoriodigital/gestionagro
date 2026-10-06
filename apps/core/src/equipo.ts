@@ -11,11 +11,16 @@
  *   el access que ya tiene vale hasta 12 h (CA1). Lo guardado en ese teléfono no se puede borrar
  *   a distancia (CA2): lo dice la pantalla.
  *
+ * - `POST /api/core/auditoria/ver` (propietario): lo que tocó seguridad o dinero en la finca
+ *   (HU-C2.4). Cambiar un rol, quitar a alguien y retirar un teléfono escriben su fila en el mismo
+ *   lote (`auditoria.ts`).
+ *
  * Nadie cambia su propio rol ni se quita a sí mismo: una finca nunca se queda sin quien la
  * administre por un toque equivocado.
  */
 import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
+import { type Accion, filaDeAuditoria } from './auditoria.ts';
 import type { Entorno } from './entrar.ts';
 import { ROLES_INVITABLES } from './invitaciones.ts';
 import type { Rol } from './repositorio.ts';
@@ -44,7 +49,7 @@ const sinSesion = (c: Context) =>
   c.json({ estado: 'sin-sesion', motivo: 'Entra con tu cuenta para continuar.' }, 401);
 
 /** La sesión, si es de quien administra la finca del token; si no, la respuesta de error. */
-async function propietarioDe(c: Context, e: Entorno) {
+export async function propietarioDe(c: Context, e: Entorno) {
   const sesion = await sesionDe(c, e);
   if (!sesion) return { error: sinSesion(c) };
   if (!sesion.org || sesion.rol !== 'propietario') {
@@ -56,6 +61,44 @@ async function propietarioDe(c: Context, e: Entorno) {
     };
   }
   return { sesion: { ...sesion, org: sesion.org } };
+}
+
+/** El hecho de auditoría de quien pide. Hasta HU-C3.1 todo es del agro. */
+function hecho(
+  e: Entorno,
+  sesion: { sub: string; org?: string | null },
+  accion: Accion,
+  detalle: Record<string, unknown>,
+) {
+  return {
+    instante: iso(e.ahora()),
+    producto: 'agro',
+    org_id: sesion.org ?? null,
+    usuario_id: sesion.sub,
+    accion,
+    detalle,
+  };
+}
+
+/** Lo último que tocó seguridad o dinero en la finca, para quien la administra (HU-C2.4). */
+export async function verAuditoria(c: Context, e: Entorno): Promise<Response> {
+  const p = await propietarioDe(c, e);
+  if (p.error) return p.error;
+  const filas = await e.db
+    .prepare(
+      `SELECT a.instante, a.accion, a.detalle, u.nombre AS quien
+         FROM auditoria a LEFT JOIN usuario u ON u.id = a.usuario_id
+        WHERE a.org_id = ? AND a.producto = ?
+        ORDER BY a.id DESC LIMIT 100`,
+    )
+    .bind(p.sesion.org, 'agro')
+    .all<{ instante: string; accion: Accion; detalle: string | null; quien: string | null }>();
+  return c.json({
+    hechos: filas.results.map((f) => ({
+      ...f,
+      detalle: f.detalle ? (JSON.parse(f.detalle) as Record<string, unknown>) : null,
+    })),
+  });
 }
 
 /** El `usuario_id` del cuerpo, si no es el de quien pide. */
@@ -104,11 +147,16 @@ export async function cambiarRol(c: Context, e: Entorno): Promise<Response> {
   if (typeof rol !== 'string' || !ROLES_INVITABLES.includes(rol as Rol)) {
     return c.json({ estado: 'invalido', motivo: 'Elige un rol válido.' }, 400);
   }
-  const r = await e.db
-    .prepare('UPDATE membresia SET rol = ? WHERE usuario_id = ? AND org_id = ?')
-    .bind(rol, quien.usuario, p.sesion.org)
-    .run();
-  if (r.meta.changes === 0) {
+  const [r] = await e.db.batch([
+    e.db
+      .prepare('UPDATE membresia SET rol = ? WHERE usuario_id = ? AND org_id = ?')
+      .bind(rol, quien.usuario, p.sesion.org),
+    filaDeAuditoria(e.db, hecho(e, p.sesion, 'rol_cambiado', { persona: quien.usuario, rol }), {
+      sql: 'SELECT 1 FROM membresia WHERE usuario_id = ? AND org_id = ? AND rol = ?',
+      valores: [quien.usuario, p.sesion.org, rol],
+    }),
+  ]);
+  if ((r?.meta.changes ?? 0) === 0) {
     return c.json({ estado: 'no-encontrado', motivo: 'Esa persona no está en la finca.' }, 404);
   }
   return c.json({ usuario_id: quien.usuario, rol });
@@ -119,11 +167,17 @@ export async function quitarDelEquipo(c: Context, e: Entorno): Promise<Response>
   if (p.error) return p.error;
   const quien = otraPersona(c, await cuerpo(c), p.sesion.sub);
   if (quien.error) return quien.error;
-  const r = await e.db
-    .prepare('DELETE FROM membresia WHERE usuario_id = ? AND org_id = ?')
-    .bind(quien.usuario, p.sesion.org)
-    .run();
-  if (r.meta.changes === 0) {
+  // La fila va antes que el borrado: su condición es que la persona todavía esté.
+  const [, r] = await e.db.batch([
+    filaDeAuditoria(e.db, hecho(e, p.sesion, 'persona_quitada', { persona: quien.usuario }), {
+      sql: 'SELECT 1 FROM membresia WHERE usuario_id = ? AND org_id = ?',
+      valores: [quien.usuario, p.sesion.org],
+    }),
+    e.db
+      .prepare('DELETE FROM membresia WHERE usuario_id = ? AND org_id = ?')
+      .bind(quien.usuario, p.sesion.org),
+  ]);
+  if ((r?.meta.changes ?? 0) === 0) {
     return c.json({ estado: 'no-encontrado', motivo: 'Esa persona no está en la finca.' }, 404);
   }
   return c.json({ usuario_id: quien.usuario, quitado: true });
@@ -150,11 +204,18 @@ export async function retirarTelefono(c: Context, e: Entorno): Promise<Response>
   if (typeof id !== 'string' || !id) {
     return c.json({ estado: 'invalido', motivo: 'Falta el teléfono.' }, 400);
   }
-  const r = await e.db
-    .prepare('UPDATE sesion SET revocado = ? WHERE id = ? AND usuario_id = ? AND revocado IS NULL')
-    .bind(iso(e.ahora()), id, sesion.sub)
-    .run();
-  if (r.meta.changes === 0) {
+  const [, r] = await e.db.batch([
+    filaDeAuditoria(e.db, hecho(e, sesion, 'telefono_retirado', { sesion: id }), {
+      sql: 'SELECT 1 FROM sesion WHERE id = ? AND usuario_id = ? AND revocado IS NULL',
+      valores: [id, sesion.sub],
+    }),
+    e.db
+      .prepare(
+        'UPDATE sesion SET revocado = ? WHERE id = ? AND usuario_id = ? AND revocado IS NULL',
+      )
+      .bind(iso(e.ahora()), id, sesion.sub),
+  ]);
+  if ((r?.meta.changes ?? 0) === 0) {
     return c.json({ estado: 'no-encontrado', motivo: 'Ese teléfono ya no tiene acceso.' }, 404);
   }
   return c.json({ id, retirado: true });

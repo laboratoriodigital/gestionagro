@@ -17,7 +17,7 @@
 | Hito | Qué queda funcionando | Fase de PLATAFORMA §7 | Cierra | Fecha objetivo | Desbloquea |
 |---|---|---|---|---|---|
 | **HC0 · Producto como dato** | `productos.json`, `cuentas.json`, `dominios.json` y `celdas.json` v2 con sus esquemas; convención de commits con guardia; versión propia del CORE | P0 | C2 | 30 oct 2026 | — |
-| **HC1 · Producto en el CORE** | Migraciones 0006 y 0008 con la receta probada en D1; API por producto (expandir); kill switches por producto; tokens N (verifican v1 y v2); vigía en modo pago | P1 | C4 | 27 nov 2026 | **Tienda M0** (con Workers Paid y la zona `.app`) |
+| **HC1 · Producto en el CORE** | Migraciones 0006 y 0007 con la receta probada en D1; API por producto (expandir); kill switches por producto; tokens N (verifican v1 y v2); vigía en modo pago | P1 | C4 | 27 nov 2026 | **Tienda M0** (con Workers Paid y la zona `.app`) |
 | **HC2 · Cuenta v0 con el sistema de diseño** | `@ed1/ui` v2 (tokens, tipografía, componentes, galería y presupuestos); `cuenta.laboratorio-digital.com`: entrar y ver mis organizaciones; el CORE emite v2 | parte de P2 | C6 | 23 dic 2026 | — |
 | **HC3 · Tokens v2 cerrados** | v1 contraído; sesión por producto | P2 | C7 | 22 ene 2027 | **Tienda M2** (panel) |
 | **HC4 · Planes por periodo** | 1, 3, 6 y 12 meses, meses calendario, crédito al cambiar de plan, gracia, celdas al día. **CORE 1.0.0** | P3 | C7 | 22 ene 2027 | **Tienda M4** (cobro del plan) |
@@ -446,8 +446,8 @@ Formato de cada historia:
 - **CA4.** Un precio nuevo entra como fila con `vigente_desde`; el anterior no se edita.
 - **Work items:** WI-C2.3.1 `[código]` copia idempotente · WI-C2.3.2 `[prueba]` archivo ↔ base · WI-C2.3.3 `[doc]` runbook de despliegue.
 
-#### HU-C2.4 · Auditoría de lo que toca seguridad o dinero (0008)
-- **Capa:** base y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C3 · **Depende de:** HU-C2.2 · **Estado:** Refinada
+#### HU-C2.4 · Auditoría de lo que toca seguridad o dinero (0007)
+- **Capa:** base y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C3 · **Depende de:** HU-C2.2 · **Estado:** En validación (rama `feat/c3-sprint`. La migración es la **0007** y no la 0008: se construyó antes que entrar con correo, que pasa a 0008. Cada fila se escribe en el mismo lote que su hecho con `INSERT … SELECT … WHERE EXISTS`, así no hay auditoría de algo que no pasó ni hecho sin fila. Los pagos guardan quién pagó para nombrarlo. 4 pruebas nuevas y 2 viejas ajustadas por diseño (la lista de tablas y «volver a entrar escribe solo la sesión», que ahora escribe también su fila). Control negativo: sin la condición, un intento que no cambia nada deja fila y la prueba se ve en rojo)
 - Como quien administra un espacio, quiero ver quién entró, quién cambió un rol y qué se pagó, para confiar en lo que pasa en mi organización.
 - **Respaldo:** PLATAFORMA §4.12; ED1 §5 (auditoría).
 - **CA1.** `auditoria` recibe una fila por hecho: entrada, invitación aceptada, cambio de rol, salida, teléfono retirado, pago cerrado, cambio de plan (y, desde EC9, concesiones a agentes).
@@ -455,7 +455,7 @@ Formato de cada historia:
 - **CA3.** `POST /api/core/auditoria/ver` entrega la auditoría de una organización **solo** a un rol que administra.
 - **CA4 ❌.** Un operario recibe 403, y la auditoría de otra organización o de otro producto nunca aparece.
 - **Consumo:** una fila y un índice por hecho; con el volumen de hoy, decenas por día.
-- **Work items:** WI-C2.4.1 `[código]` 0008 y escrituras en cada flujo · WI-C2.4.2 `[código]` ruta de lectura · WI-C2.4.3 `[prueba]` cada hecho escribe una fila, y ninguna lectura escribe.
+- **Work items:** WI-C2.4.1 `[código]` 0007 y escrituras en cada flujo · WI-C2.4.2 `[código]` ruta de lectura · WI-C2.4.3 `[prueba]` cada hecho escribe una fila, y ninguna lectura escribe.
 
 ### EC3 · La API por producto
 
@@ -895,7 +895,7 @@ Formato de cada historia:
 - **Capa:** API y cuenta · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C11 · **Depende de:** HU-C10.1, HU-C7.3 · **Estado:** Refinada
 - Como comerciante sin cuenta de Google, quiero entrar con un enlace a mi correo.
 - **Respaldo:** PLATAFORMA §4.11; ED1 §5.2.
-- **CA1.** 0007 con la receta. `POST /api/core/auth/correo/pedir` responde siempre lo mismo, exista o no la cuenta.
+- **CA1.** 0008 con la receta. `POST /api/core/auth/correo/pedir` responde siempre lo mismo, exista o no la cuenta.
 - **CA2.** Enlace de un solo uso, de 15 minutos, con el código en el fragmento; en la base, solo su huella.
 - **CA3 ❌.** Un enlace usado o vencido no sirve; más de 3 por correo por hora, o por encima del límite por IP, se rechazan.
 - **Aceptación de HC7:** un enlace llega a un correo que no es de Google y entra.

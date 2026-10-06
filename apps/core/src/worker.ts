@@ -46,7 +46,14 @@ import {
   proveedorGoogle,
   renovar,
 } from './entrar.ts';
-import { cambiarRol, quitarDelEquipo, retirarTelefono, verEquipo, verTelefonos } from './equipo.ts';
+import {
+  cambiarRol,
+  quitarDelEquipo,
+  retirarTelefono,
+  verAuditoria,
+  verEquipo,
+  verTelefonos,
+} from './equipo.ts';
 import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
@@ -216,6 +223,7 @@ export function crearApp(dependencias: Dependencias = {}) {
     '/api/core/interes/*',
     '/api/core/pago/*',
     '/api/core/drive/*',
+    '/api/core/auditoria/*',
   ]) {
     app.use(ruta, corsDelCuaderno);
     app.use(ruta, conEntorno);
@@ -230,6 +238,7 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/api/core/equipo/quitar', (c) => quitarDelEquipo(c, c.get('entorno')));
   app.post('/api/core/telefonos/ver', (c) => verTelefonos(c, c.get('entorno')));
   app.post('/api/core/telefonos/retirar', (c) => retirarTelefono(c, c.get('entorno')));
+  app.post('/api/core/auditoria/ver', (c) => verAuditoria(c, c.get('entorno')));
   app.post('/api/core/interes', (c) => marcarInteres(c, c.get('entorno')));
   app.post('/api/core/interes/ver', (c) => verInteres(c, c.get('entorno')));
   const conPago = (

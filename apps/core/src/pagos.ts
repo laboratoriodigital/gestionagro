@@ -25,6 +25,7 @@ import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import planes from '../../../content/agro/cuaderno/planes.json' with { type: 'json' };
 import marca from '../../../content/marca.json' with { type: 'json' };
+import { filaDeAuditoria } from './auditoria.ts';
 import type { Entorno } from './entrar.ts';
 import type { EstadoEnElProveedor, ProveedorDePago } from './proveedor-de-pago.ts';
 
@@ -159,6 +160,8 @@ export function nuevoVencimiento(vigente: string | null, ahora: number, meses: n
 interface FilaDePago {
   id: string;
   org_id: string;
+  /** Quien pagó: la auditoría lo nombra (HU-C2.4). */
+  usuario_id: string;
   plan: string;
   meses: number;
   monto_cop: number;
@@ -168,7 +171,7 @@ interface FilaDePago {
   creado: string;
 }
 
-const COLUMNAS = 'id, org_id, plan, meses, monto_cop, ambiente, estado, motivo, creado';
+const COLUMNAS = 'id, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, motivo, creado';
 
 export interface Desenlace {
   estado: 'esperando' | 'aprobado' | 'rechazado' | 'revisar' | 'vencido';
@@ -193,11 +196,36 @@ async function aplicar(
         "UPDATE pago SET estado = ?, motivo = ?, transaccion = ?, actualizado = ? WHERE id = ? AND estado = 'esperando'",
       )
       .bind(estado, motivo, respuesta.transaccion, iso, pago.id);
+  // HU-C2.4: un pago cerrado deja su fila, solo si este camino fue el que lo cerró.
+  const auditar = (estado: Desenlace['estado']) =>
+    filaDeAuditoria(
+      db,
+      {
+        instante: iso,
+        producto: 'agro',
+        org_id: pago.org_id,
+        usuario_id: pago.usuario_id,
+        accion: 'pago_cerrado',
+        detalle: {
+          pago: pago.id,
+          estado,
+          plan: pago.plan,
+          meses: pago.meses,
+          monto_cop: pago.monto_cop,
+        },
+      },
+      {
+        sql: 'SELECT 1 FROM pago WHERE id = ? AND estado = ? AND actualizado = ?',
+        valores: [pago.id, estado, iso],
+      },
+    );
+  const cerrarYAuditar = (estado: Desenlace['estado'], motivo: string | null) =>
+    db.batch([cerrar(estado, motivo), auditar(estado)]);
 
   if (respuesta.estado === 'aprobado') {
     if (respuesta.total !== pago.monto_cop) {
       const motivo = `El pago se aprobó por ${respuesta.total ?? '?'} y el plan cuesta ${pago.monto_cop}: lo revisamos y te escribimos.`;
-      await cerrar('revisar', motivo).run();
+      await cerrarYAuditar('revisar', motivo);
       console.error(`agro-core: pago ${pago.id} aprobado por otro monto`);
       return { estado: 'revisar', motivo };
     }
@@ -217,18 +245,19 @@ async function aplicar(
           "UPDATE organizacion SET plan = ?, plan_vence = ? WHERE id = ? AND EXISTS (SELECT 1 FROM pago WHERE id = ? AND estado = 'aprobado' AND actualizado = ?)",
         )
         .bind(pago.plan, vence, pago.org_id, pago.id, iso),
+      auditar('aprobado'),
     ]);
     if ((cierre?.meta.changes ?? 0) === 0) return releer(db, pago.id);
     return { estado: 'aprobado', motivo: null };
   }
   if (respuesta.estado === 'rechazado') {
     const motivo = 'El pago no se aprobó. No se cobró nada; puedes intentarlo otra vez.';
-    await cerrar('rechazado', motivo).run();
+    await cerrarYAuditar('rechazado', motivo);
     return { estado: 'rechazado', motivo };
   }
   if (ahora - Date.parse(pago.creado) > VIDA_DE_UN_COBRO_MS) {
     const motivo = 'Pasó un día sin noticias de este pago. Si te cobraron, escríbenos.';
-    await cerrar('vencido', motivo).run();
+    await cerrarYAuditar('vencido', motivo);
     return { estado: 'vencido', motivo };
   }
   return {

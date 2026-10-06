@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El CORE lleva un registro de lo que toca seguridad o dinero en cada finca (quién entró, quién aceptó una invitación, qué rol cambió, qué se pagó), y quien la administra lo puede ver (HU-C2.4).
 - Las fuentes del sistema de diseño v2: Geist y Geist Mono, recortadas al español (57 KB las dos) y servidas desde el mismo sitio, con un respaldo ajustado para que la página no salte mientras cargan (HU-C6.2, ADR-29).
 - El despliegue copia los productos y los precios de sus archivos a la base del CORE, antes que las celdas, y después comprueba que la base diga lo mismo. Un precio nuevo entra como fila nueva y el anterior queda como historia; un plan o un producto que sale del archivo queda retirado, nunca borrado (HU-C2.3).
 - La base del CORE sabe de productos (migración 0006, ADR-20): tablas de productos, tipos, roles, planes, periodos y precios, y claves foráneas que hacen imposibles los cruces entre productos. Lo que ya funciona sigue igual: es la fase de expandir. Antes de migrar, el despliegue comprueba que la base no tenga filas huérfanas (HU-C2.2).

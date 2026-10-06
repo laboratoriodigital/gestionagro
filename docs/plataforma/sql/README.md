@@ -5,8 +5,8 @@ Migraciones **propuestas**: no están en `infrastructure/migraciones/`, así que
 | Archivo | Qué es | Documento |
 |---|---|---|
 | ~~`core/0006_dimension_de_producto.sql`~~ → `infrastructure/migraciones/core/` | El producto en todo el CORE: tablas de referencia (productos, tipos, roles, planes, periodos y precios), claves foráneas compuestas, sesión por producto | `../PLATAFORMA.md` §4.3 |
-| `core/0007_entrar_con_correo.sql` | Proveedor de identidad como referencia y enlace mágico por correo | `../PLATAFORMA.md` §4.5, §4.11 |
-| `core/0008_auditoria.sql` | Lo que toca seguridad o dinero, una fila por hecho | `../PLATAFORMA.md` §4.12 |
+| `core/0008_entrar_con_correo.sql` (era 0007) | Proveedor de identidad como referencia y enlace mágico por correo | `../PLATAFORMA.md` §4.5, §4.11 |
+| ~~`core/0008_auditoria.sql`~~ → `infrastructure/migraciones/core/0007_auditoria.sql` (HU-C2.4) | Lo que toca seguridad o dinero, una fila por hecho | `../PLATAFORMA.md` §4.12 |
 | `core/0009_oauth_para_agentes.sql` | Servidor de autorización OAuth 2.1 para MCP, sin alcances que muevan dinero | `../PLATAFORMA.md` §5.4 |
 | `probar-core.mjs` | La prueba | Este archivo |
 
@@ -21,7 +21,7 @@ node docs/plataforma/sql/probar-core.mjs infrastructure/migraciones/core docs/pl
 Dice `TODO EN VERDE` o el número de fallas, y sale con código distinto de cero si algo falla. El 5 oct 2026 dio **35 comprobaciones** en verde:
 
 - aplica las migraciones reales 0001–0005 del CORE (el esquema v0) y siembra datos como los escribe ese código;
-- aplica en orden el resto de las reales (la 0006) y las propuestas 0007–0009, y comprueba filas, claves foráneas, la compatibilidad con el código v0 y los cruces inválidos entre productos;
+- aplica en orden el resto de las reales (la 0006 y la 0007) y las propuestas 0008 y 0009, y comprueba filas, claves foráneas, la compatibilidad con el código v0 y los cruces inválidos entre productos;
 - comprueba los cuatro periodos (1, 3, 6 y 12 meses) y que uno nuevo entre con dos `INSERT`, sin rehacer tablas;
 - rechaza un alcance para agentes que mueve dinero y un proveedor de identidad desconocido;
 - **prueba la guarda con datos reales:** un pago viejo de 2 meses detiene la 0006 entera y deja la base como estaba.
