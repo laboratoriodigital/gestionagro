@@ -14,6 +14,7 @@ export const baseDelCore = (instrumento?: Instrumento) =>
 /** En orden de dependencias. */
 export const vaciarCore = (db: BaseD1) =>
   vaciar(db, [
+    'auditoria',
     'pago',
     'interes_plan',
     'invitacion',

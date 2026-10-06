@@ -200,9 +200,9 @@ describe('el plan de la celda', () => {
   it('con un plan cuyas cuotas no conoce, no mide contra las del gratuito: alerta y lo dice', async () => {
     const { kv } = kvFalso();
     const { fn, pedidos } = graphql();
-    const v = await vigilar(kv, 't', 'c', AHORA, fn, 'paid');
+    const v = await vigilar(kv, 't', 'c', AHORA, fn, 'cliente');
     expect(pedidos).toEqual([]);
     expect(v.nivel).toBe('alerta');
-    expect(v.fallas).toEqual(['las cuotas del plan «paid» no están definidas en el vigía']);
+    expect(v.fallas).toEqual(['las cuotas del plan «cliente» no están definidas en el vigía']);
   });
 });

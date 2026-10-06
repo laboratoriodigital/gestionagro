@@ -35,6 +35,8 @@ export interface Producto {
   politica: string;
   prefijo_de_cobro: string;
   gracia_dias: number;
+  /** Con Workers Paid: USD al mes encima de la base y lo que se apaga al agotarlo (HU-C11.1). */
+  presupuesto: { usd_mes: number; al_agotarse: string[] };
 }
 
 export interface RegistroDeProductos {
@@ -71,6 +73,15 @@ export function fallasDelRegistro(
     }
     if (!p.roles.some((r) => r.invitable)) {
       fallas.push(`«${p.id}» no tiene ningún rol invitable: nadie podría sumarse a un equipo`);
+    }
+    // HU-C11.1, CA3: el presupuesto apaga capacidades propias del producto, nunca la venta. Ni el
+    // producto entero (`ks:<id>`), ni el CORE ni sus cobros, ni la capacidad de otro producto.
+    for (const clave of p.presupuesto?.al_agotarse ?? []) {
+      if (!clave.startsWith(`ks:${p.id}-`) && !clave.startsWith(`ks:${p.id}:`)) {
+        fallas.push(
+          `«${p.id}».presupuesto.al_agotarse no puede apagar «${clave}»: solo capacidades propias, nunca la venta`,
+        );
+      }
     }
     if (existe) {
       for (const [campo, ruta] of [

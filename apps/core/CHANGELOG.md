@@ -5,6 +5,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- CORS por producto: el CORE deja leer a la app de cada producto del catálogo, y una sesión solo se usa desde la app de su producto, aunque la otra app también esté permitida. Las solicitudes con sesión tienen que traer `Origin`, como lo hace todo navegador (HU-C3.5).
+- «Me interesa» y el pago usan los planes del producto de la organización, con el prefijo de cobro y la pantalla de vuelta de ese producto. Quien paga es quien tiene el rol que administra, no «propietario» escrito en el código. Sigue cobrando un mes (HU-C3.4).
+- `GET /.well-known/jwks.json`: las llaves públicas del CORE en formato estándar (JWK `OKP`/`Ed25519`), las mismas de `/api/core/claves`. Durante una rotación se publica también la anterior, declarada en `CORE_CLAVE_ANTERIOR`; la parte privada nunca sale (HU-C4.2).
+- Entrar con producto: `inicio` acepta `producto` (sin él, el agro), valida la vuelta y la política de ese producto, y la sesión nace con él. El canje solo se hace desde la app del producto de la sesión, y se mira antes de gastar el código (HU-C3.1).
+- Auditoría de lo que toca seguridad o dinero (migración 0007): cada entrada, invitación aceptada, cambio de rol, persona quitada, teléfono retirado y pago cerrado deja una fila, en el mismo lote que el hecho. Quien administra la ve con `POST /api/core/auditoria/ver` (HU-C2.4).
 - La base sabe de productos (migración 0006, ADR-20): productos, tipos, roles, planes, periodos de 1, 3, 6 y 12 meses y precios, con claves foráneas que hacen imposibles los cruces entre productos. Es la fase de expandir: el código de hoy sigue igual (HU-C2.2).
 - El despliegue copia el catálogo de productos y precios desde `infrastructure/productos.json` y cada `planes.json`, y comprueba que la base diga lo mismo antes de publicar el Worker (HU-C2.3).
 - Antes de migrar, el despliegue revisa que la base no tenga filas huérfanas (HU-C2.2).
@@ -12,6 +17,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Kill switches por producto (`ks:core:<producto>`), para los pagos (`ks:core:pagos`) y para todo el CORE (`ks:core`, además de `ks:agro-core`) (HU-C3.6).
 
 ### Cambiado
+- Una organización nueva nace en una celda de su producto, con el plan gratuito de su producto y el rol que lo administra, y los pilotos se cuentan por producto (HU-C3.3).
+- Invitar, cambiar roles, quitar personas y ver la auditoría los puede hacer quien tenga un rol que administra en el producto de la organización, no un «propietario» escrito en el código. Los roles invitables y la invitación salen del producto de la organización (HU-C3.2).
 - Los paquetes internos pasan a `@ed1/*`, y el CORE deja de importar el paquete del agro: su Worker pesa 13,7 KB menos.
 
 ## [0.1.0] - 2026-10-04

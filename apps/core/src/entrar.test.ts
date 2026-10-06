@@ -6,14 +6,24 @@
 
 import { createHash } from 'node:crypto';
 import type { BaseD1, SentenciaD1 } from '@ed1/d1';
-import { type ClavePublica, generarClavePrivada, hashDe, verificarAcceso } from '@ed1/tokens';
+import type { Producto } from '@ed1/productos';
+import {
+  type ClavePublica,
+  firmanteDesde,
+  firmarAcceso,
+  generarClavePrivada,
+  hashDe,
+  verificarAcceso,
+} from '@ed1/tokens';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
+import { type ProductoDelCatalogo, sentenciasDelCatalogo } from './catalogo.ts';
 import { sentenciasDeCeldas } from './celdas.ts';
 import type { ProveedorGoogle } from './entrar.ts';
 import { conciliarPagos } from './pagos.ts';
 import { POLITICA_VIGENTE } from './politica.ts';
+import { CATALOGO, type CatalogoDelCore } from './productos.ts';
 import { crearOrganizacion } from './repositorio.ts';
 import { VIDA_CODIGO_MS } from './sesiones.ts';
 import { crearApp, type Env, proveedorDePagoDe } from './worker.ts';
@@ -293,6 +303,420 @@ describe('CA4 · ningún token en una URL ni en el log; D1 guarda solo hashes', 
   });
 });
 
+describe('HU-C3.1 · entrar con producto', () => {
+  const ENSAYO = 'https://ensayo.ejemplo.test';
+  const catalogo: CatalogoDelCore = {
+    productos: [
+      ...CATALOGO.productos,
+      {
+        id: 'ensayo',
+        nombre: 'Producto Ensayo',
+        estado: 'activo',
+        app: { origenes: { produccion: ENSAYO, staging: ENSAYO }, rutas_de_vuelta: ['/panel/'] },
+        tipos: ['comercio'],
+        roles: [{ id: 'propietario', administra: true, invitable: true }],
+        planes: 'content/agro/cuaderno/planes.json',
+        politica: 'content/agro/privacidad/politica.json',
+        prefijo_de_cobro: 'ensayo',
+        gracia_dias: 7,
+        presupuesto: { usd_mes: 10, al_agotarse: [] },
+      },
+      { ...CATALOGO.productos[0], id: 'dormido', estado: 'pausado' } as Producto,
+    ],
+    politicas: { ...CATALOGO.politicas, ensayo: 'e1', dormido: 'd1' },
+    planes: CATALOGO.planes,
+  };
+  const conEnsayo = crearApp({ google: () => googleFalso(), ahora: () => reloj, catalogo });
+  const ir = (ruta: string, init: RequestInit = {}) =>
+    conEnsayo.fetch(new Request(`${CORE}${ruta}`, init), env);
+  const inicioCon = (producto: string | null, vuelta: string, politica: string) =>
+    ir(
+      `/api/core/auth/google/inicio?${producto ? `producto=${producto}&` : ''}vuelta=${encodeURIComponent(vuelta)}&politica=${politica}`,
+    );
+
+  beforeEach(async () => {
+    await db
+      .prepare(
+        "INSERT OR IGNORE INTO producto (id, nombre, estado, actualizado) VALUES ('ensayo', 'Producto Ensayo', 'activo', '2026-10-06')",
+      )
+      .run();
+  });
+
+  /** Entra al producto de ensayo y devuelve el código de entrada. */
+  async function entrarAEnsayo(): Promise<string> {
+    const ida = await inicioCon('ensayo', `${ENSAYO}/panel/`, 'e1');
+    expect(ida.status).toBe(302);
+    const cookie = (ida.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+    const state = new URL(ida.headers.get('location') ?? '').searchParams.get('state');
+    const vuelta = await ir(`/api/core/auth/google/callback?code=code-bueno&state=${state}`, {
+      headers: { cookie },
+    });
+    const destino = vuelta.headers.get('location') ?? '';
+    expect(destino.startsWith(`${ENSAYO}/panel/#entrar=`)).toBe(true);
+    return destino.split('#entrar=')[1] ?? '';
+  }
+
+  it('sin producto es el agro: el cuaderno instalado entra como siempre (P10)', async () => {
+    expect((await inicioCon(null, VUELTA, POLITICA_VIGENTE)).status).toBe(302);
+  });
+
+  it('CA4: rechaza una vuelta de otro producto, en los dos sentidos', async () => {
+    expect((await inicioCon('agro', `${ENSAYO}/panel/`, POLITICA_VIGENTE)).status).toBe(400);
+    expect((await inicioCon('ensayo', VUELTA, 'e1')).status).toBe(400);
+    // Y una ruta que no es de vuelta, aunque el origen sea el suyo.
+    expect((await inicioCon('ensayo', `${ENSAYO}/otra/`, 'e1')).status).toBe(400);
+  });
+
+  it('CA4: rechaza la política de otro producto, un producto pausado y uno que no existe', async () => {
+    const otraPolitica = await inicioCon('ensayo', `${ENSAYO}/panel/`, POLITICA_VIGENTE);
+    expect(otraPolitica.status).toBe(400);
+    expect(await otraPolitica.text()).toContain('versión e1');
+    const pausado = await inicioCon('dormido', VUELTA, 'd1');
+    expect(await pausado.text()).toContain('en pausa');
+    expect(await (await inicioCon('fantasma', VUELTA, 'x')).text()).toContain('no existe');
+  });
+
+  it('CA2 y CA3: la sesión nace con su producto, con su política aceptada, y la entrada se audita con él', async () => {
+    const codigo = await entrarAEnsayo();
+    expect(
+      await db.prepare("SELECT producto FROM sesion WHERE dispositivo = 'sin-canjear'").first(),
+    ).toEqual({ producto: 'ensayo' });
+    expect(
+      await db.prepare('SELECT producto, version FROM aceptacion_politica').all(),
+    ).toMatchObject({ results: [{ producto: 'ensayo', version: 'e1' }] });
+    // La política del agro (usuario.politica_*) no la escribe otro producto.
+    expect(await db.prepare('SELECT politica_version FROM usuario').first()).toEqual({
+      politica_version: null,
+    });
+    expect(
+      await db.prepare("SELECT producto FROM auditoria WHERE accion = 'entrada'").first(),
+    ).toEqual({ producto: 'ensayo' });
+    expect(codigo).not.toBe('');
+  });
+
+  it('CA3 ❌: el canje desde la app de otro producto se rechaza sin gastar el código', async () => {
+    const codigo = await entrarAEnsayo();
+    const desdeElAgro = await ir('/api/core/auth/canje', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: APP },
+      body: JSON.stringify({ codigo, dispositivo: 't1' }),
+    });
+    expect(desdeElAgro.status).toBe(403);
+    expect(await desdeElAgro.json()).toMatchObject({ estado: 'otro-producto' });
+    const desdeSuApp = await ir('/api/core/auth/canje', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: ENSAYO },
+      body: JSON.stringify({ codigo, dispositivo: 't1' }),
+    });
+    expect(desdeSuApp.status).toBe(200);
+  });
+});
+
+describe('HU-C3.2 · organizaciones, invitaciones y equipo por producto', () => {
+  const ENSAYO = 'https://ensayo.ejemplo.test';
+  const ORG = '0199a1b2-0000-7000-8000-00000000c302';
+  // El rol que administra no se llama «propietario»: si el código lo tuviera escrito, esto falla.
+  const ensayo: ProductoDelCatalogo = {
+    id: 'ensayo',
+    nombre: 'Producto Ensayo',
+    estado: 'activo',
+    tipos: ['comercio'],
+    roles: [
+      { id: 'dueno', administra: true, invitable: false },
+      { id: 'colaborador', administra: false, invitable: true },
+    ],
+    planes: [
+      { id: 'gratis', nombre: 'Gratis', gratuito: true },
+      { id: 'vitrina', nombre: 'Vitrina', cobro: { '1': 25000 } },
+    ],
+  };
+  const catalogo: CatalogoDelCore = {
+    productos: [
+      ...CATALOGO.productos,
+      {
+        ...(CATALOGO.productos[0] as Producto),
+        id: 'ensayo',
+        nombre: 'Producto Ensayo',
+        prefijo_de_cobro: 'ensayo',
+        app: { origenes: { produccion: ENSAYO, staging: ENSAYO }, rutas_de_vuelta: ['/panel/'] },
+        tipos: ensayo.tipos,
+        roles: ensayo.roles,
+      },
+    ],
+    politicas: { ...CATALOGO.politicas, ensayo: 'e1' },
+    planes: {
+      ...CATALOGO.planes,
+      ensayo: [
+        { id: 'gratis', nombre: 'Gratis', gratuito: true },
+        { id: 'vitrina', nombre: 'Vitrina', cobro_mensual_cop: 25000 },
+      ],
+    },
+  };
+  const app2 = crearApp({
+    google: () => googleFalso('google-dueno'),
+    ahora: () => reloj,
+    catalogo,
+  });
+  const ir = (ruta: string, init: RequestInit = {}) =>
+    app2.fetch(new Request(`${CORE}${ruta}`, init), env);
+  const conToken = (ruta: string, acceso: string, cuerpo: unknown) =>
+    ir(ruta, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: ENSAYO,
+        authorization: `Bearer ${acceso}`,
+      },
+      body: JSON.stringify(cuerpo),
+    });
+
+  /** Un espacio del producto de ensayo, con quien entra como su «dueno», y su token. */
+  async function dueno(): Promise<string> {
+    for (const s of sentenciasDelCatalogo([ensayo], '2026-10-06T00:00:00.000Z')) {
+      await db.prepare(s).run();
+    }
+    const ida = await ir(
+      `/api/core/auth/google/inicio?producto=ensayo&vuelta=${encodeURIComponent(`${ENSAYO}/panel/`)}&politica=e1`,
+    );
+    const cookie = (ida.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+    const state = new URL(ida.headers.get('location') ?? '').searchParams.get('state');
+    const vuelta = await ir(`/api/core/auth/google/callback?code=code-bueno&state=${state}`, {
+      headers: { cookie },
+    });
+    const codigo = (vuelta.headers.get('location') ?? '').split('#entrar=')[1];
+    const canje = (await (
+      await ir('/api/core/auth/canje', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: ENSAYO },
+        body: JSON.stringify({ codigo, dispositivo: 'panel' }),
+      })
+    ).json()) as Sesion;
+    const usuario = (await db.prepare('SELECT id FROM usuario').first<{ id: string }>())?.id;
+    for (const s of [
+      "INSERT INTO celda (id, producto, url_api, estado, anillo_despliegue, shards) VALUES ('c9', 'ensayo', 'https://api-c9', 'activa', 0, '[\"ensayo_c9_s1\"]')",
+      `INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('${ORG}', 'ensayo', 'Comercio Ensayo', 'comercio', 'gratis', 'c9', 'ensayo_c9_s1', 1, '2026-10-06')`,
+      `INSERT INTO membresia (usuario_id, org_id, producto, rol, creado) VALUES ('${usuario}', '${ORG}', 'ensayo', 'dueno', '2026-10-06')`,
+    ]) {
+      await db.prepare(s).run();
+    }
+    const conOrg = (await (
+      await ir('/api/core/auth/refrescar', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: ENSAYO },
+        body: JSON.stringify({ refresh: canje.refresh, org_id: ORG }),
+      })
+    ).json()) as Sesion;
+    return conOrg.acceso;
+  }
+
+  it('CA3: administra el rol con «administra», aunque no se llame propietario', async () => {
+    const acceso = await dueno();
+    const r = await conToken('/api/core/invitaciones', acceso, { rol: 'colaborador' });
+    expect(r.status).toBe(201);
+    expect((await conToken('/api/core/equipo/ver', acceso, {})).status).toBe(200);
+    expect((await conToken('/api/core/auditoria/ver', acceso, {})).status).toBe(200);
+  });
+
+  it('CA2: solo roles invitables del producto de la organización; un rol del agro no se ofrece', async () => {
+    const acceso = await dueno();
+    expect((await conToken('/api/core/invitaciones', acceso, { rol: 'operario' })).status).toBe(
+      400,
+    );
+    // «dueno» administra, pero no se da por invitación.
+    expect((await conToken('/api/core/invitaciones', acceso, { rol: 'dueno' })).status).toBe(400);
+  });
+
+  it('la invitación y la membresía nacen con el producto de la organización', async () => {
+    const acceso = await dueno();
+    const { codigo } = (await (
+      await conToken('/api/core/invitaciones', acceso, { rol: 'colaborador' })
+    ).json()) as { codigo: string };
+    expect(await db.prepare('SELECT producto, rol FROM invitacion').first()).toEqual({
+      producto: 'ensayo',
+      rol: 'colaborador',
+    });
+    expect(codigo).toBeTruthy();
+  });
+
+  describe('HU-C3.5 · CORS y origen por producto', () => {
+    const FINCA = '0199a1b2-0000-7000-8000-00000000c305';
+    /** Un token del agro con una finca del agro, firmado con la clave del CORE de la prueba. */
+    async function delAgro(): Promise<string> {
+      const usuario =
+        (await db.prepare('SELECT id FROM usuario').first<{ id: string }>())?.id ?? '';
+      await db
+        .prepare(
+          "INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES (?, 'agro', 'Finca', 'finca', 'gratuito', 'c0', 'agro_c0_s1', 1, '2026-11-17')",
+        )
+        .bind(FINCA)
+        .run();
+      await db
+        .prepare(
+          "INSERT INTO membresia (usuario_id, org_id, producto, rol, creado) VALUES (?, ?, 'agro', 'propietario', '2026-11-17')",
+        )
+        .bind(usuario, FINCA)
+        .run();
+      const datos = {
+        sub: usuario,
+        org: FINCA,
+        rol: 'propietario',
+        celda: 'c0',
+        shard: 'agro_c0_s1',
+        anillo: 1,
+      };
+      return (await firmarAcceso(await firmanteDesde(clave), datos, reloj)).token;
+    }
+    const desde = (origen: string, acceso: string) =>
+      ir('/api/core/equipo/ver', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          origin: origen,
+          authorization: `Bearer ${acceso}`,
+        },
+        body: '{}',
+      });
+
+    it('CA1 · CORS deja leer a la app de cada producto del catálogo, y a ninguna otra', async () => {
+      const preflight = (origen: string) =>
+        ir('/api/core/equipo/ver', {
+          method: 'OPTIONS',
+          headers: { origin: origen, 'access-control-request-method': 'POST' },
+        });
+      expect((await preflight(ENSAYO)).headers.get('access-control-allow-origin')).toBe(ENSAYO);
+      expect((await preflight(APP)).headers.get('access-control-allow-origin')).toBe(APP);
+      expect(
+        (await preflight('https://otra.ejemplo.test')).headers.get('access-control-allow-origin'),
+      ).toBeNull();
+    });
+
+    it('CA2 ❌ · cada sesión solo desde la app de su producto, aunque la otra esté en la unión', async () => {
+      const deEnsayo = await dueno();
+      const agro = await delAgro();
+      const matriz = [
+        { sesion: 'agro', origen: APP, estado: 200 },
+        { sesion: 'agro', origen: ENSAYO, estado: 403 },
+        { sesion: 'ensayo', origen: ENSAYO, estado: 200 },
+        { sesion: 'ensayo', origen: APP, estado: 403 },
+      ];
+      const obtenido = [];
+      for (const caso of matriz) {
+        const r = await desde(caso.origen, caso.sesion === 'agro' ? agro : deEnsayo);
+        obtenido.push({ ...caso, estado: r.status });
+        if (r.status === 403) expect(await r.json()).toMatchObject({ estado: 'otro-producto' });
+      }
+      expect(obtenido).toEqual(matriz);
+    });
+
+    it('sin Origin, una sesión con producto no se usa', async () => {
+      const deEnsayo = await dueno();
+      const r = await ir('/api/core/equipo/ver', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${deEnsayo}` },
+        body: '{}',
+      });
+      expect(r.status).toBe(403);
+    });
+  });
+
+  describe('HU-C3.4 · interés y pagos con los planes del producto', () => {
+    const conPago = crearApp({
+      google: () => googleFalso('google-dueno'),
+      ahora: () => reloj,
+      catalogo,
+      fetch: (async () => Response.json({}, { status: 404 })) as typeof fetch,
+    });
+    const pagar = (ruta: string, acceso: string, cuerpo: unknown) =>
+      conPago.fetch(
+        new Request(`${CORE}${ruta}`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            origin: ENSAYO,
+            authorization: `Bearer ${acceso}`,
+          },
+          body: JSON.stringify(cuerpo),
+        }),
+        { ...env, BOLD_IDENTIDAD: 'i', BOLD_SECRETA: 's', BOLD_AMBIENTE: 'pruebas' },
+      );
+
+    it('CA1 · «Me interesa» acepta los planes de pago de su producto y nace con él', async () => {
+      const acceso = await dueno();
+      const r = await conToken('/api/core/interes', acceso, { plan: 'vitrina' });
+      expect(r.status).toBe(200);
+      expect(await db.prepare('SELECT producto, plan FROM interes_plan').first()).toEqual({
+        producto: 'ensayo',
+        plan: 'vitrina',
+      });
+      // El gratuito no tiene lista de espera.
+      expect((await conToken('/api/core/interes', acceso, { plan: 'gratis' })).status).toBe(400);
+    });
+
+    it('CA1 · el cobro usa el plan, el prefijo y la pantalla de vuelta del producto', async () => {
+      const acceso = await dueno();
+      const r = await pagar('/api/core/pago/crear', acceso, {
+        plan: 'vitrina',
+        vuelta: `${ENSAYO}/panel/planes`,
+      });
+      expect(r.status).toBe(200);
+      const { orden } = (await r.json()) as { orden: string };
+      expect(orden).toMatch(/^ensayo-/);
+      expect(
+        await db
+          .prepare('SELECT producto, plan, monto_cop, meses FROM pago WHERE id = ?')
+          .bind(orden)
+          .first(),
+      ).toEqual({ producto: 'ensayo', plan: 'vitrina', monto_cop: 25000, meses: 1 });
+    });
+
+    it('CA2 ❌ · un plan de otro producto se rechaza en la API, y una vuelta a otra app también', async () => {
+      const acceso = await dueno();
+      expect((await conToken('/api/core/interes', acceso, { plan: 'finca' })).status).toBe(400);
+      expect(
+        (await pagar('/api/core/pago/crear', acceso, { plan: 'finca', vuelta: `${ENSAYO}/panel/` }))
+          .status,
+      ).toBe(400);
+      expect(
+        (
+          await pagar('/api/core/pago/crear', acceso, {
+            plan: 'vitrina',
+            vuelta: `${APP}/agro/app/planes/`,
+          })
+        ).status,
+      ).toBe(400);
+      expect(await db.prepare('SELECT count(*) AS n FROM pago').first()).toEqual({ n: 0 });
+    });
+
+    it('CA2 ❌ · y en la base: el plan de otro producto no entra aunque alguien lo escriba a mano', async () => {
+      await dueno();
+      const usuario = (await db.prepare('SELECT id FROM usuario').first<{ id: string }>())?.id;
+      await expect(
+        db
+          .prepare(
+            "INSERT INTO interes_plan (usuario_id, org_id, producto, plan, creado) VALUES (?, ?, 'ensayo', 'finca', '2026-11-17')",
+          )
+          .bind(usuario, ORG)
+          .run(),
+      ).rejects.toThrow(/FOREIGN KEY/);
+    });
+  });
+
+  it('CA4 ❌: el producto del cuerpo no manda: crear una organización nunca la crea en otro producto', async () => {
+    const acceso = await dueno();
+    const r = await conToken('/api/core/organizaciones', acceso, {
+      id: '0199a1b2-0000-7000-8000-00000000c303',
+      nombre: 'Finca Ensayo Dos',
+      producto: 'ensayo',
+    });
+    expect([201, 503]).toContain(r.status);
+    expect(
+      await db
+        .prepare("SELECT COUNT(*) AS n FROM organizacion WHERE producto = 'ensayo'")
+        .first<{ n: number }>(),
+    ).toEqual({ n: 1 });
+  });
+});
+
 describe('CORS, configuración y kill switch', () => {
   it('solo el cuaderno puede leer el canje desde el navegador', async () => {
     const pre = (origen: string) =>
@@ -422,7 +846,8 @@ describe('HU-E4.3 · crear la organización de la finca del teléfono', () => {
     const s2 = (await (
       await pedirAjeno('/api/core/auth/canje', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        // Como el navegador: un POST de otro origen siempre lleva Origin (HU-C3.1 lo exige).
+        headers: { 'content-type': 'application/json', origin: APP },
         body: JSON.stringify({ codigo, dispositivo: 't2' }),
       })
     ).json()) as Sesion;
@@ -472,8 +897,8 @@ describe('HU-E0.5 CA3 · aceptar la política al entrar', () => {
     });
     cuenta.escrituras = 0;
     await entrarConGoogle();
-    // Solo la sesión nueva (1 escritura); la aceptación no se reescribe.
-    expect(cuenta.escrituras).toBe(1);
+    // La sesión nueva y la fila de auditoría de la entrada (HU-C2.4); la aceptación no se reescribe.
+    expect(cuenta.escrituras).toBe(2);
   });
 });
 
@@ -749,6 +1174,73 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
     });
   });
 
+  describe('HU-C2.4 · auditoría de lo que toca seguridad o dinero', () => {
+    const acciones = async () =>
+      (
+        await db
+          .prepare('SELECT accion, org_id, producto FROM auditoria ORDER BY id')
+          .all<{ accion: string; org_id: string | null; producto: string }>()
+      ).results;
+
+    it('CA1: entrada, invitación aceptada, cambio de rol, persona quitada y teléfono retirado dejan su fila', async () => {
+      const { p, cuerpo } = await invitar('operario');
+      const o = await sesionDe('google-operario');
+      await conToken('/api/core/invitaciones/aceptar', o.acceso, { codigo: cuerpo.codigo });
+      const vistos = (await (await conToken('/api/core/equipo/ver', p.acceso, {})).json()) as {
+        miembros: { usuario_id: string; tu: boolean }[];
+      };
+      const operario = vistos.miembros.find((m) => !m.tu)?.usuario_id;
+      await conToken('/api/core/equipo/rol', p.acceso, { usuario_id: operario, rol: 'supervisor' });
+      await conToken('/api/core/equipo/quitar', p.acceso, { usuario_id: operario });
+      const tel = (await (await conToken('/api/core/telefonos/ver', o.acceso, {})).json()) as {
+        telefonos: { id: string }[];
+      };
+      await conToken('/api/core/telefonos/retirar', o.acceso, { id: tel.telefonos[0]?.id });
+      expect((await acciones()).map((a) => a.accion)).toEqual([
+        'entrada',
+        'entrada',
+        'invitacion_aceptada',
+        'rol_cambiado',
+        'persona_quitada',
+        'telefono_retirado',
+      ]);
+      expect((await acciones()).every((a) => a.producto === 'agro')).toBe(true);
+    });
+
+    it('CA2: ver el equipo, renovar y un intento que no cambia nada no escriben auditoría', async () => {
+      const p = await propietario();
+      const antes = (await acciones()).length;
+      await conToken('/api/core/equipo/ver', p.acceso, {});
+      await post('/api/core/auth/refrescar', { refresh: p.refresh, org_id: ORG });
+      // Quitar a alguien que no está: 404 y ninguna fila (el hecho no ocurrió).
+      expect(
+        (await conToken('/api/core/equipo/quitar', p.acceso, { usuario_id: 'nadie' })).status,
+      ).toBe(404);
+      expect((await acciones()).length).toBe(antes);
+    });
+
+    it('CA3 y CA4: solo quien administra la ve, y solo la de su finca', async () => {
+      const { p, cuerpo } = await invitar('operario');
+      const o = await sesionDe('google-operario');
+      await conToken('/api/core/invitaciones/aceptar', o.acceso, { codigo: cuerpo.codigo });
+      // Un hecho de otra finca no debe aparecer.
+      await db
+        .prepare(
+          "INSERT INTO auditoria (instante, producto, org_id, usuario_id, accion) VALUES ('2026-10-01', 'agro', 'otra-finca', NULL, 'rol_cambiado')",
+        )
+        .run();
+      const r = await conToken('/api/core/auditoria/ver', p.acceso, {});
+      expect(r.status).toBe(200);
+      const { hechos } = (await r.json()) as { hechos: { accion: string; quien: string }[] };
+      expect(hechos.map((h) => h.accion)).toEqual(['invitacion_aceptada']);
+      const delOperario = (await (
+        await post('/api/core/auth/refrescar', { refresh: o.refresh, org_id: ORG })
+      ).json()) as Sesion;
+      expect((await conToken('/api/core/auditoria/ver', delOperario.acceso, {})).status).toBe(403);
+      expect((await conToken('/api/core/auditoria/ver', null, {})).status).toBe(401);
+    });
+  });
+
   describe('HU-E0.6 · lista de espera de planes', () => {
     it('CA1: el propietario marca «Me interesa» sin cobro; repetirlo no escribe otra vez', async () => {
       const p = await propietario();
@@ -914,6 +1406,13 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
       expect(await otra.json()).toMatchObject({ estado: 'aprobado', plan_vence: vence });
       expect(consultas).toHaveLength(2); // la segunda confirmación no le pregunta a Bold
       expect(await planDeLaFinca(p)).toMatchObject({ plan: 'finca', plan_vence: vence });
+      // HU-C2.4: el pago cerrado deja una sola fila, aunque se confirmó dos veces.
+      const pagos = await db
+        .prepare("SELECT detalle FROM auditoria WHERE accion = 'pago_cerrado'")
+        .all<{ detalle: string }>();
+      expect(pagos.results.map((f) => JSON.parse(f.detalle))).toEqual([
+        { pago: c.orden, estado: 'aprobado', plan: 'finca', meses: 1, monto_cop: 39000 },
+      ]);
     });
 
     it('pagar antes de vencer suma el mes al vencimiento, no a hoy', async () => {

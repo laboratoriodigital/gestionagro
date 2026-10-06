@@ -42,6 +42,7 @@ afterAll(async () => cerrar?.());
 const app = crearApp({ ahora: () => T0 });
 const env = (extra: Partial<Env> = {}): Env => ({
   CELDA: 'c0',
+  PRODUCTO: 'agro',
   CORE_CLAVES: JSON.stringify([firmante.publica]),
   ORIGENES_APP: 'https://agro.ejemplo.test',
   CELDA_QR_PRIVATE_KEY: claveQr,

@@ -8,6 +8,7 @@
     "scripts/**/*.ts",
     "tests/**/*.ts",
     "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.tsx",
     "apps/*/src/**/*.ts",
     "apps/*/src/**/*.tsx",
     "*.config.ts",

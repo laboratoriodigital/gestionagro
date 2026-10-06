@@ -5,6 +5,7 @@
  *   tiene el directorio; con 0 responde 503, porque un CORE que no puede crear organizaciones no
  *   debe parecer sano (P1).
  * - `GET /api/core/claves`: la clave pública con la que las celdas verifican los tokens (CA5).
+ * - `GET /.well-known/jwks.json`: las mismas llaves en el formato estándar (HU-C4.2, `jwks.ts`).
  * - `/api/core/auth/*`: entrar con Google y renovar la sesión (HU-E4.2, `entrar.ts`).
  * - `POST /api/core/organizaciones`: crear la organización de la finca del teléfono (HU-E4.3).
  * - `POST /api/core/invitaciones[/ver|/aceptar]`: invitar al equipo por WhatsApp (HU-E4.4).
@@ -25,7 +26,7 @@
 
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
-import { type Firmante, firmanteDesde } from '@ed1/tokens';
+import { type ClavePublica, type Firmante, firmanteDesde, verificarAcceso } from '@ed1/tokens';
 import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
 import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
@@ -46,11 +47,27 @@ import {
   proveedorGoogle,
   renovar,
 } from './entrar.ts';
-import { cambiarRol, quitarDelEquipo, retirarTelefono, verEquipo, verTelefonos } from './equipo.ts';
+import {
+  cambiarRol,
+  quitarDelEquipo,
+  retirarTelefono,
+  verAuditoria,
+  verEquipo,
+  verTelefonos,
+} from './equipo.ts';
 import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
+import { claveAnteriorDe, clavesPublicadas } from './jwks.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
+import {
+  CATALOGO,
+  type CatalogoDelCore,
+  origenesDelProducto,
+  origenesDeTodos,
+  productoDe,
+  productoDeOrganizacion,
+} from './productos.ts';
 import { type ProveedorDePago, proveedorBold } from './proveedor-de-pago.ts';
 
 export { PRODUCTO_CORE };
@@ -62,6 +79,8 @@ export interface Env {
   FLAGS?: LectorKv;
   /** Secretos del Worker, cargados por el despliegue (ARQUITECTURA §7.5). */
   CORE_JWT_PRIVATE_KEY?: string;
+  /** JWK pública de la llave anterior mientras dura una rotación (HU-C4.2); no es secreta. */
+  CORE_CLAVE_ANTERIOR?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   /** Orígenes del cuaderno separados por coma; los pone el despliegue. */
@@ -73,6 +92,8 @@ export interface Env {
 }
 
 export interface Dependencias {
+  /** Los productos que atiende el CORE (HU-C3.1); las pruebas pasan uno con un producto de ensayo. */
+  catalogo?: CatalogoDelCore;
   google?: (env: Env) => ProveedorGoogle;
   /** Permiso de Drive del productor (HU-E8.4); las pruebas pasan uno falso. */
   drive?: (env: Env) => ProveedorDrive;
@@ -150,17 +171,34 @@ export function crearApp(dependencias: Dependencias = {}) {
     }
   });
 
+  const publicadas = async (env: Env): Promise<ClavePublica[] | null> => {
+    if (!env.CORE_JWT_PRIVATE_KEY) return null;
+    const { publica } = await firmanteDe(env.CORE_JWT_PRIVATE_KEY);
+    return clavesPublicadas(publica, claveAnteriorDe(env.CORE_CLAVE_ANTERIOR));
+  };
+
   app.get('/api/core/claves', async (c) => {
-    if (!c.env.CORE_JWT_PRIVATE_KEY)
-      return faltaConfiguracion(c, 'el secreto CORE_JWT_PRIVATE_KEY');
-    const { publica } = await firmanteDe(c.env.CORE_JWT_PRIVATE_KEY);
-    return c.json({ claves: [publica] });
+    const claves = await publicadas(c.env);
+    if (!claves) return faltaConfiguracion(c, 'el secreto CORE_JWT_PRIVATE_KEY');
+    return c.json({ claves });
   });
 
-  // Solo el cuaderno puede leer estas respuestas desde el navegador. Entrar, renovar y crear la
-  // organización comparten CORS, kill switch y configuración.
+  // Público por naturaleza: cualquiera puede leer las llaves públicas, desde cualquier origen.
+  app.get('/.well-known/jwks.json', async (c) => {
+    const claves = await publicadas(c.env);
+    if (!claves) return faltaConfiguracion(c, 'el secreto CORE_JWT_PRIVATE_KEY');
+    c.header('access-control-allow-origin', '*');
+    c.header('cache-control', 'public, max-age=300');
+    return c.json({ keys: claves });
+  });
+
+  // Solo las apps de los productos pueden leer estas respuestas desde el navegador: la unión de sus
+  // orígenes (HU-C3.5). Entrar, renovar y crear la organización comparten CORS, kill switch y
+  // configuración.
+  const catalogo = dependencias.catalogo ?? CATALOGO;
   const corsDelCuaderno = cors({
-    origin: (origen, c) => (origenesDe(c.env as Env).includes(origen) ? origen : null),
+    origin: (origen, c) =>
+      origenesDeTodos(catalogo, origenesDe(c.env as Env)).includes(origen) ? origen : null,
     allowMethods: ['POST'],
     allowHeaders: ['authorization', 'content-type'],
     maxAge: 600,
@@ -201,7 +239,42 @@ export function crearApp(dependencias: Dependencias = {}) {
       google: google(c.env),
       origenes: origenesDe(c.env),
       ahora,
+      catalogo,
     });
+    await siguiente();
+    return undefined;
+  };
+  /**
+   * HU-C3.5: una sesión solo se usa desde la app de su producto, aunque otra app esté en la unión
+   * de CORS. El producto es el `aud` del token o, en v1, el de su organización en la base. Un v1
+   * sin organización no dice su producto: pasa, como hasta hoy, hasta los tokens v2 (HU-C4.3).
+   * Un token que no verifica sigue a la ruta, que responde 401 como siempre.
+   */
+  const desdeSuApp: MiddlewareHandler<{ Bindings: Env; Variables: { entorno: Entorno } }> = async (
+    c,
+    siguiente,
+  ) => {
+    const e = c.get('entorno');
+    const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
+    const reclamos = token
+      ? await verificarAcceso(e.firmante.publica, token, e.ahora()).catch(() => null)
+      : null;
+    const producto =
+      reclamos?.aud ?? (reclamos?.org ? await productoDeOrganizacion(e.db, reclamos.org) : null);
+    if (producto) {
+      const delCatalogo = productoDe(e.catalogo, producto);
+      const origen = c.req.header('origin');
+      if (
+        !('producto' in delCatalogo) ||
+        !origen ||
+        !origenesDelProducto(delCatalogo.producto, e.origenes).includes(origen)
+      ) {
+        return c.json(
+          { estado: 'otro-producto', motivo: 'Esta sesión es de otra aplicación.' },
+          403,
+        );
+      }
+    }
     await siguiente();
     return undefined;
   };
@@ -216,9 +289,13 @@ export function crearApp(dependencias: Dependencias = {}) {
     '/api/core/interes/*',
     '/api/core/pago/*',
     '/api/core/drive/*',
+    '/api/core/auditoria/*',
   ]) {
     app.use(ruta, corsDelCuaderno);
     app.use(ruta, conEntorno);
+    if (!ruta.startsWith('/api/core/auth/') && !ruta.startsWith('/api/core/drive/')) {
+      app.use(ruta, desdeSuApp);
+    }
   }
 
   app.post('/api/core/organizaciones', (c) => crearOrganizacionDeLaFinca(c, c.get('entorno')));
@@ -230,6 +307,7 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/api/core/equipo/quitar', (c) => quitarDelEquipo(c, c.get('entorno')));
   app.post('/api/core/telefonos/ver', (c) => verTelefonos(c, c.get('entorno')));
   app.post('/api/core/telefonos/retirar', (c) => retirarTelefono(c, c.get('entorno')));
+  app.post('/api/core/auditoria/ver', (c) => verAuditoria(c, c.get('entorno')));
   app.post('/api/core/interes', (c) => marcarInteres(c, c.get('entorno')));
   app.post('/api/core/interes/ver', (c) => verInteres(c, c.get('entorno')));
   const conPago = (

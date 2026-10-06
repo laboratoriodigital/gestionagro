@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/productos.schema.json",
-  "nota": "Única lista de productos del CORE (PLATAFORMA §4.2, ADR-20, HU-C1.1). El despliegue la copia a las tablas producto, producto_tipo, producto_rol, plan y plan_precio (HU-C2.3); un producto o un plan que sale de aquí queda «retirado», nunca se borra (P21). La Tienda entra en su M0 y la cuenta ED1 (ADR-28) en HU-C7.3, cada una con su política: no se declara lo que todavía no existe (P1).",
+  "nota": "Única lista de productos del CORE (PLATAFORMA §4.2, ADR-20, HU-C1.1). El despliegue la copia a las tablas producto, producto_tipo, producto_rol, plan y plan_precio (HU-C2.3); un producto o un plan que sale de aquí queda «retirado», nunca se borra (P21). `presupuesto.usd_mes` del agro (USD 10 encima de la base) es la propuesta, la misma vara de la Tienda (TIENDA-3.0 §15.1), hasta que el dueño la fije; `al_agotarse` va vacío porque el agro todavía no tiene una capacidad accesoria que apagar (su MCP llega en HU-C9.7): con el presupuesto agotado, solo avisa. La Tienda entra en su M0 y la cuenta ED1 (ADR-28) en HU-C7.3, cada una con su política: no se declara lo que todavía no existe (P1).",
   "productos": [
     {
       "id": "agro",
@@ -22,7 +22,8 @@
       "planes": "content/agro/cuaderno/planes.json",
       "politica": "content/agro/privacidad/politica.json",
       "prefijo_de_cobro": "agro",
-      "gracia_dias": 0
+      "gracia_dias": 0,
+      "presupuesto": { "usd_mes": 10, "al_agotarse": [] }
     }
   ]
 }

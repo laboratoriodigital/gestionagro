@@ -29,6 +29,7 @@ beforeEach(async () => vaciar(db, [...TABLAS_DEL_SHARD]));
 const app = crearApp({ ahora: () => T0 });
 const env = (extra: Partial<Env> = {}): Env => ({
   CELDA: 'c0',
+  PRODUCTO: 'agro',
   CORE_CLAVES: JSON.stringify([firmante.publica]),
   ORIGENES_APP: APP,
   [SHARD]: db,
@@ -243,5 +244,40 @@ describe('bitácora agro 23 · una falla inesperada se responde en JSON con su c
     expect(r.status).toBe(503);
     expect(r.headers.get('retry-after')).toBe('60');
     expect(await r.json()).toMatchObject({ estado: 'falla-celda' });
+  });
+});
+
+describe('HU-C4.1 · la celda acepta solo tokens de su producto', () => {
+  const v2 = async (aud: string) =>
+    (
+      await firmarAcceso(
+        firmante,
+        { sub: 'u1', org: 'org-uno', rol: 'operario', celda: 'c0', shard: SHARD, anillo: 1, aud },
+        T0,
+        2,
+      )
+    ).token;
+
+  it('un v2 del agro y un v1 entran; un v2 de otro producto no', async () => {
+    expect((await yo(await v2('agro'))).status).toBe(200);
+    expect((await yo(await token())).status).toBe(200);
+    const otro = await yo(await v2('ensayo'));
+    expect(otro.status).toBe(401);
+    expect(await otro.json()).toMatchObject({ estado: 'sin-sesion' });
+  });
+
+  it('en una celda de otro producto, el v1 (sin producto) ya no entra', async () => {
+    expect((await yo(await token(), env({ PRODUCTO: 'ensayo' }))).status).toBe(401);
+    expect((await yo(await v2('ensayo'), env({ PRODUCTO: 'ensayo' }))).status).toBe(200);
+  });
+
+  it('una celda que no sabe su producto no acepta a nadie, y lo dice en la salud', async () => {
+    const { PRODUCTO: _, ...sinProducto } = env();
+    expect((await yo(await token(), sinProducto as Env)).status).toBe(503);
+    const salud = await app.fetch(
+      new Request('https://api.ejemplo.test/api/salud'),
+      sinProducto as Env,
+    );
+    expect(JSON.stringify(await salud.json())).toContain('PRODUCTO');
   });
 });

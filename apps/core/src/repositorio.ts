@@ -9,7 +9,12 @@
 
 import type { BaseD1 } from '@ed1/d1';
 import { uuidv7 } from '@ed1/ids';
-import { asignarUbicacion, type CeldaDelDirectorio, type Ubicacion } from './asignacion.ts';
+import {
+  asignarUbicacion,
+  type CeldaDelDirectorio,
+  SinCeldaDisponible,
+  type Ubicacion,
+} from './asignacion.ts';
 
 export const ROLES = ['propietario', 'supervisor', 'operario', 'asesor', 'auditor'] as const;
 export type Rol = (typeof ROLES)[number];
@@ -38,18 +43,41 @@ export async function leerCeldas(db: BaseD1): Promise<CeldaDelDirectorio[]> {
   return results.map((c) => ({ ...c, shards: JSON.parse(c.shards) as string[] }));
 }
 
-/** Ubicación para una organización nueva, según la regla de `asignacion.ts` (CA3). */
-export async function ubicacionNueva(db: BaseD1): Promise<Ubicacion> {
+/**
+ * Ubicación para una organización nueva, según la regla de `asignacion.ts` (CA3), entre las celdas
+ * **de su producto** y con sus pilotos contados por producto (HU-C3.3, PLATAFORMA §4.9): las cinco
+ * primeras tiendas son pilotos de la tienda aunque ya haya fincas piloto. Las cargas usan el
+ * índice `organizacion_por_celda (producto, celda_id, shard)` de la 0006.
+ */
+export async function ubicacionNueva(db: BaseD1, producto = 'agro'): Promise<Ubicacion> {
   const [celdas, cargas, pilotos] = await Promise.all([
-    leerCeldas(db),
     db
       .prepare(
-        'SELECT celda_id, shard, count(*) AS organizaciones FROM organizacion GROUP BY celda_id, shard',
+        'SELECT id, estado, anillo_despliegue, shards FROM celda WHERE producto = ? ORDER BY id',
       )
+      .bind(producto)
+      .all<{ id: string; estado: 'activa' | 'fuera'; anillo_despliegue: number; shards: string }>(),
+    db
+      .prepare(
+        'SELECT celda_id, shard, count(*) AS organizaciones FROM organizacion WHERE producto = ? GROUP BY celda_id, shard',
+      )
+      .bind(producto)
       .all<{ celda_id: string; shard: string; organizaciones: number }>(),
-    db.prepare('SELECT count(*) AS n FROM organizacion WHERE anillo = 1').first<{ n: number }>(),
+    db
+      .prepare('SELECT count(*) AS n FROM organizacion WHERE producto = ? AND anillo = 1')
+      .bind(producto)
+      .first<{ n: number }>(),
   ]);
-  return asignarUbicacion(celdas, cargas.results, pilotos?.n ?? 0);
+  const deLasCeldas = celdas.results.map((c) => ({
+    ...c,
+    shards: JSON.parse(c.shards) as string[],
+  }));
+  if (deLasCeldas.length === 0) {
+    throw new SinCeldaDisponible(
+      `El producto «${producto}» no tiene ninguna celda en el directorio. Revisa infrastructure/celdas.json y despliega.`,
+    );
+  }
+  return asignarUbicacion(deLasCeldas, cargas.results, pilotos?.n ?? 0);
 }
 
 /**
@@ -107,8 +135,10 @@ export async function usuarioDeIdentidad(
 export interface Organizacion extends Ubicacion {
   id: string;
   nombre: string;
-  tipo: TipoDeOrganizacion;
-  plan: 'gratuito';
+  /** Un tipo del producto de la organización (en el agro, `TipoDeOrganizacion`). */
+  tipo: string;
+  /** El plan gratuito del producto, el que tiene `gratuito = 1` en la tabla `plan`. */
+  plan: string;
 }
 
 /** Crea la organización en su ubicación y hace propietario a quien la crea, en una transacción. */
@@ -117,32 +147,50 @@ export async function crearOrganizacion(
   datos: {
     propietarioId: string;
     nombre: string;
-    tipo: TipoDeOrganizacion;
+    tipo: TipoDeOrganizacion | string;
     /** Id que trae el teléfono, para que reintentar no cree dos (HU-E4.3). */
     id?: string;
+    /**
+     * El producto de la organización y el rol con que queda quien la crea (HU-C3.3). Sin ellos, el
+     * agro y su «propietario». Un tipo o un rol que no sean del producto los rechaza la base (R3).
+     */
+    producto?: string;
+    rolQueAdministra?: string;
   },
   reloj: Reloj = relojDelSistema,
 ): Promise<Organizacion> {
   const nombre = sinEspacios(datos.nombre, 'el nombre de la organización');
-  if (!TIPOS_DE_ORGANIZACION.includes(datos.tipo)) {
+  const producto = datos.producto ?? 'agro';
+  if (producto === 'agro' && !TIPOS_DE_ORGANIZACION.includes(datos.tipo as TipoDeOrganizacion)) {
     throw new ErrorDelCore(`Tipo de organización desconocido: ${String(datos.tipo)}`);
   }
-  const ubicacion = await ubicacionNueva(db);
+  const ubicacion = await ubicacionNueva(db, producto);
+  // El plan con que nace es el gratuito de su producto, que el despliegue copió del catálogo (HU-C2.3).
+  const gratuito = await db
+    .prepare(
+      "SELECT id FROM plan WHERE producto = ? AND gratuito = 1 AND estado = 'activo' ORDER BY id LIMIT 1",
+    )
+    .bind(producto)
+    .first<{ id: string }>();
+  if (!gratuito) {
+    throw new ErrorDelCore(`El producto «${producto}» no tiene un plan gratuito en el catálogo`);
+  }
   const ahora = reloj();
   const org: Organizacion = {
     id: datos.id ?? uuidv7(() => ahora),
     nombre,
     tipo: datos.tipo,
-    plan: 'gratuito',
+    plan: gratuito.id,
     ...ubicacion,
   };
   await db.batch([
     db
       .prepare(
-        'INSERT INTO organizacion (id, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       )
       .bind(
         org.id,
+        producto,
         org.nombre,
         org.tipo,
         org.plan,
@@ -152,8 +200,16 @@ export async function crearOrganizacion(
         iso(ahora),
       ),
     db
-      .prepare('INSERT INTO membresia (usuario_id, org_id, rol, creado) VALUES (?, ?, ?, ?)')
-      .bind(datos.propietarioId, org.id, 'propietario', iso(ahora)),
+      .prepare(
+        'INSERT INTO membresia (usuario_id, org_id, producto, rol, creado) VALUES (?, ?, ?, ?, ?)',
+      )
+      .bind(
+        datos.propietarioId,
+        org.id,
+        producto,
+        datos.rolQueAdministra ?? 'propietario',
+        iso(ahora),
+      ),
   ]);
   return org;
 }

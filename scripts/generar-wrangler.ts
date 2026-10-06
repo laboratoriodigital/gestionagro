@@ -11,7 +11,9 @@
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { RegistroDeProductos } from '@ed1/productos';
 import { type Celda, type ConfigCeldas, cargarCeldas } from './lib/celdas.ts';
+import { cargarProductos } from './lib/registro-productos.ts';
 import { RAIZ } from './lib/repo.ts';
 
 /** Fecha de compatibilidad del runtime de Workers. Cambiarla es una decisión, no un descuido. */
@@ -96,6 +98,23 @@ export const baseDelShard = (shard: string, staging: boolean) =>
  * shard, cuyo nombre es el del shard. El token dice el shard y el Worker toma ese binding.
  * Los ids de las bases, el KV de flags y la clave pública del CORE los agrega el despliegue.
  */
+/**
+ * El presupuesto que vigila una celda con Workers Paid (HU-C11.1): la suma de los de todos los
+ * productos activos, porque las métricas son de toda la cuenta; y lo que se apaga, solo de su producto.
+ */
+export function presupuestoDeLaCelda(
+  celda: Celda,
+  registro: RegistroDeProductos = cargarProductos(),
+): { PRESUPUESTO_USD_MES: string; AL_AGOTARSE: string } {
+  const activos = registro.productos.filter((p) => p.estado !== 'retirado');
+  const suma = activos.reduce((s, p) => s + p.presupuesto.usd_mes, 0);
+  const propio = registro.productos.find((p) => p.id === celda.producto);
+  return {
+    PRESUPUESTO_USD_MES: String(suma),
+    AL_AGOTARSE: (propio?.presupuesto.al_agotarse ?? []).join(','),
+  };
+}
+
 export function wranglerDeLaCelda(celda: Celda): Record<string, unknown> {
   const bases = (staging: boolean) =>
     celda.shards.map((shard) => ({
@@ -104,13 +123,14 @@ export function wranglerDeLaCelda(celda: Celda): Record<string, unknown> {
       migrations_dir: MIGRACIONES_CELDA,
     }));
   const nombre = `agro-api-${celda.id}`;
+  const presupuesto = presupuestoDeLaCelda(celda);
   return {
     $schema: 'node_modules/wrangler/config-schema.json',
     name: nombre,
     main: 'src/worker.ts',
     compatibility_date: FECHA_COMPATIBILIDAD,
     workers_dev: true,
-    vars: { CELDA: celda.id, PLAN: celda.plan },
+    vars: { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan, ...presupuesto },
     d1_databases: bases(false),
     // El vigía de cuota (HU-E8.2), cada hora. Uno por destino: 2 de los 5 Cron Triggers que da la
     // cuenta gratuita.
@@ -120,7 +140,7 @@ export function wranglerDeLaCelda(celda: Celda): Record<string, unknown> {
       staging: {
         name: `${nombre}-staging`,
         workers_dev: true,
-        vars: { CELDA: celda.id, PLAN: celda.plan },
+        vars: { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan, ...presupuesto },
         d1_databases: bases(true),
         triggers: { crons: ['0 * * * *'] },
       },

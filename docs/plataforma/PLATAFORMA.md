@@ -158,7 +158,7 @@ Las otras dos cuentas del dueño (una gratuita y otra con algunos servicios pago
 1. **El vigía cambia de vara.**
    - Hoy compara contra cuotas diarias y degrada por niveles.
    - Con Workers Paid, compara el consumo del mes contra lo incluido y proyecta el costo en dólares (§4.10).
-   - El código ya lo espera: cada celda declara su `plan` en `celdas.json` (`free`, `paid` o `cliente`), y `vigia.ts` falla a propósito con `paid` («las cuotas del plan «paid» no están definidas en el vigía», P1).
+   - El código ya lo espera: cada celda declara su `plan` en `celdas.json` (`free`, `paid` o `cliente`), y `vigia.ts` falla a propósito con `paid` («las cuotas del plan «paid» no están definidas en el vigía», P1). *(Hoy, 6 oct 2026: con HU-C11.1 el vigía ya conoce las cuotas de `paid` (`vigia-pago.ts`); falla a propósito con `cliente`.)*
    - El pull request que activa Workers Paid cambia `plan` a `paid` y le da al vigía sus cuotas del mes, con su prueba.
 2. **Presupuesto en dinero por producto** (`product.yaml › presupuesto.usd_mes`), y las **alertas de facturación** de Cloudflare como segunda red. No hay tope duro de gasto (investigación, sin verificar).
 3. **Límites por Worker** (`limits.cpu_ms`, `limits.subrequests`) y workers.dev apagado en producción, para que un error no se vuelva factura (`cuenta-cloudflare.md` §5).
@@ -393,7 +393,7 @@ La prueba:
   - un precio menor de COP 1.000;
   - una tienda de tipo `finca`;
   - un alcance para agentes que mueve dinero (0009);
-  - un proveedor de identidad que no está en la tabla de referencia (0007).
+  - un proveedor de identidad que no está en la tabla de referencia (0008, la propuesta de entrar con correo).
 
 **Costo.** Cada fila copiada cuenta una vez por tabla y una por índice. Con el volumen de hoy (decenas de organizaciones y cientos de sesiones), la 0006 escribe unos pocos miles de filas: menos del 5 % de un día de la cuota gratuita.
 
@@ -433,10 +433,12 @@ DROP TABLE _guarda_fk;
 
 ### 4.5 Las migraciones siguientes
 
+Los números siguen el orden en que se construyen, no el del diseño: la auditoría llegó primero (P1 de la plataforma) y pasó a ser la 0007; entrar con correo pasó a 0008 (HU-C2.4, 6 oct 2026).
+
 | Migración | Llega con | Qué hace |
 |---|---|---|
-| `0007_entrar_con_correo.sql` | Proveedor de correo (§4.11) | `proveedor_identidad` (`google`, `correo`) como referencia. Rehace `identidad`, que es solo hija, con la receta. Crea `enlace_correo`: huella del código, correo, producto, vuelta, 15 min, un uso. Índice `enlace_por_correo` para el tope de 3 por hora |
-| `0008_auditoria.sql` | P1 de la plataforma | `auditoria`: lo que toca seguridad o dinero (entradas, roles, pagos, concesiones a agentes), una fila por hecho. Índice parcial por organización |
+| `0008_entrar_con_correo.sql` (era 0007) | Proveedor de correo (§4.11) | `proveedor_identidad` (`google`, `correo`) como referencia. Rehace `identidad`, que es solo hija, con la receta. Crea `enlace_correo`: huella del código, correo, producto, vuelta, 15 min, un uso. Índice `enlace_por_correo` para el tope de 3 por hora |
+| `0007_auditoria.sql` (era 0008; ya en `infrastructure/migraciones/core/`, HU-C2.4) | P1 de la plataforma | `auditoria`: lo que toca seguridad o dinero (entradas, roles, pagos, concesiones a agentes), una fila por hecho. Índice parcial por organización |
 | `0009_oauth_para_agentes.sql` | P5 de la plataforma (§5.4) | `alcance` (por producto, con `mueve_dinero CHECK = 0`), `cliente_oauth`, `concesion_oauth`, `codigo_oauth` (PKCE S256 obligatorio) y `refresco_oauth` (rotación y detección de reuso) |
 | `00xx_contraer_*.sql` | Una versión después de que ningún código lea lo viejo | Quita `usuario.politica_*`, los `DEFAULT 'agro'` de transición y la aceptación de tokens v1 (§4.6) |
 
@@ -568,7 +570,7 @@ CORS: `ORIGENES_APP` pasa a ser la unión de los orígenes de todos los producto
 
 ### 4.12 Auditoría
 
-`auditoria` (0008) registra lo que toca seguridad o dinero: entradas, invitaciones aceptadas, cambios de rol, salidas, teléfonos retirados, pagos cerrados, cambios de plan y concesiones a agentes.
+`auditoria` (0007) registra lo que toca seguridad o dinero: entradas, invitaciones aceptadas, cambios de rol, salidas, teléfonos retirados, pagos cerrados, cambios de plan y concesiones a agentes.
 
 - **No registra lecturas ni refrescos**, por el presupuesto de escrituras.
 - Quien administra una organización ve la auditoría de esa organización.
@@ -687,7 +689,7 @@ Sirve para que el agente **de una persona**, por ejemplo Claude o ChatGPT con MC
 | Token | El mismo formato de §4.6, con `scope`, `azp` (el cliente) y `cnc` (la concesión), y **1 hora** de vida. Refresh rotado en cada uso; **reusar uno ya rotado revoca la concesión entera**, porque es señal de robo (`refresco_oauth.rotado`) |
 | Alcances | Por producto, en la tabla `alcance` (0009). La regla está escrita en la base: `mueve_dinero = 0`. Ningún alcance de agente cambia datos de cobro, llaves de pago, números de WhatsApp ni el ambiente de cobro: eso sigue pidiendo a la persona una entrada reciente en la app (TIENDA-3.0 §12). Ejemplos: `agro:registros:leer`, `agro:registros:escribir`, `tienda:pedidos:leer`, `tienda:pedidos:estado`, `tienda:catalogo:leer`, `tienda:catalogo:escribir` |
 | Revocar | `POST /oauth/revoke`. En la app, «Aplicaciones conectadas» lista las concesiones con su último uso y las retira con un toque |
-| Auditoría | Conceder, usar por primera vez, revocar y detectar reuso quedan en `auditoria` (0008) |
+| Auditoría | Conceder, usar por primera vez, revocar y detectar reuso quedan en `auditoria` (0007) |
 | Recurso protegido | Cada servidor que acepta estos tokens publica `/.well-known/oauth-protected-resource` (RFC 9728), con `resource`, `authorization_servers: [<emisor del CORE>]` y `scopes_supported`. Responde `401` con `WWW-Authenticate: Bearer resource_metadata="…"` |
 | Biblioteca | Se evalúa `workers-oauth-provider` (Cloudflare, MIT), que implementa el proveedor OAuth 2.1 sobre Workers. Se acepta solo si guarda en D1 (no en KV: 1.000 escrituras al día en el plan gratuito) y si su doble de prueba implementa la rotación de verdad (P17). Si no, se escribe con Arctic y `packages/tokens`, que ya existen |
 
@@ -824,12 +826,12 @@ Supone las 20 horas por semana del dueño, con Claude haciendo los commits (ARQU
 | Fase | Duración estimada | Deja funcionando | Criterio de aceptación |
 |---|---|---|---|
 | **P0 · Preparar** | 1 semana | Paquetes `@ed1/*` y `@ed1/ids`: **hechos** (5 oct 2026). Falta `productos.json`, `cuentas.json` y `dominios.json`, con sus esquemas. El renombre del repositorio en GitHub lo hace el dueño | CI en verde. Lo generado (wrangler, `_headers`, tabla `celda`) es **idéntico byte a byte** al de antes |
-| **P1 · Producto en el CORE** | 2 semanas | Migraciones 0006 y 0008 (receta probada en D1 local y staging). API con producto (expandir). Tokens N (verifican v1 y v2). Asignación por producto. Kill switches por producto | Staging con dos productos (agro y una tienda de prueba sembrada) y las pruebas de §6.4 en verde. En producción, el agro idéntico para el usuario |
+| **P1 · Producto en el CORE** | 2 semanas | Migraciones 0006 y 0007 (receta probada en D1 local y staging). API con producto (expandir). Tokens N (verifican v1 y v2). Asignación por producto. Kill switches por producto | Staging con dos productos (agro y una tienda de prueba sembrada) y las pruebas de §6.4 en verde. En producción, el agro idéntico para el usuario |
 | **P2 · Tokens v2 y sesión por producto** | 1 semana | N+1 (emitir v2) y N+2 (contraer, 12 h después). `cuenta.laboratorio-digital.com` con su redirección de Google | Un cuaderno instalado con la URL vieja sigue entrando y sincronizando. Un token de tienda no abre la celda del agro |
 | **P3 · Planes por periodo** | 1 semana | `periodo` y `plan_precio` desde `planes.json`. Cobros de 1, 3, 6 y 12 meses. Meses calendario. Crédito al cambiar de plan. La pantalla de planes del cuaderno con los cuatro periodos | Las pruebas de reloj (P8). Un pago real de prueba de 6 meses en el ambiente de pruebas de Bold |
 | **P4 · Agentes, capa estática** | 1 semana | En `cultivopro.co`: `robots.txt` con agentes y señales, `llms.txt`, gemelos `.md`, `Link`, habilidades, `security.txt` y JSON-LD. `verificar-agentes.ts` en la prueba de humo | Las comprobaciones propias en verde contra staging y producción |
 | **P5 · OAuth y MCP** | 3 semanas | Migración 0009. Servidor de autorización. Consentimiento y «Aplicaciones conectadas». MCP del cuaderno (lectura). Después, el MCP del comercio (tras el M2 de la Tienda) | Un cliente MCP real conecta, lee, y su concesión se revoca. Reusar un refresh revoca la concesión |
-| **P6 · Correo** | 1 semana, con Workers Paid activo (§3.2) | Adaptador de correo y 0007 (enlace mágico). Avisos de vencimiento por correo | Un enlace llega a un correo que no es de Google y entra. Un enlace usado o vencido no vuelve a servir |
+| **P6 · Correo** | 1 semana, con Workers Paid activo (§3.2) | Adaptador de correo y 0008 (enlace mágico). Avisos de vencimiento por correo | Un enlace llega a un correo que no es de Google y entra. Un enlace usado o vencido no vuelve a servir |
 
 **Con la Tienda 3.0** (TIENDA-3.0 §19):
 

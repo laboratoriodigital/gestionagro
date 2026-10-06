@@ -20,15 +20,25 @@ import { type Firmante, firmarAcceso } from '@ed1/tokens';
 import { decodeIdToken, Google, generateCodeVerifier, generateState } from 'arctic';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
-import { POLITICA_VIGENTE } from './politica.ts';
+import { filaDeAuditoria } from './auditoria.ts';
+import {
+  type CatalogoDelCore,
+  type MotivoDeProducto,
+  origenesDelProducto,
+  PRODUCTO_POR_DEFECTO,
+  productoDe,
+  vueltaDelProducto,
+} from './productos.ts';
 import {
   directorioDeUsuario,
   type EntradaDelDirectorio,
   usuarioDeIdentidad,
 } from './repositorio.ts';
 import {
+  aceptarPolitica,
   canjearCodigo,
   crearSesion,
+  productoDelCodigo,
   refrescar,
   type SesionActiva,
   SesionInvalida,
@@ -76,9 +86,14 @@ export interface Entorno {
   google: ProveedorGoogle;
   origenes: readonly string[];
   ahora: () => number;
+  /** Los productos que atiende el CORE (HU-C3.1); las pruebas pasan uno con un producto de ensayo. */
+  catalogo: CatalogoDelCore;
 }
 
-/** La pantalla del cuaderno a la que se vuelve, o null si no es una pantalla permitida. */
+/**
+ * La pantalla del cuaderno a la que se vuelve, o null si no es una pantalla permitida. La usa la
+ * copia en Drive (HU-E8.4), que es solo del agro; entrar usa `vueltaDelProducto`.
+ */
 export function vueltaPermitida(
   vuelta: string | undefined,
   origenes: readonly string[],
@@ -96,26 +111,42 @@ export function vueltaPermitida(
 
 const redirectDe = (c: Context) => new URL(RUTA_CALLBACK, c.req.url).toString();
 
+const MOTIVO_DE_PRODUCTO: Record<MotivoDeProducto, string> = {
+  'no-existe': 'Esta aplicación no existe en la plataforma.',
+  pausado: 'Entrar a esta aplicación está en pausa por un momento. Intenta más tarde.',
+  retirado: 'Esta aplicación ya no está disponible.',
+};
+
 export function inicio(c: Context, e: Entorno): Response {
-  const vuelta = vueltaPermitida(c.req.query('vuelta'), e.origenes);
-  if (!vuelta) return c.text('Esta dirección de regreso no es del cuaderno.', 400);
-  // HU-E0.5, CA3: sin aceptar la política vigente no se crea ni se abre una cuenta.
+  // HU-C3.1: la app dice su producto; sin él, es el agro (los cuadernos instalados no lo mandan).
+  const pedido = productoDe(e.catalogo, c.req.query('producto') || undefined);
+  if ('motivo' in pedido) return c.text(MOTIVO_DE_PRODUCTO[pedido.motivo], 400);
+  const { producto } = pedido;
+  const vuelta = vueltaDelProducto(c.req.query('vuelta'), producto, e.origenes);
+  if (!vuelta) return c.text('Esta dirección de regreso no es de esta aplicación.', 400);
+  // HU-E0.5, CA3: sin aceptar la política vigente del producto no se crea ni se abre una cuenta.
+  const vigente = e.catalogo.politicas[producto.id];
   const politica = c.req.query('politica');
-  if (politica !== POLITICA_VIGENTE) {
+  if (!vigente || politica !== vigente) {
     return c.text(
-      `Para entrar, acepta la política de tratamiento de datos vigente (versión ${POLITICA_VIGENTE}) en el cuaderno.`,
+      `Para entrar, acepta la política de tratamiento de datos vigente (versión ${vigente ?? '?'}) en la aplicación.`,
       400,
     );
   }
   const state = generateState();
   const verifier = generateCodeVerifier();
-  setCookie(c, COOKIE, JSON.stringify({ state, verifier, vuelta, politica }), {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    path: '/api/core/auth/',
-    maxAge: 600,
-  });
+  setCookie(
+    c,
+    COOKIE,
+    JSON.stringify({ state, verifier, vuelta, politica, producto: producto.id }),
+    {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+      path: '/api/core/auth/',
+      maxAge: 600,
+    },
+  );
   return c.redirect(e.google.urlDeAutorizacion(state, verifier, redirectDe(c)).toString(), 302);
 }
 
@@ -124,15 +155,24 @@ const volverConError = (c: Context, vuelta: string, motivo: string) =>
   c.redirect(`${vuelta}#entrar-error=${motivo}`, 302);
 
 export async function callback(c: Context, e: Entorno): Promise<Response> {
-  let guardado: { state?: string; verifier?: string; vuelta?: string; politica?: string } = {};
+  let guardado: {
+    state?: string;
+    verifier?: string;
+    vuelta?: string;
+    politica?: string;
+    producto?: string;
+  } = {};
   try {
     guardado = JSON.parse(getCookie(c, COOKIE) ?? '{}') as typeof guardado;
   } catch {
     guardado = {};
   }
   deleteCookie(c, COOKIE, { path: '/api/core/auth/', secure: true });
-  const vuelta = vueltaPermitida(guardado.vuelta, e.origenes);
-  if (!vuelta || !guardado.state || !guardado.verifier) {
+  // Una cookie de antes de HU-C3.1 no trae producto: era del agro.
+  const pedido = productoDe(e.catalogo, guardado.producto);
+  const producto = 'producto' in pedido ? pedido.producto : null;
+  const vuelta = producto ? vueltaDelProducto(guardado.vuelta, producto, e.origenes) : null;
+  if (!producto || !vuelta || !guardado.state || !guardado.verifier) {
     return c.text(
       'La entrada venció o se abrió en otro navegador. Vuelve al cuaderno y toca «Entrar con Google».',
       400,
@@ -145,8 +185,26 @@ export async function callback(c: Context, e: Entorno): Promise<Response> {
   try {
     const persona = await e.google.identidad(code, guardado.verifier, redirectDe(c));
     const ahora = e.ahora();
-    const usuario = await usuarioDeIdentidad(e.db, persona, () => ahora, guardado.politica ?? null);
-    const codigo = await crearSesion(e.db, usuario.id, ahora);
+    // `usuario.politica_*` es la política del agro hasta que se contraiga (HU-C3.8): solo él la
+    // escribe ahí. Todo producto, el agro incluido, la escribe en `aceptacion_politica`.
+    const politica = guardado.politica ?? null;
+    const usuario = await usuarioDeIdentidad(
+      e.db,
+      persona,
+      () => ahora,
+      producto.id === PRODUCTO_POR_DEFECTO ? politica : null,
+    );
+    if (politica) await aceptarPolitica(e.db, usuario.id, producto.id, politica, ahora);
+    const codigo = await crearSesion(e.db, usuario.id, ahora, producto.id);
+    // HU-C2.4: la entrada con Google es un hecho de seguridad; renovar no lo es.
+    await filaDeAuditoria(e.db, {
+      instante: new Date(ahora).toISOString(),
+      producto: producto.id,
+      org_id: null,
+      usuario_id: usuario.id,
+      accion: 'entrada',
+      detalle: { proveedor: 'google' },
+    }).run();
     return c.redirect(`${vuelta}#entrar=${codigo}`, 302);
   } catch (error) {
     console.error('agro-core: no se pudo completar la entrada con Google:', (error as Error).name);
@@ -233,6 +291,22 @@ export async function canje(c: Context, e: Entorno): Promise<Response> {
   const dispositivo = texto(datos['dispositivo']);
   if (!codigo || !dispositivo)
     return c.json({ estado: 'invalido', motivo: 'Faltan el código o el teléfono' }, 400);
+  // HU-C3.1: el código solo se canjea desde la app de su producto. Se mira antes de gastarlo, para
+  // que un intento desde otra app no deje sin entrada a la persona.
+  const deLaSesion = await productoDelCodigo(e.db, codigo, e.ahora());
+  const pedido = productoDe(e.catalogo, deLaSesion ?? undefined);
+  const origen = c.req.header('origin');
+  if (
+    deLaSesion &&
+    (!('producto' in pedido) ||
+      !origen ||
+      !origenesDelProducto(pedido.producto, e.origenes).includes(origen))
+  ) {
+    return c.json(
+      { estado: 'otro-producto', motivo: 'Este enlace de entrada es de otra aplicación.' },
+      403,
+    );
+  }
   try {
     return await respuestaDeSesion(
       c,
