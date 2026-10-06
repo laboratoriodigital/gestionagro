@@ -11,6 +11,7 @@ import {
   decidirPublicacion,
   etiquetaDe,
   productosADesplegar,
+  seccionesReescritas,
 } from '../../scripts/lib/publicacion.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 import { CHANGELOG_DEL_CORE, notasDe, versionDelCore } from '../../scripts/notas-de-version.ts';
@@ -94,5 +95,30 @@ describe('la versión del CORE y su CHANGELOG', () => {
 
   it('tiene su sección «Sin publicar», donde la guardia pide anotar', () => {
     expect(changelog).toMatch(/^## \[Sin publicar\]$/m);
+  });
+});
+
+describe('una versión publicada no se reescribe (bitácora core 6)', () => {
+  const publicada =
+    '# X\n\n## [Sin publicar]\n\n## [0.4.0] - 2026-10-06\n\n### Agregado\n- Lo de la 0.4.0.\n\n## [0.3.0]\n\n- Viejo.\n';
+
+  it('lo nuevo en «Sin publicar» no toca la versión publicada', () => {
+    const despues = publicada.replace(
+      '## [Sin publicar]\n',
+      '## [Sin publicar]\n\n### Agregado\n- Lo nuevo.\n',
+    );
+    expect(
+      seccionesReescritas(despues, [{ version: '0.4.0', changelog: publicada }], notasDe),
+    ).toEqual([]);
+  });
+
+  it('control negativo: lo que pasó el 6 oct 2026, una entrada nueva dentro de la versión publicada', () => {
+    const despues = publicada.replace(
+      '- Lo de la 0.4.0.\n',
+      '- Lo nuevo del sprint siguiente.\n- Lo de la 0.4.0.\n',
+    );
+    expect(
+      seccionesReescritas(despues, [{ version: '0.4.0', changelog: publicada }], notasDe),
+    ).toEqual(['0.4.0']);
   });
 });

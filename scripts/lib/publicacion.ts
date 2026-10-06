@@ -65,3 +65,22 @@ export function productosADesplegar(valor: string | undefined): Set<ProductoPubl
 export function cambiaElCodigoDelCore(archivos: readonly string[]): boolean {
   return archivos.some((a) => /^apps\/core\/src\/.+\.ts$/.test(a) && !a.endsWith('.test.ts'));
 }
+
+/**
+ * Las versiones publicadas cuya sección del CHANGELOG ya no dice lo que decía al publicarse. Una
+ * versión publicada no se reescribe: lo nuevo va en «[Sin publicar]». Pasó el 6 oct 2026, al fusionar
+ * un sprint justo después de su publicación: Git juntó las entradas nuevas con las de la versión.
+ * `extraer` es `notasDe` (scripts/notas-de-version.ts).
+ */
+export function seccionesReescritas(
+  actual: string,
+  publicadas: readonly { version: string; changelog: string }[],
+  extraer: (changelog: string, version: string) => string | null,
+): string[] {
+  return publicadas
+    .filter(({ version, changelog }) => {
+      const entonces = extraer(changelog, version);
+      return entonces !== null && extraer(actual, version) !== entonces;
+    })
+    .map(({ version }) => version);
+}

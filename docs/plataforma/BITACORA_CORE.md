@@ -401,3 +401,21 @@ size-adjust: 131.62%;
 La regla: **un número que viene de un instrumento se mira con «¿es razonable?» antes de usarlo. Y cuatro datos se copian con su fuente, no se instalan con 27 MB.**
 
 *Ficha:* core · *(mío)* · 🟡 Medio · P17, P5 · 0.3.0 · 2026-10-05
+
+**6 · Dos PR bien hechos, fusionados en fila, dejaron las novedades del sprint dentro de la versión que se acababa de publicar.**
+
+*Qué pasó.* El 6 oct 2026 el dueño fusionó el PR #103 (publicar CultivoPro 0.4.0 y CORE 0.2.0), que renombró «[Sin publicar]» a «[0.4.0]» y «[0.2.0]», y minutos después el #104 (sprint C5), que agregaba sus entradas al principio de «### Agregado» de «[Sin publicar]». Al revisar `main` después del despliegue a producción, «[Sin publicar]» estaba vacía y las cuatro entradas del C5 de cada CHANGELOG estaban dentro de las versiones publicadas.
+
+*Síntoma literal.* En `main`, `CHANGELOG.md` decía «## [Sin publicar]» y en la línea siguiente «## [0.4.0] - 2026-10-06»; la primera entrada de esa versión era «Se puede entrar a la cuenta de Laboratorio Digital con Google… (HU-C7.3)», que no salió en ella. La guardia nueva, al pasar por toda la historia, encontró un caso anterior igual: «CHANGELOG.md: la sección [0.2.0] ya se publicó (v0.2.0) y cambió». La copia en Drive, Search Console y los datos del responsable habían quedado en «[0.2.0]» y salieron en la 0.4.0 sin aparecer en sus notas.
+
+*Causa raíz.* Git fusiona por líneas, no por secciones. Para el #104, la línea de arriba de sus entradas era «### Agregado», y esa línea, después del #103, ya era de «[0.4.0]». Cada PR estaba bien por separado: el #104 se probó contra un `main` que todavía no tenía la publicación, y GitHub no lo vuelve a probar cuando la base cambia. Las notas de versión de GitHub salieron bien, porque se generan del commit publicado, antes de la segunda fusión; lo que quedó mal es el archivo.
+
+*Cómo se reprodujo.* Comparando la sección de cada versión con el archivo en su etiqueta (`git show v0.4.0:CHANGELOG.md`).
+
+*Arreglo.* Las entradas volvieron a su lugar: las del C5 a «[Sin publicar]» y las tres de la 0.4.0 a «[0.4.0]», con una nota en esa versión que lo dice. `scripts/verificar-changelog.ts` corre en el CI, en los PR **y en `main`**, antes de instalar: compara la sección de cada versión publicada con la de su etiqueta. Desde la 0.4.0 del agro y la 0.2.0 del CORE; lo anterior quedó corregido a mano.
+
+**Lo prueba** `tests/repo/publicacion.test.ts` («una versión publicada no se reescribe»). Control negativo: el caso de hoy, una entrada nueva dentro de la versión publicada, se nombra; lo nuevo en «[Sin publicar]», no.
+
+La regla: **lo que el CI prueba en un PR es ese PR contra la base de ese momento. Lo que depende de cómo se juntan dos cambios se revisa también después de fusionar, en `main`.**
+
+*Ficha:* core · *(compartido)* · 🟢 Bajo · P16, P18 · core-0.2.0 · 2026-10-06

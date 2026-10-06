@@ -4,12 +4,22 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
-## [0.4.0] - 2026-10-06
-
 ### Agregado
 - Se puede entrar a la cuenta de Laboratorio Digital con Google, aceptando su política de datos (todavía en borrador), ver con qué nombre se entró, volver a la aplicación de la que se venía y salir. Salir cierra la sesión también en el servidor (HU-C7.3).
 - Una galería con todos los componentes de la cuenta y sus estados, en claro y en oscuro, con una prueba que avisa si alguno cambió sin querer (HU-C6.4).
 - La cuenta de Laboratorio Digital tiene su primera página, en `cuenta.laboratorio-digital.com`: dice qué va a reunir y que pronto se podrá entrar con Google. Es estática, sin JavaScript, y no aparece en buscadores (HU-C7.2).
+
+### Corregido
+- El aviso de «cargando» de los componentes v2 ya no desvanece el texto: a media animación quedaba con poco contraste. Ahora se mueve un punto a su lado (HU-C6.4).
+
+## [0.4.0] - 2026-10-06
+
+*(Corregido el 6 oct 2026: la copia en Drive, Search Console y los datos del responsable salieron en esta versión, pero una fusión los había dejado en [0.2.0] y no aparecen en sus notas de GitHub. Desde aquí, `scripts/verificar-changelog.ts` no deja reescribir una versión publicada.)*
+
+### Agregado
+- Copia en el Google Drive del productor (HU-E8.4, etapa 1). En Respaldo, «Guardar copia en mi Google Drive» sube el respaldo completo a la carpeta «CultivoPro · respaldos» de la cuenta de Google de la persona, y conserva las 8 más recientes. «Traer una copia de mi Google Drive» la revisa y la une como Importar, también en un teléfono nuevo. El CORE pide el permiso `drive.file` y lo entrega sellado, atado a un verificador del teléfono; no guarda nada de Drive. Recuerda la copia a los 7 días. La política de datos pasa a la versión 3: declara la conexión a Google Drive, y la CSP del cuaderno solo permite las conexiones de terceros que la política declara.
+- Search Console en el reporte semanal (HU-E2.6, HU-E8.3). Con la cuenta de servicio de solo lectura `GOOGLE_SEARCH_CONSOLE_CLAVE`, el reporte de los lunes trae las impresiones y los clics de la semana contra la anterior, las consultas con al menos 10 impresiones y las páginas con más impresiones. Sin el secreto, o con un acceso mal dado, el reporte lo dice y sigue. Pasos del dueño en `docs/runbooks/search-console.md`.
+- Datos del responsable de la política de datos (HU-E0.5): ya figuran nombre, domicilio y correo; faltan identificación y teléfono, y la revisión del abogado. Se editan en `content/agro/privacidad/politica.json` y `docs/runbooks/datos-del-responsable.md` explica cómo, desde GitHub y sin código. Una prueba de navegador exige que la página muestre exactamente lo del archivo.
 - El vigía de la celda ya sabe medir con Workers Paid: proyecta el costo del mes en dólares, avisa por Telegram al 50, 75 y 90 % de lo incluido y al pasar el presupuesto, y con el presupuesto agotado apaga solo lo que cada producto declare, nunca la venta. Se activa cuando la cuenta pase a Workers Paid (HU-C11.1).
 - Las celdas aceptan los tokens del CORE en sus dos formatos, el de hoy y el del ecosistema (con producto y plan), y cada celda acepta solo los de su producto. Es el primer paso de la transición: nadie tiene que volver a entrar (HU-C4.1).
 - El CORE publica sus llaves públicas en el formato estándar (`/.well-known/jwks.json`), para verificadores que no son nuestros (HU-C4.2).
@@ -38,7 +48,6 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - El CI gasta según lo que cambió: si un PR solo toca documentos (`docs/` o un `.md` de la raíz), no abre navegadores ni compila, y corre solo las pruebas que leen documentos. El resumen dice qué saltó y por qué. Si no puede calcular el cambio, corre todo (HU-C11.6).
 
 ### Corregido
-- El aviso de «cargando» de los componentes v2 ya no desvanece el texto: a media animación quedaba con poco contraste. Ahora se mueve un punto a su lado (HU-C6.4).
 - Menú y Costos según haya finca (revisión del dueño, 5 oct 2026). Rendimiento y Costos aparecen en el menú solo cuando la finca existe, y lo hacen apenas se crea o se restaura, sin recargar. Costos sin finca se quedaba para siempre en «Abriendo tu cuaderno…»: ahora dice que primero se configure la finca.
 - Monitoreo (HU-E3.11, revisión del dueño, 5 oct 2026): las fotos se guardaban en el teléfono pero ninguna pantalla las mostraba. Ahora «Ver foto» las abre en Registrar y en Historial, solo al tocarlo. Si el registro llegó de otro teléfono, dice que la foto se quedó en el teléfono donde se tomó, en vez de mostrar un cuadro roto.
 - La receta para rehacer tablas en D1 (ADR-25) se comprobó en el D1 local de workerd, no solo en el SQLite de Node: funciona igual. Y se supo algo nuevo: su guarda revisa toda la base, así que una fila huérfana vieja en cualquier tabla detendría la migración. Antes de migrar producción se revisa la base (HU-C2.1, bitácora core 2).
@@ -124,9 +133,6 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - La calculadora de DPV borraba lo que la persona escribía antes de que terminara de cargar (3G lenta): al activarse, dejaba los campos vacíos. Ahora conserva lo escrito (bitácora agro 21).
 
 ### Añadido
-- Copia en el Google Drive del productor (HU-E8.4, etapa 1). En Respaldo, «Guardar copia en mi Google Drive» sube el respaldo completo a la carpeta «CultivoPro · respaldos» de la cuenta de Google de la persona, y conserva las 8 más recientes. «Traer una copia de mi Google Drive» la revisa y la une como Importar, también en un teléfono nuevo. El CORE pide el permiso `drive.file` y lo entrega sellado, atado a un verificador del teléfono; no guarda nada de Drive. Recuerda la copia a los 7 días. La política de datos pasa a la versión 3: declara la conexión a Google Drive, y la CSP del cuaderno solo permite las conexiones de terceros que la política declara.
-- Search Console en el reporte semanal (HU-E2.6, HU-E8.3). Con la cuenta de servicio de solo lectura `GOOGLE_SEARCH_CONSOLE_CLAVE`, el reporte de los lunes trae las impresiones y los clics de la semana contra la anterior, las consultas con al menos 10 impresiones y las páginas con más impresiones. Sin el secreto, o con un acceso mal dado, el reporte lo dice y sigue. Pasos del dueño en `docs/runbooks/search-console.md`.
-- Datos del responsable de la política de datos (HU-E0.5): ya figuran nombre, domicilio y correo; faltan identificación y teléfono, y la revisión del abogado. Se editan en `content/agro/privacidad/politica.json` y `docs/runbooks/datos-del-responsable.md` explica cómo, desde GitHub y sin código. Una prueba de navegador exige que la página muestre exactamente lo del archivo.
 - Calculadora de carencia y reentrada (HU-E10.1), en `/herramientas/agro/periodo-de-carencia/`, todavía en borrador hasta la revisión del agrónomo. Con la fecha y la hora de la aplicación y la carencia y la reentrada de la etiqueta, dice desde qué día se puede cosechar y desde qué hora se puede entrar, siempre en hora de Colombia. Si falta un dato, dice que es desconocido en vez de suponer cero. No pide nada a la red al calcular.
 - De la calculadora de carencias al cuaderno (HU-E10.2). «Guardar como aplicación en mi cuaderno» abre Registrar → Aplicaciones con la fecha y la hora ya puestas, sin señal. El formulario de aplicación pregunta ahora «Cuándo se aplicó» (vacío es ahora): una aplicación de la mañana anotada en la noche o al otro día cuenta su carencia desde que se aplicó, no desde que se anotó.
 - Costo por kilo y margen (HU-E7.3), del plan Finca. Al comienzo de «Costos», cada ciclo dice cuánto cuesta producir un kilo vendible (lo cosechado menos el descarte), con los insumos y la mano de obra anotados, y cuánto se ganó o perdió con lo despachado. Si falta algún dato, lo dice («al menos», «aproximada») en vez de contar cero. Aclara que no incluye arriendo, depreciación del invernadero, empaques, transporte ni servicios.
