@@ -211,6 +211,33 @@ export async function humo(fetchFn: Fetch, base: string): Promise<string[]> {
  * Prueba de humo del CORE (HU-E4.1): la base responde, tiene las migraciones y el directorio
  * tiene las celdas activas de celdas.json. Solo lee.
  */
+/**
+ * HU-C3.7, CA3: en producción, entrar a un producto de prueba responde que no existe. Es la segunda
+ * red de la revisión de la base: esta mira lo que el Worker atiende de verdad.
+ */
+export async function humoSinProductosDePrueba(
+  fetchFn: Fetch,
+  base: string,
+  dePrueba: readonly string[],
+): Promise<string[]> {
+  const fallas: string[] = [];
+  for (const id of dePrueba) {
+    const ruta = `/api/core/auth/google/inicio?producto=${encodeURIComponent(id)}`;
+    try {
+      const r = await fetchFn(`${base}${ruta}`, { redirect: 'manual' });
+      const texto = await r.text();
+      if (r.status !== 400 || !texto.includes('no existe')) {
+        fallas.push(
+          `${ruta}: respondió ${r.status}; el producto de prueba «${id}» no debe existir en producción`,
+        );
+      }
+    } catch (e) {
+      fallas.push(`${ruta}: no respondió (${(e as Error).message})`);
+    }
+  }
+  return fallas;
+}
+
 export async function humoCore(
   fetchFn: Fetch,
   base: string,

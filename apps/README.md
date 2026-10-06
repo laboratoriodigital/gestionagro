@@ -6,4 +6,5 @@ Aplicaciones desplegables (ARQUITECTURA §11). Cada una llega con la historia qu
 - `cuaderno/`: PWA Preact en `/agro/app/` (HU-E3.1).
 - `api-celda/`: Worker Hono de la celda (HU-E5.1).
 - `core/`: Worker CORE v0 (HU-E4.1).
+- `ensayo/`: la app del producto de ensayo, solo en staging (HU-C3.7): un Worker solo de assets.
 - `cuenta/`: Astro estático en `cuenta.laboratorio-digital.com`, servido por el Worker del CORE (HU-C7.2).

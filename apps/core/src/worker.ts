@@ -62,8 +62,8 @@ import { claveAnteriorDe, clavesPublicadas } from './jwks.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
 import {
-  CATALOGO,
   type CatalogoDelCore,
+  catalogoDelDestino,
   origenesDelProducto,
   origenesDeTodos,
   productoDe,
@@ -80,6 +80,8 @@ export interface Env {
   FLAGS?: LectorKv;
   /** Secretos del Worker, cargados por el despliegue (ARQUITECTURA §7.5). */
   CORE_JWT_PRIVATE_KEY?: string;
+  /** `staging` o `produccion`, del despliegue: staging atiende además los productos de prueba (HU-C3.7). */
+  DESTINO?: string;
   /** JWK pública de la llave anterior mientras dura una rotación (HU-C4.2); no es secreta. */
   CORE_CLAVE_ANTERIOR?: string;
   GOOGLE_CLIENT_ID?: string;
@@ -196,10 +198,12 @@ export function crearApp(dependencias: Dependencias = {}) {
   // Solo las apps de los productos pueden leer estas respuestas desde el navegador: la unión de sus
   // orígenes (HU-C3.5). Entrar, renovar y crear la organización comparten CORS, kill switch y
   // configuración.
-  const catalogo = dependencias.catalogo ?? CATALOGO;
+  const catalogoDe = (env: Env) => dependencias.catalogo ?? catalogoDelDestino(env.DESTINO);
   const corsDelCuaderno = cors({
     origin: (origen, c) =>
-      origenesDeTodos(catalogo, origenesDe(c.env as Env)).includes(origen) ? origen : null,
+      origenesDeTodos(catalogoDe(c.env as Env), origenesDe(c.env as Env)).includes(origen)
+        ? origen
+        : null,
     allowMethods: ['POST'],
     allowHeaders: ['authorization', 'content-type'],
     maxAge: 600,
@@ -240,7 +244,7 @@ export function crearApp(dependencias: Dependencias = {}) {
       google: google(c.env),
       origenes: origenesDe(c.env),
       ahora,
-      catalogo,
+      catalogo: catalogoDe(c.env),
     });
     await siguiente();
     return undefined;

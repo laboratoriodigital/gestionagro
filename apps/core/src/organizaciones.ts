@@ -12,15 +12,16 @@ import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import { SinCeldaDisponible } from './asignacion.ts';
 import type { Entorno } from './entrar.ts';
-import { PRODUCTO_POR_DEFECTO, rolAdministra } from './productos.ts';
+import { PRODUCTO_POR_DEFECTO, productoDe, rolAdministra } from './productos.ts';
 import { crearOrganizacion, ErrorDelCore } from './repositorio.ts';
 
 export async function crearOrganizacionDeLaFinca(c: Context, e: Entorno): Promise<Response> {
   const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
   if (!token) return c.json({ estado: 'sin-sesion', motivo: 'Entra con tu cuenta.' }, 401);
   let usuario: string;
+  let aud: string | undefined;
   try {
-    usuario = (await verificarAcceso(e.firmante.publica, token, e.ahora())).sub;
+    ({ sub: usuario, aud } = await verificarAcceso(e.firmante.publica, token, e.ahora()));
   } catch (error) {
     if (!(error instanceof TokenInvalido)) throw error;
     return c.json({ estado: 'sin-sesion', motivo: 'La sesión venció. Vuelve a intentarlo.' }, 401);
@@ -39,9 +40,17 @@ export async function crearOrganizacionDeLaFinca(c: Context, e: Entorno): Promis
     )
     .bind(usuario, id.data)
     .first<{ id: string; nombre: string; celda_id: string; shard: string; rol: string | null }>();
-  // HU-C3.2: el producto sale de la sesión, nunca del cuerpo (R2). El token v1 todavía no lo
-  // trae: hasta los tokens v2 (HU-C4.3), toda organización nueva es del producto por defecto.
-  const producto = PRODUCTO_POR_DEFECTO;
+  // HU-C3.2: el producto sale de la sesión, nunca del cuerpo (R2): el `aud` del token v2 (HU-C4.3).
+  // Un v1 todavía vigente no lo trae y es del producto por defecto, como antes.
+  const producto = aud ?? PRODUCTO_POR_DEFECTO;
+  const delCatalogo = productoDe(e.catalogo, producto);
+  const tipo = 'producto' in delCatalogo ? delCatalogo.producto.tipos[0] : undefined;
+  if (!tipo) {
+    return c.json(
+      { estado: 'prohibido', motivo: 'Esta aplicación no tiene espacios que crear.' },
+      403,
+    );
+  }
   if (existente) {
     if (!existente.rol || !rolAdministra(e.catalogo, producto, existente.rol)) {
       return c.json({ estado: 'ajena', motivo: 'Esa finca es de otra cuenta.' }, 409);
@@ -54,7 +63,7 @@ export async function crearOrganizacionDeLaFinca(c: Context, e: Entorno): Promis
       {
         propietarioId: usuario,
         nombre: cuerpo.nombre,
-        tipo: 'finca',
+        tipo,
         id: id.data,
         producto,
         // HU-C3.3: quien la crea queda con el primer rol que administra su producto.

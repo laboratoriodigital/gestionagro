@@ -11,7 +11,12 @@ import type { Producto, RegistroDeProductos } from '@ed1/productos';
 import planesAgro from '../../../content/agro/cuaderno/planes.json' with { type: 'json' };
 import politicaAgro from '../../../content/agro/privacidad/politica.json' with { type: 'json' };
 import politicaCuenta from '../../../content/cuenta/privacidad/politica.json' with { type: 'json' };
+import planesEnsayo from '../../../content/ensayo/planes.json' with { type: 'json' };
+import politicaEnsayo from '../../../content/ensayo/privacidad/politica.json' with { type: 'json' };
 import registro from '../../../infrastructure/productos.json' with { type: 'json' };
+import registroDePrueba from '../../../infrastructure/productos-de-prueba.json' with {
+  type: 'json',
+};
 
 export interface CatalogoDelCore {
   productos: readonly Producto[];
@@ -39,6 +44,23 @@ export const CATALOGO: CatalogoDelCore = {
   // La cuenta (ADR-28) no tiene planes: no tiene organizaciones.
   planes: { agro: planesAgro.planes, cuenta: [] },
 };
+
+/**
+ * El catálogo de staging (HU-C3.7): el real más los productos de prueba, que solo existen ahí y en
+ * D1 local. Una prueba exige su política y sus planes, como en el real (P2).
+ */
+export const CATALOGO_DE_STAGING: CatalogoDelCore = {
+  productos: [...CATALOGO.productos, ...(registroDePrueba as RegistroDeProductos).productos],
+  politicas: { ...CATALOGO.politicas, ensayo: politicaEnsayo.version },
+  planes: { ...CATALOGO.planes, ensayo: planesEnsayo.planes },
+};
+
+/**
+ * El catálogo del Worker según su destino. Solo `staging` trae los de prueba: sin la variable, o
+ * con cualquier otro valor, el real (P1: en la duda, producción no ve un producto de ensayo).
+ */
+export const catalogoDelDestino = (destino: string | undefined): CatalogoDelCore =>
+  destino === 'staging' ? CATALOGO_DE_STAGING : CATALOGO;
 
 /**
  * El producto de una solicitud que no dice cuál. Es el agro mientras dure la transición (P10): los

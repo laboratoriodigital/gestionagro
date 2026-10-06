@@ -1,0 +1,12 @@
+{
+  "nota": "Planes del producto de ensayo (HU-C3.7): solo existen en staging, para probar planes, precios y gracia de un segundo producto.",
+  "planes": [
+    { "id": "gratis", "nombre": "Gratis", "gratuito": true },
+    {
+      "id": "vitrina",
+      "nombre": "Vitrina",
+      "cobro_mensual_cop": 25000,
+      "cobro": { "1": 25000, "3": 72000, "6": 135000, "12": 250000 }
+    }
+  ]
+}

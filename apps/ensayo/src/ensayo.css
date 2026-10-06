@@ -1,0 +1,35 @@
+/* La app de ensayo (HU-C3.7): solo para validar en staging. Sin adornos. */
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+.suave {
+  opacity: 0.8;
+}
+.error {
+  font-weight: 600;
+}
+button,
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 48px;
+}
+button {
+  padding: 0 1.25rem;
+  margin: 0.5rem 0.5rem 0.5rem 0;
+}
+pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+[hidden] {
+  display: none;
+}

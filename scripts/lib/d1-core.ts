@@ -89,7 +89,8 @@ export function configDelCore(
       database_id: despliegue.baseId,
     })),
     kv_namespaces: [{ binding: 'FLAGS', id: despliegue.flagsId }],
-    vars: { ORIGENES_APP: despliegue.origenesApp.join(',') },
+    // DESTINO: staging atiende además los productos de prueba (HU-C3.7); producción, nunca.
+    vars: { ORIGENES_APP: despliegue.origenesApp.join(','), DESTINO: destino },
   });
   if (destino === 'produccion') return agregar(generada);
   const env = generada['env'] as Record<string, Record<string, unknown>>;

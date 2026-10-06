@@ -1,0 +1,20 @@
+{
+  "nota": "Política del producto de ensayo (HU-C3.7). Solo existe en staging, para que entrar a un segundo producto pida aceptar su propia política como el de verdad. No la ve nadie de afuera.",
+  "version": "1",
+  "fecha": "2026-10-06",
+  "estado": "borrador",
+  "revision": "producto de ensayo: no es una política de verdad",
+  "responsable": {
+    "nombre": null,
+    "identificacion": null,
+    "domicilio": null,
+    "correo": "laboratoriodigital.la@gmail.com",
+    "telefono": null
+  },
+  "encargados": [],
+  "transferencia": "",
+  "scripts_de_terceros": [],
+  "scripts_al_pagar": [],
+  "conexiones_de_terceros": [],
+  "cookies": []
+}

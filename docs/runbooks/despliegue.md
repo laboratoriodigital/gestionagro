@@ -28,6 +28,18 @@ Y la API de cada celda (HU-E5.1), en todas las celdas activas, después del siti
 
 El CORE vive en workers.dev en los dos destinos: `https://agro-core-staging.<subdominio>.workers.dev` y `https://agro-core.<subdominio>.workers.dev`. En producción tiene además su dominio propio, `https://cuenta.laboratorio-digital.com` (HU-C4.6): lo declara `celdas.json › core.dominio` y wrangler lo crea como Custom Domain al desplegar, con su registro DNS. La URL de workers.dev no se apaga: los cuadernos instalados la usan. Staging nunca lleva el dominio (una prueba lo exige).
 
+### Dos productos en staging (HU-C3.7): cómo validarlo
+
+Staging tiene un segundo producto, **Ensayo**, que no existe en producción. Su app está en `https://ed1-ensayo-staging.laboratoriodigital-la.workers.dev`.
+
+1. Abre el cuaderno de staging (`https://agro-sitio-staging.laboratoriodigital-la.workers.dev/agro/app/`) y entra con tu cuenta de Google. Debes ver tus fincas de staging.
+2. En otra pestaña, abre la app de Ensayo, marca la casilla y toca **Entrar con Google** con la **misma** cuenta.
+3. Toca **Crear un espacio de prueba**. Debe aparecer «Espacio de prueba (dueno, plan gratis)», y en «Lo que dice tu sesión», `aud: ensayo` y `celda: c9`.
+4. Vuelve al cuaderno de staging y recarga: tus fincas siguen ahí, y el espacio de Ensayo **no** aparece.
+5. En Ensayo, toca **Salir**.
+
+Si en el paso 3 o en el 4 ves algo de un producto en el otro, dime qué viste.
+
 ### El dominio de la cuenta: lo que hace el dueño, una vez
 
 Antes de la primera publicación que lo lleve:
