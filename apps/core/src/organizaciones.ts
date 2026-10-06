@@ -51,7 +51,17 @@ export async function crearOrganizacionDeLaFinca(c: Context, e: Entorno): Promis
   try {
     const org = await crearOrganizacion(
       e.db,
-      { propietarioId: usuario, nombre: cuerpo.nombre, tipo: 'finca', id: id.data },
+      {
+        propietarioId: usuario,
+        nombre: cuerpo.nombre,
+        tipo: 'finca',
+        id: id.data,
+        producto,
+        // HU-C3.3: quien la crea queda con el primer rol que administra su producto.
+        rolQueAdministra:
+          e.catalogo.productos.find((p) => p.id === producto)?.roles.find((r) => r.administra)
+            ?.id ?? 'propietario',
+      },
       e.ahora,
     );
     return c.json({ org_id: org.id, nombre: org.nombre, ya_existia: false }, 201);

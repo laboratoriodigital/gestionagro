@@ -14,6 +14,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Kill switches por producto (`ks:core:<producto>`), para los pagos (`ks:core:pagos`) y para todo el CORE (`ks:core`, además de `ks:agro-core`) (HU-C3.6).
 
 ### Cambiado
+- Una organización nueva nace en una celda de su producto, con el plan gratuito de su producto y el rol que lo administra, y los pilotos se cuentan por producto (HU-C3.3).
 - Invitar, cambiar roles, quitar personas y ver la auditoría los puede hacer quien tenga un rol que administra en el producto de la organización, no un «propietario» escrito en el código. Los roles invitables y la invitación salen del producto de la organización (HU-C3.2).
 - Los paquetes internos pasan a `@ed1/*`, y el CORE deja de importar el paquete del agro: su Worker pesa 13,7 KB menos.
 

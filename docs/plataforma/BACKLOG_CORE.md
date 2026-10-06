@@ -482,7 +482,7 @@ Formato de cada historia:
 - **Work items:** WI-C3.2.1 `[código]` organizaciones · WI-C3.2.2 `[código]` invitaciones y equipo con `administra` · WI-C3.2.3 `[prueba]` cruces rechazados por la API y por la base.
 
 #### HU-C3.3 · Asignación de celda por producto
-- **Capa:** API · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C3 · **Depende de:** HU-C1.4, HU-C3.2 · **Estado:** Refinada
+- **Capa:** API · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C3 · **Depende de:** HU-C1.4, HU-C3.2 · **Estado:** En validación (rama `feat/c3-sprint`. La regla de `asignacion.ts` no cambia: cambia lo que ve. Celdas, cargas y pilotos se leen filtrados por producto, con el índice de la 0006. La organización nace con su producto, con el plan gratuito de su producto (leído del catálogo, `gratuito = 1`; ya no «gratuito» escrito) y con el primer rol que administra. 4 pruebas con dos productos. Control negativo: sin el filtro en el conteo de pilotos, «los pilotos se cuentan por producto» se ve en rojo)
 - Como plataforma, quiero que una organización nueva vaya a una celda de su producto, con los pilotos contados por producto.
 - **Respaldo:** PLATAFORMA §4.9.
 - **CA1.** `asignarUbicacion` recibe el producto y elige entre las celdas activas de ese producto, con las reglas de hoy.
