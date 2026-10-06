@@ -375,6 +375,8 @@ La regla: **una regla que depende de que alguien se acuerde se olvida en el prim
 
 *(Hoy, 6 oct 2026: volvió a pasar por otro camino. En el PR #100 corrí el lint en verde, después agregué una línea a `vitest.config.ts` y la incluí en el commit sin volver a correrlo; el CI la rechazó por formato. `pipefail` no protege de esto: el lint tiene que ser lo último antes del commit, en el mismo comando que lo hace.)*
 
+*(Hoy, más tarde: y una tercera. Un mismo comando llevaba dos commits en líneas distintas; el lint de la primera falló y la segunda se hizo igual, con todo junto, porque las líneas de un comando no se encadenan solas. No se había subido: se deshizo con `reset --soft`. Desde entonces los commits van por un guion con `set -euo pipefail` que corre lint y tipos, agrega y confirma, y se detiene en la primera falla; esa misma tarde detuvo dos commits con el lint en rojo. Es la guardia que esta entrada pedía, aunque viva fuera del repositorio.)*
+
 *Ficha:* core · *(mío)* · 🟡 Medio · P14, P18 · 0.3.0 · 2026-10-05
 
 **5 · La fuente de respaldo salía 31 % más ancha, porque el ancho medio de un TTF variable no es el de un texto.**
