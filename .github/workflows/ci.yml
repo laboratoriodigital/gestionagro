@@ -42,6 +42,10 @@ jobs:
           PR_TITULO: ${{ github.event.pull_request.title }}
           PR_CUERPO: ${{ github.event.pull_request.body }}
         run: node scripts/verificar-commits.ts
+      # Una versión publicada no se reescribe: lo nuevo va en «Sin publicar». En los PR y en main,
+      # porque dos PR bien hechos pueden juntarse mal al fusionar (bitácora core 6). Sin instalar nada.
+      - name: Versiones publicadas sin reescribir
+        run: node scripts/verificar-changelog.ts
       # Con un lockfile nuevo no hay coincidencia exacta: restore-keys trae los navegadores de la
       # corrida anterior y Playwright solo baja lo que cambió (bitácora agro 19).
       - name: Caché de los navegadores de Playwright

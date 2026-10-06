@@ -4,13 +4,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
-## [0.2.0] - 2026-10-06
-
 ### Agregado
 - La cuenta del ecosistema es el producto `cuenta`, sin organizaciones (ADR-28), con su política. `POST /api/core/auth/salir` cierra una sesión en el CORE, solo desde la app de su producto (HU-C7.3).
 - El Worker del CORE sirve las páginas de la cuenta como sus assets (`apps/cuenta`). Solo corre en `/api/core/*`, `/oauth/*` y `/.well-known/*`; lo demás lo entrega Cloudflare sin invocarlo (HU-C7.2).
 - El CORE de producción tiene su dominio propio, `cuenta.laboratorio-digital.com`, además de la URL de workers.dev, que sigue igual. Antes de publicarlo, Google tiene que aceptar las dos direcciones de vuelta nuevas (`docs/runbooks/despliegue.md`) (HU-C4.6).
 - Renovar la sesión solo funciona desde la app de su producto, y entrega solo las organizaciones de ese producto. Un intento desde otra app recibe 403, no gasta el refresh de su dueño y queda en la auditoría (HU-C4.4).
+
+## [0.2.0] - 2026-10-06
+
+### Agregado
 - CORS por producto: el CORE deja leer a la app de cada producto del catálogo, y una sesión solo se usa desde la app de su producto, aunque la otra app también esté permitida. Las solicitudes con sesión tienen que traer `Origin`, como lo hace todo navegador (HU-C3.5).
 - «Me interesa» y el pago usan los planes del producto de la organización, con el prefijo de cobro y la pantalla de vuelta de ese producto. Quien paga es quien tiene el rol que administra, no «propietario» escrito en el código. Sigue cobrando un mes (HU-C3.4).
 - `GET /.well-known/jwks.json`: las llaves públicas del CORE en formato estándar (JWK `OKP`/`Ed25519`), las mismas de `/api/core/claves`. Durante una rotación se publica también la anterior, declarada en `CORE_CLAVE_ANTERIOR`; la parte privada nunca sale (HU-C4.2).
