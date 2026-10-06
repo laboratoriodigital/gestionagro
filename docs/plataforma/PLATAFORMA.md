@@ -158,7 +158,7 @@ Las otras dos cuentas del dueño (una gratuita y otra con algunos servicios pago
 1. **El vigía cambia de vara.**
    - Hoy compara contra cuotas diarias y degrada por niveles.
    - Con Workers Paid, compara el consumo del mes contra lo incluido y proyecta el costo en dólares (§4.10).
-   - El código ya lo espera: cada celda declara su `plan` en `celdas.json` (`free`, `paid` o `cliente`), y `vigia.ts` falla a propósito con `paid` («las cuotas del plan «paid» no están definidas en el vigía», P1).
+   - El código ya lo espera: cada celda declara su `plan` en `celdas.json` (`free`, `paid` o `cliente`), y `vigia.ts` falla a propósito con `paid` («las cuotas del plan «paid» no están definidas en el vigía», P1). *(Hoy, 6 oct 2026: con HU-C11.1 el vigía ya conoce las cuotas de `paid` (`vigia-pago.ts`); falla a propósito con `cliente`.)*
    - El pull request que activa Workers Paid cambia `plan` a `paid` y le da al vigía sus cuotas del mes, con su prueba.
 2. **Presupuesto en dinero por producto** (`product.yaml › presupuesto.usd_mes`), y las **alertas de facturación** de Cloudflare como segunda red. No hay tope duro de gasto (investigación, sin verificar).
 3. **Límites por Worker** (`limits.cpu_ms`, `limits.subrequests`) y workers.dev apagado en producción, para que un error no se vuelva factura (`cuenta-cloudflare.md` §5).

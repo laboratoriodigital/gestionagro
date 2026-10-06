@@ -319,6 +319,7 @@ describe('HU-C3.1 · entrar con producto', () => {
         politica: 'content/agro/privacidad/politica.json',
         prefijo_de_cobro: 'ensayo',
         gracia_dias: 7,
+        presupuesto: { usd_mes: 10, al_agotarse: [] },
       },
       { ...CATALOGO.productos[0], id: 'dormido', estado: 'pausado' } as Producto,
     ],

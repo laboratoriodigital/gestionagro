@@ -35,6 +35,7 @@ function telegramFalso(
 
 const vigilancia = (extra: Partial<Vigilancia> = {}): Vigilancia => ({
   uso: { d1_filas_escritas: 80, workers_solicitudes: 12 },
+  consumo: {},
   fallas: [],
   antes: 'alerta',
   nivel: 'ahorro',
@@ -114,5 +115,51 @@ describe('la vuelta del vigía avisa sin tumbarse', () => {
       console.error = original;
     }
     expect(registros.join('\n')).not.toContain('token-secreto');
+  });
+});
+
+describe('HU-C11.1 · el aviso con Workers Paid', () => {
+  const conPago = (pago: Partial<NonNullable<Vigilancia['pago']>> = {}) =>
+    vigilancia({
+      uso: {},
+      antes: 'normal',
+      nivel: 'normal',
+      escrito: false,
+      pago: {
+        usoDelIncluido: { d1_filas_escritas: 52 },
+        usdProyectado: 12.5,
+        escalon: 50,
+        sobrePresupuesto: false,
+        apagar: [],
+        apagadas: [],
+        ...pago,
+      },
+    });
+
+  it('dice cuánto va a costar el mes y el escalón de lo incluido', () => {
+    const texto = mensajeDelVigia(conPago(), 'c0', 'produccion');
+    expect(texto).toContain('este mes va para USD 12.50');
+    expect(texto).toContain('más del 50 % de lo incluido');
+  });
+
+  it('al agotar el presupuesto nombra lo que apagó y dice que la venta sigue', () => {
+    const texto = mensajeDelVigia(
+      conPago({ sobrePresupuesto: true, apagadas: ['ks:agro-fotos'] }),
+      'c0',
+      'produccion',
+    );
+    expect(texto).toContain('pasa el presupuesto');
+    expect(texto).toContain('se apagó ks:agro-fotos. La venta sigue.');
+  });
+
+  it('avisa una vez por escalón: el mismo escalón no se repite y el siguiente sí', async () => {
+    const { kv } = kvFalso();
+    const { fn, enviados } = telegramFalso();
+    expect(await avisarSiCambio(kv, conPago(), CONTEXTO, fn)).toBe('enviado');
+    expect(await avisarSiCambio(kv, conPago({ usdProyectado: 13 }), CONTEXTO, fn)).toBe(
+      'sin-cambio',
+    );
+    expect(await avisarSiCambio(kv, conPago({ escalon: 75 }), CONTEXTO, fn)).toBe('enviado');
+    expect(enviados).toHaveLength(2);
   });
 });

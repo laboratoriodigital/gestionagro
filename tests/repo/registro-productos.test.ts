@@ -39,6 +39,7 @@ const ensayo = (): Producto => ({
   politica: 'content/agro/privacidad/politica.json',
   prefijo_de_cobro: 'ensayo',
   gracia_dias: 7,
+  presupuesto: { usd_mes: 10, al_agotarse: ['ks:ensayo-mcp', 'ks:ensayo:horno'] },
 });
 
 const con = (...productos: Producto[]) => ({ productos });
@@ -101,12 +102,33 @@ describe('lo que el esquema rechaza', () => {
     ['planes fuera de content/', { planes: '../secreto.json' }],
     ['una gracia de 90 días', { gracia_dias: 90 }],
     ['un campo que nadie declaró', { cobro: 'mensual' }],
+    ['sin presupuesto en dinero', { presupuesto: undefined }],
+    ['un presupuesto de cero dólares', { presupuesto: { usd_mes: 0, al_agotarse: [] } }],
   ])('%s', (_caso, cambio) => {
     expect(fallas({ ...agro(), ...cambio } as Producto).length).toBeGreaterThan(0);
   });
 });
 
 describe('las reglas que el esquema no puede decir', () => {
+  it('HU-C11.1, CA3 ❌: el presupuesto apaga capacidades propias, nunca la venta ni lo de otro', () => {
+    const conApagar = (al_agotarse: string[]) =>
+      fallas({ ...ensayo(), presupuesto: { usd_mes: 10, al_agotarse } });
+    expect(conApagar(['ks:ensayo-mcp', 'ks:ensayo:horno'])).toEqual([]);
+    // El esquema deja pasar la forma; la regla dice por qué no.
+    expect(conApagar(['ks:core:pagos'])).toEqual([
+      '«ensayo».presupuesto.al_agotarse no puede apagar «ks:core:pagos»: solo capacidades propias, nunca la venta',
+    ]);
+    for (const clave of [
+      'ks:ensayo',
+      'ks:core:pagos',
+      'ks:core:ensayo',
+      'ks:agro-cuaderno',
+      'ks:ensayon-mcp',
+    ]) {
+      expect(conApagar([clave]).length, clave).toBeGreaterThan(0);
+    }
+  });
+
   it('un producto sin un rol que administre', () => {
     const p = { ...ensayo(), roles: [{ id: 'colaborador', administra: false, invitable: true }] };
     expect(fallas(p)).toEqual([

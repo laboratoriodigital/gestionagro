@@ -272,8 +272,8 @@ Cada uno con sus estados, sin JavaScript salvo donde se dice:
 | **C1** (festivo) | 6–16 oct 2026 | El CORE sabe qué productos existen, la receta se prueba en D1, el diseño tiene sus tokens y el CI gasta según lo que cambió | HU-C0.1 (1), HU-C0.2 (2), HU-C1.1 (3), HU-C1.3 (2), HU-C2.1 (3), HU-C6.1 (3), HU-C7.1 (2), HU-C11.6 (3) | 19 |
 | **C2** | 19–30 oct | **HC0.** La 0006 en staging, el despliegue copia los productos, el CORE tiene versión propia y las pruebas cuestan menos | HU-C0.3 (3), HU-C1.2 (2), HU-C1.4 (2), HU-C2.2 (5), HU-C2.3 (3), HU-C3.6 (2), HU-C6.2 (2), HU-C11.7 (5) | 24 |
 | **C3** (festivo) | 3–13 nov | Entrar, organizaciones y equipo saben de productos; auditoría; componentes base | HU-C2.4 (3), HU-C3.1 (5), HU-C3.2 (3), HU-C3.3 (2), HU-C6.3 (5) | 18 |
-| **C4** (festivo) | 17–27 nov | **HC1.** Dos productos en staging; tokens N; el vigía en modo pago | HU-C3.4 (2), HU-C3.5 (2), HU-C3.7 (3), HU-C4.1 (3), HU-C4.2 (1), HU-C11.1 (5) | 16 |
-| **C5** (festivo) | 30 nov–11 dic | El CORE emite v2 y la cuenta abre en su dominio | HU-C4.3 (3), HU-C4.4 (2), HU-C4.6 (3), HU-C6.4 (3), HU-C7.2 (3), HU-C7.3 (3) | 17 |
+| **C4** (festivo) | 17–27 nov | Pagos y CORS por producto; tokens N; el vigía en modo pago | HU-C3.4 (2), HU-C3.5 (2), HU-C4.1 (3), HU-C4.2 (1), HU-C11.1 (5) | 13 |
+| **C5** (festivo) | 30 nov–11 dic | **HC1.** El CORE emite v2, dos productos en staging y la cuenta abre en su dominio | HU-C3.7 (3), HU-C4.3 (3), HU-C4.4 (2), HU-C4.6 (3), HU-C6.4 (3), HU-C7.2 (3), HU-C7.3 (3) | 20 |
 | **C6** (corto) | 14–23 dic | **HC2.** Mis organizaciones; precios por periodo en la base; movimiento y presupuestos. Solo staging desde el 18 dic | HU-C5.1 (2), HU-C5.2 (2), HU-C6.5 (2), HU-C6.6 (2), HU-C7.4 (3), HU-C11.2 (2) | 13 |
 | — | 24 dic–8 ene | Pausa y congelamiento. Se anota lo que falle en staging | — | — |
 | **C7** (festivo) | 12–22 ene 2027 | **HC3 y HC4. CORE 1.0.0:** v1 contraído, pagar por periodo, gracia, celdas al día | HU-C4.5 (2), HU-C5.3 (3), HU-C5.4 (2), HU-C5.5 (2), HU-C5.6 (3), HU-C5.7 (2), HU-C11.5 (2) | 16 |
@@ -288,7 +288,7 @@ Cada uno con sus estados, sin JavaScript salvo donde se dice:
 
 | Hito de la Tienda | Necesita | Lo da | Desde |
 |---|---|---|---|
-| M0 · Fundación | P0, P1, Workers Paid y la zona `laboratorio-digital.app` | HC1 + tareas del dueño (§9) | 30 nov 2026 |
+| M0 · Fundación | P0, P1, Workers Paid y la zona `laboratorio-digital.app` | HC1 + tareas del dueño (§9) | ~~30 nov~~ 11 dic 2026 (HC1 pasó al C5; «Cambios de rumbo» de la bitácora del CORE). Lo de M0 que no pide P1 puede arrancar antes |
 | M2 · Panel | P2 | HC3 | 25 ene 2027 |
 | M4 · Plan por periodo | P3 | HC4 | 25 ene 2027 |
 | M7 · Agentes | P5 | HC6 | 8 mar 2027 |
@@ -516,7 +516,7 @@ Formato de cada historia:
 - **Work items:** WI-C3.6.1 `[código]` · WI-C3.6.2 `[prueba]` · WI-C3.6.3 `[doc]` `docs/runbooks/kill-switch.md`.
 
 #### HU-C3.7 · Staging con dos productos
-- **Capa:** prueba de aceptación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C4 · **Depende de:** HU-C3.1 a HU-C3.6 · **Estado:** Refinada
+- **Capa:** prueba de aceptación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** ~~C4~~ C5 · **Depende de:** HU-C3.1 a HU-C3.6, **HU-C4.3** · **Estado:** Refinada (movida al C5 el 6 oct 2026: para entrar a un segundo producto y crear allí su organización, el token tiene que decir su producto, y eso es HU-C4.3, que solo puede salir con la fase N ya en producción. Sin eso, el dueño no tendría qué validar en staging)
 - Como dueño, quiero ver en staging dos productos funcionando a la vez, para aceptar la fase P1 sin esperar a la Tienda.
 - **Respaldo:** PLATAFORMA §7 (criterio de P1); P4 y P11.
 - **CA1.** Un producto de ensayo (`ensayo`, con un tipo, dos roles, dos planes y una celda) se siembra **solo** en D1 local y en staging, como las fincas de prueba.
@@ -911,10 +911,10 @@ Formato de cada historia:
 ### EC11 · Operación de la plataforma
 
 #### HU-C11.1 · El vigía en modo pago
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C4 · **Depende de:** Workers Paid activado por el dueño · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C4 · **Depende de:** Workers Paid activado por el dueño · **Estado:** En validación (rama `feat/c4-sprint`. Lo que es código quedó hecho antes de activar, para que el PR de CA1 sea solo cambiar `plan` a `paid` en `celdas.json`. `apps/api-celda/src/vigia-pago.ts`: lo incluido y los precios de Workers Paid, D1, KV y R2 leídos de la documentación de Cloudflare el 6 oct 2026; el vigía mide todo desde el día 1 del mes, proyecta el costo con la base de USD 5 y no degrada por cuotas diarias. Avisa con la proyección y apaga con lo **ya gastado**: una proyección alta el día 2 no le quita nada a nadie. El presupuesto es «encima de la base», como en TIENDA-3.0 §15.1, y la celda vigila la suma de los productos activos, porque las métricas son de toda la cuenta; atribuirlo por producto pide filtrar por Worker, dicho y no hecho. No mide CPU ni almacenamiento: los cubren las alertas de facturación (CA4). `productos.json` exige `presupuesto` en cada producto; el del agro es USD 10, **propuesta hasta que el dueño la fije**, sin nada que apagar (su MCP llega en HU-C9.7). CA3: `@ed1/productos` rechaza apagar `ks:<id>`, el CORE, sus cobros o la capacidad de otro producto. 24 pruebas nuevas; la vieja «`paid` falla a propósito» pasó a `cliente`, el plan que sigue sin cuotas. Controles negativos: sin la regla del registro, CA3 se ve en rojo; con fallas de medición no se apaga nada. Falta: WI-C11.1.3, del dueño)
 - Como dueño, quiero saber cuánto voy a pagar este mes antes de que llegue la factura.
 - **Respaldo:** PLATAFORMA §3.2 y §4.10; ED1 §25.1.
-- **CA1.** El PR que activa Workers Paid cambia `plan` a `paid` en `celdas.json` y le da al vigía las cuotas del mes (hoy falla a propósito con `paid`).
+- **CA1.** El PR que activa Workers Paid cambia `plan` a `paid` en `celdas.json` y le da al vigía las cuotas del mes (hoy falla a propósito con `paid`). *(Hoy, 6 oct 2026: las cuotas ya están; el PR de activación solo cambia `plan`.)*
 - **CA2.** El vigía compara el consumo del mes con lo incluido, proyecta el costo en dólares y avisa por Telegram al 50, 75 y 90 % o al pasar el presupuesto de un producto (`presupuesto.usd_mes`).
 - **CA3 ❌.** Con el 100 % del presupuesto, apaga la capacidad que el producto declare, **nunca la venta**.
 - **CA4.** Las alertas de facturación de Cloudflare quedan configuradas como segunda red.

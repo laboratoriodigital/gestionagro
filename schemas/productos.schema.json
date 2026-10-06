@@ -53,7 +53,8 @@
         "planes",
         "politica",
         "prefijo_de_cobro",
-        "gracia_dias"
+        "gracia_dias",
+        "presupuesto"
       ],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
@@ -124,6 +125,20 @@
           "minimum": 0,
           "maximum": 30,
           "description": "Días que el plan pagado sigue vigente después de vencer (PLATAFORMA §4.8)."
+        },
+        "presupuesto": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["usd_mes", "al_agotarse"],
+          "description": "Con Workers Paid (HU-C11.1, PLATAFORMA §4.10): lo que se acepta pagar al mes encima de la base de USD 5, y las capacidades que el vigía apaga al agotarlo. Nunca la venta: solo kill switches propios del producto (ks:<id>-… o ks:<id>:…).",
+          "properties": {
+            "usd_mes": { "type": "number", "exclusiveMinimum": 0 },
+            "al_agotarse": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "string", "pattern": "^ks:[a-z0-9]+(-|:)[a-z0-9:-]+$" }
+            }
+          }
         }
       }
     }

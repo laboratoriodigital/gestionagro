@@ -50,6 +50,26 @@ Para probarlo sin esperar a la hora en punto: **Settings** → **Triggers** → 
 
 Se puede editar la clave `nivel` en el KV, como un kill switch (ver `kill-switch.md`). Ten en cuenta que el vigía la vuelve a escribir en su siguiente vuelta si el consumo dice otra cosa.
 
+## Con Workers Paid (HU-C11.1)
+
+Con el plan pagado la cuenta no se corta: se factura. El vigía deja de mirar las cuotas del día y mira el mes:
+
+- Mide el consumo desde el día 1 del mes y lo compara con lo incluido en Workers Paid.
+- Proyecta cuánto va a costar el mes al ritmo que va, con los USD 5 de la base.
+- Te avisa por Telegram cuando pasa el 50, el 75 y el 90 % de lo incluido, y cuando la proyección pasa el presupuesto.
+- Si lo **ya gastado** encima de la base llega al presupuesto, apaga lo que cada producto declaró en `productos.json › presupuesto.al_agotarse`. Nunca la venta: el registro no lo deja declarar.
+
+El presupuesto de cada producto está en `infrastructure/productos.json › presupuesto.usd_mes` (dólares al mes encima de la base). La celda vigila la suma de los productos activos, porque Cloudflare da las métricas de toda la cuenta.
+
+**Lo que no mide:** el tiempo de CPU y el almacenamiento. Para eso están las alertas de facturación de Cloudflare.
+
+### Activarlo (lo hace el dueño, una vez)
+
+1. En Cloudflare: **Workers & Pages** → **Plans** → **Workers Paid** → **Purchase**. Son USD 5 al mes.
+2. En Cloudflare: **Manage Account** → **Billing** → **Billable Usage** → **Notifications** (o **Notifications** → **Add** → **Usage Based Billing**). Crea una alerta por producto de uso, al menos Workers, D1 y R2, con el umbral que quieras recibir por correo.
+3. Dime el presupuesto en dólares de CultivoPro (hoy está la propuesta: USD 10 encima de la base).
+4. Yo abro el PR que cambia `plan` a `paid` en `infrastructure/celdas.json`. Al desplegarlo, la primera vuelta del vigía te manda el primer mensaje con la proyección del mes.
+
 ## Alertas por Telegram (HU-E8.3)
 
 El vigía le escribe al dueño por Telegram cuando cambia el nivel de la celda o lo que no pudo medir, con el nivel, la cuota más usada y la causa. No repite el mismo mensaje cada hora: solo avisa cuando la situación cambia. Si Telegram falla, queda en el log y lo intenta otra vez en la hora siguiente. Las alertas de staging llegan con `[staging]` delante.

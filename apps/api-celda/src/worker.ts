@@ -31,6 +31,7 @@ import { pull } from './pull.ts';
 import { push } from './push.ts';
 import { clavesQr, firmarLote } from './qr.ts';
 import { type KvDeFlags, resumen, vigilar } from './vigia.ts';
+import { presupuestoDe } from './vigia-pago.ts';
 
 /** Producto cuyo kill switch apaga la sincronización (`content/agro/cuaderno/product.yaml`). */
 export const PRODUCTO_SYNC = 'agro-cuaderno';
@@ -66,6 +67,9 @@ export interface Env {
   DESTINO?: string;
   /** Plan de la cuenta de la celda (celdas.json): el vigía conoce las cuotas del gratuito. */
   PLAN?: string;
+  /** Con Workers Paid: el presupuesto del producto en dólares y lo que se apaga al agotarlo (HU-C11.1). */
+  PRESUPUESTO_USD_MES?: string;
+  AL_AGOTARSE?: string;
   /** Un binding D1 por shard, con el nombre del shard. */
   [shard: string]: unknown;
 }
@@ -294,6 +298,7 @@ export async function vueltaDelVigia(env: Env, ahora: number, fetchFn: typeof fe
     ahora,
     fetchFn,
     env.PLAN,
+    presupuestoDe(env.PRESUPUESTO_USD_MES, env.AL_AGOTARSE),
   );
   (v.fallas.length > 0 || v.nivel !== 'normal' ? console.error : console.log)(resumen(v));
   // Alerta al dueño por Telegram, solo si cambió lo que hay que decir (HU-E8.3).

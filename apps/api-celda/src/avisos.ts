@@ -31,10 +31,48 @@ const QUE_PASA: Record<Vigilancia['nivel'], string> = {
   bloqueo: 'La base no acepta escrituras hasta las 19:00 de Colombia; los teléfonos guardan todo.',
 };
 
-/** Qué identifica a un aviso: si no cambia, no se repite. */
-export const firmaDelAviso = (v: Vigilancia) => `${v.nivel}|${v.fallas.join('|')}`;
+/**
+ * Qué identifica a un aviso: si no cambia, no se repite. Con Workers Paid cuentan además el escalón
+ * de lo incluido, si la proyección pasa el presupuesto y lo que se apagó (HU-C11.1).
+ */
+export const firmaDelAviso = (v: Vigilancia) =>
+  [
+    v.nivel,
+    ...v.fallas,
+    ...(v.pago
+      ? [
+          `incluido ${v.pago.escalon}`,
+          v.pago.sobrePresupuesto ? 'sobre presupuesto' : '',
+          ...v.pago.apagadas,
+        ]
+      : []),
+  ].join('|');
+
+const usd = (n: number) => `USD ${n.toFixed(2)}`;
+
+/** El aviso con Workers Paid: cuánto va a costar el mes y qué se hizo. */
+function mensajeDePago(
+  v: Vigilancia & { pago: NonNullable<Vigilancia['pago']> },
+  celda: string,
+  destino: string,
+): string {
+  const p = v.pago;
+  const lineas = [
+    `${destino === 'staging' ? '[staging] ' : ''}Celda ${celda}: este mes va para ${usd(p.usdProyectado)}.`,
+    p.escalon > 0
+      ? `Ya se usó más del ${p.escalon} % de lo incluido en el plan.`
+      : 'Va dentro de lo incluido en el plan.',
+    p.sobrePresupuesto ? 'La proyección pasa el presupuesto del producto.' : '',
+    p.apagadas.length > 0
+      ? `Se agotó el presupuesto: se apagó ${p.apagadas.join(', ')}. La venta sigue.`
+      : '',
+    v.fallas.length > 0 ? `No se pudo medir: ${v.fallas.join('; ')}.` : '',
+  ];
+  return lineas.filter(Boolean).join('\n');
+}
 
 export function mensajeDelVigia(v: Vigilancia, celda: string, destino: string): string {
+  if (v.pago) return mensajeDePago({ ...v, pago: v.pago }, celda, destino);
   const [cuota, porcentaje] =
     (Object.entries(v.uso) as [Cuota, number][]).sort((a, b) => b[1] - a[1])[0] ?? [];
   const lineas = [

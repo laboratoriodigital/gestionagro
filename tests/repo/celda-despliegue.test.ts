@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   MIGRACIONES_CELDA,
+  presupuestoDeLaCelda,
   rutaWranglerCelda,
   textoWranglerDeLaCelda,
   wranglerDeLaCelda,
@@ -66,6 +67,7 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
       CELDA: c0.id,
       PRODUCTO: c0.producto,
       PLAN: c0.plan,
+      ...presupuestoDeLaCelda(c0),
       CORE_CLAVES: '[{"kid":"k1"}]',
       ORIGENES_APP: 'https://agro.ejemplo.test',
       CF_CUENTA: 'cuenta-ensayo',
@@ -73,7 +75,12 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
     });
     expect(JSON.stringify(env['d1_databases'])).toContain(`"database_id":"id-${c0.shards[0]}"`);
     expect(JSON.stringify(staging['d1_databases'])).not.toContain('database_id');
-    expect(staging['vars']).toEqual({ CELDA: c0.id, PRODUCTO: c0.producto, PLAN: c0.plan });
+    expect(staging['vars']).toEqual({
+      CELDA: c0.id,
+      PRODUCTO: c0.producto,
+      PLAN: c0.plan,
+      ...presupuestoDeLaCelda(c0),
+    });
   });
 
   it('HU-E8.2: el vigía corre cada hora en los dos destinos', () => {

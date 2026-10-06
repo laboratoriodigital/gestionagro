@@ -12,8 +12,12 @@
  *
  * Si no puede leer una fuente, no lo toma como «normal» (CA3, P1): el nivel es al menos «alerta»,
  * y nunca baja uno más alto que ya estaba, porque no sabe si el consumo bajó.
+ *
+ * Con Workers Paid (`plan: paid`, HU-C11.1) no hay niveles que bajar: mide el mes, proyecta el costo
+ * y apaga lo que el producto declare al agotar su presupuesto (`vigia-pago.ts`).
  */
-import type { LectorKv } from '@ed1/kill-switch';
+import { APAGADO, type LectorKv } from '@ed1/kill-switch';
+import { type DecisionDePago, decidirConPago, type Presupuesto } from './vigia-pago.ts';
 
 export const NIVELES = ['normal', 'alerta', 'ahorro', 'esencial', 'bloqueo'] as const;
 export type NivelDeCelda = (typeof NIVELES)[number];
@@ -164,8 +168,10 @@ export function ventanas(ahora: number): { dia: string; mes: string; hasta: stri
 }
 
 export interface Medicion {
-  /** % de cada cuota que se pudo leer. */
+  /** % de cada cuota diaria del plan gratuito que se pudo leer; vacío con Workers Paid. */
   uso: Partial<Record<Cuota, number>>;
+  /** Lo consumido de cada cuota en su ventana (con Workers Paid, todo en el mes). */
+  consumo: Partial<Record<Cuota, number>>;
   /** Fuentes que no se pudieron leer, con el motivo. */
   fallas: string[];
 }
@@ -177,18 +183,24 @@ export async function medir(
   ahora: number,
   plan = 'free',
 ): Promise<Medicion> {
-  // Solo se conocen las cuotas del plan gratuito: con otro plan, medir contra ellas mentiría (P1).
-  if (plan !== 'free') {
-    return { uso: {}, fallas: [`las cuotas del plan «${plan}» no están definidas en el vigía`] };
+  // Se conocen las cuotas del gratuito y de Workers Paid; con otro plan, medir mentiría (P1).
+  if (plan !== 'free' && plan !== 'paid') {
+    return {
+      uso: {},
+      consumo: {},
+      fallas: [`las cuotas del plan «${plan}» no están definidas en el vigía`],
+    };
   }
   if (!token || !cuenta) {
     return {
       uso: {},
+      consumo: {},
       fallas: ['falta el token de métricas o la cuenta (CF_METRICAS_TOKEN, CF_CUENTA)'],
     };
   }
   const v = ventanas(ahora);
   const uso: Partial<Record<Cuota, number>> = {};
+  const consumo: Partial<Record<Cuota, number>> = {};
   const fallas: string[] = [];
   for (const fuente of FUENTES) {
     try {
@@ -197,7 +209,12 @@ export async function medir(
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
         body: JSON.stringify({
           query: fuente.consulta,
-          variables: { cuenta, desde: fuente.periodo === 'mes' ? v.mes : v.dia, hasta: v.hasta },
+          variables: {
+            cuenta,
+            // Con Workers Paid todo se factura por mes.
+            desde: fuente.periodo === 'mes' || plan === 'paid' ? v.mes : v.dia,
+            hasta: v.hasta,
+          },
         }),
       });
       const cuerpo = (await r.json().catch(() => ({}))) as {
@@ -213,13 +230,16 @@ export async function medir(
         continue;
       }
       for (const [cuota, usado] of Object.entries(fuente.leer(datos)) as [Cuota, number][]) {
-        uso[cuota] = Math.round((usado / CUOTAS_GRATUITAS[cuota].limite) * 1000) / 10;
+        consumo[cuota] = usado;
+        if (plan === 'free') {
+          uso[cuota] = Math.round((usado / CUOTAS_GRATUITAS[cuota].limite) * 1000) / 10;
+        }
       }
     } catch (e) {
       fallas.push(`${fuente.nombre}: no respondió (${(e as Error).message})`);
     }
   }
-  return { uso, fallas };
+  return { uso, consumo, fallas };
 }
 
 /** El nivel que corresponde: por la cuota más usada; con fallas, al menos «alerta» y sin bajar. */
@@ -238,6 +258,8 @@ export interface Vigilancia extends Medicion {
   antes: NivelDeCelda;
   nivel: NivelDeCelda;
   escrito: boolean;
+  /** Con Workers Paid: la proyección, el aviso y lo que se apagó en esta vuelta. */
+  pago?: DecisionDePago & { apagadas: string[] };
 }
 
 /** Una vuelta del vigía: mide, decide y escribe el nivel solo si cambió. */
@@ -248,6 +270,7 @@ export async function vigilar(
   ahora: number,
   fetchFn: Fetch = fetch,
   plan = 'free',
+  presupuesto: Presupuesto | null = null,
 ): Promise<Vigilancia> {
   const guardado = await kv.get(CLAVE_NIVEL);
   const antes = (NIVELES as readonly string[]).includes(guardado ?? '')
@@ -257,15 +280,31 @@ export async function vigilar(
   const nivel = decidirNivel(medicion, antes);
   const escrito = nivel !== antes;
   if (escrito) await kv.put(CLAVE_NIVEL, nivel);
-  return { ...medicion, antes, nivel, escrito };
+  if (plan !== 'paid') return { ...medicion, antes, nivel, escrito };
+  // Con fallas no se apaga nada: no se sabe cuánto se gastó (se avisa, P1).
+  const decision = decidirConPago(
+    medicion.consumo,
+    ahora,
+    medicion.fallas.length > 0 ? null : presupuesto,
+  );
+  const apagadas: string[] = [];
+  for (const clave of decision.apagar) {
+    if ((await kv.get(clave))?.trim().toLowerCase() === APAGADO) continue;
+    await kv.put(clave, APAGADO);
+    apagadas.push(clave);
+  }
+  return { ...medicion, antes, nivel, escrito, pago: { ...decision, apagadas } };
 }
 
 /** El resumen para el log de la celda: qué midió, qué decidió y qué no pudo leer. */
 export function resumen(v: Vigilancia): string {
+  const pago = v.pago
+    ? `mes proyectado USD ${v.pago.usdProyectado}, ${v.pago.escalon} % de lo incluido${v.pago.apagadas.length > 0 ? `, apagado: ${v.pago.apagadas.join(', ')}` : ''}. `
+    : '';
   const uso = Object.entries(v.uso)
     .map(([c, p]) => `${CUOTAS_GRATUITAS[c as Cuota].nombre} ${p} %`)
     .join(', ');
   const cambio = v.escrito ? `${v.antes} → ${v.nivel}` : `${v.nivel} (sin cambio)`;
   const fallas = v.fallas.length > 0 ? `. No se pudo leer: ${v.fallas.join(' | ')}` : '';
-  return `vigía: nivel ${cambio}. ${uso || 'sin mediciones'}${fallas}`;
+  return `vigía: nivel ${cambio}. ${pago}${uso || (pago ? '' : 'sin mediciones')}${fallas}`;
 }

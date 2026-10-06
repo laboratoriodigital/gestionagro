@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El vigía de la celda ya sabe medir con Workers Paid: proyecta el costo del mes en dólares, avisa por Telegram al 50, 75 y 90 % de lo incluido y al pasar el presupuesto, y con el presupuesto agotado apaga solo lo que cada producto declare, nunca la venta. Se activa cuando la cuenta pase a Workers Paid (HU-C11.1).
 - Las celdas aceptan los tokens del CORE en sus dos formatos, el de hoy y el del ecosistema (con producto y plan), y cada celda acepta solo los de su producto. Es el primer paso de la transición: nadie tiene que volver a entrar (HU-C4.1).
 - El CORE publica sus llaves públicas en el formato estándar (`/.well-known/jwks.json`), para verificadores que no son nuestros (HU-C4.2).
 - Los componentes base del sistema de diseño v2 (`@ed1/ui/v2/componentes`): encabezado, botón, campo, resumen de errores, tarjeta, aviso, lista con sus estados de cargando, vacío y error, pie, confirmación de lo irreversible y página de error. Llegan como HTML sin JavaScript, con una sola hoja de estilos hecha solo de tokens, en claro y oscuro (HU-C6.3).
