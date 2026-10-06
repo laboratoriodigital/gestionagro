@@ -398,3 +398,21 @@ La regla: **una decisión nueva en ARQUITECTURA se busca en todos los diseños q
 La regla: **cuando un documento da una fórmula y una promesa sobre ella, la prueba se escribe contra la promesa, con un caso donde las dos lecturas den distinto.**
 
 *Ficha:* tienda3 · *(mío)* · ⚪ Menor · P18, P5 · tienda-0.0.0 · 2026-10-06
+
+**6 · El plan medía la paridad contra la Tienda Panel, y las dos tiendas que venden son de la Tienda Básica.**
+
+*Qué pasó.* El 6 oct 2026, al empezar HU-T12.1 (qué usa cada tienda 2.0), leí el registro público de la flota de la 2.0 (`laboratoriodigital/tiendas`, `flota.json` y `ESTADO.md`).
+
+*Síntoma literal.* `flota.json`: dos líneas, `tienda` («Tienda Panel») y `organico` («Tienda Básica: solo la hoja de cálculo… sin panel web»). Las dos tiendas que venden están en la línea `organico`, versión 3.6.2, en subdominios de `workers.dev`. La línea `tienda` solo tiene su semilla y `prueba1`.
+
+*Causa raíz.* TIENDA-3.0 anexo C se escribió con «el contrato de puertas de la 2.0 (versión 1.0.0)», que es la Tienda Panel, y el plan (bitácora tienda3 1, HU-T12.5) lo tomó como la condición para cargar las tiendas. Nadie había cruzado ese contrato con qué producto usan las tiendas reales: la bitácora ecommerce 67 ya decía que Orgánico y Cinnamon son «la Tienda Básica», otro producto (P9: mirar la fuente antes de planear sobre ella; P18).
+
+*Cómo se reprodujo.* Leyendo los dos archivos públicos de la flota.
+
+*Arreglo.* `docs/tienda/paridad-tiendas-2.0.md` lo deja escrito y saca tres consecuencias: la paridad de M6 se mide contra lo que hace la hoja de la Básica (HU-T12.5); ninguna tiene dominio propio, así que M6 no necesita M4 (D-T7 se sostiene); y para ellas el panel es nuevo, así que el corte lleva una sesión guiada. El resto (cobro en línea, contraentrega, GA4, correos, volumen) son preguntas para el dueño: no se leyó el repositorio privado de una tienda real.
+
+**Lo prueba:** nada todavía; es un documento. La guardia llega con HU-T12.5.
+
+La regla: **antes de tomar un contrato como condición de algo, se comprueba que es el del producto que usan los clientes reales.**
+
+*Ficha:* tienda3 · *(mío)* · 🟡 Medio · P9, P18 · tienda-0.0.0 · 2026-10-06

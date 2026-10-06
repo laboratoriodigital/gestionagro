@@ -1156,7 +1156,7 @@ Formato de cada historia, el del CORE:
 ### ET12 · Carga de las tiendas 2.0
 
 #### HU-T12.1 · Qué usa hoy cada tienda 2.0
-- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** En sprint, esperando al dueño (`docs/tienda/paridad-tiendas-2.0.md`. La parte pública ya cambió el plan: las dos tiendas que venden son de la **Tienda Básica** (solo la hoja, 3.6.2), no de la Tienda Panel con la que se escribió el anexo C, y ninguna tiene dominio propio: viven en `workers.dev` (bitácora tienda3 6). La segunda parte son 11 preguntas de sí, no o una cifra para el dueño. No se leyó el repositorio privado de una tienda real: tiene datos de su operación, y la herramienta lo detuvo; lo que hace falta lo sabe el dueño)
 - Como dueño, quiero saber desde ya qué de la 2.0 usa cada tienda, para que el orden del plan no lo descubra el día del corte.
 - **Respaldo:** TIENDA §17.3 y anexo C; estudio §15.3 [C12] y §16.2 (preguntas 8 y 9); bitácora tienda3 1.
 - **CA1.** Una tabla por tienda con cada puerta del anexo C, más: dominio propio, GA4 o píxel de Meta, los correos que manda, páginas propias, cobro en línea, contraentrega, volumen de pedidos y qué tan cerca está de cada techo de la 2.0.
@@ -1195,7 +1195,7 @@ Formato de cada historia, el del CORE:
 - **Capa:** prueba · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T15 · **Depende de:** HU-T12.1, M3 · **Estado:** Refinada
 - Como dueño, quiero saber que la 3.0 hace todo lo que cada tienda usa de la 2.0 antes de cargarla.
 - **Respaldo:** TIENDA anexo C; estudio §15.3 [C12].
-- **CA1.** Cada puerta que la tienda usa (HU-T12.1) tiene su comprobación en staging, y los casos de pedido, cobro y seguimiento de la suite de la 2.0 están traducidos a la batería de la API.
+- **CA1.** Cada cosa que la tienda usa (HU-T12.1) tiene su comprobación en staging, y los casos de pedido, cobro y seguimiento de la suite de la 2.0 están traducidos a la batería de la API. *(6 oct 2026: las dos tiendas que venden son de la Tienda Básica; la paridad se mide contra lo que hace su hoja, no contra las puertas de la Tienda Panel del anexo C: bitácora tienda3 6.)*
 - **CA2.** Los cinco mecanismos de idempotencia del pedido tienen su prueba.
 - **CA3 ❌.** Una fila que la tienda usa y no pasa detiene su corte, y el informe dice cuál.
 - **Work items:** WI-T12.5.1 `[prueba]` · WI-T12.5.2 `[doc]` el estado de la paridad por tienda.

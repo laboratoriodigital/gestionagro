@@ -50,6 +50,7 @@ docs/
 | `tienda/TIENDA-3.0.md` | El diseño del producto de comercio electrónico, con su modelo de datos probado | Cambia el diseño |
 | `tienda/BACKLOG_TIENDA3.md` | Hitos, sprints, épicas, historias, work items y velocidad de la Tienda 3.0, con la dirección de diseño de la vitrina y del panel | Planeación y cierre de cada sprint de la Tienda |
 | `tienda/BITACORA_TIENDA3.md` | Lo que se rompió y se aprendió en la Tienda 3.0 («bitácora tienda3 N»), con las mismas convenciones que las otras bitácoras para unirlas | Algo se rompe o se aprende en la Tienda 3.0. Una entrada nueva va al final |
+| `tienda/paridad-tiendas-2.0.md` | Qué usa hoy cada tienda 2.0 que se va a cargar en la 3.0 (HU-T12.1): lo que dice la flota y las preguntas que contesta el dueño | El dueño contesta, o cambia una tienda de la 2.0 |
 | `tienda/ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10-v1.3.md` | El mercado de ecommerce: competencia, pagos, entrega, facturación y precios. Es del dueño, y el definitivo | Por el dueño. Una versión nueva es un archivo nuevo; la anterior pasa a `historia/` |
 | `tienda/VALIDACION-ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md` | La validación del estudio contra el ecosistema ([V1]–[V11]) y las respuestas del dueño | — |
 | `tienda/integracion-tienda-ecosistema.md` | Por qué la Tienda 3.0 va sobre esta plataforma | — |
