@@ -33,6 +33,9 @@ export function fallasDeLasCabeceras(texto: string): string[] {
     "style-src 'self'",
     "connect-src 'self'",
     "frame-ancestors 'none'",
+    // Entrar es un formulario que el CORE redirige a Google: el navegador aplica form-action
+    // también a esa redirección. Sin Google aquí, «Entrar con Google» no sale de la página.
+    "form-action 'self' https://accounts.google.com",
   ]) {
     if (!csp.includes(exigida)) fallas.push(`la CSP no dice «${exigida}»`);
   }

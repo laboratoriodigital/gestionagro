@@ -33,7 +33,7 @@ writeFileSync(
   join(dist, '_headers'),
   [
     '/*',
-    `  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ${core}; form-action ${core}; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`,
+    `  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ${core}; form-action ${core} https://accounts.google.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`,
     '  X-Content-Type-Options: nosniff',
     '  Referrer-Policy: no-referrer',
     '  X-Robots-Tag: noindex',
