@@ -196,9 +196,11 @@ export function Costos() {
   };
   useEffect(cargar, [fincaId]);
 
-  if (estado.cargando || plan === null || permisos.rol === undefined)
-    return <p>Abriendo tu cuaderno…</p>;
+  // Primero la finca: sin ella el plan nunca se carga y la pantalla se quedaba en «Abriendo»
+  // (revisión del dueño, 5 oct 2026).
+  if (estado.cargando) return <p>Abriendo tu cuaderno…</p>;
   if (!fincaId) return <SinFinca />;
+  if (plan === null || permisos.rol === undefined) return <p>Abriendo tu cuaderno…</p>;
 
   const titulo = <h1 id="titulo-costos">Costos</h1>;
   if (plan === 'gratuito') {
