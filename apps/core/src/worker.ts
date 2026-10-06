@@ -26,7 +26,7 @@
 
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
-import { type ClavePublica, type Firmante, firmanteDesde } from '@ed1/tokens';
+import { type ClavePublica, type Firmante, firmanteDesde, verificarAcceso } from '@ed1/tokens';
 import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
 import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
@@ -60,7 +60,14 @@ import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitacione
 import { claveAnteriorDe, clavesPublicadas } from './jwks.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
-import { CATALOGO, type CatalogoDelCore } from './productos.ts';
+import {
+  CATALOGO,
+  type CatalogoDelCore,
+  origenesDelProducto,
+  origenesDeTodos,
+  productoDe,
+  productoDeOrganizacion,
+} from './productos.ts';
 import { type ProveedorDePago, proveedorBold } from './proveedor-de-pago.ts';
 
 export { PRODUCTO_CORE };
@@ -185,10 +192,13 @@ export function crearApp(dependencias: Dependencias = {}) {
     return c.json({ keys: claves });
   });
 
-  // Solo el cuaderno puede leer estas respuestas desde el navegador. Entrar, renovar y crear la
-  // organización comparten CORS, kill switch y configuración.
+  // Solo las apps de los productos pueden leer estas respuestas desde el navegador: la unión de sus
+  // orígenes (HU-C3.5). Entrar, renovar y crear la organización comparten CORS, kill switch y
+  // configuración.
+  const catalogo = dependencias.catalogo ?? CATALOGO;
   const corsDelCuaderno = cors({
-    origin: (origen, c) => (origenesDe(c.env as Env).includes(origen) ? origen : null),
+    origin: (origen, c) =>
+      origenesDeTodos(catalogo, origenesDe(c.env as Env)).includes(origen) ? origen : null,
     allowMethods: ['POST'],
     allowHeaders: ['authorization', 'content-type'],
     maxAge: 600,
@@ -229,8 +239,42 @@ export function crearApp(dependencias: Dependencias = {}) {
       google: google(c.env),
       origenes: origenesDe(c.env),
       ahora,
-      catalogo: dependencias.catalogo ?? CATALOGO,
+      catalogo,
     });
+    await siguiente();
+    return undefined;
+  };
+  /**
+   * HU-C3.5: una sesión solo se usa desde la app de su producto, aunque otra app esté en la unión
+   * de CORS. El producto es el `aud` del token o, en v1, el de su organización en la base. Un v1
+   * sin organización no dice su producto: pasa, como hasta hoy, hasta los tokens v2 (HU-C4.3).
+   * Un token que no verifica sigue a la ruta, que responde 401 como siempre.
+   */
+  const desdeSuApp: MiddlewareHandler<{ Bindings: Env; Variables: { entorno: Entorno } }> = async (
+    c,
+    siguiente,
+  ) => {
+    const e = c.get('entorno');
+    const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
+    const reclamos = token
+      ? await verificarAcceso(e.firmante.publica, token, e.ahora()).catch(() => null)
+      : null;
+    const producto =
+      reclamos?.aud ?? (reclamos?.org ? await productoDeOrganizacion(e.db, reclamos.org) : null);
+    if (producto) {
+      const delCatalogo = productoDe(e.catalogo, producto);
+      const origen = c.req.header('origin');
+      if (
+        !('producto' in delCatalogo) ||
+        !origen ||
+        !origenesDelProducto(delCatalogo.producto, e.origenes).includes(origen)
+      ) {
+        return c.json(
+          { estado: 'otro-producto', motivo: 'Esta sesión es de otra aplicación.' },
+          403,
+        );
+      }
+    }
     await siguiente();
     return undefined;
   };
@@ -249,6 +293,9 @@ export function crearApp(dependencias: Dependencias = {}) {
   ]) {
     app.use(ruta, corsDelCuaderno);
     app.use(ruta, conEntorno);
+    if (!ruta.startsWith('/api/core/auth/') && !ruta.startsWith('/api/core/drive/')) {
+      app.use(ruta, desdeSuApp);
+    }
   }
 
   app.post('/api/core/organizaciones', (c) => crearOrganizacionDeLaFinca(c, c.get('entorno')));

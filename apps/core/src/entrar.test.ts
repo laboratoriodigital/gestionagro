@@ -7,7 +7,14 @@
 import { createHash } from 'node:crypto';
 import type { BaseD1, SentenciaD1 } from '@ed1/d1';
 import type { Producto } from '@ed1/productos';
-import { type ClavePublica, generarClavePrivada, hashDe, verificarAcceso } from '@ed1/tokens';
+import {
+  type ClavePublica,
+  firmanteDesde,
+  firmarAcceso,
+  generarClavePrivada,
+  hashDe,
+  verificarAcceso,
+} from '@ed1/tokens';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
@@ -528,6 +535,87 @@ describe('HU-C3.2 · organizaciones, invitaciones y equipo por producto', () => 
       rol: 'colaborador',
     });
     expect(codigo).toBeTruthy();
+  });
+
+  describe('HU-C3.5 · CORS y origen por producto', () => {
+    const FINCA = '0199a1b2-0000-7000-8000-00000000c305';
+    /** Un token del agro con una finca del agro, firmado con la clave del CORE de la prueba. */
+    async function delAgro(): Promise<string> {
+      const usuario =
+        (await db.prepare('SELECT id FROM usuario').first<{ id: string }>())?.id ?? '';
+      await db
+        .prepare(
+          "INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES (?, 'agro', 'Finca', 'finca', 'gratuito', 'c0', 'agro_c0_s1', 1, '2026-11-17')",
+        )
+        .bind(FINCA)
+        .run();
+      await db
+        .prepare(
+          "INSERT INTO membresia (usuario_id, org_id, producto, rol, creado) VALUES (?, ?, 'agro', 'propietario', '2026-11-17')",
+        )
+        .bind(usuario, FINCA)
+        .run();
+      const datos = {
+        sub: usuario,
+        org: FINCA,
+        rol: 'propietario',
+        celda: 'c0',
+        shard: 'agro_c0_s1',
+        anillo: 1,
+      };
+      return (await firmarAcceso(await firmanteDesde(clave), datos, reloj)).token;
+    }
+    const desde = (origen: string, acceso: string) =>
+      ir('/api/core/equipo/ver', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          origin: origen,
+          authorization: `Bearer ${acceso}`,
+        },
+        body: '{}',
+      });
+
+    it('CA1 · CORS deja leer a la app de cada producto del catálogo, y a ninguna otra', async () => {
+      const preflight = (origen: string) =>
+        ir('/api/core/equipo/ver', {
+          method: 'OPTIONS',
+          headers: { origin: origen, 'access-control-request-method': 'POST' },
+        });
+      expect((await preflight(ENSAYO)).headers.get('access-control-allow-origin')).toBe(ENSAYO);
+      expect((await preflight(APP)).headers.get('access-control-allow-origin')).toBe(APP);
+      expect(
+        (await preflight('https://otra.ejemplo.test')).headers.get('access-control-allow-origin'),
+      ).toBeNull();
+    });
+
+    it('CA2 ❌ · cada sesión solo desde la app de su producto, aunque la otra esté en la unión', async () => {
+      const deEnsayo = await dueno();
+      const agro = await delAgro();
+      const matriz = [
+        { sesion: 'agro', origen: APP, estado: 200 },
+        { sesion: 'agro', origen: ENSAYO, estado: 403 },
+        { sesion: 'ensayo', origen: ENSAYO, estado: 200 },
+        { sesion: 'ensayo', origen: APP, estado: 403 },
+      ];
+      const obtenido = [];
+      for (const caso of matriz) {
+        const r = await desde(caso.origen, caso.sesion === 'agro' ? agro : deEnsayo);
+        obtenido.push({ ...caso, estado: r.status });
+        if (r.status === 403) expect(await r.json()).toMatchObject({ estado: 'otro-producto' });
+      }
+      expect(obtenido).toEqual(matriz);
+    });
+
+    it('sin Origin, una sesión con producto no se usa', async () => {
+      const deEnsayo = await dueno();
+      const r = await ir('/api/core/equipo/ver', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${deEnsayo}` },
+        body: '{}',
+      });
+      expect(r.status).toBe(403);
+    });
   });
 
   describe('HU-C3.4 · interés y pagos con los planes del producto', () => {

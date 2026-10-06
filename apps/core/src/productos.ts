@@ -140,3 +140,18 @@ export function cobroMensual(
   // Bold no abre pagos de menos de $1.000.
   return typeof monto === 'number' && Number.isInteger(monto) && monto >= 1000 ? monto : null;
 }
+
+/**
+ * Todos los orígenes que el CORE atiende: la unión de los de cada producto que no está retirado
+ * (HU-C3.5). Es lo que CORS deja leer; qué producto puede usar cada ruta lo decide aparte el
+ * origen de la sesión, porque estar en la unión no basta.
+ */
+export function origenesDeTodos(
+  catalogo: CatalogoDelCore,
+  origenesDeLaCelda: readonly string[],
+): readonly string[] {
+  const todos = catalogo.productos
+    .filter((p) => p.estado !== 'retirado')
+    .flatMap((p) => origenesDelProducto(p, origenesDeLaCelda));
+  return [...new Set(todos)];
+}

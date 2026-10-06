@@ -499,7 +499,7 @@ Formato de cada historia:
 - **Work items:** WI-C3.4.1 `[código]` · WI-C3.4.2 `[prueba]` con el producto de ensayo.
 
 #### HU-C3.5 · CORS y origen por producto
-- **Capa:** API y seguridad · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C4 · **Depende de:** HU-C3.1 · **Estado:** Refinada
+- **Capa:** API y seguridad · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C4 · **Depende de:** HU-C3.1 · **Estado:** En validación (rama `feat/c4-sprint`. CA1 cambió de forma: `ORIGENES_APP` sigue siendo los orígenes del sitio (de `celdas.json`), y la unión la calcula el Worker con `origenesDeTodos` desde `productos.json`, que ya importa. Es la misma fuente única (P2) sin cambiarle el sentido a una variable que el agro usa como «sus» orígenes. CA2: un middleware en las rutas con token toma el producto del `aud` o, en v1, de la organización en la base, y exige que el `Origin` sea de la app de ese producto; sin `Origin` tampoco pasa. Un v1 sin organización no dice su producto y pasa como hoy, hasta HU-C4.3. Cuesta una lectura por clave primaria que se va con `aud`. 3 pruebas: CORS con dos productos y uno ajeno, y la matriz sesión × origen con tokens firmados. Control negativo: sin el middleware, 2 se ven en rojo)
 - Como plataforma, quiero que cada ruta acepte solo el origen del producto de la sesión o del token, para que una app no use el CORE en nombre de otra.
 - **Respaldo:** PLATAFORMA §4.7 (CORS).
 - **CA1.** `ORIGENES_APP` es la unión de los orígenes de todos los productos, generada de `productos.json` y `celdas.json` (P2).
