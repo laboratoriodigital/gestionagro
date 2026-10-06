@@ -372,6 +372,8 @@ La regla: **una guardia de texto se prueba también contra el texto de quien exp
 
 La regla: **una regla que depende de que alguien se acuerde se olvida en el primer comando con prisa. Si no puede tener guardia, va en la memoria que se carga sola, no en la de la conversación.**
 
+*(Hoy, 6 oct 2026: volvió a pasar por otro camino. En el PR #100 corrí el lint en verde, después agregué una línea a `vitest.config.ts` y la incluí en el commit sin volver a correrlo; el CI la rechazó por formato. `pipefail` no protege de esto: el lint tiene que ser lo último antes del commit, en el mismo comando que lo hace.)*
+
 *Ficha:* core · *(mío)* · 🟡 Medio · P14, P18 · 0.3.0 · 2026-10-05
 
 **5 · La fuente de respaldo salía 31 % más ancha, porque el ancho medio de un TTF variable no es el de un texto.**
