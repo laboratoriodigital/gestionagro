@@ -5,12 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- `POST /api/core/cuenta/espacios`: los espacios de la persona en todos los productos, con rol, plan y la dirección de cada app. Solo con un token de la cuenta (HU-C7.4).
 - Dos productos en staging (HU-C3.7): con `DESTINO=staging`, el CORE atiende además los productos de prueba (`infrastructure/productos-de-prueba.json`). En producción no existen: el despliegue se detiene si aparece uno en la base, y la prueba de humo exige que el CORE diga que no existe. Crear una organización toma el producto del token, y la cuenta no puede crear una.
 - Los tokens de acceso son del formato del ecosistema (v2): dicen su producto, el plan vigente con la gracia ya aplicada y cuándo fue la última entrada con Google. Las celdas de producción los aceptan desde CultivoPro 0.4.0; los tokens anteriores siguen valiendo hasta que vencen (HU-C4.3).
 - La cuenta del ecosistema es el producto `cuenta`, sin organizaciones (ADR-28), con su política. `POST /api/core/auth/salir` cierra una sesión en el CORE, solo desde la app de su producto (HU-C7.3).
 - El Worker del CORE sirve las páginas de la cuenta como sus assets (`apps/cuenta`). Solo corre en `/api/core/*`, `/oauth/*` y `/.well-known/*`; lo demás lo entrega Cloudflare sin invocarlo (HU-C7.2).
 - El CORE de producción tiene su dominio propio, `cuenta.laboratorio-digital.com`, además de la URL de workers.dev, que sigue igual. Antes de publicarlo, Google tiene que aceptar las dos direcciones de vuelta nuevas (`docs/runbooks/despliegue.md`) (HU-C4.6).
 - Renovar la sesión solo funciona desde la app de su producto, y entrega solo las organizaciones de ese producto. Un intento desde otra app recibe 403, no gasta el refresh de su dueño y queda en la auditoría (HU-C4.4).
+
+### Cambiado
+- Un pago suma meses calendario en la fecha de Bogotá, no 30 días: pagado el 31 de enero, vence el 28 de febrero; pagado el 1 de octubre, el 1 de noviembre (HU-C5.1).
 
 ## [0.2.0] - 2026-10-06
 

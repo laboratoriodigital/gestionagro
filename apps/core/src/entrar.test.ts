@@ -23,6 +23,7 @@ import {
 } from '../../../scripts/lib/productos-de-prueba.ts';
 import { catalogoDelRepositorio } from '../../../scripts/lib/registro-productos.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
+import { sumarMeses } from './calendario.ts';
 import { type ProductoDelCatalogo, sentenciasDelCatalogo } from './catalogo.ts';
 import { sentenciasDeCeldas } from './celdas.ts';
 import type { ProveedorGoogle } from './entrar.ts';
@@ -1018,6 +1019,71 @@ describe('HU-C3.7 · CA2: la misma persona en dos productos, cada sesión con lo
       (await enviar('/api/core/auth/refrescar', APP, { refresh: ensayo.refresh })).status,
     ).toBe(403);
   });
+
+  describe('HU-C7.4 · mis espacios en todos los productos, desde la cuenta', () => {
+    const CUENTA = 'https://agro-core-staging.laboratoriodigital-la.workers.dev';
+    async function conDosEspacios() {
+      const agro = await entrar(`politica=${POLITICA_VIGENTE}`, APP, VUELTA);
+      const ensayo = await entrar('producto=ensayo&politica=1', ENSAYO, `${ENSAYO}/`);
+      await enviar('/api/core/organizaciones', APP, { id: FINCA, nombre: 'Finca' }, agro.acceso);
+      await enviar(
+        '/api/core/organizaciones',
+        ENSAYO,
+        { id: COMERCIO, nombre: 'Comercio' },
+        ensayo.acceso,
+      );
+      const deLaCuenta = await entrar('producto=cuenta&politica=1', CUENTA, `${CUENTA}/`);
+      return { agro, deLaCuenta };
+    }
+    const espacios = (acceso: string, origen = CUENTA) =>
+      enviar('/api/core/cuenta/espacios', origen, {}, acceso);
+
+    it('CA1 · una tarjeta por organización, de los dos productos, con a dónde abrirla', async () => {
+      const { deLaCuenta } = await conDosEspacios();
+      const r = await espacios(deLaCuenta.acceso);
+      expect(r.status).toBe(200);
+      expect((await r.json()) as unknown).toEqual({
+        espacios: [
+          {
+            org_id: FINCA,
+            nombre: 'Finca',
+            producto: 'agro',
+            producto_nombre: 'CultivoPro',
+            rol: 'propietario',
+            plan: 'gratuito',
+            plan_nombre: 'Gratis',
+            plan_vence: null,
+            abrir: `${APP}/agro/app/`,
+          },
+          {
+            org_id: COMERCIO,
+            nombre: 'Comercio',
+            producto: 'ensayo',
+            producto_nombre: 'Ensayo',
+            rol: 'dueno',
+            plan: 'gratis',
+            plan_nombre: 'Gratis',
+            plan_vence: null,
+            abrir: `${ENSAYO}/`,
+          },
+        ],
+      });
+    });
+
+    it('solo con un token de la cuenta: el de una app ve lo suyo por su lado, no todo', async () => {
+      const { agro } = await conDosEspacios();
+      expect((await espacios(agro.acceso, APP)).status).toBe(403);
+    });
+
+    it('CA3 ❌ · nunca un espacio sin membresía: quitarla lo saca de la lista', async () => {
+      const { deLaCuenta } = await conDosEspacios();
+      await db.prepare('DELETE FROM membresia WHERE org_id = ?').bind(COMERCIO).run();
+      const { espacios: lista } = (await (await espacios(deLaCuenta.acceso)).json()) as {
+        espacios: { org_id: string }[];
+      };
+      expect(lista.map((x) => x.org_id)).toEqual([FINCA]);
+    });
+  });
 });
 
 describe('CORS, configuración y kill switch', () => {
@@ -1755,7 +1821,8 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
 
       bold = aprobado();
       const r = await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
-      const vence = new Date(T0 + 30 * 24 * 3600 * 1000).toISOString();
+      // HU-C5.1: un mes calendario. T0 es el 1 de octubre: vence el 1 de noviembre, 31 días después.
+      const vence = new Date(sumarMeses(T0, 1)).toISOString();
       expect(await r.json()).toEqual({
         estado: 'aprobado',
         motivo: null,
@@ -1786,9 +1853,7 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
         await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
         reloj += 3600 * 1000;
       }
-      expect((await planDeLaFinca(p))?.plan_vence).toBe(
-        new Date(T0 + 60 * 24 * 3600 * 1000).toISOString(),
-      );
+      expect((await planDeLaFinca(p))?.plan_vence).toBe(new Date(sumarMeses(T0, 2)).toISOString());
     });
 
     it('CA4: al vencer, la finca vuelve al plan gratuito sin tocar nada más', async () => {
@@ -1796,9 +1861,9 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
       bold = aprobado();
       const c = await cobro(p.acceso);
       await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
-      reloj = T0 + 30 * 24 * 3600 * 1000 - 1;
+      reloj = sumarMeses(T0, 1) - 1;
       expect((await planDeLaFinca(p))?.plan).toBe('finca');
-      reloj = T0 + 30 * 24 * 3600 * 1000;
+      reloj = sumarMeses(T0, 1);
       expect(await planDeLaFinca(p)).toMatchObject({ plan: 'gratuito', plan_vence: null });
     });
 

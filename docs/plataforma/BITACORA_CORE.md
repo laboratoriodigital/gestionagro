@@ -272,6 +272,7 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 | La copia fuera de Cloudflare en Google Cloud Storage o Backblaze B2 (`proveedores-de-computo.md` §4) | En el Google Drive del dueño, semanal y cifrada (ADR-30, 5 oct 2026) | Decisión del dueño (D-C5): 15 GB gratis, y el mismo camino que ya eligió para el respaldo del agro por etapas. Lo que cambia: la cuota es de una cuenta personal, así que el vigía mide lo que Drive tiene, no lo que creemos haber subido (P7) |
 | Los tres dominios con un registrador y un correo de recuperación fuera de Cloudflare (PLATAFORMA §3.5 regla 5) | Los tres registrados en Cloudflare, como ya estaban (5 oct 2026) | No fue una decisión nueva: al preguntar, el dueño dijo que todos están en Cloudflare. Queda como riesgo aceptado, mitigado con el segundo factor y los contactos de la cuenta, y se vuelve a presentar en HU-C11.5 |
 | Una rama y un PR por historia (`entrega-por-partes`, bitácora agro) | Una rama y un PR por sprint, con un commit por historia (5 oct 2026) | El repositorio volvió a privado: cada PR gasta dos corridas completas del CI, unos 12 minutos de 2.000 al mes. El dueño pidió máxima eficiencia y valida por sprint en la revisión del viernes. Lo que urge va en su propia rama |
+| Workers Paid con el M0 de la Tienda (ADR-23, PLATAFORMA §3.2) y activado antes del C4 | Solo cuando sea estrictamente necesario y no haya otra salida para seguir avanzando o creciendo (6 oct 2026) | Decisión del dueño. Todo se diseña para el plan gratuito; una historia que solo sea posible con el pagado lo dice con el dato y propone antes la salida gratuita. HU-C11.2 sale del C6 porque `limits.cpu_ms` solo existe en el pagado; el vigía en modo pago (HU-C11.1) ya está hecho y espera |
 | HC1 («dos productos en staging») en el C4, con HU-C3.7 | HC1 en el C5, con HU-C3.7 junto a HU-C4.3 (6 oct 2026) | Para que una persona entre a un segundo producto y cree allí su organización, el token tiene que decir su producto (HU-C4.3), y eso solo puede salir con la fase N (HU-C4.1) ya en producción, 12 h antes por lo menos (P10). Sin eso, la validación del dueño en staging no tendría qué mirar. El C4 queda en 13 puntos y el C5 en 20 |
 | La hoja de ruta P0–P6 sin interfaz propia del CORE (PLATAFORMA §7) | Con un sistema de diseño (EC6) y la cuenta en `cuenta.laboratorio-digital.com` (EC7) desde el primer sprint | Pedido del dueño: frontend bonito, minimalista y moderno desde el inicio; ED1 §16 ya preveía la cuenta |
 
@@ -419,3 +420,21 @@ La regla: **un número que viene de un instrumento se mira con «¿es razonable?
 La regla: **lo que el CI prueba en un PR es ese PR contra la base de ese momento. Lo que depende de cómo se juntan dos cambios se revisa también después de fusionar, en `main`.**
 
 *Ficha:* core · *(compartido)* · 🟢 Bajo · P16, P18 · core-0.2.0 · 2026-10-06
+
+**7 · El minificador juntó la animación en el atajo `animation`, y el navegador descartó la regla entera.**
+
+*Qué pasó.* El 6 oct 2026, en HU-C6.5, el revelado al desplazar de la cuenta no se movía. La e2e de CA1 decía que la animación de los títulos era `none`.
+
+*Síntoma literal.* En la hoja compilada: «.ed1-revelar{animation:linear both ed1-revelar view();animation-range:entry entry 60%}». En el navegador, la misma regla leída con `cssRules` era «.ed1-revelar { animation-range: entry entry 60%; }»: la declaración `animation` no estaba.
+
+*Causa raíz.* En la fuente estaban `animation: ed1-revelar linear both` y `animation-timeline: view()`, por separado. Al minificar, el CSS de Astro y Vite las juntó en el atajo, con `view()` adentro. Chrome no acepta la línea de tiempo dentro de `animation` (el atajo solo la reinicia), así que la declaración entera es inválida y se descarta en silencio. El primer sospechoso fue otro: este Windows pide «reducir movimiento» cuando sus animaciones están apagadas. Fijar `reducedMotion: 'no-preference'` en la prueba no lo arregló, y por eso se miró la hoja.
+
+*Cómo se reprodujo.* Leyendo la regla del CSS de `dist` y `document.styleSheets` en una prueba con Playwright.
+
+*Arreglo.* Propiedades largas (`animation-name`, `animation-timing-function`, `animation-fill-mode`, `animation-range`) y la línea de tiempo en su propia regla, `:where(.ed1-revelar)`, que el minificador no junta con la otra.
+
+**Lo prueba** `tests/e2e/cuenta-movimiento.spec.ts`, CA1: lee `animationName` y la opacidad en el navegador, sobre la hoja compilada. Control negativo: con la regla de antes, la animación es `none` y la prueba sale en rojo.
+
+La regla: **el CSS que importa se prueba en el navegador, sobre lo compilado. Lo que se escribió no es lo que llega: el minificador también decide.**
+
+*Ficha:* core · *(del terreno)* · 🟢 Bajo · P17, P5 · core-0.2.0 · 2026-10-06

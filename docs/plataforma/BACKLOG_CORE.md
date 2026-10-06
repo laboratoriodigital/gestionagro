@@ -17,7 +17,7 @@
 | Hito | Qué queda funcionando | Fase de PLATAFORMA §7 | Cierra | Fecha objetivo | Desbloquea |
 |---|---|---|---|---|---|
 | **HC0 · Producto como dato** | `productos.json`, `cuentas.json`, `dominios.json` y `celdas.json` v2 con sus esquemas; convención de commits con guardia; versión propia del CORE | P0 | C2 | 30 oct 2026 | — |
-| **HC1 · Producto en el CORE** | Migraciones 0006 y 0007 con la receta probada en D1; API por producto (expandir); kill switches por producto; tokens N (verifican v1 y v2); vigía en modo pago | P1 | C4 | 27 nov 2026 | **Tienda M0** (con Workers Paid y la zona `.app`) |
+| **HC1 · Producto en el CORE** | Migraciones 0006 y 0007 con la receta probada en D1; API por producto (expandir); kill switches por producto; tokens N (verifican v1 y v2); vigía en modo pago | P1 | C4 | 27 nov 2026 · **cumplido el 6 oct 2026** | **Tienda M0** (con la zona `.app`; Workers Paid solo si hace falta) |
 | **HC2 · Cuenta v0 con el sistema de diseño** | `@ed1/ui` v2 (tokens, tipografía, componentes, galería y presupuestos); `cuenta.laboratorio-digital.com`: entrar y ver mis organizaciones; el CORE emite v2 | parte de P2 | C6 | 23 dic 2026 | — |
 | **HC3 · Tokens v2 cerrados** | v1 contraído; sesión por producto | P2 | C7 | 22 ene 2027 | **Tienda M2** (panel) |
 | **HC4 · Planes por periodo** | 1, 3, 6 y 12 meses, meses calendario, crédito al cambiar de plan, gracia, celdas al día. **CORE 1.0.0** | P3 | C7 | 22 ene 2027 | **Tienda M4** (cobro del plan) |
@@ -274,7 +274,7 @@ Cada uno con sus estados, sin JavaScript salvo donde se dice:
 | **C3** (festivo) | 3–13 nov | Entrar, organizaciones y equipo saben de productos; auditoría; componentes base | HU-C2.4 (3), HU-C3.1 (5), HU-C3.2 (3), HU-C3.3 (2), HU-C6.3 (5) | 18 |
 | **C4** (festivo) | 17–27 nov | Pagos y CORS por producto; tokens N; el vigía en modo pago | HU-C3.4 (2), HU-C3.5 (2), HU-C4.1 (3), HU-C4.2 (1), HU-C11.1 (5) | 13 |
 | **C5** (festivo) | 30 nov–11 dic | **HC1.** El CORE emite v2, dos productos en staging y la cuenta abre en su dominio | HU-C3.7 (3), HU-C4.3 (3), HU-C4.4 (2), HU-C4.6 (3), HU-C6.4 (3), HU-C7.2 (3), HU-C7.3 (3) | 20 |
-| **C6** (corto) | 14–23 dic | **HC2.** Mis organizaciones; precios por periodo en la base; movimiento y presupuestos. Solo staging desde el 18 dic | HU-C5.1 (2), HU-C5.2 (2), HU-C6.5 (2), HU-C6.6 (2), HU-C7.4 (3), HU-C11.2 (2) | 13 |
+| **C6** (corto) | 14–23 dic | **HC2.** Mis organizaciones; precios por periodo en la base; movimiento y presupuestos. Solo staging desde el 18 dic | HU-C5.1 (2), HU-C5.2 (2), HU-C6.5 (2), HU-C6.6 (2), HU-C7.4 (3) | 11 |
 | — | 24 dic–8 ene | Pausa y congelamiento. Se anota lo que falle en staging | — | — |
 | **C7** (festivo) | 12–22 ene 2027 | **HC3 y HC4. CORE 1.0.0:** v1 contraído, pagar por periodo, gracia, celdas al día | HU-C4.5 (2), HU-C5.3 (3), HU-C5.4 (2), HU-C5.5 (2), HU-C5.6 (3), HU-C5.7 (2), HU-C11.5 (2) | 16 |
 | **C8** | 25 ene–5 feb | **HC5.** Lo legible por agentes; la cuenta muestra sesiones, pagos y actividad | HU-C7.5 (3), HU-C7.6 (2), HU-C7.8 (2), HU-C8.1 (2), HU-C8.2 (3), HU-C8.3 (3), HU-C8.4 (2), HU-C8.5 (3) | 20 |
@@ -288,7 +288,7 @@ Cada uno con sus estados, sin JavaScript salvo donde se dice:
 
 | Hito de la Tienda | Necesita | Lo da | Desde |
 |---|---|---|---|
-| M0 · Fundación | P0, P1, Workers Paid y la zona `laboratorio-digital.app` | HC1 + tareas del dueño (§9) | ~~30 nov~~ 11 dic 2026 (HC1 pasó al C5; «Cambios de rumbo» de la bitácora del CORE). Lo de M0 que no pide P1 puede arrancar antes |
+| M0 · Fundación | P0, P1, ~~Workers Paid~~ y la zona `laboratorio-digital.app` | HC1 + tareas del dueño (§9) | **HC1 cumplido el 6 oct 2026**: dos productos en staging, tokens v2 y la fase N en producción. Workers Paid ya no es condición: se activa solo si hace falta (decisión del dueño, 6 oct 2026) |
 | M2 · Panel | P2 | HC3 | 25 ene 2027 |
 | M4 · Plan por periodo | P3 | HC4 | 25 ene 2027 |
 | M7 · Agentes | P5 | HC6 | 8 mar 2027 |
@@ -516,7 +516,7 @@ Formato de cada historia:
 - **Work items:** WI-C3.6.1 `[código]` · WI-C3.6.2 `[prueba]` · WI-C3.6.3 `[doc]` `docs/runbooks/kill-switch.md`.
 
 #### HU-C3.7 · Staging con dos productos
-- **Capa:** prueba de aceptación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** ~~C4~~ C5 · **Depende de:** HU-C3.1 a HU-C3.6, **HU-C4.3** · **Estado:** En validación (rama `feat/c5-tokens-v2`. `infrastructure/productos-de-prueba.json` declara `ensayo` (un tipo, dos roles, dos planes con 7 días de gracia) y su celda `c9`, que solo existe en el directorio de staging y apunta a la API de c0, que rechaza sus tokens. Se valida con el esquema y las reglas de `productos.json`, y además no puede pisar un producto, un prefijo ni una celda de verdad. `registroDelDestino` es lo único que el despliegue usa: los de prueba van solo a staging. El CORE los atiende solo con `DESTINO=staging`, una variable que pone el despliegue; sin ella, como producción. Crear una organización toma ahora el producto del `aud` del token (cierra lo pendiente de HU-C3.2 CA1), y la cuenta, que no tiene organizaciones, no puede crear una. La app de ensayo es un Worker solo de assets, `ed1-ensayo-staging`, con su propio origen. CA2 queda en una prueba del CORE: la misma persona entra al agro y a ensayo, crea un espacio en cada uno y cada sesión ve solo lo suyo (control negativo: sin el filtro por producto, en rojo). CA3, dos redes: el despliegue de producción se detiene si la base tiene un producto de prueba, y su prueba de humo exige que entrar a «ensayo» responda que no existe. 12 pruebas nuevas. Falta WI-C3.7.3, la validación del dueño en staging: pasos en `docs/runbooks/despliegue.md`) *(Antes: Refinada, movida al C5 el 6 oct 2026: para entrar a un segundo producto y crear allí su organización, el token tiene que decir su producto, y eso es HU-C4.3, que solo puede salir con la fase N ya en producción. Sin eso, el dueño no tendría qué validar en staging)
+- **Capa:** prueba de aceptación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** ~~C4~~ C5 · **Depende de:** HU-C3.1 a HU-C3.6, **HU-C4.3** · **Estado:** Terminada (validada por el dueño en staging el 6 oct 2026: la misma cuenta ve en Ensayo solo su espacio, con `aud: ensayo` y `celda: c9`, y en el cuaderno solo sus fincas. PR #106. `infrastructure/productos-de-prueba.json` declara `ensayo` (un tipo, dos roles, dos planes con 7 días de gracia) y su celda `c9`, que solo existe en el directorio de staging y apunta a la API de c0, que rechaza sus tokens. Se valida con el esquema y las reglas de `productos.json`, y además no puede pisar un producto, un prefijo ni una celda de verdad. `registroDelDestino` es lo único que el despliegue usa: los de prueba van solo a staging. El CORE los atiende solo con `DESTINO=staging`, una variable que pone el despliegue; sin ella, como producción. Crear una organización toma ahora el producto del `aud` del token (cierra lo pendiente de HU-C3.2 CA1), y la cuenta, que no tiene organizaciones, no puede crear una. La app de ensayo es un Worker solo de assets, `ed1-ensayo-staging`, con su propio origen. CA2 queda en una prueba del CORE: la misma persona entra al agro y a ensayo, crea un espacio en cada uno y cada sesión ve solo lo suyo (control negativo: sin el filtro por producto, en rojo). CA3, dos redes: el despliegue de producción se detiene si la base tiene un producto de prueba, y su prueba de humo exige que entrar a «ensayo» responda que no existe. 12 pruebas nuevas. Falta WI-C3.7.3, la validación del dueño en staging: pasos en `docs/runbooks/despliegue.md`) *(Antes: Refinada, movida al C5 el 6 oct 2026: para entrar a un segundo producto y crear allí su organización, el token tiene que decir su producto, y eso es HU-C4.3, que solo puede salir con la fase N ya en producción. Sin eso, el dueño no tendría qué validar en staging)
 - Como dueño, quiero ver en staging dos productos funcionando a la vez, para aceptar la fase P1 sin esperar a la Tienda.
 - **Respaldo:** PLATAFORMA §7 (criterio de P1); P4 y P11.
 - **CA1.** Un producto de ensayo (`ensayo`, con un tipo, dos roles, dos planes y una celda) se siembra **solo** en D1 local y en staging, como las fincas de prueba.
@@ -586,7 +586,7 @@ Formato de cada historia:
 ### EC5 · Planes por periodo
 
 #### HU-C5.1 · Meses calendario en Bogotá
-- **Capa:** lógica · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** lógica · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** — · **Estado:** En validación (rama `feat/c6-sprint`. `apps/core/src/calendario.ts`: `sumarMeses` cuenta en la fecha de Bogotá con el desfase fijo de UTC−5 y solo con métodos UTC, así que no depende de la zona del sistema. Los casos viven en `calendario.casos.ts` y corren dos veces: en el proceso de la prueba y en otro con `TZ=Pacific/Kiritimati` (UTC+14), que la prueba comprueba que de verdad tomó esa zona. `nuevoVencimiento` ya no suma 30 días: un pago del 31 de enero vence el 28 de febrero. Tres pruebas viejas daban por hecho los 30 días y cambiaron por diseño: el 1 de octubre más un mes es el 1 de noviembre, 31 días después. 10 pruebas. CA4, control negativo: con los 30 días de antes, la del vencimiento sale en rojo)
 - Como persona que paga 12 meses, quiero que me cuenten 12 meses, no 360 días.
 - **Respaldo:** PLATAFORMA §4.8 (2); P8; bitácora ecommerce, patrón 8 («los meses se restan con `getMonth()`»).
 - **CA1.** `sumarMeses(desde, n)` suma meses en la fecha de Bogotá (UTC−5 fijo) y conserva la hora; si el día no existe, recorta al último del mes.
@@ -596,7 +596,7 @@ Formato de cada historia:
 - **Work items:** WI-C5.1.1 `[código]` · WI-C5.1.2 `[prueba]` batería del reloj.
 
 #### HU-C5.2 · Precios por periodo en la base
-- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C1.2, HU-C2.3 · **Estado:** Refinada
+- **Capa:** datos · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C1.2, HU-C2.3 · **Estado:** En validación (rama `feat/c6-sprint`. CA1 ya lo entregó HU-C2.3: el despliegue copia `cobro` a `plan_precio` con su `vigente_desde`, un precio distinto entra como fila nueva y el anterior queda como historia, y la lectura de vuelta lo compara. Lo que faltaba era la prueba de CA2: un precio para un periodo que no está en `periodo` lo rechaza la base por su clave foránea, con la razón exacta, en `node:sqlite` y en el D1 de workerd. Se cuenta en la velocidad lo que de verdad costó: menos de 1 punto)
 - Como plataforma, quiero que `plan_precio` tenga el precio vigente de cada plan y periodo, con su historia.
 - **Respaldo:** PLATAFORMA §4.3 (`periodo`, `plan_precio`); ADR-22.
 - **CA1.** El despliegue copia `cobro` a `plan_precio` con `vigente_desde`; un cambio de precio es una fila nueva.
@@ -690,7 +690,7 @@ Formato de cada historia:
 - **Work items:** WI-C6.4.1 `[código]` galería · WI-C6.4.2 `[prueba]` axe y capturas.
 
 #### HU-C6.5 · Movimiento con propósito, sin JavaScript
-- **Capa:** diseño · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C6.3 · **Estado:** Refinada
+- **Capa:** diseño · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C6.3 · **Estado:** En validación (rama `feat/c6-sprint`. `.ed1-revelar` en `componentes.css`: la animación vive dentro de `@supports (animation-timeline: view())` y de `prefers-reduced-motion: no-preference`; fuera de ese bloque nada empieza oculto. Se usa en las tarjetas de «Tus espacios» y en los títulos de la política. Las transiciones ya usaban los tiempos de 150 a 400 ms de los tokens. 3 e2e: CA1 con la línea de tiempo activa, CA2 con «reducir movimiento» y CA3 quitando el bloque `@supports` de la hoja en vivo. Control negativo: un `opacity: 0` fuera del bloque deja el texto oculto sin la función, y CA3 sale en rojo. **Hallazgo:** el minificador juntaba las declaraciones en el atajo `animation`, que no acepta la línea de tiempo, y el navegador descartaba la regla (bitácora core 7). Las pruebas de accesibilidad de la cuenta miden el estado final, con «reducir movimiento»: a media animación, lo que entra a la pantalla tiene menos contraste)
 - Como persona, quiero que la página se sienta viva sin que tarde ni maree.
 - **Respaldo:** §4.2 de este documento (el revelado de Coda Press).
 - **CA1.** Revelado al desplazar con `animation-timeline: view()` dentro de `@supports`, y transiciones de 150 a 400 ms.
@@ -699,7 +699,7 @@ Formato de cada historia:
 - **Work items:** WI-C6.5.1 `[código]` · WI-C6.5.2 `[prueba]`.
 
 #### HU-C6.6 · Presupuestos y CSP en el CI
-- **Capa:** CI · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C6.4, HU-C7.2 · **Estado:** Refinada
+- **Capa:** CI · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** HU-C6.4, HU-C7.2 · **Estado:** En validación (rama `feat/c6-sprint`. `tests/e2e/cuenta-presupuestos.spec.ts` mide cada página de la cuenta en el navegador: hoy la portada lleva 1,9 KB de JS y 3,3 KB de CSS con gzip, y 56 KB de fuentes, todo del mismo origen; el CLS de la portada queda dentro de 0,05 con la fuente ya cargada, y el LCP con CPU ×4 y 4G lenta queda dentro de 2,0 s, en el proyecto `@rendimiento`. CA2, en dos lugares: la e2e falla si un recurso viene de otro origen, y `scripts/verificar-cuenta.ts` detiene el build si un `<script>` o un `<link>` cargan de afuera (además de lo en línea, que ya revisaba). WI-C6.6.2 cambió de forma: sin Lighthouse CI. El CLS y la accesibilidad (axe) se miden en las mismas e2e, sin otro navegador ni minutos de más (plan gratuito). Control negativo: un script y una hoja de un tercero se nombran; un enlace a otra página, no)
 - Como dueño, quiero que el CI rechace una pantalla que se pase de peso o que necesite `'unsafe-inline'`.
 - **Respaldo:** §4.7 de este documento; ED1 §23.2; bitácora agro 14 y 20.
 - **CA1.** Los topes de §4.7 en las pruebas de la cuenta; las de tiempo en el proyecto `@rendimiento`.
@@ -738,7 +738,7 @@ Formato de cada historia:
 - **Work items:** WI-C7.3.1 `[código]` · WI-C7.3.2 `[prueba]` e2e · WI-C7.3.3 `[dueño]` textos.
 
 #### HU-C7.4 · Mis espacios en todos los productos
-- **Capa:** app y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C6 · **Depende de:** HU-C7.3 · **Estado:** Refinada
+- **Capa:** app y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C6 · **Depende de:** HU-C7.3 · **Estado:** En validación (rama `feat/c6-sprint`. `POST /api/core/cuenta/espacios` (`apps/core/src/cuenta.ts`) responde solo a un token de la cuenta (`aud = cuenta`, ADR-28): el de una app ve lo de su producto por su lado. Lista lo que sale de la membresía en todos los productos, con el plan del token (con la gracia) y la dirección que abre la app de cada uno, la de staging o la de producción según `DESTINO`. La cuenta renueva con su refresh, pide los espacios y pinta una tarjeta por cada uno con las clases de `Tarjeta`, solo con texto (nada de HTML que venga de afuera). Estados: cargando, vacío con qué hacer y error con su causa y «Intentar de nuevo». 5 pruebas: 3 del CORE con dos productos y la cuenta de la misma persona, y 2 e2e con axe. Controles negativos: sin la revisión del `aud`, el token del agro ve todo y la prueba sale en rojo; CA3, quitar la membresía saca el espacio de la lista. Revisada en capturas a 360 px, en claro y en oscuro)
 - Como persona que tiene una finca y colabora en una tienda, quiero verlas juntas y abrir cada una con un toque.
 - **Respaldo:** ED1 §16 («qué ve cada persona sale de la membresía y del plan»).
 - **CA1.** Inicio muestra una tarjeta por organización: producto, nombre, rol, plan y vencimiento, y el botón que abre la app del producto.
@@ -988,6 +988,8 @@ Formato de cada historia:
 | HU-C9.8 · MCP del cuaderno con escritura (3) | HU-C9.7 un mes en uso. Las escrituras entran como operaciones con `dispositivo = mcp:<cliente>` y pasan por la cuarentena (PLATAFORMA §5.5) |
 | HU-C11.6 · Consola del dueño v0 (5) | El tercer producto con cuentas y pagos (ED1 §3.11 y §31.1). Mientras tanto, el reporte semanal y los tableros |
 | HU-C12.1 · Sitio principal `laboratorio-digital.com` con el sistema de diseño (5) | La marca pública del ecosistema (ED1 Fase 0, decisión D-C3) |
+| HU-C11.1 · Activar el vigía en modo pago (lo que queda: cambiar `plan` a `paid`) | El dueño activa Workers Paid. Decisión del 6 oct 2026: solo cuando sea estrictamente necesario y no haya otra salida para seguir avanzando o creciendo. El código ya está (C4) |
+| HU-C11.2 · Límites por Worker (2) | El mismo: `limits.cpu_ms` y `limits.subrequests` solo existen en el plan pagado (documentación de Cloudflare, leída el 6 oct 2026). En el gratuito la CPU ya está en 10 ms y las subsolicitudes en 50, fijas. Su CA2 (apagar workers.dev en los Workers nuevos de producción) puede hacerse antes si hace falta |
 
 ---
 
@@ -1010,7 +1012,7 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 |---|---|---|
 | Renombrar el repositorio en GitHub | C2 | `docs/runbooks/renombrar-repositorio.md` |
 | Contactos de recuperación de la cuenta y los tres dominios | ~~C2~~ Hecho (5 oct 2026): segundo factor y contactos de la cuenta de Cloudflare. Los tres dominios están registrados en Cloudflare (el dueño, 5 oct 2026): su recuperación depende de la misma cuenta. Riesgo aceptado por ahora, mitigado con el segundo factor y los contactos; se decide en HU-C11.5 si alguno pasa a otro registrador | HU-C1.3 |
-| Activar Workers Paid y las alertas de facturación | C4 (17 nov) | PLATAFORMA §3.2; HU-C11.1 |
+| Activar Workers Paid y las alertas de facturación | ~~C4 (17 nov)~~ Solo cuando sea estrictamente necesario (decisión del dueño, 6 oct 2026) | PLATAFORMA §3.2; HU-C11.1 y HU-C11.2, preparadas |
 | Agregar la zona `laboratorio-digital.app` | 30 nov (Tienda M0) | PLATAFORMA §9.5 |
 | URL de vuelta de Google para `cuenta.laboratorio-digital.com` | C5 | HU-C4.6, con los pasos exactos |
 | Autorizar la copia en su Google Drive | C11 | HU-C11.4, con los pasos exactos |
@@ -1042,6 +1044,7 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 | C3 | 18 | — (PR del 6 oct 2026, en revisión) | Las 5 historias en un día. Dos cambios de forma, dichos en cada historia: la auditoría es la 0007 y entrar con correo pasa a 0008; los componentes base son de Preact servidos como HTML, no de Astro, para probarlos sin levantar Vite |
 | C4 | 16 → 13 | — (rama lista el 6 oct 2026; su PR se abre al fusionar el del C3) | Las 5 historias en un día. HU-C3.7 pasó al C5 porque necesita HU-C4.3, y HU-C4.3 necesita la fase N en producción: el orden lo pone la transición de tokens (P10), no la capacidad |
 | C5 | 20 | 14 (PR #104, fusionado el 6 oct 2026) + 6 en revisión | Las 7 historias en un día, en dos PR. HU-C4.3 y HU-C3.7 esperaron a que la fase N llegara a producción con la 0.4.0 (17:18 UTC): el orden lo puso la transición de tokens (P10). Al fusionar el #104 justo después de la publicación, Git metió sus entradas en la versión publicada: bitácora core 6 y una guardia nueva |
+| C6 | 13 → 11 | — (PR del 6 oct 2026, en revisión) | Las 5 historias en un día. HU-C11.2 salió porque los límites por Worker solo existen en Workers Paid (decisión del dueño, 6 oct). HU-C5.2 ya estaba casi hecha desde HU-C2.3. Dos hallazgos de las pruebas en el navegador: el minificador rompía el revelado (bitácora core 7) y axe vio el contraste a media animación |
 
 ---
 

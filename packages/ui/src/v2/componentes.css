@@ -549,3 +549,35 @@ a:hover {
     padding: var(--espacio-40) var(--espacio-8);
   }
 }
+
+/* ── Revelado al desplazar (HU-C6.5) ───────────────────────────────────── */
+
+/* Solo donde el navegador lo entiende y la persona no pidió menos movimiento. Fuera de este bloque
+   nada empieza oculto: sin `animation-timeline`, todo se ve desde el principio (CA3). */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Propiedades largas y la línea de tiempo en su propia regla: el minificador juntaba todo en
+       el atajo «animation», que no acepta la línea de tiempo, y el navegador descartaba la regla. */
+    .ed1-revelar {
+      animation-name: ed1-revelar;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-range: entry 0% entry 60%;
+    }
+
+    :where(.ed1-revelar) {
+      animation-timeline: view();
+    }
+  }
+}
+
+@keyframes ed1-revelar {
+  from {
+    opacity: 0;
+    transform: translateY(var(--espacio-6));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

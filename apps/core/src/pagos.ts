@@ -14,7 +14,7 @@
  * - `conciliarPagos` (Cron Trigger cada 15 min): los que siguen esperando, por si la persona pagó
  *   y no volvió a la pantalla. Sin noticias en 24 h, el cobro queda «vencido».
  *
- * Cada pago suma un mes desde hoy, o desde el vencimiento si todavía no llegó. No hay débito
+ * Cada pago suma un mes calendario desde hoy, o desde el vencimiento si todavía no llegó. No hay débito
  * automático. Sin las llaves del proveedor, pagar responde que no está disponible y nada más
  * cambia (P1).
  */
@@ -24,6 +24,7 @@ import { uuidv7 } from '@ed1/ids';
 import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import { filaDeAuditoria } from './auditoria.ts';
+import { sumarMeses } from './calendario.ts';
 import type { Entorno } from './entrar.ts';
 import {
   cobroMensual,
@@ -36,8 +37,6 @@ import {
 import type { EstadoEnElProveedor, ProveedorDePago } from './proveedor-de-pago.ts';
 
 const DIA_MS = 24 * 60 * 60 * 1000;
-/** Un mes de plan: 30 días, igual para todos. */
-export const DIAS_POR_MES = 30;
 /** Pasado esto sin noticias, el cobro queda vencido (el proveedor deja de responder por él). */
 const VIDA_DE_UN_COBRO_MS = DIA_MS;
 /** Cobros que la conciliación revisa por vuelta: cada uno es una consulta al proveedor. */
@@ -156,10 +155,13 @@ export async function crearPago(c: Context, e: EntornoDePago): Promise<Response>
   return c.json({ orden, pruebas: e.proveedor.ambiente === 'pruebas', ...preparado });
 }
 
-/** Nuevo vencimiento: un mes más desde hoy, o desde el vencimiento si todavía no llegó. */
+/**
+ * Nuevo vencimiento: los meses pagados desde hoy, o desde el vencimiento si todavía no llegó. Meses
+ * calendario en la fecha de Bogotá, no 30 días (HU-C5.1).
+ */
 export function nuevoVencimiento(vigente: string | null, ahora: number, meses: number): string {
   const desde = Math.max(ahora, vigente ? Date.parse(vigente) : 0);
-  return new Date(desde + meses * DIAS_POR_MES * DIA_MS).toISOString();
+  return new Date(sumarMeses(desde, meses)).toISOString();
 }
 
 interface FilaDePago {
