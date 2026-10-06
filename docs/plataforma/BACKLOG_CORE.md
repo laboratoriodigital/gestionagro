@@ -574,7 +574,7 @@ Formato de cada historia:
 - **Work items:** WI-C4.5.1 `[código]` · WI-C4.5.2 `[prueba]` · WI-C4.5.3 `[dueño]` aprobar la contracción con el registro de la semana.
 
 #### HU-C4.6 · `cuenta.laboratorio-digital.com`
-- **Capa:** infraestructura · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C1.3 · **Estado:** Refinada
+- **Capa:** infraestructura · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C1.3 · **Estado:** En validación (rama `feat/c5-sprint`. `celdas.json › core` declara `dominio` y `zona` (el esquema exige los dos juntos); `generar-wrangler.ts` pone el Custom Domain arriba y `routes: []` en staging, con `workers_dev` encendido (CA2). La verificación del token ahora revisa cada zona con dominio de la celda, no solo la del sitio. El despliegue de producción dice si el dominio ya responde, sin detenerse: el certificado nuevo tarda, y los cuadernos usan workers.dev. CA3 es del dueño: las dos URL de vuelta, con los pasos en `docs/runbooks/despliegue.md`. 4 pruebas; control negativo dentro de CA4: un staging que hereda las rutas del CORE se nombra. Se crea de verdad con la primera publicación del CORE que lo lleve)
 - Como persona, quiero entrar al ecosistema por una dirección que diga de quién es.
 - **Respaldo:** PLATAFORMA §3.3 y §3.6; ADR-27; bitácora agro 19 (dominio en el Worker equivocado).
 - **CA1.** El Worker del CORE de producción tiene el Workers Custom Domain `cuenta.laboratorio-digital.com`, declarado en `celdas.json` y generado (no puesto a mano en el panel).

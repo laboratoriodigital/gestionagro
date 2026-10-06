@@ -33,7 +33,16 @@ export interface ConfigCeldas {
     dataset_eventos: string;
   };
   /** CORE v0 (ARQUITECTURA §5.4): su Worker y su base D1 viven en la cuenta de `celda`. */
-  core: { celda: string; worker: string; d1: string; url: string; url_staging: string };
+  core: {
+    celda: string;
+    worker: string;
+    d1: string;
+    url: string;
+    url_staging: string;
+    /** Dominio propio en producción y su zona (HU-C4.6). */
+    dominio?: string;
+    zona?: string;
+  };
   celdas: Celda[];
 }
 

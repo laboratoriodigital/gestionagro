@@ -66,7 +66,10 @@ export function wranglerDelCore(config: ConfigCeldas): Record<string, unknown> {
     name: core.worker,
     main: 'src/worker.ts',
     compatibility_date: FECHA_COMPATIBILIDAD,
+    // HU-C4.6: el dominio propio, solo en producción. workers.dev sigue vivo: los cuadernos
+    // instalados llaman a esa URL (P10).
     workers_dev: true,
+    ...(core.dominio ? { routes: [{ pattern: core.dominio, custom_domain: true }] } : {}),
     d1_databases: base(core.d1),
     // La conciliación de pagos (HU-E0.7), cada 15 min. Con el vigía de la celda son 4 de los 5
     // Cron Triggers que da la cuenta gratuita.
@@ -76,6 +79,7 @@ export function wranglerDelCore(config: ConfigCeldas): Record<string, unknown> {
       staging: {
         name: `${core.worker}-staging`,
         workers_dev: true,
+        routes: [],
         d1_databases: base(`${core.d1}_staging`),
         triggers: { crons: [CRON_CONCILIACION] },
       },

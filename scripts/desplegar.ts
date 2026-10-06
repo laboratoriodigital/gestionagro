@@ -418,8 +418,26 @@ async function desplegarCore(
       `CORE: ${url}`,
       `${notaD1}: migraciones aplicadas y ${activas} celdas activas en el directorio`,
       `Entrar con Google: responde, ${notaClave}, vuelve a ${origenApp}`,
+      ...(destino === 'produccion' && config.core.dominio
+        ? [await notaDelDominio(fetch, config.core.dominio)]
+        : []),
     ],
   };
+}
+
+/**
+ * HU-C4.6: si el dominio propio del CORE ya responde. Informa y no detiene: el certificado de un
+ * Custom Domain nuevo puede tardar unos minutos, y los cuadernos usan la URL de workers.dev (P10).
+ */
+async function notaDelDominio(fetchFn: typeof fetch, dominio: string): Promise<string> {
+  try {
+    const r = await fetchFn(`https://${dominio}/api/core/salud`, { redirect: 'manual' });
+    return r.status === 200
+      ? `dominio ${dominio}: responde`
+      : `⚠️ dominio ${dominio}: respondió ${r.status}; si es nuevo, vuelve a mirar en unos minutos`;
+  } catch (e) {
+    return `⚠️ dominio ${dominio}: todavía no responde (${(e as Error).message}); el certificado puede tardar unos minutos`;
+  }
 }
 
 async function desplegarApiCelda(
@@ -584,7 +602,12 @@ for (const celda of plan.aDesplegar) {
     token,
     cuenta,
     destino,
-    configCeldas.sitio.zona,
+    [
+      ...(celda.id === configCeldas.sitio.celda ? [configCeldas.sitio.zona] : []),
+      ...(celda.id === configCeldas.core.celda && configCeldas.core.zona
+        ? [configCeldas.core.zona]
+        : []),
+    ],
     true, // toda celda crea y migra las bases de sus shards (HU-E5.1)
   );
   if (fallasToken.length > 0 || !token || !cuenta) {

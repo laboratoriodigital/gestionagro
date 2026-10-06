@@ -13,6 +13,8 @@
     "celda": "c0",
     "worker": "agro-core",
     "d1": "agro_core",
+    "dominio": "cuenta.laboratorio-digital.com",
+    "zona": "laboratorio-digital.com",
     "url": "https://agro-core.laboratoriodigital-la.workers.dev",
     "url_staging": "https://agro-core-staging.laboratoriodigital-la.workers.dev"
   },

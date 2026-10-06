@@ -48,8 +48,19 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["celda", "worker", "d1", "url", "url_staging"],
+      "dependentRequired": { "dominio": ["zona"], "zona": ["dominio"] },
       "description": "CORE v0 (ARQUITECTURA §5.4): vive en la cuenta de esta celda, con su Worker y su base D1. Las URL las usa el cuaderno para entrar con Google (HU-E4.2); el despliegue falla si no coinciden con las que publica wrangler.",
       "properties": {
+        "dominio": {
+          "type": "string",
+          "pattern": "^[a-z0-9.-]+\\.[a-z]{2,}$",
+          "description": "Dominio propio del CORE en producción (HU-C4.6), como Workers Custom Domain. La URL de workers.dev sigue viva: los cuadernos instalados la usan (P10). Staging nunca lo declara."
+        },
+        "zona": {
+          "type": "string",
+          "pattern": "^[a-z0-9.-]+\\.[a-z]{2,}$",
+          "description": "Zona de Cloudflare del dominio del CORE; el despliegue revisa que el token pueda editar sus rutas."
+        },
         "url": {
           "type": "string",
           "pattern": "^https://[a-z0-9.-]+$"

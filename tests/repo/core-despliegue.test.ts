@@ -9,7 +9,9 @@ import {
   MIGRACIONES_CORE,
   RUTA_WRANGLER_CORE,
   textoWranglerDelCore,
+  wranglerDeLaCelda,
   wranglerDelCore,
+  wranglerDelSitio,
 } from '../../scripts/generar-wrangler.ts';
 import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 import {
@@ -301,5 +303,69 @@ describe('leer varias consultas de wrangler d1 execute --json (HU-C2.3)', () => 
       '🌀 Executing on remote database agro_core_staging:\n' +
       '[{"results":[{"id":"agro"}],"success":true},{"results":[],"success":true}]';
     expect(resultadosDeLaSalida(salida)).toEqual([[{ id: 'agro' }], []]);
+  });
+});
+
+describe('HU-C4.6 · el dominio de la cuenta', () => {
+  const config = cargarCeldas();
+  /** Los dominios de producción que declara alguna configuración de staging. */
+  const dominiosEnStaging = (configs: Record<string, unknown>[], dominios: string[]) =>
+    configs.flatMap((c) => {
+      const env = (c['env'] as Record<string, { routes?: { pattern: string }[] }>)['staging'];
+      // Sin `routes` propias, staging hereda las de arriba: también cuenta.
+      const rutas = env?.routes ?? (c['routes'] as { pattern: string }[] | undefined) ?? [];
+      return rutas.map((r) => r.pattern).filter((p) => dominios.includes(p));
+    });
+  const deProduccion = [config.sitio.dominio, config.core.dominio ?? ''].filter(Boolean);
+
+  it('CA1 · el CORE de producción tiene su Custom Domain, generado desde celdas.json', () => {
+    expect(config.core.dominio).toBe('cuenta.laboratorio-digital.com');
+    expect(wranglerDelCore(config)['routes']).toEqual([
+      { pattern: 'cuenta.laboratorio-digital.com', custom_domain: true },
+    ]);
+  });
+
+  it('CA2 · la URL de workers.dev sigue viva en producción', () => {
+    expect(wranglerDelCore(config)['workers_dev']).toBe(true);
+  });
+
+  it('CA4 ❌ · ningún Worker de staging declara un dominio de producción', () => {
+    const generadas = [
+      wranglerDelSitio(config),
+      wranglerDelCore(config),
+      ...config.celdas.map((c) => wranglerDeLaCelda(c)),
+    ];
+    expect(dominiosEnStaging(generadas, deProduccion)).toEqual([]);
+    // Control negativo: si staging hereda las rutas del CORE, se ve.
+    const mal = wranglerDelCore(config);
+    const { routes: _, ...stagingSinRutas } =
+      (mal['env'] as Record<string, Record<string, unknown>>)['staging'] ?? {};
+    expect(
+      dominiosEnStaging([{ ...mal, env: { staging: stagingSinRutas } }], deProduccion),
+    ).toEqual(['cuenta.laboratorio-digital.com']);
+  });
+
+  it('el token tiene que poder editar las rutas de cada zona con dominio, no solo la del sitio', async () => {
+    const pedidas: string[] = [];
+    const fn = (async (url: string) => {
+      pedidas.push(String(url));
+      if (String(url).includes('tokens/verify'))
+        return Response.json({ result: { status: 'active' } });
+      if (String(url).includes('zones?name=laboratorio-digital.com'))
+        return Response.json({ result: [] }); // el token no ve esta zona
+      if (String(url).includes('zones?name=')) return Response.json({ result: [{ id: 'z1' }] });
+      return Response.json({ success: true, result: [] });
+    }) as unknown as Fetch;
+    const fallas = await verificarToken(
+      fn,
+      config.celdas[0] as (typeof config.celdas)[number],
+      't',
+      'a',
+      'produccion',
+      ['cultivopro.co', 'laboratorio-digital.com'],
+    );
+    expect(fallas).toEqual([
+      'c0: el token no ve la zona laboratorio-digital.com; le falta «Zone → Workers Routes: Edit» en esa zona',
+    ]);
   });
 });

@@ -5,6 +5,12 @@
   "main": "src/worker.ts",
   "compatibility_date": "2026-09-30",
   "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "cuenta.laboratorio-digital.com",
+      "custom_domain": true
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
@@ -24,6 +30,7 @@
     "staging": {
       "name": "agro-core-staging",
       "workers_dev": true,
+      "routes": [],
       "d1_databases": [
         {
           "binding": "DB",
