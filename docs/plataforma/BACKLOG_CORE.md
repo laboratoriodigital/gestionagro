@@ -615,7 +615,7 @@ Formato de cada historia:
 - **Work items:** WI-C5.3.1 `[código]` · WI-C5.3.2 `[prueba]` · WI-C5.3.3 `[dueño]` pago de prueba de 6 meses · WI-C5.3.4 `[doc]` `docs/runbooks/pagos-bold.md`.
 
 #### HU-C5.4 · Cambiar de plan convierte lo que quedaba en días
-- **Capa:** pagos · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C5.3 · **Estado:** Refinada
+- **Capa:** pagos · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C5.3 · **Estado:** En validación (rama `feat/c7-sprint`. `creditoAlCambiar` es la fórmula de PLATAFORMA, pura; la activación del pago la aplica cuando el plan cambia con días por delante, con el precio mensual vigente de cada plan en `plan_precio`. Sin precio de uno de los dos (el gratuito no tiene), el crédito es cero. 4 pruebas: el ejemplo de PLATAFORMA (40 días → 10), el gratuito y los días que ya pasaron dan cero, bajar de plan da más días, y un cambio de Finca a Exportador de punta a punta. Control negativo: sin sumar el crédito, la de punta a punta sale en rojo)
 - Como quien sube de plan, quiero que no se pierda lo que ya pagué.
 - **Respaldo:** PLATAFORMA §4.8 (4).
 - **CA1.** `credito = ⌊días_restantes × precio_mensual(viejo) / precio_mensual(nuevo)⌋`; el vencimiento nuevo es `sumarMeses(ahora, meses) + credito`.

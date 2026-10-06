@@ -168,6 +168,20 @@ export async function crearPago(c: Context, e: EntornoDePago): Promise<Response>
 }
 
 /**
+ * Lo que quedaba de un plan, convertido en días del plan nuevo (HU-C5.4, PLATAFORMA §4.8):
+ * `⌊días_restantes × precio_mensual(viejo) / precio_mensual(nuevo)⌋`. Nada se devuelve en dinero, y
+ * sin uno de los dos precios (el gratuito no tiene) el crédito es cero.
+ */
+export function creditoAlCambiar(
+  diasRestantes: number,
+  mensualViejo: number | null,
+  mensualNuevo: number | null,
+): number {
+  if (!mensualViejo || !mensualNuevo || diasRestantes <= 0) return 0;
+  return Math.floor((diasRestantes * mensualViejo) / mensualNuevo);
+}
+
+/**
  * El precio vigente de un plan por un periodo, de `plan_precio` (HU-C5.3): la última fila de ese
  * plan y ese periodo. null si no hay precio, o si el plan es gratuito.
  */
@@ -281,7 +295,22 @@ async function aplicar(
     const desde = new Date(
       Math.max(ahora, delMismoPlan ? Date.parse(delMismoPlan) : 0),
     ).toISOString();
-    const vence = nuevoVencimiento(delMismoPlan, ahora, pago.meses);
+    // HU-C5.4: si cambia de plan con días pagados por delante, esos días pasan al plan nuevo.
+    const restante =
+      vigente && vigente.plan !== pago.plan && vigente.plan_vence
+        ? Math.floor((Date.parse(vigente.plan_vence) - ahora) / DIA_MS)
+        : 0;
+    const credito =
+      restante > 0 && vigente
+        ? creditoAlCambiar(
+            restante,
+            await precioVigente(db, pago.producto, vigente.plan, 1),
+            await precioVigente(db, pago.producto, pago.plan, 1),
+          )
+        : 0;
+    const vence = new Date(
+      Date.parse(nuevoVencimiento(delMismoPlan, ahora, pago.meses)) + credito * DIA_MS,
+    ).toISOString();
     const [cierre] = await db.batch([
       cerrar('aprobado', null),
       db

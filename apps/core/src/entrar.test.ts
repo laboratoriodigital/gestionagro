@@ -27,7 +27,7 @@ import { sumarMeses } from './calendario.ts';
 import { type ProductoDelCatalogo, sentenciasDelCatalogo } from './catalogo.ts';
 import { sentenciasDeCeldas } from './celdas.ts';
 import type { ProveedorGoogle } from './entrar.ts';
-import { conciliarPagos } from './pagos.ts';
+import { conciliarPagos, creditoAlCambiar } from './pagos.ts';
 import { POLITICA_VIGENTE } from './politica.ts';
 import { CATALOGO, CATALOGO_DE_STAGING, type CatalogoDelCore } from './productos.ts';
 import { crearOrganizacion } from './repositorio.ts';
@@ -1898,6 +1898,31 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
         });
       });
 
+      it('HU-C5.4 · cambiar de plan con días por delante los convierte en días del plan nuevo', async () => {
+        // Un precio de Exportador para la prueba: hoy no se cobra en línea.
+        await db
+          .prepare(
+            "INSERT INTO plan_precio (producto, plan, meses, monto_cop, vigente_desde) VALUES ('agro', 'exportador', 1, 149000, '2026-10-01T00:00:00.000Z')",
+          )
+          .run();
+        const p = await duena();
+        bold = aprobado(39000);
+        const finca = (await (await cobroDe(p.acceso, 1)).json()) as Cobro;
+        await pagar('/api/core/pago/confirmar', p.acceso, { orden: finca.orden });
+        reloj += 3600 * 1000;
+        const vigente = sumarMeses(T0, 1);
+        const restante = Math.floor((vigente - reloj) / (24 * 3600 * 1000));
+        bold = aprobado(149000);
+        const exportador = (await (await cobroDe(p.acceso, 1, 'exportador')).json()) as Cobro;
+        await pagar('/api/core/pago/confirmar', p.acceso, { orden: exportador.orden });
+        const credito = Math.floor((restante * 39000) / 149000);
+        expect(credito).toBe(7);
+        expect(await planDeLaFinca(p)).toMatchObject({
+          plan: 'exportador',
+          plan_vence: new Date(sumarMeses(reloj, 1) + credito * 24 * 3600 * 1000).toISOString(),
+        });
+      });
+
       it('CA4 ❌ · un periodo sin precio para ese plan no se cobra; un monto alterado queda en «revisar»', async () => {
         const p = await duena();
         for (const [meses, plan] of [
@@ -2061,5 +2086,21 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
       expect(r.status).toBe(503);
       expect(await r.json()).toMatchObject({ estado: 'no-disponible' });
     });
+  });
+});
+
+describe('HU-C5.4 · el crédito al cambiar de plan', () => {
+  it('CA2 · el ejemplo de PLATAFORMA: 40 días de Finca a Exportador son 10 días', () => {
+    expect(creditoAlCambiar(40, 39000, 149000)).toBe(10);
+  });
+
+  it('CA3 ❌ · desde el plan gratuito el crédito es cero, y nada se devuelve en dinero', () => {
+    expect(creditoAlCambiar(40, null, 149000)).toBe(0);
+    expect(creditoAlCambiar(0, 39000, 149000)).toBe(0);
+    expect(creditoAlCambiar(-3, 39000, 149000)).toBe(0);
+  });
+
+  it('bajar de plan da más días: lo pagado vale lo mismo', () => {
+    expect(creditoAlCambiar(10, 149000, 39000)).toBe(38);
   });
 });
