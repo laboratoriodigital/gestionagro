@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ### Agregado
 - Tienda 3.0: las reglas del dinero de las tiendas en un solo lugar (`@ed1/dinero`): pesos enteros, el total de un carrito con su cupón y su envío, el reparto exacto del descuento y el formato `$80.000`. Un precio que no se puede leer avisa, nunca vale cero, y el redondeo del cupón favorece al comprador (HU-T1.1).
+- Los días hábiles de Colombia con sus festivos (`@ed1/calendario`), para contar los plazos de las solicitudes de las tiendas y de la Ley 1581. Los comparten la Tienda y el CORE (HU-T1.2).
 
 ## [0.4.0] - 2026-10-06
 

@@ -293,6 +293,7 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 
 - **Las dos referencias de diseño usan tipografías propietarias.** Porsche usa la suya; Tracksmith, Akzidenz-Grotesk Extended y SainteColombe (medido en la página el 6 oct 2026). Se transfiere la idea (la pareja de serif ligera y sans, la cursiva como énfasis, el titular grande con el interletrado cerrado), no la fuente: las de la Tienda tienen que ser de licencia libre y autoalojadas (D-T2).
 - **La ficha de Tracksmith hace lo que la 2.0 aprendió por las malas.** Su botón principal dice «Select a size» hasta que la persona elige talla: es la regla del crítico de la bitácora ecommerce sobre el botón de WhatsApp. Se toma como patrón de la vitrina, no solo como estilo.
+- **Un año en Colombia no siempre tiene 18 festivos.** Cuando dos caen el mismo lunes, son 17: en 2030 la Pascua es el 21 de abril, el Sagrado Corazón (+71) cae el 1 de julio, y San Pedro y San Pablo (29 de junio, sábado) se corre a ese mismo lunes. La primera prueba de `@ed1/calendario` suponía 18 siempre y falló en 2030 (HU-T1.2). Contar días hábiles es contar fechas distintas, no festivos.
 
 ---
 

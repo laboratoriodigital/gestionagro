@@ -772,7 +772,7 @@ Formato de cada historia:
 - **CA3.** La supresión no borra en el acto: lo que la ley obliga a conservar (pagos) se conserva, y la respuesta lo explica.
 - **CA4 ❌.** Nunca se descargan datos de otra persona, ni con el id en el cuerpo.
 - **Pendiente:** los datos del responsable del tratamiento, que da el dueño (memoria «datos legales pendientes»).
-- **Work items:** WI-C7.7.1 `[código]` exportación · WI-C7.7.2 `[código]` radicados y plazos · WI-C7.7.3 `[prueba]` días hábiles con festivos · WI-C7.7.4 `[dueño]` responsable y canal.
+- **Work items:** WI-C7.7.1 `[código]` exportación · WI-C7.7.2 `[código]` radicados y plazos · WI-C7.7.3 `[prueba]` días hábiles con festivos (ya existen en `@ed1/calendario`, construido por la Tienda en HU-T1.2: se usa, no se reescribe, P2) · WI-C7.7.4 `[dueño]` responsable y canal.
 
 #### HU-C7.8 · La actividad de mi espacio
 - **Capa:** app · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C8 · **Depende de:** HU-C2.4, HU-C7.4 · **Estado:** Refinada

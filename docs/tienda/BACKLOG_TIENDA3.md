@@ -459,7 +459,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T1.1.1 `[código]` · WI-T1.1.2 `[prueba]` tabla de casos · WI-T1.1.3 `[prueba]` Node y workerd.
 
 #### HU-T1.2 · `@ed1/calendario`: días hábiles de Colombia, compartido con el CORE
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T0 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T0 · **Depende de:** — · **Estado:** En validación (rama `feat/t0-sprint`. `packages/calendario`: festivos de 2020 a 2040, `esHabil`, `sumarDiasHabiles`, `diasHabilesEntre`, `sumarDiasCalendario` y `fechaEnBogota`, todo en UTC. 18 pruebas: las tablas de 2026 y 2027 escritas a mano, y la batería repetida con el huso de Kiritimati, comprobando que el cambio de huso sí llegó. Lo que enseñó: **un año no siempre tiene 18 festivos**; en 2030 el Sagrado Corazón y San Pedro y San Pablo caen el mismo lunes (bitácora tienda3, terreno). Controles negativos: sin San José, o contando sábados y domingos, 4 pruebas en rojo. WI-T1.2.3 hecho: HU-C7.7 del CORE lo nombra)
 - Como comprador que radica un reclamo, quiero que el plazo que me dicen cuente los festivos de Colombia.
 - **Respaldo:** TIENDA §8.6 y §14.3; Ley 51 de 1983; HU-C7.7 (WI-C7.7.3 pide lo mismo para el CORE): **un solo paquete para los dos** (P2), que construye quien llega primero.
 - **CA1.** Festivos fijos, los que la Ley 51 corre al lunes y los que dependen de la Pascua (calculada), de 2026 a 2035; `esHabil`, `sumarDiasHabiles` y `sumarDiasCalendario`, en la fecha de Bogotá.

@@ -1,0 +1,10 @@
+{
+  "name": "@ed1/calendario",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Días hábiles de Colombia con sus festivos (Ley 51 de 1983) y la fecha de Bogotá. Neutro: lo usan la Tienda (solicitudes, TIENDA-3.0 §8.6) y el CORE (Ley 1581, HU-C7.7). HU-T1.2.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
