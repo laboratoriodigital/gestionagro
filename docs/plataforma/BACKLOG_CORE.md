@@ -681,7 +681,7 @@ Formato de cada historia:
 - **Work items:** WI-C6.3.1 `[diseño]` · WI-C6.3.2 `[código]` · WI-C6.3.3 `[prueba]` estados.
 
 #### HU-C6.4 · Galería viva y control visual
-- **Capa:** diseño y prueba · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C6.3 · **Estado:** Refinada
+- **Capa:** diseño y prueba · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C6.3 · **Estado:** En validación (rama `feat/c5-sprint`. `/_galeria/` y `/_galeria/oscuro/` en la cuenta; Astro ignora las páginas que empiezan con «_», así que salen de una ruta dinámica. CA2 cambió de forma: en vez de capturas por píxel se comparan los **estilos calculados** de cada muestra (radios, colores, tamaños, espacios) a 360 y 1280 px, en `tests/e2e/galeria.spec.ts-instantaneas/`. Dan lo mismo en Windows y en Linux (P3), sin una referencia que solo se puede hacer en Linux, y la diferencia se lee como texto. No ven cómo dibuja las letras cada sistema: las capturas por píxel quedan para cuando haya una referencia de Linux. axe sin violaciones en claro y en oscuro. **La galería encontró un error real:** el texto de «cargando» se desvanecía y a media animación bajaba a 4,19:1; ahora se mueve un punto y el texto queda quieto. CA3, control negativo: con el radio del botón en `--radio-campo`, la comparación sale en rojo con `999px` → `12px` a la vista)
 - Como dueño, quiero ver todos los componentes en una página y saber cuándo uno cambió sin querer.
 - **Respaldo:** P5, P20.
 - **CA1.** `/_galeria/` en la cuenta, con `noindex`, todos los componentes y estados en claro y oscuro.

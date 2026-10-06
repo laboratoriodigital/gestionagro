@@ -13,13 +13,15 @@ import '../estilos.css';
 interface Props {
   titulo: string;
   descripcion: string;
+  /** Fija el tema (la galería muestra los dos); sin él, el del sistema. */
+  tema?: 'claro' | 'oscuro';
 }
 
-const { titulo, descripcion } = Astro.props;
+const { titulo, descripcion, tema } = Astro.props;
 const marca = 'Laboratorio Digital';
 ---
 <!doctype html>
-<html lang="es-CO">
+<html lang="es-CO" data-tema={tema}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

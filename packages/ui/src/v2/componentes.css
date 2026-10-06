@@ -321,13 +321,23 @@ a:hover {
   max-width: var(--ancho-lectura);
 }
 
-.ed1-contenido--cargando {
+/* Lo que se mueve es un punto, no el texto: un texto que se desvanece baja del contraste AA a
+   media animación (lo encontró axe en la galería, HU-C6.4). */
+.ed1-contenido--cargando::before {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-inline-end: var(--espacio-2);
+  border-radius: var(--radio-pildora);
+  background: var(--acento);
+  vertical-align: middle;
   animation: ed1-respirar calc(var(--tiempo-largo) * 4) var(--curva-salida) infinite alternate;
 }
 
 @keyframes ed1-respirar {
   to {
-    opacity: 0.5;
+    opacity: 0.25;
   }
 }
 

@@ -36,3 +36,43 @@
     padding: var(--espacio-24) var(--espacio-8) 0;
   }
 }
+
+/* ── Galería (HU-C6.4) ─────────────────────────────────────────────────── */
+
+.galeria {
+  display: grid;
+  gap: var(--espacio-12);
+  max-width: var(--ancho-lectura);
+  margin: 0 auto;
+  padding: var(--espacio-8) var(--espacio-4) 0;
+}
+
+.galeria__titulo {
+  margin: 0;
+  font-size: var(--texto-titulo-1);
+  font-weight: var(--peso-display);
+  letter-spacing: var(--interletrado-display);
+}
+
+.galeria__texto {
+  margin: 0;
+  color: var(--texto-suave);
+}
+
+.galeria__seccion {
+  display: grid;
+  gap: var(--espacio-4);
+}
+
+.galeria__seccion > h2 {
+  margin: 0;
+  font-size: var(--texto-titulo-2);
+  font-weight: var(--peso-fuerte);
+}
+
+.galeria__fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-3);
+  align-items: flex-start;
+}

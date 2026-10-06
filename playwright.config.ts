@@ -41,9 +41,20 @@ export default defineConfig({
     { name: 'telefono-360', grepInvert: /@rendimiento/ },
     { name: 'rendimiento', grep: /@rendimiento/, dependencies: ['telefono-360'] },
   ],
-  webServer: {
-    command: `node scripts/servir-estatico.ts apps/sitio/dist ${PUERTO} /agro/app/=apps/cuaderno/dist`,
-    url: `http://localhost:${PUERTO}/herramientas/agro/`,
-    reuseExistingServer: false,
-  },
+  // Las instantáneas de texto (los estilos de la galería, HU-C6.4) son las mismas en todo sistema:
+  // sin el sufijo de plataforma que Playwright les pone por defecto.
+  snapshotPathTemplate: '{testDir}/{testFileName}-instantaneas/{arg}{ext}',
+  webServer: [
+    {
+      command: `node scripts/servir-estatico.ts apps/sitio/dist ${PUERTO} /agro/app/=apps/cuaderno/dist`,
+      url: `http://localhost:${PUERTO}/herramientas/agro/`,
+      reuseExistingServer: false,
+    },
+    {
+      // La cuenta (HU-C7.2), en su propio origen, como en producción.
+      command: 'node scripts/servir-estatico.ts apps/cuenta/dist 4330',
+      url: 'http://localhost:4330/',
+      reuseExistingServer: false,
+    },
+  ],
 });
