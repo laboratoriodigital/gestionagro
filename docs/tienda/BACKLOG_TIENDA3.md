@@ -1610,7 +1610,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 
 | Sprint | Comprometido | Validado por el dueño | Nota |
 |---|---|---|---|
-| T0 | 21 | — | Carril de holgura; HU-T0.1 en este PR |
+| T0 | 21 | 1 (HU-T0.1, PR #101) | Carril de holgura, construido el 6 oct 2026 en el PR del sprint: HU-T1.1 a HU-T1.4 y HU-T3.1 esperan validación; HU-T12.1 espera las respuestas del dueño. Con 5 historias en validación se pasó el tope de 3 (§3.6): no se abrió T1 |
 
 ---
 

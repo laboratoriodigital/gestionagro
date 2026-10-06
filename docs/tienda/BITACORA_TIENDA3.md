@@ -54,7 +54,7 @@ Lista viva de patrones.
 - **Lo impide hoy** se escribe solo cuando esa guardia existe, falla en rojo con el defecto puesto y se comprobó al escribirlo.
 - **Entradas** son los números de esta bitácora que lo confirman.
 
-Al 6 oct 2026 no hay código de la Tienda 3.0: ningún patrón tiene todavía «Lo impide hoy» propio. Lo que ya existe son las 82 comprobaciones del modelo de datos con `node:sqlite` (`sql/probar-tienda.mjs`), que pasan a D1 en HU-T2.1.
+Al 6 oct 2026, en la tarde, la Tienda tiene sus cuatro paquetes puros (sprint T0) y dos patrones con «Lo impide hoy»: P1 y P17. Las 82 comprobaciones del modelo de datos siguen con `node:sqlite` (`sql/probar-tienda.mjs`) y pasan a D1 en HU-T2.1.
 
 ### Heredados del ecosistema
 
@@ -63,6 +63,7 @@ Al 6 oct 2026 no hay código de la Tienda 3.0: ningún patrón tiene todavía «
 - **En la Tienda 3.0:** un precio ilegible nunca vale 0; un campo obligatorio vacío nunca se llena con un valor de fábrica (en la 2.0, el celular de fábrica mandaba los pedidos de otra tienda a la primera); un hostname sin tienda responde «Esta dirección no tiene tienda», nunca otra tienda; un pago aprobado sin existencias sube arriba del panel; un horno que falla deja la versión anterior y dice por qué.
 - **Lo impedirá:** HU-T1.1, HU-T1.4, HU-T4.3, HU-T5.1, HU-T10.3, HU-T11.7.
 - **Entradas:** —
+- **Lo impide hoy:** `@ed1/dinero` lanza ante un monto ilegible en vez de devolver 0, y `@ed1/tienda-schema` no trae ningún valor por defecto en contacto ni en la ficha legal; las dos pruebas se vieron en rojo con el defecto puesto (6 oct 2026).
 
 #### P2 · Dos copias del mismo procedimiento: una siempre se queda atrás
 - **Regla:** una sola fuente, y lo demás se deriva de ella. Si no se puede, una aserción ata las dos copias.
@@ -86,7 +87,7 @@ Al 6 oct 2026 no hay código de la Tienda 3.0: ningún patrón tiene todavía «
 - **Regla:** antes de dar una comprobación, preguntar qué respondería sin el cambio. Toda aserción nueva se ve en rojo con su defecto puesto.
 - **En la Tienda 3.0:** sin `CHECK (reservado <= stock)`, la última unidad se vende dos veces; sin el trigger de aceptación, un pedido web sin prueba sale de `pendiente`; sin el escapado, el corpus de XSS se ejecuta. Cada PR dice su control negativo.
 - **Lo impedirá:** la plantilla de PR; la Definición de Terminado, punto 3.
-- **Entradas:** —
+- **Entradas:** tienda3 5.
 
 #### P6 · Lo que se escribe para los que vienen después deja fuera al primero
 - **Regla:** el cliente cero también es un cliente.
@@ -110,7 +111,7 @@ Al 6 oct 2026 no hay código de la Tienda 3.0: ningún patrón tiene todavía «
 - **Regla:** ningún diagnóstico se da por bueno sin reproducir el fallo.
 - **En la Tienda 3.0:** un pago que no se reflejó se reproduce con el aviso exacto de Bold (cuerpo y firma) contra el D1 local; un horneado distinto, con los mismos datos en los dos runtimes.
 - **Lo impedirá:** HU-T11.5, HU-T11.6 (un Bold falso que firma y responde de verdad).
-- **Entradas:** —
+- **Entradas:** tienda3 6.
 
 #### P10 · El que se actualiza a sí mismo corre su versión vieja
 - **Regla:** un arreglo en el que se actualiza llega una versión tarde. Y quien vuelve atrás corre también la vieja.
@@ -159,12 +160,13 @@ Al 6 oct 2026 no hay código de la Tienda 3.0: ningún patrón tiene todavía «
 - **En la Tienda 3.0:** el modelo se probó con `node:sqlite` y falta D1; el horno se prueba en Node y en workerd porque `Intl` cambia entre runtimes; el Bold falso firma de verdad con la llave vacía de pruebas; un navegador de escritorio no codifica imágenes como Safari.
 - **Lo impedirá:** HU-T2.1, HU-T4.1, HU-T8.3, HU-T11.5, HU-T11.6.
 - **Entradas:** tienda3 2.
+- **Lo impide hoy:** `tests/repo/tienda-paquetes-puros.test.ts`: ningún paquete puro de la Tienda (`dinero`, `calendario`, `cifrado`, `tienda-schema`) usa `Intl`, el reloj, el azar ni módulos de Node; la prueba se vio atrapar cada forma prohibida (6 oct 2026).
 
 #### P18 · Un documento no lanza una excepción cuando miente
 - **Regla:** lo que un documento afirma del código lo ata una aserción; el redundante se borra.
 - **En la Tienda 3.0:** TIENDA propone, ARQUITECTURA decide; los anexos de SQL los ata una prueba al archivo; los runbooks, una prueba que busca lo que nombran. Un documento que cita a otro dice lo que el otro dice.
 - **Lo impedirá:** HU-T2.1, HU-T17.5; la Definición de Terminado, punto 8.
-- **Entradas:** tienda3 1, 4.
+- **Entradas:** tienda3 1, 4, 5, 6.
 
 #### P19 · Un rojo que no significa nada enseña a no mirar los rojos
 - **Regla:** una guarda con falsos positivos o un intermitente se arregla o se quita.
