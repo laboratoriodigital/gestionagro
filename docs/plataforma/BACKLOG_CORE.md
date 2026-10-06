@@ -460,7 +460,7 @@ Formato de cada historia:
 ### EC3 · La API por producto
 
 #### HU-C3.1 · Entrar con producto
-- **Capa:** API · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C3 · **Depende de:** HU-C2.2, HU-C2.3 · **Estado:** Refinada
+- **Capa:** API · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** C3 · **Depende de:** HU-C2.2, HU-C2.3 · **Estado:** En validación (rama `feat/c3-sprint`. El Worker lee `productos.json` y la política de cada producto con un import (`apps/core/src/productos.ts`), sin consultar la base en cada entrada; una prueba exige la política de cada producto (P2). La aceptación va a `aceptacion_politica` solo si es nueva; `usuario.politica_*` sigue siendo solo del agro hasta contraer. El canje revisa el origen **antes** de gastar el código, y ahora exige `Origin`: todo navegador lo manda en un POST de otro origen, así que ningún cliente real cambia. 5 pruebas con un producto de ensayo inyectado; una prueba vieja ajustada para mandar `Origin` como el navegador. Control negativo: sin la revisión del origen, el canje desde otra app pasa y la prueba se ve en rojo)
 - Como persona que usa dos productos, quiero entrar a cada app y que la sesión sea de esa app, para que lo de una no abra la otra.
 - **Respaldo:** PLATAFORMA §4.6 (sesión por producto) y §4.7; ED1 §5.2 y §16.
 - **CA1.** `GET /api/core/auth/google/inicio` acepta `producto`. Sin él, es `agro` mientras dure la transición.

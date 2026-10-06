@@ -6,6 +6,7 @@
 
 import { createHash } from 'node:crypto';
 import type { BaseD1, SentenciaD1 } from '@ed1/d1';
+import type { Producto } from '@ed1/productos';
 import { type ClavePublica, generarClavePrivada, hashDe, verificarAcceso } from '@ed1/tokens';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
@@ -14,6 +15,7 @@ import { sentenciasDeCeldas } from './celdas.ts';
 import type { ProveedorGoogle } from './entrar.ts';
 import { conciliarPagos } from './pagos.ts';
 import { POLITICA_VIGENTE } from './politica.ts';
+import { CATALOGO, type CatalogoDelCore } from './productos.ts';
 import { crearOrganizacion } from './repositorio.ts';
 import { VIDA_CODIGO_MS } from './sesiones.ts';
 import { crearApp, type Env, proveedorDePagoDe } from './worker.ts';
@@ -293,6 +295,113 @@ describe('CA4 · ningún token en una URL ni en el log; D1 guarda solo hashes', 
   });
 });
 
+describe('HU-C3.1 · entrar con producto', () => {
+  const ENSAYO = 'https://ensayo.ejemplo.test';
+  const catalogo: CatalogoDelCore = {
+    productos: [
+      ...CATALOGO.productos,
+      {
+        id: 'ensayo',
+        nombre: 'Producto Ensayo',
+        estado: 'activo',
+        app: { origenes: { produccion: ENSAYO, staging: ENSAYO }, rutas_de_vuelta: ['/panel/'] },
+        tipos: ['comercio'],
+        roles: [{ id: 'propietario', administra: true, invitable: true }],
+        planes: 'content/agro/cuaderno/planes.json',
+        politica: 'content/agro/privacidad/politica.json',
+        prefijo_de_cobro: 'ensayo',
+        gracia_dias: 7,
+      },
+      { ...CATALOGO.productos[0], id: 'dormido', estado: 'pausado' } as Producto,
+    ],
+    politicas: { ...CATALOGO.politicas, ensayo: 'e1', dormido: 'd1' },
+  };
+  const conEnsayo = crearApp({ google: () => googleFalso(), ahora: () => reloj, catalogo });
+  const ir = (ruta: string, init: RequestInit = {}) =>
+    conEnsayo.fetch(new Request(`${CORE}${ruta}`, init), env);
+  const inicioCon = (producto: string | null, vuelta: string, politica: string) =>
+    ir(
+      `/api/core/auth/google/inicio?${producto ? `producto=${producto}&` : ''}vuelta=${encodeURIComponent(vuelta)}&politica=${politica}`,
+    );
+
+  beforeEach(async () => {
+    await db
+      .prepare(
+        "INSERT OR IGNORE INTO producto (id, nombre, estado, actualizado) VALUES ('ensayo', 'Producto Ensayo', 'activo', '2026-10-06')",
+      )
+      .run();
+  });
+
+  /** Entra al producto de ensayo y devuelve el código de entrada. */
+  async function entrarAEnsayo(): Promise<string> {
+    const ida = await inicioCon('ensayo', `${ENSAYO}/panel/`, 'e1');
+    expect(ida.status).toBe(302);
+    const cookie = (ida.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+    const state = new URL(ida.headers.get('location') ?? '').searchParams.get('state');
+    const vuelta = await ir(`/api/core/auth/google/callback?code=code-bueno&state=${state}`, {
+      headers: { cookie },
+    });
+    const destino = vuelta.headers.get('location') ?? '';
+    expect(destino.startsWith(`${ENSAYO}/panel/#entrar=`)).toBe(true);
+    return destino.split('#entrar=')[1] ?? '';
+  }
+
+  it('sin producto es el agro: el cuaderno instalado entra como siempre (P10)', async () => {
+    expect((await inicioCon(null, VUELTA, POLITICA_VIGENTE)).status).toBe(302);
+  });
+
+  it('CA4: rechaza una vuelta de otro producto, en los dos sentidos', async () => {
+    expect((await inicioCon('agro', `${ENSAYO}/panel/`, POLITICA_VIGENTE)).status).toBe(400);
+    expect((await inicioCon('ensayo', VUELTA, 'e1')).status).toBe(400);
+    // Y una ruta que no es de vuelta, aunque el origen sea el suyo.
+    expect((await inicioCon('ensayo', `${ENSAYO}/otra/`, 'e1')).status).toBe(400);
+  });
+
+  it('CA4: rechaza la política de otro producto, un producto pausado y uno que no existe', async () => {
+    const otraPolitica = await inicioCon('ensayo', `${ENSAYO}/panel/`, POLITICA_VIGENTE);
+    expect(otraPolitica.status).toBe(400);
+    expect(await otraPolitica.text()).toContain('versión e1');
+    const pausado = await inicioCon('dormido', VUELTA, 'd1');
+    expect(await pausado.text()).toContain('en pausa');
+    expect(await (await inicioCon('fantasma', VUELTA, 'x')).text()).toContain('no existe');
+  });
+
+  it('CA2 y CA3: la sesión nace con su producto, con su política aceptada, y la entrada se audita con él', async () => {
+    const codigo = await entrarAEnsayo();
+    expect(
+      await db.prepare("SELECT producto FROM sesion WHERE dispositivo = 'sin-canjear'").first(),
+    ).toEqual({ producto: 'ensayo' });
+    expect(
+      await db.prepare('SELECT producto, version FROM aceptacion_politica').all(),
+    ).toMatchObject({ results: [{ producto: 'ensayo', version: 'e1' }] });
+    // La política del agro (usuario.politica_*) no la escribe otro producto.
+    expect(await db.prepare('SELECT politica_version FROM usuario').first()).toEqual({
+      politica_version: null,
+    });
+    expect(
+      await db.prepare("SELECT producto FROM auditoria WHERE accion = 'entrada'").first(),
+    ).toEqual({ producto: 'ensayo' });
+    expect(codigo).not.toBe('');
+  });
+
+  it('CA3 ❌: el canje desde la app de otro producto se rechaza sin gastar el código', async () => {
+    const codigo = await entrarAEnsayo();
+    const desdeElAgro = await ir('/api/core/auth/canje', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: APP },
+      body: JSON.stringify({ codigo, dispositivo: 't1' }),
+    });
+    expect(desdeElAgro.status).toBe(403);
+    expect(await desdeElAgro.json()).toMatchObject({ estado: 'otro-producto' });
+    const desdeSuApp = await ir('/api/core/auth/canje', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: ENSAYO },
+      body: JSON.stringify({ codigo, dispositivo: 't1' }),
+    });
+    expect(desdeSuApp.status).toBe(200);
+  });
+});
+
 describe('CORS, configuración y kill switch', () => {
   it('solo el cuaderno puede leer el canje desde el navegador', async () => {
     const pre = (origen: string) =>
@@ -422,7 +531,8 @@ describe('HU-E4.3 · crear la organización de la finca del teléfono', () => {
     const s2 = (await (
       await pedirAjeno('/api/core/auth/canje', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        // Como el navegador: un POST de otro origen siempre lleva Origin (HU-C3.1 lo exige).
+        headers: { 'content-type': 'application/json', origin: APP },
         body: JSON.stringify({ codigo, dispositivo: 't2' }),
       })
     ).json()) as Sesion;

@@ -178,3 +178,15 @@ describe('cada celda es de un producto declarado (HU-C1.4, PLATAFORMA §4.9)', (
     expect(() => cargarCeldas(datos)).toThrow(/c0: tienda_c0_s2/);
   });
 });
+
+describe('el catálogo del CORE trae la política de cada producto (HU-C3.1, P2)', () => {
+  it('cada producto de productos.json tiene la versión vigente de su política', async () => {
+    const { CATALOGO } = await import('../../apps/core/src/productos.ts');
+    for (const p of cargarProductos().productos) {
+      const archivo = JSON.parse(readFileSync(join(RAIZ, p.politica), 'utf8')) as {
+        version: string;
+      };
+      expect(CATALOGO.politicas[p.id], p.id).toBe(archivo.version);
+    }
+  });
+});

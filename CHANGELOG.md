@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Cada aplicación del ecosistema entra con su propia sesión y su propia política de datos: un enlace de entrada de una no sirve en otra. El cuaderno entra igual que siempre (HU-C3.1).
 - El CORE lleva un registro de lo que toca seguridad o dinero en cada finca (quién entró, quién aceptó una invitación, qué rol cambió, qué se pagó), y quien la administra lo puede ver (HU-C2.4).
 - Las fuentes del sistema de diseño v2: Geist y Geist Mono, recortadas al español (57 KB las dos) y servidas desde el mismo sitio, con un respaldo ajustado para que la página no salte mientras cargan (HU-C6.2, ADR-29).
 - El despliegue copia los productos y los precios de sus archivos a la base del CORE, antes que las celdas, y después comprueba que la base diga lo mismo. Un precio nuevo entra como fila nueva y el anterior queda como historia; un plan o un producto que sale del archivo queda retirado, nunca borrado (HU-C2.3).

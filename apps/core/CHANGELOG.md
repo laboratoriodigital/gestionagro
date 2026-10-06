@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Entrar con producto: `inicio` acepta `producto` (sin él, el agro), valida la vuelta y la política de ese producto, y la sesión nace con él. El canje solo se hace desde la app del producto de la sesión, y se mira antes de gastar el código (HU-C3.1).
 - Auditoría de lo que toca seguridad o dinero (migración 0007): cada entrada, invitación aceptada, cambio de rol, persona quitada, teléfono retirado y pago cerrado deja una fila, en el mismo lote que el hecho. Quien administra la ve con `POST /api/core/auditoria/ver` (HU-C2.4).
 - La base sabe de productos (migración 0006, ADR-20): productos, tipos, roles, planes, periodos de 1, 3, 6 y 12 meses y precios, con claves foráneas que hacen imposibles los cruces entre productos. Es la fase de expandir: el código de hoy sigue igual (HU-C2.2).
 - El despliegue copia el catálogo de productos y precios desde `infrastructure/productos.json` y cada `planes.json`, y comprueba que la base diga lo mismo antes de publicar el Worker (HU-C2.3).

@@ -58,6 +58,7 @@ import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
+import { CATALOGO, type CatalogoDelCore } from './productos.ts';
 import { type ProveedorDePago, proveedorBold } from './proveedor-de-pago.ts';
 
 export { PRODUCTO_CORE };
@@ -80,6 +81,8 @@ export interface Env {
 }
 
 export interface Dependencias {
+  /** Los productos que atiende el CORE (HU-C3.1); las pruebas pasan uno con un producto de ensayo. */
+  catalogo?: CatalogoDelCore;
   google?: (env: Env) => ProveedorGoogle;
   /** Permiso de Drive del productor (HU-E8.4); las pruebas pasan uno falso. */
   drive?: (env: Env) => ProveedorDrive;
@@ -208,6 +211,7 @@ export function crearApp(dependencias: Dependencias = {}) {
       google: google(c.env),
       origenes: origenesDe(c.env),
       ahora,
+      catalogo: dependencias.catalogo ?? CATALOGO,
     });
     await siguiente();
     return undefined;

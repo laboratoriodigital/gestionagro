@@ -29,16 +29,25 @@ export class SesionInvalida extends Error {
   override name = 'SesionInvalida';
 }
 
-/** Crea la sesión y devuelve el código de entrada (en claro, solo esta vez). */
-export async function crearSesion(db: BaseD1, usuarioId: string, ahora: number): Promise<string> {
+/**
+ * Crea la sesión y devuelve el código de entrada (en claro, solo esta vez). La sesión nace con su
+ * producto (HU-C3.1): su refresh solo sirve a ese producto.
+ */
+export async function crearSesion(
+  db: BaseD1,
+  usuarioId: string,
+  ahora: number,
+  producto = 'agro',
+): Promise<string> {
   const codigo = secretoAlAzar();
   await db
     .prepare(
-      'INSERT INTO sesion (id, usuario_id, refresh_hash, dispositivo, creado, expira) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO sesion (id, usuario_id, producto, refresh_hash, dispositivo, creado, expira) VALUES (?, ?, ?, ?, ?, ?, ?)',
     )
     .bind(
       secretoAlAzar(),
       usuarioId,
+      producto,
       await hashDe(codigo),
       SIN_CANJEAR,
       iso(ahora),
@@ -46,6 +55,50 @@ export async function crearSesion(db: BaseD1, usuarioId: string, ahora: number):
     )
     .run();
   return codigo;
+}
+
+/**
+ * El producto de la sesión de un código de entrada todavía sin canjear, o null si no hay ninguno
+ * vigente. Solo lee: el código no se gasta (HU-C3.1).
+ */
+export async function productoDelCodigo(
+  db: BaseD1,
+  codigo: string,
+  ahora: number,
+): Promise<string | null> {
+  const fila = await db
+    .prepare(
+      'SELECT producto FROM sesion WHERE refresh_hash = ? AND dispositivo = ? AND revocado IS NULL AND expira > ?',
+    )
+    .bind(await hashDe(codigo), SIN_CANJEAR, iso(ahora))
+    .first<{ producto: string }>();
+  return fila?.producto ?? null;
+}
+
+/**
+ * Guarda que la persona aceptó esa versión de la política de ese producto (HU-C3.1, migración
+ * 0006). Solo escribe si es nueva: volver a entrar con la misma versión no gasta escrituras.
+ */
+export async function aceptarPolitica(
+  db: BaseD1,
+  usuarioId: string,
+  producto: string,
+  version: string,
+  ahora: number,
+): Promise<void> {
+  const ya = await db
+    .prepare(
+      'SELECT 1 AS si FROM aceptacion_politica WHERE usuario_id = ? AND producto = ? AND version = ?',
+    )
+    .bind(usuarioId, producto, version)
+    .first();
+  if (ya) return;
+  await db
+    .prepare(
+      'INSERT INTO aceptacion_politica (usuario_id, producto, version, aceptada) VALUES (?, ?, ?, ?)',
+    )
+    .bind(usuarioId, producto, version, iso(ahora))
+    .run();
 }
 
 export interface SesionActiva {
