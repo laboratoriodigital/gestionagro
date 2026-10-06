@@ -604,7 +604,7 @@ Formato de cada historia:
 - **Work items:** WI-C5.2.1 `[código]` · WI-C5.2.2 `[prueba]`.
 
 #### HU-C5.3 · Pagar 1, 3, 6 o 12 meses
-- **Capa:** pagos · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C7 · **Depende de:** HU-C5.1, HU-C5.2, HU-C3.4 · **Estado:** Refinada
+- **Capa:** pagos · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C7 · **Depende de:** HU-C5.1, HU-C5.2, HU-C3.4 · **Estado:** En validación (rama `feat/c7-sprint`. `pago/crear` acepta `meses`; sin él, uno, como pagan los cuadernos instalados (P10). El monto sale de `precioVigente`: la última fila de `plan_precio` de ese plan y ese periodo, solo de un plan activo y no gratuito; `cobroMensual` del catálogo se fue. Al aprobar, `periodo_desde` y `periodo_hasta` quedan en el pago, en el mismo lote que el plan. De paso, la auditoría del pago nombra su producto (decía «agro» fijo). 3 pruebas: 6 meses de punta a punta, un segundo pago que empieza donde termina el vigente, y CA4 (un periodo de 2 meses, «6» como texto, un plan sin ese precio y el gratuito no se cobran; un monto alterado queda en «revisar»). Control negativo: con `meses` fijo en 1, las 3 en rojo. CA5 lo hace el dueño en staging cuando el cuaderno ofrezca los periodos (HU-C5.7). Runbook de pagos al día)
 - Como quien administra, quiero pagar varios meses de una vez, para pagar menos comisión y olvidarme del pago por un tiempo.
 - **Respaldo:** PLATAFORMA §4.8 (1, 3 y 6); ED1 §5.3; estudio de ecommerce §13.4 (sin débito automático).
 - **CA1.** `POST /api/core/pago/crear` acepta `meses`: un periodo con precio vigente para ese plan. El monto sale de `plan_precio`, nunca del cliente.

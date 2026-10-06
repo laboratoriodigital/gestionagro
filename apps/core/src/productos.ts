@@ -152,20 +152,6 @@ export function planesDe(catalogo: CatalogoDelCore, producto: string): readonly 
 }
 
 /**
- * Lo que se cobra en línea por un mes de ese plan de ese producto, o null si no se paga en línea.
- * Un plan de otro producto no existe aquí: el nombre se busca solo entre los del producto.
- */
-export function cobroMensual(
-  catalogo: CatalogoDelCore,
-  producto: string,
-  plan: string,
-): number | null {
-  const monto = planesDe(catalogo, producto).find((p) => p.id === plan)?.cobro_mensual_cop;
-  // Bold no abre pagos de menos de $1.000.
-  return typeof monto === 'number' && Number.isInteger(monto) && monto >= 1000 ? monto : null;
-}
-
-/**
  * Todos los orígenes que el CORE atiende: la unión de los de cada producto que no está retirado
  * (HU-C3.5). Es lo que CORS deja leer; qué producto puede usar cada ruta lo decide aparte el
  * origen de la sesión, porque estar en la unión no basta.

@@ -27,7 +27,6 @@ import { filaDeAuditoria } from './auditoria.ts';
 import { sumarMeses } from './calendario.ts';
 import type { Entorno } from './entrar.ts';
 import {
-  cobroMensual,
   planesDe,
   productoDe,
   productoDeOrganizacion,
@@ -100,12 +99,24 @@ export async function crearPago(c: Context, e: EntornoDePago): Promise<Response>
   if (!e.proveedor) return noDisponible(c);
   const quien = await administradorDe(c, e);
   if ('error' in quien) return quien.error;
-  const leido = (await c.req.json().catch(() => ({}))) as { plan?: unknown; vuelta?: unknown };
+  const leido = (await c.req.json().catch(() => ({}))) as {
+    plan?: unknown;
+    vuelta?: unknown;
+    meses?: unknown;
+  };
   const plan = typeof leido.plan === 'string' ? leido.plan : '';
+  // HU-C5.3: 1, 3, 6 o 12 meses. Sin `meses`, uno: así pagan los cuadernos ya instalados (P10).
+  const meses = leido.meses === undefined ? 1 : leido.meses;
   const { producto } = quien.sesion;
-  const monto = cobroMensual(e.catalogo, producto, plan);
+  // El monto sale del precio vigente en la base para ese plan y ese periodo, nunca del cliente.
+  const monto = Number.isInteger(meses)
+    ? await precioVigente(e.db, producto, plan, meses as number)
+    : null;
   if (monto === null) {
-    return c.json({ estado: 'invalido', motivo: 'Ese plan no se puede pagar en línea.' }, 400);
+    return c.json(
+      { estado: 'invalido', motivo: 'Ese plan no se puede pagar en línea por ese tiempo.' },
+      400,
+    );
   }
   const delCatalogo = productoDe(e.catalogo, producto);
   if (!('producto' in delCatalogo)) {
@@ -129,7 +140,7 @@ export async function crearPago(c: Context, e: EntornoDePago): Promise<Response>
   await e.db
     .prepare(
       `INSERT INTO pago (id, producto, proveedor, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, creado, actualizado)
-       VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, 'esperando', ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'esperando', ?, ?)`,
     )
     .bind(
       orden,
@@ -138,6 +149,7 @@ export async function crearPago(c: Context, e: EntornoDePago): Promise<Response>
       quien.sesion.org,
       quien.sesion.usuario,
       plan,
+      meses,
       monto,
       e.proveedor.ambiente,
       ahora,
@@ -149,10 +161,32 @@ export async function crearPago(c: Context, e: EntornoDePago): Promise<Response>
   const preparado = await e.proveedor.prepararCobro({
     orden,
     monto,
-    descripcion: `Plan ${nombre} de ${delCatalogo.producto.nombre}, un mes`,
+    descripcion: `Plan ${nombre} de ${delCatalogo.producto.nombre}, ${meses === 1 ? 'un mes' : `${meses} meses`}`,
     vuelta: destino.toString(),
   });
   return c.json({ orden, pruebas: e.proveedor.ambiente === 'pruebas', ...preparado });
+}
+
+/**
+ * El precio vigente de un plan por un periodo, de `plan_precio` (HU-C5.3): la última fila de ese
+ * plan y ese periodo. null si no hay precio, o si el plan es gratuito.
+ */
+export async function precioVigente(
+  db: BaseD1,
+  producto: string,
+  plan: string,
+  meses: number,
+): Promise<number | null> {
+  const fila = await db
+    .prepare(
+      `SELECT pp.monto_cop FROM plan_precio pp
+         JOIN plan p ON p.producto = pp.producto AND p.id = pp.plan
+        WHERE pp.producto = ? AND pp.plan = ? AND pp.meses = ? AND p.gratuito = 0 AND p.estado = 'activo'
+        ORDER BY pp.vigente_desde DESC LIMIT 1`,
+    )
+    .bind(producto, plan, meses)
+    .first<{ monto_cop: number }>();
+  return fila?.monto_cop ?? null;
 }
 
 /**
@@ -169,6 +203,7 @@ interface FilaDePago {
   org_id: string;
   /** Quien pagó: la auditoría lo nombra (HU-C2.4). */
   usuario_id: string;
+  producto: string;
   plan: string;
   meses: number;
   monto_cop: number;
@@ -178,7 +213,8 @@ interface FilaDePago {
   creado: string;
 }
 
-const COLUMNAS = 'id, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, motivo, creado';
+const COLUMNAS =
+  'id, org_id, usuario_id, producto, plan, meses, monto_cop, ambiente, estado, motivo, creado';
 
 export interface Desenlace {
   estado: 'esperando' | 'aprobado' | 'rechazado' | 'revisar' | 'vencido';
@@ -209,7 +245,7 @@ async function aplicar(
       db,
       {
         instante: iso,
-        producto: 'agro',
+        producto: pago.producto,
         org_id: pago.org_id,
         usuario_id: pago.usuario_id,
         accion: 'pago_cerrado',
@@ -240,11 +276,12 @@ async function aplicar(
       .prepare('SELECT plan, plan_vence FROM organizacion WHERE id = ?')
       .bind(pago.org_id)
       .first<{ plan: string; plan_vence: string | null }>();
-    const vence = nuevoVencimiento(
-      vigente?.plan === pago.plan ? (vigente.plan_vence ?? null) : null,
-      ahora,
-      pago.meses,
-    );
+    // HU-C5.3, CA2: desde el vencimiento vigente si es del mismo plan y aún no llegó; si no, desde ahora.
+    const delMismoPlan = vigente?.plan === pago.plan ? (vigente.plan_vence ?? null) : null;
+    const desde = new Date(
+      Math.max(ahora, delMismoPlan ? Date.parse(delMismoPlan) : 0),
+    ).toISOString();
+    const vence = nuevoVencimiento(delMismoPlan, ahora, pago.meses);
     const [cierre] = await db.batch([
       cerrar('aprobado', null),
       db
@@ -252,6 +289,11 @@ async function aplicar(
           "UPDATE organizacion SET plan = ?, plan_vence = ? WHERE id = ? AND EXISTS (SELECT 1 FROM pago WHERE id = ? AND estado = 'aprobado' AND actualizado = ?)",
         )
         .bind(pago.plan, vence, pago.org_id, pago.id, iso),
+      db
+        .prepare(
+          "UPDATE pago SET periodo_desde = ?, periodo_hasta = ? WHERE id = ? AND estado = 'aprobado' AND actualizado = ?",
+        )
+        .bind(desde, vence, pago.id, iso),
       auditar('aprobado'),
     ]);
     if ((cierre?.meta.changes ?? 0) === 0) return releer(db, pago.id);

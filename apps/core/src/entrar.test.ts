@@ -1845,6 +1845,81 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
       ]);
     });
 
+    describe('HU-C5.3 · pagar 1, 3, 6 o 12 meses', () => {
+      // Los precios de 3, 6 y 12 meses los copia el despliegue desde planes.json (HU-C2.3).
+      beforeEach(async () => {
+        for (const sql of sentenciasDelCatalogo(
+          catalogoDelRepositorio(),
+          '2026-10-01T00:00:00.000Z',
+        )) {
+          await db.prepare(sql).run();
+        }
+      });
+      const cobroDe = async (acceso: string, meses: unknown, plan = 'finca') =>
+        pagar('/api/core/pago/crear', acceso, { plan, vuelta: VUELTA_PAGO, meses });
+
+      it('CA1 y CA2 · 6 meses: el monto sale de la base y el plan cuenta 6 meses calendario', async () => {
+        const p = await duena();
+        const r = await cobroDe(p.acceso, 6);
+        expect(r.status).toBe(200);
+        const { orden } = (await r.json()) as Cobro;
+        expect(
+          await db.prepare('SELECT meses, monto_cop FROM pago WHERE id = ?').bind(orden).first(),
+        ).toEqual({ meses: 6, monto_cop: 210000 });
+        bold = aprobado(210000);
+        await pagar('/api/core/pago/confirmar', p.acceso, { orden });
+        const vence = new Date(sumarMeses(T0, 6)).toISOString();
+        expect(await planDeLaFinca(p)).toMatchObject({ plan: 'finca', plan_vence: vence });
+        expect(
+          await db
+            .prepare('SELECT periodo_desde, periodo_hasta FROM pago WHERE id = ?')
+            .bind(orden)
+            .first(),
+        ).toEqual({ periodo_desde: new Date(T0).toISOString(), periodo_hasta: vence });
+      });
+
+      it('CA2 · pagado otra vez antes de vencer, el periodo nuevo empieza donde termina el vigente', async () => {
+        const p = await duena();
+        bold = aprobado(39000);
+        const uno = (await (await cobroDe(p.acceso, 1)).json()) as Cobro;
+        await pagar('/api/core/pago/confirmar', p.acceso, { orden: uno.orden });
+        reloj += 3600 * 1000;
+        bold = aprobado(111000);
+        const tres = (await (await cobroDe(p.acceso, 3)).json()) as Cobro;
+        await pagar('/api/core/pago/confirmar', p.acceso, { orden: tres.orden });
+        expect(
+          await db
+            .prepare('SELECT periodo_desde, periodo_hasta FROM pago WHERE id = ?')
+            .bind(tres.orden)
+            .first(),
+        ).toEqual({
+          periodo_desde: new Date(sumarMeses(T0, 1)).toISOString(),
+          periodo_hasta: new Date(sumarMeses(sumarMeses(T0, 1), 3)).toISOString(),
+        });
+      });
+
+      it('CA4 ❌ · un periodo sin precio para ese plan no se cobra; un monto alterado queda en «revisar»', async () => {
+        const p = await duena();
+        for (const [meses, plan] of [
+          [2, 'finca'],
+          ['6', 'finca'],
+          [6, 'exportador'],
+          [1, 'gratuito'],
+        ] as const) {
+          expect((await cobroDe(p.acceso, meses, plan)).status, `${plan} por ${meses}`).toBe(400);
+        }
+        expect(await db.prepare('SELECT COUNT(*) AS n FROM pago').first()).toEqual({ n: 0 });
+        const { orden } = (await (await cobroDe(p.acceso, 12)).json()) as Cobro;
+        bold = aprobado(39000); // pagó un mes por un cobro de doce
+        expect(
+          await (await pagar('/api/core/pago/confirmar', p.acceso, { orden })).json(),
+        ).toMatchObject({
+          estado: 'revisar',
+        });
+        expect((await planDeLaFinca(p))?.plan).toBe('gratuito');
+      });
+    });
+
     it('pagar antes de vencer suma el mes al vencimiento, no a hoy', async () => {
       const p = await duena();
       bold = aprobado();
