@@ -469,7 +469,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T1.2.1 `[código]` · WI-T1.2.2 `[prueba]` tablas 2026–2027 · WI-T1.2.3 `[doc]` nota en HU-C7.7 de `BACKLOG_CORE.md`.
 
 #### HU-T1.3 · `@ed1/cifrado`: sobre, campos, índice ciego y rotación
-- **Capa:** paquete y seguridad · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T0 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete y seguridad · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T0 · **Depende de:** — · **Estado:** En validación (rama `feat/t0-sprint`. `packages/cifrado`, 12 pruebas en menos de un segundo. Un detalle que no estaba en los CA: el campo cifrado lleva la versión de su DEK (`<versión>:v1.<iv>.<cifrado>`), para leer lo viejo después de rotar una DEK y para que borrar la DEK de datos personales sea el borrado criptográfico. Sin `Buffer`, que no existe en workerd. CA4 (workerd) como en HU-T1.1: la guardia de paquetes puros y la ejecución real con la API (HU-T2.4). WI-T1.3.5 hecho: ARQUITECTURA §9. Control negativo: sin los datos asociados, 2 pruebas en rojo (otra fila y otro propósito))
 - Como comercio, quiero que mis llaves de Bold y los datos de mis compradores no se puedan leer aunque alguien copie la base.
 - **Respaldo:** TIENDA §9.2 y §14.2; ED1 §20; P13.
 - **CA1.** AES-256-GCM con IV de 12 bytes al azar por escritura y AAD `org|tabla|campo|id`; una DEK por tienda y propósito (`credenciales`, `datos_personales`, `indices`), envuelta con la KEK con AAD `org|proposito|version`; índice ciego `HMAC-SHA256` truncado a 128 bits.
