@@ -586,7 +586,7 @@ Formato de cada historia:
 ### EC5 · Planes por periodo
 
 #### HU-C5.1 · Meses calendario en Bogotá
-- **Capa:** lógica · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** lógica · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C6 · **Depende de:** — · **Estado:** En validación (rama `feat/c6-sprint`. `apps/core/src/calendario.ts`: `sumarMeses` cuenta en la fecha de Bogotá con el desfase fijo de UTC−5 y solo con métodos UTC, así que no depende de la zona del sistema. Los casos viven en `calendario.casos.ts` y corren dos veces: en el proceso de la prueba y en otro con `TZ=Pacific/Kiritimati` (UTC+14), que la prueba comprueba que de verdad tomó esa zona. `nuevoVencimiento` ya no suma 30 días: un pago del 31 de enero vence el 28 de febrero. Tres pruebas viejas daban por hecho los 30 días y cambiaron por diseño: el 1 de octubre más un mes es el 1 de noviembre, 31 días después. 10 pruebas. CA4, control negativo: con los 30 días de antes, la del vencimiento sale en rojo)
 - Como persona que paga 12 meses, quiero que me cuenten 12 meses, no 360 días.
 - **Respaldo:** PLATAFORMA §4.8 (2); P8; bitácora ecommerce, patrón 8 («los meses se restan con `getMonth()`»).
 - **CA1.** `sumarMeses(desde, n)` suma meses en la fecha de Bogotá (UTC−5 fijo) y conserva la hora; si el día no existe, recorta al último del mes.

@@ -23,6 +23,7 @@ import {
 } from '../../../scripts/lib/productos-de-prueba.ts';
 import { catalogoDelRepositorio } from '../../../scripts/lib/registro-productos.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
+import { sumarMeses } from './calendario.ts';
 import { type ProductoDelCatalogo, sentenciasDelCatalogo } from './catalogo.ts';
 import { sentenciasDeCeldas } from './celdas.ts';
 import type { ProveedorGoogle } from './entrar.ts';
@@ -1755,7 +1756,8 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
 
       bold = aprobado();
       const r = await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
-      const vence = new Date(T0 + 30 * 24 * 3600 * 1000).toISOString();
+      // HU-C5.1: un mes calendario. T0 es el 1 de octubre: vence el 1 de noviembre, 31 días después.
+      const vence = new Date(sumarMeses(T0, 1)).toISOString();
       expect(await r.json()).toEqual({
         estado: 'aprobado',
         motivo: null,
@@ -1786,9 +1788,7 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
         await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
         reloj += 3600 * 1000;
       }
-      expect((await planDeLaFinca(p))?.plan_vence).toBe(
-        new Date(T0 + 60 * 24 * 3600 * 1000).toISOString(),
-      );
+      expect((await planDeLaFinca(p))?.plan_vence).toBe(new Date(sumarMeses(T0, 2)).toISOString());
     });
 
     it('CA4: al vencer, la finca vuelve al plan gratuito sin tocar nada más', async () => {
@@ -1796,9 +1796,9 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
       bold = aprobado();
       const c = await cobro(p.acceso);
       await pagar('/api/core/pago/confirmar', p.acceso, { orden: c.orden });
-      reloj = T0 + 30 * 24 * 3600 * 1000 - 1;
+      reloj = sumarMeses(T0, 1) - 1;
       expect((await planDeLaFinca(p))?.plan).toBe('finca');
-      reloj = T0 + 30 * 24 * 3600 * 1000;
+      reloj = sumarMeses(T0, 1);
       expect(await planDeLaFinca(p)).toMatchObject({ plan: 'gratuito', plan_vence: null });
     });
 

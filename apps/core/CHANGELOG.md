@@ -12,6 +12,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - El CORE de producción tiene su dominio propio, `cuenta.laboratorio-digital.com`, además de la URL de workers.dev, que sigue igual. Antes de publicarlo, Google tiene que aceptar las dos direcciones de vuelta nuevas (`docs/runbooks/despliegue.md`) (HU-C4.6).
 - Renovar la sesión solo funciona desde la app de su producto, y entrega solo las organizaciones de ese producto. Un intento desde otra app recibe 403, no gasta el refresh de su dueño y queda en la auditoría (HU-C4.4).
 
+### Cambiado
+- Un pago suma meses calendario en la fecha de Bogotá, no 30 días: pagado el 31 de enero, vence el 28 de febrero; pagado el 1 de octubre, el 1 de noviembre (HU-C5.1).
+
 ## [0.2.0] - 2026-10-06
 
 ### Agregado
