@@ -11,7 +11,7 @@ import { RAIZ } from '../../scripts/lib/repo.ts';
  * los módulos de Node (no existen en workerd). Correrlos dentro de workerd llega con la API
  * (HU-T2.4), que los usa en cada prueba. BACKLOG_TIENDA3 HU-T1.1, CA2.
  */
-const PAQUETES = ['dinero', 'calendario', 'cifrado'];
+const PAQUETES = ['dinero', 'calendario', 'cifrado', 'tienda-schema'];
 
 const PROHIBIDO: ReadonlyArray<[RegExp, string]> = [
   [/\bIntl\b/, '`Intl` cambia entre runtimes (P17)'],
