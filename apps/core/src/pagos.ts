@@ -8,9 +8,9 @@
  * verdad se le pregunta al proveedor), un monto distinto queda para revisar y un cobro sale de
  * «esperando» una sola vez.
  *
- * - `POST /api/core/pago/crear` (propietario): anota el cobro y devuelve lo que la página necesita
- *   para abrir el pago.
- * - `POST /api/core/pago/confirmar` (propietario): al volver del pago, pregunta al proveedor.
+ * - `POST /api/core/pago/crear` (quien administra): anota el cobro de un plan del producto de la
+ *   organización y devuelve lo que la página necesita para abrir el pago (HU-C3.4).
+ * - `POST /api/core/pago/confirmar` (quien administra): al volver del pago, pregunta al proveedor.
  * - `conciliarPagos` (Cron Trigger cada 15 min): los que siguen esperando, por si la persona pagó
  *   y no volvió a la pantalla. Sin noticias en 24 h, el cobro queda «vencido».
  *
@@ -23,10 +23,16 @@ import type { BaseD1 } from '@ed1/d1';
 import { uuidv7 } from '@ed1/ids';
 import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
-import planes from '../../../content/agro/cuaderno/planes.json' with { type: 'json' };
-import marca from '../../../content/marca.json' with { type: 'json' };
 import { filaDeAuditoria } from './auditoria.ts';
 import type { Entorno } from './entrar.ts';
+import {
+  cobroMensual,
+  planesDe,
+  productoDe,
+  productoDeOrganizacion,
+  rolAdministra,
+  vueltaDelProducto,
+} from './productos.ts';
 import type { EstadoEnElProveedor, ProveedorDePago } from './proveedor-de-pago.ts';
 
 const DIA_MS = 24 * 60 * 60 * 1000;
@@ -40,14 +46,6 @@ const COBROS_POR_VUELTA = 20;
 /** Lo que el pago necesita además del entorno del CORE. */
 export interface EntornoDePago extends Entorno {
   proveedor: ProveedorDePago | null;
-}
-
-/** El cobro mensual de un plan, desde `planes.json` (P2); null si no se paga en línea. */
-export function cobroMensual(plan: string): number | null {
-  const p = planes.planes.find((x) => x.id === plan) as { cobro_mensual_cop?: number } | undefined;
-  const monto = p?.cobro_mensual_cop;
-  // Bold no abre pagos de menos de $1.000.
-  return typeof monto === 'number' && Number.isInteger(monto) && monto >= 1000 ? monto : null;
 }
 
 async function sesionDe(c: Context, e: Entorno) {
@@ -70,8 +68,8 @@ const noDisponible = (c: Context) =>
     503,
   );
 
-/** Solo el propietario de la finca del token paga: es quien decide el plan. */
-async function propietarioDe(c: Context, e: Entorno) {
+/** Solo quien administra la organización del token paga: es quien decide el plan. */
+async function administradorDe(c: Context, e: Entorno) {
   const sesion = await sesionDe(c, e);
   if (!sesion) {
     return {
@@ -86,7 +84,9 @@ async function propietarioDe(c: Context, e: Entorno) {
       ),
     };
   }
-  if (sesion.rol !== 'propietario') {
+  // HU-C3.4: el producto es el de la organización en la base; el token v1 no lo trae.
+  const producto = await productoDeOrganizacion(e.db, sesion.org);
+  if (!producto || !rolAdministra(e.catalogo, producto, sesion.rol ?? '')) {
     return {
       error: c.json(
         { estado: 'prohibido', motivo: 'El plan lo paga quien administra la finca.' },
@@ -94,42 +94,47 @@ async function propietarioDe(c: Context, e: Entorno) {
       ),
     };
   }
-  return { sesion: { usuario: sesion.sub, org: sesion.org } };
+  return { sesion: { usuario: sesion.sub, org: sesion.org, producto } };
 }
 
 export async function crearPago(c: Context, e: EntornoDePago): Promise<Response> {
   if (!e.proveedor) return noDisponible(c);
-  const quien = await propietarioDe(c, e);
+  const quien = await administradorDe(c, e);
   if ('error' in quien) return quien.error;
   const leido = (await c.req.json().catch(() => ({}))) as { plan?: unknown; vuelta?: unknown };
   const plan = typeof leido.plan === 'string' ? leido.plan : '';
-  const monto = cobroMensual(plan);
+  const { producto } = quien.sesion;
+  const monto = cobroMensual(e.catalogo, producto, plan);
   if (monto === null) {
     return c.json({ estado: 'invalido', motivo: 'Ese plan no se puede pagar en línea.' }, 400);
   }
-  // El proveedor devuelve a la persona a esta pantalla: solo una del cuaderno (como al entrar).
-  let destino: URL;
-  try {
-    destino = new URL(typeof leido.vuelta === 'string' ? leido.vuelta : '');
-  } catch {
-    return c.json({ estado: 'invalido', motivo: 'Falta a dónde volver después de pagar.' }, 400);
+  const delCatalogo = productoDe(e.catalogo, producto);
+  if (!('producto' in delCatalogo)) {
+    return c.json({ estado: 'no-disponible', motivo: 'Este producto no recibe pagos ahora.' }, 503);
   }
-  if (!e.origenes.includes(destino.origin) || !destino.pathname.startsWith('/agro/app/')) {
-    return c.json(
-      { estado: 'invalido', motivo: 'Esa dirección de vuelta no es del cuaderno.' },
-      400,
-    );
+  // El proveedor devuelve a la persona a esta pantalla: solo una de la app del producto (como al
+  // entrar). Se guarda lo que el proveedor devuelve, sin consulta ni fragmento de quien la pidió.
+  const vuelta = vueltaDelProducto(
+    typeof leido.vuelta === 'string' ? leido.vuelta : undefined,
+    delCatalogo.producto,
+    e.origenes,
+  );
+  if (!vuelta) {
+    return c.json({ estado: 'invalido', motivo: 'Esa dirección de vuelta no es de la app.' }, 400);
   }
-  // Letras, números y guiones: lo que Bold acepta como código de orden.
-  const orden = `agro-${uuidv7()}`;
+  const destino = new URL(vuelta);
+  // Letras, números y guiones: lo que Bold acepta como código de orden. El prefijo dice de qué
+  // producto es el cobro en el panel del proveedor.
+  const orden = `${delCatalogo.producto.prefijo_de_cobro}-${uuidv7()}`;
   const ahora = new Date(e.ahora()).toISOString();
   await e.db
     .prepare(
       `INSERT INTO pago (id, producto, proveedor, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, creado, actualizado)
-       VALUES (?, 'agro', ?, ?, ?, ?, 1, ?, ?, 'esperando', ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, 'esperando', ?, ?)`,
     )
     .bind(
       orden,
+      producto,
       e.proveedor.nombre,
       quien.sesion.org,
       quien.sesion.usuario,
@@ -140,12 +145,12 @@ export async function crearPago(c: Context, e: EntornoDePago): Promise<Response>
       ahora,
     )
     .run();
-  const nombre = planes.planes.find((p) => p.id === plan)?.nombre ?? plan;
+  const nombre = planesDe(e.catalogo, producto).find((p) => p.id === plan)?.nombre ?? plan;
   destino.searchParams.set('pago', orden);
   const preparado = await e.proveedor.prepararCobro({
     orden,
     monto,
-    descripcion: `Plan ${nombre} de ${marca.nombre}, un mes`,
+    descripcion: `Plan ${nombre} de ${delCatalogo.producto.nombre}, un mes`,
     vuelta: destino.toString(),
   });
   return c.json({ orden, pruebas: e.proveedor.ambiente === 'pruebas', ...preparado });
@@ -279,7 +284,7 @@ async function releer(db: BaseD1, id: string): Promise<Desenlace> {
 
 export async function confirmarPago(c: Context, e: EntornoDePago): Promise<Response> {
   if (!e.proveedor) return noDisponible(c);
-  const quien = await propietarioDe(c, e);
+  const quien = await administradorDe(c, e);
   if ('error' in quien) return quien.error;
   const leido = (await c.req.json().catch(() => ({}))) as { orden?: unknown };
   const orden = typeof leido.orden === 'string' ? leido.orden : '';

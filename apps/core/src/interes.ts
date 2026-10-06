@@ -1,7 +1,8 @@
 /**
  * Lista de espera de planes con precio visible (HU-E0.6, ARQUITECTURA §5.4).
  *
- * - `POST /api/core/interes` (propietario): «Me interesa» un plan para la finca del token. Una fila
+ * - `POST /api/core/interes` (quien administra): «Me interesa» un plan de pago del producto de la
+ *   finca (HU-C3.4). Una fila
  *   por persona, finca y plan; repetirlo no escribe otra vez (presupuesto ≤ 50 escrituras al día).
  *   Sin cobro ni tarjeta (CA1).
  * - `POST /api/core/interes/ver` (cualquier sesión con finca): qué planes ya marcó esta persona
@@ -13,9 +14,7 @@
 import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import type { Entorno } from './entrar.ts';
-
-export const PLANES_CON_ESPERA = ['finca', 'exportador', 'cadena'] as const;
-type PlanConEspera = (typeof PLANES_CON_ESPERA)[number];
+import { planesDe, productoDeOrganizacion, rolAdministra } from './productos.ts';
 
 async function sesionDe(c: Context, e: Entorno) {
   const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
@@ -40,7 +39,9 @@ export async function marcarInteres(c: Context, e: Entorno): Promise<Response> {
   const sesion = await sesionDe(c, e);
   if (!sesion) return sinSesion(c);
   if (!sesion.org) return sinFinca(c);
-  if (sesion.rol !== 'propietario') {
+  const producto = await productoDeOrganizacion(e.db, sesion.org);
+  if (!producto) return sinFinca(c);
+  if (!rolAdministra(e.catalogo, producto, sesion.rol ?? '')) {
     return c.json(
       {
         estado: 'prohibido',
@@ -51,14 +52,16 @@ export async function marcarInteres(c: Context, e: Entorno): Promise<Response> {
   }
   const leido = (await c.req.json().catch(() => ({}))) as { plan?: unknown };
   const plan = leido.plan;
-  if (typeof plan !== 'string' || !(PLANES_CON_ESPERA as readonly string[]).includes(plan)) {
+  // Solo los planes de pago de su producto: el nombre de un plan de otro producto no existe aquí.
+  const conEspera = planesDe(e.catalogo, producto).filter((p) => !p.gratuito);
+  if (typeof plan !== 'string' || !conEspera.some((p) => p.id === plan)) {
     return c.json({ estado: 'invalido', motivo: 'Ese plan no existe.' }, 400);
   }
   const r = await e.db
     .prepare(
-      'INSERT OR IGNORE INTO interes_plan (usuario_id, org_id, plan, creado) VALUES (?, ?, ?, ?)',
+      'INSERT OR IGNORE INTO interes_plan (usuario_id, org_id, producto, plan, creado) VALUES (?, ?, ?, ?, ?)',
     )
-    .bind(sesion.sub, sesion.org, plan as PlanConEspera, new Date(e.ahora()).toISOString())
+    .bind(sesion.sub, sesion.org, producto, plan, new Date(e.ahora()).toISOString())
     .run();
   return c.json({ plan, nuevo: (r.meta.changes ?? 0) > 0 });
 }

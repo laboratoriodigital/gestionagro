@@ -491,7 +491,7 @@ Formato de cada historia:
 - **Work items:** WI-C3.3.1 `[código]` · WI-C3.3.2 `[prueba]` dos productos, pilotos separados.
 
 #### HU-C3.4 · Interés y pagos con el plan del producto
-- **Capa:** API · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C4 · **Depende de:** HU-C3.2 · **Estado:** Refinada
+- **Capa:** API · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C4 · **Depende de:** HU-C3.2 · **Estado:** En validación (rama `feat/c4-sprint`. El catálogo del CORE lleva los planes de cada producto con un `import` de su `planes.json`, como la política, y una prueba exige que coincidan (P2). Interés y pago toman el producto de la organización en la base, piden el rol que administra y buscan el plan solo entre los de ese producto. La orden lleva `prefijo_de_cobro` y la vuelta se valida con las rutas del producto, la misma regla que al entrar. Sigue siendo un mes. CA2 en la base ya lo daba la 0006 (`FOREIGN KEY (producto, plan)`); la prueba lo pide con su mensaje. 4 pruebas con el producto de ensayo y un plan «vitrina»; control negativo: con los planes del agro fijos en el cobro, 2 se ven en rojo)
 - Como quien administra, quiero que el interés en un plan y el pago usen los planes de mi producto, con su prefijo y su pantalla de vuelta.
 - **Respaldo:** PLATAFORMA §4.7.
 - **CA1.** `interes` y `pago/crear` leen los planes del producto de la organización; la referencia lleva el prefijo del producto y la vuelta es una ruta del producto. Sigue siendo un mes (los periodos llegan en HU-C5.3).

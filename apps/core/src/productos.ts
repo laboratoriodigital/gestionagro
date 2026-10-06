@@ -8,6 +8,7 @@
  */
 import type { BaseD1 } from '@ed1/d1';
 import type { Producto, RegistroDeProductos } from '@ed1/productos';
+import planesAgro from '../../../content/agro/cuaderno/planes.json' with { type: 'json' };
 import politicaAgro from '../../../content/agro/privacidad/politica.json' with { type: 'json' };
 import registro from '../../../infrastructure/productos.json' with { type: 'json' };
 
@@ -15,15 +16,26 @@ export interface CatalogoDelCore {
   productos: readonly Producto[];
   /** La versión vigente de la política de datos de cada producto. */
   politicas: Readonly<Record<string, string>>;
+  /** Los planes de cada producto, de su `planes.json` (HU-C3.4). */
+  planes: Readonly<Record<string, readonly PlanDelProducto[]>>;
+}
+
+/** Lo que el CORE usa de un plan: su nombre, si es el gratuito y lo que cobra por un mes. */
+export interface PlanDelProducto {
+  id: string;
+  nombre: string;
+  gratuito?: boolean;
+  cobro_mensual_cop?: number;
 }
 
 /**
  * El catálogo real. Una prueba exige que cada producto de `productos.json` tenga aquí su política
- * (P2): agregar un producto es sumar su `import` de la política junto a la del agro.
+ * y sus planes (P2): agregar un producto es sumar sus dos `import` junto a los del agro.
  */
 export const CATALOGO: CatalogoDelCore = {
   productos: (registro as RegistroDeProductos).productos,
   politicas: { agro: politicaAgro.version },
+  planes: { agro: planesAgro.planes },
 };
 
 /**
@@ -108,4 +120,23 @@ export async function productoDeOrganizacion(db: BaseD1, orgId: string): Promise
     .bind(orgId)
     .first<{ producto: string }>();
   return fila?.producto ?? null;
+}
+
+/** Los planes de un producto; ninguno si el producto no está en el catálogo. */
+export function planesDe(catalogo: CatalogoDelCore, producto: string): readonly PlanDelProducto[] {
+  return catalogo.planes[producto] ?? [];
+}
+
+/**
+ * Lo que se cobra en línea por un mes de ese plan de ese producto, o null si no se paga en línea.
+ * Un plan de otro producto no existe aquí: el nombre se busca solo entre los del producto.
+ */
+export function cobroMensual(
+  catalogo: CatalogoDelCore,
+  producto: string,
+  plan: string,
+): number | null {
+  const monto = planesDe(catalogo, producto).find((p) => p.id === plan)?.cobro_mensual_cop;
+  // Bold no abre pagos de menos de $1.000.
+  return typeof monto === 'number' && Number.isInteger(monto) && monto >= 1000 ? monto : null;
 }

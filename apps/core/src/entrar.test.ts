@@ -316,6 +316,7 @@ describe('HU-C3.1 · entrar con producto', () => {
       { ...CATALOGO.productos[0], id: 'dormido', estado: 'pausado' } as Producto,
     ],
     politicas: { ...CATALOGO.politicas, ensayo: 'e1', dormido: 'd1' },
+    planes: CATALOGO.planes,
   };
   const conEnsayo = crearApp({ google: () => googleFalso(), ahora: () => reloj, catalogo });
   const ir = (ruta: string, init: RequestInit = {}) =>
@@ -416,7 +417,10 @@ describe('HU-C3.2 · organizaciones, invitaciones y equipo por producto', () => 
       { id: 'dueno', administra: true, invitable: false },
       { id: 'colaborador', administra: false, invitable: true },
     ],
-    planes: [{ id: 'gratis', nombre: 'Gratis', gratuito: true }],
+    planes: [
+      { id: 'gratis', nombre: 'Gratis', gratuito: true },
+      { id: 'vitrina', nombre: 'Vitrina', cobro: { '1': 25000 } },
+    ],
   };
   const catalogo: CatalogoDelCore = {
     productos: [
@@ -424,12 +428,21 @@ describe('HU-C3.2 · organizaciones, invitaciones y equipo por producto', () => 
       {
         ...(CATALOGO.productos[0] as Producto),
         id: 'ensayo',
+        nombre: 'Producto Ensayo',
+        prefijo_de_cobro: 'ensayo',
         app: { origenes: { produccion: ENSAYO, staging: ENSAYO }, rutas_de_vuelta: ['/panel/'] },
         tipos: ensayo.tipos,
         roles: ensayo.roles,
       },
     ],
     politicas: { ...CATALOGO.politicas, ensayo: 'e1' },
+    planes: {
+      ...CATALOGO.planes,
+      ensayo: [
+        { id: 'gratis', nombre: 'Gratis', gratuito: true },
+        { id: 'vitrina', nombre: 'Vitrina', cobro_mensual_cop: 25000 },
+      ],
+    },
   };
   const app2 = crearApp({
     google: () => googleFalso('google-dueno'),
@@ -515,6 +528,88 @@ describe('HU-C3.2 · organizaciones, invitaciones y equipo por producto', () => 
       rol: 'colaborador',
     });
     expect(codigo).toBeTruthy();
+  });
+
+  describe('HU-C3.4 · interés y pagos con los planes del producto', () => {
+    const conPago = crearApp({
+      google: () => googleFalso('google-dueno'),
+      ahora: () => reloj,
+      catalogo,
+      fetch: (async () => Response.json({}, { status: 404 })) as typeof fetch,
+    });
+    const pagar = (ruta: string, acceso: string, cuerpo: unknown) =>
+      conPago.fetch(
+        new Request(`${CORE}${ruta}`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            origin: ENSAYO,
+            authorization: `Bearer ${acceso}`,
+          },
+          body: JSON.stringify(cuerpo),
+        }),
+        { ...env, BOLD_IDENTIDAD: 'i', BOLD_SECRETA: 's', BOLD_AMBIENTE: 'pruebas' },
+      );
+
+    it('CA1 · «Me interesa» acepta los planes de pago de su producto y nace con él', async () => {
+      const acceso = await dueno();
+      const r = await conToken('/api/core/interes', acceso, { plan: 'vitrina' });
+      expect(r.status).toBe(200);
+      expect(await db.prepare('SELECT producto, plan FROM interes_plan').first()).toEqual({
+        producto: 'ensayo',
+        plan: 'vitrina',
+      });
+      // El gratuito no tiene lista de espera.
+      expect((await conToken('/api/core/interes', acceso, { plan: 'gratis' })).status).toBe(400);
+    });
+
+    it('CA1 · el cobro usa el plan, el prefijo y la pantalla de vuelta del producto', async () => {
+      const acceso = await dueno();
+      const r = await pagar('/api/core/pago/crear', acceso, {
+        plan: 'vitrina',
+        vuelta: `${ENSAYO}/panel/planes`,
+      });
+      expect(r.status).toBe(200);
+      const { orden } = (await r.json()) as { orden: string };
+      expect(orden).toMatch(/^ensayo-/);
+      expect(
+        await db
+          .prepare('SELECT producto, plan, monto_cop, meses FROM pago WHERE id = ?')
+          .bind(orden)
+          .first(),
+      ).toEqual({ producto: 'ensayo', plan: 'vitrina', monto_cop: 25000, meses: 1 });
+    });
+
+    it('CA2 ❌ · un plan de otro producto se rechaza en la API, y una vuelta a otra app también', async () => {
+      const acceso = await dueno();
+      expect((await conToken('/api/core/interes', acceso, { plan: 'finca' })).status).toBe(400);
+      expect(
+        (await pagar('/api/core/pago/crear', acceso, { plan: 'finca', vuelta: `${ENSAYO}/panel/` }))
+          .status,
+      ).toBe(400);
+      expect(
+        (
+          await pagar('/api/core/pago/crear', acceso, {
+            plan: 'vitrina',
+            vuelta: `${APP}/agro/app/planes/`,
+          })
+        ).status,
+      ).toBe(400);
+      expect(await db.prepare('SELECT count(*) AS n FROM pago').first()).toEqual({ n: 0 });
+    });
+
+    it('CA2 ❌ · y en la base: el plan de otro producto no entra aunque alguien lo escriba a mano', async () => {
+      await dueno();
+      const usuario = (await db.prepare('SELECT id FROM usuario').first<{ id: string }>())?.id;
+      await expect(
+        db
+          .prepare(
+            "INSERT INTO interes_plan (usuario_id, org_id, producto, plan, creado) VALUES (?, ?, 'ensayo', 'finca', '2026-11-17')",
+          )
+          .bind(usuario, ORG)
+          .run(),
+      ).rejects.toThrow(/FOREIGN KEY/);
+    });
   });
 
   it('CA4 ❌: el producto del cuerpo no manda: crear una organización nunca la crea en otro producto', async () => {
