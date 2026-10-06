@@ -11,6 +11,12 @@
         "/agro/app/=apps/cuaderno/dist"
       ],
       "port": 4321
+    },
+    {
+      "name": "galeria-tienda",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/servir-estatico.ts", "packages/ui", "4331"],
+      "port": 4331
     }
   ]
 }

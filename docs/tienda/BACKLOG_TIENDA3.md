@@ -419,7 +419,7 @@ Formato de cada historia, el del CORE:
 ### ET0 · Gobierno del proyecto
 
 #### HU-T0.1 · Plan, backlog y bitácora de la Tienda 3.0 en el repositorio
-- **Capa:** proceso · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** En validación (rama `docs/t0-plan-y-backlog`)
+- **Capa:** proceso · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** Terminada (PR #101, fusionado el 6 oct 2026)
 - Como dueño, quiero el plan de la Tienda y su bitácora en el repositorio, con el método del CORE, para decidir el orden y unir después todas las bitácoras en el segundo cerebro de ED1.
 - **Respaldo:** TIENDA §19; BACKLOG_CORE §2–§4 (el método); bitácoras agro y core, «Cómo se une con las otras bitácoras».
 - **CA1.** Existen `docs/tienda/BACKLOG_TIENDA3.md` y `docs/tienda/BITACORA_TIENDA3.md`, y los nombran `docs/README.md`, `docs/BACKLOG.md` y `BACKLOG_CORE.md`.
@@ -449,17 +449,17 @@ Formato de cada historia, el del CORE:
 ### ET1 · Cimientos de código
 
 #### HU-T1.1 · `@ed1/dinero`: pesos enteros, el total y su reparto
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T0 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T0 · **Depende de:** — · **Estado:** En validación (rama `feat/t0-sprint`. `packages/dinero`, 32 pruebas en 0,5 s. CA1 cambió en un punto: el porcentaje redondea con **techo**, porque el piso que escribía TIENDA §6 favorece al comercio y contradice su promesa (bitácora tienda3 5). CA2, la parte de workerd: el paquete no usa `Intl`, ni reloj, ni azar, ni módulos de Node, y la guardia `tests/repo/tienda-paquetes-puros.test.ts` lo exige; correrlo dentro de workerd llega con la API (HU-T2.4), que lo ejecuta en cada prueba. Es más barato atacar la causa (`Intl`) que levantar workerd por cada función pura. Controles negativos: con `Math.floor`, 1 prueba en rojo; con un `pesos()` que devuelve 0 en vez de lanzar, 10)
 - Como comprador, quiero que el total que veo en el teléfono sea el que cobra el servidor y el que dice la página horneada.
 - **Respaldo:** TIENDA §6; P2 (una sola fuente para navegador, API y horno); P17 (`Intl` cambia entre runtimes).
-- **CA1.** Funciones puras: subtotal; descuento por porcentaje (`⌊subtotal × % / 100⌋`, a favor del comprador), por valor (`min`) y envío gratis; envío con `gratis_desde`; total; reparto del descuento por mayor residuo; formato `$80.000` propio, sin `Intl`.
+- **CA1.** Funciones puras: subtotal; descuento por porcentaje (`⌈subtotal × % / 100⌉`, a favor del comprador), por valor (`min`) y envío gratis; envío con `gratis_desde`; total; reparto del descuento por mayor residuo; formato `$80.000` propio, sin `Intl`.
 - **CA2.** La tabla de casos de TIENDA §6 y los límites de COP 1.000 a 5.000.000 para cobrar en línea; la misma salida en Node y en workerd.
 - **CA3 ❌.** Un monto que no es entero, es negativo o no se puede leer lanza nombrando el campo: **nunca vale 0** (bitácora ecommerce, crítico «`Number(celda) || 0`»). Un reparto que no suma exacto pone la prueba en rojo.
 - **Patrones en riesgo:** P1, P2, P17.
 - **Work items:** WI-T1.1.1 `[código]` · WI-T1.1.2 `[prueba]` tabla de casos · WI-T1.1.3 `[prueba]` Node y workerd.
 
 #### HU-T1.2 · `@ed1/calendario`: días hábiles de Colombia, compartido con el CORE
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T0 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T0 · **Depende de:** — · **Estado:** En validación (rama `feat/t0-sprint`. `packages/calendario`: festivos de 2020 a 2040, `esHabil`, `sumarDiasHabiles`, `diasHabilesEntre`, `sumarDiasCalendario` y `fechaEnBogota`, todo en UTC. 18 pruebas: las tablas de 2026 y 2027 escritas a mano, y la batería repetida con el huso de Kiritimati, comprobando que el cambio de huso sí llegó. Lo que enseñó: **un año no siempre tiene 18 festivos**; en 2030 el Sagrado Corazón y San Pedro y San Pablo caen el mismo lunes (bitácora tienda3, terreno). Controles negativos: sin San José, o contando sábados y domingos, 4 pruebas en rojo. WI-T1.2.3 hecho: HU-C7.7 del CORE lo nombra)
 - Como comprador que radica un reclamo, quiero que el plazo que me dicen cuente los festivos de Colombia.
 - **Respaldo:** TIENDA §8.6 y §14.3; Ley 51 de 1983; HU-C7.7 (WI-C7.7.3 pide lo mismo para el CORE): **un solo paquete para los dos** (P2), que construye quien llega primero.
 - **CA1.** Festivos fijos, los que la Ley 51 corre al lunes y los que dependen de la Pascua (calculada), de 2026 a 2035; `esHabil`, `sumarDiasHabiles` y `sumarDiasCalendario`, en la fecha de Bogotá.
@@ -469,7 +469,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T1.2.1 `[código]` · WI-T1.2.2 `[prueba]` tablas 2026–2027 · WI-T1.2.3 `[doc]` nota en HU-C7.7 de `BACKLOG_CORE.md`.
 
 #### HU-T1.3 · `@ed1/cifrado`: sobre, campos, índice ciego y rotación
-- **Capa:** paquete y seguridad · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T0 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete y seguridad · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T0 · **Depende de:** — · **Estado:** En validación (rama `feat/t0-sprint`. `packages/cifrado`, 12 pruebas en menos de un segundo. Un detalle que no estaba en los CA: el campo cifrado lleva la versión de su DEK (`<versión>:v1.<iv>.<cifrado>`), para leer lo viejo después de rotar una DEK y para que borrar la DEK de datos personales sea el borrado criptográfico. Sin `Buffer`, que no existe en workerd. CA4 (workerd) como en HU-T1.1: la guardia de paquetes puros y la ejecución real con la API (HU-T2.4). WI-T1.3.5 hecho: ARQUITECTURA §9. Control negativo: sin los datos asociados, 2 pruebas en rojo (otra fila y otro propósito))
 - Como comercio, quiero que mis llaves de Bold y los datos de mis compradores no se puedan leer aunque alguien copie la base.
 - **Respaldo:** TIENDA §9.2 y §14.2; ED1 §20; P13.
 - **CA1.** AES-256-GCM con IV de 12 bytes al azar por escritura y AAD `org|tabla|campo|id`; una DEK por tienda y propósito (`credenciales`, `datos_personales`, `indices`), envuelta con la KEK con AAD `org|proposito|version`; índice ciego `HMAC-SHA256` truncado a 128 bits.
@@ -481,7 +481,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T1.3.1 `[código]` sobre y campos · WI-T1.3.2 `[código]` índice ciego · WI-T1.3.3 `[código]` rotación · WI-T1.3.4 `[prueba]` controles negativos · WI-T1.3.5 `[doc]` ARQUITECTURA §9.
 
 #### HU-T1.4 · `@ed1/tienda-schema`: ajustes, permisos y el formato de carga
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T0 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T0 · **Depende de:** — · **Estado:** En validación (rama `feat/t0-sprint`. `packages/tienda-schema`: `secciones.ts` (9 secciones, versiones y traductores, `faltantes` para la compuerta y `seccionesParaHornear`), `permisos.ts` (matriz, `decidir` con la entrada reciente y `accionesDeAjuste`) y `carga.ts` (`tienda-import/1` = `tienda-export/1` y `revisarCarga`, con todos los problemas cruzados a la vez). 22 pruebas. Dos decisiones que no estaban escritas: los esquemas aceptan una sección a medio llenar para guardar por partes, y lo que falta para publicar lo dice `faltantes` (así «vacío nunca es valor de fábrica» se cumple sin impedir guardar); y solo el aspecto y las señales para agentes tienen valores por defecto. Una prueba ata la lista de secciones y su `publica` a `ref_seccion_ajuste` de la migración: hoy la lee de `docs/tienda/sql/`, y pasa a `infrastructure/migraciones/` con HU-T2.1. Controles negativos: un WhatsApp con valor por defecto, `cobro` marcada como pública o una acción de cobro fuera de la matriz ponen pruebas en rojo)
 - Como plataforma, quiero una sola definición de cada sección de ajustes, de la matriz de permisos y de `tienda-import/1`, que lean el panel, la API y el horno.
 - **Respaldo:** TIENDA §5.7, §12.1 y §17.1; P2; R1 de la 2.0 (los contratos solo crecen).
 - **CA1.** Esquemas zod de las 9 secciones de ajustes, cada uno con su número de `esquema` y un traductor de cada versión vieja a la vigente (como `aVersionVigente` del agro).
@@ -586,7 +586,7 @@ Formato de cada historia, el del CORE:
 ### ET3 · Diseño de la Tienda
 
 #### HU-T3.1 · La dirección visual en la galería: seis pantallas clave
-- **Capa:** diseño · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T0 · **Depende de:** HU-C6.1 y HU-C6.2 (hechas) · **Estado:** Refinada
+- **Capa:** diseño · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T0 · **Depende de:** HU-C6.1 y HU-C6.2 (hechas) · **Estado:** En validación, esperando la elección del dueño (D-T2) (rama `feat/t0-sprint`. `packages/ui/galeria-tienda/`: 8 páginas (índice, portada «Editorial» y «Catálogo», ficha, carrito, seguimiento, bandeja y detalle de un pedido contra entrega) y dos hojas, sobre los tokens de `@ed1/ui` v2. Se abren sin servidor, o con la configuración `galeria-tienda` de `.claude/launch.json`. La serif de «Editorial» se ve con las del sistema: la definitiva se elige en D-T2, sin descargar nada antes. Revisadas en el navegador a 375 y 1280 px; la revisión encontró y arregló dos cosas: la etiqueta de la portada no se leía sobre la foto oscura, y el nombre de la tienda chocaba con «Buscar» en el teléfono. `tests/repo/tienda-galeria.test.ts`, 13 pruebas: sin scripts, estilos en línea ni terceros, `noindex`, HTML < 50 KB, CSS ≤ 20 KB con gzip y el contraste de cada acento calculado. Control negativo: un acento bronce claro (#c08a4a) no pasa 4,5:1 y la prueba se ve en rojo)
 - Como dueño, quiero ver la vitrina y el panel antes de construirlos, para aprobar la dirección con las referencias delante.
 - **Respaldo:** §5 de este documento; pedido del dueño (Porsche y Tracksmith); ADR-29.
 - **CA1.** Prototipos estáticos (HTML y CSS, sin datos reales) a 360 y 1280 px con los dos comercios de prueba: portada «Editorial» y «Catálogo», ficha con variantes, carrito con resumen y aceptación, seguimiento, bandeja de pedidos y el detalle de un pedido contra entrega.
@@ -1156,7 +1156,7 @@ Formato de cada historia, el del CORE:
 ### ET12 · Carga de las tiendas 2.0
 
 #### HU-T12.1 · Qué usa hoy cada tienda 2.0
-- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** En sprint, esperando al dueño (`docs/tienda/paridad-tiendas-2.0.md`. La parte pública ya cambió el plan: las dos tiendas que venden son de la **Tienda Básica** (solo la hoja, 3.6.2), no de la Tienda Panel con la que se escribió el anexo C, y ninguna tiene dominio propio: viven en `workers.dev` (bitácora tienda3 6). La segunda parte son 11 preguntas de sí, no o una cifra para el dueño. No se leyó el repositorio privado de una tienda real: tiene datos de su operación, y la herramienta lo detuvo; lo que hace falta lo sabe el dueño)
 - Como dueño, quiero saber desde ya qué de la 2.0 usa cada tienda, para que el orden del plan no lo descubra el día del corte.
 - **Respaldo:** TIENDA §17.3 y anexo C; estudio §15.3 [C12] y §16.2 (preguntas 8 y 9); bitácora tienda3 1.
 - **CA1.** Una tabla por tienda con cada puerta del anexo C, más: dominio propio, GA4 o píxel de Meta, los correos que manda, páginas propias, cobro en línea, contraentrega, volumen de pedidos y qué tan cerca está de cada techo de la 2.0.
@@ -1195,7 +1195,7 @@ Formato de cada historia, el del CORE:
 - **Capa:** prueba · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T15 · **Depende de:** HU-T12.1, M3 · **Estado:** Refinada
 - Como dueño, quiero saber que la 3.0 hace todo lo que cada tienda usa de la 2.0 antes de cargarla.
 - **Respaldo:** TIENDA anexo C; estudio §15.3 [C12].
-- **CA1.** Cada puerta que la tienda usa (HU-T12.1) tiene su comprobación en staging, y los casos de pedido, cobro y seguimiento de la suite de la 2.0 están traducidos a la batería de la API.
+- **CA1.** Cada cosa que la tienda usa (HU-T12.1) tiene su comprobación en staging, y los casos de pedido, cobro y seguimiento de la suite de la 2.0 están traducidos a la batería de la API. *(6 oct 2026: las dos tiendas que venden son de la Tienda Básica; la paridad se mide contra lo que hace su hoja, no contra las puertas de la Tienda Panel del anexo C: bitácora tienda3 6.)*
 - **CA2.** Los cinco mecanismos de idempotencia del pedido tienen su prueba.
 - **CA3 ❌.** Una fila que la tienda usa y no pasa detiene su corte, y el informe dice cuál.
 - **Work items:** WI-T12.5.1 `[prueba]` · WI-T12.5.2 `[doc]` el estado de la paridad por tienda.
@@ -1610,7 +1610,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 
 | Sprint | Comprometido | Validado por el dueño | Nota |
 |---|---|---|---|
-| T0 | 21 | — | Carril de holgura; HU-T0.1 en este PR |
+| T0 | 21 | 1 (HU-T0.1, PR #101) | Carril de holgura, construido el 6 oct 2026 en el PR del sprint: HU-T1.1 a HU-T1.4 y HU-T3.1 esperan validación; HU-T12.1 espera las respuestas del dueño. Con 5 historias en validación se pasó el tope de 3 (§3.6): no se abrió T1 |
 
 ---
 

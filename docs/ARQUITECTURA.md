@@ -710,6 +710,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 - **Portabilidad:** el productor exporta todo en `agro-export v1` o CSV cuando quiera. Es también la respuesta a «¿de quién son mis datos?».
 - **Dispositivos perdidos:** el propietario revoca la sesión del dispositivo. Los datos locales de ese teléfono no se pueden borrar a distancia, y se dice así en la app.
 - **Los números de fábrica no existen:** teléfonos, nombres y claves arrancan vacíos, y el alta se niega a continuar si siguen vacíos (bitácora ecommerce, «La configuración de fábrica traía el celular de la primera tienda»).
+- **Cifrado de sobre de la Tienda 3.0 (`packages/cifrado`, HU-T1.3; TIENDA-3.0 §14.2):** una KEK de 32 bytes por secreto del Worker envuelve una DEK por tienda y propósito (`credenciales`, `datos_personales`, `indices`), con `org|proposito|version` como datos asociados. Cada campo va en AES-256-GCM con IV al azar y `org|tabla|campo|id` como datos asociados, así que copiarlo a otra fila o tienda no se descifra; lleva la versión de su DEK. El índice ciego es HMAC-SHA256 truncado a 128 bits. Solo WebCrypto, igual en el navegador, Node y workerd. Todavía no lo usa ningún Worker: lo usarán las llaves de Bold (HU-T11.2) y los contactos (HU-T6.1). El token de Drive del agro (`apps/core/src/drive.ts`) sigue con su propio sellado hasta un tercer uso (regla de tres).
 
 ---
 

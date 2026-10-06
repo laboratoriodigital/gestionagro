@@ -261,11 +261,17 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
 
+  packages/calendario: {}
+
+  packages/cifrado: {}
+
   packages/d1:
     devDependencies:
       wrangler:
         specifier: ^4.144.0
         version: 4.144.0(@types/node@22.20.4)
+
+  packages/dinero: {}
 
   packages/eventos: {}
 
@@ -284,6 +290,12 @@ importers:
       '@ed1/agro-schema':
         specifier: workspace:*
         version: link:../agro-schema
+
+  packages/tienda-schema:
+    dependencies:
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
 
   packages/tokens: {}
 

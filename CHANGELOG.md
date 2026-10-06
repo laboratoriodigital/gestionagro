@@ -5,6 +5,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Tienda 3.0: las reglas del dinero de las tiendas en un solo lugar (`@ed1/dinero`): pesos enteros, el total de un carrito con su cupón y su envío, el reparto exacto del descuento y el formato `$80.000`. Un precio que no se puede leer avisa, nunca vale cero, y el redondeo del cupón favorece al comprador (HU-T1.1).
+- Los días hábiles de Colombia con sus festivos (`@ed1/calendario`), para contar los plazos de las solicitudes de las tiendas y de la Ley 1581. Los comparten la Tienda y el CORE (HU-T1.2).
+- El cifrado con que las tiendas guardarán las llaves de cobro de cada comercio y los datos de sus compradores (`@ed1/cifrado`): una llave por tienda y propósito, cada dato atado a su fila, búsqueda por celular sin guardarlo a la vista y cambio de la llave maestra sin perder nada (HU-T1.3).
+- Las reglas de los ajustes, los permisos y la carga de una tienda (`@ed1/tienda-schema`): qué le falta a una tienda para publicar, dicho campo por campo; qué puede el propietario y qué el colaborador, y qué pide volver a entrar; y el formato para cargar o llevarse una tienda entera, que revisa todo el archivo y dice todos los problemas a la vez (HU-T1.4).
+- La galería de la Tienda 3.0 (`packages/ui/galeria-tienda/`): ocho pantallas estáticas de la vitrina y del panel con los dos comercios de prueba, para elegir el estilo antes de construir. Sin JavaScript, sin terceros y con el contraste de cada color comprobado (HU-T3.1).
 - Se puede entrar a la cuenta de Laboratorio Digital con Google, aceptando su política de datos (todavía en borrador), ver con qué nombre se entró, volver a la aplicación de la que se venía y salir. Salir cierra la sesión también en el servidor (HU-C7.3).
 - Una galería con todos los componentes de la cuenta y sus estados, en claro y en oscuro, con una prueba que avisa si alguno cambió sin querer (HU-C6.4).
 - La cuenta de Laboratorio Digital tiene su primera página, en `cuenta.laboratorio-digital.com`: dice qué va a reunir y que pronto se podrá entrar con Google. Es estática, sin JavaScript, y no aparece en buscadores (HU-C7.2).

@@ -54,7 +54,7 @@ Lista viva de patrones.
 - **Lo impide hoy** se escribe solo cuando esa guardia existe, falla en rojo con el defecto puesto y se comprobó al escribirlo.
 - **Entradas** son los números de esta bitácora que lo confirman.
 
-Al 6 oct 2026 no hay código de la Tienda 3.0: ningún patrón tiene todavía «Lo impide hoy» propio. Lo que ya existe son las 82 comprobaciones del modelo de datos con `node:sqlite` (`sql/probar-tienda.mjs`), que pasan a D1 en HU-T2.1.
+Al 6 oct 2026, en la tarde, la Tienda tiene sus cuatro paquetes puros (sprint T0) y dos patrones con «Lo impide hoy»: P1 y P17. Las 82 comprobaciones del modelo de datos siguen con `node:sqlite` (`sql/probar-tienda.mjs`) y pasan a D1 en HU-T2.1.
 
 ### Heredados del ecosistema
 
@@ -63,6 +63,7 @@ Al 6 oct 2026 no hay código de la Tienda 3.0: ningún patrón tiene todavía «
 - **En la Tienda 3.0:** un precio ilegible nunca vale 0; un campo obligatorio vacío nunca se llena con un valor de fábrica (en la 2.0, el celular de fábrica mandaba los pedidos de otra tienda a la primera); un hostname sin tienda responde «Esta dirección no tiene tienda», nunca otra tienda; un pago aprobado sin existencias sube arriba del panel; un horno que falla deja la versión anterior y dice por qué.
 - **Lo impedirá:** HU-T1.1, HU-T1.4, HU-T4.3, HU-T5.1, HU-T10.3, HU-T11.7.
 - **Entradas:** —
+- **Lo impide hoy:** `@ed1/dinero` lanza ante un monto ilegible en vez de devolver 0, y `@ed1/tienda-schema` no trae ningún valor por defecto en contacto ni en la ficha legal; las dos pruebas se vieron en rojo con el defecto puesto (6 oct 2026).
 
 #### P2 · Dos copias del mismo procedimiento: una siempre se queda atrás
 - **Regla:** una sola fuente, y lo demás se deriva de ella. Si no se puede, una aserción ata las dos copias.
@@ -86,7 +87,7 @@ Al 6 oct 2026 no hay código de la Tienda 3.0: ningún patrón tiene todavía «
 - **Regla:** antes de dar una comprobación, preguntar qué respondería sin el cambio. Toda aserción nueva se ve en rojo con su defecto puesto.
 - **En la Tienda 3.0:** sin `CHECK (reservado <= stock)`, la última unidad se vende dos veces; sin el trigger de aceptación, un pedido web sin prueba sale de `pendiente`; sin el escapado, el corpus de XSS se ejecuta. Cada PR dice su control negativo.
 - **Lo impedirá:** la plantilla de PR; la Definición de Terminado, punto 3.
-- **Entradas:** —
+- **Entradas:** tienda3 5.
 
 #### P6 · Lo que se escribe para los que vienen después deja fuera al primero
 - **Regla:** el cliente cero también es un cliente.
@@ -110,7 +111,7 @@ Al 6 oct 2026 no hay código de la Tienda 3.0: ningún patrón tiene todavía «
 - **Regla:** ningún diagnóstico se da por bueno sin reproducir el fallo.
 - **En la Tienda 3.0:** un pago que no se reflejó se reproduce con el aviso exacto de Bold (cuerpo y firma) contra el D1 local; un horneado distinto, con los mismos datos en los dos runtimes.
 - **Lo impedirá:** HU-T11.5, HU-T11.6 (un Bold falso que firma y responde de verdad).
-- **Entradas:** —
+- **Entradas:** tienda3 6.
 
 #### P10 · El que se actualiza a sí mismo corre su versión vieja
 - **Regla:** un arreglo en el que se actualiza llega una versión tarde. Y quien vuelve atrás corre también la vieja.
@@ -159,12 +160,13 @@ Al 6 oct 2026 no hay código de la Tienda 3.0: ningún patrón tiene todavía «
 - **En la Tienda 3.0:** el modelo se probó con `node:sqlite` y falta D1; el horno se prueba en Node y en workerd porque `Intl` cambia entre runtimes; el Bold falso firma de verdad con la llave vacía de pruebas; un navegador de escritorio no codifica imágenes como Safari.
 - **Lo impedirá:** HU-T2.1, HU-T4.1, HU-T8.3, HU-T11.5, HU-T11.6.
 - **Entradas:** tienda3 2.
+- **Lo impide hoy:** `tests/repo/tienda-paquetes-puros.test.ts`: ningún paquete puro de la Tienda (`dinero`, `calendario`, `cifrado`, `tienda-schema`) usa `Intl`, el reloj, el azar ni módulos de Node; la prueba se vio atrapar cada forma prohibida (6 oct 2026).
 
 #### P18 · Un documento no lanza una excepción cuando miente
 - **Regla:** lo que un documento afirma del código lo ata una aserción; el redundante se borra.
 - **En la Tienda 3.0:** TIENDA propone, ARQUITECTURA decide; los anexos de SQL los ata una prueba al archivo; los runbooks, una prueba que busca lo que nombran. Un documento que cita a otro dice lo que el otro dice.
 - **Lo impedirá:** HU-T2.1, HU-T17.5; la Definición de Terminado, punto 8.
-- **Entradas:** tienda3 1, 4.
+- **Entradas:** tienda3 1, 4, 5, 6.
 
 #### P19 · Un rojo que no significa nada enseña a no mirar los rojos
 - **Regla:** una guarda con falsos positivos o un intermitente se arregla o se quita.
@@ -293,6 +295,7 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 
 - **Las dos referencias de diseño usan tipografías propietarias.** Porsche usa la suya; Tracksmith, Akzidenz-Grotesk Extended y SainteColombe (medido en la página el 6 oct 2026). Se transfiere la idea (la pareja de serif ligera y sans, la cursiva como énfasis, el titular grande con el interletrado cerrado), no la fuente: las de la Tienda tienen que ser de licencia libre y autoalojadas (D-T2).
 - **La ficha de Tracksmith hace lo que la 2.0 aprendió por las malas.** Su botón principal dice «Select a size» hasta que la persona elige talla: es la regla del crítico de la bitácora ecommerce sobre el botón de WhatsApp. Se toma como patrón de la vitrina, no solo como estilo.
+- **Un año en Colombia no siempre tiene 18 festivos.** Cuando dos caen el mismo lunes, son 17: en 2030 la Pascua es el 21 de abril, el Sagrado Corazón (+71) cae el 1 de julio, y San Pedro y San Pablo (29 de junio, sábado) se corre a ese mismo lunes. La primera prueba de `@ed1/calendario` suponía 18 siempre y falló en 2030 (HU-T1.2). Contar días hábiles es contar fechas distintas, no festivos.
 
 ---
 
@@ -379,3 +382,39 @@ La regla: **una decisión nueva en ARQUITECTURA se busca en todos los diseños q
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Medio · P18, P2 · tienda-0.0.0 · 2026-10-06
 
+
+**5 · TIENDA prometía que el redondeo del cupón favorece al comprador, y la fórmula que escribía favorece al comercio.**
+
+*Qué pasó.* El 6 oct 2026, al escribir `@ed1/dinero` (HU-T1.1), copié la fórmula del descuento por porcentaje de TIENDA §6 y, al ponerle el comentario, no cuadraba con su propia frase.
+
+*Síntoma literal.* TIENDA §6, punto 3.2: «`porcentaje`: `⌊subtotal × % / 100⌋`; el redondeo favorece al comprador».
+
+*Causa raíz.* El piso **del descuento** hace el descuento más pequeño, y por eso el total más grande: con un subtotal de 33.333 y 10 %, el descuento exacto es 3.333,3; el piso da 3.333 y el comprador paga 30.000, cuando la promesa dice 29.999. La frase y la fórmula se escribieron pensando en cosas distintas (el piso «del total» sí favorecería al comprador). Ninguna prueba ataba la promesa a la fórmula: era un documento (P18).
+
+*Cómo se reprodujo.* Con ese caso, a mano y en la prueba.
+
+*Arreglo.* Manda la promesa, que es la decisión de producto y la que protege al consumidor: `⌈subtotal × % / 100⌉`. TIENDA §6 se corrigió con su nota. La diferencia nunca pasa de un peso por pedido.
+
+**Lo prueba** `packages/dinero/src/index.test.ts`, «porcentaje: el redondeo favorece al comprador», con el caso de 33.333. Control negativo: con `Math.floor`, la prueba se ve en rojo.
+
+La regla: **cuando un documento da una fórmula y una promesa sobre ella, la prueba se escribe contra la promesa, con un caso donde las dos lecturas den distinto.**
+
+*Ficha:* tienda3 · *(mío)* · ⚪ Menor · P18, P5 · tienda-0.0.0 · 2026-10-06
+
+**6 · El plan medía la paridad contra la Tienda Panel, y las dos tiendas que venden son de la Tienda Básica.**
+
+*Qué pasó.* El 6 oct 2026, al empezar HU-T12.1 (qué usa cada tienda 2.0), leí el registro público de la flota de la 2.0 (`laboratoriodigital/tiendas`, `flota.json` y `ESTADO.md`).
+
+*Síntoma literal.* `flota.json`: dos líneas, `tienda` («Tienda Panel») y `organico` («Tienda Básica: solo la hoja de cálculo… sin panel web»). Las dos tiendas que venden están en la línea `organico`, versión 3.6.2, en subdominios de `workers.dev`. La línea `tienda` solo tiene su semilla y `prueba1`.
+
+*Causa raíz.* TIENDA-3.0 anexo C se escribió con «el contrato de puertas de la 2.0 (versión 1.0.0)», que es la Tienda Panel, y el plan (bitácora tienda3 1, HU-T12.5) lo tomó como la condición para cargar las tiendas. Nadie había cruzado ese contrato con qué producto usan las tiendas reales: la bitácora ecommerce 67 ya decía que Orgánico y Cinnamon son «la Tienda Básica», otro producto (P9: mirar la fuente antes de planear sobre ella; P18).
+
+*Cómo se reprodujo.* Leyendo los dos archivos públicos de la flota.
+
+*Arreglo.* `docs/tienda/paridad-tiendas-2.0.md` lo deja escrito y saca tres consecuencias: la paridad de M6 se mide contra lo que hace la hoja de la Básica (HU-T12.5); ninguna tiene dominio propio, así que M6 no necesita M4 (D-T7 se sostiene); y para ellas el panel es nuevo, así que el corte lleva una sesión guiada. El resto (cobro en línea, contraentrega, GA4, correos, volumen) son preguntas para el dueño: no se leyó el repositorio privado de una tienda real.
+
+**Lo prueba:** nada todavía; es un documento. La guardia llega con HU-T12.5.
+
+La regla: **antes de tomar un contrato como condición de algo, se comprueba que es el del producto que usan los clientes reales.**
+
+*Ficha:* tienda3 · *(mío)* · 🟡 Medio · P9, P18 · tienda-0.0.0 · 2026-10-06
