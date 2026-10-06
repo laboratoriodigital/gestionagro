@@ -1041,6 +1041,7 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 | C2 | 24 | 24 (PR #97, fusionado el 5 oct 2026) | Las 8 historias en un día. Una regla nueva que no estaba en los CA: la guardia del CHANGELOG del CORE, porque otra línea de trabajo también lo toca |
 | C3 | 18 | — (PR del 6 oct 2026, en revisión) | Las 5 historias en un día. Dos cambios de forma, dichos en cada historia: la auditoría es la 0007 y entrar con correo pasa a 0008; los componentes base son de Preact servidos como HTML, no de Astro, para probarlos sin levantar Vite |
 | C4 | 16 → 13 | — (rama lista el 6 oct 2026; su PR se abre al fusionar el del C3) | Las 5 historias en un día. HU-C3.7 pasó al C5 porque necesita HU-C4.3, y HU-C4.3 necesita la fase N en producción: el orden lo pone la transición de tokens (P10), no la capacidad |
+| C5 | 20 | — (PR del 6 oct 2026, en revisión) | 5 de las 7 historias (14 puntos) en el primer PR: HU-C4.4, HU-C4.6, HU-C6.4, HU-C7.2 y HU-C7.3. HU-C4.3 y HU-C3.7 esperan a que la fase N esté en producción (PR de la versión 0.4.0): el CORE no puede emitir v2 antes de que las celdas de producción lo entiendan |
 
 ---
 
