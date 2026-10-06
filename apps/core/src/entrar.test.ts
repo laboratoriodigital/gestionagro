@@ -11,6 +11,7 @@ import { type ClavePublica, generarClavePrivada, hashDe, verificarAcceso } from 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
+import { type ProductoDelCatalogo, sentenciasDelCatalogo } from './catalogo.ts';
 import { sentenciasDeCeldas } from './celdas.ts';
 import type { ProveedorGoogle } from './entrar.ts';
 import { conciliarPagos } from './pagos.ts';
@@ -399,6 +400,136 @@ describe('HU-C3.1 · entrar con producto', () => {
       body: JSON.stringify({ codigo, dispositivo: 't1' }),
     });
     expect(desdeSuApp.status).toBe(200);
+  });
+});
+
+describe('HU-C3.2 · organizaciones, invitaciones y equipo por producto', () => {
+  const ENSAYO = 'https://ensayo.ejemplo.test';
+  const ORG = '0199a1b2-0000-7000-8000-00000000c302';
+  // El rol que administra no se llama «propietario»: si el código lo tuviera escrito, esto falla.
+  const ensayo: ProductoDelCatalogo = {
+    id: 'ensayo',
+    nombre: 'Producto Ensayo',
+    estado: 'activo',
+    tipos: ['comercio'],
+    roles: [
+      { id: 'dueno', administra: true, invitable: false },
+      { id: 'colaborador', administra: false, invitable: true },
+    ],
+    planes: [{ id: 'gratis', nombre: 'Gratis', gratuito: true }],
+  };
+  const catalogo: CatalogoDelCore = {
+    productos: [
+      ...CATALOGO.productos,
+      {
+        ...(CATALOGO.productos[0] as Producto),
+        id: 'ensayo',
+        app: { origenes: { produccion: ENSAYO, staging: ENSAYO }, rutas_de_vuelta: ['/panel/'] },
+        tipos: ensayo.tipos,
+        roles: ensayo.roles,
+      },
+    ],
+    politicas: { ...CATALOGO.politicas, ensayo: 'e1' },
+  };
+  const app2 = crearApp({
+    google: () => googleFalso('google-dueno'),
+    ahora: () => reloj,
+    catalogo,
+  });
+  const ir = (ruta: string, init: RequestInit = {}) =>
+    app2.fetch(new Request(`${CORE}${ruta}`, init), env);
+  const conToken = (ruta: string, acceso: string, cuerpo: unknown) =>
+    ir(ruta, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: ENSAYO,
+        authorization: `Bearer ${acceso}`,
+      },
+      body: JSON.stringify(cuerpo),
+    });
+
+  /** Un espacio del producto de ensayo, con quien entra como su «dueno», y su token. */
+  async function dueno(): Promise<string> {
+    for (const s of sentenciasDelCatalogo([ensayo], '2026-10-06T00:00:00.000Z')) {
+      await db.prepare(s).run();
+    }
+    const ida = await ir(
+      `/api/core/auth/google/inicio?producto=ensayo&vuelta=${encodeURIComponent(`${ENSAYO}/panel/`)}&politica=e1`,
+    );
+    const cookie = (ida.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+    const state = new URL(ida.headers.get('location') ?? '').searchParams.get('state');
+    const vuelta = await ir(`/api/core/auth/google/callback?code=code-bueno&state=${state}`, {
+      headers: { cookie },
+    });
+    const codigo = (vuelta.headers.get('location') ?? '').split('#entrar=')[1];
+    const canje = (await (
+      await ir('/api/core/auth/canje', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: ENSAYO },
+        body: JSON.stringify({ codigo, dispositivo: 'panel' }),
+      })
+    ).json()) as Sesion;
+    const usuario = (await db.prepare('SELECT id FROM usuario').first<{ id: string }>())?.id;
+    for (const s of [
+      "INSERT INTO celda (id, producto, url_api, estado, anillo_despliegue, shards) VALUES ('c9', 'ensayo', 'https://api-c9', 'activa', 0, '[\"ensayo_c9_s1\"]')",
+      `INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ('${ORG}', 'ensayo', 'Comercio Ensayo', 'comercio', 'gratis', 'c9', 'ensayo_c9_s1', 1, '2026-10-06')`,
+      `INSERT INTO membresia (usuario_id, org_id, producto, rol, creado) VALUES ('${usuario}', '${ORG}', 'ensayo', 'dueno', '2026-10-06')`,
+    ]) {
+      await db.prepare(s).run();
+    }
+    const conOrg = (await (
+      await ir('/api/core/auth/refrescar', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: ENSAYO },
+        body: JSON.stringify({ refresh: canje.refresh, org_id: ORG }),
+      })
+    ).json()) as Sesion;
+    return conOrg.acceso;
+  }
+
+  it('CA3: administra el rol con «administra», aunque no se llame propietario', async () => {
+    const acceso = await dueno();
+    const r = await conToken('/api/core/invitaciones', acceso, { rol: 'colaborador' });
+    expect(r.status).toBe(201);
+    expect((await conToken('/api/core/equipo/ver', acceso, {})).status).toBe(200);
+    expect((await conToken('/api/core/auditoria/ver', acceso, {})).status).toBe(200);
+  });
+
+  it('CA2: solo roles invitables del producto de la organización; un rol del agro no se ofrece', async () => {
+    const acceso = await dueno();
+    expect((await conToken('/api/core/invitaciones', acceso, { rol: 'operario' })).status).toBe(
+      400,
+    );
+    // «dueno» administra, pero no se da por invitación.
+    expect((await conToken('/api/core/invitaciones', acceso, { rol: 'dueno' })).status).toBe(400);
+  });
+
+  it('la invitación y la membresía nacen con el producto de la organización', async () => {
+    const acceso = await dueno();
+    const { codigo } = (await (
+      await conToken('/api/core/invitaciones', acceso, { rol: 'colaborador' })
+    ).json()) as { codigo: string };
+    expect(await db.prepare('SELECT producto, rol FROM invitacion').first()).toEqual({
+      producto: 'ensayo',
+      rol: 'colaborador',
+    });
+    expect(codigo).toBeTruthy();
+  });
+
+  it('CA4 ❌: el producto del cuerpo no manda: crear una organización nunca la crea en otro producto', async () => {
+    const acceso = await dueno();
+    const r = await conToken('/api/core/organizaciones', acceso, {
+      id: '0199a1b2-0000-7000-8000-00000000c303',
+      nombre: 'Finca Ensayo Dos',
+      producto: 'ensayo',
+    });
+    expect([201, 503]).toContain(r.status);
+    expect(
+      await db
+        .prepare("SELECT COUNT(*) AS n FROM organizacion WHERE producto = 'ensayo'")
+        .first<{ n: number }>(),
+    ).toEqual({ n: 1 });
   });
 });
 

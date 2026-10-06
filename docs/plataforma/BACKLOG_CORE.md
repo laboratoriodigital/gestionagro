@@ -472,7 +472,7 @@ Formato de cada historia:
 - **Work items:** WI-C3.1.1 `[código]` `entrar.ts` por producto · WI-C3.1.2 `[código]` política por producto · WI-C3.1.3 `[prueba]` contrato con la solicitud del cuaderno publicado · WI-C3.1.4 `[prueba]` producto de ensayo.
 
 #### HU-C3.2 · Organizaciones, invitaciones y equipo por producto
-- **Capa:** API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C3 · **Depende de:** HU-C3.1 · **Estado:** Refinada
+- **Capa:** API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C3 · **Depende de:** HU-C3.1 · **Estado:** En validación (rama `feat/c3-sprint`. Invitar, el equipo y la auditoría toman el producto **de la organización en la base**: el token v1 no lo trae. CA1 a medias, dicho: crear una organización sigue siendo del producto por defecto hasta que el token diga su producto (HU-C4.3); el cuerpo nunca lo decide. `administra` reemplaza a «propietario» en invitar, equipo y organizaciones, y los roles invitables salen de `productos.json`. La invitación y la membresía nacen con el producto. 4 pruebas con un producto cuyo rol que administra se llama `dueno`. Control negativo: con «propietario» escrito de nuevo en la invitación, 3 se ven en rojo)
 - Como quien administra, quiero que invitar, cambiar roles y quitar personas use los roles de mi producto, para que la tienda tenga sus roles y el agro los suyos.
 - **Respaldo:** PLATAFORMA §4.7; R2 y R3.
 - **CA1.** El producto de una organización nueva sale de la sesión, **nunca del cuerpo** de la solicitud. El tipo se valida contra `producto_tipo`.

@@ -12,6 +12,7 @@ import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import { SinCeldaDisponible } from './asignacion.ts';
 import type { Entorno } from './entrar.ts';
+import { PRODUCTO_POR_DEFECTO, rolAdministra } from './productos.ts';
 import { crearOrganizacion, ErrorDelCore } from './repositorio.ts';
 
 export async function crearOrganizacionDeLaFinca(c: Context, e: Entorno): Promise<Response> {
@@ -38,8 +39,11 @@ export async function crearOrganizacionDeLaFinca(c: Context, e: Entorno): Promis
     )
     .bind(usuario, id.data)
     .first<{ id: string; nombre: string; celda_id: string; shard: string; rol: string | null }>();
+  // HU-C3.2: el producto sale de la sesión, nunca del cuerpo (R2). El token v1 todavía no lo
+  // trae: hasta los tokens v2 (HU-C4.3), toda organización nueva es del producto por defecto.
+  const producto = PRODUCTO_POR_DEFECTO;
   if (existente) {
-    if (existente.rol !== 'propietario') {
+    if (!existente.rol || !rolAdministra(e.catalogo, producto, existente.rol)) {
       return c.json({ estado: 'ajena', motivo: 'Esa finca es de otra cuenta.' }, 409);
     }
     return c.json({ org_id: existente.id, nombre: existente.nombre, ya_existia: true });

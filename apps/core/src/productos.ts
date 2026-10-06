@@ -6,6 +6,7 @@
  * solicitud necesita saber —qué producto es, de dónde puede venir su app y a qué pantallas se
  * vuelve, qué política vale— sale de aquí, sin consultar la base.
  */
+import type { BaseD1 } from '@ed1/d1';
 import type { Producto, RegistroDeProductos } from '@ed1/productos';
 import politicaAgro from '../../../content/agro/privacidad/politica.json' with { type: 'json' };
 import registro from '../../../infrastructure/productos.json' with { type: 'json' };
@@ -76,4 +77,35 @@ export function vueltaDelProducto(
   if (!origenesDelProducto(producto, origenesDeLaCelda).includes(url.origin)) return null;
   if (!producto.app.rutas_de_vuelta.some((ruta) => url.pathname.startsWith(ruta))) return null;
   return `${url.origin}${url.pathname}`;
+}
+
+/** Si ese rol administra las organizaciones de ese producto: paga, invita y maneja el equipo. */
+export function rolAdministra(catalogo: CatalogoDelCore, producto: string, rol: string): boolean {
+  return (
+    catalogo.productos
+      .find((p) => p.id === producto)
+      ?.roles.some((r) => r.id === rol && r.administra) ?? false
+  );
+}
+
+/** Los roles que se pueden dar con una invitación en ese producto. */
+export function rolesInvitablesDe(catalogo: CatalogoDelCore, producto: string): string[] {
+  return (
+    catalogo.productos
+      .find((p) => p.id === producto)
+      ?.roles.filter((r) => r.invitable)
+      .map((r) => r.id) ?? []
+  );
+}
+
+/**
+ * El producto de una organización, de la base (HU-C3.2). El token v1 no lo trae: cuando lo traiga
+ * (tokens v2, HU-C4.3), esta lectura sobra para las rutas con organización.
+ */
+export async function productoDeOrganizacion(db: BaseD1, orgId: string): Promise<string | null> {
+  const fila = await db
+    .prepare('SELECT producto FROM organizacion WHERE id = ?')
+    .bind(orgId)
+    .first<{ producto: string }>();
+  return fila?.producto ?? null;
 }

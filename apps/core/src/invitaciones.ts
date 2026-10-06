@@ -18,11 +18,21 @@ import { hashDe, secretoAlAzar, TokenInvalido, verificarAcceso } from '@ed1/toke
 import type { Context } from 'hono';
 import { filaDeAuditoria } from './auditoria.ts';
 import type { Entorno } from './entrar.ts';
+import {
+  CATALOGO,
+  PRODUCTO_POR_DEFECTO,
+  productoDeOrganizacion,
+  rolAdministra,
+  rolesInvitablesDe,
+} from './productos.ts';
 import type { Rol } from './repositorio.ts';
 
 export const VIDA_INVITACION_MS = 7 * 24 * 60 * 60 * 1000;
-/** Roles que se pueden dar con una invitación. Auditor llega con su enlace propio (HU-E9.4). */
-export const ROLES_INVITABLES: readonly Rol[] = ['operario', 'supervisor', 'asesor', 'propietario'];
+/**
+ * Roles del agro que se pueden dar con una invitación. Auditor llega con su enlace propio
+ * (HU-E9.4). Desde HU-C3.2 salen de `productos.json` (P2); cada producto tiene los suyos.
+ */
+export const ROLES_INVITABLES = rolesInvitablesDe(CATALOGO, PRODUCTO_POR_DEFECTO) as Rol[];
 
 const iso = (ms: number) => new Date(ms).toISOString();
 
@@ -48,14 +58,17 @@ async function cuerpo(c: Context): Promise<Record<string, unknown>> {
 export async function crearInvitacion(c: Context, e: Entorno): Promise<Response> {
   const sesion = await sesionDe(c, e);
   if (!sesion) return sinSesion(c);
-  if (!sesion.org || sesion.rol !== 'propietario') {
+  // HU-C3.2: puede invitar un rol que administra el producto de la organización, con un rol
+  // invitable de ese mismo producto.
+  const producto = sesion.org ? await productoDeOrganizacion(e.db, sesion.org) : null;
+  if (!sesion.org || !producto || !rolAdministra(e.catalogo, producto, sesion.rol ?? '')) {
     return c.json(
       { estado: 'prohibido', motivo: 'Solo quien administra la finca puede invitar.' },
       403,
     );
   }
   const { rol } = await cuerpo(c);
-  if (typeof rol !== 'string' || !ROLES_INVITABLES.includes(rol as Rol)) {
+  if (typeof rol !== 'string' || !rolesInvitablesDe(e.catalogo, producto).includes(rol)) {
     return c.json({ estado: 'invalido', motivo: 'Elige el rol de la persona que invitas.' }, 400);
   }
   const codigo = secretoAlAzar();
@@ -63,15 +76,16 @@ export async function crearInvitacion(c: Context, e: Entorno): Promise<Response>
   const expira = ahora + VIDA_INVITACION_MS;
   await e.db
     .prepare(
-      'INSERT INTO invitacion (codigo_hash, org_id, rol, expira, creada_por, creada) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO invitacion (codigo_hash, org_id, producto, rol, expira, creada_por, creada) VALUES (?, ?, ?, ?, ?, ?, ?)',
     )
-    .bind(await hashDe(codigo), sesion.org, rol, iso(expira), sesion.sub, iso(ahora))
+    .bind(await hashDe(codigo), sesion.org, producto, rol, iso(expira), sesion.sub, iso(ahora))
     .run();
   return c.json({ codigo, rol, expira: iso(expira) }, 201);
 }
 
 interface Detalle {
   org_id: string;
+  producto: string;
   finca: string;
   rol: Rol;
   invita: string;
@@ -83,7 +97,7 @@ interface Detalle {
 async function detalle(e: Entorno, codigo: string): Promise<Detalle | null> {
   return e.db
     .prepare(
-      `SELECT i.org_id, o.nombre AS finca, i.rol, u.nombre AS invita, i.expira, i.usada, i.usada_por
+      `SELECT i.org_id, i.producto, o.nombre AS finca, i.rol, u.nombre AS invita, i.expira, i.usada, i.usada_por
          FROM invitacion i
          JOIN organizacion o ON o.id = i.org_id
          JOIN usuario u ON u.id = i.creada_por
@@ -162,8 +176,8 @@ export async function aceptarInvitacion(c: Context, e: Entorno): Promise<Respons
       .bind(sesion.sub, iso(ahora), hash, iso(ahora)),
     e.db
       .prepare(
-        `INSERT INTO membresia (usuario_id, org_id, rol, creado)
-         SELECT ?, org_id, rol, ? FROM invitacion WHERE codigo_hash = ? AND usada_por = ? AND usada = ?`,
+        `INSERT INTO membresia (usuario_id, org_id, producto, rol, creado)
+         SELECT ?, org_id, producto, rol, ? FROM invitacion WHERE codigo_hash = ? AND usada_por = ? AND usada = ?`,
       )
       .bind(sesion.sub, iso(ahora), hash, sesion.sub, iso(ahora)),
     // HU-C2.4: la fila queda solo si la invitación quedó usada por esta persona en este instante.
@@ -171,7 +185,7 @@ export async function aceptarInvitacion(c: Context, e: Entorno): Promise<Respons
       e.db,
       {
         instante: iso(ahora),
-        producto: 'agro',
+        producto: d.producto,
         org_id: d.org_id,
         usuario_id: sesion.sub,
         accion: 'invitacion_aceptada',

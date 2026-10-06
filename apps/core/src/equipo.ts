@@ -22,7 +22,12 @@ import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import { type Accion, filaDeAuditoria } from './auditoria.ts';
 import type { Entorno } from './entrar.ts';
-import { ROLES_INVITABLES } from './invitaciones.ts';
+import {
+  PRODUCTO_POR_DEFECTO,
+  productoDeOrganizacion,
+  rolAdministra,
+  rolesInvitablesDe,
+} from './productos.ts';
 import type { Rol } from './repositorio.ts';
 
 /** `dispositivo` de una sesión cuyo código de entrada todavía no se canjeó (`sesiones.ts`). */
@@ -52,7 +57,9 @@ const sinSesion = (c: Context) =>
 export async function propietarioDe(c: Context, e: Entorno) {
   const sesion = await sesionDe(c, e);
   if (!sesion) return { error: sinSesion(c) };
-  if (!sesion.org || sesion.rol !== 'propietario') {
+  // HU-C3.2: administra quien tiene un rol con `administra` en el producto de la organización.
+  const producto = sesion.org ? await productoDeOrganizacion(e.db, sesion.org) : null;
+  if (!sesion.org || !producto || !rolAdministra(e.catalogo, producto, sesion.rol ?? '')) {
     return {
       error: c.json(
         { estado: 'prohibido', motivo: 'Solo quien administra la finca maneja el equipo.' },
@@ -60,19 +67,22 @@ export async function propietarioDe(c: Context, e: Entorno) {
       ),
     };
   }
-  return { sesion: { ...sesion, org: sesion.org } };
+  return { sesion: { ...sesion, org: sesion.org, producto } };
 }
 
-/** El hecho de auditoría de quien pide. Hasta HU-C3.1 todo es del agro. */
+/**
+ * El hecho de auditoría de quien pide, con el producto de la organización. Retirar un teléfono no
+ * tiene organización en el token v1: queda del producto por defecto hasta los tokens v2 (HU-C4.3).
+ */
 function hecho(
   e: Entorno,
-  sesion: { sub: string; org?: string | null },
+  sesion: { sub: string; org?: string | null; producto?: string },
   accion: Accion,
   detalle: Record<string, unknown>,
 ) {
   return {
     instante: iso(e.ahora()),
-    producto: 'agro',
+    producto: sesion.producto ?? PRODUCTO_POR_DEFECTO,
     org_id: sesion.org ?? null,
     usuario_id: sesion.sub,
     accion,
@@ -91,7 +101,7 @@ export async function verAuditoria(c: Context, e: Entorno): Promise<Response> {
         WHERE a.org_id = ? AND a.producto = ?
         ORDER BY a.id DESC LIMIT 100`,
     )
-    .bind(p.sesion.org, 'agro')
+    .bind(p.sesion.org, p.sesion.producto)
     .all<{ instante: string; accion: Accion; detalle: string | null; quien: string | null }>();
   return c.json({
     hechos: filas.results.map((f) => ({
@@ -144,7 +154,7 @@ export async function cambiarRol(c: Context, e: Entorno): Promise<Response> {
   const quien = otraPersona(c, datos, p.sesion.sub);
   if (quien.error) return quien.error;
   const rol = datos['rol'];
-  if (typeof rol !== 'string' || !ROLES_INVITABLES.includes(rol as Rol)) {
+  if (typeof rol !== 'string' || !rolesInvitablesDe(e.catalogo, p.sesion.producto).includes(rol)) {
     return c.json({ estado: 'invalido', motivo: 'Elige un rol válido.' }, 400);
   }
   const [r] = await e.db.batch([
