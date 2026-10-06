@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La cuenta de Laboratorio Digital tiene su primera página, en `cuenta.laboratorio-digital.com`: dice qué va a reunir y que pronto se podrá entrar con Google. Es estática, sin JavaScript, y no aparece en buscadores (HU-C7.2).
 - El vigía de la celda ya sabe medir con Workers Paid: proyecta el costo del mes en dólares, avisa por Telegram al 50, 75 y 90 % de lo incluido y al pasar el presupuesto, y con el presupuesto agotado apaga solo lo que cada producto declare, nunca la venta. Se activa cuando la cuenta pase a Workers Paid (HU-C11.1).
 - Las celdas aceptan los tokens del CORE en sus dos formatos, el de hoy y el del ecosistema (con producto y plan), y cada celda acepta solo los de su producto. Es el primer paso de la transición: nadie tiene que volver a entrar (HU-C4.1).
 - El CORE publica sus llaves públicas en el formato estándar (`/.well-known/jwks.json`), para verificadores que no son nuestros (HU-C4.2).

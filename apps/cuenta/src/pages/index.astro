@@ -1,0 +1,21 @@
+---
+import { Aviso } from '@ed1/ui/v2/componentes';
+import Base from '../layouts/Base.astro';
+---
+<Base
+  titulo="Laboratorio Digital"
+  descripcion="Tu cuenta de Laboratorio Digital: tus aplicaciones, tus sesiones y tus pagos en un solo lugar."
+>
+  <main class="portada">
+    <h1 class="portada__titulo">Tu cuenta, en un solo lugar.</h1>
+    <p class="portada__texto">
+      Aquí vas a ver las aplicaciones que usas con tu cuenta, desde qué equipos entraste y lo que
+      has pagado. Todo lo tuyo, sin tener que buscarlo en cada aplicación.
+    </p>
+    <div class="portada__aviso">
+      <Aviso titulo="La estamos preparando">
+        <p>Muy pronto vas a poder entrar aquí con tu cuenta de Google.</p>
+      </Aviso>
+    </div>
+  </main>
+</Base>

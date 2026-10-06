@@ -1,0 +1,81 @@
+/**
+ * HU-C7.2: la cuenta es estática y la sirve el CORE como assets. Estas pruebas leen la fuente y la
+ * configuración generada; lo que sale del build lo revisa `scripts/verificar-cuenta.ts`.
+ */
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { wranglerDelCore } from '../../scripts/generar-wrangler.ts';
+import { cargarCeldas } from '../../scripts/lib/celdas.ts';
+import {
+  fallasDeLasCabeceras,
+  fallasDeUnaPagina,
+  RUTAS_DEL_WORKER,
+} from '../../scripts/lib/cuenta.ts';
+import { RAIZ } from '../../scripts/lib/repo.ts';
+
+const CUENTA = join(RAIZ, 'apps', 'cuenta');
+const leer = (...partes: string[]) => readFileSync(join(CUENTA, ...partes), 'utf8');
+
+/** Las rutas del Worker que no son de la API, de OAuth ni de `.well-known`. */
+const fueraDeLoPermitido = (rutas: readonly string[]) =>
+  rutas.filter((r) => !(RUTAS_DEL_WORKER as readonly string[]).includes(r));
+
+describe('HU-C7.2 · la cuenta, servida por el CORE', () => {
+  const assets = wranglerDelCore(cargarCeldas())['assets'] as {
+    directory: string;
+    run_worker_first: string[];
+    not_found_handling: string;
+  };
+
+  it('CA1 · los assets son el build de la cuenta, con su página 404', () => {
+    expect(assets.directory).toBe('../cuenta/dist');
+    expect(assets.not_found_handling).toBe('404-page');
+  });
+
+  it('CA3 ❌ · el Worker corre primero solo en la API, OAuth y .well-known', () => {
+    expect(fueraDeLoPermitido(assets.run_worker_first)).toEqual([]);
+    // Control negativo: un comodín que mande todas las páginas al Worker se nombra.
+    expect(fueraDeLoPermitido([...assets.run_worker_first, '/*'])).toEqual(['/*']);
+  });
+});
+
+describe('HU-C7.2 · lo que la cuenta promete', () => {
+  it('CA2 · la CSP solo deja lo propio, y nada se indexa', () => {
+    expect(fallasDeLasCabeceras(leer('public', '_headers'))).toEqual([]);
+    expect(leer('public', 'robots.txt')).toMatch(/^Disallow: \/$/m);
+    expect(
+      fallasDeLasCabeceras(
+        leer('public', '_headers').replace("style-src 'self'", "style-src 'self' 'unsafe-inline'"),
+      ),
+    ).toEqual(['la CSP permite código o estilos en línea']);
+  });
+
+  it('ninguna página pide JavaScript: ningún componente lleva client:*', () => {
+    const astro = (carpeta: string): string[] =>
+      readdirSync(carpeta, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory()
+          ? astro(join(carpeta, e.name))
+          : e.name.endsWith('.astro')
+            ? [join(carpeta, e.name)]
+            : [],
+      );
+    const conCliente = astro(join(CUENTA, 'src')).filter((f) =>
+      /\sclient:[a-z]+/.test(readFileSync(f, 'utf8')),
+    );
+    expect(conCliente).toEqual([]);
+  });
+
+  it('el verificador del build nombra lo que la CSP bloquearía', () => {
+    const buena = '<html><head><meta name="robots" content="noindex, nofollow"></head></html>';
+    expect(fallasDeUnaPagina('index.html', buena)).toEqual([]);
+    expect(
+      fallasDeUnaPagina('x.html', '<script>1</script><p style="color:red" onclick="x()">'),
+    ).toEqual([
+      'x.html: trae un <script>; la cuenta no manda JavaScript',
+      'x.html: trae un atributo style=; la CSP lo bloquea',
+      'x.html: trae un manejador en línea (on…=)',
+      'x.html: no dice noindex; la cuenta es personal',
+    ]);
+  });
+});

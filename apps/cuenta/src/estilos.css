@@ -1,0 +1,38 @@
+/*
+ * Lo propio de las páginas de la cuenta (HU-C7.2). Solo tokens: una prueba rechaza un color
+ * escrito a mano (tests/repo/ui-tokens.test.ts).
+ */
+
+.portada {
+  max-width: var(--ancho-pagina);
+  margin: 0 auto;
+  padding: var(--espacio-12) var(--espacio-4) 0;
+}
+
+.portada__titulo {
+  max-width: 16ch;
+  margin: 0 0 var(--espacio-6);
+  font-size: var(--texto-display);
+  font-weight: var(--peso-display);
+  letter-spacing: var(--interletrado-display);
+  line-height: var(--interlineado-display);
+  text-wrap: balance;
+}
+
+.portada__texto {
+  max-width: var(--ancho-lectura);
+  margin: 0 0 var(--espacio-8);
+  font-size: var(--texto-titulo-3);
+  color: var(--texto-suave);
+  text-wrap: pretty;
+}
+
+.portada__aviso {
+  max-width: var(--ancho-lectura);
+}
+
+@media (min-width: 48rem) {
+  .portada {
+    padding: var(--espacio-24) var(--espacio-8) 0;
+  }
+}

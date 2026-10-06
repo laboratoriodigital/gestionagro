@@ -719,7 +719,7 @@ Formato de cada historia:
 - **Work items:** WI-C7.1.1 `[doc]` ADR-28 propuesto · WI-C7.1.2 `[dueño]` decisión.
 
 #### HU-C7.2 · `apps/cuenta`: el esqueleto estático
-- **Capa:** app · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C4.6, HU-C6.3 · **Estado:** Refinada
+- **Capa:** app · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C5 · **Depende de:** HU-C4.6, HU-C6.3 · **Estado:** En validación (rama `feat/c5-sprint`. `apps/cuenta`: portada, 404 y 500 con los componentes v2, y una hoja propia solo con tokens. `generar-wrangler.ts` le da al CORE `assets` con `run_worker_first` en las tres rutas y la 404 de Workers Static Assets; `@ed1/core` depende de `@ed1/cuenta` para que el build salga en orden. `_headers` con CSP `'self'`, `noindex` y `Disallow: /`. `scripts/verificar-cuenta.ts` corre con el build y lo detiene ante un `<script>`, un estilo en línea o una página indexable. Vista a 375 y 1280 px, en claro y oscuro: Geist carga y ninguna página tiene scripts. Astro deja su runtime de Preact en `_astro/`, que nadie carga: solo pesa en lo que se sube. Se ajustó un componente: el encabezado sin enlaces ya no muestra un «Menú» vacío. 4 pruebas en `tests/repo/cuenta.test.ts`, con sus controles negativos: un `/*` en las rutas del Worker y un `unsafe-inline` en la CSP se nombran)
 - Como persona, quiero que la cuenta abra rápido en mi teléfono y se vea como el resto del ecosistema.
 - **Respaldo:** ED1 §3.10 y §16; §4 de este documento.
 - **CA1.** Astro estático con `@ed1/ui` v2, servido como assets del Worker del CORE. El Worker corre primero **solo** en `/api/core/*`, `/oauth/*` y `/.well-known/*`.

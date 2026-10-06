@@ -1,0 +1,12 @@
+---
+import { PaginaDeError } from '@ed1/ui/v2/componentes';
+import Base from '../layouts/Base.astro';
+---
+<Base titulo="Esta página no existe" descripcion="La dirección no lleva a ninguna página de la cuenta.">
+  <PaginaDeError
+    codigo="404"
+    titulo="Esta página no existe."
+    texto="Quizá cambió de lugar o el enlace tenía un error. Desde el inicio llegas a todo."
+    volver={{ texto: 'Ir al inicio', href: '/' }}
+  />
+</Base>

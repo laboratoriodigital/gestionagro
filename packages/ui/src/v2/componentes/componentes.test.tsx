@@ -276,3 +276,12 @@ describe('HU-C6.3 · la hoja de estilos', () => {
     expect(css.match(/min-height: var\(--objetivo-tactil\)/g)?.length).toBeGreaterThanOrEqual(5);
   });
 });
+
+describe('HU-C7.2 · encabezado sin enlaces', () => {
+  it('no muestra un menú vacío', () => {
+    const h = html(<Encabezado marca="ED1" inicio="/" enlaces={[]} />);
+    expect(h).not.toContain('<nav');
+    expect(h).not.toContain('Menú');
+    expect(h).toContain('ED1');
+  });
+});

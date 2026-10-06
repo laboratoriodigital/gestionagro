@@ -37,13 +37,16 @@ export function Encabezado({
       <a class="ed1-encabezado__marca" href={inicio}>
         {marca}
       </a>
-      <nav class="ed1-encabezado__nav" aria-label="Principal">
-        <details class="ed1-encabezado__menu">
-          <summary>Menú</summary>
-          {lista}
-        </details>
-        <div class="ed1-encabezado__fijo">{lista}</div>
-      </nav>
+      {/* Sin enlaces no hay menú: un «Menú» que abre una lista vacía es un botón que no hace nada. */}
+      {enlaces.length === 0 ? null : (
+        <nav class="ed1-encabezado__nav" aria-label="Principal">
+          <details class="ed1-encabezado__menu">
+            <summary>Menú</summary>
+            {lista}
+          </details>
+          <div class="ed1-encabezado__fijo">{lista}</div>
+        </nav>
+      )}
     </header>
   );
 }

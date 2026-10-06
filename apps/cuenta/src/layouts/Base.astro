@@ -1,0 +1,39 @@
+---
+/**
+ * Layout de las páginas de la cuenta (HU-C7.2). Sistema de diseño v2: tokens, fuentes propias y
+ * componentes, todo del mismo origen. Sin scripts y sin estilos en línea (CSP `'self'`). Nada de
+ * la cuenta se indexa: es personal.
+ */
+import '@ed1/ui/v2/tokens.css';
+import '@ed1/ui/v2/fuentes.css';
+import '@ed1/ui/v2/componentes.css';
+import { Encabezado, Pie } from '@ed1/ui/v2/componentes';
+import '../estilos.css';
+
+interface Props {
+  titulo: string;
+  descripcion: string;
+}
+
+const { titulo, descripcion } = Astro.props;
+const marca = 'Laboratorio Digital';
+---
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{titulo === marca ? marca : `${titulo} · ${marca}`}</title>
+    <meta name="description" content={descripcion} />
+  </head>
+  <body>
+    <Encabezado marca={marca} inicio="/" enlaces={[]} />
+    <slot />
+    <Pie
+      enlaces={[{ texto: 'CultivoPro', href: 'https://cultivopro.co/' }]}
+      nota="Laboratorio Digital · Hecho en Colombia."
+    />
+  </body>
+</html>
