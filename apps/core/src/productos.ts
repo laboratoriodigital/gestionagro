@@ -185,3 +185,26 @@ export function planEnElToken(
   const gratuito = planesDe(catalogo, org.producto).find((p) => p.gratuito)?.id ?? 'gratuito';
   return { plan: gratuito, plan_vence: null };
 }
+
+export type AvisoDelPlan = 'en-gracia' | 'vence-en-1-dia' | 'vence-en-7-dias';
+
+/**
+ * La marca que la app usa para avisar (HU-C5.5, PLATAFORMA §4.8): en gracia (venció, pero la
+ * gracia de su producto lo sostiene), o a 1 o a 7 días de vencer. null si no hay nada que avisar.
+ * Se calcula al pedirla, sin escribir nada: pasada la gracia, el plan es el gratuito sin tocar la
+ * fila (CA3).
+ */
+export function avisoDelPlan(
+  catalogo: CatalogoDelCore,
+  org: { producto: string; plan_pagado: string; vence_pagado: string | null },
+  ahora: number,
+): AvisoDelPlan | null {
+  if (!org.vence_pagado) return null;
+  const { plan_vence } = planEnElToken(catalogo, org, ahora);
+  if (plan_vence === null) return null;
+  if (ahora >= Date.parse(org.vence_pagado)) return 'en-gracia';
+  const faltan = Date.parse(org.vence_pagado) - ahora;
+  if (faltan <= DIA_MS) return 'vence-en-1-dia';
+  if (faltan <= 7 * DIA_MS) return 'vence-en-7-dias';
+  return null;
+}

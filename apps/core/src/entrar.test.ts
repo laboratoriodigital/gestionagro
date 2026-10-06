@@ -1020,6 +1020,53 @@ describe('HU-C3.7 · CA2: la misma persona en dos productos, cada sesión con lo
     ).toBe(403);
   });
 
+  it('HU-C5.5 · en gracia el plan pagado sigue con su marca; pasada, el gratuito sin tocar la fila', async () => {
+    const DIA = 24 * 3600 * 1000;
+    const ensayo = await entrar('producto=ensayo&politica=1', ENSAYO, `${ENSAYO}/`);
+    await enviar(
+      '/api/core/organizaciones',
+      ENSAYO,
+      { id: COMERCIO, nombre: 'Comercio' },
+      ensayo.acceso,
+    );
+    const vencio = new Date(reloj - 3 * DIA).toISOString();
+    await db
+      .prepare("UPDATE organizacion SET plan = 'vitrina', plan_vence = ? WHERE id = ?")
+      .bind(vencio, COMERCIO)
+      .run();
+    const leer = async () =>
+      (await (
+        await enviar('/api/core/auth/refrescar', ENSAYO, { refresh: ensayo.refresh })
+      ).json()) as {
+        acceso: string;
+        organizaciones: { plan: string; plan_vence: string | null; aviso: string | null }[];
+      };
+    const enGracia = await leer();
+    expect(enGracia.organizaciones[0]).toEqual(
+      expect.objectContaining({
+        plan: 'vitrina',
+        plan_vence: new Date(Date.parse(vencio) + 7 * DIA).toISOString(),
+        aviso: 'en-gracia',
+      }),
+    );
+    expect((await verificarAcceso(await clavePublica(), enGracia.acceso, reloj)).plan).toBe(
+      'vitrina',
+    );
+    reloj += 5 * DIA;
+    expect((await leer()).organizaciones[0]).toEqual(
+      expect.objectContaining({ plan: 'gratis', plan_vence: null, aviso: null }),
+    );
+    expect(
+      await db
+        .prepare('SELECT plan, plan_vence FROM organizacion WHERE id = ?')
+        .bind(COMERCIO)
+        .first(),
+    ).toEqual({
+      plan: 'vitrina',
+      plan_vence: vencio,
+    });
+  });
+
   describe('HU-C7.4 · mis espacios en todos los productos, desde la cuenta', () => {
     const CUENTA = 'https://agro-core-staging.laboratoriodigital-la.workers.dev';
     async function conDosEspacios() {
@@ -1854,6 +1901,10 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
         )) {
           await db.prepare(sql).run();
         }
+      });
+      // El catálogo no se vacía entre pruebas: el precio de Exportador de HU-C5.4 no debe quedar.
+      afterEach(async () => {
+        await db.prepare("DELETE FROM plan_precio WHERE plan = 'exportador'").run();
       });
       const cobroDe = async (acceso: string, meses: unknown, plan = 'finca') =>
         pagar('/api/core/pago/crear', acceso, { plan, vuelta: VUELTA_PAGO, meses });

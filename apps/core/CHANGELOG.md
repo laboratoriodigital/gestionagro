@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La gracia de cada producto también en la lista de organizaciones que recibe la app (antes solo en el token), con la marca `aviso` para avisar a 7 días, a 1 día o en gracia (HU-C5.5).
 - Cambiar de plan con días pagados por delante los convierte en días del plan nuevo, al precio mensual de cada uno. Nada se devuelve en dinero (HU-C5.4).
 - Pagar un plan por 1, 3, 6 o 12 meses: el monto sale del precio vigente de ese periodo en la base, nunca de la app, y el periodo pagado queda en el pago (HU-C5.3).
 

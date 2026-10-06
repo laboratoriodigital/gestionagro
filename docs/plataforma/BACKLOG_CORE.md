@@ -624,7 +624,7 @@ Formato de cada historia:
 - **Work items:** WI-C5.4.1 `[código]` · WI-C5.4.2 `[prueba]`.
 
 #### HU-C5.5 · Gracia por producto y avisos de vencimiento
-- **Capa:** planes · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C4.3, HU-C5.3 · **Estado:** Refinada
+- **Capa:** planes · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C4.3, HU-C5.3 · **Estado:** En validación (rama `feat/c7-sprint`. La lista de organizaciones que recibe la app ya no usa el plan del directorio, que no conocía la gracia y escribía «gratuito» para todos: usa `planEnElToken`, la misma regla del token, con el gratuito de cada producto. Cada organización trae `aviso`: `en-gracia`, `vence-en-1-dia` o `vence-en-7-dias` (`avisoDelPlan`), calculado al pedirlo, sin escribir nada. CA2 cambió de forma: no hay aviso que mandar desde el cron mientras no haya correo (HU-C10.3); la app lo muestra con la marca, y el cuaderno ya avisaba una semana antes con su propia cuenta. 4 pruebas: los escalones de aviso, en gracia con el plan pagado, pasada la gracia el gratuito de su producto, y un espacio de Ensayo (7 días de gracia) de punta a punta, con su fila intacta (CA3). Control negativo: con el plan del directorio, la de punta a punta sale en rojo)
 - Como comercio, quiero unos días de gracia si olvido pagar, para no dejar de vender de un día para otro.
 - **Respaldo:** PLATAFORMA §4.8 (5).
 - **CA1.** `gracia_dias` del producto (0 en el agro): durante la gracia, el token lleva el plan pagado y la app recibe la marca para avisar.

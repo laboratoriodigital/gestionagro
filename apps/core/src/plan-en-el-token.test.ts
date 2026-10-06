@@ -4,7 +4,7 @@
  */
 import type { Producto } from '@ed1/productos';
 import { describe, expect, it } from 'vitest';
-import { CATALOGO, type CatalogoDelCore, planEnElToken } from './productos.ts';
+import { avisoDelPlan, CATALOGO, type CatalogoDelCore, planEnElToken } from './productos.ts';
 
 const DIA = 24 * 60 * 60 * 1000;
 const AHORA = Date.UTC(2026, 10, 30, 12);
@@ -59,5 +59,33 @@ describe('HU-C4.3 · el plan en el token', () => {
   it('pasada la gracia, el gratuito de su producto, no el de otro', () => {
     const org = { producto: 'tienda', plan_pagado: 'vitrina', vence_pagado: vence(-8) };
     expect(planEnElToken(catalogo, org, AHORA)).toEqual({ plan: 'semilla', plan_vence: null });
+  });
+});
+
+describe('HU-C5.5 · la marca para avisar del vencimiento', () => {
+  const org = (producto: string, plan: string, dias: number) => ({
+    producto,
+    plan_pagado: plan,
+    vence_pagado: vence(dias),
+  });
+
+  it('CA2 · a 7 días y a 1 día de vencer; antes, nada', () => {
+    expect(avisoDelPlan(catalogo, org('agro', 'finca', 10), AHORA)).toBeNull();
+    expect(avisoDelPlan(catalogo, org('agro', 'finca', 7), AHORA)).toBe('vence-en-7-dias');
+    expect(avisoDelPlan(catalogo, org('agro', 'finca', 1), AHORA)).toBe('vence-en-1-dia');
+  });
+
+  it('CA1 · en gracia, el plan pagado sigue y la marca lo dice', () => {
+    const enGracia = org('tienda', 'vitrina', -3);
+    expect(avisoDelPlan(catalogo, enGracia, AHORA)).toBe('en-gracia');
+    expect(planEnElToken(catalogo, enGracia, AHORA).plan).toBe('vitrina');
+  });
+
+  it('CA3 ❌ · pasada la gracia, el gratuito y sin marca: nada que avisar de un plan que ya no está', () => {
+    const vencido = org('tienda', 'vitrina', -8);
+    expect(planEnElToken(catalogo, vencido, AHORA).plan).toBe('semilla');
+    expect(avisoDelPlan(catalogo, vencido, AHORA)).toBeNull();
+    // El agro no tiene gracia: vencido, gratuito al instante.
+    expect(avisoDelPlan(catalogo, org('agro', 'finca', -1), AHORA)).toBeNull();
   });
 });
