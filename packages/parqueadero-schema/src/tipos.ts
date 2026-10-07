@@ -69,6 +69,22 @@ export type MedioDePago = (typeof MEDIOS_DE_PAGO)[number];
 export const CANALES = ['papel', 'whatsapp', 'pantalla'] as const;
 export type Canal = (typeof CANALES)[number];
 
+/** Por dónde salió el papel: los caminos de `@ed1/impresion` (§7.3). */
+export const CAMINOS_DE_PAPEL = ['bluetooth', 'serial', 'sistema', 'rawbt', 'prueba'] as const;
+
+/**
+ * Qué pasó con una entrega (§7.6): el papel se **envió** a la impresora o **falló** («No salió»);
+ * WhatsApp se **abrió** o el cajero dijo que **no se envió**; el QR en pantalla, **confirmado**
+ * cuando el conductor lo escaneó. Nunca «impreso»: la caja no lo puede saber (HU-Q3.6 CA3).
+ */
+export const RESULTADOS_DE_ENTREGA = [
+  'enviado',
+  'fallido',
+  'abierto',
+  'no_enviado',
+  'confirmado',
+] as const;
+
 /**
  * El vehículo que propone la placa (§5.1): `ABC123` carro, `ABC12D` moto. Cualquier otra
  * (extranjera, diplomática, remolque, una bicicleta marcada) da `null`: se acepta con una

@@ -6,8 +6,12 @@
 
 import {
   type Catalogos,
+  EnlaceInvalido,
   faltantesDeSede,
+  type Lectura,
+  leerEnlace,
   nombresDeCampos,
+  ORIGEN_DEL_RECIBO,
   ReciboIncompleto,
 } from '@ed1/parqueadero-recibos';
 import {
@@ -15,7 +19,10 @@ import {
   ajusteRecibo,
   type Catalogo,
   type DatosDeEntrada,
+  type DatosDeEntrega,
   type Entidad,
+  ErrorDeValidacion,
+  type MedioDePago,
   NOVEDADES,
   numeroDeRecibo,
   type Registro,
@@ -29,9 +36,11 @@ import {
   validarRegistro,
   type ZodType,
 } from '@ed1/parqueadero-schema';
-import { validarTarifa } from '@ed1/parqueadero-tarifas';
-import type { BaseDeLaCaja, Estadia } from './datos.ts';
+import { type Liquidacion, liquidar, validarTarifa } from '@ed1/parqueadero-tarifas';
+import { normalizarNumero } from '@ed1/whatsapp';
+import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
 import { diaLocalBogota } from './fecha.ts';
+import { avisoAceptado, VERSION_DEL_AVISO } from './privacidad.ts';
 
 export interface Contexto {
   readonly reloj: () => number;
@@ -200,6 +209,8 @@ export interface DatosDeLaEntrada {
   readonly placaConfirmada: boolean;
   readonly novedades: DatosDeEntrada['novedades'];
   readonly fotos: readonly { readonly tipo: 'image/webp' | 'image/jpeg'; readonly datos: Blob }[];
+  /** El WhatsApp del conductor, ya autorizado con la casilla (HU-Q4.1 CA1); nulo si no lo dio. */
+  readonly whatsapp?: string | null;
 }
 
 /** La placa ya tiene una estadía abierta: no se crea otra (HU-Q3.3 CA3). */
@@ -229,8 +240,10 @@ export async function registrarEntrada(
   const faltan = faltaParaRegistrar(ajustes, [d.vehiculo]);
   const tarifaVigente = ajustes.tarifas.find((t) => t.vehiculo === d.vehiculo);
   if (faltan.length > 0 || !tarifaVigente) throw new ReciboIncompleto(faltan);
+  const numero = d.whatsapp ? numeroAutorizado(ajustes.sede, d.whatsapp) : null;
 
-  return db.transaction('rw', [db.registros, db.estadias, db.meta, db.fotos], async () => {
+  const tablas = [db.registros, db.estadias, db.meta, db.fotos, db.contactos];
+  return db.transaction('rw', tablas, async () => {
     const abierta = await db.estadias.where('placa').equals(d.placa).first();
     if (abierta) throw new EstadiaYaAbierta(abierta);
     const meta = await db.meta.get('consecutivo');
@@ -275,38 +288,124 @@ export async function registrarEntrada(
     for (const f of fotos) {
       await db.fotos.add({ id: f.id, estadia_id: id, tipo: f.tipo, datos: f.datos, creada: ahora });
     }
+    if (numero) await db.contactos.put(contacto(id, numero, dispositivoId, ahora, null));
     return registro;
   });
 }
 
-/** Cómo salió un recibo: queda en los registros, sin número (§7.6). */
+// ── El WhatsApp del conductor (HU-Q4.1) ───────────────────────────────────────────────────────
+
+/** La sede no ha aceptado el aviso de privacidad vigente: no se guardan números (HU-Q4.4 CA2). */
+export class SinAvisoDePrivacidad extends Error {
+  constructor() {
+    super('Antes del primer número, la sede acepta el aviso de privacidad en Ajustes.');
+    this.name = 'SinAvisoDePrivacidad';
+  }
+}
+
+/** Lanza `SinAvisoDePrivacidad`, o `WhatsAppInvalido` si el número no sirve. */
+function numeroAutorizado(laSede: Sede | null, escrito: string): string {
+  if (!avisoAceptado(laSede)) throw new SinAvisoDePrivacidad();
+  return normalizarNumero(escrito);
+}
+
+const VIGENCIA_DEL_NUMERO = 24 * 3_600_000;
+
+const contacto = (
+  estadiaId: string,
+  numero: string,
+  operador: string,
+  ahora: number,
+  salida: number | null,
+): Contacto => ({
+  estadia_id: estadiaId,
+  numero,
+  autorizado: ahora,
+  operador,
+  aviso_version: VERSION_DEL_AVISO,
+  borrar_en: salida === null ? null : salida + VIGENCIA_DEL_NUMERO,
+});
+
+/**
+ * Guarda el número que el conductor autorizó en la pantalla del recibo. Si el vehículo ya salió,
+ * vence 24 h después de esa salida, no de ahora (ADR-38).
+ */
+export async function guardarContacto(
+  db: BaseDeLaCaja,
+  estadiaId: string,
+  escrito: string,
+  ctx: Contexto,
+): Promise<Contacto> {
+  const numero = numeroAutorizado((await leerAjustes(db)).sede, escrito);
+  const { id: dispositivoId } = await dispositivo(db, ctx);
+  const salida = await db.registros
+    .where('estadia_id')
+    .equals(estadiaId)
+    .filter((r) => r.tipo === 'salida')
+    .first();
+  const c = contacto(
+    estadiaId,
+    numero,
+    dispositivoId,
+    ctx.reloj(),
+    salida ? Date.parse(salida.instante_evento) : null,
+  );
+  await db.contactos.put(c);
+  return c;
+}
+
+/** El número vigente de una estadía, o nulo. El de la entrada sirve para el recibo de salida. */
+export async function contactoDe(
+  db: BaseDeLaCaja,
+  estadiaId: string,
+  ahora: number,
+): Promise<Contacto | null> {
+  const c = await db.contactos.get(estadiaId);
+  return c && (c.borrar_en === null || c.borrar_en > ahora) ? c : null;
+}
+
+export type DatosDeEntregaRecibo = Omit<DatosDeEntrega, 'recibo_id'>;
+
+/**
+ * Cómo salió un recibo: queda en los registros, sin número, sin teléfono y sin texto (§7.6,
+ * HU-Q3.6 CA2). Devuelve el registro, para poder decir después «No salió» sobre él.
+ */
 export async function registrarEntrega(
   db: BaseDeLaCaja,
   recibo: Registro,
-  canal: 'papel' | 'whatsapp' | 'pantalla',
-  copia: boolean,
+  entrega: DatosDeEntregaRecibo,
   ctx: Contexto,
-): Promise<void> {
+): Promise<Registro> {
   const ahora = ctx.reloj();
-  await db.registros.add(
-    validarRegistro({
-      id: ctx.nuevoId(),
-      org_id: null,
-      tipo: 'entrega_recibo',
-      v: 1,
-      fecha_local: diaLocalBogota(ahora),
-      instante_evento: iso(ahora),
-      autor_usuario_id: null,
-      dispositivo_id: recibo.dispositivo_id,
-      origen: 'manual',
-      anula_id: null,
-      estadia_id: recibo.estadia_id,
-      serie: null,
-      consecutivo: null,
-      datos: { recibo_id: recibo.id, canal, copia },
-    }),
-  );
+  const registro = validarRegistro({
+    id: ctx.nuevoId(),
+    org_id: null,
+    tipo: 'entrega_recibo',
+    v: 1,
+    fecha_local: diaLocalBogota(ahora),
+    instante_evento: iso(ahora),
+    autor_usuario_id: null,
+    dispositivo_id: recibo.dispositivo_id,
+    origen: 'manual',
+    anula_id: null,
+    estadia_id: recibo.estadia_id,
+    serie: null,
+    consecutivo: null,
+    datos: { recibo_id: recibo.id, ...entrega },
+  });
+  await db.registros.add(registro);
+  return registro;
 }
+
+/** Las entregas de un recibo, en orden. */
+export const entregasDe = (db: BaseDeLaCaja, recibo: Registro): Promise<Registro[]> =>
+  db.registros
+    .where('estadia_id')
+    .equals(recibo.estadia_id ?? recibo.id)
+    .filter(
+      (r) => r.tipo === 'entrega_recibo' && (r.datos as DatosDeEntrega).recibo_id === recibo.id,
+    )
+    .sortBy('instante_evento');
 
 /**
  * Los catálogos con que se hizo un registro: la sede y el pie de hoy, y la tarifa en la versión que
@@ -330,14 +429,228 @@ export async function catalogosDelRegistro(db: BaseDeLaCaja, r: Registro): Promi
   return { ...base, tarifa: tarifaVieja };
 }
 
-/** Cuántas veces salió ya un recibo en papel: la siguiente es «COPIA n» (§7.6). */
+/**
+ * Cuántas veces salió ya un recibo en papel: la siguiente es «COPIA n» (§7.6). Un «No salió»
+ * descuenta el envío que falló: la reimpresión es el original, sin marca de copia.
+ */
 export async function vecesImpreso(db: BaseDeLaCaja, recibo: Registro): Promise<number> {
-  return db.registros
-    .where('estadia_id')
-    .equals(recibo.estadia_id ?? recibo.id)
-    .filter((r) => {
-      const d = r.datos as { recibo_id?: string; canal?: string };
-      return r.tipo === 'entrega_recibo' && d.recibo_id === recibo.id && d.canal === 'papel';
-    })
+  let veces = 0;
+  for (const r of await entregasDe(db, recibo)) {
+    const d = r.datos as DatosDeEntrega;
+    if (d.canal !== 'papel') continue;
+    veces += d.resultado === 'fallido' ? -1 : 1;
+  }
+  return Math.max(0, veces);
+}
+
+// ── Estadías abiertas y salida (HU-Q3.4, HU-Q3.5) ──────────────────────────────────────────────
+
+/** Las estadías abiertas, de la más vieja a la más nueva (UUIDv7 ordena por instante). */
+export const estadiasAbiertas = (db: BaseDeLaCaja): Promise<Estadia[]> =>
+  db.estadias.orderBy('id').toArray();
+
+/**
+ * Rehace `estadias` desde `registros`, que es la verdad (HU-Q3.4 CA3): una entrada sigue abierta
+ * mientras no tenga una salida vigente ni esté anulada. Una salida anulada la reabre.
+ */
+export async function reconstruirEstadias(db: BaseDeLaCaja): Promise<number> {
+  return db.transaction('rw', [db.registros, db.estadias], async () => {
+    const todos = await db.registros.toArray();
+    const anulados = new Set(
+      todos.filter((r) => r.tipo === 'anulacion').map((r) => r.anula_id ?? ''),
+    );
+    const cerradas = new Set(
+      todos
+        .filter((r) => r.tipo === 'salida' && !anulados.has(r.id))
+        .map((r) => r.estadia_id ?? ''),
+    );
+    const abiertas: Estadia[] = [];
+    for (const r of todos) {
+      if (r.tipo !== 'entrada' || anulados.has(r.id) || cerradas.has(r.id)) continue;
+      if (r.serie === null || r.consecutivo === null) continue;
+      const d = r.datos as DatosDeEntrada;
+      abiertas.push({
+        id: r.id,
+        placa: d.placa,
+        vehiculo: d.vehiculo,
+        numero: numeroDeRecibo(r.serie, r.consecutivo),
+        entrada: Date.parse(r.instante_evento),
+      });
+    }
+    await db.estadias.clear();
+    await db.estadias.bulkAdd(abiertas);
+    return abiertas.length;
+  });
+}
+
+/** La estadía ya salió o no existe: no se cobra dos veces. */
+export class EstadiaCerrada extends Error {
+  constructor() {
+    super('Esta estadía ya no está abierta: puede que ya haya salido');
+    this.name = 'EstadiaCerrada';
+  }
+}
+
+export interface Cotizacion {
+  readonly estadia: Estadia;
+  readonly entrada: Registro;
+  readonly tarifa: Tarifa;
+  readonly liquidacion: Liquidacion;
+  readonly salida: number;
+}
+
+/** Lo que se cobraría si saliera en `salida`, con la tarifa con que entró (§9). */
+export async function cotizar(
+  db: BaseDeLaCaja,
+  estadiaId: string,
+  salida: number,
+  perdido: boolean,
+): Promise<Cotizacion> {
+  const estadia = await db.estadias.get(estadiaId);
+  const entrada = await db.registros.get(estadiaId);
+  if (!estadia || !entrada) throw new EstadiaCerrada();
+  const t = (await catalogosDelRegistro(db, entrada)).tarifa;
+  if (!t) throw new ReciboIncompleto(['la tarifa']);
+  const liquidacion = liquidar(estadia.entrada, salida, t, t.tope_minuto, null, perdido);
+  return { estadia, entrada, tarifa: t, liquidacion, salida };
+}
+
+export interface DatosDelCobro {
+  readonly perdido: boolean;
+  readonly medio: Exclude<MedioDePago, 'abonado'>;
+  /** Solo en efectivo. */
+  readonly recibido: number | null;
+  /** Solo en cortesía. */
+  readonly motivoCortesia: string | null;
+}
+
+/** El total que vio el cajero tiene más de 10 minutos: se vuelve a liquidar antes de cobrar. */
+export class CotizacionVencida extends Error {
+  constructor() {
+    super('El total cambió: pasaron más de 10 minutos desde que se calculó');
+    this.name = 'CotizacionVencida';
+  }
+}
+
+/**
+ * Cobra y cierra: en una transacción, la salida con su consecutivo y la estadía cerrada (§5.3).
+ * Se liquida con el instante de la cotización que vio el cajero (`instante`), para que lo cobrado
+ * sea lo que se mostró; si tiene más de 10 minutos, lanza `CotizacionVencida`. Lanza
+ * `ErrorDeValidacion` si el efectivo no alcanza o la cortesía no dice por qué (HU-Q3.5 CA4).
+ */
+export async function registrarSalida(
+  db: BaseDeLaCaja,
+  estadiaId: string,
+  c: DatosDelCobro,
+  ctx: Contexto,
+  instante?: number,
+): Promise<Registro> {
+  const { id: dispositivoId, serie } = await dispositivo(db, ctx);
+  const reloj = ctx.reloj();
+  const ahora = instante ?? reloj;
+  if (ahora > reloj || reloj - ahora > 10 * 60_000) throw new CotizacionVencida();
+  const q = await cotizar(db, estadiaId, ahora, c.perdido);
+  const liq = q.liquidacion;
+  const efectivo = c.medio === 'efectivo';
+  if (efectivo && (c.recibido === null || c.recibido < liq.total)) {
+    throw new ErrorDeValidacion('salida', [
+      { campo: 'recibido', motivo: `es menos que el total (${liq.total})` },
+    ]);
+  }
+  return db.transaction('rw', [db.registros, db.estadias, db.meta, db.contactos], async () => {
+    if (!(await db.estadias.get(estadiaId))) throw new EstadiaCerrada();
+    const meta = await db.meta.get('consecutivo');
+    const consecutivo = (meta?.clave === 'consecutivo' ? meta.ultimo : 0) + 1;
+    const recibido = efectivo ? c.recibido : null;
+    const registro = validarRegistro({
+      id: ctx.nuevoId(),
+      org_id: null,
+      tipo: 'salida',
+      v: 1,
+      fecha_local: diaLocalBogota(ahora),
+      instante_evento: iso(ahora),
+      autor_usuario_id: null,
+      dispositivo_id: dispositivoId,
+      origen: 'manual',
+      anula_id: null,
+      estadia_id: estadiaId,
+      serie,
+      consecutivo,
+      datos: {
+        entrada_numero: q.estadia.numero,
+        placa: q.estadia.placa,
+        vehiculo: q.estadia.vehiculo,
+        instante_entrada: iso(q.estadia.entrada),
+        minutos: liq.minutos,
+        lineas: liq.lineas,
+        subtotal: liq.subtotal,
+        redondeo: liq.redondeo,
+        total: liq.total,
+        medio_pago: c.medio,
+        recibido,
+        cambio: recibido === null ? null : recibido - liq.total,
+        motivo_cortesia: c.medio === 'cortesia' ? (c.motivoCortesia?.trim() ?? '') : null,
+        perdido: c.perdido,
+        tarifa_id: q.tarifa.id,
+        tarifa_version: q.tarifa.version,
+      },
+    });
+    await db.registros.add(registro);
+    await db.estadias.delete(estadiaId);
+    await db.meta.put({ clave: 'consecutivo', ultimo: consecutivo });
+    await db.contactos.update(estadiaId, { borrar_en: ahora + VIGENCIA_DEL_NUMERO });
+    return registro;
+  });
+}
+
+export type Hallazgo =
+  | { readonly encontrada: true; readonly estadiaId: string }
+  | { readonly encontrada: false; readonly motivo: string };
+
+/**
+ * Lo que dice un QR escaneado: la estadía abierta que abre, o por qué no abre ninguna (HU-Q3.4
+ * CA2 y CA3). Sirven la forma corta del papel y la completa del teléfono del conductor; un QR de
+ * otro parqueadero o de una estadía cerrada dice qué es y no abre una salida.
+ */
+export async function buscarPorLectura(
+  db: BaseDeLaCaja,
+  texto: string,
+  origenes: readonly string[] = [ORIGEN_DEL_RECIBO],
+): Promise<Hallazgo> {
+  const no = (motivo: string): Hallazgo => ({ encontrada: false, motivo });
+  if (!origenes.some((o) => texto.startsWith(`${o}#`))) {
+    return no('Este QR no es un recibo del parqueadero.');
+  }
+  let lectura: Lectura;
+  try {
+    lectura = await leerEnlace(texto);
+  } catch (e) {
+    if (e instanceof EnlaceInvalido) return no('No se pudo leer este recibo: el QR está dañado.');
+    throw e;
+  }
+  const r =
+    lectura.forma === 'corta'
+      ? lectura
+      : {
+          numero: lectura.recibo.salida?.entradaNumero ?? lectura.recibo.numero,
+          placa: lectura.recibo.placa,
+          entrada: lectura.recibo.entrada,
+        };
+  const abierta = await db.estadias
+    .where('placa')
+    .equals(r.placa)
+    .filter((e) => e.numero === r.numero && Math.floor(e.entrada / 1000) * 1000 === r.entrada)
+    .first();
+  if (abierta) return { encontrada: true, estadiaId: abierta.id };
+  const deEstaCaja = await db.registros
+    .where('instante_evento')
+    // El enlace lleva segundos enteros; el registro, milisegundos.
+    .between(iso(r.entrada), iso(r.entrada + 999), true, true)
+    .filter((x) => x.tipo === 'entrada' && (x.datos as DatosDeEntrada).placa === r.placa)
     .count();
+  return no(
+    deEstaCaja > 0 || (lectura.forma === 'completa' && lectura.recibo.clase === 'salida')
+      ? `La estadía de ${r.placa} (recibo ${r.numero}) ya salió.`
+      : `El recibo ${r.numero} de ${r.placa} no es de esta caja: puede ser de otro parqueadero.`,
+  );
 }

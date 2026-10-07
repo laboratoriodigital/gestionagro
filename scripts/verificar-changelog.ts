@@ -31,6 +31,8 @@ for (const [archivo, prefijo, desde] of [
   // Con barras de git, no las del sistema: `git show` las pide así también en Windows.
   ['CHANGELOG.md', 'v', '0.4.0'],
   ['apps/core/CHANGELOG.md', 'core-v', '0.2.0'],
+  // HU-Q0.3: todas las del parqueadero, desde la primera.
+  ['apps/parqueadero-sitio/CHANGELOG.md', 'parqueadero-v', '0.0.0'],
 ] as const) {
   const etiquetas = git('tag', '--list', `${prefijo}[0-9]*`)
     .stdout.split(/\r?\n/)

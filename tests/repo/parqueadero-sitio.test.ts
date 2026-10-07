@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import plantilla from '../../content/parqueadero/privacidad/aviso.json' with { type: 'json' };
 import {
   RUTA_WRANGLER_PARQUEADERO,
   textoWranglerDelParqueadero,
@@ -12,7 +13,7 @@ import {
   textoDeCabecerasDelParqueadero,
 } from '../../scripts/lib/cabeceras-parqueadero.ts';
 import { humoParqueadero } from '../../scripts/lib/humo-parqueadero.ts';
-import { RAIZ } from '../../scripts/lib/repo.ts';
+import { listarArchivos, RAIZ } from '../../scripts/lib/repo.ts';
 
 /** El sitio del parqueadero en staging (BACKLOG-PARKING_MVP HU-Q5.1, HU-Q3.1). */
 describe('el sitio del parqueadero', () => {
@@ -50,6 +51,28 @@ describe('el sitio del parqueadero', () => {
     const armar = readFileSync(join(RAIZ, 'scripts', 'armar-parqueadero.ts'), 'utf8');
     expect(armar).toContain("'caja/sw.js'");
     expect(armar).toContain('process.exit(1)');
+  });
+
+  it('la frase «sin cuenta» del aviso vive solo en su plantilla (HU-Q4.4 CA3 ❌)', () => {
+    const frase = plantilla.sin_cuenta.split(',')[0] ?? '';
+    expect(frase.length).toBeGreaterThan(20);
+    const conLaFrase = listarArchivos(
+      (r) =>
+        /^(apps|packages|content|scripts)\//.test(r) && /\.(tsx?|astro|json|m?js|html)$/.test(r),
+    ).filter((r) => readFileSync(join(RAIZ, r), 'utf8').includes(frase));
+    expect(conLaFrase).toEqual(['content/parqueadero/privacidad/aviso.json']);
+  });
+
+  it('el toque de WhatsApp solo navega: ningún await entre el toque y la apertura (HU-Q4.1 CA2)', () => {
+    const recibo = readFileSync(
+      join(RAIZ, 'apps', 'parqueadero-sitio', 'src', 'caja', 'Recibo.tsx'),
+      'utf8',
+    );
+    const inicio = recibo.indexOf('\n  function porWhatsApp() {');
+    expect(inicio).toBeGreaterThan(0);
+    const cuerpo = recibo.slice(inicio, recibo.indexOf('\n  }\n', inicio));
+    expect(cuerpo).not.toMatch(/\bawait\b/);
+    expect(recibo).toMatch(/href=\{enlaceConNumero\(/);
   });
 
   describe('la prueba de humo de staging (HU-Q5.1 CA3)', () => {
