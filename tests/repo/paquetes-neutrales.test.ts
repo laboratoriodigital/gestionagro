@@ -8,7 +8,7 @@ import { RAIZ } from '../../scripts/lib/repo.ts';
  * sin cambiarlos (PARQUEADERO §7.3, ADR-34, ADR-39). Si uno importara de `parqueadero-*`, el
  * primer producto que lo use cargaría con el parqueadero entero. BACKLOG_PARKING_MVP HU-Q2.2, CA3.
  */
-const NEUTRALES = ['whatsapp'];
+const NEUTRALES = ['impresion', 'whatsapp'];
 
 const IMPORTA = /(?:from\s+|import\s*\(\s*)['"]([^'"]+)['"]/g;
 

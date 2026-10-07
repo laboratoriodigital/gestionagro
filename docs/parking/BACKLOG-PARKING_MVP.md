@@ -308,7 +308,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.1.1 `[campo]` nRF Connect · WI-Q2.1.2 `[campo]` autoprueba · WI-Q2.1.3 `[doc]` informe.
 
 #### HU-Q2.2 · `@ed1/impresion`: el contrato, la cola y el codificador ESC/POS a 58 mm
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** — · **Estado:** En sprint (rama `feat/q1-sprint`, pruebas en verde)
 - Como equipo, quiero un paquete de impresión que no sepa nada de parqueaderos, para que la Tienda y el agro lo usen después sin cambiarlo.
 - **Respaldo:** ADR-34; PARQUEADERO §7.3 y §15.4 (licencias).
 - **CA1.** La interfaz `Impresora` y el tipo `Resultado` de PARQUEADERO §7.3, con `papel: 'desconocido'` como lo normal. Una cola por caja: un trabajo a la vez; el que falla queda en `entregas_pendientes` con su motivo.

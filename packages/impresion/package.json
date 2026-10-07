@@ -1,0 +1,14 @@
+{
+  "name": "@ed1/impresion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Imprimir recibos en impresoras térmicas de 58 mm desde el navegador: el contrato Impresora, una cola por caja, el codificador ESC/POS y el filtro de bytes de control. No sabe nada de parqueaderos (PARQUEADERO §7.3, ADR-34, HU-Q2.2).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@point-of-sale/receipt-printer-encoder": "^4.0.1",
+    "lean-qr": "^2.7.4"
+  }
+}

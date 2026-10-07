@@ -478,3 +478,26 @@ La regla: **una cicatriz de otra bitácora se busca por la técnica, no por el p
 La regla: **lo que un estudio deja «pendiente de medir» entra al plan como una medición, con su historia, antes de la historia que construye.**
 
 *Ficha:* parqueadero · *(mío)* · 🟡 Medio · P18 · parqueadero-0.0.0 · 2026-10-07
+
+**10 · El codificador ESC/POS pesa 29 KB con gzip, y la caja tiene 80 KB para todo su JS inicial.**
+
+*Qué pasó.* El 7 oct 2026, al escribir `@ed1/impresion` (HU-Q2.2), medí el codificador que eligió PARQUEADERO §7.3 antes de importarlo en la caja.
+
+*Síntoma literal.* Un archivo que solo importa el codificador y codifica una línea y un QR, empaquetado con esbuild para el navegador y minificado:
+
+```text
+receipt-printer-encoder 4.0.1   106,3 KB   28.786 bytes con gzip
+lean-qr 2.7.4                     6,6 KB    3.617 bytes con gzip
+```
+
+*Causa raíz.* §7.3 eligió el codificador por su perfil `pos-5890` y su licencia, sin pesarlo contra el presupuesto de HU-Q3.1. Trae las tablas de decenas de páginas de códigos y la definición de unas cuarenta impresoras; la caja usa tres páginas y un perfil.
+
+*Cómo se reprodujo.* Con esbuild y `gzip -9`, como arriba.
+
+*Arreglo.* `codificar()` importa el codificador (y `lean-qr`, solo para el QR como imagen) con `import()` al codificar el primer trabajo. El JS inicial de la caja no lo carga, y el service worker lo guarda para imprimir sin red. Se queda la librería en vez de escribir un codificador propio: la decisión es de ADR-34 y los bytes de referencia la vigilan.
+
+**Lo prueba:** nada todavía; llega con el presupuesto de 80 KB de la caja (HU-Q3.1), que mide el JS inicial sin el codificador.
+
+La regla: **una dependencia de la caja se pesa con gzip antes de importarla, y lo que solo sirve para imprimir se carga al imprimir.**
+
+*Ficha:* parqueadero · *(mío)* · ⚪ Menor · P18 · parqueadero-0.0.0 · 2026-10-07

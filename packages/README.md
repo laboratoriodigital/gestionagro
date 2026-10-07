@@ -4,8 +4,9 @@ Paquetes compartidos (ARQUITECTURA §11): `agro-calc` (HU-E2.1), `agro-schema` (
 
 De la Tienda 3.0 (`docs/tienda/BACKLOG_TIENDA3.md`), puros y sin nada que cambie entre runtimes (`tests/repo/tienda-paquetes-puros.test.ts`): `dinero` (pesos enteros, el total y su reparto, HU-T1.1) y `calendario` (días hábiles de Colombia con sus festivos y la fecha de Bogotá, HU-T1.2; neutro: también es del CORE, HU-C7.7) y `cifrado` (cifrado de sobre, campos atados a su fila, índice ciego y rotación de la llave maestra, solo con WebCrypto, HU-T1.3) y `tienda-schema` (las secciones de ajustes con sus versiones, lo que falta para publicar, la matriz de permisos y el formato de carga y exportación, HU-T1.4).
 
-Del Parqueadero ED1 (`docs/parking/BACKLOG-PARKING_MVP.md`), neutral: no importa nada de `parqueadero-*` (`tests/repo/paquetes-neutrales.test.ts`) y también es puro:
+Del Parqueadero ED1 (`docs/parking/BACKLOG-PARKING_MVP.md`), neutrales: no importan nada de `parqueadero-*` (`tests/repo/paquetes-neutrales.test.ts`) y también son puros:
 
 - `whatsapp` (HU-Q1.6): `normalizarNumero`, `armarTexto`, `enlaceConNumero` y `enlaceParaCompartir`. Un número que no se puede normalizar o un texto que empieza con emoji lanzan, y el enlace va solo en su línea. **Para la Tienda:** «Pedir por WhatsApp» (HU-T6.1) y «Confirmar por WhatsApp» (HU-T9.3) usan `enlaceConNumero`. **Para el agro:** sus tres `https://wa.me/?text=…` (`cuaderno/src/almacen/invitacion.ts`, `sitio/src/islas/carencia-logica.ts` y `dpv-logica.ts`) dan lo mismo que `enlaceParaCompartir`, y se reemplazan cuando se toquen.
+- `impresion` (HU-Q2.2): el contrato `Impresora`, una cola por caja, los bloques de un recibo y su codificación ESC/POS a 58 mm (perfil `pos-5890`, QR nativo o imagen), el filtro de bytes de control, la página de prueba y el adaptador `prueba`. El codificador se importa al imprimir el primer trabajo, no al abrir la página. Los bytes de referencia de un recibo de prueba están en `impresion/referencia/`. **Para la Tienda y el agro:** el punto de venta y las etiquetas de lote, cuando lo pidan (BACKLOG-PARKING §12).
 
 Sus funciones tienen casos reales resueltos (DoD 2).
