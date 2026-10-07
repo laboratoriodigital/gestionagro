@@ -10,9 +10,20 @@ import { RAIZ } from '../../scripts/lib/repo.ts';
  * `toLocale…` (el formato cambia), el reloj y el azar que no se reciben como parámetro (P8), y
  * los módulos de Node (no existen en workerd). Correrlos dentro de workerd llega con la API
  * (HU-T2.4), que los usa en cada prueba. BACKLOG_TIENDA3 HU-T1.1, CA2. Los paquetes neutrales del
- * parqueadero, `whatsapp` e `impresion`, siguen la misma regla (BACKLOG-PARKING_MVP HU-Q1.6, HU-Q2.2).
+ * parqueadero, `whatsapp` e `impresion`, siguen la misma regla (BACKLOG-PARKING_MVP HU-Q1.6, HU-Q2.2),
+ * y también los del parqueadero: su esquema, sus tarifas y sus recibos (HU-Q1.1, HU-Q1.3, HU-Q1.4).
  */
-const PAQUETES = ['dinero', 'calendario', 'cifrado', 'tienda-schema', 'whatsapp', 'impresion'];
+const PAQUETES = [
+  'dinero',
+  'calendario',
+  'cifrado',
+  'tienda-schema',
+  'whatsapp',
+  'impresion',
+  'parqueadero-schema',
+  'parqueadero-tarifas',
+  'parqueadero-recibos',
+];
 
 const PROHIBIDO: ReadonlyArray<[RegExp, string]> = [
   [/\bIntl\b/, '`Intl` cambia entre runtimes (P17)'],

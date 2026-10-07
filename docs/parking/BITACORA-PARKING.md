@@ -265,7 +265,7 @@ Cuatro reglas que no se rompen:
 
 Van aparte porque no son fallos de código: son cosas que dije con seguridad y no eran ciertas.
 
-1. **«El recibo completo cabe en el QR del papel».** Lo escribí el 6 oct 2026 en el primer borrador de PARQUEADERO §6.3: el enlace llevaba el recibo «para que quepa en un QR de 58 mm», y estimé el firmado en unos 500 a 650 caracteres. Al medirlo ese mismo día con un recibo de nombre y dirección largos: el completo sin firma mide 367 caracteres la entrada y 415 la salida; el firmado, 610 y 658, que es un QR de versión 17 a 18, de 85 a 89 módulos, demasiado denso para papel térmico. El papel lleva ahora la forma corta (136 caracteres, versión 7, 28 mm) y la completa va por WhatsApp y en pantalla. HU-Q1.5, CA2, lo exige con una prueba.
+1. **«El recibo completo cabe en el QR del papel».** Lo escribí el 6 oct 2026 en el primer borrador de PARQUEADERO §6.3: el enlace llevaba el recibo «para que quepa en un QR de 58 mm», y estimé el firmado en unos 500 a 650 caracteres. Al medirlo ese mismo día con un recibo de nombre y dirección largos: el completo sin firma mide 367 caracteres la entrada y 415 la salida; el firmado, 610 y 658, que es un QR de versión 17 a 18, de 85 a 89 módulos, demasiado denso para papel térmico. El papel lleva ahora la forma corta (136 caracteres, versión 7, 28 mm) y la completa va por WhatsApp y en pantalla. HU-Q1.5, CA2, lo exige con una prueba. *(Hoy, 7 oct: con el formato compacto del código, la corta mide 77 caracteres, versión 4, y la completa larga 409, versión 13; PARQUEADERO §6.3.)*
 2. **«La PT-210 corta el papel».** El primer borrador del recibo terminaba con «el corte justo después del pie». Ninguna ficha de la PT-210 menciona un cortador: se rasga (*Inferencia*, se confirma en la puesta en marcha). PARQUEADERO §6.2 dice ahora «solo el avance necesario para rasgar después del pie».
 3. **«El código de `wa.me` ya existe dos veces, en el agro y en la Tienda»** (PARQUEADERO §20.5, 6 oct 2026). En `origin/main` del 7 oct hay **tres copias en el agro**, las tres para compartir sin número (`apps/cuaderno/src/almacen/invitacion.ts:118`, `apps/sitio/src/islas/carencia-logica.ts:176`, `apps/sitio/src/islas/dpv-logica.ts:134`), y **ninguna en la Tienda 3.0**, que todavía no tiene código. La cifra salió de los documentos, no de buscar en el código. `@ed1/whatsapp` nace con las dos formas, con número y sin él (HU-Q1.6).
 
@@ -540,3 +540,59 @@ La regla: **lo que depende del nombre de una clase o de una función se prueba c
 La regla: **un aviso de error en el campo siempre deja copiar lo que el código vio; un error sin diagnóstico obliga a adivinar.**
 
 *Ficha:* parqueadero · *(mío)* · 🟠 Alto · P15, P16 · parqueadero-0.0.0 · 2026-10-07
+
+*(Hoy: la causa apareció y no era del código. Bitácora parqueadero 13.)*
+
+**13 · La PT210L dejó de decir «no se reconoce» al desvincularla y vincularla otra vez en Android.**
+
+*Qué pasó.* El 7 oct 2026, antes de que el arreglo de la entrada 12 llegara a staging, el dueño desvinculó la PT210L en los ajustes de Bluetooth de Android, la vinculó de nuevo y la caja la reconoció e imprimió con la versión anterior.
+
+*Síntoma literal.* El mismo de la entrada 12: «Esta impresora no se reconoce».
+
+*Causa raíz.* Un vínculo viejo en Android (*Inferencia*: es lo único que cambió entre el intento fallido y el bueno). La impresora estaba emparejada como Bluetooth clásico y LE desde antes de la caja, y con ese vínculo el navegador no veía sus servicios.
+
+*Cómo se reprodujo.* Sin reproducir: no hay cómo dañar el vínculo a propósito con la PT-210 falsa.
+
+*Arreglo.* Ninguno en el código. El arreglo de la entrada 12 queda: no estorba, y el diagnóstico que deja copiar es lo que habría mostrado los servicios vacíos. «Desvincular y volver a vincular» pasa a ser el primer paso de soporte de la impresora (HU-Q6.2).
+
+**Lo prueba** el campo: la misma PT210L imprimió en staging después de vincularla de nuevo.
+
+La regla: **antes de cambiar el código por un fallo de Bluetooth en el campo, se prueba quitar el vínculo y hacerlo de nuevo; cuesta un minuto y descarta lo que el código no puede ver.**
+
+*Ficha:* parqueadero · *(del terreno)* · 🟡 Medio · P16 · parqueadero-0.0.0 · 2026-10-07
+
+**14 · Con la entrada, el JS inicial de la caja pasó de 46 KB a 89 KB con gzip.**
+
+*Qué pasó.* El 7 oct 2026, en el sprint Q2, al conectar los ajustes, la entrada y el recibo a la caja. El tope es de 80 KB (HU-Q3.1, CA3).
+
+*Síntoma literal.* `gzip -c index-*.js | wc -c` → `88747`.
+
+*Causa raíz.* Los esquemas del parqueadero usan zod, y `@ed1/ids` también (su `id` es un esquema). Con las pantallas importadas desde `App.tsx` y `uuidv7` desde `main.tsx`, zod y los recibos entraban al trozo que la caja necesita para abrir.
+
+*Cómo se reprodujo.* El build de `apps/parqueadero-sitio` y la e2e del presupuesto.
+
+*Arreglo.* Ajustes, entrada y recibo viven en `vistas.tsx`, que se carga al primer toque y está en la precarga del service worker: sin red abre igual. `uuidv7` se crea ahí, no en `main.tsx`. El inicio no importa nada que traiga zod. Queda en 47 KB al abrir y 42 KB al primer toque.
+
+**Lo prueba** la e2e «JS inicial ≤ 80 KB con gzip», que con las pantallas importadas desde `App.tsx` habría medido esos 88,7 KB del build, y la e2e «sin red, la entrada abre y registra», que carga el trozo nuevo sin conexión.
+
+La regla: **un paquete que valida con zod no se importa desde lo que pinta la primera pantalla; se carga con la pantalla que lo usa.**
+
+*Ficha:* parqueadero · *(mío)* · 🟡 Medio · P19 · parqueadero-0.0.0 · 2026-10-07
+
+**15 · Los ajustes se salían de la pantalla de 360 px y el botón «Guardar» quedaba debajo de otro campo.**
+
+*Qué pasó.* El 7 oct 2026, en las e2e nuevas de los ajustes, en el teléfono de 360 px.
+
+*Síntoma literal.* «`<input id="tarifa-moto-nocheValor"/>` from `<fieldset class="grupo">` subtree intercepts pointer events», y la página medía 561 px de ancho.
+
+*Causa raíz.* Un `fieldset` no se encoge por debajo del ancho de su contenido (`min-inline-size: min-content` por defecto), y en la cuadrícula de dos columnas cada `input` pedía su ancho natural de unos 20 caracteres.
+
+*Cómo se reprodujo.* La e2e de los ajustes, con el botón «Guardar» tapado.
+
+*Arreglo.* `fieldset { min-inline-size: 0 }`, columnas `minmax(0, 1fr)` y los campos al 100 % del ancho.
+
+**Lo prueban** las e2e que llenan los ajustes: con el arreglo pasan, y sin él el clic en «Guardar» se agota. Las de WCAG revisan además los ajustes, la entrada y el recibo.
+
+La regla: **todo formulario nuevo de la caja se llena en una e2e a 360 px; un formulario que solo se mira en el escritorio esconde lo que se sale.**
+
+*Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P20 · parqueadero-0.0.0 · 2026-10-07

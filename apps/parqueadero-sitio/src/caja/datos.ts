@@ -1,9 +1,11 @@
 /**
- * El almacén local de la caja (PARQUEADERO §5.2): Dexie sobre IndexedDB. En Q1 solo las tablas
- * que la impresión usa; las de las entradas llegan con Q2 en la versión 2 del esquema.
+ * El almacén local de la caja (PARQUEADERO §5.2): Dexie sobre IndexedDB. La versión 1 (Q1) tenía
+ * solo lo de la impresión; la 2 (Q2) agrega los registros, los catálogos, las estadías abiertas,
+ * las fotos y `meta` (dispositivo, consecutivo y PIN).
  */
 import type { Camino, MotivoDeFallo, PaginaDeCodigos, Trozo } from '@ed1/impresion';
-import { Dexie, type EntityTable } from 'dexie';
+import type { Catalogo, Registro, Vehiculo } from '@ed1/parqueadero-schema';
+import { Dexie, type EntityTable, type Table } from 'dexie';
 
 /** La impresora de esta caja. No sincroniza: cada caja tiene la suya (§5.2). */
 export interface RegistroImpresora {
@@ -30,15 +32,66 @@ export interface EntregaPendiente {
   readonly motivo: MotivoDeFallo;
   readonly detalle: string;
   readonly creadaEn: number;
+  /** El registro del recibo que no salió; vacío en una página de prueba. */
+  readonly reciboId?: string;
 }
+
+/** Una estadía abierta, para buscar rápido. Se deriva de `registros` y se puede reconstruir. */
+export interface Estadia {
+  /** El id de la entrada. */
+  readonly id: string;
+  readonly placa: string;
+  readonly vehiculo: Vehiculo;
+  readonly numero: string;
+  readonly entrada: number;
+}
+
+/** Una foto del estado del vehículo, con su formato real (§5.5). */
+export interface Foto {
+  readonly id: string;
+  readonly estadia_id: string;
+  readonly tipo: 'image/webp' | 'image/jpeg';
+  readonly datos: Blob;
+  readonly creada: number;
+}
+
+/** Versión anterior de un catálogo (anexo A, `entidad_historial`). */
+export interface VersionAnterior {
+  readonly id: string;
+  readonly entidad: string;
+  readonly entidad_id: string;
+  readonly version: number;
+  readonly datos: unknown;
+  readonly reemplazada: string;
+  readonly motivo: 'edicion';
+}
+
+export type Meta =
+  | { readonly clave: 'dispositivo'; readonly id: string; readonly serie: string }
+  | { readonly clave: 'consecutivo'; readonly ultimo: number }
+  | { readonly clave: 'pin'; readonly sal: string; readonly huella: string };
 
 export type BaseDeLaCaja = Dexie & {
   impresora: EntityTable<RegistroImpresora, 'id'>;
   entregas_pendientes: EntityTable<EntregaPendiente, 'id'>;
+  registros: EntityTable<Registro, 'id'>;
+  catalogos: EntityTable<Catalogo, 'id'>;
+  historial: EntityTable<VersionAnterior, 'id'>;
+  estadias: EntityTable<Estadia, 'id'>;
+  fotos: EntityTable<Foto, 'id'>;
+  meta: Table<Meta, Meta['clave']>;
 };
 
 export function abrirBase(nombre = 'parqueadero-caja'): BaseDeLaCaja {
   const db = new Dexie(nombre) as BaseDeLaCaja;
   db.version(1).stores({ impresora: 'id', entregas_pendientes: '++id, creadaEn' });
+  db.version(2).stores({
+    registros: 'id, tipo, estadia_id, instante_evento',
+    catalogos: 'id, entidad',
+    historial: 'id, entidad_id',
+    estadias: 'id, placa',
+    fotos: 'id, estadia_id',
+    meta: 'clave',
+  });
   return db;
 }

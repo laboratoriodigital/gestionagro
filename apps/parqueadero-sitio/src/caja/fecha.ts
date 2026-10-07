@@ -15,3 +15,9 @@ export function horaBogota(ms: number): string {
   const d = new Date(ms + BOGOTA_MS);
   return `${dos(d.getUTCHours())}:${dos(d.getUTCMinutes())}`;
 }
+
+/** `2026-10-06`: el día local de Bogotá, el de `fecha_local` de los registros. */
+export function diaLocalBogota(ms: number): string {
+  const d = new Date(ms + BOGOTA_MS);
+  return `${d.getUTCFullYear()}-${dos(d.getUTCMonth() + 1)}-${dos(d.getUTCDate())}`;
+}

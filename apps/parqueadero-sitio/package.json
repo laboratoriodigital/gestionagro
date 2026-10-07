@@ -9,10 +9,17 @@
   },
   "dependencies": {
     "@astrojs/preact": "^6.0.5",
+    "@ed1/dinero": "workspace:*",
+    "@ed1/ids": "workspace:*",
     "@ed1/impresion": "workspace:*",
+    "@ed1/parqueadero-recibos": "workspace:*",
+    "@ed1/parqueadero-schema": "workspace:*",
+    "@ed1/parqueadero-tarifas": "workspace:*",
     "@ed1/ui": "workspace:*",
+    "@ed1/whatsapp": "workspace:*",
     "astro": "^7.3.5",
     "dexie": "^4.4.6",
+    "lean-qr": "^2.7.4",
     "preact": "^10.29.8",
     "workbox-window": "^7.4.1"
   },

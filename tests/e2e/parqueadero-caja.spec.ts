@@ -73,8 +73,45 @@ async function configurarImpresora(page: Page, linea: string) {
   await page.getByRole('button', { name: linea, exact: true }).click();
   await page.getByRole('button', { name: 'Los dos' }).click();
   await page.getByRole('button', { name: 'Sí', exact: true }).click();
-  await page.getByRole('button', { name: 'Guardar' }).click();
+  await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 }
+
+/** Los ajustes del Parqueadero Ensayo Dos (sin póliza), con la tarifa del carro. */
+async function llenarAjustes(page: Page, o: { valor?: string; imprimir?: 'Sí' | 'No' } = {}) {
+  const f = page.getByTestId('ajustes');
+  await f.getByLabel('Nombre del parqueadero', { exact: true }).fill('Parqueadero Ensayo Dos');
+  await f.getByLabel('NIT, con el dígito', { exact: true }).fill('800123456-7');
+  await f.getByLabel('Dirección', { exact: true }).fill('Carrera 10 # 20-30 Local 4');
+  await f.getByLabel('Ciudad', { exact: true }).fill('Tunja');
+  await f.getByLabel('Teléfono', { exact: true }).fill('+57 310 000 0000');
+  await f
+    .getByRole('group', { name: '¿Tiene póliza de responsabilidad?' })
+    .getByRole('button', { name: 'No' })
+    .click();
+  await f
+    .getByRole('group', { name: '¿Imprimir el recibo al registrar?' })
+    .getByRole('button', { name: o.imprimir ?? 'Sí' })
+    .click();
+  const carro = f.getByTestId('tarifa-carro');
+  await carro.getByLabel('Pesos por minuto', { exact: true }).fill(o.valor ?? '230');
+  await carro.getByLabel('Tope legal por minuto', { exact: true }).fill('230');
+  await carro.getByLabel('Minutos de gracia', { exact: true }).fill('5');
+  await carro.getByLabel('Redondeo', { exact: true }).selectOption('ninguno');
+  await f.getByLabel('PIN (4 a 6 números)', { exact: true }).fill('2468');
+  await f.getByLabel('Repita el PIN', { exact: true }).fill('2468');
+  await f.getByRole('button', { name: 'Guardar', exact: true }).click();
+}
+
+/** Escribe la placa con el teclado de la caja, no con el del sistema. */
+async function teclearPlaca(page: Page, placa: string) {
+  const teclado = page.getByRole('group', { name: 'Teclado de la placa' });
+  for (const t of placa) await teclado.getByRole('button', { name: t, exact: true }).click();
+}
+
+const bytesImpresos = (page: Page) =>
+  page
+    .evaluate(() => (window as unknown as { __escrito: number[] }).__escrito)
+    .then((b) => Buffer.from(b).toString('latin1'));
 
 test.use({ testIdAttribute: 'data-prueba' });
 
@@ -175,6 +212,107 @@ test.describe('la caja del parqueadero', () => {
     );
     await expect(page.getByTestId('asistente')).toBeVisible();
   });
+
+  test('HU-Q3.2 · sin ajustes, «Nueva entrada» dice qué falta y lleva al campo', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await expect(page.getByTestId('falta')).toHaveText(
+      'Antes del primer recibo falta: el nombre, el NIT, la dirección, la ciudad, el teléfono, la póliza y la tarifa de carro.',
+    );
+    await page.getByRole('button', { name: 'Completar los ajustes' }).click();
+    await expect(page.getByLabel('Nombre del parqueadero')).toBeFocused();
+    await expect(page.getByLabel('Nombre del parqueadero')).toHaveValue('');
+  });
+
+  test('HU-Q3.2 · una tarifa por encima del tope no se guarda y dice por qué (CA3 ❌)', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { valor: '250' });
+    await expect(page.getByTestId('hay-errores')).toBeVisible();
+    await expect(page.getByLabel('Pesos por minuto').first()).toBeFocused();
+    await expect(page.getByTestId('ajustes')).toContainText('tope');
+    await page.getByTestId('tarifa-carro').getByLabel('Pesos por minuto').fill('230');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await expect(page.getByTestId('tarjeta-entrada')).toBeVisible();
+    // Después, los ajustes piden el PIN.
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await expect(page.getByTestId('pedir-pin')).toBeVisible();
+  });
+
+  test('HU-Q3.3 · registra ABC123 y el recibo sale solo con su número y su placa', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    const antes = (await bytesImpresos(page)).length;
+    await teclearPlaca(page, 'ABC123');
+    await expect(page.getByTestId('placa')).toHaveText('ABC123');
+    await expect(page.getByRole('button', { name: 'Carro' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    const recibo = (await bytesImpresos(page)).slice(antes);
+    expect(recibo).toContain('A-000001');
+    expect(recibo).toContain('ABC123');
+    expect(recibo).toContain('PRUEBA');
+    expect(recibo).not.toContain('COPIA');
+    // Reimprimir sale con «COPIA 1» (HU-Q3.6 CA2).
+    const conOriginal = (await bytesImpresos(page)).length;
+    await page.getByRole('button', { name: 'Imprimir otra vez' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Copia 1 enviada a la impresora');
+    expect((await bytesImpresos(page)).slice(conOriginal)).toContain('*** COPIA 1 ***');
+    // La misma placa no abre otra estadía (CA3).
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'ABC123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByTestId('aviso-entrada')).toContainText('ABC123');
+  });
+
+  test('HU-Q3.3 · sin impresora conectada, el registro existe y la entrega queda pendiente (CA4 ❌)', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'XYZ98');
+    await page.getByTestId('confirmar-placa').click();
+    await page.getByRole('button', { name: 'Carro' }).click();
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await expect(page.getByTestId('estado-del-papel')).toContainText(
+      'Quedó en entregas pendientes',
+    );
+    await expect(page.getByTestId('senal-pendientes')).toContainText('1');
+  });
+
+  test('HU-Q3.3 · sin red, la entrada abre y registra', async ({ page, context }) => {
+    await abrirControlada(page);
+    await context.setOffline(true);
+    await page.reload();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'ABC12D');
+    // Solo el carro tiene tarifa: la moto que propone el patrón no se ofrece.
+    await expect(page.getByRole('button', { name: 'Moto' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Carro' }).click();
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('');
+    await context.setOffline(false);
+  });
 });
 
 for (const esquema of ['light', 'dark'] as const) {
@@ -193,6 +331,18 @@ for (const esquema of ['light', 'dark'] as const) {
     await expect(page.getByTestId('senal-impresora')).toBeVisible();
     await revisar();
     await configurarImpresora(page, 'Línea 1');
+    await revisar();
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await expect(page.getByTestId('ajustes')).toBeVisible();
+    await revisar();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'ABC123');
+    await revisar();
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Mostrar QR' }).click();
+    await expect(page.getByTestId('qr-en-pantalla')).toBeVisible();
     await revisar();
   });
 }
