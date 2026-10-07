@@ -156,6 +156,8 @@ p {
 }
 
 fieldset {
+  /* Sin esto un fieldset no baja de su contenido y la página se corre a 360 px. */
+  min-inline-size: 0;
   margin: 0;
   padding: 0;
   border: 0;
@@ -185,4 +187,139 @@ legend {
 .error {
   color: var(--peligro);
   font-weight: var(--peso-fuerte);
+}
+
+/* ── Formularios (Ajustes, HU-Q3.2) ─────────────────────────────────────────────────────────── */
+
+.grupo {
+  display: grid;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3) 0;
+  border-top: 1px solid var(--borde);
+}
+
+.campo {
+  display: grid;
+  align-content: start;
+  gap: var(--espacio-1);
+}
+
+.campo input,
+.campo select {
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-height: var(--toque);
+  padding: 0 var(--espacio-3);
+  border: 2px solid var(--borde);
+  border-radius: var(--radio-campo);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+}
+
+.campo input:focus-visible,
+.campo select:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.campo[data-error] input,
+.campo[data-error] select {
+  border-color: var(--peligro);
+}
+
+.ayuda {
+  color: var(--texto-suave);
+  font-size: 0.875rem;
+}
+
+.dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-2);
+}
+
+/* ── Entrada (HU-Q3.3) ──────────────────────────────────────────────────────────────────────── */
+
+.placa {
+  min-height: 4.5rem;
+  padding: var(--espacio-2);
+  border: 3px solid var(--texto);
+  border-radius: var(--radio-campo);
+  background: #ffd400;
+  color: #0b0b0a;
+  font-family: var(--fuente-mono);
+  font-size: 2.5rem;
+  font-weight: var(--peso-fuerte);
+  letter-spacing: 0.15em;
+  text-align: center;
+}
+
+.teclado {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+
+.tecla {
+  min-height: 48px;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
+  font-weight: var(--peso-fuerte);
+}
+
+.tecla-ancha {
+  grid-column: span 3;
+}
+
+.tecla:focus-visible {
+  outline: 3px solid var(--foco);
+}
+
+.casilla {
+  display: flex;
+  gap: var(--espacio-2);
+  align-items: flex-start;
+}
+
+.casilla-marca {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+}
+
+/* ── Recibo en pantalla (§6.5) ──────────────────────────────────────────────────────────────── */
+
+.filas {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--espacio-1) var(--espacio-3);
+  margin: 0;
+}
+
+.filas dt {
+  color: var(--texto-suave);
+}
+
+.filas dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.qr {
+  width: min(100%, 18rem);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  background: #ffffff;
+  image-rendering: pixelated;
+}
+
+.enlace-boton {
+  display: grid;
+  place-items: center;
+  text-decoration: none;
 }
