@@ -385,3 +385,10 @@ legend {
   background: #000;
   object-fit: cover;
 }
+
+.qr-pago {
+  justify-self: center;
+  inline-size: min(100%, 18rem);
+  border-radius: var(--radio-campo);
+  background: #fff;
+}

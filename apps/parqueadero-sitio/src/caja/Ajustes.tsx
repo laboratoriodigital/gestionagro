@@ -8,7 +8,7 @@ import type { Redondeo, Sede, Tarifa, Vehiculo } from '@ed1/parqueadero-schema';
 import { ErrorDeValidacion, VEHICULOS } from '@ed1/parqueadero-schema';
 import { validarTarifa } from '@ed1/parqueadero-tarifas';
 import type { ComponentChildren } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { abrirFormulario } from './actividad.ts';
 import {
   type Contexto,
@@ -23,6 +23,7 @@ import {
   verificarPin,
 } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
+import { useConsulta } from './ganchos.ts';
 
 /** Los vehículos que la caja cobra en M0: los del primer cliente (bitácora parqueadero 9). */
 export const VEHICULOS_DE_LA_CAJA: readonly Vehiculo[] = ['carro', 'moto'];
@@ -268,6 +269,13 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
   });
   const [errores, setErrores] = useState<Errores>({});
   const [guardando, setGuardando] = useState(false);
+  /** `undefined`: sin cambios; `null`: quitar la imagen. */
+  const [qrPago, setQrPago] = useState<Blob | null | undefined>(undefined);
+  const qrGuardado = useConsulta(async () => {
+    const m = await db.meta.get('qr_pago');
+    return m?.clave === 'qr_pago' ? m.datos : null;
+  }, null);
+  const qrVisible = qrPago === undefined ? qrGuardado : qrPago;
 
   useEffect(() => abrirFormulario(), []);
 
@@ -348,6 +356,8 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
       for (const t of tarifas) await guardarTarifa(db, t, ids.tarifas[t.vehiculo] ?? null, ctx);
       await guardarAjusteRecibo(db, { pie: b.pie.trim() || null }, ids.ajuste, ctx);
       if (b.pin) await guardarPin(db, b.pin);
+      if (qrPago) await db.meta.put({ clave: 'qr_pago', datos: qrPago });
+      else if (qrPago === null) await db.meta.delete('qr_pago');
       alTerminar();
     } catch (error) {
       if (error instanceof ErrorDeValidacion) {
@@ -578,6 +588,26 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
       </fieldset>
 
       <fieldset class="grupo">
+        <legend>Cobro con QR o transferencia</legend>
+        <p class="ayuda">
+          Opcional. La imagen del QR de su banco o de su billetera: la caja la muestra al cobrar. El
+          dinero va directo a su cuenta.
+        </p>
+        <ImagenDelQr
+          imagen={qrVisible}
+          errores={errores}
+          alElegir={(archivo) => {
+            setErrores({ ...errores, 'qr-pago': '' });
+            if (archivo && archivo.size > 500_000) {
+              setErrores({ ...errores, 'qr-pago': 'La imagen pesa más de 500 KB: recórtela' });
+            } else {
+              setQrPago(archivo);
+            }
+          }}
+        />
+      </fieldset>
+
+      <fieldset class="grupo">
         <legend>Seguridad</legend>
         <p class="ayuda">
           {conPin
@@ -611,5 +641,43 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
         Volver a la caja sin guardar
       </button>
     </form>
+  );
+}
+
+/** La imagen del QR de pagos, con su vista previa y «Quitar». */
+function ImagenDelQr({
+  imagen,
+  errores,
+  alElegir,
+}: {
+  imagen: Blob | null;
+  errores: Errores;
+  alElegir: (archivo: Blob | null) => void;
+}) {
+  const url = useMemo(() => (imagen ? URL.createObjectURL(imagen) : null), [imagen]);
+  useEffect(() => () => (url ? URL.revokeObjectURL(url) : undefined), [url]);
+  return (
+    <div class="campo" data-error={errores['qr-pago'] ? '' : undefined}>
+      <label for="qr-pago">Imagen del QR de pagos</label>
+      <input
+        id="qr-pago"
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        onChange={(e) => alElegir(e.currentTarget.files?.[0] ?? null)}
+      />
+      {errores['qr-pago'] && (
+        <p class="error" id="qr-pago-error">
+          {errores['qr-pago']}
+        </p>
+      )}
+      {url && (
+        <>
+          <img class="qr-pago" src={url} alt="El QR de pagos guardado" />
+          <button type="button" class="boton boton-secundario" onClick={() => alElegir(null)}>
+            Quitar la imagen
+          </button>
+        </>
+      )}
+    </div>
   );
 }

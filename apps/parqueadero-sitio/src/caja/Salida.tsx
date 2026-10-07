@@ -208,6 +208,7 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
           )}
         </div>
       )}
+      {medio === 'transferencia' && <QrDePago db={db} />}
       {medio === 'cortesia' && (
         <div class="campo">
           <label for="motivo-cortesia">Motivo de la cortesía</label>
@@ -232,5 +233,24 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
         Volver al inicio
       </button>
     </form>
+  );
+}
+
+/** El QR de pagos del propio parqueadero, si lo cargó en Ajustes (HU-Q3.5 CA2). */
+function QrDePago({ db }: { db: BaseDeLaCaja }) {
+  const [url, setUrl] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    let creada: string | null = null;
+    void db.meta.get('qr_pago').then((m) => {
+      creada = m?.clave === 'qr_pago' ? URL.createObjectURL(m.datos) : null;
+      setUrl(creada);
+    });
+    return () => (creada ? URL.revokeObjectURL(creada) : undefined);
+  }, [db]);
+  if (url === undefined) return null;
+  return url ? (
+    <img class="qr-pago" src={url} alt="QR de pagos del parqueadero" data-prueba="qr-pago" />
+  ) : (
+    <p class="ayuda">Muestre el QR de su banco. Puede cargar su imagen en Ajustes.</p>
   );
 }

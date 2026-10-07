@@ -69,7 +69,9 @@ export interface VersionAnterior {
 export type Meta =
   | { readonly clave: 'dispositivo'; readonly id: string; readonly serie: string }
   | { readonly clave: 'consecutivo'; readonly ultimo: number }
-  | { readonly clave: 'pin'; readonly sal: string; readonly huella: string };
+  | { readonly clave: 'pin'; readonly sal: string; readonly huella: string }
+  /** La imagen del QR de pagos del propio parqueadero (HU-Q3.5 CA2): ED1 no toca el dinero. */
+  | { readonly clave: 'qr_pago'; readonly datos: Blob };
 
 export type BaseDeLaCaja = Dexie & {
   impresora: EntityTable<RegistroImpresora, 'id'>;

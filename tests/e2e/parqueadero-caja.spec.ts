@@ -77,7 +77,16 @@ async function configurarImpresora(page: Page, linea: string) {
 }
 
 /** Los ajustes del Parqueadero Ensayo Dos (sin póliza), con la tarifa del carro. */
-async function llenarAjustes(page: Page, o: { valor?: string; imprimir?: 'Sí' | 'No' } = {}) {
+/** Un PNG de 1×1: basta para la imagen del QR de pagos. */
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+async function llenarAjustes(
+  page: Page,
+  o: { valor?: string; imprimir?: 'Sí' | 'No'; qr?: boolean } = {},
+) {
   const f = page.getByTestId('ajustes');
   await f.getByLabel('Nombre del parqueadero', { exact: true }).fill('Parqueadero Ensayo Dos');
   await f.getByLabel('NIT, con el dígito', { exact: true }).fill('800123456-7');
@@ -97,6 +106,11 @@ async function llenarAjustes(page: Page, o: { valor?: string; imprimir?: 'Sí' |
   await carro.getByLabel('Tope legal por minuto', { exact: true }).fill('230');
   await carro.getByLabel('Minutos de gracia', { exact: true }).fill('5');
   await carro.getByLabel('Redondeo', { exact: true }).selectOption('ninguno');
+  if (o.qr) {
+    await f
+      .getByLabel('Imagen del QR de pagos', { exact: true })
+      .setInputFiles({ name: 'qr.png', mimeType: 'image/png', buffer: PNG });
+  }
   await f.getByLabel('PIN (4 a 6 números)', { exact: true }).fill('2468');
   await f.getByLabel('Repita el PIN', { exact: true }).fill('2468');
   await f.getByRole('button', { name: 'Guardar', exact: true }).click();
@@ -296,7 +310,7 @@ test.describe('la caja del parqueadero', () => {
     await configurarImpresora(page, 'Línea 1');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
-    await llenarAjustes(page);
+    await llenarAjustes(page, { qr: true });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await teclearPlaca(page, 'ABC123');
     await page.getByRole('button', { name: 'Registrar' }).click();
@@ -320,6 +334,9 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Cortesía' }).click();
     await expect(cobrar).toHaveText('Escriba el motivo de la cortesía');
     await expect(cobrar).toBeDisabled();
+    // El QR de pagos del propio parqueadero, cargado en Ajustes (CA2).
+    await page.getByRole('button', { name: 'QR o transferencia' }).click();
+    await expect(page.getByTestId('qr-pago')).toBeVisible();
     await page.getByRole('button', { name: 'Efectivo' }).click();
     await page.getByLabel('Recibido').fill('40.000');
     await expect(cobrar).toHaveText('Lo recibido no alcanza: el total es $41.400');
