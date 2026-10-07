@@ -596,3 +596,19 @@ La regla: **un paquete que valida con zod no se importa desde lo que pinta la pr
 La regla: **todo formulario nuevo de la caja se llena en una e2e a 360 px; un formulario que solo se mira en el escritorio esconde lo que se sale.**
 
 *Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P20 · parqueadero-0.0.0 · 2026-10-07
+
+**16 · La caja decía «0.1.0» sin haberse publicado nunca, y con la publicación por producto se habría publicado sola al fusionar.**
+
+*Qué pasó.* El 7 oct 2026, al darle al parqueadero su versión propia (HU-Q0.3). `apps/parqueadero-sitio/package.json` traía `0.1.0` desde Q1, copiado de la plantilla de una app, mientras las fichas de esta bitácora ya decían `parqueadero-0.0.0`.
+
+*Síntoma literal.* Ninguno todavía: lo vio la tabla de casos de `decidirPublicacion` antes de escribir el flujo. Con la etiqueta `parqueadero-v0.1.0` inexistente, el primer merge habría creado la versión en GitHub y pedido producción para un parqueadero sin dominio.
+
+*Causa raíz.* Una versión sin etiqueta significa «publícame» (HU-C0.3). Un número puesto a mano antes de que el producto se publicara rompe esa regla en silencio.
+
+*Arreglo.* El parqueadero queda en `0.0.0`, que `decidirPublicacion` trata como «todavía no se publica». La `0.1.0` llega en el PR de la demostración, con su sección fechada en `apps/parqueadero-sitio/CHANGELOG.md`. Si para entonces la zona no existe, la producción del parqueadero falla y lo dice, nunca cae a `workers.dev` (HU-Q5.2 CA3).
+
+**Lo prueba** la tabla de `tests/repo/publicacion.test.ts`: en `0.0.0` no publica, en `0.1.0` sin etiqueta publica solo el parqueadero, y publicado no hace nada.
+
+La regla: **la versión de un producto la sube el PR que lo publica; antes, `0.0.0`.**
+
+*Ficha:* parqueadero · *(mío)* · 🟡 Medio · P16 · parqueadero-0.0.0 · 2026-10-07
