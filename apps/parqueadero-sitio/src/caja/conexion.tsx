@@ -49,14 +49,19 @@ interface Props {
 export function ConexionImpresora({ control, alConectar, conDiagnostico = false }: Props) {
   const estado = useEstadoImpresora(control);
   const [aviso, setAviso] = useState('');
+  /** Conectó y se cayó al buscarla: su único enlace lo tiene el teléfono (bitácora 24). */
+  const [ocupada, setOcupada] = useState(false);
+  const { serial } = control.caminos();
 
-  async function elegir() {
+  async function elegir(camino?: 'serial') {
     setAviso('');
+    setOcupada(false);
     try {
-      await control.conectar(false);
+      await control.conectar(false, camino);
       alConectar?.();
     } catch (e) {
       setAviso(textoDeFallo(e));
+      setOcupada(e instanceof FalloDeImpresora && e.motivo === 'enlace_ocupado');
     }
   }
 
@@ -90,6 +95,22 @@ export function ConexionImpresora({ control, alConectar, conDiagnostico = false 
         <p class="error" role="alert" data-prueba="aviso-impresora">
           {aviso}
         </p>
+      )}
+      {ocupada && serial && (
+        <p class="ayuda">
+          La impresora acepta un solo enlace y el teléfono ya tiene uno con ella: úsela como
+          impresora emparejada.
+        </p>
+      )}
+      {/* La otra salida, solo donde el navegador la tiene (HU-Q2.4 CA3). */}
+      {serial && estado !== 'conectando' && (!lista || aviso) && (
+        <button
+          type="button"
+          class={ocupada ? 'boton boton-principal' : 'boton'}
+          onClick={() => void elegir('serial')}
+        >
+          Usar la impresora emparejada
+        </button>
       )}
       {(aviso || conDiagnostico) && <BotonDiagnostico key={aviso} control={control} />}
     </div>

@@ -69,6 +69,8 @@ export interface ControlDeImpresora {
   diagnostico(): string;
   /** Al cerrar o recargar la caja: suelta la conexión y guarda el diagnóstico. */
   soltar(): void;
+  /** Qué caminos tiene este navegador: la caja ofrece solo los que funcionan (HU-Q2.4 CA3). */
+  caminos(): { readonly bluetooth: boolean; readonly serial: boolean };
 }
 
 export type CaminoDeLaCaja = 'bluetooth' | 'serial';
@@ -240,8 +242,13 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
       return () => oyentes.delete(oyente);
     },
 
+    caminos: () => ({ bluetooth: Boolean(opciones.bluetooth), serial: Boolean(opciones.serial) }),
+
     diagnostico() {
-      const ahora = ultima?.diagnostico() ?? 'Impresora: sin vincular en esta sesión';
+      // Primero, qué puede este navegador: dice si la impresora emparejada estaba a mano (bitácora 24).
+      const si = (x: unknown) => (x ? 'sí' : 'no');
+      const navegador = `Este navegador: Bluetooth web ${si(opciones.bluetooth)} · impresora emparejada ${si(opciones.serial)}`;
+      const ahora = `${navegador}\n${ultima?.diagnostico() ?? 'Impresora: sin vincular en esta sesión'}`;
       let antes: string | null = null;
       try {
         antes = opciones.guardado?.getItem(CLAVE_DEL_DIAGNOSTICO) ?? null;

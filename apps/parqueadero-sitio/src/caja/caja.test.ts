@@ -374,6 +374,23 @@ describe('el diagnóstico sobrevive a la recarga (bitácora parqueadero 21)', ()
       guardado: roto,
     });
     expect(() => c.soltar()).not.toThrow();
-    expect(c.diagnostico()).toBe('Impresora: sin vincular en esta sesión');
+    expect(c.diagnostico()).toBe(
+      'Este navegador: Bluetooth web no · impresora emparejada no\nImpresora: sin vincular en esta sesión',
+    );
+  });
+
+  it('el diagnóstico dice qué caminos tiene el navegador (bitácora parqueadero 24)', () => {
+    const db = abrirBase(`prueba-${Math.random()}`);
+    const c = crearControl(db, {
+      bluetooth: bluetoothFalso(() => undefined),
+      serial: { requestPort: () => Promise.reject(new Error('no')), getPorts: async () => [] },
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-11',
+    });
+    expect(c.caminos()).toEqual({ bluetooth: true, serial: true });
+    expect(c.diagnostico()).toMatch(
+      /^Este navegador: Bluetooth web sí · impresora emparejada sí\n/,
+    );
   });
 });

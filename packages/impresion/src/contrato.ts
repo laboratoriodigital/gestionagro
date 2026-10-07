@@ -34,6 +34,8 @@ export type MotivoDeFallo =
   | 'cancelado'
   | 'sin_permiso'
   | 'fuera_de_alcance'
+  /** Conecta y se cae al buscarla: el único enlace que acepta lo tiene otro (bitácora 24). */
+  | 'enlace_ocupado'
   | 'sin_caracteristica'
   | 'tiempo'
   | 'sin_papel'
@@ -80,6 +82,7 @@ export const TEXTO_DEL_MOTIVO: Readonly<Record<MotivoDeFallo, string>> = {
   cancelado: 'No eligió impresora',
   sin_permiso: 'El navegador no dio permiso para usar la impresora',
   fuera_de_alcance: 'La impresora está apagada o lejos',
+  enlace_ocupado: 'La impresora está ocupada con otro enlace del teléfono',
   sin_caracteristica: 'Esta impresora no se reconoce',
   tiempo: 'La impresora no respondió a tiempo',
   sin_papel: 'La impresora no tiene papel',
