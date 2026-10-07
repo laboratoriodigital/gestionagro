@@ -11,6 +11,7 @@ import { type BaseDeLaCaja, purgarContactos, type RegistroImpresora } from './da
 import { Estadias } from './Estadias.tsx';
 import { horaBogota } from './fecha.ts';
 import { useConsulta } from './ganchos.ts';
+import { diferenciaDeHora, senalDeHora } from './hora.ts';
 import type { ControlDeImpresora } from './impresora.ts';
 import { type Propuesta, senalDeImpresora, senalDePendientes, senalDeRespaldo } from './senales.ts';
 import { type Turno, turnoAbierto } from './turno.ts';
@@ -59,6 +60,23 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
     });
   };
 
+  // HU-Q3.8: la hora del teléfono contra la del servidor, al abrir, cada 30 min y al volver la red.
+  const [diferencia, setDiferencia] = useState<number | null | undefined>(undefined);
+  useEffect(() => {
+    const revisar = () =>
+      void diferenciaDeHora(fetch, reloj).then((d) => {
+        // Sin red no se borra la última revisión: la hora no cambió por perder la señal.
+        if (d !== null) setDiferencia(d);
+      });
+    revisar();
+    const t = setInterval(revisar, 30 * 60_000);
+    addEventListener('online', revisar);
+    return () => {
+      clearInterval(t);
+      removeEventListener('online', revisar);
+    };
+  }, [reloj]);
+
   // HU-Q4.1 CA3: los números vencidos se borran al abrir la caja y cada 10 minutos.
   useEffect(() => {
     const purgar = () => void purgarContactos(db, reloj());
@@ -82,7 +100,7 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
       <Cabecera
         impresora={senalDeImpresora(registro, estado)}
         respaldo={senalDeRespaldo(respaldo, reloj())}
-        hora={{ texto: 'Hora sin revisar', tono: 'neutro' }}
+        hora={senalDeHora(diferencia)}
         pendientes={senalDePendientes(pendientes)}
         prueba={prueba}
         persistente={persistente}

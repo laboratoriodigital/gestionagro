@@ -179,7 +179,8 @@ test.describe('la caja del parqueadero', () => {
     await page.goto(CAJA);
     await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora sin configurar');
     await expect(page.getByTestId('senal-respaldo')).toBeVisible();
-    await expect(page.getByTestId('senal-hora')).toBeVisible();
+    // HU-Q3.8: la hora se compara con la del sitio, que el servidor de prueba da en su cabecera.
+    await expect(page.getByTestId('senal-hora')).toHaveText('Hora correcta');
     await expect(page.getByTestId('senal-pendientes')).toHaveText('Sin entregas pendientes');
     await expect(page.getByTestId('marca-prueba')).toContainText('PRUEBA');
   });
