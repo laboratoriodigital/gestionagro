@@ -11,7 +11,7 @@ Estados: ✅ pasó · ❌ falló · 🟡 pasó con un cambio o una condición ·
 | Clave | Qué es | Datos |
 |---|---|---|
 | **PT-C** | La impresora del primer cliente | GOOJPRT `PT210L_30F2`, Bluetooth clásico y LE, emparejada en Android (nRF Connect: BONDED). Anuncia `0x18F0` y `e7810a71-73ae-499d-8c15-faa9aef0c3f2`. No obedece `FS .`: queda en modo chino de dos bytes |
-| **AND-D** | El Android del dueño, el de las pruebas del 7 oct 2026 | Huawei (sin los servicios de Google: `BarcodeDetector` no lee). Versión de Chrome: **falta anotarla** |
+| **AND-D** | El Android del dueño, el de las pruebas del 7 oct 2026 | Samsung Galaxy S24 Ultra, Chrome 154.0.8037.126 (afirmación falsa 4: no es un Huawei) |
 | **WIN** | Un PC con Windows y Chrome o Edge | Sin probar |
 | **IPH** | Un iPhone | Sin probar |
 
@@ -46,6 +46,7 @@ Una fila por prueba, la más nueva arriba. El diagnóstico copiado va al hilo de
 
 | Fecha | Equipo y navegador | Versión de la caja | Qué se probó | Resultado |
 |---|---|---|---|---|
+| 2026-10-07 | AND-D · PT-C | `main` tras #120 | «Conectar impresora» por Bluetooth web, desde Ajustes y desde el recibo | ❌ Conecta y se cae al buscar los servicios en los 4 intentos; tarda 2 minutos en decirlo (bitácora 24). La impresora emparejada: sin probar |
 | 2026-10-07 | AND-D · PT-C | `main` tras #117 | Escáner, WhatsApp y `/r/`; imprimir varias entradas; bloquear y volver | Escáner, WhatsApp y `/r/` ✅. Imprime dos recibos y después no vuelve: luz azul, conexión que se cae en los 4 intentos (bitácora 21) |
 | 2026-10-07 | AND-D · PT-C | `main` tras #116 | Varias entradas; bloquear el teléfono; tildes; escáner | Reconecta solo con malabares; las tildes se comen la letra; el escáner no lee (bitácora 19) |
 | 2026-10-07 | AND-D · PT-C | `main` tras #115 | Conectar, desconectar, nuevo registro | Conecta la primera vez; desde el recibo no vuelve, sin mensaje (bitácora 18) |

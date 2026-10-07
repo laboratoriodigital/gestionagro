@@ -14,6 +14,7 @@ Pida al cajero que toque **«Copiar diagnóstico para soporte»** y lo pegue en 
 
 | Lo que dice el diagnóstico | Qué es | Vaya a |
 |---|---|---|
+| «La impresora está ocupada con otro enlace del teléfono», o «La conexión abre y se cae al buscar la impresora» | Conecta, pero el teléfono ya tiene el único enlace que la impresora acepta | §2 y §4 |
 | `Camino: puerto serie` y `No abrió` | La impresora emparejada no responde: apagada, lejos o sin emparejar | §3 |
 | `GATT Server is disconnected` en los 4 intentos, o «La conexión se cayó en los 4 intentos» | El enlace Bluetooth está ocupado: la impresora sigue conectada a otra cosa | §4 |
 | «Ningún servicio conocido tiene una característica de escritura» | El equipo elegido no es la impresora, o el teléfono la ve mal | §5 |
@@ -34,7 +35,9 @@ Por eso, en un Android con Chrome 138 o posterior, la caja usa la impresora **em
 3. **«Imprimir página de prueba»** y las tres preguntas (§6).
 4. Cerrar la caja del todo y abrirla: la cabecera debe decir **«Impresora conectada»** sin tocar nada.
 
-Si **«Usar la impresora emparejada»** no aparece, Chrome es viejo o no es Chrome: actualícelo (Play Store → Chrome) o abra la caja en Chrome.
+Si **«Usar la impresora emparejada»** no aparece, Chrome es viejo o no es Chrome: actualícelo (Play Store → Chrome) o abra la caja en Chrome. La primera línea del diagnóstico dice si el navegador la tiene: «impresora emparejada sí».
+
+**Dos maneras que funcionan, y una que no** (bitácora parqueadero 24): la impresora **emparejada** en el teléfono y la caja por **«Usar la impresora emparejada»**; o la impresora **sin emparejar** y la caja por **«Conectar impresora»**. Emparejada y por Bluetooth web es la mezcla que se cae.
 
 ## 3. La impresora emparejada no responde
 
@@ -49,6 +52,7 @@ Si **«Usar la impresora emparejada»** no aparece, Chrome es viejo o no es Chro
 2. Apague y prenda el Bluetooth del teléfono. La luz de la impresora debe volver a verde.
 3. En la caja: **«Reconectar impresora»**; si no, **«Elegir la impresora otra vez»**.
 4. Si vuelve a pasar en el mismo turno, cambie al camino de la impresora emparejada (§2).
+5. Si quiere seguir por Bluetooth web y no por la emparejada: quite la impresora de los emparejados del teléfono (Ajustes → Bluetooth → la impresora → Desvincular) y conéctela desde la caja.
 
 ## 5. «Esta impresora no se reconoce»
 

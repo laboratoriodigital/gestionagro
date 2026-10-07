@@ -290,14 +290,59 @@ describe('las PT-210 que escriben por otro servicio', () => {
     expect(p.impresora.diagnostico()).toContain('Intento 3: se desconectó al buscar los servicios');
   });
 
-  it('si se cae en los 4 intentos, dice «apagada o lejos», no «no se reconoce» (CA ❌)', async () => {
+  it('si se cae en los 4 intentos, dice que el enlace está ocupado, no «no se reconoce» (CA ❌)', async () => {
     const p = seCaeAlConectar(10);
     const fallo = await p.impresora.vincular().catch((e: unknown) => e);
     expect(fallo).toBeInstanceOf(FalloDeImpresora);
-    expect((fallo as FalloDeImpresora).motivo).toBe('fuera_de_alcance');
-    expect((fallo as FalloDeImpresora).message).toContain('Apague y prenda el Bluetooth');
+    // Conecta y se cae al buscarla: está prendida y cerca; otro tiene su único enlace (bitácora 24).
+    expect((fallo as FalloDeImpresora).motivo).toBe('enlace_ocupado');
+    expect(TEXTO_DEL_MOTIVO.enlace_ocupado).toBe(
+      'La impresora está ocupada con otro enlace del teléfono',
+    );
+    expect((fallo as FalloDeImpresora).message).toContain('Use la impresora emparejada');
     expect(p.conexiones()).toBe(4);
     expect(p.impresora.estado()).toBe('sin_vincular');
+  });
+
+  it('un servicio que no contesta se corta: dice que no en segundos, no en minutos (bitácora 24)', async () => {
+    let conectada = false;
+    let conexiones = 0;
+    let soltadas = 0;
+    const gatt: ServidorGatt = {
+      get connected() {
+        return conectada;
+      },
+      connect: async () => {
+        conexiones++;
+        conectada = true;
+        return gatt;
+      },
+      disconnect: () => {
+        soltadas++;
+        conectada = false;
+      },
+      // Como el S24 con la PT210L emparejada: la consulta se queda esperando.
+      getPrimaryService: () => new Promise<never>(() => undefined),
+    };
+    const impresora = crearImpresoraBluetooth({
+      bluetooth: {
+        requestDevice: async () => ({
+          id: 'pt',
+          name: 'PT210L_30F2',
+          gatt,
+          addEventListener: () => undefined,
+        }),
+      },
+      esperar: sinEsperar,
+      msPorBusqueda: 5,
+    });
+    const inicio = Date.now();
+    const fallo = await impresora.vincular().catch((e: unknown) => e);
+    expect(Date.now() - inicio).toBeLessThan(2_000);
+    expect((fallo as FalloDeImpresora).motivo).toBe('enlace_ocupado');
+    expect(conexiones).toBe(4);
+    expect(soltadas).toBeGreaterThanOrEqual(4);
+    expect(impresora.diagnostico()).toContain('0x18f0: TimeoutError');
   });
 
   it('un servicio que no entrega sus características no tumba la búsqueda', async () => {

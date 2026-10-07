@@ -24,7 +24,9 @@ function instalarImpresoraFalsa() {
     writeValueWithResponse: async () => undefined,
   };
   // `__apagar()` y `__prender()`: la impresora se apaga con la caja abierta (bitácora 18).
+  // `__ocupar()`: conecta y se cae al buscarla, como la PT210L emparejada en el S24 (bitácora 24).
   let prendida = true;
+  let ocupada = false;
   let conectada = false;
   let alDesconectar: () => void = () => undefined;
   const gatt = {
@@ -36,10 +38,19 @@ function instalarImpresoraFalsa() {
       conectada = true;
       return gatt;
     },
-    getPrimaryService: async () => ({
-      uuid: '49535343-fe7d-4ae5-8fa9-9fafd205e455',
-      getCharacteristics: async () => [caracteristica],
-    }),
+    getPrimaryService: async () => {
+      if (ocupada) {
+        conectada = false;
+        throw new DOMException(
+          'GATT Server is disconnected. Cannot retrieve services.',
+          'NetworkError',
+        );
+      }
+      return {
+        uuid: '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+        getCharacteristics: async () => [caracteristica],
+      };
+    },
   };
   Object.assign(window, {
     __apagar: () => {
@@ -49,6 +60,9 @@ function instalarImpresoraFalsa() {
     },
     __prender: () => {
       prendida = true;
+    },
+    __ocupar: () => {
+      ocupada = true;
     },
   });
   const bluetooth = {
@@ -810,6 +824,28 @@ test.describe('la caja del parqueadero', () => {
     await page.reload();
     await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
     await expect(page.getByRole('button', { name: 'Conectar impresora' })).toHaveCount(0);
+  });
+
+  test('bitácora 24 · con el enlace ocupado lo dice en segundos y ofrece la impresora emparejada', async ({
+    page,
+  }) => {
+    await page.addInitScript(instalarSerialFalso);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    // Otro día: la caja abre sin impresora, y el teléfono tiene el único enlace de la impresora.
+    await page.reload();
+    await page.evaluate(() => (window as unknown as { __ocupar: () => void }).__ocupar());
+    await page.getByRole('button', { name: 'Conectar impresora' }).click();
+    await expect(page.getByTestId('aviso-impresora')).toHaveText(
+      'La impresora está ocupada con otro enlace del teléfono',
+      { timeout: 15_000 },
+    );
+    await expect(page.getByText('úsela como impresora emparejada')).toBeVisible();
+    await page.getByRole('button', { name: 'Usar la impresora emparejada' }).click();
+    // Otro camino es otra impresora para la caja: la página de prueba se repite (tildes y QR).
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora sin probar');
+    await expect(page.getByTestId('sin-impresora')).toBeVisible();
   });
 
   test('HU-Q3.3 · sin red, la entrada abre y registra', async ({ page, context }) => {

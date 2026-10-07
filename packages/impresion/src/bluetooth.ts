@@ -49,8 +49,13 @@ export interface Trozo {
 
 /** Las pausas entre un intento de conexión y el siguiente: 4 intentos en total. */
 export const PAUSAS_ENTRE_INTENTOS: readonly number[] = [1_000, 2_000, 3_000];
-/** Cuánto se espera un `connect()`. Con los 4 intentos y sus pausas, a lo sumo 30 s. */
+/** Cuánto se espera un `connect()`. */
 export const MS_POR_INTENTO = 6_000;
+/**
+ * Cuánto se espera cada consulta de servicios o características. Sin plazo, Android tardó 30 s por
+ * intento y la caja 2 minutos en decir que no (bitácora parqueadero 24).
+ */
+export const MS_POR_BUSQUEDA = 5_000;
 
 export const TROZO_NORMAL: Trozo = { bytes: 180, ms: 30 };
 export const TROZO_PEQUENO: Trozo = { bytes: 100, ms: 50 };
@@ -105,8 +110,9 @@ export interface OpcionesBluetooth {
   readonly alCambiarEstado?: (estado: EstadoImpresora) => void;
   readonly esperar?: (ms: number) => Promise<void>;
   readonly reloj?: () => number;
-  /** Para las pruebas; en la caja, `MS_POR_INTENTO`. */
+  /** Para las pruebas; en la caja, `MS_POR_INTENTO` y `MS_POR_BUSQUEDA`. */
   readonly msPorIntento?: number;
+  readonly msPorBusqueda?: number;
 }
 
 export interface ImpresoraBluetooth extends Impresora {
@@ -193,6 +199,7 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
   const esperar = opciones.esperar ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
   const reloj = opciones.reloj ?? (() => performance.now());
   const msPorIntento = opciones.msPorIntento ?? MS_POR_INTENTO;
+  const msPorBusqueda = opciones.msPorBusqueda ?? MS_POR_BUSQUEDA;
   let trozo = opciones.trozo ?? TROZO_NORMAL;
   let estado: EstadoImpresora = 'sin_vincular';
   let conexion: Conexion | undefined;
@@ -226,18 +233,21 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
     for (const s of soloEste === undefined ? SERVICIOS_DE_IMPRESORA : [soloEste]) {
       let servicio: ServicioBle;
       try {
-        servicio = await gatt.getPrimaryService(s);
+        // Android puede tardar 30 s en rendirse aquí (bitácora parqueadero 24): con plazo.
+        servicio = await conPlazo(gatt.getPrimaryService(s), msPorBusqueda);
       } catch (error) {
         // Este equipo no tiene ese servicio, o se desconectó buscándolo: el diagnóstico lo dice.
         if (nombreDelError(error) !== 'NotFoundError')
           vistos.push(`${nombreDeServicio(s)}: ${detalleDe(error)}`);
+        // Sin respuesta es como caída: se suelta para que el intento siguiente empiece limpio.
+        if (nombreDelError(error) === 'TimeoutError') gatt.disconnect?.();
         // Desconectada, ningún otro servicio va a responder: se reintenta la conexión.
         if (!gatt.connected) return undefined;
         continue;
       }
       let caracteristicas: CaracteristicaBle[];
       try {
-        caracteristicas = await servicio.getCharacteristics();
+        caracteristicas = await conPlazo(servicio.getCharacteristics(), msPorBusqueda);
       } catch (error) {
         vistos.push(`${servicio.uuid}: sin características (${detalleDe(error)})`);
         continue;
@@ -367,10 +377,11 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
           .getPrimaryServices?.()
           .then((ss) => ss.map((x) => x.uuid).join(', '))
           .catch(() => '');
-        // Se cayó en todos los intentos: no es que no se reconozca (bitácora parqueadero 17).
+        // Conecta y se cae al buscar, en todos los intentos: la impresora está y responde, pero
+        // tiene el único enlace que acepta ocupado (bitácora parqueadero 17, 21 y 24).
         if (!dispositivo.gatt.connected) {
-          ultimoError = `La conexión se cayó en los ${PAUSAS_ENTRE_INTENTOS.length + 1} intentos. Apague y prenda el Bluetooth del teléfono, y cierre otra app conectada a la impresora`;
-          throw new FalloDeImpresora('fuera_de_alcance', ultimoError);
+          ultimoError = `La conexión abre y se cae al buscar la impresora, en los ${PAUSAS_ENTRE_INTENTOS.length + 1} intentos: la impresora acepta un solo enlace y otro lo tiene (el teléfono, si está emparejada, u otra app). Use la impresora emparejada por el puerto serie, o quítela de los emparejados del teléfono`;
+          throw new FalloDeImpresora('enlace_ocupado', ultimoError);
         }
         ultimoError = `Ningún servicio conocido tiene una característica de escritura. Servicios visibles: ${visibles || 'ninguno'}`;
         throw new FalloDeImpresora('sin_caracteristica', ultimoError);
