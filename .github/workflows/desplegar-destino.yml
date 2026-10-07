@@ -21,7 +21,7 @@ on:
         default: ""
         type: string
       productos:
-        description: "Qué productos: core, agro o los dos (core,agro). Vacío: todos (HU-C0.3)"
+        description: "Qué productos: core, agro, parqueadero o varios (core,agro). Vacío: core y agro (HU-C0.3)"
         required: false
         default: ""
         type: string

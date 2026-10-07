@@ -1,7 +1,8 @@
 /**
  * La entrada en menos de 10 segundos (HU-Q3.3, PARQUEADERO §5.1): la placa con su teclado, el tipo
  * que propone el patrón, el estado del vehículo, fotos opcionales y «Registrar» abajo, a todo lo
- * ancho. Registrar no espera a la impresora ni a la red (§5.3 regla 1).
+ * ancho. Registrar no espera a la impresora ni a la red (§5.3 regla 1). El WhatsApp del conductor
+ * es opcional y va con su casilla sin marcar (HU-Q4.1 CA1).
  */
 import { ReciboIncompleto } from '@ed1/parqueadero-recibos';
 import {
@@ -11,11 +12,13 @@ import {
   type Vehiculo,
   vehiculoPorPlaca,
 } from '@ed1/parqueadero-schema';
+import { WhatsAppInvalido } from '@ed1/whatsapp';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from './actividad.ts';
 import { type Contexto, EstadiaYaAbierta, registrarEntrada } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
 import { comprimirFoto, type FormatoDeFoto } from './fotos.ts';
+import { CampoWhatsApp, faltaDelWhatsApp } from './whatsapp.tsx';
 
 const TECLAS = '1234567890QWERTYUIOPASDFGHJKLZXCVBNM';
 const NOMBRE_NOVEDAD: Record<(typeof NOVEDADES)[number], string> = {
@@ -34,11 +37,13 @@ interface Props {
   readonly ctx: Contexto;
   /** Los vehículos con tarifa: los demás no se pueden registrar. */
   readonly vehiculos: readonly Vehiculo[];
+  /** La sede aceptó el aviso de privacidad: se puede pedir el número (HU-Q4.4 CA2). */
+  readonly pideNumero: boolean;
   readonly alRegistrar: (r: Registro) => void;
   readonly alCancelar: () => void;
 }
 
-export function Entrada({ db, ctx, vehiculos, alRegistrar, alCancelar }: Props) {
+export function Entrada({ db, ctx, vehiculos, pideNumero, alRegistrar, alCancelar }: Props) {
   const [placa, setPlaca] = useState('');
   const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null);
   const [aMano, setAMano] = useState(false);
@@ -47,6 +52,8 @@ export function Entrada({ db, ctx, vehiculos, alRegistrar, alCancelar }: Props) 
   const [novedades, setNovedades] = useState<Novedad[]>([]);
   const [nueva, setNueva] = useState({ tipo: '', parte: '', nota: '' });
   const [fotos, setFotos] = useState<{ tipo: FormatoDeFoto; datos: Blob }[]>([]);
+  const [numero, setNumero] = useState('');
+  const [autoriza, setAutoriza] = useState(false);
   const [aviso, setAviso] = useState('');
   const [guardando, setGuardando] = useState(false);
 
@@ -84,6 +91,8 @@ export function Entrada({ db, ctx, vehiculos, alRegistrar, alCancelar }: Props) 
     vehiculo !== null &&
     (!fueraDePatron || confirmada) &&
     (!conNovedad || novedades.length > 0);
+  // Sin número no falta nada: el WhatsApp es opcional en la entrada.
+  const faltaWhatsApp = numero.trim() ? faltaDelWhatsApp(numero, autoriza) : '';
 
   function agregarNovedad() {
     if (!nueva.tipo) return;
@@ -113,7 +122,7 @@ export function Entrada({ db, ctx, vehiculos, alRegistrar, alCancelar }: Props) 
 
   async function registrar(e: Event) {
     e.preventDefault();
-    if (!listo || !vehiculo) return;
+    if (!listo || !vehiculo || faltaWhatsApp) return;
     setGuardando(true);
     setAviso('');
     try {
@@ -125,13 +134,16 @@ export function Entrada({ db, ctx, vehiculos, alRegistrar, alCancelar }: Props) 
           placaConfirmada: fueraDePatron,
           novedades: conNovedad ? novedades : [],
           fotos,
+          whatsapp: numero.trim() && autoriza ? numero : null,
         },
         ctx,
       );
       alRegistrar(r);
     } catch (error) {
       setAviso(
-        error instanceof EstadiaYaAbierta || error instanceof ReciboIncompleto
+        error instanceof EstadiaYaAbierta ||
+          error instanceof ReciboIncompleto ||
+          error instanceof WhatsAppInvalido
           ? error.message
           : `No se registró: ${String(error)}. El número no se gastó.`,
       );
@@ -288,13 +300,25 @@ export function Entrada({ db, ctx, vehiculos, alRegistrar, alCancelar }: Props) 
         <span class="ayuda">Fotografíe el vehículo, no a las personas.</span>
       </div>
 
+      <CampoWhatsApp
+        pideNumero={pideNumero}
+        numero={numero}
+        autoriza={autoriza}
+        alEscribir={setNumero}
+        alAutorizar={setAutoriza}
+      />
+
       {aviso && (
         <p class="error" role="alert" data-prueba="aviso-entrada">
           {aviso}
         </p>
       )}
-      <button type="submit" class="boton boton-principal" disabled={!listo || guardando}>
-        Registrar
+      <button
+        type="submit"
+        class="boton boton-principal"
+        disabled={!listo || Boolean(faltaWhatsApp) || guardando}
+      >
+        {faltaWhatsApp || 'Registrar'}
       </button>
       <button type="button" class="boton boton-secundario" onClick={alCancelar}>
         Cancelar

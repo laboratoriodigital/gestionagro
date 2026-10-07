@@ -1,9 +1,10 @@
 import 'fake-indexeddb/auto';
 import type { BluetoothBle, CaracteristicaBle, ServidorGatt } from '@ed1/impresion';
+import { ORIGEN_DEL_RECIBO } from '@ed1/parqueadero-recibos';
 import { describe, expect, it } from 'vitest';
 import { decidirActualizacion } from './actividad.ts';
 import { abrirBase } from './datos.ts';
-import { conMarcaDeEntorno, esProduccion, HOST_DE_PRODUCCION } from './entorno.ts';
+import { conMarcaDeEntorno, esProduccion, HOST_DE_PRODUCCION, origenDelRecibo } from './entorno.ts';
 import { fechaBogota, horaBogota } from './fecha.ts';
 import { crearControl } from './impresora.ts';
 import { proponerCamino, senalDeImpresora, senalDePendientes } from './senales.ts';
@@ -22,6 +23,16 @@ describe('el entorno', () => {
       });
     }
     expect(conMarcaDeEntorno([{ tipo: 'regla' }], HOST_DE_PRODUCCION)).toEqual([{ tipo: 'regla' }]);
+  });
+
+  it('los recibos de producción llevan su dominio; los de staging, su propia /r/', () => {
+    const staging = 'https://ed1-parqueadero-staging.x.workers.dev';
+    expect(origenDelRecibo({ hostname: HOST_DE_PRODUCCION, origin: staging })).toBe(
+      ORIGEN_DEL_RECIBO,
+    );
+    expect(
+      origenDelRecibo({ hostname: 'ed1-parqueadero-staging.x.workers.dev', origin: staging }),
+    ).toBe(`${staging}/r/`);
   });
 });
 

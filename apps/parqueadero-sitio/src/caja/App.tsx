@@ -7,7 +7,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { Asistente } from './Asistente.tsx';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { Cabecera } from './Cabecera.tsx';
-import type { BaseDeLaCaja, RegistroImpresora } from './datos.ts';
+import { type BaseDeLaCaja, purgarContactos, type RegistroImpresora } from './datos.ts';
+import { Estadias } from './Estadias.tsx';
 import { useConsulta } from './ganchos.ts';
 import type { ControlDeImpresora } from './impresora.ts';
 import { type Propuesta, senalDeImpresora, senalDePendientes } from './senales.ts';
@@ -54,6 +55,14 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
   const [copiado, setCopiado] = useState(false);
 
   useEffect(() => control.escuchar(setEstado), [control]);
+
+  // HU-Q4.1 CA3: los números vencidos se borran al abrir la caja y cada 10 minutos.
+  useEffect(() => {
+    const purgar = () => void purgarContactos(db, reloj());
+    purgar();
+    const t = setInterval(purgar, 10 * 60_000);
+    return () => clearInterval(t);
+  }, [db, reloj]);
 
   // HU-Q3.1 CA2: pedir que el navegador no borre la caja si se llena el teléfono.
   useEffect(() => {
@@ -141,7 +150,7 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
                 )}
               </section>
             )}
-            <TarjetaDeEntrada ir={ir} />
+            <Estadias db={db} reloj={reloj} ir={ir} />
             {registro && (
               <section class="tarjeta" data-prueba="ajustes-impresora">
                 <h2>Ajustes › Impresora</h2>
@@ -167,25 +176,5 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
         )}
       </main>
     </>
-  );
-}
-
-/** Las entradas y los ajustes; lo que falta lo dice «Nueva entrada» (HU-Q3.2 CA2). */
-function TarjetaDeEntrada({ ir }: { ir: (v: Vista) => void }) {
-  return (
-    <section class="tarjeta" data-prueba="tarjeta-entrada">
-      <h2>Entradas</h2>
-      <button
-        type="button"
-        class="boton boton-principal"
-        onClick={() => ir({ es: 'entrada' })}
-        data-prueba="nueva-entrada"
-      >
-        Nueva entrada
-      </button>
-      <button type="button" class="boton boton-secundario" onClick={() => ir({ es: 'ajustes' })}>
-        Ajustes del parqueadero
-      </button>
-    </section>
   );
 }

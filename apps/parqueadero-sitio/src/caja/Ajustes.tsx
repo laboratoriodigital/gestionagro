@@ -8,7 +8,7 @@ import type { Redondeo, Sede, Tarifa, Vehiculo } from '@ed1/parqueadero-schema';
 import { ErrorDeValidacion, VEHICULOS } from '@ed1/parqueadero-schema';
 import { validarTarifa } from '@ed1/parqueadero-tarifas';
 import type { ComponentChildren } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { abrirFormulario } from './actividad.ts';
 import {
   type Contexto,
@@ -23,6 +23,8 @@ import {
   verificarPin,
 } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
+import { useConsulta } from './ganchos.ts';
+import { avisoAceptado, avisoDeLaSede, VERSION_DEL_AVISO } from './privacidad.ts';
 
 /** Los vehículos que la caja cobra en M0: los del primer cliente (bitácora parqueadero 9). */
 export const VEHICULOS_DE_LA_CAJA: readonly Vehiculo[] = ['carro', 'moto'];
@@ -54,6 +56,8 @@ export interface Borrador {
   numeroPoliza: string;
   registro: string;
   imprimir: '' | 'si' | 'no';
+  /** La sede acepta el aviso de privacidad vigente (HU-Q4.4 CA2). */
+  aviso: boolean;
   pie: string;
   pin: string;
   pin2: string;
@@ -74,6 +78,7 @@ export const borradorVacio = (): Borrador => ({
   numeroPoliza: '',
   registro: '',
   imprimir: '',
+  aviso: false,
   pie: '',
   pin: '',
   pin2: '',
@@ -96,6 +101,7 @@ function borradorDe(sede: Sede | null, tarifas: readonly Tarifa[], pie: string |
       numeroPoliza: sede.poliza?.numero ?? '',
       registro: sede.registro ?? '',
       imprimir: sede.imprimir_siempre ? 'si' : 'no',
+      aviso: avisoAceptado(sede),
     });
   }
   b.pie = pie ?? '';
@@ -266,8 +272,16 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
     ajuste: null,
     tarifas: {},
   });
+  const [avisoGuardado, setAvisoGuardado] = useState<Sede['aviso_privacidad']>(null);
   const [errores, setErrores] = useState<Errores>({});
   const [guardando, setGuardando] = useState(false);
+  /** `undefined`: sin cambios; `null`: quitar la imagen. */
+  const [qrPago, setQrPago] = useState<Blob | null | undefined>(undefined);
+  const qrGuardado = useConsulta(async () => {
+    const m = await db.meta.get('qr_pago');
+    return m?.clave === 'qr_pago' ? m.datos : null;
+  }, null);
+  const qrVisible = qrPago === undefined ? qrGuardado : qrPago;
 
   useEffect(() => abrirFormulario(), []);
 
@@ -275,6 +289,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
     void (async () => {
       const a = await leerAjustes(db);
       setB(borradorDe(a.sede, a.tarifas, a.ajuste?.pie ?? null));
+      setAvisoGuardado(a.sede?.aviso_privacidad ?? null);
       setIds({
         sede: a.sede?.id ?? null,
         ajuste: a.ajuste?.id ?? null,
@@ -341,6 +356,12 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
           poliza: b.poliza === 'si' ? { aseguradora: b.aseguradora, numero: b.numeroPoliza } : null,
           registro: b.registro.trim() || null,
           imprimir_siempre: b.imprimir === 'si',
+          // Aceptarlo otra vez no cambia la fecha en que se aceptó esta versión.
+          aviso_privacidad: !b.aviso
+            ? null
+            : avisoAceptado({ aviso_privacidad: avisoGuardado })
+              ? avisoGuardado
+              : { version: VERSION_DEL_AVISO, aceptado: new Date(ctx.reloj()).toISOString() },
         },
         ids.sede,
         ctx,
@@ -348,6 +369,8 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
       for (const t of tarifas) await guardarTarifa(db, t, ids.tarifas[t.vehiculo] ?? null, ctx);
       await guardarAjusteRecibo(db, { pie: b.pie.trim() || null }, ids.ajuste, ctx);
       if (b.pin) await guardarPin(db, b.pin);
+      if (qrPago) await db.meta.put({ clave: 'qr_pago', datos: qrPago });
+      else if (qrPago === null) await db.meta.delete('qr_pago');
       alTerminar();
     } catch (error) {
       if (error instanceof ErrorDeValidacion) {
@@ -578,6 +601,53 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
       </fieldset>
 
       <fieldset class="grupo">
+        <legend>Cobro con QR o transferencia</legend>
+        <p class="ayuda">
+          Opcional. La imagen del QR de su banco o de su billetera: la caja la muestra al cobrar. El
+          dinero va directo a su cuenta.
+        </p>
+        <ImagenDelQr
+          imagen={qrVisible}
+          errores={errores}
+          alElegir={(archivo) => {
+            setErrores({ ...errores, 'qr-pago': '' });
+            if (archivo && archivo.size > 500_000) {
+              setErrores({ ...errores, 'qr-pago': 'La imagen pesa más de 500 KB: recórtela' });
+            } else {
+              setQrPago(archivo);
+            }
+          }}
+        />
+      </fieldset>
+
+      <fieldset class="grupo" data-prueba="aviso-privacidad">
+        <legend>Aviso de privacidad</legend>
+        <p class="ayuda">
+          Antes de pedir el WhatsApp de un conductor, el parqueadero acepta su aviso de privacidad y
+          lo pone a la vista. La caja lo llena con los datos de arriba.
+        </p>
+        <details>
+          <summary>Leer el aviso (versión {VERSION_DEL_AVISO})</summary>
+          {avisoDeLaSede(b).parrafos.map((p) => (
+            <p key={p}>{p}</p>
+          ))}
+        </details>
+        <label class="casilla">
+          <input
+            id="aviso"
+            class="casilla-marca"
+            type="checkbox"
+            checked={b.aviso}
+            onChange={(e) => setB({ ...b, aviso: e.currentTarget.checked })}
+          />
+          <span>
+            El parqueadero acepta este aviso de privacidad (versión {VERSION_DEL_AVISO}) y responde
+            por los números de sus conductores.
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset class="grupo">
         <legend>Seguridad</legend>
         <p class="ayuda">
           {conPin
@@ -610,6 +680,47 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
       <button type="button" class="boton boton-secundario" onClick={alTerminar}>
         Volver a la caja sin guardar
       </button>
+      <p class="ayuda" data-prueba="version-caja">
+        Caja del parqueadero, versión {__VERSION_CAJA__}
+      </p>
     </form>
+  );
+}
+
+/** La imagen del QR de pagos, con su vista previa y «Quitar». */
+function ImagenDelQr({
+  imagen,
+  errores,
+  alElegir,
+}: {
+  imagen: Blob | null;
+  errores: Errores;
+  alElegir: (archivo: Blob | null) => void;
+}) {
+  const url = useMemo(() => (imagen ? URL.createObjectURL(imagen) : null), [imagen]);
+  useEffect(() => () => (url ? URL.revokeObjectURL(url) : undefined), [url]);
+  return (
+    <div class="campo" data-error={errores['qr-pago'] ? '' : undefined}>
+      <label for="qr-pago">Imagen del QR de pagos</label>
+      <input
+        id="qr-pago"
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        onChange={(e) => alElegir(e.currentTarget.files?.[0] ?? null)}
+      />
+      {errores['qr-pago'] && (
+        <p class="error" id="qr-pago-error">
+          {errores['qr-pago']}
+        </p>
+      )}
+      {url && (
+        <>
+          <img class="qr-pago" src={url} alt="El QR de pagos guardado" />
+          <button type="button" class="boton boton-secundario" onClick={() => alElegir(null)}>
+            Quitar la imagen
+          </button>
+        </>
+      )}
+    </div>
   );
 }

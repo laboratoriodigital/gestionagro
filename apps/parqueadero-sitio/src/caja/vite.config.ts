@@ -7,17 +7,23 @@
  * - La versión nueva espera: nunca recarga la caja con un formulario abierto o una impresión en
  *   curso (CA3). La caja la aplica cuando el cajero toca «Actualizar».
  */
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import preact from '@preact/preset-vite';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 const raiz = fileURLToPath(new URL('.', import.meta.url));
+// HU-Q0.3: la versión propia del parqueadero, no la del agro.
+const { version } = JSON.parse(
+  readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+) as { version: string };
 
 export default defineConfig({
   root: raiz,
   base: '/caja/',
   publicDir: 'public',
+  define: { __VERSION_CAJA__: JSON.stringify(version) },
   build: {
     outDir: fileURLToPath(new URL('../../dist/caja', import.meta.url)),
     emptyOutDir: true,

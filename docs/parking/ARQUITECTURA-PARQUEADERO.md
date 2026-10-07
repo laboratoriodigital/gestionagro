@@ -257,6 +257,8 @@ Se heredan ED1 §3, los patrones P1–P21 (`../BITACORA.md` › Lo aprendido), l
 | `fotos` | Fotos WebP comprimidas, con su estadía | M2 (a R2) |
 | `outbox` · `rechazos` | Cola de salida y cuarentena local, como el cuaderno | M1 |
 
+**Nota del sprint Q3 (7 oct 2026), con el código:** `contactos` llegó en la versión 3 de Dexie, con clave `estadia_id` e índice `borrar_en`. Cada fila lleva el número normalizado, la hora de la autorización, quién la pidió (el dispositivo, hasta que el turno de HU-Q3.9 traiga operador) y la versión del aviso. `borrar_en` es nulo mientras el vehículo está adentro; la salida lo pone en su instante más 24 h, y la caja borra lo vencido al abrir y cada 10 minutos. Un número escrito después de la salida vence con esa misma salida. La sede guarda el aviso aceptado en `aviso_privacidad` (versión e instante); sin la versión vigente, la caja no pide números. `entrega_recibo` v1 trae, opcionales, `camino`, `resultado` y `autorizado`: las entregas de staging de Q2 no los tienen.
+
 ### 5.3 Reglas de la app
 
 Las del cuaderno (ARQUITECTURA §5.3), con estas formas:
@@ -380,6 +382,7 @@ https://parqueadero.laboratorio-digital.app/r/#c.<número>.<placa>.<tipo>.<hora>
 
 - **El QR del papel es la forma corta.** Sirve para buscar la estadía en la salida y, escaneado por el conductor, abre `/r/` con el número, la placa y la hora, y le explica cómo pedir su copia completa. Un QR denso en papel térmico se lee mal, y más cuando el papel se borra (§8.4); el recibo legal es el papel mismo. Una prueba exige que la forma corta quepa en la versión 7 y la completa sin firma en la 13.
 - **Nota del sprint Q2 (7 oct 2026), medido con el código:** el recibo lleva ahora la tarifa con su gracia, su tope y su noche (§6.1), y con eso el JSON de claves cortas no cabía en la versión 13. El formato `1` quedó compacto: índices en lugar de palabras (vehículo, concepto, medio de pago), `0` en lugar de `null`, y fuera lo que se deriva (subtotal, redondeo y cambio). Con los recibos de prueba de `parqueadero-recibos`: la entrada y la salida largas miden 400 y 409 caracteres (versión 13); las normales, 341 y 348 (versión 12); la corta, 77 (versión 4). Deflate guarda su suma Adler-32: un fragmento con un carácter cambiado no abre (prueba «cada carácter cambiado da error»). La firma de M2 tendrá que medirse de nuevo sobre este formato.
+- **Nota del sprint Q3 (7 oct 2026), con el código:** `/r/` es una página estática de Astro con un script propio de 31,9 KB con gzip (el inflado del enlace y la vista), que pinta todo con `textContent`: un nombre de sede con HTML se ve como texto. En staging, la caja enlaza a la `/r/` de su propio origen (`origenDelRecibo`), y el escáner acepta los dos orígenes; en producción, solo el del dominio. El escáner usa `BarcodeDetector` donde el navegador lo tiene y jsQR (Apache-2.0, unos 47 KB con gzip) donde no, cargado solo entonces.
 - **Fotos** (M2): la página las pide a R2 con su nombre aleatorio. Si ya pasaron los 30 días, dice «Las fotos se guardan 30 días».
 
 ### 6.4 El texto de WhatsApp

@@ -323,3 +323,93 @@ legend {
   place-items: center;
   text-decoration: none;
 }
+
+/* ── Estadías y salida (HU-Q3.4, HU-Q3.5) ───────────────────────────────────────────────────── */
+
+.lista-estadias {
+  display: grid;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.estadia {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 var(--espacio-3);
+  inline-size: 100%;
+  min-height: var(--toque);
+  padding: var(--espacio-2) var(--espacio-3);
+  border: 2px solid var(--borde);
+  border-radius: var(--radio-campo);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  text-align: start;
+}
+
+.estadia:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.estadia .ayuda {
+  grid-column: 2;
+}
+
+.placa-chica {
+  grid-row: span 2;
+  align-self: center;
+  padding: 0 var(--espacio-2);
+  border: 2px solid #0b0b0a;
+  border-radius: 4px;
+  background: #ffd400;
+  color: #0b0b0a;
+  font-family: var(--fuente-mono);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: 0.1em;
+}
+
+.total-grande {
+  margin: 0;
+  font-size: 2.75rem;
+  font-weight: var(--peso-fuerte);
+  text-align: center;
+}
+
+.camara {
+  inline-size: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radio-campo);
+  background: #000;
+  object-fit: cover;
+}
+
+.qr-pago {
+  justify-self: center;
+  inline-size: min(100%, 18rem);
+  border-radius: var(--radio-campo);
+  background: #fff;
+}
+
+/* El aviso de privacidad en hoja carta (HU-Q4.4): solo la tarjeta, sin botones ni cabecera. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .imprimible,
+  .imprimible * {
+    visibility: visible;
+  }
+  .imprimible {
+    position: absolute;
+    inset: 0;
+    box-shadow: none;
+    color: #000;
+    background: #fff;
+  }
+  .imprimible .no-imprimir {
+    display: none;
+  }
+}

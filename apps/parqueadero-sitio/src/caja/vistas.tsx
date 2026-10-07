@@ -8,18 +8,25 @@ import { faltantesDeSede, juntar } from '@ed1/parqueadero-recibos';
 import type { Registro, Vehiculo } from '@ed1/parqueadero-schema';
 import { useMemo } from 'preact/hooks';
 import { Ajustes as PantallaDeAjustes, VEHICULOS_DE_LA_CAJA } from './Ajustes.tsx';
+import { Aviso } from './Aviso.tsx';
 import { type Ajustes, type Contexto, faltaParaRegistrar, leerAjustes } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
 import { Entrada } from './Entrada.tsx';
+import { Escanear } from './Escanear.tsx';
 import { useConsulta } from './ganchos.ts';
 import type { ControlDeImpresora } from './impresora.ts';
+import { avisoAceptado } from './privacidad.ts';
 import { Recibo } from './Recibo.tsx';
+import { Salida } from './Salida.tsx';
 
 export type Vista =
   | { readonly es: 'inicio' }
   | { readonly es: 'asistente' }
   | { readonly es: 'ajustes'; readonly enfocar?: string }
   | { readonly es: 'entrada' }
+  | { readonly es: 'salida'; readonly estadiaId: string }
+  | { readonly es: 'escanear' }
+  | { readonly es: 'aviso' }
   | { readonly es: 'recibo'; readonly registro: Registro };
 
 /** Los vehículos que la caja puede registrar hoy: los que tienen tarifa. */
@@ -57,6 +64,33 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir }: Props) {
       return <PantallaDeAjustes db={db} ctx={ctx} alTerminar={inicio} enfocar={vista.enfocar} />;
     case 'entrada':
       return <EntradaOFalta db={db} ctx={ctx} ir={ir} />;
+    case 'salida':
+      return (
+        <Salida
+          db={db}
+          ctx={ctx}
+          estadiaId={vista.estadiaId}
+          alCobrar={(r) => ir({ es: 'recibo', registro: r })}
+          alVolver={inicio}
+        />
+      );
+    case 'escanear':
+      return (
+        <Escanear
+          db={db}
+          alEncontrar={(id) => ir({ es: 'salida', estadiaId: id })}
+          alVolver={inicio}
+        />
+      );
+    case 'aviso':
+      return (
+        <Aviso
+          db={db}
+          control={control}
+          alAjustes={() => ir({ es: 'ajustes', enfocar: 'aviso' })}
+          alVolver={inicio}
+        />
+      );
     default:
       return (
         <Recibo
@@ -83,6 +117,7 @@ function EntradaOFalta({ db, ctx, ir }: Pick<Props, 'db' | 'ir'> & { ctx: Contex
         db={db}
         ctx={ctx}
         vehiculos={conTarifa(ajustes)}
+        pideNumero={avisoAceptado(ajustes.sede)}
         alRegistrar={(r) => ir({ es: 'recibo', registro: r })}
         alCancelar={() => ir({ es: 'inicio' })}
       />
