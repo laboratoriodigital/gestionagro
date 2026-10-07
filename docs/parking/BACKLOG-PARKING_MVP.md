@@ -579,7 +579,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 ### EQ6 · Validación en campo y puesta en marcha
 
 #### HU-Q6.1 · La matriz en el equipo real
-- **Capa:** campo · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q5 (se llena desde Q1) · **Depende de:** HU-Q2.3, HU-Q2.4, HU-Q4.1, HU-Q4.2 · **Estado:** Refinada
+- **Capa:** campo · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q5 (se llena desde Q1) · **Depende de:** HU-Q2.3, HU-Q2.4, HU-Q4.1, HU-Q4.2 · **Estado:** En curso: `docs/parking/validacion/impresion-pt210.md` con las pruebas del 7 oct; el camino principal en Android, por decidir con la impresora emparejada
 - Como dueño, quiero ver la caja funcionar en la PT-210 y en los teléfonos de verdad antes de llevarla al cliente.
 - **Respaldo:** PARQUEADERO §15.3 (la matriz); P16.
 - **CA1.** `docs/parking/validacion/impresion-pt210.md` tiene cada caso de la matriz de PARQUEADERO §15.3 en Android con Chrome y en Windows con Chrome o Edge, y lo que aplica en iPhone, con la fecha, el modelo, la versión del navegador y el resultado.
@@ -590,7 +590,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q6.1.1 `[campo]` Android · WI-Q6.1.2 `[campo]` Windows · WI-Q6.1.3 `[campo]` iPhone · WI-Q6.1.4 `[doc]` registro.
 
 #### HU-Q6.2 · Runbooks del MVP
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 (se escriben en Q4) · **Depende de:** HU-Q2.6, HU-Q3.10 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 (se escriben en Q4) · **Depende de:** HU-Q2.6, HU-Q3.10 · **Estado:** En revisión (rama `docs/matriz-y-runbooks`): los cinco runbooks, sus capturas a 360 px y la prueba `tests/repo/runbooks-parqueadero.test.ts`
 - Como persona de soporte, quiero los pasos exactos para lo que va a fallar, para resolverlo por WhatsApp sin ir al parqueadero.
 - **Respaldo:** PARQUEADERO §14.5 (runbooks 1 a 3).
 - **CA1.** `docs/runbooks/` tiene «Puesta en marcha de un parqueadero», «La impresora no imprime» (empieza por el Bluetooth de modo dual, que acepta un solo enlace, y por el diagnóstico copiable), «Cambio anual de topes», «Restaurar la caja en otro teléfono» y «Arreglos durante el congelamiento».
