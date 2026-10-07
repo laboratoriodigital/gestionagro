@@ -5,7 +5,7 @@
  */
 import type { Registro } from '@ed1/parqueadero-schema';
 import { useState } from 'preact/hooks';
-import { anular, type Contexto, NoSeAnula, operadorActual } from './almacen.ts';
+import { anular, type Contexto, NoSeAnula, operadorActual, SinTurno } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
 
 interface Props {
@@ -35,10 +35,14 @@ export function Anular({ db, ctx, registro, alAnular }: Props) {
     setOcupado(true);
     setError('');
     try {
-      await anular(db, registro.id, { motivo, pin, operador: await operadorActual(db, ctx) }, ctx);
+      await anular(db, registro.id, { motivo, pin, operador: await operadorActual(db) }, ctx);
       alAnular();
     } catch (e) {
-      setError(e instanceof NoSeAnula ? e.message : `No se pudo anular: ${String(e)}`);
+      setError(
+        e instanceof NoSeAnula || e instanceof SinTurno
+          ? e.message
+          : `No se pudo anular: ${String(e)}`,
+      );
     } finally {
       setOcupado(false);
     }

@@ -13,6 +13,8 @@ import {
   nombresDeCampos,
   ORIGEN_DEL_RECIBO,
   ReciboIncompleto,
+  type ResumenDeTurno,
+  resumirTurno,
 } from '@ed1/parqueadero-recibos';
 import {
   type AjusteRecibo,
@@ -20,6 +22,7 @@ import {
   type Catalogo,
   type DatosDeEntrada,
   type DatosDeEntrega,
+  type DatosDeMovimiento,
   type Entidad,
   ErrorDeValidacion,
   type MedioDePago,
@@ -41,6 +44,9 @@ import { normalizarNumero } from '@ed1/whatsapp';
 import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
 import { diaLocalBogota } from './fecha.ts';
 import { avisoAceptado, VERSION_DEL_AVISO } from './privacidad.ts';
+import { exigirTurno, SinTurno, type Turno, turnoAbierto } from './turno.ts';
+
+export { SinTurno, type Turno, turnoAbierto };
 
 export interface Contexto {
   readonly reloj: () => number;
@@ -240,6 +246,7 @@ export async function registrarEntrada(
   const faltan = faltaParaRegistrar(ajustes, [d.vehiculo]);
   const tarifaVigente = ajustes.tarifas.find((t) => t.vehiculo === d.vehiculo);
   if (faltan.length > 0 || !tarifaVigente) throw new ReciboIncompleto(faltan);
+  await exigirTurno(db);
   const numero = d.whatsapp ? numeroAutorizado(ajustes.sede, d.whatsapp) : null;
 
   const tablas = [db.registros, db.estadias, db.meta, db.fotos, db.contactos];
@@ -545,6 +552,7 @@ export async function registrarSalida(
   ctx: Contexto,
   instante?: number,
 ): Promise<Registro> {
+  await exigirTurno(db);
   const { id: dispositivoId, serie } = await dispositivo(db, ctx);
   const reloj = ctx.reloj();
   const ahora = instante ?? reloj;
@@ -632,6 +640,86 @@ function sinNumero(
   });
 }
 
+// ── El turno (HU-Q3.9) ─────────────────────────────────────────────────────────────────────────
+
+/** Abre el turno con el operador y la base de caja (CA1). Si ya hay uno abierto, lo devuelve. */
+export async function abrirTurno(
+  db: BaseDeLaCaja,
+  d: { readonly operador: string; readonly base: number },
+  ctx: Contexto,
+): Promise<Turno> {
+  const abierto = await turnoAbierto(db);
+  if (abierto) return abierto;
+  const { id: dispositivoId } = await dispositivo(db, ctx);
+  const apertura = sinNumero(
+    'turno_apertura',
+    dispositivoId,
+    ctx.reloj(),
+    { operador: d.operador.trim(), base: d.base },
+    ctx,
+  );
+  await db.registros.add(apertura);
+  return exigirTurno(db);
+}
+
+/** Un ingreso o un gasto de la caja, con su concepto (CA1). */
+export async function registrarMovimiento(
+  db: BaseDeLaCaja,
+  d: Pick<DatosDeMovimiento, 'clase' | 'valor' | 'concepto'>,
+  ctx: Contexto,
+): Promise<Registro> {
+  const turno = await exigirTurno(db);
+  const { id: dispositivoId } = await dispositivo(db, ctx);
+  const m = sinNumero(
+    'movimiento_caja',
+    dispositivoId,
+    ctx.reloj(),
+    { ...d, concepto: d.concepto.trim(), turno_id: turno.apertura.id },
+    ctx,
+  );
+  await db.registros.add(m);
+  return m;
+}
+
+/** Lo que lleva el turno hasta ahora: los registros desde su apertura (un turno a la vez). */
+export async function resumenDelTurno(db: BaseDeLaCaja, t: Turno): Promise<ResumenDeTurno> {
+  const desde = await db.registros
+    .where('instante_evento')
+    .aboveOrEqual(t.apertura.instante_evento)
+    .toArray();
+  return resumirTurno(t.apertura, desde, t.numero);
+}
+
+/**
+ * Cierra el turno con el efectivo contado. Lo esperado se calcula aquí, en el dispositivo (CA1).
+ * Una diferencia sin motivo no se guarda (CA4): lo exige el esquema y lanza `ErrorDeValidacion`.
+ */
+export async function cerrarTurno(
+  db: BaseDeLaCaja,
+  t: Turno,
+  d: { readonly contado: number; readonly motivo: string | null },
+  ctx: Contexto,
+): Promise<{ readonly cierre: Registro; readonly resumen: ResumenDeTurno }> {
+  const resumen = await resumenDelTurno(db, t);
+  const { id: dispositivoId } = await dispositivo(db, ctx);
+  const motivo = d.motivo?.trim() || null;
+  const cierre = sinNumero(
+    'turno_cierre',
+    dispositivoId,
+    ctx.reloj(),
+    {
+      apertura_id: t.apertura.id,
+      esperado: resumen.esperado,
+      contado: d.contado,
+      diferencia: d.contado - resumen.esperado,
+      motivo,
+    },
+    ctx,
+  );
+  await db.registros.add(cierre);
+  return { cierre, resumen };
+}
+
 /** Por qué no se anula: el cajero lo lee tal cual. */
 export class NoSeAnula extends Error {
   constructor(motivo: string) {
@@ -640,9 +728,9 @@ export class NoSeAnula extends Error {
   }
 }
 
-/** Quién opera la caja ahora. Hasta el turno (HU-Q3.9), la caja misma: «Caja A». */
-export async function operadorActual(db: BaseDeLaCaja, ctx: Contexto): Promise<string> {
-  return `Caja ${(await dispositivo(db, ctx)).serie}`;
+/** Quién opera la caja ahora: el del turno abierto. */
+export async function operadorActual(db: BaseDeLaCaja): Promise<string> {
+  return (await exigirTurno(db)).operador;
 }
 
 /** Las anulaciones de la caja, por el id de lo anulado. */
@@ -662,6 +750,7 @@ export async function anular(
   d: { readonly motivo: string; readonly pin: string; readonly operador: string },
   ctx: Contexto,
 ): Promise<Registro> {
+  await exigirTurno(db);
   if (!d.motivo.trim()) throw new NoSeAnula('Falta el motivo de la anulación');
   if (!(await verificarPin(db, d.pin))) throw new NoSeAnula('Ese no es el PIN de administrador');
   const { id: dispositivoId } = await dispositivo(db, ctx);

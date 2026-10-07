@@ -11,12 +11,14 @@ import { armarExport, type DatosDeSalida, ErrorDeValidacion } from '@ed1/parquea
 import { SEDE_ENSAYO_UNO, TARIFA_CARRO, TARIFA_MOTO } from '@ed1/parqueadero-schema/ensayos';
 import { describe, expect, it } from 'vitest';
 import {
+  abrirTurno,
   anulados,
   anular,
   buscarPorLectura,
   type Contexto,
   CotizacionVencida,
   catalogosDelRegistro,
+  cerrarTurno,
   contactoDe,
   EstadiaCerrada,
   EstadiaYaAbierta,
@@ -31,10 +33,14 @@ import {
   reconstruirEstadias,
   registrarEntrada,
   registrarEntrega,
+  registrarMovimiento,
   registrarSalida,
+  resumenDelTurno,
   SinAvisoDePrivacidad,
+  SinTurno,
   TarifaSobreElTope,
   tienePin,
+  turnoAbierto,
   vecesImpreso,
   verificarPin,
 } from './almacen.ts';
@@ -73,8 +79,13 @@ async function configurada() {
   await guardarSede(db, sinMeta(SEDE_ENSAYO_UNO), null, ctx);
   await guardarTarifa(db, sinMeta(TARIFA_CARRO), null, ctx);
   await guardarTarifa(db, sinMeta(TARIFA_MOTO), null, ctx);
+  await abrirTurno(db, { operador: 'Caja 1', base: 100_000 }, ctx);
   return { db, ctx, avanzar };
 }
+
+/** Los registros que no son del turno: la apertura no es un recibo. */
+const recibos = (db: ReturnType<typeof abrirBase>) =>
+  db.registros.filter((r) => r.tipo !== 'turno_apertura').count();
 
 const ENTRADA = {
   placa: 'ABC123',
@@ -155,7 +166,7 @@ describe('la entrada (HU-Q3.3)', () => {
     const { db, ctx } = await configurada();
     await registrarEntrada(db, ENTRADA, ctx);
     await expect(registrarEntrada(db, ENTRADA, ctx)).rejects.toBeInstanceOf(EstadiaYaAbierta);
-    expect(await db.registros.count()).toBe(1);
+    expect(await recibos(db)).toBe(1);
   });
 
   it('dos transacciones que fallan no gastan número: sin huecos (CA4 ❌)', async () => {
@@ -168,7 +179,7 @@ describe('la entrada (HU-Q3.3)', () => {
     await expect(registrarEntrada(db, ENTRADA, ctx)).rejects.toThrow('el disco se llenó');
     const buena = await registrarEntrada(db, ENTRADA, ctx);
     expect(buena.consecutivo).toBe(1);
-    expect(await db.registros.count()).toBe(1);
+    expect(await recibos(db)).toBe(1);
   });
 
   it('las fotos quedan con su estadía y su formato real', async () => {
@@ -402,7 +413,7 @@ describe('el WhatsApp del conductor (HU-Q4.1 y HU-Q4.4)', () => {
     await expect(registrarEntrada(db, { ...ENTRADA, whatsapp: NUMERO }, ctx)).rejects.toThrow(
       SinAvisoDePrivacidad,
     );
-    expect(await db.registros.count()).toBe(0);
+    expect(await recibos(db)).toBe(0);
     expect(await db.contactos.count()).toBe(0);
   });
 
@@ -489,7 +500,7 @@ describe('anular sin borrar (HU-Q3.7)', () => {
     recibido: 50_000,
     motivoCortesia: null,
   } as const;
-  const DATOS = { motivo: 'placa mal digitada', pin: '2468', operador: 'Caja A' };
+  const DATOS = { motivo: 'placa mal digitada', pin: '2468', operador: 'Caja 1' };
 
   async function conPin() {
     const c = await configurada();
@@ -502,7 +513,7 @@ describe('anular sin borrar (HU-Q3.7)', () => {
     const entrada = await registrarEntrada(db, ENTRADA, ctx);
     const a = await anular(db, entrada.id, DATOS, ctx);
     expect(a).toMatchObject({ tipo: 'anulacion', anula_id: entrada.id, estadia_id: entrada.id });
-    expect(a.datos).toEqual({ motivo: 'placa mal digitada', operador: 'Caja A' });
+    expect(a.datos).toEqual({ motivo: 'placa mal digitada', operador: 'Caja 1' });
     expect(await estadiasAbiertas(db)).toEqual([]);
     expect(await db.registros.get(entrada.id)).toEqual(entrada);
     // Lo derivado se rehace igual desde los registros.
@@ -552,5 +563,62 @@ describe('anular sin borrar (HU-Q3.7)', () => {
     await anular(db, entrada.id, DATOS, ctx);
     await expect(anular(db, entrada.id, DATOS, ctx)).rejects.toBeInstanceOf(NoSeAnula);
     expect(await anulados(db)).toEqual(new Set([entrada.id]));
+  });
+});
+
+describe('el turno (HU-Q3.9)', () => {
+  const EFECTIVO = {
+    perdido: false,
+    medio: 'efectivo',
+    recibido: 50_000,
+    motivoCortesia: null,
+  } as const;
+
+  it('sin turno abierto no hay entrada, salida ni anulación (CA4 ❌)', async () => {
+    const { db, ctx } = caja();
+    await guardarSede(db, sinMeta(SEDE_ENSAYO_UNO), null, ctx);
+    await guardarTarifa(db, sinMeta(TARIFA_CARRO), null, ctx);
+    await expect(registrarEntrada(db, ENTRADA, ctx)).rejects.toBeInstanceOf(SinTurno);
+    expect(await db.registros.count()).toBe(0);
+  });
+
+  it('sigue abierto aunque se cierre la app: se lee de los registros (CA3)', async () => {
+    const { db, ctx } = await configurada();
+    const t = await turnoAbierto(db);
+    expect(t).toMatchObject({ numero: 1, operador: 'Caja 1', base: 100_000 });
+    // Abrir otra vez devuelve el mismo, no abre un segundo.
+    expect((await abrirTurno(db, { operador: 'Otro', base: 0 }, ctx)).apertura.id).toBe(
+      t?.apertura.id,
+    );
+  });
+
+  it('cierra con lo esperado calculado en la caja, y el siguiente es el T-002 (CA1)', async () => {
+    const { db, ctx, avanzar } = await configurada();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(179);
+    await registrarSalida(db, entrada.id, EFECTIVO, ctx);
+    await registrarMovimiento(db, { clase: 'gasto', valor: 4_000, concepto: 'bolsas' }, ctx);
+    const t = (await turnoAbierto(db)) as NonNullable<Awaited<ReturnType<typeof turnoAbierto>>>;
+    const { cierre, resumen } = await cerrarTurno(db, t, { contado: 126_000, motivo: null }, ctx);
+    expect(resumen).toMatchObject({ entradas: 1, salidas: 1, esperado: 100_000 + 30_000 - 4_000 });
+    expect(cierre.datos).toMatchObject({ esperado: 126_000, contado: 126_000, diferencia: 0 });
+    expect(await turnoAbierto(db)).toBeNull();
+    await expect(registrarEntrada(db, { ...ENTRADA, placa: 'XYZ987' }, ctx)).rejects.toBeInstanceOf(
+      SinTurno,
+    );
+    const otro = await abrirTurno(db, { operador: 'Caja 2', base: 50_000 }, ctx);
+    expect(otro.numero).toBe(2);
+    expect((await resumenDelTurno(db, otro)).numero).toBe('T-002');
+  });
+
+  it('una diferencia sin motivo no se guarda (CA4 ❌)', async () => {
+    const { db, ctx } = await configurada();
+    const t = (await turnoAbierto(db)) as NonNullable<Awaited<ReturnType<typeof turnoAbierto>>>;
+    await expect(cerrarTurno(db, t, { contado: 95_000, motivo: '  ' }, ctx)).rejects.toBeInstanceOf(
+      ErrorDeValidacion,
+    );
+    expect(await turnoAbierto(db)).not.toBeNull();
+    const { cierre } = await cerrarTurno(db, t, { contado: 95_000, motivo: 'faltó cambio' }, ctx);
+    expect(cierre.datos).toMatchObject({ diferencia: -5_000, motivo: 'faltó cambio' });
   });
 });

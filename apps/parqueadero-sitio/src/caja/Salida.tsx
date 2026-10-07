@@ -22,6 +22,7 @@ import {
 import type { BaseDeLaCaja } from './datos.ts';
 import { duracion } from './Estadias.tsx';
 import { horaBogota } from './fecha.ts';
+import { pesosEscritos } from './turno.ts';
 
 type Medio = DatosDelCobro['medio'];
 
@@ -31,12 +32,6 @@ const MEDIOS: readonly (readonly [Medio, string])[] = [
   ['datafono', 'Datáfono'],
   ['cortesia', 'Cortesía'],
 ];
-
-/** `50.000`, `50000` o `$50.000` → 50000; vacío o ilegible → null. */
-function pesosEscritos(texto: string): number | null {
-  const limpio = texto.replace(/[$.\s]/g, '');
-  return /^\d{1,9}$/.test(limpio) ? Number(limpio) : null;
-}
 
 interface Props {
   readonly db: BaseDeLaCaja;

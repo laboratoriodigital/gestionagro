@@ -18,6 +18,8 @@ import type { ControlDeImpresora } from './impresora.ts';
 import { avisoAceptado } from './privacidad.ts';
 import { Recibo } from './Recibo.tsx';
 import { Salida } from './Salida.tsx';
+import { AbrirTurno, Turno } from './Turno.tsx';
+import { type Turno as TurnoAbierto, turnoAbierto } from './turno.ts';
 
 export type Vista =
   | { readonly es: 'inicio' }
@@ -27,6 +29,7 @@ export type Vista =
   | { readonly es: 'salida'; readonly estadiaId: string }
   | { readonly es: 'escanear' }
   | { readonly es: 'aviso' }
+  | { readonly es: 'turno' }
   | { readonly es: 'recibo'; readonly registro: Registro };
 
 /** Los vehículos que la caja puede registrar hoy: los que tienen tarifa. */
@@ -82,6 +85,8 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir }: Props) {
           alVolver={inicio}
         />
       );
+    case 'turno':
+      return <Turno db={db} ctx={ctx} control={control} alAbrir={inicio} alVolver={inicio} />;
     case 'aviso':
       return (
         <Aviso
@@ -109,8 +114,20 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir }: Props) {
 /** Mientras falte un dato legal, «Entrada» dice qué falta y lleva al campo (HU-Q3.2 CA2). */
 function EntradaOFalta({ db, ctx, ir }: Pick<Props, 'db' | 'ir'> & { ctx: Contexto }) {
   const ajustes = useConsulta<Ajustes | null>(() => leerAjustes(db), null);
-  if (!ajustes) return <section class="tarjeta" aria-busy="true" />;
+  const turno = useConsulta<TurnoAbierto | null | undefined>(() => turnoAbierto(db), undefined);
+  if (!ajustes || turno === undefined) return <section class="tarjeta" aria-busy="true" />;
   const { faltan, campo } = queFalta(ajustes);
+  // Ningún recibo fuera de un turno (HU-Q3.9 CA4): al abrirlo, sigue la entrada.
+  if (faltan.length === 0 && !turno) {
+    return (
+      <AbrirTurno
+        db={db}
+        ctx={ctx}
+        alAbrir={() => undefined}
+        alVolver={() => ir({ es: 'inicio' })}
+      />
+    );
+  }
   if (faltan.length === 0) {
     return (
       <Entrada

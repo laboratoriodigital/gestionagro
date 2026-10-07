@@ -9,9 +9,11 @@ import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { Cabecera } from './Cabecera.tsx';
 import { type BaseDeLaCaja, purgarContactos, type RegistroImpresora } from './datos.ts';
 import { Estadias } from './Estadias.tsx';
+import { horaBogota } from './fecha.ts';
 import { useConsulta } from './ganchos.ts';
 import type { ControlDeImpresora } from './impresora.ts';
 import { type Propuesta, senalDeImpresora, senalDePendientes } from './senales.ts';
+import { type Turno, turnoAbierto } from './turno.ts';
 import type { Vista } from './vistas.tsx';
 
 interface Props {
@@ -35,6 +37,7 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
     undefined,
   );
   const pendientes = useConsulta(() => db.entregas_pendientes.count(), 0);
+  const turno = useConsulta<Turno | null | undefined>(() => turnoAbierto(db), undefined);
   const [estado, setEstado] = useState(control.estado());
   const [persistente, setPersistente] = useState<boolean | null>(null);
   const [vista, setVista] = useState<Vista>({ es: 'inicio' });
@@ -148,6 +151,25 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
                     {aviso}
                   </p>
                 )}
+              </section>
+            )}
+            {turno !== undefined && (
+              <section class="tarjeta" data-prueba="tarjeta-turno">
+                {turno ? (
+                  <p>
+                    Turno de {turno.operador}, desde las{' '}
+                    {horaBogota(Date.parse(turno.apertura.instante_evento))}
+                  </p>
+                ) : (
+                  <p>Abra el turno antes del primer recibo.</p>
+                )}
+                <button
+                  type="button"
+                  class={turno ? 'boton boton-secundario' : 'boton boton-principal'}
+                  onClick={() => ir({ es: 'turno' })}
+                >
+                  {turno ? 'Cerrar turno' : 'Abrir turno'}
+                </button>
               </section>
             )}
             <Estadias db={db} reloj={reloj} ir={ir} />

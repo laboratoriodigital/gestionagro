@@ -125,6 +125,14 @@ async function llenarAjustes(
   await f.getByRole('button', { name: 'Guardar', exact: true }).click();
 }
 
+/** Abre el turno que pide la primera entrada (HU-Q3.9 CA4). */
+async function abrirTurno(page: Page) {
+  const f = page.getByTestId('abrir-turno');
+  await f.getByLabel('Quién atiende').fill('Caja 1');
+  await f.getByLabel('Base de caja (efectivo al empezar)').fill('100000');
+  await f.getByRole('button', { name: 'Abrir turno' }).click();
+}
+
 /** Escribe la placa con el teclado de la caja, no con el del sistema. */
 async function teclearPlaca(page: Page, placa: string) {
   const teclado = page.getByRole('group', { name: 'Teclado de la placa' });
@@ -275,6 +283,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await llenarAjustes(page);
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     const antes = (await bytesImpresos(page)).length;
     await teclearPlaca(page, 'ABC123');
     await expect(page.getByTestId('placa')).toHaveText('ABC123');
@@ -310,7 +319,7 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('aviso-entrada')).toContainText('ABC123');
   });
 
-  test('HU-Q3.4 y HU-Q3.5 · la estadía aparece adentro, se busca y se cobra con su recibo de salida', async ({
+  test('HU-Q3.4, HU-Q3.5 y HU-Q3.9 · la estadía se busca, se cobra y el turno cierra con su papel', async ({
     page,
   }) => {
     const entrada = new Date('2026-10-06T23:05:00Z');
@@ -321,6 +330,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await llenarAjustes(page, { qr: true });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'ABC123');
     await page.getByRole('button', { name: 'Registrar' }).click();
     await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
@@ -363,6 +373,36 @@ test.describe('la caja del parqueadero', () => {
     expect(papel).toContain('$41.400');
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
     await expect(page.getByTestId('estadias')).toContainText('No hay vehículos adentro.');
+
+    // HU-Q3.9: un gasto, el conteo con diferencia, su motivo y el cierre impreso.
+    await page.getByRole('button', { name: 'Cerrar turno' }).click();
+    const movimientos = page.getByTestId('movimientos');
+    await movimientos.getByLabel('Valor').fill('4.000');
+    await movimientos.getByLabel('Concepto').fill('bolsas');
+    await movimientos.getByRole('button', { name: 'Anotar' }).click();
+    await expect(movimientos).toContainText('Gasto de $4.000 anotado.');
+    // 100.000 de base + 41.400 en efectivo − 4.000 de gasto.
+    await expect(page.getByTestId('esperado')).toHaveText('Efectivo esperado: $137.400');
+    const cierre = page.getByTestId('cerrar-turno');
+    for (const d of ['$100.000', '$20.000', '$10.000', '$5.000', '$2.000']) {
+      await cierre.getByLabel(d, { exact: true }).fill('1');
+    }
+    await expect(page.getByTestId('contado')).toHaveText('$137.000');
+    await expect(page.getByTestId('diferencia')).toHaveText('Diferencia: -$400');
+    await expect(
+      cierre.getByRole('button', { name: 'Falta el motivo de la diferencia' }),
+    ).toBeDisabled();
+    await cierre.getByLabel('Motivo de la diferencia').fill('cambio mal dado');
+    const sinCierre = (await bytesImpresos(page)).length;
+    await cierre.getByRole('button', { name: 'Cerrar e imprimir' }).click();
+    await expect(page.getByTestId('estado-del-cierre')).toHaveText('Cierre enviado a la impresora');
+    const papelDelCierre = (await bytesImpresos(page)).slice(sinCierre);
+    expect(papelDelCierre).toContain('CIERRE DE TURNO');
+    expect(papelDelCierre).toContain('T-001');
+    expect(papelDelCierre).toContain('$137.400');
+    expect(papelDelCierre).toContain('Motivo: cambio mal dado');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('tarjeta-turno')).toContainText('Abra el turno');
   });
 
   test('HU-Q4.2 · el enlace de WhatsApp abre el recibo en /r/ sin API y sin la placa en lo servido', async ({
@@ -374,6 +414,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await llenarAjustes(page, { imprimir: 'No', nombre, aviso: true });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'ABC123');
     await page.getByLabel('WhatsApp del conductor (opcional)').fill('300 123 4567');
     await page.getByLabel(/Autoriza que le enviemos/).check();
@@ -424,6 +465,7 @@ test.describe('la caja del parqueadero', () => {
 
     // Sin el aviso aceptado, la caja no pide números (HU-Q4.4 CA2).
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await expect(page.getByTestId('sin-aviso')).toBeVisible();
     await expect(page.getByLabel('WhatsApp del conductor (opcional)')).toHaveCount(0);
     await page.getByRole('button', { name: 'Cancelar' }).click();
@@ -507,6 +549,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await llenarAjustes(page);
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'XYZ98');
     await page.getByTestId('confirmar-placa').click();
     await page.getByRole('button', { name: 'Carro' }).click();
@@ -525,6 +568,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await llenarAjustes(page, { imprimir: 'No' });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'GHI789');
     await page.getByRole('button', { name: 'Registrar' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
@@ -553,7 +597,7 @@ test.describe('la caja del parqueadero', () => {
           };
         }),
     );
-    expect(tipos.sort()).toEqual(['anulacion', 'entrada']);
+    expect(tipos.sort()).toEqual(['anulacion', 'entrada', 'turno_apertura']);
   });
 
   test('HU-Q3.3 · sin red, la entrada abre y registra', async ({ page, context }) => {
@@ -563,6 +607,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await llenarAjustes(page, { imprimir: 'No' });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'ABC12D');
     // Solo el carro tiene tarifa: la moto que propone el patrón no se ofrece.
     await expect(page.getByRole('button', { name: 'Moto' })).toHaveCount(0);
@@ -597,6 +642,7 @@ for (const esquema of ['light', 'dark'] as const) {
     await revisar();
     await llenarAjustes(page, { imprimir: 'No' });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'ABC123');
     await revisar();
     await page.getByRole('button', { name: 'Registrar' }).click();
