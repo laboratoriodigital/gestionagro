@@ -105,7 +105,9 @@ describe('la página de prueba', () => {
     expect(contiene(bytes, [GS, 0x76, 0x30])).toBe(true);
     const texto = new TextDecoder('latin1').decode(bytes);
     expect(texto).toContain('12345678901234567890123456789012');
-    expect(texto).toContain('4) Sin tildes: aeiou nN ?! $');
+    expect(texto).toContain('4) Sin tildes: El tenia mas anos');
+    // Ninguna línea pasa de 32: la de «Sin tildes:» es la más larga.
+    expect('4) Sin tildes: El tenia mas anos'.length).toBeLessThanOrEqual(32);
   });
 
   it('las respuestas se vuelven ajustes; ninguna línea legible translitera', () => {

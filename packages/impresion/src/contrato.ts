@@ -57,7 +57,8 @@ export interface Impresora {
   /** Pide permiso y elige el equipo. Solo dentro de un toque del operador. */
   vincular(): Promise<Vinculo>;
   /** Vuelve a conectar sin selector, cuando el navegador lo permite. */
-  reconectar(): Promise<boolean>;
+  /** `forzar`: suelta antes la conexión que el navegador cree abierta (bitácora parqueadero 19). */
+  reconectar(forzar?: boolean): Promise<boolean>;
   imprimir(trabajo: Trabajo): Promise<Resultado>;
   estado(): EstadoImpresora;
 }

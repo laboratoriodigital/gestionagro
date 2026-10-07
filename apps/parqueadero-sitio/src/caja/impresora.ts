@@ -32,7 +32,7 @@ export interface ControlDeImpresora {
   /** Solo desde un toque del cajero: el navegador abre su selector. */
   conectar(verTodos: boolean): Promise<Vinculo>;
   /** Sin selector, sobre la impresora de esta sesión. `false` si no hay o no respondió. */
-  reconectar(): Promise<boolean>;
+  reconectar(forzar?: boolean): Promise<boolean>;
   /**
    * Codifica con los ajustes guardados (o los que se pasen) y encola. Nunca lanza. Si es un
    * recibo (`reciboId`) y no sale, queda en `entregas_pendientes`, también sin impresora conectada
@@ -158,7 +158,7 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
       return r;
     },
 
-    reconectar: () => enUso?.reconectar() ?? Promise.resolve(false),
+    reconectar: (forzar) => enUso?.reconectar(forzar) ?? Promise.resolve(false),
 
     estado: () => estado,
 
@@ -169,4 +169,21 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
 
     diagnostico: () => ultima?.diagnostico() ?? 'Impresora: sin vincular en esta sesión',
   };
+}
+
+/** Más tiempo que esto con la caja oculta, y la conexión se abre de nuevo al volver (bitácora 19). */
+export const MS_PARA_REFRESCAR = 2 * 60_000;
+
+/**
+ * Qué hacer con la impresora cuando la caja vuelve a la pantalla: si se soltó, reconectar; si estuvo
+ * oculta un buen rato (el teléfono se bloqueó), abrir otra conexión aunque el navegador diga que la
+ * vieja sigue abierta. Volver de WhatsApp al rato de enviar un recibo no reconecta nada.
+ */
+export function alVolverALaCaja(
+  estado: EstadoImpresora,
+  msOculta: number,
+): 'nada' | 'reconectar' | 'refrescar' {
+  if (estado === 'sin_vincular' || estado === 'ocupada' || estado === 'conectando') return 'nada';
+  if (msOculta >= MS_PARA_REFRESCAR) return 'refrescar';
+  return estado === 'desconectada' ? 'reconectar' : 'nada';
 }

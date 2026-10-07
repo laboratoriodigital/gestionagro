@@ -236,7 +236,7 @@ test.describe('la caja del parqueadero', () => {
     const papel = Buffer.from(bytes).toString('latin1');
     expect(papel).toContain('PRUEBA'); // HU-Q5.1 CA2: nada de staging vale como recibo
     expect(papel).toContain('12345678901234567890123456789012');
-    expect(papel).toContain('4) Sin tildes: aeiou nN ?! $');
+    expect(papel).toContain('4) Sin tildes: El tenia mas anos');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
     await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
     await expect(page.getByTestId('pagina-de-codigos')).toContainText('Tildes con WPC1252');

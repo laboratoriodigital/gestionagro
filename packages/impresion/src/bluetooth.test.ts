@@ -500,6 +500,54 @@ describe('imprimir', () => {
     expect(n).toBe(2);
   });
 
+  /** Una falsa cuya conexión dice estar abierta y está muerta, como al desbloquear el teléfono. */
+  function muertaAlVolver(fallos: number[]) {
+    const f = pt210Falsa();
+    const orden: string[] = [];
+    let n = 0;
+    const impresora = crearImpresoraBluetooth({ bluetooth: f.bluetooth, esperar: sinEsperar });
+    return {
+      f,
+      orden,
+      impresora,
+      async armar() {
+        await impresora.vincular();
+        const caracteristica = (
+          await (await f.gatt.getPrimaryService(PT210)).getCharacteristics()
+        )[1];
+        const original = caracteristica?.writeValueWithoutResponse.bind(caracteristica);
+        Object.assign(caracteristica ?? {}, {
+          writeValueWithoutResponse: (d: Uint8Array) => {
+            n++;
+            if (fallos.includes(n))
+              return Promise.reject(error('NetworkError', 'GATT operation failed'));
+            return original?.(d);
+          },
+        });
+        Object.assign(f.gatt, { disconnect: () => orden.push('disconnect') });
+      },
+    };
+  }
+
+  it('si el primer trozo falla con la conexión «abierta», reconecta y reimprime una vez (bitácora 19)', async () => {
+    const m = muertaAlVolver([1]);
+    await m.armar();
+    const r = await m.impresora.imprimir(recibo(250));
+    expect(r.ok).toBe(true);
+    expect(m.orden).toContain('disconnect');
+    expect(unir(m.f.escrituras)).toEqual(recibo(250).bytes);
+    expect(m.impresora.diagnostico()).toContain('se reconecta y se reintenta una vez');
+  });
+
+  it('si falla a mitad del recibo, no lo repite: un papel a medias no sale dos veces', async () => {
+    const m = muertaAlVolver([2]);
+    await m.armar();
+    const r = await m.impresora.imprimir(recibo(250));
+    expect(r).toMatchObject({ ok: false, motivo: 'fuera_de_alcance' });
+    expect(m.orden).toEqual([]);
+    expect(m.f.escrituras).toHaveLength(1);
+  });
+
   it('HTML no sale por Bluetooth', async () => {
     const f = pt210Falsa();
     const impresora = crearImpresoraBluetooth({ bluetooth: f.bluetooth });
