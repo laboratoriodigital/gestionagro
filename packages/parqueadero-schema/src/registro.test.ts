@@ -193,3 +193,23 @@ describe('placas y números', () => {
     expect(() => numeroDeRecibo('A', 0)).toThrow(RangeError);
   });
 });
+
+describe('el ajuste papel (HU-Q4.3)', () => {
+  it('siempre o salvo recibo digital; «nunca» no existe (CA3 ❌)', async () => {
+    const { sede, papelDeLaSede, SEDE_ENSAYO_UNO } = {
+      ...(await import('./index.ts')),
+      ...(await import('./ensayos.fixture.ts')),
+    };
+    expect(sede.safeParse({ ...SEDE_ENSAYO_UNO, papel: 'salvo_digital' }).success).toBe(true);
+    expect(sede.safeParse({ ...SEDE_ENSAYO_UNO, papel: 'nunca' }).success).toBe(false);
+    // @ts-expect-error: el tipo tampoco lo admite.
+    expect(papelDeLaSede({ papel: 'nunca' })).toBe('nunca');
+  });
+
+  it('una sede de antes de HU-Q4.3 se lee igual; sin nada, siempre', async () => {
+    const { papelDeLaSede } = await import('./index.ts');
+    expect(papelDeLaSede({ imprimir_siempre: true })).toBe('siempre');
+    expect(papelDeLaSede({ imprimir_siempre: false })).toBe('salvo_digital');
+    expect(papelDeLaSede({})).toBe('siempre');
+  });
+});

@@ -425,3 +425,15 @@ legend {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--espacio-2);
 }
+
+/* ── El ajuste papel (HU-Q4.3) ──────────────────────────────────────────────────────────────── */
+
+/* Con «salvo recibo digital», WhatsApp va primero. */
+.primero {
+  order: -1;
+}
+
+.pregunta {
+  margin: 0;
+  font-weight: 600;
+}

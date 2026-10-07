@@ -27,6 +27,19 @@ export const nit = z
   .trim()
   .regex(/^\d{1,3}(?:\.?\d{3}){1,3}-\d$/, 'debe tener la forma 900.000.000-0, con el dígito');
 
+/** Cuándo sale el recibo en papel (HU-Q4.3). Sin «nunca», a propósito (CA3). */
+export const PAPEL = ['siempre', 'salvo_digital'] as const;
+export type Papel = (typeof PAPEL)[number];
+
+/** Lo que dice la sede, también la de antes de HU-Q4.3. Sin nada, `siempre`: nadie sin recibo. */
+export function papelDeLaSede(s: {
+  papel?: Papel | undefined;
+  imprimir_siempre?: boolean | undefined;
+}): Papel {
+  if (s.papel) return s.papel;
+  return s.imprimir_siempre === false ? 'salvo_digital' : 'siempre';
+}
+
 /** Datos legales del prestador (Circular Única de la SIC; §6.1). */
 export const sede = z.strictObject({
   ...metaDeCatalogo,
@@ -48,8 +61,14 @@ export const sede = z.strictObject({
     .nullable(),
   /** Registro distrital u otro de la ciudad; nulo si la sede no lo tiene. */
   registro: notaCorta(30).nullable(),
-  /** Imprimir el recibo al registrar, si la impresora está conectada (§5.1). */
-  imprimir_siempre: z.boolean(),
+  /**
+   * Cuándo sale el papel (HU-Q4.3, §8.4): `siempre`, o `salvo_digital` si el conductor recibió el
+   * recibo por WhatsApp o en la pantalla. No hay «nunca»: nadie se queda sin recibo (Ley 1480).
+   * Opcional: las sedes de Q2 y Q3 traen `imprimir_siempre`; `papelDeLaSede` lee las dos.
+   */
+  papel: z.enum(PAPEL).optional(),
+  /** Antes de HU-Q4.3. Se lee en los respaldos viejos; la caja ya no lo escribe. */
+  imprimir_siempre: z.boolean().optional(),
   /**
    * El aviso de privacidad que la sede aceptó, con su versión (HU-Q4.4 CA2). Sin él, la caja no
    * guarda números de WhatsApp. Opcional: las sedes de Q2 no lo traen.

@@ -128,8 +128,11 @@ async function llenarAjustes(
     .getByRole('button', { name: 'No' })
     .click();
   await f
-    .getByRole('group', { name: '¿Imprimir el recibo al registrar?' })
-    .getByRole('button', { name: o.imprimir ?? 'Sí' })
+    .getByRole('group', { name: '¿Cuándo sale el recibo en papel?' })
+    // «No»: salvo recibo digital (HU-Q4.3); no existe «nunca».
+    .getByRole('button', {
+      name: o.imprimir === 'No' ? 'Si no lo recibe por WhatsApp o QR' : 'Siempre, al registrar',
+    })
     .click();
   const carro = f.getByTestId('tarifa-carro');
   await carro.getByLabel('Pesos por minuto', { exact: true }).fill(o.valor ?? '230');
@@ -702,6 +705,38 @@ test.describe('la caja del parqueadero', () => {
     await nueva.getByRole('button', { name: 'Volver al inicio' }).click();
     await expect(nueva.getByTestId('estadia')).toContainText('MNO456');
     await otro.close();
+  });
+
+  test('HU-Q4.3 · «salvo recibo digital» pregunta, y sin digital imprime al terminar', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    const antes = (await bytesImpresos(page)).length;
+    await teclearPlaca(page, 'PQR123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByTestId('pregunta-papel')).toContainText(
+      '¿Recibo por WhatsApp o en papel?',
+    );
+    // No sale solo: primero se ofrece lo digital.
+    expect((await bytesImpresos(page)).length).toBe(antes);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await expect.poll(async () => (await bytesImpresos(page)).slice(antes)).toContain('PQR123');
+
+    // Con el QR escaneado, no sale papel.
+    const sinPapel = (await bytesImpresos(page)).length;
+    await teclearPlaca(page, 'STU456');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Mostrar QR' }).click();
+    await page.getByRole('button', { name: 'Ya lo escaneó' }).click();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('estadias')).toContainText('STU456');
+    expect((await bytesImpresos(page)).length).toBe(sinPapel);
   });
 
   test('HU-Q3.3 · sin red, la entrada abre y registra', async ({ page, context }) => {

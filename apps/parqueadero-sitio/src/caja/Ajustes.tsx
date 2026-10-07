@@ -6,7 +6,13 @@
  */
 import { formatearPesos } from '@ed1/dinero';
 import type { Redondeo, Sede, Tarifa, Vehiculo } from '@ed1/parqueadero-schema';
-import { ErrorDeValidacion, VEHICULOS } from '@ed1/parqueadero-schema';
+import {
+  ErrorDeValidacion,
+  PAPEL,
+  type Papel,
+  papelDeLaSede,
+  VEHICULOS,
+} from '@ed1/parqueadero-schema';
 import { validarTarifa } from '@ed1/parqueadero-tarifas';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
@@ -57,7 +63,7 @@ export interface Borrador {
   aseguradora: string;
   numeroPoliza: string;
   registro: string;
-  imprimir: '' | 'si' | 'no';
+  imprimir: '' | Papel;
   /** La sede acepta el aviso de privacidad vigente (HU-Q4.4 CA2). */
   aviso: boolean;
   pie: string;
@@ -102,7 +108,7 @@ function borradorDe(sede: Sede | null, tarifas: readonly Tarifa[], pie: string |
       aseguradora: sede.poliza?.aseguradora ?? '',
       numeroPoliza: sede.poliza?.numero ?? '',
       registro: sede.registro ?? '',
-      imprimir: sede.imprimir_siempre ? 'si' : 'no',
+      imprimir: papelDeLaSede(sede),
       aviso: avisoAceptado(sede),
     });
   }
@@ -157,7 +163,7 @@ export function leerBorrador(
     if (!b.aseguradora.trim()) falta('sede-aseguradora');
     if (!b.numeroPoliza.trim()) falta('sede-numeroPoliza');
   }
-  if (!b.imprimir) errores['sede-imprimir'] = 'Diga si el recibo se imprime al registrar';
+  if (!b.imprimir) errores['sede-imprimir'] = 'Diga cuándo sale el recibo en papel';
   if (!hayPin || b.pin || b.pin2) {
     if (!PIN_VALIDO.test(b.pin)) errores['pin'] = 'El PIN es de 4 a 6 números';
     else if (b.pin !== b.pin2) errores['pin2'] = 'No es igual al PIN';
@@ -364,7 +370,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
           telefono: b.telefono,
           poliza: b.poliza === 'si' ? { aseguradora: b.aseguradora, numero: b.numeroPoliza } : null,
           registro: b.registro.trim() || null,
-          imprimir_siempre: b.imprimir === 'si',
+          papel: b.imprimir || 'siempre',
           // Aceptarlo otra vez no cambia la fecha en que se aceptó esta versión.
           aviso_privacidad: !b.aviso
             ? null
@@ -511,9 +517,9 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
           {entrada('sede-registro', b.registro, poner('registro'), { maxLength: 30 })}
         </Campo>
         <fieldset class="campo">
-          <legend>¿Imprimir el recibo al registrar?</legend>
+          <legend>¿Cuándo sale el recibo en papel?</legend>
           <div class="opciones">
-            {(['si', 'no'] as const).map((x, i) => (
+            {PAPEL.map((x, i) => (
               <button
                 key={x}
                 id={i === 0 ? 'sede-imprimir' : undefined}
@@ -522,7 +528,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
                 aria-pressed={b.imprimir === x}
                 onClick={() => setB({ ...b, imprimir: x })}
               >
-                {x === 'si' ? 'Sí, siempre' : 'No, con un botón'}
+                {x === 'siempre' ? 'Siempre, al registrar' : 'Si no lo recibe por WhatsApp o QR'}
               </button>
             ))}
           </div>

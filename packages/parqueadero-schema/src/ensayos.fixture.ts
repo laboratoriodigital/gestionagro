@@ -22,6 +22,7 @@ export const SEDE_ENSAYO_UNO: Sede = {
   telefono: '3000000000',
   poliza: { aseguradora: 'Aseguradora', numero: '0000000' },
   registro: null,
+  // Una sede de Q2, con el campo de antes de HU-Q4.3: el ejemplo del contrato prueba que abre.
   imprimir_siempre: true,
 };
 
@@ -34,7 +35,7 @@ export const SEDE_ENSAYO_DOS: Sede = {
   ciudad: 'Tunja',
   telefono: '+57 310 000 0000',
   poliza: null,
-  imprimir_siempre: false,
+  papel: 'salvo_digital',
 };
 
 /** Carro en Bogotá: $230 por minuto, el tope, y $30.000 por día (la maqueta de §6.2). */
