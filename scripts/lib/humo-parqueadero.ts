@@ -19,6 +19,9 @@ export async function humoParqueadero(fetchFn: typeof fetch, url: string): Promi
     if (caja.headers.get('x-robots-tag') !== 'noindex') {
       fallas.push(`parqueadero: ${url}/caja/ se podría indexar (falta X-Robots-Tag)`);
     }
+    // HU-Q5.2 CA2: la página del recibo abre en el mismo origen que la caja.
+    const recibo = await fetchFn(`${url}/r/`);
+    if (recibo.status !== 200) fallas.push(`parqueadero: ${url}/r/ respondió ${recibo.status}`);
     const sw = await fetchFn(`${url}/caja/sw.js`);
     if (sw.status !== 200 || !(sw.headers.get('content-type') ?? '').includes('javascript')) {
       fallas.push(`parqueadero: ${url}/caja/sw.js respondió ${sw.status}, sin service worker`);

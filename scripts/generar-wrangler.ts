@@ -183,11 +183,15 @@ export function wranglerDeEnsayo(): Record<string, unknown> {
 }
 
 /**
- * El sitio y la caja del Parqueadero ED1 (HU-Q5.1): solo assets, sin código de Worker. Hasta que
- * la zona `laboratorio-digital.app` esté activa (HU-Q5.2) existe solo en staging: el despliegue no
- * la publica en producción, y su configuración de arriba no se usa.
+ * El sitio y la caja del Parqueadero ED1 (HU-Q5.1, HU-Q5.2): solo assets, sin código de Worker.
+ * Producción va a su dominio, nunca a `workers.dev`: si la zona no responde, el despliegue falla
+ * (HU-Q5.2 CA3, P1). Staging sigue en `workers.dev`.
  */
 export const WORKER_PARQUEADERO = 'ed1-parqueadero';
+/** El host de los recibos: `entorno.ts` de la caja y `ORIGEN_DEL_RECIBO` dicen el mismo (P2). */
+export const DOMINIO_PARQUEADERO = 'parqueadero.laboratorio-digital.app';
+/** Su zona: el token de producción tiene que verla (P12). */
+export const ZONA_PARQUEADERO = 'laboratorio-digital.app';
 export const RUTA_WRANGLER_PARQUEADERO = join(RAIZ, 'apps', 'parqueadero-sitio', 'wrangler.jsonc');
 export function wranglerDelParqueadero(): Record<string, unknown> {
   return {
@@ -195,8 +199,9 @@ export function wranglerDelParqueadero(): Record<string, unknown> {
     name: WORKER_PARQUEADERO,
     compatibility_date: FECHA_COMPATIBILIDAD,
     assets: { directory: './dist' },
-    workers_dev: true,
-    env: { staging: { name: `${WORKER_PARQUEADERO}-staging`, workers_dev: true } },
+    workers_dev: false,
+    routes: [{ pattern: DOMINIO_PARQUEADERO, custom_domain: true }],
+    env: { staging: { name: `${WORKER_PARQUEADERO}-staging`, workers_dev: true, routes: [] } },
   };
 }
 

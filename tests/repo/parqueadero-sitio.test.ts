@@ -1,15 +1,20 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { HOST_DE_PRODUCCION } from '../../apps/parqueadero-sitio/src/caja/entorno.ts';
 import plantilla from '../../content/parqueadero/privacidad/aviso.json' with { type: 'json' };
+import { ORIGEN_DEL_RECIBO } from '../../packages/parqueadero-recibos/src/enlace.ts';
 import {
+  DOMINIO_PARQUEADERO,
   RUTA_WRANGLER_PARQUEADERO,
   textoWranglerDelParqueadero,
   WORKER_PARQUEADERO,
   wranglerDelParqueadero,
+  ZONA_PARQUEADERO,
 } from '../../scripts/generar-wrangler.ts';
 import {
   CSP_DEL_PARQUEADERO,
+  robotsDelParqueadero,
   textoDeCabecerasDelParqueadero,
 } from '../../scripts/lib/cabeceras-parqueadero.ts';
 import { humoParqueadero } from '../../scripts/lib/humo-parqueadero.ts';
@@ -22,8 +27,27 @@ describe('el sitio del parqueadero', () => {
     const config = wranglerDelParqueadero();
     expect(config['main']).toBeUndefined();
     expect(config['env']).toEqual({
-      staging: { name: `${WORKER_PARQUEADERO}-staging`, workers_dev: true },
+      staging: { name: `${WORKER_PARQUEADERO}-staging`, workers_dev: true, routes: [] },
     });
+  });
+
+  it('producción va a su dominio y nunca a workers.dev (HU-Q5.2 CA1 y CA3)', () => {
+    const config = wranglerDelParqueadero();
+    expect(config['workers_dev']).toBe(false);
+    expect(config['routes']).toEqual([{ pattern: DOMINIO_PARQUEADERO, custom_domain: true }]);
+    expect(DOMINIO_PARQUEADERO.endsWith(`.${ZONA_PARQUEADERO}`)).toBe(true);
+  });
+
+  it('el dominio, la caja y los recibos dicen el mismo host (HU-Q5.2 CA3 ❌, P2)', () => {
+    expect(HOST_DE_PRODUCCION).toBe(DOMINIO_PARQUEADERO);
+    expect(new URL(ORIGEN_DEL_RECIBO).host).toBe(DOMINIO_PARQUEADERO);
+    expect(ORIGEN_DEL_RECIBO).not.toContain('workers.dev');
+    const dominios = JSON.parse(
+      readFileSync(join(RAIZ, 'infrastructure', 'dominios.json'), 'utf8'),
+    );
+    expect(dominios.reservados_app.proyecto).toContain(DOMINIO_PARQUEADERO.split('.')[0]);
+    const zona = dominios.dominios.find((d: { dominio: string }) => d.dominio === ZONA_PARQUEADERO);
+    expect(zona?.zona_activa).toBe(true);
   });
 
   it('la CSP solo deja código, estilos y conexiones propios, sin unsafe-inline', () => {
@@ -35,10 +59,17 @@ describe('el sitio del parqueadero', () => {
     expect(CSP_DEL_PARQUEADERO).toMatch(/connect-src 'self';/);
   });
 
-  it('staging no se indexa; producción lleva HSTS', () => {
+  it('staging no se indexa; producción lleva HSTS y no deja indexar la caja ni los recibos', () => {
     expect(textoDeCabecerasDelParqueadero('staging')).toContain('X-Robots-Tag: noindex');
     expect(textoDeCabecerasDelParqueadero('staging')).not.toContain('Strict-Transport-Security');
-    expect(textoDeCabecerasDelParqueadero('produccion')).toContain('Strict-Transport-Security');
+    const prod = textoDeCabecerasDelParqueadero('produccion');
+    expect(prod).toContain('Strict-Transport-Security');
+    expect(prod).toMatch(/\/caja\/\*\n {2}X-Robots-Tag: noindex/);
+    expect(prod).toMatch(/\/r\/\*\n {2}X-Robots-Tag: noindex/);
+    expect(robotsDelParqueadero('staging')).toContain('Disallow: /\n');
+    expect(robotsDelParqueadero('produccion')).toBe(
+      'User-agent: *\nDisallow: /caja/\nDisallow: /r/\n',
+    );
   });
 
   it('el build arma la caja y se detiene si le falta una pieza (P16)', () => {
@@ -77,9 +108,11 @@ describe('el sitio del parqueadero', () => {
 
   describe('la prueba de humo de staging (HU-Q5.1 CA3)', () => {
     const URL_STAGING = 'https://ed1-parqueadero-staging.ejemplo.workers.dev';
-    function sitio(cambios: { csp?: string | null; sw?: number } = {}): typeof fetch {
+    function sitio(cambios: { csp?: string | null; sw?: number; r?: number } = {}): typeof fetch {
       return (async (entrada: string | URL | Request) => {
         const ruta = new URL(String(entrada)).pathname;
+        if (ruta === '/r/')
+          return new Response('<title>Recibo</title>', { status: cambios.r ?? 200 });
         if (ruta === '/caja/sw.js') {
           return new Response('self;', {
             status: cambios.sw ?? 200,
@@ -104,6 +137,12 @@ describe('el sitio del parqueadero', () => {
       ).toHaveLength(1);
       expect(await humoParqueadero(sitio({ sw: 404 }), URL_STAGING)).toEqual([
         expect.stringContaining('sin service worker'),
+      ]);
+    });
+
+    it('falla si la página del recibo no abre (HU-Q5.2 CA2)', async () => {
+      expect(await humoParqueadero(sitio({ r: 404 }), URL_STAGING)).toEqual([
+        expect.stringContaining('/r/ respondió 404'),
       ]);
     });
   });

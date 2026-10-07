@@ -293,6 +293,8 @@ Las del cuaderno (ARQUITECTURA §5.3), con estas formas:
 - Cuando hay red, la caja lee la cabecera `Date` del sitio estático (gratis) y, si la diferencia pasa de 2 minutos, avisa en rojo y pide corregir la hora. No corrige en silencio (P8, como `reloj-corrido` del cuaderno).
 - Las fechas locales se calculan con UTC−5 fijo: Colombia no tiene horario de verano. Sin `Intl` para formatear lo que va impreso, porque cambia entre navegadores (P17).
 
+**Nota de HU-Q5.2 (7 oct 2026), con el código:** `ed1-parqueadero` en producción tiene `workers_dev: false` y su ruta de dominio propio, `parqueadero.laboratorio-digital.app`; staging sigue en `workers.dev`. `dominios.json` marca la zona activa y reserva `parqueadero`. El build deja las cabeceras de staging; el despliegue a producción escribe las suyas (HSTS, y `noindex` solo en `/caja/*` y `/r/*`) y prueba `/caja/` y `/r/` en el dominio. El host está en un solo lugar del despliegue (`DOMINIO_PARQUEADERO`), y una prueba lo compara con el de la caja y el de los recibos. Producción sale cuando la versión del parqueadero sube a `0.1.0`.
+
 **Nota del sprint Q4 (7 oct 2026), con el código:** la caja pide `HEAD /sitio.css?hora=<ms>` con `cache: 'no-store'`: un archivo fuera de `/caja/`, que el service worker no responde, y una marca para que ninguna caché devuelva una hora vieja (P7). Compara con la mitad del viaje. Revisa al abrir, cada 30 minutos y al volver la red (`hora.ts`).
 
 ---
