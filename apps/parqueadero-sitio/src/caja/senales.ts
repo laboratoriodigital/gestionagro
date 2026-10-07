@@ -59,10 +59,15 @@ export interface Capacidades {
 }
 
 export interface Propuesta {
-  readonly camino: 'bluetooth' | 'serial' | null;
+  readonly camino: 'bluetooth' | 'serial' | 'sistema' | null;
   readonly mensaje: string;
   /** Ofrecer también la impresora emparejada; sin Web Serial, el botón no aparece (CA3). */
   readonly serial: boolean;
+  /**
+   * Ofrecer también el diálogo de impresión del equipo (HU-Q2.5): la PT-210 por USB en Windows o
+   * una impresora común. En iPhone no: AirPrint no llega a la térmica.
+   */
+  readonly sistema: boolean;
 }
 
 /** El paso 1 del asistente: qué tiene este navegador (§7.2 y §7.8). En iPhone, desde el principio. */
@@ -73,24 +78,33 @@ export function proponerCamino(c: Capacidades): Propuesta {
       mensaje:
         'En iPhone ningún navegador puede imprimir en la impresora. Use la caja en un Android o en un PC con Chrome; mientras tanto, el recibo sale por WhatsApp y en la pantalla.',
       serial: false,
+      sistema: false,
     };
   }
   const serial = c.serial === true;
+  const sistema = true;
   if (c.bluetooth) {
-    return { camino: 'bluetooth', mensaje: 'Este equipo puede imprimir por Bluetooth.', serial };
+    return {
+      camino: 'bluetooth',
+      mensaje: 'Este equipo puede imprimir por Bluetooth.',
+      serial,
+      sistema,
+    };
   }
   if (serial) {
     return {
       camino: 'serial',
       mensaje: 'Este equipo puede imprimir con la impresora emparejada.',
       serial,
+      sistema,
     };
   }
   return {
-    camino: null,
+    camino: 'sistema',
     serial,
+    sistema,
     mensaje:
-      'Este navegador no puede usar Bluetooth. Abra la caja en Chrome, en Android o en Windows.',
+      'Este navegador no tiene Bluetooth: puede imprimir con el diálogo de impresión del equipo, en la impresora instalada. Para la PT-210 por Bluetooth, abra la caja en Chrome.',
   };
 }
 

@@ -14,9 +14,12 @@ if (!raiz) throw new Error('Falta el elemento #caja en index.html');
 
 const reloj = () => Date.now();
 const db = abrirBase();
+const capacidades = capacidadesDelNavegador(navigator);
 const control = crearControl(db, {
   bluetooth: (navigator as Navigator & { bluetooth?: BluetoothBle }).bluetooth,
   serial: (navigator as Navigator & { serial?: SerialWeb }).serial,
+  // HU-Q2.5: el diálogo de impresión del equipo; en iPhone no llega a la térmica.
+  sistema: capacidades.ios ? undefined : window,
   hostname: location.hostname,
   reloj,
   nuevoId: () => crypto.randomUUID(),
@@ -37,7 +40,7 @@ render(
   <App
     db={db}
     control={control}
-    propuesta={proponerCamino(capacidadesDelNavegador(navigator))}
+    propuesta={proponerCamino(capacidades)}
     prueba={!esProduccion(location.hostname)}
     reloj={reloj}
   />,

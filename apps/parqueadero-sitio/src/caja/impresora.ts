@@ -1,7 +1,8 @@
 /**
  * La impresora de la caja: el adaptador, la cola y lo que se guarda en `impresora` (§5.2). La
- * caja tiene una sola impresora y una sola cola (PARQUEADERO §7.3). Dos caminos: Web Bluetooth y
- * Web Serial, la impresora emparejada que la caja encuentra sola al abrir (§7.5, HU-Q2.4).
+ * caja tiene una sola impresora y una sola cola (PARQUEADERO §7.3). Tres caminos: Web Bluetooth,
+ * Web Serial, la impresora emparejada que la caja encuentra sola al abrir (§7.5, HU-Q2.4), y el
+ * diálogo de impresión del equipo, con el recibo en HTML a 48 mm (HU-Q2.5).
  */
 import {
   type AjustesDeImpresion,
@@ -12,14 +13,18 @@ import {
   crearCola,
   crearImpresoraBluetooth,
   crearImpresoraSerial,
+  crearImpresoraSistema,
   type EstadoImpresora,
   FalloDeImpresora,
+  htmlDeBloques,
   type Impresora,
   type MotivoDeFallo,
   type PuertoSerie,
   puertoRecordado,
   type Resultado,
   type SerialWeb,
+  type Trabajo,
+  type VentanaParaImprimir,
   type Vinculo,
 } from '@ed1/impresion';
 import { conImpresion } from './actividad.ts';
@@ -30,6 +35,8 @@ export interface OpcionesDeControl {
   readonly bluetooth: BluetoothBle | undefined;
   /** Web Serial: Chrome 138+ en Android y Chrome o Edge en el PC. */
   readonly serial?: SerialWeb | undefined;
+  /** El diálogo de impresión del equipo (HU-Q2.5): la ventana de la caja. En iPhone, nada. */
+  readonly sistema?: VentanaParaImprimir | undefined;
   readonly hostname: string;
   readonly reloj: () => number;
   readonly nuevoId: () => string;
@@ -48,7 +55,8 @@ export interface ControlDeImpresora {
   conectar(verTodos: boolean, camino?: CaminoDeLaCaja): Promise<Vinculo>;
   /**
    * Al abrir la caja: si la impresora guardada es la emparejada (Web Serial), la toma sin selector
-   * (HU-Q2.4 CA1). `false` si no hay o no abrió.
+   * (HU-Q2.4 CA1); si es el diálogo del sistema, no hay nada que abrir (HU-Q2.5). `false` si no
+   * hay o no abrió.
    */
   recuperar(): Promise<boolean>;
   /** Sin selector, sobre la impresora de esta sesión. `false` si no hay o no respondió. */
@@ -70,10 +78,14 @@ export interface ControlDeImpresora {
   /** Al cerrar o recargar la caja: suelta la conexión y guarda el diagnóstico. */
   soltar(): void;
   /** Qué caminos tiene este navegador: la caja ofrece solo los que funcionan (HU-Q2.4 CA3). */
-  caminos(): { readonly bluetooth: boolean; readonly serial: boolean };
+  caminos(): { readonly bluetooth: boolean; readonly serial: boolean; readonly sistema: boolean };
 }
 
-export type CaminoDeLaCaja = 'bluetooth' | 'serial';
+export type CaminoDeLaCaja = 'bluetooth' | 'serial' | 'sistema';
+
+/** El camino de la impresora guardada; sin impresora, Bluetooth. */
+const caminoGuardado = (r: RegistroImpresora | undefined): CaminoDeLaCaja =>
+  r?.camino === 'serial' || r?.camino === 'sistema' ? r.camino : 'bluetooth';
 
 const CLAVE_DEL_DIAGNOSTICO = 'caja-diagnostico-anterior';
 
@@ -123,7 +135,15 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
       if (nueva === enUso || (nueva === ultima && e !== 'sin_vincular')) cambiar(e);
     };
     let nueva: Adaptador;
-    if (camino === 'serial') {
+    if (camino === 'sistema') {
+      if (!opciones.sistema) {
+        throw new FalloDeImpresora(
+          'no_soportado',
+          'Este navegador no puede abrir el diálogo de impresión',
+        );
+      }
+      nueva = crearImpresoraSistema({ ventana: opciones.sistema, reloj: opciones.reloj });
+    } else if (camino === 'serial') {
       if (!opciones.serial) {
         throw new FalloDeImpresora(
           'no_soportado',
@@ -154,7 +174,7 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
   return {
     async conectar(verTodos, camino) {
       const anterior = await db.impresora.get('actual');
-      const nueva = crear(camino ?? (anterior?.camino === 'serial' ? 'serial' : 'bluetooth'), {
+      const nueva = crear(camino ?? caminoGuardado(anterior), {
         verTodos,
         anterior,
       });
@@ -169,6 +189,8 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
         throw e;
       }
       usar(nueva);
+      // El diálogo del sistema no tiene conexión que avise: queda lista al vincular (HU-Q2.5).
+      if (nueva.camino === 'sistema') cambiar(nueva.estado());
       // Otra impresora pierde la prueba: sus tildes y su QR pueden ser otros.
       const misma = anterior?.dispositivoId === vinculo.id;
       await db.impresora.put({
@@ -199,27 +221,39 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
         }
         return { ok: false, ...r };
       }
-      let bytes: Uint8Array;
+      const id = opciones.nuevoId();
+      let trabajo: Trabajo;
       try {
-        bytes = await codificar(
-          conMarcaDeEntorno(bloques, opciones.hostname),
-          ajustes ?? ajustesDelRegistro(registro),
-        );
+        const marcados = conMarcaDeEntorno(bloques, opciones.hostname);
+        const a = ajustes ?? ajustesDelRegistro(registro);
+        // El diálogo del sistema imprime los mismos bloques en HTML (HU-Q2.5 CA3).
+        trabajo =
+          registro.camino === 'sistema'
+            ? { id, formato: 'html', html: await htmlDeBloques(marcados, a) }
+            : { id, formato: 'escpos', bytes: await codificar(marcados, a) };
       } catch (e) {
         // Un recibo que no se pudo codificar se dice, nunca deja la pantalla esperando (P15).
         return { ok: false, motivo: 'no_soportado', detalle: `No se pudo armar: ${String(e)}` };
       }
       const enCola = cola;
-      const id = opciones.nuevoId();
       if (reciboId) reciboDelTrabajo.set(id, reciboId);
-      const r = await conImpresion(() => enCola.imprimir({ id, formato: 'escpos', bytes }));
+      const r = await conImpresion(() => enCola.imprimir(trabajo));
       reciboDelTrabajo.delete(id);
       return r;
     },
 
     async recuperar() {
       const guardada = await db.impresora.get('actual');
-      if (enUso || guardada?.camino !== 'serial' || !opciones.serial) return false;
+      if (enUso) return false;
+      if (guardada?.camino === 'sistema' && opciones.sistema) {
+        const a = crear('sistema', { verTodos: false, anterior: guardada });
+        ultima = a;
+        await a.vincular();
+        usar(a);
+        cambiar(a.estado());
+        return true;
+      }
+      if (guardada?.camino !== 'serial' || !opciones.serial) return false;
       const puerto = await puertoRecordado(opciones.serial, guardada.dispositivoId);
       if (!puerto) return false;
       const a = crear('serial', { verTodos: false, anterior: guardada, puerto });
@@ -242,12 +276,16 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
       return () => oyentes.delete(oyente);
     },
 
-    caminos: () => ({ bluetooth: Boolean(opciones.bluetooth), serial: Boolean(opciones.serial) }),
+    caminos: () => ({
+      bluetooth: Boolean(opciones.bluetooth),
+      serial: Boolean(opciones.serial),
+      sistema: Boolean(opciones.sistema),
+    }),
 
     diagnostico() {
       // Primero, qué puede este navegador: dice si la impresora emparejada estaba a mano (bitácora 24).
       const si = (x: unknown) => (x ? 'sí' : 'no');
-      const navegador = `Este navegador: Bluetooth web ${si(opciones.bluetooth)} · impresora emparejada ${si(opciones.serial)}`;
+      const navegador = `Este navegador: Bluetooth web ${si(opciones.bluetooth)} · impresora emparejada ${si(opciones.serial)} · diálogo de impresión ${si(opciones.sistema)}`;
       const ahora = `${navegador}\n${ultima?.diagnostico() ?? 'Impresora: sin vincular en esta sesión'}`;
       let antes: string | null = null;
       try {
