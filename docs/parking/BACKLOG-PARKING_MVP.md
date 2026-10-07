@@ -253,7 +253,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q1.1.1 `[código]` liquidación · WI-Q1.1.2 `[prueba]` tabla de casos · WI-Q1.1.3 `[prueba]` propiedad · WI-Q1.1.4 `[prueba]` husos y fechas · WI-Q1.1.5 `[doc]` nota en PARQUEADERO §9.
 
 #### HU-Q1.2 · Los topes de cada ciudad como contenido, con su vencimiento
-- **Capa:** contenido · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q1.1 · **Estado:** En revisión (rama `feat/q4-sprint`): topes.json con Bogotá, esquema en el CI, tope de la ciudad en la tarifa y aviso a los 13 meses
+- **Capa:** contenido · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q1.1 · **Estado:** Hecha (PR #118): topes.json con Bogotá, esquema en el CI, tope de la ciudad en la tarifa y aviso a los 13 meses
 - Como parqueadero de Bogotá, quiero que la caja sepa el tope vigente de mi ciudad y me avise cuando esté viejo, para no cobrar de más sin saberlo.
 - **Respaldo:** PARQUEADERO §9.1 y §9.2 (regla 3); estudio §13.2; Decretos 026 y 027 de 2026 de Bogotá (*Norma*).
 - **CA1.** `content/parqueadero/topes.json` con ciudad, norma, vigencia, tipo de vehículo, máximo por minuto y la regla del minuto iniciado. Bogotá desde el 30 ene 2026: COP 230 por minuto para carros y COP 161 para motos; 253 y 177 con sello de oro. Un esquema lo valida.
@@ -339,7 +339,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.3.1 `[código]` vincular y descubrir · WI-Q2.3.2 `[código]` enviar y reconectar · WI-Q2.3.3 `[código]` errores y diagnóstico · WI-Q2.3.4 `[prueba]` adaptador falso · WI-Q2.3.5 `[campo]` matriz.
 
 #### HU-Q2.4 · Imprimir por Web Serial: Bluetooth clásico en Android y el puerto COM en Windows
-- **Capa:** paquete · **Prioridad:** Must (baja a Should si la caja del cliente es Android y la matriz muestra que Web Bluetooth reconecta bien; §4.4) · **Puntos:** 3 · **Sprint:** Q4 · **Depende de:** HU-Q2.1, HU-Q2.2 · **Estado:** En revisión (rama `feat/q4-sprint`): adaptador Web Serial, «Usar la impresora emparejada» y la caja que la recupera al abrir; falta la matriz con la PT210L emparejada
+- **Capa:** paquete · **Prioridad:** Must (baja a Should si la caja del cliente es Android y la matriz muestra que Web Bluetooth reconecta bien; §4.4) · **Puntos:** 3 · **Sprint:** Q4 · **Depende de:** HU-Q2.1, HU-Q2.2 · **Estado:** Hecha (PR #118): adaptador Web Serial, «Usar la impresora emparejada» y la caja que la recupera al abrir; falta la matriz con la PT210L emparejada
 - Como cajero, quiero que la caja vuelva a encontrar la impresora sola al abrir el turno, sin elegirla cada vez.
 - **Respaldo:** ADR-34; PARQUEADERO §7.5.
 - **CA1.** Con la PT-210 emparejada una vez en Android, `navigator.serial.requestPort()` la toma, y en la sesión siguiente `getPorts()` la devuelve sin selector. En Windows, abre el puerto COM que crea el emparejamiento.
@@ -444,7 +444,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.6.1 `[diseño]` · WI-Q3.6.2 `[código]` · WI-Q3.6.3 `[prueba]` copias y «No salió».
 
 #### HU-Q3.7 · Anular sin borrar
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q3.5 · **Estado:** En revisión (rama `feat/q4-sprint`): anulación con motivo, operador y PIN; la guardia sin-borrar ve `registros` y lo que los reescribe
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q3.5 · **Estado:** Hecha (PR #118): anulación con motivo, operador y PIN; la guardia sin-borrar ve `registros` y lo que los reescribe
 - Como propietario, quiero que un error se corrija con una anulación que deja rastro, no borrando, para que el cierre de turno sea creíble.
 - **Respaldo:** PARQUEADERO §10.2 (registros inmutables), §11.2 y §13.1; P21.
 - **CA1.** Anular una entrada o una salida crea un registro `anulacion` con el motivo, el operador y el id de lo anulado, y pide el PIN de administrador en M0. Una entrada anulada cierra su estadía; una salida anulada la reabre.
@@ -454,7 +454,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.7.1 `[código]` · WI-Q3.7.2 `[ci]` guardia extendida · WI-Q3.7.3 `[prueba]` reabrir y cerrar estadías.
 
 #### HU-Q3.8 · La hora del teléfono, comparada con la del servidor
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q4 · **Depende de:** HU-Q3.1 · **Estado:** En revisión (rama `feat/q4-sprint`): HEAD a /sitio.css con no-store; corrida más de 2 minutos, en rojo
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q4 · **Depende de:** HU-Q3.1 · **Estado:** Hecha (PR #118): HEAD a /sitio.css con no-store; corrida más de 2 minutos, en rojo
 - Como conductor, quiero que la hora de mi recibo sea la verdadera, porque de ella sale lo que pago.
 - **Respaldo:** PARQUEADERO §5.6; P8; el `reloj-corrido` del cuaderno; P7.
 - **CA1.** Con red, la caja lee la cabecera `Date` del sitio con `fetch(…, { cache: 'no-store' })`. Si la diferencia pasa de 2 minutos, avisa en rojo y pide corregir la hora del teléfono; no la corrige en silencio.
@@ -464,7 +464,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.8.1 `[código]` · WI-Q3.8.2 `[prueba]` reloj corrido y caché.
 
 #### HU-Q3.9 · El turno: apertura, cierre con conteo y cierre impreso
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q4 · **Depende de:** HU-Q3.5, HU-Q3.7 · **Estado:** En revisión (rama `feat/q4-sprint`): apertura, movimientos, conteo por denominación y cierre impreso del anexo B; falta compararlo en la PT-210
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q4 · **Depende de:** HU-Q3.5, HU-Q3.7 · **Estado:** Hecha (PR #118): apertura, movimientos, conteo por denominación y cierre impreso del anexo B; falta compararlo en la PT-210
 - Como cajero, quiero abrir y cerrar mi turno con la plata contada y un papel que lo pruebe, para entregar la caja sin discusiones.
 - **Respaldo:** PARQUEADERO §5.1 (Turno) y anexo B (el cierre a 32 columnas); estudio §16.3 (cuadre).
 - **CA1.** La apertura lleva el nombre del operador y la base de caja (`turno_apertura`). El cierre lleva el conteo del efectivo, lo esperado (calculado en el dispositivo), la diferencia y su motivo (`turno_cierre`). En medio, los movimientos de caja con su motivo (`movimiento_caja`).
@@ -477,7 +477,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.9.1 `[diseño]` · WI-Q3.9.2 `[código]` apertura y cierre · WI-Q3.9.3 `[código]` cierre impreso · WI-Q3.9.4 `[prueba]` cuadre y diferencias · WI-Q3.9.5 `[campo]`.
 
 #### HU-Q3.10 · Respaldo en archivo y restauración que une
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q4 · **Depende de:** HU-Q1.3, HU-Q3.9 · **Estado:** En revisión (rama `feat/q4-sprint`): respaldo compartido o descargado y restauración que une; falta compartir a Drive y restaurar en un segundo teléfono
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q4 · **Depende de:** HU-Q1.3, HU-Q3.9 · **Estado:** Hecha (PR #118): respaldo compartido o descargado y restauración que une; falta compartir a Drive y restaurar en un segundo teléfono
 - Como propietario, quiero guardar todo lo de la caja en un archivo al cerrar el turno y poder cargarlo en otro teléfono, para no perder el parqueadero si se pierde el teléfono.
 - **Respaldo:** PARQUEADERO §5.3 (regla 6) y §2.2; bitácora ecommerce 77 (restaurar une, nunca reemplaza); P21; bitácora parqueadero 8.
 - **CA1.** «Respaldo» arma un `parqueadero-export/1` con su CSV y los comparte con `navigator.share` (correo o Drive) o los descarga. La cabecera dice la fecha del último respaldo.
@@ -489,7 +489,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.10.1 `[código]` respaldo · WI-Q3.10.2 `[código]` restaurar · WI-Q3.10.3 `[prueba]` unir y rechazar · WI-Q3.10.4 `[campo]`.
 
 #### HU-Q3.11 · Abonados por placa
-- **Capa:** caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q3.3, HU-Q3.5 · **Estado:** En revisión (rama `feat/q3-11-abonados`): abonados con PIN, la placa marcada al entrar, la salida en 0 como «abonado» con «Abonado hasta» en el papel, WhatsApp y pantalla, y el vencido como visitante, dicho. `/r/` dice solo «abonado»: el enlace v1 no lleva la fecha
+- **Capa:** caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q3.3, HU-Q3.5 · **Estado:** Hecha (PR #124): abonados con PIN, la placa marcada al entrar, la salida en 0 como «abonado» con «Abonado hasta» en el papel, WhatsApp y pantalla, y el vencido como visitante, dicho. `/r/` dice solo «abonado»: el enlace v1 no lleva la fecha
 - Como cajero, quiero que la caja reconozca a los abonados por su placa y no les cobre la salida.
 - **Respaldo:** PARQUEADERO §2.2 y §5.1 (entrada, punto 3); bitácora parqueadero 7 (las mensualidades con cobro son M2).
 - **CA1.** Un catálogo de abonados con nombre o alias, placas, vigencia (desde y hasta) y nota, que solo cambia el administrador con su PIN.
@@ -525,7 +525,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q4.2.1 `[diseño]` · WI-Q4.2.2 `[código]` · WI-Q4.2.3 `[prueba]` sin placa en lo servido · WI-Q4.2.4 `[campo]` tres teléfonos.
 
 #### HU-Q4.3 · El ajuste `papel`: siempre, o salvo recibo digital
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q4.1, HU-Q3.6 · **Estado:** En revisión (rama `feat/q4-sprint`): `papel` siempre o salvo_digital, sin «nunca»; las sedes de antes conservan su ajuste
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q4.1, HU-Q3.6 · **Estado:** Hecha (PR #118): `papel` siempre o salvo_digital, sin «nunca»; las sedes de antes conservan su ajuste
 - Como propietario, quiero dejar de imprimir cuando el conductor ya tiene su recibo digital, sin dejar a nadie sin recibo.
 - **Respaldo:** PARQUEADERO §8.4 (la tabla del ajuste); Ley 1480 art. 18; Ley 527 art. 6; D-Q9.
 - **CA1.** El ajuste de la sede `papel`: `siempre` imprime al registrar y ofrece lo digital además; `salvo_digital` pregunta «¿Recibo por WhatsApp o en papel?», con WhatsApp primero, e imprime salvo que el conductor haya recibido el digital (WhatsApp abierto, o QR escaneado y confirmado).
@@ -557,7 +557,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q5.1.1 `[infra]` Worker de staging · WI-Q5.1.2 `[ci]` despliegue · WI-Q5.1.3 `[prueba]` humo.
 
 #### HU-Q5.2 · `parqueadero.laboratorio-digital.app` declarado, reservado y en producción
-- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q3 · **Depende de:** D-Q4, HU-Q5.1 · **Estado:** En revisión (rama `feat/q5.2-dominio`): el dueño confirmó el 7 oct la zona activa (registrada en Cloudflare, vence el 3 oct 2027) y el permiso «Workers Routes» del token de producción. Producción sale sola con la `0.1.0`
+- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q3 · **Depende de:** D-Q4, HU-Q5.1 · **Estado:** Hecha (PR #120): el dueño confirmó el 7 oct la zona activa (registrada en Cloudflare, vence el 3 oct 2027) y el permiso «Workers Routes» del token de producción. Producción sale sola con la `0.1.0`
 - Como conductor, quiero que el enlace de mi recibo siga funcionando dentro de años; como dueño, que ninguna tienda tome el nombre del parqueadero.
 - **Respaldo:** ADR-40 y ADR-27; PARQUEADERO §2.3 (punto 4) y §20.2; `infrastructure/dominios.json`.
 - **CA1.** `dominios.json` declara `parqueadero.laboratorio-digital.app` y agrega `parqueadero` a `reservados_app.proyecto`. La zona está activa y el Worker de producción responde en el host con HTTPS.
@@ -590,7 +590,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q6.1.1 `[campo]` Android · WI-Q6.1.2 `[campo]` Windows · WI-Q6.1.3 `[campo]` iPhone · WI-Q6.1.4 `[doc]` registro.
 
 #### HU-Q6.2 · Runbooks del MVP
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 (se escriben en Q4) · **Depende de:** HU-Q2.6, HU-Q3.10 · **Estado:** En revisión (rama `docs/matriz-y-runbooks`): los cinco runbooks, sus capturas a 360 px y la prueba `tests/repo/runbooks-parqueadero.test.ts`
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 (se escriben en Q4) · **Depende de:** HU-Q2.6, HU-Q3.10 · **Estado:** Hecha (PR #121): los cinco runbooks, sus capturas a 360 px y la prueba `tests/repo/runbooks-parqueadero.test.ts`
 - Como persona de soporte, quiero los pasos exactos para lo que va a fallar, para resolverlo por WhatsApp sin ir al parqueadero.
 - **Respaldo:** PARQUEADERO §14.5 (runbooks 1 a 3).
 - **CA1.** `docs/runbooks/` tiene «Puesta en marcha de un parqueadero», «La impresora no imprime» (empieza por el Bluetooth de modo dual, que acepta un solo enlace, y por el diagnóstico copiable), «Cambio anual de topes», «Restaurar la caja en otro teléfono» y «Arreglos durante el congelamiento».
@@ -600,7 +600,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q6.2.1 `[doc]` runbooks · WI-Q6.2.2 `[prueba]` de repositorio.
 
 #### HU-Q6.3 · La aceptación de M0, sin red, de punta a punta
-- **Capa:** prueba · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** las historias de M0, salvo HU-Q6.4 · **Estado:** Refinada
+- **Capa:** prueba · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** las historias de M0, salvo HU-Q6.4 · **Estado:** En revisión (rama `test/q6-3-aceptacion`): `tests/e2e/parqueadero-aceptacion.spec.ts` recorre un turno sin red en Ensayo Uno y Ensayo Dos, con axe; una versión nueva espera a que termine la impresión; dos entradas a la vez no repiten número. Corre en el CI de cada PR
 - Como dueño, quiero una prueba que recorra un turno entero sin red, para que ningún cambio posterior rompa el MVP sin que se vea.
 - **Respaldo:** PARQUEADERO §15.2.
 - **CA1.** Playwright a 360 px, con `setOffline(true)` y con Ensayo Uno y Ensayo Dos: apertura, entrada, recibo a la impresora falsa, enlace `wa.me` con el número y el texto correctos, salida, liquidación, anulación, cierre impreso y respaldo. Axe sin violaciones.
