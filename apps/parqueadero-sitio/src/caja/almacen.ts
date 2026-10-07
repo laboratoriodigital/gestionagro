@@ -48,6 +48,7 @@ import { normalizarNumero } from '@ed1/whatsapp';
 import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
 import { diaLocalBogota, horaBogota } from './fecha.ts';
 import { avisoAceptado, VERSION_DEL_AVISO } from './privacidad.ts';
+import { topeDeLaCiudad } from './topes.ts';
 import { exigirTurno, SinTurno, type Turno, turnoAbierto } from './turno.ts';
 
 export { SinTurno, type Turno, turnoAbierto };
@@ -170,6 +171,14 @@ export async function guardarTarifa(
   ctx: Contexto,
 ): Promise<Tarifa> {
   const problemas = validarTarifa(d, d.tope_minuto);
+  // HU-Q1.2 CA2: con tope en la ciudad, la tarifa lo declara y no lo pasa.
+  const legal = topeDeLaCiudad((await leerAjustes(db)).sede?.ciudad, d.vehiculo);
+  if (legal && (d.tope_minuto === null || d.tope_minuto > legal.porMinuto)) {
+    problemas.push({
+      campo: 'tope_minuto',
+      motivo: `en ${legal.ciudad} el tope es de ${legal.porMinuto} pesos por minuto (${legal.norma})`,
+    });
+  }
   if (problemas.length > 0) throw new TarifaSobreElTope(problemas);
   return guardarCatalogo(db, 'tarifa', tarifa, d, id, ctx);
 }

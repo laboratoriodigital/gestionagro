@@ -12,3 +12,4 @@ export {
 export * from './exportacion.ts';
 export * from './registro.ts';
 export * from './tipos.ts';
+export * from './topes.ts';

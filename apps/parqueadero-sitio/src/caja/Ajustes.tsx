@@ -4,6 +4,7 @@
  * vacío, la póliza y la impresión automática se responden con Sí o No, y lo que falta sale en rojo
  * junto a su campo. Con un PIN ya puesto, entrar pide el PIN.
  */
+import { formatearPesos } from '@ed1/dinero';
 import type { Redondeo, Sede, Tarifa, Vehiculo } from '@ed1/parqueadero-schema';
 import { ErrorDeValidacion, VEHICULOS } from '@ed1/parqueadero-schema';
 import { validarTarifa } from '@ed1/parqueadero-tarifas';
@@ -25,6 +26,7 @@ import {
 import type { BaseDeLaCaja } from './datos.ts';
 import { useConsulta } from './ganchos.ts';
 import { avisoAceptado, avisoDeLaSede, VERSION_DEL_AVISO } from './privacidad.ts';
+import { topeDeLaCiudad } from './topes.ts';
 
 /** Los vehículos que la caja cobra en M0: los del primer cliente (bitácora parqueadero 9). */
 export const VEHICULOS_DE_LA_CAJA: readonly Vehiculo[] = ['carro', 'moto'];
@@ -214,6 +216,13 @@ export function leerBorrador(
       'plena.desde_min': 'plenaDesde',
       'nocturna.hasta': 'nocheHasta',
     };
+    // HU-Q1.2 CA2: el tope que declara la sede no pasa el de su ciudad.
+    const legal = topeDeLaCiudad(b.ciudad, v);
+    if (legal && (tarifa.tope_minuto ?? Number.POSITIVE_INFINITY) > legal.porMinuto) {
+      errores[id('tope')] =
+        `En ${legal.ciudad} el tope es de ${formatearPesos(legal.porMinuto)} por minuto (${legal.norma})`;
+      continue;
+    }
     const problemas = validarTarifa(tarifa, tarifa.tope_minuto);
     for (const p of problemas) errores[id(DE_CAMPO[p.campo] ?? 'valor')] = p.motivo;
     if (problemas.length === 0) tarifas.push(tarifa);

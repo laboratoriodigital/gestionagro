@@ -9,11 +9,12 @@ import { Cabecera } from './Cabecera.tsx';
 import { BotonDiagnostico, ConexionImpresora, useEstadoImpresora } from './conexion.tsx';
 import { type BaseDeLaCaja, purgarContactos, type RegistroImpresora } from './datos.ts';
 import { Estadias } from './Estadias.tsx';
-import { horaBogota } from './fecha.ts';
+import { diaLocalBogota, horaBogota } from './fecha.ts';
 import { useConsulta } from './ganchos.ts';
 import { diferenciaDeHora, senalDeHora } from './hora.ts';
 import type { ControlDeImpresora } from './impresora.ts';
 import { type Propuesta, senalDeImpresora, senalDePendientes, senalDeRespaldo } from './senales.ts';
+import { avisoDeTopeViejo } from './topes.ts';
 import { type Turno, turnoAbierto } from './turno.ts';
 import type { Vista } from './vistas.tsx';
 
@@ -39,6 +40,17 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
   );
   const pendientes = useConsulta(() => db.entregas_pendientes.count(), 0);
   const turno = useConsulta<Turno | null | undefined>(() => turnoAbierto(db), undefined);
+  const ciudad = useConsulta<string | undefined>(
+    () =>
+      db.catalogos
+        .where('entidad')
+        .equals('sede')
+        .first()
+        .then((s) => (s?.entidad === 'sede' ? s.ciudad : undefined)),
+    undefined,
+  );
+  // HU-Q1.2 CA2: un tope de más de 13 meses se dice; la caja sigue cobrando.
+  const topeViejo = avisoDeTopeViejo(ciudad, diaLocalBogota(reloj()));
   const respaldo = useConsulta<number | undefined>(
     () => db.meta.get('respaldo').then((m) => (m?.clave === 'respaldo' ? m.instante : undefined)),
     undefined,
@@ -106,6 +118,11 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
         persistente={persistente}
       />
       <AvisoActualizacion />
+      {topeViejo && (
+        <p class="aviso-tope" role="status" data-prueba="aviso-tope">
+          {topeViejo}: revise la norma de su ciudad. La caja sigue cobrando con el tope guardado.
+        </p>
+      )}
       <main class="contenido">
         {vista.es === 'asistente' ? (
           <Asistente

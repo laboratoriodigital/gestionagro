@@ -695,3 +695,19 @@ describe('respaldo y restauración (HU-Q3.10)', () => {
     expect(JSON.stringify(r.json)).not.toContain('x'.repeat(50));
   });
 });
+
+describe('el tope de la ciudad en la tarifa (HU-Q1.2 CA2)', () => {
+  it('en Bogotá, una tarifa con tope de 240 o sin tope no se guarda', async () => {
+    const { db, ctx } = await configurada();
+    const carro = sinMeta(TARIFA_CARRO);
+    await expect(guardarTarifa(db, { ...carro, tope_minuto: 240 }, null, ctx)).rejects.toThrow(
+      'en Bogotá el tope es de 230 pesos por minuto',
+    );
+    await expect(
+      guardarTarifa(db, { ...carro, tope_minuto: null }, null, ctx),
+    ).rejects.toBeInstanceOf(TarifaSobreElTope);
+    expect(
+      (await guardarTarifa(db, { ...carro, tope_minuto: 200, valor: 200 }, null, ctx)).tope_minuto,
+    ).toBe(200);
+  });
+});

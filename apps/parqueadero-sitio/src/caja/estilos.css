@@ -84,7 +84,8 @@ body {
 }
 
 .aviso-almacenamiento,
-.aviso-actualizacion {
+.aviso-actualizacion,
+.aviso-tope {
   margin: var(--espacio-2) 0 0;
   padding: var(--espacio-2) var(--espacio-4);
   font-size: var(--texto-pequeno);
