@@ -44,6 +44,8 @@
 | **M3 · WhatsApp automático** | Envío por la Cloud API con plantilla de utilidad; recibo por autoservicio con un QR en la entrada | M1, Workers Paid y el cifrado de sobre (`packages/cifrado`, de la Tienda) |
 | **M4 · Facturación** | Integrar el facturador del parqueadero (no emitir) | Como la Tienda (TIENDA-3.0 §14.5) |
 
+> **Las historias, los sprints y las fechas de estos hitos están en `BACKLOG-PARKING.md`** (7 oct 2026), que es la fuente del plan; las 37 historias de M0, las demostraciones y el piloto, en `BACKLOG-PARKING_MVP.md`. Tres cambios frente a esta tabla: M1 no espera las fases P1 y P2 enteras, sino HU-C3.1, HU-C4.3 y HU-C4.4 del CORE, que ya están construidas, y solo el cobro por periodo (HU-Q7.10) espera a HC4; Workers Paid ya no es condición de M1 ni de M3, que lo pide solo si su cola lo exige (HU-Q9.4, D-Q10; bitácora parqueadero 6); y las mensualidades con cobro son de M2 (HU-Q8.4; bitácora parqueadero 7).
+
 ---
 
 ## 1. Decisiones (ADR)
@@ -90,6 +92,8 @@ Numeración continua con `../ARQUITECTURA.md` §1, que llega hasta ADR-30. Todas
 | Fotos del estado, guardadas en el dispositivo | Fotos en la nube | M2 |
 | Medio de pago registrado (efectivo, QR, datáfono) | Factura electrónica o tiquete POS electrónico | M4, integrando el facturador del parqueadero |
 | Mensualidades sencillas por placa | Convenios con comercios, visitantes de copropiedad | Por demanda (estudio §7.2) |
+
+**Nota del plan (7 oct 2026):** las «mensualidades sencillas por placa» se parten en dos. En M0 la caja solo reconoce a un abonado vigente por su placa y no le cobra la salida (`BACKLOG-PARKING_MVP.md` HU-Q3.11, Should); las mensualidades con plan, cobro y recordatorio son de M2, como dicen §0 y §18 (`BACKLOG-PARKING.md` HU-Q8.4). Bitácora parqueadero 7.
 
 ### 2.3 Tensiones con ED1, dichas antes de construir
 
@@ -275,6 +279,7 @@ Las del cuaderno (ARQUITECTURA §5.3), con estas formas:
 - En M0 viven en el dispositivo hasta cerrar la estadía más 30 días, y salen en el respaldo.
 - Desde M2 suben a R2 con un nombre aleatorio de 128 bits que viaja en el fragmento del recibo. Una regla de ciclo de vida del bucket las borra a los 30 días (*Capacidad documentada* de R2, por confirmar en el panel), sin escrituras en D1.
 - Se fotografía el vehículo, no a las personas. La caja lo dice en la cámara.
+- **Nota del plan (7 oct 2026):** Safari no codifica WebP en `canvas.toBlob` y devuelve PNG (bitácora tienda3 2). Ahí la foto se guarda en JPEG, con su formato real (HU-Q3.3, HU-Q8.3). Y en M0 las fotos no salen en el respaldo, que se comparte por correo y no las aguantaría: viven en el dispositivo hasta M2 (HU-Q3.10). Bitácora parqueadero 8.
 
 ### 5.6 El reloj
 
@@ -840,7 +845,7 @@ La página general de precios (W1) sigue diciendo que los mensajes que no son pl
 2. **El redondeo solo baja.** Redondear hacia arriba puede cobrar más que el tope; por eso el motor solo ofrece redondeos hacia abajo (*Inferencia de diseño*; se confirma con la norma de cada ciudad).
 3. **Un tope vencido grita.** Si el tope de la ciudad tiene más de 13 meses, la caja avisa en la cabecera: «el tope de Bogotá no está actualizado». No deja de cobrar (P1, P15).
 4. **Lo mismo en todas partes.** La calculadora gratuita y la caja importan el mismo paquete (P2). La calculadora es la vitrina del motor.
-5. **Pesos enteros.** Nada de `REAL` ni de `Number(x) || 0` (bitácora ecommerce).
+5. **Pesos enteros.** Nada de `REAL` ni de `Number(x) || 0` (bitácora ecommerce). **Nota del plan (7 oct 2026):** las reglas son las de `@ed1/dinero`, que ya está en `main` (`pesos()`, `formatearPesos()`, `MontoIlegible`); `parqueadero-tarifas` y `parqueadero-recibos` no tienen funciones de pesos propias (HU-Q1.1, HU-Q1.4; bitácora parqueadero 5).
 
 ### 9.3 Pruebas
 
@@ -892,6 +897,8 @@ Con los supuestos del estudio (150 vehículos al día; estudio §9.3):
 | Cierre de turno y movimientos | Unas 10 al día | — |
 
 Unas 6 filas por vehículo, 900 al día, y 1.800 con el margen ×2 del estudio. Con Workers Paid (50 M de filas al mes incluidas) caben unos 550 parqueaderos al 60 %; el costo marginal es de centavos de dólar por parqueadero al mes (estudio §9.3).
+
+**Nota del plan (7 oct 2026):** el 6 oct el dueño decidió que Workers Paid ya no es condición y se activa solo si hace falta. En el plan gratuito, D1 permite 100.000 filas escritas al día para toda la cuenta: a 1.800 por parqueadero caben unos 55, si fueran los únicos (*Inferencia*). M1 se diseña para el plan gratuito, con su presupuesto en filas y su vigía (HU-Q7.13), y Workers Paid se activa cuando el vigía pase del 75 % de forma sostenida o M3 lo exija (D-Q10). Bitácora parqueadero 6.
 
 ---
 
@@ -1021,6 +1028,7 @@ Controles técnicos: la autorización del número es una casilla sin marcar, con
 
 - `presupuesto.usd_mes`: lo fija el dueño. Con Workers Paid ya pagado por la Tienda, el costo marginal por parqueadero es de centavos (§10.3).
 - El vigía de la plataforma proyecta el costo del mes y avisa por Telegram al 50, 75 y 90 % (PLATAFORMA §4.10).
+- **Nota del plan (7 oct 2026):** mientras la cuenta esté en el plan gratuito, el presupuesto también se cuenta en filas escritas de D1 por día, y el vigía avisa antes del límite de la cuenta (HU-Q7.13, §10.3).
 
 ### 14.2 Kill switches y degradación
 
@@ -1134,11 +1142,15 @@ Versión propia del producto (`parqueadero-vX.Y.Z`) y despliegue por anillos, co
 
 **Lectura.** El MVP no le cuesta a ED1 nada por parqueadero. El costo que decide la economía sigue siendo el soporte (estudio §10.4), y en M3 el del mensaje, que se paga solo con un plan que lo cubra.
 
+**Nota del plan (7 oct 2026):** M1 y M2 se planean en el plan gratuito de Cloudflare, con el vigía de filas de HU-Q7.13. Los «centavos por parqueadero con Workers Paid» de esta tabla aplican solo si se activa (D-Q10, §10.3).
+
 ---
 
 ## 18. Hitos
 
 Supone las 20 horas por semana del dueño, con el asistente haciendo los commits (ARQUITECTURA §13). Las duraciones son estimaciones, no compromisos.
+
+> **Las historias, los sprints y las fechas de estos hitos están en `BACKLOG-PARKING.md`** (7 oct 2026), que es la fuente del plan. Dos cambios frente a esta tabla: M0 no son tres semanas sino seis sprints semanales con dos entregas, la demostración al cliente del 30 oct (`v0.1.0`) y el piloto del 9 al 13 nov (`v0.2.0`), porque el desglose da 109 puntos y la matriz de §15.3 en el equipo real no se recorta (`BACKLOG-PARKING.md` §6.2); y M1 empieza en Q6, el 17 nov, porque del CORE solo necesita HU-C3.1, HU-C4.3 y HU-C4.4, ya construidas, y solo el cobro por periodo espera a HC4.
 
 | Hito | Duración estimada | Depende de | Deja funcionando | Criterio de aceptación |
 |---|---|---|---|---|
@@ -1153,6 +1165,8 @@ Supone las 20 horas por semana del dueño, con el asistente haciendo los commits
 1. **Semana 1:** el paso 0 con la PT-210 del cliente (§7.1); `parqueadero-tarifas` con su tabla de casos; `parqueadero-schema`; la caja con entrada, salida, estadías abiertas y numeración; `parqueadero-recibos` con las cuatro salidas y la prueba de paridad.
 2. **Semana 2:** `packages/impresion` con los adaptadores de Web Bluetooth, Web Serial y el diálogo del sistema; página de prueba; reconexión; `packages/whatsapp`; la pantalla del recibo; la página `/r/`.
 3. **Semana 3:** turno y cierre impreso; ajustes con PIN; respaldo; las dos herramientas gratuitas; la matriz de §15.3 en la PT-210; la puesta en marcha con el cliente.
+
+**Nota del plan (7 oct 2026):** las dos herramientas gratuitas salen de M0. El estudio §12.2 pide medir su búsqueda antes de construir: HU-Q11.1 mide en Q6, y la calculadora y el generador dependen de lo que diga. El aviso de tarifas y derechos para la entrada (HU-Q11.3) se hace sin esperar, porque el cliente lo usa. El orden de M0 por semanas está en `BACKLOG-PARKING_MVP.md` §4. Bitácora parqueadero 9.
 
 ### 18.2 Métricas de la excepción declarada (las fija el dueño antes del día 1)
 
@@ -1226,7 +1240,7 @@ Propuesta, sobre la del estudio (§16.3):
 2. **`dominios.json › reservados_app.proyecto` está vacío.** Antes de que la Tienda abra nombres en `laboratorio-digital.app`, `parqueadero` tiene que estar reservado, o una tienda podría tomarlo.
 3. **Firma sin red por dispositivo** [ADR-36]. El cuaderno podría firmar sus QR de lote sin señal, en vez de imprimirlos «sin verificar» (ARQUITECTURA §5.9).
 4. **`packages/impresion` sirve a los otros dos productos:** el punto de venta de la Tienda (TIENDA-3.0 §20.3) y las etiquetas de lote del cuaderno.
-5. **El código de `wa.me` ya existe dos veces** (HU-E2.4 y HU-E4.4 del agro, y el «Confirmar por WhatsApp» de la Tienda). Con el parqueadero son tres: va a `packages/whatsapp` con las reglas de la bitácora (sin emoji al inicio, nombre desde los datos, enlace en su línea).
+5. **El código de `wa.me` ya existe dos veces** (HU-E2.4 y HU-E4.4 del agro, y el «Confirmar por WhatsApp» de la Tienda). Con el parqueadero son tres: va a `packages/whatsapp` con las reglas de la bitácora (sin emoji al inicio, nombre desde los datos, enlace en su línea). **Nota del plan (7 oct 2026):** en `origin/main` hay tres copias en el agro, todas para compartir sin número, y ninguna en la Tienda 3.0, que todavía no tiene código. `@ed1/whatsapp` nace con las dos formas, con número y sin él (HU-Q1.6; bitácora parqueadero, «Afirmaciones falsas» 3).
 6. **El cobro de WhatsApp desde el 1 oct 2026 contradice al repositorio** (§8.6). La página de Meta de cambios próximos dice que desde esa fecha se cobran los mensajes de servicio y las plantillas de utilidad dentro de la ventana; la página general sigue diciendo que son gratis. El repositorio siguió a la general (ED1 v1.4 [C], TIENDA-3.0 §0 y §20.3, `proveedores-de-computo.md` §0, §4 y §7) y registró el cobro como afirmación falsa (`BITACORA.md`, «Afirmaciones falsas» 3). **Propuesta:** abrir las dos páginas en el navegador; si la de cambios próximos se confirma, una entrada nueva en la bitácora que corrija la 3 sin borrarla, y las correcciones en esos documentos. La lección que se suma: una página oficial puede contradecir a otra; la de cambios próximos manda sobre la general. No cambia ninguna decisión: la barrera de la Cloud API sigue siendo habilitar el canal.
 7. **Web Serial por Bluetooth en Chrome para Android (138+)** abre a la Tienda un camino a impresoras de Bluetooth clásico que la v1 no contempla, con reconexión sin selector (§7.5).
 

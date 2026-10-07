@@ -114,6 +114,7 @@ Una historia entra a un sprint solo si:
 | HU-E2.9 · Calculadora de grados-día (2) | La medición del 25 feb 2027 y la revisión agronómica de la DPV y la carencia |
 | CORE con dimensión de producto, sistema de diseño y cuenta ED1 (fuera de este backlog: `docs/plataforma/BACKLOG_CORE.md`) | Decidido el 5 oct 2026 (ADR-20). Arranca en el sprint C1 (6 oct 2026). Lo que toca al cuaderno (pantalla de planes con cuatro periodos, MCP del cuaderno) está allí, con su historia |
 | Tienda 3.0 sobre esta plataforma (fuera de este backlog: sus hitos, sprints e historias están en `docs/tienda/BACKLOG_TIENDA3.md`) | Decidida el 5 oct 2026 como excepción declarada, desde cero (ADR-21). Su M0 necesita las fases P0 y P1 de la plataforma y Workers Paid en la cuenta (`docs/plataforma/PLATAFORMA.md` §7). Plan del 6 oct 2026: 114 historias en los sprints T0 a T20, con el mismo calendario del CORE |
+| Parqueadero ED1 (fuera de este backlog: sus hitos, sprints e historias están en `docs/parking/BACKLOG-PARKING.md`, y el MVP del primer cliente en `docs/parking/BACKLOG-PARKING_MVP.md`) | Un cliente con disposición a pagar (6 oct 2026). Entra como excepción declarada (ADR-31, propuesto, en `docs/parking/ARQUITECTURA-PARQUEADERO.md`). Su M0 no necesita nada de la plataforma, solo la zona `laboratorio-digital.app` activa. Plan del 7 oct 2026: 75 historias en los sprints Q0 a Q13; el MVP en seis semanas, con la demostración del 30 oct y el piloto del 9 al 13 nov |
 
 **Ceremonias para un equipo de uno** (~1,5 h por sprint):
 - Planeación de 30 min el lunes.
