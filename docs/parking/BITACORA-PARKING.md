@@ -501,3 +501,23 @@ lean-qr 2.7.4                     6,6 KB    3.617 bytes con gzip
 La regla: **una dependencia de la caja se pesa con gzip antes de importarla, y lo que solo sirve para imprimir se carga al imprimir.**
 
 *Ficha:* parqueadero · *(mío)* · ⚪ Menor · P18 · parqueadero-0.0.0 · 2026-10-07
+
+**11 · El QR como imagen funcionaba en Node y en el navegador dejaba la página de prueba esperando.**
+
+*Qué pasó.* El 7 oct 2026, en la primera corrida de las e2e de la caja (HU-Q2.6) con la PT-210 falsa: el paso 3 del asistente no terminaba. Las pruebas unitarias de `@ed1/impresion`, en Node, daban la página de prueba completa con los dos QR.
+
+*Síntoma literal.* En el paso 3, el botón «Imprimir página de prueba» quedaba deshabilitado y nunca aparecía «Enviado a la impresora.». Ningún mensaje en la pantalla.
+
+*Causa raíz.* Dos defectos juntos:
+- El codificador reconoce una imagen por el nombre de la clase (`input.constructor.name == 'ImageData'`). `documento.ts` traía una clase propia llamada `ImageData` para Node, y el minificador de Vite le cambia el nombre en el build de la caja. Con otro nombre, el codificador lanza «Could not determine the type of image input» (lo dice su código; el mensaje no llegó a la pantalla, por el defecto que sigue).
+- `crearControl().imprimir()` dejaba escapar esa excepción, y el asistente no tenía `finally`: la pantalla quedaba «ocupada» para siempre (P15).
+
+*Cómo se reprodujo.* Con la e2e de la caja contra el build de producción; en Node no se reproduce, porque ahí no hay minificador (P17).
+
+*Arreglo.* En el navegador se usa el `ImageData` de verdad; en Node y workerd, la clase mínima con su nombre fijado con `Object.defineProperty`. Y `imprimir()` de la caja nunca lanza: un recibo que no se pudo armar vuelve como resultado con su motivo.
+
+**Lo prueban** las e2e «el asistente imprime la página de prueba y guarda las respuestas» y «si ninguna línea con tildes se ve bien, translitera», que antes del arreglo estaban en rojo con este síntoma.
+
+La regla: **lo que depende del nombre de una clase o de una función se prueba contra el build minificado, no solo contra el código fuente.**
+
+*Ficha:* parqueadero · *(mío)* · 🟡 Medio · P15, P17 · parqueadero-0.0.0 · 2026-10-07

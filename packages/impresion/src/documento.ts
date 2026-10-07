@@ -75,8 +75,11 @@ const CODIGO_DEL_ENCODER = {
 
 const ALINEAR = { izquierda: 'left', centro: 'center', derecha: 'right' } as const;
 
-/** Lo mínimo de `ImageData` que el codificador reconoce por el nombre de la clase. */
-class ImageData {
+/**
+ * Lo mínimo de `ImageData` para Node y workerd, que no la tienen. El codificador reconoce la
+ * imagen por el nombre de su clase, y un minificador lo cambia: en el navegador se usa la de verdad.
+ */
+class ImageDataMinima {
   readonly data: Uint8ClampedArray;
   readonly width: number;
   readonly height: number;
@@ -86,12 +89,13 @@ class ImageData {
     this.height = height;
   }
 }
+Object.defineProperty(ImageDataMinima, 'name', { value: 'ImageData' });
 
 /**
  * El QR como imagen en blanco y negro, para la impresora que no entiende `GS ( k`. Ancho múltiplo
  * de 8 (cada byte son 8 puntos) y unos 28 mm (§6.2), con la zona en blanco de 4 módulos.
  */
-async function qrComoImagen(valor: string): Promise<ImageData> {
+async function qrComoImagen(valor: string): Promise<{ width: number; height: number }> {
   const { generate, correction } = await import('lean-qr/nano');
   const qr = generate(valor, { minCorrectionLevel: correction.L });
   const modulos = qr.size + 8;
@@ -110,7 +114,8 @@ async function qrComoImagen(valor: string): Promise<ImageData> {
       }
     }
   }
-  return new ImageData(datos, lado, lado);
+  const Clase = globalThis.ImageData ?? ImageDataMinima;
+  return new Clase(datos, lado, lado);
 }
 
 /** Los bloques en bytes ESC/POS. Determinista: los mismos bloques dan los mismos bytes (§15.1). */
