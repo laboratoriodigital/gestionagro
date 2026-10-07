@@ -8,4 +8,5 @@ export * from './contrato.ts';
 export * from './documento.ts';
 export * from './pagina-de-prueba.ts';
 export * from './prueba.ts';
+export * from './serial.ts';
 export * from './texto.ts';

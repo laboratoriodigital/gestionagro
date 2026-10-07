@@ -1,0 +1,16 @@
+{
+  "$comentario": "Topes legales de tarifa por ciudad (PARQUEADERO §9.1, HU-Q1.2). Una ciudad que no está aquí no tiene tope en la caja. Al cambiar la norma, se agrega la vigencia nueva y se publica una versión (runbook «Cambio anual de topes», HU-Q6.2).",
+  "ciudades": [
+    {
+      "ciudad": "Bogotá",
+      "norma": "Decretos 026 y 027 de 2026 de la Alcaldía de Bogotá",
+      "vigente_desde": "2026-01-30",
+      "minuto_iniciado": true,
+      "topes": [
+        { "vehiculo": "carro", "por_minuto": 230, "con_sello_de_oro": 253 },
+        { "vehiculo": "moto", "por_minuto": 161, "con_sello_de_oro": 177 },
+        { "vehiculo": "bicicleta", "por_minuto": 10, "con_sello_de_oro": 0 }
+      ]
+    }
+  ]
+}

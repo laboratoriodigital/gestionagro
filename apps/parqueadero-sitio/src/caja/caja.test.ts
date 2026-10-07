@@ -1,5 +1,12 @@
 import 'fake-indexeddb/auto';
-import type { BluetoothBle, CaracteristicaBle, ServidorGatt } from '@ed1/impresion';
+import {
+  type BluetoothBle,
+  type CaracteristicaBle,
+  type PuertoSerie,
+  SERVICIO_SERIE,
+  type SerialWeb,
+  type ServidorGatt,
+} from '@ed1/impresion';
 import { ORIGEN_DEL_RECIBO } from '@ed1/parqueadero-recibos';
 import { describe, expect, it } from 'vitest';
 import { decidirActualizacion } from './actividad.ts';
@@ -7,7 +14,7 @@ import { abrirBase } from './datos.ts';
 import { conMarcaDeEntorno, esProduccion, HOST_DE_PRODUCCION, origenDelRecibo } from './entorno.ts';
 import { fechaBogota, horaBogota } from './fecha.ts';
 import { alVolverALaCaja, crearControl, MS_PARA_REFRESCAR } from './impresora.ts';
-import { proponerCamino, senalDeImpresora, senalDePendientes } from './senales.ts';
+import { proponerCamino, senalDeImpresora, senalDePendientes, senalDeRespaldo } from './senales.ts';
 
 describe('el entorno', () => {
   it('solo el host de producción imprime sin PRUEBA; uno desconocido cuenta como prueba', () => {
@@ -91,10 +98,25 @@ describe('las señales de la cabecera', () => {
     expect(senalDePendientes(2)).toEqual({ texto: '2 entregas pendientes', tono: 'error' });
   });
 
+  it('el respaldo dice su fecha, y pasado un día se pide otra vez (HU-Q3.10 CA1)', () => {
+    const t = Date.UTC(2026, 9, 7, 19, 5);
+    expect(senalDeRespaldo(undefined, t)).toEqual({ texto: 'Respaldo sin hacer', tono: 'aviso' });
+    expect(senalDeRespaldo(t, t + 3_600_000)).toEqual({
+      texto: 'Respaldo: 07/10 14:05',
+      tono: 'bien',
+    });
+    expect(senalDeRespaldo(t, t + 25 * 3_600_000).tono).toBe('aviso');
+  });
+
   it('en iPhone lo dice desde el paso 1; sin Bluetooth no propone camino', () => {
     expect(proponerCamino({ bluetooth: true, ios: true }).camino).toBeNull();
     expect(proponerCamino({ bluetooth: false, ios: false }).camino).toBeNull();
     expect(proponerCamino({ bluetooth: true, ios: false }).camino).toBe('bluetooth');
+    // HU-Q2.4 CA3: la impresora emparejada solo se ofrece con Web Serial.
+    expect(proponerCamino({ bluetooth: true, serial: true, ios: false }).serial).toBe(true);
+    expect(proponerCamino({ bluetooth: true, ios: false }).serial).toBe(false);
+    expect(proponerCamino({ bluetooth: false, serial: true, ios: false }).camino).toBe('serial');
+    expect(proponerCamino({ bluetooth: true, serial: true, ios: true }).serial).toBe(false);
   });
 });
 
@@ -216,5 +238,95 @@ describe('la caja vuelve a la pantalla (bitácora parqueadero 19)', () => {
     for (const e of ['sin_vincular', 'ocupada', 'conectando'] as const) {
       expect(alVolverALaCaja(e, MS_PARA_REFRESCAR * 10)).toBe('nada');
     }
+  });
+});
+
+describe('la impresora emparejada (HU-Q2.4)', () => {
+  /** Un puerto serie falso con el permiso que el navegador recuerda entre sesiones. */
+  function serieFalsa() {
+    const escrito: number[] = [];
+    let abierto = false;
+    let permiso = false;
+    const puerto: PuertoSerie = {
+      open: async () => {
+        abierto = true;
+      },
+      close: async () => {
+        abierto = false;
+      },
+      get writable() {
+        return abierto
+          ? new WritableStream<Uint8Array>({ write: (d) => void escrito.push(...d) })
+          : null;
+      },
+      getInfo: () => ({ bluetoothServiceClassId: SERVICIO_SERIE }),
+    };
+    let pedidos = 0;
+    const serial: SerialWeb = {
+      requestPort: async () => {
+        pedidos++;
+        permiso = true;
+        return puerto;
+      },
+      getPorts: async () => (permiso ? [puerto] : []),
+    };
+    return { serial, escrito, pedidos: () => pedidos, cerrar: () => void puerto.close() };
+  }
+
+  it('se elige una vez; al abrir otra vez la caja, vuelve sola y sin selector (CA1)', async () => {
+    const db = abrirBase(`prueba-${Math.random()}`);
+    const f = serieFalsa();
+    const opciones = {
+      bluetooth: undefined,
+      serial: f.serial,
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-5',
+    };
+    const primera = crearControl(db, opciones);
+    const v = await primera.conectar(false, 'serial');
+    expect(v.camino).toBe('serial');
+    expect(await db.impresora.get('actual')).toMatchObject({
+      camino: 'serial',
+      dispositivoId: `bt:${SERVICIO_SERIE}`,
+    });
+    f.cerrar();
+
+    // La caja se recarga: otro control, la misma base.
+    const segunda = crearControl(db, opciones);
+    expect(segunda.estado()).toBe('sin_vincular');
+    expect(await segunda.recuperar()).toBe(true);
+    expect(segunda.estado()).toBe('conectada');
+    expect((await segunda.imprimir([{ tipo: 'texto', texto: 'Hola' }])).ok).toBe(true);
+    expect(f.pedidos()).toBe(1);
+    expect(new TextDecoder('latin1').decode(Uint8Array.from(f.escrito))).toContain('Hola');
+  });
+
+  it('con una impresora por Bluetooth, o sin Web Serial, no recupera nada', async () => {
+    const db = abrirBase(`prueba-${Math.random()}`);
+    const bt = crearControl(db, {
+      bluetooth: bluetoothFalso(() => undefined),
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-6',
+    });
+    await bt.conectar(false);
+    const otra = crearControl(db, {
+      bluetooth: undefined,
+      serial: serieFalsa().serial,
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-7',
+    });
+    expect(await otra.recuperar()).toBe(false);
+    const sinSerie = crearControl(db, {
+      bluetooth: undefined,
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-8',
+    });
+    await expect(sinSerie.conectar(false, 'serial')).rejects.toMatchObject({
+      motivo: 'no_soportado',
+    });
   });
 });

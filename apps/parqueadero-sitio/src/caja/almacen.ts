@@ -13,18 +13,24 @@ import {
   nombresDeCampos,
   ORIGEN_DEL_RECIBO,
   ReciboIncompleto,
+  type ResumenDeTurno,
+  resumirTurno,
 } from '@ed1/parqueadero-recibos';
 import {
   type AjusteRecibo,
   ajusteRecibo,
+  armarExport,
   type Catalogo,
+  csvDeRegistros,
   type DatosDeEntrada,
   type DatosDeEntrega,
+  type DatosDeMovimiento,
   type Entidad,
   ErrorDeValidacion,
   type MedioDePago,
   NOVEDADES,
   numeroDeRecibo,
+  type ParqueaderoExportV1,
   type Registro,
   type Sede,
   sede,
@@ -34,13 +40,18 @@ import {
   type Vehiculo,
   validarCatalogo,
   validarRegistro,
+  verificarExport,
   type ZodType,
 } from '@ed1/parqueadero-schema';
 import { type Liquidacion, liquidar, validarTarifa } from '@ed1/parqueadero-tarifas';
 import { normalizarNumero } from '@ed1/whatsapp';
 import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
-import { diaLocalBogota } from './fecha.ts';
+import { diaLocalBogota, horaBogota } from './fecha.ts';
 import { avisoAceptado, VERSION_DEL_AVISO } from './privacidad.ts';
+import { topeDeLaCiudad } from './topes.ts';
+import { exigirTurno, SinTurno, type Turno, turnoAbierto } from './turno.ts';
+
+export { SinTurno, type Turno, turnoAbierto };
 
 export interface Contexto {
   readonly reloj: () => number;
@@ -160,6 +171,14 @@ export async function guardarTarifa(
   ctx: Contexto,
 ): Promise<Tarifa> {
   const problemas = validarTarifa(d, d.tope_minuto);
+  // HU-Q1.2 CA2: con tope en la ciudad, la tarifa lo declara y no lo pasa.
+  const legal = topeDeLaCiudad((await leerAjustes(db)).sede?.ciudad, d.vehiculo);
+  if (legal && (d.tope_minuto === null || d.tope_minuto > legal.porMinuto)) {
+    problemas.push({
+      campo: 'tope_minuto',
+      motivo: `en ${legal.ciudad} el tope es de ${legal.porMinuto} pesos por minuto (${legal.norma})`,
+    });
+  }
   if (problemas.length > 0) throw new TarifaSobreElTope(problemas);
   return guardarCatalogo(db, 'tarifa', tarifa, d, id, ctx);
 }
@@ -240,6 +259,7 @@ export async function registrarEntrada(
   const faltan = faltaParaRegistrar(ajustes, [d.vehiculo]);
   const tarifaVigente = ajustes.tarifas.find((t) => t.vehiculo === d.vehiculo);
   if (faltan.length > 0 || !tarifaVigente) throw new ReciboIncompleto(faltan);
+  await exigirTurno(db);
   const numero = d.whatsapp ? numeroAutorizado(ajustes.sede, d.whatsapp) : null;
 
   const tablas = [db.registros, db.estadias, db.meta, db.fotos, db.contactos];
@@ -456,17 +476,17 @@ export const estadiasAbiertas = (db: BaseDeLaCaja): Promise<Estadia[]> =>
 export async function reconstruirEstadias(db: BaseDeLaCaja): Promise<number> {
   return db.transaction('rw', [db.registros, db.estadias], async () => {
     const todos = await db.registros.toArray();
-    const anulados = new Set(
+    const yaAnulados = new Set(
       todos.filter((r) => r.tipo === 'anulacion').map((r) => r.anula_id ?? ''),
     );
     const cerradas = new Set(
       todos
-        .filter((r) => r.tipo === 'salida' && !anulados.has(r.id))
+        .filter((r) => r.tipo === 'salida' && !yaAnulados.has(r.id))
         .map((r) => r.estadia_id ?? ''),
     );
     const abiertas: Estadia[] = [];
     for (const r of todos) {
-      if (r.tipo !== 'entrada' || anulados.has(r.id) || cerradas.has(r.id)) continue;
+      if (r.tipo !== 'entrada' || yaAnulados.has(r.id) || cerradas.has(r.id)) continue;
       if (r.serie === null || r.consecutivo === null) continue;
       const d = r.datos as DatosDeEntrada;
       abiertas.push({
@@ -545,6 +565,7 @@ export async function registrarSalida(
   ctx: Contexto,
   instante?: number,
 ): Promise<Registro> {
+  await exigirTurno(db);
   const { id: dispositivoId, serie } = await dispositivo(db, ctx);
   const reloj = ctx.reloj();
   const ahora = instante ?? reloj;
@@ -600,6 +621,314 @@ export async function registrarSalida(
     await db.meta.put({ clave: 'consecutivo', ultimo: consecutivo });
     await db.contactos.update(estadiaId, { borrar_en: ahora + VIGENCIA_DEL_NUMERO });
     return registro;
+  });
+}
+
+// ── Anular sin borrar (HU-Q3.7) ───────────────────────────────────────────────────────────────
+
+/** Un registro que no es recibo (anulación, turno, movimiento), validado antes de escribirse. */
+function sinNumero(
+  tipo: 'anulacion' | 'turno_apertura' | 'turno_cierre' | 'movimiento_caja',
+  dispositivoId: string,
+  ahora: number,
+  datos: object,
+  ctx: Contexto,
+  enlaces: { anula_id?: string; estadia_id?: string | null } = {},
+): Registro {
+  return validarRegistro({
+    id: ctx.nuevoId(),
+    org_id: null,
+    tipo,
+    v: 1,
+    fecha_local: diaLocalBogota(ahora),
+    instante_evento: iso(ahora),
+    autor_usuario_id: null,
+    dispositivo_id: dispositivoId,
+    origen: 'manual',
+    anula_id: enlaces.anula_id ?? null,
+    estadia_id: enlaces.estadia_id ?? null,
+    serie: null,
+    consecutivo: null,
+    datos,
+  });
+}
+
+// ── Respaldo y restauración (HU-Q3.10) ────────────────────────────────────────────────────────
+
+export interface Respaldo {
+  readonly json: ParqueaderoExportV1;
+  readonly csv: string;
+  /** `parqueadero-2026-10-07-1405`, sin extensión. */
+  readonly nombre: string;
+}
+
+/**
+ * Todo lo de la caja en `parqueadero-export/1` más su CSV (§5.3 regla 6). Sin fotos ni números de
+ * WhatsApp: las fotos viven en el teléfono hasta M2 (CA3) y los números nunca salen (ADR-38).
+ */
+export async function armarRespaldo(
+  db: BaseDeLaCaja,
+  ctx: Contexto,
+  app: string,
+): Promise<Respaldo> {
+  const [catalogo, registro, historial, disp] = await Promise.all([
+    db.catalogos.toArray(),
+    db.registros.toArray(),
+    db.historial.toArray(),
+    dispositivo(db, ctx),
+  ]);
+  const ahora = ctx.reloj();
+  const json = await armarExport({
+    generado: iso(ahora),
+    app,
+    dispositivo: disp,
+    sede_id: catalogo.find((c) => c.entidad === 'sede')?.id ?? null,
+    catalogo,
+    registro,
+    historial,
+  });
+  const hora = horaBogota(ahora).replace(':', '');
+  return {
+    json,
+    csv: csvDeRegistros(registro),
+    nombre: `parqueadero-${diaLocalBogota(ahora)}-${hora}`,
+  };
+}
+
+/** El respaldo ya salió del teléfono: la cabecera lo dice (CA1). */
+export const anotarRespaldo = (db: BaseDeLaCaja, instante: number) =>
+  db.meta.put({ clave: 'respaldo', instante });
+
+/** Un archivo que no se puede unir: se rechaza entero, sin tocar lo local (CA4). */
+export class RespaldoInvalido extends Error {
+  readonly problemas: readonly string[];
+  constructor(problemas: readonly string[]) {
+    super(problemas.join('; '));
+    this.name = 'RespaldoInvalido';
+    this.problemas = problemas;
+  }
+}
+
+export interface Restauracion {
+  readonly agregados: number;
+  readonly yaEstaban: number;
+}
+
+/**
+ * Restaura **uniendo** (bitácora ecommerce 77, P21): agrega por id lo que no está y no toca lo que
+ * ya hay. Antes de escribir verifica la huella, la versión, la sede y cada registro; si algo falla,
+ * no escribe nada. El consecutivo sigue desde el número más alto: un recibo nunca se repite.
+ */
+export async function restaurar(db: BaseDeLaCaja, archivo: unknown): Promise<Restauracion> {
+  const problemas = await verificarExport(archivo);
+  if (problemas.length > 0) throw new RespaldoInvalido(problemas);
+  const r = archivo as ParqueaderoExportV1;
+  const local = (await leerAjustes(db)).sede;
+  if (local && r.sede_id !== local.id) {
+    throw new RespaldoInvalido([
+      'el archivo es de otro parqueadero: restáurelo en una caja nueva, antes de llenar los ajustes',
+    ]);
+  }
+  const registros = r.tablas.registro.filas.map((x) => {
+    try {
+      return validarRegistro(x);
+    } catch (e) {
+      throw new RespaldoInvalido([`el registro ${x.id} no se puede leer: ${String(e)}`]);
+    }
+  });
+  const catalogos = r.tablas.catalogo.filas;
+  const historial = r.tablas.historial.filas;
+  const tablas = [db.registros, db.catalogos, db.historial, db.meta, db.estadias];
+  const res = await db.transaction('rw', tablas, async () => {
+    const nuevos = async <T extends { id: string }>(
+      t: { bulkGet(ids: string[]): Promise<unknown[]> },
+      filas: readonly T[],
+    ) => {
+      const hay = await t.bulkGet(filas.map((x) => x.id));
+      return filas.filter((_, i) => hay[i] === undefined);
+    };
+    const reg = await nuevos(db.registros, registros);
+    const cat = await nuevos(db.catalogos, catalogos);
+    const his = await nuevos(db.historial, historial);
+    await db.registros.bulkAdd(reg);
+    await db.catalogos.bulkAdd(cat);
+    await db.historial.bulkAdd(his);
+    // Un teléfono nuevo toma la caja del archivo: su serie y su numeración siguen.
+    const propia = await db.meta.get('dispositivo');
+    if (propia?.clave !== 'dispositivo')
+      await db.meta.put({ clave: 'dispositivo', ...r.dispositivo });
+    const serie = propia?.clave === 'dispositivo' ? propia.serie : r.dispositivo.serie;
+    const meta = await db.meta.get('consecutivo');
+    const ultimo = Math.max(
+      meta?.clave === 'consecutivo' ? meta.ultimo : 0,
+      ...registros.filter((x) => x.serie === serie).map((x) => x.consecutivo ?? 0),
+    );
+    await db.meta.put({ clave: 'consecutivo', ultimo });
+    const total = registros.length + catalogos.length + historial.length;
+    const agregados = reg.length + cat.length + his.length;
+    return { agregados, yaEstaban: total - agregados };
+  });
+  await reconstruirEstadias(db);
+  return res;
+}
+
+// ── El turno (HU-Q3.9) ─────────────────────────────────────────────────────────────────────────
+
+/** Abre el turno con el operador y la base de caja (CA1). Si ya hay uno abierto, lo devuelve. */
+export async function abrirTurno(
+  db: BaseDeLaCaja,
+  d: { readonly operador: string; readonly base: number },
+  ctx: Contexto,
+): Promise<Turno> {
+  const abierto = await turnoAbierto(db);
+  if (abierto) return abierto;
+  const { id: dispositivoId } = await dispositivo(db, ctx);
+  const apertura = sinNumero(
+    'turno_apertura',
+    dispositivoId,
+    ctx.reloj(),
+    { operador: d.operador.trim(), base: d.base },
+    ctx,
+  );
+  await db.registros.add(apertura);
+  return exigirTurno(db);
+}
+
+/** Un ingreso o un gasto de la caja, con su concepto (CA1). */
+export async function registrarMovimiento(
+  db: BaseDeLaCaja,
+  d: Pick<DatosDeMovimiento, 'clase' | 'valor' | 'concepto'>,
+  ctx: Contexto,
+): Promise<Registro> {
+  const turno = await exigirTurno(db);
+  const { id: dispositivoId } = await dispositivo(db, ctx);
+  const m = sinNumero(
+    'movimiento_caja',
+    dispositivoId,
+    ctx.reloj(),
+    { ...d, concepto: d.concepto.trim(), turno_id: turno.apertura.id },
+    ctx,
+  );
+  await db.registros.add(m);
+  return m;
+}
+
+/** Lo que lleva el turno hasta ahora: los registros desde su apertura (un turno a la vez). */
+export async function resumenDelTurno(db: BaseDeLaCaja, t: Turno): Promise<ResumenDeTurno> {
+  const desde = await db.registros
+    .where('instante_evento')
+    .aboveOrEqual(t.apertura.instante_evento)
+    .toArray();
+  return resumirTurno(t.apertura, desde, t.numero);
+}
+
+/**
+ * Cierra el turno con el efectivo contado. Lo esperado se calcula aquí, en el dispositivo (CA1).
+ * Una diferencia sin motivo no se guarda (CA4): lo exige el esquema y lanza `ErrorDeValidacion`.
+ */
+export async function cerrarTurno(
+  db: BaseDeLaCaja,
+  t: Turno,
+  d: { readonly contado: number; readonly motivo: string | null },
+  ctx: Contexto,
+): Promise<{ readonly cierre: Registro; readonly resumen: ResumenDeTurno }> {
+  const resumen = await resumenDelTurno(db, t);
+  const { id: dispositivoId } = await dispositivo(db, ctx);
+  const motivo = d.motivo?.trim() || null;
+  const cierre = sinNumero(
+    'turno_cierre',
+    dispositivoId,
+    ctx.reloj(),
+    {
+      apertura_id: t.apertura.id,
+      esperado: resumen.esperado,
+      contado: d.contado,
+      diferencia: d.contado - resumen.esperado,
+      motivo,
+    },
+    ctx,
+  );
+  await db.registros.add(cierre);
+  return { cierre, resumen };
+}
+
+/** Por qué no se anula: el cajero lo lee tal cual. */
+export class NoSeAnula extends Error {
+  constructor(motivo: string) {
+    super(motivo);
+    this.name = 'NoSeAnula';
+  }
+}
+
+/** Quién opera la caja ahora: el del turno abierto. */
+export async function operadorActual(db: BaseDeLaCaja): Promise<string> {
+  return (await exigirTurno(db)).operador;
+}
+
+/** Las anulaciones de la caja, por el id de lo anulado. */
+export async function anulados(db: BaseDeLaCaja): Promise<Set<string>> {
+  const todas = await db.registros.where('tipo').equals('anulacion').toArray();
+  return new Set(todas.map((a) => a.anula_id ?? ''));
+}
+
+/**
+ * Anula una entrada o una salida con un registro `anulacion` (§10.2, P21): nada se borra ni se
+ * reescribe. Pide el PIN de administrador (M0). Una entrada anulada cierra su estadía; una salida
+ * anulada la reabre. Lanza `NoSeAnula` con el motivo si no se puede.
+ */
+export async function anular(
+  db: BaseDeLaCaja,
+  registroId: string,
+  d: { readonly motivo: string; readonly pin: string; readonly operador: string },
+  ctx: Contexto,
+): Promise<Registro> {
+  await exigirTurno(db);
+  if (!d.motivo.trim()) throw new NoSeAnula('Falta el motivo de la anulación');
+  if (!(await verificarPin(db, d.pin))) throw new NoSeAnula('Ese no es el PIN de administrador');
+  const { id: dispositivoId } = await dispositivo(db, ctx);
+  return db.transaction('rw', [db.registros, db.estadias, db.contactos], async () => {
+    const r = await db.registros.get(registroId);
+    if (!r || (r.tipo !== 'entrada' && r.tipo !== 'salida')) {
+      throw new NoSeAnula('Solo se anula una entrada o una salida');
+    }
+    if ((await anulados(db)).has(r.id)) throw new NoSeAnula('Este recibo ya está anulado');
+    const abierta = await db.estadias.get(r.estadia_id ?? '');
+    if (r.tipo === 'entrada' && !abierta) {
+      throw new NoSeAnula('Este vehículo ya salió: primero se anula su salida');
+    }
+    // Reabrir la estadía no puede dejar la misma placa adentro dos veces (HU-Q3.3 CA3).
+    const placa = (r.datos as { placa: string }).placa;
+    if (r.tipo === 'salida' && (await db.estadias.where('placa').equals(placa).count()) > 0) {
+      throw new NoSeAnula(`${placa} volvió a entrar: primero se anula esa entrada`);
+    }
+    const ahora = ctx.reloj();
+    const anulacion = sinNumero(
+      'anulacion',
+      dispositivoId,
+      ahora,
+      { motivo: d.motivo.trim(), operador: d.operador },
+      ctx,
+      { anula_id: r.id, estadia_id: r.estadia_id },
+    );
+    await db.registros.add(anulacion);
+    if (r.tipo === 'entrada') {
+      await db.estadias.delete(r.id);
+    } else {
+      const entrada = await db.registros.get(r.estadia_id ?? '');
+      if (entrada?.serie && entrada.consecutivo) {
+        const de = entrada.datos as DatosDeEntrada;
+        await db.estadias.put({
+          id: entrada.id,
+          placa: de.placa,
+          vehiculo: de.vehiculo,
+          numero: numeroDeRecibo(entrada.serie, entrada.consecutivo),
+          entrada: Date.parse(entrada.instante_evento),
+        });
+      }
+      // El vehículo sigue adentro: su número ya no vence con esa salida.
+      await db.contactos.update(entrada?.id ?? '', { borrar_en: null });
+    }
+    return anulacion;
   });
 }
 

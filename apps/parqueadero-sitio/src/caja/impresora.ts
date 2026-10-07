@@ -1,6 +1,7 @@
 /**
  * La impresora de la caja: el adaptador, la cola y lo que se guarda en `impresora` (§5.2). La
- * caja tiene una sola impresora y una sola cola (PARQUEADERO §7.3).
+ * caja tiene una sola impresora y una sola cola (PARQUEADERO §7.3). Dos caminos: Web Bluetooth y
+ * Web Serial, la impresora emparejada que la caja encuentra sola al abrir (§7.5, HU-Q2.4).
  */
 import {
   type AjustesDeImpresion,
@@ -10,11 +11,15 @@ import {
   codificar,
   crearCola,
   crearImpresoraBluetooth,
+  crearImpresoraSerial,
   type EstadoImpresora,
   FalloDeImpresora,
-  type ImpresoraBluetooth,
+  type Impresora,
   type MotivoDeFallo,
+  type PuertoSerie,
+  puertoRecordado,
   type Resultado,
+  type SerialWeb,
   type Vinculo,
 } from '@ed1/impresion';
 import { conImpresion } from './actividad.ts';
@@ -23,14 +28,24 @@ import { conMarcaDeEntorno } from './entorno.ts';
 
 export interface OpcionesDeControl {
   readonly bluetooth: BluetoothBle | undefined;
+  /** Web Serial: Chrome 138+ en Android y Chrome o Edge en el PC. */
+  readonly serial?: SerialWeb | undefined;
   readonly hostname: string;
   readonly reloj: () => number;
   readonly nuevoId: () => string;
 }
 
 export interface ControlDeImpresora {
-  /** Solo desde un toque del cajero: el navegador abre su selector. */
-  conectar(verTodos: boolean): Promise<Vinculo>;
+  /**
+   * Solo desde un toque del cajero: el navegador abre su selector. Sin `camino`, el de la
+   * impresora guardada; sin impresora guardada, Bluetooth.
+   */
+  conectar(verTodos: boolean, camino?: CaminoDeLaCaja): Promise<Vinculo>;
+  /**
+   * Al abrir la caja: si la impresora guardada es la emparejada (Web Serial), la toma sin selector
+   * (HU-Q2.4 CA1). `false` si no hay o no abrió.
+   */
+  recuperar(): Promise<boolean>;
   /** Sin selector, sobre la impresora de esta sesión. `false` si no hay o no respondió. */
   reconectar(forzar?: boolean): Promise<boolean>;
   /**
@@ -48,15 +63,20 @@ export interface ControlDeImpresora {
   diagnostico(): string;
 }
 
+export type CaminoDeLaCaja = 'bluetooth' | 'serial';
+
+/** Un adaptador con su diagnóstico para soporte (§7.4 paso 6). */
+type Adaptador = Impresora & { diagnostico(): string };
+
 export function ajustesDelRegistro(r: RegistroImpresora): AjustesDeImpresion {
   return { paginaDeCodigos: r.paginaDeCodigos, qr: r.qr, columnas: r.columnas, avanceFinal: 3 };
 }
 
 export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): ControlDeImpresora {
   /** La que imprime: la de la cola. */
-  let enUso: ImpresoraBluetooth | undefined;
+  let enUso: Adaptador | undefined;
   /** La del último intento de conectar, aunque haya fallado: la que cuenta el diagnóstico. */
-  let ultima: ImpresoraBluetooth | undefined;
+  let ultima: Adaptador | undefined;
   let cola: Cola | undefined;
   let estado: EstadoImpresora = 'sin_vincular';
   const oyentes = new Set<(e: EstadoImpresora) => void>();
@@ -79,22 +99,52 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
     for (const o of oyentes) o(e);
   };
 
-  return {
-    async conectar(verTodos) {
+  /**
+   * Un adaptador nuevo. Una impresora reemplazada ya no habla por la cabecera; si la nueva no se
+   * vincula, el estado que queda lo decide quien la creó, no ella.
+   */
+  function crear(
+    camino: CaminoDeLaCaja,
+    o: { verTodos: boolean; anterior: RegistroImpresora | undefined; puerto?: PuertoSerie },
+  ): Adaptador {
+    const alCambiarEstado = (e: EstadoImpresora) => {
+      if (nueva === enUso || (nueva === ultima && e !== 'sin_vincular')) cambiar(e);
+    };
+    let nueva: Adaptador;
+    if (camino === 'serial') {
+      if (!opciones.serial) {
+        throw new FalloDeImpresora(
+          'no_soportado',
+          'Este navegador no puede usar la impresora emparejada',
+        );
+      }
+      nueva = crearImpresoraSerial({ serial: opciones.serial, puerto: o.puerto, alCambiarEstado });
+    } else {
       if (!opciones.bluetooth) {
         throw new FalloDeImpresora('no_soportado', 'Este navegador no tiene Bluetooth web');
       }
-      const anterior = await db.impresora.get('actual');
-      const nueva: ImpresoraBluetooth = crearImpresoraBluetooth({
+      nueva = crearImpresoraBluetooth({
         bluetooth: opciones.bluetooth,
-        verTodos,
-        ...(anterior?.trozo ? { trozo: anterior.trozo } : {}),
-        // Una impresora reemplazada ya no habla por la cabecera. Si la nueva no se vincula, el
-        // estado que queda lo decide el `catch` de abajo, no ella.
-        alCambiarEstado: (e) => {
-          if (nueva === enUso || (nueva === ultima && e !== 'sin_vincular')) cambiar(e);
-        },
+        verTodos: o.verTodos,
+        ...(o.anterior?.trozo ? { trozo: o.anterior.trozo } : {}),
+        alCambiarEstado,
         alCambiarTrozo: (trozo) => void db.impresora.update('actual', { trozo }),
+      });
+    }
+    return nueva;
+  }
+
+  function usar(a: Adaptador): void {
+    enUso = a;
+    cola = crearCola(a, { alFallar: (trabajo, r) => pendiente(trabajo.id, r) });
+  }
+
+  return {
+    async conectar(verTodos, camino) {
+      const anterior = await db.impresora.get('actual');
+      const nueva = crear(camino ?? (anterior?.camino === 'serial' ? 'serial' : 'bluetooth'), {
+        verTodos,
+        anterior,
       });
       // El diagnóstico tiene que contar lo que vio también cuando vincular falla.
       ultima = nueva;
@@ -106,10 +156,7 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
         cambiar(enUso?.estado() ?? 'sin_vincular');
         throw e;
       }
-      enUso = nueva;
-      cola = crearCola(nueva, {
-        alFallar: (trabajo, r) => pendiente(trabajo.id, r),
-      });
+      usar(nueva);
       // Otra impresora pierde la prueba: sus tildes y su QR pueden ser otros.
       const misma = anterior?.dispositivoId === vinculo.id;
       await db.impresora.put({
@@ -156,6 +203,22 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
       const r = await conImpresion(() => enCola.imprimir({ id, formato: 'escpos', bytes }));
       reciboDelTrabajo.delete(id);
       return r;
+    },
+
+    async recuperar() {
+      const guardada = await db.impresora.get('actual');
+      if (enUso || guardada?.camino !== 'serial' || !opciones.serial) return false;
+      const puerto = await puertoRecordado(opciones.serial, guardada.dispositivoId);
+      if (!puerto) return false;
+      const a = crear('serial', { verTodos: false, anterior: guardada, puerto });
+      ultima = a;
+      if (!(await a.reconectar())) {
+        cambiar('sin_vincular');
+        return false;
+      }
+      usar(a);
+      cambiar(a.estado());
+      return true;
     },
 
     reconectar: (forzar) => enUso?.reconectar(forzar) ?? Promise.resolve(false),

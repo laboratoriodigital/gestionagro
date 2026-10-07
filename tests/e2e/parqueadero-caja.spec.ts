@@ -76,14 +76,53 @@ async function abrirControlada(page: Page) {
     .toBe(true);
 }
 
-async function configurarImpresora(page: Page, linea: string) {
+/**
+ * La PT-210 emparejada, vista por Web Serial (HU-Q2.4). Cada escritura se guarda en
+ * `window.__escritoSerie`; el permiso del puerto se recuerda entre recargas, como en Chrome.
+ */
+function instalarSerialFalso() {
+  const escrito: number[] = [];
+  Object.assign(window, { __escritoSerie: escrito });
+  let abierto = false;
+  const puerto = {
+    open: async () => {
+      abierto = true;
+    },
+    close: async () => {
+      abierto = false;
+    },
+    get writable() {
+      return abierto
+        ? new WritableStream<Uint8Array>({ write: (d) => void escrito.push(...d) })
+        : null;
+    },
+    getInfo: () => ({ bluetoothServiceClassId: '00001101-0000-1000-8000-00805f9b34fb' }),
+  };
+  const serial = {
+    requestPort: async () => {
+      localStorage.setItem('permiso-serie', 'si');
+      return puerto;
+    },
+    getPorts: async () => (localStorage.getItem('permiso-serie') ? [puerto] : []),
+  };
+  Object.defineProperty(Navigator.prototype, 'serial', { get: () => serial, configurable: true });
+}
+
+async function configurarImpresora(
+  page: Page,
+  linea: string,
+  camino: { boton: string; nombre: string } = {
+    boton: 'Conectar impresora',
+    nombre: 'PT-210_FALSA',
+  },
+) {
   await page.getByRole('button', { name: 'Configurar impresora' }).click();
   await expect(page.getByTestId('propuesta')).toHaveText(
     'Este equipo puede imprimir por Bluetooth.',
   );
   await page.getByRole('button', { name: 'Siguiente' }).click();
-  await page.getByRole('button', { name: 'Conectar impresora' }).click();
-  await expect(page.getByTestId('conectada')).toHaveText('Conectada: PT-210_FALSA');
+  await page.getByRole('button', { name: camino.boton }).click();
+  await expect(page.getByTestId('conectada')).toHaveText(`Conectada: ${camino.nombre}`);
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Imprimir página de prueba' }).click();
   await expect(page.getByTestId('enviada')).toHaveText('Enviado a la impresora.');
@@ -128,8 +167,11 @@ async function llenarAjustes(
     .getByRole('button', { name: 'No' })
     .click();
   await f
-    .getByRole('group', { name: '¿Imprimir el recibo al registrar?' })
-    .getByRole('button', { name: o.imprimir ?? 'Sí' })
+    .getByRole('group', { name: '¿Cuándo sale el recibo en papel?' })
+    // «No»: salvo recibo digital (HU-Q4.3); no existe «nunca».
+    .getByRole('button', {
+      name: o.imprimir === 'No' ? 'Si no lo recibe por WhatsApp o QR' : 'Siempre, al registrar',
+    })
     .click();
   const carro = f.getByTestId('tarifa-carro');
   await carro.getByLabel('Pesos por minuto', { exact: true }).fill(o.valor ?? '230');
@@ -145,6 +187,14 @@ async function llenarAjustes(
   await f.getByLabel('PIN (4 a 6 números)', { exact: true }).fill('2468');
   await f.getByLabel('Repita el PIN', { exact: true }).fill('2468');
   await f.getByRole('button', { name: 'Guardar', exact: true }).click();
+}
+
+/** Abre el turno que pide la primera entrada (HU-Q3.9 CA4). */
+async function abrirTurno(page: Page) {
+  const f = page.getByTestId('abrir-turno');
+  await f.getByLabel('Quién atiende').fill('Caja 1');
+  await f.getByLabel('Base de caja (efectivo al empezar)').fill('100000');
+  await f.getByRole('button', { name: 'Abrir turno' }).click();
 }
 
 /** Escribe la placa con el teclado de la caja, no con el del sistema. */
@@ -171,7 +221,8 @@ test.describe('la caja del parqueadero', () => {
     await page.goto(CAJA);
     await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora sin configurar');
     await expect(page.getByTestId('senal-respaldo')).toBeVisible();
-    await expect(page.getByTestId('senal-hora')).toBeVisible();
+    // HU-Q3.8: la hora se compara con la del sitio, que el servidor de prueba da en su cabecera.
+    await expect(page.getByTestId('senal-hora')).toHaveText('Hora correcta');
     await expect(page.getByTestId('senal-pendientes')).toHaveText('Sin entregas pendientes');
     await expect(page.getByTestId('marca-prueba')).toContainText('PRUEBA');
   });
@@ -297,6 +348,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await llenarAjustes(page);
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     const antes = (await bytesImpresos(page)).length;
     await teclearPlaca(page, 'ABC123');
     await expect(page.getByTestId('placa')).toHaveText('ABC123');
@@ -332,7 +384,7 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('aviso-entrada')).toContainText('ABC123');
   });
 
-  test('HU-Q3.4 y HU-Q3.5 · la estadía aparece adentro, se busca y se cobra con su recibo de salida', async ({
+  test('HU-Q3.4, HU-Q3.5 y HU-Q3.9 · la estadía se busca, se cobra y el turno cierra con su papel', async ({
     page,
   }) => {
     const entrada = new Date('2026-10-06T23:05:00Z');
@@ -343,6 +395,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await llenarAjustes(page, { qr: true });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'ABC123');
     await page.getByRole('button', { name: 'Registrar' }).click();
     await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
@@ -385,6 +438,36 @@ test.describe('la caja del parqueadero', () => {
     expect(papel).toContain('$41.400');
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
     await expect(page.getByTestId('estadias')).toContainText('No hay vehículos adentro.');
+
+    // HU-Q3.9: un gasto, el conteo con diferencia, su motivo y el cierre impreso.
+    await page.getByRole('button', { name: 'Cerrar turno' }).click();
+    const movimientos = page.getByTestId('movimientos');
+    await movimientos.getByLabel('Valor').fill('4.000');
+    await movimientos.getByLabel('Concepto').fill('bolsas');
+    await movimientos.getByRole('button', { name: 'Anotar' }).click();
+    await expect(movimientos).toContainText('Gasto de $4.000 anotado.');
+    // 100.000 de base + 41.400 en efectivo − 4.000 de gasto.
+    await expect(page.getByTestId('esperado')).toHaveText('Efectivo esperado: $137.400');
+    const cierre = page.getByTestId('cerrar-turno');
+    for (const d of ['$100.000', '$20.000', '$10.000', '$5.000', '$2.000']) {
+      await cierre.getByLabel(d, { exact: true }).fill('1');
+    }
+    await expect(page.getByTestId('contado')).toHaveText('$137.000');
+    await expect(page.getByTestId('diferencia')).toHaveText('Diferencia: -$400');
+    await expect(
+      cierre.getByRole('button', { name: 'Falta el motivo de la diferencia' }),
+    ).toBeDisabled();
+    await cierre.getByLabel('Motivo de la diferencia').fill('cambio mal dado');
+    const sinCierre = (await bytesImpresos(page)).length;
+    await cierre.getByRole('button', { name: 'Cerrar e imprimir' }).click();
+    await expect(page.getByTestId('estado-del-cierre')).toHaveText('Cierre enviado a la impresora');
+    const papelDelCierre = (await bytesImpresos(page)).slice(sinCierre);
+    expect(papelDelCierre).toContain('CIERRE DE TURNO');
+    expect(papelDelCierre).toContain('T-001');
+    expect(papelDelCierre).toContain('$137.400');
+    expect(papelDelCierre).toContain('Motivo: cambio mal dado');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('tarjeta-turno')).toContainText('Abra el turno');
   });
 
   test('HU-Q4.2 · el enlace de WhatsApp abre el recibo en /r/ sin API y sin la placa en lo servido', async ({
@@ -396,6 +479,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await llenarAjustes(page, { imprimir: 'No', nombre, aviso: true });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'ABC123');
     await page.getByLabel('WhatsApp del conductor (opcional)').fill('300 123 4567');
     await page.getByLabel(/Autoriza que le enviemos/).check();
@@ -446,6 +530,7 @@ test.describe('la caja del parqueadero', () => {
 
     // Sin el aviso aceptado, la caja no pide números (HU-Q4.4 CA2).
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await expect(page.getByTestId('sin-aviso')).toBeVisible();
     await expect(page.getByLabel('WhatsApp del conductor (opcional)')).toHaveCount(0);
     await page.getByRole('button', { name: 'Cancelar' }).click();
@@ -529,6 +614,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await llenarAjustes(page);
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'XYZ98');
     await page.getByTestId('confirmar-placa').click();
     await page.getByRole('button', { name: 'Carro' }).click();
@@ -538,6 +624,45 @@ test.describe('la caja del parqueadero', () => {
       'Quedó en entregas pendientes',
     );
     await expect(page.getByTestId('senal-pendientes')).toContainText('1');
+  });
+
+  test('HU-Q3.7 · anular la entrada pide motivo y PIN, y el vehículo sale de la lista sin borrarse', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'GHI789');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await page.getByRole('button', { name: 'Anular la entrada' }).click();
+    const anular = page.getByTestId('anular');
+    await expect(anular.getByRole('button', { name: 'Falta el motivo' })).toBeDisabled();
+    await anular.getByLabel('Motivo').fill('placa mal digitada');
+    await anular.getByLabel('PIN de administrador').fill('1111');
+    await anular.getByRole('button', { name: 'Anular la entrada' }).click();
+    await expect(page.getByTestId('aviso-anulacion')).toHaveText(
+      'Ese no es el PIN de administrador',
+    );
+    await anular.getByLabel('PIN de administrador').fill('2468');
+    await anular.getByRole('button', { name: 'Anular la entrada' }).click();
+    await expect(page.getByTestId('anulado')).toContainText('Recibo anulado');
+    await expect(page.getByRole('button', { name: 'Imprimir', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByText('GHI789')).toHaveCount(0);
+    const tipos = await page.evaluate(
+      () =>
+        new Promise<string[]>((listo) => {
+          const pedido = indexedDB.open('parqueadero-caja');
+          pedido.onsuccess = () => {
+            const todos = pedido.result.transaction('registros').objectStore('registros').getAll();
+            todos.onsuccess = () => listo(todos.result.map((r: { tipo: string }) => r.tipo));
+          };
+        }),
+    );
+    expect(tipos.sort()).toEqual(['anulacion', 'entrada', 'turno_apertura']);
   });
 
   test('bitácora 18 · la impresora se apagó: el recibo lo dice, reconecta desde ahí y da el diagnóstico', async ({
@@ -555,6 +680,7 @@ test.describe('la caja del parqueadero', () => {
       'La impresora está apagada o lejos',
     );
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'DEF456');
     await page.getByRole('button', { name: 'Registrar' }).click();
     await page.getByRole('button', { name: 'Imprimir', exact: true }).click();
@@ -578,6 +704,102 @@ test.describe('la caja del parqueadero', () => {
     expect((await bytesImpresos(page)).slice(antes)).toContain('DEF456');
   });
 
+  test('HU-Q3.10 · el respaldo se descarga y se restaura en otra caja, uniendo sin borrar', async ({
+    page,
+    browser,
+  }) => {
+    // Sin el menú de compartir del teléfono: el respaldo se descarga.
+    const sinCompartir = () =>
+      Object.defineProperty(Navigator.prototype, 'canShare', { value: undefined });
+    await page.addInitScript(sinCompartir);
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'MNO456');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('senal-respaldo')).toHaveText('Respaldo sin hacer');
+    await page.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    const json = page.waitForEvent('download', (d) => d.suggestedFilename().endsWith('.json'));
+    await page.getByRole('button', { name: 'Hacer el respaldo' }).click();
+    const archivo = await (await json).path();
+    await expect(page.getByTestId('estado-del-respaldo')).toContainText('Respaldo descargado');
+    await expect(page.getByTestId('senal-respaldo')).toContainText('Respaldo: ');
+
+    // Otro teléfono: una caja nueva, sin nada.
+    const otro = await browser.newContext();
+    const nueva = await otro.newPage();
+    await nueva.goto(CAJA);
+    await nueva.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    await nueva.getByLabel(/Restaurar un respaldo/).setInputFiles({
+      name: 'malo.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from('{"formato":"parqueadero-export","version":9}'),
+    });
+    await expect(nueva.getByTestId('aviso-respaldo')).toContainText('la caja quedó como estaba');
+    await nueva.getByLabel(/Restaurar un respaldo/).setInputFiles(archivo);
+    await expect(nueva.getByTestId('estado-del-respaldo')).toContainText('No se borró nada.');
+    await nueva.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(nueva.getByTestId('estadia')).toContainText('MNO456');
+    await otro.close();
+  });
+
+  test('HU-Q4.3 · «salvo recibo digital» pregunta, y sin digital imprime al terminar', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    const antes = (await bytesImpresos(page)).length;
+    await teclearPlaca(page, 'PQR123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByTestId('pregunta-papel')).toContainText(
+      '¿Recibo por WhatsApp o en papel?',
+    );
+    // No sale solo: primero se ofrece lo digital.
+    expect((await bytesImpresos(page)).length).toBe(antes);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await expect.poll(async () => (await bytesImpresos(page)).slice(antes)).toContain('PQR123');
+
+    // Con el QR escaneado, no sale papel.
+    const sinPapel = (await bytesImpresos(page)).length;
+    await teclearPlaca(page, 'STU456');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Mostrar QR' }).click();
+    await page.getByRole('button', { name: 'Ya lo escaneó' }).click();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('estadias')).toContainText('STU456');
+    expect((await bytesImpresos(page)).length).toBe(sinPapel);
+  });
+
+  test('HU-Q2.4 · la impresora emparejada se elige una vez y vuelve sola al abrir la caja (CA1)', async ({
+    page,
+  }) => {
+    await page.addInitScript(instalarSerialFalso);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1', {
+      boton: 'Usar la impresora emparejada',
+      nombre: 'Impresora emparejada por Bluetooth',
+    });
+    const prueba = await page.evaluate(
+      () => (window as unknown as { __escritoSerie: number[] }).__escritoSerie.length,
+    );
+    expect(prueba).toBeGreaterThan(0);
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
+
+    // Otro día: la caja se abre de nuevo y nadie toca «Conectar».
+    await page.reload();
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
+    await expect(page.getByRole('button', { name: 'Conectar impresora' })).toHaveCount(0);
+  });
+
   test('HU-Q3.3 · sin red, la entrada abre y registra', async ({ page, context }) => {
     await abrirControlada(page);
     await context.setOffline(true);
@@ -585,6 +807,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await llenarAjustes(page, { imprimir: 'No' });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'ABC12D');
     // Solo el carro tiene tarifa: la moto que propone el patrón no se ofrece.
     await expect(page.getByRole('button', { name: 'Moto' })).toHaveCount(0);
@@ -619,6 +842,7 @@ for (const esquema of ['light', 'dark'] as const) {
     await revisar();
     await llenarAjustes(page, { imprimir: 'No' });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
     await teclearPlaca(page, 'ABC123');
     await revisar();
     await page.getByRole('button', { name: 'Registrar' }).click();

@@ -9,9 +9,13 @@ import { Cabecera } from './Cabecera.tsx';
 import { BotonDiagnostico, ConexionImpresora, useEstadoImpresora } from './conexion.tsx';
 import { type BaseDeLaCaja, purgarContactos, type RegistroImpresora } from './datos.ts';
 import { Estadias } from './Estadias.tsx';
+import { diaLocalBogota, horaBogota } from './fecha.ts';
 import { useConsulta } from './ganchos.ts';
+import { diferenciaDeHora, senalDeHora } from './hora.ts';
 import { alVolverALaCaja, type ControlDeImpresora } from './impresora.ts';
-import { type Propuesta, senalDeImpresora, senalDePendientes } from './senales.ts';
+import { type Propuesta, senalDeImpresora, senalDePendientes, senalDeRespaldo } from './senales.ts';
+import { avisoDeTopeViejo } from './topes.ts';
+import { type Turno, turnoAbierto } from './turno.ts';
 import type { Vista } from './vistas.tsx';
 
 interface Props {
@@ -35,6 +39,22 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
     undefined,
   );
   const pendientes = useConsulta(() => db.entregas_pendientes.count(), 0);
+  const turno = useConsulta<Turno | null | undefined>(() => turnoAbierto(db), undefined);
+  const ciudad = useConsulta<string | undefined>(
+    () =>
+      db.catalogos
+        .where('entidad')
+        .equals('sede')
+        .first()
+        .then((s) => (s?.entidad === 'sede' ? s.ciudad : undefined)),
+    undefined,
+  );
+  // HU-Q1.2 CA2: un tope de más de 13 meses se dice; la caja sigue cobrando.
+  const topeViejo = avisoDeTopeViejo(ciudad, diaLocalBogota(reloj()));
+  const respaldo = useConsulta<number | undefined>(
+    () => db.meta.get('respaldo').then((m) => (m?.clave === 'respaldo' ? m.instante : undefined)),
+    undefined,
+  );
   const estado = useEstadoImpresora(control);
   const [persistente, setPersistente] = useState<boolean | null>(null);
   const [vista, setVista] = useState<Vista>({ es: 'inicio' });
@@ -51,6 +71,28 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
       setVista(v);
     });
   };
+
+  // HU-Q2.4 CA1: la impresora emparejada vuelve sola al abrir la caja, sin selector.
+  useEffect(() => {
+    void control.recuperar();
+  }, [control]);
+
+  // HU-Q3.8: la hora del teléfono contra la del servidor, al abrir, cada 30 min y al volver la red.
+  const [diferencia, setDiferencia] = useState<number | null | undefined>(undefined);
+  useEffect(() => {
+    const revisar = () =>
+      void diferenciaDeHora(fetch, reloj).then((d) => {
+        // Sin red no se borra la última revisión: la hora no cambió por perder la señal.
+        if (d !== null) setDiferencia(d);
+      });
+    revisar();
+    const t = setInterval(revisar, 30 * 60_000);
+    addEventListener('online', revisar);
+    return () => {
+      clearInterval(t);
+      removeEventListener('online', revisar);
+    };
+  }, [reloj]);
 
   // Al desbloquear el teléfono, la conexión puede verse abierta y estar muerta (bitácora 19).
   useEffect(() => {
@@ -89,13 +131,18 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
     <>
       <Cabecera
         impresora={senalDeImpresora(registro, estado)}
-        respaldo={{ texto: 'Respaldo sin hacer', tono: 'aviso' }}
-        hora={{ texto: 'Hora sin revisar', tono: 'neutro' }}
+        respaldo={senalDeRespaldo(respaldo, reloj())}
+        hora={senalDeHora(diferencia)}
         pendientes={senalDePendientes(pendientes)}
         prueba={prueba}
         persistente={persistente}
       />
       <AvisoActualizacion />
+      {topeViejo && (
+        <p class="aviso-tope" role="status" data-prueba="aviso-tope">
+          {topeViejo}: revise la norma de su ciudad. La caja sigue cobrando con el tope guardado.
+        </p>
+      )}
       <main class="contenido">
         {vista.es === 'asistente' ? (
           <Asistente
@@ -132,6 +179,25 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
               <section class="tarjeta" data-prueba="caja-lista">
                 <h1>La caja está lista</h1>
                 <ConexionImpresora control={control} />
+              </section>
+            )}
+            {turno !== undefined && (
+              <section class="tarjeta" data-prueba="tarjeta-turno">
+                {turno ? (
+                  <p>
+                    Turno de {turno.operador}, desde las{' '}
+                    {horaBogota(Date.parse(turno.apertura.instante_evento))}
+                  </p>
+                ) : (
+                  <p>Abra el turno antes del primer recibo.</p>
+                )}
+                <button
+                  type="button"
+                  class={turno ? 'boton boton-secundario' : 'boton boton-principal'}
+                  onClick={() => ir({ es: 'turno' })}
+                >
+                  {turno ? 'Cerrar turno' : 'Abrir turno'}
+                </button>
               </section>
             )}
             <Estadias db={db} reloj={reloj} ir={ir} />

@@ -11,10 +11,15 @@ import { armarExport, type DatosDeSalida, ErrorDeValidacion } from '@ed1/parquea
 import { SEDE_ENSAYO_UNO, TARIFA_CARRO, TARIFA_MOTO } from '@ed1/parqueadero-schema/ensayos';
 import { describe, expect, it } from 'vitest';
 import {
+  abrirTurno,
+  anulados,
+  anular,
+  armarRespaldo,
   buscarPorLectura,
   type Contexto,
   CotizacionVencida,
   catalogosDelRegistro,
+  cerrarTurno,
   contactoDe,
   EstadiaCerrada,
   EstadiaYaAbierta,
@@ -25,13 +30,20 @@ import {
   guardarSede,
   guardarTarifa,
   leerAjustes,
+  NoSeAnula,
+  RespaldoInvalido,
   reconstruirEstadias,
   registrarEntrada,
   registrarEntrega,
+  registrarMovimiento,
   registrarSalida,
+  restaurar,
+  resumenDelTurno,
   SinAvisoDePrivacidad,
+  SinTurno,
   TarifaSobreElTope,
   tienePin,
+  turnoAbierto,
   vecesImpreso,
   verificarPin,
 } from './almacen.ts';
@@ -70,8 +82,13 @@ async function configurada() {
   await guardarSede(db, sinMeta(SEDE_ENSAYO_UNO), null, ctx);
   await guardarTarifa(db, sinMeta(TARIFA_CARRO), null, ctx);
   await guardarTarifa(db, sinMeta(TARIFA_MOTO), null, ctx);
+  await abrirTurno(db, { operador: 'Caja 1', base: 100_000 }, ctx);
   return { db, ctx, avanzar };
 }
+
+/** Los registros que no son del turno: la apertura no es un recibo. */
+const recibos = (db: ReturnType<typeof abrirBase>) =>
+  db.registros.filter((r) => r.tipo !== 'turno_apertura').count();
 
 const ENTRADA = {
   placa: 'ABC123',
@@ -152,7 +169,7 @@ describe('la entrada (HU-Q3.3)', () => {
     const { db, ctx } = await configurada();
     await registrarEntrada(db, ENTRADA, ctx);
     await expect(registrarEntrada(db, ENTRADA, ctx)).rejects.toBeInstanceOf(EstadiaYaAbierta);
-    expect(await db.registros.count()).toBe(1);
+    expect(await recibos(db)).toBe(1);
   });
 
   it('dos transacciones que fallan no gastan número: sin huecos (CA4 ❌)', async () => {
@@ -165,7 +182,7 @@ describe('la entrada (HU-Q3.3)', () => {
     await expect(registrarEntrada(db, ENTRADA, ctx)).rejects.toThrow('el disco se llenó');
     const buena = await registrarEntrada(db, ENTRADA, ctx);
     expect(buena.consecutivo).toBe(1);
-    expect(await db.registros.count()).toBe(1);
+    expect(await recibos(db)).toBe(1);
   });
 
   it('las fotos quedan con su estadía y su formato real', async () => {
@@ -399,7 +416,7 @@ describe('el WhatsApp del conductor (HU-Q4.1 y HU-Q4.4)', () => {
     await expect(registrarEntrada(db, { ...ENTRADA, whatsapp: NUMERO }, ctx)).rejects.toThrow(
       SinAvisoDePrivacidad,
     );
-    expect(await db.registros.count()).toBe(0);
+    expect(await recibos(db)).toBe(0);
     expect(await db.contactos.count()).toBe(0);
   });
 
@@ -476,5 +493,221 @@ describe('el aviso de privacidad (HU-Q4.4)', () => {
   it('«sin cuenta» solo se dice en una caja sin cuenta (CA3 ❌)', () => {
     expect(frase(avisoDeLaSede({ ...SEDE_ENSAYO_UNO, org_id: null }).parrafos)).toBe(true);
     expect(frase(avisoDeLaSede({ ...SEDE_ENSAYO_UNO, org_id: 'org-1' }).parrafos)).toBe(false);
+  });
+});
+
+describe('anular sin borrar (HU-Q3.7)', () => {
+  const EFECTIVO = {
+    perdido: false,
+    medio: 'efectivo',
+    recibido: 50_000,
+    motivoCortesia: null,
+  } as const;
+  const DATOS = { motivo: 'placa mal digitada', pin: '2468', operador: 'Caja 1' };
+
+  async function conPin() {
+    const c = await configurada();
+    await guardarPin(c.db, '2468');
+    return c;
+  }
+
+  it('una entrada anulada cierra su estadía y deja el registro y la anulación (CA1)', async () => {
+    const { db, ctx } = await conPin();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    const a = await anular(db, entrada.id, DATOS, ctx);
+    expect(a).toMatchObject({ tipo: 'anulacion', anula_id: entrada.id, estadia_id: entrada.id });
+    expect(a.datos).toEqual({ motivo: 'placa mal digitada', operador: 'Caja 1' });
+    expect(await estadiasAbiertas(db)).toEqual([]);
+    expect(await db.registros.get(entrada.id)).toEqual(entrada);
+    // Lo derivado se rehace igual desde los registros.
+    expect(await reconstruirEstadias(db)).toBe(0);
+    // La misma placa puede entrar otra vez.
+    expect((await registrarEntrada(db, ENTRADA, ctx)).consecutivo).toBe(2);
+  });
+
+  it('una salida anulada reabre la estadía con su hora de entrada (CA1)', async () => {
+    const { db, ctx, avanzar } = await conPin();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(30);
+    const salida = await registrarSalida(db, entrada.id, EFECTIVO, ctx);
+    await anular(db, salida.id, DATOS, ctx);
+    const [abierta] = await estadiasAbiertas(db);
+    expect(abierta).toMatchObject({ id: entrada.id, placa: 'ABC123', numero: 'A-000001' });
+    expect(abierta?.entrada).toBe(Date.parse(entrada.instante_evento));
+    expect(await reconstruirEstadias(db)).toBe(1);
+    // Se vuelve a cobrar, con otro número.
+    expect((await registrarSalida(db, entrada.id, EFECTIVO, ctx)).consecutivo).toBe(3);
+  });
+
+  it('sin PIN, sin motivo, dos veces o con la salida vigente no anula (CA1 ❌)', async () => {
+    const { db, ctx, avanzar } = await conPin();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    const motivo = (p: Promise<unknown>) => p.catch((e: Error) => e.message);
+    expect(await motivo(anular(db, entrada.id, { ...DATOS, pin: '1111' }, ctx))).toBe(
+      'Ese no es el PIN de administrador',
+    );
+    expect(await motivo(anular(db, entrada.id, { ...DATOS, motivo: '  ' }, ctx))).toBe(
+      'Falta el motivo de la anulación',
+    );
+    avanzar(10);
+    const salida = await registrarSalida(db, entrada.id, EFECTIVO, ctx);
+    expect(await motivo(anular(db, entrada.id, DATOS, ctx))).toContain(
+      'primero se anula su salida',
+    );
+    await registrarEntrada(db, ENTRADA, ctx);
+    expect(await motivo(anular(db, salida.id, DATOS, ctx))).toContain('volvió a entrar');
+    const ninguna = await db.registros.where('tipo').equals('anulacion').count();
+    expect(ninguna).toBe(0);
+  });
+
+  it('un recibo ya anulado no se anula otra vez', async () => {
+    const { db, ctx } = await conPin();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    await anular(db, entrada.id, DATOS, ctx);
+    await expect(anular(db, entrada.id, DATOS, ctx)).rejects.toBeInstanceOf(NoSeAnula);
+    expect(await anulados(db)).toEqual(new Set([entrada.id]));
+  });
+});
+
+describe('el turno (HU-Q3.9)', () => {
+  const EFECTIVO = {
+    perdido: false,
+    medio: 'efectivo',
+    recibido: 50_000,
+    motivoCortesia: null,
+  } as const;
+
+  it('sin turno abierto no hay entrada, salida ni anulación (CA4 ❌)', async () => {
+    const { db, ctx } = caja();
+    await guardarSede(db, sinMeta(SEDE_ENSAYO_UNO), null, ctx);
+    await guardarTarifa(db, sinMeta(TARIFA_CARRO), null, ctx);
+    await expect(registrarEntrada(db, ENTRADA, ctx)).rejects.toBeInstanceOf(SinTurno);
+    expect(await db.registros.count()).toBe(0);
+  });
+
+  it('sigue abierto aunque se cierre la app: se lee de los registros (CA3)', async () => {
+    const { db, ctx } = await configurada();
+    const t = await turnoAbierto(db);
+    expect(t).toMatchObject({ numero: 1, operador: 'Caja 1', base: 100_000 });
+    // Abrir otra vez devuelve el mismo, no abre un segundo.
+    expect((await abrirTurno(db, { operador: 'Otro', base: 0 }, ctx)).apertura.id).toBe(
+      t?.apertura.id,
+    );
+  });
+
+  it('cierra con lo esperado calculado en la caja, y el siguiente es el T-002 (CA1)', async () => {
+    const { db, ctx, avanzar } = await configurada();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(179);
+    await registrarSalida(db, entrada.id, EFECTIVO, ctx);
+    await registrarMovimiento(db, { clase: 'gasto', valor: 4_000, concepto: 'bolsas' }, ctx);
+    const t = (await turnoAbierto(db)) as NonNullable<Awaited<ReturnType<typeof turnoAbierto>>>;
+    const { cierre, resumen } = await cerrarTurno(db, t, { contado: 126_000, motivo: null }, ctx);
+    expect(resumen).toMatchObject({ entradas: 1, salidas: 1, esperado: 100_000 + 30_000 - 4_000 });
+    expect(cierre.datos).toMatchObject({ esperado: 126_000, contado: 126_000, diferencia: 0 });
+    expect(await turnoAbierto(db)).toBeNull();
+    await expect(registrarEntrada(db, { ...ENTRADA, placa: 'XYZ987' }, ctx)).rejects.toBeInstanceOf(
+      SinTurno,
+    );
+    const otro = await abrirTurno(db, { operador: 'Caja 2', base: 50_000 }, ctx);
+    expect(otro.numero).toBe(2);
+    expect((await resumenDelTurno(db, otro)).numero).toBe('T-002');
+  });
+
+  it('una diferencia sin motivo no se guarda (CA4 ❌)', async () => {
+    const { db, ctx } = await configurada();
+    const t = (await turnoAbierto(db)) as NonNullable<Awaited<ReturnType<typeof turnoAbierto>>>;
+    await expect(cerrarTurno(db, t, { contado: 95_000, motivo: '  ' }, ctx)).rejects.toBeInstanceOf(
+      ErrorDeValidacion,
+    );
+    expect(await turnoAbierto(db)).not.toBeNull();
+    const { cierre } = await cerrarTurno(db, t, { contado: 95_000, motivo: 'faltó cambio' }, ctx);
+    expect(cierre.datos).toMatchObject({ diferencia: -5_000, motivo: 'faltó cambio' });
+  });
+});
+
+describe('respaldo y restauración (HU-Q3.10)', () => {
+  const EFECTIVO = {
+    perdido: false,
+    medio: 'efectivo',
+    recibido: 50_000,
+    motivoCortesia: null,
+  } as const;
+
+  async function conMovimiento() {
+    const c = await configurada();
+    const e1 = await registrarEntrada(c.db, ENTRADA, c.ctx);
+    c.avanzar(30);
+    await registrarSalida(c.db, e1.id, EFECTIVO, c.ctx);
+    await registrarEntrada(c.db, { ...ENTRADA, placa: 'XYZ987' }, c.ctx);
+    return c;
+  }
+
+  it('en un teléfono nuevo deja todo igual, y el siguiente recibo sigue la numeración (CA2)', async () => {
+    const { db, ctx } = await conMovimiento();
+    const r = await armarRespaldo(db, ctx, '0.0.0');
+    expect(r.nombre).toMatch(/^parqueadero-2026-10-06-\d{4}$/);
+    expect(r.csv.split('\r\n')[0]).toContain('numero;tipo;fecha');
+    const nuevo = caja();
+    const res = await restaurar(nuevo.db, JSON.parse(JSON.stringify(r.json)));
+    expect(res.yaEstaban).toBe(0);
+    expect(res.agregados).toBe((await db.registros.count()) + (await db.catalogos.count()));
+    expect((await estadiasAbiertas(nuevo.db)).map((e) => e.placa)).toEqual(['XYZ987']);
+    // A-000001 entrada, A-000002 salida, A-000003 entrada: la siguiente es la A-000004.
+    const sigue = await registrarEntrada(nuevo.db, { ...ENTRADA, placa: 'JKL321' }, nuevo.ctx);
+    expect(sigue.consecutivo).toBe(4);
+  });
+
+  it('un respaldo viejo encima de una caja con registros nuevos no borra ninguno (CA4 ❌)', async () => {
+    const { db, ctx } = await conMovimiento();
+    const viejo = (await armarRespaldo(db, ctx, '0.0.0')).json;
+    await registrarEntrada(db, { ...ENTRADA, placa: 'JKL321' }, ctx);
+    const antes = await db.registros.count();
+    const res = await restaurar(db, viejo);
+    expect(res.agregados).toBe(0);
+    expect(await db.registros.count()).toBe(antes);
+    expect((await estadiasAbiertas(db)).map((e) => e.placa).sort()).toEqual(['JKL321', 'XYZ987']);
+  });
+
+  it('un archivo alterado, de otra sede o de otra versión se rechaza entero (CA4 ❌)', async () => {
+    const { db, ctx } = await conMovimiento();
+    const bueno = (await armarRespaldo(db, ctx, '0.0.0')).json;
+    const copia = () => JSON.parse(JSON.stringify(bueno));
+    const nuevo = caja();
+    const alterado = copia();
+    alterado.tablas.registro.filas[0].datos.placa = 'ZZZ999';
+    await expect(restaurar(nuevo.db, alterado)).rejects.toBeInstanceOf(RespaldoInvalido);
+    await expect(restaurar(nuevo.db, { ...copia(), version: 2 })).rejects.toBeInstanceOf(
+      RespaldoInvalido,
+    );
+    expect(await nuevo.db.registros.count()).toBe(0);
+    const otra = await configurada();
+    const motivo = await restaurar(otra.db, copia()).catch((e: RespaldoInvalido) => e.message);
+    expect(motivo).toContain('otro parqueadero');
+  });
+
+  it('las fotos no van en el archivo (CA3)', async () => {
+    const { db, ctx } = await configurada();
+    const foto = { tipo: 'image/jpeg' as const, datos: new Blob(['x'.repeat(50)]) };
+    await registrarEntrada(db, { ...ENTRADA, fotos: [foto] }, ctx);
+    const r = await armarRespaldo(db, ctx, '0.0.0');
+    expect(Object.keys(r.json.tablas)).toEqual(['catalogo', 'registro', 'historial']);
+    expect(JSON.stringify(r.json)).not.toContain('x'.repeat(50));
+  });
+});
+
+describe('el tope de la ciudad en la tarifa (HU-Q1.2 CA2)', () => {
+  it('en Bogotá, una tarifa con tope de 240 o sin tope no se guarda', async () => {
+    const { db, ctx } = await configurada();
+    const carro = sinMeta(TARIFA_CARRO);
+    await expect(guardarTarifa(db, { ...carro, tope_minuto: 240 }, null, ctx)).rejects.toThrow(
+      'en Bogotá el tope es de 230 pesos por minuto',
+    );
+    await expect(
+      guardarTarifa(db, { ...carro, tope_minuto: null }, null, ctx),
+    ).rejects.toBeInstanceOf(TarifaSobreElTope);
+    expect(
+      (await guardarTarifa(db, { ...carro, tope_minuto: 200, valor: 200 }, null, ctx)).tope_minuto,
+    ).toBe(200);
   });
 });

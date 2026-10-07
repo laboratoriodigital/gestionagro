@@ -84,7 +84,8 @@ body {
 }
 
 .aviso-almacenamiento,
-.aviso-actualizacion {
+.aviso-actualizacion,
+.aviso-tope {
   margin: var(--espacio-2) 0 0;
   padding: var(--espacio-2) var(--espacio-4);
   font-size: var(--texto-pequeno);
@@ -101,6 +102,7 @@ body {
 
 .tarjeta,
 .asistente,
+.anular,
 .conexion {
   display: grid;
   gap: var(--espacio-3);
@@ -413,4 +415,25 @@ legend {
   .imprimible .no-imprimir {
     display: none;
   }
+}
+
+/* ── Turno (HU-Q3.9) ────────────────────────────────────────────────────────────────────────── */
+
+/* El conteo por billete y moneda: dos columnas a 360 px (bitácora parqueadero 15). */
+.conteo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-2);
+}
+
+/* ── El ajuste papel (HU-Q4.3) ──────────────────────────────────────────────────────────────── */
+
+/* Con «salvo recibo digital», WhatsApp va primero. */
+.primero {
+  order: -1;
+}
+
+.pregunta {
+  margin: 0;
+  font-weight: 600;
 }

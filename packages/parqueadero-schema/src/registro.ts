@@ -191,7 +191,14 @@ const pagoAbonadoV1 = z
   })
   .refine((p) => p.hasta >= p.desde, { path: ['hasta'], message: 'no puede ser antes de «desde»' });
 
-const anulacionV1 = z.strictObject({ motivo: texto.max(140, 'es de máximo 140 letras') });
+/**
+ * `anulacion` v1 (HU-Q3.7): el motivo y quién anuló. En M0 el operador es el del turno abierto; el
+ * cierre las cuenta por operador (CA2). Ninguna caja publicada escribió una sin operador.
+ */
+const anulacionV1 = z.strictObject({
+  motivo: texto.max(140, 'es de máximo 140 letras'),
+  operador: texto.max(30),
+});
 
 /** `entrega_recibo` v1: cómo salió un recibo. Una copia reimpresa dice «COPIA» (§7.6). */
 const entregaReciboV1 = z.strictObject({
@@ -256,6 +263,10 @@ export const ESQUEMAS_DE_DATOS = {
 export type DatosDeEntrada = z.infer<typeof entradaV1>;
 export type DatosDeSalida = z.infer<typeof salidaV1>;
 export type DatosDeEntrega = z.infer<typeof entregaReciboV1>;
+export type DatosDeAnulacion = z.infer<typeof anulacionV1>;
+export type DatosDeApertura = z.infer<typeof turnoAperturaV1>;
+export type DatosDeCierre = z.infer<typeof turnoCierreV1>;
+export type DatosDeMovimiento = z.infer<typeof movimientoCajaV1>;
 export type LineaDeLiquidacion = z.infer<typeof lineaDeLiquidacion>;
 export type Registro = z.infer<typeof registroBase>;
 
