@@ -318,7 +318,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.2.1 `[código]` contrato y cola · WI-Q2.2.2 `[código]` codificador y QR · WI-Q2.2.3 `[prueba]` bytes de referencia · WI-Q2.2.4 `[prueba]` filtro de control · WI-Q2.2.5 `[ci]` guardia de imports.
 
 #### HU-Q2.3 · Imprimir por Web Bluetooth en la PT-210
-- **Capa:** paquete y caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** HU-Q2.1, HU-Q2.2 · **Estado:** Refinada
+- **Capa:** paquete y caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** HU-Q2.1, HU-Q2.2 · **Estado:** En sprint (rama `feat/q1-sprint`: el adaptador y su prueba con el falso; faltan la pantalla y el equipo real)
 - Como cajero, quiero que el recibo salga de la PT-210 desde el teléfono sin instalar nada, para entregarlo en segundos.
 - **Respaldo:** ADR-34; PARQUEADERO §7.2 y §7.4 (los pasos y la tabla de errores).
 - **CA1.** «Conectar impresora», solo desde un toque, llama a `requestDevice` con `namePrefix: 'PT'` y la lista de servicios de PARQUEADERO §7.4 corregida por el paso 0; «Ver todos los equipos» repite con `acceptAllDevices`. La caja recorre los servicios y guarda en `impresora` el servicio y la característica que funcionaron.
