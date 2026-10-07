@@ -25,6 +25,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - La cuenta de Laboratorio Digital tiene su primera página, en `cuenta.laboratorio-digital.com`: dice qué va a reunir y que pronto se podrá entrar con Google. Es estática, sin JavaScript, y no aparece en buscadores (HU-C7.2).
 
 ### Corregido
+- Parqueadero ED1: después de apagar y prender la PT-210, Android soltaba la conexión apenas abría y la caja decía «Esta impresora no se reconoce». Ahora lo intenta hasta 4 veces, con pausas de 1, 2 y 3 segundos, y si se cae en todas dice «La impresora está apagada o lejos» con qué hacer, en vez de culpar a la impresora (`@ed1/impresion`, bitácora parqueadero 17).
 - Parqueadero ED1: la PT210L del primer cliente respondía «Esta impresora no se reconoce». La causa era un vínculo viejo en Android: desvincularla y vincularla otra vez lo arregló. Además, la caja busca primero los servicios que ese modelo anuncia, sigue con el siguiente si uno falla, vuelve a conectar si la impresora suelta la conexión y, si aun así no la reconoce, deja copiar un diagnóstico con lo que vio (bitácora parqueadero 12 y 13).
 - El aviso de «cargando» de los componentes v2 ya no desvanece el texto: a media animación quedaba con poco contraste. Ahora se mueve un punto a su lado (HU-C6.4).
 

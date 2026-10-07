@@ -7,6 +7,8 @@
  * - Envía en trozos de 180 bytes cada 30 ms. Si el navegador rechaza un trozo, baja a 100 bytes y
  *   50 ms, reintenta y lo recuerda (`alCambiarTrozo`).
  * - Mientras la caja siga abierta, reconecta con `gatt.connect()` antes de imprimir, sin selector.
+ * - Si la conexión se cae apenas abre (Android, después de apagar y prender la impresora), lo
+ *   intenta hasta 4 veces, con 1, 2 y 3 s de pausa (bitácora parqueadero 17).
  * - Nunca manda bytes para mantener despierta la impresora: podrían imprimir.
  */
 import {
@@ -42,6 +44,9 @@ export interface Trozo {
   readonly bytes: number;
   readonly ms: number;
 }
+
+/** Las pausas entre un intento de conexión y el siguiente: 4 intentos en total. */
+export const PAUSAS_ENTRE_INTENTOS: readonly number[] = [1_000, 2_000, 3_000];
 
 export const TROZO_NORMAL: Trozo = { bytes: 180, ms: 30 };
 export const TROZO_PEQUENO: Trozo = { bytes: 100, ms: 50 };
@@ -194,6 +199,8 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
         // Este equipo no tiene ese servicio, o se desconectó buscándolo: el diagnóstico lo dice.
         if (nombreDelError(error) !== 'NotFoundError')
           vistos.push(`${nombreDeServicio(s)}: ${detalleDe(error)}`);
+        // Desconectada, ningún otro servicio va a responder: se reintenta la conexión.
+        if (!gatt.connected) return undefined;
         continue;
       }
       let caracteristicas: CaracteristicaBle[];
@@ -217,12 +224,39 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
     return undefined;
   }
 
+  /**
+   * Conecta y busca la característica. Si la conexión se cae antes de encontrarla, espera y lo
+   * intenta otra vez; si sigue conectada y no la encuentra, el equipo no es una impresora conocida.
+   * Lanza el error del último `connect()` que falló.
+   */
+  async function conectarYBuscar(
+    gattDelEquipo: ServidorGatt,
+    soloEste?: string | number,
+  ): Promise<Awaited<ReturnType<typeof buscar>>> {
+    vistos.length = 0;
+    for (let intento = 0; ; intento++) {
+      let gatt: ServidorGatt | undefined;
+      try {
+        gatt = await gattDelEquipo.connect();
+      } catch (error) {
+        vistos.push(`Intento ${intento + 1}: no conectó (${detalleDe(error)})`);
+        if (intento >= PAUSAS_ENTRE_INTENTOS.length) throw error;
+      }
+      if (gatt) {
+        const hallado = await buscar(gatt, soloEste);
+        if (hallado || gatt.connected) return hallado;
+        vistos.push(`Intento ${intento + 1}: se desconectó al buscar los servicios`);
+      }
+      const pausa = PAUSAS_ENTRE_INTENTOS[intento];
+      if (pausa === undefined) return undefined;
+      await esperar(pausa);
+    }
+  }
+
   async function reconectar(): Promise<boolean> {
     if (!conexion?.dispositivo.gatt) return false;
     try {
-      const gatt = await conexion.dispositivo.gatt.connect();
-      vistos.length = 0;
-      const hallado = await buscar(gatt, conexion.servicio);
+      const hallado = await conectarYBuscar(conexion.dispositivo.gatt, conexion.servicio);
       if (!hallado) return false;
       conexion.caracteristica = hallado.caracteristica;
       cambiar('conectada');
@@ -260,13 +294,10 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
         throw new FalloDeImpresora('no_soportado', 'El equipo no ofrece GATT');
       }
       let hallado: Awaited<ReturnType<typeof buscar>>;
-      vistos.length = 0;
       try {
-        const gatt = await dispositivo.gatt.connect();
-        hallado = await buscar(gatt);
-        // Un equipo de Bluetooth clásico y LE ya emparejado puede soltar la conexión GATT mientras
-        // se recorren sus servicios: se reconecta y se busca una vez más.
-        if (!hallado && !gatt.connected) hallado = await buscar(await dispositivo.gatt.connect());
+        // Un equipo ya emparejado, o recién prendido, puede soltar la conexión GATT mientras se
+        // recorren sus servicios: se reconecta con pausas (bitácora parqueadero 13 y 17).
+        hallado = await conectarYBuscar(dispositivo.gatt);
       } catch (error) {
         ultimoError = detalleDe(error);
         throw new FalloDeImpresora(motivoDelError(error, false), ultimoError);
@@ -277,6 +308,11 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
           .getPrimaryServices?.()
           .then((ss) => ss.map((x) => x.uuid).join(', '))
           .catch(() => '');
+        // Se cayó en todos los intentos: no es que no se reconozca (bitácora parqueadero 17).
+        if (!dispositivo.gatt.connected) {
+          ultimoError = `La conexión se cayó en los ${PAUSAS_ENTRE_INTENTOS.length + 1} intentos. Apague y prenda el Bluetooth del teléfono, y cierre otra app conectada a la impresora`;
+          throw new FalloDeImpresora('fuera_de_alcance', ultimoError);
+        }
         ultimoError = `Ningún servicio conocido tiene una característica de escritura. Servicios visibles: ${visibles || 'ninguno'}`;
         throw new FalloDeImpresora('sin_caracteristica', ultimoError);
       }
