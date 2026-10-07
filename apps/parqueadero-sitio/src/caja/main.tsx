@@ -20,7 +20,18 @@ const control = crearControl(db, {
   hostname: location.hostname,
   reloj,
   nuevoId: () => crypto.randomUUID(),
+  guardado: (() => {
+    try {
+      return localStorage;
+    } catch {
+      return undefined;
+    }
+  })(),
 });
+
+// Al cerrar o recargar la caja, la conexión se suelta a propósito: si Android la deja viva sin
+// dueño, la impresora no acepta la siguiente (bitácora parqueadero 21).
+addEventListener('pagehide', () => control.soltar());
 
 render(
   <App

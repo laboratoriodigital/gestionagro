@@ -61,6 +61,8 @@ export interface Impresora {
   reconectar(forzar?: boolean): Promise<boolean>;
   imprimir(trabajo: Trabajo): Promise<Resultado>;
   estado(): EstadoImpresora;
+  /** Al cerrar la caja: suelta la conexión para que la próxima no la encuentre ocupada. */
+  soltar?(): void;
 }
 
 /** Un fallo que un adaptador lanza al vincular; la caja muestra `detalle` (§7.4 paso 5). */

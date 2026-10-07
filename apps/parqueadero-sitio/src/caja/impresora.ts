@@ -33,6 +33,11 @@ export interface OpcionesDeControl {
   readonly hostname: string;
   readonly reloj: () => number;
   readonly nuevoId: () => string;
+  /**
+   * Dónde queda el diagnóstico al cerrar la caja, para leerlo después de recargarla (bitácora
+   * 21). En el navegador, `localStorage`; puede faltar o fallar, y la caja sigue igual.
+   */
+  readonly guardado?: Pick<Storage, 'getItem' | 'setItem'> | undefined;
 }
 
 export interface ControlDeImpresora {
@@ -60,10 +65,15 @@ export interface ControlDeImpresora {
   ): Promise<Resultado>;
   estado(): EstadoImpresora;
   escuchar(oyente: (estado: EstadoImpresora) => void): () => void;
+  /** Lo que el adaptador vio, más el de la sesión anterior si la caja se recargó. */
   diagnostico(): string;
+  /** Al cerrar o recargar la caja: suelta la conexión y guarda el diagnóstico. */
+  soltar(): void;
 }
 
 export type CaminoDeLaCaja = 'bluetooth' | 'serial';
+
+const CLAVE_DEL_DIAGNOSTICO = 'caja-diagnostico-anterior';
 
 /** Un adaptador con su diagnóstico para soporte (§7.4 paso 6). */
 type Adaptador = Impresora & { diagnostico(): string };
@@ -230,7 +240,25 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
       return () => oyentes.delete(oyente);
     },
 
-    diagnostico: () => ultima?.diagnostico() ?? 'Impresora: sin vincular en esta sesión',
+    diagnostico() {
+      const ahora = ultima?.diagnostico() ?? 'Impresora: sin vincular en esta sesión';
+      let antes: string | null = null;
+      try {
+        antes = opciones.guardado?.getItem(CLAVE_DEL_DIAGNOSTICO) ?? null;
+      } catch {
+        // Sin almacenamiento, solo esta sesión.
+      }
+      return antes ? `${ahora}\n\n--- Antes de recargar la caja ---\n${antes}` : ahora;
+    },
+
+    soltar() {
+      try {
+        if (ultima) opciones.guardado?.setItem(CLAVE_DEL_DIAGNOSTICO, ultima.diagnostico());
+      } catch {
+        // Sin almacenamiento no se guarda; soltar la conexión es lo que importa.
+      }
+      enUso?.soltar?.();
+    },
   };
 }
 
