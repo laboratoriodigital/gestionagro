@@ -182,6 +182,25 @@ export function wranglerDeEnsayo(): Record<string, unknown> {
   };
 }
 
+/**
+ * El sitio y la caja del Parqueadero ED1 (HU-Q5.1): solo assets, sin código de Worker. Hasta que
+ * la zona `laboratorio-digital.app` esté activa (HU-Q5.2) existe solo en staging: el despliegue no
+ * la publica en producción, y su configuración de arriba no se usa.
+ */
+export const WORKER_PARQUEADERO = 'ed1-parqueadero';
+export const RUTA_WRANGLER_PARQUEADERO = join(RAIZ, 'apps', 'parqueadero-sitio', 'wrangler.jsonc');
+export function wranglerDelParqueadero(): Record<string, unknown> {
+  return {
+    $schema: 'node_modules/wrangler/config-schema.json',
+    name: WORKER_PARQUEADERO,
+    compatibility_date: FECHA_COMPATIBILIDAD,
+    assets: { directory: './dist' },
+    workers_dev: true,
+    env: { staging: { name: `${WORKER_PARQUEADERO}-staging`, workers_dev: true } },
+  };
+}
+
+export const textoWranglerDelParqueadero = (): string => comoTexto(wranglerDelParqueadero());
 export const textoWranglerDelSitio = (config: ConfigCeldas): string =>
   comoTexto(wranglerDelSitio(config));
 export const textoWranglerDelCore = (config: ConfigCeldas): string =>
@@ -197,6 +216,13 @@ if (process.argv[1]?.endsWith('generar-wrangler.ts')) {
     return rutaWranglerCelda(celda.id);
   });
   writeFileSync(RUTA_WRANGLER_ENSAYO, comoTexto(wranglerDeEnsayo()));
-  for (const ruta of [RUTA_WRANGLER_SITIO, RUTA_WRANGLER_CORE, RUTA_WRANGLER_ENSAYO, ...deCeldas])
+  writeFileSync(RUTA_WRANGLER_PARQUEADERO, textoWranglerDelParqueadero());
+  for (const ruta of [
+    RUTA_WRANGLER_SITIO,
+    RUTA_WRANGLER_CORE,
+    RUTA_WRANGLER_ENSAYO,
+    RUTA_WRANGLER_PARQUEADERO,
+    ...deCeldas,
+  ])
     console.log(`✅ ${ruta}`);
 }

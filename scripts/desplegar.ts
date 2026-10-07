@@ -24,6 +24,7 @@ import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
 import { generarClavePrivada } from '../packages/tokens/src/index.ts';
 import {
   baseDelShard,
+  WORKER_PARQUEADERO,
   wranglerDeLaCelda,
   wranglerDelCore,
   wranglerDelSitio,
@@ -62,6 +63,7 @@ import {
   urlDeWorkersDev,
   verificarToken,
 } from './lib/despliegue.ts';
+import { humoParqueadero } from './lib/humo-parqueadero.ts';
 import {
   ARCHIVO_DESPLIEGUE,
   asegurarClaves,
@@ -513,6 +515,32 @@ async function desplegarEnsayo(cred: Credenciales): Promise<Paso> {
     : { ok: true, detalle: [`ensayo (segundo producto, solo staging): ${url}`] };
 }
 
+/**
+ * HU-Q5.1: el sitio y la caja del parqueadero, solo en staging hasta que su dominio exista
+ * (HU-Q5.2). Solo assets, sin secretos: un staging del parqueadero no tiene credenciales de
+ * producción. La prueba de humo exige la caja con su CSP y su service worker.
+ */
+async function desplegarParqueadero(cred: Credenciales): Promise<Paso> {
+  const deploy = wrangler('@ed1/parqueadero-sitio', 'deploy --env staging', cred);
+  if (!deploy.ok) {
+    return {
+      ok: false,
+      detalle: ['parqueadero: wrangler deploy falló:', ...causaDeWrangler(deploy.salida)],
+    };
+  }
+  const url = urlDeWorkersDev(deploy.salida);
+  if (!url?.startsWith(`https://${WORKER_PARQUEADERO}-staging.`)) {
+    return {
+      ok: false,
+      detalle: [`parqueadero desplegado en ${url ?? '?'}, que no es su staging`],
+    };
+  }
+  const fallas = await conReintentos(() => humoParqueadero(fetch, url));
+  return fallas.length > 0
+    ? { ok: false, detalle: fallas }
+    : { ok: true, detalle: [`parqueadero (solo staging): ${url}/caja/`] };
+}
+
 async function desplegarApiCelda(
   config: ConfigCeldas,
   celda: Celda,
@@ -698,6 +726,10 @@ for (const celda of plan.aDesplegar) {
     detalle.push(...paso.detalle);
     if (paso.ok && destino === 'staging') {
       paso = await desplegarEnsayo(cred);
+      detalle.push(...paso.detalle);
+    }
+    if (paso.ok && destino === 'staging') {
+      paso = await desplegarParqueadero(cred);
       detalle.push(...paso.detalle);
     }
   } else if (alojaCore) {

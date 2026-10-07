@@ -1,0 +1,28 @@
+{
+  "name": "@ed1/parqueadero-sitio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Parqueadero ED1: el sitio y la caja instalable en /caja/, que funciona sin red e imprime en la PT-210 (ADR-32, HU-Q3.1, HU-Q5.1). En staging solo, hasta HU-Q5.2.",
+  "type": "module",
+  "scripts": {
+    "build": "astro build && vite build --config src/caja/vite.config.ts && node ../../scripts/armar-parqueadero.ts && wrangler deploy --dry-run --outdir .wrangler/dry-run-staging --env staging"
+  },
+  "dependencies": {
+    "@astrojs/preact": "^6.0.5",
+    "@ed1/impresion": "workspace:*",
+    "@ed1/ui": "workspace:*",
+    "astro": "^7.3.5",
+    "dexie": "^4.4.6",
+    "preact": "^10.29.8",
+    "workbox-window": "^7.4.1"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "vite": "^8.3.1",
+    "vite-plugin-pwa": "^1.3.0",
+    "workbox-core": "^7.4.1",
+    "workbox-precaching": "^7.4.1",
+    "workbox-routing": "^7.4.1",
+    "wrangler": "^4.144.0"
+  }
+}

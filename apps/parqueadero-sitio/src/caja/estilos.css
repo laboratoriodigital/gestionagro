@@ -1,0 +1,188 @@
+/*
+ * La caja (BACKLOG-PARKING §5.1): de pie, al sol y con una mano. Toques de 56 px, texto de 18 px,
+ * la acción principal abajo, lo exacto en mono y el azul de la señal de parqueo como acento.
+ */
+:root {
+  --acento: #0b4fa0;
+  --acento-texto: #ffffff;
+  --foco: #0b4fa0;
+  --toque: 56px;
+  font-family: var(--fuente-sans);
+  font-size: 18px;
+  line-height: var(--interlineado);
+  color: var(--texto);
+  background: var(--superficie);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --acento: #7fb0f0;
+    --acento-texto: #0b0b0a;
+    --foco: #7fb0f0;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+.cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--espacio-2) var(--espacio-4);
+  background: var(--superficie-2);
+  border-bottom: var(--borde-ancho) solid var(--borde);
+}
+
+.cabecera-titulo {
+  display: flex;
+  gap: var(--espacio-2);
+  align-items: center;
+  font-weight: var(--peso-fuerte);
+}
+
+.marca-prueba {
+  padding: 0 var(--espacio-2);
+  border: 2px solid var(--peligro);
+  border-radius: var(--radio-campo);
+  color: var(--peligro);
+  font-size: var(--texto-pequeno);
+}
+
+.senales {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--espacio-1) var(--espacio-3);
+  margin: var(--espacio-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--texto-pequeno);
+}
+
+/* Nada se dice solo con color: el texto nombra el estado y el borde lo refuerza. */
+.senal {
+  padding-left: var(--espacio-2);
+  border-left: 4px solid var(--borde);
+}
+.senal-bien {
+  border-color: var(--exito);
+}
+.senal-aviso {
+  border-color: var(--aviso);
+  color: var(--aviso);
+}
+.senal-error {
+  border-color: var(--peligro);
+  color: var(--peligro);
+  font-weight: var(--peso-fuerte);
+}
+
+.aviso-almacenamiento,
+.aviso-actualizacion {
+  margin: var(--espacio-2) 0 0;
+  padding: var(--espacio-2) var(--espacio-4);
+  font-size: var(--texto-pequeno);
+  color: var(--aviso);
+}
+
+.contenido {
+  display: grid;
+  gap: var(--espacio-4);
+  padding: var(--espacio-4);
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.tarjeta,
+.asistente {
+  display: grid;
+  gap: var(--espacio-3);
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-size: var(--texto-titulo-3);
+  line-height: 1.25;
+}
+
+p {
+  margin: 0;
+}
+
+.exacto {
+  font-family: var(--fuente-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.boton,
+.opcion {
+  min-height: var(--toque);
+  padding: 0 var(--espacio-4);
+  border: 2px solid var(--acento);
+  border-radius: var(--radio-campo);
+  background: var(--superficie);
+  color: var(--acento);
+  font: inherit;
+  font-weight: var(--peso-fuerte);
+}
+
+.boton-principal {
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+.boton-secundario {
+  border-color: var(--borde);
+  color: var(--texto);
+}
+
+.boton:disabled {
+  border-color: var(--borde);
+  background: var(--superficie-2);
+  color: var(--texto-suave);
+}
+
+.boton:focus-visible,
+.opcion:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  margin-bottom: var(--espacio-2);
+  font-weight: var(--peso-fuerte);
+}
+
+.opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--espacio-2);
+}
+
+.opcion[aria-pressed="true"] {
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+.exito {
+  color: var(--exito);
+  font-weight: var(--peso-fuerte);
+}
+
+.error {
+  color: var(--peligro);
+  font-weight: var(--peso-fuerte);
+}

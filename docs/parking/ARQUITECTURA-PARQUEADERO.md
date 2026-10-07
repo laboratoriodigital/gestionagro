@@ -185,6 +185,8 @@ Se heredan ED1 §3, los patrones P1–P21 (`../BITACORA.md` › Lo aprendido), l
 | `packages/firma` | Fragmento firmado (`datos.firma[.certificado]`) | Sale de `packages/trazabilidad` [ADR-39] | M0 (formato), M2 (firma) |
 | `content/parqueadero/` | Topes por ciudad, textos legales, planes, política de datos | Contenido versionado | M0 |
 
+**Nota de la construcción (7 oct 2026):** la caja no es un paquete aparte. Vive en `apps/parqueadero-sitio/src/caja/`, con su propia compilación de Vite (`src/caja/vite.config.ts`), que sale a `dist/caja/` junto a lo que arma Astro. Un solo paquete, un solo build y un solo despliegue, sin el paso que copia la PWA dentro del sitio como hace el agro con `armar-despliegue.ts` (HU-Q3.1, HU-Q5.1).
+
 ### 4.2 Relación con cada pieza de ED1
 
 | Pieza de ED1 | Qué toma el parqueadero | Qué devuelve | Hito |
