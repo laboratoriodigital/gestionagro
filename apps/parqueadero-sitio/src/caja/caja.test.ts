@@ -6,7 +6,7 @@ import { decidirActualizacion } from './actividad.ts';
 import { abrirBase } from './datos.ts';
 import { conMarcaDeEntorno, esProduccion, HOST_DE_PRODUCCION, origenDelRecibo } from './entorno.ts';
 import { fechaBogota, horaBogota } from './fecha.ts';
-import { crearControl } from './impresora.ts';
+import { alVolverALaCaja, crearControl, MS_PARA_REFRESCAR } from './impresora.ts';
 import { proponerCamino, senalDeImpresora, senalDePendientes } from './senales.ts';
 
 describe('el entorno', () => {
@@ -201,5 +201,20 @@ describe('la impresora de la caja', () => {
     });
     expect(await control.reconectar()).toBe(false);
     expect(control.estado()).toBe('sin_vincular');
+  });
+});
+
+describe('la caja vuelve a la pantalla (bitácora parqueadero 19)', () => {
+  it('reconecta lo que se soltó, y tras un bloqueo largo abre otra conexión', () => {
+    expect(alVolverALaCaja('desconectada', 5_000)).toBe('reconectar');
+    expect(alVolverALaCaja('conectada', 5_000)).toBe('nada');
+    expect(alVolverALaCaja('conectada', MS_PARA_REFRESCAR)).toBe('refrescar');
+    expect(alVolverALaCaja('desconectada', MS_PARA_REFRESCAR)).toBe('refrescar');
+  });
+
+  it('sin impresora, imprimiendo o conectando, no toca nada', () => {
+    for (const e of ['sin_vincular', 'ocupada', 'conectando'] as const) {
+      expect(alVolverALaCaja(e, MS_PARA_REFRESCAR * 10)).toBe('nada');
+    }
   });
 });

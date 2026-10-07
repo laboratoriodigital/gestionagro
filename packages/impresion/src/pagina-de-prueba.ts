@@ -5,7 +5,12 @@
  */
 import type { AjustesDeImpresion, Bloque, PaginaDeCodigos } from './documento.ts';
 
-export const MUESTRA = 'áéíóú ñÑ ¿¡ $';
+/**
+ * Cada letra con tilde va seguida de otra letra: una impresora en modo chino de dos bytes se come
+ * la tilde **y** la letra que sigue, y así salta a la vista (bitácora parqueadero 19). Mide 17: la
+ * línea más larga del papel, la de «Sin tildes:», queda en 32.
+ */
+export const MUESTRA = 'Él tenía más años';
 
 /** El orden de las líneas en el papel: la respuesta «línea 1» es `cp850`. */
 export const LINEAS_DE_PRUEBA: readonly PaginaDeCodigos[] = [
