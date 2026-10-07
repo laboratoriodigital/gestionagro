@@ -22,6 +22,7 @@ const PAQUETES = [
   'impresion',
   'parqueadero-schema',
   'parqueadero-tarifas',
+  'parqueadero-recibos',
 ];
 
 const PROHIBIDO: ReadonlyArray<[RegExp, string]> = [

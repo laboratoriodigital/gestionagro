@@ -1,0 +1,20 @@
+{
+  "name": "@ed1/parqueadero-recibos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "El recibo del parqueadero: un modelo con los campos de la ley y cuatro salidas que dicen lo mismo (papel a 32 columnas, enlace, WhatsApp y pantalla), más el enlace del recibo en su forma completa y corta (PARQUEADERO §6, ADR-33, HU-Q1.4, HU-Q1.5).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ed1/dinero": "workspace:*",
+    "@ed1/impresion": "workspace:*",
+    "@ed1/parqueadero-schema": "workspace:*",
+    "@ed1/whatsapp": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "lean-qr": "^2.7.4"
+  }
+}
