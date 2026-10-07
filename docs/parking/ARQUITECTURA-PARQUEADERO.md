@@ -1071,7 +1071,8 @@ Controles técnicos: la autorización del número es una casilla sin marcar, con
 ### 14.4 Medición
 
 - Eventos anónimos a Analytics Engine por `/_m` del Worker del sitio, en lote y cuando hay red, como la Tienda (TIENDA-3.0 §11.6). Sin placas, sin números, sin IP.
-- Eventos: `recibo_entregado` (canal y tipo), `impresion_fallida` (adaptador y causa), `copia_impresa`, `respaldo_hecho`, `turno_cerrado`, `tiempo_de_salida` (segundos).
+- Eventos: `recibo.papel`, `recibo.whatsapp`, `recibo.pantalla`, `recibo.copia`, `impresion.fallida` (adaptador y causa), `respaldo.hecho` y `turno.cerrado`, la lista cerrada de `@ed1/eventos` (HU-Q5.3). `tiempo_de_salida` queda para cuando se mida la caja en el piloto.
+- **Nota del sprint Q5 (7 oct 2026), con el código:** la caja cuenta en `meta` de IndexedDB y manda un lote de claves y cuentas (`{"recibo.papel": 12, "impresion.fallida/bluetooth/tiempo": 1}`) al abrir, al volver la red y cada 15 minutos. Lo descuenta solo cuando el sitio responde, y lo contado mientras viaja sale en el siguiente. El Worker del sitio corre solo para `/_m` (`run_worker_first`) y escribe un punto por clave en el dataset `parqueadero_eventos` (`_staging` en staging), sin nada de la solicitud. Una clave fuera de la lista rechaza el lote entero. «No salió» cuenta como impresión fallida con la causa `no_salio`.
 - En la caja, para el parqueadero: recibos por canal, papel ahorrado y su valor en pesos (§8.4).
 
 ### 14.5 Runbooks (`docs/runbooks/`)
