@@ -4,8 +4,12 @@ import {
   armarRecibo,
   enlaceCompleto,
   enlaceCorto,
+  lineasDePapel,
   ORIGEN_DEL_RECIBO,
+  pantalla,
+  papel as papelDelRecibo,
   ReciboIncompleto,
+  textoWhatsApp,
 } from '@ed1/parqueadero-recibos';
 import { armarExport, type DatosDeSalida, ErrorDeValidacion } from '@ed1/parqueadero-schema';
 import { SEDE_ENSAYO_UNO, TARIFA_CARRO, TARIFA_MOTO } from '@ed1/parqueadero-schema/ensayos';
@@ -15,22 +19,27 @@ import {
   anulados,
   anular,
   armarRespaldo,
+  avisoDelAbono,
   buscarPorLectura,
   type Contexto,
   CotizacionVencida,
   catalogosDelRegistro,
   cerrarTurno,
   contactoDe,
+  cotizar,
   EstadiaCerrada,
   EstadiaYaAbierta,
   estadiasAbiertas,
   faltaParaRegistrar,
+  guardarAbonado,
   guardarContacto,
   guardarPin,
   guardarSede,
   guardarTarifa,
+  leerAbonados,
   leerAjustes,
   NoSeAnula,
+  PinIncorrecto,
   RespaldoInvalido,
   reconstruirEstadias,
   registrarEntrada,
@@ -709,5 +718,101 @@ describe('el tope de la ciudad en la tarifa (HU-Q1.2 CA2)', () => {
     expect(
       (await guardarTarifa(db, { ...carro, tope_minuto: 200, valor: 200 }, null, ctx)).tope_minuto,
     ).toBe(200);
+  });
+});
+
+describe('abonados por placa (HU-Q3.11)', () => {
+  const EFECTIVO = {
+    perdido: false,
+    medio: 'efectivo',
+    recibido: 50_000,
+    motivoCortesia: null,
+  } as const;
+  /** La caja empieza el 6 oct a las 18:05 de Bogotá. */
+  const ABONO = {
+    placa: 'ABC123',
+    vehiculo: 'carro' as const,
+    referencia: 'Apto 302',
+    desde: '2026-10-01',
+    hasta: '2026-10-31',
+    valor: 300_000,
+    activo: true,
+  };
+
+  async function conPin() {
+    const c = await configurada();
+    await guardarPin(c.db, '2468');
+    return c;
+  }
+
+  it('solo el administrador los cambia, con su PIN, y la versión anterior queda (CA1)', async () => {
+    const { db, ctx } = await conPin();
+    await expect(guardarAbonado(db, ABONO, null, '1111', ctx)).rejects.toBeInstanceOf(
+      PinIncorrecto,
+    );
+    expect(await leerAbonados(db)).toEqual([]);
+    const a = await guardarAbonado(db, ABONO, null, '2468', ctx);
+    const renovado = await guardarAbonado(db, { ...ABONO, hasta: '2026-11-30' }, a.id, '2468', ctx);
+    expect([renovado.id, renovado.version, renovado.hasta]).toEqual([a.id, 2, '2026-11-30']);
+    expect(await db.historial.where('entidad_id').equals(a.id).count()).toBe(1);
+  });
+
+  it('el vigente se marca al entrar y sale en 0, como «abonado» y hasta cuándo (CA2)', async () => {
+    const { db, ctx, avanzar } = await conPin();
+    const a = await guardarAbonado(db, ABONO, null, '2468', ctx);
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    expect((entrada.datos as { abonado_id: string | null }).abonado_id).toBe(a.id);
+    avanzar(179);
+    // El cajero no elige medio: lo que mande, el abono lo cubre.
+    const salida = await registrarSalida(db, entrada.id, EFECTIVO, ctx);
+    const d = salida.datos as DatosDeSalida;
+    expect([d.total, d.medio_pago, d.recibido, d.cambio]).toEqual([0, 'abonado', null, null]);
+    expect(d.lineas.map((l) => l.concepto)).toEqual(['abonado']);
+    const recibo = armarRecibo(salida, await catalogosDelRegistro(db, salida), { prueba: false });
+    expect(recibo.salida?.abonadoHasta).toBe('2026-10-31');
+    const lineas = lineasDePapel(
+      papelDelRecibo(recibo, { columnas: 32, paginaDeCodigos: 'cp850', qr: null }),
+      32,
+    );
+    expect(lineas).toContain('Abonado hasta 31/10/2026');
+    expect(pantalla(recibo).filas).toContainEqual(['Abono', 'Abonado hasta 31/10/2026']);
+    expect(textoWhatsApp(recibo, ORIGEN_DEL_RECIBO)).toContain('Abonado hasta 31/10/2026.');
+  });
+
+  it('uno vencido liquida como visitante y la caja lo dice (CA3 ❌)', async () => {
+    const { db, ctx, avanzar } = await conPin();
+    await guardarAbonado(db, { ...ABONO, hasta: '2026-10-05' }, null, '2468', ctx);
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    expect((entrada.datos as { abonado_id: string | null }).abonado_id).toBeNull();
+    avanzar(60);
+    const q = await cotizar(db, entrada.id, ctx.reloj(), false);
+    expect(q.liquidacion.total).toBeGreaterThan(0);
+    expect(avisoDelAbono(q)).toBe('El abono venció el 05/10/2026: se cobra como visitante');
+    const d = (await registrarSalida(db, entrada.id, EFECTIVO, ctx, q.salida))
+      .datos as DatosDeSalida;
+    expect([d.medio_pago, d.total]).toEqual(['efectivo', q.liquidacion.total]);
+  });
+
+  it('desactivado no cuenta, y el que vence en medio cobra desde que venció (CA3 ❌)', async () => {
+    const { db, ctx, avanzar } = await conPin();
+    const a = await guardarAbonado(db, { ...ABONO, hasta: '2026-10-06' }, null, '2468', ctx);
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(60 * 13); // sale el 7 oct a las 07:05: el abono cubrió hasta la medianoche
+    const q = await cotizar(db, entrada.id, ctx.reloj(), false);
+    expect(q.liquidacion.lineas.map((l) => l.concepto)).toContain('abonado');
+    expect(q.liquidacion.total).toBeGreaterThan(0);
+    expect(avisoDelAbono(q)).toBe('El abono venció el 06/10/2026: se cobra desde ese día');
+    await guardarAbonado(db, { ...ABONO, activo: false }, a.id, '2468', ctx);
+    const otra = await registrarEntrada(db, { ...ENTRADA, placa: 'ABC124' }, ctx);
+    await guardarAbonado(db, { ...ABONO, placa: 'ABC124', activo: false }, null, '2468', ctx);
+    expect((await cotizar(db, otra.id, ctx.reloj(), false)).abonado).toBeNull();
+  });
+
+  it('no guarda el WhatsApp del abonado en M0 (CA3 ❌, ADR-38)', async () => {
+    const { db, ctx } = await conPin();
+    const conNumero = { ...ABONO, whatsapp: '3001234567' } as typeof ABONO;
+    await expect(guardarAbonado(db, conNumero, null, '2468', ctx)).rejects.toBeInstanceOf(
+      ErrorDeValidacion,
+    );
   });
 });

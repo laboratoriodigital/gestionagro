@@ -17,7 +17,9 @@ import {
   resumirTurno,
 } from '@ed1/parqueadero-recibos';
 import {
+  type Abonado,
   type AjusteRecibo,
+  abonado,
   ajusteRecibo,
   armarExport,
   type Catalogo,
@@ -25,6 +27,7 @@ import {
   type DatosDeEntrada,
   type DatosDeEntrega,
   type DatosDeMovimiento,
+  type DatosDeSalida,
   type Entidad,
   ErrorDeValidacion,
   type MedioDePago,
@@ -45,6 +48,7 @@ import {
 } from '@ed1/parqueadero-schema';
 import { type Liquidacion, liquidar, validarTarifa } from '@ed1/parqueadero-tarifas';
 import { normalizarNumero } from '@ed1/whatsapp';
+import { abonoDeLaPlaca, fechaDelAbono, venceEl } from './abonados.ts';
 import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
 import { diaLocalBogota, horaBogota } from './fecha.ts';
 import { avisoAceptado, VERSION_DEL_AVISO } from './privacidad.ts';
@@ -220,6 +224,37 @@ export async function verificarPin(db: BaseDeLaCaja, pin: string): Promise<boole
   return (await huellaDePin(pin, m.sal)) === m.huella;
 }
 
+// ── Abonados por placa (HU-Q3.11) ─────────────────────────────────────────────────────────────
+
+/** Los abonados de la caja, de la placa A a la Z. */
+export async function leerAbonados(db: BaseDeLaCaja): Promise<Abonado[]> {
+  const todos = await db.catalogos.where('entidad').equals('abonado').toArray();
+  return (todos as Abonado[]).sort((a, b) => a.placa.localeCompare(b.placa));
+}
+
+/** Un cambio de abonados sin el PIN de administrador no se guarda (CA1). */
+export class PinIncorrecto extends Error {
+  constructor() {
+    super('Ese no es el PIN de administrador');
+    this.name = 'PinIncorrecto';
+  }
+}
+
+/**
+ * Guarda un abonado: solo el administrador, con su PIN (CA1). Con `id`, la versión anterior va al
+ * historial. Desactivarlo (`activo: false`) es la forma de quitarlo: nada se borra (P21).
+ */
+export async function guardarAbonado(
+  db: BaseDeLaCaja,
+  d: SinMeta<Abonado>,
+  id: string | null,
+  pin: string,
+  ctx: Contexto,
+): Promise<Abonado> {
+  if (!(await verificarPin(db, pin))) throw new PinIncorrecto();
+  return guardarCatalogo(db, 'abonado', abonado, d, id, ctx);
+}
+
 // ── La entrada (HU-Q3.3) ───────────────────────────────────────────────────────────────────────
 
 export interface DatosDeLaEntrada {
@@ -261,6 +296,7 @@ export async function registrarEntrada(
   if (faltan.length > 0 || !tarifaVigente) throw new ReciboIncompleto(faltan);
   await exigirTurno(db);
   const numero = d.whatsapp ? numeroAutorizado(ajustes.sede, d.whatsapp) : null;
+  const abonados = await leerAbonados(db);
 
   const tablas = [db.registros, db.estadias, db.meta, db.fotos, db.contactos];
   return db.transaction('rw', tablas, async () => {
@@ -293,7 +329,7 @@ export async function registrarEntrada(
         foto_ids: fotos.map((f) => f.id),
         tarifa_id: tarifaVigente.id,
         tarifa_version: tarifaVigente.version,
-        abonado_id: null,
+        abonado_id: abonoDeLaPlaca(abonados, d.placa, ahora).vigente?.id ?? null,
       },
     });
     await db.registros.add(registro);
@@ -433,7 +469,7 @@ export const entregasDe = (db: BaseDeLaCaja, recibo: Registro): Promise<Registro
  */
 export async function catalogosDelRegistro(db: BaseDeLaCaja, r: Registro): Promise<Catalogos> {
   const hoy = await leerAjustes(db);
-  const base = { sede: hoy.sede, ajuste: hoy.ajuste };
+  const base = { sede: hoy.sede, ajuste: hoy.ajuste, abonado: await abonoDelRecibo(db, r) };
   const d = r.datos as Partial<DatosDeEntrada>;
   if (!d.tarifa_id) return { ...base, tarifa: null };
   const vigente = (await db.catalogos.get(d.tarifa_id)) as Tarifa | undefined;
@@ -447,6 +483,22 @@ export async function catalogosDelRegistro(db: BaseDeLaCaja, r: Registro): Promi
     ? ({ ...(vieja.datos as object), id: vieja.entidad_id, version: vieja.version } as Tarifa)
     : null;
   return { ...base, tarifa: tarifaVieja };
+}
+
+/**
+ * El abono que va en el recibo de una salida que lo usó: el de la placa al entrar, con su «hasta»
+ * de hoy (si se renovó, el recibo lo dice). Nulo en lo demás (HU-Q3.11 CA2).
+ */
+async function abonoDelRecibo(db: BaseDeLaCaja, r: Registro): Promise<{ hasta: string } | null> {
+  if (r.tipo !== 'salida') return null;
+  const d = r.datos as DatosDeSalida;
+  if (!d.lineas.some((l) => l.concepto === 'abonado')) return null;
+  const { vigente } = abonoDeLaPlaca(
+    await leerAbonados(db),
+    d.placa,
+    Date.parse(d.instante_entrada),
+  );
+  return vigente ? { hasta: vigente.hasta } : null;
 }
 
 /**
@@ -517,9 +569,32 @@ export interface Cotizacion {
   readonly tarifa: Tarifa;
   readonly liquidacion: Liquidacion;
   readonly salida: number;
+  /** El abono que tenía la placa al entrar; nulo si entró como visitante (HU-Q3.11). */
+  readonly abonado: Abonado | null;
+  /** Sin abono al entrar, el último que se le venció: la caja lo dice (HU-Q3.11 CA3). */
+  readonly abonoVencido: Abonado | null;
 }
 
-/** Lo que se cobraría si saliera en `salida`, con la tarifa con que entró (§9). */
+/** Lo cubrió el abono entero: no paga, y el medio es «abonado» (HU-Q3.11 CA2). */
+export const cubiertoPorElAbono = (l: Liquidacion): boolean =>
+  l.total === 0 && l.lineas.some((x) => x.concepto === 'abonado');
+
+/** Lo que el cajero lee del abono en la salida; vacío si la placa no tiene ni tuvo. */
+export function avisoDelAbono(q: Pick<Cotizacion, 'abonado' | 'abonoVencido' | 'liquidacion'>) {
+  if (q.abonado && q.liquidacion.avisos.includes('abonado_vencio')) {
+    return `El abono venció el ${fechaDelAbono(q.abonado.hasta)}: se cobra desde ese día`;
+  }
+  if (q.abonado) return `Abonado hasta el ${fechaDelAbono(q.abonado.hasta)}`;
+  if (q.abonoVencido) {
+    return `El abono venció el ${fechaDelAbono(q.abonoVencido.hasta)}: se cobra como visitante`;
+  }
+  return '';
+}
+
+/**
+ * Lo que se cobraría si saliera en `salida`, con la tarifa con que entró (§9). Si la placa tenía
+ * abono al entrar, no paga lo que el abono cubre (hasta su día `hasta`, también si se renovó).
+ */
 export async function cotizar(
   db: BaseDeLaCaja,
   estadiaId: string,
@@ -531,8 +606,18 @@ export async function cotizar(
   if (!estadia || !entrada) throw new EstadiaCerrada();
   const t = (await catalogosDelRegistro(db, entrada)).tarifa;
   if (!t) throw new ReciboIncompleto(['la tarifa']);
-  const liquidacion = liquidar(estadia.entrada, salida, t, t.tope_minuto, null, perdido);
-  return { estadia, entrada, tarifa: t, liquidacion, salida };
+  const abono = abonoDeLaPlaca(await leerAbonados(db), estadia.placa, estadia.entrada);
+  const cubre = abono.vigente ? { vence: venceEl(abono.vigente) } : null;
+  const liquidacion = liquidar(estadia.entrada, salida, t, t.tope_minuto, cubre, perdido);
+  return {
+    estadia,
+    entrada,
+    tarifa: t,
+    liquidacion,
+    salida,
+    abonado: abono.vigente,
+    abonoVencido: abono.vencido,
+  };
 }
 
 export interface DatosDelCobro {
@@ -572,7 +657,9 @@ export async function registrarSalida(
   if (ahora > reloj || reloj - ahora > 10 * 60_000) throw new CotizacionVencida();
   const q = await cotizar(db, estadiaId, ahora, c.perdido);
   const liq = q.liquidacion;
-  const efectivo = c.medio === 'efectivo';
+  // Lo que cubre el abono no se cobra: el medio es «abonado», elija lo que elija el cajero.
+  const medio: MedioDePago = cubiertoPorElAbono(liq) ? 'abonado' : c.medio;
+  const efectivo = medio === 'efectivo';
   if (efectivo && (c.recibido === null || c.recibido < liq.total)) {
     throw new ErrorDeValidacion('salida', [
       { campo: 'recibido', motivo: `es menos que el total (${liq.total})` },
@@ -607,10 +694,10 @@ export async function registrarSalida(
         subtotal: liq.subtotal,
         redondeo: liq.redondeo,
         total: liq.total,
-        medio_pago: c.medio,
+        medio_pago: medio,
         recibido,
         cambio: recibido === null ? null : recibido - liq.total,
-        motivo_cortesia: c.medio === 'cortesia' ? (c.motivoCortesia?.trim() ?? '') : null,
+        motivo_cortesia: medio === 'cortesia' ? (c.motivoCortesia?.trim() ?? '') : null,
         perdido: c.perdido,
         tarifa_id: q.tarifa.id,
         tarifa_version: q.tarifa.version,

@@ -690,6 +690,63 @@ test.describe('la caja del parqueadero', () => {
     expect(tipos.sort()).toEqual(['anulacion', 'entrada', 'turno_apertura']);
   });
 
+  test('HU-Q3.11 · el abonado se agrega con PIN, se marca al entrar y sale sin cobro', async ({
+    page,
+  }) => {
+    const entrada = new Date('2026-10-06T23:05:00Z');
+    await page.clock.setFixedTime(entrada);
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page);
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await page.getByRole('button', { name: 'Agregar abonado' }).click();
+    const f = page.getByTestId('abonado');
+    await f.getByLabel('Placa').fill('jkl456');
+    await expect(f.getByRole('button', { name: 'Carro' })).toHaveAttribute('aria-pressed', 'true');
+    await f.getByLabel('Referencia (opcional)').fill('Apto 302');
+    await expect(f.getByLabel('Hasta (incluido)')).toHaveValue('2026-11-05');
+    await f.getByLabel('Valor de la mensualidad').fill('300.000');
+    const revisar = async () => {
+      const { violations } = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
+      expect(violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
+    };
+    await revisar();
+    await f.getByLabel('PIN de administrador').fill('1111');
+    await f.getByRole('button', { name: 'Guardar abonado' }).click();
+    await expect(page.getByTestId('aviso-abonado')).toHaveText('Ese no es el PIN de administrador');
+    await f.getByLabel('PIN de administrador').fill('2468');
+    await f.getByRole('button', { name: 'Guardar abonado' }).click();
+    const fila = page.getByTestId('abonado-fila');
+    await expect(fila).toContainText('JKL456');
+    await expect(fila).toContainText('Vigente · 06/10/2026 a 05/11/2026');
+    await sinDesborde(page);
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'JKL456');
+    await expect(page.getByTestId('abonado-entrada')).toHaveText(
+      'Abonado hasta el 05/11/2026 · Apto 302',
+    );
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    await page.clock.setFixedTime(new Date(entrada.getTime() + 180 * 60_000));
+    await page.getByTestId('estadia').click();
+    await expect(page.getByTestId('total')).toHaveText('$0');
+    await expect(page.getByTestId('abonado-salida')).toHaveText('Abonado hasta el 05/11/2026');
+    await expect(page.getByRole('group', { name: 'Medio de pago' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Dar salida al abonado' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000002');
+    const filas = page.getByTestId('filas-del-recibo');
+    await expect(filas).toContainText('abonado');
+    await expect(filas).toContainText('Abonado hasta 05/11/2026');
+  });
+
   test('bitácora 18 · la impresora se apagó: el recibo lo dice, reconecta desde ahí y da el diagnóstico', async ({
     page,
     context,

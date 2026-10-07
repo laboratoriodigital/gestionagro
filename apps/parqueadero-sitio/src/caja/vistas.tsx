@@ -5,11 +5,18 @@
  */
 import { uuidv7 } from '@ed1/ids';
 import { faltantesDeSede, juntar } from '@ed1/parqueadero-recibos';
-import type { Registro, Vehiculo } from '@ed1/parqueadero-schema';
+import type { Abonado, Registro, Vehiculo } from '@ed1/parqueadero-schema';
 import { useMemo } from 'preact/hooks';
+import { Abonados } from './Abonados.tsx';
 import { Ajustes as PantallaDeAjustes, VEHICULOS_DE_LA_CAJA } from './Ajustes.tsx';
 import { Aviso } from './Aviso.tsx';
-import { type Ajustes, type Contexto, faltaParaRegistrar, leerAjustes } from './almacen.ts';
+import {
+  type Ajustes,
+  type Contexto,
+  faltaParaRegistrar,
+  leerAbonados,
+  leerAjustes,
+} from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
 import { Entrada } from './Entrada.tsx';
 import { Escanear } from './Escanear.tsx';
@@ -32,6 +39,7 @@ export type Vista =
   | { readonly es: 'aviso' }
   | { readonly es: 'turno' }
   | { readonly es: 'respaldo' }
+  | { readonly es: 'abonados' }
   | { readonly es: 'recibo'; readonly registro: Registro };
 
 /** Los vehículos que la caja puede registrar hoy: los que tienen tarifa. */
@@ -100,6 +108,8 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir }: Props) {
       );
     case 'respaldo':
       return <Respaldo db={db} ctx={ctx} alVolver={inicio} />;
+    case 'abonados':
+      return <Abonados db={db} ctx={ctx} alVolver={inicio} />;
     case 'aviso':
       return (
         <Aviso
@@ -127,8 +137,10 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir }: Props) {
 /** Mientras falte un dato legal, «Entrada» dice qué falta y lleva al campo (HU-Q3.2 CA2). */
 function EntradaOFalta({ db, ctx, ir }: Pick<Props, 'db' | 'ir'> & { ctx: Contexto }) {
   const ajustes = useConsulta<Ajustes | null>(() => leerAjustes(db), null);
+  const abonados = useConsulta<Abonado[] | null>(() => leerAbonados(db), null);
   const turno = useConsulta<TurnoAbierto | null | undefined>(() => turnoAbierto(db), undefined);
-  if (!ajustes || turno === undefined) return <section class="tarjeta" aria-busy="true" />;
+  if (!ajustes || !abonados || turno === undefined)
+    return <section class="tarjeta" aria-busy="true" />;
   const { faltan, campo } = queFalta(ajustes);
   // Ningún recibo fuera de un turno (HU-Q3.9 CA4): al abrirlo, sigue la entrada.
   if (faltan.length === 0 && !turno) {
@@ -148,6 +160,7 @@ function EntradaOFalta({ db, ctx, ir }: Pick<Props, 'db' | 'ir'> & { ctx: Contex
         ctx={ctx}
         vehiculos={conTarifa(ajustes)}
         pideNumero={avisoAceptado(ajustes.sede)}
+        abonados={abonados}
         alRegistrar={(r) => ir({ es: 'recibo', registro: r })}
         alCancelar={() => ir({ es: 'inicio' })}
       />

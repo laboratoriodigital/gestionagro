@@ -11,10 +11,12 @@ import { useEffect, useState } from 'preact/hooks';
 import { Anular } from './Anular.tsx';
 import { abrirFormulario } from './actividad.ts';
 import {
+  avisoDelAbono,
   type Contexto,
   type Cotizacion,
   CotizacionVencida,
   cotizar,
+  cubiertoPorElAbono,
   type DatosDelCobro,
   EstadiaCerrada,
   registrarSalida,
@@ -86,8 +88,12 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
 
   const { estadia, liquidacion: liq, tarifa } = q;
   const efectivo = pesosEscritos(recibido);
-  const falta =
-    medio === null
+  // El abono lo cubre todo: no hay medio que elegir (HU-Q3.11 CA2).
+  const cubierto = cubiertoPorElAbono(liq);
+  const delAbono = avisoDelAbono(q);
+  const falta = cubierto
+    ? ''
+    : medio === null
       ? 'Elija el medio de pago'
       : medio === 'efectivo' && (efectivo === null || efectivo < liq.total)
         ? `Lo recibido no alcanza: el total es ${formatearPesos(liq.total)}`
@@ -97,7 +103,8 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
 
   async function cobrar(e: Event) {
     e.preventDefault();
-    if (falta || !medio || !q) return;
+    const cobro = cubierto ? 'efectivo' : medio;
+    if (falta || !cobro || !q) return;
     setCobrando(true);
     try {
       const r = await registrarSalida(
@@ -105,8 +112,8 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
         estadiaId,
         {
           perdido,
-          medio,
-          recibido: medio === 'efectivo' ? efectivo : null,
+          medio: cobro,
+          recibido: cubierto ? null : medio === 'efectivo' ? efectivo : null,
           motivoCortesia: medio === 'cortesia' ? motivo : null,
         },
         ctx,
@@ -140,6 +147,14 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
         <p class="total-grande" data-prueba="total">
           {formatearPesos(liq.total)}
         </p>
+        {delAbono && (
+          <p
+            class={q.abonado && !liq.avisos.includes('abonado_vencio') ? 'exito' : 'error'}
+            data-prueba="abonado-salida"
+          >
+            {delAbono}
+          </p>
+        )}
         <details>
           <summary>Ver el detalle</summary>
           <dl class="filas" data-prueba="detalle">
@@ -173,22 +188,24 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
           </label>
         )}
 
-        <fieldset>
-          <legend>Medio de pago</legend>
-          <div class="opciones">
-            {MEDIOS.map(([m, nombre]) => (
-              <button
-                key={m}
-                type="button"
-                class="opcion"
-                aria-pressed={medio === m}
-                onClick={() => setMedio(m)}
-              >
-                {nombre}
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        {!cubierto && (
+          <fieldset>
+            <legend>Medio de pago</legend>
+            <div class="opciones">
+              {MEDIOS.map(([m, nombre]) => (
+                <button
+                  key={m}
+                  type="button"
+                  class="opcion"
+                  aria-pressed={medio === m}
+                  onClick={() => setMedio(m)}
+                >
+                  {nombre}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         {medio === 'efectivo' && (
           <div class="campo">
@@ -224,7 +241,7 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
           </p>
         )}
         <button type="submit" class="boton boton-principal" disabled={Boolean(falta) || cobrando}>
-          {falta || `Cobrar ${formatearPesos(liq.total)}`}
+          {falta || (cubierto ? 'Dar salida al abonado' : `Cobrar ${formatearPesos(liq.total)}`)}
         </button>
         <button type="button" class="boton boton-secundario" onClick={alVolver}>
           Volver al inicio
