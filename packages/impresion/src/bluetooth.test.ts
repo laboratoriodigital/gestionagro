@@ -558,3 +558,27 @@ describe('imprimir', () => {
     });
   });
 });
+
+describe('al cerrar la caja (bitácora parqueadero 21)', () => {
+  it('suelta la conexión a propósito, y la línea de tiempo lo cuenta', async () => {
+    const f = pt210Falsa();
+    let soltadas = 0;
+    Object.assign(f.gatt, { disconnect: () => soltadas++ });
+    const impresora = crearImpresoraBluetooth({ bluetooth: f.bluetooth, esperar: sinEsperar });
+    await impresora.vincular();
+    await impresora.imprimir(recibo(10));
+    soltadas = 0;
+    impresora.soltar?.();
+    expect(soltadas).toBe(1);
+    const d = impresora.diagnostico();
+    expect(d).toContain('Línea de tiempo:');
+    expect(d).toMatch(/\+\d+ s imprimió 10 bytes/);
+    expect(d).toMatch(/\+\d+ s soltada al cerrar la caja/);
+  });
+
+  it('sin conexión abierta no hace nada', () => {
+    const f = pt210Falsa();
+    const impresora = crearImpresoraBluetooth({ bluetooth: f.bluetooth });
+    expect(() => impresora.soltar?.()).not.toThrow();
+  });
+});
