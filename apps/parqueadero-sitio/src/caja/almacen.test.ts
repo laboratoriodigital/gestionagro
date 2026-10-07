@@ -195,9 +195,26 @@ describe('el recibo de una entrada ya registrada', () => {
     const { db, ctx } = await configurada();
     const entrada = await registrarEntrada(db, ENTRADA, ctx);
     expect(await vecesImpreso(db, entrada)).toBe(0);
-    await registrarEntrega(db, entrada, 'whatsapp', false, ctx);
-    await registrarEntrega(db, entrada, 'papel', false, ctx);
+    await registrarEntrega(
+      db,
+      entrada,
+      { canal: 'whatsapp', copia: false, resultado: 'abierto' },
+      ctx,
+    );
+    const papel = {
+      canal: 'papel',
+      copia: false,
+      camino: 'bluetooth',
+      resultado: 'enviado',
+    } as const;
+    await registrarEntrega(db, entrada, papel, ctx);
     expect(await vecesImpreso(db, entrada)).toBe(1);
+    // «No salió» descuenta ese envío: la siguiente vuelve a ser el original (HU-Q3.6 CA2).
+    await registrarEntrega(db, entrada, { ...papel, resultado: 'fallido' }, ctx);
+    expect(await vecesImpreso(db, entrada)).toBe(0);
+    await registrarEntrega(db, entrada, papel, ctx);
+    await registrarEntrega(db, entrada, { ...papel, copia: true }, ctx);
+    expect(await vecesImpreso(db, entrada)).toBe(2);
   });
 });
 

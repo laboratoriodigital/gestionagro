@@ -9,12 +9,14 @@
 import { z } from 'zod';
 import { fechaLocal, id, instante, notaCorta, pesos, placa, serie, texto } from './comunes.ts';
 import {
+  CAMINOS_DE_PAPEL,
   CANALES,
   MEDIOS_DE_PAGO,
   NOMBRES_DE_TIPO,
   NOMBRES_DE_VEHICULO,
   NOVEDADES,
   ORIGENES,
+  RESULTADOS_DE_ENTREGA,
   TIPOS_DE_REGISTRO,
 } from './tipos.ts';
 
@@ -196,6 +198,9 @@ const entregaReciboV1 = z.strictObject({
   recibo_id: id,
   canal: z.enum(CANALES),
   copia: z.boolean(),
+  // Desde Q3 (HU-Q3.6 CA2). Opcionales: las entregas de staging de Q2 no los traen.
+  camino: z.enum(CAMINOS_DE_PAPEL).nullable().optional(),
+  resultado: z.enum(RESULTADOS_DE_ENTREGA).optional(),
 });
 
 const turnoAperturaV1 = z.strictObject({ base: pesos, operador: texto.max(30) });
@@ -248,6 +253,7 @@ export const ESQUEMAS_DE_DATOS = {
 
 export type DatosDeEntrada = z.infer<typeof entradaV1>;
 export type DatosDeSalida = z.infer<typeof salidaV1>;
+export type DatosDeEntrega = z.infer<typeof entregaReciboV1>;
 export type LineaDeLiquidacion = z.infer<typeof lineaDeLiquidacion>;
 export type Registro = z.infer<typeof registroBase>;
 

@@ -267,9 +267,17 @@ test.describe('la caja del parqueadero', () => {
     expect(recibo).toContain('ABC123');
     expect(recibo).toContain('PRUEBA');
     expect(recibo).not.toContain('COPIA');
+    // «No salió» reimprime el original, sin marca de copia (HU-Q3.6 CA2).
+    const sinSalir = (await bytesImpresos(page)).length;
+    await page.getByRole('button', { name: 'No salió' }).click();
+    await expect(page.getByTestId('entregas')).toContainText('Se anotó que el papel no salió.');
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    const otraVez = (await bytesImpresos(page)).slice(sinSalir);
+    expect(otraVez).toContain('A-000001');
+    expect(otraVez).not.toContain('COPIA');
     // Reimprimir sale con «COPIA 1» (HU-Q3.6 CA2).
     const conOriginal = (await bytesImpresos(page)).length;
-    await page.getByRole('button', { name: 'Imprimir otra vez' }).click();
+    await page.getByRole('button', { name: 'Reimprimir' }).click();
     await expect(page.getByTestId('estado-del-papel')).toHaveText('Copia 1 enviada a la impresora');
     expect((await bytesImpresos(page)).slice(conOriginal)).toContain('*** COPIA 1 ***');
     // La misma placa no abre otra estadía (CA3).

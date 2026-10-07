@@ -19,6 +19,7 @@ import {
   ajusteRecibo,
   type Catalogo,
   type DatosDeEntrada,
+  type DatosDeEntrega,
   type Entidad,
   ErrorDeValidacion,
   type MedioDePago,
@@ -285,34 +286,48 @@ export async function registrarEntrada(
   });
 }
 
-/** Cómo salió un recibo: queda en los registros, sin número (§7.6). */
+export type DatosDeEntregaRecibo = Omit<DatosDeEntrega, 'recibo_id'>;
+
+/**
+ * Cómo salió un recibo: queda en los registros, sin número, sin teléfono y sin texto (§7.6,
+ * HU-Q3.6 CA2). Devuelve el registro, para poder decir después «No salió» sobre él.
+ */
 export async function registrarEntrega(
   db: BaseDeLaCaja,
   recibo: Registro,
-  canal: 'papel' | 'whatsapp' | 'pantalla',
-  copia: boolean,
+  entrega: DatosDeEntregaRecibo,
   ctx: Contexto,
-): Promise<void> {
+): Promise<Registro> {
   const ahora = ctx.reloj();
-  await db.registros.add(
-    validarRegistro({
-      id: ctx.nuevoId(),
-      org_id: null,
-      tipo: 'entrega_recibo',
-      v: 1,
-      fecha_local: diaLocalBogota(ahora),
-      instante_evento: iso(ahora),
-      autor_usuario_id: null,
-      dispositivo_id: recibo.dispositivo_id,
-      origen: 'manual',
-      anula_id: null,
-      estadia_id: recibo.estadia_id,
-      serie: null,
-      consecutivo: null,
-      datos: { recibo_id: recibo.id, canal, copia },
-    }),
-  );
+  const registro = validarRegistro({
+    id: ctx.nuevoId(),
+    org_id: null,
+    tipo: 'entrega_recibo',
+    v: 1,
+    fecha_local: diaLocalBogota(ahora),
+    instante_evento: iso(ahora),
+    autor_usuario_id: null,
+    dispositivo_id: recibo.dispositivo_id,
+    origen: 'manual',
+    anula_id: null,
+    estadia_id: recibo.estadia_id,
+    serie: null,
+    consecutivo: null,
+    datos: { recibo_id: recibo.id, ...entrega },
+  });
+  await db.registros.add(registro);
+  return registro;
 }
+
+/** Las entregas de un recibo, en orden. */
+export const entregasDe = (db: BaseDeLaCaja, recibo: Registro): Promise<Registro[]> =>
+  db.registros
+    .where('estadia_id')
+    .equals(recibo.estadia_id ?? recibo.id)
+    .filter(
+      (r) => r.tipo === 'entrega_recibo' && (r.datos as DatosDeEntrega).recibo_id === recibo.id,
+    )
+    .sortBy('instante_evento');
 
 /**
  * Los catálogos con que se hizo un registro: la sede y el pie de hoy, y la tarifa en la versión que
@@ -336,16 +351,18 @@ export async function catalogosDelRegistro(db: BaseDeLaCaja, r: Registro): Promi
   return { ...base, tarifa: tarifaVieja };
 }
 
-/** Cuántas veces salió ya un recibo en papel: la siguiente es «COPIA n» (§7.6). */
+/**
+ * Cuántas veces salió ya un recibo en papel: la siguiente es «COPIA n» (§7.6). Un «No salió»
+ * descuenta el envío que falló: la reimpresión es el original, sin marca de copia.
+ */
 export async function vecesImpreso(db: BaseDeLaCaja, recibo: Registro): Promise<number> {
-  return db.registros
-    .where('estadia_id')
-    .equals(recibo.estadia_id ?? recibo.id)
-    .filter((r) => {
-      const d = r.datos as { recibo_id?: string; canal?: string };
-      return r.tipo === 'entrega_recibo' && d.recibo_id === recibo.id && d.canal === 'papel';
-    })
-    .count();
+  let veces = 0;
+  for (const r of await entregasDe(db, recibo)) {
+    const d = r.datos as DatosDeEntrega;
+    if (d.canal !== 'papel') continue;
+    veces += d.resultado === 'fallido' ? -1 : 1;
+  }
+  return Math.max(0, veces);
 }
 
 // ── Estadías abiertas y salida (HU-Q3.4, HU-Q3.5) ──────────────────────────────────────────────

@@ -13,7 +13,7 @@ import {
   type Recibo as ReciboArmado,
   textoWhatsApp,
 } from '@ed1/parqueadero-recibos';
-import type { Registro } from '@ed1/parqueadero-schema';
+import type { DatosDeEntrega, Registro } from '@ed1/parqueadero-schema';
 import { enlaceParaCompartir } from '@ed1/whatsapp';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import {
@@ -49,6 +49,9 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
   const [imprimiendo, setImprimiendo] = useState(false);
   const [conQr, setConQr] = useState(false);
   const [entregas, setEntregas] = useState<{ n: number; texto: string }[]>([]);
+  const [veces, setVeces] = useState(0);
+  const [ultimoPapel, setUltimoPapel] = useState<Registro | null>(null);
+  const [whatsapp, setWhatsapp] = useState<Registro | null>(null);
   const automatico = useRef(false);
 
   useEffect(() => {
@@ -56,6 +59,7 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
       try {
         const recibo = armarRecibo(registro, await catalogosDelRegistro(db, registro), { prueba });
         const { sede } = await leerAjustes(db);
+        setVeces(await vecesImpreso(db, registro));
         setArmado({
           recibo,
           enlace: await enlaceCompleto(recibo),
@@ -91,7 +95,19 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
     }
     const r = await control.imprimir(bloques, undefined, registro.id);
     if (r.ok) {
-      await registrarEntrega(db, registro, 'papel', copia > 0, ctx);
+      const entrega = await registrarEntrega(
+        db,
+        registro,
+        {
+          canal: 'papel',
+          copia: copia > 0,
+          camino: impresora?.camino ?? null,
+          resultado: 'enviado',
+        },
+        ctx,
+      );
+      setUltimoPapel(entrega);
+      setVeces(copia + 1);
       setPapelEstado(
         copia > 0 ? `Copia ${copia} enviada a la impresora` : 'Enviado a la impresora',
       );
@@ -111,14 +127,46 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
     }
   });
 
-  async function porWhatsApp() {
-    if (!armado) return;
-    await registrarEntrega(db, registro, 'whatsapp', false, ctx);
-    anotar('Abierto en WhatsApp. Confirme con el conductor que le llegó.');
+  /** «No salió» (§7.6): anota el fallo del último envío y reimprime el original, sin copia. */
+  async function noSalio() {
+    if (!ultimoPapel) return;
+    const d = ultimoPapel.datos as DatosDeEntrega;
+    await registrarEntrega(db, registro, { ...d, resultado: 'fallido' }, ctx);
+    setUltimoPapel(null);
+    setVeces(await vecesImpreso(db, registro));
+    anotar('Se anotó que el papel no salió.');
+    await imprimir(true);
+  }
+
+  // El toque solo navega: el enlace ya está armado y la entrega se anota sin esperar (HU-Q4.1 CA2).
+  function porWhatsApp() {
+    void registrarEntrega(
+      db,
+      registro,
+      { canal: 'whatsapp', copia: false, resultado: 'abierto' },
+      ctx,
+    ).then(setWhatsapp);
+    anotar('Abierto en WhatsApp.');
+  }
+
+  async function noSeEnvio() {
+    await registrarEntrega(
+      db,
+      registro,
+      { canal: 'whatsapp', copia: false, resultado: 'no_enviado' },
+      ctx,
+    );
+    setWhatsapp(null);
+    anotar('WhatsApp: no se envió.');
   }
 
   async function escaneado() {
-    await registrarEntrega(db, registro, 'pantalla', false, ctx);
+    await registrarEntrega(
+      db,
+      registro,
+      { canal: 'pantalla', copia: false, resultado: 'confirmado' },
+      ctx,
+    );
     setConQr(false);
     anotar('El conductor escaneó el QR.');
   }
@@ -126,7 +174,7 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
   if (error) {
     return (
       <section class="tarjeta" data-prueba="recibo">
-        <h1>Entrada registrada</h1>
+        <h1>{registro.tipo === 'salida' ? 'Salida registrada' : 'Entrada registrada'}</h1>
         <p class="error" role="alert">
           {error}
         </p>
@@ -161,22 +209,31 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
           onClick={() => void imprimir(true)}
           data-prueba="imprimir"
         >
-          {papelEstado && !imprimiendo ? 'Imprimir otra vez' : 'Imprimir'}
+          {veces > 0 ? 'Reimprimir' : 'Imprimir'}
         </button>
         <a
           class="boton enlace-boton"
           href={enlaceParaCompartir(textoWhatsApp(armado.recibo, armado.enlace))}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => void porWhatsApp()}
+          onClick={porWhatsApp}
           data-prueba="whatsapp"
         >
           Enviar por WhatsApp
         </a>
+        <button type="button" class="boton" onClick={() => setConQr(!conQr)}>
+          {conQr ? 'Ocultar QR' : 'Mostrar QR'}
+        </button>
+        {ultimoPapel && !imprimiendo ? (
+          <button type="button" class="boton" onClick={() => void noSalio()}>
+            No salió
+          </button>
+        ) : whatsapp ? (
+          <button type="button" class="boton" onClick={() => void noSeEnvio()}>
+            No se envió
+          </button>
+        ) : null}
       </div>
-      <button type="button" class="boton" onClick={() => setConQr(!conQr)}>
-        {conQr ? 'Ocultar QR' : 'Mostrar QR'}
-      </button>
       {conQr && <QrEnPantalla valor={armado.enlace} alEscanear={() => void escaneado()} />}
 
       <output aria-live="polite" data-prueba="estado-del-papel">
