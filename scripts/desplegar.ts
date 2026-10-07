@@ -745,6 +745,17 @@ for (const celda of plan.aDesplegar) {
   } else if (!productos.has('agro')) {
     detalle.push('agro: sin publicar en este despliegue (su versión no cambió)');
   }
+  // HU-Q0.3 y HU-Q5.2 CA3: el parqueadero publicado va a su dominio, nunca a workers.dev. Mientras
+  // su zona no exista, la producción del parqueadero falla y lo dice.
+  if (paso.ok && alojaCore && destino === 'produccion' && productos.has('parqueadero')) {
+    paso = {
+      ok: false,
+      detalle: [
+        'parqueadero: su versión se publicó, pero producción espera su dominio (HU-Q5.2); no se despliega a workers.dev',
+      ],
+    };
+    detalle.push(...paso.detalle);
+  }
   resultados.push({ celda: celda.id, estado: paso.ok ? 'desplegada' : 'fallo', detalle });
   if (!paso.ok) detenido = true;
 }

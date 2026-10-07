@@ -680,6 +680,9 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
       <button type="button" class="boton boton-secundario" onClick={alTerminar}>
         Volver a la caja sin guardar
       </button>
+      <p class="ayuda" data-prueba="version-caja">
+        Caja del parqueadero, versión {__VERSION_CAJA__}
+      </p>
     </form>
   );
 }

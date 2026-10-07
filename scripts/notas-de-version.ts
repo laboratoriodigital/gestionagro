@@ -3,7 +3,8 @@
  * flujo de publicación usa como notas de la versión en GitHub. Sin sección para esa versión, sale
  * con error: no se publica una versión sin decir qué trae.
  *
- * Con `--core`, lo mismo con la versión y el CHANGELOG del CORE (`apps/core/`, HU-C0.3).
+ * Con `--core`, lo mismo con la versión y el CHANGELOG del CORE (`apps/core/`, HU-C0.3); con
+ * `--parqueadero`, con los del parqueadero (`apps/parqueadero-sitio/`, HU-Q0.3).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -32,11 +33,28 @@ export const versionDelCore = (): string =>
 
 export const CHANGELOG_DEL_CORE = join('apps', 'core', 'CHANGELOG.md');
 
+/** La versión del parqueadero (HU-Q0.3): la de `apps/parqueadero-sitio/package.json`. */
+export const versionDelParqueadero = (): string =>
+  (
+    JSON.parse(readFileSync(join(RAIZ, 'apps', 'parqueadero-sitio', 'package.json'), 'utf8')) as {
+      version: string;
+    }
+  ).version;
+
+export const CHANGELOG_DEL_PARQUEADERO = join('apps', 'parqueadero-sitio', 'CHANGELOG.md');
+
 if (process.argv[1]?.endsWith('notas-de-version.ts')) {
   const delCore = process.argv.includes('--core');
-  const argumentos = process.argv.slice(2).filter((a) => a !== '--core');
-  const version = argumentos[0] ?? (delCore ? versionDelCore() : versionDelProducto());
-  const archivo = delCore ? CHANGELOG_DEL_CORE : 'CHANGELOG.md';
+  const delParqueadero = process.argv.includes('--parqueadero');
+  const argumentos = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+  const version =
+    argumentos[0] ??
+    (delCore ? versionDelCore() : delParqueadero ? versionDelParqueadero() : versionDelProducto());
+  const archivo = delCore
+    ? CHANGELOG_DEL_CORE
+    : delParqueadero
+      ? CHANGELOG_DEL_PARQUEADERO
+      : 'CHANGELOG.md';
   const notas = notasDe(readFileSync(join(RAIZ, archivo), 'utf8'), version);
   if (!notas) {
     console.error(`❌ ${archivo} no tiene la sección «## [${version}]».`);

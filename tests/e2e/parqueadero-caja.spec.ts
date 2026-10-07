@@ -439,6 +439,10 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await page.getByLabel('PIN de administrador').fill('2468');
     await page.getByRole('button', { name: 'Entrar' }).click();
+    // La caja dice su versión propia (HU-Q0.3 CA1).
+    await expect(page.getByTestId('version-caja')).toHaveText(
+      /^Caja del parqueadero, versión \d+\.\d+\.\d+$/,
+    );
     await page.getByLabel(/acepta este aviso de privacidad/).check();
     await page.getByRole('button', { name: 'Guardar', exact: true }).click();
 
