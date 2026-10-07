@@ -318,6 +318,7 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
   - Sin JavaScript: los componentes v2 de Preact se usan sin `client:*` y llegan como HTML. CSP `'self'` en `_headers`, `noindex` en cada página y `Disallow: /` en `robots.txt`. `scripts/verificar-cuenta.ts` revisa el build y lo detiene si algo de eso no se cumple.
   - Al ser el mismo origen que el CORE, la cuenta llama a `/api/core/*` sin CORS.
   - **Entrar y salir (HU-C7.3):** la cuenta es el producto `cuenta` de `productos.json`, sin organizaciones. Se entra con un formulario `GET` a `/api/core/auth/google/inicio?producto=cuenta`, que exige la casilla de su política; su único script (la sesión, en archivo) canjea el código y guarda el refresh en el navegador. `POST /api/core/auth/salir` cierra la sesión en el CORE. El token de la cuenta no trae organización, así que ninguna celda lo acepta.
+- **El Parqueadero ED1 (`apps/parqueadero-sitio`, `docs/parking/ARQUITECTURA-PARQUEADERO.md`):** un Worker solo de assets, en staging (`ed1-parqueadero-staging`) hasta que su dominio exista (HU-Q5.2). En `/caja/`, una PWA que funciona sin red e imprime por Web Bluetooth con `@ed1/impresion`; en M0 no tiene cuenta, API ni D1 (ADR-32), y su CSP solo deja conexiones a su origen (`scripts/lib/cabeceras-parqueadero.ts`). `scripts/desplegar.ts` lo publica después del CORE y su prueba de humo exige la caja con su CSP y su service worker.
 
 ### 5.5 Celda
 

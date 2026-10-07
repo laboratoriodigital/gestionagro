@@ -65,6 +65,15 @@ Lo pide el dueño (HU-Q0.2). **Los datos del cliente no entran al repositorio:**
 | 11 | Cuántos abonados tiene y cómo los controla | Si HU-Q3.11 entra o se recorta | HU-Q3.11 | 23 oct |
 | 12 | Su meta de recibos digitales a 90 días | La métrica de la excepción (D-Q7) | HU-Q0.2 | 30 oct |
 
+**Recibido el 7 oct 2026** (en la carpeta del dueño, fuera del repositorio): los datos 3, 4, 6, 7, 8, 9, 10 y 12, y en parte el 1, el 2, el 5 y el 11. Faltan:
+
+- **Dato 2.** El recibo de hoy dice que las tres primeras horas se cobran por minuto y que después hay tarifa de día o de noche: falta cuánto vale cada una y desde qué hora es noche, además de la gracia, el tope diario y el tiquete perdido. Cambia la liquidación de HU-Q1.1: un tope por día no basta, hay un salto a tarifa plana a las tres horas.
+- **Dato 3.** La razón social y el Registro Distrital.
+- **Dato 5.** Vehículos por día, turnos y cajeros. La meta (dato 12) son 10.000 a 13.000 recibos digitales en 90 días: unos 110 a 145 por día.
+- **Dato 6.** Marca, modelo y versión de Android y de Chrome: el equipo es de gama media y no muy reciente.
+- **Dato 11.** Cuántos abonados. Hay mensualidades de moto con control manual, así que recortar HU-Q3.11 (Should) le quitaría algo que usa hoy.
+- **Nuevo.** Si la caja sigue la numeración preimpresa de sus talonarios o empieza su propia serie.
+
 **Preguntas para la conversación con el cliente** (de estudio §16.2; se anota lo que la persona hace, no lo que dice que haría):
 
 1. Muéstreme cómo recibió y despachó los últimos diez vehículos, con las placas tapadas.
@@ -212,7 +221,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q0.1.1 `[doc]` plan · WI-Q0.1.2 `[doc]` backlog del MVP · WI-Q0.1.3 `[doc]` bitácora · WI-Q0.1.4 `[doc]` mapa de `docs/`, filas en los otros backlogs y CHANGELOG · WI-Q0.1.5 `[doc]` notas en PARQUEADERO.
 
 #### HU-Q0.2 · Decisiones del dueño y datos del cliente antes de la primera línea de código
-- **Capa:** producto · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q0 · **Depende de:** HU-Q0.1 · **Estado:** Refinada
+- **Capa:** producto · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q0 · **Depende de:** HU-Q0.1 · **Estado:** En sprint (datos del cliente recibidos el 7 oct; faltan los de §1; decisiones D-Q1 a D-Q10 pendientes)
 - Como dueño, quiero dejar escritas las decisiones, las métricas con su número y los datos del cliente antes de construir, para no acomodar la regla a lo que salga.
 - **Respaldo:** plan §10 (D-Q1 a D-Q10); PARQUEADERO §18.2 y §19.2; estudio §16.3; ED1 §2.1 [D3] (una excepción declarada fija sus métricas antes de medir).
 - **CA1.** `content/parqueadero/validacion.json` tiene las métricas de PARQUEADERO §18.2, cada una con definición, umbral, frecuencia y fuente. La que todavía no se puede fijar (la meta de recibo digital) dice por qué y cuándo se fija. Una prueba lo lee.
@@ -285,7 +294,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q1.5.1 `[código]` codificar y decodificar · WI-Q1.5.2 `[prueba]` tamaños de QR · WI-Q1.5.3 `[prueba]` alterados y versiones.
 
 #### HU-Q1.6 · `@ed1/whatsapp`: números, texto y enlaces `wa.me` en un solo lugar
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q1 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q1 · **Depende de:** — · **Estado:** En sprint (rama `feat/q1-sprint`, pruebas en verde)
 - Como equipo, quiero un solo lugar para armar enlaces de WhatsApp, para que las reglas que las bitácoras pagaron caro no se repitan en cada producto.
 - **Respaldo:** ADR-39 (los enlaces van a `packages/whatsapp`); PARQUEADERO §6.4, §8.1, §8.2 y §13.1; bitácora ecommerce, menores (el emoji al principio); bitácora parqueadero, «Afirmaciones falsas» 3.
 - **CA1.** `normalizarNumero` da `573001234567` para `300 123 4567`, `+57 300 123 4567` y `573001234567`, y acepta otros países con su indicativo. `enlaceConNumero(numero, texto)` arma `https://wa.me/<numero>?text=…`, y `enlaceParaCompartir(texto)` arma `https://wa.me/?text=…`, la forma que ya usa el agro en sus tres copias.
@@ -308,7 +317,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.1.1 `[campo]` nRF Connect · WI-Q2.1.2 `[campo]` autoprueba · WI-Q2.1.3 `[doc]` informe.
 
 #### HU-Q2.2 · `@ed1/impresion`: el contrato, la cola y el codificador ESC/POS a 58 mm
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** — · **Estado:** En sprint (rama `feat/q1-sprint`, pruebas en verde)
 - Como equipo, quiero un paquete de impresión que no sepa nada de parqueaderos, para que la Tienda y el agro lo usen después sin cambiarlo.
 - **Respaldo:** ADR-34; PARQUEADERO §7.3 y §15.4 (licencias).
 - **CA1.** La interfaz `Impresora` y el tipo `Resultado` de PARQUEADERO §7.3, con `papel: 'desconocido'` como lo normal. Una cola por caja: un trabajo a la vez; el que falla queda en `entregas_pendientes` con su motivo.
@@ -318,7 +327,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.2.1 `[código]` contrato y cola · WI-Q2.2.2 `[código]` codificador y QR · WI-Q2.2.3 `[prueba]` bytes de referencia · WI-Q2.2.4 `[prueba]` filtro de control · WI-Q2.2.5 `[ci]` guardia de imports.
 
 #### HU-Q2.3 · Imprimir por Web Bluetooth en la PT-210
-- **Capa:** paquete y caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** HU-Q2.1, HU-Q2.2 · **Estado:** Refinada
+- **Capa:** paquete y caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** HU-Q2.1, HU-Q2.2 · **Estado:** En sprint (rama `feat/q1-sprint`: adaptador, pantalla y e2e con la PT-210 falsa; falta el equipo real)
 - Como cajero, quiero que el recibo salga de la PT-210 desde el teléfono sin instalar nada, para entregarlo en segundos.
 - **Respaldo:** ADR-34; PARQUEADERO §7.2 y §7.4 (los pasos y la tabla de errores).
 - **CA1.** «Conectar impresora», solo desde un toque, llama a `requestDevice` con `namePrefix: 'PT'` y la lista de servicios de PARQUEADERO §7.4 corregida por el paso 0; «Ver todos los equipos» repite con `acceptAllDevices`. La caja recorre los servicios y guarda en `impresora` el servicio y la característica que funcionaron.
@@ -352,7 +361,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.5.1 `[código]` · WI-Q2.5.2 `[prueba]` campos · WI-Q2.5.3 `[campo]` Windows.
 
 #### HU-Q2.6 · El asistente de la impresora y su página de prueba
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q1 · **Depende de:** HU-Q2.2, HU-Q2.3, HU-Q3.1 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q1 · **Depende de:** HU-Q2.2, HU-Q2.3, HU-Q3.1 · **Estado:** En sprint (rama `feat/q1-sprint`: asistente y e2e con la PT-210 falsa; falta el equipo real)
 - Como cajero, quiero configurar la impresora en cuatro pasos y saber si las tildes y el QR salen bien, antes del primer cliente.
 - **Respaldo:** PARQUEADERO §7.7 y §6.2.
 - **CA1.** Cuatro pasos. El equipo: la caja mira si hay `bluetooth`, `serial` o es un iPhone, y propone el camino (en iPhone lo dice desde el principio). Vincular. La página de prueba de PARQUEADERO §7.7: la regla de 32 columnas, las cuatro líneas de páginas de códigos y el QR nativo y el de imagen. Y tres preguntas al operador.
@@ -366,7 +375,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 ### EQ3 · Caja
 
 #### HU-Q3.1 · La caja instalable en `/caja/`, sin red
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q1 · **Depende de:** HU-Q5.1, HU-C6.1 (fusionada) · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q1 · **Depende de:** HU-Q5.1, HU-C6.1 (fusionada) · **Estado:** En sprint (rama `feat/q1-sprint`: JS inicial de 46 KB con gzip; falta instalarla en el Android de referencia)
 - Como cajero, quiero instalar la caja en el teléfono como una app y que abra sin internet.
 - **Respaldo:** ADR-32; PARQUEADERO §4.1, §5.2 y §5.3.
 - **CA1.** Preact, Dexie y Workbox dentro de `apps/parqueadero-sitio`, en `/caja/`. Se instala desde Chrome en Android y en Windows, y abre en modo avión después de la primera carga.
@@ -538,7 +547,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 ### EQ5 · Sitio, dominio, despliegue y medición
 
 #### HU-Q5.1 · El sitio en staging con HTTPS
-- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q1 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q1 · **Depende de:** — · **Estado:** En sprint (rama `feat/q1-sprint`: despliegue y humo listos; corre al fusionar a `main`)
 - Como equipo, quiero el sitio y la caja en staging con HTTPS desde la primera semana, porque Web Bluetooth y el service worker no funcionan sin un contexto seguro.
 - **Respaldo:** ADR-32; PARQUEADERO §4.1 y §7.2.
 - **CA1.** `apps/parqueadero-sitio` (Astro con islas Preact) se despliega desde el CI como assets estáticos a un Worker de staging en `workers.dev`.

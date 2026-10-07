@@ -9,9 +9,10 @@ import { RAIZ } from '../../scripts/lib/repo.ts';
  * para cada función pura, se prohíbe lo que cambia entre runtimes o entre corridas: `Intl` y
  * `toLocale…` (el formato cambia), el reloj y el azar que no se reciben como parámetro (P8), y
  * los módulos de Node (no existen en workerd). Correrlos dentro de workerd llega con la API
- * (HU-T2.4), que los usa en cada prueba. BACKLOG_TIENDA3 HU-T1.1, CA2.
+ * (HU-T2.4), que los usa en cada prueba. BACKLOG_TIENDA3 HU-T1.1, CA2. Los paquetes neutrales del
+ * parqueadero, `whatsapp` e `impresion`, siguen la misma regla (BACKLOG-PARKING_MVP HU-Q1.6, HU-Q2.2).
  */
-const PAQUETES = ['dinero', 'calendario', 'cifrado', 'tienda-schema'];
+const PAQUETES = ['dinero', 'calendario', 'cifrado', 'tienda-schema', 'whatsapp', 'impresion'];
 
 const PROHIBIDO: ReadonlyArray<[RegExp, string]> = [
   [/\bIntl\b/, '`Intl` cambia entre runtimes (P17)'],

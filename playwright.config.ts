@@ -51,6 +51,12 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
+      // El sitio y la caja del parqueadero (HU-Q3.1), en su propio origen, como en staging.
+      command: 'node scripts/servir-estatico.ts apps/parqueadero-sitio/dist 4331',
+      url: 'http://localhost:4331/caja/',
+      reuseExistingServer: false,
+    },
+    {
       // La cuenta (HU-C7.2), en su propio origen, como en producción.
       command: 'node scripts/servir-estatico.ts apps/cuenta/dist 4330',
       url: 'http://localhost:4330/',

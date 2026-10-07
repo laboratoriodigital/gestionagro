@@ -185,6 +185,8 @@ Se heredan ED1 §3, los patrones P1–P21 (`../BITACORA.md` › Lo aprendido), l
 | `packages/firma` | Fragmento firmado (`datos.firma[.certificado]`) | Sale de `packages/trazabilidad` [ADR-39] | M0 (formato), M2 (firma) |
 | `content/parqueadero/` | Topes por ciudad, textos legales, planes, política de datos | Contenido versionado | M0 |
 
+**Nota de la construcción (7 oct 2026):** la caja no es un paquete aparte. Vive en `apps/parqueadero-sitio/src/caja/`, con su propia compilación de Vite (`src/caja/vite.config.ts`), que sale a `dist/caja/` junto a lo que arma Astro. Un solo paquete, un solo build y un solo despliegue, sin el paso que copia la PWA dentro del sitio como hace el agro con `armar-despliegue.ts` (HU-Q3.1, HU-Q5.1).
+
 ### 4.2 Relación con cada pieza de ED1
 
 | Pieza de ED1 | Qué toma el parqueadero | Qué devuelve | Hito |
@@ -483,6 +485,7 @@ type Resultado =
   - Si la PT-210 responde a la consulta de estado del papel por su característica de notificación, `papel` pasa a `ok` o el resultado a `sin_papel`. Se prueba en §15.3.
 - **Una cola por caja.** Un trabajo a la vez. Uno que falla queda en `entregas_pendientes` (§5.2) con su motivo, y la cabecera lo muestra (P15).
 - **Codificador:** `@point-of-sale/receipt-printer-encoder` 4.x (MIT, I35) con el perfil `pos-5890`. Antes de codificar, todo texto que venga de una persona pasa por el filtro de bytes de control (§13.1).
+  - **Nota de la construcción (7 oct 2026):** el codificador, con sus páginas de códigos, pesa unos 29 KB con gzip (4.0.1, medido con esbuild), más de un tercio del presupuesto de 80 KB de la caja (HU-Q3.1). Se importa al codificar el primer trabajo, no al abrir la caja, y el service worker lo guarda para trabajar sin red. `lean-qr` entra igual, solo si el QR va como imagen. Bitácora parqueadero 10.
 - **QR:** el comando nativo si la página de prueba lo aprobó; si no, una imagen con `lean-qr` (MIT, I56). El nativo ocupa unos 50 bytes y la imagen unos 5 KB (*Inferencia*).
 - **Adaptador `prueba`:** guarda los bytes en memoria. Lo usan las pruebas de punta a punta (§15.2) y las de bytes de referencia (§15.1).
 - **Licencias:** todo lo que se usa es MIT o Apache-2.0 (I35–I40, I56). Nada AGPL (§15.4).
