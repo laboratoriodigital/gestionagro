@@ -212,7 +212,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 ### EQ0 · Gobierno
 
 #### HU-Q0.1 · Estudio, arquitectura, plan, backlogs y bitácora en el repositorio
-- **Capa:** proceso · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q0 · **Depende de:** — · **Estado:** En validación (rama `docs/q0-plan-y-backlog`)
+- **Capa:** proceso · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q0 · **Depende de:** — · **Estado:** Hecha (PR #110)
 - Como dueño, quiero el estudio, la arquitectura, el plan, los dos backlogs y la bitácora del parqueadero en el repositorio, con el método del CORE y la Tienda, para que cualquier equipo pueda empezar y para unir después la bitácora al segundo cerebro de ED1.
 - **Respaldo:** ADR-31 (propuesta); BACKLOG_CORE §2 a §4 y BACKLOG_TIENDA3 §3 y §4 (el método); las bitácoras, «Cómo se une con las otras bitácoras».
 - **CA1.** `docs/parking/` tiene el estudio, `ARQUITECTURA-PARQUEADERO.md`, `sql/`, `BACKLOG-PARKING.md`, `BACKLOG-PARKING_MVP.md` y `BITACORA-PARKING.md`, y los nombran `docs/README.md`, `docs/BACKLOG.md`, `BACKLOG_CORE.md`, `BACKLOG_TIENDA3.md` y el CHANGELOG.
@@ -243,7 +243,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 ### EQ1 · Reglas puras
 
 #### HU-Q1.1 · `@ed1/parqueadero-tarifas`: la liquidación pura, con el tope que nunca se pasa
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q2 · **Depende de:** HU-Q1.3 · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q2 · **Depende de:** HU-Q1.3 · **Estado:** En sprint (rama `feat/q2-sprint`: 18 casos, propiedad de 3000 estadías y tres husos en verde)
 - Como conductor, quiero que me cobren lo que dice la tarifa y nunca más del tope legal; como parqueadero, que la caja y la calculadora den lo mismo.
 - **Respaldo:** ADR-37; PARQUEADERO §9; bitácora parqueadero 5 (`@ed1/dinero`).
 - **CA1.** `liquidar(entrada, salida, tarifa, tope, abonado?, perdido?)` es pura: recibe los instantes, sin reloj ni red, y devuelve los minutos, las líneas con su concepto, el subtotal, el redondeo, el total y los avisos. Modos `minuto`, `fraccion` y `hora`; gracia; tope por bloque de 24 h; franja nocturna con valor fijo; tiquete perdido; redondeo `ninguno`, `abajo_50` o `abajo_100`. Los montos son de `@ed1/dinero` (`pesos(valor, campo)`, `formatearPesos()`): ninguna función de pesos propia.
@@ -264,7 +264,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q1.2.1 `[código]` contenido y esquema · WI-Q1.2.2 `[código]` aviso · WI-Q1.2.3 `[prueba]`.
 
 #### HU-Q1.3 · `@ed1/parqueadero-schema` y el formato `parqueadero-export/1`
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q2 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q2 · **Depende de:** — · **Estado:** En sprint (rama `feat/q2-sprint`: esquemas contra el SQL del anexo A y ejemplo guardado de `parqueadero-export/1`)
 - Como equipo, quiero un solo esquema de registros y catálogos para la caja, el respaldo y después la API, para que lo que la caja guarda hoy se pueda subir mañana sin traducirlo.
 - **Respaldo:** PARQUEADERO §4.1, §5.2, §5.3 (regla 6) y anexo A (`ref_tipo_registro`); P10.
 - **CA1.** Esquemas zod con versión para los registros (`entrada`, `salida`, `pago_abonado`, `anulacion`, `entrega_recibo`, `turno_apertura`, `turno_cierre`, `movimiento_caja`, `nota`) y los catálogos (sede, tarifa, abonado, ajustes del recibo). Los tipos y sus banderas (`lleva_numero`, `abre_estadia`, `pide_anula`) coinciden con `ref_tipo_registro` del anexo A, y una prueba lee el SQL y los compara.
@@ -274,7 +274,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q1.3.1 `[código]` esquemas · WI-Q1.3.2 `[código]` exportación · WI-Q1.3.3 `[prueba]` contra el SQL · WI-Q1.3.4 `[prueba]` contrato.
 
 #### HU-Q1.4 · `@ed1/parqueadero-recibos`: un modelo y cuatro salidas con los campos de la ley
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q2 · **Depende de:** HU-Q1.3, HU-Q1.6 · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q2 · **Depende de:** HU-Q1.3, HU-Q1.6 · **Estado:** En sprint (rama `feat/q2-sprint`: papel, WhatsApp y pantalla con las maquetas de §6.2 y el anexo B)
 - Como conductor, quiero que el papel, el mensaje y la página de mi recibo digan lo mismo, y lo que la ley exige.
 - **Respaldo:** ADR-33; PARQUEADERO §6.1, §6.2, §6.4, §6.6 y anexo B; Ley 1480 art. 18; Circular Única de la SIC; Decreto 461 de 2019 (la póliza, en Bogotá).
 - **CA1.** `armarRecibo(registro, catálogos)` produce un `Recibo`, y de él salen el texto de papel a 32 columnas, el objeto del enlace (HU-Q1.5), el texto de WhatsApp (con `@ed1/whatsapp`) y la vista de pantalla. Cada salida lleva los campos que marca la tabla de PARQUEADERO §6.1, en entrada y en salida. Los montos, con `formatearPesos()`.
@@ -284,7 +284,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q1.4.1 `[código]` modelo · WI-Q1.4.2 `[código]` cuatro salidas · WI-Q1.4.3 `[prueba]` campos de la ley · WI-Q1.4.4 `[prueba]` paridad · WI-Q1.4.5 `[prueba]` 32 columnas · WI-Q1.4.6 `[doc]` anexo B.
 
 #### HU-Q1.5 · El enlace del recibo: forma completa y forma corta, con el formato de `@ed1/firma`
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q2 · **Depende de:** HU-Q1.4 · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q2 · **Depende de:** HU-Q1.4 · **Estado:** En sprint (rama `feat/q2-sprint`: forma completa sin firma y forma corta; la firma llega con `@ed1/firma`)
 - Como conductor, quiero abrir mi recibo desde un enlace o un QR aunque el parqueadero no tenga internet, y que ese enlace funcione siempre.
 - **Respaldo:** PARQUEADERO §6.3; ADR-33, ADR-36 (el formato) y ADR-40; P13; PT1.
 - **CA1.** La forma completa, `https://parqueadero.laboratorio-digital.app/r/#1.<datos>`, lleva un JSON de claves cortas comprimido con deflate y en base64url, con el formato `datos[.firma.certificado]` del QR firmado del agro (`packages/trazabilidad`, ARQUITECTURA §5.9), que `@ed1/firma` hereda en HU-Q8.1. En M0 va sin firma. La forma corta, `#c.<número>.<placa>.<tipo>.<hora>`, es la del papel.
@@ -294,7 +294,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q1.5.1 `[código]` codificar y decodificar · WI-Q1.5.2 `[prueba]` tamaños de QR · WI-Q1.5.3 `[prueba]` alterados y versiones.
 
 #### HU-Q1.6 · `@ed1/whatsapp`: números, texto y enlaces `wa.me` en un solo lugar
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q1 · **Depende de:** — · **Estado:** En sprint (rama `feat/q1-sprint`, pruebas en verde)
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q1 · **Depende de:** — · **Estado:** Hecha (PR #111)
 - Como equipo, quiero un solo lugar para armar enlaces de WhatsApp, para que las reglas que las bitácoras pagaron caro no se repitan en cada producto.
 - **Respaldo:** ADR-39 (los enlaces van a `packages/whatsapp`); PARQUEADERO §6.4, §8.1, §8.2 y §13.1; bitácora ecommerce, menores (el emoji al principio); bitácora parqueadero, «Afirmaciones falsas» 3.
 - **CA1.** `normalizarNumero` da `573001234567` para `300 123 4567`, `+57 300 123 4567` y `573001234567`, y acepta otros países con su indicativo. `enlaceConNumero(numero, texto)` arma `https://wa.me/<numero>?text=…`, y `enlaceParaCompartir(texto)` arma `https://wa.me/?text=…`, la forma que ya usa el agro en sus tres copias.
@@ -317,7 +317,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.1.1 `[campo]` nRF Connect · WI-Q2.1.2 `[campo]` autoprueba · WI-Q2.1.3 `[doc]` informe.
 
 #### HU-Q2.2 · `@ed1/impresion`: el contrato, la cola y el codificador ESC/POS a 58 mm
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** — · **Estado:** En sprint (rama `feat/q1-sprint`, pruebas en verde)
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** — · **Estado:** Hecha (PR #111)
 - Como equipo, quiero un paquete de impresión que no sepa nada de parqueaderos, para que la Tienda y el agro lo usen después sin cambiarlo.
 - **Respaldo:** ADR-34; PARQUEADERO §7.3 y §15.4 (licencias).
 - **CA1.** La interfaz `Impresora` y el tipo `Resultado` de PARQUEADERO §7.3, con `papel: 'desconocido'` como lo normal. Una cola por caja: un trabajo a la vez; el que falla queda en `entregas_pendientes` con su motivo.
@@ -327,7 +327,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.2.1 `[código]` contrato y cola · WI-Q2.2.2 `[código]` codificador y QR · WI-Q2.2.3 `[prueba]` bytes de referencia · WI-Q2.2.4 `[prueba]` filtro de control · WI-Q2.2.5 `[ci]` guardia de imports.
 
 #### HU-Q2.3 · Imprimir por Web Bluetooth en la PT-210
-- **Capa:** paquete y caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** HU-Q2.1, HU-Q2.2 · **Estado:** En sprint (rama `feat/q1-sprint`: adaptador, pantalla y e2e con la PT-210 falsa; falta el equipo real)
+- **Capa:** paquete y caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q1 · **Depende de:** HU-Q2.1, HU-Q2.2 · **Estado:** Hecha en staging (PR #111 y #112): imprimió en la PT210L real el 7 oct; falta la matriz de HU-Q6.1
 - Como cajero, quiero que el recibo salga de la PT-210 desde el teléfono sin instalar nada, para entregarlo en segundos.
 - **Respaldo:** ADR-34; PARQUEADERO §7.2 y §7.4 (los pasos y la tabla de errores).
 - **CA1.** «Conectar impresora», solo desde un toque, llama a `requestDevice` con `namePrefix: 'PT'` y la lista de servicios de PARQUEADERO §7.4 corregida por el paso 0; «Ver todos los equipos» repite con `acceptAllDevices`. La caja recorre los servicios y guarda en `impresora` el servicio y la característica que funcionaron.
@@ -361,7 +361,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.5.1 `[código]` · WI-Q2.5.2 `[prueba]` campos · WI-Q2.5.3 `[campo]` Windows.
 
 #### HU-Q2.6 · El asistente de la impresora y su página de prueba
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q1 · **Depende de:** HU-Q2.2, HU-Q2.3, HU-Q3.1 · **Estado:** En sprint (rama `feat/q1-sprint`: asistente y e2e con la PT-210 falsa; falta el equipo real)
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q1 · **Depende de:** HU-Q2.2, HU-Q2.3, HU-Q3.1 · **Estado:** Hecha en staging (PR #111 y #112): página de prueba en la PT210L real el 7 oct
 - Como cajero, quiero configurar la impresora en cuatro pasos y saber si las tildes y el QR salen bien, antes del primer cliente.
 - **Respaldo:** PARQUEADERO §7.7 y §6.2.
 - **CA1.** Cuatro pasos. El equipo: la caja mira si hay `bluetooth`, `serial` o es un iPhone, y propone el camino (en iPhone lo dice desde el principio). Vincular. La página de prueba de PARQUEADERO §7.7: la regla de 32 columnas, las cuatro líneas de páginas de códigos y el QR nativo y el de imagen. Y tres preguntas al operador.
@@ -375,7 +375,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 ### EQ3 · Caja
 
 #### HU-Q3.1 · La caja instalable en `/caja/`, sin red
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q1 · **Depende de:** HU-Q5.1, HU-C6.1 (fusionada) · **Estado:** En sprint (rama `feat/q1-sprint`: JS inicial de 46 KB con gzip; falta instalarla en el Android de referencia)
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q1 · **Depende de:** HU-Q5.1, HU-C6.1 (fusionada) · **Estado:** Hecha en staging (PR #111): JS inicial de 47 KB con gzip; falta instalarla en el Android de referencia
 - Como cajero, quiero instalar la caja en el teléfono como una app y que abra sin internet.
 - **Respaldo:** ADR-32; PARQUEADERO §4.1, §5.2 y §5.3.
 - **CA1.** Preact, Dexie y Workbox dentro de `apps/parqueadero-sitio`, en `/caja/`. Se instala desde Chrome en Android y en Windows, y abre en modo avión después de la primera carga.
@@ -386,7 +386,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.1.1 `[código]` PWA · WI-Q3.1.2 `[código]` cabecera · WI-Q3.1.3 `[prueba]` actualización en medio de una entrada · WI-Q3.1.4 `[ci]` presupuesto de JS.
 
 #### HU-Q3.2 · Sede, tarifas y PIN: nada se registra sin los datos legales
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q2 · **Depende de:** HU-Q1.1, HU-Q1.3 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q2 · **Depende de:** HU-Q1.1, HU-Q1.3 · **Estado:** En sprint (rama `feat/q2-sprint`: ajustes, PIN y e2e de la tarifa sobre el tope)
 - Como propietario, quiero configurar mi parqueadero una vez y que la caja no me deje entregar un recibo incompleto.
 - **Respaldo:** PARQUEADERO §5.1 (Ajustes) y §6.1 (ningún valor de fábrica); bitácora ecommerce, crítico («el celular de la primera tienda»).
 - **CA1.** Primer uso: los datos legales de la sede (nombre, NIT, dirección, teléfono, póliza si la tiene, registro), las tarifas por tipo de vehículo con su tope, y el PIN de administrador. Después, todo lo que toca dinero o textos legales pide el PIN.
@@ -397,7 +397,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.2.1 `[diseño]` · WI-Q3.2.2 `[código]` primer uso y ajustes · WI-Q3.2.3 `[código]` PIN · WI-Q3.2.4 `[prueba]` sin valores de fábrica.
 
 #### HU-Q3.3 · La entrada en menos de 10 segundos, con su recibo impreso
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q2 · **Depende de:** HU-Q3.2, HU-Q1.4, HU-Q1.5, HU-Q2.3 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q2 · **Depende de:** HU-Q3.2, HU-Q1.4, HU-Q1.5, HU-Q2.3 · **Estado:** En sprint (rama `feat/q2-sprint`: entrada, recibo y e2e sin impresora y sin red; falta cronometrar en el equipo real)
 - Como cajero, quiero registrar un carro y entregarle el recibo antes de que se forme fila.
 - **Respaldo:** PARQUEADERO §5.1 (Entrada), §5.3 (reglas 1 y 2), §5.4 y §5.5; ADR-15; bitácora parqueadero 8.
 - **CA1.** Teclado de placa propio, en mayúsculas y sin espacios. `ABC123` propone carro y `ABC12D` moto; una placa fuera de patrón se acepta con una confirmación. Estado: «Sin novedad» o la lista corta (rayón, golpe, vidrio, espejo, llanta, otro) con la parte y una nota. Fotos opcionales, comprimidas en el navegador a WebP de unos 100 KB, o a JPEG donde el navegador no produce WebP, guardadas en `fotos` con su estadía.
@@ -547,7 +547,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 ### EQ5 · Sitio, dominio, despliegue y medición
 
 #### HU-Q5.1 · El sitio en staging con HTTPS
-- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q1 · **Depende de:** — · **Estado:** En sprint (rama `feat/q1-sprint`: despliegue y humo listos; corre al fusionar a `main`)
+- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q1 · **Depende de:** — · **Estado:** Hecha (PR #111): staging se despliega al fusionar a `main`
 - Como equipo, quiero el sitio y la caja en staging con HTTPS desde la primera semana, porque Web Bluetooth y el service worker no funcionan sin un contexto seguro.
 - **Respaldo:** ADR-32; PARQUEADERO §4.1 y §7.2.
 - **CA1.** `apps/parqueadero-sitio` (Astro con islas Preact) se despliega desde el CI como assets estáticos a un Worker de staging en `workers.dev`.

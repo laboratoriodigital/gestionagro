@@ -379,6 +379,7 @@ https://parqueadero.laboratorio-digital.app/r/#c.<número>.<placa>.<tipo>.<hora>
 | Corta: `#c.<número>.<placa>.<tipo>.<hora>` | El papel | 136 | Versión 7: 45 módulos a 5 puntos (0,625 mm) son 28 mm |
 
 - **El QR del papel es la forma corta.** Sirve para buscar la estadía en la salida y, escaneado por el conductor, abre `/r/` con el número, la placa y la hora, y le explica cómo pedir su copia completa. Un QR denso en papel térmico se lee mal, y más cuando el papel se borra (§8.4); el recibo legal es el papel mismo. Una prueba exige que la forma corta quepa en la versión 7 y la completa sin firma en la 13.
+- **Nota del sprint Q2 (7 oct 2026), medido con el código:** el recibo lleva ahora la tarifa con su gracia, su tope y su noche (§6.1), y con eso el JSON de claves cortas no cabía en la versión 13. El formato `1` quedó compacto: índices en lugar de palabras (vehículo, concepto, medio de pago), `0` en lugar de `null`, y fuera lo que se deriva (subtotal, redondeo y cambio). Con los recibos de prueba de `parqueadero-recibos`: la entrada y la salida largas miden 400 y 409 caracteres (versión 13); las normales, 341 y 348 (versión 12); la corta, 77 (versión 4). Deflate guarda su suma Adler-32: un fragmento con un carácter cambiado no abre (prueba «cada carácter cambiado da error»). La firma de M2 tendrá que medirse de nuevo sobre este formato.
 - **Fotos** (M2): la página las pide a R2 con su nombre aleatorio. Si ya pasaron los 30 días, dice «Las fotos se guardan 30 días».
 
 ### 6.4 El texto de WhatsApp
@@ -849,6 +850,8 @@ La página general de precios (W1) sigue diciendo que los mensajes que no son pl
 3. **Un tope vencido grita.** Si el tope de la ciudad tiene más de 13 meses, la caja avisa en la cabecera: «el tope de Bogotá no está actualizado». No deja de cobrar (P1, P15).
 4. **Lo mismo en todas partes.** La calculadora gratuita y la caja importan el mismo paquete (P2). La calculadora es la vitrina del motor.
 5. **Pesos enteros.** Nada de `REAL` ni de `Number(x) || 0` (bitácora ecommerce). **Nota del plan (7 oct 2026):** las reglas son las de `@ed1/dinero`, que ya está en `main` (`pesos()`, `formatearPesos()`, `MontoIlegible`); `parqueadero-tarifas` y `parqueadero-recibos` no tienen funciones de pesos propias (HU-Q1.1, HU-Q1.4; bitácora parqueadero 5).
+
+6. **Nota del sprint Q2 (7 oct 2026), cómo quedó en el código:** el día completo (`plena`) cobra su valor cuando los minutos de un bloque de 24 h pasan de `desde_min`, y el tope por día va encima. Una noche **completa** sale del tiempo y se cobra a su valor fijo; los minutos de una noche a medias se cobran como tiempo. El abonado que vence en medio de la estadía paga desde el vencimiento. `validarTarifa` revisa el peor minuto de cada concepto contra el tope: el valor, el día completo (hasta `desde_min + 1` minutos) y la noche (su franja entera).
 
 ### 9.3 Pruebas
 
