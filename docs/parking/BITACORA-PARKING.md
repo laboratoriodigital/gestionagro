@@ -1347,3 +1347,19 @@ La regla: **una capacidad del navegador se pregunta por lo que hace, no por si e
 La regla: **un comando que termina en commit empieza con `set -euo pipefail` y no lleva ni `|| true` ni `;`: cada paso que falla detiene el commit.**
 
 *Ficha:* parqueadero · *(mío)* · 🟡 Medio · P14 · parqueadero-0.0.0 · 2026-10-07
+
+**22 · Otro commit con el lint en rojo, ahora con `set -euo pipefail` en la primera línea.**
+
+*Qué pasó.* El 7 oct 2026, al cerrar HU-Q5.2, dos horas después de la entrada 20. El comando empezaba con `set -euo pipefail` y tenía cada paso en su propia línea: guion, lint, typecheck, pruebas, commit y push.
+
+*Síntoma literal.* `scripts\desplegar.ts:528:57 lint/suspicious/noShadow` y, debajo, `cf4b08e feat(parqueadero): el dominio parqueadero.laboratorio-digital.app`, ya en GitHub.
+
+*Causa raíz.* En la herramienta Bash de esta máquina, un `set -e` no detiene las líneas siguientes del mismo comando: cada línea corre aunque la anterior falle. La memoria de trabajo ya lo decía («las líneas de un comando no se encadenan solas»), y la entrada 20 sacó una regla que no lo cubría.
+
+*Arreglo.* `fix(despliegue): el destino del parqueadero no tapa el del despliegue`, con todo encadenado con `&&` en una sola línea lógica.
+
+**Lo prueba** nada automático. El CI habría quedado en rojo con el lint.
+
+La regla: **lo que termina en commit o push va en una sola cadena con `&&`; `set -e` y las líneas sueltas no detienen nada aquí.** Corrige la de la entrada 20.
+
+*Ficha:* parqueadero · *(mío)* · 🟡 Medio · P14 · parqueadero-0.0.0 · 2026-10-07
