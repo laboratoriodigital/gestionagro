@@ -7,7 +7,7 @@ import { abrirBase } from './datos.ts';
 import { conMarcaDeEntorno, esProduccion, HOST_DE_PRODUCCION, origenDelRecibo } from './entorno.ts';
 import { fechaBogota, horaBogota } from './fecha.ts';
 import { crearControl } from './impresora.ts';
-import { proponerCamino, senalDeImpresora, senalDePendientes } from './senales.ts';
+import { proponerCamino, senalDeImpresora, senalDePendientes, senalDeRespaldo } from './senales.ts';
 
 describe('el entorno', () => {
   it('solo el host de producción imprime sin PRUEBA; uno desconocido cuenta como prueba', () => {
@@ -89,6 +89,16 @@ describe('las señales de la cabecera', () => {
   it('las entregas pendientes se cuentan', () => {
     expect(senalDePendientes(0).tono).toBe('bien');
     expect(senalDePendientes(2)).toEqual({ texto: '2 entregas pendientes', tono: 'error' });
+  });
+
+  it('el respaldo dice su fecha, y pasado un día se pide otra vez (HU-Q3.10 CA1)', () => {
+    const t = Date.UTC(2026, 9, 7, 19, 5);
+    expect(senalDeRespaldo(undefined, t)).toEqual({ texto: 'Respaldo sin hacer', tono: 'aviso' });
+    expect(senalDeRespaldo(t, t + 3_600_000)).toEqual({
+      texto: 'Respaldo: 07/10 14:05',
+      tono: 'bien',
+    });
+    expect(senalDeRespaldo(t, t + 25 * 3_600_000).tono).toBe('aviso');
   });
 
   it('en iPhone lo dice desde el paso 1; sin Bluetooth no propone camino', () => {

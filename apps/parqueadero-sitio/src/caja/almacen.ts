@@ -19,7 +19,9 @@ import {
 import {
   type AjusteRecibo,
   ajusteRecibo,
+  armarExport,
   type Catalogo,
+  csvDeRegistros,
   type DatosDeEntrada,
   type DatosDeEntrega,
   type DatosDeMovimiento,
@@ -28,6 +30,7 @@ import {
   type MedioDePago,
   NOVEDADES,
   numeroDeRecibo,
+  type ParqueaderoExportV1,
   type Registro,
   type Sede,
   sede,
@@ -37,12 +40,13 @@ import {
   type Vehiculo,
   validarCatalogo,
   validarRegistro,
+  verificarExport,
   type ZodType,
 } from '@ed1/parqueadero-schema';
 import { type Liquidacion, liquidar, validarTarifa } from '@ed1/parqueadero-tarifas';
 import { normalizarNumero } from '@ed1/whatsapp';
 import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
-import { diaLocalBogota } from './fecha.ts';
+import { diaLocalBogota, horaBogota } from './fecha.ts';
 import { avisoAceptado, VERSION_DEL_AVISO } from './privacidad.ts';
 import { exigirTurno, SinTurno, type Turno, turnoAbierto } from './turno.ts';
 
@@ -638,6 +642,125 @@ function sinNumero(
     consecutivo: null,
     datos,
   });
+}
+
+// ── Respaldo y restauración (HU-Q3.10) ────────────────────────────────────────────────────────
+
+export interface Respaldo {
+  readonly json: ParqueaderoExportV1;
+  readonly csv: string;
+  /** `parqueadero-2026-10-07-1405`, sin extensión. */
+  readonly nombre: string;
+}
+
+/**
+ * Todo lo de la caja en `parqueadero-export/1` más su CSV (§5.3 regla 6). Sin fotos ni números de
+ * WhatsApp: las fotos viven en el teléfono hasta M2 (CA3) y los números nunca salen (ADR-38).
+ */
+export async function armarRespaldo(
+  db: BaseDeLaCaja,
+  ctx: Contexto,
+  app: string,
+): Promise<Respaldo> {
+  const [catalogo, registro, historial, disp] = await Promise.all([
+    db.catalogos.toArray(),
+    db.registros.toArray(),
+    db.historial.toArray(),
+    dispositivo(db, ctx),
+  ]);
+  const ahora = ctx.reloj();
+  const json = await armarExport({
+    generado: iso(ahora),
+    app,
+    dispositivo: disp,
+    sede_id: catalogo.find((c) => c.entidad === 'sede')?.id ?? null,
+    catalogo,
+    registro,
+    historial,
+  });
+  const hora = horaBogota(ahora).replace(':', '');
+  return {
+    json,
+    csv: csvDeRegistros(registro),
+    nombre: `parqueadero-${diaLocalBogota(ahora)}-${hora}`,
+  };
+}
+
+/** El respaldo ya salió del teléfono: la cabecera lo dice (CA1). */
+export const anotarRespaldo = (db: BaseDeLaCaja, instante: number) =>
+  db.meta.put({ clave: 'respaldo', instante });
+
+/** Un archivo que no se puede unir: se rechaza entero, sin tocar lo local (CA4). */
+export class RespaldoInvalido extends Error {
+  readonly problemas: readonly string[];
+  constructor(problemas: readonly string[]) {
+    super(problemas.join('; '));
+    this.name = 'RespaldoInvalido';
+    this.problemas = problemas;
+  }
+}
+
+export interface Restauracion {
+  readonly agregados: number;
+  readonly yaEstaban: number;
+}
+
+/**
+ * Restaura **uniendo** (bitácora ecommerce 77, P21): agrega por id lo que no está y no toca lo que
+ * ya hay. Antes de escribir verifica la huella, la versión, la sede y cada registro; si algo falla,
+ * no escribe nada. El consecutivo sigue desde el número más alto: un recibo nunca se repite.
+ */
+export async function restaurar(db: BaseDeLaCaja, archivo: unknown): Promise<Restauracion> {
+  const problemas = await verificarExport(archivo);
+  if (problemas.length > 0) throw new RespaldoInvalido(problemas);
+  const r = archivo as ParqueaderoExportV1;
+  const local = (await leerAjustes(db)).sede;
+  if (local && r.sede_id !== local.id) {
+    throw new RespaldoInvalido([
+      'el archivo es de otro parqueadero: restáurelo en una caja nueva, antes de llenar los ajustes',
+    ]);
+  }
+  const registros = r.tablas.registro.filas.map((x) => {
+    try {
+      return validarRegistro(x);
+    } catch (e) {
+      throw new RespaldoInvalido([`el registro ${x.id} no se puede leer: ${String(e)}`]);
+    }
+  });
+  const catalogos = r.tablas.catalogo.filas;
+  const historial = r.tablas.historial.filas;
+  const tablas = [db.registros, db.catalogos, db.historial, db.meta, db.estadias];
+  const res = await db.transaction('rw', tablas, async () => {
+    const nuevos = async <T extends { id: string }>(
+      t: { bulkGet(ids: string[]): Promise<unknown[]> },
+      filas: readonly T[],
+    ) => {
+      const hay = await t.bulkGet(filas.map((x) => x.id));
+      return filas.filter((_, i) => hay[i] === undefined);
+    };
+    const reg = await nuevos(db.registros, registros);
+    const cat = await nuevos(db.catalogos, catalogos);
+    const his = await nuevos(db.historial, historial);
+    await db.registros.bulkAdd(reg);
+    await db.catalogos.bulkAdd(cat);
+    await db.historial.bulkAdd(his);
+    // Un teléfono nuevo toma la caja del archivo: su serie y su numeración siguen.
+    const propia = await db.meta.get('dispositivo');
+    if (propia?.clave !== 'dispositivo')
+      await db.meta.put({ clave: 'dispositivo', ...r.dispositivo });
+    const serie = propia?.clave === 'dispositivo' ? propia.serie : r.dispositivo.serie;
+    const meta = await db.meta.get('consecutivo');
+    const ultimo = Math.max(
+      meta?.clave === 'consecutivo' ? meta.ultimo : 0,
+      ...registros.filter((x) => x.serie === serie).map((x) => x.consecutivo ?? 0),
+    );
+    await db.meta.put({ clave: 'consecutivo', ultimo });
+    const total = registros.length + catalogos.length + historial.length;
+    const agregados = reg.length + cat.length + his.length;
+    return { agregados, yaEstaban: total - agregados };
+  });
+  await reconstruirEstadias(db);
+  return res;
 }
 
 // ── El turno (HU-Q3.9) ─────────────────────────────────────────────────────────────────────────

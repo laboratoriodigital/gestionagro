@@ -17,6 +17,7 @@ import { useConsulta } from './ganchos.ts';
 import type { ControlDeImpresora } from './impresora.ts';
 import { avisoAceptado } from './privacidad.ts';
 import { Recibo } from './Recibo.tsx';
+import { Respaldo } from './Respaldo.tsx';
 import { Salida } from './Salida.tsx';
 import { AbrirTurno, Turno } from './Turno.tsx';
 import { type Turno as TurnoAbierto, turnoAbierto } from './turno.ts';
@@ -30,6 +31,7 @@ export type Vista =
   | { readonly es: 'escanear' }
   | { readonly es: 'aviso' }
   | { readonly es: 'turno' }
+  | { readonly es: 'respaldo' }
   | { readonly es: 'recibo'; readonly registro: Registro };
 
 /** Los vehículos que la caja puede registrar hoy: los que tienen tarifa. */
@@ -86,7 +88,18 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir }: Props) {
         />
       );
     case 'turno':
-      return <Turno db={db} ctx={ctx} control={control} alAbrir={inicio} alVolver={inicio} />;
+      return (
+        <Turno
+          db={db}
+          ctx={ctx}
+          control={control}
+          alAbrir={inicio}
+          alRespaldo={() => ir({ es: 'respaldo' })}
+          alVolver={inicio}
+        />
+      );
+    case 'respaldo':
+      return <Respaldo db={db} ctx={ctx} alVolver={inicio} />;
     case 'aviso':
       return (
         <Aviso

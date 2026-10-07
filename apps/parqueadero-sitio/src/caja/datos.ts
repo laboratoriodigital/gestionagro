@@ -63,7 +63,7 @@ export interface VersionAnterior {
   readonly version: number;
   readonly datos: unknown;
   readonly reemplazada: string;
-  readonly motivo: 'edicion';
+  readonly motivo: 'edicion' | 'conflicto';
 }
 
 /**
@@ -89,7 +89,9 @@ export type Meta =
   | { readonly clave: 'consecutivo'; readonly ultimo: number }
   | { readonly clave: 'pin'; readonly sal: string; readonly huella: string }
   /** La imagen del QR de pagos del propio parqueadero (HU-Q3.5 CA2): ED1 no toca el dinero. */
-  | { readonly clave: 'qr_pago'; readonly datos: Blob };
+  | { readonly clave: 'qr_pago'; readonly datos: Blob }
+  /** El último respaldo entregado (HU-Q3.10 CA1): la cabecera dice su fecha. */
+  | { readonly clave: 'respaldo'; readonly instante: number };
 
 export type BaseDeLaCaja = Dexie & {
   impresora: EntityTable<RegistroImpresora, 'id'>;

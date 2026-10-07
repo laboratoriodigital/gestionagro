@@ -661,6 +661,48 @@ test.describe('la caja del parqueadero', () => {
     expect((await bytesImpresos(page)).slice(antes)).toContain('DEF456');
   });
 
+  test('HU-Q3.10 · el respaldo se descarga y se restaura en otra caja, uniendo sin borrar', async ({
+    page,
+    browser,
+  }) => {
+    // Sin el menú de compartir del teléfono: el respaldo se descarga.
+    const sinCompartir = () =>
+      Object.defineProperty(Navigator.prototype, 'canShare', { value: undefined });
+    await page.addInitScript(sinCompartir);
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'MNO456');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('senal-respaldo')).toHaveText('Respaldo sin hacer');
+    await page.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    const json = page.waitForEvent('download', (d) => d.suggestedFilename().endsWith('.json'));
+    await page.getByRole('button', { name: 'Hacer el respaldo' }).click();
+    const archivo = await (await json).path();
+    await expect(page.getByTestId('estado-del-respaldo')).toContainText('Respaldo descargado');
+    await expect(page.getByTestId('senal-respaldo')).toContainText('Respaldo: ');
+
+    // Otro teléfono: una caja nueva, sin nada.
+    const otro = await browser.newContext();
+    const nueva = await otro.newPage();
+    await nueva.goto(CAJA);
+    await nueva.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    await nueva.getByLabel(/Restaurar un respaldo/).setInputFiles({
+      name: 'malo.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from('{"formato":"parqueadero-export","version":9}'),
+    });
+    await expect(nueva.getByTestId('aviso-respaldo')).toContainText('la caja quedó como estaba');
+    await nueva.getByLabel(/Restaurar un respaldo/).setInputFiles(archivo);
+    await expect(nueva.getByTestId('estado-del-respaldo')).toContainText('No se borró nada.');
+    await nueva.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(nueva.getByTestId('estadia')).toContainText('MNO456');
+    await otro.close();
+  });
+
   test('HU-Q3.3 · sin red, la entrada abre y registra', async ({ page, context }) => {
     await abrirControlada(page);
     await context.setOffline(true);

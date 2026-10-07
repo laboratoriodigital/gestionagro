@@ -12,7 +12,7 @@ import { Estadias } from './Estadias.tsx';
 import { horaBogota } from './fecha.ts';
 import { useConsulta } from './ganchos.ts';
 import type { ControlDeImpresora } from './impresora.ts';
-import { type Propuesta, senalDeImpresora, senalDePendientes } from './senales.ts';
+import { type Propuesta, senalDeImpresora, senalDePendientes, senalDeRespaldo } from './senales.ts';
 import { type Turno, turnoAbierto } from './turno.ts';
 import type { Vista } from './vistas.tsx';
 
@@ -38,6 +38,10 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
   );
   const pendientes = useConsulta(() => db.entregas_pendientes.count(), 0);
   const turno = useConsulta<Turno | null | undefined>(() => turnoAbierto(db), undefined);
+  const respaldo = useConsulta<number | undefined>(
+    () => db.meta.get('respaldo').then((m) => (m?.clave === 'respaldo' ? m.instante : undefined)),
+    undefined,
+  );
   const estado = useEstadoImpresora(control);
   const [persistente, setPersistente] = useState<boolean | null>(null);
   const [vista, setVista] = useState<Vista>({ es: 'inicio' });
@@ -77,7 +81,7 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
     <>
       <Cabecera
         impresora={senalDeImpresora(registro, estado)}
-        respaldo={{ texto: 'Respaldo sin hacer', tono: 'aviso' }}
+        respaldo={senalDeRespaldo(respaldo, reloj())}
         hora={{ texto: 'Hora sin revisar', tono: 'neutro' }}
         pendientes={senalDePendientes(pendientes)}
         prueba={prueba}

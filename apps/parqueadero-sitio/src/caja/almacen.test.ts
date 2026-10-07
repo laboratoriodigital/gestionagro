@@ -14,6 +14,7 @@ import {
   abrirTurno,
   anulados,
   anular,
+  armarRespaldo,
   buscarPorLectura,
   type Contexto,
   CotizacionVencida,
@@ -30,11 +31,13 @@ import {
   guardarTarifa,
   leerAjustes,
   NoSeAnula,
+  RespaldoInvalido,
   reconstruirEstadias,
   registrarEntrada,
   registrarEntrega,
   registrarMovimiento,
   registrarSalida,
+  restaurar,
   resumenDelTurno,
   SinAvisoDePrivacidad,
   SinTurno,
@@ -620,5 +623,75 @@ describe('el turno (HU-Q3.9)', () => {
     expect(await turnoAbierto(db)).not.toBeNull();
     const { cierre } = await cerrarTurno(db, t, { contado: 95_000, motivo: 'faltó cambio' }, ctx);
     expect(cierre.datos).toMatchObject({ diferencia: -5_000, motivo: 'faltó cambio' });
+  });
+});
+
+describe('respaldo y restauración (HU-Q3.10)', () => {
+  const EFECTIVO = {
+    perdido: false,
+    medio: 'efectivo',
+    recibido: 50_000,
+    motivoCortesia: null,
+  } as const;
+
+  async function conMovimiento() {
+    const c = await configurada();
+    const e1 = await registrarEntrada(c.db, ENTRADA, c.ctx);
+    c.avanzar(30);
+    await registrarSalida(c.db, e1.id, EFECTIVO, c.ctx);
+    await registrarEntrada(c.db, { ...ENTRADA, placa: 'XYZ987' }, c.ctx);
+    return c;
+  }
+
+  it('en un teléfono nuevo deja todo igual, y el siguiente recibo sigue la numeración (CA2)', async () => {
+    const { db, ctx } = await conMovimiento();
+    const r = await armarRespaldo(db, ctx, '0.0.0');
+    expect(r.nombre).toMatch(/^parqueadero-2026-10-06-\d{4}$/);
+    expect(r.csv.split('\r\n')[0]).toContain('numero;tipo;fecha');
+    const nuevo = caja();
+    const res = await restaurar(nuevo.db, JSON.parse(JSON.stringify(r.json)));
+    expect(res.yaEstaban).toBe(0);
+    expect(res.agregados).toBe((await db.registros.count()) + (await db.catalogos.count()));
+    expect((await estadiasAbiertas(nuevo.db)).map((e) => e.placa)).toEqual(['XYZ987']);
+    // A-000001 entrada, A-000002 salida, A-000003 entrada: la siguiente es la A-000004.
+    const sigue = await registrarEntrada(nuevo.db, { ...ENTRADA, placa: 'JKL321' }, nuevo.ctx);
+    expect(sigue.consecutivo).toBe(4);
+  });
+
+  it('un respaldo viejo encima de una caja con registros nuevos no borra ninguno (CA4 ❌)', async () => {
+    const { db, ctx } = await conMovimiento();
+    const viejo = (await armarRespaldo(db, ctx, '0.0.0')).json;
+    await registrarEntrada(db, { ...ENTRADA, placa: 'JKL321' }, ctx);
+    const antes = await db.registros.count();
+    const res = await restaurar(db, viejo);
+    expect(res.agregados).toBe(0);
+    expect(await db.registros.count()).toBe(antes);
+    expect((await estadiasAbiertas(db)).map((e) => e.placa).sort()).toEqual(['JKL321', 'XYZ987']);
+  });
+
+  it('un archivo alterado, de otra sede o de otra versión se rechaza entero (CA4 ❌)', async () => {
+    const { db, ctx } = await conMovimiento();
+    const bueno = (await armarRespaldo(db, ctx, '0.0.0')).json;
+    const copia = () => JSON.parse(JSON.stringify(bueno));
+    const nuevo = caja();
+    const alterado = copia();
+    alterado.tablas.registro.filas[0].datos.placa = 'ZZZ999';
+    await expect(restaurar(nuevo.db, alterado)).rejects.toBeInstanceOf(RespaldoInvalido);
+    await expect(restaurar(nuevo.db, { ...copia(), version: 2 })).rejects.toBeInstanceOf(
+      RespaldoInvalido,
+    );
+    expect(await nuevo.db.registros.count()).toBe(0);
+    const otra = await configurada();
+    const motivo = await restaurar(otra.db, copia()).catch((e: RespaldoInvalido) => e.message);
+    expect(motivo).toContain('otro parqueadero');
+  });
+
+  it('las fotos no van en el archivo (CA3)', async () => {
+    const { db, ctx } = await configurada();
+    const foto = { tipo: 'image/jpeg' as const, datos: new Blob(['x'.repeat(50)]) };
+    await registrarEntrada(db, { ...ENTRADA, fotos: [foto] }, ctx);
+    const r = await armarRespaldo(db, ctx, '0.0.0');
+    expect(Object.keys(r.json.tablas)).toEqual(['catalogo', 'registro', 'historial']);
+    expect(JSON.stringify(r.json)).not.toContain('x'.repeat(50));
   });
 });

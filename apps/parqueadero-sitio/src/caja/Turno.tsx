@@ -37,16 +37,27 @@ interface Props {
   readonly control: ControlDeImpresora;
   /** Tras abrir: la entrada que lo pidió sigue (CA4). */
   readonly alAbrir: () => void;
+  /** Al cerrar, la caja ofrece el respaldo (HU-Q3.9 CA2). */
+  readonly alRespaldo: () => void;
   readonly alVolver: () => void;
 }
 
-export function Turno({ db, ctx, control, alAbrir, alVolver }: Props) {
+export function Turno({ db, ctx, control, alAbrir, alRespaldo, alVolver }: Props) {
   const turno = useConsulta<TurnoAbierto | null | undefined>(() => turnoAbierto(db), undefined);
   const [cerrado, setCerrado] = useState<Cerrado | null>(null);
   useEffect(() => abrirFormulario(), []);
 
   if (cerrado) {
-    return <TurnoCerrado db={db} ctx={ctx} control={control} c={cerrado} alVolver={alVolver} />;
+    return (
+      <TurnoCerrado
+        db={db}
+        ctx={ctx}
+        control={control}
+        c={cerrado}
+        alRespaldo={alRespaldo}
+        alVolver={alVolver}
+      />
+    );
   }
   if (turno === undefined) return <section class="tarjeta" aria-busy="true" />;
   if (turno === null) return <AbrirTurno db={db} ctx={ctx} alAbrir={alAbrir} alVolver={alVolver} />;
@@ -322,8 +333,11 @@ function TurnoCerrado({
   ctx,
   control,
   c,
+  alRespaldo,
   alVolver,
-}: Pick<Props, 'db' | 'ctx' | 'control' | 'alVolver'> & { readonly c: Cerrado }) {
+}: Pick<Props, 'db' | 'ctx' | 'control' | 'alRespaldo' | 'alVolver'> & {
+  readonly c: Cerrado;
+}) {
   const [estado, setEstado] = useState('Enviando el cierre a la impresora…');
   const [salio, setSalio] = useState(false);
 
@@ -381,7 +395,11 @@ function TurnoCerrado({
           Imprimir el cierre otra vez
         </button>
       )}
-      <button type="button" class="boton boton-principal" onClick={alVolver}>
+      <p>Ahora guarde el respaldo del turno: si se pierde el teléfono, la caja vuelve con él.</p>
+      <button type="button" class="boton boton-principal" onClick={alRespaldo}>
+        Hacer el respaldo
+      </button>
+      <button type="button" class="boton boton-secundario" onClick={alVolver}>
         Volver al inicio
       </button>
     </section>

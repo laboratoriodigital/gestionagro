@@ -4,6 +4,7 @@
  */
 import type { EstadoImpresora } from '@ed1/impresion';
 import type { RegistroImpresora } from './datos.ts';
+import { fechaBogota, horaBogota } from './fecha.ts';
 
 export type Tono = 'bien' | 'aviso' | 'error' | 'neutro';
 
@@ -31,6 +32,15 @@ export function senalDeImpresora(
     case 'conectada':
       return { texto: 'Impresora conectada', tono: 'bien' };
   }
+}
+
+/** La fecha del último respaldo (HU-Q3.10 CA1). Más de un día sin respaldo se pide en amarillo. */
+export function senalDeRespaldo(instante: number | undefined, ahora: number): Senal {
+  if (instante === undefined) return { texto: 'Respaldo sin hacer', tono: 'aviso' };
+  return {
+    texto: `Respaldo: ${fechaBogota(instante).slice(0, 5)} ${horaBogota(instante)}`,
+    tono: ahora - instante > 24 * 3_600_000 ? 'aviso' : 'bien',
+  };
 }
 
 export function senalDePendientes(cuantas: number): Senal {
