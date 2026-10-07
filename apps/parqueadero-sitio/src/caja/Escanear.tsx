@@ -4,9 +4,12 @@
  * navegador lo tiene (Chrome en Android) y jsQR (Apache-2.0) donde no, como Chrome en Windows;
  * jsQR se carga solo entonces. Sin cámara, se escribe la placa en el inicio.
  */
+
+import { ORIGEN_DEL_RECIBO } from '@ed1/parqueadero-recibos';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { buscarPorLectura } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
+import { origenDelRecibo } from './entorno.ts';
 
 type Lector = (video: HTMLVideoElement) => Promise<string | null>;
 type LeerQr = (datos: Uint8ClampedArray, ancho: number, alto: number) => { data: string } | null;
@@ -73,7 +76,10 @@ export function Escanear({ db, alEncontrar, alVolver }: Props) {
         const texto = await leer(v).catch(() => null);
         if (texto && texto !== ultimo) {
           ultimo = texto;
-          const h = await buscarPorLectura(db, texto);
+          const h = await buscarPorLectura(db, texto, [
+            ORIGEN_DEL_RECIBO,
+            origenDelRecibo(location),
+          ]);
           if (h.encontrada) {
             alEncontrar(h.estadiaId);
             return;

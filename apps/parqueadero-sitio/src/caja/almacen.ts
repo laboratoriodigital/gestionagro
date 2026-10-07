@@ -533,9 +533,15 @@ export type Hallazgo =
  * CA2 y CA3). Sirven la forma corta del papel y la completa del teléfono del conductor; un QR de
  * otro parqueadero o de una estadía cerrada dice qué es y no abre una salida.
  */
-export async function buscarPorLectura(db: BaseDeLaCaja, texto: string): Promise<Hallazgo> {
+export async function buscarPorLectura(
+  db: BaseDeLaCaja,
+  texto: string,
+  origenes: readonly string[] = [ORIGEN_DEL_RECIBO],
+): Promise<Hallazgo> {
   const no = (motivo: string): Hallazgo => ({ encontrada: false, motivo });
-  if (!texto.startsWith(ORIGEN_DEL_RECIBO)) return no('Este QR no es un recibo del parqueadero.');
+  if (!origenes.some((o) => texto.startsWith(`${o}#`))) {
+    return no('Este QR no es un recibo del parqueadero.');
+  }
   let lectura: Lectura;
   try {
     lectura = await leerEnlace(texto);

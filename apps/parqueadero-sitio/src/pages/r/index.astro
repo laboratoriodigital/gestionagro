@@ -1,0 +1,33 @@
+---
+// La página del recibo (HU-Q4.2, PARQUEADERO §6.3). Estática: el recibo viaja en el fragmento
+// (`#…`), que el navegador no manda a ningún servidor, y se arma aquí sin llamar a una API. La
+// vista previa de WhatsApp es genérica: ni la placa ni el número van en las etiquetas (CA2).
+---
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Recibo de parqueadero</title>
+    <meta property="og:title" content="Recibo de parqueadero" />
+    <meta property="og:description" content="Abra el enlace para ver su recibo." />
+    <link rel="stylesheet" href="/sitio.css" />
+  </head>
+  <body>
+    <main id="recibo" aria-live="polite">
+      <h1>Recibo de parqueadero</h1>
+      <p id="cargando">Abriendo su recibo…</p>
+      <noscript><p>Para ver su recibo, active JavaScript en el navegador.</p></noscript>
+    </main>
+    <script>
+      import { mostrarRecibo } from '../../r/mostrar.ts';
+
+      const raiz = document.getElementById('recibo');
+      if (raiz) {
+        void mostrarRecibo(raiz, location.hash);
+        addEventListener('hashchange', () => void mostrarRecibo(raiz, location.hash));
+      }
+    </script>
+  </body>
+</html>

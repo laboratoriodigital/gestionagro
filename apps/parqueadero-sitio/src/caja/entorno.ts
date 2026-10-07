@@ -11,6 +11,15 @@ export function esProduccion(hostname: string): boolean {
   return hostname === HOST_DE_PRODUCCION;
 }
 
+/**
+ * Adónde lleva el enlace del recibo: en producción, `ORIGEN_DEL_RECIBO` de
+ * `@ed1/parqueadero-recibos` (una prueba lo compara); en staging, su propia `/r/`, para que los
+ * recibos de PRUEBA se puedan abrir antes de que exista el dominio (HU-Q5.2).
+ */
+export function origenDelRecibo(lugar: { hostname: string; origin: string }): string {
+  return esProduccion(lugar.hostname) ? `https://${HOST_DE_PRODUCCION}/r/` : `${lugar.origin}/r/`;
+}
+
 /** En prueba, la primera línea de todo lo que se imprime dice PRUEBA. */
 export function conMarcaDeEntorno(bloques: readonly Bloque[], hostname: string): Bloque[] {
   if (esProduccion(hostname)) return [...bloques];

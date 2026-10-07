@@ -249,16 +249,18 @@ export async function fragmentoCompleto(recibo: Recibo): Promise<string> {
   return `1.${base64url(await pasar(json, new CompressionStream('deflate')))}`;
 }
 
-export async function enlaceCompleto(recibo: Recibo): Promise<string> {
-  return `${ORIGEN_DEL_RECIBO}#${await fragmentoCompleto(recibo)}`;
+/** `origen`: el de producción; staging pasa el suyo para que sus recibos de PRUEBA abran allá. */
+export async function enlaceCompleto(recibo: Recibo, origen = ORIGEN_DEL_RECIBO): Promise<string> {
+  return `${origen}#${await fragmentoCompleto(recibo)}`;
 }
 
 /** La forma del papel: `c.A-000123.ABC123.c.1759791900`. */
 export function enlaceCorto(
   recibo: Pick<Recibo, 'numero' | 'placa' | 'vehiculo' | 'entrada'>,
+  origen = ORIGEN_DEL_RECIBO,
 ): string {
   const t = VEHICULOS[recibo.vehiculo].letra;
-  return `${ORIGEN_DEL_RECIBO}#c.${recibo.numero}.${recibo.placa}.${t}.${aSegundos(recibo.entrada)}`;
+  return `${origen}#c.${recibo.numero}.${recibo.placa}.${t}.${aSegundos(recibo.entrada)}`;
 }
 
 export type Lectura =

@@ -85,10 +85,12 @@ const PNG = Buffer.from(
 
 async function llenarAjustes(
   page: Page,
-  o: { valor?: string; imprimir?: 'Sí' | 'No'; qr?: boolean } = {},
+  o: { valor?: string; imprimir?: 'Sí' | 'No'; qr?: boolean; nombre?: string } = {},
 ) {
   const f = page.getByTestId('ajustes');
-  await f.getByLabel('Nombre del parqueadero', { exact: true }).fill('Parqueadero Ensayo Dos');
+  await f
+    .getByLabel('Nombre del parqueadero', { exact: true })
+    .fill(o.nombre ?? 'Parqueadero Ensayo Dos');
   await f.getByLabel('NIT, con el dígito', { exact: true }).fill('800123456-7');
   await f.getByLabel('Dirección', { exact: true }).fill('Carrera 10 # 20-30 Local 4');
   await f.getByLabel('Ciudad', { exact: true }).fill('Tunja');
@@ -354,6 +356,45 @@ test.describe('la caja del parqueadero', () => {
     expect(papel).toContain('$41.400');
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
     await expect(page.getByTestId('estadias')).toContainText('No hay vehículos adentro.');
+  });
+
+  test('HU-Q4.2 · el enlace de WhatsApp abre el recibo en /r/ sin API y sin la placa en lo servido', async ({
+    page,
+  }) => {
+    // Un nombre con HTML: la página lo muestra como texto, nunca lo ejecuta.
+    const nombre = '<img src=x onerror=window.__xss=1>Uno';
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No', nombre });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'ABC123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    const href = await page.getByTestId('whatsapp').getAttribute('href');
+    const texto = new URL(href ?? '').searchParams.get('text') ?? '';
+    const enlace = texto.split('\n').find((l) => l.startsWith(`${SITIO}/r/#1.`));
+    expect(enlace, texto).toBeDefined();
+
+    const pedidos: string[] = [];
+    page.on('request', (r) => pedidos.push(`${r.resourceType()} ${new URL(r.url()).pathname}`));
+    await page.goto(enlace ?? '');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
+    await expect(page.getByTestId('filas')).toContainText('ABC123 · Carro');
+    await expect(page.getByTestId('filas')).toContainText(nombre);
+    await expect(page.getByText('Copia digital del recibo.')).toBeVisible();
+    await expect(page.getByText('PRUEBA: NO VALE.')).toBeVisible();
+    expect(await page.locator('main img').count()).toBe(0);
+    expect(await page.evaluate(() => (window as { __xss?: number }).__xss)).toBeUndefined();
+    // Cero llamadas a una API: solo el documento, su hoja y sus scripts (CA2).
+    expect(pedidos.filter((p) => !/^(document|stylesheet|script) /.test(p))).toEqual([]);
+
+    const servido = await (await page.request.get(`${SITIO}/r/`)).text();
+    expect(servido).not.toContain('ABC123');
+    expect(servido).toContain('<meta property="og:title" content="Recibo de parqueadero"');
+
+    await page.goto(`${SITIO}/r/#c.A-000001.ABC123.c.1791327900`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await page.goto(`${SITIO}/r/#1.eJzLSM3JyQcABiwCFQ`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('No pudimos leer este recibo');
   });
 
   test('HU-Q3.3 · sin impresora conectada, el registro existe y la entrega queda pendiente (CA4 ❌)', async ({

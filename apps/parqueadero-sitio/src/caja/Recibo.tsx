@@ -24,6 +24,7 @@ import {
   vecesImpreso,
 } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
+import { origenDelRecibo } from './entorno.ts';
 import type { ControlDeImpresora } from './impresora.ts';
 
 interface Props {
@@ -62,7 +63,7 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
         setVeces(await vecesImpreso(db, registro));
         setArmado({
           recibo,
-          enlace: await enlaceCompleto(recibo),
+          enlace: await enlaceCompleto(recibo, origenDelRecibo(location)),
           imprimirSiempre: sede?.imprimir_siempre === true,
         });
       } catch (e) {
@@ -88,7 +89,10 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
     const bloques = papel(armado.recibo, {
       columnas: impresora?.columnas ?? 32,
       paginaDeCodigos: impresora?.paginaDeCodigos ?? 'cp850',
-      qr: armado.recibo.clase === 'entrada' ? enlaceCorto(armado.recibo) : null,
+      qr:
+        armado.recibo.clase === 'entrada'
+          ? enlaceCorto(armado.recibo, origenDelRecibo(location))
+          : null,
     });
     if (copia > 0) {
       bloques.unshift({ tipo: 'texto', texto: `*** COPIA ${copia} ***`, alinear: 'centro' });
