@@ -297,11 +297,16 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
     return false;
   }
 
-  /** Un toque en «Reconectar» mientras imprime no abre una segunda conexión: espera la misma. */
+  /**
+   * Un toque en «Reconectar» mientras imprime no abre una segunda conexión: espera la misma.
+   * `forzar` suelta antes la que el navegador cree abierta: después de bloquear el teléfono puede
+   * decir `connected` y estar muerta (bitácora parqueadero 19).
+   */
   let reconectando: Promise<boolean> | undefined;
-  function reconectar(): Promise<boolean> {
+  function reconectar(forzar = false): Promise<boolean> {
     const gatt = conexion?.dispositivo.gatt;
     if (!conexion || !gatt) return Promise.resolve(false);
+    if (forzar && !reconectando) gatt.disconnect?.();
     reconectando ??= intentarReconectar(conexion, gatt).finally(() => {
       reconectando = undefined;
     });
@@ -391,21 +396,46 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
       if (!lista && !(await reconectar())) {
         return { ok: false, motivo: 'fuera_de_alcance', detalle: ultimoError || 'No reconectó' };
       }
-      const { caracteristica } = conexion;
-      const escribir = caracteristica.properties.writeWithoutResponse
-        ? (d: Uint8Array) => caracteristica.writeValueWithoutResponse(d)
-        : (d: Uint8Array) => caracteristica.writeValueWithResponse(d);
+      const actual = conexion;
       const inicio = reloj();
+      /** Cuántos trozos salieron: si falla el primero, nada se imprimió y se puede reintentar. */
+      let salieron = 0;
+      const enviar = () => {
+        const c = actual.caracteristica;
+        const escribir = c.properties.writeWithoutResponse
+          ? (d: Uint8Array) => c.writeValueWithoutResponse(d)
+          : (d: Uint8Array) => c.writeValueWithResponse(d);
+        return enviarEnTrozos(
+          (d) => escribir(d).then(() => void salieron++),
+          trabajo.bytes,
+          trozo,
+          esperar,
+        );
+      };
       cambiar('ocupada');
       try {
-        const final = await enviarEnTrozos(escribir, trabajo.bytes, trozo, esperar);
+        let final: Trozo;
+        try {
+          final = await enviar();
+        } catch (error) {
+          // La conexión parecía abierta y estaba muerta (el teléfono se bloqueó): se abre otra y
+          // se manda una vez más. Solo si no salió nada: un recibo a medias no se repite.
+          if (salieron > 0 || nombreDelError(error) !== 'NetworkError') throw error;
+          const nota = `Al imprimir: ${detalleDe(error)}; se reconecta y se reintenta una vez`;
+          // Reconectar limpia lo visto: la nota va después, para que el diagnóstico la cuente.
+          const reconecto = await reconectar(true);
+          vistos.push(nota);
+          if (!reconecto) throw error;
+          cambiar('ocupada');
+          final = await enviar();
+        }
         if (final !== trozo) {
           trozo = final;
           opciones.alCambiarTrozo?.(final);
         }
       } catch (error) {
         ultimoError = detalleDe(error);
-        cambiar(conexion.dispositivo.gatt?.connected ? 'conectada' : 'desconectada');
+        cambiar(actual.dispositivo.gatt?.connected ? 'conectada' : 'desconectada');
         return { ok: false, motivo: motivoDelError(error, false), detalle: ultimoError };
       }
       cambiar('conectada');

@@ -10,7 +10,7 @@ import { BotonDiagnostico, ConexionImpresora, useEstadoImpresora } from './conex
 import { type BaseDeLaCaja, purgarContactos, type RegistroImpresora } from './datos.ts';
 import { Estadias } from './Estadias.tsx';
 import { useConsulta } from './ganchos.ts';
-import type { ControlDeImpresora } from './impresora.ts';
+import { alVolverALaCaja, type ControlDeImpresora } from './impresora.ts';
 import { type Propuesta, senalDeImpresora, senalDePendientes } from './senales.ts';
 import type { Vista } from './vistas.tsx';
 
@@ -51,6 +51,21 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
       setVista(v);
     });
   };
+
+  // Al desbloquear el teléfono, la conexión puede verse abierta y estar muerta (bitácora 19).
+  useEffect(() => {
+    let oculta = 0;
+    const alCambiar = () => {
+      if (document.visibilityState === 'hidden') {
+        oculta = reloj();
+        return;
+      }
+      const que = alVolverALaCaja(control.estado(), oculta ? reloj() - oculta : 0);
+      if (que !== 'nada') void control.reconectar(que === 'refrescar');
+    };
+    document.addEventListener('visibilitychange', alCambiar);
+    return () => document.removeEventListener('visibilitychange', alCambiar);
+  }, [control, reloj]);
 
   // HU-Q4.1 CA3: los números vencidos se borran al abrir la caja y cada 10 minutos.
   useEffect(() => {

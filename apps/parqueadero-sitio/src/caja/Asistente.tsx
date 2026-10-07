@@ -221,7 +221,11 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
         <>
           <h2>4 de 4 · Mire el papel que acaba de salir</h2>
           <fieldset>
-            <legend>¿Qué línea se lee bien, con sus tildes y la ñ?</legend>
+            <legend>¿Qué línea dice completo «Él tenía más años», con sus tildes y la ñ?</legend>
+            <p class="ayuda">
+              Si a una palabra le falta una letra o sale un signo raro, esa línea no sirve. Si
+              ninguna con tildes sirve, toque «Ninguna»: la caja imprimirá sin tildes.
+            </p>
             <div class="opciones">
               {LINEAS.map((n) => (
                 <button
