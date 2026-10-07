@@ -237,7 +237,7 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('ajustes')).toContainText('tope');
     await page.getByTestId('tarifa-carro').getByLabel('Pesos por minuto').fill('230');
     await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-    await expect(page.getByTestId('tarjeta-entrada')).toBeVisible();
+    await expect(page.getByTestId('estadias')).toBeVisible();
     // Después, los ajustes piden el PIN.
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
     await expect(page.getByTestId('pedir-pin')).toBeVisible();
@@ -277,6 +277,58 @@ test.describe('la caja del parqueadero', () => {
     await teclearPlaca(page, 'ABC123');
     await page.getByRole('button', { name: 'Registrar' }).click();
     await expect(page.getByTestId('aviso-entrada')).toContainText('ABC123');
+  });
+
+  test('HU-Q3.4 y HU-Q3.5 · la estadía aparece adentro, se busca y se cobra con su recibo de salida', async ({
+    page,
+  }) => {
+    const entrada = new Date('2026-10-06T23:05:00Z');
+    await page.clock.setFixedTime(entrada);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'ABC123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    const estadia = page.getByTestId('estadia');
+    await expect(estadia).toContainText('ABC123');
+    await expect(estadia).toContainText('Entró 18:05');
+    await page.getByLabel('Buscar por placa').fill('xyz');
+    await expect(estadia).toHaveCount(0);
+    await page.getByLabel('Buscar por placa').fill('abc');
+    await expect(estadia).toHaveCount(1);
+
+    // Tres horas después: 180 × $230 = $41.400 (estos ajustes no tienen tope por día).
+    await page.clock.setFixedTime(new Date(entrada.getTime() + 180 * 60_000));
+    await estadia.click();
+    await expect(page.getByTestId('total')).toHaveText('$41.400');
+    const cobrar = page.getByRole('button', { name: /^Cobrar|Elija|Lo recibido|Escriba/ });
+    await expect(cobrar).toHaveText('Elija el medio de pago');
+    await page.getByRole('button', { name: 'Cortesía' }).click();
+    await expect(cobrar).toHaveText('Escriba el motivo de la cortesía');
+    await expect(cobrar).toBeDisabled();
+    await page.getByRole('button', { name: 'Efectivo' }).click();
+    await page.getByLabel('Recibido').fill('40.000');
+    await expect(cobrar).toHaveText('Lo recibido no alcanza: el total es $41.400');
+    await expect(cobrar).toBeDisabled();
+    await page.getByLabel('Recibido').fill('50.000');
+    await expect(page.getByTestId('cambio')).toHaveText('Cambio: $8.600');
+    const antes = (await bytesImpresos(page)).length;
+    await cobrar.click();
+
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000002');
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    const papel = (await bytesImpresos(page)).slice(antes);
+    expect(papel).toContain('RECIBO DE SALIDA');
+    expect(papel).toContain('A-000002');
+    expect(papel).toContain('$41.400');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('estadias')).toContainText('No hay vehículos adentro.');
   });
 
   test('HU-Q3.3 · sin impresora conectada, el registro existe y la entrega queda pendiente (CA4 ❌)', async ({
@@ -343,6 +395,13 @@ for (const esquema of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Registrar' }).click();
     await page.getByRole('button', { name: 'Mostrar QR' }).click();
     await expect(page.getByTestId('qr-en-pantalla')).toBeVisible();
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('estadia')).toBeVisible();
+    await revisar();
+    await page.getByTestId('estadia').click();
+    await page.getByRole('button', { name: 'Efectivo' }).click();
+    await expect(page.getByTestId('total')).toBeVisible();
     await revisar();
   });
 }

@@ -11,15 +11,19 @@ import { Ajustes as PantallaDeAjustes, VEHICULOS_DE_LA_CAJA } from './Ajustes.ts
 import { type Ajustes, type Contexto, faltaParaRegistrar, leerAjustes } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
 import { Entrada } from './Entrada.tsx';
+import { Escanear } from './Escanear.tsx';
 import { useConsulta } from './ganchos.ts';
 import type { ControlDeImpresora } from './impresora.ts';
 import { Recibo } from './Recibo.tsx';
+import { Salida } from './Salida.tsx';
 
 export type Vista =
   | { readonly es: 'inicio' }
   | { readonly es: 'asistente' }
   | { readonly es: 'ajustes'; readonly enfocar?: string }
   | { readonly es: 'entrada' }
+  | { readonly es: 'salida'; readonly estadiaId: string }
+  | { readonly es: 'escanear' }
   | { readonly es: 'recibo'; readonly registro: Registro };
 
 /** Los vehículos que la caja puede registrar hoy: los que tienen tarifa. */
@@ -57,6 +61,24 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir }: Props) {
       return <PantallaDeAjustes db={db} ctx={ctx} alTerminar={inicio} enfocar={vista.enfocar} />;
     case 'entrada':
       return <EntradaOFalta db={db} ctx={ctx} ir={ir} />;
+    case 'salida':
+      return (
+        <Salida
+          db={db}
+          ctx={ctx}
+          estadiaId={vista.estadiaId}
+          alCobrar={(r) => ir({ es: 'recibo', registro: r })}
+          alVolver={inicio}
+        />
+      );
+    case 'escanear':
+      return (
+        <Escanear
+          db={db}
+          alEncontrar={(id) => ir({ es: 'salida', estadiaId: id })}
+          alVolver={inicio}
+        />
+      );
     default:
       return (
         <Recibo

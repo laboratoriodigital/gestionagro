@@ -1,19 +1,32 @@
 import 'fake-indexeddb/auto';
 import { uuidv7 } from '@ed1/ids';
-import { ReciboIncompleto } from '@ed1/parqueadero-recibos';
+import {
+  armarRecibo,
+  enlaceCompleto,
+  enlaceCorto,
+  ORIGEN_DEL_RECIBO,
+  ReciboIncompleto,
+} from '@ed1/parqueadero-recibos';
+import { type DatosDeSalida, ErrorDeValidacion } from '@ed1/parqueadero-schema';
 import { SEDE_ENSAYO_UNO, TARIFA_CARRO, TARIFA_MOTO } from '@ed1/parqueadero-schema/ensayos';
 import { describe, expect, it } from 'vitest';
 import {
+  buscarPorLectura,
   type Contexto,
+  CotizacionVencida,
   catalogosDelRegistro,
+  EstadiaCerrada,
   EstadiaYaAbierta,
+  estadiasAbiertas,
   faltaParaRegistrar,
   guardarPin,
   guardarSede,
   guardarTarifa,
   leerAjustes,
+  reconstruirEstadias,
   registrarEntrada,
   registrarEntrega,
+  registrarSalida,
   TarifaSobreElTope,
   tienePin,
   vecesImpreso,
@@ -42,15 +55,18 @@ const sinMeta = <T extends object>(c: T) => {
 function caja() {
   let ms = Date.UTC(2026, 9, 6, 23, 5);
   const ctx: Contexto = { reloj: () => (ms += 1_000), nuevoId: () => uuidv7(() => ms) };
-  return { db: abrirBase(`almacen-${uuidv7()}`), ctx };
+  const avanzar = (minutos: number) => {
+    ms += minutos * 60_000;
+  };
+  return { db: abrirBase(`almacen-${uuidv7()}`), ctx, avanzar };
 }
 
 async function configurada() {
-  const { db, ctx } = caja();
+  const { db, ctx, avanzar } = caja();
   await guardarSede(db, sinMeta(SEDE_ENSAYO_UNO), null, ctx);
   await guardarTarifa(db, sinMeta(TARIFA_CARRO), null, ctx);
   await guardarTarifa(db, sinMeta(TARIFA_MOTO), null, ctx);
-  return { db, ctx };
+  return { db, ctx, avanzar };
 }
 
 const ENTRADA = {
@@ -182,5 +198,151 @@ describe('el recibo de una entrada ya registrada', () => {
     await registrarEntrega(db, entrada, 'whatsapp', false, ctx);
     await registrarEntrega(db, entrada, 'papel', false, ctx);
     expect(await vecesImpreso(db, entrada)).toBe(1);
+  });
+});
+
+describe('la salida y el cobro (HU-Q3.5)', () => {
+  const EFECTIVO = {
+    perdido: false,
+    medio: 'efectivo',
+    recibido: 50_000,
+    motivoCortesia: null,
+  } as const;
+
+  it('cobra con la tarifa de la entrada, cierra la estadía y toma el número siguiente', async () => {
+    const { db, ctx, avanzar } = await configurada();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(179);
+    const salida = await registrarSalida(db, entrada.id, EFECTIVO, ctx);
+    const d = salida.datos as DatosDeSalida;
+    expect(salida.consecutivo).toBe(2);
+    expect(d.entrada_numero).toBe('A-000001');
+    expect(d.minutos).toBe(180);
+    // 180 × 230 = 41.400 pasa el tope por día de la tarifa de ensayo: 30.000 (§9.3).
+    expect([d.total, d.recibido, d.cambio]).toEqual([30_000, 50_000, 20_000]);
+    expect(await estadiasAbiertas(db)).toEqual([]);
+    await expect(registrarSalida(db, entrada.id, EFECTIVO, ctx)).rejects.toBeInstanceOf(
+      EstadiaCerrada,
+    );
+  });
+
+  it('efectivo que no alcanza o cortesía sin motivo no cobran ni gastan número (CA4 ❌)', async () => {
+    const { db, ctx, avanzar } = await configurada();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(60);
+    await expect(
+      registrarSalida(db, entrada.id, { ...EFECTIVO, recibido: 1_000 }, ctx),
+    ).rejects.toBeInstanceOf(ErrorDeValidacion);
+    await expect(
+      registrarSalida(
+        db,
+        entrada.id,
+        { perdido: false, medio: 'cortesia', recibido: null, motivoCortesia: '  ' },
+        ctx,
+      ),
+    ).rejects.toBeInstanceOf(ErrorDeValidacion);
+    expect(await estadiasAbiertas(db)).toHaveLength(1);
+    const buena = await registrarSalida(
+      db,
+      entrada.id,
+      { perdido: false, medio: 'cortesia', recibido: null, motivoCortesia: 'Cliente del local 4' },
+      ctx,
+    );
+    expect(buena.consecutivo).toBe(2);
+  });
+
+  it('el tiquete perdido es una línea más (CA3)', async () => {
+    const { db, ctx, avanzar } = await configurada();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(10);
+    const s = await registrarSalida(db, entrada.id, { ...EFECTIVO, perdido: true }, ctx);
+    const d = s.datos as DatosDeSalida;
+    expect(d.perdido).toBe(true);
+    expect(d.lineas.map((l) => l.concepto)).toContain('perdido');
+  });
+});
+
+describe('estadías abiertas (HU-Q3.4)', () => {
+  it('se rehacen desde los registros con la tabla borrada (CA3 ❌)', async () => {
+    const { db, ctx, avanzar } = await configurada();
+    const sale = await registrarEntrada(db, ENTRADA, ctx);
+    const queda = await registrarEntrada(db, { ...ENTRADA, placa: 'XYZ987' }, ctx);
+    avanzar(30);
+    await registrarSalida(
+      db,
+      sale.id,
+      { perdido: false, medio: 'datafono', recibido: null, motivoCortesia: null },
+      ctx,
+    );
+    const antes = await estadiasAbiertas(db);
+    await db.estadias.clear();
+    expect(await reconstruirEstadias(db)).toBe(1);
+    expect(await estadiasAbiertas(db)).toEqual(antes);
+    expect(antes.map((e) => [e.id, e.numero])).toEqual([[queda.id, 'A-000002']]);
+  });
+});
+
+describe('el QR escaneado (HU-Q3.4 CA2 y CA3)', () => {
+  async function conReciboDeEntrada() {
+    const c = await configurada();
+    const entrada = await registrarEntrada(c.db, ENTRADA, c.ctx);
+    const recibo = armarRecibo(entrada, await catalogosDelRegistro(c.db, entrada), {
+      prueba: true,
+    });
+    return { ...c, entrada, recibo };
+  }
+
+  it('la forma corta del papel y la completa del teléfono abren la misma estadía', async () => {
+    const { db, entrada, recibo } = await conReciboDeEntrada();
+    const esperado = { encontrada: true, estadiaId: entrada.id };
+    expect(await buscarPorLectura(db, enlaceCorto(recibo))).toEqual(esperado);
+    expect(await buscarPorLectura(db, await enlaceCompleto(recibo))).toEqual(esperado);
+  });
+
+  it('una estadía cerrada, otro parqueadero o un QR cualquiera dicen qué son (CA3 ❌)', async () => {
+    const { db, ctx, entrada, recibo, avanzar } = await conReciboDeEntrada();
+    const ajeno = enlaceCorto({ ...recibo, numero: 'A-000777', entrada: recibo.entrada - 60_000 });
+    expect(await buscarPorLectura(db, ajeno)).toEqual({
+      encontrada: false,
+      motivo: 'El recibo A-000777 de ABC123 no es de esta caja: puede ser de otro parqueadero.',
+    });
+    expect(await buscarPorLectura(db, 'https://ejemplo.com/x')).toMatchObject({
+      motivo: 'Este QR no es un recibo del parqueadero.',
+    });
+    expect(await buscarPorLectura(db, `${ORIGEN_DEL_RECIBO}#1.dañado`)).toMatchObject({
+      motivo: 'No se pudo leer este recibo: el QR está dañado.',
+    });
+    avanzar(5);
+    await registrarSalida(
+      db,
+      entrada.id,
+      { perdido: false, medio: 'datafono', recibido: null, motivoCortesia: null },
+      ctx,
+    );
+    expect(await buscarPorLectura(db, enlaceCorto(recibo))).toEqual({
+      encontrada: false,
+      motivo: 'La estadía de ABC123 (recibo A-000001) ya salió.',
+    });
+  });
+});
+
+describe('el total que vio el cajero', () => {
+  it('se cobra tal cual, y con más de 10 minutos se vuelve a calcular', async () => {
+    const { db, ctx, avanzar } = await configurada();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(30);
+    const visto = ctx.reloj();
+    avanzar(11);
+    const cobro = {
+      perdido: false,
+      medio: 'datafono',
+      recibido: null,
+      motivoCortesia: null,
+    } as const;
+    await expect(registrarSalida(db, entrada.id, cobro, ctx, visto)).rejects.toBeInstanceOf(
+      CotizacionVencida,
+    );
+    const s = await registrarSalida(db, entrada.id, cobro, ctx, visto + 2 * 60_000);
+    expect((s.datos as DatosDeSalida).minutos).toBe(33);
   });
 });

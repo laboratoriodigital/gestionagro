@@ -6,8 +6,12 @@
 
 import {
   type Catalogos,
+  EnlaceInvalido,
   faltantesDeSede,
+  type Lectura,
+  leerEnlace,
   nombresDeCampos,
+  ORIGEN_DEL_RECIBO,
   ReciboIncompleto,
 } from '@ed1/parqueadero-recibos';
 import {
@@ -16,6 +20,8 @@ import {
   type Catalogo,
   type DatosDeEntrada,
   type Entidad,
+  ErrorDeValidacion,
+  type MedioDePago,
   NOVEDADES,
   numeroDeRecibo,
   type Registro,
@@ -29,7 +35,7 @@ import {
   validarRegistro,
   type ZodType,
 } from '@ed1/parqueadero-schema';
-import { validarTarifa } from '@ed1/parqueadero-tarifas';
+import { type Liquidacion, liquidar, validarTarifa } from '@ed1/parqueadero-tarifas';
 import type { BaseDeLaCaja, Estadia } from './datos.ts';
 import { diaLocalBogota } from './fecha.ts';
 
@@ -340,4 +346,209 @@ export async function vecesImpreso(db: BaseDeLaCaja, recibo: Registro): Promise<
       return r.tipo === 'entrega_recibo' && d.recibo_id === recibo.id && d.canal === 'papel';
     })
     .count();
+}
+
+// ── Estadías abiertas y salida (HU-Q3.4, HU-Q3.5) ──────────────────────────────────────────────
+
+/** Las estadías abiertas, de la más vieja a la más nueva (UUIDv7 ordena por instante). */
+export const estadiasAbiertas = (db: BaseDeLaCaja): Promise<Estadia[]> =>
+  db.estadias.orderBy('id').toArray();
+
+/**
+ * Rehace `estadias` desde `registros`, que es la verdad (HU-Q3.4 CA3): una entrada sigue abierta
+ * mientras no tenga una salida vigente ni esté anulada. Una salida anulada la reabre.
+ */
+export async function reconstruirEstadias(db: BaseDeLaCaja): Promise<number> {
+  return db.transaction('rw', [db.registros, db.estadias], async () => {
+    const todos = await db.registros.toArray();
+    const anulados = new Set(
+      todos.filter((r) => r.tipo === 'anulacion').map((r) => r.anula_id ?? ''),
+    );
+    const cerradas = new Set(
+      todos
+        .filter((r) => r.tipo === 'salida' && !anulados.has(r.id))
+        .map((r) => r.estadia_id ?? ''),
+    );
+    const abiertas: Estadia[] = [];
+    for (const r of todos) {
+      if (r.tipo !== 'entrada' || anulados.has(r.id) || cerradas.has(r.id)) continue;
+      if (r.serie === null || r.consecutivo === null) continue;
+      const d = r.datos as DatosDeEntrada;
+      abiertas.push({
+        id: r.id,
+        placa: d.placa,
+        vehiculo: d.vehiculo,
+        numero: numeroDeRecibo(r.serie, r.consecutivo),
+        entrada: Date.parse(r.instante_evento),
+      });
+    }
+    await db.estadias.clear();
+    await db.estadias.bulkAdd(abiertas);
+    return abiertas.length;
+  });
+}
+
+/** La estadía ya salió o no existe: no se cobra dos veces. */
+export class EstadiaCerrada extends Error {
+  constructor() {
+    super('Esta estadía ya no está abierta: puede que ya haya salido');
+    this.name = 'EstadiaCerrada';
+  }
+}
+
+export interface Cotizacion {
+  readonly estadia: Estadia;
+  readonly entrada: Registro;
+  readonly tarifa: Tarifa;
+  readonly liquidacion: Liquidacion;
+  readonly salida: number;
+}
+
+/** Lo que se cobraría si saliera en `salida`, con la tarifa con que entró (§9). */
+export async function cotizar(
+  db: BaseDeLaCaja,
+  estadiaId: string,
+  salida: number,
+  perdido: boolean,
+): Promise<Cotizacion> {
+  const estadia = await db.estadias.get(estadiaId);
+  const entrada = await db.registros.get(estadiaId);
+  if (!estadia || !entrada) throw new EstadiaCerrada();
+  const t = (await catalogosDelRegistro(db, entrada)).tarifa;
+  if (!t) throw new ReciboIncompleto(['la tarifa']);
+  const liquidacion = liquidar(estadia.entrada, salida, t, t.tope_minuto, null, perdido);
+  return { estadia, entrada, tarifa: t, liquidacion, salida };
+}
+
+export interface DatosDelCobro {
+  readonly perdido: boolean;
+  readonly medio: Exclude<MedioDePago, 'abonado'>;
+  /** Solo en efectivo. */
+  readonly recibido: number | null;
+  /** Solo en cortesía. */
+  readonly motivoCortesia: string | null;
+}
+
+/** El total que vio el cajero tiene más de 10 minutos: se vuelve a liquidar antes de cobrar. */
+export class CotizacionVencida extends Error {
+  constructor() {
+    super('El total cambió: pasaron más de 10 minutos desde que se calculó');
+    this.name = 'CotizacionVencida';
+  }
+}
+
+/**
+ * Cobra y cierra: en una transacción, la salida con su consecutivo y la estadía cerrada (§5.3).
+ * Se liquida con el instante de la cotización que vio el cajero (`instante`), para que lo cobrado
+ * sea lo que se mostró; si tiene más de 10 minutos, lanza `CotizacionVencida`. Lanza
+ * `ErrorDeValidacion` si el efectivo no alcanza o la cortesía no dice por qué (HU-Q3.5 CA4).
+ */
+export async function registrarSalida(
+  db: BaseDeLaCaja,
+  estadiaId: string,
+  c: DatosDelCobro,
+  ctx: Contexto,
+  instante?: number,
+): Promise<Registro> {
+  const { id: dispositivoId, serie } = await dispositivo(db, ctx);
+  const reloj = ctx.reloj();
+  const ahora = instante ?? reloj;
+  if (ahora > reloj || reloj - ahora > 10 * 60_000) throw new CotizacionVencida();
+  const q = await cotizar(db, estadiaId, ahora, c.perdido);
+  const liq = q.liquidacion;
+  const efectivo = c.medio === 'efectivo';
+  if (efectivo && (c.recibido === null || c.recibido < liq.total)) {
+    throw new ErrorDeValidacion('salida', [
+      { campo: 'recibido', motivo: `es menos que el total (${liq.total})` },
+    ]);
+  }
+  return db.transaction('rw', [db.registros, db.estadias, db.meta], async () => {
+    if (!(await db.estadias.get(estadiaId))) throw new EstadiaCerrada();
+    const meta = await db.meta.get('consecutivo');
+    const consecutivo = (meta?.clave === 'consecutivo' ? meta.ultimo : 0) + 1;
+    const recibido = efectivo ? c.recibido : null;
+    const registro = validarRegistro({
+      id: ctx.nuevoId(),
+      org_id: null,
+      tipo: 'salida',
+      v: 1,
+      fecha_local: diaLocalBogota(ahora),
+      instante_evento: iso(ahora),
+      autor_usuario_id: null,
+      dispositivo_id: dispositivoId,
+      origen: 'manual',
+      anula_id: null,
+      estadia_id: estadiaId,
+      serie,
+      consecutivo,
+      datos: {
+        entrada_numero: q.estadia.numero,
+        placa: q.estadia.placa,
+        vehiculo: q.estadia.vehiculo,
+        instante_entrada: iso(q.estadia.entrada),
+        minutos: liq.minutos,
+        lineas: liq.lineas,
+        subtotal: liq.subtotal,
+        redondeo: liq.redondeo,
+        total: liq.total,
+        medio_pago: c.medio,
+        recibido,
+        cambio: recibido === null ? null : recibido - liq.total,
+        motivo_cortesia: c.medio === 'cortesia' ? (c.motivoCortesia?.trim() ?? '') : null,
+        perdido: c.perdido,
+        tarifa_id: q.tarifa.id,
+        tarifa_version: q.tarifa.version,
+      },
+    });
+    await db.registros.add(registro);
+    await db.estadias.delete(estadiaId);
+    await db.meta.put({ clave: 'consecutivo', ultimo: consecutivo });
+    return registro;
+  });
+}
+
+export type Hallazgo =
+  | { readonly encontrada: true; readonly estadiaId: string }
+  | { readonly encontrada: false; readonly motivo: string };
+
+/**
+ * Lo que dice un QR escaneado: la estadía abierta que abre, o por qué no abre ninguna (HU-Q3.4
+ * CA2 y CA3). Sirven la forma corta del papel y la completa del teléfono del conductor; un QR de
+ * otro parqueadero o de una estadía cerrada dice qué es y no abre una salida.
+ */
+export async function buscarPorLectura(db: BaseDeLaCaja, texto: string): Promise<Hallazgo> {
+  const no = (motivo: string): Hallazgo => ({ encontrada: false, motivo });
+  if (!texto.startsWith(ORIGEN_DEL_RECIBO)) return no('Este QR no es un recibo del parqueadero.');
+  let lectura: Lectura;
+  try {
+    lectura = await leerEnlace(texto);
+  } catch (e) {
+    if (e instanceof EnlaceInvalido) return no('No se pudo leer este recibo: el QR está dañado.');
+    throw e;
+  }
+  const r =
+    lectura.forma === 'corta'
+      ? lectura
+      : {
+          numero: lectura.recibo.salida?.entradaNumero ?? lectura.recibo.numero,
+          placa: lectura.recibo.placa,
+          entrada: lectura.recibo.entrada,
+        };
+  const abierta = await db.estadias
+    .where('placa')
+    .equals(r.placa)
+    .filter((e) => e.numero === r.numero && Math.floor(e.entrada / 1000) * 1000 === r.entrada)
+    .first();
+  if (abierta) return { encontrada: true, estadiaId: abierta.id };
+  const deEstaCaja = await db.registros
+    .where('instante_evento')
+    // El enlace lleva segundos enteros; el registro, milisegundos.
+    .between(iso(r.entrada), iso(r.entrada + 999), true, true)
+    .filter((x) => x.tipo === 'entrada' && (x.datos as DatosDeEntrada).placa === r.placa)
+    .count();
+  return no(
+    deEstaCaja > 0 || (lectura.forma === 'completa' && lectura.recibo.clase === 'salida')
+      ? `La estadía de ${r.placa} (recibo ${r.numero}) ya salió.`
+      : `El recibo ${r.numero} de ${r.placa} no es de esta caja: puede ser de otro parqueadero.`,
+  );
 }
