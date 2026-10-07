@@ -1329,3 +1329,21 @@ La regla: **cada pantalla donde puede fallar la impresora ofrece cómo arreglarl
 La regla: **una capacidad del navegador se pregunta por lo que hace, no por si existe; y una conexión que el navegador da por abierta se confirma con la primera escritura.**
 
 *Ficha:* parqueadero · *(mío y del terreno)* · 🟠 Alto · P15, P16, P17 · parqueadero-0.0.0 · 2026-10-07
+
+**20 · El commit de la impresora emparejada salió sin las líneas de los dos CHANGELOG.**
+
+*Qué pasó.* El 7 oct 2026, en el sprint Q4, al cerrar HU-Q2.4. Un solo comando corría el guion que escribía los CHANGELOG, el formato, el lint, el typecheck, las pruebas y el commit.
+
+*Síntoma literal.* `Error: falta en CHANGELOG.md: ### Agregado` del guion, y aun así `3114775 feat(impresion): la impresora emparejada por Web Serial`.
+
+*Causa raíz.* El comando era `node guion.cjs && set -euo pipefail && pnpm exec biome check --write . || true; pnpm lint …`. El guion falló, el `|| true` tapó la falla de toda la cadena, y lo que venía después del `;` corrió sin `set -e`: lint, pruebas y commit, todo en verde, sin el CHANGELOG. El guion fallaba porque buscaba «### Agregado» con una línea en blanco que el CHANGELOG de la raíz no tiene. Es la bitácora agro 13 y la core 4 otra vez, por otro camino.
+
+*Cómo se reprodujo.* Es el registro del comando: la falla y el commit en la misma salida.
+
+*Arreglo.* Un commit aparte con las dos líneas (`docs(parqueadero): la impresora emparejada en los dos changelog`). La guardia del CI habría atrapado el del parqueadero, no el de la raíz.
+
+**Lo prueba** nada automático; es una regla de cómo trabajo.
+
+La regla: **un comando que termina en commit empieza con `set -euo pipefail` y no lleva ni `|| true` ni `;`: cada paso que falla detiene el commit.**
+
+*Ficha:* parqueadero · *(mío)* · 🟡 Medio · P14 · parqueadero-0.0.0 · 2026-10-07

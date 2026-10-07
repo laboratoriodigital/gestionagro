@@ -231,7 +231,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q0.2.1 `[dueño]` decisiones · WI-Q0.2.2 `[dueño]` datos del cliente · WI-Q0.2.3 `[código]` `validacion.json` · WI-Q0.2.4 `[prueba]` · WI-Q0.2.5 `[código]` término prohibido.
 
 #### HU-Q0.3 · Versión propia y publicación del parqueadero
-- **Capa:** CI y despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q3 · **Depende de:** HU-Q5.1, HU-C0.3 (hecha) · **Estado:** En revisión (rama `feat/q3-sprint`): versión propia, su CHANGELOG, la etiqueta `parqueadero-vX.Y.Z` y la guardia del CI. Queda en `0.0.0` (solo staging) hasta la `0.1.0` de la demostración; su producción espera HU-Q5.2 y, mientras tanto, falla y lo dice. La versión al pie del cierre de turno llega con HU-Q3.9
+- **Capa:** CI y despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q3 · **Depende de:** HU-Q5.1, HU-C0.3 (hecha) · **Estado:** Hecha (PR #114): versión propia, su CHANGELOG, la etiqueta `parqueadero-vX.Y.Z` y la guardia del CI. Queda en `0.0.0` (solo staging) hasta la `0.1.0` de la demostración; su producción espera HU-Q5.2 y, mientras tanto, falla y lo dice. La versión al pie del cierre de turno llega con HU-Q3.9
 - Como dueño, quiero publicar el parqueadero cuando cambia el parqueadero, con su versión y su registro de cambios, para no arrastrar al agro, al CORE ni a la Tienda, y para saber qué versión tiene la caja del cliente.
 - **Respaldo:** PARQUEADERO §16; PLATAFORMA §6.3; HU-C0.3; HU-T0.2.
 - **CA1.** La versión vive en `apps/parqueadero-sitio/package.json`, con su `CHANGELOG.md` y etiquetas `parqueadero-vX.Y.Z`. La caja muestra su versión en Ajustes y al pie del cierre de turno.
@@ -253,7 +253,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q1.1.1 `[código]` liquidación · WI-Q1.1.2 `[prueba]` tabla de casos · WI-Q1.1.3 `[prueba]` propiedad · WI-Q1.1.4 `[prueba]` husos y fechas · WI-Q1.1.5 `[doc]` nota en PARQUEADERO §9.
 
 #### HU-Q1.2 · Los topes de cada ciudad como contenido, con su vencimiento
-- **Capa:** contenido · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q1.1 · **Estado:** Refinada
+- **Capa:** contenido · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q1.1 · **Estado:** En revisión (rama `feat/q4-sprint`): topes.json con Bogotá, esquema en el CI, tope de la ciudad en la tarifa y aviso a los 13 meses
 - Como parqueadero de Bogotá, quiero que la caja sepa el tope vigente de mi ciudad y me avise cuando esté viejo, para no cobrar de más sin saberlo.
 - **Respaldo:** PARQUEADERO §9.1 y §9.2 (regla 3); estudio §13.2; Decretos 026 y 027 de 2026 de Bogotá (*Norma*).
 - **CA1.** `content/parqueadero/topes.json` con ciudad, norma, vigencia, tipo de vehículo, máximo por minuto y la regla del minuto iniciado. Bogotá desde el 30 ene 2026: COP 230 por minuto para carros y COP 161 para motos; 253 y 177 con sello de oro. Un esquema lo valida.
@@ -339,7 +339,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.3.1 `[código]` vincular y descubrir · WI-Q2.3.2 `[código]` enviar y reconectar · WI-Q2.3.3 `[código]` errores y diagnóstico · WI-Q2.3.4 `[prueba]` adaptador falso · WI-Q2.3.5 `[campo]` matriz.
 
 #### HU-Q2.4 · Imprimir por Web Serial: Bluetooth clásico en Android y el puerto COM en Windows
-- **Capa:** paquete · **Prioridad:** Must (baja a Should si la caja del cliente es Android y la matriz muestra que Web Bluetooth reconecta bien; §4.4) · **Puntos:** 3 · **Sprint:** Q4 · **Depende de:** HU-Q2.1, HU-Q2.2 · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must (baja a Should si la caja del cliente es Android y la matriz muestra que Web Bluetooth reconecta bien; §4.4) · **Puntos:** 3 · **Sprint:** Q4 · **Depende de:** HU-Q2.1, HU-Q2.2 · **Estado:** En revisión (rama `feat/q4-sprint`): adaptador Web Serial, «Usar la impresora emparejada» y la caja que la recupera al abrir; falta la matriz con la PT210L emparejada
 - Como cajero, quiero que la caja vuelva a encontrar la impresora sola al abrir el turno, sin elegirla cada vez.
 - **Respaldo:** ADR-34; PARQUEADERO §7.5.
 - **CA1.** Con la PT-210 emparejada una vez en Android, `navigator.serial.requestPort()` la toma, y en la sesión siguiente `getPorts()` la devuelve sin selector. En Windows, abre el puerto COM que crea el emparejamiento.
@@ -410,7 +410,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.3.1 `[diseño]` · WI-Q3.3.2 `[código]` teclado y formulario · WI-Q3.3.3 `[código]` transacción y consecutivo · WI-Q3.3.4 `[código]` fotos · WI-Q3.3.5 `[prueba]` sin hueco y sin impresora · WI-Q3.3.6 `[campo]` cronómetro.
 
 #### HU-Q3.4 · Estadías abiertas: buscar por placa o por el QR del recibo
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q3 · **Depende de:** HU-Q3.3 · **Estado:** En revisión (rama `feat/q3-sprint`): lista, búsqueda, escáner con `BarcodeDetector` o jsQR, y QR de otra caja, de una estadía cerrada o cualquiera; falta leer el papel con la cámara del Android
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q3 · **Depende de:** HU-Q3.3 · **Estado:** Hecha (PR #114): lista, búsqueda, escáner con `BarcodeDetector` o jsQR, y QR de otra caja, de una estadía cerrada o cualquiera; falta leer el papel con la cámara del Android
 - Como cajero, quiero encontrar el carro que sale en un segundo, por su placa o escaneando su recibo.
 - **Respaldo:** PARQUEADERO §5.1 (Salida, punto 1, y estadías abiertas) y §6.3 (la forma corta sirve para buscar).
 - **CA1.** El inicio muestra las estadías abiertas por hora de entrada, con el tiempo corriendo, y un buscador por placa que filtra al escribir, sin red.
@@ -421,7 +421,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.4.1 `[código]` lista y buscador · WI-Q3.4.2 `[código]` escáner · WI-Q3.4.3 `[prueba]` reconstrucción · WI-Q3.4.4 `[campo]`.
 
 #### HU-Q3.5 · La salida y el cobro
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q3 · **Depende de:** HU-Q3.4, HU-Q1.1 · **Estado:** En revisión (rama `feat/q3-sprint`): cobro con los cuatro medios, cambio, tiquete perdido, QR de pagos y cotización de 10 minutos
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q3 · **Depende de:** HU-Q3.4, HU-Q1.1 · **Estado:** Hecha (PR #114): cobro con los cuatro medios, cambio, tiquete perdido, QR de pagos y cotización de 10 minutos
 - Como cajero, quiero cobrar lo correcto, con el detalle a la vista, y entregar el recibo de salida.
 - **Respaldo:** PARQUEADERO §5.1 (Salida) y §9.
 - **CA1.** La liquidación con su detalle (minutos, tarifa, gracia, tope y redondeo) sale de `parqueadero-tarifas`.
@@ -433,7 +433,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.5.1 `[diseño]` · WI-Q3.5.2 `[código]` · WI-Q3.5.3 `[prueba]` e2e con los dos parqueaderos.
 
 #### HU-Q3.6 · La pantalla del recibo: QR, «No salió» y copias
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q3 · **Depende de:** HU-Q3.3, HU-Q1.5 · **Estado:** En revisión (rama `feat/q3-sprint`): «No salió», «COPIA n», QR en pantalla confirmado; cada entrega con su camino y su resultado
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q3 · **Depende de:** HU-Q3.3, HU-Q1.5 · **Estado:** Hecha (PR #114): «No salió», «COPIA n», QR en pantalla confirmado; cada entrega con su camino y su resultado
 - Como cajero, quiero en una pantalla todas las formas de entregar el recibo; como conductor, llevármelo sin papel y sin dar mi número.
 - **Respaldo:** PARQUEADERO §5.1 (la pantalla del recibo), §6.5 y §7.6.
 - **CA1.** Cuatro acciones: Imprimir, Enviar por WhatsApp (HU-Q4.1), Mostrar QR (la forma completa, en grande, para que el conductor la escanee con su cámara) y Reimprimir.
@@ -444,7 +444,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.6.1 `[diseño]` · WI-Q3.6.2 `[código]` · WI-Q3.6.3 `[prueba]` copias y «No salió».
 
 #### HU-Q3.7 · Anular sin borrar
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q3.5 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q3.5 · **Estado:** En revisión (rama `feat/q4-sprint`): anulación con motivo, operador y PIN; la guardia sin-borrar ve `registros` y lo que los reescribe
 - Como propietario, quiero que un error se corrija con una anulación que deja rastro, no borrando, para que el cierre de turno sea creíble.
 - **Respaldo:** PARQUEADERO §10.2 (registros inmutables), §11.2 y §13.1; P21.
 - **CA1.** Anular una entrada o una salida crea un registro `anulacion` con el motivo, el operador y el id de lo anulado, y pide el PIN de administrador en M0. Una entrada anulada cierra su estadía; una salida anulada la reabre.
@@ -454,7 +454,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.7.1 `[código]` · WI-Q3.7.2 `[ci]` guardia extendida · WI-Q3.7.3 `[prueba]` reabrir y cerrar estadías.
 
 #### HU-Q3.8 · La hora del teléfono, comparada con la del servidor
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q4 · **Depende de:** HU-Q3.1 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q4 · **Depende de:** HU-Q3.1 · **Estado:** En revisión (rama `feat/q4-sprint`): HEAD a /sitio.css con no-store; corrida más de 2 minutos, en rojo
 - Como conductor, quiero que la hora de mi recibo sea la verdadera, porque de ella sale lo que pago.
 - **Respaldo:** PARQUEADERO §5.6; P8; el `reloj-corrido` del cuaderno; P7.
 - **CA1.** Con red, la caja lee la cabecera `Date` del sitio con `fetch(…, { cache: 'no-store' })`. Si la diferencia pasa de 2 minutos, avisa en rojo y pide corregir la hora del teléfono; no la corrige en silencio.
@@ -464,7 +464,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.8.1 `[código]` · WI-Q3.8.2 `[prueba]` reloj corrido y caché.
 
 #### HU-Q3.9 · El turno: apertura, cierre con conteo y cierre impreso
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q4 · **Depende de:** HU-Q3.5, HU-Q3.7 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q4 · **Depende de:** HU-Q3.5, HU-Q3.7 · **Estado:** En revisión (rama `feat/q4-sprint`): apertura, movimientos, conteo por denominación y cierre impreso del anexo B; falta compararlo en la PT-210
 - Como cajero, quiero abrir y cerrar mi turno con la plata contada y un papel que lo pruebe, para entregar la caja sin discusiones.
 - **Respaldo:** PARQUEADERO §5.1 (Turno) y anexo B (el cierre a 32 columnas); estudio §16.3 (cuadre).
 - **CA1.** La apertura lleva el nombre del operador y la base de caja (`turno_apertura`). El cierre lleva el conteo del efectivo, lo esperado (calculado en el dispositivo), la diferencia y su motivo (`turno_cierre`). En medio, los movimientos de caja con su motivo (`movimiento_caja`).
@@ -477,7 +477,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.9.1 `[diseño]` · WI-Q3.9.2 `[código]` apertura y cierre · WI-Q3.9.3 `[código]` cierre impreso · WI-Q3.9.4 `[prueba]` cuadre y diferencias · WI-Q3.9.5 `[campo]`.
 
 #### HU-Q3.10 · Respaldo en archivo y restauración que une
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q4 · **Depende de:** HU-Q1.3, HU-Q3.9 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q4 · **Depende de:** HU-Q1.3, HU-Q3.9 · **Estado:** En revisión (rama `feat/q4-sprint`): respaldo compartido o descargado y restauración que une; falta compartir a Drive y restaurar en un segundo teléfono
 - Como propietario, quiero guardar todo lo de la caja en un archivo al cerrar el turno y poder cargarlo en otro teléfono, para no perder el parqueadero si se pierde el teléfono.
 - **Respaldo:** PARQUEADERO §5.3 (regla 6) y §2.2; bitácora ecommerce 77 (restaurar une, nunca reemplaza); P21; bitácora parqueadero 8.
 - **CA1.** «Respaldo» arma un `parqueadero-export/1` con su CSV y los comparte con `navigator.share` (correo o Drive) o los descarga. La cabecera dice la fecha del último respaldo.
@@ -501,7 +501,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 ### EQ4 · WhatsApp y recibo digital
 
 #### HU-Q4.1 · Enviar por WhatsApp con autorización, sin esperar a la red
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q3 · **Depende de:** HU-Q1.6, HU-Q1.4, HU-Q3.6, HU-Q4.4 · **Estado:** En revisión (rama `feat/q3-sprint`): número y casilla, enlace sin `await`, `contactos` con borrado a 24 h y número reusado en la salida. El borrado al anular llega con HU-Q3.7: la anulación pone `borrar_en` en ese instante. Falta la matriz con los dos números reales
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q3 · **Depende de:** HU-Q1.6, HU-Q1.4, HU-Q3.6, HU-Q4.4 · **Estado:** Hecha (PR #114): número y casilla, enlace sin `await`, `contactos` con borrado a 24 h y número reusado en la salida. El borrado al anular llega con HU-Q3.7: la anulación pone `borrar_en` en ese instante. Falta la matriz con los dos números reales
 - Como conductor, quiero recibir mi recibo en mi WhatsApp en el momento en que me lo imprimen; como parqueadero, enviarlo desde mi número sin pagar nada.
 - **Respaldo:** ADR-35 y ADR-38; PARQUEADERO §8.1 a §8.3 y §13.2; Ley 1581 arts. 3, 9 y 12; Decreto 1377 art. 7.
 - **CA1.** En la entrada y en la pantalla del recibo: el número del conductor, normalizado por `@ed1/whatsapp`, y la casilla **sin marcar** con el texto que el operador lee: «¿Autoriza que le enviemos sus recibos de hoy por WhatsApp a este número?». Sin número o sin autorización, el botón dice qué falta.
@@ -514,7 +514,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q4.1.1 `[diseño]` · WI-Q4.1.2 `[código]` número y autorización · WI-Q4.1.3 `[código]` enlace y entrega · WI-Q4.1.4 `[código]` borrado a 24 h · WI-Q4.1.5 `[prueba]` sin `await` · WI-Q4.1.6 `[prueba]` el número no se filtra · WI-Q4.1.7 `[campo]` matriz.
 
 #### HU-Q4.2 · La página del recibo `/r/`
-- **Capa:** sitio · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q3 · **Depende de:** HU-Q1.5, HU-Q5.2 · **Estado:** En revisión (rama `feat/q3-sprint`): `/r/` estática, sin API, sin placa en lo servido y a prueba de HTML en el nombre. En staging los recibos enlazan a la `/r/` de staging; el dominio llega con HU-Q5.2
+- **Capa:** sitio · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q3 · **Depende de:** HU-Q1.5, HU-Q5.2 · **Estado:** Hecha (PR #114): `/r/` estática, sin API, sin placa en lo servido y a prueba de HTML en el nombre. En staging los recibos enlazan a la `/r/` de staging; el dominio llega con HU-Q5.2
 - Como conductor, quiero abrir mi recibo desde el enlace de WhatsApp o desde el QR, sin cuenta y aunque el parqueadero no tenga internet.
 - **Respaldo:** PARQUEADERO §6.3; Ley 527 art. 6; P13; PT1.
 - **CA1.** Una página estática lee el fragmento y muestra el recibo completo con «Copia digital del recibo», sin sello verde en M0. La forma corta muestra el número, la placa y la hora, y explica cómo pedir la copia completa.
@@ -525,7 +525,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q4.2.1 `[diseño]` · WI-Q4.2.2 `[código]` · WI-Q4.2.3 `[prueba]` sin placa en lo servido · WI-Q4.2.4 `[campo]` tres teléfonos.
 
 #### HU-Q4.3 · El ajuste `papel`: siempre, o salvo recibo digital
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q4.1, HU-Q3.6 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q4 · **Depende de:** HU-Q4.1, HU-Q3.6 · **Estado:** En revisión (rama `feat/q4-sprint`): `papel` siempre o salvo_digital, sin «nunca»; las sedes de antes conservan su ajuste
 - Como propietario, quiero dejar de imprimir cuando el conductor ya tiene su recibo digital, sin dejar a nadie sin recibo.
 - **Respaldo:** PARQUEADERO §8.4 (la tabla del ajuste); Ley 1480 art. 18; Ley 527 art. 6; D-Q9.
 - **CA1.** El ajuste de la sede `papel`: `siempre` imprime al registrar y ofrece lo digital además; `salvo_digital` pregunta «¿Recibo por WhatsApp o en papel?», con WhatsApp primero, e imprime salvo que el conductor haya recibido el digital (WhatsApp abierto, o QR escaneado y confirmado).
@@ -535,7 +535,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q4.3.1 `[código]` · WI-Q4.3.2 `[prueba]`.
 
 #### HU-Q4.4 · El aviso de privacidad antes del primer número
-- **Capa:** legal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q3 · **Depende de:** HU-Q3.2 · **Estado:** En revisión (rama `feat/q3-sprint`): plantillas en `content/parqueadero/privacidad/aviso.json`, aceptación en la sede con su versión, impresión en la PT-210 y en hoja carta, y la frase «sin cuenta» en un solo lugar
+- **Capa:** legal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q3 · **Depende de:** HU-Q3.2 · **Estado:** Hecha (PR #114): plantillas en `content/parqueadero/privacidad/aviso.json`, aceptación en la sede con su versión, impresión en la PT-210 y en hoja carta, y la frase «sin cuenta» en un solo lugar
 - Como parqueadero, Responsable de los datos, quiero el aviso de privacidad y la política listos antes de pedirle a nadie su número.
 - **Respaldo:** PARQUEADERO §8.3 y §13.2 (en M0 el parqueadero es el Responsable y ED1 no recibe datos); Ley 1581 art. 12.
 - **CA1.** `content/parqueadero/privacidad/` con la plantilla del aviso y de la política para el parqueadero: la finalidad (solo los recibos de esa estadía), los derechos, el canal de consultas, el borrado a las 24 h y que el chat queda en el WhatsApp del parqueadero, que lo administra.

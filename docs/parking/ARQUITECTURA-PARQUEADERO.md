@@ -241,6 +241,8 @@ Se heredan ED1 §3, los patrones P1–P21 (`../BITACORA.md` › Lo aprendido), l
 
 **Turno:** apertura con la base de caja; cierre con conteo de efectivo, lo esperado (calculado en el dispositivo), la diferencia y su motivo. El cierre se imprime en la PT-210.
 
+**Nota del sprint Q4 (7 oct 2026), con el código:** el turno abierto se lee de los registros (`turno.ts`, sin zod): la última `turno_apertura` sin `turno_cierre`. Ninguna entrada, salida ni anulación se escribe sin turno. El resumen y el papel del cierre son puros (`resumirTurno` y `papelDelCierre` en `@ed1/parqueadero-recibos`): cuentan lo vigente, dejan fuera lo anulado y cuentan cada recibo una vez por su mejor camino. La anulación (`anulacion` v1) lleva su operador, el del turno.
+
 **Ajustes** (los que tocan dinero o textos legales piden el PIN de administrador en M0, y `auth_time` reciente desde M1): datos legales de la sede, tarifas, recibo, impresora, WhatsApp, PIN, respaldo.
 
 ### 5.2 Almacén local (Dexie sobre IndexedDB)
@@ -290,6 +292,8 @@ Las del cuaderno (ARQUITECTURA §5.3), con estas formas:
 - La hora del recibo es la del dispositivo: es la que cuenta para el conductor y para la liquidación.
 - Cuando hay red, la caja lee la cabecera `Date` del sitio estático (gratis) y, si la diferencia pasa de 2 minutos, avisa en rojo y pide corregir la hora. No corrige en silencio (P8, como `reloj-corrido` del cuaderno).
 - Las fechas locales se calculan con UTC−5 fijo: Colombia no tiene horario de verano. Sin `Intl` para formatear lo que va impreso, porque cambia entre navegadores (P17).
+
+**Nota del sprint Q4 (7 oct 2026), con el código:** la caja pide `HEAD /sitio.css?hora=<ms>` con `cache: 'no-store'`: un archivo fuera de `/caja/`, que el service worker no responde, y una marca para que ninguna caché devuelva una hora vieja (P7). Compara con la mitad del viaje. Revisa al abrir, cada 30 minutos y al volver la red (`hora.ts`).
 
 ---
 
@@ -546,6 +550,8 @@ Si la impresora anuncia otro nombre, «Ver todos los equipos» repite la llamada
   - En Android no hay eventos de conexión y desconexión (I1, I5): la caja reintenta al imprimir.
 - **Windows.** El emparejamiento Bluetooth crea un puerto COM virtual que Web Serial abre (Chrome 89+; Bluetooth directo desde la 117, I8). Por USB, el driver de impresora reclama el dispositivo; la librería de referencia recomienda el puerto COM (I37).
 - **Cuál es el principal en Android lo decide la prueba con la unidad real** (§15.3). Web Bluetooth no pide emparejar, pero pide elegir la impresora en cada sesión. Web Serial pide emparejar una vez y después reconecta solo. M0 construye los dos.
+
+**Nota del sprint Q4 (7 oct 2026), con el código y el campo:** la PT210L del primer cliente está emparejada en Android como clásica y LE (nRF Connect: BONDED), y por Web Bluetooth la conexión se cayó en tres pruebas seguidas (bitácora parqueadero 13, 17, 18 y 19). `crearImpresoraSerial` pide el puerto con `allowedBluetoothServiceClassIds` del perfil serie y sin filtros (el COM de Windows no dice que es Bluetooth), escribe en trozos de 256 bytes cada 15 ms y, si la primera escritura falla, abre el puerto otra vez y reintenta una vez. Al abrir, la caja llama `recuperar()`: si la impresora guardada es `serial`, toma el puerto de `getPorts()` sin selector. El asistente solo ofrece «Usar la impresora emparejada» si hay `navigator.serial`. La matriz con la PT210L decide el camino principal.
 
 **Diálogo de impresión del sistema (`window.print()`):**
 
@@ -844,6 +850,8 @@ La página general de precios (W1) sigue diciendo que los mensajes que no son pl
 
 - **Tarifa** (catálogo, por sede y tipo de vehículo, con versión): modo (`minuto`, `fraccion`, `hora`), valor, tamaño de la fracción, minutos de gracia, tope por bloque de 24 h, franja nocturna con valor fijo, valor del tiquete perdido y redondeo (`ninguno`, `abajo_50`, `abajo_100`).
 - **Tope de ciudad** (contenido, `content/parqueadero/topes.json`): ciudad, norma, vigencia, tipo de vehículo, máximo por minuto, regla del minuto iniciado. Para Bogotá desde el 30 ene 2026: COP 230 por minuto para carros y COP 161 para motos, COP 253 y 177 con sello de oro (Decretos 026 y 027 de 2026; estudio §1.1, *Norma*). La sede declara el suyo, que no puede pasar del máximo.
+
+  **Nota del sprint Q4 (7 oct 2026), con el código:** el archivo lleva también la bicicleta (COP 10, gratis con sello de oro; estudio §4.3, S11). `topesDeCiudades` lo valida en el CI contra el día de hoy. La caja exige el máximo sin sello de oro: la sede todavía no declara si lo tiene, y cobrar de menos es el error seguro (P1). La ciudad se reconoce sin tildes ni «D.C.».
 - **Liquidación** (pura): `liquidar(entrada, salida, tarifa, tope, abonado?, perdido?)` devuelve los minutos, las líneas con su concepto, el subtotal, el redondeo, el total y los avisos. Sin reloj ni red: recibe los instantes.
 
 ### 9.2 Reglas que el motor garantiza
