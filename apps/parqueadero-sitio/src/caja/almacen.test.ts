@@ -7,7 +7,7 @@ import {
   ORIGEN_DEL_RECIBO,
   ReciboIncompleto,
 } from '@ed1/parqueadero-recibos';
-import { type DatosDeSalida, ErrorDeValidacion } from '@ed1/parqueadero-schema';
+import { armarExport, type DatosDeSalida, ErrorDeValidacion } from '@ed1/parqueadero-schema';
 import { SEDE_ENSAYO_UNO, TARIFA_CARRO, TARIFA_MOTO } from '@ed1/parqueadero-schema/ensayos';
 import { describe, expect, it } from 'vitest';
 import {
@@ -15,10 +15,12 @@ import {
   type Contexto,
   CotizacionVencida,
   catalogosDelRegistro,
+  contactoDe,
   EstadiaCerrada,
   EstadiaYaAbierta,
   estadiasAbiertas,
   faltaParaRegistrar,
+  guardarContacto,
   guardarPin,
   guardarSede,
   guardarTarifa,
@@ -27,12 +29,14 @@ import {
   registrarEntrada,
   registrarEntrega,
   registrarSalida,
+  SinAvisoDePrivacidad,
   TarifaSobreElTope,
   tienePin,
   vecesImpreso,
   verificarPin,
 } from './almacen.ts';
-import { abrirBase } from './datos.ts';
+import { abrirBase, purgarContactos } from './datos.ts';
+import { avisoDeLaSede, VERSION_DEL_AVISO } from './privacidad.ts';
 
 const sinMeta = <T extends object>(c: T) => {
   const {
@@ -361,5 +365,116 @@ describe('el total que vio el cajero', () => {
     );
     const s = await registrarSalida(db, entrada.id, cobro, ctx, visto + 2 * 60_000);
     expect((s.datos as DatosDeSalida).minutos).toBe(33);
+  });
+});
+
+describe('el WhatsApp del conductor (HU-Q4.1 y HU-Q4.4)', () => {
+  const NUMERO = '300 123 4567';
+  const COBRO = {
+    perdido: false,
+    medio: 'datafono' as const,
+    recibido: null,
+    motivoCortesia: null,
+  };
+  const HORA = 3_600_000;
+
+  async function conAviso() {
+    const c = await configurada();
+    const a = await leerAjustes(c.db);
+    if (!a.sede) throw new Error('sin sede');
+    await guardarSede(
+      c.db,
+      {
+        ...sinMeta(a.sede),
+        aviso_privacidad: { version: VERSION_DEL_AVISO, aceptado: '2026-10-06T23:00:00.000Z' },
+      },
+      a.sede.id,
+      c.ctx,
+    );
+    return c;
+  }
+
+  it('sin el aviso aceptado no se guarda el número ni se gasta el recibo (HU-Q4.4 CA2)', async () => {
+    const { db, ctx } = await configurada();
+    await expect(registrarEntrada(db, { ...ENTRADA, whatsapp: NUMERO }, ctx)).rejects.toThrow(
+      SinAvisoDePrivacidad,
+    );
+    expect(await db.registros.count()).toBe(0);
+    expect(await db.contactos.count()).toBe(0);
+  });
+
+  it('se guarda con la entrada, sirve para la salida y se borra 24 h después (CA3 y CA4 ❌)', async () => {
+    const { db, ctx, avanzar } = await conAviso();
+    const entrada = await registrarEntrada(db, { ...ENTRADA, whatsapp: NUMERO }, ctx);
+    const c = await contactoDe(db, entrada.id, ctx.reloj());
+    expect(c).toMatchObject({ numero: '573001234567', aviso_version: '1', borrar_en: null });
+
+    avanzar(90);
+    const salida = await registrarSalida(db, entrada.id, COBRO, ctx);
+    const instante = Date.parse(salida.instante_evento);
+    expect((await db.contactos.get(entrada.id))?.borrar_en).toBe(instante + 24 * HORA);
+    expect((await contactoDe(db, salida.estadia_id ?? '', instante + 23 * HORA))?.numero).toBe(
+      '573001234567',
+    );
+
+    expect(await purgarContactos(db, instante + 23 * HORA)).toBe(0);
+    expect(await purgarContactos(db, instante + 25 * HORA)).toBe(1);
+    expect(await db.contactos.count()).toBe(0);
+  });
+
+  it('el número escrito después de la salida vence con esa salida, no 24 h después de escribirlo', async () => {
+    const { db, ctx, avanzar } = await conAviso();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(30);
+    const salida = await registrarSalida(db, entrada.id, COBRO, ctx);
+    avanzar(120);
+    const c = await guardarContacto(db, entrada.id, NUMERO, ctx);
+    expect(c.borrar_en).toBe(Date.parse(salida.instante_evento) + 24 * HORA);
+  });
+
+  it('el número no está en los registros ni en el respaldo (CA4 ❌)', async () => {
+    const { db, ctx, avanzar } = await conAviso();
+    const entrada = await registrarEntrada(db, { ...ENTRADA, whatsapp: NUMERO }, ctx);
+    await registrarEntrega(
+      db,
+      entrada,
+      { canal: 'whatsapp', copia: false, resultado: 'abierto', autorizado: true },
+      ctx,
+    );
+    avanzar(45);
+    await registrarSalida(db, entrada.id, COBRO, ctx);
+    const respaldo = await armarExport({
+      generado: new Date(ctx.reloj()).toISOString(),
+      app: 'parqueadero-caja',
+      dispositivo: { id: entrada.dispositivo_id, serie: 'A' },
+      sede_id: null,
+      catalogo: await db.catalogos.toArray(),
+      registro: await db.registros.toArray(),
+      historial: await db.historial.toArray(),
+    });
+    const todo = JSON.stringify(respaldo);
+    expect(todo).toContain('ABC123');
+    for (const forma of ['3001234567', '300 123 4567', '573001234567']) {
+      expect(todo).not.toContain(forma);
+    }
+    expect(await db.contactos.count()).toBe(1);
+  });
+});
+
+describe('el aviso de privacidad (HU-Q4.4)', () => {
+  const frase = (p: readonly string[]) => p.some((x) => x.includes('no salen de este'));
+
+  it('se llena con los datos de la sede, sin marcadores sueltos (CA1)', () => {
+    const a = avisoDeLaSede({ ...SEDE_ENSAYO_UNO, org_id: null });
+    const todo = [...a.parrafos, ...a.politica.secciones.flat()].join('\n');
+    expect(todo).toContain(SEDE_ENSAYO_UNO.nit);
+    expect(todo).toContain(SEDE_ENSAYO_UNO.telefono);
+    expect(todo).toContain('24 horas después de su salida');
+    expect(todo).not.toMatch(/[{}]/);
+  });
+
+  it('«sin cuenta» solo se dice en una caja sin cuenta (CA3 ❌)', () => {
+    expect(frase(avisoDeLaSede({ ...SEDE_ENSAYO_UNO, org_id: null }).parrafos)).toBe(true);
+    expect(frase(avisoDeLaSede({ ...SEDE_ENSAYO_UNO, org_id: 'org-1' }).parrafos)).toBe(false);
   });
 });

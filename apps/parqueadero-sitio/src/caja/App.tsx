@@ -7,7 +7,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { Asistente } from './Asistente.tsx';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { Cabecera } from './Cabecera.tsx';
-import type { BaseDeLaCaja, RegistroImpresora } from './datos.ts';
+import { type BaseDeLaCaja, purgarContactos, type RegistroImpresora } from './datos.ts';
 import { Estadias } from './Estadias.tsx';
 import { useConsulta } from './ganchos.ts';
 import type { ControlDeImpresora } from './impresora.ts';
@@ -55,6 +55,14 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
   const [copiado, setCopiado] = useState(false);
 
   useEffect(() => control.escuchar(setEstado), [control]);
+
+  // HU-Q4.1 CA3: los números vencidos se borran al abrir la caja y cada 10 minutos.
+  useEffect(() => {
+    const purgar = () => void purgarContactos(db, reloj());
+    purgar();
+    const t = setInterval(purgar, 10 * 60_000);
+    return () => clearInterval(t);
+  }, [db, reloj]);
 
   // HU-Q3.1 CA2: pedir que el navegador no borre la caja si se llena el teléfono.
   useEffect(() => {

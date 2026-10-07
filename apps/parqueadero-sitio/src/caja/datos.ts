@@ -1,7 +1,7 @@
 /**
  * El almacén local de la caja (PARQUEADERO §5.2): Dexie sobre IndexedDB. La versión 1 (Q1) tenía
  * solo lo de la impresión; la 2 (Q2) agrega los registros, los catálogos, las estadías abiertas,
- * las fotos y `meta` (dispositivo, consecutivo y PIN).
+ * las fotos y `meta` (dispositivo, consecutivo y PIN); la 3 (Q3), `contactos`.
  */
 import type { Camino, MotivoDeFallo, PaginaDeCodigos, Trozo } from '@ed1/impresion';
 import type { Catalogo, Registro, Vehiculo } from '@ed1/parqueadero-schema';
@@ -66,6 +66,24 @@ export interface VersionAnterior {
   readonly motivo: 'edicion';
 }
 
+/**
+ * El WhatsApp del conductor de una estadía, con su autorización (§8.3, HU-Q4.1 CA3). Vive solo
+ * aquí: nunca en `registros`, en el respaldo ni en la consola, y no sincroniza en M0–M2 (ADR-38).
+ */
+export interface Contacto {
+  /** El id de la entrada. */
+  readonly estadia_id: string;
+  /** Normalizado por `@ed1/whatsapp`: `573001234567`. */
+  readonly numero: string;
+  /** Cuándo autorizó, en ms. */
+  readonly autorizado: number;
+  /** Quién lo pidió. Hasta el turno (HU-Q3.9) la caja no tiene operador: es el dispositivo. */
+  readonly operador: string;
+  readonly aviso_version: string;
+  /** 24 h después de la salida; nulo mientras el vehículo esté adentro. */
+  readonly borrar_en: number | null;
+}
+
 export type Meta =
   | { readonly clave: 'dispositivo'; readonly id: string; readonly serie: string }
   | { readonly clave: 'consecutivo'; readonly ultimo: number }
@@ -81,6 +99,7 @@ export type BaseDeLaCaja = Dexie & {
   historial: EntityTable<VersionAnterior, 'id'>;
   estadias: EntityTable<Estadia, 'id'>;
   fotos: EntityTable<Foto, 'id'>;
+  contactos: EntityTable<Contacto, 'estadia_id'>;
   meta: Table<Meta, Meta['clave']>;
 };
 
@@ -95,5 +114,10 @@ export function abrirBase(nombre = 'parqueadero-caja'): BaseDeLaCaja {
     fotos: 'id, estadia_id',
     meta: 'clave',
   });
+  db.version(3).stores({ contactos: 'estadia_id, borrar_en' });
   return db;
 }
+
+/** Borra los números vencidos (HU-Q4.1 CA3). Corre al abrir la caja y cada tanto. */
+export const purgarContactos = (db: BaseDeLaCaja, ahora: number): Promise<number> =>
+  db.contactos.where('borrar_en').belowOrEqual(ahora).delete();

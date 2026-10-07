@@ -1,7 +1,8 @@
 /**
  * La pantalla del recibo (PARQUEADERO §5.1 y §6.5): lo que dice, y las formas de entregarlo. Si la
  * sede imprime siempre, sale solo (HU-Q3.3 CA2); si no sale, queda en entregas pendientes (CA4).
- * Un recibo nunca dice «Impreso»: dice «Enviado a la impresora» (HU-Q3.6 CA3).
+ * Un recibo nunca dice «Impreso»: dice «Enviado a la impresora» (HU-Q3.6 CA3). El WhatsApp va al
+ * número del conductor con su autorización; el de la entrada sirve para la salida (HU-Q4.1 CA3).
  */
 import { FalloDeImpresora, TEXTO_DEL_MOTIVO } from '@ed1/impresion';
 import {
@@ -14,18 +15,22 @@ import {
   textoWhatsApp,
 } from '@ed1/parqueadero-recibos';
 import type { DatosDeEntrega, Registro } from '@ed1/parqueadero-schema';
-import { enlaceParaCompartir } from '@ed1/whatsapp';
+import { enlaceConNumero } from '@ed1/whatsapp';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import {
   type Contexto,
   catalogosDelRegistro,
+  contactoDe,
+  guardarContacto,
   leerAjustes,
   registrarEntrega,
   vecesImpreso,
 } from './almacen.ts';
-import type { BaseDeLaCaja } from './datos.ts';
+import type { BaseDeLaCaja, Contacto } from './datos.ts';
 import { origenDelRecibo } from './entorno.ts';
 import type { ControlDeImpresora } from './impresora.ts';
+import { avisoAceptado } from './privacidad.ts';
+import { CampoWhatsApp, faltaDelWhatsApp, terminaEn } from './whatsapp.tsx';
 
 interface Props {
   readonly db: BaseDeLaCaja;
@@ -41,6 +46,7 @@ interface Armado {
   readonly recibo: ReciboArmado;
   readonly enlace: string;
   readonly imprimirSiempre: boolean;
+  readonly pideNumero: boolean;
 }
 
 export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }: Props) {
@@ -53,7 +59,11 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
   const [veces, setVeces] = useState(0);
   const [ultimoPapel, setUltimoPapel] = useState<Registro | null>(null);
   const [whatsapp, setWhatsapp] = useState<Registro | null>(null);
+  const [contacto, setContacto] = useState<Contacto | null>(null);
+  const [numero, setNumero] = useState('');
+  const [autoriza, setAutoriza] = useState(false);
   const automatico = useRef(false);
+  const estadiaId = registro.estadia_id ?? registro.id;
 
   useEffect(() => {
     void (async () => {
@@ -61,16 +71,18 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
         const recibo = armarRecibo(registro, await catalogosDelRegistro(db, registro), { prueba });
         const { sede } = await leerAjustes(db);
         setVeces(await vecesImpreso(db, registro));
+        setContacto(await contactoDe(db, estadiaId, ctx.reloj()));
         setArmado({
           recibo,
           enlace: await enlaceCompleto(recibo, origenDelRecibo(location)),
           imprimirSiempre: sede?.imprimir_siempre === true,
+          pideNumero: avisoAceptado(sede),
         });
       } catch (e) {
         setError(`El recibo no se pudo armar: ${e instanceof Error ? e.message : String(e)}`);
       }
     })();
-  }, [db, registro, prueba]);
+  }, [db, registro, prueba, estadiaId, ctx]);
 
   const anotar = (texto: string) => setEntregas((antes) => [...antes, { n: antes.length, texto }]);
 
@@ -142,12 +154,14 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
     await imprimir(true);
   }
 
-  // El toque solo navega: el enlace ya está armado y la entrega se anota sin esperar (HU-Q4.1 CA2).
+  // El toque solo navega: el enlace ya está armado, y el número y la entrega se anotan sin
+  // esperar (HU-Q4.1 CA2). Ningún `await` aquí: lo exige una prueba.
   function porWhatsApp() {
+    if (!contacto) void guardarContacto(db, estadiaId, numero, ctx).then(setContacto);
     void registrarEntrega(
       db,
       registro,
-      { canal: 'whatsapp', copia: false, resultado: 'abierto' },
+      { canal: 'whatsapp', copia: false, resultado: 'abierto', autorizado: true },
       ctx,
     ).then(setWhatsapp);
     anotar('Abierto en WhatsApp.');
@@ -157,7 +171,7 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
     await registrarEntrega(
       db,
       registro,
-      { canal: 'whatsapp', copia: false, resultado: 'no_enviado' },
+      { canal: 'whatsapp', copia: false, resultado: 'no_enviado', autorizado: true },
       ctx,
     );
     setWhatsapp(null);
@@ -191,6 +205,12 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
   if (!armado) return <section class="tarjeta" aria-busy="true" />;
 
   const vista = pantalla(armado.recibo);
+  const falta = contacto
+    ? ''
+    : armado.pideNumero
+      ? faltaDelWhatsApp(numero, autoriza)
+      : 'Falta el aviso de privacidad';
+  const destino = contacto?.numero ?? numero;
   return (
     <section class="tarjeta" data-prueba="recibo">
       <h1>
@@ -205,6 +225,20 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
         ))}
       </dl>
 
+      {contacto ? (
+        <p class="ayuda" data-prueba="whatsapp-guardado">
+          WhatsApp del conductor: el que termina en {terminaEn(contacto.numero)}
+        </p>
+      ) : (
+        <CampoWhatsApp
+          pideNumero={armado.pideNumero}
+          numero={numero}
+          autoriza={autoriza}
+          alEscribir={setNumero}
+          alAutorizar={setAutoriza}
+        />
+      )}
+
       <div class="dos">
         <button
           type="button"
@@ -215,16 +249,22 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
         >
           {veces > 0 ? 'Reimprimir' : 'Imprimir'}
         </button>
-        <a
-          class="boton enlace-boton"
-          href={enlaceParaCompartir(textoWhatsApp(armado.recibo, armado.enlace))}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={porWhatsApp}
-          data-prueba="whatsapp"
-        >
-          Enviar por WhatsApp
-        </a>
+        {falta ? (
+          <button type="button" class="boton" disabled data-prueba="whatsapp">
+            {falta}
+          </button>
+        ) : (
+          <a
+            class="boton enlace-boton"
+            href={enlaceConNumero(destino, textoWhatsApp(armado.recibo, armado.enlace))}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={porWhatsApp}
+            data-prueba="whatsapp"
+          >
+            Enviar por WhatsApp
+          </a>
+        )}
         <button type="button" class="boton" onClick={() => setConQr(!conQr)}>
           {conQr ? 'Ocultar QR' : 'Mostrar QR'}
         </button>

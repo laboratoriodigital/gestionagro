@@ -85,7 +85,13 @@ const PNG = Buffer.from(
 
 async function llenarAjustes(
   page: Page,
-  o: { valor?: string; imprimir?: 'Sí' | 'No'; qr?: boolean; nombre?: string } = {},
+  o: {
+    valor?: string;
+    imprimir?: 'Sí' | 'No';
+    qr?: boolean;
+    nombre?: string;
+    aviso?: boolean;
+  } = {},
 ) {
   const f = page.getByTestId('ajustes');
   await f
@@ -113,6 +119,7 @@ async function llenarAjustes(
       .getByLabel('Imagen del QR de pagos', { exact: true })
       .setInputFiles({ name: 'qr.png', mimeType: 'image/png', buffer: PNG });
   }
+  if (o.aviso) await f.getByLabel(/acepta este aviso de privacidad/).check();
   await f.getByLabel('PIN (4 a 6 números)', { exact: true }).fill('2468');
   await f.getByLabel('Repita el PIN', { exact: true }).fill('2468');
   await f.getByRole('button', { name: 'Guardar', exact: true }).click();
@@ -365,9 +372,11 @@ test.describe('la caja del parqueadero', () => {
     const nombre = '<img src=x onerror=window.__xss=1>Uno';
     await page.goto(CAJA);
     await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
-    await llenarAjustes(page, { imprimir: 'No', nombre });
+    await llenarAjustes(page, { imprimir: 'No', nombre, aviso: true });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await teclearPlaca(page, 'ABC123');
+    await page.getByLabel('WhatsApp del conductor (opcional)').fill('300 123 4567');
+    await page.getByLabel(/Autoriza que le enviemos/).check();
     await page.getByRole('button', { name: 'Registrar' }).click();
     const href = await page.getByTestId('whatsapp').getAttribute('href');
     const texto = new URL(href ?? '').searchParams.get('text') ?? '';
@@ -395,6 +404,96 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
     await page.goto(`${SITIO}/r/#1.eJzLSM3JyQcABiwCFQ`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('No pudimos leer este recibo');
+  });
+
+  test('HU-Q4.4 y HU-Q4.1 · el aviso va antes del primer número, y el número no sale del teléfono', async ({
+    page,
+    context,
+  }) => {
+    const NUMERO = '300 123 4567';
+    const consola: string[] = [];
+    page.on('console', (m) => consola.push(m.text()));
+    await context.route('https://wa.me/**', (r) => r.fulfill({ status: 200, body: 'WhatsApp' }));
+    const entrada = new Date('2026-10-06T23:05:00Z');
+    await page.clock.setFixedTime(entrada);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+
+    // Sin el aviso aceptado, la caja no pide números (HU-Q4.4 CA2).
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await expect(page.getByTestId('sin-aviso')).toBeVisible();
+    await expect(page.getByLabel('WhatsApp del conductor (opcional)')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await page.getByRole('button', { name: 'Aviso de privacidad' }).click();
+    await expect(page.getByTestId('aviso-sin-aceptar')).toBeVisible();
+    await expect(page.getByTestId('aviso')).toContainText('800123456-7');
+    await expect(page.getByTestId('aviso')).toContainText('24 horas después de su salida');
+    const antes = (await bytesImpresos(page)).length;
+    await page.getByRole('button', { name: 'Imprimir en la impresora' }).click();
+    await expect(page.getByText('Enviado a la impresora')).toBeVisible();
+    expect((await bytesImpresos(page)).slice(antes)).toContain('AVISO DE PRIVACIDAD');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await page.getByLabel('PIN de administrador').fill('2468');
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await page.getByLabel(/acepta este aviso de privacidad/).check();
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+
+    // La casilla empieza sin marcar y el botón dice qué falta (HU-Q4.1 CA1, CA4 ❌).
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'ABC123');
+    const casilla = page.getByLabel(/Autoriza que le enviemos/);
+    await expect(casilla).not.toBeChecked();
+    await page.getByLabel('WhatsApp del conductor (opcional)').fill('300 123');
+    await expect(
+      page.getByRole('button', { name: 'El WhatsApp no es un celular válido' }),
+    ).toBeDisabled();
+    await page.getByLabel('WhatsApp del conductor (opcional)').fill(NUMERO);
+    await expect(casilla).not.toBeChecked();
+    await expect(page.getByRole('button', { name: 'Falta la autorización' })).toBeDisabled();
+    await casilla.check();
+    await page.getByRole('button', { name: 'Registrar' }).click();
+
+    // El enlace ya está armado: el toque solo navega (CA2).
+    await expect(page.getByTestId('whatsapp-guardado')).toContainText('…4567');
+    const boton = page.getByTestId('whatsapp');
+    await expect(boton).toHaveAttribute('href', /^https:\/\/wa\.me\/573001234567\?text=/);
+    const [chat] = await Promise.all([page.waitForEvent('popup'), boton.click()]);
+    expect(chat.url()).toContain('wa.me/573001234567');
+    await chat.close();
+    await expect(page.getByRole('button', { name: 'No se envió' })).toBeVisible();
+
+    // El recibo de salida usa el número de la entrada (CA3).
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.clock.setFixedTime(new Date(entrada.getTime() + 30 * 60_000));
+    await page.getByTestId('estadia').click();
+    await page.getByRole('button', { name: 'Datáfono' }).click();
+    await page.getByRole('button', { name: /^Cobrar/ }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000002');
+    await expect(page.getByTestId('whatsapp')).toHaveAttribute('href', /wa\.me\/573001234567\?/);
+
+    // 25 h después de la salida, el número ya no está (CA4 ❌).
+    const contactos = () =>
+      page.evaluate(
+        () =>
+          new Promise<number>((listo, falla) => {
+            const abrir = indexedDB.open('parqueadero-caja');
+            abrir.onerror = () => falla(abrir.error);
+            abrir.onsuccess = () => {
+              const contar = abrir.result.transaction('contactos').objectStore('contactos').count();
+              contar.onsuccess = () => listo(contar.result);
+            };
+          }),
+      );
+    expect(await contactos()).toBe(1);
+    await page.clock.setFixedTime(new Date(entrada.getTime() + (30 + 25 * 60) * 60_000));
+    await page.reload();
+    await expect(page.getByTestId('estadias')).toBeVisible();
+    await expect.poll(contactos).toBe(0);
+    expect(consola.filter((m) => /123.?4567/.test(m))).toEqual([]);
   });
 
   test('HU-Q3.3 · sin impresora conectada, el registro existe y la entrega queda pendiente (CA4 ❌)', async ({
@@ -468,6 +567,10 @@ for (const esquema of ['light', 'dark'] as const) {
     await page.getByTestId('estadia').click();
     await page.getByRole('button', { name: 'Efectivo' }).click();
     await expect(page.getByTestId('total')).toBeVisible();
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Aviso de privacidad' }).click();
+    await expect(page.getByTestId('aviso')).toBeVisible();
     await revisar();
   });
 }

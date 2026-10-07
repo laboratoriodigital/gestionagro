@@ -37,8 +37,10 @@ import {
   type ZodType,
 } from '@ed1/parqueadero-schema';
 import { type Liquidacion, liquidar, validarTarifa } from '@ed1/parqueadero-tarifas';
-import type { BaseDeLaCaja, Estadia } from './datos.ts';
+import { normalizarNumero } from '@ed1/whatsapp';
+import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
 import { diaLocalBogota } from './fecha.ts';
+import { avisoAceptado, VERSION_DEL_AVISO } from './privacidad.ts';
 
 export interface Contexto {
   readonly reloj: () => number;
@@ -207,6 +209,8 @@ export interface DatosDeLaEntrada {
   readonly placaConfirmada: boolean;
   readonly novedades: DatosDeEntrada['novedades'];
   readonly fotos: readonly { readonly tipo: 'image/webp' | 'image/jpeg'; readonly datos: Blob }[];
+  /** El WhatsApp del conductor, ya autorizado con la casilla (HU-Q4.1 CA1); nulo si no lo dio. */
+  readonly whatsapp?: string | null;
 }
 
 /** La placa ya tiene una estadía abierta: no se crea otra (HU-Q3.3 CA3). */
@@ -236,8 +240,10 @@ export async function registrarEntrada(
   const faltan = faltaParaRegistrar(ajustes, [d.vehiculo]);
   const tarifaVigente = ajustes.tarifas.find((t) => t.vehiculo === d.vehiculo);
   if (faltan.length > 0 || !tarifaVigente) throw new ReciboIncompleto(faltan);
+  const numero = d.whatsapp ? numeroAutorizado(ajustes.sede, d.whatsapp) : null;
 
-  return db.transaction('rw', [db.registros, db.estadias, db.meta, db.fotos], async () => {
+  const tablas = [db.registros, db.estadias, db.meta, db.fotos, db.contactos];
+  return db.transaction('rw', tablas, async () => {
     const abierta = await db.estadias.where('placa').equals(d.placa).first();
     if (abierta) throw new EstadiaYaAbierta(abierta);
     const meta = await db.meta.get('consecutivo');
@@ -282,8 +288,80 @@ export async function registrarEntrada(
     for (const f of fotos) {
       await db.fotos.add({ id: f.id, estadia_id: id, tipo: f.tipo, datos: f.datos, creada: ahora });
     }
+    if (numero) await db.contactos.put(contacto(id, numero, dispositivoId, ahora, null));
     return registro;
   });
+}
+
+// ── El WhatsApp del conductor (HU-Q4.1) ───────────────────────────────────────────────────────
+
+/** La sede no ha aceptado el aviso de privacidad vigente: no se guardan números (HU-Q4.4 CA2). */
+export class SinAvisoDePrivacidad extends Error {
+  constructor() {
+    super('Antes del primer número, la sede acepta el aviso de privacidad en Ajustes.');
+    this.name = 'SinAvisoDePrivacidad';
+  }
+}
+
+/** Lanza `SinAvisoDePrivacidad`, o `WhatsAppInvalido` si el número no sirve. */
+function numeroAutorizado(laSede: Sede | null, escrito: string): string {
+  if (!avisoAceptado(laSede)) throw new SinAvisoDePrivacidad();
+  return normalizarNumero(escrito);
+}
+
+const VIGENCIA_DEL_NUMERO = 24 * 3_600_000;
+
+const contacto = (
+  estadiaId: string,
+  numero: string,
+  operador: string,
+  ahora: number,
+  salida: number | null,
+): Contacto => ({
+  estadia_id: estadiaId,
+  numero,
+  autorizado: ahora,
+  operador,
+  aviso_version: VERSION_DEL_AVISO,
+  borrar_en: salida === null ? null : salida + VIGENCIA_DEL_NUMERO,
+});
+
+/**
+ * Guarda el número que el conductor autorizó en la pantalla del recibo. Si el vehículo ya salió,
+ * vence 24 h después de esa salida, no de ahora (ADR-38).
+ */
+export async function guardarContacto(
+  db: BaseDeLaCaja,
+  estadiaId: string,
+  escrito: string,
+  ctx: Contexto,
+): Promise<Contacto> {
+  const numero = numeroAutorizado((await leerAjustes(db)).sede, escrito);
+  const { id: dispositivoId } = await dispositivo(db, ctx);
+  const salida = await db.registros
+    .where('estadia_id')
+    .equals(estadiaId)
+    .filter((r) => r.tipo === 'salida')
+    .first();
+  const c = contacto(
+    estadiaId,
+    numero,
+    dispositivoId,
+    ctx.reloj(),
+    salida ? Date.parse(salida.instante_evento) : null,
+  );
+  await db.contactos.put(c);
+  return c;
+}
+
+/** El número vigente de una estadía, o nulo. El de la entrada sirve para el recibo de salida. */
+export async function contactoDe(
+  db: BaseDeLaCaja,
+  estadiaId: string,
+  ahora: number,
+): Promise<Contacto | null> {
+  const c = await db.contactos.get(estadiaId);
+  return c && (c.borrar_en === null || c.borrar_en > ahora) ? c : null;
 }
 
 export type DatosDeEntregaRecibo = Omit<DatosDeEntrega, 'recibo_id'>;
@@ -479,7 +557,7 @@ export async function registrarSalida(
       { campo: 'recibido', motivo: `es menos que el total (${liq.total})` },
     ]);
   }
-  return db.transaction('rw', [db.registros, db.estadias, db.meta], async () => {
+  return db.transaction('rw', [db.registros, db.estadias, db.meta, db.contactos], async () => {
     if (!(await db.estadias.get(estadiaId))) throw new EstadiaCerrada();
     const meta = await db.meta.get('consecutivo');
     const consecutivo = (meta?.clave === 'consecutivo' ? meta.ultimo : 0) + 1;
@@ -520,6 +598,7 @@ export async function registrarSalida(
     await db.registros.add(registro);
     await db.estadias.delete(estadiaId);
     await db.meta.put({ clave: 'consecutivo', ultimo: consecutivo });
+    await db.contactos.update(estadiaId, { borrar_en: ahora + VIGENCIA_DEL_NUMERO });
     return registro;
   });
 }
