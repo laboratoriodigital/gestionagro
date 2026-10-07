@@ -1,0 +1,57 @@
+{
+  "nota": "Plantillas del aviso de privacidad y de la política de tratamiento para cada parqueadero (HU-Q4.4; PARQUEADERO §8.3 y §13.2). En M0 el parqueadero es el Responsable y ED1 no recibe datos: la caja guarda todo en el teléfono. La caja llena {nombre}, {nit}, {direccion}, {ciudad} y {telefono} con los datos legales de la sede, muestra el aviso, lo imprime en la PT-210 o en hoja carta, y no deja guardar el primer número de WhatsApp hasta que la sede lo acepta con esta versión. Cambiar lo que el aviso promete exige subir la versión: la sede lo vuelve a aceptar. «sin_cuenta» es el único lugar donde vive esa frase, y solo se dice en una caja sin cuenta (estudio §13.5); una prueba la busca en el resto del código.",
+  "version": "1",
+  "fecha": "2026-10-07",
+  "estado": "borrador",
+  "revision": "requiere revisión de abogado",
+  "sin_cuenta": "Sus datos no salen de este teléfono, salvo el recibo que usted pide por WhatsApp.",
+  "aviso": {
+    "titulo": "Aviso de privacidad",
+    "parrafos": [
+      "{nombre}, NIT {nit}, {direccion}, {ciudad}, es el responsable de los datos personales que se recogen en este parqueadero.",
+      "Pedimos la placa y el estado de su vehículo para el recibo que exige la ley. Si usted quiere su recibo por WhatsApp, también su número de celular, solo con su autorización.",
+      "Su número sirve únicamente para enviarle los recibos de esta estadía. No le enviaremos publicidad ni lo compartiremos.",
+      "El número se borra de la caja 24 horas después de su salida. La conversación queda en el WhatsApp del parqueadero, que administra {nombre}.",
+      "{sin_cuenta}",
+      "Usted puede conocer, actualizar, rectificar y suprimir sus datos, revocar su autorización y quejarse ante la Superintendencia de Industria y Comercio (Ley 1581 de 2012).",
+      "Consultas y reclamos: en la caja o al teléfono {telefono}. La política de tratamiento de datos está a su disposición en la caja."
+    ]
+  },
+  "politica": {
+    "titulo": "Política de tratamiento de datos personales",
+    "secciones": [
+      {
+        "titulo": "Responsable",
+        "texto": "{nombre}, NIT {nit}, con domicilio en {direccion}, {ciudad}, teléfono {telefono}."
+      },
+      {
+        "titulo": "Datos que tratamos y para qué",
+        "texto": "La placa, el tipo y el estado del vehículo, y las fotos del vehículo cuando se toman, para expedir el recibo de entrada y de salida que exige la Ley 1480 de 2011 y para responder por el vehículo. El número de celular del conductor, solo si lo da y autoriza enviarle por WhatsApp los recibos de esa estadía, y para nada más."
+      },
+      {
+        "titulo": "Autorización",
+        "texto": "Se pide antes de escribir el número, con la pregunta que el cajero lee en voz alta. La caja guarda la hora de la autorización y la versión de este aviso. Sin autorización no se guarda el número, y el conductor recibe su recibo en papel o con el código de la pantalla."
+      },
+      {
+        "titulo": "Cuánto tiempo",
+        "texto": "El número se borra de la caja 24 horas después de la salida del vehículo, o cuando se anula la estadía. Los recibos se conservan como soporte del servicio y de la contabilidad del parqueadero."
+      },
+      {
+        "titulo": "Dónde quedan los datos",
+        "texto": "En el teléfono o el computador de la caja del parqueadero. Los mensajes enviados quedan en el WhatsApp del parqueadero, que lo administra como responsable."
+      },
+      {
+        "titulo": "Derechos del titular",
+        "texto": "Conocer, actualizar y rectificar sus datos; pedir prueba de la autorización; saber cómo se usaron; revocar la autorización o pedir que se supriman, y presentar quejas ante la Superintendencia de Industria y Comercio (Ley 1581 de 2012, art. 8)."
+      },
+      {
+        "titulo": "Consultas y reclamos",
+        "texto": "En la caja o al teléfono {telefono}. Las consultas se responden en máximo 10 días hábiles y los reclamos en máximo 15 días hábiles (Ley 1581 de 2012, arts. 14 y 15)."
+      },
+      {
+        "titulo": "Vigencia",
+        "texto": "Desde el {fecha_aceptacion}. Si cambia lo que aquí se promete, el parqueadero publica la nueva versión antes de aplicarla."
+      }
+    ]
+  }
+}

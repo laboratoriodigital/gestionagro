@@ -24,6 +24,7 @@ import {
 } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
 import { useConsulta } from './ganchos.ts';
+import { avisoAceptado, avisoDeLaSede, VERSION_DEL_AVISO } from './privacidad.ts';
 
 /** Los vehículos que la caja cobra en M0: los del primer cliente (bitácora parqueadero 9). */
 export const VEHICULOS_DE_LA_CAJA: readonly Vehiculo[] = ['carro', 'moto'];
@@ -55,6 +56,8 @@ export interface Borrador {
   numeroPoliza: string;
   registro: string;
   imprimir: '' | 'si' | 'no';
+  /** La sede acepta el aviso de privacidad vigente (HU-Q4.4 CA2). */
+  aviso: boolean;
   pie: string;
   pin: string;
   pin2: string;
@@ -75,6 +78,7 @@ export const borradorVacio = (): Borrador => ({
   numeroPoliza: '',
   registro: '',
   imprimir: '',
+  aviso: false,
   pie: '',
   pin: '',
   pin2: '',
@@ -97,6 +101,7 @@ function borradorDe(sede: Sede | null, tarifas: readonly Tarifa[], pie: string |
       numeroPoliza: sede.poliza?.numero ?? '',
       registro: sede.registro ?? '',
       imprimir: sede.imprimir_siempre ? 'si' : 'no',
+      aviso: avisoAceptado(sede),
     });
   }
   b.pie = pie ?? '';
@@ -267,6 +272,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
     ajuste: null,
     tarifas: {},
   });
+  const [avisoGuardado, setAvisoGuardado] = useState<Sede['aviso_privacidad']>(null);
   const [errores, setErrores] = useState<Errores>({});
   const [guardando, setGuardando] = useState(false);
   /** `undefined`: sin cambios; `null`: quitar la imagen. */
@@ -283,6 +289,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
     void (async () => {
       const a = await leerAjustes(db);
       setB(borradorDe(a.sede, a.tarifas, a.ajuste?.pie ?? null));
+      setAvisoGuardado(a.sede?.aviso_privacidad ?? null);
       setIds({
         sede: a.sede?.id ?? null,
         ajuste: a.ajuste?.id ?? null,
@@ -349,6 +356,12 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
           poliza: b.poliza === 'si' ? { aseguradora: b.aseguradora, numero: b.numeroPoliza } : null,
           registro: b.registro.trim() || null,
           imprimir_siempre: b.imprimir === 'si',
+          // Aceptarlo otra vez no cambia la fecha en que se aceptó esta versión.
+          aviso_privacidad: !b.aviso
+            ? null
+            : avisoAceptado({ aviso_privacidad: avisoGuardado })
+              ? avisoGuardado
+              : { version: VERSION_DEL_AVISO, aceptado: new Date(ctx.reloj()).toISOString() },
         },
         ids.sede,
         ctx,
@@ -605,6 +618,33 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
             }
           }}
         />
+      </fieldset>
+
+      <fieldset class="grupo" data-prueba="aviso-privacidad">
+        <legend>Aviso de privacidad</legend>
+        <p class="ayuda">
+          Antes de pedir el WhatsApp de un conductor, el parqueadero acepta su aviso de privacidad y
+          lo pone a la vista. La caja lo llena con los datos de arriba.
+        </p>
+        <details>
+          <summary>Leer el aviso (versión {VERSION_DEL_AVISO})</summary>
+          {avisoDeLaSede(b).parrafos.map((p) => (
+            <p key={p}>{p}</p>
+          ))}
+        </details>
+        <label class="casilla">
+          <input
+            id="aviso"
+            class="casilla-marca"
+            type="checkbox"
+            checked={b.aviso}
+            onChange={(e) => setB({ ...b, aviso: e.currentTarget.checked })}
+          />
+          <span>
+            El parqueadero acepta este aviso de privacidad (versión {VERSION_DEL_AVISO}) y responde
+            por los números de sus conductores.
+          </span>
+        </label>
       </fieldset>
 
       <fieldset class="grupo">

@@ -85,9 +85,14 @@ export function Estadias({ db, reloj, ir }: Props) {
           </li>
         ))}
       </ul>
-      <button type="button" class="boton boton-secundario" onClick={() => ir({ es: 'ajustes' })}>
-        Ajustes del parqueadero
-      </button>
+      <div class="dos">
+        <button type="button" class="boton boton-secundario" onClick={() => ir({ es: 'ajustes' })}>
+          Ajustes del parqueadero
+        </button>
+        <button type="button" class="boton boton-secundario" onClick={() => ir({ es: 'aviso' })}>
+          Aviso de privacidad
+        </button>
+      </div>
     </section>
   );
 }

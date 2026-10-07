@@ -392,3 +392,24 @@ legend {
   border-radius: var(--radio-campo);
   background: #fff;
 }
+
+/* El aviso de privacidad en hoja carta (HU-Q4.4): solo la tarjeta, sin botones ni cabecera. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .imprimible,
+  .imprimible * {
+    visibility: visible;
+  }
+  .imprimible {
+    position: absolute;
+    inset: 0;
+    box-shadow: none;
+    color: #000;
+    background: #fff;
+  }
+  .imprimible .no-imprimir {
+    display: none;
+  }
+}

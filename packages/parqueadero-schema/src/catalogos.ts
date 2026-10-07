@@ -50,6 +50,14 @@ export const sede = z.strictObject({
   registro: notaCorta(30).nullable(),
   /** Imprimir el recibo al registrar, si la impresora está conectada (§5.1). */
   imprimir_siempre: z.boolean(),
+  /**
+   * El aviso de privacidad que la sede aceptó, con su versión (HU-Q4.4 CA2). Sin él, la caja no
+   * guarda números de WhatsApp. Opcional: las sedes de Q2 no lo traen.
+   */
+  aviso_privacidad: z
+    .strictObject({ version: z.string().regex(/^\d{1,3}$/), aceptado: instante })
+    .nullable()
+    .optional(),
 });
 
 export const MODOS = ['minuto', 'fraccion', 'hora'] as const;

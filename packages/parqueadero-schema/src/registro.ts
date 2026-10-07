@@ -201,6 +201,8 @@ const entregaReciboV1 = z.strictObject({
   // Desde Q3 (HU-Q3.6 CA2). Opcionales: las entregas de staging de Q2 no los traen.
   camino: z.enum(CAMINOS_DE_PAPEL).nullable().optional(),
   resultado: z.enum(RESULTADOS_DE_ENTREGA).optional(),
+  /** WhatsApp al número del conductor con su autorización (§8.3). El número no va aquí: ADR-38. */
+  autorizado: z.boolean().optional(),
 });
 
 const turnoAperturaV1 = z.strictObject({ base: pesos, operador: texto.max(30) });
