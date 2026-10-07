@@ -350,7 +350,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.4.1 `[código]` adaptador · WI-Q2.4.2 `[prueba]` sin `serial` · WI-Q2.4.3 `[campo]` matriz.
 
 #### HU-Q2.5 · El diálogo de impresión del sistema a 58 mm
-- **Capa:** caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q1.4 · **Estado:** En curso (rama `feat/q2-5-dialogo`)
+- **Capa:** caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q1.4 · **Estado:** En revisión (rama `feat/q2-5-dialogo`): la hoja HTML de 48 mm de `@ed1/impresion` (`htmlDeBloques`) y el adaptador `sistema`, que la pone en la página de la caja solo mientras imprime, en lugar de una ruta `/caja/imprimir/` (la CSP no deja enmarcar otra página); `@page` sin `size`, porque `58mm auto` no es CSS válido (bitácora, afirmaciones falsas 5); el acceso directo con `--kiosk-printing` en la puesta en marcha. Falta probarlo en Windows con el driver POS58 (WI-Q2.5.3)
 - Como parqueadero con un PC y la PT-210 por USB, quiero imprimir desde el diálogo normal de Windows; y cualquiera, imprimir un reporte en una impresora común.
 - **Respaldo:** PARQUEADERO §7.5 (el diálogo del sistema y `--kiosk-printing`).
 - **CA1.** `/caja/imprimir/` muestra el mismo recibo en HTML a 48 mm, con `@page { size: 58mm auto; margin: 0 }` y el QR en SVG, y llama a `window.print()`.

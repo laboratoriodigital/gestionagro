@@ -559,7 +559,8 @@ Si la impresora anuncia otro nombre, «Ver todos los equipos» repite la llamada
 
 **Diálogo de impresión del sistema (`window.print()`):**
 
-- Una vista `/caja/imprimir/` con el mismo recibo en HTML a 48 mm, `@page { size: 58mm auto; margin: 0 }` (Baseline 2024, I34) y el QR en SVG.
+- El mismo recibo en HTML a 48 mm, con el QR en SVG: `htmlDeBloques` de `@ed1/impresion` lo arma de los mismos bloques que los bytes ESC/POS, y el adaptador `sistema` lo pone en la página de la caja solo mientras imprime (HU-Q2.5). No es una ruta aparte: la CSP de la caja (`frame-ancestors 'none'`, sin estilos en línea) no deja enmarcar otra página, y así no hay una segunda página que precargar.
+- `@page tiquete { margin: 0 }`, sin `size`: `58mm auto` no es CSS válido y Chrome lo descarta; el ancho y el largo los pone el driver (bitácora del parqueadero, afirmaciones falsas 5).
 - **Windows:** la PT-210 por USB con el driver POS58 (I45). Para no ver el diálogo en cada recibo, un acceso directo de Chrome con `--kiosk-printing` imprime en la impresora predeterminada (I33). El runbook de puesta en marcha lo crea.
 - **Android:** necesita un servicio de impresión instalado. RawBT lo es (I23); el de código abierto todavía es inmaduro (I27).
 - El texto sale como imagen: más lento y menos nítido que ESC/POS (*Inferencia*). Es respaldo, no camino. Sirve también para imprimir un reporte en una impresora normal.
