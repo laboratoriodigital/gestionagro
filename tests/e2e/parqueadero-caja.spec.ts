@@ -23,20 +23,42 @@ function instalarImpresoraFalsa() {
     },
     writeValueWithResponse: async () => undefined,
   };
+  // `__apagar()` y `__prender()`: la impresora se apaga con la caja abierta (bitácora 18).
+  let prendida = true;
+  let conectada = false;
+  let alDesconectar: () => void = () => undefined;
   const gatt = {
-    connected: true,
-    connect: async () => gatt,
+    get connected() {
+      return conectada;
+    },
+    connect: async () => {
+      if (!prendida) throw new DOMException('Connection attempt failed.', 'NetworkError');
+      conectada = true;
+      return gatt;
+    },
     getPrimaryService: async () => ({
       uuid: '49535343-fe7d-4ae5-8fa9-9fafd205e455',
       getCharacteristics: async () => [caracteristica],
     }),
   };
+  Object.assign(window, {
+    __apagar: () => {
+      prendida = false;
+      conectada = false;
+      alDesconectar();
+    },
+    __prender: () => {
+      prendida = true;
+    },
+  });
   const bluetooth = {
     requestDevice: async () => ({
       id: 'falsa',
       name: 'PT-210_FALSA',
       gatt,
-      addEventListener: () => undefined,
+      addEventListener: (_tipo: string, oyente: () => void) => {
+        alDesconectar = oyente;
+      },
     }),
   };
   Object.defineProperty(Navigator.prototype, 'bluetooth', {
@@ -516,6 +538,44 @@ test.describe('la caja del parqueadero', () => {
       'Quedó en entregas pendientes',
     );
     await expect(page.getByTestId('senal-pendientes')).toContainText('1');
+  });
+
+  test('bitácora 18 · la impresora se apagó: el recibo lo dice, reconecta desde ahí y da el diagnóstico', async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.evaluate(() => (window as unknown as { __apagar: () => void }).__apagar());
+    await expect(page.getByTestId('senal-impresora')).toHaveText(
+      'La impresora está apagada o lejos',
+    );
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'DEF456');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Imprimir', exact: true }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Reconectando la impresora…');
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Conectando la impresora…');
+    // Cuatro intentos con 1, 2 y 3 s de pausa: nunca se queda esperando sin decir nada.
+    await expect(page.getByTestId('estado-del-papel')).toContainText(
+      'No salió: La impresora está apagada o lejos',
+      { timeout: 15_000 },
+    );
+    await page.getByRole('button', { name: 'Copiar diagnóstico para soporte' }).click();
+    await expect(page.getByRole('button', { name: 'Diagnóstico copiado' })).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
+      'Intento 4: no conectó (NetworkError',
+    );
+    await page.evaluate(() => (window as unknown as { __prender: () => void }).__prender());
+    const antes = (await bytesImpresos(page)).length;
+    await page.getByRole('button', { name: 'Reconectar impresora' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
+    expect((await bytesImpresos(page)).slice(antes)).toContain('DEF456');
   });
 
   test('HU-Q3.3 · sin red, la entrada abre y registra', async ({ page, context }) => {

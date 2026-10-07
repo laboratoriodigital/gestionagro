@@ -4,13 +4,13 @@
  */
 import {
   ajustesDesdeRespuestas,
-  FalloDeImpresora,
   paginaDePrueba,
   type RespuestasDePrueba,
   TEXTO_DEL_MOTIVO,
 } from '@ed1/impresion';
 import { useEffect, useState } from 'preact/hooks';
 import { abrirFormulario } from './actividad.ts';
+import { BotonDiagnostico, textoDeFallo } from './conexion.tsx';
 import type { BaseDeLaCaja } from './datos.ts';
 import { fechaBogota } from './fecha.ts';
 import type { ControlDeImpresora } from './impresora.ts';
@@ -32,10 +32,6 @@ type Paso = 1 | 2 | 3 | 4 | 'listo';
 const LINEAS = [1, 2, 3, 4] as const;
 type QrVisto = 'los-dos' | 'nativo' | 'imagen' | 'ninguno';
 
-function textoDeFallo(e: unknown): string {
-  return e instanceof FalloDeImpresora ? TEXTO_DEL_MOTIVO[e.motivo] : 'No se pudo conectar';
-}
-
 export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) {
   const [paso, setPaso] = useState<Paso>(1);
   const [nombre, setNombre] = useState('');
@@ -46,7 +42,6 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
   const [qr, setQr] = useState<QrVisto | undefined>(undefined);
   const [regla, setRegla] = useState<boolean | undefined>(undefined);
   const [resumen, setResumen] = useState('');
-  const [copiado, setCopiado] = useState(false);
 
   // Un asistente abierto es un formulario: una versión nueva no recarga la caja (HU-Q3.1 CA3).
   useEffect(() => abrirFormulario(), []);
@@ -54,7 +49,6 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
   async function conectar(verTodos: boolean) {
     setOcupado(true);
     setAviso('');
-    setCopiado(false);
     try {
       const v = await control.conectar(verTodos);
       setNombre(v.nombre);
@@ -63,12 +57,6 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
     } finally {
       setOcupado(false);
     }
-  }
-
-  /** Lo que el adaptador vio, para soporte, también cuando la impresora no se reconoce. */
-  async function copiarDiagnostico() {
-    await navigator.clipboard?.writeText(control.diagnostico());
-    setCopiado(true);
   }
 
   async function imprimirPrueba() {
@@ -178,13 +166,8 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
               <p class="error" role="alert" data-prueba="aviso">
                 {aviso}
               </p>
-              <button
-                type="button"
-                class="boton boton-secundario"
-                onClick={() => void copiarDiagnostico()}
-              >
-                {copiado ? 'Diagnóstico copiado' : 'Copiar diagnóstico para soporte'}
-              </button>
+              {/* Lo que el adaptador vio, también cuando la impresora no se reconoce. */}
+              <BotonDiagnostico key={aviso} control={control} />
             </>
           )}
           <button
@@ -216,9 +199,12 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
             </p>
           )}
           {aviso && (
-            <p class="error" role="alert" data-prueba="aviso">
-              {aviso}
-            </p>
+            <>
+              <p class="error" role="alert" data-prueba="aviso">
+                {aviso}
+              </p>
+              <BotonDiagnostico key={aviso} control={control} />
+            </>
           )}
           <button
             type="button"
