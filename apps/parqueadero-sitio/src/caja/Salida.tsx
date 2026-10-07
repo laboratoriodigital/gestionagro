@@ -8,6 +8,7 @@ import { formatearPesos } from '@ed1/dinero';
 import { conceptoDeLinea } from '@ed1/parqueadero-recibos';
 import { ErrorDeValidacion, type Registro } from '@ed1/parqueadero-schema';
 import { useEffect, useState } from 'preact/hooks';
+import { Anular } from './Anular.tsx';
 import { abrirFormulario } from './actividad.ts';
 import {
   type Contexto,
@@ -132,107 +133,113 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
   }
 
   return (
-    <form class="tarjeta" onSubmit={cobrar} data-prueba="salida">
-      <h1>Salida</h1>
-      <p class="placa">{estadia.placa}</p>
-      <p>
-        Entró {horaBogota(estadia.entrada)} · {duracion(estadia.entrada, q.salida)} · recibo{' '}
-        {estadia.numero}
-      </p>
-
-      <p class="total-grande" data-prueba="total">
-        {formatearPesos(liq.total)}
-      </p>
-      <details>
-        <summary>Ver el detalle</summary>
-        <dl class="filas" data-prueba="detalle">
-          {liq.lineas.map((l) => (
-            <div key={`${l.concepto}-${l.minutos}`}>
-              <dt>{conceptoDeLinea(l, tarifa)}</dt>
-              <dd>{formatearPesos(l.valor)}</dd>
-            </div>
-          ))}
-          {liq.redondeo > 0 && (
-            <div>
-              <dt>Redondeo</dt>
-              <dd>−{formatearPesos(liq.redondeo)}</dd>
-            </div>
-          )}
-        </dl>
-      </details>
-
-      {tarifa.perdido !== null && (
-        <label class="casilla">
-          <input
-            class="casilla-marca"
-            type="checkbox"
-            checked={perdido}
-            onChange={(e) => {
-              setPerdido(e.currentTarget.checked);
-              void calcular(e.currentTarget.checked);
-            }}
-          />
-          <span>Tiquete perdido (+{formatearPesos(tarifa.perdido)}). Pida un documento.</span>
-        </label>
-      )}
-
-      <fieldset>
-        <legend>Medio de pago</legend>
-        <div class="opciones">
-          {MEDIOS.map(([m, nombre]) => (
-            <button
-              key={m}
-              type="button"
-              class="opcion"
-              aria-pressed={medio === m}
-              onClick={() => setMedio(m)}
-            >
-              {nombre}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      {medio === 'efectivo' && (
-        <div class="campo">
-          <label for="recibido">Recibido</label>
-          <input
-            id="recibido"
-            inputMode="numeric"
-            autoComplete="off"
-            value={recibido}
-            onInput={(e) => setRecibido(e.currentTarget.value)}
-          />
-          {efectivo !== null && efectivo >= liq.total && (
-            <p data-prueba="cambio">Cambio: {formatearPesos(efectivo - liq.total)}</p>
-          )}
-        </div>
-      )}
-      {medio === 'transferencia' && <QrDePago db={db} />}
-      {medio === 'cortesia' && (
-        <div class="campo">
-          <label for="motivo-cortesia">Motivo de la cortesía</label>
-          <input
-            id="motivo-cortesia"
-            maxLength={80}
-            value={motivo}
-            onInput={(e) => setMotivo(e.currentTarget.value)}
-          />
-        </div>
-      )}
-
-      {aviso && (
-        <p class="error" role="alert" data-prueba="aviso-salida">
-          {aviso}
+    <>
+      <form class="tarjeta" onSubmit={cobrar} data-prueba="salida">
+        <h1>Salida</h1>
+        <p class="placa">{estadia.placa}</p>
+        <p>
+          Entró {horaBogota(estadia.entrada)} · {duracion(estadia.entrada, q.salida)} · recibo{' '}
+          {estadia.numero}
         </p>
-      )}
-      <button type="submit" class="boton boton-principal" disabled={Boolean(falta) || cobrando}>
-        {falta || `Cobrar ${formatearPesos(liq.total)}`}
-      </button>
-      <button type="button" class="boton boton-secundario" onClick={alVolver}>
-        Volver al inicio
-      </button>
-    </form>
+
+        <p class="total-grande" data-prueba="total">
+          {formatearPesos(liq.total)}
+        </p>
+        <details>
+          <summary>Ver el detalle</summary>
+          <dl class="filas" data-prueba="detalle">
+            {liq.lineas.map((l) => (
+              <div key={`${l.concepto}-${l.minutos}`}>
+                <dt>{conceptoDeLinea(l, tarifa)}</dt>
+                <dd>{formatearPesos(l.valor)}</dd>
+              </div>
+            ))}
+            {liq.redondeo > 0 && (
+              <div>
+                <dt>Redondeo</dt>
+                <dd>−{formatearPesos(liq.redondeo)}</dd>
+              </div>
+            )}
+          </dl>
+        </details>
+
+        {tarifa.perdido !== null && (
+          <label class="casilla">
+            <input
+              class="casilla-marca"
+              type="checkbox"
+              checked={perdido}
+              onChange={(e) => {
+                setPerdido(e.currentTarget.checked);
+                void calcular(e.currentTarget.checked);
+              }}
+            />
+            <span>Tiquete perdido (+{formatearPesos(tarifa.perdido)}). Pida un documento.</span>
+          </label>
+        )}
+
+        <fieldset>
+          <legend>Medio de pago</legend>
+          <div class="opciones">
+            {MEDIOS.map(([m, nombre]) => (
+              <button
+                key={m}
+                type="button"
+                class="opcion"
+                aria-pressed={medio === m}
+                onClick={() => setMedio(m)}
+              >
+                {nombre}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        {medio === 'efectivo' && (
+          <div class="campo">
+            <label for="recibido">Recibido</label>
+            <input
+              id="recibido"
+              inputMode="numeric"
+              autoComplete="off"
+              value={recibido}
+              onInput={(e) => setRecibido(e.currentTarget.value)}
+            />
+            {efectivo !== null && efectivo >= liq.total && (
+              <p data-prueba="cambio">Cambio: {formatearPesos(efectivo - liq.total)}</p>
+            )}
+          </div>
+        )}
+        {medio === 'transferencia' && <QrDePago db={db} />}
+        {medio === 'cortesia' && (
+          <div class="campo">
+            <label for="motivo-cortesia">Motivo de la cortesía</label>
+            <input
+              id="motivo-cortesia"
+              maxLength={80}
+              value={motivo}
+              onInput={(e) => setMotivo(e.currentTarget.value)}
+            />
+          </div>
+        )}
+
+        {aviso && (
+          <p class="error" role="alert" data-prueba="aviso-salida">
+            {aviso}
+          </p>
+        )}
+        <button type="submit" class="boton boton-principal" disabled={Boolean(falta) || cobrando}>
+          {falta || `Cobrar ${formatearPesos(liq.total)}`}
+        </button>
+        <button type="button" class="boton boton-secundario" onClick={alVolver}>
+          Volver al inicio
+        </button>
+      </form>
+      {/* Una entrada mal hecha (otra placa, un vehículo que no entró) se anula, no se cobra. */}
+      <section class="tarjeta">
+        <Anular db={db} ctx={ctx} registro={q.entrada} alAnular={alVolver} />
+      </section>
+    </>
   );
 }
 

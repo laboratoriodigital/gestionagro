@@ -111,7 +111,7 @@ describe('registros', () => {
       tipo: 'anulacion',
       serie: null,
       consecutivo: null,
-      datos: { motivo: 'placa mal' },
+      datos: { motivo: 'placa mal', operador: 'Caja 1' },
     };
     expect(motivos(() => validarRegistro(anulacion)).join()).toContain(
       'necesita el registro que anula',

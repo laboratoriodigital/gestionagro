@@ -456,17 +456,17 @@ export const estadiasAbiertas = (db: BaseDeLaCaja): Promise<Estadia[]> =>
 export async function reconstruirEstadias(db: BaseDeLaCaja): Promise<number> {
   return db.transaction('rw', [db.registros, db.estadias], async () => {
     const todos = await db.registros.toArray();
-    const anulados = new Set(
+    const yaAnulados = new Set(
       todos.filter((r) => r.tipo === 'anulacion').map((r) => r.anula_id ?? ''),
     );
     const cerradas = new Set(
       todos
-        .filter((r) => r.tipo === 'salida' && !anulados.has(r.id))
+        .filter((r) => r.tipo === 'salida' && !yaAnulados.has(r.id))
         .map((r) => r.estadia_id ?? ''),
     );
     const abiertas: Estadia[] = [];
     for (const r of todos) {
-      if (r.tipo !== 'entrada' || anulados.has(r.id) || cerradas.has(r.id)) continue;
+      if (r.tipo !== 'entrada' || yaAnulados.has(r.id) || cerradas.has(r.id)) continue;
       if (r.serie === null || r.consecutivo === null) continue;
       const d = r.datos as DatosDeEntrada;
       abiertas.push({
@@ -600,6 +600,114 @@ export async function registrarSalida(
     await db.meta.put({ clave: 'consecutivo', ultimo: consecutivo });
     await db.contactos.update(estadiaId, { borrar_en: ahora + VIGENCIA_DEL_NUMERO });
     return registro;
+  });
+}
+
+// ── Anular sin borrar (HU-Q3.7) ───────────────────────────────────────────────────────────────
+
+/** Un registro que no es recibo (anulación, turno, movimiento), validado antes de escribirse. */
+function sinNumero(
+  tipo: 'anulacion' | 'turno_apertura' | 'turno_cierre' | 'movimiento_caja',
+  dispositivoId: string,
+  ahora: number,
+  datos: object,
+  ctx: Contexto,
+  enlaces: { anula_id?: string; estadia_id?: string | null } = {},
+): Registro {
+  return validarRegistro({
+    id: ctx.nuevoId(),
+    org_id: null,
+    tipo,
+    v: 1,
+    fecha_local: diaLocalBogota(ahora),
+    instante_evento: iso(ahora),
+    autor_usuario_id: null,
+    dispositivo_id: dispositivoId,
+    origen: 'manual',
+    anula_id: enlaces.anula_id ?? null,
+    estadia_id: enlaces.estadia_id ?? null,
+    serie: null,
+    consecutivo: null,
+    datos,
+  });
+}
+
+/** Por qué no se anula: el cajero lo lee tal cual. */
+export class NoSeAnula extends Error {
+  constructor(motivo: string) {
+    super(motivo);
+    this.name = 'NoSeAnula';
+  }
+}
+
+/** Quién opera la caja ahora. Hasta el turno (HU-Q3.9), la caja misma: «Caja A». */
+export async function operadorActual(db: BaseDeLaCaja, ctx: Contexto): Promise<string> {
+  return `Caja ${(await dispositivo(db, ctx)).serie}`;
+}
+
+/** Las anulaciones de la caja, por el id de lo anulado. */
+export async function anulados(db: BaseDeLaCaja): Promise<Set<string>> {
+  const todas = await db.registros.where('tipo').equals('anulacion').toArray();
+  return new Set(todas.map((a) => a.anula_id ?? ''));
+}
+
+/**
+ * Anula una entrada o una salida con un registro `anulacion` (§10.2, P21): nada se borra ni se
+ * reescribe. Pide el PIN de administrador (M0). Una entrada anulada cierra su estadía; una salida
+ * anulada la reabre. Lanza `NoSeAnula` con el motivo si no se puede.
+ */
+export async function anular(
+  db: BaseDeLaCaja,
+  registroId: string,
+  d: { readonly motivo: string; readonly pin: string; readonly operador: string },
+  ctx: Contexto,
+): Promise<Registro> {
+  if (!d.motivo.trim()) throw new NoSeAnula('Falta el motivo de la anulación');
+  if (!(await verificarPin(db, d.pin))) throw new NoSeAnula('Ese no es el PIN de administrador');
+  const { id: dispositivoId } = await dispositivo(db, ctx);
+  return db.transaction('rw', [db.registros, db.estadias, db.contactos], async () => {
+    const r = await db.registros.get(registroId);
+    if (!r || (r.tipo !== 'entrada' && r.tipo !== 'salida')) {
+      throw new NoSeAnula('Solo se anula una entrada o una salida');
+    }
+    if ((await anulados(db)).has(r.id)) throw new NoSeAnula('Este recibo ya está anulado');
+    const abierta = await db.estadias.get(r.estadia_id ?? '');
+    if (r.tipo === 'entrada' && !abierta) {
+      throw new NoSeAnula('Este vehículo ya salió: primero se anula su salida');
+    }
+    // Reabrir la estadía no puede dejar la misma placa adentro dos veces (HU-Q3.3 CA3).
+    const placa = (r.datos as { placa: string }).placa;
+    if (r.tipo === 'salida' && (await db.estadias.where('placa').equals(placa).count()) > 0) {
+      throw new NoSeAnula(`${placa} volvió a entrar: primero se anula esa entrada`);
+    }
+    const ahora = ctx.reloj();
+    const anulacion = sinNumero(
+      'anulacion',
+      dispositivoId,
+      ahora,
+      { motivo: d.motivo.trim(), operador: d.operador },
+      ctx,
+      { anula_id: r.id, estadia_id: r.estadia_id },
+    );
+    await db.registros.add(anulacion);
+    if (r.tipo === 'entrada') {
+      await db.estadias.delete(r.id);
+    } else {
+      const entrada = await db.registros.get(r.estadia_id ?? '');
+      if (entrada?.serie && entrada.consecutivo) {
+        const de = entrada.datos as DatosDeEntrada;
+        await db.estadias.put({
+          id: entrada.id,
+          placa: de.placa,
+          vehiculo: de.vehiculo,
+          numero: numeroDeRecibo(entrada.serie, entrada.consecutivo),
+          entrada: Date.parse(entrada.instante_evento),
+        });
+      }
+      // El vehículo sigue adentro: su número ya no vence con esa salida.
+      await db.contactos.update(entrada?.id ?? '', { borrar_en: null });
+    }
+    return anulacion;
   });
 }
 

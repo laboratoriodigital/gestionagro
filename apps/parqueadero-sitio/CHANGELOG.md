@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Anular sin borrar: una entrada o una salida mal hechas se anulan desde su recibo o desde la salida, con el motivo y el PIN de administrador. La anulación queda anotada con quién la hizo, y nada se borra. Una entrada anulada sale de la lista de adentro; una salida anulada deja el vehículo adentro otra vez, con su hora de entrada. Un recibo anulado ya no se imprime ni se envía (HU-Q3.7).
 - El inicio de la caja lista los vehículos que están adentro, con su hora de entrada y el tiempo corriendo, y los busca por placa sin internet. «Escanear recibo» lee con la cámara el QR del papel o el del teléfono del conductor y abre su salida; un QR de otro parqueadero, de una estadía que ya salió o que no es un recibo dice qué es (HU-Q3.4).
 - La salida y el cobro: el total en grande con su detalle, tiquete perdido, y efectivo con lo recibido y el cambio, QR o transferencia (con la imagen del QR del parqueadero que se carga en Ajustes), datáfono o cortesía con su motivo. Se cobra lo que el cajero vio; si pasan más de 10 minutos, la caja vuelve a calcular. El recibo de salida usa la tarifa con que entró el vehículo (HU-Q3.5).
 - Cada entrega del recibo queda anotada, sin teléfono ni texto: «No salió» reimprime el original sin marca de copia, «Reimprimir» sale con «COPIA n» y el QR en pantalla cuenta solo si el cajero confirma que el conductor lo escaneó (HU-Q3.6).

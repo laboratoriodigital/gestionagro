@@ -518,6 +518,44 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('senal-pendientes')).toContainText('1');
   });
 
+  test('HU-Q3.7 · anular la entrada pide motivo y PIN, y el vehículo sale de la lista sin borrarse', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'GHI789');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await page.getByRole('button', { name: 'Anular la entrada' }).click();
+    const anular = page.getByTestId('anular');
+    await expect(anular.getByRole('button', { name: 'Falta el motivo' })).toBeDisabled();
+    await anular.getByLabel('Motivo').fill('placa mal digitada');
+    await anular.getByLabel('PIN de administrador').fill('1111');
+    await anular.getByRole('button', { name: 'Anular la entrada' }).click();
+    await expect(page.getByTestId('aviso-anulacion')).toHaveText(
+      'Ese no es el PIN de administrador',
+    );
+    await anular.getByLabel('PIN de administrador').fill('2468');
+    await anular.getByRole('button', { name: 'Anular la entrada' }).click();
+    await expect(page.getByTestId('anulado')).toContainText('Recibo anulado');
+    await expect(page.getByRole('button', { name: 'Imprimir', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByText('GHI789')).toHaveCount(0);
+    const tipos = await page.evaluate(
+      () =>
+        new Promise<string[]>((listo) => {
+          const pedido = indexedDB.open('parqueadero-caja');
+          pedido.onsuccess = () => {
+            const todos = pedido.result.transaction('registros').objectStore('registros').getAll();
+            todos.onsuccess = () => listo(todos.result.map((r: { tipo: string }) => r.tipo));
+          };
+        }),
+    );
+    expect(tipos.sort()).toEqual(['anulacion', 'entrada']);
+  });
+
   test('HU-Q3.3 · sin red, la entrada abre y registra', async ({ page, context }) => {
     await abrirControlada(page);
     await context.setOffline(true);

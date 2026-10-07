@@ -17,7 +17,9 @@ import {
 import type { DatosDeEntrega, Registro } from '@ed1/parqueadero-schema';
 import { enlaceConNumero } from '@ed1/whatsapp';
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { Anular } from './Anular.tsx';
 import {
+  anulados,
   type Contexto,
   catalogosDelRegistro,
   contactoDe,
@@ -63,6 +65,8 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
   const [numero, setNumero] = useState('');
   const [autoriza, setAutoriza] = useState(false);
   const automatico = useRef(false);
+  /** Un recibo anulado ya no vale: no se imprime ni se envía (HU-Q3.7). */
+  const [anulado, setAnulado] = useState(false);
   const estadiaId = registro.estadia_id ?? registro.id;
 
   useEffect(() => {
@@ -71,6 +75,7 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
         const recibo = armarRecibo(registro, await catalogosDelRegistro(db, registro), { prueba });
         const { sede } = await leerAjustes(db);
         setVeces(await vecesImpreso(db, registro));
+        setAnulado((await anulados(db)).has(registro.id));
         setContacto(await contactoDe(db, estadiaId, ctx.reloj()));
         setArmado({
           recibo,
@@ -137,7 +142,7 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
 
   // HU-Q3.3 CA2: el recibo sale solo si la sede imprime siempre.
   useEffect(() => {
-    if (armado?.imprimirSiempre && !automatico.current) {
+    if (armado?.imprimirSiempre && !anulado && !automatico.current) {
       automatico.current = true;
       void imprimir(false);
     }
@@ -225,7 +230,11 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
         ))}
       </dl>
 
-      {contacto ? (
+      {anulado ? (
+        <p class="error" role="status" data-prueba="anulado">
+          Recibo anulado: ya no vale. La anulación queda en el cierre del turno.
+        </p>
+      ) : contacto ? (
         <p class="ayuda" data-prueba="whatsapp-guardado">
           WhatsApp del conductor: el que termina en {terminaEn(contacto.numero)}
         </p>
@@ -239,46 +248,50 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
         />
       )}
 
-      <div class="dos">
-        <button
-          type="button"
-          class="boton boton-principal"
-          disabled={imprimiendo}
-          onClick={() => void imprimir(true)}
-          data-prueba="imprimir"
-        >
-          {veces > 0 ? 'Reimprimir' : 'Imprimir'}
-        </button>
-        {falta ? (
-          <button type="button" class="boton" disabled data-prueba="whatsapp">
-            {falta}
-          </button>
-        ) : (
-          <a
-            class="boton enlace-boton"
-            href={enlaceConNumero(destino, textoWhatsApp(armado.recibo, armado.enlace))}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={porWhatsApp}
-            data-prueba="whatsapp"
+      {!anulado && (
+        <div class="dos">
+          <button
+            type="button"
+            class="boton boton-principal"
+            disabled={imprimiendo}
+            onClick={() => void imprimir(true)}
+            data-prueba="imprimir"
           >
-            Enviar por WhatsApp
-          </a>
-        )}
-        <button type="button" class="boton" onClick={() => setConQr(!conQr)}>
-          {conQr ? 'Ocultar QR' : 'Mostrar QR'}
-        </button>
-        {ultimoPapel && !imprimiendo ? (
-          <button type="button" class="boton" onClick={() => void noSalio()}>
-            No salió
+            {veces > 0 ? 'Reimprimir' : 'Imprimir'}
           </button>
-        ) : whatsapp ? (
-          <button type="button" class="boton" onClick={() => void noSeEnvio()}>
-            No se envió
+          {falta ? (
+            <button type="button" class="boton" disabled data-prueba="whatsapp">
+              {falta}
+            </button>
+          ) : (
+            <a
+              class="boton enlace-boton"
+              href={enlaceConNumero(destino, textoWhatsApp(armado.recibo, armado.enlace))}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={porWhatsApp}
+              data-prueba="whatsapp"
+            >
+              Enviar por WhatsApp
+            </a>
+          )}
+          <button type="button" class="boton" onClick={() => setConQr(!conQr)}>
+            {conQr ? 'Ocultar QR' : 'Mostrar QR'}
           </button>
-        ) : null}
-      </div>
-      {conQr && <QrEnPantalla valor={armado.enlace} alEscanear={() => void escaneado()} />}
+          {ultimoPapel && !imprimiendo ? (
+            <button type="button" class="boton" onClick={() => void noSalio()}>
+              No salió
+            </button>
+          ) : whatsapp ? (
+            <button type="button" class="boton" onClick={() => void noSeEnvio()}>
+              No se envió
+            </button>
+          ) : null}
+        </div>
+      )}
+      {conQr && !anulado && (
+        <QrEnPantalla valor={armado.enlace} alEscanear={() => void escaneado()} />
+      )}
 
       <output aria-live="polite" data-prueba="estado-del-papel">
         {papelEstado}
@@ -296,6 +309,9 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
         </p>
       ))}
 
+      {!anulado && (
+        <Anular db={db} ctx={ctx} registro={registro} alAnular={() => setAnulado(true)} />
+      )}
       <button type="button" class="boton boton-principal" onClick={alNueva}>
         Nueva entrada
       </button>

@@ -11,6 +11,8 @@ import { armarExport, type DatosDeSalida, ErrorDeValidacion } from '@ed1/parquea
 import { SEDE_ENSAYO_UNO, TARIFA_CARRO, TARIFA_MOTO } from '@ed1/parqueadero-schema/ensayos';
 import { describe, expect, it } from 'vitest';
 import {
+  anulados,
+  anular,
   buscarPorLectura,
   type Contexto,
   CotizacionVencida,
@@ -25,6 +27,7 @@ import {
   guardarSede,
   guardarTarifa,
   leerAjustes,
+  NoSeAnula,
   reconstruirEstadias,
   registrarEntrada,
   registrarEntrega,
@@ -476,5 +479,78 @@ describe('el aviso de privacidad (HU-Q4.4)', () => {
   it('«sin cuenta» solo se dice en una caja sin cuenta (CA3 ❌)', () => {
     expect(frase(avisoDeLaSede({ ...SEDE_ENSAYO_UNO, org_id: null }).parrafos)).toBe(true);
     expect(frase(avisoDeLaSede({ ...SEDE_ENSAYO_UNO, org_id: 'org-1' }).parrafos)).toBe(false);
+  });
+});
+
+describe('anular sin borrar (HU-Q3.7)', () => {
+  const EFECTIVO = {
+    perdido: false,
+    medio: 'efectivo',
+    recibido: 50_000,
+    motivoCortesia: null,
+  } as const;
+  const DATOS = { motivo: 'placa mal digitada', pin: '2468', operador: 'Caja A' };
+
+  async function conPin() {
+    const c = await configurada();
+    await guardarPin(c.db, '2468');
+    return c;
+  }
+
+  it('una entrada anulada cierra su estadía y deja el registro y la anulación (CA1)', async () => {
+    const { db, ctx } = await conPin();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    const a = await anular(db, entrada.id, DATOS, ctx);
+    expect(a).toMatchObject({ tipo: 'anulacion', anula_id: entrada.id, estadia_id: entrada.id });
+    expect(a.datos).toEqual({ motivo: 'placa mal digitada', operador: 'Caja A' });
+    expect(await estadiasAbiertas(db)).toEqual([]);
+    expect(await db.registros.get(entrada.id)).toEqual(entrada);
+    // Lo derivado se rehace igual desde los registros.
+    expect(await reconstruirEstadias(db)).toBe(0);
+    // La misma placa puede entrar otra vez.
+    expect((await registrarEntrada(db, ENTRADA, ctx)).consecutivo).toBe(2);
+  });
+
+  it('una salida anulada reabre la estadía con su hora de entrada (CA1)', async () => {
+    const { db, ctx, avanzar } = await conPin();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(30);
+    const salida = await registrarSalida(db, entrada.id, EFECTIVO, ctx);
+    await anular(db, salida.id, DATOS, ctx);
+    const [abierta] = await estadiasAbiertas(db);
+    expect(abierta).toMatchObject({ id: entrada.id, placa: 'ABC123', numero: 'A-000001' });
+    expect(abierta?.entrada).toBe(Date.parse(entrada.instante_evento));
+    expect(await reconstruirEstadias(db)).toBe(1);
+    // Se vuelve a cobrar, con otro número.
+    expect((await registrarSalida(db, entrada.id, EFECTIVO, ctx)).consecutivo).toBe(3);
+  });
+
+  it('sin PIN, sin motivo, dos veces o con la salida vigente no anula (CA1 ❌)', async () => {
+    const { db, ctx, avanzar } = await conPin();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    const motivo = (p: Promise<unknown>) => p.catch((e: Error) => e.message);
+    expect(await motivo(anular(db, entrada.id, { ...DATOS, pin: '1111' }, ctx))).toBe(
+      'Ese no es el PIN de administrador',
+    );
+    expect(await motivo(anular(db, entrada.id, { ...DATOS, motivo: '  ' }, ctx))).toBe(
+      'Falta el motivo de la anulación',
+    );
+    avanzar(10);
+    const salida = await registrarSalida(db, entrada.id, EFECTIVO, ctx);
+    expect(await motivo(anular(db, entrada.id, DATOS, ctx))).toContain(
+      'primero se anula su salida',
+    );
+    await registrarEntrada(db, ENTRADA, ctx);
+    expect(await motivo(anular(db, salida.id, DATOS, ctx))).toContain('volvió a entrar');
+    const ninguna = await db.registros.where('tipo').equals('anulacion').count();
+    expect(ninguna).toBe(0);
+  });
+
+  it('un recibo ya anulado no se anula otra vez', async () => {
+    const { db, ctx } = await conPin();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    await anular(db, entrada.id, DATOS, ctx);
+    await expect(anular(db, entrada.id, DATOS, ctx)).rejects.toBeInstanceOf(NoSeAnula);
+    expect(await anulados(db)).toEqual(new Set([entrada.id]));
   });
 });

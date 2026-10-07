@@ -100,7 +100,8 @@ body {
 }
 
 .tarjeta,
-.asistente {
+.asistente,
+.anular {
   display: grid;
   gap: var(--espacio-3);
 }
