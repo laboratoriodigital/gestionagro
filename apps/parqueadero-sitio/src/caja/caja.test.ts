@@ -157,4 +157,49 @@ describe('la impresora de la caja', () => {
       expect.objectContaining({ trabajoId: 'id-2', motivo: 'fuera_de_alcance', creadaEn: 42 }),
     ]);
   });
+
+  it('si elegir otra impresora falla, la conectada sigue y la cabecera no queda «conectando»', async () => {
+    const db = abrirBase(`prueba-${Math.random()}`);
+    const escrito: number[] = [];
+    const buena = bluetoothFalso((d) => escrito.push(...d));
+    // Un equipo que no es impresora: conecta, pero no tiene dónde escribir.
+    const otro: ServidorGatt = {
+      connected: true,
+      connect: async () => otro,
+      getPrimaryService: () => Promise.reject(new DOMException('no', 'NotFoundError')),
+    };
+    let pedidos = 0;
+    const control = crearControl(db, {
+      bluetooth: {
+        requestDevice: (o) =>
+          pedidos++ === 0
+            ? buena.requestDevice(o)
+            : Promise.resolve({ id: 'otro', gatt: otro, addEventListener: () => undefined }),
+      },
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-3',
+    });
+    const estados: string[] = [];
+    control.escuchar((e) => estados.push(e));
+    await control.conectar(false);
+    await expect(control.conectar(false)).rejects.toMatchObject({ motivo: 'sin_caracteristica' });
+    expect(estados).toEqual(['conectando', 'conectada', 'conectando', 'conectada']);
+    expect((await control.imprimir([{ tipo: 'texto', texto: 'Hola' }])).ok).toBe(true);
+    expect(await control.reconectar()).toBe(true);
+    // El diagnóstico cuenta el último intento, el que falló.
+    expect(control.diagnostico()).toContain('Sin nombre (sin usar)');
+  });
+
+  it('sin impresora en esta sesión, reconectar dice que no, sin selector', async () => {
+    const db = abrirBase(`prueba-${Math.random()}`);
+    const control = crearControl(db, {
+      bluetooth: bluetoothFalso(() => undefined),
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-4',
+    });
+    expect(await control.reconectar()).toBe(false);
+    expect(control.estado()).toBe('sin_vincular');
+  });
 });

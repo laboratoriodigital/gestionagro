@@ -31,6 +31,8 @@ export interface OpcionesDeControl {
 export interface ControlDeImpresora {
   /** Solo desde un toque del cajero: el navegador abre su selector. */
   conectar(verTodos: boolean): Promise<Vinculo>;
+  /** Sin selector, sobre la impresora de esta sesión. `false` si no hay o no respondió. */
+  reconectar(): Promise<boolean>;
   /**
    * Codifica con los ajustes guardados (o los que se pasen) y encola. Nunca lanza. Si es un
    * recibo (`reciboId`) y no sale, queda en `entregas_pendientes`, también sin impresora conectada
@@ -51,7 +53,10 @@ export function ajustesDelRegistro(r: RegistroImpresora): AjustesDeImpresion {
 }
 
 export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): ControlDeImpresora {
-  let impresora: ImpresoraBluetooth | undefined;
+  /** La que imprime: la de la cola. */
+  let enUso: ImpresoraBluetooth | undefined;
+  /** La del último intento de conectar, aunque haya fallado: la que cuenta el diagnóstico. */
+  let ultima: ImpresoraBluetooth | undefined;
   let cola: Cola | undefined;
   let estado: EstadoImpresora = 'sin_vincular';
   const oyentes = new Set<(e: EstadoImpresora) => void>();
@@ -80,16 +85,28 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
         throw new FalloDeImpresora('no_soportado', 'Este navegador no tiene Bluetooth web');
       }
       const anterior = await db.impresora.get('actual');
-      const nueva = crearImpresoraBluetooth({
+      const nueva: ImpresoraBluetooth = crearImpresoraBluetooth({
         bluetooth: opciones.bluetooth,
         verTodos,
         ...(anterior?.trozo ? { trozo: anterior.trozo } : {}),
-        alCambiarEstado: cambiar,
+        // Una impresora reemplazada ya no habla por la cabecera. Si la nueva no se vincula, el
+        // estado que queda lo decide el `catch` de abajo, no ella.
+        alCambiarEstado: (e) => {
+          if (nueva === enUso || (nueva === ultima && e !== 'sin_vincular')) cambiar(e);
+        },
         alCambiarTrozo: (trozo) => void db.impresora.update('actual', { trozo }),
       });
       // El diagnóstico tiene que contar lo que vio también cuando vincular falla.
-      impresora = nueva;
-      const vinculo = await nueva.vincular();
+      ultima = nueva;
+      let vinculo: Vinculo;
+      try {
+        vinculo = await nueva.vincular();
+      } catch (e) {
+        // Si había una impresora conectada, sigue siendo la de la caja.
+        cambiar(enUso?.estado() ?? 'sin_vincular');
+        throw e;
+      }
+      enUso = nueva;
       cola = crearCola(nueva, {
         alFallar: (trabajo, r) => pendiente(trabajo.id, r),
       });
@@ -141,6 +158,8 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
       return r;
     },
 
+    reconectar: () => enUso?.reconectar() ?? Promise.resolve(false),
+
     estado: () => estado,
 
     escuchar(oyente) {
@@ -148,6 +167,6 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
       return () => oyentes.delete(oyente);
     },
 
-    diagnostico: () => impresora?.diagnostico() ?? 'Impresora: sin vincular en esta sesión',
+    diagnostico: () => ultima?.diagnostico() ?? 'Impresora: sin vincular en esta sesión',
   };
 }

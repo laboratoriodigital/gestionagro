@@ -19,8 +19,11 @@ export function senalDeImpresora(
   if (!registro) return { texto: 'Impresora sin configurar', tono: 'aviso' };
   if (!registro.probada) return { texto: 'Impresora sin probar', tono: 'aviso' };
   switch (estado) {
+    // La cabecera no es un botón: el texto no promete un toque que no hace nada.
     case 'sin_vincular':
-      return { texto: 'Impresora: toque para conectar', tono: 'aviso' };
+      return { texto: 'Impresora sin conectar', tono: 'aviso' };
+    case 'conectando':
+      return { texto: 'Conectando la impresora…', tono: 'aviso' };
     case 'desconectada':
       return { texto: 'La impresora está apagada o lejos', tono: 'error' };
     case 'ocupada':

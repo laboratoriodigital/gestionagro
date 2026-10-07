@@ -6,7 +6,13 @@
 /** Por dónde salen los bytes. `prueba` los guarda en memoria. */
 export type Camino = 'bluetooth' | 'serial' | 'sistema' | 'rawbt' | 'prueba';
 
-export type EstadoImpresora = 'sin_vincular' | 'conectada' | 'desconectada' | 'ocupada';
+/** `conectando`: abre la conexión o la reintenta; la cabecera lo dice para que nadie toque dos veces. */
+export type EstadoImpresora =
+  | 'sin_vincular'
+  | 'conectando'
+  | 'conectada'
+  | 'desconectada'
+  | 'ocupada';
 
 /** Lo que el adaptador recuerda del equipo elegido, para mostrarlo y guardarlo en `impresora`. */
 export interface Vinculo {

@@ -101,7 +101,8 @@ body {
 
 .tarjeta,
 .asistente,
-.anular {
+.anular,
+.conexion {
   display: grid;
   gap: var(--espacio-3);
 }

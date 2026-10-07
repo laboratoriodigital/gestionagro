@@ -4,7 +4,7 @@
  * Un recibo nunca dice «Impreso»: dice «Enviado a la impresora» (HU-Q3.6 CA3). El WhatsApp va al
  * número del conductor con su autorización; el de la entrada sirve para la salida (HU-Q4.1 CA3).
  */
-import { FalloDeImpresora, TEXTO_DEL_MOTIVO } from '@ed1/impresion';
+import { TEXTO_DEL_MOTIVO } from '@ed1/impresion';
 import {
   armarRecibo,
   enlaceCompleto,
@@ -28,6 +28,7 @@ import {
   registrarEntrega,
   vecesImpreso,
 } from './almacen.ts';
+import { ConexionImpresora, textoDeFallo } from './conexion.tsx';
 import type { BaseDeLaCaja, Contacto } from './datos.ts';
 import { origenDelRecibo } from './entorno.ts';
 import type { ControlDeImpresora } from './impresora.ts';
@@ -56,6 +57,8 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
   const [error, setError] = useState('');
   const [papelEstado, setPapelEstado] = useState('');
   const [imprimiendo, setImprimiendo] = useState(false);
+  /** El último envío no salió: el recibo ofrece conectar y el diagnóstico (bitácora 18). */
+  const [noImprimio, setNoImprimio] = useState(false);
   const [conQr, setConQr] = useState(false);
   const [entregas, setEntregas] = useState<{ n: number; texto: string }[]>([]);
   const [veces, setVeces] = useState(0);
@@ -94,50 +97,72 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
   async function imprimir(desdeToque: boolean) {
     if (!armado || imprimiendo) return;
     setImprimiendo(true);
-    setPapelEstado('Enviando a la impresora…');
+    setNoImprimio(false);
+    // Reconectar puede tardar hasta 30 s: la pantalla dice qué está pasando (P15).
+    setPapelEstado(
+      control.estado() === 'desconectada'
+        ? 'Reconectando la impresora…'
+        : 'Enviando a la impresora…',
+    );
+    const alFallar = (porQue: string, pendiente = true) => {
+      setNoImprimio(true);
+      setPapelEstado(
+        `No salió: ${porQue}. ${pendiente ? 'Quedó en entregas pendientes; el' : 'El'} registro está guardado.`,
+      );
+    };
     try {
-      // Conectar abre el selector del navegador: solo con un toque del cajero.
-      if (desdeToque && control.estado() === 'sin_vincular') await control.conectar(false);
+      let sinConectar = '';
+      try {
+        // Conectar abre el selector del navegador: solo con un toque del cajero.
+        if (desdeToque && control.estado() === 'sin_vincular') await control.conectar(false);
+      } catch (e) {
+        sinConectar = textoDeFallo(e);
+      }
+      const impresora = await db.impresora.get('actual');
+      const copia = await vecesImpreso(db, registro);
+      const bloques = papel(armado.recibo, {
+        columnas: impresora?.columnas ?? 32,
+        paginaDeCodigos: impresora?.paginaDeCodigos ?? 'cp850',
+        qr:
+          armado.recibo.clase === 'entrada'
+            ? enlaceCorto(armado.recibo, origenDelRecibo(location))
+            : null,
+      });
+      if (copia > 0) {
+        bloques.unshift({ tipo: 'texto', texto: `*** COPIA ${copia} ***`, alinear: 'centro' });
+      }
+      const r = await control.imprimir(bloques, undefined, registro.id);
+      if (r.ok) {
+        const entrega = await registrarEntrega(
+          db,
+          registro,
+          {
+            canal: 'papel',
+            copia: copia > 0,
+            camino: impresora?.camino ?? null,
+            resultado: 'enviado',
+          },
+          ctx,
+        );
+        setUltimoPapel(entrega);
+        setVeces(copia + 1);
+        setPapelEstado(
+          copia > 0 ? `Copia ${copia} enviada a la impresora` : 'Enviado a la impresora',
+        );
+      } else {
+        alFallar(
+          sinConectar ||
+            (control.estado() === 'sin_vincular'
+              ? 'La impresora no está conectada'
+              : TEXTO_DEL_MOTIVO[r.motivo]),
+        );
+      }
     } catch (e) {
-      if (!(e instanceof FalloDeImpresora)) throw e;
+      // Nunca deja el botón esperando (P15).
+      alFallar(e instanceof Error ? e.message : String(e), false);
+    } finally {
+      setImprimiendo(false);
     }
-    const impresora = await db.impresora.get('actual');
-    const copia = await vecesImpreso(db, registro);
-    const bloques = papel(armado.recibo, {
-      columnas: impresora?.columnas ?? 32,
-      paginaDeCodigos: impresora?.paginaDeCodigos ?? 'cp850',
-      qr:
-        armado.recibo.clase === 'entrada'
-          ? enlaceCorto(armado.recibo, origenDelRecibo(location))
-          : null,
-    });
-    if (copia > 0) {
-      bloques.unshift({ tipo: 'texto', texto: `*** COPIA ${copia} ***`, alinear: 'centro' });
-    }
-    const r = await control.imprimir(bloques, undefined, registro.id);
-    if (r.ok) {
-      const entrega = await registrarEntrega(
-        db,
-        registro,
-        {
-          canal: 'papel',
-          copia: copia > 0,
-          camino: impresora?.camino ?? null,
-          resultado: 'enviado',
-        },
-        ctx,
-      );
-      setUltimoPapel(entrega);
-      setVeces(copia + 1);
-      setPapelEstado(
-        copia > 0 ? `Copia ${copia} enviada a la impresora` : 'Enviado a la impresora',
-      );
-    } else {
-      setPapelEstado(
-        `No salió: ${TEXTO_DEL_MOTIVO[r.motivo]}. Quedó en entregas pendientes; el registro está guardado.`,
-      );
-    }
-    setImprimiendo(false);
   }
 
   // HU-Q3.3 CA2: el recibo sale solo si la sede imprime siempre.
@@ -296,6 +321,13 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
       <output aria-live="polite" data-prueba="estado-del-papel">
         {papelEstado}
       </output>
+      {noImprimio && !imprimiendo && (
+        <ConexionImpresora
+          control={control}
+          alConectar={() => void imprimir(false)}
+          conDiagnostico
+        />
+      )}
       {entregas.length > 0 && (
         <ul data-prueba="entregas">
           {entregas.map((e) => (

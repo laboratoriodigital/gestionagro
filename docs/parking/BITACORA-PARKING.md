@@ -630,3 +630,25 @@ La regla: **la versión de un producto la sube el PR que lo publica; antes, `0.0
 La regla: **«no se reconoce» solo se dice con la conexión abierta; una conexión que se cae es otro problema y tiene otro texto.**
 
 *Ficha:* parqueadero · *(terreno)* · 🟠 Alto · P15 · parqueadero-0.0.0 · 2026-10-07
+
+**18 · Después de conectar y desconectar la PT210L, un recibo nuevo no la volvía a conectar, y la caja no decía nada ni dejaba copiar el diagnóstico.**
+
+*Qué pasó.* El 7 oct 2026, con el arreglo de la entrada 17 ya en staging, el dueño probó con la PT210L del primer cliente. Conectó; luego no volvió a reconectar. La desvinculó en Android y conectó. Volvió a fallar; apagó la impresora, puso el teléfono en modo avión, recargó la caja y conectó otra vez, y conectar y desconectar desde el asistente funcionó. Después registró una entrada, y desde el recibo la impresora no volvió a conectar: no salió ningún mensaje y no había cómo copiar el diagnóstico. nRF Connect, el mismo día, muestra la impresora como `PT210L_30F2`, **BONDED**, «CLASSIC and LE», anunciando `0x18F0` y `e7810a71-…`.
+
+*Síntoma literal.* Ninguno en pantalla: ese es el fallo.
+
+*Causa raíz.* Tres cosas del código, y una del teléfono que el código no ve:
+- Al reconectar, la caja llamaba a `gatt.connect()` sin soltar antes la conexión vieja. Android puede quedarse con una conexión que ya no sirve después de que la impresora se suelta, y un `connect()` encima de ella falla o se queda esperando (*Inferencia*: es el consejo conocido para el estado 133 de Android; no se reprodujo con la unidad real).
+- Un `connect()` que no respondía no tenía plazo. El recibo esperaba lo que tardara la cola, hasta 30 s, con «Enviando a la impresora…», y si la cola se rendía antes que el adaptador, el recibo dado por perdido podía salir después.
+- El recibo solo ofrecía «Imprimir». Cuando no salía, decía el motivo y nada más: ni reconectar, ni elegir otra vez, ni el diagnóstico, que vivía en el inicio y en el asistente. Y en el inicio, «Conectar impresora» aparecía solo antes de la primera conexión: con la impresora suelta no había ningún botón, y la cabecera decía «toque para conectar» sin ser un botón (P15).
+- La impresora está emparejada en Android como clásica y LE. Con ese vínculo la conexión LE del navegador es frágil: es lo que ya mostró la entrada 13, y lo que hace que Web Serial (HU-Q2.4), que usa justo ese emparejamiento, sea el candidato a camino principal en Android.
+
+*Cómo se reprodujo.* Con la PT-210 falsa: una cuyo primer `connect()` nunca responde, otra que cuenta si se soltó la conexión antes de abrir otra, y en la e2e una que se apaga con la caja abierta (`__apagar()`).
+
+*Arreglo.* `conectarYBuscar` suelta la conexión vieja antes de cada intento (`gatt.disconnect()`) y corta el que no responde en 6 s; con los 4 intentos y sus pausas, a lo sumo 30 s, y la cola espera 45. Dos reconexiones a la vez comparten la misma, e imprimir espera la que está en curso. El estado `conectando` se ve en la cabecera y nunca se queda puesto. En la caja, `ConexionImpresora` (`conexion.tsx`) ofrece «Reconectar impresora», «Elegir la impresora otra vez» y el diagnóstico, en el inicio y en el recibo que no salió; al reconectar, el recibo sale solo. El recibo nunca deja el botón esperando (`try/finally`). Si elegir otra impresora falla, la que estaba conectada sigue siendo la de la caja.
+
+**Lo prueban** cuatro pruebas nuevas de `bluetooth.test.ts` («antes de reconectar suelta la conexión vieja», «un connect() que no responde se corta», «dos reconexiones a la vez abren una sola», «si no reconecta, queda desconectada»), dos de `caja.test.ts` y la e2e «bitácora 18 · la impresora se apagó». Control negativo, corrido el 7 oct 2026: con el adaptador de antes, las tres primeras quedan en rojo, y también «se apagó: lo dice, y al imprimir reconecta», que ahora cuenta el estado `conectando`. La confirmación es de campo, en la matriz de HU-Q6.1.
+
+La regla: **cada pantalla donde puede fallar la impresora ofrece cómo arreglarlo y el diagnóstico; un error que solo se arregla desde otra pantalla es un error sin salida.**
+
+*Ficha:* parqueadero · *(mío y del terreno)* · 🟠 Alto · P15, P16, P20 · parqueadero-0.0.0 · 2026-10-07

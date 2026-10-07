@@ -78,6 +78,7 @@ function pt210Falsa(maximo = 512) {
     bluetooth,
     escrituras,
     pedidos,
+    gatt,
     apagar() {
       conectada = false;
       alDesconectar();
@@ -296,6 +297,7 @@ describe('las PT-210 que escriben por otro servicio', () => {
     expect((fallo as FalloDeImpresora).motivo).toBe('fuera_de_alcance');
     expect((fallo as FalloDeImpresora).message).toContain('Apague y prenda el Bluetooth');
     expect(p.conexiones()).toBe(4);
+    expect(p.impresora.estado()).toBe('sin_vincular');
   });
 
   it('un servicio que no entrega sus características no tumba la búsqueda', async () => {
@@ -395,7 +397,87 @@ describe('imprimir', () => {
     expect(impresora.estado()).toBe('desconectada');
     expect((await impresora.imprimir(recibo(10))).ok).toBe(true);
     expect(f.pedidos).toHaveLength(1);
-    expect(estados).toEqual(['conectada', 'desconectada', 'conectada', 'ocupada', 'conectada']);
+    expect(estados).toEqual([
+      'conectando',
+      'conectada',
+      'desconectada',
+      'conectando',
+      'conectada',
+      'ocupada',
+      'conectada',
+    ]);
+  });
+
+  /** Envuelve `connect()` de la falsa para contar o cambiar lo que hace. */
+  function conConnect(
+    f: ReturnType<typeof pt210Falsa>,
+    connect: (original: () => Promise<ServidorGatt>) => Promise<ServidorGatt>,
+  ) {
+    const original = f.gatt.connect.bind(f.gatt);
+    Object.assign(f.gatt, { connect: () => connect(original) });
+  }
+
+  it('antes de reconectar suelta la conexión vieja de Android (bitácora 18)', async () => {
+    const f = pt210Falsa();
+    const orden: string[] = [];
+    conConnect(f, (original) => {
+      orden.push('connect');
+      return original();
+    });
+    Object.assign(f.gatt, { disconnect: () => orden.push('disconnect') });
+    const impresora = crearImpresoraBluetooth({ bluetooth: f.bluetooth, esperar: sinEsperar });
+    await impresora.vincular();
+    f.apagar();
+    orden.length = 0;
+    expect((await impresora.imprimir(recibo(10))).ok).toBe(true);
+    expect(orden).toEqual(['disconnect', 'connect']);
+  });
+
+  it('un connect() que no responde se corta y se intenta otra vez (bitácora 18)', async () => {
+    const f = pt210Falsa();
+    let llamadas = 0;
+    // El primero se queda esperando, como un Android con la conexión vieja.
+    conConnect(f, (original) =>
+      ++llamadas === 1 ? new Promise<ServidorGatt>(() => undefined) : original(),
+    );
+    const impresora = crearImpresoraBluetooth({
+      bluetooth: f.bluetooth,
+      esperar: sinEsperar,
+      msPorIntento: 5,
+    });
+    await impresora.vincular();
+    expect(llamadas).toBe(2);
+    expect(impresora.diagnostico()).toContain('Intento 1: no conectó (TimeoutError');
+  });
+
+  it('dos reconexiones a la vez abren una sola conexión', async () => {
+    const f = pt210Falsa();
+    let llamadas = 0;
+    // Como en un teléfono, la conexión tarda: mientras tanto `connected` sigue en falso.
+    conConnect(f, async (original) => {
+      llamadas++;
+      await new Promise((r) => setTimeout(r, 1));
+      return original();
+    });
+    const impresora = crearImpresoraBluetooth({ bluetooth: f.bluetooth, esperar: sinEsperar });
+    await impresora.vincular();
+    f.apagar();
+    llamadas = 0;
+    const [a, b] = await Promise.all([impresora.reconectar(), impresora.imprimir(recibo(10))]);
+    expect(a).toBe(true);
+    expect(b.ok).toBe(true);
+    expect(llamadas).toBe(1);
+  });
+
+  it('si no reconecta, queda «desconectada», nunca «conectando»', async () => {
+    const f = pt210Falsa();
+    const impresora = crearImpresoraBluetooth({ bluetooth: f.bluetooth, esperar: sinEsperar });
+    await impresora.vincular();
+    f.apagar();
+    conConnect(f, () => Promise.reject(error('NetworkError', 'apagada')));
+    const r = await impresora.imprimir(recibo(10));
+    expect(r).toMatchObject({ ok: false, motivo: 'fuera_de_alcance' });
+    expect(impresora.estado()).toBe('desconectada');
   });
 
   it('nunca manda bytes que no vengan de un trabajo', async () => {
