@@ -174,6 +174,16 @@ describe('la entrada (HU-Q3.3)', () => {
     expect(a.datos).toMatchObject({ tarifa_id: expect.any(String), tarifa_version: 1 });
   });
 
+  it('dos entradas a la vez salen con números distintos (HU-Q6.3 CA3 ❌)', async () => {
+    const { db, ctx } = await configurada();
+    const placas = ['AAA111', 'BBB222', 'CCC333', 'DDD444'];
+    const hechas = await Promise.all(
+      placas.map((placa) => registrarEntrada(db, { ...ENTRADA, placa }, ctx)),
+    );
+    expect(hechas.map((h) => h.consecutivo).sort()).toEqual([1, 2, 3, 4]);
+    expect(await db.meta.get('consecutivo')).toEqual({ clave: 'consecutivo', ultimo: 4 });
+  });
+
   it('una placa adentro no abre otra estadía (CA3)', async () => {
     const { db, ctx } = await configurada();
     await registrarEntrada(db, ENTRADA, ctx);
