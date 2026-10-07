@@ -19,12 +19,23 @@ import {
   type Vinculo,
 } from './contrato.ts';
 
-/** PT-210 según el SDK no oficial, otras revisiones del firmware y térmicas genéricas (§7.4). */
+/**
+ * PT-210 según el SDK no oficial, otras revisiones del firmware y térmicas genéricas (§7.4). Web
+ * Bluetooth solo deja ver los servicios que se nombran aquí: una PT-210 de campo que escribe por
+ * otro (la primera prueba del 7 oct 2026 dijo «no se reconoce») queda muda aunque se vincule. Los
+ * últimos cinco son los de los módulos BLE de las térmicas baratas (bitácora parqueadero 12).
+ */
 export const SERVICIOS_DE_IMPRESORA: readonly (string | number)[] = [
-  '49535343-fe7d-4ae5-8fa9-9fafd205e455',
-  0xff00,
+  // La PT210L de la prueba de campo anuncia estos dos (nRF Connect, 7 oct 2026): van primero.
   0x18f0,
   'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+  0xff00,
+  0xae30,
+  0xffe0,
+  0xfff0,
+  0xfee7,
+  'bef8d6c9-9c21-4c9e-b632-bd58c1009f9f',
 ];
 
 export interface Trozo {
@@ -55,6 +66,8 @@ export interface ServidorGatt {
   readonly connected: boolean;
   connect(): Promise<ServidorGatt>;
   getPrimaryService(servicio: string | number): Promise<ServicioBle>;
+  /** Los servicios que el permiso deja ver; para el diagnóstico. */
+  getPrimaryServices?(): Promise<ServicioBle[]>;
 }
 export interface DispositivoBle {
   readonly id: string;
@@ -91,6 +104,10 @@ export interface ImpresoraBluetooth extends Impresora {
 function nombreDelError(error: unknown): string {
   return error instanceof Error ? error.name : '';
 }
+
+/** `0x18f0` en vez de `6384`: como lo muestra nRF Connect. */
+const nombreDeServicio = (s: string | number): string =>
+  typeof s === 'number' ? `0x${s.toString(16).padStart(4, '0')}` : s;
 
 function detalleDe(error: unknown): string {
   return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
@@ -155,6 +172,8 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
   let conexion: Conexion | undefined;
   const vistos: string[] = [];
   let ultimoError = '';
+  /** El nombre del último equipo elegido, aunque no se haya podido usar. */
+  let nombre = '';
 
   function cambiar(nuevo: EstadoImpresora): void {
     if (nuevo === estado) return;
@@ -167,15 +186,23 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
     gatt: ServidorGatt,
     soloEste?: string | number,
   ): Promise<{ servicio: string | number; caracteristica: CaracteristicaBle } | undefined> {
-    vistos.length = 0;
     for (const s of soloEste === undefined ? SERVICIOS_DE_IMPRESORA : [soloEste]) {
       let servicio: ServicioBle;
       try {
         servicio = await gatt.getPrimaryService(s);
-      } catch {
-        continue; // Este equipo no tiene ese servicio.
+      } catch (error) {
+        // Este equipo no tiene ese servicio, o se desconectó buscándolo: el diagnóstico lo dice.
+        if (nombreDelError(error) !== 'NotFoundError')
+          vistos.push(`${nombreDeServicio(s)}: ${detalleDe(error)}`);
+        continue;
       }
-      const caracteristicas = await servicio.getCharacteristics();
+      let caracteristicas: CaracteristicaBle[];
+      try {
+        caracteristicas = await servicio.getCharacteristics();
+      } catch (error) {
+        vistos.push(`${servicio.uuid}: sin características (${detalleDe(error)})`);
+        continue;
+      }
       for (const c of caracteristicas) {
         const p = c.properties;
         vistos.push(
@@ -194,6 +221,7 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
     if (!conexion?.dispositivo.gatt) return false;
     try {
       const gatt = await conexion.dispositivo.gatt.connect();
+      vistos.length = 0;
       const hallado = await buscar(gatt, conexion.servicio);
       if (!hallado) return false;
       conexion.caracteristica = hallado.caracteristica;
@@ -232,14 +260,24 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
         throw new FalloDeImpresora('no_soportado', 'El equipo no ofrece GATT');
       }
       let hallado: Awaited<ReturnType<typeof buscar>>;
+      vistos.length = 0;
       try {
-        hallado = await buscar(await dispositivo.gatt.connect());
+        const gatt = await dispositivo.gatt.connect();
+        hallado = await buscar(gatt);
+        // Un equipo de Bluetooth clásico y LE ya emparejado puede soltar la conexión GATT mientras
+        // se recorren sus servicios: se reconecta y se busca una vez más.
+        if (!hallado && !gatt.connected) hallado = await buscar(await dispositivo.gatt.connect());
       } catch (error) {
         ultimoError = detalleDe(error);
         throw new FalloDeImpresora(motivoDelError(error, false), ultimoError);
       }
       if (!hallado) {
-        ultimoError = 'Ningún servicio conocido tiene una característica de escritura';
+        nombre = dispositivo.name ?? 'Sin nombre';
+        const visibles = await dispositivo.gatt
+          .getPrimaryServices?.()
+          .then((ss) => ss.map((x) => x.uuid).join(', '))
+          .catch(() => '');
+        ultimoError = `Ningún servicio conocido tiene una característica de escritura. Servicios visibles: ${visibles || 'ninguno'}`;
         throw new FalloDeImpresora('sin_caracteristica', ultimoError);
       }
       conexion = { dispositivo, ...hallado };
@@ -299,7 +337,7 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
 
     diagnostico(): string {
       return [
-        `Impresora: ${conexion?.dispositivo.name ?? 'sin vincular'}`,
+        `Impresora: ${conexion?.dispositivo.name ?? (nombre ? `${nombre} (sin usar)` : 'sin vincular')}`,
         `Id: ${conexion?.dispositivo.id ?? '-'}`,
         `Estado: ${estado}`,
         `Escribe en: ${conexion ? `${String(conexion.servicio)} › ${conexion.caracteristica.uuid}` : '-'}`,
