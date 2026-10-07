@@ -5,6 +5,7 @@ import { HOST_DE_PRODUCCION } from '../../apps/parqueadero-sitio/src/caja/entorn
 import plantilla from '../../content/parqueadero/privacidad/aviso.json' with { type: 'json' };
 import { ORIGEN_DEL_RECIBO } from '../../packages/parqueadero-recibos/src/enlace.ts';
 import {
+  DATASET_PARQUEADERO,
   DOMINIO_PARQUEADERO,
   RUTA_WRANGLER_PARQUEADERO,
   textoWranglerDelParqueadero,
@@ -22,13 +23,32 @@ import { listarArchivos, RAIZ } from '../../scripts/lib/repo.ts';
 
 /** El sitio del parqueadero en staging (BACKLOG-PARKING_MVP HU-Q5.1, HU-Q3.1). */
 describe('el sitio del parqueadero', () => {
-  it('wrangler.jsonc es exactamente el generado, solo assets y con su staging (P2)', () => {
+  it('wrangler.jsonc es exactamente el generado, con su staging (P2)', () => {
     expect(readFileSync(RUTA_WRANGLER_PARQUEADERO, 'utf8')).toBe(textoWranglerDelParqueadero());
     const config = wranglerDelParqueadero();
-    expect(config['main']).toBeUndefined();
     expect(config['env']).toEqual({
-      staging: { name: `${WORKER_PARQUEADERO}-staging`, workers_dev: true, routes: [] },
+      staging: {
+        name: `${WORKER_PARQUEADERO}-staging`,
+        workers_dev: true,
+        routes: [],
+        analytics_engine_datasets: [
+          { binding: 'EVENTOS', dataset: `${DATASET_PARQUEADERO}_staging` },
+        ],
+      },
     });
+  });
+
+  it('el Worker solo corre para `/_m`, los eventos de la caja; lo demás es asset (HU-Q5.3)', () => {
+    const config = wranglerDelParqueadero();
+    expect(config['main']).toBe('src/worker.ts');
+    expect(config['assets']).toEqual({
+      directory: './dist',
+      binding: 'ASSETS',
+      run_worker_first: ['/_m'],
+    });
+    expect(config['analytics_engine_datasets']).toEqual([
+      { binding: 'EVENTOS', dataset: DATASET_PARQUEADERO },
+    ]);
   });
 
   it('producción va a su dominio y nunca a workers.dev (HU-Q5.2 CA1 y CA3)', () => {
@@ -108,9 +128,12 @@ describe('el sitio del parqueadero', () => {
 
   describe('la prueba de humo de staging (HU-Q5.1 CA3)', () => {
     const URL_STAGING = 'https://ed1-parqueadero-staging.ejemplo.workers.dev';
-    function sitio(cambios: { csp?: string | null; sw?: number; r?: number } = {}): typeof fetch {
+    function sitio(
+      cambios: { csp?: string | null; sw?: number; r?: number; m?: number } = {},
+    ): typeof fetch {
       return (async (entrada: string | URL | Request) => {
         const ruta = new URL(String(entrada)).pathname;
+        if (ruta === '/_m') return new Response('Solo POST', { status: cambios.m ?? 405 });
         if (ruta === '/r/')
           return new Response('<title>Recibo</title>', { status: cambios.r ?? 200 });
         if (ruta === '/caja/sw.js') {
@@ -137,6 +160,12 @@ describe('el sitio del parqueadero', () => {
       ).toHaveLength(1);
       expect(await humoParqueadero(sitio({ sw: 404 }), URL_STAGING)).toEqual([
         expect.stringContaining('sin service worker'),
+      ]);
+    });
+
+    it('falla si `/_m` no lo atiende el Worker de eventos (HU-Q5.3)', async () => {
+      expect(await humoParqueadero(sitio({ m: 404 }), URL_STAGING)).toEqual([
+        expect.stringContaining('sin el Worker de eventos'),
       ]);
     });
 

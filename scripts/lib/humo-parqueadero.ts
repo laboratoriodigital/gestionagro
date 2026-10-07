@@ -22,6 +22,11 @@ export async function humoParqueadero(fetchFn: typeof fetch, url: string): Promi
     // HU-Q5.2 CA2: la página del recibo abre en el mismo origen que la caja.
     const recibo = await fetchFn(`${url}/r/`);
     if (recibo.status !== 200) fallas.push(`parqueadero: ${url}/r/ respondió ${recibo.status}`);
+    // HU-Q5.3: `/_m` lo atiende el Worker, no los assets. Un GET no escribe nada y responde 405.
+    const eventos = await fetchFn(`${url}/_m`);
+    if (eventos.status !== 405) {
+      fallas.push(`parqueadero: ${url}/_m respondió ${eventos.status}, sin el Worker de eventos`);
+    }
     const sw = await fetchFn(`${url}/caja/sw.js`);
     if (sw.status !== 200 || !(sw.headers.get('content-type') ?? '').includes('javascript')) {
       fallas.push(`parqueadero: ${url}/caja/sw.js respondió ${sw.status}, sin service worker`);

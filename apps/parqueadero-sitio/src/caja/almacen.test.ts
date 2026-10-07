@@ -16,6 +16,7 @@ import { SEDE_ENSAYO_UNO, TARIFA_CARRO, TARIFA_MOTO } from '@ed1/parqueadero-sch
 import { describe, expect, it } from 'vitest';
 import {
   abrirTurno,
+  anotarRespaldo,
   anulados,
   anular,
   armarRespaldo,
@@ -57,6 +58,8 @@ import {
   verificarPin,
 } from './almacen.ts';
 import { abrirBase, purgarContactos } from './datos.ts';
+import { crearControl } from './impresora.ts';
+import { enviarEventos, medir } from './medicion.ts';
 import { avisoDeLaSede, VERSION_DEL_AVISO } from './privacidad.ts';
 
 const sinMeta = <T extends object>(c: T) => {
@@ -495,6 +498,68 @@ describe('el WhatsApp del conductor (HU-Q4.1 y HU-Q4.4)', () => {
     }
     expect(await db.contactos.count()).toBe(1);
   });
+
+  it('los eventos de un turno no llevan placa, teléfono ni nombre (HU-Q5.3 CA3 ❌)', async () => {
+    const { db, ctx, avanzar } = await conAviso();
+    const entrada = await registrarEntrada(db, { ...ENTRADA, whatsapp: NUMERO }, ctx);
+    const papel = {
+      canal: 'papel',
+      copia: false,
+      camino: 'bluetooth',
+      resultado: 'enviado',
+    } as const;
+    await registrarEntrega(db, entrada, papel, ctx);
+    await registrarEntrega(db, entrada, { ...papel, resultado: 'fallido' }, ctx);
+    await registrarEntrega(db, entrada, { ...papel, copia: true }, ctx);
+    await registrarEntrega(
+      db,
+      entrada,
+      { canal: 'whatsapp', copia: false, resultado: 'abierto', autorizado: true },
+      ctx,
+    );
+    await registrarEntrega(
+      db,
+      entrada,
+      { canal: 'pantalla', copia: false, resultado: 'confirmado' },
+      ctx,
+    );
+    avanzar(45);
+    await registrarSalida(db, entrada.id, COBRO, ctx);
+    await anotarRespaldo(db, ctx.reloj());
+    const t = (await turnoAbierto(db)) as NonNullable<Awaited<ReturnType<typeof turnoAbierto>>>;
+    const { resumen } = await cerrarTurno(db, t, { contado: 100_000, motivo: null }, ctx);
+    expect(resumen.esperado).toBe(100_000);
+
+    const guardados = await db.meta.get('eventos');
+    let enviado = '';
+    await enviarEventos(db, async (cuerpo) => {
+      enviado = cuerpo;
+      return true;
+    });
+    expect(JSON.parse(enviado).conteos).toEqual({
+      'recibo.papel': 1,
+      'recibo.copia': 1,
+      'recibo.whatsapp': 1,
+      'recibo.pantalla': 1,
+      'impresion.fallida/bluetooth/no_salio': 1,
+      'respaldo.hecho': 1,
+      'turno.cerrado': 1,
+    });
+    const s = SEDE_ENSAYO_UNO;
+    for (const texto of [JSON.stringify(guardados), enviado]) {
+      for (const dato of [
+        'ABC123',
+        '3001234567',
+        '573001234567',
+        s.nombre,
+        s.nit,
+        s.telefono,
+        'Caja 1',
+      ]) {
+        expect(texto, dato).not.toContain(dato);
+      }
+    }
+  });
 });
 
 describe('el aviso de privacidad (HU-Q4.4)', () => {
@@ -824,5 +889,49 @@ describe('abonados por placa (HU-Q3.11)', () => {
     await expect(guardarAbonado(db, conNumero, null, '2468', ctx)).rejects.toBeInstanceOf(
       ErrorDeValidacion,
     );
+  });
+});
+
+describe('el envío de los eventos (HU-Q5.3 CA2)', () => {
+  it('sin respuesta del sitio, los conteos esperan; con ella, se descuentan', async () => {
+    const { db } = await configurada();
+    await medir(db, { evento: 'recibo.papel' });
+    await medir(db, { evento: 'recibo.papel' });
+    expect(await enviarEventos(db, async () => false)).toBe(0);
+    expect(await enviarEventos(db, () => Promise.reject(new Error('sin red')))).toBe(0);
+    expect((await db.meta.get('eventos'))?.clave === 'eventos').toBe(true);
+
+    // Lo que se cuenta mientras viaja el lote sale en el siguiente.
+    const enviados: string[] = [];
+    expect(
+      await enviarEventos(db, async (cuerpo) => {
+        enviados.push(cuerpo);
+        await medir(db, { evento: 'recibo.whatsapp' });
+        return true;
+      }),
+    ).toBe(2);
+    expect(JSON.parse(enviados[0] ?? '{}').conteos).toEqual({ 'recibo.papel': 2 });
+    expect(await db.meta.get('eventos')).toEqual({
+      clave: 'eventos',
+      conteos: { 'recibo.whatsapp': 1 },
+    });
+    expect(await enviarEventos(db, async () => true)).toBe(1);
+    expect(await enviarEventos(db, async () => true)).toBe(0);
+  });
+
+  it('una impresión que falla se cuenta con su adaptador y su causa, sin impresora también', async () => {
+    const { db, ctx } = await configurada();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    const control = crearControl(db, {
+      bluetooth: undefined,
+      hostname: 'localhost',
+      reloj: ctx.reloj,
+      nuevoId: ctx.nuevoId,
+    });
+    expect((await control.imprimir([{ tipo: 'regla' }], undefined, entrada.id)).ok).toBe(false);
+    expect(await db.meta.get('eventos')).toEqual({
+      clave: 'eventos',
+      conteos: { 'impresion.fallida/ninguno/sin_permiso': 1 },
+    });
   });
 });

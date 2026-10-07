@@ -7,6 +7,7 @@ import { App } from './App.tsx';
 import { abrirBase } from './datos.ts';
 import { esProduccion } from './entorno.ts';
 import { crearControl } from './impresora.ts';
+import { programarEnvios } from './medicion.ts';
 import { capacidadesDelNavegador, proponerCamino } from './senales.ts';
 
 const raiz = document.getElementById('caja');
@@ -35,6 +36,9 @@ const control = crearControl(db, {
 // Al cerrar o recargar la caja, la conexión se suelta a propósito: si Android la deja viva sin
 // dueño, la impresora no acepta la siguiente (bitácora parqueadero 21).
 addEventListener('pagehide', () => control.soltar());
+
+// HU-Q5.3: los conteos de recibos y fallos salen a `/_m` cuando hay red; sin red, esperan.
+programarEnvios(db, window);
 
 render(
   <App
