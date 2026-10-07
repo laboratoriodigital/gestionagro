@@ -489,7 +489,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q3.10.1 `[código]` respaldo · WI-Q3.10.2 `[código]` restaurar · WI-Q3.10.3 `[prueba]` unir y rechazar · WI-Q3.10.4 `[campo]`.
 
 #### HU-Q3.11 · Abonados por placa
-- **Capa:** caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q3.3, HU-Q3.5 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q3.3, HU-Q3.5 · **Estado:** En revisión (rama `feat/q3-11-abonados`): abonados con PIN, la placa marcada al entrar, la salida en 0 como «abonado» con «Abonado hasta» en el papel, WhatsApp y pantalla, y el vencido como visitante, dicho. `/r/` dice solo «abonado»: el enlace v1 no lleva la fecha
 - Como cajero, quiero que la caja reconozca a los abonados por su placa y no les cobre la salida.
 - **Respaldo:** PARQUEADERO §2.2 y §5.1 (entrada, punto 3); bitácora parqueadero 7 (las mensualidades con cobro son M2).
 - **CA1.** Un catálogo de abonados con nombre o alias, placas, vigencia (desde y hasta) y nota, que solo cambia el administrador con su PIN.

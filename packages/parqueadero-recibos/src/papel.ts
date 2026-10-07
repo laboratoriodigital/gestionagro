@@ -11,6 +11,7 @@ import { type Bloque, lineaPar, type PaginaDeCodigos, prepararTexto } from '@ed1
 import {
   conceptoDeLinea,
   fechaHora,
+  lineaDelAbono,
   lineasDeTarifa,
   NOMBRE_DEL_MEDIO,
   nombreDelVehiculo,
@@ -113,6 +114,8 @@ export function papel(recibo: Recibo, o: OpcionesDePapel): Bloque[] {
     if (sa.redondeo > 0) par('Redondeo', $(-sa.redondeo));
     par('TOTAL', $(sa.total), true);
     texto(`Pago: ${NOMBRE_DEL_MEDIO[sa.medio]}`);
+    const abono = lineaDelAbono(sa);
+    if (abono) texto(abono);
     if (sa.recibido !== null && sa.cambio !== null) {
       par(`Recibido ${$(sa.recibido)}`, `Cambio ${$(sa.cambio)}`);
     }

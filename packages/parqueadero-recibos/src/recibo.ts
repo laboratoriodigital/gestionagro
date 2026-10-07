@@ -54,6 +54,11 @@ export interface SalidaDelRecibo {
   readonly medio: MedioDePago;
   readonly recibido: number | null;
   readonly cambio: number | null;
+  /**
+   * El último día del abono que cubrió la estadía (`2026-10-31`), si lo hubo (HU-Q3.11). Lo pone
+   * la caja; el enlace v1 no lo lleva, y `/r/` dice solo «abonado».
+   */
+  readonly abonadoHasta?: string | null;
 }
 
 export interface Recibo {
@@ -141,6 +146,8 @@ export interface Catalogos {
   /** La tarifa que dice el registro (`tarifa_id` y `tarifa_version`). */
   readonly tarifa: Tarifa | null;
   readonly ajuste: AjusteRecibo | null;
+  /** El abono que cubrió una salida, con su último día; nulo o ausente si no hubo. */
+  readonly abonado?: { readonly hasta: string } | null;
 }
 
 /**
@@ -221,8 +228,14 @@ export function armarRecibo(
       medio: d.medio_pago,
       recibido: d.recibido,
       cambio: d.cambio,
+      ...(catalogos.abonado ? { abonadoHasta: catalogos.abonado.hasta } : {}),
     },
   };
+}
+
+/** «Abonado hasta 31/10/2026», o nulo si la salida no tuvo abono (HU-Q3.11 CA2). */
+export function lineaDelAbono(sa: SalidaDelRecibo): string | null {
+  return sa.abonadoHasta ? `Abonado hasta ${sa.abonadoHasta.split('-').reverse().join('/')}` : null;
 }
 
 const dos = (n: number) => String(n).padStart(2, '0');

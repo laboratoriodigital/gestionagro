@@ -6,6 +6,7 @@
  */
 import { ReciboIncompleto } from '@ed1/parqueadero-recibos';
 import {
+  type Abonado,
   NOVEDADES,
   type Registro,
   VEHICULOS,
@@ -14,6 +15,7 @@ import {
 } from '@ed1/parqueadero-schema';
 import { WhatsAppInvalido } from '@ed1/whatsapp';
 import { useEffect, useState } from 'preact/hooks';
+import { abonoDeLaPlaca, fechaDelAbono } from './abonados.ts';
 import { abrirFormulario } from './actividad.ts';
 import { type Contexto, EstadiaYaAbierta, registrarEntrada } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
@@ -39,11 +41,21 @@ interface Props {
   readonly vehiculos: readonly Vehiculo[];
   /** La sede aceptó el aviso de privacidad: se puede pedir el número (HU-Q4.4 CA2). */
   readonly pideNumero: boolean;
+  /** Para marcar la placa de un abonado (HU-Q3.11 CA2). */
+  readonly abonados: readonly Abonado[];
   readonly alRegistrar: (r: Registro) => void;
   readonly alCancelar: () => void;
 }
 
-export function Entrada({ db, ctx, vehiculos, pideNumero, alRegistrar, alCancelar }: Props) {
+export function Entrada({
+  db,
+  ctx,
+  vehiculos,
+  pideNumero,
+  abonados,
+  alRegistrar,
+  alCancelar,
+}: Props) {
   const [placa, setPlaca] = useState('');
   const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null);
   const [aMano, setAMano] = useState(false);
@@ -86,6 +98,7 @@ export function Entrada({ db, ctx, vehiculos, pideNumero, alRegistrar, alCancela
   });
 
   const fueraDePatron = placa.length > 0 && vehiculoPorPlaca(placa) === null;
+  const abono = abonoDeLaPlaca(abonados, placa, ctx.reloj());
   const listo =
     placa.length >= 2 &&
     vehiculo !== null &&
@@ -196,6 +209,18 @@ export function Entrada({ db, ctx, vehiculos, pideNumero, alRegistrar, alCancela
           ))}
         </div>
       </fieldset>
+
+      {abono.vigente && (
+        <p class="exito" data-prueba="abonado-entrada">
+          Abonado hasta el {fechaDelAbono(abono.vigente.hasta)}
+          {abono.vigente.referencia ? ` · ${abono.vigente.referencia}` : ''}
+        </p>
+      )}
+      {abono.vencido && (
+        <p class="error" data-prueba="abonado-entrada">
+          El abono venció el {fechaDelAbono(abono.vencido.hasta)}: entra como visitante.
+        </p>
+      )}
 
       {fueraDePatron && (
         <label class="casilla" data-prueba="confirmar-placa">

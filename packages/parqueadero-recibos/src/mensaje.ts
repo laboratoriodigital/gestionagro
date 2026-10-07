@@ -8,6 +8,7 @@ import { armarTexto } from '@ed1/whatsapp';
 import {
   conceptoDeLinea,
   fechaHora,
+  lineaDelAbono,
   lineasDeTarifa,
   NOMBRE_DEL_MEDIO,
   nombreDelVehiculo,
@@ -37,6 +38,8 @@ export function textoWhatsApp(recibo: Recibo, enlace: string, desfaseMin = -300)
       `Entró ${f(recibo.entrada)}, salió ${f(s.instante)} (${s.minutos} min).`,
       `Total ${formatearPesos(s.total)} - Pago: ${NOMBRE_DEL_MEDIO[s.medio]}.`,
     );
+    const abono = lineaDelAbono(s);
+    if (abono) lineas.push(`${abono}.`);
   }
   lineas.push('Su recibo:', enlace, TEXTO_LEGAL.whatsapp);
   return armarTexto(lineas);
@@ -71,6 +74,8 @@ export function pantalla(recibo: Recibo, desfaseMin = -300): VistaDeRecibo {
     for (const l of sa.lineas) filas.push([conceptoDeLinea(l, recibo.tarifa), $(l.valor)]);
     if (sa.redondeo > 0) filas.push(['Redondeo', $(-sa.redondeo)]);
     filas.push(['Total', $(sa.total)], ['Pago', NOMBRE_DEL_MEDIO[sa.medio]]);
+    const abono = lineaDelAbono(sa);
+    if (abono) filas.push(['Abono', abono]);
     if (sa.recibido !== null && sa.cambio !== null) {
       filas.push(['Recibido', $(sa.recibido)], ['Cambio', $(sa.cambio)]);
     }

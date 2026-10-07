@@ -95,6 +95,8 @@ Numeración continua con `../ARQUITECTURA.md` §1, que llega hasta ADR-30. Todas
 
 **Nota del plan (7 oct 2026):** las «mensualidades sencillas por placa» se parten en dos. En M0 la caja solo reconoce a un abonado vigente por su placa y no le cobra la salida (`BACKLOG-PARKING_MVP.md` HU-Q3.11, Should); las mensualidades con plan, cobro y recordatorio son de M2, como dicen §0 y §18 (`BACKLOG-PARKING.md` HU-Q8.4). Bitácora parqueadero 7.
 
+**Nota del sprint Q5 (7 oct 2026), con el código (HU-Q3.11):** el abono cuenta por la placa que tenía al entrar. `desde` y `hasta` son días de Bogotá y los dos cuentan: cubre hasta las 23:59 de `hasta`, también si se renovó mientras el vehículo estaba adentro. Cubierto entero, la salida va en 0 con el medio `abonado`, elija lo que elija el cajero. Si venció en medio, se cobra desde la medianoche en que venció (`liquidar`). Si venció antes de entrar, se cobra como visitante y la caja lo dice. Solo cambia con el PIN, y desactivar es la forma de quitarlo: nada se borra. «Abonado hasta» lo pone la caja desde el catálogo; el enlace v1 (§6.3) no lleva la fecha, así que `/r/` dice solo «abonado». Si hace falta, va en la versión 2 del formato.
+
 ### 2.3 Tensiones con ED1, dichas antes de construir
 
 1. **Fase.** Un SaaS vertical es la fase 7 (ED1 §33). El parqueadero entra antes como excepción declarada [ADR-31], con métricas fijadas antes de medir (§18.2), como pide ED1 [D3].
