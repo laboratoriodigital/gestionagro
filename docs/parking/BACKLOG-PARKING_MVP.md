@@ -65,6 +65,15 @@ Lo pide el dueño (HU-Q0.2). **Los datos del cliente no entran al repositorio:**
 | 11 | Cuántos abonados tiene y cómo los controla | Si HU-Q3.11 entra o se recorta | HU-Q3.11 | 23 oct |
 | 12 | Su meta de recibos digitales a 90 días | La métrica de la excepción (D-Q7) | HU-Q0.2 | 30 oct |
 
+**Recibido el 7 oct 2026** (en la carpeta del dueño, fuera del repositorio): los datos 3, 4, 6, 7, 8, 9, 10 y 12, y en parte el 1, el 2, el 5 y el 11. Faltan:
+
+- **Dato 2.** El recibo de hoy dice que las tres primeras horas se cobran por minuto y que después hay tarifa de día o de noche: falta cuánto vale cada una y desde qué hora es noche, además de la gracia, el tope diario y el tiquete perdido. Cambia la liquidación de HU-Q1.1: un tope por día no basta, hay un salto a tarifa plana a las tres horas.
+- **Dato 3.** La razón social y el Registro Distrital.
+- **Dato 5.** Vehículos por día, turnos y cajeros. La meta (dato 12) son 10.000 a 13.000 recibos digitales en 90 días: unos 110 a 145 por día.
+- **Dato 6.** Marca, modelo y versión de Android y de Chrome: el equipo es de gama media y no muy reciente.
+- **Dato 11.** Cuántos abonados. Hay mensualidades de moto con control manual, así que recortar HU-Q3.11 (Should) le quitaría algo que usa hoy.
+- **Nuevo.** Si la caja sigue la numeración preimpresa de sus talonarios o empieza su propia serie.
+
 **Preguntas para la conversación con el cliente** (de estudio §16.2; se anota lo que la persona hace, no lo que dice que haría):
 
 1. Muéstreme cómo recibió y despachó los últimos diez vehículos, con las placas tapadas.
@@ -212,7 +221,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q0.1.1 `[doc]` plan · WI-Q0.1.2 `[doc]` backlog del MVP · WI-Q0.1.3 `[doc]` bitácora · WI-Q0.1.4 `[doc]` mapa de `docs/`, filas en los otros backlogs y CHANGELOG · WI-Q0.1.5 `[doc]` notas en PARQUEADERO.
 
 #### HU-Q0.2 · Decisiones del dueño y datos del cliente antes de la primera línea de código
-- **Capa:** producto · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q0 · **Depende de:** HU-Q0.1 · **Estado:** Refinada
+- **Capa:** producto · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q0 · **Depende de:** HU-Q0.1 · **Estado:** En sprint (datos del cliente recibidos el 7 oct; faltan los de §1; decisiones D-Q1 a D-Q10 pendientes)
 - Como dueño, quiero dejar escritas las decisiones, las métricas con su número y los datos del cliente antes de construir, para no acomodar la regla a lo que salga.
 - **Respaldo:** plan §10 (D-Q1 a D-Q10); PARQUEADERO §18.2 y §19.2; estudio §16.3; ED1 §2.1 [D3] (una excepción declarada fija sus métricas antes de medir).
 - **CA1.** `content/parqueadero/validacion.json` tiene las métricas de PARQUEADERO §18.2, cada una con definición, umbral, frecuencia y fuente. La que todavía no se puede fijar (la meta de recibo digital) dice por qué y cuándo se fija. Una prueba lo lee.
