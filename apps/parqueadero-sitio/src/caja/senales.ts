@@ -53,12 +53,16 @@ export function senalDePendientes(cuantas: number): Senal {
 
 export interface Capacidades {
   readonly bluetooth: boolean;
+  /** Web Serial: la impresora emparejada en el teléfono o el PC (HU-Q2.4). */
+  readonly serial?: boolean;
   readonly ios: boolean;
 }
 
 export interface Propuesta {
-  readonly camino: 'bluetooth' | null;
+  readonly camino: 'bluetooth' | 'serial' | null;
   readonly mensaje: string;
+  /** Ofrecer también la impresora emparejada; sin Web Serial, el botón no aparece (CA3). */
+  readonly serial: boolean;
 }
 
 /** El paso 1 del asistente: qué tiene este navegador (§7.2 y §7.8). En iPhone, desde el principio. */
@@ -68,13 +72,23 @@ export function proponerCamino(c: Capacidades): Propuesta {
       camino: null,
       mensaje:
         'En iPhone ningún navegador puede imprimir en la impresora. Use la caja en un Android o en un PC con Chrome; mientras tanto, el recibo sale por WhatsApp y en la pantalla.',
+      serial: false,
     };
   }
+  const serial = c.serial === true;
   if (c.bluetooth) {
-    return { camino: 'bluetooth', mensaje: 'Este equipo puede imprimir por Bluetooth.' };
+    return { camino: 'bluetooth', mensaje: 'Este equipo puede imprimir por Bluetooth.', serial };
+  }
+  if (serial) {
+    return {
+      camino: 'serial',
+      mensaje: 'Este equipo puede imprimir con la impresora emparejada.',
+      serial,
+    };
   }
   return {
     camino: null,
+    serial,
     mensaje:
       'Este navegador no puede usar Bluetooth. Abra la caja en Chrome, en Android o en Windows.',
   };
@@ -83,5 +97,5 @@ export function proponerCamino(c: Capacidades): Propuesta {
 export function capacidadesDelNavegador(n: Navigator): Capacidades {
   const ios =
     /iPad|iPhone|iPod/.test(n.userAgent) || (n.platform === 'MacIntel' && n.maxTouchPoints > 1);
-  return { bluetooth: 'bluetooth' in n, ios };
+  return { bluetooth: 'bluetooth' in n, serial: 'serial' in n, ios };
 }

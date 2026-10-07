@@ -1,7 +1,7 @@
 import '@ed1/ui/v2/fuentes.css';
 import '@ed1/ui/v2/tokens.css';
 import './estilos.css';
-import type { BluetoothBle } from '@ed1/impresion';
+import type { BluetoothBle, SerialWeb } from '@ed1/impresion';
 import { render } from 'preact';
 import { App } from './App.tsx';
 import { abrirBase } from './datos.ts';
@@ -16,6 +16,7 @@ const reloj = () => Date.now();
 const db = abrirBase();
 const control = crearControl(db, {
   bluetooth: (navigator as Navigator & { bluetooth?: BluetoothBle }).bluetooth,
+  serial: (navigator as Navigator & { serial?: SerialWeb }).serial,
   hostname: location.hostname,
   reloj,
   nuevoId: () => crypto.randomUUID(),

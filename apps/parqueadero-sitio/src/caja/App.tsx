@@ -72,6 +72,11 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
     });
   };
 
+  // HU-Q2.4 CA1: la impresora emparejada vuelve sola al abrir la caja, sin selector.
+  useEffect(() => {
+    void control.recuperar();
+  }, [control]);
+
   // HU-Q3.8: la hora del teléfono contra la del servidor, al abrir, cada 30 min y al volver la red.
   const [diferencia, setDiferencia] = useState<number | null | undefined>(undefined);
   useEffect(() => {

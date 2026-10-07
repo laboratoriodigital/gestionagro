@@ -76,14 +76,53 @@ async function abrirControlada(page: Page) {
     .toBe(true);
 }
 
-async function configurarImpresora(page: Page, linea: string) {
+/**
+ * La PT-210 emparejada, vista por Web Serial (HU-Q2.4). Cada escritura se guarda en
+ * `window.__escritoSerie`; el permiso del puerto se recuerda entre recargas, como en Chrome.
+ */
+function instalarSerialFalso() {
+  const escrito: number[] = [];
+  Object.assign(window, { __escritoSerie: escrito });
+  let abierto = false;
+  const puerto = {
+    open: async () => {
+      abierto = true;
+    },
+    close: async () => {
+      abierto = false;
+    },
+    get writable() {
+      return abierto
+        ? new WritableStream<Uint8Array>({ write: (d) => void escrito.push(...d) })
+        : null;
+    },
+    getInfo: () => ({ bluetoothServiceClassId: '00001101-0000-1000-8000-00805f9b34fb' }),
+  };
+  const serial = {
+    requestPort: async () => {
+      localStorage.setItem('permiso-serie', 'si');
+      return puerto;
+    },
+    getPorts: async () => (localStorage.getItem('permiso-serie') ? [puerto] : []),
+  };
+  Object.defineProperty(Navigator.prototype, 'serial', { get: () => serial, configurable: true });
+}
+
+async function configurarImpresora(
+  page: Page,
+  linea: string,
+  camino: { boton: string; nombre: string } = {
+    boton: 'Conectar impresora',
+    nombre: 'PT-210_FALSA',
+  },
+) {
   await page.getByRole('button', { name: 'Configurar impresora' }).click();
   await expect(page.getByTestId('propuesta')).toHaveText(
     'Este equipo puede imprimir por Bluetooth.',
   );
   await page.getByRole('button', { name: 'Siguiente' }).click();
-  await page.getByRole('button', { name: 'Conectar impresora' }).click();
-  await expect(page.getByTestId('conectada')).toHaveText('Conectada: PT-210_FALSA');
+  await page.getByRole('button', { name: camino.boton }).click();
+  await expect(page.getByTestId('conectada')).toHaveText(`Conectada: ${camino.nombre}`);
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Imprimir página de prueba' }).click();
   await expect(page.getByTestId('enviada')).toHaveText('Enviado a la impresora.');
@@ -737,6 +776,28 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
     await expect(page.getByTestId('estadias')).toContainText('STU456');
     expect((await bytesImpresos(page)).length).toBe(sinPapel);
+  });
+
+  test('HU-Q2.4 · la impresora emparejada se elige una vez y vuelve sola al abrir la caja (CA1)', async ({
+    page,
+  }) => {
+    await page.addInitScript(instalarSerialFalso);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1', {
+      boton: 'Usar la impresora emparejada',
+      nombre: 'Impresora emparejada por Bluetooth',
+    });
+    const prueba = await page.evaluate(
+      () => (window as unknown as { __escritoSerie: number[] }).__escritoSerie.length,
+    );
+    expect(prueba).toBeGreaterThan(0);
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
+
+    // Otro día: la caja se abre de nuevo y nadie toca «Conectar».
+    await page.reload();
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
+    await expect(page.getByRole('button', { name: 'Conectar impresora' })).toHaveCount(0);
   });
 
   test('HU-Q3.3 · sin red, la entrada abre y registra', async ({ page, context }) => {

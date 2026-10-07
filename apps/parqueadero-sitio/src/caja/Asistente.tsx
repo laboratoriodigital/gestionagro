@@ -46,11 +46,11 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
   // Un asistente abierto es un formulario: una versión nueva no recarga la caja (HU-Q3.1 CA3).
   useEffect(() => abrirFormulario(), []);
 
-  async function conectar(verTodos: boolean) {
+  async function conectar(verTodos: boolean, camino: 'bluetooth' | 'serial' = 'bluetooth') {
     setOcupado(true);
     setAviso('');
     try {
-      const v = await control.conectar(verTodos);
+      const v = await control.conectar(verTodos, camino);
       setNombre(v.nombre);
     } catch (e) {
       setAviso(textoDeFallo(e));
@@ -143,22 +143,43 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
             </p>
           ) : (
             <>
-              <button
-                type="button"
-                class="boton"
-                disabled={ocupado}
-                onClick={() => void conectar(false)}
-              >
-                Conectar impresora
-              </button>
-              <button
-                type="button"
-                class="boton boton-secundario"
-                disabled={ocupado}
-                onClick={() => void conectar(true)}
-              >
-                Ver todos los equipos
-              </button>
+              {/* Sin Bluetooth web, sus botones no aparecen (HU-Q2.4 CA3). */}
+              {propuesta.camino === 'bluetooth' && (
+                <>
+                  <button
+                    type="button"
+                    class="boton"
+                    disabled={ocupado}
+                    onClick={() => void conectar(false)}
+                  >
+                    Conectar impresora
+                  </button>
+                  <button
+                    type="button"
+                    class="boton boton-secundario"
+                    disabled={ocupado}
+                    onClick={() => void conectar(true)}
+                  >
+                    Ver todos los equipos
+                  </button>
+                </>
+              )}
+              {propuesta.serial && (
+                <>
+                  <p class="ayuda">
+                    Si la impresora ya está emparejada en los ajustes de Bluetooth de este equipo
+                    (clave 0000), úsela así: la caja la encuentra sola cada vez que abre.
+                  </p>
+                  <button
+                    type="button"
+                    class="boton"
+                    disabled={ocupado}
+                    onClick={() => void conectar(false, 'serial')}
+                  >
+                    Usar la impresora emparejada
+                  </button>
+                </>
+              )}
             </>
           )}
           {aviso && (
