@@ -525,8 +525,8 @@ async function desplegarEnsayo(cred: Credenciales): Promise<Paso> {
  * `wrangler` falla y el despliegue lo dice (HU-Q5.2 CA3, P1). La prueba de humo exige la caja con
  * su CSP y su service worker, y la página del recibo.
  */
-async function desplegarParqueadero(cred: Credenciales, destino: Destino): Promise<Paso> {
-  const produccion = destino === 'produccion';
+async function desplegarParqueadero(cred: Credenciales, a: Destino): Promise<Paso> {
+  const produccion = a === 'produccion';
   // El build deja las cabeceras de staging; producción lleva HSTS y se deja encontrar.
   if (produccion) {
     escribirCabecerasDelParqueadero(join(RAIZ, 'apps', 'parqueadero-sitio', 'dist'), 'produccion');
