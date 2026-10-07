@@ -142,6 +142,7 @@ describe('vincular', () => {
             connect: async () =>
               ({
                 ...d.gatt,
+                connected: true,
                 getPrimaryService: () => Promise.reject(error('NotFoundError')),
               }) as ServidorGatt,
           } as ServidorGatt,
@@ -223,10 +224,78 @@ describe('las PT-210 que escriben por otro servicio', () => {
           addEventListener: () => undefined,
         }),
       },
+      esperar: sinEsperar,
     });
     const v = await impresora.vincular();
     expect(v.caracteristica).toBe(caracteristica.uuid);
     expect(impresora.diagnostico()).toContain('0x18f0: NetworkError');
+  });
+
+  /** Una PT210L recién prendida en Android: la conexión se cae `caidas` veces antes de quedarse. */
+  function seCaeAlConectar(caidas: number) {
+    const caracteristica = {
+      uuid: '00002af1-0000-1000-8000-00805f9b34fb',
+      properties: { write: true, writeWithoutResponse: true, notify: false },
+      writeValueWithoutResponse: async () => undefined,
+      writeValueWithResponse: async () => undefined,
+    };
+    let conexiones = 0;
+    const consultas: (string | number)[] = [];
+    const pausas: number[] = [];
+    const gatt: ServidorGatt = {
+      get connected() {
+        return conexiones > caidas;
+      },
+      connect: async () => {
+        conexiones++;
+        return gatt;
+      },
+      getPrimaryService: async (s) => {
+        consultas.push(s);
+        if (conexiones <= caidas) {
+          throw error('NetworkError', 'GATT Server is disconnected. Cannot retrieve services.');
+        }
+        if (s !== 0x18f0) throw error('NotFoundError');
+        return {
+          uuid: '000018f0-0000-1000-8000-00805f9b34fb',
+          getCharacteristics: async () => [caracteristica],
+        };
+      },
+    };
+    const impresora = crearImpresoraBluetooth({
+      bluetooth: {
+        requestDevice: async () => ({
+          id: 'pt',
+          name: 'PT210L_30F2',
+          gatt,
+          addEventListener: () => undefined,
+        }),
+      },
+      esperar: async (ms) => {
+        pausas.push(ms);
+      },
+    });
+    return { impresora, consultas, pausas, conexiones: () => conexiones };
+  }
+
+  it('si la conexión se cae apenas abre, espera y lo intenta otra vez, hasta 4 veces (bitácora 17)', async () => {
+    const p = seCaeAlConectar(3);
+    const v = await p.impresora.vincular();
+    expect(v.servicio).toBe(String(0x18f0));
+    expect(p.conexiones()).toBe(4);
+    expect(p.pausas).toEqual([1_000, 2_000, 3_000]);
+    // Desconectada, no pregunta por los otros ocho servicios: cada caída cuesta una consulta.
+    expect(p.consultas.slice(0, 3)).toEqual([0x18f0, 0x18f0, 0x18f0]);
+    expect(p.impresora.diagnostico()).toContain('Intento 3: se desconectó al buscar los servicios');
+  });
+
+  it('si se cae en los 4 intentos, dice «apagada o lejos», no «no se reconoce» (CA ❌)', async () => {
+    const p = seCaeAlConectar(10);
+    const fallo = await p.impresora.vincular().catch((e: unknown) => e);
+    expect(fallo).toBeInstanceOf(FalloDeImpresora);
+    expect((fallo as FalloDeImpresora).motivo).toBe('fuera_de_alcance');
+    expect((fallo as FalloDeImpresora).message).toContain('Apague y prenda el Bluetooth');
+    expect(p.conexiones()).toBe(4);
   });
 
   it('un servicio que no entrega sus características no tumba la búsqueda', async () => {

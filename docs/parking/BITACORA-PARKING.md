@@ -612,3 +612,21 @@ La regla: **todo formulario nuevo de la caja se llena en una e2e a 360 px; un fo
 La regla: **la versión de un producto la sube el PR que lo publica; antes, `0.0.0`.**
 
 *Ficha:* parqueadero · *(mío)* · 🟡 Medio · P16 · parqueadero-0.0.0 · 2026-10-07
+
+**17 · Después de apagar y prender la PT210L, la caja no la volvía a conectar y decía «Esta impresora no se reconoce».**
+
+*Qué pasó.* El 7 oct 2026, en la prueba del dueño con la PT210L del primer cliente, después de apagarla y prenderla. Antes, la página de prueba había salido en blanco: el rollo estaba al revés, y con el papel bien puesto la autoprueba imprimió.
+
+*Síntoma literal.* El diagnóstico copiado de la caja: «0x18f0: NetworkError: GATT Server is disconnected. Cannot retrieve services.», lo mismo en los nueve servicios y en los dos intentos, y «Último error: Ningún servicio conocido tiene una característica de escritura. Servicios visibles: ninguno».
+
+*Causa raíz.* Android soltaba la conexión GATT apenas abría, antes de que la caja pidiera el primer servicio (*Inferencia*: es la desconexión inmediata que Android da con una conexión vieja sin limpiar, conocida como el estado 133). La caja reintentaba una sola vez y sin pausa, y al no hallar característica culpaba a la impresora.
+
+*Cómo se reprodujo.* Con una impresora falsa cuya conexión se cae las primeras veces (`bluetooth.test.ts`).
+
+*Arreglo.* `conectarYBuscar` intenta hasta 4 veces, con 1, 2 y 3 s de pausa, y deja de preguntar por servicios en cuanto la conexión se cae. Si se cae en todas, el motivo es «La impresora está apagada o lejos», con qué hacer: apagar y prender el Bluetooth del teléfono y cerrar otra app conectada a la impresora. PR #115.
+
+**Lo prueban** dos pruebas nuevas de `bluetooth.test.ts`: tres caídas y conecta al cuarto intento, y cuatro caídas que dicen «apagada o lejos». Sin las pausas, quedan en rojo con la del PT210L de la bitácora 13.
+
+La regla: **«no se reconoce» solo se dice con la conexión abierta; una conexión que se cae es otro problema y tiene otro texto.**
+
+*Ficha:* parqueadero · *(terreno)* · 🟠 Alto · P15 · parqueadero-0.0.0 · 2026-10-07
