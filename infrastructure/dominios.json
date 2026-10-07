@@ -12,7 +12,7 @@
       "dominio": "laboratorio-digital.app",
       "papel": "Las tiendas sin dominio propio y los proyectos nuevos, en un solo espacio de nombres de primer nivel, sin Public Suffix List.",
       "cuenta": "ED1 principal",
-      "zona_activa": false
+      "zona_activa": true
     },
     {
       "dominio": "cultivopro.co",
@@ -22,7 +22,7 @@
     }
   ],
   "reservados_app": {
-    "proyecto": [],
+    "proyecto": ["parqueadero"],
     "marca": ["laboratorio", "laboratorio-digital", "cultivopro", "ed1"]
   }
 }

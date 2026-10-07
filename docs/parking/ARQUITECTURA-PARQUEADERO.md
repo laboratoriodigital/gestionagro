@@ -100,7 +100,7 @@ Numeración continua con `../ARQUITECTURA.md` §1, que llega hasta ADR-30. Todas
 1. **Fase.** Un SaaS vertical es la fase 7 (ED1 §33). El parqueadero entra antes como excepción declarada [ADR-31], con métricas fijadas antes de medir (§18.2), como pide ED1 [D3].
 2. **El MVP corre antes que la plataforma.** M0 no usa el CORE ni una celda: no choca con las fases P1–P3 que la Tienda necesita. M1 sí espera a P1 y P2 (§11).
 3. **Regla de tres.** El parqueadero es el tercer producto con cuentas: autoriza extraer lo común [ADR-39], y obliga a hacerlo en M1, no después.
-4. **La zona `laboratorio-digital.app` no está activa** (`infrastructure/dominios.json`, `zona_activa: false`). La Tienda la activa en su M0. El parqueadero la necesita antes, porque su primer recibo publica un enlace [ADR-40].
+4. **La zona `laboratorio-digital.app` no está activa** (`infrastructure/dominios.json`, `zona_activa: false`). La Tienda la activa en su M0. El parqueadero la necesita antes, porque su primer recibo publica un enlace [ADR-40]. **Nota del sprint Q3 (7 oct 2026):** el dueño puso la zona en Cloudflare y `dominios.json` la marca activa; el Worker de producción vive solo en `parqueadero.laboratorio-digital.app` (sin `workers.dev`), con HSTS y sin indexar `/caja/` ni `/r/`. Si la zona deja de estar activa, el despliegue falla en vez de caer a `workers.dev` (HU-Q5.2).
 5. **Privacidad.** «Tus datos no salen de tu teléfono» es cierto en M0 y deja de serlo en M1. La promesa se escribe por hito (estudio §13.5).
 
 ### 2.4 La escalera aplicada (ED1 §38)
@@ -1246,7 +1246,7 @@ Propuesta, sobre la del estudio (§16.3):
 ## 20. Hallazgos para la plataforma (propuestos, no aplicados)
 
 1. **`INSERT OR IGNORE` en el push de la celda agro** (`apps/api-celda/src/push.ts`). En SQLite, `OR IGNORE` también se salta las violaciones de `CHECK`, `NOT NULL` y unicidad, no solo el id repetido: una fila que pase zod pero no un `CHECK` de la base se reportaría como `duplicado` y se perdería en silencio (P1). Comprobado el 6 oct 2026 con `node:sqlite`: `INSERT OR IGNORE` con `v = 0` sobre `CHECK (v >= 1)` devuelve `changes = 0` sin error. **Propuesta:** `ON CONFLICT (id) DO NOTHING` y una prueba con un `CHECK` roto. No se tocó el código del agro.
-2. **`dominios.json › reservados_app.proyecto` está vacío.** Antes de que la Tienda abra nombres en `laboratorio-digital.app`, `parqueadero` tiene que estar reservado, o una tienda podría tomarlo.
+2. **`dominios.json › reservados_app.proyecto` está vacío.** Antes de que la Tienda abra nombres en `laboratorio-digital.app`, `parqueadero` tiene que estar reservado, o una tienda podría tomarlo. **Aplicado en el sprint Q3 (7 oct 2026, HU-Q5.2).**
 3. **Firma sin red por dispositivo** [ADR-36]. El cuaderno podría firmar sus QR de lote sin señal, en vez de imprimirlos «sin verificar» (ARQUITECTURA §5.9).
 4. **`packages/impresion` sirve a los otros dos productos:** el punto de venta de la Tienda (TIENDA-3.0 §20.3) y las etiquetas de lote del cuaderno.
 5. **El código de `wa.me` ya existe dos veces** (HU-E2.4 y HU-E4.4 del agro, y el «Confirmar por WhatsApp» de la Tienda). Con el parqueadero son tres: va a `packages/whatsapp` con las reglas de la bitácora (sin emoji al inicio, nombre desde los datos, enlace en su línea). **Nota del plan (7 oct 2026):** en `origin/main` hay tres copias en el agro, todas para compartir sin número, y ninguna en la Tienda 3.0, que todavía no tiene código. `@ed1/whatsapp` nace con las dos formas, con número y sin él (HU-Q1.6; bitácora parqueadero, «Afirmaciones falsas» 3).

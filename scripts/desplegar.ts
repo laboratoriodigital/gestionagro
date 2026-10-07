@@ -24,6 +24,7 @@ import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
 import { generarClavePrivada } from '../packages/tokens/src/index.ts';
 import {
   baseDelShard,
+  DOMINIO_DEL_PARQUEADERO,
   WORKER_PARQUEADERO,
   wranglerDeLaCelda,
   wranglerDelCore,
@@ -39,6 +40,7 @@ import {
 } from './lib/api-celda.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
 import { type ClaveQr, clavesQrDe, ponerClavesEnLaPagina } from './lib/claves-qr.ts';
+import { DOMINIO_APP, zonaActivaDe } from './lib/cuentas-y-dominios.ts';
 import {
   ARCHIVO_DESPLIEGUE_CORE,
   ARCHIVO_SQL_CELDAS,
@@ -516,11 +518,13 @@ async function desplegarEnsayo(cred: Credenciales): Promise<Paso> {
 }
 
 /**
- * HU-Q5.1: el sitio y la caja del parqueadero, solo en staging hasta que su dominio exista
- * (HU-Q5.2). Solo assets, sin secretos: un staging del parqueadero no tiene credenciales de
- * producción. La prueba de humo exige la caja con su CSP y su service worker.
+ * HU-Q5.1 y HU-Q5.2: el sitio y la caja del parqueadero. Solo assets, sin secretos. En staging, en
+ * `workers.dev`; en producción, solo en su dominio y con sus cabeceras (HSTS): si la zona no está
+ * activa en `dominios.json`, falla y lo dice, nunca cae a `workers.dev` (CA3). La prueba de humo
+ * exige la caja con su CSP y su service worker, y la página del recibo.
  */
-async function desplegarParqueadero(cred: Credenciales): Promise<Paso> {
+async function desplegarParqueadero(cred: Credenciales, entorno: Destino): Promise<Paso> {
+  if (entorno === 'produccion') return desplegarParqueaderoEnProduccion(cred);
   const deploy = wrangler('@ed1/parqueadero-sitio', 'deploy --env staging', cred);
   if (!deploy.ok) {
     return {
@@ -538,7 +542,37 @@ async function desplegarParqueadero(cred: Credenciales): Promise<Paso> {
   const fallas = await conReintentos(() => humoParqueadero(fetch, url));
   return fallas.length > 0
     ? { ok: false, detalle: fallas }
-    : { ok: true, detalle: [`parqueadero (solo staging): ${url}/caja/`] };
+    : { ok: true, detalle: [`parqueadero (staging): ${url}/caja/`] };
+}
+
+async function desplegarParqueaderoEnProduccion(cred: Credenciales): Promise<Paso> {
+  if (!zonaActivaDe(DOMINIO_DEL_PARQUEADERO)) {
+    return {
+      ok: false,
+      detalle: [
+        `parqueadero: la zona de ${DOMINIO_DEL_PARQUEADERO} no está activa en infrastructure/dominios.json; no se despliega a workers.dev`,
+      ],
+    };
+  }
+  const armar = spawnSync('node', ['scripts/armar-parqueadero.ts', '--produccion'], {
+    cwd: RAIZ,
+    encoding: 'utf8',
+  });
+  if (armar.status !== 0) {
+    return { ok: false, detalle: ['parqueadero: no se armó para producción:', armar.stderr] };
+  }
+  const deploy = wrangler('@ed1/parqueadero-sitio', 'deploy', cred);
+  if (!deploy.ok) {
+    return {
+      ok: false,
+      detalle: ['parqueadero: wrangler deploy falló:', ...causaDeWrangler(deploy.salida)],
+    };
+  }
+  const url = `https://${DOMINIO_DEL_PARQUEADERO}`;
+  const fallas = await conReintentos(() => humoParqueadero(fetch, url, 'produccion'));
+  return fallas.length > 0
+    ? { ok: false, detalle: fallas }
+    : { ok: true, detalle: [`parqueadero (producción): ${url}/caja/`] };
 }
 
 async function desplegarApiCelda(
@@ -708,6 +742,10 @@ for (const celda of plan.aDesplegar) {
       ...(celda.id === configCeldas.core.celda && configCeldas.core.zona
         ? [configCeldas.core.zona]
         : []),
+      // HU-Q5.2: el token necesita la zona del parqueadero para su dominio propio.
+      ...(alojaCore && destino === 'produccion' && productos.has('parqueadero')
+        ? [DOMINIO_APP]
+        : []),
     ],
     true, // toda celda crea y migra las bases de sus shards (HU-E5.1)
   );
@@ -729,7 +767,7 @@ for (const celda of plan.aDesplegar) {
       detalle.push(...paso.detalle);
     }
     if (paso.ok && destino === 'staging') {
-      paso = await desplegarParqueadero(cred);
+      paso = await desplegarParqueadero(cred, destino as Destino);
       detalle.push(...paso.detalle);
     }
   } else if (alojaCore) {
@@ -745,15 +783,9 @@ for (const celda of plan.aDesplegar) {
   } else if (!productos.has('agro')) {
     detalle.push('agro: sin publicar en este despliegue (su versión no cambió)');
   }
-  // HU-Q0.3 y HU-Q5.2 CA3: el parqueadero publicado va a su dominio, nunca a workers.dev. Mientras
-  // su zona no exista, la producción del parqueadero falla y lo dice.
+  // HU-Q0.3 y HU-Q5.2: el parqueadero publicado va a su dominio, nunca a workers.dev.
   if (paso.ok && alojaCore && destino === 'produccion' && productos.has('parqueadero')) {
-    paso = {
-      ok: false,
-      detalle: [
-        'parqueadero: su versión se publicó, pero producción espera su dominio (HU-Q5.2); no se despliega a workers.dev',
-      ],
-    };
+    paso = await desplegarParqueadero(cred, destino as Destino);
     detalle.push(...paso.detalle);
   }
   resultados.push({ celda: celda.id, estado: paso.ok ? 'desplegada' : 'fallo', detalle });

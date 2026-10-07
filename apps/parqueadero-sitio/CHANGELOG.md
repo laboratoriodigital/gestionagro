@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El dominio de producción: `parqueadero.laboratorio-digital.app`, reservado para que ninguna tienda tome el nombre. En producción, la caja y los recibos viven solo en ese dominio, nunca en `workers.dev`; el navegador siempre entra con HTTPS y los buscadores no indexan la caja ni los recibos. Si la zona no está activa, el despliegue falla y lo dice; su prueba de humo abre `/caja/` y `/r/` en el dominio público (HU-Q5.2).
 - El inicio de la caja lista los vehículos que están adentro, con su hora de entrada y el tiempo corriendo, y los busca por placa sin internet. «Escanear recibo» lee con la cámara el QR del papel o el del teléfono del conductor y abre su salida; un QR de otro parqueadero, de una estadía que ya salió o que no es un recibo dice qué es (HU-Q3.4).
 - La salida y el cobro: el total en grande con su detalle, tiquete perdido, y efectivo con lo recibido y el cambio, QR o transferencia (con la imagen del QR del parqueadero que se carga en Ajustes), datáfono o cortesía con su motivo. Se cobra lo que el cajero vio; si pasan más de 10 minutos, la caja vuelve a calcular. El recibo de salida usa la tarifa con que entró el vehículo (HU-Q3.5).
 - Cada entrega del recibo queda anotada, sin teléfono ni texto: «No salió» reimprime el original sin marca de copia, «Reimprimir» sale con «COPIA n» y el QR en pantalla cuenta solo si el cajero confirma que el conductor lo escaneó (HU-Q3.6).

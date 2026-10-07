@@ -21,17 +21,32 @@ export const CSP_DEL_PARQUEADERO = [
   "frame-ancestors 'none'",
 ].join('; ');
 
-/** `staging`: nada se indexa. Producción (HU-Q5.2) suma HSTS cuando tenga su dominio. */
-export function textoDeCabecerasDelParqueadero(entorno: 'staging' | 'produccion'): string {
-  const cabeceras: [string, string][] = [
+export type EntornoDelParqueadero = 'staging' | 'produccion';
+
+/**
+ * `staging`: nada se indexa. Producción (HU-Q5.2) suma HSTS, y la caja y los recibos tampoco se
+ * indexan: son una herramienta y copias de recibos, no páginas para buscadores.
+ */
+export function textoDeCabecerasDelParqueadero(entorno: EntornoDelParqueadero): string {
+  const linea = ([k, v]: [string, string]) => `  ${k}: ${v}`;
+  const todas: [string, string][] = [
     ['Content-Security-Policy', CSP_DEL_PARQUEADERO],
     ['X-Content-Type-Options', 'nosniff'],
     ['Referrer-Policy', 'no-referrer'],
-    ...(entorno === 'staging'
-      ? ([['X-Robots-Tag', 'noindex']] as [string, string][])
-      : ([['Strict-Transport-Security', 'max-age=31536000']] as [string, string][])),
+    entorno === 'staging'
+      ? ['X-Robots-Tag', 'noindex']
+      : ['Strict-Transport-Security', 'max-age=31536000'],
   ];
-  return `# Generado por scripts/armar-parqueadero.ts. No editar a mano.\n/*\n${cabeceras
-    .map(([k, v]) => `  ${k}: ${v}`)
-    .join('\n')}\n`;
+  const bloques = [`/*\n${todas.map(linea).join('\n')}`];
+  if (entorno === 'produccion') {
+    for (const ruta of ['/caja/*', '/r/*'])
+      bloques.push(`${ruta}\n${linea(['X-Robots-Tag', 'noindex'])}`);
+  }
+  return `# Generado por scripts/armar-parqueadero.ts. No editar a mano.\n${bloques.join('\n')}\n`;
 }
+
+/** El robots.txt: staging no deja pasar nada; producción, todo menos la caja y los recibos. */
+export const textoDeRobotsDelParqueadero = (entorno: EntornoDelParqueadero): string =>
+  entorno === 'staging'
+    ? 'User-agent: *\nDisallow: /\n'
+    : 'User-agent: *\nDisallow: /caja/\nDisallow: /r/\n';

@@ -73,6 +73,19 @@ export function reservadosDeLaTienda(raiz = RAIZ): string[] {
   );
 }
 
+/**
+ * La zona que sirve un hostname está declarada activa en `dominios.json`. Un despliegue a un
+ * dominio cuya zona no está activa falla en vez de caer a `workers.dev` (HU-Q5.2 CA3, P1).
+ */
+export function zonaActivaDe(hostname: string, raiz = RAIZ): boolean {
+  const { dominios } = JSON.parse(
+    readFileSync(join(raiz, 'infrastructure', 'dominios.json'), 'utf8'),
+  ) as Dominios;
+  return dominios.some(
+    (d) => d.zona_activa && (hostname === d.dominio || hostname.endsWith(`.${d.dominio}`)),
+  );
+}
+
 /** Primer nivel de cada hostname de `laboratorio-digital.app` en un texto. */
 export function nombresApp(texto: string): string[] {
   const patron = /([a-z0-9-]+)\.laboratorio-digital\.app/g;

@@ -557,7 +557,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q5.1.1 `[infra]` Worker de staging · WI-Q5.1.2 `[ci]` despliegue · WI-Q5.1.3 `[prueba]` humo.
 
 #### HU-Q5.2 · `parqueadero.laboratorio-digital.app` declarado, reservado y en producción
-- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q3 · **Depende de:** D-Q4, HU-Q5.1 · **Estado:** Bloqueada: espera que el dueño active la zona `laboratorio-digital.app` (D-Q4, 23 oct)
+- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q3 · **Depende de:** D-Q4, HU-Q5.1 · **Estado:** En revisión (rama `feat/q5-2-dominio`): la zona activa (el dueño la puso en Cloudflare el 7 oct), el nombre reservado, el Worker de producción solo en el dominio y la prueba de humo de producción con `/r/` y HSTS. El primer despliegue a producción sale con la `0.1.0` de la demostración
 - Como conductor, quiero que el enlace de mi recibo siga funcionando dentro de años; como dueño, que ninguna tienda tome el nombre del parqueadero.
 - **Respaldo:** ADR-40 y ADR-27; PARQUEADERO §2.3 (punto 4) y §20.2; `infrastructure/dominios.json`.
 - **CA1.** `dominios.json` declara `parqueadero.laboratorio-digital.app` y agrega `parqueadero` a `reservados_app.proyecto`. La zona está activa y el Worker de producción responde en el host con HTTPS.

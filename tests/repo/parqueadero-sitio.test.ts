@@ -1,8 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { origenDelRecibo } from '../../apps/parqueadero-sitio/src/caja/entorno.ts';
 import plantilla from '../../content/parqueadero/privacidad/aviso.json' with { type: 'json' };
+import { ORIGEN_DEL_RECIBO } from '../../packages/parqueadero-recibos/src/enlace.ts';
 import {
+  DOMINIO_DEL_PARQUEADERO,
   RUTA_WRANGLER_PARQUEADERO,
   textoWranglerDelParqueadero,
   WORKER_PARQUEADERO,
@@ -11,7 +14,9 @@ import {
 import {
   CSP_DEL_PARQUEADERO,
   textoDeCabecerasDelParqueadero,
+  textoDeRobotsDelParqueadero,
 } from '../../scripts/lib/cabeceras-parqueadero.ts';
+import { zonaActivaDe } from '../../scripts/lib/cuentas-y-dominios.ts';
 import { humoParqueadero } from '../../scripts/lib/humo-parqueadero.ts';
 import { listarArchivos, RAIZ } from '../../scripts/lib/repo.ts';
 
@@ -22,8 +27,35 @@ describe('el sitio del parqueadero', () => {
     const config = wranglerDelParqueadero();
     expect(config['main']).toBeUndefined();
     expect(config['env']).toEqual({
-      staging: { name: `${WORKER_PARQUEADERO}-staging`, workers_dev: true },
+      staging: { name: `${WORKER_PARQUEADERO}-staging`, workers_dev: true, routes: [] },
     });
+  });
+
+  it('producción vive solo en su dominio, con la zona activa y el nombre reservado (HU-Q5.2 CA1)', () => {
+    const config = wranglerDelParqueadero();
+    expect(config['workers_dev']).toBe(false);
+    expect(config['routes']).toEqual([{ pattern: DOMINIO_DEL_PARQUEADERO, custom_domain: true }]);
+    expect(zonaActivaDe(DOMINIO_DEL_PARQUEADERO)).toBe(true);
+    const dominios = JSON.parse(
+      readFileSync(join(RAIZ, 'infrastructure', 'dominios.json'), 'utf8'),
+    ) as { reservados_app: { proyecto: string[] } };
+    expect(dominios.reservados_app.proyecto).toContain(DOMINIO_DEL_PARQUEADERO.split('.')[0]);
+  });
+
+  it('ningún recibo de producción enlaza a workers.dev (HU-Q5.2 CA3 ❌)', () => {
+    const enProduccion = origenDelRecibo({
+      hostname: DOMINIO_DEL_PARQUEADERO,
+      origin: `https://${DOMINIO_DEL_PARQUEADERO}`,
+    });
+    expect(enProduccion).toBe(ORIGEN_DEL_RECIBO);
+    expect(new URL(ORIGEN_DEL_RECIBO).host).toBe(DOMINIO_DEL_PARQUEADERO);
+    expect(enProduccion).not.toContain('workers.dev');
+  });
+
+  it('una zona que no está activa no se puede desplegar (HU-Q5.2 CA3 ❌)', () => {
+    expect(zonaActivaDe('parqueadero.no-declarado.app')).toBe(false);
+    const fuente = readFileSync(join(RAIZ, 'scripts', 'desplegar.ts'), 'utf8');
+    expect(fuente).toMatch(/if \(!zonaActivaDe\(DOMINIO_DEL_PARQUEADERO\)\)/);
   });
 
   it('la CSP solo deja código, estilos y conexiones propios, sin unsafe-inline', () => {
@@ -35,10 +67,15 @@ describe('el sitio del parqueadero', () => {
     expect(CSP_DEL_PARQUEADERO).toMatch(/connect-src 'self';/);
   });
 
-  it('staging no se indexa; producción lleva HSTS', () => {
+  it('staging no se indexa; producción lleva HSTS y no indexa la caja ni los recibos', () => {
     expect(textoDeCabecerasDelParqueadero('staging')).toContain('X-Robots-Tag: noindex');
     expect(textoDeCabecerasDelParqueadero('staging')).not.toContain('Strict-Transport-Security');
-    expect(textoDeCabecerasDelParqueadero('produccion')).toContain('Strict-Transport-Security');
+    const produccion = textoDeCabecerasDelParqueadero('produccion');
+    expect(produccion).toContain('Strict-Transport-Security');
+    expect(produccion).toContain('/caja/*\n  X-Robots-Tag: noindex');
+    expect(produccion).toContain('/r/*\n  X-Robots-Tag: noindex');
+    expect(textoDeRobotsDelParqueadero('staging')).toBe('User-agent: *\nDisallow: /\n');
+    expect(textoDeRobotsDelParqueadero('produccion')).toContain('Disallow: /r/');
   });
 
   it('el build arma la caja y se detiene si le falta una pieza (P16)', () => {
@@ -75,9 +112,11 @@ describe('el sitio del parqueadero', () => {
     expect(recibo).toMatch(/href=\{enlaceConNumero\(/);
   });
 
-  describe('la prueba de humo de staging (HU-Q5.1 CA3)', () => {
+  describe('la prueba de humo (HU-Q5.1 CA3, HU-Q5.2 CA2)', () => {
     const URL_STAGING = 'https://ed1-parqueadero-staging.ejemplo.workers.dev';
-    function sitio(cambios: { csp?: string | null; sw?: number } = {}): typeof fetch {
+    function sitio(
+      cambios: { csp?: string | null; sw?: number; r?: number; hsts?: boolean } = {},
+    ): typeof fetch {
       return (async (entrada: string | URL | Request) => {
         const ruta = new URL(String(entrada)).pathname;
         if (ruta === '/caja/sw.js') {
@@ -86,9 +125,13 @@ describe('el sitio del parqueadero', () => {
             headers: { 'content-type': 'application/javascript' },
           });
         }
+        if (ruta === '/r/') {
+          return new Response('<title>Recibo de parqueadero</title>', { status: cambios.r ?? 200 });
+        }
         const cabeceras: Record<string, string> = { 'x-robots-tag': 'noindex' };
         const csp = cambios.csp === undefined ? CSP_DEL_PARQUEADERO : cambios.csp;
         if (csp !== null) cabeceras['content-security-policy'] = csp;
+        if (cambios.hsts) cabeceras['strict-transport-security'] = 'max-age=31536000';
         return new Response('<title>Caja del parqueadero</title>', { headers: cabeceras });
       }) as typeof fetch;
     }
@@ -104,6 +147,17 @@ describe('el sitio del parqueadero', () => {
       ).toHaveLength(1);
       expect(await humoParqueadero(sitio({ sw: 404 }), URL_STAGING)).toEqual([
         expect.stringContaining('sin service worker'),
+      ]);
+    });
+
+    it('falla sin la página del recibo, y en producción sin HSTS', async () => {
+      expect(await humoParqueadero(sitio({ r: 404 }), URL_STAGING)).toEqual([
+        expect.stringContaining('sin la página del recibo'),
+      ]);
+      const url = `https://${DOMINIO_DEL_PARQUEADERO}`;
+      expect(await humoParqueadero(sitio({ hsts: true }), url, 'produccion')).toEqual([]);
+      expect(await humoParqueadero(sitio(), url, 'produccion')).toEqual([
+        expect.stringContaining('no trae HSTS'),
       ]);
     });
   });
