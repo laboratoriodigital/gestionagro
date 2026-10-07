@@ -9,6 +9,8 @@
  * - Mientras la caja siga abierta, reconecta con `gatt.connect()` antes de imprimir, sin selector.
  * - Si la conexión se cae apenas abre (Android, después de apagar y prender la impresora), lo
  *   intenta hasta 4 veces, con 1, 2 y 3 s de pausa (bitácora parqueadero 17).
+ * - Antes de cada intento suelta la conexión vieja, y corta el que no responde en 6 s: un
+ *   `connect()` de Android puede quedarse esperando sin fin (bitácora parqueadero 18).
  * - Nunca manda bytes para mantener despierta la impresora: podrían imprimir.
  */
 import {
@@ -47,6 +49,8 @@ export interface Trozo {
 
 /** Las pausas entre un intento de conexión y el siguiente: 4 intentos en total. */
 export const PAUSAS_ENTRE_INTENTOS: readonly number[] = [1_000, 2_000, 3_000];
+/** Cuánto se espera un `connect()`. Con los 4 intentos y sus pausas, a lo sumo 30 s. */
+export const MS_POR_INTENTO = 6_000;
 
 export const TROZO_NORMAL: Trozo = { bytes: 180, ms: 30 };
 export const TROZO_PEQUENO: Trozo = { bytes: 100, ms: 50 };
@@ -70,6 +74,8 @@ export interface ServicioBle {
 export interface ServidorGatt {
   readonly connected: boolean;
   connect(): Promise<ServidorGatt>;
+  /** Suelta la conexión y corta un `connect()` pendiente. No hace nada si no hay conexión. */
+  disconnect?(): void;
   getPrimaryService(servicio: string | number): Promise<ServicioBle>;
   /** Los servicios que el permiso deja ver; para el diagnóstico. */
   getPrimaryServices?(): Promise<ServicioBle[]>;
@@ -99,6 +105,8 @@ export interface OpcionesBluetooth {
   readonly alCambiarEstado?: (estado: EstadoImpresora) => void;
   readonly esperar?: (ms: number) => Promise<void>;
   readonly reloj?: () => number;
+  /** Para las pruebas; en la caja, `MS_POR_INTENTO`. */
+  readonly msPorIntento?: number;
 }
 
 export interface ImpresoraBluetooth extends Impresora {
@@ -116,6 +124,18 @@ const nombreDeServicio = (s: string | number): string =>
 
 function detalleDe(error: unknown): string {
   return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+}
+
+/** La promesa, o un `TimeoutError` si no termina en `ms`. */
+function conPlazo<T>(promesa: Promise<T>, ms: number): Promise<T> {
+  let reloj: ReturnType<typeof setTimeout> | undefined;
+  const plazo = new Promise<never>((_, rechazar) => {
+    reloj = setTimeout(
+      () => rechazar(new DOMException(`Sin respuesta en ${ms / 1000} s`, 'TimeoutError')),
+      ms,
+    );
+  });
+  return Promise.race([promesa, plazo]).finally(() => clearTimeout(reloj));
 }
 
 /** Los errores del navegador en motivos (§7.4 paso 5). */
@@ -172,6 +192,7 @@ interface Conexion {
 export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraBluetooth {
   const esperar = opciones.esperar ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
   const reloj = opciones.reloj ?? (() => performance.now());
+  const msPorIntento = opciones.msPorIntento ?? MS_POR_INTENTO;
   let trozo = opciones.trozo ?? TROZO_NORMAL;
   let estado: EstadoImpresora = 'sin_vincular';
   let conexion: Conexion | undefined;
@@ -234,13 +255,20 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
     soloEste?: string | number,
   ): Promise<Awaited<ReturnType<typeof buscar>>> {
     vistos.length = 0;
+    cambiar('conectando');
     for (let intento = 0; ; intento++) {
+      // Android puede quedarse con una conexión que ya no sirve: se suelta antes de abrir otra, y
+      // eso también corta el `connect()` que no respondió (bitácora parqueadero 18).
+      if (!gattDelEquipo.connected) gattDelEquipo.disconnect?.();
       let gatt: ServidorGatt | undefined;
       try {
-        gatt = await gattDelEquipo.connect();
+        gatt = await conPlazo(gattDelEquipo.connect(), msPorIntento);
       } catch (error) {
         vistos.push(`Intento ${intento + 1}: no conectó (${detalleDe(error)})`);
-        if (intento >= PAUSAS_ENTRE_INTENTOS.length) throw error;
+        if (intento >= PAUSAS_ENTRE_INTENTOS.length) {
+          gattDelEquipo.disconnect?.();
+          throw error;
+        }
       }
       if (gatt) {
         const hallado = await buscar(gatt, soloEste);
@@ -253,19 +281,31 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
     }
   }
 
-  async function reconectar(): Promise<boolean> {
-    if (!conexion?.dispositivo.gatt) return false;
+  async function intentarReconectar(actual: Conexion, gatt: ServidorGatt): Promise<boolean> {
     try {
-      const hallado = await conectarYBuscar(conexion.dispositivo.gatt, conexion.servicio);
-      if (!hallado) return false;
-      conexion.caracteristica = hallado.caracteristica;
-      cambiar('conectada');
-      return true;
+      const hallado = await conectarYBuscar(gatt, actual.servicio);
+      if (hallado) {
+        actual.caracteristica = hallado.caracteristica;
+        cambiar('conectada');
+        return true;
+      }
+      ultimoError = 'La conexión se cayó en todos los intentos';
     } catch (error) {
       ultimoError = detalleDe(error);
-      cambiar('desconectada');
-      return false;
     }
+    cambiar('desconectada');
+    return false;
+  }
+
+  /** Un toque en «Reconectar» mientras imprime no abre una segunda conexión: espera la misma. */
+  let reconectando: Promise<boolean> | undefined;
+  function reconectar(): Promise<boolean> {
+    const gatt = conexion?.dispositivo.gatt;
+    if (!conexion || !gatt) return Promise.resolve(false);
+    reconectando ??= intentarReconectar(conexion, gatt).finally(() => {
+      reconectando = undefined;
+    });
+    return reconectando;
   }
 
   return {
@@ -300,9 +340,12 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
         hallado = await conectarYBuscar(dispositivo.gatt);
       } catch (error) {
         ultimoError = detalleDe(error);
+        cambiar('sin_vincular');
         throw new FalloDeImpresora(motivoDelError(error, false), ultimoError);
       }
       if (!hallado) {
+        // Nunca queda «conectando»: la cabecera esperaría para siempre.
+        cambiar('sin_vincular');
         nombre = dispositivo.name ?? 'Sin nombre';
         const visibles = await dispositivo.gatt
           .getPrimaryServices?.()
@@ -317,7 +360,10 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
         throw new FalloDeImpresora('sin_caracteristica', ultimoError);
       }
       conexion = { dispositivo, ...hallado };
-      dispositivo.addEventListener('gattserverdisconnected', () => cambiar('desconectada'));
+      // Mientras reintenta, cada caída es parte del intento: la cabecera sigue en «conectando».
+      dispositivo.addEventListener('gattserverdisconnected', () => {
+        if (estado !== 'conectando') cambiar('desconectada');
+      });
       cambiar('conectada');
       return {
         camino: 'bluetooth',
@@ -340,7 +386,9 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
       }
       if (!conexion)
         return { ok: false, motivo: 'sin_permiso', detalle: 'Falta conectar la impresora' };
-      if (!conexion.dispositivo.gatt?.connected && !(await reconectar())) {
+      // Con una reconexión en curso, la característica vieja ya no sirve: se espera la nueva.
+      const lista = conexion.dispositivo.gatt?.connected && !reconectando;
+      if (!lista && !(await reconectar())) {
         return { ok: false, motivo: 'fuera_de_alcance', detalle: ultimoError || 'No reconectó' };
       }
       const { caracteristica } = conexion;

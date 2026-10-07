@@ -2,11 +2,11 @@
  * La caja (HU-Q3.1): la cabecera con sus cuatro señales, la impresora y su asistente (HU-Q2.6), los
  * ajustes (HU-Q3.2) y la entrada con su recibo (HU-Q3.3). Las salidas llegan en Q3.
  */
-import { FalloDeImpresora, TEXTO_DEL_MOTIVO } from '@ed1/impresion';
 import { useEffect, useState } from 'preact/hooks';
 import { Asistente } from './Asistente.tsx';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { Cabecera } from './Cabecera.tsx';
+import { BotonDiagnostico, ConexionImpresora, useEstadoImpresora } from './conexion.tsx';
 import { type BaseDeLaCaja, purgarContactos, type RegistroImpresora } from './datos.ts';
 import { Estadias } from './Estadias.tsx';
 import { useConsulta } from './ganchos.ts';
@@ -35,7 +35,7 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
     undefined,
   );
   const pendientes = useConsulta(() => db.entregas_pendientes.count(), 0);
-  const [estado, setEstado] = useState(control.estado());
+  const estado = useEstadoImpresora(control);
   const [persistente, setPersistente] = useState<boolean | null>(null);
   const [vista, setVista] = useState<Vista>({ es: 'inicio' });
   const [vistas, setVistas] = useState<typeof import('./vistas.tsx') | null>(null);
@@ -51,10 +51,6 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
       setVista(v);
     });
   };
-  const [aviso, setAviso] = useState('');
-  const [copiado, setCopiado] = useState(false);
-
-  useEffect(() => control.escuchar(setEstado), [control]);
 
   // HU-Q4.1 CA3: los números vencidos se borran al abrir la caja y cada 10 minutos.
   useEffect(() => {
@@ -73,20 +69,6 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
     }
     void storage.persist().then(setPersistente, () => setPersistente(false));
   }, []);
-
-  async function conectar() {
-    setAviso('');
-    try {
-      await control.conectar(false);
-    } catch (e) {
-      setAviso(e instanceof FalloDeImpresora ? TEXTO_DEL_MOTIVO[e.motivo] : 'No se pudo conectar');
-    }
-  }
-
-  async function copiarDiagnostico() {
-    await navigator.clipboard?.writeText(control.diagnostico());
-    setCopiado(true);
-  }
 
   return (
     <>
@@ -134,20 +116,7 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
             ) : (
               <section class="tarjeta" data-prueba="caja-lista">
                 <h1>La caja está lista</h1>
-                {estado === 'sin_vincular' && (
-                  <button
-                    type="button"
-                    class="boton boton-principal"
-                    onClick={() => void conectar()}
-                  >
-                    Conectar impresora
-                  </button>
-                )}
-                {aviso && (
-                  <p class="error" role="alert">
-                    {aviso}
-                  </p>
-                )}
+                <ConexionImpresora control={control} />
               </section>
             )}
             <Estadias db={db} reloj={reloj} ir={ir} />
@@ -163,13 +132,7 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
                 <button type="button" class="boton" onClick={() => ir({ es: 'asistente' })}>
                   Probar la impresora otra vez
                 </button>
-                <button
-                  type="button"
-                  class="boton boton-secundario"
-                  onClick={() => void copiarDiagnostico()}
-                >
-                  {copiado ? 'Diagnóstico copiado' : 'Copiar diagnóstico para soporte'}
-                </button>
+                <BotonDiagnostico control={control} />
               </section>
             )}
           </>

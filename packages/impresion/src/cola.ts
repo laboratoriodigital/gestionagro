@@ -8,7 +8,10 @@ import type { Impresora, Resultado, Trabajo } from './contrato.ts';
 export interface OpcionesDeCola {
   /** Se llama con cada trabajo que no salió. Si lanza, la cola sigue: el error no tapa la impresión. */
   readonly alFallar?: (trabajo: Trabajo, resultado: Extract<Resultado, { ok: false }>) => unknown;
-  /** Cuánto esperar a la impresora antes de darlo por perdido. */
+  /**
+   * Cuánto esperar a la impresora antes de darlo por perdido. Más que lo que tarda el adaptador en
+   * rendirse al reconectar (unos 30 s): si no, un recibo dado por perdido podría salir después.
+   */
   readonly msMaximo?: number;
 }
 
@@ -24,7 +27,7 @@ function detalleDe(error: unknown): string {
 }
 
 export function crearCola(impresora: Impresora, opciones: OpcionesDeCola = {}): Cola {
-  const msMaximo = opciones.msMaximo ?? 30_000;
+  const msMaximo = opciones.msMaximo ?? 45_000;
   let ultimo: Promise<unknown> = Promise.resolve();
   let enEspera = 0;
 
