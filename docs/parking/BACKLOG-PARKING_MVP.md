@@ -285,7 +285,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q1.5.1 `[código]` codificar y decodificar · WI-Q1.5.2 `[prueba]` tamaños de QR · WI-Q1.5.3 `[prueba]` alterados y versiones.
 
 #### HU-Q1.6 · `@ed1/whatsapp`: números, texto y enlaces `wa.me` en un solo lugar
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q1 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q1 · **Depende de:** — · **Estado:** En sprint (rama `feat/q1-sprint`, pruebas en verde)
 - Como equipo, quiero un solo lugar para armar enlaces de WhatsApp, para que las reglas que las bitácoras pagaron caro no se repitan en cada producto.
 - **Respaldo:** ADR-39 (los enlaces van a `packages/whatsapp`); PARQUEADERO §6.4, §8.1, §8.2 y §13.1; bitácora ecommerce, menores (el emoji al principio); bitácora parqueadero, «Afirmaciones falsas» 3.
 - **CA1.** `normalizarNumero` da `573001234567` para `300 123 4567`, `+57 300 123 4567` y `573001234567`, y acepta otros países con su indicativo. `enlaceConNumero(numero, texto)` arma `https://wa.me/<numero>?text=…`, y `enlaceParaCompartir(texto)` arma `https://wa.me/?text=…`, la forma que ya usa el agro en sus tres copias.

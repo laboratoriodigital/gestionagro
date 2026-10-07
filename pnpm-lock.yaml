@@ -317,6 +317,8 @@ importers:
         specifier: 2.9.0
         version: 2.9.0
 
+  packages/whatsapp: {}
+
 packages:
 
   '@apideck/better-ajv-errors@0.3.7':
