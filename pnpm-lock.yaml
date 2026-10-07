@@ -338,6 +338,24 @@ importers:
 
   packages/kill-switch: {}
 
+  packages/parqueadero-schema:
+    dependencies:
+      '@ed1/ids':
+        specifier: workspace:*
+        version: link:../ids
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+
+  packages/parqueadero-tarifas:
+    dependencies:
+      '@ed1/dinero':
+        specifier: workspace:*
+        version: link:../dinero
+      '@ed1/parqueadero-schema':
+        specifier: workspace:*
+        version: link:../parqueadero-schema
+
   packages/productos: {}
 
   packages/sync:
