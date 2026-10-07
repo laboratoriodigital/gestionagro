@@ -299,9 +299,17 @@ legend {
 
 .filas {
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: var(--espacio-1) var(--espacio-3);
   margin: 0;
+}
+
+/*
+ * Cada par etiqueta-valor va en un <div> (HTML válido en <dl>): sin esto, la cuadrícula reparte
+ * pares y no etiquetas y valores, y una dirección larga se come la otra columna (bitácora 23).
+ */
+.filas > div {
+  display: contents;
 }
 
 .filas dt {

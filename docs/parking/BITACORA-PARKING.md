@@ -1382,3 +1382,21 @@ La regla: **una conexión que la caja abre, la caja la cierra; lo que queda abie
 La regla: **lo que termina en commit o push va en una sola cadena con `&&`; `set -e` y las líneas sueltas no detienen nada aquí.** Corrige la de la entrada 20.
 
 *Ficha:* parqueadero · *(mío)* · 🟡 Medio · P14 · parqueadero-0.0.0 · 2026-10-07
+
+**23 · En 360 px, el recibo salía apretado en una columna y la pantalla se salía 13 px por la derecha.**
+
+*Qué pasó.* El 7 oct 2026, al sacar las capturas de los runbooks (HU-Q6.2) a 360 px. Estaba así desde Q2: la captura del recibo de la entrada 18 ya lo mostraba, y nadie lo miró.
+
+*Síntoma literal.* «Tarifa: $230 por minuto» partida palabra por palabra en una columna de unos 60 px, el NIT cortado («800123»), y `document.documentElement.scrollWidth` = 373 con la ventana en 360.
+
+*Causa raíz.* `.filas` es una cuadrícula de dos columnas, `max-content 1fr`, pensada para «etiqueta | valor». Pero `Recibo.tsx` y `Turno.tsx` envuelven cada par en un `<div>` (válido dentro de `<dl>`): la cuadrícula repartía **pares**, uno por columna. La primera columna tomaba el ancho de la dirección entera, la segunda quedaba con lo que sobraba, y la tarjeta crecía más que la pantalla.
+
+*Cómo se reprodujo.* `sinDesborde` en tres e2e (el recibo de la entrada, el de «salvo recibo digital» y el cierre del turno). Control negativo: sin el arreglo, dos se ven en rojo con 373 ≤ 360.
+
+*Arreglo.* `.filas > div { display: contents }`: las etiquetas y los valores son las celdas, y la segunda columna es `minmax(0, 1fr)`.
+
+**Lo prueban** las tres e2e con `sinDesborde`.
+
+La regla: **la bitácora 15 decía «todo formulario nuevo se llena en una e2e a 360 px»; vale para toda pantalla: cada e2e que abre una pantalla nueva mira también que nada se salga.**
+
+*Ficha:* parqueadero · *(mío)* · 🟡 Medio · P20 · parqueadero-0.0.0 · 2026-10-07

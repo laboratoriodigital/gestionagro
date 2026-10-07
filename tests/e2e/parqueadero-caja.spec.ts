@@ -208,6 +208,15 @@ const bytesImpresos = (page: Page) =>
     .evaluate(() => (window as unknown as { __escrito: number[] }).__escrito)
     .then((b) => Buffer.from(b).toString('latin1'));
 
+/** Nada se sale de los 360 px: lo cortado no se lee (bitácora parqueadero 15 y 23). */
+async function sinDesborde(page: Page) {
+  const ancho = await page.evaluate(() => ({
+    contenido: document.documentElement.scrollWidth,
+    ventana: document.documentElement.clientWidth,
+  }));
+  expect(ancho.contenido).toBeLessThanOrEqual(ancho.ventana);
+}
+
 test.use({ testIdAttribute: 'data-prueba' });
 
 test.describe('la caja del parqueadero', () => {
@@ -359,6 +368,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Registrar' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
     await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    await sinDesborde(page);
     const recibo = (await bytesImpresos(page)).slice(antes);
     expect(recibo).toContain('A-000001');
     expect(recibo).toContain('ABC123');
@@ -453,6 +463,7 @@ test.describe('la caja del parqueadero', () => {
       await cierre.getByLabel(d, { exact: true }).fill('1');
     }
     await expect(page.getByTestId('contado')).toHaveText('$137.000');
+    await sinDesborde(page);
     await expect(page.getByTestId('diferencia')).toHaveText('Diferencia: -$400');
     await expect(
       cierre.getByRole('button', { name: 'Falta el motivo de la diferencia' }),
@@ -762,6 +773,7 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('pregunta-papel')).toContainText(
       '¿Recibo por WhatsApp o en papel?',
     );
+    await sinDesborde(page);
     // No sale solo: primero se ofrece lo digital.
     expect((await bytesImpresos(page)).length).toBe(antes);
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
@@ -878,5 +890,67 @@ test.describe('en iPhone', () => {
     await expect(
       page.getByRole('button', { name: 'Falta un navegador que pueda imprimir' }),
     ).toBeDisabled();
+  });
+});
+
+/**
+ * Las capturas de los runbooks del parqueadero (HU-Q6.2 CA2), a 360 px. Solo corre con
+ * `CAPTURAS=1` y escribe en `docs/runbooks/img/`: se vuelven a sacar cuando cambia la pantalla.
+ */
+test.describe('capturas de los runbooks', () => {
+  test.skip(!process.env['CAPTURAS'], 'Solo con CAPTURAS=1');
+  test.use({ testIdAttribute: 'data-prueba' });
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(instalarImpresoraFalsa);
+    await page.addInitScript(instalarSerialFalso);
+  });
+
+  test('las pantallas que nombran los runbooks', async ({ page }) => {
+    const captura = (nombre: string) =>
+      page
+        .locator('main')
+        // Escala CSS: a la densidad del teléfono pesan tres veces más y no se leen mejor.
+        .screenshot({ path: `docs/runbooks/img/parqueadero-${nombre}.png`, scale: 'css' });
+    await page.goto(CAJA);
+    // En la captura, la cabecera fija taparía parte de la pantalla.
+    // Con el estilo del elemento: la CSP de la caja no deja inyectar una hoja en línea.
+    await page.locator('.cabecera').evaluate((el: HTMLElement) => {
+      el.style.position = 'static';
+    });
+    await page.getByRole('button', { name: 'Configurar impresora' }).click();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await captura('conectar-impresora');
+    await page.getByRole('button', { name: 'Conectar impresora' }).click();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await page.getByRole('button', { name: 'Imprimir página de prueba' }).click();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await captura('pagina-de-prueba');
+    await page.getByRole('button', { name: 'Línea 1', exact: true }).click();
+    await page.getByRole('button', { name: 'Los dos' }).click();
+    await page.getByRole('button', { name: 'Sí', exact: true }).click();
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.evaluate(() => (window as unknown as { __apagar: () => void }).__apagar());
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'ABC123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Imprimir', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Reconectar impresora' })).toBeVisible({
+      timeout: 15_000,
+    });
+    await captura('recibo-no-salio');
+    await page.evaluate(() => (window as unknown as { __prender: () => void }).__prender());
+    await page.getByRole('button', { name: 'Reconectar impresora' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Cerrar turno' }).click();
+    await page.getByTestId('cerrar-turno').getByLabel('$100.000', { exact: true }).fill('1');
+    await captura('cerrar-turno');
+    await page.getByRole('button', { name: 'Volver al inicio' }).last().click();
+    await page.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    await captura('respaldo');
   });
 });
