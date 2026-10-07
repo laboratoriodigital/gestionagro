@@ -567,7 +567,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q5.2.1 `[dueño]` activar la zona · WI-Q5.2.2 `[infra]` `dominios.json` · WI-Q5.2.3 `[ci]` producción · WI-Q5.2.4 `[prueba]` humo y host.
 
 #### HU-Q5.3 · Recibos por canal, sin datos personales
-- **Capa:** medición · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q5 · **Depende de:** HU-Q3.6 · **Estado:** Refinada
+- **Capa:** medición · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q5 · **Depende de:** HU-Q3.6 · **Estado:** En revisión (rama `feat/q5-3-eventos`): la lista cerrada y el lote v2 en `@ed1/eventos` (`parqueadero.ts`), los conteos de la caja en `medicion.ts` y el Worker de `/_m` con Analytics Engine (`apps/parqueadero-sitio/src/worker.ts`); la aceptación sin red comprueba el lote al volver la red. El tablero de estos conteos queda para cuando haya piloto
 - Como dueño, quiero saber cuántos recibos salen por cada canal y cuántas impresiones fallan, para medir la meta de menos papel y la de impresión confiable.
 - **Respaldo:** PARQUEADERO §14.4 y §18.2; `@ed1/eventos`.
 - **CA1.** `@ed1/eventos` expande su lista cerrada (P10) con `recibo.papel`, `recibo.whatsapp`, `recibo.pantalla`, `recibo.copia`, `impresion.fallida` (con el adaptador y la causa), `respaldo.hecho` y `turno.cerrado`.

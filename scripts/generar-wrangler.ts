@@ -183,9 +183,10 @@ export function wranglerDeEnsayo(): Record<string, unknown> {
 }
 
 /**
- * El sitio y la caja del Parqueadero ED1 (HU-Q5.1, HU-Q5.2): solo assets, sin código de Worker.
- * Producción va a su dominio, nunca a `workers.dev`: si la zona no responde, el despliegue falla
- * (HU-Q5.2 CA3, P1). Staging sigue en `workers.dev`.
+ * El sitio y la caja del Parqueadero ED1 (HU-Q5.1, HU-Q5.2): assets, y un Worker que solo corre
+ * para `/_m`, los eventos anónimos de la caja (HU-Q5.3, ADR-32). Producción va a su dominio, nunca
+ * a `workers.dev`: si la zona no responde, el despliegue falla (HU-Q5.2 CA3, P1). Staging sigue en
+ * `workers.dev`, con su propio dataset de eventos.
  */
 export const WORKER_PARQUEADERO = 'ed1-parqueadero';
 /** El host de los recibos: `entorno.ts` de la caja y `ORIGEN_DEL_RECIBO` dicen el mismo (P2). */
@@ -193,15 +194,29 @@ export const DOMINIO_PARQUEADERO = 'parqueadero.laboratorio-digital.app';
 /** Su zona: el token de producción tiene que verla (P12). */
 export const ZONA_PARQUEADERO = 'laboratorio-digital.app';
 export const RUTA_WRANGLER_PARQUEADERO = join(RAIZ, 'apps', 'parqueadero-sitio', 'wrangler.jsonc');
+/** El dataset de Analytics Engine de la caja; staging lleva `_staging`. */
+export const DATASET_PARQUEADERO = 'parqueadero_eventos';
 export function wranglerDelParqueadero(): Record<string, unknown> {
   return {
     $schema: 'node_modules/wrangler/config-schema.json',
     name: WORKER_PARQUEADERO,
+    main: 'src/worker.ts',
     compatibility_date: FECHA_COMPATIBILIDAD,
-    assets: { directory: './dist' },
+    assets: { directory: './dist', binding: 'ASSETS', run_worker_first: ['/_m'] },
     workers_dev: false,
     routes: [{ pattern: DOMINIO_PARQUEADERO, custom_domain: true }],
-    env: { staging: { name: `${WORKER_PARQUEADERO}-staging`, workers_dev: true, routes: [] } },
+    analytics_engine_datasets: [{ binding: 'EVENTOS', dataset: DATASET_PARQUEADERO }],
+    observability: { enabled: true },
+    env: {
+      staging: {
+        name: `${WORKER_PARQUEADERO}-staging`,
+        workers_dev: true,
+        routes: [],
+        analytics_engine_datasets: [
+          { binding: 'EVENTOS', dataset: `${DATASET_PARQUEADERO}_staging` },
+        ],
+      },
+    },
   };
 }
 

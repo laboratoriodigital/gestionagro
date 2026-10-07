@@ -57,6 +57,12 @@ for (const ensayo of ['uno', 'dos'] as const) {
   test(`HU-Q6.3 · un turno entero sin red en ${e.nombre}`, async ({ page, context }) => {
     test.setTimeout(90_000);
     await context.route('https://wa.me/**', (r) => r.fulfill({ status: 200, body: 'WhatsApp' }));
+    // HU-Q5.3: los lotes de eventos que salen a `/_m`; sin red no sale ninguno.
+    const lotes: string[] = [];
+    await context.route('**/_m', (r) => {
+      lotes.push(r.request().postData() ?? '');
+      return r.fulfill({ status: 204 });
+    });
     await page.addInitScript(instalarImpresoraFalsa);
     await page.clock.setFixedTime(ENTRADA);
     // La primera carga, con red, instala la caja; desde ahí, nada sale del teléfono.
@@ -191,7 +197,25 @@ for (const ensayo of ['uno', 'dos'] as const) {
     const numeros = todos.filter((r) => r.consecutivo !== null).map((r) => r.consecutivo);
     expect(numeros.sort()).toEqual([1, 2, 3]);
     expect(todos.filter((r) => r.tipo === 'anulacion')).toHaveLength(1);
+
+    // Vuelve la red: lo contado sale en un lote, sin placa, número ni nombre (HU-Q5.3 CA2 y CA3).
+    expect(lotes).toEqual([]);
     await context.setOffline(false);
+    await expect.poll(() => lotes.length).toBe(1);
+    const lote = JSON.parse(lotes[0] ?? '{}') as {
+      producto: string;
+      conteos: Record<string, number>;
+    };
+    expect(lote.producto).toBe('parqueadero-caja');
+    expect(lote.conteos).toMatchObject({
+      'recibo.whatsapp': 1,
+      'respaldo.hecho': 1,
+      'turno.cerrado': 1,
+    });
+    if (siempre) expect(lote.conteos['recibo.papel']).toBe(3);
+    for (const dato of ['ABC123', 'XYZ789', '3001234567', e.nombre, e.nit, 'Caja 1']) {
+      expect(lotes[0]).not.toContain(dato);
+    }
   });
 }
 

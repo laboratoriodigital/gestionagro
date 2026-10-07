@@ -4,6 +4,8 @@
  * Web Serial, la impresora emparejada que la caja encuentra sola al abrir (§7.5, HU-Q2.4), y el
  * diálogo de impresión del equipo, con el recibo en HTML a 48 mm (HU-Q2.5).
  */
+
+import { adaptadorDe } from '@ed1/eventos';
 import {
   type AjustesDeImpresion,
   type Bloque,
@@ -30,6 +32,7 @@ import {
 import { conImpresion } from './actividad.ts';
 import type { BaseDeLaCaja, RegistroImpresora } from './datos.ts';
 import { conMarcaDeEntorno } from './entorno.ts';
+import { medir } from './medicion.ts';
 
 export interface OpcionesDeControl {
   readonly bluetooth: BluetoothBle | undefined;
@@ -212,6 +215,15 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
 
     async imprimir(bloques, ajustes, reciboId) {
       const registro = await db.impresora.get('actual');
+      // Cuántas impresiones fallan, por adaptador y causa (HU-Q5.3); nunca qué decía el papel.
+      const fallo = async (f: Extract<Resultado, { ok: false }>) => {
+        await medir(db, {
+          evento: 'impresion.fallida',
+          adaptador: adaptadorDe(registro?.camino),
+          causa: f.motivo,
+        });
+        return f;
+      };
       if (!cola || !registro) {
         const r = { motivo: 'sin_permiso', detalle: 'Falta conectar la impresora' } as const;
         if (reciboId) {
@@ -219,7 +231,7 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
           reciboDelTrabajo.set(id, reciboId);
           await pendiente(id, r);
         }
-        return { ok: false, ...r };
+        return fallo({ ok: false, ...r });
       }
       const id = opciones.nuevoId();
       let trabajo: Trabajo;
@@ -233,13 +245,17 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
             : { id, formato: 'escpos', bytes: await codificar(marcados, a) };
       } catch (e) {
         // Un recibo que no se pudo codificar se dice, nunca deja la pantalla esperando (P15).
-        return { ok: false, motivo: 'no_soportado', detalle: `No se pudo armar: ${String(e)}` };
+        return fallo({
+          ok: false,
+          motivo: 'no_soportado',
+          detalle: `No se pudo armar: ${String(e)}`,
+        });
       }
       const enCola = cola;
       if (reciboId) reciboDelTrabajo.set(id, reciboId);
       const r = await conImpresion(() => enCola.imprimir(trabajo));
       reciboDelTrabajo.delete(id);
-      return r;
+      return r.ok ? r : fallo(r);
     },
 
     async recuperar() {

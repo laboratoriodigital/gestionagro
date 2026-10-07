@@ -520,10 +520,10 @@ async function desplegarEnsayo(cred: Credenciales): Promise<Paso> {
 }
 
 /**
- * HU-Q5.1 y HU-Q5.2: el sitio y la caja del parqueadero. Solo assets, sin secretos. Staging va a
- * `workers.dev`; producción, a su dominio y nunca a `workers.dev`: si la zona no responde,
- * `wrangler` falla y el despliegue lo dice (HU-Q5.2 CA3, P1). La prueba de humo exige la caja con
- * su CSP y su service worker, y la página del recibo.
+ * HU-Q5.1 y HU-Q5.2: el sitio y la caja del parqueadero. Assets y el Worker de `/_m` (HU-Q5.3),
+ * sin secretos. Staging va a `workers.dev`; producción, a su dominio y nunca a `workers.dev`: si
+ * la zona no responde, `wrangler` falla y el despliegue lo dice (HU-Q5.2 CA3, P1). La prueba de
+ * humo exige la caja con su CSP y su service worker, la página del recibo y el Worker de eventos.
  */
 async function desplegarParqueadero(cred: Credenciales, para: Destino): Promise<Paso> {
   const produccion = para === 'produccion';

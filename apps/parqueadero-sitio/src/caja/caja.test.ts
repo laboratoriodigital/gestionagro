@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import { ADAPTADORES_DE_IMPRESION, CAUSAS_DE_FALLO } from '@ed1/eventos';
 import {
   type BluetoothBle,
   type CaracteristicaBle,
@@ -6,9 +7,11 @@ import {
   SERVICIO_SERIE,
   type SerialWeb,
   type ServidorGatt,
+  TEXTO_DEL_MOTIVO,
   type VentanaParaImprimir,
 } from '@ed1/impresion';
 import { ORIGEN_DEL_RECIBO } from '@ed1/parqueadero-recibos';
+import { CAMINOS_DE_PAPEL } from '@ed1/parqueadero-schema';
 import { describe, expect, it } from 'vitest';
 import { decidirActualizacion } from './actividad.ts';
 import { abrirBase } from './datos.ts';
@@ -16,6 +19,13 @@ import { conMarcaDeEntorno, esProduccion, HOST_DE_PRODUCCION, origenDelRecibo } 
 import { fechaBogota, horaBogota } from './fecha.ts';
 import { alVolverALaCaja, crearControl, MS_PARA_REFRESCAR } from './impresora.ts';
 import { proponerCamino, senalDeImpresora, senalDePendientes, senalDeRespaldo } from './senales.ts';
+
+describe('las listas de los eventos (HU-Q5.3, P2)', () => {
+  it('los adaptadores y las causas son los de la impresión, más `ninguno` y `no_salio`', () => {
+    expect([...ADAPTADORES_DE_IMPRESION]).toEqual([...CAMINOS_DE_PAPEL, 'ninguno']);
+    expect([...CAUSAS_DE_FALLO]).toEqual([...Object.keys(TEXTO_DEL_MOTIVO), 'no_salio']);
+  });
+});
 
 describe('el entorno', () => {
   it('solo el host de producción imprime sin PRUEBA; uno desconocido cuenta como prueba', () => {

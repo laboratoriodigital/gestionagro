@@ -91,7 +91,9 @@ export type Meta =
   /** La imagen del QR de pagos del propio parqueadero (HU-Q3.5 CA2): ED1 no toca el dinero. */
   | { readonly clave: 'qr_pago'; readonly datos: Blob }
   /** El último respaldo entregado (HU-Q3.10 CA1): la cabecera dice su fecha. */
-  | { readonly clave: 'respaldo'; readonly instante: number };
+  | { readonly clave: 'respaldo'; readonly instante: number }
+  /** Los eventos contados que todavía no salieron a `/_m` (HU-Q5.3): sin datos personales. */
+  | { readonly clave: 'eventos'; readonly conteos: Readonly<Record<string, number>> };
 
 export type BaseDeLaCaja = Dexie & {
   impresora: EntityTable<RegistroImpresora, 'id'>;

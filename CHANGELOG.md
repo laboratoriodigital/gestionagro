@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Parqueadero ED1: `@ed1/eventos` suma la lista cerrada de la caja del parqueadero (recibos por canal, copias, impresiones fallidas con su adaptador y su causa, respaldos y cierres de turno) y su lote de claves y cuentas, sin datos personales: una clave fuera de la lista no se cuenta ni se acepta.
 - Parqueadero ED1: imprimir con el diálogo de impresión del equipo (`@ed1/impresion`): el mismo recibo en una hoja HTML de 48 mm, con su QR, para la PT-210 por USB en un PC con Windows o para una impresora común. La hoja sale de los mismos bloques que el papel térmico y no usa estilos en línea.
 - Parqueadero ED1 en producción: `ed1-parqueadero` va a `parqueadero.laboratorio-digital.app` como dominio propio, nunca a `workers.dev`; `infrastructure/dominios.json` marca activa la zona `laboratorio-digital.app` y reserva `parqueadero`. El despliegue verifica que el token vea la zona, escribe las cabeceras de producción y prueba la caja y la página del recibo en el dominio (HU-Q5.2).
 - El Parqueadero ED1 se publica con su propia versión (`apps/parqueadero-sitio/package.json`), su registro de cambios (`apps/parqueadero-sitio/CHANGELOG.md`, adonde pasaron sus entradas) y etiquetas `parqueadero-vX.Y.Z`, como el CORE: una publicación del agro no lo arrastra, ni al revés (HU-Q0.3).

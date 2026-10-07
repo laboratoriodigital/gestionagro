@@ -6,7 +6,11 @@
  * envío no se manda: se prefiere perder un evento tardío a gastar una segunda invocación.
  *
  * Sin datos personales: solo producto, nombre del evento y cuántas veces pasó (P13).
+ *
+ * Los de la caja del parqueadero, con su propio lote, en `parqueadero.ts` (HU-Q5.3).
  */
+
+export * from './parqueadero.ts';
 
 export const EVENTOS = ['tool.opened', 'tool.completed', 'tool.shared', 'tool.next_step'] as const;
 export type NombreDeEvento = (typeof EVENTOS)[number];

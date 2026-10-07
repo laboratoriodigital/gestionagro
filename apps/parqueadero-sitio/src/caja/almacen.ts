@@ -51,6 +51,7 @@ import { normalizarNumero } from '@ed1/whatsapp';
 import { abonoDeLaPlaca, fechaDelAbono, venceEl } from './abonados.ts';
 import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
 import { diaLocalBogota, horaBogota } from './fecha.ts';
+import { eventoDeLaEntrega, medir } from './medicion.ts';
 import { avisoAceptado, VERSION_DEL_AVISO } from './privacidad.ts';
 import { topeDeLaCiudad } from './topes.ts';
 import { exigirTurno, SinTurno, type Turno, turnoAbierto } from './turno.ts';
@@ -450,6 +451,9 @@ export async function registrarEntrega(
     datos: { recibo_id: recibo.id, ...entrega },
   });
   await db.registros.add(registro);
+  // Recibos por canal y papel que no salió (HU-Q5.3): el canal, nunca el recibo ni el número.
+  const evento = eventoDeLaEntrega(entrega);
+  if (evento) await medir(db, evento);
   return registro;
 }
 
@@ -782,9 +786,11 @@ export async function armarRespaldo(
   };
 }
 
-/** El respaldo ya salió del teléfono: la cabecera lo dice (CA1). */
-export const anotarRespaldo = (db: BaseDeLaCaja, instante: number) =>
-  db.meta.put({ clave: 'respaldo', instante });
+/** El respaldo ya salió del teléfono: la cabecera lo dice (CA1), y se cuenta (HU-Q5.3). */
+export async function anotarRespaldo(db: BaseDeLaCaja, instante: number): Promise<void> {
+  await db.meta.put({ clave: 'respaldo', instante });
+  await medir(db, { evento: 'respaldo.hecho' });
+}
 
 /** Un archivo que no se puede unir: se rechaza entero, sin tocar lo local (CA4). */
 export class RespaldoInvalido extends Error {
@@ -936,6 +942,7 @@ export async function cerrarTurno(
     ctx,
   );
   await db.registros.add(cierre);
+  await medir(db, { evento: 'turno.cerrado' });
   return { cierre, resumen };
 }
 
