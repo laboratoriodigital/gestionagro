@@ -6,11 +6,18 @@
   "assets": {
     "directory": "./dist"
   },
-  "workers_dev": true,
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "parqueadero.laboratorio-digital.app",
+      "custom_domain": true
+    }
+  ],
   "env": {
     "staging": {
       "name": "ed1-parqueadero-staging",
-      "workers_dev": true
+      "workers_dev": true,
+      "routes": []
     }
   }
 }
