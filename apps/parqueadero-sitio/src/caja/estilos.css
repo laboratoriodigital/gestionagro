@@ -445,3 +445,80 @@ legend {
   margin: 0;
   font-weight: 600;
 }
+
+/* ── El diálogo de impresión del sistema (HU-Q2.5) ──────────────────────────────────────────── */
+
+/*
+ * La hoja de 58 mm que arma `htmlDeBloques` de `@ed1/impresion`: 32 columnas de letra fija en
+ * 48 mm, como la fuente A de la térmica (Courier New mide 0,6 em: 2,5 mm × 0,6 × 32 = 48 mm).
+ * En pantalla no se ve; al imprimir, es lo único de la página. `size: 58mm auto` no es CSS válido
+ * (Chrome lo descarta): el ancho y el largo del papel los pone el driver POS58 (bitácora del
+ * parqueadero, afirmaciones falsas 5).
+ */
+.impresion-del-sistema {
+  display: none;
+}
+
+@page tiquete {
+  margin: 0;
+}
+
+@media print {
+  html.imprimiendo-hoja-58,
+  html.imprimiendo-hoja-58 body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+  html.imprimiendo-hoja-58 body > :not(.impresion-del-sistema) {
+    display: none;
+  }
+  html.imprimiendo-hoja-58 .impresion-del-sistema {
+    display: block;
+    page: tiquete;
+  }
+  html.imprimiendo-hoja-58 .impresion-del-sistema,
+  html.imprimiendo-hoja-58 .impresion-del-sistema * {
+    visibility: visible;
+  }
+}
+
+.hoja-58 {
+  inline-size: 48mm;
+  margin: 0 auto;
+  color: #000;
+  background: #fff;
+  font:
+    2.5mm / 1.3 "Courier New",
+    Courier,
+    monospace;
+}
+
+.hoja-58 .l {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hoja-58 .c {
+  text-align: center;
+}
+
+.hoja-58 .d {
+  text-align: right;
+}
+
+.hoja-58 .n {
+  font-weight: 700;
+}
+
+.hoja-58 .g {
+  font-size: 5mm;
+}
+
+.hoja-58 .qr {
+  display: block;
+  inline-size: 28mm;
+  block-size: 28mm;
+  margin: 1mm auto;
+}

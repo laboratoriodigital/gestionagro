@@ -1,4 +1,5 @@
 import { formatearPesos } from '@ed1/dinero';
+import { htmlDeBloques, lineasDeHoja } from '@ed1/impresion';
 import type { Registro, Sede } from '@ed1/parqueadero-schema';
 import {
   AJUSTE_ENSAYO,
@@ -178,9 +179,28 @@ describe('la maqueta de §6.2 y del anexo B', () => {
   });
 });
 
-describe('los campos de la ley en cada salida (HU-Q1.4 CA1, §6.1)', () => {
-  it.each(RECIBOS)('%s', async (_, r) => {
-    const papelTexto = textoDePapel(r).join('\n');
+/** La hoja del diálogo del sistema (HU-Q2.5): los mismos bloques del papel, en HTML. */
+const textoDeHoja = async (r: Recibo) =>
+  lineasDeHoja(
+    await htmlDeBloques(
+      papel(r, {
+        columnas: COLUMNAS,
+        paginaDeCodigos: 'cp850',
+        qr: r.clase === 'entrada' ? enlaceCorto(r) : null,
+      }),
+      { paginaDeCodigos: 'cp850', qr: 'imagen', columnas: COLUMNAS, avanceFinal: 0 },
+    ),
+  );
+
+describe('los campos de la ley en cada salida (HU-Q1.4 CA1, §6.1; HU-Q2.5 CA3)', () => {
+  // La hoja HTML pasa la misma prueba que el papel: es otra salida del mismo recibo (HU-Q2.5 CA3).
+  it.each(
+    RECIBOS.flatMap(([nombre, r]) => [
+      [`${nombre} · papel`, r, 'papel'] as const,
+      [`${nombre} · hoja del sistema`, r, 'hoja'] as const,
+    ]),
+  )('%s', async (_, r, impreso) => {
+    const papelTexto = (impreso === 'papel' ? textoDePapel(r) : await textoDeHoja(r)).join('\n');
     const enlace = await enlaceCompleto(r);
     const leido = await leerEnlace(enlace);
     const whatsapp = textoWhatsApp(r, enlace);

@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Parqueadero ED1: imprimir con el diálogo de impresión del equipo (`@ed1/impresion`): el mismo recibo en una hoja HTML de 48 mm, con su QR, para la PT-210 por USB en un PC con Windows o para una impresora común. La hoja sale de los mismos bloques que el papel térmico y no usa estilos en línea.
 - Parqueadero ED1 en producción: `ed1-parqueadero` va a `parqueadero.laboratorio-digital.app` como dominio propio, nunca a `workers.dev`; `infrastructure/dominios.json` marca activa la zona `laboratorio-digital.app` y reserva `parqueadero`. El despliegue verifica que el token vea la zona, escribe las cabeceras de producción y prueba la caja y la página del recibo en el dominio (HU-Q5.2).
 - El Parqueadero ED1 se publica con su propia versión (`apps/parqueadero-sitio/package.json`), su registro de cambios (`apps/parqueadero-sitio/CHANGELOG.md`, adonde pasaron sus entradas) y etiquetas `parqueadero-vX.Y.Z`, como el CORE: una publicación del agro no lo arrastra, ni al revés (HU-Q0.3).
 - Parqueadero ED1: imprimir en la impresora emparejada por Web Serial (`@ed1/impresion`): Bluetooth clásico en el teléfono (Chrome 138 o posterior) o el puerto COM del PC. Se elige una vez y, en la sesión siguiente, el navegador la entrega sin selector. Como el teléfono no avisa si la impresora se apagó, si la primera escritura falla abre el puerto otra vez y reintenta una vez; un recibo a medias no se repite (HU-Q2.4).

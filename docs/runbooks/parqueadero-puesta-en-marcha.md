@@ -22,6 +22,24 @@ Los textos en negrita entre comillas (**«así»**) son lo que se ve en la caja.
 7. **WhatsApp.** WhatsApp Business del parqueadero instalado y abierto con su número. Haga una entrada de práctica en el Android del equipo, no en la caja del cliente, y **«Enviar por WhatsApp»** al teléfono del dueño.
 8. **El turno.** **«Abrir turno»**: quién atiende y la base de caja. Desde aquí, cada carro recibe el recibo de la caja y el del talonario de siempre.
 
+## Si la caja es un PC con Windows y la PT-210 va por USB
+
+Es el diálogo de impresión del equipo (HU-Q2.5, PARQUEADERO §7.5): un respaldo, no el camino principal. El texto sale como imagen, más lento que por Bluetooth, y sirve también para una impresora común.
+
+1. **El driver.** Instale el driver POS58 de la PT-210 y conéctela por USB. En Windows → Configuración → Impresoras y escáneres, déjela como **impresora predeterminada** y, en sus preferencias de impresión, con el papel de 58 mm del driver.
+2. **El acceso directo, para no ver el diálogo en cada recibo.** En el escritorio: clic derecho → Nuevo → Acceso directo. En la ubicación escriba, con las comillas:
+
+   ```text
+   "C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing --app=https://parqueadero.laboratorio-digital.app/caja/
+   ```
+
+   Si Chrome está en `C:\Program Files (x86)\…`, use esa ruta. Llámelo «Caja del parqueadero». Con `--kiosk-printing`, Chrome imprime en la impresora predeterminada sin preguntar.
+3. **Chrome cerrado del todo antes de abrirlo.** La opción solo vale si Chrome arranca con ella: cierre todas sus ventanas y, en Chrome → Configuración → Sistema, apague «Seguir ejecutando aplicaciones en segundo plano». Desde entonces, la caja se abre siempre con ese acceso directo.
+4. **En la caja.** **«Configurar impresora»** → **«Siguiente»** → **«Usar el diálogo de impresión»** → **«Siguiente»** → **«Imprimir página de prueba»**: la página sale sola en la PT-210. **«Siguiente»** y, si salió completa, con tildes y un QR que su teléfono lee, **«Sí»** → **«Guardar»**. Si salió cortada o en blanco, revise el papel de 58 mm en las preferencias del driver y repita.
+5. **Que vuelva sola.** Cierre la caja y ábrala con el acceso directo: la cabecera debe decir **«Impresora conectada»**, sin elegir nada.
+
+Sin el acceso directo, cada recibo abre el diálogo de Chrome: se elige la PT-210 y se imprime. Funciona igual, con un paso más por carro.
+
 ## Al cierre del primer turno
 
 1. **«Cerrar turno»**: contar billetes y monedas, el motivo si hay diferencia, **«Cerrar e imprimir»**. Comparar el papel con el talonario.

@@ -6,6 +6,7 @@ import {
   SERVICIO_SERIE,
   type SerialWeb,
   type ServidorGatt,
+  type VentanaParaImprimir,
 } from '@ed1/impresion';
 import { ORIGEN_DEL_RECIBO } from '@ed1/parqueadero-recibos';
 import { describe, expect, it } from 'vitest';
@@ -108,9 +109,12 @@ describe('las señales de la cabecera', () => {
     expect(senalDeRespaldo(t, t + 25 * 3_600_000).tono).toBe('aviso');
   });
 
-  it('en iPhone lo dice desde el paso 1; sin Bluetooth no propone camino', () => {
+  it('en iPhone lo dice desde el paso 1; sin Bluetooth propone el diálogo del sistema', () => {
     expect(proponerCamino({ bluetooth: true, ios: true }).camino).toBeNull();
-    expect(proponerCamino({ bluetooth: false, ios: false }).camino).toBeNull();
+    // HU-Q2.5: el diálogo de impresión del equipo, en todo menos el iPhone.
+    expect(proponerCamino({ bluetooth: false, ios: false }).camino).toBe('sistema');
+    expect(proponerCamino({ bluetooth: true, ios: false }).sistema).toBe(true);
+    expect(proponerCamino({ bluetooth: true, ios: true }).sistema).toBe(false);
     expect(proponerCamino({ bluetooth: true, ios: false }).camino).toBe('bluetooth');
     // HU-Q2.4 CA3: la impresora emparejada solo se ofrece con Web Serial.
     expect(proponerCamino({ bluetooth: true, serial: true, ios: false }).serial).toBe(true);
@@ -331,6 +335,79 @@ describe('la impresora emparejada (HU-Q2.4)', () => {
   });
 });
 
+/** La ventana de la caja, lo justo para el diálogo de impresión: guarda lo que se imprimió. */
+function ventanaFalsa() {
+  const hijos: { className: string; innerHTML: string; remove(): void }[] = [];
+  const impresas: string[] = [];
+  const ventana = {
+    document: {
+      createElement: () => {
+        const el = {
+          className: '',
+          innerHTML: '',
+          remove: () => hijos.splice(hijos.indexOf(el), 1),
+        };
+        return el;
+      },
+      body: { append: (el: (typeof hijos)[number]) => void hijos.push(el) },
+      documentElement: { classList: { add: () => undefined, remove: () => undefined } },
+      querySelectorAll: (s: string) => hijos.filter((h) => `.${h.className}` === s),
+    },
+    print: () => void impresas.push(hijos.map((h) => h.innerHTML).join('')),
+    addEventListener: () => undefined,
+  } as unknown as VentanaParaImprimir;
+  return { ventana, impresas };
+}
+
+describe('el diálogo de impresión del sistema (HU-Q2.5)', () => {
+  it('se elige una vez, imprime los mismos bloques en HTML y vuelve solo al abrir la caja', async () => {
+    const db = abrirBase(`prueba-${Math.random()}`);
+    const f = ventanaFalsa();
+    const opciones = {
+      bluetooth: undefined,
+      sistema: f.ventana,
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-12',
+    };
+    const primera = crearControl(db, opciones);
+    expect((await primera.conectar(false, 'sistema')).camino).toBe('sistema');
+    expect(primera.estado()).toBe('conectada');
+    expect(await db.impresora.get('actual')).toMatchObject({ camino: 'sistema', probada: false });
+
+    // La caja se recarga: no hay selector ni conexión que abrir.
+    const segunda = crearControl(db, opciones);
+    expect(await segunda.recuperar()).toBe(true);
+    expect(segunda.estado()).toBe('conectada');
+    expect((await segunda.imprimir([{ tipo: 'texto', texto: 'Hola <b>' }])).ok).toBe(true);
+    const [hoja] = f.impresas;
+    expect(hoja).toContain('class="hoja-58"');
+    // Fuera de producción, también con PRUEBA; y el texto nunca se vuelve HTML.
+    expect(hoja).toContain('PRUEBA');
+    expect(hoja).toContain('Hola &lt;b&gt;');
+  });
+
+  it('sin el diálogo (iPhone), no se elige ni se recupera', async () => {
+    const db = abrirBase(`prueba-${Math.random()}`);
+    const con = crearControl(db, {
+      bluetooth: undefined,
+      sistema: ventanaFalsa().ventana,
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-13',
+    });
+    await con.conectar(false, 'sistema');
+    const sin = crearControl(db, {
+      bluetooth: undefined,
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-14',
+    });
+    expect(await sin.recuperar()).toBe(false);
+    await expect(sin.conectar(false, 'sistema')).rejects.toMatchObject({ motivo: 'no_soportado' });
+  });
+});
+
 describe('el diagnóstico sobrevive a la recarga (bitácora parqueadero 21)', () => {
   it('al cerrar la caja se guarda, y la caja nueva lo muestra debajo del suyo', async () => {
     const db = abrirBase(`prueba-${Math.random()}`);
@@ -375,7 +452,7 @@ describe('el diagnóstico sobrevive a la recarga (bitácora parqueadero 21)', ()
     });
     expect(() => c.soltar()).not.toThrow();
     expect(c.diagnostico()).toBe(
-      'Este navegador: Bluetooth web no · impresora emparejada no\nImpresora: sin vincular en esta sesión',
+      'Este navegador: Bluetooth web no · impresora emparejada no · diálogo de impresión no\nImpresora: sin vincular en esta sesión',
     );
   });
 
@@ -388,9 +465,9 @@ describe('el diagnóstico sobrevive a la recarga (bitácora parqueadero 21)', ()
       reloj: () => 0,
       nuevoId: () => 'id-11',
     });
-    expect(c.caminos()).toEqual({ bluetooth: true, serial: true });
+    expect(c.caminos()).toEqual({ bluetooth: true, serial: true, sistema: false });
     expect(c.diagnostico()).toMatch(
-      /^Este navegador: Bluetooth web sí · impresora emparejada sí\n/,
+      /^Este navegador: Bluetooth web sí · impresora emparejada sí · diálogo de impresión no\n/,
     );
   });
 });

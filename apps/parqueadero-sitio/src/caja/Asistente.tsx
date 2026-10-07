@@ -1,6 +1,7 @@
 /**
  * El asistente de la impresora (HU-Q2.6, PARQUEADERO §7.7): el equipo, vincular, la página de
- * prueba y tres preguntas. Una pantalla por paso, con «Siguiente» grande abajo.
+ * prueba y tres preguntas. Una pantalla por paso, con «Siguiente» grande abajo. Con el diálogo de
+ * impresión del equipo (HU-Q2.5), una sola pregunta: tildes y QR los pone el sistema.
  */
 import {
   ajustesDesdeRespuestas,
@@ -13,7 +14,7 @@ import { abrirFormulario } from './actividad.ts';
 import { BotonDiagnostico, textoDeFallo } from './conexion.tsx';
 import type { BaseDeLaCaja } from './datos.ts';
 import { fechaBogota } from './fecha.ts';
-import type { ControlDeImpresora } from './impresora.ts';
+import type { CaminoDeLaCaja, ControlDeImpresora } from './impresora.ts';
 import type { Propuesta } from './senales.ts';
 
 /** Lo que lleva el QR de la página de prueba: un enlace corto, como el del papel (§6.3). */
@@ -35,6 +36,7 @@ type QrVisto = 'los-dos' | 'nativo' | 'imagen' | 'ninguno';
 export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) {
   const [paso, setPaso] = useState<Paso>(1);
   const [nombre, setNombre] = useState('');
+  const [camino, setCamino] = useState<CaminoDeLaCaja | undefined>(undefined);
   const [aviso, setAviso] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [enviada, setEnviada] = useState(false);
@@ -42,16 +44,19 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
   const [qr, setQr] = useState<QrVisto | undefined>(undefined);
   const [regla, setRegla] = useState<boolean | undefined>(undefined);
   const [resumen, setResumen] = useState('');
+  /** Con el diálogo del sistema: si la hoja salió completa, con tildes y un QR que se lee. */
+  const [hojaBien, setHojaBien] = useState<boolean | undefined>(undefined);
 
   // Un asistente abierto es un formulario: una versión nueva no recarga la caja (HU-Q3.1 CA3).
   useEffect(() => abrirFormulario(), []);
 
-  async function conectar(verTodos: boolean, camino: 'bluetooth' | 'serial' = 'bluetooth') {
+  async function conectar(verTodos: boolean, elegido: CaminoDeLaCaja = 'bluetooth') {
     setOcupado(true);
     setAviso('');
     try {
-      const v = await control.conectar(verTodos, camino);
+      const v = await control.conectar(verTodos, elegido);
       setNombre(v.nombre);
+      setCamino(elegido);
     } catch (e) {
       setAviso(textoDeFallo(e));
     } finally {
@@ -101,6 +106,24 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
       ]
         .filter(Boolean)
         .join(' '),
+    );
+    setPaso('listo');
+  }
+
+  async function guardarSistema() {
+    if (hojaBien === undefined) return;
+    // Las tildes y el QR los dibuja el sistema: la página de códigos y el modo no cuentan.
+    await db.impresora.update('actual', {
+      paginaDeCodigos: 'cp850',
+      qr: 'imagen',
+      columnas: 32,
+      probada: hojaBien,
+      ...(hojaBien ? { probadaEn: reloj() } : {}),
+    });
+    setResumen(
+      hojaBien
+        ? 'La caja imprimirá con el diálogo de impresión del equipo. Para no verlo en cada recibo, abra la caja con el acceso directo de Chrome de la puesta en marcha.'
+        : 'La hoja no salió bien: la impresora queda sin probar. Revise en el diálogo la impresora elegida y el tamaño del papel, y repita la prueba.',
     );
     setPaso('listo');
   }
@@ -186,6 +209,26 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
                   </button>
                 </>
               )}
+              {propuesta.sistema && (
+                <>
+                  <p class="ayuda">
+                    {propuesta.camino === 'sistema' ? 'Con' : 'O con'} el diálogo de impresión del
+                    equipo: la PT-210 por USB en un PC con Windows, o cualquier impresora instalada.
+                  </p>
+                  <button
+                    type="button"
+                    class={
+                      propuesta.camino === 'sistema'
+                        ? 'boton boton-principal'
+                        : 'boton boton-secundario'
+                    }
+                    disabled={ocupado}
+                    onClick={() => void conectar(false, 'sistema')}
+                  >
+                    Usar el diálogo de impresión
+                  </button>
+                </>
+              )}
             </>
           )}
           {aviso && (
@@ -217,7 +260,11 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
       {paso === 3 && (
         <>
           <h2>3 de 4 · Página de prueba</h2>
-          <p>La impresora va a sacar una regla de números, cuatro líneas con tildes y dos QR.</p>
+          <p>
+            {camino === 'sistema'
+              ? 'Se abre el diálogo de impresión: elija la impresora y toque «Imprimir». Sale una regla de números, cuatro líneas con tildes y dos QR.'
+              : 'La impresora va a sacar una regla de números, cuatro líneas con tildes y dos QR.'}
+          </p>
           <button
             type="button"
             class="boton"
@@ -250,7 +297,42 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
         </>
       )}
 
-      {paso === 4 && (
+      {paso === 4 && camino === 'sistema' && (
+        <>
+          <h2>4 de 4 · Mire la hoja que acaba de salir</h2>
+          <fieldset>
+            <legend>¿Salió completa, con las tildes y un QR que su teléfono lee?</legend>
+            <div class="opciones">
+              <button
+                type="button"
+                class="opcion"
+                aria-pressed={hojaBien === true}
+                onClick={() => setHojaBien(true)}
+              >
+                Sí
+              </button>
+              <button
+                type="button"
+                class="opcion"
+                aria-pressed={hojaBien === false}
+                onClick={() => setHojaBien(false)}
+              >
+                No
+              </button>
+            </div>
+          </fieldset>
+          <button
+            type="button"
+            class="boton boton-principal"
+            disabled={hojaBien === undefined}
+            onClick={() => void guardarSistema()}
+          >
+            {hojaBien === undefined ? 'Falta decir si salió bien' : 'Guardar'}
+          </button>
+        </>
+      )}
+
+      {paso === 4 && camino !== 'sistema' && (
         <>
           <h2>4 de 4 · Mire el papel que acaba de salir</h2>
           <fieldset>
