@@ -1347,3 +1347,23 @@ La regla: **una capacidad del navegador se pregunta por lo que hace, no por si e
 La regla: **un comando que termina en commit empieza con `set -euo pipefail` y no lleva ni `|| true` ni `;`: cada paso que falla detiene el commit.**
 
 *Ficha:* parqueadero · *(mío)* · 🟡 Medio · P14 · parqueadero-0.0.0 · 2026-10-07
+
+**21 · La PT210L imprimía dos veces y después no volvía: su luz seguía azul hasta apagar el Bluetooth del teléfono.**
+
+*Qué pasó.* El 7 oct 2026, con #116 y #117 en staging. La impresora conecta la primera vez (su luz pasa de verde a azul claro), imprime una entrada y la reimprime. Al salir de la pantalla, dentro de la caja o fuera de ella, ya no imprime; la luz sigue azul y solo vuelve a verde al apagar el Bluetooth del teléfono. Después cuesta volver a conectar. El mismo día, el escáner con jsQR leyó el recibo, y la página `/r/` abrió desde WhatsApp.
+
+*Síntoma literal.* El diagnóstico copiado: «Impresora: PT210L_30F2 (sin usar)», «Estado: sin_vincular» y, en los cuatro intentos, «0x18f0: NetworkError: GATT Server is disconnected. Cannot retrieve services.», con «Último error: La conexión se cayó en los 4 intentos».
+
+*Causa raíz.* (*Inferencia*: no se puede reproducir sin la unidad.) «sin usar» y «sin_vincular» dicen que el diagnóstico es de una caja recién abierta: la sesión anterior se cerró o se recargó. La luz azul dice que la impresora seguía con un enlace abierto al teléfono. Dos cosas lo dejaban así:
+- La caja nunca soltaba la conexión al cerrarse; Android puede dejarla viva sin dueño, y cada `connect()` nuevo choca con ella y se cae al instante.
+- La impresora está emparejada como clásica y LE y solo acepta un enlace a la vez. Con el emparejamiento, Android puede abrir su propio enlace clásico; mientras lo tenga, la conexión LE del navegador no entra. Es lo mismo que mostraron las entradas 13, 17, 18 y 19.
+
+*Cómo se reprodujo.* Con la PT-210 falsa: la caja suelta la conexión al cerrar, y el diagnóstico sobrevive a una recarga.
+
+*Arreglo.* El adaptador tiene `soltar()` (Bluetooth: `gatt.disconnect()`; puerto serie: `close()`), y la caja lo llama en `pagehide`. El diagnóstico trae una línea de tiempo con los segundos de cada cambio de estado y de cada impresión, y la caja guarda el de la sesión anterior para mostrarlo después de recargar. El asistente ofrece primero «Usar la impresora emparejada» (Web Serial, HU-Q2.4), que va justo por el enlace clásico que Android ya tiene, y lo recuerda junto a un error de Bluetooth.
+
+**Lo prueban** «suelta la conexión a propósito, y la línea de tiempo lo cuenta» (`bluetooth.test.ts`) y «el diagnóstico sobrevive a la recarga» (`caja.test.ts`). La confirmación es de campo: la PT210L por «Usar la impresora emparejada».
+
+La regla: **una conexión que la caja abre, la caja la cierra; lo que queda abierto al irse lo hereda la siguiente.**
+
+*Ficha:* parqueadero · *(del terreno)* · 🟠 Alto · P15, P16 · parqueadero-0.0.0 · 2026-10-07

@@ -200,10 +200,21 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
   let ultimoError = '';
   /** El nombre del último equipo elegido, aunque no se haya podido usar. */
   let nombre = '';
+  /**
+   * Cada cambio de estado con los segundos desde que se creó el adaptador: dice cuándo se cayó la
+   * conexión y qué pasaba antes (bitácora parqueadero 21). Las últimas 30.
+   */
+  const inicioDeSesion = reloj();
+  const lineaDeTiempo: string[] = [];
+  const marcar = (que: string) => {
+    lineaDeTiempo.push(`+${Math.round((reloj() - inicioDeSesion) / 1000)} s ${que}`);
+    if (lineaDeTiempo.length > 30) lineaDeTiempo.shift();
+  };
 
   function cambiar(nuevo: EstadoImpresora): void {
     if (nuevo === estado) return;
     estado = nuevo;
+    marcar(nuevo);
     opciones.alCambiarEstado?.(nuevo);
   }
 
@@ -381,6 +392,16 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
 
     reconectar,
 
+    /**
+     * Al cerrar o recargar la caja: suelta la conexión a propósito. Si no, Android puede dejarla
+     * viva sin dueño, la impresora sigue «conectada» y la caja nueva no entra (bitácora 21).
+     */
+    soltar() {
+      if (!conexion?.dispositivo.gatt?.connected) return;
+      marcar('soltada al cerrar la caja');
+      conexion.dispositivo.gatt.disconnect?.();
+    },
+
     async imprimir(trabajo: Trabajo): Promise<Resultado> {
       if (trabajo.formato !== 'escpos') {
         return {
@@ -435,10 +456,12 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
         }
       } catch (error) {
         ultimoError = detalleDe(error);
+        marcar(`no imprimió: ${ultimoError}`);
         cambiar(actual.dispositivo.gatt?.connected ? 'conectada' : 'desconectada');
         return { ok: false, motivo: motivoDelError(error, false), detalle: ultimoError };
       }
       cambiar('conectada');
+      marcar(`imprimió ${trabajo.bytes.length} bytes`);
       return {
         ok: true,
         bytes: trabajo.bytes.length,
@@ -458,6 +481,8 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
         `Trozo: ${trozo.bytes} bytes cada ${trozo.ms} ms`,
         'Características:',
         ...(vistos.length ? vistos.map((v) => `  ${v}`) : ['  -']),
+        'Línea de tiempo:',
+        ...(lineaDeTiempo.length ? lineaDeTiempo.map((v) => `  ${v}`) : ['  -']),
         `Último error: ${ultimoError || '-'}`,
       ].join('\n');
     },

@@ -143,9 +143,31 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
             </p>
           ) : (
             <>
-              {/* Sin Bluetooth web, sus botones no aparecen (HU-Q2.4 CA3). */}
+              {/*
+                Con Web Serial, la impresora emparejada va primero: es el enlace que Android ya
+                tiene con ella, y por Bluetooth web se cayó en el campo (bitácora parqueadero 21).
+                Sin el camino, su botón no aparece (HU-Q2.4 CA3).
+              */}
+              {propuesta.serial && (
+                <>
+                  <p class="ayuda">
+                    Recomendado: si la impresora ya está emparejada en los ajustes de Bluetooth de
+                    este equipo (clave 0000), úsela así. La caja la encuentra sola cada vez que
+                    abre.
+                  </p>
+                  <button
+                    type="button"
+                    class="boton boton-principal"
+                    disabled={ocupado}
+                    onClick={() => void conectar(false, 'serial')}
+                  >
+                    Usar la impresora emparejada
+                  </button>
+                </>
+              )}
               {propuesta.camino === 'bluetooth' && (
                 <>
+                  {propuesta.serial && <p class="ayuda">O por Bluetooth, eligiéndola cada vez:</p>}
                   <button
                     type="button"
                     class="boton"
@@ -164,22 +186,6 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
                   </button>
                 </>
               )}
-              {propuesta.serial && (
-                <>
-                  <p class="ayuda">
-                    Si la impresora ya está emparejada en los ajustes de Bluetooth de este equipo
-                    (clave 0000), úsela así: la caja la encuentra sola cada vez que abre.
-                  </p>
-                  <button
-                    type="button"
-                    class="boton"
-                    disabled={ocupado}
-                    onClick={() => void conectar(false, 'serial')}
-                  >
-                    Usar la impresora emparejada
-                  </button>
-                </>
-              )}
             </>
           )}
           {aviso && (
@@ -187,6 +193,12 @@ export function Asistente({ db, control, propuesta, reloj, alTerminar }: Props) 
               <p class="error" role="alert" data-prueba="aviso">
                 {aviso}
               </p>
+              {propuesta.serial && (
+                <p class="ayuda">
+                  Si la impresora está emparejada en este teléfono, pruebe «Usar la impresora
+                  emparejada».
+                </p>
+              )}
               {/* Lo que el adaptador vio, también cuando la impresora no se reconoce. */}
               <BotonDiagnostico key={aviso} control={control} />
             </>

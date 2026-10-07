@@ -330,3 +330,50 @@ describe('la impresora emparejada (HU-Q2.4)', () => {
     });
   });
 });
+
+describe('el diagnóstico sobrevive a la recarga (bitácora parqueadero 21)', () => {
+  it('al cerrar la caja se guarda, y la caja nueva lo muestra debajo del suyo', async () => {
+    const db = abrirBase(`prueba-${Math.random()}`);
+    const memoria = new Map<string, string>();
+    const guardado = {
+      getItem: (k: string) => memoria.get(k) ?? null,
+      setItem: (k: string, v: string) => void memoria.set(k, v),
+    };
+    const opciones = {
+      bluetooth: bluetoothFalso(() => undefined),
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-9',
+      guardado,
+    };
+    const primera = crearControl(db, opciones);
+    await primera.conectar(false);
+    primera.soltar();
+    const nueva = crearControl(db, opciones);
+    const d = nueva.diagnostico();
+    expect(d).toContain('Impresora: sin vincular en esta sesión');
+    expect(d).toContain('--- Antes de recargar la caja ---');
+    expect(d).toContain('Impresora: PT-210');
+  });
+
+  it('sin almacenamiento, o si falla, la caja sigue igual', () => {
+    const db = abrirBase(`prueba-${Math.random()}`);
+    const roto = {
+      getItem: () => {
+        throw new Error('bloqueado');
+      },
+      setItem: () => {
+        throw new Error('bloqueado');
+      },
+    };
+    const c = crearControl(db, {
+      bluetooth: undefined,
+      hostname: 'localhost',
+      reloj: () => 0,
+      nuevoId: () => 'id-10',
+      guardado: roto,
+    });
+    expect(() => c.soltar()).not.toThrow();
+    expect(c.diagnostico()).toBe('Impresora: sin vincular en esta sesión');
+  });
+});

@@ -225,6 +225,10 @@ export function crearImpresoraSerial(opciones: OpcionesSerial): ImpresoraSerial 
       };
     },
 
+    soltar() {
+      void cerrar();
+    },
+
     estado: () => estado,
 
     diagnostico(): string {
