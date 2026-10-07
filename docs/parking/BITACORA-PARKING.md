@@ -521,3 +521,22 @@ La regla: **una dependencia de la caja se pesa con gzip antes de importarla, y l
 La regla: **lo que depende del nombre de una clase o de una función se prueba contra el build minificado, no solo contra el código fuente.**
 
 *Ficha:* parqueadero · *(mío)* · 🟡 Medio · P15, P17 · parqueadero-0.0.0 · 2026-10-07
+
+**12 · La PT210L real se vinculó y la caja dijo «Esta impresora no se reconoce».**
+
+*Qué pasó.* El 7 oct 2026, en la primera prueba de campo en staging (HU-Q2.6), con el Android del dueño y la impresora del cliente: el selector la mostró, se eligió, la caja tardó unos segundos y dijo «Esta impresora no se reconoce». El diagnóstico no se podía copiar: solo existía después de vincular bien.
+
+*Síntoma literal.* «Esta impresora no se reconoce» en el paso 2 del asistente.
+
+*Lo que se sabe.* nRF Connect muestra el equipo como `PT210L_30F2`, Bluetooth clásico y LE, emparejado, y anuncia los servicios `0x18F0` y `e7810a71-73ae-499d-8c15-faa9aef0c3f2`. Los dos ya estaban en la lista de la caja. Así que la causa no es el servicio, y queda sin confirmar. Lo que el código permitía:
+- Un error al leer las características de un servicio salía como «no se reconoce» (`NotFoundError` se traducía así) y cortaba la búsqueda en vez de seguir con el siguiente.
+- Si el equipo soltaba la conexión GATT mientras se recorrían los servicios (es común en uno clásico y LE ya emparejado), cada servicio fallaba y la búsqueda terminaba sin nada, sin reconectar.
+- El orden ponía primero dos servicios que este equipo no tiene: cada consulta fallida cuesta tiempo en Android.
+
+*Arreglo.* Los dos servicios de la PT210L van primero. Un servicio que falla se anota y la búsqueda sigue. Si la conexión se cayó, se reconecta una vez y se busca de nuevo. Se agregan cinco servicios de los módulos BLE de las térmicas baratas. Y el diagnóstico se puede copiar desde el aviso: dice el equipo, cada servicio que falló con su error y los servicios que el permiso deja ver.
+
+**Lo prueban** las pruebas de `bluetooth.test.ts` «si suelta la conexión mientras busca, reconecta y la encuentra (PT210L)», «un servicio que no entrega sus características no tumba la búsqueda» y «si no se reconoce, el diagnóstico dice el equipo y los servicios que se ven». La confirmación es de campo: la misma PT210L en staging, y si vuelve a fallar, su diagnóstico.
+
+La regla: **un aviso de error en el campo siempre deja copiar lo que el código vio; un error sin diagnóstico obliga a adivinar.**
+
+*Ficha:* parqueadero · *(mío)* · 🟠 Alto · P15, P16 · parqueadero-0.0.0 · 2026-10-07

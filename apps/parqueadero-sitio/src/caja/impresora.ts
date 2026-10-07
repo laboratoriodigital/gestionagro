@@ -87,8 +87,9 @@ export function crearControl(db: BaseDeLaCaja, opciones: OpcionesDeControl): Con
         alCambiarEstado: cambiar,
         alCambiarTrozo: (trozo) => void db.impresora.update('actual', { trozo }),
       });
-      const vinculo = await nueva.vincular();
+      // El diagnóstico tiene que contar lo que vio también cuando vincular falla.
       impresora = nueva;
+      const vinculo = await nueva.vincular();
       cola = crearCola(nueva, {
         alFallar: (trabajo, r) => pendiente(trabajo.id, r),
       });

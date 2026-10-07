@@ -155,6 +155,126 @@ describe('vincular', () => {
   });
 });
 
+describe('las PT-210 que escriben por otro servicio', () => {
+  /** Un equipo con un solo servicio, `uuid`, y una característica de escritura. */
+  const conServicio = (uuid: string | number, visibles: string[] = []): BluetoothBle => {
+    const caracteristica = {
+      uuid: 'escritura',
+      properties: { write: true, writeWithoutResponse: false, notify: false },
+      writeValueWithoutResponse: async () => undefined,
+      writeValueWithResponse: async () => undefined,
+    };
+    const gatt: ServidorGatt = {
+      connected: true,
+      connect: async () => gatt,
+      getPrimaryService: async (s) => {
+        if (s !== uuid) throw error('NotFoundError');
+        return { uuid: String(uuid), getCharacteristics: async () => [caracteristica] };
+      },
+      getPrimaryServices: async () =>
+        visibles.map((v) => ({ uuid: v, getCharacteristics: async () => [] })),
+    };
+    return {
+      requestDevice: async (o) => {
+        // Web Bluetooth solo deja ver lo que se pidió en optionalServices.
+        if (!o.optionalServices.includes(uuid))
+          gatt.getPrimaryService = () => Promise.reject(error('SecurityError'));
+        return { id: 'pt', name: 'PT-210', gatt, addEventListener: () => undefined };
+      },
+    };
+  };
+
+  it.each([0xae30, 0xffe0, 0xfff0])('la que escribe por %s se reconoce', async (uuid) => {
+    const v = await crearImpresoraBluetooth({ bluetooth: conServicio(uuid) }).vincular();
+    expect(v.servicio).toBe(String(uuid));
+  });
+
+  it('si suelta la conexión mientras busca, reconecta y la encuentra (PT210L)', async () => {
+    const caracteristica = {
+      uuid: '00002af1-0000-1000-8000-00805f9b34fb',
+      properties: { write: true, writeWithoutResponse: true, notify: false },
+      writeValueWithoutResponse: async () => undefined,
+      writeValueWithResponse: async () => undefined,
+    };
+    let conexiones = 0;
+    const gatt: ServidorGatt = {
+      get connected() {
+        return conexiones > 1;
+      },
+      connect: async () => {
+        conexiones++;
+        return gatt;
+      },
+      getPrimaryService: async (s) => {
+        if (conexiones < 2) throw error('NetworkError');
+        if (s !== 0x18f0) throw error('NotFoundError');
+        return {
+          uuid: '000018f0-0000-1000-8000-00805f9b34fb',
+          getCharacteristics: async () => [caracteristica],
+        };
+      },
+    };
+    const impresora = crearImpresoraBluetooth({
+      bluetooth: {
+        requestDevice: async () => ({
+          id: 'pt',
+          name: 'PT210L_30F2',
+          gatt,
+          addEventListener: () => undefined,
+        }),
+      },
+    });
+    const v = await impresora.vincular();
+    expect(v.caracteristica).toBe(caracteristica.uuid);
+    expect(impresora.diagnostico()).toContain('0x18f0: NetworkError');
+  });
+
+  it('un servicio que no entrega sus características no tumba la búsqueda', async () => {
+    const buena = {
+      uuid: 'bef8d6c9-9c21-4c9e-b632-bd58c1009f9f',
+      properties: { write: true, writeWithoutResponse: false, notify: true },
+      writeValueWithoutResponse: async () => undefined,
+      writeValueWithResponse: async () => undefined,
+    };
+    const gatt: ServidorGatt = {
+      connected: true,
+      connect: async () => gatt,
+      getPrimaryService: async (s) => {
+        if (s === 0x18f0) {
+          return { uuid: '18f0', getCharacteristics: () => Promise.reject(error('NotFoundError')) };
+        }
+        if (s === 'e7810a71-73ae-499d-8c15-faa9aef0c3f2') {
+          return { uuid: String(s), getCharacteristics: async () => [buena] };
+        }
+        throw error('NotFoundError');
+      },
+    };
+    const impresora = crearImpresoraBluetooth({
+      bluetooth: {
+        requestDevice: async () => ({
+          id: 'pt',
+          name: 'PT210L',
+          gatt,
+          addEventListener: () => undefined,
+        }),
+      },
+    });
+    expect((await impresora.vincular()).caracteristica).toBe(buena.uuid);
+    expect(impresora.diagnostico()).toContain('18f0: sin características (NotFoundError');
+  });
+
+  it('si no se reconoce, el diagnóstico dice el equipo y los servicios que se ven', async () => {
+    const impresora = crearImpresoraBluetooth({
+      bluetooth: conServicio(0x1234, ['0000abcd-0000-1000-8000-00805f9b34fb']),
+    });
+    const fallo = (await impresora.vincular().catch((e: unknown) => e)) as FalloDeImpresora;
+    expect(fallo.motivo).toBe('sin_caracteristica');
+    const d = impresora.diagnostico();
+    expect(d).toContain('Impresora: PT-210 (sin usar)');
+    expect(d).toContain('Servicios visibles: 0000abcd-0000-1000-8000-00805f9b34fb');
+  });
+});
+
 describe('imprimir', () => {
   it('manda en trozos de 180 cada 30 ms y llegan todos los bytes en orden', async () => {
     const f = pt210Falsa();
