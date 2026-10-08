@@ -238,7 +238,7 @@ export const textoWranglerDeLaCelda = (celda: Celda): string => comoTexto(wrangl
 /** Las celdas que sirven al agro: las únicas con la API de `apps/api-celda` (HU-Q7.2). */
 export const celdasDelAgro = (config: ConfigCeldas): Celda[] =>
   config.celdas.filter((c) => c.producto === 'agro');
-/** Las celdas del parqueadero (HU-Q7.2): sus bases D1 y su KV, sin Worker hasta HU-Q7.4. */
+/** Las celdas del parqueadero (HU-Q7.2): sus bases D1, su KV y su API (`apps/parqueadero-api`, HU-Q7.4). */
 export const celdasDelParqueadero = (config: ConfigCeldas): Celda[] =>
   config.celdas.filter((c) => c.producto === 'parqueadero');
 
@@ -248,9 +248,9 @@ export const rutaWranglerCeldaDelParqueadero = (celdaId: string) =>
   join(RAIZ, 'apps', 'parqueadero-api', `wrangler.${celdaId}.jsonc`);
 
 /**
- * Una celda del parqueadero (HU-Q7.2): un binding D1 por shard con sus migraciones, para
- * `wrangler d1 migrations apply` y para el D1 local de las pruebas. Todavía sin `main`: el Worker de
- * su API (`parqueadero-api-<celda>`) llega con HU-Q7.4. Los ids los agrega el despliegue.
+ * Una celda del parqueadero (HU-Q7.2): el Worker de su API (`parqueadero-api-<celda>`, HU-Q7.4) y
+ * un binding D1 por shard con sus migraciones, para `wrangler d1 migrations apply` y para el D1
+ * local de las pruebas. Los ids, el KV, las claves del CORE y los orígenes los agrega el despliegue.
  */
 export function wranglerDeLaCeldaDelParqueadero(celda: Celda): Record<string, unknown> {
   const bases = (staging: boolean) =>
@@ -263,6 +263,7 @@ export function wranglerDeLaCeldaDelParqueadero(celda: Celda): Record<string, un
   return {
     $schema: '../../node_modules/wrangler/config-schema.json',
     name: nombre,
+    main: 'src/worker.ts',
     compatibility_date: FECHA_COMPATIBILIDAD,
     workers_dev: true,
     vars: { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan },
