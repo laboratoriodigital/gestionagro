@@ -10,7 +10,6 @@ import plantilla from '../../../../content/parqueadero/privacidad/aviso.json' wi
 export const VERSION_DEL_AVISO: string = plantilla.version;
 
 type DatosLegales = Pick<Sede, 'nombre' | 'nit' | 'direccion' | 'ciudad' | 'telefono'> & {
-  readonly org_id?: string | null;
   readonly aviso_privacidad?: Sede['aviso_privacidad'];
 };
 
@@ -27,9 +26,11 @@ export interface AvisoArmado {
 
 /**
  * El aviso y la política con los datos de la sede. «sin_cuenta» solo se dice en una caja sin
- * cuenta (estudio §13.5): con `org_id`, los datos ya suben a la nube y la frase sería falsa.
+ * cuenta (estudio §13.5): en una caja vinculada a la nube la frase sería falsa, y en su lugar va
+ * «con_cuenta» (HU-Q7.11 CA2). Quién decide es la caja (`nube` en `meta`), no la sede: la sede
+ * guardada en la caja no cambia al subir.
  */
-export function avisoDeLaSede(sede: DatosLegales): AvisoArmado {
+export function avisoDeLaSede(sede: DatosLegales, conCuenta: boolean): AvisoArmado {
   const aceptado = sede.aviso_privacidad?.aceptado;
   const valores: Record<string, string> = {
     nombre: sede.nombre,
@@ -40,15 +41,19 @@ export function avisoDeLaSede(sede: DatosLegales): AvisoArmado {
     fecha_aceptacion: aceptado ? aceptado.slice(0, 10) : 'día en que la sede la acepte',
   };
   const llenar = (t: string) => t.replace(/\{(\w+)\}/g, (_, k: string) => valores[k] ?? '');
-  const sinCuenta = !sede.org_id;
+  const secciones: readonly { titulo: string; texto: string; con_cuenta?: string }[] =
+    plantilla.politica.secciones;
   return {
     titulo: plantilla.aviso.titulo,
-    parrafos: plantilla.aviso.parrafos
-      .map((p) => (p === '{sin_cuenta}' ? (sinCuenta ? plantilla.sin_cuenta : '') : llenar(p)))
-      .filter(Boolean),
+    parrafos: plantilla.aviso.parrafos.map((p) =>
+      llenar(p === '{sin_cuenta}' ? (conCuenta ? plantilla.con_cuenta : plantilla.sin_cuenta) : p),
+    ),
     politica: {
       titulo: plantilla.politica.titulo,
-      secciones: plantilla.politica.secciones.map((s) => [s.titulo, llenar(s.texto)]),
+      secciones: secciones.map((s) => [
+        s.titulo,
+        llenar(conCuenta && s.con_cuenta ? s.con_cuenta : s.texto),
+      ]),
     },
     version: plantilla.version,
   };

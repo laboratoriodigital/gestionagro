@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { HOST_DE_PRODUCCION } from '../../apps/parqueadero-sitio/src/caja/entorno.ts';
 import plantilla from '../../content/parqueadero/privacidad/aviso.json' with { type: 'json' };
+import politica from '../../content/parqueadero/privacidad/politica.json' with { type: 'json' };
 import { ORIGEN_DEL_RECIBO } from '../../packages/parqueadero-recibos/src/enlace.ts';
 import {
   DATASET_PARQUEADERO,
@@ -16,6 +17,7 @@ import {
 import {
   conexionesDeLaCaja,
   cspDelParqueadero,
+  driveDeLaCaja,
   robotsDelParqueadero,
   textoDeCabecerasDelParqueadero,
 } from '../../scripts/lib/cabeceras-parqueadero.ts';
@@ -88,13 +90,21 @@ describe('el sitio del parqueadero', () => {
     ]);
     // Y el CORE de staging, para entrar con la cuenta (HU-Q7.6).
     expect(cspDelParqueadero('staging')).toContain(
-      "connect-src 'self' https://parqueadero-api-c2-staging.laboratoriodigital-la.workers.dev https://agro-core-staging.laboratoriodigital-la.workers.dev;",
+      "connect-src 'self' https://parqueadero-api-c2-staging.laboratoriodigital-la.workers.dev https://agro-core-staging.laboratoriodigital-la.workers.dev https://www.googleapis.com;",
     );
     // Hasta que HU-Q7.12 publique la celda, la de producción es la de M0.
     expect(conexionesDeLaCaja('produccion')).toEqual([]);
     expect(cspDelParqueadero('produccion')).toMatch(/connect-src 'self';/);
     // Nunca la API del agro.
     expect(cspDelParqueadero('staging')).not.toContain('agro-api');
+  });
+
+  it('el Drive de la copia (HU-Q10.1) es el que declara la política, y solo en staging', () => {
+    expect(driveDeLaCaja('staging').length).toBeGreaterThan(0);
+    for (const o of driveDeLaCaja('staging')) {
+      expect(politica.conexiones_de_terceros).toContain(o);
+    }
+    expect(driveDeLaCaja('produccion')).toEqual([]);
   });
 
   it('staging no se indexa; producción lleva HSTS y no deja indexar la caja ni los recibos', () => {

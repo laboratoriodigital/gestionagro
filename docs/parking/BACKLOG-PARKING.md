@@ -432,7 +432,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.4.1 `[código]` app y rutas · WI-Q7.4.2 `[código]` push con reintento por operación · WI-Q7.4.3 `[prueba]` D1 local con los dos parqueaderos de prueba · WI-Q7.4.4 `[infra]` `parqueadero-api-c2` en staging · WI-Q7.4.5 `[doc]` PARQUEADERO §12.
 
 #### HU-Q7.5 · La caja sincroniza sin cortar una venta
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q7 · **Depende de:** HU-Q7.4 · **Estado:** En revisión (rama `feat/q7-5-caja-sincroniza`): en staging. CA3 con dos navegadores, 5 vehículos por caja para cuidar los minutos de CI (`tests/e2e/parqueadero-dos-cajas.spec.ts`), y con las 20 por caja en el arnés (`tests/integracion/parqueadero-dos-cajas.test.ts`); CA4 en el arnés, y lo de no recargar con la cola llena es HU-Q3.1 CA3, porque la cola vive en IndexedDB. Hasta HU-Q7.6 ninguna caja tiene `nube` y la cola no se llena; hasta HU-Q7.7 una caja nueva toma la serie A y lo suyo va a cuarentena con el motivo de la serie
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q7 · **Depende de:** HU-Q7.4 · **Estado:** Hecha (PR #151, fusionado el 8 oct 2026): en staging. CA3 con dos navegadores, 5 vehículos por caja para cuidar los minutos de CI (`tests/e2e/parqueadero-dos-cajas.spec.ts`), y con las 20 por caja en el arnés (`tests/integracion/parqueadero-dos-cajas.test.ts`); CA4 en el arnés, y lo de no recargar con la cola llena es HU-Q3.1 CA3, porque la cola vive en IndexedDB. Hasta HU-Q7.6 ninguna caja tiene `nube` y la cola no se llena; hasta HU-Q7.7 una caja nueva toma la serie A y lo suyo va a cuarentena con el motivo de la serie
 - Como cajero, quiero que lo que registro llegue solo a la celda cuando hay red, sin que la caja me haga esperar, para no pensar en la sincronización.
 - **Respaldo:** PARQUEADERO §5.2 (`outbox`, `rechazos`) y §5.3 (reglas 1, 3 y 4); ARQUITECTURA §5.3 (las tres señales del cuaderno).
 - **CA1.** Cada registro nuevo entra a `outbox` en la misma transacción de IndexedDB que el registro. El envío corre en segundo plano y nunca entre el toque de «Registrar» y el recibo.
@@ -444,7 +444,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.5.1 `[código]` cola y envío · WI-Q7.5.2 `[código]` cabecera · WI-Q7.5.3 `[prueba]` e2e de dos cajas · WI-Q7.5.4 `[prueba]` corte a mitad del push.
 
 #### HU-Q7.6 · Entrar desde la caja y reclamar lo local
-- **Capa:** caja y API · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q8 · **Depende de:** HU-Q7.5, HU-C3.1, HU-C4.3, HU-C4.4 · **Estado:** En revisión (rama `feat/q8-sprint`): en staging, «Cuenta y nube» en la caja (`apps/parqueadero-sitio/src/caja/cuenta.ts`) y `POST /api/v1/reclamar` con `GET /api/v1/resumen` en la celda (`apps/parqueadero-api/src/dispositivos.ts`). CA2 cambia de forma por el plan gratuito: la celda registra la caja con su serie y lo de la caja sube por la cola, de a 25 y con los mismos ids; la caja lo da por subido cuando `resumen` dice lo mismo que ella (P21; bitácora, «Cambios de rumbo»). CA4 lo cubre la restauración, que ya rechazaba el archivo entero; WI-Q7.6.3 con un respaldo hecho por el código de `v0.2.0` (`tests/fixtures/parqueadero-respaldo-v0.2.0.json`). Quedan para el refinamiento con el cliente: el `auth_time` de CA3 y WI-Q7.8.3, que esperan a saber cómo entra un cajero sin Google (CA1); hasta entonces sigue el PIN. WI-Q7.6.5 es del dueño, en staging
+- **Capa:** caja y API · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q8 · **Depende de:** HU-Q7.5, HU-C3.1, HU-C4.3, HU-C4.4 · **Estado:** Hecha (PR #153, fusionado el 8 oct 2026): en staging, «Cuenta y nube» en la caja (`apps/parqueadero-sitio/src/caja/cuenta.ts`) y `POST /api/v1/reclamar` con `GET /api/v1/resumen` en la celda (`apps/parqueadero-api/src/dispositivos.ts`). CA2 cambia de forma por el plan gratuito: la celda registra la caja con su serie y lo de la caja sube por la cola, de a 25 y con los mismos ids; la caja lo da por subido cuando `resumen` dice lo mismo que ella (P21; bitácora, «Cambios de rumbo»). CA4 lo cubre la restauración, que ya rechazaba el archivo entero; WI-Q7.6.3 con un respaldo hecho por el código de `v0.2.0` (`tests/fixtures/parqueadero-respaldo-v0.2.0.json`). Quedan para el refinamiento con el cliente: el `auth_time` de CA3 y WI-Q7.8.3, que esperan a saber cómo entra un cajero sin Google (CA1); hasta entonces sigue el PIN. WI-Q7.6.5 es del dueño, en staging
 - Como propietario del parqueadero cero, quiero crear mi cuenta y subir todo lo que la caja guardó desde el piloto, con los mismos números, para no empezar de cero.
 - **Respaldo:** PARQUEADERO §11.3 y §5.4; HU-E4.3 del agro (el mismo patrón); P21.
 - **CA1.** «Entrar» lleva a la cuenta con el producto `parqueadero` (HU-C3.1) y vuelve a `/caja/` con un token v2 (`aud = parqueadero`, HU-C4.3) que se refresca por producto (HU-C4.4). Mientras no exista entrar con correo (HU-C10.2, C11), entrar pide una cuenta de Google: cómo trabaja un cajero que no la tiene se decide con el cliente en el refinamiento de Q8.
@@ -458,7 +458,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Lo que no hace:** reclamar la caja del cliente en producción. Eso pasa en HU-Q7.12, después de que HU-Q7.11 deja lista la promesa de privacidad con cuenta.
 
 #### HU-Q7.7 · Dispositivos: alta con serie y retiro
-- **Capa:** API y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q8 · **Depende de:** HU-Q7.6 · **Estado:** En revisión (rama `feat/q8-sprint`): en staging, `POST`/`GET /api/v1/dispositivos` y `/retirar`; la caja retirada recibe 403 en push y pull, y su sesión de la cuenta se cierra con `telefonos/retirar` del CORE (el acceso ya emitido vence solo en 12 h). Las cajas en «Cuenta y nube»; runbook `docs/runbooks/parqueadero-retirar-caja.md`
+- **Capa:** API y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q8 · **Depende de:** HU-Q7.6 · **Estado:** Hecha (PR #153, fusionado el 8 oct 2026): en staging, `POST`/`GET /api/v1/dispositivos` y `/retirar`; la caja retirada recibe 403 en push y pull, y su sesión de la cuenta se cierra con `telefonos/retirar` del CORE (el acceso ya emitido vence solo en 12 h). Las cajas en «Cuenta y nube»; runbook `docs/runbooks/parqueadero-retirar-caja.md`
 - Como propietario, quiero dar de alta una segunda caja y retirar un teléfono perdido, para que dos cajas no repitan números y un teléfono robado no siga entrando.
 - **Respaldo:** PARQUEADERO §5.4, §11.4 (puntos 1 y 3) y §12; runbook «Retirar un dispositivo» (PARQUEADERO §14.5).
 - **CA1.** `POST /api/v1/dispositivos` da a cada dispositivo nuevo la siguiente serie libre del parqueadero; la base la hace única (anexo A).
@@ -468,7 +468,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.7.1 `[código]` rutas · WI-Q7.7.2 `[código]` pantalla de dispositivos · WI-Q7.7.3 `[prueba]` serie ajena y retirado · WI-Q7.7.4 `[doc]` runbook (HU-Q10.4).
 
 #### HU-Q7.8 · Roles y permisos como dato, los mismos en la caja y en la celda
-- **Capa:** paquete, API y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q7 · **Depende de:** HU-Q7.1 · **Estado:** En revisión (rama `feat/q7-8-permisos-parqueadero`): la matriz como dato y `decidirEscritura` (WI-Q7.8.1), la prueba de la matriz entera y su atadura a §11.2 y a `productos.json` (WI-Q7.8.4). La API decide con ella en HU-Q7.4 (WI-Q7.8.2) y la caja la usa al entrar con cuenta en HU-Q7.6 (WI-Q7.8.3); en M0 sigue el PIN
+- **Capa:** paquete, API y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q7 · **Depende de:** HU-Q7.1 · **Estado:** Hecha (PR #140, fusionado el 8 oct 2026): la matriz como dato y `decidirEscritura` (WI-Q7.8.1), la prueba de la matriz entera y su atadura a §11.2 y a `productos.json` (WI-Q7.8.4). La API decide con ella en HU-Q7.4 (WI-Q7.8.2) y la caja la usa al entrar con cuenta en HU-Q7.6 (WI-Q7.8.3); en M0 sigue el PIN
 - Como propietario, quiero que un cajero no pueda cambiar tarifas ni anular lo de otro, para que el cierre de turno sea creíble.
 - **Respaldo:** PARQUEADERO §11.2; `packages/sync/src/permisos.ts` (el modelo del cuaderno); bitácora ecommerce 64 (un permiso escondido en la página es un adorno).
 - **CA1.** La matriz de PARQUEADERO §11.2 vive en un archivo de dato que importan la API, que decide, y la caja, que esconde.
@@ -478,7 +478,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.8.1 `[código]` matriz · WI-Q7.8.2 `[código]` API · WI-Q7.8.3 `[código]` caja · WI-Q7.8.4 `[prueba]` matriz completa.
 
 #### HU-Q7.9 · Respaldo en la nube y exportación
-- **Capa:** API · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q8 · **Depende de:** HU-Q7.6 · **Estado:** En revisión (rama `feat/q8-sprint`): en staging. CA1 cambia de forma por el plan gratuito: sin R2 ni enlace temporal, la caja al día con la nube arma el mismo `parqueadero-export/1` con lo de todas las cajas y lo compara con `GET /api/v1/resumen`; la prueba de ida y vuelta es la del respaldo de `v0.2.0` reclamado. CA2 hecho («Respaldo», la cabecera y el cierre de turno). CA3: sin enlaces no hay enlace vencido; otra organización no ve nada, ni en el pull ni en el resumen
+- **Capa:** API · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q8 · **Depende de:** HU-Q7.6 · **Estado:** Hecha (PR #153, fusionado el 8 oct 2026): en staging. CA1 cambia de forma por el plan gratuito: sin R2 ni enlace temporal, la caja al día con la nube arma el mismo `parqueadero-export/1` con lo de todas las cajas y lo compara con `GET /api/v1/resumen`; la prueba de ida y vuelta es la del respaldo de `v0.2.0` reclamado. CA2 hecho («Respaldo», la cabecera y el cierre de turno). CA3: sin enlaces no hay enlace vencido; otra organización no ve nada, ni en el pull ni en el resumen
 - Como propietario, quiero descargar todo lo de mi parqueadero cuando quiera, para no depender de que el teléfono no se pierda.
 - **Respaldo:** PARQUEADERO §12 (`/api/v1/exportar`), §5.3 regla 6 y §2.2.
 - **CA1.** `POST /api/v1/exportar` arma un `parqueadero-export/1` completo en R2 y devuelve un enlace temporal. Es el mismo formato del respaldo de M0 y de la carga al reclamar: una prueba de ida y vuelta los ata (P2).
@@ -499,7 +499,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.10.1 `[código]` plan en la caja · WI-Q7.10.2 `[código]` aviso a la celda · WI-Q7.10.3 `[prueba]` plan vencido · WI-Q7.10.4 `[dueño]` registrar los periodos pagados a mano.
 
 #### HU-Q7.11 · La promesa de privacidad cambia con la cuenta
-- **Capa:** legal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q9 · **Depende de:** HU-Q4.4, HU-Q7.5 · **Estado:** Refinada
+- **Capa:** legal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q9 · **Depende de:** HU-Q4.4, HU-Q7.5 · **Estado:** En revisión (rama `feat/q9-sprint`): en staging. Los términos y el contrato de transmisión en `content/parqueadero/privacidad/terminos.json` (borrador para revisión de abogado), «Entrar con Google» solo con la casilla marcada, la versión y la hora en `meta` y en la fila de la caja (migración 0002), `?terminos=` en cada pedido a la celda y 403 `sin-terminos` sin ellos. Falta WI-Q7.11.1: los datos de Laboratorio Digital como encargado (hoy dicen «por completar»)
 - Como parqueadero que crea su cuenta, quiero que lo que dice la caja sobre mis datos siga siendo cierto, para no prometer lo que ya no es.
 - **Respaldo:** PARQUEADERO §13.2 (en M1 y M2, ED1 es Encargado) y §2.3 punto 5; estudio §13.5; Decreto 1377 art. 25.
 - **CA1.** Antes de entrar, la caja dice qué pasa a la nube (registros, placas y, desde M2, fotos) y qué no (el número del conductor), y pide aceptar los términos con el contrato de transmisión. La aceptación queda con su versión y su hora.
@@ -691,18 +691,18 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 
 ### EQ10 · Operación
 
-#### HU-Q10.1 · Cron despachador, respaldo semanal y restauración ensayada
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q9 · **Depende de:** HU-Q7.4 · **Estado:** Refinada
+#### HU-Q10.1 · Respaldo en el Google Drive de la cuenta, como CultivoPro
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q9 · **Depende de:** HU-Q7.4, HU-Q7.9 · **Estado:** En revisión (rama `feat/q9-sprint`): en staging. El dueño cambió el destino el 8 oct 2026: «respaldo en la cuenta de Google con que se registre, tal cual quedó en CultivoPro». Sin cron ni R2: la celda ya es la copia del parqueadero (HU-Q7.9) y el vigía del agro ya mide sus filas (HU-Q7.13); bitácora, cambios de rumbo. Lo de Google pasó a `@ed1/drive`, que comparten el cuaderno y la caja; el CORE acepta `producto=` en el permiso de Drive, y la política del parqueadero pasa a la versión 2 para declararlo. Falta WI-Q10.1.3
 - Como dueño, quiero que los datos de los parqueaderos tengan respaldo y que restaurarlo esté probado, antes de guardar los datos de un tercero en la nube.
-- **Respaldo:** PARQUEADERO §14.3; ADR-30; ARQUITECTURA §8.3; P16.
-- **CA1.** Un solo cron por celda: vigía cada hora, respaldo semanal a R2 y purga de exportaciones vencidas.
-- **CA2.** La restauración se ensaya en staging desde el respaldo de R2, y el tiempo que toma queda en el runbook. La copia cifrada al Drive del dueño se suma cuando HU-C11.4 exista (C11).
-- **CA3 ❌.** Un respaldo que no se pudo escribir avisa por Telegram el mismo día. Restaurar une, nunca reemplaza el presente (bitácora ecommerce 77).
+- **Respaldo:** la copia del cuaderno (HU-E8.4, etapa 1; `docs/runbooks/drive-del-productor.md`); PARQUEADERO §14.3; ARQUITECTURA §8.3; P16.
+- **CA1.** Más › «Respaldo» › «Guardar copia en mi Google Drive» sube el mismo `parqueadero-export/1` de «Hacer el respaldo» a la carpeta «Caja del parqueadero · respaldos» del Drive de quien lo pide, directo de la caja a su cuenta. Se conservan las 8 más recientes y cuenta como respaldo en la cabecera. Con la caja en la nube, primero sube y baja: la copia lleva lo de todas las cajas.
+- **CA2.** «Traer una copia de mi Google Drive» lista las copias y une la elegida a la caja con la misma revisión de «Restaurar». Ensayado de punta a punta con Drive y CORE falsos (`tests/e2e/parqueadero-drive.spec.ts`); el permiso real de Google, en staging (WI-Q10.1.3).
+- **CA3 ❌.** Traer une, nunca reemplaza el presente (bitácora ecommerce 77). Un permiso pedido hace más de 10 minutos, o desde otro teléfono, no se canjea; sin señal no sale de la caja; el token de Google nunca se guarda.
 - **Patrones en riesgo:** P14, P16, P21.
-- **Work items:** WI-Q10.1.1 `[código]` cron · WI-Q10.1.2 `[prueba]` respaldo fallido · WI-Q10.1.3 `[campo]` ensayo de restauración · WI-Q10.1.4 `[doc]` runbook.
+- **Work items:** WI-Q10.1.1 `[código]` `@ed1/drive` y la copia de la caja · WI-Q10.1.2 `[prueba]` · WI-Q10.1.3 `[dueño]` en staging, guardar y traer una copia con su cuenta de Google · WI-Q10.1.4 `[doc]` política v2. Lo que pedía antes (un cron por celda, respaldo semanal a R2, aviso por Telegram) queda fuera mientras el dueño no lo pida.
 
 #### HU-Q10.2 · Un parqueadero se va: exportar, entregar, verificar y purgar
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q9 · **Depende de:** HU-Q7.9 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q9 · **Depende de:** HU-Q7.9 · **Estado:** En revisión (rama `feat/q9-sprint`): `scripts/baja-parqueadero.ts` (exportar, verificar, purgar y ensayar, por la API de D1, sin shell) y `docs/runbooks/parqueadero-baja.md`. No exporta con cajas sin retirar y no purga si la celda tiene algo que no se entregó; una purga cortada se termina repitiendo el comando. Probado en el D1 local con sqlite y workerd (`tests/integracion/parqueadero-baja.test.ts`), con Ensayo Uno en el mismo shard intacto. CA2 en staging: el flujo `ensayo-baja-parqueadero`, a mano, después de fusionar
 - Como parqueadero que deja el servicio, quiero recibir todo lo mío antes de que se borre.
 - **Respaldo:** PARQUEADERO §14.5 (runbook 5) y anexo A (`purga`); P21.
 - **CA1.** El runbook y su script: exportación completa, entrega al parqueadero, huella verificada y, solo entonces, una fila en `purga` que habilita el `DELETE`.
@@ -722,7 +722,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q10.3.1 `[código]` registro y resumen · WI-Q10.3.2 `[dueño]` registrar desde el piloto · WI-Q10.3.3 `[doc]` runbooks.
 
 #### HU-Q10.4 · Los runbooks de la celda, atados al código
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q9 · **Depende de:** HU-Q7.7, HU-Q7.13 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q9 · **Depende de:** HU-Q7.7, HU-Q7.13 · **Estado:** En revisión (rama `feat/q9-sprint`): `docs/runbooks/parqueadero-kill-switches.md` con `ks:parqueadero`, `ks:parqueadero-fotos` y `ks:core:parqueadero` y cómo verificarlos; la prueba `tests/repo/runbooks-parqueadero.test.ts` saca del código las rutas del Worker, las claves de `productos.json`, los KV de `celdas.json` y sus direcciones, y pone en rojo un runbook que nombre algo que no existe (CA3 con su control negativo)
 - Como dueño, quiero los pasos exactos para retirar un teléfono robado y para apagar o prender la celda, sin adivinar.
 - **Respaldo:** PARQUEADERO §14.5 (runbook 4) y §14.2; P18.
 - **CA1.** `docs/runbooks/` tiene «Retirar un dispositivo del parqueadero» y «Kill switches del parqueadero», con los comandos exactos.

@@ -1139,3 +1139,62 @@ legend {
   border-radius: var(--radio);
   background: var(--superficie-2);
 }
+
+/* Los términos de la nube (HU-Q7.11): qué sube y qué no, a la vista; el texto completo, a un toque. */
+.terminos {
+  display: grid;
+  gap: var(--espacio-2);
+  padding-block: var(--espacio-4);
+  border-block: 1px solid var(--linea);
+  line-height: 1.45;
+}
+
+.terminos h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.terminos-rotulo {
+  margin: var(--espacio-2) 0 0;
+  color: var(--texto-suave);
+  font-size: var(--texto-etiqueta);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: var(--interletrado-etiqueta);
+}
+
+.terminos ul {
+  display: grid;
+  gap: var(--espacio-1);
+  margin: 0;
+  padding-inline-start: 1.25em;
+  font-size: 0.9375rem;
+}
+
+.terminos summary {
+  min-block-size: var(--toque);
+  display: flex;
+  align-items: center;
+  color: var(--acento);
+  cursor: pointer;
+}
+
+.terminos-seccion {
+  margin: var(--espacio-3) 0 var(--espacio-1);
+  font-size: 0.9375rem;
+}
+
+.terminos-texto {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 0.875rem;
+}
+
+.terminos .casilla {
+  margin-block-start: var(--espacio-2);
+}
+
+/* Una caja vinculada sin los términos vigentes: la pausa se dice antes que todo lo demás. */
+.terminos-pendientes {
+  display: grid;
+  gap: var(--espacio-3);
+}

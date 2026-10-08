@@ -41,6 +41,12 @@ No hay secretos nuevos: el CORE usa el mismo cliente de Google y deriva la clave
 | «Cancelaste el permiso en Google» | Se tocó «Cancelar» en Google; no se guardó nada |
 | «Tu Google Drive está lleno» | La cuenta no tiene espacio |
 
+## La caja del parqueadero (HU-Q10.1)
+
+La caja usa lo mismo, en staging: Más › **Respaldo** › «Guardar copia en mi Google Drive» o «Traer una copia de mi Google Drive». La carpeta es **«Caja del parqueadero · respaldos»**, el archivo es el `parqueadero-export/1` de «Hacer el respaldo», y traer une con la revisión de «Restaurar». El CORE pide el permiso con `producto=parqueadero` y vuelve solo a la caja (`/caja/`) del origen que `infrastructure/productos.json` le da al parqueadero. No hay que tocar Google Cloud otra vez: es el mismo cliente y la misma dirección de regreso del CORE. Google muestra en el permiso el nombre de la aplicación del cliente OAuth, que es el mismo de CultivoPro.
+
+Para probarlo, los pasos de arriba en `…/caja/` de staging; los mensajes son los mismos, de usted.
+
 ## Apagarlo
 
 Usa el mismo kill switch del CORE, `ks:agro-core` (ver `kill-switch.md`): apaga entrar con Google y también pedir el permiso de Drive. El cuaderno sigue funcionando en el teléfono.

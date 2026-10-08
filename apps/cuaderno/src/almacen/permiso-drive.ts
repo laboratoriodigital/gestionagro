@@ -12,18 +12,15 @@
  * pestaña del mismo sitio, la base sigue siendo la misma. El token de Drive nunca se guarda: dura
  * una hora y se usa para una sola copia.
  */
+import { canjearSello, nuevoVerificador, PermisoInvalido, urlDelPermiso } from '@ed1/drive';
 import type { CuadernoDb } from './db.ts';
+
+export { leerVuelta, PermisoInvalido, textoDelError, type Vuelta } from '@ed1/drive';
 
 const CLAVE = 'drive_pendiente';
 /** Lo que el teléfono espera hacer cuando vuelva de Google. */
 export type AccionDrive = 'guardar' | 'traer';
 const VIDA_PENDIENTE_MS = 10 * 60 * 1000;
-
-const b64url = (b: ArrayBuffer | Uint8Array) =>
-  btoa(String.fromCharCode(...new Uint8Array(b)))
-    .replaceAll('+', '-')
-    .replaceAll('/', '_')
-    .replace(/=+$/, '');
 
 /** Dirección del CORE para empezar; quien llama navega hacia ella. */
 export async function urlParaPedirPermiso(
@@ -33,36 +30,10 @@ export async function urlParaPedirPermiso(
   accion: AccionDrive,
   ahora: () => number = () => Date.now(),
 ): Promise<string> {
-  const verificador = b64url(crypto.getRandomValues(new Uint8Array(32)));
-  const desafio = b64url(
-    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verificador)),
-  );
+  const { verificador, desafio } = await nuevoVerificador();
   const creado = new Date(ahora()).toISOString();
   await db.meta.put({ clave: CLAVE, valor: { verificador, accion, creado }, actualizado: creado });
-  return `${core}/api/core/drive/inicio?vuelta=${encodeURIComponent(vuelta)}&desafio=${desafio}`;
-}
-
-export type Vuelta = { tipo: 'sello'; sello: string } | { tipo: 'error'; motivo: string } | null;
-
-/** Lee el fragmento de la vuelta de Google, si es de Drive. */
-export function leerVuelta(hash: string): Vuelta {
-  const p = new URLSearchParams(hash.replace(/^#/, ''));
-  const sello = p.get('drive');
-  if (sello) return { tipo: 'sello', sello };
-  const error = p.get('drive-error');
-  if (error) return { tipo: 'error', motivo: error };
-  return null;
-}
-
-/** El motivo de la vuelta, dicho para la persona (P15). */
-export function textoDelError(motivo: string): string {
-  return motivo === 'cancelada'
-    ? 'Cancelaste el permiso en Google. No se guardó ni se trajo nada.'
-    : 'Google no dio el permiso. Vuelve a intentarlo en un momento.';
-}
-
-export class PermisoInvalido extends Error {
-  override readonly name = 'PermisoInvalido';
+  return urlDelPermiso(core, { vuelta, desafio });
 }
 
 /** Canjea el sello por un token de Drive de una hora; borra lo pendiente pase lo que pase. */
@@ -89,21 +60,6 @@ export async function canjearPermiso(
       'El permiso se pidió hace mucho o desde otro teléfono. Vuelve a tocar el botón.',
     );
   }
-  let r: Response;
-  try {
-    r = await fetchFn(`${core}/api/core/drive/canje`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ sellado: sello, verificador: pendiente.verificador }),
-    });
-  } catch {
-    throw new PermisoInvalido(
-      'No hay señal para terminar el permiso. Inténtalo cuando tengas internet.',
-    );
-  }
-  const cuerpo = (await r.json().catch(() => ({}))) as { acceso?: string; motivo?: string };
-  if (!r.ok || !cuerpo.acceso) {
-    throw new PermisoInvalido(cuerpo.motivo ?? 'Google no dio el permiso. Vuelve a intentarlo.');
-  }
-  return { acceso: cuerpo.acceso, accion: pendiente.accion };
+  const acceso = await canjearSello(fetchFn, core, sello, pendiente.verificador);
+  return { acceso, accion: pendiente.accion };
 }

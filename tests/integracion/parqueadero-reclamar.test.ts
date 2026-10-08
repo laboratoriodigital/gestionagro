@@ -40,6 +40,11 @@ import {
 } from '../../apps/parqueadero-sitio/src/caja/cuenta.ts';
 import { abrirBase, type BaseDeLaCaja } from '../../apps/parqueadero-sitio/src/caja/datos.ts';
 import { crearNube } from '../../apps/parqueadero-sitio/src/caja/nube.ts';
+import {
+  aceptarTerminos,
+  estadoDeLosTerminos,
+  VERSION_DE_LOS_TERMINOS,
+} from '../../apps/parqueadero-sitio/src/caja/terminos.ts';
 import { contar, red } from './parqueadero-arnes.ts';
 
 const CORE = 'https://core.ejemplo.test';
@@ -176,8 +181,12 @@ const entrar = (t: Telefono, placa: string) =>
     t.ctx,
   );
 
-/** Las vueltas de la nube, como en la caja abierta, hasta que el reclamo deje de subir. */
+/**
+ * Las vueltas de la nube, como en la caja abierta, hasta que el reclamo deje de subir. Quien entró
+ * aceptó antes los términos de la nube (HU-Q7.11): «Entrar con Google» no se toca sin eso.
+ */
 async function vueltas(t: Telefono, c: Cuenta, maximo = 8) {
+  if ((await estadoDeLosTerminos(t.db)) === 'sin-aceptar') await aceptarTerminos(t.db, t.ahora);
   const nube = crearNube(t.db, { reloj: t.ahora, app: '0.3.0', core: CORE, fetchFn: c.fn });
   for (let i = 0; i < maximo; i++) {
     await nube.ahora();
@@ -366,6 +375,57 @@ describe('HU-Q7.7 · sumar una caja vacía, retirar una caja', () => {
     expect(await b.db.outbox.count()).toBe(1);
     expect(await contar(e, 'registro')).toBe(antes);
     expect(await contar(e, 'registro', `dispositivo_id = '${idB}'`)).toBe(1); // su turno
+  });
+});
+
+describe('HU-Q7.11 · los términos de la nube', () => {
+  const terminosDe = (org: string, dispositivo: string) =>
+    e.db
+      .prepare(
+        'SELECT terminos_version, terminos_aceptados FROM dispositivo WHERE org_id = ? AND id = ?',
+      )
+      .bind(org, dispositivo)
+      .first();
+
+  it('CA3 ❌ y CA1 · sin aceptarlos la caja no sube nada; aceptados, la celda guarda versión y hora', async () => {
+    const t = telefono();
+    const c = cuenta();
+    await piloto(t, 2);
+    await canjear(t.db, 'codigo', CORE, { fetchFn: c.fn, ahora: t.ahora });
+    await subirParqueadero(t.db, CORE, { fetchFn: c.fn, ahora: t.ahora });
+    const nube = crearNube(t.db, { reloj: t.ahora, app: '0.3.0', core: CORE, fetchFn: c.fn });
+    expect(await nube.ahora()).toEqual({ tipo: 'sin-terminos' });
+    nube.detener();
+    expect(await contar(e, 'registro')).toBe(0);
+    expect(await t.db.outbox.count()).toBeGreaterThan(0);
+
+    t.avanzar(5);
+    const cuando = new Date(t.ahora()).toISOString();
+    await aceptarTerminos(t.db, t.ahora);
+    expect(await estadoDeLosTerminos(t.db)).toBe('por-registrar');
+    await vueltas(t, c);
+    expect(await contar(e, 'registro')).toBe(await t.db.registros.count());
+    expect(await estadoDeLosTerminos(t.db)).toBe('al-dia');
+    const caja = await destinoDeLaCaja(t.db);
+    expect(await terminosDe(c.creadas[0] as string, caja?.dispositivo ?? '')).toEqual({
+      terminos_version: VERSION_DE_LOS_TERMINOS,
+      terminos_aceptados: cuando,
+    });
+  });
+
+  it('CA3 ❌ · con términos de una versión anterior la caja vuelve a la pausa', async () => {
+    const t = telefono();
+    const c = cuenta();
+    await piloto(t, 1);
+    await canjear(t.db, 'codigo', CORE, { fetchFn: c.fn, ahora: t.ahora });
+    await subirParqueadero(t.db, CORE, { fetchFn: c.fn, ahora: t.ahora });
+    await vueltas(t, c);
+    await t.db.meta.put({ clave: 'terminos', version: '0', aceptados: T0, registrados: '0' });
+    await entrar(t, 'VIE001');
+    const nube = crearNube(t.db, { reloj: t.ahora, app: '0.3.0', core: CORE, fetchFn: c.fn });
+    expect(await nube.ahora()).toEqual({ tipo: 'sin-terminos' });
+    nube.detener();
+    expect(await t.db.outbox.count()).toBe(1);
   });
 });
 

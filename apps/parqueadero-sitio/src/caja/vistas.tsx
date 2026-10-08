@@ -42,7 +42,8 @@ export type Vista =
   | { readonly es: 'aviso' }
   | { readonly es: 'letrero' }
   | { readonly es: 'turno' }
-  | { readonly es: 'respaldo' }
+  /** `regreso`: el fragmento con que volvió de Google Drive (HU-Q10.1). */
+  | { readonly es: 'respaldo'; readonly regreso?: string }
   | { readonly es: 'abonados' }
   /** `regreso`: el fragmento con que volvió de la cuenta (HU-Q7.6). */
   | { readonly es: 'cuenta'; readonly regreso?: string }
@@ -114,7 +115,15 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir, nube }: Props)
         />
       );
     case 'respaldo':
-      return <Respaldo db={db} ctx={ctx} {...(nube ? { nube } : {})} alVolver={inicio} />;
+      return (
+        <Respaldo
+          db={db}
+          ctx={ctx}
+          {...(nube ? { nube } : {})}
+          {...(vista.regreso ? { regreso: vista.regreso } : {})}
+          alVolver={inicio}
+        />
+      );
     case 'abonados':
       return <Abonados db={db} ctx={ctx} alVolver={inicio} />;
     case 'cuenta':

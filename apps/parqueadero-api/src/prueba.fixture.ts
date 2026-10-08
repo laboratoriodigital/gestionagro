@@ -10,6 +10,7 @@ import { DISPOSITIVO, ENTRADA_ENSAYO } from '@ed1/parqueadero-schema/ensayos';
 import type { Operacion } from '@ed1/parqueadero-schema/sync';
 import { PROTOCOLO } from '@ed1/sync';
 import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
+import { VERSION_DE_LOS_TERMINOS } from './terminos.ts';
 import { crearApp, type Env, TABLAS_DEL_SHARD } from './worker.ts';
 
 export const T0 = Date.UTC(2026, 9, 7, 12);
@@ -95,6 +96,15 @@ export const token = async (
   ).token;
 };
 
+/**
+ * La ruta como la pide una caja que aceptó los términos vigentes (HU-Q7.11): con `?terminos=`.
+ * Una ruta que ya dice `terminos=` se deja como está, para probar la versión vieja o la que falta.
+ */
+export const conTerminos = (ruta: string) =>
+  !ruta.startsWith('/api/v1/') || /[?&]terminos=/.test(ruta)
+    ? ruta
+    : `${ruta}${ruta.includes('?') ? '&' : '?'}terminos=${VERSION_DE_LOS_TERMINOS}`;
+
 export const pedir = (
   e: Entorno,
   ruta: string,
@@ -103,7 +113,7 @@ export const pedir = (
   ex?: Partial<Env>,
 ) =>
   app.fetch(
-    new Request(`https://api.ejemplo.test${ruta}`, {
+    new Request(`https://api.ejemplo.test${conTerminos(ruta)}`, {
       ...init,
       headers: { ...(t ? { authorization: `Bearer ${t}` } : {}), ...(init.headers ?? {}) },
     }),

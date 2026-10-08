@@ -9,12 +9,14 @@
  *   shard salen del token, nunca del cuerpo ni de la URL.
  * - Kill switch `ks:parqueadero` (CA3): apagado, `/api/v1/*` responde 503 con `Retry-After`; la
  *   caja sigue registrando y cobrando sin red (HU-Q7.5). Se revisa antes del token, que cuesta más.
+ * - Términos (HU-Q7.11 CA3): cada pedido con token dice en `?terminos=` la versión que la caja
+ *   aceptó; sin la vigente, 403 `sin-terminos` (`terminos.ts`).
  *
  * Rutas con token: `/api/v1/yo` (a qué parqueadero y shard llegó la sesión), `/api/v1/sync/push`
- * (`push.ts`), `/api/v1/sync/pull` (`pull.ts`), y reclamar, las cajas y el resumen
- * (`dispositivos.ts`, HU-Q7.6 y HU-Q7.7). Ningún identificador de cuenta, base o dominio en
- * el código (ADR-6): todo llega por la configuración que arma el despliegue desde `celdas.json` y
- * `productos.json`.
+ * (`push.ts`), `/api/v1/sync/pull` (`pull.ts`), reclamar, las cajas y el resumen
+ * (`dispositivos.ts`, HU-Q7.6 y HU-Q7.7) y los términos aceptados (`terminos.ts`, HU-Q7.11).
+ * Ningún identificador de cuenta, base o dominio en el código (ADR-6): todo llega por la
+ * configuración que arma el despliegue desde `celdas.json` y `productos.json`.
  */
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
@@ -29,6 +31,7 @@ import { cors } from 'hono/cors';
 import { darDeAlta, listar, reclamar, resumen, retirar } from './dispositivos.ts';
 import { pull } from './pull.ts';
 import { push } from './push.ts';
+import { registrarTerminos, SIN_TERMINOS, VERSION_DE_LOS_TERMINOS } from './terminos.ts';
 
 /** El producto de esta API: su kill switch es `ks:parqueadero` (`infrastructure/productos.json`). */
 export const PRODUCTO = 'parqueadero';
@@ -211,6 +214,8 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       shard: reclamos.shard,
       db,
     });
+    // HU-Q7.11 CA3: sin los términos vigentes la caja no sincroniza. Ninguna consulta: es la URL.
+    if (c.req.query('terminos') !== VERSION_DE_LOS_TERMINOS) return c.json(SIN_TERMINOS, 403);
     await siguiente();
     return undefined;
   });
@@ -231,6 +236,7 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
   app.get('/api/v1/dispositivos', (c) => listar(c));
   app.post('/api/v1/dispositivos', (c) => darDeAlta(c, ahora));
   app.post('/api/v1/dispositivos/retirar', (c) => retirar(c, ahora));
+  app.post('/api/v1/terminos', (c) => registrarTerminos(c));
 
   // Una falla inesperada se responde en JSON con su causa: la caja la dice como es y reintenta, y
   // nunca la confunde con falta de señal (bitácora agro 23).

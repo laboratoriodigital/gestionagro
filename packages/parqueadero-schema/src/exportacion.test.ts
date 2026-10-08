@@ -68,6 +68,29 @@ describe('parqueadero-export/1 (HU-Q1.3 CA2)', () => {
     expect((await verificarExport(cortado)).join()).toContain('«catalogo» dice 4 filas y trae 3');
   });
 
+  it('lleva las versiones anteriores que bajaron de la nube (`<id>@v1`, `#nube`), no otro texto', async () => {
+    const { id: _id, version: _v, ...resto } = TARIFA_CARRO;
+    const anterior = (id: string) => ({
+      id,
+      entidad: 'tarifa',
+      entidad_id: TARIFA_CARRO.id,
+      version: 1,
+      datos: resto,
+      reemplazada: '2026-10-08T15:00:00.000Z',
+      motivo: 'edicion' as const,
+    });
+    const archivo = await armarExport({
+      ...CONTENIDO,
+      historial: [anterior(`${TARIFA_CARRO.id}@v1`), anterior(`${TARIFA_CARRO.id}@v2#nube`)],
+    });
+    expect(await verificarExport(archivo)).toEqual([]);
+    for (const malo of [`${TARIFA_CARRO.id}@v0`, `${TARIFA_CARRO.id}@v1#otra`, 'tarifa@v1']) {
+      await expect(armarExport({ ...CONTENIDO, historial: [anterior(malo)] })).rejects.toThrow(
+        'debe ser un UUIDv7',
+      );
+    }
+  });
+
   it('un archivo que no es del formato dice qué falta', async () => {
     expect((await verificarExport({ formato: 'agro-export' })).join()).toContain('formato');
   });

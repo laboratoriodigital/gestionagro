@@ -6,7 +6,7 @@ import { faltantesDeSede, juntar, nombresDeCampos } from '@ed1/parqueadero-recib
 import { useState } from 'preact/hooks';
 import { type Ajustes, leerAjustes } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
-import { useConsulta } from './ganchos.ts';
+import { useConCuenta, useConsulta } from './ganchos.ts';
 import type { ControlDeImpresora } from './impresora.ts';
 import { avisoAceptado, avisoDeLaSede, bloquesDelAviso } from './privacidad.ts';
 
@@ -19,6 +19,7 @@ interface Props {
 
 export function Aviso({ db, control, alAjustes, alVolver }: Props) {
   const ajustes = useConsulta<Ajustes | null>(() => leerAjustes(db), null);
+  const conCuenta = useConCuenta(db);
   const [estado, setEstado] = useState('');
   if (!ajustes) return <section class="tarjeta" aria-busy="true" />;
   const { sede } = ajustes;
@@ -37,7 +38,7 @@ export function Aviso({ db, control, alAjustes, alVolver }: Props) {
       </section>
     );
   }
-  const aviso = avisoDeLaSede(sede);
+  const aviso = avisoDeLaSede(sede, conCuenta);
 
   async function aLaImpresora() {
     setEstado('Enviando a la impresora…');

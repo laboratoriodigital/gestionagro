@@ -44,7 +44,7 @@ const APIS: readonly Api[] = [
     nombre: 'parqueadero',
     dir: join(RAIZ, 'apps', 'parqueadero-api', 'src'),
     tablas: TABLAS_PARQUEADERO,
-    archivos: ['dispositivos.ts', 'push.ts', 'pull.ts', 'worker.ts'],
+    archivos: ['dispositivos.ts', 'push.ts', 'pull.ts', 'terminos.ts', 'worker.ts'],
     excepciones: {
       'select id, org_id, autor_usuario_id, instante_evento from registro where id in':
         'busca el id en todos los parqueaderos para saber si otro ya lo usa, y lo que una anulación anula; se compara con el parqueadero del token y nunca sale en la respuesta (push.ts)',

@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 
 /**
- * `@ed1/impresion` y `@ed1/whatsapp` no saben qué es un parqueadero: la Tienda y el agro los usan
+ * `@ed1/impresion`, `@ed1/whatsapp` y `@ed1/drive` no saben qué es un parqueadero: la Tienda y el agro los usan
  * sin cambiarlos (PARQUEADERO §7.3, ADR-34, ADR-39). Si uno importara de `parqueadero-*`, el
  * primer producto que lo use cargaría con el parqueadero entero. BACKLOG_PARKING_MVP HU-Q2.2, CA3.
  */
-const NEUTRALES = ['impresion', 'whatsapp'];
+const NEUTRALES = ['drive', 'impresion', 'whatsapp'];
 
 const IMPORTA = /(?:from\s+|import\s*\(\s*)['"]([^'"]+)['"]/g;
 

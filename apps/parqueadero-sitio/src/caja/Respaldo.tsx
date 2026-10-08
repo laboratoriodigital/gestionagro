@@ -5,8 +5,12 @@
  * Con la caja en la nube (HU-Q7.9): la pantalla dice desde cuándo está todo allá, y el archivo se
  * arma después de subir y bajar todo, con lo de todas las cajas del parqueadero. Antes de
  * entregarlo se compara con lo que la nube dice tener: el archivo dice si está completo.
+ *
+ * La copia en el Google Drive de la persona (HU-Q10.1, `drive.ts`): el mismo archivo, guardado o
+ * traído con el permiso que pide el CORE. Fuera de producción hasta que el CORE la publique.
  */
-import { useState } from 'preact/hooks';
+import { type CopiaEnDrive, ErrorDeDrive, leerVuelta, PermisoInvalido } from '@ed1/drive';
+import { useEffect, useState } from 'preact/hooks';
 import {
   anotarRespaldo,
   armarRespaldo,
@@ -15,6 +19,8 @@ import {
   restaurar,
 } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
+import type { AccionDrive } from './drive.ts';
+import { esProduccion, urlDelCore } from './entorno.ts';
 import { fechaBogota, horaBogota } from './fecha.ts';
 import { useConsulta } from './ganchos.ts';
 import type { Nube } from './nube.ts';
@@ -23,6 +29,8 @@ interface Props {
   readonly db: BaseDeLaCaja;
   readonly ctx: Contexto;
   readonly nube?: Nube;
+  /** El fragmento con que volvió de Google Drive (`#drive=…`), ya borrado de la barra. */
+  readonly regreso?: string;
   readonly alVolver: () => void;
 }
 
@@ -57,7 +65,35 @@ async function entregar(archivos: readonly File[]): Promise<'compartido' | 'desc
   return 'descargado';
 }
 
-export function Respaldo({ db, ctx, nube, alVolver }: Props) {
+/** Lo que pasa con Google Drive, con la voz de la caja (el paquete tutea, como el cuaderno). */
+const DE_DRIVE: Readonly<Record<string, string>> = {
+  'sin-senal': 'No hay señal para hablar con Google. Intente cuando tenga internet.',
+  vencido: 'El permiso de Google venció. Vuelva a tocar el botón.',
+  lleno: 'Su Google Drive está lleno. Libere espacio y vuelva a intentarlo.',
+  rechazado: 'Google no dio el permiso. Vuelva a tocar el botón.',
+  cancelada: 'Canceló el permiso en Google. No se guardó ni se trajo nada.',
+};
+
+/** Un error del respaldo dicho para la persona: el de Drive y el del archivo, como son. */
+function textoDeFalla(e: unknown, que: string): string {
+  if (e instanceof PermisoInvalido)
+    return e.motivo === 'vencido' ? e.message : (DE_DRIVE[e.motivo] ?? e.message);
+  if (e instanceof ErrorDeDrive) return DE_DRIVE[e.motivo] ?? e.message;
+  if (e instanceof RespaldoInvalido)
+    return `Esta copia no se puede usar, y la caja quedó como estaba: ${e.message}.`;
+  if (e instanceof SyntaxError)
+    return 'Este archivo no es un respaldo del parqueadero, y la caja quedó como estaba.';
+  return `No se pudo ${que}: ${String(e)}`;
+}
+
+const tamano = (bytes: number) =>
+  bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+    : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
+export function Respaldo({ db, ctx, nube, regreso, alVolver }: Props) {
+  const conDrive = !esProduccion(location.hostname);
+  const core = urlDelCore(location.hostname);
   const vinculada = useConsulta<boolean>(
     () => db.meta.get('nube').then((m) => m?.clave === 'nube'),
     false,
@@ -70,6 +106,67 @@ export function Respaldo({ db, ctx, nube, alVolver }: Props) {
   const [estado, setEstado] = useState('');
   const [error, setError] = useState('');
   const [ocupado, setOcupado] = useState(false);
+  /** Las copias de Drive para elegir, con el permiso de una hora que las trajo. */
+  const [copias, setCopias] = useState<{ acceso: string; lista: CopiaEnDrive[] } | null>(null);
+
+  async function trabajar(paso: () => Promise<string>, que: string) {
+    setOcupado(true);
+    setError('');
+    setEstado('');
+    try {
+      setEstado(await paso());
+    } catch (e) {
+      setError(textoDeFalla(e, que));
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function pedirPermiso(accion: AccionDrive) {
+    // Sin señal, ir a Google dejaría la caja en una página de error del navegador.
+    if (!navigator.onLine) {
+      setError(DE_DRIVE['sin-senal'] ?? '');
+      return;
+    }
+    const d = await import('./drive.ts');
+    location.assign(await d.urlParaPedirPermiso(db, core, location.origin, accion, ctx.reloj));
+  }
+
+  // De vuelta de Google: el permiso se canjea una vez y hace lo que se pidió antes de salir.
+  useEffect(() => {
+    const v = regreso ? leerVuelta(regreso) : null;
+    if (!v) return;
+    if (v.tipo === 'error') {
+      setError(DE_DRIVE[v.motivo === 'cancelada' ? 'cancelada' : 'rechazado'] ?? '');
+      return;
+    }
+    void trabajar(async () => {
+      const d = await import('./drive.ts');
+      const { acceso, accion } = await d.canjearPermiso(db, core, v.sello, { ahora: ctx.reloj });
+      if (accion === 'guardar') {
+        setEstado('Guardando la copia en su Google Drive…');
+        // Con la caja en la nube, primero sube y baja: la copia lleva lo de todas las cajas.
+        await nube?.ahora();
+        const r = await d.guardarCopia(db, ctx, acceso, { app: __VERSION_CAJA__ });
+        return `Copia guardada en su Google Drive, en la carpeta «${d.CARPETA}», como ${r.nombre}.`;
+      }
+      const lista = await d.copiasEnDrive(acceso);
+      setCopias({ acceso, lista });
+      return lista.length === 0
+        ? `No hay copias en la carpeta «${d.CARPETA}» de su Google Drive.`
+        : 'Elija la copia que quiere traer. Se une a lo que hay; no borra nada.';
+    }, 'usar Google Drive');
+  }, []);
+
+  async function traer(copia: CopiaEnDrive) {
+    if (!copias) return;
+    await trabajar(async () => {
+      const d = await import('./drive.ts');
+      const r = await d.traerCopia(db, copias.acceso, copia.id);
+      setCopias(null);
+      return `Listo: se agregaron ${r.agregados} datos de ${copia.nombre} y ${r.yaEstaban} ya estaban. No se borró nada.`;
+    }, 'traer la copia');
+  }
 
   async function respaldar() {
     setOcupado(true);
@@ -156,6 +253,56 @@ export function Respaldo({ db, ctx, nube, alVolver }: Props) {
       >
         {vinculada ? 'Descargar todo el parqueadero' : 'Hacer el respaldo'}
       </button>
+      {conDrive && (
+        <section class="seccion" aria-labelledby="titulo-drive" data-prueba="copia-en-drive">
+          <h2 class="etiqueta" id="titulo-drive">
+            Copia en su Google Drive
+          </h2>
+          <p class="ayuda">
+            El mismo archivo, en su propio Google Drive, en la carpeta «Caja del parqueadero ·
+            respaldos». Se guardan las 8 más recientes. Google pide permiso cada vez, y la copia va
+            directo de este teléfono a su Drive.
+          </p>
+          <button
+            type="button"
+            class="boton boton-secundario"
+            disabled={ocupado}
+            onClick={() => void pedirPermiso('guardar')}
+          >
+            Guardar copia en mi Google Drive
+          </button>
+          <button
+            type="button"
+            class="boton boton-quieto"
+            disabled={ocupado}
+            onClick={() => void pedirPermiso('traer')}
+          >
+            Traer una copia de mi Google Drive
+          </button>
+          {copias && copias.lista.length > 0 && (
+            <ul class="menu" data-prueba="copias-en-drive">
+              {copias.lista.map((c) => (
+                <li key={c.id} class="caja-fila">
+                  <span>
+                    {fechaBogota(Date.parse(c.creado)).slice(0, 5)}{' '}
+                    {horaBogota(Date.parse(c.creado))} ·{' '}
+                    <span class="cifra">{tamano(c.tamano)}</span>
+                  </span>
+                  <button
+                    type="button"
+                    class="boton boton-compacto boton-secundario"
+                    disabled={ocupado}
+                    aria-label={`Traer la copia del ${fechaBogota(Date.parse(c.creado)).slice(0, 5)} a las ${horaBogota(Date.parse(c.creado))}`}
+                    onClick={() => void traer(c)}
+                  >
+                    Traer
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
       <div class="campo">
         <label for="restaurar">Restaurar un respaldo (se une a lo que hay; no borra nada)</label>
         <input

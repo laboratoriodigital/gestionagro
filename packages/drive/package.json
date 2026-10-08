@@ -1,0 +1,10 @@
+{
+  "name": "@ed1/drive",
+  "version": "0.1.0",
+  "private": true,
+  "description": "La copia de respaldo en el Google Drive de la persona, con el permiso `drive.file` que pide el CORE: carpeta propia, las copias más recientes y el canje del permiso con verificador (HU-E8.4 del agro, HU-Q10.1 del parqueadero).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

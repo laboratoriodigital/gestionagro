@@ -59,8 +59,8 @@ const MENU = [
 ] as const;
 
 /**
- * La cuenta y la nube (HU-Q7.6) solo fuera de producción: reclamar la caja del cliente espera la
- * promesa de privacidad con cuenta (HU-Q7.11, HU-Q7.12).
+ * La cuenta y la nube (HU-Q7.6) solo fuera de producción: la caja del cliente se reclama en
+ * producción con M1 (HU-Q7.12), con los términos de la nube ya escritos (HU-Q7.11).
  */
 const MENU_DE_PRUEBA = [...MENU, ['cuenta', 'Cuenta y nube']] as const;
 
@@ -126,7 +126,7 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
 
   // HU-Q7.6: de vuelta de la cuenta, la caja abre donde se quedó.
   useEffect(() => {
-    if (regreso) ir({ es: 'cuenta', regreso });
+    if (regreso) ir({ es: /^#drive/.test(regreso) ? 'respaldo' : 'cuenta', regreso });
   }, [regreso]);
 
   // HU-Q2.4 CA1: la impresora emparejada vuelve sola al abrir la caja, sin selector.

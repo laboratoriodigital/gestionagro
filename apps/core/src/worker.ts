@@ -342,6 +342,7 @@ export function crearApp(dependencias: Dependencias = {}) {
     drive: drive(c.env),
     secreto: c.env.CORE_JWT_PRIVATE_KEY ?? '',
     origenes: c.get('entorno').origenes,
+    catalogo: c.get('entorno').catalogo,
     ahora,
   });
   app.get('/api/core/drive/inicio', (c) => inicioDrive(c, conDrive(c)));

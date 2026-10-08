@@ -11,6 +11,10 @@
  * la vuelta anterior; termina de encolar lo del reclamo si un corte lo dejó a mitad, y con la cola
  * vacía lo verifica contra la celda (P21). Cuando sube y baja todo, anota `nube_al_dia`: la fecha
  * del respaldo en la nube (HU-Q7.9).
+ *
+ * Sin los términos vigentes aceptados en esta caja (HU-Q7.11 CA3) no sale nada: el estado es
+ * `sin-terminos` y «Cuenta y nube» los pide. Aceptados, la primera vuelta los deja dichos en la
+ * celda con su hora (CA1).
  */
 import type { BaseDeLaCaja } from './datos.ts';
 import type { Resultado, ResultadoDeRecepcion } from './sincronizar.ts';
@@ -21,6 +25,8 @@ export const DEMORA_TRAS_REGISTRAR_MS = 3_000;
 
 export type EstadoDeLaNube =
   | { readonly tipo: 'sin-vincular' }
+  /** Vinculada, pero sin los términos vigentes aceptados: no sube ni baja (HU-Q7.11 CA3). */
+  | { readonly tipo: 'sin-terminos' }
   | { readonly tipo: 'enviando' }
   | {
       readonly tipo: 'resultado';
@@ -79,6 +85,9 @@ export function crearNube(db: BaseDeLaCaja, o: OpcionesDeLaNube): Nube {
 
   async function vuelta(): Promise<EstadoDeLaNube> {
     if ((await db.meta.get('nube'))?.clave !== 'nube') return { tipo: 'sin-vincular' };
+    const terminos = await import('./terminos.ts');
+    const aceptados = await terminos.estadoDeLosTerminos(db);
+    if (aceptados === 'sin-aceptar') return { tipo: 'sin-terminos' };
     const red = o.fetchFn ? { fetchFn: o.fetchFn } : {};
     const conCuenta = (await db.meta.get('sesion'))?.clave === 'sesion';
     const reclamo = await db.meta.get('reclamo');
@@ -100,6 +109,10 @@ export function crearNube(db: BaseDeLaCaja, o: OpcionesDeLaNube): Nube {
     const destino = { api: nube.api, acceso: nube.acceso, dispositivo: disp.id, app: o.app };
     const opciones = { fallosPrevios: fallos, ahora: o.reloj, ...red };
     cambiar({ tipo: 'enviando' });
+    if (aceptados === 'por-registrar') {
+      // Sin señal o sin la caja en la celda todavía, se intenta en la vuelta siguiente.
+      await terminos.registrarTerminos(db, destino, o.fetchFn).catch(() => false);
+    }
     const envio = await s.enviarPendientes(db, destino, opciones);
     sinSesion = envio.estado === 'sin-sesion';
     if (envio.estado !== 'al-dia') {

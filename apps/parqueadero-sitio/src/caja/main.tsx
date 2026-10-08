@@ -64,8 +64,10 @@ liveQuery(() => db.outbox.count()).subscribe((n) => {
 });
 
 // HU-Q7.6: al volver de la cuenta, el código de un uso sale de la barra antes de canjearlo, para
-// que no quede en el historial.
-const regreso = /^#(entrar|entrar-error)=/.test(location.hash) ? location.hash : undefined;
+// que no quede en el historial. Lo mismo con el permiso de Google Drive (HU-Q10.1).
+const regreso = /^#(entrar|entrar-error|drive|drive-error)=/.test(location.hash)
+  ? location.hash
+  : undefined;
 if (regreso) history.replaceState(null, '', `${location.pathname}${location.search}`);
 
 render(

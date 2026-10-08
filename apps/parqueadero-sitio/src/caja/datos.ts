@@ -152,6 +152,26 @@ export type Meta =
         readonly cuando: number;
       };
     }
+  /**
+   * Los términos de la nube que se aceptaron en esta caja (HU-Q7.11 CA1): versión e instante.
+   * `registrados`: la versión que la celda ya tiene en la fila de la caja; nula mientras no.
+   */
+  | {
+      readonly clave: 'terminos';
+      readonly version: string;
+      readonly aceptados: number;
+      readonly registrados: string | null;
+    }
+  /**
+   * El permiso de Google Drive que se pidió (HU-Q10.1): el verificador espera la vuelta de Google,
+   * que solo sirve con él y por 10 minutos. Nunca va en el respaldo.
+   */
+  | {
+      readonly clave: 'drive_pendiente';
+      readonly verificador: string;
+      readonly accion: 'guardar' | 'traer';
+      readonly creado: number;
+    }
   /** La última vez que todo lo de la caja estaba en la nube y lo de la nube en la caja (HU-Q7.9). */
   | { readonly clave: 'nube_al_dia'; readonly instante: number }
   /** Hasta dónde bajó la caja lo de las demás cajas: los dos cursores del pull (`@ed1/sync`). */

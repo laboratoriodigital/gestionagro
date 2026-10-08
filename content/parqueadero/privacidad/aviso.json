@@ -1,10 +1,11 @@
 {
-  "nota": "Plantillas del aviso de privacidad y de la política de tratamiento para cada parqueadero (HU-Q4.4; PARQUEADERO §8.3 y §13.2). En M0 el parqueadero es el Responsable y ED1 no recibe datos: la caja guarda todo en el teléfono. La caja llena {nombre}, {nit}, {direccion}, {ciudad} y {telefono} con los datos legales de la sede, muestra el aviso, lo imprime en la PT-210 o en hoja carta, y no deja guardar el primer número de WhatsApp hasta que la sede lo acepta con esta versión. Cambiar lo que el aviso promete exige subir la versión: la sede lo vuelve a aceptar. «sin_cuenta» es el único lugar donde vive esa frase, y solo se dice en una caja sin cuenta (estudio §13.5); una prueba la busca en el resto del código.",
+  "nota": "Plantillas del aviso de privacidad y de la política de tratamiento para cada parqueadero (HU-Q4.4; PARQUEADERO §8.3 y §13.2). En M0 el parqueadero es el Responsable y ED1 no recibe datos: la caja guarda todo en el teléfono. La caja llena {nombre}, {nit}, {direccion}, {ciudad} y {telefono} con los datos legales de la sede, muestra el aviso, lo imprime en la PT-210 o en hoja carta, y no deja guardar el primer número de WhatsApp hasta que la sede lo acepta con esta versión. Cambiar lo que el aviso promete exige subir la versión: la sede lo vuelve a aceptar. «sin_cuenta» es el único lugar donde vive esa frase, y solo se dice en una caja sin cuenta (estudio §13.5); una prueba la busca en el resto del código. Con cuenta (HU-Q7.11), en su lugar va «con_cuenta», y la sección «Dónde quedan los datos» de la política usa su «con_cuenta». Ese cambio no sube la versión del aviso: solo aparece después de que el parqueadero acepta los términos de la nube (`terminos.json`), que lo dicen.",
   "version": "1",
   "fecha": "2026-10-07",
   "estado": "borrador",
   "revision": "requiere revisión de abogado",
   "sin_cuenta": "Sus datos no salen de este teléfono, salvo el recibo que usted pide por WhatsApp.",
+  "con_cuenta": "Los registros y las placas se guardan también en la nube, donde Laboratorio Digital los custodia por cuenta de {nombre}. Su número de celular no sale de este teléfono.",
   "aviso": {
     "titulo": "Aviso de privacidad",
     "parrafos": [
@@ -38,7 +39,8 @@
       },
       {
         "titulo": "Dónde quedan los datos",
-        "texto": "En el teléfono o el computador de la caja del parqueadero. Los mensajes enviados quedan en el WhatsApp del parqueadero, que lo administra como responsable."
+        "texto": "En el teléfono o el computador de la caja del parqueadero. Los mensajes enviados quedan en el WhatsApp del parqueadero, que lo administra como responsable.",
+        "con_cuenta": "En el teléfono o el computador de la caja y en la nube del parqueadero, donde Laboratorio Digital los guarda como encargado por cuenta de {nombre}, con servidores de Cloudflare fuera de Colombia. El número de celular del conductor no sube a la nube. Los mensajes enviados quedan en el WhatsApp del parqueadero, que lo administra como responsable."
       },
       {
         "titulo": "Derechos del titular",

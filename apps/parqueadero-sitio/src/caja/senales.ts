@@ -63,6 +63,8 @@ export function senalDeLaNube(
   estado: EstadoDeLaNube,
 ): Senal | null {
   if (!vinculada) return null;
+  if (estado.tipo === 'sin-terminos')
+    return { texto: 'Nube en pausa: acepte los términos', tono: 'error' };
   if (estado.tipo === 'enviando') return { texto: 'Enviando a la nube…', tono: 'neutro' };
   if (pendientes === 0) return { texto: 'Todo en la nube', tono: 'bien' };
   const aqui = `${pendientes} en este dispositivo`;
