@@ -756,7 +756,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Work items:** WI-Q11.2.1 `[código]` · WI-Q11.2.2 `[prueba]` tabla compartida · WI-Q11.2.3 `[diseño]` página.
 
 #### HU-Q11.3 · El aviso de tarifas, medios de pago y derechos, para imprimir
-- **Capa:** sitio y caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q7 · **Depende de:** HU-Q3.2 · **Estado:** Refinada
+- **Capa:** sitio y caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q7 · **Depende de:** HU-Q3.2 · **Estado:** En curso (rama `feat/q11-3-aviso-tarifas`)
 - Como parqueadero, quiero el letrero que la SIC pide a la vista, con mis tarifas y la invitación al recibo digital, para ponerlo en la entrada.
 - **Respaldo:** estudio §12.2 (herramienta 4) y §13.1; PARQUEADERO §8.4 (empujón 5). No espera a HU-Q11.1: su primer usuario es el parqueadero cero.
 - **CA1.** Sale de los datos de la sede de la caja, o de un formulario en el sitio, en carta u oficio: tarifas, tope, medios de pago, póliza, derechos del usuario y «Pida su recibo por WhatsApp».
