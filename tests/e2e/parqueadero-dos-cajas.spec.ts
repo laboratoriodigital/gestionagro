@@ -4,8 +4,8 @@
  * `apps/parqueadero-api` en este proceso, con el D1 local; las rutas de Playwright le pasan lo que
  * cada caja pide a la nube.
  *
- * La entrada con la cuenta (HU-Q7.6) y el alta de la caja (HU-Q7.7) todavía no existen: la prueba
- * escribe `nube` y `dispositivo` en la caja, y la fila de `dispositivo` en la celda. El service
+ * La prueba escribe `nube` y `dispositivo` en la caja, y la fila de `dispositivo` en la celda, sin
+ * pasar por la cuenta (HU-Q7.6) ni el alta (HU-Q7.7), que prueba `parqueadero-cuenta.spec.ts`. El service
  * worker no atiende lo que va a la API, así que las rutas ven cada pedido.
  */
 import { type BrowserContext, expect, type Page, test } from '@playwright/test';

@@ -51,7 +51,7 @@ export async function vaciarShard(db: BaseD1): Promise<void> {
   for (const tabla of TABLAS_DEL_SHARD) await db.prepare(`DELETE FROM ${tabla}`).run();
 }
 
-/** Da de alta una caja con su serie, como lo hará `POST /api/v1/dispositivos` (HU-Q7.7). */
+/** Da de alta una caja con su serie, como `POST /api/v1/dispositivos` (HU-Q7.7), sin pasar por él. */
 export const alta = (db: BaseD1, org: string, dispositivo: string, serie: string) =>
   db
     .prepare(

@@ -19,11 +19,20 @@ const { version } = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
 ) as { version: string };
 
+// HU-Q7.6: dónde vive el CORE de las cuentas. Sale de celdas.json, la fuente única (P2); la caja
+// elige por host, como el cuaderno.
+const { core } = JSON.parse(
+  readFileSync(new URL('../../../../infrastructure/celdas.json', import.meta.url), 'utf8'),
+) as { core: { url: string; url_staging: string } };
+
 export default defineConfig({
   root: raiz,
   base: '/caja/',
   publicDir: 'public',
-  define: { __VERSION_CAJA__: JSON.stringify(version) },
+  define: {
+    __VERSION_CAJA__: JSON.stringify(version),
+    __CORE__: JSON.stringify({ url: core.url, url_staging: core.url_staging }),
+  },
   build: {
     outDir: fileURLToPath(new URL('../../dist/caja', import.meta.url)),
     emptyOutDir: true,

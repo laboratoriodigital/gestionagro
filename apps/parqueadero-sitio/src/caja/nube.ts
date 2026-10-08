@@ -6,6 +6,11 @@
  *
  * Sin `nube` en `meta` (una caja sin cuenta, como las de `v0.2.x`) no hace nada y no carga el
  * código de la sincronización: la caja abre igual de rápido (P10, HU-Q3.1 CA3).
+ *
+ * Con la cuenta (HU-Q7.6): antes de salir renueva el acceso si venció, o si la celda dijo 401 en
+ * la vuelta anterior; termina de encolar lo del reclamo si un corte lo dejó a mitad, y con la cola
+ * vacía lo verifica contra la celda (P21). Cuando sube y baja todo, anota `nube_al_dia`: la fecha
+ * del respaldo en la nube (HU-Q7.9).
  */
 import type { BaseDeLaCaja } from './datos.ts';
 import type { Resultado, ResultadoDeRecepcion } from './sincronizar.ts';
@@ -40,6 +45,8 @@ export interface Nube {
 interface OpcionesDeLaNube {
   readonly reloj: () => number;
   readonly app: string;
+  /** El CORE de las cuentas, para renovar el acceso (HU-Q7.6). Sin él, no se renueva. */
+  readonly core?: string;
   readonly fetchFn?: typeof fetch;
   /** Sin ventana (pruebas): no escucha la red ni la visibilidad. */
   readonly ventana?: Pick<Window, 'addEventListener' | 'removeEventListener'> & {
@@ -58,6 +65,8 @@ export function crearNube(db: BaseDeLaCaja, o: OpcionesDeLaNube): Nube {
   let proxima: ReturnType<typeof setTimeout> | null = null;
   let tras: ReturnType<typeof setTimeout> | null = null;
   let detenida = false;
+  /** La celda dijo 401 en la vuelta anterior: la sesión se renueva aunque no haya vencido. */
+  let sinSesion = false;
 
   const cambiar = (nuevo: EstadoDeLaNube) => {
     estado = nuevo;
@@ -69,26 +78,46 @@ export function crearNube(db: BaseDeLaCaja, o: OpcionesDeLaNube): Nube {
   };
 
   async function vuelta(): Promise<EstadoDeLaNube> {
+    if ((await db.meta.get('nube'))?.clave !== 'nube') return { tipo: 'sin-vincular' };
+    const red = o.fetchFn ? { fetchFn: o.fetchFn } : {};
+    const conCuenta = (await db.meta.get('sesion'))?.clave === 'sesion';
+    const reclamo = await db.meta.get('reclamo');
+    const reclamando = reclamo?.clave === 'reclamo' && reclamo.estado === 'subiendo';
+    const cuenta = conCuenta || reclamando ? await import('./cuenta.ts') : null;
+    if (cuenta && conCuenta && o.core) {
+      await cuenta.renovar(db, o.core, {
+        ...red,
+        ahora: o.reloj,
+        enLinea: () => true,
+        forzar: sinSesion,
+      });
+    }
+    if (cuenta && reclamando) await cuenta.encolarReclamo(db, o.reloj);
     const nube = await db.meta.get('nube');
     const disp = await db.meta.get('dispositivo');
     if (nube?.clave !== 'nube' || disp?.clave !== 'dispositivo') return { tipo: 'sin-vincular' };
     const s = await import('./sincronizar.ts');
     const destino = { api: nube.api, acceso: nube.acceso, dispositivo: disp.id, app: o.app };
-    const opciones = {
-      fallosPrevios: fallos,
-      ahora: o.reloj,
-      ...(o.fetchFn ? { fetchFn: o.fetchFn } : {}),
-    };
+    const opciones = { fallosPrevios: fallos, ahora: o.reloj, ...red };
     cambiar({ tipo: 'enviando' });
     const envio = await s.enviarPendientes(db, destino, opciones);
+    sinSesion = envio.estado === 'sin-sesion';
     if (envio.estado !== 'al-dia') {
       fallos = envio.estado === 'esperar' ? fallos + 1 : 0;
       programar(envio.estado === 'esperar' ? envio.ms : CADA_MS);
       return { tipo: 'resultado', envio, cuando: o.reloj() };
     }
+    // Lo del reclamo se da por subido solo si la celda tiene lo mismo. Sin respuesta, otra vuelta.
+    if (cuenta && reclamando) {
+      await cuenta.verificarReclamo(db, destino, { ...red, ahora: o.reloj }).catch(() => null);
+    }
     // Primero sube lo propio, después baja lo de las otras cajas: lo pendiente aquí no se pisa.
     const recepcion = await s.recibirCambios(db, destino, opciones);
     fallos = recepcion.estado === 'esperar' ? fallos + 1 : 0;
+    sinSesion = recepcion.estado === 'sin-sesion';
+    if (recepcion.estado === 'al-dia' && (await db.outbox.count()) === 0) {
+      await db.meta.put({ clave: 'nube_al_dia', instante: o.reloj() });
+    }
     programar(recepcion.estado === 'esperar' ? recepcion.ms : CADA_MS);
     return { tipo: 'resultado', envio, recepcion, cuando: o.reloj() };
   }
