@@ -9,6 +9,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ### Corregido
 - En modo oscuro, los botones salen en el azul de la caja y no en el lila del ecosistema (bitácora 27).
+- Un vehículo que entró antes de corregir la tarifa en Ajustes sigue cobrándose con la tarifa con que entró, como lo dice su recibo; ahora la salida lo explica («Entró cuando el tope por día era de $1…») en vez de pedir que se revise Ajustes otra vez. Los que entran después pagan con la tarifa nueva.
 
 ## [0.2.0] - 2026-10-08
 
