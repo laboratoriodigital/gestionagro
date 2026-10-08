@@ -305,7 +305,8 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
         <div class="dos">
           <button
             type="button"
-            class={salvo ? 'boton' : 'boton boton-principal'}
+            // Ya impreso, «Nueva entrada» es lo que sigue: reimprimir no compite con eso (HU-Q6.5).
+            class={salvo || veces > 0 ? 'boton' : 'boton boton-principal'}
             disabled={imprimiendo}
             onClick={() => void imprimir(true)}
             data-prueba="imprimir"
@@ -374,15 +375,16 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
         </p>
       ))}
 
-      {!anulado && (
-        <Anular db={db} ctx={ctx} registro={registro} alAnular={() => setAnulado(true)} />
-      )}
       <button type="button" class="boton boton-principal" onClick={() => void salir(alNueva)}>
         Nueva entrada
       </button>
       <button type="button" class="boton boton-secundario" onClick={() => void salir(alVolver)}>
         Volver al inicio
       </button>
+      {/* Lo que deshace va al final, lejos del pulgar (HU-Q6.5). */}
+      {!anulado && (
+        <Anular db={db} ctx={ctx} registro={registro} alAnular={() => setAnulado(true)} />
+      )}
     </section>
   );
 }

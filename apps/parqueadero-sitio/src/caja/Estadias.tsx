@@ -36,21 +36,10 @@ export function Estadias({ db, reloj, ir }: Props) {
   const vistas = (estadias ?? []).filter((e) => e.placa.includes(filtro));
 
   return (
-    <section class="tarjeta" data-prueba="estadias">
-      <h2>Adentro {estadias ? `(${estadias.length})` : ''}</h2>
-      <div class="dos">
-        <button
-          type="button"
-          class="boton boton-principal"
-          onClick={() => ir({ es: 'entrada' })}
-          data-prueba="nueva-entrada"
-        >
-          Nueva entrada
-        </button>
-        <button type="button" class="boton" onClick={() => ir({ es: 'escanear' })}>
-          Escanear recibo
-        </button>
-      </div>
+    <section class="seccion" data-prueba="estadias">
+      <h2 class="etiqueta">
+        Adentro <span class="cuenta">{estadias ? estadias.length : ''}</span>
+      </h2>
       {estadias && estadias.length > 0 && (
         <div class="campo">
           <label for="buscar-placa">Buscar por placa</label>
@@ -76,29 +65,14 @@ export function Estadias({ db, reloj, ir }: Props) {
               onClick={() => ir({ es: 'salida', estadiaId: e.id })}
               data-prueba="estadia"
             >
-              <span class="placa-chica">{e.placa}</span>
-              <span>
-                Entró {horaBogota(e.entrada)} · {duracion(e.entrada, ahora)}
-              </span>
+              {/* Los espacios separan las partes en lo que lee el lector de pantalla. */}
+              <span class="placa-chica">{e.placa}</span> <span>Entró {horaBogota(e.entrada)}</span>{' '}
+              <span class="estadia-tiempo cifra">{duracion(e.entrada, ahora)}</span>{' '}
               <span class="ayuda">{e.numero}</span>
             </button>
           </li>
         ))}
       </ul>
-      <div class="dos">
-        <button type="button" class="boton boton-secundario" onClick={() => ir({ es: 'ajustes' })}>
-          Ajustes del parqueadero
-        </button>
-        <button type="button" class="boton boton-secundario" onClick={() => ir({ es: 'aviso' })}>
-          Aviso de privacidad
-        </button>
-        <button type="button" class="boton boton-secundario" onClick={() => ir({ es: 'respaldo' })}>
-          Respaldo
-        </button>
-        <button type="button" class="boton boton-secundario" onClick={() => ir({ es: 'abonados' })}>
-          Abonados
-        </button>
-      </div>
     </section>
   );
 }

@@ -1,24 +1,39 @@
 /*
  * La caja (BACKLOG-PARKING §5.1): de pie, al sol y con una mano. Toques de 56 px, texto de 18 px,
- * la acción principal abajo, lo exacto en mono y el azul de la señal de parqueo como acento.
+ * la acción principal arriba y llena, lo exacto en mono y el azul de la señal de parqueo como único
+ * acento. Sobria (HU-Q6.5): la jerarquía la dan el tamaño, el peso y el aire, no las cajas; lo que
+ * está bien se dice en gris y solo lo que falla toma color, siempre con su texto.
  */
 :root {
   --acento: #0b4fa0;
   --acento-texto: #ffffff;
   --foco: #0b4fa0;
   --toque: 56px;
+  /* Separa sin pesar: líneas de adorno, nunca el borde de algo que se toca. */
+  --linea: #e7e7e4;
+  /* El borde de un campo o un botón: 3:1 contra el fondo (WCAG 1.4.11). */
+  --linea-fuerte: #8c8c86;
+  --tinte-acento: color-mix(in srgb, var(--acento) 7%, var(--superficie));
+  --tinte-peligro: color-mix(in srgb, var(--peligro) 9%, var(--superficie));
+  --tinte-aviso: color-mix(in srgb, var(--aviso) 9%, var(--superficie));
+  --radio: 12px;
   font-family: var(--fuente-sans);
   font-size: 18px;
-  line-height: var(--interlineado);
+  line-height: 1.5;
   color: var(--texto);
   background: var(--superficie);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
+/* Con el mismo selector de los tokens: con solo `:root`, el lila del ecosistema le ganaba al azul. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-tema="claro"]) {
     --acento: #7fb0f0;
     --acento-texto: #0b0b0a;
     --foco: #7fb0f0;
+    --linea: #22221f;
+    --linea-fuerte: #76766f;
   }
 }
 
@@ -29,78 +44,144 @@
 body {
   margin: 0;
   min-height: 100dvh;
+  background: var(--superficie);
 }
+
+.solo-lectores {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── Cabecera y señales (HU-Q3.1) ───────────────────────────────────────────────────────────── */
 
 .cabecera {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: var(--espacio-2) var(--espacio-4);
-  background: var(--superficie-2);
-  border-bottom: var(--borde-ancho) solid var(--borde);
+  padding: var(--espacio-3) var(--espacio-4);
+  background: color-mix(in srgb, var(--superficie) 92%, transparent);
+  border-bottom: 1px solid var(--linea);
+  backdrop-filter: blur(12px);
 }
 
 .cabecera-titulo {
+  max-width: 40rem;
+  margin-inline: auto;
   display: flex;
   gap: var(--espacio-2);
   align-items: center;
+  font-size: 1rem;
   font-weight: var(--peso-fuerte);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
 }
 
 .marca-prueba {
-  padding: 0 var(--espacio-2);
-  border: 2px solid var(--peligro);
-  border-radius: var(--radio-campo);
+  padding: 0.125rem var(--espacio-2);
+  border-radius: var(--radio-pildora);
+  background: var(--tinte-peligro);
   color: var(--peligro);
-  font-size: var(--texto-pequeno);
+  font-size: var(--texto-etiqueta);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: 0.02em;
 }
 
+/* Siempre a la vista (HU-Q3.1 CA2), en dos líneas cortas: un punto y el texto que lo nombra. */
 .senales {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--espacio-1) var(--espacio-3);
-  margin: var(--espacio-2) 0 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-1) var(--espacio-4);
+  max-width: 40rem;
+  margin: var(--espacio-2) auto 0;
   padding: 0;
   list-style: none;
-  font-size: var(--texto-pequeno);
+  font-size: 0.8125rem;
+  line-height: 1.35;
 }
 
-/* Nada se dice solo con color: el texto nombra el estado y el borde lo refuerza. */
 .senal {
-  padding-left: var(--espacio-2);
-  border-left: 4px solid var(--borde);
+  display: flex;
+  gap: var(--espacio-2);
+  align-items: baseline;
+  min-inline-size: 0;
+  color: var(--texto-suave);
 }
-.senal-bien {
-  border-color: var(--exito);
+
+.senal::before {
+  content: "";
+  flex: none;
+  inline-size: 0.4375rem;
+  block-size: 0.4375rem;
+  border-radius: 50%;
+  background: var(--linea-fuerte);
+  transform: translateY(-0.0625rem);
 }
+
+.senal-bien::before {
+  background: var(--exito);
+}
+
 .senal-aviso {
-  border-color: var(--aviso);
   color: var(--aviso);
 }
+.senal-aviso::before {
+  background: var(--aviso);
+}
+
 .senal-error {
-  border-color: var(--peligro);
   color: var(--peligro);
   font-weight: var(--peso-fuerte);
+}
+.senal-error::before {
+  background: var(--peligro);
 }
 
 .aviso-almacenamiento,
 .aviso-actualizacion,
 .aviso-tope {
-  margin: var(--espacio-2) 0 0;
-  padding: var(--espacio-2) var(--espacio-4);
-  font-size: var(--texto-pequeno);
+  max-width: 40rem;
+  margin: var(--espacio-2) auto 0;
+  padding: var(--espacio-2) var(--espacio-3);
+  border-radius: var(--radio);
+  background: var(--tinte-aviso);
   color: var(--aviso);
+  font-size: var(--texto-pequeno);
+  line-height: 1.4;
 }
+
+.aviso-actualizacion,
+.aviso-tope {
+  margin: var(--espacio-3) var(--espacio-4) 0;
+}
+
+@media (min-width: 42.5rem) {
+  .aviso-actualizacion,
+  .aviso-tope {
+    margin-inline: auto;
+  }
+}
+
+.aviso-actualizacion {
+  display: grid;
+  gap: var(--espacio-2);
+}
+
+/* ── Página ─────────────────────────────────────────────────────────────────────────────────── */
 
 .contenido {
   display: grid;
-  gap: var(--espacio-4);
-  padding: var(--espacio-4);
+  gap: var(--espacio-6);
+  padding: var(--espacio-6) var(--espacio-4) var(--espacio-12);
   max-width: 40rem;
   margin: 0 auto;
 }
 
 .tarjeta,
+.seccion,
 .asistente,
 .anular,
 .conexion {
@@ -108,11 +189,51 @@ body {
   gap: var(--espacio-3);
 }
 
+/* Dos tarjetas seguidas (el turno: el resumen, la plata y el cierre) se separan con una línea. */
+.contenido > .tarjeta + .tarjeta {
+  padding-top: var(--espacio-6);
+  border-top: 1px solid var(--linea);
+}
+
+/* Lo que no es la tarea del momento se separa con una línea, no con una caja. */
+.seccion {
+  padding-top: var(--espacio-4);
+  border-top: 1px solid var(--linea);
+}
+
 h1,
 h2 {
   margin: 0;
-  font-size: var(--texto-titulo-3);
-  line-height: 1.25;
+  font-weight: var(--peso-fuerte);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+h2 {
+  font-size: 1.125rem;
+}
+
+/* El título de una sección: pequeño, en versalitas y gris; el contenido es lo que se lee. */
+.etiqueta {
+  display: flex;
+  gap: var(--espacio-2);
+  align-items: baseline;
+  color: var(--texto-suave);
+  font-size: var(--texto-etiqueta);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: var(--interletrado-etiqueta);
+  text-transform: uppercase;
+}
+
+.cuenta {
+  color: var(--texto);
+  font-family: var(--fuente-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 p {
@@ -124,36 +245,91 @@ p {
   font-variant-numeric: tabular-nums;
 }
 
+/* Horas, minutos y pesos que cambian: la letra de siempre, con cifras del mismo ancho. */
+.cifra {
+  font-variant-numeric: tabular-nums;
+}
+
+.sin-cortar {
+  white-space: nowrap;
+}
+
+/* Con la impresora conectada, la tarjeta solo lleva su título para lectores: no ocupa lugar. */
+.tarjeta-callada:not(:has(.conexion)) {
+  display: contents;
+}
+
+/* ── Botones y opciones ─────────────────────────────────────────────────────────────────────── */
+
 .boton,
 .opcion {
   min-height: var(--toque);
-  padding: 0 var(--espacio-4);
-  border: 2px solid var(--acento);
-  border-radius: var(--radio-campo);
+  padding: var(--espacio-2) var(--espacio-4);
+  border: 1px solid color-mix(in srgb, var(--acento) 55%, transparent);
+  border-radius: var(--radio);
   background: var(--superficie);
   color: var(--acento);
   font: inherit;
   font-weight: var(--peso-fuerte);
+  line-height: 1.2;
+  cursor: pointer;
+  /*
+   * Solo el gesto se anima: el color cambia de una vez. En una caja, la respuesta inmediata vale
+   * más que el adorno, y un color a medio camino no cumple el contraste.
+   */
+  transition: transform var(--tiempo-corto) var(--curva-salida);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.boton:not(:disabled):active,
+.opcion:active,
+.estadia:active,
+.menu-fila:active,
+.tecla:active {
+  transform: scale(0.985);
 }
 
 .boton-principal {
+  border-color: var(--acento);
   background: var(--acento);
   color: var(--acento-texto);
 }
 
 .boton-secundario {
-  border-color: var(--borde);
+  border-color: var(--linea-fuerte);
   color: var(--texto);
 }
 
+/* Lo que deshace: sin caja, en rojo y al final; pide motivo y PIN al abrirlo. */
+.boton-quieto {
+  border-color: transparent;
+  color: var(--peligro);
+}
+
+/* La acción de cien veces al día. */
+.boton-grande {
+  min-height: 4rem;
+  font-size: 1.125rem;
+}
+
+/* Del ancho de su texto, con la misma altura de toque. */
+.boton-compacto {
+  padding-inline: var(--espacio-4);
+  white-space: nowrap;
+}
+
 .boton:disabled {
-  border-color: var(--borde);
+  border-color: transparent;
   background: var(--superficie-2);
   color: var(--texto-suave);
+  cursor: not-allowed;
 }
 
 .boton:focus-visible,
-.opcion:focus-visible {
+.opcion:focus-visible,
+.estadia:focus-visible,
+.menu-fila:focus-visible,
+.tecla:focus-visible {
   outline: 3px solid var(--foco);
   outline-offset: 2px;
 }
@@ -168,7 +344,9 @@ fieldset {
 
 legend {
   margin-bottom: var(--espacio-2);
+  padding: 0;
   font-weight: var(--peso-fuerte);
+  line-height: 1.35;
 }
 
 .opciones {
@@ -177,9 +355,35 @@ legend {
   gap: var(--espacio-2);
 }
 
+.opcion {
+  border-color: var(--linea-fuerte);
+  color: var(--texto);
+}
+
 .opcion[aria-pressed="true"] {
+  border-color: var(--acento);
   background: var(--acento);
   color: var(--acento-texto);
+}
+
+/* Solo con ratón: en el teléfono, el «hover» se queda pegado después de tocar. */
+@media (hover: hover) {
+  .boton:not(:disabled):hover,
+  .opcion:not([aria-pressed="true"]):hover {
+    background: var(--tinte-acento);
+  }
+
+  .boton-principal:not(:disabled):hover {
+    background: color-mix(in srgb, var(--acento) 88%, var(--texto));
+  }
+
+  .boton-secundario:not(:disabled):hover {
+    background: var(--superficie-2);
+  }
+
+  .boton-quieto:not(:disabled):hover {
+    background: var(--tinte-peligro);
+  }
 }
 
 .exito {
@@ -194,11 +398,44 @@ legend {
 
 /* ── Formularios (Ajustes, HU-Q3.2) ─────────────────────────────────────────────────────────── */
 
+.campo > label,
+.campo > legend {
+  font-size: 0.9375rem;
+  font-weight: var(--peso-fuerte);
+  line-height: 1.35;
+}
+
 .grupo {
   display: grid;
-  gap: var(--espacio-3);
-  padding: var(--espacio-3) 0;
-  border-top: 1px solid var(--borde);
+  gap: var(--espacio-4);
+  padding: var(--espacio-6) 0 0;
+  border-top: 1px solid var(--linea);
+}
+
+.grupo > legend {
+  float: left;
+  inline-size: 100%;
+  margin: 0;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+}
+
+/* Dentro de un grupo (la tarifa de cada vehículo), el subtítulo es una etiqueta. */
+.grupo .grupo {
+  padding-top: var(--espacio-4);
+}
+
+.grupo .grupo > legend {
+  color: var(--texto-suave);
+  font-size: var(--texto-etiqueta);
+  letter-spacing: var(--interletrado-etiqueta);
+  text-transform: uppercase;
+}
+
+/* Un título seguido de su grupo ya marca el comienzo: la línea del grupo sobra. */
+.tarjeta > h2 + .grupo {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .campo {
@@ -208,32 +445,47 @@ legend {
 }
 
 .campo input,
-.campo select {
+.campo select,
+.campo textarea {
   inline-size: 100%;
   min-inline-size: 0;
   min-height: var(--toque);
   padding: 0 var(--espacio-3);
-  border: 2px solid var(--borde);
-  border-radius: var(--radio-campo);
+  border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radio);
   background: var(--superficie);
   color: var(--texto);
   font: inherit;
 }
 
+.campo textarea {
+  padding: var(--espacio-3);
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.campo input[type="file"] {
+  padding: var(--espacio-3);
+}
+
 .campo input:focus-visible,
-.campo select:focus-visible {
-  outline: 3px solid var(--foco);
-  outline-offset: 2px;
+.campo select:focus-visible,
+.campo textarea:focus-visible {
+  border-color: var(--foco);
+  outline: 3px solid color-mix(in srgb, var(--foco) 30%, transparent);
+  outline-offset: 0;
 }
 
 .campo[data-error] input,
-.campo[data-error] select {
+.campo[data-error] select,
+.campo[data-error] textarea {
   border-color: var(--peligro);
 }
 
 .ayuda {
   color: var(--texto-suave);
-  font-size: 0.875rem;
+  font-size: var(--texto-pequeno);
+  line-height: 1.45;
 }
 
 .dos {
@@ -242,57 +494,151 @@ legend {
   gap: var(--espacio-2);
 }
 
+/*
+ * Dos campos lado a lado: con subgrid, la etiqueta, el campo, la ayuda y el error van en la misma
+ * fila en las dos columnas, aunque una etiqueta ocupe dos líneas a 360 px.
+ */
+@supports (grid-template-rows: subgrid) {
+  .dos:has(> .campo) {
+    row-gap: 0;
+  }
+
+  .dos > .campo {
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+    row-gap: var(--espacio-1);
+    padding-bottom: var(--espacio-3);
+  }
+
+  .dos > .campo > label {
+    align-self: end;
+  }
+}
+
+/* ── Inicio (HU-Q6.5) ───────────────────────────────────────────────────────────────────────── */
+
+/* El turno, en una línea: quién y desde cuándo, y su botón al lado. */
+.turno-linea {
+  display: flex;
+  gap: var(--espacio-3);
+  align-items: center;
+  justify-content: space-between;
+  color: var(--texto-suave);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.acciones-inicio {
+  display: grid;
+  gap: var(--espacio-2);
+}
+
+.menu {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu li + li {
+  border-top: 1px solid var(--linea);
+}
+
+/* Una fila de lista, con su flecha: lo que se abre de vez en cuando. */
+.menu-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  inline-size: 100%;
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--texto);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: transform var(--tiempo-corto) var(--curva-salida);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-fila::after {
+  content: "";
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  margin-inline-end: var(--espacio-1);
+  border-top: 2px solid var(--texto-suave);
+  border-right: 2px solid var(--texto-suave);
+  transform: rotate(45deg);
+}
+
 /* ── Entrada (HU-Q3.3) ──────────────────────────────────────────────────────────────────────── */
 
+/* La placa colombiana: amarilla, con su marco negro y la letra fija. */
 .placa {
-  min-height: 4.5rem;
+  display: grid;
+  place-items: center;
+  min-height: 5rem;
+  margin: 0;
   padding: var(--espacio-2);
-  border: 3px solid var(--texto);
-  border-radius: var(--radio-campo);
+  border: 3px solid #0b0b0a;
+  border-radius: var(--radio);
   background: #ffd400;
+  box-shadow:
+    inset 0 0 0 3px #ffd400,
+    inset 0 0 0 4px rgb(11 11 10 / 0.18);
   color: #0b0b0a;
   font-family: var(--fuente-mono);
   font-size: 2.5rem;
   font-weight: var(--peso-fuerte);
   letter-spacing: 0.15em;
+  line-height: 1;
   text-align: center;
 }
 
 .teclado {
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 0.3125rem;
 }
 
 .tecla {
-  min-height: 48px;
+  min-height: 3rem;
   padding: 0;
-  border: 1px solid var(--borde);
-  border-radius: 6px;
+  border: 0;
+  border-radius: 8px;
   background: var(--superficie-2);
+  box-shadow: inset 0 -1px 0 var(--linea);
   color: var(--texto);
   font: inherit;
   font-weight: var(--peso-fuerte);
+  cursor: pointer;
+  transition: transform var(--tiempo-corto) var(--curva-salida);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tecla:active {
+  background: var(--linea);
 }
 
 .tecla-ancha {
   grid-column: span 3;
-}
-
-.tecla:focus-visible {
-  outline: 3px solid var(--foco);
+  font-size: var(--texto-pequeno);
 }
 
 .casilla {
   display: flex;
-  gap: var(--espacio-2);
+  gap: var(--espacio-3);
   align-items: flex-start;
+  line-height: 1.4;
 }
 
 .casilla-marca {
   width: 1.5rem;
   height: 1.5rem;
   flex: none;
+  margin: 0;
+  accent-color: var(--acento);
 }
 
 /* ── Recibo en pantalla (§6.5) ──────────────────────────────────────────────────────────────── */
@@ -300,8 +646,12 @@ legend {
 .filas {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: var(--espacio-1) var(--espacio-3);
+  gap: var(--espacio-2) var(--espacio-4);
   margin: 0;
+  padding: var(--espacio-4) 0;
+  border-block: 1px solid var(--linea);
+  font-size: 0.9375rem;
+  line-height: 1.4;
 }
 
 /*
@@ -325,6 +675,7 @@ legend {
   width: min(100%, 18rem);
   aspect-ratio: 1;
   margin: 0 auto;
+  border-radius: var(--radio);
   background: #ffffff;
   image-rendering: pixelated;
 }
@@ -339,53 +690,73 @@ legend {
 
 .lista-estadias {
   display: grid;
-  gap: var(--espacio-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.estadia {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0 var(--espacio-3);
-  inline-size: 100%;
-  min-height: var(--toque);
-  padding: var(--espacio-2) var(--espacio-3);
-  border: 2px solid var(--borde);
-  border-radius: var(--radio-campo);
-  background: var(--superficie);
-  color: var(--texto);
-  font: inherit;
-  text-align: start;
-}
-
-.estadia:focus-visible {
-  outline: 3px solid var(--foco);
-  outline-offset: 2px;
-}
-
-.estadia .ayuda {
-  grid-column: 2;
+.lista-estadias li + li {
+  border-top: 1px solid var(--linea);
 }
 
 .placa-chica {
-  grid-row: span 2;
-  align-self: center;
-  padding: 0 var(--espacio-2);
+  padding: 0.125rem var(--espacio-2);
   border: 2px solid #0b0b0a;
-  border-radius: 4px;
+  border-radius: 5px;
   background: #ffd400;
   color: #0b0b0a;
   font-family: var(--fuente-mono);
   font-weight: var(--peso-fuerte);
   letter-spacing: 0.1em;
+  line-height: 1.3;
+}
+
+/* Una fila por vehículo: la placa, la hora y el tiempo corriendo, sin caja alrededor. */
+.estadia {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0 var(--espacio-3);
+  align-items: baseline;
+  inline-size: 100%;
+  min-height: var(--toque);
+  padding: var(--espacio-3) 0;
+  border: 0;
+  background: none;
+  color: var(--texto);
+  font: inherit;
+  line-height: 1.35;
+  text-align: start;
+  cursor: pointer;
+  transition: transform var(--tiempo-corto) var(--curva-salida);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.estadia > * {
+  grid-column: 2;
+}
+
+.estadia > .placa-chica {
+  grid-column: 1;
+  grid-row: span 2;
+  align-self: center;
+}
+
+.estadia > .estadia-tiempo {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.estadia > .ayuda {
+  grid-row: 2;
 }
 
 .total-grande {
   margin: 0;
-  font-size: 2.75rem;
+  font-size: 3.25rem;
+  font-variant-numeric: tabular-nums;
   font-weight: var(--peso-fuerte);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   text-align: center;
 }
 
@@ -400,7 +771,7 @@ legend {
 .camara {
   inline-size: 100%;
   aspect-ratio: 1;
-  border-radius: var(--radio-campo);
+  border-radius: var(--radio);
   background: #000;
   object-fit: cover;
 }
@@ -408,11 +779,10 @@ legend {
 .qr-pago {
   justify-self: center;
   inline-size: min(100%, 18rem);
-  border-radius: var(--radio-campo);
+  border-radius: var(--radio);
   background: #fff;
 }
 
-/* El aviso de privacidad en hoja carta (HU-Q4.4): solo la tarjeta, sin botones ni cabecera. */
 @media print {
   body * {
     visibility: hidden;
