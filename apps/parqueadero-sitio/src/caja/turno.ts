@@ -21,8 +21,16 @@ export class SinTurno extends Error {
   }
 }
 
+/**
+ * El turno abierto de **esta** caja. Con la nube, los registros de las otras cajas del parqueadero
+ * también están aquí (HU-Q7.5): el turno de otra caja no es el de esta.
+ */
 export async function turnoAbierto(db: BaseDeLaCaja): Promise<Turno | null> {
-  const aperturas = await db.registros.where('tipo').equals('turno_apertura').sortBy('id');
+  const propia = await db.meta.get('dispositivo');
+  if (propia?.clave !== 'dispositivo') return null;
+  const aperturas = (await db.registros.where('tipo').equals('turno_apertura').sortBy('id')).filter(
+    (a) => a.dispositivo_id === propia.id,
+  );
   const apertura = aperturas.at(-1);
   if (!apertura) return null;
   const cerrado = await db.registros

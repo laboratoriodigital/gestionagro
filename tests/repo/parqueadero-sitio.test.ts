@@ -14,7 +14,8 @@ import {
   ZONA_PARQUEADERO,
 } from '../../scripts/generar-wrangler.ts';
 import {
-  CSP_DEL_PARQUEADERO,
+  conexionesDeLaCaja,
+  cspDelParqueadero,
   robotsDelParqueadero,
   textoDeCabecerasDelParqueadero,
 } from '../../scripts/lib/cabeceras-parqueadero.ts';
@@ -71,12 +72,28 @@ describe('el sitio del parqueadero', () => {
   });
 
   it('la CSP solo deja código, estilos y conexiones propios, sin unsafe-inline', () => {
-    expect(CSP_DEL_PARQUEADERO).not.toContain('unsafe-inline');
-    expect(CSP_DEL_PARQUEADERO).not.toContain('unsafe-eval');
-    for (const d of ['script-src', 'style-src', 'connect-src', 'worker-src']) {
-      expect(CSP_DEL_PARQUEADERO).toContain(`${d} 'self'`);
+    for (const entorno of ['staging', 'produccion'] as const) {
+      const csp = cspDelParqueadero(entorno);
+      expect(csp).not.toContain('unsafe-inline');
+      expect(csp).not.toContain('unsafe-eval');
+      for (const d of ['script-src', 'style-src', 'connect-src', 'worker-src']) {
+        expect(csp).toContain(`${d} 'self'`);
+      }
     }
-    expect(CSP_DEL_PARQUEADERO).toMatch(/connect-src 'self';/);
+  });
+
+  it('la caja se conecta a la API de su celda en staging, y en producción a ninguna (HU-Q7.5)', () => {
+    expect(conexionesDeLaCaja('staging')).toEqual([
+      'https://parqueadero-api-c2-staging.laboratoriodigital-la.workers.dev',
+    ]);
+    expect(cspDelParqueadero('staging')).toContain(
+      "connect-src 'self' https://parqueadero-api-c2-staging.laboratoriodigital-la.workers.dev;",
+    );
+    // Hasta que HU-Q7.12 publique la celda, la de producción es la de M0.
+    expect(conexionesDeLaCaja('produccion')).toEqual([]);
+    expect(cspDelParqueadero('produccion')).toMatch(/connect-src 'self';/);
+    // Nunca la API del agro.
+    expect(cspDelParqueadero('staging')).not.toContain('agro-api');
   });
 
   it('staging no se indexa; producción lleva HSTS y no deja indexar la caja ni los recibos', () => {
@@ -143,34 +160,46 @@ describe('el sitio del parqueadero', () => {
           });
         }
         const cabeceras: Record<string, string> = { 'x-robots-tag': 'noindex' };
-        const csp = cambios.csp === undefined ? CSP_DEL_PARQUEADERO : cambios.csp;
+        const csp = cambios.csp === undefined ? cspDelParqueadero('staging') : cambios.csp;
         if (csp !== null) cabeceras['content-security-policy'] = csp;
         return new Response('<title>Caja del parqueadero</title>', { headers: cabeceras });
       }) as typeof fetch;
     }
 
     it('pasa con la caja, su CSP y su service worker', async () => {
-      expect(await humoParqueadero(sitio(), URL_STAGING)).toEqual([]);
+      expect(await humoParqueadero(sitio(), URL_STAGING, 'staging')).toEqual([]);
     });
 
     it('falla sin la CSP, con otra más laxa o sin service worker', async () => {
-      expect(await humoParqueadero(sitio({ csp: null }), URL_STAGING)).toHaveLength(1);
+      expect(await humoParqueadero(sitio({ csp: null }), URL_STAGING, 'staging')).toHaveLength(1);
       expect(
-        await humoParqueadero(sitio({ csp: "default-src 'self' 'unsafe-inline'" }), URL_STAGING),
+        await humoParqueadero(
+          sitio({ csp: "default-src 'self' 'unsafe-inline'" }),
+          URL_STAGING,
+          'staging',
+        ),
       ).toHaveLength(1);
-      expect(await humoParqueadero(sitio({ sw: 404 }), URL_STAGING)).toEqual([
+      // La de producción, sin la API de la celda, en staging deja la caja sin sincronizar.
+      expect(
+        await humoParqueadero(
+          sitio({ csp: cspDelParqueadero('produccion') }),
+          URL_STAGING,
+          'staging',
+        ),
+      ).toEqual([expect.stringContaining('no trae la CSP de la caja')]);
+      expect(await humoParqueadero(sitio({ sw: 404 }), URL_STAGING, 'staging')).toEqual([
         expect.stringContaining('sin service worker'),
       ]);
     });
 
     it('falla si `/_m` no lo atiende el Worker de eventos (HU-Q5.3)', async () => {
-      expect(await humoParqueadero(sitio({ m: 404 }), URL_STAGING)).toEqual([
+      expect(await humoParqueadero(sitio({ m: 404 }), URL_STAGING, 'staging')).toEqual([
         expect.stringContaining('sin el Worker de eventos'),
       ]);
     });
 
     it('falla si la página del recibo no abre (HU-Q5.2 CA2)', async () => {
-      expect(await humoParqueadero(sitio({ r: 404 }), URL_STAGING)).toEqual([
+      expect(await humoParqueadero(sitio({ r: 404 }), URL_STAGING, 'staging')).toEqual([
         expect.stringContaining('/r/ respondió 404'),
       ]);
     });

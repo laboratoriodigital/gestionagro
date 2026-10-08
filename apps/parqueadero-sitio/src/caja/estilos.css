@@ -1083,3 +1083,34 @@ legend {
     visibility: visible;
   }
 }
+
+/* ── La nube (HU-Q7.5) ──────────────────────────────────────────────────────────────────────── */
+
+/* Lo que la nube no aceptó: en rojo y con su motivo, a un toque; nada se borró (P1). */
+.cuarentena {
+  max-width: 40rem;
+  margin: var(--espacio-2) auto 0;
+  color: var(--peligro);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.cuarentena summary {
+  min-block-size: 2.75rem;
+  display: flex;
+  align-items: center;
+  font-weight: var(--peso-fuerte);
+  cursor: pointer;
+}
+
+.cuarentena ul {
+  display: grid;
+  gap: var(--espacio-1);
+  margin: 0 0 var(--espacio-1);
+  padding-inline-start: 1.25em;
+  color: var(--texto);
+}
+
+.cuarentena p {
+  color: var(--texto-suave);
+}

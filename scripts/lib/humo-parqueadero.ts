@@ -3,9 +3,13 @@
  * service worker. Sin ellos la caja no abre sin red ni puede imprimir (Web Bluetooth y el service
  * worker piden un contexto seguro), así que un staging sin ellos es un staging roto (P16).
  */
-import { CSP_DEL_PARQUEADERO } from './cabeceras-parqueadero.ts';
+import { cspDelParqueadero, type EntornoDelParqueadero } from './cabeceras-parqueadero.ts';
 
-export async function humoParqueadero(fetchFn: typeof fetch, url: string): Promise<string[]> {
+export async function humoParqueadero(
+  fetchFn: typeof fetch,
+  url: string,
+  entorno: EntornoDelParqueadero,
+): Promise<string[]> {
   const fallas: string[] = [];
   try {
     const caja = await fetchFn(`${url}/caja/`);
@@ -13,7 +17,7 @@ export async function humoParqueadero(fetchFn: typeof fetch, url: string): Promi
     else if (!(await caja.text()).includes('Caja del parqueadero')) {
       fallas.push(`parqueadero: ${url}/caja/ no es la caja`);
     }
-    if (caja.headers.get('content-security-policy') !== CSP_DEL_PARQUEADERO) {
+    if (caja.headers.get('content-security-policy') !== cspDelParqueadero(entorno)) {
       fallas.push(`parqueadero: ${url}/caja/ no trae la CSP de la caja`);
     }
     if (caja.headers.get('x-robots-tag') !== 'noindex') {

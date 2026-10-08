@@ -156,9 +156,9 @@ Al 7 oct 2026 no hay código del parqueadero. Lo que ya existe son las 56 compro
 
 #### P17 · El instrumento también miente
 - **Regla:** un doble que simplifica una propiedad que el código real promete miente el día que alguien depende de ella.
-- **En el parqueadero:** el adaptador falso de impresora no rechaza trozos grandes ni se queda sin papel; Chromium en las e2e no es el teléfono del cajero; una herramienta que resume páginas no es el navegador; una maqueta en pantalla no es el papel de 32 columnas.
+- **En el parqueadero:** el adaptador falso de impresora no rechaza trozos grandes ni se queda sin papel; Chromium en las e2e no es el teléfono del cajero; una herramienta que resume páginas no es el navegador; una maqueta en pantalla no es el papel de 32 columnas; un arnés en Node no tiene la CSP del navegador.
 - **Lo impedirá:** HU-Q1.4, HU-Q2.2, HU-Q6.1.
-- **Entradas:** parqueadero 1, 2, 3, 8.
+- **Entradas:** parqueadero 1, 2, 3, 8, 30.
 
 #### P18 · Un documento no lanza una excepción cuando miente
 - **Regla:** lo que un documento afirma del código lo ata una aserción; el redundante se borra.
@@ -877,3 +877,25 @@ parqueadero: sin publicar en este despliegue (su versión no cambió)
 La regla: **una rama nueva del despliegue se prueba con la lista de productos que de verdad recibe cada destino, no con la que uno supone.**
 
 *Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P1 · parqueadero-0.2.0 · 2026-10-08
+
+**30 · La caja que sincronizaba en las pruebas no podía hablar con la celda en el navegador: su CSP solo dejaba su origen.**
+
+*Qué pasó.* El 8 oct 2026, con HU-Q7.5 en verde en las pruebas de integración (las cajas y el Worker de la celda en el mismo proceso), la e2e de dos cajas en dos navegadores no subió nada: la cabecera decía «3 en este dispositivo, sin señal» con la red puesta.
+
+*Síntoma literal.* En la consola de la caja:
+
+```text
+Refused to connect to 'https://parqueadero-api-c2.ejemplo.test/api/v1/sync/push' because it violates the following Content Security Policy directive: "connect-src 'self'".
+```
+
+*Causa raíz.* La CSP de la caja nació en M0 sin cuenta ni API (ADR-32) con `connect-src 'self'`, y nada la ataba a las celdas. Las pruebas de integración llaman al `fetch` de Node, que no aplica CSP. Y la caja dice «sin señal» porque, para `fetch`, una conexión que la CSP bloquea es igual a no tener red.
+
+*Cómo se reprodujo.* La e2e `tests/e2e/parqueadero-dos-cajas.spec.ts` contra el `dist` armado antes del arreglo.
+
+*Arreglo.* La CSP sale de `celdas.json` (P2) por entorno: en staging, `connect-src 'self'` más la API de staging de cada celda del parqueadero; en producción, solo `'self'` hasta que HU-Q7.12 publique la celda, la misma regla del directorio del CORE. La prueba de humo del despliegue compara con la CSP de su entorno.
+
+**Lo prueban** «la caja se conecta a la API de su celda en staging, y en producción a ninguna» en `tests/repo/parqueadero-sitio.test.ts` y la e2e de dos cajas. Control negativo: con la CSP de antes, la e2e se ve en rojo en la primera subida, y la prueba de humo de staging falla con la CSP de producción.
+
+La regla: **una conexión nueva de la caja se prueba en un navegador con las cabeceras que se despliegan; un arnés en Node no tiene CSP.**
+
+*Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P17 · parqueadero-0.2.0 · 2026-10-08
