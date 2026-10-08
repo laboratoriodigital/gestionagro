@@ -1,0 +1,19 @@
+{
+  "nota": "El texto fijo del aviso de tarifas, medios de pago y derechos que el parqueadero pone en la entrada (HU-Q11.3; estudio §12.2 y §13.1; PARQUEADERO §8.4). La caja lo llena con los datos legales de la sede, sus tarifas tal como las dice el recibo, los medios de pago que el parqueadero marca y su texto de responsabilidad. Los derechos dicen solo lo que la ley da y nada que la sede tenga que cumplir de otro modo: un texto propio del parqueadero (como el plazo de 45 días) va en su texto de responsabilidad, no aquí.",
+  "version": "1",
+  "fecha": "2026-10-08",
+  "estado": "borrador",
+  "revision": "requiere revisión de abogado",
+  "titulo": "Tarifas y derechos del usuario",
+  "tarifas": "Tarifas",
+  "perdido": "Tiquete perdido",
+  "medios": "Medios de pago",
+  "poliza": "Póliza de responsabilidad",
+  "derechos_titulo": "Sus derechos",
+  "derechos": [
+    "Recibir al entrar un recibo con la fecha y la hora, la placa y el estado de su vehículo (Ley 1480 de 2011, art. 18).",
+    "Conocer las tarifas y los medios de pago antes de dejar su vehículo, y pagar solo lo que dice este aviso.",
+    "Que el parqueadero cuide su vehículo y se lo entregue en el estado en que lo recibió.",
+    "Presentar una queja al parqueadero y, si no la resuelve, ante la Superintendencia de Industria y Comercio (www.sic.gov.co)."
+  ]
+}

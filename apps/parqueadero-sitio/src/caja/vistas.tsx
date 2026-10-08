@@ -22,6 +22,7 @@ import { Entrada } from './Entrada.tsx';
 import { Escanear } from './Escanear.tsx';
 import { useConsulta } from './ganchos.ts';
 import type { ControlDeImpresora } from './impresora.ts';
+import { Letrero } from './Letrero.tsx';
 import { avisoAceptado } from './privacidad.ts';
 import { Recibo } from './Recibo.tsx';
 import { Respaldo } from './Respaldo.tsx';
@@ -37,6 +38,7 @@ export type Vista =
   | { readonly es: 'salida'; readonly estadiaId: string }
   | { readonly es: 'escanear' }
   | { readonly es: 'aviso' }
+  | { readonly es: 'letrero' }
   | { readonly es: 'turno' }
   | { readonly es: 'respaldo' }
   | { readonly es: 'abonados' }
@@ -119,6 +121,8 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir }: Props) {
           alVolver={inicio}
         />
       );
+    case 'letrero':
+      return <Letrero db={db} alAjustes={() => ir({ es: 'ajustes' })} alVolver={inicio} />;
     default:
       return (
         <Recibo

@@ -900,3 +900,186 @@ legend {
   block-size: 28mm;
   margin: 1mm auto;
 }
+
+/* ── El aviso de tarifas (HU-Q11.3) ─────────────────────────────────────────────────────────── */
+
+/*
+ * En pantalla, la vista previa: una hoja con su borde fino. Al imprimir, la copia en la raíz de la
+ * página (`.letrero-impreso`) es lo único, con medidas de papel y letra de letrero.
+ * Los tamaños van en `em` dentro de la hoja: el oficio solo sube la letra de la base.
+ */
+.letrero {
+  display: grid;
+  gap: var(--espacio-4);
+  padding: var(--espacio-4);
+  border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--texto);
+  font-size: var(--texto-pequeno);
+}
+
+.letrero-sede {
+  display: grid;
+  gap: var(--espacio-1);
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+.letrero-nombre {
+  color: var(--texto);
+  font-size: 1.6em;
+  font-weight: var(--peso-fuerte);
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+
+.letrero-titulo {
+  padding-block: 0.5em;
+  border-block: 2px solid currentcolor;
+  font-size: 1.35em;
+  text-align: center;
+}
+
+.letrero-bloque {
+  display: grid;
+  gap: var(--espacio-2);
+}
+
+.letrero h3 {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 0.8em;
+  font-weight: var(--peso-fuerte);
+  letter-spacing: var(--interletrado-etiqueta);
+  text-transform: uppercase;
+}
+
+.letrero-tarifas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--espacio-3) var(--espacio-4);
+}
+
+.letrero-vehiculo-nombre {
+  font-size: 1.15em;
+  font-weight: var(--peso-fuerte);
+}
+
+.letrero ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.letrero ol {
+  display: grid;
+  gap: var(--espacio-1);
+  margin: 0;
+  padding-inline-start: 1.25em;
+}
+
+.letrero-pie {
+  display: grid;
+  gap: var(--espacio-1);
+  padding-top: var(--espacio-3);
+  border-top: 1px solid var(--linea);
+  color: var(--texto-suave);
+}
+
+.letrero-whatsapp {
+  padding-top: var(--espacio-2);
+  color: var(--texto);
+  font-size: 1.3em;
+  font-weight: var(--peso-fuerte);
+  text-align: center;
+}
+
+.letrero-impreso {
+  display: none;
+}
+
+/*
+ * La copia que se imprime. Sus medidas no van en `@media print`: antes de imprimir, la caja la
+ * pone fuera de la vista con el ancho del papel (21,6 cm menos los márgenes) y mide su alto; si no
+ * cabe en una hoja, baja la letra de la base. Por eso los espacios van en `em`.
+ */
+.letrero-impreso.midiendo {
+  display: block;
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: -10000px;
+  inline-size: 188mm;
+  visibility: hidden;
+}
+
+.letrero-impreso .letrero {
+  gap: 0.55em;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #000;
+  background: #fff;
+  font-size: 14pt;
+  line-height: 1.4;
+}
+
+.letrero-impreso.letrero-oficio .letrero {
+  font-size: 16pt;
+}
+
+.letrero-impreso .letrero-sede,
+.letrero-impreso .letrero h3,
+.letrero-impreso .letrero-pie {
+  color: #333;
+}
+
+.letrero-impreso .letrero-nombre {
+  color: #000;
+  font-size: 2.2em;
+}
+
+.letrero-impreso .letrero-titulo {
+  font-size: 1.7em;
+}
+
+.letrero-impreso .letrero-tarifas {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4em 0.8em;
+}
+
+.letrero-impreso .letrero-vehiculo-nombre {
+  font-size: 1.4em;
+}
+
+.letrero-impreso .letrero-vehiculo li {
+  font-size: 1.15em;
+}
+
+.letrero-impreso .letrero-pie {
+  border-top-color: #999;
+}
+
+.letrero-impreso .letrero-whatsapp {
+  color: #000;
+  font-size: 1.7em;
+}
+
+@media print {
+  html.imprimiendo-letrero,
+  html.imprimiendo-letrero body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+  html.imprimiendo-letrero body > :not(.letrero-impreso) {
+    display: none;
+  }
+  html.imprimiendo-letrero .letrero-impreso {
+    display: block;
+  }
+  html.imprimiendo-letrero .letrero-impreso,
+  html.imprimiendo-letrero .letrero-impreso * {
+    visibility: visible;
+  }
+}
