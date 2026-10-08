@@ -432,7 +432,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.4.1 `[código]` app y rutas · WI-Q7.4.2 `[código]` push con reintento por operación · WI-Q7.4.3 `[prueba]` D1 local con los dos parqueaderos de prueba · WI-Q7.4.4 `[infra]` `parqueadero-api-c2` en staging · WI-Q7.4.5 `[doc]` PARQUEADERO §12.
 
 #### HU-Q7.5 · La caja sincroniza sin cortar una venta
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q7 · **Depende de:** HU-Q7.4 · **Estado:** En curso (rama `feat/q7-5-caja-sincroniza`)
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q7 · **Depende de:** HU-Q7.4 · **Estado:** En revisión (rama `feat/q7-5-caja-sincroniza`): en staging. CA3 con dos navegadores (`tests/e2e/parqueadero-dos-cajas.spec.ts`) y con el arnés de cajas (`tests/integracion/parqueadero-dos-cajas.test.ts`); CA4 en el arnés, y lo de no recargar con la cola llena es HU-Q3.1 CA3, porque la cola vive en IndexedDB. Hasta HU-Q7.6 ninguna caja tiene `nube` y la cola no se llena; hasta HU-Q7.7 una caja nueva toma la serie A y lo suyo va a cuarentena con el motivo de la serie
 - Como cajero, quiero que lo que registro llegue solo a la celda cuando hay red, sin que la caja me haga esperar, para no pensar en la sincronización.
 - **Respaldo:** PARQUEADERO §5.2 (`outbox`, `rechazos`) y §5.3 (reglas 1, 3 y 4); ARQUITECTURA §5.3 (las tres señales del cuaderno).
 - **CA1.** Cada registro nuevo entra a `outbox` en la misma transacción de IndexedDB que el registro. El envío corre en segundo plano y nunca entre el toque de «Registrar» y el recibo.
