@@ -73,30 +73,27 @@ export const env = (e: Entorno, extra: Partial<Env> = {}): Env => ({
 
 type Datos = Parameters<typeof firmarAcceso>[1];
 
-/** Un token v2 del CORE para el parqueadero, como lo emite HU-C4.3. */
+/** Un token v2 del CORE para el parqueadero, como lo emite HU-C4.3; uno v1 no lleva `aud`. */
 export const token = async (
   e: Entorno,
   datos: Partial<Datos> = {},
   ahora = T0,
   version: 1 | 2 = 2,
-) =>
-  (
-    await firmarAcceso(
-      e.firmante,
-      {
-        sub: PROPIETARIO,
-        org: ORG_UNO,
-        rol: 'propietario',
-        celda: 'c2',
-        shard: SHARD,
-        anillo: 1,
-        aud: 'parqueadero',
-        ...datos,
-      },
-      ahora,
-      version,
-    )
+) => {
+  const { aud, ...resto }: Datos = {
+    sub: PROPIETARIO,
+    org: ORG_UNO,
+    rol: 'propietario',
+    celda: 'c2',
+    shard: SHARD,
+    anillo: 1,
+    aud: 'parqueadero',
+    ...datos,
+  };
+  return (
+    await firmarAcceso(e.firmante, version === 2 && aud ? { ...resto, aud } : resto, ahora, version)
   ).token;
+};
 
 export const pedir = (
   e: Entorno,

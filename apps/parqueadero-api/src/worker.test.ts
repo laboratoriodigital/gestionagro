@@ -60,7 +60,7 @@ describe('GET /api/salud, sin token', () => {
   });
 
   it('sin configuración dice qué falta, y un shard que no responde se nombra (P1)', async () => {
-    const r = await pedir(e, '/api/salud', null, {}, { CORE_CLAVES: undefined, ORIGENES_APP: '' });
+    const r = await pedir(e, '/api/salud', null, {}, { CORE_CLAVES: '', ORIGENES_APP: '' });
     expect(r.status).toBe(503);
     expect(await r.json()).toMatchObject({ motivo: 'Falta CORE_CLAVES, ORIGENES_APP' });
     const caida = {
@@ -120,7 +120,7 @@ describe('CA4 ❌ · un token ajeno no entra ni escribe', () => {
 
   it.each([
     ['de la tienda (aud = tienda)', { aud: 'tienda' }, 2],
-    ['del agro, v1 sin aud', { aud: undefined }, 1],
+    ['del agro, v1 sin aud', {}, 1],
   ] as const)('un token %s responde 401 y no escribe', async (_, datos, version) => {
     expect(await subirCon(await token(e, datos, T0, version))).toEqual({ status: 401, filas: 0 });
   });
