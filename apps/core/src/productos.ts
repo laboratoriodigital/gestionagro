@@ -1,22 +1,19 @@
 /**
  * Los productos que el CORE atiende (HU-C3.1, PLATAFORMA §4.2 y §4.7, ADR-20).
  *
- * El Worker no tiene sistema de archivos: importa `infrastructure/productos.json` y la política de
- * cada producto al compilar (P2: la misma fuente que el despliegue copia a la base). Lo que cada
+ * El Worker no tiene sistema de archivos: importa `infrastructure/productos.json` y el catálogo
+ * generado con la política y los planes de cada producto al compilar (P2: la misma fuente que el
+ * despliegue copia a la base). Lo que cada
  * solicitud necesita saber —qué producto es, de dónde puede venir su app y a qué pantallas se
  * vuelve, qué política vale— sale de aquí, sin consultar la base.
  */
 import type { BaseD1 } from '@ed1/d1';
 import type { Producto, RegistroDeProductos } from '@ed1/productos';
-import planesAgro from '../../../content/agro/cuaderno/planes.json' with { type: 'json' };
-import politicaAgro from '../../../content/agro/privacidad/politica.json' with { type: 'json' };
-import politicaCuenta from '../../../content/cuenta/privacidad/politica.json' with { type: 'json' };
-import planesEnsayo from '../../../content/ensayo/planes.json' with { type: 'json' };
-import politicaEnsayo from '../../../content/ensayo/privacidad/politica.json' with { type: 'json' };
 import registro from '../../../infrastructure/productos.json' with { type: 'json' };
 import registroDePrueba from '../../../infrastructure/productos-de-prueba.json' with {
   type: 'json',
 };
+import generado from './catalogo.generado.json' with { type: 'json' };
 
 export interface CatalogoDelCore {
   productos: readonly Producto[];
@@ -35,14 +32,15 @@ export interface PlanDelProducto {
 }
 
 /**
- * El catálogo real. Una prueba exige que cada producto de `productos.json` tenga aquí su política
- * y sus planes (P2): agregar un producto es sumar sus dos `import` junto a los del agro.
+ * El catálogo real. Las versiones de las políticas y los planes salen de
+ * `catalogo.generado.json`, que `scripts/generar-catalogo-core.ts` arma desde el `planes.json` y la
+ * política de cada producto (P2); una prueba exige que esté al día. Agregar un producto es un
+ * archivo y ese comando: ningún archivo de código del CORE nombra un producto (R1, HU-Q7.1).
  */
 export const CATALOGO: CatalogoDelCore = {
   productos: (registro as RegistroDeProductos).productos,
-  politicas: { agro: politicaAgro.version, cuenta: politicaCuenta.version },
-  // La cuenta (ADR-28) no tiene planes: no tiene organizaciones.
-  planes: { agro: planesAgro.planes, cuenta: [] },
+  politicas: generado.real.politicas,
+  planes: generado.real.planes,
 };
 
 /**
@@ -51,8 +49,8 @@ export const CATALOGO: CatalogoDelCore = {
  */
 export const CATALOGO_DE_STAGING: CatalogoDelCore = {
   productos: [...CATALOGO.productos, ...(registroDePrueba as RegistroDeProductos).productos],
-  politicas: { ...CATALOGO.politicas, ensayo: politicaEnsayo.version },
-  planes: { ...CATALOGO.planes, ensayo: planesEnsayo.planes },
+  politicas: { ...CATALOGO.politicas, ...generado.prueba.politicas },
+  planes: { ...CATALOGO.planes, ...generado.prueba.planes },
 };
 
 /**

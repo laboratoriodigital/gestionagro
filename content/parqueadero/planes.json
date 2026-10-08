@@ -1,0 +1,34 @@
+{
+  "nota": "Planes del Parqueadero ED1 (HU-Q7.1): la hipótesis del estudio de mercado §10.3, no precios decididos. «Gratis» es la caja de hoy, en un teléfono, sin cuenta ni respaldo (M0). «Parqueadero» llega con la cuenta (M1); su precio parte del medio de la banda del estudio (COP 49.000 a 69.000), el mismo con que el estudio §10.4 calcula la contribución, hasta que el dueño lo fije con el cliente. `cobro` da el monto por periodo de 1, 3, 6 y 12 meses con la regla de PLATAFORMA §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo), como el plan Finca del agro. No lleva `cobro_mensual_cop` a propósito: sin él, el CORE no lo cobra en línea, y así no se cobra un precio que todavía es hipótesis. «Varias sedes», «Copropiedad» y la factura electrónica esperan a su disparador (BACKLOG-PARKING, «Lo que no se hace»).",
+  "aviso_precio": "Precio de lanzamiento tentativo. La caja gratuita funciona hoy, sin cuenta; el plan Parqueadero llega con la sincronización y todavía no se cobra.",
+  "planes": [
+    {
+      "id": "gratis",
+      "nombre": "Gratis",
+      "gratuito": true,
+      "precio": "COP 0",
+      "para_quien": "Para el parqueadero que quiere dejar el talonario.",
+      "incluye": [
+        "Caja en un teléfono o un PC, aunque no haya señal",
+        "Recibo de entrada y de salida impreso en la térmica",
+        "El mismo recibo por WhatsApp, con el número que el conductor autoriza",
+        "Tarifas por minuto, con tope por día, gracia y redondeo",
+        "Cierre de turno y respaldo en un archivo"
+      ]
+    },
+    {
+      "id": "parqueadero",
+      "nombre": "Parqueadero",
+      "precio": "COP 49.000 a 69.000 al mes por sede",
+      "cobro": { "1": 59000, "3": 168000, "6": 318000, "12": 590000 },
+      "para_quien": "Para el parqueadero con varios cajeros o varias cajas.",
+      "incluye": [
+        "Todo lo del plan Gratis",
+        "Las cajas de la sede sincronizadas, sin repetir números (pronto)",
+        "Hasta 3 cajeros con su propio usuario (pronto)",
+        "Fotos del estado del vehículo por 30 días (pronto)",
+        "Mensualidades y reportes de todos los turnos (pronto)"
+      ]
+    }
+  ]
+}

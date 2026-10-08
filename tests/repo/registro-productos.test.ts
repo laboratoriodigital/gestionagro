@@ -3,11 +3,12 @@
  * Cada caso inválido es su control negativo (P5); el segundo producto de ensayo prueba que el
  * registro no está escrito solo para el agro (P4).
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type Producto, productoPorId, rolesInvitables, rolesQueAdministran } from '@ed1/productos';
 import { describe, expect, it } from 'vitest';
 import { ROLES_INVITABLES } from '../../apps/core/src/invitaciones.ts';
+import { RUTA_CATALOGO_CORE, textoDelCatalogoCore } from '../../scripts/generar-catalogo-core.ts';
 import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 import { cargarProductos, fallasDeProductos } from '../../scripts/lib/registro-productos.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
@@ -202,6 +203,10 @@ describe('cada celda es de un producto declarado (HU-C1.4, PLATAFORMA §4.9)', (
 });
 
 describe('el catálogo del CORE trae la política y los planes de cada producto (HU-C3.1, P2)', () => {
+  it('es el generado: `node scripts/generar-catalogo-core.ts` después de cambiar un producto', () => {
+    expect(readFileSync(RUTA_CATALOGO_CORE, 'utf8')).toBe(textoDelCatalogoCore());
+  });
+
   it('cada producto de productos.json tiene la versión vigente de su política', async () => {
     const { CATALOGO } = await import('../../apps/core/src/productos.ts');
     for (const p of cargarProductos().productos) {
@@ -224,5 +229,35 @@ describe('el catálogo del CORE trae la política y los planes de cada producto 
         p.id,
       ).toEqual(archivo.planes.map((x) => x.id));
     }
+  });
+});
+
+/**
+ * HU-Q7.1, CA3 ❌: el parqueadero entra al CORE como dato (R1). Si un archivo de código del CORE lo
+ * nombrara, agregar el siguiente producto volvería a ser tocar código. Las pruebas sí pueden
+ * nombrarlo; el catálogo generado es dato.
+ */
+const CODIGO_DEL_CORE = ['apps/core/src', 'packages/productos/src'];
+
+function nombranUnProducto(dir: string, producto: string): string[] {
+  return readdirSync(join(RAIZ, dir), { recursive: true, encoding: 'utf8' })
+    .filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f))
+    .filter((f) =>
+      new RegExp(`\\b${producto}\\b`, 'i').test(readFileSync(join(RAIZ, dir, f), 'utf8')),
+    )
+    .map((f) => `${dir}/${f}`);
+}
+
+describe('ningún archivo de código del CORE nombra al parqueadero (HU-Q7.1, CA3)', () => {
+  it('el parqueadero es un producto de productos.json', () => {
+    expect(productoPorId(cargarProductos(), 'parqueadero')?.excepcion).toBe('ADR-31');
+  });
+
+  it.each(CODIGO_DEL_CORE)('%s', (dir) => {
+    expect(nombranUnProducto(dir, 'parqueadero')).toEqual([]);
+  });
+
+  it('distingue: la misma búsqueda encuentra al agro, que el CORE todavía nombra (P10)', () => {
+    expect(nombranUnProducto('apps/core/src', 'agro')).toContain('apps/core/src/productos.ts');
   });
 });

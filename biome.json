@@ -14,6 +14,7 @@
       "!apps/sitio/wrangler.jsonc",
       "!apps/api-celda/wrangler.c*.jsonc",
       "!apps/core/wrangler.jsonc",
+      "!apps/core/src/catalogo.generado.json",
       "!apps/ensayo/wrangler.jsonc",
       "!apps/parqueadero-sitio/wrangler.jsonc",
       "!packages/ui/src/v2/tokens.css",
