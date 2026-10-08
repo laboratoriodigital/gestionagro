@@ -27,6 +27,7 @@ import { Letrero } from './Letrero.tsx';
 import type { Nube } from './nube.ts';
 import { avisoAceptado } from './privacidad.ts';
 import { Recibo } from './Recibo.tsx';
+import { Reportes } from './Reportes.tsx';
 import { Respaldo } from './Respaldo.tsx';
 import { Salida } from './Salida.tsx';
 import { AbrirTurno, Turno } from './Turno.tsx';
@@ -45,6 +46,7 @@ export type Vista =
   /** `regreso`: el fragmento con que volvió de Google Drive (HU-Q10.1). */
   | { readonly es: 'respaldo'; readonly regreso?: string }
   | { readonly es: 'abonados' }
+  | { readonly es: 'reportes' }
   /** `regreso`: el fragmento con que volvió de la cuenta (HU-Q7.6). */
   | { readonly es: 'cuenta'; readonly regreso?: string }
   | { readonly es: 'recibo'; readonly registro: Registro };
@@ -126,6 +128,8 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir, nube }: Props)
       );
     case 'abonados':
       return <Abonados db={db} ctx={ctx} alVolver={inicio} />;
+    case 'reportes':
+      return <Reportes db={db} reloj={reloj} alVolver={inicio} />;
     case 'cuenta':
       return (
         <Cuenta

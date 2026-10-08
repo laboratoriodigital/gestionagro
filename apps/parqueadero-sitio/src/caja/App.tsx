@@ -53,6 +53,7 @@ const NOMBRE_DE_PAGINA = {
 const MENU = [
   ['ajustes', 'Ajustes del parqueadero'],
   ['abonados', 'Abonados'],
+  ['reportes', 'Reportes'],
   ['respaldo', 'Respaldo'],
   ['letrero', 'Aviso de tarifas'],
   ['aviso', 'Aviso de privacidad'],

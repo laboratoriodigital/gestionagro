@@ -3,6 +3,7 @@
  * como en staging. La PT-210 es un falso que se instala como `navigator.bluetooth` y guarda los
  * bytes: lo que la prueba lee es lo que habría salido por Bluetooth.
  */
+import { readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
@@ -359,6 +360,35 @@ test.describe('la caja del parqueadero', () => {
     expect(papelDelCierre).toContain('Motivo: cambio mal dado');
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
     await expect(page.getByTestId('tarjeta-turno')).toContainText('Abra el turno');
+
+    // HU-Q8.5: el reporte del día dice lo mismo que el cierre impreso, y se descarga para Excel.
+    await page.getByRole('button', { name: 'Reportes' }).click();
+    await expect(page.getByLabel('Día')).toHaveValue('2026-10-06');
+    await expect(page.getByTestId('parcial')).toHaveCount(0);
+    const totales = page.getByTestId('totales');
+    await expect(totales).toContainText('Efectivo$41.400');
+    await expect(totales).toContainText('Diferencia de los cierres-$400');
+    const delTurno = page.getByTestId('turno-del-reporte');
+    await expect(delTurno).toHaveCount(1);
+    await expect(delTurno).toContainText('Caja A · T-001 · Caja 1');
+    await expect(delTurno).toContainText('De 18:05 a 21:05');
+    await expect(page.getByTestId('diferencia-del-turno')).toHaveText('-$400: cambio mal dado');
+    await expect(page.getByTestId('por-cajero')).toContainText(
+      'Caja 11 turno, 0 anulaciones, 0 copias',
+    );
+    await sinDesborde(page);
+    const [descarga] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Descargar para Excel' }).click(),
+    ]);
+    expect(descarga.suggestedFilename()).toBe('reporte-2026-10-06.csv');
+    const csv = readFileSync((await descarga.path()) ?? '', 'utf8');
+    expect(csv).toContain('2026-10-06;A;T-001;Caja 1;18:05;21:05;1;1;41400;');
+    expect(csv).toContain(';-400;cambio mal dado;0;0');
+    // Un día sin turnos lo dice, sin ceros que parezcan un día cerrado.
+    await page.getByLabel('Día').fill('2026-10-05');
+    await expect(page.getByTestId('sin-turnos')).toHaveText('Ese día no se abrió ningún turno.');
+    await expect(page.getByTestId('totales')).toHaveCount(0);
   });
 
   test('HU-Q4.2 · el enlace de WhatsApp abre el recibo en /r/ sin API y sin la placa en lo servido', async ({
