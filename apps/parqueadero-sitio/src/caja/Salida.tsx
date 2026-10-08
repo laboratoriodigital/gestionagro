@@ -19,6 +19,7 @@ import {
   cubiertoPorElAbono,
   type DatosDelCobro,
   EstadiaCerrada,
+  motivoDelCero,
   registrarSalida,
 } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
@@ -91,6 +92,7 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
   // El abono lo cubre todo: no hay medio que elegir (HU-Q3.11 CA2).
   const cubierto = cubiertoPorElAbono(liq);
   const delAbono = avisoDelAbono(q);
+  const delCero = motivoDelCero(q);
   const falta = cubierto
     ? ''
     : medio === null
@@ -153,6 +155,11 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
             data-prueba="abonado-salida"
           >
             {delAbono}
+          </p>
+        )}
+        {delCero && (
+          <p class="aviso-cero" data-prueba="motivo-cero">
+            {delCero}
           </p>
         )}
         <details>

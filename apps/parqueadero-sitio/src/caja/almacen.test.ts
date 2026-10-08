@@ -13,6 +13,7 @@ import {
 } from '@ed1/parqueadero-recibos';
 import { armarExport, type DatosDeSalida, ErrorDeValidacion } from '@ed1/parqueadero-schema';
 import { SEDE_ENSAYO_UNO, TARIFA_CARRO, TARIFA_MOTO } from '@ed1/parqueadero-schema/ensayos';
+import { liquidar } from '@ed1/parqueadero-tarifas';
 import { describe, expect, it } from 'vitest';
 import {
   abrirTurno,
@@ -39,6 +40,7 @@ import {
   guardarTarifa,
   leerAbonados,
   leerAjustes,
+  motivoDelCero,
   NoSeAnula,
   PinIncorrecto,
   RespaldoInvalido,
@@ -158,7 +160,8 @@ describe('ajustes sin valores de fábrica (HU-Q3.2)', () => {
     expect(await tienePin(db)).toBe(false);
     await expect(guardarPin(db, '12')).rejects.toThrow('4 a 6 números');
     await guardarPin(db, '4321');
-    expect(JSON.stringify(await db.meta.get('pin'))).not.toContain('4321');
+    // Entre comillas: la sal y la huella son hexadecimales y a veces traen «4321» por azar.
+    expect(JSON.stringify(await db.meta.get('pin'))).not.toContain('"4321"');
     expect(await verificarPin(db, '4321')).toBe(true);
     expect(await verificarPin(db, '1234')).toBe(false);
   });
@@ -933,5 +936,35 @@ describe('el envío de los eventos (HU-Q5.3 CA2)', () => {
       clave: 'eventos',
       conteos: { 'impresion.fallida/ninguno/sin_permiso': 1 },
     });
+  });
+});
+
+describe('una salida en $0 dice por qué (dueño, 8 oct 2026)', () => {
+  it('dentro de la gracia, después de ella y con el redondeo', async () => {
+    const { db, ctx, avanzar } = await configurada();
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(3);
+    const dentro = await cotizar(db, entrada.id, ctx.reloj(), false);
+    expect(dentro.liquidacion.total).toBe(0);
+    expect(motivoDelCero(dentro)).toBe(
+      `Salió dentro de los ${TARIFA_CARRO.gracia_min} minutos de gracia: no paga`,
+    );
+    avanzar(60);
+    expect(motivoDelCero(await cotizar(db, entrada.id, ctx.reloj(), false))).toBe('');
+
+    const tarifa = { ...TARIFA_CARRO, valor: 70, gracia_min: 0, redondeo: 'abajo_100' as const };
+    const unMinuto = liquidar(0, 60_000, tarifa, 230);
+    expect(unMinuto.total).toBe(0);
+    expect(motivoDelCero({ liquidacion: unMinuto, tarifa })).toBe(
+      'El redondeo hacia abajo deja $70 en $0: revise el redondeo en Ajustes',
+    );
+
+    // La captura del dueño: tope por día de $10 y redondeo a $100, 22 minutos.
+    const diez = { ...tarifa, tope_dia: 10 };
+    const conTope = liquidar(0, 22 * 60_000, diez, 230);
+    expect(conTope.total).toBe(0);
+    expect(motivoDelCero({ liquidacion: conTope, tarifa: diez })).toBe(
+      'El tope por día es de $10: revise la tarifa en Ajustes',
+    );
   });
 });

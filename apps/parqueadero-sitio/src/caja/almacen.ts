@@ -4,6 +4,7 @@
  * `@ed1/parqueadero-schema` antes de escribirse (P2): lo que la caja guarda hoy sube mañana igual.
  */
 
+import { formatearPesos } from '@ed1/dinero';
 import {
   type Catalogos,
   EnlaceInvalido,
@@ -593,6 +594,26 @@ export function avisoDelAbono(q: Pick<Cotizacion, 'abonado' | 'abonoVencido' | '
     return `El abono venció el ${fechaDelAbono(q.abonoVencido.hasta)}: se cobra como visitante`;
   }
   return '';
+}
+
+/**
+ * Por qué una salida da $0, a la vista junto al total: sin esto, un carro que salió dentro de la
+ * gracia parecía una tarifa que no calcula (dueño, 8 oct 2026). Vacío si el total no es $0 o si
+ * lo cubrió el abono, que ya tiene su aviso.
+ */
+export function motivoDelCero(q: Pick<Cotizacion, 'liquidacion' | 'tarifa'>): string {
+  const l = q.liquidacion;
+  if (l.total !== 0 || cubiertoPorElAbono(l)) return '';
+  if (l.avisos.includes('gracia')) {
+    return `Salió dentro de los ${q.tarifa.gracia_min} minutos de gracia: no paga`;
+  }
+  if (q.tarifa.tope_dia !== null && l.lineas.some((x) => x.concepto === 'tope_dia')) {
+    return `El tope por día es de ${formatearPesos(q.tarifa.tope_dia)}: revise la tarifa en Ajustes`;
+  }
+  if (l.redondeo > 0) {
+    return `El redondeo hacia abajo deja ${formatearPesos(l.subtotal)} en $0: revise el redondeo en Ajustes`;
+  }
+  return 'La tarifa de este vehículo da $0: revísela en Ajustes';
 }
 
 /**

@@ -389,6 +389,14 @@ legend {
   text-align: center;
 }
 
+/* Por qué la salida da $0, bajo el total (dueño, 8 oct 2026). */
+.aviso-cero {
+  margin: 0;
+  color: var(--aviso);
+  font-weight: var(--peso-fuerte);
+  text-align: center;
+}
+
 .camara {
   inline-size: 100%;
   aspect-ratio: 1;
