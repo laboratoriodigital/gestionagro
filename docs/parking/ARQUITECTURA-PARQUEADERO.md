@@ -988,7 +988,7 @@ Una entrada en `infrastructure/productos.json` (PLATAFORMA §4.2): un archivo y 
 
 ### 11.2 Roles y permisos
 
-Matriz como dato, la misma en la celda y en el dispositivo (con `crearPermisos` de `packages/sync`, como la del agro en `packages/agro-schema/src/permisos-sync.ts`):
+Matriz como dato, la misma en la celda y en el dispositivo (con `crearPermisos` de `packages/sync`, como la del agro en `packages/agro-schema/src/permisos-sync.ts`). Vive en `packages/parqueadero-schema/src/permisos.ts` (HU-Q7.8), y `tests/repo/permisos-parqueadero.test.ts` exige que diga lo mismo que esta tabla y que los roles de `infrastructure/productos.json`. La celda decide con `decidirEscritura`, que suma a la matriz las dos reglas que una tabla no dice: el cajero anula solo un recibo suyo y en los primeros 10 minutos, contados con la hora de la anulación y no con la de la celda (la caja anula sin red), y una copia no se acepta sin su usuario. En M0 la caja no tiene cuentas y el PIN de administrador protege anular, tarifas, ajustes y abonados:
 
 | Acción | Propietario | Administrador | Cajero |
 |---|---|---|---|

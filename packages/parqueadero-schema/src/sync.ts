@@ -47,3 +47,4 @@ export const validarOperacion = crearValidador<Registro, EntidadDeCatalogo>({
     validarCatalogo(entidad, ESQUEMAS[entidad], datos) as CatalogoValido,
   esErrorDeValidacion: (e): e is Error => e instanceof ErrorDeValidacion,
 });
+export * from './permisos.ts';

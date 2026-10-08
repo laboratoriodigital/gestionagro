@@ -408,7 +408,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.2.1 `[infra]` celda c2 · WI-Q7.2.2 `[código]` mudar la migración · WI-Q7.2.3 `[prueba]` las 56 en D1 local · WI-Q7.2.4 `[doc]` PARQUEADERO enlaza el archivo.
 
 #### HU-Q7.3 · `@ed1/sync` sin las entidades del agro
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q6 · **Depende de:** — · **Estado:** En revisión (PR #138): `@ed1/sync` sin entidades de producto; el agro en `@ed1/agro-schema/sync` y el parqueadero en `@ed1/parqueadero-schema/sync`, con su batería y la guardia de imports
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q6 · **Depende de:** — · **Estado:** Hecha (PR #138): `@ed1/sync` sin entidades de producto; el agro en `@ed1/agro-schema/sync` y el parqueadero en `@ed1/parqueadero-schema/sync`, con su batería y la guardia de imports
 - Como equipo, quiero un solo protocolo de sincronización para el cuaderno y la caja, para que un arreglo en uno llegue al otro.
 - **Respaldo:** ADR-39 (regla de tres, ED1 §3.11); ARQUITECTURA §5.6; PARQUEADERO §4.1.
 - **CA1.** `packages/sync` expone el protocolo (cola de salida, push de hasta 25 operaciones, acks `aceptado`, `duplicado`, `cuarentena` y `reintentar`, pull por cursores, ids UUIDv7, versiones N-1) con las entidades como parámetro. Las del agro se mudan al cuaderno.
@@ -428,6 +428,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **CA4 ❌.** Un token de otro producto (`aud = tienda`), de otra organización o vencido devuelve 401 o 403 y no escribe. Un `INSERT OR IGNORE` puesto a propósito pone en rojo la prueba de la fila con el `CHECK` roto.
 - **Consumo y kill switch:** unas 6 filas por vehículo (PARQUEADERO §10.3); `ks:parqueadero`; el vigía de HU-Q7.13.
 - **Patrones en riesgo:** P1, P5, P12, P17.
+- **Permisos (HU-Q7.8):** cada operación del push pasa por `decidirEscritura` de `@ed1/parqueadero-schema/sync` con el rol y el usuario del token; una negada va a cuarentena con su motivo, y la prueba de CA3 de HU-Q7.8 se repite contra la ruta (WI-Q7.8.2).
 - **Work items:** WI-Q7.4.1 `[código]` app y rutas · WI-Q7.4.2 `[código]` push con reintento por operación · WI-Q7.4.3 `[prueba]` D1 local con los dos parqueaderos de prueba · WI-Q7.4.4 `[infra]` `parqueadero-api-c2` en staging · WI-Q7.4.5 `[doc]` PARQUEADERO §12.
 
 #### HU-Q7.5 · La caja sincroniza sin cortar una venta
@@ -453,6 +454,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Lo publicado (P10):** los respaldos hechos en M0 se pueden reclamar; una prueba guarda uno de `v0.2.0`.
 - **Patrones en riesgo:** P6, P10, P21.
 - **Work items:** WI-Q7.6.1 `[código]` entrar y volver · WI-Q7.6.2 `[código]` reclamar · WI-Q7.6.3 `[prueba]` con un respaldo de `v0.2.0` · WI-Q7.6.4 `[prueba]` archivo alterado · WI-Q7.6.5 `[campo]` reclamar en staging un respaldo de Ensayo Uno hecho con `v0.2.0`.
+- **Permisos (HU-Q7.8):** con la cuenta, la caja esconde lo que `TABLA` niega al rol del token y deja de pedir el PIN para eso (WI-Q7.8.3).
 - **Lo que no hace:** reclamar la caja del cliente en producción. Eso pasa en HU-Q7.12, después de que HU-Q7.11 deja lista la promesa de privacidad con cuenta.
 
 #### HU-Q7.7 · Dispositivos: alta con serie y retiro
@@ -466,7 +468,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.7.1 `[código]` rutas · WI-Q7.7.2 `[código]` pantalla de dispositivos · WI-Q7.7.3 `[prueba]` serie ajena y retirado · WI-Q7.7.4 `[doc]` runbook (HU-Q10.4).
 
 #### HU-Q7.8 · Roles y permisos como dato, los mismos en la caja y en la celda
-- **Capa:** paquete, API y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q7 · **Depende de:** HU-Q7.1 · **Estado:** Refinada
+- **Capa:** paquete, API y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q7 · **Depende de:** HU-Q7.1 · **Estado:** En revisión (rama `feat/q7-8-permisos-parqueadero`): la matriz como dato y `decidirEscritura` (WI-Q7.8.1), la prueba de la matriz entera y su atadura a §11.2 y a `productos.json` (WI-Q7.8.4). La API decide con ella en HU-Q7.4 (WI-Q7.8.2) y la caja la usa al entrar con cuenta en HU-Q7.6 (WI-Q7.8.3); en M0 sigue el PIN
 - Como propietario, quiero que un cajero no pueda cambiar tarifas ni anular lo de otro, para que el cierre de turno sea creíble.
 - **Respaldo:** PARQUEADERO §11.2; `packages/sync/src/permisos.ts` (el modelo del cuaderno); bitácora ecommerce 64 (un permiso escondido en la página es un adorno).
 - **CA1.** La matriz de PARQUEADERO §11.2 vive en un archivo de dato que importan la API, que decide, y la caja, que esconde.
