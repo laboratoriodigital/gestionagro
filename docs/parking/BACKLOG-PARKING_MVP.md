@@ -350,7 +350,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q2.4.1 `[código]` adaptador · WI-Q2.4.2 `[prueba]` sin `serial` · WI-Q2.4.3 `[campo]` matriz.
 
 #### HU-Q2.5 · El diálogo de impresión del sistema a 58 mm
-- **Capa:** caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q1.4 · **Estado:** En revisión (rama `feat/q2-5-dialogo`): la hoja HTML de 48 mm de `@ed1/impresion` (`htmlDeBloques`) y el adaptador `sistema`, que la pone en la página de la caja solo mientras imprime, en lugar de una ruta `/caja/imprimir/` (la CSP no deja enmarcar otra página); `@page` sin `size`, porque `58mm auto` no es CSS válido (bitácora, afirmaciones falsas 5); el acceso directo con `--kiosk-printing` en la puesta en marcha. Falta probarlo en Windows con el driver POS58 (WI-Q2.5.3)
+- **Capa:** caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q1.4 · **Estado:** Hecha en staging (PR #126): la hoja HTML de 48 mm de `@ed1/impresion` (`htmlDeBloques`) y el adaptador `sistema`, que la pone en la página de la caja solo mientras imprime, en lugar de una ruta `/caja/imprimir/` (la CSP no deja enmarcar otra página); `@page` sin `size`, porque `58mm auto` no es CSS válido (bitácora, afirmaciones falsas 5); el acceso directo con `--kiosk-printing` en la puesta en marcha. Falta probarlo en Windows con el driver POS58 (WI-Q2.5.3)
 - Como parqueadero con un PC y la PT-210 por USB, quiero imprimir desde el diálogo normal de Windows; y cualquiera, imprimir un reporte en una impresora común.
 - **Respaldo:** PARQUEADERO §7.5 (el diálogo del sistema y `--kiosk-printing`).
 - **CA1.** `/caja/imprimir/` muestra el mismo recibo en HTML a 48 mm, con `@page { size: 58mm auto; margin: 0 }` y el QR en SVG, y llama a `window.print()`.
@@ -567,7 +567,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q5.2.1 `[dueño]` activar la zona · WI-Q5.2.2 `[infra]` `dominios.json` · WI-Q5.2.3 `[ci]` producción · WI-Q5.2.4 `[prueba]` humo y host.
 
 #### HU-Q5.3 · Recibos por canal, sin datos personales
-- **Capa:** medición · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q5 · **Depende de:** HU-Q3.6 · **Estado:** En revisión (rama `feat/q5-3-eventos`): la lista cerrada y el lote v2 en `@ed1/eventos` (`parqueadero.ts`), los conteos de la caja en `medicion.ts` y el Worker de `/_m` con Analytics Engine (`apps/parqueadero-sitio/src/worker.ts`); la aceptación sin red comprueba el lote al volver la red. El tablero de estos conteos queda para cuando haya piloto
+- **Capa:** medición · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q5 · **Depende de:** HU-Q3.6 · **Estado:** Hecha en staging (PR #127; el despliegue del 8 oct publicó el Worker con el dataset `parqueadero_eventos_staging` y el humo de `/_m` pasó): la lista cerrada y el lote v2 en `@ed1/eventos` (`parqueadero.ts`), los conteos de la caja en `medicion.ts` y el Worker de `/_m` con Analytics Engine (`apps/parqueadero-sitio/src/worker.ts`); la aceptación sin red comprueba el lote al volver la red. El tablero de estos conteos queda para cuando haya piloto
 - Como dueño, quiero saber cuántos recibos salen por cada canal y cuántas impresiones fallan, para medir la meta de menos papel y la de impresión confiable.
 - **Respaldo:** PARQUEADERO §14.4 y §18.2; `@ed1/eventos`.
 - **CA1.** `@ed1/eventos` expande su lista cerrada (P10) con `recibo.papel`, `recibo.whatsapp`, `recibo.pantalla`, `recibo.copia`, `impresion.fallida` (con el adaptador y la causa), `respaldo.hecho` y `turno.cerrado`.
@@ -600,7 +600,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q6.2.1 `[doc]` runbooks · WI-Q6.2.2 `[prueba]` de repositorio.
 
 #### HU-Q6.3 · La aceptación de M0, sin red, de punta a punta
-- **Capa:** prueba · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** las historias de M0, salvo HU-Q6.4 · **Estado:** En revisión (rama `test/q6-3-aceptacion`): `tests/e2e/parqueadero-aceptacion.spec.ts` recorre un turno sin red en Ensayo Uno y Ensayo Dos, con axe; una versión nueva espera a que termine la impresión; dos entradas a la vez no repiten número. Corre en el CI de cada PR
+- **Capa:** prueba · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** las historias de M0, salvo HU-Q6.4 · **Estado:** Hecha (PR #125): `tests/e2e/parqueadero-aceptacion.spec.ts` recorre un turno sin red en Ensayo Uno y Ensayo Dos, con axe; una versión nueva espera a que termine la impresión; dos entradas a la vez no repiten número. Corre en el CI de cada PR
 - Como dueño, quiero una prueba que recorra un turno entero sin red, para que ningún cambio posterior rompa el MVP sin que se vea.
 - **Respaldo:** PARQUEADERO §15.2.
 - **CA1.** Playwright a 360 px, con `setOffline(true)` y con Ensayo Uno y Ensayo Dos: apertura, entrada, recibo a la impresora falsa, enlace `wa.me` con el número y el texto correctos, salida, liquidación, anulación, cierre impreso y respaldo. Axe sin violaciones.
