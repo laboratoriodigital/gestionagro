@@ -44,3 +44,45 @@ describe('los paquetes neutrales no importan nada del parqueadero', () => {
     );
   });
 });
+
+/**
+ * `@ed1/sync` es el protocolo del cuaderno y de la caja (ADR-39): no sabe de ningún producto.
+ * Las entidades del agro viven en `@ed1/agro-schema/sync` y las del parqueadero en
+ * `@ed1/parqueadero-schema/sync`. Si el protocolo importara de un producto, un arreglo para uno
+ * arrastraría al otro. BACKLOG-PARKING HU-Q7.3, CA3.
+ */
+const PRODUCTO = /agro|parqueadero|tienda|cuaderno|api-celda/i;
+
+function importacionesDeProducto(codigo: string): string[] {
+  return [...codigo.matchAll(IMPORTA)].map((m) => m[1] ?? '').filter((r) => PRODUCTO.test(r));
+}
+
+describe('@ed1/sync no importa nada de un producto', () => {
+  it('ni en su código ni en sus pruebas', () => {
+    const hallazgos = fuentes(join(RAIZ, 'packages', 'sync', 'src')).flatMap((archivo) =>
+      importacionesDeProducto(readFileSync(archivo, 'utf8')).map((r) => `${archivo}: ${r}`),
+    );
+    expect(hallazgos).toEqual([]);
+  });
+
+  it('ni en sus dependencias', () => {
+    const pkg = JSON.parse(readFileSync(join(RAIZ, 'packages', 'sync', 'package.json'), 'utf8'));
+    const deps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
+    expect(deps.filter((d) => PRODUCTO.test(d))).toEqual([]);
+  });
+
+  it('distingue: atrapa el esquema del agro por nombre o por ruta, y deja pasar lo común', () => {
+    expect(importacionesDeProducto("import { validarRegistro } from '@ed1/agro-schema';")).toEqual([
+      '@ed1/agro-schema',
+    ]);
+    expect(
+      importacionesDeProducto("import { x } from '../../agro-schema/src/registro.ts';"),
+    ).toHaveLength(1);
+    expect(
+      importacionesDeProducto("import { tarifa } from '@ed1/parqueadero-schema';"),
+    ).toHaveLength(1);
+    expect(
+      importacionesDeProducto("import { z } from 'zod'; import { a } from './permisos.ts';"),
+    ).toEqual([]);
+  });
+});

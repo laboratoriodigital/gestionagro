@@ -183,7 +183,7 @@ Se heredan ED1 §3, los patrones P1–P21 (`../BITACORA.md` › Lo aprendido), l
 | `packages/impresion` | Adaptadores de impresora y codificador ESC/POS. No sabe nada de parqueaderos | Caja; después, Tienda (punto de venta) y cuaderno (etiquetas de lote) | M0 |
 | `packages/parqueadero-schema` | Esquemas zod de registros y catálogos, con versiones y contratos (P10) | Caja, API, pruebas | M0 |
 | `packages/whatsapp` | Enlaces `wa.me`, normalización del número, reglas del texto | Sale del código del agro y la Tienda [ADR-39] | M0 |
-| `packages/sync` | Protocolo de sincronización sin las entidades del agro | Generalizado [ADR-39] | M1 |
+| `packages/sync` | Protocolo de sincronización sin las entidades del agro | Generalizado [ADR-39]. Hecho en HU-Q7.3: las entidades del agro en `packages/agro-schema/src/sync.ts` y las del parqueadero en `packages/parqueadero-schema/src/sync.ts` | M1 |
 | `packages/firma` | Fragmento firmado (`datos.firma[.certificado]`) | Sale de `packages/trazabilidad` [ADR-39] | M0 (formato), M2 (firma) |
 | `content/parqueadero/` | Topes por ciudad, textos legales, planes, política de datos | Contenido versionado | M0 |
 
@@ -985,7 +985,7 @@ Una entrada en `infrastructure/productos.json` (PLATAFORMA §4.2): un archivo y 
 
 ### 11.2 Roles y permisos
 
-Matriz como dato, la misma en la celda y en el dispositivo (como `packages/sync/src/permisos.ts`):
+Matriz como dato, la misma en la celda y en el dispositivo (con `crearPermisos` de `packages/sync`, como la del agro en `packages/agro-schema/src/permisos-sync.ts`):
 
 | Acción | Propietario | Administrador | Cajero |
 |---|---|---|---|

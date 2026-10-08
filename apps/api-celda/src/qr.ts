@@ -10,7 +10,7 @@
  *
  * Solo campos de `@ed1/trazabilidad` (CA3): ningún dato personal.
  */
-import { puedeRegistro } from '@ed1/sync';
+import { puedeRegistro } from '@ed1/agro-schema/sync';
 import { firmanteDesde } from '@ed1/tokens';
 import {
   type ClavePublicaQr,

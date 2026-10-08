@@ -370,7 +370,7 @@ cursor local ───────GET  /api/v1/sync/pull?desde=<seq>&limite=200 
 
 - **Ids UUIDv7 generados en el teléfono** (`packages/ids`, que también usa el CORE). Reintentar es inofensivo: el mismo id no se inserta dos veces.
 - **Lotes de ≤ 25 operaciones** por solicitud. D1 gratuito permite 50 consultas por invocación del Worker (ED1 §41). Implementado (HU-E5.2): 3 lecturas y una escritura por operación en un solo `batch`, que es una transacción; 25 operaciones = 28 consultas. Actualizar un catálogo es una sola sentencia porque un trigger guarda la versión anterior en `entidad_historial` (migración 0002).
-- **Orden de envío:** la finca primero, después los catálogos, al final los registros. Un catálogo editado varias veces viaja una vez, con su versión vigente. Protocolo compartido en `packages/sync`.
+- **Orden de envío:** la finca primero, después los catálogos, al final los registros. Un catálogo editado varias veces viaja una vez, con su versión vigente. Protocolo compartido en `packages/sync`, que no sabe de ningún producto: cada uno le pasa sus entidades y sus esquemas (`crearValidador`, `crearPermisos`). Las del agro viven en `packages/agro-schema/src/sync.ts` y las del parqueadero en `packages/parqueadero-schema/src/sync.ts`; una guardia de repositorio impide que `packages/sync` importe de un producto (HU-Q7.3, ADR-39 del parqueadero). El formato en el cable no cambió.
 - **`reintentar`:** si otro teléfono de la misma finca escribió el mismo catálogo en el mismo instante, la operación se queda en la cola y se reenvía; en la vuelta siguiente decide la regla de conflictos. Ninguna versión se pierde.
 - **Conflictos de catálogos (HU-E5.4):** gana la última edición que llega a la celda.
   - Se guarda con la versión siguiente a la vigente, y la anterior queda en `entidad_historial` como «conflicto».
@@ -385,7 +385,7 @@ cursor local ───────GET  /api/v1/sync/pull?desde=<seq>&limite=200 
   - Cada operación lleva `v` (versión del esquema del registro).
   - El servidor acepta todas las versiones que alguna app publicada escribió y las traduce al leer.
   - Si la app es más vieja que `app_minima`, el push **se acepta igual** y la respuesta pide actualizar. Ningún dato de campo se pierde por venir de una app vieja.
-  - Implementado (HU-E5.5): `APP_MINIMA` en `packages/sync`; el teléfono manda su versión en cada push y muestra el pedido en el aviso de arriba. Los registros se guardan con la versión con que llegaron; `aVersionVigente` (`packages/agro-schema`) los traduce paso a paso al leerlos.
+  - Implementado (HU-E5.5): `APP_MINIMA` en `packages/agro-schema/src/sync.ts` (antes en `packages/sync`, HU-Q7.3); el teléfono manda su versión en cada push y muestra el pedido en el aviso de arriba. Los registros se guardan con la versión con que llegaron; `aVersionVigente` (`packages/agro-schema`) los traduce paso a paso al leerlos.
   - **Contrato de versiones:** cada app publicada deja en `packages/agro-schema/contratos/app-<versión>.json` una muestra de todo lo que escribe. Esos archivos no se editan ni se borran, y una prueba exige que la API vigente los acepte todos (P10).
 - **Pull que no pisa lo pendiente:** un cambio remoto sobre una entidad con edición local pendiente se guarda como conflicto y se muestra (§5.7). Implementado (HU-E5.3): el teléfono guarda la versión de la nube en su historial local (`<id>@v<versión>#nube`) y conserva la suya; al subirla, gana por llegar después y el otro teléfono recibe el aviso (HU-E5.4).
 - **Pull (HU-E5.3):** `GET /api/v1/sync/pull?registro=<seq>&catalogo=<seq>`, con dos cursores porque `seq` es por tabla. Hasta 200 cambios por página, catálogos primero; 2 lecturas, ninguna escritura. Cada página se aplica en el teléfono junto con su cursor, en una transacción. Lo que baja no entra a la cola de salida. Un teléfono sube primero y baja después.
@@ -687,7 +687,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 ## 9. Seguridad y privacidad
 
 - **Autorización en la celda:** el rol viene del token. Operario: registra y ve lo suyo y lo de su área, sin costos ni ventas. Supervisor: todo lo operativo. Propietario: todo. Asesor: lectura de varias fincas. Auditor: solo lectura, con enlace que caduca.
-  - **La matriz es un dato (HU-E4.5):** `packages/sync/src/permisos.ts`, la misma para la celda y el teléfono (P2). Lo que no está en la matriz está negado. La celda decide; el teléfono solo esconde.
+  - **La matriz es un dato (HU-E4.5):** `packages/agro-schema/src/permisos-sync.ts` sobre `crearPermisos` de `packages/sync`, la misma para la celda y el teléfono (P2). Lo que no está en la matriz está negado. La celda decide; el teléfono solo esconde.
 
     | Entidad | Leen | Escriben |
     |---|---|---|

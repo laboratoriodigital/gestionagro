@@ -7,7 +7,6 @@
   "dependencies": {
     "@ed1/agro-calc": "workspace:*",
     "@ed1/agro-schema": "workspace:*",
-    "@ed1/sync": "workspace:*",
     "@ed1/trazabilidad": "workspace:*",
     "@ed1/ui": "workspace:*",
     "dexie": "^4.4.6",

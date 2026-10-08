@@ -11,7 +11,13 @@
  *   su tabla (CA3, P1). `reintentar`: se queda en la cola.
  * - **429 o 503:** se espera cada vez más, de 30 s a 30 min (CA5); `Retry-After` manda si viene.
  */
-import { type Ack, type Entidad, LOTE_MAXIMO, type Operacion, PROTOCOLO } from '@ed1/sync';
+import {
+  type Ack,
+  type Entidad,
+  LOTE_MAXIMO,
+  type Operacion,
+  PROTOCOLO,
+} from '@ed1/agro-schema/sync';
 import type { CuadernoDb, OperacionSalida } from './db.ts';
 
 export const ESPERA_MINIMA_MS = 30_000;

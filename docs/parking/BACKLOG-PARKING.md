@@ -408,7 +408,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.2.1 `[infra]` celda c2 · WI-Q7.2.2 `[código]` mudar la migración · WI-Q7.2.3 `[prueba]` las 56 en D1 local · WI-Q7.2.4 `[doc]` PARQUEADERO enlaza el archivo.
 
 #### HU-Q7.3 · `@ed1/sync` sin las entidades del agro
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q6 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q6 · **Depende de:** — · **Estado:** En revisión (PR #138): `@ed1/sync` sin entidades de producto; el agro en `@ed1/agro-schema/sync` y el parqueadero en `@ed1/parqueadero-schema/sync`, con su batería y la guardia de imports
 - Como equipo, quiero un solo protocolo de sincronización para el cuaderno y la caja, para que un arreglo en uno llegue al otro.
 - **Respaldo:** ADR-39 (regla de tres, ED1 §3.11); ARQUITECTURA §5.6; PARQUEADERO §4.1.
 - **CA1.** `packages/sync` expone el protocolo (cola de salida, push de hasta 25 operaciones, acks `aceptado`, `duplicado`, `cuarentena` y `reintentar`, pull por cursores, ids UUIDv7, versiones N-1) con las entidades como parámetro. Las del agro se mudan al cuaderno.

@@ -62,15 +62,15 @@ importers:
 
   apps/api-celda:
     dependencies:
+      '@ed1/agro-schema':
+        specifier: workspace:*
+        version: link:../../packages/agro-schema
       '@ed1/d1':
         specifier: workspace:*
         version: link:../../packages/d1
       '@ed1/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
-      '@ed1/sync':
-        specifier: workspace:*
-        version: link:../../packages/sync
       '@ed1/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
@@ -124,9 +124,6 @@ importers:
       '@ed1/agro-schema':
         specifier: workspace:*
         version: link:../../packages/agro-schema
-      '@ed1/sync':
-        specifier: workspace:*
-        version: link:../../packages/sync
       '@ed1/trazabilidad':
         specifier: workspace:*
         version: link:../../packages/trazabilidad
@@ -330,6 +327,9 @@ importers:
       '@ed1/ids':
         specifier: workspace:*
         version: link:../ids
+      '@ed1/sync':
+        specifier: workspace:*
+        version: link:../sync
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -392,6 +392,9 @@ importers:
       '@ed1/ids':
         specifier: workspace:*
         version: link:../ids
+      '@ed1/sync':
+        specifier: workspace:*
+        version: link:../sync
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -407,11 +410,7 @@ importers:
 
   packages/productos: {}
 
-  packages/sync:
-    dependencies:
-      '@ed1/agro-schema':
-        specifier: workspace:*
-        version: link:../agro-schema
+  packages/sync: {}
 
   packages/tienda-schema:
     dependencies:

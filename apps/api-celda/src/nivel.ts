@@ -9,8 +9,9 @@
  * teléfono escribe el mensaje con su catálogo (`mensajes-de-pausa.ts`); aquí no hay textos de
  * pantalla.
  */
+
+import { proximoReinicioDeCuota } from '@ed1/agro-schema/sync';
 import { crearLectorDeNivel, type LectorKv, type Nivel } from '@ed1/kill-switch';
-import { proximoReinicioDeCuota } from '@ed1/sync';
 import type { ContextoCelda } from './worker.ts';
 
 let lector: { kv: LectorKv; lector: ReturnType<typeof crearLectorDeNivel> } | null = null;

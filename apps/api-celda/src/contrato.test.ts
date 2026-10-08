@@ -5,9 +5,9 @@
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { APP_MINIMA } from '@ed1/agro-schema/sync';
 import type { BaseD1 } from '@ed1/d1';
 import { baseLocal, RAIZ, vaciar } from '@ed1/d1/local';
-import { APP_MINIMA } from '@ed1/sync';
 import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { crearApp, TABLAS_DEL_SHARD } from './worker.ts';

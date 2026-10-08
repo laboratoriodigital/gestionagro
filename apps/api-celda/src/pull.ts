@@ -25,7 +25,7 @@ import {
   type Reemplazo,
   type RespuestaPull,
   tiposNegados,
-} from '@ed1/sync';
+} from '@ed1/agro-schema/sync';
 import { nivelDeLaCelda, respuestaDePausa } from './nivel.ts';
 import type { ContextoCelda } from './worker.ts';
 

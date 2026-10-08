@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- La caja ya tiene con qué sincronizar cuando llegue la cuenta (HU-Q7.3): `@ed1/parqueadero-schema/sync` valida lo que una caja subirá a su celda con el mismo protocolo del cuaderno (`@ed1/sync`, que ya no sabe de fincas). La caja de hoy no cambia: sigue sin red ni cuenta.
+
 ### Cambiado
 - La caja, más clara y sobria (HU-Q6.5). El inicio pone primero «Nueva entrada» y los vehículos adentro, cada uno en una fila con su placa, la hora y el tiempo corriendo; el turno es una línea, y Ajustes, Abonados, Respaldo y el aviso de privacidad van en una lista al final. Las cuatro señales de la cabecera ocupan dos líneas: lo que está bien va en gris y solo lo que falla toma color. «Anular» queda al final de la pantalla, en rojo y sin caja, y después de imprimir «Reimprimir» ya no compite con «Nueva entrada». Los campos de a dos quedan alineados aunque una etiqueta ocupe dos líneas. Ningún botón cambió de nombre.
 - El recibo se ve como recibo (HU-Q6.6). En la caja y en el enlace `/r/`, una hoja: el parqueadero arriba con su NIT, dirección y teléfono; «Recibo de entrada» o «de salida» y el número grande; la placa amarilla; las horas, la tarifa o el cobro en grupos; el total grande con el medio de pago, y el texto legal al pie. El tiempo se dice en horas y minutos, con los minutos cobrados. El mensaje de WhatsApp trae el nombre del parqueadero en negrilla y las filas alineadas en letra de máquina, como el papel; el enlace sigue en su propia línea.
