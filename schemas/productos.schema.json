@@ -142,15 +142,27 @@
           "type": "object",
           "additionalProperties": false,
           "required": ["usd_mes", "al_agotarse"],
-          "description": "Con Workers Paid (HU-C11.1, PLATAFORMA §4.10): lo que se acepta pagar al mes encima de la base de USD 5, y las capacidades que el vigía apaga al agotarlo. Nunca la venta: solo kill switches propios del producto (ks:<id>-… o ks:<id>:…).",
+          "description": "Con Workers Paid (HU-C11.1, PLATAFORMA §4.10): lo que se acepta pagar al mes encima de la base de USD 5, y las capacidades que el vigía apaga al agotarlo. Nunca la venta: solo kill switches propios del producto (ks:<id>-… o ks:<id>:…). En el plan gratuito, también las filas de D1 por día (HU-Q7.13).",
           "properties": {
             "usd_mes": { "type": "number", "exclusiveMinimum": 0 },
             "al_agotarse": {
               "type": "array",
               "uniqueItems": true,
               "items": { "type": "string", "pattern": "^ks:[a-z0-9]+(-|:)[a-z0-9:-]+$" }
+            },
+            "d1_filas_escritas_dia": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100000,
+              "description": "En el plan gratuito: las filas de D1 que el producto puede escribir al día, de las 100.000 de toda la cuenta. Sale de medir lo que los demás ya escriben (HU-Q7.13); el vigía avisa al 50, 75 y 90 % del límite de la cuenta y dice qué producto lo gasta."
             }
           }
+        },
+        "kill_switches": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Las claves de kill switch del producto, que el despliegue crea en «encendido» en el KV de flags de sus celdas: ks:<id> y ks:<id>-<capacidad> (HU-Q7.13).",
+          "items": { "type": "string", "pattern": "^ks:[a-z0-9]+(-[a-z0-9]+)*$" }
         }
       }
     }

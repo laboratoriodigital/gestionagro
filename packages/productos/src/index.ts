@@ -37,8 +37,17 @@ export interface Producto {
   politica: string;
   prefijo_de_cobro?: string;
   gracia_dias?: number;
-  /** Con Workers Paid: USD al mes encima de la base y lo que se apaga al agotarlo (HU-C11.1). */
-  presupuesto?: { usd_mes: number; al_agotarse: string[] };
+  /**
+   * Con Workers Paid: USD al mes encima de la base y lo que se apaga al agotarlo (HU-C11.1). En el
+   * plan gratuito, además, las filas de D1 que el producto puede escribir al día de las 100.000 de
+   * toda la cuenta: el vigía dice quién las gasta (HU-Q7.13).
+   */
+  presupuesto?: { usd_mes: number; al_agotarse: string[]; d1_filas_escritas_dia?: number };
+  /**
+   * Las claves de kill switch del producto (`ks:<id>` y `ks:<id>-<capacidad>`), que el despliegue
+   * crea en `encendido` en el KV de flags de las celdas del producto (HU-Q7.13).
+   */
+  kill_switches?: string[];
 }
 
 export interface RegistroDeProductos {
@@ -83,6 +92,21 @@ export function fallasDelRegistro(
       if (!clave.startsWith(`ks:${p.id}-`) && !clave.startsWith(`ks:${p.id}:`)) {
         fallas.push(
           `«${p.id}».presupuesto.al_agotarse no puede apagar «${clave}»: solo capacidades propias, nunca la venta`,
+        );
+      }
+    }
+    // HU-Q7.13: un producto declara solo sus propias claves; las del CORE las crea el CORE.
+    for (const clave of p.kill_switches ?? []) {
+      if (clave !== `ks:${p.id}` && !clave.startsWith(`ks:${p.id}-`)) {
+        fallas.push(
+          `«${p.id}».kill_switches no puede declarar «${clave}»: solo ks:${p.id} y ks:${p.id}-…`,
+        );
+      }
+    }
+    for (const clave of p.presupuesto?.al_agotarse ?? []) {
+      if (p.kill_switches && !p.kill_switches.includes(clave)) {
+        fallas.push(
+          `«${p.id}».presupuesto.al_agotarse apaga «${clave}», que no está en sus kill_switches`,
         );
       }
     }

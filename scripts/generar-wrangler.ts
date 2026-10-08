@@ -117,13 +117,21 @@ export const baseDelShard = (shard: string, staging: boolean) =>
 export function presupuestoDeLaCelda(
   celda: Celda,
   registro: RegistroDeProductos = cargarProductos(),
-): { PRESUPUESTO_USD_MES: string; AL_AGOTARSE: string } {
+): { PRESUPUESTO_USD_MES: string; AL_AGOTARSE: string; FILAS_D1_POR_PRODUCTO: string } {
   const activos = registro.productos.filter((p) => p.estado !== 'retirado');
   const suma = activos.reduce((s, p) => s + (p.presupuesto?.usd_mes ?? 0), 0);
   const propio = registro.productos.find((p) => p.id === celda.producto);
+  // HU-Q7.13: en el plan gratuito, las filas de D1 por día que cada producto declara. El vigía mide
+  // toda la cuenta, así que las conoce todas para decir quién pasó la suya.
+  const filas = Object.fromEntries(
+    activos.flatMap((p) =>
+      p.presupuesto?.d1_filas_escritas_dia ? [[p.id, p.presupuesto.d1_filas_escritas_dia]] : [],
+    ),
+  );
   return {
     PRESUPUESTO_USD_MES: String(suma),
     AL_AGOTARSE: (propio?.presupuesto?.al_agotarse ?? []).join(','),
+    FILAS_D1_POR_PRODUCTO: JSON.stringify(filas),
   };
 }
 
