@@ -815,3 +815,21 @@ El despliegue a staging se saltó.
 La regla: **cuando dos PR deben fusionarse en orden, el segundo queda en borrador hasta que el primero entre; un orden escrito en un mensaje no se cumple solo.**
 
 *Ficha:* parqueadero · *(compartido)* · 🟢 Bajo · P5 · parqueadero-0.1.1 · 2026-10-08
+
+**27 · En modo oscuro, la caja nunca tuvo su azul: el lila del ecosistema le ganaba por especificidad.**
+
+*Qué pasó.* El 8 oct 2026, al revisar la caja pantalla por pantalla para HU-Q6.5. En oscuro, los botones principales salían lila (`#94a9ff`), no el azul claro de la señal de parqueo (`#7fb0f0`) que dice `estilos.css`.
+
+*Síntoma literal.* Las capturas a 360 px en oscuro: «Configurar impresora», «Abrir turno» y «Nueva entrada» en lila.
+
+*Causa raíz.* Los tokens del ecosistema ponen el oscuro en `:root:not([data-tema='claro'])`, que pesa (0, 2, 0). La caja lo redefinía en `:root`, que pesa (0, 1, 0): aunque su hoja carga después, pierde. En claro no se notaba porque los dos usan `:root`.
+
+*Cómo se reprodujo.* `pnpm --filter @ed1/parqueadero-sitio run build` y la caja con `emulateMedia({ colorScheme: 'dark' })`.
+
+*Arreglo.* La caja usa el mismo selector que los tokens; con el mismo peso, gana la hoja que carga después. De paso, al animar el color de los botones, axe midió un azul a medio camino (4,2:1) y la prueba de contraste salió en rojo: ahora solo se anima el gesto de tocar, y el color cambia de una vez.
+
+**Lo prueba** la e2e de WCAG 2.1 AA en claro y en oscuro (`tests/e2e/parqueadero-caja.spec.ts`), que corre en cada PR, y las capturas de los runbooks.
+
+La regla: **una variable que redefine un token se escribe con el mismo selector del token, no con uno más corto.**
+
+*Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P15 · parqueadero-0.2.0 · 2026-10-08
