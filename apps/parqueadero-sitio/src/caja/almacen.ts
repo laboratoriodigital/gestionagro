@@ -50,6 +50,7 @@ import {
 import { type Liquidacion, liquidar, validarTarifa } from '@ed1/parqueadero-tarifas';
 import { normalizarNumero } from '@ed1/whatsapp';
 import { abonoDeLaPlaca, fechaDelAbono, venceEl } from './abonados.ts';
+import { encolar, tablasDeLaCola } from './cola.ts';
 import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
 import { diaLocalBogota, horaBogota } from './fecha.ts';
 import { eventoDeLaEntrega, medir } from './medicion.ts';
@@ -132,7 +133,7 @@ async function guardarCatalogo<T extends Catalogo>(
     actualizado: ahora,
     entidad,
   });
-  await db.transaction('rw', [db.catalogos, db.historial], async () => {
+  await db.transaction('rw', [db.catalogos, db.historial, ...tablasDeLaCola(db)], async () => {
     if (anterior) {
       const { id: entidadId, version, ...resto } = anterior;
       await db.historial.add({
@@ -146,6 +147,7 @@ async function guardarCatalogo<T extends Catalogo>(
       });
     }
     await db.catalogos.put(nuevo);
+    await encolar(db, [nuevo], ctx.reloj());
   });
   return nuevo;
 }
@@ -300,7 +302,7 @@ export async function registrarEntrada(
   const numero = d.whatsapp ? numeroAutorizado(ajustes.sede, d.whatsapp) : null;
   const abonados = await leerAbonados(db);
 
-  const tablas = [db.registros, db.estadias, db.meta, db.fotos, db.contactos];
+  const tablas = [db.registros, db.estadias, db.fotos, db.contactos, ...tablasDeLaCola(db)];
   return db.transaction('rw', tablas, async () => {
     const abierta = await db.estadias.where('placa').equals(d.placa).first();
     if (abierta) throw new EstadiaYaAbierta(abierta);
@@ -335,6 +337,7 @@ export async function registrarEntrada(
       },
     });
     await db.registros.add(registro);
+    await encolar(db, [registro], ahora);
     await db.estadias.add({
       id,
       placa: d.placa,
@@ -451,7 +454,7 @@ export async function registrarEntrega(
     consecutivo: null,
     datos: { recibo_id: recibo.id, ...entrega },
   });
-  await db.registros.add(registro);
+  await agregar(db, registro, ahora);
   // Recibos por canal y papel que no salió (HU-Q5.3): el canal, nunca el recibo ni el número.
   const evento = eventoDeLaEntrega(entrega);
   if (evento) await medir(db, evento);
@@ -706,7 +709,8 @@ export async function registrarSalida(
       { campo: 'recibido', motivo: `es menos que el total (${liq.total})` },
     ]);
   }
-  return db.transaction('rw', [db.registros, db.estadias, db.meta, db.contactos], async () => {
+  const tablas = [db.registros, db.estadias, db.contactos, ...tablasDeLaCola(db)];
+  return db.transaction('rw', tablas, async () => {
     if (!(await db.estadias.get(estadiaId))) throw new EstadiaCerrada();
     const meta = await db.meta.get('consecutivo');
     const consecutivo = (meta?.clave === 'consecutivo' ? meta.ultimo : 0) + 1;
@@ -745,6 +749,7 @@ export async function registrarSalida(
       },
     });
     await db.registros.add(registro);
+    await encolar(db, [registro], ahora);
     await db.estadias.delete(estadiaId);
     await db.meta.put({ clave: 'consecutivo', ultimo: consecutivo });
     await db.contactos.update(estadiaId, { borrar_en: ahora + VIGENCIA_DEL_NUMERO });
@@ -780,6 +785,13 @@ function sinNumero(
     datos,
   });
 }
+
+/** Un registro suelto con su operación en la cola, en una transacción (HU-Q7.5 CA1). */
+const agregar = (db: BaseDeLaCaja, r: Registro, ahora: number) =>
+  db.transaction('rw', [db.registros, ...tablasDeLaCola(db)], async () => {
+    await db.registros.add(r);
+    await encolar(db, [r], ahora);
+  });
 
 // ── Respaldo y restauración (HU-Q3.10) ────────────────────────────────────────────────────────
 
@@ -868,7 +880,7 @@ export async function restaurar(db: BaseDeLaCaja, archivo: unknown): Promise<Res
   });
   const catalogos = r.tablas.catalogo.filas;
   const historial = r.tablas.historial.filas;
-  const tablas = [db.registros, db.catalogos, db.historial, db.meta, db.estadias];
+  const tablas = [db.registros, db.catalogos, db.historial, db.estadias, ...tablasDeLaCola(db)];
   const res = await db.transaction('rw', tablas, async () => {
     const nuevos = async <T extends { id: string }>(
       t: { bulkGet(ids: string[]): Promise<unknown[]> },
@@ -883,6 +895,9 @@ export async function restaurar(db: BaseDeLaCaja, archivo: unknown): Promise<Res
     await db.registros.bulkAdd(reg);
     await db.catalogos.bulkAdd(cat);
     await db.historial.bulkAdd(his);
+    // Vinculada, lo restaurado que la nube no tiene sube como lo demás; la celda contesta
+    // `duplicado` a lo que ya tenía.
+    await encolar(db, [...cat, ...reg], Date.now());
     // Un teléfono nuevo toma la caja del archivo: su serie y su numeración siguen.
     const propia = await db.meta.get('dispositivo');
     if (propia?.clave !== 'dispositivo')
@@ -920,7 +935,7 @@ export async function abrirTurno(
     { operador: d.operador.trim(), base: d.base },
     ctx,
   );
-  await db.registros.add(apertura);
+  await agregar(db, apertura, ctx.reloj());
   return exigirTurno(db);
 }
 
@@ -939,15 +954,19 @@ export async function registrarMovimiento(
     { ...d, concepto: d.concepto.trim(), turno_id: turno.apertura.id },
     ctx,
   );
-  await db.registros.add(m);
+  await agregar(db, m, ctx.reloj());
   return m;
 }
 
-/** Lo que lleva el turno hasta ahora: los registros desde su apertura (un turno a la vez). */
+/**
+ * Lo que lleva el turno hasta ahora: los registros de esta caja desde su apertura (un turno a la
+ * vez). Lo que cobró otra caja del parqueadero no está en este cajón (HU-Q7.5).
+ */
 export async function resumenDelTurno(db: BaseDeLaCaja, t: Turno): Promise<ResumenDeTurno> {
   const desde = await db.registros
     .where('instante_evento')
     .aboveOrEqual(t.apertura.instante_evento)
+    .filter((r) => r.dispositivo_id === t.apertura.dispositivo_id)
     .toArray();
   return resumirTurno(t.apertura, desde, t.numero);
 }
@@ -978,7 +997,7 @@ export async function cerrarTurno(
     },
     ctx,
   );
-  await db.registros.add(cierre);
+  await agregar(db, cierre, ctx.reloj());
   await medir(db, { evento: 'turno.cerrado' });
   return { cierre, resumen };
 }
@@ -1017,7 +1036,8 @@ export async function anular(
   if (!d.motivo.trim()) throw new NoSeAnula('Falta el motivo de la anulación');
   if (!(await verificarPin(db, d.pin))) throw new NoSeAnula('Ese no es el PIN de administrador');
   const { id: dispositivoId } = await dispositivo(db, ctx);
-  return db.transaction('rw', [db.registros, db.estadias, db.contactos], async () => {
+  const tablas = [db.registros, db.estadias, db.contactos, ...tablasDeLaCola(db)];
+  return db.transaction('rw', tablas, async () => {
     const r = await db.registros.get(registroId);
     if (!r || (r.tipo !== 'entrada' && r.tipo !== 'salida')) {
       throw new NoSeAnula('Solo se anula una entrada o una salida');
@@ -1042,6 +1062,7 @@ export async function anular(
       { anula_id: r.id, estadia_id: r.estadia_id },
     );
     await db.registros.add(anulacion);
+    await encolar(db, [anulacion], ahora);
     if (r.tipo === 'entrada') {
       await db.estadias.delete(r.id);
     } else {

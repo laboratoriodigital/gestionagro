@@ -20,6 +20,12 @@ importers:
       '@ed1/d1':
         specifier: workspace:*
         version: link:packages/d1
+      '@ed1/ids':
+        specifier: workspace:*
+        version: link:packages/ids
+      '@ed1/parqueadero-schema':
+        specifier: workspace:*
+        version: link:packages/parqueadero-schema
       '@ed1/productos':
         specifier: workspace:*
         version: link:packages/productos

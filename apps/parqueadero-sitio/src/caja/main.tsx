@@ -3,12 +3,14 @@ import '@ed1/ui/v2/tokens.css';
 import '../hoja-recibo.css';
 import './estilos.css';
 import type { BluetoothBle, SerialWeb } from '@ed1/impresion';
+import { liveQuery } from 'dexie';
 import { render } from 'preact';
 import { App } from './App.tsx';
 import { abrirBase } from './datos.ts';
 import { esProduccion } from './entorno.ts';
 import { crearControl } from './impresora.ts';
 import { programarEnvios } from './medicion.ts';
+import { crearNube } from './nube.ts';
 import { capacidadesDelNavegador, proponerCamino } from './senales.ts';
 
 const raiz = document.getElementById('caja');
@@ -41,6 +43,21 @@ addEventListener('pagehide', () => control.soltar());
 // HU-Q5.3: los conteos de recibos y fallos salen a `/_m` cuando hay red; sin red, esperan.
 programarEnvios(db, window);
 
+// HU-Q7.5: con la caja vinculada a la nube, lo registrado sube solo y baja lo de las otras cajas.
+// Al vincularse (HU-Q7.6) arranca; cada operación nueva en la cola sale a los pocos segundos.
+const nube = crearNube(db, { reloj, app: __VERSION_CAJA__, ventana: window });
+let vinculada = false;
+liveQuery(() => db.meta.get('nube')).subscribe((m) => {
+  const ahora = m?.clave === 'nube';
+  if (ahora && !vinculada) void nube.ahora();
+  vinculada = ahora;
+});
+let enCola = 0;
+liveQuery(() => db.outbox.count()).subscribe((n) => {
+  if (n > enCola) nube.registrado();
+  enCola = n;
+});
+
 render(
   <App
     db={db}
@@ -48,6 +65,7 @@ render(
     propuesta={proponerCamino(capacidades)}
     prueba={!esProduccion(location.hostname)}
     reloj={reloj}
+    nube={nube}
   />,
   raiz,
 );

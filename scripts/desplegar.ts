@@ -569,7 +569,7 @@ async function desplegarParqueadero(cred: Credenciales, para: Destino): Promise<
     };
   }
   const base = url ?? '';
-  const fallas = await conReintentos(() => humoParqueadero(fetch, base));
+  const fallas = await conReintentos(() => humoParqueadero(fetch, base, para));
   return fallas.length > 0
     ? { ok: false, detalle: fallas }
     : { ok: true, detalle: [`parqueadero${produccion ? '' : ' (staging)'}: ${base}/caja/`] };

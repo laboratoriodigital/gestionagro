@@ -7,13 +7,25 @@ import { Asistente } from './Asistente.tsx';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { Cabecera } from './Cabecera.tsx';
 import { BotonDiagnostico, ConexionImpresora, useEstadoImpresora } from './conexion.tsx';
-import { type BaseDeLaCaja, purgarContactos, type RegistroImpresora } from './datos.ts';
+import {
+  type BaseDeLaCaja,
+  purgarContactos,
+  type Rechazo,
+  type RegistroImpresora,
+} from './datos.ts';
 import { Estadias } from './Estadias.tsx';
 import { diaLocalBogota, horaBogota } from './fecha.ts';
 import { useConsulta } from './ganchos.ts';
 import { diferenciaDeHora, senalDeHora } from './hora.ts';
 import { alVolverALaCaja, type ControlDeImpresora } from './impresora.ts';
-import { type Propuesta, senalDeImpresora, senalDePendientes, senalDeRespaldo } from './senales.ts';
+import type { EstadoDeLaNube, Nube } from './nube.ts';
+import {
+  type Propuesta,
+  senalDeImpresora,
+  senalDeLaNube,
+  senalDePendientes,
+  senalDeRespaldo,
+} from './senales.ts';
 import { avisoDeTopeViejo } from './topes.ts';
 import { type Turno, turnoAbierto } from './turno.ts';
 import type { Vista } from './vistas.tsx';
@@ -24,6 +36,8 @@ interface Props {
   readonly propuesta: Propuesta;
   readonly prueba: boolean;
   readonly reloj: () => number;
+  /** La sincronización (HU-Q7.5); sin ella, la caja no dice nada de la nube. */
+  readonly nube?: Nube;
 }
 
 const NOMBRE_DE_PAGINA = {
@@ -42,7 +56,20 @@ const MENU = [
   ['aviso', 'Aviso de privacidad'],
 ] as const;
 
-export function App({ db, control, propuesta, prueba, reloj }: Props) {
+export function App({ db, control, propuesta, prueba, reloj, nube }: Props) {
+  const vinculada = useConsulta<boolean>(
+    () => db.meta.get('nube').then((m) => m?.clave === 'nube'),
+    false,
+  );
+  const enCola = useConsulta(() => db.outbox.count(), 0);
+  const cuarentena = useConsulta<Rechazo[]>(
+    () => db.rechazos.orderBy('recibido').reverse().toArray(),
+    [],
+  );
+  const [estadoNube, setEstadoNube] = useState<EstadoDeLaNube>(
+    nube?.estado() ?? { tipo: 'sin-vincular' },
+  );
+  useEffect(() => nube?.escuchar(setEstadoNube), [nube]);
   const registro = useConsulta<RegistroImpresora | undefined>(
     () => db.impresora.get('actual'),
     undefined,
@@ -145,6 +172,8 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
         pendientes={senalDePendientes(pendientes)}
         prueba={prueba}
         persistente={persistente}
+        nube={senalDeLaNube(vinculada, enCola, estadoNube)}
+        cuarentena={cuarentena}
       />
       <AvisoActualizacion />
       {topeViejo && (

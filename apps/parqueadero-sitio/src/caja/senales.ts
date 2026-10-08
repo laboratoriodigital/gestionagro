@@ -5,6 +5,7 @@
 import type { EstadoImpresora } from '@ed1/impresion';
 import type { RegistroImpresora } from './datos.ts';
 import { fechaBogota, horaBogota } from './fecha.ts';
+import type { EstadoDeLaNube } from './nube.ts';
 
 export type Tono = 'bien' | 'aviso' | 'error' | 'neutro';
 
@@ -49,6 +50,40 @@ export function senalDePendientes(cuantas: number): Senal {
     texto: cuantas === 1 ? '1 entrega pendiente' : `${cuantas} entregas pendientes`,
     tono: 'error',
   };
+}
+
+/**
+ * Dónde está lo registrado (HU-Q7.5 CA2), con los tres estados del cuaderno: «en este
+ * dispositivo», «enviando» y «en la nube». Sin cuenta no hay señal: la caja de `v0.2.x` sigue
+ * con sus cuatro (P10).
+ */
+export function senalDeLaNube(
+  vinculada: boolean,
+  pendientes: number,
+  estado: EstadoDeLaNube,
+): Senal | null {
+  if (!vinculada) return null;
+  if (estado.tipo === 'enviando') return { texto: 'Enviando a la nube…', tono: 'neutro' };
+  if (pendientes === 0) return { texto: 'Todo en la nube', tono: 'bien' };
+  const aqui = `${pendientes} en este dispositivo`;
+  const ultimo =
+    estado.tipo === 'resultado'
+      ? estado.envio.estado === 'al-dia'
+        ? estado.recepcion?.estado
+        : estado.envio.estado
+      : undefined;
+  switch (ultimo) {
+    case 'sin-senal':
+      return { texto: `${aqui}, sin señal`, tono: 'aviso' };
+    case 'sin-sesion':
+      return { texto: `${aqui}: entre de nuevo`, tono: 'error' };
+    case 'esperar':
+      return { texto: `${aqui}: la nube pidió esperar`, tono: 'aviso' };
+    case 'error':
+      return { texto: `${aqui}: la nube falló`, tono: 'error' };
+    default:
+      return { texto: aqui, tono: 'aviso' };
+  }
 }
 
 export interface Capacidades {

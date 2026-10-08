@@ -1,10 +1,12 @@
 /**
  * El almacén local de la caja (PARQUEADERO §5.2): Dexie sobre IndexedDB. La versión 1 (Q1) tenía
  * solo lo de la impresión; la 2 (Q2) agrega los registros, los catálogos, las estadías abiertas,
- * las fotos y `meta` (dispositivo, consecutivo y PIN); la 3 (Q3), `contactos`.
+ * las fotos y `meta` (dispositivo, consecutivo y PIN); la 3 (Q3), `contactos`; la 4 (HU-Q7.5),
+ * la cola de salida (`outbox`) y lo que la celda puso en cuarentena (`rechazos`).
  */
 import type { Camino, MotivoDeFallo, PaginaDeCodigos, Trozo } from '@ed1/impresion';
 import type { Catalogo, Registro, Vehiculo } from '@ed1/parqueadero-schema';
+import type { Entidad } from '@ed1/parqueadero-schema/sync';
 import { Dexie, type EntityTable, type Table } from 'dexie';
 
 /** La impresora de esta caja. No sincroniza: cada caja tiene la suya (§5.2). */
@@ -84,6 +86,32 @@ export interface Contacto {
   readonly borrar_en: number | null;
 }
 
+/**
+ * Algo que esta caja escribió y la celda todavía no confirma (PARQUEADERO §5.2). Entra en la misma
+ * transacción que el registro o el catálogo, y solo si la caja está vinculada a la nube (`nube`
+ * en `meta`): una caja sin cuenta, como las de `v0.2.x`, no llena la cola (P10).
+ */
+export interface OperacionSalida {
+  /** El id del registro, o `<id del catálogo>@v<versión>`: el mismo id que viaja en el lote. */
+  readonly id: string;
+  readonly entidad: Entidad;
+  readonly entidad_id: string;
+  readonly version: number;
+  /** Cuándo entró a la cola, en ms: el orden de salida. */
+  readonly creado: number;
+}
+
+/** Lo que la celda guardó aparte con su motivo (PARQUEADERO §12): sale de la cola y se dice. */
+export interface Rechazo {
+  /** El id de la operación. */
+  readonly id: string;
+  readonly entidad: Entidad;
+  readonly entidad_id: string;
+  readonly motivo: string;
+  /** Cuándo lo dijo la celda, en ms. */
+  readonly recibido: number;
+}
+
 export type Meta =
   | { readonly clave: 'dispositivo'; readonly id: string; readonly serie: string }
   | { readonly clave: 'consecutivo'; readonly ultimo: number }
@@ -93,7 +121,14 @@ export type Meta =
   /** El último respaldo entregado (HU-Q3.10 CA1): la cabecera dice su fecha. */
   | { readonly clave: 'respaldo'; readonly instante: number }
   /** Los eventos contados que todavía no salieron a `/_m` (HU-Q5.3): sin datos personales. */
-  | { readonly clave: 'eventos'; readonly conteos: Readonly<Record<string, number>> };
+  | { readonly clave: 'eventos'; readonly conteos: Readonly<Record<string, number>> }
+  /**
+   * La caja está vinculada a la celda de su parqueadero y sincroniza (HU-Q7.5). La escribe la
+   * entrada con la cuenta (HU-Q7.6), que también refresca `acceso`; sin ella, nada sale ni entra.
+   */
+  | { readonly clave: 'nube'; readonly api: string; readonly acceso: string }
+  /** Hasta dónde bajó la caja lo de las demás cajas: los dos cursores del pull (`@ed1/sync`). */
+  | { readonly clave: 'cursor'; readonly registro: number; readonly catalogo: number };
 
 export type BaseDeLaCaja = Dexie & {
   impresora: EntityTable<RegistroImpresora, 'id'>;
@@ -105,6 +140,8 @@ export type BaseDeLaCaja = Dexie & {
   fotos: EntityTable<Foto, 'id'>;
   contactos: EntityTable<Contacto, 'estadia_id'>;
   meta: Table<Meta, Meta['clave']>;
+  outbox: EntityTable<OperacionSalida, 'id'>;
+  rechazos: EntityTable<Rechazo, 'id'>;
 };
 
 export function abrirBase(nombre = 'parqueadero-caja'): BaseDeLaCaja {
@@ -119,6 +156,7 @@ export function abrirBase(nombre = 'parqueadero-caja'): BaseDeLaCaja {
     meta: 'clave',
   });
   db.version(3).stores({ contactos: 'estadia_id, borrar_en' });
+  db.version(4).stores({ outbox: 'id, creado, entidad_id', rechazos: 'id, recibido' });
   return db;
 }
 

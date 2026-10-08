@@ -47,4 +47,12 @@ export const validarOperacion = crearValidador<Registro, EntidadDeCatalogo>({
     validarCatalogo(entidad, ESQUEMAS[entidad], datos) as CatalogoValido,
   esErrorDeValidacion: (e): e is Error => e instanceof ErrorDeValidacion,
 });
+/** Lo del protocolo que la caja necesita para enviar y bajar (HU-Q7.5), sin depender de `@ed1/sync`. */
+export {
+  type Ack,
+  CURSOR_INICIAL,
+  type Cursor,
+  LOTE_MAXIMO,
+  PROTOCOLO,
+} from '@ed1/sync';
 export * from './permisos.ts';
