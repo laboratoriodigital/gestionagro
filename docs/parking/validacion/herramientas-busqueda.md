@@ -1,6 +1,6 @@
 # Demanda de búsqueda de las herramientas gratuitas del parqueadero (HU-Q11.1)
 
-**Estado:** regla escrita y fusionada el 8 oct 2026 (#137), **antes** de consultar Keyword Planner. Datos del dueño del mismo día, después de la fusión (WI-Q11.1.2). Recomendación escrita abajo; la decisión es del dueño (WI-Q11.1.3).
+**Estado:** regla escrita y fusionada el 8 oct 2026 (#137), **antes** de consultar Keyword Planner. Datos del dueño del mismo día, después de la fusión (WI-Q11.1.2). El dueño decidió el mismo día seguir la regla (WI-Q11.1.3).
 **Para qué:** decidir con datos cuáles de las siete herramientas del estudio §12.2 se construyen, cuáles esperan y cuáles no (CA2).
 **Regla (P18):** ninguna cifra se escribe de memoria ni se estima sin decirlo. Cada celda lleva su tipo y su fuente. La regla de decisión de abajo se fusiona antes de ver los datos; si se cambia después, el historial del repositorio lo muestra y la medición no vale (CA3).
 **Método:** el mismo del agro (`docs/agro/validacion/busquedas-2026-12.md`, 1 oct 2026), que sale del estudio de ecommerce §12.6.
@@ -171,9 +171,9 @@ Con los datos de Keyword Planner del 8 oct 2026 (sep 2025–ago 2026). **Todas c
 - **La 2 no tiene un término fuerte:** cuatro términos en 10–100. Llega a su umbral bajo porque reusa `parqueadero-recibos` y cuesta 2 puntos.
 - **«iva parqueadero propiedad horizontal»** trae 50 en el promedio, pero cayó 100 % a tres meses: hoy está cerca de cero.
 
-**Lo que sigue si el dueño acepta la recomendación:**
+**Decisión del dueño (8 oct 2026): seguir la regla.** Lo que sigue:
 
 - HU-Q11.4 (la 2) queda como está, en Q10.
 - HU-Q11.2 (la 1) sale de Q8 y espera la medición de Search Console a los 90 días del aviso de tarifas.
-- La 5 y la 6 cumplen su disparador de §9 del backlog: se escriben sus historias y se planean después de M1.
+- La 5 y la 6 son HU-Q11.6 y HU-Q11.7, sin sprint, para planear después de M1.
 - La 3 y la 7 siguen en §9, con esta medición como razón; la 7, además, con el veto del contador.

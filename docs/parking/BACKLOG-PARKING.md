@@ -28,7 +28,7 @@
 | **M3 · WhatsApp automático** | Envío por la Cloud API con el número de cada parqueadero, plantilla de utilidad, estados de entrega y recibo por autoservicio con un QR en la entrada | Q13 | 19 mar 2027, **solo si se cumple su disparador** (§8, EQ9) | Un parqueadero que pague un plan que lo cubra y tenga su negocio verificado en Meta; `@ed1/cifrado` (HU-T1.3) | `v1.1.0` |
 | **M4 · Facturación** | Integrar el facturador del parqueadero, sin emitir | — | Preparada (§9) | Un parqueadero obligado a facturar | `v1.2.0` |
 
-**En cifras:** 12 épicas con historias (EQ0 a EQ11; EQ12 está preparada), **78 historias refinadas y 232 puntos en 14 sprints** (Q0 a Q13). **El MVP (M0): 40 historias y 116 puntos en seis sprints de una semana** (HU-Q4.5, HU-Q6.5 y HU-Q6.6 se agregaron el 8 oct 2026, en la puesta en marcha).
+**En cifras:** 12 épicas con historias (EQ0 a EQ11; EQ12 está preparada), **77 historias refinadas y 229 puntos en 14 sprints** (Q0 a Q13), más tres sin sprint que salieron de la medición de búsqueda (HU-Q11.2 espera; HU-Q11.6 y HU-Q11.7 se planean después de M1). **El MVP (M0): 40 historias y 116 puntos en seis sprints de una semana** (HU-Q4.5, HU-Q6.5 y HU-Q6.6 se agregaron el 8 oct 2026, en la puesta en marcha).
 
 **La fecha del 30 de octubre es un compromiso con el cliente, no un techo.** Si una semana se queda corta, se recorta alcance en el orden de MVP §4.4; la fecha no se corre. Desde M1, las fechas vuelven a ser un techo, como en el CORE y la Tienda: lo que manda es el orden de las dependencias.
 
@@ -251,7 +251,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q5** | 9–13 nov | **M0. El piloto:** la matriz en el equipo real, los runbooks, la aceptación sin red y el primer turno real con el cliente | HU-Q2.5 (2), HU-Q3.11 (2), HU-Q5.3 (3), HU-Q6.1 (3), HU-Q6.2 (2), HU-Q6.3 (2), HU-Q6.4 (3), HU-Q4.5 (2), HU-Q6.5 (3), HU-Q6.6 (2) | 24 | M0, `v0.2.0` |
 | **Q6** (festivo) | 17–27 nov | Lo que enseñó el piloto; el parqueadero en el CORE, su celda, la sincronización común y su presupuesto | HU-Q3.12 (3), HU-Q7.1 (3), HU-Q7.2 (3), HU-Q7.3 (5), HU-Q7.13 (2), HU-Q11.1 (1) | 17 | — |
 | **Q7** (festivo) | 30 nov–11 dic | La API de la celda y la caja que sincroniza; roles; el aviso de tarifas para la entrada | HU-Q7.4 (5), HU-Q7.5 (5), HU-Q7.8 (3), HU-Q11.3 (2) | 15 | — |
-| **Q8** (corto) | 14–23 dic | Entrar y reclamar lo local; dispositivos; respaldo en la nube. Solo staging desde el 18 dic | HU-Q7.6 (5), HU-Q7.7 (3), HU-Q7.9 (2), HU-Q11.2 (3) | 13 | — |
+| **Q8** (corto) | 14–23 dic | Entrar y reclamar lo local; dispositivos; respaldo en la nube. Solo staging desde el 18 dic | HU-Q7.6 (5), HU-Q7.7 (3), HU-Q7.9 (2) | 10 | — |
 | — | 24 dic–8 ene | Pausa y congelamiento. La caja del cliente sigue en `v0.2.x` | — | — | — |
 | **Q9** (festivo) | 12–22 ene 2027 | **M1.** Cobro del plan por periodo, privacidad con cuenta, operación de la celda y dos cajas sin red que no repiten números | HU-Q7.10 (3), HU-Q7.11 (2), HU-Q7.12 (2), HU-Q10.1 (3), HU-Q10.2 (3), HU-Q10.4 (2) | 15 | M1, `v0.3.0` |
 | **Q10** | 25 ene–5 feb | Firma sin red por dispositivo, su verificación y las fotos en la nube; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q8.3 (3), HU-Q11.4 (2), HU-Q11.5 (2) | 17 | — |
@@ -259,9 +259,9 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q12** | 22 feb–5 mar | Con su disparador: ED1 como Tech Provider, el número del parqueadero conectado y la plantilla | HU-Q9.1 (3), HU-Q9.2 (5), HU-Q9.3 (2) | 10 | — |
 | **Q13** | 8–19 mar | **M3.** Envío por la Cloud API, estados, autoservicio y presupuesto de mensajes | HU-Q9.4 (5), HU-Q9.5 (3), HU-Q9.6 (3), HU-Q9.7 (2), HU-Q9.8 (2) | 15 | M3, `v1.1.0` |
 
-**Total:** 232 puntos en 14 sprints. M0: 116 (Q0–Q5). M1: 60 (Q6–Q9). M2: 31 (Q10–Q11). M3: 25 (Q12–Q13).
+**Total:** 229 puntos en 14 sprints. M0: 116 (Q0–Q5). M1: 57 (Q6–Q9). M2: 31 (Q10–Q11). M3: 25 (Q12–Q13).
 
-- **Q6 (17, con festivo) y Q8 (13, corto) pasan su tope por un punto.** Si la velocidad validada de M0 no lo sostiene, HU-Q11.1 pasa a Q7 y HU-Q11.2 a Q10.
+- **Q6 (17, con festivo) pasa su tope por un punto.** Si la velocidad validada de M0 no lo sostiene, HU-Q11.1 pasa a Q7. *(Hoy, 8 oct 2026: HU-Q11.2 salió de Q8 porque la medición de HU-Q11.1 dijo «se espera»; Q8 queda en 10.)*
 - **Q12 lleva 10 puntos a propósito:** la verificación del negocio y la revisión de la app en Meta toman días de espera que no son puntos.
 - **Si en la planeación de Q12 no se cumple el disparador de M3**, Q12 y Q13 se usan para lo que el cliente haya pedido de §9, y EQ9 queda preparada.
 
@@ -736,7 +736,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramientas atraen y la caja retiene. **Se mide antes de construir** (estudio §12.2; bitácora parqueadero 9), salvo el aviso de tarifas y derechos, que el parqueadero cero necesita en su entrada.
 
 #### HU-Q11.1 · Medir la búsqueda antes de construir
-- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q6 · **Depende de:** — · **Estado:** En revisión (PR #144): la regla se fusionó antes de los datos (#137); con Keyword Planner del 8 oct 2026, la recomendación es construir la 5, la 6 y la 2, en ese orden, y esperar la 1, la 3, la 4 y la 7 (`docs/parking/validacion/herramientas-busqueda.md`). Decide el dueño (WI-Q11.1.3)
+- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q6 · **Depende de:** — · **Estado:** En revisión (PR #144): la regla se fusionó antes de los datos (#137); con Keyword Planner del 8 oct 2026 se construyen la 5, la 6 y la 2, en ese orden, y esperan la 1, la 3, la 4 y la 7 (`docs/parking/validacion/herramientas-busqueda.md`). El dueño decidió seguir la regla el 8 oct 2026 (WI-Q11.1.3)
 - Como dueño, quiero el volumen de búsqueda de las siete herramientas de estudio §12.2 con la regla de decisión escrita antes de ver los datos, para no construir las que nadie busca.
 - **Respaldo:** estudio §12.2 («Antes de construir») y el método del 1 oct 2026 (estudio de ecommerce §12.6).
 - **CA1.** `docs/parking/validacion/herramientas-busqueda.md` tiene la regla escrita y fusionada antes de consultar Keyword Planner, y después los datos con su fecha.
@@ -746,7 +746,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Work items:** WI-Q11.1.1 `[doc]` regla · WI-Q11.1.2 `[dueño]` Keyword Planner · WI-Q11.1.3 `[doc]` decisión.
 
 #### HU-Q11.2 · La calculadora de tarifa con el tope de la ciudad
-- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q8 · **Depende de:** HU-Q11.1 (que diga «se construye»), HU-Q1.1, HU-Q1.2 · **Estado:** Refinada
+- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** sin sprint · **Depende de:** HU-Q11.1 (que diga «se construye»), HU-Q1.1, HU-Q1.2 · **Estado:** Espera: HU-Q11.1 dijo «se espera» (demanda 50, con rangos; le bastaba 100). Se vuelve a medir con Search Console a los 90 días de publicado el aviso de tarifas (HU-Q11.3)
 - Como conductor o parqueadero, quiero calcular lo que se debe cobrar por una estadía con el tope de mi ciudad, sin registrarme.
 - **Respaldo:** estudio §12.2 (herramienta 1); PARQUEADERO §9.2 regla 4.
 - **CA1.** Una página del sitio que importa el mismo `parqueadero-tarifas` de la caja: entrada, salida, tipo y ciudad, y da el total con su detalle.
@@ -785,6 +785,26 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Patrones en riesgo:** P20.
 - **Work items:** WI-Q11.5.1 `[código]` · WI-Q11.5.2 `[diseño]` · WI-Q11.5.3 `[prueba]` CSP.
 
+#### HU-Q11.6 · El liquidador de mensualidades y prorrateos
+- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** sin sprint (se planea después de M1, primera de las herramientas) · **Depende de:** HU-Q11.1, HU-Q11.5 · **Estado:** Refinada
+- Como parqueadero, quiero calcular cuánto cobrar por una mensualidad que empieza a mitad de mes, o por varios meses, sin registrarme.
+- **Respaldo:** estudio §12.2 (herramienta 5). HU-Q11.1 la midió primera: demanda 780 con rangos, y «parqueadero mensual» en 100–1 mil en Colombia (8 oct 2026). Sirve también en LATAM («cochera mensual», «pensión de estacionamiento»).
+- **CA1.** Una página del sitio con tipo de vehículo, valor del mes y fecha de inicio, que da el prorrateo con su detalle día por día. Usa la misma lógica de mensualidades de la caja (HU-Q8.4), no una copia (P2).
+- **CA2.** Termina con el siguiente paso hacia la caja (`tool.next_step`): llevar los abonados en el teléfono.
+- **CA3 ❌.** Un valor ilegible o en cero no da un total: dice qué falta (P1).
+- **Patrones en riesgo:** P1, P2.
+- **Work items:** WI-Q11.6.1 `[código]` · WI-Q11.6.2 `[prueba]` tabla compartida con la caja · WI-Q11.6.3 `[diseño]` página.
+
+#### HU-Q11.7 · Los cupos obligatorios para eléctricos (Ley 1964 de 2019)
+- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** sin sprint (se planea después de M1, después de HU-Q11.6) · **Depende de:** HU-Q11.1, HU-Q11.5 · **Estado:** Refinada
+- Como parqueadero, quiero saber cuántos cupos para vehículos eléctricos me exige la ley según mi número de cupos, sin registrarme.
+- **Respaldo:** estudio §12.2 (herramienta 6). HU-Q11.1: demanda 500 con rangos, toda de «ley 1964 de 2019»; los términos del parqueadero no traen dato (8 oct 2026).
+- **CA1.** Una página con el número de cupos que da los cupos eléctricos que exige la ley, con el artículo citado y su fecha de consulta (P18).
+- **CA2.** A los 90 días de publicada, Search Console dice si la búsqueda trae parqueaderos o conductores: si las consultas son de conductores, se anota en HU-Q11.1 y no se le invierte más.
+- **CA3 ❌.** Sin el texto vigente de la norma revisado, no se publica: una cifra legal de memoria no sale (P18).
+- **Patrones en riesgo:** P18.
+- **Work items:** WI-Q11.7.1 `[doc]` norma vigente · WI-Q11.7.2 `[código]` · WI-Q11.7.3 `[campo]` Search Console a los 90 días.
+
 ---
 
 ## 9. Preparadas, sin sprint
@@ -801,7 +821,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 | RawBT como camino de impresión | La matriz de HU-Q6.1 encuentra un teléfono donde fallan Web Bluetooth y Web Serial (PARQUEADERO §7.5) |
 | `@ed1/impresion` en el punto de venta de la Tienda y en las etiquetas de lote del agro | Uno de los dos carriles lo pide (PARQUEADERO §20.4) |
 | Firma sin red para los QR de lote del agro | El agro lo pide, cuando `@ed1/firma` ya firme recibos (PARQUEADERO §20.3) |
-| Herramientas 3, 5, 6 y 7 del estudio §12.2 | HU-Q11.1 dice «se construye» |
+| Herramientas 3 y 7 del estudio §12.2 | La próxima medición (Search Console, HU-Q11.1) dice «se construye». La 7, además, con la revisión de un contador. La 5 y la 6 ya son HU-Q11.6 y HU-Q11.7 |
 | Impresora de 80 mm | Una caja fija de escritorio que la pida (PARQUEADERO §7.9) |
 | App nativa | Una función que el navegador no pueda hacer y que un cliente pague |
 | Workers Paid | El vigía de HU-Q7.13 pasa del 75 % de forma sostenida, o M3 lo exige (D-Q10) |
@@ -905,8 +925,8 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 | Hito | Historias | Cuántas | Pts |
 |---|---|---|---|
 | M0 · MVP del cliente | HU-Q0.1 a HU-Q0.3, HU-Q1.1 a HU-Q1.6, HU-Q2.1 a HU-Q2.6, HU-Q3.1 a HU-Q3.11, HU-Q4.1 a HU-Q4.5, HU-Q5.1 a HU-Q5.3, HU-Q6.1 a HU-Q6.6 | 40 | 116 |
-| M1 · Cuenta y varias cajas | HU-Q3.12, HU-Q7.1 a HU-Q7.13, HU-Q10.1, HU-Q10.2, HU-Q10.4, HU-Q11.1 a HU-Q11.3 | 20 | 60 |
+| M1 · Cuenta y varias cajas | HU-Q3.12, HU-Q7.1 a HU-Q7.13, HU-Q10.1, HU-Q10.2, HU-Q10.4, HU-Q11.1, HU-Q11.3 | 19 | 57 |
 | M2 · Recibo verificado | HU-Q8.1 a HU-Q8.7, HU-Q10.3, HU-Q11.4, HU-Q11.5 | 10 | 31 |
 | M3 · WhatsApp automático | HU-Q9.1 a HU-Q9.8 | 8 | 25 |
 | M4 · Facturación | EQ12, preparada (§9) | — | — |
-| **Total** | | **77** | **230** |
+| **Total** | | **76** | **227** |
