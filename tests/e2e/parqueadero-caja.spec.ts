@@ -845,6 +845,10 @@ for (const esquema of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Aviso de privacidad' }).click();
     await expect(page.getByTestId('aviso')).toBeVisible();
     await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Aviso de tarifas' }).click();
+    await expect(page.getByTestId('hoja-letrero')).toBeVisible();
+    await revisar();
   });
 }
 

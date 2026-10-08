@@ -1228,6 +1228,8 @@ Supone las 20 horas por semana del dueño, con el asistente haciendo los commits
 
 **Nota del plan (7 oct 2026):** las dos herramientas gratuitas salen de M0. El estudio §12.2 pide medir su búsqueda antes de construir: HU-Q11.1 mide en Q6, y la calculadora y el generador dependen de lo que diga. El aviso de tarifas y derechos para la entrada (HU-Q11.3) se hace sin esperar, porque el cliente lo usa. El orden de M0 por semanas está en `BACKLOG-PARKING_MVP.md` §4. Bitácora parqueadero 9.
 
+**Hecho en HU-Q11.3 (8 oct 2026):** el aviso sale de la caja (inicio › «Aviso de tarifas»), no de un formulario del sitio: su primer usuario ya tiene la caja y sus datos están en Ajustes. El texto fijo vive en `content/parqueadero/aviso-tarifas.json`; las tarifas, en las mismas líneas del recibo (`lineasDeTarifa`, ADR-33). Los medios de pago no son un ajuste: se marcan al imprimir. El formulario del sitio, para quien no tiene la caja, queda con la herramienta 4 del estudio y la medición de HU-Q11.1.
+
 ### 18.2 Métricas de la excepción declarada (las fija el dueño antes del día 1)
 
 Propuesta, sobre la del estudio (§16.3):

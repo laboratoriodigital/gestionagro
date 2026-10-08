@@ -38,6 +38,7 @@ const MENU = [
   ['ajustes', 'Ajustes del parqueadero'],
   ['abonados', 'Abonados'],
   ['respaldo', 'Respaldo'],
+  ['letrero', 'Aviso de tarifas'],
   ['aviso', 'Aviso de privacidad'],
 ] as const;
 
