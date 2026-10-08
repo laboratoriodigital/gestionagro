@@ -17,11 +17,15 @@
  *   quien copie el fragmento del historial no puede usarlo. No hay tablas nuevas.
  * - La clave del sello se deriva de `CORE_JWT_PRIVATE_KEY` con HKDF y una etiqueta propia: no
  *   hace falta otro secreto, y no sirve para firmar nada.
+ * - Otro producto lo pide con `producto=<id>`: vuelve solo a un origen y una ruta de su app
+ *   (`productos.json`), como al entrar. Sin `producto`, es el cuaderno, como siempre (P10: los
+ *   cuadernos instalados no lo mandan).
  */
 import { Google, generateCodeVerifier, generateState } from 'arctic';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { vueltaPermitida } from './entrar.ts';
+import { type CatalogoDelCore, productoDe, vueltaDelProducto } from './productos.ts';
 
 export const RUTA_CALLBACK_DRIVE = '/api/core/drive/callback';
 export const ALCANCE_DRIVE = 'https://www.googleapis.com/auth/drive.file';
@@ -59,7 +63,20 @@ export interface EntornoDrive {
   /** Material de la clave del sello (`CORE_JWT_PRIVATE_KEY`). */
   secreto: string;
   origenes: readonly string[];
+  /** Los productos del CORE: de ahí salen los orígenes y las rutas de regreso de cada uno. */
+  catalogo: CatalogoDelCore;
   ahora: () => number;
+}
+
+/** La pantalla a la que vuelve el permiso: la del producto que lo pidió, o la del cuaderno. */
+function vueltaDeDrive(
+  vuelta: string | undefined,
+  producto: string | undefined,
+  e: EntornoDrive,
+): string | null {
+  if (!producto) return vueltaPermitida(vuelta, e.origenes);
+  const pedido = productoDe(e.catalogo, producto);
+  return 'producto' in pedido ? vueltaDelProducto(vuelta, pedido.producto, e.origenes) : null;
 }
 
 const codificar = new TextEncoder();
@@ -145,13 +162,14 @@ export async function abrir(
 const redirectDe = (c: Context) => new URL(RUTA_CALLBACK_DRIVE, c.req.url).toString();
 
 export function inicioDrive(c: Context, e: EntornoDrive): Response {
-  const vuelta = vueltaPermitida(c.req.query('vuelta'), e.origenes);
-  if (!vuelta) return c.text('Esta dirección de regreso no es del cuaderno.', 400);
+  const producto = c.req.query('producto') || undefined;
+  const vuelta = vueltaDeDrive(c.req.query('vuelta'), producto, e);
+  if (!vuelta) return c.text('Esta dirección de regreso no es de esta aplicación.', 400);
   const desafio = c.req.query('desafio') ?? '';
   if (!/^[A-Za-z0-9_-]{43}$/.test(desafio)) return c.text('Falta el desafío del teléfono.', 400);
   const state = generateState();
   const verifier = generateCodeVerifier();
-  setCookie(c, COOKIE, JSON.stringify({ state, verifier, vuelta, desafio }), {
+  setCookie(c, COOKIE, JSON.stringify({ state, verifier, vuelta, desafio, producto }), {
     httpOnly: true,
     secure: true,
     sameSite: 'Lax',
@@ -165,17 +183,23 @@ const volverConError = (c: Context, vuelta: string, motivo: string) =>
   c.redirect(`${vuelta}#drive-error=${motivo}`, 302);
 
 export async function callbackDrive(c: Context, e: EntornoDrive): Promise<Response> {
-  let guardado: { state?: string; verifier?: string; vuelta?: string; desafio?: string } = {};
+  let guardado: {
+    state?: string;
+    verifier?: string;
+    vuelta?: string;
+    desafio?: string;
+    producto?: string;
+  } = {};
   try {
     guardado = JSON.parse(getCookie(c, COOKIE) ?? '{}') as typeof guardado;
   } catch {
     guardado = {};
   }
   deleteCookie(c, COOKIE, { path: '/api/core/drive/', secure: true });
-  const vuelta = vueltaPermitida(guardado.vuelta, e.origenes);
+  const vuelta = vueltaDeDrive(guardado.vuelta, guardado.producto, e);
   if (!vuelta || !guardado.state || !guardado.verifier || !guardado.desafio) {
     return c.text(
-      'El permiso venció o se abrió en otro navegador. Vuelve al cuaderno e inténtalo otra vez.',
+      'El permiso venció o se abrió en otro navegador. Vuelve a la aplicación e inténtalo otra vez.',
       400,
     );
   }

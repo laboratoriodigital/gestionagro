@@ -126,7 +126,7 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
 
   // HU-Q7.6: de vuelta de la cuenta, la caja abre donde se quedó.
   useEffect(() => {
-    if (regreso) ir({ es: 'cuenta', regreso });
+    if (regreso) ir({ es: /^#drive/.test(regreso) ? 'respaldo' : 'cuenta', regreso });
   }, [regreso]);
 
   // HU-Q2.4 CA1: la impresora emparejada vuelve sola al abrir la caja, sin selector.

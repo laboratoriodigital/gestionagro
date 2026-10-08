@@ -3,12 +3,14 @@
  * Assets, escrito por `scripts/armar-parqueadero.ts`.
  *
  * La caja solo carga código propio y solo se conecta a su origen y a la API de las celdas del
- * parqueadero del entorno, con la que sincroniza (HU-Q7.5). WhatsApp se abre con un enlace, que es
+ * parqueadero del entorno, con la que sincroniza (HU-Q7.5), al CORE de las cuentas (HU-Q7.6) y a
+ * Google Drive para su copia (HU-Q10.1). WhatsApp se abre con un enlace, que es
  * una navegación y no una conexión. Sin `'unsafe-inline'` en ningún lado: los estilos van en hojas
  * (bitácora agro, terreno).
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { ORIGEN_DRIVE } from '../../packages/drive/src/index.ts';
 import { celdasDelDirectorio } from './celda-parqueadero.ts';
 import { type ConfigCeldas, cargarCeldas } from './celdas.ts';
 
@@ -38,6 +40,13 @@ export const coreDeLaCaja = (
   config: ConfigCeldas = cargarCeldas(),
 ): string[] => (entorno === 'staging' ? [config.core.url_staging] : []);
 
+/**
+ * Google Drive, donde la caja guarda y trae su copia con el permiso que pide el CORE (HU-Q10.1).
+ * Va con el CORE: solo en staging hasta que el CORE de producción la publique.
+ */
+export const driveDeLaCaja = (entorno: EntornoDelParqueadero): string[] =>
+  entorno === 'staging' ? [ORIGEN_DRIVE] : [];
+
 export function cspDelParqueadero(
   entorno: EntornoDelParqueadero,
   config: ConfigCeldas = cargarCeldas(),
@@ -51,6 +60,7 @@ export function cspDelParqueadero(
       "connect-src 'self'",
       ...conexionesDeLaCaja(entorno, config),
       ...coreDeLaCaja(entorno, config),
+      ...driveDeLaCaja(entorno),
     ].join(' '),
     "worker-src 'self'",
     "manifest-src 'self'",

@@ -130,6 +130,9 @@ importers:
       '@ed1/agro-schema':
         specifier: workspace:*
         version: link:../../packages/agro-schema
+      '@ed1/drive':
+        specifier: workspace:*
+        version: link:../../packages/drive
       '@ed1/trazabilidad':
         specifier: workspace:*
         version: link:../../packages/trazabilidad
@@ -240,6 +243,9 @@ importers:
       '@ed1/dinero':
         specifier: workspace:*
         version: link:../../packages/dinero
+      '@ed1/drive':
+        specifier: workspace:*
+        version: link:../../packages/drive
       '@ed1/eventos':
         specifier: workspace:*
         version: link:../../packages/eventos
@@ -376,6 +382,8 @@ importers:
         version: 4.144.0(@types/node@22.20.4)
 
   packages/dinero: {}
+
+  packages/drive: {}
 
   packages/eventos: {}
 

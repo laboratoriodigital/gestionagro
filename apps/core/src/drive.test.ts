@@ -171,4 +171,43 @@ describe('permiso de Drive del productor', () => {
     );
     expect(r.status).toBe(503);
   });
+
+  it('la caja del parqueadero lo pide con su producto y vuelve solo a su caja (HU-Q10.1)', async () => {
+    const CAJA = 'https://ed1-parqueadero-staging.laboratoriodigital-la.workers.dev';
+    const staging = { ...env, DESTINO: 'staging' };
+    reloj = T0;
+    const desafio = await sha256B64url(VERIFICADOR);
+    const ida = await app.fetch(
+      new Request(
+        `${CORE}/api/core/drive/inicio?producto=parqueadero&vuelta=${encodeURIComponent(`${CAJA}/caja/`)}&desafio=${desafio}`,
+      ),
+      staging,
+    );
+    expect(ida.status).toBe(302);
+    const cookie = (ida.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+    const state = new URL(ida.headers.get('location') ?? '').searchParams.get('state');
+    const vuelta = await app.fetch(
+      new Request(`${CORE}/api/core/drive/callback?code=code-bueno&state=${state}`, {
+        headers: { cookie },
+      }),
+      staging,
+    );
+    expect(vuelta.headers.get('location')).toMatch(new RegExp(`^${CAJA}/caja/#drive=`));
+
+    // ❌ El cuaderno no puede pedirlo a nombre del parqueadero, ni la caja a nombre del cuaderno,
+    // ni un producto que no existe.
+    for (const [producto, destino] of [
+      ['parqueadero', VUELTA],
+      ['', `${CAJA}/caja/`],
+      ['no-existe', `${CAJA}/caja/`],
+    ]) {
+      const r = await app.fetch(
+        new Request(
+          `${CORE}/api/core/drive/inicio?producto=${producto}&vuelta=${encodeURIComponent(destino ?? '')}&desafio=${desafio}`,
+        ),
+        staging,
+      );
+      expect(r.status, `${producto} → ${destino}`).toBe(400);
+    }
+  });
 });
