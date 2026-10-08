@@ -6,6 +6,7 @@
  */
 import { expect, type Route, test } from '@playwright/test';
 import { abrir, type Entorno, env, token } from '../../apps/parqueadero-api/src/prueba.fixture.ts';
+import { VERSION_DE_LOS_TERMINOS } from '../../apps/parqueadero-api/src/terminos.ts';
 import { crearApp } from '../../apps/parqueadero-api/src/worker.ts';
 import { conexionesDeLaCaja, coreDeLaCaja } from '../../scripts/lib/cabeceras-parqueadero.ts';
 import {
@@ -99,9 +100,14 @@ test('HU-Q7.6 · la caja del piloto entra, sube su parqueadero y lo ve verificad
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Recibo de entrada');
   await page.getByRole('button', { name: 'Volver al inicio' }).click();
 
-  // Entrar: va a la cuenta y vuelve con el código, que no se queda en la barra.
+  // HU-Q7.11 CA1: antes de entrar, qué sube y qué no; sin aceptar los términos no se entra.
   await page.getByRole('button', { name: 'Cuenta y nube' }).click();
-  await page.getByRole('button', { name: 'Entrar con Google' }).click();
+  await expect(page.getByTestId('terminos')).toContainText('número de celular del conductor');
+  const entrar = page.getByRole('button', { name: 'Entrar con Google' });
+  await expect(entrar).toBeDisabled();
+  await page.getByRole('checkbox', { name: /Acepto los términos/ }).check();
+  // Entrar: va a la cuenta y vuelve con el código, que no se queda en la barra.
+  await entrar.click();
   await expect(page.getByTestId('quien')).toContainText('Dueña de Ensayo');
   expect(page.url()).not.toContain('entrar');
 
@@ -114,4 +120,16 @@ test('HU-Q7.6 · la caja del piloto entra, sube su parqueadero y lo ve verificad
     .first<{ n: number }>();
   expect(fila?.n).toBe(1);
   await expect(page.getByTestId('cajas')).toContainText('serie A');
+  // La celda guardó cuándo se aceptaron (CA1).
+  const caja = await e.db
+    .prepare('SELECT terminos_version AS v FROM dispositivo WHERE org_id = ?')
+    .bind(org)
+    .first<{ v: string | null }>();
+  expect(caja?.v).toBe(VERSION_DE_LOS_TERMINOS);
+
+  // HU-Q7.11 CA2: con cuenta, el aviso ya no dice que los datos no salen del teléfono.
+  await page.getByRole('button', { name: 'Volver al inicio' }).click();
+  await page.getByRole('button', { name: 'Aviso de privacidad' }).click();
+  await expect(page.getByTestId('aviso')).toContainText('también en la nube');
+  await expect(page.getByTestId('aviso')).not.toContainText('no salen de este teléfono');
 });

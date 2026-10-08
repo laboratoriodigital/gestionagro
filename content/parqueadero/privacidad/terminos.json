@@ -1,0 +1,44 @@
+{
+  "nota": "Términos de la nube del parqueadero y contrato de transmisión de datos (HU-Q7.11; PARQUEADERO §13.2; Decreto 1377 de 2013 art. 25, hoy Decreto 1074 de 2015 art. 2.2.2.25.5.2). Desde M1 el parqueadero sigue siendo el Responsable de los datos de sus clientes y Laboratorio Digital los guarda como Encargado. La caja los muestra antes de entrar con la cuenta y no sincroniza sin la aceptación de esta versión; la celda guarda la versión y la hora con cada caja. Cambiar lo que sube a la nube (por ejemplo, las fotos en M2) exige subir la versión: cada caja los vuelve a aceptar. Los datos del encargado salen de `politica.json` (`responsable`); lo que está en null se muestra «por completar» (docs/runbooks/datos-del-responsable.md). Es un borrador para que el dueño y un abogado lo revisen.",
+  "version": "1",
+  "fecha": "2026-10-08",
+  "estado": "borrador",
+  "revision": "requiere revisión de abogado",
+  "sube": [
+    "Las entradas, las salidas, los cobros y las anulaciones, con sus números de recibo.",
+    "Las placas y el estado de los vehículos que anota la caja.",
+    "Los turnos y los movimientos de caja, con el nombre de quien los hizo.",
+    "Los ajustes: la sede, las tarifas, el recibo y los abonados (placa y una referencia corta)."
+  ],
+  "no_sale": [
+    "El número de celular del conductor: se queda en este teléfono y se borra 24 horas después de la salida.",
+    "Las fotos del vehículo: por ahora se quedan en este teléfono. Si un día suben, estos términos cambian y se vuelven a pedir."
+  ],
+  "aceptar": "Acepto los términos y el contrato de transmisión de datos en nombre de este parqueadero.",
+  "secciones": [
+    {
+      "titulo": "Quién es quién",
+      "texto": "El parqueadero es el Responsable de los datos personales de sus clientes (Ley 1581 de 2012). {encargado} es el Encargado: los guarda en la nube por cuenta del parqueadero y solo para lo que aquí se dice. Quien acepta lo hace en nombre del parqueadero."
+    },
+    {
+      "titulo": "Para qué se usan",
+      "texto": "Para que las cajas del parqueadero trabajen juntas sin repetir números, para guardar una copia de lo registrado y para devolvérsela al parqueadero cuando la pida. El Encargado no usa estos datos para nada propio: ni publicidad, ni venta, ni perfiles."
+    },
+    {
+      "titulo": "Lo que el Encargado se obliga a hacer",
+      "texto": "Tratar los datos solo según las instrucciones del parqueadero y la política de datos del parqueadero; guardarlos con medidas de seguridad; mantenerlos en reserva, también después de terminar el servicio; avisar al parqueadero de cualquier incidente que los afecte; y ayudarle a responder las consultas y los reclamos de los titulares."
+    },
+    {
+      "titulo": "Quién más los guarda",
+      "texto": "La nube corre en Cloudflare, que tiene servidores fuera de Colombia. Entrar con la cuenta usa Google, que solo recibe el nombre y el correo de quien entra. No hay más terceros."
+    },
+    {
+      "titulo": "Cuando el parqueadero se va",
+      "texto": "El parqueadero recibe una exportación completa de lo suyo. Solo después de que confirme que la recibió, el Encargado borra sus datos de la nube y deja constancia del borrado."
+    },
+    {
+      "titulo": "Encargado",
+      "texto": "{encargado}, identificación {identificacion}, domicilio {domicilio}, correo {correo}, teléfono {telefono}."
+    }
+  ]
+}

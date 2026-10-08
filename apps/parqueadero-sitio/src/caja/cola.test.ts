@@ -155,6 +155,11 @@ describe('la señal de la nube', () => {
 
   it('dice cuánto queda en este dispositivo y por qué no ha salido', () => {
     expect(senalDeLaNube(true, 0, { tipo: 'sin-vincular' })?.texto).toBe('Todo en la nube');
+    // HU-Q7.11 CA3: sin los términos no baja nada; «Todo en la nube» sería falso aunque no falte subir.
+    expect(senalDeLaNube(true, 0, { tipo: 'sin-terminos' })).toEqual({
+      texto: 'Nube en pausa: acepte los términos',
+      tono: 'error',
+    });
     expect(senalDeLaNube(true, 3, { tipo: 'enviando' })?.texto).toBe('Enviando a la nube…');
     expect(senalDeLaNube(true, 3, resultado('sin-senal'))?.texto).toBe(
       '3 en este dispositivo, sin señal',

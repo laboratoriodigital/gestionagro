@@ -569,7 +569,7 @@ describe('el aviso de privacidad (HU-Q4.4)', () => {
   const frase = (p: readonly string[]) => p.some((x) => x.includes('no salen de este'));
 
   it('se llena con los datos de la sede, sin marcadores sueltos (CA1)', () => {
-    const a = avisoDeLaSede({ ...SEDE_ENSAYO_UNO, org_id: null });
+    const a = avisoDeLaSede(SEDE_ENSAYO_UNO, false);
     const todo = [...a.parrafos, ...a.politica.secciones.flat()].join('\n');
     expect(todo).toContain(SEDE_ENSAYO_UNO.nit);
     expect(todo).toContain(SEDE_ENSAYO_UNO.telefono);
@@ -577,9 +577,17 @@ describe('el aviso de privacidad (HU-Q4.4)', () => {
     expect(todo).not.toMatch(/[{}]/);
   });
 
-  it('«sin cuenta» solo se dice en una caja sin cuenta (CA3 ❌)', () => {
-    expect(frase(avisoDeLaSede({ ...SEDE_ENSAYO_UNO, org_id: null }).parrafos)).toBe(true);
-    expect(frase(avisoDeLaSede({ ...SEDE_ENSAYO_UNO, org_id: 'org-1' }).parrafos)).toBe(false);
+  it('«sin cuenta» solo se dice en una caja sin cuenta (CA3 ❌, HU-Q7.11 CA2)', () => {
+    expect(frase(avisoDeLaSede(SEDE_ENSAYO_UNO, false).parrafos)).toBe(true);
+    const conCuenta = avisoDeLaSede(SEDE_ENSAYO_UNO, true);
+    expect(frase(conCuenta.parrafos)).toBe(false);
+    expect(conCuenta.parrafos.join('\n')).toContain('también en la nube');
+    expect(conCuenta.parrafos.join('\n')).toContain(SEDE_ENSAYO_UNO.nombre);
+    const donde = conCuenta.politica.secciones.find(([t]) => t === 'Dónde quedan los datos');
+    expect(donde?.[1]).toContain('no sube a la nube');
+    expect([...conCuenta.parrafos, ...conCuenta.politica.secciones.flat()].join('')).not.toMatch(
+      /[{}]/,
+    );
   });
 });
 

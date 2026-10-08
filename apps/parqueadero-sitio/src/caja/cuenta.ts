@@ -22,6 +22,7 @@ import politica from '../../../../content/parqueadero/privacidad/politica.json' 
 import { dispositivo as cajaDeEsteTelefono } from './almacen.ts';
 import { idDeOperacion } from './cola.ts';
 import type { BaseDeLaCaja, Meta, OperacionSalida, Sesion } from './datos.ts';
+import { conTerminos } from './terminos.ts';
 
 /** La versión de la política que se acepta al entrar: la del CORE (HU-E0.5 CA3). */
 export const VERSION_DE_LA_POLITICA: string = politica.version;
@@ -73,7 +74,8 @@ async function pedir(
 ): Promise<{ estado: number; datos: Record<string, unknown> }> {
   let r: Response;
   try {
-    r = await fetchFn(url, {
+    // A la celda va con la versión de los términos aceptada (HU-Q7.11); al CORE, como está.
+    r = await fetchFn(conTerminos(url), {
       method: o.metodo ?? (o.cuerpo === undefined ? 'GET' : 'POST'),
       headers: {
         ...(o.cuerpo === undefined ? {} : { 'content-type': 'application/json' }),

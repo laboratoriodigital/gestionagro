@@ -4,8 +4,8 @@
  * `apps/parqueadero-api` en este proceso, con el D1 local; las rutas de Playwright le pasan lo que
  * cada caja pide a la nube.
  *
- * La prueba escribe `nube` y `dispositivo` en la caja, y la fila de `dispositivo` en la celda, sin
- * pasar por la cuenta (HU-Q7.6) ni el alta (HU-Q7.7), que prueba `parqueadero-cuenta.spec.ts`. El service
+ * La prueba escribe `nube`, `dispositivo` y los términos aceptados (HU-Q7.11) en la caja, y la
+ * fila de `dispositivo` en la celda, sin pasar por la cuenta (HU-Q7.6) ni el alta (HU-Q7.7), que prueba `parqueadero-cuenta.spec.ts`. El service
  * worker no atiende lo que va a la API, así que las rutas ven cada pedido.
  */
 import { type BrowserContext, expect, type Page, test } from '@playwright/test';
@@ -17,6 +17,7 @@ import {
   ORG_UNO,
   token,
 } from '../../apps/parqueadero-api/src/prueba.fixture.ts';
+import { VERSION_DE_LOS_TERMINOS } from '../../apps/parqueadero-api/src/terminos.ts';
 import { crearApp } from '../../apps/parqueadero-api/src/worker.ts';
 import { conexionesDeLaCaja } from '../../scripts/lib/cabeceras-parqueadero.ts';
 import {
@@ -79,7 +80,7 @@ async function abrirCaja(context: BrowserContext, serie: string): Promise<Caja> 
   await abrirControlada(caja.page);
   await expect(caja.page.getByTestId('estadias')).toBeVisible();
   await caja.page.evaluate(
-    ([api, llave, id, letra]) =>
+    ([api, llave, id, letra, version]) =>
       new Promise<void>((listo, falla) => {
         const base = indexedDB.open('parqueadero-caja');
         base.onerror = () => falla(base.error);
@@ -87,13 +88,19 @@ async function abrirCaja(context: BrowserContext, serie: string): Promise<Caja> 
           const tx = base.result.transaction('meta', 'readwrite');
           tx.objectStore('meta').put({ clave: 'nube', api, acceso: llave });
           tx.objectStore('meta').put({ clave: 'dispositivo', id, serie: letra });
+          tx.objectStore('meta').put({
+            clave: 'terminos',
+            version,
+            aceptados: Date.now(),
+            registrados: null,
+          });
           tx.oncomplete = () => {
             base.result.close();
             listo();
           };
         };
       }),
-    [API, acceso, dispositivo, serie] as const,
+    [API, acceso, dispositivo, serie, VERSION_DE_LOS_TERMINOS] as const,
   );
   await caja.page.reload();
   return caja;

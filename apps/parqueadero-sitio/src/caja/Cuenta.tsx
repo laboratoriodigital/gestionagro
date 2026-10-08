@@ -1,7 +1,11 @@
 /**
  * «Cuenta y nube» (HU-Q7.6 y HU-Q7.7): entrar con la cuenta, subir este parqueadero con lo del
  * piloto, sumar una caja vacía y, con permiso, ver y retirar las cajas. Solo fuera de producción
- * hasta HU-Q7.12: la promesa de privacidad con cuenta (HU-Q7.11) va primero.
+ * hasta HU-Q7.12.
+ *
+ * Antes de entrar dice qué sube a la nube y qué no, y pide aceptar los términos con el contrato de
+ * transmisión (HU-Q7.11 CA1). Una caja vinculada sin la versión vigente queda en pausa y los
+ * vuelve a pedir aquí (CA3).
  */
 import { alcance } from '@ed1/parqueadero-schema/sync';
 import { useEffect, useState } from 'preact/hooks';
@@ -30,6 +34,7 @@ import { urlDelCore } from './entorno.ts';
 import { fechaBogota, horaBogota } from './fecha.ts';
 import { useConsulta } from './ganchos.ts';
 import type { Nube } from './nube.ts';
+import { aceptarTerminos, terminos, VERSION_DE_LOS_TERMINOS } from './terminos.ts';
 
 interface Props {
   readonly db: BaseDeLaCaja;
@@ -42,6 +47,7 @@ interface Props {
 }
 
 type Reclamo = Extract<Meta, { clave: 'reclamo' }>;
+type Aceptacion = Extract<Meta, { clave: 'terminos' }>;
 
 const cifra = (n: number) => n.toLocaleString('es-CO');
 const cuando = (ms: number) => `${fechaBogota(ms).slice(0, 5)} ${horaBogota(ms)}`;
@@ -64,6 +70,12 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
   const recibos = useConsulta(() => db.registros.count(), 0);
   const enCola = useConsulta(() => db.outbox.count(), 0);
   const rechazos = useConsulta(() => db.rechazos.count(), 0);
+  const aceptacion = useConsulta<Aceptacion | null | undefined>(
+    () => db.meta.get('terminos').then((m) => (m?.clave === 'terminos' ? m : null)),
+    undefined,
+  );
+  const vigentes = aceptacion?.version === VERSION_DE_LOS_TERMINOS;
+  const [marcado, setMarcado] = useState(false);
   const [estado, setEstado] = useState('');
   const [error, setError] = useState('');
   const [ocupado, setOcupado] = useState(false);
@@ -98,7 +110,7 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
     void renovar(db, core, { ahora: reloj }).then(({ aviso }) => aviso && setError(aviso));
   }, []);
 
-  if (sesion === undefined || sit === undefined)
+  if (sesion === undefined || sit === undefined || aceptacion === undefined)
     return <section class="tarjeta" aria-busy="true" />;
 
   const org = sesion?.organizaciones.find((o) => o.org_id === sesion.org_id);
@@ -128,11 +140,23 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
           Con una cuenta, lo de esta caja se guarda también en la nube y dos cajas trabajan juntas
           sin repetir números. Sin cuenta, la caja sigue igual: todo queda en este teléfono.
         </p>
+        {vigentes && aceptacion ? (
+          <p class="ayuda" data-prueba="terminos-aceptados">
+            Los términos de la nube (versión {aceptacion.version}) se aceptaron en esta caja el{' '}
+            {cuando(aceptacion.aceptados)}.
+          </p>
+        ) : (
+          <Terminos marcado={marcado} alMarcar={setMarcado} />
+        )}
         <p class="ayuda">Por ahora se entra con una cuenta de Google.</p>
         <button
           type="button"
           class="boton boton-principal"
-          onClick={() => location.assign(urlDeEntrada(core, location.origin))}
+          disabled={!vigentes && !marcado}
+          onClick={async () => {
+            if (!vigentes) await aceptarTerminos(db, reloj);
+            location.assign(urlDeEntrada(core, location.origin));
+          }}
         >
           Entrar con Google
         </button>
@@ -211,6 +235,34 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
         </>
       )}
 
+      {sit === 'vinculada' && !vigentes && (
+        <div class="terminos-pendientes" data-prueba="terminos-pendientes">
+          <p>
+            <strong>La nube está en pausa en esta caja.</strong>{' '}
+            {aceptacion
+              ? 'Los términos de la nube cambiaron.'
+              : 'Falta aceptar los términos de la nube.'}{' '}
+            Mientras tanto la caja registra y cobra igual; lo de aquí sube cuando se acepten.
+          </p>
+          <Terminos marcado={marcado} alMarcar={setMarcado} />
+          <button
+            type="button"
+            class="boton boton-principal"
+            disabled={!marcado || ocupado}
+            onClick={() =>
+              void hacer(async () => {
+                await aceptarTerminos(db, reloj);
+                setMarcado(false);
+                void nube?.ahora();
+                return 'Términos aceptados. La caja vuelve a sincronizar.';
+              })
+            }
+          >
+            Aceptar y seguir sincronizando
+          </button>
+        </div>
+      )}
+
       {sit === 'vinculada' && (
         <>
           <dl class="filas" data-prueba="vinculo">
@@ -251,6 +303,55 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
       </button>
       {volver}
     </section>
+  );
+}
+
+/**
+ * Qué sube a la nube, qué no, y los términos con el contrato de transmisión (HU-Q7.11 CA1). La
+ * casilla empieza sin marcar: aceptar es un acto de quien está en la caja.
+ */
+function Terminos({
+  marcado,
+  alMarcar,
+}: {
+  readonly marcado: boolean;
+  readonly alMarcar: (marcado: boolean) => void;
+}) {
+  const t = terminos();
+  return (
+    <div class="terminos" data-prueba="terminos">
+      <h2>Qué pasa a la nube</h2>
+      <p class="terminos-rotulo">Sube a la nube</p>
+      <ul>
+        {t.sube.map((x) => (
+          <li key={x}>{x}</li>
+        ))}
+      </ul>
+      <p class="terminos-rotulo">No sale de este teléfono</p>
+      <ul>
+        {t.noSale.map((x) => (
+          <li key={x}>{x}</li>
+        ))}
+      </ul>
+      <details>
+        <summary>Leer los términos y el contrato de transmisión (versión {t.version})</summary>
+        {t.secciones.map(([titulo, texto]) => (
+          <section key={titulo}>
+            <h3 class="terminos-seccion">{titulo}</h3>
+            <p class="terminos-texto">{texto}</p>
+          </section>
+        ))}
+      </details>
+      <label class="casilla">
+        <input
+          class="casilla-marca"
+          type="checkbox"
+          checked={marcado}
+          onChange={(ev) => alMarcar((ev.target as HTMLInputElement).checked)}
+        />
+        <span>{t.aceptar}</span>
+      </label>
+    </div>
   );
 }
 

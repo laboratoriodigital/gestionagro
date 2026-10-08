@@ -29,6 +29,7 @@ import {
   type RespuestaPull,
 } from '@ed1/parqueadero-schema/sync';
 import type { BaseDeLaCaja, Estadia, OperacionSalida } from './datos.ts';
+import { conTerminos } from './terminos.ts';
 
 export const ESPERA_MINIMA_MS = 30_000;
 export const ESPERA_MAXIMA_MS = 30 * 60_000;
@@ -182,7 +183,7 @@ export async function enviarPendientes(
     if (lote.length === 0) return { estado: 'al-dia', ...cuenta };
     let r: Response;
     try {
-      r = await fetchFn(`${destino.api}/api/v1/sync/push`, {
+      r = await fetchFn(conTerminos(`${destino.api}/api/v1/sync/push`), {
         method: 'POST',
         headers: { authorization: `Bearer ${destino.acceso}`, 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -336,7 +337,9 @@ export async function recibirCambios(
     let r: Response;
     try {
       r = await fetchFn(
-        `${destino.api}/api/v1/sync/pull?registro=${c.registro}&catalogo=${c.catalogo}${destino.dispositivo ? `&dispositivo=${encodeURIComponent(destino.dispositivo)}` : ''}`,
+        conTerminos(
+          `${destino.api}/api/v1/sync/pull?registro=${c.registro}&catalogo=${c.catalogo}${destino.dispositivo ? `&dispositivo=${encodeURIComponent(destino.dispositivo)}` : ''}`,
+        ),
         { headers: { authorization: `Bearer ${destino.acceso}` } },
       );
     } catch {

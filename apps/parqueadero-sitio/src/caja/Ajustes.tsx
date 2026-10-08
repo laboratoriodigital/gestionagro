@@ -31,7 +31,7 @@ import {
   verificarPin,
 } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
-import { useConsulta } from './ganchos.ts';
+import { useConCuenta, useConsulta } from './ganchos.ts';
 import { avisoAceptado, avisoDeLaSede, VERSION_DEL_AVISO } from './privacidad.ts';
 import { topeDeLaCiudad } from './topes.ts';
 
@@ -327,6 +327,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
   const [guardando, setGuardando] = useState(false);
   /** `undefined`: sin cambios; `null`: quitar la imagen. */
   const [qrPago, setQrPago] = useState<Blob | null | undefined>(undefined);
+  const conCuenta = useConCuenta(db);
   const qrGuardado = useConsulta(async () => {
     const m = await db.meta.get('qr_pago');
     return m?.clave === 'qr_pago' ? m.datos : null;
@@ -699,7 +700,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
         </p>
         <details>
           <summary>Leer el aviso (versión {VERSION_DEL_AVISO})</summary>
-          {avisoDeLaSede(b).parrafos.map((p) => (
+          {avisoDeLaSede(b, conCuenta).parrafos.map((p) => (
             <p key={p}>{p}</p>
           ))}
         </details>
