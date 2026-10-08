@@ -254,8 +254,8 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q8** (corto) | 14–23 dic | Entrar y reclamar lo local; dispositivos; respaldo en la nube. Solo staging desde el 18 dic | HU-Q7.6 (5), HU-Q7.7 (3), HU-Q7.9 (2) | 10 | — |
 | — | 24 dic–8 ene | Pausa y congelamiento. La caja del cliente sigue en `v0.2.x` | — | — | — |
 | **Q9** (festivo) | 12–22 ene 2027 | **M1.** Cobro del plan por periodo, privacidad con cuenta, operación de la celda y dos cajas sin red que no repiten números | HU-Q7.10 (3), HU-Q7.11 (2), HU-Q7.12 (2), HU-Q10.1 (3), HU-Q10.2 (3), HU-Q10.4 (2) | 15 | M1, `v0.3.0` |
-| **Q10** | 25 ene–5 feb | Firma sin red por dispositivo, su verificación y las fotos en la nube; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q8.3 (3), HU-Q11.4 (2), HU-Q11.5 (2) | 17 | — |
-| **Q11** | 8–19 feb | **M2.** Mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3) | 14 | M2, **`v1.0.0`** |
+| **Q10** | 25 ene–5 feb | Firma sin red por dispositivo y su verificación; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q11.4 (2), HU-Q11.5 (2). HU-Q8.3 pasó a Q11 (espera R2) | 14 | — |
+| **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3) | 17 | M2, **`v1.0.0`** |
 | **Q12** | 22 feb–5 mar | Con su disparador: ED1 como Tech Provider, el número del parqueadero conectado y la plantilla | HU-Q9.1 (3), HU-Q9.2 (5), HU-Q9.3 (2) | 10 | — |
 | **Q13** | 8–19 mar | **M3.** Envío por la Cloud API, estados, autoservicio y presupuesto de mensajes | HU-Q9.4 (5), HU-Q9.5 (3), HU-Q9.6 (3), HU-Q9.7 (2), HU-Q9.8 (2) | 15 | M3, `v1.1.0` |
 
@@ -531,7 +531,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 ### EQ8 · Recibo verificado, fotos y mensualidades (M2)
 
 #### HU-Q8.1 · Llave por dispositivo y certificado de la celda
-- **Capa:** paquete, API y caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q10 · **Depende de:** HU-Q7.7, HU-Q1.5 · **Estado:** En curso (rama `feat/q10-sprint`)
+- **Capa:** paquete, API y caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q10 · **Depende de:** HU-Q7.7, HU-Q1.5 · **Estado:** En revisión (rama `feat/q10-sprint`, PR del sprint Q10)
 - Como parqueadero, quiero que cada caja firme sus recibos sin red con una llave que nunca sale de ella, para que un recibo se pueda verificar aunque se emita sin señal.
 - **Respaldo:** ADR-36; PARQUEADERO §11.4 y §6.3; ARQUITECTURA §5.9 (el QR firmado del agro).
 - **CA1.** Al darse de alta, la caja genera un par Ed25519 con WebCrypto, con la llave privada no exportable en IndexedDB, y manda la pública. `POST /api/v1/dispositivos/certificado` devuelve un certificado firmado con `CELDA_RECIBO_PRIVATE_KEY`, que vence a los 30 días y se renueva solo en su última semana.
@@ -541,7 +541,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q8.1.1 `[código]` extraer `@ed1/firma` · WI-Q8.1.2 `[código]` llave y certificado · WI-Q8.1.3 `[prueba]` el agro intacto · WI-Q8.1.4 `[prueba]` sin Ed25519 · WI-Q8.1.5 `[infra]` la llave de la celda · WI-Q8.1.6 `[doc]` ADR-36 aceptada.
 
 #### HU-Q8.2 · El recibo firmado sin red y su verificación en `/r/`
-- **Capa:** caja y página · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q10 · **Depende de:** HU-Q8.1, HU-Q4.2 · **Estado:** En curso (rama `feat/q10-sprint`)
+- **Capa:** caja y página · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q10 · **Depende de:** HU-Q8.1, HU-Q4.2 · **Estado:** En revisión (rama `feat/q10-sprint`, PR del sprint Q10)
 - Como conductor, quiero saber que mi recibo es auténtico, aunque lo haya recibido de una caja sin señal.
 - **Respaldo:** PARQUEADERO §6.3 (los casos y los tamaños); ADR-36.
 - **CA1.** El enlace completo pasa a `#1.<datos>.<firma>.<certificado>`. `/r/` verifica la cadena con las llaves públicas de las celdas horneadas en el build (`GET /api/claves-recibo`), sin llamar a la API al abrir.
@@ -553,7 +553,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q8.2.1 `[código]` firmar al emitir · WI-Q8.2.2 `[código]` verificar en `/r/` · WI-Q8.2.3 `[prueba]` los cuatro casos · WI-Q8.2.4 `[prueba]` enlaces de cada versión publicada · WI-Q8.2.5 `[campo]` modo avión en dos teléfonos.
 
 #### HU-Q8.3 · Fotos del estado en la nube por 30 días
-- **Capa:** caja y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q10 · **Depende de:** HU-Q7.5, HU-Q3.3 · **Estado:** En curso (rama `feat/q10-sprint`)
+- **Capa:** caja y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q7.5, HU-Q3.3 · **Estado:** Refinada. Pasó de Q10 a Q11 el 8 oct 2026: necesita R2 activado en la cuenta de Cloudflare y el permiso de R2 en `CF_API_TOKEN` (WI-Q8.3.2), y subir la versión de los términos de la nube, que hoy dicen que las fotos no salen del teléfono (HU-Q7.11)
 - Como parqueadero, quiero que las fotos del estado sobrevivan a un teléfono perdido durante la estadía y un mes más, para responder un reclamo.
 - **Respaldo:** PARQUEADERO §5.5 y §12 (`PUT /api/v1/fotos/{nombre}`); ADR-15; bitácora parqueadero 8.
 - **CA1.** Las fotos suben a R2 con un nombre aleatorio de 128 bits que viaja en el fragmento del recibo, de hasta 300 KB y con cuota por plan. Con `ks:parqueadero-fotos` apagado, se quedan en el dispositivo.
@@ -766,7 +766,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Work items:** WI-Q11.3.1 `[código]` · WI-Q11.3.2 `[diseño]` letrero · WI-Q11.3.3 `[campo]` impreso en la entrada del cliente.
 
 #### HU-Q11.4 · El generador de recibo de entrada
-- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q10 · **Depende de:** HU-Q11.1, HU-Q1.4 · **Estado:** En curso (rama `feat/q10-sprint`)
+- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q10 · **Depende de:** HU-Q11.1, HU-Q1.4 · **Estado:** En revisión (rama `feat/q10-sprint`, PR del sprint Q10)
 - Como parqueadero que todavía no usa la caja, quiero hacer un recibo de entrada con el estado del vehículo e imprimirlo o mandarlo por WhatsApp.
 - **Respaldo:** estudio §12.2 (herramienta 2); PARQUEADERO §2.4.
 - **CA1.** Usa `parqueadero-recibos`, sin cuenta, y termina con el siguiente paso: «Lleve la caja en su teléfono».
@@ -776,7 +776,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Work items:** WI-Q11.4.1 `[código]` · WI-Q11.4.2 `[prueba]`.
 
 #### HU-Q11.5 · El sitio del parqueadero: portada, capa para agentes y el camino a la caja
-- **Capa:** sitio · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q10 · **Depende de:** HU-Q5.2 · **Estado:** En curso (rama `feat/q10-sprint`)
+- **Capa:** sitio · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q10 · **Depende de:** HU-Q5.2 · **Estado:** En revisión (rama `feat/q10-sprint`, PR del sprint Q10)
 - Como parqueadero que llega por una búsqueda, quiero entender en una página qué es la caja y probarla sin registrarme.
 - **Respaldo:** ED1 §38; ADR-24 (capa estática para agentes); HU-C8.2.
 - **CA1.** Una portada con las herramientas y la caja; `llms.txt` y gemelos en Markdown, como el agro.
