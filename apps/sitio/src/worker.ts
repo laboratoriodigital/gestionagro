@@ -10,7 +10,7 @@
  * Kill switch (HU-E8.1): con `ks:<producto>` en `apagado`, el lote se rechaza con 503 y no se
  * escribe nada. La calculadora sigue funcionando: es un asset estático que no pasa por aquí.
  */
-import { EVENTOS, type Lote, VERSION_DEL_LOTE } from '@ed1/eventos';
+import { EVENTOS, type Lote, motivoDeRechazoDelLote } from '@ed1/eventos';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
 
 /** Productos que emiten eventos. Una prueba lo ata a los `product.yaml` (P2). */
@@ -20,7 +20,6 @@ export const PRODUCTOS_CON_EVENTOS: readonly string[] = [
 ];
 
 const TAMANO_MAXIMO_BYTES = 2048;
-const CUENTA_MAXIMA = 100;
 
 export interface DatasetDeAnalytics {
   writeDataPoint(punto: { indexes?: string[]; blobs?: string[]; doubles?: number[] }): void;
@@ -48,24 +47,8 @@ const respuesta = (estado: number, mensaje?: string) =>
   });
 
 /** Valida un lote. Devuelve el motivo del rechazo, o null si es válido. */
-export function motivoDeRechazo(lote: unknown): string | null {
-  if (typeof lote !== 'object' || lote === null) return 'el lote no es un objeto';
-  const l = lote as Partial<Lote>;
-  if (l.v !== VERSION_DEL_LOTE) return `versión de lote desconocida: ${String(l.v)}`;
-  if (typeof l.producto !== 'string' || !PRODUCTOS_CON_EVENTOS.includes(l.producto)) {
-    return `producto desconocido: ${String(l.producto)}`;
-  }
-  if (typeof l.eventos !== 'object' || l.eventos === null) return 'faltan los eventos';
-  const nombres = Object.keys(l.eventos);
-  if (nombres.length === 0) return 'el lote no trae eventos';
-  for (const [nombre, cuenta] of Object.entries(l.eventos)) {
-    if (!(EVENTOS as readonly string[]).includes(nombre)) return `evento desconocido: ${nombre}`;
-    if (!Number.isInteger(cuenta) || (cuenta as number) < 1 || (cuenta as number) > CUENTA_MAXIMA) {
-      return `cuenta inválida para ${nombre}: ${String(cuenta)}`;
-    }
-  }
-  return null;
-}
+export const motivoDeRechazo = (lote: unknown): string | null =>
+  motivoDeRechazoDelLote(lote, PRODUCTOS_CON_EVENTOS);
 
 export async function atenderEventos(solicitud: Request, env: Env): Promise<Response> {
   if (solicitud.method !== 'POST') return respuesta(405, 'Solo POST');

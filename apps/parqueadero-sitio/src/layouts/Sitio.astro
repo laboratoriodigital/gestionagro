@@ -1,0 +1,37 @@
+---
+// El marco de las páginas públicas del sitio (HU-Q11.5): título, descripción, el gemelo en
+// Markdown anunciado para los agentes (ADR-24) y nada de terceros (CSP `'self'`, CA3).
+interface Props {
+  titulo: string;
+  descripcion: string;
+  /** La ruta de la página: su gemelo es `<ruta>index.md`. */
+  ruta: string;
+}
+
+import { ORIGEN } from '../sitio/contenido.ts';
+
+const { titulo, descripcion, ruta } = Astro.props;
+---
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{titulo}</title>
+    <meta name="description" content={descripcion} />
+    <link rel="canonical" href={`${ORIGEN}${ruta}`} />
+    <link rel="alternate" type="text/markdown" href={`${ruta}index.md`} />
+    <link rel="stylesheet" href="/sitio.css" />
+  </head>
+  <body class="sitio">
+    <header class="marca">
+      <a href="/">Parqueadero ED1</a>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="pie">
+      <slot name="pie" />
+    </footer>
+  </body>
+</html>

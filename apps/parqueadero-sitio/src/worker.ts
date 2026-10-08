@@ -1,15 +1,28 @@
 /**
  * Worker del sitio del parqueadero (HU-Q5.3, ADR-32, PARQUEADERO §14.4). Todo es asset estático
- * y no ejecuta este script; solo `/_m` lo hace (`run_worker_first`). Recibe el lote de eventos
- * anónimos de la caja y escribe un punto en Analytics Engine por clave:
- * - `indexes[0]`: el producto (`parqueadero-caja`);
- * - `blobs`: el evento, el adaptador y la causa (vacíos si no aplican);
- * - `doubles[0]`: cuántas veces pasó.
+ * y no ejecuta este script; solo `/_m` lo hace (`run_worker_first`). Recibe dos lotes de eventos
+ * anónimos:
+ * - el de la caja, con un punto en Analytics Engine por clave: `indexes[0]` el producto
+ *   (`parqueadero-caja`), `blobs` el evento, el adaptador y la causa (vacíos si no aplican) y
+ *   `doubles[0]` cuántas veces pasó;
+ * - el de una herramienta del sitio (HU-Q11.5, `@ed1/eventos`), con un punto por lote como el sitio
+ *   del agro: `indexes[0]` y `blobs[0]` la herramienta, y `doubles` los cuatro `tool.*` en orden.
  *
  * Sin IP ni nada de la solicitud (P13): ni cabeceras, ni país, ni agente. Un lote con una clave
  * fuera de la lista cerrada se rechaza entero (P10).
  */
-import { type LoteDeLaCaja, leerClave, motivoDeRechazoDeLaCaja } from '@ed1/eventos';
+import {
+  EVENTOS,
+  type Lote,
+  type LoteDeLaCaja,
+  leerClave,
+  motivoDeRechazoDeLaCaja,
+  motivoDeRechazoDelLote,
+  VERSION_DEL_LOTE,
+} from '@ed1/eventos';
+
+/** Las herramientas del sitio que cuentan sus eventos (HU-Q11.4). */
+export const HERRAMIENTAS_CON_EVENTOS: readonly string[] = ['parqueadero-recibo-de-entrada'];
 
 const TAMANO_MAXIMO_BYTES = 4096;
 
@@ -41,12 +54,24 @@ export async function atenderEventos(solicitud: Request, env: Env): Promise<Resp
   } catch {
     return respuesta(400, 'El lote no es JSON');
   }
-  const motivo = motivoDeRechazoDeLaCaja(lote);
+  const deHerramienta = (lote as { v?: unknown } | null)?.v === VERSION_DEL_LOTE;
+  const motivo = deHerramienta
+    ? motivoDeRechazoDelLote(lote, HERRAMIENTAS_CON_EVENTOS)
+    : motivoDeRechazoDeLaCaja(lote);
   if (motivo) return respuesta(400, motivo);
   if (!env.EVENTOS) {
     // Sin destino no se finge éxito (P1): la caja guarda el lote y lo manda después.
     console.error('ed1-parqueadero: falta el binding EVENTOS de Analytics Engine');
     return respuesta(503, 'Eventos no disponibles');
+  }
+  if (deHerramienta) {
+    const { producto, eventos } = lote as Lote;
+    env.EVENTOS.writeDataPoint({
+      indexes: [producto],
+      blobs: [producto],
+      doubles: EVENTOS.map((nombre) => eventos[nombre] ?? 0),
+    });
+    return respuesta(204);
   }
   const { producto, conteos } = lote as LoteDeLaCaja;
   for (const [clave, cuenta] of Object.entries(conteos)) {
