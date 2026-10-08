@@ -408,7 +408,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.2.1 `[infra]` celda c2 · WI-Q7.2.2 `[código]` mudar la migración · WI-Q7.2.3 `[prueba]` las 56 en D1 local · WI-Q7.2.4 `[doc]` PARQUEADERO enlaza el archivo.
 
 #### HU-Q7.3 · `@ed1/sync` sin las entidades del agro
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q6 · **Depende de:** — · **Estado:** En revisión (PR #138): `@ed1/sync` sin entidades de producto; el agro en `@ed1/agro-schema/sync` y el parqueadero en `@ed1/parqueadero-schema/sync`, con su batería y la guardia de imports
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q6 · **Depende de:** — · **Estado:** Hecha (PR #138): `@ed1/sync` sin entidades de producto; el agro en `@ed1/agro-schema/sync` y el parqueadero en `@ed1/parqueadero-schema/sync`, con su batería y la guardia de imports
 - Como equipo, quiero un solo protocolo de sincronización para el cuaderno y la caja, para que un arreglo en uno llegue al otro.
 - **Respaldo:** ADR-39 (regla de tres, ED1 §3.11); ARQUITECTURA §5.6; PARQUEADERO §4.1.
 - **CA1.** `packages/sync` expone el protocolo (cola de salida, push de hasta 25 operaciones, acks `aceptado`, `duplicado`, `cuarentena` y `reintentar`, pull por cursores, ids UUIDv7, versiones N-1) con las entidades como parámetro. Las del agro se mudan al cuaderno.
@@ -466,7 +466,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.7.1 `[código]` rutas · WI-Q7.7.2 `[código]` pantalla de dispositivos · WI-Q7.7.3 `[prueba]` serie ajena y retirado · WI-Q7.7.4 `[doc]` runbook (HU-Q10.4).
 
 #### HU-Q7.8 · Roles y permisos como dato, los mismos en la caja y en la celda
-- **Capa:** paquete, API y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q7 · **Depende de:** HU-Q7.1 · **Estado:** Refinada
+- **Capa:** paquete, API y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q7 · **Depende de:** HU-Q7.1 · **Estado:** En curso (rama `feat/q7-8-permisos-parqueadero`)
 - Como propietario, quiero que un cajero no pueda cambiar tarifas ni anular lo de otro, para que el cierre de turno sea creíble.
 - **Respaldo:** PARQUEADERO §11.2; `packages/sync/src/permisos.ts` (el modelo del cuaderno); bitácora ecommerce 64 (un permiso escondido en la página es un adorno).
 - **CA1.** La matriz de PARQUEADERO §11.2 vive en un archivo de dato que importan la API, que decide, y la caja, que esconde.
