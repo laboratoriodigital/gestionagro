@@ -36,6 +36,7 @@ import {
 import { ConexionImpresora, textoDeFallo } from './conexion.tsx';
 import type { BaseDeLaCaja, Contacto } from './datos.ts';
 import { origenDelRecibo } from './entorno.ts';
+import { firmarEnlace } from './firma.ts';
 import { HojaRecibo } from './HojaRecibo.tsx';
 import type { ControlDeImpresora } from './impresora.ts';
 import { avisoAceptado } from './privacidad.ts';
@@ -91,7 +92,12 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
         setContacto(await contactoDe(db, estadiaId, ctx.reloj()));
         setArmado({
           recibo,
-          enlace: await enlaceCompleto(recibo, origenDelRecibo(location)),
+          // HU-Q8.2: firmado por esta caja si tiene su certificado; si no, la copia digital.
+          enlace: await firmarEnlace(
+            db,
+            await enlaceCompleto(recibo, origenDelRecibo(location)),
+            recibo.numero,
+          ),
           papel: sede ? papelDeLaSede(sede) : 'siempre',
           pideNumero: avisoAceptado(sede),
         });

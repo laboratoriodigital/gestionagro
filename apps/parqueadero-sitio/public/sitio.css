@@ -4,6 +4,8 @@
   --fondo: #ffffff;
   --acento: #0b4fa0;
   --peligro: #b3261e;
+  --verificado: #1d6b3c;
+  --aviso: #8a5300;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 18px;
   line-height: 1.5;
@@ -14,6 +16,8 @@
     --fondo: #0b0b0a;
     --acento: #7fb0f0;
     --peligro: #ffb4ab;
+    --verificado: #8fd6a4;
+    --aviso: #f0c46b;
   }
 }
 body {
@@ -58,4 +62,20 @@ a.boton {
 .hoja-recibo + .nota {
   margin-top: 1rem;
   text-align: center;
+}
+/* El resultado de la firma, arriba de la hoja (HU-Q8.2, PARQUEADERO §6.3). */
+.sello {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0 0.5rem 0.75rem;
+  border-left: 4px solid currentColor;
+  font-weight: 600;
+}
+.sello-verificado {
+  color: var(--verificado);
+}
+.sello-vencido {
+  color: var(--aviso);
+}
+.sello-modificado {
+  color: var(--peligro);
 }

@@ -2,7 +2,8 @@
 // La página del recibo (HU-Q4.2, PARQUEADERO §6.3). Estática: el recibo viaja en el fragmento
 // (`#…`), que el navegador no manda a ningún servidor, y se arma aquí sin llamar a una API. La
 // vista previa de WhatsApp es genérica: ni la placa ni el número van en las etiquetas (CA2).
-// La hoja es la de la caja (HU-Q6.6); Astro la sirve como archivo, nunca en línea (CSP).
+// La hoja es la de la caja (HU-Q6.6); Astro la sirve como archivo, nunca en línea (CSP). Un recibo
+// firmado se verifica con las llaves de `#claves-recibo`, sin pedir nada (HU-Q8.2).
 import '../../hoja-recibo.css';
 ---
 <!doctype html>
@@ -22,6 +23,8 @@ import '../../hoja-recibo.css';
       <p id="cargando">Abriendo su recibo…</p>
       <noscript><p>Para ver su recibo, active JavaScript en el navegador.</p></noscript>
     </main>
+    <!-- Las llaves públicas de las celdas: el despliegue cambia [] por las suyas (HU-Q8.2). -->
+    <script type="application/json" id="claves-recibo" is:inline>[]</script>
     <script>
       import { mostrarRecibo } from '../../r/mostrar.ts';
 
