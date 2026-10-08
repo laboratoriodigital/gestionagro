@@ -432,7 +432,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.4.1 `[código]` app y rutas · WI-Q7.4.2 `[código]` push con reintento por operación · WI-Q7.4.3 `[prueba]` D1 local con los dos parqueaderos de prueba · WI-Q7.4.4 `[infra]` `parqueadero-api-c2` en staging · WI-Q7.4.5 `[doc]` PARQUEADERO §12.
 
 #### HU-Q7.5 · La caja sincroniza sin cortar una venta
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q7 · **Depende de:** HU-Q7.4 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q7 · **Depende de:** HU-Q7.4 · **Estado:** En curso (rama `feat/q7-5-caja-sincroniza`)
 - Como cajero, quiero que lo que registro llegue solo a la celda cuando hay red, sin que la caja me haga esperar, para no pensar en la sincronización.
 - **Respaldo:** PARQUEADERO §5.2 (`outbox`, `rechazos`) y §5.3 (reglas 1, 3 y 4); ARQUITECTURA §5.3 (las tres señales del cuaderno).
 - **CA1.** Cada registro nuevo entra a `outbox` en la misma transacción de IndexedDB que el registro. El envío corre en segundo plano y nunca entre el toque de «Registrar» y el recibo.
@@ -756,7 +756,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Work items:** WI-Q11.2.1 `[código]` · WI-Q11.2.2 `[prueba]` tabla compartida · WI-Q11.2.3 `[diseño]` página.
 
 #### HU-Q11.3 · El aviso de tarifas, medios de pago y derechos, para imprimir
-- **Capa:** sitio y caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q7 · **Depende de:** HU-Q3.2 · **Estado:** En revisión (rama `feat/q11-3-aviso-tarifas`)
+- **Capa:** sitio y caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q7 · **Depende de:** HU-Q3.2 · **Estado:** Hecha (PR #150, 8 oct 2026): inicio › «Aviso de tarifas» en la caja, en carta u oficio y en una sola hoja. Falta WI-Q11.3.3: el aviso impreso en la entrada del cliente
 - Como parqueadero, quiero el letrero que la SIC pide a la vista, con mis tarifas y la invitación al recibo digital, para ponerlo en la entrada.
 - **Respaldo:** estudio §12.2 (herramienta 4) y §13.1; PARQUEADERO §8.4 (empujón 5). No espera a HU-Q11.1: su primer usuario es el parqueadero cero.
 - **CA1.** Sale de los datos de la sede de la caja, o de un formulario en el sitio, en carta u oficio: tarifas, tope, medios de pago, póliza, derechos del usuario y «Pida su recibo por WhatsApp».
