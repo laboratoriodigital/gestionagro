@@ -12,7 +12,7 @@ Estados: ✅ pasó · ❌ falló · 🟡 pasó con un cambio o una condición ·
 |---|---|---|
 | **PT-C** | La impresora del primer cliente | GOOJPRT `PT210L_30F2`, Bluetooth clásico y LE, emparejada en Android (nRF Connect: BONDED). Anuncia `0x18F0` y `e7810a71-73ae-499d-8c15-faa9aef0c3f2`. No obedece `FS .`: queda en modo chino de dos bytes |
 | **AND-D** | El Android del dueño, el de las pruebas del 7 oct 2026 | Samsung Galaxy S24 Ultra, Chrome 154.0.8037.126 (afirmación falsa 4: no es un Huawei) |
-| **WIN** | Un PC con Windows y Chrome o Edge | Sin probar |
+| **WIN** | Un PC con Windows y Chrome o Edge | El del dueño, 8 oct 2026, con la PT-C emparejada en el Bluetooth de Windows y «Usar la impresora emparejada» (Web Serial). Navegador por confirmar |
 | **IPH** | Un iPhone | Sin probar |
 
 ## La matriz
@@ -20,7 +20,7 @@ Estados: ✅ pasó · ❌ falló · 🟡 pasó con un cambio o una condición ·
 | Caso | Android + Chrome | Windows + Chrome o Edge | iPhone |
 |---|---|---|---|
 | Paso 0: nombre, servicios y características con nRF Connect | ✅ PT-C, 7 oct (arriba) | — | — |
-| Vincular la PT-210 y página de prueba | 🟡 Bluetooth web: imprime, después de desvincular y vincular de nuevo (bitácora 12 y 13). Impresora emparejada (Web Serial): ✅ AND-D, 7 oct: emparejada primero en Android y después «Usar la impresora emparejada» | ⬜ | Debe decir desde el paso 1 que no puede (e2e en verde); en el equipo ⬜ |
+| Vincular la PT-210 y página de prueba | 🟡 Bluetooth web: imprime, después de desvincular y vincular de nuevo (bitácora 12 y 13). Impresora emparejada (Web Serial): ✅ AND-D, 7 oct: emparejada primero en Android y después «Usar la impresora emparejada» | ✅ WIN, 8 oct, impresora emparejada: emparejada primero en el Bluetooth de Windows; conecta, imprime entradas y recibos de salida y sigue conectada | Debe decir desde el paso 1 que no puede (e2e en verde); en el equipo ⬜ |
 | Tildes y ñ en la página de prueba | ❌ PT-C se come la letra que sigue a la tilde (bitácora 19). Con «Ninguna» debe salir sin tildes: ⬜ | ⬜ | — |
 | QR del papel | ⬜ | ⬜ | — |
 | 50 recibos seguidos | ⬜ | ⬜ | — |
@@ -46,6 +46,7 @@ Una fila por prueba, la más nueva arriba. El diagnóstico copiado va al hilo de
 
 | Fecha | Equipo y navegador | Versión de la caja | Qué se probó | Resultado |
 |---|---|---|---|---|
+| 2026-10-08 | WIN · PT-C | `main` tras #127 | La impresora emparejada: emparejarla en el Bluetooth de Windows y «Usar la impresora emparejada»; entradas y salidas con su recibo | ✅ Conecta, imprime las entradas y los recibos de salida, y sigue conectada (informe del dueño). Es la primera prueba por Bluetooth en Windows; el diálogo de impresión por USB (WI-Q2.5.3) sigue sin probar. Faltan los demás casos en este equipo |
 | 2026-10-07 | AND-D · PT-C | `main` tras #121 | La impresora emparejada: emparejarla en el Bluetooth de Android y «Usar la impresora emparejada» | ✅ Conecta por Web Serial, primera vez en el campo. Faltan los casos de abajo por este camino |
 | 2026-10-07 | AND-D · PT-C | `main` tras #120 | «Conectar impresora» por Bluetooth web, desde Ajustes y desde el recibo | ❌ Conecta y se cae al buscar los servicios en los 4 intentos; tarda 2 minutos en decirlo (bitácora 24). La impresora emparejada: sin probar |
 | 2026-10-07 | AND-D · PT-C | `main` tras #117 | Escáner, WhatsApp y `/r/`; imprimir varias entradas; bloquear y volver | Escáner, WhatsApp y `/r/` ✅. Imprime dos recibos y después no vuelve: luz azul, conexión que se cae en los 4 intentos (bitácora 21) |

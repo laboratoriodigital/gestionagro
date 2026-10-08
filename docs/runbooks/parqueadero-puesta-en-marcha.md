@@ -22,6 +22,16 @@ Los textos en negrita entre comillas (**«así»**) son lo que se ve en la caja.
 7. **WhatsApp.** WhatsApp Business del parqueadero instalado y abierto con su número. Haga una entrada de práctica en el Android del equipo, no en la caja del cliente, y **«Enviar por WhatsApp»** al teléfono del dueño.
 8. **El turno.** **«Abrir turno»**: quién atiende y la base de caja. Desde aquí, cada carro recibe el recibo de la caja y el del talonario de siempre.
 
+## Si la caja es un PC con Windows
+
+**El camino principal es la impresora emparejada**, como en Android (probado el 8 oct de 2026: conecta, imprime entradas y salidas y sigue conectada).
+
+1. En Windows → Configuración → Bluetooth y dispositivos → Agregar dispositivo, empareje la PT-210 (clave `0000`).
+2. Abra la caja en Chrome o Edge. **«Configurar impresora»** → **«Siguiente»** → **«Usar la impresora emparejada»** → elija la PT-210 → **«Imprimir página de prueba»** → las tres preguntas.
+3. Cierre la caja y ábrala: la cabecera debe decir **«Impresora conectada»** sin elegir nada.
+
+Si el Bluetooth del PC no la encuentra, o no hay Bluetooth, la PT-210 va por USB con el diálogo de impresión, como sigue.
+
 ## Si la caja es un PC con Windows y la PT-210 va por USB
 
 Es el diálogo de impresión del equipo (HU-Q2.5, PARQUEADERO §7.5): un respaldo, no el camino principal. El texto sale como imagen, más lento que por Bluetooth, y sirve también para una impresora común.

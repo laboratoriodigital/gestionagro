@@ -285,6 +285,7 @@ No son errores. Son decisiones que cambiaron con información nueva.
 | Mensualidades sencillas en M0 (PARQUEADERO §2.2) | Abonados por placa en M0 (HU-Q3.11, Should); mensualidades con plan y cobro en M2 (HU-Q8.4) | Bitácora parqueadero 7 |
 | M1 espera a PLATAFORMA P1 y P2 (PARQUEADERO §0 y §18) | M1 arranca en Q6, justo después del piloto; solo el cobro por periodo espera a HC4 (HU-Q7.10) | HU-C3.1, HU-C4.3 y HU-C4.4 ya están construidas (plan §1, hallazgo 7) |
 | Las fotos del estado en el respaldo de M0 | Fuera del archivo de respaldo en M0 (HU-Q3.10, CA3) | El respaldo se manda por correo, y con fotos pasaría el límite de un adjunto (*Inferencia*) |
+| La demostración del 30 oct (`v0.1.0`) y después el piloto del 9 nov (`v0.2.0`) | Puesta en marcha directa: la `0.1.0` es la versión con la que el cliente opera, después de la matriz en su equipo (HU-Q6.1) y con el primer turno en paralelo con el talonario (HU-Q6.4) | El cliente cerró la compra el 7 oct de 2026 y entra a operar con el MVP (dueño, 8 oct). Todas las historias de código de M0 ya estaban en `main` |
 
 ---
 
