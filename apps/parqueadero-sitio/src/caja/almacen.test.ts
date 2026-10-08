@@ -854,7 +854,7 @@ describe('abonados por placa (HU-Q3.11)', () => {
     );
     expect(lineas).toContain('Abonado hasta 31/10/2026');
     expect(pantalla(recibo).filas).toContainEqual(['Abono', 'Abonado hasta 31/10/2026']);
-    expect(textoWhatsApp(recibo, ORIGEN_DEL_RECIBO)).toContain('Abonado hasta 31/10/2026.');
+    expect(textoWhatsApp(recibo, ORIGEN_DEL_RECIBO)).toContain('\nAbonado hasta 31/10/2026\n');
   });
 
   it('uno vencido liquida como visitante y la caja lo dice (CA3 ❌)', async () => {

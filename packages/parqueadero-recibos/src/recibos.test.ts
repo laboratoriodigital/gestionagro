@@ -13,6 +13,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   armarRecibo,
+  COLUMNAS_WHATSAPP,
   enlaceCompleto,
   enlaceCorto,
   faltantesDeSede,
@@ -207,7 +208,13 @@ describe('los campos de la ley en cada salida (HU-Q1.4 CA1, §6.1; HU-Q2.5 CA3)'
     const leido = await leerEnlace(enlace);
     const whatsapp = textoWhatsApp(r, enlace);
     const vista = pantalla(r);
-    const pantallaTexto = vista.filas.map((f) => f.join(': ')).join('\n');
+    const pantallaTexto = [
+      vista.sede.nombre,
+      ...vista.sede.datos,
+      vista.placa,
+      ...vista.filas.map((f) => f.join(': ')),
+      vista.total?.valor ?? '',
+    ].join('\n');
     const s = r.sede;
     const hora = fechaHora(r.entrada);
 
@@ -228,9 +235,9 @@ describe('los campos de la ley en cada salida (HU-Q1.4 CA1, §6.1; HU-Q2.5 CA3)'
     }
     if (r.clase === 'entrada') {
       for (const e of r.estado) expect(papelTexto.replaceAll('\n', ' ')).toContain(e);
-      expect(whatsapp).toContain('Estado:');
+      expect(whatsapp).toMatch(/\nEstado(\n| +\S)/);
       expect(papelTexto).toContain(`Tarifa: ${formatearPesos(r.tarifa.valor)}`);
-      expect(whatsapp).toContain(`Tarifa: ${formatearPesos(r.tarifa.valor)}`);
+      expect(whatsapp).toMatch(new RegExp(`\\nTarifa +\\${formatearPesos(r.tarifa.valor)} `));
       expect(papelTexto).toContain('Ley 1480');
     } else {
       const sa = r.salida;
@@ -241,7 +248,7 @@ describe('los campos de la ley en cada salida (HU-Q1.4 CA1, §6.1; HU-Q2.5 CA3)'
         expect(texto).toContain(formatearPesos(sa.total));
       }
       expect(papelTexto).toContain('Pago:');
-      expect(whatsapp).toContain('Pago:');
+      expect(whatsapp).toMatch(/\nPago +\S/);
       expect(papelTexto).toContain('no es factura');
     }
     // La póliza, si la sede la tiene (Decreto 461 de 2019).
@@ -293,6 +300,27 @@ describe('32 columnas y sin basura (HU-Q1.4 CA2)', () => {
         expect(linea.length, `«${linea}»`).toBeLessThanOrEqual(COLUMNAS);
       }
     }
+  });
+
+  it('en WhatsApp, ninguna fila del bloque pasa de 26 y la sede no rompe el formato (HU-Q6.6 CA3)', async () => {
+    const conMarcas = armarRecibo(
+      ENTRADA_MOTO,
+      catalogos({ ...LARGA, nombre: '*Parqueadero* _Uno_ ```' }, TARIFA_MOTO),
+      { prueba: false },
+    );
+    for (const r of [...largos, conMarcas]) {
+      const texto = textoWhatsApp(r, await enlaceCompleto(r));
+      const bloque = /```([\s\S]*)```/.exec(texto)?.[1] ?? '';
+      expect(bloque).toContain(r.placa);
+      for (const linea of bloque.split('\n')) {
+        expect(linea.length, `«${linea}»`).toBeLessThanOrEqual(COLUMNAS_WHATSAPP);
+      }
+      // Dos marcas de bloque, la que abre y la que cierra: las de la sede se quitan.
+      expect(texto.match(/```/g)).toHaveLength(2);
+    }
+    expect(textoWhatsApp(conMarcas, await enlaceCompleto(conMarcas))).toMatch(
+      /^\*Parqueadero Uno\*$/m,
+    );
   });
 
   it('transliterando, tildes y eñes salen como letras sin tilde, nunca como basura', () => {

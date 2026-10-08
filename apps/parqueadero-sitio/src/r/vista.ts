@@ -3,13 +3,21 @@
  * que nunca llega a un servidor. Sin llamadas a una API. Un fragmento alterado o de otra versión
  * dice «No pudimos leer este recibo», nunca muestra un recibo a medias (CA3).
  */
-import { EnlaceInvalido, fechaHora, leerEnlace, pantalla } from '@ed1/parqueadero-recibos';
+import {
+  EnlaceInvalido,
+  fechaHora,
+  leerEnlace,
+  pantalla,
+  type VistaDeRecibo,
+} from '@ed1/parqueadero-recibos';
 import { VEHICULOS } from '@ed1/parqueadero-schema';
 
 export type VistaDeLaPagina =
   | {
       readonly es: 'completa';
       readonly titulo: string;
+      /** La hoja, igual a la de la caja (HU-Q6.6). */
+      readonly hoja: VistaDeRecibo;
       readonly filas: readonly (readonly [string, string])[];
       readonly notas: readonly string[];
       readonly prueba: boolean;
@@ -58,8 +66,10 @@ export async function vistaDelEnlace(fragmento: string): Promise<VistaDeLaPagina
   return {
     es: 'completa',
     titulo: v.titulo,
+    hoja: v,
     filas: v.filas,
-    notas: ['Copia digital del recibo.', ...v.legal],
+    // El texto legal va en la hoja; afuera, solo lo que dice qué es esta página.
+    notas: ['Copia digital del recibo.'],
     prueba: lectura.recibo.prueba,
   };
 }

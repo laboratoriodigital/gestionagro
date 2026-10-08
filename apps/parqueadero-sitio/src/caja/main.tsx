@@ -1,5 +1,6 @@
 import '@ed1/ui/v2/fuentes.css';
 import '@ed1/ui/v2/tokens.css';
+import '../hoja-recibo.css';
 import './estilos.css';
 import type { BluetoothBle, SerialWeb } from '@ed1/impresion';
 import { render } from 'preact';

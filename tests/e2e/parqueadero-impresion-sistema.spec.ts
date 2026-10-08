@@ -65,7 +65,7 @@ test('HU-Q2.5 · con el diálogo de impresión, el recibo sale en una hoja de 48
   await abrirTurno(page);
   await teclearPlaca(page, 'ABC123');
   await page.getByRole('button', { name: 'Registrar' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
   await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
   const recibo = (await hojas(page)).at(-1) ?? '';
   for (const t of ['PARQUEADERO ENSAYO UNO', 'RECIBO DE ENTRADA', 'A-000001', 'ABC123']) {

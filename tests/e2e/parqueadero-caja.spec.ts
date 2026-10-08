@@ -192,7 +192,7 @@ test.describe('la caja del parqueadero', () => {
     const antes = (await bytesImpresos(page)).length;
     await teclearPlaca(page, 'ABC123');
     await page.getByRole('button', { name: 'Registrar' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
     await expect(page.getByText(propio)).toBeVisible();
     await expect(page.getByText('Ley 1480')).toHaveCount(0);
     await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
@@ -236,7 +236,7 @@ test.describe('la caja del parqueadero', () => {
       'true',
     );
     await page.getByRole('button', { name: 'Registrar' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
     await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
     await sinDesborde(page);
     const recibo = (await bytesImpresos(page)).slice(antes);
@@ -320,7 +320,7 @@ test.describe('la caja del parqueadero', () => {
     const antes = (await bytesImpresos(page)).length;
     await cobrar.click();
 
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000002');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de salida A-000002');
     await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
     const papel = (await bytesImpresos(page)).slice(antes);
     expect(papel).toContain('RECIBO DE SALIDA');
@@ -384,10 +384,11 @@ test.describe('la caja del parqueadero', () => {
     page.on('request', (r) => pedidos.push(`${r.resourceType()} ${new URL(r.url()).pathname}`));
     await page.goto(enlace ?? '');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
-    await expect(page.getByTestId('filas')).toContainText('ABC123 · Carro');
+    await expect(page.getByTestId('filas')).toContainText('ABC123 Carro');
     await expect(page.getByTestId('filas')).toContainText(nombre);
     await expect(page.getByText('Copia digital del recibo.')).toBeVisible();
-    await expect(page.getByText('PRUEBA: NO VALE.')).toBeVisible();
+    await expect(page.getByText('PRUEBA: NO VALE')).toBeVisible();
+    await sinDesborde(page);
     expect(await page.locator('main img').count()).toBe(0);
     expect(await page.evaluate(() => (window as { __xss?: number }).__xss)).toBeUndefined();
     // Cero llamadas a una API: solo el documento, su hoja y sus scripts (CA2).
@@ -474,7 +475,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByTestId('estadia').click();
     await page.getByRole('button', { name: 'Datáfono' }).click();
     await page.getByRole('button', { name: /^Cobrar/ }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000002');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de salida A-000002');
     await expect(page.getByTestId('whatsapp')).toHaveAttribute('href', /wa\.me\/573001234567\?/);
 
     // 25 h después de la salida, el número ya no está (CA4 ❌).
@@ -510,7 +511,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByTestId('confirmar-placa').click();
     await page.getByRole('button', { name: 'Carro' }).click();
     await page.getByRole('button', { name: 'Registrar' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
     await expect(page.getByTestId('estado-del-papel')).toContainText(
       'Quedó en entregas pendientes',
     );
@@ -527,7 +528,7 @@ test.describe('la caja del parqueadero', () => {
     await abrirTurno(page);
     await teclearPlaca(page, 'GHI789');
     await page.getByRole('button', { name: 'Registrar' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
     await page.getByRole('button', { name: 'Anular la entrada' }).click();
     const anular = page.getByTestId('anular');
     await expect(anular.getByRole('button', { name: 'Falta el motivo' })).toBeDisabled();
@@ -598,7 +599,7 @@ test.describe('la caja del parqueadero', () => {
       'Abonado hasta el 05/11/2026 · Apto 302',
     );
     await page.getByRole('button', { name: 'Registrar' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
 
     await page.clock.setFixedTime(new Date(entrada.getTime() + 180 * 60_000));
@@ -607,7 +608,7 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('abonado-salida')).toHaveText('Abonado hasta el 05/11/2026');
     await expect(page.getByRole('group', { name: 'Medio de pago' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Dar salida al abonado' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000002');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de salida A-000002');
     const filas = page.getByTestId('filas-del-recibo');
     await expect(filas).toContainText('abonado');
     await expect(filas).toContainText('Abonado hasta 05/11/2026');
@@ -787,7 +788,7 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByRole('button', { name: 'Moto' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Carro' }).click();
     await page.getByRole('button', { name: 'Registrar' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
     await expect(page.getByTestId('estado-del-papel')).toHaveText('');
     await context.setOffline(false);
   });
@@ -830,6 +831,16 @@ for (const esquema of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Efectivo' }).click();
     await expect(page.getByTestId('total')).toBeVisible();
     await revisar();
+    // La hoja del recibo de salida, con su total grande (HU-Q6.6 CA3): tres horas después.
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.clock.setFixedTime(new Date(Date.now() + 180 * 60_000));
+    await page.getByTestId('estadia').click();
+    await page.getByRole('button', { name: 'Efectivo' }).click();
+    await page.getByLabel('Recibido').fill('50.000');
+    await page.getByRole('button', { name: /^Cobrar/ }).click();
+    await expect(page.getByTestId('total-del-recibo')).toContainText('Pago en efectivo');
+    await revisar();
+    await sinDesborde(page);
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
     await page.getByRole('button', { name: 'Aviso de privacidad' }).click();
     await expect(page.getByTestId('aviso')).toBeVisible();

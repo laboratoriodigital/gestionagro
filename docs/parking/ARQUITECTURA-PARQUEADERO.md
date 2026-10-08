@@ -400,17 +400,37 @@ https://parqueadero.laboratorio-digital.app/r/#c.<número>.<placa>.<tipo>.<hora>
 
 Reglas de `packages/whatsapp` (de la bitácora ecommerce y de HU-E2.4): sin emoji al principio, el nombre del negocio desde los datos de la sede y nunca escrito a mano, corto, y el enlace en su propia línea para que WhatsApp lo convierta en vínculo.
 
-```text
-Recibo de entrada A-000123 - Parqueadero Ensayo Uno
-Placa ABC123 - Carro - 06/10/2026 6:05 p. m.
-Estado: rayon puerta trasera derecha.
-Tarifa: $230 por minuto, tope $30.000 por dia.
+Desde HU-Q6.6 (8 oct 2026) el mensaje se lee como el papel: el parqueadero en negrilla arriba, la clase y el número, y las filas en un bloque de ancho fijo (tres comillas invertidas, que WhatsApp pinta en letra de máquina) de **26 columnas**, con el valor a la derecha. Veintiséis caben en la burbuja de un teléfono de 360 px con la letra grande; las 32 del papel se partían. El bloque va como un solo elemento de `armarTexto`, que recorta cada línea, para que conserve sus espacios. Lo que escribe la sede pierde `*`, `_`, `~` y las comillas invertidas, para no abrir ni cerrar un formato.
+
+````text
+*Parqueadero Ensayo Uno*
+NIT 900.000.000-0
+Calle 1 # 2-3, Bogotá
+Tel 3000000000
+
+*Recibo de entrada A-000123*
+```Placa               ABC123
+Vehículo             Carro
+Entró     06/10/2026 18:05
+Estado
+      rayón puerta trasera
+                   derecha
+--------------------------
+Tarifa     $230 por minuto
+Gracia               5 min
+Tope por día       $30.000
+Tope legal        $230/min```
+_Conserve este recibo. El parqueadero responde por el vehículo (Ley 1480, art. 18)._
+
 Su recibo:
-https://parqueadero.laboratorio-digital.app/r/#1.q1YqU7JSMjQ0NDE3NFLSUcpMUbJS...
-Usamos este numero solo para enviarle sus recibos.
-```
+https://parqueadero.laboratorio-digital.app/r/#1.eJxNT0Fqw0AM_IqYXuUi7xKC95aE3nropaeQg4...
+
+Usamos este número solo para enviarle sus recibos.
+````
 
 ### 6.5 Pantalla
+
+La pantalla del recibo de la caja y la página `/r/` muestran la misma hoja (HU-Q6.6, `src/hoja-recibo.css`): el parqueadero arriba, la clase y el número, la placa amarilla, las filas en grupos separados con línea de puntos, el total grande con el medio de pago y el texto legal al pie. Las dos la pintan desde `pantalla()`, sin que ninguna arme su propio recibo.
 
 La pantalla del recibo muestra el mismo enlace como QR grande. El conductor lo escanea con la cámara de su teléfono y abre su recibo: **ni papel, ni número, ni WhatsApp**. Es el canal de menor costo y el que no pide datos personales.
 
