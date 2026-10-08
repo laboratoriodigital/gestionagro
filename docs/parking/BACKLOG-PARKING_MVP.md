@@ -545,7 +545,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q4.4.1 `[doc]` plantillas · WI-Q4.4.2 `[código]` aceptación y versión · WI-Q4.4.3 `[prueba]`.
 
 #### HU-Q4.5 · El texto de responsabilidad del recibo de entrada, editable por la sede
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q1.4, HU-Q1.5 · **Estado:** En curso (rama `feat/q4-5-texto-responsabilidad`)
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q1.4, HU-Q1.5 · **Estado:** En revisión (PR #133): el campo en Ajustes con la sugerencia de la ley, el texto en papel, pantalla y enlace (versión 2), y la `0.2.0`
 - Como propietario, quiero que el recibo de entrada diga lo que dice mi talonario (por ejemplo, «después de 45 días el parqueadero no se hace responsable»), partiendo del texto que sugiere la ley.
 - **Respaldo:** pedido del dueño del 8 oct 2026, con el recibo original del parqueadero cero; Ley 1480 art. 18; estudio §13.1.
 - **CA1.** Ajustes › Recibo trae «Texto de responsabilidad», con la sugerencia de la ley ya escrita. Lo que la sede guarde sale en la entrada por los cuatro caminos (papel, enlace, mensaje y pantalla); vacío, vuelve la sugerencia.
