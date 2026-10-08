@@ -386,7 +386,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 ### EQ7 · Cuenta, celda y varias cajas (M1)
 
 #### HU-Q7.1 · El parqueadero en el CORE, como dato
-- **Capa:** CORE (dato) · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q6 · **Depende de:** HU-C1.1 y HU-C1.2 (fusionadas), HU-Q0.2 (nombre comercial) · **Estado:** Refinada
+- **Capa:** CORE (dato) · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q6 · **Depende de:** HU-C1.1 y HU-C1.2 (fusionadas), HU-Q0.2 (nombre comercial) · **Estado:** En curso (rama `feat/q7-1-parqueadero-en-core`)
 - Como dueño, quiero que el parqueadero entre al CORE por el mismo `productos.json` que el agro y la Tienda, para que la cuenta, los roles y el plan no se escriban otra vez.
 - **Respaldo:** PARQUEADERO §11.1; PLATAFORMA §4.2; ADR-31; P6.
 - **CA1.** `infrastructure/productos.json` tiene la entrada `parqueadero` de PARQUEADERO §11.1: orígenes de producción y staging, `rutas_de_vuelta: ["/caja/"]`, roles propietario, administrador y cajero, `gracia_dias: 7` y `excepcion: "ADR-31"`. Pasa el esquema de HU-C1.1.
