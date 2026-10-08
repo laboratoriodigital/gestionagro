@@ -2,7 +2,7 @@
 
 **Versión:** 0.1.0 · 7 oct 2026
 **Dueño del producto:** Sebas. **Gerencia del proyecto y Scrum:** el asistente, que hace los commits, el push y los PR; el dueño aprueba, fusiona, valida y lleva la relación con el cliente.
-**Fuente única de:** las **38 historias refinadas de M0**, con sus criterios, bocetos y work items; los datos que se le piden al cliente; el primer día de un equipo nuevo; las demostraciones de cada viernes y el piloto. El plan completo (hitos, sprints, M1 a M3, decisiones, riesgos y velocidad) está en `BACKLOG-PARKING.md` («plan §N»). El sprint de cada historia lo fija el plan §6.1; el título, los puntos y los criterios, este documento.
+**Fuente única de:** las **39 historias refinadas de M0**, con sus criterios, bocetos y work items; los datos que se le piden al cliente; el primer día de un equipo nuevo; las demostraciones de cada viernes y el piloto. El plan completo (hitos, sprints, M1 a M3, decisiones, riesgos y velocidad) está en `BACKLOG-PARKING.md` («plan §N»). El sprint de cada historia lo fija el plan §6.1; el título, los puntos y los criterios, este documento.
 **Lo que manda sobre este documento:** `../ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md` (ED1 §N) → `../ARQUITECTURA.md` (ADR-N, P1–P21) → `ARQUITECTURA-PARQUEADERO.md` («PARQUEADERO §N») → el plan. El mercado: `ESTUDIO-MERCADO-PARQUEADEROS-ED1-2026-10.md` («estudio §N»). Ante una contradicción, se señala antes de actuar.
 **Lecciones:** `BITACORA-PARKING.md` (bitácora parqueadero N) y las bitácoras que cita el plan.
 
@@ -40,7 +40,7 @@ La impresora es la **GOOJPRT PT-210**: térmica portátil de 58 mm, ESC/POS, Blu
 5. El número del conductor no sale del teléfono salvo hacia WhatsApp, y se borra 24 h después de la salida (HU-Q4.1).
 6. El cliente sabe hacer el respaldo y restaurarlo, y hay un runbook para lo que falle (HU-Q3.10, HU-Q6.2).
 
-**En cifras:** 38 historias y **111 puntos**: 104 Must y 7 Should (HU-Q2.5, HU-Q3.11 y HU-Q5.3).
+**En cifras:** 39 historias y **114 puntos**: 104 Must y 10 Should (HU-Q2.5, HU-Q3.11, HU-Q5.3 y HU-Q6.5).
 
 **El orden va por riesgo.** Lo que nadie ha hecho antes en este ecosistema, imprimir por Bluetooth desde el navegador, va primero: si falla, quedan tres semanas para el segundo camino. Las pantallas que ya tienen un modelo en el cuaderno o en la Tienda van después.
 
@@ -163,7 +163,7 @@ M0 no necesita ninguna cuenta nueva. El sitio se despliega desde el CI con las c
 | **Q2** · 19–23 oct | La entrada | HU-Q1.3, HU-Q1.1, HU-Q1.4, HU-Q1.5, HU-Q3.2, HU-Q3.3 | Cinco entradas cronometradas con su recibo (§7.2) |
 | **Q3** · 26–30 oct | La demostración | HU-Q5.2, HU-Q0.3, HU-Q3.4, HU-Q3.5, HU-Q3.6, HU-Q4.4, HU-Q4.1, HU-Q4.2 | **El cliente ve el recorrido completo** (§7.3) |
 | **Q4** · 3–6 nov | Un turno completo | HU-Q3.7, HU-Q3.8, HU-Q3.9, HU-Q3.10, HU-Q1.2, HU-Q4.3, HU-Q2.4 | Un turno con anulación, cierre impreso y restauración (§7.4) |
-| **Q5** · 9–13 nov | El piloto | HU-Q6.1, HU-Q6.2, HU-Q6.3, HU-Q6.4, HU-Q3.11, HU-Q2.5, HU-Q5.3, HU-Q4.5 | La revisión del piloto con el cliente (§7.5) |
+| **Q5** · 9–13 nov | El piloto | HU-Q6.1, HU-Q6.2, HU-Q6.3, HU-Q6.4, HU-Q3.11, HU-Q2.5, HU-Q5.3, HU-Q4.5, HU-Q6.5 | La revisión del piloto con el cliente (§7.5) |
 
 **Q5 se prepara antes de empezar:** la matriz de HU-Q6.1 se va llenando desde Q1, con cada historia que toca la impresora o WhatsApp, y los runbooks de HU-Q6.2 se escriben en Q4. Así, el lunes 9 nov solo falta la puesta en marcha.
 
@@ -217,7 +217,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Respaldo:** ADR-31 (propuesta); BACKLOG_CORE §2 a §4 y BACKLOG_TIENDA3 §3 y §4 (el método); las bitácoras, «Cómo se une con las otras bitácoras».
 - **CA1.** `docs/parking/` tiene el estudio, `ARQUITECTURA-PARQUEADERO.md`, `sql/`, `BACKLOG-PARKING.md`, `BACKLOG-PARKING_MVP.md` y `BITACORA-PARKING.md`, y los nombran `docs/README.md`, `docs/BACKLOG.md`, `BACKLOG_CORE.md`, `BACKLOG_TIENDA3.md` y el CHANGELOG.
 - **CA2.** La bitácora usa la ficha extraíble con el proyecto `parqueadero`, los patrones P1–P21 sin renumerar y los provisionales `PQ<n>`.
-- **CA3 ❌.** Ninguna contradicción encontrada queda callada: las del contraste (plan §1) están en la bitácora, y PARQUEADERO dice dónde quedó cada una. Los títulos y los puntos de las 38 historias coinciden entre este documento y el plan, y las sumas por sprint y por hito cuadran; una comprobación lo verifica, con un punto cambiado a propósito como control negativo.
+- **CA3 ❌.** Ninguna contradicción encontrada queda callada: las del contraste (plan §1) están en la bitácora, y PARQUEADERO dice dónde quedó cada una. Los títulos y los puntos de las 39 historias coinciden entre este documento y el plan, y las sumas por sprint y por hito cuadran; una comprobación lo verifica, con un punto cambiado a propósito como control negativo.
 - **Work items:** WI-Q0.1.1 `[doc]` plan · WI-Q0.1.2 `[doc]` backlog del MVP · WI-Q0.1.3 `[doc]` bitácora · WI-Q0.1.4 `[doc]` mapa de `docs/`, filas en los otros backlogs y CHANGELOG · WI-Q0.1.5 `[doc]` notas en PARQUEADERO.
 
 #### HU-Q0.2 · Decisiones del dueño y datos del cliente antes de la primera línea de código
@@ -545,7 +545,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q4.4.1 `[doc]` plantillas · WI-Q4.4.2 `[código]` aceptación y versión · WI-Q4.4.3 `[prueba]`.
 
 #### HU-Q4.5 · El texto de responsabilidad del recibo de entrada, editable por la sede
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q1.4, HU-Q1.5 · **Estado:** En revisión (PR #133): el campo en Ajustes con la sugerencia de la ley, el texto en papel, pantalla y enlace (versión 2), y la `0.2.0`
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q1.4, HU-Q1.5 · **Estado:** Hecha (PR #133): el campo en Ajustes con la sugerencia de la ley, el texto en papel, pantalla y enlace (versión 2); en producción con la `0.2.0`
 - Como propietario, quiero que el recibo de entrada diga lo que dice mi talonario (por ejemplo, «después de 45 días el parqueadero no se hace responsable»), partiendo del texto que sugiere la ley.
 - **Respaldo:** pedido del dueño del 8 oct 2026, con el recibo original del parqueadero cero; Ley 1480 art. 18; estudio §13.1.
 - **CA1.** Ajustes › Recibo trae «Texto de responsabilidad», con la sugerencia de la ley ya escrita. Lo que la sede guarde sale en la entrada por los cuatro caminos (papel, enlace, mensaje y pantalla); vacío, vuelve la sugerencia.
@@ -629,6 +629,16 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **En el equipo real:** la PT-210, el teléfono y el WhatsApp del cliente, en su parqueadero.
 - **Patrones en riesgo:** P6, P16.
 - **Work items:** WI-Q6.4.1 `[campo]` puesta en marcha · WI-Q6.4.2 `[campo]` primer turno · WI-Q6.4.3 `[doc]` registro del piloto · WI-Q6.4.4 `[dueño]` link de pago (D-Q5).
+
+#### HU-Q6.5 · La caja, más clara y sobria
+- **Capa:** caja · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q5 · **Depende de:** HU-Q3.1 · **Estado:** En curso (rama `feat/q6-5-caja-sobria`)
+- Como cajero, quiero ver primero lo que hago cien veces al día (la entrada y los vehículos adentro) y que lo demás no compita con eso, para atender rápido sin buscar.
+- **Respaldo:** pedido del dueño del 8 oct 2026 («mejora UI/UX, minimalista, sofisticado»), con la caja ya en producción; plan §5.1 (de pie, al sol y con una mano).
+- **CA1.** El inicio pone primero «Nueva entrada» y los vehículos adentro; el turno es una línea; Ajustes, Abonados, Respaldo y el aviso de privacidad van en una lista aparte, al final. Ningún botón ni texto que nombran las pruebas, la hoja del cajero o los runbooks cambia de nombre.
+- **CA2.** Las cuatro señales siguen siempre a la vista (HU-Q3.1 CA2), pero en dos líneas cortas: lo que está bien se dice en gris, y solo lo que falla toma color, con su texto. Nada se dice solo con color.
+- **CA3 ❌.** A 360 px nada se desborda, los toques miden al menos 56 px y la caja y el asistente siguen pasando WCAG 2.1 AA en claro y en oscuro. Un contraste por debajo de AA hace fallar la prueba de axe.
+- **Patrones en riesgo:** P15.
+- **Work items:** WI-Q6.5.1 `[diseño]` · WI-Q6.5.2 `[código]` · WI-Q6.5.3 `[prueba]` capturas de los runbooks.
 
 ---
 
@@ -840,8 +850,8 @@ Se llena cada viernes. Una historia cuenta el día que el dueño la valida.
 | Q2 | 19–23 oct | 24 | — | |
 | Q3 | 26–30 oct | 25 | — | Demostración al cliente; `v0.1.0` |
 | Q4 | 3–6 nov | 18 | — | Festivo el 2 nov |
-| Q5 | 9–13 nov | 19 | — | Piloto; `v0.2.0`. HU-Q4.5 entró el 8 oct, en la puesta en marcha |
-| **M0** | | **111** | — | |
+| Q5 | 9–13 nov | 22 | — | Piloto; `v0.2.0`. HU-Q4.5 y HU-Q6.5 entraron el 8 oct, en la puesta en marcha |
+| **M0** | | **114** | — | |
 
 Si Q1 y Q2 validan menos de lo comprometido, el plan se recalcula en la planeación de Q3 (R12) con el orden de recorte de §4.4, nunca corriendo el 30 oct.
 
