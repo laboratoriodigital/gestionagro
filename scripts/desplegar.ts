@@ -49,6 +49,7 @@ import {
   configDeLaCeldaDelParqueadero,
   escribirDespliegueDelParqueadero,
   notaSinProduccion,
+  preparaLasCeldasDelParqueadero,
   tablasQueFaltan,
 } from './lib/celda-parqueadero.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
@@ -859,10 +860,11 @@ for (const celda of plan.aDesplegar) {
   }
   // HU-Q7.2: cada celda despliega lo de su producto. La del CORE y el sitio es del agro.
   if (celda.producto === 'parqueadero') {
-    if (paso.ok && productos.has('parqueadero')) {
+    const prepara = preparaLasCeldasDelParqueadero(destino as Destino, productos);
+    if (paso.ok && prepara) {
       paso = await prepararCeldaDelParqueadero(celda, cred);
       detalle.push(...paso.detalle);
-    } else if (!productos.has('parqueadero')) {
+    } else if (!prepara) {
       detalle.push('parqueadero: sin publicar en este despliegue (su versión no cambió)');
     }
   } else if (paso.ok && productos.has('agro')) {

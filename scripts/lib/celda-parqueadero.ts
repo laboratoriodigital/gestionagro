@@ -48,6 +48,16 @@ export const celdasDelDirectorio = <C extends { producto: string }>(
   destino: Destino,
 ): C[] => celdas.filter((c) => destino === 'staging' || c.producto !== 'parqueadero');
 
+/**
+ * Si este despliegue prepara las celdas del parqueadero. Staging despliega siempre lo que llegó a
+ * main, como la caja de staging, aunque su lista de productos sea la de siempre (core y agro);
+ * producción, solo cuando el parqueadero se publica (y hoy se limita a la nota de producción).
+ */
+export const preparaLasCeldasDelParqueadero = (
+  destino: Destino,
+  productos: ReadonlySet<string>,
+): boolean => destino === 'staging' || productos.has('parqueadero');
+
 /** La configuración generada con el id de la base de cada shard, solo en el destino que se prepara. */
 export function configDeLaCeldaDelParqueadero(
   generada: Record<string, unknown>,

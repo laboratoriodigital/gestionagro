@@ -28,6 +28,7 @@ import {
   celdasDelDirectorio,
   configDeLaCeldaDelParqueadero,
   notaSinProduccion,
+  preparaLasCeldasDelParqueadero,
   TABLAS_DEL_SHARD,
   tablasQueFaltan,
 } from '../../scripts/lib/celda-parqueadero.ts';
@@ -35,6 +36,7 @@ import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 import { clavesQrDe, conClavesQr } from '../../scripts/lib/claves-qr.ts';
 import { productoDeLaBase, productosDeLasBases } from '../../scripts/lib/d1-core.ts';
 import type { Fetch } from '../../scripts/lib/despliegue.ts';
+import { productosADesplegar } from '../../scripts/lib/publicacion.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 
 const real = cargarCeldas();
@@ -340,6 +342,17 @@ describe('las celdas del parqueadero (HU-Q7.2)', () => {
     expect(ids('produccion')).not.toContain('c2');
     expect(ids('produccion')).toContain('c0');
     expect(notaSinProduccion('c2')).toMatch(/c2 del parqueadero: en producción todavía no/);
+  });
+
+  it('staging la prepara aunque su lista de productos sea la de siempre (core y agro)', () => {
+    // La corrida de staging de #145 no la pidió con «parqueadero» y se la saltó.
+    expect(preparaLasCeldasDelParqueadero('staging', productosADesplegar(undefined))).toBe(true);
+    expect(preparaLasCeldasDelParqueadero('produccion', productosADesplegar(undefined))).toBe(
+      false,
+    );
+    expect(preparaLasCeldasDelParqueadero('produccion', productosADesplegar('parqueadero'))).toBe(
+      true,
+    );
   });
 
   it('la prueba de humo del shard lee la lista de tablas de wrangler --json', () => {
