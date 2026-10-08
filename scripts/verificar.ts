@@ -12,7 +12,12 @@
  *
  * En CI, con `VERIFICAR_BASE` (el commit contra el que se compara), calcula qué cambió
  * (HU-C11.6). Si todo son documentos, salta navegadores, typecheck, build y e2e, y corre solo
- * las pruebas que leen documentos. Si no puede calcularlo, corre todo y lo dice (P1).
+ * las pruebas que leen documentos. Si todo lo que no es documento es del parqueadero, el e2e corre
+ * solo sus pruebas (HU-C11.3). Si no puede calcularlo, corre todo y lo dice (P1).
+ *
+ * Con `VERIFICADO_EN_PR=true` (el CI de `main`, cuando `scripts/ya-verificado.ts` confirma que el
+ * PR fusionado ya probó este mismo árbol), salta navegadores, build y e2e; las pruebas corren igual,
+ * con el D1 de workerd (HU-C11.7).
  *
  * Los comandos son constantes y portables; `shell: true` se usa solo porque en Windows
  * `pnpm` es un `.cmd` y Node no los lanza sin shell.
@@ -43,6 +48,8 @@ function calcularAlcance(): Alcance | null {
 const alcance = calcularAlcance();
 const soloDocumentos = alcance?.soloDocumentos === true;
 const SALTA_CON_DOCUMENTOS = 'solo cambiaron documentos';
+const yaVerificado = enCI && process.env['VERIFICADO_EN_PR']?.trim() === 'true';
+const SALTA_YA_VERIFICADO = 'el PR ya verificó este mismo árbol';
 /**
  * Con un navegador del equipo (`PW_CANAL`, como el Edge del runner propio), no hay nada que
  * descargar: Playwright usa el instalado (docs/runbooks/runner-propio.md).
@@ -58,7 +65,16 @@ function comandoDePruebas(): string {
   return `pnpm exec vitest run ${pruebas.join(' ')}`;
 }
 
-const PASOS: ReadonlyArray<{ paso: string; comando: string; saltaConDocumentos?: boolean }> = [
+/** Las e2e del parqueadero, sin el proyecto `rendimiento`, que solo mide el cuaderno y la cuenta. */
+const E2E_DEL_PARQUEADERO =
+  'pnpm exec playwright test --project=telefono-360 tests/e2e/parqueadero-';
+
+const PASOS: ReadonlyArray<{
+  paso: string;
+  comando: string;
+  saltaConDocumentos?: boolean;
+  saltaYaVerificado?: boolean;
+}> = [
   ...(enCI ? [{ paso: 'instalar', comando: 'pnpm install --frozen-lockfile' }] : []),
   ...(enCI && conE2e
     ? [
@@ -66,6 +82,7 @@ const PASOS: ReadonlyArray<{ paso: string; comando: string; saltaConDocumentos?:
           paso: 'navegadores',
           comando: 'pnpm exec playwright install --with-deps chromium',
           saltaConDocumentos: true,
+          saltaYaVerificado: true,
         },
       ]
     : []),
@@ -73,15 +90,25 @@ const PASOS: ReadonlyArray<{ paso: string; comando: string; saltaConDocumentos?:
   { paso: 'typecheck', comando: 'pnpm run typecheck', saltaConDocumentos: true },
   { paso: 'validar:productos', comando: 'pnpm run validar:productos' },
   { paso: 'test', comando: comandoDePruebas() },
-  { paso: 'build', comando: 'pnpm run build', saltaConDocumentos: true },
-  ...(conE2e ? [{ paso: 'e2e', comando: 'pnpm run e2e', saltaConDocumentos: true }] : []),
+  { paso: 'build', comando: 'pnpm run build', saltaConDocumentos: true, saltaYaVerificado: true },
+  ...(conE2e
+    ? [
+        {
+          paso: 'e2e',
+          comando: alcance?.soloParqueadero ? E2E_DEL_PARQUEADERO : 'pnpm run e2e',
+          saltaConDocumentos: true,
+          saltaYaVerificado: true,
+        },
+      ]
+    : []),
   { paso: 'licencias', comando: 'pnpm run licencias' },
 ];
 
 if (alcance) console.log(`\nAlcance del cambio: ${alcance.motivo}.`);
+if (yaVerificado) console.log(`\n${SALTA_YA_VERIFICADO}: navegadores, build y e2e no corren.`);
 
 const resultados: ResultadoPaso[] = [];
-for (const { paso, comando, saltaConDocumentos } of PASOS) {
+for (const { paso, comando, saltaConDocumentos, saltaYaVerificado } of PASOS) {
   // Sin instalación no hay nada que verificar: se dice, en vez de sumar fallas falsas.
   if (resultados[0]?.paso === 'instalar' && !resultados[0].ok) {
     resultados.push({ paso, ok: false, omitido: true, segundos: 0 });
@@ -94,6 +121,10 @@ for (const { paso, comando, saltaConDocumentos } of PASOS) {
       saltado: `usa el navegador del equipo (${canalDelEquipo})`,
       segundos: 0,
     });
+    continue;
+  }
+  if (yaVerificado && saltaYaVerificado) {
+    resultados.push({ paso, ok: true, saltado: SALTA_YA_VERIFICADO, segundos: 0 });
     continue;
   }
   if (soloDocumentos && saltaConDocumentos) {
@@ -123,7 +154,10 @@ console.log(`\n${resumir(resultados)}`);
 
 const archivoResumen = process.env['GITHUB_STEP_SUMMARY'];
 if (enCI && archivoResumen) {
-  const linea = alcance ? `Alcance del cambio: ${alcance.motivo}.\n\n` : '';
+  const linea = [
+    alcance ? `Alcance del cambio: ${alcance.motivo}.\n\n` : '',
+    yaVerificado ? `${SALTA_YA_VERIFICADO}: navegadores, build y e2e no corren.\n\n` : '',
+  ].join('');
   appendFileSync(
     archivoResumen,
     `## Verificación\n\n${linea}${resumir(resultados, { detalle: true })}\n`,

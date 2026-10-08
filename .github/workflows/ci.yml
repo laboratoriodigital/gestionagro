@@ -13,6 +13,8 @@ concurrency:
 
 permissions:
   contents: read
+  # Para preguntar si el PR que llegó a main ya tenía su CI en verde (scripts/ya-verificado.ts).
+  actions: read
 
 jobs:
   verificar:
@@ -46,9 +48,18 @@ jobs:
       # porque dos PR bien hechos pueden juntarse mal al fusionar (bitácora core 6). Sin instalar nada.
       - name: Versiones publicadas sin reescribir
         run: node scripts/verificar-changelog.ts
+      # En main: si el PR fusionado estaba al día, su CI ya probó este mismo árbol. Se saltan
+      # navegadores, build y e2e; las pruebas corren igual, con el D1 de workerd (HU-C11.3).
+      - name: ¿El PR ya verificó este mismo árbol?
+        id: pr
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ya-verificado.ts
       # Con un lockfile nuevo no hay coincidencia exacta: restore-keys trae los navegadores de la
       # corrida anterior y Playwright solo baja lo que cambió (bitácora agro 19).
       - name: Caché de los navegadores de Playwright
+        if: steps.pr.outputs.verificado != 'true'
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
@@ -64,4 +75,5 @@ jobs:
           D1_INSTRUMENTO: ${{ github.event_name == 'push' && 'workerd' || 'sqlite' }}
           PW_CANAL: ${{ vars.RUNNER_CI == 'self-hosted' && 'msedge' || '' }}
           VERIFICAR_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          VERIFICADO_EN_PR: ${{ steps.pr.outputs.verificado }}
         run: node scripts/verificar.ts --ci

@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import {
   archivosDeDiff,
   decidirAlcance,
+  esDelParqueadero,
   esDocumento,
   leeDocumentos,
 } from '../../scripts/lib/alcance.ts';
@@ -44,6 +45,7 @@ describe('decidir el alcance', () => {
     const a = decidirAlcance(['docs/BACKLOG.md', 'CHANGELOG.md']);
     expect(a).toEqual({
       soloDocumentos: true,
+      soloParqueadero: false,
       motivo: 'los 2 archivos cambiados son documentos',
     });
   });
@@ -57,6 +59,7 @@ describe('decidir el alcance', () => {
   it('sin poder calcular el cambio, corre todo y lo dice (CA3)', () => {
     expect(decidirAlcance(null)).toEqual({
       soloDocumentos: false,
+      soloParqueadero: false,
       motivo: 'no se pudo calcular qué cambió: corre todo',
     });
   });
@@ -75,6 +78,78 @@ describe('decidir el alcance', () => {
       'docs/a.md',
       'CHANGELOG.md',
     ]);
+  });
+});
+
+describe('el e2e de lo afectado: el parqueadero (HU-C11.3)', () => {
+  it.each([
+    'apps/parqueadero-sitio/src/caja/App.tsx',
+    'apps/parqueadero-api/src/push.ts',
+    'packages/parqueadero-schema/src/sync.ts',
+    'content/parqueadero/aviso-tarifas.json',
+    'infrastructure/migraciones/parqueadero/0001_parqueadero_v1.sql',
+    'tests/e2e/parqueadero-caja.spec.ts',
+    'tests/integracion/parqueadero-arnes.ts',
+    'apps\\parqueadero-sitio\\src\\caja\\App.tsx',
+  ])('«%s» es del parqueadero', (ruta) => {
+    expect(esDelParqueadero(ruta)).toBe(true);
+  });
+
+  it.each([
+    // Compartidos: los usan el cuaderno, la cuenta o el sitio (CA3).
+    'packages/sync/src/index.ts',
+    'packages/impresion/src/escpos.ts',
+    'packages/ui/src/estilos.css',
+    'scripts/lib/cabeceras-parqueadero.ts',
+    'infrastructure/celdas.json',
+    'package.json',
+    'pnpm-lock.yaml',
+    'tests/repo/parqueadero-sitio.test.ts',
+    'apps/parqueadero.ts',
+  ])('«%s» no es solo del parqueadero', (ruta) => {
+    expect(esDelParqueadero(ruta)).toBe(false);
+  });
+
+  it('código del parqueadero y documentos: solo sus e2e, y lo dice', () => {
+    expect(
+      decidirAlcance([
+        'apps/parqueadero-sitio/src/caja/App.tsx',
+        'docs/parking/BACKLOG-PARKING.md',
+        'apps/parqueadero-sitio/CHANGELOG.md',
+      ]),
+    ).toEqual({
+      soloDocumentos: false,
+      soloParqueadero: true,
+      motivo: 'los 2 archivos de código cambiados son del parqueadero: solo sus e2e',
+    });
+  });
+
+  it('un paquete compartido junto al parqueadero corre todo (control negativo de CA3)', () => {
+    const a = decidirAlcance([
+      'apps/parqueadero-sitio/src/caja/App.tsx',
+      'packages/impresion/src/escpos.ts',
+    ]);
+    expect(a.soloParqueadero).toBe(false);
+    expect(a.motivo).toContain('packages/impresion/src/escpos.ts');
+  });
+
+  it('solo documentos no es «solo parqueadero»: salta el e2e entero', () => {
+    expect(decidirAlcance(['docs/parking/BITACORA-PARKING.md']).soloParqueadero).toBe(false);
+  });
+
+  it('nada fuera del parqueadero importa sus paquetes ni sus apps', () => {
+    const ajenos = listarArchivos(
+      (r) =>
+        /^(apps|packages|scripts)\//.test(r) &&
+        /\.(tsx?|astro|m?js)$/.test(r) &&
+        !esDelParqueadero(r) &&
+        !r.startsWith('scripts/'),
+    ).filter((r) =>
+      /from ['"](@ed1\/parqueadero-|[./]+\/(apps\/)?parqueadero-)/.test(
+        readFileSync(join(RAIZ, r), 'utf8'),
+      ),
+    );
+    expect(ajenos).toEqual([]);
   });
 });
 

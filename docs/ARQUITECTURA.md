@@ -591,8 +591,11 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 
 - **Dos instrumentos para la base de las pruebas (HU-C11.7):** en los PR, una base en proceso sobre `node:sqlite` (`packages/d1/src/sqlite.ts`); en `main`, el D1 local de workerd (`D1_INSTRUMENTO=workerd`), así una diferencia entre los dos aparece al fusionar. Las pruebas que prueban D1 mismo (la receta de reconstrucción, la matriz de producto) usan siempre workerd.
 - Toda tubería en los flujos lleva `set -o pipefail`. Una prueba de los flujos lo exige (P14).
-- Las herramientas de `scripts/` también corren en `windows-latest`. Por costo de minutos, solo cuando cambian `scripts/` o una vez por semana (P3).
+- Las herramientas de `scripts/` también corren en `windows-latest`. Por costo de minutos, solo cuando un cambio de `scripts/` o de las dependencias llega a `main`, los lunes y a mano; no en cada push de un PR (P3).
 - Minutos: repo privado, 2.000 min/mes (ED1 §41). Objetivo: menos de 8 min por corrida y cancelar la corrida vieja de la misma rama.
+- **Lo que no se repite (HU-C11.3, 8 oct 2026):** la medición dio cerca de 1.920 minutos en 8 días: el CI de `main` 32 %, el de los PR 32 %, Windows 25 % y el despliegue 10 %. Por eso:
+  - En `main`, si el PR fusionado ya contenía el `main` de antes y su CI estaba en verde, el PR probó este mismo árbol (`scripts/ya-verificado.ts`): se saltan navegadores, build y e2e, y las pruebas corren igual con workerd. Si la rama estaba atrasada, corre todo.
+  - Si todo lo que no es documento es del parqueadero (`esDelParqueadero` en `scripts/lib/alcance.ts`), el e2e corre solo `tests/e2e/parqueadero-*`. Un paquete compartido, `scripts/` o la raíz corren todo, y una prueba exige que nada fuera del parqueadero importe sus paquetes.
 
 ### 7.3 Entornos y anillos
 
