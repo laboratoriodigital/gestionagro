@@ -4,6 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- La caja, más clara y sobria (HU-Q6.5). El inicio pone primero «Nueva entrada» y los vehículos adentro, cada uno en una fila con su placa, la hora y el tiempo corriendo; el turno es una línea, y Ajustes, Abonados, Respaldo y el aviso de privacidad van en una lista al final. Las cuatro señales de la cabecera ocupan dos líneas: lo que está bien va en gris y solo lo que falla toma color. «Anular» queda al final de la pantalla, en rojo y sin caja, y después de imprimir «Reimprimir» ya no compite con «Nueva entrada». Los campos de a dos quedan alineados aunque una etiqueta ocupe dos líneas. Ningún botón cambió de nombre.
+
+### Corregido
+- En modo oscuro, los botones salen en el azul de la caja y no en el lila del ecosistema (bitácora 27).
+
 ## [0.2.0] - 2026-10-08
 
 El recibo de entrada puede decir lo que dice el talonario del parqueadero.

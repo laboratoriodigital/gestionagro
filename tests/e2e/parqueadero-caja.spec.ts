@@ -714,6 +714,9 @@ test.describe('la caja del parqueadero', () => {
     // No sale solo: primero se ofrece lo digital.
     expect((await bytesImpresos(page)).length).toBe(antes);
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    // La entrada nueva abre cuando el papel terminó de salir: contar antes cortaba el recibo a
+    // medias, y el resto llegaba después y parecía papel del QR (CI de #134).
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nueva entrada');
     await expect.poll(async () => (await bytesImpresos(page)).slice(antes)).toContain('PQR123');
 
     // Con el QR escaneado, no sale papel.

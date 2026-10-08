@@ -141,9 +141,9 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
       <form class="tarjeta" onSubmit={cobrar} data-prueba="salida">
         <h1>Salida</h1>
         <p class="placa">{estadia.placa}</p>
-        <p>
+        <p class="ayuda">
           Entró {horaBogota(estadia.entrada)} · {duracion(estadia.entrada, q.salida)} · recibo{' '}
-          {estadia.numero}
+          <span class="sin-cortar">{estadia.numero}</span>
         </p>
 
         <p class="total-grande" data-prueba="total">

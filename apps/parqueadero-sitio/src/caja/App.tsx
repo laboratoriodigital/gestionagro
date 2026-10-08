@@ -33,6 +33,14 @@ const NOMBRE_DE_PAGINA = {
   transliterar: 'sin tildes',
 } as const;
 
+/** Lo que no se hace en cada vehículo va aparte, al final del inicio (HU-Q6.5 CA1). */
+const MENU = [
+  ['ajustes', 'Ajustes del parqueadero'],
+  ['abonados', 'Abonados'],
+  ['respaldo', 'Respaldo'],
+  ['aviso', 'Aviso de privacidad'],
+] as const;
+
 export function App({ db, control, propuesta, prueba, reloj }: Props) {
   const registro = useConsulta<RegistroImpresora | undefined>(
     () => db.impresora.get('actual'),
@@ -176,36 +184,51 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
                 </button>
               </section>
             ) : (
-              <section class="tarjeta" data-prueba="caja-lista">
-                <h1>La caja está lista</h1>
+              <section class="tarjeta tarjeta-callada" data-prueba="caja-lista">
+                <h1 class="solo-lectores">La caja está lista</h1>
                 <ConexionImpresora control={control} />
               </section>
             )}
             {turno !== undefined && (
-              <section class="tarjeta" data-prueba="tarjeta-turno">
+              <section class="turno-linea" data-prueba="tarjeta-turno">
                 {turno ? (
                   <p>
                     Turno de {turno.operador}, desde las{' '}
-                    {horaBogota(Date.parse(turno.apertura.instante_evento))}
+                    <span class="cifra">
+                      {horaBogota(Date.parse(turno.apertura.instante_evento))}
+                    </span>
                   </p>
                 ) : (
                   <p>Abra el turno antes del primer recibo.</p>
                 )}
                 <button
                   type="button"
-                  class={turno ? 'boton boton-secundario' : 'boton boton-principal'}
+                  class="boton boton-secundario boton-compacto"
                   onClick={() => ir({ es: 'turno' })}
                 >
                   {turno ? 'Cerrar turno' : 'Abrir turno'}
                 </button>
               </section>
             )}
+            <div class="acciones-inicio">
+              <button
+                type="button"
+                class="boton boton-principal boton-grande"
+                onClick={() => ir({ es: 'entrada' })}
+                data-prueba="nueva-entrada"
+              >
+                Nueva entrada
+              </button>
+              <button type="button" class="boton" onClick={() => ir({ es: 'escanear' })}>
+                Escanear recibo
+              </button>
+            </div>
             <Estadias db={db} reloj={reloj} ir={ir} />
             {registro && (
-              <section class="tarjeta" data-prueba="ajustes-impresora">
-                <h2>Ajustes › Impresora</h2>
+              <section class="seccion" data-prueba="ajustes-impresora">
+                <h2 class="etiqueta">Ajustes › Impresora</h2>
                 <p class="exacto">{registro.nombre}</p>
-                <p data-prueba="pagina-de-codigos">
+                <p class="ayuda" data-prueba="pagina-de-codigos">
                   {registro.paginaDeCodigos === 'transliterar'
                     ? 'Imprime sin tildes: ninguna página de códigos se vio bien en la prueba.'
                     : `Tildes con ${NOMBRE_DE_PAGINA[registro.paginaDeCodigos]}; ${registro.columnas} columnas; QR ${registro.qr === 'nativo' ? 'de la impresora' : 'como imagen'}.`}
@@ -216,6 +239,20 @@ export function App({ db, control, propuesta, prueba, reloj }: Props) {
                 <BotonDiagnostico control={control} />
               </section>
             )}
+            <nav class="seccion" aria-labelledby="titulo-mas">
+              <h2 class="etiqueta" id="titulo-mas">
+                Más
+              </h2>
+              <ul class="menu">
+                {MENU.map(([es, texto]) => (
+                  <li key={es}>
+                    <button type="button" class="menu-fila" onClick={() => ir({ es })}>
+                      {texto}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           </>
         )}
       </main>

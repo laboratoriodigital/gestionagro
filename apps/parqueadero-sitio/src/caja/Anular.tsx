@@ -25,7 +25,7 @@ export function Anular({ db, ctx, registro, alAnular }: Props) {
 
   if (!abierto) {
     return (
-      <button type="button" class="boton boton-secundario" onClick={() => setAbierto(true)}>
+      <button type="button" class="boton boton-quieto" onClick={() => setAbierto(true)}>
         Anular {que}
       </button>
     );
