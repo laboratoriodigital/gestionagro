@@ -12,8 +12,8 @@
  * de verdad, los límites de D1 en Cloudflare y el CORE.
  */
 import { uuidv7 } from '@ed1/agro-schema';
+import { APP_MINIMA } from '@ed1/agro-schema/sync';
 import type { BaseD1 } from '@ed1/d1';
-import { APP_MINIMA } from '@ed1/sync';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { enviarPendientes } from '../../apps/cuaderno/src/almacen/envio.ts';
 import { editarArea } from '../../apps/cuaderno/src/almacen/finca.ts';

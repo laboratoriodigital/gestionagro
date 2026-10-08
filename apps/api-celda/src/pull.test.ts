@@ -3,9 +3,9 @@
  * el push real, como en producción. Lo que el D1 local no imita: `@ed1/d1/local` (P17).
  */
 import { uuidv7, validarRegistro } from '@ed1/agro-schema';
+import { PAGINA_MAXIMA, type RespuestaPull } from '@ed1/agro-schema/sync';
 import type { BaseD1, SentenciaD1 } from '@ed1/d1';
 import { baseLocal, vaciar } from '@ed1/d1/local';
-import { PAGINA_MAXIMA, type RespuestaPull } from '@ed1/sync';
 import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { crearApp, type Env, TABLAS_DEL_SHARD } from './worker.ts';

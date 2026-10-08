@@ -6,7 +6,7 @@
  * La hora de reanudación sale del reinicio de la cuota de D1, a las 00:00 UTC, y se dice siempre
  * en hora de Colombia, aunque el teléfono esté en otro huso (CA3, P8).
  */
-import { proximoReinicioDeCuota } from '@ed1/sync';
+import { proximoReinicioDeCuota } from '@ed1/agro-schema/sync';
 import type { ResultadoDeEnvio } from './almacen/envio.ts';
 import type { ResultadoDeRecepcion } from './almacen/recepcion.ts';
 import type { EstadoDeSincronizacion } from './sincronizacion.ts';

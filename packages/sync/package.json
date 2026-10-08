@@ -2,12 +2,9 @@
   "name": "@ed1/sync",
   "version": "0.1.0",
   "private": true,
-  "description": "Protocolo de sincronización v1: tipos, límites y validación de operaciones, compartidos por el teléfono y la celda (ARQUITECTURA §5.6, P2).",
+  "description": "Protocolo de sincronización v1: tipos, límites y validación de operaciones, compartidos por el teléfono y la celda, sin entidades de ningún producto (ARQUITECTURA §5.6, P2, HU-Q7.3).",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
-  },
-  "dependencies": {
-    "@ed1/agro-schema": "workspace:*"
   }
 }

@@ -6,10 +6,12 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./ensayos": "./src/ensayos.fixture.ts"
+    "./ensayos": "./src/ensayos.fixture.ts",
+    "./sync": "./src/sync.ts"
   },
   "dependencies": {
     "@ed1/ids": "workspace:*",
+    "@ed1/sync": "workspace:*",
     "zod": "^4.6.5"
   }
 }

@@ -5,10 +5,12 @@
   "description": "Esquemas zod de catálogos y registros, con sus versiones. Única fuente para la app, la API y las pruebas (P2).",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./sync": "./src/sync.ts"
   },
   "dependencies": {
     "@ed1/ids": "workspace:*",
+    "@ed1/sync": "workspace:*",
     "zod": "^4.6.5"
   }
 }
