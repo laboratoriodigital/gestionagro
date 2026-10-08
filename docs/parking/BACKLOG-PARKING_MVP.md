@@ -641,7 +641,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q6.5.1 `[diseño]` · WI-Q6.5.2 `[código]` · WI-Q6.5.3 `[prueba]` capturas de los runbooks.
 
 #### HU-Q6.6 · El recibo se ve como recibo
-- **Capa:** caja y sitio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q3.3, HU-Q4.2 · **Estado:** En curso
+- **Capa:** caja y sitio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q5 · **Depende de:** HU-Q3.3, HU-Q4.2 · **Estado:** En revisión (PR #136): la hoja del recibo en la caja y en `/r/`, y el WhatsApp con las filas alineadas en 26 columnas
 - Como conductor, quiero que el recibo en la pantalla, en el enlace y en WhatsApp se lea como el papel de siempre, para encontrar de un vistazo el parqueadero, la placa, la hora y lo que pagué.
 - **Respaldo:** pedido del dueño del 8 oct 2026 («mejora la presentación del recibo A-xxx, y del mensaje a WhatsApp que se vea como recibo»); PARQUEADERO §6.4 y §6.5.
 - **CA1.** La pantalla del recibo en la caja y la página `/r/` muestran una hoja de recibo: el parqueadero arriba con su NIT, dirección y teléfono; la clase y el número; la placa como placa; las horas, la tarifa o la liquidación en grupos; el total grande con el medio de pago; y abajo el texto legal. Lo mismo en las dos, de un solo modelo (ADR-33).
