@@ -213,7 +213,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 #### HU-Q0.1 · Estudio, arquitectura, plan, backlogs y bitácora en el repositorio
 - **Capa:** proceso · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q0 · **Depende de:** — · **Estado:** Hecha (PR #110)
 - Como dueño, quiero el estudio, la arquitectura, el plan, los dos backlogs y la bitácora del parqueadero en el repositorio, con el método del CORE y la Tienda, para que cualquier equipo pueda empezar y para unir después la bitácora al segundo cerebro de ED1.
-- **Respaldo:** ADR-31 (propuesta); BACKLOG_CORE §2 a §4 y BACKLOG_TIENDA3 §3 y §4 (el método); las bitácoras, «Cómo se une con las otras bitácoras».
+- **Respaldo:** ADR-31 (aceptada el 8 oct 2026); BACKLOG_CORE §2 a §4 y BACKLOG_TIENDA3 §3 y §4 (el método); las bitácoras, «Cómo se une con las otras bitácoras».
 - **CA1.** `docs/parking/` tiene el estudio, `ARQUITECTURA-PARQUEADERO.md`, `sql/`, `BACKLOG-PARKING.md`, `BACKLOG-PARKING_MVP.md` y `BITACORA-PARKING.md`, y los nombran `docs/README.md`, `docs/BACKLOG.md`, `BACKLOG_CORE.md`, `BACKLOG_TIENDA3.md` y el CHANGELOG.
 - **CA2.** La bitácora usa la ficha extraíble con el proyecto `parqueadero`, los patrones P1–P21 sin renumerar y los provisionales `PQ<n>`.
 - **CA3 ❌.** Ninguna contradicción encontrada queda callada: las del contraste (plan §1) están en la bitácora, y PARQUEADERO dice dónde quedó cada una. Los títulos y los puntos de las 40 historias coinciden entre este documento y el plan, y las sumas por sprint y por hito cuadran; una comprobación lo verifica, con un punto cambiado a propósito como control negativo.

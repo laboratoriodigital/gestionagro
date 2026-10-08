@@ -1,6 +1,6 @@
 # Parqueadero ED1 — arquitectura de la solución
 
-**Estado:** propuesta de arquitectura. Ninguna decisión de este documento está aceptada: las ADR-31 a ADR-40 esperan al dueño (§1).
+**Estado:** propuesta de arquitectura. ADR-31 está aceptada desde el 8 oct 2026 y ya figura en `../ARQUITECTURA.md` §1; las ADR-32 a ADR-40 esperan al dueño (§1).
 **Versión:** 0.1 · 6 oct 2026
 **Producto:** caja de parqueadero offline-first para parqueaderos pequeños y medianos de Colombia, con recibos impresos desde el navegador y enviados por WhatsApp. Nombre comercial por decidir; id de producto `parqueadero`.
 **Depende de:** `../plataforma/PLATAFORMA.md` (el CORE con dimensión de producto, la cuenta, los dominios y los tokens v2) y `../ARQUITECTURA.md` (las piezas que ya corren: CORE v0, celdas, sincronización, QR firmado).
@@ -50,11 +50,11 @@
 
 ## 1. Decisiones (ADR)
 
-Numeración continua con `../ARQUITECTURA.md` §1, que llega hasta ADR-30. Todas **propuestas**. Cuando el dueño acepte una, pasa a esa tabla en el pull request que la construye (P18).
+Numeración continua con `../ARQUITECTURA.md` §1. ADR-31 está **aceptada** (8 oct 2026) y ya figura en esa tabla; las demás siguen **propuestas**. Cuando el dueño acepte una, pasa a esa tabla en el pull request que la construye (P18).
 
 | ADR | Decisión | Por qué, en una línea | Alternativa descartada | Estado |
 |---|---|---|---|---|
-| 31 | El parqueadero entra como **excepción declarada**, con el cliente del MVP como **parqueadero cero**, tratado como cualquier otro (ADR-1) | Hay un cliente con disposición a pagar: es la evidencia que el estudio exigía (estudio §16, §17.3) | Esperar a la fase 7 de ED1 (§33), o construir para «los demás» y dejar fuera al primero (P6) | Propuesta |
+| 31 | El parqueadero entra como **excepción declarada**, con el cliente del MVP como **parqueadero cero**, tratado como cualquier otro (ADR-1) | Hay un cliente con disposición a pagar: es la evidencia que el estudio exigía (estudio §16, §17.3) | Esperar a la fase 7 de ED1 (§33), o construir para «los demás» y dejar fuera al primero (P6) | Aceptada (8 oct 2026), en `../ARQUITECTURA.md` §1 |
 | 32 | El MVP es una **caja local**: navegador, IndexedDB y archivos. Sin cuenta, sin API de celda y sin D1. El sitio estático solo recibe eventos anónimos cuando hay red (§14.4) | El cliente paga ahora y la plataforma tiene sus fases ocupadas por la Tienda. Es además el peldaño «usuario recurrente» de la escalera (ED1 §38) | Esperar a la sincronización para entregar algo | Propuesta |
 | 33 | **Un modelo de recibo, cuatro salidas** (papel, enlace, WhatsApp, pantalla), con paridad probada | «El mismo recibo» es el pedido literal del cliente, y P2: dos copias de un texto legal se separan | Una plantilla por canal | Propuesta |
 | 34 | **Impresión por adaptadores en el navegador.** Web Bluetooth a la PT-210 primero; Web Serial (Bluetooth clásico en Android y en el PC, o el puerto COM) como segundo camino; el diálogo del sistema como respaldo | Cero instalación y cero costo. La PT-210 habla BLE y, probablemente, Bluetooth clásico, que Chrome para Android alcanza con Web Serial desde la versión 138 (§7.1, §7.2) | App nativa; agente de impresión en el PC; servidor de impresión | Propuesta |
@@ -1264,7 +1264,7 @@ Propuesta, sobre la del estudio (§16.3):
 
 **Del dueño:**
 
-1. Aceptar o cambiar ADR-31 a ADR-40, empezando por la excepción declarada con este cliente como parqueadero cero.
+1. Aceptar o cambiar ADR-31 a ADR-40, empezando por la excepción declarada con este cliente como parqueadero cero. *(Hoy, 8 oct 2026: ADR-31 aceptada; ADR-32 a ADR-40 siguen esperando.)*
 2. Activar la zona `laboratorio-digital.app` ya, o usar otro dominio. Recomendación: activarla, porque el primer recibo publica el enlace.
 3. Qué paga el cliente en el piloto. Recomendación: el plan desde el primer día, con un link de pago de Bold, porque un pago real es la evidencia más fuerte (estudio §16.3); y la puesta en marcha como servicio.
 4. El nombre comercial del producto.
