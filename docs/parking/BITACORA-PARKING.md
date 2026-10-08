@@ -61,7 +61,7 @@ Al 7 oct 2026 no hay código del parqueadero. Lo que ya existe son las 56 compro
 - **Regla:** lo que cae a un respaldo, a un valor de fábrica o a un «no pasa nada» tiene que gritar.
 - **En el parqueadero:** un monto ilegible nunca vale 0 (`MontoIlegible`); una sede sin datos legales no registra; una impresora apagada deja el recibo pendiente y lo dice, nunca «Impreso»; un número repetido con otro id falla y va a cuarentena, no se pierde como «duplicado».
 - **Lo impedirá:** HU-Q1.1, HU-Q3.2, HU-Q3.3, HU-Q3.6, HU-Q7.4.
-- **Lo impide hoy:** `sql/probar-parqueadero.mjs`, con `ON CONFLICT (id) DO NOTHING`. Con `INSERT OR IGNORE`, cinco comprobaciones se ven en rojo (bitácora parqueadero 1).
+- **Lo impide hoy:** `sql/probar-parqueadero.mjs`, con `ON CONFLICT (id) DO NOTHING`. Con `INSERT OR IGNORE`, cinco comprobaciones se ven en rojo (bitácora parqueadero 1). *(Hoy, 8 oct 2026: `tests/repo/shard-parqueadero.test.ts`, en `node:sqlite` y en el D1 local de workerd; el mismo control negativo pone en rojo las mismas comprobaciones en los dos (HU-Q7.2, bitácora parqueadero 28).)*
 - **Entradas:** parqueadero 1.
 
 #### P2 · Dos copias del mismo procedimiento: una siempre se queda atrás
@@ -833,3 +833,25 @@ La regla: **cuando dos PR deben fusionarse en orden, el segundo queda en borrado
 La regla: **una variable que redefine un token se escribe con el mismo selector del token, no con uno más corto.**
 
 *Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P15 · parqueadero-0.2.0 · 2026-10-08
+
+**28 · El D1 local no podía cargar la migración del parqueadero: partía mal un trigger y un «;» con comentario.**
+
+*Qué pasó.* El 8 oct 2026, en HU-Q7.2, al correr por primera vez las 56 comprobaciones del shard con `baseLocal` de `@ed1/d1/local`, en `node:sqlite` y en el D1 local de workerd. El mismo archivo pasaba con `probar-parqueadero.mjs`, que lo corría entero con `exec`.
+
+*Síntoma literal.* En los dos instrumentos, antes de la primera comprobación:
+
+```text
+D1_ERROR: incomplete input: SQLITE_ERROR
+```
+
+*Causa raíz.* `sentenciasDe` parte las migraciones por «;» al final de línea y reconoce un `CREATE TRIGGER … END;` solo si empieza una sentencia nueva. Dos formas válidas del SQL del parqueadero lo engañaban: una línea en blanco antes del trigger (contaba como el comienzo de una sentencia, así que el trigger se partía en cada «;» de su cuerpo) y `('punto');  -- puesto de trabajo`, cuyo «;» no queda al final de la línea. Las migraciones del agro y del CORE no tenían ninguna de las dos, así que el partidor nunca se había probado con ellas. No es una diferencia entre `node:sqlite` y D1: el error venía del instrumento de prueba, y `wrangler d1 migrations apply` las acepta.
+
+*Cómo se reprodujo.* Partiendo el archivo con `sentenciasDe` y corriendo cada sentencia en un `DatabaseSync` en memoria: falla en `registro_reglas`.
+
+*Arreglo.* Un trigger empieza aunque lo precedan líneas en blanco, y un «;» seguido de un comentario `--` cierra la sentencia. La migración no se tocó.
+
+**Lo prueban** dos casos en `tests/repo/shard-parqueadero.test.ts` y las 56 comprobaciones, que sin el arreglo no llegan a correr. Control negativo de CA3, corrido el mismo día: con `INSERT OR IGNORE` en lugar de `ON CONFLICT (id) DO NOTHING`, las mismas secciones se ven en rojo en los dos instrumentos, entre ellas «la fecha local va como AAAA-MM-DD» (un `CHECK` que `OR IGNORE` se salta), y el total baja de 56 a 44; sin el trigger de inmutabilidad, «un registro no se modifica» se ve en rojo en los dos.
+
+La regla: **un instrumento de prueba que parte SQL también se prueba con el SQL nuevo antes de culpar a la base; el archivo que ya pasaba en otro instrumento es la pista.**
+
+*Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P17 · parqueadero-0.2.0 · 2026-10-08

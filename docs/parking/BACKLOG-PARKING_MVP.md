@@ -130,11 +130,10 @@ cd gestionagro
 corepack enable
 pnpm install
 set -o pipefail; pnpm lint && pnpm typecheck && pnpm test
-node docs/parking/sql/probar-parqueadero.mjs docs/parking/sql/parqueadero/0001_parqueadero_v1.sql
 git worktree add ../gestionagro-parqueadero -b feat/q1-sprint origin/main
 ```
 
-La prueba del SQL debe terminar con 56 comprobaciones en verde. Si no, eso es lo primero que se arregla, y va a la bitácora.
+La prueba del SQL (`tests/repo/shard-parqueadero.test.ts`, dentro de `pnpm test`) debe terminar con sus 56 comprobaciones en verde. Si no, eso es lo primero que se arregla, y va a la bitácora.
 
 ### 3.3 El equipo físico
 
@@ -660,7 +659,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 |---|---|---|---|
 | Unitarias | Vitest | Las reglas puras de PARQUEADERO §15.1: la liquidación y su tope, el recibo y sus cuatro salidas, los bytes ESC/POS, los números de WhatsApp y el enlace. Lo que toca el reloj corre también con `TZ=Pacific/Kiritimati` (P8) | Cada PR |
 | De repositorio | Las guardias de `pnpm test` | Los campos de la ley en cada plantilla (HU-Q1.4); nada se borra de `registros` (HU-Q3.7); el nombre del cliente no aparece (HU-Q0.2); lo que nombra un runbook existe (HU-Q6.2); licencias; CHANGELOG del parqueadero (HU-Q0.3) | Cada PR |
-| Del modelo de datos | `node docs/parking/sql/probar-parqueadero.mjs` | Las 56 comprobaciones de `0001_parqueadero_v1.sql` | Cada PR que toca `docs/parking/sql/` |
+| Del modelo de datos | `tests/repo/shard-parqueadero.test.ts` (desde HU-Q7.2; antes, `docs/parking/sql/probar-parqueadero.mjs`) | Las 56 comprobaciones de `infrastructure/migraciones/parqueadero/0001_parqueadero_v1.sql`, en `node:sqlite` y en el D1 local de workerd | Cada PR |
 | De punta a punta | Playwright (`pnpm e2e`, proyecto `telefono-360`), con la red apagada y axe | Un turno entero con los dos parqueaderos de prueba (HU-Q6.3) | Cada PR que toca la caja, desde Q5 |
 | En el equipo real | La matriz de PARQUEADERO §15.3 | Lo que ninguna prueba automática ve: el Bluetooth, el papel, WhatsApp, la cámara, el sol en la pantalla | Al cerrar cada historia que lo pide (plan §4.1, punto 10), y completa en HU-Q6.1 |
 

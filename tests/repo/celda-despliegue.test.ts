@@ -6,11 +6,17 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  celdasDelAgro,
+  celdasDelParqueadero,
   MIGRACIONES_CELDA,
+  MIGRACIONES_PARQUEADERO,
   presupuestoDeLaCelda,
   rutaWranglerCelda,
+  rutaWranglerCeldaDelParqueadero,
   textoWranglerDeLaCelda,
+  textoWranglerDeLaCeldaDelParqueadero,
   wranglerDeLaCelda,
+  wranglerDeLaCeldaDelParqueadero,
 } from '../../scripts/generar-wrangler.ts';
 import {
   clavesDelCore,
@@ -18,6 +24,13 @@ import {
   humoCelda,
   secretosDeLaCelda,
 } from '../../scripts/lib/api-celda.ts';
+import {
+  celdasDelDirectorio,
+  configDeLaCeldaDelParqueadero,
+  notaSinProduccion,
+  TABLAS_DEL_SHARD,
+  tablasQueFaltan,
+} from '../../scripts/lib/celda-parqueadero.ts';
 import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 import { clavesQrDe, conClavesQr } from '../../scripts/lib/claves-qr.ts';
 import { productoDeLaBase, productosDeLasBases } from '../../scripts/lib/d1-core.ts';
@@ -27,7 +40,7 @@ import { RAIZ } from '../../scripts/lib/repo.ts';
 const real = cargarCeldas();
 
 describe('configuración de la API por celda (P2, ADR-6)', () => {
-  it.each(real.celdas.map((c) => [c.id, c] as const))(
+  it.each(celdasDelAgro(real).map((c) => [c.id, c] as const))(
     'wrangler.%s.jsonc es el generado, sin ids, con un binding por shard',
     (_id, celda) => {
       const texto = readFileSync(rutaWranglerCelda(celda.id), 'utf8');
@@ -38,10 +51,18 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
     },
   );
 
-  it('las URL de la API siguen el nombre del Worker de cada celda', () => {
+  it('las URL de la API siguen el nombre del Worker de cada celda, con su producto', () => {
     for (const c of real.celdas) {
-      expect(new URL(c.api).hostname.split('.')[0]).toBe(`agro-api-${c.id}`);
-      expect(new URL(c.api_staging).hostname.split('.')[0]).toBe(`agro-api-${c.id}-staging`);
+      expect(new URL(c.api).hostname.split('.')[0]).toBe(`${c.producto}-api-${c.id}`);
+      expect(new URL(c.api_staging).hostname.split('.')[0]).toBe(
+        `${c.producto}-api-${c.id}-staging`,
+      );
+    }
+  });
+
+  it('ninguna celda del parqueadero lleva el Worker del agro (HU-Q7.2)', () => {
+    for (const c of celdasDelParqueadero(real)) {
+      expect(existsSync(rutaWranglerCelda(c.id)), c.id).toBe(false);
     }
   });
 
@@ -253,5 +274,84 @@ describe('qué producto escribe en cada base (HU-Q7.13)', () => {
     await expect(productosDeLasBases(sinPermiso, 't', 'cuenta', 'agro_core')).rejects.toThrow(
       'al token le falta «Account → D1: Edit»',
     );
+  });
+});
+
+describe('las celdas del parqueadero (HU-Q7.2)', () => {
+  const celdas = celdasDelParqueadero(real);
+
+  it('hay una, c2, con su shard parqueadero_c2_s1', () => {
+    expect(celdas.map((c) => [c.id, c.shards])).toEqual([['c2', ['parqueadero_c2_s1']]]);
+  });
+
+  it.each(celdas.map((c) => [c.id, c] as const))(
+    'apps/parqueadero-api/wrangler.%s.jsonc es el generado, sin ids ni Worker todavía',
+    (_id, celda) => {
+      const texto = readFileSync(rutaWranglerCeldaDelParqueadero(celda.id), 'utf8');
+      expect(texto).toBe(textoWranglerDeLaCeldaDelParqueadero(celda));
+      expect(texto).not.toMatch(/database_id|account_id|"main"/);
+      const generada = wranglerDeLaCeldaDelParqueadero(celda) as {
+        name: string;
+        d1_databases: { binding: string; database_name: string; migrations_dir: string }[];
+        env: { staging: { name: string; d1_databases: { database_name: string }[] } };
+      };
+      expect(generada.name).toBe(`parqueadero-api-${celda.id}`);
+      expect(generada.env.staging.name).toBe(`parqueadero-api-${celda.id}-staging`);
+      expect(generada.d1_databases.map((d) => d.binding)).toEqual(celda.shards);
+      expect(generada.env.staging.d1_databases.map((d) => d.database_name)).toEqual(
+        celda.shards.map((s) => `${s}_staging`),
+      );
+      expect(new Set(generada.d1_databases.map((d) => d.migrations_dir))).toEqual(
+        new Set([MIGRACIONES_PARQUEADERO]),
+      );
+    },
+  );
+
+  it('su carpeta de migraciones existe, junto a la configuración', () => {
+    expect(
+      existsSync(
+        join(RAIZ, 'apps', 'parqueadero-api', MIGRACIONES_PARQUEADERO, '0001_parqueadero_v1.sql'),
+      ),
+    ).toBe(true);
+  });
+
+  it('el despliegue pone los ids solo en el destino que prepara', () => {
+    const [c2] = celdas;
+    if (!c2) throw new Error('sin celda del parqueadero');
+    const bases = { parqueadero_c2_s1: 'id-s1' };
+    const staging = configDeLaCeldaDelParqueadero(
+      wranglerDeLaCeldaDelParqueadero(c2),
+      'staging',
+      bases,
+    ) as { d1_databases: object[]; env: { staging: { d1_databases: object[] } } };
+    expect(staging.env.staging.d1_databases).toEqual([
+      expect.objectContaining({ database_id: 'id-s1', database_name: 'parqueadero_c2_s1_staging' }),
+    ]);
+    expect(JSON.stringify(staging.d1_databases)).not.toContain('database_id');
+    expect(() =>
+      configDeLaCeldaDelParqueadero(wranglerDeLaCeldaDelParqueadero(c2), 'staging', {}),
+    ).toThrow(/falta el id de la base del shard parqueadero_c2_s1/);
+  });
+
+  it('en producción no entra al directorio del CORE ni se prepara (staging sí)', () => {
+    const ids = (destino: 'staging' | 'produccion') =>
+      celdasDelDirectorio(real.celdas, destino).map((c) => c.id);
+    expect(ids('staging')).toContain('c2');
+    expect(ids('produccion')).not.toContain('c2');
+    expect(ids('produccion')).toContain('c0');
+    expect(notaSinProduccion('c2')).toMatch(/c2 del parqueadero: en producción todavía no/);
+  });
+
+  it('la prueba de humo del shard lee la lista de tablas de wrangler --json', () => {
+    const salida = (nombres: readonly string[]) =>
+      `⛅️ wrangler\n${JSON.stringify([{ results: nombres.map((name) => ({ name })), success: true }])}`;
+    expect(tablasQueFaltan(salida(TABLAS_DEL_SHARD))).toEqual([]);
+    expect(tablasQueFaltan(salida(TABLAS_DEL_SHARD.filter((t) => t !== 'registro')))).toEqual([
+      'registro',
+    ]);
+    expect(tablasQueFaltan('✘ [ERROR] no such table')).toBeNull();
+    // wrangler escribe avisos con corchetes antes y después del JSON (stdout y stderr juntos).
+    const conAvisos = `\u001b[33m▲ [WARNING] Proxy environment variables detected.\n\n${salida(TABLAS_DEL_SHARD).split('\n')[1]}\n▲ [WARNING] otra cosa [x]\n`;
+    expect(tablasQueFaltan(conAvisos)).toEqual([]);
   });
 });

@@ -67,7 +67,7 @@ describe('CSP del cuaderno (ARQUITECTURA §9)', () => {
     expect(csp).toContain("object-src 'none'");
   });
 
-  it('solo se conecta al CORE, a las API de las celdas y a lo que la política declara (P2, P18)', () => {
+  it('solo se conecta al CORE, a las API de las celdas del agro y a lo que la política declara (P2, P18)', () => {
     const config = cargarCeldas();
     const terceros = politicaCompleta.conexiones_de_terceros ?? [];
     expect(terceros).toEqual(['https://www.googleapis.com']);
@@ -77,11 +77,15 @@ describe('CSP del cuaderno (ARQUITECTURA §9)', () => {
         ...new Set([
           config.core.url,
           config.core.url_staging,
-          ...config.celdas.flatMap((c) => [c.api, c.api_staging]),
+          ...config.celdas
+            .filter((c) => c.producto === 'agro')
+            .flatMap((c) => [c.api, c.api_staging]),
           ...terceros,
         ]),
       ].sort(),
     );
+    // HU-Q7.2: la API de una celda del parqueadero no entra a la CSP del cuaderno.
+    expect(conexionesDelCuaderno(config).some((o) => o.includes('parqueadero-api'))).toBe(false);
   });
 });
 

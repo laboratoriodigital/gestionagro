@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El modelo de datos del servidor ya es una migración de verdad (HU-Q7.2): `infrastructure/migraciones/parqueadero/0001_parqueadero_v1.sql`, aplicada en staging a la base de la celda c2, con sus 56 comprobaciones en el D1 local. La caja de hoy no cambia: sigue sin red ni cuenta.
 - La caja ya tiene con qué sincronizar cuando llegue la cuenta (HU-Q7.3): `@ed1/parqueadero-schema/sync` valida lo que una caja subirá a su celda con el mismo protocolo del cuaderno (`@ed1/sync`, que ya no sabe de fincas). La caja de hoy no cambia: sigue sin red ni cuenta.
 - Quién puede qué en un parqueadero, como dato (HU-Q7.8): propietario, administrador y cajero, con la tabla de PARQUEADERO §11.2 en `@ed1/parqueadero-schema/sync`. El cajero registra, cobra y reimprime; anula solo lo suyo y en los primeros 10 minutos; no cambia tarifas, datos legales ni textos del recibo. La celda decidirá con ella cuando exista su API (HU-Q7.4) y la caja la usará cuando tenga cuenta (HU-Q7.6). La caja de hoy no cambia: el PIN de administrador sigue protegiendo lo mismo.
 

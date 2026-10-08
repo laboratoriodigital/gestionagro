@@ -327,7 +327,7 @@ Una celda = en **una** cuenta de Cloudflare:
 - Worker `agro-api-c{N}` (Hono), solo `/api/*`.
 - D1 `agro_c{N}_s{1..k}`: shards. Cada organización vive entera en uno.
 - R2 `agro-c{N}`: fotos, exportaciones y respaldos.
-- KV `agro-c{N}-flags`: kill switches, degradación y anillos de funciones.
+- KV `agro-c{N}-flags`: kill switches, degradación y anillos de funciones. Una celda de otro producto lleva su nombre: `parqueadero-c2-flags` (HU-Q7.2).
 - **Un** Cron Trigger despachador: vigía de cuota cada hora, respaldo semanal, purga de exportaciones vencidas (ED1 §7.1).
 
 Ningún identificador de cuenta, base o dominio está en el código. Todo sale de `infrastructure/celdas.json` (fuente única, P2), del que se generan `wrangler.toml` por celda y la tabla `celda` del CORE:

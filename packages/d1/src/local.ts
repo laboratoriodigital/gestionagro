@@ -18,20 +18,26 @@ import type { BaseD1 } from './index.ts';
 import { baseEnMemoria } from './sqlite.ts';
 
 export const RAIZ = join(import.meta.dirname, '..', '..', '..');
-export const dirMigraciones = (base: 'core' | 'celda') =>
-  join(RAIZ, 'infrastructure', 'migraciones', base);
+/** Las migraciones de cada base: el CORE, la celda del agro y el shard del parqueadero (HU-Q7.2). */
+export type Base = 'core' | 'celda' | 'parqueadero';
+export const dirMigraciones = (base: Base) => join(RAIZ, 'infrastructure', 'migraciones', base);
 
 /**
  * Sentencias de un archivo SQL, sin comentarios de línea. Una sentencia termina en «;» al final
- * de una línea, salvo dentro de un `CREATE TRIGGER … BEGIN … END;`, que llega completo.
+ * de una línea (con o sin un comentario `--` después), salvo dentro de un
+ * `CREATE TRIGGER … BEGIN … END;`, que llega completo.
  */
 export function sentenciasDe(sql: string): string[] {
   const sentencias: string[] = [];
   let actual: string[] = [];
   let enTrigger = false;
-  for (const linea of sql.split(/\r?\n/)) {
+  for (let linea of sql.split(/\r?\n/)) {
     if (linea.trim().startsWith('--')) continue;
-    if (actual.length === 0 && /^\s*CREATE\s+TRIGGER\b/i.test(linea)) enTrigger = true;
+    // Una línea en blanco antes del trigger no lo esconde (el shard del parqueadero la tiene).
+    const empieza = actual.every((l) => l.trim() === '');
+    if (empieza && /^\s*CREATE\s+TRIGGER\b/i.test(linea)) enTrigger = true;
+    // «('punto');  -- puesto de trabajo» también cierra.
+    if (!enTrigger) linea = linea.replace(/;\s*--[^']*$/, ';');
     actual.push(linea);
     const cierra = enTrigger ? /^\s*END\s*;\s*$/i.test(linea) : /;\s*$/.test(linea);
     if (cierra) {
@@ -45,7 +51,7 @@ export function sentenciasDe(sql: string): string[] {
   return sentencias.filter(Boolean);
 }
 
-export const migraciones = (base: 'core' | 'celda'): string[] =>
+export const migraciones = (base: Base): string[] =>
   readdirSync(dirMigraciones(base))
     .filter((f) => f.endsWith('.sql'))
     .sort()
@@ -74,7 +80,7 @@ export function instrumentoDe(pedido?: Instrumento): Instrumento {
 export async function baseLocal(opciones: {
   configuracion: string;
   binding: string;
-  base: 'core' | 'celda';
+  base: Base;
   instrumento?: Instrumento;
 }): Promise<{ db: BaseD1; cerrar: () => Promise<void> }> {
   let db: BaseD1 | undefined;

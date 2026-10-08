@@ -21,7 +21,10 @@ import {
   cargarProductosDePrueba,
   registroDelDestino,
 } from '../../../scripts/lib/productos-de-prueba.ts';
-import { catalogoDelRepositorio } from '../../../scripts/lib/registro-productos.ts';
+import {
+  cargarProductos as cargarRegistro,
+  catalogoDelRepositorio,
+} from '../../../scripts/lib/registro-productos.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
 import { sumarMeses } from './calendario.ts';
 import { type ProductoDelCatalogo, sentenciasDelCatalogo } from './catalogo.ts';
@@ -110,7 +113,12 @@ const post = (ruta: string, cuerpo: unknown, origen = APP) =>
 
 beforeEach(async () => {
   await vaciarCore(db);
-  for (const s of sentenciasDeCeldas(cargarCeldas().celdas, 'staging')) await db.prepare(s).run();
+  // Como el despliegue: el catálogo antes que las celdas, porque cada celda nombra su producto.
+  for (const s of [
+    ...sentenciasDelCatalogo(catalogoDelRepositorio(cargarRegistro()), '2026-10-06T00:00:00.000Z'),
+    ...sentenciasDeCeldas(cargarCeldas().celdas, 'staging'),
+  ])
+    await db.prepare(s).run();
   reloj = T0;
   const contado = contandoEscrituras(db);
   cuenta = contado.cuenta;

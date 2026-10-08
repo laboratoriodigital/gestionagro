@@ -28,3 +28,4 @@ apps/api-celda/wrangler.despliegue.jsonc
 
 # Temporadas simuladas para importar (se regeneran con apps/cuaderno/src/simulacion).
 /simulacion/
+apps/parqueadero-api/wrangler.despliegue.jsonc

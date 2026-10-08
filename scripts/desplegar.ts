@@ -28,6 +28,7 @@ import {
   DOMINIO_PARQUEADERO,
   WORKER_PARQUEADERO,
   wranglerDeLaCelda,
+  wranglerDeLaCeldaDelParqueadero,
   wranglerDelCore,
   wranglerDelSitio,
   ZONA_PARQUEADERO,
@@ -41,6 +42,15 @@ import {
   secretosDeLaCelda,
 } from './lib/api-celda.ts';
 import { escribirCabecerasDelParqueadero } from './lib/cabeceras-parqueadero.ts';
+import {
+  ARCHIVO_DESPLIEGUE_PARQUEADERO,
+  CONSULTA_HUMO_SHARD,
+  celdasDelDirectorio,
+  configDeLaCeldaDelParqueadero,
+  escribirDespliegueDelParqueadero,
+  notaSinProduccion,
+  tablasQueFaltan,
+} from './lib/celda-parqueadero.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
 import { type ClaveQr, clavesQrDe, ponerClavesEnLaPagina } from './lib/claves-qr.ts';
 import {
@@ -187,7 +197,7 @@ async function desplegarSitio(
   // confirmar». Una celda que no responde se avisa y no detiene el sitio.
   const clavesQr: ClaveQr[] = [];
   const avisosQr: string[] = [];
-  for (const otra of config.celdas.filter((x) => x.estado === 'activa')) {
+  for (const otra of config.celdas.filter((x) => x.estado === 'activa' && x.producto === 'agro')) {
     try {
       clavesQr.push(
         ...(await clavesQrDe(fetch, destino === 'staging' ? otra.api_staging : otra.api)),
@@ -285,7 +295,10 @@ async function desplegarCore(
       [
         ...sentenciasDelCatalogo(catalogoDelRepositorio(registro), new Date().toISOString()),
         ...sentenciasDeCeldas(
-          [...config.celdas, ...(dest === 'staging' ? cargarProductosDePrueba().celdas : [])],
+          [
+            ...celdasDelDirectorio(config.celdas, dest),
+            ...(dest === 'staging' ? cargarProductosDePrueba().celdas : []),
+          ],
           dest,
         ),
       ],
@@ -431,7 +444,7 @@ async function desplegarCore(
 
   // HU-C3.7: en staging, el directorio tiene además las celdas de los productos de prueba.
   const activas =
-    config.celdas.filter((x) => x.estado === 'activa').length +
+    celdasDelDirectorio(config.celdas, dest).filter((x) => x.estado === 'activa').length +
     (dest === 'staging' ? cargarProductosDePrueba().celdas.length : 0);
   const fallas = await conReintentos(async () => [
     ...(await humoCore(fetch, url, activas)),
@@ -558,6 +571,85 @@ async function desplegarParqueadero(cred: Credenciales, para: Destino): Promise<
   return fallas.length > 0
     ? { ok: false, detalle: fallas }
     : { ok: true, detalle: [`parqueadero${produccion ? '' : ' (staging)'}: ${base}/caja/`] };
+}
+
+/**
+ * Una celda del parqueadero (HU-Q7.2): sus bases D1 con las migraciones y su KV de flags con los
+ * kill switches del producto. Sin Worker todavía (HU-Q7.4). Solo staging: ver
+ * `scripts/lib/celda-parqueadero.ts`.
+ */
+async function prepararCeldaDelParqueadero(celda: Celda, cred: Credenciales): Promise<Paso> {
+  const dest = destino as Destino;
+  if (dest === 'produccion') return { ok: true, detalle: [notaSinProduccion(celda.id)] };
+  if (celda.shards.length === 0) {
+    return { ok: false, detalle: [`${celda.id}: no tiene shards en celdas.json`] };
+  }
+  const titulo = nombreKvFlags(celda.id, dest, celda.producto);
+  const bases: Record<string, string> = {};
+  const nuevas: string[] = [];
+  let notaKv: string;
+  try {
+    for (const shard of celda.shards) {
+      const base = await asegurarBaseD1(fetch, cred.token, cred.cuenta, baseDelShard(shard, true));
+      bases[shard] = base.id;
+      if (base.creada) nuevas.push(baseDelShard(shard, true));
+    }
+    const ns = await asegurarNamespace(fetch, cred.token, cred.cuenta, titulo);
+    const producto = cargarRegistroDeProductos().productos.find((p) => p.id === celda.producto);
+    const claves = await asegurarClaves(
+      fetch,
+      cred.token,
+      cred.cuenta,
+      ns.id,
+      producto?.kill_switches ?? [],
+    );
+    notaKv = `KV ${titulo}${ns.creado ? ' (creado)' : ''}: ${claves.creadas.length} kill switch(es) creados en «encendido», ${claves.existentes.length} ya existían y no se tocaron`;
+    escribirDespliegueDelParqueadero(
+      configDeLaCeldaDelParqueadero(wranglerDeLaCeldaDelParqueadero(celda), dest, bases),
+    );
+  } catch (e) {
+    return { ok: false, detalle: [`celda ${celda.id} del parqueadero: ${(e as Error).message}`] };
+  }
+  // wrangler corre dentro de @ed1/parqueadero-sitio, que lo trae: la celda no tiene paquete propio
+  // hasta su API (HU-Q7.4). Las migraciones se buscan junto a la configuración.
+  const c = `-c ../parqueadero-api/${ARCHIVO_DESPLIEGUE_PARQUEADERO} ${entorno}`;
+  for (const shard of celda.shards) {
+    const migrar = wrangler(
+      '@ed1/parqueadero-sitio',
+      `d1 migrations apply ${shard} --remote ${c}`,
+      cred,
+    );
+    if (!migrar.ok) {
+      return {
+        ok: false,
+        detalle: [`migraciones del shard ${shard} fallaron:`, ...causaDeWrangler(migrar.salida)],
+      };
+    }
+    const humoShard = wrangler(
+      '@ed1/parqueadero-sitio',
+      `d1 execute ${shard} --remote --json --command "${CONSULTA_HUMO_SHARD}" ${c}`,
+      cred,
+    );
+    const faltan = humoShard.ok ? tablasQueFaltan(humoShard.salida) : null;
+    if (faltan === null || faltan.length > 0) {
+      return {
+        ok: false,
+        detalle: [
+          faltan === null
+            ? `shard ${shard}: no se pudo leer su lista de tablas`
+            : `shard ${shard}: le faltan las tablas ${faltan.join(', ')}`,
+          ...causaDeWrangler(humoShard.salida),
+        ],
+      };
+    }
+  }
+  return {
+    ok: true,
+    detalle: [
+      `celda ${celda.id} del parqueadero (staging): ${celda.shards.length} shard(s) con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}; sin API todavía (HU-Q7.4)`,
+      notaKv,
+    ],
+  };
 }
 
 async function desplegarApiCelda(
@@ -765,7 +857,15 @@ for (const celda of plan.aDesplegar) {
   } else if (alojaCore) {
     detalle.push('CORE: sin publicar en este despliegue (su versión no cambió)');
   }
-  if (paso.ok && productos.has('agro')) {
+  // HU-Q7.2: cada celda despliega lo de su producto. La del CORE y el sitio es del agro.
+  if (celda.producto === 'parqueadero') {
+    if (paso.ok && productos.has('parqueadero')) {
+      paso = await prepararCeldaDelParqueadero(celda, cred);
+      detalle.push(...paso.detalle);
+    } else if (!productos.has('parqueadero')) {
+      detalle.push('parqueadero: sin publicar en este despliegue (su versión no cambió)');
+    }
+  } else if (paso.ok && productos.has('agro')) {
     paso = await desplegarApiCelda(configCeldas, celda, cred);
     detalle.push(...paso.detalle);
     if (paso.ok && alojaSitio) {
