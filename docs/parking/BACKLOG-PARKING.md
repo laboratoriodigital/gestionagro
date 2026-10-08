@@ -419,7 +419,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.3.1 `[código]` extraer el protocolo · WI-Q7.3.2 `[prueba]` el cuaderno intacto · WI-Q7.3.3 `[prueba]` batería del parqueadero · WI-Q7.3.4 `[ci]` guardia de imports · WI-Q7.3.5 `[doc]` ARQUITECTURA §5.6.
 
 #### HU-Q7.4 · `parqueadero-api`: salud, push, pull y cuarentena
-- **Capa:** API de la celda · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q7 · **Depende de:** HU-Q7.2, HU-Q7.3, HU-Q7.13, HU-C4.1 · **Estado:** Refinada
+- **Capa:** API de la celda · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q7 · **Depende de:** HU-Q7.2, HU-Q7.3, HU-Q7.13, HU-C4.1 · **Estado:** En curso (rama `feat/q7-4-parqueadero-api`)
 - Como caja, quiero subir mis registros y bajar los de las otras cajas de la sede, sin perder ni repetir uno, para que dos cajas cuadren.
 - **Respaldo:** PARQUEADERO §12 y §10.2; las convenciones de la celda agro.
 - **CA1.** Hono, solo `/api/*`. `GET /api/salud` sin token; `POST /api/v1/sync/push` y `GET /api/v1/sync/pull` con el token del CORE (`aud = parqueadero`) verificado sin llamar al CORE, y el `org_id` del token en cada consulta (lo exige la prueba de repositorio de `org_id`).
