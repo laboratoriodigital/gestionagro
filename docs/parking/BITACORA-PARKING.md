@@ -855,3 +855,25 @@ D1_ERROR: incomplete input: SQLITE_ERROR
 La regla: **un instrumento de prueba que parte SQL también se prueba con el SQL nuevo antes de culpar a la base; el archivo que ya pasaba en otro instrumento es la pista.**
 
 *Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P17 · parqueadero-0.2.0 · 2026-10-08
+
+**29 · La corrida de staging de #145 se saltó la celda c2: solo despliega el CORE y el agro.**
+
+*Qué pasó.* El 8 oct 2026, al fusionar #145 (HU-Q7.2), la corrida «desplegar» de staging terminó en verde. Al revisar qué había preparado para c2, el código dice que no la tocó.
+
+*Síntoma literal.* Deducido del código, sin el log: el registro de la corrida no se pudo leer desde la sesión del asistente. Para c2, la línea del resumen es:
+
+```text
+parqueadero: sin publicar en este despliegue (su versión no cambió)
+```
+
+*Causa raíz.* El despliegue preparaba una celda del parqueadero solo si la corrida nombraba al producto (`--productos parqueadero`). La de staging nunca lo nombra: sin lista, `productosADesplegar` devuelve `core` y `agro`, y el parqueadero solo entra cuando se publica una versión suya. La caja de staging no tenía el problema porque se despliega junto al CORE sin mirar esa lista. Las pruebas de #145 cubrían la configuración, los ids por destino y la exclusión de producción, pero no qué corrida llega a llamar la preparación.
+
+*Cómo se reprodujo.* Con `preparaLasCeldasDelParqueadero('staging', productosADesplegar(undefined))`, que con la regla vieja da `false`.
+
+*Arreglo.* Staging prepara las celdas del parqueadero en cada corrida, como despliega la caja de staging. Producción sigue igual: solo cuando se publica el parqueadero, y hoy eso se limita a la nota de producción.
+
+**Lo prueba** «staging la prepara aunque su lista de productos sea la de siempre» en `tests/repo/celda-despliegue.test.ts`. Control negativo: con la condición de antes, la prueba se ve en rojo.
+
+La regla: **una rama nueva del despliegue se prueba con la lista de productos que de verdad recibe cada destino, no con la que uno supone.**
+
+*Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P1 · parqueadero-0.2.0 · 2026-10-08
