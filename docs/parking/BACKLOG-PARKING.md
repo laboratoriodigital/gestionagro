@@ -734,7 +734,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramientas atraen y la caja retiene. **Se mide antes de construir** (estudio §12.2; bitácora parqueadero 9), salvo el aviso de tarifas y derechos, que el parqueadero cero necesita en su entrada.
 
 #### HU-Q11.1 · Medir la búsqueda antes de construir
-- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q6 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q6 · **Depende de:** — · **Estado:** En curso (rama `docs/q11-1-regla-busqueda`): la regla de decisión está escrita en `docs/parking/validacion/herramientas-busqueda.md`, sin datos; al fusionarla, el dueño consulta Keyword Planner (WI-Q11.1.2)
 - Como dueño, quiero el volumen de búsqueda de las siete herramientas de estudio §12.2 con la regla de decisión escrita antes de ver los datos, para no construir las que nadie busca.
 - **Respaldo:** estudio §12.2 («Antes de construir») y el método del 1 oct 2026 (estudio de ecommerce §12.6).
 - **CA1.** `docs/parking/validacion/herramientas-busqueda.md` tiene la regla escrita y fusionada antes de consultar Keyword Planner, y después los datos con su fecha.
