@@ -289,6 +289,7 @@ No son errores. Son decisiones que cambiaron con información nueva.
 | `POST /api/v1/exportar` a R2 con enlace temporal (HU-Q7.9 CA1) | La caja al día arma el mismo archivo con lo de todas las cajas y lo compara con `resumen` | Lo mismo: leer el parqueadero entero no cabe en una invocación. Sin R2 no hay objetos que purgar ni enlaces que vencer (PARQUEADERO §12) |
 | `auth_time` reciente en vez del PIN para los ajustes sensibles (HU-Q7.6 CA3) y la caja escondiendo lo que el rol no puede (WI-Q7.8.3) | Siguen el PIN y la caja de M0, también con cuenta | CA1 deja para el refinamiento con el cliente cómo entra un cajero sin cuenta de Google; hasta saberlo, solo el propietario entra |
 | La demostración del 30 oct (`v0.1.0`) y después el piloto del 9 nov (`v0.2.0`) | Puesta en marcha directa: la `0.1.0` es la versión con la que el cliente opera, después de la matriz en su equipo (HU-Q6.1) y con el primer turno en paralelo con el talonario (HU-Q6.4) | El cliente cerró la compra el 7 oct de 2026 y entra a operar con el MVP (dueño, 8 oct). Todas las historias de código de M0 ya estaban en `main` |
+| Cron por celda con respaldo semanal a R2 y aviso por Telegram (HU-Q10.1, PARQUEADERO §14.3) | La copia en el Google Drive de la cuenta con que se entra, como el cuaderno de CultivoPro (HU-E8.4); sin cron ni R2 | Decisión del dueño, 8 oct 2026: «respaldo en la cuenta de Google con que se registre, tal cual quedó en CultivoPro». La celda ya es la copia del parqueadero (HU-Q7.9) y el plan gratuito no paga leerlo entero en un cron |
 
 ---
 

@@ -499,7 +499,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.10.1 `[código]` plan en la caja · WI-Q7.10.2 `[código]` aviso a la celda · WI-Q7.10.3 `[prueba]` plan vencido · WI-Q7.10.4 `[dueño]` registrar los periodos pagados a mano.
 
 #### HU-Q7.11 · La promesa de privacidad cambia con la cuenta
-- **Capa:** legal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q9 · **Depende de:** HU-Q4.4, HU-Q7.5 · **Estado:** En curso (rama `feat/q9-sprint`)
+- **Capa:** legal · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q9 · **Depende de:** HU-Q4.4, HU-Q7.5 · **Estado:** En revisión (rama `feat/q9-sprint`): en staging. Los términos y el contrato de transmisión en `content/parqueadero/privacidad/terminos.json` (borrador para revisión de abogado), «Entrar con Google» solo con la casilla marcada, la versión y la hora en `meta` y en la fila de la caja (migración 0002), `?terminos=` en cada pedido a la celda y 403 `sin-terminos` sin ellos. Falta WI-Q7.11.1: los datos de Laboratorio Digital como encargado (hoy dicen «por completar»)
 - Como parqueadero que crea su cuenta, quiero que lo que dice la caja sobre mis datos siga siendo cierto, para no prometer lo que ya no es.
 - **Respaldo:** PARQUEADERO §13.2 (en M1 y M2, ED1 es Encargado) y §2.3 punto 5; estudio §13.5; Decreto 1377 art. 25.
 - **CA1.** Antes de entrar, la caja dice qué pasa a la nube (registros, placas y, desde M2, fotos) y qué no (el número del conductor), y pide aceptar los términos con el contrato de transmisión. La aceptación queda con su versión y su hora.
@@ -691,18 +691,18 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 
 ### EQ10 · Operación
 
-#### HU-Q10.1 · Cron despachador, respaldo semanal y restauración ensayada
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q9 · **Depende de:** HU-Q7.4 · **Estado:** En curso (rama `feat/q9-sprint`)
+#### HU-Q10.1 · Respaldo en el Google Drive de la cuenta, como CultivoPro
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q9 · **Depende de:** HU-Q7.4, HU-Q7.9 · **Estado:** En revisión (rama `feat/q9-sprint`): en staging. El dueño cambió el destino el 8 oct 2026: «respaldo en la cuenta de Google con que se registre, tal cual quedó en CultivoPro». Sin cron ni R2: la celda ya es la copia del parqueadero (HU-Q7.9) y el vigía del agro ya mide sus filas (HU-Q7.13); bitácora, cambios de rumbo. Lo de Google pasó a `@ed1/drive`, que comparten el cuaderno y la caja; el CORE acepta `producto=` en el permiso de Drive, y la política del parqueadero pasa a la versión 2 para declararlo. Falta WI-Q10.1.3
 - Como dueño, quiero que los datos de los parqueaderos tengan respaldo y que restaurarlo esté probado, antes de guardar los datos de un tercero en la nube.
-- **Respaldo:** PARQUEADERO §14.3; ADR-30; ARQUITECTURA §8.3; P16.
-- **CA1.** Un solo cron por celda: vigía cada hora, respaldo semanal a R2 y purga de exportaciones vencidas.
-- **CA2.** La restauración se ensaya en staging desde el respaldo de R2, y el tiempo que toma queda en el runbook. La copia cifrada al Drive del dueño se suma cuando HU-C11.4 exista (C11).
-- **CA3 ❌.** Un respaldo que no se pudo escribir avisa por Telegram el mismo día. Restaurar une, nunca reemplaza el presente (bitácora ecommerce 77).
+- **Respaldo:** la copia del cuaderno (HU-E8.4, etapa 1; `docs/runbooks/drive-del-productor.md`); PARQUEADERO §14.3; ARQUITECTURA §8.3; P16.
+- **CA1.** Más › «Respaldo» › «Guardar copia en mi Google Drive» sube el mismo `parqueadero-export/1` de «Hacer el respaldo» a la carpeta «Caja del parqueadero · respaldos» del Drive de quien lo pide, directo de la caja a su cuenta. Se conservan las 8 más recientes y cuenta como respaldo en la cabecera. Con la caja en la nube, primero sube y baja: la copia lleva lo de todas las cajas.
+- **CA2.** «Traer una copia de mi Google Drive» lista las copias y une la elegida a la caja con la misma revisión de «Restaurar». Ensayado de punta a punta con Drive y CORE falsos (`tests/e2e/parqueadero-drive.spec.ts`); el permiso real de Google, en staging (WI-Q10.1.3).
+- **CA3 ❌.** Traer une, nunca reemplaza el presente (bitácora ecommerce 77). Un permiso pedido hace más de 10 minutos, o desde otro teléfono, no se canjea; sin señal no sale de la caja; el token de Google nunca se guarda.
 - **Patrones en riesgo:** P14, P16, P21.
-- **Work items:** WI-Q10.1.1 `[código]` cron · WI-Q10.1.2 `[prueba]` respaldo fallido · WI-Q10.1.3 `[campo]` ensayo de restauración · WI-Q10.1.4 `[doc]` runbook.
+- **Work items:** WI-Q10.1.1 `[código]` `@ed1/drive` y la copia de la caja · WI-Q10.1.2 `[prueba]` · WI-Q10.1.3 `[dueño]` en staging, guardar y traer una copia con su cuenta de Google · WI-Q10.1.4 `[doc]` política v2. Lo que pedía antes (un cron por celda, respaldo semanal a R2, aviso por Telegram) queda fuera mientras el dueño no lo pida.
 
 #### HU-Q10.2 · Un parqueadero se va: exportar, entregar, verificar y purgar
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q9 · **Depende de:** HU-Q7.9 · **Estado:** En curso (rama `feat/q9-sprint`)
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q9 · **Depende de:** HU-Q7.9 · **Estado:** En revisión (rama `feat/q9-sprint`): `scripts/baja-parqueadero.ts` (exportar, verificar, purgar y ensayar, por la API de D1, sin shell) y `docs/runbooks/parqueadero-baja.md`. No exporta con cajas sin retirar y no purga si la celda tiene algo que no se entregó; una purga cortada se termina repitiendo el comando. Probado en el D1 local con sqlite y workerd (`tests/integracion/parqueadero-baja.test.ts`), con Ensayo Uno en el mismo shard intacto. CA2 en staging: el flujo `ensayo-baja-parqueadero`, a mano, después de fusionar
 - Como parqueadero que deja el servicio, quiero recibir todo lo mío antes de que se borre.
 - **Respaldo:** PARQUEADERO §14.5 (runbook 5) y anexo A (`purga`); P21.
 - **CA1.** El runbook y su script: exportación completa, entrega al parqueadero, huella verificada y, solo entonces, una fila en `purga` que habilita el `DELETE`.
@@ -722,7 +722,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q10.3.1 `[código]` registro y resumen · WI-Q10.3.2 `[dueño]` registrar desde el piloto · WI-Q10.3.3 `[doc]` runbooks.
 
 #### HU-Q10.4 · Los runbooks de la celda, atados al código
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q9 · **Depende de:** HU-Q7.7, HU-Q7.13 · **Estado:** En curso (rama `feat/q9-sprint`)
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q9 · **Depende de:** HU-Q7.7, HU-Q7.13 · **Estado:** En revisión (rama `feat/q9-sprint`): `docs/runbooks/parqueadero-kill-switches.md` con `ks:parqueadero`, `ks:parqueadero-fotos` y `ks:core:parqueadero` y cómo verificarlos; la prueba `tests/repo/runbooks-parqueadero.test.ts` saca del código las rutas del Worker, las claves de `productos.json`, los KV de `celdas.json` y sus direcciones, y pone en rojo un runbook que nombre algo que no existe (CA3 con su control negativo)
 - Como dueño, quiero los pasos exactos para retirar un teléfono robado y para apagar o prender la celda, sin adivinar.
 - **Respaldo:** PARQUEADERO §14.5 (runbook 4) y §14.2; P18.
 - **CA1.** `docs/runbooks/` tiene «Retirar un dispositivo del parqueadero» y «Kill switches del parqueadero», con los comandos exactos.

@@ -1076,6 +1076,8 @@ Convenciones de la celda agro: Hono, solo `/api/*`, token del CORE con `aud = pa
 | M1–M2 | El parqueadero | ED1, que guarda registros, placas y fotos | Contrato de transmisión con el parqueadero; política de ED1 como encargado; exportación y purga (P21) |
 | M3 | El parqueadero | ED1 y Meta (WhatsApp), con el número del conductor | Consentimiento registrado con su texto y su hora; finalidad única (recibos); baja con una palabra |
 
+**Hecho en HU-Q7.11 (8 oct 2026), en staging:** antes de entrar con la cuenta, la caja dice qué sube a la nube y qué no sale del teléfono, y pide aceptar los términos con el contrato de transmisión (`content/parqueadero/privacidad/terminos.json`, borrador para abogado; los datos de ED1 como encargado esperan WI-Q7.11.1). La versión y la hora quedan en la caja y en su fila de `dispositivo` (migración 0002); cada pedido a la celda dice la versión aceptada (`?terminos=`) y sin la vigente la celda responde 403 `sin-terminos`. La exportación y la purga son el runbook 5 (§14.5, HU-Q10.2).
+
 Controles técnicos: la autorización del número es una casilla sin marcar, con el texto que el operador lee; la finalidad es solo enviar recibos; el número se borra 24 h después de la salida; nada personal en GitHub Actions ([H6]) ni en los eventos.
 
 ### 13.3 Ley 1480, Ley 527 y la DIAN
@@ -1113,6 +1115,7 @@ Las claves `ks:parqueadero` y `ks:parqueadero-fotos` se declaran en `infrastruct
 
 - Un solo cron despachador por celda, como en el agro: vigía cada hora, respaldo semanal a R2 y copia cifrada al Drive del dueño (ADR-30), purga de exportaciones vencidas, y en M3 el reintento de la cola de WhatsApp.
 - Alertas al dueño por Telegram (ADR-16).
+- **Hecho en HU-Q10.1 (8 oct 2026), en staging, con otro destino:** el dueño decidió el respaldo «en la cuenta de Google con que se registre, tal cual quedó en CultivoPro». La caja guarda el mismo `parqueadero-export/1` en el Google Drive de quien lo pide (carpeta «Caja del parqueadero · respaldos», 8 copias) y lo trae con la revisión de «Restaurar», que une sin borrar. El permiso `drive.file` lo pide el CORE con `producto=parqueadero` y dura una sola copia; lo de Google vive en `@ed1/drive`, que comparte con el cuaderno. No hay cron ni R2: la celda ya es la copia del parqueadero (HU-Q7.9), el vigía del agro ya mide sus filas (HU-Q7.13) y no hay exportaciones guardadas que purgar. Producción espera a la versión del CORE que lo publique y a la CSP de producción.
 
 ### 14.4 Medición
 
@@ -1128,6 +1131,8 @@ Las claves `ks:parqueadero` y `ks:parqueadero-fotos` se declaran en `infrastruct
 3. **La impresora no imprime:** diagnóstico por pasos (§7.4).
 4. **Retirar un dispositivo** perdido o robado.
 5. **Un parqueadero se va:** exportar, entregar, verificar la huella, purgar (P21).
+
+**Hechos en HU-Q10.4 y HU-Q10.2 (8 oct 2026):** el 4 es `parqueadero-retirar-caja.md` y suma `parqueadero-kill-switches.md` (§14.2); una prueba de repositorio pone en rojo un runbook de la celda que nombre una ruta, una clave, un KV o una dirección que no existe. El 5 es `parqueadero-baja.md` con `scripts/baja-parqueadero.ts`: no exporta con cajas sin retirar, y antes de escribir la fila de `purga` compara la celda con el archivo entregado; las cajas retiradas se quedan para que ninguna vuelva a subir nada.
 
 ---
 
