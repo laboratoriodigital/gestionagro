@@ -1,6 +1,6 @@
 # Demanda de búsqueda de las herramientas gratuitas del parqueadero (HU-Q11.1)
 
-**Estado:** regla escrita el 8 oct 2026, **antes** de consultar Keyword Planner. Faltan los datos (WI-Q11.1.2, el dueño) y la decisión (WI-Q11.1.3).
+**Estado:** regla escrita y fusionada el 8 oct 2026 (#137), **antes** de consultar Keyword Planner. Datos del dueño del mismo día, después de la fusión (WI-Q11.1.2). Recomendación escrita abajo; la decisión es del dueño (WI-Q11.1.3).
 **Para qué:** decidir con datos cuáles de las siete herramientas del estudio §12.2 se construyen, cuáles esperan y cuáles no (CA2).
 **Regla (P18):** ninguna cifra se escribe de memoria ni se estima sin decirlo. Cada celda lleva su tipo y su fuente. La regla de decisión de abajo se fusiona antes de ver los datos; si se cambia después, el historial del repositorio lo muestra y la medición no vale (CA3).
 **Método:** el mismo del agro (`docs/agro/validacion/busquedas-2026-12.md`, 1 oct 2026), que sale del estudio de ecommerce §12.6.
@@ -94,40 +94,40 @@ factura de parqueadero
 
 | # | Término | Herramienta | Colombia | LATAM (México, Perú, Ecuador, Chile, Argentina) | Fuente y fecha | Notas |
 |---|---|---|---|---|---|---|
-| 1 | tarifa parqueadero por minuto | 1 · Calculadora de tarifa | | | | |
-| 2 | cobro por minuto parqueadero | 1 · Calculadora de tarifa | | | | |
-| 3 | tarifas parqueaderos bogotá | 1 · Calculadora de tarifa | | | | |
-| 4 | tope tarifa parqueadero | 1 · Calculadora de tarifa | | | | |
-| 5 | cuánto cobran en un parqueadero por hora | 1 · Calculadora de tarifa | | | | Forma coloquial |
-| 6 | calculadora de parqueadero | 1 · Calculadora de tarifa | | | | |
-| 7 | recibo de parqueadero | 2 · Recibo de entrada | | | | |
-| 8 | formato recibo de parqueadero | 2 · Recibo de entrada | | | | |
-| 9 | tiquete de parqueadero | 2 · Recibo de entrada | | | | |
-| 10 | talonario para parqueadero | 2 · Recibo de entrada | | | | Lo que hoy compra el parqueadero cero |
-| 11 | ticket de estacionamiento | 2 · Recibo de entrada | | | | Forma de LATAM; no cuenta para la 2 |
-| 12 | cuánto gana un parqueadero | 3 · Rentabilidad | | | | |
-| 13 | negocio de parqueadero | 3 · Rentabilidad | | | | |
-| 14 | cómo montar un parqueadero | 3 · Rentabilidad | | | | |
-| 15 | rentabilidad de un parqueadero | 3 · Rentabilidad | | | | |
-| 16 | negocio de estacionamiento | 3 · Rentabilidad | | | | Forma de LATAM |
-| 17 | rentabilidad de un estacionamiento | 3 · Rentabilidad | | | | Forma de LATAM |
-| 18 | aviso de tarifas parqueadero | 4 · Aviso de tarifas | | | | |
-| 19 | letrero de tarifas parqueadero | 4 · Aviso de tarifas | | | | |
-| 20 | derechos del usuario parqueadero | 4 · Aviso de tarifas | | | | |
-| 21 | el parqueadero responde por robo | 4 · Aviso de tarifas | | | | La busca el conductor |
-| 22 | requisitos para un parqueadero | 4 · Aviso de tarifas | | | | |
-| 23 | mensualidad parqueadero | 5 · Mensualidades | | | | |
-| 24 | cuánto cobrar mensualidad parqueadero | 5 · Mensualidades | | | | |
-| 25 | parqueadero mensual | 5 · Mensualidades | | | | |
-| 26 | pensión de estacionamiento | 5 · Mensualidades | | | | Forma de México |
-| 27 | cochera mensual | 5 · Mensualidades | | | | Forma de Argentina |
-| 28 | ley 1964 de 2019 | 6 · Cupos eléctricos | | | | |
-| 29 | parqueaderos para carros eléctricos | 6 · Cupos eléctricos | | | | |
-| 30 | cupos para vehículos eléctricos parqueadero | 6 · Cupos eléctricos | | | | |
-| 31 | iva parqueadero | 7 · IVA | | | | |
-| 32 | iva parqueadero propiedad horizontal | 7 · IVA | | | | |
-| 33 | cobro parqueadero de visitantes conjunto | 7 · IVA | | | | |
-| 34 | factura de parqueadero | 7 · IVA | | | | También la busca quien quiere el soporte de su pago |
+| 1 | tarifa parqueadero por minuto | 1 · Calculadora de tarifa | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 2 | cobro por minuto parqueadero | 1 · Calculadora de tarifa | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 3 | tarifas parqueaderos bogotá | 1 · Calculadora de tarifa | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 4 | tope tarifa parqueadero | 1 · Calculadora de tarifa | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 5 | cuánto cobran en un parqueadero por hora | 1 · Calculadora de tarifa | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | Forma coloquial |
+| 6 | calculadora de parqueadero | 1 · Calculadora de tarifa | 50 (R) | 50 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 7 | recibo de parqueadero | 2 · Recibo de entrada | 50 (R) | 50 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 8 | formato recibo de parqueadero | 2 · Recibo de entrada | 50 (R) | 50 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 9 | tiquete de parqueadero | 2 · Recibo de entrada | 50 (R) | 50 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 10 | talonario para parqueadero | 2 · Recibo de entrada | 50 (R) | 50 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | Lo que hoy compra el parqueadero cero |
+| 11 | ticket de estacionamiento | 2 · Recibo de entrada | 50 (R) | 500 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | Forma de LATAM; no cuenta para la 2 |
+| 12 | cuánto gana un parqueadero | 3 · Rentabilidad | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 13 | negocio de parqueadero | 3 · Rentabilidad | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 14 | cómo montar un parqueadero | 3 · Rentabilidad | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 15 | rentabilidad de un parqueadero | 3 · Rentabilidad | 50 (R) | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | LATAM: Keyword Planner muestra 0 |
+| 16 | negocio de estacionamiento | 3 · Rentabilidad | 50 (R) | 50 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | Forma de LATAM |
+| 17 | rentabilidad de un estacionamiento | 3 · Rentabilidad | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | Forma de LATAM |
+| 18 | aviso de tarifas parqueadero | 4 · Aviso de tarifas | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 19 | letrero de tarifas parqueadero | 4 · Aviso de tarifas | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 20 | derechos del usuario parqueadero | 4 · Aviso de tarifas | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 21 | el parqueadero responde por robo | 4 · Aviso de tarifas | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | La busca el conductor |
+| 22 | requisitos para un parqueadero | 4 · Aviso de tarifas | 50 (R) | 50 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 23 | mensualidad parqueadero | 5 · Mensualidades | 50 (R) | 50 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 24 | cuánto cobrar mensualidad parqueadero | 5 · Mensualidades | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 25 | parqueadero mensual | 5 · Mensualidades | 500 (R) | 50 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | Colombia: cambio anual +900 % |
+| 26 | pensión de estacionamiento | 5 · Mensualidades | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | Forma de México |
+| 27 | cochera mensual | 5 · Mensualidades | 50 (R) | 500 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | Forma de Argentina. LATAM: cambio anual -90 % |
+| 28 | ley 1964 de 2019 | 6 · Cupos eléctricos | 500 (R) | 50 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | La ley también la busca quien compra o carga un carro eléctrico: no toda la demanda es de dueños de parqueadero |
+| 29 | parqueaderos para carros eléctricos | 6 · Cupos eléctricos | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 30 | cupos para vehículos eléctricos parqueadero | 6 · Cupos eléctricos | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 31 | iva parqueadero | 7 · IVA | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 32 | iva parqueadero propiedad horizontal | 7 · IVA | 50 (R) | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | Colombia: -100 % a tres meses y anual (hoy ~0); LATAM: Keyword Planner muestra 0 |
+| 33 | cobro parqueadero de visitantes conjunto | 7 · IVA | — | — | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) |  |
+| 34 | factura de parqueadero | 7 · IVA | 50 (R) | 50 (R) | Keyword Planner, 8 oct 2026 (sep 2025–ago 2026) | También la busca quien quiere el soporte de su pago |
 
 ### Consultas reales de Search Console que no estaban en la lista
 
@@ -150,14 +150,30 @@ Escrita el 8 oct 2026, antes de ver los datos, para no acomodarla a ellos.
 
 ## Decisión
 
-Se escribe cuando la tabla tenga cifras (WI-Q11.1.3). La decide el dueño a partir de la recomendación.
+Con los datos de Keyword Planner del 8 oct 2026 (sep 2025–ago 2026). **Todas con rangos:** la cuenta no tiene gasto, así que cada cifra es el valor que muestra Keyword Planner (50 = 10–100; 500 = 100–1 mil), no un conteo. La regla no se tocó después de ver los datos (CA3): está como se fusionó en #137.
 
 | Herramienta | Colombia | LATAM | Demanda | Estado |
 |---|---|---|---|---|
-| 1 · Calculadora de tarifa | | — | | |
-| 2 · Recibo de entrada | | — | | |
-| 3 · Rentabilidad | | | | |
-| 4 · Aviso de tarifas | | — | | |
-| 5 · Mensualidades | | | | |
-| 6 · Cupos eléctricos | | — | | |
-| 7 · IVA | | — | | |
+| 1 · Calculadora de tarifa | 50 | — | 50, con rangos | **se espera** (le bastaba 100) |
+| 2 · Recibo de entrada | 200 | — | 200, con rangos | **se construye** (llega a 100) |
+| 3 · Rentabilidad | 100 | 50 | 100 + 0,3 × 50 = 115, con rangos | **se espera** |
+| 4 · Aviso de tarifas | 50 | — | 50, con rangos | **se espera**: se construye igual (HU-Q11.3); su página no merece trabajo de búsqueda todavía |
+| 5 · Mensualidades | 600 | 600 | 600 + 0,3 × 600 = 780, con rangos | **se construye** (llega a 200 y «parqueadero mensual» está en 100–1 mil) |
+| 6 · Cupos eléctricos | 500 | — | 500, con rangos | **se construye** (llega a 200 y «ley 1964 de 2019» está en 100–1 mil) |
+| 7 · IVA | 100 | — | 100, con rangos | **se espera**, y con el veto del contador (regla 3) |
+
+**Orden de las que se construyen (regla 5):** 5 (780), 6 (500), 2 (200). Ninguna está a ±30 % de otra, así que el desempate hacia la caja no aplica.
+
+**Lo que la tabla no dice (P18):**
+
+- **La 6 sale por un solo término.** «ley 1964 de 2019» también la busca quien compra o carga un carro eléctrico, no solo quien administra un parqueadero. Los dos términos del parqueadero («parqueaderos para carros eléctricos», «cupos para vehículos eléctricos parqueadero») no traen dato. La regla dice «se construye»; la duda es si esa búsqueda trae dueños de parqueadero.
+- **La 5 crece.** «parqueadero mensual» en Colombia marca +900 % anual: hace un año estaba en 10–100. En LATAM, «cochera mensual» cae 90 %.
+- **La 2 no tiene un término fuerte:** cuatro términos en 10–100. Llega a su umbral bajo porque reusa `parqueadero-recibos` y cuesta 2 puntos.
+- **«iva parqueadero propiedad horizontal»** trae 50 en el promedio, pero cayó 100 % a tres meses: hoy está cerca de cero.
+
+**Lo que sigue si el dueño acepta la recomendación:**
+
+- HU-Q11.4 (la 2) queda como está, en Q10.
+- HU-Q11.2 (la 1) sale de Q8 y espera la medición de Search Console a los 90 días del aviso de tarifas.
+- La 5 y la 6 cumplen su disparador de §9 del backlog: se escriben sus historias y se planean después de M1.
+- La 3 y la 7 siguen en §9, con esta medición como razón; la 7, además, con el veto del contador.
