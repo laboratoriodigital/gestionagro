@@ -170,6 +170,54 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('estadias')).toBeVisible();
   });
 
+  test('HU-Q4.5 · el texto de responsabilidad empieza con la sugerencia de la ley y sale el de la sede', async ({
+    page,
+  }) => {
+    const propio =
+      'Después de 45 días el parqueadero no se hace responsable del vehículo, moto, bicicleta, etc.';
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    const texto = page.getByLabel('Texto de responsabilidad del recibo de entrada', {
+      exact: true,
+    });
+    await expect(texto).toHaveValue(
+      'Conserve este recibo. El parqueadero responde por el vehículo (Ley 1480, art. 18).',
+    );
+    await texto.fill(propio);
+    await llenarAjustes(page);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    const antes = (await bytesImpresos(page)).length;
+    await teclearPlaca(page, 'ABC123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await expect(page.getByText(propio)).toBeVisible();
+    await expect(page.getByText('Ley 1480')).toHaveCount(0);
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    // El papel lo parte en líneas de 32 columnas.
+    const recibo = (await bytesImpresos(page)).slice(antes);
+    expect(recibo).toContain('parqueadero no se hace');
+    expect(recibo).toContain('responsable del');
+    expect(recibo).not.toContain('Ley 1480');
+    // Vacío, vuelve la sugerencia (CA1).
+    const entrarAAjustes = async () => {
+      await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+      await page.getByLabel('PIN de administrador').fill('2468');
+      await page.getByRole('button', { name: 'Entrar' }).click();
+    };
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await entrarAAjustes();
+    await expect(texto).toHaveValue(propio);
+    await texto.fill('');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await entrarAAjustes();
+    await expect(texto).toHaveValue(
+      'Conserve este recibo. El parqueadero responde por el vehículo (Ley 1480, art. 18).',
+    );
+  });
+
   test('HU-Q3.3 · registra ABC123 y el recibo sale solo con su número y su placa', async ({
     page,
   }) => {

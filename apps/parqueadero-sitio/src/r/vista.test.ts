@@ -29,6 +29,7 @@ const RECIBO: Recibo = {
   },
   salida: null,
   pie: null,
+  responsabilidad: null,
   prueba: true,
 };
 

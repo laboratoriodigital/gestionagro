@@ -17,6 +17,7 @@ import {
   nombreDelVehiculo,
   type Recibo,
   TEXTO_LEGAL,
+  textoDeResponsabilidad,
 } from './recibo.ts';
 
 export interface OpcionesDePapel {
@@ -95,7 +96,7 @@ export function papel(recibo: Recibo, o: OpcionesDePapel): Bloque[] {
       texto('Código para la salida', { alinear: 'centro' });
       regla();
     }
-    texto(TEXTO_LEGAL.entrada);
+    texto(textoDeResponsabilidad(recibo));
   } else {
     const sa = recibo.salida;
     par('RECIBO DE SALIDA', recibo.numero, true);

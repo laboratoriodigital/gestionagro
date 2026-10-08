@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.2.0] - 2026-10-08
+
+El recibo de entrada puede decir lo que dice el talonario del parqueadero.
+
+### Agregado
+- El texto de responsabilidad del recibo de entrada lo decide el parqueadero: Ajustes › «Texto de responsabilidad del recibo de entrada» trae la sugerencia de la ley («El parqueadero responde por el vehículo (Ley 1480, art. 18)») y se puede cambiar por el del talonario, de hasta 200 letras, como «Después de 45 días el parqueadero no se hace responsable del vehículo». Sale en el papel, en la pantalla y en el enlace de la entrada; vacío, vuelve la sugerencia. Los enlaces de siempre siguen iguales; el de una entrada con texto propio es la versión 2 del formato, que `/r/` ya lee (HU-Q4.5).
+
 ## [0.1.1] - 2026-10-08
 
 La tarifa ya no puede dejar las salidas en $0 sin explicación: era un tope por día de $10 en Ajustes.

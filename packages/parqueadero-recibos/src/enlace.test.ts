@@ -16,6 +16,7 @@ import {
   leerEnlace,
   type MotivoDeEnlace,
   type Recibo,
+  TEXTO_LEGAL,
 } from './index.ts';
 
 const CATALOGOS = { sede: SEDE_ENSAYO_UNO, tarifa: TARIFA_CARRO, ajuste: AJUSTE_ENSAYO };
@@ -132,7 +133,7 @@ const motivoDe = async (enlace: string): Promise<MotivoDeEnlace | 'leyo'> => {
 
 describe('un enlace alterado es un error con su motivo, nunca otro recibo (HU-Q1.5 CA3)', () => {
   it.each([
-    ['una versión desconocida', '2.abc', 'version'],
+    ['una versión desconocida', '3.abc', 'version'],
     ['sin datos', '1', 'forma'],
     ['con tres partes', '1.abc.def', 'forma'],
     ['base64 roto', '1.ab$c', 'base64'],
@@ -204,5 +205,85 @@ describe('los enlaces guardados siguen abriendo (HU-Q1.5 CA3)', () => {
 
   it('la forma corta', async () => {
     expect((await leerEnlace(GUARDADOS.corta)).forma).toBe('corta');
+  });
+});
+
+/** Un texto propio de 200 letras, el máximo que deja Ajustes (HU-Q4.5). */
+const PROPIO = [
+  'Conserve este recibo. Después de 45 días el parqueadero no se hace responsable del vehículo,',
+  'moto, bicicleta, etc. El parqueadero responde por el vehículo según la Ley 1480, art. 18, y',
+  'pide el recibo.',
+].join(' ');
+const CON_TEXTO = { ...CATALOGOS, ajuste: { ...AJUSTE_ENSAYO, responsabilidad: PROPIO } };
+
+/** Los datos de un fragmento, para armar a mano uno que la caja nunca escribe. */
+async function datosDe(fragmento: string): Promise<Record<string, unknown>> {
+  const b64 = (fragmento.split('.')[1] ?? '').replaceAll('-', '+').replaceAll('_', '/');
+  const bytes = Uint8Array.from(atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4)), (c) =>
+    c.charCodeAt(0),
+  );
+  const flujo = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'));
+  return JSON.parse(await new Response(flujo).text());
+}
+
+async function fragmentoDe(version: string, datos: unknown): Promise<string> {
+  const json = new TextEncoder().encode(JSON.stringify(datos));
+  const flujo = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate'));
+  let b = '';
+  for (const x of new Uint8Array(await new Response(flujo).arrayBuffer()))
+    b += String.fromCharCode(x);
+  return `${version}.${btoa(b).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')}`;
+}
+
+describe('el texto de responsabilidad de la sede viaja en la versión 2 (HU-Q4.5 CA2)', () => {
+  it('el texto de prueba está en el máximo de 200 letras', () => {
+    expect(PROPIO).toHaveLength(200);
+  });
+
+  it('con la sugerencia de la ley, la entrada sigue en la versión 1', async () => {
+    expect(ENTRADA.responsabilidad).toBeNull();
+    expect(await fragmentoCompleto(ENTRADA)).toMatch(/^1\./);
+  });
+
+  it('con texto propio, la entrada va en la 2 y se lee como el mismo recibo', async () => {
+    const r = armarRecibo(ENTRADA_ENSAYO, CON_TEXTO, { prueba: false });
+    expect(r.responsabilidad).toBe(PROPIO);
+    const fragmento = await fragmentoCompleto(r);
+    expect(fragmento).toMatch(/^2\./);
+    expect(await leerEnlace(fragmento)).toEqual({
+      forma: 'completa',
+      recibo: r,
+      firma: 'sin_firma',
+    });
+  });
+
+  it('la salida no lo lleva: sigue en la 1 y cabe en el QR', async () => {
+    const r = armarRecibo(SALIDA_ENSAYO, CON_TEXTO, { prueba: false });
+    const fragmento = await fragmentoCompleto(r);
+    expect(fragmento).toBe(await fragmentoCompleto(SALIDA));
+  });
+
+  // Medido el 8 oct 2026: con la sugerencia, 400 caracteres (versión 13); con 200 letras
+  // propias, 551 (versión 16). Es el QR de la pantalla, no el del papel, que lleva la corta.
+  it('la entrada larga con 200 letras propias cabe en la versión 16 del QR de la pantalla', async () => {
+    const r = armarRecibo(ENTRADA_ENSAYO, { ...CON_TEXTO, sede: SEDE_LARGA }, { prueba: false });
+    expect(versionDeQr(await enlaceCompleto(r), 16)).toBeLessThanOrEqual(16);
+  });
+
+  it('❌ una salida en la versión 2 es «contenido», no otro recibo (CA3)', async () => {
+    const datos = await datosDe(await fragmentoCompleto(SALIDA));
+    expect(await motivoDe(await fragmentoDe('2', { ...datos, lg: PROPIO }))).toBe('contenido');
+  });
+
+  it('❌ una versión 2 sin texto, o con uno vacío, es «contenido» (CA3)', async () => {
+    const datos = await datosDe(await fragmentoCompleto(ENTRADA));
+    expect(await motivoDe(await fragmentoDe('2', datos))).toBe('contenido');
+    expect(await motivoDe(await fragmentoDe('2', { ...datos, lg: '' }))).toBe('contenido');
+  });
+
+  it('control: el mismo armado, como versión 2 de una entrada, sí se lee', async () => {
+    const datos = await datosDe(await fragmentoCompleto(ENTRADA));
+    expect(await motivoDe(await fragmentoDe('2', { ...datos, lg: PROPIO }))).toBe('leyo');
+    expect(TEXTO_LEGAL.entrada).not.toBe(PROPIO);
   });
 });

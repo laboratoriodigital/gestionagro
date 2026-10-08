@@ -151,12 +151,18 @@ export const abonado = z
   })
   .refine((a) => a.hasta >= a.desde, { path: ['hasta'], message: 'no puede ser antes de «desde»' });
 
-/** Lo que el parqueadero decide del recibo. El texto legal no se edita: es de la ley. */
+/** Lo que el parqueadero decide del recibo: el pie y, desde HU-Q4.5, el texto de responsabilidad. */
 export const ajusteRecibo = z.strictObject({
   ...metaDeCatalogo,
   entidad: z.literal('ajuste_recibo'),
   /** Una línea propia al pie (horario, «gracias»); nula si no hay. */
   pie: notaCorta(64).nullable(),
+  /**
+   * El texto de responsabilidad del recibo de entrada, si la sede escribió el suyo (HU-Q4.5).
+   * Nulo o ausente: la sugerencia de la ley (`TEXTO_LEGAL.entrada` de `@ed1/parqueadero-recibos`).
+   * Opcional: los ajustes de antes no lo traen.
+   */
+  responsabilidad: notaCorta(200).nullable().optional(),
 });
 
 /** Puesto de trabajo (M1): entrada, salida o ambos. */

@@ -3,7 +3,9 @@
  *
  * - **Completa:** `…/r/#1.<datos>[.<firma>.<certificado>]`. `datos` es un JSON de claves cortas,
  *   comprimido con deflate (zlib, que trae su suma Adler-32) y en base64url. Es el formato del QR
- *   firmado del agro, que `@ed1/firma` hereda en M2 (HU-Q8.1); en M0 va sin firma.
+ *   firmado del agro, que `@ed1/firma` hereda en M2 (HU-Q8.1); en M0 va sin firma. La versión 2
+ *   (HU-Q4.5) es la 1 con el texto de responsabilidad que escribió la sede; solo la lleva una
+ *   entrada con texto propio, así que los demás recibos siguen saliendo en la 1.
  * - **Corta:** `…/r/#c.<número>.<placa>.<tipo>.<hora>`, la del papel: cabe en un QR de versión 7.
  *
  * El fragmento no llega a ningún servidor (P13). El enlace es un contrato desde el primer recibo:
@@ -115,6 +117,11 @@ const compactoV1 = z.strictObject({
 
 type CompactoV1 = z.infer<typeof compactoV1>;
 
+/** La versión 2 (HU-Q4.5): la 1 y el texto de responsabilidad de la sede. Solo en la entrada. */
+const compactoV2 = z.strictObject({ ...compactoV1.shape, lg: cadena });
+
+type CompactoV2 = z.infer<typeof compactoV2>;
+
 const aSegundos = (ms: number) => Math.floor(ms / 1000);
 
 function compactar(r: Recibo): CompactoV1 {
@@ -158,7 +165,7 @@ function compactar(r: Recibo): CompactoV1 {
 
 const nulo = (x: number) => (x === 0 ? null : x);
 
-function expandir(c: CompactoV1): Recibo {
+function expandir(c: CompactoV1 | CompactoV2): Recibo {
   const [modo, valor, fraccion, gracia_min, topeDia, plena, nocturna, topeMinuto] = c.tf;
   const entrada = c.e * 1000;
   let salida: Recibo['salida'] = null;
@@ -215,6 +222,7 @@ function expandir(c: CompactoV1): Recibo {
     },
     salida,
     pie: c.pi === 0 ? null : c.pi,
+    responsabilidad: 'lg' in c ? c.lg : null,
     prueba: c.pr === 1,
   };
 }
@@ -243,10 +251,15 @@ async function pasar(bytes: Uint8Array<ArrayBuffer>, t: TransformStream): Promis
   return new Uint8Array(await new Response(flujo).arrayBuffer());
 }
 
-/** El fragmento completo sin firma (M0): `1.<datos>`. */
+/**
+ * El fragmento completo sin firma (M0): `1.<datos>`, o `2.<datos>` si la entrada lleva el texto de
+ * responsabilidad de la sede (HU-Q4.5). La salida no lo lleva: su enlace cabe en el QR (CA2).
+ */
 export async function fragmentoCompleto(recibo: Recibo): Promise<string> {
-  const json = new TextEncoder().encode(JSON.stringify(compactar(recibo)));
-  return `1.${base64url(await pasar(json, new CompressionStream('deflate')))}`;
+  const propio = recibo.clase === 'entrada' ? recibo.responsabilidad : null;
+  const datos = propio === null ? compactar(recibo) : { ...compactar(recibo), lg: propio };
+  const json = new TextEncoder().encode(JSON.stringify(datos));
+  return `${propio === null ? 1 : 2}.${base64url(await pasar(json, new CompressionStream('deflate')))}`;
 }
 
 /** `origen`: el de producción; staging pasa el suyo para que sus recibos de PRUEBA abran allá. */
@@ -303,9 +316,14 @@ export async function leerEnlace(enlace: string): Promise<Lectura> {
       entrada: Number(s) * 1000,
     };
   }
-  if (version !== '1') throw new EnlaceInvalido('version', `versión «${version}» desconocida`);
+  if (version !== '1' && version !== '2') {
+    throw new EnlaceInvalido('version', `versión «${version}» desconocida`);
+  }
   if (partes.length !== 2 && partes.length !== 4) {
-    throw new EnlaceInvalido('forma', 'la forma completa es 1.<datos>[.<firma>.<certificado>]');
+    throw new EnlaceInvalido(
+      'forma',
+      `la forma completa es ${version}.<datos>[.<firma>.<certificado>]`,
+    );
   }
 
   const comprimido = desdeBase64url(partes[1] ?? '');
@@ -323,9 +341,9 @@ export async function leerEnlace(enlace: string): Promise<Lectura> {
   } catch {
     throw new EnlaceInvalido('contenido', 'no es JSON');
   }
-  const r = compactoV1.safeParse(datos);
-  if (!r.success || (r.data.k === 0) !== (r.data.s === 0)) {
-    throw new EnlaceInvalido('contenido', 'no es un recibo de la versión 1');
+  const r = (version === '1' ? compactoV1 : compactoV2).safeParse(datos);
+  if (!r.success || (r.data.k === 0) !== (r.data.s === 0) || (version === '2' && r.data.k !== 0)) {
+    throw new EnlaceInvalido('contenido', `no es un recibo de la versión ${version}`);
   }
   return {
     forma: 'completa',

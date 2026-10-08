@@ -1,6 +1,6 @@
 {
   "name": "@ed1/parqueadero-sitio",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Parqueadero ED1: el sitio y la caja instalable en /caja/, que funciona sin red e imprime en la PT-210 (ADR-32, HU-Q3.1, HU-Q5.1). En producción en parqueadero.laboratorio-digital.app desde la 0.1.0.",
   "type": "module",

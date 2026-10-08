@@ -28,7 +28,7 @@
 | **M3 · WhatsApp automático** | Envío por la Cloud API con el número de cada parqueadero, plantilla de utilidad, estados de entrega y recibo por autoservicio con un QR en la entrada | Q13 | 19 mar 2027, **solo si se cumple su disparador** (§8, EQ9) | Un parqueadero que pague un plan que lo cubra y tenga su negocio verificado en Meta; `@ed1/cifrado` (HU-T1.3) | `v1.1.0` |
 | **M4 · Facturación** | Integrar el facturador del parqueadero, sin emitir | — | Preparada (§9) | Un parqueadero obligado a facturar | `v1.2.0` |
 
-**En cifras:** 12 épicas con historias (EQ0 a EQ11; EQ12 está preparada), **75 historias refinadas y 225 puntos en 14 sprints** (Q0 a Q13). **El MVP (M0): 37 historias y 109 puntos en seis sprints de una semana.**
+**En cifras:** 12 épicas con historias (EQ0 a EQ11; EQ12 está preparada), **76 historias refinadas y 227 puntos en 14 sprints** (Q0 a Q13). **El MVP (M0): 38 historias y 111 puntos en seis sprints de una semana** (HU-Q4.5 se agregó el 8 oct 2026, en la puesta en marcha).
 
 **La fecha del 30 de octubre es un compromiso con el cliente, no un techo.** Si una semana se queda corta, se recorta alcance en el orden de MVP §4.4; la fecha no se corre. Desde M1, las fechas vuelven a ser un techo, como en el CORE y la Tienda: lo que manda es el orden de las dependencias.
 
@@ -248,7 +248,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q2** | 19–23 oct | **La entrada:** las reglas puras y una entrada con su recibo impreso en menos de 10 segundos | HU-Q1.1 (5), HU-Q1.3 (3), HU-Q1.4 (5), HU-Q1.5 (3), HU-Q3.2 (3), HU-Q3.3 (5) | 24 | — |
 | **Q3** | 26–30 oct | **Demostración al cliente:** salida y cobro, WhatsApp, QR en pantalla y `/r/` en su dominio | HU-Q0.3 (3), HU-Q3.4 (2), HU-Q3.5 (5), HU-Q3.6 (3), HU-Q4.1 (5), HU-Q4.2 (3), HU-Q4.4 (2), HU-Q5.2 (2) | 25 | `v0.1.0` |
 | **Q4** (festivo) | 3–6 nov | **Un turno completo:** anular, reloj, turno con cierre impreso, respaldo, topes, Web Serial y el ajuste del papel | HU-Q1.2 (2), HU-Q2.4 (3), HU-Q3.7 (2), HU-Q3.8 (1), HU-Q3.9 (5), HU-Q3.10 (3), HU-Q4.3 (2) | 18 | — |
-| **Q5** | 9–13 nov | **M0. El piloto:** la matriz en el equipo real, los runbooks, la aceptación sin red y el primer turno real con el cliente | HU-Q2.5 (2), HU-Q3.11 (2), HU-Q5.3 (3), HU-Q6.1 (3), HU-Q6.2 (2), HU-Q6.3 (2), HU-Q6.4 (3) | 17 | M0, `v0.2.0` |
+| **Q5** | 9–13 nov | **M0. El piloto:** la matriz en el equipo real, los runbooks, la aceptación sin red y el primer turno real con el cliente | HU-Q2.5 (2), HU-Q3.11 (2), HU-Q5.3 (3), HU-Q6.1 (3), HU-Q6.2 (2), HU-Q6.3 (2), HU-Q6.4 (3), HU-Q4.5 (2) | 19 | M0, `v0.2.0` |
 | **Q6** (festivo) | 17–27 nov | Lo que enseñó el piloto; el parqueadero en el CORE, su celda, la sincronización común y su presupuesto | HU-Q3.12 (3), HU-Q7.1 (3), HU-Q7.2 (3), HU-Q7.3 (5), HU-Q7.13 (2), HU-Q11.1 (1) | 17 | — |
 | **Q7** (festivo) | 30 nov–11 dic | La API de la celda y la caja que sincroniza; roles; el aviso de tarifas para la entrada | HU-Q7.4 (5), HU-Q7.5 (5), HU-Q7.8 (3), HU-Q11.3 (2) | 15 | — |
 | **Q8** (corto) | 14–23 dic | Entrar y reclamar lo local; dispositivos; respaldo en la nube. Solo staging desde el 18 dic | HU-Q7.6 (5), HU-Q7.7 (3), HU-Q7.9 (2), HU-Q11.2 (3) | 13 | — |
@@ -259,7 +259,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q12** | 22 feb–5 mar | Con su disparador: ED1 como Tech Provider, el número del parqueadero conectado y la plantilla | HU-Q9.1 (3), HU-Q9.2 (5), HU-Q9.3 (2) | 10 | — |
 | **Q13** | 8–19 mar | **M3.** Envío por la Cloud API, estados, autoservicio y presupuesto de mensajes | HU-Q9.4 (5), HU-Q9.5 (3), HU-Q9.6 (3), HU-Q9.7 (2), HU-Q9.8 (2) | 15 | M3, `v1.1.0` |
 
-**Total:** 225 puntos en 14 sprints. M0: 109 (Q0–Q5). M1: 60 (Q6–Q9). M2: 31 (Q10–Q11). M3: 25 (Q12–Q13).
+**Total:** 227 puntos en 14 sprints. M0: 111 (Q0–Q5). M1: 60 (Q6–Q9). M2: 31 (Q10–Q11). M3: 25 (Q12–Q13).
 
 - **Q6 (17, con festivo) y Q8 (13, corto) pasan su tope por un punto.** Si la velocidad validada de M0 no lo sostiene, HU-Q11.1 pasa a Q7 y HU-Q11.2 a Q10.
 - **Q12 lleva 10 puntos a propósito:** la verificación del negocio y la revisión de la app en Meta toman días de espera que no son puntos.
@@ -300,7 +300,7 @@ En M0, **el camino crítico es del dueño y del cliente, no del código:** las d
 | EQ1 · Reglas puras | `parqueadero-tarifas`, topes como contenido, `parqueadero-schema`, `parqueadero-recibos` con sus cuatro salidas, el enlace del recibo y `@ed1/whatsapp` | M0 | 20 |
 | EQ2 · Impresión | `@ed1/impresion`: paso 0, ESC/POS, Web Bluetooth, Web Serial, el diálogo del sistema y el asistente con su página de prueba | M0 | 19 |
 | EQ3 · Caja | La PWA: sede y tarifas, entrada, estadías, salida y cobro, pantalla del recibo, anular, reloj, turno, respaldo, abonados y los ajustes del piloto | M0, M1 | 37 |
-| EQ4 · WhatsApp y recibo digital | `wa.me` con autorización, la página `/r/`, el ajuste del papel y el aviso de privacidad | M0 | 12 |
+| EQ4 · WhatsApp y recibo digital | `wa.me` con autorización, la página `/r/`, el ajuste del papel, el aviso de privacidad y el texto de responsabilidad | M0 | 14 |
 | EQ5 · Sitio, dominio, despliegue y medición | Staging, el dominio en producción y los recibos por canal sin datos personales | M0 | 7 |
 | EQ6 · Validación en campo y puesta en marcha | La matriz en el equipo real, runbooks, la aceptación sin red y el primer turno con el cliente | M0 | 10 |
 | EQ7 · Cuenta, celda y varias cajas | El parqueadero en el CORE, celda y shard, `@ed1/sync` común, API, sincronización, entrar y reclamar, dispositivos, roles, respaldo en la nube, cobro del plan, privacidad con cuenta y presupuesto | M1 | 43 |
@@ -324,7 +324,7 @@ Formato de cada historia, el del CORE y la Tienda:
 - **Patrones en riesgo.**
 - **Work items** (WI): `[código]`, `[prueba]`, `[doc]`, `[infra]`, `[ci]`, `[diseño]`, `[dueño]` o `[campo]` (en el equipo real o con el cliente).
 
-### 8.1 M0: las 37 historias del MVP
+### 8.1 M0: las 38 historias del MVP
 
 Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` §5. Aquí, su lugar en el plan:
 
@@ -360,6 +360,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 | HU-Q4.2 · La página del recibo `/r/` | EQ4 | Must | 3 | Q3 |
 | HU-Q4.3 · El ajuste `papel`: siempre, o salvo recibo digital | EQ4 | Must | 2 | Q4 |
 | HU-Q4.4 · El aviso de privacidad antes del primer número | EQ4 | Must | 2 | Q3 |
+| HU-Q4.5 · El texto de responsabilidad del recibo de entrada, editable por la sede | EQ4 | Must | 2 | Q5 |
 | HU-Q5.1 · El sitio en staging con HTTPS | EQ5 | Must | 2 | Q1 |
 | HU-Q5.2 · `parqueadero.laboratorio-digital.app` declarado, reservado y en producción | EQ5 | Must | 2 | Q3 |
 | HU-Q5.3 · Recibos por canal, sin datos personales | EQ5 | Should | 3 | Q5 |
@@ -899,9 +900,9 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 
 | Hito | Historias | Cuántas | Pts |
 |---|---|---|---|
-| M0 · MVP del cliente | HU-Q0.1 a HU-Q0.3, HU-Q1.1 a HU-Q1.6, HU-Q2.1 a HU-Q2.6, HU-Q3.1 a HU-Q3.11, HU-Q4.1 a HU-Q4.4, HU-Q5.1 a HU-Q5.3, HU-Q6.1 a HU-Q6.4 | 37 | 109 |
+| M0 · MVP del cliente | HU-Q0.1 a HU-Q0.3, HU-Q1.1 a HU-Q1.6, HU-Q2.1 a HU-Q2.6, HU-Q3.1 a HU-Q3.11, HU-Q4.1 a HU-Q4.5, HU-Q5.1 a HU-Q5.3, HU-Q6.1 a HU-Q6.4 | 38 | 111 |
 | M1 · Cuenta y varias cajas | HU-Q3.12, HU-Q7.1 a HU-Q7.13, HU-Q10.1, HU-Q10.2, HU-Q10.4, HU-Q11.1 a HU-Q11.3 | 20 | 60 |
 | M2 · Recibo verificado | HU-Q8.1 a HU-Q8.7, HU-Q10.3, HU-Q11.4, HU-Q11.5 | 10 | 31 |
 | M3 · WhatsApp automático | HU-Q9.1 a HU-Q9.8 | 8 | 25 |
 | M4 · Facturación | EQ12, preparada (§9) | — | — |
-| **Total** | | **75** | **225** |
+| **Total** | | **76** | **227** |
