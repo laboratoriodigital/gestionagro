@@ -7,8 +7,8 @@
  *   fake-indexeddb, con su dispositivo y su serie.
  * - `fetch` llama al Worker en memoria; puede no tener señal o perder la respuesta de un pedido
  *   que la celda sí atendió.
- * - La entrada con la cuenta (HU-Q7.6) y el alta de la caja con su serie (HU-Q7.7) todavía no
- *   existen: el arnés escribe `nube` en la caja y la fila de `dispositivo` en la celda.
+ * - El arnés escribe `nube` en la caja y la fila de `dispositivo` en la celda, sin pasar por la
+ *   cuenta (HU-Q7.6) ni el alta (HU-Q7.7): esas las prueba `parqueadero-reclamar.test.ts`.
  *
  * Lo que no imita (P17): la red de verdad, los límites de D1 en Cloudflare y el CORE.
  */

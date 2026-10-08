@@ -86,8 +86,9 @@ describe('el sitio del parqueadero', () => {
     expect(conexionesDeLaCaja('staging')).toEqual([
       'https://parqueadero-api-c2-staging.laboratoriodigital-la.workers.dev',
     ]);
+    // Y el CORE de staging, para entrar con la cuenta (HU-Q7.6).
     expect(cspDelParqueadero('staging')).toContain(
-      "connect-src 'self' https://parqueadero-api-c2-staging.laboratoriodigital-la.workers.dev;",
+      "connect-src 'self' https://parqueadero-api-c2-staging.laboratoriodigital-la.workers.dev https://agro-core-staging.laboratoriodigital-la.workers.dev;",
     );
     // Hasta que HU-Q7.12 publique la celda, la de producción es la de M0.
     expect(conexionesDeLaCaja('produccion')).toEqual([]);

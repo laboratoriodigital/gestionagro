@@ -1,0 +1,373 @@
+{
+  "formato": "parqueadero-export",
+  "version": 1,
+  "generado": "2026-10-08T15:28:17.000Z",
+  "app": "0.2.0",
+  "dispositivo": {
+    "id": "01a11b99-7038-7bc4-8f7a-6bb97b6dba33",
+    "serie": "A"
+  },
+  "sede_id": "01a11b99-6868-7b47-9914-69699961123e",
+  "tablas": {
+    "catalogo": {
+      "recuento": 3,
+      "hash": "c9b9ee94352b92189fcccbcf7192747a270c9f052489148c4a249601f8b681ff",
+      "filas": [
+        {
+          "id": "01a11b99-6868-7b47-9914-69699961123e",
+          "org_id": null,
+          "version": 1,
+          "actualizado": "2026-10-08T13:00:01.000Z",
+          "entidad": "sede",
+          "nombre": "Parqueadero Ensayo Uno",
+          "nit": "900.000.000-0",
+          "direccion": "Calle 1 # 2-3",
+          "ciudad": "Bogotá",
+          "telefono": "3000000000",
+          "poliza": {
+            "aseguradora": "Aseguradora",
+            "numero": "0000000"
+          },
+          "registro": null,
+          "imprimir_siempre": true
+        },
+        {
+          "id": "01a11b99-6c50-7304-a19e-d1e176628a7a",
+          "org_id": null,
+          "version": 1,
+          "actualizado": "2026-10-08T13:00:02.000Z",
+          "entidad": "tarifa",
+          "vehiculo": "carro",
+          "modo": "minuto",
+          "valor": 230,
+          "fraccion_min": null,
+          "gracia_min": 5,
+          "tope_dia": 30000,
+          "plena": null,
+          "nocturna": null,
+          "perdido": 5000,
+          "redondeo": "ninguno",
+          "tope_minuto": 230,
+          "vigente_desde": "2026-10-06T11:00:00.000Z"
+        },
+        {
+          "id": "01a11b99-7038-7db0-ae22-84a5a34af157",
+          "org_id": null,
+          "version": 1,
+          "actualizado": "2026-10-08T13:00:03.000Z",
+          "entidad": "tarifa",
+          "vehiculo": "moto",
+          "modo": "minuto",
+          "valor": 60,
+          "fraccion_min": null,
+          "gracia_min": 0,
+          "tope_dia": null,
+          "plena": {
+            "desde_min": 180,
+            "valor": 12000
+          },
+          "nocturna": {
+            "desde": "20:00",
+            "hasta": "05:30",
+            "valor": 8000
+          },
+          "perdido": 5000,
+          "redondeo": "abajo_50",
+          "tope_minuto": 161,
+          "vigente_desde": "2026-10-06T11:00:00.000Z"
+        }
+      ]
+    },
+    "registro": {
+      "recuento": 10,
+      "hash": "df3d7003f4e8fd307d66212e765551e5156ab405f88460c89067d7fd0587dc00",
+      "filas": [
+        {
+          "id": "01a11b99-7420-772f-8437-9e5313572662",
+          "org_id": null,
+          "tipo": "turno_apertura",
+          "v": 1,
+          "fecha_local": "2026-10-08",
+          "instante_evento": "2026-10-08T13:00:04.000Z",
+          "autor_usuario_id": null,
+          "dispositivo_id": "01a11b99-7038-7bc4-8f7a-6bb97b6dba33",
+          "origen": "manual",
+          "anula_id": null,
+          "estadia_id": null,
+          "serie": null,
+          "consecutivo": null,
+          "datos": {
+            "base": 50000,
+            "operador": "Ensayo"
+          }
+        },
+        {
+          "id": "01a11b99-7808-709d-a00e-da7f6c2457b9",
+          "org_id": null,
+          "tipo": "entrada",
+          "v": 1,
+          "fecha_local": "2026-10-08",
+          "instante_evento": "2026-10-08T13:00:05.000Z",
+          "autor_usuario_id": null,
+          "dispositivo_id": "01a11b99-7038-7bc4-8f7a-6bb97b6dba33",
+          "origen": "manual",
+          "anula_id": null,
+          "estadia_id": "01a11b99-7808-709d-a00e-da7f6c2457b9",
+          "serie": "A",
+          "consecutivo": 1,
+          "datos": {
+            "placa": "ABC123",
+            "vehiculo": "carro",
+            "placa_confirmada": false,
+            "novedades": [],
+            "foto_ids": [],
+            "tarifa_id": "01a11b99-6c50-7304-a19e-d1e176628a7a",
+            "tarifa_version": 1,
+            "abonado_id": null
+          }
+        },
+        {
+          "id": "01a11b9f-e490-7a21-8b1f-62196dab43b8",
+          "org_id": null,
+          "tipo": "entrada",
+          "v": 1,
+          "fecha_local": "2026-10-08",
+          "instante_evento": "2026-10-08T13:07:06.000Z",
+          "autor_usuario_id": null,
+          "dispositivo_id": "01a11b99-7038-7bc4-8f7a-6bb97b6dba33",
+          "origen": "manual",
+          "anula_id": null,
+          "estadia_id": "01a11b9f-e490-7a21-8b1f-62196dab43b8",
+          "serie": "A",
+          "consecutivo": 2,
+          "datos": {
+            "placa": "XYZ98F",
+            "vehiculo": "moto",
+            "placa_confirmada": false,
+            "novedades": [],
+            "foto_ids": [],
+            "tarifa_id": "01a11b99-7038-7db0-ae22-84a5a34af157",
+            "tarifa_version": 1,
+            "abonado_id": null
+          }
+        },
+        {
+          "id": "01a11ba6-5118-7bc7-a094-636587210106",
+          "org_id": null,
+          "tipo": "entrada",
+          "v": 1,
+          "fecha_local": "2026-10-08",
+          "instante_evento": "2026-10-08T13:14:07.000Z",
+          "autor_usuario_id": null,
+          "dispositivo_id": "01a11b99-7038-7bc4-8f7a-6bb97b6dba33",
+          "origen": "manual",
+          "anula_id": null,
+          "estadia_id": "01a11ba6-5118-7bc7-a094-636587210106",
+          "serie": "A",
+          "consecutivo": 3,
+          "datos": {
+            "placa": "DEF456",
+            "vehiculo": "carro",
+            "placa_confirmada": false,
+            "novedades": [],
+            "foto_ids": [],
+            "tarifa_id": "01a11b99-6c50-7304-a19e-d1e176628a7a",
+            "tarifa_version": 1,
+            "abonado_id": null
+          }
+        },
+        {
+          "id": "01a11bac-bda0-7b50-a81a-c4922101fbce",
+          "org_id": null,
+          "tipo": "entrada",
+          "v": 1,
+          "fecha_local": "2026-10-08",
+          "instante_evento": "2026-10-08T13:21:08.000Z",
+          "autor_usuario_id": null,
+          "dispositivo_id": "01a11b99-7038-7bc4-8f7a-6bb97b6dba33",
+          "origen": "manual",
+          "anula_id": null,
+          "estadia_id": "01a11bac-bda0-7b50-a81a-c4922101fbce",
+          "serie": "A",
+          "consecutivo": 4,
+          "datos": {
+            "placa": "GHI789",
+            "vehiculo": "carro",
+            "placa_confirmada": false,
+            "novedades": [],
+            "foto_ids": [],
+            "tarifa_id": "01a11b99-6c50-7304-a19e-d1e176628a7a",
+            "tarifa_version": 1,
+            "abonado_id": null
+          }
+        },
+        {
+          "id": "01a11bd7-cd10-7cdc-95a2-ec8ff64a8f93",
+          "org_id": null,
+          "tipo": "salida",
+          "v": 1,
+          "fecha_local": "2026-10-08",
+          "instante_evento": "2026-10-08T14:08:09.000Z",
+          "autor_usuario_id": null,
+          "dispositivo_id": "01a11b99-7038-7bc4-8f7a-6bb97b6dba33",
+          "origen": "manual",
+          "anula_id": null,
+          "estadia_id": "01a11b99-7808-709d-a00e-da7f6c2457b9",
+          "serie": "A",
+          "consecutivo": 5,
+          "datos": {
+            "entrada_numero": "A-000001",
+            "placa": "ABC123",
+            "vehiculo": "carro",
+            "instante_entrada": "2026-10-08T13:00:05.000Z",
+            "minutos": 69,
+            "lineas": [
+              {
+                "concepto": "tiempo",
+                "minutos": 69,
+                "base": 15870,
+                "valor": 15870
+              }
+            ],
+            "subtotal": 15870,
+            "redondeo": 0,
+            "total": 15870,
+            "medio_pago": "efectivo",
+            "recibido": 17870,
+            "cambio": 2000,
+            "motivo_cortesia": null,
+            "perdido": false,
+            "tarifa_id": "01a11b99-6c50-7304-a19e-d1e176628a7a",
+            "tarifa_version": 1
+          }
+        },
+        {
+          "id": "01a11bfc-73e0-75b6-a9eb-210ddbae3127",
+          "org_id": null,
+          "tipo": "salida",
+          "v": 1,
+          "fecha_local": "2026-10-08",
+          "instante_evento": "2026-10-08T14:48:11.000Z",
+          "autor_usuario_id": null,
+          "dispositivo_id": "01a11b99-7038-7bc4-8f7a-6bb97b6dba33",
+          "origen": "manual",
+          "anula_id": null,
+          "estadia_id": "01a11b9f-e490-7a21-8b1f-62196dab43b8",
+          "serie": "A",
+          "consecutivo": 6,
+          "datos": {
+            "entrada_numero": "A-000002",
+            "placa": "XYZ98F",
+            "vehiculo": "moto",
+            "instante_entrada": "2026-10-08T13:07:06.000Z",
+            "minutos": 102,
+            "lineas": [
+              {
+                "concepto": "tiempo",
+                "minutos": 102,
+                "base": 6120,
+                "valor": 6120
+              }
+            ],
+            "subtotal": 6120,
+            "redondeo": 20,
+            "total": 6100,
+            "medio_pago": "efectivo",
+            "recibido": 8100,
+            "cambio": 2000,
+            "motivo_cortesia": null,
+            "perdido": false,
+            "tarifa_id": "01a11b99-7038-7db0-ae22-84a5a34af157",
+            "tarifa_version": 1
+          }
+        },
+        {
+          "id": "01a11c21-1ab0-7392-92ed-56c8fa8867ed",
+          "org_id": null,
+          "tipo": "salida",
+          "v": 1,
+          "fecha_local": "2026-10-08",
+          "instante_evento": "2026-10-08T15:28:13.000Z",
+          "autor_usuario_id": null,
+          "dispositivo_id": "01a11b99-7038-7bc4-8f7a-6bb97b6dba33",
+          "origen": "manual",
+          "anula_id": null,
+          "estadia_id": "01a11ba6-5118-7bc7-a094-636587210106",
+          "serie": "A",
+          "consecutivo": 7,
+          "datos": {
+            "entrada_numero": "A-000003",
+            "placa": "DEF456",
+            "vehiculo": "carro",
+            "instante_entrada": "2026-10-08T13:14:07.000Z",
+            "minutos": 135,
+            "lineas": [
+              {
+                "concepto": "tope_dia",
+                "minutos": 135,
+                "base": 31050,
+                "valor": 30000
+              }
+            ],
+            "subtotal": 30000,
+            "redondeo": 0,
+            "total": 30000,
+            "medio_pago": "efectivo",
+            "recibido": 32000,
+            "cambio": 2000,
+            "motivo_cortesia": null,
+            "perdido": false,
+            "tarifa_id": "01a11b99-6c50-7304-a19e-d1e176628a7a",
+            "tarifa_version": 1
+          }
+        },
+        {
+          "id": "01a11c21-1e98-79d3-964d-d674bb438892",
+          "org_id": null,
+          "tipo": "anulacion",
+          "v": 1,
+          "fecha_local": "2026-10-08",
+          "instante_evento": "2026-10-08T15:28:15.000Z",
+          "autor_usuario_id": null,
+          "dispositivo_id": "01a11b99-7038-7bc4-8f7a-6bb97b6dba33",
+          "origen": "manual",
+          "anula_id": "01a11bac-bda0-7b50-a81a-c4922101fbce",
+          "estadia_id": "01a11bac-bda0-7b50-a81a-c4922101fbce",
+          "serie": null,
+          "consecutivo": null,
+          "datos": {
+            "motivo": "Placa mal escrita",
+            "operador": "Ensayo"
+          }
+        },
+        {
+          "id": "01a11c21-2280-7a00-afd2-a517f479b7e4",
+          "org_id": null,
+          "tipo": "turno_cierre",
+          "v": 1,
+          "fecha_local": "2026-10-08",
+          "instante_evento": "2026-10-08T15:28:16.000Z",
+          "autor_usuario_id": null,
+          "dispositivo_id": "01a11b99-7038-7bc4-8f7a-6bb97b6dba33",
+          "origen": "manual",
+          "anula_id": null,
+          "estadia_id": null,
+          "serie": null,
+          "consecutivo": null,
+          "datos": {
+            "apertura_id": "01a11b99-7420-772f-8437-9e5313572662",
+            "esperado": 101970,
+            "contado": 0,
+            "diferencia": -101970,
+            "motivo": "Prueba de respaldo"
+          }
+        }
+      ]
+    },
+    "historial": {
+      "recuento": 0,
+      "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "filas": []
+    }
+  }
+}

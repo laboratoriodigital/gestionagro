@@ -28,3 +28,11 @@ export function conMarcaDeEntorno(bloques: readonly Bloque[], hostname: string):
     ...bloques,
   ];
 }
+
+/** El CORE de las cuentas según el host (`celdas.json`, HU-Q7.6): staging fuera de producción. */
+export function urlDelCore(
+  hostname: string,
+  config: { url: string; url_staging: string } = __CORE__,
+): string {
+  return esProduccion(hostname) ? config.url : config.url_staging;
+}

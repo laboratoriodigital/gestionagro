@@ -191,7 +191,7 @@ describe('CA2 · push: sin perder ni repetir', () => {
 });
 
 describe('presupuesto de consultas (P17): 50 por invocación', () => {
-  it('un lote de 25 que entra entero usa 26 consultas', async () => {
+  it('un lote de 25 que entra entero usa 27 consultas: la caja, lo que ya hay y las 25', async () => {
     const { db, cuenta } = contando(e.db);
     const ops = Array.from({ length: LOTE_MAXIMO }, (_, i) => deRegistro(entrada(i + 1)));
     const r = await pedir(
@@ -205,7 +205,7 @@ describe('presupuesto de consultas (P17): 50 por invocación', () => {
     );
     const { acks } = (await r.json()) as { acks: Ack[] };
     expect(estados(acks)).toEqual(Array(LOTE_MAXIMO).fill('aceptado'));
-    expect(cuenta.consultas).toBe(1 + LOTE_MAXIMO);
+    expect(cuenta.consultas).toBe(2 + LOTE_MAXIMO);
   });
 
   it('un lote de 25 con una mala no pasa de 50: lo que no alcanza vuelve como «reintentar» y entra después', async () => {

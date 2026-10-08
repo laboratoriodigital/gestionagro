@@ -38,6 +38,8 @@ interface Props {
   readonly reloj: () => number;
   /** La sincronización (HU-Q7.5); sin ella, la caja no dice nada de la nube. */
   readonly nube?: Nube;
+  /** La caja volvió de la cuenta con `#entrar=…` (HU-Q7.6): abre «Cuenta y nube». */
+  readonly regreso?: string;
 }
 
 const NOMBRE_DE_PAGINA = {
@@ -56,7 +58,13 @@ const MENU = [
   ['aviso', 'Aviso de privacidad'],
 ] as const;
 
-export function App({ db, control, propuesta, prueba, reloj, nube }: Props) {
+/**
+ * La cuenta y la nube (HU-Q7.6) solo fuera de producción: reclamar la caja del cliente espera la
+ * promesa de privacidad con cuenta (HU-Q7.11, HU-Q7.12).
+ */
+const MENU_DE_PRUEBA = [...MENU, ['cuenta', 'Cuenta y nube']] as const;
+
+export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Props) {
   const vinculada = useConsulta<boolean>(
     () => db.meta.get('nube').then((m) => m?.clave === 'nube'),
     false,
@@ -87,10 +95,18 @@ export function App({ db, control, propuesta, prueba, reloj, nube }: Props) {
   );
   // HU-Q1.2 CA2: un tope de más de 13 meses se dice; la caja sigue cobrando.
   const topeViejo = avisoDeTopeViejo(ciudad, diaLocalBogota(reloj()));
-  const respaldo = useConsulta<number | undefined>(
-    () => db.meta.get('respaldo').then((m) => (m?.clave === 'respaldo' ? m.instante : undefined)),
-    undefined,
-  );
+  // El último respaldo: el archivo, o la última vez que todo quedó en la nube (HU-Q7.9).
+  const respaldo = useConsulta<number | undefined>(async () => {
+    const [archivo, enLaNube] = await Promise.all([
+      db.meta.get('respaldo'),
+      db.meta.get('nube_al_dia'),
+    ]);
+    const cuando = [
+      archivo?.clave === 'respaldo' ? archivo.instante : null,
+      enLaNube?.clave === 'nube_al_dia' ? enLaNube.instante : null,
+    ].filter((x): x is number => x !== null);
+    return cuando.length > 0 ? Math.max(...cuando) : undefined;
+  }, undefined);
   const estado = useEstadoImpresora(control);
   const [persistente, setPersistente] = useState<boolean | null>(null);
   const [vista, setVista] = useState<Vista>({ es: 'inicio' });
@@ -107,6 +123,11 @@ export function App({ db, control, propuesta, prueba, reloj, nube }: Props) {
       setVista(v);
     });
   };
+
+  // HU-Q7.6: de vuelta de la cuenta, la caja abre donde se quedó.
+  useEffect(() => {
+    if (regreso) ir({ es: 'cuenta', regreso });
+  }, [regreso]);
 
   // HU-Q2.4 CA1: la impresora emparejada vuelve sola al abrir la caja, sin selector.
   useEffect(() => {
@@ -198,6 +219,7 @@ export function App({ db, control, propuesta, prueba, reloj, nube }: Props) {
             control={control}
             prueba={prueba}
             ir={ir}
+            {...(nube ? { nube } : {})}
           />
         ) : (
           <>
@@ -274,7 +296,7 @@ export function App({ db, control, propuesta, prueba, reloj, nube }: Props) {
                 Más
               </h2>
               <ul class="menu">
-                {MENU.map(([es, texto]) => (
+                {(prueba ? MENU_DE_PRUEBA : MENU).map(([es, texto]) => (
                   <li key={es}>
                     <button type="button" class="menu-fila" onClick={() => ir({ es })}>
                       {texto}

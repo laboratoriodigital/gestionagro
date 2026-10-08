@@ -5,9 +5,12 @@
  *
  * - Hasta `PAGINA_MAXIMA` cambios por página, los catálogos primero (una entrada nombra su tarifa).
  *   Se pide uno más de cada tabla para saber si hay otra página sin contar filas.
- * - Solo lee: 2 consultas por los índices `catalogo_pull` y `registro_pull`, ninguna escritura.
+ * - Solo lee: 2 consultas por los índices `catalogo_pull` y `registro_pull` (3 con la caja), ninguna
+ *   escritura.
  * - Permisos (HU-Q7.8): solo baja lo que el rol puede leer según la matriz. El filtro va en la
  *   consulta: lo negado nunca sale de la base.
+ * - Una caja retirada (HU-Q7.7 CA3) no baja nada: 403 `retirado`. La caja dice quién es en
+ *   `dispositivo`; esa revisión es una consulta más.
  * - Devuelve el registro con la forma que la caja guarda: `seq` e `instante_recibido` son de la
  *   celda y no viajan.
  */
@@ -21,6 +24,7 @@ import {
   tiposNegados,
 } from '@ed1/parqueadero-schema/sync';
 import { type CatalogoValido, PAGINA_MAXIMA, type Reemplazo } from '@ed1/sync';
+import { estadoDeLaCaja, RETIRADA } from './dispositivos.ts';
 import type { ContextoCelda } from './worker.ts';
 
 const cursor = (valor: string | undefined) => {
@@ -42,6 +46,10 @@ export async function pull(c: ContextoCelda): Promise<Response> {
   const desdeCatalogo = cursor(c.req.query('catalogo'));
   if (desdeRegistro === null || desdeCatalogo === null) {
     return c.json({ estado: 'invalido', motivo: 'Cursor inválido' }, 400);
+  }
+  const dispositivo = c.req.query('dispositivo');
+  if (dispositivo && (await estadoDeLaCaja(db, org, dispositivo.slice(0, 120))) === 'retirado') {
+    return c.json(RETIRADA, 403);
   }
 
   const legibles = entidadesQuePuede(rol, 'leer');

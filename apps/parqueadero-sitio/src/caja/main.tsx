@@ -7,7 +7,7 @@ import { liveQuery } from 'dexie';
 import { render } from 'preact';
 import { App } from './App.tsx';
 import { abrirBase } from './datos.ts';
-import { esProduccion } from './entorno.ts';
+import { esProduccion, urlDelCore } from './entorno.ts';
 import { crearControl } from './impresora.ts';
 import { programarEnvios } from './medicion.ts';
 import { crearNube } from './nube.ts';
@@ -45,7 +45,12 @@ programarEnvios(db, window);
 
 // HU-Q7.5: con la caja vinculada a la nube, lo registrado sube solo y baja lo de las otras cajas.
 // Al vincularse (HU-Q7.6) arranca; cada operación nueva en la cola sale a los pocos segundos.
-const nube = crearNube(db, { reloj, app: __VERSION_CAJA__, ventana: window });
+const nube = crearNube(db, {
+  reloj,
+  app: __VERSION_CAJA__,
+  core: urlDelCore(location.hostname),
+  ventana: window,
+});
 let vinculada = false;
 liveQuery(() => db.meta.get('nube')).subscribe((m) => {
   const ahora = m?.clave === 'nube';
@@ -58,6 +63,11 @@ liveQuery(() => db.outbox.count()).subscribe((n) => {
   enCola = n;
 });
 
+// HU-Q7.6: al volver de la cuenta, el código de un uso sale de la barra antes de canjearlo, para
+// que no quede en el historial.
+const regreso = /^#(entrar|entrar-error)=/.test(location.hash) ? location.hash : undefined;
+if (regreso) history.replaceState(null, '', `${location.pathname}${location.search}`);
+
 render(
   <App
     db={db}
@@ -66,6 +76,7 @@ render(
     prueba={!esProduccion(location.hostname)}
     reloj={reloj}
     nube={nube}
+    {...(regreso ? { regreso } : {})}
   />,
   raiz,
 );

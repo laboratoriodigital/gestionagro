@@ -126,9 +126,53 @@ export type Meta =
    * La caja está vinculada a la celda de su parqueadero y sincroniza (HU-Q7.5). La escribe la
    * entrada con la cuenta (HU-Q7.6), que también refresca `acceso`; sin ella, nada sale ni entra.
    */
-  | { readonly clave: 'nube'; readonly api: string; readonly acceso: string }
+  | {
+      readonly clave: 'nube';
+      readonly api: string;
+      readonly acceso: string;
+      /** El parqueadero de la nube (HU-Q7.6): la sesión se renueva para él. */
+      readonly org_id?: string;
+    }
+  /** La cuenta con que se entró (HU-Q7.6). Como `nube`, no viaja en el respaldo (P13). */
+  | { readonly clave: 'sesion'; readonly sesion: Sesion }
+  /** El id del parqueadero que se está creando en la cuenta: el mismo en cada reintento. */
+  | { readonly clave: 'org_pendiente'; readonly id: string }
+  /**
+   * Lo del piloto que sube a la nube al reclamar (HU-Q7.6 CA2). `encolado`: todo entró a la cola.
+   * Queda «verificado» solo cuando la celda tiene lo mismo que la caja (P21).
+   */
+  | {
+      readonly clave: 'reclamo';
+      readonly estado: 'subiendo' | 'verificado' | 'con-rechazos';
+      readonly encolado: boolean;
+      readonly desde: number;
+      readonly verificado?: {
+        readonly registros: number;
+        readonly catalogos: number;
+        readonly cuando: number;
+      };
+    }
+  /** La última vez que todo lo de la caja estaba en la nube y lo de la nube en la caja (HU-Q7.9). */
+  | { readonly clave: 'nube_al_dia'; readonly instante: number }
   /** Hasta dónde bajó la caja lo de las demás cajas: los dos cursores del pull (`@ed1/sync`). */
   | { readonly clave: 'cursor'; readonly registro: number; readonly catalogo: number };
+
+/** La sesión de la cuenta del CORE (HU-C4.3): el token es del producto `parqueadero`. */
+export interface Sesion {
+  readonly acceso: string;
+  readonly acceso_vence: number;
+  readonly refresh: string;
+  readonly refresh_vence: number;
+  readonly usuario: { readonly nombre: string; readonly email: string };
+  readonly organizaciones: readonly {
+    readonly org_id: string;
+    readonly nombre: string;
+    readonly rol: string;
+  }[];
+  readonly org_id: string | null;
+  /** La API de la celda de ese parqueadero; nula sin parqueadero. */
+  readonly url_api: string | null;
+}
 
 export type BaseDeLaCaja = Dexie & {
   impresora: EntityTable<RegistroImpresora, 'id'>;

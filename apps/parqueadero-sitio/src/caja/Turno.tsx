@@ -378,6 +378,12 @@ function TurnoCerrado({
     void imprimir();
   }, []);
 
+  // HU-Q7.9 CA2: con la caja en la nube, el turno sube solo y el archivo deja de pedirse.
+  const vinculada = useConsulta<boolean>(
+    () => db.meta.get('nube').then((m) => m?.clave === 'nube'),
+    false,
+  );
+  const enCola = useConsulta(() => db.outbox.count(), 0);
   const diferencia = c.contado - c.resumen.esperado;
   return (
     <section class="tarjeta" data-prueba="turno-cerrado">
@@ -395,10 +401,22 @@ function TurnoCerrado({
           Imprimir el cierre otra vez
         </button>
       )}
-      <p>Ahora guarde el respaldo del turno: si se pierde el teléfono, la caja vuelve con él.</p>
-      <button type="button" class="boton boton-principal" onClick={alRespaldo}>
-        Hacer el respaldo
-      </button>
+      {vinculada ? (
+        <p data-prueba="cierre-en-la-nube">
+          {enCola === 0
+            ? 'El turno ya está en la nube: no hace falta el archivo.'
+            : `El turno sube solo a la nube; quedan ${enCola} esperando señal. No hace falta el archivo.`}
+        </p>
+      ) : (
+        <>
+          <p>
+            Ahora guarde el respaldo del turno: si se pierde el teléfono, la caja vuelve con él.
+          </p>
+          <button type="button" class="boton boton-principal" onClick={alRespaldo}>
+            Hacer el respaldo
+          </button>
+        </>
+      )}
       <button type="button" class="boton boton-secundario" onClick={alVolver}>
         Volver al inicio
       </button>

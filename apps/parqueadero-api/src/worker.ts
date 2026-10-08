@@ -11,7 +11,8 @@
  *   caja sigue registrando y cobrando sin red (HU-Q7.5). Se revisa antes del token, que cuesta más.
  *
  * Rutas con token: `/api/v1/yo` (a qué parqueadero y shard llegó la sesión), `/api/v1/sync/push`
- * (`push.ts`) y `/api/v1/sync/pull` (`pull.ts`). Ningún identificador de cuenta, base o dominio en
+ * (`push.ts`), `/api/v1/sync/pull` (`pull.ts`), y reclamar, las cajas y el resumen
+ * (`dispositivos.ts`, HU-Q7.6 y HU-Q7.7). Ningún identificador de cuenta, base o dominio en
  * el código (ADR-6): todo llega por la configuración que arma el despliegue desde `celdas.json` y
  * `productos.json`.
  */
@@ -25,6 +26,7 @@ import {
 } from '@ed1/tokens';
 import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { darDeAlta, listar, reclamar, resumen, retirar } from './dispositivos.ts';
 import { pull } from './pull.ts';
 import { push } from './push.ts';
 
@@ -224,6 +226,11 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
 
   app.post('/api/v1/sync/push', (c) => push(c, ahora));
   app.get('/api/v1/sync/pull', (c) => pull(c));
+  app.post('/api/v1/reclamar', (c) => reclamar(c, ahora));
+  app.get('/api/v1/resumen', (c) => resumen(c));
+  app.get('/api/v1/dispositivos', (c) => listar(c));
+  app.post('/api/v1/dispositivos', (c) => darDeAlta(c, ahora));
+  app.post('/api/v1/dispositivos/retirar', (c) => retirar(c, ahora));
 
   // Una falla inesperada se responde en JSON con su causa: la caja la dice como es y reintenta, y
   // nunca la confunde con falta de señal (bitácora agro 23).

@@ -29,6 +29,15 @@ export function conexionesDeLaCaja(
     .sort();
 }
 
+/**
+ * El CORE de las cuentas, con que la caja entra y renueva su sesión (HU-Q7.6). Solo en staging:
+ * en producción la caja no ofrece la cuenta hasta HU-Q7.12.
+ */
+export const coreDeLaCaja = (
+  entorno: EntornoDelParqueadero,
+  config: ConfigCeldas = cargarCeldas(),
+): string[] => (entorno === 'staging' ? [config.core.url_staging] : []);
+
 export function cspDelParqueadero(
   entorno: EntornoDelParqueadero,
   config: ConfigCeldas = cargarCeldas(),
@@ -38,7 +47,11 @@ export function cspDelParqueadero(
     "script-src 'self'",
     "style-src 'self'",
     "img-src 'self' data: blob:",
-    ["connect-src 'self'", ...conexionesDeLaCaja(entorno, config)].join(' '),
+    [
+      "connect-src 'self'",
+      ...conexionesDeLaCaja(entorno, config),
+      ...coreDeLaCaja(entorno, config),
+    ].join(' '),
     "worker-src 'self'",
     "manifest-src 'self'",
     "font-src 'self'",

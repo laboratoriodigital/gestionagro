@@ -324,7 +324,7 @@ export type ResultadoDeRecepcion =
 /** Baja páginas hasta que la celda diga que no hay más. */
 export async function recibirCambios(
   db: BaseDeLaCaja,
-  destino: Pick<Destino, 'api' | 'acceso'>,
+  destino: Pick<Destino, 'api' | 'acceso'> & { readonly dispositivo?: string },
   o: Opciones & { readonly fallosPrevios?: number; readonly maxPaginas?: number } = {},
 ): Promise<ResultadoDeRecepcion> {
   const { fetchFn = fetch, ahora = () => Date.now(), fallosPrevios = 0, maxPaginas = 500 } = o;
@@ -336,7 +336,7 @@ export async function recibirCambios(
     let r: Response;
     try {
       r = await fetchFn(
-        `${destino.api}/api/v1/sync/pull?registro=${c.registro}&catalogo=${c.catalogo}`,
+        `${destino.api}/api/v1/sync/pull?registro=${c.registro}&catalogo=${c.catalogo}${destino.dispositivo ? `&dispositivo=${encodeURIComponent(destino.dispositivo)}` : ''}`,
         { headers: { authorization: `Bearer ${destino.acceso}` } },
       );
     } catch {

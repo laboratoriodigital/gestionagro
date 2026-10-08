@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { listarArchivos, RAIZ } from '../../scripts/lib/repo.ts';
 
-/** Los cinco de HU-Q6.2 CA1, y la hoja del cajero. */
+/** Los cinco de HU-Q6.2 CA1, la hoja del cajero y el retiro de una caja. */
 const RUNBOOKS = [
   'parqueadero-puesta-en-marcha.md',
   'parqueadero-impresora-no-imprime.md',
@@ -17,6 +17,8 @@ const RUNBOOKS = [
   'parqueadero-arreglos-en-congelamiento.md',
   // La hoja de una página para el cajero (BACKLOG-PARKING_MVP §8.1, D-3).
   'parqueadero-hoja-del-cajero.md',
+  // Retirar una caja perdida o robada (HU-Q7.7, WI-Q7.7.4).
+  'parqueadero-retirar-caja.md',
 ] as const;
 
 const leer = (rel: string) => readFileSync(join(RAIZ, rel), 'utf8');

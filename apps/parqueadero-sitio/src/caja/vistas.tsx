@@ -17,12 +17,14 @@ import {
   leerAbonados,
   leerAjustes,
 } from './almacen.ts';
+import { Cuenta } from './Cuenta.tsx';
 import type { BaseDeLaCaja } from './datos.ts';
 import { Entrada } from './Entrada.tsx';
 import { Escanear } from './Escanear.tsx';
 import { useConsulta } from './ganchos.ts';
 import type { ControlDeImpresora } from './impresora.ts';
 import { Letrero } from './Letrero.tsx';
+import type { Nube } from './nube.ts';
 import { avisoAceptado } from './privacidad.ts';
 import { Recibo } from './Recibo.tsx';
 import { Respaldo } from './Respaldo.tsx';
@@ -42,6 +44,8 @@ export type Vista =
   | { readonly es: 'turno' }
   | { readonly es: 'respaldo' }
   | { readonly es: 'abonados' }
+  /** `regreso`: el fragmento con que volvió de la cuenta (HU-Q7.6). */
+  | { readonly es: 'cuenta'; readonly regreso?: string }
   | { readonly es: 'recibo'; readonly registro: Registro };
 
 /** Los vehículos que la caja puede registrar hoy: los que tienen tarifa. */
@@ -68,9 +72,10 @@ interface Props {
   readonly control: ControlDeImpresora;
   readonly prueba: boolean;
   readonly ir: (v: Vista) => void;
+  readonly nube?: Nube;
 }
 
-export function Pantalla({ vista, db, reloj, control, prueba, ir }: Props) {
+export function Pantalla({ vista, db, reloj, control, prueba, ir, nube }: Props) {
   // Los ids de los registros son UUIDv7: ordenan por instante (ADR-4).
   const ctx = useMemo<Contexto>(() => ({ reloj, nuevoId: () => uuidv7(reloj) }), [reloj]);
   const inicio = () => ir({ es: 'inicio' });
@@ -109,9 +114,20 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir }: Props) {
         />
       );
     case 'respaldo':
-      return <Respaldo db={db} ctx={ctx} alVolver={inicio} />;
+      return <Respaldo db={db} ctx={ctx} {...(nube ? { nube } : {})} alVolver={inicio} />;
     case 'abonados':
       return <Abonados db={db} ctx={ctx} alVolver={inicio} />;
+    case 'cuenta':
+      return (
+        <Cuenta
+          db={db}
+          reloj={reloj}
+          {...(nube ? { nube } : {})}
+          {...(vista.regreso ? { regreso: vista.regreso } : {})}
+          alAjustes={() => ir({ es: 'ajustes' })}
+          alVolver={inicio}
+        />
+      );
     case 'aviso':
       return (
         <Aviso
