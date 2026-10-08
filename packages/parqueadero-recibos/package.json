@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@ed1/dinero": "workspace:*",
+    "@ed1/firma": "workspace:*",
     "@ed1/impresion": "workspace:*",
     "@ed1/parqueadero-schema": "workspace:*",
     "@ed1/whatsapp": "workspace:*",

@@ -3,15 +3,27 @@
  *
  * - **Completa:** `…/r/#1.<datos>[.<firma>.<certificado>]`. `datos` es un JSON de claves cortas,
  *   comprimido con deflate (zlib, que trae su suma Adler-32) y en base64url. Es el formato del QR
- *   firmado del agro, que `@ed1/firma` hereda en M2 (HU-Q8.1); en M0 va sin firma. La versión 2
- *   (HU-Q4.5) es la 1 con el texto de responsabilidad que escribió la sede; solo la lleva una
- *   entrada con texto propio, así que los demás recibos siguen saliendo en la 1.
+ *   firmado del agro, que `@ed1/firma` heredó (HU-Q8.1). La versión 2 (HU-Q4.5) es la 1 con el
+ *   texto de responsabilidad que escribió la sede; solo la lleva una entrada con texto propio, así
+ *   que los demás recibos siguen saliendo en la 1.
+ * - **Firma** (M2, HU-Q8.2, ADR-36): la caja firma `<versión>.<datos>` con su llave Ed25519 y le
+ *   pega el certificado que le dio la celda (`@ed1/firma`). `verificarRecibo` da los cuatro casos
+ *   de PARQUEADERO §6.3. Un enlace sin firma, como los de M0, sigue abriendo igual.
  * - **Corta:** `…/r/#c.<número>.<placa>.<tipo>.<hora>`, la del papel: cabe en un QR de versión 7.
  *
  * El fragmento no llega a ningún servidor (P13). El enlace es un contrato desde el primer recibo:
  * una versión del formato no cambia, se agrega la siguiente, y un fragmento alterado se lee como
  * un error con su motivo, nunca como otro recibo (HU-Q1.5 CA3).
  */
+
+import {
+  base64url,
+  desdeBase64url as bytesDe,
+  esCanonico,
+  type LlavePublica,
+  type VerificarEd25519,
+  verificarCadena,
+} from '@ed1/firma';
 import {
   CONCEPTOS,
   MEDIOS_DE_PAGO,
@@ -227,23 +239,10 @@ function expandir(c: CompactoV1 | CompactoV2): Recibo {
   };
 }
 
-function base64url(bytes: Uint8Array): string {
-  let binario = '';
-  for (const b of bytes) binario += String.fromCharCode(b);
-  return btoa(binario).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
-}
-
 /** Lee base64url y exige la forma canónica: dos textos distintos nunca dan los mismos bytes. */
 function desdeBase64url(valor: string): Uint8Array<ArrayBuffer> {
-  if (!/^[A-Za-z0-9_-]+$/.test(valor) || valor.length % 4 === 1) {
-    throw new EnlaceInvalido('base64', 'no es base64url');
-  }
-  const b64 = valor.replaceAll('-', '+').replaceAll('_', '/');
-  const bytes = Uint8Array.from(atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4)), (c) =>
-    c.charCodeAt(0),
-  );
-  if (base64url(bytes) !== valor) throw new EnlaceInvalido('base64', 'base64url no canónico');
-  return bytes;
+  if (!esCanonico(valor)) throw new EnlaceInvalido('base64', 'no es base64url canónico');
+  return bytesDe(valor);
 }
 
 async function pasar(bytes: Uint8Array<ArrayBuffer>, t: TransformStream): Promise<Uint8Array> {
@@ -276,12 +275,20 @@ export function enlaceCorto(
   return `${origen}#c.${recibo.numero}.${recibo.placa}.${t}.${aSegundos(recibo.entrada)}`;
 }
 
+/** Lo que trae un enlace firmado, para verificarlo (`verificarRecibo`). */
+export interface Firmado {
+  readonly firma: string;
+  readonly certificado: string;
+  /** Lo que firmó la caja: `<versión>.<datos>`, tal como llegó. */
+  readonly mensaje: Uint8Array<ArrayBuffer>;
+}
+
 export type Lectura =
   | {
       readonly forma: 'completa';
       readonly recibo: Recibo;
-      /** M0: sin firma. Una firma llega en M2 y esta versión aún no la verifica. */
-      readonly firma: 'sin_firma' | 'sin_verificar';
+      /** Sin firma (M0, o una caja que no puede firmar), o lo que trae para verificar (M2). */
+      readonly firma: 'sin_firma' | Firmado;
     }
   | {
       readonly forma: 'corta';
@@ -348,6 +355,68 @@ export async function leerEnlace(enlace: string): Promise<Lectura> {
   return {
     forma: 'completa',
     recibo: expandir(r.data),
-    firma: partes.length === 4 ? 'sin_verificar' : 'sin_firma',
+    firma:
+      partes.length === 4
+        ? {
+            firma: partes[2] ?? '',
+            certificado: partes[3] ?? '',
+            mensaje: new TextEncoder().encode(`${version}.${partes[1]}`),
+          }
+        : 'sin_firma',
   };
+}
+
+/** Lo que la caja firma de un enlace completo sin firma: su fragmento, `<versión>.<datos>`. */
+export function mensajeAFirmar(enlace: string): Uint8Array<ArrayBuffer> {
+  const fragmento = enlace.includes('#') ? enlace.slice(enlace.indexOf('#') + 1) : enlace;
+  if (!/^[12]\.[A-Za-z0-9_-]+$/.test(fragmento)) {
+    throw new EnlaceInvalido('forma', 'solo se firma un enlace completo sin firma');
+  }
+  return new TextEncoder().encode(fragmento);
+}
+
+/** El enlace completo con la firma de la caja y su certificado (HU-Q8.2 CA1). */
+export function conFirma(enlace: string, firma: Uint8Array, certificado: string): string {
+  mensajeAFirmar(enlace);
+  return `${enlace}.${base64url(firma)}.${certificado}`;
+}
+
+/** La serie del número de un recibo: `A` de `A-000123`. */
+export const serieDe = (n: string): string => n.slice(0, n.indexOf('-'));
+
+/** Cuándo dice el recibo que se emitió, en segundos: la salida, o la entrada. */
+export const emitidoEn = (recibo: Recibo): number =>
+  Math.floor((recibo.salida?.instante ?? recibo.entrada) / 1000);
+
+export type Verificacion =
+  /** «Copia digital del recibo»: sin sello, sin alarma (M0 o una caja sin firma). */
+  | { readonly estado: 'sin-firma' }
+  | { readonly estado: 'verificado'; readonly serie: string }
+  /** En ámbar: la caja firmó después de que venció su certificado (§11.4 punto 2). */
+  | { readonly estado: 'vencido'; readonly serie: string }
+  /** El certificado es de una celda que esta página no conoce: se muestra como sin firma. */
+  | { readonly estado: 'sin-verificar' }
+  /** En rojo: «Este recibo fue modificado». */
+  | { readonly estado: 'modificado' };
+
+/**
+ * Los casos de PARQUEADERO §6.3. La cadena es la de `@ed1/firma`, y además la serie del
+ * certificado tiene que ser la del número del recibo: una caja solo responde por sus números.
+ */
+export async function verificarRecibo(
+  lectura: Extract<Lectura, { forma: 'completa' }>,
+  llaves: readonly LlavePublica[],
+  verificar: VerificarEd25519,
+): Promise<Verificacion> {
+  if (lectura.firma === 'sin_firma') return { estado: 'sin-firma' };
+  const c = await verificarCadena({
+    ...lectura.firma,
+    llaves,
+    emitido: emitidoEn(lectura.recibo),
+    verificar,
+  });
+  if (c.estado === 'modificado') return { estado: 'modificado' };
+  if (c.certificado.serie !== serieDe(lectura.recibo.numero)) return { estado: 'modificado' };
+  if (c.estado === 'llave-desconocida') return { estado: 'sin-verificar' };
+  return { estado: c.estado, serie: c.certificado.serie };
 }

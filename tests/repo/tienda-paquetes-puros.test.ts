@@ -20,6 +20,7 @@ const PAQUETES = [
   'tienda-schema',
   'whatsapp',
   'impresion',
+  'firma',
   'parqueadero-schema',
   'parqueadero-tarifas',
   'parqueadero-recibos',

@@ -26,6 +26,7 @@
     "@ed1/agro-schema": "workspace:*",
     "@ed1/d1": "workspace:*",
     "@ed1/ids": "workspace:*",
+    "@ed1/parqueadero-recibos": "workspace:*",
     "@ed1/parqueadero-schema": "workspace:*",
     "@ed1/productos": "workspace:*",
     "@ed1/sync": "workspace:*",

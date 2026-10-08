@@ -9,7 +9,9 @@
  *    faltan: un despliegue nunca vuelve a encender lo que el dueño apagó;
  * 3. una prueba de humo que solo lee: las tablas del shard están;
  * 4. el Worker de su API (`parqueadero-api-c2-staging`, HU-Q7.4), con las claves públicas del CORE
- *    y el origen de la caja, y su prueba de humo: `/api/salud` y `/api/v1/*` sin token da 401.
+ *    y el origen de la caja, y su prueba de humo: `/api/salud` y `/api/v1/*` sin token da 401;
+ * 5. la llave de recibos de la celda (HU-Q8.1), solo si el Worker no tiene una, y la caja de
+ *    staging con esa llave pública dentro de `/r/` (HU-Q8.2).
  *
  * En producción no prepara nada todavía: el dueño autorizó staging, y producción espera la
  * publicación del parqueadero en la nube (HU-Q7.12).
@@ -124,4 +126,20 @@ export function tablasQueFaltan(salida: string): string[] | null {
   if (lotes === null) return null;
   const hay = new Set(lotes.flat().map((f) => String(f['name'])));
   return TABLAS_DEL_SHARD.filter((t) => !hay.has(t));
+}
+
+/** La llave con que la celda certifica las cajas (HU-Q8.1, PARQUEADERO §11.4). */
+export const SECRETO_DE_RECIBOS = 'CELDA_RECIBO_PRIVATE_KEY';
+
+/**
+ * Los secretos del Worker de la celda: la llave de recibos, **solo si el Worker no tiene una**
+ * (HU-Q8.1 CA3). Cambiarla haría que los certificados ya emitidos dejen de verificarse en `/r/`, y
+ * con ellos todos los recibos firmados. Se genera una vez y nunca se reemplaza.
+ */
+export async function secretosDeLaCeldaDelParqueadero(
+  existentes: readonly string[],
+  nuevaClave: () => Promise<string>,
+): Promise<{ secretos: Record<string, string>; claveNueva: boolean }> {
+  if (existentes.includes(SECRETO_DE_RECIBOS)) return { secretos: {}, claveNueva: false };
+  return { secretos: { [SECRETO_DE_RECIBOS]: await nuevaClave() }, claveNueva: true };
 }

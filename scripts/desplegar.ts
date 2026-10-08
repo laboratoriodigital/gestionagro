@@ -51,6 +51,7 @@ import {
   notaSinProduccion,
   origenesDeLaCaja,
   preparaLasCeldasDelParqueadero,
+  secretosDeLaCeldaDelParqueadero,
   tablasQueFaltan,
 } from './lib/celda-parqueadero.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
@@ -671,6 +672,36 @@ async function prepararCeldaDelParqueadero(
       ],
     };
   }
+  // HU-Q8.1 CA3: la llave de recibos se genera una vez, solo si el Worker no tiene una.
+  const lista = wrangler('@ed1/parqueadero-api', `secret list --format json ${c}`, cred);
+  let existentes: string[];
+  try {
+    existentes = (
+      JSON.parse(lista.salida.slice(lista.salida.indexOf('['))) as { name: string }[]
+    ).map((x) => x.name);
+  } catch {
+    return {
+      ok: false,
+      detalle: [
+        `no se pudo leer la lista de secretos de la API de ${celda.id} (wrangler secret list)`,
+      ],
+    };
+  }
+  const deLaCelda = await secretosDeLaCeldaDelParqueadero(existentes, generarClavePrivada);
+  if (deLaCelda.claveNueva) {
+    const carga = wrangler(
+      '@ed1/parqueadero-api',
+      `secret bulk ${c}`,
+      cred,
+      JSON.stringify(deLaCelda.secretos),
+    );
+    if (!carga.ok) {
+      return {
+        ok: false,
+        detalle: ['carga de la llave de recibos falló:', ...causaDeWrangler(carga.salida)],
+      };
+    }
+  }
   const fallas = await conReintentos(() => humoCelda(fetch, url, celda.shards.length));
   if (fallas.length > 0) {
     return {
@@ -687,6 +718,9 @@ async function prepararCeldaDelParqueadero(
       `celda ${celda.id} del parqueadero (staging): ${celda.shards.length} shard(s) con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}`,
       notaKv,
       `API: ${url}`,
+      deLaCelda.claveNueva
+        ? 'recibos: llave de la celda nueva generada'
+        : 'recibos: llave de la celda existente conservada',
     ],
   };
 }

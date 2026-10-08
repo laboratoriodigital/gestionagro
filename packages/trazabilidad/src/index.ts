@@ -10,9 +10,13 @@
  *   dice «verificado»; sin firma, «sin verificar»; con una firma que no coincide, lo dice en rojo
  *   (CA2). Las claves públicas de las celdas van dentro de la página al publicarla.
  *
- * Sin dependencias: lo usan la celda (firma), el cuaderno (arma la etiqueta sin señal) y la página
- * (verifica con la función de Ed25519 que le pasen).
+ * Lo usan la celda (firma), el cuaderno (arma la etiqueta sin señal) y la página (verifica con la
+ * función de Ed25519 que le pasen). base64url vive en `@ed1/firma` desde HU-Q8.1 (ADR-39), con el
+ * formato `datos.firma` que el parqueadero extiende con el certificado de cada caja.
  */
+import { base64url, desdeBase64url } from '@ed1/firma';
+
+export { base64url, desdeBase64url };
 
 export const RUTA_QR = '/agro/t/';
 
@@ -53,19 +57,6 @@ export const CAMPOS: readonly (keyof DatosQr)[] = [
 
 const texto = new TextEncoder();
 const lector = new TextDecoder();
-
-export function base64url(bytes: Uint8Array): string {
-  let binario = '';
-  for (const b of bytes) binario += String.fromCharCode(b);
-  return btoa(binario).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
-}
-
-export function desdeBase64url(valor: string): Uint8Array<ArrayBuffer> {
-  if (!/^[A-Za-z0-9_-]*$/.test(valor)) throw new Error('no es base64url');
-  const b64 = valor.replaceAll('-', '+').replaceAll('_', '/');
-  const binario = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
-  return Uint8Array.from(binario, (c) => c.charCodeAt(0));
-}
 
 /** Solo los campos permitidos, en un orden fijo: el mismo lote da siempre el mismo texto. */
 function limpiar(datos: DatosQr): DatosQr {
