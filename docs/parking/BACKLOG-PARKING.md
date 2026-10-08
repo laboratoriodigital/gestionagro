@@ -519,7 +519,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.12.1 `[campo]` dos cajas con el cliente · WI-Q7.12.2 `[prueba]` humo de producción · WI-Q7.12.3 `[doc]` validación y CHANGELOG.
 
 #### HU-Q7.13 · El presupuesto en el plan gratuito: filas de D1, vigía y kill switches
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q6 · **Depende de:** HU-C3.6, HU-C11.1, D-Q10 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q6 · **Depende de:** HU-C3.6, HU-C11.1, D-Q10 · **Estado:** En curso (rama `feat/q7-13-presupuesto-parqueadero`; el dueño dio el visto bueno para Cloudflare el 8 oct)
 - Como dueño, quiero saber cuántos parqueaderos caben en el plan gratuito y que el vigía avise antes del límite, para activar Workers Paid solo cuando haga falta.
 - **Respaldo:** la decisión del dueño del 6 oct 2026 («Workers Paid ya no es condición: se activa solo si hace falta»); PARQUEADERO §10.3, §14.1 y §14.2; PLATAFORMA §4.10. Nace del contraste (bitácora parqueadero 6).
 - **CA1.** `apps/parqueadero-api/product.yaml` declara el presupuesto en filas escritas por día y en dólares. El límite es de la cuenta, no del producto: 100.000 filas escritas al día en D1 entre el agro, el CORE, la Tienda y el parqueadero. El tope práctico de parqueaderos se calcula con lo que los otros ya escriben, **medido**, no supuesto.
