@@ -70,3 +70,41 @@ describe('POST /_m del sitio del parqueadero (HU-Q5.3)', () => {
     expect(await r.text()).toBe('asset');
   });
 });
+
+describe('POST /_m con el lote de una herramienta del sitio (HU-Q11.5 CA2)', () => {
+  const deHerramienta = {
+    v: 1,
+    producto: 'parqueadero-recibo-de-entrada',
+    eventos: { 'tool.opened': 1, 'tool.completed': 1, 'tool.next_step': 1 },
+  };
+
+  it('escribe un punto por lote con los cuatro tool.* en orden, como el sitio del agro', async () => {
+    const { env, puntos } = envDePrueba();
+    const r = await worker.fetch(post(deHerramienta), env);
+    expect(r.status).toBe(204);
+    expect(puntos).toEqual([
+      {
+        indexes: ['parqueadero-recibo-de-entrada'],
+        blobs: ['parqueadero-recibo-de-entrada'],
+        doubles: [1, 1, 0, 1],
+      },
+    ]);
+    expect(JSON.stringify(puntos)).not.toContain(IP);
+  });
+
+  it('❌ una herramienta que no está en la lista, o un evento ajeno, se rechazan', async () => {
+    const { env, puntos } = envDePrueba();
+    const otra = await worker.fetch(
+      post({ ...deHerramienta, producto: 'agro-calculadora-dpv' }),
+      env,
+    );
+    expect(otra.status).toBe(400);
+    expect(await otra.text()).toContain('producto desconocido');
+    const ajeno = await worker.fetch(
+      post({ ...deHerramienta, eventos: { 'placa.ABC123': 1 } }),
+      env,
+    );
+    expect(ajeno.status).toBe(400);
+    expect(puntos).toEqual([]);
+  });
+});

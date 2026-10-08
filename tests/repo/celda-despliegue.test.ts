@@ -30,11 +30,13 @@ import {
   notaSinProduccion,
   origenesDeLaCaja,
   preparaLasCeldasDelParqueadero,
+  SECRETO_DE_RECIBOS,
+  secretosDeLaCeldaDelParqueadero,
   TABLAS_DEL_SHARD,
   tablasQueFaltan,
 } from '../../scripts/lib/celda-parqueadero.ts';
 import { cargarCeldas } from '../../scripts/lib/celdas.ts';
-import { clavesQrDe, conClavesQr } from '../../scripts/lib/claves-qr.ts';
+import { clavesQrDe, conClavesQr, PAGINAS } from '../../scripts/lib/claves-qr.ts';
 import { productoDeLaBase, productosDeLasBases } from '../../scripts/lib/d1-core.ts';
 import type { Fetch } from '../../scripts/lib/despliegue.ts';
 import { productosADesplegar } from '../../scripts/lib/publicacion.ts';
@@ -388,6 +390,65 @@ describe('las celdas del parqueadero (HU-Q7.2)', () => {
     expect(preparaLasCeldasDelParqueadero('produccion', productosADesplegar('parqueadero'))).toBe(
       true,
     );
+  });
+
+  it('HU-Q8.1 CA3 ❌: la llave de recibos se genera una vez y el despliegue nunca la reemplaza', async () => {
+    let generadas = 0;
+    const nueva = async () => {
+      generadas++;
+      return 'llave-nueva';
+    };
+    expect(await secretosDeLaCeldaDelParqueadero([], nueva)).toEqual({
+      secretos: { CELDA_RECIBO_PRIVATE_KEY: 'llave-nueva' },
+      claveNueva: true,
+    });
+    expect(
+      await secretosDeLaCeldaDelParqueadero(['CF_METRICAS_TOKEN', SECRETO_DE_RECIBOS], nueva),
+    ).toEqual({ secretos: {}, claveNueva: false });
+    expect(generadas).toBe(1);
+    // El despliegue solo la carga cuando es nueva: nunca manda la llave sin ese aviso.
+    const texto = readFileSync(join(RAIZ, 'scripts', 'desplegar.ts'), 'utf8');
+    const paso = texto.slice(texto.indexOf('async function prepararCeldaDelParqueadero'));
+    expect(paso).toMatch(/if \(deLaCelda\.claveNueva\) \{\s+const carga = wrangler\(/);
+    expect(texto.match(/secretosDeLaCeldaDelParqueadero\(/g)).toHaveLength(1);
+  });
+
+  it('HU-Q8.2: la caja de staging sale después de la celda, con sus llaves de recibos en /r/', async () => {
+    const texto = readFileSync(join(RAIZ, 'scripts', 'desplegar.ts'), 'utf8');
+    const paso = texto.slice(
+      texto.indexOf('async function prepararCeldaDelParqueadero'),
+      texto.indexOf('async function desplegarApiCelda'),
+    );
+    expect(paso.indexOf('clavesQrDe(fetch, url, PAGINAS.recibo)')).toBeGreaterThan(
+      paso.indexOf("wrangler('@ed1/parqueadero-api', `deploy"),
+    );
+    expect(paso.indexOf("desplegarParqueadero(cred, 'staging')")).toBeGreaterThan(
+      paso.indexOf('ponerClavesEnLaPagina(claves, PAGINA_RECIBO, PAGINAS.recibo)'),
+    );
+    expect(texto.match(/desplegarParqueadero\(cred, 'staging'\)/g)).toHaveLength(1);
+
+    const fetchFn = (async (u: string) =>
+      u.endsWith('/api/claves-recibo')
+        ? Response.json({ claves: [{ kid: 'k2', x: 'xyz' }] })
+        : new Response('no', { status: 404 })) as unknown as Fetch;
+    expect(await clavesQrDe(fetchFn, 'https://api', PAGINAS.recibo)).toEqual([
+      { kid: 'k2', x: 'xyz' },
+    ]);
+    const html = conClavesQr(
+      '<main><script type="application/json" id="claves-recibo">[]</script></main>',
+      [{ kid: 'k2', x: 'xyz' }],
+      PAGINAS.recibo,
+    );
+    expect(html).toContain('id="claves-recibo">[{"kid":"k2","x":"xyz"}]</script>');
+    expect(() => conClavesQr('<main></main>', [], PAGINAS.recibo)).toThrow(
+      'la página /r/ no tiene el bloque #claves-recibo',
+    );
+    expect(
+      readFileSync(
+        join(RAIZ, 'apps', 'parqueadero-sitio', 'src', 'pages', 'r', 'index.astro'),
+        'utf8',
+      ),
+    ).toContain('<script type="application/json" id="claves-recibo" is:inline>[]</script>');
   });
 
   it('la prueba de humo del shard lee la lista de tablas de wrangler --json', () => {

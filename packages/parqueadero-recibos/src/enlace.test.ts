@@ -97,9 +97,14 @@ describe('el enlace del recibo (HU-Q1.5 CA1)', () => {
     });
   });
 
-  it('con firma y certificado (M2), esta versión dice que no los verifica', async () => {
-    const leido = await leerEnlace(`${await fragmentoCompleto(ENTRADA)}.AAAA.BBBB`);
-    expect(leido.forma === 'completa' && leido.firma).toBe('sin_verificar');
+  it('con firma y certificado (M2), trae lo que hay que verificar (firma.test.ts)', async () => {
+    const fragmento = await fragmentoCompleto(ENTRADA);
+    const leido = await leerEnlace(`${fragmento}.AAAA.BBBB`);
+    expect(leido.forma === 'completa' && leido.firma).toEqual({
+      firma: 'AAAA',
+      certificado: 'BBBB',
+      mensaje: new TextEncoder().encode(fragmento),
+    });
   });
 });
 

@@ -1,19 +1,34 @@
 ---
-// La portada del Parqueadero ED1. En M0 solo lleva a la caja (ADR-32); el nombre comercial llega
-// con D-Q5 y la página pública del recibo con HU-Q4.2.
+// La portada del Parqueadero ED1 (HU-Q11.5): qué es la caja, cómo probarla sin registrarse y las
+// herramientas gratuitas. El texto vive en `src/sitio/contenido.ts`, con su gemelo en Markdown.
+import Sitio from '../layouts/Sitio.astro';
+import { GENERADOR, PORTADA } from '../sitio/contenido.ts';
 ---
-<!doctype html>
-<html lang="es-CO">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex, nofollow" />
-    <title>Parqueadero ED1</title>
-    <link rel="stylesheet" href="/sitio.css" />
-  </head>
-  <body>
-    <h1>Parqueadero ED1</h1>
-    <p>La caja del parqueadero: entradas, salidas y recibos en papel y por WhatsApp, sin internet.</p>
-    <p><a class="boton" href="/caja/">Abrir la caja</a></p>
-  </body>
-</html>
+<Sitio titulo={PORTADA.titulo} descripcion={PORTADA.resumen} ruta={PORTADA.ruta}>
+  <section class="portada">
+    <h1>{PORTADA.titular}</h1>
+    <p class="entrada">{PORTADA.entrada}</p>
+    <p><a class="boton" href="/caja/">{PORTADA.accion}</a></p>
+  </section>
+  <section aria-labelledby="que-hace">
+    <h2 id="que-hace">Qué hace</h2>
+    <ul class="rasgos">
+      {
+        PORTADA.queHace.map(([titulo, texto]) => (
+          <li>
+            <h3>{titulo}</h3>
+            <p>{texto}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+  <section aria-labelledby="herramientas">
+    <h2 id="herramientas">{PORTADA.herramientasTitulo}</h2>
+    <a class="herramienta" href={GENERADOR.ruta}>
+      <span class="herramienta-titulo">{GENERADOR.titular}</span>
+      <span class="herramienta-texto">{GENERADOR.resumen}</span>
+    </a>
+  </section>
+  <p slot="pie">{PORTADA.pie}</p>
+</Sitio>

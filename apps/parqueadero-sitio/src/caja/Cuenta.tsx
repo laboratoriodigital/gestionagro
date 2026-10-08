@@ -32,6 +32,7 @@ import {
 import type { BaseDeLaCaja, Meta, Sesion } from './datos.ts';
 import { urlDelCore } from './entorno.ts';
 import { fechaBogota, horaBogota } from './fecha.ts';
+import { type EstadoDeLaFirma, estadoDeLaFirma } from './firma.ts';
 import { useConsulta } from './ganchos.ts';
 import type { Nube } from './nube.ts';
 import { aceptarTerminos, terminos, VERSION_DE_LOS_TERMINOS } from './terminos.ts';
@@ -67,6 +68,9 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
     () => db.meta.get('dispositivo').then((m) => (m?.clave === 'dispositivo' ? m.serie : null)),
     null,
   );
+  const firma = useConsulta<EstadoDeLaFirma>(() => estadoDeLaFirma(db, reloj()), {
+    es: 'sin-llave',
+  });
   const recibos = useConsulta(() => db.registros.count(), 0);
   const enCola = useConsulta(() => db.outbox.count(), 0);
   const rechazos = useConsulta(() => db.rechazos.count(), 0);
@@ -277,6 +281,10 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
               </dd>
             </div>
             <div>
+              <dt>Recibos</dt>
+              <dd data-prueba="firma">{textoDeLaFirma(firma)}</dd>
+            </div>
+            <div>
               <dt>Por subir</dt>
               <dd class="cifra">{enCola === 0 ? 'Nada' : cifra(enCola)}</dd>
             </div>
@@ -304,6 +312,20 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
       {volver}
     </section>
   );
+}
+
+/** Si los recibos de esta caja salen firmados (HU-Q8.1 y HU-Q8.2); sin firma, lo dice (CA3). */
+function textoDeLaFirma(f: EstadoDeLaFirma): string {
+  switch (f.es) {
+    case 'vigente':
+      return `Firmados por esta caja hasta el ${fechaBogota(f.hasta).slice(0, 5)}`;
+    case 'vencido':
+      return 'Firmados con el certificado vencido: se renueva al sincronizar';
+    case 'sin-ed25519':
+      return 'Sin firma: este navegador no puede firmarlos. Salen como copia digital';
+    default:
+      return 'Sin firma todavía: la caja se certifica al sincronizar';
+  }
 }
 
 /**

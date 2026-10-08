@@ -926,3 +926,21 @@ AssertionError: expected 'from registro sin «where … org_id = ?»' to be null
 La regla: **una consulta nueva de la celda se corre con la batería entera antes de darla por buena; la guardia de tenant ve lo que una prueba con un solo parqueadero no puede ver.**
 
 *Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P4, P12 · parqueadero-0.2.0 · 2026-10-08
+
+**32 · El script del generador llevaba `infrastructure/productos.json` entero al navegador.**
+
+*Qué pasó.* El 8 oct 2026, al construir el generador de recibo de entrada (HU-Q11.4), su script tomaba el nombre de su producto para los eventos de `contenido.ts`, que lee `infrastructure/productos.json` para saber el dominio.
+
+*Síntoma.* Después de `astro build`, buscar `kill_switches` y `rutas_de_vuelta` en `apps/parqueadero-sitio/dist/_astro/` encontraba el archivo del script del generador. No se guardó la salida exacta.
+
+*Causa raíz.* Vite empaqueta todo lo que importa un script de cliente, también un JSON importado por un módulo que la página solo usa al construir. Los kill switches, las cuotas y las rutas de vuelta de todos los productos quedaban en un archivo público, y el script pesaba más de lo que hacía.
+
+*Cómo se reprodujo.* `grep` del `dist` armado, como arriba.
+
+*Arreglo.* La página escribe el producto en el formulario (`data-producto`) al construir, y el script lo lee de ahí: el script del cliente no importa `contenido.ts`. Su JS quedó en 1,8 KB con gzip, más la hoja del recibo que comparte con `/r/`.
+
+**Lo prueba** «el código que corre en el navegador no carga `contenido.ts` ni `productos.json`» en `apps/parqueadero-sitio/src/sitio/contenido.test.ts`. Control negativo: con el import de antes, la prueba se ve en rojo.
+
+La regla: **un script de cliente no importa un módulo hecho para el build; lo que necesita de él, la página se lo deja escrito en el HTML.**
+
+*Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P13 · parqueadero-0.2.0 · 2026-10-08

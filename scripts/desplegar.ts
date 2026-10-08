@@ -51,10 +51,17 @@ import {
   notaSinProduccion,
   origenesDeLaCaja,
   preparaLasCeldasDelParqueadero,
+  secretosDeLaCeldaDelParqueadero,
   tablasQueFaltan,
 } from './lib/celda-parqueadero.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
-import { type ClaveQr, clavesQrDe, ponerClavesEnLaPagina } from './lib/claves-qr.ts';
+import {
+  type ClaveQr,
+  clavesQrDe,
+  PAGINA_RECIBO,
+  PAGINAS,
+  ponerClavesEnLaPagina,
+} from './lib/claves-qr.ts';
 import {
   ARCHIVO_DESPLIEGUE_CORE,
   ARCHIVO_SQL_CELDAS,
@@ -671,6 +678,36 @@ async function prepararCeldaDelParqueadero(
       ],
     };
   }
+  // HU-Q8.1 CA3: la llave de recibos se genera una vez, solo si el Worker no tiene una.
+  const lista = wrangler('@ed1/parqueadero-api', `secret list --format json ${c}`, cred);
+  let existentes: string[];
+  try {
+    existentes = (
+      JSON.parse(lista.salida.slice(lista.salida.indexOf('['))) as { name: string }[]
+    ).map((x) => x.name);
+  } catch {
+    return {
+      ok: false,
+      detalle: [
+        `no se pudo leer la lista de secretos de la API de ${celda.id} (wrangler secret list)`,
+      ],
+    };
+  }
+  const deLaCelda = await secretosDeLaCeldaDelParqueadero(existentes, generarClavePrivada);
+  if (deLaCelda.claveNueva) {
+    const carga = wrangler(
+      '@ed1/parqueadero-api',
+      `secret bulk ${c}`,
+      cred,
+      JSON.stringify(deLaCelda.secretos),
+    );
+    if (!carga.ok) {
+      return {
+        ok: false,
+        detalle: ['carga de la llave de recibos falló:', ...causaDeWrangler(carga.salida)],
+      };
+    }
+  }
   const fallas = await conReintentos(() => humoCelda(fetch, url, celda.shards.length));
   if (fallas.length > 0) {
     return {
@@ -681,12 +718,34 @@ async function prepararCeldaDelParqueadero(
       ],
     };
   }
+  // HU-Q8.2: `/r/` lleva dentro la llave de recibos de la celda; sin ella, la caja no se publica.
+  let claves: ClaveQr[] = [];
+  const sinClaves = await conReintentos(async () => {
+    try {
+      claves = await clavesQrDe(fetch, url, PAGINAS.recibo);
+      return [];
+    } catch (e) {
+      return [(e as Error).message];
+    }
+  });
+  if (sinClaves.length > 0) return { ok: false, detalle: [`/r/: ${sinClaves.join('; ')}`] };
+  try {
+    ponerClavesEnLaPagina(claves, PAGINA_RECIBO, PAGINAS.recibo);
+  } catch (e) {
+    return { ok: false, detalle: [`parqueadero: ${(e as Error).message}`] };
+  }
+  const caja = await desplegarParqueadero(cred, 'staging');
   return {
-    ok: true,
+    ok: caja.ok,
     detalle: [
       `celda ${celda.id} del parqueadero (staging): ${celda.shards.length} shard(s) con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}`,
       notaKv,
       `API: ${url}`,
+      deLaCelda.claveNueva
+        ? 'recibos: llave de la celda nueva generada'
+        : 'recibos: llave de la celda existente conservada',
+      ...caja.detalle,
+      `recibos: ${claves.length} llave(s) de celda en /r/`,
     ],
   };
 }
@@ -881,16 +940,13 @@ for (const celda of plan.aDesplegar) {
   const detalle: string[] = [];
   let paso: Paso = { ok: true, detalle: [] };
   // En orden: el CORE (la celda necesita su clave pública), la API de la celda y el sitio, que
-  // lleva dentro las claves públicas del QR de las celdas (HU-E6.4).
+  // lleva dentro las claves públicas del QR de las celdas (HU-E6.4). La caja de staging sale con
+  // la celda del parqueadero, que da las llaves de recibos de `/r/` (HU-Q8.2).
   if (alojaCore && productos.has('core')) {
     paso = await desplegarCore(configCeldas, celda, cred, origenDelCuaderno(configCeldas));
     detalle.push(...paso.detalle);
     if (paso.ok && destino === 'staging') {
       paso = await desplegarEnsayo(cred);
-      detalle.push(...paso.detalle);
-    }
-    if (paso.ok && destino === 'staging') {
-      paso = await desplegarParqueadero(cred, 'staging');
       detalle.push(...paso.detalle);
     }
   } else if (alojaCore) {

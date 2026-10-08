@@ -5,6 +5,8 @@
  *
  * - `GET /api/salud`: sin token. La prueba de humo del despliegue: cada shard responde y tiene las
  *   tablas de la migración. Sin configuración o con un shard caído responde 503 y dice cuál (P1).
+ * - `GET /api/claves-recibo`: sin token. La llave pública con que `/r/` verifica los certificados
+ *   de las cajas (`certificados.ts`, HU-Q8.1).
  * - `/api/v1/*`: exige un token con `aud = parqueadero`. La organización, el rol, el usuario y el
  *   shard salen del token, nunca del cuerpo ni de la URL.
  * - Kill switch `ks:parqueadero` (CA3): apagado, `/api/v1/*` responde 503 con `Retry-After`; la
@@ -14,7 +16,8 @@
  *
  * Rutas con token: `/api/v1/yo` (a qué parqueadero y shard llegó la sesión), `/api/v1/sync/push`
  * (`push.ts`), `/api/v1/sync/pull` (`pull.ts`), reclamar, las cajas y el resumen
- * (`dispositivos.ts`, HU-Q7.6 y HU-Q7.7) y los términos aceptados (`terminos.ts`, HU-Q7.11).
+ * (`dispositivos.ts`, HU-Q7.6 y HU-Q7.7), el certificado de firma de una caja (`certificados.ts`,
+ * HU-Q8.1) y los términos aceptados (`terminos.ts`, HU-Q7.11).
  * Ningún identificador de cuenta, base o dominio en el código (ADR-6): todo llega por la
  * configuración que arma el despliegue desde `celdas.json` y `productos.json`.
  */
@@ -28,6 +31,7 @@ import {
 } from '@ed1/tokens';
 import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { certificar, clavesRecibo } from './certificados.ts';
 import { darDeAlta, listar, reclamar, resumen, retirar } from './dispositivos.ts';
 import { pull } from './pull.ts';
 import { push } from './push.ts';
@@ -55,6 +59,8 @@ export interface Env {
   CORE_CLAVES?: string;
   /** Orígenes de la caja, separados por coma (`productos.json`, `app.origenes`). */
   ORIGENES_APP?: string;
+  /** Llave Ed25519 (PKCS#8 en base64) con que la celda certifica las cajas (HU-Q8.1). */
+  CELDA_RECIBO_PRIVATE_KEY?: string;
   FLAGS?: LectorKv;
   /** Un binding D1 por shard, con el nombre del shard. */
   [shard: string]: unknown;
@@ -136,6 +142,8 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       return c.json({ estado: 'shard-con-falla', motivo: fallas.join('; ') }, 503);
     return c.json({ estado: 'ok', celda: c.env.CELDA, shards: shards.length });
   });
+
+  app.get('/api/claves-recibo', (c) => clavesRecibo(c));
 
   app.use(
     '/api/v1/*',
@@ -236,6 +244,7 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
   app.get('/api/v1/dispositivos', (c) => listar(c));
   app.post('/api/v1/dispositivos', (c) => darDeAlta(c, ahora));
   app.post('/api/v1/dispositivos/retirar', (c) => retirar(c, ahora));
+  app.post('/api/v1/dispositivos/certificado', (c) => certificar(c, ahora));
   app.post('/api/v1/terminos', (c) => registrarTerminos(c));
 
   // Una falla inesperada se responde en JSON con su causa: la caja la dice como es y reintenta, y

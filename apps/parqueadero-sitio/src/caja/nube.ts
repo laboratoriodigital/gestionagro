@@ -15,6 +15,9 @@
  * Sin los términos vigentes aceptados en esta caja (HU-Q7.11 CA3) no sale nada: el estado es
  * `sin-terminos` y «Cuenta y nube» los pide. Aceptados, la primera vuelta los deja dichos en la
  * celda con su hora (CA1).
+ *
+ * Con lo propio arriba, pide el certificado de firma de la caja si falta o vence en menos de una
+ * semana (HU-Q8.1, `firma.ts`): un pedido cada casi un mes.
  */
 import type { BaseDeLaCaja } from './datos.ts';
 import type { Resultado, ResultadoDeRecepcion } from './sincronizar.ts';
@@ -120,6 +123,11 @@ export function crearNube(db: BaseDeLaCaja, o: OpcionesDeLaNube): Nube {
       programar(envio.estado === 'esperar' ? envio.ms : CADA_MS);
       return { tipo: 'resultado', envio, cuando: o.reloj() };
     }
+    // HU-Q8.1: con la caja ya en la celda, su certificado de firma si falta o está por vencer.
+    // Sin él la caja sigue emitiendo, sin firma; se intenta en la vuelta siguiente.
+    await import('./firma.ts')
+      .then((f) => f.certificar(db, destino, { ahora: o.reloj, ...red }))
+      .catch(() => false);
     // Lo del reclamo se da por subido solo si la celda tiene lo mismo. Sin respuesta, otra vuelta.
     if (cuenta && reclamando) {
       await cuenta.verificarReclamo(db, destino, { ...red, ahora: o.reloj }).catch(() => null);

@@ -172,6 +172,23 @@ export type Meta =
       readonly accion: 'guardar' | 'traer';
       readonly creado: number;
     }
+  /**
+   * La llave con que esta caja firma sus recibos (HU-Q8.1, PARQUEADERO §11.4). La privada es una
+   * `CryptoKey` no exportable: IndexedDB la guarda, pero nadie puede leer sus bytes. El certificado
+   * es de la celda y vale hasta `hasta` (ms) para la serie `serie`. Nunca va en el respaldo.
+   * `sin-ed25519`: este navegador no firma con Ed25519, y los recibos salen sin firma (CA3).
+   */
+  | {
+      readonly clave: 'firma';
+      readonly estado: 'lista';
+      readonly privada: CryptoKey;
+      /** La llave pública en base64url (32 bytes). */
+      readonly llave: string;
+      readonly certificado: string | null;
+      readonly hasta: number | null;
+      readonly serie: string | null;
+    }
+  | { readonly clave: 'firma'; readonly estado: 'sin-ed25519'; readonly probado: number }
   /** La última vez que todo lo de la caja estaba en la nube y lo de la nube en la caja (HU-Q7.9). */
   | { readonly clave: 'nube_al_dia'; readonly instante: number }
   /** Hasta dónde bajó la caja lo de las demás cajas: los dos cursores del pull (`@ed1/sync`). */

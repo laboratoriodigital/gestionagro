@@ -127,8 +127,11 @@ function filaDeBloque([etiqueta, valor]: Fila, col: number): string[] {
   return [...partir(e, col), ...partir(v, col).map((l) => l.padStart(col))];
 }
 
-/** El mensaje para el conductor, con el enlace completo del recibo (§6.4). */
-export function textoWhatsApp(recibo: Recibo, enlace: string, desfaseMin = -300): string {
+/**
+ * El mensaje para el conductor, con el enlace completo del recibo (§6.4). Sin enlace (`null`), el
+ * del generador (HU-Q11.4), que no tiene página en `/r/`.
+ */
+export function textoWhatsApp(recibo: Recibo, enlace: string | null, desfaseMin = -300): string {
   const f = (ms: number) => fechaHora(ms, desfaseMin);
   const col = COLUMNAS_WHATSAPP;
   const s = recibo.sede;
@@ -193,7 +196,8 @@ export function textoWhatsApp(recibo: Recibo, enlace: string, desfaseMin = -300)
     `_${sinMarcas(legal)}_`,
   );
   if (recibo.pie) lineas.push(sinMarcas(recibo.pie));
-  lineas.push('', 'Su recibo:', enlace, '', TEXTO_LEGAL.whatsapp);
+  if (enlace !== null) lineas.push('', 'Su recibo:', enlace);
+  lineas.push('', TEXTO_LEGAL.whatsapp);
   return armarTexto(lineas);
 }
 
