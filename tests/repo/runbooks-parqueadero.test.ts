@@ -26,10 +26,16 @@ const RUNBOOKS = [
   'parqueadero-retirar-caja.md',
   // Los kill switches de la celda (HU-Q10.4).
   'parqueadero-kill-switches.md',
+  // Un parqueadero se va (HU-Q10.2).
+  'parqueadero-baja.md',
 ] as const;
 
 /** Los de la celda (HU-Q10.4 CA1): lo que nombran tiene que existir en el código (CA2). */
-const DE_LA_CELDA = ['parqueadero-retirar-caja.md', 'parqueadero-kill-switches.md'] as const;
+const DE_LA_CELDA = [
+  'parqueadero-retirar-caja.md',
+  'parqueadero-kill-switches.md',
+  'parqueadero-baja.md',
+] as const;
 
 const leer = (rel: string) => readFileSync(join(RAIZ, rel), 'utf8');
 
@@ -161,5 +167,20 @@ describe('los runbooks de la celda, atados al código (HU-Q10.4)', () => {
       kv: ['parqueadero-c9-flags-staging'],
       urls: ['https://parqueadero-api-c9-staging.laboratoriodigital-la.workers.dev'],
     });
+  });
+});
+
+describe('el runbook de la baja, atado a su script (HU-Q10.2)', () => {
+  it('cada comando que da existe en el script, con sus opciones', () => {
+    const md = leer('docs/runbooks/parqueadero-baja.md');
+    const uso = leer('scripts/baja-parqueadero.ts');
+    const comandos = [...md.matchAll(/node scripts\/baja-parqueadero\.ts ([a-z]+)([^\n`]*)/g)];
+    expect(comandos.length).toBeGreaterThanOrEqual(4);
+    for (const [, accion, resto] of comandos) {
+      expect(uso, accion).toContain(`node scripts/baja-parqueadero.ts ${accion}`);
+      for (const opcion of resto?.match(/--[a-z]+/g) ?? []) {
+        expect(uso, `${accion} ${opcion}`).toContain(`'${opcion}'`);
+      }
+    }
   });
 });
