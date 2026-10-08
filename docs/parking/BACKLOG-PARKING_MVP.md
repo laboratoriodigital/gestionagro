@@ -544,6 +544,16 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Patrones en riesgo:** P2, P18.
 - **Work items:** WI-Q4.4.1 `[doc]` plantillas · WI-Q4.4.2 `[código]` aceptación y versión · WI-Q4.4.3 `[prueba]`.
 
+#### HU-Q4.5 · El texto de responsabilidad del recibo de entrada, editable por la sede
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** puesta en marcha · **Depende de:** HU-Q1.4, HU-Q1.5 · **Estado:** En curso (rama `feat/q4-5-texto-responsabilidad`)
+- Como propietario, quiero que el recibo de entrada diga lo que dice mi talonario (por ejemplo, «después de 45 días el parqueadero no se hace responsable»), partiendo del texto que sugiere la ley.
+- **Respaldo:** pedido del dueño del 8 oct 2026, con el recibo original del parqueadero cero; Ley 1480 art. 18; estudio §13.1.
+- **CA1.** Ajustes › Recibo trae «Texto de responsabilidad», con la sugerencia de la ley ya escrita. Lo que la sede guarde sale en la entrada por los cuatro caminos (papel, enlace, mensaje y pantalla); vacío, vuelve la sugerencia.
+- **CA2.** Un recibo con el texto de la ley lleva el mismo enlace de siempre (versión 1); uno con texto propio lleva la versión 2, y la página `/r/` lee las dos.
+- **CA3 ❌.** Un texto de más de 200 letras no se guarda, y un enlace de versión 2 alterado se lee como un error, nunca como otro recibo.
+- **Patrones en riesgo:** P2, P18.
+- **Work items:** WI-Q4.5.1 `[código]` · WI-Q4.5.2 `[prueba]`.
+
 ### EQ5 · Sitio, dominio, despliegue y medición
 
 #### HU-Q5.1 · El sitio en staging con HTTPS
