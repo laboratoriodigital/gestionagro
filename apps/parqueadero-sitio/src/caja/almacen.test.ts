@@ -955,7 +955,7 @@ describe('una salida en $0 dice por qué (dueño, 8 oct 2026)', () => {
     const tarifa = { ...TARIFA_CARRO, valor: 70, gracia_min: 0, redondeo: 'abajo_100' as const };
     const unMinuto = liquidar(0, 60_000, tarifa, 230);
     expect(unMinuto.total).toBe(0);
-    expect(motivoDelCero({ liquidacion: unMinuto, tarifa })).toBe(
+    expect(motivoDelCero({ liquidacion: unMinuto, tarifa, tarifaCambio: false })).toBe(
       'El redondeo hacia abajo deja $70 en $0: revise el redondeo en Ajustes',
     );
 
@@ -963,8 +963,58 @@ describe('una salida en $0 dice por qué (dueño, 8 oct 2026)', () => {
     const diez = { ...tarifa, tope_dia: 10 };
     const conTope = liquidar(0, 22 * 60_000, diez, 230);
     expect(conTope.total).toBe(0);
-    expect(motivoDelCero({ liquidacion: conTope, tarifa: diez })).toBe(
+    expect(motivoDelCero({ liquidacion: conTope, tarifa: diez, tarifaCambio: false })).toBe(
       'El tope por día es de $10: revise la tarifa en Ajustes',
+    );
+  });
+
+  it('si la tarifa ya cambió, dice que se cobra con la de la entrada y no manda a Ajustes', async () => {
+    // La captura del dueño: tope por día de $1, corregido en Ajustes, y la salida seguía en $0.
+    const { db, ctx, avanzar } = await configurada();
+    const carro = (await leerAjustes(db)).tarifas.find((t) => t.vehiculo === 'carro');
+    if (!carro) throw new Error('sin tarifa de carro');
+    const conUno = {
+      ...sinMeta(carro),
+      tope_dia: 1,
+      gracia_min: 0,
+      plena: null,
+      nocturna: null,
+      redondeo: 'abajo_100' as const,
+    };
+    await guardarTarifa(db, conUno, carro.id, ctx);
+    const vieja = await registrarEntrada(db, ENTRADA, ctx);
+    avanzar(30);
+    const antes = await cotizar(db, vieja.id, ctx.reloj(), false);
+    expect(antes.liquidacion.total).toBe(0);
+    expect(antes.tarifaCambio).toBe(false);
+    expect(motivoDelCero(antes)).toBe('El tope por día es de $1: revise la tarifa en Ajustes');
+
+    await guardarTarifa(db, { ...conUno, tope_dia: 15_000 }, carro.id, ctx);
+    const despues = await cotizar(db, vieja.id, ctx.reloj(), false);
+    expect(despues.liquidacion.total).toBe(0);
+    expect(despues.tarifaCambio).toBe(true);
+    expect(motivoDelCero(despues)).toBe(
+      'Entró cuando el tope por día era de $1, y se cobra con la tarifa con que entró. Los que entren desde ahora pagan con la nueva',
+    );
+
+    const nueva = await registrarEntrada(db, { ...ENTRADA, placa: 'DEF456' }, ctx);
+    avanzar(30);
+    const conLaNueva = await cotizar(db, nueva.id, ctx.reloj(), false);
+    expect(conLaNueva.tarifaCambio).toBe(false);
+    expect(conLaNueva.liquidacion.total).toBeGreaterThan(0);
+    expect(motivoDelCero(conLaNueva)).toBe('');
+  });
+
+  it('con la tarifa ya cambiada, el redondeo y la tarifa en $0 también dicen que se cobra la de la entrada', () => {
+    const tarifa = { ...TARIFA_CARRO, valor: 70, gracia_min: 0, redondeo: 'abajo_100' as const };
+    const unMinuto = liquidar(0, 60_000, tarifa, 230);
+    expect(motivoDelCero({ liquidacion: unMinuto, tarifa, tarifaCambio: true })).toBe(
+      'Entró cuando el redondeo hacia abajo dejaba $70 en $0, y se cobra con la tarifa con que entró. Los que entren desde ahora pagan con la nueva',
+    );
+    const gratis = { ...TARIFA_CARRO, valor: 0, gracia_min: 0, redondeo: 'ninguno' as const };
+    const cero = liquidar(0, 60_000, gratis, 230);
+    expect(motivoDelCero({ liquidacion: cero, tarifa: gratis, tarifaCambio: true })).toBe(
+      'Entró cuando la tarifa de este vehículo daba $0, y se cobra con la tarifa con que entró. Los que entren desde ahora pagan con la nueva',
     );
   });
 });

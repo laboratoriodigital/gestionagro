@@ -578,6 +578,8 @@ export interface Cotizacion {
   readonly abonado: Abonado | null;
   /** Sin abono al entrar, el último que se le venció: la caja lo dice (HU-Q3.11 CA3). */
   readonly abonoVencido: Abonado | null;
+  /** La tarifa cambió en Ajustes después de que entró: se cobra con la de entonces (ADR-4). */
+  readonly tarifaCambio: boolean;
 }
 
 /** Lo cubrió el abono entero: no paga, y el medio es «abonado» (HU-Q3.11 CA2). */
@@ -599,16 +601,28 @@ export function avisoDelAbono(q: Pick<Cotizacion, 'abonado' | 'abonoVencido' | '
 /**
  * Por qué una salida da $0, a la vista junto al total: sin esto, un carro que salió dentro de la
  * gracia parecía una tarifa que no calcula (dueño, 8 oct 2026). Vacío si el total no es $0 o si
- * lo cubrió el abono, que ya tiene su aviso.
+ * lo cubrió el abono, que ya tiene su aviso. Si la tarifa ya cambió en Ajustes, no manda a
+ * revisarla: dice que se cobra con la de la entrada (el tope de $1 que seguía, dueño, 8 oct 2026).
  */
-export function motivoDelCero(q: Pick<Cotizacion, 'liquidacion' | 'tarifa'>): string {
+export function motivoDelCero(
+  q: Pick<Cotizacion, 'liquidacion' | 'tarifa' | 'tarifaCambio'>,
+): string {
   const l = q.liquidacion;
   if (l.total !== 0 || cubiertoPorElAbono(l)) return '';
   if (l.avisos.includes('gracia')) {
     return `Salió dentro de los ${q.tarifa.gracia_min} minutos de gracia: no paga`;
   }
-  if (q.tarifa.tope_dia !== null && l.lineas.some((x) => x.concepto === 'tope_dia')) {
-    return `El tope por día es de ${formatearPesos(q.tarifa.tope_dia)}: revise la tarifa en Ajustes`;
+  const conTope = q.tarifa.tope_dia !== null && l.lineas.some((x) => x.concepto === 'tope_dia');
+  if (q.tarifaCambio) {
+    const causa = conTope
+      ? `el tope por día era de ${formatearPesos(q.tarifa.tope_dia ?? 0)}`
+      : l.redondeo > 0
+        ? `el redondeo hacia abajo dejaba ${formatearPesos(l.subtotal)} en $0`
+        : 'la tarifa de este vehículo daba $0';
+    return `Entró cuando ${causa}, y se cobra con la tarifa con que entró. Los que entren desde ahora pagan con la nueva`;
+  }
+  if (conTope) {
+    return `El tope por día es de ${formatearPesos(q.tarifa.tope_dia ?? 0)}: revise la tarifa en Ajustes`;
   }
   if (l.redondeo > 0) {
     return `El redondeo hacia abajo deja ${formatearPesos(l.subtotal)} en $0: revise el redondeo en Ajustes`;
@@ -634,6 +648,7 @@ export async function cotizar(
   const abono = abonoDeLaPlaca(await leerAbonados(db), estadia.placa, estadia.entrada);
   const cubre = abono.vigente ? { vence: venceEl(abono.vigente) } : null;
   const liquidacion = liquidar(estadia.entrada, salida, t, t.tope_minuto, cubre, perdido);
+  const hoy = (await db.catalogos.get(t.id)) as Tarifa | undefined;
   return {
     estadia,
     entrada,
@@ -642,6 +657,7 @@ export async function cotizar(
     salida,
     abonado: abono.vigente,
     abonoVencido: abono.vencido,
+    tarifaCambio: hoy !== undefined && hoy.version !== t.version,
   };
 }
 
