@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.1.1] - 2026-10-08
+
+La tarifa ya no puede dejar las salidas en $0 sin explicación: era un tope por día de $10 en Ajustes.
+
 ### Corregido
 - Un tope por día o un valor del día completo menor que una hora de la tarifa ya no se guarda: Ajustes dice que es menos que una hora y pide el máximo en pesos por 24 horas, como 15.000. Un tope por día de $10 dejaba toda salida en $0.
 - Una salida en $0 dice por qué, bajo el total: la gracia («Salió dentro de los 5 minutos de gracia: no paga»), el tope por día, el redondeo hacia abajo o una tarifa que da $0.
