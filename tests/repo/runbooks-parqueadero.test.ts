@@ -8,13 +8,15 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { listarArchivos, RAIZ } from '../../scripts/lib/repo.ts';
 
-/** Los cinco de HU-Q6.2 CA1. */
+/** Los cinco de HU-Q6.2 CA1, y la hoja del cajero. */
 const RUNBOOKS = [
   'parqueadero-puesta-en-marcha.md',
   'parqueadero-impresora-no-imprime.md',
   'parqueadero-cambio-de-topes.md',
   'parqueadero-restaurar-caja.md',
   'parqueadero-arreglos-en-congelamiento.md',
+  // La hoja de una página para el cajero (BACKLOG-PARKING_MVP §8.1, D-3).
+  'parqueadero-hoja-del-cajero.md',
 ] as const;
 
 const leer = (rel: string) => readFileSync(join(RAIZ, rel), 'utf8');
@@ -51,7 +53,7 @@ const faltantes = (md: string) => ({
 });
 
 describe('los runbooks del parqueadero (HU-Q6.2)', () => {
-  it('están los cinco (CA1)', () => {
+  it('están todos (CA1)', () => {
     for (const r of RUNBOOKS) expect(existsSync(join(RAIZ, 'docs', 'runbooks', r)), r).toBe(true);
   });
 

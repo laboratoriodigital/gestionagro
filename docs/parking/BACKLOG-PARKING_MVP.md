@@ -579,7 +579,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 ### EQ6 · Validación en campo y puesta en marcha
 
 #### HU-Q6.1 · La matriz en el equipo real
-- **Capa:** campo · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q5 (se llena desde Q1) · **Depende de:** HU-Q2.3, HU-Q2.4, HU-Q4.1, HU-Q4.2 · **Estado:** En curso: `docs/parking/validacion/impresion-pt210.md` con las pruebas del 7 oct; el camino principal en Android, por decidir con la impresora emparejada
+- **Capa:** campo · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q5 (se llena desde Q1) · **Depende de:** HU-Q2.3, HU-Q2.4, HU-Q4.1, HU-Q4.2 · **Estado:** En curso: `docs/parking/validacion/impresion-pt210.md` con las pruebas del 7 y 8 oct (en Windows, la impresora emparejada conecta, imprime y sigue conectada); falta el equipo que será la caja del cliente. Los casos explicados para el dueño están en la hoja del cajero y en la lista de la puesta en marcha
 - Como dueño, quiero ver la caja funcionar en la PT-210 y en los teléfonos de verdad antes de llevarla al cliente.
 - **Respaldo:** PARQUEADERO §15.3 (la matriz); P16.
 - **CA1.** `docs/parking/validacion/impresion-pt210.md` tiene cada caso de la matriz de PARQUEADERO §15.3 en Android con Chrome y en Windows con Chrome o Edge, y lo que aplica en iPhone, con la fecha, el modelo, la versión del navegador y el resultado.
@@ -610,7 +610,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q6.3.1 `[prueba]` e2e · WI-Q6.3.2 `[ci]` en cada PR que toca la caja.
 
 #### HU-Q6.4 · Puesta en marcha y primer turno real
-- **Capa:** campo · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q5 · **Depende de:** HU-Q6.1, HU-Q6.2, HU-Q6.3, HU-Q5.2, D-Q5, D-Q9 · **Estado:** Refinada
+- **Capa:** campo · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q5 · **Depende de:** HU-Q6.1, HU-Q6.2, HU-Q6.3, HU-Q5.2, D-Q5, D-Q9 · **Estado:** En curso (rama `docs/puesta-en-marcha`): el cliente opera con el MVP sin pasar por la demostración (bitácora, cambios de rumbo). Listos la hoja del cajero (`docs/runbooks/parqueadero-hoja-del-cajero.md`) y el registro del primer turno (`docs/parking/validacion/piloto-parqueadero-cero.md`); faltan los datos del cliente, la `0.1.0` en producción y el día 1
 - Como cliente, quiero que alguien me deje la caja funcionando en mi parqueadero y me acompañe el primer turno.
 - **Respaldo:** PARQUEADERO §14.5 (runbook 1) y §18 (criterio de M0); estudio §10.2 (la puesta en marcha como servicio) y §16.1.
 - **CA1.** Con el runbook de puesta en marcha: datos legales completos, tarifas contra el tope, la impresora del cliente con su paso 0 y su página de prueba superada, WhatsApp Business del parqueadero como predeterminado, el aviso de privacidad impreso y a la vista, `papel` en `siempre` (D-Q9) y el primer respaldo.
