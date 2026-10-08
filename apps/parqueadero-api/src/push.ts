@@ -10,13 +10,15 @@
  *    anulación de algo que no está), las demás se escriben solas y solo la mala va a cuarentena,
  *    con el motivo de la base en palabras. Nada se descarta (P1).
  *
- * Presupuesto de consultas (P17): D1 gratuito admite 50 por invocación. El camino normal hace 3
- * lecturas y un `batch` con una sentencia por operación: 25 operaciones son 28 consultas. Si el
+ * Presupuesto de consultas (P17): D1 gratuito admite 50 por invocación. El camino normal hace 4
+ * lecturas y un `batch` con una sentencia por operación: 25 operaciones son 29 consultas. Si el
  * batch falla, cada operación reintentada cuesta 1 consulta, o 2 si va a cuarentena; cuando no
  * alcanza, las que faltan vuelven como `reintentar` y la caja las manda en el envío siguiente.
  *
  * Permisos (HU-Q7.8, WI-Q7.8.2): cada operación pasa por `decidirEscritura` con el rol y el usuario
  * del token. Una negada va a cuarentena con su motivo y el lote sigue.
+ *
+ * Una caja retirada (HU-Q7.7 CA3) no sube nada: 403 `retirado`, y su cola queda en ella.
  *
  * Tenant: la organización sale del token. Un dato que dice ser de otro parqueadero, o un id que ya
  * usa otro, va a cuarentena.
@@ -30,6 +32,7 @@ import {
   validarOperacion,
 } from '@ed1/parqueadero-schema/sync';
 import { type Ack, LOTE_MAXIMO, PROTOCOLO, RELOJ_CORRIDO_MS } from '@ed1/sync';
+import { estadoDeLaCaja, RETIRADA } from './dispositivos.ts';
 import type { ContextoCelda } from './worker.ts';
 
 /** D1 gratuito: consultas por invocación (Cloudflare, límites de D1). */
@@ -133,9 +136,10 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
     .filter((o) => o.entidad !== 'registro')
     .map((o) => `${o.entidad_id}@v${o.version}`);
 
-  // Las 3 lecturas, como mucho.
-  let consultas = [idsRegistro, idsCatalogo, anteriores].filter((l) => l.length > 0).length;
-  const [registros, catalogos, historial] = await Promise.all([
+  // Las 4 lecturas, como mucho: la caja y lo que el lote nombra.
+  let consultas = 1 + [idsRegistro, idsCatalogo, anteriores].filter((l) => l.length > 0).length;
+  const [caja, registros, catalogos, historial] = await Promise.all([
+    estadoDeLaCaja(db, org, dispositivo),
     idsRegistro.length > 0
       ? db
           .prepare(
@@ -166,6 +170,7 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
           .all<{ id: string; datos: string }>()
       : { results: [] },
   ]);
+  if (caja === 'retirado') return c.json(RETIRADA, 403);
   const yaVisto = new Map(historial.results.map((h) => [h.id, sinVersion(h.datos)]));
   const registroGuardado = new Map(registros.results.map((r) => [r.id, r]));
   const catalogoGuardado = new Map(catalogos.results.map((r) => [r.id, r]));

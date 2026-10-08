@@ -1114,3 +1114,28 @@ legend {
 .cuarentena p {
   color: var(--texto-suave);
 }
+
+/* Una caja del parqueadero (HU-Q7.7): su serie y, si está activa, «Retirar». Sin flecha: no abre. */
+.caja-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  min-height: var(--toque);
+  padding-block: var(--espacio-2);
+}
+
+.caja-fila > span {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Un paso que no se deshace: se lee en su peso normal y las dos salidas van apiladas. */
+.confirmar {
+  display: grid;
+  gap: var(--espacio-3);
+  padding: var(--espacio-4);
+  border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radio);
+  background: var(--superficie-2);
+}
