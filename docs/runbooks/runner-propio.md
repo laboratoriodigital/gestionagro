@@ -2,7 +2,7 @@
 
 **Para qué:** que el CI corra en el computador del dueño mientras GitHub Actions no arranca trabajos en sus propios equipos (incidente del 5 oct 2026, bitácora core, «Lo que el terreno enseñó»). Es **temporal**: se vuelve a los equipos de GitHub borrando una variable, sin tocar código.
 
-**Qué corre ahí:** el CI de cada PR y de `main` (`ci.yml`) y la verificación de Windows (`scripts-windows.yml`). **Los despliegues no**: siguen en los equipos de GitHub, para que los secretos de producción no pasen por un equipo personal. Una prueba lo exige (`tests/repo/flujos.test.ts`).
+**Qué corre ahí:** el CI de cada PR y de `main` (`ci.yml`) y la verificación de Windows (`scripts-windows.yml`, al llegar a `main`). En el runner propio los minutos no cuentan contra los 2.000 del mes. **Los despliegues no**: siguen en los equipos de GitHub, para que los secretos de producción no pasen por un equipo personal. Una prueba lo exige (`tests/repo/flujos.test.ts`).
 
 ## Antes de empezar
 

@@ -928,7 +928,7 @@ Formato de cada historia:
 - **Work items:** WI-C11.2.1 `[código]` · WI-C11.2.2 `[prueba]`.
 
 #### HU-C11.3 · CI de lo afectado y despliegue por producto
-- **Capa:** CI · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** C9 · **Depende de:** HU-C0.3 · **Estado:** Refinada
+- **Capa:** CI · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** C9 · **Depende de:** HU-C0.3 · **Estado:** En curso, adelantada por pedido del dueño (8 oct 2026, casi 2.000 minutos en 8 días; rama `ci/c11.3-menos-minutos`). Hecho: el e2e de un cambio solo del parqueadero corre solo sus e2e, y un paquete compartido corre todo (CA3); `main` no repite build ni e2e de un PR al día que ya los pasó; Windows corre al llegar a `main`. Falta: las pruebas unitarias de lo afectado (CA1) y el despliegue por producto (CA2)
 - **Respaldo:** PLATAFORMA §6.3; ARQUITECTURA §7.2 (menos de 8 minutos).
 - **CA1.** Cada PR corre las pruebas de lo que cambió y de lo que depende de ello; las de repositorio, siempre.
 - **CA2.** El despliegue va en orden: CORE, celdas de cada producto, sitios. Cada destino carga solo los secretos de su producto (R6).
