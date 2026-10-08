@@ -7,8 +7,13 @@ import { join } from 'node:path';
 import type { BaseD1 } from '@ed1/d1';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
+import {
+  cargarProductos as cargarRegistro,
+  catalogoDelRepositorio,
+} from '../../../scripts/lib/registro-productos.ts';
 import { PILOTOS_MAXIMOS, SinCeldaDisponible } from './asignacion.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
+import { sentenciasDelCatalogo } from './catalogo.ts';
 import { sentenciasDeCeldas } from './celdas.ts';
 import {
   agregarMembresia,
@@ -29,8 +34,13 @@ afterAll(async () => cerrar?.());
 beforeEach(async () => vaciarCore(db));
 
 const real = cargarCeldas();
+// Como el despliegue: el catálogo antes que las celdas, porque cada celda nombra su producto.
+const catalogo = sentenciasDelCatalogo(
+  catalogoDelRepositorio(cargarRegistro()),
+  '2026-10-06T00:00:00.000Z',
+);
 const sincronizar = async (celdas = real.celdas, destino: 'staging' | 'produccion' = 'staging') => {
-  for (const s of sentenciasDeCeldas(celdas, destino)) await db.prepare(s).run();
+  for (const s of [...catalogo, ...sentenciasDeCeldas(celdas, destino)]) await db.prepare(s).run();
 };
 const contar = async (tabla: string) =>
   (await db.prepare(`SELECT count(*) AS n FROM ${tabla}`).first<{ n: number }>())?.n;

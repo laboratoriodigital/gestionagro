@@ -34,6 +34,22 @@
         "metricas": "CF_METRICAS_TOKEN"
       },
       "shards": ["agro_c0_s1"]
+    },
+    {
+      "id": "c2",
+      "producto": "parqueadero",
+      "cuenta": "ED1 principal",
+      "plan": "free",
+      "anillo_despliegue": 1,
+      "estado": "activa",
+      "api": "https://parqueadero-api-c2.laboratoriodigital-la.workers.dev",
+      "api_staging": "https://parqueadero-api-c2-staging.laboratoriodigital-la.workers.dev",
+      "secretos": {
+        "token": "CF_API_TOKEN",
+        "cuenta": "CF_ACCOUNT_ID",
+        "metricas": "CF_METRICAS_TOKEN"
+      },
+      "shards": ["parqueadero_c2_s1"]
     }
   ]
 }

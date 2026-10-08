@@ -1,6 +1,6 @@
 /**
  * Los tipos de registro, de catálogo y de vehículo. Las banderas son las de `ref_tipo_registro`
- * del anexo A (`docs/parking/sql/parqueadero/0001_parqueadero_v1.sql`): una prueba lee el SQL y
+ * del anexo A (`infrastructure/migraciones/parqueadero/0001_parqueadero_v1.sql`): una prueba lee el SQL y
  * exige que coincidan (HU-Q1.3 CA1).
  */
 

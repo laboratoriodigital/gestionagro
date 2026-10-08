@@ -1,12 +1,14 @@
 /**
  * `node scripts/validar-wrangler-celdas.ts` (build de apps/api-celda, HU-E5.1): valida con
  * `wrangler deploy --dry-run` la configuración generada de cada celda, en producción y staging.
- * Las celdas salen de celdas.json (P2): una celda nueva se valida sin tocar este script.
+ * Las celdas del agro salen de celdas.json (P2): una celda nueva se valida sin tocar este script.
+ * Las del parqueadero todavía no tienen Worker (HU-Q7.4): sus bases se prueban en D1 local.
  * Node y el binario de wrangler, sin shell (P3).
  */
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
+import { celdasDelAgro } from './generar-wrangler.ts';
 import { cargarCeldas } from './lib/celdas.ts';
 import { RAIZ } from './lib/repo.ts';
 
@@ -17,7 +19,7 @@ const wrangler = join(
   'wrangler.js',
 );
 let fallas = 0;
-for (const celda of cargarCeldas().celdas) {
+for (const celda of celdasDelAgro(cargarCeldas())) {
   for (const [entorno, salida] of [
     ['--env=', 'dry-run'],
     ['--env=staging', 'dry-run-staging'],

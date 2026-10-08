@@ -9,7 +9,7 @@
  * - El CORE vive en workers.dev en los dos entornos, con una base D1 por entorno. El id de la base
  *   lo agrega el despliegue en un archivo fuera de git (ADR-6), como el del KV de flags.
  */
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { RegistroDeProductos } from '@ed1/productos';
 import { type Celda, type ConfigCeldas, cargarCeldas } from './lib/celdas.ts';
@@ -235,14 +235,67 @@ export const textoWranglerDelCore = (config: ConfigCeldas): string =>
   comoTexto(wranglerDelCore(config));
 export const textoWranglerDeLaCelda = (celda: Celda): string => comoTexto(wranglerDeLaCelda(celda));
 
+/** Las celdas que sirven al agro: las únicas con la API de `apps/api-celda` (HU-Q7.2). */
+export const celdasDelAgro = (config: ConfigCeldas): Celda[] =>
+  config.celdas.filter((c) => c.producto === 'agro');
+/** Las celdas del parqueadero (HU-Q7.2): sus bases D1 y su KV, sin Worker hasta HU-Q7.4. */
+export const celdasDelParqueadero = (config: ConfigCeldas): Celda[] =>
+  config.celdas.filter((c) => c.producto === 'parqueadero');
+
+/** Migraciones de los shards del parqueadero, relativas a apps/parqueadero-api. */
+export const MIGRACIONES_PARQUEADERO = '../../infrastructure/migraciones/parqueadero';
+export const rutaWranglerCeldaDelParqueadero = (celdaId: string) =>
+  join(RAIZ, 'apps', 'parqueadero-api', `wrangler.${celdaId}.jsonc`);
+
+/**
+ * Una celda del parqueadero (HU-Q7.2): un binding D1 por shard con sus migraciones, para
+ * `wrangler d1 migrations apply` y para el D1 local de las pruebas. Todavía sin `main`: el Worker de
+ * su API (`parqueadero-api-<celda>`) llega con HU-Q7.4. Los ids los agrega el despliegue.
+ */
+export function wranglerDeLaCeldaDelParqueadero(celda: Celda): Record<string, unknown> {
+  const bases = (staging: boolean) =>
+    celda.shards.map((shard) => ({
+      binding: shard,
+      database_name: baseDelShard(shard, staging),
+      migrations_dir: MIGRACIONES_PARQUEADERO,
+    }));
+  const nombre = `parqueadero-api-${celda.id}`;
+  return {
+    $schema: '../../node_modules/wrangler/config-schema.json',
+    name: nombre,
+    compatibility_date: FECHA_COMPATIBILIDAD,
+    workers_dev: true,
+    vars: { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan },
+    d1_databases: bases(false),
+    env: {
+      staging: {
+        name: `${nombre}-staging`,
+        workers_dev: true,
+        vars: { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan },
+        d1_databases: bases(true),
+      },
+    },
+  };
+}
+export const textoWranglerDeLaCeldaDelParqueadero = (celda: Celda): string =>
+  comoTexto(wranglerDeLaCeldaDelParqueadero(celda));
+
 if (process.argv[1]?.endsWith('generar-wrangler.ts')) {
   const config = cargarCeldas();
   writeFileSync(RUTA_WRANGLER_SITIO, textoWranglerDelSitio(config));
   writeFileSync(RUTA_WRANGLER_CORE, textoWranglerDelCore(config));
-  const deCeldas = config.celdas.map((celda) => {
+  const deCeldas = celdasDelAgro(config).map((celda) => {
     writeFileSync(rutaWranglerCelda(celda.id), textoWranglerDeLaCelda(celda));
     return rutaWranglerCelda(celda.id);
   });
+  mkdirSync(join(RAIZ, 'apps', 'parqueadero-api'), { recursive: true });
+  for (const celda of celdasDelParqueadero(config)) {
+    writeFileSync(
+      rutaWranglerCeldaDelParqueadero(celda.id),
+      textoWranglerDeLaCeldaDelParqueadero(celda),
+    );
+    deCeldas.push(rutaWranglerCeldaDelParqueadero(celda.id));
+  }
   writeFileSync(RUTA_WRANGLER_ENSAYO, comoTexto(wranglerDeEnsayo()));
   writeFileSync(RUTA_WRANGLER_PARQUEADERO, textoWranglerDelParqueadero());
   for (const ruta of [

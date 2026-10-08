@@ -1,0 +1,37 @@
+// GENERADO por scripts/generar-wrangler.ts desde infrastructure/celdas.json. No editar a mano.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "parqueadero-api-c2",
+  "compatibility_date": "2026-09-30",
+  "workers_dev": true,
+  "vars": {
+    "CELDA": "c2",
+    "PRODUCTO": "parqueadero",
+    "PLAN": "free"
+  },
+  "d1_databases": [
+    {
+      "binding": "parqueadero_c2_s1",
+      "database_name": "parqueadero_c2_s1",
+      "migrations_dir": "../../infrastructure/migraciones/parqueadero"
+    }
+  ],
+  "env": {
+    "staging": {
+      "name": "parqueadero-api-c2-staging",
+      "workers_dev": true,
+      "vars": {
+        "CELDA": "c2",
+        "PRODUCTO": "parqueadero",
+        "PLAN": "free"
+      },
+      "d1_databases": [
+        {
+          "binding": "parqueadero_c2_s1",
+          "database_name": "parqueadero_c2_s1_staging",
+          "migrations_dir": "../../infrastructure/migraciones/parqueadero"
+        }
+      ]
+    }
+  }
+}

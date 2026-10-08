@@ -13,9 +13,12 @@ import {
   vehiculoPorPlaca,
 } from './index.ts';
 
-/** El anexo A sin comentarios: un `;` dentro de un comentario no corta una sentencia. */
+/** La migración del shard sin comentarios: un `;` dentro de un comentario no corta una sentencia. */
 const SQL = readFileSync(
-  new URL('../../../docs/parking/sql/parqueadero/0001_parqueadero_v1.sql', import.meta.url),
+  new URL(
+    '../../../infrastructure/migraciones/parqueadero/0001_parqueadero_v1.sql',
+    import.meta.url,
+  ),
   'utf8',
 ).replace(/--[^\n]*/g, '');
 

@@ -22,7 +22,8 @@ export function conexionesDelCuaderno(config: ConfigCeldas): string[] {
     ...new Set([
       config.core.url,
       config.core.url_staging,
-      ...config.celdas.flatMap((c) => [c.api, c.api_staging]),
+      // Solo las celdas del agro: el cuaderno no habla con la API de otro producto (HU-Q7.2).
+      ...config.celdas.filter((c) => c.producto === 'agro').flatMap((c) => [c.api, c.api_staging]),
       // Las de terceros solo si la política las declara (HU-E8.4: Google Drive).
       ...(politica.conexiones_de_terceros ?? []),
     ]),

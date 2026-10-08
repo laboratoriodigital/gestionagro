@@ -172,22 +172,25 @@ export const CONSULTA_HUERFANAS = 'SELECT * FROM pragma_foreign_key_check LIMIT 
 /**
  * Las filas de cada consulta en la salida de `wrangler d1 execute --json`, en orden, o `null` si la
  * salida no se pudo leer o alguna consulta no tuvo éxito: entonces no se sabe (P1). La salida puede
- * traer texto antes del JSON (wrangler escribe a qué base se conecta).
+ * traer texto antes y después del JSON, con corchetes (`▲ [WARNING]`): el JSON empieza al inicio
+ * de una línea y termina en el último «]» con el que se lee.
  */
 export function resultadosDeLaSalida(salida: string): Record<string, unknown>[][] | null {
-  const inicio = salida.indexOf('[');
-  const fin = salida.lastIndexOf(']');
-  if (inicio < 0 || fin < inicio) return null;
-  try {
-    const lotes = JSON.parse(salida.slice(inicio, fin + 1)) as {
-      results?: Record<string, unknown>[];
-      success?: boolean;
-    }[];
-    if (!Array.isArray(lotes) || lotes.some((l) => l.success === false || !l.results)) return null;
-    return lotes.map((l) => l.results ?? []);
-  } catch {
-    return null;
+  for (const { index: inicio } of salida.matchAll(/^\[/gm)) {
+    for (let fin = salida.lastIndexOf(']'); fin > inicio; fin = salida.lastIndexOf(']', fin - 1)) {
+      let lotes: { results?: Record<string, unknown>[]; success?: boolean }[];
+      try {
+        lotes = JSON.parse(salida.slice(inicio, fin + 1)) as typeof lotes;
+      } catch {
+        continue;
+      }
+      if (!Array.isArray(lotes) || lotes.some((l) => l.success === false || !l.results)) {
+        return null;
+      }
+      return lotes.map((l) => l.results ?? []);
+    }
   }
+  return null;
 }
 
 /**

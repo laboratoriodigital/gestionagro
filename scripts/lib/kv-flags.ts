@@ -2,7 +2,7 @@
  * KV de flags de la celda y claves de kill switch (HU-E8.1, ARQUITECTURA §5.5 y §8.2).
  *
  * El despliegue, antes de publicar el Worker:
- * 1. asegura el namespace `agro-c{N}-flags` (con `-staging` en staging): lo crea si no existe;
+ * 1. asegura el namespace `<producto>-c{N}-flags` (con `-staging` en staging): lo crea si no existe;
  * 2. crea `ks:<product.id>` en `encendido` para cada contrato con `kill_switch: true` **si
  *    falta**. Una clave que ya existe no se toca: un despliegue nunca vuelve a encender lo que
  *    el dueño apagó (CA2);
@@ -22,8 +22,9 @@ const API = 'https://api.cloudflare.com/client/v4';
 export const BINDING_FLAGS = 'FLAGS';
 const PERMISO_KV = '«Account → Workers KV Storage: Edit»';
 
-export const nombreKvFlags = (celdaId: string, destino: Destino): string =>
-  `agro-${celdaId}-flags${destino === 'staging' ? '-staging' : ''}`;
+/** `agro-c0-flags`; una celda de otro producto lleva su nombre: `parqueadero-c2-flags` (HU-Q7.2). */
+export const nombreKvFlags = (celdaId: string, destino: Destino, producto = 'agro'): string =>
+  `${producto}-${celdaId}-flags${destino === 'staging' ? '-staging' : ''}`;
 
 /** Claves que el despliegue asegura: una por contrato con `kill_switch: true` (CA2, P2). */
 export const clavesDeKillSwitch = (productos: readonly Pick<Producto, 'id' | 'kill_switch'>[]) =>

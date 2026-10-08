@@ -1,7 +1,8 @@
 -- Parqueadero · shard de una celda de parqueaderos (`parqueadero_c{N}_s{k}`), migración 0001.
--- Fuente del diseño: docs/parking/ARQUITECTURA-PARQUEADERO.md §7. Probada con node:sqlite (falta D1).
--- Propuesta: no está en infrastructure/migraciones/, así que ningún despliegue la aplica. Pasa allí
--- en el M1 del parqueadero, con su prueba en D1 local (getPlatformProxy).
+-- Fuente del diseño: docs/parking/ARQUITECTURA-PARQUEADERO.md §7 y anexo A. La prueba
+-- tests/repo/shard-parqueadero.test.ts la corre con node:sqlite y con el D1 local de workerd, y el
+-- despliegue la aplica a las bases de las celdas del parqueadero (HU-Q7.2). Ya aplicada, no se
+-- edita: un cambio es una migración nueva.
 --
 -- Es el modelo de la celda agro (infrastructure/migraciones/celda/0001 a 0003) con lo que el
 -- parqueadero necesita encima. Reglas de este esquema (las vigilan pruebas):

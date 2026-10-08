@@ -396,7 +396,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.1.1 `[código]` entrada en `productos.json` · WI-Q7.1.2 `[código]` planes y política · WI-Q7.1.3 `[prueba]` esquema y búsqueda · WI-Q7.1.4 `[doc]` ADR-31 pasa aceptada a `../ARQUITECTURA.md`.
 
 #### HU-Q7.2 · La celda c2 y el shard del parqueadero en D1
-- **Capa:** datos y nube · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q6 · **Depende de:** HU-C1.4, HU-C2.1 y HU-C11.7, HU-Q7.13 · **Estado:** Refinada
+- **Capa:** datos y nube · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q6 · **Depende de:** HU-C1.4, HU-C2.1 y HU-C11.7, HU-Q7.13 · **Estado:** En revisión (PR #145, en borrador hasta que entre #142): c2 en `celdas.json`, la migración en `infrastructure/migraciones/parqueadero/`, las 56 comprobaciones en verde en los dos instrumentos (`tests/repo/shard-parqueadero.test.ts`) y el despliegue que prepara la celda solo en staging, con el visto bueno del dueño del 8 oct 2026. La única diferencia que apareció fue del instrumento, no de D1: bitácora parqueadero 28
 - Como dueño, quiero que el modelo que ya se probó con `node:sqlite` corra en D1 con la receta del CORE, para no descubrir en producción lo que el instrumento no ve.
 - **Respaldo:** PARQUEADERO §10.2 y anexo A; P17 (`node:sqlite` no es D1).
 - **CA1.** `docs/parking/sql/parqueadero/0001_parqueadero_v1.sql` se muda a `infrastructure/migraciones/parqueadero/`, y PARQUEADERO §10.2 y el anexo A enlazan el archivo en vez de copiarlo (P2). `celdas.json` gana la celda c2 del producto `parqueadero`, con shards `parqueadero_c2_s{k}` (HU-C1.4).
