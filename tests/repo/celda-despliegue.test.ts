@@ -28,6 +28,7 @@ import {
   celdasDelDirectorio,
   configDeLaCeldaDelParqueadero,
   notaSinProduccion,
+  origenesDeLaCaja,
   preparaLasCeldasDelParqueadero,
   TABLAS_DEL_SHARD,
   tablasQueFaltan,
@@ -37,6 +38,7 @@ import { clavesQrDe, conClavesQr } from '../../scripts/lib/claves-qr.ts';
 import { productoDeLaBase, productosDeLasBases } from '../../scripts/lib/d1-core.ts';
 import type { Fetch } from '../../scripts/lib/despliegue.ts';
 import { productosADesplegar } from '../../scripts/lib/publicacion.ts';
+import { cargarProductos } from '../../scripts/lib/registro-productos.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 
 const real = cargarCeldas();
@@ -287,11 +289,12 @@ describe('las celdas del parqueadero (HU-Q7.2)', () => {
   });
 
   it.each(celdas.map((c) => [c.id, c] as const))(
-    'apps/parqueadero-api/wrangler.%s.jsonc es el generado, sin ids ni Worker todavía',
+    'apps/parqueadero-api/wrangler.%s.jsonc es el generado, con su Worker y sin ids',
     (_id, celda) => {
       const texto = readFileSync(rutaWranglerCeldaDelParqueadero(celda.id), 'utf8');
       expect(texto).toBe(textoWranglerDeLaCeldaDelParqueadero(celda));
-      expect(texto).not.toMatch(/database_id|account_id|"main"/);
+      expect(texto).not.toMatch(/database_id|account_id/);
+      expect(texto).toContain('"main": "src/worker.ts"');
       const generada = wranglerDeLaCeldaDelParqueadero(celda) as {
         name: string;
         d1_databases: { binding: string; database_name: string; migrations_dir: string }[];
@@ -317,22 +320,54 @@ describe('las celdas del parqueadero (HU-Q7.2)', () => {
     ).toBe(true);
   });
 
-  it('el despliegue pone los ids solo en el destino que prepara', () => {
+  it('el despliegue pone los ids, el KV, las claves del CORE y la caja solo en el destino que prepara', () => {
     const [c2] = celdas;
     if (!c2) throw new Error('sin celda del parqueadero');
-    const bases = { parqueadero_c2_s1: 'id-s1' };
+    const despliegue = {
+      bases: { parqueadero_c2_s1: 'id-s1' },
+      flagsId: 'id-kv',
+      clavesCore: [{ kid: 'k1' }],
+      origenesApp: ['https://caja.ejemplo.test'],
+    };
     const staging = configDeLaCeldaDelParqueadero(
       wranglerDeLaCeldaDelParqueadero(c2),
       'staging',
-      bases,
-    ) as { d1_databases: object[]; env: { staging: { d1_databases: object[] } } };
+      despliegue,
+    ) as Record<string, unknown> & {
+      d1_databases: object[];
+      env: { staging: Record<string, unknown> & { d1_databases: object[] } };
+    };
     expect(staging.env.staging.d1_databases).toEqual([
       expect.objectContaining({ database_id: 'id-s1', database_name: 'parqueadero_c2_s1_staging' }),
     ]);
+    expect(staging.env.staging['kv_namespaces']).toEqual([{ binding: 'FLAGS', id: 'id-kv' }]);
+    expect(staging.env.staging['vars']).toEqual({
+      CELDA: 'c2',
+      PRODUCTO: 'parqueadero',
+      PLAN: 'free',
+      CORE_CLAVES: '[{"kid":"k1"}]',
+      ORIGENES_APP: 'https://caja.ejemplo.test',
+    });
     expect(JSON.stringify(staging.d1_databases)).not.toContain('database_id');
+    expect(staging['kv_namespaces']).toBeUndefined();
     expect(() =>
-      configDeLaCeldaDelParqueadero(wranglerDeLaCeldaDelParqueadero(c2), 'staging', {}),
+      configDeLaCeldaDelParqueadero(wranglerDeLaCeldaDelParqueadero(c2), 'staging', {
+        ...despliegue,
+        bases: {},
+      }),
     ).toThrow(/falta el id de la base del shard parqueadero_c2_s1/);
+  });
+
+  it('el CORS de su API es el origen de la caja de ese destino (productos.json)', () => {
+    const parqueadero = cargarProductos().productos.find((p) => p.id === 'parqueadero');
+    expect(origenesDeLaCaja(parqueadero, 'staging')).toEqual([
+      'https://ed1-parqueadero-staging.laboratoriodigital-la.workers.dev',
+    ]);
+    expect(origenesDeLaCaja(parqueadero, 'produccion')).toEqual([
+      'https://parqueadero.laboratorio-digital.app',
+    ]);
+    const agro = cargarProductos().productos.find((p) => p.id === 'agro');
+    expect(() => origenesDeLaCaja(agro, 'staging')).toThrow(/no declara los orígenes/);
   });
 
   it('en producción no entra al directorio del CORE ni se prepara (staging sí)', () => {

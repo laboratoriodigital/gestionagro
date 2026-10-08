@@ -1,20 +1,22 @@
 /**
- * Las celdas del parqueadero en el despliegue (HU-Q7.2, PARQUEADERO §10 y §14).
+ * Las celdas del parqueadero en el despliegue (HU-Q7.2 y HU-Q7.4, PARQUEADERO §10, §12 y §14).
  *
- * Una celda del parqueadero todavía no tiene Worker: su API llega con HU-Q7.4. Lo que el despliegue
- * prepara, por celda y solo en staging:
+ * Lo que el despliegue prepara, por celda y solo en staging:
  * 1. una base D1 por shard (`parqueadero_c2_s1_staging`), con las migraciones de
  *    `infrastructure/migraciones/parqueadero`;
  * 2. el KV de flags de la celda (`parqueadero-c2-flags-staging`) con los kill switches que el
  *    producto declara en `infrastructure/productos.json` (HU-Q7.13), creados en «encendido» solo si
  *    faltan: un despliegue nunca vuelve a encender lo que el dueño apagó;
- * 3. una prueba de humo que solo lee: las tablas del shard están.
+ * 3. una prueba de humo que solo lee: las tablas del shard están;
+ * 4. el Worker de su API (`parqueadero-api-c2-staging`, HU-Q7.4), con las claves públicas del CORE
+ *    y el origen de la caja, y su prueba de humo: `/api/salud` y `/api/v1/*` sin token da 401.
  *
- * En producción no prepara nada todavía: el dueño autorizó staging, y producción espera la API
- * (HU-Q7.4) y la publicación del parqueadero en la nube (HU-Q7.12).
+ * En producción no prepara nada todavía: el dueño autorizó staging, y producción espera la
+ * publicación del parqueadero en la nube (HU-Q7.12).
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { Producto } from '@ed1/productos';
 import { resultadosDeLaSalida } from './d1-core.ts';
 import type { Destino } from './despliegue.ts';
 import { RAIZ } from './repo.ts';
@@ -35,9 +37,9 @@ export const TABLAS_DEL_SHARD = [
 ] as const;
 export const CONSULTA_HUMO_SHARD = 'SELECT name FROM pragma_table_list ORDER BY name';
 
-/** La nota de producción mientras la celda espera su API (HU-Q7.4) y su publicación (HU-Q7.12). */
+/** La nota de producción mientras la celda espera su publicación (HU-Q7.12). */
 export const notaSinProduccion = (celdaId: string) =>
-  `celda ${celdaId} del parqueadero: en producción todavía no se prepara (su API llega con HU-Q7.4; staging sí)`;
+  `celda ${celdaId} del parqueadero: en producción todavía no se prepara (espera su publicación, HU-Q7.12; staging sí)`;
 
 /**
  * Las celdas que el despliegue escribe en el directorio del CORE: en producción, sin las del
@@ -58,23 +60,49 @@ export const preparaLasCeldasDelParqueadero = (
   productos: ReadonlySet<string>,
 ): boolean => destino === 'staging' || productos.has('parqueadero');
 
-/** La configuración generada con el id de la base de cada shard, solo en el destino que se prepara. */
+/** Lo que el despliegue agrega a la configuración generada de una celda del parqueadero. */
+export interface DespliegueDeLaCelda {
+  /** Id de la base de cada shard, por nombre de shard. */
+  bases: Readonly<Record<string, string>>;
+  flagsId: string;
+  clavesCore: readonly unknown[];
+  origenesApp: readonly string[];
+}
+
+/** La configuración generada con lo de este despliegue, solo en el destino que se prepara. */
 export function configDeLaCeldaDelParqueadero(
   generada: Record<string, unknown>,
   destino: Destino,
-  bases: Readonly<Record<string, string>>,
+  despliegue: DespliegueDeLaCelda,
 ): Record<string, unknown> {
   const agregar = (bloque: Record<string, unknown>) => ({
     ...bloque,
     d1_databases: (bloque['d1_databases'] as { binding: string }[]).map((b) => {
-      const id = bases[b.binding];
+      const id = despliegue.bases[b.binding];
       if (!id) throw new Error(`falta el id de la base del shard ${b.binding}`);
       return { ...b, database_id: id };
     }),
+    kv_namespaces: [{ binding: 'FLAGS', id: despliegue.flagsId }],
+    vars: {
+      ...(bloque['vars'] as Record<string, string>),
+      CORE_CLAVES: JSON.stringify(despliegue.clavesCore),
+      ORIGENES_APP: despliegue.origenesApp.join(','),
+    },
   });
   if (destino === 'produccion') return agregar(generada);
   const env = generada['env'] as Record<string, Record<string, unknown>>;
   return { ...generada, env: { ...env, staging: agregar(env['staging'] ?? {}) } };
+}
+
+/** Los orígenes de la caja en ese destino (`productos.json`, `app.origenes`): los únicos del CORS. */
+export function origenesDeLaCaja(producto: Producto | undefined, destino: Destino): string[] {
+  const origenes = producto?.app.origenes;
+  if (!origenes || typeof origenes === 'string') {
+    throw new Error(
+      `${producto?.id ?? 'el producto'} no declara los orígenes de su app en productos.json`,
+    );
+  }
+  return [origenes[destino]];
 }
 
 /** Fuera de git (ver .gitignore): lleva los ids de las bases (ADR-6). */

@@ -2,6 +2,7 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "parqueadero-api-c2",
+  "main": "src/worker.ts",
   "compatibility_date": "2026-09-30",
   "workers_dev": true,
   "vars": {

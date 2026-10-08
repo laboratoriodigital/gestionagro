@@ -1033,6 +1033,14 @@ Convenciones de la celda agro: Hono, solo `/api/*`, token del CORE con `aud = pa
 | `POST /api/v1/whatsapp/enviar` | Encola un recibo para la Cloud API | M3 |
 | `GET`·`POST /api/whatsapp/webhook` | Verificación y estados de Meta, con la firma `X-Hub-Signature-256` comprobada | M3 |
 
+**Hecho en HU-Q7.4 (8 oct 2026), en staging:** `GET /api/salud`, el push y el pull, en `apps/parqueadero-api` (`parqueadero-api-c2-staging`). Producción espera la publicación (HU-Q7.12). Lo que el código decidió:
+
+- **El push escribe con `ON CONFLICT (id) DO NOTHING`.** Si el `batch` falla porque la base rechaza una operación, la API reintenta de a una y solo la mala va a cuarentena, con el motivo de la base en palabras («Ese número de recibo ya lo tiene otro registro de este parqueadero», «la serie del recibo no es la del dispositivo que lo hizo»). Un error que no es del dato (la base caída) responde 503 y la caja reintenta todo.
+- **50 consultas por invocación.** Un lote de 25 que entra entero usa 26 consultas. Si el batch falla, cada operación reintentada cuesta 1 consulta, o 2 si va a cuarentena; lo que no alcanza vuelve como `reintentar` y la caja lo manda en el envío siguiente. Nada se pierde.
+- **Permisos en la celda.** Cada operación pasa por `decidirEscritura` (§11.2) con el rol y el usuario del token. La anulación de un cajero mira el recibo anulado en la celda o en el mismo lote.
+- **`/api/v1/yo`** dice a qué parqueadero y shard llegó la sesión; la prueba de humo del despliegue lo usa sin token para comprobar el 401.
+- **Hasta HU-Q7.7, nadie da de alta una caja en la celda.** Sin su fila en `dispositivo`, los recibos de esa caja van a cuarentena con el motivo de la serie, y la caja los ve en rojo; nada se pierde. Al planear HU-Q7.5 hay que contar con eso.
+
 ---
 
 ## 13. Seguridad, privacidad y cumplimiento

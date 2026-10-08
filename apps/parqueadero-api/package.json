@@ -1,0 +1,21 @@
+{
+  "name": "@ed1/parqueadero-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API de una celda del parqueadero: salud, push, pull y cuarentena sobre el shard del parqueadero, con el token del CORE (aud = parqueadero). PARQUEADERO §12, HU-Q7.4.",
+  "type": "module",
+  "scripts": {
+    "build": "node ../../scripts/validar-wrangler-celdas.ts parqueadero"
+  },
+  "dependencies": {
+    "@ed1/d1": "workspace:*",
+    "@ed1/kill-switch": "workspace:*",
+    "@ed1/parqueadero-schema": "workspace:*",
+    "@ed1/sync": "workspace:*",
+    "@ed1/tokens": "workspace:*",
+    "hono": "^4.13.12"
+  },
+  "devDependencies": {
+    "wrangler": "^4.144.0"
+  }
+}

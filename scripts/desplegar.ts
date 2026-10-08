@@ -49,6 +49,7 @@ import {
   configDeLaCeldaDelParqueadero,
   escribirDespliegueDelParqueadero,
   notaSinProduccion,
+  origenesDeLaCaja,
   preparaLasCeldasDelParqueadero,
   tablasQueFaltan,
 } from './lib/celda-parqueadero.ts';
@@ -575,11 +576,15 @@ async function desplegarParqueadero(cred: Credenciales, para: Destino): Promise<
 }
 
 /**
- * Una celda del parqueadero (HU-Q7.2): sus bases D1 con las migraciones y su KV de flags con los
- * kill switches del producto. Sin Worker todavía (HU-Q7.4). Solo staging: ver
+ * Una celda del parqueadero (HU-Q7.2 y HU-Q7.4): sus bases D1 con las migraciones, su KV de flags
+ * con los kill switches del producto y el Worker de su API. Solo staging: ver
  * `scripts/lib/celda-parqueadero.ts`.
  */
-async function prepararCeldaDelParqueadero(celda: Celda, cred: Credenciales): Promise<Paso> {
+async function prepararCeldaDelParqueadero(
+  config: ConfigCeldas,
+  celda: Celda,
+  cred: Credenciales,
+): Promise<Paso> {
   const dest = destino as Destino;
   if (dest === 'produccion') return { ok: true, detalle: [notaSinProduccion(celda.id)] };
   if (celda.shards.length === 0) {
@@ -606,17 +611,20 @@ async function prepararCeldaDelParqueadero(celda: Celda, cred: Credenciales): Pr
     );
     notaKv = `KV ${titulo}${ns.creado ? ' (creado)' : ''}: ${claves.creadas.length} kill switch(es) creados en «encendido», ${claves.existentes.length} ya existían y no se tocaron`;
     escribirDespliegueDelParqueadero(
-      configDeLaCeldaDelParqueadero(wranglerDeLaCeldaDelParqueadero(celda), dest, bases),
+      configDeLaCeldaDelParqueadero(wranglerDeLaCeldaDelParqueadero(celda), dest, {
+        bases,
+        flagsId: ns.id,
+        clavesCore: await clavesDelCore(fetch, config.core.url_staging),
+        origenesApp: origenesDeLaCaja(producto, dest),
+      }),
     );
   } catch (e) {
     return { ok: false, detalle: [`celda ${celda.id} del parqueadero: ${(e as Error).message}`] };
   }
-  // wrangler corre dentro de @ed1/parqueadero-sitio, que lo trae: la celda no tiene paquete propio
-  // hasta su API (HU-Q7.4). Las migraciones se buscan junto a la configuración.
-  const c = `-c ../parqueadero-api/${ARCHIVO_DESPLIEGUE_PARQUEADERO} ${entorno}`;
+  const c = `-c ${ARCHIVO_DESPLIEGUE_PARQUEADERO} ${entorno}`;
   for (const shard of celda.shards) {
     const migrar = wrangler(
-      '@ed1/parqueadero-sitio',
+      '@ed1/parqueadero-api',
       `d1 migrations apply ${shard} --remote ${c}`,
       cred,
     );
@@ -627,7 +635,7 @@ async function prepararCeldaDelParqueadero(celda: Celda, cred: Credenciales): Pr
       };
     }
     const humoShard = wrangler(
-      '@ed1/parqueadero-sitio',
+      '@ed1/parqueadero-api',
       `d1 execute ${shard} --remote --json --command "${CONSULTA_HUMO_SHARD}" ${c}`,
       cred,
     );
@@ -644,11 +652,41 @@ async function prepararCeldaDelParqueadero(celda: Celda, cred: Credenciales): Pr
       };
     }
   }
+  const deploy = wrangler('@ed1/parqueadero-api', `deploy ${c}`, cred);
+  if (!deploy.ok) {
+    return {
+      ok: false,
+      detalle: [
+        `wrangler deploy de la API de ${celda.id} falló:`,
+        ...causaDeWrangler(deploy.salida),
+      ],
+    };
+  }
+  const url = urlDeWorkersDev(deploy.salida);
+  if (url !== celda.api_staging) {
+    return {
+      ok: false,
+      detalle: [
+        `API de ${celda.id} desplegada en ${url ?? '(sin URL de workers.dev en la salida)'}, pero celdas.json dice ${celda.api_staging}: corrígela por PR y vuelve a desplegar.`,
+      ],
+    };
+  }
+  const fallas = await conReintentos(() => humoCelda(fetch, url, celda.shards.length));
+  if (fallas.length > 0) {
+    return {
+      ok: false,
+      detalle: [
+        `API de ${celda.id} desplegada en ${url}, pero la prueba de humo falló:`,
+        ...fallas,
+      ],
+    };
+  }
   return {
     ok: true,
     detalle: [
-      `celda ${celda.id} del parqueadero (staging): ${celda.shards.length} shard(s) con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}; sin API todavía (HU-Q7.4)`,
+      `celda ${celda.id} del parqueadero (staging): ${celda.shards.length} shard(s) con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}`,
       notaKv,
+      `API: ${url}`,
     ],
   };
 }
@@ -862,7 +900,7 @@ for (const celda of plan.aDesplegar) {
   if (celda.producto === 'parqueadero') {
     const prepara = preparaLasCeldasDelParqueadero(destino as Destino, productos);
     if (paso.ok && prepara) {
-      paso = await prepararCeldaDelParqueadero(celda, cred);
+      paso = await prepararCeldaDelParqueadero(configCeldas, celda, cred);
       detalle.push(...paso.detalle);
     } else if (!prepara) {
       detalle.push('parqueadero: sin publicar en este despliegue (su versión no cambió)');
