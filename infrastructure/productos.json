@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/productos.schema.json",
-  "nota": "Única lista de productos del CORE (PLATAFORMA §4.2, ADR-20, HU-C1.1). El despliegue la copia a las tablas producto, producto_tipo, producto_rol, plan y plan_precio (HU-C2.3); un producto o un plan que sale de aquí queda «retirado», nunca se borra (P21). `presupuesto.usd_mes` del agro (USD 10 encima de la base) es la propuesta, la misma vara de la Tienda (TIENDA-3.0 §15.1), hasta que el dueño la fije; `al_agotarse` va vacío porque el agro todavía no tiene una capacidad accesoria que apagar (su MCP llega en HU-C9.7): con el presupuesto agotado, solo avisa. La Tienda entra en su M0, con su política: no se declara lo que todavía no existe (P1). La cuenta del ecosistema (ADR-28, HU-C7.3) es un producto sin organizaciones: sin tipos, roles, planes ni cobros. Su app vive en el mismo origen que el CORE, así que sus orígenes son los del CORE.",
+  "nota": "Única lista de productos del CORE (PLATAFORMA §4.2, ADR-20, HU-C1.1). El despliegue la copia a las tablas producto, producto_tipo, producto_rol, plan y plan_precio (HU-C2.3); un producto o un plan que sale de aquí queda «retirado», nunca se borra (P21). `presupuesto.usd_mes` del agro (USD 10 encima de la base) es la propuesta, la misma vara de la Tienda (TIENDA-3.0 §15.1), hasta que el dueño la fije; `al_agotarse` va vacío porque el agro todavía no tiene una capacidad accesoria que apagar (su MCP llega en HU-C9.7): con el presupuesto agotado, solo avisa. La Tienda entra en su M0, con su política: no se declara lo que todavía no existe (P1). El parqueadero (HU-Q7.1) entra como excepción declarada (ADR-31) con el nombre provisional «Parqueadero» hasta que el dueño fije el comercial (D-Q6); su `presupuesto` es USD 1 hasta que HU-Q7.13 lo mida (en M0 solo sirve archivos estáticos y no escribe en D1; D-Q10: Workers Paid solo si hace falta), y `al_agotarse` va vacío hasta que existan sus kill switches. Como el presupuesto de las celdas es la suma de todos los productos activos, el de la celda del agro pasa de USD 10 a 11. Sus orígenes son los de su Worker: el dominio propio en producción y workers.dev en staging. La cuenta del ecosistema (ADR-28, HU-C7.3) es un producto sin organizaciones: sin tipos, roles, planes ni cobros. Su app vive en el mismo origen que el CORE, así que sus orígenes son los del CORE.",
   "productos": [
     {
       "id": "agro",
@@ -45,6 +45,45 @@
       "gracia_dias": 0,
       "presupuesto": {
         "usd_mes": 10,
+        "al_agotarse": []
+      }
+    },
+    {
+      "id": "parqueadero",
+      "nombre": "Parqueadero",
+      "estado": "activo",
+      "excepcion": "ADR-31",
+      "app": {
+        "origenes": {
+          "produccion": "https://parqueadero.laboratorio-digital.app",
+          "staging": "https://ed1-parqueadero-staging.laboratoriodigital-la.workers.dev"
+        },
+        "rutas_de_vuelta": ["/caja/"]
+      },
+      "tipos": ["parqueadero"],
+      "roles": [
+        {
+          "id": "propietario",
+          "administra": true,
+          "invitable": true
+        },
+        {
+          "id": "administrador",
+          "administra": false,
+          "invitable": true
+        },
+        {
+          "id": "cajero",
+          "administra": false,
+          "invitable": true
+        }
+      ],
+      "planes": "content/parqueadero/planes.json",
+      "politica": "content/parqueadero/privacidad/politica.json",
+      "prefijo_de_cobro": "parqueadero",
+      "gracia_dias": 7,
+      "presupuesto": {
+        "usd_mes": 1,
         "al_agotarse": []
       }
     },

@@ -4,6 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- El Parqueadero ED1 es un producto del CORE (HU-Q7.1): entra por `infrastructure/productos.json` como excepción declarada (ADR-31), con sus roles (propietario, administrador y cajero), siete días de gracia, sus planes como hipótesis (`gratis` y `parqueadero`, que todavía no se cobra en línea) y su política en borrador. Llega a producción con la próxima versión del CORE; la caja de hoy no cambia, porque sigue sin cuenta.
+
+### Cambiado
+- La versión de cada política y los planes de cada producto salen de `apps/core/src/catalogo.generado.json`, que arma `node scripts/generar-catalogo-core.ts`. Agregar un producto ya no es tocar el código del CORE, y una prueba impide que lo nombre (R1).
+
 ## [0.3.0] - 2026-10-07
 
 ### Agregado

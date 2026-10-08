@@ -9,7 +9,7 @@
     "CELDA": "c0",
     "PRODUCTO": "agro",
     "PLAN": "free",
-    "PRESUPUESTO_USD_MES": "10",
+    "PRESUPUESTO_USD_MES": "11",
     "AL_AGOTARSE": ""
   },
   "d1_databases": [
@@ -35,7 +35,7 @@
         "CELDA": "c0",
         "PRODUCTO": "agro",
         "PLAN": "free",
-        "PRESUPUESTO_USD_MES": "10",
+        "PRESUPUESTO_USD_MES": "11",
         "AL_AGOTARSE": ""
       },
       "d1_databases": [

@@ -962,7 +962,7 @@ Una entrada en `infrastructure/productos.json` (PLATAFORMA §4.2): un archivo y 
   "app": {
     "origenes": {
       "produccion": "https://parqueadero.laboratorio-digital.app",
-      "staging": "https://parqueadero--staging.laboratorio-digital.app"
+      "staging": "https://ed1-parqueadero-staging.laboratoriodigital-la.workers.dev"
     },
     "rutas_de_vuelta": ["/caja/"]
   },
@@ -975,9 +975,12 @@ Una entrada en `infrastructure/productos.json` (PLATAFORMA §4.2): un archivo y 
   "planes": "content/parqueadero/planes.json",
   "politica": "content/parqueadero/privacidad/politica.json",
   "prefijo_de_cobro": "parqueadero",
-  "gracia_dias": 7
+  "gracia_dias": 7,
+  "presupuesto": { "usd_mes": 1, "al_agotarse": [] }
 }
 ```
+
+- **Hecho en HU-Q7.1 (8 oct 2026).** El staging es el `workers.dev` del Worker de la caja, que es donde vive hoy. El presupuesto de USD 1 es provisional: HU-Q7.13 lo mide y agrega los kill switches a `al_agotarse`. El plan `parqueadero` lleva sus montos por periodo y no lleva `cobro_mensual_cop`, para que el CORE no cobre un precio que todavía es hipótesis. Ningún archivo de código del CORE nombra al parqueadero: la versión de su política y sus planes llegan al Worker por `apps/core/src/catalogo.generado.json`.
 
 - **Una organización es una sede.** Varias sedes son varias organizaciones de la misma persona (PLATAFORMA §4.1). El reporte consolidado llega con el plan Varias sedes (estudio §10.3).
 - **`gracia_dias: 7`**, como la tienda: un parqueadero no puede dejar de recibir carros porque olvidó pagar. Y en el parqueadero ni siquiera puede: la caja es local (§14.2).

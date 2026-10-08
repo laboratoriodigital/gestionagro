@@ -35,6 +35,8 @@ const contar = async (tabla: string) =>
   (await db.prepare(`SELECT COUNT(*) AS n FROM ${tabla}`).first<{ n: number }>())?.n ?? -1;
 
 const real = () => catalogoDelRepositorio();
+/** Un precio por periodo de cada plan que cobra: los 4 del plan Finca del agro y los 4 del plan Parqueadero. */
+const PRECIOS_REALES = 8;
 const ensayo = (): ProductoDelCatalogo => ({
   id: 'ensayo',
   nombre: 'Producto Ensayo',
@@ -68,7 +70,7 @@ describe('copiar el catálogo a la base (HU-C2.3)', () => {
   it('con el repositorio real, la base queda igual al archivo', async () => {
     await aplicar(real(), '2026-10-06T00:00:00.000Z');
     expect(diferenciasDelCatalogo(real(), await leer())).toEqual([]);
-    expect(await contar('plan_precio')).toBe(4);
+    expect(await contar('plan_precio')).toBe(PRECIOS_REALES);
   });
 
   it('un segundo producto entra solo con datos, y antes que su celda', async () => {
@@ -102,7 +104,7 @@ describe('copiar el catálogo a la base (HU-C2.3)', () => {
     await aplicar(real(), '2026-10-06T00:00:00.000Z');
     const antes = await fecha();
     await aplicar(real(), '2026-10-07T00:00:00.000Z');
-    expect(await contar('plan_precio')).toBe(4);
+    expect(await contar('plan_precio')).toBe(PRECIOS_REALES);
     // El agro ya venía de la siembra de la 0006 con el mismo nombre y estado: nada que escribir.
     expect(await fecha()).toEqual(antes);
   });
