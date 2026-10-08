@@ -52,6 +52,7 @@ import {
   escribirDespliegueCore,
   huerfanasDeLaSalida,
   nombreD1Core,
+  productosDeLasBases,
   resultadosDeLaSalida,
   secretosDelCore,
 } from './lib/d1-core.ts';
@@ -595,6 +596,12 @@ async function desplegarApiCelda(
       clavesDeKillSwitch(cargarProductos()),
     );
     const claves = await clavesDelCore(fetch, staging ? config.core.url_staging : config.core.url);
+    const productosDeBases = await productosDeLasBases(
+      fetch,
+      cred.token,
+      cred.cuenta,
+      config.core.d1,
+    );
     escribirDespliegueCelda(
       configDeLaCelda(wranglerDeLaCelda(celda), dest, {
         bases,
@@ -602,6 +609,7 @@ async function desplegarApiCelda(
         clavesCore: claves,
         origenesApp: [origenDelCuaderno(config)],
         cuenta: cred.cuenta,
+        productosDeLasBases: productosDeBases,
       }),
     );
   } catch (e) {

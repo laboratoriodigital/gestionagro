@@ -47,6 +47,8 @@ export function configDeLaCelda(
     origenesApp: readonly string[];
     /** Cuenta de Cloudflare cuyas cuotas mide el vigía (HU-E8.2). */
     cuenta: string;
+    /** El producto de cada base D1 de la cuenta, por id: el vigía dice quién gasta (HU-Q7.13). */
+    productosDeLasBases: Readonly<Record<string, string>>;
   },
 ): Record<string, unknown> {
   const agregar = (bloque: Record<string, unknown>) => {
@@ -64,6 +66,7 @@ export function configDeLaCelda(
         CORE_CLAVES: JSON.stringify(despliegue.clavesCore),
         ORIGENES_APP: despliegue.origenesApp.join(','),
         CF_CUENTA: despliegue.cuenta,
+        PRODUCTO_DE_BASE: JSON.stringify(despliegue.productosDeLasBases),
         // Las alertas de staging llevan [staging] (HU-E8.3).
         DESTINO: destino,
       },

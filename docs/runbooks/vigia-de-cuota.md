@@ -72,7 +72,7 @@ El presupuesto de cada producto está en `infrastructure/productos.json › pres
 
 ## Alertas por Telegram (HU-E8.3)
 
-El vigía le escribe al dueño por Telegram cuando cambia el nivel de la celda o lo que no pudo medir, con el nivel, la cuota más usada y la causa. No repite el mismo mensaje cada hora: solo avisa cuando la situación cambia. Si Telegram falla, queda en el log y lo intenta otra vez en la hora siguiente. Las alertas de staging llegan con `[staging]` delante.
+El vigía le escribe al dueño por Telegram cuando cambia el nivel de la celda o lo que no pudo medir, con el nivel, la cuota más usada y la causa. En el plan gratuito también avisa cuando las filas escritas en D1 de toda la cuenta pasan el 50, el 75 y el 90 % de las 100.000 del día, con los productos que más escriben, y cuando un producto pasa las filas que declara en `infrastructure/productos.json` (HU-Q7.13). Si el aviso de filas se repite varios días por encima del 75 %, es la señal de activar Workers Paid (D-Q10). No repite el mismo mensaje cada hora: solo avisa cuando la situación cambia. Si Telegram falla, queda en el log y lo intenta otra vez en la hora siguiente. Las alertas de staging llegan con `[staging]` delante.
 
 Una sola vez:
 

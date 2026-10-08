@@ -20,6 +20,7 @@ import {
 } from '../../scripts/lib/api-celda.ts';
 import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 import { clavesQrDe, conClavesQr } from '../../scripts/lib/claves-qr.ts';
+import { productoDeLaBase, productosDeLasBases } from '../../scripts/lib/d1-core.ts';
 import type { Fetch } from '../../scripts/lib/despliegue.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 
@@ -58,6 +59,7 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
     clavesCore: [{ kid: 'k1' }],
     origenesApp: ['https://agro.ejemplo.test'],
     cuenta: 'cuenta-ensayo',
+    productosDeLasBases: { 'id-agro_c0_s1': 'agro', 'id-agro_core': 'core' },
   };
 
   it('ids de bases, KV, clave del CORE, orígenes y cuenta van solo al destino; CELDA, PRODUCTO y PLAN se conservan', () => {
@@ -71,6 +73,7 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
       CORE_CLAVES: '[{"kid":"k1"}]',
       ORIGENES_APP: 'https://agro.ejemplo.test',
       CF_CUENTA: 'cuenta-ensayo',
+      PRODUCTO_DE_BASE: '{"id-agro_c0_s1":"agro","id-agro_core":"core"}',
       DESTINO: 'staging',
     });
     expect(JSON.stringify(env['d1_databases'])).toContain(`"database_id":"id-${c0.shards[0]}"`);
@@ -212,5 +215,43 @@ describe('HU-E6.4 · claves del QR en la página y clave de firma de la celda', 
     const texto = readFileSync(join(RAIZ, 'scripts', 'desplegar.ts'), 'utf8');
     const bucle = texto.slice(texto.indexOf('for (const celda of plan.aDesplegar)'));
     expect(bucle.indexOf('desplegarApiCelda(')).toBeLessThan(bucle.indexOf('desplegarSitio('));
+  });
+});
+
+describe('qué producto escribe en cada base (HU-Q7.13)', () => {
+  it('el CORE, los shards por su prefijo y las de staging aparte; otra base no se adivina', () => {
+    expect(productoDeLaBase('agro_core', 'agro_core')).toBe('core');
+    expect(productoDeLaBase('agro_core_staging', 'agro_core')).toBe('core (staging)');
+    expect(productoDeLaBase('agro_c0_s1', 'agro_core')).toBe('agro');
+    expect(productoDeLaBase('parqueadero_c2_s1_staging', 'agro_core')).toBe(
+      'parqueadero (staging)',
+    );
+    expect(productoDeLaBase('mi-prueba', 'agro_core')).toBeNull();
+    expect(productoDeLaBase('agro_c0', 'agro_core')).toBeNull();
+  });
+
+  it('lista todas las bases de la cuenta, página por página, y dice el permiso que falta', async () => {
+    const paginas = [
+      Array.from({ length: 100 }, (_, i) => ({ uuid: `u${i}`, name: `agro_c0_s${i + 1}` })),
+      [
+        { uuid: 'core', name: 'agro_core' },
+        { uuid: 'x', name: 'otra' },
+      ],
+    ];
+    const pedidas: string[] = [];
+    const falso: Fetch = async (url) => {
+      pedidas.push(String(url));
+      const pagina = Number(new URL(String(url)).searchParams.get('page'));
+      return new Response(JSON.stringify({ result: paginas[pagina - 1] ?? [] }));
+    };
+    const mapa = await productosDeLasBases(falso, 't', 'cuenta', 'agro_core');
+    expect(pedidas).toHaveLength(2);
+    expect(Object.keys(mapa)).toHaveLength(101);
+    expect(mapa['core']).toBe('core');
+    expect(mapa['x']).toBeUndefined();
+    const sinPermiso: Fetch = async () => new Response('{}', { status: 403 });
+    await expect(productosDeLasBases(sinPermiso, 't', 'cuenta', 'agro_core')).rejects.toThrow(
+      'al token le falta «Account → D1: Edit»',
+    );
   });
 });

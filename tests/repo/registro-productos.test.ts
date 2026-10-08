@@ -130,6 +130,29 @@ describe('las reglas que el esquema no puede decir', () => {
     }
   });
 
+  it('HU-Q7.13 ❌: un producto declara solo sus propios kill switches', () => {
+    const conClaves = (kill_switches: string[]) => fallas({ ...ensayo(), kill_switches });
+    expect(conClaves(['ks:ensayo', 'ks:ensayo-fotos'])).toEqual([
+      '«ensayo».presupuesto.al_agotarse apaga «ks:ensayo-mcp», que no está en sus kill_switches',
+      '«ensayo».presupuesto.al_agotarse apaga «ks:ensayo:horno», que no está en sus kill_switches',
+    ]);
+    expect(conClaves(['ks:ensayo', 'ks:ensayo-mcp', 'ks:ensayo:horno']).length).toBeGreaterThan(0);
+    expect(conClaves(['ks:core', 'ks:agro-cuaderno', 'ks:ensayon'])).toEqual(
+      expect.arrayContaining([
+        '«ensayo».kill_switches no puede declarar «ks:core»: solo ks:ensayo y ks:ensayo-…',
+        '«ensayo».kill_switches no puede declarar «ks:agro-cuaderno»: solo ks:ensayo y ks:ensayo-…',
+        '«ensayo».kill_switches no puede declarar «ks:ensayon»: solo ks:ensayo y ks:ensayo-…',
+      ]),
+    );
+  });
+
+  it('HU-Q7.13: el parqueadero declara sus filas de D1 por día y sus dos kill switches', () => {
+    const p = productoPorId(cargarProductos(), 'parqueadero');
+    expect(p?.kill_switches).toEqual(['ks:parqueadero', 'ks:parqueadero-fotos']);
+    // El 75 % de las 100.000 de la cuenta, menos el doble de lo que los demás escriben (medido).
+    expect(p?.presupuesto?.d1_filas_escritas_dia).toBeLessThanOrEqual(75_000);
+  });
+
   it('un producto sin un rol que administre', () => {
     const p = { ...ensayo(), roles: [{ id: 'colaborador', administra: false, invitable: true }] };
     expect(fallas(p)).toEqual([

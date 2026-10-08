@@ -941,7 +941,7 @@ Con los supuestos del estudio (150 vehículos al día; estudio §9.3):
 | Entregas de recibo | 0 por recibo | Viajan resumidas en el cierre de turno (por canal). Solo las **copias** viajan una por una, porque son el control de fraude |
 | Cierre de turno y movimientos | Unas 10 al día | — |
 
-Unas 6 filas por vehículo, 900 al día, y 1.800 con el margen ×2 del estudio. Con Workers Paid (50 M de filas al mes incluidas) caben unos 550 parqueaderos al 60 %; el costo marginal es de centavos de dólar por parqueadero al mes (estudio §9.3).
+Unas 6 filas por vehículo, 900 al día, y 1.800 con el margen ×2 del estudio. Medido el 8 oct 2026 (HU-Q7.13): la cuenta entera escribe 1.699 filas al día; con eso el presupuesto del parqueadero en el plan gratuito es de 70.000 filas al día, unos 38 parqueaderos (§14.1). Con Workers Paid (50 M de filas al mes incluidas) caben unos 550 parqueaderos al 60 %; el costo marginal es de centavos de dólar por parqueadero al mes (estudio §9.3).
 
 **Nota del plan (7 oct 2026):** el 6 oct el dueño decidió que Workers Paid ya no es condición y se activa solo si hace falta. En el plan gratuito, D1 permite 100.000 filas escritas al día para toda la cuenta: a 1.800 por parqueadero caben unos 55, si fueran los únicos (*Inferencia*). M1 se diseña para el plan gratuito, con su presupuesto en filas y su vigía (HU-Q7.13), y Workers Paid se activa cuando el vigía pase del 75 % de forma sostenida o M3 lo exija (D-Q10). Bitácora parqueadero 6.
 
@@ -1077,6 +1077,7 @@ Controles técnicos: la autorización del número es una casilla sin marcar, con
 - `presupuesto.usd_mes`: lo fija el dueño. Con Workers Paid ya pagado por la Tienda, el costo marginal por parqueadero es de centavos (§10.3).
 - El vigía de la plataforma proyecta el costo del mes y avisa por Telegram al 50, 75 y 90 % (PLATAFORMA §4.10).
 - **Nota del plan (7 oct 2026):** mientras la cuenta esté en el plan gratuito, el presupuesto también se cuenta en filas escritas de D1 por día, y el vigía avisa antes del límite de la cuenta (HU-Q7.13, §10.3).
+- **Hecho en HU-Q7.13 (8 oct 2026):** el presupuesto vive en `infrastructure/productos.json › parqueadero.presupuesto`, junto al de dólares, y no en un `product.yaml`: ese contrato es el de las herramientas y apps del agro (`schemas/product.schema.json`) y el presupuesto de un producto ya está en el registro del CORE desde HU-C11.1. Son **70.000 filas escritas al día**: el 75 % de las 100.000 de la cuenta (el umbral de D-Q10 para pensar en Workers Paid) menos el doble de lo que la cuenta escribió en la semana al 8 oct (1.699 al día en el reporte semanal, medido). A 1.800 filas por parqueadero con el margen ×2 de §10.3, **caben unos 38 parqueaderos** antes de pasar el presupuesto. El vigía reparte las filas por producto y avisa al 50, 75 y 90 % (ARQUITECTURA §8.2).
 
 ### 14.2 Kill switches y degradación
 
@@ -1086,6 +1087,8 @@ Controles técnicos: la autorización del número es una casilla sin marcar, con
 | `ks:parqueadero-fotos` | La subida de fotos | Las fotos se quedan en el dispositivo |
 | `ks:parqueadero-whatsapp` | La Cloud API (M3) | El envío por `wa.me` |
 | `ks:core:parqueadero` | Entrar, renovar y pagar | Los dispositivos con sesión siguen; los demás trabajan en local |
+
+Las claves `ks:parqueadero` y `ks:parqueadero-fotos` se declaran en `infrastructure/productos.json › parqueadero.kill_switches` (HU-Q7.13); el despliegue las crea en `encendido` en el KV de flags de las celdas del parqueadero (HU-Q7.2). `ks:core:parqueadero` la crea el CORE desde HU-Q7.1. `ks:parqueadero-whatsapp` se declara con la Cloud API, en M3.
 
 **La propiedad que más importa:** ningún kill switch ni presupuesto agotado detiene una entrada, un cobro o un recibo, porque todo eso es local. La degradación apaga primero las fotos, luego el WhatsApp automático, y nunca la venta.
 

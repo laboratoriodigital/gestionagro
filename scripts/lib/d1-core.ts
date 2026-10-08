@@ -204,3 +204,45 @@ export function huerfanasDeLaSalida(salida: string): string[] | null {
         `${String(f['table'] ?? '?')} (fila ${String(f['rowid'] ?? '?')}) apunta a una fila de ${String(f['parent'] ?? '?')} que no existe`,
     );
 }
+
+/**
+ * El producto que escribe en una base, por su nombre (HU-Q7.13): la del CORE es del CORE y un
+ * shard `<producto>_c<N>_s<k>` es de su producto (HU-C1.4). Las de staging gastan las mismas
+ * 100.000 filas de la cuenta y se dicen aparte. Otra base no se adivina: `null`.
+ */
+export function productoDeLaBase(nombre: string, baseDelCore: string): string | null {
+  const staging = nombre.endsWith('_staging');
+  const base = staging ? nombre.slice(0, -'_staging'.length) : nombre;
+  const producto = base === baseDelCore ? 'core' : (/^([a-z]+)_c\d+_s\d+$/.exec(base)?.[1] ?? null);
+  return producto && staging ? `${producto} (staging)` : producto;
+}
+
+/**
+ * Todas las bases D1 de la cuenta con el producto que escribe en cada una, por id (HU-Q7.13). El
+ * vigía mide las filas por base y con esto dice qué producto las gasta. Las que no se reconocen no
+ * van: el vigía las suma como «otras bases».
+ */
+export async function productosDeLasBases(
+  fetchFn: Fetch,
+  token: string,
+  cuenta: string,
+  baseDelCore: string,
+): Promise<Record<string, string>> {
+  const mapa: Record<string, string> = {};
+  for (let pagina = 1; pagina <= 20; pagina++) {
+    const r = await pedirJson(
+      fetchFn,
+      `${API}/accounts/${cuenta}/d1/database?per_page=100&page=${pagina}`,
+      token,
+    );
+    if (sinPermiso(r.estado)) throw new Error(`al token le falta ${PERMISO_D1}`);
+    if (r.estado !== 200) throw new Error(`no se pudo listar las bases D1 (HTTP ${r.estado})`);
+    const lista = (r.cuerpo.result as { uuid: string; name: string }[] | undefined) ?? [];
+    for (const b of lista) {
+      const producto = productoDeLaBase(b.name, baseDelCore);
+      if (producto) mapa[b.uuid] = producto;
+    }
+    if (lista.length < 100) break;
+  }
+  return mapa;
+}

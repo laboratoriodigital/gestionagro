@@ -10,7 +10,8 @@
     "PRODUCTO": "agro",
     "PLAN": "free",
     "PRESUPUESTO_USD_MES": "11",
-    "AL_AGOTARSE": ""
+    "AL_AGOTARSE": "",
+    "FILAS_D1_POR_PRODUCTO": "{\"parqueadero\":70000}"
   },
   "d1_databases": [
     {
@@ -36,7 +37,8 @@
         "PRODUCTO": "agro",
         "PLAN": "free",
         "PRESUPUESTO_USD_MES": "11",
-        "AL_AGOTARSE": ""
+        "AL_AGOTARSE": "",
+        "FILAS_D1_POR_PRODUCTO": "{\"parqueadero\":70000}"
       },
       "d1_databases": [
         {

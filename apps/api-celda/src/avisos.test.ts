@@ -163,3 +163,51 @@ describe('HU-C11.1 · el aviso con Workers Paid', () => {
     expect(enviados).toHaveLength(2);
   });
 });
+
+describe('HU-Q7.13 · el aviso de filas de D1 dice quién las gasta', () => {
+  const conFilas = (escalon: number, sobrePresupuesto: string[] = [], uso = 95) =>
+    vigilancia({
+      uso: { d1_filas_escritas: uso },
+      consumo: { d1_filas_escritas: uso * 1_000 },
+      antes: 'normal',
+      nivel: 'esencial',
+      filas: {
+        escalon,
+        porProducto: [
+          ['parqueadero', 60_000],
+          ['parqueadero (staging)', 20_000],
+          ['agro', 15_000],
+          ['core', 10],
+        ],
+        sobrePresupuesto,
+      },
+    });
+
+  it('al 95 % simulado: cuánto va de la cuenta, los tres que más escriben y quién pasó lo suyo', () => {
+    const texto = mensajeDelVigia(conFilas(90, ['parqueadero']), 'c0', 'produccion');
+    expect(texto).toContain(
+      'Filas escritas en D1 hoy: 95.000 de 100.000 de toda la cuenta (95 %).',
+    );
+    expect(texto).toContain(
+      'Quién las escribe: parqueadero 60.000, parqueadero (staging) 20.000, agro 15.000.',
+    );
+    expect(texto).toContain('Pasó sus filas del día: parqueadero. La venta y los registros siguen');
+  });
+
+  it('por debajo del 50 % y sin nadie pasado no agrega líneas de filas', () => {
+    const texto = mensajeDelVigia(conFilas(0, [], 20), 'c0', 'produccion');
+    expect(texto).not.toContain('Filas escritas');
+  });
+
+  it('avisa una vez por escalón: el mismo no se repite y el siguiente sí', async () => {
+    const { kv } = kvFalso();
+    const { fn, enviados } = telegramFalso();
+    expect(await avisarSiCambio(kv, conFilas(50, [], 55), CONTEXTO, fn)).toBe('enviado');
+    expect(await avisarSiCambio(kv, conFilas(50, [], 60), CONTEXTO, fn)).toBe('sin-cambio');
+    expect(await avisarSiCambio(kv, conFilas(75, [], 76), CONTEXTO, fn)).toBe('enviado');
+    expect(await avisarSiCambio(kv, conFilas(75, ['parqueadero'], 77), CONTEXTO, fn)).toBe(
+      'enviado',
+    );
+    expect(enviados).toHaveLength(3);
+  });
+});
