@@ -86,7 +86,7 @@ for (const ensayo of ['uno', 'dos'] as const) {
     await sinViolaciones(page);
     const sinNada = (await bytesImpresos(page)).length;
     await page.getByRole('button', { name: 'Registrar' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
     await sinDesborde(page);
     await sinViolaciones(page);
 
@@ -105,8 +105,10 @@ for (const ensayo of ['uno', 'dos'] as const) {
     const href = (await boton.getAttribute('href')) ?? '';
     expect(href).toMatch(/^https:\/\/wa\.me\/573001234567\?text=/);
     const texto = new URL(href).searchParams.get('text') ?? '';
-    expect(texto).toContain(`Recibo de entrada A-000001 - ${e.nombre}`);
-    expect(texto).toContain('Placa ABC123');
+    // Se lee como recibo (HU-Q6.6): el parqueadero en negrilla y las filas en un bloque fijo.
+    expect(texto).toContain(`*${e.nombre}*`);
+    expect(texto).toContain('*Recibo de entrada A-000001*');
+    expect(texto).toMatch(/```Placa +ABC123\n/);
     expect(texto).toContain('/r/#');
     const [chat] = await Promise.all([page.waitForEvent('popup'), boton.click()]);
     await chat.close();
@@ -123,7 +125,7 @@ for (const ensayo of ['uno', 'dos'] as const) {
     await sinViolaciones(page);
     const antesDeLaSalida = (await bytesImpresos(page)).length;
     await page.getByRole('button', { name: 'Cobrar $41.400' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000002');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de salida A-000002');
     await expect(page.getByTestId('whatsapp')).toHaveAttribute('href', /wa\.me\/573001234567\?/);
     if (siempre) {
       await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
@@ -140,7 +142,7 @@ for (const ensayo of ['uno', 'dos'] as const) {
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await teclearPlaca(page, 'XYZ789');
     await page.getByRole('button', { name: 'Registrar' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000003');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000003');
     await page.getByRole('button', { name: 'Anular la entrada' }).click();
     const anular = page.getByTestId('anular');
     await anular.getByLabel('Motivo').fill('placa mal digitada');
@@ -234,7 +236,7 @@ test('HU-Q6.3 · una versión nueva en medio de una impresión no recarga la caj
   // La impresora se queda recibiendo: el recibo está saliendo.
   await page.evaluate(() => (window as unknown as { __retener: () => void }).__retener());
   await page.getByRole('button', { name: 'Registrar' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
   await page.evaluate(() => Object.assign(window, { marcaDeSesion: 'sigue-aqui' }));
   expect((await page.request.post(`${SITIO}/__prueba/version-nueva`)).status()).toBe(204);
   await page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => r?.update()));

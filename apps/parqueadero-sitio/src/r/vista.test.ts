@@ -40,8 +40,9 @@ describe('la página del recibo /r/ (HU-Q4.2)', () => {
     const v = await vistaDelEnlace(fragmento(await enlaceCompleto(RECIBO)));
     expect(v).toMatchObject({ es: 'completa', titulo: 'Recibo de entrada A-000123', prueba: true });
     if (v.es !== 'completa') throw new Error(v.es);
-    expect(v.filas).toContainEqual(['Placa', 'ABC123 · Carro']);
-    expect(v.notas[0]).toBe('Copia digital del recibo.');
+    expect(v.hoja).toMatchObject({ placa: 'ABC123', vehiculo: 'Carro', numero: 'A-000123' });
+    expect(v.filas).toContainEqual(['Entró', '06/10/2026 18:05']);
+    expect(v.notas).toEqual(['Copia digital del recibo.']);
   });
 
   it('la forma corta muestra número, placa y hora, y explica cómo pedir la completa', async () => {

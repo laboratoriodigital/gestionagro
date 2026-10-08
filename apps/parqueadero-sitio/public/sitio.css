@@ -3,6 +3,7 @@
   --tinta: #171715;
   --fondo: #ffffff;
   --acento: #0b4fa0;
+  --peligro: #b3261e;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 18px;
   line-height: 1.5;
@@ -12,6 +13,7 @@
     --tinta: #ececea;
     --fondo: #0b0b0a;
     --acento: #7fb0f0;
+    --peligro: #ffb4ab;
   }
 }
 body {
@@ -52,17 +54,8 @@ a.boton {
 .nota {
   font-size: 0.9rem;
 }
-.prueba {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border: 2px solid #b3261e;
-  border-radius: 999px;
-  color: #b3261e;
-  font-weight: 700;
-}
-@media (prefers-color-scheme: dark) {
-  .prueba {
-    border-color: #ffb4ab;
-    color: #ffb4ab;
-  }
+/* Bajo la hoja del recibo (hoja-recibo.css): qué es esta página. */
+.hoja-recibo + .nota {
+  margin-top: 1rem;
+  text-align: center;
 }

@@ -36,6 +36,7 @@ import {
 import { ConexionImpresora, textoDeFallo } from './conexion.tsx';
 import type { BaseDeLaCaja, Contacto } from './datos.ts';
 import { origenDelRecibo } from './entorno.ts';
+import { HojaRecibo } from './HojaRecibo.tsx';
 import type { ControlDeImpresora } from './impresora.ts';
 import { avisoAceptado } from './privacidad.ts';
 import { CampoWhatsApp, faltaDelWhatsApp, terminaEn } from './whatsapp.tsx';
@@ -265,17 +266,7 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
   const destino = contacto?.numero ?? numero;
   return (
     <section class="tarjeta" data-prueba="recibo">
-      <h1>
-        Recibo <span class="exacto">{armado.recibo.numero}</span>
-      </h1>
-      <dl class="filas" data-prueba="filas-del-recibo">
-        {vista.filas.map(([etiqueta, valor]) => (
-          <div key={etiqueta}>
-            <dt>{etiqueta}</dt>
-            <dd>{valor}</dd>
-          </div>
-        ))}
-      </dl>
+      <HojaRecibo vista={vista} prueba="filas-del-recibo" />
 
       {anulado ? (
         <p class="error" role="status" data-prueba="anulado">
@@ -369,12 +360,6 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
           ))}
         </ul>
       )}
-      {vista.legal.map((l) => (
-        <p key={l} class="ayuda">
-          {l}
-        </p>
-      ))}
-
       <button type="button" class="boton boton-principal" onClick={() => void salir(alNueva)}>
         Nueva entrada
       </button>
