@@ -75,6 +75,11 @@ export interface Recibo {
   readonly salida: SalidaDelRecibo | null;
   /** La línea propia del pie, de los ajustes del recibo; nula si no hay. */
   readonly pie: string | null;
+  /**
+   * El texto de responsabilidad de la entrada que escribió la sede (HU-Q4.5); nulo = la
+   * sugerencia de la ley. Se lee con `textoDeResponsabilidad`.
+   */
+  readonly responsabilidad: string | null;
   /** Hecho fuera de producción: no vale (HU-Q5.1 CA2). */
   readonly prueba: boolean;
 }
@@ -192,6 +197,7 @@ export function armarRecibo(
       tope_minuto: tarifa.tope_minuto,
     },
     pie: catalogos.ajuste?.pie ?? null,
+    responsabilidad: catalogos.ajuste?.responsabilidad ?? null,
     prueba: opciones.prueba,
   };
 
@@ -288,10 +294,17 @@ export function conceptoDeLinea(l: LineaDeLiquidacion, t: TarifaDelRecibo): stri
   }
 }
 
-/** Los textos legales cortos del papel y del mensaje (§6.1; estudio §13.1). */
+/**
+ * Los textos legales cortos del papel y del mensaje (§6.1; estudio §13.1). `entrada` es la
+ * sugerencia de la ley: la sede puede escribir el suyo en Ajustes (HU-Q4.5).
+ */
 export const TEXTO_LEGAL = {
   entrada: 'Conserve este recibo. El parqueadero responde por el vehículo (Ley 1480, art. 18).',
   noFactura: 'Este recibo no es factura.',
   pedirWhatsApp: 'Pida su recibo por WhatsApp.',
   whatsapp: 'Usamos este número solo para enviarle sus recibos.',
 } as const;
+
+/** El texto de responsabilidad de la entrada: el de la sede, o la sugerencia de la ley (HU-Q4.5). */
+export const textoDeResponsabilidad = (r: Pick<Recibo, 'responsabilidad'>): string =>
+  r.responsabilidad ?? TEXTO_LEGAL.entrada;

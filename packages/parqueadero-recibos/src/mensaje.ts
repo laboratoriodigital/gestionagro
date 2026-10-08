@@ -14,6 +14,7 @@ import {
   nombreDelVehiculo,
   type Recibo,
   TEXTO_LEGAL,
+  textoDeResponsabilidad,
 } from './recibo.ts';
 
 /** El mensaje para el conductor, con el enlace completo del recibo (§6.4). */
@@ -85,7 +86,7 @@ export function pantalla(recibo: Recibo, desfaseMin = -300): VistaDeRecibo {
     titulo: `Recibo de ${recibo.clase} ${recibo.numero}`,
     filas,
     legal: [
-      recibo.clase === 'entrada' ? TEXTO_LEGAL.entrada : TEXTO_LEGAL.noFactura,
+      recibo.clase === 'entrada' ? textoDeResponsabilidad(recibo) : TEXTO_LEGAL.noFactura,
       ...(recibo.pie ? [recibo.pie] : []),
     ],
   };

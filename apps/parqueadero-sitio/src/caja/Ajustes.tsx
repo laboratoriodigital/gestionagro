@@ -5,7 +5,8 @@
  * junto a su campo. Con un PIN ya puesto, entrar pide el PIN.
  */
 import { formatearPesos } from '@ed1/dinero';
-import type { Redondeo, Sede, Tarifa, Vehiculo } from '@ed1/parqueadero-schema';
+import { TEXTO_LEGAL } from '@ed1/parqueadero-recibos';
+import type { AjusteRecibo, Redondeo, Sede, Tarifa, Vehiculo } from '@ed1/parqueadero-schema';
 import {
   ErrorDeValidacion,
   PAPEL,
@@ -67,6 +68,8 @@ export interface Borrador {
   /** La sede acepta el aviso de privacidad vigente (HU-Q4.4 CA2). */
   aviso: boolean;
   pie: string;
+  /** El texto de responsabilidad de la entrada (HU-Q4.5); empieza con la sugerencia de la ley. */
+  responsabilidad: string;
   pin: string;
   pin2: string;
   tarifas: Record<string, BorradorTarifa>;
@@ -88,6 +91,7 @@ export const borradorVacio = (): Borrador => ({
   imprimir: '',
   aviso: false,
   pie: '',
+  responsabilidad: TEXTO_LEGAL.entrada,
   pin: '',
   pin2: '',
   tarifas: Object.fromEntries(VEHICULOS_DE_LA_CAJA.map((v) => [v, tarifaVacia()])),
@@ -95,7 +99,11 @@ export const borradorVacio = (): Borrador => ({
 
 const texto = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n));
 
-function borradorDe(sede: Sede | null, tarifas: readonly Tarifa[], pie: string | null): Borrador {
+function borradorDe(
+  sede: Sede | null,
+  tarifas: readonly Tarifa[],
+  ajuste: AjusteRecibo | null,
+): Borrador {
   const b = borradorVacio();
   if (sede) {
     Object.assign(b, {
@@ -112,7 +120,8 @@ function borradorDe(sede: Sede | null, tarifas: readonly Tarifa[], pie: string |
       aviso: avisoAceptado(sede),
     });
   }
-  b.pie = pie ?? '';
+  b.pie = ajuste?.pie ?? '';
+  b.responsabilidad = ajuste?.responsabilidad ?? TEXTO_LEGAL.entrada;
   for (const t of tarifas) {
     b.tarifas[t.vehiculo] = {
       valor: texto(t.valor),
@@ -146,6 +155,15 @@ type TarifaSinMeta = Omit<Tarifa, 'id' | 'org_id' | 'version' | 'actualizado' | 
  * Lee el formulario: lo que está bien para guardar y los errores por campo. Una tarifa con todos
  * sus campos vacíos es un vehículo que la sede no recibe; a medias, es un error.
  */
+/** Lo que cabe del texto de responsabilidad: el mismo máximo del esquema y del enlace (HU-Q4.5). */
+export const MAXIMO_RESPONSABILIDAD = 200;
+
+/** Lo que se guarda: nulo si quedó vacío o igual a la sugerencia de la ley (HU-Q4.5 CA1). */
+export function responsabilidadDe(b: Pick<Borrador, 'responsabilidad'>): string | null {
+  const t = b.responsabilidad.trim();
+  return t === '' || t === TEXTO_LEGAL.entrada ? null : t;
+}
+
 export function leerBorrador(
   b: Borrador,
   hayPin: boolean,
@@ -159,6 +177,9 @@ export function leerBorrador(
     if (!b[campo].trim()) falta(`sede-${campo}`);
   }
   if (!b.poliza) errores['sede-poliza'] = 'Diga si el parqueadero tiene póliza';
+  if (b.responsabilidad.trim().length > MAXIMO_RESPONSABILIDAD) {
+    errores['responsabilidad'] = `Es de máximo ${MAXIMO_RESPONSABILIDAD} letras`;
+  }
   if (b.poliza === 'si') {
     if (!b.aseguradora.trim()) falta('sede-aseguradora');
     if (!b.numeroPoliza.trim()) falta('sede-numeroPoliza');
@@ -317,7 +338,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
   useEffect(() => {
     void (async () => {
       const a = await leerAjustes(db);
-      setB(borradorDe(a.sede, a.tarifas, a.ajuste?.pie ?? null));
+      setB(borradorDe(a.sede, a.tarifas, a.ajuste));
       setAvisoGuardado(a.sede?.aviso_privacidad ?? null);
       setIds({
         sede: a.sede?.id ?? null,
@@ -396,7 +417,12 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
         ctx,
       );
       for (const t of tarifas) await guardarTarifa(db, t, ids.tarifas[t.vehiculo] ?? null, ctx);
-      await guardarAjusteRecibo(db, { pie: b.pie.trim() || null }, ids.ajuste, ctx);
+      await guardarAjusteRecibo(
+        db,
+        { pie: b.pie.trim() || null, responsabilidad: responsabilidadDe(b) },
+        ids.ajuste,
+        ctx,
+      );
       if (b.pin) await guardarPin(db, b.pin);
       if (qrPago) await db.meta.put({ clave: 'qr_pago', datos: qrPago });
       else if (qrPago === null) await db.meta.delete('qr_pago');
@@ -559,6 +585,22 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
           ayuda="El horario, por ejemplo"
         >
           {entrada('pie', b.pie, poner('pie'), { maxLength: 64 })}
+        </Campo>
+        <Campo
+          id="responsabilidad"
+          etiqueta="Texto de responsabilidad del recibo de entrada"
+          errores={errores}
+          ayuda="Viene con lo que sugiere la ley (Ley 1480, art. 18). Puede escribir el de su talonario. Si lo deja vacío, vuelve la sugerencia"
+        >
+          <textarea
+            id="responsabilidad"
+            rows={4}
+            maxLength={MAXIMO_RESPONSABILIDAD}
+            value={b.responsabilidad}
+            onInput={poner('responsabilidad')}
+            aria-invalid={errores['responsabilidad'] ? 'true' : undefined}
+            aria-describedby={errores['responsabilidad'] ? 'responsabilidad-error' : undefined}
+          />
         </Campo>
       </fieldset>
 

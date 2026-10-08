@@ -213,3 +213,19 @@ describe('el ajuste papel (HU-Q4.3)', () => {
     expect(papelDeLaSede({})).toBe('siempre');
   });
 });
+
+describe('el texto de responsabilidad del ajuste del recibo (HU-Q4.5)', () => {
+  it('opcional, nulo o de hasta 200 letras; más, o vacío, no (CA3 ❌)', async () => {
+    const { ajusteRecibo, AJUSTE_ENSAYO } = {
+      ...(await import('./index.ts')),
+      ...(await import('./ensayos.fixture.ts')),
+    };
+    const con = (responsabilidad: unknown) =>
+      ajusteRecibo.safeParse({ ...AJUSTE_ENSAYO, responsabilidad }).success;
+    expect(ajusteRecibo.safeParse(AJUSTE_ENSAYO).success).toBe(true);
+    expect(con(null)).toBe(true);
+    expect(con('a'.repeat(200))).toBe(true);
+    expect(con('a'.repeat(201))).toBe(false);
+    expect(con('   ')).toBe(false);
+  });
+});

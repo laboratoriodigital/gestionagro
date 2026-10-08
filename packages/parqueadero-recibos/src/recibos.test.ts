@@ -24,6 +24,8 @@ import {
   papel,
   type Recibo,
   ReciboIncompleto,
+  TEXTO_LEGAL,
+  textoDeResponsabilidad,
   textoWhatsApp,
 } from './index.ts';
 
@@ -337,5 +339,47 @@ describe('sin datos legales no hay recibo (HU-Q3.2 CA2 y CA3)', () => {
       expect(e).toBeInstanceOf(ReciboIncompleto);
       expect((e as ReciboIncompleto).faltan).toEqual(['el NIT']);
     }
+  });
+});
+
+describe('el texto de responsabilidad de la sede (HU-Q4.5 CA1)', () => {
+  const PROPIO =
+    'Después de 45 días el parqueadero no se hace responsable del vehículo, moto, bicicleta, etc.';
+  const conTexto = (registro: Registro, responsabilidad: string | null) =>
+    armarRecibo(
+      registro,
+      { ...catalogos(SEDE_ENSAYO_UNO), ajuste: { ...AJUSTE_ENSAYO, responsabilidad } },
+      { prueba: false },
+    );
+  const unaLinea = (r: Recibo) => textoDePapel(r).join(' ');
+
+  it('sin texto propio, la entrada dice la sugerencia de la ley en papel y pantalla', () => {
+    const r = conTexto(ENTRADA_ENSAYO, null);
+    expect(textoDeResponsabilidad(r)).toBe(TEXTO_LEGAL.entrada);
+    expect(unaLinea(r)).toContain('(Ley 1480, art. 18).');
+    expect(pantalla(r).legal).toContain(TEXTO_LEGAL.entrada);
+  });
+
+  it('con texto propio, la entrada dice el de la sede, y no la sugerencia', () => {
+    const r = conTexto(ENTRADA_ENSAYO, PROPIO);
+    expect(unaLinea(r)).toContain(PROPIO);
+    expect(unaLinea(r)).not.toContain('Ley 1480');
+    expect(pantalla(r).legal).toEqual([PROPIO, AJUSTE_ENSAYO.pie]);
+  });
+
+  it('la salida no cambia: sigue diciendo que no es factura', () => {
+    const r = conTexto(SALIDA_ENSAYO, PROPIO);
+    expect(unaLinea(r)).not.toContain(PROPIO);
+    expect(unaLinea(r)).toContain('no es factura');
+  });
+
+  it('las 200 letras caben en 32 columnas, partidas por palabras', () => {
+    const largo = `${PROPIO} ${PROPIO}`.slice(0, 200);
+    const lineas = textoDePapel(conTexto(ENTRADA_ENSAYO, largo));
+    // El QR no es texto: la impresora lo dibuja.
+    for (const l of lineas.filter((x) => !x.startsWith('[QR '))) {
+      expect(l.length).toBeLessThanOrEqual(COLUMNAS);
+    }
+    expect(lineas.join(' ')).toContain(largo.split(' ').slice(-3).join(' '));
   });
 });

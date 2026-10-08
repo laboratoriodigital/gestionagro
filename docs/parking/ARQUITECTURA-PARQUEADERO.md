@@ -323,6 +323,7 @@ Las del cuaderno (ARQUITECTURA §5.3), con estas formas:
 - Una prueba arma recibos de entrada y salida para los dos parqueaderos de prueba y exige que **cada salida contenga cada campo marcado** (P2, P5 con un campo quitado).
 - Lo que el parqueadero no llenó no se imprime vacío: la caja no deja registrar hasta que los datos legales de la sede están completos, como la compuerta de publicación de la Tienda (TIENDA-3.0 §10.2). Ningún valor de fábrica (lección «el celular de la primera tienda», bitácora ecommerce).
 - **Este recibo no es una factura.** La factura electrónica o el tiquete POS electrónico los emite el facturador del parqueadero (M4; estudio §13.3).
+- **Nota de la puesta en marcha (8 oct 2026), con el código (HU-Q4.5):** el texto de responsabilidad de la entrada lo decide la sede. Ajustes › «Texto de responsabilidad del recibo de entrada» empieza con la sugerencia de la ley («Conserve este recibo. El parqueadero responde por el vehículo (Ley 1480, art. 18).», `TEXTO_LEGAL.entrada`), y la sede puede escribir el de su talonario, de hasta 200 letras. El primer cliente lo pidió para su frase de los 45 días. Vacío, o igual a la sugerencia, se guarda nulo y vuelve la sugerencia. Sale en la entrada por papel, enlace y pantalla; la salida sigue diciendo «Este recibo no es factura». La caja no juzga lo que la sede escribe. Lo que dice el estudio §13.1 de los avisos que eximen lo decide la sede con su abogado.
 
 ### 6.2 Papel: ESC/POS a 58 mm
 
@@ -361,6 +362,7 @@ vehiculo (Ley 1480, art. 18).
 
 ```text
 https://parqueadero.laboratorio-digital.app/r/#1.<datos>[.<firma>.<certificado>]   (completa; «1» es la versión del formato)
+https://parqueadero.laboratorio-digital.app/r/#2.<datos>[.<firma>.<certificado>]   (completa, versión 2: la 1 con el texto de responsabilidad de la sede)
 https://parqueadero.laboratorio-digital.app/r/#c.<número>.<placa>.<tipo>.<hora>      (corta, para el papel)
 ```
 
@@ -390,6 +392,7 @@ https://parqueadero.laboratorio-digital.app/r/#c.<número>.<placa>.<tipo>.<hora>
 
 - **El QR del papel es la forma corta.** Sirve para buscar la estadía en la salida y, escaneado por el conductor, abre `/r/` con el número, la placa y la hora, y le explica cómo pedir su copia completa. Un QR denso en papel térmico se lee mal, y más cuando el papel se borra (§8.4); el recibo legal es el papel mismo. Una prueba exige que la forma corta quepa en la versión 7 y la completa sin firma en la 13.
 - **Nota del sprint Q2 (7 oct 2026), medido con el código:** el recibo lleva ahora la tarifa con su gracia, su tope y su noche (§6.1), y con eso el JSON de claves cortas no cabía en la versión 13. El formato `1` quedó compacto: índices en lugar de palabras (vehículo, concepto, medio de pago), `0` en lugar de `null`, y fuera lo que se deriva (subtotal, redondeo y cambio). Con los recibos de prueba de `parqueadero-recibos`: la entrada y la salida largas miden 400 y 409 caracteres (versión 13); las normales, 341 y 348 (versión 12); la corta, 77 (versión 4). Deflate guarda su suma Adler-32: un fragmento con un carácter cambiado no abre (prueba «cada carácter cambiado da error»). La firma de M2 tendrá que medirse de nuevo sobre este formato.
+- **Nota de la puesta en marcha (8 oct 2026), con el código (HU-Q4.5):** la versión 2 del formato es la 1 con una clave más, `lg`, el texto de responsabilidad que escribió la sede. Solo la lleva una entrada con texto propio: los demás recibos, y toda salida, siguen en la 1, byte por byte, y los enlaces guardados siguen abriendo. Una salida en versión 2, o una 2 sin texto, se lee como error de «contenido». Medido con el código: la entrada larga con 200 letras propias mide 551 caracteres, versión 16 del QR de la pantalla (81 módulos); la del papel sigue siendo la corta.
 - **Nota del sprint Q3 (7 oct 2026), con el código:** `/r/` es una página estática de Astro con un script propio de 31,9 KB con gzip (el inflado del enlace y la vista), que pinta todo con `textContent`: un nombre de sede con HTML se ve como texto. En staging, la caja enlaza a la `/r/` de su propio origen (`origenDelRecibo`), y el escáner acepta los dos orígenes; en producción, solo el del dominio. El escáner usa `BarcodeDetector` donde el navegador lo tiene y jsQR (Apache-2.0, unos 47 KB con gzip) donde no, cargado solo entonces.
 - **Fotos** (M2): la página las pide a R2 con su nombre aleatorio. Si ya pasaron los 30 días, dice «Las fotos se guardan 30 días».
 
