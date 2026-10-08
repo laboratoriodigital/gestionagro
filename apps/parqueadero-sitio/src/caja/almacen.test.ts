@@ -1004,4 +1004,17 @@ describe('una salida en $0 dice por qué (dueño, 8 oct 2026)', () => {
     expect(conLaNueva.liquidacion.total).toBeGreaterThan(0);
     expect(motivoDelCero(conLaNueva)).toBe('');
   });
+
+  it('con la tarifa ya cambiada, el redondeo y la tarifa en $0 también dicen que se cobra la de la entrada', () => {
+    const tarifa = { ...TARIFA_CARRO, valor: 70, gracia_min: 0, redondeo: 'abajo_100' as const };
+    const unMinuto = liquidar(0, 60_000, tarifa, 230);
+    expect(motivoDelCero({ liquidacion: unMinuto, tarifa, tarifaCambio: true })).toBe(
+      'Entró cuando el redondeo hacia abajo dejaba $70 en $0, y se cobra con la tarifa con que entró. Los que entren desde ahora pagan con la nueva',
+    );
+    const gratis = { ...TARIFA_CARRO, valor: 0, gracia_min: 0, redondeo: 'ninguno' as const };
+    const cero = liquidar(0, 60_000, gratis, 230);
+    expect(motivoDelCero({ liquidacion: cero, tarifa: gratis, tarifaCambio: true })).toBe(
+      'Entró cuando la tarifa de este vehículo daba $0, y se cobra con la tarifa con que entró. Los que entren desde ahora pagan con la nueva',
+    );
+  });
 });
