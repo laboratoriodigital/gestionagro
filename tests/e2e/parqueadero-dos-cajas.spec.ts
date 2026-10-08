@@ -31,7 +31,11 @@ test.use({ testIdAttribute: 'data-prueba' });
 
 /** La API de la celda que la CSP de staging deja: la que arma el build. */
 const API = conexionesDeLaCaja('staging')[0] ?? '';
-const VEHICULOS = 20;
+/**
+ * Cinco por caja: el navegador cuesta minutos de CI. Las 20 por caja de CA3 las prueba el arnés
+ * (`tests/integracion/parqueadero-dos-cajas.test.ts`) con el mismo código de la caja.
+ */
+const VEHICULOS = 5;
 
 let e: Entorno;
 test.beforeAll(async () => {
@@ -174,7 +178,7 @@ test(`HU-Q7.5 CA3 · dos cajas sin red registran ${VEHICULOS} entradas y salidas
   await expect.poll(async () => (await ids(a)).length).toBe(2 * (1 + 2 * VEHICULOS));
   expect(await ids(a)).toEqual(await ids(b));
 
-  // En la celda, cada serie con sus números del 1 al 40, una vez.
+  // En la celda, cada serie con todos sus números, desde el 1, una vez.
   for (const serie of ['A', 'B']) {
     const r = await e.db
       .prepare(
