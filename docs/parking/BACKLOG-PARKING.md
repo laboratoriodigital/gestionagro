@@ -444,7 +444,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.5.1 `[código]` cola y envío · WI-Q7.5.2 `[código]` cabecera · WI-Q7.5.3 `[prueba]` e2e de dos cajas · WI-Q7.5.4 `[prueba]` corte a mitad del push.
 
 #### HU-Q7.6 · Entrar desde la caja y reclamar lo local
-- **Capa:** caja y API · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q8 · **Depende de:** HU-Q7.5, HU-C3.1, HU-C4.3, HU-C4.4 · **Estado:** En curso (rama `feat/q8-sprint`)
+- **Capa:** caja y API · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q8 · **Depende de:** HU-Q7.5, HU-C3.1, HU-C4.3, HU-C4.4 · **Estado:** En revisión (rama `feat/q8-sprint`): en staging, «Cuenta y nube» en la caja (`apps/parqueadero-sitio/src/caja/cuenta.ts`) y `POST /api/v1/reclamar` con `GET /api/v1/resumen` en la celda (`apps/parqueadero-api/src/dispositivos.ts`). CA2 cambia de forma por el plan gratuito: la celda registra la caja con su serie y lo de la caja sube por la cola, de a 25 y con los mismos ids; la caja lo da por subido cuando `resumen` dice lo mismo que ella (P21; bitácora, «Cambios de rumbo»). CA4 lo cubre la restauración, que ya rechazaba el archivo entero; WI-Q7.6.3 con un respaldo hecho por el código de `v0.2.0` (`tests/fixtures/parqueadero-respaldo-v0.2.0.json`). Quedan para el refinamiento con el cliente: el `auth_time` de CA3 y WI-Q7.8.3, que esperan a saber cómo entra un cajero sin Google (CA1); hasta entonces sigue el PIN. WI-Q7.6.5 es del dueño, en staging
 - Como propietario del parqueadero cero, quiero crear mi cuenta y subir todo lo que la caja guardó desde el piloto, con los mismos números, para no empezar de cero.
 - **Respaldo:** PARQUEADERO §11.3 y §5.4; HU-E4.3 del agro (el mismo patrón); P21.
 - **CA1.** «Entrar» lleva a la cuenta con el producto `parqueadero` (HU-C3.1) y vuelve a `/caja/` con un token v2 (`aud = parqueadero`, HU-C4.3) que se refresca por producto (HU-C4.4). Mientras no exista entrar con correo (HU-C10.2, C11), entrar pide una cuenta de Google: cómo trabaja un cajero que no la tiene se decide con el cliente en el refinamiento de Q8.
@@ -458,7 +458,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Lo que no hace:** reclamar la caja del cliente en producción. Eso pasa en HU-Q7.12, después de que HU-Q7.11 deja lista la promesa de privacidad con cuenta.
 
 #### HU-Q7.7 · Dispositivos: alta con serie y retiro
-- **Capa:** API y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q8 · **Depende de:** HU-Q7.6 · **Estado:** En curso (rama `feat/q8-sprint`)
+- **Capa:** API y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q8 · **Depende de:** HU-Q7.6 · **Estado:** En revisión (rama `feat/q8-sprint`): en staging, `POST`/`GET /api/v1/dispositivos` y `/retirar`; la caja retirada recibe 403 en push y pull, y su sesión de la cuenta se cierra con `telefonos/retirar` del CORE (el acceso ya emitido vence solo en 12 h). Las cajas en «Cuenta y nube»; runbook `docs/runbooks/parqueadero-retirar-caja.md`
 - Como propietario, quiero dar de alta una segunda caja y retirar un teléfono perdido, para que dos cajas no repitan números y un teléfono robado no siga entrando.
 - **Respaldo:** PARQUEADERO §5.4, §11.4 (puntos 1 y 3) y §12; runbook «Retirar un dispositivo» (PARQUEADERO §14.5).
 - **CA1.** `POST /api/v1/dispositivos` da a cada dispositivo nuevo la siguiente serie libre del parqueadero; la base la hace única (anexo A).
@@ -478,7 +478,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.8.1 `[código]` matriz · WI-Q7.8.2 `[código]` API · WI-Q7.8.3 `[código]` caja · WI-Q7.8.4 `[prueba]` matriz completa.
 
 #### HU-Q7.9 · Respaldo en la nube y exportación
-- **Capa:** API · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q8 · **Depende de:** HU-Q7.6 · **Estado:** En curso (rama `feat/q8-sprint`)
+- **Capa:** API · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q8 · **Depende de:** HU-Q7.6 · **Estado:** En revisión (rama `feat/q8-sprint`): en staging. CA1 cambia de forma por el plan gratuito: sin R2 ni enlace temporal, la caja al día con la nube arma el mismo `parqueadero-export/1` con lo de todas las cajas y lo compara con `GET /api/v1/resumen`; la prueba de ida y vuelta es la del respaldo de `v0.2.0` reclamado. CA2 hecho («Respaldo», la cabecera y el cierre de turno). CA3: sin enlaces no hay enlace vencido; otra organización no ve nada, ni en el pull ni en el resumen
 - Como propietario, quiero descargar todo lo de mi parqueadero cuando quiera, para no depender de que el teléfono no se pierda.
 - **Respaldo:** PARQUEADERO §12 (`/api/v1/exportar`), §5.3 regla 6 y §2.2.
 - **CA1.** `POST /api/v1/exportar` arma un `parqueadero-export/1` completo en R2 y devuelve un enlace temporal. Es el mismo formato del respaldo de M0 y de la carga al reclamar: una prueba de ida y vuelta los ata (P2).

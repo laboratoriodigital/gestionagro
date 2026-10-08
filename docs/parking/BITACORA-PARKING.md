@@ -285,6 +285,9 @@ No son errores. Son decisiones que cambiaron con información nueva.
 | Mensualidades sencillas en M0 (PARQUEADERO §2.2) | Abonados por placa en M0 (HU-Q3.11, Should); mensualidades con plan y cobro en M2 (HU-Q8.4) | Bitácora parqueadero 7 |
 | M1 espera a PLATAFORMA P1 y P2 (PARQUEADERO §0 y §18) | M1 arranca en Q6, justo después del piloto; solo el cobro por periodo espera a HC4 (HU-Q7.10) | HU-C3.1, HU-C4.3 y HU-C4.4 ya están construidas (plan §1, hallazgo 7) |
 | Las fotos del estado en el respaldo de M0 | Fuera del archivo de respaldo en M0 (HU-Q3.10, CA3) | El respaldo se manda por correo, y con fotos pasaría el límite de un adjunto (*Inferencia*) |
+| `POST /api/v1/reclamar` carga el archivo entero de la caja (PARQUEADERO §12, HU-Q7.6 CA2) | `reclamar` solo registra la caja con su serie; lo suyo sube por la cola de siempre, de a 25, y `GET /api/v1/resumen` lo verifica (P21) | Plan gratuito (HU-Q7.13): 50 consultas y 10 ms de CPU por invocación, y la caja del cliente llegará con unos 10.000 recibos (PARQUEADERO §11.3) |
+| `POST /api/v1/exportar` a R2 con enlace temporal (HU-Q7.9 CA1) | La caja al día arma el mismo archivo con lo de todas las cajas y lo compara con `resumen` | Lo mismo: leer el parqueadero entero no cabe en una invocación. Sin R2 no hay objetos que purgar ni enlaces que vencer (PARQUEADERO §12) |
+| `auth_time` reciente en vez del PIN para los ajustes sensibles (HU-Q7.6 CA3) y la caja escondiendo lo que el rol no puede (WI-Q7.8.3) | Siguen el PIN y la caja de M0, también con cuenta | CA1 deja para el refinamiento con el cliente cómo entra un cajero sin cuenta de Google; hasta saberlo, solo el propietario entra |
 | La demostración del 30 oct (`v0.1.0`) y después el piloto del 9 nov (`v0.2.0`) | Puesta en marcha directa: la `0.1.0` es la versión con la que el cliente opera, después de la matriz en su equipo (HU-Q6.1) y con el primer turno en paralelo con el talonario (HU-Q6.4) | El cliente cerró la compra el 7 oct de 2026 y entra a operar con el MVP (dueño, 8 oct). Todas las historias de código de M0 ya estaban en `main` |
 
 ---
@@ -899,3 +902,26 @@ Refused to connect to 'https://parqueadero-api-c2.ejemplo.test/api/v1/sync/push'
 La regla: **una conexión nueva de la caja se prueba en un navegador con las cabeceras que se despliegan; un arnés en Node no tiene CSP.**
 
 *Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P17 · parqueadero-0.2.0 · 2026-10-08
+
+**31 · La lista de cajas comparaba el parqueadero de la caja con el de su propia fila, no con el del token: la guardia de tenant la paró.**
+
+*Qué pasó.* El 8 oct 2026, al escribir `GET /api/v1/dispositivos` (HU-Q7.7), la lista sumaba a cada caja su último número con una subconsulta. Las pruebas de la API estaban en verde en los dos instrumentos de D1; la batería completa no.
+
+*Síntoma literal.* En `tests/repo/org-id-en-consultas.test.ts`:
+
+```text
+dispositivos.ts: select d.id, d.serie, d.nombre, d.estado, d.creado, d.retirado, (selec…
+AssertionError: expected 'from registro sin «where … org_id = ?»' to be null
+```
+
+*Causa raíz.* La subconsulta decía `WHERE r.org_id = d.org_id AND r.serie = d.serie`. Daba bien, porque la consulta de afuera filtra `d.org_id` por el token, pero la regla de la celda es que cada `FROM` de una tabla con datos de un parqueadero diga el suyo con el `org_id` del token: un cambio en la consulta de afuera dejaría a la de adentro leyendo de todos. Las pruebas de la API no lo podían ver, porque con un solo parqueadero el resultado es el mismo.
+
+*Cómo se reprodujo.* La batería completa de vitest, con `dispositivos.ts` nuevo en `apps/parqueadero-api/src`.
+
+*Arreglo.* La subconsulta dice `r.org_id = ?1`, el mismo parámetro del token, y `dispositivos.ts` entró a la lista de archivos que la guardia revisa.
+
+**Lo prueba** la misma guardia, que ahora recorre `dispositivos.ts`. Control negativo: con la subconsulta de antes, la guardia se ve en rojo con el mensaje de arriba.
+
+La regla: **una consulta nueva de la celda se corre con la batería entera antes de darla por buena; la guardia de tenant ve lo que una prueba con un solo parqueadero no puede ver.**
+
+*Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P4, P12 · parqueadero-0.2.0 · 2026-10-08

@@ -1007,12 +1007,16 @@ Matriz como dato, la misma en la celda y en el dispositivo (con `crearPermisos` 
 
 Igual que el cuaderno (HU-E4.3): al crear la cuenta, el dispositivo sube lo que tenía con los mismos ids. La celda escribe primero, verifica y solo entonces el dispositivo marca lo local como enviado (P21). La serie del dispositivo se conserva (§5.4).
 
+**Hecho en HU-Q7.6 (8 oct 2026), en staging.** La caja entra con la cuenta del CORE (`producto=parqueadero`, la política vigente) y vuelve a `/caja/#entrar=…`; el código sale de la barra antes de canjearse y los tokens viven en `meta`. «Subir este parqueadero» crea el parqueadero en la cuenta con un id hecho en la caja (`org_pendiente`: reintentar no crea otro), renueva la sesión hacia él y llama a `POST /api/v1/reclamar` con la caja y su serie. Lo que la caja guardó **no viaja en esa llamada:** entra a la cola de HU-Q7.5 y sube de a 25 con sus ids, porque un parqueadero de 10.000 recibos no cabe en las 50 consultas ni en los 10 ms de CPU de una invocación del plan gratuito (HU-Q7.13). Con la cola vacía, la caja compara lo suyo con `GET /api/v1/resumen` y solo entonces dice «verificado»; si falta algo sin motivo, lo vuelve a encolar (la celda contesta `duplicado` a lo que ya tiene). Un corte entre vincular y encolar lo termina la vuelta siguiente (`reclamo.encolado`). Reclamar exige un parqueadero sin otras cajas: una segunda caja con recibos propios chocaría en los números. Lo subido sin cuenta llega con `autor_usuario_id` nulo, como dice la migración. Hasta HU-Q7.12, la pantalla solo existe fuera de producción.
+
 ### 11.4 Dispositivos y certificados (M2)
 
 1. **Alta:** el dispositivo genera su par Ed25519 con WebCrypto, con la llave privada no exportable, y manda la pública. La celda le asigna una serie y le devuelve un certificado firmado con su llave de recibos (`CELDA_RECIBO_PRIVATE_KEY`, que se genera una vez y no se reemplaza, como la de los QR del agro).
 2. **Renovación:** el certificado vence a los 30 días y se renueva solo en cada sincronización de la última semana. Un dispositivo que pasa más de 30 días sin red firma con un certificado vencido, y la página lo dice en ámbar (§6.3).
 3. **Retiro:** retirar un dispositivo corta su sesión y no renueva su certificado. Lo que firmó antes sigue siendo válido.
 4. **Compatibilidad:** Ed25519 en WebCrypto es lo que el cuaderno ya usa para verificar (ARQUITECTURA §5.3). Si un navegador no lo tiene para firmar, la caja emite sin firma y lo dice; no cambia a una llave exportable en silencio.
+
+**Hecho en HU-Q7.7 (8 oct 2026), en staging, sin certificados (M2):** el alta da la siguiente serie libre (A…Z, AA…), nunca la de una caja retirada, y es idempotente; dos altas a la vez no se quedan con la misma serie porque la base la hace única y el alta vuelve a mirar. El retiro marca la fila: push, pull y `resumen` responden 403 `retirado` a esa caja, y la caja que retira cierra en el CORE las sesiones de la cuenta abiertas en ese teléfono (`/api/core/telefonos/retirar`, por el `dispositivo` del canje). **Límite que se dice:** el acceso ya emitido vale hasta su vencimiento (12 h), y quien lo tenga puede decir ser otra caja, porque la celda reconoce a la caja por un id que no es secreto. Cerrar eso es la firma por dispositivo de M2 (puntos 1 y 2).
 
 ---
 
@@ -1025,12 +1029,13 @@ Convenciones de la celda agro: Hono, solo `/api/*`, token del CORE con `aud = pa
 | `GET /api/salud` | Prueba de humo, sin token | M1 |
 | `POST /api/v1/sync/push` | Hasta 25 operaciones; acks `aceptado`, `duplicado`, `cuarentena`, `reintentar` | M1 |
 | `GET /api/v1/sync/pull` | Cambios después de los cursores de registros y catálogos | M1 |
-| `POST /api/v1/reclamar` | Carga idempotente de un `parqueadero-export/1` hecho sin cuenta | M1 |
-| `POST /api/v1/dispositivos` · `/retirar` | Alta con serie; retiro | M1 |
+| `POST /api/v1/reclamar` | La primera caja entra con su serie; lo suyo sube por el push (§11.3) | M1 |
+| `GET /api/v1/resumen` | Cuánto tiene la celda del parqueadero y de una caja, para verificar (P21) | M1 |
+| `GET`·`POST /api/v1/dispositivos` · `/retirar` | Lista; alta con serie; retiro | M1 |
 | `POST /api/v1/dispositivos/certificado` | Emite o renueva el certificado de firma | M2 |
 | `GET /api/claves-recibo` | Llaves públicas de la celda, que el despliegue hornea en `/r/` | M2 |
 | `PUT /api/v1/fotos/{nombre}` | WebP de hasta 300 KB, con cuota por plan | M2 |
-| `POST /api/v1/exportar` | Exportación completa a R2 con enlace temporal | M1 |
+| `POST /api/v1/exportar` | Exportación completa a R2 con enlace temporal. *(HU-Q7.9: no se construyó; la caja al día arma el archivo y lo compara con `resumen`, ver abajo.)* | M1 |
 | `POST /api/servicio/plan` | El CORE avisa un pago (PLATAFORMA §4.13) | M1 |
 | `POST /api/v1/whatsapp/enviar` | Encola un recibo para la Cloud API | M3 |
 | `GET`·`POST /api/whatsapp/webhook` | Verificación y estados de Meta, con la firma `X-Hub-Signature-256` comprobada | M3 |
@@ -1038,10 +1043,12 @@ Convenciones de la celda agro: Hono, solo `/api/*`, token del CORE con `aud = pa
 **Hecho en HU-Q7.4 (8 oct 2026), en staging:** `GET /api/salud`, el push y el pull, en `apps/parqueadero-api` (`parqueadero-api-c2-staging`). Producción espera la publicación (HU-Q7.12). Lo que el código decidió:
 
 - **El push escribe con `ON CONFLICT (id) DO NOTHING`.** Si el `batch` falla porque la base rechaza una operación, la API reintenta de a una y solo la mala va a cuarentena, con el motivo de la base en palabras («Ese número de recibo ya lo tiene otro registro de este parqueadero», «la serie del recibo no es la del dispositivo que lo hizo»). Un error que no es del dato (la base caída) responde 503 y la caja reintenta todo.
-- **50 consultas por invocación.** Un lote de 25 que entra entero usa 26 consultas. Si el batch falla, cada operación reintentada cuesta 1 consulta, o 2 si va a cuarentena; lo que no alcanza vuelve como `reintentar` y la caja lo manda en el envío siguiente. Nada se pierde.
+- **50 consultas por invocación.** Un lote de 25 que entra entero usa 26 consultas *(27 desde HU-Q7.7, que mira si la caja está retirada)*. Si el batch falla, cada operación reintentada cuesta 1 consulta, o 2 si va a cuarentena; lo que no alcanza vuelve como `reintentar` y la caja lo manda en el envío siguiente. Nada se pierde.
 - **Permisos en la celda.** Cada operación pasa por `decidirEscritura` (§11.2) con el rol y el usuario del token. La anulación de un cajero mira el recibo anulado en la celda o en el mismo lote.
 - **`/api/v1/yo`** dice a qué parqueadero y shard llegó la sesión; la prueba de humo del despliegue lo usa sin token para comprobar el 401.
-- **Hasta HU-Q7.7, nadie da de alta una caja en la celda.** Sin su fila en `dispositivo`, los recibos de esa caja van a cuarentena con el motivo de la serie, y la caja los ve en rojo; nada se pierde. HU-Q7.5 lo muestra en la cabecera de la caja, con el motivo, y lo prueba con una caja sin alta.
+- **Hasta HU-Q7.7, nadie da de alta una caja en la celda.** *(Hecho: §11.4.)* Sin su fila en `dispositivo`, los recibos de esa caja van a cuarentena con el motivo de la serie, y la caja los ve en rojo; nada se pierde. HU-Q7.5 lo muestra en la cabecera de la caja, con el motivo, y lo prueba con una caja sin alta.
+
+**Hecho en HU-Q7.9 (8 oct 2026), en staging, sin R2.** La copia que no depende del teléfono es la celda misma: otro teléfono que entra con la cuenta baja todo. «Descargar todo el parqueadero» sube y baja primero, arma el mismo `parqueadero-export/1` del respaldo de M0 con lo de todas las cajas y dice si tiene los registros que `resumen` cuenta en la nube. Así no hay objetos en R2 que purgar, ni enlaces que vencer, ni una invocación que lea el parqueadero entero. La caja anota `nube_al_dia` cuando sube y baja todo: «Respaldo» y la cabecera dicen esa fecha, y el cierre de turno deja de pedir el archivo.
 
 ---
 
