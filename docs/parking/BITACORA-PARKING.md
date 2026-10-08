@@ -791,3 +791,27 @@ La regla: **todo lo que espera al navegador tiene plazo, no solo lo primero; y u
 La regla: **un texto que se inserta no pasa por `String.replace` como reemplazo; y un diff de documentos con cientos de líneas que nadie escribió se lee antes del commit.**
 
 *Ficha:* parqueadero · *(mío)* · 🟠 Alto · P14 · parqueadero-0.0.0 · 2026-10-07
+
+**26 · El arreglo de la tarifa en $0 llegó a `main` después de publicada la `0.1.0`, y al resolver el conflicto la sección publicada del CHANGELOG cambió.**
+
+*Qué pasó.* El 8 oct 2026, en la madrugada de la puesta en marcha. #131 (la salida en $0 dice por qué; el tope por día menor que una hora no se guarda) y #130 (la `0.1.0`) estaban abiertos a la vez. El orden pedido era #131 y después #130, con el arreglo dentro de la `0.1.0`. Se fusionó #130 primero: la `0.1.0` se publicó (`parqueadero-v0.1.0`) y salió a producción sin el arreglo. Al traer `main` a #131, el conflicto del CHANGELOG se resolvió a mano y se fusionó.
+
+*Síntoma literal.* En el CI de `main`, commit `f2c236c`:
+
+```
+❌ apps/parqueadero-sitio/CHANGELOG.md: la sección [0.1.0] ya se publicó (parqueadero-v0.1.0) y cambió. Lo nuevo va en «[Sin publicar]».
+```
+
+El despliegue a staging se saltó.
+
+*Causa raíz.* La resolución dejó el «Corregido» en «[Sin publicar]», que estaba bien, pero borró el encabezado `## [0.1.0] - 2026-10-08` y su párrafo, así que el «Agregado» de la `0.1.0` quedó como si no se hubiera publicado. El orden de fusión vivía solo en un mensaje del hilo; nada en los PR lo hacía cumplir.
+
+*Cómo se reprodujo.* `git diff parqueadero-v0.1.0 f2c236c -- apps/parqueadero-sitio/CHANGELOG.md`.
+
+*Arreglo.* #132 devuelve la `0.1.0` a lo que dice su etiqueta y publica el arreglo como `0.1.1`. Un arreglo que tiene que salir en una versión ya no se pide «antes de» otro PR: se lleva dentro del PR de la versión, o la versión espera en borrador.
+
+**Lo prueba** `scripts/verificar-changelog.ts`, que es el que lo vio: en `f2c236c` sale en rojo; con #132, en verde.
+
+La regla: **cuando dos PR deben fusionarse en orden, el segundo queda en borrador hasta que el primero entre; un orden escrito en un mensaje no se cumple solo.**
+
+*Ficha:* parqueadero · *(compartido)* · 🟢 Bajo · P5 · parqueadero-0.1.1 · 2026-10-08
