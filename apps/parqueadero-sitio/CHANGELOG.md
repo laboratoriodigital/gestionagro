@@ -22,6 +22,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - El recibo se ve como recibo (HU-Q6.6). En la caja y en el enlace `/r/`, una hoja: el parqueadero arriba con su NIT, dirección y teléfono; «Recibo de entrada» o «de salida» y el número grande; la placa amarilla; las horas, la tarifa o el cobro en grupos; el total grande con el medio de pago, y el texto legal al pie. El tiempo se dice en horas y minutos, con los minutos cobrados. El mensaje de WhatsApp trae el nombre del parqueadero en negrilla y las filas alineadas en letra de máquina, como el papel; el enlace sigue en su propia línea.
 
 ### Corregido
+- En staging, una caja en la nube que bajó un cambio de Ajustes hecho en otra caja ya no falla al hacer el respaldo, «Descargar todo el parqueadero» o la copia en Drive: el archivo acepta las versiones anteriores que vienen de la nube (`<id>@v1`). En producción no pasaba, porque la caja todavía no sincroniza.
 - En modo oscuro, los botones salen en el azul de la caja y no en el lila del ecosistema (bitácora 27).
 - Un vehículo que entró antes de corregir la tarifa en Ajustes sigue cobrándose con la tarifa con que entró, como lo dice su recibo; ahora la salida lo explica («Entró cuando el tope por día era de $1…») en vez de pedir que se revise Ajustes otra vez. Los que entran después pagan con la tarifa nueva.
 

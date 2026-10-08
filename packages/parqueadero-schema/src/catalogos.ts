@@ -188,9 +188,24 @@ export type AjusteRecibo = z.infer<typeof ajusteRecibo>;
 export type Punto = z.infer<typeof punto>;
 export type Catalogo = z.infer<typeof catalogo>;
 
+/**
+ * El id de una versión anterior: un UUIDv7 si la reemplazó esta caja, o `<id>@v<versión>` si la
+ * reemplazó lo que bajó de la nube, con `#nube` si es la de la nube que perdió un conflicto. La
+ * celda usa la misma forma (`catalogo_a_historial`).
+ */
+export const idDeVersion = z.union([
+  metaDeCatalogo.id,
+  z
+    .string()
+    .regex(
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}@v[1-9][0-9]*(?:#nube)?$/,
+      'debe ser un UUIDv7, o un UUIDv7 con su versión (<id>@v2)',
+    ),
+]);
+
 /** Versión anterior de un catálogo (anexo A, `entidad_historial`). */
 export const versionAnterior = z.strictObject({
-  id: metaDeCatalogo.id,
+  id: idDeVersion,
   entidad: z.string().min(1),
   entidad_id: metaDeCatalogo.id,
   version: z.int().min(1),
