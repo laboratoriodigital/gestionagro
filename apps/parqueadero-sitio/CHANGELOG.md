@@ -8,6 +8,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Un tope por día o un valor del día completo menor que una hora de la tarifa ya no se guarda: Ajustes dice que es menos que una hora y pide el máximo en pesos por 24 horas, como 15.000. Un tope por día de $10 dejaba toda salida en $0.
 - Una salida en $0 dice por qué, bajo el total: la gracia («Salió dentro de los 5 minutos de gracia: no paga»), el tope por día, el redondeo hacia abajo o una tarifa que da $0.
 
+## [0.1.0] - 2026-10-08
+
+La primera versión en producción, en `parqueadero.laboratorio-digital.app/caja/`: la caja con la que opera el primer parqueadero. Lo impreso ya no lleva la marca PRUEBA.
+
 ### Agregado
 - Recibos por canal, sin datos personales: la caja cuenta los recibos en papel, por WhatsApp, en pantalla y las copias; las impresiones que fallan, con la impresora y la causa (también «No salió»); los respaldos y los cierres de turno. Sin red, los guarda en el teléfono; con red, los manda en un lote al sitio, que los anota en Analytics Engine sin placa, número, nombre ni IP. El sitio corre un Worker solo para recibirlos (`/_m`); todo lo demás sigue siendo estático (HU-Q5.3).
 - Imprimir con el diálogo de impresión del equipo: en un PC con Windows y la PT-210 por USB, o con cualquier impresora instalada, el asistente ofrece «Usar el diálogo de impresión». El recibo sale en una hoja de 48 mm con los mismos datos que el papel térmico, su QR y la marca PRUEBA en staging. Con el acceso directo de Chrome de la puesta en marcha (`--kiosk-printing`), sale sin ver el diálogo. La caja lo recuerda al abrir. Un navegador sin Bluetooth, salvo el iPhone, lo propone desde el primer paso (HU-Q2.5).
