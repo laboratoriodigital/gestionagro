@@ -153,6 +153,23 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('pedir-pin')).toBeVisible();
   });
 
+  test('un tope por día menor que una hora no se guarda y dice qué escribir (dueño, 8 oct 2026)', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    const carro = page.getByTestId('tarifa-carro');
+    await carro.getByLabel('Tope por día', { exact: true }).fill('10');
+    await llenarAjustes(page);
+    await expect(page.getByTestId('hay-errores')).toBeVisible();
+    await expect(page.getByTestId('error-tarifa-carro-topeDia')).toHaveText(
+      'Es menos que una hora ($13.800). Escriba el máximo en pesos por 24 horas, como 15.000, o déjelo vacío',
+    );
+    await carro.getByLabel('Tope por día', { exact: true }).fill('30.000');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await expect(page.getByTestId('estadias')).toBeVisible();
+  });
+
   test('HU-Q3.3 · registra ABC123 y el recibo sale solo con su número y su placa', async ({
     page,
   }) => {
@@ -224,9 +241,19 @@ test.describe('la caja del parqueadero', () => {
     await page.getByLabel('Buscar por placa').fill('abc');
     await expect(estadia).toHaveCount(1);
 
+    // A los 3 minutos, dentro de los 5 de gracia: $0, y la salida dice por qué.
+    await page.clock.setFixedTime(new Date(entrada.getTime() + 3 * 60_000));
+    await estadia.click();
+    await expect(page.getByTestId('total')).toHaveText('$0');
+    await expect(page.getByTestId('motivo-cero')).toHaveText(
+      'Salió dentro de los 5 minutos de gracia: no paga',
+    );
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
     // Tres horas después: 180 × $230 = $41.400 (estos ajustes no tienen tope por día).
     await page.clock.setFixedTime(new Date(entrada.getTime() + 180 * 60_000));
     await estadia.click();
+    await expect(page.getByTestId('motivo-cero')).toHaveCount(0);
     await expect(page.getByTestId('total')).toHaveText('$41.400');
     const cobrar = page.getByRole('button', { name: /^Cobrar|Elija|Lo recibido|Escriba/ });
     await expect(cobrar).toHaveText('Elija el medio de pago');

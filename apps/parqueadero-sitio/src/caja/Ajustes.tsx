@@ -231,7 +231,21 @@ export function leerBorrador(
     }
     const problemas = validarTarifa(tarifa, tarifa.tope_minuto);
     for (const p of problemas) errores[id(DE_CAMPO[p.campo] ?? 'valor')] = p.motivo;
-    if (problemas.length === 0) tarifas.push(tarifa);
+    // Un tope o un día completo que no alcanza ni una hora deja casi toda salida en $0: es un dato
+    // mal puesto (el $10 del dueño, 8 oct 2026). Solo en el formulario: una tarifa ya guardada sigue
+    // liquidando, para no dejar un vehículo sin poder salir.
+    const unaHora = 60 * tarifa.valor;
+    if (tarifa.tope_dia !== null && tarifa.tope_dia < unaHora) {
+      errores[id('topeDia')] =
+        `Es menos que una hora (${formatearPesos(unaHora)}). Escriba el máximo en pesos por 24 horas, como 15.000, o déjelo vacío`;
+    }
+    if (tarifa.plena !== null && tarifa.plena.valor < unaHora) {
+      errores[id('plenaValor')] =
+        `Es menos que una hora (${formatearPesos(unaHora)}). Escriba el valor del día en pesos, como 15.000`;
+    }
+    if (problemas.length === 0 && !errores[id('topeDia')] && !errores[id('plenaValor')]) {
+      tarifas.push(tarifa);
+    }
   }
   if (tarifas.length === 0 && !Object.keys(errores).some((k) => k.startsWith('tarifa-'))) {
     errores['tarifa-carro-valor'] = 'Ponga la tarifa de al menos un vehículo';
@@ -571,11 +585,11 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
               </div>
               <div class="dos">
                 {caja('gracia', 'Minutos de gracia')}
-                {caja('topeDia', 'Tope por día', 'Opcional')}
+                {caja('topeDia', 'Tope por día', 'Opcional: lo máximo en pesos por 24 horas')}
               </div>
               <div class="dos">
                 {caja('plenaDesde', 'Día completo pasados (min)', 'Opcional')}
-                {caja('plenaValor', 'Valor del día completo')}
+                {caja('plenaValor', 'Valor del día completo', 'En pesos, como 15.000')}
               </div>
               <div class="dos">
                 <Campo
