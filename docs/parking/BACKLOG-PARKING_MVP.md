@@ -631,7 +631,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q6.4.1 `[campo]` puesta en marcha · WI-Q6.4.2 `[campo]` primer turno · WI-Q6.4.3 `[doc]` registro del piloto · WI-Q6.4.4 `[dueño]` link de pago (D-Q5).
 
 #### HU-Q6.5 · La caja, más clara y sobria
-- **Capa:** caja · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q5 · **Depende de:** HU-Q3.1 · **Estado:** En curso (rama `feat/q6-5-caja-sobria`)
+- **Capa:** caja · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q5 · **Depende de:** HU-Q3.1 · **Estado:** En revisión (PR #134): el inicio con la entrada primero, la cabecera en dos líneas, filas sin caja, «Anular» al final y el azul de la caja en oscuro; sale en la versión siguiente
 - Como cajero, quiero ver primero lo que hago cien veces al día (la entrada y los vehículos adentro) y que lo demás no compita con eso, para atender rápido sin buscar.
 - **Respaldo:** pedido del dueño del 8 oct 2026 («mejora UI/UX, minimalista, sofisticado»), con la caja ya en producción; plan §5.1 (de pie, al sol y con una mano).
 - **CA1.** El inicio pone primero «Nueva entrada» y los vehículos adentro; el turno es una línea; Ajustes, Abonados, Respaldo y el aviso de privacidad van en una lista aparte, al final. Ningún botón ni texto que nombran las pruebas, la hoja del cajero o los runbooks cambia de nombre.
