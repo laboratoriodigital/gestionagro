@@ -140,13 +140,23 @@ export const tarifa = z
     }
   });
 
-/** Mensualidad por placa. M0 la registra; el cobro recurrente es de M2 (HU-Q8.4). */
+/** Cuánto cubre cada pago de un abono (HU-Q8.4): un mes o una quincena. */
+export const PLANES_DE_ABONO = ['mes', 'quincena'] as const;
+export type PlanDeAbono = (typeof PLANES_DE_ABONO)[number];
+
+/**
+ * Mensualidad por placa (HU-Q3.11). Desde HU-Q8.4 la caja cobra cada periodo con un registro
+ * `pago_abonado`, que extiende la vigencia sin tocar este catálogo. Sin el WhatsApp del abonado:
+ * los recordatorios son en persona (decisión del dueño, 9 oct 2026; ADR-38).
+ */
 export const abonado = z
   .strictObject({
     ...metaDeCatalogo,
     entidad: z.literal('abonado'),
     placa,
     vehiculo,
+    /** Lo que cubre `valor`. Opcional: los abonados de antes de HU-Q8.4 son de un mes. */
+    plan: z.enum(PLANES_DE_ABONO).optional(),
     /** Cómo lo reconoce la caja (un nombre de pila, un apartamento); nulo si no se anotó. */
     referencia: notaCorta(40).nullable(),
     desde: fechaLocal,

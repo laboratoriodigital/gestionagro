@@ -267,6 +267,7 @@ export type DatosDeAnulacion = z.infer<typeof anulacionV1>;
 export type DatosDeApertura = z.infer<typeof turnoAperturaV1>;
 export type DatosDeCierre = z.infer<typeof turnoCierreV1>;
 export type DatosDeMovimiento = z.infer<typeof movimientoCajaV1>;
+export type DatosDePagoAbonado = z.infer<typeof pagoAbonadoV1>;
 export type LineaDeLiquidacion = z.infer<typeof lineaDeLiquidacion>;
 export type Registro = z.infer<typeof registroBase>;
 

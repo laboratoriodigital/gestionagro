@@ -9,6 +9,7 @@ import type {
   DatosDeAnulacion,
   DatosDeApertura,
   DatosDeMovimiento,
+  DatosDePagoAbonado,
   DatosDeSalida,
   MedioDePago,
   Registro,
@@ -24,10 +25,12 @@ export interface ResumenDeTurno {
   readonly abrio: number;
   readonly entradas: number;
   readonly salidas: number;
+  /** Mensualidades cobradas en el turno, sin las anuladas (HU-Q8.4). */
+  readonly mensualidades: number;
   readonly anulaciones: number;
   readonly anulacionesPorOperador: Readonly<Record<string, number>>;
   readonly copias: number;
-  /** Lo cobrado por medio, sin lo anulado. */
+  /** Lo cobrado por medio, salidas y mensualidades, sin lo anulado. */
   readonly porMedio: Readonly<Partial<Record<MedioDePago, number>>>;
   readonly base: number;
   readonly ingresos: number;
@@ -58,10 +61,11 @@ export function resumirTurno(
   const ap = apertura.datos as DatosDeApertura;
   const anulaciones = registros.filter((r) => r.tipo === 'anulacion');
   const anulado = new Set(anulaciones.map((a) => a.anula_id));
-  const vigentes = (tipo: 'entrada' | 'salida') =>
+  const vigentes = (tipo: 'entrada' | 'salida' | 'pago_abonado') =>
     registros.filter((r) => r.tipo === tipo && !anulado.has(r.id));
   const entradas = vigentes('entrada');
   const salidas = vigentes('salida');
+  const mensualidades = vigentes('pago_abonado');
 
   const porOperador: Record<string, number> = {};
   for (const a of anulaciones) {
@@ -73,6 +77,10 @@ export function resumirTurno(
   for (const s of salidas) {
     const d = s.datos as DatosDeSalida;
     porMedio[d.medio_pago] = (porMedio[d.medio_pago] ?? 0) + d.total;
+  }
+  for (const m of mensualidades) {
+    const d = m.datos as DatosDePagoAbonado;
+    porMedio[d.medio_pago] = (porMedio[d.medio_pago] ?? 0) + d.valor;
   }
 
   let ingresos = 0;
@@ -86,7 +94,7 @@ export function resumirTurno(
 
   // Cada recibo una vez, por el mejor camino que llegó (`entregas.ts`).
   const deLasEntregas = entregasDeLosRecibos(registros);
-  const recibos = [...entradas, ...salidas];
+  const recibos = [...entradas, ...salidas, ...mensualidades];
   const entregas = { recibos: recibos.length, papel: 0, whatsapp: 0, pantalla: 0, sinEntrega: 0 };
   for (const r of recibos) {
     const canal = deLasEntregas.canalDe(r.id);
@@ -101,6 +109,7 @@ export function resumirTurno(
     abrio: Date.parse(apertura.instante_evento),
     entradas: entradas.length,
     salidas: salidas.length,
+    mensualidades: mensualidades.length,
     anulaciones: anulaciones.length,
     anulacionesPorOperador: porOperador,
     copias,
@@ -171,6 +180,7 @@ export function papelDelCierre(
   regla();
   par('Entradas', r.entradas);
   par('Salidas', r.salidas);
+  if (r.mensualidades > 0) par('Mensualidades', r.mensualidades);
   par('Abiertas al cierre', c.abiertas);
   par('Anulaciones', r.anulaciones);
   const operadores = Object.entries(r.anulacionesPorOperador);

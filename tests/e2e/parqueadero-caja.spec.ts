@@ -602,7 +602,7 @@ test.describe('la caja del parqueadero', () => {
     await expect(f.getByRole('button', { name: 'Carro' })).toHaveAttribute('aria-pressed', 'true');
     await f.getByLabel('Referencia (opcional)').fill('Apto 302');
     await expect(f.getByLabel('Hasta (incluido)')).toHaveValue('2026-11-05');
-    await f.getByLabel('Valor de la mensualidad').fill('300.000');
+    await f.getByLabel('Valor del mes').fill('300.000');
     const revisar = async () => {
       const { violations } = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -615,6 +615,9 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('aviso-abonado')).toHaveText('Ese no es el PIN de administrador');
     await f.getByLabel('PIN de administrador').fill('2468');
     await f.getByRole('button', { name: 'Guardar abonado' }).click();
+    // Ya pagó en el talonario: no se cobra (HU-Q8.4).
+    await page.getByRole('button', { name: 'No cobrar ahora' }).click();
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
     const fila = page.getByTestId('abonado-fila');
     await expect(fila).toContainText('JKL456');
     await expect(fila).toContainText('Vigente · 06/10/2026 a 05/11/2026');
@@ -642,6 +645,150 @@ test.describe('la caja del parqueadero', () => {
     const filas = page.getByTestId('filas-del-recibo');
     await expect(filas).toContainText('abonado');
     await expect(filas).toContainText('Abonado hasta 05/11/2026');
+  });
+
+  test('HU-Q8.4 · la mensualidad se cobra con su recibo, entra al cierre y avisa antes de vencer', async ({
+    page,
+  }) => {
+    // Martes 20 de octubre de 2026, 12:00 en Bogotá.
+    await page.clock.setFixedTime(new Date('2026-10-20T17:00:00Z'));
+    const revisar = async () => {
+      const { violations } = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
+      expect(violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
+    };
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page);
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await page.getByRole('button', { name: 'Agregar abonado' }).click();
+    const f = page.getByTestId('abonado');
+    await f.getByLabel('Placa').fill('jkl456');
+    // Hasta fin de mes: el primer pago es proporcional.
+    await f.getByLabel('Hasta (incluido)').fill('2026-10-31');
+    await f.getByLabel('Valor del mes').fill('300.000');
+    await f.getByLabel('PIN de administrador').fill('2468');
+    await f.getByRole('button', { name: 'Guardar abonado' }).click();
+
+    // ❌ Sin turno no hay recibo (HU-Q3.9 CA4).
+    const cobro = page.getByTestId('cobrar-mensualidad');
+    await expect(page.getByTestId('total-mensualidad')).toHaveText('$116.100');
+    await expect(page.getByTestId('prorrateo')).toContainText('el mes completo vale $300.000');
+    await revisar();
+    await cobro.getByRole('button', { name: 'Efectivo' }).click();
+    await cobro.getByRole('button', { name: 'Cobrar $116.100' }).click();
+    await expect(page.getByTestId('aviso-cobro')).toHaveText(
+      'Primero abra el turno: ningún recibo queda fuera de un turno',
+    );
+    await cobro.getByRole('button', { name: 'No cobrar ahora' }).click();
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await page.getByTestId('abonado-fila').click();
+    await page.getByRole('button', { name: 'Cobrar mensualidad' }).click();
+    // Ya está cubierto hasta el 31 por el talonario de antes: sigue noviembre.
+    await expect(page.getByTestId('total-mensualidad')).toHaveText('$300.000');
+    await expect(cobro).toContainText('01/11/2026');
+    await expect(cobro).toContainText('30/11/2026');
+    await cobro.getByRole('button', { name: 'Cancelar' }).click();
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    // El abonado nuevo, sin talonario: se cobra el primer periodo enseguida.
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await page.getByRole('button', { name: 'Agregar abonado' }).click();
+    await f.getByLabel('Placa').fill('mno78f');
+    await f.getByRole('button', { name: 'Una quincena' }).click();
+    await expect(f.getByLabel('Hasta (incluido)')).toHaveValue('2026-11-03');
+    await f.getByLabel('Valor de la quincena').fill('35.000');
+    await f.getByLabel('PIN de administrador').fill('2468');
+    await f.getByRole('button', { name: 'Guardar abonado' }).click();
+    await expect(page.getByTestId('total-mensualidad')).toHaveText('$35.000');
+    await cobro.getByRole('button', { name: 'Efectivo' }).click();
+    const antes = (await bytesImpresos(page)).length;
+    await cobro.getByRole('button', { name: 'Cobrar $35.000' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mensualidad A-000001');
+    await expect(page.getByTestId('mensualidad-cobrada')).toContainText(
+      'MNO78F queda al día hasta el 03/11/2026: $35.000 en efectivo.',
+    );
+    await page.getByRole('button', { name: 'Imprimir recibo' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    const papel = (await bytesImpresos(page)).slice(antes);
+    expect(papel).toContain('MENSUALIDAD');
+    expect(papel).toContain('A-000001');
+    expect(papel).toContain('MNO78F');
+    expect(papel).toContain('$35.000');
+    await sinDesborde(page);
+    await revisar();
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
+
+    // HU-Q8.4 CA2: ocho días después, la lista y la entrada dicen que vence pronto.
+    await page.clock.setFixedTime(new Date('2026-10-28T17:00:00Z'));
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    const pronto = page.getByTestId('vencen-pronto');
+    await expect(pronto).toContainText('JKL456');
+    await expect(pronto).toContainText('Vence el 31/10/2026');
+    await expect(pronto).not.toContainText('MNO78F');
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'JKL456');
+    await expect(page.getByTestId('abonado-entrada')).toHaveText(
+      'Abonado hasta el 31/10/2026. Vence pronto: recuérdeselo',
+    );
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+
+    // La renueva en datáfono: noviembre completo, y sale de la lista.
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await pronto.getByTestId('abonado-fila').click();
+    await expect(page.getByTestId('estado-abonado')).toHaveText(
+      'Vigente · 20/10/2026 a 31/10/2026',
+    );
+    await page.getByRole('button', { name: 'Cobrar mensualidad' }).click();
+    await cobro.getByRole('button', { name: 'Datáfono' }).click();
+    await cobro.getByRole('button', { name: 'Cobrar $300.000' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mensualidad A-000002');
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
+    await expect(page.getByTestId('vencen-pronto')).toHaveCount(0);
+    await expect(page.getByTestId('abonado-fila').filter({ hasText: 'JKL456' })).toContainText(
+      'Vigente · 20/10/2026 a 30/11/2026',
+    );
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    // El efectivo de la mensualidad entra al cierre; la de datáfono, a su medio.
+    await page.getByRole('button', { name: 'Cerrar turno' }).click();
+    await expect(page.getByTestId('esperado')).toHaveText('Efectivo esperado: $135.000');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    // Anulada con el PIN, la de noviembre deja de contar (P21: nada se borra).
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await page.getByTestId('abonado-fila').filter({ hasText: 'JKL456' }).click();
+    await page.getByRole('button', { name: 'Anular la mensualidad' }).click();
+    const anulacion = page.getByTestId('anular');
+    await anulacion.getByLabel('Motivo').fill('pagó con otra tarjeta');
+    await anulacion.getByLabel('PIN de administrador').fill('2468');
+    await anulacion.getByRole('button', { name: 'Anular la mensualidad' }).click();
+    await expect(
+      page.getByTestId('abonados').getByTestId('abonado-fila').filter({ hasText: 'JKL456' }),
+    ).toContainText('Vigente · 20/10/2026 a 31/10/2026');
+    await expect(page.getByTestId('vencen-pronto')).toContainText('JKL456');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    // HU-Q8.4 CA3: vencida, entra como visitante y la caja lo dice.
+    await page.clock.setFixedTime(new Date('2026-12-02T17:00:00Z'));
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'JKL456');
+    await expect(page.getByTestId('abonado-entrada')).toHaveText(
+      'El abono venció el 31/10/2026: entra como visitante.',
+    );
   });
 
   test('bitácora 18 · la impresora se apagó: el recibo lo dice, reconecta desde ahí y da el diagnóstico', async ({
@@ -869,6 +1016,10 @@ for (const esquema of ['light', 'dark'] as const) {
         .analyze();
       expect(violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
     };
+    // Mediodía fijo: con la hora real, después de las 19:00 de Bogotá las tres horas de la salida
+    // caen en otro día y el reporte de «hoy» queda sin turno.
+    const inicio = new Date('2026-10-20T15:00:00Z');
+    await page.clock.setFixedTime(inicio);
     await page.goto(CAJA);
     await expect(page.getByTestId('senal-impresora')).toBeVisible();
     await revisar();
@@ -896,7 +1047,7 @@ for (const esquema of ['light', 'dark'] as const) {
     await revisar();
     // La hoja del recibo de salida, con su total grande (HU-Q6.6 CA3): tres horas después.
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
-    await page.clock.setFixedTime(new Date(Date.now() + 180 * 60_000));
+    await page.clock.setFixedTime(new Date(inicio.getTime() + 180 * 60_000));
     await page.getByTestId('estadia').click();
     await page.getByRole('button', { name: 'Efectivo' }).click();
     await page.getByLabel('Recibido').fill('50.000');

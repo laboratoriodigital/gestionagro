@@ -135,6 +135,12 @@ export function Reportes({ db, reloj, alVolver }: Props) {
                   {s.entradas} y {s.salidas}
                 </dd>
               </div>
+              {s.mensualidades > 0 && (
+                <div>
+                  <dt>Mensualidades</dt>
+                  <dd>{s.mensualidades}</dd>
+                </div>
+              )}
               {MEDIOS_DE_PAGO.filter((m) => s.porMedio[m] !== undefined).map((m) => (
                 <div key={m}>
                   <dt>{medio(m)}</dt>
