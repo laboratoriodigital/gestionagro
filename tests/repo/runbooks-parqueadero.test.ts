@@ -28,6 +28,8 @@ const RUNBOOKS = [
   'parqueadero-kill-switches.md',
   // Un parqueadero se va (HU-Q10.2).
   'parqueadero-baja.md',
+  // El soporte, medido (HU-Q10.3).
+  'parqueadero-soporte.md',
 ] as const;
 
 /** Los de la celda (HU-Q10.4 CA1): lo que nombran tiene que existir en el código (CA2). */
