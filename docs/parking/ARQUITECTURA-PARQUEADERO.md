@@ -762,6 +762,7 @@ Las fuentes de esta sección llevan la letra W (§21.3).
 - Un rollo de 57 mm × 20 m cuesta unos COP 2.200 (8 por COP 17.500, I49) y da unos 150 a 200 recibos (*Inferencia*): de **COP 11 a 15 por recibo**.
 - Un parqueadero con 300 vehículos al día y dos recibos por vehículo gasta de COP 6.600 a 9.000 diarios en papel, unos **COP 200.000 a 270.000 al mes** (*Inferencia*). Es más que el precio de la PT-210.
 - La caja le muestra al parqueadero los recibos por canal, el papel ahorrado y su valor en pesos (§14.4).
+- **Hecho en HU-Q8.6 (9 oct 2026):** Más › «Lo que ahorra», por esta semana, la pasada, este mes y el pasado. El valor por recibo es `sede.costo_papel`, opcional y sin valor de fábrica (P1): sin él no hay pesos y la pantalla lleva al campo de Ajustes. Cada recibo cuenta una vez por su mejor camino (`entregasDeLosRecibos`, la misma función del cierre de turno), y un WhatsApp marcado «No se envió» no cuenta como digital (bitácora parqueadero 33).
 
 **La meta:** la fija el dueño con el cliente antes del día 1, como métrica de la excepción declarada (§18.2).
 
@@ -1004,6 +1005,8 @@ Matriz como dato, la misma en la celda y en el dispositivo (con `crearPermisos` 
 | Dispositivos: dar de alta, retirar | Sí | Sí | No |
 | Equipo, plan y pago | Sí | No | No |
 
+**Hecho en HU-Q8.5 (9 oct 2026).** Más › «Reportes» calcula en el teléfono el reporte de un día de Bogotá con todos los registros que tiene: con la nube, los de todas las cajas (HU-Q7.5). Cada turno cuenta con `resumirTurno` sobre los registros de su caja entre la apertura y el cierre, la misma función del cierre impreso, y es del día en que abrió. «Solo el suyo» es **los turnos de su caja**, no los de su usuario: la caja escribe `autor_usuario_id` nulo, así que el dispositivo es lo que se puede verificar. Sin cuenta no hay roles y se ve todo lo que el teléfono tiene. Un turno abierto o un registro del día en cuarentena dejan los totales «parciales», dicho arriba (P1). El CSV usa el formato del respaldo (`;`, BOM y la celda que neutraliza fórmulas, `celdaCsv`).
+
 ### 11.3 Reclamar lo local
 
 Igual que el cuaderno (HU-E4.3): al crear la cuenta, el dispositivo sube lo que tenía con los mismos ids. La celda escribe primero, verifica y solo entonces el dispositivo marca lo local como enviado (P21). La serie del dispositivo se conserva (§5.4).
@@ -1125,7 +1128,8 @@ Las claves `ks:parqueadero` y `ks:parqueadero-fotos` se declaran en `infrastruct
 - Eventos anónimos a Analytics Engine por `/_m` del Worker del sitio, en lote y cuando hay red, como la Tienda (TIENDA-3.0 §11.6). Sin placas, sin números, sin IP.
 - Eventos: `recibo.papel`, `recibo.whatsapp`, `recibo.pantalla`, `recibo.copia`, `impresion.fallida` (adaptador y causa), `respaldo.hecho` y `turno.cerrado`, la lista cerrada de `@ed1/eventos` (HU-Q5.3). `tiempo_de_salida` queda para cuando se mida la caja en el piloto.
 - **Nota del sprint Q5 (7 oct 2026), con el código:** la caja cuenta en `meta` de IndexedDB y manda un lote de claves y cuentas (`{"recibo.papel": 12, "impresion.fallida/bluetooth/tiempo": 1}`) al abrir, al volver la red y cada 15 minutos. Lo descuenta solo cuando el sitio responde, y lo contado mientras viaja sale en el siguiente. El Worker del sitio corre solo para `/_m` (`run_worker_first`) y escribe un punto por clave en el dataset `parqueadero_eventos` (`_staging` en staging), sin nada de la solicitud. Una clave fuera de la lista rechaza el lote entero. «No salió» cuenta como impresión fallida con la causa `no_salio`.
-- En la caja, para el parqueadero: recibos por canal, papel ahorrado y su valor en pesos (§8.4).
+- En la caja, para el parqueadero: recibos por canal, papel ahorrado y su valor en pesos (§8.4). Las entregas anotadas del periodo cuadran con los eventos `recibo.*` que la caja contó (HU-Q8.6 CA2, con su prueba).
+- **El soporte (HU-Q10.3, 9 oct 2026):** un CSV fuera del repositorio con fecha, sede, canal, minutos y causa, y `scripts/soporte-parqueadero.ts` para el resumen del mes por sede (runbook `parqueadero-soporte.md`). Una sede sin filas en el mes sale «sin registros», no cero.
 
 ### 14.5 Runbooks (`docs/runbooks/`)
 

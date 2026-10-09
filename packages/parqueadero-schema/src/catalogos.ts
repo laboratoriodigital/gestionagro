@@ -77,6 +77,11 @@ export const sede = z.strictObject({
     .strictObject({ version: z.string().regex(/^\d{1,3}$/), aceptado: instante })
     .nullable()
     .optional(),
+  /**
+   * Lo que le cuesta a la sede cada recibo en papel, en pesos (HU-Q8.6): con él, «Lo que ahorra»
+   * dice cuánto ahorró. Sin valor de fábrica: nulo u omitido = la sede no lo ha dicho (P1).
+   */
+  costo_papel: z.int('debe ser un número entero de pesos').min(1).max(2000).nullable().optional(),
 });
 
 export const MODOS = ['minuto', 'fraccion', 'hora'] as const;

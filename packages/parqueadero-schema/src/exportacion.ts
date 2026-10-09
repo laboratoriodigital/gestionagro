@@ -127,7 +127,7 @@ function fechaYHora(iso: string, desfaseMin: number): [string, string] {
 }
 
 /** Una celda de CSV: entre comillas si hace falta, y sin fórmulas (`=`, `+`, `-`, `@`). */
-function celda(valor: string | number | null): string {
+export function celdaCsv(valor: string | number | null): string {
   if (valor === null) return '';
   let s = String(valor);
   if (typeof valor === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
@@ -180,7 +180,7 @@ export function csvDeRegistros(registros: readonly Registro[], desfaseMin = -300
       anulados.has(r.id) ? 'sí' : 'no',
       r.id,
     ]
-      .map(celda)
+      .map(celdaCsv)
       .join(';');
   });
   return `﻿${[COLUMNAS_CSV.join(';'), ...filas].join('\r\n')}\r\n`;

@@ -255,7 +255,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | — | 24 dic–8 ene | Pausa y congelamiento. La caja del cliente sigue en `v0.2.x` | — | — | — |
 | **Q9** (festivo) | 12–22 ene 2027 | **M1.** Cobro del plan por periodo, privacidad con cuenta, operación de la celda y dos cajas sin red que no repiten números | HU-Q7.10 (3), HU-Q7.11 (2), HU-Q7.12 (2), HU-Q10.1 (3), HU-Q10.2 (3), HU-Q10.4 (2) | 15 | M1, `v0.3.0` |
 | **Q10** | 25 ene–5 feb | Firma sin red por dispositivo y su verificación; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q11.4 (2), HU-Q11.5 (2). HU-Q8.3 pasó a Q11 (espera R2) | 14 | — |
-| **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3) | 17 | M2, **`v1.0.0`** |
+| **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). El PR del sprint lleva HU-Q8.5, HU-Q8.6 y HU-Q10.3; HU-Q8.3 espera R2, HU-Q8.4 la ampliación de ADR-38 que decide el dueño, y HU-Q8.7 a las demás | 17 | M2, **`v1.0.0`** |
 | **Q12** | 22 feb–5 mar | Con su disparador: ED1 como Tech Provider, el número del parqueadero conectado y la plantilla | HU-Q9.1 (3), HU-Q9.2 (5), HU-Q9.3 (2) | 10 | — |
 | **Q13** | 8–19 mar | **M3.** Envío por la Cloud API, estados, autoservicio y presupuesto de mensajes | HU-Q9.4 (5), HU-Q9.5 (3), HU-Q9.6 (3), HU-Q9.7 (2), HU-Q9.8 (2) | 15 | M3, `v1.1.0` |
 
@@ -531,7 +531,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 ### EQ8 · Recibo verificado, fotos y mensualidades (M2)
 
 #### HU-Q8.1 · Llave por dispositivo y certificado de la celda
-- **Capa:** paquete, API y caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q10 · **Depende de:** HU-Q7.7, HU-Q1.5 · **Estado:** En revisión (rama `feat/q10-sprint`, PR del sprint Q10)
+- **Capa:** paquete, API y caja · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q10 · **Depende de:** HU-Q7.7, HU-Q1.5 · **Estado:** Hecha (PR #155, fusionado el 8 oct 2026; el despliegue de staging terminó en verde)
 - Como parqueadero, quiero que cada caja firme sus recibos sin red con una llave que nunca sale de ella, para que un recibo se pueda verificar aunque se emita sin señal.
 - **Respaldo:** ADR-36; PARQUEADERO §11.4 y §6.3; ARQUITECTURA §5.9 (el QR firmado del agro).
 - **CA1.** Al darse de alta, la caja genera un par Ed25519 con WebCrypto, con la llave privada no exportable en IndexedDB, y manda la pública. `POST /api/v1/dispositivos/certificado` devuelve un certificado firmado con `CELDA_RECIBO_PRIVATE_KEY`, que vence a los 30 días y se renueva solo en su última semana.
@@ -541,7 +541,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q8.1.1 `[código]` extraer `@ed1/firma` · WI-Q8.1.2 `[código]` llave y certificado · WI-Q8.1.3 `[prueba]` el agro intacto · WI-Q8.1.4 `[prueba]` sin Ed25519 · WI-Q8.1.5 `[infra]` la llave de la celda · WI-Q8.1.6 `[doc]` ADR-36 aceptada.
 
 #### HU-Q8.2 · El recibo firmado sin red y su verificación en `/r/`
-- **Capa:** caja y página · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q10 · **Depende de:** HU-Q8.1, HU-Q4.2 · **Estado:** En revisión (rama `feat/q10-sprint`, PR del sprint Q10)
+- **Capa:** caja y página · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** Q10 · **Depende de:** HU-Q8.1, HU-Q4.2 · **Estado:** Hecha (PR #155, fusionado el 8 oct 2026; el despliegue de staging terminó en verde)
 - Como conductor, quiero saber que mi recibo es auténtico, aunque lo haya recibido de una caja sin señal.
 - **Respaldo:** PARQUEADERO §6.3 (los casos y los tamaños); ADR-36.
 - **CA1.** El enlace completo pasa a `#1.<datos>.<firma>.<certificado>`. `/r/` verifica la cadena con las llaves públicas de las celdas horneadas en el build (`GET /api/claves-recibo`), sin llamar a la API al abrir.
@@ -574,7 +574,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q8.4.1 `[código]` abonados y pagos · WI-Q8.4.2 `[código]` prorrateo en `parqueadero-tarifas` · WI-Q8.4.3 `[código]` recordatorio · WI-Q8.4.4 `[prueba]` vencida y borrado · WI-Q8.4.5 `[doc]` ADR-38.
 
 #### HU-Q8.5 · Reportes por turno y por cajero
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q7.8, HU-Q3.9 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q7.8, HU-Q3.9 · **Estado:** En revisión (rama `feat/q11-sprint`): Más › «Reportes» con los turnos del día de todas las cajas que el teléfono tiene, cada uno con `resumirTurno` como su cierre; el cajero con cuenta ve los de su caja; CSV para Excel; «Totales parciales» con un turno abierto o un registro en cuarentena (CA3, con su control negativo)
 - Como propietario, quiero ver desde mi casa los turnos de todas las cajas con sus diferencias, anulaciones y copias por cajero, para cuadrar sin ir al parqueadero.
 - **Respaldo:** PARQUEADERO §13.1 (control de fraude) y §11.2 (quién ve qué); estudio §12.1 («cuadrar la plata»).
 - **CA1.** Un reporte por día y por turno: entradas, salidas, total por medio de pago, diferencia del cierre con su motivo, y anulaciones y copias por cajero. Se calcula en el dispositivo con lo sincronizado, y el día comercial es el de Bogotá.
@@ -584,7 +584,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q8.5.1 `[código]` · WI-Q8.5.2 `[prueba]` con cuarentena · WI-Q8.5.3 `[prueba]` CSV.
 
 #### HU-Q8.6 · Lo que ahorra el parqueadero: recibos por canal y papel
-- **Capa:** caja · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q5.3, HU-Q7.5 · **Estado:** Refinada
+- **Capa:** caja · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q5.3, HU-Q7.5 · **Estado:** En revisión (rama `feat/q11-sprint`): Más › «Lo que ahorra» por semana y por mes, con `sede.costo_papel` opcional y sin valor de fábrica; las entregas cuadran con los eventos de HU-Q5.3 en una prueba con la caja (CA2); «No se envió» no cuenta como digital (CA3), y el cierre de turno, que sí lo contaba, quedó corregido (bitácora parqueadero 33)
 - Como propietario, quiero ver cuántos recibos salieron por WhatsApp, en pantalla y en papel, y cuánto me ahorré en pesos, para decidir pasar a `salvo_digital`.
 - **Respaldo:** PARQUEADERO §8.4 (COP 11 a 15 por recibo) y §14.4; la métrica «recibo digital» de §18.2.
 - **CA1.** La caja muestra, por semana y por mes, los recibos por canal y el papel ahorrado, con el valor por recibo que declara la sede. Ese valor no tiene uno de fábrica (P1): se pide al configurarlo.
@@ -712,7 +712,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q10.2.1 `[código]` script · WI-Q10.2.2 `[prueba]` en D1 · WI-Q10.2.3 `[doc]` runbook.
 
 #### HU-Q10.3 · El soporte, medido
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q6.2 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q6.2 · **Estado:** En revisión (rama `feat/q11-sprint`): `scripts/soporte-parqueadero.ts` y el runbook `parqueadero-soporte.md`; el registro es un CSV fuera del repositorio con solo sus cinco columnas (CA1); las causas con runbook lo nombran y una prueba lo ata al código (CA2); una sede sin filas sale «sin registros» (CA3). Falta WI-Q10.3.2, del dueño: anotar desde el piloto
 - Como dueño, quiero saber cuántos minutos de soporte pide cada sede al mes, porque es la variable que decide si el negocio funciona (estudio §10.4).
 - **Respaldo:** estudio §10.4 y §16.3 (la métrica de soporte); PARQUEADERO §18.2.
 - **CA1.** Cada atención queda en un registro simple, sin datos del conductor: fecha, sede, canal, minutos y causa. Un script da el resumen del mes por sede.
@@ -766,7 +766,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Work items:** WI-Q11.3.1 `[código]` · WI-Q11.3.2 `[diseño]` letrero · WI-Q11.3.3 `[campo]` impreso en la entrada del cliente.
 
 #### HU-Q11.4 · El generador de recibo de entrada
-- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q10 · **Depende de:** HU-Q11.1, HU-Q1.4 · **Estado:** En revisión (rama `feat/q10-sprint`, PR del sprint Q10)
+- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q10 · **Depende de:** HU-Q11.1, HU-Q1.4 · **Estado:** Hecha (PR #155, fusionado el 8 oct 2026; el despliegue de staging terminó en verde)
 - Como parqueadero que todavía no usa la caja, quiero hacer un recibo de entrada con el estado del vehículo e imprimirlo o mandarlo por WhatsApp.
 - **Respaldo:** estudio §12.2 (herramienta 2); PARQUEADERO §2.4.
 - **CA1.** Usa `parqueadero-recibos`, sin cuenta, y termina con el siguiente paso: «Lleve la caja en su teléfono».
@@ -776,7 +776,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Work items:** WI-Q11.4.1 `[código]` · WI-Q11.4.2 `[prueba]`.
 
 #### HU-Q11.5 · El sitio del parqueadero: portada, capa para agentes y el camino a la caja
-- **Capa:** sitio · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q10 · **Depende de:** HU-Q5.2 · **Estado:** En revisión (rama `feat/q10-sprint`, PR del sprint Q10)
+- **Capa:** sitio · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q10 · **Depende de:** HU-Q5.2 · **Estado:** Hecha (PR #155, fusionado el 8 oct 2026; el despliegue de staging terminó en verde)
 - Como parqueadero que llega por una búsqueda, quiero entender en una página qué es la caja y probarla sin registrarme.
 - **Respaldo:** ED1 §38; ADR-24 (capa estática para agentes); HU-C8.2.
 - **CA1.** Una portada con las herramientas y la caja; `llms.txt` y gemelos en Markdown, como el agro.

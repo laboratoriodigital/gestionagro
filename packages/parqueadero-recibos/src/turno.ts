@@ -8,12 +8,12 @@ import { type Bloque, lineaPar, type PaginaDeCodigos, prepararTexto } from '@ed1
 import type {
   DatosDeAnulacion,
   DatosDeApertura,
-  DatosDeEntrega,
   DatosDeMovimiento,
   DatosDeSalida,
   MedioDePago,
   Registro,
 } from '@ed1/parqueadero-schema';
+import { entregasDeLosRecibos } from './entregas.ts';
 import { partir } from './papel.ts';
 import { fechaHora, NOMBRE_DEL_MEDIO } from './recibo.ts';
 
@@ -84,35 +84,16 @@ export function resumirTurno(
     else gastos += d.valor;
   }
 
-  // El papel de cada recibo: envíos menos los «No salió», como `vecesImpreso` de la caja.
-  const papelDe = new Map<string, number>();
-  const digital = new Map<string, 'whatsapp' | 'pantalla'>();
-  let copias = 0;
-  for (const e of registros) {
-    if (e.tipo !== 'entrega_recibo') continue;
-    const d = e.datos as DatosDeEntrega;
-    if (d.canal === 'papel') {
-      papelDe.set(
-        d.recibo_id,
-        (papelDe.get(d.recibo_id) ?? 0) + (d.resultado === 'fallido' ? -1 : 1),
-      );
-      if (d.copia && d.resultado !== 'fallido') copias++;
-    } else if (d.canal === 'whatsapp' && d.resultado !== 'no_enviado') {
-      digital.set(d.recibo_id, 'whatsapp');
-    } else if (d.canal === 'pantalla' && !digital.has(d.recibo_id)) {
-      digital.set(d.recibo_id, 'pantalla');
-    }
-  }
+  // Cada recibo una vez, por el mejor camino que llegó (`entregas.ts`).
+  const deLasEntregas = entregasDeLosRecibos(registros);
   const recibos = [...entradas, ...salidas];
   const entregas = { recibos: recibos.length, papel: 0, whatsapp: 0, pantalla: 0, sinEntrega: 0 };
   for (const r of recibos) {
-    if ((papelDe.get(r.id) ?? 0) > 0) entregas.papel++;
-    else {
-      const d = digital.get(r.id);
-      if (d) entregas[d]++;
-      else entregas.sinEntrega++;
-    }
+    const canal = deLasEntregas.canalDe(r.id);
+    if (canal === 'sin_entrega') entregas.sinEntrega++;
+    else entregas[canal]++;
   }
+  const copias = deLasEntregas.copias;
 
   return {
     numero: numeroDeTurno(numero),

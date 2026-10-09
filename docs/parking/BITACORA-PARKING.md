@@ -944,3 +944,28 @@ La regla: **una consulta nueva de la celda se corre con la batería entera antes
 La regla: **un script de cliente no importa un módulo hecho para el build; lo que necesita de él, la página se lo deja escrito en el HTML.**
 
 *Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P13 · parqueadero-0.2.0 · 2026-10-08
+
+**33 · El cierre de turno contaba como WhatsApp un recibo que el cajero marcó «No se envió».**
+
+*Qué pasó.* El 9 oct 2026, al construir «Lo que ahorra» (HU-Q8.6), su CA3 pide que un WhatsApp abierto y después marcado «No se envió» no cuente como digital. El cierre de turno (HU-Q3.9) ya contaba los recibos por canal, y la prueba nueva del cierre con esa entrega salió en rojo contra su código.
+
+*Síntoma literal.* La prueba «❌ un WhatsApp marcado «No se envió» no cuenta como entregado» de `turno.test.ts`, con el código de antes:
+
+```text
+-   "sinEntrega": 1,
+-   "whatsapp": 0,
++   "sinEntrega": 0,
++   "whatsapp": 1,
+```
+
+*Causa raíz.* El recibo de la caja anota dos entregas cuando el cajero toca «No se envió»: primero `abierto`, al abrir WhatsApp, y después `no_enviado`. El cierre ignoraba la segunda en vez de deshacer la primera, así que el recibo quedaba como entregado por WhatsApp. Con el papel no pasaba: ahí «No salió» ya restaba el envío.
+
+*Cómo se reprodujo.* `resumirTurno` con las entregas de ensayo más una `no_enviado` sobre el recibo de salida que ya tenía su `abierto`.
+
+*Arreglo.* El canal de cada recibo sale de un solo lugar, `entregasDeLosRecibos` (`packages/parqueadero-recibos/src/entregas.ts`), que usan el cierre, el reporte del día y «Lo que ahorra». Recorre las entregas en orden: `abierto` suma, `no_enviado` resta, igual que «No salió» en el papel.
+
+**Lo prueba** la prueba de arriba, que con el código de antes da el síntoma literal; y «las entregas cuadran con los eventos de HU-Q5.3 del periodo (CA2)» en `apps/parqueadero-sitio/src/caja/ahorro.test.ts`, con la caja de verdad.
+
+La regla: **una acción que deshace otra se cuenta restando, no ignorándose; y lo que dos pantallas cuentan igual sale de una sola función.**
+
+*Ficha:* parqueadero · *(mío)* · 🟡 Medio · P1, P2 · parqueadero-0.2.0 · 2026-10-09
