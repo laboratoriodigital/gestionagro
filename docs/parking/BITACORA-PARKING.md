@@ -969,3 +969,28 @@ La regla: **un script de cliente no importa un módulo hecho para el build; lo q
 La regla: **una acción que deshace otra se cuenta restando, no ignorándose; y lo que dos pantallas cuentan igual sale de una sola función.**
 
 *Ficha:* parqueadero · *(mío)* · 🟡 Medio · P1, P2 · parqueadero-0.2.0 · 2026-10-09
+
+**34 · La prueba WCAG de la caja fallaba si corría después de las 19:00 de Bogotá.**
+
+*Qué pasó.* El 9 oct 2026, a las 22:33 de Bogotá, la validación completa del PR de mensualidades (#157) salió con dos fallas: la prueba «HU-Q3.1 · la caja y el asistente terminado pasan WCAG 2.1 AA», en modo claro y oscuro. Esa misma prueba había pasado en el CI del PR #156, de día.
+
+*Síntoma literal.*
+
+```text
+Error: expect(locator).toBeVisible() failed
+Locator: getByTestId('turno-del-reporte')
+- textbox "Día": 2026-10-09
+- paragraph: Ese día no se abrió ningún turno.
+```
+
+*Causa raíz.* La prueba abría el turno con la hora real y después movía el reloj de la página tres horas (`Date.now() + 180 min`) para la salida. Desde las 19:00 de Bogotá esas tres horas caen en el día siguiente, y «Reportes» abre en el día de hoy, que ya no tiene el turno. La caja estaba bien: la prueba dependía de la hora a la que corría.
+
+*Cómo se reprodujo.* Corriendo la prueba a las 22:33 de Bogotá; con el reloj fijo a mediodía, pasa.
+
+*Arreglo.* La prueba fija el reloj al empezar (20 oct 2026, 10:00 de Bogotá) y la salida es ese instante más tres horas (`tests/e2e/parqueadero-caja.spec.ts`, PR #157).
+
+**Lo prueba** la misma prueba, que con el reloj fijo da igual a cualquier hora.
+
+La regla: **una prueba que mueve el reloj empieza desde un reloj fijo; la hora real hace que pase de día y falle de noche.**
+
+*Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P8 · parqueadero-0.2.0 · 2026-10-09
