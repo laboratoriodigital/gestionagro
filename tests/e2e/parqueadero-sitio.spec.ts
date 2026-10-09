@@ -8,6 +8,7 @@
  * - HU-Q11.4: el recibo sale con el pie del generador, sin serie; se imprime por el diálogo del
  *   sistema y se manda por `wa.me`; sin un dato legal no sale.
  * - HU-Q11.6: el liquidador de mensualidades da la cuenta de la caja, y sin valor no da total.
+ * - HU-Q11.7: los cupos para eléctricos dan el mínimo de la ley, hacia arriba, con la norma citada.
  */
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -15,6 +16,7 @@ import { SITIO, sinDesborde } from './parqueadero-ayudas.ts';
 
 const GENERADOR = `${SITIO}/herramientas/recibo-de-entrada/`;
 const LIQUIDADOR = `${SITIO}/herramientas/mensualidad-de-parqueadero/`;
+const CUPOS = `${SITIO}/herramientas/cupos-para-electricos/`;
 /** 8 oct 2026, 9:30 en Bogotá. */
 const AHORA = Date.UTC(2026, 9, 8, 14, 30);
 
@@ -71,6 +73,9 @@ test.describe('la portada (HU-Q11.5 CA1)', () => {
     await expect(
       page.getByRole('link', { name: /^Cuánto cobrar por una mensualidad/ }),
     ).toHaveAttribute('href', '/herramientas/mensualidad-de-parqueadero/');
+    await expect(
+      page.getByRole('link', { name: /^Cupos para vehículos eléctricos/ }),
+    ).toHaveAttribute('href', '/herramientas/cupos-para-electricos/');
     await expect(page.locator('link[rel="alternate"][type="text/markdown"]')).toHaveAttribute(
       'href',
       /\/index\.md$/,
@@ -87,6 +92,7 @@ test.describe('la portada (HU-Q11.5 CA1)', () => {
       '/index.md',
       '/herramientas/recibo-de-entrada/index.md',
       '/herramientas/mensualidad-de-parqueadero/index.md',
+      '/herramientas/cupos-para-electricos/index.md',
     ]) {
       const r = await request.get(`${SITIO}${ruta}`);
       expect(r.status(), ruta).toBe(200);
@@ -119,6 +125,11 @@ test.describe('accesibilidad WCAG 2.1 AA', () => {
       await page.getByLabel('Valor del mes en pesos').fill('300.000');
       await page.getByRole('button', { name: 'Calcular' }).click();
       await expect(page.locator('#total-mensualidad')).toBeVisible();
+      await sinViolaciones(page);
+      await page.goto(CUPOS);
+      await page.getByLabel('Cupos habilitados, todos').fill('120');
+      await page.getByRole('button', { name: 'Calcular' }).click();
+      await expect(page.locator('#titulo-resultado')).toBeVisible();
       await sinViolaciones(page);
     });
   }
@@ -329,3 +340,61 @@ test.describe('el liquidador de mensualidades (HU-Q11.6)', () => {
   });
 });
 
+test.describe('los cupos para vehículos eléctricos (HU-Q11.7)', () => {
+  test('dan el mínimo de la ley hacia arriba, con la norma y su fecha de consulta', async ({
+    page,
+    context,
+  }) => {
+    const lotes: string[] = [];
+    await context.route('**/_m', (r) => {
+      lotes.push(r.request().postData() ?? '');
+      return r.fulfill({ status: 204 });
+    });
+    const fuera = ajenos(page);
+    await page.goto(CUPOS);
+
+    // CA1: el artículo citado y la fecha de consulta, a la vista antes de calcular (P18).
+    const laNorma = page.locator('.norma');
+    await expect(laNorma).toContainText('Ley 1964 de 2019, artículo 7');
+    await expect(laNorma).toContainText('dos por ciento (2%)');
+    await expect(laNorma).toContainText('al público en los municipios');
+    await expect(laNorma).toContainText('Consultada el 9 de octubre de 2026');
+
+    await page.getByRole('button', { name: 'Calcular' }).click();
+    await expect(page.locator('#faltan')).toContainText('Escriba cuántos cupos');
+    await expect(page.locator('#resultado')).toBeHidden();
+
+    await page.getByLabel('Cupos habilitados, todos').fill('120');
+    await page.getByRole('button', { name: 'Calcular' }).click();
+    await expect(page.locator('#titulo-resultado')).toHaveText(
+      '3 cupos para vehículos eléctricos, como mínimo',
+    );
+    await expect(page.locator('#titulo-resultado')).toBeFocused();
+    await expect(page.locator('#detalle-cupos')).toContainText(
+      'El 2 % de 120 cupos es 2,4: se redondea hacia arriba, a 3.',
+    );
+    await expect(page.locator('#detalle-cupos')).toContainText('su alcaldía');
+    await page.getByRole('combobox', { name: /categoría especial/ }).selectOption('no');
+    await page.getByRole('button', { name: 'Calcular' }).click();
+    await expect(page.locator('#titulo-resultado')).toHaveText(
+      'La ley no se lo exige en su municipio',
+    );
+    await sinDesborde(page);
+
+    await page.evaluate(() =>
+      document.addEventListener('click', (e) => e.preventDefault(), { once: true }),
+    );
+    await page.getByRole('link', { name: 'Abrir la caja' }).click();
+    await ocultar(page);
+    await expect
+      .poll(() => deLaHerramienta(lotes, 'parqueadero-cupos-electricos'))
+      .toEqual([
+        {
+          v: 1,
+          producto: 'parqueadero-cupos-electricos',
+          eventos: { 'tool.opened': 1, 'tool.completed': 1, 'tool.next_step': 1 },
+        },
+      ]);
+    expect(fuera).toEqual([]);
+  });
+});

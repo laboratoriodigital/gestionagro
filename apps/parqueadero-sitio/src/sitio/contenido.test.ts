@@ -1,8 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import norma from '../../../../content/parqueadero/cupos-electricos.json' with { type: 'json' };
 import { HERRAMIENTAS_CON_EVENTOS } from '../worker.ts';
 import {
+  CUPOS,
+  fechaLarga,
   GENERADOR,
   gemelo,
   HERRAMIENTAS,
@@ -40,6 +43,16 @@ describe('el texto del sitio y su capa para agentes (HU-Q11.5 CA1, ADR-24)', () 
     expect(gemelo(LIQUIDADOR)).toContain(`(${ORIGEN}/caja/)`);
   });
 
+  it('los cupos para eléctricos citan la norma leída, con su fecha de consulta (HU-Q11.7 CA1, P18)', () => {
+    expect(norma.texto_citado).toContain(`(${norma.porcentaje_minimo}%)`);
+    expect(norma.consultada <= new Date().toISOString().slice(0, 10)).toBe(true);
+    expect(norma.fuentes.length).toBeGreaterThanOrEqual(2);
+    for (const f of norma.fuentes) expect(f).toMatch(/^https:\/\/[^/]+\.gov\.co\//);
+    expect(fechaLarga(norma.consultada)).toBe('9 de octubre de 2026');
+    expect(gemelo(CUPOS)).toContain(`artículo ${norma.articulo}`);
+    expect(gemelo(CUPOS)).toContain(`Consultada el ${fechaLarga(norma.consultada)}`);
+  });
+
   it('cada herramienta cuenta sus eventos en el Worker, con un producto propio', () => {
     const productos = HERRAMIENTAS.map((h) => h.producto);
     expect(new Set(productos).size).toBe(productos.length);
@@ -47,7 +60,7 @@ describe('el texto del sitio y su capa para agentes (HU-Q11.5 CA1, ADR-24)', () 
   });
 
   it('❌ el código que corre en el navegador no carga `contenido.ts` ni `productos.json` (bitácora 32)', () => {
-    for (const archivo of ['recibo-de-entrada.ts', 'mensualidad.ts']) {
+    for (const archivo of ['recibo-de-entrada.ts', 'mensualidad.ts', 'cupos-electricos.ts']) {
       const script = readFileSync(join(import.meta.dirname, '..', 'herramientas', archivo), 'utf8');
       expect(script, archivo).not.toMatch(/from ['"][^'"]*(contenido|productos\.json)/);
     }
@@ -58,6 +71,7 @@ describe('el texto del sitio y su capa para agentes (HU-Q11.5 CA1, ADR-24)', () 
       join(PAGES, 'index.astro'),
       join(PAGES, 'herramientas', 'recibo-de-entrada', 'index.astro'),
       join(PAGES, 'herramientas', 'mensualidad-de-parqueadero', 'index.astro'),
+      join(PAGES, 'herramientas', 'cupos-para-electricos', 'index.astro'),
       join(import.meta.dirname, '..', 'layouts', 'Sitio.astro'),
       join(import.meta.dirname, '..', '..', 'public', 'sitio.css'),
     ];

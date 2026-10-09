@@ -1,0 +1,77 @@
+---
+// Los cupos para vehículos eléctricos de la Ley 1964 de 2019 (HU-Q11.7; estudio §12.2,
+// herramienta 6). Estático: la cuenta se hace en el navegador, sin cuenta y sin guardar nada. La
+// norma, su texto citado y la fecha de consulta vienen de `content/parqueadero/cupos-electricos.json`
+// (P18). La lógica está en `src/herramientas/cupos-electricos.ts`.
+import norma from '../../../../../../content/parqueadero/cupos-electricos.json' with {
+  type: 'json',
+};
+import Sitio from '../../../layouts/Sitio.astro';
+import { CUPOS, fechaLarga } from '../../../sitio/contenido.ts';
+---
+<Sitio titulo={CUPOS.titulo} descripcion={CUPOS.resumen} ruta={CUPOS.ruta}>
+  <h1>{CUPOS.titular}</h1>
+  <p class="entrada">{CUPOS.entrada}</p>
+
+  <form
+    id="cupos-electricos"
+    class="formulario"
+    data-producto={CUPOS.producto}
+    data-porcentaje={norma.porcentaje_minimo}
+    novalidate
+  >
+    <fieldset>
+      <legend>Su parqueadero</legend>
+      <label
+        >Cupos habilitados, todos
+        <input name="cupos" inputmode="numeric" maxlength="7" />
+      </label>
+      <label
+        >¿Su municipio es de categoría especial, primera o segunda?
+        <select name="municipio">
+          <option value="no-se">No sé</option>
+          <option value="si">Sí</option>
+          <option value="no">No</option>
+        </select>
+      </label>
+    </fieldset>
+    <p id="faltan" class="aviso-error" role="alert" hidden></p>
+    <button class="boton" type="submit">Calcular</button>
+  </form>
+
+  <section id="resultado" class="resultado liquidacion" aria-labelledby="titulo-resultado" hidden>
+    <h2 id="titulo-resultado" class="titular-resultado" tabindex="-1"></h2>
+    <p id="detalle-cupos"></p>
+  </section>
+
+  <section class="norma" aria-labelledby="la-norma">
+    <h2 id="la-norma">La norma</h2>
+    <p>
+      {`${norma.norma}, artículo ${norma.articulo}: ${norma.obligados} ${norma.municipios} «${norma.texto_citado}».`}
+    </p>
+    <p>{norma.sin_afectar}</p>
+    <p>{norma.reglamento}</p>
+    <p>{norma.redondeo}</p>
+    <p class="ayuda">
+      Consultada el {fechaLarga(norma.consultada)} en {norma.fuentes.length} fuentes públicas. No es
+      asesoría legal.
+    </p>
+    <ul class="fuentes">
+      {norma.fuentes.map((f) => <li><a href={f} rel="noopener">{new URL(f).hostname}</a></li>)}
+    </ul>
+  </section>
+
+  <aside class="siguiente" aria-labelledby="siguiente">
+    <h2 id="siguiente">{CUPOS.siguiente.titulo}</h2>
+    <p>{CUPOS.siguiente.texto}</p>
+    <a id="ir-a-la-caja" class="boton" href="/caja/">{CUPOS.siguiente.accion}</a>
+  </aside>
+
+  <p slot="pie">La cuenta se hace en este navegador: no se guarda ni se envía lo que escribe.</p>
+
+  <script>
+    import { iniciarCupos } from '../../../herramientas/cupos-electricos.ts';
+
+    iniciarCupos(document);
+  </script>
+</Sitio>

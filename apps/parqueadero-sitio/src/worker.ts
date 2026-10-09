@@ -21,10 +21,11 @@ import {
   VERSION_DEL_LOTE,
 } from '@ed1/eventos';
 
-/** Las herramientas del sitio que cuentan sus eventos (HU-Q11.4, HU-Q11.6). */
+/** Las herramientas del sitio que cuentan sus eventos (HU-Q11.4, HU-Q11.6, HU-Q11.7). */
 export const HERRAMIENTAS_CON_EVENTOS: readonly string[] = [
   'parqueadero-recibo-de-entrada',
   'parqueadero-mensualidad',
+  'parqueadero-cupos-electricos',
 ];
 
 const TAMANO_MAXIMO_BYTES = 4096;

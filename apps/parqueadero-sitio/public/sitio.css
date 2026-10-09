@@ -343,3 +343,23 @@ button.boton-secundario {
   }
 }
 
+/* Los cupos para eléctricos (HU-Q11.7): la respuesta como titular y la norma citada. */
+.titular-resultado.titular-resultado {
+  margin: 2rem 0 0.5rem;
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--tinta);
+}
+.norma p {
+  margin: 0 0 0.75rem;
+}
+.fuentes {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+}
+.fuentes a {
+  color: var(--acento);
+  overflow-wrap: anywhere;
+}

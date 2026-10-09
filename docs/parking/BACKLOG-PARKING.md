@@ -796,7 +796,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Work items:** WI-Q11.6.1 `[código]` · WI-Q11.6.2 `[prueba]` tabla compartida con la caja · WI-Q11.6.3 `[diseño]` página.
 
 #### HU-Q11.7 · Los cupos obligatorios para eléctricos (Ley 1964 de 2019)
-- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** sin sprint (se planea después de M1, después de HU-Q11.6) · **Depende de:** HU-Q11.1, HU-Q11.5 · **Estado:** Refinada
+- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** sin sprint (se planea después de M1, después de HU-Q11.6) · **Depende de:** HU-Q11.1, HU-Q11.5 · **Estado:** En revisión (rama `feat/q11c-sprint`): `/herramientas/cupos-para-electricos/`. WI-Q11.7.1 hecho: la Ley 1964 de 2019, art. 7, leída el 9 oct 2026 en tres fuentes públicas (`content/parqueadero/cupos-electricos.json`). Falta WI-Q11.7.3 (Search Console a los 90 días de publicada)
 - Como parqueadero, quiero saber cuántos cupos para vehículos eléctricos me exige la ley según mi número de cupos, sin registrarme.
 - **Respaldo:** estudio §12.2 (herramienta 6). HU-Q11.1: demanda 500 con rangos, toda de «ley 1964 de 2019»; los términos del parqueadero no traen dato (8 oct 2026).
 - **CA1.** Una página con el número de cupos que da los cupos eléctricos que exige la ley, con el artículo citado y su fecha de consulta (P18).
