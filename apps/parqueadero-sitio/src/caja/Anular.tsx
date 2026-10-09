@@ -1,6 +1,6 @@
 /**
- * Anular una entrada o una salida (HU-Q3.7, PARQUEADERO §10.2): con su motivo y el PIN de
- * administrador. Queda anotada; nada se borra (P21). No es un `<form>`: vive junto al cobro, y un
+ * Anular una entrada, una salida (HU-Q3.7, PARQUEADERO §10.2) o una mensualidad (HU-Q8.4): con su
+ * motivo y el PIN de administrador. Queda anotada; nada se borra (P21). No es un `<form>`: vive junto al cobro, y un
  * Enter en el PIN no puede cobrar.
  */
 import type { Registro } from '@ed1/parqueadero-schema';
@@ -21,7 +21,12 @@ export function Anular({ db, ctx, registro, alAnular }: Props) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [ocupado, setOcupado] = useState(false);
-  const que = registro.tipo === 'salida' ? 'la salida' : 'la entrada';
+  const que =
+    registro.tipo === 'salida'
+      ? 'la salida'
+      : registro.tipo === 'pago_abonado'
+        ? 'la mensualidad'
+        : 'la entrada';
 
   if (!abierto) {
     return (
@@ -55,7 +60,9 @@ export function Anular({ db, ctx, registro, alAnular }: Props) {
         La anulación queda anotada con su motivo y cuenta en el cierre del turno; nada se borra.{' '}
         {registro.tipo === 'salida'
           ? 'El vehículo vuelve a quedar adentro.'
-          : 'El vehículo sale de la lista de adentro.'}
+          : registro.tipo === 'pago_abonado'
+            ? 'El periodo que cubría deja de contar.'
+            : 'El vehículo sale de la lista de adentro.'}
       </p>
       <div class="campo">
         <label for="motivo-anulacion">Motivo</label>

@@ -129,7 +129,7 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir, nube }: Props)
         />
       );
     case 'abonados':
-      return <Abonados db={db} ctx={ctx} alVolver={inicio} />;
+      return <Abonados db={db} ctx={ctx} control={control} alVolver={inicio} />;
     case 'reportes':
       return <Reportes db={db} reloj={reloj} alVolver={inicio} />;
     case 'ahorro':

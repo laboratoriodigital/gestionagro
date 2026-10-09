@@ -28,6 +28,7 @@ import {
   type DatosDeEntrada,
   type DatosDeEntrega,
   type DatosDeMovimiento,
+  type DatosDePagoAbonado,
   type DatosDeSalida,
   type Entidad,
   ErrorDeValidacion,
@@ -49,7 +50,7 @@ import {
 } from '@ed1/parqueadero-schema';
 import { type Liquidacion, liquidar, validarTarifa } from '@ed1/parqueadero-tarifas';
 import { normalizarNumero } from '@ed1/whatsapp';
-import { abonoDeLaPlaca, fechaDelAbono, venceEl } from './abonados.ts';
+import { abonoDeLaPlaca, conPagos, fechaDelAbono, venceEl } from './abonados.ts';
 import { encolar, tablasDeLaCola } from './cola.ts';
 import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
 import { diaLocalBogota, horaBogota } from './fecha.ts';
@@ -230,10 +231,20 @@ export async function verificarPin(db: BaseDeLaCaja, pin: string): Promise<boole
 
 // ── Abonados por placa (HU-Q3.11) ─────────────────────────────────────────────────────────────
 
-/** Los abonados de la caja, de la placa A a la Z. */
+/**
+ * Los abonados de la caja, de la placa A a la Z, con la vigencia que suman sus mensualidades
+ * cobradas y no anuladas (HU-Q8.4). Con la nube, también las que cobró otra caja.
+ */
 export async function leerAbonados(db: BaseDeLaCaja): Promise<Abonado[]> {
-  const todos = await db.catalogos.where('entidad').equals('abonado').toArray();
-  return (todos as Abonado[]).sort((a, b) => a.placa.localeCompare(b.placa));
+  const [todos, pagos, sinValor] = await Promise.all([
+    db.catalogos.where('entidad').equals('abonado').toArray(),
+    db.registros.where('tipo').equals('pago_abonado').toArray(),
+    anulados(db),
+  ]);
+  const vigentes = pagos
+    .filter((p) => !sinValor.has(p.id))
+    .map((p) => p.datos as DatosDePagoAbonado);
+  return conPagos(todos as Abonado[], vigentes).sort((a, b) => a.placa.localeCompare(b.placa));
 }
 
 /** Un cambio de abonados sin el PIN de administrador no se guarda (CA1). */
@@ -257,6 +268,83 @@ export async function guardarAbonado(
 ): Promise<Abonado> {
   if (!(await verificarPin(db, pin))) throw new PinIncorrecto();
   return guardarCatalogo(db, 'abonado', abonado, d, id, ctx);
+}
+
+/** Las mensualidades cobradas a un abonado y no anuladas, la más reciente primero (HU-Q8.4). */
+export async function pagosDelAbonado(db: BaseDeLaCaja, abonadoId: string): Promise<Registro[]> {
+  const [pagos, sinValor] = await Promise.all([
+    db.registros.where('tipo').equals('pago_abonado').toArray(),
+    anulados(db),
+  ]);
+  return pagos
+    .filter((p) => !sinValor.has(p.id) && (p.datos as DatosDePagoAbonado).abonado_id === abonadoId)
+    .sort((a, b) => b.instante_evento.localeCompare(a.instante_evento));
+}
+
+/** No se cobra la mensualidad de un abonado desactivado o que no existe (HU-Q8.4). */
+export class NoSeCobra extends Error {
+  constructor(motivo: string) {
+    super(motivo);
+    this.name = 'NoSeCobra';
+  }
+}
+
+export interface DatosDeLaMensualidad {
+  readonly desde: string;
+  readonly hasta: string;
+  readonly valor: number;
+  readonly medio: DatosDePagoAbonado['medio_pago'];
+}
+
+/**
+ * Cobra una mensualidad (HU-Q8.4 CA1): un registro `pago_abonado` con el número siguiente de la
+ * caja, en una transacción, dentro del turno. Lo cobra el cajero, sin el PIN que pide cambiar el
+ * abonado: la vigencia la suma `leerAbonados`. El efectivo entra al cierre del turno.
+ */
+export async function cobrarMensualidad(
+  db: BaseDeLaCaja,
+  abonadoId: string,
+  d: DatosDeLaMensualidad,
+  ctx: Contexto,
+): Promise<Registro> {
+  await exigirTurno(db);
+  const a = (await leerAbonados(db)).find((x) => x.id === abonadoId);
+  if (!a) throw new NoSeCobra('Ese abonado no está en esta caja');
+  if (!a.activo) throw new NoSeCobra(`${a.placa} está inactivo: actívelo antes de cobrar`);
+  const { id: dispositivoId, serie } = await dispositivo(db, ctx);
+  return db.transaction('rw', [db.registros, ...tablasDeLaCola(db)], async () => {
+    const meta = await db.meta.get('consecutivo');
+    const consecutivo = (meta?.clave === 'consecutivo' ? meta.ultimo : 0) + 1;
+    const ahora = ctx.reloj();
+    const registro = validarRegistro({
+      id: ctx.nuevoId(),
+      org_id: null,
+      tipo: 'pago_abonado',
+      v: 1,
+      fecha_local: diaLocalBogota(ahora),
+      instante_evento: iso(ahora),
+      autor_usuario_id: null,
+      dispositivo_id: dispositivoId,
+      origen: 'manual',
+      anula_id: null,
+      estadia_id: null,
+      serie,
+      consecutivo,
+      datos: {
+        abonado_id: a.id,
+        placa: a.placa,
+        vehiculo: a.vehiculo,
+        desde: d.desde,
+        hasta: d.hasta,
+        valor: d.valor,
+        medio_pago: d.medio,
+      },
+    });
+    await db.registros.add(registro);
+    await encolar(db, [registro], ahora);
+    await db.meta.put({ clave: 'consecutivo', ultimo: consecutivo });
+    return registro;
+  });
 }
 
 // ── La entrada (HU-Q3.3) ───────────────────────────────────────────────────────────────────────
@@ -1022,9 +1110,9 @@ export async function anulados(db: BaseDeLaCaja): Promise<Set<string>> {
 }
 
 /**
- * Anula una entrada o una salida con un registro `anulacion` (§10.2, P21): nada se borra ni se
- * reescribe. Pide el PIN de administrador (M0). Una entrada anulada cierra su estadía; una salida
- * anulada la reabre. Lanza `NoSeAnula` con el motivo si no se puede.
+ * Anula una entrada, una salida o una mensualidad con un registro `anulacion` (§10.2, P21): nada
+ * se borra ni se reescribe. Pide el PIN de administrador (M0). Una entrada anulada cierra su
+ * estadía; una salida anulada la reabre; una mensualidad anulada deja de sumar vigencia. Lanza `NoSeAnula` con el motivo si no se puede.
  */
 export async function anular(
   db: BaseDeLaCaja,
@@ -1039,10 +1127,24 @@ export async function anular(
   const tablas = [db.registros, db.estadias, db.contactos, ...tablasDeLaCola(db)];
   return db.transaction('rw', tablas, async () => {
     const r = await db.registros.get(registroId);
-    if (!r || (r.tipo !== 'entrada' && r.tipo !== 'salida')) {
-      throw new NoSeAnula('Solo se anula una entrada o una salida');
+    if (!r || (r.tipo !== 'entrada' && r.tipo !== 'salida' && r.tipo !== 'pago_abonado')) {
+      throw new NoSeAnula('Solo se anula una entrada, una salida o una mensualidad');
     }
     if ((await anulados(db)).has(r.id)) throw new NoSeAnula('Este recibo ya está anulado');
+    // Una mensualidad anulada deja de sumar vigencia; no tiene estadía (HU-Q8.4).
+    if (r.tipo === 'pago_abonado') {
+      const anulacion = sinNumero(
+        'anulacion',
+        dispositivoId,
+        ctx.reloj(),
+        { motivo: d.motivo.trim(), operador: d.operador },
+        ctx,
+        { anula_id: r.id },
+      );
+      await db.registros.add(anulacion);
+      await encolar(db, [anulacion], ctx.reloj());
+      return anulacion;
+    }
     const abierta = await db.estadias.get(r.estadia_id ?? '');
     if (r.tipo === 'entrada' && !abierta) {
       throw new NoSeAnula('Este vehículo ya salió: primero se anula su salida');

@@ -15,10 +15,11 @@ import {
 } from '@ed1/parqueadero-schema';
 import { WhatsAppInvalido } from '@ed1/whatsapp';
 import { useEffect, useState } from 'preact/hooks';
-import { abonoDeLaPlaca, fechaDelAbono } from './abonados.ts';
+import { abonoDeLaPlaca, fechaDelAbono, vencenPronto } from './abonados.ts';
 import { abrirFormulario } from './actividad.ts';
 import { type Contexto, EstadiaYaAbierta, registrarEntrada } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
+import { diaLocalBogota } from './fecha.ts';
 import { comprimirFoto, type FormatoDeFoto } from './fotos.ts';
 import { CampoWhatsApp, faltaDelWhatsApp } from './whatsapp.tsx';
 
@@ -99,6 +100,9 @@ export function Entrada({
 
   const fueraDePatron = placa.length > 0 && vehiculoPorPlaca(placa) === null;
   const abono = abonoDeLaPlaca(abonados, placa, ctx.reloj());
+  // HU-Q8.4 CA2: el recordatorio es en persona, cuando el abonado llega.
+  const vencePronto =
+    abono.vigente !== null && vencenPronto([abono.vigente], diaLocalBogota(ctx.reloj())).length > 0;
   const listo =
     placa.length >= 2 &&
     vehiculo !== null &&
@@ -214,6 +218,7 @@ export function Entrada({
         <p class="exito" data-prueba="abonado-entrada">
           Abonado hasta el {fechaDelAbono(abono.vigente.hasta)}
           {abono.vigente.referencia ? ` · ${abono.vigente.referencia}` : ''}
+          {vencePronto ? '. Vence pronto: recuérdeselo' : ''}
         </p>
       )}
       {abono.vencido && (
