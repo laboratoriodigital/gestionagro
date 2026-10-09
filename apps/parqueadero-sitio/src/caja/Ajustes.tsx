@@ -65,6 +65,8 @@ export interface Borrador {
   numeroPoliza: string;
   registro: string;
   imprimir: '' | Papel;
+  /** Lo que cuesta cada recibo en papel, en pesos (HU-Q8.6); vacío = no lo ha dicho. */
+  costoPapel: string;
   /** La sede acepta el aviso de privacidad vigente (HU-Q4.4 CA2). */
   aviso: boolean;
   pie: string;
@@ -89,6 +91,7 @@ export const borradorVacio = (): Borrador => ({
   numeroPoliza: '',
   registro: '',
   imprimir: '',
+  costoPapel: '',
   aviso: false,
   pie: '',
   responsabilidad: TEXTO_LEGAL.entrada,
@@ -117,6 +120,7 @@ function borradorDe(
       numeroPoliza: sede.poliza?.numero ?? '',
       registro: sede.registro ?? '',
       imprimir: papelDeLaSede(sede),
+      costoPapel: texto(sede.costo_papel),
       aviso: avisoAceptado(sede),
     });
   }
@@ -164,6 +168,15 @@ export function responsabilidadDe(b: Pick<Borrador, 'responsabilidad'>): string 
   return t === '' || t === TEXTO_LEGAL.entrada ? null : t;
 }
 
+/** Lo más que puede costar un recibo en papel: el mismo máximo del esquema (HU-Q8.6). */
+export const MAXIMO_COSTO_PAPEL = 2000;
+
+/** El costo del papel que se guarda: nulo si quedó vacío. `leerBorrador` ya lo validó. */
+export function costoPapelDe(b: Pick<Borrador, 'costoPapel'>): number | null {
+  const n = entero(b.costoPapel);
+  return typeof n === 'number' ? n : null;
+}
+
 export function leerBorrador(
   b: Borrador,
   hayPin: boolean,
@@ -185,6 +198,10 @@ export function leerBorrador(
     if (!b.numeroPoliza.trim()) falta('sede-numeroPoliza');
   }
   if (!b.imprimir) errores['sede-imprimir'] = 'Diga cuándo sale el recibo en papel';
+  const costo = entero(b.costoPapel);
+  if (costo === 'mal') errores['sede-costoPapel'] = 'Escriba solo números';
+  else if (costo !== null && (costo < 1 || costo > MAXIMO_COSTO_PAPEL))
+    errores['sede-costoPapel'] = `Es de $1 a ${formatearPesos(MAXIMO_COSTO_PAPEL)} por recibo`;
   if (!hayPin || b.pin || b.pin2) {
     if (!PIN_VALIDO.test(b.pin)) errores['pin'] = 'El PIN es de 4 a 6 números';
     else if (b.pin !== b.pin2) errores['pin2'] = 'No es igual al PIN';
@@ -407,6 +424,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
           poliza: b.poliza === 'si' ? { aseguradora: b.aseguradora, numero: b.numeroPoliza } : null,
           registro: b.registro.trim() || null,
           papel: b.imprimir || 'siempre',
+          costo_papel: costoPapelDe(b),
           // Aceptarlo otra vez no cambia la fecha en que se aceptó esta versión.
           aviso_privacidad: !b.aviso
             ? null
@@ -579,6 +597,17 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
             </p>
           )}
         </fieldset>
+        <Campo
+          id="sede-costoPapel"
+          etiqueta="Costo de cada recibo en papel (pesos, opcional)"
+          errores={errores}
+          ayuda="Rollo y tinta por recibo. Con él, «Lo que ahorra» dice cuánto ahorró el parqueadero"
+        >
+          {entrada('sede-costoPapel', b.costoPapel, poner('costoPapel'), {
+            ...numero,
+            maxLength: 5,
+          })}
+        </Campo>
         <Campo
           id="pie"
           etiqueta="Línea al pie del recibo (opcional)"

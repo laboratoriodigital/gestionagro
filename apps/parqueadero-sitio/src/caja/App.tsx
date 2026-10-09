@@ -54,6 +54,7 @@ const MENU = [
   ['ajustes', 'Ajustes del parqueadero'],
   ['abonados', 'Abonados'],
   ['reportes', 'Reportes'],
+  ['ahorro', 'Lo que ahorra'],
   ['respaldo', 'Respaldo'],
   ['letrero', 'Aviso de tarifas'],
   ['aviso', 'Aviso de privacidad'],

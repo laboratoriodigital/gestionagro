@@ -8,6 +8,7 @@ import { faltantesDeSede, juntar } from '@ed1/parqueadero-recibos';
 import type { Abonado, Registro, Vehiculo } from '@ed1/parqueadero-schema';
 import { useMemo } from 'preact/hooks';
 import { Abonados } from './Abonados.tsx';
+import { Ahorro } from './Ahorro.tsx';
 import { Ajustes as PantallaDeAjustes, VEHICULOS_DE_LA_CAJA } from './Ajustes.tsx';
 import { Aviso } from './Aviso.tsx';
 import {
@@ -47,6 +48,7 @@ export type Vista =
   | { readonly es: 'respaldo'; readonly regreso?: string }
   | { readonly es: 'abonados' }
   | { readonly es: 'reportes' }
+  | { readonly es: 'ahorro' }
   /** `regreso`: el fragmento con que volvió de la cuenta (HU-Q7.6). */
   | { readonly es: 'cuenta'; readonly regreso?: string }
   | { readonly es: 'recibo'; readonly registro: Registro };
@@ -130,6 +132,15 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir, nube }: Props)
       return <Abonados db={db} ctx={ctx} alVolver={inicio} />;
     case 'reportes':
       return <Reportes db={db} reloj={reloj} alVolver={inicio} />;
+    case 'ahorro':
+      return (
+        <Ahorro
+          db={db}
+          reloj={reloj}
+          alCosto={() => ir({ es: 'ajustes', enfocar: 'sede-costoPapel' })}
+          alVolver={inicio}
+        />
+      );
     case 'cuenta':
       return (
         <Cuenta

@@ -759,6 +759,39 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
     await expect(page.getByTestId('estadias')).toContainText('STU456');
     expect((await bytesImpresos(page)).length).toBe(sinPapel);
+
+    // HU-Q8.6: lo que ahorra cuenta cada recibo por el camino que llegó; sin el costo de la sede
+    // no hay pesos, y el botón lleva al campo.
+    await page.getByRole('button', { name: 'Lo que ahorra' }).click();
+    const semana = page.getByTestId('periodo-del-ahorro').first();
+    await expect(semana).toContainText('Esta semana');
+    await expect(semana).toContainText('Recibos2');
+    await expect(semana).toContainText('En papel1');
+    await expect(semana).toContainText('En la pantalla1');
+    await expect(semana.getByTestId('ahorrado')).toHaveText('1 recibo (50 %)');
+    await sinDesborde(page);
+    await expect(page.getByTestId('sin-costo')).toBeVisible();
+    await page.getByRole('button', { name: 'Escribir el costo del papel' }).click();
+    await page.getByLabel('PIN de administrador').fill('2468');
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    const costo = page.getByLabel('Costo de cada recibo en papel (pesos, opcional)');
+    await expect(costo).toBeFocused();
+    await costo.fill('0');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await expect(page.getByTestId('error-sede-costoPapel')).toHaveText(
+      'Es de $1 a $2.000 por recibo',
+    );
+    await costo.fill('12');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    // Guardar los ajustes otra vez sin tocarlo lo conserva.
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await page.getByLabel('PIN de administrador').fill('2468');
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(costo).toHaveValue('12');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await page.getByRole('button', { name: 'Lo que ahorra' }).click();
+    await expect(page.getByTestId('sin-costo')).toHaveCount(0);
+    await expect(semana.getByTestId('ahorrado')).toHaveText('1 recibo (50 %) · $12');
   });
 
   test('HU-Q2.4 · la impresora emparejada se elige una vez y vuelve sola al abrir la caja (CA1)', async ({
@@ -878,6 +911,14 @@ for (const esquema of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
     await page.getByRole('button', { name: 'Aviso de tarifas' }).click();
     await expect(page.getByTestId('hoja-letrero')).toBeVisible();
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Reportes' }).click();
+    await expect(page.getByTestId('turno-del-reporte')).toBeVisible();
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Lo que ahorra' }).click();
+    await expect(page.getByTestId('sin-costo')).toBeVisible();
     await revisar();
   });
 }

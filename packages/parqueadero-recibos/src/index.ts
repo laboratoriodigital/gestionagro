@@ -1,4 +1,6 @@
+export * from './ahorro.ts';
 export * from './enlace.ts';
+export * from './entregas.ts';
 export * from './generador.ts';
 export * from './mensaje.ts';
 export * from './papel.ts';

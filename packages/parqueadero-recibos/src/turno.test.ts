@@ -115,6 +115,20 @@ describe('el resumen del turno (HU-Q3.9)', () => {
     expect(r.entregas).toEqual({ recibos: 3, papel: 1, whatsapp: 1, pantalla: 1, sinEntrega: 0 });
   });
 
+  it('❌ un WhatsApp marcado «No se envió» no cuenta como entregado (HU-Q8.6 CA3)', () => {
+    const noSeEnvio = [
+      ...TURNO,
+      entrega(SALIDA_ENSAYO, 'whatsapp', { resultado: 'no_enviado', autorizado: true }),
+    ];
+    expect(resumirTurno(APERTURA, noSeEnvio, 12).entregas).toEqual({
+      recibos: 3,
+      papel: 1,
+      whatsapp: 0,
+      pantalla: 1,
+      sinEntrega: 1,
+    });
+  });
+
   it('el número del turno lleva tres cifras', () => {
     expect(numeroDeTurno(7)).toBe('T-007');
   });
