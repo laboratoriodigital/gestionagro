@@ -1016,6 +1016,10 @@ for (const esquema of ['light', 'dark'] as const) {
         .analyze();
       expect(violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
     };
+    // Mediodía fijo: con la hora real, después de las 19:00 de Bogotá las tres horas de la salida
+    // caen en otro día y el reporte de «hoy» queda sin turno.
+    const inicio = new Date('2026-10-20T15:00:00Z');
+    await page.clock.setFixedTime(inicio);
     await page.goto(CAJA);
     await expect(page.getByTestId('senal-impresora')).toBeVisible();
     await revisar();
@@ -1043,7 +1047,7 @@ for (const esquema of ['light', 'dark'] as const) {
     await revisar();
     // La hoja del recibo de salida, con su total grande (HU-Q6.6 CA3): tres horas después.
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
-    await page.clock.setFixedTime(new Date(Date.now() + 180 * 60_000));
+    await page.clock.setFixedTime(new Date(inicio.getTime() + 180 * 60_000));
     await page.getByTestId('estadia').click();
     await page.getByRole('button', { name: 'Efectivo' }).click();
     await page.getByLabel('Recibido').fill('50.000');
