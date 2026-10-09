@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./casos": "./src/casos.fixture.ts"
+    "./casos": "./src/casos.fixture.ts",
+    "./casos-de-mensualidad": "./src/mensualidad.fixture.ts"
   },
   "dependencies": {
     "@ed1/dinero": "workspace:*",

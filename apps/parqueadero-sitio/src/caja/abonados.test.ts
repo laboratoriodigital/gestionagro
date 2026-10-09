@@ -1,4 +1,5 @@
 import type { Abonado } from '@ed1/parqueadero-schema';
+import { CASOS_DE_MENSUALIDAD } from '@ed1/parqueadero-tarifas/casos-de-mensualidad';
 import { describe, expect, it } from 'vitest';
 import {
   abonoDeLaPlaca,
@@ -133,5 +134,18 @@ describe('las mensualidades cobradas (HU-Q8.4)', () => {
       abonado({ placa: 'EEE55E', hasta: '2026-10-28', activo: false }),
     ];
     expect(vencenPronto(lista, '2026-10-27').map((a) => a.placa)).toEqual(['BBB22B', 'AAA11A']);
+  });
+});
+
+describe('la caja cobra lo mismo que el liquidador del sitio (HU-Q11.6 WI-Q11.6.2)', () => {
+  it.each(CASOS_DE_MENSUALIDAD)('$nombre', (c) => {
+    // Un abonado vencido antes de `desde`: la caja cobra desde ese día.
+    const a = abonado({ plan: 'mes', valor: c.valor, desde: '2025-01-01', hasta: '2025-01-31' });
+    const [desde, hasta, valor] = c.periodos[0] ?? [];
+    expect(periodoPorCobrar(a, c.desde, { hastaFinDeMes: c.hastaFinDeMes })).toEqual({
+      desde,
+      hasta,
+      valor,
+    });
   });
 });

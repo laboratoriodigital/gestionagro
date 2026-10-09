@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { CASOS_DE_MENSUALIDAD } from './mensualidad.fixture.ts';
 import {
   diaSiguiente,
   diasEntre,
   finDelPeriodo,
   finDeMes,
+  liquidarMensualidad,
+  MensualidadIncompleta,
   prorrateo,
   unMesDesde,
 } from './mensualidad.ts';
@@ -40,5 +43,42 @@ describe('los periodos de una mensualidad (HU-Q8.4)', () => {
     for (const hasta of ['2026-10-20', '2026-10-25', '2026-11-18']) {
       expect(prorrateo(99_999, 'mes', '2026-10-20', hasta)).toBeLessThan(99_999);
     }
+  });
+});
+
+describe('el liquidador de mensualidades (HU-Q11.6)', () => {
+  it.each(CASOS_DE_MENSUALIDAD)('$nombre', (c) => {
+    const l = liquidarMensualidad(c.valor, c.desde, c);
+    expect(l.periodos.map((p) => [p.desde, p.hasta, p.valor])).toEqual(c.periodos);
+    expect(l.total).toBe(c.total);
+  });
+
+  it('cada periodo dice sus días, los del mes y la cuenta antes de la centena', () => {
+    const [primero, segundo] = liquidarMensualidad(300_000, '2026-10-20', {
+      meses: 1,
+      hastaFinDeMes: true,
+    }).periodos;
+    expect(primero).toMatchObject({ dias: 12, diasDelMes: 31, exacto: 116_129, valor: 116_100 });
+    expect(segundo).toMatchObject({ dias: 30, diasDelMes: 30, exacto: 300_000, valor: 300_000 });
+  });
+
+  it('❌ un valor ilegible o en cero, una fecha que no existe o sin meses no dan total', () => {
+    const faltan = (valor: number, desde: string, meses: number, hastaFinDeMes = false) => {
+      try {
+        liquidarMensualidad(valor, desde, { meses, hastaFinDeMes });
+        return [];
+      } catch (e) {
+        if (!(e instanceof MensualidadIncompleta)) throw e;
+        return e.faltan;
+      }
+    };
+    expect(faltan(0, '2026-10-20', 1)).toEqual(['el valor del mes']);
+    expect(faltan(Number.NaN, '2026-02-30', 0)).toEqual([
+      'el valor del mes',
+      'la fecha de inicio',
+      'cuántos meses',
+    ]);
+    expect(faltan(300_000, '', 25, true)).toEqual(['la fecha de inicio', 'cuántos meses']);
+    expect(faltan(300_000, '2026-10-20', 0, true)).toEqual([]);
   });
 });

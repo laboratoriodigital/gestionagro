@@ -1,7 +1,17 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { GENERADOR, gemelo, llmsTxt, ORIGEN, PAGINAS, PORTADA } from './contenido.ts';
+import { HERRAMIENTAS_CON_EVENTOS } from '../worker.ts';
+import {
+  GENERADOR,
+  gemelo,
+  HERRAMIENTAS,
+  LIQUIDADOR,
+  llmsTxt,
+  ORIGEN,
+  PAGINAS,
+  PORTADA,
+} from './contenido.ts';
 
 const PAGES = join(import.meta.dirname, '..', 'pages');
 
@@ -24,20 +34,30 @@ describe('el texto del sitio y su capa para agentes (HU-Q11.5 CA1, ADR-24)', () 
     expect(gemelo(GENERADOR)).toMatch(new RegExp(`^# ${GENERADOR.titular}\\n`));
     expect(gemelo(GENERADOR)).toContain(`## ${GENERADOR.siguiente.titulo}`);
     expect(gemelo(GENERADOR)).toContain(`(${ORIGEN}/caja/)`);
+    expect(gemelo(PORTADA)).toContain(`${ORIGEN}${LIQUIDADOR.ruta}`);
+    expect(gemelo(LIQUIDADOR)).toMatch(new RegExp(`^# ${LIQUIDADOR.titular}\\n`));
+    expect(gemelo(LIQUIDADOR)).toContain(`## ${LIQUIDADOR.siguiente.titulo}`);
+    expect(gemelo(LIQUIDADOR)).toContain(`(${ORIGEN}/caja/)`);
+  });
+
+  it('cada herramienta cuenta sus eventos en el Worker, con un producto propio', () => {
+    const productos = HERRAMIENTAS.map((h) => h.producto);
+    expect(new Set(productos).size).toBe(productos.length);
+    for (const p of productos) expect(HERRAMIENTAS_CON_EVENTOS).toContain(p);
   });
 
   it('❌ el código que corre en el navegador no carga `contenido.ts` ni `productos.json` (bitácora 32)', () => {
-    const script = readFileSync(
-      join(import.meta.dirname, '..', 'herramientas', 'recibo-de-entrada.ts'),
-      'utf8',
-    );
-    expect(script).not.toMatch(/from ['"][^'"]*(contenido|productos\.json)/);
+    for (const archivo of ['recibo-de-entrada.ts', 'mensualidad.ts']) {
+      const script = readFileSync(join(import.meta.dirname, '..', 'herramientas', archivo), 'utf8');
+      expect(script, archivo).not.toMatch(/from ['"][^'"]*(contenido|productos\.json)/);
+    }
   });
 
   it('❌ las páginas públicas no cargan nada de otro origen (CA3, CSP `self`)', () => {
     const fuentes = [
       join(PAGES, 'index.astro'),
       join(PAGES, 'herramientas', 'recibo-de-entrada', 'index.astro'),
+      join(PAGES, 'herramientas', 'mensualidad-de-parqueadero', 'index.astro'),
       join(import.meta.dirname, '..', 'layouts', 'Sitio.astro'),
       join(import.meta.dirname, '..', '..', 'public', 'sitio.css'),
     ];

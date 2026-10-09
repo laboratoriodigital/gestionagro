@@ -7,12 +7,14 @@
  * - HU-Q11.5 CA3 ❌: ninguna página pide nada a otro origen.
  * - HU-Q11.4: el recibo sale con el pie del generador, sin serie; se imprime por el diálogo del
  *   sistema y se manda por `wa.me`; sin un dato legal no sale.
+ * - HU-Q11.6: el liquidador de mensualidades da la cuenta de la caja, y sin valor no da total.
  */
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { SITIO, sinDesborde } from './parqueadero-ayudas.ts';
 
 const GENERADOR = `${SITIO}/herramientas/recibo-de-entrada/`;
+const LIQUIDADOR = `${SITIO}/herramientas/mensualidad-de-parqueadero/`;
 /** 8 oct 2026, 9:30 en Bogotá. */
 const AHORA = Date.UTC(2026, 9, 8, 14, 30);
 
@@ -39,10 +41,8 @@ const ocultar = (page: Page) =>
     document.dispatchEvent(new Event('visibilitychange'));
   });
 
-const deLaHerramienta = (lotes: readonly string[]) =>
-  lotes
-    .map((l) => JSON.parse(l) as { producto: string })
-    .filter((l) => l.producto === 'parqueadero-recibo-de-entrada');
+const deLaHerramienta = (lotes: readonly string[], producto = 'parqueadero-recibo-de-entrada') =>
+  lotes.map((l) => JSON.parse(l) as { producto: string }).filter((l) => l.producto === producto);
 
 async function llenarParqueadero(page: Page) {
   await page.getByLabel('Nombre', { exact: true }).fill('Parqueadero de Ensayo');
@@ -68,6 +68,9 @@ test.describe('la portada (HU-Q11.5 CA1)', () => {
     await expect(
       page.getByRole('link', { name: /^Recibo de entrada para su parqueadero/ }),
     ).toHaveAttribute('href', '/herramientas/recibo-de-entrada/');
+    await expect(
+      page.getByRole('link', { name: /^Cuánto cobrar por una mensualidad/ }),
+    ).toHaveAttribute('href', '/herramientas/mensualidad-de-parqueadero/');
     await expect(page.locator('link[rel="alternate"][type="text/markdown"]')).toHaveAttribute(
       'href',
       /\/index\.md$/,
@@ -80,7 +83,11 @@ test.describe('la portada (HU-Q11.5 CA1)', () => {
     const llms = await request.get(`${SITIO}/llms.txt`);
     expect(llms.status()).toBe(200);
     expect(await llms.text()).toMatch(/^# Parqueadero ED1\n/);
-    for (const ruta of ['/index.md', '/herramientas/recibo-de-entrada/index.md']) {
+    for (const ruta of [
+      '/index.md',
+      '/herramientas/recibo-de-entrada/index.md',
+      '/herramientas/mensualidad-de-parqueadero/index.md',
+    ]) {
       const r = await request.get(`${SITIO}${ruta}`);
       expect(r.status(), ruta).toBe(200);
       expect(await r.text()).toMatch(/^# /);
@@ -107,6 +114,11 @@ test.describe('accesibilidad WCAG 2.1 AA', () => {
       await page.getByLabel('Placa', { exact: true }).fill('abc 123');
       await page.getByRole('button', { name: 'Hacer el recibo' }).click();
       await expect(page.locator('#hoja')).toContainText('ABC123');
+      await sinViolaciones(page);
+      await page.goto(LIQUIDADOR);
+      await page.getByLabel('Valor del mes en pesos').fill('300.000');
+      await page.getByRole('button', { name: 'Calcular' }).click();
+      await expect(page.locator('#total-mensualidad')).toBeVisible();
       await sinViolaciones(page);
     });
   }
@@ -229,3 +241,91 @@ test.describe('el generador de recibo de entrada (HU-Q11.4)', () => {
     expect(fuera).toEqual([]);
   });
 });
+
+test.describe('el liquidador de mensualidades (HU-Q11.6)', () => {
+  test('da la cuenta de cada periodo, la misma de la caja, y termina en la caja', async ({
+    page,
+    context,
+  }) => {
+    const lotes: string[] = [];
+    await context.route('**/_m', (r) => {
+      lotes.push(r.request().postData() ?? '');
+      return r.fulfill({ status: 204 });
+    });
+    // 20 oct 2026, 9:00 en Bogotá.
+    await page.clock.setFixedTime(Date.UTC(2026, 9, 20, 14, 0));
+    const fuera = ajenos(page);
+    await page.goto(LIQUIDADOR);
+    await expect(page.getByLabel('Fecha de inicio', { exact: true })).toHaveValue('2026-10-20');
+
+    // CA3 ❌: sin valor, o en cero, no hay total; dice qué falta.
+    await page.getByRole('button', { name: 'Calcular' }).click();
+    await expect(page.locator('#faltan')).toHaveText('Para calcular falta el valor del mes.');
+    await expect(page.locator('#resultado')).toBeHidden();
+    await page.getByLabel('Valor del mes en pesos').fill('0');
+    await page.getByRole('button', { name: 'Calcular' }).click();
+    await expect(page.locator('#faltan')).toBeVisible();
+    await expect(page.locator('#resultado')).toBeHidden();
+
+    // CA1: hasta fin de mes, 12 de 31 días, con la cuenta; la caja cobra lo mismo (HU-Q8.4).
+    await page.getByLabel('Valor del mes en pesos').fill('300.000');
+    await page.getByRole('button', { name: 'Calcular' }).click();
+    await expect(page.locator('#faltan')).toBeHidden();
+    await expect(page.locator('#total-mensualidad')).toHaveText('$116.100');
+    await expect(page.locator('#titulo-resultado')).toBeFocused();
+    const periodos = page.locator('#periodos li');
+    await expect(periodos).toHaveCount(1);
+    await expect(periodos.first()).toContainText('20/10/2026 a 31/10/2026');
+    await expect(periodos.first()).toContainText(
+      '12 de 31 días: $300.000 × 12 ÷ 31 = $116.129, hacia abajo a la centena.',
+    );
+    await expect(periodos.first()).toContainText('Cada día de ese mes vale $9.677.');
+    await sinDesborde(page);
+
+    // Y dos meses completos después.
+    await page.getByRole('textbox', { name: /^Meses completos/ }).fill('2');
+    await page.getByRole('button', { name: 'Calcular' }).click();
+    await expect(page.locator('#total-mensualidad')).toHaveText('$716.100');
+    await expect(periodos).toHaveCount(3);
+    await expect(periodos.nth(2)).toContainText('01/12/2026 a 31/12/2026');
+    await expect(periodos.nth(2)).toContainText('Mes completo: 31 días.');
+
+    // Meses completos desde la fecha de inicio: sin meses no hay total.
+    await page.getByRole('combobox', { name: /^Cobrar/ }).selectOption('meses');
+    await expect(page.locator('#ayuda-meses')).toContainText('1 o más');
+    await page.getByRole('textbox', { name: /^Meses completos/ }).fill('0');
+    await page.getByRole('button', { name: 'Calcular' }).click();
+    await expect(page.locator('#faltan')).toHaveText('Para calcular falta cuántos meses.');
+    await page.getByRole('textbox', { name: /^Meses completos/ }).fill('1');
+    await page.getByLabel('Vehículo').selectOption('moto');
+    await page.getByRole('button', { name: 'Calcular' }).click();
+    await expect(page.locator('#total-mensualidad')).toHaveText('$300.000');
+    await expect(page.locator('#de-que')).toHaveText(
+      'Moto, mensualidad de $300.000, desde el 20/10/2026.',
+    );
+    await expect(periodos.first()).toContainText('20/10/2026 a 19/11/2026');
+
+    // CA2: el siguiente paso, a la caja, con UN lote por visita.
+    await expect(
+      page.getByRole('heading', { name: 'Lleve los abonados en su teléfono' }),
+    ).toBeVisible();
+    const caja = page.getByRole('link', { name: 'Abrir la caja' });
+    await expect(caja).toHaveAttribute('href', '/caja/');
+    await page.evaluate(() =>
+      document.addEventListener('click', (e) => e.preventDefault(), { once: true }),
+    );
+    await caja.click();
+    await ocultar(page);
+    await expect
+      .poll(() => deLaHerramienta(lotes, 'parqueadero-mensualidad'))
+      .toEqual([
+        {
+          v: 1,
+          producto: 'parqueadero-mensualidad',
+          eventos: { 'tool.opened': 1, 'tool.completed': 1, 'tool.next_step': 1 },
+        },
+      ]);
+    expect(fuera).toEqual([]);
+  });
+});
+

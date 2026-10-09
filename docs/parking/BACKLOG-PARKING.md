@@ -786,7 +786,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Work items:** WI-Q11.5.1 `[código]` · WI-Q11.5.2 `[diseño]` · WI-Q11.5.3 `[prueba]` CSP.
 
 #### HU-Q11.6 · El liquidador de mensualidades y prorrateos
-- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** sin sprint (se planea después de M1, primera de las herramientas) · **Depende de:** HU-Q11.1, HU-Q11.5 · **Estado:** Refinada
+- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** sin sprint (se planea después de M1, primera de las herramientas) · **Depende de:** HU-Q11.1, HU-Q11.5 · **Estado:** En revisión (rama `feat/q11c-sprint`): `/herramientas/mensualidad-de-parqueadero/` con `liquidarMensualidad` de `@ed1/parqueadero-tarifas` y la tabla de casos compartida con la caja (`@ed1/parqueadero-tarifas/casos-de-mensualidad`)
 - Como parqueadero, quiero calcular cuánto cobrar por una mensualidad que empieza a mitad de mes, o por varios meses, sin registrarme.
 - **Respaldo:** estudio §12.2 (herramienta 5). HU-Q11.1 la midió primera: demanda 780 con rangos, y «parqueadero mensual» en 100–1 mil en Colombia (8 oct 2026). Sirve también en LATAM («cochera mensual», «pensión de estacionamiento»).
 - **CA1.** Una página del sitio con tipo de vehículo, valor del mes y fecha de inicio, que da el prorrateo con su detalle día por día. Usa la misma lógica de mensualidades de la caja (HU-Q8.4), no una copia (P2).

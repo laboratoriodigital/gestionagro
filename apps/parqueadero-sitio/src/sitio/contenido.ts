@@ -69,7 +69,27 @@ export const GENERADOR = {
   },
 } as const;
 
-export const PAGINAS: readonly Pagina[] = [PORTADA, GENERADOR];
+export const LIQUIDADOR = {
+  ruta: '/herramientas/mensualidad-de-parqueadero/',
+  producto: 'parqueadero-mensualidad',
+  titulo: 'Liquidador de mensualidades de parqueadero, con prorrateo por días',
+  resumen:
+    'Calcule cuánto cobrar por una mensualidad de parqueadero que empieza a mitad de mes, o por varios meses, con la cuenta de cada día. Gratis y sin registrarse.',
+  titular: 'Cuánto cobrar por una mensualidad',
+  entrada:
+    'Escriba el valor del mes y el día en que empieza: le decimos cuánto cobrar hasta fin de mes, o por varios meses, con la cuenta de cada periodo. Gratis y sin registrarse.',
+  siguiente: {
+    titulo: 'Lleve los abonados en su teléfono',
+    texto:
+      'La caja cobra cada mensualidad con esta misma cuenta, imprime su recibo y le avisa cuáles vencen esta semana.',
+    accion: 'Abrir la caja',
+  },
+} as const;
+
+/** Las herramientas gratuitas, en el orden de la portada: el de la demanda medida (HU-Q11.1). */
+export const HERRAMIENTAS = [LIQUIDADOR, GENERADOR] as const;
+
+export const PAGINAS: readonly Pagina[] = [PORTADA, ...HERRAMIENTAS];
 
 /** El gemelo en Markdown de una página (`index.md` junto a su `index.html`). */
 export function gemelo(p: Pagina): string {
@@ -87,9 +107,25 @@ export function gemelo(p: Pagina): string {
       '',
       `## ${PORTADA.herramientasTitulo}`,
       '',
-      `- [${GENERADOR.titular}](${ORIGEN}${GENERADOR.ruta}): ${GENERADOR.resumen}`,
+      ...HERRAMIENTAS.map((h) => `- [${h.titular}](${ORIGEN}${h.ruta}): ${h.resumen}`),
       '',
       PORTADA.pie,
+      '',
+    ].join('\n');
+  }
+  if (p.ruta === LIQUIDADOR.ruta) {
+    return [
+      `# ${LIQUIDADOR.titular}`,
+      '',
+      LIQUIDADOR.entrada,
+      '',
+      'Pide el tipo de vehículo, el valor del mes, la fecha de inicio y cuántos meses completos se pagan. Con «hasta fin de mes», los días que quedan del mes se cobran en proporción: el valor del mes por los días que cubre, dividido por los días del mes que empieza ese día, hacia abajo a la centena. Un mes va del día de inicio al día anterior del mes siguiente (del 31 de enero, al 28 de febrero). Es la misma cuenta con que la caja cobra una mensualidad.',
+      '',
+      'Ejemplo: $300.000 al mes desde el 20 de octubre de 2026, hasta fin de mes, son 12 de 31 días: $116.129, que se cobran $116.100.',
+      '',
+      `## ${LIQUIDADOR.siguiente.titulo}`,
+      '',
+      `${LIQUIDADOR.siguiente.texto} [${LIQUIDADOR.siguiente.accion}](${ORIGEN}/caja/)`,
       '',
     ].join('\n');
   }
