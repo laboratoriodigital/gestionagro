@@ -1036,3 +1036,27 @@ La regla: **la versión mínima que dice `engines` es una afirmación: la prueba
 La regla: **un plazo que promete la arquitectura es una historia con su prueba; si solo está escrito, nadie lo construye.**
 
 *Ficha:* parqueadero · *(mío)* · 🟡 Medio · P13, P20 · parqueadero-0.3.0 · 2026-10-12
+
+**37 · La e2e de las dos cajas se colgó 5 minutos en el CI esperando el teclado de la placa, y en local pasa siempre.**
+
+*Qué pasó.* El 12 oct 2026, en el CI del PR #160 (minutos de Actions, sin cambios en la caja). La misma e2e había pasado en los dos CI de #158 (21,7 s) y pasó dos veces seguidas en local (32 s). El paso e2e tardó 477 s en vez de unos 270.
+
+*Síntoma literal.*
+```text
+Test timeout of 300000ms exceeded.
+Error: locator.click: Test ended.
+  - waiting for getByRole('group', { name: 'Teclado de la placa' }).getByRole('button', { name: 'A', exact: true })
+    at entrar (tests/e2e/parqueadero-dos-cajas.spec.ts:121:9)
+```
+
+*Causa raíz.* Sin confirmar. La caja estaba sin red, registrando entradas, y la pantalla no tenía el teclado con la «A» (*Inferencia*: otra pantalla encima, o el teclado ya en números por una placa a medio escribir). El CI no guardaba lo que vio Playwright, así que no hay con qué decidir, y el plazo de 300 s convirtió un cuelgue en 5 minutos facturables.
+
+*Cómo se reprodujo.* No se reprodujo: en local pasa.
+
+*Arreglo.* Parcial, hasta verlo otra vez: si el CI falla, sube `test-results/` como artefacto por tres días (la página y el error de cada e2e que falló), y la prueba se corta a los 90 s en vez de 300. Si se repite, la causa va aquí con el contexto.
+
+**Lo prueba** nada todavía: es una entrada abierta.
+
+La regla: **una e2e intermitente no se corre otra vez a ciegas; se guarda lo que vio y su plazo es el de una corrida lenta, no cinco veces más.**
+
+*Ficha:* parqueadero · *(del terreno)* · 🟡 Medio · P15, P19 · parqueadero-0.3.0 · 2026-10-12

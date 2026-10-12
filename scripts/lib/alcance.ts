@@ -32,6 +32,31 @@ export function esDocumento(ruta: string): boolean {
 }
 
 /**
+ * Lo que habla con D1 (HU-C11.8): las apps con Worker y base (CORE, celda del agro, API del
+ * parqueadero), el instrumento `packages/d1`, las migraciones, las pruebas de integración y el
+ * lockfile (una versión nueva de wrangler o workerd). Solo ahí el D1 de workerd y la base en
+ * proceso pueden dar resultados distintos (P17). `tests/repo/alcance.test.ts` exige que todo código
+ * con SQL viva en una de estas rutas.
+ */
+export function esDeLaBase(ruta: string): boolean {
+  const r = ruta.replaceAll('\\', '/');
+  return /^(packages\/d1\/|infrastructure\/migraciones\/|apps\/(core|api-celda|parqueadero-api)\/|tests\/integracion\/|pnpm-lock\.yaml$)/.test(
+    r,
+  );
+}
+
+/**
+ * Qué instrumento de D1 usan las pruebas de un PR (HU-C11.8): el D1 de workerd si el cambio toca
+ * la base, o si no se sabe qué cambió (P1: ante la duda, el fiel); si no, la base en proceso.
+ */
+export function instrumentoParaElCambio(archivos: readonly string[] | null): 'workerd' | 'sqlite' {
+  // Sin archivos cambiados tampoco se sabe nada: como `decidirAlcance`, el camino completo.
+  return archivos === null || archivos.length === 0 || archivos.some(esDeLaBase)
+    ? 'workerd'
+    : 'sqlite';
+}
+
+/**
  * Lo que solo usa el parqueadero: sus apps, sus paquetes, su contenido, su migración y sus
  * pruebas. Ningún otro producto importa sus paquetes (lo revisa `tests/repo/alcance.test.ts`).
  * Un paquete compartido (`packages/ui`, `@ed1/sync`, `@ed1/impresion`…), `scripts/` o la raíz no

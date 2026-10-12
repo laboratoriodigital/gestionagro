@@ -60,37 +60,16 @@ jobs:
     with:
       destino: staging
       ref: ${{ github.event.workflow_run.head_sha }}
+      # ¿Qué versiones del commit son nuevas? El agro (package.json, vX.Y.Z), el CORE
+      # (apps/core/package.json, core-vX.Y.Z) y el parqueadero (parqueadero-vX.Y.Z): cada uno se
+      # publica y va a producción solo cuando sube su versión. Lo decide el mismo trabajo de
+      # staging, al terminar, y no uno aparte (HU-C11.8).
+      decidir_publicacion: true
     secrets: inherit
 
-  version:
-    # ¿Qué versiones del commit son nuevas? Dos productos con versión propia (HU-C0.3): el agro
-    # (package.json, etiquetas vX.Y.Z) y el CORE (apps/core/package.json, core-vX.Y.Z). Cada uno se
-    # publica y va a producción solo cuando sube su versión.
-    needs: staging
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      version_agro: ${{ steps.leer.outputs.version_agro }}
-      publicar_agro: ${{ steps.leer.outputs.publicar_agro }}
-      version_core: ${{ steps.leer.outputs.version_core }}
-      publicar_core: ${{ steps.leer.outputs.publicar_core }}
-      version_parqueadero: ${{ steps.leer.outputs.version_parqueadero }}
-      publicar_parqueadero: ${{ steps.leer.outputs.publicar_parqueadero }}
-      productos: ${{ steps.leer.outputs.productos }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-      - id: leer
-        name: Leer las versiones y buscar sus etiquetas
-        run: node scripts/decidir-publicacion.ts
-
   publicar:
-    needs: version
-    if: needs.version.outputs.productos != ''
+    needs: staging
+    if: needs.staging.outputs.productos != ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -103,30 +82,30 @@ jobs:
         with:
           node-version: 22
       - name: Crear la versión del agro con las notas del CHANGELOG
-        if: needs.version.outputs.publicar_agro == 'true'
+        if: needs.staging.outputs.publicar_agro == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.version.outputs.version_agro }}
+          VERSION: ${{ needs.staging.outputs.version_agro }}
           SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           node scripts/notas-de-version.ts "$VERSION" > notas.md
           gh release create "v$VERSION" --target "$SHA" --title "v$VERSION" --notes-file notas.md
       - name: Crear la versión del CORE con las notas de su CHANGELOG
-        if: needs.version.outputs.publicar_core == 'true'
+        if: needs.staging.outputs.publicar_core == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.version.outputs.version_core }}
+          VERSION: ${{ needs.staging.outputs.version_core }}
           SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           node scripts/notas-de-version.ts --core "$VERSION" > notas-core.md
           gh release create "core-v$VERSION" --target "$SHA" --title "CORE v$VERSION" --notes-file notas-core.md --latest=false
       - name: Crear la versión del parqueadero con las notas de su CHANGELOG
-        if: needs.version.outputs.publicar_parqueadero == 'true'
+        if: needs.staging.outputs.publicar_parqueadero == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.version.outputs.version_parqueadero }}
+          VERSION: ${{ needs.staging.outputs.version_parqueadero }}
           SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
@@ -135,12 +114,12 @@ jobs:
 
   produccion:
     # Solo lo que subió de versión: el agro sin el CORE, el CORE sin el agro, o los dos.
-    needs: [version, publicar]
+    needs: [staging, publicar]
     uses: ./.github/workflows/desplegar-destino.yml
     with:
       destino: produccion
       ref: ${{ github.event.workflow_run.head_sha }}
-      productos: ${{ needs.version.outputs.productos }}
+      productos: ${{ needs.staging.outputs.productos }}
     secrets: inherit
 
   a-mano:

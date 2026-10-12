@@ -8,8 +8,10 @@ import { describe, expect, it } from 'vitest';
 import {
   archivosDeDiff,
   decidirAlcance,
+  esDeLaBase,
   esDelParqueadero,
   esDocumento,
+  instrumentoParaElCambio,
   leeDocumentos,
 } from '../../scripts/lib/alcance.ts';
 import { listarArchivos, RAIZ } from '../../scripts/lib/repo.ts';
@@ -150,6 +152,44 @@ describe('el e2e de lo afectado: el parqueadero (HU-C11.3)', () => {
       ),
     );
     expect(ajenos).toEqual([]);
+  });
+});
+
+describe('el D1 de workerd solo cuando el cambio toca la base (HU-C11.8)', () => {
+  it.each([
+    'apps/core/src/entrar.ts',
+    'apps/api-celda/src/push.ts',
+    'apps/parqueadero-api/src/dispositivos.ts',
+    'packages/d1/src/sqlite.ts',
+    'infrastructure/migraciones/parqueadero/0001_parqueadero_v1.sql',
+    'tests/integracion/arnes.ts',
+    'pnpm-lock.yaml',
+  ])('«%s» toca la base: workerd', (ruta) => {
+    expect(instrumentoParaElCambio(['docs/x.md', ruta])).toBe('workerd');
+  });
+
+  it('la caja, el sitio o un paquete sin SQL no tocan la base: la base en proceso', () => {
+    expect(
+      instrumentoParaElCambio([
+        'apps/parqueadero-sitio/src/caja/drive.ts',
+        'packages/drive/src/index.ts',
+        'apps/cuaderno/src/main.ts',
+        'docs/BACKLOG.md',
+      ]),
+    ).toBe('sqlite');
+  });
+
+  it('sin poder calcular el cambio, el fiel (control negativo, P1)', () => {
+    expect(instrumentoParaElCambio(null)).toBe('workerd');
+    expect(instrumentoParaElCambio([])).toBe('workerd');
+  });
+
+  it('todo código con SQL vive en una ruta que la regla reconoce', () => {
+    const conSql = listarArchivos(
+      (r) => /^(apps|packages|scripts)\//.test(r) && /\.tsx?$/.test(r) && !/\.test\.tsx?$/.test(r),
+    ).filter((r) => /\.prepare\(|\.batch\(|D1Database/.test(readFileSync(join(RAIZ, r), 'utf8')));
+    expect(conSql.length).toBeGreaterThan(10);
+    expect(conSql.filter((r) => !esDeLaBase(r))).toEqual([]);
   });
 });
 

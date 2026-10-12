@@ -35,6 +35,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Una galería con todos los componentes de la cuenta y sus estados, en claro y en oscuro, con una prueba que avisa si alguno cambió sin querer (HU-C6.4).
 - La cuenta de Laboratorio Digital tiene su primera página, en `cuenta.laboratorio-digital.com`: dice qué va a reunir y que pronto se podrá entrar con Google. Es estática, sin JavaScript, y no aparece en buscadores (HU-C7.2).
 
+### Cambiado
+- El CI gasta menos minutos (HU-C11.8): en `main`, con el PR ya verificado, no corre ningún paso; el D1 de workerd corre en el PR que toca la base y en una corrida semanal de `main` con todo; el e2e corre solo los grupos (agro, cuenta, parqueadero) a los que llega el cambio, leyendo del código quién usa a quién; un PR en borrador no corre CI; el despliegue decide la publicación en el trabajo de staging, sin un trabajo aparte; y Windows ya no corre por `package.json`.
+
 ### Corregido
 - El Node mínimo del repositorio pasa de 22.18 a 22.20: con 22.18 y 22.19, la base en proceso de las pruebas (`node:sqlite`) no liga un parámetro numerado repetido (`?1`) y seis pruebas de la celda del parqueadero fallaban en una máquina con 22.18, con el CI en verde. Una prueba de `@ed1/d1` lo dice con su nombre (bitácora parqueadero 35).
 - El despliegue a staging prepara las celdas del parqueadero en cada corrida. Antes las saltaba si la corrida no nombraba al parqueadero, y la de staging nunca lo nombra: c2 no llegó a crearse después de fusionar #145.
