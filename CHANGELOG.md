@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La celda del agro anota cada día en que acepta un token del formato viejo (v1), y el reporte semanal de los lunes dice esos días por celda y destino. Es el registro que pide la contracción: con una semana sin ninguno en producción, las celdas podrán rechazarlos (HU-C4.5).
 - El despliegue comprueba que cada token de Cloudflare no tenga permisos de más (HU-C11.5): al de despliegue, crear tokens, R2, Pages ni, en producción, DNS; al de métricas, nada más que leer el consumo. Uno de más detiene el despliegue antes de tocar nada y lo nombra. El de métricas se prueba con la consulta del vigía antes de cargarlo. La tabla de cada token y la lista del dueño, en `docs/runbooks/credenciales.md`.
 - En Planes, el plan Finca se paga por 1, 3, 6 o 12 meses: cada periodo con su total y, desde 3 meses, lo que sale al mes y lo que se ahorra. El monto lo pone el CORE; un periodo sin precio no aparece (HU-C5.7). Necesita el CORE con HU-C5.3 en producción antes.
 - La celda del agro sabe el plan de cada organización aunque nadie haya entrado a la app (HU-C5.6): en su vuelta de cada hora, después del vigía, le pide al CORE por service binding los planes que cambiaron por un pago, y a las 06:00 UTC todos. La copia queda en `plan_de_org` (migración de celda 0004) y solo se escribe lo que cambió. Si el CORE no responde, la copia queda como estaba y el dueño recibe un aviso por Telegram, uno por motivo. Necesita el CORE con `ServicioDelCore` en producción antes.

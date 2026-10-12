@@ -564,7 +564,7 @@ Formato de cada historia:
 - **Work items:** WI-C4.4.1 `[código]` · WI-C4.4.2 `[prueba]`.
 
 #### HU-C4.5 · Tokens N+2: las celdas rechazan v1
-- **Capa:** tokens · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C4.3 en producción, el congelamiento terminado · **Estado:** Refinada
+- **Capa:** tokens · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C4.3 en producción, el congelamiento terminado · **Estado:** En curso (rama `feat/c7-sprint`. **CA2 listo:** la celda deja una marca por día en su KV de flags (`tokens_v1:AAAA-MM-DD`, vence a los 40 días) cuando acepta un token v1, con una lectura por día y por instancia, sin tocar la solicitud si el KV falla; el reporte semanal de los lunes dice los días con v1 de cada celda y destino, y un KV que no responde no cuenta como «ningún día». Por qué KV y no los logs: los Workers Logs del plan gratuito duran 3 días. 6 pruebas; control negativo: sin la marca, la de la solicitud con v1 queda en rojo. Desde CORE 0.3.0 (7 oct 2026) solo se emiten v2 y un v1 vence en 12 h, así que se espera cero: el registro es la prueba, no la suposición (P1). **CA1 y CA3 esperan:** la semana empieza cuando esta celda llegue a producción con la publicación del C7; con dos reportes de lunes sin días con v1 en producción, el dueño aprueba la contracción (WI-C4.5.3) y va en el sprint siguiente)
 - Como plataforma, quiero cerrar la transición, para que el formato viejo no sea una puerta abierta.
 - **Respaldo:** PLATAFORMA §4.6 (fase N+2).
 - **CA1.** Al menos 12 h después de N+1 en producción (en el plan, más de un mes), las celdas rechazan v1.
