@@ -802,7 +802,7 @@ Formato de cada historia:
 - **Work items:** WI-C8.2.1 `[código]` · WI-C8.2.2 `[prueba]` · WI-C8.2.3 `[infra]` spike de la reescritura.
 
 #### HU-C8.3 · Las calculadoras como habilidades
-- **Capa:** sitio del agro · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** C8 · **Depende de:** HU-C8.2 · **Estado:** Refinada
+- **Capa:** sitio del agro · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** C8 · **Depende de:** HU-C8.2 · **Estado:** En validación (rama `feat/c8-sprint`. `scripts/lib/habilidades.ts`: al armar el despliegue, cada herramienta pública da `/.well-known/agent-skills/<nombre>/SKILL.md` (el encabezado de la habilidad y el gemelo de su página, que ya trae la fórmula, el ejemplo, los rangos, los límites y las fuentes) y su entrada en `index.json` con `sha256`. **Cambio de forma:** el nombre es el de la ruta (`calculadora-dpv`, `periodo-de-carencia`), no `calcular-dpv`, para no tener una segunda lista de nombres (P2). CA2: pública es `activo`, la misma compuerta del sitemap; **hoy las dos calculadoras siguen en revisión agronómica, así que no se publica ninguna** y tampoco el índice, porque uno vacío diría que hay (P1). Aparecen solas en el build siguiente a su revisión. 4 pruebas; controles negativos: sin herramientas no hay índice, y una letra cambiada cambia la huella)
 - Como agente de un productor, quiero la fórmula, los rangos y las fuentes de la DPV y de la carencia, para calcular sin el navegador.
 - **Respaldo:** PLATAFORMA §5.3 (5); ED1 §3.12 (browser-first del lado del agente).
 - **CA1.** `/.well-known/agent-skills/index.json` con `sha256` calculado en el build, y un `SKILL.md` por herramienta.

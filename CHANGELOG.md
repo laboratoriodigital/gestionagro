@@ -4,10 +4,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
-### Arreglado
-- La guía del productor y la página de vendedores perdían el espacio antes de una palabra en negrita que empezaba en otro renglón («si produceecológico»). Una prueba lee las plantillas y no lo deja volver.
-
 ### Agregado
+- Las calculadoras publicadas se ofrecen como habilidades de agente en `/.well-known/agent-skills/` (HU-C8.3), con la fórmula, el ejemplo, los rangos y las fuentes de su página, y la huella `sha256` de cada una. Solo las que pasaron la revisión agronómica: hoy ninguna, así que todavía no se publica nada.
 - `/llms.txt` y una versión en Markdown (`index.md`) de cada página pública de cultivopro.co, anunciada con `<link rel="alternate">` y la cabecera `Link` (HU-C8.2). Sale del mismo HTML de la página al armar el despliegue; una calculadora en revisión agronómica no tiene, y un enlace roto de `llms.txt` detiene el armado. Pasos para negociar `Accept: text/markdown` en la zona: `docs/runbooks/agentes.md`.
 - El `robots.txt` de cultivopro.co dice qué agentes pueden leer y para qué (HU-C8.1): los buscadores y asistentes que enlazan al sitio leen lo público, los recolectores para entrenar modelos no leen nada (`ai-train=no`), y `/api/` y `/agro/app/` siguen cerrados para todos, con la `Content-Signal` al final. Sale de `content/agentes.json`, y la prueba de humo del despliegue exige que lo publicado sea eso.
 - `@ed1/drive` sube archivos binarios, como una foto (`subirArchivo`), lista una carpeta entera aunque Google la dé por páginas (`listarArchivos`) y borra sin fallar si la persona ya borró a mano (`borrarArchivo`). Lo usa la caja del parqueadero para sus fotos (HU-Q8.3); el cuaderno no cambia.
@@ -44,6 +42,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - El CI gasta menos minutos (HU-C11.8): en `main`, con el PR ya verificado, no corre ningún paso; el D1 de workerd corre en el PR que toca la base y en una corrida semanal de `main` con todo; el e2e corre solo los grupos (agro, cuenta, parqueadero) a los que llega el cambio, leyendo del código quién usa a quién; un PR en borrador no corre CI; el despliegue decide la publicación en el trabajo de staging, sin un trabajo aparte; y Windows ya no corre por `package.json`.
 
 ### Corregido
+- La guía del productor y la página de vendedores perdían el espacio antes de una palabra en negrita que empezaba en otro renglón («si produceecológico»). Una prueba lee las plantillas y no lo deja volver.
 - El Node mínimo del repositorio pasa de 22.18 a 22.20: con 22.18 y 22.19, la base en proceso de las pruebas (`node:sqlite`) no liga un parámetro numerado repetido (`?1`) y seis pruebas de la celda del parqueadero fallaban en una máquina con 22.18, con el CI en verde. Una prueba de `@ed1/d1` lo dice con su nombre (bitácora parqueadero 35).
 - El despliegue a staging prepara las celdas del parqueadero en cada corrida. Antes las saltaba si la corrida no nombraba al parqueadero, y la de staging nunca lo nombra: c2 no llegó a crearse después de fusionar #145.
 - El despliegue lee la salida de `wrangler d1 execute --json` aunque wrangler escriba avisos con corchetes antes o después del JSON (`▲ [WARNING] …`); antes, un aviso después del JSON la volvía ilegible y la revisión de huérfanas del CORE no se podía hacer.

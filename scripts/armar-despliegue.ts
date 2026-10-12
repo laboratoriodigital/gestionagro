@@ -18,14 +18,21 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { RUTAS_APP } from '../apps/cuaderno/src/rutas.ts';
 import { SITIO } from '../apps/sitio/src/lib/seo.ts';
 import politica from '../content/agro/privacidad/politica.json' with { type: 'json' };
 import marca from '../content/marca.json' with { type: 'json' };
 import { textoDeCabeceras } from './lib/cabeceras.ts';
 import { cargarCeldas } from './lib/celdas.ts';
-import { enlacesQueFaltan, gemeloDe, llmsTxt, paginasPublicas } from './lib/gemelos.ts';
+import {
+  enlacesQueFaltan,
+  gemeloDe,
+  llmsTxt,
+  type PaginaPublica,
+  paginasPublicas,
+} from './lib/gemelos.ts';
+import { habilidadesDe, RUTA_DE_HABILIDADES } from './lib/habilidades.ts';
 import { RAIZ } from './lib/repo.ts';
 
 const origen = join(RAIZ, 'apps', 'cuaderno', 'dist');
@@ -63,11 +70,30 @@ for (const { segmento } of RUTAS_APP) {
 }
 // HU-C8.2: un index.md junto a cada página pública y /llms.txt. Un enlace roto detiene (CA3).
 const publicas = paginasPublicas(sitio, marca.nombre);
+const conGemelo: { pagina: PaginaPublica; gemelo: string }[] = [];
 for (const p of publicas) {
   const carpeta = join(sitio, ...p.ruta.split('/').filter(Boolean));
   const html = readFileSync(join(carpeta, 'index.html'), 'utf8');
-  writeFileSync(join(carpeta, 'index.md'), gemeloDe(p, html, SITIO));
+  const gemelo = gemeloDe(p, html, SITIO);
+  writeFileSync(join(carpeta, 'index.md'), gemelo);
+  conGemelo.push({ pagina: p, gemelo });
 }
+// HU-C8.3: las herramientas públicas como habilidades. Sin ninguna, no hay índice (P1).
+const habilidades = habilidadesDe(conGemelo, SITIO);
+const carpetaDeHabilidades = join(sitio, ...RUTA_DE_HABILIDADES.split('/').filter(Boolean));
+rmSync(carpetaDeHabilidades, { recursive: true, force: true });
+if (habilidades.indice) {
+  for (const [ruta, texto] of habilidades.archivos) {
+    const archivo = join(sitio, ...ruta.split('/').filter(Boolean));
+    mkdirSync(dirname(archivo), { recursive: true });
+    writeFileSync(archivo, texto);
+  }
+  writeFileSync(
+    join(carpetaDeHabilidades, 'index.json'),
+    `${JSON.stringify(habilidades.indice, null, 2)}\n`,
+  );
+}
+console.log(`✅ ${habilidades.archivos.length} habilidades de agente`);
 const llms = llmsTxt(publicas, {
   nombre: marca.nombre,
   lema: marca.lema,
