@@ -1,6 +1,6 @@
 {
   "name": "@ed1/core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "CORE v0: usuarios, organizaciones, membresías, invitaciones y directorio de celdas (ADR-9, ARQUITECTURA §5.4).",
   "type": "module",

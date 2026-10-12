@@ -4,6 +4,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.5.0] - 2026-10-12
+
 ### Agregado
 - El CI de un PR corre solo las pruebas unitarias que alcanzan el código cambiado (`vitest related`), más las del repositorio siempre. Con un cambio que no se sigue por importaciones (SQL, JSON, contenido, configuración), todas (HU-C11.3).
 - `node scripts/verificar-agentes.ts [url]` comprueba lo que leen los agentes en el sitio desplegado: robots y su señal, sitemap, `llms.txt` y sus enlaces, cada gemelo con su cabecera `Link`, las habilidades con su huella, `security.txt` y que no haya un catálogo de API vacío. Corre en la prueba de humo del despliegue: una falla en staging detiene la salida a producción (HU-C8.5).
@@ -49,6 +51,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - El CI gasta menos minutos (HU-C11.8): en `main`, con el PR ya verificado, no corre ningún paso; el D1 de workerd corre en el PR que toca la base y en una corrida semanal de `main` con todo; el e2e corre solo los grupos (agro, cuenta, parqueadero) a los que llega el cambio, leyendo del código quién usa a quién; un PR en borrador no corre CI; el despliegue decide la publicación en el trabajo de staging, sin un trabajo aparte; y Windows ya no corre por `package.json`.
 
 ### Corregido
+- La revisión de permisos de más del token de despliegue ya no detiene producción por el permiso de DNS: nunca se ha visto contra Cloudflare y no está comprobado que los dominios propios no lo necesiten. Por ahora avisa en el resumen, como enseñó el token de métricas (bitácora core 10).
 - El despliegue ya no se detiene con un token de métricas bien hecho: la revisión de permisos de más le pedía la lista de Workers de la cuenta, y Cloudflare se la da también a un token que solo lee el consumo. El de #161 se detuvo así antes de tocar nada (bitácora core 10).
 - La guía del productor y la página de vendedores perdían el espacio antes de una palabra en negrita que empezaba en otro renglón («si produceecológico»). Una prueba lee las plantillas y no lo deja volver.
 - El Node mínimo del repositorio pasa de 22.18 a 22.20: con 22.18 y 22.19, la base en proceso de las pruebas (`node:sqlite`) no liga un parámetro numerado repetido (`?1`) y seis pruebas de la celda del parqueadero fallaban en una máquina con 22.18, con el CI en verde. Una prueba de `@ed1/d1` lo dice con su nombre (bitácora parqueadero 35).

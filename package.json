@@ -1,6 +1,6 @@
 {
   "name": "plataforma",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Plataforma ED1: CultivoPro (calculadoras agronómicas gratuitas y cuaderno de campo offline-first) y el CORE. La Tienda 3.0, en diseño (docs/tienda).",
   "type": "module",

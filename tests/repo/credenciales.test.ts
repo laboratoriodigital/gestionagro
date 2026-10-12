@@ -8,6 +8,7 @@ import {
   idsDeZonas,
   PERMISOS_DE_MAS,
   permisosDeMas,
+  permisosEnObservacion,
   verificarTokenDeMetricas,
 } from '../../scripts/lib/credenciales.ts';
 import type { Fetch } from '../../scripts/lib/despliegue.ts';
@@ -38,13 +39,21 @@ describe('HU-C11.5 · cada token con lo suyo y nada más', () => {
     expect(pedidos.every((p) => p.startsWith('GET '))).toBe(true);
   });
 
-  it('CA3 ❌ · uno que también crea tokens o edita el DNS falla y nombra cada permiso de más', async () => {
+  it('CA3 ❌ · uno que también crea tokens falla y nombra el permiso de más', async () => {
     const { fn } = api([...DESPLIEGUE, 'user/tokens', 'dns_records']);
     expect(await permisosDeMas(fn, 'despliegue', 't', 'cuenta', ['z1', 'z2'])).toEqual([
       'CF_API_TOKEN tiene un permiso de más: «User → API Tokens». Quítalo del token en Cloudflare (docs/runbooks/credenciales.md)',
-      'CF_API_TOKEN tiene un permiso de más: «Zone → DNS». Quítalo del token en Cloudflare (docs/runbooks/credenciales.md)',
-      'CF_API_TOKEN tiene un permiso de más: «Zone → DNS». Quítalo del token en Cloudflare (docs/runbooks/credenciales.md)',
     ]);
+  });
+
+  it('el DNS de más, mientras no se haya visto contra Cloudflare, avisa una vez y no detiene (bitácora core 10)', async () => {
+    const { fn } = api([...DESPLIEGUE, 'dns_records']);
+    expect(await permisosDeMas(fn, 'despliegue', 't', 'cuenta', ['z1', 'z2'])).toEqual([]);
+    expect(await permisosEnObservacion(fn, 'despliegue', 't', 'cuenta', ['z1', 'z2'])).toEqual([
+      'CF_API_TOKEN tiene un permiso de más: «Zone → DNS». Quítalo del token en Cloudflare (docs/runbooks/credenciales.md) (en observación: no detiene el despliegue; ver docs/runbooks/credenciales.md)',
+    ]);
+    const sinDns = api(DESPLIEGUE);
+    expect(await permisosEnObservacion(sinDns.fn, 'despliegue', 't', 'cuenta', ['z1'])).toEqual([]);
   });
 
   it('sin zonas (staging), las sondas de zona no corren', async () => {
