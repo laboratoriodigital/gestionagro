@@ -135,13 +135,25 @@ export function presupuestoDeLaCelda(
   };
 }
 
-export function wranglerDeLaCelda(celda: Celda): Record<string, unknown> {
+/**
+ * La API de una celda del agro. `workerDelCore` es el de `celdas.json › core`: la celda lo llama por
+ * service binding con RPC para tener los planes al día (HU-C5.6), y staging llama al CORE de
+ * staging. Un service binding solo une Workers de la misma cuenta (ADR-23).
+ */
+export function wranglerDeLaCelda(celda: Celda, workerDelCore: string): Record<string, unknown> {
   const bases = (staging: boolean) =>
     celda.shards.map((shard) => ({
       binding: shard,
       database_name: baseDelShard(shard, staging),
       migrations_dir: MIGRACIONES_CELDA,
     }));
+  const core = (staging: boolean) => [
+    {
+      binding: 'CORE',
+      service: staging ? `${workerDelCore}-staging` : workerDelCore,
+      entrypoint: 'ServicioDelCore',
+    },
+  ];
   const nombre = `agro-api-${celda.id}`;
   const presupuesto = presupuestoDeLaCelda(celda);
   return {
@@ -152,8 +164,9 @@ export function wranglerDeLaCelda(celda: Celda): Record<string, unknown> {
     workers_dev: true,
     vars: { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan, ...presupuesto },
     d1_databases: bases(false),
-    // El vigía de cuota (HU-E8.2), cada hora. Uno por destino: 2 de los 5 Cron Triggers que da la
-    // cuenta gratuita.
+    services: core(false),
+    // El vigía de cuota (HU-E8.2) y los planes al día (HU-C5.6), cada hora. Uno por destino: 2 de
+    // los 5 Cron Triggers que da la cuenta gratuita.
     triggers: { crons: ['0 * * * *'] },
     observability: { enabled: true },
     env: {
@@ -162,6 +175,7 @@ export function wranglerDeLaCelda(celda: Celda): Record<string, unknown> {
         workers_dev: true,
         vars: { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan, ...presupuesto },
         d1_databases: bases(true),
+        services: core(true),
         triggers: { crons: ['0 * * * *'] },
       },
     },
@@ -233,7 +247,8 @@ export const textoWranglerDelSitio = (config: ConfigCeldas): string =>
   comoTexto(wranglerDelSitio(config));
 export const textoWranglerDelCore = (config: ConfigCeldas): string =>
   comoTexto(wranglerDelCore(config));
-export const textoWranglerDeLaCelda = (celda: Celda): string => comoTexto(wranglerDeLaCelda(celda));
+export const textoWranglerDeLaCelda = (celda: Celda, workerDelCore: string): string =>
+  comoTexto(wranglerDeLaCelda(celda, workerDelCore));
 
 /** Las celdas que sirven al agro: las únicas con la API de `apps/api-celda` (HU-Q7.2). */
 export const celdasDelAgro = (config: ConfigCeldas): Celda[] =>
@@ -286,7 +301,7 @@ if (process.argv[1]?.endsWith('generar-wrangler.ts')) {
   writeFileSync(RUTA_WRANGLER_SITIO, textoWranglerDelSitio(config));
   writeFileSync(RUTA_WRANGLER_CORE, textoWranglerDelCore(config));
   const deCeldas = celdasDelAgro(config).map((celda) => {
-    writeFileSync(rutaWranglerCelda(celda.id), textoWranglerDeLaCelda(celda));
+    writeFileSync(rutaWranglerCelda(celda.id), textoWranglerDeLaCelda(celda, config.core.worker));
     return rutaWranglerCelda(celda.id);
   });
   mkdirSync(join(RAIZ, 'apps', 'parqueadero-api'), { recursive: true });

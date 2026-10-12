@@ -121,7 +121,7 @@ Al 5 oct 2026 el CORE v0 tiene las guardias que heredó del agro (pruebas del CO
 #### P12 · El permiso que se comprueba es el que se usa
 - **Regla:** un token se prueba antes de sembrarlo y con la acción que va a hacer; ninguno opcional va en el camino crítico.
 - **En el CORE:** con una sola cuenta para todo, el aislamiento entre productos descansa en credenciales por propósito (R6): despliegue, métricas y Cloudflare for SaaS, cada una con lo mínimo. Es la causa 4 de la Tienda 2.0: cuatro permisos que se pisan.
-- **Lo impedirá:** HU-C11.5; `CELDA_SERVICE_TOKEN` comparado en tiempo constante (HU-C5.6).
+- **Lo impedirá:** HU-C11.5. HU-C5.6 no necesitó token: la celda llama al CORE por service binding (12 oct 2026, ver «Cambios de rumbo»).
 - **Entradas:** —
 
 #### P13 · Un secreto no viaja por donde queda escrito
@@ -274,6 +274,7 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 | Una rama y un PR por historia (`entrega-por-partes`, bitácora agro) | Una rama y un PR por sprint, con un commit por historia (5 oct 2026) | El repositorio volvió a privado: cada PR gasta dos corridas completas del CI, unos 12 minutos de 2.000 al mes. El dueño pidió máxima eficiencia y valida por sprint en la revisión del viernes. Lo que urge va en su propia rama |
 | Workers Paid con el M0 de la Tienda (ADR-23, PLATAFORMA §3.2) y activado antes del C4 | Solo cuando sea estrictamente necesario y no haya otra salida para seguir avanzando o creciendo (6 oct 2026) | Decisión del dueño. Todo se diseña para el plan gratuito; una historia que solo sea posible con el pagado lo dice con el dato y propone antes la salida gratuita. HU-C11.2 sale del C6 porque `limits.cpu_ms` solo existe en el pagado; el vigía en modo pago (HU-C11.1) ya está hecho y espera |
 | HC1 («dos productos en staging») en el C4, con HU-C3.7 | HC1 en el C5, con HU-C3.7 junto a HU-C4.3 (6 oct 2026) | Para que una persona entre a un segundo producto y cree allí su organización, el token tiene que decir su producto (HU-C4.3), y eso solo puede salir con la fase N (HU-C4.1) ya en producción, 12 h antes por lo menos (P10). Sin eso, la validación del dueño en staging no tendría qué mirar. El C4 queda en 13 puntos y el C5 en 20 |
+| La celda pide los planes con `POST /api/core/servicio/planes` y un `CELDA_SERVICE_TOKEN` una vez al día, y el CORE le avisa de cada pago aprobado (PLATAFORMA §4.13, HU-C5.6 CA1 y CA2) | Un service binding con RPC (`ServicioDelCore.planes`), cada hora lo que cambió y a las 06:00 UTC todo; el CORE nunca llama a la celda (12 oct 2026) | El CORE y las celdas viven en la misma cuenta (ADR-23): un binding no tiene URL, así que no hay secreto que rotar, guardar en GitHub ni comparar en tiempo constante (P12, R6), y es gratis en el plan gratuito. Preguntar cada hora por lo que cambió reemplaza el aviso del CORE sin una ruta de escritura nueva en la celda; el pago llega a la app al instante por el token. Una celda en otra cuenta necesitará volver al token. `CELDA_SERVICE_TOKEN` sale de ARQUITECTURA §7.5; TIENDA-3.0 todavía lo nombra |
 | La hoja de ruta P0–P6 sin interfaz propia del CORE (PLATAFORMA §7) | Con un sistema de diseño (EC6) y la cuenta en `cuenta.laboratorio-digital.com` (EC7) desde el primer sprint | Pedido del dueño: frontend bonito, minimalista y moderno desde el inicio; ED1 §16 ya preveía la cuenta |
 
 ---

@@ -793,7 +793,7 @@ async function desplegarApiCelda(
       config.core.d1,
     );
     escribirDespliegueCelda(
-      configDeLaCelda(wranglerDeLaCelda(celda), dest, {
+      configDeLaCelda(wranglerDeLaCelda(celda, config.core.worker), dest, {
         bases,
         flagsId: ns.id,
         clavesCore: claves,

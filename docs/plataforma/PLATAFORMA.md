@@ -480,7 +480,7 @@ Las cuatro están en `sql/core/`. La prueba las aplica encadenadas sobre 0001–
 | `POST /api/core/interes[/ver]` | Planes del agro | Planes del producto de la organización |
 | `POST /api/core/pago/crear` | Un mes; monto de `planes.json` del cuaderno | + `meses`: un periodo con precio vigente para ese plan (1, 3, 6 o 12). El monto sale de `plan_precio`, que el despliegue copia de `planes.json`. La referencia lleva el prefijo del producto (`tienda-<uuidv7>`) |
 | `POST /api/core/pago/confirmar` · cron | Activa un mes | Activa `meses` con meses calendario (§4.8) y escribe `periodo_desde` y `periodo_hasta` |
-| `POST /api/core/servicio/planes` (nueva) | — | Celda → CORE, una vez al día. Devuelve `plan` y `plan_vence` de las organizaciones de esa celda (§4.13) |
+| `ServicioDelCore.planes` (nueva, RPC por service binding, sin URL) | — | Celda → CORE, cada hora lo que cambió y una vez al día todo. Devuelve `plan` y `plan_vence` de las organizaciones de esa celda (§4.13, HU-C5.6) |
 | `GET /.well-known/jwks.json` (nueva) | — | §4.6 |
 | `GET /.well-known/oauth-authorization-server` y `/oauth/*` (nuevas) | — | §5.4 |
 
@@ -579,10 +579,11 @@ CORS: `ORIGENES_APP` pasa a ser la unión de los orígenes de todos los producto
 ### 4.13 CORE ↔ celdas, fuera del camino caliente
 
 - **Ninguna solicitud de un usuario hace que una celda llame al CORE** (ADR-10). La celda lee del token todo lo que necesita, plan incluido.
-- **Una vez al día, cada celda pide al CORE** el plan de sus organizaciones: `POST /api/core/servicio/planes`. Así se entera de un pago o un vencimiento aunque nadie haya entrado al panel.
-  - La solicitud va autenticada con un token de servicio de esa celda (`CELDA_SERVICE_TOKEN`, que ya está en la lista de ARQUITECTURA §7.5), comparado en tiempo constante.
-  - Si falla, la celda conserva la copia anterior y avisa (P1). El plan nunca baja «por si acaso».
-- **Al aprobar un pago, el CORE avisa a la celda** con el mismo token: `POST /api/servicio/plan` en la API de la celda. Si el aviso se pierde, la sincronización diaria lo corrige.
+- **Cada celda pide al CORE** el plan de sus organizaciones en su vuelta programada (HU-C5.6), y guarda una copia en cada shard (`plan_de_org`). Así se entera de un pago o un vencimiento aunque nadie haya entrado al panel.
+  - **Por service binding, con RPC** (`ServicioDelCore.planes`), no por HTTP: no hay URL pública ni secreto que guardar o comparar. Solo une Workers de la misma cuenta, que es lo que hay (ADR-23); una celda en otra cuenta necesitará otro camino, y ese día vuelve el token de servicio. *Cambio de forma del 12 oct 2026: antes decía `POST /api/core/servicio/planes` con `CELDA_SERVICE_TOKEN`.*
+  - **Cada hora, los planes con un pago aprobado en las últimas 3 horas; a las 06:00 UTC, todos**, porque un vencimiento no deja fila. Solo se escribe lo que cambió: cada fila cuenta en la cuota diaria de D1.
+  - Si falla, la celda conserva la copia anterior y avisa una vez por Telegram (P1). El plan nunca baja «por si acaso».
+- **El CORE no avisa a la celda al aprobar un pago.** La vuelta de cada hora lo recoge: el pago ya llega a la app al instante por el token, y la copia de la celda tarda a lo sumo una hora. Ahorra una ruta de escritura en la celda y un segundo camino que probar. *Cambio de forma del 12 oct 2026: antes decía `POST /api/servicio/plan` en la API de la celda.*
 
 ---
 

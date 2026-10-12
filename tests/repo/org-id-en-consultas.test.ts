@@ -32,12 +32,14 @@ const APIS: readonly Api[] = [
     nombre: 'agro',
     dir: join(RAIZ, 'apps', 'api-celda', 'src'),
     tablas: TABLAS_AGRO,
-    archivos: ['push.ts', 'pull.ts', 'qr.ts', 'worker.ts'],
+    archivos: ['planes.ts', 'push.ts', 'pull.ts', 'qr.ts', 'worker.ts'],
     excepciones: {
       'select id, org_id from registro where id in':
         'busca el id en todas las organizaciones para saber si otra ya lo usa; el resultado solo se compara con la organización del token y nunca sale en la respuesta (push.ts)',
       'select id, org_id, entidad, version, datos from catalogo where id in':
         'lo mismo para los catálogos: detectar un id ajeno y mandarlo a cuarentena (push.ts)',
+      'select org_id, plan, plan_vence from plan_de_org':
+        'la vuelta programada compara la copia de los planes del shard entero con lo que dijo el CORE; no hay token ni usuario, y nada sale en una respuesta (planes.ts, HU-C5.6)',
     },
   },
   {

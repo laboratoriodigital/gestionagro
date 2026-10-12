@@ -351,7 +351,7 @@ describe('HU-C4.6 · el dominio de la cuenta', () => {
     const generadas = [
       wranglerDelSitio(config),
       wranglerDelCore(config),
-      ...celdasDelAgro(config).map((c) => wranglerDeLaCelda(c)),
+      ...celdasDelAgro(config).map((c) => wranglerDeLaCelda(c, config.core.worker)),
       ...celdasDelParqueadero(config).map((c) => wranglerDeLaCeldaDelParqueadero(c)),
     ];
     expect(dominiosEnStaging(generadas, deProduccion)).toEqual([]);
