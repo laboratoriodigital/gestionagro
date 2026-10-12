@@ -48,6 +48,8 @@ export interface Producto {
    * crea en `encendido` en el KV de flags de las celdas del producto (HU-Q7.13).
    */
   kill_switches?: string[];
+  /** Los servidores del producto que aceptan tokens de agentes (RFC 8707, HU-C9.4). */
+  recursos_oauth?: string[];
   /** Lo que un agente puede pedir sobre una organización del producto (HU-C9.2). */
   alcances?: AlcanceDeProducto[];
 }

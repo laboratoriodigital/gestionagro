@@ -47,6 +47,7 @@
         "usd_mes": 10,
         "al_agotarse": []
       },
+      "recursos_oauth": ["https://mcp.cultivopro.co"],
       "alcances": [
         {
           "id": "agro:registros:leer",

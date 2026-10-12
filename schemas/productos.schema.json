@@ -158,6 +158,12 @@
             }
           }
         },
+        "recursos_oauth": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Los servidores del producto que aceptan tokens de agentes (RFC 8707 «resource», PLATAFORMA §5.5). Un token para uno no sirve en otro (HU-C9.4).",
+          "items": { "type": "string", "pattern": "^https://[a-z0-9.-]+(/[a-z0-9._/-]*)?$" }
+        },
         "alcances": {
           "type": "array",
           "description": "Lo que un agente puede pedir sobre una organización del producto (PLATAFORMA §5.4, HU-C9.2). El despliegue los copia a la tabla alcance; ninguno mueve dinero, y la base lo exige. Solo se declara lo que ya existe (P1).",

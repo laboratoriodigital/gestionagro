@@ -1,0 +1,84 @@
+---
+/**
+ * Dar acceso a un asistente (HU-C9.4, PLATAFORMA §5.4). Llega desde `GET /oauth/authorize` con la
+ * solicitud ya validada por el CORE en el fragmento; `autorizar.ts` la muestra y manda la decisión
+ * al CORE, que la vuelve a validar. Sin sesión, el mismo formulario de entrada de la portada.
+ *
+ * Lo que se dice: quién pide, qué podrá hacer en palabras, sobre cuál espacio y hasta cuándo. Lo que
+ * nunca podrá: pagar ni cambiar cómo se cobra (ningún alcance mueve dinero).
+ */
+import { Aviso, Boton } from '@ed1/ui/v2/componentes';
+import politica from '../../../../content/cuenta/privacidad/politica.json';
+import Base from '../layouts/Base.astro';
+---
+<Base
+  titulo="Dar acceso a un asistente · Laboratorio Digital"
+  descripcion="Decide qué puede hacer un asistente con tu cuenta, sobre cuál de tus espacios y hasta cuándo."
+>
+  <main class="portada autorizar">
+    <h1 class="portada__titulo">Dar acceso a un asistente</h1>
+
+    <div class="portada__aviso" data-autorizar-error hidden>
+      <Aviso tono="peligro" titulo="No podemos seguir con esta solicitud">
+        <p data-autorizar-error-texto>La solicitud no es válida.</p>
+      </Aviso>
+    </div>
+
+    <div class="portada__aviso" data-error hidden>
+      <Aviso tono="peligro" titulo="Algo no salió bien">
+        <p data-error-texto>No pudimos completar la entrada. Intenta de nuevo.</p>
+      </Aviso>
+    </div>
+
+    <section class="portada__accion" data-sin-sesion>
+      <p class="portada__nota">Para decidir, primero entra a tu cuenta.</p>
+      <form class="portada__formulario" method="get" action="/api/core/auth/google/inicio">
+        <input type="hidden" name="producto" value="cuenta" />
+        <input type="hidden" name="politica" value={politica.version} />
+        <input type="hidden" name="vuelta" value="https://cuenta.laboratorio-digital.com/autorizar/" data-vuelta />
+        <label class="portada__acepto">
+          <input type="checkbox" name="acepto" value="si" required />
+          <span>Leí y acepto la <a href="/privacidad/">política de tratamiento de datos</a>.</span>
+        </label>
+        <Boton tipo="submit">Entrar con Google</Boton>
+      </form>
+    </section>
+
+    <section class="portada__espacios" data-con-sesion hidden>
+      <div class="autorizar__solicitud" data-solicitud hidden>
+      <p class="portada__texto autorizar__quien">
+        <strong data-cliente-nombre></strong> quiere acceso a tu cuenta de{' '}
+        <strong data-producto-nombre></strong>.
+      </p>
+      <p class="portada__detalle">
+        Después volverá a <span class="portada__monto" data-vuelve-a></span>.
+      </p>
+
+      <h2 class="portada__subtitulo">Podrá</h2>
+      <ul class="ed1-lista" data-alcances></ul>
+
+      <fieldset class="autorizar__espacios">
+        <legend class="portada__subtitulo">¿Sobre cuál de tus espacios?</legend>
+        <p class="portada__detalle" data-sin-espacios hidden>
+          No tienes espacios en este producto. Sin uno, el asistente no tiene sobre qué trabajar.
+        </p>
+        <div class="autorizar__opciones" data-opciones-espacio></div>
+      </fieldset>
+
+      <p class="portada__detalle">
+        Hasta que lo quites desde tu cuenta. Nunca podrá pagar ni cambiar cómo se cobra.
+      </p>
+
+      <div class="portada__botones">
+        <button class="ed1-boton ed1-boton--primario" type="button" data-permitir>Permitir</button>
+        <button class="ed1-boton ed1-boton--secundario" type="button" data-negar>No permitir</button>
+      </div>
+      <p class="portada__detalle" role="status" data-autorizar-estado></p>
+      </div>
+    </section>
+  </main>
+</Base>
+
+<script>
+  import '../autorizar.ts';
+</script>

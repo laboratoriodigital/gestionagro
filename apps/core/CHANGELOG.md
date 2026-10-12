@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Autorizar a un agente con consentimiento (HU-C9.4): `GET /oauth/authorize` con PKCE S256 y `resource` obligatorios, la pantalla `/autorizar/` de la cuenta (quién pide, qué podrá, sobre cuál espacio y hasta cuándo) y `POST /api/core/cuenta/autorizar`, que vuelve a validar y crea la concesión y un código de un uso. Los recursos de cada producto se declaran en `productos.json › recursos_oauth`. Solo en staging por ahora.
 - Registro de clientes de OAuth (HU-C9.3): `POST /oauth/register` (RFC 7591) con tope de 10 por hora por IP, sin guardar la IP, y documentos de metadatos del cliente (CIMD) leídos y renovados cada día. Un cliente bloqueado no sigue. Solo en staging por ahora.
 - Migración 0008: las tablas del servidor de autorización para agentes (`alcance`, `cliente_oauth`, `concesion_oauth`, `codigo_oauth`, `refresco_oauth`). La base exige que ningún alcance mueva dinero. Los alcances salen de `productos.json` y el despliegue los copia como el resto del catálogo; el agro declara `agro:registros:leer` (HU-C9.2).
 - `GET /.well-known/oauth-authorization-server` (RFC 8414), solo en staging: en producción responde 404 hasta que exista el canje de tokens (HU-C9.2).

@@ -40,6 +40,7 @@ import { cors } from 'hono/cors';
 import politicaDeLaCuenta from '../../../content/cuenta/privacidad/politica.json' with {
   type: 'json',
 };
+import { decidirAutorizacion, inicioDeAutorizacion } from './autorizar.ts';
 import { registrarCliente } from './clientes-oauth.ts';
 import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
 import { espaciosDeLaCuenta } from './cuenta.ts';
@@ -161,6 +162,8 @@ export function proveedorDePagoDe(env: Env, fetchFn: typeof fetch): ProveedorDeP
 
 export function crearApp(dependencias: Dependencias = {}) {
   const ahora = dependencias.ahora ?? (() => Date.now());
+  // Para Bold y para leer los metadatos de un cliente de OAuth (HU-C9.3); las pruebas pasan uno falso.
+  const fetchDeLaRed: typeof fetch = dependencias.fetch ?? ((...a) => fetch(...a));
   const google =
     dependencias.google ??
     ((env: Env) => proveedorGoogle(env.GOOGLE_CLIENT_ID ?? '', env.GOOGLE_CLIENT_SECRET ?? ''));
@@ -350,6 +353,12 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/oauth/register', (c) =>
     servidorOAuthActivo(c.env.DESTINO) ? registrarCliente(c, c.get('entorno')) : c.notFound(),
   );
+  // HU-C9.4: autorizar con consentimiento. La pantalla es la página estática /autorizar/.
+  app.get('/oauth/authorize', (c) =>
+    servidorOAuthActivo(c.env.DESTINO)
+      ? inicioDeAutorizacion(c, c.get('entorno'), fetchDeLaRed)
+      : c.notFound(),
+  );
 
   app.post('/api/core/organizaciones', (c) => crearOrganizacionDeLaFinca(c, c.get('entorno')));
   app.post('/api/core/invitaciones', (c) => crearInvitacion(c, c.get('entorno')));
@@ -371,6 +380,11 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/api/core/cuenta/sesiones/cerrar', (c) => cerrarSesiones(c, c.get('entorno')));
   app.post('/api/core/cuenta/pagos', (c) => verPagos(c, c.get('entorno')));
   app.post('/api/core/cuenta/actividad', (c) => verActividad(c, c.get('entorno')));
+  app.post('/api/core/cuenta/autorizar', (c) =>
+    servidorOAuthActivo(c.env.DESTINO)
+      ? decidirAutorizacion(c, c.get('entorno'), fetchDeLaRed)
+      : c.notFound(),
+  );
   const conPago = (
     c: Context<{ Bindings: Env; Variables: { entorno: Entorno } }>,
   ): EntornoDePago => ({
