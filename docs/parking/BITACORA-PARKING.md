@@ -290,6 +290,9 @@ No son errores. Son decisiones que cambiaron con información nueva.
 | `auth_time` reciente en vez del PIN para los ajustes sensibles (HU-Q7.6 CA3) y la caja escondiendo lo que el rol no puede (WI-Q7.8.3) | Siguen el PIN y la caja de M0, también con cuenta | CA1 deja para el refinamiento con el cliente cómo entra un cajero sin cuenta de Google; hasta saberlo, solo el propietario entra |
 | La demostración del 30 oct (`v0.1.0`) y después el piloto del 9 nov (`v0.2.0`) | Puesta en marcha directa: la `0.1.0` es la versión con la que el cliente opera, después de la matriz en su equipo (HU-Q6.1) y con el primer turno en paralelo con el talonario (HU-Q6.4) | El cliente cerró la compra el 7 oct de 2026 y entra a operar con el MVP (dueño, 8 oct). Todas las historias de código de M0 ya estaban en `main` |
 | Cron por celda con respaldo semanal a R2 y aviso por Telegram (HU-Q10.1, PARQUEADERO §14.3) | La copia en el Google Drive de la cuenta con que se entra, como el cuaderno de CultivoPro (HU-E8.4); sin cron ni R2 | Decisión del dueño, 8 oct 2026: «respaldo en la cuenta de Google con que se registre, tal cual quedó en CultivoPro». La celda ya es la copia del parqueadero (HU-Q7.9) y el plan gratuito no paga leerlo entero en un cron |
+| Las fotos del estado a R2, con un ciclo de vida de 30 días en el bucket (HU-Q8.3, PARQUEADERO §5.5) | Al Google Drive de la cuenta, con el permiso de la copia de HU-Q10.1; la caja las borra a los 30 días y `/r/` no las muestra | Decisión del dueño, 12 oct 2026: «Las fotos en la nube, van para la cuenta del drive por ahora». R2 no está activado y el plan sigue gratuito |
+| `v0.3.0` es M1 (plan §3.3) | `v0.3.0` es la caja de la entrega del 13 oct: lo de Q6 a Q11 que no necesita la nube. M1 pasa a `v0.4.0` | Seis sprints estaban en `main` sin publicar, y el cliente recibe la caja el 13 oct de 2026 (dueño, 12 oct) |
+| Un PR por historia o por parte de un sprint | Un PR y un push por sprint completo | Decisión del dueño, 12 oct 2026, para ahorrar minutos de Actions |
 
 ---
 
@@ -994,3 +997,24 @@ Locator: getByTestId('turno-del-reporte')
 La regla: **una prueba que mueve el reloj empieza desde un reloj fijo; la hora real hace que pase de día y falle de noche.**
 
 *Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P8 · parqueadero-0.2.0 · 2026-10-09
+
+**35 · Seis pruebas de la celda del parqueadero fallaban en la máquina del dueño y pasaban en el CI: el Node mínimo del repositorio no servía.**
+
+*Qué pasó.* El 12 oct 2026, al preparar la `0.3.0` de la entrega, `pnpm test` en la máquina del dueño (Windows, Node 22.18.0) dio seis fallas en `parqueadero-reclamar`, `dispositivos` y `terminos`. El CI del mismo commit estaba en verde.
+
+*Síntoma literal.* La API respondía 503 y su registro decía:
+```text
+parqueadero-api: falla inesperada: D1_ERROR: column index out of range
+```
+
+*Causa raíz.* La consulta de `dispositivos.ts` usa `?1` dos veces, para el `org_id` del token (el arreglo de la entrada 31). `node:sqlite` de Node 22.18 y 22.19 no liga un parámetro numerado repetido; desde 22.20 sí. El CI instala el último Node 22 y nunca lo vio; `package.json` decía `>=22.18.0`, una promesa que nadie había probado.
+
+*Cómo se reprodujo.* Una consulta de dos líneas con `?1` repetido en `DatabaseSync`, con `npx -p node@22.19.0` (falla) y `npx -p node@22.20.0` (pasa). Con 22.20, las tres suites en verde.
+
+*Arreglo.* `engines` y el README piden Node 22.20 o posterior. `packages/d1/src/sqlite.test.ts` prueba un `?1` repetido con un nombre que dice la versión: en un Node viejo, la falla dice por qué.
+
+**Lo prueba** «un ?1 repetido liga el mismo valor en las dos partes, como D1», que en Node 22.18 sale en rojo con el síntoma de arriba.
+
+La regla: **la versión mínima que dice `engines` es una afirmación: la prueba que la cubre lleva su número, porque el CI solo ve la última.**
+
+*Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P17 · parqueadero-0.3.0 · 2026-10-12

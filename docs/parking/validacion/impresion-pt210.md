@@ -38,7 +38,7 @@ Estados: ✅ pasó · ❌ falló · 🟡 pasó con un cambio o una condición ·
 
 ## El camino principal en Android (CA2)
 
-**Por decidir.** El candidato es la impresora emparejada (Web Serial): la PT-C ya está emparejada, acepta un solo enlace, y por Bluetooth web la conexión se cayó o no volvió en cuatro pruebas seguidas (bitácora 17, 18, 19 y 21). Se decide con la fila «La caja se cierra y se vuelve a abrir» y la de los 50 recibos en verde por ese camino. Si AND-D no tiene Chrome 138 o posterior, la prueba va en el teléfono del cliente.
+**Decidido el 12 oct 2026: la impresora emparejada (Web Serial).** Conectó en Android (7 oct) y en Windows (8 oct, imprime y sigue conectada), y el dueño informó el 12 oct que «la impresora ya funciona bien». Por Bluetooth web, con la PT-C emparejada, la conexión se cayó o no volvió en cuatro pruebas seguidas (bitácora 17, 18, 19, 21 y 24). Bluetooth web queda para una impresora sin emparejar. Las filas de este camino que siguen en ⬜ se llenan en la entrega, con el teléfono del cliente: los pasos 6 y 7 de la puesta en marcha y el primer cierre (`docs/runbooks/parqueadero-puesta-en-marcha.md`).
 
 ## Registro de pruebas
 
@@ -46,6 +46,7 @@ Una fila por prueba, la más nueva arriba. El diagnóstico copiado va al hilo de
 
 | Fecha | Equipo y navegador | Versión de la caja | Qué se probó | Resultado |
 |---|---|---|---|---|
+| 2026-10-12 | Equipos del dueño · PT-C | `main` tras #157 | La impresora emparejada, en el uso de varios días | ✅ «La impresora ya funciona bien» (informe del dueño). Sin el detalle por caso: las filas en ⬜ se confirman en la entrega del 13 oct, en el teléfono del cliente |
 | 2026-10-08 | WIN · PT-C | `main` tras #127 | La impresora emparejada: emparejarla en el Bluetooth de Windows y «Usar la impresora emparejada»; entradas y salidas con su recibo | ✅ Conecta, imprime las entradas y los recibos de salida, y sigue conectada (informe del dueño). Es la primera prueba por Bluetooth en Windows; el diálogo de impresión por USB (WI-Q2.5.3) sigue sin probar. Faltan los demás casos en este equipo |
 | 2026-10-07 | AND-D · PT-C | `main` tras #121 | La impresora emparejada: emparejarla en el Bluetooth de Android y «Usar la impresora emparejada» | ✅ Conecta por Web Serial, primera vez en el campo. Faltan los casos de abajo por este camino |
 | 2026-10-07 | AND-D · PT-C | `main` tras #120 | «Conectar impresora» por Bluetooth web, desde Ajustes y desde el recibo | ❌ Conecta y se cae al buscar los servicios en los 4 intentos; tarda 2 minutos en decirlo (bitácora 24). La impresora emparejada: sin probar |

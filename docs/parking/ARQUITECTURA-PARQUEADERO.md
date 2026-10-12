@@ -290,6 +290,7 @@ Las del cuaderno (ARQUITECTURA §5.3), con estas formas:
 - `<input type="file" accept="image/*" capture="environment">`, comprimida en el navegador a WebP de unos 100 KB (ADR-15).
 - En M0 viven en el dispositivo hasta cerrar la estadía más 30 días, y salen en el respaldo.
 - Desde M2 suben a R2 con un nombre aleatorio de 128 bits que viaja en el fragmento del recibo. Una regla de ciclo de vida del bucket las borra a los 30 días (*Capacidad documentada* de R2, por confirmar en el panel), sin escrituras en D1.
+  - **Cambio del dueño (12 oct 2026), por ahora:** las fotos van al Google Drive de la cuenta con que entra el parqueadero, con el permiso de la copia de HU-Q10.1, y la caja las borra a los 30 días de cerrada la estadía. `/r/` no las muestra. El formato del recibo no nombra a Drive, para que R2 pueda volver sin romper los recibos (HU-Q8.3).
 - Se fotografía el vehículo, no a las personas. La caja lo dice en la cámara.
 - **Nota del plan (7 oct 2026):** Safari no codifica WebP en `canvas.toBlob` y devuelve PNG (bitácora tienda3 2). Ahí la foto se guarda en JPEG, con su formato real (HU-Q3.3, HU-Q8.3). Y en M0 las fotos no salen en el respaldo, que se comparte por correo y no las aguantaría: viven en el dispositivo hasta M2 (HU-Q3.10). Bitácora parqueadero 8.
 
@@ -399,7 +400,7 @@ https://parqueadero.laboratorio-digital.app/r/#c.<número>.<placa>.<tipo>.<hora>
 - **Nota de la puesta en marcha (8 oct 2026), con el código (HU-Q4.5):** la versión 2 del formato es la 1 con una clave más, `lg`, el texto de responsabilidad que escribió la sede. Solo la lleva una entrada con texto propio: los demás recibos, y toda salida, siguen en la 1, byte por byte, y los enlaces guardados siguen abriendo. Una salida en versión 2, o una 2 sin texto, se lee como error de «contenido». Medido con el código: la entrada larga con 200 letras propias mide 551 caracteres, versión 16 del QR de la pantalla (81 módulos); la del papel sigue siendo la corta.
 - **Nota del sprint Q3 (7 oct 2026), con el código:** `/r/` es una página estática de Astro con un script propio de 31,9 KB con gzip (el inflado del enlace y la vista), que pinta todo con `textContent`: un nombre de sede con HTML se ve como texto. En staging, la caja enlaza a la `/r/` de su propio origen (`origenDelRecibo`), y el escáner acepta los dos orígenes; en producción, solo el del dominio. El escáner usa `BarcodeDetector` donde el navegador lo tiene y jsQR (Apache-2.0, unos 47 KB con gzip) donde no, cargado solo entonces.
 - **Nota del sprint Q10 (8 oct 2026), con el código (HU-Q8.1, HU-Q8.2):** la caja firma `<versión>.<datos>`, así que la versión del formato también queda firmada. El `certificado` es binario en base64url, 130 bytes para una serie de una letra (174 caracteres): versión (1) · `kid` de la llave de la celda (12) · llave pública de la caja (32) · organización (16, el UUID) · vencimiento en segundos (4) · serie (1 a 3 letras) · firma de la celda (64). Un JSON firmado medía casi el doble. Medido con los recibos largos de `parqueadero-recibos`: la entrada firmada mide 662 caracteres y la salida 671, versión 18 del QR de la pantalla (89 módulos); una prueba lo fija. El papel sigue con la corta, versión 7. La página verifica con `@noble/ed25519` y las llaves de las celdas que el despliegue escribe en `<script id="claves-recibo">` (`scripts/lib/claves-qr.ts`, como `/agro/t/`); sin llaves, un recibo firmado se ve como copia digital, nunca como verificado. Una caja solo firma los recibos de su serie: no responde por los que bajó de otra. Un `kid` que la página no conoce no es «modificado»: se ve como copia digital, porque puede ser la llave de una celda nueva que esa página todavía no trae.
-- **Fotos** (M2): la página las pide a R2 con su nombre aleatorio. Si ya pasaron los 30 días, dice «Las fotos se guardan 30 días».
+- **Fotos** (M2): ~~la página las pide a R2 con su nombre aleatorio~~. Con las fotos en el Drive del parqueadero (12 oct 2026), la página no las muestra y dice «Las fotos se guardan 30 días».
 
 ### 6.4 El texto de WhatsApp
 
@@ -913,7 +914,7 @@ La página general de precios (W1) sigue diciendo que los mensajes que no son pl
 | Dato | M0 | M1 | M2 | M3 |
 |---|---|---|---|---|
 | Registros y catálogos | Dispositivo | Dispositivo y celda (D1) | Igual | Igual |
-| Fotos del estado | Dispositivo | Dispositivo | R2, 30 días | Igual |
+| Fotos del estado | Dispositivo | Dispositivo | Drive de la cuenta, 30 días (antes R2) | Igual |
 | WhatsApp del conductor | Dispositivo, hasta 24 h después de la salida | Igual | Igual | Celda, cifrado y con consentimiento (§8.5) |
 | Configuración de la impresora | Dispositivo | Dispositivo | Dispositivo | Dispositivo |
 | Llave privada del dispositivo | — | — | Dispositivo, no exportable | Igual |
@@ -1239,7 +1240,7 @@ Supone las 20 horas por semana del dueño, con el asistente haciendo los commits
 |---|---|---|---|---|
 | **M0 · MVP del cliente** | 3 semanas | Zona `laboratorio-digital.app` activa; datos del cliente (§19.2) | Tarifas, caja local, recibos en la PT-210, WhatsApp por enlace, QR en pantalla, `/r/`, turno, respaldo, herramientas gratuitas de tarifa y recibo | La matriz de §15.3 en verde con la PT-210 del cliente. Un turno real completo sin diferencias |
 | **M1 · Cuenta y varias cajas** | 3 semanas | PLATAFORMA P1 y P2 (y P3 para cobrar periodos) | Producto en el CORE, celda c2, reclamar, sincronizar, roles, respaldo en la nube, cobro del plan | Dos cajas sin red que se sincronizan sin repetir números ni perder registros |
-| **M2 · Recibo verificado** | 2 semanas | M1 | Certificados de dispositivo, firma sin red, fotos en R2 por 30 días, mensualidades, reportes | Un recibo firmado en modo avión se verifica en otro teléfono; uno alterado sale en rojo |
+| **M2 · Recibo verificado** | 2 semanas | M1 | Certificados de dispositivo, firma sin red, fotos en el Drive de la cuenta por 30 días, mensualidades, reportes | Un recibo firmado en modo avión se verifica en otro teléfono; uno alterado sale en rojo |
 | **M3 · WhatsApp automático** | 3 semanas | M1, Workers Paid, `packages/cifrado`, verificación de negocio del parqueadero | Cloud API con plantilla de utilidad, estados de entrega, QR de autoservicio en la entrada | Un recibo llega sin que el operador toque WhatsApp, y su estado «entregado» se ve en la caja |
 | **M4 · Facturación** | Por estimar | Un cliente obligado a facturar | Integración con el facturador del parqueadero | Su disparador (§19.3) |
 

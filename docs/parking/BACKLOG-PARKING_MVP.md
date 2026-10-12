@@ -122,7 +122,7 @@ Lo pide el dueño (HU-Q0.2). **Los datos del cliente no entran al repositorio:**
 
 ### 3.2 Comandos
 
-Node 22.18 o posterior, y pnpm 11.28.2 por corepack. En Windows, desde Git Bash.
+Node 22.20 o posterior (bitácora parqueadero 35), y pnpm 11.28.2 por corepack. En Windows, desde Git Bash.
 
 ```bash
 git clone https://github.com/laboratoriodigital/gestionagro.git
@@ -186,7 +186,7 @@ Fuera del código, el camino crítico pasa por el dueño y el cliente: las decis
 
 - **`parqueadero-v0.1.0`** al cerrar Q3: la demostración, en producción en el dominio. Ningún recibo real todavía.
 - **`parqueadero-v0.2.0`** al cerrar las historias de Q5 que van antes del piloto (HU-Q6.1 a HU-Q6.3): la versión del piloto.
-- **`v0.2.x`** durante el piloto: solo arreglos, publicados después de un cierre de turno, nunca en medio.
+- **`v0.3.x`** durante los primeros turnos: solo arreglos, publicados después de un cierre de turno, nunca en medio.
 
 ### 4.4 Si una semana se queda corta: el orden de recorte
 
@@ -588,7 +588,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 ### EQ6 · Validación en campo y puesta en marcha
 
 #### HU-Q6.1 · La matriz en el equipo real
-- **Capa:** campo · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q5 (se llena desde Q1) · **Depende de:** HU-Q2.3, HU-Q2.4, HU-Q4.1, HU-Q4.2 · **Estado:** En curso: `docs/parking/validacion/impresion-pt210.md` con las pruebas del 7 y 8 oct (en Windows, la impresora emparejada conecta, imprime y sigue conectada); falta el equipo que será la caja del cliente. Los casos explicados para el dueño están en la hoja del cajero y en la lista de la puesta en marcha
+- **Capa:** campo · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q5 (se llena desde Q1) · **Depende de:** HU-Q2.3, HU-Q2.4, HU-Q4.1, HU-Q4.2 · **Estado:** En curso: `docs/parking/validacion/impresion-pt210.md` con las pruebas del 7, 8 y 12 oct. El camino principal quedó decidido el 12 oct: la impresora emparejada («la impresora ya funciona bien», el dueño). Falta el equipo que será la caja del cliente, en la entrega del 13 oct. Los casos explicados para el dueño están en la hoja del cajero y en la lista de la puesta en marcha
 - Como dueño, quiero ver la caja funcionar en la PT-210 y en los teléfonos de verdad antes de llevarla al cliente.
 - **Respaldo:** PARQUEADERO §15.3 (la matriz); P16.
 - **CA1.** `docs/parking/validacion/impresion-pt210.md` tiene cada caso de la matriz de PARQUEADERO §15.3 en Android con Chrome y en Windows con Chrome o Edge, y lo que aplica en iPhone, con la fecha, el modelo, la versión del navegador y el resultado.
@@ -619,7 +619,7 @@ Formato de cada historia, el del plan §8: capa, prioridad (MoSCoW), puntos, spr
 - **Work items:** WI-Q6.3.1 `[prueba]` e2e · WI-Q6.3.2 `[ci]` en cada PR que toca la caja.
 
 #### HU-Q6.4 · Puesta en marcha y primer turno real
-- **Capa:** campo · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q5 · **Depende de:** HU-Q6.1, HU-Q6.2, HU-Q6.3, HU-Q5.2, D-Q5, D-Q9 · **Estado:** En curso (rama `docs/puesta-en-marcha`): el cliente opera con el MVP sin pasar por la demostración (bitácora, cambios de rumbo). Listos la hoja del cajero (`docs/runbooks/parqueadero-hoja-del-cajero.md`) y el registro del primer turno (`docs/parking/validacion/piloto-parqueadero-cero.md`); faltan los datos del cliente, la `0.1.0` en producción y el día 1
+- **Capa:** campo · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q5 · **Depende de:** HU-Q6.1, HU-Q6.2, HU-Q6.3, HU-Q5.2, D-Q5, D-Q9 · **Estado:** En curso (rama `docs/puesta-en-marcha`): el cliente opera con el MVP sin pasar por la demostración (bitácora, cambios de rumbo). Listos la hoja del cajero (`docs/runbooks/parqueadero-hoja-del-cajero.md`) y el registro del primer turno (`docs/parking/validacion/piloto-parqueadero-cero.md`); la entrega es el 13 oct 2026 con la `0.3.0`; faltan los datos del cliente en su caja y el día 1
 - Como cliente, quiero que alguien me deje la caja funcionando en mi parqueadero y me acompañe el primer turno.
 - **Respaldo:** PARQUEADERO §14.5 (runbook 1) y §18 (criterio de M0); estudio §10.2 (la puesta en marcha como servicio) y §16.1.
 - **CA1.** Con el runbook de puesta en marcha: datos legales completos, tarifas contra el tope, la impresora del cliente con su paso 0 y su página de prueba superada, WhatsApp Business del parqueadero como predeterminado, el aviso de privacidad impreso y a la vista, `papel` en `siempre` (D-Q9) y el primer respaldo.
@@ -796,7 +796,7 @@ Con el runbook «Puesta en marcha de un parqueadero» (HU-Q6.2), en este orden:
 
 - **Canal:** un grupo de WhatsApp con el cliente, el dueño y quien da soporte. Lo primero que se pide es el diagnóstico copiable de la caja (HU-Q6.2).
 - **Tiempo de respuesta (propuesta, se acuerda con el dueño):** en el horario del parqueadero, 15 minutos si la caja no registra o no cobra; 2 horas si no imprime o no envía, porque el talonario y el QR siguen; el día hábil siguiente para lo demás.
-- **Arreglos:** `v0.2.x`, solo después de un cierre de turno, nunca en medio. Cada arreglo trae su prueba y, si repite un patrón, su entrada en la bitácora. La caja se actualiza al abrir el turno siguiente.
+- **Arreglos:** `v0.3.x`, solo después de un cierre de turno, nunca en medio. Cada arreglo trae su prueba y, si repite un patrón, su entrada en la bitácora. La caja se actualiza al abrir el turno siguiente.
 - **Registro:** `docs/parking/validacion/piloto-parqueadero-cero.md`, sin datos de conductores. Una fila por turno: fecha, entradas, impresiones al primer intento, recibos digitales, diferencias y su causa, observaciones y **minutos de soporte** (R8; HU-Q10.3 los automatiza en M1).
 - **El respaldo, al cerrar cada turno** (R7). Mientras exista el talonario, el papel es el respaldo del respaldo.
 
@@ -869,7 +869,7 @@ Si Q1 y Q2 validan menos de lo comprometido, el plan se recalcula en la planeaci
 ## 11. Después del MVP
 
 - **El lunes 17 nov empieza Q6**, el primero de M1 y de dos semanas con el calendario del CORE (C4). Abre con HU-Q3.12: lo que pidió el piloto, con su tope de 3 puntos (plan §6.1).
-- **El cliente sigue en `v0.2.x`** hasta que M1 le dé cuenta, varias cajas y sincronización. Su caja se reclama en producción en HU-Q7.12, desde su respaldo, después de los datos del encargado (HU-Q7.11).
+- **El cliente sigue en `v0.3.x`** hasta que M1 le dé cuenta, varias cajas y sincronización. Su caja se reclama en producción en HU-Q7.12, desde su respaldo, después de los datos del encargado (HU-Q7.11).
 - **El congelamiento del 18 dic al 11 ene no apaga su caja:** ya está en producción, y un arreglo que la detenga se publica por la excepción del runbook de emergencias, con el dueño presente (plan §2).
 - **Lo que se mide a los 30 días del día 1:** el pago real del primer periodo y las métricas de PARQUEADERO §18.2. Con eso, el dueño decide si el parqueadero sigue como producto (estudio §16.3).
 - **Lo que este documento deja de ser:** cuando M0 cierre, las historias de §5 quedan como registro. Lo que siga se planea en el plan, y lo aprendido queda en `BITACORA-PARKING.md`.
