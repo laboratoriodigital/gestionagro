@@ -747,7 +747,7 @@ Formato de cada historia:
 - **Work items:** WI-C7.4.1 `[código]` `POST /api/core/cuenta/espacios` · WI-C7.4.2 `[código]` pantalla · WI-C7.4.3 `[prueba]` e2e con dos productos.
 
 #### HU-C7.5 · Dónde has entrado
-- **Capa:** app y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C8 · **Depende de:** HU-C7.4, HU-C4.4 · **Estado:** Refinada
+- **Capa:** app y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C8 · **Depende de:** HU-C7.4, HU-C4.4 · **Estado:** En validación (rama `feat/c8-sprint`. `POST /api/core/cuenta/sesiones` y `/sesiones/cerrar` (`apps/core/src/mi-cuenta.ts`), solo con token de la cuenta. Cada sesión abierta con su producto, los últimos 6 caracteres del dispositivo que declaró la app (el cuaderno declara un uuid, no un nombre: «Equipo …9f8e7d»), cuándo entró y el último uso, que es el último giro del refresh: sin columna nueva. «Este navegador» se reconoce por su refresh y no se cierra desde ahí (para eso está «Salir»). CA2: cerrar una o «todas menos esta» pide `auth_time` de menos de 10 minutos; si no, 403 `entrar-de-nuevo` y la página ofrece entrar de nuevo con Google; cada cierre deja `sesion_cerrada` en la auditoría en el mismo lote. CA3: un refresh cerrado recibe 401 al renovar. 3 pruebas de la API (con control negativo: 11 minutos después de entrar, no cierra) y 1 e2e)
 - Como persona que perdió el teléfono, quiero cerrar la sesión de ese teléfono desde otro dispositivo.
 - **Respaldo:** ED1 §16; owner-first (ED1 §3.7).
 - **CA1.** Lista de sesiones por producto, con el dispositivo declarado y el último uso.
@@ -756,7 +756,7 @@ Formato de cada historia:
 - **Work items:** WI-C7.5.1 `[código]` · WI-C7.5.2 `[prueba]`.
 
 #### HU-C7.6 · Mis pagos
-- **Capa:** app y API · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C8 · **Depende de:** HU-C5.3, HU-C7.4 · **Estado:** Refinada
+- **Capa:** app y API · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C8 · **Depende de:** HU-C5.3, HU-C7.4 · **Estado:** En validación (rama `feat/c8-sprint`. `POST /api/core/cuenta/pagos`: los últimos 50 pagos de los espacios donde el rol de la persona administra, con plan, meses, periodo cubierto, monto y estado; la página pone el monto en la tipografía de datos, a la derecha. CA2: con un rol que no administra, la lista viene vacía. 1 prueba de la API con su control negativo y 2 e2e)
 - Como quien administra, quiero ver qué pagué, por cuánto tiempo y cuándo vence.
 - **Respaldo:** PLATAFORMA §4.8 (7: `periodo_desde` y `periodo_hasta`).
 - **CA1.** Lista de pagos de los espacios que administro: plan, periodo cubierto, monto en mono y estado.
@@ -775,7 +775,7 @@ Formato de cada historia:
 - **Work items:** WI-C7.7.1 `[código]` exportación · WI-C7.7.2 `[código]` radicados y plazos · WI-C7.7.3 `[prueba]` días hábiles con festivos (ya existen en `@ed1/calendario`, construido por la Tienda en HU-T1.2: se usa, no se reescribe, P2) · WI-C7.7.4 `[dueño]` responsable y canal.
 
 #### HU-C7.8 · La actividad de mi espacio
-- **Capa:** app · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C8 · **Depende de:** HU-C2.4, HU-C7.4 · **Estado:** Refinada
+- **Capa:** app · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C8 · **Depende de:** HU-C2.4, HU-C7.4 · **Estado:** En validación (rama `feat/c8-sprint`. `POST /api/core/cuenta/actividad`: los últimos 50 hechos de la auditoría de los espacios que administra, cada uno en una frase hecha en el CORE (`frase` en `mi-cuenta.ts`) y con fecha y hora de Bogotá en la página. Para decir «de operario a supervisor», cambiar un rol guarda ahora también el de antes; los cambios anteriores dicen solo el nuevo. CA2: quien no administra recibe la lista vacía. 4 pruebas (3 de las frases y la de la API con su control negativo) y las e2e de la cuenta)
 - Como quien administra, quiero ver en palabras lo que pasó en mi espacio.
 - **Respaldo:** PLATAFORMA §4.12.
 - **CA1.** La auditoría en frases («Ana cambió a Luis de operario a supervisor»), con fecha y hora de Bogotá.

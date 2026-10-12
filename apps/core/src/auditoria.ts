@@ -22,7 +22,9 @@ export type Accion =
   | 'telefono_retirado'
   | 'pago_cerrado'
   /** Un refresh presentado desde la app de otro producto (HU-C4.4): posible robo. */
-  | 'refresh_rechazado';
+  | 'refresh_rechazado'
+  /** La persona cerró una sesión, o todas menos la suya, desde su cuenta (HU-C7.5). */
+  | 'sesion_cerrada';
 
 export interface Hecho {
   instante: string;

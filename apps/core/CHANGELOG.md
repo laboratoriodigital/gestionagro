@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La cuenta muestra dónde has entrado y deja cerrar una sesión, o todas menos esta, con una entrada con Google de menos de 10 minutos; cerrar queda en la auditoría y el refresh de esa sesión deja de servir (HU-C7.5). También tus pagos en los espacios que administras, con el periodo cubierto (HU-C7.6), y lo que pasó en ellos, en frases (HU-C7.8). Rutas `POST /api/core/cuenta/{sesiones,sesiones/cerrar,pagos,actividad}`, solo con token de la cuenta.
 - `GET /.well-known/security.txt` (RFC 9116): a quién escribirle si se encuentra un fallo, con el correo de la política de la cuenta (HU-C8.4).
 - `ServicioDelCore`: la entrada por la que una celda pide el plan de sus organizaciones, por service binding con RPC, sin URL ni token (HU-C5.6). Con `desde`, solo las que tuvieron un pago aprobado después; sin él, todas, con la gracia ya aplicada. **Va a producción antes que la celda que la usa.**
 - La gracia de cada producto también en la lista de organizaciones que recibe la app (antes solo en el token), con la marca `aviso` para avisar a 7 días, a 1 día o en gracia (HU-C5.5).
@@ -14,6 +15,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - El Parqueadero ED1 es un producto del CORE (HU-Q7.1): entra por `infrastructure/productos.json` como excepción declarada (ADR-31), con sus roles (propietario, administrador y cajero), siete días de gracia, sus planes como hipótesis (`gratis` y `parqueadero`, que todavía no se cobra en línea) y su política en borrador. Llega a producción con la próxima versión del CORE; la caja de hoy no cambia, porque sigue sin cuenta.
 
 ### Cambiado
+- Cambiar el rol de alguien guarda en la auditoría también el rol de antes, para que la actividad diga «de operario a supervisor» (HU-C7.8).
 - La versión de cada política y los planes de cada producto salen de `apps/core/src/catalogo.generado.json`, que arma `node scripts/generar-catalogo-core.ts`. Agregar un producto ya no es tocar el código del CORE, y una prueba impide que lo nombre (R1).
 
 ## [0.3.0] - 2026-10-07

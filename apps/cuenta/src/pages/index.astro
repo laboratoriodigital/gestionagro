@@ -21,6 +21,27 @@ const apps = registro.productos
         ? [`https://${celdas.sitio.dominio}`, celdas.sitio.url_staging]
         : [p.app.origenes.produccion, p.app.origenes.staging],
   }));
+
+const bloques = [
+  {
+    id: 'sesiones',
+    titulo: 'Dónde has entrado',
+    ayuda: 'Si perdiste un teléfono o entraste en un equipo prestado, cierra aquí esa sesión.',
+    vacio: 'No tienes otras sesiones abiertas.',
+  },
+  {
+    id: 'pagos',
+    titulo: 'Tus pagos',
+    ayuda: 'Lo que se ha pagado en los espacios que administras, y hasta cuándo cubre.',
+    vacio: 'Todavía no hay pagos en los espacios que administras.',
+  },
+  {
+    id: 'actividad',
+    titulo: 'Lo que pasó en tus espacios',
+    ayuda: 'Quién entró, se unió, cambió de rol o pagó, en los espacios que administras.',
+    vacio: 'Todavía no ha pasado nada que mostrar.',
+  },
+] as const;
 ---
 <Base
   titulo="Laboratorio Digital"
@@ -85,6 +106,50 @@ const apps = registro.productos
       </div>
       <ul class="portada__lista" aria-labelledby="titulo-espacios" data-espacios-lista hidden></ul>
     </section>
+
+    {
+      /* HU-C7.5, HU-C7.6 y HU-C7.8: cada bloque se llena desde sesion.ts con su ruta del CORE. */
+      bloques.map((b) => (
+        <section
+          class="portada__espacios"
+          data-con-sesion
+          hidden
+          data-bloque={b.id}
+          aria-labelledby={`titulo-${b.id}`}
+        >
+          <h2 class="portada__subtitulo" id={`titulo-${b.id}`}>{b.titulo}</h2>
+          <p class="portada__detalle">{b.ayuda}</p>
+          <p class="ed1-contenido ed1-contenido--cargando" role="status" data-estado="cargando">
+            Cargando…
+          </p>
+          <p class="ed1-contenido ed1-contenido--vacio" data-estado="vacio" hidden>
+            {b.vacio}
+          </p>
+          <div class="ed1-contenido ed1-contenido--error" role="alert" data-estado="error" hidden>
+            <p data-causa>No pudimos traer esto.</p>
+            <button class="ed1-boton ed1-boton--secundario" type="button" data-reintentar>
+              Intentar de nuevo
+            </button>
+          </div>
+          {b.id === 'sesiones' && (
+            <div class="portada__reentrar" role="alert" data-reentrar hidden>
+              <p data-reentrar-texto>
+                Para cerrar sesiones, vuelve a entrar con Google. Así sabemos que eres tú.
+              </p>
+              <button class="ed1-boton ed1-boton--primario" type="button" data-reentrar-boton>
+                Entrar de nuevo
+              </button>
+            </div>
+          )}
+          <ul class="ed1-lista" data-estado="lista" hidden />
+          {b.id === 'sesiones' && (
+            <button class="ed1-boton ed1-boton--secundario" type="button" data-cerrar-todas hidden>
+              Cerrar todas menos esta
+            </button>
+          )}
+        </section>
+      ))
+    }
   </main>
 </Base>
 

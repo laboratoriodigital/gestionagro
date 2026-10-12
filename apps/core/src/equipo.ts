@@ -157,14 +157,27 @@ export async function cambiarRol(c: Context, e: Entorno): Promise<Response> {
   if (typeof rol !== 'string' || !rolesInvitablesDe(e.catalogo, p.sesion.producto).includes(rol)) {
     return c.json({ estado: 'invalido', motivo: 'Elige un rol válido.' }, 400);
   }
+  // HU-C7.8: el rol de antes, para que la actividad diga «de operario a supervisor».
+  const antes = await e.db
+    .prepare('SELECT rol FROM membresia WHERE usuario_id = ? AND org_id = ?')
+    .bind(quien.usuario, p.sesion.org)
+    .first<{ rol: string }>();
   const [r] = await e.db.batch([
     e.db
       .prepare('UPDATE membresia SET rol = ? WHERE usuario_id = ? AND org_id = ?')
       .bind(rol, quien.usuario, p.sesion.org),
-    filaDeAuditoria(e.db, hecho(e, p.sesion, 'rol_cambiado', { persona: quien.usuario, rol }), {
-      sql: 'SELECT 1 FROM membresia WHERE usuario_id = ? AND org_id = ? AND rol = ?',
-      valores: [quien.usuario, p.sesion.org, rol],
-    }),
+    filaDeAuditoria(
+      e.db,
+      hecho(e, p.sesion, 'rol_cambiado', {
+        persona: quien.usuario,
+        rol,
+        ...(antes ? { antes: antes.rol } : {}),
+      }),
+      {
+        sql: 'SELECT 1 FROM membresia WHERE usuario_id = ? AND org_id = ? AND rol = ?',
+        valores: [quien.usuario, p.sesion.org, rol],
+      },
+    ),
   ]);
   if ((r?.meta.changes ?? 0) === 0) {
     return c.json({ estado: 'no-encontrado', motivo: 'Esa persona no está en la finca.' }, 404);

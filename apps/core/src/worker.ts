@@ -14,6 +14,9 @@
  *   la finca y los teléfonos de la cuenta (HU-E4.6, `equipo.ts`).
  * - `POST /api/core/cuenta/espacios`: los espacios de la persona en todos los productos, solo con un
  *   token de la cuenta (HU-C7.4, `cuenta.ts`).
+ * - `POST /api/core/cuenta/{sesiones,sesiones/cerrar,pagos,actividad}`: dónde ha entrado la
+ *   persona y cerrar sesiones, sus pagos y la actividad de lo que administra (HU-C7.5, HU-C7.6,
+ *   HU-C7.8, `mi-cuenta.ts`).
  * - `POST /api/core/interes[/ver]`: la lista de espera de planes con precio visible (HU-E0.6,
  *   `interes.ts`).
  * - `ServicioDelCore`: la entrada RPC de las celdas por su service binding, sin URL (HU-C5.6,
@@ -68,6 +71,7 @@ import {
 import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { claveAnteriorDe, clavesPublicadas } from './jwks.ts';
+import { cerrarSesiones, verActividad, verPagos, verSesiones } from './mi-cuenta.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
 import {
@@ -344,6 +348,11 @@ export function crearApp(dependencias: Dependencias = {}) {
     espaciosDeLaCuenta(c, { ...c.get('entorno'), destino: c.env.DESTINO }),
   );
   app.post('/api/core/interes/ver', (c) => verInteres(c, c.get('entorno')));
+  // HU-C7.5, HU-C7.6 y HU-C7.8: lo de la persona en su cuenta (`mi-cuenta.ts`).
+  app.post('/api/core/cuenta/sesiones', (c) => verSesiones(c, c.get('entorno')));
+  app.post('/api/core/cuenta/sesiones/cerrar', (c) => cerrarSesiones(c, c.get('entorno')));
+  app.post('/api/core/cuenta/pagos', (c) => verPagos(c, c.get('entorno')));
+  app.post('/api/core/cuenta/actividad', (c) => verActividad(c, c.get('entorno')));
   const conPago = (
     c: Context<{ Bindings: Env; Variables: { entorno: Entorno } }>,
   ): EntornoDePago => ({

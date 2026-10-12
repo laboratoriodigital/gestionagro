@@ -185,3 +185,45 @@
   margin: 0;
   color: var(--texto-suave);
 }
+
+/* ── Dónde has entrado, tus pagos y la actividad (HU-C7.5, HU-C7.6, HU-C7.8) ── */
+
+.portada__fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.portada__fila-texto {
+  display: grid;
+  gap: var(--espacio-1);
+  min-width: 0;
+}
+
+.portada__fila-titulo {
+  margin: 0;
+  font-weight: var(--peso-fuerte);
+  overflow-wrap: anywhere;
+}
+
+/* Los montos en la tipografía de los datos: las cifras se alinean y se leen como cifras. */
+.portada__monto {
+  font-family: var(--fuente-mono);
+  font-weight: var(--peso-texto);
+  white-space: nowrap;
+}
+
+.portada__reentrar {
+  display: grid;
+  gap: var(--espacio-3);
+  justify-items: start;
+  padding: var(--espacio-4) var(--espacio-6);
+  border-inline-start: 3px solid var(--aviso);
+  border-radius: var(--radio-campo);
+  background: var(--superficie-2);
+}
+
+.portada__reentrar p {
+  margin: 0;
+}
