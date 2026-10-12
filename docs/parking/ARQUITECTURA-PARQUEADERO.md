@@ -288,9 +288,9 @@ Las del cuaderno (ARQUITECTURA §5.3), con estas formas:
 ### 5.5 Fotos del estado
 
 - `<input type="file" accept="image/*" capture="environment">`, comprimida en el navegador a WebP de unos 100 KB (ADR-15).
-- En M0 viven en el dispositivo hasta cerrar la estadía más 30 días, y salen en el respaldo.
+- En M0 viven en el dispositivo hasta cerrar la estadía más 30 días, y no salen en el respaldo (nota de abajo). *(La purga no existía hasta la `0.3.0`: bitácora parqueadero 36.)*
 - Desde M2 suben a R2 con un nombre aleatorio de 128 bits que viaja en el fragmento del recibo. Una regla de ciclo de vida del bucket las borra a los 30 días (*Capacidad documentada* de R2, por confirmar en el panel), sin escrituras en D1.
-  - **Cambio del dueño (12 oct 2026), por ahora:** las fotos van al Google Drive de la cuenta con que entra el parqueadero, con el permiso de la copia de HU-Q10.1, y la caja las borra a los 30 días de cerrada la estadía. `/r/` no las muestra. El formato del recibo no nombra a Drive, para que R2 pueda volver sin romper los recibos (HU-Q8.3).
+  - **Cambio del dueño (12 oct 2026), por ahora:** las fotos van al Google Drive de la cuenta con que entra el parqueadero, con cada copia de HU-Q10.1 y su mismo permiso (no solas: el permiso de Google dura una hora y no se renueva sin la persona), y la caja las borra a los 30 días de cerrada la estadía, del teléfono y, con la copia siguiente, de Drive. Una caja restaurada no borra nada de lo que subió otra. `/r/` no las muestra. El formato del recibo no nombra a Drive, para que R2 pueda volver sin romper los recibos (HU-Q8.3).
 - Se fotografía el vehículo, no a las personas. La caja lo dice en la cámara.
 - **Nota del plan (7 oct 2026):** Safari no codifica WebP en `canvas.toBlob` y devuelve PNG (bitácora tienda3 2). Ahí la foto se guarda en JPEG, con su formato real (HU-Q3.3, HU-Q8.3). Y en M0 las fotos no salen en el respaldo, que se comparte por correo y no las aguantaría: viven en el dispositivo hasta M2 (HU-Q3.10). Bitácora parqueadero 8.
 

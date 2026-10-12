@@ -290,7 +290,7 @@ No son errores. Son decisiones que cambiaron con información nueva.
 | `auth_time` reciente en vez del PIN para los ajustes sensibles (HU-Q7.6 CA3) y la caja escondiendo lo que el rol no puede (WI-Q7.8.3) | Siguen el PIN y la caja de M0, también con cuenta | CA1 deja para el refinamiento con el cliente cómo entra un cajero sin cuenta de Google; hasta saberlo, solo el propietario entra |
 | La demostración del 30 oct (`v0.1.0`) y después el piloto del 9 nov (`v0.2.0`) | Puesta en marcha directa: la `0.1.0` es la versión con la que el cliente opera, después de la matriz en su equipo (HU-Q6.1) y con el primer turno en paralelo con el talonario (HU-Q6.4) | El cliente cerró la compra el 7 oct de 2026 y entra a operar con el MVP (dueño, 8 oct). Todas las historias de código de M0 ya estaban en `main` |
 | Cron por celda con respaldo semanal a R2 y aviso por Telegram (HU-Q10.1, PARQUEADERO §14.3) | La copia en el Google Drive de la cuenta con que se entra, como el cuaderno de CultivoPro (HU-E8.4); sin cron ni R2 | Decisión del dueño, 8 oct 2026: «respaldo en la cuenta de Google con que se registre, tal cual quedó en CultivoPro». La celda ya es la copia del parqueadero (HU-Q7.9) y el plan gratuito no paga leerlo entero en un cron |
-| Las fotos del estado a R2, con un ciclo de vida de 30 días en el bucket (HU-Q8.3, PARQUEADERO §5.5) | Al Google Drive de la cuenta, con el permiso de la copia de HU-Q10.1; la caja las borra a los 30 días y `/r/` no las muestra | Decisión del dueño, 12 oct 2026: «Las fotos en la nube, van para la cuenta del drive por ahora». R2 no está activado y el plan sigue gratuito |
+| Las fotos del estado a R2, con un ciclo de vida de 30 días en el bucket (HU-Q8.3, PARQUEADERO §5.5) | Al Google Drive de la cuenta, con cada copia de HU-Q10.1 (no solas: el permiso de Google dura una hora); la caja las borra a los 30 días y `/r/` no las muestra | Decisión del dueño, 12 oct 2026: «Las fotos en la nube, van para la cuenta del drive por ahora». R2 no está activado y el plan sigue gratuito |
 | `v0.3.0` es M1 (plan §3.3) | `v0.3.0` es la caja de la entrega del 13 oct: lo de Q6 a Q11 que no necesita la nube. M1 pasa a `v0.4.0` | Seis sprints estaban en `main` sin publicar, y el cliente recibe la caja el 13 oct de 2026 (dueño, 12 oct) |
 | Un PR por historia o por parte de un sprint | Un PR y un push por sprint completo | Decisión del dueño, 12 oct 2026, para ahorrar minutos de Actions |
 
@@ -1018,3 +1018,21 @@ parqueadero-api: falla inesperada: D1_ERROR: column index out of range
 La regla: **la versión mínima que dice `engines` es una afirmación: la prueba que la cubre lleva su número, porque el CI solo ve la última.**
 
 *Ficha:* parqueadero · *(mío)* · 🟢 Bajo · P17 · parqueadero-0.3.0 · 2026-10-12
+
+**36 · La arquitectura decía que las fotos se borran a los 30 días de la salida, y ninguna línea las borraba.**
+
+*Qué pasó.* El 12 oct 2026, al diseñar HU-Q8.3 (las fotos al Drive de la cuenta), busqué la purga del teléfono para reusarla: PARQUEADERO §5.5 dice «En M0 viven en el dispositivo hasta cerrar la estadía más 30 días». No estaba. La caja de producción toma fotos desde la `0.1.0`.
+
+*Síntoma literal.* Ninguno en pantalla: `db.fotos` solo tenía `add`. Buscando en `apps/parqueadero-sitio/src/caja/`, las únicas escrituras de `fotos` eran la entrada y el respaldo; la purga de los números (`purgarContactos`, HU-Q4.1) sí existía.
+
+*Causa raíz.* La regla vivía en la arquitectura y en ninguna historia con su criterio: HU-Q3.3 pide tomarlas y comprimirlas, HU-Q3.10 dejarlas fuera del respaldo, y la de los números tuvo su CA3 con prueba. Hasta cuatro fotos de unos 100 KB por vehículo, sin borrarse, llenan el teléfono de la caja con los meses (*Inferencia*: 200 entradas al día con una foto son unos 600 MB al mes).
+
+*Cómo se reprodujo.* `purgarFotos` no existía; la prueba nueva, con una salida de hace 31 días, no tenía qué llamar.
+
+*Arreglo.* `purgarFotos` (`datos.ts`) corre con la de los números, al abrir la caja y cada 10 minutos: borra las fotos de las estadías cerradas hace más de 30 días (la salida vigente o la anulación de la entrada; una salida anulada la vuelve a abrir) y anota sus ids para borrarlas también de Drive (HU-Q8.3). Sale en la `0.3.0`, la de la entrega.
+
+**Lo prueban** «se quedan 30 días después de la salida y se borran después» y «una entrada anulada cierra la estadía; una salida anulada la vuelve a abrir» (`fotos-vencidas.test.ts`).
+
+La regla: **un plazo que promete la arquitectura es una historia con su prueba; si solo está escrito, nadie lo construye.**
+
+*Ficha:* parqueadero · *(mío)* · 🟡 Medio · P13, P20 · parqueadero-0.3.0 · 2026-10-12

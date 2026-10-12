@@ -256,7 +256,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | — | 24 dic–8 ene | Pausa y congelamiento. La caja del cliente sigue en `v0.3.x` | — | — | — |
 | **Q9** (festivo) | 12–22 ene 2027 | **M1.** Cobro del plan por periodo, privacidad con cuenta, operación de la celda y dos cajas sin red que no repiten números | HU-Q7.10 (3), HU-Q7.11 (2), HU-Q7.12 (2), HU-Q10.1 (3), HU-Q10.2 (3), HU-Q10.4 (2) | 15 | M1, `v0.4.0` |
 | **Q10** | 25 ene–5 feb | Firma sin red por dispositivo y su verificación; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q11.4 (2), HU-Q11.5 (2). HU-Q8.3 pasó a Q11 (espera R2) | 14 | — |
-| **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). HU-Q8.5, HU-Q8.6 y HU-Q10.3 en el PR #156; HU-Q8.4 en el #157, sin el número del abonado; HU-Q11.6 y HU-Q11.7 en el #158 con la `v0.3.0` de la entrega. HU-Q8.3 va al Drive de la cuenta (decisión del dueño, 12 oct 2026) y pasa a Q12 con HU-Q8.7 | 17 | M2, **`v1.0.0`** |
+| **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). HU-Q8.5, HU-Q8.6 y HU-Q10.3 en el PR #156; HU-Q8.4 en el #157, sin el número del abonado; HU-Q11.6 y HU-Q11.7 en el #158 con la `v0.3.0` de la entrega. HU-Q8.3 hecha en el #158, con las fotos en el Drive de la cuenta (decisión del dueño, 12 oct 2026); HU-Q8.7 espera M1 en producción (HU-Q7.12) | 17 | M2, **`v1.0.0`** |
 | **Q12** | 22 feb–5 mar | Con su disparador: ED1 como Tech Provider, el número del parqueadero conectado y la plantilla | HU-Q9.1 (3), HU-Q9.2 (5), HU-Q9.3 (2) | 10 | — |
 | **Q13** | 8–19 mar | **M3.** Envío por la Cloud API, estados, autoservicio y presupuesto de mensajes | HU-Q9.4 (5), HU-Q9.5 (3), HU-Q9.6 (3), HU-Q9.7 (2), HU-Q9.8 (2) | 15 | M3, `v1.1.0` |
 
@@ -517,7 +517,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **CA2.** La caja del cliente se reclama en producción con todo lo del piloto (HU-Q7.6), después de aceptar los términos de HU-Q7.11, y el respaldo semanal corrió al menos una vez (HU-Q10.1).
 - **CA3 ❌.** La prueba de humo de producción comprueba que los parqueaderos de prueba **no** están en la base de producción (P11).
 - **Patrones en riesgo:** P11, P16.
-- **Work items:** WI-Q7.12.1 `[campo]` dos cajas con el cliente · WI-Q7.12.2 `[prueba]` humo de producción · WI-Q7.12.3 `[doc]` validación y CHANGELOG.
+- **Work items:** WI-Q7.12.1 `[campo]` dos cajas con el cliente · WI-Q7.12.2 `[prueba]` humo de producción · WI-Q7.12.3 `[doc]` validación y CHANGELOG · WI-Q7.12.4 `[legal]` el aviso de privacidad con cuenta nombra la copia en el Drive del parqueadero y sus fotos, con la revisión pendiente del abogado (HU-Q10.1 y HU-Q8.3 la suben solo en staging).
 
 #### HU-Q7.13 · El presupuesto en el plan gratuito: filas de D1, vigía y kill switches
 - **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q6 · **Depende de:** HU-C3.6, HU-C11.1, D-Q10 · **Estado:** Hecha (PR #142, fusionado el 8 oct 2026): medido 1.699 filas al día en la cuenta (reporte semanal al 8 oct); presupuesto de 70.000 filas al día, unos 38 parqueaderos, en `productos.json` y no en un `product.yaml` (PARQUEADERO §14.1 dice por qué); el vigía reparte las filas por producto y avisa al 50, 75 y 90 %, con la simulación al 95 %. Las claves `ks:parqueadero` y `ks:parqueadero-fotos` quedan declaradas y las crea HU-Q7.2 en el KV de su celda. La caja de M0 no lee nada de la nube: que siga registrando con la sincronización apagada lo prueba HU-Q7.5 CA4
@@ -554,14 +554,14 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q8.2.1 `[código]` firmar al emitir · WI-Q8.2.2 `[código]` verificar en `/r/` · WI-Q8.2.3 `[prueba]` los cuatro casos · WI-Q8.2.4 `[prueba]` enlaces de cada versión publicada · WI-Q8.2.5 `[campo]` modo avión en dos teléfonos.
 
 #### HU-Q8.3 · Fotos del estado en la nube por 30 días
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q12 · **Depende de:** HU-Q10.1, HU-Q3.3 · **Estado:** Refinada. **Cambió el 12 oct 2026 por decisión del dueño:** «Las fotos en la nube, van para la cuenta del drive por ahora». Ya no espera R2: van al Google Drive de la cuenta, con el mismo permiso de la copia de HU-Q10.1. Pide subir la versión de los términos de la nube, que hoy dicen que las fotos no salen del teléfono (HU-Q7.11)
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q10.1, HU-Q3.3 · **Estado:** Hecha (PR #158, 12 oct 2026), en staging, como Drive de HU-Q10.1. **Cambió el 12 oct 2026 por decisión del dueño:** «Las fotos en la nube, van para la cuenta del drive por ahora»: ya no espera R2. Los términos de la nube pasan a la versión 2, que dice adónde van las fotos (WI-Q8.3.5). De paso, la purga del teléfono que prometía PARQUEADERO §5.5 no existía y sale en la `0.3.0` (bitácora 36)
 - Como parqueadero, quiero que las fotos del estado sobrevivan a un teléfono perdido durante la estadía y un mes más, para responder un reclamo.
 - **Respaldo:** PARQUEADERO §5.5; ADR-15; bitácora parqueadero 8; HU-Q10.1 (la carpeta de Drive y su permiso). Cambios de rumbo de la bitácora, 12 oct 2026.
-- **CA1.** Con la caja vinculada a la cuenta, cada foto sube en segundo plano a la carpeta de la caja en el Google Drive de esa cuenta, de hasta 300 KB, sin detener una entrada (regla 1). Sin red, espera; con `ks:parqueadero-fotos` apagado, se queda en el dispositivo. Otra caja del mismo parqueadero, con la misma cuenta, la ve desde la estadía.
-- **CA2.** La caja borra de Drive las fotos de las estadías cerradas hace más de 30 días, al abrir y al cerrar el turno. `/r/` no las muestra (el Drive del parqueadero no es público) y dice «Las fotos se guardan 30 días».
+- **CA1.** Al guardar la copia en Drive (HU-Q10.1), con el mismo permiso, suben las fotos que falten a la carpeta «Caja del parqueadero · fotos · caja <serie>», con su formato real; una que ya está no sube otra vez. No suben solas: el permiso de Google dura una hora y no se renueva sin la persona (`drive.file`, sin refresh token), así que la copia del cierre de turno es la que las lleva. Registrar nunca espera a Drive (regla 1). Si las fotos fallan, la copia ya quedó y se dice aparte; la próxima sube las que faltan.
+- **CA2.** En el teléfono, una foto se borra 30 días después de cerrada su estadía (la salida vigente o la anulación de la entrada; una salida anulada la vuelve a abrir). Las que borró esta caja se borran de su carpeta de Drive con la copia siguiente. **❌** Una caja restaurada desde la copia no borra de Drive nada que subió otra. `/r/` no las muestra (el Drive del parqueadero no es público).
 - **CA4.** El formato del recibo no nombra a Drive: si las fotos vuelven a R2, los recibos de antes siguen leyéndose igual.
 - **CA3 ❌.** Una foto que el navegador no puede codificar en WebP sube como JPEG con su formato real. La prueba usa un `toBlob` que devuelve PNG, como Safari: nunca sube un PNG con nombre `.webp`.
-- **Consumo y kill switch:** sin costo para ED1 (el espacio es del Drive del parqueadero) y sin escrituras en D1; `ks:parqueadero-fotos`.
+- **Consumo y kill switch:** sin costo para ED1 (el espacio es del Drive del parqueadero) y sin escrituras en D1. `ks:parqueadero-fotos` no aplica: las fotos no pasan por la celda.
 - **Patrones en riesgo:** P13, P17, P20.
 - **Work items:** WI-Q8.3.1 `[código]` subida a Drive · WI-Q8.3.2 `[código]` borrado a los 30 días · WI-Q8.3.3 `[prueba]` formato real · WI-Q8.3.4 `[campo]` iPhone y Android · WI-Q8.3.5 `[legal]` términos de la nube con las fotos.
 
@@ -925,7 +925,7 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 | Q8 | 10 | Solo staging | #153 |
 | Q9 | 15 | Solo staging | #154. HU-Q7.10 espera HC4 y HU-Q7.12 es la `v0.4.0` |
 | Q10 | 14 | Solo staging | #155 |
-| Q11 | 17 | Lo que no necesita la nube, en la `v0.3.0` de la entrega | #156–#158: 17 puntos hechos (HU-Q8.4, HU-Q8.5, HU-Q8.6, HU-Q10.3, HU-Q11.6 y HU-Q11.7); HU-Q8.3 y HU-Q8.7 pasan a Q12 |
+| Q11 | 17 | Lo que no necesita la nube, en la `v0.3.0` de la entrega | #156–#158: 20 puntos hechos (HU-Q8.3, HU-Q8.4, HU-Q8.5, HU-Q8.6, HU-Q10.3, HU-Q11.6 y HU-Q11.7, estas dos sin sprint); HU-Q8.7 espera M1 en producción |
 
 Desde el 12 oct 2026, un PR y un push por sprint completo, para ahorrar minutos de Actions (decisión del dueño).
 
