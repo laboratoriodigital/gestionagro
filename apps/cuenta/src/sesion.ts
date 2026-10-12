@@ -489,12 +489,13 @@ async function salir(boton: HTMLButtonElement) {
   pintar(null);
 }
 
-async function iniciar() {
+async function iniciar(): Promise<boolean> {
   const main = document.querySelector<HTMLElement>('[data-apps]');
   const apps = JSON.parse(main?.dataset['apps'] ?? '[]') as App[];
-  // La vuelta del formulario es este mismo origen: staging o producción.
+  // La vuelta del formulario es esta misma página, en este origen: staging o producción. Así quien
+  // entra desde /autorizar/ vuelve ahí (HU-C9.4).
   for (const el of todos<HTMLInputElement>('input[data-vuelta]')) {
-    el.value = `${location.origin}/`;
+    el.value = `${location.origin}${location.pathname}`;
   }
   prepararVuelta(apps);
   const codigo = new URLSearchParams(location.hash.slice(1)).get('entrar');
@@ -522,10 +523,16 @@ async function iniciar() {
   for (const boton of todos<HTMLButtonElement>('button[data-reentrar-boton]')) {
     boton.addEventListener('click', entrarDeNuevo);
   }
-  if (g) {
+  // Lo de la portada, solo en la portada.
+  if (g && document.querySelector('[data-espacios-lista]')) {
     await cargarEspacios();
     cargarLoMio();
   }
+  return Boolean(g);
 }
 
-if (typeof document !== 'undefined') void iniciar();
+/** Si hay sesión, cuando la página terminó de canjear o leerla (lo usa /autorizar/, HU-C9.4). */
+export const conSesion: Promise<boolean> =
+  typeof document !== 'undefined' ? iniciar() : Promise.resolve(false);
+
+export { alCore };

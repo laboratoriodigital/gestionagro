@@ -227,3 +227,31 @@
 .portada__reentrar p {
   margin: 0;
 }
+
+/* ── Dar acceso a un asistente (HU-C9.4) ───────────────────────────────── */
+
+.autorizar__solicitud {
+  display: grid;
+  gap: var(--espacio-4);
+}
+
+.autorizar__solicitud[hidden] {
+  display: none;
+}
+
+.autorizar__quien {
+  margin: 0;
+}
+
+.autorizar__espacios {
+  display: grid;
+  gap: var(--espacio-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.autorizar__opciones {
+  display: grid;
+  gap: var(--espacio-2);
+}

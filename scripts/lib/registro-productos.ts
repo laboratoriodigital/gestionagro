@@ -58,5 +58,6 @@ export function catalogoDelRepositorio(
         ...(plan.cobro === undefined ? {} : { cobro: plan.cobro }),
       }),
     ),
+    ...(p.alcances ? { alcances: p.alcances } : {}),
   }));
 }

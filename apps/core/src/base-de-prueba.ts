@@ -14,6 +14,10 @@ export const baseDelCore = (instrumento?: Instrumento) =>
 /** En orden de dependencias. */
 export const vaciarCore = (db: BaseD1) =>
   vaciar(db, [
+    'refresco_oauth',
+    'codigo_oauth',
+    'concesion_oauth',
+    'cliente_oauth',
     'auditoria',
     'pago',
     'interes_plan',

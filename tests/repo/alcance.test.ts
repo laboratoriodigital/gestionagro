@@ -7,12 +7,14 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   archivosDeDiff,
+  comandoDePruebasDelCambio,
   decidirAlcance,
   esDeLaBase,
   esDelParqueadero,
   esDocumento,
   instrumentoParaElCambio,
   leeDocumentos,
+  pruebasDelCambio,
 } from '../../scripts/lib/alcance.ts';
 import { listarArchivos, RAIZ } from '../../scripts/lib/repo.ts';
 import { resumir } from '../../scripts/lib/resumen.ts';
@@ -228,5 +230,49 @@ describe('el resumen dice lo saltado', () => {
     ]);
     expect(texto).toContain('| ➖ | build | saltado: solo cambiaron documentos |');
     expect(texto).toContain('Todo en verde.');
+  });
+});
+
+describe('HU-C11.3 · las pruebas unitarias de lo afectado', () => {
+  it('CA1 · código TypeScript: las que lo alcanzan, más las del repositorio siempre', () => {
+    const p = pruebasDelCambio(['apps/core/src/autorizar.ts', 'packages/tokens/src/index.ts']);
+    expect(p.todas).toBe(false);
+    expect(comandoDePruebasDelCambio(p, ['apps/cuaderno/src/almacen/planes.test.ts'])).toBe(
+      'pnpm exec vitest related --run --passWithNoTests apps/core/src/autorizar.ts packages/tokens/src/index.ts && pnpm exec vitest run tests/repo',
+    );
+  });
+
+  it('con documentos además, también las que leen documentos', () => {
+    const p = pruebasDelCambio(['apps/core/src/oauth.ts', 'docs/plataforma/BACKLOG_CORE.md']);
+    expect(comandoDePruebasDelCambio(p, ['apps/cuaderno/src/almacen/planes.test.ts'])).toMatch(
+      / && pnpm exec vitest run tests\/repo apps\/cuaderno\/src\/almacen\/planes\.test\.ts$/,
+    );
+  });
+
+  it('❌ · lo que no se sigue por importaciones corre todas: SQL, JSON, contenido, configuración o la raíz', () => {
+    for (const archivo of [
+      'infrastructure/migraciones/core/0008_oauth_para_agentes.sql',
+      'infrastructure/productos.json',
+      'content/agro/cuaderno/planes.json',
+      'apps/cuenta/src/pages/autorizar.astro',
+      'apps/cuaderno/src/estilos.css',
+      'vitest.config.ts',
+      'apps/sitio/astro.config.ts',
+      'package.json',
+    ]) {
+      const p = pruebasDelCambio(['apps/core/src/oauth.ts', archivo]);
+      expect(p.todas, archivo).toBe(true);
+      expect(comandoDePruebasDelCambio(p, [])).toBe('pnpm run test');
+    }
+    expect(pruebasDelCambio(null).todas).toBe(true);
+    expect(pruebasDelCambio([]).todas).toBe(true);
+  });
+
+  it('CA3 · un cambio en packages/tokens se sigue por importaciones, y vitest lo lleva a todas las celdas', () => {
+    // `vitest related` resuelve `@ed1/tokens` a su fuente: se comprobó el 12 oct 2026 con
+    // `vitest related packages/tokens/src/index.ts` (36 archivos, con api-celda y parqueadero-api).
+    // Aquí se exige que la regla no lo deje fuera ni lo trate como «no se sabe».
+    const p = pruebasDelCambio(['packages/tokens/src/index.ts']);
+    expect(p).toMatchObject({ todas: false, codigo: ['packages/tokens/src/index.ts'] });
   });
 });

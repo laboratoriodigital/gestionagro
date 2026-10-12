@@ -40,6 +40,8 @@ import { cors } from 'hono/cors';
 import politicaDeLaCuenta from '../../../content/cuenta/privacidad/politica.json' with {
   type: 'json',
 };
+import { decidirAutorizacion, inicioDeAutorizacion } from './autorizar.ts';
+import { registrarCliente } from './clientes-oauth.ts';
 import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
 import { espaciosDeLaCuenta } from './cuenta.ts';
 import {
@@ -72,6 +74,7 @@ import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { claveAnteriorDe, clavesPublicadas } from './jwks.ts';
 import { cerrarSesiones, verActividad, verPagos, verSesiones } from './mi-cuenta.ts';
+import { metadatosDelServidor, servidorOAuthActivo } from './oauth.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
 import {
@@ -159,6 +162,8 @@ export function proveedorDePagoDe(env: Env, fetchFn: typeof fetch): ProveedorDeP
 
 export function crearApp(dependencias: Dependencias = {}) {
   const ahora = dependencias.ahora ?? (() => Date.now());
+  // Para Bold y para leer los metadatos de un cliente de OAuth (HU-C9.3); las pruebas pasan uno falso.
+  const fetchDeLaRed: typeof fetch = dependencias.fetch ?? ((...a) => fetch(...a));
   const google =
     dependencias.google ??
     ((env: Env) => proveedorGoogle(env.GOOGLE_CLIENT_ID ?? '', env.GOOGLE_CLIENT_SECRET ?? ''));
@@ -222,6 +227,15 @@ export function crearApp(dependencias: Dependencias = {}) {
         ahora: ahora(),
       }),
     );
+  });
+
+  // HU-C9.2: los metadatos del servidor de autorización (RFC 8414). Solo donde ya se anuncia
+  // (`oauth.ts`): en producción, 404 hasta que exista el canje de tokens (HU-C9.5).
+  app.get('/.well-known/oauth-authorization-server', (c) => {
+    if (!servidorOAuthActivo(c.env.DESTINO)) return c.notFound();
+    c.header('access-control-allow-origin', '*');
+    c.header('cache-control', 'public, max-age=3600');
+    return c.json(metadatosDelServidor(new URL(c.req.url).origin, catalogoDe(c.env)));
   });
 
   // Solo las apps de los productos pueden leer estas respuestas desde el navegador: la unión de sus
@@ -333,6 +347,19 @@ export function crearApp(dependencias: Dependencias = {}) {
     }
   }
 
+  // HU-C9.3: el servidor de autorización para agentes. Sin CORS de las apps: lo llama el agente,
+  // no una página. Solo donde ya se anuncia (`oauth.ts`).
+  app.use('/oauth/*', conEntorno);
+  app.post('/oauth/register', (c) =>
+    servidorOAuthActivo(c.env.DESTINO) ? registrarCliente(c, c.get('entorno')) : c.notFound(),
+  );
+  // HU-C9.4: autorizar con consentimiento. La pantalla es la página estática /autorizar/.
+  app.get('/oauth/authorize', (c) =>
+    servidorOAuthActivo(c.env.DESTINO)
+      ? inicioDeAutorizacion(c, c.get('entorno'), fetchDeLaRed)
+      : c.notFound(),
+  );
+
   app.post('/api/core/organizaciones', (c) => crearOrganizacionDeLaFinca(c, c.get('entorno')));
   app.post('/api/core/invitaciones', (c) => crearInvitacion(c, c.get('entorno')));
   app.post('/api/core/invitaciones/ver', (c) => verInvitacion(c, c.get('entorno')));
@@ -353,6 +380,11 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/api/core/cuenta/sesiones/cerrar', (c) => cerrarSesiones(c, c.get('entorno')));
   app.post('/api/core/cuenta/pagos', (c) => verPagos(c, c.get('entorno')));
   app.post('/api/core/cuenta/actividad', (c) => verActividad(c, c.get('entorno')));
+  app.post('/api/core/cuenta/autorizar', (c) =>
+    servidorOAuthActivo(c.env.DESTINO)
+      ? decidirAutorizacion(c, c.get('entorno'), fetchDeLaRed)
+      : c.notFound(),
+  );
   const conPago = (
     c: Context<{ Bindings: Env; Variables: { entorno: Entorno } }>,
   ): EntornoDePago => ({

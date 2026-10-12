@@ -30,6 +30,8 @@ export interface ProductoDelCatalogo {
   tipos: string[];
   roles: { id: string; administra: boolean; invitable: boolean }[];
   planes: PlanDelArchivo[];
+  /** Los alcances de OAuth del producto (HU-C9.2); ninguno si no declara. */
+  alcances?: { id: string; descripcion: string }[];
 }
 
 /** Literal de texto SQL. Los ids vienen validados por el esquema; esto es la segunda red. */
@@ -76,6 +78,17 @@ export function sentenciasDelCatalogo(
         );
       }
     }
+    // HU-C9.2: los alcances, como los planes. Uno que sale del archivo queda retirado (P21).
+    for (const a of p.alcances ?? []) {
+      s.push(
+        `INSERT INTO alcance (producto, id, descripcion, estado) VALUES (${t(p.id)}, ${t(a.id)}, ${t(a.descripcion)}, 'activo') ` +
+          "ON CONFLICT (producto, id) DO UPDATE SET descripcion = excluded.descripcion, estado = 'activo';",
+      );
+    }
+    const alcances = (p.alcances ?? []).map((x) => t(x.id)).join(', ');
+    s.push(
+      `UPDATE alcance SET estado = 'retirado' WHERE producto = ${t(p.id)} AND estado <> 'retirado'${alcances ? ` AND id NOT IN (${alcances})` : ''};`,
+    );
     const planes = p.planes.map((x) => t(x.id)).join(', ');
     s.push(
       `UPDATE plan SET estado = 'retirado' WHERE producto = ${t(p.id)} AND estado <> 'retirado'${planes ? ` AND id NOT IN (${planes})` : ''};`,
@@ -98,6 +111,7 @@ export const CONSULTAS_DEL_CATALOGO = [
   'SELECT producto, rol, administra, invitable FROM producto_rol',
   'SELECT producto, id, nombre, gratuito, estado FROM plan',
   'SELECT producto, plan, meses, monto_cop, vigente_desde FROM plan_precio',
+  'SELECT producto, id, descripcion, estado FROM alcance',
 ].join('; ');
 
 type Fila = Record<string, unknown>;
@@ -109,11 +123,11 @@ type Fila = Record<string, unknown>;
  */
 export function diferenciasDelCatalogo(
   productos: readonly ProductoDelCatalogo[],
-  [enBase, tipos, roles, planes, precios]: readonly Fila[][],
+  [enBase, tipos, roles, planes, precios, alcances]: readonly Fila[][],
 ): string[] {
   const d: string[] = [];
-  if (!enBase || !tipos || !roles || !planes || !precios) {
-    return ['la base no devolvió las cinco consultas del catálogo'];
+  if (!enBase || !tipos || !roles || !planes || !precios || !alcances) {
+    return ['la base no devolvió las seis consultas del catálogo'];
   }
   for (const p of productos) {
     const fila = enBase.find((x) => x['id'] === p.id);
@@ -159,6 +173,19 @@ export function diferenciasDelCatalogo(
             `el precio de «${p.id}/${plan.id}» por ${meses} meses es ${String(vigente?.['monto_cop'] ?? 'ninguno')} en la base y ${monto} en el archivo`,
           );
         }
+      }
+    }
+    for (const a of p.alcances ?? []) {
+      const f = alcances.find((x) => x['producto'] === p.id && x['id'] === a.id);
+      if (!f || f['descripcion'] !== a.descripcion || f['estado'] !== 'activo') {
+        d.push(`el alcance «${a.id}» no es el del archivo`);
+      }
+    }
+    for (const f of alcances.filter((x) => x['producto'] === p.id && x['estado'] !== 'retirado')) {
+      if (!(p.alcances ?? []).some((x) => x.id === f['id'])) {
+        d.push(
+          `el alcance «${String(f['id'])}» sigue activo en la base y ya no está en el archivo`,
+        );
       }
     }
     for (const f of planes.filter((x) => x['producto'] === p.id && x['estado'] !== 'retirado')) {

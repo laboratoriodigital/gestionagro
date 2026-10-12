@@ -24,7 +24,9 @@ export type Accion =
   /** Un refresh presentado desde la app de otro producto (HU-C4.4): posible robo. */
   | 'refresh_rechazado'
   /** La persona cerró una sesión, o todas menos la suya, desde su cuenta (HU-C7.5). */
-  | 'sesion_cerrada';
+  | 'sesion_cerrada'
+  /** Una persona dio acceso a un agente sobre una organización (HU-C9.4). */
+  | 'concesion_creada';
 
 export interface Hecho {
   instante: string;

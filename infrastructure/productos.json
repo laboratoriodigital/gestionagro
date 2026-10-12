@@ -46,7 +46,14 @@
       "presupuesto": {
         "usd_mes": 10,
         "al_agotarse": []
-      }
+      },
+      "recursos_oauth": ["https://mcp.cultivopro.co"],
+      "alcances": [
+        {
+          "id": "agro:registros:leer",
+          "descripcion": "Leer los registros de tu finca: riegos, aplicaciones, cosechas, monitoreos y clima. No puede cambiar nada."
+        }
+      ]
     },
     {
       "id": "parqueadero",
