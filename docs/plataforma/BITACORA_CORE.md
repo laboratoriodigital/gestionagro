@@ -439,3 +439,14 @@ La regla: **lo que el CI prueba en un PR es ese PR contra la base de ese momento
 La regla: **el CSS que importa se prueba en el navegador, sobre lo compilado. Lo que se escribió no es lo que llega: el minificador también decide.**
 
 *Ficha:* core · *(del terreno)* · 🟢 Bajo · P17, P5 · core-0.2.0 · 2026-10-06
+
+**8 · Tres piezas del C7 que dependen de que el CORE llegue antes, y una semana de evidencia que no cabe en los logs del plan gratuito.**
+Al cerrar el C7 (12 oct 2026), tres cambios del agro necesitan algo del CORE que todavía no está en producción: el cuaderno ofrece 6 meses (HU-C5.7) y un CORE sin HU-C5.3 cobraría uno; la celda llama a `ServicioDelCore` (HU-C5.6) y un CORE sin esa entrada respondería con un error. Y la contracción de los tokens v1 (HU-C4.5) pide «una semana de registro», pero los Workers Logs del plan gratuito guardan 3 días.
+*Síntoma literal.* Sin síntoma todavía: se vio al leer el plan de publicación, no en una corrida. Es lo que pasaría si `chore(version)` subiera CultivoPro sin el CORE.
+*Causa raíz.* Publicar por sprint junta en un PR lo que el CORE ofrece y lo que el agro usa; el despliegue respeta el orden dentro de una corrida (CORE, celdas, sitio), pero dos versiones publicadas por separado no.
+*Arreglo.* La publicación del C7 sube las dos versiones en el mismo `chore(version)` (memoria «Publicar agro y CORE»), y cada historia y su línea del CHANGELOG lo dicen. Si la celda llega antes, falla de forma segura: conserva su copia y avisa una vez. El registro de v1 va a una marca por día en el KV de flags, que vence a los 40 días, y lo lee el reporte de los lunes.
+**Lo prueban** `apps/api-celda/src/planes.test.ts` («una celda sin el binding… se nombran» y CA3 con el CORE caído) y `apps/api-celda/src/tokens-v1.test.ts` (una solicitud con v1 deja la marca; control negativo: sin la marca, en rojo).
+
+La regla: **lo que el agro usa del CORE sale con el CORE o después, nunca antes; y la evidencia que tiene que durar más que los logs se escribe donde dure.**
+
+*Ficha:* core · *(mío)* · 🟡 Medio · P1, P10, P17 · core-0.4.0 · 2026-10-12
