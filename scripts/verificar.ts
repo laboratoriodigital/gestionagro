@@ -29,9 +29,11 @@ import { join } from 'node:path';
 import {
   type Alcance,
   archivosDeDiff,
+  comandoDePruebasDelCambio,
   decidirAlcance,
   instrumentoParaElCambio,
   leeDocumentos,
+  pruebasDelCambio,
 } from './lib/alcance.ts';
 import { e2eDelCambio, leerUsos, type SeleccionE2e, specsDe } from './lib/e2e-afectado.ts';
 import { listarArchivos, RAIZ } from './lib/repo.ts';
@@ -80,13 +82,22 @@ const SALTA_YA_VERIFICADO = 'el PR ya verificó este mismo árbol';
  */
 const canalDelEquipo = process.env['PW_CANAL']?.trim();
 
-/** Con un cambio solo de documentos, las únicas pruebas que pueden cambiar son las que los leen. */
-function comandoDePruebas(): string {
-  if (!soloDocumentos) return 'pnpm run test';
-  const pruebas = listarArchivos((r) => r.endsWith('.test.ts')).filter((r) =>
+/** Las pruebas que leen documentos: las únicas que un cambio de documentos puede cambiar. */
+const documentales = () =>
+  listarArchivos((r) => r.endsWith('.test.ts')).filter((r) =>
     leeDocumentos(readFileSync(join(RAIZ, r), 'utf8')),
   );
-  return `pnpm exec vitest run ${pruebas.join(' ')}`;
+
+/**
+ * Con un cambio solo de documentos, las que los leen. Con código, las de lo afectado y las del
+ * repositorio (HU-C11.3 CA1, `pruebasDelCambio`). Sin base para comparar (en local), todas.
+ */
+function comandoDePruebas(): string {
+  if (soloDocumentos) return `pnpm exec vitest run ${documentales().join(' ')}`;
+  if (!alcance || yaVerificado) return 'pnpm run test';
+  const p = pruebasDelCambio(cambiados);
+  console.log(`\nPruebas: ${p.motivo}.`);
+  return comandoDePruebasDelCambio(p, documentales());
 }
 
 /**

@@ -7,7 +7,8 @@
  * documentación. Si no se puede calcular el cambio, o no hay cambios, corre todo y lo dice.
  *
  * El e2e de lo afectado (HU-C11.3, primer paso): si todo lo que no es documento es del
- * parqueadero, solo corren las e2e del parqueadero. Las pruebas unitarias corren todas igual.
+ * parqueadero, solo corren las e2e del parqueadero. Las pruebas unitarias, las de lo afectado
+ * (`pruebasDelCambio`, HU-C11.3 CA1).
  */
 
 export interface Alcance {
@@ -123,4 +124,61 @@ export function archivosDeDiff(salida: string): string[] {
  */
 export function leeDocumentos(fuente: string): boolean {
   return /['"`]docs['"`/]|docs\/|\.md['"`]/.test(fuente);
+}
+
+/**
+ * Qué pruebas unitarias corren (HU-C11.3, CA1): las que importan, directa o indirectamente, el
+ * código que cambió (`vitest related`, que sigue también los paquetes `@ed1/*`: un cambio en
+ * `packages/tokens` corre las de todas las celdas, CA3), más las del repositorio siempre, más las
+ * que leen documentos si cambió alguno.
+ *
+ * Cerrada a propósito (P1): `related` solo ve lo que se importa. Un SQL, un JSON, un YAML, un CSS,
+ * una plantilla o el contenido de `content/` se leen de otra forma (wrangler, `readFileSync`,
+ * Astro), así que con cualquier cambio que no sea TypeScript corren todas. Sin saber qué cambió,
+ * también.
+ */
+export type PruebasDelCambio =
+  | { todas: true; motivo: string }
+  | { todas: false; codigo: string[]; conDocumentos: boolean; motivo: string };
+
+const RAIZ_DE_PRUEBAS_SIEMPRE = 'tests/repo';
+/** Archivos de configuración que cambian cómo corre todo, aunque sean TypeScript. */
+const CONFIGURACION = /^(vitest|playwright|astro)\.config\.ts$|^apps\/[^/]+\/[^/]+\.config\.ts$/;
+
+export function pruebasDelCambio(archivos: readonly string[] | null): PruebasDelCambio {
+  if (archivos === null || archivos.length === 0)
+    return { todas: true, motivo: 'no se sabe qué cambió: todas las pruebas' };
+  const rutas = archivos.map((r) => r.replaceAll('\\', '/'));
+  const docs = rutas.filter(esDocumento);
+  const resto = rutas.filter((r) => !esDocumento(r));
+  const fueraDelGrafo = resto.find(
+    (r) =>
+      !/\.(ts|tsx)$/.test(r) ||
+      CONFIGURACION.test(r) ||
+      !/^(apps|packages|scripts|tests)\//.test(r),
+  );
+  if (fueraDelGrafo)
+    return {
+      todas: true,
+      motivo: `${fueraDelGrafo} no se sigue por importaciones: todas las pruebas`,
+    };
+  return {
+    todas: false,
+    codigo: resto,
+    conDocumentos: docs.length > 0,
+    motivo: `las que alcanzan ${resto.length} archivo(s) de código, más las del repositorio${docs.length > 0 ? ' y las que leen documentos' : ''}`,
+  };
+}
+
+/** El comando de `pruebasDelCambio`. `documentales` son las pruebas que leen documentos. */
+export function comandoDePruebasDelCambio(
+  p: PruebasDelCambio,
+  documentales: readonly string[],
+): string {
+  if (p.todas) return 'pnpm run test';
+  const siempre = [RAIZ_DE_PRUEBAS_SIEMPRE, ...(p.conDocumentos ? documentales : [])];
+  const fijas = `pnpm exec vitest run ${[...new Set(siempre)].join(' ')}`;
+  return p.codigo.length > 0
+    ? `pnpm exec vitest related --run --passWithNoTests ${p.codigo.join(' ')} && ${fijas}`
+    : fijas;
 }
