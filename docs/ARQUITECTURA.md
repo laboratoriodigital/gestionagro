@@ -589,13 +589,20 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
  → resumen de la corrida con TODAS las fallas nombradas (P15)
 ```
 
-- **Dos instrumentos para la base de las pruebas (HU-C11.7):** en los PR, una base en proceso sobre `node:sqlite` (`packages/d1/src/sqlite.ts`); en `main`, el D1 local de workerd (`D1_INSTRUMENTO=workerd`), así una diferencia entre los dos aparece al fusionar. Las pruebas que prueban D1 mismo (la receta de reconstrucción, la matriz de producto) usan siempre workerd.
+- **Dos instrumentos para la base de las pruebas (HU-C11.7):** en los PR, una base en proceso sobre `node:sqlite` (`packages/d1/src/sqlite.ts`); el D1 local de workerd (`D1_INSTRUMENTO=workerd`) corre en el PR que toca la base, en `main` cuando el PR no estaba al día y en la corrida semanal de `main` (HU-C11.8), así una diferencia entre los dos aparece antes de fusionar o en la semana. Las pruebas que prueban D1 mismo (la receta de reconstrucción, la matriz de producto) usan siempre workerd.
 - Toda tubería en los flujos lleva `set -o pipefail`. Una prueba de los flujos lo exige (P14).
 - Las herramientas de `scripts/` también corren en `windows-latest`. Por costo de minutos, solo cuando un cambio de `scripts/` o de las dependencias llega a `main`, los lunes y a mano; no en cada push de un PR (P3).
 - Minutos: repo privado, 2.000 min/mes (ED1 §41). Objetivo: menos de 8 min por corrida y cancelar la corrida vieja de la misma rama.
 - **Lo que no se repite (HU-C11.3, 8 oct 2026):** la medición dio cerca de 1.920 minutos en 8 días: el CI de `main` 32 %, el de los PR 32 %, Windows 25 % y el despliegue 10 %. Por eso:
-  - En `main`, si el PR fusionado ya contenía el `main` de antes y su CI estaba en verde, el PR probó este mismo árbol (`scripts/ya-verificado.ts`): se saltan navegadores, build y e2e, y las pruebas corren igual con workerd. Si la rama estaba atrasada, corre todo.
+  - En `main`, si el PR fusionado ya contenía el `main` de antes y su CI estaba en verde, el PR probó este mismo árbol (`scripts/ya-verificado.ts`): no corre ningún paso (HU-C11.8; hasta el 12 oct repetía las pruebas con workerd). Si la rama estaba atrasada, corre todo.
   - Si todo lo que no es documento es del parqueadero (`esDelParqueadero` en `scripts/lib/alcance.ts`), el e2e corre solo `tests/e2e/parqueadero-*`. Un paquete compartido, `scripts/` o la raíz corren todo, y una prueba exige que nada fuera del parqueadero importe sus paquetes.
+- **Cada fusión cuesta un minuto (HU-C11.8, 12 oct 2026):** la medición del 5 al 12 oct dio unos 1.540 minutos facturables en 7 días: el CI de los PR 449, el de `main` 445, el despliegue 205 (64 de ellos, un trabajo que solo leía versiones) y Windows 422 (211 de reloj, que cuentan doble). Por eso:
+  - **El e2e de lo afectado, por app** (`scripts/lib/e2e-afectado.ts`): tres grupos, uno por origen que sirven las e2e (agro, cuenta y parqueadero). Quién usa a quién se lee del código: los `@ed1/…`, las rutas `packages/…`, `content/…`, `scripts/…` y `tests/fixtures/…` que nombra cada archivo, y sus importaciones relativas. Lo que no se sabe clasificar (la raíz, `infrastructure/`, el CI, una app nueva) corre todas; un cambio que no llega a ninguna app de las e2e (el CORE, la celda del agro, un guion del despliegue, una prueba unitaria) no corre ninguna y salta también los navegadores.
+  - **workerd cuando el cambio toca la base** (`esDeLaBase`): las apps con D1, `packages/d1`, las migraciones, las pruebas de integración y el lockfile. Una prueba exige que todo código con SQL viva en esas rutas. La red: una corrida semanal de `main` con todo, los lunes.
+  - **Un PR en borrador no corre CI**: corre al marcarlo listo y en cada push después.
+  - **El despliegue decide la publicación en el trabajo de staging** (`decidir_publicacion`), no en uno aparte que se cobraba como un minuto por fusión.
+  - **Windows no corre por `package.json`**: cada versión del agro lo cambia solo en el número. Sigue con `scripts/**`, `pnpm-lock.yaml`, los lunes y a mano.
+  - **Lo que más ahorraría queda en manos del dueño:** el runner propio (`docs/runbooks/runner-propio.md`) deja el CI y Windows en 0 minutos de GitHub; los despliegues siguen en GitHub.
 
 ### 7.3 Entornos y anillos
 

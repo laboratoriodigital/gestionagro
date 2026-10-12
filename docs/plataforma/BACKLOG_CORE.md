@@ -977,6 +977,19 @@ Formato de cada historia:
 - **CA4.** La suma baja al menos a la mitad, medida igual que la de partida.
 - **Work items:** WI-C11.7.1 `[prueba]` spike y medición · WI-C11.7.2 `[código]` la opción elegida · WI-C11.7.3 `[doc]` `packages/d1` y bitácora core con los números.
 
+
+#### HU-C11.8 · Cada fusión cuesta un minuto, y el e2e corre lo de cada app
+- **Capa:** CI · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** adelantada por pedido del dueño (12 oct 2026: «Los minutos gratis de actions están en un punto crítico») · **Depende de:** HU-C11.3, HU-C11.6, HU-C11.7 · **Estado:** En revisión (rama `ci/menos-minutos`)
+- Como dueño, quiero que cada push gaste lo mínimo de los 2.000 minutos del mes, sin perder lo que el CI ve.
+- **Respaldo:** ED1 §25 y §41; ARQUITECTURA §7.2; HU-C11.3 (lo que no se repite), HU-C11.7 (los dos instrumentos de D1); P1 y P17.
+- **Medición de partida** (5 al 12 oct 2026, 280 corridas, cada trabajo redondeado al minuto): CI de los PR 449 min (88 corridas, 5,1 de promedio), CI de `main` 445 (69; con el PR ya verificado repetía 234 s de pruebas con workerd), despliegue de staging 141, el trabajo `version` 64 (un minuto por fusión solo por preparar Node), Windows 211 de reloj que cuentan 422. En un PR, el e2e es el paso más largo (232 s); las del cuaderno suman 220 s de 430 y un sprint del parqueadero las corría aunque no tocara el cuaderno.
+- **CA1.** En `main`, con el PR ya verificado, no corre ningún paso. El D1 de workerd corre en el PR cuyo cambio toca la base (`esDeLaBase`: las apps con D1, `packages/d1`, las migraciones, las pruebas de integración, el lockfile), en `main` sin verificar y en una corrida semanal de `main` con todo. **❌** Sin poder calcular el cambio, o sin archivos, workerd. Una prueba exige que todo código con SQL viva en una ruta que la regla reconoce.
+- **CA2.** El e2e corre los grupos (agro, cuenta, parqueadero) a los que llega el cambio, con quién usa a quién leído del código (`scripts/lib/e2e-afectado.ts`). Un cambio que no llega a ninguno salta navegadores y e2e. **❌** Lo que no se sabe clasificar (la raíz, `infrastructure/`, el CI, `playwright.config.ts`, una app o un contenido nuevos) corre todas y dice por qué; cada carpeta de `apps/` tiene que estar en el mapa.
+- **CA3.** Un PR en borrador no corre CI; corre al marcarlo listo.
+- **CA4.** El despliegue decide la publicación en el mismo trabajo de staging, después de desplegar; Windows no corre por `package.json`.
+- **Contra la historia** (las 15 fusiones del 8 al 12 oct): con CA2, 7 corren menos que todas (6 solo las del parqueadero, 1 ninguna); las demás tocan la raíz, `infrastructure/` o el CI. Cada fusión deja de pagar unos 5 minutos en `main` y 1 en el despliegue.
+- **Lo que queda al dueño:** el runner propio (`docs/runbooks/runner-propio.md`) deja el CI y Windows en 0 minutos de GitHub.
+- **Work items:** WI-C11.8.1 `[ci]` `ci.yml`, `desplegar.yml`, `desplegar-destino.yml` y `scripts-windows.yml` · WI-C11.8.2 `[código]` `e2e-afectado.ts` y `esDeLaBase` · WI-C11.8.3 `[prueba]` `e2e-afectado.test.ts`, `alcance.test.ts`, `flujos.test.ts` y `publicacion.test.ts` · WI-C11.8.4 `[medición]` repetir la medición una semana después.
 ---
 
 ## 8. Preparadas, sin sprint
