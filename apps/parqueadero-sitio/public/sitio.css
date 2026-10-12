@@ -136,6 +136,13 @@ a.boton {
   margin: 0;
   color: var(--suave);
 }
+.herramientas {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 .herramienta {
   display: grid;
   gap: 0.375rem;
@@ -267,6 +274,47 @@ button.boton-secundario {
 .siguiente p {
   margin: 0 0 1.25rem;
 }
+/* El liquidador de mensualidades (HU-Q11.6): el total grande y cada periodo con su cuenta. */
+.ayuda {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--suave);
+}
+.liquidacion h2 {
+  margin-top: 2.5rem;
+}
+.total-grande {
+  margin: 0 0 0.25rem;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.periodos {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 0;
+  list-style: none;
+}
+.periodos li {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--linea);
+}
+.periodo-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+.periodo-detalle {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--suave);
+  overflow-wrap: anywhere;
+}
 .solo-lectores {
   position: absolute;
   width: 1px;
@@ -293,4 +341,25 @@ button.boton-secundario {
   .hoja-recibo {
     box-shadow: none;
   }
+}
+
+/* Los cupos para eléctricos (HU-Q11.7): la respuesta como titular y la norma citada. */
+.titular-resultado.titular-resultado {
+  margin: 2rem 0 0.5rem;
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--tinta);
+}
+.norma p {
+  margin: 0 0 0.75rem;
+}
+.fuentes {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+}
+.fuentes a {
+  color: var(--acento);
+  overflow-wrap: anywhere;
 }

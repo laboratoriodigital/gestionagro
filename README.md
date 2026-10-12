@@ -15,7 +15,7 @@ El monorepo de la plataforma del ecosistema digital ED1 de Laboratorio Digital (
 
 ## Arranque
 
-Requisitos: Node 22.18 o superior y pnpm 11 (la versión exacta está en `packageManager` de `package.json`).
+Requisitos: Node 22.20 o superior y pnpm 11 (la versión exacta está en `packageManager` de `package.json`).
 
 ```bash
 npm install -g pnpm@11.28.2

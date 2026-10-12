@@ -30,6 +30,11 @@ Los textos en negrita entre comillas (**«así»**) son los botones de la caja.
 
 Una entrada mal hecha (otra placa, un vehículo que no entró) **no se cobra**: se anula con el PIN del administrador.
 
+## Un abonado paga su mensualidad
+
+1. **«Abonados»** y toque al abonado: la caja dice hasta cuándo está pago.
+2. **«Cobrar mensualidad»**, elija el medio de pago y cobre. El recibo sale en la impresora, numerado como los de entrada y salida.
+
 ## Al cerrar
 
 1. **«Cerrar turno»**: cuente los billetes y las monedas. Si la caja marca una diferencia en rojo, escriba el motivo.

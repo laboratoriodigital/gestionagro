@@ -19,7 +19,7 @@ Turnos seguidos sin diferencia: **0 de 3**.
 
 ## Lo que se cambió durante los primeros turnos
 
-Arreglos `0.1.x`, solo después de un cierre de turno, nunca en medio (§8.3). Cada uno con su PR y, si repite un patrón, su entrada en la bitácora.
+Arreglos `0.3.x`, solo después de un cierre de turno, nunca en medio (§8.3). Cada uno con su PR y, si repite un patrón, su entrada en la bitácora.
 
 | Fecha | Versión | Qué se arregló | Por qué |
 |---|---|---|---|

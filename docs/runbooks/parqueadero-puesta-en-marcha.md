@@ -10,6 +10,8 @@ Los textos en negrita entre comillas (**«así»**) son lo que se ve en la caja.
 - La PT-210 del cliente con batería y rollos de 57 mm. En el kit: una PT-210 de repuesto, un rollo, cargador y cable.
 - Los datos del cliente comparados con un recibo suyo: nombre, NIT con dígito, dirección, ciudad, teléfono, póliza si tiene, y sus tarifas contra el tope de su ciudad (`content/parqueadero/topes.json`).
 - El aviso de privacidad impreso y la hoja de una página para el cajero.
+- La caja de producción en la versión `0.3.0` o posterior: la publicación de GitHub «Parqueadero v0.3.0» terminó en verde.
+- Las mensualidades del cliente, si tiene: placa, referencia, hasta cuándo pagó y el valor del mes.
 
 ## En el parqueadero
 
@@ -17,10 +19,12 @@ Los textos en negrita entre comillas (**«así»**) son lo que se ve en la caja.
 2. **La hora.** La cabecera debe decir **«Hora correcta»**. Si dice que está corrida, corrija la hora del teléfono (automática) antes de seguir: de esa hora sale lo que se cobra.
 3. **La sede.** **«Ajustes del parqueadero»**: los datos legales, **«¿Cuándo sale el recibo en papel?»** en **«Siempre, al registrar»** durante el piloto (D-Q9), las tarifas por vehículo con su tope y el PIN de administrador. El PIN lo escoge el cliente y no se anota en ningún equipo nuestro. Si la ciudad tiene tope en `content/parqueadero/topes.json`, la caja no deja guardar una tarifa por encima. **«Guardar»**.
 4. **El aviso de privacidad.** En Ajustes, el cliente lo lee y lo acepta; después, en **«Aviso de privacidad»**, **«Imprimir en la impresora»** o **«Imprimir en hoja carta»**, y se pega a la vista del conductor.
-5. **La impresora.** Empareje la PT-210 en Ajustes → Bluetooth del teléfono (clave `0000`). En la caja: **«Configurar impresora»** → **«Siguiente»** → **«Usar la impresora emparejada»** (si no aparece, **«Conectar impresora»**) → **«Imprimir página de prueba»** → las tres preguntas. Si alguna línea de tildes pierde letras, **«Ninguna»**. Detalle en el runbook «La impresora no imprime».
-6. **Que vuelva sola.** Cierre la caja del todo y ábrala: la cabecera debe decir **«Impresora conectada»** sin tocar nada.
-7. **WhatsApp.** WhatsApp Business del parqueadero instalado y abierto con su número. Haga una entrada de práctica en el Android del equipo, no en la caja del cliente, y **«Enviar por WhatsApp»** al teléfono del dueño.
-8. **El turno.** **«Abrir turno»**: quién atiende y la base de caja. Desde aquí, cada carro recibe el recibo de la caja y el del talonario de siempre.
+5. **El aviso de tarifas.** En el inicio, **«Aviso de tarifas»**: revise las tarifas y los medios de pago, imprímalo en hoja carta u oficio y péguelo a la entrada, donde el conductor lo vea antes de dejar el vehículo.
+6. **La impresora.** Empareje la PT-210 en Ajustes → Bluetooth del teléfono (clave `0000`). En la caja: **«Configurar impresora»** → **«Siguiente»** → **«Usar la impresora emparejada»** (si no aparece, **«Conectar impresora»**) → **«Imprimir página de prueba»** → las tres preguntas. Si alguna línea de tildes pierde letras, **«Ninguna»**. Detalle en el runbook «La impresora no imprime».
+7. **Que vuelva sola.** Cierre la caja del todo y ábrala: la cabecera debe decir **«Impresora conectada»** sin tocar nada.
+8. **WhatsApp.** WhatsApp Business del parqueadero instalado y abierto con su número. Haga una entrada de práctica en el Android del equipo, no en la caja del cliente, y **«Enviar por WhatsApp»** al teléfono del dueño.
+9. **Los abonados.** Si el parqueadero tiene mensualidades: **«Abonados»** → **«Agregar abonado»** con el PIN, uno por placa, con su vigencia y el valor del mes. Desde entonces, la placa sale sin cobro mientras esté vigente, y **«Cobrar mensualidad»** cobra el mes siguiente con su recibo.
+10. **El turno.** **«Abrir turno»**: quién atiende y la base de caja. Desde aquí, cada carro recibe el recibo de la caja y el del talonario de siempre.
 
 ## Si la caja es un PC con Windows
 
@@ -58,3 +62,5 @@ Sin el acceso directo, cada recibo abre el diálogo de Chrome: se elige la PT-21
 
 2. **«Hacer el respaldo»** y compartirlo al correo o al Drive del dueño del parqueadero. La cabecera dice la fecha del último respaldo.
 3. Anotar el resultado en la matriz (`docs/parking/validacion/impresion-pt210.md`) y la primera fila del registro del piloto.
+
+En la matriz, por la impresora emparejada y con el teléfono del cliente: la página de prueba con tildes (paso 6), que vuelva sola (paso 7), bloquear el teléfono unos minutos y volver, apagar y prender la impresora con la caja abierta, y el cierre impreso.

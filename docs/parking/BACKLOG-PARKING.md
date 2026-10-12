@@ -23,7 +23,7 @@
 | Hito | Qué queda funcionando | Cierra | Fecha objetivo | Necesita del CORE o del dueño | Versión |
 |---|---|---|---|---|---|
 | **M0 · MVP del cliente** | La caja instalable en Android o Windows: tarifas con tope, entrada y salida, recibo en la PT-210, WhatsApp por enlace, QR en pantalla, la página `/r/`, turno con cierre impreso y respaldo en archivo. Puesta en marcha y primer turno real con el cliente | Q5 | **Demostración al cliente el 30 oct 2026** y **piloto del 9 al 13 nov** | Nada del CORE. Del dueño: D-Q1 a D-Q9, los datos del cliente y la zona `laboratorio-digital.app` activa antes de Q3 | `parqueadero-v0.1.0` (Q3) y `v0.2.0` (Q5) |
-| **M1 · Cuenta y varias cajas** | El parqueadero en el CORE, celda c2, sincronización, entrar y reclamar lo local, dispositivos con serie, roles, respaldo en la nube, cobro del plan por periodo | Q9 | 22 ene 2027 | HU-C3.1, HU-C4.3 y HU-C4.4, ya construidas; HC4 solo para el cobro por periodo (HU-Q7.10) | `v0.3.0` |
+| **M1 · Cuenta y varias cajas** | El parqueadero en el CORE, celda c2, sincronización, entrar y reclamar lo local, dispositivos con serie, roles, respaldo en la nube, cobro del plan por periodo | Q9 | 22 ene 2027 | HU-C3.1, HU-C4.3 y HU-C4.4, ya construidas; HC4 solo para el cobro por periodo (HU-Q7.10) | `v0.4.0` |
 | **M2 · Recibo verificado** | Firma sin red por dispositivo y su verificación en `/r/`, fotos del estado en la nube por 30 días, mensualidades, reportes por turno y lo que ahorra el parqueadero en papel | Q11 | 19 feb 2027 | — | **`v1.0.0`** |
 | **M3 · WhatsApp automático** | Envío por la Cloud API con el número de cada parqueadero, plantilla de utilidad, estados de entrega y recibo por autoservicio con un QR en la entrada | Q13 | 19 mar 2027, **solo si se cumple su disparador** (§8, EQ9) | Un parqueadero que pague un plan que lo cubra y tenga su negocio verificado en Meta; `@ed1/cifrado` (HU-T1.3) | `v1.1.0` |
 | **M4 · Facturación** | Integrar el facturador del parqueadero, sin emitir | — | Preparada (§9) | Un parqueadero obligado a facturar | `v1.2.0` |
@@ -117,7 +117,8 @@ El parqueadero tiene versión propia (HU-Q0.3, como HU-C0.3 para el CORE y HU-T0
 |---|---|---|
 | `parqueadero-v0.1.0` | Q3 | La demostración al cliente, en producción en `parqueadero.laboratorio-digital.app` |
 | `parqueadero-v0.2.0` | Q5 | M0: el piloto con el cliente |
-| `parqueadero-v0.3.0` | Q9 | M1: cuenta, varias cajas y cobro del plan |
+| `parqueadero-v0.3.0` | Q11 | La entrega al primer cliente (13 oct 2026): lo de Q6 a Q11 que no necesita la nube. En producción, la cuenta, la nube, Drive y la firma siguen apagadas |
+| `parqueadero-v0.4.0` | Q9 | M1: cuenta, varias cajas y cobro del plan, con la caja del cliente reclamada en producción (HU-Q7.12) |
 | **`parqueadero-v1.0.0`** | Q11 | M2. Los contratos quedan estables: el enlace firmado, `parqueadero-export/1` y `/api/v1` |
 | `parqueadero-v1.1.0` | Q13 | M3: WhatsApp automático |
 | `parqueadero-v1.2.0` | — | M4: facturación integrada |
@@ -252,10 +253,10 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q6** (festivo) | 17–27 nov | Lo que enseñó el piloto; el parqueadero en el CORE, su celda, la sincronización común y su presupuesto | HU-Q3.12 (3), HU-Q7.1 (3), HU-Q7.2 (3), HU-Q7.3 (5), HU-Q7.13 (2), HU-Q11.1 (1) | 17 | — |
 | **Q7** (festivo) | 30 nov–11 dic | La API de la celda y la caja que sincroniza; roles; el aviso de tarifas para la entrada | HU-Q7.4 (5), HU-Q7.5 (5), HU-Q7.8 (3), HU-Q11.3 (2) | 15 | — |
 | **Q8** (corto) | 14–23 dic | Entrar y reclamar lo local; dispositivos; respaldo en la nube. Solo staging desde el 18 dic | HU-Q7.6 (5), HU-Q7.7 (3), HU-Q7.9 (2) | 10 | — |
-| — | 24 dic–8 ene | Pausa y congelamiento. La caja del cliente sigue en `v0.2.x` | — | — | — |
-| **Q9** (festivo) | 12–22 ene 2027 | **M1.** Cobro del plan por periodo, privacidad con cuenta, operación de la celda y dos cajas sin red que no repiten números | HU-Q7.10 (3), HU-Q7.11 (2), HU-Q7.12 (2), HU-Q10.1 (3), HU-Q10.2 (3), HU-Q10.4 (2) | 15 | M1, `v0.3.0` |
+| — | 24 dic–8 ene | Pausa y congelamiento. La caja del cliente sigue en `v0.3.x` | — | — | — |
+| **Q9** (festivo) | 12–22 ene 2027 | **M1.** Cobro del plan por periodo, privacidad con cuenta, operación de la celda y dos cajas sin red que no repiten números | HU-Q7.10 (3), HU-Q7.11 (2), HU-Q7.12 (2), HU-Q10.1 (3), HU-Q10.2 (3), HU-Q10.4 (2) | 15 | M1, `v0.4.0` |
 | **Q10** | 25 ene–5 feb | Firma sin red por dispositivo y su verificación; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q11.4 (2), HU-Q11.5 (2). HU-Q8.3 pasó a Q11 (espera R2) | 14 | — |
-| **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). HU-Q8.5, HU-Q8.6 y HU-Q10.3 en el PR #156; HU-Q8.4 en el siguiente (`feat/q11b-sprint`), sin el número del abonado; HU-Q8.3 espera R2, y HU-Q8.7 a las demás | 17 | M2, **`v1.0.0`** |
+| **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). HU-Q8.5, HU-Q8.6 y HU-Q10.3 en el PR #156; HU-Q8.4 en el #157, sin el número del abonado; HU-Q11.6 y HU-Q11.7 en el #158 con la `v0.3.0` de la entrega. HU-Q8.3 hecha en el #158, con las fotos en el Drive de la cuenta (decisión del dueño, 12 oct 2026); HU-Q8.7 espera M1 en producción (HU-Q7.12) | 17 | M2, **`v1.0.0`** |
 | **Q12** | 22 feb–5 mar | Con su disparador: ED1 como Tech Provider, el número del parqueadero conectado y la plantilla | HU-Q9.1 (3), HU-Q9.2 (5), HU-Q9.3 (2) | 10 | — |
 | **Q13** | 8–19 mar | **M3.** Envío por la Cloud API, estados, autoservicio y presupuesto de mensajes | HU-Q9.4 (5), HU-Q9.5 (3), HU-Q9.6 (3), HU-Q9.7 (2), HU-Q9.8 (2) | 15 | M3, `v1.1.0` |
 
@@ -439,7 +440,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **CA2.** La cabecera dice dónde está el dato con los tres estados del cuaderno («en este dispositivo», «enviando», «en la nube») y cuántos hay en cuarentena. Un rechazo se ve con su motivo en palabras.
 - **CA3.** Dos cajas sin red registran 20 entradas y salidas cada una, se conectan y quedan con los mismos registros, sin números repetidos ni perdidos (e2e con dos contextos de navegador).
 - **CA4 ❌.** Con la red cortada a mitad de un push, ningún registro se pierde ni se duplica. Una versión nueva de la app con la cola llena no recarga mientras haya un formulario abierto o una impresión en curso.
-- **Lo publicado (P10):** las cajas de `v0.2.x` sin cuenta siguen igual; la cola solo se llena después de entrar (HU-Q7.6).
+- **Lo publicado (P10):** las cajas sin cuenta (`v0.2.x` y `v0.3.x`) siguen igual; la cola solo se llena después de entrar (HU-Q7.6).
 - **Patrones en riesgo:** P1, P10, P15, P21.
 - **Work items:** WI-Q7.5.1 `[código]` cola y envío · WI-Q7.5.2 `[código]` cabecera · WI-Q7.5.3 `[prueba]` e2e de dos cajas · WI-Q7.5.4 `[prueba]` corte a mitad del push.
 
@@ -510,13 +511,13 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 
 #### HU-Q7.12 · M1 en producción: dos cajas sin red que no repiten números
 - **Capa:** aceptación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q9 · **Depende de:** HU-Q7.1 a HU-Q7.11, HU-Q7.13, HU-Q10.1 · **Estado:** Refinada
-- Como dueño, quiero ver el criterio de M1 cumplido en producción con el cliente, para publicar `v0.3.0` sabiendo que funciona.
+- Como dueño, quiero ver el criterio de M1 cumplido en producción con el cliente, para publicar `v0.4.0` sabiendo que funciona.
 - **Respaldo:** PARQUEADERO §18 (criterio de M1).
 - **CA1.** En producción, dos teléfonos sin red registran entradas y salidas de la misma sede, se conectan y quedan con los mismos registros, sin números repetidos ni perdidos. Lo registra `docs/parking/validacion/m1-dos-cajas.md`.
 - **CA2.** La caja del cliente se reclama en producción con todo lo del piloto (HU-Q7.6), después de aceptar los términos de HU-Q7.11, y el respaldo semanal corrió al menos una vez (HU-Q10.1).
 - **CA3 ❌.** La prueba de humo de producción comprueba que los parqueaderos de prueba **no** están en la base de producción (P11).
 - **Patrones en riesgo:** P11, P16.
-- **Work items:** WI-Q7.12.1 `[campo]` dos cajas con el cliente · WI-Q7.12.2 `[prueba]` humo de producción · WI-Q7.12.3 `[doc]` validación y CHANGELOG.
+- **Work items:** WI-Q7.12.1 `[campo]` dos cajas con el cliente · WI-Q7.12.2 `[prueba]` humo de producción · WI-Q7.12.3 `[doc]` validación y CHANGELOG · WI-Q7.12.4 `[legal]` el aviso de privacidad con cuenta nombra la copia en el Drive del parqueadero y sus fotos, con la revisión pendiente del abogado (HU-Q10.1 y HU-Q8.3 la suben solo en staging).
 
 #### HU-Q7.13 · El presupuesto en el plan gratuito: filas de D1, vigía y kill switches
 - **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q6 · **Depende de:** HU-C3.6, HU-C11.1, D-Q10 · **Estado:** Hecha (PR #142, fusionado el 8 oct 2026): medido 1.699 filas al día en la cuenta (reporte semanal al 8 oct); presupuesto de 70.000 filas al día, unos 38 parqueaderos, en `productos.json` y no en un `product.yaml` (PARQUEADERO §14.1 dice por qué); el vigía reparte las filas por producto y avisa al 50, 75 y 90 %, con la simulación al 95 %. Las claves `ks:parqueadero` y `ks:parqueadero-fotos` quedan declaradas y las crea HU-Q7.2 en el KV de su celda. La caja de M0 no lee nada de la nube: que siga registrando con la sincronización apagada lo prueba HU-Q7.5 CA4
@@ -553,18 +554,19 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q8.2.1 `[código]` firmar al emitir · WI-Q8.2.2 `[código]` verificar en `/r/` · WI-Q8.2.3 `[prueba]` los cuatro casos · WI-Q8.2.4 `[prueba]` enlaces de cada versión publicada · WI-Q8.2.5 `[campo]` modo avión en dos teléfonos.
 
 #### HU-Q8.3 · Fotos del estado en la nube por 30 días
-- **Capa:** caja y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q7.5, HU-Q3.3 · **Estado:** Refinada. Pasó de Q10 a Q11 el 8 oct 2026: necesita R2 activado en la cuenta de Cloudflare y el permiso de R2 en `CF_API_TOKEN` (WI-Q8.3.2), y subir la versión de los términos de la nube, que hoy dicen que las fotos no salen del teléfono (HU-Q7.11)
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q10.1, HU-Q3.3 · **Estado:** Hecha (PR #158, 12 oct 2026), en staging, como Drive de HU-Q10.1. **Cambió el 12 oct 2026 por decisión del dueño:** «Las fotos en la nube, van para la cuenta del drive por ahora»: ya no espera R2. Los términos de la nube pasan a la versión 2, que dice adónde van las fotos (WI-Q8.3.5). De paso, la purga del teléfono que prometía PARQUEADERO §5.5 no existía y sale en la `0.3.0` (bitácora 36)
 - Como parqueadero, quiero que las fotos del estado sobrevivan a un teléfono perdido durante la estadía y un mes más, para responder un reclamo.
-- **Respaldo:** PARQUEADERO §5.5 y §12 (`PUT /api/v1/fotos/{nombre}`); ADR-15; bitácora parqueadero 8.
-- **CA1.** Las fotos suben a R2 con un nombre aleatorio de 128 bits que viaja en el fragmento del recibo, de hasta 300 KB y con cuota por plan. Con `ks:parqueadero-fotos` apagado, se quedan en el dispositivo.
-- **CA2.** Una regla de ciclo de vida del bucket las borra a los 30 días, **confirmada en el panel de Cloudflare** antes de cerrar la historia. Pasado ese plazo, `/r/` dice «Las fotos se guardan 30 días».
+- **Respaldo:** PARQUEADERO §5.5; ADR-15; bitácora parqueadero 8; HU-Q10.1 (la carpeta de Drive y su permiso). Cambios de rumbo de la bitácora, 12 oct 2026.
+- **CA1.** Al guardar la copia en Drive (HU-Q10.1), con el mismo permiso, suben las fotos que falten a la carpeta «Caja del parqueadero · fotos · caja <serie>», con su formato real; una que ya está no sube otra vez. No suben solas: el permiso de Google dura una hora y no se renueva sin la persona (`drive.file`, sin refresh token), así que la copia del cierre de turno es la que las lleva. Registrar nunca espera a Drive (regla 1). Si las fotos fallan, la copia ya quedó y se dice aparte; la próxima sube las que faltan.
+- **CA2.** En el teléfono, una foto se borra 30 días después de cerrada su estadía (la salida vigente o la anulación de la entrada; una salida anulada la vuelve a abrir). Las que borró esta caja se borran de su carpeta de Drive con la copia siguiente. **❌** Una caja restaurada desde la copia no borra de Drive nada que subió otra. `/r/` no las muestra (el Drive del parqueadero no es público).
+- **CA4.** El formato del recibo no nombra a Drive: si las fotos vuelven a R2, los recibos de antes siguen leyéndose igual.
 - **CA3 ❌.** Una foto que el navegador no puede codificar en WebP sube como JPEG con su formato real. La prueba usa un `toBlob` que devuelve PNG, como Safari: nunca sube un PNG con nombre `.webp`.
-- **Consumo y kill switch:** almacenamiento y operaciones de R2 dentro de la capa gratuita, medidos; `ks:parqueadero-fotos`.
+- **Consumo y kill switch:** sin costo para ED1 (el espacio es del Drive del parqueadero) y sin escrituras en D1. `ks:parqueadero-fotos` no aplica: las fotos no pasan por la celda.
 - **Patrones en riesgo:** P13, P17, P20.
-- **Work items:** WI-Q8.3.1 `[código]` subida · WI-Q8.3.2 `[infra]` bucket y ciclo de vida · WI-Q8.3.3 `[prueba]` formato real · WI-Q8.3.4 `[campo]` iPhone y Android.
+- **Work items:** WI-Q8.3.1 `[código]` subida a Drive · WI-Q8.3.2 `[código]` borrado a los 30 días · WI-Q8.3.3 `[prueba]` formato real · WI-Q8.3.4 `[campo]` iPhone y Android · WI-Q8.3.5 `[legal]` términos de la nube con las fotos.
 
 #### HU-Q8.4 · Mensualidades: planes de abonado, cobro y recordatorio
-- **Capa:** caja y paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q3.11, HU-Q7.5 · **Estado:** En revisión (rama `feat/q11b-sprint`): el cajero cobra el periodo siguiente con un recibo `pago_abonado` numerado, sin PIN y dentro del turno; los pagos no anulados suman vigencia (`conPagos`) y entran al cierre por su medio; planes `mes` y `quincena` con `prorrateo` en `parqueadero-tarifas` (CA1). CA2 cambió por decisión del dueño (9 oct 2026): **sin el WhatsApp del abonado**; «Abonados» lista las que vencen en 5 días y la entrada dice «recuérdeselo», y ADR-38 no se amplía. CA3 con su prueba: vencida, entra como visitante y la caja lo dice. El plan «noches» espera la tarifa de noche del cliente
+- **Capa:** caja y paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q11 · **Depende de:** HU-Q3.11, HU-Q7.5 · **Estado:** Hecha (PR #157, fusionado el 9 oct 2026). CA2 cambiado por el dueño el 9 oct 2026: sin el WhatsApp del abonado, la caja lista las que vencen en 5 días y el cajero las recuerda en persona. El plan «noches» espera la tarifa de noche del cliente
 - Como administrador, quiero cobrar las mensualidades y recordar las que vencen, para dejar el cuaderno de abonados.
 - **Respaldo:** PARQUEADERO §0 (M2) y §8.4 (empujón 2); estudio §7.1 y §12.2 (herramienta 5); bitácora parqueadero 7.
 - **CA1.** Un abonado tiene plan (mes, quincena o noches), placas, vigencia y valor. El pago es un registro `pago_abonado` con su número de recibo, y el prorrateo de un mes empezado sale de `parqueadero-tarifas`.
@@ -736,7 +738,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramientas atraen y la caja retiene. **Se mide antes de construir** (estudio §12.2; bitácora parqueadero 9), salvo el aviso de tarifas y derechos, que el parqueadero cero necesita en su entrada.
 
 #### HU-Q11.1 · Medir la búsqueda antes de construir
-- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q6 · **Depende de:** — · **Estado:** En revisión (PR #144): la regla se fusionó antes de los datos (#137); con Keyword Planner del 8 oct 2026 se construyen la 5, la 6 y la 2, en ese orden, y esperan la 1, la 3, la 4 y la 7 (`docs/parking/validacion/herramientas-busqueda.md`). El dueño decidió seguir la regla el 8 oct 2026 (WI-Q11.1.3)
+- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q6 · **Depende de:** — · **Estado:** Hecha (PR #144, fusionado el 8 oct 2026): la regla se fusionó antes de los datos (#137); con Keyword Planner del 8 oct 2026 se construyen la 5, la 6 y la 2, en ese orden, y esperan la 1, la 3, la 4 y la 7 (`docs/parking/validacion/herramientas-busqueda.md`). El dueño decidió seguir la regla el 8 oct 2026 (WI-Q11.1.3)
 - Como dueño, quiero el volumen de búsqueda de las siete herramientas de estudio §12.2 con la regla de decisión escrita antes de ver los datos, para no construir las que nadie busca.
 - **Respaldo:** estudio §12.2 («Antes de construir») y el método del 1 oct 2026 (estudio de ecommerce §12.6).
 - **CA1.** `docs/parking/validacion/herramientas-busqueda.md` tiene la regla escrita y fusionada antes de consultar Keyword Planner, y después los datos con su fecha.
@@ -786,7 +788,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Work items:** WI-Q11.5.1 `[código]` · WI-Q11.5.2 `[diseño]` · WI-Q11.5.3 `[prueba]` CSP.
 
 #### HU-Q11.6 · El liquidador de mensualidades y prorrateos
-- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** sin sprint (se planea después de M1, primera de las herramientas) · **Depende de:** HU-Q11.1, HU-Q11.5 · **Estado:** Refinada
+- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** sin sprint (se planea después de M1, primera de las herramientas) · **Depende de:** HU-Q11.1, HU-Q11.5 · **Estado:** En revisión (rama `feat/q11c-sprint`): `/herramientas/mensualidad-de-parqueadero/` con `liquidarMensualidad` de `@ed1/parqueadero-tarifas` y la tabla de casos compartida con la caja (`@ed1/parqueadero-tarifas/casos-de-mensualidad`)
 - Como parqueadero, quiero calcular cuánto cobrar por una mensualidad que empieza a mitad de mes, o por varios meses, sin registrarme.
 - **Respaldo:** estudio §12.2 (herramienta 5). HU-Q11.1 la midió primera: demanda 780 con rangos, y «parqueadero mensual» en 100–1 mil en Colombia (8 oct 2026). Sirve también en LATAM («cochera mensual», «pensión de estacionamiento»).
 - **CA1.** Una página del sitio con tipo de vehículo, valor del mes y fecha de inicio, que da el prorrateo con su detalle día por día. Usa la misma lógica de mensualidades de la caja (HU-Q8.4), no una copia (P2).
@@ -796,7 +798,7 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Work items:** WI-Q11.6.1 `[código]` · WI-Q11.6.2 `[prueba]` tabla compartida con la caja · WI-Q11.6.3 `[diseño]` página.
 
 #### HU-Q11.7 · Los cupos obligatorios para eléctricos (Ley 1964 de 2019)
-- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** sin sprint (se planea después de M1, después de HU-Q11.6) · **Depende de:** HU-Q11.1, HU-Q11.5 · **Estado:** Refinada
+- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** sin sprint (se planea después de M1, después de HU-Q11.6) · **Depende de:** HU-Q11.1, HU-Q11.5 · **Estado:** En revisión (rama `feat/q11c-sprint`): `/herramientas/cupos-para-electricos/`. WI-Q11.7.1 hecho: la Ley 1964 de 2019, art. 7, leída el 9 oct 2026 en tres fuentes públicas (`content/parqueadero/cupos-electricos.json`). Falta WI-Q11.7.3 (Search Console a los 90 días de publicada)
 - Como parqueadero, quiero saber cuántos cupos para vehículos eléctricos me exige la ley según mi número de cupos, sin registrarme.
 - **Respaldo:** estudio §12.2 (herramienta 6). HU-Q11.1: demanda 500 con rangos, toda de «ley 1964 de 2019»; los términos del parqueadero no traen dato (8 oct 2026).
 - **CA1.** Una página con el número de cupos que da los cupos eléctricos que exige la ley, con el artículo citado y su fecha de consulta (P18).
@@ -916,7 +918,16 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 
 | Sprint | Comprometido | Validado por el dueño | Nota |
 |---|---|---|---|
-| Q0 | 5 | — | HU-Q0.1 en este PR |
+| Q0 | 5 | ✅ | El plan, las decisiones y el paso 0 con nRF Connect (#110) |
+| Q1–Q5 | 111 | ✅ en producción: `0.1.0`, `0.1.1` y `0.2.0` (8 oct 2026) | M0 entero, del 7 al 8 oct (#111–#136). La matriz de la impresora queda para la entrega (HU-Q6.1); el primer turno real, HU-Q6.4 |
+| Q6 | 17 | Solo staging | #137–#147. HU-Q3.12 espera la primera semana real |
+| Q7 | 15 | Solo staging | #148–#151 |
+| Q8 | 10 | Solo staging | #153 |
+| Q9 | 15 | Solo staging | #154. HU-Q7.10 espera HC4 y HU-Q7.12 es la `v0.4.0` |
+| Q10 | 14 | Solo staging | #155 |
+| Q11 | 17 | Lo que no necesita la nube, en la `v0.3.0` de la entrega | #156–#158: 20 puntos hechos (HU-Q8.3, HU-Q8.4, HU-Q8.5, HU-Q8.6, HU-Q10.3, HU-Q11.6 y HU-Q11.7, estas dos sin sprint); HU-Q8.7 espera M1 en producción |
+
+Desde el 12 oct 2026, un PR y un push por sprint completo, para ahorrar minutos de Actions (decisión del dueño).
 
 ---
 

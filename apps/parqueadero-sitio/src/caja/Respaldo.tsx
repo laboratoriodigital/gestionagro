@@ -148,7 +148,17 @@ export function Respaldo({ db, ctx, nube, regreso, alVolver }: Props) {
         // Con la caja en la nube, primero sube y baja: la copia lleva lo de todas las cajas.
         await nube?.ahora();
         const r = await d.guardarCopia(db, ctx, acceso, { app: __VERSION_CAJA__ });
-        return `Copia guardada en su Google Drive, en la carpeta «${d.CARPETA}», como ${r.nombre}.`;
+        const copia = `Copia guardada en su Google Drive, en la carpeta «${d.CARPETA}», como ${r.nombre}.`;
+        if ('falla' in r.fotos) {
+          setError(
+            `Las fotos de los vehículos no terminaron de subir: ${textoDeFalla(r.fotos.falla, 'subir las fotos')} La próxima copia sube las que faltan.`,
+          );
+          return copia;
+        }
+        const { subidas } = r.fotos;
+        return subidas === 0
+          ? copia
+          : `${copia} ${subidas === 1 ? 'Subió 1 foto' : `Subieron ${subidas} fotos`} de los vehículos a «${d.CARPETA_DE_FOTOS}».`;
       }
       const lista = await d.copiasEnDrive(acceso);
       setCopias({ acceso, lista });
@@ -243,7 +253,8 @@ export function Respaldo({ db, ctx, nube, regreso, alVolver }: Props) {
         </p>
       )}
       <p class="ayuda">
-        Las fotos de los vehículos no van en el respaldo: se quedan en este teléfono.
+        Las fotos de los vehículos no van en el respaldo: se quedan en este teléfono hasta 30 días
+        después de la salida{conDrive ? ', y van con la copia en su Google Drive' : ''}.
       </p>
       <button
         type="button"
@@ -262,6 +273,11 @@ export function Respaldo({ db, ctx, nube, regreso, alVolver }: Props) {
             El mismo archivo, en su propio Google Drive, en la carpeta «Caja del parqueadero ·
             respaldos». Se guardan las 8 más recientes. Google pide permiso cada vez, y la copia va
             directo de este teléfono a su Drive.
+          </p>
+          <p class="ayuda">
+            Con la copia suben las fotos de los vehículos que falten, a «Caja del parqueadero ·
+            fotos». A los 30 días de la salida se borran del teléfono, y de su Drive con la copia
+            siguiente.
           </p>
           <button
             type="button"

@@ -192,7 +192,13 @@ export type Meta =
   /** La última vez que todo lo de la caja estaba en la nube y lo de la nube en la caja (HU-Q7.9). */
   | { readonly clave: 'nube_al_dia'; readonly instante: number }
   /** Hasta dónde bajó la caja lo de las demás cajas: los dos cursores del pull (`@ed1/sync`). */
-  | { readonly clave: 'cursor'; readonly registro: number; readonly catalogo: number };
+  | { readonly clave: 'cursor'; readonly registro: number; readonly catalogo: number }
+  /**
+   * Las fotos que esta caja borró por vencidas y que todavía pueden estar en su carpeta de Drive
+   * (HU-Q8.3): la próxima copia en Drive las borra allá. Una caja restaurada no la tiene, así que
+   * nunca borra fotos que subió otra.
+   */
+  | { readonly clave: 'fotos_purgadas'; readonly ids: readonly string[] };
 
 /** La sesión de la cuenta del CORE (HU-C4.3): el token es del producto `parqueadero`. */
 export interface Sesion {
@@ -244,3 +250,48 @@ export function abrirBase(nombre = 'parqueadero-caja'): BaseDeLaCaja {
 /** Borra los números vencidos (HU-Q4.1 CA3). Corre al abrir la caja y cada tanto. */
 export const purgarContactos = (db: BaseDeLaCaja, ahora: number): Promise<number> =>
   db.contactos.where('borrar_en').belowOrEqual(ahora).delete();
+
+/** Lo que vive una foto después de cerrada su estadía (PARQUEADERO §5.5, HU-Q8.3). */
+export const VIGENCIA_DE_LAS_FOTOS = 30 * 24 * 3_600_000;
+
+/**
+ * Cuándo se cerró la estadía: la última salida vigente o la anulación de su entrada. Abierta, o
+ * sin registros con que decidirlo (una foto cuya entrada no está en esta caja), es `null`: la
+ * foto se queda.
+ */
+async function cierreDe(db: BaseDeLaCaja, estadiaId: string): Promise<number | null> {
+  if (await db.estadias.get(estadiaId)) return null;
+  const suyos = await db.registros.where('estadia_id').equals(estadiaId).toArray();
+  const anulados = new Set(suyos.filter((r) => r.tipo === 'anulacion').map((r) => r.anula_id));
+  const cierres = suyos
+    .filter(
+      (r) =>
+        (r.tipo === 'salida' && !anulados.has(r.id)) ||
+        (r.tipo === 'anulacion' && r.anula_id === estadiaId),
+    )
+    .map((r) => Date.parse(r.instante_evento));
+  return cierres.length === 0 ? null : Math.max(...cierres);
+}
+
+/**
+ * Borra del teléfono las fotos de las estadías cerradas hace más de 30 días (PARQUEADERO §5.5) y
+ * deja sus ids para borrarlas también de Drive en la próxima copia (HU-Q8.3). Corre con la de
+ * los números.
+ */
+export async function purgarFotos(db: BaseDeLaCaja, ahora: number): Promise<number> {
+  const estadias = (await db.fotos.orderBy('estadia_id').uniqueKeys()) as string[];
+  let borradas = 0;
+  for (const estadiaId of estadias) {
+    const cierre = await cierreDe(db, estadiaId);
+    if (cierre === null || cierre + VIGENCIA_DE_LAS_FOTOS > ahora) continue;
+    await db.transaction('rw', db.fotos, db.meta, async () => {
+      const ids = (await db.fotos.where('estadia_id').equals(estadiaId).primaryKeys()) as string[];
+      const antes = await db.meta.get('fotos_purgadas');
+      const ya = antes?.clave === 'fotos_purgadas' ? antes.ids : [];
+      await db.meta.put({ clave: 'fotos_purgadas', ids: [...ya, ...ids] });
+      await db.fotos.bulkDelete(ids);
+      borradas += ids.length;
+    });
+  }
+  return borradas;
+}

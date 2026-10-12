@@ -10,6 +10,7 @@ import { BotonDiagnostico, ConexionImpresora, useEstadoImpresora } from './conex
 import {
   type BaseDeLaCaja,
   purgarContactos,
+  purgarFotos,
   type Rechazo,
   type RegistroImpresora,
 } from './datos.ts';
@@ -168,9 +169,14 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
     return () => document.removeEventListener('visibilitychange', alCambiar);
   }, [control, reloj]);
 
-  // HU-Q4.1 CA3: los números vencidos se borran al abrir la caja y cada 10 minutos.
+  // HU-Q4.1 CA3: los números vencidos se borran al abrir la caja y cada 10 minutos; las fotos,
+  // a los 30 días de cerrada su estadía (PARQUEADERO §5.5, bitácora parqueadero 36).
   useEffect(() => {
-    const purgar = () => void purgarContactos(db, reloj());
+    const purgar = () => {
+      const ahora = reloj();
+      void purgarContactos(db, ahora);
+      void purgarFotos(db, ahora);
+    };
     purgar();
     const t = setInterval(purgar, 10 * 60_000);
     return () => clearInterval(t);

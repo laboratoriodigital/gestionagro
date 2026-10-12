@@ -1,0 +1,21 @@
+{
+  "nota": "La norma de la herramienta de cupos para vehículos eléctricos (HU-Q11.7; estudio §12.2, herramienta 6). Sale de la norma vigente leída, no de memoria (P18): al cambiar la norma, se lee otra vez, se cambia aquí con la fecha de la consulta y se publica una versión. «redondeo» es la lectura de Laboratorio Digital, no de la ley, y la página lo dice.",
+  "consultada": "2026-10-09",
+  "estado": "requiere revisión de abogado",
+  "norma": "Ley 1964 de 2019",
+  "articulo": "7",
+  "sancionada": "2019-07-11",
+  "diario_oficial": "Diario Oficial 51.011 del 11 de julio de 2019",
+  "porcentaje_minimo": 2,
+  "obligados": "Las entidades públicas y los establecimientos comerciales que ofrecen parqueo al público",
+  "municipios": "en los municipios de categoría especial y de primera y segunda categoría (Ley 617 de 2000)",
+  "texto_citado": "deberán destinar un porcentaje mínimo del dos por ciento (2%) del total de plazas de parqueo habilitados",
+  "sin_afectar": "Sin quitar cupos a las personas con movilidad reducida (Ley 1287 de 2009) ni la prioridad de los cicloparqueaderos (Ley 1811 de 2016).",
+  "reglamento": "El Decreto 191 del 23 de febrero de 2021 del Ministerio de Transporte fija cómo se señalan: el logotipo en el piso de cada cupo es obligatorio, sobre fondo verde; la señal vertical es opcional.",
+  "redondeo": "La ley dice «mínimo», sin regla de redondeo: para no quedar por debajo, la cuenta se redondea hacia arriba.",
+  "fuentes": [
+    "https://www.minambiente.gov.co/wp-content/uploads/2021/06/ley-1964-2019.pdf",
+    "https://normograma.supersalud.gov.co/compilacion/docs/ley_1964_2019.htm",
+    "https://www.runt.gov.co/sites/default/files/normas/Decreto%20191%20de%202021%20Adiciona%20parte%206%20al%20Libro%202%20del%20Decreto%201079%20de%202015%20parqueaderos%20preferenciales%20veh%C3%ADculos%20el%C3%A9ctricos.pdf"
+  ]
+}

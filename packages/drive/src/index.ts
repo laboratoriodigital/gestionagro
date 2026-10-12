@@ -49,6 +49,8 @@ async function pedir(
   token: string,
   url: string,
   init: RequestInit = {},
+  /** Un 404 no es falla: borrar lo que la persona ya borró a mano. */
+  ausenteVale = false,
 ): Promise<Response> {
   let r: Response;
   try {
@@ -62,7 +64,7 @@ async function pedir(
       'No hay señal para hablar con Google. Inténtalo cuando tengas internet.',
     );
   }
-  if (r.ok) return r;
+  if (r.ok || (ausenteVale && r.status === 404)) return r;
   if (r.status === 401) {
     throw new ErrorDeDrive('vencido', 'El permiso de Google venció. Vuelve a tocar el botón.');
   }
@@ -166,12 +168,64 @@ export async function subirCopia(
   });
   // Solo después de subir la nueva se borran las viejas: nunca se queda sin copia.
   const sobrantes = (await listarCopias(fetchFn, token, carpeta)).slice(o.conservar);
-  for (const copia of sobrantes) {
-    await pedir(fetchFn, token, `${API}/files/${encodeURIComponent(copia.id)}`, {
-      method: 'DELETE',
-    });
-  }
+  for (const copia of sobrantes) await borrarArchivo(fetchFn, token, copia.id);
   return { borradas: sobrantes.length };
+}
+
+/** Todos los archivos de la carpeta (id y nombre), página por página: pueden ser cientos de fotos. */
+export async function listarArchivos(
+  fetchFn: Fetch,
+  token: string,
+  carpeta: string,
+): Promise<{ id: string; nombre: string }[]> {
+  const todos: { id: string; nombre: string }[] = [];
+  let pagina: string | undefined;
+  do {
+    const extra: Record<string, string> = {
+      fields: 'nextPageToken,files(id,name)',
+      pageSize: '1000',
+    };
+    if (pagina) extra['pageToken'] = pagina;
+    const r = await pedir(
+      fetchFn,
+      token,
+      `${API}/files?${consulta(`'${carpeta}' in parents and trashed = false`, extra)}`,
+    );
+    const j = (await r.json()) as {
+      nextPageToken?: string;
+      files?: { id: string; name: string }[];
+    };
+    for (const f of j.files ?? []) todos.push({ id: f.id, nombre: f.name });
+    pagina = j.nextPageToken;
+  } while (pagina);
+  return todos;
+}
+
+/** Sube un archivo binario, como una foto, a la carpeta (su id). Devuelve el id que le dio Drive. */
+export async function subirArchivo(
+  fetchFn: Fetch,
+  token: string,
+  o: { carpeta: string; nombre: string; tipo: string; datos: Blob },
+): Promise<string> {
+  const limite = `archivo-${crypto.randomUUID()}`;
+  const cuerpo = new Blob([
+    `--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,
+    JSON.stringify({ name: o.nombre, parents: [o.carpeta], mimeType: o.tipo }),
+    `\r\n--${limite}\r\nContent-Type: ${o.tipo}\r\n\r\n`,
+    o.datos,
+    `\r\n--${limite}--\r\n`,
+  ]);
+  const r = await pedir(fetchFn, token, `${SUBIDA}?uploadType=multipart&fields=id`, {
+    method: 'POST',
+    headers: { 'content-type': `multipart/related; boundary=${limite}` },
+    body: cuerpo,
+  });
+  return ((await r.json()) as { id: string }).id;
+}
+
+/** Borra un archivo que la app creó; si ya no está, no es falla. */
+export async function borrarArchivo(fetchFn: Fetch, token: string, id: string): Promise<void> {
+  await pedir(fetchFn, token, `${API}/files/${encodeURIComponent(id)}`, { method: 'DELETE' }, true);
 }
 
 // ── El permiso ────────────────────────────────────────────────────────────────────────────────

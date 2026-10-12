@@ -3,6 +3,7 @@
  * la página del generador, sus gemelos en Markdown y `llms.txt` (ADR-24, la capa estática para
  * agentes). Lo que dice una página y lo que lee un agente no pueden separarse.
  */
+import norma from '../../../../content/parqueadero/cupos-electricos.json' with { type: 'json' };
 import productos from '../../../../infrastructure/productos.json' with { type: 'json' };
 
 const parqueadero = productos.productos.find((p) => p.id === 'parqueadero');
@@ -69,7 +70,65 @@ export const GENERADOR = {
   },
 } as const;
 
-export const PAGINAS: readonly Pagina[] = [PORTADA, GENERADOR];
+export const LIQUIDADOR = {
+  ruta: '/herramientas/mensualidad-de-parqueadero/',
+  producto: 'parqueadero-mensualidad',
+  titulo: 'Liquidador de mensualidades de parqueadero, con prorrateo por días',
+  resumen:
+    'Calcule cuánto cobrar por una mensualidad de parqueadero que empieza a mitad de mes, o por varios meses, con la cuenta de cada día. Gratis y sin registrarse.',
+  titular: 'Cuánto cobrar por una mensualidad',
+  entrada:
+    'Escriba el valor del mes y el día en que empieza: le decimos cuánto cobrar hasta fin de mes, o por varios meses, con la cuenta de cada periodo. Gratis y sin registrarse.',
+  siguiente: {
+    titulo: 'Lleve los abonados en su teléfono',
+    texto:
+      'La caja cobra cada mensualidad con esta misma cuenta, imprime su recibo y le avisa cuáles vencen esta semana.',
+    accion: 'Abrir la caja',
+  },
+} as const;
+
+export const CUPOS = {
+  ruta: '/herramientas/cupos-para-electricos/',
+  producto: 'parqueadero-cupos-electricos',
+  titulo: 'Ley 1964 de 2019: cupos para vehículos eléctricos en su parqueadero',
+  resumen:
+    'Cuántos cupos preferenciales para vehículos eléctricos le pide la Ley 1964 de 2019 a su parqueadero, con el artículo citado. Gratis y sin registrarse.',
+  titular: 'Cupos para vehículos eléctricos: lo que pide la ley',
+  entrada:
+    'Escriba cuántos cupos tiene su parqueadero y le decimos cuántos debe reservar para vehículos eléctricos según la Ley 1964 de 2019, con la cuenta y la norma citada.',
+  siguiente: {
+    titulo: 'Lleve la caja en su teléfono',
+    texto:
+      'Entradas, salidas y recibos con su tarifa, en papel o por WhatsApp, también sin internet.',
+    accion: 'Abrir la caja',
+  },
+} as const;
+
+const MESES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+] as const;
+
+/** `9 de octubre de 2026`, sin `Intl` (P17). */
+export function fechaLarga(f: string): string {
+  const [a, m, d] = f.split('-').map(Number);
+  return `${d} de ${MESES[(m ?? 1) - 1]} de ${a}`;
+}
+
+/** Las herramientas gratuitas, en el orden de la portada: el de la demanda medida (HU-Q11.1). */
+export const HERRAMIENTAS = [LIQUIDADOR, CUPOS, GENERADOR] as const;
+
+export const PAGINAS: readonly Pagina[] = [PORTADA, ...HERRAMIENTAS];
 
 /** El gemelo en Markdown de una página (`index.md` junto a su `index.html`). */
 export function gemelo(p: Pagina): string {
@@ -87,9 +146,51 @@ export function gemelo(p: Pagina): string {
       '',
       `## ${PORTADA.herramientasTitulo}`,
       '',
-      `- [${GENERADOR.titular}](${ORIGEN}${GENERADOR.ruta}): ${GENERADOR.resumen}`,
+      ...HERRAMIENTAS.map((h) => `- [${h.titular}](${ORIGEN}${h.ruta}): ${h.resumen}`),
       '',
       PORTADA.pie,
+      '',
+    ].join('\n');
+  }
+  if (p.ruta === CUPOS.ruta) {
+    return [
+      `# ${CUPOS.titular}`,
+      '',
+      CUPOS.entrada,
+      '',
+      `Pide los cupos habilitados del parqueadero y si su municipio es de categoría especial, primera o segunda. Da el ${norma.porcentaje_minimo} % de los cupos, hacia arriba: 120 cupos son 2,4, que se cumplen con 3.`,
+      '',
+      '## La norma',
+      '',
+      `${norma.norma}, artículo ${norma.articulo}: ${norma.obligados} ${norma.municipios} «${norma.texto_citado}». ${norma.sin_afectar}`,
+      '',
+      norma.reglamento,
+      '',
+      norma.redondeo,
+      '',
+      `Consultada el ${fechaLarga(norma.consultada)}. No es asesoría legal. Fuentes:`,
+      '',
+      ...norma.fuentes.map((f) => `- <${f}>`),
+      '',
+      `## ${CUPOS.siguiente.titulo}`,
+      '',
+      `${CUPOS.siguiente.texto} [${CUPOS.siguiente.accion}](${ORIGEN}/caja/)`,
+      '',
+    ].join('\n');
+  }
+  if (p.ruta === LIQUIDADOR.ruta) {
+    return [
+      `# ${LIQUIDADOR.titular}`,
+      '',
+      LIQUIDADOR.entrada,
+      '',
+      'Pide el tipo de vehículo, el valor del mes, la fecha de inicio y cuántos meses completos se pagan. Con «hasta fin de mes», los días que quedan del mes se cobran en proporción: el valor del mes por los días que cubre, dividido por los días del mes que empieza ese día, hacia abajo a la centena. Un mes va del día de inicio al día anterior del mes siguiente (del 31 de enero, al 28 de febrero). Es la misma cuenta con que la caja cobra una mensualidad.',
+      '',
+      'Ejemplo: $300.000 al mes desde el 20 de octubre de 2026, hasta fin de mes, son 12 de 31 días: $116.129, que se cobran $116.100.',
+      '',
+      `## ${LIQUIDADOR.siguiente.titulo}`,
+      '',
+      `${LIQUIDADOR.siguiente.texto} [${LIQUIDADOR.siguiente.accion}](${ORIGEN}/caja/)`,
       '',
     ].join('\n');
   }
