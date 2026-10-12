@@ -643,7 +643,7 @@ Formato de cada historia:
 - **Work items:** WI-C5.6.1 `[código]` ruta de servicio · WI-C5.6.2 `[código]` cron de la celda · WI-C5.6.3 `[prueba]` falla del CORE simulada.
 
 #### HU-C5.7 · La pantalla de planes del cuaderno con los cuatro periodos
-- **Capa:** app del agro · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C5.3 · **Estado:** Refinada
+- **Capa:** app del agro · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C5.3 · **Estado:** En validación (rama `feat/c7-sprint`. En la tarjeta del plan, «¿Por cuánto tiempo?» con 1, 3, 6 y 12 meses; desde 3, lo que sale al mes y lo que se ahorra frente a pagar mes a mes. El botón dice el periodo y el total («Pagar 6 meses · COP 210.000») y manda `meses` al CORE, que pone el monto. Los periodos salen de `cobro` en `planes.json`, la misma fuente de `plan_precio` (P2); `periodosDe` deja fuera uno sin número o con monto 0 (CA3). El aviso del pago sigue a la vista: arriba al volver de Bold, y en la tarjeta si falla al abrir (CA2). 5 pruebas unitarias y 1 e2e en 360 px con axe; el e2e del pago de un mes ahora exige `meses: 1`. Control negativo: un plan falso con «3»: 0 y «seis» ofrece solo 1 y 12 meses. **Al publicar:** el CORE con HU-C5.3 tiene que estar en producción antes; uno viejo cobraría un mes aunque la persona eligiera seis. CA5 de HU-C5.3 (el pago de 6 meses del dueño en staging) ya se puede hacer)
 - Como productor, quiero elegir cuántos meses pagar y ver cuánto ahorro.
 - **Respaldo:** PLATAFORMA §7 (P3); estudio del agro (precios visibles).
 - **CA1.** Planes ofrece los periodos con precio, con el total y el valor por mes.
