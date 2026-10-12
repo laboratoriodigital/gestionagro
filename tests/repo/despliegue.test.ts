@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { RUTAS_APP, rutaDe } from '../../apps/cuaderno/src/rutas.ts';
+import { type Agentes, robotsTxt } from '../../apps/sitio/src/lib/robots.ts';
+import { SITIO } from '../../apps/sitio/src/lib/seo.ts';
+import agentes from '../../content/agentes.json' with { type: 'json' };
 import { RUTA_WRANGLER_SITIO, textoWranglerDelSitio } from '../../scripts/generar-wrangler.ts';
 import {
   type ConfigCeldas,
@@ -234,6 +237,11 @@ describe('prueba de humo (CA5, P11)', () => {
         },
       ]),
     ),
+    'GET https://s.dev/robots.txt': { estado: 200, texto: robotsTxt(agentes as Agentes, SITIO) },
+    'GET https://s.dev/.well-known/security.txt': {
+      estado: 200,
+      texto: 'Contact: mailto:c@example.com',
+    },
     'GET https://s.dev/api/eventos': { estado: 405, texto: 'Solo POST' },
     'POST https://s.dev/api/eventos': { estado: 400, texto: 'El lote no es JSON' },
   };
@@ -277,6 +285,16 @@ describe('prueba de humo (CA5, P11)', () => {
     });
     expect(await humo(fn, 'https://s.dev')).toEqual([
       '/agro/app/: no trae la cabecera Content-Security-Policy del cuaderno (_headers)',
+    ]);
+  });
+
+  it('HU-C8.1 CA2 ❌ · un robots.txt editado a mano detiene la prueba de humo', async () => {
+    const { fn } = fetchFalso({
+      ...sano,
+      'GET https://s.dev/robots.txt': { estado: 200, texto: 'User-agent: *\nDisallow:\n' },
+    });
+    expect(await humo(fn, 'https://s.dev')).toEqual([
+      '/robots.txt: no es el que sale de content/agentes.json (¿editado a mano?)',
     ]);
   });
 });

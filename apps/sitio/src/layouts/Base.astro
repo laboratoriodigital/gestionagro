@@ -28,6 +28,12 @@ const { title, description, canonical, indexable, og = {}, migas = [], jsonLd } 
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     {!indexable && <meta name="robots" content="noindex" />}
+    {
+      /* HU-C8.2: lo que se indexa tiene su gemelo en Markdown (scripts/lib/gemelos.ts). */
+      indexable && (
+        <link rel="alternate" type="text/markdown" href={`${new URL(canonical).pathname}index.md`} />
+      )
+    }
     {Object.entries(og).map(([clave, valor]) => <meta property={`og:${clave}`} content={valor} />)}
     {
       /* «<» escapado: un texto con «</script>» en el contenido no puede cerrar la etiqueta. */

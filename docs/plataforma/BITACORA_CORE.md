@@ -257,7 +257,7 @@ Cuatro reglas que no se rompen:
 
 Van aparte porque no son fallos de código: son cosas que dije con seguridad y no eran ciertas.
 
-*(Ninguna todavía.)*
+- **«Esta lectura solo responde 200 con ese permiso»** (HU-C11.5, 12 oct 2026), dicho de la lista de Workers de la cuenta. Con un token que solo tiene Account Analytics, Cloudflare respondió 200 y el despliegue se detuvo con el token bien hecho. Bitácora core 10.
 
 ---
 
@@ -450,3 +450,27 @@ Al cerrar el C7 (12 oct 2026), tres cambios del agro necesitan algo del CORE que
 La regla: **lo que el agro usa del CORE sale con el CORE o después, nunca antes; y la evidencia que tiene que durar más que los logs se escribe donde dure.**
 
 *Ficha:* core · *(mío)* · 🟡 Medio · P1, P10, P17 · core-0.4.0 · 2026-10-12
+
+**9 · La guía publicada decía «si produceecológico»: Astro se comió el salto de línea antes de una negrita.**
+Al escribir los gemelos en Markdown (HU-C8.2, 12 oct 2026), el Markdown de la guía salió con palabras pegadas. No era el convertidor: el HTML publicado ya las traía pegadas.
+*Síntoma literal.* En `dist/agro/guia/index.html`: «principal»</strong> o<strong data-astro-cid-…>«Instalar»»; en pantalla, «o«Instalar»» y «si produceecológico o convencional». Seis casos en la guía y uno en vendedores.
+*Causa raíz.* En la plantilla, el renglón terminaba en una palabra y el siguiente empezaba con `<strong>`. Al comprimir el HTML, Astro quitó ese salto sin dejar un espacio. Ninguna prueba leía el texto corrido de la página: las e2e buscan textos dentro de un elemento, no entre dos.
+*Cómo se reprodujo.* `pnpm --filter ./apps/sitio run build` y `grep -o "[[:alnum:]]<strong " dist/agro/guia/index.html`.
+*Arreglo.* Un `{' '}` explícito al final de cada renglón afectado.
+**Lo prueba** `tests/repo/espacios-astro.test.ts`: lee las plantillas de `apps/` y nombra un renglón que termina en palabra seguido de una etiqueta en línea. Control negativo: «si produce» + «<strong>» se nombra; con `{' '}`, no.
+
+La regla: **lo que el usuario lee se revisa como texto corrido, no solo por elementos. Un segundo lector (aquí, el convertidor a Markdown) ve lo que las pruebas por elemento no.**
+
+*Ficha:* agro · *(del terreno)* · 🟢 Bajo · P17 · 0.5.0 · 2026-10-12
+
+**10 · El despliegue se detuvo por un permiso de más que el token no tenía.**
+Al fusionar el C7 (#161, 12 oct 2026), el despliegue a staging se detuvo en c0 antes de tocar nada. El dueño revisó el token del vigía en Cloudflare: solo tenía Account Analytics (Read), como dice el runbook.
+*Síntoma literal.* «CF_METRICAS_TOKEN tiene un permiso de más: «Account → Workers Scripts». Quítalo del token en Cloudflare (docs/runbooks/credenciales.md)» (corrida 38308453392).
+*Causa raíz.* La revisión de HU-C11.5 supone que cada lectura de sonda responde 200 solo con su permiso. Para `GET /accounts/{cuenta}/workers/scripts` no es cierto: Cloudflare la deja leer con Account Analytics. Lo supuse sin verlo, y la prueba usaba una API simulada que respondía lo que yo esperaba: probaba mi supuesto, no a Cloudflare (P17). Las otras seis sondas del token sí respondieron «sin permiso».
+*Cómo se reprodujo.* Con la corrida real, que es la única que ve un token de verdad; nunca con el token en una sesión.
+*Arreglo.* Esa sonda sale de la lista del token de métricas, con el porqué en el código y en el runbook. Una sonda entra solo si se vio responder «sin permiso» a un token que no tiene su permiso.
+**Lo prueba** `tests/repo/credenciales.test.ts`: un token como el del runbook, al que la API le deja leer la lista de Workers, pasa y ni siquiera se le pide; uno con D1 sigue fallando. Control negativo: con la sonda de vuelta en la lista, la primera queda en rojo.
+
+La regla: **una guardia que puede detener producción se prueba primero contra el servicio de verdad en modo aviso, o con la prueba de que su sonda distingue. Una simulación que responde lo que uno supone no prueba la sonda.**
+
+*Ficha:* core · *(mío)* · 🟠 Alto (detuvo la publicación a staging) · P17, P1 · 0.5.0 · 2026-10-12

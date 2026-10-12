@@ -78,7 +78,14 @@ export const CSP_QR = [
 /** Un año de HTTPS obligatorio para el dominio del sitio. */
 export const HSTS = 'max-age=31536000';
 
-export function textoDeCabeceras(config: ConfigCeldas): string {
+/**
+ * La cabecera `Link` de una página pública (HU-C8.2, PLATAFORMA §5.3 4): su gemelo en Markdown y
+ * `/llms.txt`. Va en una regla exacta por página, que se junta con la de su carpeta.
+ */
+export const enlaceDeAgentes = (ruta: string) =>
+  `<${ruta}index.md>; rel="alternate"; type="text/markdown", </llms.txt>; rel="describedby"`;
+
+export function textoDeCabeceras(config: ConfigCeldas, publicas: readonly string[] = []): string {
   const bloque = (ruta: string, cabeceras: [string, string][]) =>
     [ruta, ...cabeceras.map(([k, v]) => `  ${k}: ${v}`)].join('\n');
   const comunes = (csp: string, referrer: string): [string, string][] => [
@@ -97,5 +104,9 @@ export function textoDeCabeceras(config: ConfigCeldas): string {
     bloque('/agro/guia/*', comunes(CSP_PUBLICA, 'strict-origin-when-cross-origin')),
     bloque('/agro/vendedores/*', comunes(CSP_PUBLICA, 'strict-origin-when-cross-origin')),
     bloque('/herramientas/*', comunes(CSP_PUBLICA, 'strict-origin-when-cross-origin')),
+    ...publicas.flatMap((ruta) => [
+      bloque(ruta, [['Link', enlaceDeAgentes(ruta)]]),
+      bloque(`${ruta}index.md`, [['Content-Type', 'text/markdown; charset=utf-8']]),
+    ]),
   ].join('\n')}\n`;
 }

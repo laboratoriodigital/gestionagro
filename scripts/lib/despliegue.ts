@@ -4,6 +4,9 @@
  */
 import { POLITICA_VIGENTE } from '../../apps/core/src/politica.ts';
 import { RUTAS_APP, rutaDe } from '../../apps/cuaderno/src/rutas.ts';
+import { type Agentes, robotsTxt } from '../../apps/sitio/src/lib/robots.ts';
+import { SITIO } from '../../apps/sitio/src/lib/seo.ts';
+import agentes from '../../content/agentes.json' with { type: 'json' };
 import type { Celda } from './celdas.ts';
 
 export type Destino = 'staging' | 'produccion';
@@ -197,6 +200,13 @@ export async function humo(fetchFn: Fetch, base: string): Promise<string[]> {
     fallas.push('/agro/app/: no trae la cabecera Content-Security-Policy del cuaderno (_headers)');
   }
   await contiene('/agro/app/sw.js', 'precache');
+  // HU-C8.1 CA2: el robots.txt publicado es exactamente el de content/agentes.json.
+  const robots = await pedir('/robots.txt');
+  if (robots && (await robots.text()) !== robotsTxt(agentes as Agentes, SITIO)) {
+    fallas.push('/robots.txt: no es el que sale de content/agentes.json (¿editado a mano?)');
+  }
+  // HU-C8.4: a quién escribirle si se encuentra un fallo (RFC 9116).
+  await contiene('/.well-known/security.txt', 'Contact: mailto:');
   const get = await pedir('/api/eventos');
   if (get && get.status !== 405)
     fallas.push(`/api/eventos (GET): respondió ${get.status}, se esperaba 405`);

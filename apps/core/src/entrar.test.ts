@@ -1139,6 +1139,162 @@ describe('HU-C3.7 · CA2: la misma persona en dos productos, cada sesión con lo
       expect(lista.map((x) => x.org_id)).toEqual([FINCA]);
     });
   });
+
+  describe('HU-C7.5, HU-C7.6 y HU-C7.8 · lo mío en la cuenta', () => {
+    const CUENTA = 'https://agro-core-staging.laboratoriodigital-la.workers.dev';
+    async function conFincaYCuenta() {
+      const agro = await entrar(`politica=${POLITICA_VIGENTE}`, APP, VUELTA);
+      await enviar('/api/core/organizaciones', APP, { id: FINCA, nombre: 'Finca' }, agro.acceso);
+      const laCuenta = await entrar('producto=cuenta&politica=1', CUENTA, `${CUENTA}/`);
+      const usuario = (await db.prepare('SELECT id FROM usuario').first<{ id: string }>())?.id;
+      return { agro, laCuenta, usuario: usuario ?? '' };
+    }
+    const deLaCuenta = async (ruta: string, acceso: string, cuerpo: unknown = {}) => {
+      const r = await enviar(ruta, CUENTA, cuerpo, acceso);
+      return { estado: r.status, cuerpo: (await r.json()) as Record<string, unknown> };
+    };
+    const comoOperario = () =>
+      db.prepare("UPDATE membresia SET rol = 'operario' WHERE org_id = ?").bind(FINCA).run();
+
+    it('HU-C7.5 CA1 · las sesiones abiertas por producto, con el dispositivo y el último uso', async () => {
+      const { laCuenta } = await conFincaYCuenta();
+      const { estado, cuerpo } = await deLaCuenta('/api/core/cuenta/sesiones', laCuenta.acceso, {
+        refresh: laCuenta.refresh,
+      });
+      expect(estado).toBe(200);
+      const sesiones = cuerpo['sesiones'] as {
+        producto_nombre: string;
+        dispositivo: string;
+        ultimo_uso: string;
+        esta: boolean;
+      }[];
+      expect(sesiones.map((s) => [s.producto_nombre, s.esta]).sort()).toEqual([
+        ['CultivoPro', false],
+        ['Laboratorio Digital', true],
+      ]);
+      // El dispositivo declarado, recortado; el último uso es el último giro del refresh.
+      expect(
+        sesiones.every((s) => s.dispositivo.length <= 6 && !Number.isNaN(Date.parse(s.ultimo_uso))),
+      ).toBe(true);
+    });
+
+    it('HU-C7.5 CA2 y CA3 ❌ · cerrar pide entrada reciente, queda en la auditoría y mata el refresh', async () => {
+      const { agro, laCuenta } = await conFincaYCuenta();
+      const { cuerpo } = await deLaCuenta('/api/core/cuenta/sesiones', laCuenta.acceso);
+      const delAgro = (cuerpo['sesiones'] as { id: string; producto: string }[]).find(
+        (s) => s.producto === 'agro',
+      );
+      // Pasados 10 minutos desde la entrada con Google, no se cierra nada.
+      reloj += 11 * 60 * 1000;
+      const tarde = await deLaCuenta('/api/core/cuenta/sesiones/cerrar', laCuenta.acceso, {
+        sesion: delAgro?.id,
+      });
+      expect(tarde.estado).toBe(403);
+      expect(tarde.cuerpo['estado']).toBe('entrar-de-nuevo');
+      // Con una entrada nueva, sí.
+      const nuevaEntrada = await entrar('producto=cuenta&politica=1', CUENTA, `${CUENTA}/`);
+      const cierre = await deLaCuenta('/api/core/cuenta/sesiones/cerrar', nuevaEntrada.acceso, {
+        sesion: delAgro?.id,
+      });
+      expect(cierre).toEqual({ estado: 200, cuerpo: { cerradas: 1 } });
+      expect(
+        await db
+          .prepare("SELECT producto, accion FROM auditoria WHERE accion = 'sesion_cerrada'")
+          .all(),
+      ).toMatchObject({ results: [{ producto: 'cuenta', accion: 'sesion_cerrada' }] });
+      // CA3: el refresh de esa sesión ya no renueva.
+      const renovar = await enviar('/api/core/auth/refrescar', APP, { refresh: agro.refresh });
+      expect(renovar.status).toBe(401);
+    });
+
+    it('HU-C7.5 · «cerrar todas menos esta» deja solo la de este navegador', async () => {
+      const { laCuenta } = await conFincaYCuenta();
+      const r = await deLaCuenta('/api/core/cuenta/sesiones/cerrar', laCuenta.acceso, {
+        todas_menos: laCuenta.refresh,
+      });
+      expect(r).toEqual({ estado: 200, cuerpo: { cerradas: 1 } });
+      const { cuerpo } = await deLaCuenta('/api/core/cuenta/sesiones', laCuenta.acceso, {
+        refresh: laCuenta.refresh,
+      });
+      expect((cuerpo['sesiones'] as { esta: boolean }[]).map((s) => s.esta)).toEqual([true]);
+    });
+
+    it('HU-C7.6 CA1 · mis pagos: plan, periodo, monto y estado de lo que administro', async () => {
+      const { laCuenta, usuario } = await conFincaYCuenta();
+      await db
+        .prepare(
+          `INSERT INTO pago (id, producto, proveedor, org_id, usuario_id, plan, meses, monto_cop, ambiente, estado, creado, actualizado, periodo_desde, periodo_hasta)
+           VALUES ('p-c76', 'agro', 'bold', ?, ?, 'finca', 6, 210000, 'pruebas', 'aprobado', '2026-11-01T15:00:00.000Z', '2026-11-01T15:05:00.000Z', '2026-11-01T05:00:00.000Z', '2027-05-01T05:00:00.000Z')`,
+        )
+        .bind(FINCA, usuario)
+        .run();
+      const { cuerpo } = await deLaCuenta('/api/core/cuenta/pagos', laCuenta.acceso);
+      expect(cuerpo).toEqual({
+        pagos: [
+          {
+            espacio: 'Finca',
+            producto_nombre: 'CultivoPro',
+            plan_nombre: 'Finca',
+            meses: 6,
+            monto_cop: 210000,
+            estado: 'aprobado',
+            creado: '2026-11-01T15:00:00.000Z',
+            periodo_desde: '2026-11-01T05:00:00.000Z',
+            periodo_hasta: '2027-05-01T05:00:00.000Z',
+          },
+        ],
+      });
+      // CA2 ❌: con un rol que no administra, nada.
+      await comoOperario();
+      expect((await deLaCuenta('/api/core/cuenta/pagos', laCuenta.acceso)).cuerpo).toEqual({
+        pagos: [],
+      });
+    });
+
+    it('HU-C7.8 CA1 y CA2 ❌ · la actividad en frases, solo para quien administra', async () => {
+      const { agro, laCuenta, usuario } = await conFincaYCuenta();
+      // Alguien del equipo, con su rol cambiado por la persona.
+      await db
+        .prepare(
+          "INSERT INTO usuario (id, nombre, email, creado) VALUES ('u-luis', 'Luis', 'luis@example.com', '2026-10-01')",
+        )
+        .run();
+      await db
+        .prepare(
+          "INSERT INTO membresia (usuario_id, org_id, rol, creado) VALUES ('u-luis', ?, 'operario', '2026-10-01')",
+        )
+        .bind(FINCA)
+        .run();
+      // El token de la app con la finca elegida, como lo pide el cuaderno.
+      const conFinca = (await (
+        await enviar('/api/core/auth/refrescar', APP, { refresh: agro.refresh, org: FINCA })
+      ).json()) as Sesion;
+      const cambio = await enviar(
+        '/api/core/equipo/rol',
+        APP,
+        { usuario_id: 'u-luis', rol: 'supervisor' },
+        conFinca.acceso,
+      );
+      expect(cambio.status).toBe(200);
+      const { cuerpo } = await deLaCuenta('/api/core/cuenta/actividad', laCuenta.acceso);
+      const hechos = cuerpo['hechos'] as { espacio: string; frase: string; instante: string }[];
+      expect(hechos[0]).toMatchObject({
+        espacio: 'Finca',
+        frase: expect.stringMatching(/ cambió a Luis de operario a supervisor\.$/),
+      });
+      expect(usuario).not.toBe('');
+      await comoOperario();
+      expect((await deLaCuenta('/api/core/cuenta/actividad', laCuenta.acceso)).cuerpo).toEqual({
+        hechos: [],
+      });
+    });
+
+    it('todo esto solo con un token de la cuenta', async () => {
+      const { agro } = await conFincaYCuenta();
+      for (const ruta of ['sesiones', 'sesiones/cerrar', 'pagos', 'actividad'])
+        expect((await enviar(`/api/core/cuenta/${ruta}`, APP, {}, agro.acceso)).status).toBe(403);
+    });
+  });
 });
 
 describe('CORS, configuración y kill switch', () => {

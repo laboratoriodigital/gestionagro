@@ -245,6 +245,226 @@ async function cargarEspacios() {
   mostrarEspacios('lista');
 }
 
+// ── Dónde has entrado, tus pagos y la actividad (HU-C7.5, HU-C7.6, HU-C7.8) ──
+
+interface SesionVisible {
+  id: string;
+  producto_nombre: string;
+  dispositivo: string;
+  creado: string;
+  ultimo_uso: string;
+  esta: boolean;
+}
+
+interface PagoVisible {
+  espacio: string;
+  plan_nombre: string;
+  meses: number;
+  monto_cop: number;
+  estado: string;
+  creado: string;
+  periodo_desde: string | null;
+  periodo_hasta: string | null;
+}
+
+interface HechoVisible {
+  espacio: string;
+  instante: string;
+  frase: string;
+}
+
+const FECHA_HORA = new Intl.DateTimeFormat('es-CO', {
+  day: 'numeric',
+  month: 'short',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'America/Bogota',
+});
+const pesos = (n: number) => `COP ${n.toLocaleString('es-CO')}`;
+const ESTADO_DEL_PAGO: Record<string, string> = {
+  aprobado: 'Aprobado',
+  esperando: 'Esperando confirmación',
+  rechazado: 'No se aprobó',
+  revisar: 'En revisión',
+  vencido: 'No se terminó',
+};
+
+type EstadoDeBloque = 'cargando' | 'vacio' | 'error' | 'lista';
+const bloque = (id: string) => document.querySelector<HTMLElement>(`[data-bloque="${id}"]`);
+
+function mostrarBloque(id: string, estado: EstadoDeBloque, causa?: string) {
+  const b = bloque(id);
+  if (!b) return;
+  for (const el of b.querySelectorAll<HTMLElement>('[data-estado]')) {
+    el.hidden = el.dataset['estado'] !== estado;
+  }
+  const parrafo = b.querySelector<HTMLElement>('[data-causa]');
+  if (causa && parrafo) parrafo.textContent = causa;
+}
+
+/** Pide al CORE con el acceso de la cuenta; si venció, renueva una vez. */
+async function alCore(
+  ruta: string,
+  datos: unknown = {},
+): Promise<{ r: Response | null; cuerpo: Record<string, unknown> }> {
+  const g = leer();
+  if (!g) return { r: null, cuerpo: {} };
+  for (let intento = 0; intento < 2; intento++) {
+    acceso ??= await renovar(g);
+    if (!acceso) return { r: null, cuerpo: {} };
+    const r = await fetch(ruta, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${acceso}` },
+      body: JSON.stringify(datos),
+    }).catch(() => null);
+    const cuerpo = (await r?.json().catch(() => ({}))) as Record<string, unknown>;
+    if (r?.status === 401 && intento === 0) {
+      acceso = null;
+      continue;
+    }
+    return { r, cuerpo };
+  }
+  return { r: null, cuerpo: {} };
+}
+
+/** Una fila de lista: título, detalle y, si hace falta, una acción a la derecha. */
+function fila(titulo: Node[], detalle: string, accion?: HTMLElement): HTMLLIElement {
+  const li = nodo('li', 'ed1-lista__elemento portada__fila');
+  const texto = nodo('div', 'portada__fila-texto');
+  const cabeza = nodo('p', 'portada__fila-titulo');
+  cabeza.append(...titulo);
+  texto.append(cabeza, nodo('p', 'portada__detalle', detalle));
+  li.append(texto);
+  if (accion) li.append(accion);
+  return li;
+}
+
+function filaDeSesion(s: SesionVisible): HTMLLIElement {
+  const titulo: Node[] = [document.createTextNode(s.producto_nombre)];
+  if (s.esta)
+    titulo.push(document.createTextNode(' '), nodo('span', 'ed1-etiqueta', 'Este navegador'));
+  const detalle = `Equipo …${s.dispositivo} · entró el ${fecha(s.creado)} · último uso ${fecha(s.ultimo_uso)}`;
+  if (s.esta) return fila(titulo, detalle);
+  const boton = nodo('button', 'ed1-boton ed1-boton--texto', 'Cerrar');
+  boton.type = 'button';
+  boton.setAttribute(
+    'aria-label',
+    `Cerrar la sesión de ${s.producto_nombre} en el equipo …${s.dispositivo}`,
+  );
+  boton.addEventListener('click', () => void cerrarSesiones({ sesion: s.id }, boton));
+  return fila(titulo, detalle, boton);
+}
+
+function filaDePago(p: PagoVisible): HTMLLIElement {
+  const periodo =
+    p.periodo_desde && p.periodo_hasta
+      ? `del ${fecha(p.periodo_desde)} al ${fecha(p.periodo_hasta)}`
+      : p.meses === 1
+        ? 'un mes'
+        : `${p.meses} meses`;
+  // El monto a la derecha, como la acción de las otras listas: las cifras quedan en columna.
+  return fila(
+    [document.createTextNode(`${p.plan_nombre} · ${p.espacio}`)],
+    `${periodo} · ${ESTADO_DEL_PAGO[p.estado] ?? p.estado} · pagado el ${fecha(p.creado)}`,
+    nodo('span', 'portada__monto', pesos(p.monto_cop)),
+  );
+}
+
+const filaDeHecho = (h: HechoVisible) =>
+  fila(
+    [document.createTextNode(h.frase)],
+    `${h.espacio} · ${FECHA_HORA.format(new Date(h.instante))}`,
+  );
+
+async function cargarBloque<T>(
+  id: string,
+  ruta: string,
+  clave: string,
+  pintarFila: (x: T) => HTMLLIElement,
+  datos: unknown = {},
+): Promise<T[] | null> {
+  mostrarBloque(id, 'cargando');
+  const { r, cuerpo } = await alCore(ruta, datos);
+  const lista = cuerpo[clave] as T[] | undefined;
+  if (!r?.ok || !Array.isArray(lista)) {
+    mostrarBloque(
+      id,
+      'error',
+      (cuerpo['motivo'] as string | undefined) ?? 'No pudimos traer esto. Intenta de nuevo.',
+    );
+    return null;
+  }
+  if (lista.length === 0) {
+    mostrarBloque(id, 'vacio');
+    return lista;
+  }
+  bloque(id)
+    ?.querySelector('[data-estado="lista"]')
+    ?.replaceChildren(...lista.map(pintarFila));
+  mostrarBloque(id, 'lista');
+  return lista;
+}
+
+async function cargarSesiones() {
+  const g = leer();
+  const sesiones = await cargarBloque<SesionVisible>(
+    'sesiones',
+    '/api/core/cuenta/sesiones',
+    'sesiones',
+    filaDeSesion,
+    { refresh: g?.refresh },
+  );
+  const otras = (sesiones ?? []).filter((s) => !s.esta).length;
+  // Solo esta sesión abierta: la lista dice «no tienes otras», no muestra la propia sola.
+  if (sesiones && otras === 0) mostrarBloque('sesiones', 'vacio');
+  for (const b of todos('button[data-cerrar-todas]')) b.hidden = otras < 2;
+}
+
+async function cerrarSesiones(
+  pedido: { sesion: string } | { todas_menos: string },
+  boton: HTMLButtonElement,
+) {
+  boton.disabled = true;
+  boton.setAttribute('aria-busy', 'true');
+  const { r, cuerpo } = await alCore('/api/core/cuenta/sesiones/cerrar', pedido);
+  boton.disabled = false;
+  boton.removeAttribute('aria-busy');
+  const aviso = bloque('sesiones')?.querySelector<HTMLElement>('[data-reentrar]');
+  if (r?.status === 403 && cuerpo['estado'] === 'entrar-de-nuevo') {
+    const texto = aviso?.querySelector('[data-reentrar-texto]');
+    if (texto && typeof cuerpo['motivo'] === 'string') texto.textContent = cuerpo['motivo'];
+    if (aviso) aviso.hidden = false;
+    aviso?.scrollIntoView?.({ block: 'nearest' });
+    return;
+  }
+  if (aviso) aviso.hidden = true;
+  if (!r?.ok) {
+    mostrarBloque(
+      'sesiones',
+      'error',
+      (cuerpo['motivo'] as string | undefined) ?? 'No pudimos cerrar la sesión. Intenta de nuevo.',
+    );
+    return;
+  }
+  await cargarSesiones();
+}
+
+/** Entrar de nuevo con Google: el mismo formulario de entrada, con la casilla por marcar. */
+function entrarDeNuevo() {
+  for (const el of todos('[data-sin-sesion]')) el.hidden = false;
+  const casilla = document.querySelector<HTMLInputElement>(
+    '.portada__formulario input[type="checkbox"]',
+  );
+  casilla?.scrollIntoView?.({ block: 'center' });
+  casilla?.focus();
+}
+
+function cargarLoMio() {
+  void cargarSesiones();
+  void cargarBloque<PagoVisible>('pagos', '/api/core/cuenta/pagos', 'pagos', filaDePago);
+  void cargarBloque<HechoVisible>('actividad', '/api/core/cuenta/actividad', 'hechos', filaDeHecho);
+}
+
 async function salir(boton: HTMLButtonElement) {
   const g = leer();
   boton.disabled = true;
@@ -290,7 +510,22 @@ async function iniciar() {
   for (const boton of todos<HTMLButtonElement>('button[data-espacios-reintentar]')) {
     boton.addEventListener('click', () => void cargarEspacios());
   }
-  if (g) await cargarEspacios();
+  for (const boton of todos<HTMLButtonElement>('[data-bloque] button[data-reintentar]')) {
+    boton.addEventListener('click', () => cargarLoMio());
+  }
+  for (const boton of todos<HTMLButtonElement>('button[data-cerrar-todas]')) {
+    boton.addEventListener('click', () => {
+      const refresh = leer()?.refresh;
+      if (refresh) void cerrarSesiones({ todas_menos: refresh }, boton);
+    });
+  }
+  for (const boton of todos<HTMLButtonElement>('button[data-reentrar-boton]')) {
+    boton.addEventListener('click', entrarDeNuevo);
+  }
+  if (g) {
+    await cargarEspacios();
+    cargarLoMio();
+  }
 }
 
 if (typeof document !== 'undefined') void iniciar();

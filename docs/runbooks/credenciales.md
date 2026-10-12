@@ -9,10 +9,10 @@
 | Secreto de GitHub | Para qué | Permisos (exactamente estos) | Lo que el despliegue comprueba que **no** tenga |
 |---|---|---|---|
 | `CF_API_TOKEN` (ambientes `staging` y `produccion`) | Desplegar Workers, crear y migrar bases D1, KV de flags y dominios | **Account:** Workers Scripts (Edit), Workers KV Storage (Edit), D1 (Edit), Account Analytics (Read), Account Settings (Read). **User:** Memberships (Read). **Zone** `cultivopro.co`, `laboratorio-digital.com` y `laboratorio-digital.app`: Workers Routes (Edit) | User → API Tokens · Workers R2 Storage · Cloudflare Pages · Zone → DNS (en producción, en cada zona) |
-| `CF_METRICAS_TOKEN` | Que el vigía y el reporte semanal lean el consumo | **Account:** Account Analytics (Read). Ningún otro | User → API Tokens · Account Settings · Workers R2 Storage · Cloudflare Pages · Workers Scripts · Workers KV Storage · D1 |
+| `CF_METRICAS_TOKEN` | Que el vigía y el reporte semanal lean el consumo | **Account:** Account Analytics (Read). Ningún otro | User → API Tokens · Account Settings · Workers R2 Storage · Cloudflare Pages · Workers KV Storage · D1 |
 | (todavía no existe) | Cloudflare for SaaS, cuando la Tienda tenga dominios de sus clientes | Se define con la Tienda: Zone → SSL and Certificates (Edit) en su zona, y nada de Workers | — |
 
-Lo que la revisión **no** distingue: «Edit» frente a «Read» en un permiso que sí se tiene (los dos leen igual). Por eso esta tabla dice el nivel exacto: al crear o editar un token, elige ese.
+Lo que la revisión **no** distingue: «Edit» frente a «Read» en un permiso que sí se tiene (los dos leen igual). Tampoco revisa «Workers Scripts» en el de métricas: Cloudflare le deja leer la lista de Workers a un token que solo tiene Account Analytics, así que esa lectura no dice nada (12 oct 2026). Por eso esta tabla dice el nivel exacto: al crear o editar un token, elige ese.
 
 ## Si el despliegue dice «tiene un permiso de más»
 

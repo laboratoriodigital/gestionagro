@@ -99,9 +99,23 @@ export function jsonLdDeHerramienta(
   p: Producto,
   pagina: PaginaDeHerramienta | null,
 ): Record<string, unknown> {
-  const migas = seoDeProducto(p).jsonLd;
-  const { '@context': _contexto, ...migasSinContexto } = migas;
-  const grafo: Record<string, unknown>[] = [migasSinContexto];
+  const seo = seoDeProducto(p);
+  const { '@context': _contexto, ...migasSinContexto } = seo.jsonLd;
+  const grafo: Record<string, unknown>[] = [
+    migasSinContexto,
+    // HU-C8.4: la calculadora como aplicación web, gratis y sin registro (PLATAFORMA §5.3 8).
+    {
+      '@type': 'WebApplication',
+      name: p.nombre,
+      url: seo.canonical,
+      description: p.seo.description,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Web',
+      inLanguage: 'es-CO',
+      isAccessibleForFree: true,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'COP' },
+    },
+  ];
   if (pagina) {
     grafo.push({
       '@type': 'FAQPage',

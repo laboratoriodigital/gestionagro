@@ -53,11 +53,18 @@ describe('HU-C11.5 · cada token con lo suyo y nada más', () => {
     expect(pedidos.some((p) => p.includes('dns_records'))).toBe(false);
   });
 
-  it('CA3 ❌ · el de métricas que también despliega falla y lo dice', async () => {
-    const { fn } = api(['graphql', 'workers/scripts']);
+  it('CA3 ❌ · el de métricas que también escribe en D1 falla y lo dice', async () => {
+    const { fn } = api(['graphql', 'd1/database']);
     expect(await permisosDeMas(fn, 'metricas', 't', 'cuenta')).toEqual([
-      'CF_METRICAS_TOKEN tiene un permiso de más: «Account → Workers Scripts». Quítalo del token en Cloudflare (docs/runbooks/credenciales.md)',
+      'CF_METRICAS_TOKEN tiene un permiso de más: «Account → D1». Quítalo del token en Cloudflare (docs/runbooks/credenciales.md)',
     ]);
+  });
+
+  it('el de métricas como lo pide el runbook pasa, aunque Cloudflare le deje leer la lista de Workers', async () => {
+    // Lo que respondió Cloudflare el 12 oct 2026 a un token con solo Account Analytics (bitácora core 10).
+    const { fn, pedidos } = api(['graphql', 'workers/scripts']);
+    expect(await permisosDeMas(fn, 'metricas', 't', 'cuenta')).toEqual([]);
+    expect(pedidos.some((p) => p.includes('workers/scripts'))).toBe(false);
   });
 
   it('una respuesta que no es ni 200 ni «sin permiso» no se da por buena (P1)', async () => {

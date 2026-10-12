@@ -8,9 +8,21 @@ import { expect, type Page, test } from '@playwright/test';
 
 const CUENTA = 'http://localhost:4330';
 
+/** Sesiones, pagos y actividad vacíos (HU-C7.5, HU-C7.6, HU-C7.8), salvo que la prueba diga otra cosa. */
+async function loMioVacio(page: Page) {
+  for (const [ruta, json] of [
+    ['sesiones', { sesiones: [] }],
+    ['pagos', { pagos: [] }],
+    ['actividad', { hechos: [] }],
+  ] as const) {
+    await page.route(`${CUENTA}/api/core/cuenta/${ruta}`, (r) => r.fulfill({ json }));
+  }
+}
+
 /** El CORE falso: anota lo que le piden y responde como el de verdad. */
 async function coreFalso(page: Page, canje: { status: number; json: unknown }) {
   const pedidos: { ruta: string; url: string; cuerpo: unknown }[] = [];
+  await loMioVacio(page);
   await page.route(`${CUENTA}/api/core/auth/google/inicio?*`, async (ruta) => {
     pedidos.push({ ruta: 'inicio', url: ruta.request().url(), cuerpo: null });
     await ruta.fulfill({ status: 302, headers: { location: `${CUENTA}/#entrar=codigo-e2e` } });
@@ -36,6 +48,7 @@ async function conSesionGuardada(page: Page, espacios: { status: number; json: u
     localStorage.setItem('ed1-cuenta', JSON.stringify({ refresh: 'r-guardado', nombre: 'Ana' })),
   );
   const pedidos: { ruta: string; autorizacion: string | null }[] = [];
+  await loMioVacio(page);
   await page.route(`${CUENTA}/api/core/auth/refrescar`, (ruta) =>
     ruta.fulfill({ json: { acceso: 'acceso-cuenta', refresh: null } }),
   );
@@ -112,7 +125,10 @@ test('HU-C7.4 · CA2: sin espacios dice qué hacer; con un error, la causa y có
   ]);
   await page.goto(`${CUENTA}/`);
   await expect(page.getByText('Entrar está en pausa. Intenta más tarde.')).toBeVisible();
-  await page.getByRole('button', { name: 'Intentar de nuevo' }).click();
+  await page
+    .getByRole('region', { name: 'Tus espacios' })
+    .getByRole('button', { name: 'Intentar de nuevo' })
+    .click();
   await expect(page.getByText(/Todavía no tienes espacios/)).toBeVisible();
   await expect(page.getByText('Entrar está en pausa. Intenta más tarde.')).toBeHidden();
   await expect(page.getByRole('link', { name: 'Conocer CultivoPro' })).toBeVisible();
@@ -197,4 +213,140 @@ test('HU-C7.3 · la portada y la política no tienen violaciones de accesibilida
       .analyze();
     expect(violations.map((v) => `${ruta} ${v.id}: ${v.help}`)).toEqual([]);
   }
+});
+
+test.describe('HU-C7.5, HU-C7.6 y HU-C7.8 · lo mío en la cuenta', () => {
+  const SESIONES = {
+    sesiones: [
+      {
+        id: 's-esta',
+        producto_nombre: 'Laboratorio Digital',
+        dispositivo: 'a1b2c3',
+        creado: '2026-10-12T14:00:00.000Z',
+        ultimo_uso: '2026-10-12T14:00:00.000Z',
+        esta: true,
+      },
+      {
+        id: 's-telefono',
+        producto_nombre: 'CultivoPro',
+        dispositivo: '9f8e7d',
+        creado: '2026-09-30T12:00:00.000Z',
+        ultimo_uso: '2026-10-11T22:00:00.000Z',
+        esta: false,
+      },
+    ],
+  };
+
+  test('HU-C7.5 · cerrar la sesión de un teléfono pide entrar de nuevo y luego la cierra', async ({
+    page,
+  }) => {
+    await conSesionGuardada(page, [{ status: 200, json: { espacios: [] } }]);
+    const cierres: unknown[] = [];
+    let respuestas = [
+      {
+        status: 403,
+        json: {
+          estado: 'entrar-de-nuevo',
+          motivo: 'Para cerrar sesiones, vuelve a entrar con Google. Así sabemos que eres tú.',
+        },
+      },
+      { status: 200, json: { cerradas: 1 } },
+    ];
+    let lista = SESIONES;
+    await page.route(`${CUENTA}/api/core/cuenta/sesiones`, (r) => r.fulfill({ json: lista }));
+    await page.route(`${CUENTA}/api/core/cuenta/sesiones/cerrar`, async (r) => {
+      cierres.push(r.request().postDataJSON());
+      const [primera, ...resto] = respuestas;
+      respuestas = resto;
+      await r.fulfill(primera ?? { status: 500, json: {} });
+    });
+    await page.goto(`${CUENTA}/`);
+    const bloque = page.getByRole('region', { name: 'Dónde has entrado' });
+    await expect(bloque.getByRole('listitem')).toHaveCount(2);
+    await expect(bloque.getByText('Este navegador')).toBeVisible();
+    await expect(bloque.getByText(/Equipo …9f8e7d · entró el 30 sept 2026/)).toBeVisible();
+    // La propia no se cierra desde aquí: para eso está «Salir».
+    await expect(bloque.getByRole('button', { name: /^Cerrar la sesión/ })).toHaveCount(1);
+
+    await bloque
+      .getByRole('button', { name: 'Cerrar la sesión de CultivoPro en el equipo …9f8e7d' })
+      .click();
+    const aviso = bloque.getByRole('alert').filter({ hasText: 'vuelve a entrar con Google' });
+    await expect(aviso).toBeVisible();
+    await expect(aviso).toBeInViewport();
+    await aviso.getByRole('button', { name: 'Entrar de nuevo' }).click();
+    await expect(page.getByRole('checkbox', { name: /Leí y acepto/ })).toBeFocused();
+
+    // Como si ya hubiera vuelto de Google: el mismo botón ahora cierra.
+    lista = { sesiones: SESIONES.sesiones.slice(0, 1) };
+    await bloque
+      .getByRole('button', { name: 'Cerrar la sesión de CultivoPro en el equipo …9f8e7d' })
+      .click();
+    await expect(bloque.getByText('No tienes otras sesiones abiertas.')).toBeVisible();
+    expect(cierres).toEqual([{ sesion: 's-telefono' }, { sesion: 's-telefono' }]);
+  });
+
+  test('HU-C7.6 · mis pagos con el periodo, el monto en cifras y el estado; HU-C7.8 · la actividad en frases', async ({
+    page,
+  }) => {
+    await conSesionGuardada(page, [{ status: 200, json: { espacios: [] } }]);
+    await page.route(`${CUENTA}/api/core/cuenta/pagos`, (r) =>
+      r.fulfill({
+        json: {
+          pagos: [
+            {
+              espacio: 'Finca La Esperanza',
+              plan_nombre: 'Finca',
+              meses: 6,
+              monto_cop: 210000,
+              estado: 'aprobado',
+              creado: '2026-11-01T15:00:00.000Z',
+              periodo_desde: '2026-11-01T05:00:00.000Z',
+              periodo_hasta: '2027-05-01T05:00:00.000Z',
+            },
+          ],
+        },
+      }),
+    );
+    await page.route(`${CUENTA}/api/core/cuenta/actividad`, (r) =>
+      r.fulfill({
+        json: {
+          hechos: [
+            {
+              espacio: 'Finca La Esperanza',
+              instante: '2026-11-02T13:30:00.000Z',
+              frase: 'Ana cambió a Luis de operario a supervisor.',
+            },
+          ],
+        },
+      }),
+    );
+    await page.goto(`${CUENTA}/`);
+    const pagos = page.getByRole('region', { name: 'Tus pagos' });
+    await expect(pagos.getByText('Finca · Finca La Esperanza')).toBeVisible();
+    const monto = pagos.getByText('COP 210.000');
+    await expect(monto).toBeVisible();
+    expect(await monto.evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/Geist Mono/);
+    await expect(pagos.getByText(/del 01 nov 2026 al 01 may 2027 · Aprobado/)).toBeVisible();
+    const actividad = page.getByRole('region', { name: 'Lo que pasó en tus espacios' });
+    await expect(actividad.getByText('Ana cambió a Luis de operario a supervisor.')).toBeVisible();
+    // La hora de Bogotá: 13:30 UTC son las 8:30 a. m.
+    await expect(actividad.getByText(/Finca La Esperanza · 2 de nov,? 8:30/)).toBeVisible();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const { violations } = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+    expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+
+  test('HU-C7.6 CA2 y HU-C7.8 CA2 · quien no administra ve que no hay nada, no los de otros', async ({
+    page,
+  }) => {
+    await conSesionGuardada(page, [{ status: 200, json: { espacios: [] } }]);
+    await page.goto(`${CUENTA}/`);
+    await expect(
+      page.getByText('Todavía no hay pagos en los espacios que administras.'),
+    ).toBeVisible();
+    await expect(page.getByText('Todavía no ha pasado nada que mostrar.')).toBeVisible();
+  });
 });

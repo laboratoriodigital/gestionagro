@@ -105,17 +105,25 @@ test.describe('página útil de la DPV (HU-E2.5)', () => {
     ).toHaveAttribute('href', '/agro/app/');
   });
 
-  test('el JSON-LD es válido y trae migas, preguntas y pasos', async ({ page }) => {
+  test('el JSON-LD es válido y trae migas, la aplicación, preguntas y pasos', async ({ page }) => {
     await page.goto(DPV);
     const bloques = await page.locator('script[type="application/ld+json"]').allTextContents();
     expect(bloques).toHaveLength(1);
     const datos = JSON.parse(bloques[0] ?? '{}') as {
-      '@graph': { '@type': string; mainEntity?: unknown[]; step?: unknown[] }[];
+      '@graph': {
+        '@type': string;
+        mainEntity?: unknown[];
+        step?: unknown[];
+        isAccessibleForFree?: boolean;
+        offers?: { price: string };
+      }[];
     };
     const tipos = datos['@graph'].map((n) => n['@type']);
-    expect(tipos).toEqual(['BreadcrumbList', 'FAQPage', 'HowTo']);
-    expect(datos['@graph'][1]?.mainEntity).toHaveLength(7);
-    expect(datos['@graph'][2]?.step).toHaveLength(4);
+    expect(tipos).toEqual(['BreadcrumbList', 'WebApplication', 'FAQPage', 'HowTo']);
+    // HU-C8.4: gratis, sin registro.
+    expect(datos['@graph'][1]).toMatchObject({ isAccessibleForFree: true, offers: { price: '0' } });
+    expect(datos['@graph'][2]?.mainEntity).toHaveLength(7);
+    expect(datos['@graph'][3]?.step).toHaveLength(4);
   });
 });
 
@@ -238,5 +246,29 @@ test.describe('eventos en lote (CA2)', () => {
       producto: 'agro-calculadora-dpv',
       eventos: { 'tool.opened': 1 },
     });
+  });
+});
+
+test.describe('HU-C8.2 · legible por agentes, sin JavaScript', () => {
+  test('llms.txt enlaza el gemelo de la guía, y la guía lo anuncia', async ({ page, request }) => {
+    const llms = await request.get('/llms.txt');
+    expect(llms.status()).toBe(200);
+    const texto = await llms.text();
+    expect(texto).toContain('# CultivoPro');
+    const gemelo = texto.match(/\]\(https:\/\/cultivopro\.co(\/agro\/guia\/index\.md)\)/)?.[1];
+    expect(gemelo).toBe('/agro/guia/index.md');
+    const md = await request.get(gemelo ?? '');
+    expect(md.status()).toBe(200);
+    expect(await md.text()).toContain('# Cómo usar CultivoPro');
+    await page.goto('/agro/guia/');
+    await expect(page.locator('link[rel="alternate"][type="text/markdown"]')).toHaveAttribute(
+      'href',
+      '/agro/guia/index.md',
+    );
+  });
+
+  test('un borrador no tiene gemelo ni se anuncia', async ({ page }) => {
+    await page.goto(DPV);
+    await expect(page.locator('link[rel="alternate"][type="text/markdown"]')).toHaveCount(0);
   });
 });

@@ -6,6 +6,7 @@
  *   debe parecer sano (P1).
  * - `GET /api/core/claves`: la clave pública con la que las celdas verifican los tokens (CA5).
  * - `GET /.well-known/jwks.json`: las mismas llaves en el formato estándar (HU-C4.2, `jwks.ts`).
+ * - `GET /.well-known/security.txt`: a quién escribirle si se encuentra un fallo (HU-C8.4).
  * - `/api/core/auth/*`: entrar con Google, renovar la sesión y salir (HU-E4.2, HU-C7.3, `entrar.ts`).
  * - `POST /api/core/organizaciones`: crear la organización de la finca del teléfono (HU-E4.3).
  * - `POST /api/core/invitaciones[/ver|/aceptar]`: invitar al equipo por WhatsApp (HU-E4.4).
@@ -13,6 +14,9 @@
  *   la finca y los teléfonos de la cuenta (HU-E4.6, `equipo.ts`).
  * - `POST /api/core/cuenta/espacios`: los espacios de la persona en todos los productos, solo con un
  *   token de la cuenta (HU-C7.4, `cuenta.ts`).
+ * - `POST /api/core/cuenta/{sesiones,sesiones/cerrar,pagos,actividad}`: dónde ha entrado la
+ *   persona y cerrar sesiones, sus pagos y la actividad de lo que administra (HU-C7.5, HU-C7.6,
+ *   HU-C7.8, `mi-cuenta.ts`).
  * - `POST /api/core/interes[/ver]`: la lista de espera de planes con precio visible (HU-E0.6,
  *   `interes.ts`).
  * - `ServicioDelCore`: la entrada RPC de las celdas por su service binding, sin URL (HU-C5.6,
@@ -33,6 +37,9 @@ import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed
 import { type ClavePublica, type Firmante, firmanteDesde, verificarAcceso } from '@ed1/tokens';
 import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
+import politicaDeLaCuenta from '../../../content/cuenta/privacidad/politica.json' with {
+  type: 'json',
+};
 import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
 import { espaciosDeLaCuenta } from './cuenta.ts';
 import {
@@ -64,6 +71,7 @@ import {
 import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { claveAnteriorDe, clavesPublicadas } from './jwks.ts';
+import { cerrarSesiones, verActividad, verPagos, verSesiones } from './mi-cuenta.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
 import {
@@ -75,6 +83,7 @@ import {
   productoDeOrganizacion,
 } from './productos.ts';
 import { type ProveedorDePago, proveedorBold } from './proveedor-de-pago.ts';
+import { securityTxt } from './security-txt.ts';
 
 export { ServicioDelCore } from './entrada-de-servicio.ts';
 export { PRODUCTO_CORE };
@@ -201,6 +210,20 @@ export function crearApp(dependencias: Dependencias = {}) {
     return c.json({ keys: claves });
   });
 
+  // HU-C8.4: a quién escribirle si se encuentra un fallo (RFC 9116), con el correo de la política
+  // de la cuenta. Sin API de catálogo: el CORE no tiene una API pública para terceros (CA2, P1).
+  app.get('/.well-known/security.txt', (c) => {
+    c.header('content-type', 'text/plain; charset=utf-8');
+    c.header('cache-control', 'public, max-age=86400');
+    return c.body(
+      securityTxt({
+        correo: politicaDeLaCuenta.responsable.correo,
+        canonical: `${new URL(c.req.url).origin}/.well-known/security.txt`,
+        ahora: ahora(),
+      }),
+    );
+  });
+
   // Solo las apps de los productos pueden leer estas respuestas desde el navegador: la unión de sus
   // orígenes (HU-C3.5). Entrar, renovar y crear la organización comparten CORS, kill switch y
   // configuración.
@@ -325,6 +348,11 @@ export function crearApp(dependencias: Dependencias = {}) {
     espaciosDeLaCuenta(c, { ...c.get('entorno'), destino: c.env.DESTINO }),
   );
   app.post('/api/core/interes/ver', (c) => verInteres(c, c.get('entorno')));
+  // HU-C7.5, HU-C7.6 y HU-C7.8: lo de la persona en su cuenta (`mi-cuenta.ts`).
+  app.post('/api/core/cuenta/sesiones', (c) => verSesiones(c, c.get('entorno')));
+  app.post('/api/core/cuenta/sesiones/cerrar', (c) => cerrarSesiones(c, c.get('entorno')));
+  app.post('/api/core/cuenta/pagos', (c) => verPagos(c, c.get('entorno')));
+  app.post('/api/core/cuenta/actividad', (c) => verActividad(c, c.get('entorno')));
   const conPago = (
     c: Context<{ Bindings: Env; Variables: { entorno: Entorno } }>,
   ): EntornoDePago => ({
