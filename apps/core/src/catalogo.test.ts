@@ -56,6 +56,7 @@ beforeEach(async () => {
   await vaciarCore(db);
   // El catálogo vuelve a la siembra de la 0006 entre pruebas.
   for (const s of [
+    'DELETE FROM alcance',
     'DELETE FROM plan_precio',
     "DELETE FROM plan WHERE producto <> 'agro'",
     "DELETE FROM producto_rol WHERE producto <> 'agro'",
@@ -161,5 +162,61 @@ describe('copiar el catálogo a la base (HU-C2.3)', () => {
     // El siguiente despliegue lo pone al día: el nombre vuelve y el precio del archivo entra de nuevo.
     await aplicar(real(), '2026-10-10T00:00:00.000Z');
     expect(diferenciasDelCatalogo(real(), await leer())).toEqual([]);
+  });
+});
+
+describe('HU-C9.2 · los alcances de OAuth, como el resto del catálogo', () => {
+  it('el alcance del agro entra desde productos.json, y la base queda igual al archivo', async () => {
+    await aplicar(real(), '2026-10-12T00:00:00.000Z');
+    expect(
+      (
+        await db
+          .prepare("SELECT id, mueve_dinero, estado FROM alcance WHERE producto = 'agro'")
+          .all()
+      ).results,
+    ).toEqual([{ id: 'agro:registros:leer', mueve_dinero: 0, estado: 'activo' }]);
+    expect(diferenciasDelCatalogo(real(), await leer())).toEqual([]);
+  });
+
+  it('uno que sale del archivo queda retirado, y uno editado a mano se nombra', async () => {
+    const conDos = real().map((p) =>
+      p.id === 'agro'
+        ? {
+            ...p,
+            alcances: [
+              ...(p.alcances ?? []),
+              { id: 'agro:clima:leer', descripcion: 'Leer el clima de tus naves.' },
+            ],
+          }
+        : p,
+    );
+    await aplicar(conDos, '2026-10-12T00:00:00.000Z');
+    await aplicar(real(), '2026-10-13T00:00:00.000Z');
+    expect(
+      await db.prepare("SELECT estado FROM alcance WHERE id = 'agro:clima:leer'").first(),
+    ).toEqual({ estado: 'retirado' });
+    await db
+      .prepare("UPDATE alcance SET descripcion = 'Otra cosa' WHERE id = 'agro:registros:leer'")
+      .run();
+    expect(diferenciasDelCatalogo(real(), await leer())).toEqual([
+      'el alcance «agro:registros:leer» no es el del archivo',
+    ]);
+  });
+
+  it('CA3 ❌ · la base rechaza un alcance que mueve dinero, o uno con el prefijo de otro producto', async () => {
+    await expect(
+      db
+        .prepare(
+          "INSERT INTO alcance (producto, id, descripcion, mueve_dinero) VALUES ('agro', 'agro:pagos:crear', 'Pagar el plan', 1)",
+        )
+        .run(),
+    ).rejects.toThrow(/CHECK/);
+    await expect(
+      db
+        .prepare(
+          "INSERT INTO alcance (producto, id, descripcion) VALUES ('agro', 'parqueadero:caja:leer', 'Leer la caja')",
+        )
+        .run(),
+    ).rejects.toThrow(/CHECK/);
   });
 });

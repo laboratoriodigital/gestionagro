@@ -72,6 +72,7 @@ import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { claveAnteriorDe, clavesPublicadas } from './jwks.ts';
 import { cerrarSesiones, verActividad, verPagos, verSesiones } from './mi-cuenta.ts';
+import { metadatosDelServidor, servidorOAuthActivo } from './oauth.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
 import {
@@ -222,6 +223,15 @@ export function crearApp(dependencias: Dependencias = {}) {
         ahora: ahora(),
       }),
     );
+  });
+
+  // HU-C9.2: los metadatos del servidor de autorización (RFC 8414). Solo donde ya se anuncia
+  // (`oauth.ts`): en producción, 404 hasta que exista el canje de tokens (HU-C9.5).
+  app.get('/.well-known/oauth-authorization-server', (c) => {
+    if (!servidorOAuthActivo(c.env.DESTINO)) return c.notFound();
+    c.header('access-control-allow-origin', '*');
+    c.header('cache-control', 'public, max-age=3600');
+    return c.json(metadatosDelServidor(new URL(c.req.url).origin, catalogoDe(c.env)));
   });
 
   // Solo las apps de los productos pueden leer estas respuestas desde el navegador: la unión de sus

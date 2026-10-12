@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Migración 0008: las tablas del servidor de autorización para agentes (`alcance`, `cliente_oauth`, `concesion_oauth`, `codigo_oauth`, `refresco_oauth`). La base exige que ningún alcance mueva dinero. Los alcances salen de `productos.json` y el despliegue los copia como el resto del catálogo; el agro declara `agro:registros:leer` (HU-C9.2).
+- `GET /.well-known/oauth-authorization-server` (RFC 8414), solo en staging: en producción responde 404 hasta que exista el canje de tokens (HU-C9.2).
 - La cuenta muestra dónde has entrado y deja cerrar una sesión, o todas menos esta, con una entrada con Google de menos de 10 minutos; cerrar queda en la auditoría y el refresh de esa sesión deja de servir (HU-C7.5). También tus pagos en los espacios que administras, con el periodo cubierto (HU-C7.6), y lo que pasó en ellos, en frases (HU-C7.8). Rutas `POST /api/core/cuenta/{sesiones,sesiones/cerrar,pagos,actividad}`, solo con token de la cuenta.
 - `GET /.well-known/security.txt` (RFC 9116): a quién escribirle si se encuentra un fallo, con el correo de la política de la cuenta (HU-C8.4).
 - `ServicioDelCore`: la entrada por la que una celda pide el plan de sus organizaciones, por service binding con RPC, sin URL ni token (HU-C5.6). Con `desde`, solo las que tuvieron un pago aprobado después; sin él, todas, con la gracia ya aplicada. **Va a producción antes que la celda que la usa.**

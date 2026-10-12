@@ -48,6 +48,15 @@ export interface Producto {
    * crea en `encendido` en el KV de flags de las celdas del producto (HU-Q7.13).
    */
   kill_switches?: string[];
+  /** Lo que un agente puede pedir sobre una organización del producto (HU-C9.2). */
+  alcances?: AlcanceDeProducto[];
+}
+
+/** Un alcance de OAuth: su id lleva el producto delante (`agro:registros:leer`). */
+export interface AlcanceDeProducto {
+  id: string;
+  /** Lo que se lee en la pantalla de consentimiento. */
+  descripcion: string;
 }
 
 export interface RegistroDeProductos {

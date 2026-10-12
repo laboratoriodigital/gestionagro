@@ -5,9 +5,8 @@ Migraciones **propuestas**: no están en `infrastructure/migraciones/`, así que
 | Archivo | Qué es | Documento |
 |---|---|---|
 | ~~`core/0006_dimension_de_producto.sql`~~ → `infrastructure/migraciones/core/` | El producto en todo el CORE: tablas de referencia (productos, tipos, roles, planes, periodos y precios), claves foráneas compuestas, sesión por producto | `../PLATAFORMA.md` §4.3 |
-| `core/0008_entrar_con_correo.sql` (era 0007) | Proveedor de identidad como referencia y enlace mágico por correo | `../PLATAFORMA.md` §4.5, §4.11 |
+| `core/0009_entrar_con_correo.sql` (era 0007 y 0008; la 0008 real es la de OAuth, HU-C9.2) | Proveedor de identidad como referencia y enlace mágico por correo | `../PLATAFORMA.md` §4.5, §4.11 |
 | ~~`core/0008_auditoria.sql`~~ → `infrastructure/migraciones/core/0007_auditoria.sql` (HU-C2.4) | Lo que toca seguridad o dinero, una fila por hecho | `../PLATAFORMA.md` §4.12 |
-| `core/0009_oauth_para_agentes.sql` | Servidor de autorización OAuth 2.1 para MCP, sin alcances que muevan dinero | `../PLATAFORMA.md` §5.4 |
 | `probar-core.mjs` | La prueba | Este archivo |
 
 ## Cómo se prueba
