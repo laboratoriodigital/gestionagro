@@ -35,6 +35,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - La cuenta de Laboratorio Digital tiene su primera página, en `cuenta.laboratorio-digital.com`: dice qué va a reunir y que pronto se podrá entrar con Google. Es estática, sin JavaScript, y no aparece en buscadores (HU-C7.2).
 
 ### Corregido
+- El Node mínimo del repositorio pasa de 22.18 a 22.20: con 22.18 y 22.19, la base en proceso de las pruebas (`node:sqlite`) no liga un parámetro numerado repetido (`?1`) y seis pruebas de la celda del parqueadero fallaban en una máquina con 22.18, con el CI en verde. Una prueba de `@ed1/d1` lo dice con su nombre (bitácora parqueadero 35).
 - El despliegue a staging prepara las celdas del parqueadero en cada corrida. Antes las saltaba si la corrida no nombraba al parqueadero, y la de staging nunca lo nombra: c2 no llegó a crearse después de fusionar #145.
 - El despliegue lee la salida de `wrangler d1 execute --json` aunque wrangler escriba avisos con corchetes antes o después del JSON (`▲ [WARNING] …`); antes, un aviso después del JSON la volvía ilegible y la revisión de huérfanas del CORE no se podía hacer.
 - El D1 local de las pruebas (`@ed1/d1/local`) partía mal dos formas de SQL válidas: un trigger después de una línea en blanco y un «;» seguido de un comentario. Las migraciones del agro y del CORE no las tenían; la del parqueadero, sí (bitácora parqueadero 28).
