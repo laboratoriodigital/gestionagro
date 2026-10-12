@@ -153,7 +153,9 @@ const ids = (c: Caja) =>
 test(`HU-Q7.5 CA3 · dos cajas sin red registran ${VEHICULOS} entradas y salidas cada una y quedan iguales`, async ({
   browser,
 }) => {
-  test.setTimeout(300_000);
+  // Tarda unos 22 s en el CI y 32 en local. Un cuelgue se corta a los 90 s, no a los 300: el
+  // 12 oct 2026 uno se llevó 5 minutos de Actions (HU-C11.8, bitácora parqueadero 37).
+  test.setTimeout(90_000);
   // La caja A configura el parqueadero; la B baja los ajustes de la nube.
   const a = await abrirCaja(await browser.newContext(), 'A');
   await a.page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();

@@ -86,3 +86,13 @@ jobs:
           VERIFICAR_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           VERIFICADO_EN_PR: ${{ steps.pr.outputs.verificado }}
         run: node scripts/verificar.ts --ci
+      # Solo si algo falló: lo que Playwright vio (la página y el error) para entender una e2e
+      # intermitente sin volver a correrla a ciegas. Tres días bastan; no ocupa espacio si todo pasa.
+      - name: Contexto de las e2e que fallaron
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-fallidas
+          path: test-results/
+          retention-days: 3
+          if-no-files-found: ignore
