@@ -1,0 +1,42 @@
+---
+// La portada del Parqueadero ED1 (HU-Q11.5): qué es la caja, cómo probarla sin registrarse y las
+// herramientas gratuitas. El texto vive en `src/sitio/contenido.ts`, con su gemelo en Markdown.
+import Sitio from '../layouts/Sitio.astro';
+import { HERRAMIENTAS, PORTADA } from '../sitio/contenido.ts';
+---
+<Sitio titulo={PORTADA.titulo} descripcion={PORTADA.resumen} ruta={PORTADA.ruta}>
+  <section class="portada">
+    <h1>{PORTADA.titular}</h1>
+    <p class="entrada">{PORTADA.entrada}</p>
+    <p><a class="boton" href="/caja/">{PORTADA.accion}</a></p>
+  </section>
+  <section aria-labelledby="que-hace">
+    <h2 id="que-hace">Qué hace</h2>
+    <ul class="rasgos">
+      {
+        PORTADA.queHace.map(([titulo, texto]) => (
+          <li>
+            <h3>{titulo}</h3>
+            <p>{texto}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+  <section aria-labelledby="herramientas">
+    <h2 id="herramientas">{PORTADA.herramientasTitulo}</h2>
+    <ul class="herramientas">
+      {
+        HERRAMIENTAS.map((h) => (
+          <li>
+            <a class="herramienta" href={h.ruta}>
+              <span class="herramienta-titulo">{h.titular}</span>
+              <span class="herramienta-texto">{h.resumen}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+  <p slot="pie">{PORTADA.pie}</p>
+</Sitio>

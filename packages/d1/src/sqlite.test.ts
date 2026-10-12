@@ -44,6 +44,18 @@ describe('la base en proceso se comporta como D1 en lo que el código usa', () =
     );
   });
 
+  it('un ?1 repetido liga el mismo valor en las dos partes, como D1 (Node 22.20 o posterior)', async () => {
+    // Con Node 22.18 y 22.19, `node:sqlite` responde «column index out of range» (bitácora
+    // parqueadero 35); la celda del parqueadero lo usa para el org_id del token (bitácora 31).
+    const { db } = await base();
+    await db.prepare('INSERT INTO p (id, activo) VALUES (1, 1), (2, 0)').run();
+    const fila = await db
+      .prepare('SELECT (SELECT COUNT(*) FROM p WHERE activo = ?1) AS n FROM p WHERE id = ?1')
+      .bind(1)
+      .first();
+    expect(fila).toEqual({ n: 1 });
+  });
+
   it('un lote es todo o nada, y cada sentencia dice cuántas filas cambió', async () => {
     const { db } = await base();
     const r = await db.batch([

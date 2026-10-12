@@ -1,0 +1,17 @@
+{
+  "name": "@ed1/parqueadero-schema",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Esquemas zod de los registros y catálogos del parqueadero, con sus versiones, y el formato parqueadero-export/1. Una sola fuente para la caja, el respaldo y la API de M1 (PARQUEADERO §5.2, anexo A, HU-Q1.3).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ensayos": "./src/ensayos.fixture.ts",
+    "./sync": "./src/sync.ts"
+  },
+  "dependencies": {
+    "@ed1/ids": "workspace:*",
+    "@ed1/sync": "workspace:*",
+    "zod": "^4.6.5"
+  }
+}

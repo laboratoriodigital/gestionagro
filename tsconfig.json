@@ -14,5 +14,10 @@
     "*.config.ts",
     "apps/*/*.config.ts"
   ],
-  "exclude": ["node_modules", "**/dist", "apps/cuaderno/src/sw.ts"]
+  "exclude": [
+    "node_modules",
+    "**/dist",
+    "apps/cuaderno/src/sw.ts",
+    "apps/parqueadero-sitio/src/caja/sw.ts"
+  ]
 }

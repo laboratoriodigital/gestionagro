@@ -18,6 +18,8 @@ Un solo archivo: [`content/agro/privacidad/politica.json`](../../content/agro/pr
 
 Lo que está en `null` la página lo muestra como «por completar».
 
+**El parqueadero** tiene la suya: [`content/parqueadero/privacidad/politica.json`](../../content/parqueadero/privacidad/politica.json), con el mismo bloque `responsable`. De ahí toman los datos de Laboratorio Digital como encargado los términos de la nube y el contrato de transmisión que la caja muestra antes de entrar con la cuenta (`content/parqueadero/privacidad/terminos.json`, HU-Q7.11); lo que está en `null` sale como «por completar». Cambiar lo que esos términos prometen exige subir su `version`: las cajas los piden otra vez.
+
 ## Cómo editarlo desde GitHub, sin instalar nada
 
 1. Abre el archivo en GitHub y toca el lápiz (**Edit this file**).

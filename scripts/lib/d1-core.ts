@@ -172,22 +172,25 @@ export const CONSULTA_HUERFANAS = 'SELECT * FROM pragma_foreign_key_check LIMIT 
 /**
  * Las filas de cada consulta en la salida de `wrangler d1 execute --json`, en orden, o `null` si la
  * salida no se pudo leer o alguna consulta no tuvo éxito: entonces no se sabe (P1). La salida puede
- * traer texto antes del JSON (wrangler escribe a qué base se conecta).
+ * traer texto antes y después del JSON, con corchetes (`▲ [WARNING]`): el JSON empieza al inicio
+ * de una línea y termina en el último «]» con el que se lee.
  */
 export function resultadosDeLaSalida(salida: string): Record<string, unknown>[][] | null {
-  const inicio = salida.indexOf('[');
-  const fin = salida.lastIndexOf(']');
-  if (inicio < 0 || fin < inicio) return null;
-  try {
-    const lotes = JSON.parse(salida.slice(inicio, fin + 1)) as {
-      results?: Record<string, unknown>[];
-      success?: boolean;
-    }[];
-    if (!Array.isArray(lotes) || lotes.some((l) => l.success === false || !l.results)) return null;
-    return lotes.map((l) => l.results ?? []);
-  } catch {
-    return null;
+  for (const { index: inicio } of salida.matchAll(/^\[/gm)) {
+    for (let fin = salida.lastIndexOf(']'); fin > inicio; fin = salida.lastIndexOf(']', fin - 1)) {
+      let lotes: { results?: Record<string, unknown>[]; success?: boolean }[];
+      try {
+        lotes = JSON.parse(salida.slice(inicio, fin + 1)) as typeof lotes;
+      } catch {
+        continue;
+      }
+      if (!Array.isArray(lotes) || lotes.some((l) => l.success === false || !l.results)) {
+        return null;
+      }
+      return lotes.map((l) => l.results ?? []);
+    }
   }
+  return null;
 }
 
 /**
@@ -203,4 +206,46 @@ export function huerfanasDeLaSalida(salida: string): string[] | null {
       (f) =>
         `${String(f['table'] ?? '?')} (fila ${String(f['rowid'] ?? '?')}) apunta a una fila de ${String(f['parent'] ?? '?')} que no existe`,
     );
+}
+
+/**
+ * El producto que escribe en una base, por su nombre (HU-Q7.13): la del CORE es del CORE y un
+ * shard `<producto>_c<N>_s<k>` es de su producto (HU-C1.4). Las de staging gastan las mismas
+ * 100.000 filas de la cuenta y se dicen aparte. Otra base no se adivina: `null`.
+ */
+export function productoDeLaBase(nombre: string, baseDelCore: string): string | null {
+  const staging = nombre.endsWith('_staging');
+  const base = staging ? nombre.slice(0, -'_staging'.length) : nombre;
+  const producto = base === baseDelCore ? 'core' : (/^([a-z]+)_c\d+_s\d+$/.exec(base)?.[1] ?? null);
+  return producto && staging ? `${producto} (staging)` : producto;
+}
+
+/**
+ * Todas las bases D1 de la cuenta con el producto que escribe en cada una, por id (HU-Q7.13). El
+ * vigía mide las filas por base y con esto dice qué producto las gasta. Las que no se reconocen no
+ * van: el vigía las suma como «otras bases».
+ */
+export async function productosDeLasBases(
+  fetchFn: Fetch,
+  token: string,
+  cuenta: string,
+  baseDelCore: string,
+): Promise<Record<string, string>> {
+  const mapa: Record<string, string> = {};
+  for (let pagina = 1; pagina <= 20; pagina++) {
+    const r = await pedirJson(
+      fetchFn,
+      `${API}/accounts/${cuenta}/d1/database?per_page=100&page=${pagina}`,
+      token,
+    );
+    if (sinPermiso(r.estado)) throw new Error(`al token le falta ${PERMISO_D1}`);
+    if (r.estado !== 200) throw new Error(`no se pudo listar las bases D1 (HTTP ${r.estado})`);
+    const lista = (r.cuerpo.result as { uuid: string; name: string }[] | undefined) ?? [];
+    for (const b of lista) {
+      const producto = productoDeLaBase(b.name, baseDelCore);
+      if (producto) mapa[b.uuid] = producto;
+    }
+    if (lista.length < 100) break;
+  }
+  return mapa;
 }

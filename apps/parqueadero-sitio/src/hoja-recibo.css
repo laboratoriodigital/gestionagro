@@ -1,0 +1,182 @@
+/*
+ * La hoja del recibo (HU-Q6.6): la misma en la pantalla de la caja y en `/r/`, que la pintan desde
+ * `pantalla()` de `@ed1/parqueadero-recibos`. Se lee como el papel: el parqueadero arriba, la
+ * placa como placa, las filas con el valor a la derecha, los grupos separados con línea de puntos
+ * y el total grande. Todo sale de `currentColor`, para que valga en la caja y en el sitio, en claro
+ * y en oscuro, sin tokens propios de ninguno de los dos.
+ */
+.hoja-recibo {
+  --hoja-suave: color-mix(in srgb, currentColor 66%, transparent);
+  --hoja-linea: color-mix(in srgb, currentColor 22%, transparent);
+  --hoja-mono: var(--fuente-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+  box-sizing: border-box;
+  display: grid;
+  width: 100%;
+  max-width: 26rem;
+  margin: 0 auto;
+  padding: 1.5rem clamp(1rem, 4vw, 1.5rem) 1.25rem;
+  border: 1px solid var(--hoja-linea);
+  border-radius: 6px;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 12px 32px -20px rgb(0 0 0 / 0.25);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+/* Sin peso: cada parte pone su propio aire. */
+:where(.hoja-recibo) :where(p, h1, dl, dd) {
+  margin: 0;
+}
+
+.hoja-prueba {
+  justify-self: center;
+  color: var(--peligro, #b3261e);
+  margin-bottom: 1rem;
+  padding: 0.125rem 0.625rem;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.hoja-sede {
+  display: grid;
+  gap: 0.125rem;
+  text-align: center;
+}
+
+.hoja-sede-nombre {
+  margin-bottom: 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.hoja-sede-dato {
+  color: var(--hoja-suave);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.hoja-titulo {
+  display: grid;
+  gap: 0.125rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1.5px dashed var(--hoja-linea);
+  text-align: center;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1.2;
+}
+
+.hoja-clase {
+  color: var(--hoja-suave);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hoja-numero {
+  font-family: var(--hoja-mono);
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.hoja-placa {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+  color: var(--hoja-suave);
+}
+
+/* La placa amarilla de Colombia: se reconoce antes de leerla. */
+.hoja-placa-numero {
+  padding: 0.125rem 0.75rem;
+  border: 2px solid #0b0b0a;
+  border-radius: 6px;
+  background: #ffd400;
+  color: #0b0b0a;
+  font-family: var(--hoja-mono);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/*
+ * El valor se queda en una línea si cabe (una fecha con su hora no se parte) y la etiqueta cede
+ * hasta 5,5 rem; un valor largo, como una novedad, se parte a la derecha.
+ */
+.hoja-grupo {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, 1fr) minmax(0, max-content);
+  gap: 0.375rem 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1.5px dashed var(--hoja-linea);
+}
+
+.hoja-grupo > div {
+  display: contents;
+}
+
+.hoja-grupo dt {
+  color: var(--hoja-suave);
+}
+
+.hoja-grupo dd {
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
+.hoja-total {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0 1rem;
+  margin-top: 1rem;
+  padding-top: 0.875rem;
+  border-top: 2px solid currentColor;
+}
+
+.hoja-total-etiqueta {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hoja-total-valor {
+  text-align: end;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.hoja-pago {
+  grid-column: 1 / -1;
+  text-align: end;
+  color: var(--hoja-suave);
+  font-size: 0.875rem;
+}
+
+.hoja-legal {
+  display: grid;
+  gap: 0.375rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1.5px dashed var(--hoja-linea);
+  color: var(--hoja-suave);
+  font-size: 0.8125rem;
+  text-align: center;
+  text-wrap: pretty;
+}

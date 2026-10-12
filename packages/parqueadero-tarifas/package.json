@@ -1,0 +1,16 @@
+{
+  "name": "@ed1/parqueadero-tarifas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "La liquidación pura del parqueadero: minutos, gracia, plena, tope diario, noche, tiquete perdido, abonado y redondeo hacia abajo, sin pasar nunca el tope legal por minuto. La misma para la caja y la calculadora (PARQUEADERO §9, ADR-37, HU-Q1.1).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./casos": "./src/casos.fixture.ts",
+    "./casos-de-mensualidad": "./src/mensualidad.fixture.ts"
+  },
+  "dependencies": {
+    "@ed1/dinero": "workspace:*",
+    "@ed1/parqueadero-schema": "workspace:*"
+  }
+}

@@ -1,0 +1,43 @@
+// GENERADO por scripts/generar-wrangler.ts desde infrastructure/celdas.json. No editar a mano.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ed1-parqueadero",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-30",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/_m"
+    ]
+  },
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "parqueadero.laboratorio-digital.app",
+      "custom_domain": true
+    }
+  ],
+  "analytics_engine_datasets": [
+    {
+      "binding": "EVENTOS",
+      "dataset": "parqueadero_eventos"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "env": {
+    "staging": {
+      "name": "ed1-parqueadero-staging",
+      "workers_dev": true,
+      "routes": [],
+      "analytics_engine_datasets": [
+        {
+          "binding": "EVENTOS",
+          "dataset": "parqueadero_eventos_staging"
+        }
+      ]
+    }
+  }
+}

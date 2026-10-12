@@ -82,6 +82,8 @@ describe('claves de kill switch (CA2)', () => {
   it('el nombre del KV sale de la celda y del destino (ARQUITECTURA §5.5)', () => {
     expect(nombreKvFlags('c0', 'produccion')).toBe('agro-c0-flags');
     expect(nombreKvFlags('c0', 'staging')).toBe('agro-c0-flags-staging');
+    // HU-Q7.2: una celda de otro producto lleva su nombre; el del agro no cambia.
+    expect(nombreKvFlags('c2', 'staging', 'parqueadero')).toBe('parqueadero-c2-flags-staging');
   });
 });
 

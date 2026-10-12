@@ -39,6 +39,11 @@ export const firmaDelAviso = (v: Vigilancia) =>
   [
     v.nivel,
     ...v.fallas,
+    // HU-Q7.13: cada escalón de filas de D1 (50, 75 y 90 %) y cada producto que pasa las suyas
+    // avisa una vez; bajar del escalón también, para que el dueño sepa que pasó.
+    ...(v.filas
+      ? [`filas ${v.filas.escalon}`, ...v.filas.sobrePresupuesto.map((p) => `sobre ${p}`)]
+      : []),
     ...(v.pago
       ? [
           `incluido ${v.pago.escalon}`,
@@ -49,6 +54,26 @@ export const firmaDelAviso = (v: Vigilancia) =>
   ].join('|');
 
 const usd = (n: number) => `USD ${n.toFixed(2)}`;
+const miles = (n: number) => Math.round(n).toLocaleString('es-CO');
+
+/** Las líneas de filas de D1 (HU-Q7.13): cuánto de la cuenta va hoy y quién lo gasta. */
+function lineasDeFilas(v: Vigilancia): string[] {
+  const f = v.filas;
+  const usado = v.consumo.d1_filas_escritas;
+  if (!f || (f.escalon === 0 && f.sobrePresupuesto.length === 0) || usado === undefined) return [];
+  const limite = CUOTAS_GRATUITAS.d1_filas_escritas.limite;
+  const quienes = f.porProducto
+    .slice(0, 3)
+    .map(([p, n]) => `${p} ${miles(n)}`)
+    .join(', ');
+  return [
+    `Filas escritas en D1 hoy: ${miles(usado)} de ${miles(limite)} de toda la cuenta (${v.uso.d1_filas_escritas} %).`,
+    quienes ? `Quién las escribe: ${quienes}.` : '',
+    f.sobrePresupuesto.length > 0
+      ? `Pasó sus filas del día: ${f.sobrePresupuesto.join(', ')}. La venta y los registros siguen; si se repite, toca Workers Paid (D-Q10).`
+      : '',
+  ];
+}
 
 /** El aviso con Workers Paid: cuánto va a costar el mes y qué se hizo. */
 function mensajeDePago(
@@ -79,6 +104,7 @@ export function mensajeDelVigia(v: Vigilancia, celda: string, destino: string): 
     `${destino === 'staging' ? '[staging] ' : ''}Celda ${celda}: nivel ${NOMBRE_NIVEL[v.nivel]}${v.escrito ? ` (antes ${v.antes})` : ''}.`,
     QUE_PASA[v.nivel],
     cuota ? `Cuota más usada: ${CUOTAS_GRATUITAS[cuota].nombre}, ${porcentaje} % de hoy.` : '',
+    ...lineasDeFilas(v),
     v.fallas.length > 0 ? `No se pudo medir: ${v.fallas.join('; ')}.` : '',
   ];
   return lineas.filter(Boolean).join('\n');

@@ -25,7 +25,6 @@
  * otra finca, o un id que ya usa otra organización, va a cuarentena.
  */
 
-import type { SentenciaD1 } from '@ed1/d1';
 import {
   type Ack,
   entidadesQuePuede,
@@ -38,7 +37,8 @@ import {
   puedeRegistro,
   RELOJ_CORRIDO_MS,
   validarOperacion,
-} from '@ed1/sync';
+} from '@ed1/agro-schema/sync';
+import type { SentenciaD1 } from '@ed1/d1';
 import { nivelDeLaCelda, respuestaDePausa } from './nivel.ts';
 import type { ContextoCelda } from './worker.ts';
 

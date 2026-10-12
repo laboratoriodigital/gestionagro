@@ -1,0 +1,10 @@
+{
+  "name": "@ed1/firma",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Firmas Ed25519 en el fragmento de un enlace (ADR-36, ADR-39): base64url, el formato `datos.firma[.certificado]`, el certificado de un dispositivo firmado por su celda y la verificación de la cadena con las claves públicas que la página lleva dentro. Sin dependencias: lo usan el QR del agro, la celda y la caja del parqueadero, y la página del recibo.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

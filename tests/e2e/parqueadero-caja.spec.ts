@@ -1,0 +1,1155 @@
+/**
+ * La caja del parqueadero (BACKLOG-PARKING_MVP HU-Q3.1, HU-Q2.6, HU-Q5.1), en su propio origen
+ * como en staging. La PT-210 es un falso que se instala como `navigator.bluetooth` y guarda los
+ * bytes: lo que la prueba lee es lo que habría salido por Bluetooth.
+ */
+import { readFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
+import { AxeBuilder } from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
+import {
+  abrirControlada,
+  abrirTurno,
+  bytesImpresos,
+  CAJA,
+  configurarImpresora,
+  instalarImpresoraFalsa,
+  instalarSerialFalso,
+  llenarAjustes,
+  SITIO,
+  sinDesborde,
+  teclearPlaca,
+} from './parqueadero-ayudas.ts';
+
+const KB = 1024;
+
+test.use({ testIdAttribute: 'data-prueba' });
+
+test.describe('la caja del parqueadero', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(instalarImpresoraFalsa);
+  });
+
+  test('HU-Q3.1 · abre con sus cuatro señales y, fuera de producción, la marca de PRUEBA', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora sin configurar');
+    await expect(page.getByTestId('senal-respaldo')).toBeVisible();
+    // HU-Q3.8: la hora se compara con la del sitio, que el servidor de prueba da en su cabecera.
+    await expect(page.getByTestId('senal-hora')).toHaveText('Hora correcta');
+    await expect(page.getByTestId('senal-pendientes')).toHaveText('Sin entregas pendientes');
+    await expect(page.getByTestId('marca-prueba')).toContainText('PRUEBA');
+  });
+
+  test('HU-Q3.1 · abre sin red después de la primera carga', async ({ page, context }) => {
+    await abrirControlada(page);
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Antes del primer recibo, configure la impresora',
+    );
+    await context.setOffline(false);
+  });
+
+  test('HU-Q3.1 · JS inicial ≤ 80 KB con gzip, todo del mismo origen y sin el codificador', async ({
+    page,
+  }) => {
+    const scripts: { url: string; cuerpo: Promise<Buffer> }[] = [];
+    page.on('response', (r) => {
+      if (r.request().resourceType() === 'script') scripts.push({ url: r.url(), cuerpo: r.body() });
+    });
+    await page.goto(CAJA, { waitUntil: 'load' });
+    await expect(page.getByTestId('senal-impresora')).toBeVisible();
+    expect(scripts.filter((s) => new URL(s.url).origin !== SITIO).map((s) => s.url)).toEqual([]);
+    expect(scripts.map((s) => s.url).filter((u) => u.includes('receipt-printer-encoder'))).toEqual(
+      [],
+    );
+    let total = 0;
+    for (const s of scripts) {
+      const cuerpo = await s.cuerpo;
+      total += gzipSync(cuerpo).length;
+      // El codificador (29 KB) se carga al imprimir, no al abrir (bitácora parqueadero 10).
+      expect(
+        cuerpo.includes('Images are not supported in table cells'),
+        `${s.url} trae el codificador`,
+      ).toBe(false);
+    }
+    expect(total, `JS inicial: ${total} bytes con gzip`).toBeLessThanOrEqual(80 * KB);
+  });
+
+  test('HU-Q2.6 · el asistente imprime la página de prueba y guarda las respuestas', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 2');
+    await expect(page.getByTestId('resumen')).toContainText('Las tildes salen con la línea 2.');
+    const bytes = await page.evaluate(
+      () => (window as unknown as { __escrito: number[] }).__escrito,
+    );
+    const papel = Buffer.from(bytes).toString('latin1');
+    expect(papel).toContain('PRUEBA'); // HU-Q5.1 CA2: nada de staging vale como recibo
+    expect(papel).toContain('12345678901234567890123456789012');
+    expect(papel).toContain('4) Sin tildes: El tenia mas anos');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
+    await expect(page.getByTestId('pagina-de-codigos')).toContainText('Tildes con WPC1252');
+  });
+
+  test('HU-Q2.6 · si ninguna línea con tildes se ve bien, translitera y lo dice en Ajustes', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Ninguna');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await expect(page.getByTestId('pagina-de-codigos')).toHaveText(
+      'Imprime sin tildes: ninguna página de códigos se vio bien en la prueba.',
+    );
+  });
+
+  test('HU-Q3.1 · una versión nueva no recarga la caja con el asistente abierto', async ({
+    page,
+  }) => {
+    await abrirControlada(page);
+    await page.getByRole('button', { name: 'Configurar impresora' }).click();
+    await page.evaluate(() => Object.assign(window, { marcaDeSesion: 'sigue-aqui' }));
+    expect((await page.request.post(`${SITIO}/__prueba/version-nueva`)).status()).toBe(204);
+    await page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => r?.update()));
+    const aviso = page.getByTestId('aviso-actualizacion');
+    await expect(aviso).toContainText('Se podrá actualizar al terminar');
+    await expect(page.getByRole('button', { name: 'Actualizar' })).toHaveCount(0);
+    expect(await page.evaluate(() => (window as { marcaDeSesion?: string }).marcaDeSesion)).toBe(
+      'sigue-aqui',
+    );
+    await expect(page.getByTestId('asistente')).toBeVisible();
+  });
+
+  test('HU-Q3.2 · sin ajustes, «Nueva entrada» dice qué falta y lleva al campo', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await expect(page.getByTestId('falta')).toHaveText(
+      'Antes del primer recibo falta: el nombre, el NIT, la dirección, la ciudad, el teléfono, la póliza y la tarifa de carro.',
+    );
+    await page.getByRole('button', { name: 'Completar los ajustes' }).click();
+    await expect(page.getByLabel('Nombre del parqueadero')).toBeFocused();
+    await expect(page.getByLabel('Nombre del parqueadero')).toHaveValue('');
+  });
+
+  test('HU-Q3.2 · una tarifa por encima del tope no se guarda y dice por qué (CA3 ❌)', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { valor: '250' });
+    await expect(page.getByTestId('hay-errores')).toBeVisible();
+    await expect(page.getByLabel('Pesos por minuto').first()).toBeFocused();
+    await expect(page.getByTestId('ajustes')).toContainText('tope');
+    await page.getByTestId('tarifa-carro').getByLabel('Pesos por minuto').fill('230');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await expect(page.getByTestId('estadias')).toBeVisible();
+    // Después, los ajustes piden el PIN.
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await expect(page.getByTestId('pedir-pin')).toBeVisible();
+  });
+
+  test('un tope por día menor que una hora no se guarda y dice qué escribir (dueño, 8 oct 2026)', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    const carro = page.getByTestId('tarifa-carro');
+    await carro.getByLabel('Tope por día', { exact: true }).fill('10');
+    await llenarAjustes(page);
+    await expect(page.getByTestId('hay-errores')).toBeVisible();
+    await expect(page.getByTestId('error-tarifa-carro-topeDia')).toHaveText(
+      'Es menos que una hora ($13.800). Escriba el máximo en pesos por 24 horas, como 15.000, o déjelo vacío',
+    );
+    await carro.getByLabel('Tope por día', { exact: true }).fill('30.000');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await expect(page.getByTestId('estadias')).toBeVisible();
+  });
+
+  test('HU-Q4.5 · el texto de responsabilidad empieza con la sugerencia de la ley y sale el de la sede', async ({
+    page,
+  }) => {
+    const propio =
+      'Después de 45 días el parqueadero no se hace responsable del vehículo, moto, bicicleta, etc.';
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    const texto = page.getByLabel('Texto de responsabilidad del recibo de entrada', {
+      exact: true,
+    });
+    await expect(texto).toHaveValue(
+      'Conserve este recibo. El parqueadero responde por el vehículo (Ley 1480, art. 18).',
+    );
+    await texto.fill(propio);
+    await llenarAjustes(page);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    const antes = (await bytesImpresos(page)).length;
+    await teclearPlaca(page, 'ABC123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
+    await expect(page.getByText(propio)).toBeVisible();
+    await expect(page.getByText('Ley 1480')).toHaveCount(0);
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    // El papel lo parte en líneas de 32 columnas.
+    const recibo = (await bytesImpresos(page)).slice(antes);
+    expect(recibo).toContain('parqueadero no se hace');
+    expect(recibo).toContain('responsable del');
+    expect(recibo).not.toContain('Ley 1480');
+    // Vacío, vuelve la sugerencia (CA1).
+    const entrarAAjustes = async () => {
+      await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+      await page.getByLabel('PIN de administrador').fill('2468');
+      await page.getByRole('button', { name: 'Entrar' }).click();
+    };
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await entrarAAjustes();
+    await expect(texto).toHaveValue(propio);
+    await texto.fill('');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await entrarAAjustes();
+    await expect(texto).toHaveValue(
+      'Conserve este recibo. El parqueadero responde por el vehículo (Ley 1480, art. 18).',
+    );
+  });
+
+  test('HU-Q3.3 · registra ABC123 y el recibo sale solo con su número y su placa', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    const antes = (await bytesImpresos(page)).length;
+    await teclearPlaca(page, 'ABC123');
+    await expect(page.getByTestId('placa')).toHaveText('ABC123');
+    await expect(page.getByRole('button', { name: 'Carro' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    await sinDesborde(page);
+    const recibo = (await bytesImpresos(page)).slice(antes);
+    expect(recibo).toContain('A-000001');
+    expect(recibo).toContain('ABC123');
+    expect(recibo).toContain('PRUEBA');
+    expect(recibo).not.toContain('COPIA');
+    // «No salió» reimprime el original, sin marca de copia (HU-Q3.6 CA2).
+    const sinSalir = (await bytesImpresos(page)).length;
+    await page.getByRole('button', { name: 'No salió' }).click();
+    await expect(page.getByTestId('entregas')).toContainText('Se anotó que el papel no salió.');
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    const otraVez = (await bytesImpresos(page)).slice(sinSalir);
+    expect(otraVez).toContain('A-000001');
+    expect(otraVez).not.toContain('COPIA');
+    // Reimprimir sale con «COPIA 1» (HU-Q3.6 CA2).
+    const conOriginal = (await bytesImpresos(page)).length;
+    await page.getByRole('button', { name: 'Reimprimir' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Copia 1 enviada a la impresora');
+    expect((await bytesImpresos(page)).slice(conOriginal)).toContain('*** COPIA 1 ***');
+    // La misma placa no abre otra estadía (CA3).
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'ABC123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByTestId('aviso-entrada')).toContainText('ABC123');
+  });
+
+  test('HU-Q3.4, HU-Q3.5 y HU-Q3.9 · la estadía se busca, se cobra y el turno cierra con su papel', async ({
+    page,
+  }) => {
+    const entrada = new Date('2026-10-06T23:05:00Z');
+    await page.clock.setFixedTime(entrada);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { qr: true });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'ABC123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    const estadia = page.getByTestId('estadia');
+    await expect(estadia).toContainText('ABC123');
+    await expect(estadia).toContainText('Entró 18:05');
+    await page.getByLabel('Buscar por placa').fill('xyz');
+    await expect(estadia).toHaveCount(0);
+    await page.getByLabel('Buscar por placa').fill('abc');
+    await expect(estadia).toHaveCount(1);
+
+    // A los 3 minutos, dentro de los 5 de gracia: $0, y la salida dice por qué.
+    await page.clock.setFixedTime(new Date(entrada.getTime() + 3 * 60_000));
+    await estadia.click();
+    await expect(page.getByTestId('total')).toHaveText('$0');
+    await expect(page.getByTestId('motivo-cero')).toHaveText(
+      'Salió dentro de los 5 minutos de gracia: no paga',
+    );
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    // Tres horas después: 180 × $230 = $41.400 (estos ajustes no tienen tope por día).
+    await page.clock.setFixedTime(new Date(entrada.getTime() + 180 * 60_000));
+    await estadia.click();
+    await expect(page.getByTestId('motivo-cero')).toHaveCount(0);
+    await expect(page.getByTestId('total')).toHaveText('$41.400');
+    const cobrar = page.getByRole('button', { name: /^Cobrar|Elija|Lo recibido|Escriba/ });
+    await expect(cobrar).toHaveText('Elija el medio de pago');
+    await page.getByRole('button', { name: 'Cortesía' }).click();
+    await expect(cobrar).toHaveText('Escriba el motivo de la cortesía');
+    await expect(cobrar).toBeDisabled();
+    // El QR de pagos del propio parqueadero, cargado en Ajustes (CA2).
+    await page.getByRole('button', { name: 'QR o transferencia' }).click();
+    await expect(page.getByTestId('qr-pago')).toBeVisible();
+    await page.getByRole('button', { name: 'Efectivo' }).click();
+    await page.getByLabel('Recibido').fill('40.000');
+    await expect(cobrar).toHaveText('Lo recibido no alcanza: el total es $41.400');
+    await expect(cobrar).toBeDisabled();
+    await page.getByLabel('Recibido').fill('50.000');
+    await expect(page.getByTestId('cambio')).toHaveText('Cambio: $8.600');
+    const antes = (await bytesImpresos(page)).length;
+    await cobrar.click();
+
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de salida A-000002');
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    const papel = (await bytesImpresos(page)).slice(antes);
+    expect(papel).toContain('RECIBO DE SALIDA');
+    expect(papel).toContain('A-000002');
+    expect(papel).toContain('$41.400');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('estadias')).toContainText('No hay vehículos adentro.');
+
+    // HU-Q3.9: un gasto, el conteo con diferencia, su motivo y el cierre impreso.
+    await page.getByRole('button', { name: 'Cerrar turno' }).click();
+    const movimientos = page.getByTestId('movimientos');
+    await movimientos.getByLabel('Valor').fill('4.000');
+    await movimientos.getByLabel('Concepto').fill('bolsas');
+    await movimientos.getByRole('button', { name: 'Anotar' }).click();
+    await expect(movimientos).toContainText('Gasto de $4.000 anotado.');
+    // 100.000 de base + 41.400 en efectivo − 4.000 de gasto.
+    await expect(page.getByTestId('esperado')).toHaveText('Efectivo esperado: $137.400');
+    const cierre = page.getByTestId('cerrar-turno');
+    for (const d of ['$100.000', '$20.000', '$10.000', '$5.000', '$2.000']) {
+      await cierre.getByLabel(d, { exact: true }).fill('1');
+    }
+    await expect(page.getByTestId('contado')).toHaveText('$137.000');
+    await sinDesborde(page);
+    await expect(page.getByTestId('diferencia')).toHaveText('Diferencia: -$400');
+    await expect(
+      cierre.getByRole('button', { name: 'Falta el motivo de la diferencia' }),
+    ).toBeDisabled();
+    await cierre.getByLabel('Motivo de la diferencia').fill('cambio mal dado');
+    const sinCierre = (await bytesImpresos(page)).length;
+    await cierre.getByRole('button', { name: 'Cerrar e imprimir' }).click();
+    await expect(page.getByTestId('estado-del-cierre')).toHaveText('Cierre enviado a la impresora');
+    const papelDelCierre = (await bytesImpresos(page)).slice(sinCierre);
+    expect(papelDelCierre).toContain('CIERRE DE TURNO');
+    expect(papelDelCierre).toContain('T-001');
+    expect(papelDelCierre).toContain('$137.400');
+    expect(papelDelCierre).toContain('Motivo: cambio mal dado');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('tarjeta-turno')).toContainText('Abra el turno');
+
+    // HU-Q8.5: el reporte del día dice lo mismo que el cierre impreso, y se descarga para Excel.
+    await page.getByRole('button', { name: 'Reportes' }).click();
+    await expect(page.getByLabel('Día')).toHaveValue('2026-10-06');
+    await expect(page.getByTestId('parcial')).toHaveCount(0);
+    const totales = page.getByTestId('totales');
+    await expect(totales).toContainText('Efectivo$41.400');
+    await expect(totales).toContainText('Diferencia de los cierres-$400');
+    const delTurno = page.getByTestId('turno-del-reporte');
+    await expect(delTurno).toHaveCount(1);
+    await expect(delTurno).toContainText('Caja A · T-001 · Caja 1');
+    await expect(delTurno).toContainText('De 18:05 a 21:05');
+    await expect(page.getByTestId('diferencia-del-turno')).toHaveText('-$400: cambio mal dado');
+    await expect(page.getByTestId('por-cajero')).toContainText(
+      'Caja 11 turno, 0 anulaciones, 0 copias',
+    );
+    await sinDesborde(page);
+    const [descarga] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Descargar para Excel' }).click(),
+    ]);
+    expect(descarga.suggestedFilename()).toBe('reporte-2026-10-06.csv');
+    const csv = readFileSync((await descarga.path()) ?? '', 'utf8');
+    expect(csv).toContain('2026-10-06;A;T-001;Caja 1;18:05;21:05;1;1;41400;');
+    expect(csv).toContain(';-400;cambio mal dado;0;0');
+    // Un día sin turnos lo dice, sin ceros que parezcan un día cerrado.
+    await page.getByLabel('Día').fill('2026-10-05');
+    await expect(page.getByTestId('sin-turnos')).toHaveText('Ese día no se abrió ningún turno.');
+    await expect(page.getByTestId('totales')).toHaveCount(0);
+  });
+
+  test('HU-Q4.2 · el enlace de WhatsApp abre el recibo en /r/ sin API y sin la placa en lo servido', async ({
+    page,
+  }) => {
+    // Un nombre con HTML: la página lo muestra como texto, nunca lo ejecuta.
+    const nombre = '<img src=x onerror=window.__xss=1>Uno';
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No', nombre, aviso: true });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'ABC123');
+    await page.getByLabel('WhatsApp del conductor (opcional)').fill('300 123 4567');
+    await page.getByLabel(/Autoriza que le enviemos/).check();
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    const href = await page.getByTestId('whatsapp').getAttribute('href');
+    const texto = new URL(href ?? '').searchParams.get('text') ?? '';
+    const enlace = texto.split('\n').find((l) => l.startsWith(`${SITIO}/r/#1.`));
+    expect(enlace, texto).toBeDefined();
+
+    const pedidos: string[] = [];
+    page.on('request', (r) => pedidos.push(`${r.resourceType()} ${new URL(r.url()).pathname}`));
+    await page.goto(enlace ?? '');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
+    await expect(page.getByTestId('filas')).toContainText('ABC123 Carro');
+    await expect(page.getByTestId('filas')).toContainText(nombre);
+    await expect(page.getByText('Copia digital del recibo.')).toBeVisible();
+    await expect(page.getByText('PRUEBA: NO VALE')).toBeVisible();
+    await sinDesborde(page);
+    expect(await page.locator('main img').count()).toBe(0);
+    expect(await page.evaluate(() => (window as { __xss?: number }).__xss)).toBeUndefined();
+    // Cero llamadas a una API: solo el documento, su hoja y sus scripts (CA2).
+    expect(pedidos.filter((p) => !/^(document|stylesheet|script) /.test(p))).toEqual([]);
+
+    const servido = await (await page.request.get(`${SITIO}/r/`)).text();
+    expect(servido).not.toContain('ABC123');
+    expect(servido).toContain('<meta property="og:title" content="Recibo de parqueadero"');
+
+    await page.goto(`${SITIO}/r/#c.A-000001.ABC123.c.1791327900`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo A-000001');
+    await page.goto(`${SITIO}/r/#1.eJzLSM3JyQcABiwCFQ`);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('No pudimos leer este recibo');
+  });
+
+  test('HU-Q4.4 y HU-Q4.1 · el aviso va antes del primer número, y el número no sale del teléfono', async ({
+    page,
+    context,
+  }) => {
+    const NUMERO = '300 123 4567';
+    const consola: string[] = [];
+    page.on('console', (m) => consola.push(m.text()));
+    await context.route('https://wa.me/**', (r) => r.fulfill({ status: 200, body: 'WhatsApp' }));
+    const entrada = new Date('2026-10-06T23:05:00Z');
+    await page.clock.setFixedTime(entrada);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+
+    // Sin el aviso aceptado, la caja no pide números (HU-Q4.4 CA2).
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await expect(page.getByTestId('sin-aviso')).toBeVisible();
+    await expect(page.getByLabel('WhatsApp del conductor (opcional)')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await page.getByRole('button', { name: 'Aviso de privacidad' }).click();
+    await expect(page.getByTestId('aviso-sin-aceptar')).toBeVisible();
+    await expect(page.getByTestId('aviso')).toContainText('800123456-7');
+    await expect(page.getByTestId('aviso')).toContainText('24 horas después de su salida');
+    const antes = (await bytesImpresos(page)).length;
+    await page.getByRole('button', { name: 'Imprimir en la impresora' }).click();
+    await expect(page.getByText('Enviado a la impresora')).toBeVisible();
+    expect((await bytesImpresos(page)).slice(antes)).toContain('AVISO DE PRIVACIDAD');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await page.getByLabel('PIN de administrador').fill('2468');
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    // La caja dice su versión propia (HU-Q0.3 CA1).
+    await expect(page.getByTestId('version-caja')).toHaveText(
+      /^Caja del parqueadero, versión \d+\.\d+\.\d+$/,
+    );
+    await page.getByLabel(/acepta este aviso de privacidad/).check();
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+
+    // La casilla empieza sin marcar y el botón dice qué falta (HU-Q4.1 CA1, CA4 ❌).
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'ABC123');
+    const casilla = page.getByLabel(/Autoriza que le enviemos/);
+    await expect(casilla).not.toBeChecked();
+    await page.getByLabel('WhatsApp del conductor (opcional)').fill('300 123');
+    await expect(
+      page.getByRole('button', { name: 'El WhatsApp no es un celular válido' }),
+    ).toBeDisabled();
+    await page.getByLabel('WhatsApp del conductor (opcional)').fill(NUMERO);
+    await expect(casilla).not.toBeChecked();
+    await expect(page.getByRole('button', { name: 'Falta la autorización' })).toBeDisabled();
+    await casilla.check();
+    await page.getByRole('button', { name: 'Registrar' }).click();
+
+    // El enlace ya está armado: el toque solo navega (CA2).
+    await expect(page.getByTestId('whatsapp-guardado')).toContainText('…4567');
+    const boton = page.getByTestId('whatsapp');
+    await expect(boton).toHaveAttribute('href', /^https:\/\/wa\.me\/573001234567\?text=/);
+    const [chat] = await Promise.all([page.waitForEvent('popup'), boton.click()]);
+    expect(chat.url()).toContain('wa.me/573001234567');
+    await chat.close();
+    await expect(page.getByRole('button', { name: 'No se envió' })).toBeVisible();
+
+    // El recibo de salida usa el número de la entrada (CA3).
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.clock.setFixedTime(new Date(entrada.getTime() + 30 * 60_000));
+    await page.getByTestId('estadia').click();
+    await page.getByRole('button', { name: 'Datáfono' }).click();
+    await page.getByRole('button', { name: /^Cobrar/ }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de salida A-000002');
+    await expect(page.getByTestId('whatsapp')).toHaveAttribute('href', /wa\.me\/573001234567\?/);
+
+    // 25 h después de la salida, el número ya no está (CA4 ❌).
+    const contactos = () =>
+      page.evaluate(
+        () =>
+          new Promise<number>((listo, falla) => {
+            const abrir = indexedDB.open('parqueadero-caja');
+            abrir.onerror = () => falla(abrir.error);
+            abrir.onsuccess = () => {
+              const contar = abrir.result.transaction('contactos').objectStore('contactos').count();
+              contar.onsuccess = () => listo(contar.result);
+            };
+          }),
+      );
+    expect(await contactos()).toBe(1);
+    await page.clock.setFixedTime(new Date(entrada.getTime() + (30 + 25 * 60) * 60_000));
+    await page.reload();
+    await expect(page.getByTestId('estadias')).toBeVisible();
+    await expect.poll(contactos).toBe(0);
+    expect(consola.filter((m) => /123.?4567/.test(m))).toEqual([]);
+  });
+
+  test('HU-Q3.3 · sin impresora conectada, el registro existe y la entrega queda pendiente (CA4 ❌)', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'XYZ98');
+    await page.getByTestId('confirmar-placa').click();
+    await page.getByRole('button', { name: 'Carro' }).click();
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
+    await expect(page.getByTestId('estado-del-papel')).toContainText(
+      'Quedó en entregas pendientes',
+    );
+    await expect(page.getByTestId('senal-pendientes')).toContainText('1');
+  });
+
+  test('HU-Q3.7 · anular la entrada pide motivo y PIN, y el vehículo sale de la lista sin borrarse', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'GHI789');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
+    await page.getByRole('button', { name: 'Anular la entrada' }).click();
+    const anular = page.getByTestId('anular');
+    await expect(anular.getByRole('button', { name: 'Falta el motivo' })).toBeDisabled();
+    await anular.getByLabel('Motivo').fill('placa mal digitada');
+    await anular.getByLabel('PIN de administrador').fill('1111');
+    await anular.getByRole('button', { name: 'Anular la entrada' }).click();
+    await expect(page.getByTestId('aviso-anulacion')).toHaveText(
+      'Ese no es el PIN de administrador',
+    );
+    await anular.getByLabel('PIN de administrador').fill('2468');
+    await anular.getByRole('button', { name: 'Anular la entrada' }).click();
+    await expect(page.getByTestId('anulado')).toContainText('Recibo anulado');
+    await expect(page.getByRole('button', { name: 'Imprimir', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByText('GHI789')).toHaveCount(0);
+    const tipos = await page.evaluate(
+      () =>
+        new Promise<string[]>((listo) => {
+          const pedido = indexedDB.open('parqueadero-caja');
+          pedido.onsuccess = () => {
+            const todos = pedido.result.transaction('registros').objectStore('registros').getAll();
+            todos.onsuccess = () => listo(todos.result.map((r: { tipo: string }) => r.tipo));
+          };
+        }),
+    );
+    expect(tipos.sort()).toEqual(['anulacion', 'entrada', 'turno_apertura']);
+  });
+
+  test('HU-Q3.11 · el abonado se agrega con PIN, se marca al entrar y sale sin cobro', async ({
+    page,
+  }) => {
+    const entrada = new Date('2026-10-06T23:05:00Z');
+    await page.clock.setFixedTime(entrada);
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page);
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await page.getByRole('button', { name: 'Agregar abonado' }).click();
+    const f = page.getByTestId('abonado');
+    await f.getByLabel('Placa').fill('jkl456');
+    await expect(f.getByRole('button', { name: 'Carro' })).toHaveAttribute('aria-pressed', 'true');
+    await f.getByLabel('Referencia (opcional)').fill('Apto 302');
+    await expect(f.getByLabel('Hasta (incluido)')).toHaveValue('2026-11-05');
+    await f.getByLabel('Valor del mes').fill('300.000');
+    const revisar = async () => {
+      const { violations } = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
+      expect(violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
+    };
+    await revisar();
+    await f.getByLabel('PIN de administrador').fill('1111');
+    await f.getByRole('button', { name: 'Guardar abonado' }).click();
+    await expect(page.getByTestId('aviso-abonado')).toHaveText('Ese no es el PIN de administrador');
+    await f.getByLabel('PIN de administrador').fill('2468');
+    await f.getByRole('button', { name: 'Guardar abonado' }).click();
+    // Ya pagó en el talonario: no se cobra (HU-Q8.4).
+    await page.getByRole('button', { name: 'No cobrar ahora' }).click();
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
+    const fila = page.getByTestId('abonado-fila');
+    await expect(fila).toContainText('JKL456');
+    await expect(fila).toContainText('Vigente · 06/10/2026 a 05/11/2026');
+    await sinDesborde(page);
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'JKL456');
+    await expect(page.getByTestId('abonado-entrada')).toHaveText(
+      'Abonado hasta el 05/11/2026 · Apto 302',
+    );
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    await page.clock.setFixedTime(new Date(entrada.getTime() + 180 * 60_000));
+    await page.getByTestId('estadia').click();
+    await expect(page.getByTestId('total')).toHaveText('$0');
+    await expect(page.getByTestId('abonado-salida')).toHaveText('Abonado hasta el 05/11/2026');
+    await expect(page.getByRole('group', { name: 'Medio de pago' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Dar salida al abonado' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de salida A-000002');
+    const filas = page.getByTestId('filas-del-recibo');
+    await expect(filas).toContainText('abonado');
+    await expect(filas).toContainText('Abonado hasta 05/11/2026');
+  });
+
+  test('HU-Q8.4 · la mensualidad se cobra con su recibo, entra al cierre y avisa antes de vencer', async ({
+    page,
+  }) => {
+    // Martes 20 de octubre de 2026, 12:00 en Bogotá.
+    await page.clock.setFixedTime(new Date('2026-10-20T17:00:00Z'));
+    const revisar = async () => {
+      const { violations } = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
+      expect(violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
+    };
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page);
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await page.getByRole('button', { name: 'Agregar abonado' }).click();
+    const f = page.getByTestId('abonado');
+    await f.getByLabel('Placa').fill('jkl456');
+    // Hasta fin de mes: el primer pago es proporcional.
+    await f.getByLabel('Hasta (incluido)').fill('2026-10-31');
+    await f.getByLabel('Valor del mes').fill('300.000');
+    await f.getByLabel('PIN de administrador').fill('2468');
+    await f.getByRole('button', { name: 'Guardar abonado' }).click();
+
+    // ❌ Sin turno no hay recibo (HU-Q3.9 CA4).
+    const cobro = page.getByTestId('cobrar-mensualidad');
+    await expect(page.getByTestId('total-mensualidad')).toHaveText('$116.100');
+    await expect(page.getByTestId('prorrateo')).toContainText('el mes completo vale $300.000');
+    await revisar();
+    await cobro.getByRole('button', { name: 'Efectivo' }).click();
+    await cobro.getByRole('button', { name: 'Cobrar $116.100' }).click();
+    await expect(page.getByTestId('aviso-cobro')).toHaveText(
+      'Primero abra el turno: ningún recibo queda fuera de un turno',
+    );
+    await cobro.getByRole('button', { name: 'No cobrar ahora' }).click();
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await page.getByTestId('abonado-fila').click();
+    await page.getByRole('button', { name: 'Cobrar mensualidad' }).click();
+    // Ya está cubierto hasta el 31 por el talonario de antes: sigue noviembre.
+    await expect(page.getByTestId('total-mensualidad')).toHaveText('$300.000');
+    await expect(cobro).toContainText('01/11/2026');
+    await expect(cobro).toContainText('30/11/2026');
+    await cobro.getByRole('button', { name: 'Cancelar' }).click();
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    // El abonado nuevo, sin talonario: se cobra el primer periodo enseguida.
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await page.getByRole('button', { name: 'Agregar abonado' }).click();
+    await f.getByLabel('Placa').fill('mno78f');
+    await f.getByRole('button', { name: 'Una quincena' }).click();
+    await expect(f.getByLabel('Hasta (incluido)')).toHaveValue('2026-11-03');
+    await f.getByLabel('Valor de la quincena').fill('35.000');
+    await f.getByLabel('PIN de administrador').fill('2468');
+    await f.getByRole('button', { name: 'Guardar abonado' }).click();
+    await expect(page.getByTestId('total-mensualidad')).toHaveText('$35.000');
+    await cobro.getByRole('button', { name: 'Efectivo' }).click();
+    const antes = (await bytesImpresos(page)).length;
+    await cobro.getByRole('button', { name: 'Cobrar $35.000' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mensualidad A-000001');
+    await expect(page.getByTestId('mensualidad-cobrada')).toContainText(
+      'MNO78F queda al día hasta el 03/11/2026: $35.000 en efectivo.',
+    );
+    await page.getByRole('button', { name: 'Imprimir recibo' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    const papel = (await bytesImpresos(page)).slice(antes);
+    expect(papel).toContain('MENSUALIDAD');
+    expect(papel).toContain('A-000001');
+    expect(papel).toContain('MNO78F');
+    expect(papel).toContain('$35.000');
+    await sinDesborde(page);
+    await revisar();
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
+
+    // HU-Q8.4 CA2: ocho días después, la lista y la entrada dicen que vence pronto.
+    await page.clock.setFixedTime(new Date('2026-10-28T17:00:00Z'));
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    const pronto = page.getByTestId('vencen-pronto');
+    await expect(pronto).toContainText('JKL456');
+    await expect(pronto).toContainText('Vence el 31/10/2026');
+    await expect(pronto).not.toContainText('MNO78F');
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'JKL456');
+    await expect(page.getByTestId('abonado-entrada')).toHaveText(
+      'Abonado hasta el 31/10/2026. Vence pronto: recuérdeselo',
+    );
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+
+    // La renueva en datáfono: noviembre completo, y sale de la lista.
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await pronto.getByTestId('abonado-fila').click();
+    await expect(page.getByTestId('estado-abonado')).toHaveText(
+      'Vigente · 20/10/2026 a 31/10/2026',
+    );
+    await page.getByRole('button', { name: 'Cobrar mensualidad' }).click();
+    await cobro.getByRole('button', { name: 'Datáfono' }).click();
+    await cobro.getByRole('button', { name: 'Cobrar $300.000' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mensualidad A-000002');
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
+    await expect(page.getByTestId('vencen-pronto')).toHaveCount(0);
+    await expect(page.getByTestId('abonado-fila').filter({ hasText: 'JKL456' })).toContainText(
+      'Vigente · 20/10/2026 a 30/11/2026',
+    );
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    // El efectivo de la mensualidad entra al cierre; la de datáfono, a su medio.
+    await page.getByRole('button', { name: 'Cerrar turno' }).click();
+    await expect(page.getByTestId('esperado')).toHaveText('Efectivo esperado: $135.000');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    // Anulada con el PIN, la de noviembre deja de contar (P21: nada se borra).
+    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await page.getByTestId('abonado-fila').filter({ hasText: 'JKL456' }).click();
+    await page.getByRole('button', { name: 'Anular la mensualidad' }).click();
+    const anulacion = page.getByTestId('anular');
+    await anulacion.getByLabel('Motivo').fill('pagó con otra tarjeta');
+    await anulacion.getByLabel('PIN de administrador').fill('2468');
+    await anulacion.getByRole('button', { name: 'Anular la mensualidad' }).click();
+    await expect(
+      page.getByTestId('abonados').getByTestId('abonado-fila').filter({ hasText: 'JKL456' }),
+    ).toContainText('Vigente · 20/10/2026 a 31/10/2026');
+    await expect(page.getByTestId('vencen-pronto')).toContainText('JKL456');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    // HU-Q8.4 CA3: vencida, entra como visitante y la caja lo dice.
+    await page.clock.setFixedTime(new Date('2026-12-02T17:00:00Z'));
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await teclearPlaca(page, 'JKL456');
+    await expect(page.getByTestId('abonado-entrada')).toHaveText(
+      'El abono venció el 31/10/2026: entra como visitante.',
+    );
+  });
+
+  test('bitácora 18 · la impresora se apagó: el recibo lo dice, reconecta desde ahí y da el diagnóstico', async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.evaluate(() => (window as unknown as { __apagar: () => void }).__apagar());
+    await expect(page.getByTestId('senal-impresora')).toHaveText(
+      'La impresora está apagada o lejos',
+    );
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'DEF456');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Imprimir', exact: true }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Reconectando la impresora…');
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Conectando la impresora…');
+    // Cuatro intentos con 1, 2 y 3 s de pausa: nunca se queda esperando sin decir nada.
+    await expect(page.getByTestId('estado-del-papel')).toContainText(
+      'No salió: La impresora está apagada o lejos',
+      { timeout: 15_000 },
+    );
+    await page.getByRole('button', { name: 'Copiar diagnóstico para soporte' }).click();
+    await expect(page.getByRole('button', { name: 'Diagnóstico copiado' })).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
+      'Intento 4: no conectó (NetworkError',
+    );
+    await page.evaluate(() => (window as unknown as { __prender: () => void }).__prender());
+    const antes = (await bytesImpresos(page)).length;
+    await page.getByRole('button', { name: 'Reconectar impresora' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
+    expect((await bytesImpresos(page)).slice(antes)).toContain('DEF456');
+  });
+
+  test('HU-Q3.10 · el respaldo se descarga y se restaura en otra caja, uniendo sin borrar', async ({
+    page,
+    browser,
+  }) => {
+    // Sin el menú de compartir del teléfono: el respaldo se descarga.
+    const sinCompartir = () =>
+      Object.defineProperty(Navigator.prototype, 'canShare', { value: undefined });
+    await page.addInitScript(sinCompartir);
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'MNO456');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('senal-respaldo')).toHaveText('Respaldo sin hacer');
+    await page.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    const json = page.waitForEvent('download', (d) => d.suggestedFilename().endsWith('.json'));
+    await page.getByRole('button', { name: 'Hacer el respaldo' }).click();
+    const archivo = await (await json).path();
+    await expect(page.getByTestId('estado-del-respaldo')).toContainText('Respaldo descargado');
+    await expect(page.getByTestId('senal-respaldo')).toContainText('Respaldo: ');
+
+    // Otro teléfono: una caja nueva, sin nada.
+    const otro = await browser.newContext();
+    const nueva = await otro.newPage();
+    await nueva.goto(CAJA);
+    await nueva.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    await nueva.getByLabel(/Restaurar un respaldo/).setInputFiles({
+      name: 'malo.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from('{"formato":"parqueadero-export","version":9}'),
+    });
+    await expect(nueva.getByTestId('aviso-respaldo')).toContainText('la caja quedó como estaba');
+    await nueva.getByLabel(/Restaurar un respaldo/).setInputFiles(archivo);
+    await expect(nueva.getByTestId('estado-del-respaldo')).toContainText('No se borró nada.');
+    await nueva.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(nueva.getByTestId('estadia')).toContainText('MNO456');
+    await otro.close();
+  });
+
+  test('HU-Q4.3 · «salvo recibo digital» pregunta, y sin digital imprime al terminar', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    const antes = (await bytesImpresos(page)).length;
+    await teclearPlaca(page, 'PQR123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByTestId('pregunta-papel')).toContainText(
+      '¿Recibo por WhatsApp o en papel?',
+    );
+    await sinDesborde(page);
+    // No sale solo: primero se ofrece lo digital.
+    expect((await bytesImpresos(page)).length).toBe(antes);
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    // La entrada nueva abre cuando el papel terminó de salir: contar antes cortaba el recibo a
+    // medias, y el resto llegaba después y parecía papel del QR (CI de #134).
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nueva entrada');
+    await expect.poll(async () => (await bytesImpresos(page)).slice(antes)).toContain('PQR123');
+
+    // Con el QR escaneado, no sale papel.
+    const sinPapel = (await bytesImpresos(page)).length;
+    await teclearPlaca(page, 'STU456');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Mostrar QR' }).click();
+    await page.getByRole('button', { name: 'Ya lo escaneó' }).click();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('estadias')).toContainText('STU456');
+    expect((await bytesImpresos(page)).length).toBe(sinPapel);
+
+    // HU-Q8.6: lo que ahorra cuenta cada recibo por el camino que llegó; sin el costo de la sede
+    // no hay pesos, y el botón lleva al campo.
+    await page.getByRole('button', { name: 'Lo que ahorra' }).click();
+    const semana = page.getByTestId('periodo-del-ahorro').first();
+    await expect(semana).toContainText('Esta semana');
+    await expect(semana).toContainText('Recibos2');
+    await expect(semana).toContainText('En papel1');
+    await expect(semana).toContainText('En la pantalla1');
+    await expect(semana.getByTestId('ahorrado')).toHaveText('1 recibo (50 %)');
+    await sinDesborde(page);
+    await expect(page.getByTestId('sin-costo')).toBeVisible();
+    await page.getByRole('button', { name: 'Escribir el costo del papel' }).click();
+    await page.getByLabel('PIN de administrador').fill('2468');
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    const costo = page.getByLabel('Costo de cada recibo en papel (pesos, opcional)');
+    await expect(costo).toBeFocused();
+    await costo.fill('0');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await expect(page.getByTestId('error-sede-costoPapel')).toHaveText(
+      'Es de $1 a $2.000 por recibo',
+    );
+    await costo.fill('12');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    // Guardar los ajustes otra vez sin tocarlo lo conserva.
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await page.getByLabel('PIN de administrador').fill('2468');
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(costo).toHaveValue('12');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await page.getByRole('button', { name: 'Lo que ahorra' }).click();
+    await expect(page.getByTestId('sin-costo')).toHaveCount(0);
+    await expect(semana.getByTestId('ahorrado')).toHaveText('1 recibo (50 %) · $12');
+  });
+
+  test('HU-Q2.4 · la impresora emparejada se elige una vez y vuelve sola al abrir la caja (CA1)', async ({
+    page,
+  }) => {
+    await page.addInitScript(instalarSerialFalso);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1', {
+      boton: 'Usar la impresora emparejada',
+      nombre: 'Impresora emparejada por Bluetooth',
+    });
+    const prueba = await page.evaluate(
+      () => (window as unknown as { __escritoSerie: number[] }).__escritoSerie.length,
+    );
+    expect(prueba).toBeGreaterThan(0);
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
+
+    // Otro día: la caja se abre de nuevo y nadie toca «Conectar».
+    await page.reload();
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
+    await expect(page.getByRole('button', { name: 'Conectar impresora' })).toHaveCount(0);
+  });
+
+  test('bitácora 24 · con el enlace ocupado lo dice en segundos y ofrece la impresora emparejada', async ({
+    page,
+  }) => {
+    await page.addInitScript(instalarSerialFalso);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    // Otro día: la caja abre sin impresora, y el teléfono tiene el único enlace de la impresora.
+    await page.reload();
+    await page.evaluate(() => (window as unknown as { __ocupar: () => void }).__ocupar());
+    await page.getByRole('button', { name: 'Conectar impresora' }).click();
+    await expect(page.getByTestId('aviso-impresora')).toHaveText(
+      'La impresora está ocupada con otro enlace del teléfono',
+      { timeout: 15_000 },
+    );
+    await expect(page.getByText('úsela como impresora emparejada')).toBeVisible();
+    await page.getByRole('button', { name: 'Usar la impresora emparejada' }).click();
+    // Otro camino es otra impresora para la caja: la página de prueba se repite (tildes y QR).
+    await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora sin probar');
+    await expect(page.getByTestId('sin-impresora')).toBeVisible();
+  });
+
+  test('HU-Q3.3 · sin red, la entrada abre y registra', async ({ page, context }) => {
+    await abrirControlada(page);
+    await context.setOffline(true);
+    await page.reload();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'ABC12D');
+    // Solo el carro tiene tarifa: la moto que propone el patrón no se ofrece.
+    await expect(page.getByRole('button', { name: 'Moto' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Carro' }).click();
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('');
+    await context.setOffline(false);
+  });
+});
+
+for (const esquema of ['light', 'dark'] as const) {
+  test(`HU-Q3.1 · la caja y el asistente terminado pasan WCAG 2.1 AA en modo ${esquema}`, async ({
+    page,
+  }) => {
+    await page.addInitScript(instalarImpresoraFalsa);
+    await page.emulateMedia({ colorScheme: esquema });
+    const revisar = async () => {
+      const { violations } = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
+      expect(violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
+    };
+    // Mediodía fijo: con la hora real, después de las 19:00 de Bogotá las tres horas de la salida
+    // caen en otro día y el reporte de «hoy» queda sin turno.
+    const inicio = new Date('2026-10-20T15:00:00Z');
+    await page.clock.setFixedTime(inicio);
+    await page.goto(CAJA);
+    await expect(page.getByTestId('senal-impresora')).toBeVisible();
+    await revisar();
+    await configurarImpresora(page, 'Línea 1');
+    await revisar();
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await expect(page.getByTestId('ajustes')).toBeVisible();
+    await revisar();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'ABC123');
+    await revisar();
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Mostrar QR' }).click();
+    await expect(page.getByTestId('qr-en-pantalla')).toBeVisible();
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('estadia')).toBeVisible();
+    await revisar();
+    await page.getByTestId('estadia').click();
+    await page.getByRole('button', { name: 'Efectivo' }).click();
+    await expect(page.getByTestId('total')).toBeVisible();
+    await revisar();
+    // La hoja del recibo de salida, con su total grande (HU-Q6.6 CA3): tres horas después.
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.clock.setFixedTime(new Date(inicio.getTime() + 180 * 60_000));
+    await page.getByTestId('estadia').click();
+    await page.getByRole('button', { name: 'Efectivo' }).click();
+    await page.getByLabel('Recibido').fill('50.000');
+    await page.getByRole('button', { name: /^Cobrar/ }).click();
+    await expect(page.getByTestId('total-del-recibo')).toContainText('Pago en efectivo');
+    await revisar();
+    await sinDesborde(page);
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Aviso de privacidad' }).click();
+    await expect(page.getByTestId('aviso')).toBeVisible();
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Aviso de tarifas' }).click();
+    await expect(page.getByTestId('hoja-letrero')).toBeVisible();
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Reportes' }).click();
+    await expect(page.getByTestId('turno-del-reporte')).toBeVisible();
+    await revisar();
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Lo que ahorra' }).click();
+    await expect(page.getByTestId('sin-costo')).toBeVisible();
+    await revisar();
+  });
+}
+
+test.describe('en iPhone', () => {
+  test.use({
+    userAgent:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+  });
+
+  test('HU-Q2.6 · lo dice desde el paso 1 y no ofrece un botón que no puede funcionar', async ({
+    page,
+  }) => {
+    await page.goto(CAJA);
+    await page.getByRole('button', { name: 'Configurar impresora' }).click();
+    await expect(page.getByTestId('propuesta')).toContainText('En iPhone ningún navegador');
+    await expect(
+      page.getByRole('button', { name: 'Falta un navegador que pueda imprimir' }),
+    ).toBeDisabled();
+  });
+});
+
+/**
+ * Las capturas de los runbooks del parqueadero (HU-Q6.2 CA2), a 360 px. Solo corre con
+ * `CAPTURAS=1` y escribe en `docs/runbooks/img/`: se vuelven a sacar cuando cambia la pantalla.
+ */
+test.describe('capturas de los runbooks', () => {
+  test.skip(!process.env['CAPTURAS'], 'Solo con CAPTURAS=1');
+  test.use({ testIdAttribute: 'data-prueba' });
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(instalarImpresoraFalsa);
+    await page.addInitScript(instalarSerialFalso);
+  });
+
+  test('las pantallas que nombran los runbooks', async ({ page }) => {
+    const captura = (nombre: string) =>
+      page
+        .locator('main')
+        // Escala CSS: a la densidad del teléfono pesan tres veces más y no se leen mejor.
+        .screenshot({ path: `docs/runbooks/img/parqueadero-${nombre}.png`, scale: 'css' });
+    await page.goto(CAJA);
+    // En la captura, la cabecera fija taparía parte de la pantalla.
+    // Con el estilo del elemento: la CSP de la caja no deja inyectar una hoja en línea.
+    await page.locator('.cabecera').evaluate((el: HTMLElement) => {
+      el.style.position = 'static';
+    });
+    await page.getByRole('button', { name: 'Configurar impresora' }).click();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await captura('conectar-impresora');
+    await page.getByRole('button', { name: 'Conectar impresora' }).click();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await page.getByRole('button', { name: 'Imprimir página de prueba' }).click();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await captura('pagina-de-prueba');
+    await page.getByRole('button', { name: 'Línea 1', exact: true }).click();
+    await page.getByRole('button', { name: 'Los dos' }).click();
+    await page.getByRole('button', { name: 'Sí', exact: true }).click();
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await llenarAjustes(page, { imprimir: 'No' });
+    await page.evaluate(() => (window as unknown as { __apagar: () => void }).__apagar());
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'ABC123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await page.getByRole('button', { name: 'Imprimir', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Reconectar impresora' })).toBeVisible({
+      timeout: 15_000,
+    });
+    await captura('recibo-no-salio');
+    await page.evaluate(() => (window as unknown as { __prender: () => void }).__prender());
+    await page.getByRole('button', { name: 'Reconectar impresora' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await page.getByRole('button', { name: 'Cerrar turno' }).click();
+    await page.getByTestId('cerrar-turno').getByLabel('$100.000', { exact: true }).fill('1');
+    await captura('cerrar-turno');
+    await page.getByRole('button', { name: 'Volver al inicio' }).last().click();
+    await page.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    await captura('respaldo');
+  });
+});

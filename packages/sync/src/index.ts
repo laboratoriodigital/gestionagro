@@ -1,46 +1,31 @@
 /**
- * Protocolo de sincronización v1 (ARQUITECTURA §5.6): lo comparten el teléfono y la celda (P2).
+ * Protocolo de sincronización v1 (ARQUITECTURA §5.6): lo comparten el teléfono y la celda (P2), y
+ * el cuaderno y la caja del parqueadero (ADR-39, HU-Q7.3).
  *
  *   POST /api/v1/sync/push  { protocolo: 1, dispositivo, app, ops: Operacion[≤25] }
  *     → { acks: [{ id, estado: aceptado | duplicado | cuarentena | reintentar, motivo? }] }
  *
  * - Cada operación lleva la entidad completa tal como está en el teléfono: un registro
  *   (inmutable) o la versión vigente de un catálogo. La celda la valida con los mismos esquemas
- *   de `agro-schema` que la app.
+ *   que la app.
  * - Una operación que no valida no se descarta: va a cuarentena con el motivo en palabras (P1).
  * - Reenviar un lote es inofensivo: el mismo id no se escribe dos veces.
+ *
+ * Este paquete no sabe de fincas ni de parqueaderos: cada producto le pasa sus entidades y sus
+ * esquemas (`crearValidador`, `crearPermisos`). Las del agro viven en `@ed1/agro-schema/sync`; las
+ * del parqueadero, en `@ed1/parqueadero-schema/sync`. Una guardia de repositorio impide que este
+ * paquete importe de un producto (`tests/repo/paquetes-neutrales.test.ts`).
  */
-import {
-  ErrorDeValidacion,
-  FILAS_EXPORTADAS,
-  type Registro,
-  validarCatalogo,
-  validarRegistro,
-  type ZodType,
-} from '@ed1/agro-schema';
 
 export const PROTOCOLO = 1;
 /** D1 gratuito admite 50 consultas por invocación; la celda usa 3 lecturas y 1 escritura por op. */
 export const LOTE_MAXIMO = 25;
 
-export const ENTIDADES_DE_CATALOGO = [
-  'finca',
-  'area',
-  'ciclo',
-  'persona',
-  'insumo',
-  'cultivo',
-  'valor_jornal',
-  'tipo_labor',
-  'categoria_calidad',
-] as const;
-export type EntidadDeCatalogo = (typeof ENTIDADES_DE_CATALOGO)[number];
-export type Entidad = 'registro' | EntidadDeCatalogo;
-
-export interface Operacion {
+/** Una operación de la cola de salida, con las entidades de catálogo `E` de su producto. */
+export interface OperacionDe<E extends string> {
   /** Id de la operación en la cola de salida: el del registro, o `<entidad_id>@v<versión>`. */
   id: string;
-  entidad: Entidad;
+  entidad: 'registro' | E;
   entidad_id: string;
   version: number;
   datos: unknown;
@@ -67,29 +52,23 @@ export interface Ack {
 
 export const RELOJ_CORRIDO_MS = 10 * 60_000;
 
-export interface PedidoPush {
+export interface PedidoPushDe<E extends string> {
   protocolo: typeof PROTOCOLO;
   dispositivo: string;
   /** Versión de la app que envía (HU-E5.5). */
   app: string;
-  ops: Operacion[];
+  ops: OperacionDe<E>[];
 }
 
 export interface RespuestaPush {
   acks: Ack[];
   /**
-   * La app es más vieja que `APP_MINIMA` (HU-E5.5, CA2). El lote se aceptó igual: esto solo
-   * pide actualizar. Nunca se rechaza un dato de campo por venir de una app vieja (ADR-13).
+   * La app es más vieja que la mínima de su producto (HU-E5.5, CA2). El lote se aceptó igual:
+   * esto solo pide actualizar. Nunca se rechaza un dato de campo por venir de una app vieja
+   * (ADR-13).
    */
   actualizar?: { minima: string; motivo: string };
 }
-
-/**
- * Versión mínima de la app que la celda considera al día. Subirla no rechaza nada: las apps más
- * viejas siguen subiendo y reciben el pedido de actualizar. Se sube cuando una versión tiene un
- * defecto que el teléfono debe dejar atrás; se anota el motivo en el CHANGELOG.
- */
-export const APP_MINIMA = '0.1.0';
 
 /** Compara dos versiones X.Y.Z. Una que no se puede leer cuenta como la más vieja (0.0.0). */
 export function compararVersiones(a: string, b: string): number {
@@ -105,16 +84,17 @@ export function compararVersiones(a: string, b: string): number {
   return 0;
 }
 
-export const MOTIVO_ACTUALIZAR =
-  'Esta versión del cuaderno ya es vieja. Actualízala para seguir sincronizando sin problemas; lo que registraste se está enviando igual.';
-
-/** Lo que la celda agrega a la respuesta del push según la versión de la app que envía. */
+/**
+ * Lo que la celda agrega a la respuesta del push según la versión de la app que envía. La versión
+ * mínima y el motivo, en palabras de su producto, los pone cada producto.
+ */
 export function pedidoDeActualizar(
   app: unknown,
-  minima: string = APP_MINIMA,
+  minima: string,
+  motivo: string,
 ): RespuestaPush['actualizar'] {
   const version = typeof app === 'string' ? app : '';
-  return compararVersiones(version, minima) < 0 ? { minima, motivo: MOTIVO_ACTUALIZAR } : undefined;
+  return compararVersiones(version, minima) < 0 ? { minima, motivo } : undefined;
 }
 
 /** Un catálogo validado: su esquema propio más los metadatos comunes (ADR-4). */
@@ -126,81 +106,96 @@ export type CatalogoValido = Record<string, unknown> & {
 };
 
 /** Una operación ya validada: su entidad con los datos tal como los dejó el esquema. */
-export type OperacionValida =
-  | { id: string; entidad: 'registro'; entidad_id: string; version: number; registro: Registro }
+export type OperacionValidaDe<R, E extends string> =
+  | { id: string; entidad: 'registro'; entidad_id: string; version: number; registro: R }
   | {
       id: string;
-      entidad: EntidadDeCatalogo;
+      entidad: E;
       entidad_id: string;
       version: number;
       catalogo: CatalogoValido;
     };
 
-const esCatalogo = (e: unknown): e is EntidadDeCatalogo =>
-  (ENTIDADES_DE_CATALOGO as readonly unknown[]).includes(e);
+/** Lo que un producto le pasa al protocolo para validar sus operaciones. */
+export interface EsquemasDeSync<R extends { id: string }, E extends string> {
+  /** Las entidades de catálogo que viajan, en el orden en que el teléfono las necesita. */
+  readonly catalogos: readonly E[];
+  /** Valida un registro; lanza un error de validación si no sirve. */
+  readonly validarRegistro: (datos: unknown) => R;
+  /** Valida la versión de un catálogo de esa entidad; lanza un error de validación si no sirve. */
+  readonly validarCatalogo: (entidad: E, datos: unknown) => CatalogoValido;
+  /**
+   * Los errores que son «el dato no sirve» y van a cuarentena con su mensaje. Cualquier otro error
+   * es un defecto del código y se lanza: no se esconde como un dato malo.
+   */
+  readonly esErrorDeValidacion: (e: unknown) => e is Error;
+}
+
+export type ResultadoDeValidacion<R, E extends string> =
+  | { ok: true; op: OperacionValidaDe<R, E> }
+  | { ok: false; id: string | null; motivo: string };
 
 /**
- * Valida una operación del lote. Devuelve el motivo en palabras si no sirve: la celda lo guarda
- * en cuarentena y el teléfono lo muestra en rojo (HU-E3.14).
+ * Arma el validador de operaciones de un producto. Devuelve el motivo en palabras si una no sirve:
+ * la celda la guarda en cuarentena y el teléfono la muestra en rojo (HU-E3.14).
  */
-export function validarOperacion(
-  entrada: unknown,
-): { ok: true; op: OperacionValida } | { ok: false; id: string | null; motivo: string } {
-  if (typeof entrada !== 'object' || entrada === null) {
-    return { ok: false, id: null, motivo: 'La operación no es un objeto' };
-  }
-  const o = entrada as Partial<Operacion>;
-  const id = typeof o.id === 'string' && o.id.length > 0 && o.id.length <= 120 ? o.id : null;
-  if (!id) return { ok: false, id: null, motivo: 'La operación no trae un id válido' };
-  if (typeof o.entidad_id !== 'string' || !Number.isInteger(o.version) || (o.version ?? 0) < 1) {
-    return { ok: false, id, motivo: 'Faltan la entidad o la versión de la operación' };
-  }
-  try {
-    if (o.entidad === 'registro') {
-      const registro = validarRegistro(o.datos);
-      if (registro.id !== o.entidad_id) {
-        return { ok: false, id, motivo: 'El registro no coincide con su operación' };
-      }
-      return {
-        ok: true,
-        op: {
-          id,
-          entidad: 'registro',
-          entidad_id: o.entidad_id,
-          version: o.version ?? 1,
-          registro,
-        },
-      };
+export function crearValidador<R extends { id: string }, E extends string>(
+  esquemas: EsquemasDeSync<R, E>,
+): (entrada: unknown) => ResultadoDeValidacion<R, E> {
+  const esCatalogo = (e: unknown): e is E => (esquemas.catalogos as readonly unknown[]).includes(e);
+  return (entrada) => {
+    if (typeof entrada !== 'object' || entrada === null) {
+      return { ok: false, id: null, motivo: 'La operación no es un objeto' };
     }
-    if (esCatalogo(o.entidad)) {
-      const catalogo = validarCatalogo(
-        o.entidad,
-        FILAS_EXPORTADAS[o.entidad] as ZodType<unknown>,
-        o.datos,
-      ) as CatalogoValido;
-      if (catalogo.id !== o.entidad_id || catalogo.version !== o.version) {
+    const o = entrada as Partial<OperacionDe<E>>;
+    const id = typeof o.id === 'string' && o.id.length > 0 && o.id.length <= 120 ? o.id : null;
+    if (!id) return { ok: false, id: null, motivo: 'La operación no trae un id válido' };
+    if (typeof o.entidad_id !== 'string' || !Number.isInteger(o.version) || (o.version ?? 0) < 1) {
+      return { ok: false, id, motivo: 'Faltan la entidad o la versión de la operación' };
+    }
+    try {
+      if (o.entidad === 'registro') {
+        const registro = esquemas.validarRegistro(o.datos);
+        if (registro.id !== o.entidad_id) {
+          return { ok: false, id, motivo: 'El registro no coincide con su operación' };
+        }
         return {
-          ok: false,
-          id,
-          motivo: `${o.entidad} no coincide con su operación (id o versión)`,
+          ok: true,
+          op: {
+            id,
+            entidad: 'registro',
+            entidad_id: o.entidad_id,
+            version: o.version ?? 1,
+            registro,
+          },
         };
       }
-      return {
-        ok: true,
-        op: {
-          id,
-          entidad: o.entidad,
-          entidad_id: o.entidad_id,
-          version: catalogo.version,
-          catalogo,
-        },
-      };
+      if (esCatalogo(o.entidad)) {
+        const catalogo = esquemas.validarCatalogo(o.entidad, o.datos);
+        if (catalogo.id !== o.entidad_id || catalogo.version !== o.version) {
+          return {
+            ok: false,
+            id,
+            motivo: `${o.entidad} no coincide con su operación (id o versión)`,
+          };
+        }
+        return {
+          ok: true,
+          op: {
+            id,
+            entidad: o.entidad,
+            entidad_id: o.entidad_id,
+            version: catalogo.version,
+            catalogo,
+          },
+        };
+      }
+      return { ok: false, id, motivo: `Entidad desconocida: ${String(o.entidad)}` };
+    } catch (e) {
+      if (esquemas.esErrorDeValidacion(e)) return { ok: false, id, motivo: e.message };
+      throw e;
     }
-    return { ok: false, id, motivo: `Entidad desconocida: ${String(o.entidad)}` };
-  } catch (e) {
-    if (e instanceof ErrorDeValidacion) return { ok: false, id, motivo: e.message };
-    throw e;
-  }
+  };
 }
 
 /**
@@ -210,8 +205,8 @@ export function validarOperacion(
  *     → { catalogos: [{ entidad, datos }], registros: [Registro], cursor: { registro, catalogo }, mas }
  *
  * Dos cursores porque `seq` es por tabla. Hasta `PAGINA_MAXIMA` cambios por página, los catálogos
- * primero: un registro nombra áreas y ciclos que el teléfono tiene que conocer antes. El cursor
- * vive en el teléfono; la celda no escribe nada para atender un pull.
+ * primero: un registro nombra catálogos que el teléfono tiene que conocer antes. El cursor vive
+ * en el teléfono; la celda no escribe nada para atender un pull.
  */
 export const PAGINA_MAXIMA = 200;
 
@@ -232,18 +227,18 @@ export interface Reemplazo {
   por_usuario: string | null;
 }
 
-export interface CambioDeCatalogo {
-  entidad: EntidadDeCatalogo;
+export interface CambioDeCatalogoDe<E extends string> {
+  entidad: E;
   datos: CatalogoValido;
   /** Solo si esta versión ganó un conflicto: el teléfono que perdió lo avisa. */
   reemplazo?: Reemplazo;
 }
 
-export interface RespuestaPull {
+export interface RespuestaPullDe<R, E extends string> {
   /** Nivel de la celda (ARQUITECTURA §8.2): en `ahorro` el teléfono revisa cada 60 min. */
   nivel?: 'normal' | 'alerta' | 'ahorro';
-  catalogos: CambioDeCatalogo[];
-  registros: Registro[];
+  catalogos: CambioDeCatalogoDe<E>[];
+  registros: R[];
   cursor: Cursor;
   /** Hay más páginas: el teléfono pide la siguiente con el cursor nuevo. */
   mas: boolean;

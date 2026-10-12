@@ -15,6 +15,10 @@
  *
  * Con Workers Paid (`plan: paid`, HU-C11.1) no hay niveles que bajar: mide el mes, proyecta el costo
  * y apaga lo que el producto declare al agotar su presupuesto (`vigia-pago.ts`).
+ *
+ * En el plan gratuito, las 100.000 filas de D1 al día son de toda la cuenta y las comparten el
+ * agro, el CORE, la Tienda y el parqueadero (HU-Q7.13): el vigía las mide por base, dice qué
+ * producto las gasta con el mapa que hornea el despliegue y avisa al 50, 75 y 90 %.
  */
 import { APAGADO, type LectorKv } from '@ed1/kill-switch';
 import { type DecisionDePago, decidirConPago, type Presupuesto } from './vigia-pago.ts';
@@ -114,7 +118,11 @@ export const FUENTES: readonly Fuente[] = [
   {
     nombre: 'D1',
     periodo: 'dia',
-    consulta: consulta('d1AnalyticsAdaptiveGroups', PORVENTANA, 'sum { rowsRead rowsWritten }'),
+    consulta: consulta(
+      'd1AnalyticsAdaptiveGroups',
+      PORVENTANA,
+      'sum { rowsRead rowsWritten } dimensions { databaseId }',
+    ),
     leer: (c) => ({
       d1_filas_leidas: suma(c['d1AnalyticsAdaptiveGroups'], 'rowsRead'),
       d1_filas_escritas: suma(c['d1AnalyticsAdaptiveGroups'], 'rowsWritten'),
@@ -174,6 +182,64 @@ export interface Medicion {
   consumo: Partial<Record<Cuota, number>>;
   /** Fuentes que no se pudieron leer, con el motivo. */
   fallas: string[];
+  /** Filas escritas en D1 en la ventana, por id de base (HU-Q7.13). */
+  d1PorBase?: Record<string, number>;
+}
+
+/** Los avisos de filas de D1 del plan gratuito: al 50, 75 y 90 % del límite de la cuenta (HU-Q7.13). */
+export const ESCALONES_DE_FILAS = [50, 75, 90] as const;
+
+/** El escalón más alto que ya pasó el uso (en %), o 0. */
+export const escalonDeFilas = (porcentaje: number): number =>
+  ESCALONES_DE_FILAS.filter((e) => porcentaje >= e).at(-1) ?? 0;
+
+export const OTRAS_BASES = 'otras bases';
+
+/** Las filas por producto: las bases que el mapa no conoce van juntas, en «otras bases». */
+export function filasPorProducto(
+  porBase: Readonly<Record<string, number>>,
+  productoDeBase: Readonly<Record<string, string>>,
+): Record<string, number> {
+  const total: Record<string, number> = {};
+  for (const [base, filas] of Object.entries(porBase)) {
+    const producto = productoDeBase[base] ?? OTRAS_BASES;
+    total[producto] = (total[producto] ?? 0) + filas;
+  }
+  return total;
+}
+
+/** Lo que el despliegue le dice al vigía para repartir las filas (HU-Q7.13). */
+export interface MapaDeFilas {
+  /** El producto de cada base D1 de la cuenta, por id. */
+  productoDeBase: Readonly<Record<string, string>>;
+  /** Las filas por día que declara cada producto (`productos.json`). */
+  presupuestos: Readonly<Record<string, number>>;
+}
+
+export interface AvisoDeFilas {
+  /** 0, 50, 75 o 90: el escalón del límite de la cuenta que ya pasó hoy. */
+  escalon: number;
+  /** Filas escritas hoy por producto, de la que más a la que menos. */
+  porProducto: [string, number][];
+  /** Productos que pasaron sus filas del día (staging cuenta: es la misma cuenta). */
+  sobrePresupuesto: string[];
+}
+
+export function avisoDeFilas(m: Medicion, mapa: MapaDeFilas | null): AvisoDeFilas | undefined {
+  const uso = m.uso.d1_filas_escritas;
+  if (uso === undefined) return undefined;
+  const porProducto = Object.entries(
+    filasPorProducto(m.d1PorBase ?? {}, mapa?.productoDeBase ?? {}),
+  ).sort((a, b) => b[1] - a[1]);
+  const deProducto: Record<string, number> = {};
+  for (const [nombre, filas] of porProducto) {
+    const id = nombre.replace(/ \(staging\)$/, '');
+    deProducto[id] = (deProducto[id] ?? 0) + filas;
+  }
+  const sobrePresupuesto = Object.entries(mapa?.presupuestos ?? {})
+    .filter(([id, tope]) => (deProducto[id] ?? 0) > tope)
+    .map(([id]) => id);
+  return { escalon: escalonDeFilas(uso), porProducto, sobrePresupuesto };
 }
 
 export async function medir(
@@ -202,6 +268,7 @@ export async function medir(
   const uso: Partial<Record<Cuota, number>> = {};
   const consumo: Partial<Record<Cuota, number>> = {};
   const fallas: string[] = [];
+  let d1PorBase: Record<string, number> | undefined;
   for (const fuente of FUENTES) {
     try {
       const r = await fetchFn(GRAPHQL, {
@@ -229,6 +296,7 @@ export async function medir(
         fallas.push(`${fuente.nombre}: ${motivo}`);
         continue;
       }
+      if (fuente.nombre === 'D1') d1PorBase = escritasPorBase(datos['d1AnalyticsAdaptiveGroups']);
       for (const [cuota, usado] of Object.entries(fuente.leer(datos)) as [Cuota, number][]) {
         consumo[cuota] = usado;
         if (plan === 'free') {
@@ -239,7 +307,19 @@ export async function medir(
       fallas.push(`${fuente.nombre}: no respondió (${(e as Error).message})`);
     }
   }
-  return { uso, consumo, fallas };
+  return { uso, consumo, fallas, ...(d1PorBase ? { d1PorBase } : {}) };
+}
+
+function escritasPorBase(filas: unknown): Record<string, number> {
+  const total: Record<string, number> = {};
+  for (const f of (Array.isArray(filas) ? filas : []) as {
+    sum?: { rowsWritten?: number };
+    dimensions?: { databaseId?: string };
+  }[]) {
+    const base = f.dimensions?.databaseId ?? '?';
+    total[base] = (total[base] ?? 0) + (f.sum?.rowsWritten ?? 0);
+  }
+  return total;
 }
 
 /** El nivel que corresponde: por la cuota más usada; con fallas, al menos «alerta» y sin bajar. */
@@ -260,6 +340,8 @@ export interface Vigilancia extends Medicion {
   escrito: boolean;
   /** Con Workers Paid: la proyección, el aviso y lo que se apagó en esta vuelta. */
   pago?: DecisionDePago & { apagadas: string[] };
+  /** En el plan gratuito: las filas de D1 de hoy, por producto, y el escalón (HU-Q7.13). */
+  filas?: AvisoDeFilas;
 }
 
 /** Una vuelta del vigía: mide, decide y escribe el nivel solo si cambió. */
@@ -271,6 +353,7 @@ export async function vigilar(
   fetchFn: Fetch = fetch,
   plan = 'free',
   presupuesto: Presupuesto | null = null,
+  mapaDeFilas: MapaDeFilas | null = null,
 ): Promise<Vigilancia> {
   const guardado = await kv.get(CLAVE_NIVEL);
   const antes = (NIVELES as readonly string[]).includes(guardado ?? '')
@@ -280,7 +363,10 @@ export async function vigilar(
   const nivel = decidirNivel(medicion, antes);
   const escrito = nivel !== antes;
   if (escrito) await kv.put(CLAVE_NIVEL, nivel);
-  if (plan !== 'paid') return { ...medicion, antes, nivel, escrito };
+  if (plan !== 'paid') {
+    const filas = avisoDeFilas(medicion, mapaDeFilas);
+    return { ...medicion, antes, nivel, escrito, ...(filas ? { filas } : {}) };
+  }
   // Con fallas no se apaga nada: no se sabe cuánto se gastó (se avisa, P1).
   const decision = decidirConPago(
     medicion.consumo,

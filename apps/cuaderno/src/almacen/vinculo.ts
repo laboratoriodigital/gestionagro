@@ -11,7 +11,7 @@
  *   la organización del token en cada fila (HU-E5.1).
  */
 import { uuidv7 } from '@ed1/agro-schema';
-import { ENTIDADES_DE_CATALOGO } from '@ed1/sync';
+import { ENTIDADES_DE_CATALOGO } from '@ed1/agro-schema/sync';
 import type { CuadernoDb, OperacionSalida } from './db.ts';
 import {
   CLAVE_SESION,

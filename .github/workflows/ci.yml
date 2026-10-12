@@ -3,9 +3,16 @@
 name: ci
 
 on:
+  # Un PR en borrador no gasta minutos: corre al marcarlo listo y en cada push después (HU-C11.8).
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
+  # La corrida semanal de main con todo y el D1 de workerd: la red de lo que los PR no corrieron
+  # (HU-C11.7 CA2, HU-C11.8). Lunes 06:00 de Colombia.
+  schedule:
+    - cron: "0 11 * * 1"
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -13,6 +20,8 @@ concurrency:
 
 permissions:
   contents: read
+  # Para preguntar si el PR que llegó a main ya tenía su CI en verde (scripts/ya-verificado.ts).
+  actions: read
 
 jobs:
   verificar:
@@ -20,6 +29,7 @@ jobs:
     # propio del dueño se usa mientras GitHub Actions no arranca trabajos (docs/runbooks/runner-propio.md).
     # Borrar la variable devuelve el CI a GitHub sin tocar este archivo.
     runs-on: ${{ vars.RUNNER_CI || 'ubuntu-latest' }}
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
@@ -46,9 +56,18 @@ jobs:
       # porque dos PR bien hechos pueden juntarse mal al fusionar (bitácora core 6). Sin instalar nada.
       - name: Versiones publicadas sin reescribir
         run: node scripts/verificar-changelog.ts
+      # En main: si el PR fusionado estaba al día, su CI ya probó este mismo árbol, y no se repite
+      # nada (HU-C11.8: eran 4 minutos de pruebas con workerd en cada fusión).
+      - name: ¿El PR ya verificó este mismo árbol?
+        id: pr
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ya-verificado.ts
       # Con un lockfile nuevo no hay coincidencia exacta: restore-keys trae los navegadores de la
       # corrida anterior y Playwright solo baja lo que cambió (bitácora agro 19).
       - name: Caché de los navegadores de Playwright
+        if: steps.pr.outputs.verificado != 'true'
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
@@ -59,9 +78,21 @@ jobs:
         # solo toca documentos, verificar salta lo que no puede cambiar de resultado (HU-C11.6).
         env:
           # En el runner propio (Windows), el Edge del equipo: la descarga de Chromium no funciona ahí.
-          # Los PR prueban la base con el instrumento en proceso (rápido); main, con el D1 local de
-          # workerd (fiel), para que una diferencia entre los dos aparezca al fusionar (HU-C11.7, P17).
-          D1_INSTRUMENTO: ${{ github.event_name == 'push' && 'workerd' || 'sqlite' }}
+          # Los PR prueban la base con el instrumento en proceso (rápido), salvo que el cambio toque
+          # la base: entonces con el D1 local de workerd (fiel, P17). `auto` lo decide verificar.ts
+          # con la lista de cambios (HU-C11.8). Main sin verificar y la corrida semanal: workerd.
+          D1_INSTRUMENTO: ${{ github.event_name == 'pull_request' && 'auto' || 'workerd' }}
           PW_CANAL: ${{ vars.RUNNER_CI == 'self-hosted' && 'msedge' || '' }}
           VERIFICAR_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          VERIFICADO_EN_PR: ${{ steps.pr.outputs.verificado }}
         run: node scripts/verificar.ts --ci
+      # Solo si algo falló: lo que Playwright vio (la página y el error) para entender una e2e
+      # intermitente sin volver a correrla a ciegas. Tres días bastan; no ocupa espacio si todo pasa.
+      - name: Contexto de las e2e que fallaron
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-fallidas
+          path: test-results/
+          retention-days: 3
+          if-no-files-found: ignore

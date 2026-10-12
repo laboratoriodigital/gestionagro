@@ -2,7 +2,7 @@
 
 **Versión:** 0.1.0 · 6 oct 2026
 **Dueño del producto:** Sebas. **Gerencia del proyecto y Scrum:** el asistente, que hace los commits, el push y los PR; el dueño aprueba, fusiona y valida en staging.
-**Fuente única de:** hitos, sprints, épicas, historias, work items, estado y velocidad **de la Tienda 3.0**. Lo del CORE está en `../plataforma/BACKLOG_CORE.md` y lo del agro en `../BACKLOG.md`.
+**Fuente única de:** hitos, sprints, épicas, historias, work items, estado y velocidad **de la Tienda 3.0**. Lo del CORE está en `../plataforma/BACKLOG_CORE.md`, lo del agro en `../BACKLOG.md` y lo del parqueadero en `../parking/BACKLOG-PARKING.md`, que le ofrece `@ed1/whatsapp` y `@ed1/impresion` (su §12).
 **Lo que manda sobre este documento:** `../ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md` (ED1 §N) → `../ARQUITECTURA.md` (ADR-N, P1–P21) → `TIENDA-3.0.md` (el diseño, «TIENDA §N») y `../plataforma/PLATAFORMA.md` (lo común). El mercado: `ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10-v1.3.md` («estudio §N»). Aquí se planea; allí se decide. Ante una contradicción, se señala antes de actuar.
 **Lecciones:** `BITACORA_TIENDA3.md` (bitácora tienda3 N), `BITACORA-ecommerce.md` (bitácora ecommerce N, la de la Tienda 2.0), `../plataforma/BITACORA_CORE.md` (bitácora core N) y `../BITACORA.md` (bitácora agro N). Los patrones P1–P21 son del ecosistema y conservan su número.
 

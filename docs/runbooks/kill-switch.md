@@ -11,8 +11,9 @@
 | `ks:core:<producto>` (hoy, `ks:core:agro`) | Lo mismo, pero solo para ese producto (HU-C3.6). Apagar el de otro producto no toca el agro | Los demás productos |
 | `ks:core:pagos` | Solo los cobros de planes (`/api/core/pago/*`), de todos los productos. Responde 503 «Pagar está en pausa» | Entrar, el equipo y todo lo demás; los planes ya pagados siguen igual |
 | `ks:agro-cuaderno` | La API de la celda: `/api/v1/*` responde 503 con `Retry-After` (HU-E5.1). Apaga la subida de datos (HU-E5.2): el teléfono espera lo que diga `Retry-After` y lo pendiente se queda en su cola. El aviso al operario en palabras llega con HU-E8.6 | El cuaderno en el teléfono: registra y guarda sin señal ni sincronización |
+| `ks:parqueadero` y `ks:parqueadero-fotos` (KV `parqueadero-c2-flags-staging`) | `ks:parqueadero` apaga la API de la celda c2: `/api/v1/*` responde 503 con `Retry-After` (HU-Q7.4). `ks:parqueadero-fotos` todavía no apaga nada (fotos, M2). Solo existen en staging. Pasos y verificación: `docs/runbooks/parqueadero-kill-switches.md` (HU-Q10.4) | La caja: registra, cobra e imprime sin nube, y sube lo pendiente al encender |
 
-Las claves las crea el despliegue en `encendido`: una por cada `product.yaml` con `kill_switch: true`, y las del CORE (`ks:agro-core`, `ks:core`, `ks:core:pagos` y una `ks:core:<producto>` por cada producto de `infrastructure/productos.json`). Un despliegue **nunca** cambia una clave que ya existe: lo que apagues sigue apagado.
+Las claves las crea el despliegue en `encendido`: una por cada `product.yaml` con `kill_switch: true`, las del CORE (`ks:agro-core`, `ks:core`, `ks:core:pagos` y una `ks:core:<producto>` por cada producto de `infrastructure/productos.json`) y, en el KV de cada celda de otro producto (`<producto>-c<N>-flags`), los `kill_switches` que ese producto declara en `productos.json`. Un despliegue **nunca** cambia una clave que ya existe: lo que apagues sigue apagado.
 
 ## Cuánto tarda
 

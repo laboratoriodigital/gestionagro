@@ -1,0 +1,71 @@
+---
+// El liquidador de mensualidades (HU-Q11.6; estudio §12.2, herramienta 5). Estático: la cuenta se
+// hace en el navegador con `liquidarMensualidad` de `@ed1/parqueadero-tarifas`, la misma de la caja,
+// sin cuenta y sin guardar nada. Termina con el siguiente paso, la caja (CA2). La lógica está en
+// `src/herramientas/mensualidad.ts`.
+import { NOMBRES_DE_VEHICULO, VEHICULOS } from '@ed1/parqueadero-schema';
+import Sitio from '../../../layouts/Sitio.astro';
+import { LIQUIDADOR } from '../../../sitio/contenido.ts';
+---
+<Sitio titulo={LIQUIDADOR.titulo} descripcion={LIQUIDADOR.resumen} ruta={LIQUIDADOR.ruta}>
+  <h1>{LIQUIDADOR.titular}</h1>
+  <p class="entrada">{LIQUIDADOR.entrada}</p>
+
+  <form id="liquidador" class="formulario" data-producto={LIQUIDADOR.producto} novalidate>
+    <fieldset>
+      <legend>La mensualidad</legend>
+      <label
+        >Vehículo
+        <select name="vehiculo">
+          {NOMBRES_DE_VEHICULO.map((v) => <option value={v}>{VEHICULOS[v].nombre}</option>)}
+        </select>
+      </label>
+      <label>Valor del mes en pesos<input name="valor" inputmode="numeric" maxlength="11" /></label>
+      <label>Fecha de inicio<input name="desde" type="date" /></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Qué cobrar</legend>
+      <label
+        >Cobrar
+        <select name="cobrar">
+          <option value="fin-de-mes">Hasta fin de mes</option>
+          <option value="meses">Solo meses completos</option>
+        </select>
+      </label>
+      <label
+        >Meses completos
+        <input name="meses" inputmode="numeric" maxlength="2" value="0" aria-describedby="ayuda-meses" />
+        <span id="ayuda-meses" class="ayuda"></span>
+      </label>
+    </fieldset>
+
+    <p id="faltan" class="aviso-error" role="alert" hidden></p>
+    <button class="boton" type="submit">Calcular</button>
+  </form>
+
+  <section id="resultado" class="resultado liquidacion" aria-labelledby="titulo-resultado" hidden>
+    <h2 id="titulo-resultado" tabindex="-1">Total a cobrar</h2>
+    <p id="total-mensualidad" class="total-grande"></p>
+    <p id="de-que" class="ayuda"></p>
+    <ol id="periodos" class="periodos"></ol>
+    <p class="ayuda">
+      Un mes va del día de inicio al día anterior del mes siguiente. Los días sueltos se cobran en
+      proporción al mes que empieza ese día, y el valor baja a la centena: nunca se cobra de más.
+    </p>
+  </section>
+
+  <aside class="siguiente" aria-labelledby="siguiente">
+    <h2 id="siguiente">{LIQUIDADOR.siguiente.titulo}</h2>
+    <p>{LIQUIDADOR.siguiente.texto}</p>
+    <a id="ir-a-la-caja" class="boton" href="/caja/">{LIQUIDADOR.siguiente.accion}</a>
+  </aside>
+
+  <p slot="pie">La cuenta se hace en este navegador: no se guarda ni se envía lo que escribe.</p>
+
+  <script>
+    import { iniciarLiquidador } from '../../../herramientas/mensualidad.ts';
+
+    iniciarLiquidador(document);
+  </script>
+</Sitio>

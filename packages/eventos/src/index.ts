@@ -6,7 +6,11 @@
  * envío no se manda: se prefiere perder un evento tardío a gastar una segunda invocación.
  *
  * Sin datos personales: solo producto, nombre del evento y cuántas veces pasó (P13).
+ *
+ * Los de la caja del parqueadero, con su propio lote, en `parqueadero.ts` (HU-Q5.3).
  */
+
+export * from './parqueadero.ts';
 
 export const EVENTOS = ['tool.opened', 'tool.completed', 'tool.shared', 'tool.next_step'] as const;
 export type NombreDeEvento = (typeof EVENTOS)[number];
@@ -17,6 +21,35 @@ export interface Lote {
   v: typeof VERSION_DEL_LOTE;
   producto: string;
   eventos: Partial<Record<NombreDeEvento, number>>;
+}
+
+/** Lo más que un lote de herramienta cuenta de un evento: una sesión, con holgura. */
+export const CUENTA_MAXIMA_DEL_LOTE = 100;
+
+/**
+ * Valida un lote de herramienta para los `productos` que el Worker atiende. Devuelve el motivo
+ * del rechazo, o `null` si es válido. La usan el sitio del agro y el del parqueadero (HU-Q11.5).
+ */
+export function motivoDeRechazoDelLote(lote: unknown, productos: readonly string[]): string | null {
+  if (typeof lote !== 'object' || lote === null) return 'el lote no es un objeto';
+  const l = lote as Partial<Lote>;
+  if (l.v !== VERSION_DEL_LOTE) return `versión de lote desconocida: ${String(l.v)}`;
+  if (typeof l.producto !== 'string' || !productos.includes(l.producto)) {
+    return `producto desconocido: ${String(l.producto)}`;
+  }
+  if (typeof l.eventos !== 'object' || l.eventos === null) return 'faltan los eventos';
+  if (Object.keys(l.eventos).length === 0) return 'el lote no trae eventos';
+  for (const [nombre, cuenta] of Object.entries(l.eventos)) {
+    if (!(EVENTOS as readonly string[]).includes(nombre)) return `evento desconocido: ${nombre}`;
+    if (
+      !Number.isInteger(cuenta) ||
+      (cuenta as number) < 1 ||
+      (cuenta as number) > CUENTA_MAXIMA_DEL_LOTE
+    ) {
+      return `cuenta inválida para ${nombre}: ${String(cuenta)}`;
+    }
+  }
+  return null;
 }
 
 /** Lo mínimo del navegador que usa el colector; inyectable para las pruebas. */

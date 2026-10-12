@@ -6,8 +6,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { uuidv7 } from '@ed1/agro-schema';
-import type { BaseD1 } from '@ed1/d1';
-import { baseLocal, RAIZ, vaciar } from '@ed1/d1/local';
 import {
   type Entidad,
   MATRIZ,
@@ -17,7 +15,9 @@ import {
   puedeRegistro,
   type RespuestaPull,
   ROLES,
-} from '@ed1/sync';
+} from '@ed1/agro-schema/sync';
+import type { BaseD1 } from '@ed1/d1';
+import { baseLocal, RAIZ, vaciar } from '@ed1/d1/local';
 import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { crearApp, TABLAS_DEL_SHARD } from './worker.ts';

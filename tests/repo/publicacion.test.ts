@@ -8,13 +8,20 @@ import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 import {
   cambiaElCodigoDelCore,
+  cambiaElParqueadero,
   decidirPublicacion,
   etiquetaDe,
   productosADesplegar,
   seccionesReescritas,
 } from '../../scripts/lib/publicacion.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
-import { CHANGELOG_DEL_CORE, notasDe, versionDelCore } from '../../scripts/notas-de-version.ts';
+import {
+  CHANGELOG_DEL_CORE,
+  CHANGELOG_DEL_PARQUEADERO,
+  notasDe,
+  versionDelCore,
+  versionDelParqueadero,
+} from '../../scripts/notas-de-version.ts';
 
 const nueva = (version: string) => ({ version, publicada: false });
 const vieja = (version: string) => ({ version, publicada: true });
@@ -40,7 +47,32 @@ describe('qué se publica al fusionar', () => {
       'core,agro',
     ],
   ] as const)('%s', (_caso, agro, core, publicarAgro, publicarCore, productos) => {
-    expect(decidirPublicacion(agro, core)).toEqual({ publicarAgro, publicarCore, productos });
+    expect(decidirPublicacion(agro, core)).toEqual({
+      publicarAgro,
+      publicarCore,
+      publicarParqueadero: false,
+      productos,
+    });
+  });
+
+  // HU-Q0.3: el parqueadero, el tercero con versión propia.
+  it.each([
+    ['en 0.0.0 no se publica: vive en staging', nueva('0.0.0'), false, ''],
+    ['sube el parqueadero: solo el parqueadero', nueva('0.1.0'), true, 'parqueadero'],
+    ['ya publicado: nada', vieja('0.1.0'), false, ''],
+  ] as const)('%s', (_caso, parqueadero, publicarParqueadero, productos) => {
+    expect(decidirPublicacion(vieja('0.3.0'), vieja('0.1.0'), parqueadero)).toEqual({
+      publicarAgro: false,
+      publicarCore: false,
+      publicarParqueadero,
+      productos,
+    });
+  });
+
+  it('suben los tres: el CORE, el agro y el parqueadero', () => {
+    expect(decidirPublicacion(nueva('0.5.0'), nueva('0.4.0'), nueva('0.1.0')).productos).toBe(
+      'core,agro,parqueadero',
+    );
   });
 
   it('una versión que no es x.y.z no se publica: se dice (P1)', () => {
@@ -50,6 +82,7 @@ describe('qué se publica al fusionar', () => {
   it('las etiquetas del agro siguen siendo vX.Y.Z y las del CORE, core-vX.Y.Z', () => {
     expect(etiquetaDe('agro', '0.4.0')).toBe('v0.4.0');
     expect(etiquetaDe('core', '0.2.0')).toBe('core-v0.2.0');
+    expect(etiquetaDe('parqueadero', '0.1.0')).toBe('parqueadero-v0.1.0');
   });
 });
 
@@ -62,14 +95,36 @@ describe('qué despliega desplegar.ts', () => {
   it('solo lo que se le pide, y rechaza un producto que no existe', () => {
     expect([...productosADesplegar('core')]).toEqual(['core']);
     expect(() => productosADesplegar('core,tienda')).toThrow(/tienda/);
+    expect([...productosADesplegar('parqueadero')]).toEqual(['parqueadero']);
   });
 
   it('el flujo de producción le pasa los productos que decidió la publicación', () => {
     const flujo = parse(readFileSync(join(RAIZ, '.github/workflows/desplegar.yml'), 'utf8'));
     // biome-ignore lint/suspicious/noTemplateCurlyInString: es una expresión de GitHub Actions
-    expect(flujo.jobs.produccion.with.productos).toBe('${{ needs.version.outputs.productos }}');
+    expect(flujo.jobs.produccion.with.productos).toBe('${{ needs.staging.outputs.productos }}');
     const destino = readFileSync(join(RAIZ, '.github/workflows/desplegar-destino.yml'), 'utf8');
     expect(destino).toContain('--productos "$PRODUCTOS"');
+  });
+
+  it('staging decide la publicación al terminar, sin un trabajo aparte que cobra un minuto (HU-C11.8)', () => {
+    const flujo = parse(readFileSync(join(RAIZ, '.github/workflows/desplegar.yml'), 'utf8'));
+    expect(flujo.jobs.version).toBeUndefined();
+    expect(flujo.jobs.staging.with.decidir_publicacion).toBe(true);
+    expect(flujo.jobs.publicar.needs).toBe('staging');
+    expect(flujo.jobs.produccion.needs).toEqual(['staging', 'publicar']);
+    const destino = parse(
+      readFileSync(join(RAIZ, '.github/workflows/desplegar-destino.yml'), 'utf8'),
+    );
+    const pasos = destino.jobs.desplegar.steps as { id?: string; if?: string; run?: string }[];
+    const leer = pasos.findIndex((p) => p.id === 'leer');
+    // Después de desplegar: si staging falla, no se publica nada.
+    expect(leer).toBeGreaterThan(pasos.findIndex((p) => p.run?.includes('scripts/desplegar.ts')));
+    expect(pasos[leer]?.if).toBe('inputs.decidir_publicacion');
+    expect(pasos[leer]?.run).toBe('node scripts/decidir-publicacion.ts');
+    expect(destino.on.workflow_call.outputs.productos.value).toBe(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: es una expresión de GitHub Actions
+      '${{ jobs.desplegar.outputs.productos }}',
+    );
   });
 });
 
@@ -78,6 +133,39 @@ describe('la guardia del PR: el código del CORE se anota en su CHANGELOG', () =
     expect(cambiaElCodigoDelCore(['apps/core/src/entrar.ts'])).toBe(true);
     expect(cambiaElCodigoDelCore(['apps/core/src/entrar.test.ts'])).toBe(false);
     expect(cambiaElCodigoDelCore(['apps/cuaderno/src/main.ts', 'docs/x.md'])).toBe(false);
+  });
+
+  it('y el del parqueadero en el suyo (HU-Q0.3 CA3 ❌)', () => {
+    expect(cambiaElParqueadero(['apps/parqueadero-sitio/src/caja/Salida.tsx'])).toBe(true);
+    expect(cambiaElParqueadero(['packages/parqueadero-tarifas/src/liquidar.ts'])).toBe(true);
+    expect(cambiaElParqueadero(['apps/parqueadero-sitio/src/pages/r/index.astro'])).toBe(true);
+    expect(cambiaElParqueadero(['packages/parqueadero-schema/src/registro.test.ts'])).toBe(false);
+    expect(cambiaElParqueadero(['packages/impresion/src/cola.ts', 'docs/parking/x.md'])).toBe(
+      false,
+    );
+  });
+
+  it('el flujo crea la versión del parqueadero con su etiqueta y sus notas', () => {
+    const flujo = readFileSync(join(RAIZ, '.github/workflows/desplegar.yml'), 'utf8');
+    expect(flujo).toContain("needs.staging.outputs.publicar_parqueadero == 'true'");
+    expect(flujo).toContain('node scripts/notas-de-version.ts --parqueadero "$VERSION"');
+    expect(flujo).toContain('gh release create "parqueadero-v$VERSION"');
+  });
+});
+
+describe('la versión del parqueadero y su CHANGELOG (HU-Q0.3)', () => {
+  const changelog = readFileSync(join(RAIZ, CHANGELOG_DEL_PARQUEADERO), 'utf8');
+
+  it('tiene «Sin publicar», y una versión que no es 0.0.0 tiene su sección fechada', () => {
+    expect(changelog).toMatch(/^## \[Sin publicar\]$/m);
+    const version = versionDelParqueadero();
+    expect(version).toMatch(/^\d+\.\d+\.\d+$/);
+    if (version !== '0.0.0') {
+      expect(changelog).toMatch(
+        new RegExp(`^## \\[${version.replace(/\./g, '\\.')}\\] - \\d{4}-\\d{2}-\\d{2}$`, 'm'),
+      );
+      expect(notasDe(changelog, version)?.length).toBeGreaterThan(20);
+    }
   });
 });
 

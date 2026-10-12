@@ -9,7 +9,7 @@
  * - El CORE vive en workers.dev en los dos entornos, con una base D1 por entorno. El id de la base
  *   lo agrega el despliegue en un archivo fuera de git (ADR-6), como el del KV de flags.
  */
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { RegistroDeProductos } from '@ed1/productos';
 import { type Celda, type ConfigCeldas, cargarCeldas } from './lib/celdas.ts';
@@ -117,13 +117,21 @@ export const baseDelShard = (shard: string, staging: boolean) =>
 export function presupuestoDeLaCelda(
   celda: Celda,
   registro: RegistroDeProductos = cargarProductos(),
-): { PRESUPUESTO_USD_MES: string; AL_AGOTARSE: string } {
+): { PRESUPUESTO_USD_MES: string; AL_AGOTARSE: string; FILAS_D1_POR_PRODUCTO: string } {
   const activos = registro.productos.filter((p) => p.estado !== 'retirado');
   const suma = activos.reduce((s, p) => s + (p.presupuesto?.usd_mes ?? 0), 0);
   const propio = registro.productos.find((p) => p.id === celda.producto);
+  // HU-Q7.13: en el plan gratuito, las filas de D1 por día que cada producto declara. El vigía mide
+  // toda la cuenta, así que las conoce todas para decir quién pasó la suya.
+  const filas = Object.fromEntries(
+    activos.flatMap((p) =>
+      p.presupuesto?.d1_filas_escritas_dia ? [[p.id, p.presupuesto.d1_filas_escritas_dia]] : [],
+    ),
+  );
   return {
     PRESUPUESTO_USD_MES: String(suma),
     AL_AGOTARSE: (propio?.presupuesto?.al_agotarse ?? []).join(','),
+    FILAS_D1_POR_PRODUCTO: JSON.stringify(filas),
   };
 }
 
@@ -182,21 +190,121 @@ export function wranglerDeEnsayo(): Record<string, unknown> {
   };
 }
 
+/**
+ * El sitio y la caja del Parqueadero ED1 (HU-Q5.1, HU-Q5.2): assets, y un Worker que solo corre
+ * para `/_m`, los eventos anónimos de la caja (HU-Q5.3, ADR-32). Producción va a su dominio, nunca
+ * a `workers.dev`: si la zona no responde, el despliegue falla (HU-Q5.2 CA3, P1). Staging sigue en
+ * `workers.dev`, con su propio dataset de eventos.
+ */
+export const WORKER_PARQUEADERO = 'ed1-parqueadero';
+/** El host de los recibos: `entorno.ts` de la caja y `ORIGEN_DEL_RECIBO` dicen el mismo (P2). */
+export const DOMINIO_PARQUEADERO = 'parqueadero.laboratorio-digital.app';
+/** Su zona: el token de producción tiene que verla (P12). */
+export const ZONA_PARQUEADERO = 'laboratorio-digital.app';
+export const RUTA_WRANGLER_PARQUEADERO = join(RAIZ, 'apps', 'parqueadero-sitio', 'wrangler.jsonc');
+/** El dataset de Analytics Engine de la caja; staging lleva `_staging`. */
+export const DATASET_PARQUEADERO = 'parqueadero_eventos';
+export function wranglerDelParqueadero(): Record<string, unknown> {
+  return {
+    $schema: 'node_modules/wrangler/config-schema.json',
+    name: WORKER_PARQUEADERO,
+    main: 'src/worker.ts',
+    compatibility_date: FECHA_COMPATIBILIDAD,
+    assets: { directory: './dist', binding: 'ASSETS', run_worker_first: ['/_m'] },
+    workers_dev: false,
+    routes: [{ pattern: DOMINIO_PARQUEADERO, custom_domain: true }],
+    analytics_engine_datasets: [{ binding: 'EVENTOS', dataset: DATASET_PARQUEADERO }],
+    observability: { enabled: true },
+    env: {
+      staging: {
+        name: `${WORKER_PARQUEADERO}-staging`,
+        workers_dev: true,
+        routes: [],
+        analytics_engine_datasets: [
+          { binding: 'EVENTOS', dataset: `${DATASET_PARQUEADERO}_staging` },
+        ],
+      },
+    },
+  };
+}
+
+export const textoWranglerDelParqueadero = (): string => comoTexto(wranglerDelParqueadero());
 export const textoWranglerDelSitio = (config: ConfigCeldas): string =>
   comoTexto(wranglerDelSitio(config));
 export const textoWranglerDelCore = (config: ConfigCeldas): string =>
   comoTexto(wranglerDelCore(config));
 export const textoWranglerDeLaCelda = (celda: Celda): string => comoTexto(wranglerDeLaCelda(celda));
 
+/** Las celdas que sirven al agro: las únicas con la API de `apps/api-celda` (HU-Q7.2). */
+export const celdasDelAgro = (config: ConfigCeldas): Celda[] =>
+  config.celdas.filter((c) => c.producto === 'agro');
+/** Las celdas del parqueadero (HU-Q7.2): sus bases D1, su KV y su API (`apps/parqueadero-api`, HU-Q7.4). */
+export const celdasDelParqueadero = (config: ConfigCeldas): Celda[] =>
+  config.celdas.filter((c) => c.producto === 'parqueadero');
+
+/** Migraciones de los shards del parqueadero, relativas a apps/parqueadero-api. */
+export const MIGRACIONES_PARQUEADERO = '../../infrastructure/migraciones/parqueadero';
+export const rutaWranglerCeldaDelParqueadero = (celdaId: string) =>
+  join(RAIZ, 'apps', 'parqueadero-api', `wrangler.${celdaId}.jsonc`);
+
+/**
+ * Una celda del parqueadero (HU-Q7.2): el Worker de su API (`parqueadero-api-<celda>`, HU-Q7.4) y
+ * un binding D1 por shard con sus migraciones, para `wrangler d1 migrations apply` y para el D1
+ * local de las pruebas. Los ids, el KV, las claves del CORE y los orígenes los agrega el despliegue.
+ */
+export function wranglerDeLaCeldaDelParqueadero(celda: Celda): Record<string, unknown> {
+  const bases = (staging: boolean) =>
+    celda.shards.map((shard) => ({
+      binding: shard,
+      database_name: baseDelShard(shard, staging),
+      migrations_dir: MIGRACIONES_PARQUEADERO,
+    }));
+  const nombre = `parqueadero-api-${celda.id}`;
+  return {
+    $schema: '../../node_modules/wrangler/config-schema.json',
+    name: nombre,
+    main: 'src/worker.ts',
+    compatibility_date: FECHA_COMPATIBILIDAD,
+    workers_dev: true,
+    vars: { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan },
+    d1_databases: bases(false),
+    env: {
+      staging: {
+        name: `${nombre}-staging`,
+        workers_dev: true,
+        vars: { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan },
+        d1_databases: bases(true),
+      },
+    },
+  };
+}
+export const textoWranglerDeLaCeldaDelParqueadero = (celda: Celda): string =>
+  comoTexto(wranglerDeLaCeldaDelParqueadero(celda));
+
 if (process.argv[1]?.endsWith('generar-wrangler.ts')) {
   const config = cargarCeldas();
   writeFileSync(RUTA_WRANGLER_SITIO, textoWranglerDelSitio(config));
   writeFileSync(RUTA_WRANGLER_CORE, textoWranglerDelCore(config));
-  const deCeldas = config.celdas.map((celda) => {
+  const deCeldas = celdasDelAgro(config).map((celda) => {
     writeFileSync(rutaWranglerCelda(celda.id), textoWranglerDeLaCelda(celda));
     return rutaWranglerCelda(celda.id);
   });
+  mkdirSync(join(RAIZ, 'apps', 'parqueadero-api'), { recursive: true });
+  for (const celda of celdasDelParqueadero(config)) {
+    writeFileSync(
+      rutaWranglerCeldaDelParqueadero(celda.id),
+      textoWranglerDeLaCeldaDelParqueadero(celda),
+    );
+    deCeldas.push(rutaWranglerCeldaDelParqueadero(celda.id));
+  }
   writeFileSync(RUTA_WRANGLER_ENSAYO, comoTexto(wranglerDeEnsayo()));
-  for (const ruta of [RUTA_WRANGLER_SITIO, RUTA_WRANGLER_CORE, RUTA_WRANGLER_ENSAYO, ...deCeldas])
+  writeFileSync(RUTA_WRANGLER_PARQUEADERO, textoWranglerDelParqueadero());
+  for (const ruta of [
+    RUTA_WRANGLER_SITIO,
+    RUTA_WRANGLER_CORE,
+    RUTA_WRANGLER_ENSAYO,
+    RUTA_WRANGLER_PARQUEADERO,
+    ...deCeldas,
+  ])
     console.log(`✅ ${ruta}`);
 }

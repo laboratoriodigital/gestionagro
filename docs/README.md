@@ -2,7 +2,7 @@
 
 Qué es cada documento, cuál manda sobre qué y dónde está cada uno. Cada tema tiene una sola fuente (P2); los demás la citan.
 
-Desde el 5 oct 2026 este repositorio es la **plataforma** del ecosistema (`laboratoriodigital/plataforma`, ADR-26), con dos productos: **CultivoPro**, en producción, y la **Tienda 3.0**, diseñada. Por eso `docs/` se ordena por producto.
+Desde el 5 oct 2026 este repositorio es la **plataforma** del ecosistema (`laboratoriodigital/plataforma`, ADR-26), con dos productos: **CultivoPro**, en producción, y la **Tienda 3.0**, diseñada. Desde el 6 oct 2026 se diseña un tercero para su primer cliente, el **Parqueadero ED1** (ADR-31, propuesto). Por eso `docs/` se ordena por producto.
 
 ```text
 docs/
@@ -23,6 +23,13 @@ docs/
 │   ├── BITACORA_TIENDA3.md lo que se rompió y se aprendió en la Tienda 3.0 (la bitácora tienda3)
 │   ├── historia/          el estudio de mercado anterior
 │   └── sql/               migraciones propuestas de la tienda, con su prueba
+├── parking/               el Parqueadero ED1, para su primer cliente
+│   ├── ESTUDIO-MERCADO-PARQUEADEROS-ED1-2026-10.md el mercado de los parqueaderos en Colombia
+│   ├── ARQUITECTURA-PARQUEADERO.md la arquitectura de la solución (ADR-31 a ADR-40)
+│   ├── BACKLOG-PARKING.md plan, sprints e historias del parqueadero (M0 a M3)
+│   ├── BACKLOG-PARKING_MVP.md las 37 historias del MVP, las demostraciones y el piloto
+│   ├── BITACORA-PARKING.md lo que se rompió y se aprendió en el parqueadero (la bitácora parqueadero)
+│   └── sql/               el modelo de datos propuesto, con su prueba
 ├── runbooks/              procedimientos paso a paso
 └── seguridad/             revisiones de seguridad
 ```
@@ -57,10 +64,16 @@ docs/
 | `tienda/BITACORA-ecommerce.md` | Copia de referencia de la bitácora de la línea ecommerce (P1–P21, «bitácora ecommerce N») | Se reemplaza por la vigente cuando se quiera releer. No se edita aquí |
 | `tienda/historia/` | El estudio de ecommerce v1.2 | Nunca |
 | `tienda/sql/` | Las migraciones propuestas de la tienda y su prueba (ver su `README.md`) | Con el diseño |
+| `parking/ESTUDIO-MERCADO-PARQUEADEROS-ED1-2026-10.md` | El mercado de los parqueaderos en Colombia: competencia, tarifas y topes, recibos y precios («estudio §N» en los documentos del parqueadero) | Nueva investigación |
+| `parking/ARQUITECTURA-PARQUEADERO.md` | El diseño del Parqueadero ED1 («PARQUEADERO §N»): ADR-31 a ADR-40 (propuestas), la caja local, los recibos, la impresión en la GOOJPRT PT-210 y WhatsApp | Cambia el diseño. Cada pieza pasa a `ARQUITECTURA.md` en el pull request que la implementa |
+| `parking/BACKLOG-PARKING.md` | Hitos, sprints, épicas, historias, work items y velocidad del parqueadero (M0 a M3), con la dirección de diseño de la caja | Planeación y cierre de cada sprint del parqueadero |
+| `parking/BACKLOG-PARKING_MVP.md` | El MVP del primer cliente (M0): sus 37 historias, las demostraciones de cada viernes, el piloto y lo que se necesita del cliente | Planeación y cierre de cada sprint de M0 |
+| `parking/BITACORA-PARKING.md` | Lo que se rompió y se aprendió en el parqueadero («bitácora parqueadero N»), con las mismas convenciones que las otras bitácoras para unirlas | Algo se rompe o se aprende en el parqueadero. Una entrada nueva va al final |
+| `parking/sql/` | El modelo de datos propuesto del parqueadero y su prueba con `node:sqlite` (ver su `README.md`) | Con el diseño |
 | `runbooks/` | Procedimientos paso a paso: despliegue, ambientes de GitHub, pagos con Bold, cambio de dominio, kill switch, vigía de cuota y renombrar el repositorio | Cambia el procedimiento |
 | `seguridad/` | Revisiones de seguridad, con cada hallazgo, su arreglo y su prueba | Cada revisión |
 
-**Orden de precedencia ante una contradicción:** documentos de ED1 → `ARQUITECTURA.md` → `BACKLOG.md`. Los diseños de `plataforma/` y `tienda/` proponen; `ARQUITECTURA.md` decide, y lo construido manda sobre lo diseñado. Si una instrucción nueva contradice alguno, se señala antes de actuar (instrucciones del proyecto §1).
+**Orden de precedencia ante una contradicción:** documentos de ED1 → `ARQUITECTURA.md` → `BACKLOG.md`. Los diseños de `plataforma/`, `tienda/` y `parking/` proponen; `ARQUITECTURA.md` decide, y lo construido manda sobre lo diseñado. Si una instrucción nueva contradice alguno, se señala antes de actuar (instrucciones del proyecto §1).
 
 ## Los dominios (ADR-27)
 

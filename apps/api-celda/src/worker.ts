@@ -30,7 +30,7 @@ import { avisarSiCambio } from './avisos.ts';
 import { pull } from './pull.ts';
 import { push } from './push.ts';
 import { clavesQr, firmarLote } from './qr.ts';
-import { type KvDeFlags, resumen, vigilar } from './vigia.ts';
+import { type KvDeFlags, type MapaDeFilas, resumen, vigilar } from './vigia.ts';
 import { presupuestoDe } from './vigia-pago.ts';
 
 /** Producto cuyo kill switch apaga la sincronización (`content/agro/cuaderno/product.yaml`). */
@@ -70,6 +70,10 @@ export interface Env {
   /** Con Workers Paid: el presupuesto del producto en dólares y lo que se apaga al agotarlo (HU-C11.1). */
   PRESUPUESTO_USD_MES?: string;
   AL_AGOTARSE?: string;
+  /** Las filas de D1 por día de cada producto, en JSON (HU-Q7.13). */
+  FILAS_D1_POR_PRODUCTO?: string;
+  /** El producto de cada base D1 de la cuenta, por id, en JSON: lo hornea el despliegue (HU-Q7.13). */
+  PRODUCTO_DE_BASE?: string;
   /** Un binding D1 por shard, con el nombre del shard. */
   [shard: string]: unknown;
 }
@@ -299,6 +303,7 @@ export async function vueltaDelVigia(env: Env, ahora: number, fetchFn: typeof fe
     fetchFn,
     env.PLAN,
     presupuestoDe(env.PRESUPUESTO_USD_MES, env.AL_AGOTARSE),
+    mapaDeFilasDe(env.PRODUCTO_DE_BASE, env.FILAS_D1_POR_PRODUCTO),
   );
   (v.fallas.length > 0 || v.nivel !== 'normal' ? console.error : console.log)(resumen(v));
   // Alerta al dueño por Telegram, solo si cambió lo que hay que decir (HU-E8.3).
@@ -315,4 +320,24 @@ export async function vueltaDelVigia(env: Env, ahora: number, fetchFn: typeof fe
   if (aviso.startsWith('fallo'))
     console.error(`vigía: la alerta no salió; se reintenta en la próxima vuelta. ${aviso}`);
   return { ...v, aviso };
+}
+
+/** El mapa de filas que hornea el despliegue; uno que no se puede leer se ignora y se dice (P1). */
+export function mapaDeFilasDe(bases?: string, presupuestos?: string): MapaDeFilas | null {
+  const leer = (texto: string | undefined, nombre: string): Record<string, never> | null => {
+    if (!texto) return null;
+    try {
+      const valor = JSON.parse(texto) as unknown;
+      if (valor && typeof valor === 'object' && !Array.isArray(valor))
+        return valor as Record<string, never>;
+    } catch {
+      // Se dice abajo, con el mismo aviso que un valor que no es objeto.
+    }
+    console.error(`vigía: ${nombre} no es un objeto JSON; las filas no se reparten por producto`);
+    return null;
+  };
+  const productoDeBase = leer(bases, 'PRODUCTO_DE_BASE');
+  const porProducto = leer(presupuestos, 'FILAS_D1_POR_PRODUCTO');
+  if (!productoDeBase && !porProducto) return null;
+  return { productoDeBase: productoDeBase ?? {}, presupuestos: porProducto ?? {} };
 }

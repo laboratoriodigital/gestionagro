@@ -1,0 +1,37 @@
+# Ensayo de la baja de un parqueadero en staging (HU-Q10.2 CA2, docs/runbooks/parqueadero-baja.md):
+# siembra Parqueadero Ensayo Dos en el shard de staging, comprueba que D1 rechaza el DELETE sin
+# purga, exporta, verifica la huella, purga y deja la celda como estaba. Solo a mano y solo en
+# staging: nunca toca producción ni un parqueadero de verdad (el id del ensayo no es de ninguna
+# cuenta).
+name: ensayo-baja-parqueadero
+
+on:
+  workflow_dispatch:
+
+# Cancelar uno a mitad no deja nada roto: el ensayo empieza limpiando lo que otro dejó.
+concurrency:
+  group: ensayo-baja-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ensayar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+      - name: Ensayar la baja con Ensayo Dos
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: node scripts/baja-parqueadero.ts ensayar --destino staging

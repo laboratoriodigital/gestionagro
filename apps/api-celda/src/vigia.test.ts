@@ -9,9 +9,12 @@ import {
   CLAVE_NIVEL,
   CUOTAS_GRATUITAS,
   decidirNivel,
+  escalonDeFilas,
+  filasPorProducto,
   type KvDeFlags,
   medir,
   nivelPorUso,
+  OTRAS_BASES,
   resumen,
   ventanas,
   vigilar,
@@ -204,5 +207,87 @@ describe('el plan de la celda', () => {
     expect(pedidos).toEqual([]);
     expect(v.nivel).toBe('alerta');
     expect(v.fallas).toEqual(['las cuotas del plan «cliente» no están definidas en el vigía']);
+  });
+});
+
+describe('HU-Q7.13 · las filas de D1 de la cuenta, por producto', () => {
+  const MAPA = {
+    productoDeBase: {
+      'base-agro': 'agro',
+      'base-core': 'core',
+      'base-parqueadero': 'parqueadero',
+      'base-parqueadero-staging': 'parqueadero (staging)',
+    },
+    presupuestos: { parqueadero: 70_000 },
+  };
+  const deBase = (base: string, rowsWritten: number) => ({
+    sum: { rowsRead: 0, rowsWritten },
+    dimensions: { databaseId: base },
+  });
+
+  it.each([
+    [0, 0],
+    [49.9, 0],
+    [50, 50],
+    [74.9, 50],
+    [75, 75],
+    [90, 90],
+    [130, 90],
+  ] as const)('%s %% → escalón %s', (p, escalon) => {
+    expect(escalonDeFilas(p)).toBe(escalon);
+  });
+
+  it('pregunta por base y suma por producto; lo que el mapa no conoce va en «otras bases»', async () => {
+    const { fn, pedidos } = graphql({
+      d1: [
+        deBase('base-agro', 1_000),
+        deBase('base-core', 500),
+        deBase('base-parqueadero', 30_000),
+        deBase('base-parqueadero', 10_000),
+        deBase('base-rara', 200),
+      ],
+    });
+    const { kv } = kvFalso();
+    const v = await vigilar(kv, 't', 'c', AHORA, fn, 'free', null, MAPA);
+    expect(pedidos.find((p) => p.query.includes('d1AnalyticsAdaptiveGroups'))?.query).toContain(
+      'dimensions { databaseId }',
+    );
+    expect(v.filas).toEqual({
+      escalon: 0,
+      porProducto: [
+        ['parqueadero', 40_000],
+        ['agro', 1_000],
+        ['core', 500],
+        [OTRAS_BASES, 200],
+      ],
+      sobrePresupuesto: [],
+    });
+    expect(filasPorProducto({ x: 3 }, {})).toEqual({ [OTRAS_BASES]: 3 });
+  });
+
+  it('CA3 ❌: con el límite de la cuenta al 95 %, avisa y dice quién pasó sus filas (staging cuenta)', async () => {
+    const { fn } = graphql({
+      d1: [
+        deBase('base-parqueadero', 60_000),
+        deBase('base-parqueadero-staging', 20_000),
+        deBase('base-agro', 15_000),
+      ],
+    });
+    const { kv } = kvFalso();
+    const v = await vigilar(kv, 't', 'c', AHORA, fn, 'free', null, MAPA);
+    expect(v.uso.d1_filas_escritas).toBe(95);
+    expect(v.nivel).toBe('esencial');
+    expect(v.filas?.escalon).toBe(90);
+    expect(v.filas?.sobrePresupuesto).toEqual(['parqueadero']);
+  });
+
+  it('sin mapa también mide: todo va en «otras bases» y el escalón sale igual', async () => {
+    const { fn } = graphql({ d1: [deBase('base-agro', 52_000)] });
+    const v = await vigilar(kvFalso().kv, 't', 'c', AHORA, fn);
+    expect(v.filas).toEqual({
+      escalon: 50,
+      porProducto: [[OTRAS_BASES, 52_000]],
+      sobrePresupuesto: [],
+    });
   });
 });

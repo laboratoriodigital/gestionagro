@@ -1,13 +1,16 @@
 # Las herramientas de scripts/ corren en la máquina del dueño, que es Windows (P3, ADR-18).
-# Por costo de minutos (Windows cuenta doble): solo si cambian scripts/ o las dependencias,
-# y los lunes a las 07:00 hora de Colombia (12:00 UTC).
+# Por costo de minutos (Windows cuenta doble): una vez por cambio, cuando llega a main y toca
+# scripts/ o las dependencias, no en cada push de un PR (8 oct 2026: era un cuarto de los minutos
+# del mes); los lunes a las 07:00 hora de Colombia (12:00 UTC), y a mano. `package.json` ya no lo
+# dispara (HU-C11.8, 12 oct 2026): cada versión del agro lo cambia solo en el número, y eran 12
+# minutos por publicación; un cambio de dependencias cambia también `pnpm-lock.yaml`.
 name: scripts-windows
 
 on:
-  pull_request:
+  push:
+    branches: [main]
     paths:
       - "scripts/**"
-      - "package.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/scripts-windows.yml"
   schedule:

@@ -158,12 +158,37 @@ describe('los flujos del repositorio', () => {
     expect(hallazgos).toEqual([]);
   });
 
-  it('el flujo de Windows corre en windows-latest (o en el runner propio) cuando cambian scripts/ y los lunes', () => {
+  it('el flujo de Windows corre en windows-latest (o en el runner propio) cuando scripts/ llega a main y los lunes', () => {
     const f = parse(readFileSync(join(RAIZ, '.github/workflows/scripts-windows.yml'), 'utf8'));
     // biome-ignore lint/suspicious/noTemplateCurlyInString: es una expresión de GitHub Actions, no de JavaScript
     expect(f.jobs.windows['runs-on']).toBe("${{ vars.RUNNER_CI || 'windows-latest' }}");
-    expect(f.on.pull_request.paths).toContain('scripts/**');
+    expect(f.on.push.branches).toEqual(['main']);
+    expect(f.on.push.paths).toContain('scripts/**');
+    // Cada push de un PR costaba el doble en Windows: no corre en los PR (8 oct 2026).
+    expect(f.on.pull_request).toBeUndefined();
     expect(f.on.schedule[0].cron).toMatch(/ 1$/);
+    // Cada versión del agro cambia package.json solo en el número: no paga Windows (HU-C11.8).
+    expect(f.on.push.paths).not.toContain('package.json');
+    expect(f.on.push.paths).toContain('pnpm-lock.yaml');
+  });
+
+  it('el CI no corre en borradores, corre al marcarlos listos y una vez por semana con todo (HU-C11.8)', () => {
+    const f = parse(readFileSync(join(RAIZ, '.github/workflows/ci.yml'), 'utf8'));
+    expect(f.on.pull_request.types).toEqual(
+      expect.arrayContaining(['opened', 'synchronize', 'reopened', 'ready_for_review']),
+    );
+    expect(f.jobs.verificar.if).toBe(
+      "github.event_name != 'pull_request' || !github.event.pull_request.draft",
+    );
+    expect(f.on.schedule[0].cron).toMatch(/ 1$/);
+    const verificar = (
+      f.jobs.verificar.steps as { run?: string; env?: Record<string, string> }[]
+    ).find((p) => p.run === 'node scripts/verificar.ts --ci');
+    // Los PR deciden el instrumento de D1 por lo que cambió; main sin verificar y la semanal, workerd.
+    expect(verificar?.env?.['D1_INSTRUMENTO']).toBe(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: es una expresión de GitHub Actions
+      "${{ github.event_name == 'pull_request' && 'auto' || 'workerd' }}",
+    );
   });
 });
 

@@ -11,7 +11,7 @@ import {
   puede,
   puedeRegistro,
   type Rol,
-} from '@ed1/sync';
+} from '@ed1/agro-schema/sync';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { leerSesion, rolEnLaFinca } from '../almacen/sesion.ts';

@@ -1,0 +1,93 @@
+---
+// El generador de recibo de entrada (HU-Q11.4; estudio §12.2, herramienta 2). Estático: el recibo
+// se arma en el navegador con `@ed1/parqueadero-recibos`, sin cuenta, y lo escrito se queda en este
+// navegador. Termina con el siguiente paso, la caja (CA1). La lógica está en
+// `src/herramientas/recibo-de-entrada.ts`.
+import '../../../hoja-recibo.css';
+import { NOMBRES_DE_VEHICULO, VEHICULOS } from '@ed1/parqueadero-schema';
+import Sitio from '../../../layouts/Sitio.astro';
+import { GENERADOR } from '../../../sitio/contenido.ts';
+---
+<Sitio titulo={GENERADOR.titulo} descripcion={GENERADOR.resumen} ruta={GENERADOR.ruta}>
+  <h1>{GENERADOR.titular}</h1>
+  <p class="entrada">{GENERADOR.entrada}</p>
+
+  <form id="generador" class="formulario" data-producto={GENERADOR.producto} novalidate>
+    <fieldset>
+      <legend>Su parqueadero</legend>
+      <label>Nombre<input name="nombre" autocomplete="organization" maxlength="40" /></label>
+      <label>NIT<input name="nit" inputmode="numeric" maxlength="20" /></label>
+      <label>Dirección<input name="direccion" autocomplete="street-address" maxlength="60" /></label>
+      <label>Ciudad<input name="ciudad" autocomplete="address-level2" maxlength="30" /></label>
+      <label>Teléfono<input name="telefono" type="tel" autocomplete="tel" maxlength="20" /></label>
+      <label>Aseguradora de la póliza (si tiene)<input name="aseguradora" maxlength="40" /></label>
+      <label>Número de la póliza<input name="poliza" maxlength="30" /></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Tarifa</legend>
+      <label
+        >Cobra
+        <select name="modo">
+          <option value="minuto">Por minuto</option>
+          <option value="fraccion">Por fracción</option>
+          <option value="hora">Por hora</option>
+        </select>
+      </label>
+      <label>Valor en pesos<input name="valor" inputmode="numeric" maxlength="7" /></label>
+      <label data-fraccion hidden>Minutos de cada fracción<input name="fraccion" inputmode="numeric" maxlength="3" /></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>El vehículo</legend>
+      <label>Número del recibo (el de su talonario)<input name="numero" inputmode="numeric" maxlength="8" /></label>
+      <label>Placa<input name="placa" autocapitalize="characters" autocomplete="off" maxlength="12" /></label>
+      <label
+        >Tipo
+        <select name="vehiculo">
+          {NOMBRES_DE_VEHICULO.map((v) => <option value={v}>{VEHICULOS[v].nombre}</option>)}
+        </select>
+      </label>
+      <label>Hora de entrada<input name="entrada" type="datetime-local" /></label>
+      <label
+        >Estado del vehículo (una novedad por línea; vacío es sin novedad)
+        <textarea name="estado" rows="3" maxlength="300"></textarea>
+      </label>
+    </fieldset>
+
+    <p id="faltan" class="aviso-error" role="alert" hidden></p>
+    <button class="boton" type="submit">Hacer el recibo</button>
+  </form>
+
+  <section id="resultado" class="resultado" aria-labelledby="titulo-resultado" hidden>
+    <h2 id="titulo-resultado" class="solo-lectores" tabindex="-1">El recibo</h2>
+    <div id="hoja"></div>
+    <div class="acciones">
+      <button id="imprimir" class="boton" type="button">Imprimir</button>
+      <label>WhatsApp del conductor<input id="whatsapp" type="tel" autocomplete="off" /></label>
+      <label class="casilla"
+        ><input id="autoriza" type="checkbox" /> El conductor autoriza que le enviemos su recibo por
+        WhatsApp</label
+      >
+      <p id="whatsapp-falta" class="aviso-error" role="alert" hidden></p>
+      <a id="enviar" class="boton boton-secundario" href="#" target="_blank" rel="noopener"
+        >Mandar por WhatsApp</a
+      >
+      <button id="otro" class="boton boton-secundario" type="button">Hacer otro recibo</button>
+    </div>
+  </section>
+
+  <aside class="siguiente" aria-labelledby="siguiente">
+    <h2 id="siguiente">{GENERADOR.siguiente.titulo}</h2>
+    <p>{GENERADOR.siguiente.texto}</p>
+    <a id="ir-a-la-caja" class="boton" href="/caja/">{GENERADOR.siguiente.accion}</a>
+  </aside>
+
+  <p slot="pie">El recibo dice que salió de este generador: no es un recibo de caja.</p>
+
+  <script>
+    import { iniciarGenerador } from '../../../herramientas/recibo-de-entrada.ts';
+
+    iniciarGenerador(document);
+  </script>
+</Sitio>

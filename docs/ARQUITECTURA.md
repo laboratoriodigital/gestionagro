@@ -27,7 +27,7 @@ Contradicciones con ED1 que este documento resuelve de forma explícita (no las 
 
 ## 1. Decisiones (ADR)
 
-Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`. Estado: **Propuesta** hasta que el dueño la apruebe, **Aceptada** después. Revisión del 30 sep 2026 (HU-E0.1): ADR-1 a ADR-18 aceptadas sin cambios. ADR-19 aceptada con el plan B por decisión del dueño: subdominio propio, mismas rutas; el spike HU-E1.4 se cancela. Decisiones del dueño del 5 oct 2026: ADR-20 a ADR-22 aceptadas en la mañana; ADR-23, ADR-26 y ADR-27 en la tarde. ADR-24 y ADR-25 quedan propuestas. ADR-28 a ADR-30, aceptadas en la noche del 5 oct 2026 con las decisiones D-C1 a D-C5 del plan del CORE (`docs/plataforma/BACKLOG_CORE.md` §9). Su diseño está en `docs/plataforma/PLATAFORMA.md` y `docs/tienda/TIENDA-3.0.md`, y pasa a §5 en el pull request que implementa cada pieza (P18).
+Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`. Estado: **Propuesta** hasta que el dueño la apruebe, **Aceptada** después. Revisión del 30 sep 2026 (HU-E0.1): ADR-1 a ADR-18 aceptadas sin cambios. ADR-19 aceptada con el plan B por decisión del dueño: subdominio propio, mismas rutas; el spike HU-E1.4 se cancela. Decisiones del dueño del 5 oct 2026: ADR-20 a ADR-22 aceptadas en la mañana; ADR-23, ADR-26 y ADR-27 en la tarde. ADR-24 y ADR-25 quedan propuestas. ADR-28 a ADR-30, aceptadas en la noche del 5 oct 2026 con las decisiones D-C1 a D-C5 del plan del CORE (`docs/plataforma/BACKLOG_CORE.md` §9). ADR-31, aceptada por el dueño el 8 oct 2026 (HU-Q7.1); ADR-32 a ADR-40 siguen propuestas en `docs/parking/ARQUITECTURA-PARQUEADERO.md` §1. Su diseño está en `docs/plataforma/PLATAFORMA.md` y `docs/tienda/TIENDA-3.0.md`, y pasa a §5 en el pull request que implementa cada pieza (P18).
 
 | ADR | Decisión | Por qué, en una línea | Alternativa descartada | Estado |
 |---|---|---|---|---|
@@ -61,6 +61,7 @@ Cada decisión tiene número fijo; el código y el backlog la citan como `ADR-N`
 | 28 | **La cuenta ED1 es una app de primera parte del CORE**, declarada como el producto `cuenta` en `productos.json`: sin tipos ni planes, con su sesión propia y tokens `aud = cuenta` que solo abren `/api/core/cuenta/*` y nunca una celda (`BACKLOG_CORE.md` HU-C7.1) | Reusa la sesión por producto (R2) en vez de agregar una cookie del CORE como segundo mecanismo (P2). Un token de la cuenta robado no lee ni escribe datos de una finca o una tienda | La cuenta con cookie de sesión del CORE en su propio origen | Aceptada (5 oct 2026, D-C2). Se construye en HU-C7.3 |
 | 29 | **Sistema de diseño `@ed1/ui` v2** al lado de la v1: tokens en tres capas (primitivos, semánticos y tema por producto), tipografía Geist y Geist Mono (OFL 1.1) **autoalojada** con un tope de 70 KB, sin JavaScript para animar y sin terceros. La v1 sigue en el sitio y el cuaderno hasta que el dueño decida migrarlos (`BACKLOG_CORE.md` §4) | Pedido del dueño: frontend bonito, minimalista y moderno desde el inicio, sin romper static-first, la CSP `'self'` ni los presupuestos | Fuentes del sistema (cero bytes, v1); Google Fonts (un tercero en cada visita) | Aceptada (5 oct 2026, D-C1 y D-C3) |
 | 30 | **La copia fuera de Cloudflare va al Google Drive del dueño** (15 GB gratis): semanal, cifrada antes de salir, con la llave fuera de Google. Se suma al respaldo semanal en R2 de §8.3 (`BACKLOG_CORE.md` HU-C11.4) | Plan de salida de ED1 §20.3 a costo cero; el dueño ya eligió Drive para el respaldo del agro, por etapas | Google Cloud Storage o Backblaze B2 (`proveedores-de-computo.md` §4) | Aceptada (5 oct 2026, D-C5). La credencial y el tope de 15 GB se diseñan en HU-C11.4 |
+| 31 | El **parqueadero** entra como **excepción declarada** (como ADR-2 y ADR-21), con el cliente del MVP como **parqueadero cero**, tratado como cualquier otro (ADR-1). Es un producto del CORE como dato (`infrastructure/productos.json`, `"excepcion": "ADR-31"`), con su celda c2 (`docs/parking/ARQUITECTURA-PARQUEADERO.md`) | Hay un cliente que paga: es la evidencia que el estudio exigía (estudio del parqueadero §16, §17.3) | Esperar a la fase 7 de ED1 (§33), o construir para «los demás» y dejar fuera al primero (P6) | Aceptada |
 
 ---
 
@@ -318,6 +319,7 @@ Lo mínimo que exige tener cuentas, y nada más (ED1 §5, ADR-9):
   - Sin JavaScript: los componentes v2 de Preact se usan sin `client:*` y llegan como HTML. CSP `'self'` en `_headers`, `noindex` en cada página y `Disallow: /` en `robots.txt`. `scripts/verificar-cuenta.ts` revisa el build y lo detiene si algo de eso no se cumple.
   - Al ser el mismo origen que el CORE, la cuenta llama a `/api/core/*` sin CORS.
   - **Entrar y salir (HU-C7.3):** la cuenta es el producto `cuenta` de `productos.json`, sin organizaciones. Se entra con un formulario `GET` a `/api/core/auth/google/inicio?producto=cuenta`, que exige la casilla de su política; su único script (la sesión, en archivo) canjea el código y guarda el refresh en el navegador. `POST /api/core/auth/salir` cierra la sesión en el CORE. El token de la cuenta no trae organización, así que ninguna celda lo acepta.
+- **El Parqueadero ED1 (`apps/parqueadero-sitio`, `docs/parking/ARQUITECTURA-PARQUEADERO.md`):** un Worker solo de assets, en staging (`ed1-parqueadero-staging`) hasta que su dominio exista (HU-Q5.2). En `/caja/`, una PWA que funciona sin red e imprime por Web Bluetooth con `@ed1/impresion`; en M0 no tiene cuenta, API ni D1 (ADR-32), y su CSP solo deja conexiones a su origen (`scripts/lib/cabeceras-parqueadero.ts`). `scripts/desplegar.ts` lo publica después del CORE y su prueba de humo exige la caja con su CSP y su service worker.
 
 ### 5.5 Celda
 
@@ -326,7 +328,7 @@ Una celda = en **una** cuenta de Cloudflare:
 - Worker `agro-api-c{N}` (Hono), solo `/api/*`.
 - D1 `agro_c{N}_s{1..k}`: shards. Cada organización vive entera en uno.
 - R2 `agro-c{N}`: fotos, exportaciones y respaldos.
-- KV `agro-c{N}-flags`: kill switches, degradación y anillos de funciones.
+- KV `agro-c{N}-flags`: kill switches, degradación y anillos de funciones. Una celda de otro producto lleva su nombre: `parqueadero-c2-flags` (HU-Q7.2).
 - **Un** Cron Trigger despachador: vigía de cuota cada hora, respaldo semanal, purga de exportaciones vencidas (ED1 §7.1).
 
 Ningún identificador de cuenta, base o dominio está en el código. Todo sale de `infrastructure/celdas.json` (fuente única, P2), del que se generan `wrangler.toml` por celda y la tabla `celda` del CORE:
@@ -369,7 +371,7 @@ cursor local ───────GET  /api/v1/sync/pull?desde=<seq>&limite=200 
 
 - **Ids UUIDv7 generados en el teléfono** (`packages/ids`, que también usa el CORE). Reintentar es inofensivo: el mismo id no se inserta dos veces.
 - **Lotes de ≤ 25 operaciones** por solicitud. D1 gratuito permite 50 consultas por invocación del Worker (ED1 §41). Implementado (HU-E5.2): 3 lecturas y una escritura por operación en un solo `batch`, que es una transacción; 25 operaciones = 28 consultas. Actualizar un catálogo es una sola sentencia porque un trigger guarda la versión anterior en `entidad_historial` (migración 0002).
-- **Orden de envío:** la finca primero, después los catálogos, al final los registros. Un catálogo editado varias veces viaja una vez, con su versión vigente. Protocolo compartido en `packages/sync`.
+- **Orden de envío:** la finca primero, después los catálogos, al final los registros. Un catálogo editado varias veces viaja una vez, con su versión vigente. Protocolo compartido en `packages/sync`, que no sabe de ningún producto: cada uno le pasa sus entidades y sus esquemas (`crearValidador`, `crearPermisos`). Las del agro viven en `packages/agro-schema/src/sync.ts` y las del parqueadero en `packages/parqueadero-schema/src/sync.ts`; una guardia de repositorio impide que `packages/sync` importe de un producto (HU-Q7.3, ADR-39 del parqueadero). El formato en el cable no cambió.
 - **`reintentar`:** si otro teléfono de la misma finca escribió el mismo catálogo en el mismo instante, la operación se queda en la cola y se reenvía; en la vuelta siguiente decide la regla de conflictos. Ninguna versión se pierde.
 - **Conflictos de catálogos (HU-E5.4):** gana la última edición que llega a la celda.
   - Se guarda con la versión siguiente a la vigente, y la anterior queda en `entidad_historial` como «conflicto».
@@ -384,7 +386,7 @@ cursor local ───────GET  /api/v1/sync/pull?desde=<seq>&limite=200 
   - Cada operación lleva `v` (versión del esquema del registro).
   - El servidor acepta todas las versiones que alguna app publicada escribió y las traduce al leer.
   - Si la app es más vieja que `app_minima`, el push **se acepta igual** y la respuesta pide actualizar. Ningún dato de campo se pierde por venir de una app vieja.
-  - Implementado (HU-E5.5): `APP_MINIMA` en `packages/sync`; el teléfono manda su versión en cada push y muestra el pedido en el aviso de arriba. Los registros se guardan con la versión con que llegaron; `aVersionVigente` (`packages/agro-schema`) los traduce paso a paso al leerlos.
+  - Implementado (HU-E5.5): `APP_MINIMA` en `packages/agro-schema/src/sync.ts` (antes en `packages/sync`, HU-Q7.3); el teléfono manda su versión en cada push y muestra el pedido en el aviso de arriba. Los registros se guardan con la versión con que llegaron; `aVersionVigente` (`packages/agro-schema`) los traduce paso a paso al leerlos.
   - **Contrato de versiones:** cada app publicada deja en `packages/agro-schema/contratos/app-<versión>.json` una muestra de todo lo que escribe. Esos archivos no se editan ni se borran, y una prueba exige que la API vigente los acepte todos (P10).
 - **Pull que no pisa lo pendiente:** un cambio remoto sobre una entidad con edición local pendiente se guarda como conflicto y se muestra (§5.7). Implementado (HU-E5.3): el teléfono guarda la versión de la nube en su historial local (`<id>@v<versión>#nube`) y conserva la suya; al subirla, gana por llegar después y el otro teléfono recibe el aviso (HU-E5.4).
 - **Pull (HU-E5.3):** `GET /api/v1/sync/pull?registro=<seq>&catalogo=<seq>`, con dos cursores porque `seq` es por tabla. Hasta 200 cambios por página, catálogos primero; 2 lecturas, ninguna escritura. Cada página se aplica en el teléfono junto con su cursor, en una transacción. Lo que baja no entra a la cola de salida. Un teléfono sube primero y baja después.
@@ -567,8 +569,8 @@ Por eso ADR-7 y ADR-8. Abrir cuentas gratuitas para ganar cuota pone en riesgo *
 
 - **GitHub flow:** `main` protegida; ramas `feat/…`, `fix/…`, `docs/…`; pull request con CI en verde para fusionar.
 - **Commits en español**, pequeños, con la forma `tipo(alcance): descripción` (feat, fix, docs, refactor, test, ci, build, perf, chore o revert; alcance en minúsculas; 72 caracteres o menos) y **sin la marca de Claude Code** en commits ni en PR (decisión del dueño, 5 oct 2026). La guardia `scripts/verificar-commits.ts` revisa en el CI los commits, el título y la descripción de cada PR (HU-C0.2, `docs/plataforma/BACKLOG_CORE.md` §2.2).
-- **Versión semántica por producto** (`X.Y.Z`, HU-C0.3, PLATAFORMA §6.3). El agro (CultivoPro): `package.json` de la raíz, `CHANGELOG.md` y etiquetas `vX.Y.Z`; es la fuente de la versión del sitio, el cuaderno y la API de la celda (P2). El CORE: `apps/core/package.json`, `apps/core/CHANGELOG.md` y etiquetas `core-vX.Y.Z`, desde la línea base `core-v0.1.0` (el CORE de la v0.3.0). Un PR que cambia el código del CORE lo anota en su CHANGELOG: la guardia del CI lo exige.
-- **Etiquetas** `vX.Y.Z` y `core-vX.Y.Z` al publicar. Las crea el flujo de despliegue al fusionar un PR que sube la versión de ese producto (§7.3, publicación continua), no una persona.
+- **Versión semántica por producto** (`X.Y.Z`, HU-C0.3, PLATAFORMA §6.3). El agro (CultivoPro): `package.json` de la raíz, `CHANGELOG.md` y etiquetas `vX.Y.Z`; es la fuente de la versión del sitio, el cuaderno y la API de la celda (P2). El CORE: `apps/core/package.json`, `apps/core/CHANGELOG.md` y etiquetas `core-vX.Y.Z`, desde la línea base `core-v0.1.0` (el CORE de la v0.3.0). Un PR que cambia el código del CORE lo anota en su CHANGELOG: la guardia del CI lo exige. El parqueadero (HU-Q0.3): `apps/parqueadero-sitio/package.json`, `apps/parqueadero-sitio/CHANGELOG.md` y etiquetas `parqueadero-vX.Y.Z`; en `0.0.0` no se publica y vive solo en staging, y su guardia cubre `apps/parqueadero-*` y `packages/parqueadero-*`.
+- **Etiquetas** `vX.Y.Z`, `core-vX.Y.Z` y `parqueadero-vX.Y.Z` al publicar. Las crea el flujo de despliegue al fusionar un PR que sube la versión de ese producto (§7.3, publicación continua), no una persona.
 
 | Cambio | Versión |
 |---|---|
@@ -587,10 +589,20 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
  → resumen de la corrida con TODAS las fallas nombradas (P15)
 ```
 
-- **Dos instrumentos para la base de las pruebas (HU-C11.7):** en los PR, una base en proceso sobre `node:sqlite` (`packages/d1/src/sqlite.ts`); en `main`, el D1 local de workerd (`D1_INSTRUMENTO=workerd`), así una diferencia entre los dos aparece al fusionar. Las pruebas que prueban D1 mismo (la receta de reconstrucción, la matriz de producto) usan siempre workerd.
+- **Dos instrumentos para la base de las pruebas (HU-C11.7):** en los PR, una base en proceso sobre `node:sqlite` (`packages/d1/src/sqlite.ts`); el D1 local de workerd (`D1_INSTRUMENTO=workerd`) corre en el PR que toca la base, en `main` cuando el PR no estaba al día y en la corrida semanal de `main` (HU-C11.8), así una diferencia entre los dos aparece antes de fusionar o en la semana. Las pruebas que prueban D1 mismo (la receta de reconstrucción, la matriz de producto) usan siempre workerd.
 - Toda tubería en los flujos lleva `set -o pipefail`. Una prueba de los flujos lo exige (P14).
-- Las herramientas de `scripts/` también corren en `windows-latest`. Por costo de minutos, solo cuando cambian `scripts/` o una vez por semana (P3).
+- Las herramientas de `scripts/` también corren en `windows-latest`. Por costo de minutos, solo cuando un cambio de `scripts/` o de las dependencias llega a `main`, los lunes y a mano; no en cada push de un PR (P3).
 - Minutos: repo privado, 2.000 min/mes (ED1 §41). Objetivo: menos de 8 min por corrida y cancelar la corrida vieja de la misma rama.
+- **Lo que no se repite (HU-C11.3, 8 oct 2026):** la medición dio cerca de 1.920 minutos en 8 días: el CI de `main` 32 %, el de los PR 32 %, Windows 25 % y el despliegue 10 %. Por eso:
+  - En `main`, si el PR fusionado ya contenía el `main` de antes y su CI estaba en verde, el PR probó este mismo árbol (`scripts/ya-verificado.ts`): no corre ningún paso (HU-C11.8; hasta el 12 oct repetía las pruebas con workerd). Si la rama estaba atrasada, corre todo.
+  - Si todo lo que no es documento es del parqueadero (`esDelParqueadero` en `scripts/lib/alcance.ts`), el e2e corre solo `tests/e2e/parqueadero-*`. Un paquete compartido, `scripts/` o la raíz corren todo, y una prueba exige que nada fuera del parqueadero importe sus paquetes.
+- **Cada fusión cuesta un minuto (HU-C11.8, 12 oct 2026):** la medición del 5 al 12 oct dio unos 1.540 minutos facturables en 7 días: el CI de los PR 449, el de `main` 445, el despliegue 205 (64 de ellos, un trabajo que solo leía versiones) y Windows 422 (211 de reloj, que cuentan doble). Por eso:
+  - **El e2e de lo afectado, por app** (`scripts/lib/e2e-afectado.ts`): tres grupos, uno por origen que sirven las e2e (agro, cuenta y parqueadero). Quién usa a quién se lee del código: los `@ed1/…`, las rutas `packages/…`, `content/…`, `scripts/…` y `tests/fixtures/…` que nombra cada archivo, y sus importaciones relativas. Lo que no se sabe clasificar (la raíz, `infrastructure/`, el CI, una app nueva) corre todas; un cambio que no llega a ninguna app de las e2e (el CORE, la celda del agro, un guion del despliegue, una prueba unitaria) no corre ninguna y salta también los navegadores.
+  - **workerd cuando el cambio toca la base** (`esDeLaBase`): las apps con D1, `packages/d1`, las migraciones, las pruebas de integración y el lockfile. Una prueba exige que todo código con SQL viva en esas rutas. La red: una corrida semanal de `main` con todo, los lunes.
+  - **Un PR en borrador no corre CI**: corre al marcarlo listo y en cada push después.
+  - **El despliegue decide la publicación en el trabajo de staging** (`decidir_publicacion`), no en uno aparte que se cobraba como un minuto por fusión.
+  - **Windows no corre por `package.json`**: cada versión del agro lo cambia solo en el número. Sigue con `scripts/**`, `pnpm-lock.yaml`, los lunes y a mano.
+  - **Lo que más ahorraría queda en manos del dueño:** el runner propio (`docs/runbooks/runner-propio.md`) deja el CI y Windows en 0 minutos de GitHub; los despliegues siguen en GitHub.
 
 ### 7.3 Entornos y anillos
 
@@ -604,8 +616,8 @@ instalar (pnpm, desde cero cuando cambia package.json; bitácora ecommerce «not
 - **El código del servidor se despliega por celda**, en el orden de `anillo_despliegue` de `celdas.json`, celda por celda con `scripts/desplegar.ts` (no con matriz: así se detiene en la primera falla y nombra las que quedaron sin tocar). Staging sale cuando el CI termina en verde en `main`; producción, al publicar una versión.
 - **Publicación continua (4 oct 2026, v0.3.0).** El único paso a mano es aprobar y fusionar el PR. `.github/workflows/desplegar.yml`, en la misma corrida:
   1. Despliega staging (todo).
-  2. `scripts/decidir-publicacion.ts` mira si la versión del agro y la del CORE ya tienen su etiqueta. Por cada una que no, crea la etiqueta (`vX.Y.Z` o `core-vX.Y.Z`) y la versión en GitHub con las notas de su CHANGELOG (`scripts/notas-de-version.ts`, con `--core` para el del CORE).
-  3. Despliega a producción, con ese mismo commit, **solo lo que se publicó** (`desplegar.ts --productos`): el CORE sin el agro, el agro sin el CORE, o los dos con el CORE primero. Así, publicar el agro no lleva a producción cambios del CORE que nadie publicó (HU-C0.3).
+  2. `scripts/decidir-publicacion.ts` mira si la versión del agro, la del CORE y la del parqueadero ya tienen su etiqueta. Por cada una que no, crea la etiqueta (`vX.Y.Z`, `core-vX.Y.Z` o `parqueadero-vX.Y.Z`) y la versión en GitHub con las notas de su CHANGELOG (`scripts/notas-de-version.ts`, con `--core` o `--parqueadero`). El parqueadero en `0.0.0` no se publica.
+  3. Despliega a producción, con ese mismo commit, **solo lo que se publicó** (`desplegar.ts --productos`): el CORE sin el agro, el agro sin el CORE, o los dos con el CORE primero. Así, publicar el agro no lleva a producción cambios del CORE que nadie publicó (HU-C0.3). El parqueadero publicado va a su dominio; mientras la zona no exista (HU-Q5.2), su producción falla y lo dice, sin caer a `workers.dev`.
 
   Un PR que no sube la versión solo llega a staging. Para publicar, el PR sube la versión (§7.1) y agrega su sección fechada `## [X.Y.Z] - AAAA-MM-DD`. `tests/repo/version.test.ts` no deja fusionar una versión sin su sección. La versión se crea dentro del mismo flujo porque una versión creada con el token de Actions no dispara otros flujos. Cada destino corre en su **ambiente de GitHub** (`staging`, `produccion`), con sus propios secretos, desde el flujo reutilizable `desplegar-destino.yml` (procedimiento: `docs/runbooks/ambientes-github.md`). A mano siguen «Run workflow» (destino y, para retomar, una sola celda) y publicar una versión desde GitHub. Hoy viven en c0 el sitio, el CORE (HU-E4.1) y la API de la celda (HU-E5.1). En cada celda el orden es: sitio, CORE y API, porque la API necesita la clave pública del CORE. Procedimiento: `docs/runbooks/despliegue.md`.
 - **Las funciones se liberan por organización** con flags. En la tienda los anillos eran por repositorio; aquí son por organización y por celda.
@@ -672,6 +684,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
   - Lee las métricas de toda la cuenta en la API GraphQL de Cloudflare: Workers, D1 (filas leídas y escritas), KV (lecturas, y la mayor de escrituras, borrados y listados) y R2 (operaciones de clase A y B del mes).
   - Compara contra las cuotas del plan gratuito.
   - Si no puede leer algo, el nivel queda al menos en «alerta» y no baja (P1).
+  - **Filas de D1 por producto (HU-Q7.13):** las 100.000 filas escritas al día son de toda la cuenta. El vigía las pide por base (`databaseId`) y las reparte por producto con el mapa que hornea el despliegue (`PRODUCTO_DE_BASE`: el CORE por `celdas.json › core.d1`, cada shard por su prefijo `<producto>_c<N>_s<k>`, staging aparte). Avisa por Telegram al 50, 75 y 90 % del límite y cuando un producto pasa las filas que declara en `productos.json › presupuesto.d1_filas_escritas_dia`. Solo avisa: no apaga nada en el plan gratuito.
   - Token de solo lectura `CF_METRICAS_TOKEN` (§7.5). Runbook: `docs/runbooks/vigia-de-cuota.md`.
 
 ### 8.3 Respaldos
@@ -686,7 +699,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 ## 9. Seguridad y privacidad
 
 - **Autorización en la celda:** el rol viene del token. Operario: registra y ve lo suyo y lo de su área, sin costos ni ventas. Supervisor: todo lo operativo. Propietario: todo. Asesor: lectura de varias fincas. Auditor: solo lectura, con enlace que caduca.
-  - **La matriz es un dato (HU-E4.5):** `packages/sync/src/permisos.ts`, la misma para la celda y el teléfono (P2). Lo que no está en la matriz está negado. La celda decide; el teléfono solo esconde.
+  - **La matriz es un dato (HU-E4.5):** `packages/agro-schema/src/permisos-sync.ts` sobre `crearPermisos` de `packages/sync`, la misma para la celda y el teléfono (P2). Lo que no está en la matriz está negado. La celda decide; el teléfono solo esconde.
 
     | Entidad | Leen | Escriben |
     |---|---|---|
