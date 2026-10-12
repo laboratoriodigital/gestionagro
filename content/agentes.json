@@ -1,0 +1,34 @@
+{
+  "nota": "Qué agentes pueden leer cultivopro.co y para qué (HU-C8.1, PLATAFORMA §5.3). De aquí sale el robots.txt del sitio (apps/sitio/src/lib/robots.ts) y la prueba de humo del despliegue lo compara con lo publicado. `content_signal` es la señal de contentsignals.org; `ai-train` es una decisión del dueño (PLATAFORMA §9.2): mientras no la tome, vale la propuesta, `no`. Una familia con `segun: \"ai-train\"` solo entra si `ai-train` es `yes`. Lo que está en `cerrado_para_todos` no lo lee nadie.",
+  "content_signal": { "search": "yes", "ai-input": "yes", "ai-train": "no" },
+  "cerrado_para_todos": ["/api/", "/agro/app/"],
+  "familias": [
+    {
+      "id": "busqueda",
+      "descripcion": "Buscadores y asistentes que citan y enlazan al sitio",
+      "agentes": [
+        "OAI-SearchBot",
+        "Claude-SearchBot",
+        "PerplexityBot",
+        "ChatGPT-User",
+        "Claude-User",
+        "Perplexity-User"
+      ],
+      "segun": "search"
+    },
+    {
+      "id": "entrenamiento",
+      "descripcion": "Recolectores para entrenar modelos",
+      "agentes": [
+        "GPTBot",
+        "ClaudeBot",
+        "Google-Extended",
+        "CCBot",
+        "Applebot-Extended",
+        "meta-externalagent",
+        "Bytespider"
+      ],
+      "segun": "ai-train"
+    }
+  ]
+}

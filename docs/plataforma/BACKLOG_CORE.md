@@ -785,7 +785,7 @@ Formato de cada historia:
 ### EC8 · Legible por agentes, capa estática
 
 #### HU-C8.1 · Agentes y señales en `robots.txt`
-- **Capa:** sitio del agro · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C8 · **Depende de:** decisión `ai-train` (PLATAFORMA §9.2) · **Estado:** Refinada
+- **Capa:** sitio del agro · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C8 · **Depende de:** decisión `ai-train` (PLATAFORMA §9.2) · **Estado:** En validación (rama `feat/c8-sprint`. `content/agentes.json` con las dos familias de PLATAFORMA §5.3, lo cerrado para todos y la `Content-Signal`; `apps/sitio/src/lib/robots.ts` arma un grupo por familia: con su señal en `yes` lee lo público, con `no` nada. Al final, el grupo de todos con lo cerrado y la señal, y el sitemap. **`ai-train` va con la propuesta, `no`, mientras el dueño no decida otra cosa:** cambiarla es una línea del JSON. CA2: la prueba de humo del despliegue compara el `robots.txt` publicado con el generado; uno editado a mano la detiene. 5 pruebas; control negativo: el de la prueba de humo con un `robots.txt` a mano)
 - Como dueño, quiero decir qué agentes pueden leer y para qué.
 - **Respaldo:** PLATAFORMA §5.3 (1); ED1 §3.12.
 - **CA1.** `content/agentes.json` lista las familias; el `robots.txt` generado las aplica y cierra `/api/` y `/agro/app/` para todos, con `Content-Signal` al final.
