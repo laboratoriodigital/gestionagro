@@ -13,6 +13,16 @@
 
 **Pública** es lo que se indexa. Una calculadora en revisión agronómica (`estado: borrador`) no tiene gemelo ni sale en `llms.txt`, igual que no sale en el sitemap. Cuando se publique, aparece sola en el build siguiente.
 
+## Comprobar lo publicado
+
+El despliegue lo hace solo después de cada publicación a staging, y se detiene si algo falta (HU-C8.5). Para mirarlo a mano, desde la carpeta del repositorio y después de `pnpm build`:
+
+```bash
+node scripts/verificar-agentes.ts https://cultivopro.co
+```
+
+Sin dirección, revisa staging. Como segunda opinión, abre <https://isitagentready.com> con `cultivopro.co` desde tu computador: su puntaje no es el criterio, pero si dice algo que el script no ve, avísame.
+
 ## Pedir Markdown con `Accept: text/markdown` (el spike de HU-C8.2, CA2)
 
 El Worker del sitio no corre en las páginas públicas (static-first), así que la negociación solo la puede hacer una **regla de reescritura de la zona**. Falta comprobar si el plan gratuito la permite. Toma unos 10 minutos:

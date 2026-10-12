@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- `node scripts/verificar-agentes.ts [url]` comprueba lo que leen los agentes en el sitio desplegado: robots y su señal, sitemap, `llms.txt` y sus enlaces, cada gemelo con su cabecera `Link`, las habilidades con su huella, `security.txt` y que no haya un catálogo de API vacío. Corre en la prueba de humo del despliegue: una falla en staging detiene la salida a producción (HU-C8.5).
 - `/.well-known/security.txt` en cultivopro.co, con el correo de la política de datos y vencimiento a 180 días (HU-C8.4), y cada calculadora se describe como aplicación web gratuita en su JSON-LD (`WebApplication`).
 - Las calculadoras publicadas se ofrecen como habilidades de agente en `/.well-known/agent-skills/` (HU-C8.3), con la fórmula, el ejemplo, los rangos y las fuentes de su página, y la huella `sha256` de cada una. Solo las que pasaron la revisión agronómica: hoy ninguna, así que todavía no se publica nada.
 - `/llms.txt` y una versión en Markdown (`index.md`) de cada página pública de cultivopro.co, anunciada con `<link rel="alternate">` y la cabecera `Link` (HU-C8.2). Sale del mismo HTML de la página al armar el despliegue; una calculadora en revisión agronómica no tiene, y un enlace roto de `llms.txt` detiene el armado. Pasos para negociar `Accept: text/markdown` en la zona: `docs/runbooks/agentes.md`.

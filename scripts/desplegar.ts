@@ -12,7 +12,7 @@
  * `shell: true` solo porque en Windows `pnpm` es un `.cmd`.
  */
 import { spawnSync } from 'node:child_process';
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   CONSULTAS_DEL_CATALOGO,
@@ -21,6 +21,7 @@ import {
 } from '../apps/core/src/catalogo.ts';
 import { sentenciasDeCeldas } from '../apps/core/src/celdas.ts';
 import { killSwitchesDelCore } from '../apps/core/src/constantes.ts';
+import { SITIO } from '../apps/sitio/src/lib/seo.ts';
 import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
 import { generarClavePrivada } from '../packages/tokens/src/index.ts';
 import {
@@ -109,6 +110,12 @@ import {
   catalogoDelRepositorio,
 } from './lib/registro-productos.ts';
 import { RAIZ } from './lib/repo.ts';
+import {
+  esperadoDelRepositorio,
+  type InformeDeAgentes,
+  informeDeAgentes,
+  verificarAgentes,
+} from './lib/verificar-agentes.ts';
 
 const argumento = (nombre: string) => {
   const i = process.argv.indexOf(nombre);
@@ -255,10 +262,29 @@ async function desplegarSitio(
       detalle: [`sitio desplegado en ${base}, pero la prueba de humo falló:`, ...fallas],
     };
   }
+  // HU-C8.5: lo legible por agentes. En staging, una falla detiene el trabajo y producción no sale.
+  const esperado = esperadoDelRepositorio(RAIZ, SITIO, (ruta) =>
+    existsSync(ruta) ? readFileSync(ruta, 'utf8') : null,
+  );
+  let agentes: InformeDeAgentes = { fallas: [], avisos: [], noAplica: [] };
+  await conReintentos(async () => {
+    agentes = await verificarAgentes(fetch, base, esperado);
+    return agentes.fallas;
+  });
+  if (agentes.fallas.length > 0) {
+    return {
+      ok: false,
+      detalle: [
+        `sitio desplegado en ${base}, pero lo legible por agentes falló:`,
+        ...informeDeAgentes(agentes),
+      ],
+    };
+  }
   return {
     ok: true,
     detalle: [
       `sitio: ${base}`,
+      ...agentes.avisos.map((a) => `agentes: ${a}`),
       notaKv,
       `QR de trazabilidad: ${clavesQr.length} clave(s) de celda en /agro/t/`,
       ...avisosQr,

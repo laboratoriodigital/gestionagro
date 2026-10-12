@@ -817,7 +817,7 @@ Formato de cada historia:
 - **Work items:** WI-C8.4.1 `[código]` · WI-C8.4.2 `[prueba]`.
 
 #### HU-C8.5 · `verificar-agentes` detiene producción
-- **Capa:** CI · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** C8 · **Depende de:** HU-C8.1 a HU-C8.4 · **Estado:** Refinada
+- **Capa:** CI · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** C8 · **Depende de:** HU-C8.1 a HU-C8.4 · **Estado:** En validación (rama `feat/c8-sprint`. `scripts/lib/verificar-agentes.ts` y `node scripts/verificar-agentes.ts [url]`: las comprobaciones de PLATAFORMA §5.1 que aplican hoy, solo con GET y sin servicios externos (robots con su señal y un grupo por agente, sitemap, `llms.txt` con cada enlace vivo, cada gemelo y su cabecera `Link`, las habilidades contra el índice del build con su `sha256`, ningún catálogo de API, `security.txt` vigente). Lo que no aplica sale aparte con su porqué, y la negociación de Markdown es un aviso mientras la regla de la zona no exista. Corre en la prueba de humo del sitio, después de la de siempre: en staging, una falla detiene el trabajo y producción no sale (CA2). Contra el staging de hoy, sin el C8, da 16 fallas, que son lo que este sprint agrega. 6 pruebas; controles negativos: quitar la habilidad del índice publicado, cambiar su `sha256` o una letra del `SKILL.md`. WI-C8.5.3 es del dueño: isitagentready.com desde su máquina, como segunda opinión, después de publicar)
 - **Respaldo:** PLATAFORMA §5.8; P16.
 - **CA1.** `scripts/verificar-agentes.ts` hace las comprobaciones de PLATAFORMA §5.1 contra staging, con un informe de todas las fallas a la vez (P15).
 - **CA2 ❌.** Quitar una habilidad o cambiar su `sha256` detiene el despliegue a producción.
