@@ -16,6 +16,7 @@ export const T0 = new Date('2026-10-05T15:30:00Z');
 interface Archivo {
   id: string;
   name: string;
+  mimeType: string;
   parents: string[];
   contenido: string;
   createdTime: string;
@@ -40,14 +41,20 @@ export function crearDrive() {
       const u = new URL(pedido.url());
       if (u.pathname === '/upload/drive/v3/files') {
         const limite = (pedido.headers()['content-type'] ?? '').split('boundary=')[1] ?? '';
-        const partes = (pedido.postData() ?? '').split(`--${limite}`);
+        // Una foto llega como Blob (HU-Q8.3): se lee en bytes; aquí basta con contarla.
+        const partes = (pedido.postDataBuffer()?.toString('utf8') ?? '').split(`--${limite}`);
         const cuerpo = (p: string) =>
           p.split('\r\n\r\n').slice(1).join('\r\n\r\n').replace(/\r\n$/, '');
-        const meta = JSON.parse(cuerpo(partes[1] ?? '')) as { name: string; parents: string[] };
+        const meta = JSON.parse(cuerpo(partes[1] ?? '')) as {
+          name: string;
+          parents: string[];
+          mimeType: string;
+        };
         const id = `a${++n}`;
         archivos.push({
           id,
           name: meta.name,
+          mimeType: meta.mimeType,
           parents: meta.parents,
           contenido: cuerpo(partes[2] ?? ''),
           createdTime: new Date(T0.getTime() + n * 1000).toISOString(),
@@ -60,6 +67,7 @@ export function crearDrive() {
         archivos.push({
           id,
           name: meta.name,
+          mimeType: 'application/vnd.google-apps.folder',
           parents: [],
           contenido: '',
           createdTime: T0.toISOString(),

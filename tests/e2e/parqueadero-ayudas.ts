@@ -158,7 +158,7 @@ export async function configurarImpresora(
 }
 
 /** Un PNG de 1×1: basta para la imagen del QR de pagos. */
-const PNG = Buffer.from(
+export const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
   'base64',
 );

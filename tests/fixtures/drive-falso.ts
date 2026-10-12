@@ -16,7 +16,7 @@ export interface Archivo {
 }
 
 /** Google Drive en memoria: solo lo que usa la app. */
-export function driveFalso(opciones: { lleno?: boolean } = {}) {
+export function driveFalso(opciones: { lleno?: boolean; porPagina?: number } = {}) {
   const archivos: Archivo[] = [];
   let reloj = 0;
   const fn = (async (url: string, init?: RequestInit) => {
@@ -33,14 +33,20 @@ export function driveFalso(opciones: { lleno?: boolean } = {}) {
         );
       }
       const limite = (cabeceras['content-type'] ?? '').split('boundary=')[1] ?? '';
-      const partes = String(init?.body).split(`--${limite}`);
+      // Una foto llega como Blob (`subirArchivo`); la copia, como texto (`subirCopia`).
+      const cuerpo = init?.body instanceof Blob ? await init.body.text() : String(init?.body);
+      const partes = cuerpo.split(`--${limite}`);
       const cuerpoDe = (p: string) =>
         p.split('\r\n\r\n').slice(1).join('\r\n\r\n').replace(/\r\n$/, '');
-      const meta = JSON.parse(cuerpoDe(partes[1] ?? '')) as { name: string; parents: string[] };
+      const meta = JSON.parse(cuerpoDe(partes[1] ?? '')) as {
+        name: string;
+        parents: string[];
+        mimeType: string;
+      };
       const nuevo: Archivo = {
         id: `a${archivos.length + 1}`,
         name: meta.name,
-        mimeType: 'application/json',
+        mimeType: meta.mimeType,
         parents: meta.parents,
         contenido: cuerpoDe(partes[2] ?? ''),
         createdTime: new Date(T0.getTime() + reloj++ * 1000).toISOString(),
@@ -68,8 +74,14 @@ export function driveFalso(opciones: { lleno?: boolean } = {}) {
       const lista = archivos
         .filter((a) => (padre ? a.parents.includes(padre) : a.name === nombre))
         .sort((x, y) => y.createdTime.localeCompare(x.createdTime));
+      // Con `porPagina`, pagina como Google: `pageToken` es la posición de la siguiente.
+      const desde = Number(u.searchParams.get('pageToken') ?? 0);
+      const tamano = opciones.porPagina ?? lista.length;
+      const pagina = lista.slice(desde, desde + tamano);
+      const siguiente = desde + tamano < lista.length ? String(desde + tamano) : undefined;
       return Response.json({
-        files: lista.map((a) => ({
+        ...(siguiente ? { nextPageToken: siguiente } : {}),
+        files: pagina.map((a) => ({
           id: a.id,
           name: a.name,
           size: String(a.contenido.length),

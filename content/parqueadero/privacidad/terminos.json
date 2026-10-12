@@ -1,6 +1,6 @@
 {
   "nota": "Términos de la nube del parqueadero y contrato de transmisión de datos (HU-Q7.11; PARQUEADERO §13.2; Decreto 1377 de 2013 art. 25, hoy Decreto 1074 de 2015 art. 2.2.2.25.5.2). Desde M1 el parqueadero sigue siendo el Responsable de los datos de sus clientes y Laboratorio Digital los guarda como Encargado. La caja los muestra antes de entrar con la cuenta y no sincroniza sin la aceptación de esta versión; la celda guarda la versión y la hora con cada caja. Cambiar lo que sube a la nube (por ejemplo, las fotos en M2) exige subir la versión: cada caja los vuelve a aceptar. Los datos del encargado salen de `politica.json` (`responsable`); lo que está en null se muestra «por completar» (docs/runbooks/datos-del-responsable.md). Es un borrador para que el dueño y un abogado lo revisen.",
-  "version": "1",
+  "version": "2",
   "fecha": "2026-10-08",
   "estado": "borrador",
   "revision": "requiere revisión de abogado",
@@ -12,7 +12,7 @@
   ],
   "no_sale": [
     "El número de celular del conductor: se queda en este teléfono y se borra 24 horas después de la salida.",
-    "Las fotos del vehículo: por ahora se quedan en este teléfono. Si un día suben, estos términos cambian y se vuelven a pedir."
+    "Las fotos del vehículo: no suben a la nube de la caja. Se quedan en este teléfono hasta 30 días después de la salida y, si el parqueadero guarda la copia en su Google Drive, van con ella a ese Drive, directo desde este teléfono: Laboratorio Digital no las ve."
   ],
   "aceptar": "Acepto los términos y el contrato de transmisión de datos en nombre de este parqueadero.",
   "secciones": [

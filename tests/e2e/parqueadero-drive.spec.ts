@@ -11,6 +11,7 @@ import {
   abrirTurno,
   CAJA,
   llenarAjustes,
+  PNG,
   sinDesborde,
   teclearPlaca,
 } from './parqueadero-ayudas.ts';
@@ -32,6 +33,10 @@ test('HU-Q10.1 · guarda la copia en su Drive y otra caja vacía la trae sin bor
   await page.getByRole('button', { name: 'Nueva entrada' }).click();
   await abrirTurno(page);
   await teclearPlaca(page, 'DRV123');
+  await page
+    .getByLabel(/Foto del vehículo/)
+    .setInputFiles({ name: 'frente.png', mimeType: 'image/png', buffer: PNG });
+  await expect(page.getByText('Foto del vehículo (opcional, 1 de 4)')).toBeVisible();
   await page.getByRole('button', { name: 'Registrar' }).click();
   await page.getByRole('button', { name: 'Volver al inicio' }).click();
   await expect(page.getByTestId('senal-respaldo')).toHaveText('Respaldo sin hacer');
@@ -42,6 +47,17 @@ test('HU-Q10.1 · guarda la copia en su Drive y otra caja vacía la trae sin bor
     'Copia guardada en su Google Drive, en la carpeta «Caja del parqueadero · respaldos», como ',
   );
   // Volvió a «Respaldo», y el sello no se queda en la barra de direcciones.
+  // HU-Q8.3: la foto subió con la copia, a la carpeta de la caja A.
+  await expect(page.getByTestId('estado-del-respaldo')).toContainText(
+    'Subió 1 foto de los vehículos a «Caja del parqueadero · fotos».',
+  );
+  const carpetaDeFotos = drive.archivos.find(
+    (a) => a.name === 'Caja del parqueadero · fotos · caja A',
+  );
+  const fotos = drive.archivos.filter(
+    (a) => carpetaDeFotos && a.parents.includes(carpetaDeFotos.id),
+  );
+  expect(fotos.map((a) => a.mimeType)).toEqual([expect.stringMatching(/^image\/(webp|jpeg)$/)]);
   expect(new URL(page.url()).hash).toBe('');
   // Al CORE solo salió el SHA-256 del verificador; el verificador, recién en el canje.
   expect(
@@ -49,7 +65,7 @@ test('HU-Q10.1 · guarda la copia en su Drive y otra caja vacía la trae sin bor
       .update(pedidos.verificador ?? '')
       .digest('base64url'),
   ).toBe(pedidos.desafio);
-  const copias = drive.archivos.filter((a) => a.parents.length > 0);
+  const copias = drive.archivos.filter((a) => a.mimeType === 'application/json');
   expect(copias).toHaveLength(1);
   expect(JSON.parse(copias[0]?.contenido ?? '{}')).toMatchObject({
     formato: 'parqueadero-export',

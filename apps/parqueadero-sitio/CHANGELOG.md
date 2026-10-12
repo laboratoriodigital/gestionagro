@@ -6,9 +6,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [0.3.0] - 2026-10-12
 
-La caja con la que se entrega el primer parqueadero: más clara, el recibo como recibo, el aviso de tarifas, los abonados con su mensualidad, los reportes del día y lo que ahorra, y las herramientas gratuitas del sitio. En producción, la cuenta, la nube, la copia en Drive y la firma del recibo siguen apagadas: llegan con M1, en la `0.4.0`.
+La caja con la que se entrega el primer parqueadero: más clara, el recibo como recibo, el aviso de tarifas, los abonados con su mensualidad, los reportes del día y lo que ahorra, y las herramientas gratuitas del sitio. Las fotos ya se borran del teléfono a los 30 días de la salida. En producción, la cuenta, la nube, la copia en Drive y la firma del recibo siguen apagadas: llegan con M1, en la `0.4.0`.
 
 ### Agregado
+- Las fotos de los vehículos van con la copia al Google Drive de la cuenta (HU-Q8.3), en staging: al tocar «Guardar copia en mi Google Drive» suben las que falten a «Caja del parqueadero · fotos · caja A», y las que el teléfono borró a los 30 días se borran también allá con la copia siguiente. Si las fotos no suben, la copia queda guardada y la caja lo dice aparte. Los términos de la nube pasan a la versión 2, que dice adónde van las fotos.
 - El liquidador gratuito de mensualidades (HU-Q11.6): `/herramientas/mensualidad-de-parqueadero/` calcula, sin cuenta, cuánto cobrar por una mensualidad que empieza a mitad de mes (hasta fin de mes, en proporción a los días) o por varios meses completos, con la cuenta de cada periodo y lo que vale un día. Usa `liquidarMensualidad` de `@ed1/parqueadero-tarifas`, la misma cuenta de la caja, y una tabla de casos compartida lo comprueba en los dos lados. Sin valor, o en cero, no da total y dice qué falta. Termina con «Lleve los abonados en su teléfono».
 - Los cupos para vehículos eléctricos (HU-Q11.7): `/herramientas/cupos-para-electricos/` da, con los cupos del parqueadero, el mínimo que pide la Ley 1964 de 2019 (art. 7: el 2 %, hacia arriba para no quedar por debajo) y dice si su municipio está obligado. La norma, su texto citado, el Decreto 191 de 2021 sobre la señalización y la fecha de consulta (9 oct 2026) viven en `content/parqueadero/cupos-electricos.json` y se ven en la página.
 - La portada lista las tres herramientas gratuitas en el orden de la demanda medida (HU-Q11.1), y `llms.txt` y los gemelos en Markdown las incluyen.
@@ -36,6 +37,7 @@ La caja con la que se entrega el primer parqueadero: más clara, el recibo como 
 - El recibo se ve como recibo (HU-Q6.6). En la caja y en el enlace `/r/`, una hoja: el parqueadero arriba con su NIT, dirección y teléfono; «Recibo de entrada» o «de salida» y el número grande; la placa amarilla; las horas, la tarifa o el cobro en grupos; el total grande con el medio de pago, y el texto legal al pie. El tiempo se dice en horas y minutos, con los minutos cobrados. El mensaje de WhatsApp trae el nombre del parqueadero en negrilla y las filas alineadas en letra de máquina, como el papel; el enlace sigue en su propia línea.
 
 ### Corregido
+- Las fotos de los vehículos se borran del teléfono 30 días después de la salida, y «Respaldo» lo dice: antes se quedaban para siempre y con los meses llenaban el teléfono (bitácora 36). Las de los vehículos que siguen adentro no se tocan.
 - El cierre de turno ya no cuenta como entregado por WhatsApp un recibo que el cajero marcó «No se envió»: ese recibo cuenta como sin entrega anotada, o por el camino que sí llegó.
 - En staging, una caja en la nube que bajó un cambio de Ajustes hecho en otra caja ya no falla al hacer el respaldo, «Descargar todo el parqueadero» o la copia en Drive: el archivo acepta las versiones anteriores que vienen de la nube (`<id>@v1`). En producción no pasaba, porque la caja todavía no sincroniza.
 - En modo oscuro, los botones salen en el azul de la caja y no en el lila del ecosistema (bitácora 27).
