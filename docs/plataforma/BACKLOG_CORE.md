@@ -826,7 +826,7 @@ Formato de cada historia:
 ### EC9 · OAuth 2.1 para agentes y MCP
 
 #### HU-C9.1 · Spike: biblioteca del servidor de autorización
-- **Capa:** arquitectura · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C9 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** arquitectura · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C9 · **Depende de:** — · **Estado:** En validación (rama `feat/c9-sprint`. **No se acepta** `workers-oauth-provider`: falla las dos condiciones de CA1. Guarda todo en KV (`OAUTH_KV`, sin almacén intercambiable) y reescribe la concesión en cada renovación, contra 1.000 escrituras de KV al día en el plan gratuito; y deja usable el refresh anterior hasta la rotación siguiente, cuando PLATAFORMA §5.4 pide que reusarlo revoque la concesión. Lo que se probó: su repositorio y `storage-schema.md`, leídos el 12 oct 2026; no hizo falta instalarlo, porque las dos condiciones caen por escrito. ADR-41 (CA2): el CORE escribe su servidor sobre D1 y `@ed1/tokens`. Arctic es una biblioteca de cliente OAuth, no de servidor: sigue solo para entrar con Google. De la biblioteca descartada se toma la lista de lo que hay que cubrir: CIMD, registro dinámico, RFC 8707 y RFC 9728)
 - **Respaldo:** PLATAFORMA §5.4 (Biblioteca).
 - **CA1.** Se acepta `workers-oauth-provider` solo si guarda en D1 (no en KV) y si su doble de prueba rota el refresh de verdad (P17). Si no, Arctic y `@ed1/tokens`.
 - **CA2.** La decisión queda en un ADR con lo que se probó.
