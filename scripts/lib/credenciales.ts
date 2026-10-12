@@ -73,7 +73,7 @@ const SONDAS = {
  * El de métricas solo lee Account Analytics.
  */
 export const PERMISOS_DE_MAS: Readonly<Record<Proposito, readonly Sonda[]>> = {
-  despliegue: [SONDAS.tokens, SONDAS.r2, SONDAS.pages, SONDAS.dns],
+  despliegue: [SONDAS.tokens, SONDAS.r2, SONDAS.pages],
   metricas: [
     SONDAS.tokens,
     SONDAS.miembros,
@@ -97,15 +97,58 @@ const SECRETO: Readonly<Record<Proposito, string>> = {
  * Los permisos de más de un token, en palabras. `zonas` son los ids de las zonas que el propósito
  * toca: las sondas de zona miran cada una.
  */
-export async function permisosDeMas(
+/**
+ * Sondas que todavía no se han visto contra Cloudflare: avisan y no detienen (bitácora core 10:
+ * una guardia que puede detener producción se prueba primero en modo aviso). «Zone → DNS» solo
+ * corre en producción, y no está comprobado que los dominios propios de Workers no lo necesiten.
+ * Cuando una corrida real muestre qué responde, pasa a `PERMISOS_DE_MAS` o sale.
+ */
+export const EN_OBSERVACION: Readonly<Record<Proposito, readonly Sonda[]>> = {
+  despliegue: [SONDAS.dns],
+  metricas: [],
+};
+
+/** Los avisos de las sondas en observación: lo que parece de más, sin detener nada. */
+export async function permisosEnObservacion(
   fetchFn: Fetch,
   proposito: Proposito,
   token: string,
   cuenta: string,
   zonas: readonly string[] = [],
 ): Promise<string[]> {
+  const hallazgos = await sondear(
+    fetchFn,
+    proposito,
+    EN_OBSERVACION[proposito],
+    token,
+    cuenta,
+    zonas,
+  );
+  return [...new Set(hallazgos)].map(
+    (h) => `${h} (en observación: no detiene el despliegue; ver docs/runbooks/credenciales.md)`,
+  );
+}
+
+export function permisosDeMas(
+  fetchFn: Fetch,
+  proposito: Proposito,
+  token: string,
+  cuenta: string,
+  zonas: readonly string[] = [],
+): Promise<string[]> {
+  return sondear(fetchFn, proposito, PERMISOS_DE_MAS[proposito], token, cuenta, zonas);
+}
+
+async function sondear(
+  fetchFn: Fetch,
+  proposito: Proposito,
+  sondas: readonly Sonda[],
+  token: string,
+  cuenta: string,
+  zonas: readonly string[],
+): Promise<string[]> {
   const fallas: string[] = [];
-  for (const sonda of PERMISOS_DE_MAS[proposito]) {
+  for (const sonda of sondas) {
     const rutas = (zonas.length > 0 ? zonas : [undefined])
       .map((z) => sonda.ruta(cuenta, z))
       .filter((r): r is string => r !== null);
