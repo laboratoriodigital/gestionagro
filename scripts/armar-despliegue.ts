@@ -19,6 +19,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { securityTxt } from '../apps/core/src/security-txt.ts';
 import { RUTAS_APP } from '../apps/cuaderno/src/rutas.ts';
 import { SITIO } from '../apps/sitio/src/lib/seo.ts';
 import politica from '../content/agro/privacidad/politica.json' with { type: 'json' };
@@ -106,6 +107,16 @@ if (rotos.length > 0) {
   process.exit(1);
 }
 writeFileSync(join(sitio, 'llms.txt'), llms);
+// HU-C8.4: a quién escribirle si se encuentra un fallo (RFC 9116), con el correo de la política.
+mkdirSync(join(sitio, '.well-known'), { recursive: true });
+writeFileSync(
+  join(sitio, '.well-known', 'security.txt'),
+  securityTxt({
+    correo: politica.responsable.correo,
+    canonical: `${SITIO}/.well-known/security.txt`,
+    ahora: Date.now(),
+  }),
+);
 // Cabeceras de seguridad del cuaderno (CSP), desde celdas.json (ARQUITECTURA §9, HU-E0.5), y el
 // enlace de cada página pública a su gemelo (HU-C8.2).
 writeFileSync(

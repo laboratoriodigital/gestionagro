@@ -105,17 +105,25 @@ test.describe('página útil de la DPV (HU-E2.5)', () => {
     ).toHaveAttribute('href', '/agro/app/');
   });
 
-  test('el JSON-LD es válido y trae migas, preguntas y pasos', async ({ page }) => {
+  test('el JSON-LD es válido y trae migas, la aplicación, preguntas y pasos', async ({ page }) => {
     await page.goto(DPV);
     const bloques = await page.locator('script[type="application/ld+json"]').allTextContents();
     expect(bloques).toHaveLength(1);
     const datos = JSON.parse(bloques[0] ?? '{}') as {
-      '@graph': { '@type': string; mainEntity?: unknown[]; step?: unknown[] }[];
+      '@graph': {
+        '@type': string;
+        mainEntity?: unknown[];
+        step?: unknown[];
+        isAccessibleForFree?: boolean;
+        offers?: { price: string };
+      }[];
     };
     const tipos = datos['@graph'].map((n) => n['@type']);
-    expect(tipos).toEqual(['BreadcrumbList', 'FAQPage', 'HowTo']);
-    expect(datos['@graph'][1]?.mainEntity).toHaveLength(7);
-    expect(datos['@graph'][2]?.step).toHaveLength(4);
+    expect(tipos).toEqual(['BreadcrumbList', 'WebApplication', 'FAQPage', 'HowTo']);
+    // HU-C8.4: gratis, sin registro.
+    expect(datos['@graph'][1]).toMatchObject({ isAccessibleForFree: true, offers: { price: '0' } });
+    expect(datos['@graph'][2]?.mainEntity).toHaveLength(7);
+    expect(datos['@graph'][3]?.step).toHaveLength(4);
   });
 });
 

@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- `GET /.well-known/security.txt` (RFC 9116): a quién escribirle si se encuentra un fallo, con el correo de la política de la cuenta (HU-C8.4).
 - El permiso de Google Drive sirve a otro producto (HU-Q10.1): `/api/core/drive/inicio` acepta `producto=<id>` y entonces vuelve solo a un origen y una ruta de la app de ese producto, como al entrar. Sin `producto` sigue siendo el del cuaderno, y los cuadernos instalados no cambian. La política del parqueadero pasa a la versión 2 en el catálogo.
 - El Parqueadero ED1 es un producto del CORE (HU-Q7.1): entra por `infrastructure/productos.json` como excepción declarada (ADR-31), con sus roles (propietario, administrador y cajero), siete días de gracia, sus planes como hipótesis (`gratis` y `parqueadero`, que todavía no se cobra en línea) y su política en borrador. Llega a producción con la próxima versión del CORE; la caja de hoy no cambia, porque sigue sin cuenta.
 

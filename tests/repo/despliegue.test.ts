@@ -238,6 +238,10 @@ describe('prueba de humo (CA5, P11)', () => {
       ]),
     ),
     'GET https://s.dev/robots.txt': { estado: 200, texto: robotsTxt(agentes as Agentes, SITIO) },
+    'GET https://s.dev/.well-known/security.txt': {
+      estado: 200,
+      texto: 'Contact: mailto:c@example.com',
+    },
     'GET https://s.dev/api/eventos': { estado: 405, texto: 'Solo POST' },
     'POST https://s.dev/api/eventos': { estado: 400, texto: 'El lote no es JSON' },
   };

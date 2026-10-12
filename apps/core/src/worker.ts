@@ -6,6 +6,7 @@
  *   debe parecer sano (P1).
  * - `GET /api/core/claves`: la clave pública con la que las celdas verifican los tokens (CA5).
  * - `GET /.well-known/jwks.json`: las mismas llaves en el formato estándar (HU-C4.2, `jwks.ts`).
+ * - `GET /.well-known/security.txt`: a quién escribirle si se encuentra un fallo (HU-C8.4).
  * - `/api/core/auth/*`: entrar con Google, renovar la sesión y salir (HU-E4.2, HU-C7.3, `entrar.ts`).
  * - `POST /api/core/organizaciones`: crear la organización de la finca del teléfono (HU-E4.3).
  * - `POST /api/core/invitaciones[/ver|/aceptar]`: invitar al equipo por WhatsApp (HU-E4.4).
@@ -31,6 +32,9 @@ import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed
 import { type ClavePublica, type Firmante, firmanteDesde, verificarAcceso } from '@ed1/tokens';
 import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
+import politicaDeLaCuenta from '../../../content/cuenta/privacidad/politica.json' with {
+  type: 'json',
+};
 import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
 import { espaciosDeLaCuenta } from './cuenta.ts';
 import {
@@ -73,6 +77,7 @@ import {
   productoDeOrganizacion,
 } from './productos.ts';
 import { type ProveedorDePago, proveedorBold } from './proveedor-de-pago.ts';
+import { securityTxt } from './security-txt.ts';
 
 export { PRODUCTO_CORE };
 
@@ -196,6 +201,20 @@ export function crearApp(dependencias: Dependencias = {}) {
     c.header('access-control-allow-origin', '*');
     c.header('cache-control', 'public, max-age=300');
     return c.json({ keys: claves });
+  });
+
+  // HU-C8.4: a quién escribirle si se encuentra un fallo (RFC 9116), con el correo de la política
+  // de la cuenta. Sin API de catálogo: el CORE no tiene una API pública para terceros (CA2, P1).
+  app.get('/.well-known/security.txt', (c) => {
+    c.header('content-type', 'text/plain; charset=utf-8');
+    c.header('cache-control', 'public, max-age=86400');
+    return c.body(
+      securityTxt({
+        correo: politicaDeLaCuenta.responsable.correo,
+        canonical: `${new URL(c.req.url).origin}/.well-known/security.txt`,
+        ahora: ahora(),
+      }),
+    );
   });
 
   // Solo las apps de los productos pueden leer estas respuestas desde el navegador: la unión de sus

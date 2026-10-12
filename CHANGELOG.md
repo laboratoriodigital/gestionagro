@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- `/.well-known/security.txt` en cultivopro.co, con el correo de la política de datos y vencimiento a 180 días (HU-C8.4), y cada calculadora se describe como aplicación web gratuita en su JSON-LD (`WebApplication`).
 - Las calculadoras publicadas se ofrecen como habilidades de agente en `/.well-known/agent-skills/` (HU-C8.3), con la fórmula, el ejemplo, los rangos y las fuentes de su página, y la huella `sha256` de cada una. Solo las que pasaron la revisión agronómica: hoy ninguna, así que todavía no se publica nada.
 - `/llms.txt` y una versión en Markdown (`index.md`) de cada página pública de cultivopro.co, anunciada con `<link rel="alternate">` y la cabecera `Link` (HU-C8.2). Sale del mismo HTML de la página al armar el despliegue; una calculadora en revisión agronómica no tiene, y un enlace roto de `llms.txt` detiene el armado. Pasos para negociar `Accept: text/markdown` en la zona: `docs/runbooks/agentes.md`.
 - El `robots.txt` de cultivopro.co dice qué agentes pueden leer y para qué (HU-C8.1): los buscadores y asistentes que enlazan al sitio leen lo público, los recolectores para entrenar modelos no leen nada (`ai-train=no`), y `/api/` y `/agro/app/` siguen cerrados para todos, con la `Content-Signal` al final. Sale de `content/agentes.json`, y la prueba de humo del despliegue exige que lo publicado sea eso.

@@ -810,7 +810,7 @@ Formato de cada historia:
 - **Work items:** WI-C8.3.1 `[código]` · WI-C8.3.2 `[prueba]` huella y compuerta.
 
 #### HU-C8.4 · `security.txt`, JSON-LD, cabeceras `Link` y el CORE
-- **Capa:** sitio y CORE · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** C8 · **Depende de:** HU-C7.2 · **Estado:** Refinada
+- **Capa:** sitio y CORE · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** C8 · **Depende de:** HU-C7.2 · **Estado:** En validación (rama `feat/c8-sprint`. `security.txt` (RFC 9116) con una sola función (`apps/core/src/security-txt.ts`): el sitio lo escribe al armar el despliegue con el correo de su política, y el CORE lo sirve en `/.well-known/security.txt` con el de la política de la cuenta y la dirección de quien lo pide. `Expires` a 180 días, estable dentro del mismo día. `WebApplication` en el JSON-LD de cada calculadora, gratis y sin registro. El `robots.txt` del CORE con `Disallow: /` ya estaba (HU-C7.2), y sus `/.well-known/` son `jwks.json` y `security.txt`; el de OAuth llega con EC9. CA2: ningún catálogo de API, porque no hay una API pública para terceros; una prueba lo exige en los dos. La prueba de humo del sitio pide el `security.txt`. 4 pruebas y la e2e del JSON-LD; control negativo: el catálogo pedido al CORE responde 404)
 - **Respaldo:** PLATAFORMA §5.3 (4, 7 y 8, y «En el CORE»).
 - **CA1.** `security.txt` (RFC 9116) en los dos dominios; `WebApplication` en cada calculadora; en el CORE, `robots.txt` con `Disallow: /` y los `/.well-known/` del CORE.
 - **CA2 ❌.** El catálogo de API no se publica vacío (P1).

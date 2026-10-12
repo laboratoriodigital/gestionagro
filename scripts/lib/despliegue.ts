@@ -205,6 +205,8 @@ export async function humo(fetchFn: Fetch, base: string): Promise<string[]> {
   if (robots && (await robots.text()) !== robotsTxt(agentes as Agentes, SITIO)) {
     fallas.push('/robots.txt: no es el que sale de content/agentes.json (¿editado a mano?)');
   }
+  // HU-C8.4: a quién escribirle si se encuentra un fallo (RFC 9116).
+  await contiene('/.well-known/security.txt', 'Contact: mailto:');
   const get = await pedir('/api/eventos');
   if (get && get.status !== 405)
     fallas.push(`/api/eventos (GET): respondió ${get.status}, se esperaba 405`);
