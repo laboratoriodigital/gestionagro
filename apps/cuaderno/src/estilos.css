@@ -679,6 +679,19 @@ a.boton {
   font-size: 1.25rem;
   margin: var(--espacio-1) 0;
 }
+/* Cuántos meses pagar (HU-C5.7): el total arriba, lo del mes y el ahorro debajo, más suave. */
+.periodos .opcion {
+  padding-block: var(--espacio-1);
+}
+.periodo-detalle {
+  display: block;
+  color: var(--color-texto-suave);
+  font-size: var(--texto-pequeno);
+}
+/* Una cifra no se parte en dos renglones: «COP» y su número van juntos. */
+.periodo-detalle span {
+  white-space: nowrap;
+}
 
 /* Paginador (revisión del dueño, 3 oct 2026). */
 .paginador {

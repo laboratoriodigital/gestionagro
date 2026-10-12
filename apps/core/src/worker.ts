@@ -15,6 +15,8 @@
  *   token de la cuenta (HU-C7.4, `cuenta.ts`).
  * - `POST /api/core/interes[/ver]`: la lista de espera de planes con precio visible (HU-E0.6,
  *   `interes.ts`).
+ * - `ServicioDelCore`: la entrada RPC de las celdas por su service binding, sin URL (HU-C5.6,
+ *   `entrada-de-servicio.ts`).
  * - `POST /api/core/pago/{crear,confirmar}`: pagar el plan en línea con Bold (HU-E0.7, `pagos.ts`).
  *   Sin las llaves de Bold responde 503 «no disponible»; entrar y lo demás siguen igual.
  *
@@ -74,6 +76,7 @@ import {
 } from './productos.ts';
 import { type ProveedorDePago, proveedorBold } from './proveedor-de-pago.ts';
 
+export { ServicioDelCore } from './entrada-de-servicio.ts';
 export { PRODUCTO_CORE };
 
 export interface Env {

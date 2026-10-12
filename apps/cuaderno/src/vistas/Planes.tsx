@@ -6,18 +6,22 @@
  * Esta pantalla no se impone: no está en el menú, se llega por enlaces desde Cuenta y desde los
  * avisos de «viene con el plan…», y nunca sale como ventana durante el registro (CA4, ED1 §28).
  *
- * Pagar en línea (HU-E0.7): el propietario paga un mes del plan con Bold. Al volver, la pantalla
- * le pide al CORE que confirme con Bold y, aprobado, renueva la sesión para traer el plan nuevo.
+ * Pagar en línea (HU-E0.7): el propietario paga el plan con Bold. Al volver, la pantalla le pide
+ * al CORE que confirme con Bold y, aprobado, renueva la sesión para traer el plan nuevo. Elige 1,
+ * 3, 6 o 12 meses y ve el total, lo que sale al mes y lo que ahorra (HU-C5.7); el monto lo pone el
+ * CORE.
  */
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import {
   abrirCheckout,
-  cobroMensual,
   confirmarCobro,
   crearCobro,
   diasParaVencer,
+  nombreDelPeriodo,
   ordenDeLaVuelta,
+  type Periodo,
+  periodosDe,
   pesos,
   type RespuestaDelPago,
 } from '../almacen/pago.ts';
@@ -49,8 +53,68 @@ type FaseDelPago =
 /** Un plan que vence en una semana o menos se avisa. */
 const DIAS_DE_AVISO = 7;
 
+/**
+ * Cuántos meses pagar (HU-C5.7): cada periodo con su total, y desde 3 meses lo que sale al mes y
+ * lo que se ahorra. Solo los periodos con precio (CA3).
+ */
+function ElegirPeriodo({
+  plan,
+  periodos,
+  elegido,
+  alElegir,
+}: {
+  plan: string;
+  periodos: readonly Periodo[];
+  elegido: number;
+  alElegir: (meses: number) => void;
+}) {
+  return (
+    <fieldset class="opciones periodos" data-prueba="periodos">
+      <legend>¿Por cuánto tiempo?</legend>
+      {periodos.map((p) => (
+        <label class="opcion" key={p.meses} data-prueba="periodo" data-meses={p.meses}>
+          <input
+            type="radio"
+            name={`periodo-${plan}`}
+            value={p.meses}
+            checked={p.meses === elegido}
+            onChange={() => alElegir(p.meses)}
+          />
+          <span>
+            <strong>
+              {p.meses === 1 ? '1 mes' : `${p.meses} meses`} · {pesos(p.total)}
+            </strong>
+            {p.meses > 1 && (
+              <span class="periodo-detalle">
+                <span>{pesos(p.porMes)} al mes</span>
+                {p.ahorro > 0 && <span>{` · ahorras ${pesos(p.ahorro)}`}</span>}
+              </span>
+            )}
+          </span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+/**
+ * Qué pasó con el pago, siempre a la vista (HU-C5.7 CA2): con los periodos, la tarjeta crece y el
+ * aviso podía quedar debajo del borde de la pantalla, donde parecía que el botón no hacía nada.
+ */
+function EstadoDelPago(props: { pago: FaseDelPago; alVerificar: (orden: string) => void }) {
+  const caja = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    caja.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [props.pago]);
+  return (
+    <div ref={caja}>
+      <TextoDelEstado {...props} />
+    </div>
+  );
+}
+
 /** Qué pasó con el pago, en palabras, y cómo seguir. */
-function EstadoDelPago({
+function TextoDelEstado({
   pago,
   alVerificar,
 }: {
@@ -112,6 +176,8 @@ export function Planes() {
   const [pago, setPago] = useState<FaseDelPago | null>(null);
   // El plan cuyo botón se tocó: lo que pase con el pago se dice ahí, no arriba, fuera de la vista.
   const [pagando, setPagando] = useState<string | null>(null);
+  // Los meses elegidos en cada plan; sin elegir, uno, como se pagaba antes.
+  const [meses, setMeses] = useState<Record<string, number>>({});
   const [enLinea, setEnLinea] = useState(navigator.onLine);
   const core = urlDelCore(location.hostname);
 
@@ -145,11 +211,17 @@ export function Planes() {
     }
   };
 
-  const pagar = async (plan: string) => {
+  const pagar = async (plan: string, periodo: number) => {
     setPagando(plan);
     setPago({ fase: 'abriendo' });
     try {
-      const cobro = await crearCobro(cuaderno(), core, plan, `${location.origin}/agro/app/planes/`);
+      const cobro = await crearCobro(
+        cuaderno(),
+        core,
+        plan,
+        periodo,
+        `${location.origin}/agro/app/planes/`,
+      );
       await abrirCheckout(cobro);
     } catch (e) {
       setPago({
@@ -240,7 +312,12 @@ export function Planes() {
       </p>
       <ul class="lista-plana" data-prueba="planes">
         {PLANES.map((p) => {
-          const cobro = cobroMensual(p.id);
+          const periodos = periodosDe(p.id);
+          const cobro = periodos.length > 0 ? periodos : null;
+          const elegido =
+            periodos.find((x) => x.meses === meses[p.id]) ??
+            periodos.find((x) => x.meses === 1) ??
+            periodos[0];
           return (
             <li key={p.id} data-prueba="plan" data-plan={p.id}>
               <h2 class="area-titulo">
@@ -256,24 +333,33 @@ export function Planes() {
                   <li key={x}>{x}</li>
                 ))}
               </ul>
-              {cobro !== null && quien === 'propietario' && (
+              {cobro !== null && elegido && quien === 'propietario' && (
                 <div class="acciones-area" data-prueba="pagar-plan">
+                  {periodos.length > 1 && (
+                    <ElegirPeriodo
+                      plan={p.id}
+                      periodos={periodos}
+                      elegido={elegido.meses}
+                      alElegir={(m) => setMeses({ ...meses, [p.id]: m })}
+                    />
+                  )}
                   <button
                     type="button"
                     disabled={!enLinea || ocupado}
-                    onClick={() => void pagar(p.id)}
+                    onClick={() => void pagar(p.id, elegido.meses)}
                   >
-                    {p.id === actual ? 'Renovar' : 'Pagar'} un mes · {pesos(cobro)}
+                    {p.id === actual ? 'Renovar' : 'Pagar'} {nombreDelPeriodo(elegido.meses)} ·{' '}
+                    {pesos(elegido.total)}
                   </button>
-                  <p class="ayuda">
-                    Con PSE, Nequi o tarjeta, en la página segura de Bold. Sin débito automático:
-                    pagas mes a mes, y si no renuevas, tu finca vuelve al plan Gratis sin perder
-                    nada.
-                  </p>
-                  {!enLinea && <p class="ayuda">Necesitas señal para pagar.</p>}
                   {pago && pagando === p.id && (
                     <EstadoDelPago pago={pago} alVerificar={(o) => void confirmar(o)} />
                   )}
+                  <p class="ayuda">
+                    Con PSE, Nequi o tarjeta, en la página segura de Bold. Sin débito automático:
+                    pagas solo el tiempo que elijas, y si no renuevas, tu finca vuelve al plan
+                    Gratis sin perder nada.
+                  </p>
+                  {!enLinea && <p class="ayuda">Necesitas señal para pagar.</p>}
                 </div>
               )}
               {CON_ESPERA.has(p.id) &&

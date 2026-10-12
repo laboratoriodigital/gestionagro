@@ -22,6 +22,7 @@ import type { Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { filaDeAuditoria } from './auditoria.ts';
 import {
+  avisoDelPlan,
   type CatalogoDelCore,
   type MotivoDeProducto,
   origenesDelProducto,
@@ -268,13 +269,18 @@ async function respuestaDeSesion(
     refresh: sesion.refresh,
     refresh_vence: sesion.refreshVence,
     usuario,
-    organizaciones: directorio.map(({ org_id, nombre, rol, plan, plan_vence }) => ({
-      org_id,
-      nombre,
-      rol,
-      plan,
-      plan_vence,
-    })),
+    // HU-C5.5: el plan con la gracia de su producto, igual que en el token, y la marca para avisar.
+    organizaciones: directorio.map((o) => {
+      const { plan, plan_vence } = planEnElToken(e.catalogo, o, e.ahora());
+      return {
+        org_id: o.org_id,
+        nombre: o.nombre,
+        rol: o.rol,
+        plan,
+        plan_vence: plan_vence === null ? null : new Date(plan_vence * 1000).toISOString(),
+        aviso: avisoDelPlan(e.catalogo, o, e.ahora()),
+      };
+    }),
     org_id: org?.org_id ?? null,
     /** API de la celda de esa organización: a dónde sincroniza el teléfono (HU-E5.2). */
     url_api: org?.url_api ?? null,

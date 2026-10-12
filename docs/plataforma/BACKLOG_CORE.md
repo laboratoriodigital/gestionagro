@@ -564,7 +564,7 @@ Formato de cada historia:
 - **Work items:** WI-C4.4.1 `[código]` · WI-C4.4.2 `[prueba]`.
 
 #### HU-C4.5 · Tokens N+2: las celdas rechazan v1
-- **Capa:** tokens · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C4.3 en producción, el congelamiento terminado · **Estado:** Refinada
+- **Capa:** tokens · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C4.3 en producción, el congelamiento terminado · **Estado:** En curso (rama `feat/c7-sprint`. **CA2 listo:** la celda deja una marca por día en su KV de flags (`tokens_v1:AAAA-MM-DD`, vence a los 40 días) cuando acepta un token v1, con una lectura por día y por instancia, sin tocar la solicitud si el KV falla; el reporte semanal de los lunes dice los días con v1 de cada celda y destino, y un KV que no responde no cuenta como «ningún día». Por qué KV y no los logs: los Workers Logs del plan gratuito duran 3 días. 6 pruebas; control negativo: sin la marca, la de la solicitud con v1 queda en rojo. Desde CORE 0.3.0 (7 oct 2026) solo se emiten v2 y un v1 vence en 12 h, así que se espera cero: el registro es la prueba, no la suposición (P1). **CA1 y CA3 esperan:** la semana empieza cuando esta celda llegue a producción con la publicación del C7; con dos reportes de lunes sin días con v1 en producción, el dueño aprueba la contracción (WI-C4.5.3) y va en el sprint siguiente)
 - Como plataforma, quiero cerrar la transición, para que el formato viejo no sea una puerta abierta.
 - **Respaldo:** PLATAFORMA §4.6 (fase N+2).
 - **CA1.** Al menos 12 h después de N+1 en producción (en el plan, más de un mes), las celdas rechazan v1.
@@ -604,7 +604,7 @@ Formato de cada historia:
 - **Work items:** WI-C5.2.1 `[código]` · WI-C5.2.2 `[prueba]`.
 
 #### HU-C5.3 · Pagar 1, 3, 6 o 12 meses
-- **Capa:** pagos · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C7 · **Depende de:** HU-C5.1, HU-C5.2, HU-C3.4 · **Estado:** Refinada
+- **Capa:** pagos · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C7 · **Depende de:** HU-C5.1, HU-C5.2, HU-C3.4 · **Estado:** En validación (rama `feat/c7-sprint`. `pago/crear` acepta `meses`; sin él, uno, como pagan los cuadernos instalados (P10). El monto sale de `precioVigente`: la última fila de `plan_precio` de ese plan y ese periodo, solo de un plan activo y no gratuito; `cobroMensual` del catálogo se fue. Al aprobar, `periodo_desde` y `periodo_hasta` quedan en el pago, en el mismo lote que el plan. De paso, la auditoría del pago nombra su producto (decía «agro» fijo). 3 pruebas: 6 meses de punta a punta, un segundo pago que empieza donde termina el vigente, y CA4 (un periodo de 2 meses, «6» como texto, un plan sin ese precio y el gratuito no se cobran; un monto alterado queda en «revisar»). Control negativo: con `meses` fijo en 1, las 3 en rojo. CA5 lo hace el dueño en staging cuando el cuaderno ofrezca los periodos (HU-C5.7). Runbook de pagos al día)
 - Como quien administra, quiero pagar varios meses de una vez, para pagar menos comisión y olvidarme del pago por un tiempo.
 - **Respaldo:** PLATAFORMA §4.8 (1, 3 y 6); ED1 §5.3; estudio de ecommerce §13.4 (sin débito automático).
 - **CA1.** `POST /api/core/pago/crear` acepta `meses`: un periodo con precio vigente para ese plan. El monto sale de `plan_precio`, nunca del cliente.
@@ -615,7 +615,7 @@ Formato de cada historia:
 - **Work items:** WI-C5.3.1 `[código]` · WI-C5.3.2 `[prueba]` · WI-C5.3.3 `[dueño]` pago de prueba de 6 meses · WI-C5.3.4 `[doc]` `docs/runbooks/pagos-bold.md`.
 
 #### HU-C5.4 · Cambiar de plan convierte lo que quedaba en días
-- **Capa:** pagos · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C5.3 · **Estado:** Refinada
+- **Capa:** pagos · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C5.3 · **Estado:** En validación (rama `feat/c7-sprint`. `creditoAlCambiar` es la fórmula de PLATAFORMA, pura; la activación del pago la aplica cuando el plan cambia con días por delante, con el precio mensual vigente de cada plan en `plan_precio`. Sin precio de uno de los dos (el gratuito no tiene), el crédito es cero. 4 pruebas: el ejemplo de PLATAFORMA (40 días → 10), el gratuito y los días que ya pasaron dan cero, bajar de plan da más días, y un cambio de Finca a Exportador de punta a punta. Control negativo: sin sumar el crédito, la de punta a punta sale en rojo)
 - Como quien sube de plan, quiero que no se pierda lo que ya pagué.
 - **Respaldo:** PLATAFORMA §4.8 (4).
 - **CA1.** `credito = ⌊días_restantes × precio_mensual(viejo) / precio_mensual(nuevo)⌋`; el vencimiento nuevo es `sumarMeses(ahora, meses) + credito`.
@@ -624,7 +624,7 @@ Formato de cada historia:
 - **Work items:** WI-C5.4.1 `[código]` · WI-C5.4.2 `[prueba]`.
 
 #### HU-C5.5 · Gracia por producto y avisos de vencimiento
-- **Capa:** planes · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C4.3, HU-C5.3 · **Estado:** Refinada
+- **Capa:** planes · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C4.3, HU-C5.3 · **Estado:** En validación (rama `feat/c7-sprint`. La lista de organizaciones que recibe la app ya no usa el plan del directorio, que no conocía la gracia y escribía «gratuito» para todos: usa `planEnElToken`, la misma regla del token, con el gratuito de cada producto. Cada organización trae `aviso`: `en-gracia`, `vence-en-1-dia` o `vence-en-7-dias` (`avisoDelPlan`), calculado al pedirlo, sin escribir nada. CA2 cambió de forma: no hay aviso que mandar desde el cron mientras no haya correo (HU-C10.3); la app lo muestra con la marca, y el cuaderno ya avisaba una semana antes con su propia cuenta. 4 pruebas: los escalones de aviso, en gracia con el plan pagado, pasada la gracia el gratuito de su producto, y un espacio de Ensayo (7 días de gracia) de punta a punta, con su fila intacta (CA3). Control negativo: con el plan del directorio, la de punta a punta sale en rojo)
 - Como comercio, quiero unos días de gracia si olvido pagar, para no dejar de vender de un día para otro.
 - **Respaldo:** PLATAFORMA §4.8 (5).
 - **CA1.** `gracia_dias` del producto (0 en el agro): durante la gracia, el token lleva el plan pagado y la app recibe la marca para avisar.
@@ -633,7 +633,7 @@ Formato de cada historia:
 - **Work items:** WI-C5.5.1 `[código]` · WI-C5.5.2 `[prueba]` con el reloj movido.
 
 #### HU-C5.6 · Celdas al día con los planes
-- **Capa:** CORE ↔ celdas · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C7 · **Depende de:** HU-C5.3 · **Estado:** Refinada
+- **Capa:** CORE ↔ celdas · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C7 · **Depende de:** HU-C5.3 · **Estado:** En validación (rama `feat/c7-sprint`. **Cambio de forma de CA1 y CA2** (bitácora core, «Cambios de rumbo»): la celda llama al CORE por un service binding con RPC (`ServicioDelCore.planes`, `apps/core/src/entrada-de-servicio.ts`), sin URL ni token, y pregunta cada hora por los planes con un pago aprobado en las últimas 3 horas; a las 06:00 UTC, por todos. El CORE nunca llama a la celda. La copia vive en `plan_de_org` de cada shard (migración de celda 0004) y solo se escribe lo que cambió, en una sentencia por cada 500 filas. Corre en el mismo cron del vigía, después de él, y no escribe en bloqueo. 12 pruebas: 4 del CORE (todas, solo las que cambiaron, celda vacía y la entrada RPC), 1 de la configuración (cada destino llama a su CORE) y 7 de la celda (la vuelta de cada hora, la completa que baja un vencido, nada que reescribir, CA3 con un aviso por motivo y otro al volver, binding o shard que faltan, bloqueo y CA4 con salud, sesión, pull y push). Controles negativos: escribir todo siempre y pedir sin «desde» ponen dos en rojo. La guardia de `org_id` nombra la única lectura sin él, con su motivo. **Al publicar:** el CORE con `ServicioDelCore` tiene que estar en producción antes que la celda; si no, la celda avisa una vez que no alcanza al CORE y conserva su copia (vacía). El parqueadero no tiene cron todavía: su copia llega cuando cobre en línea)
 - Como celda, quiero enterarme de un pago o un vencimiento aunque nadie haya entrado a la app.
 - **Respaldo:** PLATAFORMA §4.13; ADR-10.
 - **CA1.** Una vez al día, cada celda pide `POST /api/core/servicio/planes` con su `CELDA_SERVICE_TOKEN` (comparado en tiempo constante) y recibe el plan de sus organizaciones.
@@ -643,7 +643,7 @@ Formato de cada historia:
 - **Work items:** WI-C5.6.1 `[código]` ruta de servicio · WI-C5.6.2 `[código]` cron de la celda · WI-C5.6.3 `[prueba]` falla del CORE simulada.
 
 #### HU-C5.7 · La pantalla de planes del cuaderno con los cuatro periodos
-- **Capa:** app del agro · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C5.3 · **Estado:** Refinada
+- **Capa:** app del agro · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C5.3 · **Estado:** En validación (rama `feat/c7-sprint`. En la tarjeta del plan, «¿Por cuánto tiempo?» con 1, 3, 6 y 12 meses; desde 3, lo que sale al mes y lo que se ahorra frente a pagar mes a mes. El botón dice el periodo y el total («Pagar 6 meses · COP 210.000») y manda `meses` al CORE, que pone el monto. Los periodos salen de `cobro` en `planes.json`, la misma fuente de `plan_precio` (P2); `periodosDe` deja fuera uno sin número o con monto 0 (CA3). El aviso del pago sigue a la vista: arriba al volver de Bold, y en la tarjeta si falla al abrir (CA2). 5 pruebas unitarias y 1 e2e en 360 px con axe; el e2e del pago de un mes ahora exige `meses: 1`. Control negativo: un plan falso con «3»: 0 y «seis» ofrece solo 1 y 12 meses. **Al publicar:** el CORE con HU-C5.3 tiene que estar en producción antes; uno viejo cobraría un mes aunque la persona eligiera seis. CA5 de HU-C5.3 (el pago de 6 meses del dueño en staging) ya se puede hacer)
 - Como productor, quiero elegir cuántos meses pagar y ver cuánto ahorro.
 - **Respaldo:** PLATAFORMA §7 (P3); estudio del agro (precios visibles).
 - **CA1.** Planes ofrece los periodos con precio, con el total y el valor por mes.
@@ -948,7 +948,7 @@ Formato de cada historia:
 - **Work items:** WI-C11.4.1 `[código]` · WI-C11.4.2 `[prueba]` · WI-C11.4.3 `[dueño]` autorizar la app en su cuenta de Google con los pasos exactos que se le darán · WI-C11.4.4 `[dueño]` revisión del abogado cuando haya presupuesto (copias de datos de terceros en una cuenta personal).
 
 #### HU-C11.5 · Gobierno de la cuenta y credenciales por propósito
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C1.3 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** C7 · **Depende de:** HU-C1.3 · **Estado:** En validación (rama `feat/c7-sprint`. `scripts/lib/credenciales.ts`: por cada permiso que un propósito no debe tener, una lectura que solo responde con ese permiso; si responde, el despliegue se detiene antes de tocar nada y lo nombra (CA3). Al de despliegue: API Tokens, R2, Pages y, en producción, DNS de cada zona; al de métricas, todo menos Account Analytics. Una respuesta que no es ni 200 ni 401/403 tampoco pasa (P1). El de métricas se prueba antes de cargarlo con la consulta de GraphQL del vigía: si no lee, avisa sin detener, como cuando falta (CA1). Cloudflare for SaaS no existe todavía: su fila queda en el runbook para cuando la Tienda la necesite. 9 pruebas; control negativo: aceptar un 200 como bueno pone dos en rojo. `docs/runbooks/credenciales.md` tiene la tabla de cada token y la lista del dueño (CA2). **CA2 decidido (12 oct 2026):** el dueño deja los tres dominios en Cloudflare por ahora y acepta el riesgo; queda escrito en el runbook y en la bitácora. **Lo que no ve:** «Edit» frente a «Read» de un permiso que sí se tiene. **Antes de fusionar el PR del C7, el dueño revisa sus dos tokens contra la tabla**: si tienen uno de más, el despliegue se detiene sin cambiar nada y dice cuál)
 - **Respaldo:** PLATAFORMA §3.5 (4 y 5); R6; causa 4 de la Tienda 2.0 (permisos que se pisan).
 - **CA1.** Los tokens de despliegue, de métricas y de Cloudflare for SaaS, cada uno verificado con la acción que va a hacer antes de usarse (P12).
 - **CA2.** Lista de comprobación del dueño: segundo factor y contactos de recuperación (hechos el 5 oct 2026). Los tres dominios están registrados en Cloudflare: una suspensión de la cuenta los arrastraría. Se presenta al dueño el costo y el paso de transferir al menos `laboratorio-digital.com` a otro registrador, o se deja escrito que acepta el riesgo (PLATAFORMA §3.5 regla 5).
@@ -1058,6 +1058,7 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 | C4 | 16 → 13 | — (rama lista el 6 oct 2026; su PR se abre al fusionar el del C3) | Las 5 historias en un día. HU-C3.7 pasó al C5 porque necesita HU-C4.3, y HU-C4.3 necesita la fase N en producción: el orden lo pone la transición de tokens (P10), no la capacidad |
 | C5 | 20 | 14 (PR #104, fusionado el 6 oct 2026) + 6 en revisión | Las 7 historias en un día, en dos PR. HU-C4.3 y HU-C3.7 esperaron a que la fase N llegara a producción con la 0.4.0 (17:18 UTC): el orden lo puso la transición de tokens (P10). Al fusionar el #104 justo después de la publicación, Git metió sus entradas en la versión publicada: bitácora core 6 y una guardia nueva |
 | C6 | 13 → 11 | — (PR del 6 oct 2026, en revisión) | Las 5 historias en un día. HU-C11.2 salió porque los límites por Worker solo existen en Workers Paid (decisión del dueño, 6 oct). HU-C5.2 ya estaba casi hecha desde HU-C2.3. Dos hallazgos de las pruebas en el navegador: el minificador rompía el revelado (bitácora core 7) y axe vio el contraste a media animación |
+| C7 | 16 | — (PR del 12 oct 2026, en revisión) | 14 puntos en validación y HU-C4.5 a medias: su registro (CA2) está, y la contracción (CA1, CA3) espera una semana de ese registro en producción, que el código no puede adelantar. Dos cambios de forma en HU-C5.6 (service binding en vez de token, y la celda pregunta cada hora en vez de que el CORE avise; bitácora core, «Cambios de rumbo»). Se publica con el CORE primero: la celda y el cuaderno nuevos lo necesitan (bitácora core 8) |
 
 ---
 

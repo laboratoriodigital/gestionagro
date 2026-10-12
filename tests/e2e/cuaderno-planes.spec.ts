@@ -208,9 +208,9 @@ test.describe('HU-E0.7 · pagar el plan Finca con Bold', () => {
     await expect(page.locator('[data-prueba="pago-estado"]')).toContainText(
       '¡Pago confirmado! Tu plan está activo hasta el 02/11/2026',
     );
-    // El monto no lo manda la página: solo el plan y a dónde volver.
+    // El monto no lo manda la página: solo el plan, los meses y a dónde volver.
     expect(creados).toEqual([
-      { plan: 'finca', vuelta: `${new URL(page.url()).origin}/agro/app/planes/` },
+      { plan: 'finca', meses: 1, vuelta: `${new URL(page.url()).origin}/agro/app/planes/` },
     ]);
     // La orden salió de la dirección: recargar no la confirma otra vez.
     expect(new URL(page.url()).search).toBe('');
@@ -258,6 +258,41 @@ test.describe('HU-E0.7 · pagar el plan Finca con Bold', () => {
     const estado = plan(page, 'finca').locator('[data-prueba="pago-estado"]');
     await expect(estado).toContainText('El pago en línea todavía no está disponible');
     await expect(estado).toBeInViewport();
+  });
+
+  test('HU-C5.7 · elige 6 meses, ve el total, lo del mes y el ahorro, y el aviso queda a la vista', async ({
+    page,
+  }) => {
+    await coreConLista(page);
+    const creados = await nubeDePago(page, 'aprobado');
+    await configurar(page, FINCA_ENSAYO_UNO);
+    await conPlan(page, 'gratuito');
+    await page.goto('/agro/app/planes/');
+    const finca = plan(page, 'finca');
+    // CA1: los cuatro periodos con precio; el de un mes, elegido.
+    await expect(finca.locator('[data-prueba="periodo"]')).toHaveText([
+      '1 mes · COP 39.000',
+      /^3 meses · COP 111\.000\s*COP 37\.000 al mes · ahorras COP 6\.000$/,
+      /^6 meses · COP 210\.000\s*COP 35\.000 al mes · ahorras COP 24\.000$/,
+      /^12 meses · COP 390\.000\s*COP 32\.500 al mes · ahorras COP 78\.000$/,
+    ]);
+    await expect(finca.getByRole('radio', { name: /^1 mes/ })).toBeChecked();
+    // CA3: ningún periodo ni plan dice «COP 0» junto a un botón de pago.
+    await expect(page.locator('[data-prueba="pagar-plan"]')).not.toContainText('COP 0');
+    await finca.getByRole('radio', { name: /^6 meses/ }).check();
+    await finca.getByRole('button', { name: 'Pagar 6 meses · COP 210.000' }).click();
+    // CA2: al volver de Bold la página se carga de nuevo y lo dice arriba, a la vista. Un error al
+    // abrir el pago se dice dentro de la tarjeta (la prueba de las llaves de Bold).
+    const estado = page.locator('[data-prueba="pago-estado"]');
+    await expect(estado).toContainText('¡Pago confirmado!');
+    await expect(estado).toBeInViewport();
+    expect(creados).toEqual([
+      { plan: 'finca', meses: 6, vuelta: `${new URL(page.url()).origin}/agro/app/planes/` },
+    ]);
+    const { violations } = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+    expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
   });
 
   test('un operario no ve el botón de pagar', async ({ page }) => {

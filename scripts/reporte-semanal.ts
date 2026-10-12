@@ -23,7 +23,9 @@ import { createSign } from 'node:crypto';
 import { FUENTES } from '../apps/api-celda/src/vigia.ts';
 import marca from '../content/marca.json' with { type: 'json' };
 import { EVENTOS } from '../packages/eventos/src/index.ts';
+import { celdasDelAgro } from './generar-wrangler.ts';
 import { cargarCeldas } from './lib/celdas.ts';
+import { nombreKvFlags } from './lib/kv-flags.ts';
 
 type Fetch = typeof fetch;
 const API = 'https://api.cloudflare.com/client/v4';
@@ -37,6 +39,57 @@ const falla = (titulo: string, motivo: string): Seccion => ({
 });
 
 const n = (x: number) => Math.round(x).toLocaleString('es-CO');
+
+/**
+ * HU-C4.5 CA2: los días de la última semana en que una celda aceptó un token v1. La celda deja una
+ * marca por día en su KV de flags (`apps/api-celda/src/tokens-v1.ts`); aquí solo se leen, con el
+ * token de despliegue, que tiene KV. Siete días seguidos sin marcas en producción son lo que pide la
+ * contracción (fase N+2).
+ */
+export async function tokensV1(
+  fetchFn: Fetch,
+  token: string,
+  cuenta: string,
+  kvs: readonly { nombre: string; titulo: string }[],
+  ahora: number,
+): Promise<Seccion> {
+  const titulo = 'Tokens v1 aceptados por las celdas (últimos 7 días, HU-C4.5)';
+  if (!token) return falla(titulo, 'falta el secreto CF_API_TOKEN');
+  const pedir = (ruta: string) =>
+    fetchFn(`${API}/accounts/${cuenta}/storage/kv/namespaces${ruta}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+  try {
+    const r = await pedir('?per_page=100');
+    const cuerpo = (await r.json().catch(() => null)) as {
+      result?: { id: string; title: string }[];
+    } | null;
+    if (r.status !== 200 || !cuerpo?.result) throw new Error(`KV respondió ${r.status}`);
+    const lineas: string[] = [];
+    for (const { nombre, titulo: tituloKv } of kvs) {
+      const id = cuerpo.result.find((x) => x.title === tituloKv)?.id;
+      if (!id) {
+        lineas.push(`- ${nombre}: no existe el KV ${tituloKv}.`);
+        continue;
+      }
+      const conV1: string[] = [];
+      for (let d = 0; d < 7; d++) {
+        const fecha = new Date(ahora - d * DIA).toISOString().slice(0, 10);
+        const v = await pedir(`/${id}/values/${encodeURIComponent(`tokens_v1:${fecha}`)}`);
+        if (v.status === 200) conV1.push(fecha);
+        else if (v.status !== 404) throw new Error(`KV respondió ${v.status} al leer ${fecha}`);
+      }
+      lineas.push(
+        conV1.length === 0
+          ? `- ${nombre}: ningún día con tokens v1.`
+          : `- ${nombre}: días con tokens v1: ${conV1.sort().join(', ')}.`,
+      );
+    }
+    return { titulo, lineas };
+  } catch (e) {
+    return falla(titulo, (e as Error).message);
+  }
+}
 
 /** Eventos de herramientas por producto, de Analytics Engine, en una ventana de días. */
 export async function eventosDeHerramientas(
@@ -389,6 +442,18 @@ async function principal() {
           await cuentasDelCore(fetch, tokenD1, cuenta, config.core.d1, ahora),
           await cuentasDelCore(fetch, tokenD1, cuenta, `${config.core.d1}_staging`, ahora),
           await consumoDeLaNube(fetch, token, cuenta, ahora),
+          await tokensV1(
+            fetch,
+            tokenD1,
+            cuenta,
+            celdasDelAgro(config).flatMap((c) =>
+              (['produccion', 'staging'] as const).map((destino) => ({
+                nombre: `${c.id} ${destino === 'staging' ? 'staging' : 'producción'}`,
+                titulo: nombreKvFlags(c.id, destino),
+              })),
+            ),
+            ahora,
+          ),
         ];
   secciones.push(
     clave

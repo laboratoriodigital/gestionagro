@@ -27,10 +27,12 @@ import {
 import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { avisarSiCambio } from './avisos.ts';
+import { type ServicioDelCore, sincronizarPlanes } from './planes.ts';
 import { pull } from './pull.ts';
 import { push } from './push.ts';
 import { clavesQr, firmarLote } from './qr.ts';
-import { type KvDeFlags, type MapaDeFilas, resumen, vigilar } from './vigia.ts';
+import { anotarTokenV1 } from './tokens-v1.ts';
+import { CLAVE_NIVEL, type KvDeFlags, type MapaDeFilas, resumen, vigilar } from './vigia.ts';
 import { presupuestoDe } from './vigia-pago.ts';
 
 /** Producto cuyo kill switch apaga la sincronización (`content/agro/cuaderno/product.yaml`). */
@@ -41,6 +43,7 @@ export const TABLAS_DEL_SHARD = [
   'catalogo',
   'entidad_historial',
   'cuarentena',
+  'plan_de_org',
 ] as const;
 const SHARD = /^agro_c[0-9]+_s[0-9]+$/;
 
@@ -74,6 +77,11 @@ export interface Env {
   FILAS_D1_POR_PRODUCTO?: string;
   /** El producto de cada base D1 de la cuenta, por id, en JSON: lo hornea el despliegue (HU-Q7.13). */
   PRODUCTO_DE_BASE?: string;
+  /**
+   * El CORE por service binding, con su entrada `ServicioDelCore` (HU-C5.6). Solo lo usa la vuelta
+   * programada: ninguna solicitud de un usuario lo llama (CA4).
+   */
+  CORE?: ServicioDelCore;
   /** Un binding D1 por shard, con el nombre del shard. */
   [shard: string]: unknown;
 }
@@ -203,6 +211,8 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
         401,
       );
     }
+    // HU-C4.5 CA2: un día con un token v1 queda anotado, para saber cuándo se pueden rechazar.
+    if (reclamos.ver !== 2) await anotarTokenV1(c.env.FLAGS as KvDeFlags | undefined, ahora());
     if (!reclamos.org || !reclamos.shard || !reclamos.rol) {
       return c.json(
         { estado: 'sin-organizacion', motivo: 'Tu cuenta todavía no tiene una finca en la nube.' },
@@ -284,9 +294,17 @@ const app = crearApp();
 
 export default {
   fetch: app.fetch,
-  /** Cron Trigger de la celda, cada hora: el vigía de cuota (HU-E8.2). */
+  /**
+   * Cron Trigger de la celda, cada hora: el vigía de cuota (HU-E8.2) y, después, los planes al día
+   * (HU-C5.6), con el nivel que el vigía acaba de dejar.
+   */
   scheduled(_evento: unknown, env: Env, ctx: ContextoProgramado) {
-    ctx.waitUntil(vueltaDelVigia(env, Date.now()));
+    const ahora = Date.now();
+    ctx.waitUntil(
+      vueltaDelVigia(env, ahora)
+        .catch((e: Error) => console.error(`vigía: la vuelta falló: ${e.message}`))
+        .then(() => vueltaDePlanes(env, ahora)),
+    );
   },
 };
 
@@ -320,6 +338,34 @@ export async function vueltaDelVigia(env: Env, ahora: number, fetchFn: typeof fe
   if (aviso.startsWith('fallo'))
     console.error(`vigía: la alerta no salió; se reintenta en la próxima vuelta. ${aviso}`);
   return { ...v, aviso };
+}
+
+/**
+ * La vuelta de los planes (HU-C5.6). En bloqueo la base no acepta escrituras: tampoco esta. La copia
+ * queda como estaba y la primera vuelta completa fuera del bloqueo la pone al día (P1: se dice en
+ * el log, no se calla).
+ */
+export async function vueltaDePlanes(env: Env, ahora: number, fetchFn: typeof fetch = fetch) {
+  if ((await env.FLAGS?.get(CLAVE_NIVEL)) === 'bloqueo') {
+    console.error('planes: la celda está en bloqueo; la copia de los planes espera');
+    return null;
+  }
+  const v = await sincronizarPlanes(
+    {
+      celda: env.CELDA ?? '?',
+      destino: env.DESTINO ?? 'produccion',
+      core: env.CORE,
+      shards: new Map(shardsDe(env)),
+      flags: env.FLAGS as KvDeFlags | undefined,
+      telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
+    },
+    ahora,
+    fetchFn,
+  );
+  (v.fallas.length > 0 ? console.error : console.log)(
+    `planes: ${v.completa ? 'vuelta completa' : 'cambios'}, ${v.recibidos} recibidos, ${v.escritos} escritos${v.fallas.length > 0 ? `; fallas: ${v.fallas.join('; ')}` : ''}; aviso ${v.aviso}`,
+  );
+  return v;
 }
 
 /** El mapa de filas que hornea el despliegue; uno que no se puede leer se ignora y se dice (P1). */

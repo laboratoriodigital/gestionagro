@@ -5,6 +5,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- `ServicioDelCore`: la entrada por la que una celda pide el plan de sus organizaciones, por service binding con RPC, sin URL ni token (HU-C5.6). Con `desde`, solo las que tuvieron un pago aprobado después; sin él, todas, con la gracia ya aplicada. **Va a producción antes que la celda que la usa.**
+- La gracia de cada producto también en la lista de organizaciones que recibe la app (antes solo en el token), con la marca `aviso` para avisar a 7 días, a 1 día o en gracia (HU-C5.5).
+- Cambiar de plan con días pagados por delante los convierte en días del plan nuevo, al precio mensual de cada uno. Nada se devuelve en dinero (HU-C5.4).
+- Pagar un plan por 1, 3, 6 o 12 meses: el monto sale del precio vigente de ese periodo en la base, nunca de la app, y el periodo pagado queda en el pago (HU-C5.3).
 - El permiso de Google Drive sirve a otro producto (HU-Q10.1): `/api/core/drive/inicio` acepta `producto=<id>` y entonces vuelve solo a un origen y una ruta de la app de ese producto, como al entrar. Sin `producto` sigue siendo el del cuaderno, y los cuadernos instalados no cambian. La política del parqueadero pasa a la versión 2 en el catálogo.
 - El Parqueadero ED1 es un producto del CORE (HU-Q7.1): entra por `infrastructure/productos.json` como excepción declarada (ADR-31), con sus roles (propietario, administrador y cajero), siete días de gracia, sus planes como hipótesis (`gratis` y `parqueadero`, que todavía no se cobra en línea) y su política en borrador. Llega a producción con la próxima versión del CORE; la caja de hoy no cambia, porque sigue sin cuenta.
 

@@ -20,6 +20,13 @@
       "migrations_dir": "../../infrastructure/migraciones/celda"
     }
   ],
+  "services": [
+    {
+      "binding": "CORE",
+      "service": "agro-core",
+      "entrypoint": "ServicioDelCore"
+    }
+  ],
   "triggers": {
     "crons": [
       "0 * * * *"
@@ -45,6 +52,13 @@
           "binding": "agro_c0_s1",
           "database_name": "agro_c0_s1_staging",
           "migrations_dir": "../../infrastructure/migraciones/celda"
+        }
+      ],
+      "services": [
+        {
+          "binding": "CORE",
+          "service": "agro-core-staging",
+          "entrypoint": "ServicioDelCore"
         }
       ],
       "triggers": {

@@ -331,7 +331,8 @@ export function decidirNivel(m: Medicion, actual: NivelDeCelda): NivelDeCelda {
 }
 
 export interface KvDeFlags extends LectorKv {
-  put(clave: string, valor: string): Promise<void>;
+  /** `expirationTtl` en segundos, como KV de Workers: la clave se borra sola (HU-C4.5). */
+  put(clave: string, valor: string, opciones?: { expirationTtl?: number }): Promise<void>;
 }
 
 export interface Vigilancia extends Medicion {
