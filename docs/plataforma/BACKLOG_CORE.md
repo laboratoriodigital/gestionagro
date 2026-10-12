@@ -841,7 +841,7 @@ Formato de cada historia:
 - **Work items:** WI-C9.2.1 `[código]` · WI-C9.2.2 `[prueba]`.
 
 #### HU-C9.3 · Registro de clientes
-- **Capa:** API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C9 · **Depende de:** HU-C9.2 · **Estado:** Refinada
+- **Capa:** API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C9 · **Depende de:** HU-C9.2 · **Estado:** En validación (rama `feat/c9-sprint`. `apps/core/src/clientes-oauth.ts`. **CIMD:** `clienteParaAutorizar` lee el documento del `client_id` (solo HTTPS a un nombre, sin redirecciones, 3 s y 5 KB), exige que se nombre a sí mismo y que sus vueltas sean HTTPS o a la propia máquina, y guarda una copia que renueva cada día. **Registro dinámico:** `POST /oauth/register` (RFC 7591), solo clientes públicos con PKCE, tope de 10 por hora por IP con 429 y `retry-after`. La IP no se guarda: su huella con la fecha del día (columna `origen_hash` en la 0008, que todavía no se aplica en ningún lado). CA2: un cliente bloqueado no sigue, y leer su documento otra vez no lo desbloquea; el código mismo llega con HU-C9.4. Solo en staging, como los metadatos. 8 pruebas; controles negativos: el tope, el bloqueo (sin él, en rojo), vueltas inseguras, un documento ajeno)
 - **Respaldo:** PLATAFORMA §5.4 (Registro del cliente) y §5.7.
 - **CA1.** Client ID Metadata Documents y registro dinámico (RFC 7591) como respaldo, con tope por IP.
 - **CA2 ❌.** Un cliente bloqueado no obtiene códigos, y un registro por encima del tope recibe 429.

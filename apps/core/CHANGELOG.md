@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Registro de clientes de OAuth (HU-C9.3): `POST /oauth/register` (RFC 7591) con tope de 10 por hora por IP, sin guardar la IP, y documentos de metadatos del cliente (CIMD) leídos y renovados cada día. Un cliente bloqueado no sigue. Solo en staging por ahora.
 - Migración 0008: las tablas del servidor de autorización para agentes (`alcance`, `cliente_oauth`, `concesion_oauth`, `codigo_oauth`, `refresco_oauth`). La base exige que ningún alcance mueva dinero. Los alcances salen de `productos.json` y el despliegue los copia como el resto del catálogo; el agro declara `agro:registros:leer` (HU-C9.2).
 - `GET /.well-known/oauth-authorization-server` (RFC 8414), solo en staging: en producción responde 404 hasta que exista el canje de tokens (HU-C9.2).
 - La cuenta muestra dónde has entrado y deja cerrar una sesión, o todas menos esta, con una entrada con Google de menos de 10 minutos; cerrar queda en la auditoría y el refresh de esa sesión deja de servir (HU-C7.5). También tus pagos en los espacios que administras, con el periodo cubierto (HU-C7.6), y lo que pasó en ellos, en frases (HU-C7.8). Rutas `POST /api/core/cuenta/{sesiones,sesiones/cerrar,pagos,actividad}`, solo con token de la cuenta.

@@ -40,6 +40,7 @@ import { cors } from 'hono/cors';
 import politicaDeLaCuenta from '../../../content/cuenta/privacidad/politica.json' with {
   type: 'json',
 };
+import { registrarCliente } from './clientes-oauth.ts';
 import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
 import { espaciosDeLaCuenta } from './cuenta.ts';
 import {
@@ -342,6 +343,13 @@ export function crearApp(dependencias: Dependencias = {}) {
       app.use(ruta, desdeSuApp);
     }
   }
+
+  // HU-C9.3: el servidor de autorización para agentes. Sin CORS de las apps: lo llama el agente,
+  // no una página. Solo donde ya se anuncia (`oauth.ts`).
+  app.use('/oauth/*', conEntorno);
+  app.post('/oauth/register', (c) =>
+    servidorOAuthActivo(c.env.DESTINO) ? registrarCliente(c, c.get('entorno')) : c.notFound(),
+  );
 
   app.post('/api/core/organizaciones', (c) => crearOrganizacionDeLaFinca(c, c.get('entorno')));
   app.post('/api/core/invitaciones', (c) => crearInvitacion(c, c.get('entorno')));

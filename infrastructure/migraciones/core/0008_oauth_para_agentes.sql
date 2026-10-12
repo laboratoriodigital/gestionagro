@@ -28,8 +28,13 @@ CREATE TABLE cliente_oauth (
   redirect_uris TEXT NOT NULL CHECK (json_valid(redirect_uris) AND json_type(redirect_uris) = 'array'),
   estado TEXT NOT NULL CHECK (estado IN ('activo', 'bloqueado')),
   creado TEXT NOT NULL,
-  ultimo_uso TEXT
+  ultimo_uso TEXT,
+  -- Registro dinámico: huella de la IP con la fecha del día, nunca la IP. Solo sirve para el tope
+  -- de registros por hora (HU-C9.3); al día siguiente ya no se puede relacionar.
+  origen_hash TEXT
 );
+-- El tope por IP cuenta los registros de la última hora. Costo: 1 fila por cliente registrado.
+CREATE INDEX cliente_por_origen ON cliente_oauth (origen_hash, creado) WHERE origen_hash IS NOT NULL;
 
 CREATE TABLE concesion_oauth (
   id TEXT PRIMARY KEY,
