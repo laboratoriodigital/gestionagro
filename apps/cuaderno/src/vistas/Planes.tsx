@@ -11,7 +11,7 @@
  * 3, 6 o 12 meses y ve el total, lo que sale al mes y lo que ahorra (HU-C5.7); el monto lo pone el
  * CORE.
  */
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import {
   abrirCheckout,
@@ -97,8 +97,24 @@ function ElegirPeriodo({
   );
 }
 
+/**
+ * Qué pasó con el pago, siempre a la vista (HU-C5.7 CA2): con los periodos, la tarjeta crece y el
+ * aviso podía quedar debajo del borde de la pantalla, donde parecía que el botón no hacía nada.
+ */
+function EstadoDelPago(props: { pago: FaseDelPago; alVerificar: (orden: string) => void }) {
+  const caja = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    caja.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [props.pago]);
+  return (
+    <div ref={caja}>
+      <TextoDelEstado {...props} />
+    </div>
+  );
+}
+
 /** Qué pasó con el pago, en palabras, y cómo seguir. */
-function EstadoDelPago({
+function TextoDelEstado({
   pago,
   alVerificar,
 }: {
@@ -335,15 +351,15 @@ export function Planes() {
                     {p.id === actual ? 'Renovar' : 'Pagar'} {nombreDelPeriodo(elegido.meses)} ·{' '}
                     {pesos(elegido.total)}
                   </button>
+                  {pago && pagando === p.id && (
+                    <EstadoDelPago pago={pago} alVerificar={(o) => void confirmar(o)} />
+                  )}
                   <p class="ayuda">
                     Con PSE, Nequi o tarjeta, en la página segura de Bold. Sin débito automático:
                     pagas solo el tiempo que elijas, y si no renuevas, tu finca vuelve al plan
                     Gratis sin perder nada.
                   </p>
                   {!enLinea && <p class="ayuda">Necesitas señal para pagar.</p>}
-                  {pago && pagando === p.id && (
-                    <EstadoDelPago pago={pago} alVerificar={(o) => void confirmar(o)} />
-                  )}
                 </div>
               )}
               {CON_ESPERA.has(p.id) &&
