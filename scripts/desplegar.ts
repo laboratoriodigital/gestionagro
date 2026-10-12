@@ -63,6 +63,7 @@ import {
   PAGINAS,
   ponerClavesEnLaPagina,
 } from './lib/claves-qr.ts';
+import { idsDeZonas, permisosDeMas, verificarTokenDeMetricas } from './lib/credenciales.ts';
 import {
   ARCHIVO_DESPLIEGUE_CORE,
   ARCHIVO_SQL_CELDAS,
@@ -819,7 +820,7 @@ async function desplegarApiCelda(
       config.core.d1,
     );
     escribirDespliegueCelda(
-      configDeLaCelda(wranglerDeLaCelda(celda), dest, {
+      configDeLaCelda(wranglerDeLaCelda(celda, config.core.worker), dest, {
         bases,
         flagsId: ns.id,
         clavesCore: claves,
@@ -939,31 +940,45 @@ for (const celda of plan.aDesplegar) {
   const alojaCore = celda.id === configCeldas.core.celda;
   const token = process.env[celda.secretos.token];
   const cuenta = process.env[celda.secretos.cuenta];
+  const zonasDeLaCelda = [
+    ...(celda.id === configCeldas.sitio.celda ? [configCeldas.sitio.zona] : []),
+    ...(celda.id === configCeldas.core.celda && configCeldas.core.zona
+      ? [configCeldas.core.zona]
+      : []),
+    // HU-Q5.2: el parqueadero vive con el CORE y sale a su zona cuando se publica (P12).
+    ...(celda.id === configCeldas.core.celda && productos.has('parqueadero')
+      ? [ZONA_PARQUEADERO]
+      : []),
+  ];
   const fallasToken = await verificarToken(
     fetch,
     celda,
     token,
     cuenta,
     destino,
-    [
-      ...(celda.id === configCeldas.sitio.celda ? [configCeldas.sitio.zona] : []),
-      ...(celda.id === configCeldas.core.celda && configCeldas.core.zona
-        ? [configCeldas.core.zona]
-        : []),
-      // HU-Q5.2: el parqueadero vive con el CORE y sale a su zona cuando se publica (P12).
-      ...(celda.id === configCeldas.core.celda && productos.has('parqueadero')
-        ? [ZONA_PARQUEADERO]
-        : []),
-    ],
+    zonasDeLaCelda,
     true, // toda celda crea y migra las bases de sus shards (HU-E5.1)
   );
+  // HU-C11.5: lo que sobra también detiene, en el de despliegue y en el de métricas (CA3).
+  let avisosDeCredenciales: string[] = [];
+  if (fallasToken.length === 0 && token && cuenta) {
+    const zonas = destino === 'produccion' ? await idsDeZonas(fetch, token, zonasDeLaCelda) : [];
+    fallasToken.push(...(await permisosDeMas(fetch, 'despliegue', token, cuenta, zonas)));
+    const metricas = await verificarTokenDeMetricas(
+      fetch,
+      process.env[celda.secretos.metricas],
+      cuenta,
+    );
+    fallasToken.push(...metricas.fallas);
+    avisosDeCredenciales = metricas.avisos;
+  }
   if (fallasToken.length > 0 || !token || !cuenta) {
     resultados.push({ celda: celda.id, estado: 'fallo', detalle: fallasToken });
     detenido = true;
     continue;
   }
   const cred = { token, cuenta };
-  const detalle: string[] = [];
+  const detalle: string[] = [...avisosDeCredenciales];
   let paso: Paso = { ok: true, detalle: [] };
   // En orden: el CORE (la celda necesita su clave pública), la API de la celda y el sitio, que
   // lleva dentro las claves públicas del QR de las celdas (HU-E6.4). La caja de staging sale con

@@ -121,7 +121,7 @@ Al 5 oct 2026 el CORE v0 tiene las guardias que heredó del agro (pruebas del CO
 #### P12 · El permiso que se comprueba es el que se usa
 - **Regla:** un token se prueba antes de sembrarlo y con la acción que va a hacer; ninguno opcional va en el camino crítico.
 - **En el CORE:** con una sola cuenta para todo, el aislamiento entre productos descansa en credenciales por propósito (R6): despliegue, métricas y Cloudflare for SaaS, cada una con lo mínimo. Es la causa 4 de la Tienda 2.0: cuatro permisos que se pisan.
-- **Lo impedirá:** HU-C11.5; `CELDA_SERVICE_TOKEN` comparado en tiempo constante (HU-C5.6).
+- **Lo impedirá:** HU-C11.5. HU-C5.6 no necesitó token: la celda llama al CORE por service binding (12 oct 2026, ver «Cambios de rumbo»).
 - **Entradas:** —
 
 #### P13 · Un secreto no viaja por donde queda escrito
@@ -270,10 +270,11 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 | Commits con `Co-Authored-By: Claude…` y `Claude-Session:` en el cuerpo | `tipo(alcance): descripción`, sin la marca de Claude Code en commits ni en PR (5 oct 2026) | Decisión del dueño al abrir el proyecto del CORE. La vigila HU-C0.2 |
 | Una sola versión del producto en la raíz (ARQUITECTURA §7.1) | El CORE con su propia versión y etiquetas `core-vX.Y.Z` (HU-C0.3) | PLATAFORMA §6.3: con dos productos y un CORE, publicar uno no puede obligar a publicar los demás |
 | La copia fuera de Cloudflare en Google Cloud Storage o Backblaze B2 (`proveedores-de-computo.md` §4) | En el Google Drive del dueño, semanal y cifrada (ADR-30, 5 oct 2026) | Decisión del dueño (D-C5): 15 GB gratis, y el mismo camino que ya eligió para el respaldo del agro por etapas. Lo que cambia: la cuota es de una cuenta personal, así que el vigía mide lo que Drive tiene, no lo que creemos haber subido (P7) |
-| Los tres dominios con un registrador y un correo de recuperación fuera de Cloudflare (PLATAFORMA §3.5 regla 5) | Los tres registrados en Cloudflare, como ya estaban (5 oct 2026) | No fue una decisión nueva: al preguntar, el dueño dijo que todos están en Cloudflare. Queda como riesgo aceptado, mitigado con el segundo factor y los contactos de la cuenta, y se vuelve a presentar en HU-C11.5 |
+| Los tres dominios con un registrador y un correo de recuperación fuera de Cloudflare (PLATAFORMA §3.5 regla 5) | Los tres registrados en Cloudflare, como ya estaban (5 oct 2026) | No fue una decisión nueva: al preguntar, el dueño dijo que todos están en Cloudflare. Queda como riesgo aceptado, mitigado con el segundo factor y los contactos de la cuenta, y se vuelve a presentar en HU-C11.5. *(Hoy, 12 oct 2026: presentado en HU-C11.5 con el costo y los pasos de transferir; el dueño decide que se quedan en Cloudflare por ahora.)* |
 | Una rama y un PR por historia (`entrega-por-partes`, bitácora agro) | Una rama y un PR por sprint, con un commit por historia (5 oct 2026) | El repositorio volvió a privado: cada PR gasta dos corridas completas del CI, unos 12 minutos de 2.000 al mes. El dueño pidió máxima eficiencia y valida por sprint en la revisión del viernes. Lo que urge va en su propia rama |
 | Workers Paid con el M0 de la Tienda (ADR-23, PLATAFORMA §3.2) y activado antes del C4 | Solo cuando sea estrictamente necesario y no haya otra salida para seguir avanzando o creciendo (6 oct 2026) | Decisión del dueño. Todo se diseña para el plan gratuito; una historia que solo sea posible con el pagado lo dice con el dato y propone antes la salida gratuita. HU-C11.2 sale del C6 porque `limits.cpu_ms` solo existe en el pagado; el vigía en modo pago (HU-C11.1) ya está hecho y espera |
 | HC1 («dos productos en staging») en el C4, con HU-C3.7 | HC1 en el C5, con HU-C3.7 junto a HU-C4.3 (6 oct 2026) | Para que una persona entre a un segundo producto y cree allí su organización, el token tiene que decir su producto (HU-C4.3), y eso solo puede salir con la fase N (HU-C4.1) ya en producción, 12 h antes por lo menos (P10). Sin eso, la validación del dueño en staging no tendría qué mirar. El C4 queda en 13 puntos y el C5 en 20 |
+| La celda pide los planes con `POST /api/core/servicio/planes` y un `CELDA_SERVICE_TOKEN` una vez al día, y el CORE le avisa de cada pago aprobado (PLATAFORMA §4.13, HU-C5.6 CA1 y CA2) | Un service binding con RPC (`ServicioDelCore.planes`), cada hora lo que cambió y a las 06:00 UTC todo; el CORE nunca llama a la celda (12 oct 2026) | El CORE y las celdas viven en la misma cuenta (ADR-23): un binding no tiene URL, así que no hay secreto que rotar, guardar en GitHub ni comparar en tiempo constante (P12, R6), y es gratis en el plan gratuito. Preguntar cada hora por lo que cambió reemplaza el aviso del CORE sin una ruta de escritura nueva en la celda; el pago llega a la app al instante por el token. Una celda en otra cuenta necesitará volver al token. `CELDA_SERVICE_TOKEN` sale de ARQUITECTURA §7.5; TIENDA-3.0 todavía lo nombra |
 | La hoja de ruta P0–P6 sin interfaz propia del CORE (PLATAFORMA §7) | Con un sistema de diseño (EC6) y la cuenta en `cuenta.laboratorio-digital.com` (EC7) desde el primer sprint | Pedido del dueño: frontend bonito, minimalista y moderno desde el inicio; ED1 §16 ya preveía la cuenta |
 
 ---
@@ -438,6 +439,17 @@ La regla: **lo que el CI prueba en un PR es ese PR contra la base de ese momento
 La regla: **el CSS que importa se prueba en el navegador, sobre lo compilado. Lo que se escribió no es lo que llega: el minificador también decide.**
 
 *Ficha:* core · *(del terreno)* · 🟢 Bajo · P17, P5 · core-0.2.0 · 2026-10-06
+
+**8 · Tres piezas del C7 que dependen de que el CORE llegue antes, y una semana de evidencia que no cabe en los logs del plan gratuito.**
+Al cerrar el C7 (12 oct 2026), tres cambios del agro necesitan algo del CORE que todavía no está en producción: el cuaderno ofrece 6 meses (HU-C5.7) y un CORE sin HU-C5.3 cobraría uno; la celda llama a `ServicioDelCore` (HU-C5.6) y un CORE sin esa entrada respondería con un error. Y la contracción de los tokens v1 (HU-C4.5) pide «una semana de registro», pero los Workers Logs del plan gratuito guardan 3 días.
+*Síntoma literal.* Sin síntoma todavía: se vio al leer el plan de publicación, no en una corrida. Es lo que pasaría si `chore(version)` subiera CultivoPro sin el CORE.
+*Causa raíz.* Publicar por sprint junta en un PR lo que el CORE ofrece y lo que el agro usa; el despliegue respeta el orden dentro de una corrida (CORE, celdas, sitio), pero dos versiones publicadas por separado no.
+*Arreglo.* La publicación del C7 sube las dos versiones en el mismo `chore(version)` (memoria «Publicar agro y CORE»), y cada historia y su línea del CHANGELOG lo dicen. Si la celda llega antes, falla de forma segura: conserva su copia y avisa una vez. El registro de v1 va a una marca por día en el KV de flags, que vence a los 40 días, y lo lee el reporte de los lunes.
+**Lo prueban** `apps/api-celda/src/planes.test.ts` («una celda sin el binding… se nombran» y CA3 con el CORE caído) y `apps/api-celda/src/tokens-v1.test.ts` (una solicitud con v1 deja la marca; control negativo: sin la marca, en rojo).
+
+La regla: **lo que el agro usa del CORE sale con el CORE o después, nunca antes; y la evidencia que tiene que durar más que los logs se escribe donde dure.**
+
+*Ficha:* core · *(mío)* · 🟡 Medio · P1, P10, P17 · core-0.4.0 · 2026-10-12
 
 **9 · La guía publicada decía «si produceecológico»: Astro se comió el salto de línea antes de una negrita.**
 Al escribir los gemelos en Markdown (HU-C8.2, 12 oct 2026), el Markdown de la guía salió con palabras pegadas. No era el convertidor: el HTML publicado ya las traía pegadas.

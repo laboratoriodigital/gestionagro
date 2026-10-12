@@ -50,9 +50,11 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
     'wrangler.%s.jsonc es el generado, sin ids, con un binding por shard',
     (_id, celda) => {
       const texto = readFileSync(rutaWranglerCelda(celda.id), 'utf8');
-      expect(texto).toBe(textoWranglerDeLaCelda(celda));
+      expect(texto).toBe(textoWranglerDeLaCelda(celda, real.core.worker));
       expect(texto).not.toMatch(/database_id|account_id/);
-      const generada = wranglerDeLaCelda(celda) as { d1_databases: { binding: string }[] };
+      const generada = wranglerDeLaCelda(celda, real.core.worker) as {
+        d1_databases: { binding: string }[];
+      };
       expect(generada.d1_databases.map((d) => d.binding)).toEqual(celda.shards);
     },
   );
@@ -90,7 +92,7 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
   };
 
   it('ids de bases, KV, clave del CORE, orígenes y cuenta van solo al destino; CELDA, PRODUCTO y PLAN se conservan', () => {
-    const staging = configDeLaCelda(wranglerDeLaCelda(c0), 'staging', despliegue);
+    const staging = configDeLaCelda(wranglerDeLaCelda(c0, real.core.worker), 'staging', despliegue);
     const env = (staging['env'] as Record<string, Record<string, unknown>>)['staging'] ?? {};
     expect(env['vars']).toEqual({
       CELDA: c0.id,
@@ -114,7 +116,7 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
   });
 
   it('HU-E8.2: el vigía corre cada hora en los dos destinos', () => {
-    const g = wranglerDeLaCelda(c0) as {
+    const g = wranglerDeLaCelda(c0, real.core.worker) as {
       triggers: unknown;
       env: { staging: { triggers: unknown } };
     };
@@ -122,9 +124,25 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
     expect(g.env.staging.triggers).toEqual({ crons: ['0 * * * *'] });
   });
 
+  it('HU-C5.6: la celda llama al CORE de su mismo destino, por su entrada de servicio', () => {
+    const staging = configDeLaCelda(wranglerDeLaCelda(c0, real.core.worker), 'staging', despliegue);
+    const servicios = (bloque: Record<string, unknown> | undefined) =>
+      (bloque?.['services'] as { service: string; entrypoint: string }[] | undefined)?.map(
+        (s) => `${s.service}#${s.entrypoint}`,
+      );
+    // Los bindings no se heredan entre entornos de wrangler: cada destino declara el suyo.
+    expect(servicios(staging)).toEqual([`${real.core.worker}#ServicioDelCore`]);
+    expect(
+      servicios((staging['env'] as Record<string, Record<string, unknown>>)['staging']),
+    ).toEqual([`${real.core.worker}-staging#ServicioDelCore`]);
+  });
+
   it('un shard sin id de base no se despliega', () => {
     expect(() =>
-      configDeLaCelda(wranglerDeLaCelda(c0), 'produccion', { ...despliegue, bases: {} }),
+      configDeLaCelda(wranglerDeLaCelda(c0, real.core.worker), 'produccion', {
+        ...despliegue,
+        bases: {},
+      }),
     ).toThrow(`falta el id de la base del shard ${c0.shards[0]}`);
   });
 
