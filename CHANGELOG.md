@@ -4,6 +4,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.5.0] - 2026-10-12
+
 ### Agregado
 - El CI de un PR corre solo las pruebas unitarias que alcanzan el código cambiado (`vitest related`), más las del repositorio siempre. Con un cambio que no se sigue por importaciones (SQL, JSON, contenido, configuración), todas (HU-C11.3).
 - `node scripts/verificar-agentes.ts [url]` comprueba lo que leen los agentes en el sitio desplegado: robots y su señal, sitemap, `llms.txt` y sus enlaces, cada gemelo con su cabecera `Link`, las habilidades con su huella, `security.txt` y que no haya un catálogo de API vacío. Corre en la prueba de humo del despliegue: una falla en staging detiene la salida a producción (HU-C8.5).
