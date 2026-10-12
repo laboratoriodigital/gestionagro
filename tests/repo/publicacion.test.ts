@@ -101,9 +101,30 @@ describe('qué despliega desplegar.ts', () => {
   it('el flujo de producción le pasa los productos que decidió la publicación', () => {
     const flujo = parse(readFileSync(join(RAIZ, '.github/workflows/desplegar.yml'), 'utf8'));
     // biome-ignore lint/suspicious/noTemplateCurlyInString: es una expresión de GitHub Actions
-    expect(flujo.jobs.produccion.with.productos).toBe('${{ needs.version.outputs.productos }}');
+    expect(flujo.jobs.produccion.with.productos).toBe('${{ needs.staging.outputs.productos }}');
     const destino = readFileSync(join(RAIZ, '.github/workflows/desplegar-destino.yml'), 'utf8');
     expect(destino).toContain('--productos "$PRODUCTOS"');
+  });
+
+  it('staging decide la publicación al terminar, sin un trabajo aparte que cobra un minuto (HU-C11.8)', () => {
+    const flujo = parse(readFileSync(join(RAIZ, '.github/workflows/desplegar.yml'), 'utf8'));
+    expect(flujo.jobs.version).toBeUndefined();
+    expect(flujo.jobs.staging.with.decidir_publicacion).toBe(true);
+    expect(flujo.jobs.publicar.needs).toBe('staging');
+    expect(flujo.jobs.produccion.needs).toEqual(['staging', 'publicar']);
+    const destino = parse(
+      readFileSync(join(RAIZ, '.github/workflows/desplegar-destino.yml'), 'utf8'),
+    );
+    const pasos = destino.jobs.desplegar.steps as { id?: string; if?: string; run?: string }[];
+    const leer = pasos.findIndex((p) => p.id === 'leer');
+    // Después de desplegar: si staging falla, no se publica nada.
+    expect(leer).toBeGreaterThan(pasos.findIndex((p) => p.run?.includes('scripts/desplegar.ts')));
+    expect(pasos[leer]?.if).toBe('inputs.decidir_publicacion');
+    expect(pasos[leer]?.run).toBe('node scripts/decidir-publicacion.ts');
+    expect(destino.on.workflow_call.outputs.productos.value).toBe(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: es una expresión de GitHub Actions
+      '${{ jobs.desplegar.outputs.productos }}',
+    );
   });
 });
 
@@ -126,7 +147,7 @@ describe('la guardia del PR: el código del CORE se anota en su CHANGELOG', () =
 
   it('el flujo crea la versión del parqueadero con su etiqueta y sus notas', () => {
     const flujo = readFileSync(join(RAIZ, '.github/workflows/desplegar.yml'), 'utf8');
-    expect(flujo).toContain("needs.version.outputs.publicar_parqueadero == 'true'");
+    expect(flujo).toContain("needs.staging.outputs.publicar_parqueadero == 'true'");
     expect(flujo).toContain('node scripts/notas-de-version.ts --parqueadero "$VERSION"');
     expect(flujo).toContain('gh release create "parqueadero-v$VERSION"');
   });

@@ -25,6 +25,28 @@ on:
         required: false
         default: ""
         type: string
+      decidir_publicacion:
+        description: "Después de desplegar, decidir qué versiones son nuevas (solo staging tras una fusión)"
+        required: false
+        default: false
+        type: boolean
+    # Lo que decidió la publicación (scripts/decidir-publicacion.ts). Antes era un trabajo aparte,
+    # que se cobraba como un minuto en cada fusión solo por preparar Node (HU-C11.8).
+    outputs:
+      version_agro:
+        value: ${{ jobs.desplegar.outputs.version_agro }}
+      publicar_agro:
+        value: ${{ jobs.desplegar.outputs.publicar_agro }}
+      version_core:
+        value: ${{ jobs.desplegar.outputs.version_core }}
+      publicar_core:
+        value: ${{ jobs.desplegar.outputs.publicar_core }}
+      version_parqueadero:
+        value: ${{ jobs.desplegar.outputs.version_parqueadero }}
+      publicar_parqueadero:
+        value: ${{ jobs.desplegar.outputs.publicar_parqueadero }}
+      productos:
+        value: ${{ jobs.desplegar.outputs.productos }}
 
 # Su propio grupo por destino: el flujo que lo llama ya tiene el grupo «desplegar», y pedir el
 # mismo grupo desde aquí lo dejaría esperándose a sí mismo.
@@ -40,6 +62,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: ${{ inputs.destino }}
+    outputs:
+      version_agro: ${{ steps.leer.outputs.version_agro }}
+      publicar_agro: ${{ steps.leer.outputs.publicar_agro }}
+      version_core: ${{ steps.leer.outputs.version_core }}
+      publicar_core: ${{ steps.leer.outputs.publicar_core }}
+      version_parqueadero: ${{ steps.leer.outputs.version_parqueadero }}
+      publicar_parqueadero: ${{ steps.leer.outputs.publicar_parqueadero }}
+      productos: ${{ steps.leer.outputs.productos }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -74,3 +104,8 @@ jobs:
           SOLO_CELDA: ${{ inputs.solo_celda }}
           PRODUCTOS: ${{ inputs.productos }}
         run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA" --productos "$PRODUCTOS"
+      # Solo si staging quedó desplegado: qué versiones del commit no tienen etiqueta (HU-C0.3).
+      - id: leer
+        name: Leer las versiones y buscar sus etiquetas
+        if: inputs.decidir_publicacion
+        run: node scripts/decidir-publicacion.ts
