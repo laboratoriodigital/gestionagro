@@ -438,3 +438,15 @@ La regla: **lo que el CI prueba en un PR es ese PR contra la base de ese momento
 La regla: **el CSS que importa se prueba en el navegador, sobre lo compilado. Lo que se escribió no es lo que llega: el minificador también decide.**
 
 *Ficha:* core · *(del terreno)* · 🟢 Bajo · P17, P5 · core-0.2.0 · 2026-10-06
+
+**9 · La guía publicada decía «si produceecológico»: Astro se comió el salto de línea antes de una negrita.**
+Al escribir los gemelos en Markdown (HU-C8.2, 12 oct 2026), el Markdown de la guía salió con palabras pegadas. No era el convertidor: el HTML publicado ya las traía pegadas.
+*Síntoma literal.* En `dist/agro/guia/index.html`: «principal»</strong> o<strong data-astro-cid-…>«Instalar»»; en pantalla, «o«Instalar»» y «si produceecológico o convencional». Seis casos en la guía y uno en vendedores.
+*Causa raíz.* En la plantilla, el renglón terminaba en una palabra y el siguiente empezaba con `<strong>`. Al comprimir el HTML, Astro quitó ese salto sin dejar un espacio. Ninguna prueba leía el texto corrido de la página: las e2e buscan textos dentro de un elemento, no entre dos.
+*Cómo se reprodujo.* `pnpm --filter ./apps/sitio run build` y `grep -o "[[:alnum:]]<strong " dist/agro/guia/index.html`.
+*Arreglo.* Un `{' '}` explícito al final de cada renglón afectado.
+**Lo prueba** `tests/repo/espacios-astro.test.ts`: lee las plantillas de `apps/` y nombra un renglón que termina en palabra seguido de una etiqueta en línea. Control negativo: «si produce» + «<strong>» se nombra; con `{' '}`, no.
+
+La regla: **lo que el usuario lee se revisa como texto corrido, no solo por elementos. Un segundo lector (aquí, el convertidor a Markdown) ve lo que las pruebas por elemento no.**
+
+*Ficha:* agro · *(del terreno)* · 🟢 Bajo · P17 · 0.5.0 · 2026-10-12

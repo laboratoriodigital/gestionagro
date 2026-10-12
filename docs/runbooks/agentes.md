@@ -1,0 +1,42 @@
+# Lo que leen los agentes
+
+**Para qué:** que un buscador con IA o el asistente de un productor lea cultivopro.co sin ejecutar JavaScript (EC8, PLATAFORMA §5.3).
+
+## Qué hay publicado
+
+| Qué | Dónde | De dónde sale |
+|---|---|---|
+| Quién puede leer y para qué | `/robots.txt` | `content/agentes.json` (HU-C8.1). La prueba de humo exige que lo publicado sea lo generado |
+| Qué hay en el sitio | `/llms.txt` | Las páginas públicas del build (HU-C8.2) |
+| Cada página pública en Markdown | `/<ruta>/index.md` | El mismo HTML de la página, convertido al armar el despliegue (`scripts/lib/gemelos.ts`) |
+| El aviso de que existe el Markdown | `<link rel="alternate" type="text/markdown">` y la cabecera `Link` | `Base.astro` y `scripts/lib/cabeceras.ts` |
+
+**Pública** es lo que se indexa. Una calculadora en revisión agronómica (`estado: borrador`) no tiene gemelo ni sale en `llms.txt`, igual que no sale en el sitemap. Cuando se publique, aparece sola en el build siguiente.
+
+## Pedir Markdown con `Accept: text/markdown` (el spike de HU-C8.2, CA2)
+
+El Worker del sitio no corre en las páginas públicas (static-first), así que la negociación solo la puede hacer una **regla de reescritura de la zona**. Falta comprobar si el plan gratuito la permite. Toma unos 10 minutos:
+
+1. Cloudflare → la zona **cultivopro.co** → **Rules** → **Transform Rules** → **Rewrite URL** → **Create rule**.
+2. Nombre: `Markdown para agentes`.
+3. **If incoming requests match** → **Custom filter expression** → **Edit expression**, y pega:
+   ```
+   any(http.request.headers["accept"][*] contains "text/markdown") and ends_with(http.request.uri.path, "/") and not starts_with(http.request.uri.path, "/agro/app/") and not starts_with(http.request.uri.path, "/api/")
+   ```
+4. **Then** → **Path** → **Rewrite to** → **Dynamic**, y pega:
+   ```
+   concat(http.request.uri.path, "index.md")
+   ```
+5. **Query** → **Preserve**. **Deploy**.
+6. Comprueba desde una terminal:
+   ```bash
+   curl -s -H "Accept: text/markdown" https://cultivopro.co/agro/guia/ | head -3
+   ```
+   Debe empezar con `# Cómo usar CultivoPro`. Y sin la cabecera, la página de siempre:
+   ```bash
+   curl -s https://cultivopro.co/agro/guia/ | head -1
+   ```
+
+**Si el panel no deja elegir «Dynamic» o la expresión** (porque el plan gratuito no lo trae), no se paga un plan por esto: se acepta la opción b de PLATAFORMA §5.3. Los agentes siguen la cabecera `Link` y el `<link rel="alternate">`, que ya están. Avísame qué pasó para anotarlo.
+
+Una página sin gemelo (un borrador) pedida con `Accept: text/markdown` responde 404 con la regla: un agente que la pida así no se lleva una página en revisión.

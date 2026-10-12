@@ -4,7 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Arreglado
+- La guía del productor y la página de vendedores perdían el espacio antes de una palabra en negrita que empezaba en otro renglón («si produceecológico»). Una prueba lee las plantillas y no lo deja volver.
+
 ### Agregado
+- `/llms.txt` y una versión en Markdown (`index.md`) de cada página pública de cultivopro.co, anunciada con `<link rel="alternate">` y la cabecera `Link` (HU-C8.2). Sale del mismo HTML de la página al armar el despliegue; una calculadora en revisión agronómica no tiene, y un enlace roto de `llms.txt` detiene el armado. Pasos para negociar `Accept: text/markdown` en la zona: `docs/runbooks/agentes.md`.
 - El `robots.txt` de cultivopro.co dice qué agentes pueden leer y para qué (HU-C8.1): los buscadores y asistentes que enlazan al sitio leen lo público, los recolectores para entrenar modelos no leen nada (`ai-train=no`), y `/api/` y `/agro/app/` siguen cerrados para todos, con la `Content-Signal` al final. Sale de `content/agentes.json`, y la prueba de humo del despliegue exige que lo publicado sea eso.
 - `@ed1/drive` sube archivos binarios, como una foto (`subirArchivo`), lista una carpeta entera aunque Google la dé por páginas (`listarArchivos`) y borra sin fallar si la persona ya borró a mano (`borrarArchivo`). Lo usa la caja del parqueadero para sus fotos (HU-Q8.3); el cuaderno no cambia.
 - El soporte del parqueadero, medido (HU-Q10.3): `scripts/soporte-parqueadero.ts` lee el registro de atenciones que el dueño lleva en un CSV fuera del repositorio (fecha, sede, canal, minutos y causa, nada más) y da el resumen del mes por sede, con los minutos por causa y por canal, su costo si se da el del minuto, y las tres causas con más minutos con su runbook o «Sin runbook: llévela al backlog». Una sede sin filas en el mes sale «sin registros», nunca como cero; un mes sin atenciones se anota con la causa `ninguna`. Una fila mal escrita o con una columna de más no se cuenta y el script termina con error. Runbook: `docs/runbooks/parqueadero-soporte.md`.

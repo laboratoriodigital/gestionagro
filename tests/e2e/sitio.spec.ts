@@ -240,3 +240,27 @@ test.describe('eventos en lote (CA2)', () => {
     });
   });
 });
+
+test.describe('HU-C8.2 · legible por agentes, sin JavaScript', () => {
+  test('llms.txt enlaza el gemelo de la guía, y la guía lo anuncia', async ({ page, request }) => {
+    const llms = await request.get('/llms.txt');
+    expect(llms.status()).toBe(200);
+    const texto = await llms.text();
+    expect(texto).toContain('# CultivoPro');
+    const gemelo = texto.match(/\]\(https:\/\/cultivopro\.co(\/agro\/guia\/index\.md)\)/)?.[1];
+    expect(gemelo).toBe('/agro/guia/index.md');
+    const md = await request.get(gemelo ?? '');
+    expect(md.status()).toBe(200);
+    expect(await md.text()).toContain('# Cómo usar CultivoPro');
+    await page.goto('/agro/guia/');
+    await expect(page.locator('link[rel="alternate"][type="text/markdown"]')).toHaveAttribute(
+      'href',
+      '/agro/guia/index.md',
+    );
+  });
+
+  test('un borrador no tiene gemelo ni se anuncia', async ({ page }) => {
+    await page.goto(DPV);
+    await expect(page.locator('link[rel="alternate"][type="text/markdown"]')).toHaveCount(0);
+  });
+});
