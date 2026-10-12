@@ -12,7 +12,9 @@
  *   se pudo comprobar, y también detiene (P1).
  *
  * Lo que no ve (P17): un permiso de más que no tenga una lectura propia, como «Workers Scripts:
- * Edit» frente a «Read» (los dos leen la lista). La lista de cada propósito está en
+ * Edit» frente a «Read» (los dos leen la lista). Tampoco «Workers Scripts» en el de métricas: su
+ * lista también se lee con Account Analytics (bitácora core 10). Una sonda entra solo si se vio
+ * responder «sin permiso» a un token que no lo tiene. La lista de cada propósito está en
  * `docs/runbooks/credenciales.md`.
  */
 import type { Fetch } from './despliegue.ts';
@@ -77,7 +79,9 @@ export const PERMISOS_DE_MAS: Readonly<Record<Proposito, readonly Sonda[]>> = {
     SONDAS.miembros,
     SONDAS.r2,
     SONDAS.pages,
-    SONDAS.scripts,
+    // Sin «Workers Scripts»: la lista de Workers de la cuenta también responde 200 a un token que
+    // solo tiene Account Analytics. Lo vio el despliegue del 12 oct 2026 con el token del vigía
+    // tal como lo pide el runbook (bitácora core 10). Una sonda que no distingue no se usa.
     SONDAS.kv,
     SONDAS.d1,
   ],
