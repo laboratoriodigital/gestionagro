@@ -373,6 +373,9 @@ importers:
 
   packages/agro-schema:
     dependencies:
+      '@ed1/agro-calc':
+        specifier: workspace:*
+        version: link:../agro-calc
       '@ed1/ids':
         specifier: workspace:*
         version: link:../ids
