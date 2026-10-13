@@ -77,13 +77,16 @@ describe('CA1 · las tablas son las de ARQUITECTURA §5.4, y ninguna más', () =
 describe('CA2 · la tabla celda sale de celdas.json', () => {
   it('después de sincronizar, el directorio es celdas.json', async () => {
     await sincronizar();
+    // El directorio sale ordenado por id; celdas.json, en el orden en que se agregaron (c2 antes que c1).
     expect(await leerCeldas(db)).toEqual(
-      real.celdas.map(({ id, estado, anillo_despliegue, shards }) => ({
-        id,
-        estado,
-        anillo_despliegue,
-        shards,
-      })),
+      real.celdas
+        .map(({ id, estado, anillo_despliegue, shards }) => ({
+          id,
+          estado,
+          anillo_despliegue,
+          shards,
+        }))
+        .sort((a, b) => a.id.localeCompare(b.id)),
     );
   });
 
@@ -174,10 +177,11 @@ describe('CA3 y CA4 · usuarios, organizaciones, membresías y directorio', () =
     expect(anillos).toEqual([...Array(PILOTOS_MAXIMOS).fill(1), 2]);
   });
 
-  it('con dos celdas, la nueva va a la menos cargada (Finca Ensayo Dos en c1)', async () => {
+  it('con dos celdas, la nueva va a la menos cargada (Finca Ensayo Dos en c3)', async () => {
     const [c0] = real.celdas;
     if (!c0) throw new Error('celdas.json sin celdas');
-    await sincronizar([c0, { ...c0, id: 'c1', anillo_despliegue: 1, shards: ['agro_c1_s1'] }]);
+    // c3 y no c1: c1 es la celda de la Tienda (HU-T2.3), y una celda no cambia de producto.
+    await sincronizar([c0, { ...c0, id: 'c3', anillo_despliegue: 1, shards: ['agro_c3_s1'] }]);
     const { id } = await persona(1);
     const uno = await crearOrganizacion(
       db,
@@ -189,7 +193,7 @@ describe('CA3 y CA4 · usuarios, organizaciones, membresías y directorio', () =
       { propietarioId: id, nombre: 'Finca Ensayo Dos', tipo: 'finca' },
       reloj,
     );
-    expect([uno.celda_id, dos.celda_id]).toEqual(['c0', 'c1']);
+    expect([uno.celda_id, dos.celda_id]).toEqual(['c0', 'c3']);
   });
 
   it('sin celda disponible no escribe nada y dice por qué (P1)', async () => {
