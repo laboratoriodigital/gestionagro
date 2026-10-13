@@ -211,6 +211,11 @@ export interface Sesion {
     readonly org_id: string;
     readonly nombre: string;
     readonly rol: string;
+    /** El plan con la gracia de su producto, como en el token (HU-C5.5); falta en una sesión vieja. */
+    readonly plan?: string;
+    /** Hasta cuándo sigue el plan, gracia incluida; null si no vence. */
+    readonly plan_vence?: string | null;
+    readonly aviso?: 'en-gracia' | 'vence-en-1-dia' | 'vence-en-7-dias' | null;
   }[];
   readonly org_id: string | null;
   /** La API de la celda de ese parqueadero; nula sin parqueadero. */

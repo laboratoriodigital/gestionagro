@@ -35,6 +35,17 @@ import { fechaBogota, horaBogota } from './fecha.ts';
 import { type EstadoDeLaFirma, estadoDeLaFirma } from './firma.ts';
 import { useConsulta } from './ganchos.ts';
 import type { Nube } from './nube.ts';
+import {
+  abrirCheckout,
+  confirmarCobro,
+  crearCobro,
+  ErrorDePago,
+  nombreDelPeriodo,
+  ordenDeLaVuelta,
+  periodosDe,
+  pesos,
+  textoDelPlan,
+} from './plan.ts';
 import { aceptarTerminos, terminos, VERSION_DE_LOS_TERMINOS } from './terminos.ts';
 
 interface Props {
@@ -91,14 +102,58 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
     try {
       setEstado(await paso());
     } catch (e) {
-      setError(e instanceof ErrorDeCuenta ? e.message : `No se pudo: ${String(e)}`);
+      setError(
+        e instanceof ErrorDeCuenta || e instanceof ErrorDePago
+          ? e.message
+          : `No se pudo: ${String(e)}`,
+      );
     } finally {
       setOcupado(false);
     }
   }
 
+  /** El acceso al CORE, renovado si venció: el pago lo pide quien administra (HU-Q7.10). */
+  async function acceso(): Promise<string> {
+    const r = await renovar(db, core, { ahora: reloj });
+    if (!r.sesion) throw new ErrorDeCuenta(r.aviso ?? 'Vuelva a entrar con su cuenta para pagar.');
+    return r.sesion.acceso;
+  }
+
+  async function pagar(meses: number) {
+    await hacer(async () => {
+      const cobro = await crearCobro(core, await acceso(), meses, `${location.origin}/caja/`);
+      await abrirCheckout(cobro);
+      return cobro.pruebas ? 'Se abrió el pago de prueba de Bold.' : 'Se abrió el pago de Bold.';
+    });
+  }
+
+  // Al volver de Bold: el CORE confirma con Bold; aprobado, el acceso nuevo trae el plan.
+  async function confirmar(orden: string) {
+    await hacer(async () => {
+      const r = await confirmarCobro(core, await acceso(), orden);
+      if (r.estado === 'rechazado') {
+        throw new ErrorDePago(r.motivo ?? 'Bold no aprobó el pago. No se cobró nada.');
+      }
+      if (r.estado !== 'aprobado') {
+        return 'Bold todavía no confirma el pago. Vuelva a esta pantalla en unos minutos.';
+      }
+      await renovar(db, core, { ahora: reloj, forzar: true });
+      void nube?.ahora();
+      return r.plan_vence
+        ? `Pago aprobado: la nube sigue hasta el ${fechaBogota(Date.parse(r.plan_vence))}.`
+        : 'Pago aprobado.';
+    });
+  }
+
   // Al volver de la cuenta: el código se canjea una vez. Con la sesión por renovar, se renueva.
   useEffect(() => {
+    const orden = regreso?.startsWith('#pago=')
+      ? ordenDeLaVuelta(`?pago=${decodeURIComponent(regreso.slice('#pago='.length))}`)
+      : null;
+    if (orden) {
+      void confirmar(orden);
+      return;
+    }
     const r = regreso ? leerRegreso(regreso) : null;
     if (r && 'error' in r) {
       setError(MENSAJES_DE_ERROR[r.error] ?? 'No se pudo entrar. Intente otra vez.');
@@ -177,6 +232,16 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
         {sesion.usuario.nombre} · {sesion.usuario.email}
       </p>
       {avisos}
+
+      {org && (
+        <PlanDelParqueadero
+          org={org}
+          puedePagar={alcance(rolDeLaSesion(sesion) ?? '', 'equipo') === 'si'}
+          ocupado={ocupado}
+          ahora={reloj()}
+          alPagar={(meses) => void pagar(meses)}
+        />
+      )}
 
       {sit === 'para-subir' && (
         <>
@@ -315,6 +380,49 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
 }
 
 /** Si los recibos de esta caja salen firmados (HU-Q8.1 y HU-Q8.2); sin firma, lo dice (CA3). */
+/** El plan, hasta cuándo sigue la nube y, para quien paga, los periodos (HU-Q7.10 CA1). */
+function PlanDelParqueadero({
+  org,
+  puedePagar,
+  ocupado,
+  ahora,
+  alPagar,
+}: {
+  readonly org: Sesion['organizaciones'][number];
+  readonly puedePagar: boolean;
+  readonly ocupado: boolean;
+  readonly ahora: number;
+  readonly alPagar: (meses: number) => void;
+}) {
+  const periodos = periodosDe();
+  return (
+    <section class="seccion" aria-labelledby="titulo-plan" data-prueba="plan">
+      <h2 class="etiqueta" id="titulo-plan">
+        Plan del parqueadero
+      </h2>
+      <p data-prueba="texto-del-plan">{textoDelPlan(org, ahora)}</p>
+      {puedePagar ? (
+        <div class="menu" data-prueba="pagar-plan">
+          {periodos.map((p) => (
+            <button
+              key={p.meses}
+              type="button"
+              class="boton boton-secundario"
+              disabled={ocupado}
+              onClick={() => alPagar(p.meses)}
+            >
+              Pagar {nombreDelPeriodo(p.meses)} · {pesos(p.total)}
+              {p.ahorro > 0 ? ` (ahorra ${pesos(p.ahorro)})` : ''}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p class="ayuda">El plan lo paga quien es propietario del parqueadero.</p>
+      )}
+    </section>
+  );
+}
+
 function textoDeLaFirma(f: EstadoDeLaFirma): string {
   switch (f.es) {
     case 'vigente':

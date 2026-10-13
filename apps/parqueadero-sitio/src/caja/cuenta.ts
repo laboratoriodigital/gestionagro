@@ -309,6 +309,14 @@ export async function subirParqueadero(
     acceso: nueva.acceso,
     cuerpo: { dispositivo: caja.id, serie: caja.serie, sede_id: sede.id },
   });
+  // HU-Q7.10: el parqueadero ya existe en la cuenta, pero su plan no trae la nube. La sesión se
+  // queda con él, para que «Cuenta y nube» ofrezca pagarlo; subir se intenta de nuevo después.
+  if (reclamada.estado === 402) {
+    await db.transaction('rw', db.meta, async () => {
+      await db.meta.put({ clave: 'sesion', sesion: nueva });
+      await db.meta.delete('org_pendiente');
+    });
+  }
   if (reclamada.estado !== 200 && reclamada.estado !== 201) {
     throw new ErrorDeCuenta(
       motivo(reclamada.datos, `La nube no recibió esta caja (${reclamada.estado}).`),

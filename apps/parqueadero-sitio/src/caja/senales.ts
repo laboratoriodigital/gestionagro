@@ -57,15 +57,29 @@ export function senalDePendientes(cuantas: number): Senal {
  * dispositivo», «enviando» y «en la nube». Sin cuenta no hay señal: la caja de `v0.2.x` sigue
  * con sus cuatro (P10).
  */
+/** La marca del CORE para avisar del plan (HU-C5.5), como llega en la sesión. */
+export type AvisoDelPlan = 'en-gracia' | 'vence-en-1-dia' | 'vence-en-7-dias' | null;
+
 export function senalDeLaNube(
   vinculada: boolean,
   pendientes: number,
   estado: EstadoDeLaNube,
+  avisoDelPlan: AvisoDelPlan = null,
 ): Senal | null {
   if (!vinculada) return null;
   if (estado.tipo === 'sin-terminos')
     return { texto: 'Nube en pausa: acepte los términos', tono: 'error' };
+  if (
+    estado.tipo === 'resultado' &&
+    [estado.envio.estado, estado.recepcion?.estado].includes('sin-plan')
+  )
+    return { texto: 'Nube en pausa: el plan no está al día', tono: 'error' };
   if (estado.tipo === 'enviando') return { texto: 'Enviando a la nube…', tono: 'neutro' };
+  // HU-Q7.10 CA2: con la nube al día, el plan por vencer o en gracia se dice en la cabecera.
+  if (pendientes === 0 && avisoDelPlan === 'en-gracia')
+    return { texto: 'Plan vencido: la nube sigue unos días', tono: 'aviso' };
+  if (pendientes === 0 && avisoDelPlan)
+    return { texto: 'Todo en la nube · el plan vence pronto', tono: 'aviso' };
   if (pendientes === 0) return { texto: 'Todo en la nube', tono: 'bien' };
   const aqui = `${pendientes} en este dispositivo`;
   const ultimo =

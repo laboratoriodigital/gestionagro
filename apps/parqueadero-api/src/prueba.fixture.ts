@@ -89,6 +89,8 @@ export const token = async (
     shard: SHARD,
     anillo: 1,
     aud: 'parqueadero',
+    // El plan pagado: sin él, la celda no sincroniza (HU-Q7.10).
+    plan: 'parqueadero',
     ...datos,
   };
   return (

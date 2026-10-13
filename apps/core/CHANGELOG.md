@@ -4,6 +4,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- El catálogo trae la versión 3 de la política de la cuenta del parqueadero (Bold como aliado para pagar el plan, HU-Q7.10).
 ### Agregado
 - Tus datos (HU-C7.7, Ley 1581): en la cuenta, «Descargar mis datos» con lo que el CORE guarda de ti, y hacer una consulta, un reclamo o una solicitud de supresión con número y fecha límite en días hábiles de Colombia (10 y 15, con festivos). Al dueño le llega un aviso por Telegram con el número y el plazo, sin el texto; si no sale, el cron lo reintenta. Rutas `POST /api/core/cuenta/{mis-datos,radicar,radicados}` y migración 0009 (`radicado_datos`). El CORE recibe ahora `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`.
 - Revocar el acceso de un agente (HU-C9.6): `POST /oauth/revoke` (RFC 7009), y en la cuenta el bloque «Asistentes con acceso», con lo que puede hacer cada uno y «Quitar acceso». El recurso pregunta al CORE en cada solicitud si la concesión sigue viva (`ServicioDelCore.concesionVigente`).

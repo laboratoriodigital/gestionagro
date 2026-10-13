@@ -18,6 +18,7 @@ import {
   conexionesDeLaCaja,
   cspDelParqueadero,
   driveDeLaCaja,
+  pagoDeLaCaja,
   robotsDelParqueadero,
   textoDeCabecerasDelParqueadero,
 } from '../../scripts/lib/cabeceras-parqueadero.ts';
@@ -105,6 +106,19 @@ describe('el sitio del parqueadero', () => {
       expect(politica.conexiones_de_terceros).toContain(o);
     }
     expect(driveDeLaCaja('produccion')).toEqual([]);
+  });
+
+  it('el pago de Bold (HU-Q7.10) es el que declara la política, solo como script y solo en staging', () => {
+    expect(pagoDeLaCaja('staging')).toEqual(politica.scripts_al_pagar);
+    expect(pagoDeLaCaja('staging').length).toBeGreaterThan(0);
+    expect(politica.encargados.map((x) => x.proveedor)).toContain('Bold');
+    for (const o of pagoDeLaCaja('staging')) {
+      const csp = cspDelParqueadero('staging');
+      expect(csp).toContain(`script-src 'self' ${o};`);
+      expect(csp.replace(`script-src 'self' ${o};`, '')).not.toContain(o);
+    }
+    expect(pagoDeLaCaja('produccion')).toEqual([]);
+    expect(cspDelParqueadero('produccion')).toContain("script-src 'self';");
   });
 
   it('staging no se indexa; producción lleva HSTS y no deja indexar la caja ni los recibos', () => {

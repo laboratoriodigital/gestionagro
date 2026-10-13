@@ -10,6 +10,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import politica from '../../content/parqueadero/privacidad/politica.json' with { type: 'json' };
 import { ORIGEN_DRIVE } from '../../packages/drive/src/index.ts';
 import { celdasDelDirectorio } from './celda-parqueadero.ts';
 import { type ConfigCeldas, cargarCeldas } from './celdas.ts';
@@ -47,13 +48,21 @@ export const coreDeLaCaja = (
 export const driveDeLaCaja = (entorno: EntornoDelParqueadero): string[] =>
   entorno === 'staging' ? [ORIGEN_DRIVE] : [];
 
+/**
+ * El programa de pago de Bold, para pagar el plan desde «Cuenta y nube» (HU-Q7.10): el que la
+ * política de la cuenta declara en `scripts_al_pagar`, solo como script y solo en staging, como la
+ * cuenta, hasta HU-Q7.12. Se carga al tocar «Pagar», nunca al abrir la caja.
+ */
+export const pagoDeLaCaja = (entorno: EntornoDelParqueadero): string[] =>
+  entorno === 'staging' ? [...politica.scripts_al_pagar] : [];
+
 export function cspDelParqueadero(
   entorno: EntornoDelParqueadero,
   config: ConfigCeldas = cargarCeldas(),
 ): string {
   return [
     "default-src 'self'",
-    "script-src 'self'",
+    ["script-src 'self'", ...pagoDeLaCaja(entorno)].join(' '),
     "style-src 'self'",
     "img-src 'self' data: blob:",
     [

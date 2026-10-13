@@ -991,6 +991,7 @@ Una entrada en `infrastructure/productos.json` (PLATAFORMA §4.2): un archivo y 
 
 - **Una organización es una sede.** Varias sedes son varias organizaciones de la misma persona (PLATAFORMA §4.1). El reporte consolidado llega con el plan Varias sedes (estudio §10.3).
 - **`gracia_dias: 7`**, como la tienda: un parqueadero no puede dejar de recibir carros porque olvidó pagar. Y en el parqueadero ni siquiera puede: la caja es local (§14.2).
+- **Hecho en HU-Q7.10 (12 oct 2026), en staging:** la nube es del plan pagado. La celda lee `plan` del token (el CORE lo emite con la gracia) y, con el gratuito, responde 402 `sin-plan` a todo `/api/v1/*`, sin consultas (`apps/parqueadero-api/src/plan.ts`). La caja dice en la cabecera «Nube en pausa: el plan no está al día» y sigue registrando y cobrando. «Cuenta y nube» muestra hasta cuándo sigue la nube y, al propietario, los periodos de `cobro` de `planes.json`; pagar abre Bold por el CORE (`/api/core/pago/crear`, con su CSP de staging para el programa de Bold que declara la política de la cuenta), y al volver con `?pago=` el CORE confirma con Bold y la caja renueva su acceso.
 - **Operadores sin Google:** el enlace mágico por correo (PLATAFORMA §4.11) y las invitaciones por WhatsApp con el código en el fragmento.
 
 ### 11.2 Roles y permisos

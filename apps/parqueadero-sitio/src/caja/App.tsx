@@ -21,6 +21,7 @@ import { diferenciaDeHora, senalDeHora } from './hora.ts';
 import { alVolverALaCaja, type ControlDeImpresora } from './impresora.ts';
 import type { EstadoDeLaNube, Nube } from './nube.ts';
 import {
+  type AvisoDelPlan,
   type Propuesta,
   senalDeImpresora,
   senalDeLaNube,
@@ -73,6 +74,18 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
     false,
   );
   const enCola = useConsulta(() => db.outbox.count(), 0);
+  // HU-Q7.10 CA2: el aviso del plan, como lo trae la sesión del CORE (HU-C5.5).
+  const avisoDelPlan = useConsulta<AvisoDelPlan>(
+    () =>
+      db.meta
+        .get('sesion')
+        .then((m) =>
+          m?.clave === 'sesion'
+            ? (m.sesion.organizaciones.find((o) => o.org_id === m.sesion.org_id)?.aviso ?? null)
+            : null,
+        ),
+    null,
+  );
   const cuarentena = useConsulta<Rechazo[]>(
     () => db.rechazos.orderBy('recibido').reverse().toArray(),
     [],
@@ -201,7 +214,7 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
         pendientes={senalDePendientes(pendientes)}
         prueba={prueba}
         persistente={persistente}
-        nube={senalDeLaNube(vinculada, enCola, estadoNube)}
+        nube={senalDeLaNube(vinculada, enCola, estadoNube, avisoDelPlan)}
         cuarentena={cuarentena}
       />
       <AvisoActualizacion />
