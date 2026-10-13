@@ -4,7 +4,14 @@
  * en `tests/e2e/cuenta-autorizar.spec.ts`.
  */
 import type { BaseD1 } from '@ed1/d1';
-import { firmanteDesde, firmarAcceso, generarClavePrivada, hashDe } from '@ed1/tokens';
+import {
+  firmanteDesde,
+  firmarAcceso,
+  generarClavePrivada,
+  hashDe,
+  verificarAcceso,
+  verificarAccesoDeAgente,
+} from '@ed1/tokens';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { catalogoDelRepositorio } from '../../../scripts/lib/registro-productos.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
@@ -210,5 +217,127 @@ describe('HU-C9.4 · la decisión de la persona', () => {
     expect(vuelta.searchParams.get('error')).toBe('invalid_request');
     expect(vuelta.searchParams.has('code')).toBe(false);
     expect(await db.prepare('SELECT COUNT(*) AS n FROM codigo_oauth').first()).toEqual({ n: 0 });
+  });
+});
+
+describe('HU-C9.5 · el canje del código y el refresh rotado', () => {
+  const VERIFICADOR = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
+  const RETO_DEL_VERIFICADOR = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
+  let reloj = AHORA;
+  const conReloj = crearApp({ ahora: () => reloj });
+  const canjear = (cuerpo: Record<string, string>, destino = 'staging') =>
+    conReloj.fetch(
+      new Request(`${CORE}/oauth/token`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(cuerpo).toString(),
+      }),
+      env(destino),
+    );
+  async function codigo() {
+    reloj = AHORA;
+    const r = await decidir({
+      pedido: { ...BUENO, code_challenge: RETO_DEL_VERIFICADOR },
+      decision: 'permitir',
+      org_id: FINCA,
+    });
+    return new URL(((await r.json()) as { vuelta: string }).vuelta).searchParams.get('code') ?? '';
+  }
+  const conCodigo = (code: string, extra: Record<string, string> = {}) => ({
+    grant_type: 'authorization_code',
+    code,
+    code_verifier: VERIFICADOR,
+    redirect_uri: VUELTA,
+    client_id: CLIENTE,
+    ...extra,
+  });
+  const claves = async () => [(await firmanteDesde(clave)).publica];
+
+  it('CA1 · el código da un token de 1 h para su recurso, con scope, azp y cnc, y un refresh', async () => {
+    const r = await canjear(conCodigo(await codigo()));
+    expect(r.status).toBe(200);
+    expect(r.headers.get('cache-control')).toBe('no-store');
+    const t = (await r.json()) as Record<string, unknown>;
+    expect(t).toMatchObject({
+      token_type: 'Bearer',
+      expires_in: 3600,
+      scope: 'agro:registros:leer',
+    });
+    const reclamos = await verificarAccesoDeAgente(
+      await claves(),
+      String(t['access_token']),
+      RECURSO,
+      reloj,
+    );
+    expect(reclamos).toMatchObject({
+      sub: 'u-ana',
+      org: FINCA,
+      azp: CLIENTE,
+      scope: 'agro:registros:leer',
+    });
+    expect(reclamos.exp - reclamos.iat).toBe(3600);
+    // El token de un agente no le sirve a ninguna app: su emisor es otro.
+    await expect(
+      verificarAcceso((await claves())[0] as never, String(t['access_token']), reloj),
+    ).rejects.toThrow(/Emisor desconocido/);
+    // Ni a otro recurso.
+    await expect(
+      verificarAccesoDeAgente(
+        await claves(),
+        String(t['access_token']),
+        'https://mcp.otro.example',
+        reloj,
+      ),
+    ).rejects.toThrow(/otro recurso/);
+  });
+
+  it('❌ · un código usado, vencido, con otra vuelta o sin el verificador PKCE no da token', async () => {
+    const usado = await codigo();
+    expect((await canjear(conCodigo(usado))).status).toBe(200);
+    expect(((await (await canjear(conCodigo(usado))).json()) as { error: string }).error).toBe(
+      'invalid_grant',
+    );
+    for (const extra of [
+      { code_verifier: 'x'.repeat(43) },
+      { redirect_uri: 'https://agente.example/otra' },
+      { client_id: 'dcr-otro' },
+    ]) {
+      const r = await canjear(conCodigo(await codigo(), extra));
+      expect(r.status, JSON.stringify(extra)).toBe(400);
+    }
+    const viejo = await codigo();
+    reloj = AHORA + 11 * 60 * 1000;
+    expect((await canjear(conCodigo(viejo))).status).toBe(400);
+  });
+
+  it('CA2 ❌ · el refresh rota; reusar uno ya rotado revoca la concesión entera y queda en la auditoría', async () => {
+    const primero = (await (await canjear(conCodigo(await codigo()))).json()) as Record<
+      string,
+      string
+    >;
+    const conRefresh = (refresh: string) => ({
+      grant_type: 'refresh_token',
+      refresh_token: refresh,
+      client_id: CLIENTE,
+    });
+    const segundo = (await (
+      await canjear(conRefresh(primero['refresh_token'] ?? ''))
+    ).json()) as Record<string, string>;
+    expect(segundo['access_token']).toBeTruthy();
+    expect(segundo['refresh_token']).not.toBe(primero['refresh_token']);
+    // Alguien reusa el primero: la concesión cae, y con ella el refresh bueno.
+    const reuso = await canjear(conRefresh(primero['refresh_token'] ?? ''));
+    expect(((await reuso.json()) as { error: string }).error).toBe('invalid_grant');
+    expect((await canjear(conRefresh(segundo['refresh_token'] ?? ''))).status).toBe(400);
+    expect(
+      await db.prepare('SELECT revocada IS NOT NULL AS revocada FROM concesion_oauth').first(),
+    ).toEqual({ revocada: 1 });
+    expect(
+      await db.prepare("SELECT detalle FROM auditoria WHERE accion = 'concesion_revocada'").first(),
+    ).toMatchObject({ detalle: expect.stringContaining('reuso de refresh') });
+  });
+
+  it('P1 ❌ · en producción no hay canje todavía', async () => {
+    expect((await canjear(conCodigo('x'), 'produccion')).status).toBe(404);
   });
 });

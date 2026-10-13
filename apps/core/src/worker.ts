@@ -87,6 +87,7 @@ import {
 } from './productos.ts';
 import { type ProveedorDePago, proveedorBold } from './proveedor-de-pago.ts';
 import { securityTxt } from './security-txt.ts';
+import { canjearToken } from './token-oauth.ts';
 
 export { ServicioDelCore } from './entrada-de-servicio.ts';
 export { PRODUCTO_CORE };
@@ -352,6 +353,10 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.use('/oauth/*', conEntorno);
   app.post('/oauth/register', (c) =>
     servidorOAuthActivo(c.env.DESTINO) ? registrarCliente(c, c.get('entorno')) : c.notFound(),
+  );
+  // HU-C9.5: el canje del código y del refresh. Lo llama el agente, desde cualquier origen.
+  app.post('/oauth/token', (c) =>
+    servidorOAuthActivo(c.env.DESTINO) ? canjearToken(c, c.get('entorno')) : c.notFound(),
   );
   // HU-C9.4: autorizar con consentimiento. La pantalla es la página estática /autorizar/.
   app.get('/oauth/authorize', (c) =>

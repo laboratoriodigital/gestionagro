@@ -857,7 +857,7 @@ Formato de cada historia:
 - **Work items:** WI-C9.4.1 `[código]` ruta · WI-C9.4.2 `[código]` pantalla · WI-C9.4.3 `[prueba]` e2e y casos inválidos.
 
 #### HU-C9.5 · Token y refresh rotado con detección de reuso
-- **Capa:** API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C10 · **Depende de:** HU-C9.4 · **Estado:** Refinada
+- **Capa:** API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C10 · **Depende de:** HU-C9.4 · **Estado:** En validación (rama `feat/c10-sprint`. `POST /oauth/token` (`apps/core/src/token-oauth.ts`), con cuerpo de formulario o JSON y errores de RFC 6749. El código es de un uso (marcado con un `UPDATE` condicionado), vigente, con la misma vuelta, el mismo cliente y el `code_verifier` que da el reto S256. **Cambio de forma:** el token de un agente tiene **emisor propio** (`ed1-core-agentes`, `@ed1/tokens`), así que ningún verificador de las apps lo acepta, y `verificarAccesoDeAgente` exige además que el `aud` sea el recurso (CA1: 1 h, `scope`, `azp`, `cnc`). El refresh rota en cada uso y vive 90 días; reusar uno rotado revoca la concesión y todos sus refresh en un lote con `concesion_revocada` en la auditoría (CA2). Solo en staging. 4 pruebas; controles negativos: código usado, vencido, otra vuelta, otro cliente o verificador falso; sin la revocación por reuso, una en rojo)
 - **Respaldo:** PLATAFORMA §5.4 (Token).
 - **CA1.** Token de 1 h con `scope`, `azp`, `cnc` y `aud` = recurso. Refresh rotado en cada uso.
 - **CA2 ❌.** Reusar un refresh ya rotado revoca la concesión entera y queda en la auditoría.

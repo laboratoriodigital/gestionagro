@@ -237,3 +237,90 @@ export function aceptarEnProducto(reclamos: Reclamos, producto: string): Acceso 
   }
   return { ...reclamos, producto: delToken, plan: reclamos.plan ?? PLAN_SIN_RECLAMO };
 }
+
+// ── Tokens de agentes (OAuth 2.1, PLATAFORMA §5.4, HU-C9.5) ──────────────────────────────────
+
+/**
+ * Emisor propio de los tokens de agentes: ningún verificador de las apps (`verificarAcceso`, que
+ * solo conoce `agro-core` y `ed1-core`) los acepta. Un token de agente sirve solo en su recurso.
+ */
+export const EMISOR_AGENTES = 'ed1-core-agentes';
+export const DURACION_ACCESO_DE_AGENTE_MS = 60 * 60 * 1000;
+
+export interface ReclamosDeAgente {
+  iss: typeof EMISOR_AGENTES;
+  sub: string;
+  /** El recurso (RFC 8707): el servidor MCP o la API que lo acepta. */
+  aud: string;
+  /** El cliente que pidió el acceso (`azp`). */
+  azp: string;
+  /** La concesión: revocarla corta este token en su recurso (HU-C9.6). */
+  cnc: string;
+  org: string;
+  /** Los alcances, separados por espacio (RFC 8693 §4.2). */
+  scope: string;
+  iat: number;
+  exp: number;
+}
+
+export async function firmarAccesoDeAgente(
+  firmante: Firmante,
+  datos: Omit<ReclamosDeAgente, 'iss' | 'iat' | 'exp'>,
+  ahoraMs: number,
+): Promise<{ token: string; vence: number }> {
+  const iat = Math.floor(ahoraMs / 1000);
+  const exp = iat + DURACION_ACCESO_DE_AGENTE_MS / 1000;
+  const reclamos: ReclamosDeAgente = { iss: EMISOR_AGENTES, iat, exp, ...datos };
+  const cuerpo = `${parte({ alg: 'EdDSA', typ: 'at+jwt', kid: firmante.publica.kid })}.${parte(reclamos)}`;
+  const firma = new Uint8Array(
+    await crypto.subtle.sign({ name: 'Ed25519' }, firmante.privada, texto.encode(cuerpo)),
+  );
+  return { token: `${cuerpo}.${base64url(firma)}`, vence: exp * 1000 };
+}
+
+/**
+ * Lo que hace un recurso con un token de agente: la clave que nombra (`kid`), la firma, el emisor
+ * de agentes, que el `aud` sea **este** recurso (CA3 de HU-C9.7) y el vencimiento.
+ */
+export async function verificarAccesoDeAgente(
+  claves: readonly ClavePublica[],
+  token: string,
+  recurso: string,
+  ahoraMs: number,
+): Promise<ReclamosDeAgente> {
+  const [cabecera, cuerpo, firma] = token.split('.');
+  if (!cabecera || !cuerpo || !firma) throw new TokenInvalido('El token no tiene tres partes');
+  let kid: string | undefined;
+  try {
+    const c = JSON.parse(new TextDecoder().decode(desdeBase64url(cabecera))) as {
+      kid?: string;
+      alg?: string;
+    };
+    if (c.alg !== 'EdDSA') throw new TokenInvalido(`Algoritmo no aceptado: ${c.alg}`);
+    kid = c.kid;
+  } catch (e) {
+    if (e instanceof TokenInvalido) throw e;
+    throw new TokenInvalido('El token no se puede leer');
+  }
+  const publica = claves.find((c) => c.kid === kid);
+  if (!publica) throw new TokenInvalido(`Clave desconocida: ${String(kid)}`);
+  const clave = await crypto.subtle.importKey(
+    'jwk',
+    { kty: 'OKP', crv: 'Ed25519', x: publica.x },
+    { name: 'Ed25519' },
+    false,
+    ['verify'],
+  );
+  const valida = await crypto.subtle.verify(
+    { name: 'Ed25519' },
+    clave,
+    desdeBase64url(firma),
+    texto.encode(`${cabecera}.${cuerpo}`),
+  );
+  if (!valida) throw new TokenInvalido('La firma no corresponde');
+  const r = JSON.parse(new TextDecoder().decode(desdeBase64url(cuerpo))) as ReclamosDeAgente;
+  if (r.iss !== EMISOR_AGENTES) throw new TokenInvalido('No es un token de agente');
+  if (r.aud !== recurso) throw new TokenInvalido('El token es para otro recurso');
+  if (r.exp * 1000 <= ahoraMs) throw new TokenInvalido('El token venció');
+  return r;
+}
