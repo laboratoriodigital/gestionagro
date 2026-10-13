@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- El catálogo trae la versión 3 de la política de la cuenta del parqueadero (Bold como aliado para pagar el plan, HU-Q7.10).
+
 ## [0.4.0] - 2026-10-12
 
 ### Agregado

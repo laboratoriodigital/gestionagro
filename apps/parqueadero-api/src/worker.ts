@@ -11,6 +11,8 @@
  *   shard salen del token, nunca del cuerpo ni de la URL.
  * - Kill switch `ks:parqueadero` (CA3): apagado, `/api/v1/*` responde 503 con `Retry-After`; la
  *   caja sigue registrando y cobrando sin red (HU-Q7.5). Se revisa antes del token, que cuesta más.
+ * - Plan (HU-Q7.10 CA3): la nube es del plan pagado; con el gratuito o pasada la gracia, 402
+ *   `sin-plan` (`plan.ts`). El plan sale del token.
  * - Términos (HU-Q7.11 CA3): cada pedido con token dice en `?terminos=` la versión que la caja
  *   aceptó; sin la vigente, 403 `sin-terminos` (`terminos.ts`).
  *
@@ -33,6 +35,7 @@ import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { certificar, clavesRecibo } from './certificados.ts';
 import { darDeAlta, listar, reclamar, resumen, retirar } from './dispositivos.ts';
+import { planConNube, SIN_PLAN } from './plan.ts';
 import { pull } from './pull.ts';
 import { push } from './push.ts';
 import { registrarTerminos, SIN_TERMINOS, VERSION_DE_LOS_TERMINOS } from './terminos.ts';
@@ -222,6 +225,8 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       shard: reclamos.shard,
       db,
     });
+    // HU-Q7.10 CA3: la nube es del plan pagado, con su gracia; lo dice el token, sin consultas.
+    if (!planConNube(reclamos.plan)) return c.json(SIN_PLAN, 402);
     // HU-Q7.11 CA3: sin los términos vigentes la caja no sincroniza. Ninguna consulta: es la URL.
     if (c.req.query('terminos') !== VERSION_DE_LOS_TERMINOS) return c.json(SIN_TERMINOS, 403);
     await siguiente();

@@ -62,7 +62,7 @@ export type Resultado =
       readonly causa?: string;
     }
   | {
-      readonly estado: 'sin-sesion' | 'error';
+      readonly estado: 'sin-sesion' | 'sin-plan' | 'error';
       readonly enviados: number;
       readonly rechazados: number;
       readonly motivo: string;
@@ -157,6 +157,10 @@ function falla(
 ): Resultado | null {
   if (r.status === 401) {
     return { estado: 'sin-sesion', ...cuenta, motivo: cuerpo.motivo ?? 'La sesión venció' };
+  }
+  // HU-Q7.10 CA3: el plan no está al día. La nube queda en pausa; la caja, igual.
+  if (r.status === 402) {
+    return { estado: 'sin-plan', ...cuenta, motivo: cuerpo.motivo ?? 'El plan no está al día' };
   }
   if (r.status === 429 || r.status === 503) {
     const pedido = Number(r.headers.get('retry-after'));

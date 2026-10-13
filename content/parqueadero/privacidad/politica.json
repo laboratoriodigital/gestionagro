@@ -1,7 +1,7 @@
 {
-  "nota": "Política de tratamiento de datos de las cuentas del Parqueadero ED1 (HU-Q7.1): la del dueño, el administrador y el cajero que entran con su cuenta desde M1. El CORE pide aceptar esta versión al entrar al producto. No es la del conductor: de los datos del conductor el responsable es cada parqueadero, con su propio aviso y su política (`content/parqueadero/privacidad/aviso.json`, HU-Q4.4), y ED1 los guarda como encargado cuando la caja sincroniza. Es un borrador escrito para que el dueño lo revise: el nombre del responsable queda por completar, como en la de la cuenta (docs/runbooks/datos-del-responsable.md). Hoy, en M0, la caja no tiene cuenta y esta política no se le muestra a nadie. Versión 2 (8 oct 2026): copia de la caja en el Google Drive de la cuenta (HU-Q10.1), como la del cuaderno; la caja se conecta a la API de Google Drive («conexiones_de_terceros») solo cuando la persona guarda o trae una copia.",
-  "version": "2",
-  "fecha": "2026-10-08",
+  "nota": "Política de tratamiento de datos de las cuentas del Parqueadero ED1 (HU-Q7.1): la del dueño, el administrador y el cajero que entran con su cuenta desde M1. El CORE pide aceptar esta versión al entrar al producto. No es la del conductor: de los datos del conductor el responsable es cada parqueadero, con su propio aviso y su política (`content/parqueadero/privacidad/aviso.json`, HU-Q4.4), y ED1 los guarda como encargado cuando la caja sincroniza. Es un borrador escrito para que el dueño lo revise: el nombre del responsable queda por completar, como en la de la cuenta (docs/runbooks/datos-del-responsable.md). Hoy, en M0, la caja no tiene cuenta y esta política no se le muestra a nadie. Versión 2 (8 oct 2026): copia de la caja en el Google Drive de la cuenta (HU-Q10.1), como la del cuaderno; la caja se conecta a la API de Google Drive («conexiones_de_terceros») solo cuando la persona guarda o trae una copia. Versión 3 (12 oct 2026): Bold como aliado para pagar el plan en línea desde «Cuenta y nube» (HU-Q7.10), como en el cuaderno; su programa solo se carga al tocar «Pagar» («scripts_al_pagar»), nunca al abrir la caja.",
+  "version": "3",
+  "fecha": "2026-10-12",
   "estado": "borrador",
   "revision": "requiere revisión de abogado",
   "responsable": {
@@ -21,11 +21,16 @@
       "quien": "Google",
       "para": "Te permite entrar con tu cuenta de Google, sin crear otra contraseña. Solo recibimos tu nombre y tu correo. Y si eliges guardar una copia de la caja en tu Google Drive, la copia va directo de la caja a tu cuenta de Google: nosotros no la vemos.",
       "proveedor": "Google"
+    },
+    {
+      "quien": "Bold, la pasarela de pagos",
+      "para": "Si pagas el plan en línea, Bold recibe los datos del pago, como tu banco o tu tarjeta. Nosotros solo guardamos que el pago se hizo, por cuánto y su número de transacción.",
+      "proveedor": "Bold"
     }
   ],
   "transferencia": "Algunos de estos aliados tienen sus servidores fuera de Colombia. Tu información y la de tu parqueadero pueden guardarse allí, siempre para los fines que aquí te contamos y con medidas para protegerla.",
   "scripts_de_terceros": [],
-  "scripts_al_pagar": [],
+  "scripts_al_pagar": ["https://checkout.bold.co"],
   "conexiones_de_terceros": ["https://www.googleapis.com"],
   "cookies": [
     {

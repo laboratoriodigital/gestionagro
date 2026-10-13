@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- El cobro del plan por periodo (HU-Q7.10), en staging: «Cuenta y nube» dice el plan del parqueadero y hasta cuándo sigue la nube, y el propietario paga 1, 3, 6 o 12 meses con Bold; al volver, el CORE confirma el pago y la caja sigue sincronizando con el plan nuevo. La cabecera avisa cuando el plan vence pronto o está en los días de gracia. Con el plan vencido o el gratuito, la nube queda en pausa y lo dice; la caja sigue registrando, cobrando e imprimiendo. La política de la cuenta pasa a la versión 3: Bold como aliado para pagar.
+
 ## [0.3.0] - 2026-10-12
 
 La caja con la que se entrega el primer parqueadero: más clara, el recibo como recibo, el aviso de tarifas, los abonados con su mensualidad, los reportes del día y lo que ahorra, y las herramientas gratuitas del sitio. Las fotos ya se borran del teléfono a los 30 días de la salida. En producción, la cuenta, la nube, la copia en Drive y la firma del recibo siguen apagadas: llegan con M1, en la `0.4.0`.

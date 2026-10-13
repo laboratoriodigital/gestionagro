@@ -64,11 +64,20 @@ liveQuery(() => db.outbox.count()).subscribe((n) => {
 });
 
 // HU-Q7.6: al volver de la cuenta, el código de un uso sale de la barra antes de canjearlo, para
-// que no quede en el historial. Lo mismo con el permiso de Google Drive (HU-Q10.1).
+// que no quede en el historial. Lo mismo con el permiso de Google Drive (HU-Q10.1) y con la orden
+// que vuelve de Bold (`?pago=`, HU-Q7.10), que «Cuenta y nube» confirma con el CORE.
+const orden = new URLSearchParams(location.search).get('pago');
 const regreso = /^#(entrar|entrar-error|drive|drive-error)=/.test(location.hash)
   ? location.hash
-  : undefined;
-if (regreso) history.replaceState(null, '', `${location.pathname}${location.search}`);
+  : orden
+    ? `#pago=${encodeURIComponent(orden)}`
+    : undefined;
+if (regreso)
+  history.replaceState(
+    null,
+    '',
+    orden ? location.pathname : `${location.pathname}${location.search}`,
+  );
 
 render(
   <App
