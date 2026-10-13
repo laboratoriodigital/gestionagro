@@ -46,6 +46,7 @@ Una fila por prueba, la más nueva arriba. El diagnóstico copiado va al hilo de
 
 | Fecha | Equipo y navegador | Versión de la caja | Qué se probó | Resultado |
 |---|---|---|---|---|
+| 2026-10-13 | Equipos del dueño · PT-C | `0.4.0` | Escanear el recibo del cliente | 🟡 Lee, pero «toca luchar un poco» (el dueño). La `0.4.1` agranda el QR del papel y hace el escáner más sensible (bitácora 39); falta probarla aquí |
 | 2026-10-12 | Equipos del dueño · PT-C | `main` tras #157 | La impresora emparejada, en el uso de varios días | ✅ «La impresora ya funciona bien» (informe del dueño). Sin el detalle por caso: las filas en ⬜ se confirman en la entrega del 13 oct, en el teléfono del cliente |
 | 2026-10-08 | WIN · PT-C | `main` tras #127 | La impresora emparejada: emparejarla en el Bluetooth de Windows y «Usar la impresora emparejada»; entradas y salidas con su recibo | ✅ Conecta, imprime las entradas y los recibos de salida, y sigue conectada (informe del dueño). Es la primera prueba por Bluetooth en Windows; el diálogo de impresión por USB (WI-Q2.5.3) sigue sin probar. Faltan los demás casos en este equipo |
 | 2026-10-07 | AND-D · PT-C | `main` tras #121 | La impresora emparejada: emparejarla en el Bluetooth de Android y «Usar la impresora emparejada» | ✅ Conecta por Web Serial, primera vez en el campo. Faltan los casos de abajo por este camino |

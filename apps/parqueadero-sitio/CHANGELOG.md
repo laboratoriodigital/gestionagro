@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.4.1] - 2026-10-13
+
+El escáner lee el recibo con menos lucha, antes de entrar en operación.
+
+### Corregido
+- Escanear el recibo costaba en la puesta en marcha. La cámara mira con más resolución y enfoque continuo si el teléfono lo tiene, unas ocho veces por segundo, y lee también el cuadro guía del centro, donde un QR de papel pequeño pesa más. La pantalla muestra ese cuadro, y la linterna aparece si el teléfono la tiene. El QR que se imprime en el recibo pasa de unos 28 mm a unos 36 mm (bitácora 39).
+
 ## [0.4.0] - 2026-10-13
 
 La caja de la presentación al cliente: la operación simple, sin turnos si el parqueadero trabaja así, y una caja que vuelve arriba al cambiar de pantalla. En producción, la cuenta, la nube y el pago del plan siguen apagados: llegan con M1, en la `0.5.0`.
