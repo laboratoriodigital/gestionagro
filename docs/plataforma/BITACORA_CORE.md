@@ -474,3 +474,15 @@ Al fusionar el C7 (#161, 12 oct 2026), el despliegue a staging se detuvo en c0 a
 La regla: **una guardia que puede detener producción se prueba primero contra el servicio de verdad en modo aviso, o con la prueba de que su sonda distingue. Una simulación que responde lo que uno supone no prueba la sonda.**
 
 *Ficha:* core · *(mío)* · 🟠 Alto (detuvo la publicación a staging) · P17, P1 · 0.5.0 · 2026-10-12
+
+**11 · «Cuatro pruebas en paralelo, porque los trabajos esperan» no valía aquí; las unitarias sí iban de a una.**
+El dueño pidió bajar los 10 minutos del primer CI de un PR (12 oct 2026) y validar una conclusión de la Tienda 2.0: correr 4 pruebas en paralelo porque los trabajos esperan.
+*Síntoma literal.* En la corrida del PR #163: «test 286.3 s» y «e2e 245.7 s»; el registro de Vitest decía «205 workers spawned · ~83ms startup each» y Playwright «Running 282 tests using 2 workers».
+*Causa raíz.* Vitest usa «núcleos − 1» procesos, y el repositorio es privado: sus equipos de GitHub tienen 2 núcleos, así que las unitarias corrían **de una en una**. Playwright ya usaba 2. La idea de la Tienda supone pruebas que esperan (red, servicios): las nuestras simulan todo en local y el navegador trabaja sin pausa.
+*Cómo se reprodujo.* Fijando el proceso a 2 núcleos (`start /affinity 3`) en la máquina del dueño. Unitarias (78 archivos): 1 proceso 109 s, 2 procesos 95 s, 4 procesos 94 s. E2E (71 pruebas): 2 procesos 117 s, 4 procesos 128 s. No es el equipo de GitHub (P17): sus núcleos son otros; la dirección del resultado es lo que vale.
+*Arreglo.* Vitest con 2 procesos en CI (`vitest.config.ts`). Playwright se queda en 2, con la medición escrita al lado. Lo que daría de verdad menos reloj es partir unitarias y e2e en dos trabajos que corran a la vez, pero cada trabajo más cobra su instalación: es una decisión del dueño entre reloj y minutos.
+**Lo prueba** la corrida del PR del C10, que se compara con la del #163: el paso «test» debe bajar. Sin control negativo propio: es una medición, y queda dicha como tal.
+
+La regla: **una conclusión de otro proyecto se mide en este antes de aplicarla: la máquina y el tipo de prueba deciden si esperar existe.**
+
+*Ficha:* core · *(compartido)* · 🟢 Bajo · P17, P7 · 0.6.0 · 2026-10-12
