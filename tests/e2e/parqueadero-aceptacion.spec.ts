@@ -9,6 +9,7 @@ import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import {
   abrirControlada,
+  abrirMenu,
   abrirTurno,
   bytesImpresos,
   configurarImpresora,
@@ -74,7 +75,7 @@ for (const ensayo of ['uno', 'dos'] as const) {
 
     await configurarImpresora(page, 'Línea 1');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page, { ensayo, imprimir: siempre ? 'Sí' : 'No', aviso: true });
 
     // Apertura y entrada con el WhatsApp del conductor.
@@ -178,7 +179,7 @@ for (const ensayo of ['uno', 'dos'] as const) {
     await expect(page.getByTestId('tarjeta-turno')).toContainText('Abra el turno');
 
     // El respaldo, también sin red: se descarga con todo lo del turno.
-    await page.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    await abrirMenu(page, 'Respaldo');
     const descarga = page.waitForEvent('download', (d) => d.suggestedFilename().endsWith('.json'));
     await page.getByRole('button', { name: 'Hacer el respaldo' }).click();
     const respaldo = JSON.parse(readFileSync(await (await descarga).path(), 'utf8')) as {
@@ -228,7 +229,7 @@ test('HU-Q6.3 · una versión nueva en medio de una impresión no recarga la caj
   await abrirControlada(page);
   await configurarImpresora(page, 'Línea 1');
   await page.getByRole('button', { name: 'Volver a la caja' }).click();
-  await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+  await abrirMenu(page, 'Ajustes del parqueadero');
   await llenarAjustes(page, { ensayo: 'uno' });
   await page.getByRole('button', { name: 'Nueva entrada' }).click();
   await abrirTurno(page);

@@ -41,12 +41,12 @@ const sinMeta = <T extends object>(c: T) => {
   return resto;
 };
 
-async function caja() {
+async function caja(usaTurnos = true) {
   // 20 de octubre de 2026, 12:00 en Bogotá.
   let ms = Date.UTC(2026, 9, 20, 17, 0);
   const ctx: Contexto = { reloj: () => (ms += 1_000), nuevoId: () => uuidv7(() => ms) };
   const db = abrirBase(`mensualidades-${uuidv7()}`);
-  await guardarSede(db, sinMeta(SEDE_ENSAYO_UNO), null, ctx);
+  await guardarSede(db, { ...sinMeta(SEDE_ENSAYO_UNO), usa_turnos: usaTurnos }, null, ctx);
   await guardarTarifa(db, sinMeta(TARIFA_CARRO), null, ctx);
   await guardarPin(db, '2468');
   const abonado = await guardarAbonado(
@@ -76,6 +76,15 @@ const NOVIEMBRE = {
 } as const;
 
 describe('cobrar una mensualidad (HU-Q8.4)', () => {
+  it('cobra y anula una mensualidad en una sede sin turnos', async () => {
+    const { db, ctx, abonado } = await caja(false);
+    const pago = await cobrarMensualidad(db, abonado.id, NOVIEMBRE, ctx);
+    expect(pago.consecutivo).toBe(1);
+    expect((await leerAbonados(db))[0]?.hasta).toBe('2026-11-30');
+    await anular(db, pago.id, { motivo: 'Pago devuelto', pin: '2468', operador: 'Caja A' }, ctx);
+    expect((await leerAbonados(db))[0]?.hasta).toBe('2026-10-31');
+    expect(await db.registros.where('tipo').equals('turno_apertura').count()).toBe(0);
+  });
   it('❌ sin turno no cobra, ni a un abonado inactivo', async () => {
     const { db, ctx, abonado } = await caja();
     await expect(cobrarMensualidad(db, abonado.id, NOVIEMBRE, ctx)).rejects.toThrow(SinTurno);

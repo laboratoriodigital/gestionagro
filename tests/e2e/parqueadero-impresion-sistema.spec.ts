@@ -6,6 +6,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import {
   abrirControlada,
+  abrirMenu,
   abrirTurno,
   instalarImpresoraFalsa,
   llenarAjustes,
@@ -59,7 +60,7 @@ test('HU-Q2.5 · con el diálogo de impresión, el recibo sale en una hoja de 48
   await page.getByRole('button', { name: 'Volver a la caja' }).click();
   await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
 
-  await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+  await abrirMenu(page, 'Ajustes del parqueadero');
   await llenarAjustes(page, { ensayo: 'uno', imprimir: 'Sí' });
   await page.getByRole('button', { name: 'Nueva entrada' }).click();
   await abrirTurno(page);

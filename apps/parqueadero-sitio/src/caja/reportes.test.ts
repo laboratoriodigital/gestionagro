@@ -8,7 +8,7 @@ import { uuidv7 } from '@ed1/ids';
 import type { Registro } from '@ed1/parqueadero-schema';
 import { describe, expect, it } from 'vitest';
 import { abrirBase, type Sesion } from './datos.ts';
-import { leerReporte } from './reportes.ts';
+import { csvDelDia, leerReporte } from './reportes.ts';
 
 const ORG = '0199b8a0-0000-7000-8000-0000000000a1';
 
@@ -80,5 +80,7 @@ describe('el reporte de la caja (HU-Q8.5)', () => {
     const r = await leerReporte(db, '2026-10-06');
     expect(r.reporte.enCuarentena).toBe(1);
     expect(r.reporte.completo).toBe(false);
+    expect(r.diario.completo).toBe(false);
+    expect(csvDelDia(r.diario)).toContain('total parcial: registros en cuarentena');
   });
 });

@@ -34,6 +34,7 @@ import type { BaseDeLaCaja } from './datos.ts';
 import { useConCuenta, useConsulta } from './ganchos.ts';
 import { avisoAceptado, avisoDeLaSede, VERSION_DEL_AVISO } from './privacidad.ts';
 import { topeDeLaCiudad } from './topes.ts';
+import { usaTurnos } from './turno.ts';
 
 /** Los vehículos que la caja cobra en M0: los del primer cliente (bitácora parqueadero 9). */
 export const VEHICULOS_DE_LA_CAJA: readonly Vehiculo[] = ['carro', 'moto'];
@@ -55,6 +56,7 @@ type CampoTarifa = (typeof CAMPOS_TARIFA)[number];
 type BorradorTarifa = Record<CampoTarifa, string>;
 
 export interface Borrador {
+  usaTurnos: boolean;
   nombre: string;
   nit: string;
   direccion: string;
@@ -81,6 +83,7 @@ const tarifaVacia = (): BorradorTarifa =>
   Object.fromEntries(CAMPOS_TARIFA.map((c) => [c, ''])) as BorradorTarifa;
 
 export const borradorVacio = (): Borrador => ({
+  usaTurnos: false,
   nombre: '',
   nit: '',
   direccion: '',
@@ -110,6 +113,7 @@ function borradorDe(
   const b = borradorVacio();
   if (sede) {
     Object.assign(b, {
+      usaTurnos: usaTurnos(sede),
       nombre: sede.nombre,
       nit: sede.nit,
       direccion: sede.direccion,
@@ -416,6 +420,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
       await guardarSede(
         db,
         {
+          usa_turnos: b.usaTurnos,
           nombre: b.nombre,
           nit: b.nit,
           direccion: b.direccion,
@@ -453,6 +458,8 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
         );
       } else if (error instanceof TarifaSobreElTope) {
         setErrores({ 'tarifa-carro-valor': error.message });
+      } else if (error instanceof RangeError) {
+        setErrores({ general: error.message });
       } else {
         setErrores({ general: `No se pudo guardar: ${String(error)}` });
       }
@@ -509,9 +516,34 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
   return (
     <form class="tarjeta" onSubmit={guardar} noValidate data-prueba="ajustes">
       <h1>Ajustes del parqueadero</h1>
-      <p class="ayuda">
-        Todo esto sale en el recibo. Nada viene lleno: escriba lo del parqueadero.
-      </p>
+      <p class="ayuda">Complete los datos del recibo y las tarifas una sola vez.</p>
+
+      <fieldset class="grupo">
+        <legend>Forma de trabajar</legend>
+        <div class="opciones">
+          <button
+            type="button"
+            class="opcion"
+            aria-pressed={!b.usaTurnos}
+            onClick={() => setB({ ...b, usaTurnos: false })}
+          >
+            Sin turnos
+          </button>
+          <button
+            type="button"
+            class="opcion"
+            aria-pressed={b.usaTurnos}
+            onClick={() => setB({ ...b, usaTurnos: true })}
+          >
+            Con turnos
+          </button>
+        </div>
+        <p class="ayuda">
+          {b.usaTurnos
+            ? 'Abra con el nombre del cajero y la base. Cierre con el conteo de efectivo.'
+            : 'Registre entradas y cobre directamente. Consulte lo cobrado por día en Reportes.'}
+        </p>
+      </fieldset>
 
       <fieldset class="grupo">
         <legend>Su parqueadero</legend>

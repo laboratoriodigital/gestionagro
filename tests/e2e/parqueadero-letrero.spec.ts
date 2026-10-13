@@ -5,7 +5,13 @@
  * copia del aviso quede puesta hasta entonces, y el PDF avisa `afterprint` al terminar.
  */
 import { expect, type Page, test } from '@playwright/test';
-import { CAJA, instalarImpresoraFalsa, llenarAjustes, sinDesborde } from './parqueadero-ayudas.ts';
+import {
+  abrirMenu,
+  CAJA,
+  instalarImpresoraFalsa,
+  llenarAjustes,
+  sinDesborde,
+} from './parqueadero-ayudas.ts';
 
 test.use({ testIdAttribute: 'data-prueba' });
 
@@ -38,7 +44,7 @@ test('HU-Q11.3 · sin los datos legales no hay aviso; con ellos sale en una hoja
   await page.goto(CAJA);
 
   // CA3 ❌: la caja recién instalada no tiene sede ni tarifas.
-  await page.getByRole('button', { name: 'Aviso de tarifas' }).click();
+  await abrirMenu(page, 'Aviso de tarifas');
   await expect(page.getByTestId('letrero-falta')).toContainText('el nombre');
   await expect(page.getByTestId('letrero-falta')).toContainText('la tarifa de carro');
   await expect(page.getByTestId('hoja-letrero')).toHaveCount(0);
@@ -46,7 +52,7 @@ test('HU-Q11.3 · sin los datos legales no hay aviso; con ellos sale en una hoja
   await llenarAjustes(page, { ensayo: 'uno', qr: true });
 
   // CA1: los datos de la sede, la tarifa como en el recibo, los medios, la póliza y los derechos.
-  await page.getByRole('button', { name: 'Aviso de tarifas' }).click();
+  await abrirMenu(page, 'Aviso de tarifas');
   const hoja = page.getByTestId('hoja-letrero');
   for (const t of [
     'Parqueadero Ensayo Uno',

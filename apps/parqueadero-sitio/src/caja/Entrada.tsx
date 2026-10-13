@@ -58,7 +58,9 @@ export function Entrada({
   alCancelar,
 }: Props) {
   const [placa, setPlaca] = useState('');
-  const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null);
+  const [vehiculo, setVehiculo] = useState<Vehiculo | null>(
+    vehiculos.length === 1 ? (vehiculos[0] ?? null) : null,
+  );
   const [aMano, setAMano] = useState(false);
   const [confirmada, setConfirmada] = useState(false);
   const [conNovedad, setConNovedad] = useState(false);
@@ -78,25 +80,17 @@ export function Entrada({
     setAviso('');
     if (!aMano) {
       const propuesto = vehiculoPorPlaca(nuevaPlaca);
-      setVehiculo(propuesto && vehiculos.includes(propuesto) ? propuesto : null);
+      setVehiculo(
+        propuesto && vehiculos.includes(propuesto)
+          ? propuesto
+          : vehiculos.length === 1
+            ? (vehiculos[0] ?? null)
+            : null,
+      );
     }
   }
   const tecla = (t: string) => escribir((placa + t).slice(0, 10));
   const borrar = () => escribir(placa.slice(0, -1));
-
-  // En un PC se escribe con el teclado de verdad.
-  useEffect(() => {
-    const alTeclear = (e: KeyboardEvent) => {
-      const destino = e.target as HTMLElement | null;
-      if (destino && ['INPUT', 'SELECT', 'TEXTAREA'].includes(destino.tagName)) return;
-      if (e.key === 'Backspace') borrar();
-      else if (/^[a-z0-9]$/i.test(e.key)) tecla(e.key.toUpperCase());
-      else return;
-      e.preventDefault();
-    };
-    document.addEventListener('keydown', alTeclear);
-    return () => document.removeEventListener('keydown', alTeclear);
-  });
 
   const fueraDePatron = placa.length > 0 && vehiculoPorPlaca(placa) === null;
   const abono = abonoDeLaPlaca(abonados, placa, ctx.reloj());
@@ -172,27 +166,43 @@ export function Entrada({
   return (
     <form class="tarjeta" onSubmit={registrar} data-prueba="entrada">
       <h1>Nueva entrada</h1>
-      <output class="placa" aria-live="polite" aria-label="Placa" data-prueba="placa">
-        {placa || ' '}
-      </output>
-      <fieldset>
-        <legend>Teclado de la placa</legend>
-        <div class="teclado">
-          {[...TECLAS].map((t) => (
-            <button key={t} type="button" class="tecla" onClick={() => tecla(t)}>
-              {t}
+      <div class="campo">
+        <label for="placa-entrada">Placa</label>
+        <input
+          id="placa-entrada"
+          class="placa"
+          data-prueba="placa"
+          value={placa}
+          maxLength={10}
+          autoComplete="off"
+          autoCapitalize="characters"
+          spellcheck={false}
+          placeholder="ABC123"
+          enterKeyHint="done"
+          onInput={(e) => escribir(e.currentTarget.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+        />
+      </div>
+      <details class="opcional">
+        <summary>Usar teclado en pantalla</summary>
+        <fieldset>
+          <legend>Teclado de la placa</legend>
+          <div class="teclado">
+            {[...TECLAS].map((t) => (
+              <button key={t} type="button" class="tecla" onClick={() => tecla(t)}>
+                {t}
+              </button>
+            ))}
+            <button
+              type="button"
+              class="tecla tecla-ancha"
+              onClick={borrar}
+              aria-label="Borrar la última letra"
+            >
+              Borrar
             </button>
-          ))}
-          <button
-            type="button"
-            class="tecla tecla-ancha"
-            onClick={borrar}
-            aria-label="Borrar la última letra"
-          >
-            Borrar
-          </button>
-        </div>
-      </fieldset>
+          </div>
+        </fieldset>
+      </details>
 
       <fieldset>
         <legend>Tipo de vehículo</legend>
@@ -315,28 +325,35 @@ export function Entrada({
         </div>
       )}
 
-      <div class="campo">
-        <label for="foto">
-          Foto del vehículo (opcional{fotos.length ? `, ${fotos.length} de 4` : ''})
-        </label>
-        <input
-          id="foto"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          disabled={fotos.length >= 4}
-          onChange={(e) => void agregarFoto(e)}
-        />
-        <span class="ayuda">Fotografíe el vehículo, no a las personas.</span>
-      </div>
+      <details class="opcional" data-prueba="datos-opcionales">
+        <summary>
+          Foto o WhatsApp{fotos.length > 0 || numero.trim() ? ' · con datos' : ' (opcional)'}
+        </summary>
+        <div class="grupo">
+          <div class="campo">
+            <label for="foto">
+              Foto del vehículo (opcional{fotos.length ? `, ${fotos.length} de 4` : ''})
+            </label>
+            <input
+              id="foto"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={fotos.length >= 4}
+              onChange={(e) => void agregarFoto(e)}
+            />
+            <span class="ayuda">Fotografíe el vehículo, no a las personas.</span>
+          </div>
 
-      <CampoWhatsApp
-        pideNumero={pideNumero}
-        numero={numero}
-        autoriza={autoriza}
-        alEscribir={setNumero}
-        alAutorizar={setAutoriza}
-      />
+          <CampoWhatsApp
+            pideNumero={pideNumero}
+            numero={numero}
+            autoriza={autoriza}
+            alEscribir={setNumero}
+            alAutorizar={setAutoriza}
+          />
+        </div>
+      </details>
 
       {aviso && (
         <p class="error" role="alert" data-prueba="aviso-entrada">
@@ -348,7 +365,7 @@ export function Entrada({
         class="boton boton-principal"
         disabled={!listo || Boolean(faltaWhatsApp) || guardando}
       >
-        {faltaWhatsApp || 'Registrar'}
+        {guardando ? 'Registrando…' : faltaWhatsApp || 'Registrar'}
       </button>
       <button type="button" class="boton boton-secundario" onClick={alCancelar}>
         Cancelar

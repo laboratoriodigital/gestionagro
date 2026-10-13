@@ -196,10 +196,14 @@ export async function llenarAjustes(
     nombre?: string;
     aviso?: boolean;
     ensayo?: keyof typeof ENSAYOS;
+    sinTurnos?: boolean;
   } = {},
 ) {
   const e = ENSAYOS[o.ensayo ?? 'dos'];
   const f = page.getByTestId('ajustes');
+  await f
+    .getByRole('button', { name: o.sinTurnos ? 'Sin turnos' : 'Con turnos', exact: true })
+    .click();
   await f.getByLabel('Nombre del parqueadero', { exact: true }).fill(o.nombre ?? e.nombre);
   await f.getByLabel('NIT, con el dígito', { exact: true }).fill(e.nit);
   await f.getByLabel('Dirección', { exact: true }).fill(e.direccion);
@@ -246,8 +250,19 @@ export async function abrirTurno(page: Page) {
 
 /** Escribe la placa con el teclado de la caja, no con el del sistema. */
 export async function teclearPlaca(page: Page, placa: string) {
+  await page.getByText('Usar teclado en pantalla', { exact: true }).click();
   const teclado = page.getByRole('group', { name: 'Teclado de la placa' });
   for (const t of placa) await teclado.getByRole('button', { name: t, exact: true }).click();
+  // Los recorridos antiguos también ejercitan los datos opcionales de la entrada.
+  await page.getByTestId('datos-opcionales').locator('summary').click();
+}
+
+/** Abre una tarea ocasional desde el inicio, con el menú plegado. */
+export async function abrirMenu(page: Page, nombre: string) {
+  const mas = page.getByTestId('mas-opciones');
+  if ((await mas.getAttribute('open')) === null)
+    await mas.getByText('Más opciones', { exact: true }).click();
+  await page.getByRole('button', { name: nombre, exact: true }).click();
 }
 
 export const bytesImpresos = (page: Page) =>

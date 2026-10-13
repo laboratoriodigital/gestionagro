@@ -53,8 +53,14 @@ async function frenteALaNube(db: BaseDeLaCaja, nube: Nube | undefined): Promise<
 async function entregar(archivos: readonly File[]): Promise<'compartido' | 'descargado'> {
   const datos = { files: [...archivos], title: 'Respaldo del parqueadero' };
   if (navigator.canShare?.(datos)) {
-    await navigator.share(datos);
-    return 'compartido';
+    try {
+      await navigator.share(datos);
+      return 'compartido';
+    } catch (error) {
+      // El navegador puede anunciar Web Share y bloquearlo al usarlo. La descarga sigue
+      // disponible; cancelar el selector voluntariamente conserva su error de cancelación.
+      if (!(error instanceof DOMException && error.name === 'NotAllowedError')) throw error;
+    }
   }
   for (const a of archivos) {
     const url = URL.createObjectURL(a);
@@ -248,8 +254,8 @@ export function Respaldo({ db, ctx, nube, regreso, alVolver }: Props) {
         </>
       ) : (
         <p>
-          Todo lo de la caja queda en este teléfono. Haga un respaldo al cerrar cada turno y
-          guárdelo en su correo o en su Drive: si se pierde el teléfono, la caja vuelve con él.
+          Todo lo de la caja queda en este teléfono. Haga un respaldo al terminar el día y guárdelo
+          en su correo o en su Drive: si se pierde el teléfono, la caja vuelve con él.
         </p>
       )}
       <p class="ayuda">

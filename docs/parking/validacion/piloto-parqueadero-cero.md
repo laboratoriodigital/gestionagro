@@ -1,5 +1,7 @@
 # El registro de los primeros turnos del parqueadero cero
 
+**Actualización, 12 oct 2026:** el cliente actual no tiene turnos. En su piloto, cada fila corresponde a un día de operación y la columna Turno se marca «Sin turnos». Se comparan tres días seguidos y el respaldo se hace al terminar cada día; no se crean aperturas ni cierres ficticios. Véase [operación simple](../UX-OPERACION-SIMPLE.md).
+
 **HU-Q6.4 CA2, BACKLOG-PARKING_MVP §8.3 y §8.4.** Una fila por turno, desde el primer turno real. Los primeros turnos corren **en paralelo con el talonario**: cada vehículo recibe el recibo de la caja y el de siempre, y al cierre se comparan.
 
 **Sin datos de conductores (P13):** aquí no van placas, números de WhatsApp ni nombres. Tampoco los datos del parqueadero: viven en su caja, no en el repositorio (§1).

@@ -29,7 +29,7 @@ import {
   senalDeRespaldo,
 } from './senales.ts';
 import { avisoDeTopeViejo } from './topes.ts';
-import { type Turno, turnoAbierto } from './turno.ts';
+import { type Turno, turnoAbierto, usaTurnos } from './turno.ts';
 import type { Vista } from './vistas.tsx';
 
 interface Props {
@@ -100,6 +100,10 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
   );
   const pendientes = useConsulta(() => db.entregas_pendientes.count(), 0);
   const turno = useConsulta<Turno | null | undefined>(() => turnoAbierto(db), undefined);
+  const conTurnos = useConsulta(async () => {
+    const sede = await db.catalogos.where('entidad').equals('sede').first();
+    return usaTurnos(sede?.entidad === 'sede' ? sede : null);
+  }, false);
   const ciudad = useConsulta<string | undefined>(
     () =>
       db.catalogos
@@ -126,6 +130,9 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
   const estado = useEstadoImpresora(control);
   const [persistente, setPersistente] = useState<boolean | null>(null);
   const [vista, setVista] = useState<Vista>({ es: 'inicio' });
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [vista]);
   const [vistas, setVistas] = useState<typeof import('./vistas.tsx') | null>(null);
   const inicio = () => setVista({ es: 'inicio' });
   const ir = (v: Vista) => {
@@ -244,13 +251,27 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
           />
         ) : (
           <>
+            <div class="acciones-inicio">
+              <button
+                type="button"
+                class="boton boton-principal boton-grande"
+                onClick={() => ir({ es: 'entrada' })}
+                data-prueba="nueva-entrada"
+              >
+                Nueva entrada
+              </button>
+              <button type="button" class="boton" onClick={() => ir({ es: 'escanear' })}>
+                Escanear recibo
+              </button>
+            </div>
+            <Estadias db={db} reloj={reloj} ir={ir} />
             {!registro?.probada ? (
               <section class="tarjeta" data-prueba="sin-impresora">
-                <h1>Antes del primer recibo, configure la impresora</h1>
-                <p>Son cuatro pasos y una página de prueba. Tenga la impresora prendida y cerca.</p>
+                <h2>Prepare los recibos en papel</h2>
+                <p class="ayuda">Configure la impresora una vez, con una página de prueba.</p>
                 <button
                   type="button"
-                  class="boton boton-principal"
+                  class="boton boton-secundario"
                   onClick={() => ir({ es: 'asistente' })}
                 >
                   Configurar impresora
@@ -262,7 +283,7 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
                 <ConexionImpresora control={control} />
               </section>
             )}
-            {turno !== undefined && (
+            {conTurnos && turno !== undefined && (
               <section class="turno-linea" data-prueba="tarjeta-turno">
                 {turno ? (
                   <p>
@@ -283,49 +304,35 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
                 </button>
               </section>
             )}
-            <div class="acciones-inicio">
-              <button
-                type="button"
-                class="boton boton-principal boton-grande"
-                onClick={() => ir({ es: 'entrada' })}
-                data-prueba="nueva-entrada"
-              >
-                Nueva entrada
-              </button>
-              <button type="button" class="boton" onClick={() => ir({ es: 'escanear' })}>
-                Escanear recibo
-              </button>
-            </div>
-            <Estadias db={db} reloj={reloj} ir={ir} />
-            {registro && (
-              <section class="seccion" data-prueba="ajustes-impresora">
-                <h2 class="etiqueta">Ajustes › Impresora</h2>
-                <p class="exacto">{registro.nombre}</p>
-                <p class="ayuda" data-prueba="pagina-de-codigos">
-                  {registro.paginaDeCodigos === 'transliterar'
-                    ? 'Imprime sin tildes: ninguna página de códigos se vio bien en la prueba.'
-                    : `Tildes con ${NOMBRE_DE_PAGINA[registro.paginaDeCodigos]}; ${registro.columnas} columnas; QR ${registro.qr === 'nativo' ? 'de la impresora' : 'como imagen'}.`}
-                </p>
-                <button type="button" class="boton" onClick={() => ir({ es: 'asistente' })}>
-                  Probar la impresora otra vez
-                </button>
-                <BotonDiagnostico control={control} />
-              </section>
-            )}
-            <nav class="seccion" aria-labelledby="titulo-mas">
-              <h2 class="etiqueta" id="titulo-mas">
-                Más
-              </h2>
-              <ul class="menu">
-                {(prueba ? MENU_DE_PRUEBA : MENU).map(([es, texto]) => (
-                  <li key={es}>
-                    <button type="button" class="menu-fila" onClick={() => ir({ es })}>
-                      {texto}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+            <details class="herramientas" data-prueba="mas-opciones">
+              <summary>Más opciones</summary>
+              <nav aria-label="Administrar el parqueadero">
+                <ul class="menu">
+                  {(prueba ? MENU_DE_PRUEBA : MENU).map(([es, texto]) => (
+                    <li key={es}>
+                      <button type="button" class="menu-fila" onClick={() => ir({ es })}>
+                        {texto}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              {registro && (
+                <section class="seccion" data-prueba="ajustes-impresora">
+                  <h2 class="etiqueta">Ajustes › Impresora</h2>
+                  <p class="exacto">{registro.nombre}</p>
+                  <p class="ayuda" data-prueba="pagina-de-codigos">
+                    {registro.paginaDeCodigos === 'transliterar'
+                      ? 'Imprime sin tildes: ninguna página de códigos se vio bien en la prueba.'
+                      : `Tildes con ${NOMBRE_DE_PAGINA[registro.paginaDeCodigos]}; ${registro.columnas} columnas; QR ${registro.qr === 'nativo' ? 'de la impresora' : 'como imagen'}.`}
+                  </p>
+                  <button type="button" class="boton" onClick={() => ir({ es: 'asistente' })}>
+                    Probar la impresora otra vez
+                  </button>
+                  <BotonDiagnostico control={control} />
+                </section>
+              )}
+            </details>
           </>
         )}
       </main>

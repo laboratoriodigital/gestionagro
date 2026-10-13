@@ -44,6 +44,8 @@ export function papelDeLaSede(s: {
 export const sede = z.strictObject({
   ...metaDeCatalogo,
   entidad: z.literal('sede'),
+  /** Operación continua. Omitido conserva los turnos de las cajas anteriores. */
+  usa_turnos: z.boolean().optional(),
   nombre: texto.max(40, 'es de máximo 40 letras: va en una línea del papel'),
   nit,
   direccion: texto.max(60, 'es de máximo 60 letras'),

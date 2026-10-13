@@ -75,8 +75,8 @@ export function Cabecera(p: PropsCabecera) {
       )}
       {p.persistente === false && (
         <p class="aviso-almacenamiento" role="status" data-prueba="aviso-almacenamiento">
-          Este navegador puede borrar la caja si se llena el teléfono. Haga el respaldo al cerrar el
-          turno.
+          Este navegador puede borrar los datos si se llena el teléfono. Haga un respaldo al
+          terminar el día.
         </p>
       )}
     </header>

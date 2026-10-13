@@ -37,9 +37,10 @@ export function Estadias({ db, reloj, ir }: Props) {
 
   return (
     <section class="seccion" data-prueba="estadias">
-      <h2 class="etiqueta">
+      <h1 class="titulo-operacion">
         Adentro <span class="cuenta">{estadias ? estadias.length : ''}</span>
-      </h2>
+      </h1>
+      <p class="ayuda">Busque la placa y toque el vehículo para cobrar.</p>
       {estadias && estadias.length > 0 && (
         <div class="campo">
           <label for="buscar-placa">Buscar por placa</label>
@@ -52,7 +53,9 @@ export function Estadias({ db, reloj, ir }: Props) {
           />
         </div>
       )}
-      {estadias?.length === 0 && <p class="ayuda">No hay vehículos adentro.</p>}
+      {estadias?.length === 0 && (
+        <p class="ayuda">No hay vehículos adentro. Use Nueva entrada para registrar el primero.</p>
+      )}
       {estadias && estadias.length > 0 && vistas.length === 0 && (
         <p class="ayuda">Ninguna placa adentro tiene «{filtro}».</p>
       )}

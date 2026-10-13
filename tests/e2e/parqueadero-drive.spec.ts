@@ -8,6 +8,7 @@ import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { coreFalso, crearDrive } from './drive-falso.ts';
 import {
+  abrirMenu,
   abrirTurno,
   CAJA,
   llenarAjustes,
@@ -28,7 +29,7 @@ test('HU-Q10.1 · guarda la copia en su Drive y otra caja vacía la trae sin bor
   await drive.atender(page);
   const pedidos = await coreFalso(page);
   await page.goto(CAJA);
-  await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+  await abrirMenu(page, 'Ajustes del parqueadero');
   await llenarAjustes(page, { imprimir: 'No' });
   await page.getByRole('button', { name: 'Nueva entrada' }).click();
   await abrirTurno(page);
@@ -40,7 +41,7 @@ test('HU-Q10.1 · guarda la copia en su Drive y otra caja vacía la trae sin bor
   await page.getByRole('button', { name: 'Registrar' }).click();
   await page.getByRole('button', { name: 'Volver al inicio' }).click();
   await expect(page.getByTestId('senal-respaldo')).toHaveText('Respaldo sin hacer');
-  await page.getByRole('button', { name: 'Respaldo', exact: true }).click();
+  await abrirMenu(page, 'Respaldo');
 
   await seccion(page).getByRole('button', { name: 'Guardar copia en mi Google Drive' }).click();
   await expect(page.getByTestId('estado-del-respaldo')).toContainText(
@@ -85,7 +86,7 @@ test('HU-Q10.1 · guarda la copia en su Drive y otra caja vacía la trae sin bor
   await drive.atender(nueva);
   await coreFalso(nueva);
   await nueva.goto(CAJA);
-  await nueva.getByRole('button', { name: 'Respaldo', exact: true }).click();
+  await abrirMenu(nueva, 'Respaldo');
   await seccion(nueva).getByRole('button', { name: 'Traer una copia de mi Google Drive' }).click();
   const lista = nueva.getByTestId('copias-en-drive').getByRole('listitem');
   await expect(lista).toHaveCount(1);
@@ -104,7 +105,7 @@ test('HU-Q10.1 · si cancela en Google lo dice y no guarda nada; sin señal no s
   await drive.atender(page);
   await coreFalso(page, 'cancelada');
   await page.goto(CAJA);
-  await page.getByRole('button', { name: 'Respaldo', exact: true }).click();
+  await abrirMenu(page, 'Respaldo');
   await seccion(page).getByRole('button', { name: 'Guardar copia en mi Google Drive' }).click();
   await expect(page.getByTestId('aviso-respaldo')).toHaveText(
     'Canceló el permiso en Google. No se guardó ni se trajo nada.',

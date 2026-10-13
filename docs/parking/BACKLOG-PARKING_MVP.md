@@ -1,5 +1,7 @@
 # Parqueadero ED1 — Backlog del MVP (M0)
 
+**Actualización del dueño, 12 oct 2026:** el cliente actual trabaja sin turnos. [UX-OPERACION-SIMPLE.md](UX-OPERACION-SIMPLE.md) adapta HU-Q3.9 CA4 y el piloto a esa operación: apertura y cierre solo en Con turnos, comparación y respaldo por día en Sin turnos.
+
 **Versión:** 0.1.0 · 7 oct 2026
 **Dueño del producto:** Sebas. **Gerencia del proyecto y Scrum:** el asistente, que hace los commits, el push y los PR; el dueño aprueba, fusiona, valida y lleva la relación con el cliente.
 **Fuente única de:** las **40 historias refinadas de M0**, con sus criterios, bocetos y work items; los datos que se le piden al cliente; el primer día de un equipo nuevo; las demostraciones de cada viernes y el piloto. El plan completo (hitos, sprints, M1 a M3, decisiones, riesgos y velocidad) está en `BACKLOG-PARKING.md` («plan §N»). El sprint de cada historia lo fija el plan §6.1; el título, los puntos y los criterios, este documento.

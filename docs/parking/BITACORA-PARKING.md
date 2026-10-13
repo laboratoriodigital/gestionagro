@@ -1061,3 +1061,17 @@ Error: locator.click: Test ended.
 La regla: **una e2e intermitente no se corre otra vez a ciegas; se guarda lo que vio y su plazo es el de una corrida lenta, no cinco veces más.**
 
 *Ficha:* parqueadero · *(del terreno)* · 🟡 Medio · P15, P19 · parqueadero-0.3.0 · 2026-10-12
+
+**38 · Al simplificar la caja, el inicio conservaba el desplazamiento y compartir podía bloquear el respaldo.**
+
+*Qué pasó.* El 12 oct 2026, en la revisión visual y las pruebas de navegador de la operación sin turnos. Después de Ajustes, el inicio podía quedar desplazado y ocultar Nueva entrada. En la prueba de respaldo, el navegador rechazó compartir con `NotAllowedError` y no descargó la copia.
+
+*Causa raíz.* La navegación interna conservaba el desplazamiento de la pantalla anterior. El respaldo confiaba en que disponer de `navigator.share` era suficiente para entregar el archivo, aunque el navegador podía impedir su uso.
+
+*Arreglo.* La navegación vuelve arriba y desactiva la restauración automática del navegador. El respaldo descarga el archivo si compartir falla con `NotAllowedError`; una cancelación del usuario sigue siendo una cancelación.
+
+**Lo prueban** las pruebas de navegador del respaldo y la aceptación con las dos sedes de ensayo; el recorrido sin turnos se revisó también a 360 y 1280 px. La corrida completa terminó con 52 pruebas aprobadas y una captura de runbooks omitida por diseño.
+
+La regla: **una capacidad disponible puede fallar al usarla; el respaldo necesita una forma de entrega comprobada.**
+
+*Ficha:* parqueadero · *(mío)* · 🟡 Medio · P5, P15 · sin publicar · 2026-10-12

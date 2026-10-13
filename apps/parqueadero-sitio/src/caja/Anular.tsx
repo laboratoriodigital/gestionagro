@@ -57,7 +57,7 @@ export function Anular({ db, ctx, registro, alAnular }: Props) {
     <div class="anular" data-prueba="anular">
       <h2>Anular {que}</h2>
       <p class="ayuda">
-        La anulación queda anotada con su motivo y cuenta en el cierre del turno; nada se borra.{' '}
+        La anulación queda anotada con su motivo y se descuenta del reporte; nada se borra.{' '}
         {registro.tipo === 'salida'
           ? 'El vehículo vuelve a quedar adentro.'
           : registro.tipo === 'pago_abonado'
