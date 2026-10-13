@@ -119,7 +119,7 @@ El parqueadero tiene versión propia (HU-Q0.3, como HU-C0.3 para el CORE y HU-T0
 | `parqueadero-v0.2.0` | Q5 | M0: el piloto con el cliente |
 | `parqueadero-v0.3.0` | Q11 | La entrega al primer cliente (13 oct 2026): lo de Q6 a Q11 que no necesita la nube. En producción, la cuenta, la nube, Drive y la firma siguen apagadas |
 | `parqueadero-v0.4.0` | — | La presentación al cliente (13 oct 2026): la operación simple sin turnos (#167) y lo de Q12 que no necesita la nube |
-| `parqueadero-v0.5.0` | Q9 | M1: cuenta, varias cajas y cobro del plan, con la caja del cliente reclamada en producción (HU-Q7.12) |
+| `parqueadero-v0.5.0` | Q12 | M1 en producción (2026-10-13): cuenta, varias cajas, nube, Drive y cobro del plan a COP 29.900. La prueba de dos cajas con el cliente (HU-Q7.12 CA1) va después |
 | **`parqueadero-v1.0.0`** | Q11 | M2. Los contratos quedan estables: el enlace firmado, `parqueadero-export/1` y `/api/v1` |
 | `parqueadero-v1.1.0` | Q13 | M3: WhatsApp automático |
 | `parqueadero-v1.2.0` | — | M4: facturación integrada |
@@ -491,7 +491,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.9.1 `[código]` exportar · WI-Q7.9.2 `[prueba]` ida y vuelta · WI-Q7.9.3 `[código]` pantalla.
 
 #### HU-Q7.10 · El cobro del plan por periodo
-- **Capa:** CORE y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q12 (HC4 llegó con el #161) · **Depende de:** HU-C5.3, HU-C5.5 y HU-C5.6 (HC4), HU-Q7.1, D-Q5 · **Estado:** En revisión (rama `feat/q12-sprint`, 12 oct 2026), en staging. **CA1 cambia de forma:** el CORE no le avisa a la celda; la celda lee el plan del token, que el CORE ya emite con la gracia del producto (HU-C5.5), y la caja renueva su acceso al volver de Bold (bitácora, «Cambios de rumbo»). Pagar lo ve quien tiene «Equipo, plan y pago» (el propietario, §11.2). Pendiente del dueño: el precio (hoy la hipótesis del estudio, en `planes.json`) y WI-Q7.10.4
+- **Capa:** CORE y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q12 (HC4 llegó con el #161) · **Depende de:** HU-C5.3, HU-C5.5 y HU-C5.6 (HC4), HU-Q7.1, D-Q5 · **Estado:** En revisión (rama `feat/q12-sprint`, 12 oct 2026), en staging. **CA1 cambia de forma:** el CORE no le avisa a la celda; la celda lee el plan del token, que el CORE ya emite con la gracia del producto (HU-C5.5), y la caja renueva su acceso al volver de Bold (bitácora, «Cambios de rumbo»). Pagar lo ve quien tiene «Equipo, plan y pago» (el propietario, §11.2). El precio lo fijó el dueño el 13 oct 2026: COP 29.900 al mes. Pendiente: WI-Q7.10.4
 - Como propietario, quiero pagar 1, 3, 6 o 12 meses del plan con Bold desde la caja, para no depender de un link manual.
 - **Respaldo:** PARQUEADERO §11.1 (`gracia_dias: 7`) y §14.2; PLATAFORMA §4.13; estudio §10.3.
 - **CA1.** La caja muestra el plan, su vencimiento (`plan_vence` del token) y «Pagar», que abre el cobro del CORE con el producto `parqueadero`. El CORE avisa el pago a la celda (`POST /api/servicio/plan`).
@@ -511,14 +511,14 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.11.1 `[dueño]` datos de Laboratorio Digital como encargado · WI-Q7.11.2 `[código]` · WI-Q7.11.3 `[prueba]` · WI-Q7.11.4 `[doc]` política y términos.
 
 #### HU-Q7.12 · M1 en producción: dos cajas sin red que no repiten números
-- **Capa:** aceptación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q9 · **Depende de:** HU-Q7.1 a HU-Q7.11, HU-Q7.13, HU-Q10.1 · **Estado:** Refinada
+- **Capa:** aceptación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q12 · **Depende de:** HU-Q7.1 a HU-Q7.11, HU-Q7.13, HU-Q10.1 · **Estado:** En validación (13 oct 2026): el dueño pidió M1 en producción con la caja del cliente ya en operación. Se publica con la `0.5.0` (y el CORE `0.5.0`, por el directorio y el precio) **antes** de la prueba de dos cajas, que va después en el campo (`docs/parking/validacion/m1-dos-cajas.md`). Pendientes: CA1 y CA2 en el campo, CA3 (la humo de producción no revisa todavía los parqueaderos de prueba) y WI-Q7.12.4 (la revisión del abogado)
 - Como dueño, quiero ver el criterio de M1 cumplido en producción con el cliente, para publicar `v0.5.0` sabiendo que funciona.
 - **Respaldo:** PARQUEADERO §18 (criterio de M1).
 - **CA1.** En producción, dos teléfonos sin red registran entradas y salidas de la misma sede, se conectan y quedan con los mismos registros, sin números repetidos ni perdidos. Lo registra `docs/parking/validacion/m1-dos-cajas.md`.
 - **CA2.** La caja del cliente se reclama en producción con todo lo del piloto (HU-Q7.6), después de aceptar los términos de HU-Q7.11, y el respaldo semanal corrió al menos una vez (HU-Q10.1).
 - **CA3 ❌.** La prueba de humo de producción comprueba que los parqueaderos de prueba **no** están en la base de producción (P11).
 - **Patrones en riesgo:** P11, P16.
-- **Work items:** WI-Q7.12.1 `[campo]` dos cajas con el cliente · WI-Q7.12.2 `[prueba]` humo de producción · WI-Q7.12.3 `[doc]` validación y CHANGELOG · WI-Q7.12.4 `[legal]` el aviso de privacidad con cuenta nombra la copia en el Drive del parqueadero y sus fotos, con la revisión pendiente del abogado (HU-Q10.1 y HU-Q8.3 la suben solo en staging).
+- **Work items:** WI-Q7.12.1 `[campo]` dos cajas con el cliente · WI-Q7.12.2 `[prueba]` humo de producción · WI-Q7.12.3 `[doc]` validación y CHANGELOG · WI-Q7.12.4 `[legal]` el aviso de privacidad con cuenta nombra la copia en el Drive del parqueadero y sus fotos, con la revisión pendiente del abogado (HU-Q10.1 y HU-Q8.3 la suben también en producción desde la `0.5.0`).
 
 #### HU-Q7.13 · El presupuesto en el plan gratuito: filas de D1, vigía y kill switches
 - **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q6 · **Depende de:** HU-C3.6, HU-C11.1, D-Q10 · **Estado:** Hecha (PR #142, fusionado el 8 oct 2026): medido 1.699 filas al día en la cuenta (reporte semanal al 8 oct); presupuesto de 70.000 filas al día, unos 38 parqueaderos, en `productos.json` y no en un `product.yaml` (PARQUEADERO §14.1 dice por qué); el vigía reparte las filas por producto y avisa al 50, 75 y 90 %, con la simulación al 95 %. Las claves `ks:parqueadero` y `ks:parqueadero-fotos` quedan declaradas y las crea HU-Q7.2 en el KV de su celda. La caja de M0 no lee nada de la nube: que siga registrando con la sincronización apagada lo prueba HU-Q7.5 CA4
@@ -927,7 +927,7 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 | Q9 | 15 | Solo staging | #154. HU-Q7.10 espera HC4 y HU-Q7.12 es la `v0.5.0` |
 | Q10 | 14 | Solo staging | #155 |
 | Q11 | 17 | Lo que no necesita la nube, en la `v0.3.0` de la entrega | #156–#158: 20 puntos hechos (HU-Q8.3, HU-Q8.4, HU-Q8.5, HU-Q8.6, HU-Q10.3, HU-Q11.6 y HU-Q11.7, estas dos sin sprint); HU-Q8.7 espera M1 en producción |
-| Q12 | 3 | Solo staging | HU-Q7.10, sin el disparador de M3. HU-Q7.12 (M1 en producción) espera la decisión del dueño |
+| Q12 | 3 | En producción con la `0.5.0` | HU-Q7.10, sin el disparador de M3. HU-Q7.12 (M1 en producción) espera la decisión del dueño |
 
 Desde el 12 oct 2026, un PR y un push por sprint completo, para ahorrar minutos de Actions (decisión del dueño).
 

@@ -4,7 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.5.0] - 2026-10-13
+
+Lo de C10 que estaba en `main` y lo que M1 del parqueadero necesita del CORE en producción.
+
 ### Cambiado
+- El directorio de producción lista la celda c2 del parqueadero: un parqueadero de la cuenta sincroniza con su API (HU-Q7.12).
+- El catálogo trae el precio del plan Parqueadero, COP 29.900 al mes (85.000, 161.000 y 299.000 por 3, 6 y 12 meses), decidido por el dueño el 13 oct 2026.
 - El catálogo trae la versión 3 de la política de la cuenta del parqueadero (Bold como aliado para pagar el plan, HU-Q7.10).
 ### Agregado
 - Tus datos (HU-C7.7, Ley 1581): en la cuenta, «Descargar mis datos» con lo que el CORE guarda de ti, y hacer una consulta, un reclamo o una solicitud de supresión con número y fecha límite en días hábiles de Colombia (10 y 15, con festivos). Al dueño le llega un aviso por Telegram con el número y el plazo, sin el texto; si no sale, el cron lo reintenta. Rutas `POST /api/core/cuenta/{mis-datos,radicar,radicados}` y migración 0009 (`radicado_datos`). El CORE recibe ahora `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`.
