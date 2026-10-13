@@ -126,7 +126,7 @@ export function seccionesReescritas(
  * leen su clave pública y le piden los planes. El token de Cloudflare va en todas: en una sola
  * cuenta (ADR-23) no se puede repartir por producto.
  */
-export const PARTES = ['core', 'agro', 'parqueadero'] as const;
+export const PARTES = ['core', 'agro', 'parqueadero', 'tienda'] as const;
 export type Parte = (typeof PARTES)[number];
 
 const CLOUDFLARE = ['CF_API_TOKEN', 'CF_ACCOUNT_ID'] as const;
@@ -147,12 +147,14 @@ export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = 
   // El vigía de la celda del agro mide con el token de métricas y avisa por Telegram.
   agro: [...CLOUDFLARE, 'CF_METRICAS_TOKEN', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'],
   parqueadero: [...CLOUDFLARE],
+  // HU-T2.4: el secreto que comparten el despacho, el panel y la API, y la llave maestra (TIENDA §14.6).
+  tienda: [...CLOUDFLARE, 'SECRETO_DESPACHO', 'TIENDA_KEK_V1'],
 };
 
 export function parteDe(valor: string | undefined): Parte | undefined {
   if (!valor) return undefined;
   if (!(PARTES as readonly string[]).includes(valor))
-    throw new Error(`parte desconocida: ${valor} (core, agro o parqueadero)`);
+    throw new Error(`parte desconocida: ${valor} (core, agro, parqueadero o tienda)`);
   return valor as Parte;
 }
 

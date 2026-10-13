@@ -29,9 +29,11 @@ import {
   DOMINIO_PARQUEADERO,
   WORKER_PARQUEADERO,
   wranglerDeLaCelda,
+  wranglerDeLaCeldaDeLaTienda,
   wranglerDeLaCeldaDelParqueadero,
   wranglerDelCore,
   wranglerDelSitio,
+  wranglerDelSitioDeLaTienda,
   ZONA_PARQUEADERO,
 } from './generar-wrangler.ts';
 import {
@@ -54,6 +56,21 @@ import {
   secretosDeLaCeldaDelParqueadero,
   tablasQueFaltan,
 } from './lib/celda-parqueadero.ts';
+import {
+  ARCHIVO_DESPLIEGUE_TIENDA,
+  ARCHIVO_SQL_RESERVADOS,
+  configDeLaApi,
+  configDelSitio,
+  escribirDespliegue,
+  escribirReservados,
+  humoDeLaTienda,
+  nombreKvHosts,
+  preparaLaTienda,
+  reservadosDeDominios,
+  secretosDeLaTienda,
+  sentenciasDeReservados,
+  urlQueNoDebeResponder,
+} from './lib/celda-tienda.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
 import {
   type ClaveQr,
@@ -791,6 +808,172 @@ async function prepararCeldaDelParqueadero(
   };
 }
 
+/**
+ * La celda de la Tienda (HU-T2.4): sus bases con las migraciones, los reservados, sus KV y sus tres
+ * Workers con sus secretos, seguida de su prueba de humo. Ver `scripts/lib/celda-tienda.ts`.
+ */
+async function prepararCeldaDeLaTienda(
+  config: ConfigCeldas,
+  celda: Celda,
+  cred: Credenciales,
+): Promise<Paso> {
+  const dest = destino as Destino;
+  const staging = dest === 'staging';
+  const secretos = secretosDeLaTienda(process.env);
+  if (!secretos.ok) return { ok: false, detalle: [`tienda: ${secretos.motivo}`] };
+  const control = celda.control;
+  if (!control) return { ok: false, detalle: [`${celda.id}: no declara su base de control`] };
+  const bases: Record<string, string> = {};
+  const nuevas: string[] = [];
+  let notaKv: string;
+  try {
+    for (const base of [...celda.shards, control]) {
+      const b = await asegurarBaseD1(fetch, cred.token, cred.cuenta, baseDelShard(base, staging));
+      bases[base] = b.id;
+      if (b.creada) nuevas.push(baseDelShard(base, staging));
+    }
+    const flags = await asegurarNamespace(
+      fetch,
+      cred.token,
+      cred.cuenta,
+      nombreKvFlags(celda.id, dest, celda.producto),
+    );
+    const hosts = await asegurarNamespace(
+      fetch,
+      cred.token,
+      cred.cuenta,
+      nombreKvHosts(celda.id, dest),
+    );
+    const producto = cargarRegistroDeProductos().productos.find((p) => p.id === celda.producto);
+    const claves = await asegurarClaves(
+      fetch,
+      cred.token,
+      cred.cuenta,
+      flags.id,
+      producto?.kill_switches ?? [],
+    );
+    notaKv = `KV de flags: ${claves.creadas.length} kill switch(es) creados en «encendido», ${claves.existentes.length} ya existían y no se tocaron; KV de hosts ${hosts.creado ? 'creado' : 'existente'}`;
+    escribirDespliegue(
+      'tienda-api',
+      configDeLaApi(wranglerDeLaCeldaDeLaTienda(celda), dest, {
+        bases,
+        flagsId: flags.id,
+        hostsId: hosts.id,
+      }),
+    );
+    escribirDespliegue(
+      'tienda-sitio',
+      configDelSitio(wranglerDelSitioDeLaTienda(config), dest, hosts.id),
+    );
+    escribirReservados(sentenciasDeReservados(reservadosDeDominios()));
+  } catch (e) {
+    return { ok: false, detalle: [`celda ${celda.id} de la Tienda: ${(e as Error).message}`] };
+  }
+  const c = `-c ${ARCHIVO_DESPLIEGUE_TIENDA} ${entorno}`;
+  // CA4: antes de migrar una base con datos, ninguna fila huérfana (bitácora core 2).
+  for (const base of [...celda.shards, control]) {
+    const huerfanas = wrangler(
+      '@ed1/tienda-api',
+      `d1 execute ${base} --remote --json --command "${CONSULTA_HUERFANAS}" ${c}`,
+      cred,
+    );
+    const lista = huerfanas.ok ? huerfanasDeLaSalida(huerfanas.salida) : null;
+    if (lista === null || lista.length > 0) {
+      return {
+        ok: false,
+        detalle: [
+          lista === null
+            ? `${base}: no se pudo revisar las claves foráneas; no se migra (P1)`
+            : `${base}: ${lista.length} fila(s) huérfana(s); no se migra`,
+          ...(lista ?? causaDeWrangler(huerfanas.salida)),
+        ],
+      };
+    }
+    const migrar = wrangler('@ed1/tienda-api', `d1 migrations apply ${base} --remote ${c}`, cred);
+    if (!migrar.ok) {
+      return {
+        ok: false,
+        detalle: [`migraciones de ${base} fallaron:`, ...causaDeWrangler(migrar.salida)],
+      };
+    }
+  }
+  const reservados = wrangler(
+    '@ed1/tienda-api',
+    `d1 execute ${control} --remote --file ${ARCHIVO_SQL_RESERVADOS} ${c}`,
+    cred,
+  );
+  if (!reservados.ok) {
+    return {
+      ok: false,
+      detalle: [
+        'los reservados de dominios.json no entraron a la base de control:',
+        ...causaDeWrangler(reservados.salida),
+      ],
+    };
+  }
+  // La API primero: el despacho y el panel la nombran en sus bindings de servicio.
+  const pasos: [string, string, Record<string, string>][] = [
+    ['@ed1/tienda-api', c, secretos.api],
+    ['@ed1/tienda-sitio', c, secretos.frente],
+    ['@ed1/tienda-panel', entorno, secretos.frente],
+  ];
+  const urls: Record<string, string | null> = {};
+  for (const [paquete, opciones, deEste] of pasos) {
+    const deploy = wrangler(paquete, `deploy ${opciones}`, cred);
+    if (!deploy.ok) {
+      return {
+        ok: false,
+        detalle: [`wrangler deploy de ${paquete} falló:`, ...causaDeWrangler(deploy.salida)],
+      };
+    }
+    urls[paquete] = urlDeWorkersDev(deploy.salida);
+    const carga = wrangler(paquete, `secret bulk ${opciones}`, cred, JSON.stringify(deEste));
+    if (!carga.ok) {
+      return {
+        ok: false,
+        detalle: [`los secretos de ${paquete} no se cargaron:`, ...causaDeWrangler(carga.salida)],
+      };
+    }
+  }
+  const panel = urls['@ed1/tienda-panel'];
+  const sitio = urls['@ed1/tienda-sitio'];
+  const esperado = staging ? celda.api_staging : celda.api;
+  if (!panel || !sitio || panel !== esperado) {
+    return {
+      ok: false,
+      detalle: [
+        `panel desplegado en ${panel ?? '?'} y despacho en ${sitio ?? '?'}, pero celdas.json dice ${esperado} para el panel: corrígelo por PR y vuelve a desplegar.`,
+      ],
+    };
+  }
+  let avisos: string[] = [];
+  const fallas = await conReintentos(async () => {
+    const r = await humoDeLaTienda(fetch, {
+      panel,
+      sitio,
+      apiPorFuera: urlQueNoDebeResponder(celda, dest),
+    });
+    avisos = r.avisos;
+    return r.fallas;
+  });
+  if (fallas.length > 0) {
+    return {
+      ok: false,
+      detalle: ['la Tienda se desplegó, pero la prueba de humo falló:', ...fallas],
+    };
+  }
+  return {
+    ok: true,
+    detalle: [
+      `celda ${celda.id} de la Tienda (${dest}): shard y control con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}, y los reservados de dominios.json`,
+      notaKv,
+      `panel: ${panel}`,
+      `despacho: ${sitio}`,
+      ...avisos,
+    ],
+  };
+}
+
 async function desplegarApiCelda(
   config: ConfigCeldas,
   celda: Celda,
@@ -950,8 +1133,10 @@ const resultados: ResultadoCelda[] = plan.fuera.map((c) => ({
 let detenido = false;
 
 // HU-C11.3 CA2: una parte sin nada que desplegar termina antes de leer un solo token.
+// La celda del parqueadero y la de la Tienda se preparan en staging aunque su versión no cambie.
 const prepararParqueaderoEnStaging = parte === 'parqueadero' && destino === 'staging';
-if (parte && productos.size === 0 && !prepararParqueaderoEnStaging) {
+const prepararTiendaEnStaging = parte === 'tienda' && destino === 'staging';
+if (parte && productos.size === 0 && !prepararParqueaderoEnStaging && !prepararTiendaEnStaging) {
   console.log(`Parte ${parte}: nada que desplegar en ${destino} (su versión no cambió).`);
   process.exit(0);
 }
@@ -1037,8 +1222,16 @@ for (const celda of plan.aDesplegar) {
       detalle.push(noSale('parqueadero', 'parqueadero'));
     }
   } else if (celda.producto === 'tienda') {
-    // HU-T2.3: la celda de la Tienda nunca toma el camino del agro. Sus Workers, con HU-T2.4.
-    detalle.push('tienda: sus Workers llegan con HU-T2.4');
+    // HU-T2.4: la celda de la Tienda nunca toma el camino del agro. Staging, siempre; producción,
+    // cuando la Tienda salga (HU-T2.9).
+    const prepara =
+      (!parte || parte === 'tienda') && preparaLaTienda(destino as Destino, productos);
+    if (paso.ok && prepara) {
+      paso = await prepararCeldaDeLaTienda(configCeldas, celda, cred);
+      detalle.push(...paso.detalle);
+    } else if (!prepara) {
+      detalle.push(noSale('tienda', 'tienda'));
+    }
   } else if (paso.ok && productos.has('agro')) {
     paso = await desplegarApiCelda(configCeldas, celda, cred);
     detalle.push(...paso.detalle);

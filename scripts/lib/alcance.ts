@@ -33,15 +33,15 @@ export function esDocumento(ruta: string): boolean {
 }
 
 /**
- * Lo que habla con D1 (HU-C11.8): las apps con Worker y base (CORE, celda del agro, API del
- * parqueadero), el instrumento `packages/d1`, las migraciones, las pruebas de integración y el
+ * Lo que habla con D1 (HU-C11.8): las apps con Worker y base (CORE, celda del agro, APIs del
+ * parqueadero y de la Tienda), el instrumento `packages/d1`, las migraciones, las pruebas de integración y el
  * lockfile (una versión nueva de wrangler o workerd). Solo ahí el D1 de workerd y la base en
  * proceso pueden dar resultados distintos (P17). `tests/repo/alcance.test.ts` exige que todo código
  * con SQL viva en una de estas rutas.
  */
 export function esDeLaBase(ruta: string): boolean {
   const r = ruta.replaceAll('\\', '/');
-  return /^(packages\/d1\/|infrastructure\/migraciones\/|apps\/(core|api-celda|parqueadero-api)\/|tests\/integracion\/|pnpm-lock\.yaml$)/.test(
+  return /^(packages\/d1\/|infrastructure\/migraciones\/|apps\/(core|api-celda|parqueadero-api|tienda-api)\/|tests\/integracion\/|pnpm-lock\.yaml$)/.test(
     r,
   );
 }

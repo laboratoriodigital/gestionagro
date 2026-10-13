@@ -31,14 +31,14 @@ const pasos = (
 /** Los secretos que un paso recibe: los `${{ secrets.X }}` de su `env`. */
 const secretosDe = (p: Paso) =>
   Object.values(p.env ?? {})
-    .map((v) => /\$\{\{\s*secrets\.([A-Z_]+)\s*\}\}/.exec(String(v))?.[1])
+    .map((v) => /\$\{\{\s*secrets\.([A-Z0-9_]+)\s*\}\}/.exec(String(v))?.[1])
     .filter((s): s is string => Boolean(s))
     .sort();
 
 const pasosDelDespliegue = pasos.filter((p) => p.run?.includes('scripts/desplegar.ts'));
 
 describe('HU-C11.3 CA2 · el despliegue por partes', () => {
-  it('un paso por parte, en orden: CORE, agro y parqueadero', () => {
+  it('un paso por parte, en orden: CORE, agro, parqueadero y Tienda', () => {
     expect(pasosDelDespliegue.map((p) => /--parte (\w+)/.exec(p.run ?? '')?.[1])).toEqual([
       ...PARTES,
     ]);
@@ -58,9 +58,14 @@ describe('HU-C11.3 CA2 · el despliegue por partes', () => {
       const s = secretosDe(paso);
       const esCore = paso.run?.includes('--parte core');
       expect(s.some((x) => x.startsWith('BOLD_') || x.startsWith('GOOGLE_'))).toBe(Boolean(esCore));
-      // El vigía de la celda (HU-E8.3) y los radicados de la Ley 1581 (HU-C7.7); el parqueadero, no.
+      // El vigía de la celda (HU-E8.3) y los radicados de la Ley 1581 (HU-C7.7); el parqueadero y la
+      // Tienda, no.
       expect(s.some((x) => x.startsWith('TELEGRAM_'))).toBe(
-        !paso.run?.includes('--parte parqueadero'),
+        Boolean(paso.run?.includes('--parte core') || paso.run?.includes('--parte agro')),
+      );
+      // La KEK y el secreto del despacho solo llegan a la Tienda (HU-T2.4).
+      expect(s.some((x) => x === 'TIENDA_KEK_V1' || x === 'SECRETO_DESPACHO')).toBe(
+        Boolean(paso.run?.includes('--parte tienda')),
       );
     }
     // Ningún otro paso del trabajo recibe secretos de Cloudflare ni de las apps.
@@ -74,6 +79,7 @@ describe('HU-C11.3 CA2 · el despliegue por partes', () => {
     expect([...productosDeLaParte(todos, 'parqueadero')]).toEqual([]);
     expect([...productosDeLaParte(productosADesplegar('agro'), 'core')]).toEqual([]);
     expect([...productosDeLaParte(todos, undefined)].sort()).toEqual(['agro', 'core']);
-    expect(() => parteDe('tienda')).toThrow(/parte desconocida/);
+    expect([...productosDeLaParte(todos, 'tienda')]).toEqual([]);
+    expect(() => parteDe('vitrina')).toThrow(/parte desconocida/);
   });
 });

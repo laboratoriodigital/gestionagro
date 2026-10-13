@@ -1,0 +1,12 @@
+{
+  "name": "@ed1/tienda-sitio",
+  "private": true,
+  "description": "El despacho de la Tienda 3.0: un solo Worker para todas las tiendas, que resuelve la tienda por el Host sin tocar la base (TIENDA-3.0 §3.1 y §11.1, HU-T2.4).",
+  "type": "module",
+  "scripts": {
+    "build": "wrangler deploy --dry-run --outdir .wrangler/dry-run --env= && wrangler deploy --dry-run --outdir .wrangler/dry-run-staging --env staging"
+  },
+  "devDependencies": {
+    "wrangler": "^4.144.0"
+  }
+}
