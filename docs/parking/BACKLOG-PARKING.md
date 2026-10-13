@@ -23,7 +23,7 @@
 | Hito | Qué queda funcionando | Cierra | Fecha objetivo | Necesita del CORE o del dueño | Versión |
 |---|---|---|---|---|---|
 | **M0 · MVP del cliente** | La caja instalable en Android o Windows: tarifas con tope, entrada y salida, recibo en la PT-210, WhatsApp por enlace, QR en pantalla, la página `/r/`, turno con cierre impreso y respaldo en archivo. Puesta en marcha y primer turno real con el cliente | Q5 | **Demostración al cliente el 30 oct 2026** y **piloto del 9 al 13 nov** | Nada del CORE. Del dueño: D-Q1 a D-Q9, los datos del cliente y la zona `laboratorio-digital.app` activa antes de Q3 | `parqueadero-v0.1.0` (Q3) y `v0.2.0` (Q5) |
-| **M1 · Cuenta y varias cajas** | El parqueadero en el CORE, celda c2, sincronización, entrar y reclamar lo local, dispositivos con serie, roles, respaldo en la nube, cobro del plan por periodo | Q9 | 22 ene 2027 | HU-C3.1, HU-C4.3 y HU-C4.4, ya construidas; HC4 solo para el cobro por periodo (HU-Q7.10) | `v0.4.0` |
+| **M1 · Cuenta y varias cajas** | El parqueadero en el CORE, celda c2, sincronización, entrar y reclamar lo local, dispositivos con serie, roles, respaldo en la nube, cobro del plan por periodo | Q9 | 22 ene 2027 | HU-C3.1, HU-C4.3 y HU-C4.4, ya construidas; HC4 solo para el cobro por periodo (HU-Q7.10) | `v0.5.0` |
 | **M2 · Recibo verificado** | Firma sin red por dispositivo y su verificación en `/r/`, fotos del estado en la nube por 30 días, mensualidades, reportes por turno y lo que ahorra el parqueadero en papel | Q11 | 19 feb 2027 | — | **`v1.0.0`** |
 | **M3 · WhatsApp automático** | Envío por la Cloud API con el número de cada parqueadero, plantilla de utilidad, estados de entrega y recibo por autoservicio con un QR en la entrada | Q13 | 19 mar 2027, **solo si se cumple su disparador** (§8, EQ9) | Un parqueadero que pague un plan que lo cubra y tenga su negocio verificado en Meta; `@ed1/cifrado` (HU-T1.3) | `v1.1.0` |
 | **M4 · Facturación** | Integrar el facturador del parqueadero, sin emitir | — | Preparada (§9) | Un parqueadero obligado a facturar | `v1.2.0` |
@@ -118,7 +118,8 @@ El parqueadero tiene versión propia (HU-Q0.3, como HU-C0.3 para el CORE y HU-T0
 | `parqueadero-v0.1.0` | Q3 | La demostración al cliente, en producción en `parqueadero.laboratorio-digital.app` |
 | `parqueadero-v0.2.0` | Q5 | M0: el piloto con el cliente |
 | `parqueadero-v0.3.0` | Q11 | La entrega al primer cliente (13 oct 2026): lo de Q6 a Q11 que no necesita la nube. En producción, la cuenta, la nube, Drive y la firma siguen apagadas |
-| `parqueadero-v0.4.0` | Q9 | M1: cuenta, varias cajas y cobro del plan, con la caja del cliente reclamada en producción (HU-Q7.12) |
+| `parqueadero-v0.4.0` | — | La presentación al cliente (13 oct 2026): la operación simple sin turnos (#167) y lo de Q12 que no necesita la nube |
+| `parqueadero-v0.5.0` | Q9 | M1: cuenta, varias cajas y cobro del plan, con la caja del cliente reclamada en producción (HU-Q7.12) |
 | **`parqueadero-v1.0.0`** | Q11 | M2. Los contratos quedan estables: el enlace firmado, `parqueadero-export/1` y `/api/v1` |
 | `parqueadero-v1.1.0` | Q13 | M3: WhatsApp automático |
 | `parqueadero-v1.2.0` | — | M4: facturación integrada |
@@ -254,7 +255,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q7** (festivo) | 30 nov–11 dic | La API de la celda y la caja que sincroniza; roles; el aviso de tarifas para la entrada | HU-Q7.4 (5), HU-Q7.5 (5), HU-Q7.8 (3), HU-Q11.3 (2) | 15 | — |
 | **Q8** (corto) | 14–23 dic | Entrar y reclamar lo local; dispositivos; respaldo en la nube. Solo staging desde el 18 dic | HU-Q7.6 (5), HU-Q7.7 (3), HU-Q7.9 (2) | 10 | — |
 | — | 24 dic–8 ene | Pausa y congelamiento. La caja del cliente sigue en `v0.3.x` | — | — | — |
-| **Q9** (festivo) | 12–22 ene 2027 | **M1.** Cobro del plan por periodo, privacidad con cuenta, operación de la celda y dos cajas sin red que no repiten números | HU-Q7.10 (3), HU-Q7.11 (2), HU-Q7.12 (2), HU-Q10.1 (3), HU-Q10.2 (3), HU-Q10.4 (2) | 15 | M1, `v0.4.0` |
+| **Q9** (festivo) | 12–22 ene 2027 | **M1.** Cobro del plan por periodo, privacidad con cuenta, operación de la celda y dos cajas sin red que no repiten números | HU-Q7.10 (3), HU-Q7.11 (2), HU-Q7.12 (2), HU-Q10.1 (3), HU-Q10.2 (3), HU-Q10.4 (2) | 15 | M1, `v0.5.0` |
 | **Q10** | 25 ene–5 feb | Firma sin red por dispositivo y su verificación; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q11.4 (2), HU-Q11.5 (2). HU-Q8.3 pasó a Q11 (espera R2) | 14 | — |
 | **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). HU-Q8.5, HU-Q8.6 y HU-Q10.3 en el PR #156; HU-Q8.4 en el #157, sin el número del abonado; HU-Q11.6 y HU-Q11.7 en el #158 con la `v0.3.0` de la entrega. HU-Q8.3 hecha en el #158, con las fotos en el Drive de la cuenta (decisión del dueño, 12 oct 2026); HU-Q8.7 espera M1 en producción (HU-Q7.12) | 17 | M2, **`v1.0.0`** |
 | **Q12** | 22 feb–5 mar | Sin el disparador de M3 (12 oct 2026), como dice la nota de abajo: el cobro del plan por periodo, que HC4 desbloqueó (#161). EQ9 sigue preparada | HU-Q7.10 (3) | 3 | — |
@@ -511,7 +512,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 
 #### HU-Q7.12 · M1 en producción: dos cajas sin red que no repiten números
 - **Capa:** aceptación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q9 · **Depende de:** HU-Q7.1 a HU-Q7.11, HU-Q7.13, HU-Q10.1 · **Estado:** Refinada
-- Como dueño, quiero ver el criterio de M1 cumplido en producción con el cliente, para publicar `v0.4.0` sabiendo que funciona.
+- Como dueño, quiero ver el criterio de M1 cumplido en producción con el cliente, para publicar `v0.5.0` sabiendo que funciona.
 - **Respaldo:** PARQUEADERO §18 (criterio de M1).
 - **CA1.** En producción, dos teléfonos sin red registran entradas y salidas de la misma sede, se conectan y quedan con los mismos registros, sin números repetidos ni perdidos. Lo registra `docs/parking/validacion/m1-dos-cajas.md`.
 - **CA2.** La caja del cliente se reclama en producción con todo lo del piloto (HU-Q7.6), después de aceptar los términos de HU-Q7.11, y el respaldo semanal corrió al menos una vez (HU-Q10.1).
@@ -923,7 +924,7 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 | Q6 | 17 | Solo staging | #137–#147. HU-Q3.12 espera la primera semana real |
 | Q7 | 15 | Solo staging | #148–#151 |
 | Q8 | 10 | Solo staging | #153 |
-| Q9 | 15 | Solo staging | #154. HU-Q7.10 espera HC4 y HU-Q7.12 es la `v0.4.0` |
+| Q9 | 15 | Solo staging | #154. HU-Q7.10 espera HC4 y HU-Q7.12 es la `v0.5.0` |
 | Q10 | 14 | Solo staging | #155 |
 | Q11 | 17 | Lo que no necesita la nube, en la `v0.3.0` de la entrega | #156–#158: 20 puntos hechos (HU-Q8.3, HU-Q8.4, HU-Q8.5, HU-Q8.6, HU-Q10.3, HU-Q11.6 y HU-Q11.7, estas dos sin sprint); HU-Q8.7 espera M1 en producción |
 | Q12 | 3 | Solo staging | HU-Q7.10, sin el disparador de M3. HU-Q7.12 (M1 en producción) espera la decisión del dueño |

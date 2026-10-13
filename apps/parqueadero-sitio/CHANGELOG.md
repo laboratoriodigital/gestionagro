@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.4.0] - 2026-10-13
+
+La caja de la presentación al cliente: la operación simple, sin turnos si el parqueadero trabaja así, y una caja que vuelve arriba al cambiar de pantalla. En producción, la cuenta, la nube y el pago del plan siguen apagados: llegan con M1, en la `0.5.0`.
+
 ### Cambiado
 - Operación simple para el cliente que trabaja sin turnos: una sede nueva empieza en «Sin turnos» y una existente puede elegirlo en Ajustes después de cerrar el turno abierto. Se registra, cobra y anula con los mismos controles, sin aperturas ficticias; Reportes resume el día y permite descargar CSV. Las sedes antiguas conservan sus turnos. El inicio prioriza entrada, escaneo y vehículos adentro; la administración queda en «Más opciones». La placa usa el teclado del teléfono o PC, foto y WhatsApp son opcionales, y el efectivo exacto se cobra dejando «Recibido» vacío, como explica el campo.
 
