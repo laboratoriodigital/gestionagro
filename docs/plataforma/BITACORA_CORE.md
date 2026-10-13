@@ -486,3 +486,15 @@ El dueño pidió bajar los 10 minutos del primer CI de un PR (12 oct 2026) y val
 La regla: **una conclusión de otro proyecto se mide en este antes de aplicarla: la máquina y el tipo de prueba deciden si esperar existe.**
 
 *Ficha:* core · *(compartido)* · 🟢 Bajo · P17, P7 · 0.6.0 · 2026-10-12
+
+**12 · El cuadro de texto de «Tus datos» era 18 px más ancho que el teléfono.**
+Al escribir la e2e de HU-C7.7 (12 oct 2026), la página de la cuenta se podía mover de lado a 360 px.
+*Síntoma literal.* «Expected: <= 360 · Received: 373», y con el `select` ya acotado, «TEXTAREA.ed1-campo__control portada__texto-largo 378».
+*Causa raíz.* `.ed1-campo__control` del sistema de diseño v2 tiene relleno y borde, pero ninguna regla le dice `box-sizing: border-box`: con `width: 100%`, el ancho del contenido es el de la columna y el relleno se suma por fuera. El cuaderno no lo sufre porque tiene su propio reinicio global; la cuenta usa solo el sistema de diseño. Hasta ahora ningún campo de la cuenta iba al 100 %.
+*Cómo se reprodujo.* La e2e en el proyecto `telefono-360`, nombrando cada elemento cuyo borde derecho pasa del ancho de la página.
+*Arreglo.* `box-sizing: border-box` en `.ed1-campo__control`, en el sistema de diseño y no en la cuenta: el próximo formulario de cualquier app lo hereda. El `select` además va al ancho de su columna, porque mide lo que su opción más larga.
+**Lo prueba** `tests/e2e/cuenta.spec.ts` (HU-C7.7): ningún elemento pasa del ancho de la página a 360 px, y axe sin violaciones. Control negativo: sin la regla, la misma prueba nombra el `textarea` y su borde en 378.
+
+La regla: **una e2e de teléfono no solo busca textos: dice qué elemento se sale. Un arreglo que vale para cualquier campo va al sistema de diseño, no a la página donde apareció.**
+
+*Ficha:* core · *(mío)* · 🟢 Bajo (no llegó a publicarse) · P17 · core-0.5.0 · 2026-10-12

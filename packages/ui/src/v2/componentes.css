@@ -233,7 +233,9 @@ a:hover {
   color: var(--texto-suave);
 }
 
+/* El borde y el relleno dentro del ancho: un campo al 100 % no se sale de un teléfono (bitácora core 12). */
 .ed1-campo__control {
+  box-sizing: border-box;
   min-height: var(--objetivo-tactil);
   padding: 0 var(--espacio-4);
   border: var(--borde-ancho) solid var(--borde);

@@ -253,7 +253,6 @@
 
 /* El select mide lo que su opción más larga: en un teléfono, el ancho de la columna. */
 .portada__radicar .ed1-campo__control {
-  box-sizing: border-box;
   width: 100%;
   min-width: 0;
 }
