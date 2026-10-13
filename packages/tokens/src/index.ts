@@ -257,6 +257,9 @@ export interface ReclamosDeAgente {
   /** La concesión: revocarla corta este token en su recurso (HU-C9.6). */
   cnc: string;
   org: string;
+  /** Dónde viven los datos de la organización: el recurso no le pregunta a nadie (ADR-10). */
+  celda: string;
+  shard: string;
   /** Los alcances, separados por espacio (RFC 8693 §4.2). */
   scope: string;
   iat: number;

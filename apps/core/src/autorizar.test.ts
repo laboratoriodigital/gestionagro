@@ -27,7 +27,8 @@ const CORE = 'https://agro-core-staging.example';
 const CUENTA = 'https://cuenta.laboratorio-digital.com';
 const CLIENTE = 'dcr-ensayo';
 const VUELTA = 'https://agente.example/vuelta';
-const RECURSO = 'https://mcp.cultivopro.co';
+/** El MCP del cuaderno en staging, como lo declara `productos.json`. */
+const RECURSO = 'https://agro-api-c0-staging.laboratoriodigital-la.workers.dev';
 const RETO = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 const FINCA = '0199a1b2-0000-7000-8000-00000000c941';
 const AJENA = '0199a1b2-0000-7000-8000-00000000c942';

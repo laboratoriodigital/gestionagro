@@ -68,6 +68,11 @@ export async function cumpleElReto(verificador: string, reto: string): Promise<b
 
 async function emitir(c: Context, e: Entorno, concesion: Concesion, ahora: number) {
   const alcances = JSON.parse(concesion.alcances) as string[];
+  const ubicacion = await e.db
+    .prepare('SELECT celda_id, shard FROM organizacion WHERE id = ?')
+    .bind(concesion.org_id)
+    .first<{ celda_id: string; shard: string }>();
+  if (!ubicacion) return error(c, 'invalid_grant', 'La organización de este acceso ya no existe.');
   const { token } = await firmarAccesoDeAgente(
     e.firmante,
     {
@@ -76,6 +81,8 @@ async function emitir(c: Context, e: Entorno, concesion: Concesion, ahora: numbe
       azp: concesion.cliente_id,
       cnc: concesion.id,
       org: concesion.org_id,
+      celda: ubicacion.celda_id,
+      shard: ubicacion.shard,
       scope: alcances.join(' '),
     },
     ahora,

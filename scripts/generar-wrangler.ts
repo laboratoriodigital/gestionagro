@@ -140,7 +140,25 @@ export function presupuestoDeLaCelda(
  * service binding con RPC para tener los planes al día (HU-C5.6), y staging llama al CORE de
  * staging. Un service binding solo une Workers de la misma cuenta (ADR-23).
  */
-export function wranglerDeLaCelda(celda: Celda, workerDelCore: string): Record<string, unknown> {
+export function wranglerDeLaCelda(
+  celda: Celda,
+  coreDelDirectorio: ConfigCeldas['core'],
+): Record<string, unknown> {
+  const workerDelCore = coreDelDirectorio.worker;
+  // HU-C9.7: el MCP del producto, si declara uno, con su servidor de autorización (el CORE).
+  const recurso = cargarProductos().productos.find((p) => p.id === celda.producto)
+    ?.recursos_oauth?.[0];
+  const mcp = (staging: boolean) =>
+    recurso
+      ? {
+          RECURSO_MCP: staging ? recurso.staging : recurso.produccion,
+          EMISOR_OAUTH: staging
+            ? coreDelDirectorio.url_staging
+            : coreDelDirectorio.dominio
+              ? `https://${coreDelDirectorio.dominio}`
+              : coreDelDirectorio.url,
+        }
+      : {};
   const bases = (staging: boolean) =>
     celda.shards.map((shard) => ({
       binding: shard,
@@ -162,7 +180,17 @@ export function wranglerDeLaCelda(celda: Celda, workerDelCore: string): Record<s
     main: 'src/worker.ts',
     compatibility_date: FECHA_COMPATIBILIDAD,
     workers_dev: true,
-    vars: { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan, ...presupuesto },
+    vars: {
+      CELDA: celda.id,
+      PRODUCTO: celda.producto,
+      PLAN: celda.plan,
+      ...presupuesto,
+      ...mcp(false),
+    },
+    // En producción, el dominio propio del MCP (HU-C9.7); la zona es la del sitio, que el token ve.
+    ...(recurso
+      ? { routes: [{ pattern: new URL(recurso.produccion).host, custom_domain: true }] }
+      : {}),
     d1_databases: bases(false),
     services: core(false),
     // El vigía de cuota (HU-E8.2) y los planes al día (HU-C5.6), cada hora. Uno por destino: 2 de
@@ -173,7 +201,15 @@ export function wranglerDeLaCelda(celda: Celda, workerDelCore: string): Record<s
       staging: {
         name: `${nombre}-staging`,
         workers_dev: true,
-        vars: { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan, ...presupuesto },
+        vars: {
+          CELDA: celda.id,
+          PRODUCTO: celda.producto,
+          PLAN: celda.plan,
+          ...presupuesto,
+          ...mcp(true),
+        },
+        // Las rutas se heredan entre entornos de wrangler: staging no lleva el dominio de producción.
+        routes: [],
         d1_databases: bases(true),
         services: core(true),
         triggers: { crons: ['0 * * * *'] },
@@ -247,8 +283,8 @@ export const textoWranglerDelSitio = (config: ConfigCeldas): string =>
   comoTexto(wranglerDelSitio(config));
 export const textoWranglerDelCore = (config: ConfigCeldas): string =>
   comoTexto(wranglerDelCore(config));
-export const textoWranglerDeLaCelda = (celda: Celda, workerDelCore: string): string =>
-  comoTexto(wranglerDeLaCelda(celda, workerDelCore));
+export const textoWranglerDeLaCelda = (celda: Celda, core: ConfigCeldas['core']): string =>
+  comoTexto(wranglerDeLaCelda(celda, core));
 
 /** Las celdas que sirven al agro: las únicas con la API de `apps/api-celda` (HU-Q7.2). */
 export const celdasDelAgro = (config: ConfigCeldas): Celda[] =>
@@ -301,7 +337,7 @@ if (process.argv[1]?.endsWith('generar-wrangler.ts')) {
   writeFileSync(RUTA_WRANGLER_SITIO, textoWranglerDelSitio(config));
   writeFileSync(RUTA_WRANGLER_CORE, textoWranglerDelCore(config));
   const deCeldas = celdasDelAgro(config).map((celda) => {
-    writeFileSync(rutaWranglerCelda(celda.id), textoWranglerDeLaCelda(celda, config.core.worker));
+    writeFileSync(rutaWranglerCelda(celda.id), textoWranglerDeLaCelda(celda, config.core));
     return rutaWranglerCelda(celda.id);
   });
   mkdirSync(join(RAIZ, 'apps', 'parqueadero-api'), { recursive: true });

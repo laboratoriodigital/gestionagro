@@ -161,8 +161,16 @@
         "recursos_oauth": {
           "type": "array",
           "uniqueItems": true,
-          "description": "Los servidores del producto que aceptan tokens de agentes (RFC 8707 «resource», PLATAFORMA §5.5). Un token para uno no sirve en otro (HU-C9.4).",
-          "items": { "type": "string", "pattern": "^https://[a-z0-9.-]+(/[a-z0-9._/-]*)?$" }
+          "description": "Los servidores del producto que aceptan tokens de agentes (RFC 8707 «resource», PLATAFORMA §5.5), con su dirección en producción y en staging. Un token para uno no sirve en otro (HU-C9.4).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["produccion", "staging"],
+            "properties": {
+              "produccion": { "type": "string", "pattern": "^https://[a-z0-9.-]+$" },
+              "staging": { "type": "string", "pattern": "^https://[a-z0-9.-]+$" }
+            }
+          }
         },
         "alcances": {
           "type": "array",

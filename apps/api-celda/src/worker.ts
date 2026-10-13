@@ -27,6 +27,7 @@ import {
 import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { avisarSiCambio } from './avisos.ts';
+import { PRODUCTO_MCP, rutasDelMcp, soloLoDelMcp } from './mcp.ts';
 import { type ServicioDelCore, sincronizarPlanes } from './planes.ts';
 import { pull } from './pull.ts';
 import { push } from './push.ts';
@@ -82,6 +83,10 @@ export interface Env {
    * programada: ninguna solicitud de un usuario lo llama (CA4).
    */
   CORE?: ServicioDelCore;
+  /** El MCP del cuaderno en este destino (HU-C9.7), de `productos.json › recursos_oauth`. */
+  RECURSO_MCP?: string;
+  /** El servidor de autorización de los agentes: el CORE de este destino. */
+  EMISOR_OAUTH?: string;
   /** Un binding D1 por shard, con el nombre del shard. */
   [shard: string]: unknown;
 }
@@ -124,6 +129,22 @@ function clavesDe(env: Env): ClavePublica[] {
 export function crearApp(opciones: { ahora?: () => number } = {}) {
   const ahora = opciones.ahora ?? (() => Date.now());
   const app = new Hono<{ Bindings: Env; Variables: Variables }>();
+
+  // HU-C9.7: en su dominio propio solo responde el MCP; la API del cuaderno no se publica ahí.
+  app.use('*', async (c, siguiente) => {
+    if (!soloLoDelMcp(c.env.RECURSO_MCP, c.req.url)) return c.notFound();
+    await siguiente();
+    return undefined;
+  });
+  rutasDelMcp(app as never, {
+    claves: (env) => clavesDe(env as Env),
+    shard: (env, nombre) =>
+      SHARD.test(nombre) ? ((env as Env)[nombre] as BaseD1 | undefined) : undefined,
+    apagado: async (env) =>
+      Boolean((env as Env).FLAGS) &&
+      (await lectorDe((env as Env).FLAGS as LectorKv).apagado(PRODUCTO_MCP)),
+    ahora,
+  });
 
   app.get('/api/salud', async (c) => {
     const faltan = [

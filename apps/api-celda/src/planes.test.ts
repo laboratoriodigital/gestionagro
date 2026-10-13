@@ -48,6 +48,7 @@ function coreFalso(respuesta: PlanDeOrganizacion[] | Error) {
       if (respuesta instanceof Error) throw respuesta;
       return respuesta;
     },
+    concesionVigente: async () => true,
   };
   return { core, pedidos };
 }

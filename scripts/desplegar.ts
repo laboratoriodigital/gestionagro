@@ -817,7 +817,12 @@ async function desplegarApiCelda(
       cred.token,
       cred.cuenta,
       ns.id,
-      clavesDeKillSwitch(cargarProductos()),
+      // Las de los contratos del agro y las del producto en productos.json (ks:agro-mcp, HU-C9.7).
+      [
+        ...clavesDeKillSwitch(cargarProductos()),
+        ...(cargarRegistroDeProductos().productos.find((p) => p.id === celda.producto)
+          ?.kill_switches ?? []),
+      ],
     );
     const claves = await clavesDelCore(fetch, staging ? config.core.url_staging : config.core.url);
     const productosDeBases = await productosDeLasBases(
@@ -827,7 +832,7 @@ async function desplegarApiCelda(
       config.core.d1,
     );
     escribirDespliegueCelda(
-      configDeLaCelda(wranglerDeLaCelda(celda, config.core.worker), dest, {
+      configDeLaCelda(wranglerDeLaCelda(celda, config.core), dest, {
         bases,
         flagsId: ns.id,
         clavesCore: claves,
