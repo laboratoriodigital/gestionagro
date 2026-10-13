@@ -62,7 +62,7 @@ Al 6 oct 2026, en la tarde, la Tienda tiene sus cuatro paquetes puros (sprint T0
 - **Regla:** lo que cae a un respaldo, a un valor de fábrica o a un «no pasa nada» tiene que gritar.
 - **En la Tienda 3.0:** un precio ilegible nunca vale 0; un campo obligatorio vacío nunca se llena con un valor de fábrica (en la 2.0, el celular de fábrica mandaba los pedidos de otra tienda a la primera); un hostname sin tienda responde «Esta dirección no tiene tienda», nunca otra tienda; un pago aprobado sin existencias sube arriba del panel; un horno que falla deja la versión anterior y dice por qué.
 - **Lo impedirá:** HU-T1.1, HU-T1.4, HU-T4.3, HU-T5.1, HU-T10.3, HU-T11.7.
-- **Entradas:** —
+- **Entradas:** tienda3 7.
 - **Lo impide hoy:** `@ed1/dinero` lanza ante un monto ilegible en vez de devolver 0, y `@ed1/tienda-schema` no trae ningún valor por defecto en contacto ni en la ficha legal; las dos pruebas se vieron en rojo con el defecto puesto (6 oct 2026).
 
 #### P2 · Dos copias del mismo procedimiento: una siempre se queda atrás
@@ -165,8 +165,9 @@ Al 6 oct 2026, en la tarde, la Tienda tiene sus cuatro paquetes puros (sprint T0
 #### P18 · Un documento no lanza una excepción cuando miente
 - **Regla:** lo que un documento afirma del código lo ata una aserción; el redundante se borra.
 - **En la Tienda 3.0:** TIENDA propone, ARQUITECTURA decide; los anexos de SQL los ata una prueba al archivo; los runbooks, una prueba que busca lo que nombran. Un documento que cita a otro dice lo que el otro dice.
-- **Lo impedirá:** HU-T2.1, HU-T17.5; la Definición de Terminado, punto 8.
-- **Entradas:** tienda3 1, 4, 5, 6.
+- **Lo impedirá:** HU-T17.5; la Definición de Terminado, punto 8.
+- **Entradas:** tienda3 1, 4, 5, 6, 7.
+- **Lo impide hoy:** los anexos A y B de TIENDA tienen que ser copias exactas de las migraciones, y una prueba lo exige (`tests/repo/shard-tienda.test.ts`, HU-T2.1).
 
 #### P19 · Un rojo que no significa nada enseña a no mirar los rojos
 - **Regla:** una guarda con falsos positivos o un intermitente se arregla o se quita.
@@ -288,6 +289,7 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 | Los días hábiles «en `packages/dinero` o en un `packages/calendario`» (TIENDA §8.6) | `@ed1/calendario`, neutro y compartido con el CORE (HU-T1.2) | El CORE necesita lo mismo para la Ley 1581 (HU-C7.7): una sola fuente (P2) |
 | Las fotos siempre en WebP (TIENDA §11.5) | WebP, o JPEG donde el navegador no produce WebP (HU-T8.3) | Safari devuelve PNG (bitácora tienda3 2) |
 | Hitos con fechas fijas desde el diseño (TIENDA §19) | Sprints con el calendario del CORE, que arrancan cuando se cumplen sus condiciones (HC1, Workers Paid y la zona `.app`) | El CORE construyó sus tres primeros sprints en tres días: lo que manda es el orden de las dependencias |
+| Workers Paid desde M0 (TIENDA §0, versión 0.2) | El plan gratuito hasta que un dato lo exija (decisión del dueño del 6 oct 2026) | Costo cero mientras se pueda. T1 se construyó así; lo que queda abierto, con su historia, en la bitácora tienda3 7 |
 
 ---
 
@@ -418,3 +420,31 @@ La regla: **cuando un documento da una fórmula y una promesa sobre ella, la pru
 La regla: **antes de tomar un contrato como condición de algo, se comprueba que es el del producto que usan los clientes reales.**
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Medio · P9, P18 · tienda-0.0.0 · 2026-10-06
+
+**7 · TIENDA diseña con Workers Paid desde M0, y el dueño decidió el plan gratuito mientras se pueda.**
+
+*Qué pasó.* El 13 oct 2026, al abrir T1 (la celda, las bases y las tres apps en staging), crucé el diseño con la decisión del dueño del 6 oct: «Workers Paid se utilizarán cuando sea estrictamente necesario y no haya otra salida para seguir avanzando o creciendo».
+
+*Síntoma literal.* TIENDA-3.0, versión 0.2: «todo en la cuenta de Cloudflare de siempre, con Workers Paid desde M0». El diagrama de §3.1 dice «con Workers Paid desde M0», §15.3 se titula «Crons (con Workers Paid)», §15.4 cuenta 30 días de Time Travel y §5.5 mide contra 50 millones de filas escritas al mes. El backlog ponía «Workers Paid» como condición de T1 (§0, §10).
+
+*Causa raíz.* El diseño y el plan se escribieron antes de la decisión, y la decisión se tomó en otra conversación (la del parqueadero, D-Q10). Ningún documento de la Tienda la recogía: el plan seguía esperando una tarea del dueño que ya no iba a llegar (P18). La zona `laboratorio-digital.app`, la otra condición de T1, ya estaba activa: el parqueadero salió a producción en ella.
+
+*Cómo se reprodujo.* Leyendo `celdas.json` (las tres celdas en `plan: free`), `productos.json` (el parqueadero con su presupuesto de filas por día) y los cron de `generar-wrangler.ts` (4 de los 5 de la cuenta en uso).
+
+*Arreglo.* T1 se construyó para el plan gratuito, sin esperar nada:
+- la celda `c1` en `plan: free`, con un presupuesto de 5.000 filas escritas al día mientras no haya tiendas (HU-T2.2);
+- staging en workers.dev, como el parqueadero: no pide permisos nuevos de la zona (HU-T2.3, HU-T2.4);
+- el bucket R2 y la cola se crean con su primer uso (HU-T4.1 y HU-T4.3), no antes (P1).
+
+Lo que el plan gratuito deja abierto, con la historia donde se decide con un dato:
+- **Cron:** queda uno libre de los 5 de la cuenta, y TIENDA §15.3 pide cinco frecuencias. Los apartados ya vencen de forma perezosa (anexo A); lo demás puede ir en un solo cron por hora que reparte el trabajo. Se decide con el primer cron (HU-T4.6 o HU-T9.x).
+- **CPU por invocación** (10 ms en el plan gratuito): el horno de una tienda puede no caber. Se mide en HU-T4.1; si no cabe, ese es el dato que justifica Workers Paid.
+- **Time Travel de 7 días, no 30:** acorta la restauración puntual; la copia semanal de ADR-30 la cubre. El borrado criptográfico de §14.2 queda en menos de 35 días, no más.
+- **Filas de D1 de toda la cuenta** (100.000 al día): el parqueadero tiene 70.000; la Tienda vive del resto hasta que el vigía (HU-T2.7) diga otra cosa.
+- **R2:** hay que activarlo en la cuenta y el token de despliegue hoy lo tiene prohibido (HU-C11.5). Es una decisión del dueño antes de T3.
+
+**Lo prueba:** `tests/repo/tienda-celda.test.ts` exige la celda en el plan gratuito y que producción no tome ningún hostname; `tests/repo/tienda-despliegue.test.ts`, que staging se prepare sin tocar producción. Control negativo: con `plan: paid` en c1, la primera prueba se ve en rojo.
+
+La regla: **una decisión de costo tomada en otro proyecto se copia el mismo día a los documentos de todos los productos que la cuenta comparte; si no, el plan espera algo que nunca va a llegar.**
+
+*Ficha:* tienda3 · *(compartido)* · 🟡 Medio · P18, P1 · tienda-0.0.0 · 2026-10-13

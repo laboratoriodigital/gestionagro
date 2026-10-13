@@ -13,7 +13,7 @@
 > **El SQL no es un borrador.** El modelo de datos de §5 está en `infrastructure/migraciones/tienda/` y `infrastructure/migraciones/tienda-control/`, donde lo aplica el despliegue, con su prueba: `tests/repo/shard-tienda.test.ts`. Son 82 comprobaciones, en verde el 5 oct 2026 con `node:sqlite` 3.50.4 y, desde HU-T2.1 (13 oct 2026), también en el D1 local de workerd. El texto completo está en los anexos A y B, y la prueba falla si dejan de ser copias de los archivos.
 >
 > **Versión 0.2 (5 oct 2026, tarde).** Integra el estudio de mercado definitivo (v1.3, complementos [C1]–[C13]) y cuatro decisiones del dueño:
-> - todo en la cuenta de Cloudflare de siempre, con Workers Paid desde M0;
+> - todo en la cuenta de Cloudflare de siempre, con Workers Paid desde M0 *(hoy: en el plan gratuito hasta que un dato exija Workers Paid, decisión del dueño del 6 oct 2026; lo que eso deja abierto está en la bitácora tienda3 7)*;
 > - las tiendas en `laboratorio-digital.app`, y sin la Public Suffix List (§4.1);
 > - planes de 1, 3, 6 y 12 meses, con los cuatro niveles hipotéticos del estudio (§1.4);
 > - el repositorio `plataforma`.
@@ -1304,6 +1304,8 @@ Lo incluido lo comparten el agro y el CORE. Hoy consumen una fracción, que el v
 | `ks:tienda-horno` | No se publica nada nuevo. Lo publicado sigue sirviéndose |
 
 ### 15.3 Crons (con Workers Paid)
+
+> *Hoy, en el plan gratuito, queda un cron libre de los 5 de la cuenta: cómo caben estas frecuencias es la decisión D-T10 del backlog (bitácora tienda3 7).*
 
 | Frecuencia | Qué hace |
 |---|---|

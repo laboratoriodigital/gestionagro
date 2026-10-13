@@ -20,7 +20,7 @@
 
 | Hito | Qué queda funcionando | Cierra | Fecha objetivo (plan base) | Necesita del CORE o del dueño | Versión |
 |---|---|---|---|---|---|
-| **M0 · Fundación** | Paquetes puros (`dinero`, `calendario`, `cifrado`, `tienda-schema`), migraciones en D1, la Tienda en el registro de productos, celda, KEK, tres apps en staging, dos comercios de prueba, presupuesto y kill switches | T2 | 23 dic 2026 (staging) | HC1 y HU-C4.3; Workers Paid y la zona `laboratorio-digital.app` (dueño) | — |
+| **M0 · Fundación** | Paquetes puros (`dinero`, `calendario`, `cifrado`, `tienda-schema`), migraciones en D1, la Tienda en el registro de productos, celda, KEK, tres apps en staging, dos comercios de prueba, presupuesto y kill switches | T2 | 23 dic 2026 (staging) | HC1 y HU-C4.3; los secretos de la Tienda (dueño). En el plan gratuito: la zona `.app` ya está activa y Workers Paid espera un dato que lo exija (bitácora tienda3 7) | — |
 | **M1 · La tienda pública** | Horno, compuerta, publicación en cola, despacho por `Host`, vitrina con su diseño, carrito, cotizar, pedido por WhatsApp con su forma de pago, acuse, seguimiento, solicitudes con radicado, textos legales, carga del operador. La vitrina en producción, sin tiendas | T7 | 19 mar 2027 | — | `tienda-v0.1.0` (T6) y `v0.2.0` |
 | **M2 · El panel** | Entrar, productos con variantes y fotos, inventario, pedidos, confirmar por WhatsApp, despacho, contraentrega con su recaudo y liquidación, envíos, cupones, ajustes, publicar y volver atrás, equipo, registro, exportar y el tablero | T11 | 14 may 2027 | HU-C4.3 y HU-C4.4 (C5), HU-C3.2 | `v0.3.0` |
 | **M3 · Cobrar** | Llaves de Bold cifradas, cobro de prueba guiado, apartados, botón y links de pago, avisos firmados, conciliación, caos, revisión de seguridad y restauración probada | T14 | 25 jun 2027 | — | `v0.4.0` |
@@ -1547,15 +1547,18 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | D-T7 | Las tiendas actuales antes del alta abierta: M6 → M4 (§20.2.5) | Sí | Planeación de T15 |
 | D-T8 | El correo de la Tienda (§20.2.6) | El adaptador del CORE (HU-C10.1) con el servicio de correo de Cloudflare, enviando desde `laboratorio-digital.app` | HU-T14.3 (T18, o antes si HU-T12.1 lo pide) |
 | D-T9 | Velocidad y carriles | 20 puntos por sprint en la Tienda; como mucho 3 historias suyas esperando validación y 6 entre los dos carriles (§3.6) | Planeación de T1 |
+| D-T10 | Los cron de la Tienda en el plan gratuito: queda 1 de los 5 de la cuenta y TIENDA §15.3 pide cinco frecuencias | Un solo cron por hora que reparte el trabajo por minuto y hora; lo que pueda ser perezoso, perezoso (como los apartados). Workers Paid solo si un dato lo exige | El primer cron (HU-T4.6) |
 
 **Tareas que solo puede hacer el dueño**, con la fecha que no frena el camino crítico:
 
 | Tarea | Antes de | Detalle |
 |---|---|---|
-| Activar Workers Paid y las alertas de facturación | T1 | Ya está en el plan del CORE (HU-C11.1, C4) |
-| Agregar la zona `laboratorio-digital.app` a la cuenta | T1 | PLATAFORMA §9.5; el asistente da los pasos exactos |
+| Activar Workers Paid y las alertas de facturación | Cuando un dato lo exija | Decisión del 6 oct 2026: el plan gratuito mientras se pueda. Los datos que lo decidirían, en la bitácora tienda3 7 |
+| Agregar la zona `laboratorio-digital.app` a la cuenta | Hecho | Activa: el parqueadero sale a producción en ella (13 oct 2026) |
+| T1 | 16 | 0 (en validación: HU-T2.1 a HU-T2.5) | Construido el 13 oct 2026, en el plan gratuito (bitácora tienda3 7), en el PR del sprint. El dueño pidió avanzar por sprint: con T1 hay 7 historias esperando validación, más que el tope de 3 (§3.6). HU-T2.5 espera que el dueño corra el script de los secretos; sin él, el paso de la Tienda del despliegue queda en rojo sin detener a los demás |
 | Contestar qué usa cada tienda 2.0 | T1 | HU-T12.1 |
-| Generar la KEK y guardar su copia fuera de línea | T1 | HU-T2.5, con el script y los pasos |
+| Generar la KEK y el secreto del despacho, y guardar la copia de la KEK | Validar T1 | `node scripts/tienda/generar-secretos.ts --ambiente staging` (HU-T2.5, `docs/runbooks/secretos-de-la-tienda.md`). Sin el secreto del despacho, el paso de la Tienda en el despliegue falla y lo dice |
+| Decidir R2: activarlo en la cuenta y permitirlo al token de despliegue | T3 | El horno guarda las tiendas en R2 (HU-T4.1), y HU-C11.5 hoy lo prohíbe al token. Bitácora tienda3 7 |
 | Los datos de Laboratorio Digital como encargado (nombre o razón social, identificación, domicilio, correo, teléfono) | T7 | HU-T7.2: términos y contrato de transmisión |
 | Escribir a Bold por un esquema para plataformas | T12 | PLATAFORMA §9.7 (soporte.online@bold.co) |
 | Llaves de pruebas de Bold para Ensayo Uno | T12 | HU-T11.2 |
@@ -1580,6 +1583,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | R9 | Choques con el carril del CORE en archivos compartidos (`productos.json`, `celdas.json`, `desplegar.yml`, `packages/pagos`, CHANGELOG) | Media | Medio | Copia de trabajo propia; `git merge-tree` contra la rama abierta del CORE antes de cada push |
 | R10 | Factura sorpresa con Workers Paid | Media | Medio | `usd_mes` de la Tienda y el vigía (HU-T2.7); el horno y el MCP se apagan antes que la venta |
 | R11 | Los correos caen en spam | Media | Medio | SPF, DKIM y DMARC, un remitente por tienda, tope diario y nada de promociones (HU-T14.3) |
+| R12 | El plan gratuito no alcanza: la CPU del horno (10 ms), los cron o las filas de D1 de toda la cuenta | Media | Medio | Medirlo con el horno (HU-T4.1) y con el vigía (HU-T2.7): el dato decide Workers Paid, como pidió el dueño (bitácora tienda3 7) |
 
 ---
 
