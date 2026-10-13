@@ -32,7 +32,7 @@ import { Reportes } from './Reportes.tsx';
 import { Respaldo } from './Respaldo.tsx';
 import { Salida } from './Salida.tsx';
 import { AbrirTurno, Turno } from './Turno.tsx';
-import { type Turno as TurnoAbierto, turnoAbierto } from './turno.ts';
+import { type Turno as TurnoAbierto, turnoAbierto, usaTurnos } from './turno.ts';
 
 export type Vista =
   | { readonly es: 'inicio' }
@@ -187,7 +187,7 @@ function EntradaOFalta({ db, ctx, ir }: Pick<Props, 'db' | 'ir'> & { ctx: Contex
     return <section class="tarjeta" aria-busy="true" />;
   const { faltan, campo } = queFalta(ajustes);
   // Ningún recibo fuera de un turno (HU-Q3.9 CA4): al abrirlo, sigue la entrada.
-  if (faltan.length === 0 && !turno) {
+  if (faltan.length === 0 && usaTurnos(ajustes.sede) && !turno) {
     return (
       <AbrirTurno
         db={db}

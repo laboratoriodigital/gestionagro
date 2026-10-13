@@ -22,6 +22,7 @@ import { crearApp } from '../../apps/parqueadero-api/src/worker.ts';
 import { conexionesDeLaCaja } from '../../scripts/lib/cabeceras-parqueadero.ts';
 import {
   abrirControlada,
+  abrirMenu,
   abrirTurno,
   llenarAjustes,
   SITIO,
@@ -158,7 +159,7 @@ test(`HU-Q7.5 CA3 · dos cajas sin red registran ${VEHICULOS} entradas y salidas
   test.setTimeout(90_000);
   // La caja A configura el parqueadero; la B baja los ajustes de la nube.
   const a = await abrirCaja(await browser.newContext(), 'A');
-  await a.page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+  await abrirMenu(a.page, 'Ajustes del parqueadero');
   await llenarAjustes(a.page, { ensayo: 'uno', imprimir: 'No' });
   // Lo guardado sale solo a los pocos segundos, sin que nadie toque nada.
   await expect.poll(() => contar('catalogo')).toBeGreaterThanOrEqual(2);

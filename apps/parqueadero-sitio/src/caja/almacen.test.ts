@@ -42,6 +42,7 @@ import {
   leerAjustes,
   motivoDelCero,
   NoSeAnula,
+  operadorActual,
   PinIncorrecto,
   RespaldoInvalido,
   reconstruirEstadias,
@@ -63,6 +64,7 @@ import { abrirBase, purgarContactos } from './datos.ts';
 import { crearControl } from './impresora.ts';
 import { enviarEventos, medir } from './medicion.ts';
 import { avisoDeLaSede, VERSION_DEL_AVISO } from './privacidad.ts';
+import { csvDelDia, leerReporte } from './reportes.ts';
 
 const sinMeta = <T extends object>(c: T) => {
   const {
@@ -111,6 +113,83 @@ const ENTRADA = {
   novedades: [],
   fotos: [],
 };
+
+describe('operación sin turnos', () => {
+  it('registra, cobra, anula y respalda sin aperturas ficticias', async () => {
+    const { db, ctx, avanzar } = caja();
+    await guardarSede(db, { ...sinMeta(SEDE_ENSAYO_UNO), usa_turnos: false }, null, ctx);
+    await guardarTarifa(db, sinMeta(TARIFA_CARRO), null, ctx);
+    await guardarPin(db, '2468');
+    const entrada = await registrarEntrada(db, ENTRADA, ctx);
+    await expect(registrarEntrada(db, ENTRADA, ctx)).rejects.toBeInstanceOf(EstadiaYaAbierta);
+    avanzar(60);
+    const q = await cotizar(db, entrada.id, ctx.reloj(), false);
+    const salida = await registrarSalida(
+      db,
+      entrada.id,
+      {
+        perdido: false,
+        medio: 'efectivo',
+        recibido: q.liquidacion.total,
+        motivoCortesia: null,
+      },
+      ctx,
+      q.salida,
+    );
+    expect(salida.consecutivo).toBe(2);
+    const delDia = await leerReporte(db, entrada.fecha_local);
+    expect(delDia.sinTurnos).toBe(true);
+    expect(delDia.diario).toMatchObject({
+      entradas: 1,
+      salidas: 1,
+      porMedio: { efectivo: q.liquidacion.total },
+    });
+    expect(csvDelDia(delDia.diario)).toContain('2026-10-06;1;1;0;');
+    await expect(
+      anular(
+        db,
+        salida.id,
+        { motivo: 'Error de cobro', pin: '0000', operador: await operadorActual(db) },
+        ctx,
+      ),
+    ).rejects.toBeInstanceOf(NoSeAnula);
+    // La anulación al día siguiente corrige también el total del día original.
+    avanzar(24 * 60);
+    await anular(
+      db,
+      salida.id,
+      { motivo: 'Error de cobro', pin: '2468', operador: await operadorActual(db) },
+      ctx,
+    );
+    expect((await leerReporte(db, entrada.fecha_local)).diario).toMatchObject({
+      entradas: 1,
+      salidas: 0,
+      porMedio: {},
+    });
+    expect(await db.estadias.count()).toBe(1);
+    expect(await turnoAbierto(db)).toBeNull();
+    expect(await db.registros.where('tipo').equals('turno_apertura').count()).toBe(0);
+    const respaldo = await armarRespaldo(db, ctx, '0.3.0');
+    const otra = caja();
+    await restaurar(otra.db, respaldo.json);
+    expect((await leerAjustes(otra.db)).sede?.usa_turnos).toBe(false);
+    expect(await otra.db.estadias.count()).toBe(1);
+    expect(
+      (await registrarEntrada(otra.db, { ...ENTRADA, placa: 'DEF456' }, otra.ctx)).consecutivo,
+    ).toBe(3);
+  });
+
+  it('no desactiva los turnos mientras hay efectivo pendiente de cierre', async () => {
+    const { db, ctx } = await configurada();
+    const actual = (await leerAjustes(db)).sede;
+    if (!actual) throw new Error('Falta la sede del ensayo');
+    await expect(
+      guardarSede(db, { ...sinMeta(actual), usa_turnos: false }, actual.id, ctx),
+    ).rejects.toThrow('Cierre el turno abierto');
+    expect((await leerAjustes(db)).sede?.usa_turnos).toBeUndefined();
+    expect(await turnoAbierto(db)).not.toBeNull();
+  });
+});
 
 describe('ajustes sin valores de fábrica (HU-Q3.2)', () => {
   it('una caja nueva dice todo lo que falta y no registra', async () => {

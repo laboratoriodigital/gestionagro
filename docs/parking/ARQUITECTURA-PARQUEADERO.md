@@ -3,6 +3,8 @@
 **Estado:** propuesta de arquitectura. ADR-31 está aceptada desde el 8 oct 2026 y ya figura en `../ARQUITECTURA.md` §1; las ADR-32 a ADR-40 esperan al dueño (§1).
 **Versión:** 0.1 · 6 oct 2026
 **Producto:** caja de parqueadero offline-first para parqueaderos pequeños y medianos de Colombia, con recibos impresos desde el navegador y enviados por WhatsApp. Nombre comercial por decidir; id de producto `parqueadero`.
+
+**Actualización del dueño, 12 oct 2026:** el cliente actual no usa turnos. La caja ofrece operación continua y mantiene los turnos como opción; la decisión, compatibilidad y flujos están en [UX-OPERACION-SIMPLE.md](UX-OPERACION-SIMPLE.md). Las referencias siguientes a apertura y cierre obligatorios aplican solo al modo Con turnos.
 **Depende de:** `../plataforma/PLATAFORMA.md` (el CORE con dimensión de producto, la cuenta, los dominios y los tokens v2) y `../ARQUITECTURA.md` (las piezas que ya corren: CORE v0, celdas, sincronización, QR firmado).
 **Documentos que manda este:** `../ecosistema/ECOSISTEMA-DIGITAL-ED1-v1.4.md` (ED1 §N), `../ARQUITECTURA.md` (ADR-1 a ADR-30), `../tienda/TIENDA-3.0.md` (lecciones de WhatsApp y del panel), `../BITACORA.md` y `../tienda/BITACORA-ecommerce.md` (P1–P21), y en esta carpeta el estudio de mercado (`ESTUDIO-MERCADO-PARQUEADEROS-ED1-2026-10.md`, «estudio §N»).
 

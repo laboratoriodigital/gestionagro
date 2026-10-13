@@ -9,6 +9,7 @@ import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import {
   abrirControlada,
+  abrirMenu,
   abrirTurno,
   bytesImpresos,
   CAJA,
@@ -46,9 +47,8 @@ test.describe('la caja del parqueadero', () => {
     await abrirControlada(page);
     await context.setOffline(true);
     await page.reload();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      'Antes del primer recibo, configure la impresora',
-    );
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Adentro');
+    await expect(page.getByTestId('sin-impresora')).toBeVisible();
     await context.setOffline(false);
   });
 
@@ -93,6 +93,7 @@ test.describe('la caja del parqueadero', () => {
     expect(papel).toContain('4) Sin tildes: El tenia mas anos');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
     await expect(page.getByTestId('senal-impresora')).toHaveText('Impresora conectada');
+    await page.getByTestId('mas-opciones').locator('summary').click();
     await expect(page.getByTestId('pagina-de-codigos')).toContainText('Tildes con WPC1252');
   });
 
@@ -102,6 +103,7 @@ test.describe('la caja del parqueadero', () => {
     await page.goto(CAJA);
     await configurarImpresora(page, 'Ninguna');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await page.getByTestId('mas-opciones').locator('summary').click();
     await expect(page.getByTestId('pagina-de-codigos')).toHaveText(
       'Imprime sin tildes: ninguna página de códigos se vio bien en la prueba.',
     );
@@ -141,7 +143,7 @@ test.describe('la caja del parqueadero', () => {
     page,
   }) => {
     await page.goto(CAJA);
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page, { valor: '250' });
     await expect(page.getByTestId('hay-errores')).toBeVisible();
     await expect(page.getByLabel('Pesos por minuto').first()).toBeFocused();
@@ -150,7 +152,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Guardar', exact: true }).click();
     await expect(page.getByTestId('estadias')).toBeVisible();
     // Después, los ajustes piden el PIN.
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await expect(page.getByTestId('pedir-pin')).toBeVisible();
   });
 
@@ -158,7 +160,7 @@ test.describe('la caja del parqueadero', () => {
     page,
   }) => {
     await page.goto(CAJA);
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     const carro = page.getByTestId('tarifa-carro');
     await carro.getByLabel('Tope por día', { exact: true }).fill('10');
     await llenarAjustes(page);
@@ -179,7 +181,7 @@ test.describe('la caja del parqueadero', () => {
     await page.goto(CAJA);
     await configurarImpresora(page, 'Línea 1');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     const texto = page.getByLabel('Texto de responsabilidad del recibo de entrada', {
       exact: true,
     });
@@ -204,7 +206,7 @@ test.describe('la caja del parqueadero', () => {
     expect(recibo).not.toContain('Ley 1480');
     // Vacío, vuelve la sugerencia (CA1).
     const entrarAAjustes = async () => {
-      await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+      await abrirMenu(page, 'Ajustes del parqueadero');
       await page.getByLabel('PIN de administrador').fill('2468');
       await page.getByRole('button', { name: 'Entrar' }).click();
     };
@@ -225,13 +227,13 @@ test.describe('la caja del parqueadero', () => {
     await page.goto(CAJA);
     await configurarImpresora(page, 'Línea 1');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page);
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await abrirTurno(page);
     const antes = (await bytesImpresos(page)).length;
     await teclearPlaca(page, 'ABC123');
-    await expect(page.getByTestId('placa')).toHaveText('ABC123');
+    await expect(page.getByTestId('placa')).toHaveValue('ABC123');
     await expect(page.getByRole('button', { name: 'Carro' })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -273,7 +275,7 @@ test.describe('la caja del parqueadero', () => {
     await page.goto(CAJA);
     await configurarImpresora(page, 'Línea 1');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page, { qr: true });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await abrirTurno(page);
@@ -305,7 +307,8 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('motivo-cero')).toHaveCount(0);
     await expect(page.getByTestId('total')).toHaveText('$41.400');
     const cobrar = page.getByRole('button', { name: /^Cobrar|Elija|Lo recibido|Escriba/ });
-    await expect(cobrar).toHaveText('Elija el medio de pago');
+    await expect(cobrar).toHaveText('Cobrar $41.400');
+    await expect(cobrar).toBeEnabled();
     await page.getByRole('button', { name: 'Cortesía' }).click();
     await expect(cobrar).toHaveText('Escriba el motivo de la cortesía');
     await expect(cobrar).toBeDisabled();
@@ -362,7 +365,7 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('tarjeta-turno')).toContainText('Abra el turno');
 
     // HU-Q8.5: el reporte del día dice lo mismo que el cierre impreso, y se descarga para Excel.
-    await page.getByRole('button', { name: 'Reportes' }).click();
+    await abrirMenu(page, 'Reportes');
     await expect(page.getByLabel('Día')).toHaveValue('2026-10-06');
     await expect(page.getByTestId('parcial')).toHaveCount(0);
     const totales = page.getByTestId('totales');
@@ -397,7 +400,7 @@ test.describe('la caja del parqueadero', () => {
     // Un nombre con HTML: la página lo muestra como texto, nunca lo ejecuta.
     const nombre = '<img src=x onerror=window.__xss=1>Uno';
     await page.goto(CAJA);
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page, { imprimir: 'No', nombre, aviso: true });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await abrirTurno(page);
@@ -447,16 +450,17 @@ test.describe('la caja del parqueadero', () => {
     await page.goto(CAJA);
     await configurarImpresora(page, 'Línea 1');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page, { imprimir: 'No' });
 
     // Sin el aviso aceptado, la caja no pide números (HU-Q4.4 CA2).
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await abrirTurno(page);
+    await page.getByTestId('datos-opcionales').locator('summary').click();
     await expect(page.getByTestId('sin-aviso')).toBeVisible();
     await expect(page.getByLabel('WhatsApp del conductor (opcional)')).toHaveCount(0);
     await page.getByRole('button', { name: 'Cancelar' }).click();
-    await page.getByRole('button', { name: 'Aviso de privacidad' }).click();
+    await abrirMenu(page, 'Aviso de privacidad');
     await expect(page.getByTestId('aviso-sin-aceptar')).toBeVisible();
     await expect(page.getByTestId('aviso')).toContainText('800123456-7');
     await expect(page.getByTestId('aviso')).toContainText('24 horas después de su salida');
@@ -465,7 +469,7 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByText('Enviado a la impresora')).toBeVisible();
     expect((await bytesImpresos(page)).slice(antes)).toContain('AVISO DE PRIVACIDAD');
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await page.getByLabel('PIN de administrador').fill('2468');
     await page.getByRole('button', { name: 'Entrar' }).click();
     // La caja dice su versión propia (HU-Q0.3 CA1).
@@ -533,7 +537,7 @@ test.describe('la caja del parqueadero', () => {
     page,
   }) => {
     await page.goto(CAJA);
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page);
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await abrirTurno(page);
@@ -552,7 +556,7 @@ test.describe('la caja del parqueadero', () => {
     page,
   }) => {
     await page.goto(CAJA);
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page, { imprimir: 'No' });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await abrirTurno(page);
@@ -593,9 +597,9 @@ test.describe('la caja del parqueadero', () => {
     const entrada = new Date('2026-10-06T23:05:00Z');
     await page.clock.setFixedTime(entrada);
     await page.goto(CAJA);
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page);
-    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await abrirMenu(page, 'Abonados');
     await page.getByRole('button', { name: 'Agregar abonado' }).click();
     const f = page.getByTestId('abonado');
     await f.getByLabel('Placa').fill('jkl456');
@@ -661,9 +665,9 @@ test.describe('la caja del parqueadero', () => {
     await page.goto(CAJA);
     await configurarImpresora(page, 'Línea 1');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page);
-    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await abrirMenu(page, 'Abonados');
     await page.getByRole('button', { name: 'Agregar abonado' }).click();
     const f = page.getByTestId('abonado');
     await f.getByLabel('Placa').fill('jkl456');
@@ -690,7 +694,7 @@ test.describe('la caja del parqueadero', () => {
     await abrirTurno(page);
     await page.getByRole('button', { name: 'Cancelar' }).click();
 
-    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await abrirMenu(page, 'Abonados');
     await page.getByTestId('abonado-fila').click();
     await page.getByRole('button', { name: 'Cobrar mensualidad' }).click();
     // Ya está cubierto hasta el 31 por el talonario de antes: sigue noviembre.
@@ -702,7 +706,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
 
     // El abonado nuevo, sin talonario: se cobra el primer periodo enseguida.
-    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await abrirMenu(page, 'Abonados');
     await page.getByRole('button', { name: 'Agregar abonado' }).click();
     await f.getByLabel('Placa').fill('mno78f');
     await f.getByRole('button', { name: 'Una quincena' }).click();
@@ -732,7 +736,7 @@ test.describe('la caja del parqueadero', () => {
     // HU-Q8.4 CA2: ocho días después, la lista y la entrada dicen que vence pronto.
     await page.clock.setFixedTime(new Date('2026-10-28T17:00:00Z'));
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
-    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await abrirMenu(page, 'Abonados');
     const pronto = page.getByTestId('vencen-pronto');
     await expect(pronto).toContainText('JKL456');
     await expect(pronto).toContainText('Vence el 31/10/2026');
@@ -747,7 +751,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Cancelar' }).click();
 
     // La renueva en datáfono: noviembre completo, y sale de la lista.
-    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await abrirMenu(page, 'Abonados');
     await pronto.getByTestId('abonado-fila').click();
     await expect(page.getByTestId('estado-abonado')).toHaveText(
       'Vigente · 20/10/2026 a 31/10/2026',
@@ -769,7 +773,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
 
     // Anulada con el PIN, la de noviembre deja de contar (P21: nada se borra).
-    await page.getByRole('button', { name: 'Abonados', exact: true }).click();
+    await abrirMenu(page, 'Abonados');
     await page.getByTestId('abonado-fila').filter({ hasText: 'JKL456' }).click();
     await page.getByRole('button', { name: 'Anular la mensualidad' }).click();
     const anulacion = page.getByTestId('anular');
@@ -799,7 +803,7 @@ test.describe('la caja del parqueadero', () => {
     await page.goto(CAJA);
     await configurarImpresora(page, 'Línea 1');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page, { imprimir: 'No' });
     await page.evaluate(() => (window as unknown as { __apagar: () => void }).__apagar());
     await expect(page.getByTestId('senal-impresora')).toHaveText(
@@ -839,7 +843,7 @@ test.describe('la caja del parqueadero', () => {
       Object.defineProperty(Navigator.prototype, 'canShare', { value: undefined });
     await page.addInitScript(sinCompartir);
     await page.goto(CAJA);
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page, { imprimir: 'No' });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await abrirTurno(page);
@@ -847,7 +851,7 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Registrar' }).click();
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
     await expect(page.getByTestId('senal-respaldo')).toHaveText('Respaldo sin hacer');
-    await page.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    await abrirMenu(page, 'Respaldo');
     const json = page.waitForEvent('download', (d) => d.suggestedFilename().endsWith('.json'));
     await page.getByRole('button', { name: 'Hacer el respaldo' }).click();
     const archivo = await (await json).path();
@@ -858,7 +862,7 @@ test.describe('la caja del parqueadero', () => {
     const otro = await browser.newContext();
     const nueva = await otro.newPage();
     await nueva.goto(CAJA);
-    await nueva.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    await abrirMenu(nueva, 'Respaldo');
     await nueva.getByLabel(/Restaurar un respaldo/).setInputFiles({
       name: 'malo.json',
       mimeType: 'application/json',
@@ -878,7 +882,7 @@ test.describe('la caja del parqueadero', () => {
     await page.goto(CAJA);
     await configurarImpresora(page, 'Línea 1');
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page, { imprimir: 'No' });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await abrirTurno(page);
@@ -909,7 +913,7 @@ test.describe('la caja del parqueadero', () => {
 
     // HU-Q8.6: lo que ahorra cuenta cada recibo por el camino que llegó; sin el costo de la sede
     // no hay pesos, y el botón lleva al campo.
-    await page.getByRole('button', { name: 'Lo que ahorra' }).click();
+    await abrirMenu(page, 'Lo que ahorra');
     const semana = page.getByTestId('periodo-del-ahorro').first();
     await expect(semana).toContainText('Esta semana');
     await expect(semana).toContainText('Recibos2');
@@ -931,12 +935,12 @@ test.describe('la caja del parqueadero', () => {
     await costo.fill('12');
     await page.getByRole('button', { name: 'Guardar', exact: true }).click();
     // Guardar los ajustes otra vez sin tocarlo lo conserva.
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await page.getByLabel('PIN de administrador').fill('2468');
     await page.getByRole('button', { name: 'Entrar' }).click();
     await expect(costo).toHaveValue('12');
     await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-    await page.getByRole('button', { name: 'Lo que ahorra' }).click();
+    await abrirMenu(page, 'Lo que ahorra');
     await expect(page.getByTestId('sin-costo')).toHaveCount(0);
     await expect(semana.getByTestId('ahorrado')).toHaveText('1 recibo (50 %) · $12');
   });
@@ -989,7 +993,7 @@ test.describe('la caja del parqueadero', () => {
     await abrirControlada(page);
     await context.setOffline(true);
     await page.reload();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page, { imprimir: 'No' });
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
     await abrirTurno(page);
@@ -1026,7 +1030,7 @@ for (const esquema of ['light', 'dark'] as const) {
     await configurarImpresora(page, 'Línea 1');
     await revisar();
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await expect(page.getByTestId('ajustes')).toBeVisible();
     await revisar();
     await llenarAjustes(page, { imprimir: 'No' });
@@ -1056,19 +1060,19 @@ for (const esquema of ['light', 'dark'] as const) {
     await revisar();
     await sinDesborde(page);
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
-    await page.getByRole('button', { name: 'Aviso de privacidad' }).click();
+    await abrirMenu(page, 'Aviso de privacidad');
     await expect(page.getByTestId('aviso')).toBeVisible();
     await revisar();
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
-    await page.getByRole('button', { name: 'Aviso de tarifas' }).click();
+    await abrirMenu(page, 'Aviso de tarifas');
     await expect(page.getByTestId('hoja-letrero')).toBeVisible();
     await revisar();
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
-    await page.getByRole('button', { name: 'Reportes' }).click();
+    await abrirMenu(page, 'Reportes');
     await expect(page.getByTestId('turno-del-reporte')).toBeVisible();
     await revisar();
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
-    await page.getByRole('button', { name: 'Lo que ahorra' }).click();
+    await abrirMenu(page, 'Lo que ahorra');
     await expect(page.getByTestId('sin-costo')).toBeVisible();
     await revisar();
   });
@@ -1129,7 +1133,7 @@ test.describe('capturas de los runbooks', () => {
     await page.getByRole('button', { name: 'Sí', exact: true }).click();
     await page.getByRole('button', { name: 'Guardar', exact: true }).click();
     await page.getByRole('button', { name: 'Volver a la caja' }).click();
-    await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
     await llenarAjustes(page, { imprimir: 'No' });
     await page.evaluate(() => (window as unknown as { __apagar: () => void }).__apagar());
     await page.getByRole('button', { name: 'Nueva entrada' }).click();
@@ -1149,7 +1153,7 @@ test.describe('capturas de los runbooks', () => {
     await page.getByTestId('cerrar-turno').getByLabel('$100.000', { exact: true }).fill('1');
     await captura('cerrar-turno');
     await page.getByRole('button', { name: 'Volver al inicio' }).last().click();
-    await page.getByRole('button', { name: 'Respaldo', exact: true }).click();
+    await abrirMenu(page, 'Respaldo');
     await captura('respaldo');
   });
 });

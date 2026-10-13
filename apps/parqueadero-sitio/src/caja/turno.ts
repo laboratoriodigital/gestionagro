@@ -2,7 +2,7 @@
  * El turno abierto (HU-Q3.9), leído de los registros: si se cierra la app, al volver la caja lo
  * retoma (CA3). Sin zod: el inicio lo pinta sin cargar los esquemas (bitácora parqueadero 14).
  */
-import type { DatosDeApertura, DatosDeCierre, Registro } from '@ed1/parqueadero-schema';
+import type { DatosDeApertura, DatosDeCierre, Registro, Sede } from '@ed1/parqueadero-schema';
 import type { BaseDeLaCaja } from './datos.ts';
 
 export interface Turno {
@@ -47,6 +47,17 @@ export async function exigirTurno(db: BaseDeLaCaja): Promise<Turno> {
   const t = await turnoAbierto(db);
   if (!t) throw new SinTurno();
   return t;
+}
+
+/** Las sedes anteriores conservan sus turnos; una caja nueva empieza sin ellos. Sin zod. */
+export function usaTurnos(sede: Pick<Sede, 'usa_turnos'> | null | undefined): boolean {
+  return sede ? sede.usa_turnos !== false : false;
+}
+
+/** Entradas, cobros y anulaciones no requieren apertura en una sede sin turnos. */
+export async function exigirOperacion(db: BaseDeLaCaja): Promise<void> {
+  const sede = await db.catalogos.where('entidad').equals('sede').first();
+  if (sede?.entidad !== 'sede' || usaTurnos(sede)) await exigirTurno(db);
 }
 
 /** `50.000`, `50000` o `$50.000` → 50000; vacío o ilegible → null. */

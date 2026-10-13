@@ -4,6 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- Operación simple para el cliente que trabaja sin turnos: una sede nueva empieza en «Sin turnos» y una existente puede elegirlo en Ajustes después de cerrar el turno abierto. Se registra, cobra y anula con los mismos controles, sin aperturas ficticias; Reportes resume el día y permite descargar CSV. Las sedes antiguas conservan sus turnos. El inicio prioriza entrada, escaneo y vehículos adentro; la administración queda en «Más opciones». La placa usa el teclado del teléfono o PC, foto y WhatsApp son opcionales, y el efectivo exacto se cobra dejando «Recibido» vacío, como explica el campo.
+
+### Corregido
+- Al cambiar de pantalla, la caja vuelve arriba para que los botones principales queden a la vista. Si el navegador bloquea compartir el respaldo, se descarga el archivo; cancelar el diálogo conserva la cancelación (bitácora parqueadero 38).
+
 ### Agregado
 - El cobro del plan por periodo (HU-Q7.10), en staging: «Cuenta y nube» dice el plan del parqueadero y hasta cuándo sigue la nube, y el propietario paga 1, 3, 6 o 12 meses con Bold; al volver, el CORE confirma el pago y la caja sigue sincronizando con el plan nuevo. La cabecera avisa cuando el plan vence pronto o está en los días de gracia. Con el plan vencido o el gratuito, la nube queda en pausa y lo dice; la caja sigue registrando, cobrando e imprimiendo. La política de la cuenta pasa a la versión 3: Bold como aliado para pagar.
 

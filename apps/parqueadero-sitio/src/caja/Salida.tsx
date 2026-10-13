@@ -47,7 +47,7 @@ interface Props {
 export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
   const [perdido, setPerdido] = useState(false);
   const [q, setQ] = useState<Cotizacion | null>(null);
-  const [medio, setMedio] = useState<Medio | null>(null);
+  const [medio, setMedio] = useState<Medio | null>('efectivo');
   const [recibido, setRecibido] = useState('');
   const [motivo, setMotivo] = useState('');
   const [aviso, setAviso] = useState('');
@@ -88,7 +88,7 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
   }
 
   const { estadia, liquidacion: liq, tarifa } = q;
-  const efectivo = pesosEscritos(recibido);
+  const efectivo = recibido.trim() ? pesosEscritos(recibido) : liq.total;
   // El abono lo cubre todo: no hay medio que elegir (HU-Q3.11 CA2).
   const cubierto = cubiertoPorElAbono(liq);
   const delAbono = avisoDelAbono(q);
@@ -221,9 +221,14 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
               id="recibido"
               inputMode="numeric"
               autoComplete="off"
+              placeholder={String(liq.total)}
+              aria-describedby="recibido-ayuda"
               value={recibido}
               onInput={(e) => setRecibido(e.currentTarget.value)}
             />
+            <p class="ayuda" id="recibido-ayuda">
+              Si paga exacto, deje vacío. Escriba lo recibido para calcular el cambio.
+            </p>
             {efectivo !== null && efectivo >= liq.total && (
               <p data-prueba="cambio">Cambio: {formatearPesos(efectivo - liq.total)}</p>
             )}
@@ -248,7 +253,9 @@ export function Salida({ db, ctx, estadiaId, alCobrar, alVolver }: Props) {
           </p>
         )}
         <button type="submit" class="boton boton-principal" disabled={Boolean(falta) || cobrando}>
-          {falta || (cubierto ? 'Dar salida al abonado' : `Cobrar ${formatearPesos(liq.total)}`)}
+          {cobrando
+            ? 'Registrando cobro…'
+            : falta || (cubierto ? 'Dar salida al abonado' : `Cobrar ${formatearPesos(liq.total)}`)}
         </button>
         <button type="button" class="boton boton-secundario" onClick={alVolver}>
           Volver al inicio

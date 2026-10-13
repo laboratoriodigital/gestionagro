@@ -11,6 +11,7 @@ import { crearApp } from '../../apps/parqueadero-api/src/worker.ts';
 import { conexionesDeLaCaja, coreDeLaCaja } from '../../scripts/lib/cabeceras-parqueadero.ts';
 import {
   abrirControlada,
+  abrirMenu,
   abrirTurno,
   CAJA,
   llenarAjustes,
@@ -106,7 +107,7 @@ test('HU-Q7.6 · la caja del piloto entra, sube su parqueadero y lo ve verificad
 
   // La caja de v0.2.x: ajustes, un turno y una entrada, todo en el teléfono.
   await abrirControlada(page);
-  await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+  await abrirMenu(page, 'Ajustes del parqueadero');
   await llenarAjustes(page, { ensayo: 'uno', imprimir: 'No' });
   await page.getByRole('button', { name: 'Nueva entrada' }).click();
   await abrirTurno(page);
@@ -116,7 +117,7 @@ test('HU-Q7.6 · la caja del piloto entra, sube su parqueadero y lo ve verificad
   await page.getByRole('button', { name: 'Volver al inicio' }).click();
 
   // HU-Q7.11 CA1: antes de entrar, qué sube y qué no; sin aceptar los términos no se entra.
-  await page.getByRole('button', { name: 'Cuenta y nube' }).click();
+  await abrirMenu(page, 'Cuenta y nube');
   await expect(page.getByTestId('terminos')).toContainText('número de celular del conductor');
   const entrar = page.getByRole('button', { name: 'Entrar con Google' });
   await expect(entrar).toBeDisabled();
@@ -144,7 +145,7 @@ test('HU-Q7.6 · la caja del piloto entra, sube su parqueadero y lo ve verificad
 
   // HU-Q7.11 CA2: con cuenta, el aviso ya no dice que los datos no salen del teléfono.
   await page.getByRole('button', { name: 'Volver al inicio' }).click();
-  await page.getByRole('button', { name: 'Aviso de privacidad' }).click();
+  await abrirMenu(page, 'Aviso de privacidad');
   await expect(page.getByTestId('aviso')).toContainText('también en la nube');
   await expect(page.getByTestId('aviso')).not.toContainText('no salen de este teléfono');
 });
@@ -199,9 +200,9 @@ test('HU-Q7.10 · con el plan gratuito la nube espera; pagado en Bold, la caja s
   await celdaEnLaRuta(context);
 
   await abrirControlada(page);
-  await page.getByRole('button', { name: 'Ajustes del parqueadero' }).click();
+  await abrirMenu(page, 'Ajustes del parqueadero');
   await llenarAjustes(page, { ensayo: 'uno', imprimir: 'No' });
-  await page.getByRole('button', { name: 'Cuenta y nube' }).click();
+  await abrirMenu(page, 'Cuenta y nube');
   await page.getByRole('checkbox', { name: /Acepto los términos/ }).check();
   await page.getByRole('button', { name: 'Entrar con Google' }).click();
   await expect(page.getByTestId('quien')).toContainText('Dueña de Ensayo');

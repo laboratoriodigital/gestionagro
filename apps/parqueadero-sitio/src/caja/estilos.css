@@ -236,6 +236,64 @@ h2 {
   letter-spacing: 0;
 }
 
+/* Operación primero; administración y datos opcionales se abren cuando hacen falta. */
+.titulo-operacion {
+  display: flex;
+  align-items: baseline;
+  gap: var(--espacio-2);
+  font-size: 1.125rem;
+}
+
+.herramientas > summary,
+.opcional > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+  min-block-size: var(--toque);
+  color: var(--acento);
+  cursor: pointer;
+  list-style: none;
+  font-weight: var(--peso-fuerte);
+}
+
+.herramientas > summary::after,
+.opcional > summary::after {
+  content: "";
+  inline-size: 8px;
+  block-size: 8px;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  transform: rotate(45deg);
+  transition: transform var(--tiempo-corto) var(--curva-salida);
+}
+
+.herramientas[open] > summary::after,
+.opcional[open] > summary::after {
+  transform: rotate(225deg);
+}
+
+.opcional:where([open]) > summary {
+  margin-block-end: var(--espacio-2);
+}
+
+.herramientas > summary:hover,
+.opcional > summary:hover {
+  background: var(--tinte-acento);
+}
+
+.herramientas > summary::-webkit-details-marker,
+.opcional > summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .herramientas > summary::after,
+  .opcional > summary::after {
+    transition: none;
+  }
+}
+
 p {
   margin: 0;
 }
@@ -332,6 +390,13 @@ p {
 .tecla:focus-visible {
   outline: 3px solid var(--foco);
   outline-offset: 2px;
+}
+
+.herramientas > summary:focus-visible,
+.opcional > summary:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 4px;
+  border-radius: var(--radio);
 }
 
 fieldset {
@@ -594,6 +659,25 @@ legend {
   letter-spacing: 0.15em;
   line-height: 1;
   text-align: center;
+}
+
+.campo input.placa {
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 80px;
+  border: 3px solid #0b0b0a;
+  background: #ffd400;
+  color: #0b0b0a;
+  font-family: var(--fuente-mono);
+  font-size: 2rem;
+  font-weight: var(--peso-fuerte);
+  letter-spacing: 0.15em;
+  text-align: center;
+}
+
+.campo input.placa::placeholder {
+  color: #5a4b00;
+  opacity: 1;
 }
 
 .teclado {

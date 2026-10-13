@@ -57,7 +57,14 @@ import { diaLocalBogota, horaBogota } from './fecha.ts';
 import { eventoDeLaEntrega, medir } from './medicion.ts';
 import { avisoAceptado, VERSION_DEL_AVISO } from './privacidad.ts';
 import { topeDeLaCiudad } from './topes.ts';
-import { exigirTurno, SinTurno, type Turno, turnoAbierto } from './turno.ts';
+import {
+  exigirOperacion,
+  exigirTurno,
+  SinTurno,
+  type Turno,
+  turnoAbierto,
+  usaTurnos,
+} from './turno.ts';
 
 export { SinTurno, type Turno, turnoAbierto };
 
@@ -153,8 +160,17 @@ async function guardarCatalogo<T extends Catalogo>(
   return nuevo;
 }
 
-export const guardarSede = (db: BaseDeLaCaja, d: SinMeta<Sede>, id: string | null, ctx: Contexto) =>
-  guardarCatalogo(db, 'sede', sede, d, id, ctx);
+export async function guardarSede(
+  db: BaseDeLaCaja,
+  d: SinMeta<Sede>,
+  id: string | null,
+  ctx: Contexto,
+) {
+  if (d.usa_turnos === false && (await turnoAbierto(db))) {
+    throw new RangeError('Cierre el turno abierto antes de cambiar a una operación sin turnos.');
+  }
+  return guardarCatalogo(db, 'sede', sede, d, id, ctx);
+}
 
 export const guardarAjusteRecibo = (
   db: BaseDeLaCaja,
@@ -307,7 +323,7 @@ export async function cobrarMensualidad(
   d: DatosDeLaMensualidad,
   ctx: Contexto,
 ): Promise<Registro> {
-  await exigirTurno(db);
+  await exigirOperacion(db);
   const a = (await leerAbonados(db)).find((x) => x.id === abonadoId);
   if (!a) throw new NoSeCobra('Ese abonado no está en esta caja');
   if (!a.activo) throw new NoSeCobra(`${a.placa} está inactivo: actívelo antes de cobrar`);
@@ -386,7 +402,7 @@ export async function registrarEntrada(
   const faltan = faltaParaRegistrar(ajustes, [d.vehiculo]);
   const tarifaVigente = ajustes.tarifas.find((t) => t.vehiculo === d.vehiculo);
   if (faltan.length > 0 || !tarifaVigente) throw new ReciboIncompleto(faltan);
-  await exigirTurno(db);
+  await exigirOperacion(db);
   const numero = d.whatsapp ? numeroAutorizado(ajustes.sede, d.whatsapp) : null;
   const abonados = await leerAbonados(db);
 
@@ -782,7 +798,7 @@ export async function registrarSalida(
   ctx: Contexto,
   instante?: number,
 ): Promise<Registro> {
-  await exigirTurno(db);
+  await exigirOperacion(db);
   const { id: dispositivoId, serie } = await dispositivo(db, ctx);
   const reloj = ctx.reloj();
   const ahora = instante ?? reloj;
@@ -1100,6 +1116,11 @@ export class NoSeAnula extends Error {
 
 /** Quién opera la caja ahora: el del turno abierto. */
 export async function operadorActual(db: BaseDeLaCaja): Promise<string> {
+  const { sede: laSede } = await leerAjustes(db);
+  if (!usaTurnos(laSede)) {
+    const propia = await db.meta.get('dispositivo');
+    return `Caja ${propia?.clave === 'dispositivo' ? propia.serie : 'local'}`;
+  }
   return (await exigirTurno(db)).operador;
 }
 
@@ -1120,7 +1141,7 @@ export async function anular(
   d: { readonly motivo: string; readonly pin: string; readonly operador: string },
   ctx: Contexto,
 ): Promise<Registro> {
-  await exigirTurno(db);
+  await exigirOperacion(db);
   if (!d.motivo.trim()) throw new NoSeAnula('Falta el motivo de la anulación');
   if (!(await verificarPin(db, d.pin))) throw new NoSeAnula('Ese no es el PIN de administrador');
   const { id: dispositivoId } = await dispositivo(db, ctx);

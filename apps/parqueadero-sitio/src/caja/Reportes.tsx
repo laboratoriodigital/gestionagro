@@ -16,7 +16,7 @@ import { useState } from 'preact/hooks';
 import type { BaseDeLaCaja } from './datos.ts';
 import { diaLocalBogota, horaBogota } from './fecha.ts';
 import { useConsulta } from './ganchos.ts';
-import { type Lectura, leerReporte } from './reportes.ts';
+import { csvDelDia, type Lectura, leerReporte } from './reportes.ts';
 
 interface Props {
   readonly db: BaseDeLaCaja;
@@ -52,7 +52,7 @@ export function Reportes({ db, reloj, alVolver }: Props) {
   const [fecha, setFecha] = useState(hoy);
   const lectura = useConsulta<Lectura | null>(() => leerReporte(db, fecha), null, [fecha]);
   if (!lectura) return <section class="tarjeta" aria-busy="true" />;
-  const { reporte: r, soloEstaCaja } = lectura;
+  const { reporte: r, soloEstaCaja, sinTurnos, diario } = lectura;
   const medios = MEDIOS_DE_PAGO.filter((m) => r.porMedio[m] !== undefined);
   const cajeros = Object.entries(r.porCajero);
 
@@ -70,8 +70,49 @@ export function Reportes({ db, reloj, alVolver }: Props) {
             onInput={(e) => e.currentTarget.value && setFecha(e.currentTarget.value)}
           />
         </div>
-        {soloEstaCaja && <p class="ayuda">Como cajero, ve los turnos de esta caja.</p>}
-        {r.turnos.length === 0 ? (
+        {soloEstaCaja && <p class="ayuda">Como cajero, ve los registros de esta caja.</p>}
+        {sinTurnos ? (
+          <>
+            <p class="ayuda">Lo registrado durante este día. Se actualiza con cada cobro.</p>
+            {r.enCuarentena > 0 && (
+              <p class="error" role="status" data-prueba="parcial">
+                Totales parciales: hay registros en cuarentena en la nube.
+              </p>
+            )}
+            <dl class="filas" data-prueba="totales">
+              <div>
+                <dt>Entradas</dt>
+                <dd>{diario.entradas}</dd>
+              </div>
+              <div>
+                <dt>Salidas</dt>
+                <dd>{diario.salidas}</dd>
+              </div>
+              {diario.mensualidades > 0 && (
+                <div>
+                  <dt>Mensualidades</dt>
+                  <dd>{diario.mensualidades}</dd>
+                </div>
+              )}
+              {MEDIOS_DE_PAGO.filter((m) => diario.porMedio[m] !== undefined).map((m) => (
+                <div key={m}>
+                  <dt>{medio(m)}</dt>
+                  <dd class="cifra">{$(diario.porMedio[m] ?? 0)}</dd>
+                </div>
+              ))}
+            </dl>
+            {diario.entradas === 0 && diario.salidas === 0 && diario.mensualidades === 0 && (
+              <p class="ayuda">No hay entradas ni cobros para este día.</p>
+            )}
+            <button
+              type="button"
+              class="boton"
+              onClick={() => descargar(`reporte-${fecha}.csv`, csvDelDia(diario))}
+            >
+              Descargar para Excel
+            </button>
+          </>
+        ) : r.turnos.length === 0 ? (
           <p data-prueba="sin-turnos">Ese día no se abrió ningún turno.</p>
         ) : (
           <>
@@ -111,73 +152,74 @@ export function Reportes({ db, reloj, alVolver }: Props) {
         )}
       </section>
 
-      {r.turnos.map((t) => {
-        const s = t.resumen;
-        return (
-          <section
-            class="seccion"
-            key={`${t.dispositivo}-${s.numero}`}
-            data-prueba="turno-del-reporte"
-            aria-label={`Caja ${t.caja ?? 'sin serie'}, turno ${s.numero}`}
-          >
-            <h2 class="etiqueta">
-              Caja {t.caja ?? '—'} · <span class="exacto">{s.numero}</span> · {s.operador}
-            </h2>
-            <p>
-              {t.cierre
-                ? `De ${horaBogota(s.abrio)} a ${horaBogota(t.cierre.cerro)}`
-                : `Abierto desde las ${horaBogota(s.abrio)}`}
-            </p>
-            <dl class="filas">
-              <div>
-                <dt>Entradas y salidas</dt>
-                <dd>
-                  {s.entradas} y {s.salidas}
-                </dd>
-              </div>
-              {s.mensualidades > 0 && (
+      {!sinTurnos &&
+        r.turnos.map((t) => {
+          const s = t.resumen;
+          return (
+            <section
+              class="seccion"
+              key={`${t.dispositivo}-${s.numero}`}
+              data-prueba="turno-del-reporte"
+              aria-label={`Caja ${t.caja ?? 'sin serie'}, turno ${s.numero}`}
+            >
+              <h2 class="etiqueta">
+                Caja {t.caja ?? '—'} · <span class="exacto">{s.numero}</span> · {s.operador}
+              </h2>
+              <p>
+                {t.cierre
+                  ? `De ${horaBogota(s.abrio)} a ${horaBogota(t.cierre.cerro)}`
+                  : `Abierto desde las ${horaBogota(s.abrio)}`}
+              </p>
+              <dl class="filas">
                 <div>
-                  <dt>Mensualidades</dt>
-                  <dd>{s.mensualidades}</dd>
+                  <dt>Entradas y salidas</dt>
+                  <dd>
+                    {s.entradas} y {s.salidas}
+                  </dd>
                 </div>
-              )}
-              {MEDIOS_DE_PAGO.filter((m) => s.porMedio[m] !== undefined).map((m) => (
-                <div key={m}>
-                  <dt>{medio(m)}</dt>
-                  <dd class="cifra">{$(s.porMedio[m] ?? 0)}</dd>
+                {s.mensualidades > 0 && (
+                  <div>
+                    <dt>Mensualidades</dt>
+                    <dd>{s.mensualidades}</dd>
+                  </div>
+                )}
+                {MEDIOS_DE_PAGO.filter((m) => s.porMedio[m] !== undefined).map((m) => (
+                  <div key={m}>
+                    <dt>{medio(m)}</dt>
+                    <dd class="cifra">{$(s.porMedio[m] ?? 0)}</dd>
+                  </div>
+                ))}
+                <div>
+                  <dt>Efectivo esperado</dt>
+                  <dd class="cifra">{$(s.esperado)}</dd>
                 </div>
-              ))}
-              <div>
-                <dt>Efectivo esperado</dt>
-                <dd class="cifra">{$(s.esperado)}</dd>
-              </div>
-              {t.cierre && (
-                <>
-                  <div>
-                    <dt>Contado</dt>
-                    <dd class="cifra">{$(t.cierre.contado)}</dd>
-                  </div>
-                  <div>
-                    <dt>Diferencia</dt>
-                    <dd class="cifra" data-prueba="diferencia-del-turno">
-                      {$(t.cierre.diferencia)}
-                      {t.cierre.motivo ? `: ${t.cierre.motivo}` : ''}
-                    </dd>
-                  </div>
-                </>
-              )}
-              <div>
-                <dt>Anulaciones y copias</dt>
-                <dd>
-                  {s.anulaciones} y {s.copias}
-                </dd>
-              </div>
-            </dl>
-          </section>
-        );
-      })}
+                {t.cierre && (
+                  <>
+                    <div>
+                      <dt>Contado</dt>
+                      <dd class="cifra">{$(t.cierre.contado)}</dd>
+                    </div>
+                    <div>
+                      <dt>Diferencia</dt>
+                      <dd class="cifra" data-prueba="diferencia-del-turno">
+                        {$(t.cierre.diferencia)}
+                        {t.cierre.motivo ? `: ${t.cierre.motivo}` : ''}
+                      </dd>
+                    </div>
+                  </>
+                )}
+                <div>
+                  <dt>Anulaciones y copias</dt>
+                  <dd>
+                    {s.anulaciones} y {s.copias}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          );
+        })}
 
-      {cajeros.length > 0 && (
+      {!sinTurnos && cajeros.length > 0 && (
         <section class="seccion" aria-labelledby="por-cajero" data-prueba="por-cajero">
           <h2 class="etiqueta" id="por-cajero">
             Por cajero

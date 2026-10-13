@@ -16,6 +16,9 @@ import { capacidadesDelNavegador, proponerCamino } from './senales.ts';
 const raiz = document.getElementById('caja');
 if (!raiz) throw new Error('Falta el elemento #caja en index.html');
 
+// Cada pantalla empieza arriba: recargar tras un formulario largo no esconde las acciones.
+history.scrollRestoration = 'manual';
+
 const reloj = () => Date.now();
 const db = abrirBase();
 const capacidades = capacidadesDelNavegador(navigator);
