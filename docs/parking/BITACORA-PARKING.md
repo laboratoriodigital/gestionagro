@@ -1076,3 +1076,21 @@ La regla: **una e2e intermitente no se corre otra vez a ciegas; se guarda lo que
 La regla: **una capacidad disponible puede fallar al usarla; el respaldo necesita una forma de entrega comprobada.**
 
 *Ficha:* parqueadero · *(mío)* · 🟡 Medio · P5, P15 · sin publicar · 2026-10-12
+
+**39 · En la puesta en marcha, escanear el recibo del cliente costaba: había que «luchar un poco» con la cámara.**
+
+*Qué pasó.* El 13 oct 2026, antes de entrar en operación, el dueño probó el escáner con los recibos impresos en la PT-210 del cliente.
+
+*Síntoma literal.* «Toca luchar un poco para escanear el recibo del cliente» (el dueño). Sin error en pantalla: la cámara tardaba en leer o había que mover el papel varias veces.
+
+*Causa raíz.* Tres cosas mías que se suman (*Inferencia*, sin medir con el teléfono del cliente): el QR del papel medía unos 25 a 28 mm (módulos de 5 puntos, 0,6 mm); el escáner pedía 1280×720 y le pasaba al detector la imagen entera, donde un QR de 3 cm a un palmo ocupa poco; y miraba cada 250 ms, sin pedir enfoque continuo. Nada guiaba dónde poner el papel.
+
+*Cómo se reprodujo.* No se reprodujo en una prueba: el escáner no tiene e2e con cámara. Se midió lo que se imprime (`codificar`) y lo que recorta el escáner (`recorteCentral`).
+
+*Arreglo.* El QR del papel pasa a módulos de 7 a 8 puntos (unos 36 mm; nativo `size: 8`, el máximo de la PT-210). El escáner pide 1920×1080 y enfoque continuo si la cámara lo tiene, mira cada 120 ms, alterna la imagen entera y el cuadro del centro (el 60 % que la pantalla marca con un cuadro guía), y jsQR prueba también invertido. Si el teléfono tiene linterna, aparece «Prender la linterna». Sale en la `0.4.1`.
+
+**Lo prueban** el cuadro guía y su recorte (`lector.test.ts`: el CSS y el recorte dicen el mismo 60 %) y los bytes de referencia del recibo (`index.test.ts` de `@ed1/impresion`), que cambiaron con el tamaño del QR. Falta la prueba en el teléfono del cliente: va a la matriz.
+
+La regla: **lo que el cajero escanea cien veces al día se prueba con el papel y el teléfono de verdad antes de entregar; un QR que «se lee» en el escritorio no es uno que se lee en la caja.**
+
+*Ficha:* parqueadero · *(mío y del terreno)* · 🟡 Medio · P16, P20 · parqueadero-0.4.1 · 2026-10-13

@@ -20,3 +20,20 @@ export async function detectorQueLeeQr(
   const formatos = await Detector.getSupportedFormats().catch(() => [] as string[]);
   return formatos.includes('qr_code') ? Detector : null;
 }
+
+/** Qué parte del lado menor de la imagen ocupa el cuadro guía de la pantalla (`.guia`, 60 %). */
+export const FRACCION_DEL_CUADRO = 0.6;
+
+/**
+ * El cuadrado central de la imagen de la cámara, donde la caja pide poner el QR. La pantalla
+ * muestra el cuadrado central del video (`object-fit: cover`) y el cuadro guía es su 60 %: leer
+ * solo esa parte hace que un QR de papel pequeño pese más en la imagen que se le da al detector.
+ */
+export function recorteCentral(
+  ancho: number,
+  alto: number,
+  fraccion = FRACCION_DEL_CUADRO,
+): { x: number; y: number; lado: number } {
+  const lado = Math.round(Math.min(ancho, alto) * fraccion);
+  return { x: Math.round((ancho - lado) / 2), y: Math.round((alto - lado) / 2), lado };
+}

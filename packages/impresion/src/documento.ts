@@ -93,13 +93,14 @@ Object.defineProperty(ImageDataMinima, 'name', { value: 'ImageData' });
 
 /**
  * El QR como imagen en blanco y negro, para la impresora que no entiende `GS ( k`. Ancho múltiplo
- * de 8 (cada byte son 8 puntos) y unos 28 mm (§6.2), con la zona en blanco de 4 módulos.
+ * de 8 (cada byte son 8 puntos) y unos 36 mm (§6.2), con la zona en blanco de 4 módulos. Eran
+ * 28 mm, y en la puesta en marcha costaba leerlo con la cámara (bitácora parqueadero 39).
  */
 async function qrComoImagen(valor: string): Promise<{ width: number; height: number }> {
   const { generate, correction } = await import('lean-qr/nano');
   const qr = generate(valor, { minCorrectionLevel: correction.L });
   const modulos = qr.size + 8;
-  const escala = Math.max(2, Math.min(6, Math.floor(224 / modulos)));
+  const escala = Math.max(2, Math.min(8, Math.floor(288 / modulos)));
   const lado = Math.ceil((modulos * escala) / 8) * 8;
   const datos = new Uint8ClampedArray(lado * lado * 4).fill(255);
   for (let y = 0; y < lado; y++) {
@@ -163,7 +164,8 @@ export async function codificar(
       case 'qr': {
         e.align('center');
         if ((b.modo ?? ajustes.qr) === 'nativo') {
-          e.qrcode(b.valor, { model: 2, size: 6, errorlevel: 'l' });
+          // Módulos de 8 puntos (1 mm): el más grande que acepta la PT-210 (bitácora 39).
+          e.qrcode(b.valor, { model: 2, size: 8, errorlevel: 'l' });
         } else {
           const imagen = await qrComoImagen(b.valor);
           e.image(

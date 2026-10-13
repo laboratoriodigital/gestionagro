@@ -853,11 +853,28 @@ legend {
 }
 
 .camara {
+  display: block;
   inline-size: 100%;
   aspect-ratio: 1;
   border-radius: var(--radio);
   background: #000;
   object-fit: cover;
+}
+
+/* El cuadro guía: el 60 % central, el mismo que lee el escáner (`recorteCentral`, bitácora 39). */
+.visor {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radio);
+}
+
+.guia {
+  position: absolute;
+  inset: 20%;
+  border: 3px solid #fff;
+  border-radius: var(--radio);
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 35%);
+  pointer-events: none;
 }
 
 .qr-pago {
