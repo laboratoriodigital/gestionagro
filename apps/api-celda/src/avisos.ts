@@ -11,6 +11,7 @@
  *   hay otra forma. La llamada va solo de la celda a Telegram por HTTPS y la URL nunca se escribe
  *   en el log (solo el estado HTTP). ARQUITECTURA §7.5.
  */
+import { enviarTelegram, type Telegram } from '@ed1/telegram';
 import { CUOTAS_GRATUITAS, type Cuota, type KvDeFlags, type Vigilancia } from './vigia.ts';
 
 export const CLAVE_ULTIMO_AVISO = 'aviso_ultimo';
@@ -110,31 +111,7 @@ export function mensajeDelVigia(v: Vigilancia, celda: string, destino: string): 
   return lineas.filter(Boolean).join('\n');
 }
 
-export interface Telegram {
-  token: string | undefined;
-  chat: string | undefined;
-}
-
-/** Envía el texto al chat del dueño. Devuelve null si salió, o el motivo si no. */
-export async function enviarTelegram(
-  t: Telegram,
-  texto: string,
-  fetchFn: typeof fetch = fetch,
-): Promise<string | null> {
-  if (!t.token || !t.chat) return 'faltan TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID';
-  try {
-    const r = await fetchFn(`https://api.telegram.org/bot${t.token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ chat_id: t.chat, text: texto, disable_web_page_preview: true }),
-    });
-    if (r.ok) return null;
-    const cuerpo = (await r.json().catch(() => ({}))) as { description?: string };
-    return `Telegram respondió ${r.status}${cuerpo.description ? `: ${cuerpo.description}` : ''}`;
-  } catch (e) {
-    return `Telegram no respondió (${(e as Error).message})`;
-  }
-}
+export { enviarTelegram, type Telegram } from '@ed1/telegram';
 
 /**
  * Avisa si cambió lo que hay que decir. Devuelve qué pasó, para el log. Nunca lanza: una alerta

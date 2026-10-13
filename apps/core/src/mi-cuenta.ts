@@ -18,6 +18,7 @@ import { PRODUCTO_CUENTA } from './cuenta.ts';
 import type { Entorno } from './entrar.ts';
 import { planesDe, rolAdministra } from './productos.ts';
 import { VIDA_REFRESH_MS } from './sesiones.ts';
+import { revocarConcesion } from './token-oauth.ts';
 
 /** Cuánto vale una entrada con Google para cerrar sesiones (CA2). */
 export const ENTRADA_RECIENTE_MS = 10 * 60 * 1000;
@@ -301,4 +302,79 @@ export async function verActividad(c: Context, e: Entorno): Promise<Response> {
       frase: frase(f, (id) => nombres.get(id) ?? 'una persona que ya no está'),
     })),
   });
+}
+
+// ── HU-C9.6 · Los asistentes con acceso ─────────────────────────────────────
+
+export interface AsistenteVisible {
+  id: string;
+  cliente: string;
+  espacio: string;
+  producto_nombre: string;
+  /** Lo que puede hacer, en palabras: la descripción de cada alcance. */
+  puede: string[];
+  creada: string;
+  ultimo_uso: string | null;
+}
+
+/** Las concesiones vivas que la persona dio, con lo que pueden hacer y su último uso. */
+export async function verAsistentes(c: Context, e: Entorno): Promise<Response> {
+  const r = await deLaCuenta(c, e);
+  if (r instanceof Response) return r;
+  const { results } = await e.db
+    .prepare(
+      `SELECT k.id, k.producto, k.alcances, k.creada, k.ultimo_uso, cl.nombre AS cliente, o.nombre AS espacio
+         FROM concesion_oauth k
+         JOIN cliente_oauth cl ON cl.id = k.cliente_id
+         JOIN organizacion o ON o.id = k.org_id
+        WHERE k.usuario_id = ? AND k.revocada IS NULL
+        ORDER BY k.creada DESC LIMIT 50`,
+    )
+    .bind(r.sub)
+    .all<{
+      id: string;
+      producto: string;
+      alcances: string;
+      creada: string;
+      ultimo_uso: string | null;
+      cliente: string;
+      espacio: string;
+    }>();
+  const descripciones = await e.db
+    .prepare('SELECT producto, id, descripcion FROM alcance')
+    .all<{ producto: string; id: string; descripcion: string }>();
+  const asistentes: AsistenteVisible[] = results.map((k) => ({
+    id: k.id,
+    cliente: k.cliente,
+    espacio: k.espacio,
+    producto_nombre: nombreDelProducto(e, k.producto),
+    puede: (JSON.parse(k.alcances) as string[]).map(
+      (id) =>
+        descripciones.results.find((d) => d.producto === k.producto && d.id === id)?.descripcion ??
+        id,
+    ),
+    creada: k.creada,
+    ultimo_uso: k.ultimo_uso,
+  }));
+  return c.json({ asistentes });
+}
+
+/** «Quitar acceso»: la concesión cae y su próximo uso se rechaza en el recurso (CA2). */
+export async function quitarAsistente(c: Context, e: Entorno): Promise<Response> {
+  const r = await deLaCuenta(c, e);
+  if (r instanceof Response) return r;
+  const { id } = await cuerpo(c);
+  const concesion =
+    typeof id === 'string'
+      ? await e.db
+          .prepare(
+            'SELECT id, usuario_id, org_id, producto, cliente_id, recurso, alcances, revocada FROM concesion_oauth WHERE id = ? AND usuario_id = ?',
+          )
+          .bind(id, r.sub)
+          .first<Parameters<typeof revocarConcesion>[1]>()
+      : null;
+  // Nunca la de otra persona, ni con el id en el cuerpo.
+  if (!concesion) return c.json({ estado: 'no-encontrado', motivo: 'Ese acceso no es tuyo.' }, 404);
+  if (!concesion.revocada) await revocarConcesion(e, concesion, e.ahora(), 'la persona lo quitó');
+  return c.json({ quitado: true });
 }

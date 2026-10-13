@@ -43,6 +43,12 @@ test('CA2: sin cuenta, los cuatro planes con su precio tentativo, y cómo avisar
   await expect(plan(page, 'gratuito')).toContainText('tu plan');
   await expect(page.getByRole('button', { name: /^Me interesa/ })).toHaveCount(0);
   await expect(page.locator('[data-prueba="planes-sin-cuenta"]')).toBeVisible();
+  // Revisión del dueño (12 oct 2026): sin cuenta también se comparan los periodos, sin botón de pagar.
+  await expect(plan(page, 'finca').locator('[data-prueba="periodo"]')).toHaveCount(4);
+  await expect(
+    plan(page, 'finca').getByText(/COP 32\.500 al mes · ahorras COP 78\.000/),
+  ).toBeVisible();
+  await expect(page.locator('[data-prueba="pagar-plan"]')).toHaveCount(0);
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

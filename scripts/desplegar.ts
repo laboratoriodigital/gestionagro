@@ -110,7 +110,7 @@ import {
   productosDePruebaEn,
   registroDelDestino,
 } from './lib/productos-de-prueba.ts';
-import { productosADesplegar } from './lib/publicacion.ts';
+import { parteDe, productosADesplegar, productosDeLaParte } from './lib/publicacion.ts';
 import {
   cargarProductos as cargarRegistroDeProductos,
   catalogoDelRepositorio,
@@ -137,7 +137,9 @@ if (destino !== 'staging' && destino !== 'produccion') {
 }
 const solo = argumento('--solo') || undefined;
 // HU-C0.3: qué productos se despliegan. Sin la opción, todos (staging y el «Run workflow» a mano).
-const productos = productosADesplegar(argumento('--productos'));
+// HU-C11.3 CA2: con `--parte`, solo lo de esa parte; el flujo la corre con solo sus secretos.
+const parte = parteDe(argumento('--parte'));
+const productos = productosDeLaParte(productosADesplegar(argumento('--productos')), parte);
 // Producción es el entorno de nivel superior de wrangler.jsonc: «--env=» lo elige sin aviso.
 const entorno = destino === 'staging' ? '--env staging' : '--env=';
 
@@ -468,6 +470,7 @@ async function desplegarCore(
             secreta: process.env['BOLD_SECRETA_PRUEBAS'],
             ambiente: 'pruebas',
           },
+      { token: process.env['TELEGRAM_BOT_TOKEN'], chat: process.env['TELEGRAM_CHAT_ID'] },
     );
   } catch (e) {
     return { ok: false, detalle: [`CORE: ${(e as Error).message}`] };
@@ -815,7 +818,12 @@ async function desplegarApiCelda(
       cred.token,
       cred.cuenta,
       ns.id,
-      clavesDeKillSwitch(cargarProductos()),
+      // Las de los contratos del agro y las del producto en productos.json (ks:agro-mcp, HU-C9.7).
+      [
+        ...clavesDeKillSwitch(cargarProductos()),
+        ...(cargarRegistroDeProductos().productos.find((p) => p.id === celda.producto)
+          ?.kill_switches ?? []),
+      ],
     );
     const claves = await clavesDelCore(fetch, staging ? config.core.url_staging : config.core.url);
     const productosDeBases = await productosDeLasBases(
@@ -825,7 +833,7 @@ async function desplegarApiCelda(
       config.core.d1,
     );
     escribirDespliegueCelda(
-      configDeLaCelda(wranglerDeLaCelda(celda, config.core.worker), dest, {
+      configDeLaCelda(wranglerDeLaCelda(celda, config.core), dest, {
         bases,
         flagsId: ns.id,
         clavesCore: claves,
@@ -935,6 +943,18 @@ const resultados: ResultadoCelda[] = plan.fuera.map((c) => ({
 }));
 let detenido = false;
 
+// HU-C11.3 CA2: una parte sin nada que desplegar termina antes de leer un solo token.
+const prepararParqueaderoEnStaging = parte === 'parqueadero' && destino === 'staging';
+if (parte && productos.size === 0 && !prepararParqueaderoEnStaging) {
+  console.log(`Parte ${parte}: nada que desplegar en ${destino} (su versión no cambió).`);
+  process.exit(0);
+}
+/** La nota de lo que no se despliega: en otro paso, o porque su versión no cambió. */
+const noSale = (cual: string, deLaParte: string) =>
+  parte && parte !== deLaParte
+    ? `${cual}: en su propio paso del despliegue`
+    : `${cual}: sin publicar en este despliegue (su versión no cambió)`;
+
 for (const celda of plan.aDesplegar) {
   if (detenido) {
     resultados.push({ celda: celda.id, estado: 'sin-tocar', detalle: [] });
@@ -997,16 +1017,18 @@ for (const celda of plan.aDesplegar) {
       detalle.push(...paso.detalle);
     }
   } else if (alojaCore) {
-    detalle.push('CORE: sin publicar en este despliegue (su versión no cambió)');
+    detalle.push(noSale('CORE', 'core'));
   }
   // HU-Q7.2: cada celda despliega lo de su producto. La del CORE y el sitio es del agro.
   if (celda.producto === 'parqueadero') {
-    const prepara = preparaLasCeldasDelParqueadero(destino as Destino, productos);
+    const prepara =
+      (!parte || parte === 'parqueadero') &&
+      preparaLasCeldasDelParqueadero(destino as Destino, productos);
     if (paso.ok && prepara) {
       paso = await prepararCeldaDelParqueadero(configCeldas, celda, cred);
       detalle.push(...paso.detalle);
     } else if (!prepara) {
-      detalle.push('parqueadero: sin publicar en este despliegue (su versión no cambió)');
+      detalle.push(noSale('parqueadero', 'parqueadero'));
     }
   } else if (paso.ok && productos.has('agro')) {
     paso = await desplegarApiCelda(configCeldas, celda, cred);
@@ -1016,7 +1038,7 @@ for (const celda of plan.aDesplegar) {
       detalle.push(...paso.detalle);
     }
   } else if (!productos.has('agro')) {
-    detalle.push('agro: sin publicar en este despliegue (su versión no cambió)');
+    detalle.push(noSale('agro', 'agro'));
   }
   // HU-Q0.3 y HU-Q5.2: el parqueadero publicado va a su dominio, nunca a workers.dev.
   if (paso.ok && alojaCore && destino === 'produccion' && productos.has('parqueadero')) {

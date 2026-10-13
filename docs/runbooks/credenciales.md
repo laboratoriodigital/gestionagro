@@ -8,7 +8,7 @@
 
 | Secreto de GitHub | Para qué | Permisos (exactamente estos) | Lo que el despliegue comprueba que **no** tenga |
 |---|---|---|---|
-| `CF_API_TOKEN` (ambientes `staging` y `produccion`) | Desplegar Workers, crear y migrar bases D1, KV de flags y dominios | **Account:** Workers Scripts (Edit), Workers KV Storage (Edit), D1 (Edit), Account Analytics (Read), Account Settings (Read). **User:** Memberships (Read). **Zone** `cultivopro.co`, `laboratorio-digital.com` y `laboratorio-digital.app`: Workers Routes (Edit) | User → API Tokens · Workers R2 Storage · Cloudflare Pages. «Zone → DNS» (en producción, en cada zona) **solo avisa** mientras no se vea qué responde Cloudflare: no está comprobado que los dominios propios de Workers no lo necesiten |
+| `CF_API_TOKEN` (ambientes `staging` y `produccion`) | Desplegar Workers, crear y migrar bases D1, KV de flags y dominios | **Account:** Workers Scripts (Edit), Workers KV Storage (Edit), D1 (Edit), Account Analytics (Read), Account Settings (Read). **User:** Memberships (Read). **Zone** `cultivopro.co`, `laboratorio-digital.com` y `laboratorio-digital.app`: Workers Routes (Edit) | User → API Tokens · Workers R2 Storage · Cloudflare Pages · Zone → DNS (en producción, en cada zona; comprobado el 12 oct 2026 que los dominios propios no lo necesitan) |
 | `CF_METRICAS_TOKEN` | Que el vigía y el reporte semanal lean el consumo | **Account:** Account Analytics (Read). Ningún otro | User → API Tokens · Account Settings · Workers R2 Storage · Cloudflare Pages · Workers KV Storage · D1 |
 | (todavía no existe) | Cloudflare for SaaS, cuando la Tienda tenga dominios de sus clientes | Se define con la Tienda: Zone → SSL and Certificates (Edit) en su zona, y nada de Workers | — |
 

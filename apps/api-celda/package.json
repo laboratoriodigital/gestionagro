@@ -11,6 +11,7 @@
     "@ed1/agro-schema": "workspace:*",
     "@ed1/d1": "workspace:*",
     "@ed1/kill-switch": "workspace:*",
+    "@ed1/telegram": "workspace:*",
     "@ed1/tokens": "workspace:*",
     "@ed1/trazabilidad": "workspace:*",
     "hono": "^4.13.12"

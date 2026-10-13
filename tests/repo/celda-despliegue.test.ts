@@ -50,9 +50,9 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
     'wrangler.%s.jsonc es el generado, sin ids, con un binding por shard',
     (_id, celda) => {
       const texto = readFileSync(rutaWranglerCelda(celda.id), 'utf8');
-      expect(texto).toBe(textoWranglerDeLaCelda(celda, real.core.worker));
+      expect(texto).toBe(textoWranglerDeLaCelda(celda, real.core));
       expect(texto).not.toMatch(/database_id|account_id/);
-      const generada = wranglerDeLaCelda(celda, real.core.worker) as {
+      const generada = wranglerDeLaCelda(celda, real.core) as {
         d1_databases: { binding: string }[];
       };
       expect(generada.d1_databases.map((d) => d.binding)).toEqual(celda.shards);
@@ -92,13 +92,16 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
   };
 
   it('ids de bases, KV, clave del CORE, orígenes y cuenta van solo al destino; CELDA, PRODUCTO y PLAN se conservan', () => {
-    const staging = configDeLaCelda(wranglerDeLaCelda(c0, real.core.worker), 'staging', despliegue);
+    const staging = configDeLaCelda(wranglerDeLaCelda(c0, real.core), 'staging', despliegue);
     const env = (staging['env'] as Record<string, Record<string, unknown>>)['staging'] ?? {};
     expect(env['vars']).toEqual({
       CELDA: c0.id,
       PRODUCTO: c0.producto,
       PLAN: c0.plan,
       ...presupuestoDeLaCelda(c0),
+      // HU-C9.7: el MCP del cuaderno en staging y su servidor de autorización, el CORE de staging.
+      RECURSO_MCP: 'https://agro-api-c0-staging.laboratoriodigital-la.workers.dev',
+      EMISOR_OAUTH: real.core.url_staging,
       CORE_CLAVES: '[{"kid":"k1"}]',
       ORIGENES_APP: 'https://agro.ejemplo.test',
       CF_CUENTA: 'cuenta-ensayo',
@@ -112,11 +115,13 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
       PRODUCTO: c0.producto,
       PLAN: c0.plan,
       ...presupuestoDeLaCelda(c0),
+      RECURSO_MCP: 'https://mcp.cultivopro.co',
+      EMISOR_OAUTH: `https://${real.core.dominio}`,
     });
   });
 
   it('HU-E8.2: el vigía corre cada hora en los dos destinos', () => {
-    const g = wranglerDeLaCelda(c0, real.core.worker) as {
+    const g = wranglerDeLaCelda(c0, real.core) as {
       triggers: unknown;
       env: { staging: { triggers: unknown } };
     };
@@ -125,7 +130,7 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
   });
 
   it('HU-C5.6: la celda llama al CORE de su mismo destino, por su entrada de servicio', () => {
-    const staging = configDeLaCelda(wranglerDeLaCelda(c0, real.core.worker), 'staging', despliegue);
+    const staging = configDeLaCelda(wranglerDeLaCelda(c0, real.core), 'staging', despliegue);
     const servicios = (bloque: Record<string, unknown> | undefined) =>
       (bloque?.['services'] as { service: string; entrypoint: string }[] | undefined)?.map(
         (s) => `${s.service}#${s.entrypoint}`,
@@ -139,7 +144,7 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
 
   it('un shard sin id de base no se despliega', () => {
     expect(() =>
-      configDeLaCelda(wranglerDeLaCelda(c0, real.core.worker), 'produccion', {
+      configDeLaCelda(wranglerDeLaCelda(c0, real.core), 'produccion', {
         ...despliegue,
         bases: {},
       }),

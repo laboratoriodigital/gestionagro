@@ -4,11 +4,19 @@
  * en `tests/e2e/cuenta-autorizar.spec.ts`.
  */
 import type { BaseD1 } from '@ed1/d1';
-import { firmanteDesde, firmarAcceso, generarClavePrivada, hashDe } from '@ed1/tokens';
+import {
+  firmanteDesde,
+  firmarAcceso,
+  generarClavePrivada,
+  hashDe,
+  verificarAcceso,
+  verificarAccesoDeAgente,
+} from '@ed1/tokens';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { catalogoDelRepositorio } from '../../../scripts/lib/registro-productos.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
 import { sentenciasDelCatalogo } from './catalogo.ts';
+import { ServicioDelCore } from './entrada-de-servicio.ts';
 import { crearApp, type Env } from './worker.ts';
 
 let db: BaseD1;
@@ -19,7 +27,8 @@ const CORE = 'https://agro-core-staging.example';
 const CUENTA = 'https://cuenta.laboratorio-digital.com';
 const CLIENTE = 'dcr-ensayo';
 const VUELTA = 'https://agente.example/vuelta';
-const RECURSO = 'https://mcp.cultivopro.co';
+/** El MCP del cuaderno en staging, como lo declara `productos.json`. */
+const RECURSO = 'https://agro-api-c0-staging.laboratoriodigital-la.workers.dev';
 const RETO = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 const FINCA = '0199a1b2-0000-7000-8000-00000000c941';
 const AJENA = '0199a1b2-0000-7000-8000-00000000c942';
@@ -210,5 +219,215 @@ describe('HU-C9.4 · la decisión de la persona', () => {
     expect(vuelta.searchParams.get('error')).toBe('invalid_request');
     expect(vuelta.searchParams.has('code')).toBe(false);
     expect(await db.prepare('SELECT COUNT(*) AS n FROM codigo_oauth').first()).toEqual({ n: 0 });
+  });
+});
+
+describe('HU-C9.5 · el canje del código y el refresh rotado', () => {
+  const VERIFICADOR = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
+  const RETO_DEL_VERIFICADOR = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
+  let reloj = AHORA;
+  const conReloj = crearApp({ ahora: () => reloj });
+  const canjear = (cuerpo: Record<string, string>, destino = 'staging') =>
+    conReloj.fetch(
+      new Request(`${CORE}/oauth/token`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(cuerpo).toString(),
+      }),
+      env(destino),
+    );
+  async function codigo() {
+    reloj = AHORA;
+    const r = await decidir({
+      pedido: { ...BUENO, code_challenge: RETO_DEL_VERIFICADOR },
+      decision: 'permitir',
+      org_id: FINCA,
+    });
+    return new URL(((await r.json()) as { vuelta: string }).vuelta).searchParams.get('code') ?? '';
+  }
+  const conCodigo = (code: string, extra: Record<string, string> = {}) => ({
+    grant_type: 'authorization_code',
+    code,
+    code_verifier: VERIFICADOR,
+    redirect_uri: VUELTA,
+    client_id: CLIENTE,
+    ...extra,
+  });
+  const claves = async () => [(await firmanteDesde(clave)).publica];
+
+  it('CA1 · el código da un token de 1 h para su recurso, con scope, azp y cnc, y un refresh', async () => {
+    const r = await canjear(conCodigo(await codigo()));
+    expect(r.status).toBe(200);
+    expect(r.headers.get('cache-control')).toBe('no-store');
+    const t = (await r.json()) as Record<string, unknown>;
+    expect(t).toMatchObject({
+      token_type: 'Bearer',
+      expires_in: 3600,
+      scope: 'agro:registros:leer',
+    });
+    const reclamos = await verificarAccesoDeAgente(
+      await claves(),
+      String(t['access_token']),
+      RECURSO,
+      reloj,
+    );
+    expect(reclamos).toMatchObject({
+      sub: 'u-ana',
+      org: FINCA,
+      azp: CLIENTE,
+      scope: 'agro:registros:leer',
+    });
+    expect(reclamos.exp - reclamos.iat).toBe(3600);
+    // El token de un agente no le sirve a ninguna app: su emisor es otro.
+    await expect(
+      verificarAcceso((await claves())[0] as never, String(t['access_token']), reloj),
+    ).rejects.toThrow(/Emisor desconocido/);
+    // Ni a otro recurso.
+    await expect(
+      verificarAccesoDeAgente(
+        await claves(),
+        String(t['access_token']),
+        'https://mcp.otro.example',
+        reloj,
+      ),
+    ).rejects.toThrow(/otro recurso/);
+  });
+
+  it('❌ · un código usado, vencido, con otra vuelta o sin el verificador PKCE no da token', async () => {
+    const usado = await codigo();
+    expect((await canjear(conCodigo(usado))).status).toBe(200);
+    expect(((await (await canjear(conCodigo(usado))).json()) as { error: string }).error).toBe(
+      'invalid_grant',
+    );
+    for (const extra of [
+      { code_verifier: 'x'.repeat(43) },
+      { redirect_uri: 'https://agente.example/otra' },
+      { client_id: 'dcr-otro' },
+    ]) {
+      const r = await canjear(conCodigo(await codigo(), extra));
+      expect(r.status, JSON.stringify(extra)).toBe(400);
+    }
+    const viejo = await codigo();
+    reloj = AHORA + 11 * 60 * 1000;
+    expect((await canjear(conCodigo(viejo))).status).toBe(400);
+  });
+
+  it('CA2 ❌ · el refresh rota; reusar uno ya rotado revoca la concesión entera y queda en la auditoría', async () => {
+    const primero = (await (await canjear(conCodigo(await codigo()))).json()) as Record<
+      string,
+      string
+    >;
+    const conRefresh = (refresh: string) => ({
+      grant_type: 'refresh_token',
+      refresh_token: refresh,
+      client_id: CLIENTE,
+    });
+    const segundo = (await (
+      await canjear(conRefresh(primero['refresh_token'] ?? ''))
+    ).json()) as Record<string, string>;
+    expect(segundo['access_token']).toBeTruthy();
+    expect(segundo['refresh_token']).not.toBe(primero['refresh_token']);
+    // Alguien reusa el primero: la concesión cae, y con ella el refresh bueno.
+    const reuso = await canjear(conRefresh(primero['refresh_token'] ?? ''));
+    expect(((await reuso.json()) as { error: string }).error).toBe('invalid_grant');
+    expect((await canjear(conRefresh(segundo['refresh_token'] ?? ''))).status).toBe(400);
+    expect(
+      await db.prepare('SELECT revocada IS NOT NULL AS revocada FROM concesion_oauth').first(),
+    ).toEqual({ revocada: 1 });
+    expect(
+      await db.prepare("SELECT detalle FROM auditoria WHERE accion = 'concesion_revocada'").first(),
+    ).toMatchObject({ detalle: expect.stringContaining('reuso de refresh') });
+  });
+
+  it('P1 ❌ · en producción no hay canje todavía', async () => {
+    expect((await canjear(conCodigo('x'), 'produccion')).status).toBe(404);
+  });
+});
+
+describe('HU-C9.6 · revocar y los asistentes con acceso', () => {
+  const VERIFICADOR = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
+  const RETO_DEL_VERIFICADOR = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
+  const pedir = (ruta: string, cuerpo: Record<string, string>) =>
+    app.fetch(
+      new Request(`${CORE}${ruta}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(cuerpo).toString(),
+      }),
+      env(),
+    );
+  async function tokens() {
+    const d = await decidir({
+      pedido: { ...BUENO, code_challenge: RETO_DEL_VERIFICADOR },
+      decision: 'permitir',
+      org_id: FINCA,
+    });
+    const code =
+      new URL(((await d.json()) as { vuelta: string }).vuelta).searchParams.get('code') ?? '';
+    const t = await pedir('/oauth/token', {
+      grant_type: 'authorization_code',
+      code,
+      code_verifier: VERIFICADOR,
+      redirect_uri: VUELTA,
+      client_id: CLIENTE,
+    });
+    return (await t.json()) as { access_token: string; refresh_token: string };
+  }
+  const concesion = async () =>
+    (await db.prepare('SELECT id FROM concesion_oauth').first<{ id: string }>())?.id ?? '';
+  const servicio = () => new ServicioDelCore({}, { DB: db, DESTINO: 'staging' });
+  const cuenta = async (ruta: string, cuerpo: unknown, usuario = 'u-ana') =>
+    app.fetch(
+      new Request(`${CORE}/api/core/cuenta/${ruta}`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          origin: CUENTA,
+          authorization: `Bearer ${await deLaCuenta(usuario)}`,
+        },
+        body: JSON.stringify(cuerpo),
+      }),
+      env(),
+    );
+
+  it('CA1 · el agente devuelve su refresh o su token y la concesión cae; el recurso lo sabe en la siguiente (CA2)', async () => {
+    const t = await tokens();
+    expect(await servicio().concesionVigente(await concesion())).toBe(true);
+    expect(
+      (await pedir('/oauth/revoke', { token: t.refresh_token, client_id: CLIENTE })).status,
+    ).toBe(200);
+    expect(await servicio().concesionVigente(await concesion())).toBe(false);
+    // Con el token de acceso también.
+    await db.prepare('DELETE FROM refresco_oauth').run();
+    await db.prepare('DELETE FROM codigo_oauth').run();
+    await db.prepare('DELETE FROM concesion_oauth').run();
+    const otro = await tokens();
+    expect((await pedir('/oauth/revoke', { token: otro.access_token })).status).toBe(200);
+    expect(await servicio().concesionVigente(await concesion())).toBe(false);
+    // Un token que no existe también responde 200 (RFC 7009): no sirve para averiguar nada.
+    expect((await pedir('/oauth/revoke', { token: 'no-existe' })).status).toBe(200);
+  });
+
+  it('CA1 · la cuenta lista los asistentes con lo que pueden hacer, y «Quitar acceso» los corta', async () => {
+    await tokens();
+    const lista = (await (await cuenta('asistentes', {})).json()) as {
+      asistentes: { id: string; cliente: string; espacio: string; puede: string[] }[];
+    };
+    expect(lista.asistentes).toEqual([
+      expect.objectContaining({
+        cliente: 'Asistente Ensayo',
+        espacio: 'Finca La Esperanza',
+        puede: [expect.stringMatching(/^Leer los registros de tu finca/)],
+      }),
+    ]);
+    const id = lista.asistentes[0]?.id ?? '';
+    // ❌ Nunca la de otra persona, ni con el id en el cuerpo.
+    expect((await cuenta('asistentes/quitar', { id }, 'u-otro')).status).toBe(404);
+    expect(await servicio().concesionVigente(id)).toBe(true);
+    expect((await cuenta('asistentes/quitar', { id })).status).toBe(200);
+    expect(await servicio().concesionVigente(id)).toBe(false);
+    expect(
+      ((await (await cuenta('asistentes', {})).json()) as { asistentes: unknown[] }).asistentes,
+    ).toEqual([]);
   });
 });

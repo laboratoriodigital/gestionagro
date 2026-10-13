@@ -9,6 +9,7 @@
     "./sync": "./src/sync.ts"
   },
   "dependencies": {
+    "@ed1/agro-calc": "workspace:*",
     "@ed1/ids": "workspace:*",
     "@ed1/sync": "workspace:*",
     "zod": "^4.6.5"

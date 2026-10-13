@@ -9,9 +9,13 @@
  *   instante de la aplicación (CA3, P8). Los cálculos son de `agro-calc` (P2).
  * - La misma mezcla en varias áreas: un registro por área, en una transacción, como el riego.
  */
-import { vencimientoCarencia, vencimientoReentrada } from '@ed1/agro-calc';
-import { ErrorDeValidacion, fechaAgronomica, type Insumo, type Registro } from '@ed1/agro-schema';
-import { fechaHora } from '../formato.ts';
+import {
+  ErrorDeValidacion,
+  type EstadoDeArea,
+  estadosDeAplicaciones,
+  type Insumo,
+  type Registro,
+} from '@ed1/agro-schema';
 import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';
 import { soloVigentes } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';
@@ -161,22 +165,15 @@ export async function guardarAplicacion(
   return guardarRegistros(db, registros, { ahora });
 }
 
-export type EstadoCarencia =
-  | { tipo: 'libre' }
-  | { tipo: 'hasta'; fecha: string; insumo: string }
-  | { tipo: 'desconocida'; insumos: string[] };
-
-export type EstadoReentrada =
-  | { tipo: 'libre' }
-  | { tipo: 'desde'; instante: string; insumo: string }
-  | { tipo: 'desconocida'; insumos: string[] };
-
-export interface EstadoDeArea {
-  carencia: EstadoCarencia;
-  reentrada: EstadoReentrada;
-}
-
-const LIBRE: EstadoDeArea = { carencia: { tipo: 'libre' }, reentrada: { tipo: 'libre' } };
+// El cálculo, sin almacén, vive en `@ed1/agro-schema`: el MCP del cuaderno da la misma respuesta
+// con lo de la celda (HU-C9.7, P2). Aquí solo se lee del teléfono.
+export {
+  type EstadoCarencia,
+  type EstadoDeArea,
+  type EstadoReentrada,
+  textoCarencia,
+  textoReentrada,
+} from '@ed1/agro-schema';
 
 /**
  * Carencia y reentrada vigentes de cada área con aplicaciones. Un área que no aparece está libre.
@@ -187,7 +184,6 @@ export async function estadosPorArea(
   fincaId: string,
   ahora: Date = new Date(),
 ): Promise<Map<string, EstadoDeArea>> {
-  const hoy = fechaAgronomica(ahora.getTime());
   // Una aplicación corregida cuenta una sola vez: con su versión vigente (HU-E3.12).
   const aplicaciones = await soloVigentes(
     db,
@@ -199,62 +195,9 @@ export async function estadosPorArea(
   );
   const insumos = new Map<string, Insumo>();
   for (const i of await db.insumo.where('finca_id').equals(fincaId).toArray()) insumos.set(i.id, i);
-
-  const estados = new Map<string, EstadoDeArea>();
-  for (const r of aplicaciones) {
-    // Al evaluar un momento pasado (corregir una cosecha vieja), lo aplicado después no cuenta.
-    if (Date.parse(r.instante_evento) > ahora.getTime()) continue;
-    const d = r.datos as DatosAplicacionGuardada;
-    const actual = insumos.get(d.insumo_id);
-    const carenciaDias = d.carenciaDias ?? actual?.carencia_dias ?? null;
-    const reentradaHoras = d.reentradaHoras ?? actual?.reentrada_horas ?? null;
-    for (const areaId of r.area_ids) {
-      const e = estados.get(areaId) ?? structuredClone(LIBRE);
-      if (carenciaDias === null) {
-        e.carencia =
-          e.carencia.tipo === 'desconocida'
-            ? { tipo: 'desconocida', insumos: sinRepetir([...e.carencia.insumos, d.insumo]) }
-            : { tipo: 'desconocida', insumos: [d.insumo] };
-      } else if (e.carencia.tipo !== 'desconocida') {
-        const fecha = vencimientoCarencia(r.fecha_agronomica, carenciaDias);
-        const vigente = fecha > hoy;
-        if (vigente && (e.carencia.tipo === 'libre' || fecha > e.carencia.fecha)) {
-          e.carencia = { tipo: 'hasta', fecha, insumo: d.insumo };
-        }
-      }
-      if (reentradaHoras === null) {
-        e.reentrada =
-          e.reentrada.tipo === 'desconocida'
-            ? { tipo: 'desconocida', insumos: sinRepetir([...e.reentrada.insumos, d.insumo]) }
-            : { tipo: 'desconocida', insumos: [d.insumo] };
-      } else if (e.reentrada.tipo !== 'desconocida') {
-        const ms = vencimientoReentrada(Date.parse(r.instante_evento), reentradaHoras);
-        const vigente = ms > ahora.getTime();
-        if (vigente && (e.reentrada.tipo === 'libre' || ms > Date.parse(e.reentrada.instante))) {
-          e.reentrada = { tipo: 'desde', instante: new Date(ms).toISOString(), insumo: d.insumo };
-        }
-      }
-      estados.set(areaId, e);
-    }
-  }
-  return estados;
-}
-
-const sinRepetir = (xs: string[]) => [...new Set(xs)];
-
-/** «13/12» desde `AAAA-MM-DD`, sin pasar por un huso (P8). */
-const diaMes = (fecha: string) => `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`;
-
-/** Texto de la carencia para la nave, o null si se puede cosechar (CA1, CA4). */
-export function textoCarencia(e: EstadoCarencia): string | null {
-  if (e.tipo === 'libre') return null;
-  if (e.tipo === 'hasta') return `No cosechar hasta el ${diaMes(e.fecha)} (${e.insumo})`;
-  return `Carencia desconocida de ${e.insumos.join(', ')}: no cosechar hasta completarla en Insumos`;
-}
-
-/** Texto de la reentrada para la nave, o null si ya se puede entrar (CA1). */
-export function textoReentrada(e: EstadoReentrada): string | null {
-  if (e.tipo === 'libre') return null;
-  if (e.tipo === 'desde') return `Reentrada desde ${fechaHora(e.instante)} (${e.insumo})`;
-  return `Reentrada desconocida de ${e.insumos.join(', ')}: complétala en Insumos antes de entrar`;
+  return estadosDeAplicaciones(
+    aplicaciones.map((r) => ({ ...r, datos: r.datos as DatosAplicacionGuardada })),
+    insumos,
+    ahora,
+  );
 }
