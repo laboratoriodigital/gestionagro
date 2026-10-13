@@ -63,7 +63,12 @@ import {
   PAGINAS,
   ponerClavesEnLaPagina,
 } from './lib/claves-qr.ts';
-import { idsDeZonas, permisosDeMas, verificarTokenDeMetricas } from './lib/credenciales.ts';
+import {
+  idsDeZonas,
+  permisosDeMas,
+  permisosEnObservacion,
+  verificarTokenDeMetricas,
+} from './lib/credenciales.ts';
 import {
   ARCHIVO_DESPLIEGUE_CORE,
   ARCHIVO_SQL_CELDAS,
@@ -978,13 +983,14 @@ for (const celda of plan.aDesplegar) {
   if (fallasToken.length === 0 && token && cuenta) {
     const zonas = destino === 'produccion' ? await idsDeZonas(fetch, token, zonasDeLaCelda) : [];
     fallasToken.push(...(await permisosDeMas(fetch, 'despliegue', token, cuenta, zonas)));
+    const enObservacion = await permisosEnObservacion(fetch, 'despliegue', token, cuenta, zonas);
     const metricas = await verificarTokenDeMetricas(
       fetch,
       process.env[celda.secretos.metricas],
       cuenta,
     );
     fallasToken.push(...metricas.fallas);
-    avisosDeCredenciales = metricas.avisos;
+    avisosDeCredenciales = [...metricas.avisos, ...enObservacion];
   }
   if (fallasToken.length > 0 || !token || !cuenta) {
     resultados.push({ celda: celda.id, estado: 'fallo', detalle: fallasToken });
