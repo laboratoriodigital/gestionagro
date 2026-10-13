@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- El despliegue corre en tres pasos, CORE, agro y parqueadero, y cada uno recibe solo sus secretos: las llaves de Bold y de Google solo llegan al del CORE, y el token de métricas y Telegram solo al del agro. Una parte sin nada que desplegar termina en segundos (HU-C11.3).
+- La revisión de permisos de más vuelve a detener por el permiso de DNS: la publicación de CORE 0.4.0 mostró que el token no lo tiene y que el dominio propio de la cuenta responde sin él (HU-C11.5).
+
 ## [0.5.0] - 2026-10-12
 
 ### Agregado
@@ -48,7 +52,6 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - La cuenta de Laboratorio Digital tiene su primera página, en `cuenta.laboratorio-digital.com`: dice qué va a reunir y que pronto se podrá entrar con Google. Es estática, sin JavaScript, y no aparece en buscadores (HU-C7.2).
 
 ### Cambiado
-- El despliegue corre en tres pasos, CORE, agro y parqueadero, y cada uno recibe solo sus secretos: las llaves de Bold y de Google solo llegan al del CORE, y el token de métricas y Telegram solo al del agro. Una parte sin nada que desplegar termina en segundos (HU-C11.3).
 - El CI gasta menos minutos (HU-C11.8): en `main`, con el PR ya verificado, no corre ningún paso; el D1 de workerd corre en el PR que toca la base y en una corrida semanal de `main` con todo; el e2e corre solo los grupos (agro, cuenta, parqueadero) a los que llega el cambio, leyendo del código quién usa a quién; un PR en borrador no corre CI; el despliegue decide la publicación en el trabajo de staging, sin un trabajo aparte; y Windows ya no corre por `package.json`.
 
 ### Corregido
