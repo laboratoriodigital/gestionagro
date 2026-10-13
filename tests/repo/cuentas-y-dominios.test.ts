@@ -122,7 +122,7 @@ describe('los instrumentos', () => {
     mkdirSync(dir, { recursive: true });
     writeFileSync(
       join(dir, '0001.sql'),
-      texto('docs/tienda/sql/tienda-control/0001_control_v1.sql'),
+      texto('infrastructure/migraciones/tienda-control/0001_control_v1.sql'),
     );
     const reservados = reservadosDeLaTienda(raiz);
     expect(reservados).toContain('panel');

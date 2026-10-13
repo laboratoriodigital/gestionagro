@@ -54,7 +54,7 @@ Lista viva de patrones.
 - **Lo impide hoy** se escribe solo cuando esa guardia existe, falla en rojo con el defecto puesto y se comprobó al escribirlo.
 - **Entradas** son los números de esta bitácora que lo confirman.
 
-Al 6 oct 2026, en la tarde, la Tienda tiene sus cuatro paquetes puros (sprint T0) y dos patrones con «Lo impide hoy»: P1 y P17. Las 82 comprobaciones del modelo de datos siguen con `node:sqlite` (`sql/probar-tienda.mjs`) y pasan a D1 en HU-T2.1.
+Al 6 oct 2026, en la tarde, la Tienda tiene sus cuatro paquetes puros (sprint T0) y dos patrones con «Lo impide hoy»: P1 y P17. Las 82 comprobaciones del modelo de datos siguen con `node:sqlite` (`sql/probar-tienda.mjs`) y pasan a D1 en HU-T2.1 (hecho el 13 oct 2026: `tests/repo/shard-tienda.test.ts`, también en workerd).
 
 ### Heredados del ecosistema
 

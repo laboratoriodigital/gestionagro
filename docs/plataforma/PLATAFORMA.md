@@ -217,7 +217,7 @@ Antes de pedirlo hay que confirmar que Cloudflare acepte una entrada de la PSL *
   - `suplantacion`: `admin`, `soporte`, `pagos`, `cuenta`…;
   - `proyecto` y `marca`.
 - **Los de `proyecto` y `marca` salen de un archivo,** `infrastructure/dominios.json`, que el despliegue copia a la base (P2). Una prueba exige que todo hostname de `laboratorio-digital.app` que aparezca en una configuración de Worker del repositorio esté en ese archivo.
-- **La base lo hace cumplir en los dos sentidos.** Una tienda no toma un nombre reservado, y no se reserva un nombre que ya tiene tienda. El despliegue que lo intente falla con el nombre, en vez de quitarle la dirección a un comercio (P1). Probado en `../tienda/sql/probar-tienda.mjs`.
+- **La base lo hace cumplir en los dos sentidos.** Una tienda no toma un nombre reservado, y no se reserva un nombre que ya tiene tienda. El despliegue que lo intente falla con el nombre, en vez de quitarle la dirección a un comercio (P1). Probado en `tests/repo/shard-tienda.test.ts` (HU-T2.1).
 - **`--` dentro de un nombre queda para la plataforma.** El staging de la tienda usa `<slug>--staging.laboratorio-digital.app`, con rutas propias del Worker de staging, más específicas que el comodín de producción.
 
 ### 3.5 Reglas de gobierno de la cuenta

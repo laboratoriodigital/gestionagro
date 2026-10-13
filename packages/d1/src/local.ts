@@ -18,8 +18,11 @@ import type { BaseD1 } from './index.ts';
 import { baseEnMemoria } from './sqlite.ts';
 
 export const RAIZ = join(import.meta.dirname, '..', '..', '..');
-/** Las migraciones de cada base: el CORE, la celda del agro y el shard del parqueadero (HU-Q7.2). */
-export type Base = 'core' | 'celda' | 'parqueadero';
+/**
+ * Las migraciones de cada base: el CORE, la celda del agro, el shard del parqueadero (HU-Q7.2), y el
+ * shard y la base de control de la Tienda (HU-T2.1).
+ */
+export type Base = 'core' | 'celda' | 'parqueadero' | 'tienda' | 'tienda-control';
 export const dirMigraciones = (base: Base) => join(RAIZ, 'infrastructure', 'migraciones', base);
 
 /**

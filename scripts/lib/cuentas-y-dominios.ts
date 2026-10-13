@@ -79,9 +79,16 @@ export function nombresApp(texto: string): string[] {
   return [...texto.matchAll(patron)].map((m) => m[1] as string);
 }
 
-/** Los nombres de `.app` que usan las configuraciones de Worker del repositorio. */
+/**
+ * Los nombres de `.app` que usan las configuraciones de Worker del repositorio, y los orígenes y
+ * las API de `productos.json` y `celdas.json`: el panel de la Tienda vive ahí antes de tener su
+ * ruta (HU-T2.3).
+ */
 export function nombresAppDeWorkers(): { archivo: string; nombre: string }[] {
-  return listarArchivos((r) => /^apps\/.+\/wrangler[^/]*\.jsonc?$/.test(r)).flatMap((archivo) =>
+  const deInfraestructura = ['infrastructure/productos.json', 'infrastructure/celdas.json'];
+  return listarArchivos(
+    (r) => /^apps\/.+\/wrangler[^/]*\.jsonc?$/.test(r) || deInfraestructura.includes(r),
+  ).flatMap((archivo) =>
     nombresApp(readFileSync(join(RAIZ, archivo), 'utf8')).map((nombre) => ({ archivo, nombre })),
   );
 }

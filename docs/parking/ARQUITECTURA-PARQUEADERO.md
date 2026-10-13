@@ -1346,7 +1346,7 @@ Consultadas el 6 oct 2026 (hora de Colombia). Junto a cada una va la fecha que m
 - `docs/plataforma/PLATAFORMA.md` (R1–R6; §4 CORE, §4.6 tokens v2, §4.9 celdas, §4.10 vigía, §6.3 anillos), `cuenta-cloudflare.md`, `proveedores-de-computo.md`, `BACKLOG_CORE.md`, `BITACORA_CORE.md`.
 - `docs/tienda/TIENDA-3.0.md` (§8, §9, §10.2, §11.6, §14.3, §14.5, §20.3), `BACKLOG_TIENDA3.md`, `BITACORA_TIENDA3.md` (PT1), `BITACORA-ecommerce.md`, `ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10-v1.3.md` (§12.1), `VALIDACION-ESTUDIO-MERCADO-ECOMMERCE-ED1-2026-10.md`.
 - `docs/BITACORA.md` (P1–P21; «Afirmaciones falsas» 3), `docs/BACKLOG.md` (HU-E2.4, HU-E4.4).
-- `infrastructure/dominios.json`; `apps/api-celda/src/push.ts`, `qr.ts`; `apps/core/src/worker.ts`, `entrar.ts`; `docs/tienda/sql/tienda/0001_tienda_v1.sql` y `docs/tienda/sql/probar-tienda.mjs` (el modelo de la prueba de anexo A); `infrastructure/migraciones/celda/0001_celda_v1.sql`.
+- `infrastructure/dominios.json`; `apps/api-celda/src/push.ts`, `qr.ts`; `apps/core/src/worker.ts`, `entrar.ts`; `infrastructure/migraciones/tienda/0001_tienda_v1.sql` y su prueba (entonces `docs/tienda/sql/probar-tienda.mjs`; hoy `tests/repo/shard-tienda.test.ts`), el modelo de la prueba de anexo A; `infrastructure/migraciones/celda/0001_celda_v1.sql`.
 - En esta carpeta: `ESTUDIO-MERCADO-PARQUEADEROS-ED1-2026-10.md` («estudio §N»).
 
 ### 21.2 Impresión (I)
