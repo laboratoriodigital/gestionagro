@@ -37,6 +37,11 @@ export const E2E_DE_LA_APP: Readonly<Record<string, GrupoE2e | null>> = {
   core: null,
   'api-celda': null,
   ensayo: null,
+  // La Tienda (HU-T2.4): sus Workers se prueban con pruebas de integración hasta que tenga
+  // pantallas que recorrer (la vitrina, HU-T5.x; el panel, HU-T8.1).
+  'tienda-api': null,
+  'tienda-panel': null,
+  'tienda-sitio': null,
 };
 
 /**

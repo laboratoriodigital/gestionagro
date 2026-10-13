@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La celda c1 de la Tienda en `celdas.json` (HU-T2.3), con su shard y su base de control, y las configuraciones de sus tres Workers (API, despacho y panel) generadas desde ese archivo. La API no tiene rutas propias: solo se llega a ella desde el despacho y el panel.
 - La Tienda 3.0 en el registro de productos, pausada (HU-T2.2): sus tipos, roles, planes como hipótesis (`content/tienda/planes.json`), lo que permite cada plan (`funciones.json`) y la política de sus cuentas en borrador. El CORE la conoce, pero no crea tiendas ni cobra planes hasta que exista su panel.
 - El MCP del cuaderno (HU-C9.7): un asistente con permiso de la persona puede leer el calendario de carencias («¿qué nave puedo cosechar hoy?») y los últimos registros de la finca, sin escribir nada. Vive en la celda, en `mcp.cultivopro.co` en producción, y se apaga con `ks:agro-mcp` sin tocar el cuaderno. Por ahora solo en staging, como el servidor de autorización.
 

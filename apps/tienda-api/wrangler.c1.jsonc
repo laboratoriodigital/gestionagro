@@ -1,0 +1,51 @@
+// GENERADO por scripts/generar-wrangler.ts desde infrastructure/celdas.json. No editar a mano.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "tienda-api-c1",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-30",
+  "workers_dev": false,
+  "vars": {
+    "CELDA": "c1",
+    "PRODUCTO": "tienda",
+    "PLAN": "free"
+  },
+  "d1_databases": [
+    {
+      "binding": "tienda_c1_s1",
+      "database_name": "tienda_c1_s1",
+      "migrations_dir": "../../infrastructure/migraciones/tienda"
+    },
+    {
+      "binding": "tienda_control",
+      "database_name": "tienda_control",
+      "migrations_dir": "../../infrastructure/migraciones/tienda-control"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "env": {
+    "staging": {
+      "name": "tienda-api-c1-staging",
+      "workers_dev": false,
+      "vars": {
+        "CELDA": "c1",
+        "PRODUCTO": "tienda",
+        "PLAN": "free"
+      },
+      "d1_databases": [
+        {
+          "binding": "tienda_c1_s1",
+          "database_name": "tienda_c1_s1_staging",
+          "migrations_dir": "../../infrastructure/migraciones/tienda"
+        },
+        {
+          "binding": "tienda_control",
+          "database_name": "tienda_control_staging",
+          "migrations_dir": "../../infrastructure/migraciones/tienda-control"
+        }
+      ]
+    }
+  }
+}

@@ -6,15 +6,19 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  celdasDeLaTienda,
   celdasDelAgro,
   celdasDelParqueadero,
   MIGRACIONES_CORE,
   RUTA_WRANGLER_CORE,
   textoWranglerDelCore,
   wranglerDeLaCelda,
+  wranglerDeLaCeldaDeLaTienda,
   wranglerDeLaCeldaDelParqueadero,
   wranglerDelCore,
+  wranglerDelPanelDeLaTienda,
   wranglerDelSitio,
+  wranglerDelSitioDeLaTienda,
 } from '../../scripts/generar-wrangler.ts';
 import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 import {
@@ -370,6 +374,9 @@ describe('HU-C4.6 · el dominio de la cuenta', () => {
       wranglerDelCore(config),
       ...celdasDelAgro(config).map((c) => wranglerDeLaCelda(c, config.core)),
       ...celdasDelParqueadero(config).map((c) => wranglerDeLaCeldaDelParqueadero(c)),
+      ...celdasDeLaTienda(config).map((c) => wranglerDeLaCeldaDeLaTienda(c)),
+      wranglerDelSitioDeLaTienda(config),
+      wranglerDelPanelDeLaTienda(config),
     ];
     expect(dominiosEnStaging(generadas, deProduccion)).toEqual([]);
     // Control negativo: si staging hereda las rutas del CORE, se ve.

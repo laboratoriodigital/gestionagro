@@ -155,6 +155,11 @@
               }
             }
           },
+          "control": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{2,24}_control$",
+            "description": "La base de control del producto (<producto>_control, cargarCeldas lo exige): lo que tiene que ser único en todo el producto y no cabe en un shard, como los nombres cortos y los hostnames de la Tienda (TIENDA-3.0 anexo B, HU-T2.3). Una por despliegue: todas las celdas del producto nombran la misma."
+          },
           "shards": {
             "type": "array",
             "items": {

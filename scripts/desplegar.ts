@@ -1036,6 +1036,9 @@ for (const celda of plan.aDesplegar) {
     } else if (!prepara) {
       detalle.push(noSale('parqueadero', 'parqueadero'));
     }
+  } else if (celda.producto === 'tienda') {
+    // HU-T2.3: la celda de la Tienda nunca toma el camino del agro. Sus Workers, con HU-T2.4.
+    detalle.push('tienda: sus Workers llegan con HU-T2.4');
   } else if (paso.ok && productos.has('agro')) {
     paso = await desplegarApiCelda(configCeldas, celda, cred);
     detalle.push(...paso.detalle);
