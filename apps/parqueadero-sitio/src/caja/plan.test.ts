@@ -22,10 +22,10 @@ describe('los periodos del plan (CA1)', () => {
   it('salen de cobro en planes.json, con lo que sale al mes y lo que ahorra', () => {
     expect(PLAN_CON_NUBE).toBe('parqueadero');
     expect(periodosDe()).toEqual([
-      { meses: 1, total: 59_000, porMes: 59_000, ahorro: 0 },
-      { meses: 3, total: 168_000, porMes: 56_000, ahorro: 9_000 },
-      { meses: 6, total: 318_000, porMes: 53_000, ahorro: 36_000 },
-      { meses: 12, total: 590_000, porMes: 49_167, ahorro: 118_000 },
+      { meses: 1, total: 29_900, porMes: 29_900, ahorro: 0 },
+      { meses: 3, total: 85_000, porMes: 28_333, ahorro: 4_700 },
+      { meses: 6, total: 161_000, porMes: 26_833, ahorro: 18_400 },
+      { meses: 12, total: 299_000, porMes: 24_917, ahorro: 59_800 },
     ]);
   });
 

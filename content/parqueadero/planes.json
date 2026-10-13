@@ -1,6 +1,6 @@
 {
-  "nota": "Planes del Parqueadero ED1 (HU-Q7.1): la hipótesis del estudio de mercado §10.3, no precios decididos. «Gratis» es la caja de hoy, en un teléfono, sin cuenta ni respaldo (M0). «Parqueadero» llega con la cuenta (M1); su precio parte del medio de la banda del estudio (COP 49.000 a 69.000), el mismo con que el estudio §10.4 calcula la contribución, hasta que el dueño lo fije con el cliente. `cobro` da el monto por periodo de 1, 3, 6 y 12 meses con la regla de PLATAFORMA §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo), como el plan Finca del agro. Desde HU-C5.3 el CORE cobra en línea los periodos de `cobro` (los copia a `plan_precio`), y desde HU-Q7.10 la caja de staging los ofrece al propietario: el precio sigue siendo la hipótesis del estudio hasta que el dueño lo fije con el cliente, y la caja de producción no ofrece pagar hasta M1 (HU-Q7.12). «Varias sedes», «Copropiedad» y la factura electrónica esperan a su disparador (BACKLOG-PARKING, «Lo que no se hace»).",
-  "aviso_precio": "Precio de lanzamiento tentativo. La caja gratuita funciona hoy, sin cuenta; el plan Parqueadero llega con la sincronización y todavía no se cobra.",
+  "nota": "Planes del Parqueadero ED1 (HU-Q7.1), a partir del estudio de mercado §10.3. «Gratis» es la caja de hoy, en un teléfono, sin cuenta ni respaldo (M0). «Parqueadero» llega con la cuenta (M1): COP 29.900 al mes por sede, el precio que fijó el dueño el 13 oct 2026 (el estudio proponía de 49.000 a 69.000). `cobro` da el monto por periodo de 1, 3, 6 y 12 meses con la regla de PLATAFORMA §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo), como el plan Finca del agro. Desde HU-C5.3 el CORE cobra en línea los periodos de `cobro` (los copia a `plan_precio`), y desde HU-Q7.10 y HU-Q7.12 la caja los ofrece al propietario, en staging y en producción. «Varias sedes», «Copropiedad» y la factura electrónica esperan a su disparador (BACKLOG-PARKING, «Lo que no se hace»).",
+  "aviso_precio": "La caja gratuita funciona sin cuenta, en un teléfono. El plan Parqueadero, con la nube y varias cajas, cuesta COP 29.900 al mes por sede.",
   "planes": [
     {
       "id": "gratis",
@@ -19,20 +19,21 @@
     {
       "id": "parqueadero",
       "nombre": "Parqueadero",
-      "precio": "COP 49.000 a 69.000 al mes por sede",
+      "precio": "COP 29.900 al mes por sede",
       "cobro": {
-        "1": 59000,
-        "3": 168000,
-        "6": 318000,
-        "12": 590000
+        "1": 29900,
+        "3": 85000,
+        "6": 161000,
+        "12": 299000
       },
       "para_quien": "Para el parqueadero con varios cajeros o varias cajas.",
       "incluye": [
         "Todo lo del plan Gratis",
-        "Las cajas de la sede sincronizadas, sin repetir números (pronto)",
-        "Hasta 3 cajeros con su propio usuario (pronto)",
-        "Fotos del estado del vehículo por 30 días (pronto)",
-        "Mensualidades y reportes de todos los turnos (pronto)"
+        "Las cajas de la sede sincronizadas, sin repetir números",
+        "La copia del parqueadero en la nube y en su Google Drive",
+        "Fotos del estado del vehículo por 30 días, en su Google Drive",
+        "Mensualidades y reportes de todos los turnos",
+        "Hasta 3 cajeros con su propio usuario (pronto)"
       ]
     }
   ]
