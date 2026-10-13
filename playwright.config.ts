@@ -22,7 +22,8 @@ export default defineConfig({
   // En CI, 2 workers: el repositorio privado corre en equipos de GitHub de 2 núcleos, donde
   // Playwright tomaba 1 por defecto y las 204 pruebas iban en fila (~4 min, 5 oct 2026). Las
   // mediciones `@rendimiento` siguen con 1 worker (`--workers=1` en el script `e2e`). En local,
-  // el valor por defecto: la mitad de los núcleos.
+  // el valor por defecto: la mitad de los núcleos. 4 en 2 núcleos es más lento: el navegador
+  // trabaja todo el tiempo, no espera (12 oct 2026: 117 s con 2, 128 s con 4; bitácora core 11).
   ...(process.env['CI'] ? { workers: 2 } : {}),
   forbidOnly: Boolean(process.env['CI']),
   retries: 0,

@@ -8,6 +8,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import type { BaseD1 } from '@ed1/d1';
 import { catalogoDelDestino } from './productos.ts';
 import { type PlanDeOrganizacion, planesDeLaCelda } from './servicio.ts';
+import { concesionVigente } from './token-oauth.ts';
 
 interface EnvDelServicio {
   DB: BaseD1;
@@ -24,5 +25,13 @@ export class ServicioDelCore extends WorkerEntrypoint<EnvDelServicio> {
       Date.now(),
       desde ?? undefined,
     );
+  }
+
+  /**
+   * Si la concesión de un token de agente sigue viva (HU-C9.6 CA2). El recurso lo pregunta en cada
+   * solicitud: quitar el acceso corta la siguiente, sin esperar a que venza el token.
+   */
+  async concesionVigente(id: string): Promise<boolean> {
+    return concesionVigente(this.env.DB, id);
   }
 }

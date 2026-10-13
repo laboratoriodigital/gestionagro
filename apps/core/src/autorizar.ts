@@ -78,10 +78,15 @@ export function pedidoDe(fuente: (campo: string) => unknown): PedidoDeAutorizaci
   return p;
 }
 
+/** La dirección de cada recurso en este destino: staging nunca acepta el de producción. */
+export const recursoDelDestino = (r: { produccion: string; staging: string }, destino?: string) =>
+  destino === 'staging' ? r.staging : r.produccion;
+
 export async function validarSolicitud(
   e: Entorno,
   fetchFn: typeof fetch,
   p: PedidoDeAutorizacion,
+  destino?: string,
 ): Promise<Resultado> {
   if (!p.client_id) return { enLaPagina: 'Falta el asistente que pide acceso.' };
   const c = await clienteParaAutorizar(e, fetchFn, p.client_id);
@@ -101,7 +106,9 @@ export async function validarSolicitud(
   // CA3: el recurso es obligatorio y decide el producto (RFC 8707).
   if (!p.resource) return alCliente('invalid_target', 'Falta resource (RFC 8707).');
   const producto = e.catalogo.productos.find(
-    (x) => x.estado === 'activo' && (x.recursos_oauth ?? []).includes(p.resource as string),
+    (x) =>
+      x.estado === 'activo' &&
+      (x.recursos_oauth ?? []).some((r) => recursoDelDestino(r, destino) === p.resource),
   );
   if (!producto) return alCliente('invalid_target', 'Ese resource no es de ningún producto.');
   const pedidos = [...new Set((p.scope ?? '').split(' ').filter(Boolean))];
@@ -152,7 +159,7 @@ export async function inicioDeAutorizacion(
 ): Promise<Response> {
   const pedido = pedidoDe((campo) => c.req.query(campo));
   const emisor = new URL(c.req.url).origin;
-  const r = await validarSolicitud(e, fetchFn, pedido);
+  const r = await validarSolicitud(e, fetchFn, pedido, c.env.DESTINO);
   if ('enLaPagina' in r) return c.redirect(`/autorizar/#error=${encodeURIComponent(r.enLaPagina)}`);
   if ('alCliente' in r) {
     return c.redirect(
@@ -189,7 +196,7 @@ export async function decidirAutorizacion(
   const crudo = (cuerpo['pedido'] ?? {}) as Record<string, unknown>;
   const pedido = pedidoDe((campo) => crudo[campo]);
   const emisor = new URL(c.req.url).origin;
-  const r = await validarSolicitud(e, fetchFn, pedido);
+  const r = await validarSolicitud(e, fetchFn, pedido, c.env.DESTINO);
   if ('enLaPagina' in r) return c.json({ estado: 'invalida', motivo: r.enLaPagina }, 400);
   if ('alCliente' in r) {
     return c.json({

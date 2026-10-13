@@ -11,8 +11,16 @@
     "PLAN": "free",
     "PRESUPUESTO_USD_MES": "11",
     "AL_AGOTARSE": "",
-    "FILAS_D1_POR_PRODUCTO": "{\"parqueadero\":70000}"
+    "FILAS_D1_POR_PRODUCTO": "{\"parqueadero\":70000}",
+    "RECURSO_MCP": "https://mcp.cultivopro.co",
+    "EMISOR_OAUTH": "https://cuenta.laboratorio-digital.com"
   },
+  "routes": [
+    {
+      "pattern": "mcp.cultivopro.co",
+      "custom_domain": true
+    }
+  ],
   "d1_databases": [
     {
       "binding": "agro_c0_s1",
@@ -45,8 +53,11 @@
         "PLAN": "free",
         "PRESUPUESTO_USD_MES": "11",
         "AL_AGOTARSE": "",
-        "FILAS_D1_POR_PRODUCTO": "{\"parqueadero\":70000}"
+        "FILAS_D1_POR_PRODUCTO": "{\"parqueadero\":70000}",
+        "RECURSO_MCP": "https://agro-api-c0-staging.laboratoriodigital-la.workers.dev",
+        "EMISOR_OAUTH": "https://agro-core-staging.laboratoriodigital-la.workers.dev"
       },
+      "routes": [],
       "d1_databases": [
         {
           "binding": "agro_c0_s1",

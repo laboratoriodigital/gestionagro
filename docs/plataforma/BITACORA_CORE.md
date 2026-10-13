@@ -474,3 +474,27 @@ Al fusionar el C7 (#161, 12 oct 2026), el despliegue a staging se detuvo en c0 a
 La regla: **una guardia que puede detener producción se prueba primero contra el servicio de verdad en modo aviso, o con la prueba de que su sonda distingue. Una simulación que responde lo que uno supone no prueba la sonda.**
 
 *Ficha:* core · *(mío)* · 🟠 Alto (detuvo la publicación a staging) · P17, P1 · 0.5.0 · 2026-10-12
+
+**11 · «Cuatro pruebas en paralelo, porque los trabajos esperan» no valía aquí; las unitarias sí iban de a una.**
+El dueño pidió bajar los 10 minutos del primer CI de un PR (12 oct 2026) y validar una conclusión de la Tienda 2.0: correr 4 pruebas en paralelo porque los trabajos esperan.
+*Síntoma literal.* En la corrida del PR #163: «test 286.3 s» y «e2e 245.7 s»; el registro de Vitest decía «205 workers spawned · ~83ms startup each» y Playwright «Running 282 tests using 2 workers».
+*Causa raíz.* Vitest usa «núcleos − 1» procesos, y el repositorio es privado: sus equipos de GitHub tienen 2 núcleos, así que las unitarias corrían **de una en una**. Playwright ya usaba 2. La idea de la Tienda supone pruebas que esperan (red, servicios): las nuestras simulan todo en local y el navegador trabaja sin pausa.
+*Cómo se reprodujo.* Fijando el proceso a 2 núcleos (`start /affinity 3`) en la máquina del dueño. Unitarias (78 archivos): 1 proceso 109 s, 2 procesos 95 s, 4 procesos 94 s. E2E (71 pruebas): 2 procesos 117 s, 4 procesos 128 s. No es el equipo de GitHub (P17): sus núcleos son otros; la dirección del resultado es lo que vale.
+*Arreglo.* Vitest con 2 procesos en CI (`vitest.config.ts`). Playwright se queda en 2, con la medición escrita al lado. Lo que daría de verdad menos reloj es partir unitarias y e2e en dos trabajos que corran a la vez, pero cada trabajo más cobra su instalación: es una decisión del dueño entre reloj y minutos.
+**Lo prueba** la corrida del PR del C10, que se compara con la del #163: el paso «test» debe bajar. Sin control negativo propio: es una medición, y queda dicha como tal.
+
+La regla: **una conclusión de otro proyecto se mide en este antes de aplicarla: la máquina y el tipo de prueba deciden si esperar existe.**
+
+*Ficha:* core · *(compartido)* · 🟢 Bajo · P17, P7 · 0.6.0 · 2026-10-12
+
+**12 · El cuadro de texto de «Tus datos» era 18 px más ancho que el teléfono.**
+Al escribir la e2e de HU-C7.7 (12 oct 2026), la página de la cuenta se podía mover de lado a 360 px.
+*Síntoma literal.* «Expected: <= 360 · Received: 373», y con el `select` ya acotado, «TEXTAREA.ed1-campo__control portada__texto-largo 378».
+*Causa raíz.* `.ed1-campo__control` del sistema de diseño v2 tiene relleno y borde, pero ninguna regla le dice `box-sizing: border-box`: con `width: 100%`, el ancho del contenido es el de la columna y el relleno se suma por fuera. El cuaderno no lo sufre porque tiene su propio reinicio global; la cuenta usa solo el sistema de diseño. Hasta ahora ningún campo de la cuenta iba al 100 %.
+*Cómo se reprodujo.* La e2e en el proyecto `telefono-360`, nombrando cada elemento cuyo borde derecho pasa del ancho de la página.
+*Arreglo.* `box-sizing: border-box` en `.ed1-campo__control`, en el sistema de diseño y no en la cuenta: el próximo formulario de cualquier app lo hereda. El `select` además va al ancho de su columna, porque mide lo que su opción más larga.
+**Lo prueba** `tests/e2e/cuenta.spec.ts` (HU-C7.7): ningún elemento pasa del ancho de la página a 360 px, y axe sin violaciones. Control negativo: sin la regla, la misma prueba nombra el `textarea` y su borde en 378.
+
+La regla: **una e2e de teléfono no solo busca textos: dice qué elemento se sale. Un arreglo que vale para cualquier campo va al sistema de diseño, no a la página donde apareció.**
+
+*Ficha:* core · *(mío)* · 🟢 Bajo (no llegó a publicarse) · P17 · core-0.5.0 · 2026-10-12

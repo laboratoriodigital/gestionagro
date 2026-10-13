@@ -83,27 +83,47 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Construir (sitio, cuaderno y validación de wrangler)
         run: pnpm build
-      - name: Desplegar por celdas
+      # HU-C11.3 CA2 (opción B del dueño, 12 oct 2026): un paso por parte, en orden, y cada uno con
+      # solo sus secretos (`SECRETOS_DE_LA_PARTE` en scripts/lib/publicacion.ts; una prueba ata los
+      # dos). Una parte sin nada que desplegar termina en segundos. Si una falla, las de después no corren.
+      - name: Desplegar el CORE
         env:
+          # HU-E4.2 y HU-E0.7: entrar con Google y las llaves de Bold, solo para el Worker del CORE.
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          # HU-E8.2: token de solo lectura de métricas, para el vigía de cuota de la celda.
-          CF_METRICAS_TOKEN: ${{ secrets.CF_METRICAS_TOKEN }}
-          # HU-E8.3: alertas del vigía al dueño por Telegram.
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # HU-E4.2: el despliegue los carga como secretos del Worker del CORE, por stdin.
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          # HU-E0.7: llaves del Botón de pagos de Bold. Cada ambiente tiene solo las suyas.
           BOLD_IDENTIDAD_PRUEBAS: ${{ secrets.BOLD_IDENTIDAD_PRUEBAS }}
           BOLD_SECRETA_PRUEBAS: ${{ secrets.BOLD_SECRETA_PRUEBAS }}
           BOLD_IDENTIDAD_PRODUCCION: ${{ secrets.BOLD_IDENTIDAD_PRODUCCION }}
           BOLD_SECRETA_PRODUCCION: ${{ secrets.BOLD_SECRETA_PRODUCCION }}
+          # HU-C7.7: los radicados de la Ley 1581 le llegan al dueño por Telegram.
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           DESTINO: ${{ inputs.destino }}
           SOLO_CELDA: ${{ inputs.solo_celda }}
           PRODUCTOS: ${{ inputs.productos }}
-        run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA" --productos "$PRODUCTOS"
+        run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA" --productos "$PRODUCTOS" --parte core
+      - name: Desplegar el agro (celdas y sitio)
+        env:
+          # HU-E8.2 y HU-E8.3: el vigía de la celda mide con el token de métricas y avisa por Telegram.
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_METRICAS_TOKEN: ${{ secrets.CF_METRICAS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DESTINO: ${{ inputs.destino }}
+          SOLO_CELDA: ${{ inputs.solo_celda }}
+          PRODUCTOS: ${{ inputs.productos }}
+        run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA" --productos "$PRODUCTOS" --parte agro
+      - name: Desplegar el parqueadero
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          DESTINO: ${{ inputs.destino }}
+          SOLO_CELDA: ${{ inputs.solo_celda }}
+          PRODUCTOS: ${{ inputs.productos }}
+        run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA" --productos "$PRODUCTOS" --parte parqueadero
       # Solo si staging quedó desplegado: qué versiones del commit no tienen etiqueta (HU-C0.3).
       - id: leer
         name: Leer las versiones y buscar sus etiquetas

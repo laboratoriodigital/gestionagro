@@ -29,6 +29,8 @@ export interface PlanDeOrganizacion {
 /** El service binding del CORE, con su entrada `ServicioDelCore`. */
 export interface ServicioDelCore {
   planes(celda: string, desde: string | null): Promise<PlanDeOrganizacion[]>;
+  /** Si la concesión de un token de agente sigue viva (HU-C9.6); la usa el MCP (HU-C9.7). */
+  concesionVigente(id: string): Promise<boolean>;
 }
 
 /** La hora UTC de la vuelta completa: la 1:00 de Colombia, con la celda en calma. */

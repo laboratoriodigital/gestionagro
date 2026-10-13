@@ -32,7 +32,7 @@ const APIS: readonly Api[] = [
     nombre: 'agro',
     dir: join(RAIZ, 'apps', 'api-celda', 'src'),
     tablas: TABLAS_AGRO,
-    archivos: ['planes.ts', 'push.ts', 'pull.ts', 'qr.ts', 'worker.ts'],
+    archivos: ['mcp.ts', 'planes.ts', 'push.ts', 'pull.ts', 'qr.ts', 'worker.ts'],
     excepciones: {
       'select id, org_id from registro where id in':
         'busca el id en todas las organizaciones para saber si otra ya lo usa; el resultado solo se compara con la organización del token y nunca sale en la respuesta (push.ts)',

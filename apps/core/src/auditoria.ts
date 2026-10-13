@@ -26,7 +26,9 @@ export type Accion =
   /** La persona cerró una sesión, o todas menos la suya, desde su cuenta (HU-C7.5). */
   | 'sesion_cerrada'
   /** Una persona dio acceso a un agente sobre una organización (HU-C9.4). */
-  | 'concesion_creada';
+  | 'concesion_creada'
+  /** Se quitó el acceso de un agente: a pedido, o por reuso de un refresh (HU-C9.5, HU-C9.6). */
+  | 'concesion_revocada';
 
 export interface Hecho {
   instante: string;

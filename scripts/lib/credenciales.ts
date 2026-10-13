@@ -73,7 +73,9 @@ const SONDAS = {
  * El de métricas solo lee Account Analytics.
  */
 export const PERMISOS_DE_MAS: Readonly<Record<Proposito, readonly Sonda[]>> = {
-  despliegue: [SONDAS.tokens, SONDAS.r2, SONDAS.pages],
+  // «Zone → DNS» salió de observación el 12 oct 2026: en la publicación de CORE 0.4.0 respondió
+  // «sin permiso» en las tres zonas y el dominio propio de la cuenta respondía igual. No hace falta.
+  despliegue: [SONDAS.tokens, SONDAS.r2, SONDAS.pages, SONDAS.dns],
   metricas: [
     SONDAS.tokens,
     SONDAS.miembros,
@@ -100,11 +102,11 @@ const SECRETO: Readonly<Record<Proposito, string>> = {
 /**
  * Sondas que todavía no se han visto contra Cloudflare: avisan y no detienen (bitácora core 10:
  * una guardia que puede detener producción se prueba primero en modo aviso). «Zone → DNS» solo
- * corre en producción, y no está comprobado que los dominios propios de Workers no lo necesiten.
- * Cuando una corrida real muestre qué responde, pasa a `PERMISOS_DE_MAS` o sale.
+ * corría en producción sin haberse visto; la publicación de CORE 0.4.0 mostró que no hace falta
+ * y pasó a `PERMISOS_DE_MAS`. La próxima sonda nueva entra aquí primero.
  */
 export const EN_OBSERVACION: Readonly<Record<Proposito, readonly Sonda[]>> = {
-  despliegue: [SONDAS.dns],
+  despliegue: [],
   metricas: [],
 };
 

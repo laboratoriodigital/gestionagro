@@ -333,16 +333,19 @@ export function Planes() {
                   <li key={x}>{x}</li>
                 ))}
               </ul>
+              {/* Comparar los periodos es para todos (revisión del dueño, 12 oct 2026): sin cuenta
+                  o sin finca en la nube también se ve cuánto sale y cuánto se ahorra. Pagar, solo
+                  quien administra la finca. */}
+              {cobro !== null && elegido && periodos.length > 1 && quien !== 'cargando' && (
+                <ElegirPeriodo
+                  plan={p.id}
+                  periodos={periodos}
+                  elegido={elegido.meses}
+                  alElegir={(m) => setMeses({ ...meses, [p.id]: m })}
+                />
+              )}
               {cobro !== null && elegido && quien === 'propietario' && (
                 <div class="acciones-area" data-prueba="pagar-plan">
-                  {periodos.length > 1 && (
-                    <ElegirPeriodo
-                      plan={p.id}
-                      periodos={periodos}
-                      elegido={elegido.meses}
-                      alElegir={(m) => setMeses({ ...meses, [p.id]: m })}
-                    />
-                  )}
                   <button
                     type="button"
                     disabled={!enLinea || ocupado}

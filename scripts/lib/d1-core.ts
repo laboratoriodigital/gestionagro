@@ -114,6 +114,11 @@ export async function secretosDelCore(
     secreta: string | undefined;
     ambiente: 'pruebas' | 'produccion';
   } | null = null,
+  /** HU-C7.7: los radicados de la Ley 1581 le llegan al dueño por Telegram. Solo si están los dos. */
+  telegram: { token: string | undefined; chat: string | undefined } = {
+    token: undefined,
+    chat: undefined,
+  },
 ): Promise<Record<string, string>> {
   const sufijo = bold?.ambiente === 'produccion' ? 'PRODUCCION' : 'PRUEBAS';
   const mediaBold = bold && Boolean(bold.identidad) !== Boolean(bold.secreta);
@@ -137,6 +142,9 @@ export async function secretosDelCore(
           BOLD_SECRETA: bold.secreta,
           BOLD_AMBIENTE: bold.ambiente,
         }
+      : {}),
+    ...(telegram.token && telegram.chat
+      ? { TELEGRAM_BOT_TOKEN: telegram.token, TELEGRAM_CHAT_ID: telegram.chat }
       : {}),
     ...(existentes.includes('CORE_JWT_PRIVATE_KEY')
       ? {}

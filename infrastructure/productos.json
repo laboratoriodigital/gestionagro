@@ -47,7 +47,13 @@
         "usd_mes": 10,
         "al_agotarse": []
       },
-      "recursos_oauth": ["https://mcp.cultivopro.co"],
+      "recursos_oauth": [
+        {
+          "produccion": "https://mcp.cultivopro.co",
+          "staging": "https://agro-api-c0-staging.laboratoriodigital-la.workers.dev"
+        }
+      ],
+      "kill_switches": ["ks:agro-mcp"],
       "alcances": [
         {
           "id": "agro:registros:leer",

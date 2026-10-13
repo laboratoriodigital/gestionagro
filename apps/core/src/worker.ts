@@ -73,7 +73,15 @@ import {
 import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { claveAnteriorDe, clavesPublicadas } from './jwks.ts';
-import { cerrarSesiones, verActividad, verPagos, verSesiones } from './mi-cuenta.ts';
+import {
+  cerrarSesiones,
+  quitarAsistente,
+  verActividad,
+  verAsistentes,
+  verPagos,
+  verSesiones,
+} from './mi-cuenta.ts';
+import { misDatos, radicar, reintentarAvisos, verRadicados } from './mis-datos.ts';
 import { metadatosDelServidor, servidorOAuthActivo } from './oauth.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
@@ -87,11 +95,15 @@ import {
 } from './productos.ts';
 import { type ProveedorDePago, proveedorBold } from './proveedor-de-pago.ts';
 import { securityTxt } from './security-txt.ts';
+import { canjearToken, revocarToken } from './token-oauth.ts';
 
 export { ServicioDelCore } from './entrada-de-servicio.ts';
 export { PRODUCTO_CORE };
 
 export interface Env {
+  /** Bot y chat del dueño (HU-C7.7): los radicados de la Ley 1581 le llegan por Telegram. */
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_ID?: string;
   /** Base D1 del CORE (`agro_core`); el despliegue agrega su id (ADR-6). */
   DB: BaseD1;
   /** KV de flags de la celda (kill switch). */
@@ -353,6 +365,14 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/oauth/register', (c) =>
     servidorOAuthActivo(c.env.DESTINO) ? registrarCliente(c, c.get('entorno')) : c.notFound(),
   );
+  // HU-C9.5: el canje del código y del refresh. Lo llama el agente, desde cualquier origen.
+  app.post('/oauth/token', (c) =>
+    servidorOAuthActivo(c.env.DESTINO) ? canjearToken(c, c.get('entorno')) : c.notFound(),
+  );
+  // HU-C9.6: el agente devuelve su acceso (RFC 7009).
+  app.post('/oauth/revoke', (c) =>
+    servidorOAuthActivo(c.env.DESTINO) ? revocarToken(c, c.get('entorno')) : c.notFound(),
+  );
   // HU-C9.4: autorizar con consentimiento. La pantalla es la página estática /autorizar/.
   app.get('/oauth/authorize', (c) =>
     servidorOAuthActivo(c.env.DESTINO)
@@ -380,6 +400,20 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/api/core/cuenta/sesiones/cerrar', (c) => cerrarSesiones(c, c.get('entorno')));
   app.post('/api/core/cuenta/pagos', (c) => verPagos(c, c.get('entorno')));
   app.post('/api/core/cuenta/actividad', (c) => verActividad(c, c.get('entorno')));
+  // HU-C9.6: los asistentes con acceso, y quitarlo.
+  app.post('/api/core/cuenta/asistentes', (c) => verAsistentes(c, c.get('entorno')));
+  app.post('/api/core/cuenta/asistentes/quitar', (c) => quitarAsistente(c, c.get('entorno')));
+  // HU-C7.7: tus datos (Ley 1581).
+  app.post('/api/core/cuenta/mis-datos', (c) => misDatos(c, c.get('entorno')));
+  app.post('/api/core/cuenta/radicados', (c) => verRadicados(c, c.get('entorno')));
+  app.post('/api/core/cuenta/radicar', (c) =>
+    radicar(
+      c,
+      c.get('entorno'),
+      { token: c.env.TELEGRAM_BOT_TOKEN, chat: c.env.TELEGRAM_CHAT_ID },
+      fetchDeLaRed,
+    ),
+  );
   app.post('/api/core/cuenta/autorizar', (c) =>
     servidorOAuthActivo(c.env.DESTINO)
       ? decidirAutorizacion(c, c.get('entorno'), fetchDeLaRed)
@@ -440,6 +474,16 @@ export default {
       ).then((r) => {
         if (r.revisados > 0)
           console.log(`agro-core: conciliados ${r.cerrados} de ${r.revisados} pagos`);
+      }),
+    );
+    // HU-C7.7: los avisos de radicados que no salieron se reintentan en la misma vuelta.
+    ctx.waitUntil(
+      reintentarAvisos(
+        env.DB,
+        { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
+        Date.now(),
+      ).then((n) => {
+        if (n > 0) console.log(`agro-core: ${n} aviso(s) de radicados enviados`);
       }),
     );
   },
