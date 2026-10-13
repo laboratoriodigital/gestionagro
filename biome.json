@@ -17,6 +17,9 @@
       "!apps/core/src/catalogo.generado.json",
       "!apps/ensayo/wrangler.jsonc",
       "!apps/parqueadero-sitio/wrangler.jsonc",
+      "!apps/tienda-api/wrangler.c*.jsonc",
+      "!apps/tienda-sitio/wrangler.jsonc",
+      "!apps/tienda-panel/wrangler.jsonc",
       "!packages/ui/src/v2/tokens.css",
       "!packages/ui/src/v2/fuentes.css",
       "!schemas/agro-export.schema.json"

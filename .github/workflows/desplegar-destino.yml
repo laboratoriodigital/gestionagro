@@ -124,6 +124,20 @@ jobs:
           SOLO_CELDA: ${{ inputs.solo_celda }}
           PRODUCTOS: ${{ inputs.productos }}
         run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA" --productos "$PRODUCTOS" --parte parqueadero
+      # HU-T2.4: la Tienda, sola en su paso. Mientras no tenga tiendas (hasta HU-T2.9) no detiene la
+      # publicación de los otros productos: si falla, el paso queda en rojo y el resumen dice por qué,
+      # pero el trabajo sigue. Sin SECRETO_DESPACHO en el ambiente, falla diciendo cómo generarlo.
+      - name: Desplegar la Tienda
+        continue-on-error: true
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          SECRETO_DESPACHO: ${{ secrets.SECRETO_DESPACHO }}
+          TIENDA_KEK_V1: ${{ secrets.TIENDA_KEK_V1 }}
+          DESTINO: ${{ inputs.destino }}
+          SOLO_CELDA: ${{ inputs.solo_celda }}
+          PRODUCTOS: ${{ inputs.productos }}
+        run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA" --productos "$PRODUCTOS" --parte tienda
       # Solo si staging quedó desplegado: qué versiones del commit no tienen etiqueta (HU-C0.3).
       - id: leer
         name: Leer las versiones y buscar sus etiquetas

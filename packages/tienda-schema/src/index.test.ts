@@ -19,7 +19,7 @@ import {
 } from './index.ts';
 
 const SQL = readFileSync(
-  join(import.meta.dirname, '../../../docs/tienda/sql/tienda/0001_tienda_v1.sql'),
+  join(import.meta.dirname, '../../../infrastructure/migraciones/tienda/0001_tienda_v1.sql'),
   'utf8',
 );
 

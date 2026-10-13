@@ -10,10 +10,10 @@
 > - Se heredan sus **lecciones**: los patrones P1–P21 y lo que se probó en producción (§2).
 > - Los datos de las dos tiendas en operación entran después, con el formato de carga de §17. Su contrato de puertas sirve como **lista de paridad**, no como contrato (anexo C).
 >
-> **El SQL no es un borrador.** El modelo de datos de §5 está en `sql/tienda/` y `sql/tienda-control/`, con su prueba: `node docs/tienda/sql/probar-tienda.mjs docs/tienda/sql/tienda/0001_tienda_v1.sql docs/tienda/sql/tienda-control/0001_control_v1.sql`. Son 82 comprobaciones, en verde el 5 oct 2026 con `node:sqlite` 3.50.4. El texto completo está en los anexos A y B.
+> **El SQL no es un borrador.** El modelo de datos de §5 está en `infrastructure/migraciones/tienda/` y `infrastructure/migraciones/tienda-control/`, donde lo aplica el despliegue, con su prueba: `tests/repo/shard-tienda.test.ts`. Son 82 comprobaciones, en verde el 5 oct 2026 con `node:sqlite` 3.50.4 y, desde HU-T2.1 (13 oct 2026), también en el D1 local de workerd. El texto completo está en los anexos A y B, y la prueba falla si dejan de ser copias de los archivos.
 >
 > **Versión 0.2 (5 oct 2026, tarde).** Integra el estudio de mercado definitivo (v1.3, complementos [C1]–[C13]) y cuatro decisiones del dueño:
-> - todo en la cuenta de Cloudflare de siempre, con Workers Paid desde M0;
+> - todo en la cuenta de Cloudflare de siempre, con Workers Paid desde M0 *(hoy: en el plan gratuito hasta que un dato exija Workers Paid, decisión del dueño del 6 oct 2026; lo que eso deja abierto está en la bitácora tienda3 7)*;
 > - las tiendas en `laboratorio-digital.app`, y sin la Public Suffix List (§4.1);
 > - planes de 1, 3, 6 y 12 meses, con los cuatro niveles hipotéticos del estudio (§1.4);
 > - el repositorio `plataforma`.
@@ -449,7 +449,7 @@ El DDL completo, con un comentario en cada decisión, está en el anexo A. Aquí
 
 ### 5.4 Lo que garantiza la base, y lo que garantiza el código
 
-**La base** (comprobado en `probar-tienda.mjs`, 82 comprobaciones):
+**La base** (comprobado en `tests/repo/shard-tienda.test.ts`, 82 comprobaciones):
 
 - No hay sobreventa: el segundo comprador de la última unidad falla entero, sin pedido ni cobro, y el consecutivo no avanza.
 - El inventario no queda negativo: un pago tardío sin unidades no descuenta y toma el camino «aprobado sin existencias».
@@ -1305,6 +1305,8 @@ Lo incluido lo comparten el agro y el CORE. Hoy consumen una fracción, que el v
 
 ### 15.3 Crons (con Workers Paid)
 
+> *Hoy, en el plan gratuito, queda un cron libre de los 5 de la cuenta: cómo caben estas frecuencias es la decisión D-T10 del backlog (bitácora tienda3 7).*
+
 | Frecuencia | Qué hace |
 |---|---|
 | 5 min | Apartados vencidos. Estado de los hostnames en validación |
@@ -1358,7 +1360,7 @@ Se escriben con el hito que los necesita:
 | Capa | Qué se prueba |
 |---|---|
 | Funciones puras | `dinero` (tabla de casos: cupones, redondeo, reparto por mayor residuo), `calendario` (festivos por año, Semana Santa, prórrogas), `tienda-schema` (cada sección, cada versión), `tienda-horno` (archivos dorados; **mismo resultado en Node y en workerd**, P17) |
-| Base | Este esquema en D1 local con `getPlatformProxy`: las 82 comprobaciones de `probar-tienda.mjs`, más la receta de reconstrucción (`PLATAFORMA.md` §4.4) |
+| Base | Este esquema en D1 local con `getPlatformProxy`: las 82 comprobaciones de `tests/repo/shard-tienda.test.ts` (HU-T2.1), más la receta de reconstrucción (`PLATAFORMA.md` §4.4) |
 | API con D1 local | Cotizar, pedir, cobrar, avisos con vectores de firma (llave real y vacía), conciliación con un Bold falso que implementa de verdad la firma y los estados (P17), permisos de la matriz, concurrencia optimista e idempotencia |
 | e2e (Playwright, 360 px, axe) | Comprador: catálogo → WhatsApp; catálogo → pago con Bold en el ambiente de pruebas, en staging, de punta a punta (P16); pedido contra entrega → confirmar por WhatsApp → despachar → recaudar → liquidar; pedido del chat → link de pago → pagado. Comercio: producto con variantes y fotos → publicar → volver atrás; colaborador con sus límites. Agente: un cliente MCP prepara un pedido y la persona lo confirma |
 | Caos | La última unidad entre 50 compradores. Avisos repetidos y en desorden. Bold con 5xx y 429. KV con un hostname viejo. Horno que falla a la mitad. Publicar mientras entran pedidos |
@@ -1577,9 +1579,9 @@ Consultadas el 5 oct 2026 por los investigadores de esta sesión. El proxy bloqu
 
 ---
 
-## Anexo A · Esquema del shard de tiendas (`sql/tienda/0001_tienda_v1.sql`)
+## Anexo A · Esquema del shard de tiendas (`infrastructure/migraciones/tienda/0001_tienda_v1.sql`)
 
-Copia del archivo probado. Si difieren, manda el archivo, y una prueba debería atarlos cuando el esquema pase a `infrastructure/migraciones/tienda/` (P18).
+Copia del archivo probado. Si difieren, manda el archivo, y la prueba `tests/repo/shard-tienda.test.ts` falla (HU-T2.1, P18).
 
 ```sql
 -- Tienda 3.0 · shard de una celda de tiendas (`tienda_c{N}_s{k}`), migración 0001.
@@ -2412,7 +2414,7 @@ BEGIN
 END;
 ```
 
-## Anexo B · Base de control (`sql/tienda-control/0001_control_v1.sql`)
+## Anexo B · Base de control (`infrastructure/migraciones/tienda-control/0001_control_v1.sql`)
 
 ```sql
 -- Tienda 3.0 · base de control `tienda_control` (una por despliegue del producto, sin shards).

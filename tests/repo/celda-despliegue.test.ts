@@ -59,7 +59,8 @@ describe('configuración de la API por celda (P2, ADR-6)', () => {
   );
 
   it('las URL de la API siguen el nombre del Worker de cada celda, con su producto', () => {
-    for (const c of real.celdas) {
+    // La Tienda no: su API no tiene URL propia y se llega a ella por el panel (HU-T2.3).
+    for (const c of real.celdas.filter((x) => x.producto !== 'tienda')) {
       expect(new URL(c.api).hostname.split('.')[0]).toBe(`${c.producto}-api-${c.id}`);
       expect(new URL(c.api_staging).hostname.split('.')[0]).toBe(
         `${c.producto}-api-${c.id}-staging`,

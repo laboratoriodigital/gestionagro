@@ -21,6 +21,8 @@ export interface Celda {
   api: string;
   api_staging: string;
   shards: string[];
+  /** La base de control del producto (`<producto>_control`), si la tiene: la Tienda (HU-T2.3). */
+  control?: string;
 }
 
 export interface ConfigCeldas {
@@ -71,6 +73,14 @@ export function cargarCeldas(
     throw new Error(
       `celdas.json tiene shards que no llevan el producto y la celda en el nombre: ${shardsAjenos.join(', ')}`,
     );
+  }
+  // HU-T2.3: la base de control lleva el nombre de su producto, y es una sola por producto.
+  for (const c of config.celdas.filter((x) => x.control !== undefined)) {
+    if (c.control !== `${c.producto}_control`) {
+      throw new Error(
+        `celdas.json: la base de control de ${c.id} es «${c.control}»; debe ser ${c.producto}_control`,
+      );
+    }
   }
   for (const [quien, celdaId] of [
     ['El sitio', config.sitio.celda],

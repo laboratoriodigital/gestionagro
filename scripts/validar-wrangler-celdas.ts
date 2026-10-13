@@ -1,14 +1,14 @@
 /**
- * `node scripts/validar-wrangler-celdas.ts [agro|parqueadero]` (build de apps/api-celda, HU-E5.1, y
- * de apps/parqueadero-api, HU-Q7.4): valida con `wrangler deploy --dry-run` la configuración
- * generada de cada celda del producto, en producción y staging. Las celdas salen de celdas.json
- * (P2): una celda nueva se valida sin tocar este script. Node y el binario de wrangler, sin shell
- * (P3).
+ * `node scripts/validar-wrangler-celdas.ts [agro|parqueadero|tienda]` (build de apps/api-celda,
+ * HU-E5.1, de apps/parqueadero-api, HU-Q7.4, y de apps/tienda-api, HU-T2.4): valida con
+ * `wrangler deploy --dry-run` la configuración generada de cada celda del producto, en producción y
+ * staging. Las celdas salen de celdas.json (P2): una celda nueva se valida sin tocar este script.
+ * Node y el binario de wrangler, sin shell (P3).
  */
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import { celdasDelAgro, celdasDelParqueadero } from './generar-wrangler.ts';
+import { celdasDeLaTienda, celdasDelAgro, celdasDelParqueadero } from './generar-wrangler.ts';
 import { cargarCeldas } from './lib/celdas.ts';
 import { RAIZ } from './lib/repo.ts';
 
@@ -16,9 +16,10 @@ const producto = process.argv[2] ?? 'agro';
 const PRODUCTOS = {
   agro: { dir: join(RAIZ, 'apps', 'api-celda'), celdas: celdasDelAgro },
   parqueadero: { dir: join(RAIZ, 'apps', 'parqueadero-api'), celdas: celdasDelParqueadero },
+  tienda: { dir: join(RAIZ, 'apps', 'tienda-api'), celdas: celdasDeLaTienda },
 } as const;
 if (!(producto in PRODUCTOS)) {
-  console.error(`❌ producto desconocido: ${producto} (agro o parqueadero)`);
+  console.error(`❌ producto desconocido: ${producto} (agro, parqueadero o tienda)`);
   process.exit(1);
 }
 const { dir, celdas } = PRODUCTOS[producto as keyof typeof PRODUCTOS];

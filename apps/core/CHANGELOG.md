@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- El catálogo conoce la Tienda, pausada (HU-T2.2): con sus planes y su política, pero el CORE no crea tiendas ni cobra sus planes mientras siga pausada.
+
 ## [0.5.0] - 2026-10-13
 
 Lo de C10 que estaba en `main` y lo que M1 del parqueadero necesita del CORE en producción.

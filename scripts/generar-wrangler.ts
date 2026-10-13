@@ -1,7 +1,7 @@
 /**
  * `node scripts/generar-wrangler.ts`: genera `apps/sitio/wrangler.jsonc` (HU-E1.5, CA1) y
- * `apps/core/wrangler.jsonc` (HU-E4.1) desde `celdas.json`. No se editan a mano; una prueba exige
- * que sean los generados (P2).
+ * `apps/core/wrangler.jsonc` (HU-E4.1) desde `celdas.json`, y las de las apps del parqueadero y de
+ * la Tienda (HU-T2.3). No se editan a mano; una prueba exige que sean los generados (P2).
  *
  * - El sitio es asset estático; solo `/api/*` ejecuta el Worker (ED1 [H3]).
  * - Ningún id de cuenta en el archivo: wrangler lo toma de `CLOUDFLARE_ACCOUNT_ID` (ADR-6).
@@ -332,6 +332,134 @@ export function wranglerDeLaCeldaDelParqueadero(celda: Celda): Record<string, un
 export const textoWranglerDeLaCeldaDelParqueadero = (celda: Celda): string =>
   comoTexto(wranglerDeLaCeldaDelParqueadero(celda));
 
+/**
+ * La Tienda 3.0 (HU-T2.3, TIENDA-3.0 §3.1): tres Workers que salen de las celdas de la Tienda en
+ * `celdas.json`, nunca escritos a mano (P2).
+ *
+ * - `tienda-api-<celda>`: Hono, **sin rutas ni workers.dev** (`workers_dev: false`). Solo se llega por
+ *   los bindings de servicio del despacho y del panel, así la cabecera con la tienda que resolvió el
+ *   despacho es confiable (TIENDA §14.1). Un binding D1 por shard y la base de control del producto.
+ * - `tienda-sitio`: el despacho por `Host`, con un binding a la API de cada celda (`API_C1`).
+ * - `tienda-panel`: solo assets; el Worker corre únicamente en `/api/*`, que pasa a la API.
+ *
+ * Staging vive en workers.dev mientras no haya tiendas (HU-T2.4): las direcciones
+ * `<slug>--staging.laboratorio-digital.app` llegan con los comercios de prueba (HU-T2.6). Producción
+ * no lleva rutas hasta que la Tienda salga a producción (HU-T2.9): no se declara lo que todavía no
+ * existe (P1), y un despliegue a producción por error no toma ningún hostname. Los ids de las bases
+ * y de los KV (flags y `TIENDA_HOSTS`) los agrega el despliegue, fuera de git (ADR-6).
+ */
+export const celdasDeLaTienda = (config: ConfigCeldas): Celda[] =>
+  config.celdas.filter((c) => c.producto === 'tienda');
+
+/** Migraciones del shard y de la base de control, relativas a apps/tienda-api. */
+export const MIGRACIONES_TIENDA = '../../infrastructure/migraciones/tienda';
+export const MIGRACIONES_TIENDA_CONTROL = '../../infrastructure/migraciones/tienda-control';
+export const rutaWranglerCeldaDeLaTienda = (celdaId: string) =>
+  join(RAIZ, 'apps', 'tienda-api', `wrangler.${celdaId}.jsonc`);
+export const WORKER_TIENDA_SITIO = 'tienda-sitio';
+export const WORKER_TIENDA_PANEL = 'tienda-panel';
+export const RUTA_WRANGLER_TIENDA_SITIO = join(RAIZ, 'apps', 'tienda-sitio', 'wrangler.jsonc');
+export const RUTA_WRANGLER_TIENDA_PANEL = join(RAIZ, 'apps', 'tienda-panel', 'wrangler.jsonc');
+
+export const workerDeLaApiDeLaTienda = (celdaId: string, staging = false) =>
+  `tienda-api-${celdaId}${staging ? '-staging' : ''}`;
+/** El binding con que el despacho y el panel llegan a la API de una celda: `API_C1`. */
+export const bindingDeLaApi = (celdaId: string) => `API_${celdaId.toUpperCase()}`;
+
+export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknown> {
+  if (!celda.control) throw new Error(`la celda ${celda.id} de la Tienda no declara su control`);
+  const control = celda.control;
+  const bases = (staging: boolean) => [
+    ...celda.shards.map((shard) => ({
+      binding: shard,
+      database_name: baseDelShard(shard, staging),
+      migrations_dir: MIGRACIONES_TIENDA,
+    })),
+    {
+      binding: control,
+      database_name: baseDelShard(control, staging),
+      migrations_dir: MIGRACIONES_TIENDA_CONTROL,
+    },
+  ];
+  const vars = { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan };
+  return {
+    $schema: '../../node_modules/wrangler/config-schema.json',
+    name: workerDeLaApiDeLaTienda(celda.id),
+    main: 'src/worker.ts',
+    compatibility_date: FECHA_COMPATIBILIDAD,
+    workers_dev: false,
+    vars,
+    d1_databases: bases(false),
+    observability: { enabled: true },
+    env: {
+      staging: {
+        name: workerDeLaApiDeLaTienda(celda.id, true),
+        workers_dev: false,
+        vars,
+        d1_databases: bases(true),
+      },
+    },
+  };
+}
+
+const serviciosDeLaTienda = (config: ConfigCeldas, staging: boolean) =>
+  celdasDeLaTienda(config)
+    .filter((c) => c.estado === 'activa')
+    .map((c) => ({
+      binding: bindingDeLaApi(c.id),
+      service: workerDeLaApiDeLaTienda(c.id, staging),
+    }));
+
+export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string, unknown> {
+  return {
+    $schema: '../../node_modules/wrangler/config-schema.json',
+    name: WORKER_TIENDA_SITIO,
+    main: 'src/worker.ts',
+    compatibility_date: FECHA_COMPATIBILIDAD,
+    workers_dev: false,
+    routes: [],
+    services: serviciosDeLaTienda(config, false),
+    observability: { enabled: true },
+    env: {
+      staging: {
+        name: `${WORKER_TIENDA_SITIO}-staging`,
+        workers_dev: true,
+        routes: [],
+        services: serviciosDeLaTienda(config, true),
+      },
+    },
+  };
+}
+
+export function wranglerDelPanelDeLaTienda(config: ConfigCeldas): Record<string, unknown> {
+  return {
+    $schema: '../../node_modules/wrangler/config-schema.json',
+    name: WORKER_TIENDA_PANEL,
+    main: 'src/worker.ts',
+    compatibility_date: FECHA_COMPATIBILIDAD,
+    assets: { directory: './dist', binding: 'ASSETS', run_worker_first: ['/api/*'] },
+    workers_dev: false,
+    routes: [],
+    services: serviciosDeLaTienda(config, false),
+    observability: { enabled: true },
+    env: {
+      staging: {
+        name: `${WORKER_TIENDA_PANEL}-staging`,
+        workers_dev: true,
+        routes: [],
+        services: serviciosDeLaTienda(config, true),
+      },
+    },
+  };
+}
+
+export const textoWranglerDeLaCeldaDeLaTienda = (celda: Celda): string =>
+  comoTexto(wranglerDeLaCeldaDeLaTienda(celda));
+export const textoWranglerDelSitioDeLaTienda = (config: ConfigCeldas): string =>
+  comoTexto(wranglerDelSitioDeLaTienda(config));
+export const textoWranglerDelPanelDeLaTienda = (config: ConfigCeldas): string =>
+  comoTexto(wranglerDelPanelDeLaTienda(config));
+
 if (process.argv[1]?.endsWith('generar-wrangler.ts')) {
   const config = cargarCeldas();
   writeFileSync(RUTA_WRANGLER_SITIO, textoWranglerDelSitio(config));
@@ -347,6 +475,19 @@ if (process.argv[1]?.endsWith('generar-wrangler.ts')) {
       textoWranglerDeLaCeldaDelParqueadero(celda),
     );
     deCeldas.push(rutaWranglerCeldaDelParqueadero(celda.id));
+  }
+  for (const celda of celdasDeLaTienda(config)) {
+    mkdirSync(join(RAIZ, 'apps', 'tienda-api'), { recursive: true });
+    writeFileSync(rutaWranglerCeldaDeLaTienda(celda.id), textoWranglerDeLaCeldaDeLaTienda(celda));
+    deCeldas.push(rutaWranglerCeldaDeLaTienda(celda.id));
+  }
+  for (const [ruta, texto] of [
+    [RUTA_WRANGLER_TIENDA_SITIO, textoWranglerDelSitioDeLaTienda(config)],
+    [RUTA_WRANGLER_TIENDA_PANEL, textoWranglerDelPanelDeLaTienda(config)],
+  ] as const) {
+    mkdirSync(join(ruta, '..'), { recursive: true });
+    writeFileSync(ruta, texto);
+    deCeldas.push(ruta);
   }
   writeFileSync(RUTA_WRANGLER_ENSAYO, comoTexto(wranglerDeEnsayo()));
   writeFileSync(RUTA_WRANGLER_PARQUEADERO, textoWranglerDelParqueadero());

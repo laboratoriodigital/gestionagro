@@ -9,9 +9,9 @@
     "CELDA": "c0",
     "PRODUCTO": "agro",
     "PLAN": "free",
-    "PRESUPUESTO_USD_MES": "11",
+    "PRESUPUESTO_USD_MES": "12",
     "AL_AGOTARSE": "",
-    "FILAS_D1_POR_PRODUCTO": "{\"parqueadero\":70000}",
+    "FILAS_D1_POR_PRODUCTO": "{\"parqueadero\":70000,\"tienda\":5000}",
     "RECURSO_MCP": "https://mcp.cultivopro.co",
     "EMISOR_OAUTH": "https://cuenta.laboratorio-digital.com"
   },
@@ -51,9 +51,9 @@
         "CELDA": "c0",
         "PRODUCTO": "agro",
         "PLAN": "free",
-        "PRESUPUESTO_USD_MES": "11",
+        "PRESUPUESTO_USD_MES": "12",
         "AL_AGOTARSE": "",
-        "FILAS_D1_POR_PRODUCTO": "{\"parqueadero\":70000}",
+        "FILAS_D1_POR_PRODUCTO": "{\"parqueadero\":70000,\"tienda\":5000}",
         "RECURSO_MCP": "https://agro-api-c0-staging.laboratoriodigital-la.workers.dev",
         "EMISOR_OAUTH": "https://agro-core-staging.laboratoriodigital-la.workers.dev"
       },

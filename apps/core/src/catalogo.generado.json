@@ -3,6 +3,7 @@
     "politicas": {
       "agro": "3",
       "parqueadero": "3",
+      "tienda": "1",
       "cuenta": "1"
     },
     "planes": {
@@ -46,6 +47,43 @@
             "3": 85000,
             "6": 161000,
             "12": 299000
+          }
+        }
+      ],
+      "tienda": [
+        {
+          "id": "gratis",
+          "nombre": "Gratis",
+          "gratuito": true
+        },
+        {
+          "id": "entrada",
+          "nombre": "Entrada",
+          "cobro": {
+            "1": 29900,
+            "3": 85000,
+            "6": 161000,
+            "12": 299000
+          }
+        },
+        {
+          "id": "intermedio",
+          "nombre": "Intermedio",
+          "cobro": {
+            "1": 89900,
+            "3": 256000,
+            "6": 485000,
+            "12": 899000
+          }
+        },
+        {
+          "id": "alto",
+          "nombre": "Alto",
+          "cobro": {
+            "1": 249900,
+            "3": 712000,
+            "6": 1349000,
+            "12": 2499000
           }
         }
       ],
