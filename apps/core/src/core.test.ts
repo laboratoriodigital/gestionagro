@@ -68,8 +68,8 @@ describe('CA1 · las tablas son las de ARQUITECTURA §5.4, y ninguna más', () =
       )
       .all<{ name: string }>();
     // 9 del CORE v0, 7 de la dimensión de producto (0006, HU-C2.2), la auditoría (0007, HU-C2.4) y
-    // las 5 de OAuth para agentes (0008, HU-C9.2).
-    expect(delDocumento).toHaveLength(22);
+    // las 5 de OAuth para agentes (0008, HU-C9.2) y los radicados de datos (0009, HU-C7.7).
+    expect(delDocumento).toHaveLength(23);
     expect(results.map((r) => r.name)).toEqual(delDocumento);
   });
 });

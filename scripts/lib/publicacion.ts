@@ -131,7 +131,7 @@ export type Parte = (typeof PARTES)[number];
 
 const CLOUDFLARE = ['CF_API_TOKEN', 'CF_ACCOUNT_ID'] as const;
 export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = {
-  // Entrar con Google y cobrar con Bold son del CORE.
+  // Entrar con Google, cobrar con Bold y avisar de los radicados de datos son del CORE.
   core: [
     ...CLOUDFLARE,
     'GOOGLE_CLIENT_ID',
@@ -140,6 +140,9 @@ export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = 
     'BOLD_SECRETA_PRUEBAS',
     'BOLD_IDENTIDAD_PRODUCCION',
     'BOLD_SECRETA_PRODUCCION',
+    // HU-C7.7: los radicados de la Ley 1581 le llegan al dueño por Telegram.
+    'TELEGRAM_BOT_TOKEN',
+    'TELEGRAM_CHAT_ID',
   ],
   // El vigía de la celda del agro mide con el token de métricas y avisa por Telegram.
   agro: [...CLOUDFLARE, 'CF_METRICAS_TOKEN', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'],

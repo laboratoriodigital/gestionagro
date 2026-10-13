@@ -53,13 +53,14 @@ describe('HU-C11.3 CA2 · el despliegue por partes', () => {
     },
   );
 
-  it('❌ · las llaves de Bold y de Google solo llegan al CORE; Telegram solo al agro', () => {
+  it('❌ · las llaves de Bold y de Google solo llegan al CORE; Telegram, al CORE y al agro', () => {
     for (const paso of pasosDelDespliegue) {
       const s = secretosDe(paso);
       const esCore = paso.run?.includes('--parte core');
       expect(s.some((x) => x.startsWith('BOLD_') || x.startsWith('GOOGLE_'))).toBe(Boolean(esCore));
+      // El vigía de la celda (HU-E8.3) y los radicados de la Ley 1581 (HU-C7.7); el parqueadero, no.
       expect(s.some((x) => x.startsWith('TELEGRAM_'))).toBe(
-        Boolean(paso.run?.includes('--parte agro')),
+        !paso.run?.includes('--parte parqueadero'),
       );
     }
     // Ningún otro paso del trabajo recibe secretos de Cloudflare ni de las apps.

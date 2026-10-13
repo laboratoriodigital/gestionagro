@@ -1,0 +1,10 @@
+{
+  "name": "@ed1/telegram",
+  "version": "0.1.0",
+  "private": true,
+  "description": "El aviso al dueño por Telegram (HU-E8.3, ADR-16): una sola forma de enviarlo para la celda (el vigía) y el CORE (los radicados de la Ley 1581, HU-C7.7).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

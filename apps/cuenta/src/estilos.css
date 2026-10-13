@@ -228,6 +228,66 @@
   margin: 0;
 }
 
+/* ── Tus datos (HU-C7.7) ───────────────────────────────────────────────── */
+
+.portada__datos,
+.portada__radicar {
+  display: grid;
+  gap: var(--espacio-4);
+}
+
+.portada__descarga {
+  display: grid;
+  gap: var(--espacio-2);
+  justify-items: start;
+}
+
+.portada__radicar {
+  padding-top: var(--espacio-4);
+}
+
+.portada__radicar .ed1-campo {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* El select mide lo que su opción más larga: en un teléfono, el ancho de la columna. */
+.portada__radicar .ed1-campo__control {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.portada__radicar > .ed1-boton {
+  justify-self: start;
+}
+
+.portada__subtitulo-menor {
+  margin: 0;
+  font-size: var(--texto-titulo-3);
+  font-weight: var(--peso-fuerte);
+}
+
+.portada__texto-largo {
+  padding-block: var(--espacio-3);
+  resize: vertical;
+}
+
+.portada__radicado {
+  padding: var(--espacio-4) var(--espacio-6);
+  border-inline-start: 3px solid var(--exito);
+  border-radius: var(--radio-campo);
+  background: var(--superficie-2);
+}
+
+.portada__radicado[hidden] {
+  display: none;
+}
+
+.portada__radicado p {
+  margin: 0;
+}
+
 /* ── Dar acceso a un asistente (HU-C9.4) ───────────────────────────────── */
 
 .autorizar__solicitud {

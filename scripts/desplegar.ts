@@ -470,6 +470,7 @@ async function desplegarCore(
             secreta: process.env['BOLD_SECRETA_PRUEBAS'],
             ambiente: 'pruebas',
           },
+      { token: process.env['TELEGRAM_BOT_TOKEN'], chat: process.env['TELEGRAM_CHAT_ID'] },
     );
   } catch (e) {
     return { ok: false, detalle: [`CORE: ${(e as Error).message}`] };

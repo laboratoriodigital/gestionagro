@@ -15,6 +15,7 @@ async function loMioVacio(page: Page) {
     ['pagos', { pagos: [] }],
     ['actividad', { hechos: [] }],
     ['asistentes', { asistentes: [] }],
+    ['radicados', { radicados: [] }],
   ] as const) {
     await page.route(`${CUENTA}/api/core/cuenta/${ruta}`, (r) => r.fulfill({ json }));
   }
@@ -387,4 +388,86 @@ test('HU-C9.6 · los asistentes con acceso, con lo que pueden hacer, y «Quitar 
     .click();
   await expect(bloque.getByText('Ningún asistente tiene acceso a tus espacios.')).toBeVisible();
   expect(quitados).toEqual([{ id: 'k1' }]);
+});
+
+test('HU-C7.7 · tus datos: descargarlos y radicar una supresión con su número y su fecha', async ({
+  page,
+}) => {
+  await conSesionGuardada(page, [{ status: 200, json: { espacios: [] } }]);
+  const radicados: {
+    numero: string;
+    tipo: string;
+    creado: string;
+    vence: string;
+    estado: string;
+  }[] = [];
+  const pedidos: unknown[] = [];
+  await page.route(`${CUENTA}/api/core/cuenta/radicados`, (r) =>
+    r.fulfill({ json: { radicados } }),
+  );
+  await page.route(`${CUENTA}/api/core/cuenta/mis-datos`, (r) =>
+    r.fulfill({ json: { persona: { id: 'u-ana', nombre: 'Ana' }, espacios: [] } }),
+  );
+  await page.route(`${CUENTA}/api/core/cuenta/radicar`, async (r) => {
+    pedidos.push(r.request().postDataJSON());
+    radicados.push({
+      numero: 'LD-20261102-A1B2C3',
+      tipo: 'supresion',
+      creado: '2026-11-02T15:00:00.000Z',
+      vence: '2026-11-24',
+      estado: 'abierto',
+    });
+    await r.fulfill({
+      status: 201,
+      json: {
+        numero: 'LD-20261102-A1B2C3',
+        vence: '2026-11-24',
+        mensaje:
+          'Recibimos tu solicitud de supresión con el número LD-20261102-A1B2C3. Te respondemos a más tardar el 24 nov 2026.',
+      },
+    });
+  });
+  await page.goto(`${CUENTA}/`);
+  const datos = page.getByRole('region', { name: 'Tus datos' });
+  await expect(datos.getByText('Todavía no has hecho solicitudes sobre tus datos.')).toBeVisible();
+
+  const descarga = page.waitForEvent('download');
+  await datos.getByRole('button', { name: 'Descargar mis datos' }).click();
+  const archivo = await descarga;
+  expect(archivo.suggestedFilename()).toMatch(
+    /^mis-datos-laboratorio-digital-\d{4}-\d{2}-\d{2}\.json$/,
+  );
+  await expect(datos.getByText('Listo: el archivo quedó en tus descargas.')).toBeVisible();
+
+  await datos.getByLabel('Qué necesitas').selectOption('supresion');
+  await datos.getByLabel('Cuéntanos').fill('Borrar');
+  await datos.getByRole('button', { name: 'Enviar solicitud' }).click();
+  await expect(datos.getByText('Cuéntanos un poco más: al menos 10 caracteres.')).toBeVisible();
+  await expect(datos.getByLabel('Cuéntanos')).toHaveAttribute('aria-invalid', 'true');
+  expect(pedidos).toEqual([]);
+
+  await datos.getByLabel('Cuéntanos').fill('Quiero que borren mis datos.');
+  await datos.getByRole('button', { name: 'Enviar solicitud' }).click();
+  await expect(datos.getByText(/con el número LD-20261102-A1B2C3/)).toBeVisible();
+  await expect(datos.getByText('Supresión · LD-20261102-A1B2C3')).toBeVisible();
+  // La fecha límite es un día de Bogotá: no se corre al anterior por el huso.
+  await expect(datos.getByText(/te respondemos a más tardar el 24 nov 2026/)).toBeVisible();
+  expect(pedidos).toEqual([{ tipo: 'supresion', texto: 'Quiero que borren mis datos.' }]);
+  // A 360 px nada se sale de la pantalla.
+  expect(
+    await page.evaluate(() =>
+      [...document.querySelectorAll('body *')]
+        .filter(
+          (el) => el.getBoundingClientRect().right > document.documentElement.clientWidth + 0.5,
+        )
+        .map(
+          (el) => `${el.tagName}.${el.className} ${Math.round(el.getBoundingClientRect().right)}`,
+        ),
+    ),
+  ).toEqual([]);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });

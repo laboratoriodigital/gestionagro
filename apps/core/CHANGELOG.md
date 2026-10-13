@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Tus datos (HU-C7.7, Ley 1581): en la cuenta, «Descargar mis datos» con lo que el CORE guarda de ti, y hacer una consulta, un reclamo o una solicitud de supresión con número y fecha límite en días hábiles de Colombia (10 y 15, con festivos). Al dueño le llega un aviso por Telegram con el número y el plazo, sin el texto; si no sale, el cron lo reintenta. Rutas `POST /api/core/cuenta/{mis-datos,radicar,radicados}` y migración 0009 (`radicado_datos`). El CORE recibe ahora `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`.
 - Revocar el acceso de un agente (HU-C9.6): `POST /oauth/revoke` (RFC 7009), y en la cuenta el bloque «Asistentes con acceso», con lo que puede hacer cada uno y «Quitar acceso». El recurso pregunta al CORE en cada solicitud si la concesión sigue viva (`ServicioDelCore.concesionVigente`).
 - `POST /oauth/token` (HU-C9.5): el agente cambia su código (PKCE S256) por un token de 1 hora para su recurso, con emisor propio de agentes, y un refresh que rota en cada uso. Reusar un refresh ya usado quita el acceso entero y queda en la auditoría. Solo en staging por ahora.
 

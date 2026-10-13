@@ -97,6 +97,9 @@ jobs:
           BOLD_SECRETA_PRUEBAS: ${{ secrets.BOLD_SECRETA_PRUEBAS }}
           BOLD_IDENTIDAD_PRODUCCION: ${{ secrets.BOLD_IDENTIDAD_PRODUCCION }}
           BOLD_SECRETA_PRODUCCION: ${{ secrets.BOLD_SECRETA_PRODUCCION }}
+          # HU-C7.7: los radicados de la Ley 1581 le llegan al dueño por Telegram.
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           DESTINO: ${{ inputs.destino }}
           SOLO_CELDA: ${{ inputs.solo_celda }}
           PRODUCTOS: ${{ inputs.productos }}

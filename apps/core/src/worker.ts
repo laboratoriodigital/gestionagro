@@ -81,6 +81,7 @@ import {
   verPagos,
   verSesiones,
 } from './mi-cuenta.ts';
+import { misDatos, radicar, reintentarAvisos, verRadicados } from './mis-datos.ts';
 import { metadatosDelServidor, servidorOAuthActivo } from './oauth.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
@@ -100,6 +101,9 @@ export { ServicioDelCore } from './entrada-de-servicio.ts';
 export { PRODUCTO_CORE };
 
 export interface Env {
+  /** Bot y chat del dueño (HU-C7.7): los radicados de la Ley 1581 le llegan por Telegram. */
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_ID?: string;
   /** Base D1 del CORE (`agro_core`); el despliegue agrega su id (ADR-6). */
   DB: BaseD1;
   /** KV de flags de la celda (kill switch). */
@@ -399,6 +403,17 @@ export function crearApp(dependencias: Dependencias = {}) {
   // HU-C9.6: los asistentes con acceso, y quitarlo.
   app.post('/api/core/cuenta/asistentes', (c) => verAsistentes(c, c.get('entorno')));
   app.post('/api/core/cuenta/asistentes/quitar', (c) => quitarAsistente(c, c.get('entorno')));
+  // HU-C7.7: tus datos (Ley 1581).
+  app.post('/api/core/cuenta/mis-datos', (c) => misDatos(c, c.get('entorno')));
+  app.post('/api/core/cuenta/radicados', (c) => verRadicados(c, c.get('entorno')));
+  app.post('/api/core/cuenta/radicar', (c) =>
+    radicar(
+      c,
+      c.get('entorno'),
+      { token: c.env.TELEGRAM_BOT_TOKEN, chat: c.env.TELEGRAM_CHAT_ID },
+      fetchDeLaRed,
+    ),
+  );
   app.post('/api/core/cuenta/autorizar', (c) =>
     servidorOAuthActivo(c.env.DESTINO)
       ? decidirAutorizacion(c, c.get('entorno'), fetchDeLaRed)
@@ -459,6 +474,16 @@ export default {
       ).then((r) => {
         if (r.revisados > 0)
           console.log(`agro-core: conciliados ${r.cerrados} de ${r.revisados} pagos`);
+      }),
+    );
+    // HU-C7.7: los avisos de radicados que no salieron se reintentan en la misma vuelta.
+    ctx.waitUntil(
+      reintentarAvisos(
+        env.DB,
+        { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
+        Date.now(),
+      ).then((n) => {
+        if (n > 0) console.log(`agro-core: ${n} aviso(s) de radicados enviados`);
       }),
     );
   },

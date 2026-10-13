@@ -8,10 +8,12 @@
     "build": "wrangler deploy --dry-run --outdir .wrangler/dry-run --env= && wrangler deploy --dry-run --outdir .wrangler/dry-run-staging --env staging"
   },
   "dependencies": {
+    "@ed1/calendario": "workspace:*",
     "@ed1/d1": "workspace:*",
     "@ed1/ids": "workspace:*",
     "@ed1/kill-switch": "workspace:*",
     "@ed1/productos": "workspace:*",
+    "@ed1/telegram": "workspace:*",
     "@ed1/tokens": "workspace:*",
     "arctic": "^3.7.0",
     "hono": "^4.13.12"

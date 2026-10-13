@@ -80,6 +80,9 @@ importers:
       '@ed1/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
+      '@ed1/telegram':
+        specifier: workspace:*
+        version: link:../../packages/telegram
       '@ed1/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
@@ -96,6 +99,9 @@ importers:
 
   apps/core:
     dependencies:
+      '@ed1/calendario':
+        specifier: workspace:*
+        version: link:../../packages/calendario
       '@ed1/d1':
         specifier: workspace:*
         version: link:../../packages/d1
@@ -108,6 +114,9 @@ importers:
       '@ed1/productos':
         specifier: workspace:*
         version: link:../../packages/productos
+      '@ed1/telegram':
+        specifier: workspace:*
+        version: link:../../packages/telegram
       '@ed1/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
@@ -470,6 +479,8 @@ importers:
   packages/productos: {}
 
   packages/sync: {}
+
+  packages/telegram: {}
 
   packages/tienda-schema:
     dependencies:

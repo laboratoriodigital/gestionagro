@@ -160,6 +160,23 @@ describe('entrar con Google en el despliegue (HU-E4.2)', () => {
     ).rejects.toThrow('falta el secreto BOLD_SECRETA_PRODUCCION en GitHub');
   });
 
+  it('HU-C7.7 · Telegram llega al CORE solo con el token y el chat', async () => {
+    const google = { id: 'cliente', secreto: 'secreto' };
+    const nueva = async () => 'x';
+    expect(
+      await secretosDelCore(['CORE_JWT_PRIVATE_KEY'], google, nueva, null, {
+        token: 'bot',
+        chat: 'chat',
+      }),
+    ).toMatchObject({ TELEGRAM_BOT_TOKEN: 'bot', TELEGRAM_CHAT_ID: 'chat' });
+    expect(
+      await secretosDelCore(['CORE_JWT_PRIVATE_KEY'], google, nueva, null, {
+        token: 'bot',
+        chat: undefined,
+      }),
+    ).not.toHaveProperty('TELEGRAM_BOT_TOKEN');
+  });
+
   it('sin los secretos de Google en GitHub falla nombrándolos', async () => {
     await expect(
       secretosDelCore([], { id: undefined, secreto: undefined }, async () => 'x'),

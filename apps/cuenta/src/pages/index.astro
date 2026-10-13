@@ -48,6 +48,13 @@ const bloques = [
     ayuda: 'Quién entró, se unió, cambió de rol o pagó, en los espacios que administras.',
     vacio: 'Todavía no ha pasado nada que mostrar.',
   },
+  {
+    id: 'datos',
+    titulo: 'Tus datos',
+    ayuda:
+      'Descarga lo que guardamos de ti, o pídenos consultarlo, corregirlo o borrarlo. Cada solicitud tiene un número y una fecha límite para responderte, como dice la ley.',
+    vacio: 'Todavía no has hecho solicitudes sobre tus datos.',
+  },
 ] as const;
 ---
 <Base
@@ -115,7 +122,7 @@ const bloques = [
     </section>
 
     {
-      /* HU-C7.5, HU-C7.6 y HU-C7.8: cada bloque se llena desde sesion.ts con su ruta del CORE. */
+      /* HU-C7.5 a HU-C7.8: cada bloque se llena desde sesion.ts con su ruta del CORE. */
       bloques.map((b) => (
         <section
           class="portada__espacios"
@@ -126,6 +133,47 @@ const bloques = [
         >
           <h2 class="portada__subtitulo" id={`titulo-${b.id}`}>{b.titulo}</h2>
           <p class="portada__detalle">{b.ayuda}</p>
+          {b.id === 'datos' && (
+            <div class="portada__datos">
+              <div class="portada__descarga">
+                <button class="ed1-boton ed1-boton--secundario" type="button" data-descargar>
+                  Descargar mis datos
+                </button>
+                <p class="portada__detalle" role="status" data-descarga-estado />
+              </div>
+              <form class="portada__radicar" data-radicar novalidate>
+                <h3 class="portada__subtitulo-menor">Hacer una solicitud</h3>
+                <div class="ed1-campo">
+                  <label class="ed1-campo__etiqueta" for="radicar-tipo">Qué necesitas</label>
+                  <select class="ed1-campo__control" id="radicar-tipo" name="tipo">
+                    <option value="consulta">Saber qué datos míos tienen (consulta)</option>
+                    <option value="reclamo">Corregir mis datos o hacer un reclamo</option>
+                    <option value="supresion">Que borren mis datos (supresión)</option>
+                  </select>
+                </div>
+                <div class="ed1-campo" data-campo-texto>
+                  <label class="ed1-campo__etiqueta" for="radicar-texto">Cuéntanos</label>
+                  <textarea
+                    class="ed1-campo__control portada__texto-largo"
+                    id="radicar-texto"
+                    name="texto"
+                    rows="4"
+                    maxlength="2000"
+                    aria-describedby="radicar-texto-ayuda"
+                  />
+                  <p class="ed1-campo__ayuda" id="radicar-texto-ayuda">
+                    Entre 10 y 2.000 caracteres. Lo lee una persona.
+                  </p>
+                  <p class="ed1-campo__error" id="radicar-texto-error" data-radicar-error hidden />
+                </div>
+                <button class="ed1-boton ed1-boton--primario" type="submit">Enviar solicitud</button>
+                <div class="portada__radicado" role="status" data-radicado hidden>
+                  <p data-radicado-texto />
+                </div>
+              </form>
+              <h3 class="portada__subtitulo-menor">Tus solicitudes</h3>
+            </div>
+          )}
           <p class="ed1-contenido ed1-contenido--cargando" role="status" data-estado="cargando">
             Cargando…
           </p>

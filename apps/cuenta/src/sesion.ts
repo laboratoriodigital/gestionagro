@@ -277,6 +277,14 @@ interface AsistenteVisible {
   ultimo_uso: string | null;
 }
 
+interface RadicadoVisible {
+  numero: string;
+  tipo: 'consulta' | 'reclamo' | 'supresion';
+  creado: string;
+  vence: string;
+  estado: 'abierto' | 'respondido';
+}
+
 interface HechoVisible {
   espacio: string;
   instante: string;
@@ -416,6 +424,98 @@ async function quitarAsistente(id: string, boton: HTMLButtonElement) {
   );
 }
 
+const TIPO_DE_RADICADO: Record<RadicadoVisible['tipo'], string> = {
+  consulta: 'Consulta',
+  reclamo: 'Reclamo',
+  supresion: 'Supresión',
+};
+
+/** Una solicitud de la Ley 1581 (HU-C7.7). `vence` es un día de Bogotá: al mediodía no cambia de fecha. */
+const filaDeRadicado = (s: RadicadoVisible) =>
+  fila(
+    [document.createTextNode(`${TIPO_DE_RADICADO[s.tipo]} · ${s.numero}`)],
+    s.estado === 'respondido'
+      ? `Hecha el ${fecha(s.creado)} · Respondida`
+      : `Hecha el ${fecha(s.creado)} · te respondemos a más tardar el ${fecha(`${s.vence}T12:00:00Z`)}`,
+  );
+
+const cargarRadicados = () =>
+  cargarBloque<RadicadoVisible>('datos', '/api/core/cuenta/radicados', 'radicados', filaDeRadicado);
+
+/** «Descargar mis datos»: el JSON del CORE, guardado como archivo en este equipo. */
+async function descargarMisDatos(boton: HTMLButtonElement) {
+  const estado = document.querySelector<HTMLElement>('[data-descarga-estado]');
+  boton.disabled = true;
+  boton.setAttribute('aria-busy', 'true');
+  if (estado) estado.textContent = 'Preparando tus datos…';
+  const { r, cuerpo } = await alCore('/api/core/cuenta/mis-datos');
+  boton.disabled = false;
+  boton.removeAttribute('aria-busy');
+  if (!r?.ok) {
+    if (estado) estado.textContent = 'No pudimos preparar tus datos. Intenta de nuevo.';
+    return;
+  }
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(cuerpo, null, 2)], { type: 'application/json' }),
+  );
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = `mis-datos-laboratorio-digital-${new Date().toISOString().slice(0, 10)}.json`;
+  enlace.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  if (estado) estado.textContent = 'Listo: el archivo quedó en tus descargas.';
+}
+
+/** Radicar una consulta, un reclamo o una supresión: el número y la fecha límite, a la vista. */
+async function radicar(formulario: HTMLFormElement) {
+  const tipo = formulario.querySelector<HTMLSelectElement>('select[name="tipo"]');
+  const texto = formulario.querySelector<HTMLTextAreaElement>('textarea[name="texto"]');
+  const error = formulario.querySelector<HTMLElement>('[data-radicar-error]');
+  const hecho = formulario.querySelector<HTMLElement>('[data-radicado]');
+  const enviar = formulario.querySelector<HTMLButtonElement>('button[type="submit"]');
+  if (!tipo || !texto || !error || !hecho || !enviar) return;
+  const marcar = (motivo: string | null) => {
+    error.textContent = motivo ?? '';
+    error.hidden = !motivo;
+    texto.closest('.ed1-campo')?.classList.toggle('ed1-campo--con-error', Boolean(motivo));
+    if (motivo) {
+      texto.setAttribute('aria-invalid', 'true');
+      texto.setAttribute('aria-describedby', 'radicar-texto-ayuda radicar-texto-error');
+    } else {
+      texto.removeAttribute('aria-invalid');
+      texto.setAttribute('aria-describedby', 'radicar-texto-ayuda');
+    }
+  };
+  hecho.hidden = true;
+  if (texto.value.trim().length < 10) {
+    marcar('Cuéntanos un poco más: al menos 10 caracteres.');
+    texto.focus();
+    return;
+  }
+  marcar(null);
+  enviar.disabled = true;
+  enviar.setAttribute('aria-busy', 'true');
+  const { r, cuerpo } = await alCore('/api/core/cuenta/radicar', {
+    tipo: tipo.value,
+    texto: texto.value,
+  });
+  enviar.disabled = false;
+  enviar.removeAttribute('aria-busy');
+  if (!r?.ok) {
+    marcar(
+      (cuerpo['motivo'] as string | undefined) ??
+        'No pudimos enviar tu solicitud. Revisa tu conexión e intenta de nuevo.',
+    );
+    return;
+  }
+  texto.value = '';
+  const parrafo = hecho.querySelector('[data-radicado-texto]');
+  if (parrafo) parrafo.textContent = String(cuerpo['mensaje'] ?? '');
+  hecho.hidden = false;
+  hecho.scrollIntoView?.({ block: 'nearest' });
+  await cargarRadicados();
+}
+
 const filaDeHecho = (h: HechoVisible) =>
   fila(
     [document.createTextNode(h.frase)],
@@ -515,6 +615,7 @@ function cargarLoMio() {
     filaDeAsistente,
   );
   void cargarBloque<HechoVisible>('actividad', '/api/core/cuenta/actividad', 'hechos', filaDeHecho);
+  void cargarRadicados();
 }
 
 async function salir(boton: HTMLButtonElement) {
@@ -574,6 +675,15 @@ async function iniciar(): Promise<boolean> {
   }
   for (const boton of todos<HTMLButtonElement>('button[data-reentrar-boton]')) {
     boton.addEventListener('click', entrarDeNuevo);
+  }
+  for (const boton of todos<HTMLButtonElement>('button[data-descargar]')) {
+    boton.addEventListener('click', () => void descargarMisDatos(boton));
+  }
+  for (const formulario of todos<HTMLFormElement>('form[data-radicar]')) {
+    formulario.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      void radicar(formulario);
+    });
   }
   // Lo de la portada, solo en la portada.
   if (g && document.querySelector('[data-espacios-lista]')) {

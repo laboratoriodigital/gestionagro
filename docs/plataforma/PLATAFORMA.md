@@ -437,7 +437,7 @@ Los números siguen el orden en que se construyen, no el del diseño: la auditor
 
 | Migración | Llega con | Qué hace |
 |---|---|---|
-| `0009_entrar_con_correo.sql` (era 0007 y 0008) | Proveedor de correo (§4.11) | `proveedor_identidad` (`google`, `correo`) como referencia. Rehace `identidad`, que es solo hija, con la receta. Crea `enlace_correo`: huella del código, correo, producto, vuelta, 15 min, un uso. Índice `enlace_por_correo` para el tope de 3 por hora |
+| `0010_entrar_con_correo.sql` (era 0007, 0008 y 0009; la 0009 real es la de los radicados, HU-C7.7) | Proveedor de correo (§4.11) | `proveedor_identidad` (`google`, `correo`) como referencia. Rehace `identidad`, que es solo hija, con la receta. Crea `enlace_correo`: huella del código, correo, producto, vuelta, 15 min, un uso. Índice `enlace_por_correo` para el tope de 3 por hora |
 | `0007_auditoria.sql` (era 0008; ya en `infrastructure/migraciones/core/`, HU-C2.4) | P1 de la plataforma | `auditoria`: lo que toca seguridad o dinero (entradas, roles, pagos, concesiones a agentes), una fila por hecho. Índice parcial por organización |
 | `0008_oauth_para_agentes.sql` (era 0009; ya en `infrastructure/migraciones/core/`, HU-C9.2) | P5 de la plataforma (§5.4) | `alcance` (por producto, con `mueve_dinero CHECK = 0`), `cliente_oauth`, `concesion_oauth`, `codigo_oauth` (PKCE S256 obligatorio) y `refresco_oauth` (rotación y detección de reuso) |
 | `00xx_contraer_*.sql` | Una versión después de que ningún código lea lo viejo | Quita `usuario.politica_*`, los `DEFAULT 'agro'` de transición y la aceptación de tokens v1 (§4.6) |
