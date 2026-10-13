@@ -267,6 +267,16 @@ interface PagoVisible {
   periodo_hasta: string | null;
 }
 
+interface AsistenteVisible {
+  id: string;
+  cliente: string;
+  espacio: string;
+  producto_nombre: string;
+  puede: string[];
+  creada: string;
+  ultimo_uso: string | null;
+}
+
 interface HechoVisible {
   espacio: string;
   instante: string;
@@ -370,6 +380,42 @@ function filaDePago(p: PagoVisible): HTMLLIElement {
   );
 }
 
+/** Un asistente con acceso, lo que puede hacer y el botón para quitárselo (HU-C9.6). */
+function filaDeAsistente(a: AsistenteVisible): HTMLLIElement {
+  const boton = nodo('button', 'ed1-boton ed1-boton--texto', 'Quitar acceso');
+  boton.type = 'button';
+  boton.setAttribute('aria-label', `Quitar el acceso de ${a.cliente} a ${a.espacio}`);
+  boton.addEventListener('click', () => void quitarAsistente(a.id, boton));
+  const uso = a.ultimo_uso ? `último uso ${fecha(a.ultimo_uso)}` : 'todavía no lo ha usado';
+  return fila(
+    [document.createTextNode(`${a.cliente} · ${a.espacio}`)],
+    `${a.puede.join(' ')} · ${a.producto_nombre} · desde el ${fecha(a.creada)} · ${uso}`,
+    boton,
+  );
+}
+
+async function quitarAsistente(id: string, boton: HTMLButtonElement) {
+  boton.disabled = true;
+  boton.setAttribute('aria-busy', 'true');
+  const { r, cuerpo } = await alCore('/api/core/cuenta/asistentes/quitar', { id });
+  boton.disabled = false;
+  boton.removeAttribute('aria-busy');
+  if (!r?.ok) {
+    mostrarBloque(
+      'asistentes',
+      'error',
+      (cuerpo['motivo'] as string | undefined) ?? 'No pudimos quitar el acceso. Intenta de nuevo.',
+    );
+    return;
+  }
+  await cargarBloque<AsistenteVisible>(
+    'asistentes',
+    '/api/core/cuenta/asistentes',
+    'asistentes',
+    filaDeAsistente,
+  );
+}
+
 const filaDeHecho = (h: HechoVisible) =>
   fila(
     [document.createTextNode(h.frase)],
@@ -462,6 +508,12 @@ function entrarDeNuevo() {
 function cargarLoMio() {
   void cargarSesiones();
   void cargarBloque<PagoVisible>('pagos', '/api/core/cuenta/pagos', 'pagos', filaDePago);
+  void cargarBloque<AsistenteVisible>(
+    'asistentes',
+    '/api/core/cuenta/asistentes',
+    'asistentes',
+    filaDeAsistente,
+  );
   void cargarBloque<HechoVisible>('actividad', '/api/core/cuenta/actividad', 'hechos', filaDeHecho);
 }
 

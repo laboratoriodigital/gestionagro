@@ -16,6 +16,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { catalogoDelRepositorio } from '../../../scripts/lib/registro-productos.ts';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
 import { sentenciasDelCatalogo } from './catalogo.ts';
+import { ServicioDelCore } from './entrada-de-servicio.ts';
 import { crearApp, type Env } from './worker.ts';
 
 let db: BaseD1;
@@ -339,5 +340,93 @@ describe('HU-C9.5 · el canje del código y el refresh rotado', () => {
 
   it('P1 ❌ · en producción no hay canje todavía', async () => {
     expect((await canjear(conCodigo('x'), 'produccion')).status).toBe(404);
+  });
+});
+
+describe('HU-C9.6 · revocar y los asistentes con acceso', () => {
+  const VERIFICADOR = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
+  const RETO_DEL_VERIFICADOR = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
+  const pedir = (ruta: string, cuerpo: Record<string, string>) =>
+    app.fetch(
+      new Request(`${CORE}${ruta}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(cuerpo).toString(),
+      }),
+      env(),
+    );
+  async function tokens() {
+    const d = await decidir({
+      pedido: { ...BUENO, code_challenge: RETO_DEL_VERIFICADOR },
+      decision: 'permitir',
+      org_id: FINCA,
+    });
+    const code =
+      new URL(((await d.json()) as { vuelta: string }).vuelta).searchParams.get('code') ?? '';
+    const t = await pedir('/oauth/token', {
+      grant_type: 'authorization_code',
+      code,
+      code_verifier: VERIFICADOR,
+      redirect_uri: VUELTA,
+      client_id: CLIENTE,
+    });
+    return (await t.json()) as { access_token: string; refresh_token: string };
+  }
+  const concesion = async () =>
+    (await db.prepare('SELECT id FROM concesion_oauth').first<{ id: string }>())?.id ?? '';
+  const servicio = () => new ServicioDelCore({}, { DB: db, DESTINO: 'staging' });
+  const cuenta = async (ruta: string, cuerpo: unknown, usuario = 'u-ana') =>
+    app.fetch(
+      new Request(`${CORE}/api/core/cuenta/${ruta}`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          origin: CUENTA,
+          authorization: `Bearer ${await deLaCuenta(usuario)}`,
+        },
+        body: JSON.stringify(cuerpo),
+      }),
+      env(),
+    );
+
+  it('CA1 · el agente devuelve su refresh o su token y la concesión cae; el recurso lo sabe en la siguiente (CA2)', async () => {
+    const t = await tokens();
+    expect(await servicio().concesionVigente(await concesion())).toBe(true);
+    expect(
+      (await pedir('/oauth/revoke', { token: t.refresh_token, client_id: CLIENTE })).status,
+    ).toBe(200);
+    expect(await servicio().concesionVigente(await concesion())).toBe(false);
+    // Con el token de acceso también.
+    await db.prepare('DELETE FROM refresco_oauth').run();
+    await db.prepare('DELETE FROM codigo_oauth').run();
+    await db.prepare('DELETE FROM concesion_oauth').run();
+    const otro = await tokens();
+    expect((await pedir('/oauth/revoke', { token: otro.access_token })).status).toBe(200);
+    expect(await servicio().concesionVigente(await concesion())).toBe(false);
+    // Un token que no existe también responde 200 (RFC 7009): no sirve para averiguar nada.
+    expect((await pedir('/oauth/revoke', { token: 'no-existe' })).status).toBe(200);
+  });
+
+  it('CA1 · la cuenta lista los asistentes con lo que pueden hacer, y «Quitar acceso» los corta', async () => {
+    await tokens();
+    const lista = (await (await cuenta('asistentes', {})).json()) as {
+      asistentes: { id: string; cliente: string; espacio: string; puede: string[] }[];
+    };
+    expect(lista.asistentes).toEqual([
+      expect.objectContaining({
+        cliente: 'Asistente Ensayo',
+        espacio: 'Finca La Esperanza',
+        puede: [expect.stringMatching(/^Leer los registros de tu finca/)],
+      }),
+    ]);
+    const id = lista.asistentes[0]?.id ?? '';
+    // ❌ Nunca la de otra persona, ni con el id en el cuerpo.
+    expect((await cuenta('asistentes/quitar', { id }, 'u-otro')).status).toBe(404);
+    expect(await servicio().concesionVigente(id)).toBe(true);
+    expect((await cuenta('asistentes/quitar', { id })).status).toBe(200);
+    expect(await servicio().concesionVigente(id)).toBe(false);
+    expect(
+      ((await (await cuenta('asistentes', {})).json()) as { asistentes: unknown[] }).asistentes,
+    ).toEqual([]);
   });
 });

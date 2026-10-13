@@ -864,7 +864,7 @@ Formato de cada historia:
 - **Work items:** WI-C9.5.1 `[código]` · WI-C9.5.2 `[prueba]`.
 
 #### HU-C9.6 · Revocar y «Aplicaciones conectadas»
-- **Capa:** API y cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C10 · **Depende de:** HU-C9.5, HU-C7.5 · **Estado:** Refinada
+- **Capa:** API y cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C10 · **Depende de:** HU-C9.5, HU-C7.5 · **Estado:** En validación (rama `feat/c10-sprint`. `POST /oauth/revoke` (RFC 7009) acepta el refresh o el token de acceso y tumba la concesión entera; responde 200 aunque el token no exista. **Cambio de forma de CA1:** la lista va en la portada de la cuenta, bloque «Asistentes con acceso» (no hay página `/seguridad/`), con el cliente, el espacio, lo que puede hacer en palabras, desde cuándo, el último uso y «Quitar acceso» (`/api/core/cuenta/asistentes[/quitar]`; nunca la de otra persona). **CA2, por diseño:** el recurso pregunta en cada solicitud `ServicioDelCore.concesionVigente` por service binding: quitar el acceso corta la siguiente, sin esperar el vencimiento del token. Se descartó KV, que tarda hasta un minuto en propagar. Si el CORE no responde, el recurso niega (falla cerrado). La prueba de punta a punta en el recurso llega con HU-C9.7. 2 pruebas de la API y 1 e2e; controles negativos: la concesión de otra persona, un token que no existe)
 - **Respaldo:** PLATAFORMA §5.4 (Revocar).
 - **CA1.** `POST /oauth/revoke` y, en `/seguridad/`, la lista de concesiones con su último uso y «Quitar acceso».
 - **CA2 ❌.** Un token de una concesión revocada se rechaza en el recurso en la siguiente solicitud.

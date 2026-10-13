@@ -13,7 +13,13 @@
  * Errores como pide RFC 6749 §5.2, con `error` y una descripción. Acepta el cuerpo como formulario
  * (lo que manda un cliente OAuth) o como JSON.
  */
-import { base64url, firmarAccesoDeAgente, hashDe, secretoAlAzar } from '@ed1/tokens';
+import {
+  base64url,
+  firmarAccesoDeAgente,
+  hashDe,
+  secretoAlAzar,
+  verificarAccesoDeAgente,
+} from '@ed1/tokens';
 import type { Context } from 'hono';
 import { filaDeAuditoria } from './auditoria.ts';
 import type { Entorno } from './entrar.ts';
@@ -207,4 +213,58 @@ export async function canjearToken(c: Context, e: Entorno): Promise<Response> {
     return emitir(c, e, concesion, ahora);
   }
   return error(c, 'unsupported_grant_type', 'Solo authorization_code y refresh_token.');
+}
+
+/**
+ * `POST /oauth/revoke` (RFC 7009, HU-C9.6): el agente devuelve su refresh o su token, y la
+ * concesión entera cae. Responde 200 aunque el token no exista o ya esté revocado, como pide la
+ * RFC: así no sirve para averiguar qué tokens existen.
+ */
+export async function revocarToken(c: Context, e: Entorno): Promise<Response> {
+  c.header('access-control-allow-origin', '*');
+  const b = await cuerpoDe(c);
+  const ahora = e.ahora();
+  const token = b['token'] ?? '';
+  let concesionId: string | null = null;
+  if (token.split('.').length === 3) {
+    // Un token de acceso: su `cnc` dice la concesión. Se verifica la firma, no el recurso.
+    try {
+      const cuerpo = JSON.parse(
+        new TextDecoder().decode(
+          Uint8Array.from(
+            atob((token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/')),
+            (x) => x.charCodeAt(0),
+          ),
+        ),
+      ) as { aud?: string };
+      const r = await verificarAccesoDeAgente([e.firmante.publica], token, cuerpo.aud ?? '', ahora);
+      concesionId = r.cnc;
+    } catch {
+      concesionId = null;
+    }
+  } else if (token) {
+    const r = await e.db
+      .prepare('SELECT concesion_id FROM refresco_oauth WHERE refresh_hash = ?')
+      .bind(await hashDe(token))
+      .first<{ concesion_id: string }>();
+    concesionId = r?.concesion_id ?? null;
+  }
+  const concesion = concesionId ? await leerConcesion(e, concesionId) : null;
+  if (
+    concesion &&
+    !concesion.revocada &&
+    (!b['client_id'] || b['client_id'] === concesion.cliente_id)
+  )
+    await revocarConcesion(e, concesion, ahora, 'el agente la devolvió');
+  c.header('cache-control', 'no-store');
+  return c.body(null, 200);
+}
+
+/** Lo que le pregunta un recurso al CORE en cada solicitud (HU-C9.6 CA2, por service binding). */
+export async function concesionVigente(db: Entorno['db'], id: string): Promise<boolean> {
+  const fila = await db
+    .prepare('SELECT 1 AS si FROM concesion_oauth WHERE id = ? AND revocada IS NULL')
+    .bind(id)
+    .first<{ si: number }>();
+  return Boolean(fila);
 }

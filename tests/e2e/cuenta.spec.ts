@@ -14,6 +14,7 @@ async function loMioVacio(page: Page) {
     ['sesiones', { sesiones: [] }],
     ['pagos', { pagos: [] }],
     ['actividad', { hechos: [] }],
+    ['asistentes', { asistentes: [] }],
   ] as const) {
     await page.route(`${CUENTA}/api/core/cuenta/${ruta}`, (r) => r.fulfill({ json }));
   }
@@ -349,4 +350,41 @@ test.describe('HU-C7.5, HU-C7.6 y HU-C7.8 · lo mío en la cuenta', () => {
     ).toBeVisible();
     await expect(page.getByText('Todavía no ha pasado nada que mostrar.')).toBeVisible();
   });
+});
+
+test('HU-C9.6 · los asistentes con acceso, con lo que pueden hacer, y «Quitar acceso»', async ({
+  page,
+}) => {
+  await conSesionGuardada(page, [{ status: 200, json: { espacios: [] } }]);
+  let lista = [
+    {
+      id: 'k1',
+      cliente: 'Asistente Ensayo',
+      espacio: 'Finca La Esperanza',
+      producto_nombre: 'CultivoPro',
+      puede: ['Leer los registros de tu finca. No puede cambiar nada.'],
+      creada: '2026-11-01T15:00:00.000Z',
+      ultimo_uso: null,
+    },
+  ];
+  const quitados: unknown[] = [];
+  await page.route(`${CUENTA}/api/core/cuenta/asistentes`, (r) =>
+    r.fulfill({ json: { asistentes: lista } }),
+  );
+  await page.route(`${CUENTA}/api/core/cuenta/asistentes/quitar`, async (r) => {
+    quitados.push(r.request().postDataJSON());
+    lista = [];
+    await r.fulfill({ json: { quitado: true } });
+  });
+  await page.goto(`${CUENTA}/`);
+  const bloque = page.getByRole('region', { name: 'Asistentes con acceso' });
+  await expect(bloque.getByText('Asistente Ensayo · Finca La Esperanza')).toBeVisible();
+  await expect(
+    bloque.getByText(/No puede cambiar nada\. · CultivoPro · .* · todavía no lo ha usado/),
+  ).toBeVisible();
+  await bloque
+    .getByRole('button', { name: 'Quitar el acceso de Asistente Ensayo a Finca La Esperanza' })
+    .click();
+  await expect(bloque.getByText('Ningún asistente tiene acceso a tus espacios.')).toBeVisible();
+  expect(quitados).toEqual([{ id: 'k1' }]);
 });

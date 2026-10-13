@@ -73,7 +73,14 @@ import {
 import { marcarInteres, verInteres } from './interes.ts';
 import { aceptarInvitacion, crearInvitacion, verInvitacion } from './invitaciones.ts';
 import { claveAnteriorDe, clavesPublicadas } from './jwks.ts';
-import { cerrarSesiones, verActividad, verPagos, verSesiones } from './mi-cuenta.ts';
+import {
+  cerrarSesiones,
+  quitarAsistente,
+  verActividad,
+  verAsistentes,
+  verPagos,
+  verSesiones,
+} from './mi-cuenta.ts';
 import { metadatosDelServidor, servidorOAuthActivo } from './oauth.ts';
 import { crearOrganizacionDeLaFinca } from './organizaciones.ts';
 import { conciliarPagos, confirmarPago, crearPago, type EntornoDePago } from './pagos.ts';
@@ -87,7 +94,7 @@ import {
 } from './productos.ts';
 import { type ProveedorDePago, proveedorBold } from './proveedor-de-pago.ts';
 import { securityTxt } from './security-txt.ts';
-import { canjearToken } from './token-oauth.ts';
+import { canjearToken, revocarToken } from './token-oauth.ts';
 
 export { ServicioDelCore } from './entrada-de-servicio.ts';
 export { PRODUCTO_CORE };
@@ -358,6 +365,10 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/oauth/token', (c) =>
     servidorOAuthActivo(c.env.DESTINO) ? canjearToken(c, c.get('entorno')) : c.notFound(),
   );
+  // HU-C9.6: el agente devuelve su acceso (RFC 7009).
+  app.post('/oauth/revoke', (c) =>
+    servidorOAuthActivo(c.env.DESTINO) ? revocarToken(c, c.get('entorno')) : c.notFound(),
+  );
   // HU-C9.4: autorizar con consentimiento. La pantalla es la página estática /autorizar/.
   app.get('/oauth/authorize', (c) =>
     servidorOAuthActivo(c.env.DESTINO)
@@ -385,6 +396,9 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/api/core/cuenta/sesiones/cerrar', (c) => cerrarSesiones(c, c.get('entorno')));
   app.post('/api/core/cuenta/pagos', (c) => verPagos(c, c.get('entorno')));
   app.post('/api/core/cuenta/actividad', (c) => verActividad(c, c.get('entorno')));
+  // HU-C9.6: los asistentes con acceso, y quitarlo.
+  app.post('/api/core/cuenta/asistentes', (c) => verAsistentes(c, c.get('entorno')));
+  app.post('/api/core/cuenta/asistentes/quitar', (c) => quitarAsistente(c, c.get('entorno')));
   app.post('/api/core/cuenta/autorizar', (c) =>
     servidorOAuthActivo(c.env.DESTINO)
       ? decidirAutorizacion(c, c.get('entorno'), fetchDeLaRed)
