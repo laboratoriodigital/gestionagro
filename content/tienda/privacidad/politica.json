@@ -1,0 +1,44 @@
+{
+  "nota": "Política de tratamiento de datos de las cuentas de la Tienda 3.0 (HU-T2.2): la del propietario y los colaboradores de un comercio que entran al panel con su cuenta. El CORE pide aceptar esta versión al entrar al producto. No es la de los compradores: de sus datos el responsable es cada comercio, con su propia política, y ED1 los guarda como encargado (TIENDA-3.0 §14.3, HU-T7.1). Es un borrador escrito para que el dueño lo revise: el nombre del responsable queda por completar, como en la de la cuenta (docs/runbooks/datos-del-responsable.md). Hoy el producto está «pausado» en productos.json y esta política no se le muestra a nadie. Bold va como aliado desde la versión 1 porque el plan se paga como los otros productos, desde el CORE; las llaves de Bold de cada comercio son otra cosa y las trata la política de los compradores.",
+  "version": "1",
+  "fecha": "2026-10-13",
+  "estado": "borrador",
+  "revision": "requiere revisión de abogado",
+  "responsable": {
+    "nombre": null,
+    "identificacion": null,
+    "domicilio": "Medellín, Colombia",
+    "correo": "laboratoriodigital.la@gmail.com",
+    "telefono": null
+  },
+  "encargados": [
+    {
+      "quien": "Proveedores de servicios en la nube",
+      "para": "Nos ayudan a guardar de forma segura tu cuenta, tu catálogo y los pedidos de tu tienda, y a mantenerla abierta.",
+      "proveedor": "Cloudflare"
+    },
+    {
+      "quien": "Google",
+      "para": "Te permite entrar con tu cuenta de Google, sin crear otra contraseña. Solo recibimos tu nombre y tu correo.",
+      "proveedor": "Google"
+    },
+    {
+      "quien": "Bold, la pasarela de pagos",
+      "para": "Si pagas el plan en línea, Bold recibe los datos del pago, como tu banco o tu tarjeta. Nosotros solo guardamos que el pago se hizo, por cuánto y su número de transacción.",
+      "proveedor": "Bold"
+    }
+  ],
+  "transferencia": "Algunos de estos aliados tienen sus servidores fuera de Colombia. Tu información y la de tu tienda pueden guardarse allí, siempre para los fines que aquí te contamos y con medidas para protegerla.",
+  "scripts_de_terceros": [],
+  "scripts_al_pagar": ["https://checkout.bold.co"],
+  "conexiones_de_terceros": [],
+  "cookies": [
+    {
+      "nombre": "agro_oauth",
+      "texto": "Mientras entras con tu cuenta usamos una cookie técnica y temporal, solo para que el ingreso sea seguro. Desaparece a los pocos minutos."
+    }
+  ],
+  "almacenamiento_en_el_telefono": [
+    "El panel guarda tu sesión en el propio teléfono o PC, para que no tengas que entrar cada vez."
+  ]
+}

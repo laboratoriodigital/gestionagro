@@ -185,12 +185,12 @@ describe('las reglas que el esquema no puede decir', () => {
   it('planes o política que apuntan a un archivo que no existe, y todas las fallas a la vez (P15)', () => {
     const p = {
       ...ensayo(),
-      planes: 'content/tienda/planes.json',
-      politica: 'content/tienda/privacidad/politica.json',
+      planes: 'content/ensayo/no-existe/planes.json',
+      politica: 'content/ensayo/no-existe/politica.json',
     };
     expect(fallas(p)).toEqual([
-      '«ensayo».planes apunta a «content/tienda/planes.json», que no existe',
-      '«ensayo».politica apunta a «content/tienda/privacidad/politica.json», que no existe',
+      '«ensayo».planes apunta a «content/ensayo/no-existe/planes.json», que no existe',
+      '«ensayo».politica apunta a «content/ensayo/no-existe/politica.json», que no existe',
     ]);
   });
 
