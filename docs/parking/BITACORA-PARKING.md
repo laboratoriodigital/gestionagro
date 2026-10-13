@@ -293,6 +293,7 @@ No son errores. Son decisiones que cambiaron con información nueva.
 | Las fotos del estado a R2, con un ciclo de vida de 30 días en el bucket (HU-Q8.3, PARQUEADERO §5.5) | Al Google Drive de la cuenta, con cada copia de HU-Q10.1 (no solas: el permiso de Google dura una hora); la caja las borra a los 30 días y `/r/` no las muestra | Decisión del dueño, 12 oct 2026: «Las fotos en la nube, van para la cuenta del drive por ahora». R2 no está activado y el plan sigue gratuito |
 | `v0.3.0` es M1 (plan §3.3) | `v0.3.0` es la caja de la entrega del 13 oct: lo de Q6 a Q11 que no necesita la nube. M1 pasa a `v0.4.0` | Seis sprints estaban en `main` sin publicar, y el cliente recibe la caja el 13 oct de 2026 (dueño, 12 oct) |
 | Un PR por historia o por parte de un sprint | Un PR y un push por sprint completo | Decisión del dueño, 12 oct 2026, para ahorrar minutos de Actions |
+| El CORE avisa el pago a la celda (`POST /api/servicio/plan`, HU-Q7.10 CA1) | La celda lee el plan del token: con el gratuito, o pasada la gracia, responde 402 `sin-plan` y la caja sigue igual | El CORE ya pone el plan con su gracia en el token (HU-C5.5) y el acceso dura minutos: un pago se ve en la vuelta siguiente, sin llamada nueva ni copia del plan en la celda (HU-C5.6 también cambió de forma) |
 
 ---
 

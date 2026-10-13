@@ -257,7 +257,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q9** (festivo) | 12–22 ene 2027 | **M1.** Cobro del plan por periodo, privacidad con cuenta, operación de la celda y dos cajas sin red que no repiten números | HU-Q7.10 (3), HU-Q7.11 (2), HU-Q7.12 (2), HU-Q10.1 (3), HU-Q10.2 (3), HU-Q10.4 (2) | 15 | M1, `v0.4.0` |
 | **Q10** | 25 ene–5 feb | Firma sin red por dispositivo y su verificación; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q11.4 (2), HU-Q11.5 (2). HU-Q8.3 pasó a Q11 (espera R2) | 14 | — |
 | **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). HU-Q8.5, HU-Q8.6 y HU-Q10.3 en el PR #156; HU-Q8.4 en el #157, sin el número del abonado; HU-Q11.6 y HU-Q11.7 en el #158 con la `v0.3.0` de la entrega. HU-Q8.3 hecha en el #158, con las fotos en el Drive de la cuenta (decisión del dueño, 12 oct 2026); HU-Q8.7 espera M1 en producción (HU-Q7.12) | 17 | M2, **`v1.0.0`** |
-| **Q12** | 22 feb–5 mar | Con su disparador: ED1 como Tech Provider, el número del parqueadero conectado y la plantilla | HU-Q9.1 (3), HU-Q9.2 (5), HU-Q9.3 (2) | 10 | — |
+| **Q12** | 22 feb–5 mar | Sin el disparador de M3 (12 oct 2026), como dice la nota de abajo: el cobro del plan por periodo, que HC4 desbloqueó (#161). EQ9 sigue preparada | HU-Q7.10 (3) | 3 | — |
 | **Q13** | 8–19 mar | **M3.** Envío por la Cloud API, estados, autoservicio y presupuesto de mensajes | HU-Q9.4 (5), HU-Q9.5 (3), HU-Q9.6 (3), HU-Q9.7 (2), HU-Q9.8 (2) | 15 | M3, `v1.1.0` |
 
 **Total:** 229 puntos en 14 sprints. M0: 116 (Q0–Q5). M1: 57 (Q6–Q9). M2: 31 (Q10–Q11). M3: 25 (Q12–Q13).
@@ -490,7 +490,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.9.1 `[código]` exportar · WI-Q7.9.2 `[prueba]` ida y vuelta · WI-Q7.9.3 `[código]` pantalla.
 
 #### HU-Q7.10 · El cobro del plan por periodo
-- **Capa:** CORE y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q9 · **Depende de:** HU-C5.3, HU-C5.5 y HU-C5.6 (HC4), HU-Q7.1, D-Q5 · **Estado:** Refinada
+- **Capa:** CORE y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q12 (HC4 llegó con el #161) · **Depende de:** HU-C5.3, HU-C5.5 y HU-C5.6 (HC4), HU-Q7.1, D-Q5 · **Estado:** En revisión (rama `feat/q12-sprint`, 12 oct 2026), en staging. **CA1 cambia de forma:** el CORE no le avisa a la celda; la celda lee el plan del token, que el CORE ya emite con la gracia del producto (HU-C5.5), y la caja renueva su acceso al volver de Bold (bitácora, «Cambios de rumbo»). Pagar lo ve quien tiene «Equipo, plan y pago» (el propietario, §11.2). Pendiente del dueño: el precio (hoy la hipótesis del estudio, en `planes.json`) y WI-Q7.10.4
 - Como propietario, quiero pagar 1, 3, 6 o 12 meses del plan con Bold desde la caja, para no depender de un link manual.
 - **Respaldo:** PARQUEADERO §11.1 (`gracia_dias: 7`) y §14.2; PLATAFORMA §4.13; estudio §10.3.
 - **CA1.** La caja muestra el plan, su vencimiento (`plan_vence` del token) y «Pagar», que abre el cobro del CORE con el producto `parqueadero`. El CORE avisa el pago a la celda (`POST /api/servicio/plan`).
@@ -926,6 +926,7 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 | Q9 | 15 | Solo staging | #154. HU-Q7.10 espera HC4 y HU-Q7.12 es la `v0.4.0` |
 | Q10 | 14 | Solo staging | #155 |
 | Q11 | 17 | Lo que no necesita la nube, en la `v0.3.0` de la entrega | #156–#158: 20 puntos hechos (HU-Q8.3, HU-Q8.4, HU-Q8.5, HU-Q8.6, HU-Q10.3, HU-Q11.6 y HU-Q11.7, estas dos sin sprint); HU-Q8.7 espera M1 en producción |
+| Q12 | 3 | Solo staging | HU-Q7.10, sin el disparador de M3. HU-Q7.12 (M1 en producción) espera la decisión del dueño |
 
 Desde el 12 oct 2026, un PR y un push por sprint completo, para ahorrar minutos de Actions (decisión del dueño).
 
