@@ -18,9 +18,8 @@ import { type ConfigCeldas, cargarCeldas } from './celdas.ts';
 export type EntornoDelParqueadero = 'staging' | 'produccion';
 
 /**
- * Las APIs con que la caja sincroniza: las de las celdas del parqueadero en `celdas.json` (P2). En
- * producción ninguna mientras esas celdas esperan su publicación (HU-Q7.12), como en el directorio
- * del CORE: una caja de producción no se conecta a una celda que no existe.
+ * Las APIs con que la caja sincroniza: las de las celdas del parqueadero en `celdas.json` (P2), la
+ * de staging o la de producción (HU-Q7.12 publicó la de producción el 13 oct 2026).
  */
 export function conexionesDeLaCaja(
   entorno: EntornoDelParqueadero,
@@ -32,29 +31,26 @@ export function conexionesDeLaCaja(
     .sort();
 }
 
-/**
- * El CORE de las cuentas, con que la caja entra y renueva su sesión (HU-Q7.6). Solo en staging:
- * en producción la caja no ofrece la cuenta hasta HU-Q7.12.
- */
+/** El CORE de las cuentas, con que la caja entra y renueva su sesión (HU-Q7.6), el de su entorno. */
 export const coreDeLaCaja = (
   entorno: EntornoDelParqueadero,
   config: ConfigCeldas = cargarCeldas(),
-): string[] => (entorno === 'staging' ? [config.core.url_staging] : []);
+): string[] => [entorno === 'staging' ? config.core.url_staging : config.core.url];
 
 /**
  * Google Drive, donde la caja guarda y trae su copia con el permiso que pide el CORE (HU-Q10.1).
- * Va con el CORE: solo en staging hasta que el CORE de producción la publique.
+ * Va con el CORE, en los dos entornos desde HU-Q7.12.
  */
-export const driveDeLaCaja = (entorno: EntornoDelParqueadero): string[] =>
-  entorno === 'staging' ? [ORIGEN_DRIVE] : [];
+export const driveDeLaCaja = (_entorno: EntornoDelParqueadero): string[] => [ORIGEN_DRIVE];
 
 /**
  * El programa de pago de Bold, para pagar el plan desde «Cuenta y nube» (HU-Q7.10): el que la
- * política de la cuenta declara en `scripts_al_pagar`, solo como script y solo en staging, como la
- * cuenta, hasta HU-Q7.12. Se carga al tocar «Pagar», nunca al abrir la caja.
+ * política de la cuenta declara en `scripts_al_pagar`, solo como script, en los dos entornos desde
+ * HU-Q7.12. Se carga al tocar «Pagar», nunca al abrir la caja.
  */
-export const pagoDeLaCaja = (entorno: EntornoDelParqueadero): string[] =>
-  entorno === 'staging' ? [...politica.scripts_al_pagar] : [];
+export const pagoDeLaCaja = (_entorno: EntornoDelParqueadero): string[] => [
+  ...politica.scripts_al_pagar,
+];
 
 export function cspDelParqueadero(
   entorno: EntornoDelParqueadero,

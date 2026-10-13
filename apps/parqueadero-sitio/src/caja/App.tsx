@@ -60,13 +60,9 @@ const MENU = [
   ['respaldo', 'Respaldo'],
   ['letrero', 'Aviso de tarifas'],
   ['aviso', 'Aviso de privacidad'],
+  // HU-Q7.6: la cuenta y la nube, también en producción desde HU-Q7.12 (13 oct 2026).
+  ['cuenta', 'Cuenta y nube'],
 ] as const;
-
-/**
- * La cuenta y la nube (HU-Q7.6) solo fuera de producción: la caja del cliente se reclama en
- * producción con M1 (HU-Q7.12), con los términos de la nube ya escritos (HU-Q7.11).
- */
-const MENU_DE_PRUEBA = [...MENU, ['cuenta', 'Cuenta y nube']] as const;
 
 export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Props) {
   const vinculada = useConsulta<boolean>(
@@ -308,7 +304,7 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
               <summary>Más opciones</summary>
               <nav aria-label="Administrar el parqueadero">
                 <ul class="menu">
-                  {(prueba ? MENU_DE_PRUEBA : MENU).map(([es, texto]) => (
+                  {MENU.map(([es, texto]) => (
                     <li key={es}>
                       <button type="button" class="menu-fila" onClick={() => ir({ es })}>
                         {texto}

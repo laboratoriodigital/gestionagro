@@ -20,7 +20,7 @@ import {
 } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
 import type { AccionDrive } from './drive.ts';
-import { esProduccion, urlDelCore } from './entorno.ts';
+import { urlDelCore } from './entorno.ts';
 import { fechaBogota, horaBogota } from './fecha.ts';
 import { useConsulta } from './ganchos.ts';
 import type { Nube } from './nube.ts';
@@ -98,7 +98,8 @@ const tamano = (bytes: number) =>
     : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 export function Respaldo({ db, ctx, nube, regreso, alVolver }: Props) {
-  const conDrive = !esProduccion(location.hostname);
+  // HU-Q10.1: la copia en Drive, en los dos entornos desde HU-Q7.12.
+  const conDrive = true;
   const core = urlDelCore(location.hostname);
   const vinculada = useConsulta<boolean>(
     () => db.meta.get('nube').then((m) => m?.clave === 'nube'),
