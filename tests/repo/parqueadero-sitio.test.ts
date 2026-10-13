@@ -85,7 +85,7 @@ describe('el sitio del parqueadero', () => {
     }
   });
 
-  it('la caja se conecta a la API de su celda en staging, y en producción a ninguna (HU-Q7.5)', () => {
+  it('la caja se conecta a la API de la celda de su entorno, nunca a la del otro (HU-Q7.5, HU-Q7.12)', () => {
     expect(conexionesDeLaCaja('staging')).toEqual([
       'https://parqueadero-api-c2-staging.laboratoriodigital-la.workers.dev',
     ]);
@@ -93,32 +93,36 @@ describe('el sitio del parqueadero', () => {
     expect(cspDelParqueadero('staging')).toContain(
       "connect-src 'self' https://parqueadero-api-c2-staging.laboratoriodigital-la.workers.dev https://agro-core-staging.laboratoriodigital-la.workers.dev https://www.googleapis.com;",
     );
-    // Hasta que HU-Q7.12 publique la celda, la de producción es la de M0.
-    expect(conexionesDeLaCaja('produccion')).toEqual([]);
-    expect(cspDelParqueadero('produccion')).toMatch(/connect-src 'self';/);
+    // HU-Q7.12: producción, con su celda y su CORE, y sin nada de staging.
+    expect(conexionesDeLaCaja('produccion')).toEqual([
+      'https://parqueadero-api-c2.laboratoriodigital-la.workers.dev',
+    ]);
+    expect(cspDelParqueadero('produccion')).toContain(
+      "connect-src 'self' https://parqueadero-api-c2.laboratoriodigital-la.workers.dev https://agro-core.laboratoriodigital-la.workers.dev https://www.googleapis.com;",
+    );
+    expect(cspDelParqueadero('produccion')).not.toContain('staging');
     // Nunca la API del agro.
     expect(cspDelParqueadero('staging')).not.toContain('agro-api');
   });
 
-  it('el Drive de la copia (HU-Q10.1) es el que declara la política, y solo en staging', () => {
-    expect(driveDeLaCaja('staging').length).toBeGreaterThan(0);
-    for (const o of driveDeLaCaja('staging')) {
-      expect(politica.conexiones_de_terceros).toContain(o);
+  it('el Drive de la copia (HU-Q10.1) es el que declara la política, en los dos entornos', () => {
+    for (const entorno of ['staging', 'produccion'] as const) {
+      expect(driveDeLaCaja(entorno).length).toBeGreaterThan(0);
+      for (const o of driveDeLaCaja(entorno)) expect(politica.conexiones_de_terceros).toContain(o);
     }
-    expect(driveDeLaCaja('produccion')).toEqual([]);
   });
 
-  it('el pago de Bold (HU-Q7.10) es el que declara la política, solo como script y solo en staging', () => {
-    expect(pagoDeLaCaja('staging')).toEqual(politica.scripts_al_pagar);
-    expect(pagoDeLaCaja('staging').length).toBeGreaterThan(0);
+  it('el pago de Bold (HU-Q7.10) es el que declara la política, solo como script', () => {
     expect(politica.encargados.map((x) => x.proveedor)).toContain('Bold');
-    for (const o of pagoDeLaCaja('staging')) {
-      const csp = cspDelParqueadero('staging');
-      expect(csp).toContain(`script-src 'self' ${o};`);
-      expect(csp.replace(`script-src 'self' ${o};`, '')).not.toContain(o);
+    for (const entorno of ['staging', 'produccion'] as const) {
+      expect(pagoDeLaCaja(entorno)).toEqual(politica.scripts_al_pagar);
+      expect(pagoDeLaCaja(entorno).length).toBeGreaterThan(0);
+      for (const o of pagoDeLaCaja(entorno)) {
+        const csp = cspDelParqueadero(entorno);
+        expect(csp).toContain(`script-src 'self' ${o};`);
+        expect(csp.replace(`script-src 'self' ${o};`, '')).not.toContain(o);
+      }
     }
-    expect(pagoDeLaCaja('produccion')).toEqual([]);
-    expect(cspDelParqueadero('produccion')).toContain("script-src 'self';");
   });
 
   it('staging no se indexa; producción lleva HSTS y no deja indexar la caja ni los recibos', () => {

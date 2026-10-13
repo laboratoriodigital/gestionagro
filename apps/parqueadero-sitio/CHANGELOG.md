@@ -4,6 +4,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.5.0] - 2026-10-13
+
+M1 en producción: la cuenta, la nube, varias cajas y el pago del plan, en la caja del cliente.
+
+### Agregado
+- La cuenta y la nube en producción (HU-Q7.12): Más › «Cuenta y nube» entra con Google, sube el parqueadero con todo lo de la caja (sus números siguen siendo suyos), suma otras cajas con su propia serie, y lo de cada caja sube y baja solo, sin cortar una venta. La celda c2 del parqueadero queda en producción, con su API, su base y su llave de recibos: los recibos se firman y `/r/` los verifica.
+- En producción también: la copia en el Google Drive de la cuenta, con las fotos de los vehículos; los términos de la nube; y pagar el plan con Bold desde «Cuenta y nube».
+
+### Cambiado
+- El plan Parqueadero cuesta COP 29.900 al mes por sede (precio del dueño, 13 oct 2026): COP 85.000 el trimestre, 161.000 el semestre y 299.000 el año.
+
 ## [0.4.1] - 2026-10-13
 
 El escáner lee el recibo con menos lucha, antes de entrar en operación.

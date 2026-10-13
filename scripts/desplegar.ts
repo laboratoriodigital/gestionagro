@@ -49,7 +49,6 @@ import {
   celdasDelDirectorio,
   configDeLaCeldaDelParqueadero,
   escribirDespliegueDelParqueadero,
-  notaSinProduccion,
   origenesDeLaCaja,
   preparaLasCeldasDelParqueadero,
   secretosDeLaCeldaDelParqueadero,
@@ -628,7 +627,7 @@ async function prepararCeldaDelParqueadero(
   cred: Credenciales,
 ): Promise<Paso> {
   const dest = destino as Destino;
-  if (dest === 'produccion') return { ok: true, detalle: [notaSinProduccion(celda.id)] };
+  const staging = dest === 'staging';
   if (celda.shards.length === 0) {
     return { ok: false, detalle: [`${celda.id}: no tiene shards en celdas.json`] };
   }
@@ -638,9 +637,14 @@ async function prepararCeldaDelParqueadero(
   let notaKv: string;
   try {
     for (const shard of celda.shards) {
-      const base = await asegurarBaseD1(fetch, cred.token, cred.cuenta, baseDelShard(shard, true));
+      const base = await asegurarBaseD1(
+        fetch,
+        cred.token,
+        cred.cuenta,
+        baseDelShard(shard, staging),
+      );
       bases[shard] = base.id;
-      if (base.creada) nuevas.push(baseDelShard(shard, true));
+      if (base.creada) nuevas.push(baseDelShard(shard, staging));
     }
     const ns = await asegurarNamespace(fetch, cred.token, cred.cuenta, titulo);
     const producto = cargarRegistroDeProductos().productos.find((p) => p.id === celda.producto);
@@ -656,7 +660,7 @@ async function prepararCeldaDelParqueadero(
       configDeLaCeldaDelParqueadero(wranglerDeLaCeldaDelParqueadero(celda), dest, {
         bases,
         flagsId: ns.id,
-        clavesCore: await clavesDelCore(fetch, config.core.url_staging),
+        clavesCore: await clavesDelCore(fetch, staging ? config.core.url_staging : config.core.url),
         origenesApp: origenesDeLaCaja(producto, dest),
       }),
     );
@@ -705,11 +709,12 @@ async function prepararCeldaDelParqueadero(
     };
   }
   const url = urlDeWorkersDev(deploy.salida);
-  if (url !== celda.api_staging) {
+  const configurada = staging ? celda.api_staging : celda.api;
+  if (url !== configurada) {
     return {
       ok: false,
       detalle: [
-        `API de ${celda.id} desplegada en ${url ?? '(sin URL de workers.dev en la salida)'}, pero celdas.json dice ${celda.api_staging}: corrígela por PR y vuelve a desplegar.`,
+        `API de ${celda.id} desplegada en ${url ?? '(sin URL de workers.dev en la salida)'}, pero celdas.json dice ${configurada}: corrígela por PR y vuelve a desplegar.`,
       ],
     };
   }
@@ -769,11 +774,12 @@ async function prepararCeldaDelParqueadero(
   } catch (e) {
     return { ok: false, detalle: [`parqueadero: ${(e as Error).message}`] };
   }
-  const caja = await desplegarParqueadero(cred, 'staging');
+  // La caja sale después de su celda: su `/r/` lleva la llave pública de recibos de la celda.
+  const caja = await desplegarParqueadero(cred, dest);
   return {
     ok: caja.ok,
     detalle: [
-      `celda ${celda.id} del parqueadero (staging): ${celda.shards.length} shard(s) con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}`,
+      `celda ${celda.id} del parqueadero (${dest}): ${celda.shards.length} shard(s) con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}`,
       notaKv,
       `API: ${url}`,
       deLaCelda.claveNueva
@@ -1040,8 +1046,15 @@ for (const celda of plan.aDesplegar) {
   } else if (!productos.has('agro')) {
     detalle.push(noSale('agro', 'agro'));
   }
-  // HU-Q0.3 y HU-Q5.2: el parqueadero publicado va a su dominio, nunca a workers.dev.
-  if (paso.ok && alojaCore && destino === 'produccion' && productos.has('parqueadero')) {
+  // HU-Q0.3 y HU-Q5.2: el parqueadero publicado va a su dominio, nunca a workers.dev. Con una
+  // celda del parqueadero en celdas.json, la caja sale con ella (HU-Q7.12), no aquí.
+  if (
+    paso.ok &&
+    alojaCore &&
+    destino === 'produccion' &&
+    productos.has('parqueadero') &&
+    !configCeldas.celdas.some((c) => c.producto === 'parqueadero')
+  ) {
     paso = await desplegarParqueadero(cred, 'produccion');
     detalle.push(...paso.detalle);
   }

@@ -13,8 +13,8 @@
  * 5. la llave de recibos de la celda (HU-Q8.1), solo si el Worker no tiene una, y la caja de
  *    staging con esa llave pública dentro de `/r/` (HU-Q8.2).
  *
- * En producción no prepara nada todavía: el dueño autorizó staging, y producción espera la
- * publicación del parqueadero en la nube (HU-Q7.12).
+ * En producción, lo mismo con los nombres de producción, cuando se publica el parqueadero: el dueño
+ * lo pidió el 13 oct 2026 con la caja del cliente ya en operación (HU-Q7.12).
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -39,18 +39,15 @@ export const TABLAS_DEL_SHARD = [
 ] as const;
 export const CONSULTA_HUMO_SHARD = 'SELECT name FROM pragma_table_list ORDER BY name';
 
-/** La nota de producción mientras la celda espera su publicación (HU-Q7.12). */
-export const notaSinProduccion = (celdaId: string) =>
-  `celda ${celdaId} del parqueadero: en producción todavía no se prepara (espera su publicación, HU-Q7.12; staging sí)`;
-
 /**
- * Las celdas que el despliegue escribe en el directorio del CORE: en producción, sin las del
- * parqueadero, para que ninguna organización caiga en una celda sin API (HU-Q7.12 las publica).
+ * Las celdas que el despliegue escribe en el directorio del CORE: todas, en staging y en
+ * producción, desde que HU-Q7.12 publicó la del parqueadero (13 oct 2026). Antes, producción las
+ * dejaba fuera para que ninguna organización cayera en una celda sin API.
  */
 export const celdasDelDirectorio = <C extends { producto: string }>(
   celdas: readonly C[],
-  destino: Destino,
-): C[] => celdas.filter((c) => destino === 'staging' || c.producto !== 'parqueadero');
+  _destino: Destino,
+): C[] => [...celdas];
 
 /**
  * Si este despliegue prepara las celdas del parqueadero. Staging despliega siempre lo que llegó a

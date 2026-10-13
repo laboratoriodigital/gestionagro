@@ -71,7 +71,7 @@ export function periodosDe(plan: string = PLAN_CON_NUBE): Periodo[] {
 
 export const nombreDelPeriodo = (meses: number) => (meses === 1 ? 'un mes' : `${meses} meses`);
 
-/** «$59.000», como los montos de la caja. */
+/** «$29.900», como los montos de la caja. */
 export const pesos = (n: number) => `$${n.toLocaleString('es-CO')}`;
 
 type Org = Sesion['organizaciones'][number];

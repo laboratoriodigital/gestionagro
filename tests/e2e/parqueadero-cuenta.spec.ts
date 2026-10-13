@@ -213,7 +213,7 @@ test('HU-Q7.10 · con el plan gratuito la nube espera; pagado en Bold, la caja s
   await expect(page.getByTestId('texto-del-plan')).toContainText('Plan Gratis');
 
   // CA1: pagar un mes abre Bold con lo que armó el CORE; la caja no manda el monto.
-  await page.getByRole('button', { name: /^Pagar un mes · \$59\.000/ }).click();
+  await page.getByRole('button', { name: /^Pagar un mes · \$29\.900/ }).click();
   await expect(page.getByTestId('estado-de-la-cuenta')).toContainText(
     'Pago aprobado: la nube sigue hasta el',
   );

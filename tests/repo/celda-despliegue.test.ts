@@ -27,7 +27,6 @@ import {
 import {
   celdasDelDirectorio,
   configDeLaCeldaDelParqueadero,
-  notaSinProduccion,
   origenesDeLaCaja,
   preparaLasCeldasDelParqueadero,
   SECRETO_DE_RECIBOS,
@@ -395,13 +394,11 @@ describe('las celdas del parqueadero (HU-Q7.2)', () => {
     expect(() => origenesDeLaCaja(agro, 'staging')).toThrow(/no declara los orígenes/);
   });
 
-  it('en producción no entra al directorio del CORE ni se prepara (staging sí)', () => {
+  it('desde HU-Q7.12, la celda del parqueadero entra al directorio del CORE en los dos entornos', () => {
     const ids = (destino: 'staging' | 'produccion') =>
       celdasDelDirectorio(real.celdas, destino).map((c) => c.id);
-    expect(ids('staging')).toContain('c2');
-    expect(ids('produccion')).not.toContain('c2');
-    expect(ids('produccion')).toContain('c0');
-    expect(notaSinProduccion('c2')).toMatch(/c2 del parqueadero: en producción todavía no/);
+    expect(ids('staging')).toEqual(expect.arrayContaining(['c0', 'c2']));
+    expect(ids('produccion')).toEqual(expect.arrayContaining(['c0', 'c2']));
   });
 
   it('staging la prepara aunque su lista de productos sea la de siempre (core y agro)', () => {
@@ -436,7 +433,7 @@ describe('las celdas del parqueadero (HU-Q7.2)', () => {
     expect(texto.match(/secretosDeLaCeldaDelParqueadero\(/g)).toHaveLength(1);
   });
 
-  it('HU-Q8.2: la caja de staging sale después de la celda, con sus llaves de recibos en /r/', async () => {
+  it('HU-Q8.2 y HU-Q7.12: la caja sale después de su celda, en los dos entornos, con las llaves de /r/', async () => {
     const texto = readFileSync(join(RAIZ, 'scripts', 'desplegar.ts'), 'utf8');
     const paso = texto.slice(
       texto.indexOf('async function prepararCeldaDelParqueadero'),
@@ -445,10 +442,12 @@ describe('las celdas del parqueadero (HU-Q7.2)', () => {
     expect(paso.indexOf('clavesQrDe(fetch, url, PAGINAS.recibo)')).toBeGreaterThan(
       paso.indexOf("wrangler('@ed1/parqueadero-api', `deploy"),
     );
-    expect(paso.indexOf("desplegarParqueadero(cred, 'staging')")).toBeGreaterThan(
+    expect(paso.indexOf('desplegarParqueadero(cred, dest)')).toBeGreaterThan(
       paso.indexOf('ponerClavesEnLaPagina(claves, PAGINA_RECIBO, PAGINAS.recibo)'),
     );
-    expect(texto.match(/desplegarParqueadero\(cred, 'staging'\)/g)).toHaveLength(1);
+    expect(texto.match(/desplegarParqueadero\(cred, dest\)/g)).toHaveLength(1);
+    // En producción, la caja no sale antes con el CORE si hay una celda del parqueadero.
+    expect(texto).toContain("!configCeldas.celdas.some((c) => c.producto === 'parqueadero')");
 
     const fetchFn = (async (u: string) =>
       u.endsWith('/api/claves-recibo')
