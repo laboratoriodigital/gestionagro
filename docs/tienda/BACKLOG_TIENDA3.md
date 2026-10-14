@@ -322,7 +322,7 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T1** (festivo) | 30 nov–11 dic | La Tienda existe en el registro y en staging: celda, bases, KEK y tres apps desplegadas | HU-T2.1 (3), HU-T2.2 (3), HU-T2.3 (3), HU-T2.4 (5), HU-T2.5 (2) | 16 | — |
 | **T2** (corto) | 14–23 dic | **M0.** Dos comercios de prueba en staging que entran con tokens de la Tienda, con versión propia y presupuesto vigilado. Solo staging desde el 18 dic | HU-T0.2 (3), HU-T2.6 (3), HU-T2.7 (2), HU-T2.8 (2), HU-T3.3 (2) | 12 | M0 |
 | — | 24 dic–8 ene | Pausa y congelamiento | — | — | — |
-| **T3** (festivo) | 12–22 ene 2027 | El horno produce los bytes de una tienda y el despacho los sirve sin tocar la base | HU-T3.2 (3), HU-T4.1 (5), HU-T4.2 (2), HU-T5.1 (5) | 15 | — |
+| **T3** (festivo) | 12–22 ene 2027 | El horno produce los bytes de una tienda y el despacho los sirve sin tocar la base | HU-T2.10 (2), HU-T3.2 (3), HU-T4.1 (5), HU-T4.2 (2), HU-T5.1 (5) | 17 | — |
 | **T4** | 25 ene–5 feb | Publicar es hornear en cola con su compuerta; la vitrina tiene sus componentes | HU-T3.4 (5), HU-T4.3 (3), HU-T4.4 (5), HU-T5.3 (2), HU-T5.6 (2), HU-T17.1 (3) | 20 | — |
 | **T5** | 8–19 feb | La vitrina completa: portada, colecciones, fichas, carrito, cotizar y los textos legales | HU-T5.2 (5), HU-T5.4 (3), HU-T5.5 (3), HU-T6.5 (1), HU-T7.1 (5), HU-T15.1 (3) | 20 | — |
 | **T6** | 22 feb–5 mar | Se pide por WhatsApp con acuse y seguimiento; la carga del operador; la vitrina en producción sin tiendas | HU-T2.9 (2), HU-T3.6 (3), HU-T6.1 (5), HU-T6.2 (2), HU-T6.3 (3), HU-T12.2 (5) | 20 | `v0.1.0` |
@@ -565,7 +565,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T2.7.1 `[código]` · WI-T2.7.2 `[prueba]` · WI-T2.7.3 `[doc]` `docs/runbooks/kill-switch.md` · WI-T2.7.4 `[dueño]` el presupuesto.
 
 #### HU-T2.8 · La API de la Tienda verifica los tokens del CORE
-- **Capa:** API y seguridad · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T2 · **Depende de:** HU-C4.1, HU-C4.3 · **Estado:** Refinada
+- **Capa:** API y seguridad · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T2 · **Depende de:** HU-C4.1, HU-C4.3 · **Estado:** En validación (rama `feat/t2-sprint`. `/api/panel/v1/*` verifica con `@ed1/tokens` y las claves públicas del CORE, que el despliegue pone en `CORE_CLAVES` (las del CORE de staging en staging), sin llamarlo: `aud = tienda`, organización, rol, plan, `auth_time`, celda y shard salen del token. `GET /api/panel/v1/yo` dice a qué tienda llegó la sesión. La prueba estática `org-id-en-consultas` cubre la API de la Tienda con las tablas de su migración. **La aceptación de M0 con un token real del CORE de staging se movió a HU-T2.10**: la Tienda está pausada en el CORE, y emitir un token `aud = tienda` pide activarla solo en staging, que es trabajo del CORE. Controles negativos: tokens del agro, del parqueadero, vencido, firmado con otra clave, sin tienda, de otra celda y con un shard ajeno; una organización en la URL no cambia la tienda; la regla estática ve una consulta sin `org_id`)
 - Como comercio, quiero que mi sesión del panel sirva solo para mi tienda.
 - **Respaldo:** TIENDA §12.1 y §14.1; PLATAFORMA §4.6; ADR-10.
 - **CA1.** El middleware de `/api/panel/v1/*` verifica con `@ed1/tokens`: `aud = tienda`, organización, rol, plan y `auth_time`.
@@ -582,6 +582,16 @@ Formato de cada historia, el del CORE:
 - **CA2.** La prueba de humo mira el dominio público, no solo staging.
 - **CA3 ❌.** Falla si encuentra un comercio de prueba en producción, o si el destino, el dominio y el ambiente no coinciden.
 - **Work items:** WI-T2.9.1 `[ci]` · WI-T2.9.2 `[prueba]` · WI-T2.9.3 `[dueño]` abrir el dominio público.
+
+#### HU-T2.10 · La Tienda activa solo en staging, con las dos organizaciones de prueba
+- **Capa:** CORE y prueba · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T3 · **Depende de:** HU-T2.6, HU-T2.8, HU-C3.7 (hecha) · **Estado:** Refinada (nace del T2: la aceptación de M0 de HU-T2.8 y la parte del CORE de HU-T2.6 CA1)
+- Como dueño, quiero que el CORE de staging emita un token de la Tienda para Ensayo Uno, para probar el panel con una sesión de verdad sin abrir la Tienda en producción.
+- **Respaldo:** HU-T2.2 (la Tienda pausada); HU-C3.7 (productos que solo existen en staging); TIENDA §12.1.
+- **CA1.** `productos-de-prueba.json` puede activar en staging un producto que en producción está pausado; el catálogo del CORE de staging y su base lo dicen igual (P2). Producción sigue igual.
+- **CA2.** Las organizaciones de Ensayo Uno y Ensayo Dos existen en el CORE de staging, en la celda c1 y su shard, con los ids del fixture de HU-T2.6.
+- **CA3 ❌.** Con la Tienda activa en staging, el CORE de producción sigue respondiendo «pausado» para la Tienda: una prueba lo exige.
+- **Aceptación de M0:** el CORE de staging emite un token `aud = tienda` para Ensayo Uno y `GET /api/panel/v1/yo` del panel de staging lo acepta.
+- **Work items:** WI-T2.10.1 `[código]` activar en staging · WI-T2.10.2 `[código]` las organizaciones de prueba · WI-T2.10.3 `[prueba]` · WI-T2.10.4 `[dueño]` entrar con su cuenta y probarlo.
 
 ### ET3 · Diseño de la Tienda
 

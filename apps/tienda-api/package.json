@@ -11,6 +11,7 @@
     "@ed1/cifrado": "workspace:*",
     "@ed1/d1": "workspace:*",
     "@ed1/kill-switch": "workspace:*",
+    "@ed1/tokens": "workspace:*",
     "hono": "^4.13.12"
   },
   "devDependencies": {

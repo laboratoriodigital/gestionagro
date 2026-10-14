@@ -389,6 +389,9 @@ importers:
       '@ed1/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
+      '@ed1/tokens':
+        specifier: workspace:*
+        version: link:../../packages/tokens
       hono:
         specifier: ^4.13.12
         version: 4.13.12

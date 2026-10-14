@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La API de la Tienda acepta los tokens del CORE (HU-T2.8): solo los de la Tienda, vigentes y de su celda. La tienda, el rol y el plan salen del token, nunca de lo que mande el navegador, y un token que no sirve recibe un motivo que el panel sabe mostrar («vuelve a entrar»).
 - Los kill switches de la Tienda funcionan (HU-T2.7): con `ks:tienda` apagado, toda tienda muestra «Volvemos pronto» y el panel queda en solo lectura; con `ks:tienda:<org>`, solo esa tienda queda en pausa. Al agotar su presupuesto, el vigía apagaría el horno y el MCP, nunca la venta; en el plan gratuito solo avisa, y ya cuenta las filas de la base de control como de la Tienda.
 - La versión propia de la Tienda (HU-T0.2): este registro, las etiquetas `tienda-vX.Y.Z` y su paso de publicación. Un PR que cambia la Tienda sin anotarlo aquí no pasa el CI.
 - `node scripts/tienda/generar-secretos.ts --ambiente staging|produccion` (HU-T2.5): genera una vez la llave maestra de la Tienda y el secreto del despacho, y los guarda en el ambiente de GitHub. La llave maestra va al portapapeles, nunca a la pantalla, y no se guarda sin la copia en el gestor de contraseñas. Runbook: `docs/runbooks/secretos-de-la-tienda.md`.

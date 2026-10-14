@@ -150,3 +150,46 @@ describe.each(APIS.map((api) => [api.nombre, api] as const))(
     });
   },
 );
+
+// HU-T2.8 CA2: la API de la Tienda. Sus tablas son las de la migración del shard (todas llevan
+// `org_id`, y `shard-tienda.test.ts` lo exige), salvo las de referencia.
+const TABLAS_TIENDA = [
+  ...readFileSync(
+    join(RAIZ, 'infrastructure/migraciones/tienda/0001_tienda_v1.sql'),
+    'utf8',
+  ).matchAll(/^CREATE TABLE (\w+)/gm),
+]
+  .map((m) => m[1] as string)
+  .filter((t) => !t.startsWith('ref_'));
+const TIENDA: Api = {
+  nombre: 'tienda',
+  dir: join(RAIZ, 'apps', 'tienda-api', 'src'),
+  tablas: TABLAS_TIENDA,
+  archivos: ['worker.ts'],
+  excepciones: {},
+};
+
+describe('HU-T2.8 CA2 · toda consulta de la API de la Tienda filtra por el org_id del token', () => {
+  const consultas = consultasDeLaApi(TIENDA);
+
+  it('conoce las tablas del shard y encuentra las consultas', () => {
+    expect(TABLAS_TIENDA).toContain('pedido');
+    expect(TABLAS_TIENDA).toContain('tienda');
+    expect(consultas.some((c) => /\bfrom tienda\b/.test(c.sql))).toBe(true);
+  });
+
+  it.each(consultas.map((c) => [c.archivo, c.sql.slice(0, 70), c.sql] as const))(
+    '%s: %s…',
+    (_archivo, _inicio, sql) => {
+      expect(faltaOrg(TIENDA, sql)).toBeNull();
+    },
+  );
+
+  it('la regla ve los defectos (control negativo)', () => {
+    expect(faltaOrg(TIENDA, 'select estado from pedido where codigo = ?')).toMatch(/from pedido/);
+    expect(faltaOrg(TIENDA, 'insert into variante (id, producto_id) values (?, ?)')).toMatch(
+      /INSERT en variante/,
+    );
+    expect(faltaOrg(TIENDA, 'select slug from tienda where org_id = ?')).toBeNull();
+  });
+});
