@@ -6,7 +6,11 @@
   "revision": "requiere revisión de abogado (WI-T7.1.4)",
   "textos": [
     { "id": "terminos", "titulo": "Términos y condiciones", "ruta": "/legal/terminos/" },
-    { "id": "privacidad", "titulo": "Política de tratamiento de datos", "ruta": "/legal/privacidad/" },
+    {
+      "id": "privacidad",
+      "titulo": "Política de tratamiento de datos",
+      "ruta": "/legal/privacidad/"
+    },
     { "id": "envios", "titulo": "Envíos y devoluciones", "ruta": "/legal/envios/" },
     { "id": "retracto", "titulo": "Derecho de retracto", "ruta": "/legal/retracto/" },
     { "id": "garantia", "titulo": "Garantía", "ruta": "/legal/garantia/" },

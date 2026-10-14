@@ -446,7 +446,7 @@ ${p.cuerpo}
       `<h1>${escaparHtml(p.nombre)}</h1>`,
       `<p class="precio" data-precio>${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}</p>`,
       `<p class="precio__nota">${notaDelPrecio}</p>`,
-      `<form class="eleccion" data-eleccion>${grupos}${mayoria}<p class="avisame" data-avisame hidden>Esta combinación está agotada.</p><p class="aviso" data-aviso role="status" hidden></p><button class="boton boton--principal" type="submit" data-boton aria-disabled="${inicial.tipo !== 'lista'}">${escaparHtml(inicial.texto)}</button></form>`,
+      `<form class="eleccion" data-eleccion>${grupos}${mayoria}<div class="avisame" data-avisame hidden><p>Esta combinación está agotada.</p><button class="boton boton--secundario" type="button" data-avisame-boton>Avísame cuando haya</button><p class="aviso" data-avisame-estado role="status" hidden></p></div><p class="aviso" data-aviso role="status" hidden></p><button class="boton boton--principal" type="submit" data-boton aria-disabled="${inicial.tipo !== 'lista'}">${escaparHtml(inicial.texto)}</button></form>`,
       `<ul class="condiciones">${condiciones(p)
         .map((c) => `<li>${escaparHtml(c)}</li>`)
         .join(

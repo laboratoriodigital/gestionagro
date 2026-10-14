@@ -36,6 +36,7 @@ import {
   verificarConClaves,
 } from '@ed1/tokens';
 import { type Context, Hono } from 'hono';
+import { avisame, PeticionDeAvisame } from './avisame.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { type Almacen, type EscritorKv, publicar, type Resultado } from './publicar.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
@@ -348,6 +349,41 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       );
     }
     return c.json(await cotizar(destino.db, destino.org, p.data, new Date(ahora()).toISOString()));
+  });
+
+  /**
+   * HU-T6.5: «Avísame cuando haya». Público, por el despacho; 10 por minuto por IP
+   * (`LIMITE_AVISAME`, bitácora tienda3 11). No guarda ningún dato de la persona.
+   */
+  app.post('/api/v1/avisame', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_AVISAME, 'LIMITE_AVISAME'))) {
+      c.header('retry-after', '60');
+      return c.json(
+        { estado: 'limite', motivo: 'Son muchas solicitudes seguidas. Espera un minuto.' },
+        429,
+      );
+    }
+    let cuerpo: unknown;
+    try {
+      cuerpo = await c.req.json();
+    } catch {
+      return c.json({ estado: 'invalido' }, 400);
+    }
+    const p = PeticionDeAvisame.safeParse(cuerpo);
+    if (!p.success) return c.json({ estado: 'invalido' }, 422);
+    const r = await avisame(
+      destino.db,
+      destino.org,
+      p.data.variante,
+      new Date(ahora()).toISOString(),
+    );
+    if (r === 'no-existe') return c.json(NO_EXISTE, 404);
+    if (r === 'disponible') {
+      return c.json({ estado: r, motivo: 'Esta combinación ya está disponible.' }, 409);
+    }
+    return c.json({ estado: r });
   });
 
   app.get('/api/panel/v1/yo', async (c) => {

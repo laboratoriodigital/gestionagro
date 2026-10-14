@@ -164,3 +164,31 @@ test('HU-T5.5 CA2 · si el servidor corrige el pedido o el total cambió, la pá
     'El total cambió: ahora es $540.000. Revísalo antes de enviar tu pedido.',
   );
 });
+
+test('HU-T6.5 · «Avísame cuando haya» en una combinación agotada, una sola vez por teléfono', async ({
+  page,
+}) => {
+  const pedidas: string[] = [];
+  await page.route('**/api/v1/avisame', async (ruta) => {
+    pedidas.push(ruta.request().postData() ?? '');
+    await ruta.fulfill({ json: { estado: 'anotado' } });
+  });
+  await page.goto(FICHA);
+  await page.locator('label.pildora', { hasText: /^L$/ }).click();
+  await page.locator('label.pildora', { hasText: 'Azul' }).click();
+  await expect(page.locator('[data-boton]')).toHaveText('Agotada');
+  const boton = page.getByRole('button', { name: 'Avísame cuando haya' });
+  await boton.click();
+  await expect(page.locator('[data-avisame-estado]')).toHaveText(
+    'Listo: la tienda sabe que esperas esta combinación.',
+  );
+  expect(pedidas).toEqual([JSON.stringify({ variante: 'v-camisa-l-azul' })]);
+
+  await page.reload();
+  await page.locator('label.pildora', { hasText: /^L$/ }).click();
+  await page.locator('label.pildora', { hasText: 'Azul' }).click();
+  await expect(page.locator('[data-avisame-estado]')).toHaveText(
+    'Ya le dijiste a la tienda que esperas esta combinación.',
+  );
+  await expect(boton).toBeHidden();
+});

@@ -174,13 +174,13 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       }>();
     const fotosDe = (productoId: string): FotoParaHornear[] =>
       medios
-        .filter((m) => m.producto_id === productoId)
-        .map((m) => ({
-          huella: m.id,
-          alt: m.alt,
-          ancho: m.ancho,
-          alto: m.alto,
-          anchos: Object.keys(JSON.parse(m.formatos) as Record<string, number>).map(Number),
+        .filter((f) => f.producto_id === productoId)
+        .map((f) => ({
+          huella: f.id,
+          alt: f.alt,
+          ancho: f.ancho,
+          alto: f.alto,
+          anchos: Object.keys(JSON.parse(f.formatos) as Record<string, number>).map(Number),
         }));
     const { results: colecciones } = await c.shard
       .prepare(
@@ -311,7 +311,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
           nombre: p.nombre,
           estado: p.estado,
           precioCop: variantes.find((v) => v.producto_id === p.id)?.precio_cop ?? null,
-          fotos: medios.filter((m) => m.producto_id === p.id).length,
+          fotos: medios.filter((f) => f.producto_id === p.id).length,
           retracto: p.retracto,
           retractoMotivo: p.retracto_motivo,
         }),

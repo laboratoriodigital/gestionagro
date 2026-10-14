@@ -326,6 +326,15 @@ h1 {
   background: var(--acento);
   color: var(--acento-texto);
 }
+/* Lo que la isla oculta se oculta, aunque la clase le dé otro display. */
+.boton[hidden] {
+  display: none;
+}
+.boton--secundario {
+  background: none;
+  color: var(--texto);
+  box-shadow: inset 0 0 0 1px var(--borde);
+}
 .boton--principal[aria-disabled="true"] {
   background: var(--superficie-2);
   color: var(--texto);

@@ -106,8 +106,7 @@ export function leerCarrito(
   }
   const x = datos as Partial<Carrito> | null;
   if (
-    !x ||
-    x.v !== 1 ||
+    x?.v !== 1 ||
     !esCodigo(x.codigo) ||
     !Array.isArray(x.lineas) ||
     !x.lineas.every(lineaValida)

@@ -201,15 +201,15 @@ describe('POST /api/v1/cotizar', () => {
     tienda_control: control,
     ...extra,
   });
-  const pedir = (cuerpo: string, e: Env, tienda = { org: UNO, shard: 'tienda_c1_s1' }) =>
+  const pedir = (texto: string, e: Env, destino = { org: UNO, shard: 'tienda_c1_s1' }) =>
     crearApp().request(
       '/api/v1/cotizar',
       {
         method: 'POST',
-        body: cuerpo,
+        body: texto,
         headers: {
           [CABECERA_DESPACHO]: SECRETO,
-          [CABECERA_TIENDA]: JSON.stringify(tienda),
+          [CABECERA_TIENDA]: JSON.stringify(destino),
           'cf-connecting-ip': '203.0.113.7',
           'content-type': 'application/json',
         },

@@ -834,7 +834,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T6.4.1 `[código]` · WI-T6.4.2 `[prueba]` · WI-T6.4.3 `[doc]` el texto de ayuda.
 
 #### HU-T6.5 · «Avísame cuando haya», sin datos de nadie
-- **Capa:** vitrina y API · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** T5 · **Depende de:** HU-T5.2 · **Estado:** Refinada
+- **Capa:** vitrina y API · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** T5 · **Depende de:** HU-T5.2 · **Estado:** En validación (rama `feat/t5-sprint`. `POST /api/v1/avisame` en `apps/tienda-api/src/avisame.ts`: suma uno en `interes_reposicion` si la variante de esa tienda está agotada (`stock − reservado ≤ 0`); una disponible o sin inventario responde 409, y la de otra tienda 404. No guarda ningún dato de la persona, ni la IP. **Cambió el límite** (bitácora tienda3 11): Workers Rate Limiting solo cuenta de a 10 o 60 segundos, así que son 10 por minuto por IP (`LIMITE_AVISAME`), y la hora la cubre el teléfono: la isla recuerda en `tienda:avisame` las variantes por las que ya preguntó y no vuelve a sumar. En la ficha, una combinación agotada muestra «Avísame cuando haya» y dice el resultado. Controles negativos: la tabla solo tiene `org_id`, `variante_id`, `personas`, `desde` y `ultimo`, y la IP no aparece en ninguna fila; pasado el límite no suma)
 - Como comprador, quiero decir que me interesa algo agotado; como comerciante, saber cuántos esperan.
 - **Respaldo:** TIENDA §5.3 (`interes_reposicion`) y §14.3 (mínimo necesario); anexo C (`avisame`).
 - **CA1.** `POST /api/v1/avisame` suma uno si la variante está agotada.

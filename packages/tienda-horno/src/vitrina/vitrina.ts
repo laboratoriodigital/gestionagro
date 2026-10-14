@@ -34,6 +34,8 @@ import {
 } from './seleccion.ts';
 
 const azar = (n: number) => crypto.getRandomValues(new Uint8Array(n));
+/** Las variantes por las que este teléfono ya pidió «Avísame» (HU-T6.5). */
+const CLAVE_AVISAME = 'tienda:avisame';
 
 /** El almacenamiento puede no existir (modo privado): entonces el pedido se arma por WhatsApp. */
 const almacen = {
@@ -143,6 +145,7 @@ function ficha(): void {
       precio.textContent = formato(estado.variante.precioCop);
     }
     if (avisame) avisame.hidden = estado.tipo !== 'agotada';
+    if (estado.tipo === 'agotada') pintarAvisame(estado.variante.id);
     for (const o of opciones) {
       for (const input of form.querySelectorAll<HTMLInputElement>(
         `input[name="${CSS.escape(o.nombre)}"]`,
@@ -156,6 +159,52 @@ function ficha(): void {
       }
     }
   };
+  // HU-T6.5: «Avísame cuando haya». El teléfono recuerda por cuáles ya se preguntó, así nadie suma
+  // dos veces la misma (bitácora tienda3 11); a la tienda no le llega ningún dato de la persona.
+  const botonAvisame = form.querySelector<HTMLButtonElement>('[data-avisame-boton]');
+  const estadoAvisame = form.querySelector<HTMLElement>('[data-avisame-estado]');
+  const pedidas = (): string[] => {
+    try {
+      const x = JSON.parse(almacen.leer(CLAVE_AVISAME) ?? '[]') as unknown;
+      return Array.isArray(x) ? x.filter((v): v is string => typeof v === 'string') : [];
+    } catch {
+      return [];
+    }
+  };
+  let agotadaActual = '';
+  const pintarAvisame = (variante: string) => {
+    agotadaActual = variante;
+    const ya = pedidas().includes(variante);
+    if (botonAvisame) botonAvisame.hidden = ya;
+    decir(
+      estadoAvisame,
+      ya ? 'Ya le dijiste a la tienda que esperas esta combinación.' : undefined,
+    );
+  };
+  botonAvisame?.addEventListener('click', async () => {
+    const variante = agotadaActual;
+    botonAvisame.disabled = true;
+    try {
+      const r = await fetch('/api/v1/avisame', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ variante }),
+      });
+      if (r.ok || r.status === 409) {
+        almacen.escribir(CLAVE_AVISAME, JSON.stringify([...pedidas(), variante].slice(-50)));
+        pintarAvisame(variante);
+        if (r.ok) decir(estadoAvisame, 'Listo: la tienda sabe que esperas esta combinación.');
+        else decir(estadoAvisame, 'Esta combinación ya está disponible: recarga la página.');
+      } else {
+        decir(estadoAvisame, 'No pudimos avisarle a la tienda. Intenta de nuevo en un minuto.');
+      }
+    } catch {
+      decir(estadoAvisame, 'No pudimos avisarle a la tienda. Revisa tu conexión.');
+    } finally {
+      botonAvisame.disabled = false;
+    }
+  });
+
   form.addEventListener('change', () => {
     decir(aviso, undefined);
     pintar();
