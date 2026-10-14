@@ -164,7 +164,7 @@ describe('los flujos del repositorio', () => {
       jobs: Record<string, { with?: Record<string, string> }>;
     };
     expect(Object.keys(f.on.workflow_dispatch.inputs)).toContain('productos');
-    const productos = f.jobs['a-mano']?.with?.productos ?? '';
+    const productos = f.jobs['a-mano']?.with?.['productos'] ?? '';
     expect(productos).toContain('inputs.productos');
     expect(productos).toContain("startsWith(github.event.release.tag_name, 'parqueadero-v')");
     expect(productos).toContain("startsWith(github.event.release.tag_name, 'tienda-v')");
