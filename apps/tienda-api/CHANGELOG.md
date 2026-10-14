@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La tienda se puede verificar en Google Search Console (HU-T14.8): el comercio pega el código o la etiqueta HTML que le da Google, y se guarda solo el código, listo para la portada. Es el método que sirve para una tienda en un subdominio de la plataforma, que no puede verificarse por el proveedor de dominio.
 - Los dos comercios de prueba en staging (HU-T2.6): Comercio Ensayo Uno, de ropa con tallas, colores e inventario, y Comercio Ensayo Dos, una panadería sin inventario, cada uno en su dirección `<nombre>--staging.laboratorio-digital.app`. Salen de un solo fixture, se siembran en cada despliegue de staging y nunca en producción. La prueba de humo exige que cada uno responda en su dirección con su nombre.
 - La API de la Tienda acepta los tokens del CORE (HU-T2.8): solo los de la Tienda, vigentes y de su celda. La tienda, el rol y el plan salen del token, nunca de lo que mande el navegador, y un token que no sirve recibe un motivo que el panel sabe mostrar («vuelve a entrar»).
 - Los kill switches de la Tienda funcionan (HU-T2.7): con `ks:tienda` apagado, toda tienda muestra «Volvemos pronto» y el panel queda en solo lectura; con `ks:tienda:<org>`, solo esa tienda queda en pausa. Al agotar su presupuesto, el vigía apagaría el horno y el MCP, nunca la venta; en el plan gratuito solo avisa, y ya cuenta las filas de la base de control como de la Tienda.

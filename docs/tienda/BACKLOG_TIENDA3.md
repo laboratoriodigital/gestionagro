@@ -1372,7 +1372,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T14.7.1 `[código]` · WI-T14.7.2 `[prueba]`.
 
 #### HU-T14.8 · Verificar la tienda en Google Search Console
-- **Capa:** paquete y horno · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T3 · **Depende de:** HU-T1.4 · **Estado:** Refinada (pedido del dueño del 13 oct 2026)
+- **Capa:** paquete y horno · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T3 · **Depende de:** HU-T1.4 · **Estado:** En validación (rama `feat/t3-sprint`. La sección `medicion` acepta `googleVerificacion`, y `codigoDeVerificacionGoogle` (`@ed1/tienda-schema`) saca el código del texto que pegue el comercio: el código solo o la etiqueta `<meta name="google-site-verification">` entera, en mayúsculas o minúsculas y con los atributos en cualquier orden. `etiquetaDeVerificacionGoogle` arma la etiqueta que el horno pondrá en la portada (WI-T14.8.2 va con HU-T4.1). El texto del panel (WI-T14.8.3) llega con la pantalla de ajustes, HU-T10.3. Pedido del dueño del 13 oct 2026. Controles negativos: la etiqueta de otro buscador, un código con comillas, con un `<script>`, con espacios o corto)
 - Como comerciante, quiero que Google verifique mi tienda sin tener que tocar un DNS que no es mío, para ver cómo me encuentran.
 - **Respaldo:** pedido del dueño: en la 2.0, una tienda en un subdominio de la plataforma no se pudo verificar con el método del proveedor de dominio (Search Console pide un registro DNS en una zona que el comercio no controla). TIENDA §5.7 (`medicion`) y §11.7.
 - **CA1.** La sección `medicion` acepta el código de verificación de Google: el comercio pega el código o la etiqueta `<meta name="google-site-verification" …>` entera, y se guarda solo el código. El horno lo pone en el `<head>` de la portada.
