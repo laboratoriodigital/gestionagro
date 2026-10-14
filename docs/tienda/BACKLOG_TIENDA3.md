@@ -183,6 +183,8 @@ Una historia entra a un sprint solo si:
 
 El dueño pidió desde el inicio un frontend **bonito, minimalista y moderno**, con dos referencias: Porsche Colombia y Tracksmith Colombia. Esta sección traduce las dos a reglas que no rompen las premisas del ecosistema, del CORE ni de la Tienda. La construye la épica ET3 y la aprueba el dueño en la galería (HU-T3.1) antes de que exista una pantalla de verdad.
 
+**La Tienda 2.0 no aporta apariencia** (pedido del dueño del 13 oct 2026): ni colores, ni tipografía, ni plantillas, ni la disposición de sus páginas. El diseño sale de esta sección y de sus referencias. De la 2.0 solo se toman funcionalidades que ya sirven y lecciones de comportamiento de su bitácora (por ejemplo, que un botón deshabilitado diga qué falta), y aun esas se pueden cambiar.
+
 Hay **dos caras con dos trabajos distintos**:
 
 - **La vitrina** es del comercio: su marca va adelante y la plataforma desaparece. Lenguaje «editorial de tienda».
@@ -607,7 +609,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T3.1.1 `[diseño]` · WI-T3.1.2 `[código]` prototipos · WI-T3.1.3 `[dueño]` revisión con las referencias abiertas.
 
 #### HU-T3.2 · Los temas: el del panel y el de cada vitrina, como dato
-- **Capa:** diseño · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T3 · **Depende de:** HU-T3.1, HU-T1.4 · **Estado:** Refinada
+- **Capa:** diseño · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T3 · **Depende de:** HU-T3.1, HU-T1.4 · **Estado:** En validación (rama `feat/t3-sprint`. El panel: `@ed1/ui` v2 gana el acento `cobre` y el tema `tienda`, y la portada del panel deja su copia del color (P2). La vitrina: `@ed1/tienda-horno` (`tema.ts`) genera `tema-<huella>.css` con solo variables (acento, texto sobre el acento, tinta, proporción de las fotos y, en el modo del teléfono, su versión oscura). El contraste se calcula con `contraste()` del sistema de diseño contra sus superficies. Los ocho acentos del panel son tinta, cobre, bosque, vino, océano, ciruela, oliva y arcilla, y pasan 4,5:1 en claro y en oscuro. Un color libre que no se lee se rechaza con `AcentoIlegible`, que dice la razón y el color más cercano que sí pasa. El tono para el modo oscuro sí se deriva, porque el comercio elige uno, y el panel lo mostrará. El estilo tipográfico («precisión» o «editorial») va como `data-estilo`; sus fuentes esperan D-T2. Nada viene de la apariencia de la 2.0 (§5). Controles negativos: un amarillo sobre blanco y un acento oscuro en una tienda solo oscura se rechazan)
 - Como comerciante, quiero elegir el color y el estilo de mi tienda sin que se vuelva ilegible; como plataforma, que eso sea un dato y nunca un archivo del comercio.
 - **Respaldo:** TIENDA §5.7 (`apariencia`) y §10.1 (`/tema-<huella>.css`); ADR-29 (tema por producto); P2.
 - **CA1.** `@ed1/ui` v2 gana el tema `tienda` para el panel. La vitrina genera `tema-<huella>.css` desde `apariencia`: acento, tinta (negra o azul), estilo tipográfico, portada, proporción de las fotos y modo.
@@ -665,7 +667,7 @@ Formato de cada historia, el del CORE:
 ### ET4 · Horno y publicación
 
 #### HU-T4.1 · `@ed1/tienda-horno`: la tienda en bytes deterministas
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T3 · **Depende de:** HU-T1.1, HU-T1.4, HU-T3.2 · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T3 · **Depende de:** HU-T1.1, HU-T1.4, HU-T3.2 · **Estado:** En validación (rama `feat/t3-sprint`. `hornear()` produce la portada, una ficha por producto y una página por colección con su gemelo `.md`, `catalogo.json`, `catalogo.md`, `sitemap.xml`, `robots.txt` con las señales para agentes y el tema. Lleva JSON-LD (`Organization`, `WebSite` con `SearchAction`, `Product` con un `Offer` por variante y `BreadcrumbList`), Open Graph y, en la portada, la verificación de Google (HU-T14.8). `manifiesto()` da la huella SHA-256 de cada archivo y del conjunto, con WebCrypto. Sin reloj, ni azar, ni `Intl`: la guardia de paquetes puros lo exige también al horno. Archivos dorados de los dos comercios de prueba en `packages/tienda-horno/dorados/`, que se aceptan a propósito con `ACTUALIZAR_DORADOS=1`. CA2, la parte de workerd: como con los paquetes de T0, la guardia ataca la causa; la ejecución real llega cuando la API hornee (HU-T4.3). Controles negativos: una frase entre corchetes y una descripción «undefined» no llegan al HTML; un nombre con `</script>` sale escapado también dentro del JSON-LD; la tienda de Ensayo Dos no nombra a Ensayo Uno)
 - Como comprador, buscador o agente, quiero leer la tienda entera sin ejecutar JavaScript.
 - **Respaldo:** TIENDA §10.1, §10.4 y §11.7; bitácora ecommerce 31; P17, P20.
 - **CA1.** Funciones puras que producen portada, colecciones y fichas con su gemelo `.md`, `catalogo.json` y `catalogo.md`, el sitemap, JSON-LD (`Product` con `Offer` por variante, `BreadcrumbList`, `Organization` y `WebSite` con `SearchAction`) y Open Graph.
@@ -676,7 +678,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T4.1.1 `[código]` · WI-T4.1.2 `[prueba]` dorados · WI-T4.1.3 `[prueba]` dos runtimes.
 
 #### HU-T4.2 · Lo que escribe el comercio no se ejecuta
-- **Capa:** seguridad · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T3 · **Depende de:** HU-T4.1 · **Estado:** Refinada
+- **Capa:** seguridad · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T3 · **Depende de:** HU-T4.1 · **Estado:** En validación (rama `feat/t3-sprint`. `escapar.ts` de `@ed1/tienda-horno`: todo texto se escapa, y la descripción es Markdown sin HTML (párrafos, negrita, cursiva, listas y enlaces) con solo `https`, `mailto`, `tel` y `wa.me`. Un corpus de 14 cargas XSS sale inerte por las dos vías, y el control negativo corre el mismo corpus sin escapar y lo ve peligroso)
 - Como comprador, quiero que una descripción no pueda robarme nada.
 - **Respaldo:** TIENDA §14.1 (XSS guardado).
 - **CA1.** Markdown sin HTML; solo se permiten enlaces `https`, `mailto`, `tel` y `wa.me`; todo se escapa al hornear.
