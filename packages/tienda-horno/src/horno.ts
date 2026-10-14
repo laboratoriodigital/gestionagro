@@ -183,6 +183,7 @@ ${p.cuerpo}
 </main>
 <footer class="pie">
 <p>${escaparHtml(t.nombre)}</p>
+<p><a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a></p>
 <p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>
 </footer>
 <a class="barra-pedido" href="/pedido/" data-pedido hidden>Tu pedido <span class="cifra" data-cantidad>0</span></a>

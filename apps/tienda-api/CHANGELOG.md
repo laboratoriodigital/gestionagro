@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La compuerta de publicación (HU-T4.3): antes de publicar, la tienda dice todo lo que falta de una vez, cada cosa con qué hacer y dónde: los datos legales, el WhatsApp sin confirmar, un producto sin foto o sin precio, un texto con corchetes, un enlace roto. El pie de cada tienda enlaza a la Superintendencia de Industria y Comercio.
 - La vitrina tiene su forma (HU-T3.3, HU-T3.4 y HU-T5.3): la letra del ecosistema (Geist y Geist Mono), tarjetas, la ficha con la elección de talla y color que dice qué falta, lo agotado tachado, la barra del pedido y una búsqueda que funciona en el teléfono sin red.
 - El despacho sirve la tienda horneada (HU-T5.1): cada página sale del almacén con su versión publicada y las cabeceras de seguridad de la vitrina, y su gemelo para agentes con `Accept: text/markdown`, sin tocar la base. Una tienda que todavía no publica dice «Esta tienda todavía no abre».
 - La Tienda está activa en el CORE de staging (HU-T2.10), para probarla con sesiones de verdad cuando el panel tenga su entrada; en producción sigue pausada.
