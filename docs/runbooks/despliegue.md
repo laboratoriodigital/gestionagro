@@ -102,6 +102,14 @@ El resumen dice en qué celda se detuvo, qué permiso falta o qué parte del hum
 
 Para seguir después de corregir: Actions → desplegar → «Run workflow», con el mismo destino y `solo_celda` igual a la celda que falló.
 
+**Los productos.** «Run workflow» con `productos` vacío despliega solo el CORE y el agro. Para el parqueadero o la Tienda, escríbelo: `productos` = `parqueadero` (o `core,agro,parqueadero`). Desde la terminal:
+
+```bash
+gh workflow run desplegar -f destino=produccion -f productos=parqueadero
+```
+
+Una versión publicada a mano en GitHub lleva su producto por la etiqueta: `parqueadero-v…` despliega el parqueadero y `tienda-v…` la Tienda (bitácora parqueadero 41).
+
 Si una celda no debe recibir este reparto: `"estado": "fuera"` en `infrastructure/celdas.json`, por PR.
 
 ## Volver a la versión anterior
