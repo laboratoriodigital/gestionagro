@@ -12,7 +12,12 @@
     ]
   },
   "workers_dev": false,
-  "routes": [],
+  "routes": [
+    {
+      "pattern": "panel.laboratorio-digital.app",
+      "custom_domain": true
+    }
+  ],
   "services": [
     {
       "binding": "API_C1",

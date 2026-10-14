@@ -75,6 +75,8 @@ export interface Env {
   /** El aviso al dueño (HU-T17.1): lo usa la tarea que reconstruye los hostnames. */
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
+  /** `produccion` o `staging`: la prueba de humo lo compara con el destino (HU-T2.9 CA3). */
+  AMBIENTE?: string;
   /** Los limitadores por IP de lo público (HU-T5.5 y HU-T6.5): Workers Rate Limiting. */
   LIMITE_COTIZAR?: Limitador;
   LIMITE_AVISAME?: Limitador;
@@ -178,6 +180,21 @@ function tiendaDelDespacho(c: ContextoTienda): { org: string; db: BaseD1 } | nul
   return typeof org === 'string' && db ? { org, db } : null;
 }
 
+/** Cuántos de los comercios de prueba (HU-T2.6) hay en los shards de esta celda. */
+async function comerciosDePrueba(shards: [string, BaseD1][]): Promise<number> {
+  let n = 0;
+  for (const [, db] of shards) {
+    const fila = await db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM tienda WHERE ${ENSAYOS.map(() => 'org_id = ?').join(' OR ')}`,
+      )
+      .bind(...ENSAYOS.map((e) => e.org))
+      .first<{ n: number }>();
+    n += fila?.n ?? 0;
+  }
+  return n;
+}
+
 /** Si la IP sigue dentro del límite. Sin limitador, lo registra y deja pasar (P1: se dice). */
 async function dentroDelLimite(
   c: ContextoTienda,
@@ -256,6 +273,10 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       shards: shards.length,
       control: true,
       kek: await estadoDeLaKek(c.env.TIENDA_KEK_V1),
+      // HU-T2.9 CA3: el ambiente que dice su configuración y los comercios de prueba que hay en sus
+      // shards. En producción, la prueba de humo exige 0.
+      ambiente: c.env.AMBIENTE ?? null,
+      comerciosDePrueba: await comerciosDePrueba(shards),
       // HU-T17.1: si las tareas periódicas corren a tiempo. Staging no tiene cron: dice «nunca».
       ...(c.env.FLAGS
         ? { tareas: await estadoDeLasTareas(c.env.FLAGS as unknown as KvDeTareas, TAREAS, ahora()) }

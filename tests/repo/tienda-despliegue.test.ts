@@ -229,6 +229,47 @@ describe('la prueba de humo', () => {
     ]);
   });
 
+  it('HU-T2.9 · en producción, la API dice «produccion» y ningún comercio de prueba', async () => {
+    const salud = (cuerpo: object) => ({
+      ...sana,
+      [`${urls.panel}/api/salud`]: () => Response.json({ estado: 'ok', kek: 'ok', ...cuerpo }),
+    });
+    const prod = { ambiente: 'produccion' as const };
+    expect(
+      await humoDeLaTienda(
+        nube(salud({ ambiente: 'produccion', comerciosDePrueba: 0 })),
+        urls,
+        [],
+        prod,
+      ),
+    ).toEqual({ fallas: [], avisos: [] });
+    const conEnsayos = await humoDeLaTienda(
+      nube(salud({ ambiente: 'produccion', comerciosDePrueba: 2 })),
+      urls,
+      [],
+      prod,
+    );
+    expect(conEnsayos.fallas).toEqual([
+      'hay 2 comercios de prueba en producción: nunca se siembran allí (HU-T2.6 CA3)',
+    ]);
+  });
+
+  it('❌ HU-T2.9 CA3 · el panel de un destino que responde la API de otro ambiente es una falla', async () => {
+    const r = await humoDeLaTienda(
+      nube({
+        ...sana,
+        [`${urls.panel}/api/salud`]: () =>
+          Response.json({ estado: 'ok', kek: 'ok', ambiente: 'staging', comerciosDePrueba: 0 }),
+      }),
+      urls,
+      [],
+      { ambiente: 'produccion' },
+    );
+    expect(r.fallas).toEqual([
+      `${urls.panel} es la API de «staging», pero el despliegue era a produccion: el destino, el dominio y el ambiente no coinciden`,
+    ]);
+  });
+
   it('❌ una base caída o un despacho que responde 200 a un host sin tienda son fallas', async () => {
     const r = await humoDeLaTienda(
       nube({

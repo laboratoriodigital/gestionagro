@@ -9,7 +9,8 @@
     "CELDA": "c1",
     "PRODUCTO": "tienda",
     "PLAN": "free",
-    "MEDIOS": "img.laboratorio-digital.app"
+    "MEDIOS": "img.laboratorio-digital.app",
+    "AMBIENTE": "produccion"
   },
   "d1_databases": [
     {
@@ -64,6 +65,7 @@
         "PRODUCTO": "tienda",
         "PLAN": "free",
         "MEDIOS": "img--staging.laboratorio-digital.app",
+        "AMBIENTE": "staging",
         "ENSAYOS": "1"
       },
       "d1_databases": [
