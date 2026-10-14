@@ -111,3 +111,43 @@ describe('la mensualidad por días hábiles (HU-Q13.3)', () => {
     expect([habiles.desde, habiles.hasta]).toEqual(['2026-10-15', '2026-10-31']);
   });
 });
+
+describe('los meses del 1 al último día en la caja (HU-Q13.4)', () => {
+  const a: Abonado = {
+    id: '0192e9a0-0000-7000-8000-000000000002',
+    org_id: null,
+    version: 1,
+    actualizado: '2026-10-01T05:00:00.000Z',
+    entidad: 'abonado',
+    placa: 'XYZ12D',
+    vehiculo: 'moto',
+    plan: 'mes',
+    referencia: null,
+    desde: '2026-10-15',
+    hasta: '2026-10-31',
+    valor: 300_000,
+    activo: true,
+  };
+
+  it('el primer cobro, contratado el 15, es del 15 al 31 en proporción', () => {
+    const p = periodoPorCobrar(a, '2026-10-15', { primero: true, periodo: 'calendario' });
+    expect(p).toEqual({
+      desde: '2026-10-15',
+      hasta: '2026-10-31',
+      valor: Math.floor((300_000 * 17) / 31 / 100) * 100,
+    });
+  });
+
+  it('el siguiente es noviembre entero, del 1 al 30', () => {
+    expect(periodoPorCobrar(a, '2026-10-28', { periodo: 'calendario' })).toEqual({
+      desde: '2026-11-01',
+      hasta: '2026-11-30',
+      valor: 300_000,
+    });
+  });
+
+  it('❌ sin la opción, sigue de fecha a fecha', () => {
+    expect(periodoPorCobrar(a, '2026-10-28').hasta).toBe('2026-11-30');
+    expect(periodoPorCobrar({ ...a, hasta: '2026-11-14' }, '2026-11-10').hasta).toBe('2026-12-14');
+  });
+});

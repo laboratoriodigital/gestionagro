@@ -2,8 +2,12 @@
  * Los periodos y el prorrateo de una mensualidad (HU-Q8.4 CA1). Puros, con fechas de Bogotá
  * (`2026-10-09`) y sin reloj: la caja y la celda calculan igual.
  *
- * - **Un mes** va del día `desde` al día anterior del mes siguiente (`2026-10-07` → `2026-11-06`);
- *   si ese día no existe, al último del mes siguiente (`2026-01-31` → `2026-02-28`).
+ * - **Un mes, de fecha a fecha** (como siempre, y la opción por omisión): del día `desde` al día
+ *   anterior del mes siguiente (`2026-10-07` → `2026-11-06`); si ese día no existe, al último del
+ *   mes siguiente (`2026-01-31` → `2026-02-28`), con `unMesDesde`.
+ * - **Un mes, del 1 al último día** (HU-Q13.4, `periodo: 'calendario'`, pedido del dueño del
+ *   14 oct 2026): una mensualidad contratada a mitad de mes cobra esos días en proporción, y los
+ *   meses siguientes, enteros.
  * - **Una quincena** son 15 días, los dos extremos incluidos.
  * - **El prorrateo** de un periodo empezado cobra los días que cubre sobre los del periodo entero,
  *   redondeado hacia abajo a la centena: como el redondeo de la tarifa, nunca cobra de más. Con
@@ -11,7 +15,7 @@
  *   abajo; sin hábiles en el periodo entero, cuenta los días calendario.
  */
 import { esHabil, RANGO } from '@ed1/calendario';
-import type { DiasDeMensualidad, PlanDeAbono } from '@ed1/parqueadero-schema';
+import type { DiasDeMensualidad, PeriodoDeMensualidad, PlanDeAbono } from '@ed1/parqueadero-schema';
 
 const DIA_MS = 86_400_000;
 const ms = (f: string) => Date.parse(`${f}T00:00:00Z`);
@@ -32,9 +36,20 @@ export function unMesDesde(desde: string): string {
   return fecha(fin);
 }
 
-/** El último día que cubre un pago del plan que empieza en `desde`. */
-export const finDelPeriodo = (plan: PlanDeAbono, desde: string): string =>
-  plan === 'quincena' ? fecha(ms(desde) + 14 * DIA_MS) : unMesDesde(desde);
+/**
+ * El último día que cubre un pago del plan que empieza en `desde`: 15 días en la quincena; en el
+ * mes, el día anterior del mes siguiente, o el fin de su mes con `periodo: 'calendario'`.
+ */
+export const finDelPeriodo = (
+  plan: PlanDeAbono,
+  desde: string,
+  periodo: PeriodoDeMensualidad = 'fecha',
+): string =>
+  plan === 'quincena'
+    ? fecha(ms(desde) + 14 * DIA_MS)
+    : periodo === 'calendario'
+      ? finDeMes(desde)
+      : unMesDesde(desde);
 
 /** El último día del mes de `f`: `2026-10-20` → `2026-10-31`. */
 export function finDeMes(f: string): string {
@@ -42,10 +57,6 @@ export function finDeMes(f: string): string {
   return fecha(Date.UTC(a, m, 0));
 }
 
-/**
- * Lo que vale cubrir de `desde` a `hasta` con un plan de `valor`: entero si es el periodo completo
- * o más, y si no, la parte de sus días, hacia abajo a la centena.
- */
 /** Los lunes a viernes que no son festivo de `desde` a `hasta`, los dos incluidos (HU-Q13.3). */
 export function habilesEntre(desde: string, hasta: string): number {
   let n = 0;
@@ -59,19 +70,46 @@ export function habilesEntre(desde: string, hasta: string): number {
   return n;
 }
 
+/** Los días que cuenta un tramo: todos, o los hábiles (sin hábiles en el entero, todos). */
+function contar(desde: string, hasta: string, entero: [string, string], cuenta: DiasDeMensualidad) {
+  const habiles = cuenta === 'habiles' && habilesEntre(entero[0], entero[1]) > 0;
+  return habiles
+    ? { dias: habilesEntre(desde, hasta), completo: habilesEntre(entero[0], entero[1]) }
+    : { dias: diasEntre(desde, hasta), completo: diasEntre(entero[0], entero[1]) };
+}
+
+const parte = (valor: number, dias: number, completo: number) =>
+  dias >= completo ? valor : Math.floor((valor * dias) / completo / 100) * 100;
+
+/**
+ * Lo que vale cubrir de `desde` a `hasta` con un plan de `valor`, hacia abajo a la centena; los días
+ * son calendario, o hábiles con `cuenta` (HU-Q13.3).
+ * - De fecha a fecha (por omisión) y en la quincena: entero si cubre el periodo completo o más; si no,
+ *   la parte de sus días sobre los del periodo que empieza en `desde`.
+ * - Del 1 al último día (`periodo: 'calendario'`, HU-Q13.4): cada mes calendario que toca, entero si
+ *   lo cubre todo, y si no, la parte de sus días sobre los de ese mes.
+ */
 export function prorrateo(
   valor: number,
   plan: PlanDeAbono,
   desde: string,
   hasta: string,
   cuenta: DiasDeMensualidad = 'calendario',
+  periodo: PeriodoDeMensualidad = 'fecha',
 ): number {
-  const fin = finDelPeriodo(plan, desde);
-  const habiles = cuenta === 'habiles' && habilesEntre(desde, fin) > 0;
-  const completo = habiles ? habilesEntre(desde, fin) : diasEntre(desde, fin);
-  const dias = habiles ? habilesEntre(desde, hasta) : diasEntre(desde, hasta);
-  if (dias >= completo) return valor;
-  return Math.floor((valor * dias) / completo / 100) * 100;
+  if (plan === 'quincena' || periodo === 'fecha') {
+    const entero: [string, string] = [desde, finDelPeriodo(plan, desde)];
+    const { dias, completo } = contar(desde, hasta, entero, cuenta);
+    return parte(valor, dias, completo);
+  }
+  let total = 0;
+  for (let d = desde; d <= hasta; d = diaSiguiente(finDeMes(d))) {
+    const mes: [string, string] = [`${d.slice(0, 8)}01`, finDeMes(d)];
+    const h = hasta < mes[1] ? hasta : mes[1];
+    const { dias, completo } = contar(d, h, mes, cuenta);
+    total += parte(valor, dias, completo);
+  }
+  return total;
 }
 
 /** Un periodo de una liquidación de mensualidades (HU-Q11.6), con lo que hace falta para explicarlo. */
