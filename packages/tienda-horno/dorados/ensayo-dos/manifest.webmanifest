@@ -1,0 +1,11 @@
+{
+  "name": "Comercio Ensayo Dos",
+  "short_name": "Comercio Ens",
+  "description": "Pan de la casa, todas las mañanas.",
+  "lang": "es-CO",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "theme_color": "#5c5a17",
+  "background_color": "#ffffff"
+}

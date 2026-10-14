@@ -10,12 +10,14 @@
   "dependencies": {
     "@ed1/cifrado": "workspace:*",
     "@ed1/d1": "workspace:*",
+    "@ed1/dinero": "workspace:*",
     "@ed1/kill-switch": "workspace:*",
     "@ed1/telegram": "workspace:*",
     "@ed1/tienda-horno": "workspace:*",
     "@ed1/tienda-schema": "workspace:*",
     "@ed1/tokens": "workspace:*",
-    "hono": "^4.13.12"
+    "hono": "^4.13.12",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "wrangler": "^4.144.0"

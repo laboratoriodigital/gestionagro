@@ -112,6 +112,20 @@ describe('publicar (HU-T4.4)', () => {
     expect(await versionPublicada(ENSAYO_UNO.org)).toBe(1);
   });
 
+  it('cada texto legal queda también en legal/<org>/<huella>.md, el que citará el pedido (HU-T7.1 CA2)', async () => {
+    const r2 = almacen();
+    await publicar(contexto(ENSAYO_UNO.org, r2));
+    const m = JSON.parse(r2.objetos.get(`sitios/${ENSAYO_UNO.org}/1/manifiesto.json`) ?? '{}') as {
+      archivos: Record<string, { huella: string }>;
+    };
+    const legales = [...r2.objetos.keys()].filter((k) => k.startsWith(`legal/${ENSAYO_UNO.org}/`));
+    expect(legales).toHaveLength(6);
+    const terminos = m.archivos['/legal/terminos/index.md']?.huella;
+    expect(r2.objetos.get(`legal/${ENSAYO_UNO.org}/${terminos}.md`)).toContain(
+      'Comercio Ensayo Uno, NIT 900000001-1',
+    );
+  });
+
   it('sin cambios, «Nada cambió» y ninguna versión nueva (CA2)', async () => {
     const r2 = almacen();
     await publicar(contexto(ENSAYO_DOS.org, r2));
@@ -142,7 +156,9 @@ describe('publicar (HU-T4.4)', () => {
     expect(r).toMatchObject({ estado: 'publicada', version: 2 });
     const nuevos = r2.escrituras() - antes;
     expect(nuevos).toBeGreaterThan(1);
-    expect(nuevos).toBeLessThan(8);
+    // El precio cambia la portada, la ficha, la colección, el catálogo y llms.txt; no los textos
+    // legales, ni la búsqueda, ni el tema.
+    expect(nuevos).toBeLessThan(r.estado === 'publicada' ? r.archivos / 2 : 0);
     const { results } = await shard
       .prepare('SELECT version, estado FROM publicacion WHERE org_id = ? ORDER BY version')
       .bind(ENSAYO_UNO.org)

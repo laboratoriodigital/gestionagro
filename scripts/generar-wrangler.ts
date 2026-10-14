@@ -350,8 +350,35 @@ export const textoWranglerDeLaCeldaDelParqueadero = (celda: Celda): string =>
  * existe (P1), y un despliegue a producción por error no toma ningún hostname. Los ids de las bases
  * y de los KV (flags y `TIENDA_HOSTS`) los agrega el despliegue, fuera de git (ADR-6).
  */
+/**
+ * El host público de las fotos de la Tienda (HU-T5.6): el dominio propio del bucket `medios`, que
+ * conecta el dueño (`docs/runbooks/tienda-fotos.md`). Ningún Worker lo toma como ruta: la API lo usa
+ * para hornear las URL de las fotos y el despacho para su CSP.
+ */
+export const MEDIOS_DE_LA_TIENDA = {
+  produccion: 'img.laboratorio-digital.app',
+  staging: 'img--staging.laboratorio-digital.app',
+} as const;
+
 /** El cron de la Tienda: uno por hora, que reparte las tareas por frecuencia (HU-T17.1). */
 export const CRON_DE_LA_TIENDA = '0 * * * *';
+
+/**
+ * Los limitadores por IP de lo público de la Tienda (HU-T5.5 y HU-T6.5), con Workers Rate Limiting:
+ * un contador por clave y periodo, sin escribir en la base ni en el KV. Solo admite periodos de 10 o
+ * 60 segundos (bitácora tienda3 11). El `namespace_id` es un número propio de la cuenta, distinto
+ * por destino, para que staging no gaste el de producción.
+ */
+export const LIMITES_DE_LA_TIENDA = {
+  LIMITE_COTIZAR: { produccion: '3001', staging: '3101', limit: 30, period: 60 },
+  LIMITE_AVISAME: { produccion: '3002', staging: '3102', limit: 10, period: 60 },
+} as const;
+const limitadoresDeLaTienda = (staging: boolean) =>
+  Object.entries(LIMITES_DE_LA_TIENDA).map(([name, l]) => ({
+    name,
+    namespace_id: staging ? l.staging : l.produccion,
+    simple: { limit: l.limit, period: l.period },
+  }));
 
 export const celdasDeLaTienda = (config: ConfigCeldas): Celda[] =>
   config.celdas.filter((c) => c.producto === 'tienda');
@@ -389,27 +416,30 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
     },
   ];
   const vars = { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan };
+  const medios = { MEDIOS: MEDIOS_DE_LA_TIENDA.produccion };
   return {
     $schema: '../../node_modules/wrangler/config-schema.json',
     name: workerDeLaApiDeLaTienda(celda.id),
     main: 'src/worker.ts',
     compatibility_date: FECHA_COMPATIBILIDAD,
     workers_dev: false,
-    vars,
+    vars: { ...vars, ...medios },
     d1_databases: bases(false),
     r2_buckets: [{ binding: 'SITIOS', bucket_name: almacen }],
     // HU-T17.1 y D-T10: el quinto cron de la cuenta, solo en producción; staging no tiene.
     triggers: { crons: [CRON_DE_LA_TIENDA] },
+    ratelimits: limitadoresDeLaTienda(false),
     observability: { enabled: true },
     env: {
       staging: {
         name: workerDeLaApiDeLaTienda(celda.id, true),
         workers_dev: false,
         // HU-T2.6 y HU-T4.4: solo staging publica a los comercios de prueba.
-        vars: { ...vars, ENSAYOS: '1' },
+        vars: { ...vars, MEDIOS: MEDIOS_DE_LA_TIENDA.staging, ENSAYOS: '1' },
         d1_databases: bases(true),
         r2_buckets: [{ binding: 'SITIOS', bucket_name: `${almacen}-staging` }],
         triggers: { crons: [] },
+        ratelimits: limitadoresDeLaTienda(true),
       },
     },
   };
@@ -445,6 +475,7 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
     routes: [],
     services: serviciosDeLaTienda(config, false),
     r2_buckets: almacenesDeLaTienda(config, false),
+    vars: { MEDIOS: MEDIOS_DE_LA_TIENDA.produccion },
     observability: { enabled: true },
     env: {
       staging: {
@@ -453,6 +484,7 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
         routes: ENSAYOS.map((e) => ({ pattern: hostDeStaging(e.slug), custom_domain: true })),
         services: serviciosDeLaTienda(config, true),
         r2_buckets: almacenesDeLaTienda(config, true),
+        vars: { MEDIOS: MEDIOS_DE_LA_TIENDA.staging },
       },
     },
   };

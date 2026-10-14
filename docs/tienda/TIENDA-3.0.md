@@ -349,7 +349,7 @@ El «apex proxying» de Cloudflare for SaaS es de Enterprise (investigación, po
 | Nombres cortos y hostnames | D1 `tienda_control` (anexo B) | Sí | Únicos en todo el producto |
 | Qué tienda y qué versión sirve cada hostname | KV `TIENDA_HOSTS` | No: se deriva de D1 | Un cron diario lo reconstruye. Si el KV y D1 difieren, gana D1 y se avisa (P1) |
 | Sitios horneados | R2 `sitios/<org>/<versión>/manifiesto.json` y `objetos/<huella>` | No: se derivan de D1 | Inmutables. Se purgan las versiones de más de 90 días que no sean la vigente ni una de las 5 anteriores |
-| Fotos | R2 `medios/<org>/<huella>/<ancho>.webp` | Sí (el original no se guarda: el navegador sube las derivadas) | Contenido direccionado. Se borran 30 días después de que ningún producto las use |
+| Fotos | R2 `medios/<org>/<huella>/<ancho>.webp` *(hoy: `<org>/<huella>/<ancho>.webp` en el bucket aparte `tienda-c{N}-medios`, y su URL es `https://img.laboratorio-digital.app/<org>/<huella>/<ancho>.webp`; HU-T5.2 y HU-T5.6)* | Sí (el original no se guarda: el navegador sube las derivadas) | Contenido direccionado. Se borran 30 días después de que ningún producto las use |
 | Textos legales aceptados | R2 `legal/<org>/<huella>.md` | Sí | **Sin vencimiento mientras haya pedidos que los citen**: son la prueba de la aceptación (Ley 1480 art. 50 lit. e) |
 | Identidad del comercio, roles y plan | CORE | Sí | La celda guarda una copia del plan (`PLATAFORMA.md` §4.13) |
 | Llaves de Bold y datos personales | D1, cifrados con las llaves de la tienda (`llave`) | Sí | La KEK solo vive en los secretos del Worker (§14.2) |
@@ -872,7 +872,7 @@ El link sirve también para el **traspaso de un pedido preparado por un agente**
 | `/legal/{terminos,privacidad,envios,retracto,garantia}/` (+ `.md`) | Ley 1480 y Ley 1581, generados con la ficha legal y la política de datos de la tienda |
 | `/pedido/`, `/pedido/pago/`, `/pedido/confirmar/`, `/solicitud/` | Las páginas dinámicas, que son estáticas con su JavaScript |
 | `/tema-<huella>.css` | Colores y tipografía de la tienda. Así la CSP de estilos queda en `'self'` |
-| `/robots.txt`, `/sitemap.xml`, `/llms.txt`, `/.well-known/{api-catalog, agent-skills/index.json, mcp/server-card.json, security.txt}`, `/skills/comprar/SKILL.md` | Agentes (§11.8) |
+| `/robots.txt`, `/sitemap.xml`, `/llms.txt`, `/.well-known/{api-catalog, agent-skills/index.json, mcp/server-card.json, security.txt}`, `/skills/comprar/SKILL.md` | Agentes (§11.8). *Hoy (HU-T15.1): `security.txt` no se hornea, porque su `Expires` depende del día y el horno no tiene reloj; lo sirve el despacho. Se hornea también `manifest.webmanifest`* |
 | `/feeds/google.xml`, `/feeds/meta.csv`, `/feeds/productos.jsonl` (si `agentes.feeds`) | Listados gratuitos de Google, el catálogo de Meta (Instagram, Facebook y WhatsApp) y el feed de productos con el formato ACP. El estudio pone el catálogo para Meta y Google en el básico (§8.1 [C3]) |
 | `/manifest.webmanifest`, íconos | Instalar la tienda en el teléfono |
 

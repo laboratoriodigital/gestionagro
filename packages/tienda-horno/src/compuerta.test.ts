@@ -2,7 +2,7 @@
  * HU-T4.3: la compuerta de publicación, sobre lo horneado de cada tienda. Una tienda completa pasa;
  * cada falta, una por una, la detiene con qué hacer y dónde, y todas salen a la vez (P15).
  */
-import { ENSAYO_DOS } from '@ed1/tienda-schema/ensayos';
+import { ENSAYO_DOS, legalDeEnsayo } from '@ed1/tienda-schema/ensayos';
 import { describe, expect, it } from 'vitest';
 import { compuerta, type EntradaDeLaCompuerta, type ProductoParaLaCompuerta } from './compuerta.ts';
 import { hornear, type TiendaParaHornear } from './horno.ts';
@@ -60,6 +60,7 @@ async function entrada(
         actualizado: '2026-10-13T15:00:00.000Z',
       },
     ],
+    legal: legalDeEnsayo(ENSAYO_DOS),
     ...tienda,
   });
   return { ajustes: AJUSTES, productos: PRODUCTOS, archivos, ...cambios };

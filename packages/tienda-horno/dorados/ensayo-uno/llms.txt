@@ -1,0 +1,24 @@
+# Comercio Ensayo Uno
+
+> Ropa de lino hecha en Medellín.
+
+## Productos
+
+- [Camisa de lino](/p/camisa-de-lino/index.md): $129.000
+
+## Colecciones
+
+- [Lino](/c/lino/index.md)
+
+## Políticas
+
+- [Términos y condiciones](/legal/terminos/index.md)
+- [Política de tratamiento de datos](/legal/privacidad/index.md)
+- [Envíos y devoluciones](/legal/envios/index.md)
+- [Derecho de retracto](/legal/retracto/index.md)
+- [Garantía](/legal/garantia/index.md)
+- [Solicitudes](/solicitud/index.md)
+
+## Opcional
+
+- [Catálogo completo](/catalogo.md): precios y variantes

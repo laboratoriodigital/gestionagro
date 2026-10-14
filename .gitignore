@@ -23,6 +23,8 @@ _to_delete/
 test-results/
 playwright-report/
 apps/sitio/wrangler.despliegue.jsonc
+# Ensayo Uno horneado para las e2e de la Tienda (scripts/tienda/hornear-ensayo.ts)
+apps/tienda-sitio/.ensayo/
 apps/core/wrangler.despliegue.jsonc
 apps/api-celda/wrangler.despliegue.jsonc
 

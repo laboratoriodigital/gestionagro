@@ -21,7 +21,9 @@ import type { BaseD1 } from '@ed1/d1';
 import {
   type CodigoDeFalla,
   compuerta,
+  type DatosLegales,
   type Falla,
+  type FotoParaHornear,
   hornear,
   manifiesto,
   type ProductoParaHornear,
@@ -53,6 +55,8 @@ export interface Contexto {
   hosts: EscritorKv;
   celda: string;
   release: string;
+  /** El host de las fotos (`MEDIOS`, HU-T5.6). Sin él, las fichas salen con el marco vacío. */
+  medios?: string;
   org: string;
   pedidaPor: string;
   /** ISO 8601, del reloj del Worker: la publicación guarda cuándo, el horno no lo usa. */
@@ -77,8 +81,14 @@ interface FilaProducto {
   opciones: string;
   retracto: 'aplica' | 'no_aplica';
   retracto_motivo: string | null;
+  solo_mayores: number;
+  destacado: number;
   actualizado: string;
 }
+
+/** `{ clave: valor }` si hay valor; si no, nada (exactOptionalPropertyTypes). */
+const opcional = <K extends string, V>(clave: K, valor: V | undefined) =>
+  (valor === undefined ? {} : { [clave]: valor }) as Partial<Record<K, V>>;
 
 /** La sección guardada, ya validada; una que no valida cuenta como vacía (y la compuerta lo dice). */
 function seccion(fila: { seccion: string; datos: string } | undefined): Record<string, unknown> {
@@ -131,7 +141,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     >;
     const { results: productos } = await c.shard
       .prepare(
-        `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, actualizado
+        `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, actualizado
          FROM producto WHERE org_id = ? AND borrado IS NULL ORDER BY posicion, slug`,
       )
       .bind(c.org)
@@ -149,10 +159,29 @@ export async function publicar(c: Contexto): Promise<Resultado> {
         stock: number | null;
         reservado: number;
       }>();
-    const { results: fotos } = await c.shard
-      .prepare('SELECT producto_id, COUNT(*) AS n FROM medio WHERE org_id = ? GROUP BY producto_id')
+    const { results: medios } = await c.shard
+      .prepare(
+        'SELECT id, producto_id, alt, ancho, alto, formatos FROM medio WHERE org_id = ? ORDER BY producto_id, posicion, id',
+      )
       .bind(c.org)
-      .all<{ producto_id: string; n: number }>();
+      .all<{
+        id: string;
+        producto_id: string;
+        alt: string;
+        ancho: number;
+        alto: number;
+        formatos: string;
+      }>();
+    const fotosDe = (productoId: string): FotoParaHornear[] =>
+      medios
+        .filter((f) => f.producto_id === productoId)
+        .map((f) => ({
+          huella: f.id,
+          alt: f.alt,
+          ancho: f.ancho,
+          alto: f.alto,
+          anchos: Object.keys(JSON.parse(f.formatos) as Record<string, number>).map(Number),
+        }));
     const { results: colecciones } = await c.shard
       .prepare(
         `SELECT c.slug, c.nombre, p.slug AS producto FROM coleccion c
@@ -164,10 +193,16 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       .all<{ slug: string; nombre: string; producto: string | null }>();
     const { results: envios } = await c.shard
       .prepare(
-        'SELECT nombre, dias_max FROM envio_opcion WHERE org_id = ? AND activa = 1 AND borrado IS NULL',
+        'SELECT nombre, precio_cop, gratis_desde_cop, dias_min, dias_max FROM envio_opcion WHERE org_id = ? AND activa = 1 AND borrado IS NULL ORDER BY posicion, nombre',
       )
       .bind(c.org)
-      .all<{ nombre: string; dias_max: number | null }>();
+      .all<{
+        nombre: string;
+        precio_cop: number;
+        gratis_desde_cop: number | null;
+        dias_min: number | null;
+        dias_max: number | null;
+      }>();
     const { results: dominios } = await c.control
       .prepare("SELECT hostname, rol FROM dominio WHERE org_id = ? AND estado = 'activo'")
       .bind(c.org)
@@ -193,6 +228,13 @@ export async function publicar(c: Contexto): Promise<Resultado> {
             stock: v.stock === null ? null : Math.max(0, v.stock - v.reservado),
           })),
           actualizado: p.actualizado,
+          fotos: fotosDe(p.id),
+          retracto:
+            p.retracto === 'no_aplica'
+              ? { aplica: false, motivo: p.retracto_motivo ?? '' }
+              : { aplica: true },
+          soloMayores: p.solo_mayores === 1,
+          destacado: p.destacado === 1,
         },
       ];
     });
@@ -204,6 +246,34 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     const contacto = ajustes.contacto ?? {};
     const agentes = ajustes.agentes ?? {};
     const medicion = ajustes.medicion ?? {};
+    const legal = ajustes.legal ?? {};
+    const texto = (v: unknown) => (typeof v === 'string' && v.trim() ? v : undefined);
+    // HU-T7.1: lo que dicen los textos legales sale de la ficha, el contacto, la venta y los envíos.
+    const datosLegales: DatosLegales = {
+      nombreTienda: texto(identidad['nombre']) ?? tienda.nombre,
+      ...opcional('razonSocial', texto(legal['razonSocial'])),
+      ...opcional('documento', legal['documento'] as DatosLegales['documento']),
+      ...opcional('direccion', texto(legal['direccionNotificacion'])),
+      ...opcional('ciudad', texto(legal['ciudad'])),
+      ...opcional('telefono', texto(legal['telefono'])),
+      ...opcional('correo', texto(legal['correo'])),
+      ...opcional('whatsapp', texto(contacto['whatsapp'])),
+      ...opcional('garantia', texto(legal['garantia'])),
+      ...opcional('retracto', texto(legal['retracto'])),
+      formas: ((ajustes.venta?.['formas'] ?? []) as DatosLegales['formas']).slice(),
+      envios: envios.map((e) => ({
+        nombre: e.nombre,
+        precioCop: e.precio_cop,
+        gratisDesdeCop: e.gratis_desde_cop,
+        diasMin: e.dias_min,
+        diasMax: e.dias_max,
+      })),
+      sinRetracto: activos
+        .filter((p) => p.retracto === 'no_aplica' && p.retracto_motivo)
+        .map((p) => ({ nombre: p.nombre, motivo: p.retracto_motivo as string })),
+      medicion: { ga4: Boolean(medicion['ga4']), pixelMeta: Boolean(medicion['pixelMeta']) },
+      responsableIva: legal['responsableIva'] === true,
+    };
     const porColeccion = new Map<string, { nombre: string; productos: string[] }>();
     for (const f of colecciones) {
       const actual = porColeccion.get(f.slug) ?? { nombre: f.nombre, productos: [] };
@@ -213,6 +283,8 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     const datos: TiendaParaHornear = {
       dominio: canonico,
       release: c.release,
+      org: c.org,
+      ...(c.medios ? { medios: c.medios } : {}),
       nombre: (identidad['nombre'] as string | undefined) ?? tienda.nombre,
       ...(identidad['frase'] ? { frase: identidad['frase'] as string } : {}),
       ...(contacto['whatsapp'] ? { whatsapp: contacto['whatsapp'] as string } : {}),
@@ -226,6 +298,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       ...(medicion['googleVerificacion']
         ? { googleVerificacion: medicion['googleVerificacion'] as string }
         : {}),
+      legal: datosLegales,
       productos: paraHornear,
       colecciones: [...porColeccion].map(([slug, col]) => ({ slug, ...col })),
     };
@@ -238,7 +311,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
           nombre: p.nombre,
           estado: p.estado,
           precioCop: variantes.find((v) => v.producto_id === p.id)?.precio_cop ?? null,
-          fotos: fotos.find((f) => f.producto_id === p.id)?.n ?? 0,
+          fotos: medios.filter((f) => f.producto_id === p.id).length,
           retracto: p.retracto,
           retractoMotivo: p.retracto_motivo,
         }),
@@ -290,6 +363,13 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       );
       previas.add(entrada.huella);
       nuevos++;
+      // HU-T7.1 CA2: cada texto legal, también por su huella en `legal/`, sin vencimiento: un
+      // pedido cita la huella de los términos que aceptó (Ley 1480 art. 50 lit. e).
+      if (/^\/(legal\/[a-z]+|solicitud)\/index\.md$/.test(ruta)) {
+        await c.sitios.put(`legal/${c.org}/${entrada.huella}.md`, archivo.contenido, {
+          httpMetadata: { contentType: archivo.tipo },
+        });
+      }
     }
 
     // 5. El manifiesto, guardado y releído.

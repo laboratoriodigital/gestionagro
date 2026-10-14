@@ -14,11 +14,16 @@
  *   gemelo `.md` (`Vary: Accept`). Cada respuesta lleva las cabeceras de la vitrina.
  * - Un `Host` sin tienda: 404 «Esta dirección no tiene tienda». Una tienda sin versión publicada:
  *   404 «Esta tienda todavía no abre». Kill switches (HU-T2.7): `ks:tienda` y `ks:tienda:<org>`.
+ * - Cada página dice dónde está su gemelo `.md` también en la cabecera `Link` (HU-T15.1, CA2).
+ * - `/.well-known/security.txt` (RFC 9116) no se hornea: su `Expires` cambia con el día. Lo sirve el
+ *   despacho con el correo del responsable de la plataforma, de su política (P2).
  *
  * Ningún identificador de cuenta, base o dominio en el código (ADR-6).
  */
 
 import { crearLectorKillSwitch, type LectorKillSwitch } from '@ed1/kill-switch';
+import politica from '../../../content/tienda/privacidad/politica.json' with { type: 'json' };
+import { securityTxt } from '../../core/src/security-txt.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
 export const CABECERA_TIENDA = 'x-tienda';
@@ -57,6 +62,8 @@ export interface Env {
   /** El KV de flags de la celda, con los kill switches (`ks:tienda`, `ks:tienda:<org>`). */
   FLAGS?: LectorKv;
   SECRETO_DESPACHO?: string;
+  /** El host público de las fotos (HU-T5.6), para la CSP. */
+  MEDIOS?: string;
   /** Un binding de servicio por celda (`API_C1`) y su almacén de sitios horneados (`SITIOS_C1`). */
   [binding: string]: unknown;
 }
@@ -133,15 +140,17 @@ const CABECERAS_DE_AVISO = {
   'cache-control': 'public, max-age=60',
 };
 
-/** Las cabeceras de una página de la vitrina (TIENDA §11.4): CSP sin nada en línea ni de terceros. */
-export const CABECERAS_DE_LA_VITRINA = {
-  'content-security-policy':
-    "default-src 'self'; img-src 'self' https://img.laboratorio-digital.app data:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+/**
+ * Las cabeceras de una página de la vitrina (TIENDA §11.4): CSP sin nada en línea ni de terceros.
+ * Las fotos, solo de su host (`MEDIOS`, HU-T5.6): el de producción o el de staging, nunca los dos.
+ */
+export const cabecerasDeLaVitrina = (medios: string | undefined) => ({
+  'content-security-policy': `default-src 'self'; img-src 'self'${medios ? ` https://${medios}` : ''} data:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
   // Sin includeSubDomains: los otros subdominios de un comercio no son nuestros (TIENDA §4.4).
   'strict-transport-security': 'max-age=31536000',
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'strict-origin-when-cross-origin',
-};
+});
 
 export const sinTienda = (): Response =>
   new Response(
@@ -249,6 +258,10 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       }
       if (!archivo && markdown) archivo = m.archivos[archivoDeLaRuta(url.pathname, false)];
       if (!archivo || !HUELLA.test(archivo.huella)) return noEsta();
+      const gemelo =
+        url.pathname.endsWith('/') && m.archivos[`${url.pathname}index.md`]
+          ? { link: `<${url.pathname}index.md>; rel="alternate"; type="text/markdown"` }
+          : {};
       const objeto = await sitios.get(`objetos/${archivo.huella.slice(0, 2)}/${archivo.huella}`);
       if (!objeto) {
         console.error(`tienda-sitio: falta el objeto ${archivo.huella}`);
@@ -256,11 +269,12 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       }
       return new Response(await objeto.text(), {
         headers: {
-          ...CABECERAS_DE_LA_VITRINA,
+          ...cabecerasDeLaVitrina(env.MEDIOS),
           'content-type': archivo.tipo,
           'cache-control': 'public, max-age=60',
           vary: 'Accept',
           etag: `"${archivo.huella}"`,
+          ...gemelo,
         },
       });
     } catch (e) {
@@ -287,6 +301,22 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       }
       if (solicitud.method !== 'GET' && solicitud.method !== 'HEAD') {
         return new Response(null, { status: 405, headers: { allow: 'GET, HEAD' } });
+      }
+      if (url.pathname === '/.well-known/security.txt') {
+        return new Response(
+          securityTxt({
+            correo: politica.responsable.correo,
+            canonical: `https://${url.hostname}/.well-known/security.txt`,
+            ahora: ahora(),
+          }),
+          {
+            headers: {
+              ...cabecerasDeLaVitrina(env.MEDIOS),
+              'content-type': 'text/plain; charset=utf-8',
+              'cache-control': 'public, max-age=3600',
+            },
+          },
+        );
       }
       return servir(solicitud, env, destino);
     },

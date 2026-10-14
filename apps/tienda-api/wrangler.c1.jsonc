@@ -8,7 +8,8 @@
   "vars": {
     "CELDA": "c1",
     "PRODUCTO": "tienda",
-    "PLAN": "free"
+    "PLAN": "free",
+    "MEDIOS": "img.laboratorio-digital.app"
   },
   "d1_databases": [
     {
@@ -33,6 +34,24 @@
       "0 * * * *"
     ]
   },
+  "ratelimits": [
+    {
+      "name": "LIMITE_COTIZAR",
+      "namespace_id": "3001",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    },
+    {
+      "name": "LIMITE_AVISAME",
+      "namespace_id": "3002",
+      "simple": {
+        "limit": 10,
+        "period": 60
+      }
+    }
+  ],
   "observability": {
     "enabled": true
   },
@@ -44,6 +63,7 @@
         "CELDA": "c1",
         "PRODUCTO": "tienda",
         "PLAN": "free",
+        "MEDIOS": "img--staging.laboratorio-digital.app",
         "ENSAYOS": "1"
       },
       "d1_databases": [
@@ -66,7 +86,25 @@
       ],
       "triggers": {
         "crons": []
-      }
+      },
+      "ratelimits": [
+        {
+          "name": "LIMITE_COTIZAR",
+          "namespace_id": "3101",
+          "simple": {
+            "limit": 30,
+            "period": 60
+          }
+        },
+        {
+          "name": "LIMITE_AVISAME",
+          "namespace_id": "3102",
+          "simple": {
+            "limit": 10,
+            "period": 60
+          }
+        }
+      ]
     }
   }
 }

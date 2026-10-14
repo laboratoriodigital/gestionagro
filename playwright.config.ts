@@ -58,6 +58,13 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
+      // La vitrina de Comercio Ensayo Uno (HU-T5.4), horneada por el build de tienda-sitio, en su
+      // propio origen: cada tienda es uno, y su carrito vive en su localStorage.
+      command: 'node scripts/servir-estatico.ts apps/tienda-sitio/.ensayo 4332',
+      url: 'http://localhost:4332/',
+      reuseExistingServer: false,
+    },
+    {
       // La cuenta (HU-C7.2), en su propio origen, como en producción.
       command: 'node scripts/servir-estatico.ts apps/cuenta/dist 4330',
       url: 'http://localhost:4330/',

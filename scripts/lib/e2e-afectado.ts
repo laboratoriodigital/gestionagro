@@ -3,8 +3,8 @@
  * que su cambio puede tocar. En la corrida del 12 oct 2026, las del cuaderno sumaban 220 s de 430,
  * y un sprint del parqueadero que toca un paquete que el cuaderno no usa las corría igual.
  *
- * Tres grupos, uno por origen que sirven las e2e (`playwright.config.ts`): **agro** (el sitio con
- * el cuaderno adentro), **cuenta** y **parqueadero**. Quién usa a quién se lee del código (P2):
+ * Cuatro grupos, uno por origen que sirven las e2e (`playwright.config.ts`): **agro** (el sitio con
+ * el cuaderno adentro), **cuenta**, **parqueadero** y **tienda** (la vitrina de Ensayo Uno, HU-T5.4). Quién usa a quién se lee del código (P2):
  * los `@ed1/…`, las rutas `packages/…`, `content/…` y `scripts/…` que nombra cada archivo, y sus
  * importaciones relativas. Los nodos son las carpetas de `apps/`, `packages/` y `content/`, y cada
  * archivo de `scripts/` y de `tests/e2e/`; un uso llega hasta una app, una e2e o
@@ -19,8 +19,8 @@ import { join, posix } from 'node:path';
 import { esDocumento } from './alcance.ts';
 import { listarArchivos, RAIZ } from './repo.ts';
 
-export type GrupoE2e = 'agro' | 'cuenta' | 'parqueadero';
-const GRUPOS: readonly GrupoE2e[] = ['agro', 'cuenta', 'parqueadero'];
+export type GrupoE2e = 'agro' | 'cuenta' | 'parqueadero' | 'tienda';
+const GRUPOS: readonly GrupoE2e[] = ['agro', 'cuenta', 'parqueadero', 'tienda'];
 
 /**
  * El grupo de e2e de cada app; `null`, una app que las e2e no sirven (sus Workers se prueban con
@@ -37,11 +37,12 @@ export const E2E_DE_LA_APP: Readonly<Record<string, GrupoE2e | null>> = {
   core: null,
   'api-celda': null,
   ensayo: null,
-  // La Tienda (HU-T2.4): sus Workers se prueban con pruebas de integración hasta que tenga
-  // pantallas que recorrer (la vitrina, HU-T5.x; el panel, HU-T8.1).
+  // La Tienda: sus Workers se prueban con pruebas de integración; la vitrina que sirve el
+  // despacho, horneada por el build de `tienda-sitio`, tiene sus e2e (HU-T5.4). El panel, con
+  // HU-T8.1.
   'tienda-api': null,
   'tienda-panel': null,
-  'tienda-sitio': null,
+  'tienda-sitio': 'tienda',
 };
 
 /**
@@ -52,11 +53,16 @@ const E2E_DEL_CONTENIDO: Readonly<Record<string, GrupoE2e>> = {
   agro: 'agro',
   cuenta: 'cuenta',
   parqueadero: 'parqueadero',
+  tienda: 'tienda',
 };
 
-/** El grupo de una e2e por su nombre: `parqueadero-…`, `cuenta…` y la galería (que sirve la cuenta). */
+/**
+ * El grupo de una e2e por su nombre: `parqueadero-…`, `tienda-…`, `cuenta…` y la galería (que sirve
+ * la cuenta).
+ */
 export function grupoDelSpec(nombre: string): GrupoE2e {
   if (nombre.startsWith('parqueadero-')) return 'parqueadero';
+  if (nombre.startsWith('tienda-')) return 'tienda';
   if (nombre.startsWith('cuenta') || nombre === 'galeria') return 'cuenta';
   return 'agro';
 }
@@ -174,7 +180,7 @@ export function e2eDelCambio(archivos: readonly string[] | null, usos: Usos): Se
     }
     for (const g of alcanza.grupos) grupos.add(g);
   }
-  if (grupos.size === GRUPOS.length) return todas('el cambio toca los tres grupos');
+  if (grupos.size === GRUPOS.length) return todas('el cambio toca todos los grupos');
   const lista = GRUPOS.filter((g) => grupos.has(g));
   return {
     todas: false,
