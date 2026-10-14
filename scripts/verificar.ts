@@ -12,7 +12,7 @@
  *
  * En CI, con `VERIFICAR_BASE` (el commit contra el que se compara), calcula qué cambió
  * (HU-C11.6). Si todo son documentos, salta navegadores, typecheck, build y e2e, y corre solo
- * las pruebas que leen documentos. El e2e corre solo los grupos (agro, cuenta, parqueadero) a los
+ * las pruebas que leen documentos. El e2e corre solo los grupos (agro, cuenta, parqueadero, tienda) a los
  * que llega el cambio (`scripts/lib/e2e-afectado.ts`, HU-C11.8); si no llega a ninguno, salta
  * navegadores y e2e. Si no puede calcularlo, corre todo y lo dice (P1).
  *
