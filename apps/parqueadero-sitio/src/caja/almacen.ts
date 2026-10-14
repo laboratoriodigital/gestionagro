@@ -55,6 +55,7 @@ import { encolar, tablasDeLaCola } from './cola.ts';
 import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
 import { diaLocalBogota, horaBogota } from './fecha.ts';
 import { eventoDeLaEntrega, medir } from './medicion.ts';
+import { quitarPendientesDe } from './pendientes.ts';
 import { avisoAceptado, VERSION_DEL_AVISO } from './privacidad.ts';
 import { topeDeLaCiudad } from './topes.ts';
 import {
@@ -578,6 +579,10 @@ export async function registrarEntrega(
     datos: { recibo_id: recibo.id, ...entrega },
   });
   await agregar(db, registro, ahora);
+  // Un recibo que salió en papel, o que el conductor escaneó, ya no está pendiente (bitácora 42).
+  if (entrega.resultado === 'enviado' || entrega.resultado === 'confirmado') {
+    await quitarPendientesDe(db, recibo.id);
+  }
   // Recibos por canal y papel que no salió (HU-Q5.3): el canal, nunca el recibo ni el número.
   const evento = eventoDeLaEntrega(entrega);
   if (evento) await medir(db, evento);

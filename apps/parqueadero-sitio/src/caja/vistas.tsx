@@ -26,6 +26,7 @@ import { useConsulta } from './ganchos.ts';
 import type { ControlDeImpresora } from './impresora.ts';
 import { Letrero } from './Letrero.tsx';
 import type { Nube } from './nube.ts';
+import { Pendientes } from './Pendientes.tsx';
 import { avisoAceptado } from './privacidad.ts';
 import { Recibo } from './Recibo.tsx';
 import { Reportes } from './Reportes.tsx';
@@ -46,7 +47,9 @@ export type Vista =
   | { readonly es: 'turno' }
   /** `regreso`: el fragmento con que volvió de Google Drive (HU-Q10.1). */
   | { readonly es: 'respaldo'; readonly regreso?: string }
-  | { readonly es: 'abonados' }
+  /** `mensualidad`: abre su recibo para reimprimirlo, desde las entregas pendientes. */
+  | { readonly es: 'abonados'; readonly mensualidad?: Registro }
+  | { readonly es: 'pendientes' }
   | { readonly es: 'reportes' }
   | { readonly es: 'ahorro' }
   /** `regreso`: el fragmento con que volvió de la cuenta (HU-Q7.6). */
@@ -129,7 +132,30 @@ export function Pantalla({ vista, db, reloj, control, prueba, ir, nube }: Props)
         />
       );
     case 'abonados':
-      return <Abonados db={db} ctx={ctx} control={control} alVolver={inicio} />;
+      return (
+        <Abonados
+          db={db}
+          ctx={ctx}
+          control={control}
+          {...(vista.mensualidad ? { mensualidad: vista.mensualidad } : {})}
+          alVolver={inicio}
+        />
+      );
+    case 'pendientes':
+      return (
+        <Pendientes
+          db={db}
+          reloj={reloj}
+          alAbrir={(r) =>
+            ir(
+              r.tipo === 'pago_abonado'
+                ? { es: 'abonados', mensualidad: r }
+                : { es: 'recibo', registro: r },
+            )
+          }
+          alVolver={inicio}
+        />
+      );
     case 'reportes':
       return <Reportes db={db} reloj={reloj} alVolver={inicio} />;
     case 'ahorro':

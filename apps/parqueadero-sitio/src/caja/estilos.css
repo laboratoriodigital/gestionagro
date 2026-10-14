@@ -140,6 +140,31 @@ body {
   background: var(--peligro);
 }
 
+/* Con entregas pendientes, la señal se toca y abre la lista (bitácora parqueadero 42). */
+.senal-boton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+
+.pendiente {
+  display: grid;
+  gap: var(--espacio-1);
+  padding: var(--espacio-3) 0;
+}
+
+.pendiente-acciones {
+  display: grid;
+  gap: var(--espacio-2);
+  margin-top: var(--espacio-2);
+}
+
 .aviso-almacenamiento,
 .aviso-actualizacion,
 .aviso-tope {

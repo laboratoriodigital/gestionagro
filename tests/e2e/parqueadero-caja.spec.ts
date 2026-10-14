@@ -550,6 +550,23 @@ test.describe('la caja del parqueadero', () => {
       'Quedó en entregas pendientes',
     );
     await expect(page.getByTestId('senal-pendientes')).toContainText('1');
+
+    // Bitácora 42: la señal abre la lista, el recibo se abre para imprimirlo, y se puede quitar.
+    await page.getByTestId('senal-pendientes').click();
+    const lista = page.getByTestId('pendientes');
+    await expect(lista.getByTestId('pendiente')).toHaveCount(1);
+    await expect(lista.getByTestId('pendiente')).toContainText('Entrada A-000001 · XYZ98');
+    await expect(lista.getByTestId('pendiente')).toContainText('No salió a las');
+    await sinDesborde(page);
+    await lista.getByRole('button', { name: 'Abrir para imprimir' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de entrada A-000001');
+    // Sin impresora todavía: vuelve a quedar pendiente, en la misma fila.
+    await page.getByTestId('senal-pendientes').click();
+    await expect(lista.getByTestId('pendiente')).toHaveCount(1);
+    await expect(lista.getByTestId('pendiente')).toContainText('No salió 2 veces');
+    await lista.getByRole('button', { name: 'Quitar de la lista' }).click();
+    await expect(page.getByTestId('sin-pendientes')).toBeVisible();
+    await expect(page.getByTestId('senal-pendientes')).toHaveText('Sin entregas pendientes');
   });
 
   test('HU-Q3.7 · anular la entrada pide motivo y PIN, y el vehículo sale de la lista sin borrarse', async ({
