@@ -236,7 +236,7 @@ Se heredan ED1 §3, los patrones P1–P21 y las reglas R1–R6 de `PLATAFORMA.md
 | **D1 `tienda_c{N}_s{k}`** | Shards de la celda (anexo A) | Una tienda vive entera en un shard (como el agro) |
 | **D1 `tienda_control`** | Una por despliegue: nombres cortos y hostnames, únicos en todo el producto (anexo B) | La unicidad global no cabe en un shard |
 | **KV `TIENDA_HOSTS`** | `h:<hostname>` → `{org, celda, shard, version, canonico, estado}` | Lectura caliente y barata en cada visita. Se deriva de D1 (P2) y un cron diario lo reconstruye completo |
-| **R2 `tienda-c{N}`** | `sitios/` (manifiestos), `objetos/` (archivos por huella), `medios/` (fotos), `legal/` (textos aceptados, sin vencimiento), `respaldos/` y `exportaciones/` | Contenido direccionado: un archivo idéntico se guarda una vez para todas las versiones |
+| **R2 `tienda-c{N}`** | `sitios/` (manifiestos), `objetos/` (archivos por huella), `medios/` (fotos), `legal/` (textos aceptados, sin vencimiento), `respaldos/` y `exportaciones/` *(Hoy: las fotos van en un bucket aparte, `tienda-c{N}-medios`, el único con dominio propio; ver §5.6 y bitácora tienda3 10)* | Contenido direccionado: un archivo idéntico se guarda una vez para todas las versiones |
 | **Queues `tienda-horno`** | Un mensaje por publicación | El horneado puede tardar más que una solicitud y se reintenta solo |
 | **Crons** | Cada 5 min, cada 15 min, cada hora, diario y semanal (§15.3) | Con Workers Paid hay 250 por cuenta; en el plan gratuito, 5, y ya se usan 4 |
 
@@ -502,6 +502,9 @@ R2 tienda-c{N}/
   sitios/<org>/<version>/manifiesto.json   {ruta: {huella, tipo, bytes, cabeceras}} + huella del conjunto
   objetos/<hh>/<huella>                     archivos del sitio por contenido (compartidos entre versiones)
   medios/<org>/<huella>/<400|800|1600>.webp fotos (servidas por img.laboratorio-digital.app)
+                                            (Hoy: en el bucket aparte tienda-c{N}-medios. Un dominio
+                                            propio hace público todo su bucket, y este guarda
+                                            respaldos y exportaciones: bitácora tienda3 10)
   legal/<org>/<huella>.md                   términos y política tal como se aceptaron
   respaldos/<shard>/<AAAA-MM-DD>/<org>.json.gz   tienda-export semanal
   exportaciones/<org>/<id>.zip              descargas del comercio (vencen a los 7 días, regla de ciclo de vida)
@@ -1005,7 +1008,7 @@ La CSP de cada tienda se calcula al hornear según sus ajustes y va en el manifi
   - campos: `item_id`, `quantity`, `value` y `currency`;
   - el índice es la tienda.
   - Como no trata datos personales, no pide consentimiento. Así lo dice la política de la tienda.
-- **GA4 y el píxel de Meta**, solo si el comercio los configura y solo con dominio propio (§4.1). *(Hoy: la decisión D-T13 del backlog propone GA4 también en el subdominio, con su cookie limitada a la dirección de la tienda, y el píxel de Meta solo con dominio propio.)*
+- **GA4 y el píxel de Meta**, solo si el comercio los configura y solo con dominio propio (§4.1). *(Hoy, por la decisión D-T13 del dueño del 13 oct 2026: GA4 también en el subdominio, con su cookie limitada a la dirección de la tienda; el píxel de Meta, solo con dominio propio.)*
   - **No cargan hasta que la persona acepta** en un aviso donde rechazar es tan fácil como aceptar.
   - El consentimiento se guarda en el navegador con la versión del aviso.
   - No se encontró una guía específica de la SIC sobre cookies. Se aplican el consentimiento previo, expreso e informado de la Ley 1581 y la prohibición del silencio como autorización (Decreto 1377 art. 7).
@@ -1306,7 +1309,7 @@ Lo incluido lo comparten el agro y el CORE. Hoy consumen una fracción, que el v
 
 ### 15.3 Crons (con Workers Paid)
 
-> *Hoy, en el plan gratuito, queda un cron libre de los 5 de la cuenta: cómo caben estas frecuencias es la decisión D-T10 del backlog (bitácora tienda3 7).*
+> *Hoy, en el plan gratuito, queda un cron libre de los 5 de la cuenta: cómo caben estas frecuencias es la decisión D-T10 del backlog (bitácora tienda3 7). Aplicada en HU-T17.1: un solo cron por hora, solo en producción, que reparte por hora, día (3 a. m. de Bogotá) y semana (lunes); lo de 5 y 15 minutos se hace perezoso al leer (como los apartados) o pasa a cada hora. Cada tarea anota su última corrida y `/api/salud` dice si alguna se atrasó.*
 
 | Frecuencia | Qué hace |
 |---|---|
@@ -1326,7 +1329,7 @@ Lo incluido lo comparten el agro y el CORE. Hoy consumen una fracción, que el v
 ### 15.5 Correo
 
 - **Servicio de correo de Cloudflare**, con Workers Paid: 3.000 al mes incluidos para toda la cuenta. Está en beta pública desde abril de 2026 (investigación, por resumen).
-- **Detrás de un adaptador** (`CorreoTransaccional`), para cambiarlo por otro sin tocar el producto.
+- **Detrás de un adaptador** (`CorreoTransaccional`), para cambiarlo por otro sin tocar el producto. *(Hoy: primero Gmail por su API, gratis, y después un servicio como Resend; decisión del dueño del 13 oct 2026, PLATAFORMA §4.11. Mientras dure Gmail, el remitente es la dirección de Gmail con el nombre de la tienda delante y `Reply-To` al comercio.)*
 - **Remitente:** `«<Tienda>» <pedidos@laboratorio-digital.app>`, con `Reply-To` al correo del comercio. SPF, DKIM y DMARC en `laboratorio-digital.app`. El correo del CORE sale de `laboratorio-digital.com`: una tienda que acumule reportes de spam no afecta los enlaces para entrar (`PLATAFORMA.md` §4.11).
 - **Mensajes:**
   - el acuse al comprador, si dejó su correo;

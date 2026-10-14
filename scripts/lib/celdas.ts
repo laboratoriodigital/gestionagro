@@ -23,6 +23,10 @@ export interface Celda {
   shards: string[];
   /** La base de control del producto (`<producto>_control`), si la tiene: la Tienda (HU-T2.3). */
   control?: string;
+  /** El bucket R2 de la celda (HU-T4.4); en staging, con `-staging`. */
+  almacen?: string;
+  /** El bucket R2 público de las fotos (HU-T5.6), aparte del almacén privado. */
+  medios?: string;
 }
 
 export interface ConfigCeldas {
@@ -72,6 +76,12 @@ export function cargarCeldas(
   if (shardsAjenos.length > 0) {
     throw new Error(
       `celdas.json tiene shards que no llevan el producto y la celda en el nombre: ${shardsAjenos.join(', ')}`,
+    );
+  }
+  // HU-T5.6: el bucket público de las fotos nunca es el almacén privado (respaldos, exportaciones).
+  for (const c of config.celdas.filter((x) => x.medios !== undefined && x.medios === x.almacen)) {
+    throw new Error(
+      `celdas.json: ${c.id} usa «${c.medios}» para las fotos y para su almacén; el de las fotos es público y el almacén guarda datos personales`,
     );
   }
   // HU-T2.3: la base de control lleva el nombre de su producto, y es una sola por producto.

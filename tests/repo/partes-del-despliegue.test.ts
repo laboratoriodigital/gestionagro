@@ -58,10 +58,10 @@ describe('HU-C11.3 CA2 · el despliegue por partes', () => {
       const s = secretosDe(paso);
       const esCore = paso.run?.includes('--parte core');
       expect(s.some((x) => x.startsWith('BOLD_') || x.startsWith('GOOGLE_'))).toBe(Boolean(esCore));
-      // El vigía de la celda (HU-E8.3) y los radicados de la Ley 1581 (HU-C7.7); el parqueadero y la
-      // Tienda, no.
+      // El vigía de la celda (HU-E8.3), los radicados de la Ley 1581 (HU-C7.7) y la tarea diaria de
+      // la Tienda (HU-T17.1); el parqueadero, no.
       expect(s.some((x) => x.startsWith('TELEGRAM_'))).toBe(
-        Boolean(paso.run?.includes('--parte core') || paso.run?.includes('--parte agro')),
+        !paso.run?.includes('--parte parqueadero'),
       );
       // La KEK y el secreto del despacho solo llegan a la Tienda (HU-T2.4).
       expect(s.some((x) => x === 'TIENDA_KEK_V1' || x === 'SECRETO_DESPACHO')).toBe(

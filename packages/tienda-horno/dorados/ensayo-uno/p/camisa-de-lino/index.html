@@ -24,17 +24,27 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://ensayo-uno--staging.laboratorio-digital.app/","name":"Comercio Ensayo Uno","position":1},{"@type":"ListItem","item":"https://ensayo-uno--staging.laboratorio-digital.app/p/camisa-de-lino/","name":"Camisa de lino","position":2}]}</script>
 </head>
 <body>
-<header class="franja"><a class="marca" href="/">Comercio Ensayo Uno</a></header>
+<header class="franja"><a class="marca" href="/">Comercio Ensayo Uno</a><a class="franja__buscar" href="/buscar/">Buscar</a></header>
 <main>
+<article class="ficha">
+<div class="ficha__foto" aria-hidden="true"></div>
+<div class="ficha__datos">
 <h1>Camisa de lino</h1>
-<p class="precio">$129.000</p>
+<p class="precio" data-precio>$129.000</p>
+<form class="eleccion" data-eleccion><fieldset class="opcion"><legend>Talla</legend><div class="pildoras"><label class="pildora"><input type="radio" name="Talla" value="S"><span>S</span></label><label class="pildora"><input type="radio" name="Talla" value="M"><span>M</span></label><label class="pildora"><input type="radio" name="Talla" value="L"><span>L</span></label></div></fieldset><fieldset class="opcion"><legend>Color</legend><div class="pildoras"><label class="pildora"><input type="radio" name="Color" value="Arena"><span>Arena</span></label><label class="pildora"><input type="radio" name="Color" value="Azul"><span>Azul</span></label></div></fieldset><p class="avisame" data-avisame hidden>Esta combinación está agotada.</p><button class="boton boton--principal" type="submit" data-boton aria-disabled="true">Elige talla</button></form>
 <ul class="opciones"><li>Talla: S, M, L</li><li>Color: Arena, Azul</li></ul>
 <div class="descripcion"><p>Lino <strong>lavado</strong>, fresco para el calor.</p>
 <ul><li>Talla real</li><li>Se lava a mano</li></ul></div>
+</div>
+<script type="application/json" id="variantes">{"opciones":[{"nombre":"Talla","valores":["S","M","L"]},{"nombre":"Color","valores":["Arena","Azul"]}],"variantes":[{"clave":"L|Azul","disponible":false,"id":"v-camisa-l-azul","precioCop":129000},{"clave":"M|Arena","disponible":true,"id":"v-camisa-m-arena","precioCop":129000},{"clave":"S|Arena","disponible":true,"id":"v-camisa-s-arena","precioCop":129000}]}</script>
+</article>
 </main>
 <footer class="pie">
 <p>Comercio Ensayo Uno</p>
+<p><a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a></p>
 <p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>
 </footer>
+<a class="barra-pedido" href="/pedido/" data-pedido hidden>Tu pedido <span class="cifra" data-cantidad>0</span></a>
+<script type="module" src="/_t/r1/vitrina.js"></script>
 </body>
 </html>

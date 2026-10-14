@@ -56,10 +56,8 @@ export interface Env {
   TIENDA_HOSTS?: LectorKv;
   /** El KV de flags de la celda, con los kill switches (`ks:tienda`, `ks:tienda:<org>`). */
   FLAGS?: LectorKv;
-  /** El almacén de los sitios horneados (R2 de la celda). */
-  SITIOS?: Almacen;
   SECRETO_DESPACHO?: string;
-  /** Un binding de servicio por celda: `API_C1`. */
+  /** Un binding de servicio por celda (`API_C1`) y su almacén de sitios horneados (`SITIOS_C1`). */
   [binding: string]: unknown;
 }
 
@@ -232,14 +230,15 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
 
   async function servir(solicitud: Request, env: Env, destino: DestinoDeHost): Promise<Response> {
     if (destino.version === null) return sinPublicar();
-    if (!env.SITIOS) {
-      console.error('tienda-sitio: falta el almacén SITIOS');
+    const sitios = env[`SITIOS_${destino.celda.toUpperCase()}`] as Almacen | undefined;
+    if (!sitios) {
+      console.error(`tienda-sitio: falta el almacén de la celda ${destino.celda}`);
       return enPausa(false);
     }
     const url = new URL(solicitud.url);
     const markdown = (solicitud.headers.get('accept') ?? '').includes('text/markdown');
     try {
-      const m = await manifiestoDe(env.SITIOS, destino.org, destino.version);
+      const m = await manifiestoDe(sitios, destino.org, destino.version);
       if (!m) {
         console.error(`tienda-sitio: falta el manifiesto de ${destino.org} v${destino.version}`);
         return enPausa(false);
@@ -250,9 +249,7 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       }
       if (!archivo && markdown) archivo = m.archivos[archivoDeLaRuta(url.pathname, false)];
       if (!archivo || !HUELLA.test(archivo.huella)) return noEsta();
-      const objeto = await env.SITIOS.get(
-        `objetos/${archivo.huella.slice(0, 2)}/${archivo.huella}`,
-      );
+      const objeto = await sitios.get(`objetos/${archivo.huella.slice(0, 2)}/${archivo.huella}`);
       if (!objeto) {
         console.error(`tienda-sitio: falta el objeto ${archivo.huella}`);
         return enPausa(false);

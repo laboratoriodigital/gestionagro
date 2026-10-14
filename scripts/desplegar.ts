@@ -25,6 +25,7 @@ import { SITIO } from '../apps/sitio/src/lib/seo.ts';
 import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
 import { hostDeStaging } from '../packages/tienda-schema/src/ensayos.ts';
 import { generarClavePrivada } from '../packages/tokens/src/index.ts';
+import { archivosDeLaVitrina } from './armar-vitrina.ts';
 import {
   baseDelShard,
   DOMINIO_PARQUEADERO,
@@ -71,7 +72,9 @@ import {
   humoDeLaTienda,
   nombreKvHosts,
   preparaLaTienda,
+  publicarEnsayos,
   reservadosDeDominios,
+  SECRETO_DESPACHO,
   secretosDeLaTienda,
   sentenciasDeReservados,
   urlQueNoDebeResponder,
@@ -867,6 +870,7 @@ async function prepararCeldaDeLaTienda(
         flagsId: flags.id,
         hostsId: hosts.id,
         clavesCore: await clavesDelCore(fetch, staging ? config.core.url_staging : config.core.url),
+        vitrinaRelease: archivosDeLaVitrina().release,
       }),
     );
     escribirDespliegue(
@@ -985,6 +989,20 @@ async function prepararCeldaDeLaTienda(
         `panel desplegado en ${panel ?? '?'} y despacho en ${sitio ?? '?'}, pero celdas.json dice ${esperado} para el panel: corrígelo por PR y vuelve a desplegar.`,
       ],
     };
+  }
+  // HU-T4.4: en staging, publicar a los comercios de prueba antes del humo, que mira sus portadas.
+  if (ensayos.length > 0 && secretos.ok) {
+    const despacho = secretos.frente[SECRETO_DESPACHO] ?? '';
+    const fallasAlPublicar = await conReintentos(() => publicarEnsayos(fetch, panel, despacho));
+    if (fallasAlPublicar.length > 0) {
+      return {
+        ok: false,
+        detalle: [
+          'la Tienda se desplegó, pero no pudo publicar a los comercios de prueba:',
+          ...fallasAlPublicar,
+        ],
+      };
+    }
   }
   let avisos: string[] = [];
   const fallas = await conReintentos(async () => {

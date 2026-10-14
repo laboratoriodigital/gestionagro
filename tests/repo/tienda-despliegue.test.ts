@@ -121,6 +121,7 @@ describe('los ids del despliegue, fuera de git (ADR-6)', () => {
     flagsId: 'kv-flags',
     hostsId: 'kv-hosts',
     clavesCore: [{ kid: 'k1' }],
+    vitrinaRelease: 'r9',
   };
 
   it('staging recibe los ids de sus bases y sus dos KV; producción queda como estaba', () => {
@@ -137,6 +138,8 @@ describe('los ids del despliegue, fuera de git (ADR-6)', () => {
     // HU-T2.8: las claves públicas del CORE de staging, para verificar sus tokens sin llamarlo.
     expect(config.env.staging.vars['CORE_CLAVES']).toBe('[{"kid":"k1"}]');
     expect(config.env.staging.vars['CELDA']).toBe('c1');
+    expect(config.env.staging.vars['VITRINA_RELEASE']).toBe('r9');
+    expect(config.env.staging.vars['ENSAYOS']).toBe('1');
     expect(config.env.staging.d1_databases.map((d) => d.database_id)).toEqual([
       'id-shard',
       'id-control',

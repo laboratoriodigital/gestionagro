@@ -113,7 +113,8 @@ Un proveedor entra al ecosistema solo si pasa estos ocho criterios. Se registran
 | Proveedor | Gratis | Veredicto |
 |---|---|---|
 | **Correo de Cloudflare** | Free: solo destinatarios verificados. Paid: 3.000 al mes y después USD 0,35 por 1.000 (r) | **Primera opción**, con Workers Paid en la cuenta (TIENDA-3.0 §15.5) |
-| **Resend** | 3.000 al mes, 100 al día (S) | **Respaldo**, o principal si el correo hace falta antes que Workers Paid |
+| **Gmail por su API** | Una cuenta personal: unos 500 destinatarios al día. Gratis | **Primero**, por decisión del dueño del 13 oct 2026 (PLATAFORMA §4.11): el remitente es la dirección de Gmail, con `Reply-To` al comercio |
+| **Resend** | 3.000 al mes, 100 al día (S) | **El siguiente**, cuando el tope de Gmail se acerque o una tienda pida su remitente propio |
 | **Brevo** | 300 al día (S); empresa de la UE | Alternativa a Resend |
 | **Amazon SES** | Sin capa gratis para cuentas nuevas desde el 21-jul-2026; precios nuevos (r) | Reserva a escala, con `sa-east-1` |
 | Postmark · MailerSend · SendGrid · Mailgun | 100 al mes · 500 al mes · sin plan gratis (N) · N | Descartar |

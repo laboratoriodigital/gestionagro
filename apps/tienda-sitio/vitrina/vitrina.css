@@ -1,0 +1,294 @@
+/*
+ * La vitrina de la Tienda 3.0 (HU-T3.3 y HU-T3.4, BACKLOG_TIENDA3 §5.3 y §5.4). Común a todas las
+ * tiendas, servida desde /_t/<release>/ sin ejecutar el Worker. Usa los tokens y las fuentes del
+ * ecosistema (@ed1/ui v2: Geist y Geist Mono, D-T2); el color de cada tienda llega en su
+ * `tema-<huella>.css` (HU-T3.2). Nada de la apariencia de la Tienda 2.0. Sin estilos en línea.
+ */
+
+/* --- Los dos estilos: el mismo Geist, dos tratamientos (D-T2) -------------------------------- */
+:root {
+  --peso-titular: var(--peso-display);
+  --interletrado-titular: var(--interletrado-display);
+  --tam-titular: var(--texto-titulo-1);
+}
+[data-estilo="editorial"] {
+  --peso-titular: 300;
+  --interletrado-titular: -0.045em;
+  --tam-titular: var(--texto-display);
+}
+[data-modo="oscuro"] {
+  color-scheme: dark;
+}
+
+/* --- Base ------------------------------------------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--superficie);
+  color: var(--tinta, var(--texto));
+  font-family: var(--fuente-sans);
+  font-size: var(--texto-base);
+  line-height: var(--interlineado);
+}
+main {
+  flex: 1;
+  width: min(100% - 2rem, 72rem);
+  margin-inline: auto;
+  padding-block: var(--espacio-8) var(--espacio-24);
+}
+a {
+  color: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--foco);
+  outline-offset: 3px;
+}
+h1 {
+  margin: 0 0 var(--espacio-4);
+  font-size: var(--tam-titular);
+  font-weight: var(--peso-titular);
+  letter-spacing: var(--interletrado-titular);
+  line-height: var(--interlineado-display);
+}
+.frase {
+  margin: 0 0 var(--espacio-8);
+  max-width: 40rem;
+  font-size: var(--texto-titulo-3);
+  color: var(--texto-suave);
+}
+.cifra,
+.precio {
+  font-family: var(--fuente-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Franja y pie ---------------------------------------------------------------------------- */
+.franja {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  min-height: 56px;
+  padding-inline: max(1rem, (100% - 72rem) / 2);
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borde);
+}
+.marca {
+  font-weight: var(--peso-fuerte);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.franja__buscar {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding-inline: var(--espacio-3);
+  font-size: var(--texto-pequeno);
+  color: var(--texto-suave);
+}
+.pie {
+  padding: var(--espacio-8) max(1rem, (100% - 72rem) / 2) var(--espacio-24);
+  border-top: 1px solid var(--borde);
+  font-size: var(--texto-pequeno);
+  color: var(--texto-suave);
+}
+.pie p {
+  margin: 0 0 var(--espacio-2);
+}
+
+/* --- Tarjetas de producto -------------------------------------------------------------------- */
+.productos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-6) var(--espacio-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 48rem) {
+  .productos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.tarjeta a {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  min-height: 48px;
+  text-decoration: none;
+}
+.tarjeta__foto,
+.ficha__foto {
+  aspect-ratio: var(--proporcion-foto, 1 / 1);
+  background: var(--superficie-2);
+  border-radius: var(--radio-campo);
+}
+.tarjeta__nombre {
+  font-weight: var(--peso-fuerte);
+}
+.tarjeta .precio {
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+
+/* --- Ficha y elección de la variante --------------------------------------------------------- */
+.ficha {
+  display: grid;
+  gap: var(--espacio-8);
+}
+@media (min-width: 48rem) {
+  .ficha {
+    grid-template-columns: 1.2fr 1fr;
+    align-items: start;
+  }
+}
+.ficha .precio {
+  margin: 0 0 var(--espacio-6);
+  font-size: var(--texto-titulo-3);
+}
+.eleccion {
+  display: grid;
+  gap: var(--espacio-6);
+}
+.opcion {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.opcion legend {
+  margin-bottom: var(--espacio-2);
+  font-family: var(--fuente-mono);
+  font-size: var(--texto-etiqueta);
+  letter-spacing: var(--interletrado-etiqueta);
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+.pildoras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+.pildora {
+  position: relative;
+}
+.pildora input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+}
+.pildora span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  padding-inline: var(--espacio-4);
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.pildora.agotado span {
+  color: var(--texto-suave);
+  text-decoration: line-through;
+}
+.pildora input:checked + span {
+  border-color: var(--tinta, var(--texto));
+  box-shadow: inset 0 0 0 1px var(--tinta, var(--texto));
+}
+.pildora input:focus-visible + span {
+  outline: 2px solid var(--foco);
+  outline-offset: 3px;
+}
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding-inline: var(--espacio-6);
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: var(--peso-fuerte);
+  cursor: pointer;
+}
+.boton--principal {
+  width: 100%;
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+.boton--principal[aria-disabled="true"] {
+  background: var(--superficie-2);
+  color: var(--texto);
+  box-shadow: inset 0 0 0 1px var(--borde);
+}
+.avisame {
+  margin: 0;
+  font-size: var(--texto-pequeno);
+}
+.descripcion {
+  margin-top: var(--espacio-8);
+  max-width: 40rem;
+}
+.opciones {
+  padding-left: var(--espacio-6);
+  color: var(--texto-suave);
+}
+
+/* --- Barra del pedido, búsqueda y estados ---------------------------------------------------- */
+.barra-pedido {
+  position: fixed;
+  inset: auto var(--espacio-4) var(--espacio-4);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding-inline: var(--espacio-6);
+  border-radius: 999px;
+  background: var(--tinta, var(--texto));
+  color: var(--superficie);
+  text-decoration: none;
+  font-weight: var(--peso-fuerte);
+}
+.barra-pedido[hidden] {
+  display: none;
+}
+.buscar {
+  display: grid;
+  gap: var(--espacio-2);
+  margin-bottom: var(--espacio-8);
+}
+.buscar input {
+  min-height: 52px;
+  padding-inline: var(--espacio-4);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-campo);
+  background: var(--superficie);
+  color: inherit;
+  font: inherit;
+}
+.estado {
+  padding: var(--espacio-8) 0;
+  color: var(--texto-suave);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pildora span,
+  .boton {
+    transition:
+      background-color var(--tiempo-corto, 120ms) var(--curva-salida),
+      box-shadow var(--tiempo-corto, 120ms) var(--curva-salida);
+  }
+}

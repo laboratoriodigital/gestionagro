@@ -4,12 +4,26 @@
   "name": "tienda-sitio",
   "main": "src/worker.ts",
   "compatibility_date": "2026-09-30",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/*",
+      "!/_t/*"
+    ]
+  },
   "workers_dev": false,
   "routes": [],
   "services": [
     {
       "binding": "API_C1",
       "service": "tienda-api-c1"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "SITIOS_C1",
+      "bucket_name": "tienda-c1"
     }
   ],
   "observability": {
@@ -33,6 +47,12 @@
         {
           "binding": "API_C1",
           "service": "tienda-api-c1-staging"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "SITIOS_C1",
+          "bucket_name": "tienda-c1-staging"
         }
       ]
     }

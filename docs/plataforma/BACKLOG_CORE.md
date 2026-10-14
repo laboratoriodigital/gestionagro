@@ -884,8 +884,9 @@ Formato de cada historia:
 ### EC10 · Correo
 
 #### HU-C10.1 · Adaptador de correo y dominio que envía
-- **Capa:** infraestructura · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C11 · **Depende de:** Workers Paid activo · **Estado:** Refinada
-- **Respaldo:** PLATAFORMA §4.11; ED1 §20.2.
+- **Capa:** infraestructura · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C11 · **Depende de:** ~~Workers Paid activo~~ la cuenta de Gmail y su permiso (decisión del dueño del 13 oct 2026: primero Gmail, gratis; después Resend o similar) · **Estado:** Refinada
+- **Respaldo:** PLATAFORMA §4.11 (con la decisión de Gmail); ED1 §20.2.
+- **Desde el 13 oct 2026:** CA1 empieza con el proveedor `gmail` en `@ed1/correo` (el adaptador que comparte con la Tienda, HU-T14.3), y el de Cloudflare queda como uno más. CA2 (SPF, DKIM y DMARC) llega con el paso a Resend o similar: con Gmail, el remitente es de Gmail.
 - **CA1.** `CorreoTransaccional` con el servicio de correo de Cloudflare; un proveedor externo cabe detrás del mismo adaptador.
 - **CA2.** SPF, DKIM y DMARC en `laboratorio-digital.com`, comprobados con un envío real.
 - **CA3 ❌.** Sin el binding, enviar responde «no disponible» y no finge haber enviado (P1).

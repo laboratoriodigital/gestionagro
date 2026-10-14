@@ -5,6 +5,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Las tareas periódicas de la Tienda (HU-T17.1): corren solas cada hora en producción y dicen en la salud si alguna se atrasó o falló, sin que una que falla detenga a las demás. Cada día se revisa que cada dirección lleve a su tienda; si algo no cuadra, se corrige desde la base y se avisa al dueño por Telegram.
+- Las fotos de las tiendas tendrán su propio almacén público, aparte del que guarda los respaldos y las exportaciones (HU-T5.6): así un enlace a una foto nunca deja ver otra cosa. Los pasos para crearlo están en `docs/runbooks/tienda-fotos.md`.
+- Publicar una tienda (HU-T4.4): la tienda se hornea, pasa la compuerta y sube a su almacén solo lo que cambió; si algo falla a la mitad, la tienda sigue como estaba. Sin cambios, dice «Nada cambió». En staging, los dos comercios de prueba se publican en cada despliegue y se ven en sus direcciones.
+- La compuerta de publicación (HU-T4.3): antes de publicar, la tienda dice todo lo que falta de una vez, cada cosa con qué hacer y dónde: los datos legales, el WhatsApp sin confirmar, un producto sin foto o sin precio, un texto con corchetes, un enlace roto. El pie de cada tienda enlaza a la Superintendencia de Industria y Comercio.
+- La vitrina tiene su forma (HU-T3.3, HU-T3.4 y HU-T5.3): la letra del ecosistema (Geist y Geist Mono), tarjetas, la ficha con la elección de talla y color que dice qué falta, lo agotado tachado, la barra del pedido y una búsqueda que funciona en el teléfono sin red.
 - El despacho sirve la tienda horneada (HU-T5.1): cada página sale del almacén con su versión publicada y las cabeceras de seguridad de la vitrina, y su gemelo para agentes con `Accept: text/markdown`, sin tocar la base. Una tienda que todavía no publica dice «Esta tienda todavía no abre».
 - La Tienda está activa en el CORE de staging (HU-T2.10), para probarla con sesiones de verdad cuando el panel tenga su entrada; en producción sigue pausada.
 - El horno de la Tienda (HU-T4.1): cada tienda en archivos estáticos que se leen sin JavaScript, con su gemelo para agentes, el catálogo, el sitemap y los datos estructurados para buscadores. Lo que escribe el comercio nunca se ejecuta (HU-T4.2).

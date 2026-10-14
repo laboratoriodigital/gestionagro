@@ -389,6 +389,15 @@ importers:
       '@ed1/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
+      '@ed1/telegram':
+        specifier: workspace:*
+        version: link:../../packages/telegram
+      '@ed1/tienda-horno':
+        specifier: workspace:*
+        version: link:../../packages/tienda-horno
+      '@ed1/tienda-schema':
+        specifier: workspace:*
+        version: link:../../packages/tienda-schema
       '@ed1/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens

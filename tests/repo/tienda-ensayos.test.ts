@@ -19,7 +19,11 @@ import {
   siembraDelShard,
 } from '../../packages/tienda-schema/src/ensayos.ts';
 import { TOPES } from '../../packages/tienda-schema/src/index.ts';
-import { ensayosDelDestino, humoDeLaTienda } from '../../scripts/lib/celda-tienda.ts';
+import {
+  ensayosDelDestino,
+  humoDeLaTienda,
+  publicarEnsayos,
+} from '../../scripts/lib/celda-tienda.ts';
 import type { Fetch } from '../../scripts/lib/despliegue.ts';
 
 const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
@@ -103,48 +107,73 @@ describe('la siembra, en las bases locales', () => {
     }
   });
 
-  it('de punta a punta: cada dirección llega a su tienda por el despacho y la API', async () => {
-    const valores = Object.fromEntries(hostsDeStaging(ENSAYOS, 'c1', 'tienda_c1_s1'));
-    const app = crearApp();
-    const env = {
-      TIENDA_HOSTS: { get: async (clave: string) => valores[clave] ?? null },
-      SECRETO_DESPACHO: SECRETO,
-      API_C1: {
-        fetch: async (solicitud: Request) =>
-          app.fetch(solicitud, {
-            CELDA: 'c1',
-            PRODUCTO: 'tienda',
-            SECRETO_DESPACHO: SECRETO,
-            tienda_c1_s1: shard,
-          }),
+  it('de punta a punta: se publican por el panel y cada dirección sirve su portada desde el almacén', async () => {
+    // El almacén y el KV de la celda, en memoria: la API escribe, el despacho lee.
+    const objetos = new Map<string, string>();
+    const valores = new Map<string, string>();
+    const sitios = {
+      get: async (clave: string) => {
+        const t = objetos.get(clave);
+        return t === undefined ? null : { text: async () => t };
       },
+      put: async (clave: string, valor: string) => void objetos.set(clave, valor),
+    };
+    const hosts = {
+      get: async (clave: string) => valores.get(clave) ?? null,
+      put: async (clave: string, valor: string) => void valores.set(clave, valor),
+    };
+    const app = crearApp();
+    const api = (solicitud: Request) =>
+      app.fetch(solicitud, {
+        CELDA: 'c1',
+        PRODUCTO: 'tienda',
+        SECRETO_DESPACHO: SECRETO,
+        ENSAYOS: '1',
+        VITRINA_RELEASE: 'r1',
+        SITIOS: sitios,
+        TIENDA_HOSTS: hosts,
+        tienda_c1_s1: shard,
+        tienda_control: control,
+      });
+    const env = {
+      TIENDA_HOSTS: hosts,
+      SECRETO_DESPACHO: SECRETO,
+      SITIOS_C1: sitios,
+      API_C1: { fetch: api },
     };
     const despacho = crearDespacho();
-    // La prueba de humo del despliegue, contra el despacho local en vez de Cloudflare.
-    const nube: Fetch = async (url) => {
+    const panel = 'https://tienda-panel-staging.ejemplo.workers.dev';
+    // Cloudflare de mentira: el panel pasa /api/* a la API con el secreto, como tienda-panel.
+    const nube: Fetch = async (url, init) => {
       const u = new URL(String(url));
       if (u.hostname.endsWith('--staging.laboratorio-digital.app')) {
-        return despacho.fetch(new Request(u), env);
+        return despacho.fetch(new Request(u, init), env);
       }
-      if (u.pathname === '/api/salud') {
-        return u.hostname.startsWith('tienda-api')
-          ? new Response('nada', { status: 404 })
-          : Response.json({ estado: 'ok', kek: 'ok' });
+      if (u.origin === panel && u.pathname.startsWith('/api/')) {
+        const solicitud = new Request(u, init);
+        const cabeceras = new Headers(solicitud.headers);
+        cabeceras.set('x-despacho', SECRETO);
+        return api(new Request(solicitud, { headers: cabeceras }));
       }
+      if (u.pathname === '/api/salud') return new Response('nada', { status: 404 });
       return u.hostname.startsWith('tienda-sitio')
         ? new Response('Esta dirección no tiene tienda', { status: 404 })
         : new Response('El panel de tu tienda');
     };
-    const r = await humoDeLaTienda(
-      nube,
-      {
-        panel: 'https://tienda-panel-staging.ejemplo.workers.dev',
-        sitio: 'https://tienda-sitio-staging.ejemplo.workers.dev',
-        apiPorFuera: 'https://tienda-api-c1-staging.ejemplo.workers.dev',
-      },
-      ENSAYOS,
-    );
-    expect(r).toEqual({ fallas: [], avisos: [] });
+    expect(await publicarEnsayos(nube, panel, SECRETO)).toEqual([]);
+    expect(await publicarEnsayos(nube, panel, 'adivinado')).toEqual([
+      'publicar a los comercios de prueba respondió 404: {"estado":"no-existe"}',
+    ]);
+    const urls = {
+      panel,
+      sitio: 'https://tienda-sitio-staging.ejemplo.workers.dev',
+      apiPorFuera: 'https://tienda-api-c1-staging.ejemplo.workers.dev',
+    };
+    const conSalud: Fetch = async (url, init) =>
+      String(url) === `${panel}/api/salud`
+        ? Response.json({ estado: 'ok', kek: 'ok' })
+        : nube(url, init);
+    expect(await humoDeLaTienda(conSalud, urls, ENSAYOS)).toEqual({ fallas: [], avisos: [] });
   });
 
   it('❌ sin la cabecera del despacho, o con un shard ajeno, la tienda no existe', async () => {

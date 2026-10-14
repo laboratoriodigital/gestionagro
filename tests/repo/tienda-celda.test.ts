@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   bindingDeLaApi,
+  CRON_DE_LA_TIENDA,
   celdasDeLaTienda,
   RUTA_WRANGLER_TIENDA_PANEL,
   RUTA_WRANGLER_TIENDA_SITIO,
@@ -124,6 +125,33 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
     );
   });
 
+  it('❌ solo staging deja publicar a los comercios de prueba; producción no lleva ENSAYOS', () => {
+    for (const celda of celdas) {
+      const api = wranglerDeLaCeldaDeLaTienda(celda) as unknown as Config & {
+        vars: Record<string, string>;
+      };
+      expect(api.vars['ENSAYOS']).toBeUndefined();
+      expect((api.env.staging as unknown as { vars: Record<string, string> }).vars['ENSAYOS']).toBe(
+        '1',
+      );
+    }
+  });
+
+  it('❌ un solo cron por hora y solo en producción: el quinto de la cuenta (HU-T17.1, D-T10)', () => {
+    for (const celda of celdas) {
+      const api = wranglerDeLaCeldaDeLaTienda(celda) as unknown as Config & {
+        triggers: { crons: string[] };
+      };
+      expect(api.triggers.crons).toEqual([CRON_DE_LA_TIENDA]);
+      expect(
+        (api.env.staging as unknown as { triggers: { crons: string[] } }).triggers.crons,
+      ).toEqual([]);
+    }
+    for (const otra of [wranglerDelSitioDeLaTienda(config), wranglerDelPanelDeLaTienda(config)]) {
+      expect(JSON.stringify(otra)).not.toContain('crons');
+    }
+  });
+
   it('el despacho de staging atiende las direcciones de los dos comercios de prueba (HU-T2.6)', () => {
     const sitio = wranglerDelSitioDeLaTienda(config) as unknown as Config;
     expect(sitio.env.staging.routes).toEqual([
@@ -137,5 +165,30 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
     if (!c1) throw new Error('sin celda c1');
     const { control: _, ...sinControl } = c1;
     expect(() => wranglerDeLaCeldaDeLaTienda(sinControl)).toThrow(/no declara su control/);
+  });
+});
+
+describe('las fotos sin Worker y en su propio bucket (HU-T5.6)', () => {
+  it('el bucket público de las fotos nunca es el almacén, que guarda datos personales', () => {
+    for (const c of celdas) {
+      expect(c.medios).toMatch(/-medios$/);
+      expect(c.medios).not.toBe(c.almacen);
+    }
+  });
+
+  it('❌ un bucket de fotos igual al almacén no carga', () => {
+    const datos = JSON.parse(JSON.stringify(config));
+    const c1 = datos.celdas.find((c: { id: string }) => c.id === 'c1');
+    c1.medios = c1.almacen;
+    expect(() => cargarCeldas(datos)).toThrow(/datos personales/);
+  });
+
+  it('❌ ninguna configuración de Worker toma img.: ver una foto no ejecuta código (CA2)', () => {
+    const textos = [
+      ...celdas.map((c) => textoWranglerDeLaCeldaDeLaTienda(c)),
+      textoWranglerDelSitioDeLaTienda(config),
+      textoWranglerDelPanelDeLaTienda(config),
+    ];
+    for (const t of textos) expect(t).not.toMatch(/img(--staging)?\.laboratorio-digital\.app/);
   });
 });

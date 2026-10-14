@@ -22,6 +22,17 @@
       "migrations_dir": "../../infrastructure/migraciones/tienda-control"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "SITIOS",
+      "bucket_name": "tienda-c1"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "0 * * * *"
+    ]
+  },
   "observability": {
     "enabled": true
   },
@@ -32,7 +43,8 @@
       "vars": {
         "CELDA": "c1",
         "PRODUCTO": "tienda",
-        "PLAN": "free"
+        "PLAN": "free",
+        "ENSAYOS": "1"
       },
       "d1_databases": [
         {
@@ -45,7 +57,16 @@
           "database_name": "tienda_control_staging",
           "migrations_dir": "../../infrastructure/migraciones/tienda-control"
         }
-      ]
+      ],
+      "r2_buckets": [
+        {
+          "binding": "SITIOS",
+          "bucket_name": "tienda-c1-staging"
+        }
+      ],
+      "triggers": {
+        "crons": []
+      }
     }
   }
 }

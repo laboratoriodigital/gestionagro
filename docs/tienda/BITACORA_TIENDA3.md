@@ -129,13 +129,13 @@ Al 6 oct 2026, en la tarde, la Tienda tiene sus cuatro paquetes puros (sprint T0
 - **Regla:** un token se prueba antes de sembrarlo y con la acción que va a hacer.
 - **En la Tienda 3.0:** `CF_SAAS_TOKEN` se verifica creando y leyendo un hostname de prueba; la llave de identidad de Bold, contra `payment-voucher`; la secreta, con el cobro de prueba guiado. Es la causa 4 de la 2.0: cuatro permisos que se pisan.
 - **Lo impedirá:** HU-T11.2, HU-T11.3, HU-T13.1.
-- **Entradas:** —
+- **Entradas:** tienda3 10.
 
 #### P13 · Un secreto no viaja por donde queda escrito
 - **Regla:** llaves y tokens solo en los almacenes de secretos, nunca en una dirección, un pantallazo o un documento. Lo mismo, los datos de las personas.
 - **En la Tienda 3.0:** las llaves de Bold, cifradas con la DEK de la tienda y visibles solo por su huella; la KEK, en los secretos y en una copia fuera de línea; el secreto del seguimiento, en el fragmento y como huella en la base; nada del comprador en `sessionStorage` (bitácora ecommerce 46); los datos de la transferencia, nunca horneados.
 - **Lo impedirá:** HU-T1.3, HU-T2.5, HU-T6.2, HU-T6.3, HU-T9.2, HU-T11.2, HU-T11.4.
-- **Entradas:** —
+- **Entradas:** tienda3 10.
 
 #### P14 · Los fallos silenciosos del lenguaje y del shell
 - **Regla:** `| tee` sin `pipefail`, un `try/catch` que protege, dos funciones con el mismo nombre: no fallan, siguen.
@@ -494,3 +494,21 @@ La regla: **una respuesta de paridad se cruza con el sprint de su historia y con
 La regla: **antes de planear la migración de algo que ya funciona, se pregunta si el dueño quiere migrarlo o solo aprender de ello; son dos planes distintos.**
 
 *Ficha:* tienda3 · *(compartido)* · 🟡 Medio · P9, P18 · tienda-0.0.0 · 2026-10-13
+
+**10 · TIENDA servía las fotos con un dominio propio del mismo bucket que guarda los respaldos y las exportaciones.**
+
+*Qué pasó.* El 14 oct 2026, al preparar HU-T5.6 (las fotos sin Worker), crucé TIENDA §3.1 y §5.6 con cómo funciona un dominio propio de R2.
+
+*Síntoma literal.* TIENDA §5.6: «R2 tienda-c{N}/ … medios/<org>/<huella>/… fotos (servidas por img.laboratorio-digital.app) … respaldos/<shard>/<AAAA-MM-DD>/<org>.json.gz … exportaciones/<org>/<id>.zip».
+
+*Causa raíz.* Un dominio propio de R2 sirve **cualquier** clave del bucket, no una carpeta. Con `img.` conectado a `tienda-c{N}`, los respaldos semanales y las exportaciones de cada tienda, con los datos personales de sus compradores, quedaban a una dirección adivinable de distancia: la clave lleva el shard, la fecha y el id de la organización. Los respaldos van cifrados en sus sobres (§14.2), pero las exportaciones del comercio no, y los textos legales tampoco deberían estar ahí. Nadie había comprobado qué alcanza un dominio de bucket (P12: el permiso que se comprueba es el que se usa; P13).
+
+*Cómo se reprodujo.* Sin reproducir en la cuenta, a propósito: el bucket no tiene todavía un dominio. Es cómo funciona un dominio propio de R2 en su documentación.
+
+*Arreglo.* Las fotos van en un bucket aparte, `tienda-c1-medios` (`medios` en `celdas.json`), el único con dominio propio; el almacén nunca lleva dominio ni acceso público. `cargarCeldas` rechaza que los dos sean el mismo, y el runbook `docs/runbooks/tienda-fotos.md` dice qué no se hace. TIENDA §3.1 y §5.6 llevan la nota.
+
+**Lo prueba** `tests/repo/tienda-celda.test.ts`, «un bucket de fotos igual al almacén no carga». Control negativo: con `medios` igual a `almacen`, `cargarCeldas` lanza.
+
+La regla: **lo público y lo privado no comparten bucket: un dominio propio expone el bucket entero, no la carpeta que uno tenía en mente.**
+
+*Ficha:* tienda3 · *(mío)* · 🔴 Alto · P12, P13 · tienda-0.0.0 · 2026-10-14

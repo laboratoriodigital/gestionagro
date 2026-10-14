@@ -366,6 +366,8 @@ Ningún identificador de cuenta, base o dominio está en el código. Todo sale d
 
 La celda **c0 es tu cuenta actual**, la misma que atiende el resto de ED1. El agro declara su parte del presupuesto (§8) para no dejar sin cuota a los demás productos.
 
+**La celda de la Tienda (c1, HU-T2.3 y HU-T4.4).** Tres Workers: `tienda-api-c1` sin rutas ni workers.dev, el despacho `tienda-sitio` y el panel `tienda-panel`; un shard `tienda_c1_s1`, la base `tienda_control` y el almacén R2 `tienda-c1`. Publicar es hornear (TIENDA-3.0 §10.3): la API lee la tienda, la hornea con `@ed1/tienda-horno`, pasa la compuerta, sube a R2 solo los objetos nuevos (`objetos/<hh>/<huella>`), guarda y relee el manifiesto de la versión (`sitios/<org>/<versión>/manifiesto.json`) y, al final, apunta `TIENDA_HOSTS` y `tienda.version_publicada`. El despacho sirve cada página desde ese manifiesto sin tocar la base, y los archivos comunes de la vitrina (`/_t/<release>/`) como assets, sin ejecutar el Worker. Por ahora publica en la misma solicitud, sin cola (plan gratuito); el consumidor de la cola llamará a la misma función. Los buckets los crea el dueño en el panel: el token de despliegue no tiene permiso de R2 (HU-C11.5).
+
 ### 5.6 Sincronización (protocolo v1)
 
 ```text

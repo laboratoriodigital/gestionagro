@@ -350,6 +350,9 @@ export const textoWranglerDeLaCeldaDelParqueadero = (celda: Celda): string =>
  * existe (P1), y un despliegue a producción por error no toma ningún hostname. Los ids de las bases
  * y de los KV (flags y `TIENDA_HOSTS`) los agrega el despliegue, fuera de git (ADR-6).
  */
+/** El cron de la Tienda: uno por hora, que reparte las tareas por frecuencia (HU-T17.1). */
+export const CRON_DE_LA_TIENDA = '0 * * * *';
+
 export const celdasDeLaTienda = (config: ConfigCeldas): Celda[] =>
   config.celdas.filter((c) => c.producto === 'tienda');
 
@@ -370,6 +373,8 @@ export const bindingDeLaApi = (celdaId: string) => `API_${celdaId.toUpperCase()}
 
 export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknown> {
   if (!celda.control) throw new Error(`la celda ${celda.id} de la Tienda no declara su control`);
+  if (!celda.almacen) throw new Error(`la celda ${celda.id} de la Tienda no declara su almacén`);
+  const almacen = celda.almacen;
   const control = celda.control;
   const bases = (staging: boolean) => [
     ...celda.shards.map((shard) => ({
@@ -392,13 +397,19 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
     workers_dev: false,
     vars,
     d1_databases: bases(false),
+    r2_buckets: [{ binding: 'SITIOS', bucket_name: almacen }],
+    // HU-T17.1 y D-T10: el quinto cron de la cuenta, solo en producción; staging no tiene.
+    triggers: { crons: [CRON_DE_LA_TIENDA] },
     observability: { enabled: true },
     env: {
       staging: {
         name: workerDeLaApiDeLaTienda(celda.id, true),
         workers_dev: false,
-        vars,
+        // HU-T2.6 y HU-T4.4: solo staging publica a los comercios de prueba.
+        vars: { ...vars, ENSAYOS: '1' },
         d1_databases: bases(true),
+        r2_buckets: [{ binding: 'SITIOS', bucket_name: `${almacen}-staging` }],
+        triggers: { crons: [] },
       },
     },
   };
@@ -412,15 +423,28 @@ const serviciosDeLaTienda = (config: ConfigCeldas, staging: boolean) =>
       service: workerDeLaApiDeLaTienda(c.id, staging),
     }));
 
+/** El almacén de cada celda para el despacho: `SITIOS_C1`, de solo lectura en su código. */
+const almacenesDeLaTienda = (config: ConfigCeldas, staging: boolean) =>
+  celdasDeLaTienda(config)
+    .filter((c) => c.estado === 'activa' && c.almacen)
+    .map((c) => ({
+      binding: `SITIOS_${c.id.toUpperCase()}`,
+      bucket_name: staging ? `${c.almacen}-staging` : (c.almacen as string),
+    }));
+
 export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string, unknown> {
   return {
     $schema: '../../node_modules/wrangler/config-schema.json',
     name: WORKER_TIENDA_SITIO,
     main: 'src/worker.ts',
     compatibility_date: FECHA_COMPATIBILIDAD,
+    // HU-T3.3: los archivos comunes de la vitrina (`/_t/<release>/`) son assets: no ejecutan el
+    // Worker. Todo lo demás pasa por el despacho.
+    assets: { directory: './dist', binding: 'ASSETS', run_worker_first: ['/*', '!/_t/*'] },
     workers_dev: false,
     routes: [],
     services: serviciosDeLaTienda(config, false),
+    r2_buckets: almacenesDeLaTienda(config, false),
     observability: { enabled: true },
     env: {
       staging: {
@@ -428,6 +452,7 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
         workers_dev: true,
         routes: ENSAYOS.map((e) => ({ pattern: hostDeStaging(e.slug), custom_domain: true })),
         services: serviciosDeLaTienda(config, true),
+        r2_buckets: almacenesDeLaTienda(config, true),
       },
     },
   };
