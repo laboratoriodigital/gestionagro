@@ -226,6 +226,7 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
         respaldo={senalDeRespaldo(respaldo, reloj())}
         hora={senalDeHora(diferencia)}
         pendientes={senalDePendientes(pendientes)}
+        alPendientes={() => ir({ es: 'pendientes' })}
         prueba={prueba}
         persistente={persistente}
         nube={senalDeLaNube(vinculada, enCola, estadoNube, avisoDelPlan)}

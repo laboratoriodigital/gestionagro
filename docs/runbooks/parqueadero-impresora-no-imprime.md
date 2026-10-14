@@ -2,7 +2,7 @@
 
 **Para qué:** que quien da soporte resuelva por WhatsApp, sin ir al parqueadero, el fallo más común de la caja (PARQUEADERO §7.4 y §14.5, HU-Q6.2). Sale de lo que pasó con la PT210L del primer cliente (bitácora parqueadero 12, 13, 17, 18, 19 y 21).
 
-**Mientras tanto, nadie se queda sin recibo.** El registro ya está guardado. Desde la pantalla del recibo, **«Enviar por WhatsApp»** o **«Mostrar QR»** le entregan el recibo al conductor, y lo que no salió en papel queda en entregas pendientes (la cabecera lo cuenta).
+**Mientras tanto, nadie se queda sin recibo.** El registro ya está guardado. Desde la pantalla del recibo, **«Enviar por WhatsApp»** o **«Mostrar QR»** le entregan el recibo al conductor, y lo que no salió en papel queda en entregas pendientes (la cabecera lo cuenta). Toque esa señal para ver la lista: «Abrir para imprimir» lo imprime otra vez cuando la impresora vuelva, y «Quitar de la lista» lo quita si ya lo entregó de otra forma.
 
 ![El recibo que no salió: el motivo, «Reconectar impresora», «Elegir la impresora otra vez» y «Copiar diagnóstico para soporte», a 360 px](img/parqueadero-recibo-no-salio.png)
 

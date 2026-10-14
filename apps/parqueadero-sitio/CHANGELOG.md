@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.7.2] - 2026-10-14
+
+Las entregas pendientes se ven y bajan.
+
+### Corregido
+- La señal «entregas pendientes» de la cabecera solo subía (bitácora 42, HU-Q13.6). Ahora se toca y muestra los recibos que no salieron por la impresora, cuántas veces y por qué. «Abrir para imprimir» abre el recibo para imprimirlo otra vez, y sale de la lista cuando el papel sale o el conductor lo escanea en pantalla. «Quitar de la lista» quita los que ya se entregaron de otra forma.
+
 ## [0.7.1] - 2026-10-14
 
 La mensualidad se cobra con su fecha y su valor, y la lista dice quién debe.

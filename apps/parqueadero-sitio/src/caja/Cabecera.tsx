@@ -13,6 +13,8 @@ export interface PropsCabecera {
   readonly respaldo: Senal;
   readonly hora: Senal;
   readonly pendientes: Senal;
+  /** Con entregas pendientes, la señal abre su lista (bitácora parqueadero 42). */
+  readonly alPendientes?: () => void;
   readonly prueba: boolean;
   /** `false`: el navegador no garantizó el almacenamiento. `null`: todavía no se sabe. */
   readonly persistente: boolean | null;
@@ -53,7 +55,20 @@ export function Cabecera(p: PropsCabecera) {
         <Indicador senal={p.impresora} prueba="senal-impresora" />
         <Indicador senal={p.respaldo} prueba="senal-respaldo" />
         <Indicador senal={p.hora} prueba="senal-hora" />
-        <Indicador senal={p.pendientes} prueba="senal-pendientes" />
+        {p.alPendientes && p.pendientes.tono !== 'bien' ? (
+          <li class={`senal senal-${p.pendientes.tono}`}>
+            <button
+              type="button"
+              class="senal-boton"
+              data-prueba="senal-pendientes"
+              onClick={p.alPendientes}
+            >
+              {p.pendientes.texto}
+            </button>
+          </li>
+        ) : (
+          <Indicador senal={p.pendientes} prueba="senal-pendientes" />
+        )}
         {p.nube && <Indicador senal={p.nube} prueba="senal-nube" />}
       </ul>
       {p.cuarentena && p.cuarentena.length > 0 && (

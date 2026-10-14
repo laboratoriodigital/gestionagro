@@ -1133,3 +1133,21 @@ La regla: **lo que no se cobró no está pagado; la pantalla dice quién debe co
 La regla: **un despliegue en verde que no tocó lo que se quería es una falla silenciosa; lo que se despliega a mano se elige, no se adivina.**
 
 *Ficha:* parqueadero · *(mío y del terreno)* · 🔴 Alto · P1, P17 · sin versión propia · 2026-10-14
+
+**42 · La señal «entregas pendientes» solo subía: no se podía ver qué faltaba ni hacerla bajar.**
+
+*Qué pasó.* El 14 oct 2026, con el cliente operando, el dueño preguntó qué significaba el mensaje de entregas pendientes arriba a la derecha.
+
+*Síntoma literal.* «¿Qué significa el mensaje de entregas pendientes en la parte superior derecha?» (el dueño).
+
+*Causa raíz.* Mía. HU-Q3.3 CA4 guardaba cada papel que no salía en `entregas_pendientes` para que la cabecera lo contara (P15), pero nada leía la tabla ni la vaciaba. Reimprimir el recibo no la tocaba, y no había pantalla para ver cuáles eran: la cuenta en rojo solo podía crecer, y una señal que siempre está en rojo deja de decir algo.
+
+*Cómo se reprodujo.* La e2e de HU-Q3.3 afirmaba que la señal decía «1» y terminaba ahí; nadie probó qué pasaba después.
+
+*Arreglo.* La señal, con pendientes, es un botón que abre la lista: una fila por recibo, con cuántas veces no salió, la hora y el motivo. «Abrir para imprimir» abre el recibo (o el de la mensualidad), y `registrarEntrega` quita sus pendientes cuando el papel sale o el conductor escanea el recibo. «Quitar de la lista» deja al cajero quitar el resto. Sale en la `0.7.2`.
+
+**Lo prueban** `pendientes.test.ts` (agrupar, salir al imprimirse, ❌ un papel fallido no la quita, quitar a mano) y la e2e de HU-Q3.3, que ahora sigue: abre la lista, abre el recibo, vuelve a fallar en la misma fila y la quita.
+
+La regla: **una señal que cuenta un problema necesita el camino para resolverlo; si solo sube, enseña a no mirarla.**
+
+*Ficha:* parqueadero · *(mío)* · 🟡 Medio · P15, P5 · parqueadero-0.7.2 · 2026-10-14

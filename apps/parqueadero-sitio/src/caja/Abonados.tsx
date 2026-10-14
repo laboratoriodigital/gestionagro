@@ -55,6 +55,8 @@ interface Props {
   readonly db: BaseDeLaCaja;
   readonly ctx: Contexto;
   readonly control: ControlDeImpresora;
+  /** El recibo de una mensualidad para reimprimir, desde las entregas pendientes. */
+  readonly mensualidad?: Registro;
   readonly alVolver: () => void;
 }
 
@@ -119,8 +121,11 @@ type Vista =
   | { readonly es: 'cobrar'; readonly id: string; readonly primero: boolean }
   | { readonly es: 'cobrado'; readonly pago: Registro };
 
-export function Abonados({ db, ctx, control, alVolver }: Props) {
-  const [vista, setVista] = useState<Vista>({ es: 'lista' });
+export function Abonados({ db, ctx, control, mensualidad, alVolver }: Props) {
+  // Desde las entregas pendientes, abre el recibo de esa mensualidad (bitácora 42).
+  const [vista, setVista] = useState<Vista>(
+    mensualidad ? { es: 'cobrado', pago: mensualidad } : { es: 'lista' },
+  );
   const ahora = ctx.reloj();
   const hoy = diaLocalBogota(ahora);
   const abonados = useConsulta<Abonado[] | null>(() => leerAbonados(db), null, [vista]);
