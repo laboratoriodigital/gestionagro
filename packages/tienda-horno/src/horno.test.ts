@@ -11,6 +11,7 @@ import {
   ENSAYO_DOS,
   ENSAYO_UNO,
   hostDeStaging,
+  legalDeEnsayo,
 } from '@ed1/tienda-schema/ensayos';
 import { describe, expect, it } from 'vitest';
 import { hornear, jsonEstable, manifiesto, presente, type TiendaParaHornear } from './horno.ts';
@@ -41,6 +42,7 @@ function paraHornear(
     },
     agentes: { search: 'yes', aiInput: 'yes', aiTrain: 'no' },
     ...(uno ? { googleVerificacion: 'PruebaDeVerificacion_ensayo-uno-0123456789Ab' } : {}),
+    legal: legalDeEnsayo(c),
     productos: c.productos.map((p) => ({
       slug: p.slug,
       nombre: p.nombre,

@@ -21,6 +21,7 @@ import type { BaseD1 } from '@ed1/d1';
 import {
   type CodigoDeFalla,
   compuerta,
+  type DatosLegales,
   type Falla,
   hornear,
   manifiesto,
@@ -79,6 +80,10 @@ interface FilaProducto {
   retracto_motivo: string | null;
   actualizado: string;
 }
+
+/** `{ clave: valor }` si hay valor; si no, nada (exactOptionalPropertyTypes). */
+const opcional = <K extends string, V>(clave: K, valor: V | undefined) =>
+  (valor === undefined ? {} : { [clave]: valor }) as Partial<Record<K, V>>;
 
 /** La sección guardada, ya validada; una que no valida cuenta como vacía (y la compuerta lo dice). */
 function seccion(fila: { seccion: string; datos: string } | undefined): Record<string, unknown> {
@@ -164,10 +169,16 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       .all<{ slug: string; nombre: string; producto: string | null }>();
     const { results: envios } = await c.shard
       .prepare(
-        'SELECT nombre, dias_max FROM envio_opcion WHERE org_id = ? AND activa = 1 AND borrado IS NULL',
+        'SELECT nombre, precio_cop, gratis_desde_cop, dias_min, dias_max FROM envio_opcion WHERE org_id = ? AND activa = 1 AND borrado IS NULL ORDER BY posicion, nombre',
       )
       .bind(c.org)
-      .all<{ nombre: string; dias_max: number | null }>();
+      .all<{
+        nombre: string;
+        precio_cop: number;
+        gratis_desde_cop: number | null;
+        dias_min: number | null;
+        dias_max: number | null;
+      }>();
     const { results: dominios } = await c.control
       .prepare("SELECT hostname, rol FROM dominio WHERE org_id = ? AND estado = 'activo'")
       .bind(c.org)
@@ -204,6 +215,33 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     const contacto = ajustes.contacto ?? {};
     const agentes = ajustes.agentes ?? {};
     const medicion = ajustes.medicion ?? {};
+    const legal = ajustes.legal ?? {};
+    const texto = (v: unknown) => (typeof v === 'string' && v.trim() ? v : undefined);
+    // HU-T7.1: lo que dicen los textos legales sale de la ficha, el contacto, la venta y los envíos.
+    const datosLegales: DatosLegales = {
+      nombreTienda: texto(identidad['nombre']) ?? tienda.nombre,
+      ...opcional('razonSocial', texto(legal['razonSocial'])),
+      ...opcional('documento', legal['documento'] as DatosLegales['documento']),
+      ...opcional('direccion', texto(legal['direccionNotificacion'])),
+      ...opcional('ciudad', texto(legal['ciudad'])),
+      ...opcional('telefono', texto(legal['telefono'])),
+      ...opcional('correo', texto(legal['correo'])),
+      ...opcional('whatsapp', texto(contacto['whatsapp'])),
+      ...opcional('garantia', texto(legal['garantia'])),
+      ...opcional('retracto', texto(legal['retracto'])),
+      formas: ((ajustes.venta?.['formas'] ?? []) as DatosLegales['formas']).slice(),
+      envios: envios.map((e) => ({
+        nombre: e.nombre,
+        precioCop: e.precio_cop,
+        gratisDesdeCop: e.gratis_desde_cop,
+        diasMin: e.dias_min,
+        diasMax: e.dias_max,
+      })),
+      sinRetracto: activos
+        .filter((p) => p.retracto === 'no_aplica' && p.retracto_motivo)
+        .map((p) => ({ nombre: p.nombre, motivo: p.retracto_motivo as string })),
+      medicion: { ga4: Boolean(medicion['ga4']), pixelMeta: Boolean(medicion['pixelMeta']) },
+    };
     const porColeccion = new Map<string, { nombre: string; productos: string[] }>();
     for (const f of colecciones) {
       const actual = porColeccion.get(f.slug) ?? { nombre: f.nombre, productos: [] };
@@ -226,6 +264,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       ...(medicion['googleVerificacion']
         ? { googleVerificacion: medicion['googleVerificacion'] as string }
         : {}),
+      legal: datosLegales,
       productos: paraHornear,
       colecciones: [...porColeccion].map(([slug, col]) => ({ slug, ...col })),
     };
@@ -290,6 +329,13 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       );
       previas.add(entrada.huella);
       nuevos++;
+      // HU-T7.1 CA2: cada texto legal, también por su huella en `legal/`, sin vencimiento: un
+      // pedido cita la huella de los términos que aceptó (Ley 1480 art. 50 lit. e).
+      if (/^\/(legal\/[a-z]+|solicitud)\/index\.md$/.test(ruta)) {
+        await c.sitios.put(`legal/${c.org}/${entrada.huella}.md`, archivo.contenido, {
+          httpMetadata: { contentType: archivo.tipo },
+        });
+      }
     }
 
     // 5. El manifiesto, guardado y releído.

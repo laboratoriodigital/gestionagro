@@ -17,7 +17,11 @@ import {
   robotsDeLaTienda,
   type TiendaParaHornear,
 } from '../../packages/tienda-horno/src/index.ts';
-import { ENSAYO_UNO, hostDeStaging } from '../../packages/tienda-schema/src/ensayos.ts';
+import {
+  ENSAYO_UNO,
+  hostDeStaging,
+  legalDeEnsayo,
+} from '../../packages/tienda-schema/src/ensayos.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 
 const HOST = hostDeStaging(ENSAYO_UNO.slug);
@@ -44,6 +48,7 @@ const tienda = (extra: Partial<TiendaParaHornear> = {}): TiendaParaHornear => ({
     actualizado: '2026-10-13T15:00:00.000Z',
   })),
   colecciones: [{ slug: 'lino', nombre: 'Lino', productos: ['camisa-de-lino'] }],
+  legal: legalDeEnsayo(ENSAYO_UNO),
   ...extra,
 });
 
@@ -79,7 +84,17 @@ describe('llms.txt, el manifiesto y el gemelo anunciado', () => {
     const llms = archivos.get('/llms.txt')?.contenido ?? '';
     expect(llms.startsWith('# Comercio Ensayo Uno\n\n> Ropa de lino, hecha despacio.')).toBe(true);
     const enlaces = enlacesDeLlms(llms);
-    expect(enlaces).toEqual(['/p/camisa-de-lino/index.md', '/c/lino/index.md', '/catalogo.md']);
+    expect(enlaces).toEqual([
+      '/p/camisa-de-lino/index.md',
+      '/c/lino/index.md',
+      '/legal/terminos/index.md',
+      '/legal/privacidad/index.md',
+      '/legal/envios/index.md',
+      '/legal/retracto/index.md',
+      '/legal/garantia/index.md',
+      '/solicitud/index.md',
+      '/catalogo.md',
+    ]);
     for (const e of enlaces) expect(archivos.has(e)).toBe(true);
   });
 

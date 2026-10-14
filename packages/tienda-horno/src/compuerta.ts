@@ -10,7 +10,8 @@
  * 3. al menos un producto activo con precio, y cada activo con su foto;
  * 5. un envío de más de 30 días lo dice en su texto (Ley 2439);
  * 6. todo producto sin retracto tiene su motivo;
- * 7. el pie enlaza a la SIC; el enlace a las solicitudes se suma con HU-T7.1;
+ * 7. el pie enlaza a la SIC, a los textos legales y a las solicitudes (HU-T7.1): un texto que falta
+ *    es un enlace roto, y un dato de la ficha que falta deja su `{{campo}}` a la vista;
  * 8. cada página pesa lo que permite el presupuesto; el validador de HTML llega con HU-T3.6;
  * 9. los enlaces internos existen, también los de `llms.txt` (HU-T15.1). Las huellas del manifiesto las verifica la publicación al
  *    releerlo (HU-T4.4).

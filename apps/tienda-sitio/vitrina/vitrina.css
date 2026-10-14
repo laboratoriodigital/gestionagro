@@ -108,6 +108,36 @@ h1 {
 .pie p {
   margin: 0 0 var(--espacio-2);
 }
+.pie__nombre {
+  color: var(--texto);
+  font-weight: 600;
+}
+/* Los textos legales (HU-T7.1): cada enlace se toca con el dedo. */
+.pie__enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--espacio-4);
+  margin-block: var(--espacio-2);
+}
+.pie__enlaces a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  color: inherit;
+}
+
+/* --- Textos legales -------------------------------------------------------------------------- */
+.legal {
+  max-width: 40rem;
+}
+.legal h2 {
+  margin: var(--espacio-8) 0 var(--espacio-2);
+  font-size: var(--texto-grande);
+}
+.legal ul,
+.legal ol {
+  padding-left: var(--espacio-6);
+}
 
 /* --- Tarjetas de producto -------------------------------------------------------------------- */
 .productos {

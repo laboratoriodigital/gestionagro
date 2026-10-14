@@ -844,7 +844,7 @@ Formato de cada historia, el del CORE:
 ### ET7 · Cumplimiento
 
 #### HU-T7.1 · Los textos legales de cada tienda, generados de su ficha
-- **Capa:** cumplimiento · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T5 · **Depende de:** HU-T1.4, HU-T4.1 · **Estado:** Refinada
+- **Capa:** cumplimiento · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T5 · **Depende de:** HU-T1.4, HU-T4.1 · **Estado:** En validación, esperando al dueño (WI-T7.1.4) (rama `feat/t5-sprint`. Las plantillas viven en `content/tienda/legal/` (`plantillas.json` con su versión y un `.md` por texto); `node scripts/tienda/generar-legal.ts` las lleva a `legal.generado.json`, que el horno importa, y una prueba exige que sea el generado (P2). `textosLegales()` arma primero el HTML de la plantilla y después pone los datos escapados: lo único del comercio que se vuelve HTML son sus textos de garantía y retracto, por `markdownSeguro`. Se hornean términos, privacidad, envíos y devoluciones, retracto y garantía en `/legal/<texto>/`, y **además `/solicitud/`** (cómo hacer una solicitud y sus plazos), porque el pie la enlaza y el formulario con radicado llega con HU-T6.4. El pie lleva la identidad del comercio, los seis enlaces y la SIC; `llms.txt` y el sitemap los incluyen. Publicar guarda cada texto también en `legal/<org>/<huella>.md`, sin vencimiento (CA2). Los subencargados van con su país: Cloudflare y WhatsApp siempre, Google y Meta solo si la tienda mide. Controles negativos: sin un dato de la ficha queda su `{{campo}}` y la compuerta no publica; sin textos, el pie tiene enlaces rotos; un `<script>` en la razón social sale escapado; las plantillas no nombran tecnologías)
 - Como comerciante, quiero términos, política de datos, envíos, retracto y garantía correctos sin contratar a nadie; como comprador, leerlos en palabras claras.
 - **Respaldo:** TIENDA §8.5, §14.3 y §14.4; ED1 §20.1 [D5]; memoria del proyecto «textos públicos sin técnica».
 - **CA1.** Las plantillas viven en un solo lugar (`content/tienda/legal/`), versionadas, y el horno las llena con la ficha legal y la política de la tienda: `/legal/{terminos,privacidad,envios,retracto,garantia}/`, cada una con su `.md`.
@@ -1587,6 +1587,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | Activar R2 y crear `tienda-c1` y `tienda-c1-staging` | Hecho | 14 oct 2026. El token de despliegue sigue sin permiso de R2 (HU-C11.5): los buckets los crea el dueño en el panel |
 | Crear los buckets de las fotos y conectarles `img.` e `img--staging.` | T8 | HU-T5.6 y HU-T8.3: `docs/runbooks/tienda-fotos.md`. Nunca un dominio en el almacén |
 | La cuenta de Gmail de los correos y su permiso de OAuth, en producción | T13 | HU-C10.1 y D-T11: PLATAFORMA §4.11 |
+| Leer, con un abogado, las plantillas de los textos legales de las tiendas | T7 | WI-T7.1.4: `content/tienda/legal/`. Corregir es editar el `.md`, subir la versión y generar; las tiendas lo toman al publicar |
 | Los datos de Laboratorio Digital como encargado (nombre o razón social, identificación, domicilio, correo, teléfono) | T7 | HU-T7.2: términos y contrato de transmisión |
 | Escribir a Bold por un esquema para plataformas | T12 | PLATAFORMA §9.7 (soporte.online@bold.co) |
 | Llaves de pruebas de Bold para Ensayo Uno | T12 | HU-T11.2 |

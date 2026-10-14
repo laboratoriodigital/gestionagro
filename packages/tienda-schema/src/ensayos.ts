@@ -140,6 +140,33 @@ export const ENSAYO_DOS: ComercioDeEnsayo = {
 
 export const ENSAYOS: readonly ComercioDeEnsayo[] = [ENSAYO_UNO, ENSAYO_DOS];
 
+/**
+ * Lo que dicen sus textos legales (HU-T7.1), como lo arma la publicación desde los ajustes: la
+ * forma de `DatosLegales` de `@ed1/tienda-horno`, sin depender de él. Para las pruebas del horno.
+ */
+export function legalDeEnsayo(c: ComercioDeEnsayo) {
+  const legal = c.ajustes['legal'] ?? {};
+  const contacto = c.ajustes['contacto'] ?? {};
+  return {
+    nombreTienda: c.nombre,
+    razonSocial: legal['razonSocial'] as string,
+    documento: legal['documento'] as { tipo: 'NIT' | 'CC' | 'CE'; numero: string },
+    direccion: legal['direccionNotificacion'] as string,
+    ciudad: legal['ciudad'] as string,
+    telefono: legal['telefono'] as string,
+    correo: legal['correo'] as string,
+    whatsapp: contacto['whatsapp'] as string,
+    formas: (c.ajustes['venta']?.['formas'] ?? []) as {
+      forma: 'a_convenir' | 'en_linea' | 'contraentrega' | 'transferencia' | 'efectivo';
+    }[],
+    envios: [],
+    sinRetracto: c.productos.flatMap((p) =>
+      p.retracto === 'aplica' ? [] : [{ nombre: p.nombre, motivo: p.retracto.motivo }],
+    ),
+    medicion: { ga4: false, pixelMeta: false },
+  };
+}
+
 /** Su dirección de staging: `--` no lo puede tomar ninguna tienda (TIENDA §4.1). */
 export const hostDeStaging = (slug: string): string => `${slug}--staging.laboratorio-digital.app`;
 

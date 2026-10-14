@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Los textos legales de cada tienda (HU-T7.1): términos y condiciones, política de datos, envíos y devoluciones, retracto, garantía y cómo hacer una solicitud, escritos en palabras claras y llenos con los datos de cada comercio. El pie de cada página muestra quién vende y enlaza a todos. Si falta un dato, la tienda no se publica hasta completarlo. Son un borrador para que lo revise un abogado.
 - Cada tienda se deja leer por los asistentes y los buscadores (HU-T15.1): dice qué agentes la pueden leer según lo que elija el comercio, ofrece un índice con sus productos en texto plano y se puede guardar en la pantalla del teléfono con su nombre y su color. También dice a quién escribir si alguien encuentra un fallo de seguridad.
 - Las tareas periódicas de la Tienda (HU-T17.1): corren solas cada hora en producción y dicen en la salud si alguna se atrasó o falló, sin que una que falla detenga a las demás. Cada día se revisa que cada dirección lleve a su tienda; si algo no cuadra, se corrige desde la base y se avisa al dueño por Telegram.
 - Las fotos de las tiendas tendrán su propio almacén público, aparte del que guarda los respaldos y las exportaciones (HU-T5.6): así un enlace a una foto nunca deja ver otra cosa. Los pasos para crearlo están en `docs/runbooks/tienda-fotos.md`.

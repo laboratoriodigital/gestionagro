@@ -10,6 +10,15 @@
 
 - [Lino](/c/lino/index.md)
 
+## Políticas
+
+- [Términos y condiciones](/legal/terminos/index.md)
+- [Política de tratamiento de datos](/legal/privacidad/index.md)
+- [Envíos y devoluciones](/legal/envios/index.md)
+- [Derecho de retracto](/legal/retracto/index.md)
+- [Garantía](/legal/garantia/index.md)
+- [Solicitudes](/solicitud/index.md)
+
 ## Opcional
 
 - [Catálogo completo](/catalogo.md): precios y variantes

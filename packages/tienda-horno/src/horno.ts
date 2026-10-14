@@ -16,6 +16,7 @@ import { formatearPesos } from '@ed1/dinero';
 import { etiquetaDeVerificacionGoogle } from '@ed1/tienda-schema';
 import { llmsTxt, manifiestoWeb, robotsDeLaTienda } from './agentes.ts';
 import { escaparHtml, markdownPlano, markdownSeguro } from './escapar.ts';
+import { type DatosLegales, TEXTOS_LEGALES, textosLegales } from './legal.ts';
 import { type Apariencia, coloresDelTema, cssDelTema, fondoDelTema } from './tema.ts';
 import { estadoDeLaEleccion } from './vitrina/seleccion.ts';
 
@@ -54,6 +55,8 @@ export interface TiendaParaHornear {
   apariencia: Apariencia;
   agentes: { search: 'yes' | 'no'; aiInput: 'yes' | 'no'; aiTrain: 'yes' | 'no' };
   googleVerificacion?: string;
+  /** La ficha legal y lo que dicen los textos legales (HU-T7.1). Sin ella no hay textos: la compuerta no publica. */
+  legal?: DatosLegales;
   productos: ProductoParaHornear[];
   colecciones?: ColeccionParaHornear[];
 }
@@ -72,6 +75,17 @@ const TIPOS = {
   css: 'text/css; charset=utf-8',
   webmanifest: 'application/manifest+json',
 } as const;
+
+/** Los enlaces legales del pie, cortos para el teléfono (HU-T7.1). */
+const ENLACE_DEL_PIE: Record<string, string> = {
+  terminos: 'Términos',
+  privacidad: 'Privacidad',
+  envios: 'Envíos y devoluciones',
+  retracto: 'Retracto',
+  garantia: 'Garantía',
+  solicitud: 'Solicitudes',
+};
+const SIGLA_DEL_DOCUMENTO = { NIT: 'NIT', CC: 'C.C.', CE: 'C.E.' } as const;
 
 /** Un dato que se puede mostrar: ni vacío, ni entre corchetes, ni `undefined` (bitácora ecommerce 31). */
 export function presente(valor: string | undefined | null): valor is string {
@@ -153,6 +167,20 @@ export async function hornear(t: TiendaParaHornear): Promise<Map<string, Archivo
     })),
   });
 
+  // La identidad del comercio, siempre visible en el pie (Ley 1480 art. 50 lit. a; HU-T7.1).
+  const ficha = t.legal;
+  const datosDeIdentidad = [
+    ficha?.razonSocial,
+    ficha?.documento
+      ? `${SIGLA_DEL_DOCUMENTO[ficha.documento.tipo]} ${ficha.documento.numero}`
+      : undefined,
+    ficha?.ciudad,
+  ].filter(presente);
+  const identidad =
+    datosDeIdentidad.length > 0
+      ? `\n<p class="pie__identidad">${datosDeIdentidad.map(escaparHtml).join(' · ')}</p>`
+      : '';
+
   const documento = (p: Pagina) => {
     const verificacion =
       p.ruta === '/' && t.googleVerificacion
@@ -185,7 +213,8 @@ ${p.ld.map(jsonLd).join('\n')}
 ${p.cuerpo}
 </main>
 <footer class="pie">
-<p>${escaparHtml(t.nombre)}</p>
+<p class="pie__nombre">${escaparHtml(t.nombre)}</p>${identidad}
+<nav class="pie__enlaces" aria-label="Información legal">${TEXTOS_LEGALES.map((l) => `<a href="${l.ruta}">${escaparHtml(ENLACE_DEL_PIE[l.id] ?? l.titulo)}</a>`).join('')}</nav>
 <p><a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a></p>
 <p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>
 </footer>
@@ -362,6 +391,23 @@ ${p.cuerpo}
     });
   }
 
+  // Los textos legales (HU-T7.1), cada uno con su gemelo.
+  const legales = t.legal ? textosLegales(t.legal) : [];
+  for (const texto of legales) {
+    pagina({
+      ruta: texto.ruta,
+      titulo: `${texto.titulo} · ${t.nombre}`,
+      cuerpo: texto.html,
+      ld: [
+        migas([
+          [t.nombre, '/'],
+          [texto.titulo, texto.ruta],
+        ]),
+      ],
+      gemelo: texto.markdown,
+    });
+  }
+
   // La búsqueda (HU-T5.3): la página está horneada; buscar ocurre en el teléfono, sobre el catálogo.
   const colecciones = [...(t.colecciones ?? [])].sort((a, b) => (a.slug < b.slug ? -1 : 1));
   pagina({
@@ -417,6 +463,7 @@ ${p.cuerpo}
     ...[...(t.colecciones ?? [])]
       .sort((a, b) => (a.slug < b.slug ? -1 : 1))
       .map((c) => [`/c/${c.slug}/`, ultima] as const),
+    ...legales.map((x) => [x.ruta, undefined] as const),
   ] as const;
   poner(
     '/sitemap.xml',
@@ -452,6 +499,10 @@ ${p.cuerpo}
             titulo: markdownPlano(c.nombre),
             ruta: `/c/${c.slug}/index.md`,
           })),
+        },
+        {
+          titulo: 'Políticas',
+          enlaces: legales.map((x) => ({ titulo: x.titulo, ruta: `${x.ruta}index.md` })),
         },
         {
           titulo: 'Opcional',

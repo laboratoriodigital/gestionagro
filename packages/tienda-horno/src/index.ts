@@ -7,4 +7,5 @@ export * from './agentes.ts';
 export * from './compuerta.ts';
 export * from './escapar.ts';
 export * from './horno.ts';
+export * from './legal.ts';
 export * from './tema.ts';
