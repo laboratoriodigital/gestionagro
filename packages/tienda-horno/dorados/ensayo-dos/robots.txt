@@ -1,0 +1,6 @@
+User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /
+Disallow: /api/
+
+Sitemap: https://ensayo-dos--staging.laboratorio-digital.app/sitemap.xml

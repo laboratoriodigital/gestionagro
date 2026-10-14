@@ -5,3 +5,4 @@ export * from './carga.ts';
 export * from './permisos.ts';
 export * from './planes.ts';
 export * from './secciones.ts';
+export * from './verificacion.ts';

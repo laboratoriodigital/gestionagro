@@ -7,7 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Producto, RegistroDeProductos } from '@ed1/productos';
+import { conActivosEnStaging, type Producto, type RegistroDeProductos } from '@ed1/productos';
 import { type Celda, cargarCeldas } from './celdas.ts';
 import type { Destino } from './despliegue.ts';
 import { cargarProductos } from './registro-productos.ts';
@@ -25,11 +25,13 @@ export interface ProductosDePrueba {
   productos: Producto[];
   /** Listas para el directorio de staging: activas, en el anillo 0, con la API de c0 de staging. */
   celdas: Celda[];
+  /** Productos de verdad, pausados en producción, que se activan en staging (HU-T2.10). */
+  activosEnStaging: string[];
 }
 
 /** Todas las fallas a la vez (P15); vacío si el archivo está bien. */
 export function fallasDePrueba(
-  datos: { productos: Producto[]; celdas: CeldaDePrueba[] },
+  datos: { productos: Producto[]; celdas: CeldaDePrueba[]; activos_en_staging?: string[] },
   reales: RegistroDeProductos,
   celdasReales: readonly Celda[],
 ): string[] {
@@ -40,6 +42,14 @@ export function fallasDePrueba(
     fallas.push((e as Error).message);
   }
   const ids = new Set(reales.productos.map((p) => p.id));
+  // HU-T2.10: solo se activa en staging un producto de verdad que en producción está pausado.
+  for (const id of datos.activos_en_staging ?? []) {
+    const real = reales.productos.find((p) => p.id === id);
+    if (!real) fallas.push(`activos_en_staging nombra «${id}», que no es un producto de verdad`);
+    else if (real.estado !== 'pausado') {
+      fallas.push(`activos_en_staging nombra «${id}», que está «${real.estado}», no pausado`);
+    }
+  }
   for (const p of datos.productos) {
     if (ids.has(p.id))
       fallas.push(`«${p.id}» ya es un producto de verdad: uno de prueba no lo pisa`);
@@ -74,7 +84,11 @@ export function cargarProductosDePrueba(
   reales: RegistroDeProductos = cargarProductos(),
   celdasReales: readonly Celda[] = cargarCeldas().celdas,
 ): ProductosDePrueba {
-  const d = datos as { productos: Producto[]; celdas: CeldaDePrueba[] };
+  const d = datos as {
+    productos: Producto[];
+    celdas: CeldaDePrueba[];
+    activos_en_staging?: string[];
+  };
   const fallas = fallasDePrueba(d, reales, celdasReales);
   if (fallas.length > 0) {
     throw new Error(`${ARCHIVO_PRODUCTOS_DE_PRUEBA} inválido:\n- ${fallas.join('\n- ')}`);
@@ -83,6 +97,7 @@ export function cargarProductosDePrueba(
   if (!c0) throw new Error('celdas.json no trae celdas');
   return {
     productos: d.productos,
+    activosEnStaging: d.activos_en_staging ?? [],
     celdas: d.celdas.map((c) => ({
       ...c0,
       id: c.id,
@@ -103,9 +118,14 @@ export function registroDelDestino(
   reales: RegistroDeProductos = cargarProductos(),
   prueba: () => ProductosDePrueba = () => cargarProductosDePrueba(),
 ): RegistroDeProductos {
-  return destino === 'staging'
-    ? { productos: [...reales.productos, ...prueba().productos] }
-    : reales;
+  if (destino !== 'staging') return reales;
+  const d = prueba();
+  return {
+    productos: [
+      ...conActivosEnStaging(reales.productos, d.activosEnStaging, destino),
+      ...d.productos,
+    ],
+  };
 }
 
 /** Los productos de prueba que hay en la base (HU-C3.7, CA3): en producción, ninguno. */

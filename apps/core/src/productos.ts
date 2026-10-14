@@ -8,7 +8,7 @@
  * vuelve, qué política vale— sale de aquí, sin consultar la base.
  */
 import type { BaseD1 } from '@ed1/d1';
-import type { Producto, RegistroDeProductos } from '@ed1/productos';
+import { conActivosEnStaging, type Producto, type RegistroDeProductos } from '@ed1/productos';
 import registro from '../../../infrastructure/productos.json' with { type: 'json' };
 import registroDePrueba from '../../../infrastructure/productos-de-prueba.json' with {
   type: 'json',
@@ -48,7 +48,15 @@ export const CATALOGO: CatalogoDelCore = {
  * D1 local. Una prueba exige su política y sus planes, como en el real (P2).
  */
 export const CATALOGO_DE_STAGING: CatalogoDelCore = {
-  productos: [...CATALOGO.productos, ...(registroDePrueba as RegistroDeProductos).productos],
+  // HU-T2.10: los pausados que se activan solo en staging, como la Tienda.
+  productos: [
+    ...conActivosEnStaging(
+      CATALOGO.productos,
+      (registroDePrueba as { activos_en_staging?: string[] }).activos_en_staging ?? [],
+      'staging',
+    ),
+    ...(registroDePrueba as RegistroDeProductos).productos,
+  ],
   politicas: { ...CATALOGO.politicas, ...generado.prueba.politicas },
   planes: { ...CATALOGO.planes, ...generado.prueba.planes },
 };

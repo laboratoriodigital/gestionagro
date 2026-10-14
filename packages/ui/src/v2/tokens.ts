@@ -40,6 +40,8 @@ export const ACENTOS = {
   rojo: { claro: '#b3261e', oscuro: '#ff9a8f' },
   ambar: { claro: '#8a5300', oscuro: '#f0b45a' },
   exito: { claro: '#1d6b3f', oscuro: '#7fd4a0' },
+  /** El de la Tienda (HU-T3.2): el cobre de la galería, para el panel. */
+  cobre: { claro: '#9c4a1a', oscuro: '#f0a878' },
 } as const;
 
 export type Modo = 'claro' | 'oscuro';
@@ -94,6 +96,11 @@ export const TEMAS: Record<string, Record<Modo, Partial<Semanticos>>> = {
   cultivopro: {
     claro: { acento: ACENTOS.verde.claro, foco: ACENTOS.verde.claro },
     oscuro: { acento: ACENTOS.verde.oscuro, foco: ACENTOS.verde.oscuro },
+  },
+  // HU-T3.2: el panel de la Tienda. La vitrina no usa este tema: lleva el color de cada comercio.
+  tienda: {
+    claro: { acento: ACENTOS.cobre.claro, foco: ACENTOS.cobre.claro },
+    oscuro: { acento: ACENTOS.cobre.oscuro, foco: ACENTOS.cobre.oscuro },
   },
 };
 

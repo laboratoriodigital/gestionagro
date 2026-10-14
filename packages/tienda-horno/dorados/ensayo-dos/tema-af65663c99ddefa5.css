@@ -1,0 +1,14 @@
+:root {
+  --acento: #5c5a17;
+  --acento-texto: #ffffff;
+  --foco: #5c5a17;
+  --tinta: #0b0b0a;
+  --proporcion-foto: 1 / 1;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --acento: #7e7d48;
+    --acento-texto: #0b0b0a;
+    --foco: #7e7d48;
+  }
+}

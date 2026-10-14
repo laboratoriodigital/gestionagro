@@ -115,6 +115,23 @@
   --foco: #6cc28a;
 }
 
+:root[data-producto='tienda'] {
+  --acento: #9c4a1a;
+  --foco: #9c4a1a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-producto='tienda']:not([data-tema='claro']) {
+    --acento: #f0a878;
+    --foco: #f0a878;
+  }
+}
+
+:root[data-producto='tienda'][data-tema='oscuro'] {
+  --acento: #f0a878;
+  --foco: #f0a878;
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --tiempo-corto: 0ms;

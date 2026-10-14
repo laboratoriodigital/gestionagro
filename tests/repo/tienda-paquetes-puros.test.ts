@@ -18,6 +18,7 @@ const PAQUETES = [
   'calendario',
   'cifrado',
   'tienda-schema',
+  'tienda-horno',
   'whatsapp',
   'impresion',
   'firma',

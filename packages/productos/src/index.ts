@@ -134,6 +134,20 @@ export function fallasDelRegistro(
   return fallas;
 }
 
+/**
+ * Los productos de un destino con los pausados que se activan solo en staging (HU-T2.10): en
+ * staging, los de `activos` pasan a «activo»; en cualquier otro destino, nada cambia (P1: en la
+ * duda, producción ve el producto pausado).
+ */
+export function conActivosEnStaging(
+  productos: readonly Producto[],
+  activos: readonly string[],
+  destino: string | undefined,
+): Producto[] {
+  if (destino !== 'staging') return [...productos];
+  return productos.map((p) => (activos.includes(p.id) ? { ...p, estado: 'activo' } : p));
+}
+
 /** Si el producto tiene organizaciones: todos, salvo los que dicen `organizaciones: false` (ADR-28). */
 export function tieneOrganizaciones(producto: Producto): boolean {
   return producto.organizaciones !== false;

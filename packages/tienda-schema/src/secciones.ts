@@ -140,6 +140,11 @@ const medicionV1 = z.object({
     .regex(/^\d{8,20}$/)
     .optional(),
   avisoConsentimiento: texto(600).optional(),
+  /** El código de la etiqueta HTML de Google Search Console (HU-T14.8); `verificacion.ts` lo lee. */
+  googleVerificacion: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{20,100}$/, 'debe ser el código que da Google, sin comillas ni espacios')
+    .optional(),
 });
 
 const senal = z.enum(['yes', 'no']);

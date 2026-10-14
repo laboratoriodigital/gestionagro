@@ -1,8 +1,8 @@
 # Qué usa hoy cada tienda 2.0 (HU-T12.1)
 
-**Estado:** casi completa. La primera parte sale del registro público de la flota (`laboratoriodigital/tiendas`, `flota.json` y `ESTADO.md`, leídos el 6 oct 2026). La segunda la contestó el dueño el 13 oct 2026, para las dos tiendas a la vez; quedan cinco preguntas, reescritas en §4.
+**Estado:** cerrada el 13 oct 2026. **Ninguna tienda 2.0 se migra a la 3.0** (decisión del dueño): esta hoja ya no es la lista de lo que hay que tener antes de cargarlas, sino la **referencia** de lo que ya funciona en la 2.0. Lo que la 3.0 toma de aquí se puede cambiar, mejorar o quitar (bitácora tienda3 9). **Nada de su apariencia pasa a la 3.0**: ni colores, ni tipografía, ni plantillas (pedido del dueño del 13 oct 2026; el diseño es el de BACKLOG_TIENDA3 §5).
 
-**Para qué sirve:** M6 carga estas tiendas en la 3.0, y TIENDA-3.0 anexo C exige que cada cosa que una tienda use pase antes en staging. Si algo de aquí no está en el plan antes de M6, se mueve (`BACKLOG_TIENDA3.md` §6).
+**Para qué sirve:** decir qué usan de verdad los comercios de la línea, para ordenar el plan de la 3.0. *(Antes del 13 oct 2026 servía para cargar estas tiendas en M6, que se retiró.)*
 
 ## 1. Lo que dice la flota
 
@@ -59,4 +59,15 @@ Basta con una línea por pregunta. Si las dos tiendas responden distinto, una l�
 | ¿Cuántos productos tiene cada una, y cuántos pedidos le llegan al mes, más o menos? | Decide cuál se corta primero |
 | Los 25.000 al mes: ¿son lo que el comercio le paga a Laboratorio Digital por la tienda? ¿Paga aparte algo por factura electrónica, por mensajes de WhatsApp o por la transportadora? | Los precios de los planes (D-T3) |
 
-Cuando §4 esté contestada, HU-T12.1 pasa a «En validación».
+## 5. Las respuestas del 13 oct 2026 (segunda ronda)
+
+| Pregunta | Respuesta del dueño | Qué cambia en el plan |
+|---|---|---|
+| De cada 10 pedidos, ¿cuántos se pagan al recibir y cuántos vuelven? | Sin respuesta todavía | Nada: la contraentrega va en M2 igual |
+| ¿GA4 o el píxel de Meta? | Sí, los dos, editables desde la configuración | Decisión D-T13: GA4 también en el subdominio, con su cookie limitada a la tienda; el píxel de Meta, solo con dominio propio (TIENDA §4.1) |
+| Search Console | En la 2.0, una tienda en un subdominio de la plataforma no se pudo verificar con el método del proveedor de dominio | **HU-T14.8, nueva, en T3:** el código de la etiqueta HTML de Google en la configuración, como el de GA4 y el píxel. Es el método que sirve para un subdominio (propiedad de prefijo de URL) |
+| ¿Páginas propias? | Sí: «Envíos y devoluciones», y puede haber más | HU-T10.2 (páginas propias) sigue en M5. La política de envíos y devoluciones del comercio ya sale de sus textos legales (HU-T7.1) |
+| ¿Más de una persona? | Sí: que haya roles y perfiles | Ninguno: el equipo (HU-T10.5) va en M2, con el propietario y el colaborador; la matriz de permisos admite más roles sin migración (HU-T1.4) |
+| ¿Cuántos pedidos al mes? | Incierto; pregunta si el plan gratis debe limitarlos | Decisión D-T12: sin tope de pedidos, como propone el estudio; el gratuito se limita por productos, un usuario y sin dominio propio |
+| Los 25.000 al mes | Es solo el servicio de la tienda. No tienen factura electrónica, ni la API pública de WhatsApp; los envíos y la transportadora van por su cuenta | Para D-T3: hoy pagan 25.000 por lo que el plan `entrada` propone a 29.900, y el estudio compara con Tiendanube Básico a 33.900 |
+
