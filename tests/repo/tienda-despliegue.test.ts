@@ -6,9 +6,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { BaseD1 } from '../../packages/d1/src/index.ts';
 import { baseLocal } from '../../packages/d1/src/local.ts';
-import { celdasDeLaTienda, wranglerDeLaCeldaDeLaTienda } from '../../scripts/generar-wrangler.ts';
+import {
+  celdasDeLaTienda,
+  wranglerDeLaCeldaDeLaTienda,
+  wranglerDelSitioDeLaTienda,
+} from '../../scripts/generar-wrangler.ts';
 import {
   configDeLaApi,
+  configDelSitio,
   humoDeLaTienda,
   nombreKvHosts,
   preparaLaTienda,
@@ -139,6 +144,19 @@ describe('los ids del despliegue, fuera de git (ADR-6)', () => {
     expect(() =>
       configDeLaApi(generada, 'staging', { ...ids, bases: { tienda_c1_s1: 'id-shard' } }),
     ).toThrow(/tienda_control/);
+  });
+});
+
+describe('el despacho lee los kill switches (HU-T2.7)', () => {
+  it('su configuración de staging lleva el KV de hosts y el de flags', () => {
+    const config = configDelSitio(wranglerDelSitioDeLaTienda(cargarCeldas()), 'staging', {
+      hostsId: 'kv-hosts',
+      flagsId: 'kv-flags',
+    }) as { env: { staging: { kv_namespaces: { binding: string; id: string }[] } } };
+    expect(config.env.staging.kv_namespaces).toEqual([
+      { binding: 'TIENDA_HOSTS', id: 'kv-hosts' },
+      { binding: 'FLAGS', id: 'kv-flags' },
+    ]);
   });
 });
 

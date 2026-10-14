@@ -8,9 +8,13 @@
  * - Las cabeceras internas (`x-despacho`, `x-tienda`) que llegan de afuera se borran siempre: solo
  *   el despacho las escribe (TIENDA §14.1).
  * - Las páginas de una tienda las sirve el horno desde R2 (HU-T5.1). Hasta entonces, 404.
+ * - Kill switches (HU-T2.7, TIENDA §15.2): con `ks:tienda` apagado, toda tienda dice «Volvemos
+ *   pronto» (503); con `ks:tienda:<org>`, solo esa (una suspensión o una falla aislada). Caché de 60 s.
  *
  * Ningún identificador de cuenta, base o dominio en el código (ADR-6).
  */
+
+import { crearLectorKillSwitch, type LectorKillSwitch } from '@ed1/kill-switch';
 
 export const CABECERA_DESPACHO = 'x-despacho';
 export const CABECERA_TIENDA = 'x-tienda';
@@ -33,6 +37,8 @@ export interface Servicio {
 
 export interface Env {
   TIENDA_HOSTS?: LectorKv;
+  /** El KV de flags de la celda, con los kill switches (`ks:tienda`, `ks:tienda:<org>`). */
+  FLAGS?: LectorKv;
   SECRETO_DESPACHO?: string;
   /** Un binding de servicio por celda: `API_C1`. */
   [binding: string]: unknown;
@@ -93,9 +99,49 @@ const CABECERAS_DE_PAGINA = {
 export const sinTienda = (): Response =>
   new Response(SIN_TIENDA, { status: 404, headers: CABECERAS_DE_PAGINA });
 
+const pagina = (titulo: string, texto: string) => `<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>${titulo}</title>
+</head>
+<body>
+<main>
+<h1>${titulo}</h1>
+<p>${texto}</p>
+</main>
+</body>
+</html>
+`;
+
+/** Con un kill switch apagado: 503, sin caché y con `Retry-After`, para volver sola. */
+export const enPausa = (deTodas: boolean): Response =>
+  new Response(
+    deTodas
+      ? pagina('Volvemos pronto', 'Estamos haciendo un ajuste. Vuelve en unos minutos.')
+      : pagina(
+          'Esta tienda no está disponible por ahora',
+          'Vuelve más tarde, o escríbele a la tienda por su WhatsApp.',
+        ),
+    {
+      status: 503,
+      headers: { ...CABECERAS_DE_PAGINA, 'cache-control': 'no-store', 'retry-after': '300' },
+    },
+  );
+
 export function crearDespacho(opciones: { ahora?: () => number } = {}) {
   const ahora = opciones.ahora ?? (() => Date.now());
   const cache = new Map<string, { destino: DestinoDeHost | null; vence: number }>();
+  let lector: { kv: LectorKv; lector: LectorKillSwitch } | null = null;
+  const apagado = (env: Env, clave: string) => {
+    if (!env.FLAGS) return Promise.resolve(false);
+    if (lector?.kv !== env.FLAGS) {
+      lector = { kv: env.FLAGS, lector: crearLectorKillSwitch({ kv: env.FLAGS, ahora }) };
+    }
+    return lector.lector.apagado(clave);
+  };
 
   async function resolver(env: Env, host: string): Promise<DestinoDeHost | null> {
     const guardado = cache.get(host);
@@ -114,6 +160,8 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       const url = new URL(solicitud.url);
       const destino = await resolver(env, url.hostname);
       if (!destino) return sinTienda();
+      if (await apagado(env, 'tienda')) return enPausa(true);
+      if (await apagado(env, `tienda:${destino.org}`)) return enPausa(false);
       if (url.pathname.startsWith('/api/v1/')) {
         const api = env[`API_${destino.celda.toUpperCase()}`] as Servicio | undefined;
         if (!api || !env.SECRETO_DESPACHO) {

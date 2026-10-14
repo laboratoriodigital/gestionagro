@@ -98,15 +98,18 @@ export function configDeLaApi(
   return enDestino(generada, destino, agregar);
 }
 
-/** La configuración del despacho con el KV de hosts de este despliegue. */
+/** La configuración del despacho con los KV de hosts y de flags de este despliegue (HU-T2.7). */
 export function configDelSitio(
   generada: Record<string, unknown>,
   destino: Destino,
-  hostsId: string,
+  kv: { hostsId: string; flagsId: string },
 ): Record<string, unknown> {
   return enDestino(generada, destino, (bloque) => ({
     ...bloque,
-    kv_namespaces: [{ binding: 'TIENDA_HOSTS', id: hostsId }],
+    kv_namespaces: [
+      { binding: 'TIENDA_HOSTS', id: kv.hostsId },
+      { binding: 'FLAGS', id: kv.flagsId },
+    ],
   }));
 }
 

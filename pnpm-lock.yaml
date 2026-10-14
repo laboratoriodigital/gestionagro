@@ -386,6 +386,9 @@ importers:
       '@ed1/d1':
         specifier: workspace:*
         version: link:../../packages/d1
+      '@ed1/kill-switch':
+        specifier: workspace:*
+        version: link:../../packages/kill-switch
       hono:
         specifier: ^4.13.12
         version: 4.13.12
@@ -401,6 +404,10 @@ importers:
         version: 4.144.0(@types/node@22.20.4)
 
   apps/tienda-sitio:
+    dependencies:
+      '@ed1/kill-switch':
+        specifier: workspace:*
+        version: link:../../packages/kill-switch
     devDependencies:
       wrangler:
         specifier: ^4.144.0

@@ -11,12 +11,15 @@
  * - `GET /api/salud`: la prueba de humo del despliegue, por el panel. Cada shard y la base de
  *   control responden con las tablas de su migración; dice si la llave maestra (KEK) está y se
  *   puede leer, nunca su valor. Sin configuración o con una base caída responde 503 y dice cuál (P1).
+ * - Kill switch `ks:tienda` (HU-T2.7, TIENDA §15.2): apagado, la API queda en solo lectura. Lo que
+ *   escribe responde 503 con `Retry-After`; lo que lee sigue. Caché de 60 s (`@ed1/kill-switch`, P7).
  *
  * Ningún identificador de cuenta, base o dominio en el código (ADR-6): llega por la configuración
  * que arma el despliegue desde `celdas.json`.
  */
 import { importarKek } from '@ed1/cifrado';
 import type { BaseD1 } from '@ed1/d1';
+import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
 import { Hono } from 'hono';
 
 export const CABECERA_DESPACHO = 'x-despacho';
@@ -36,6 +39,8 @@ export interface Env {
   PLAN?: string;
   SECRETO_DESPACHO?: string;
   TIENDA_KEK_V1?: string;
+  /** El KV de flags de la celda, con los kill switches del producto. */
+  FLAGS?: LectorKv;
   /** Un binding D1 por shard, con el nombre del shard, y `tienda_control`. */
   [base: string]: unknown;
 }
@@ -77,6 +82,13 @@ async function faltanTablas(db: BaseD1, tablas: readonly string[]): Promise<bool
 }
 
 const NO_EXISTE = { estado: 'no-existe' } as const;
+const LECTURA = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+let lector: { kv: LectorKv; lector: LectorKillSwitch } | null = null;
+const lectorDe = (kv: LectorKv) => {
+  if (lector?.kv !== kv) lector = { kv, lector: crearLectorKillSwitch({ kv }) };
+  return lector.lector;
+};
 
 export function crearApp() {
   const app = new Hono<{ Bindings: Env }>();
@@ -86,6 +98,26 @@ export function crearApp() {
     const secreto = c.env.SECRETO_DESPACHO;
     const dado = c.req.header(CABECERA_DESPACHO);
     if (!secreto || !dado || !mismoSecreto(secreto, dado)) return c.json(NO_EXISTE, 404);
+    return siguiente();
+  });
+
+  // ks:tienda apagado: solo lectura. Se revisa después del secreto, que es más barato.
+  app.use('*', async (c, siguiente) => {
+    if (
+      !LECTURA.has(c.req.method) &&
+      c.env.FLAGS &&
+      (await lectorDe(c.env.FLAGS).apagado('tienda'))
+    ) {
+      c.header('retry-after', '120');
+      return c.json(
+        {
+          estado: 'apagado',
+          motivo:
+            'La tienda está en pausa por unos minutos: puedes ver todo, pero no cambiar nada.',
+        },
+        503,
+      );
+    }
     return siguiente();
   });
 

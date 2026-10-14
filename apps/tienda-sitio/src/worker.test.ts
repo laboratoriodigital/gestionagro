@@ -143,3 +143,44 @@ describe('un host con tienda', () => {
     expect(lector.lecturas).toHaveLength(2);
   });
 });
+
+describe('los kill switches del despacho (HU-T2.7, TIENDA §15.2)', () => {
+  const host = 'ensayo-uno--staging.laboratorio-digital.app';
+  const otro = 'ensayo-dos--staging.laboratorio-digital.app';
+  const DOS = { org: 'org-ensayo-dos', celda: 'c1', shard: 'tienda_c1_s1' };
+  const env = (flags: Record<string, string>) => ({
+    TIENDA_HOSTS: kv({ [`h:${host}`]: JSON.stringify(UNO), [`h:${otro}`]: JSON.stringify(DOS) }),
+    FLAGS: kv(flags),
+    SECRETO_DESPACHO: SECRETO,
+    API_C1: api().servicio,
+  });
+
+  it('con ks:tienda apagado, toda tienda dice «Volvemos pronto» y no se guarda en caché', async () => {
+    const despacho = crearDespacho();
+    const e = env({ 'ks:tienda': 'apagado' });
+    for (const h of [host, otro]) {
+      const r = await despacho.fetch(new Request(`https://${h}/api/v1/cotizar`), e);
+      expect(r.status).toBe(503);
+      expect(await r.text()).toContain('Volvemos pronto');
+      expect(r.headers.get('cache-control')).toBe('no-store');
+    }
+  });
+
+  it('con ks:tienda:<org> apagado, solo esa tienda queda en pausa', async () => {
+    const despacho = crearDespacho();
+    const e = env({ [`ks:tienda:${UNO.org}`]: 'apagado' });
+    const una = await despacho.fetch(new Request(`https://${host}/api/v1/cotizar`), e);
+    const dos = await despacho.fetch(new Request(`https://${otro}/api/v1/cotizar`), e);
+    expect(una.status).toBe(503);
+    expect(await una.text()).toContain('Esta tienda no está disponible por ahora');
+    expect(dos.status).toBe(200);
+  });
+
+  it('❌ un host sin tienda sigue siendo «sin tienda», aunque todo esté apagado', async () => {
+    const r = await crearDespacho().fetch(
+      new Request('https://nadie.laboratorio-digital.app/'),
+      env({ 'ks:tienda': 'apagado' }),
+    );
+    expect(r.status).toBe(404);
+  });
+});

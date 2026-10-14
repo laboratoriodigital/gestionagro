@@ -863,7 +863,10 @@ async function prepararCeldaDeLaTienda(
     );
     escribirDespliegue(
       'tienda-sitio',
-      configDelSitio(wranglerDelSitioDeLaTienda(config), dest, hosts.id),
+      configDelSitio(wranglerDelSitioDeLaTienda(config), dest, {
+        hostsId: hosts.id,
+        flagsId: flags.id,
+      }),
     );
     escribirReservados(sentenciasDeReservados(reservadosDeDominios()));
   } catch (e) {

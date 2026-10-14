@@ -130,3 +130,32 @@ describe('GET /api/salud, la prueba de humo del despliegue', () => {
     );
   });
 });
+
+describe('el kill switch ks:tienda (HU-T2.7, TIENDA §15.2)', () => {
+  const flags = (valores: Record<string, string>) => ({
+    get: async (clave: string) => valores[clave] ?? null,
+  });
+  const pedirCon = (metodo: string, e: Env) =>
+    crearApp().request(
+      '/api/salud',
+      { method: metodo, headers: { [CABECERA_DESPACHO]: SECRETO } },
+      e,
+    );
+
+  it('apagado, la API queda en solo lectura: leer sigue', async () => {
+    const r = await pedirCon('GET', env({ FLAGS: flags({ 'ks:tienda': 'apagado' }) }));
+    expect(r.status).toBe(200);
+  });
+
+  it('❌ apagado, escribir responde 503 con Retry-After y lo dice en palabras', async () => {
+    const r = await pedirCon('POST', env({ FLAGS: flags({ 'ks:tienda': 'apagado' }) }));
+    expect(r.status).toBe(503);
+    expect(r.headers.get('retry-after')).toBe('120');
+    expect((await r.json()).estado).toBe('apagado');
+  });
+
+  it('encendido, escribir llega a su ruta (hoy ninguna: 404)', async () => {
+    const r = await pedirCon('POST', env({ FLAGS: flags({ 'ks:tienda': 'encendido' }) }));
+    expect(r.status).toBe(404);
+  });
+});
