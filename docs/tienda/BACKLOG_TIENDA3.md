@@ -332,12 +332,12 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T10** | 19–30 abr | Despachar, recaudar y liquidar la contraentrega; envíos, cupones, versiones y equipo | HU-T9.4 (3), HU-T9.5 (5), HU-T9.6 (3), HU-T10.1 (3), HU-T10.4 (3), HU-T10.5 (3) | 20 | — |
 | **T11** (festivo) | 3–14 may | **M2.** Solicitudes en el panel, derechos del titular, exportación y tablero; revisión con la tienda llena | HU-T3.7 (2), HU-T7.3 (3), HU-T9.7 (3), HU-T10.7 (3), HU-T14.2 (5) | 16 | M2 |
 | **T12** | 17–28 may | Las llaves del comercio cifradas y el primer cobro de prueba guiado | HU-T11.1 (3), HU-T11.2 (5), HU-T11.3 (3), HU-T11.4 (5), HU-T17.3 (3) | 19 | — |
-| **T13** (festivo) | 1–11 jun | Bold avisa, se concilia, y cada respuesta tiene su camino | HU-T11.5 (5), HU-T11.6 (3), HU-T11.7 (3), HU-T11.9 (2) | 13 | — |
+| **T13** (festivo) | 1–11 jun | Bold avisa, se concilia, y cada respuesta tiene su camino | HU-T11.5 (5), HU-T11.6 (3), HU-T11.7 (3), HU-T11.9 (2), HU-T14.3 (3) | 16 | — |
 | **T14** | 14–25 jun | **M3.** Links de pago, caos, revisión de seguridad y restauración probada; listos para cargar | HU-T0.3 (1), HU-T4.6 (3), HU-T11.8 (3), HU-T11.10 (3), HU-T11.11 (3), HU-T12.3 (3), HU-T17.4 (3) | 19 | M3 |
 | **T15** (festivo) | 28 jun–9 jul | Las tiendas 2.0 pasan la paridad y la primera se corta, con marca de vuelta | HU-T12.4 (3), HU-T12.5 (5), HU-T12.6 (2), HU-T12.7 (3), HU-T17.5 (2) | 15 | — |
 | **T16** (festivo) | 12–23 jul | **M6.** La segunda tienda en la 3.0; dominios propios con prevalidación | HU-T12.8 (2), HU-T13.1 (5), HU-T13.2 (3), HU-T13.3 (2), HU-T17.6 (3) | 15 | M6 |
 | **T17** | 26 jul–6 ago | **M4.** Alta abierta, plan por periodo, antiabuso y baja; medición propia y feeds | HU-T13.4 (5), HU-T13.5 (3), HU-T13.6 (3), HU-T13.7 (2), HU-T14.1 (3), HU-T14.5 (3) | 19 | M4 |
-| **T18** (festivo) | 9–20 ago | **M5 · `tienda-v1.0.0`.** Resumen diario, consentimiento, reconciliación y lo que quedó después de M6 | HU-T8.6 (2), HU-T10.2 (2), HU-T14.3 (3), HU-T14.4 (3), HU-T14.6 (2), HU-T14.7 (2) | 14 | M5 |
+| **T18** (festivo) | 9–20 ago | **M5 · `tienda-v1.0.0`.** Resumen diario, consentimiento, reconciliación y lo que quedó después de M6 | HU-T8.6 (2), HU-T10.2 (2), HU-T14.4 (3), HU-T14.6 (2), HU-T14.7 (2) | 11 | M5 |
 | **T19** | 23 ago–3 sep | **M7.** Los agentes preparan pedidos que una persona confirma | HU-T15.2 (2), HU-T15.3 (2), HU-T15.4 (5), HU-T15.5 (3), HU-T15.6 (2), HU-T15.7 (5) | 19 | M7 |
 | **T20** | 6–17 sep | **M8.** La factura, en el facturador del comercio | HU-T16.1 (2), HU-T16.2 (5), HU-T16.3 (3), HU-T16.4 (2) | 12 | M8 |
 
@@ -1156,7 +1156,7 @@ Formato de cada historia, el del CORE:
 ### ET12 · Carga de las tiendas 2.0
 
 #### HU-T12.1 · Qué usa hoy cada tienda 2.0
-- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** En sprint, esperando al dueño (`docs/tienda/paridad-tiendas-2.0.md`. La parte pública ya cambió el plan: las dos tiendas que venden son de la **Tienda Básica** (solo la hoja, 3.6.2), no de la Tienda Panel con la que se escribió el anexo C, y ninguna tiene dominio propio: viven en `workers.dev` (bitácora tienda3 6). La segunda parte son 11 preguntas de sí, no o una cifra para el dueño. No se leyó el repositorio privado de una tienda real: tiene datos de su operación, y la herramienta lo detuvo; lo que hace falta lo sabe el dueño)
+- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** En sprint, esperando al dueño (`docs/tienda/paridad-tiendas-2.0.md`. El 13 oct 2026 el dueño contestó para las dos tiendas: cobran con Bold (y vendrán otras pasarelas), ofrecen contraentrega, usan cupones, «Avísame» y correos, y la tienda activa paga 25.000 al mes. Los correos se adelantaron a T13 (bitácora tienda3 8); quedan seis preguntas, reescritas en §4 del documento. La parte pública ya cambió el plan: las dos tiendas que venden son de la **Tienda Básica** (solo la hoja, 3.6.2), no de la Tienda Panel con la que se escribió el anexo C, y ninguna tiene dominio propio: viven en `workers.dev` (bitácora tienda3 6). La segunda parte son 11 preguntas de sí, no o una cifra para el dueño. No se leyó el repositorio privado de una tienda real: tiene datos de su operación, y la herramienta lo detuvo; lo que hace falta lo sabe el dueño)
 - Como dueño, quiero saber desde ya qué de la 2.0 usa cada tienda, para que el orden del plan no lo descubra el día del corte.
 - **Respaldo:** TIENDA §17.3 y anexo C; estudio §15.3 [C12] y §16.2 (preguntas 8 y 9); bitácora tienda3 1.
 - **CA1.** Una tabla por tienda con cada puerta del anexo C, más: dominio propio, GA4 o píxel de Meta, los correos que manda, páginas propias, cobro en línea, contraentrega, volumen de pedidos y qué tan cerca está de cada techo de la 2.0.
@@ -1315,7 +1315,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T14.2.1 `[código]` · WI-T14.2.2 `[prueba]` el reloj.
 
 #### HU-T14.3 · El resumen diario y los correos de la tienda
-- **Capa:** operación · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T18 · **Depende de:** HU-C10.1, HU-T14.2, D-T8 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T13 (antes del primer corte; era T18) · **Depende de:** HU-C10.1, HU-T14.2, D-T8, D-T11 · **Estado:** Refinada (las tiendas 2.0 mandan correos hoy: HU-T12.1, bitácora tienda3 8)
 - Como comerciante, quiero un correo cada mañana con lo que tengo que hacer hoy; como comprador, el acuse en mi correo si lo dejé.
 - **Respaldo:** TIENDA §8.5 y §15.5; ED1 §20.2 [D8].
 - **CA1.** Remitente `«<Tienda>» <pedidos@laboratorio-digital.app>`, con respuesta al correo del comercio; SPF, DKIM y DMARC en `laboratorio-digital.app`, comprobados con un envío real.
@@ -1517,7 +1517,7 @@ Formato de cada historia, el del CORE:
 | HU-T7.4 · Revisión legal de las plantillas (3) | Haya presupuesto para un abogado (TIENDA §20.2.7). Recomendado antes del alta abierta (M4). Corregir es cambiar una plantilla y re-hornear |
 | Cuentas de comprador | Más del 30 % de los pedidos de una tienda son de compradores que repiten, y lo piden (TIENDA §20.3) |
 | Directorio o marketplace de tiendas | Nunca sin tratarlo antes como portal de contacto (Ley 2439 art. 6; Ley 1480 art. 53) |
-| Otra pasarela (Wompi, Mercado Pago) | Un comercio que no puede usar Bold, o un cambio de Bold. `ProveedorDePago` ya lo permite |
+| Otra pasarela (Mercado Pago, PayPal, Wompi) | El dueño elige la segunda pasarela (anunció Mercado Pago y PayPal el 13 oct 2026, HU-T12.1), un comercio no puede usar Bold o Bold cambia. `ProveedorDePago` ya lo permite: una pasarela nueva es un adaptador en `@ed1/pagos` |
 | Emitir factura electrónica | La DIAN reglamenta el art. 616-1 inc. 8, o tres comercios sin facturador propio la piden |
 | WhatsApp Cloud API para avisos de estado | Se demuestra ahorro de atención y la contribución por pedido lo soporta. La barrera es habilitar el canal, no el costo (estudio §11.1 [C5]) |
 | Guías integradas (cotizar, generar y seguir) | Tres comercios con el mismo operador o agregador |
@@ -1547,6 +1547,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | D-T7 | Las tiendas actuales antes del alta abierta: M6 → M4 (§20.2.5) | Sí | Planeación de T15 |
 | D-T8 | El correo de la Tienda (§20.2.6) | El adaptador del CORE (HU-C10.1) con el servicio de correo de Cloudflare, enviando desde `laboratorio-digital.app` | HU-T14.3 (T18, o antes si HU-T12.1 lo pide) |
 | D-T9 | Velocidad y carriles | 20 puntos por sprint en la Tienda; como mucho 3 historias suyas esperando validación y 6 entre los dos carriles (§3.6) | Planeación de T1 |
+| D-T11 | Cómo manda correos la Tienda antes de M6 en el plan gratuito: el adaptador del CORE (HU-C10.1) espera Workers Paid y las tiendas 2.0 ya mandan correos | Un proveedor de correo con cuota gratuita detrás del mismo adaptador del CORE, o Workers Paid si el servicio de correo de Cloudflare sigue siendo solo del plan pago: este es el primer dato que puede exigirlo | HU-T14.3 (T13) |
 | D-T10 | Los cron de la Tienda en el plan gratuito: queda 1 de los 5 de la cuenta y TIENDA §15.3 pide cinco frecuencias | Un solo cron por hora que reparte el trabajo por minuto y hora; lo que pueda ser perezoso, perezoso (como los apartados). Workers Paid solo si un dato lo exige | El primer cron (HU-T4.6) |
 
 **Tareas que solo puede hacer el dueño**, con la fecha que no frena el camino crítico:

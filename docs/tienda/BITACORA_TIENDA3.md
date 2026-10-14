@@ -111,7 +111,7 @@ Al 6 oct 2026, en la tarde, la Tienda tiene sus cuatro paquetes puros (sprint T0
 - **Regla:** ningún diagnóstico se da por bueno sin reproducir el fallo.
 - **En la Tienda 3.0:** un pago que no se reflejó se reproduce con el aviso exacto de Bold (cuerpo y firma) contra el D1 local; un horneado distinto, con los mismos datos en los dos runtimes.
 - **Lo impedirá:** HU-T11.5, HU-T11.6 (un Bold falso que firma y responde de verdad).
-- **Entradas:** tienda3 6.
+- **Entradas:** tienda3 6, 8.
 
 #### P10 · El que se actualiza a sí mismo corre su versión vieja
 - **Regla:** un arreglo en el que se actualiza llega una versión tarde. Y quien vuelve atrás corre también la vieja.
@@ -166,7 +166,7 @@ Al 6 oct 2026, en la tarde, la Tienda tiene sus cuatro paquetes puros (sprint T0
 - **Regla:** lo que un documento afirma del código lo ata una aserción; el redundante se borra.
 - **En la Tienda 3.0:** TIENDA propone, ARQUITECTURA decide; los anexos de SQL los ata una prueba al archivo; los runbooks, una prueba que busca lo que nombran. Un documento que cita a otro dice lo que el otro dice.
 - **Lo impedirá:** HU-T17.5; la Definición de Terminado, punto 8.
-- **Entradas:** tienda3 1, 4, 5, 6, 7.
+- **Entradas:** tienda3 1, 4, 5, 6, 7, 8.
 - **Lo impide hoy:** los anexos A y B de TIENDA tienen que ser copias exactas de las migraciones, y una prueba lo exige (`tests/repo/shard-tienda.test.ts`, HU-T2.1).
 
 #### P19 · Un rojo que no significa nada enseña a no mirar los rojos
@@ -448,3 +448,21 @@ Lo que el plan gratuito deja abierto, con la historia donde se decide con un dat
 La regla: **una decisión de costo tomada en otro proyecto se copia el mismo día a los documentos de todos los productos que la cuenta comparte; si no, el plan espera algo que nunca va a llegar.**
 
 *Ficha:* tienda3 · *(compartido)* · 🟡 Medio · P18, P1 · tienda-0.0.0 · 2026-10-13
+
+**8 · Las tiendas 2.0 mandan correos, y el plan ponía los correos de la 3.0 después de cargarlas.**
+
+*Qué pasó.* El 13 oct 2026 el dueño contestó la hoja de paridad (HU-T12.1): las dos tiendas que venden mandan correos, el resumen del día al comercio o la confirmación al comprador.
+
+*Síntoma literal.* Hoja de paridad: «¿Manda correos…? Sí». Backlog: «HU-T14.3 · El resumen diario y los correos de la tienda… **Sprint:** T18», y M6, la carga de las tiendas, cierra en T16. BACKLOG_CORE: «HU-C10.1 · Adaptador de correo… **Depende de:** Workers Paid activo».
+
+*Causa raíz.* El plan ordenó M5 (medición y correo) después de M6 suponiendo que las tiendas no lo usaban; D-T8 ya decía «o antes si HU-T12.1 lo pide», y lo pidió. Lo nuevo es la segunda dependencia: el adaptador del CORE espera Workers Paid, y el dueño decidió el plan gratuito mientras se pueda (bitácora tienda3 7).
+
+*Cómo se reprodujo.* Cruzando la respuesta con el sprint de HU-T14.3 y la dependencia de HU-C10.1.
+
+*Arreglo.* HU-T14.3 pasa de T18 a T13, antes del primer corte, y de Should a Must. Cómo se manda correo en el plan gratuito queda como la decisión D-T11, con su recomendación: un proveedor con cuota gratuita detrás del mismo adaptador del CORE, o Workers Paid si el correo de Cloudflare sigue siendo solo del plan pago. Es el primer dato que puede exigir Workers Paid, y se dice así. Cupones, «Avísame» y contraentrega ya iban antes de M6.
+
+**Lo prueba:** nada todavía; es un plan. La guardia llega con HU-T12.5: una fila de la paridad que la tienda usa y no pasa detiene su corte.
+
+La regla: **una respuesta de paridad se cruza con el sprint de su historia y con las dependencias de esa historia, no solo con su hito.**
+
+*Ficha:* tienda3 · *(compartido)* · 🟡 Medio · P9, P18 · tienda-0.0.0 · 2026-10-13
