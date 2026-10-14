@@ -507,6 +507,9 @@ importers:
 
   packages/parqueadero-tarifas:
     dependencies:
+      '@ed1/calendario':
+        specifier: workspace:*
+        version: link:../calendario
       '@ed1/dinero':
         specifier: workspace:*
         version: link:../dinero

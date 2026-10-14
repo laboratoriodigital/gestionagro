@@ -138,7 +138,7 @@ const motivoDe = async (enlace: string): Promise<MotivoDeEnlace | 'leyo'> => {
 
 describe('un enlace alterado es un error con su motivo, nunca otro recibo (HU-Q1.5 CA3)', () => {
   it.each([
-    ['una versión desconocida', '3.abc', 'version'],
+    ['una versión desconocida', '4.abc', 'version'],
     ['sin datos', '1', 'forma'],
     ['con tres partes', '1.abc.def', 'forma'],
     ['base64 roto', '1.ab$c', 'base64'],
@@ -290,5 +290,60 @@ describe('el texto de responsabilidad de la sede viaja en la versión 2 (HU-Q4.5
     const datos = await datosDe(await fragmentoCompleto(ENTRADA));
     expect(await motivoDe(await fragmentoDe('2', { ...datos, lg: PROPIO }))).toBe('leyo');
     expect(TEXTO_LEGAL.entrada).not.toBe(PROPIO);
+  });
+});
+
+describe('la tarifa de festivos y las horas de reloj viajan en la versión 3 (HU-Q13)', () => {
+  const FESTIVO = {
+    ...TARIFA_CARRO,
+    festivo: { valor: TARIFA_CARRO.valor + 10, plena: { desde_min: 240, valor: 20_000 } },
+  };
+  const CON_HORA = { ...CATALOGOS, sede: { ...SEDE_ENSAYO_UNO, formato_hora: '12h' as const } };
+
+  it('sin festivo ni horas de reloj, los recibos siguen en la 1', async () => {
+    expect(await fragmentoCompleto(ENTRADA)).toMatch(/^1\./);
+    expect(await fragmentoCompleto(SALIDA)).toMatch(/^1\./);
+  });
+
+  it('con tarifa de festivo, la entrada va en la 3 y se lee como el mismo recibo', async () => {
+    const r = armarRecibo(ENTRADA_ENSAYO, { ...CATALOGOS, tarifa: FESTIVO }, { prueba: false });
+    expect(r.tarifa.festivo).toEqual(FESTIVO.festivo);
+    const fragmento = await fragmentoCompleto(r);
+    expect(fragmento).toMatch(/^3\./);
+    expect(await leerEnlace(fragmento)).toEqual({
+      forma: 'completa',
+      recibo: r,
+      firma: 'sin_firma',
+    });
+  });
+
+  it('con horas de reloj y texto propio, la 3 lleva los dos', async () => {
+    const r = armarRecibo(
+      ENTRADA_ENSAYO,
+      { ...CON_HORA, ajuste: { ...AJUSTE_ENSAYO, responsabilidad: PROPIO } },
+      { prueba: false },
+    );
+    expect(r.hora12).toBe(true);
+    const fragmento = await fragmentoCompleto(r);
+    expect(fragmento).toMatch(/^3\./);
+    const leido = await leerEnlace(fragmento);
+    expect(leido).toEqual({ forma: 'completa', recibo: r, firma: 'sin_firma' });
+  });
+
+  it('una salida con festivo cabe todavía en la versión 13 del QR', async () => {
+    const r = armarRecibo(
+      SALIDA_ENSAYO,
+      { ...CON_HORA, sede: { ...SEDE_LARGA, formato_hora: '12h' as const }, tarifa: FESTIVO },
+      { prueba: false },
+    );
+    expect(versionDeQr(await enlaceCompleto(r), 13)).toBeLessThanOrEqual(13);
+  });
+
+  it('❌ la 3 con un campo que no conoce no se lee como recibo', async () => {
+    const r = armarRecibo(ENTRADA_ENSAYO, { ...CATALOGOS, tarifa: FESTIVO }, { prueba: false });
+    const datos = await datosDe(await fragmentoCompleto(r));
+    await expect(leerEnlace(await fragmentoDe('3', { ...datos, zz: 1 }))).rejects.toMatchObject({
+      motivo: 'contenido',
+    });
   });
 });

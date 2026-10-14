@@ -363,6 +363,7 @@ function TurnoCerrado({
       {
         columnas: impresora?.columnas ?? 32,
         paginaDeCodigos: impresora?.paginaDeCodigos ?? 'cp850',
+        hora12: sede?.formato_hora === '12h',
       },
     );
     const r = await control.imprimir(bloques);

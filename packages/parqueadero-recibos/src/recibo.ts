@@ -41,6 +41,7 @@ export type TarifaDelRecibo = Pick<
   | 'plena'
   | 'nocturna'
   | 'tope_minuto'
+  | 'festivo'
 >;
 
 export interface SalidaDelRecibo {
@@ -82,6 +83,8 @@ export interface Recibo {
   readonly responsabilidad: string | null;
   /** Hecho fuera de producción: no vale (HU-Q5.1 CA2). */
   readonly prueba: boolean;
+  /** Las horas como de reloj, `6:05 p. m.` (HU-Q13.1); omitido o `false`, militares. */
+  readonly hora12?: boolean;
 }
 
 /** Falta un dato legal: no se arma el recibo. Nombra cada uno como lo lee el cajero (HU-Q3.2). */
@@ -195,7 +198,16 @@ export function armarRecibo(
       plena: tarifa.plena ? { ...tarifa.plena } : null,
       nocturna: tarifa.nocturna ? { ...tarifa.nocturna } : null,
       tope_minuto: tarifa.tope_minuto,
+      ...(tarifa.festivo
+        ? {
+            festivo: {
+              valor: tarifa.festivo.valor,
+              plena: tarifa.festivo.plena ? { ...tarifa.festivo.plena } : null,
+            },
+          }
+        : {}),
     },
+    ...(sede.formato_hora === '12h' ? { hora12: true } : {}),
     pie: catalogos.ajuste?.pie ?? null,
     responsabilidad: catalogos.ajuste?.responsabilidad ?? null,
     prueba: opciones.prueba,
@@ -246,10 +258,19 @@ export function lineaDelAbono(sa: SalidaDelRecibo): string | null {
 
 const dos = (n: number) => String(n).padStart(2, '0');
 
-/** `06/10/2026 18:05` con un desfase fijo y sin la API de formatos (§5.6, P17). */
-export function fechaHora(ms: number, desfaseMin = -300): string {
+/** `18:05`, o `6:05 p. m.` con `hora12` (HU-Q13.1), sin la API de formatos (§5.6, P17). */
+export function soloHora(ms: number, desfaseMin = -300, hora12 = false): string {
   const d = new Date(ms + desfaseMin * 60_000);
-  return `${dos(d.getUTCDate())}/${dos(d.getUTCMonth() + 1)}/${d.getUTCFullYear()} ${dos(d.getUTCHours())}:${dos(d.getUTCMinutes())}`;
+  const h = d.getUTCHours();
+  const m = dos(d.getUTCMinutes());
+  if (!hora12) return `${dos(h)}:${m}`;
+  return `${h % 12 === 0 ? 12 : h % 12}:${m} ${h < 12 ? 'a. m.' : 'p. m.'}`;
+}
+
+/** `06/10/2026 18:05` (o `6:05 p. m.`) con un desfase fijo y sin la API de formatos (§5.6, P17). */
+export function fechaHora(ms: number, desfaseMin = -300, hora12 = false): string {
+  const d = new Date(ms + desfaseMin * 60_000);
+  return `${dos(d.getUTCDate())}/${dos(d.getUTCMonth() + 1)}/${d.getUTCFullYear()} ${soloHora(ms, desfaseMin, hora12)}`;
 }
 
 export const nombreDelVehiculo = (v: Vehiculo): string => VEHICULOS[v].nombre;
@@ -269,6 +290,20 @@ export function lineasDeTarifa(t: TarifaDelRecibo): string[] {
   if (t.tope_dia !== null) lineas.push(`Tope por día: ${$(t.tope_dia)}`);
   if (t.nocturna) {
     lineas.push(`Noche ${t.nocturna.desde} a ${t.nocturna.hasta}: ${$(t.nocturna.valor)}`);
+  }
+  if (t.festivo) {
+    const unidad =
+      t.modo === 'minuto'
+        ? 'por minuto'
+        : t.modo === 'hora'
+          ? 'por hora'
+          : `cada ${t.fraccion_min} min`;
+    lineas.push(`Domingos y festivos: ${$(t.festivo.valor)} ${unidad}`);
+    if (t.festivo.plena) {
+      lineas.push(
+        `Domingo o festivo, desde ${t.festivo.plena.desde_min + 1} min: ${$(t.festivo.plena.valor)}`,
+      );
+    }
   }
   if (t.tope_minuto !== null) lineas.push(`Tope legal: ${$(t.tope_minuto)} por minuto`);
   return lineas;
@@ -291,6 +326,10 @@ export function conceptoDeLinea(l: LineaDeLiquidacion, t: TarifaDelRecibo): stri
       return `Gracia (${l.minutos} min)`;
     case 'abonado':
       return `Abonado (${l.minutos} min)`;
+    case 'tiempo_festivo':
+      return `Por ${l.minutos} min, con domingo o festivo`;
+    case 'plena_festivo':
+      return 'Tarifa plena de domingo o festivo';
   }
 }
 

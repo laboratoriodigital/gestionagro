@@ -59,6 +59,14 @@ export function filasDeTarifa(t: TarifaDelRecibo): Fila[] {
   if (t.tope_dia !== null) filas.push(['Tope por día', $(t.tope_dia)]);
   if (t.nocturna)
     filas.push([`Noche ${t.nocturna.desde}-${t.nocturna.hasta}`, $(t.nocturna.valor)]);
+  if (t.festivo) {
+    const unidad =
+      t.modo === 'minuto' ? '/min' : t.modo === 'hora' ? '/hora' : ` x ${t.fraccion_min} min`;
+    filas.push(['Dom. y festivos', `${$(t.festivo.valor)}${unidad}`]);
+    if (t.festivo.plena) {
+      filas.push([`Festivo desde ${t.festivo.plena.desde_min + 1} min`, $(t.festivo.plena.valor)]);
+    }
+  }
   if (t.tope_minuto !== null) filas.push(['Tope legal', `${$(t.tope_minuto)}/min`]);
   return filas;
 }
@@ -80,6 +88,10 @@ function conceptoCorto(l: LineaDeLiquidacion): string {
       return `Gracia (${l.minutos} min)`;
     case 'abonado':
       return `Abonado (${l.minutos} min)`;
+    case 'tiempo_festivo':
+      return `Por ${l.minutos} min (festivo)`;
+    case 'plena_festivo':
+      return 'Plena de festivo';
   }
 }
 
@@ -89,7 +101,7 @@ function filasDeLiquidacion(sa: SalidaDelRecibo, t: TarifaDelRecibo, corto: bool
   const concepto = (l: LineaDeLiquidacion) => (corto ? conceptoCorto(l) : conceptoDeLinea(l, t));
   const filas: Fila[] = [];
   for (const l of sa.lineas) {
-    if (l.concepto === 'plena' || l.concepto === 'tope_dia') {
+    if (l.concepto === 'plena' || l.concepto === 'plena_festivo' || l.concepto === 'tope_dia') {
       filas.push([concepto({ ...l, concepto: 'tiempo' }), $(l.base)]);
     }
     filas.push([concepto(l), $(l.valor)]);
@@ -132,7 +144,7 @@ function filaDeBloque([etiqueta, valor]: Fila, col: number): string[] {
  * del generador (HU-Q11.4), que no tiene página en `/r/`.
  */
 export function textoWhatsApp(recibo: Recibo, enlace: string | null, desfaseMin = -300): string {
-  const f = (ms: number) => fechaHora(ms, desfaseMin);
+  const f = (ms: number) => fechaHora(ms, desfaseMin, recibo.hora12);
   const col = COLUMNAS_WHATSAPP;
   const s = recibo.sede;
   const regla = '-'.repeat(col);
@@ -224,7 +236,7 @@ export interface VistaDeRecibo {
 
 /** Lo que muestra la pantalla del recibo y la página `/r/`, como una hoja (§6.5, HU-Q6.6). */
 export function pantalla(recibo: Recibo, desfaseMin = -300): VistaDeRecibo {
-  const f = (ms: number) => fechaHora(ms, desfaseMin);
+  const f = (ms: number) => fechaHora(ms, desfaseMin, recibo.hora12);
   const $ = formatearPesos;
   const s = recibo.sede;
   const grupos: Fila[][] = [];

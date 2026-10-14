@@ -10,6 +10,7 @@ import { NOMBRE_DEL_MEDIO, papelDeLaMensualidad } from '@ed1/parqueadero-recibos
 import {
   type Abonado,
   type DatosDePagoAbonado,
+  type DiasDeMensualidad,
   ErrorDeValidacion,
   numeroDeRecibo,
   PLANES_DE_ABONO,
@@ -500,7 +501,12 @@ function Cobrar({
   const [medio, setMedio] = useState<MedioDeLaMensualidad | null>(null);
   const [error, setError] = useState('');
   const [cobrando, setCobrando] = useState(false);
-  const p = periodoPorCobrar(a, hoy, { primero, hastaFinDeMes: finDeMes });
+  // HU-Q13.3: el prorrateo cuenta los días que dice la sede, calendario u hábiles.
+  const cuenta = useConsulta<DiasDeMensualidad>(
+    () => leerAjustes(db).then((x) => x.sede?.dias_mensualidad ?? 'calendario'),
+    'calendario',
+  );
+  const p = periodoPorCobrar(a, hoy, { primero, hastaFinDeMes: finDeMes, cuenta });
   // Cortar en fin de mes solo cambia algo si el periodo cruza de mes.
   const cruzaDeMes = !primero && planDe(a) === 'mes' && !p.desde.endsWith('-01');
 
