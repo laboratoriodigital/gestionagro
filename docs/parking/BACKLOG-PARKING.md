@@ -259,7 +259,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q10** | 25 ene–5 feb | Firma sin red por dispositivo y su verificación; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q11.4 (2), HU-Q11.5 (2). HU-Q8.3 pasó a Q11 (espera R2) | 14 | — |
 | **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). HU-Q8.5, HU-Q8.6 y HU-Q10.3 en el PR #156; HU-Q8.4 en el #157, sin el número del abonado; HU-Q11.6 y HU-Q11.7 en el #158 con la `v0.3.0` de la entrega. HU-Q8.3 hecha en el #158, con las fotos en el Drive de la cuenta (decisión del dueño, 12 oct 2026); HU-Q8.7 espera M1 en producción (HU-Q7.12) | 17 | M2, **`v1.0.0`** |
 | **Q12** | 22 feb–5 mar | Sin el disparador de M3 (12 oct 2026), como dice la nota de abajo: el cobro del plan por periodo, que HC4 desbloqueó (#161). EQ9 sigue preparada | HU-Q7.10 (3) | 3 | — |
-| **Q13** | 8–19 mar | **M3.** Envío por la Cloud API, estados, autoservicio y presupuesto de mensajes | HU-Q9.4 (5), HU-Q9.5 (3), HU-Q9.6 (3), HU-Q9.7 (2), HU-Q9.8 (2) | 15 | M3, `v1.1.0` |
+| **Q13** | 8–19 mar | Sin el disparador de M3 (14 oct 2026): lo que pidió el dueño con el cliente en operación. EQ9 sigue preparada | HU-Q13.1 (1), HU-Q13.2 (3), HU-Q13.3 (2) | 6 | `v0.6.0` |
 
 **Total:** 229 puntos en 14 sprints. M0: 116 (Q0–Q5). M1: 57 (Q6–Q9). M2: 31 (Q10–Q11). M3: 25 (Q12–Q13).
 
@@ -808,6 +808,32 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 - **Patrones en riesgo:** P18.
 - **Work items:** WI-Q11.7.1 `[doc]` norma vigente · WI-Q11.7.2 `[código]` · WI-Q11.7.3 `[campo]` Search Console a los 90 días.
 
+### EQ13 · Lo que pidió el cliente en la operación (Q13)
+
+Pedido del dueño del 14 oct 2026, con el primer parqueadero ya operando. Sin el disparador de M3, Q13 lo toma (§6.1).
+
+#### HU-Q13.1 · Hora militar u hora con a. m. y p. m.
+- **Capa:** caja y recibos · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** Q13 · **Estado:** En revisión (rama `feat/q13-sprint`)
+- Como parqueadero, quiero ver y entregar las horas como las lee mi gente: `18:05` o `6:05 p. m.`.
+- **CA1.** Ajustes › «Cómo se escribe la hora»: militar (por omisión) o con a. m. y p. m. Las pantallas de la caja, el papel, el WhatsApp, la pantalla del recibo, el cierre de turno y el recibo de la mensualidad la usan.
+- **CA2.** `/r/` muestra la misma hora que el papel: el enlace la lleva en su versión 3 (`h: 1`). Un recibo con hora militar sigue saliendo en la versión de siempre.
+- **CA3 ❌.** La medianoche y el mediodía son las 12 (`12:05 a. m.`, `12:00 p. m.`), nunca las 0.
+
+#### HU-Q13.2 · Tarifa de domingos y festivos
+- **Capa:** paquete, caja y recibos · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q13 · **Estado:** En revisión (rama `feat/q13-sprint`)
+- Como parqueadero, quiero cobrar otro valor por minuto y otro día completo los domingos y festivos, para el carro y la moto, sin que sea obligatorio configurarlo.
+- **CA1.** Cada tarifa tiene, opcionales, «Por minuto en domingos y festivos» y «Día completo en domingos y festivos» (que cuenta desde los mismos minutos del día completo de siempre). Sin ellos, el domingo cobra como cualquier día.
+- **CA2.** Cada minuto vale según el día de Bogotá en que empieza: domingo o festivo de Colombia (`@ed1/calendario`, Ley 51 de 1983), o día normal. El día completo de un bloque de 24 h es el del día en que empieza el bloque. El tope por día sigue igual. La línea del recibo dice «con domingo o festivo».
+- **CA3 ❌.** Ni el valor ni el día completo de festivo pasan el tope legal por minuto: la caja no los guarda y dice por qué.
+- **CA4.** El recibo, el aviso de tarifas y `/r/` muestran la tarifa de festivo; el enlace la lleva en su versión 3 (`fs`).
+
+#### HU-Q13.3 · La mensualidad por días calendario o hábiles
+- **Capa:** paquete y caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q13 · **Estado:** En revisión (rama `feat/q13-sprint`)
+- Como parqueadero, quiero que una mensualidad empezada cobre solo los días que cuento: todos, o los hábiles.
+- **CA1.** Ajustes › «Una mensualidad empezada cobra»: días calendario (como antes) o días hábiles, de lunes a viernes que no son festivo en Colombia.
+- **CA2.** Con hábiles, el prorrateo cuenta los hábiles que cubre sobre los del periodo entero, a la centena hacia abajo. Un periodo entero vale el valor del mes, sin importar cuántos hábiles tenga.
+- **CA3.** La vigencia del abono no cambia: un abonado entra sin pagar cualquier día de su periodo. Lo que cambia es cuánto se cobra un periodo empezado.
+
 ---
 
 ## 9. Preparadas, sin sprint
@@ -927,6 +953,7 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 | Q9 | 15 | Solo staging | #154. HU-Q7.10 espera HC4 y HU-Q7.12 es la `v0.5.0` |
 | Q10 | 14 | Solo staging | #155 |
 | Q11 | 17 | Lo que no necesita la nube, en la `v0.3.0` de la entrega | #156–#158: 20 puntos hechos (HU-Q8.3, HU-Q8.4, HU-Q8.5, HU-Q8.6, HU-Q10.3, HU-Q11.6 y HU-Q11.7, estas dos sin sprint); HU-Q8.7 espera M1 en producción |
+| Q13 | 6 | Con la `0.6.0` | HU-Q13.1, HU-Q13.2 y HU-Q13.3, pedidas por el dueño el 2026-10-14 |
 | Q12 | 3 | En producción con la `0.5.0` | HU-Q7.10, sin el disparador de M3. HU-Q7.12 (M1 en producción) espera la decisión del dueño |
 
 Desde el 12 oct 2026, un PR y un push por sprint completo, para ahorrar minutos de Actions (decisión del dueño).

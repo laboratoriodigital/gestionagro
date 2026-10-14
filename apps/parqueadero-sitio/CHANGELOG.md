@@ -4,6 +4,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.6.0] - 2026-10-14
+
+Lo que pidió el primer parqueadero ya operando: la hora como la lee, los domingos y festivos, y la mensualidad por días hábiles.
+
+### Agregado
+- La hora militar o con a. m. y p. m. (HU-Q13.1): Ajustes › «Cómo se escribe la hora». La usan las pantallas de la caja, el papel, el WhatsApp, la pantalla del recibo y su enlace, el cierre de turno y el recibo de la mensualidad.
+- La tarifa de domingos y festivos (HU-Q13.2), opcional, para el carro y la moto: «Por minuto en domingos y festivos» y «Día completo en domingos y festivos». Cada minuto vale según el día en que empieza; los festivos son los de Colombia. El recibo, el aviso de tarifas y la página del recibo la muestran.
+- La mensualidad por días calendario o hábiles (HU-Q13.3): Ajustes › «Una mensualidad empezada cobra». Con días hábiles, una mensualidad empezada cobra los lunes a viernes que no son festivo que cubre, sobre los del mes entero.
+
 ## [0.5.0] - 2026-10-13
 
 M1 en producción: la cuenta, la nube, varias cajas y el pago del plan, en la caja del cliente.

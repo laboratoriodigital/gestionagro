@@ -901,6 +901,9 @@ La página general de precios (W1) sigue diciendo que los mensajes que no son pl
 
 6. **Nota del sprint Q2 (7 oct 2026), cómo quedó en el código:** el día completo (`plena`) cobra su valor cuando los minutos de un bloque de 24 h pasan de `desde_min`, y el tope por día va encima. Una noche **completa** sale del tiempo y se cobra a su valor fijo; los minutos de una noche a medias se cobran como tiempo. El abonado que vence en medio de la estadía paga desde el vencimiento. `validarTarifa` revisa el peor minuto de cada concepto contra el tope: el valor, el día completo (hasta `desde_min + 1` minutos) y la noche (su franja entera).
 
+7. **Domingos y festivos (HU-Q13.2, 2026-10-14).** Con `festivo` en la tarifa, cada unidad de tiempo vale según el día de Bogotá en que empieza: domingo o festivo de Colombia (`@ed1/calendario`), o día normal. La plena de un bloque de 24 h es la de festivo si el bloque empieza en uno; el tope por día va encima, como siempre. Las líneas son `tiempo_festivo` y `plena_festivo`, al final de `CONCEPTOS` para que los enlaces de antes lean lo mismo. El valor y la plena de festivo tampoco pasan el tope legal.
+8. **La mensualidad por días hábiles (HU-Q13.3).** Con `dias_mensualidad: 'habiles'` en la sede, el prorrateo cuenta de lunes a viernes que no son festivo, arriba y abajo.
+
 ### 9.3 Pruebas
 
 - **Tabla de casos** compartida: gracia exacta, minuto 0, cruce de medianoche, estadía de 3 días con tope diario, nocturna que empieza y termina, tiquete perdido, abonado que vence en medio de la estadía.
