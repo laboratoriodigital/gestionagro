@@ -124,6 +124,18 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
     );
   });
 
+  it('❌ solo staging deja publicar a los comercios de prueba; producción no lleva ENSAYOS', () => {
+    for (const celda of celdas) {
+      const api = wranglerDeLaCeldaDeLaTienda(celda) as unknown as Config & {
+        vars: Record<string, string>;
+      };
+      expect(api.vars['ENSAYOS']).toBeUndefined();
+      expect((api.env.staging as unknown as { vars: Record<string, string> }).vars['ENSAYOS']).toBe(
+        '1',
+      );
+    }
+  });
+
   it('el despacho de staging atiende las direcciones de los dos comercios de prueba (HU-T2.6)', () => {
     const sitio = wranglerDelSitioDeLaTienda(config) as unknown as Config;
     expect(sitio.env.staging.routes).toEqual([

@@ -400,7 +400,8 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
       staging: {
         name: workerDeLaApiDeLaTienda(celda.id, true),
         workers_dev: false,
-        vars,
+        // HU-T2.6 y HU-T4.4: solo staging publica a los comercios de prueba.
+        vars: { ...vars, ENSAYOS: '1' },
         d1_databases: bases(true),
         r2_buckets: [{ binding: 'SITIOS', bucket_name: `${almacen}-staging` }],
       },

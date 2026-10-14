@@ -38,7 +38,8 @@
       "vars": {
         "CELDA": "c1",
         "PRODUCTO": "tienda",
-        "PLAN": "free"
+        "PLAN": "free",
+        "ENSAYOS": "1"
       },
       "d1_databases": [
         {

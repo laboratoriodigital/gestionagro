@@ -35,6 +35,11 @@ export interface ComercioDeEnsayo {
   slug: string;
   nombre: string;
   plan: 'gratis' | 'entrada';
+  /**
+   * Sus ajustes por sección, con datos de prueba que pasan la compuerta (HU-T4.3): ningún dato es
+   * de una persona o empresa real.
+   */
+  ajustes: Readonly<Record<string, Record<string, unknown>>>;
   productos: ProductoDeEnsayo[];
 }
 
@@ -43,6 +48,33 @@ export const ENSAYO_UNO: ComercioDeEnsayo = {
   slug: 'ensayo-uno',
   nombre: 'Comercio Ensayo Uno',
   plan: 'entrada',
+  ajustes: {
+    identidad: { nombre: 'Comercio Ensayo Uno', frase: 'Ropa de lino, hecha despacio.' },
+    contacto: {
+      whatsapp: '+573000000001',
+      whatsappVerificado: true,
+      correo: 'ensayo-uno@ejemplo.test',
+    },
+    venta: { modo: 'whatsapp', formas: [{ forma: 'a_convenir' }, { forma: 'transferencia' }] },
+    legal: {
+      razonSocial: 'Comercio Ensayo Uno',
+      tipoPersona: 'juridica',
+      documento: { tipo: 'NIT', numero: '900000001-1' },
+      direccionNotificacion: 'Calle de prueba 1',
+      ciudad: 'Medellín',
+      telefono: '+573000000001',
+      correo: 'ensayo-uno@ejemplo.test',
+    },
+    apariencia: {
+      acento: '#9c4a1a',
+      tinta: 'azul',
+      estilo: 'editorial',
+      portada: 'catalogo',
+      proporcion: '4:5',
+      modo: 'telefono',
+    },
+    agentes: { search: 'yes', aiInput: 'yes', aiTrain: 'no' },
+  },
   productos: [
     {
       id: 'p-camisa',
@@ -67,6 +99,33 @@ export const ENSAYO_DOS: ComercioDeEnsayo = {
   slug: 'ensayo-dos',
   nombre: 'Comercio Ensayo Dos',
   plan: 'gratis',
+  ajustes: {
+    identidad: { nombre: 'Comercio Ensayo Dos', frase: 'Pan de la casa, todas las mañanas.' },
+    contacto: {
+      whatsapp: '+573000000002',
+      whatsappVerificado: true,
+      correo: 'ensayo-dos@ejemplo.test',
+    },
+    venta: { modo: 'whatsapp', formas: [{ forma: 'a_convenir' }, { forma: 'transferencia' }] },
+    legal: {
+      razonSocial: 'Comercio Ensayo Dos',
+      tipoPersona: 'natural',
+      documento: { tipo: 'CC', numero: '1000000002' },
+      direccionNotificacion: 'Calle de prueba 2',
+      ciudad: 'Medellín',
+      telefono: '+573000000002',
+      correo: 'ensayo-dos@ejemplo.test',
+    },
+    apariencia: {
+      acento: '#5c5a17',
+      tinta: 'negra',
+      estilo: 'precision',
+      portada: 'catalogo',
+      proporcion: '1:1',
+      modo: 'telefono',
+    },
+    agentes: { search: 'yes', aiInput: 'yes', aiTrain: 'no' },
+  },
   productos: [
     {
       id: 'p-pan-de-bono',
@@ -95,6 +154,10 @@ export function siembraDelShard(ensayos: readonly ComercioDeEnsayo[], ahora: str
   const t = texto(ahora);
   return ensayos.flatMap((c) => [
     `INSERT INTO tienda (org_id, slug, nombre, estado, plan, creado, actualizado) VALUES (${texto(c.org)}, ${texto(c.slug)}, ${texto(c.nombre)}, 'abierta', ${texto(c.plan)}, ${t}, ${t}) ON CONFLICT DO NOTHING;`,
+    ...Object.entries(c.ajustes).map(
+      ([seccion, datos]) =>
+        `INSERT INTO ajuste (org_id, seccion, esquema, datos, actualizado, actualizado_por) VALUES (${texto(c.org)}, ${texto(seccion)}, 1, ${texto(JSON.stringify(datos))}, ${t}, 'sistema:ensayo') ON CONFLICT DO NOTHING;`,
+    ),
     ...c.productos.flatMap((p) => [
       `INSERT INTO producto (org_id, id, slug, nombre, estado, opciones, retracto, retracto_motivo, creado, actualizado) VALUES (${texto(c.org)}, ${texto(p.id)}, ${texto(p.slug)}, ${texto(p.nombre)}, 'activo', ${texto(JSON.stringify(p.opciones))}, ${p.retracto === 'aplica' ? "'aplica', NULL" : `'no_aplica', ${texto(p.retracto.motivo)}`}, ${t}, ${t}) ON CONFLICT DO NOTHING;`,
       ...p.variantes.map(

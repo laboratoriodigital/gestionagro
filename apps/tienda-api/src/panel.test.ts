@@ -142,3 +142,36 @@ describe('GET /api/panel/v1/yo, con el token del CORE (HU-T2.8)', () => {
     },
   );
 });
+
+describe('POST /api/panel/v1/publicar (HU-T4.4)', () => {
+  const publicarCon = async (e: Env, t: string) =>
+    crearApp({ ahora: () => T0 }).request(
+      '/api/panel/v1/publicar',
+      { method: 'POST', headers: { [CABECERA_DESPACHO]: SECRETO, authorization: `Bearer ${t}` } },
+      e,
+    );
+
+  it('❌ un rol que la matriz no conoce no publica', async () => {
+    const r = await publicarCon(env(), await token({ rol: 'cajero' }));
+    expect(r.status).toBe(403);
+    expect((await r.json()).estado).toBe('prohibido');
+  });
+
+  it('❌ con ks:tienda-horno apagado, publicar está en pausa y lo publicado sigue', async () => {
+    const r = await publicarCon(
+      {
+        ...env(),
+        FLAGS: { get: async (k: string) => (k === 'ks:tienda-horno' ? 'apagado' : null) },
+      },
+      await token(),
+    );
+    expect(r.status).toBe(503);
+    expect((await r.json()).estado).toBe('apagado');
+  });
+
+  it('❌ sin el almacén ni los punteros configurados, no finge publicar (P1)', async () => {
+    const r = await publicarCon(env(), await token());
+    expect(r.status).toBe(503);
+    expect(await r.json()).toEqual({ estado: 'sin-configurar' });
+  });
+});

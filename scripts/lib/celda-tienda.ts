@@ -132,6 +132,34 @@ export const hostsDeLaCelda = (celda: Celda): [string, string][] => {
   return hostsDeStaging(ENSAYOS, celda.id, shard);
 };
 
+/**
+ * Publica a los comercios de prueba en staging, por el panel y con el secreto del despacho en
+ * `x-ensayo` (HU-T4.4). Una frase por falla.
+ */
+export async function publicarEnsayos(
+  fetchFn: Fetch,
+  panel: string,
+  secreto: string,
+): Promise<string[]> {
+  let r: Response;
+  try {
+    r = await fetchFn(`${panel}/api/ensayo/publicar`, {
+      method: 'POST',
+      headers: { 'x-ensayo': secreto },
+    });
+  } catch (e) {
+    return [`publicar a los comercios de prueba: no respondió (${(e as Error).message})`];
+  }
+  if (r.status === 200) return [];
+  let detalle = '';
+  try {
+    detalle = JSON.stringify(await r.json()).slice(0, 500);
+  } catch {
+    detalle = 'sin JSON';
+  }
+  return [`publicar a los comercios de prueba respondió ${r.status}: ${detalle}`];
+}
+
 /** Lo que el despliegue agrega a la configuración generada: ids de bases y de KV (fuera de git). */
 export interface DespliegueDeLaTienda {
   bases: Readonly<Record<string, string>>;
@@ -139,6 +167,8 @@ export interface DespliegueDeLaTienda {
   hostsId: string;
   /** Las claves públicas del CORE del destino (HU-T2.8). */
   clavesCore: readonly unknown[];
+  /** La release de los archivos comunes de la vitrina con que hornea la API (HU-T3.3). */
+  vitrinaRelease: string;
 }
 
 /** La configuración de la API con los ids de este despliegue, solo en el destino que se prepara. */
@@ -161,6 +191,7 @@ export function configDeLaApi(
     vars: {
       ...(bloque['vars'] as Record<string, string>),
       CORE_CLAVES: JSON.stringify(d.clavesCore),
+      VITRINA_RELEASE: d.vitrinaRelease,
     },
   });
   return enDestino(generada, destino, agregar);
@@ -308,6 +339,16 @@ export async function humoDeLaTienda(
     }
     if (r.status !== 200 || nombre !== e.nombre) {
       fallas.push(`${url} respondió ${r.status} sin el nombre de ${e.nombre}`);
+    }
+    // HU-T4.4: su portada, horneada y servida desde el almacén por el despacho.
+    const suPortada = await pedir(`https://${hostDeStaging(e.slug)}/`);
+    if (
+      suPortada &&
+      (suPortada.status !== 200 || !(await suPortada.text()).includes(`<h1>${e.nombre}</h1>`))
+    ) {
+      fallas.push(
+        `https://${hostDeStaging(e.slug)}/ respondió ${suPortada.status} sin la portada de ${e.nombre}`,
+      );
     }
   }
   return { fallas, avisos };
