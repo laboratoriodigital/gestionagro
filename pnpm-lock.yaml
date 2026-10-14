@@ -523,6 +523,18 @@ importers:
 
   packages/telegram: {}
 
+  packages/tienda-horno:
+    dependencies:
+      '@ed1/dinero':
+        specifier: workspace:*
+        version: link:../dinero
+      '@ed1/tienda-schema':
+        specifier: workspace:*
+        version: link:../tienda-schema
+      '@ed1/ui':
+        specifier: workspace:*
+        version: link:../ui
+
   packages/tienda-schema:
     dependencies:
       zod:

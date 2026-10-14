@@ -1,0 +1,15 @@
+{
+  "name": "@ed1/tienda-horno",
+  "version": "0.1.0",
+  "private": true,
+  "description": "El horno de la Tienda 3.0: la tienda en archivos estáticos deterministas (portada, fichas, gemelos Markdown, catálogo, sitemap, JSON-LD y tema), sin reloj, ni azar, ni Intl. Lo que escribe el comercio se escapa siempre (TIENDA-3.0 §10, HU-T4.1, HU-T4.2 y HU-T3.2).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ed1/dinero": "workspace:*",
+    "@ed1/tienda-schema": "workspace:*",
+    "@ed1/ui": "workspace:*"
+  }
+}
