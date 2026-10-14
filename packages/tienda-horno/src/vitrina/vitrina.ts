@@ -55,6 +55,9 @@ function ficha(): void {
   const boton = form.querySelector<HTMLButtonElement>('[data-boton]');
   const precio = document.querySelector<HTMLElement>('[data-precio]');
   const avisame = form.querySelector<HTMLElement>('[data-avisame]');
+  // Ley 1480 art. 52: un producto solo para mayores pide confirmar la edad antes de agregarlo.
+  const mayoria = form.querySelector<HTMLInputElement>('[data-mayoria]');
+  const faltaLaEdad = () => Boolean(mayoria && !mayoria.checked);
   const elegidas = (): Record<string, string> =>
     Object.fromEntries(
       opciones.flatMap((o) => {
@@ -68,8 +71,9 @@ function ficha(): void {
     const e = elegidas();
     const estado = estadoDeLaEleccion(opciones, variantes, e);
     if (boton) {
-      boton.textContent = estado.texto;
-      boton.setAttribute('aria-disabled', String(estado.tipo !== 'lista'));
+      const edad = estado.tipo === 'lista' && faltaLaEdad();
+      boton.textContent = edad ? 'Confirma que eres mayor de edad' : estado.texto;
+      boton.setAttribute('aria-disabled', String(estado.tipo !== 'lista' || edad));
     }
     if (precio && (estado.tipo === 'lista' || estado.tipo === 'agotada')) {
       precio.textContent = formato(estado.variante.precioCop);
@@ -97,6 +101,10 @@ function ficha(): void {
       return;
     }
     if (estado.tipo !== 'lista') return;
+    if (faltaLaEdad()) {
+      mayoria?.focus();
+      return;
+    }
     const pedido = leerPedido();
     const linea = pedido.find((l) => l.variante === estado.variante.id);
     if (linea) linea.cantidad += 1;

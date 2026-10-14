@@ -62,6 +62,8 @@ export interface Env {
   /** El KV de flags de la celda, con los kill switches (`ks:tienda`, `ks:tienda:<org>`). */
   FLAGS?: LectorKv;
   SECRETO_DESPACHO?: string;
+  /** El host público de las fotos (HU-T5.6), para la CSP. */
+  MEDIOS?: string;
   /** Un binding de servicio por celda (`API_C1`) y su almacén de sitios horneados (`SITIOS_C1`). */
   [binding: string]: unknown;
 }
@@ -138,15 +140,17 @@ const CABECERAS_DE_AVISO = {
   'cache-control': 'public, max-age=60',
 };
 
-/** Las cabeceras de una página de la vitrina (TIENDA §11.4): CSP sin nada en línea ni de terceros. */
-export const CABECERAS_DE_LA_VITRINA = {
-  'content-security-policy':
-    "default-src 'self'; img-src 'self' https://img.laboratorio-digital.app data:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+/**
+ * Las cabeceras de una página de la vitrina (TIENDA §11.4): CSP sin nada en línea ni de terceros.
+ * Las fotos, solo de su host (`MEDIOS`, HU-T5.6): el de producción o el de staging, nunca los dos.
+ */
+export const cabecerasDeLaVitrina = (medios: string | undefined) => ({
+  'content-security-policy': `default-src 'self'; img-src 'self'${medios ? ` https://${medios}` : ''} data:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
   // Sin includeSubDomains: los otros subdominios de un comercio no son nuestros (TIENDA §4.4).
   'strict-transport-security': 'max-age=31536000',
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'strict-origin-when-cross-origin',
-};
+});
 
 export const sinTienda = (): Response =>
   new Response(
@@ -265,7 +269,7 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       }
       return new Response(await objeto.text(), {
         headers: {
-          ...CABECERAS_DE_LA_VITRINA,
+          ...cabecerasDeLaVitrina(env.MEDIOS),
           'content-type': archivo.tipo,
           'cache-control': 'public, max-age=60',
           vary: 'Accept',
@@ -307,7 +311,7 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
           }),
           {
             headers: {
-              ...CABECERAS_DE_LA_VITRINA,
+              ...cabecerasDeLaVitrina(env.MEDIOS),
               'content-type': 'text/plain; charset=utf-8',
               'cache-control': 'public, max-age=3600',
             },

@@ -52,7 +52,24 @@ function paraHornear(
       opciones: p.opciones,
       variantes: p.variantes,
       actualizado: '2026-10-13T15:00:00.000Z',
+      // HU-T5.2: Ensayo Uno con su foto y sus derivadas; Ensayo Dos sin fotos (el marco vacío).
+      ...(uno
+        ? {
+            fotos: [
+              {
+                huella: 'a'.repeat(64),
+                alt: 'Camisa de lino arena',
+                ancho: 1600,
+                alto: 2000,
+                anchos: [400, 800, 1600],
+              },
+            ],
+          }
+        : {
+            retracto: { aplica: false as const, motivo: 'Alimento perecedero (Ley 1480, art. 47)' },
+          }),
     })),
+    ...(uno ? { org: c.org, medios: 'img--staging.laboratorio-digital.app' } : {}),
     ...(uno
       ? { colecciones: [{ slug: 'lino', nombre: 'Lino', productos: ['camisa-de-lino'] }] }
       : {}),

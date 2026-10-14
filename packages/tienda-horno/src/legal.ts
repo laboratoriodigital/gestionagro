@@ -42,6 +42,8 @@ export interface DatosLegales {
   garantia?: string;
   retracto?: string;
   medicion: { ga4: boolean; pixelMeta: boolean };
+  /** Si el comercio es responsable de IVA: la ficha dice «con IVA incluido» solo entonces. */
+  responsableIva?: boolean;
 }
 
 export interface TextoLegal {

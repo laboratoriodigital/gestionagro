@@ -8,7 +8,8 @@
   "vars": {
     "CELDA": "c1",
     "PRODUCTO": "tienda",
-    "PLAN": "free"
+    "PLAN": "free",
+    "MEDIOS": "img.laboratorio-digital.app"
   },
   "d1_databases": [
     {
@@ -44,6 +45,7 @@
         "CELDA": "c1",
         "PRODUCTO": "tienda",
         "PLAN": "free",
+        "MEDIOS": "img--staging.laboratorio-digital.app",
         "ENSAYOS": "1"
       },
       "d1_databases": [

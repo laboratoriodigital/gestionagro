@@ -23,6 +23,7 @@ import {
   compuerta,
   type DatosLegales,
   type Falla,
+  type FotoParaHornear,
   hornear,
   manifiesto,
   type ProductoParaHornear,
@@ -54,6 +55,8 @@ export interface Contexto {
   hosts: EscritorKv;
   celda: string;
   release: string;
+  /** El host de las fotos (`MEDIOS`, HU-T5.6). Sin él, las fichas salen con el marco vacío. */
+  medios?: string;
   org: string;
   pedidaPor: string;
   /** ISO 8601, del reloj del Worker: la publicación guarda cuándo, el horno no lo usa. */
@@ -78,6 +81,8 @@ interface FilaProducto {
   opciones: string;
   retracto: 'aplica' | 'no_aplica';
   retracto_motivo: string | null;
+  solo_mayores: number;
+  destacado: number;
   actualizado: string;
 }
 
@@ -136,7 +141,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     >;
     const { results: productos } = await c.shard
       .prepare(
-        `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, actualizado
+        `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, actualizado
          FROM producto WHERE org_id = ? AND borrado IS NULL ORDER BY posicion, slug`,
       )
       .bind(c.org)
@@ -154,10 +159,29 @@ export async function publicar(c: Contexto): Promise<Resultado> {
         stock: number | null;
         reservado: number;
       }>();
-    const { results: fotos } = await c.shard
-      .prepare('SELECT producto_id, COUNT(*) AS n FROM medio WHERE org_id = ? GROUP BY producto_id')
+    const { results: medios } = await c.shard
+      .prepare(
+        'SELECT id, producto_id, alt, ancho, alto, formatos FROM medio WHERE org_id = ? ORDER BY producto_id, posicion, id',
+      )
       .bind(c.org)
-      .all<{ producto_id: string; n: number }>();
+      .all<{
+        id: string;
+        producto_id: string;
+        alt: string;
+        ancho: number;
+        alto: number;
+        formatos: string;
+      }>();
+    const fotosDe = (productoId: string): FotoParaHornear[] =>
+      medios
+        .filter((m) => m.producto_id === productoId)
+        .map((m) => ({
+          huella: m.id,
+          alt: m.alt,
+          ancho: m.ancho,
+          alto: m.alto,
+          anchos: Object.keys(JSON.parse(m.formatos) as Record<string, number>).map(Number),
+        }));
     const { results: colecciones } = await c.shard
       .prepare(
         `SELECT c.slug, c.nombre, p.slug AS producto FROM coleccion c
@@ -204,6 +228,13 @@ export async function publicar(c: Contexto): Promise<Resultado> {
             stock: v.stock === null ? null : Math.max(0, v.stock - v.reservado),
           })),
           actualizado: p.actualizado,
+          fotos: fotosDe(p.id),
+          retracto:
+            p.retracto === 'no_aplica'
+              ? { aplica: false, motivo: p.retracto_motivo ?? '' }
+              : { aplica: true },
+          soloMayores: p.solo_mayores === 1,
+          destacado: p.destacado === 1,
         },
       ];
     });
@@ -241,6 +272,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
         .filter((p) => p.retracto === 'no_aplica' && p.retracto_motivo)
         .map((p) => ({ nombre: p.nombre, motivo: p.retracto_motivo as string })),
       medicion: { ga4: Boolean(medicion['ga4']), pixelMeta: Boolean(medicion['pixelMeta']) },
+      responsableIva: legal['responsableIva'] === true,
     };
     const porColeccion = new Map<string, { nombre: string; productos: string[] }>();
     for (const f of colecciones) {
@@ -251,6 +283,8 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     const datos: TiendaParaHornear = {
       dominio: canonico,
       release: c.release,
+      org: c.org,
+      ...(c.medios ? { medios: c.medios } : {}),
       nombre: (identidad['nombre'] as string | undefined) ?? tienda.nombre,
       ...(identidad['frase'] ? { frase: identidad['frase'] as string } : {}),
       ...(contacto['whatsapp'] ? { whatsapp: contacto['whatsapp'] as string } : {}),
@@ -277,7 +311,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
           nombre: p.nombre,
           estado: p.estado,
           precioCop: variantes.find((v) => v.producto_id === p.id)?.precio_cop ?? null,
-          fotos: fotos.find((f) => f.producto_id === p.id)?.n ?? 0,
+          fotos: medios.filter((m) => m.producto_id === p.id).length,
           retracto: p.retracto,
           retractoMotivo: p.retracto_motivo,
         }),

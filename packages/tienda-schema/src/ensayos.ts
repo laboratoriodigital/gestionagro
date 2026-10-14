@@ -164,6 +164,7 @@ export function legalDeEnsayo(c: ComercioDeEnsayo) {
       p.retracto === 'aplica' ? [] : [{ nombre: p.nombre, motivo: p.retracto.motivo }],
     ),
     medicion: { ga4: false, pixelMeta: false },
+    responsableIva: legal['responsableIva'] === true,
   };
 }
 

@@ -68,6 +68,8 @@ export interface Env {
   VITRINA_RELEASE?: string;
   /** Solo en staging: «1» deja publicar a los comercios de prueba (HU-T2.6). */
   ENSAYOS?: string;
+  /** El host público de las fotos (HU-T5.6): `img.` en producción, `img--staging.` en staging. */
+  MEDIOS?: string;
   /** El aviso al dueño (HU-T17.1): lo usa la tarea que reconstruye los hostnames. */
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
@@ -307,6 +309,7 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       hosts,
       celda,
       release,
+      ...(c.env.MEDIOS ? { medios: c.env.MEDIOS } : {}),
       org,
       pedidaPor,
       ahora: new Date(ahora()).toISOString(),

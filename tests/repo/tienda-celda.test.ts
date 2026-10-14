@@ -8,6 +8,7 @@ import {
   bindingDeLaApi,
   CRON_DE_LA_TIENDA,
   celdasDeLaTienda,
+  MEDIOS_DE_LA_TIENDA,
   RUTA_WRANGLER_TIENDA_PANEL,
   RUTA_WRANGLER_TIENDA_SITIO,
   rutaWranglerCeldaDeLaTienda,
@@ -183,12 +184,31 @@ describe('las fotos sin Worker y en su propio bucket (HU-T5.6)', () => {
     expect(() => cargarCeldas(datos)).toThrow(/datos personales/);
   });
 
-  it('❌ ninguna configuración de Worker toma img.: ver una foto no ejecuta código (CA2)', () => {
-    const textos = [
-      ...celdas.map((c) => textoWranglerDeLaCeldaDeLaTienda(c)),
-      textoWranglerDelSitioDeLaTienda(config),
-      textoWranglerDelPanelDeLaTienda(config),
+  it('❌ ninguna configuración de Worker toma img. como ruta: ver una foto no ejecuta código (CA2)', () => {
+    const rutas = (c: Record<string, unknown>) => {
+      const staging = (c['env'] as { staging?: Record<string, unknown> } | undefined)?.staging;
+      return JSON.stringify([c['routes'] ?? [], staging?.['routes'] ?? []]);
+    };
+    const configs = [
+      ...celdas.map((c) => wranglerDeLaCeldaDeLaTienda(c)),
+      wranglerDelSitioDeLaTienda(config),
+      wranglerDelPanelDeLaTienda(config),
     ];
-    for (const t of textos) expect(t).not.toMatch(/img(--staging)?\.laboratorio-digital\.app/);
+    for (const c of configs)
+      expect(rutas(c)).not.toMatch(/img(--staging)?\.laboratorio-digital\.app/);
+  });
+
+  it('la API hornea las fotos con el host de su destino, y el despacho solo lo permite a él (HU-T5.2)', () => {
+    const [c1] = celdas;
+    if (!c1) throw new Error('sin celda c1');
+    const api = wranglerDeLaCeldaDeLaTienda(c1) as unknown as {
+      vars: Record<string, string>;
+      env: { staging: { vars: Record<string, string> } };
+    };
+    const sitio = wranglerDelSitioDeLaTienda(config) as unknown as typeof api;
+    for (const c of [api, sitio]) {
+      expect(c.vars['MEDIOS']).toBe(MEDIOS_DE_LA_TIENDA.produccion);
+      expect(c.env.staging.vars['MEDIOS']).toBe(MEDIOS_DE_LA_TIENDA.staging);
+    }
   });
 });

@@ -161,10 +161,77 @@ h1 {
   text-decoration: none;
 }
 .tarjeta__foto,
-.ficha__foto {
+.ficha__foto,
+.coleccion__foto,
+.portada-editorial__foto {
+  display: block;
+  overflow: hidden;
   aspect-ratio: var(--proporcion-foto, 1 / 1);
   background: var(--superficie-2);
   border-radius: var(--radio-campo);
+}
+/* Las fotos llenan su marco: el marco tiene su proporción antes de que cargue (CLS, HU-T5.2). */
+.tarjeta__foto img,
+.ficha__foto img,
+.coleccion__foto img,
+.portada-editorial__foto img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ficha__fotos {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  gap: var(--espacio-2);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+.ficha__fotos .ficha__foto {
+  scroll-snap-align: start;
+}
+
+/* --- Portadas: editorial y colecciones (HU-T5.2) --------------------------------------------- */
+.portada-editorial {
+  margin-bottom: var(--espacio-8);
+}
+.portada-editorial__producto {
+  display: grid;
+  gap: var(--espacio-4);
+  text-decoration: none;
+}
+@media (min-width: 48rem) {
+  .portada-editorial__producto {
+    grid-template-columns: 1.4fr 1fr;
+    align-items: end;
+  }
+}
+.portada-editorial__texto {
+  display: grid;
+  gap: var(--espacio-2);
+}
+.portada-editorial__ver {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  font-weight: var(--peso-fuerte);
+  text-decoration: underline;
+}
+.colecciones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-4);
+  margin: 0 0 var(--espacio-8);
+  padding: 0;
+  list-style: none;
+}
+.coleccion a {
+  display: grid;
+  gap: var(--espacio-2);
+  min-height: 48px;
+  text-decoration: none;
+  font-weight: var(--peso-fuerte);
 }
 .tarjeta__nombre {
   font-weight: var(--peso-fuerte);
@@ -267,6 +334,37 @@ h1 {
 .avisame {
   margin: 0;
   font-size: var(--texto-pequeno);
+}
+.precio__nota {
+  margin: calc(-1 * var(--espacio-4)) 0 var(--espacio-6);
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+/* Mayores de edad (Ley 1480 art. 52): la casilla se toca con el dedo. */
+.mayoria {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: 48px;
+}
+.mayoria input {
+  width: 24px;
+  height: 24px;
+}
+/* Lo que la ley pide decir antes de comprar (HU-T5.2 CA2). */
+.condiciones {
+  display: grid;
+  gap: var(--espacio-2);
+  margin: var(--espacio-6) 0 0;
+  padding: var(--espacio-4) 0 0;
+  border-top: 1px solid var(--borde);
+  list-style: none;
+  font-size: var(--texto-pequeno);
+}
+.condiciones a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
 }
 .descripcion {
   margin-top: var(--espacio-8);

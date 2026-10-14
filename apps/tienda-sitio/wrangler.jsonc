@@ -26,6 +26,9 @@
       "bucket_name": "tienda-c1"
     }
   ],
+  "vars": {
+    "MEDIOS": "img.laboratorio-digital.app"
+  },
   "observability": {
     "enabled": true
   },
@@ -54,7 +57,10 @@
           "binding": "SITIOS_C1",
           "bucket_name": "tienda-c1-staging"
         }
-      ]
+      ],
+      "vars": {
+        "MEDIOS": "img--staging.laboratorio-digital.app"
+      }
     }
   }
 }
