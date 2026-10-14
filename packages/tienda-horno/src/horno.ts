@@ -163,6 +163,8 @@ interface Pagina {
   cuerpo: string;
   ld: unknown[];
   gemelo: string;
+  /** Una página de cada comprador (el pedido): no se indexa. */
+  privada?: boolean;
 }
 
 export async function hornear(t: TiendaParaHornear): Promise<Map<string, ArchivoHorneado>> {
@@ -218,7 +220,7 @@ export async function hornear(t: TiendaParaHornear): Promise<Map<string, Archivo
 <html lang="es-CO" data-estilo="${t.apariencia.estilo}" data-portada="${t.apariencia.portada}" data-modo="${t.apariencia.modo}">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">${p.privada ? '\n<meta name="robots" content="noindex">' : ''}
 <title>${escaparHtml(p.titulo)}</title>${descripcion}
 <link rel="canonical" href="${escaparHtml(url(p.ruta))}">
 <link rel="alternate" type="text/markdown" href="${escaparHtml(gemelo)}">
@@ -444,7 +446,7 @@ ${p.cuerpo}
       `<h1>${escaparHtml(p.nombre)}</h1>`,
       `<p class="precio" data-precio>${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}</p>`,
       `<p class="precio__nota">${notaDelPrecio}</p>`,
-      `<form class="eleccion" data-eleccion>${grupos}${mayoria}<p class="avisame" data-avisame hidden>Esta combinación está agotada.</p><button class="boton boton--principal" type="submit" data-boton aria-disabled="${inicial.tipo !== 'lista'}">${escaparHtml(inicial.texto)}</button></form>`,
+      `<form class="eleccion" data-eleccion>${grupos}${mayoria}<p class="avisame" data-avisame hidden>Esta combinación está agotada.</p><p class="aviso" data-aviso role="status" hidden></p><button class="boton boton--principal" type="submit" data-boton aria-disabled="${inicial.tipo !== 'lista'}">${escaparHtml(inicial.texto)}</button></form>`,
       `<ul class="condiciones">${condiciones(p)
         .map((c) => `<li>${escaparHtml(c)}</li>`)
         .join(
@@ -543,6 +545,32 @@ ${p.cuerpo}
       gemelo: `# ${markdownPlano(c.nombre)}\n\n${suyos.map(lineaMd).join('\n')}\n`,
     });
   }
+
+  // El pedido (HU-T5.4): se arma en el teléfono del comprador; la isla pinta sus líneas. Sin ella,
+  // la página dice para qué es y ofrece el WhatsApp de la tienda.
+  const whatsapp = presente(t.whatsapp) ? t.whatsapp.replace(/\D/g, '') : '';
+  pagina({
+    ruta: '/pedido/',
+    titulo: `Tu pedido · ${t.nombre}`,
+    privada: true,
+    cuerpo: [
+      '<h1>Tu pedido</h1>',
+      '<div class="pedido" data-pedido-pagina>',
+      '<p class="aviso" data-aviso-carrito role="status" hidden></p>',
+      '<p class="pedido__codigo" data-codigo-bloque hidden>Código de tu pedido: <span class="cifra" data-codigo></span></p>',
+      '<p class="estado" data-vacio>Aquí ves lo que agregas a tu pedido desde cada producto. <a href="/">Mira los productos</a>.</p>',
+      '<ul class="lineas" data-lineas></ul>',
+      '<div class="resumen" data-resumen hidden><p class="resumen__fila">Subtotal <span class="cifra" data-subtotal></span></p><p class="resumen__nota">El envío y el total se confirman antes de enviar el pedido.</p></div>',
+      whatsapp
+        ? `<p class="pedido__whatsapp">¿Prefieres escribir? <a href="https://wa.me/${whatsapp}" rel="nofollow">Pide por WhatsApp</a></p>`
+        : '',
+      '</div>',
+    ]
+      .filter(Boolean)
+      .join('\n'),
+    ld: [],
+    gemelo: `# Tu pedido\n\nEl pedido se arma en el teléfono de cada comprador, desde las fichas de los productos. El catálogo está en [/catalogo.md](/catalogo.md).\n`,
+  });
 
   // Los textos legales (HU-T7.1), cada uno con su gemelo.
   const legales = t.legal ? textosLegales(t.legal) : [];

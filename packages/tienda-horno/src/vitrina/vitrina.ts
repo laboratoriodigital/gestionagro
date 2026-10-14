@@ -1,15 +1,31 @@
 /**
- * La isla de la vitrina (HU-T3.4 y HU-T5.3): el único JavaScript de una tienda, servido desde
- * `/_t/<release>/vitrina.js` (CSP `script-src 'self'`). Mejora lo que ya se lee sin él:
+ * La isla de la vitrina (HU-T3.4, HU-T5.3 y HU-T5.4): el único JavaScript de una tienda, servido
+ * desde `/_t/<release>/vitrina.js` (CSP `script-src 'self'`). Mejora lo que ya se lee sin él:
  *
  * - en la ficha, la elección de la variante (`seleccion.ts`): el precio, lo agotado tachado y el
- *   botón que dice qué falta y, al tocarlo, lleva al campo (CA2);
- * - la barra del pedido, que aparece cuando hay algo en él;
+ *   botón que dice qué falta y, al tocarlo, lleva al campo; la edad, si el producto la pide;
+ * - el carrito (`carrito.ts`) en el `localStorage` de la tienda, con su código y sus topes, y la
+ *   barra del pedido, que aparece cuando hay algo en él;
+ * - en `/pedido/`, las líneas del carrito con sus cantidades;
  * - en `/buscar/`, la búsqueda sobre `catalogo.json`, sin red al escribir.
  *
+ * Todo texto que llega del catálogo se pone con `textContent`, nunca como HTML.
  * `scripts/armar-vitrina.ts` le quita los tipos al armarla; no lleva dependencias.
  */
 import { buscar, type ProductoDelCatalogo } from './buscar.ts';
+import {
+  type AvisoAlLeer,
+  agregar,
+  type Carrito,
+  CLAVE_ANTERIOR,
+  CLAVE_DEL_CARRITO,
+  cambiarCantidad,
+  leerCarrito,
+  sanear,
+  TOPES,
+  type Tope,
+  unidades,
+} from './carrito.ts';
 import {
   estadoDeLaEleccion,
   type OpcionDeLaFicha,
@@ -17,32 +33,79 @@ import {
   valorAgotado,
 } from './seleccion.ts';
 
-const PEDIDO = 'tienda:pedido';
+const azar = (n: number) => crypto.getRandomValues(new Uint8Array(n));
 
-interface LineaDelPedido {
-  variante: string;
-  cantidad: number;
-}
+/** El almacenamiento puede no existir (modo privado): entonces el pedido se arma por WhatsApp. */
+const almacen = {
+  leer(clave: string): string | null {
+    try {
+      return localStorage.getItem(clave);
+    } catch {
+      return null;
+    }
+  },
+  escribir(clave: string, valor: string): boolean {
+    try {
+      localStorage.setItem(clave, valor);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  borrar(clave: string): void {
+    try {
+      localStorage.removeItem(clave);
+    } catch {
+      // Nada que borrar.
+    }
+  },
+};
 
-function leerPedido(): LineaDelPedido[] {
-  try {
-    const guardado = JSON.parse(localStorage.getItem(PEDIDO) ?? '[]') as unknown;
-    return Array.isArray(guardado) ? (guardado as LineaDelPedido[]) : [];
-  } catch {
-    return [];
+let avisoAlLeer: AvisoAlLeer | undefined;
+function cargar(): Carrito {
+  const { carrito, aviso } = leerCarrito(
+    almacen.leer(CLAVE_DEL_CARRITO),
+    almacen.leer(CLAVE_ANTERIOR),
+    azar,
+  );
+  if (aviso) {
+    avisoAlLeer = aviso;
+    guardar(carrito);
+    almacen.borrar(CLAVE_ANTERIOR);
   }
+  return carrito;
+}
+function guardar(c: Carrito): void {
+  almacen.escribir(CLAVE_DEL_CARRITO, JSON.stringify(c));
 }
 
-function pintarBarra(): void {
+const AVISOS_AL_LEER: Record<AvisoAlLeer, string> = {
+  'formato-anterior':
+    'Actualizamos tu pedido a la nueva versión de la tienda. Revisa que esté completo.',
+  ilegible: 'No pudimos leer tu pedido anterior y empezamos uno nuevo. Perdona la molestia.',
+  recortado: `Tu pedido pasaba del máximo (${TOPES.lineas} productos y ${TOPES.unidadesPorLinea} unidades de cada uno) y lo ajustamos.`,
+};
+const AVISOS_DE_TOPE: Record<Tope, string> = {
+  lineas: `Tu pedido ya tiene ${TOPES.lineas} productos distintos, el máximo. Envía este y haz otro.`,
+  unidades: `Puedes pedir hasta ${TOPES.unidadesPorLinea} unidades de cada producto.`,
+};
+
+function pintarBarra(c: Carrito): void {
   const barra = document.querySelector<HTMLElement>('[data-pedido]');
   if (!barra) return;
-  const cantidad = leerPedido().reduce((s, l) => s + l.cantidad, 0);
+  const cantidad = unidades(c);
   const contador = barra.querySelector('[data-cantidad]');
   if (contador) contador.textContent = String(cantidad);
-  barra.hidden = cantidad === 0;
+  barra.hidden = cantidad === 0 || location.pathname === '/pedido/';
 }
 
 const formato = (pesos: number) => `$${String(pesos).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+
+function decir(elemento: HTMLElement | null, texto: string | undefined): void {
+  if (!elemento) return;
+  elemento.textContent = texto ?? '';
+  elemento.hidden = !texto;
+}
 
 function ficha(): void {
   const form = document.querySelector<HTMLFormElement>('[data-eleccion]');
@@ -55,6 +118,7 @@ function ficha(): void {
   const boton = form.querySelector<HTMLButtonElement>('[data-boton]');
   const precio = document.querySelector<HTMLElement>('[data-precio]');
   const avisame = form.querySelector<HTMLElement>('[data-avisame]');
+  const aviso = form.querySelector<HTMLElement>('[data-aviso]');
   // Ley 1480 art. 52: un producto solo para mayores pide confirmar la edad antes de agregarlo.
   const mayoria = form.querySelector<HTMLInputElement>('[data-mayoria]');
   const faltaLaEdad = () => Boolean(mayoria && !mayoria.checked);
@@ -92,7 +156,10 @@ function ficha(): void {
       }
     }
   };
-  form.addEventListener('change', pintar);
+  form.addEventListener('change', () => {
+    decir(aviso, undefined);
+    pintar();
+  });
   form.addEventListener('submit', (evento) => {
     evento.preventDefault();
     const estado = estadoDeLaEleccion(opciones, variantes, elegidas());
@@ -105,17 +172,121 @@ function ficha(): void {
       mayoria?.focus();
       return;
     }
-    const pedido = leerPedido();
-    const linea = pedido.find((l) => l.variante === estado.variante.id);
-    if (linea) linea.cantidad += 1;
-    else pedido.push({ variante: estado.variante.id, cantidad: 1 });
-    try {
-      localStorage.setItem(PEDIDO, JSON.stringify(pedido));
-    } catch {
-      // Sin almacenamiento (modo privado): la barra no cambia, y el pedido se arma por WhatsApp.
-    }
-    pintarBarra();
+    const r = agregar(cargar(), estado.variante.id, 1, { mayorDeEdad: Boolean(mayoria) });
+    guardar(r.carrito);
+    decir(aviso, r.tope ? AVISOS_DE_TOPE[r.tope] : 'Agregado a tu pedido.');
+    pintarBarra(r.carrito);
   });
+  pintar();
+}
+
+interface VarianteDelCatalogo {
+  id: string;
+  opciones: string;
+  precioCop: number;
+  disponible: boolean;
+}
+interface ProductoConVariantes extends ProductoDelCatalogo {
+  variantes: VarianteDelCatalogo[];
+}
+let catalogo: Promise<{ productos: ProductoConVariantes[] }> | undefined;
+const leerCatalogo = () => {
+  catalogo ??= fetch('/catalogo.json').then((r) => r.json());
+  return catalogo;
+};
+
+/** `/pedido/`: las líneas del carrito, sus cantidades y el subtotal que se ve en la tienda. */
+async function pedido(): Promise<void> {
+  const pagina = document.querySelector<HTMLElement>('[data-pedido-pagina]');
+  if (!pagina) return;
+  const lista = pagina.querySelector<HTMLElement>('[data-lineas]');
+  const vacio = pagina.querySelector<HTMLElement>('[data-vacio]');
+  const resumen = pagina.querySelector<HTMLElement>('[data-resumen]');
+  const aviso = pagina.querySelector<HTMLElement>('[data-aviso-carrito]');
+  const codigo = pagina.querySelector<HTMLElement>('[data-codigo]');
+  if (!lista || !vacio || !resumen) return;
+  const { productos } = await leerCatalogo();
+  const porVariante = new Map(
+    productos.flatMap((p) => p.variantes.map((v) => [v.id, { producto: p, variante: v }] as const)),
+  );
+  let carrito = cargar();
+  // Lo que ya no se vende sale del pedido, diciéndolo; con un cobro en pantalla, nada cambia.
+  const saneado = sanear(
+    carrito,
+    new Map([...porVariante].map(([id, x]) => [id, x.variante.disponible ? null : 0])),
+  );
+  carrito = saneado.carrito;
+  guardar(carrito);
+  const avisos = [
+    ...(avisoAlLeer ? [AVISOS_AL_LEER[avisoAlLeer]] : []),
+    ...(saneado.cambios.length > 0
+      ? [
+          `${saneado.cambios.length === 1 ? 'Un producto ya no está disponible y salió' : `${saneado.cambios.length} productos ya no están disponibles y salieron`} de tu pedido.`,
+        ]
+      : []),
+  ];
+  decir(aviso ?? null, avisos.join(' ') || undefined);
+
+  const pintar = () => {
+    lista.replaceChildren(
+      ...carrito.lineas.map((l) => {
+        const x = porVariante.get(l.variante);
+        const li = document.createElement('li');
+        li.className = 'linea';
+        const nombre = document.createElement('a');
+        nombre.className = 'linea__nombre';
+        nombre.href = x ? new URL(x.producto.url).pathname : '/';
+        nombre.textContent = x ? x.producto.nombre : 'Producto';
+        const detalle = document.createElement('span');
+        detalle.className = 'linea__detalle';
+        detalle.textContent = x
+          ? [x.variante.opciones.replaceAll('|', ' · '), formato(x.variante.precioCop)]
+              .filter(Boolean)
+              .join(' — ')
+          : '';
+        const cantidad = document.createElement('span');
+        cantidad.className = 'linea__cantidad';
+        const menos = document.createElement('button');
+        menos.type = 'button';
+        menos.textContent = '−';
+        menos.setAttribute('aria-label', 'Una unidad menos');
+        const n = document.createElement('output');
+        n.textContent = String(l.cantidad);
+        const mas = document.createElement('button');
+        mas.type = 'button';
+        mas.textContent = '+';
+        mas.setAttribute('aria-label', 'Una unidad más');
+        mas.disabled = l.cantidad >= TOPES.unidadesPorLinea;
+        menos.addEventListener('click', () => {
+          carrito = cambiarCantidad(carrito, l.variante, l.cantidad - 1);
+          guardar(carrito);
+          pintar();
+        });
+        mas.addEventListener('click', () => {
+          carrito = cambiarCantidad(carrito, l.variante, l.cantidad + 1);
+          guardar(carrito);
+          pintar();
+        });
+        cantidad.append(menos, n, mas);
+        li.append(nombre, detalle, cantidad);
+        return li;
+      }),
+    );
+    const vacioAhora = carrito.lineas.length === 0;
+    vacio.hidden = !vacioAhora;
+    resumen.hidden = vacioAhora;
+    if (codigo) {
+      codigo.textContent = carrito.codigo;
+      codigo.closest<HTMLElement>('[data-codigo-bloque]')?.removeAttribute('hidden');
+    }
+    const subtotal = carrito.lineas.reduce(
+      (s, l) => s + (porVariante.get(l.variante)?.variante.precioCop ?? 0) * l.cantidad,
+      0,
+    );
+    const campo = resumen.querySelector<HTMLElement>('[data-subtotal]');
+    if (campo) campo.textContent = formato(subtotal);
+    pintarBarra(carrito);
+  };
   pintar();
 }
 
@@ -125,13 +296,11 @@ async function busqueda(): Promise<void> {
   const vacio = document.querySelector<HTMLElement>('[data-sin-resultados]');
   if (!form || !lista || !vacio) return;
   // El catálogo se carga una vez al abrir la página; escribir no pide nada al servidor (CA3).
-  const catalogo = (await (await fetch('/catalogo.json')).json()) as {
-    productos: ProductoDelCatalogo[];
-  };
+  const { productos } = await leerCatalogo();
   const campo = form.querySelector<HTMLInputElement>('input[type="search"]');
   const pintar = () => {
     const q = campo?.value ?? '';
-    const hallados = buscar(catalogo.productos, q);
+    const hallados = buscar(productos, q);
     lista.replaceChildren(
       ...hallados.map((p) => {
         const li = document.createElement('li');
@@ -152,5 +321,6 @@ async function busqueda(): Promise<void> {
 }
 
 ficha();
-pintarBarra();
+pintarBarra(cargar());
+void pedido();
 void busqueda();

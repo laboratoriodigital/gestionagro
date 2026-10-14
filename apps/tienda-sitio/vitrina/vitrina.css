@@ -394,6 +394,88 @@ h1 {
 .barra-pedido[hidden] {
   display: none;
 }
+
+/* --- El pedido (HU-T5.4) --------------------------------------------------------------------- */
+.aviso {
+  margin: 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  border-radius: var(--radio-campo);
+  background: var(--superficie-2);
+  font-size: var(--texto-pequeno);
+}
+.aviso[hidden] {
+  display: none;
+}
+.pedido {
+  display: grid;
+  gap: var(--espacio-6);
+  max-width: 40rem;
+}
+.pedido__codigo .cifra {
+  font-family: var(--fuente-mono);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: 0.08em;
+}
+.lineas {
+  display: grid;
+  gap: var(--espacio-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.linea {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--espacio-1) var(--espacio-4);
+  padding-bottom: var(--espacio-4);
+  border-bottom: 1px solid var(--borde);
+}
+.linea__nombre {
+  font-weight: var(--peso-fuerte);
+}
+.linea__detalle {
+  grid-column: 1;
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+.linea__cantidad {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+.linea__cantidad button {
+  min-width: 48px;
+  min-height: 48px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.linea__cantidad output {
+  min-width: 2ch;
+  text-align: center;
+  font-family: var(--fuente-mono);
+}
+.resumen__fila {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  font-weight: var(--peso-fuerte);
+}
+.resumen__nota {
+  margin: var(--espacio-2) 0 0;
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+.pedido__whatsapp a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+}
 .buscar {
   display: grid;
   gap: var(--espacio-2);

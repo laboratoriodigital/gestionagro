@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El carrito de cada tienda (HU-T5.4): lo que el comprador elige se guarda en su teléfono, con un código de pedido que no cambia aunque cierre la página, y se ve en «Tu pedido», donde puede cambiar las cantidades. Si algo se agotó mientras tanto, sale del pedido y se lo decimos.
 - La portada, las colecciones y la ficha de cada tienda (HU-T5.2): tres formas de portada para elegir, las fotos de cada producto en el tamaño justo para cada pantalla, y en cada ficha lo que el comprador debe saber antes de pedir: el precio final, el costo y el plazo de cada envío, si puede retractarse y si el producto es solo para mayores de edad.
 - Los textos legales de cada tienda (HU-T7.1): términos y condiciones, política de datos, envíos y devoluciones, retracto, garantía y cómo hacer una solicitud, escritos en palabras claras y llenos con los datos de cada comercio. El pie de cada página muestra quién vende y enlaza a todos. Si falta un dato, la tienda no se publica hasta completarlo. Son un borrador para que lo revise un abogado.
 - Cada tienda se deja leer por los asistentes y los buscadores (HU-T15.1): dice qué agentes la pueden leer según lo que elija el comercio, ofrece un índice con sus productos en texto plano y se puede guardar en la pantalla del teléfono con su nombre y su color. También dice a quién escribir si alguien encuentra un fallo de seguridad.

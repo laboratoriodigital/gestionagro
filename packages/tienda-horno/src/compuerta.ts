@@ -64,14 +64,13 @@ export interface EntradaDeLaCompuerta {
 
 /** El peso máximo de una página horneada (TIENDA §1.3: que abra en un teléfono barato). */
 export const PESO_MAXIMO_HTML = 60 * 1024;
-/** Rutas que existen sin hornearse: los assets, la API y la página del pedido (HU-T5.2). */
+/** Rutas que existen sin hornearse: los assets, el tema, la API y `security.txt`. */
 const SIN_HORNEAR = [
   /^\/_t\//,
   /^\/tema-[0-9a-f]+\.css$/,
   /^\/api\//,
   /^\/_m$/,
   /^\/mcp/,
-  /^\/pedido\/$/,
   /^\/\.well-known\//,
 ];
 const SIC = 'https://www.sic.gov.co';

@@ -73,7 +73,7 @@ const MESES = [
   'noviembre',
   'diciembre',
 ];
-/** `2026-10-14` → `14 de octubre de 2026`, sin `Intl` (P17). */
+/** `2026-10-14` → `14 de octubre de 2026`, con los meses escritos aquí: los mismos bytes en todo runtime (P17). */
 export const fechaEnPalabras = (iso: string): string => {
   const [a, m, d] = iso.split('-').map(Number);
   return `${d} de ${MESES[(m ?? 1) - 1]} de ${a}`;
