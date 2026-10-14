@@ -11,6 +11,7 @@
     "@ed1/cifrado": "workspace:*",
     "@ed1/d1": "workspace:*",
     "@ed1/kill-switch": "workspace:*",
+    "@ed1/telegram": "workspace:*",
     "@ed1/tienda-horno": "workspace:*",
     "@ed1/tienda-schema": "workspace:*",
     "@ed1/tokens": "workspace:*",

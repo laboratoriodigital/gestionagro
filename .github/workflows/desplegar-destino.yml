@@ -140,6 +140,8 @@ jobs:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           SECRETO_DESPACHO: ${{ secrets.SECRETO_DESPACHO }}
           TIENDA_KEK_V1: ${{ secrets.TIENDA_KEK_V1 }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           DESTINO: ${{ inputs.destino }}
           SOLO_CELDA: ${{ inputs.solo_celda }}
           PRODUCTOS: ${{ inputs.productos }}

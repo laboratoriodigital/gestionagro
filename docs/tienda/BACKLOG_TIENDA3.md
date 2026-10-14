@@ -1484,7 +1484,7 @@ Formato de cada historia, el del CORE:
 ### ET17 · Operación y confiabilidad
 
 #### HU-T17.1 · Los crons de la Tienda, y el KV reconstruido cada día
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T4 · **Depende de:** HU-T2.3 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T4 · **Depende de:** HU-T2.3 · **Estado:** En validación (rama `feat/t4-sprint`. **Cambió por el plan gratuito** (D-T10): un solo cron por hora, `0 * * * *`, el quinto de la cuenta y solo en producción; staging no tiene. `apps/tienda-api/src/tareas.ts` reparte por frecuencia: cada hora, cada día a las 3 a. m. de Bogotá y cada semana el lunes a esa hora; lo de 5 y 15 minutos se hace perezoso o pasa a cada hora. Cada tarea corre aparte y anota su última corrida en el KV de flags (`tarea:<nombre>`); `/api/salud` dice `al-dia`, `atrasada`, `fallo` o `nunca` (CA1, el vigía lo leerá). La diaria rehace `TIENDA_HOSTS` desde las bases con la misma forma que escribe publicar; si difiere, gana la base y avisa por Telegram (CA2). Controles negativos: una tarea que lanza no detiene a la siguiente y deja su causa (CA3); un KV con una dirección cambiada y otra faltante se corrige y avisa una vez; staging con cron pone la prueba en rojo)
 - Como dueño, quiero que las tareas periódicas corran solas y avisen si una no corrió.
 - **Respaldo:** TIENDA §15.3; P7.
 - **CA1.** Un despachador por frecuencia (5 min, 15 min, 1 h, diario y semanal) en `tienda-api`; cada tarea anota su última corrida, y el vigía avisa si una no corrió.
@@ -1574,7 +1574,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | D-T11 | Cómo manda correos la Tienda en el plan gratuito | **Decidida el 13 oct 2026:** primero Gmail por su API, gratis, detrás del adaptador `CorreoTransaccional` que comparte con el CORE (`@ed1/correo`); después Resend o similar, sin cambiar el producto. Cómo entra en la arquitectura: PLATAFORMA §4.11 | HU-T14.3 (T13) |
 | D-T12 | El límite de pedidos del plan `gratis` | **Decidida el 13 oct 2026: sin tope de pedidos.** El gratuito se limita por productos (15), un usuario y sin dominio propio, como propone el estudio; si el costo crece, lo dice el vigía | HU-T13.5 |
 | D-T13 | GA4 y el píxel de Meta en una tienda sin dominio propio | **Decidida el 13 oct 2026:** GA4 sí, con su cookie limitada a la dirección de la tienda; el píxel de Meta, solo con dominio propio, porque su cookie no se puede limitar y compartiría al comprador entre tiendas. Los dos, solo con el consentimiento del comprador | HU-T14.4 (T17) |
-| D-T10 | Los cron de la Tienda en el plan gratuito: queda 1 de los 5 de la cuenta y TIENDA §15.3 pide cinco frecuencias | Un solo cron por hora que reparte el trabajo por minuto y hora; lo que pueda ser perezoso, perezoso (como los apartados). Workers Paid solo si un dato lo exige | El primer cron (HU-T4.6) |
+| D-T10 | Los cron de la Tienda en el plan gratuito: queda 1 de los 5 de la cuenta y TIENDA §15.3 pide cinco frecuencias | **Aplicada el 14 oct 2026 con la recomendación** (HU-T17.1): un solo cron por hora, solo en producción, que reparte por hora, día y semana; lo que pueda ser perezoso, perezoso (como los apartados). Workers Paid solo si un dato lo exige | El primer cron (HU-T17.1) |
 
 **Tareas que solo puede hacer el dueño**, con la fecha que no frena el camino crítico:
 
@@ -1582,12 +1582,11 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 |---|---|---|
 | Activar Workers Paid y las alertas de facturación | Cuando un dato lo exija | Decisión del 6 oct 2026: el plan gratuito mientras se pueda. Los datos que lo decidirían, en la bitácora tienda3 7 |
 | Agregar la zona `laboratorio-digital.app` a la cuenta | Hecho | Activa: el parqueadero sale a producción en ella (13 oct 2026) |
-| T1 | 16 | 0 (en validación: HU-T2.1 a HU-T2.5) | Construido el 13 oct 2026, en el plan gratuito (bitácora tienda3 7), en el PR del sprint. El dueño pidió avanzar por sprint: con T1 hay 7 historias esperando validación, más que el tope de 3 (§3.6). HU-T2.5 espera que el dueño corra el script de los secretos; sin él, el paso de la Tienda del despliegue queda en rojo sin detener a los demás |
-| T2 | 12 | 0 (en validación: HU-T0.2, HU-T2.6, HU-T2.7 y HU-T2.8) | Construido el 13 oct 2026. La Tienda de T1 quedó viva en staging con sus secretos (salud de las dos bases, KEK legible). HU-T3.3 (2) espera la elección de la tipografía (D-T2). Nació HU-T2.10 (2, en T3): la Tienda activa solo en staging, con las organizaciones de prueba y la aceptación de M0, que es trabajo del CORE |
-| T3 | 19 | 0 (en validación: HU-T2.10, HU-T3.2, HU-T4.1, HU-T4.2, HU-T5.1 y HU-T14.8) | Construido el 13 oct 2026, con el plan rehecho sin M6 (bitácora tienda3 9). El horno hornea a los dos comercios de prueba y el despacho los sirve en proceso; en staging falta el almacén R2, que espera al dueño. La tipografía (D-T2) espera su elección, con la recomendación nueva: la del ecosistema |
 | Contestar qué usa cada tienda 2.0 | T1 | HU-T12.1 |
 | Generar la KEK y el secreto del despacho, y guardar la copia de la KEK | Validar T1 | `node scripts/tienda/generar-secretos.ts --ambiente staging` (HU-T2.5, `docs/runbooks/secretos-de-la-tienda.md`). Sin el secreto del despacho, el paso de la Tienda en el despliegue falla y lo dice |
-| Decidir R2: activarlo en la cuenta y permitirlo al token de despliegue | T3 | El horno guarda las tiendas en R2 (HU-T4.1), y HU-C11.5 hoy lo prohíbe al token. Bitácora tienda3 7 |
+| Activar R2 y crear `tienda-c1` y `tienda-c1-staging` | Hecho | 14 oct 2026. El token de despliegue sigue sin permiso de R2 (HU-C11.5): los buckets los crea el dueño en el panel |
+| Crear los buckets de las fotos y conectarles `img.` e `img--staging.` | T8 | HU-T5.6 y HU-T8.3: `docs/runbooks/tienda-fotos.md`. Nunca un dominio en el almacén |
+| La cuenta de Gmail de los correos y su permiso de OAuth, en producción | T13 | HU-C10.1 y D-T11: PLATAFORMA §4.11 |
 | Los datos de Laboratorio Digital como encargado (nombre o razón social, identificación, domicilio, correo, teléfono) | T7 | HU-T7.2: términos y contrato de transmisión |
 | Escribir a Bold por un esquema para plataformas | T12 | PLATAFORMA §9.7 (soporte.online@bold.co) |
 | Llaves de pruebas de Bold para Ensayo Uno | T12 | HU-T11.2 |
@@ -1644,6 +1643,10 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | Sprint | Comprometido | Validado por el dueño | Nota |
 |---|---|---|---|
 | T0 | 21 | 17 (HU-T0.1, PR #101; HU-T1.1 a HU-T1.4, PR #107) | Carril de holgura, construido el 6 oct 2026. HU-T3.1 espera la elección del dueño (D-T2) y HU-T12.1 sus respuestas. Con 5 historias en validación se pasó el tope de 3 (§3.6) y no se abrió T1 hasta que el dueño fusionó el PR #107 y pidió seguir (13 oct 2026) |
+| T1 | 16 | 0 (en validación: HU-T2.1 a HU-T2.5) | Construido el 13 oct 2026, en el plan gratuito (bitácora tienda3 7), en el PR del sprint. El dueño pidió avanzar por sprint: con T1 hay 7 historias esperando validación, más que el tope de 3 (§3.6). HU-T2.5 espera que el dueño corra el script de los secretos; sin él, el paso de la Tienda del despliegue queda en rojo sin detener a los demás |
+| T2 | 12 | 0 (en validación: HU-T0.2, HU-T2.6, HU-T2.7 y HU-T2.8) | Construido el 13 oct 2026. La Tienda de T1 quedó viva en staging con sus secretos (salud de las dos bases, KEK legible). HU-T3.3 (2) espera la elección de la tipografía (D-T2). Nació HU-T2.10 (2, en T3): la Tienda activa solo en staging, con las organizaciones de prueba y la aceptación de M0, que es trabajo del CORE |
+| T3 | 19 | 0 (en validación: HU-T2.10, HU-T3.2, HU-T4.1, HU-T4.2, HU-T5.1 y HU-T14.8) | Construido el 13 oct 2026, con el plan rehecho sin M6 (bitácora tienda3 9). El horno hornea a los dos comercios de prueba y el despacho los sirve en proceso; en staging falta el almacén R2, que espera al dueño. La tipografía (D-T2) espera su elección, con la recomendación nueva: la del ecosistema |
+| T4 | 22 (20 + HU-T3.3, que esperó D-T2) | 0 (en validación: HU-T3.3, HU-T3.4, HU-T4.3, HU-T4.4, HU-T5.3, HU-T5.6 y HU-T17.1) | Construido el 14 oct 2026. Publicar ya hornea, pasa la compuerta y sube a R2 sin cola (plan gratuito); en staging los dos comercios de prueba se publican en cada despliegue. Las fotos cambiaron por seguridad a un bucket propio (bitácora tienda3 10), que espera al dueño. El cron de la Tienda es el quinto de la cuenta, solo en producción (D-T10) |
 
 ---
 

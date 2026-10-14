@@ -169,7 +169,13 @@ export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = 
   agro: [...CLOUDFLARE, 'CF_METRICAS_TOKEN', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'],
   parqueadero: [...CLOUDFLARE],
   // HU-T2.4: el secreto que comparten el despacho, el panel y la API, y la llave maestra (TIENDA §14.6).
-  tienda: [...CLOUDFLARE, 'SECRETO_DESPACHO', 'TIENDA_KEK_V1'],
+  tienda: [
+    ...CLOUDFLARE,
+    'SECRETO_DESPACHO',
+    'TIENDA_KEK_V1',
+    'TELEGRAM_BOT_TOKEN',
+    'TELEGRAM_CHAT_ID',
+  ],
 };
 
 export function parteDe(valor: string | undefined): Parte | undefined {

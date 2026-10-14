@@ -1309,7 +1309,7 @@ Lo incluido lo comparten el agro y el CORE. Hoy consumen una fracción, que el v
 
 ### 15.3 Crons (con Workers Paid)
 
-> *Hoy, en el plan gratuito, queda un cron libre de los 5 de la cuenta: cómo caben estas frecuencias es la decisión D-T10 del backlog (bitácora tienda3 7).*
+> *Hoy, en el plan gratuito, queda un cron libre de los 5 de la cuenta: cómo caben estas frecuencias es la decisión D-T10 del backlog (bitácora tienda3 7). Aplicada en HU-T17.1: un solo cron por hora, solo en producción, que reparte por hora, día (3 a. m. de Bogotá) y semana (lunes); lo de 5 y 15 minutos se hace perezoso al leer (como los apartados) o pasa a cada hora. Cada tarea anota su última corrida y `/api/salud` dice si alguna se atrasó.*
 
 | Frecuencia | Qué hace |
 |---|---|

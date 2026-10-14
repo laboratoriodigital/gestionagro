@@ -166,7 +166,10 @@ const TIENDA: Api = {
   dir: join(RAIZ, 'apps', 'tienda-api', 'src'),
   tablas: TABLAS_TIENDA,
   archivos: ['worker.ts'],
-  excepciones: {},
+  excepciones: {
+    'select org_id, version_publicada, estado from tienda':
+      'la tarea diaria rehace TIENDA_HOSTS con todas las tiendas del shard; no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.1)',
+  },
 };
 
 describe('HU-T2.8 CA2 · toda consulta de la API de la Tienda filtra por el org_id del token', () => {

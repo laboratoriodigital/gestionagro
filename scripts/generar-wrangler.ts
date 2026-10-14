@@ -350,6 +350,9 @@ export const textoWranglerDeLaCeldaDelParqueadero = (celda: Celda): string =>
  * existe (P1), y un despliegue a producción por error no toma ningún hostname. Los ids de las bases
  * y de los KV (flags y `TIENDA_HOSTS`) los agrega el despliegue, fuera de git (ADR-6).
  */
+/** El cron de la Tienda: uno por hora, que reparte las tareas por frecuencia (HU-T17.1). */
+export const CRON_DE_LA_TIENDA = '0 * * * *';
+
 export const celdasDeLaTienda = (config: ConfigCeldas): Celda[] =>
   config.celdas.filter((c) => c.producto === 'tienda');
 
@@ -395,6 +398,8 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
     vars,
     d1_databases: bases(false),
     r2_buckets: [{ binding: 'SITIOS', bucket_name: almacen }],
+    // HU-T17.1 y D-T10: el quinto cron de la cuenta, solo en producción; staging no tiene.
+    triggers: { crons: [CRON_DE_LA_TIENDA] },
     observability: { enabled: true },
     env: {
       staging: {
@@ -404,6 +409,7 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
         vars: { ...vars, ENSAYOS: '1' },
         d1_databases: bases(true),
         r2_buckets: [{ binding: 'SITIOS', bucket_name: `${almacen}-staging` }],
+        triggers: { crons: [] },
       },
     },
   };

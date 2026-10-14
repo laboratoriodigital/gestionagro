@@ -250,9 +250,16 @@ export function secretosDeLaTienda(
     };
   }
   const kek = entorno[SECRETO_KEK]?.trim();
+  // HU-T17.1: el aviso de la tarea diaria; sin Telegram, la tarea lo dice en el registro.
+  const telegram = Object.fromEntries(
+    (['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'] as const).flatMap((k) => {
+      const v = entorno[k]?.trim();
+      return v ? [[k, v]] : [];
+    }),
+  );
   return {
     ok: true,
-    api: { [SECRETO_DESPACHO]: despacho, ...(kek ? { [SECRETO_KEK]: kek } : {}) },
+    api: { [SECRETO_DESPACHO]: despacho, ...(kek ? { [SECRETO_KEK]: kek } : {}), ...telegram },
     frente: { [SECRETO_DESPACHO]: despacho },
     conKek: Boolean(kek),
   };

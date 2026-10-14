@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   bindingDeLaApi,
+  CRON_DE_LA_TIENDA,
   celdasDeLaTienda,
   RUTA_WRANGLER_TIENDA_PANEL,
   RUTA_WRANGLER_TIENDA_SITIO,
@@ -133,6 +134,21 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
       expect((api.env.staging as unknown as { vars: Record<string, string> }).vars['ENSAYOS']).toBe(
         '1',
       );
+    }
+  });
+
+  it('❌ un solo cron por hora y solo en producción: el quinto de la cuenta (HU-T17.1, D-T10)', () => {
+    for (const celda of celdas) {
+      const api = wranglerDeLaCeldaDeLaTienda(celda) as unknown as Config & {
+        triggers: { crons: string[] };
+      };
+      expect(api.triggers.crons).toEqual([CRON_DE_LA_TIENDA]);
+      expect(
+        (api.env.staging as unknown as { triggers: { crons: string[] } }).triggers.crons,
+      ).toEqual([]);
+    }
+    for (const otra of [wranglerDelSitioDeLaTienda(config), wranglerDelPanelDeLaTienda(config)]) {
+      expect(JSON.stringify(otra)).not.toContain('crons');
     }
   });
 

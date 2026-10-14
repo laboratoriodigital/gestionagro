@@ -37,6 +37,7 @@ import {
 } from '@ed1/tokens';
 import { type Context, Hono } from 'hono';
 import { type Almacen, type EscritorKv, publicar, type Resultado } from './publicar.ts';
+import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
 export const CABECERA_TIENDA = 'x-tienda';
@@ -67,6 +68,9 @@ export interface Env {
   VITRINA_RELEASE?: string;
   /** Solo en staging: «1» deja publicar a los comercios de prueba (HU-T2.6). */
   ENSAYOS?: string;
+  /** El aviso al dueño (HU-T17.1): lo usa la tarea que reconstruye los hostnames. */
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_ID?: string;
   /** Un binding D1 por shard, con el nombre del shard, y `tienda_control`. */
   [base: string]: unknown;
 }
@@ -204,6 +208,10 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       shards: shards.length,
       control: true,
       kek: await estadoDeLaKek(c.env.TIENDA_KEK_V1),
+      // HU-T17.1: si las tareas periódicas corren a tiempo. Staging no tiene cron: dice «nunca».
+      ...(c.env.FLAGS
+        ? { tareas: await estadoDeLasTareas(c.env.FLAGS as unknown as KvDeTareas, TAREAS, ahora()) }
+        : {}),
     });
   });
 
@@ -363,4 +371,40 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
 }
 
 const app = crearApp();
-export default { fetch: app.fetch };
+/**
+ * El cron por hora (HU-T17.1), solo en producción: reparte las tareas por frecuencia. Sin las bases
+ * o los KV configurados, lo dice y no corre nada (P1).
+ */
+export async function alCron(env: Env, instante: number): Promise<void> {
+  const control = env[CONTROL] as BaseD1 | undefined;
+  const shards = Object.entries(env).filter(([n, b]) => SHARD.test(n) && b) as [string, BaseD1][];
+  const hosts = env.TIENDA_HOSTS as (EscritorKv & KvDeTareas) | undefined;
+  const flags = env.FLAGS as KvDeTareas | undefined;
+  if (!control || shards.length === 0 || !hosts || !flags || !env.CELDA) {
+    console.error('tienda-api: el cron no tiene sus bases o sus KV');
+    return;
+  }
+  await despachar(
+    {
+      celda: env.CELDA,
+      shards,
+      control,
+      hosts,
+      flags,
+      telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
+    },
+    instante,
+    TAREAS,
+  );
+}
+
+export default {
+  fetch: app.fetch,
+  scheduled(
+    evento: { scheduledTime: number },
+    env: Env,
+    ctx: { waitUntil(p: Promise<unknown>): void },
+  ) {
+    ctx.waitUntil(alCron(env, evento.scheduledTime));
+  },
+};

@@ -28,6 +28,11 @@
       "bucket_name": "tienda-c1"
     }
   ],
+  "triggers": {
+    "crons": [
+      "0 * * * *"
+    ]
+  },
   "observability": {
     "enabled": true
   },
@@ -58,7 +63,10 @@
           "binding": "SITIOS",
           "bucket_name": "tienda-c1-staging"
         }
-      ]
+      ],
+      "triggers": {
+        "crons": []
+      }
     }
   }
 }
