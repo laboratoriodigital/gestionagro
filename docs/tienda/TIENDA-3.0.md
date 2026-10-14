@@ -8,7 +8,7 @@
 > **Desde cero.** El dueño decidió el 5 oct 2026 que pasar la Tienda 2.0 no es requisito del diseño: «podemos generar scripts luego para subir su data. Podemos idearla de 0».
 > - Aquí no se hereda **ningún contrato** de la 2.0: ni columnas, ni claves de configuración, ni puertas, ni direcciones.
 > - Se heredan sus **lecciones**: los patrones P1–P21 y lo que se probó en producción (§2).
-> - Los datos de las dos tiendas en operación entran después, con el formato de carga de §17. Su contrato de puertas sirve como **lista de paridad**, no como contrato (anexo C).
+> - Los datos de las dos tiendas en operación entran después, con el formato de carga de §17. Su contrato de puertas sirve como **lista de paridad**, no como contrato (anexo C). *(Hoy: ninguna tienda 2.0 se migra a la 3.0, decisión del dueño del 13 oct 2026. Las tiendas 2.0 son la referencia de lo que ya funciona, y lo que la 3.0 toma de ellas se puede cambiar, mejorar o quitar. Bitácora tienda3 9.)*
 >
 > **El SQL no es un borrador.** El modelo de datos de §5 está en `infrastructure/migraciones/tienda/` y `infrastructure/migraciones/tienda-control/`, donde lo aplica el despliegue, con su prueba: `tests/repo/shard-tienda.test.ts`. Son 82 comprobaciones, en verde el 5 oct 2026 con `node:sqlite` 3.50.4 y, desde HU-T2.1 (13 oct 2026), también en el D1 local de workerd. El texto completo está en los anexos A y B, y la prueba falla si dejan de ser copias de los archivos.
 >
@@ -1005,7 +1005,7 @@ La CSP de cada tienda se calcula al hornear según sus ajustes y va en el manifi
   - campos: `item_id`, `quantity`, `value` y `currency`;
   - el índice es la tienda.
   - Como no trata datos personales, no pide consentimiento. Así lo dice la política de la tienda.
-- **GA4 y el píxel de Meta**, solo si el comercio los configura y solo con dominio propio (§4.1).
+- **GA4 y el píxel de Meta**, solo si el comercio los configura y solo con dominio propio (§4.1). *(Hoy: la decisión D-T13 del backlog propone GA4 también en el subdominio, con su cookie limitada a la dirección de la tienda, y el píxel de Meta solo con dominio propio.)*
   - **No cargan hasta que la persona acepta** en un aviso donde rechazar es tan fácil como aceptar.
   - El consentimiento se guarda en el navegador con la versión del aviso.
   - No se encontró una guía específica de la SIC sobre cookies. Se aplican el consentimiento previo, expreso e informado de la Ley 1581 y la prohibición del silencio como autorización (Decreto 1377 art. 7).
@@ -1024,6 +1024,7 @@ La CSP de cada tienda se calcula al hornear según sus ajustes y va en el manifi
   - `WebSite` con su `SearchAction`.
 - **Open Graph** completo, para que un enlace pegado en WhatsApp muestre la foto, el nombre y el precio.
 - **`sitemap.xml`** con `lastmod` por producto.
+- **Verificación de Google Search Console** (HU-T14.8, pedido del dueño del 13 oct 2026): el comercio pega el código de la etiqueta HTML de Google y el horno lo pone en el `<head>` de la portada. Una tienda en un subdominio de la plataforma se verifica como propiedad de **prefijo de URL**; la de dominio pide un registro DNS en una zona que el comercio no controla, y por eso falló en la 2.0.
 - **La tienda en `borrador`** se sirve con `noindex` y fuera del sitemap, solo para revisarla.
 
 ### 11.8 Legible por agentes (por tienda)
@@ -1372,6 +1373,8 @@ Se escriben con el hito que los necesita:
 ---
 
 ## 17. Carga de las tiendas actuales (scripts, después)
+
+> *(Hoy: ninguna tienda 2.0 se migra a la 3.0, decisión del dueño del 13 oct 2026. Las tiendas 2.0 son la referencia de lo que ya funciona, y lo que la 3.0 toma de ellas se puede cambiar, mejorar o quitar. Bitácora tienda3 9.)* El formato `tienda-import/1` (§17.1) sigue: sirve para cargar un comercio nuevo desde un archivo (HU-T12.2). Los scripts de la 2.0 (§17.2) y el cambio de una tienda que ya vende (§17.3) salieron del plan.
 
 El dueño lo pidió así: el diseño no depende de la 2.0. Sus datos entran con un **formato de carga** general, y un script propio de la 2.0 los traduce.
 
@@ -2497,6 +2500,8 @@ END;
 ```
 
 ## Anexo C · Lista de paridad con la Tienda 2.0
+
+> *(Hoy: ninguna tienda 2.0 se migra a la 3.0, decisión del dueño del 13 oct 2026. Las tiendas 2.0 son la referencia de lo que ya funciona, y lo que la 3.0 toma de ellas se puede cambiar, mejorar o quitar. Bitácora tienda3 9.)* Esta lista es una referencia, no una condición: no hay corte que la necesite.
 
 Lo que el estudio pide conservar de la 2.0 (§15.3 [C12]): su contrato de puertas **como especificación**, sus cinco mecanismos de idempotencia y su suite como pruebas de contrato. Se leyó en la versión 1.0.0 (`docs/CONTRATOS.md` §6 y `docs/ARQUITECTURA.md` §8). Antes de cargar una tienda (M6), cada fila que esa tienda use tiene que pasar en staging.
 

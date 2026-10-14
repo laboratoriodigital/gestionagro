@@ -111,7 +111,7 @@ Al 6 oct 2026, en la tarde, la Tienda tiene sus cuatro paquetes puros (sprint T0
 - **Regla:** ningún diagnóstico se da por bueno sin reproducir el fallo.
 - **En la Tienda 3.0:** un pago que no se reflejó se reproduce con el aviso exacto de Bold (cuerpo y firma) contra el D1 local; un horneado distinto, con los mismos datos en los dos runtimes.
 - **Lo impedirá:** HU-T11.5, HU-T11.6 (un Bold falso que firma y responde de verdad).
-- **Entradas:** tienda3 6, 8.
+- **Entradas:** tienda3 6, 8, 9.
 
 #### P10 · El que se actualiza a sí mismo corre su versión vieja
 - **Regla:** un arreglo en el que se actualiza llega una versión tarde. Y quien vuelve atrás corre también la vieja.
@@ -166,7 +166,7 @@ Al 6 oct 2026, en la tarde, la Tienda tiene sus cuatro paquetes puros (sprint T0
 - **Regla:** lo que un documento afirma del código lo ata una aserción; el redundante se borra.
 - **En la Tienda 3.0:** TIENDA propone, ARQUITECTURA decide; los anexos de SQL los ata una prueba al archivo; los runbooks, una prueba que busca lo que nombran. Un documento que cita a otro dice lo que el otro dice.
 - **Lo impedirá:** HU-T17.5; la Definición de Terminado, punto 8.
-- **Entradas:** tienda3 1, 4, 5, 6, 7, 8.
+- **Entradas:** tienda3 1, 4, 5, 6, 7, 8, 9.
 - **Lo impide hoy:** los anexos A y B de TIENDA tienen que ser copias exactas de las migraciones, y una prueba lo exige (`tests/repo/shard-tienda.test.ts`, HU-T2.1).
 
 #### P19 · Un rojo que no significa nada enseña a no mirar los rojos
@@ -289,6 +289,7 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 | Los días hábiles «en `packages/dinero` o en un `packages/calendario`» (TIENDA §8.6) | `@ed1/calendario`, neutro y compartido con el CORE (HU-T1.2) | El CORE necesita lo mismo para la Ley 1581 (HU-C7.7): una sola fuente (P2) |
 | Las fotos siempre en WebP (TIENDA §11.5) | WebP, o JPEG donde el navegador no produce WebP (HU-T8.3) | Safari devuelve PNG (bitácora tienda3 2) |
 | Hitos con fechas fijas desde el diseño (TIENDA §19) | Sprints con el calendario del CORE, que arrancan cuando se cumplen sus condiciones (HC1, Workers Paid y la zona `.app`) | El CORE construyó sus tres primeros sprints en tres días: lo que manda es el orden de las dependencias |
+| Cargar las dos tiendas 2.0 en la 3.0 en M6, con paridad, marca de vuelta y corte (TIENDA §17 y anexo C) | Ninguna tienda 2.0 se migra; son la referencia de lo que ya funciona (decisión del dueño del 13 oct 2026) | El dueño lo decidió al contestar la paridad. Salen 15 puntos y M4 llega un sprint antes (bitácora tienda3 9) |
 | Workers Paid desde M0 (TIENDA §0, versión 0.2) | El plan gratuito hasta que un dato lo exija (decisión del dueño del 6 oct 2026) | Costo cero mientras se pueda. T1 se construyó así; lo que queda abierto, con su historia, en la bitácora tienda3 7 |
 
 ---
@@ -421,6 +422,8 @@ La regla: **antes de tomar un contrato como condición de algo, se comprueba que
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Medio · P9, P18 · tienda-0.0.0 · 2026-10-06
 
+*(Después: bitácora tienda3 9. Ninguna tienda 2.0 se migra; la Tienda Básica queda como referencia.)*
+
 **7 · TIENDA diseña con Workers Paid desde M0, y el dueño decidió el plan gratuito mientras se pueda.**
 
 *Qué pasó.* El 13 oct 2026, al abrir T1 (la celda, las bases y las tres apps en staging), crucé el diseño con la decisión del dueño del 6 oct: «Workers Paid se utilizarán cuando sea estrictamente necesario y no haya otra salida para seguir avanzando o creciendo».
@@ -464,5 +467,30 @@ La regla: **una decisión de costo tomada en otro proyecto se copia el mismo dí
 **Lo prueba:** nada todavía; es un plan. La guardia llega con HU-T12.5: una fila de la paridad que la tienda usa y no pasa detiene su corte.
 
 La regla: **una respuesta de paridad se cruza con el sprint de su historia y con las dependencias de esa historia, no solo con su hito.**
+
+*Ficha:* tienda3 · *(compartido)* · 🟡 Medio · P9, P18 · tienda-0.0.0 · 2026-10-13
+
+*(Después: bitácora tienda3 9. Sin migración, los correos siguen en T13 porque el alta abierta los necesita igual.)*
+
+**9 · El plan cargaba las tiendas 2.0 en la 3.0, y el dueño decidió que ninguna se migra.**
+
+*Qué pasó.* El 13 oct 2026, al contestar la segunda ronda de la paridad, el dueño escribió que ninguna tienda de las versiones anteriores se va a migrar al modelo nuevo: se toman de referencia para lo que ya funciona, y eso se puede cambiar, mejorar o quitar en la 3.0.
+
+*Síntoma literal.* El backlog decía «Las tres reglas del proyecto: 1. La 2.0 sigue vendiendo hasta que la 3.0 pase, tienda por tienda, la lista de paridad», tenía un hito M6 («Las tiendas actuales», T16) y cinco historias de conversión, paridad, marca de vuelta y corte (HU-T12.4 a HU-T12.8, 15 puntos).
+
+*Causa raíz.* El diseño (TIENDA §17 y anexo C) y el plan tomaron como objetivo cargar las tiendas en operación, y nadie había preguntado si el dueño quería migrarlas o empezar de cero con comercios nuevos. Tres reordenamientos del plan dependían de eso: el tablero antes de M6 (entrada 1), la paridad medida contra la Tienda Básica (entrada 6) y los correos antes del primer corte (entrada 8).
+
+*Cómo se reprodujo.* Con la respuesta del dueño.
+
+*Arreglo.*
+- M6 sale del plan, y las cinco historias de carga y corte quedan «Retiradas».
+- M4 (dominios, alta abierta y plan), M5, M7 y M8 llegan un sprint antes; T20 queda de holgura.
+- La hoja de paridad y el anexo C pasan de condición a referencia. La carga asistida de un comercio nuevo desde un archivo (HU-T12.2 y HU-T12.3) se queda.
+- Los reordenamientos de las entradas 1 y 8 se quedan por otra razón: los comercios de referencia usan tablero y correos, y el alta abierta los necesita igual.
+- De la misma ronda nacen HU-T14.8 (verificar en Search Console con la etiqueta HTML, en T3) y las decisiones D-T12 (sin tope de pedidos en el plan gratuito) y D-T13 (GA4 en el subdominio con su cookie limitada; el píxel de Meta, solo con dominio propio).
+
+**Lo prueba:** nada todavía; es un plan. Las cifras del backlog (345 puntos, 303 hasta el alta abierta) salen de sumar la tabla de sprints, no se escriben a mano.
+
+La regla: **antes de planear la migración de algo que ya funciona, se pregunta si el dueño quiere migrarlo o solo aprender de ello; son dos planes distintos.**
 
 *Ficha:* tienda3 · *(compartido)* · 🟡 Medio · P9, P18 · tienda-0.0.0 · 2026-10-13
