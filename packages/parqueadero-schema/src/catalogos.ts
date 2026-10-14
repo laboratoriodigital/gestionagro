@@ -37,6 +37,10 @@ export type FormatoDeHora = (typeof FORMATOS_DE_HORA)[number];
 /** Los días que cuenta una mensualidad empezada (HU-Q13.3). */
 export const DIAS_DE_MENSUALIDAD = ['calendario', 'habiles'] as const;
 export type DiasDeMensualidad = (typeof DIAS_DE_MENSUALIDAD)[number];
+
+/** Un mes de mensualidad de fecha a fecha, o del 1 al último día del mes (HU-Q13.4). */
+export const PERIODOS_DE_MENSUALIDAD = ['fecha', 'calendario'] as const;
+export type PeriodoDeMensualidad = (typeof PERIODOS_DE_MENSUALIDAD)[number];
 export type Papel = (typeof PAPEL)[number];
 
 /** Lo que dice la sede, también la de antes de HU-Q4.3. Sin nada, `siempre`: nadie sin recibo. */
@@ -61,6 +65,11 @@ export const sede = z.strictObject({
    * viernes que no son festivo en Colombia). Omitido = `calendario`, como antes.
    */
   dias_mensualidad: z.enum(DIAS_DE_MENSUALIDAD).optional(),
+  /**
+   * Cómo van los meses de una mensualidad (HU-Q13.4): de fecha a fecha, o del 1 al último día del
+   * mes, con los días del mes en que se contrata en proporción. Omitido = `fecha`, como antes.
+   */
+  periodo_mensualidad: z.enum(PERIODOS_DE_MENSUALIDAD).optional(),
   nombre: texto.max(40, 'es de máximo 40 letras: va en una línea del papel'),
   nit,
   direccion: texto.max(60, 'es de máximo 60 letras'),

@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.7.0] - 2026-10-14
+
+La mensualidad puede ir del 1 al último día del mes.
+
+### Agregado
+- Los meses de la mensualidad, de fecha a fecha o del 1 al último día (HU-Q13.4): Ajustes › «Los meses de la mensualidad van». Del 1 al último día, el abonado nuevo vence el último día del mes, una mensualidad contratada a mitad de mes cobra esos días en proporción (calendario u hábiles, según Ajustes) y el mes siguiente se cobra entero. Por omisión sigue de fecha a fecha, como siempre.
+
 ## [0.6.0] - 2026-10-14
 
 Lo que pidió el primer parqueadero ya operando: la hora como la lee, los domingos y festivos, y la mensualidad por días hábiles.

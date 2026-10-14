@@ -13,6 +13,7 @@ import {
   type FormatoDeHora,
   PAPEL,
   type Papel,
+  type PeriodoDeMensualidad,
   papelDeLaSede,
   VEHICULOS,
 } from '@ed1/parqueadero-schema';
@@ -66,6 +67,8 @@ export interface Borrador {
   formatoHora: FormatoDeHora;
   /** Qué días cuenta el prorrateo de una mensualidad (HU-Q13.3). */
   diasMensualidad: DiasDeMensualidad;
+  /** Los meses de la mensualidad: de fecha a fecha o del 1 al último día (HU-Q13.4). */
+  periodoMensualidad: PeriodoDeMensualidad;
   nombre: string;
   nit: string;
   direccion: string;
@@ -95,6 +98,7 @@ export const borradorVacio = (): Borrador => ({
   usaTurnos: false,
   formatoHora: '24h',
   diasMensualidad: 'calendario',
+  periodoMensualidad: 'fecha',
   nombre: '',
   nit: '',
   direccion: '',
@@ -127,6 +131,7 @@ function borradorDe(
       usaTurnos: usaTurnos(sede),
       formatoHora: sede.formato_hora ?? '24h',
       diasMensualidad: sede.dias_mensualidad ?? 'calendario',
+      periodoMensualidad: sede.periodo_mensualidad ?? 'fecha',
       nombre: sede.nombre,
       nit: sede.nit,
       direccion: sede.direccion,
@@ -456,6 +461,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
           usa_turnos: b.usaTurnos,
           formato_hora: b.formatoHora,
           dias_mensualidad: b.diasMensualidad,
+          periodo_mensualidad: b.periodoMensualidad,
           nombre: b.nombre,
           nit: b.nit,
           direccion: b.direccion,
@@ -595,6 +601,22 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
           </div>
         </fieldset>
         <fieldset class="campo">
+          <legend>Los meses de la mensualidad van</legend>
+          <div class="opciones">
+            {(['fecha', 'calendario'] as const).map((x) => (
+              <button
+                key={x}
+                type="button"
+                class="opcion"
+                aria-pressed={b.periodoMensualidad === x}
+                onClick={() => setB({ ...b, periodoMensualidad: x })}
+              >
+                {x === 'fecha' ? 'De fecha a fecha: del 15 al 14' : 'Del 1 al último día del mes'}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset class="campo">
           <legend>Una mensualidad empezada cobra</legend>
           <div class="opciones">
             {(['calendario', 'habiles'] as const).map((x) => (
@@ -613,7 +635,10 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
         <p class="ayuda">
           {b.diasMensualidad === 'calendario'
             ? 'Cuenta todos los días del mes, también sábados, domingos y festivos.'
-            : 'Cuenta solo de lunes a viernes que no son festivo.'}
+            : 'Cuenta solo de lunes a viernes que no son festivo.'}{' '}
+          {b.periodoMensualidad === 'calendario'
+            ? 'Si se contrata a mitad de mes, esos días se cobran en proporción y los meses siguientes, completos.'
+            : ''}
         </p>
       </fieldset>
 

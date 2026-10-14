@@ -903,6 +903,7 @@ La página general de precios (W1) sigue diciendo que los mensajes que no son pl
 
 7. **Domingos y festivos (HU-Q13.2, 2026-10-14).** Con `festivo` en la tarifa, cada unidad de tiempo vale según el día de Bogotá en que empieza: domingo o festivo de Colombia (`@ed1/calendario`), o día normal. La plena de un bloque de 24 h es la de festivo si el bloque empieza en uno; el tope por día va encima, como siempre. Las líneas son `tiempo_festivo` y `plena_festivo`, al final de `CONCEPTOS` para que los enlaces de antes lean lo mismo. El valor y la plena de festivo tampoco pasan el tope legal.
 8. **La mensualidad por días hábiles (HU-Q13.3).** Con `dias_mensualidad: 'habiles'` en la sede, el prorrateo cuenta de lunes a viernes que no son festivo, arriba y abajo.
+9. **Los meses de la mensualidad (HU-Q13.4).** Con `periodo_mensualidad: 'calendario'` en la sede, un mes va del 1 al último día: el prorrateo parte la vigencia por meses calendario, cada mes entero vale el valor y uno empezado o cortado, la parte de sus días sobre los de ese mes. Sin la opción, de fecha a fecha, como siempre.
 
 ### 9.3 Pruebas
 

@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- `@ed1/parqueadero-tarifas`: `prorrateo` y `finDelPeriodo` aceptan meses del 1 al último día (`periodo: 'calendario'`), que parten la vigencia por meses calendario; por omisión siguen de fecha a fecha (HU-Q13.4).
 - `@ed1/parqueadero-tarifas` cobra los domingos y festivos de Colombia con su propia tarifa, si la tarifa la trae, y prorratea una mensualidad por días hábiles (usa `@ed1/calendario`). `@ed1/parqueadero-recibos` escribe la hora con a. m. y p. m. si la sede lo pide, y su enlace pasa a la versión 3 solo cuando un recibo lleva alguna de las dos cosas (HU-Q13.1 y HU-Q13.2).
 - El MCP del cuaderno (HU-C9.7): un asistente con permiso de la persona puede leer el calendario de carencias («¿qué nave puedo cosechar hoy?») y los últimos registros de la finca, sin escribir nada. Vive en la celda, en `mcp.cultivopro.co` en producción, y se apaga con `ks:agro-mcp` sin tocar el cuaderno. Por ahora solo en staging, como el servidor de autorización.
 

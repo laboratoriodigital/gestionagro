@@ -13,6 +13,7 @@ import {
   type DiasDeMensualidad,
   ErrorDeValidacion,
   numeroDeRecibo,
+  type PeriodoDeMensualidad,
   PLANES_DE_ABONO,
   type PlanDeAbono,
   type Registro,
@@ -75,7 +76,7 @@ interface Borrador {
   readonly activo: boolean;
 }
 
-function nuevo(hoy: string): Borrador {
+function nuevo(hoy: string, periodo: PeriodoDeMensualidad): Borrador {
   return {
     id: null,
     placa: '',
@@ -83,7 +84,7 @@ function nuevo(hoy: string): Borrador {
     plan: 'mes',
     referencia: '',
     desde: hoy,
-    hasta: finDelPeriodo('mes', hoy),
+    hasta: finDelPeriodo('mes', hoy, periodo),
     valor: '',
     activo: true,
   };
@@ -119,6 +120,11 @@ type Vista =
 export function Abonados({ db, ctx, control, alVolver }: Props) {
   const [vista, setVista] = useState<Vista>({ es: 'lista' });
   const abonados = useConsulta<Abonado[] | null>(() => leerAbonados(db), null, [vista]);
+  // HU-Q13.4: los meses van de fecha a fecha, o del 1 al último día, según la sede.
+  const periodo = useConsulta<PeriodoDeMensualidad>(
+    () => leerAjustes(db).then((x) => x.sede?.periodo_mensualidad ?? 'fecha'),
+    'fecha',
+  );
   const [b, setB] = useState<Borrador | null>(null);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -231,7 +237,7 @@ export function Abonados({ db, ctx, control, alVolver }: Props) {
                 type="button"
                 class="opcion"
                 aria-pressed={b.plan === p}
-                onClick={() => poner({ plan: p, hasta: finDelPeriodo(p, b.desde) })}
+                onClick={() => poner({ plan: p, hasta: finDelPeriodo(p, b.desde, periodo) })}
               >
                 {p === 'mes' ? 'Un mes' : 'Una quincena'}
               </button>
@@ -257,7 +263,7 @@ export function Abonados({ db, ctx, control, alVolver }: Props) {
               value={b.desde}
               onInput={(e) => {
                 const desde = e.currentTarget.value;
-                poner(desde ? { desde, hasta: finDelPeriodo(b.plan, desde) } : { desde });
+                poner(desde ? { desde, hasta: finDelPeriodo(b.plan, desde, periodo) } : { desde });
               }}
             />
           </div>
@@ -382,7 +388,11 @@ export function Abonados({ db, ctx, control, alVolver }: Props) {
           La caja reconoce la placa de un abonado vigente y no le cobra la salida. Toque un abonado
           para cobrar su mensualidad.
         </p>
-        <button type="button" class="boton boton-principal" onClick={() => abrir(nuevo(hoy))}>
+        <button
+          type="button"
+          class="boton boton-principal"
+          onClick={() => abrir(nuevo(hoy, periodo))}
+        >
           Agregar abonado
         </button>
         {abonados.length === 0 && <p class="ayuda">Todavía no hay abonados.</p>}
@@ -501,14 +511,19 @@ function Cobrar({
   const [medio, setMedio] = useState<MedioDeLaMensualidad | null>(null);
   const [error, setError] = useState('');
   const [cobrando, setCobrando] = useState(false);
-  // HU-Q13.3: el prorrateo cuenta los días que dice la sede, calendario u hábiles.
-  const cuenta = useConsulta<DiasDeMensualidad>(
-    () => leerAjustes(db).then((x) => x.sede?.dias_mensualidad ?? 'calendario'),
-    'calendario',
+  // HU-Q13.3 y HU-Q13.4: los días que cuenta el prorrateo y cómo van los meses, los de la sede.
+  const sede = useConsulta<{ cuenta: DiasDeMensualidad; periodo: PeriodoDeMensualidad }>(
+    () =>
+      leerAjustes(db).then((x) => ({
+        cuenta: x.sede?.dias_mensualidad ?? 'calendario',
+        periodo: x.sede?.periodo_mensualidad ?? 'fecha',
+      })),
+    { cuenta: 'calendario', periodo: 'fecha' },
   );
-  const p = periodoPorCobrar(a, hoy, { primero, hastaFinDeMes: finDeMes, cuenta });
-  // Cortar en fin de mes solo cambia algo si el periodo cruza de mes.
-  const cruzaDeMes = !primero && planDe(a) === 'mes' && !p.desde.endsWith('-01');
+  const p = periodoPorCobrar(a, hoy, { primero, hastaFinDeMes: finDeMes, ...sede });
+  // Cortar en fin de mes solo cambia algo si el periodo cruza de mes; del 1 al último, ya lo hace.
+  const cruzaDeMes =
+    !primero && planDe(a) === 'mes' && sede.periodo === 'fecha' && !p.desde.endsWith('-01');
 
   async function cobrar(e: Event) {
     e.preventDefault();
