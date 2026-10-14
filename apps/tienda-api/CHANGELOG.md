@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El despacho sirve la tienda horneada (HU-T5.1): cada página sale del almacén con su versión publicada y las cabeceras de seguridad de la vitrina, y su gemelo para agentes con `Accept: text/markdown`, sin tocar la base. Una tienda que todavía no publica dice «Esta tienda todavía no abre».
 - La Tienda está activa en el CORE de staging (HU-T2.10), para probarla con sesiones de verdad cuando el panel tenga su entrada; en producción sigue pausada.
 - El horno de la Tienda (HU-T4.1): cada tienda en archivos estáticos que se leen sin JavaScript, con su gemelo para agentes, el catálogo, el sitemap y los datos estructurados para buscadores. Lo que escribe el comercio nunca se ejecuta (HU-T4.2).
 - El color de cada tienda (HU-T3.2): ocho acentos que siempre se leen bien y un color libre que se revisa al guardarlo; si no se lee, se dice cuál se parece y sí se lee. El panel de la Tienda tiene su propio tono, cobre, en el sistema de diseño del ecosistema.

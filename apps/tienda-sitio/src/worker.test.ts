@@ -122,10 +122,12 @@ describe('un host con tienda', () => {
     expect(error).toHaveBeenCalledTimes(2);
   });
 
-  it('sus páginas responden 404 hasta que el horno las sirva (HU-T5.1)', async () => {
+  it('❌ una página de una tienda publicada sin almacén responde 503, nunca va a la API (HU-T5.1)', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { a, env: e } = env();
     const r = await crearDespacho().fetch(new Request(`https://${host}/p/vestido/`), e);
-    expect(r.status).toBe(404);
+    expect(r.status).toBe(503);
+    expect(error).toHaveBeenCalled();
     expect(a.recibidas).toHaveLength(0);
   });
 
