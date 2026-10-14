@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La Tienda está activa en el CORE de staging (HU-T2.10), para probarla con sesiones de verdad cuando el panel tenga su entrada; en producción sigue pausada.
 - El horno de la Tienda (HU-T4.1): cada tienda en archivos estáticos que se leen sin JavaScript, con su gemelo para agentes, el catálogo, el sitemap y los datos estructurados para buscadores. Lo que escribe el comercio nunca se ejecuta (HU-T4.2).
 - El color de cada tienda (HU-T3.2): ocho acentos que siempre se leen bien y un color libre que se revisa al guardarlo; si no se lee, se dice cuál se parece y sí se lee. El panel de la Tienda tiene su propio tono, cobre, en el sistema de diseño del ecosistema.
 - La tienda se puede verificar en Google Search Console (HU-T14.8): el comercio pega el código o la etiqueta HTML que le da Google, y se guarda solo el código, listo para la portada. Es el método que sirve para una tienda en un subdominio de la plataforma, que no puede verificarse por el proveedor de dominio.

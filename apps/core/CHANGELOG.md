@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Cambiado
+- En staging, el CORE atiende la Tienda aunque en producción siga pausada (HU-T2.10): `productos-de-prueba.json` dice qué productos pausados se activan solo en staging, y la base de staging dice lo mismo. Producción no cambia.
 - El catálogo conoce la Tienda, pausada (HU-T2.2): con sus planes y su política, pero el CORE no crea tiendas ni cobra sus planes mientras siga pausada.
 
 ## [0.5.0] - 2026-10-13

@@ -586,7 +586,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T2.9.1 `[ci]` · WI-T2.9.2 `[prueba]` · WI-T2.9.3 `[dueño]` abrir el dominio público.
 
 #### HU-T2.10 · La Tienda activa solo en staging, con las dos organizaciones de prueba
-- **Capa:** CORE y prueba · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T3 · **Depende de:** HU-T2.6, HU-T2.8, HU-C3.7 (hecha) · **Estado:** Refinada (nace del T2: la aceptación de M0 de HU-T2.8 y la parte del CORE de HU-T2.6 CA1)
+- **Capa:** CORE y prueba · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T3 · **Depende de:** HU-T2.6, HU-T2.8, HU-C3.7 (hecha) · **Estado:** En validación (rama `feat/t3-sprint`. CA1 y CA3: `productos-de-prueba.json` gana `activos_en_staging: ["tienda"]`, y una sola regla, `conActivosEnStaging` de `@ed1/productos`, la aplica al catálogo de staging del CORE y a la base de staging del despliegue; en producción nada cambia, y una prueba lo exige. Solo se activa un producto de verdad que esté pausado. **CA2 y la aceptación de M0 pasan a HU-T8.1**: para que el CORE emita un token `aud = tienda`, alguien tiene que entrar desde el origen de la Tienda, que es el panel, y la pantalla de entrar del panel es HU-T8.1. Con la Tienda activa en staging, el dueño podrá crear allí su tienda de prueba al entrar. Controles negativos: el CORE de producción responde «pausado»; activar el agro, que ya está activo, o un producto que no existe falla)
 - Como dueño, quiero que el CORE de staging emita un token de la Tienda para Ensayo Uno, para probar el panel con una sesión de verdad sin abrir la Tienda en producción.
 - **Respaldo:** HU-T2.2 (la Tienda pausada); HU-C3.7 (productos que solo existen en staging); TIENDA §12.1.
 - **CA1.** `productos-de-prueba.json` puede activar en staging un producto que en producción está pausado; el catálogo del CORE de staging y su base lo dicen igual (P2). Producción sigue igual.
@@ -876,6 +876,7 @@ Formato de cada historia, el del CORE:
 
 #### HU-T8.1 · Entrar al panel y elegir la tienda
 - **Capa:** panel · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T7 · **Depende de:** HU-T2.8, HU-T3.5 (mismo sprint, antes), HU-C4.3, HU-C4.4 · **Estado:** Refinada
+- **Desde HU-T2.10:** esta historia cierra la aceptación de M0: el CORE de staging emite un token `aud = tienda` al entrar desde el panel de staging, y `GET /api/panel/v1/yo` lo acepta. Las organizaciones de Ensayo Uno y Ensayo Dos en el CORE de staging (HU-T2.10 CA2) se crean aquí, al entrar.
 - Como comerciante, quiero entrar con Google y llegar a mi tienda; si tengo dos, elegir.
 - **Respaldo:** TIENDA §12.1; PLATAFORMA §4.6; bitácora agro 25 (una cuenta en dos organizaciones).
 - **Boceto:** «Entrar con Google» → si hay varias tiendas, una tarjeta por tienda con su nombre, rol y plan → Inicio. «Sin sesión», «sin tienda» y «error» dicen cosas distintas.
