@@ -111,6 +111,16 @@ jobs:
           set -euo pipefail
           node scripts/notas-de-version.ts --parqueadero "$VERSION" > notas-parqueadero.md
           gh release create "parqueadero-v$VERSION" --target "$SHA" --title "Parqueadero v$VERSION" --notes-file notas-parqueadero.md --latest=false
+      - name: Crear la versión de la Tienda con las notas de su CHANGELOG
+        if: needs.staging.outputs.publicar_tienda == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.staging.outputs.version_tienda }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          node scripts/notas-de-version.ts --tienda "$VERSION" > notas-tienda.md
+          gh release create "tienda-v$VERSION" --target "$SHA" --title "Tienda v$VERSION" --notes-file notas-tienda.md --latest=false
 
   produccion:
     # Solo lo que subió de versión: el agro sin el CORE, el CORE sin el agro, o los dos.

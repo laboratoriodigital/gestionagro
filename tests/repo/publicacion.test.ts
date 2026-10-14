@@ -9,6 +9,7 @@ import { parse } from 'yaml';
 import {
   cambiaElCodigoDelCore,
   cambiaElParqueadero,
+  cambiaLaTienda,
   decidirPublicacion,
   etiquetaDe,
   productosADesplegar,
@@ -51,6 +52,7 @@ describe('qué se publica al fusionar', () => {
       publicarAgro,
       publicarCore,
       publicarParqueadero: false,
+      publicarTienda: false,
       productos,
     });
   });
@@ -65,8 +67,44 @@ describe('qué se publica al fusionar', () => {
       publicarAgro: false,
       publicarCore: false,
       publicarParqueadero,
+      publicarTienda: false,
       productos,
     });
+  });
+
+  // HU-T0.2: la Tienda, el cuarto con versión propia.
+  it.each([
+    ['en 0.0.0 no se publica: vive en staging', nueva('0.0.0'), false, ''],
+    ['sube la Tienda: solo la Tienda', nueva('0.1.0'), true, 'tienda'],
+    ['ya publicada: nada', vieja('0.1.0'), false, ''],
+  ] as const)('la Tienda %s', (_caso, tienda, publicarTienda, productos) => {
+    expect(decidirPublicacion(vieja('0.3.0'), vieja('0.1.0'), vieja('0.5.0'), tienda)).toEqual({
+      publicarAgro: false,
+      publicarCore: false,
+      publicarParqueadero: false,
+      publicarTienda,
+      productos,
+    });
+  });
+
+  it('suben los cuatro: el CORE primero y la Tienda al final', () => {
+    expect(
+      decidirPublicacion(nueva('0.6.0'), nueva('0.6.0'), nueva('0.6.0'), nueva('0.1.0')).productos,
+    ).toBe('core,agro,parqueadero,tienda');
+  });
+
+  it('la versión de la Tienda vive solo en apps/tienda-api: el despacho y el panel no llevan otra (P2)', () => {
+    const version = (app: string) =>
+      (
+        JSON.parse(readFileSync(join(RAIZ, 'apps', app, 'package.json'), 'utf8')) as {
+          version?: string;
+        }
+      ).version;
+    expect(version('tienda-api')).toMatch(/^\d+\.\d+\.\d+$/);
+    expect([version('tienda-sitio'), version('tienda-panel')]).toEqual([undefined, undefined]);
+    expect(readFileSync(join(RAIZ, 'apps', 'tienda-api', 'CHANGELOG.md'), 'utf8')).toContain(
+      '## [Sin publicar]',
+    );
   });
 
   it('suben los tres: el CORE, el agro y el parqueadero', () => {
@@ -83,6 +121,7 @@ describe('qué se publica al fusionar', () => {
     expect(etiquetaDe('agro', '0.4.0')).toBe('v0.4.0');
     expect(etiquetaDe('core', '0.2.0')).toBe('core-v0.2.0');
     expect(etiquetaDe('parqueadero', '0.1.0')).toBe('parqueadero-v0.1.0');
+    expect(etiquetaDe('tienda', '0.1.0')).toBe('tienda-v0.1.0');
   });
 });
 
@@ -94,7 +133,8 @@ describe('qué despliega desplegar.ts', () => {
 
   it('solo lo que se le pide, y rechaza un producto que no existe', () => {
     expect([...productosADesplegar('core')]).toEqual(['core']);
-    expect(() => productosADesplegar('core,tienda')).toThrow(/tienda/);
+    expect(() => productosADesplegar('core,vitrina')).toThrow(/vitrina/);
+    expect([...productosADesplegar('tienda')]).toEqual(['tienda']);
     expect([...productosADesplegar('parqueadero')]).toEqual(['parqueadero']);
   });
 
@@ -138,6 +178,14 @@ describe('la guardia del PR: el código del CORE se anota en su CHANGELOG', () =
   it('y el del parqueadero en el suyo (HU-Q0.3 CA3 ❌)', () => {
     expect(cambiaElParqueadero(['apps/parqueadero-sitio/src/caja/Salida.tsx'])).toBe(true);
     expect(cambiaElParqueadero(['packages/parqueadero-tarifas/src/liquidar.ts'])).toBe(true);
+    // HU-T0.2 CA3: la Tienda, por su código y sus páginas; no sus pruebas ni los paquetes compartidos.
+    expect(cambiaLaTienda(['apps/tienda-api/src/worker.ts'])).toBe(true);
+    expect(cambiaLaTienda(['apps/tienda-panel/public/index.html'])).toBe(true);
+    expect(cambiaLaTienda(['packages/tienda-schema/src/planes.ts'])).toBe(true);
+    expect(cambiaLaTienda(['apps/tienda-sitio/src/worker.test.ts'])).toBe(false);
+    expect(cambiaLaTienda(['packages/dinero/src/index.ts', 'docs/tienda/TIENDA-3.0.md'])).toBe(
+      false,
+    );
     expect(cambiaElParqueadero(['apps/parqueadero-sitio/src/pages/r/index.astro'])).toBe(true);
     expect(cambiaElParqueadero(['packages/parqueadero-schema/src/registro.test.ts'])).toBe(false);
     expect(cambiaElParqueadero(['packages/impresion/src/cola.ts', 'docs/parking/x.md'])).toBe(

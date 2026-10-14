@@ -2,8 +2,8 @@
  * `node scripts/decidir-publicacion.ts`: en el flujo de despliegue, decide qué se publica (HU-C0.3).
  * Lee la versión del agro (raíz), la del CORE y la del parqueadero (HU-Q0.3), pregunta al
  * repositorio remoto si sus etiquetas existen y escribe en `$GITHUB_OUTPUT`: `version_agro`,
- * `publicar_agro`, `version_core`, `publicar_core`, `version_parqueadero`, `publicar_parqueadero`
- * y `productos`. Sin poder preguntar, falla: no se publica a ciegas (P1).
+ * `publicar_agro`, `version_core`, `publicar_core`, `version_parqueadero`, `publicar_parqueadero`,
+ * `version_tienda`, `publicar_tienda` (HU-T0.2) y `productos`. Sin poder preguntar, falla: no se publica a ciegas (P1).
  */
 import { spawnSync } from 'node:child_process';
 import { appendFileSync, readFileSync } from 'node:fs';
@@ -38,6 +38,7 @@ function publicada(producto: ProductoPublicable, v: string): boolean {
 const agro = version('package.json');
 const core = version('apps/core/package.json');
 const parqueadero = version('apps/parqueadero-sitio/package.json');
+const tienda = version('apps/tienda-api/package.json');
 const decision = decidirPublicacion(
   { version: agro, publicada: publicada('agro', agro) },
   { version: core, publicada: publicada('core', core) },
@@ -45,6 +46,7 @@ const decision = decidirPublicacion(
     version: parqueadero,
     publicada: parqueadero !== SIN_PUBLICAR_AUN && publicada('parqueadero', parqueadero),
   },
+  { version: tienda, publicada: tienda !== SIN_PUBLICAR_AUN && publicada('tienda', tienda) },
 );
 
 const lineas = [
@@ -54,6 +56,8 @@ const lineas = [
   `publicar_core=${decision.publicarCore}`,
   `version_parqueadero=${parqueadero}`,
   `publicar_parqueadero=${decision.publicarParqueadero}`,
+  `version_tienda=${tienda}`,
+  `publicar_tienda=${decision.publicarTienda}`,
   `productos=${decision.productos}`,
 ];
 console.log(lineas.join('\n'));

@@ -21,7 +21,7 @@ on:
         default: ""
         type: string
       productos:
-        description: "Qué productos: core, agro, parqueadero o varios (core,agro). Vacío: core y agro (HU-C0.3)"
+        description: "Qué productos: core, agro, parqueadero, tienda o varios (core,agro). Vacío: core y agro (HU-C0.3)"
         required: false
         default: ""
         type: string
@@ -45,6 +45,10 @@ on:
         value: ${{ jobs.desplegar.outputs.version_parqueadero }}
       publicar_parqueadero:
         value: ${{ jobs.desplegar.outputs.publicar_parqueadero }}
+      version_tienda:
+        value: ${{ jobs.desplegar.outputs.version_tienda }}
+      publicar_tienda:
+        value: ${{ jobs.desplegar.outputs.publicar_tienda }}
       productos:
         value: ${{ jobs.desplegar.outputs.productos }}
 
@@ -69,6 +73,8 @@ jobs:
       publicar_core: ${{ steps.leer.outputs.publicar_core }}
       version_parqueadero: ${{ steps.leer.outputs.version_parqueadero }}
       publicar_parqueadero: ${{ steps.leer.outputs.publicar_parqueadero }}
+      version_tienda: ${{ steps.leer.outputs.version_tienda }}
+      publicar_tienda: ${{ steps.leer.outputs.publicar_tienda }}
       productos: ${{ steps.leer.outputs.productos }}
     steps:
       - uses: actions/checkout@v7

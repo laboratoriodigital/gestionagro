@@ -11,7 +11,7 @@
 import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import { leerLog, revisar } from './lib/commits.ts';
-import { cambiaElCodigoDelCore, cambiaElParqueadero } from './lib/publicacion.ts';
+import { cambiaElCodigoDelCore, cambiaElParqueadero, cambiaLaTienda } from './lib/publicacion.ts';
 import { RAIZ } from './lib/repo.ts';
 
 const desde = process.env['COMMITS_DESDE']?.trim();
@@ -61,6 +61,14 @@ if (diff.status !== 0) {
       donde: 'archivos del PR',
       falla:
         'cambia el parqueadero (apps/parqueadero-* o packages/parqueadero-*) y no lo anota en apps/parqueadero-sitio/CHANGELOG.md, en «Sin publicar»',
+    });
+  }
+  // HU-T0.2 CA3: y para la Tienda.
+  if (cambiaLaTienda(archivos) && !archivos.includes('apps/tienda-api/CHANGELOG.md')) {
+    hallazgos.push({
+      donde: 'archivos del PR',
+      falla:
+        'cambia la Tienda (apps/tienda-* o packages/tienda-*) y no lo anota en apps/tienda-api/CHANGELOG.md, en «Sin publicar»',
     });
   }
 }

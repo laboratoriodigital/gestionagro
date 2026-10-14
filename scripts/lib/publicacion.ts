@@ -7,13 +7,15 @@
  * - **el parqueadero** (HU-Q0.3): la de `apps/parqueadero-sitio/package.json`, etiquetas
  *   `parqueadero-vX.Y.Z`. En `0.0.0` aún no se publica: vive en staging hasta tener su dominio
  *   (HU-Q5.2), y la `0.1.0` de la demostración es la primera.
+ * - **la Tienda** (HU-T0.2): la de `apps/tienda-api/package.json`, etiquetas `tienda-vX.Y.Z`. En
+ *   `0.0.0` vive en staging; la `0.1.0` la lleva a producción sin tiendas (HU-T2.9).
  *
  * Una versión sin etiqueta es nueva y se publica: etiqueta, versión en GitHub con las notas de su
  * CHANGELOG y despliegue a producción **solo de ese producto**. Así una publicación del agro no
  * lleva a producción cambios del CORE que nadie publicó, ni al revés.
  */
 
-export type ProductoPublicable = 'agro' | 'core' | 'parqueadero';
+export type ProductoPublicable = 'agro' | 'core' | 'parqueadero' | 'tienda';
 
 /** La versión de un producto que todavía no se publica nunca (HU-Q0.3). */
 export const SIN_PUBLICAR_AUN = '0.0.0';
@@ -28,6 +30,7 @@ export interface Publicacion {
   publicarAgro: boolean;
   publicarCore: boolean;
   publicarParqueadero: boolean;
+  publicarTienda: boolean;
   /** Lo que se despliega a producción, separado por comas; vacío: nada, solo staging. */
   productos: string;
 }
@@ -39,26 +42,31 @@ export function decidirPublicacion(
   agro: EstadoDeVersion,
   core: EstadoDeVersion,
   parqueadero: EstadoDeVersion = { version: SIN_PUBLICAR_AUN, publicada: false },
+  tienda: EstadoDeVersion = { version: SIN_PUBLICAR_AUN, publicada: false },
 ): Publicacion {
   for (const [nombre, e] of [
     ['agro', agro],
     ['core', core],
     ['parqueadero', parqueadero],
+    ['tienda', tienda],
   ] as const) {
     if (!/^\d+\.\d+\.\d+$/.test(e.version)) {
       throw new Error(`la versión del ${nombre} («${e.version}») no es x.y.z`);
     }
   }
   const publicarParqueadero = !parqueadero.publicada && parqueadero.version !== SIN_PUBLICAR_AUN;
+  const publicarTienda = !tienda.publicada && tienda.version !== SIN_PUBLICAR_AUN;
   const productos = [
     ...(core.publicada ? [] : ['core']),
     ...(agro.publicada ? [] : ['agro']),
     ...(publicarParqueadero ? ['parqueadero'] : []),
+    ...(publicarTienda ? ['tienda'] : []),
   ];
   return {
     publicarAgro: !agro.publicada,
     publicarCore: !core.publicada,
     publicarParqueadero,
+    publicarTienda,
     productos: productos.join(','),
   };
 }
@@ -75,7 +83,7 @@ export function productosADesplegar(valor: string | undefined): Set<ProductoPubl
     .filter(Boolean);
   const todos: ProductoPublicable[] = ['core', 'agro'];
   if (lista.length === 0) return new Set(todos);
-  const validos: ProductoPublicable[] = [...todos, 'parqueadero'];
+  const validos: ProductoPublicable[] = [...todos, 'parqueadero', 'tienda'];
   const raros = lista.filter((x) => !validos.includes(x as ProductoPublicable));
   if (raros.length > 0) throw new Error(`productos desconocidos: ${raros.join(', ')}`);
   return new Set(lista as ProductoPublicable[]);
@@ -97,6 +105,19 @@ export function cambiaElParqueadero(archivos: readonly string[]): boolean {
   return archivos.some(
     (a) =>
       /^(apps|packages)\/parqueadero-[^/]+\/src\/.+\.(ts|tsx|astro|css)$/.test(a) &&
+      !/\.(test|spec)\.tsx?$/.test(a),
+  );
+}
+
+/**
+ * Lo que cambia la Tienda y tiene que contarse en su CHANGELOG (HU-T0.2 CA3): el código de
+ * `apps/tienda-*` y `packages/tienda-*`, no sus pruebas. Los paquetes que comparte con otros
+ * productos (`dinero`, `calendario`, `cifrado`) no cuentan: no son solo de la Tienda.
+ */
+export function cambiaLaTienda(archivos: readonly string[]): boolean {
+  return archivos.some(
+    (a) =>
+      /^(apps|packages)\/tienda-[^/]+\/(src|public)\/.+\.(ts|tsx|astro|css|html)$/.test(a) &&
       !/\.(test|spec)\.tsx?$/.test(a),
   );
 }
