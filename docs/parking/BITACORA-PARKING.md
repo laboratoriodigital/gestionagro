@@ -1115,3 +1115,21 @@ La regla: **lo que el cajero escanea cien veces al día se prueba con el papel y
 La regla: **lo que no se cobró no está pagado; la pantalla dice quién debe con la misma fuente que cobra.**
 
 *Ficha:* parqueadero · *(mío)* · 🔴 Alto · P1, P15 · parqueadero-0.7.1 · 2026-10-14
+
+**41 · La 0.7.1 se publicó, pero no llegó a producción, y volver a desplegar a mano tampoco la llevó.**
+
+*Qué pasó.* El 14 oct 2026 se fusionó el PR de la 0.7.1 (bitácora 40). Staging se actualizó y se creó `parqueadero-v0.7.1`, pero la caja de producción siguió en la 0.7.0.
+
+*Síntoma literal.* «Los cambios no se publicaron en producción», y después: «desplegar terminó, pero no actualizó la aplicación de producción» (el dueño).
+
+*Causa raíz.* Dos cosas.
+- La primera corrida se detuvo en c0: la sonda de R2 respondió como si `CF_API_TOKEN` tuviera «Workers R2 Storage». El dueño dice que el token no lo tenía desde el día anterior, y en la corrida a mano de la mañana la misma sonda pasó. *Inferencia*, sin comprobar: una respuesta pasajera de Cloudflare. Los reintentos de esa corrida ya no vieron versión nueva, porque la etiqueta existía.
+- La segunda es mía. «Run workflow» no tenía la entrada `productos`, y sin ella el despliegue solo lleva el CORE y el agro (HU-C0.3). La parte del parqueadero dijo «nada que desplegar (su versión no cambió)» y la corrida terminó en verde sin tocar la caja. Una versión publicada a mano tenía el mismo problema.
+
+*Cómo se reprodujo.* En el registro de la corrida a mano: `PRODUCTOS:` vacío y «Parte parqueadero: nada que desplegar en produccion».
+
+*Arreglo.* `desplegar.yml` acepta `productos` en «Run workflow» y lo pasa al despliegue. Una versión publicada a mano lleva su producto por el prefijo de la etiqueta (`parqueadero-v`, `tienda-v`). El runbook de despliegue dice cómo pedir el parqueadero. Lo prueba `tests/repo/flujos.test.ts`.
+
+La regla: **un despliegue en verde que no tocó lo que se quería es una falla silenciosa; lo que se despliega a mano se elige, no se adivina.**
+
+*Ficha:* parqueadero · *(mío y del terreno)* · 🔴 Alto · P1, P17 · sin versión propia · 2026-10-14

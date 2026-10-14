@@ -158,6 +158,18 @@ describe('los flujos del repositorio', () => {
     expect(hallazgos).toEqual([]);
   });
 
+  it('el despliegue a mano deja elegir productos, y una versión publicada a mano lleva el suyo (bitácora parqueadero 41)', () => {
+    const f = parse(readFileSync(join(RAIZ, '.github/workflows/desplegar.yml'), 'utf8')) as {
+      on: { workflow_dispatch: { inputs: Record<string, unknown> } };
+      jobs: Record<string, { with?: Record<string, string> }>;
+    };
+    expect(Object.keys(f.on.workflow_dispatch.inputs)).toContain('productos');
+    const productos = f.jobs['a-mano']?.with?.['productos'] ?? '';
+    expect(productos).toContain('inputs.productos');
+    expect(productos).toContain("startsWith(github.event.release.tag_name, 'parqueadero-v')");
+    expect(productos).toContain("startsWith(github.event.release.tag_name, 'tienda-v')");
+  });
+
   it('el flujo de Windows corre en windows-latest (o en el runner propio) cuando scripts/ llega a main y los lunes', () => {
     const f = parse(readFileSync(join(RAIZ, '.github/workflows/scripts-windows.yml'), 'utf8'));
     // biome-ignore lint/suspicious/noTemplateCurlyInString: es una expresión de GitHub Actions, no de JavaScript

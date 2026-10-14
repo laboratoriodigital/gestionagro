@@ -11,8 +11,8 @@
 #      evento «release».)
 # Un PR que no sube ninguna versión solo llega a staging.
 #
-# A mano: «Run workflow» eligiendo destino (y, para seguir después de una falla, una sola celda),
-# o una versión publicada a mano. Un despliegue a medias no se cancela: la corrida nueva espera.
+# A mano: «Run workflow» eligiendo destino, los productos (vacío: core y agro) y, para seguir
+# después de una falla, una sola celda; o una versión publicada a mano. Un despliegue a medias no se cancela: la corrida nueva espera.
 name: desplegar
 
 on:
@@ -32,6 +32,10 @@ on:
         options: [staging, produccion]
       solo_celda:
         description: "Opcional: desplegar solo esta celda (p. ej. c0)"
+        required: false
+        default: ""
+      productos:
+        description: "Opcional: core, agro, parqueadero, tienda o varios (core,agro). Vacío: core y agro"
         required: false
         default: ""
 
@@ -133,11 +137,17 @@ jobs:
     secrets: inherit
 
   a-mano:
-    # «Run workflow», o una versión publicada a mano en GitHub.
+    # «Run workflow», o una versión publicada a mano en GitHub. Sin «productos», el despliegue a
+    # mano solo llevaba el CORE y el agro: el parqueadero 0.7.1 no llegó a producción (bitácora
+    # parqueadero 41). Una versión publicada a mano lleva su producto, por el prefijo de la etiqueta.
     if: github.event_name != 'workflow_run'
     uses: ./.github/workflows/desplegar-destino.yml
     with:
       destino: ${{ github.event_name == 'release' && 'produccion' || inputs.destino }}
       ref: ${{ github.sha }}
       solo_celda: ${{ inputs.solo_celda || '' }}
+      productos: >-
+        ${{ inputs.productos || (
+        startsWith(github.event.release.tag_name, 'parqueadero-v') && 'parqueadero' ||
+        startsWith(github.event.release.tag_name, 'tienda-v') && 'tienda' || '') }}
     secrets: inherit
