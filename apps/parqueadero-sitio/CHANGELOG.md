@@ -4,6 +4,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.7.1] - 2026-10-14
+
+La mensualidad se cobra con su fecha y su valor, y la lista dice quién debe.
+
+### Corregido
+- Después de «No cobrar ahora», «Cobrar mensualidad» cobraba el mes siguiente entero: otra fecha y otro valor (bitácora 40, HU-Q13.5). Ahora cobra primero lo que falta pagar de la vigencia, con su prorrateo.
+- La lista de abonados y su detalle dicen «Al día hasta el …», «Debe desde el …» o «Venció el …», cada uno con su color.
+- El cobro de la mensualidad muestra el detalle del prorrateo: los días de cada tramo sobre los del mes y lo que vale.
+- Dos mensualidades cobradas en el mismo minuto: «Anular la mensualidad» anula la última, la que llega más lejos.
+
 ## [0.7.0] - 2026-10-14
 
 La mensualidad puede ir del 1 al último día del mes.

@@ -50,7 +50,7 @@ import {
 } from '@ed1/parqueadero-schema';
 import { type Liquidacion, liquidar, validarTarifa } from '@ed1/parqueadero-tarifas';
 import { normalizarNumero } from '@ed1/whatsapp';
-import { abonoDeLaPlaca, conPagos, fechaDelAbono, venceEl } from './abonados.ts';
+import { abonoDeLaPlaca, conPagos, fechaDelAbono, pagadoHastaDe, venceEl } from './abonados.ts';
 import { encolar, tablasDeLaCola } from './cola.ts';
 import type { BaseDeLaCaja, Contacto, Estadia } from './datos.ts';
 import { diaLocalBogota, horaBogota } from './fecha.ts';
@@ -263,6 +263,17 @@ export async function leerAbonados(db: BaseDeLaCaja): Promise<Abonado[]> {
   return conPagos(todos as Abonado[], vigentes).sort((a, b) => a.placa.localeCompare(b.placa));
 }
 
+/** Hasta qué día pagó cada abonado en la caja, sin los pagos anulados (HU-Q13.5). */
+export async function pagadoHastaDeLosAbonados(db: BaseDeLaCaja): Promise<Map<string, string>> {
+  const [pagos, sinValor] = await Promise.all([
+    db.registros.where('tipo').equals('pago_abonado').toArray(),
+    anulados(db),
+  ]);
+  return pagadoHastaDe(
+    pagos.filter((p) => !sinValor.has(p.id)).map((p) => p.datos as DatosDePagoAbonado),
+  );
+}
+
 /** Un cambio de abonados sin el PIN de administrador no se guarda (CA1). */
 export class PinIncorrecto extends Error {
   constructor() {
@@ -286,15 +297,23 @@ export async function guardarAbonado(
   return guardarCatalogo(db, 'abonado', abonado, d, id, ctx);
 }
 
-/** Las mensualidades cobradas a un abonado y no anuladas, la más reciente primero (HU-Q8.4). */
+/**
+ * Las mensualidades cobradas a un abonado y no anuladas, la más reciente primero (HU-Q8.4). Dos
+ * cobradas en el mismo instante (lo que debía y el mes siguiente, HU-Q13.5) se ordenan por el
+ * periodo que cubren: la última es la que llega más lejos, y es la que se anula.
+ */
 export async function pagosDelAbonado(db: BaseDeLaCaja, abonadoId: string): Promise<Registro[]> {
   const [pagos, sinValor] = await Promise.all([
     db.registros.where('tipo').equals('pago_abonado').toArray(),
     anulados(db),
   ]);
+  const hasta = (p: Registro) => (p.datos as DatosDePagoAbonado).hasta;
   return pagos
     .filter((p) => !sinValor.has(p.id) && (p.datos as DatosDePagoAbonado).abonado_id === abonadoId)
-    .sort((a, b) => b.instante_evento.localeCompare(a.instante_evento));
+    .sort(
+      (a, b) =>
+        b.instante_evento.localeCompare(a.instante_evento) || hasta(b).localeCompare(hasta(a)),
+    );
 }
 
 /** No se cobra la mensualidad de un abonado desactivado o que no existe (HU-Q8.4). */

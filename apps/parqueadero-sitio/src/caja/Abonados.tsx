@@ -21,12 +21,13 @@ import {
   type Vehiculo,
   vehiculoPorPlaca,
 } from '@ed1/parqueadero-schema';
-import { finDelPeriodo } from '@ed1/parqueadero-tarifas';
+import { detalleDelProrrateo, finDelPeriodo } from '@ed1/parqueadero-tarifas';
 import { useState } from 'preact/hooks';
 import { VEHICULOS_DE_LA_CAJA } from './Ajustes.tsx';
 import { Anular } from './Anular.tsx';
 import {
-  abonoDeLaPlaca,
+  type CuentaDelAbonado,
+  cuentaDelAbonado,
   fechaDelAbono,
   periodoPorCobrar,
   planDe,
@@ -40,6 +41,7 @@ import {
   leerAjustes,
   NoSeCobra,
   PinIncorrecto,
+  pagadoHastaDeLosAbonados,
   pagosDelAbonado,
   registrarEntrega,
 } from './almacen.ts';
@@ -119,7 +121,14 @@ type Vista =
 
 export function Abonados({ db, ctx, control, alVolver }: Props) {
   const [vista, setVista] = useState<Vista>({ es: 'lista' });
+  const ahora = ctx.reloj();
+  const hoy = diaLocalBogota(ahora);
   const abonados = useConsulta<Abonado[] | null>(() => leerAbonados(db), null, [vista]);
+  // HU-Q13.5: hasta dónde pagó cada uno en la caja, para decir quién debe y quién está al día.
+  const pagado = useConsulta<Map<string, string>>(() => pagadoHastaDeLosAbonados(db), new Map(), [
+    vista,
+  ]);
+  const cuenta = (a: Abonado) => cuentaDelAbonado(a, pagado.get(a.id) ?? null, hoy);
   // HU-Q13.4: los meses van de fecha a fecha, o del 1 al último día, según la sede.
   const periodo = useConsulta<PeriodoDeMensualidad>(
     () => leerAjustes(db).then((x) => x.sede?.periodo_mensualidad ?? 'fecha'),
@@ -129,8 +138,6 @@ export function Abonados({ db, ctx, control, alVolver }: Props) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [guardando, setGuardando] = useState(false);
-  const ahora = ctx.reloj();
-  const hoy = diaLocalBogota(ahora);
 
   if (!abonados) return <section class="tarjeta" aria-busy="true" />;
 
@@ -336,7 +343,7 @@ export function Abonados({ db, ctx, control, alVolver }: Props) {
         db={db}
         ctx={ctx}
         a={elegido}
-        estado={estadoDe(abonados, elegido, ahora)}
+        estado={textoDeLaCuenta(cuenta(elegido))}
         alCobrar={() => setVista({ es: 'cobrar', id: elegido.id, primero: false })}
         alEditar={() => abrir(deAbonado(elegido))}
         alVolver={volverALaLista}
@@ -351,6 +358,7 @@ export function Abonados({ db, ctx, control, alVolver }: Props) {
         a={elegido}
         hoy={hoy}
         primero={vista.primero}
+        pagadoHasta={pagado.get(elegido.id) ?? null}
         alCobrar={(pago) => setVista({ es: 'cobrado', pago })}
         alVolver={() => setVista({ es: 'detalle', id: elegido.id })}
       />
@@ -363,7 +371,7 @@ export function Abonados({ db, ctx, control, alVolver }: Props) {
   }
 
   const pronto = vencenPronto(abonados, hoy);
-  const fila = (a: Abonado, detalle: string) => (
+  const fila = (a: Abonado, c: CuentaDelAbonado, texto?: string) => (
     <li key={a.id}>
       <button
         type="button"
@@ -376,7 +384,9 @@ export function Abonados({ db, ctx, control, alVolver }: Props) {
           {VEHICULOS[a.vehiculo].nombre}
           {a.referencia ? ` · ${a.referencia}` : ''} · {formatearPesos(a.valor)}
         </span>
-        <span class="ayuda">{detalle}</span>
+        <span class={`senal ${TONO_DE_LA_CUENTA[c.es]}`} data-prueba="cuenta-abonado">
+          {texto ?? textoDeLaCuenta(c)}
+        </span>
       </button>
     </li>
   );
@@ -396,7 +406,7 @@ export function Abonados({ db, ctx, control, alVolver }: Props) {
           Agregar abonado
         </button>
         {abonados.length === 0 && <p class="ayuda">Todavía no hay abonados.</p>}
-        <ul class="lista-estadias">{abonados.map((a) => fila(a, estadoDe(abonados, a, ahora)))}</ul>
+        <ul class="lista-estadias">{abonados.map((a) => fila(a, cuenta(a)))}</ul>
       </section>
       {pronto.length > 0 && (
         <section class="seccion" aria-labelledby="vencen-pronto" data-prueba="vencen-pronto">
@@ -406,7 +416,11 @@ export function Abonados({ db, ctx, control, alVolver }: Props) {
           <p class="ayuda">Recuérdeselo cuando llegue.</p>
           <ul class="lista-estadias">
             {pronto.map((a) =>
-              fila(a, a.hasta === hoy ? 'Vence hoy' : `Vence el ${fechaDelAbono(a.hasta)}`),
+              fila(
+                a,
+                cuenta(a),
+                a.hasta === hoy ? 'Vence hoy' : `Vence el ${fechaDelAbono(a.hasta)}`,
+              ),
             )}
           </ul>
         </section>
@@ -496,6 +510,7 @@ function Cobrar({
   a,
   hoy,
   primero,
+  pagadoHasta,
   alCobrar,
   alVolver,
 }: {
@@ -504,6 +519,8 @@ function Cobrar({
   readonly a: Abonado;
   readonly hoy: string;
   readonly primero: boolean;
+  /** Hasta dónde pagó en la caja; `null`, nunca (HU-Q13.5). */
+  readonly pagadoHasta: string | null;
   readonly alCobrar: (pago: Registro) => void;
   readonly alVolver: () => void;
 }) {
@@ -520,7 +537,16 @@ function Cobrar({
       })),
     { cuenta: 'calendario', periodo: 'fecha' },
   );
-  const p = periodoPorCobrar(a, hoy, { primero, hastaFinDeMes: finDeMes, ...sede });
+  const p = periodoPorCobrar(a, hoy, { primero, hastaFinDeMes: finDeMes, pagadoHasta, ...sede });
+  // HU-Q13.5: cómo se llegó al total, tramo por tramo.
+  const tramos = detalleDelProrrateo(
+    a.valor,
+    planDe(a),
+    p.desde,
+    p.hasta,
+    sede.cuenta,
+    sede.periodo,
+  );
   // Cortar en fin de mes solo cambia algo si el periodo cruza de mes; del 1 al último, ya lo hace.
   const cruzaDeMes =
     !primero && planDe(a) === 'mes' && sede.periodo === 'fecha' && !p.desde.endsWith('-01');
@@ -568,10 +594,25 @@ function Cobrar({
         </div>
       </dl>
       {p.valor < a.valor && (
-        <p class="ayuda" data-prueba="prorrateo">
-          Proporcional a los días: el {NOMBRE_DEL_PLAN[planDe(a)].toLowerCase()} completo vale{' '}
-          {formatearPesos(a.valor)}.
-        </p>
+        <div data-prueba="prorrateo">
+          <p class="ayuda">
+            Proporcional a los días: el {NOMBRE_DEL_PLAN[planDe(a)].toLowerCase()} completo vale{' '}
+            {formatearPesos(a.valor)}.
+          </p>
+          <dl class="filas" data-prueba="tramos">
+            {tramos.map((t) => (
+              <div key={t.desde}>
+                <dt>
+                  {fechaDelAbono(t.desde).slice(0, 5)} al {fechaDelAbono(t.hasta).slice(0, 5)} ·{' '}
+                  {t.entero
+                    ? `${NOMBRE_DEL_PLAN[planDe(a)].toLowerCase()} completo`
+                    : `${t.dias} de ${t.completo} días${t.habiles ? ' hábiles' : ''}`}
+                </dt>
+                <dd class="cifra">{formatearPesos(t.valor)}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       )}
       {cruzaDeMes && (
         <label class="casilla">
@@ -688,10 +729,24 @@ function Cobrado({
   );
 }
 
-function estadoDe(todos: readonly Abonado[], a: Abonado, ahora: number): string {
-  const periodo = `${fechaDelAbono(a.desde)} a ${fechaDelAbono(a.hasta)}`;
-  if (!a.activo) return `Inactivo · ${periodo}`;
-  const { vigente } = abonoDeLaPlaca(todos, a.placa, ahora);
-  if (vigente?.id === a.id) return `Vigente · ${periodo}`;
-  return a.desde > diaLocalBogota(ahora) ? `Empieza · ${periodo}` : `Vencido · ${periodo}`;
+/** Lo que la lista y el detalle dicen de la cuenta de un abonado (HU-Q13.5). */
+function textoDeLaCuenta(c: CuentaDelAbonado): string {
+  switch (c.es) {
+    case 'inactivo':
+      return 'Inactivo';
+    case 'al-dia':
+      return `Al día hasta el ${fechaDelAbono(c.hasta)}`;
+    case 'debe':
+      return `Debe desde el ${fechaDelAbono(c.desde)}`;
+    case 'vencido':
+      return `Venció el ${fechaDelAbono(c.hasta)}`;
+  }
 }
+
+/** El color de la señal: verde al día, rojo debe, amarillo vencido (las de la cabecera). */
+const TONO_DE_LA_CUENTA: Readonly<Record<CuentaDelAbonado['es'], string>> = {
+  'al-dia': 'senal-bien',
+  debe: 'senal-error',
+  vencido: 'senal-aviso',
+  inactivo: '',
+};
