@@ -88,6 +88,11 @@ test('HU-T5.4 · el carrito: elegir, agregar, ver el pedido con su código y cam
   await linea.getByRole('button', { name: 'Una unidad más' }).click();
   await expect(linea.locator('output')).toHaveText('2');
   await expect(page.locator('[data-subtotal]')).toHaveText('$258.000');
+  // Sin la API (el servidor de las e2e es estático), la página sigue con lo que sabe y lo dice.
+  await expect(page.locator('[data-total]')).toHaveText('$258.000');
+  await expect(page.locator('[data-nota]')).toHaveText(
+    'No pudimos confirmar el total ahora. Lo confirmamos antes de enviar tu pedido.',
+  );
 
   // El código es el mismo al volver: se genera una vez por carrito.
   await page.reload();
@@ -119,4 +124,43 @@ test('HU-T5.4 P10 · un carrito del formato anterior se lee y lo dice; lo agotad
     'Un producto ya no está disponible',
   );
   await expect(page.locator('.linea')).toHaveCount(1);
+});
+
+test('HU-T5.5 CA2 · si el servidor corrige el pedido o el total cambió, la página lo muestra y pide revisarlo', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'tienda:carrito',
+      JSON.stringify({
+        v: 1,
+        codigo: 'ABC234',
+        lineas: [{ variante: 'v-camisa-m-arena', cantidad: 9 }],
+      }),
+    );
+  });
+  // La API de la tienda, como la respondería con 4 en inventario y un precio nuevo.
+  await page.route('**/api/v1/cotizar', (ruta) =>
+    ruta.fulfill({
+      json: {
+        subtotal: 540000,
+        descuento: 0,
+        envio: 0,
+        total: 540000,
+        avisos: [],
+        cobrable: true,
+        carrito: [{ variante: 'v-camisa-m-arena', cantidad: 4 }],
+        cambio: true,
+      },
+    }),
+  );
+  await page.goto(`${TIENDA}/pedido/`);
+  await expect(page.locator('.linea output')).toHaveText('4');
+  await expect(page.locator('[data-aviso-carrito]')).toHaveText(
+    'Ajustamos tu pedido con lo que la tienda tiene disponible.',
+  );
+  await expect(page.locator('[data-total]')).toHaveText('$540.000');
+  await expect(page.locator('[data-aviso-total]')).toHaveText(
+    'El total cambió: ahora es $540.000. Revísalo antes de enviar tu pedido.',
+  );
 });

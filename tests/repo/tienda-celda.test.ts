@@ -153,6 +153,26 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
     }
   });
 
+  it('la API limita por IP cotizar y avísame, con su propio contador por destino (HU-T5.5 y HU-T6.5)', () => {
+    for (const celda of celdas) {
+      type Limite = {
+        name: string;
+        namespace_id: string;
+        simple: { limit: number; period: number };
+      };
+      const api = wranglerDeLaCeldaDeLaTienda(celda) as unknown as {
+        ratelimits: Limite[];
+        env: { staging: { ratelimits: Limite[] } };
+      };
+      expect(api.ratelimits.map((l) => [l.name, l.simple.limit, l.simple.period])).toEqual([
+        ['LIMITE_COTIZAR', 30, 60],
+        ['LIMITE_AVISAME', 10, 60],
+      ]);
+      const ids = [...api.ratelimits, ...api.env.staging.ratelimits].map((l) => l.namespace_id);
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+  });
+
   it('el despacho de staging atiende las direcciones de los dos comercios de prueba (HU-T2.6)', () => {
     const sitio = wranglerDelSitioDeLaTienda(config) as unknown as Config;
     expect(sitio.env.staging.routes).toEqual([

@@ -512,3 +512,21 @@ La regla: **antes de planear la migración de algo que ya funciona, se pregunta 
 La regla: **lo público y lo privado no comparten bucket: un dominio propio expone el bucket entero, no la carpeta que uno tenía en mente.**
 
 *Ficha:* tienda3 · *(mío)* · 🔴 Alto · P12, P13 · tienda-0.0.0 · 2026-10-14
+
+**11 · El límite de «Avísame» es por hora, y el limitador de Workers solo cuenta de a 10 o 60 segundos.**
+
+*Qué pasó.* El 14 oct 2026, al configurar los límites por IP de cotizar (HU-T5.5) y de «Avísame» (HU-T6.5) en el plan gratuito.
+
+*Síntoma literal.* HU-T6.5 CA2: «No se guarda ningún dato de la persona; 10 por hora por IP». El esquema de wrangler para `ratelimits`: `"period": { "enum": [10, 60] }`.
+
+*Causa raíz.* La historia se escribió con un límite de negocio («10 por hora») sin contrastarlo con la herramienta que lo cumple. Contar por hora pedía guardar algo por IP: en el KV, mil escrituras al día para toda la cuenta en el plan gratuito; en la base, un dato de la persona, que CA2 prohíbe.
+
+*Cómo se reprodujo.* `wrangler deploy --dry-run` con `period: 3600` falla la validación del esquema; con 60, lo acepta y lista `env.LIMITE_AVISAME (10 requests/60s)`.
+
+*Arreglo.* Workers Rate Limiting, sin escribir en la base ni en el KV: cotizar con 30 por minuto (lo que pedía HU-T5.5) y «Avísame» con 10 por minuto por IP. Lo que la hora agregaba lo da el teléfono: la isla recuerda la variante por la que ya se preguntó y no vuelve a sumar. Cada destino tiene su propio contador (`namespace_id`), para que staging no gaste el de producción. Sin el limitador configurado, la API lo registra y responde igual: el límite cuida la base, no hace correcta la respuesta.
+
+**Lo prueba** `tests/repo/tienda-celda.test.ts`, «la API limita por IP cotizar y avísame», y `apps/tienda-api/src/cotizar.test.ts`, «pasado el límite por IP: 429». Control negativo: con un limitador que deja pasar una, la segunda responde 429.
+
+La regla: **un límite de negocio se escribe en las unidades que la herramienta sabe contar; si no, la historia promete lo que el plan no da.**
+
+*Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P1, P18 · tienda-0.0.0 · 2026-10-14

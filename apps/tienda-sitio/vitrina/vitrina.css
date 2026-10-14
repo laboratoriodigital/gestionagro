@@ -466,6 +466,15 @@ h1 {
   margin: 0;
   font-weight: var(--peso-fuerte);
 }
+.resumen__total {
+  margin-top: var(--espacio-2);
+  font-size: var(--texto-grande);
+}
+.aviso--fuerte {
+  margin-top: var(--espacio-3);
+  border-left: 4px solid var(--acento);
+  color: var(--texto);
+}
 .resumen__nota {
   margin: var(--espacio-2) 0 0;
   color: var(--texto-suave);

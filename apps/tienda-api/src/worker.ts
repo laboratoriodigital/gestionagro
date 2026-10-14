@@ -36,6 +36,7 @@ import {
   verificarConClaves,
 } from '@ed1/tokens';
 import { type Context, Hono } from 'hono';
+import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { type Almacen, type EscritorKv, publicar, type Resultado } from './publicar.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
 
@@ -73,8 +74,16 @@ export interface Env {
   /** El aviso al dueño (HU-T17.1): lo usa la tarea que reconstruye los hostnames. */
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
+  /** Los limitadores por IP de lo público (HU-T5.5 y HU-T6.5): Workers Rate Limiting. */
+  LIMITE_COTIZAR?: Limitador;
+  LIMITE_AVISAME?: Limitador;
   /** Un binding D1 por shard, con el nombre del shard, y `tienda_control`. */
   [base: string]: unknown;
+}
+
+/** Lo que se usa de un binding de Workers Rate Limiting. */
+export interface Limitador {
+  limit(opciones: { key: string }): Promise<{ success: boolean }>;
 }
 
 /** Compara sin cortar en la primera diferencia: el tiempo no dice cuánto del secreto acertó. */
@@ -140,12 +149,47 @@ function clavesDe(env: Env): ClavePublica[] {
 
 const VUELVE_A_ENTRAR = 'Tu sesión venció o no es de la tienda. Vuelve a entrar.';
 const LECTURA = new Set(['GET', 'HEAD', 'OPTIONS']);
+/** Rutas que van por POST pero solo leen: siguen con `ks:tienda` apagado. */
+const SOLO_LEEN = new Set(['/api/v1/cotizar']);
 
 let lector: { kv: LectorKv; lector: LectorKillSwitch } | null = null;
 const lectorDe = (kv: LectorKv) => {
   if (lector?.kv !== kv) lector = { kv, lector: crearLectorKillSwitch({ kv }) };
   return lector.lector;
 };
+
+/**
+ * La tienda que resolvió el despacho (`x-tienda`), con su shard de esta celda; `null` si no la hay.
+ * Es confiable: solo el despacho y el panel llegan aquí, y borran la que llega de afuera (§14.1).
+ */
+function tiendaDelDespacho(c: ContextoTienda): { org: string; db: BaseD1 } | null {
+  let destino: { org?: unknown; shard?: unknown };
+  try {
+    destino = JSON.parse(c.req.header(CABECERA_TIENDA) ?? 'null') ?? {};
+  } catch {
+    destino = {};
+  }
+  const { org, shard } = destino;
+  const db =
+    typeof shard === 'string' && SHARD.test(shard)
+      ? (c.env[shard] as BaseD1 | undefined)
+      : undefined;
+  return typeof org === 'string' && db ? { org, db } : null;
+}
+
+/** Si la IP sigue dentro del límite. Sin limitador, lo registra y deja pasar (P1: se dice). */
+async function dentroDelLimite(
+  c: ContextoTienda,
+  limitador: Limitador | undefined,
+  nombre: string,
+): Promise<boolean> {
+  if (!limitador) {
+    console.error(`tienda-api: falta el limitador ${nombre}`);
+    return true;
+  }
+  const ip = c.req.header('cf-connecting-ip') ?? 'sin-ip';
+  return (await limitador.limit({ key: ip })).success;
+}
 
 export function crearApp(opciones: { ahora?: () => number } = {}) {
   const ahora = opciones.ahora ?? (() => Date.now());
@@ -163,6 +207,7 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
   app.use('*', async (c, siguiente) => {
     if (
       !LECTURA.has(c.req.method) &&
+      !SOLO_LEEN.has(c.req.path) &&
       c.env.FLAGS &&
       (await lectorDe(c.env.FLAGS).apagado('tienda'))
     ) {
@@ -261,23 +306,48 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
   // HU-T2.6: lo público llega por el despacho, con la tienda que resolvió en `x-tienda`. Sin ella,
   // o con un shard que no es de esta celda, no existe.
   app.get('/api/v1/tienda', async (c) => {
-    let destino: { org?: unknown; shard?: unknown };
-    try {
-      destino = JSON.parse(c.req.header(CABECERA_TIENDA) ?? 'null') ?? {};
-    } catch {
-      destino = {};
-    }
-    const { org, shard } = destino;
-    const db =
-      typeof shard === 'string' && SHARD.test(shard)
-        ? (c.env[shard] as BaseD1 | undefined)
-        : undefined;
-    if (typeof org !== 'string' || !db) return c.json(NO_EXISTE, 404);
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    const { db, org } = destino;
     const tienda = await db
       .prepare('SELECT nombre, estado FROM tienda WHERE org_id = ?')
       .bind(org)
       .first<{ nombre: string; estado: string }>();
     return tienda ? c.json(tienda) : c.json(NO_EXISTE, 404);
+  });
+
+  /**
+   * HU-T5.5: cotizar. Público, por el despacho, para la tienda de `x-tienda`; 30 por minuto por IP
+   * (`LIMITE_COTIZAR`). Sin el limitador configurado lo dice en el registro y responde igual: el
+   * límite protege la base, no es lo que hace correcta la cotización.
+   */
+  app.post('/api/v1/cotizar', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_COTIZAR, 'LIMITE_COTIZAR'))) {
+      c.header('retry-after', '60');
+      return c.json(
+        {
+          estado: 'limite',
+          motivo: 'Son muchas consultas seguidas. Espera un minuto y vuelve a intentar.',
+        },
+        429,
+      );
+    }
+    let cuerpo: unknown;
+    try {
+      cuerpo = await c.req.json();
+    } catch {
+      return c.json({ estado: 'invalido', motivo: 'El pedido no se pudo leer.' }, 400);
+    }
+    const p = PeticionDeCotizar.safeParse(cuerpo);
+    if (!p.success) {
+      return c.json(
+        { estado: 'invalido', motivo: 'El pedido tiene algo que no se puede cotizar.' },
+        422,
+      );
+    }
+    return c.json(await cotizar(destino.db, destino.org, p.data, new Date(ahora()).toISOString()));
   });
 
   app.get('/api/panel/v1/yo', async (c) => {

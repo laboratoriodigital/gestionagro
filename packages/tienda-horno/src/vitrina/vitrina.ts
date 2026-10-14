@@ -279,15 +279,94 @@ async function pedido(): Promise<void> {
       codigo.textContent = carrito.codigo;
       codigo.closest<HTMLElement>('[data-codigo-bloque]')?.removeAttribute('hidden');
     }
+    // Lo que la tienda dice mientras el servidor confirma: el mismo cálculo, con sus precios.
     const subtotal = carrito.lineas.reduce(
       (s, l) => s + (porVariante.get(l.variante)?.variante.precioCop ?? 0) * l.cantidad,
       0,
     );
-    const campo = resumen.querySelector<HTMLElement>('[data-subtotal]');
-    if (campo) campo.textContent = formato(subtotal);
+    poner('[data-subtotal]', formato(subtotal));
+    poner('[data-total]', formato(subtotal));
+    totalVisto = subtotal;
     pintarBarra(carrito);
+    if (!vacioAhora) programarCotizacion();
+  };
+  const poner = (selector: string, texto: string) => {
+    const campo = resumen.querySelector<HTMLElement>(selector);
+    if (campo) campo.textContent = texto;
+  };
+
+  /**
+   * HU-T5.5: el servidor recalcula con los precios y las existencias de la base. Lo que corrige se
+   * aplica diciéndolo (nunca con un cobro en pantalla), y un total distinto del que se vio pide
+   * revisarlo: nunca sigue en silencio (CA2 y CA3).
+   */
+  let totalVisto = 0;
+  let espera: ReturnType<typeof setTimeout> | undefined;
+  const programarCotizacion = () => {
+    clearTimeout(espera);
+    espera = setTimeout(() => void confirmar(), 300);
+  };
+  const confirmar = async () => {
+    const r = await cotizarEnLaTienda(carrito, totalVisto);
+    const nota = resumen.querySelector<HTMLElement>('[data-nota]');
+    const alerta = resumen.querySelector<HTMLElement>('[data-aviso-total]');
+    if (!r) {
+      decir(nota, 'No pudimos confirmar el total ahora. Lo confirmamos antes de enviar tu pedido.');
+      return;
+    }
+    decir(nota, 'El envío se confirma antes de enviar el pedido.');
+    const corregido = r.carrito.map((x) => ({
+      ...x,
+      ...(carrito.lineas.find((l) => l.variante === x.variante)?.mayorDeEdad
+        ? { mayorDeEdad: true as const }
+        : {}),
+    }));
+    const cambiaron =
+      JSON.stringify(corregido.map((l) => [l.variante, l.cantidad])) !==
+      JSON.stringify(carrito.lineas.map((l) => [l.variante, l.cantidad]));
+    if (cambiaron && !carrito.cobro) {
+      carrito = { ...carrito, lineas: corregido };
+      guardar(carrito);
+      decir(aviso ?? null, 'Ajustamos tu pedido con lo que la tienda tiene disponible.');
+      pintar();
+      // Lo corregido ya es lo que dijo el servidor: no hace falta preguntar otra vez.
+      clearTimeout(espera);
+    }
+    poner('[data-subtotal]', formato(r.subtotal));
+    poner('[data-total]', formato(r.total));
+    decir(
+      alerta,
+      r.cambio
+        ? `El total cambió: ahora es ${formato(r.total)}. Revísalo antes de enviar tu pedido.`
+        : undefined,
+    );
+    totalVisto = r.total;
   };
   pintar();
+}
+
+interface Cotizacion {
+  subtotal: number;
+  total: number;
+  carrito: { variante: string; cantidad: number }[];
+  cambio: boolean;
+}
+
+/** `POST /api/v1/cotizar`; `null` si no responde o no se pudo (la página sigue con lo que sabe). */
+async function cotizarEnLaTienda(c: Carrito, totalVisto: number): Promise<Cotizacion | null> {
+  try {
+    const r = await fetch('/api/v1/cotizar', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        lineas: c.lineas.map((l) => ({ variante: l.variante, cantidad: l.cantidad })),
+        totalVisto,
+      }),
+    });
+    return r.ok ? ((await r.json()) as Cotizacion) : null;
+  } catch {
+    return null;
+  }
 }
 
 async function busqueda(): Promise<void> {
