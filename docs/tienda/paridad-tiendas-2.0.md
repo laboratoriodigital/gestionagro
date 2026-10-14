@@ -52,7 +52,7 @@ Basta con una línea por pregunta. Si las dos tiendas responden distinto, una l�
 
 | Pregunta | Para qué |
 |---|---|
-| De cada 10 pedidos, ¿cuántos se pagan al recibir (contraentrega)? Y de esos, ¿cuántos el cliente no recibe y el paquete vuelve? | El tablero de recaudos (HU-T9.6) y cuánto pesa el flete de vuelta |
+| ~~De cada 10 pedidos, ¿cuántos se pagan al recibir (contraentrega)? Y de esos, ¿cuántos el cliente no recibe y el paquete vuelve?~~ | Cerrada el 14 oct 2026 (§5): depende de cada tienda, y cada tienda la mide en su panel |
 | ¿Alguna de las dos tiene Google Analytics o el píxel de Meta puesto en la tienda? | Sin dominio propio, la 3.0 no los carga (TIENDA §4.1): si una los usa, hay que hablar del dominio antes de cortarla |
 | ¿Tienen páginas aparte del catálogo, como «Quiénes somos» o «Envíos y devoluciones»? | HU-T10.2 (hoy en M5) se adelanta si las usan |
 | ¿Cuántas personas entran a manejar cada tienda? | Si son varias, el equipo (HU-T10.5, en M2) va en la sesión guiada del corte |
@@ -63,7 +63,7 @@ Basta con una línea por pregunta. Si las dos tiendas responden distinto, una l�
 
 | Pregunta | Respuesta del dueño | Qué cambia en el plan |
 |---|---|---|
-| De cada 10 pedidos, ¿cuántos se pagan al recibir y cuántos vuelven? | Sin respuesta todavía | Nada: la contraentrega va en M2 igual |
+| De cada 10 pedidos, ¿cuántos se pagan al recibir y cuántos vuelven? | **14 oct 2026:** no se puede contestar desde la plataforma; depende de la dinámica de cada tienda | Nada en el plan: la contraentrega va en M2 igual. La cifra no se supone: la mide cada tienda con sus propios pedidos (los recaudos de HU-T9.4 y HU-T9.5, y el margen de la contraentrega en el inicio, HU-T14.2), y el comercio decide si la ofrece. Ningún valor de la plataforma depende de un porcentaje fijo de contraentrega |
 | ¿GA4 o el píxel de Meta? | Sí, los dos, editables desde la configuración | Decisión D-T13: GA4 también en el subdominio, con su cookie limitada a la tienda; el píxel de Meta, solo con dominio propio (TIENDA §4.1) |
 | Search Console | En la 2.0, una tienda en un subdominio de la plataforma no se pudo verificar con el método del proveedor de dominio | **HU-T14.8, nueva, en T3:** el código de la etiqueta HTML de Google en la configuración, como el de GA4 y el píxel. Es el método que sirve para un subdominio (propiedad de prefijo de URL) |
 | ¿Páginas propias? | Sí: «Envíos y devoluciones», y puede haber más | HU-T10.2 (páginas propias) sigue en M5. La política de envíos y devoluciones del comercio ya sale de sus textos legales (HU-T7.1) |
