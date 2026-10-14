@@ -111,6 +111,9 @@ export const CONCEPTOS = [
   'perdido',
   'gracia',
   'abonado',
+  // HU-Q13.2: al final, para que los enlaces de antes lean lo mismo (el formato guarda posiciones).
+  'tiempo_festivo',
+  'plena_festivo',
 ] as const;
 export type Concepto = (typeof CONCEPTOS)[number];
 

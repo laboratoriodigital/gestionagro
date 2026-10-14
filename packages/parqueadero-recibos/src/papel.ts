@@ -72,7 +72,7 @@ export function papel(recibo: Recibo, o: OpcionesDePapel): Bloque[] {
     }
   };
   const regla = () => bloques.push({ tipo: 'regla' });
-  const f = (ms: number) => fechaHora(ms, o.desfaseMin);
+  const f = (ms: number) => fechaHora(ms, o.desfaseMin, recibo.hora12);
   const s = recibo.sede;
 
   texto(s.nombre.toUpperCase(), { alinear: 'centro', negrita: true });
@@ -107,7 +107,7 @@ export function papel(recibo: Recibo, o: OpcionesDePapel): Bloque[] {
     par('Tiempo', `${sa.minutos} min`);
     regla();
     for (const l of sa.lineas) {
-      if (l.concepto === 'plena' || l.concepto === 'tope_dia') {
+      if (l.concepto === 'plena' || l.concepto === 'plena_festivo' || l.concepto === 'tope_dia') {
         par(conceptoDeLinea({ ...l, concepto: 'tiempo' }, recibo.tarifa), $(l.base));
       }
       par(conceptoDeLinea(l, recibo.tarifa), $(l.valor));

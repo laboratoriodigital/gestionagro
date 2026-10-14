@@ -6,9 +6,12 @@
  *   si ese día no existe, al último del mes siguiente (`2026-01-31` → `2026-02-28`).
  * - **Una quincena** son 15 días, los dos extremos incluidos.
  * - **El prorrateo** de un periodo empezado cobra los días que cubre sobre los del periodo entero,
- *   redondeado hacia abajo a la centena: como el redondeo de la tarifa, nunca cobra de más.
+ *   redondeado hacia abajo a la centena: como el redondeo de la tarifa, nunca cobra de más. Con
+ *   `habiles` (HU-Q13.3) cuenta solo los lunes a viernes que no son festivo en Colombia, arriba y
+ *   abajo; sin hábiles en el periodo entero, cuenta los días calendario.
  */
-import type { PlanDeAbono } from '@ed1/parqueadero-schema';
+import { esHabil, RANGO } from '@ed1/calendario';
+import type { DiasDeMensualidad, PlanDeAbono } from '@ed1/parqueadero-schema';
 
 const DIA_MS = 86_400_000;
 const ms = (f: string) => Date.parse(`${f}T00:00:00Z`);
@@ -43,9 +46,30 @@ export function finDeMes(f: string): string {
  * Lo que vale cubrir de `desde` a `hasta` con un plan de `valor`: entero si es el periodo completo
  * o más, y si no, la parte de sus días, hacia abajo a la centena.
  */
-export function prorrateo(valor: number, plan: PlanDeAbono, desde: string, hasta: string): number {
-  const completo = diasEntre(desde, finDelPeriodo(plan, desde));
-  const dias = diasEntre(desde, hasta);
+/** Los lunes a viernes que no son festivo de `desde` a `hasta`, los dos incluidos (HU-Q13.3). */
+export function habilesEntre(desde: string, hasta: string): number {
+  let n = 0;
+  for (let t = ms(desde); t <= ms(hasta); t += DIA_MS) {
+    const f = fecha(t);
+    const anio = Number(f.slice(0, 4));
+    const conocido = anio >= RANGO.desde && anio <= RANGO.hasta;
+    const semana = new Date(t).getUTCDay();
+    if (conocido ? esHabil(f) : semana !== 0 && semana !== 6) n++;
+  }
+  return n;
+}
+
+export function prorrateo(
+  valor: number,
+  plan: PlanDeAbono,
+  desde: string,
+  hasta: string,
+  cuenta: DiasDeMensualidad = 'calendario',
+): number {
+  const fin = finDelPeriodo(plan, desde);
+  const habiles = cuenta === 'habiles' && habilesEntre(desde, fin) > 0;
+  const completo = habiles ? habilesEntre(desde, fin) : diasEntre(desde, fin);
+  const dias = habiles ? habilesEntre(desde, hasta) : diasEntre(desde, hasta);
   if (dias >= completo) return valor;
   return Math.floor((valor * dias) / completo / 100) * 100;
 }

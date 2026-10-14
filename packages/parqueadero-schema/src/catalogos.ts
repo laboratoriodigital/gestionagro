@@ -29,6 +29,14 @@ export const nit = z
 
 /** Cuándo sale el recibo en papel (HU-Q4.3). Sin «nunca», a propósito (CA3). */
 export const PAPEL = ['siempre', 'salvo_digital'] as const;
+
+/** Hora militar (`18:05`) o de reloj (`6:05 p. m.`), HU-Q13.1. */
+export const FORMATOS_DE_HORA = ['24h', '12h'] as const;
+export type FormatoDeHora = (typeof FORMATOS_DE_HORA)[number];
+
+/** Los días que cuenta una mensualidad empezada (HU-Q13.3). */
+export const DIAS_DE_MENSUALIDAD = ['calendario', 'habiles'] as const;
+export type DiasDeMensualidad = (typeof DIAS_DE_MENSUALIDAD)[number];
 export type Papel = (typeof PAPEL)[number];
 
 /** Lo que dice la sede, también la de antes de HU-Q4.3. Sin nada, `siempre`: nadie sin recibo. */
@@ -46,6 +54,13 @@ export const sede = z.strictObject({
   entidad: z.literal('sede'),
   /** Operación continua. Omitido conserva los turnos de las cajas anteriores. */
   usa_turnos: z.boolean().optional(),
+  /** Cómo se escriben las horas en la caja y en los recibos (HU-Q13.1). Omitido = `24h`. */
+  formato_hora: z.enum(FORMATOS_DE_HORA).optional(),
+  /**
+   * Qué días cuenta el prorrateo de una mensualidad (HU-Q13.3): todos, o solo los hábiles (lunes a
+   * viernes que no son festivo en Colombia). Omitido = `calendario`, como antes.
+   */
+  dias_mensualidad: z.enum(DIAS_DE_MENSUALIDAD).optional(),
   nombre: texto.max(40, 'es de máximo 40 letras: va en una línea del papel'),
   nit,
   direccion: texto.max(60, 'es de máximo 60 letras'),
@@ -125,6 +140,21 @@ export const tarifa = z
       .strictObject({ desde: horaLocal, hasta: horaLocal, valor: pesos.min(1) })
       .refine((n) => n.desde !== n.hasta, 'la franja no puede empezar y terminar a la misma hora')
       .nullable(),
+    /**
+     * Domingos y festivos de Colombia (HU-Q13.2): otro valor por la misma unidad del modo y, si se
+     * quiere, otra tarifa plena. Opcional: sin ella, esos días cobran como los demás.
+     */
+    festivo: z
+      .strictObject({
+        valor: pesos.min(1, 'debe ser mayor que 0'),
+        plena: z
+          .strictObject({
+            desde_min: z.int().min(1).max(1439),
+            valor: pesos.min(1, 'debe ser mayor que 0'),
+          })
+          .nullable(),
+      })
+      .optional(),
     /** Cobro del tiquete perdido; nulo = no está configurado y la caja no lo ofrece. */
     perdido: pesos.min(1, 'debe ser mayor que 0').nullable(),
     redondeo: z.enum(REDONDEOS),

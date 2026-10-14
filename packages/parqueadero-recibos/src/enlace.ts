@@ -5,7 +5,9 @@
  *   comprimido con deflate (zlib, que trae su suma Adler-32) y en base64url. Es el formato del QR
  *   firmado del agro, que `@ed1/firma` heredó (HU-Q8.1). La versión 2 (HU-Q4.5) es la 1 con el
  *   texto de responsabilidad que escribió la sede; solo la lleva una entrada con texto propio, así
- *   que los demás recibos siguen saliendo en la 1.
+ *   que los demás recibos siguen saliendo en la 1. La versión 3 (HU-Q13.1 y HU-Q13.2) es la 1 con
+ *   lo que haga falta de esto: el texto de responsabilidad, la tarifa de domingos y festivos y las
+ *   horas de reloj; solo la lleva un recibo que tiene alguna de las dos últimas.
  * - **Firma** (M2, HU-Q8.2, ADR-36): la caja firma `<versión>.<datos>` con su llave Ed25519 y le
  *   pega el certificado que le dio la celda (`@ed1/firma`). `verificarRecibo` da los cuatro casos
  *   de PARQUEADERO §6.3. Un enlace sin firma, como los de M0, sigue abriendo igual.
@@ -134,6 +136,19 @@ const compactoV2 = z.strictObject({ ...compactoV1.shape, lg: cadena });
 
 type CompactoV2 = z.infer<typeof compactoV2>;
 
+/**
+ * La versión 3 (HU-Q13.1 y HU-Q13.2): la 1, el texto de responsabilidad si la entrada lo tiene, la
+ * tarifa de domingos y festivos (`fs`: valor y plena) y las horas de reloj (`h: 1`).
+ */
+const compactoV3 = z.strictObject({
+  ...compactoV1.shape,
+  lg: cadena.optional(),
+  fs: z.tuple([pesos, z.union([z.literal(0), z.tuple([z.int(), pesos])])]).optional(),
+  h: z.literal(1).optional(),
+});
+
+type CompactoV3 = z.infer<typeof compactoV3>;
+
 const aSegundos = (ms: number) => Math.floor(ms / 1000);
 
 function compactar(r: Recibo): CompactoV1 {
@@ -177,7 +192,8 @@ function compactar(r: Recibo): CompactoV1 {
 
 const nulo = (x: number) => (x === 0 ? null : x);
 
-function expandir(c: CompactoV1 | CompactoV2): Recibo {
+function expandir(c: CompactoV1 | CompactoV2 | CompactoV3): Recibo {
+  const festivo = 'fs' in c && c.fs ? c.fs : null;
   const [modo, valor, fraccion, gracia_min, topeDia, plena, nocturna, topeMinuto] = c.tf;
   const entrada = c.e * 1000;
   let salida: Recibo['salida'] = null;
@@ -231,11 +247,20 @@ function expandir(c: CompactoV1 | CompactoV2): Recibo {
       nocturna:
         nocturna === 0 ? null : { desde: nocturna[0], hasta: nocturna[1], valor: nocturna[2] },
       tope_minuto: nulo(topeMinuto),
+      ...(festivo
+        ? {
+            festivo: {
+              valor: festivo[0],
+              plena: festivo[1] === 0 ? null : { desde_min: festivo[1][0], valor: festivo[1][1] },
+            },
+          }
+        : {}),
     },
     salida,
     pie: c.pi === 0 ? null : c.pi,
-    responsabilidad: 'lg' in c ? c.lg : null,
+    responsabilidad: 'lg' in c && c.lg !== undefined ? c.lg : null,
     prueba: c.pr === 1,
+    ...('h' in c && c.h === 1 ? { hora12: true } : {}),
   };
 }
 
@@ -252,13 +277,27 @@ async function pasar(bytes: Uint8Array<ArrayBuffer>, t: TransformStream): Promis
 
 /**
  * El fragmento completo sin firma (M0): `1.<datos>`, o `2.<datos>` si la entrada lleva el texto de
- * responsabilidad de la sede (HU-Q4.5). La salida no lo lleva: su enlace cabe en el QR (CA2).
+ * responsabilidad de la sede (HU-Q4.5). La salida no lo lleva: su enlace cabe en el QR (CA2). Un
+ * recibo con tarifa de festivos u horas de reloj sale en la 3 (HU-Q13), con lo que lleve de los tres.
  */
 export async function fragmentoCompleto(recibo: Recibo): Promise<string> {
   const propio = recibo.clase === 'entrada' ? recibo.responsabilidad : null;
-  const datos = propio === null ? compactar(recibo) : { ...compactar(recibo), lg: propio };
+  const f = recibo.tarifa.festivo;
+  const extra: Partial<CompactoV3> = {
+    ...(f
+      ? { fs: [f.valor, f.plena ? [f.plena.desde_min, f.plena.valor] : 0] as CompactoV3['fs'] }
+      : {}),
+    ...(recibo.hora12 ? { h: 1 as const } : {}),
+  };
+  const nueva = Object.keys(extra).length > 0;
+  const version = nueva ? 3 : propio === null ? 1 : 2;
+  const datos = {
+    ...compactar(recibo),
+    ...(propio === null ? {} : { lg: propio }),
+    ...extra,
+  };
   const json = new TextEncoder().encode(JSON.stringify(datos));
-  return `${propio === null ? 1 : 2}.${base64url(await pasar(json, new CompressionStream('deflate')))}`;
+  return `${version}.${base64url(await pasar(json, new CompressionStream('deflate')))}`;
 }
 
 /** `origen`: el de producción; staging pasa el suyo para que sus recibos de PRUEBA abran allá. */
@@ -323,7 +362,7 @@ export async function leerEnlace(enlace: string): Promise<Lectura> {
       entrada: Number(s) * 1000,
     };
   }
-  if (version !== '1' && version !== '2') {
+  if (version !== '1' && version !== '2' && version !== '3') {
     throw new EnlaceInvalido('version', `versión «${version}» desconocida`);
   }
   if (partes.length !== 2 && partes.length !== 4) {
@@ -348,7 +387,9 @@ export async function leerEnlace(enlace: string): Promise<Lectura> {
   } catch {
     throw new EnlaceInvalido('contenido', 'no es JSON');
   }
-  const r = (version === '1' ? compactoV1 : compactoV2).safeParse(datos);
+  const r = (version === '1' ? compactoV1 : version === '2' ? compactoV2 : compactoV3).safeParse(
+    datos,
+  );
   if (!r.success || (r.data.k === 0) !== (r.data.s === 0) || (version === '2' && r.data.k !== 0)) {
     throw new EnlaceInvalido('contenido', `no es un recibo de la versión ${version}`);
   }
@@ -369,7 +410,7 @@ export async function leerEnlace(enlace: string): Promise<Lectura> {
 /** Lo que la caja firma de un enlace completo sin firma: su fragmento, `<versión>.<datos>`. */
 export function mensajeAFirmar(enlace: string): Uint8Array<ArrayBuffer> {
   const fragmento = enlace.includes('#') ? enlace.slice(enlace.indexOf('#') + 1) : enlace;
-  if (!/^[12]\.[A-Za-z0-9_-]+$/.test(fragmento)) {
+  if (!/^[123]\.[A-Za-z0-9_-]+$/.test(fragmento)) {
     throw new EnlaceInvalido('forma', 'solo se firma un enlace completo sin firma');
   }
   return new TextEncoder().encode(fragmento);

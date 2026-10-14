@@ -8,7 +8,9 @@ import { formatearPesos } from '@ed1/dinero';
 import { TEXTO_LEGAL } from '@ed1/parqueadero-recibos';
 import type { AjusteRecibo, Redondeo, Sede, Tarifa, Vehiculo } from '@ed1/parqueadero-schema';
 import {
+  type DiasDeMensualidad,
   ErrorDeValidacion,
+  type FormatoDeHora,
   PAPEL,
   type Papel,
   papelDeLaSede,
@@ -51,12 +53,19 @@ const CAMPOS_TARIFA = [
   'nocheValor',
   'perdido',
   'redondeo',
+  // HU-Q13.2: opcionales; el día completo de festivo usa los minutos de `plenaDesde`.
+  'festivoValor',
+  'festivoPlena',
 ] as const;
 type CampoTarifa = (typeof CAMPOS_TARIFA)[number];
 type BorradorTarifa = Record<CampoTarifa, string>;
 
 export interface Borrador {
   usaTurnos: boolean;
+  /** Hora militar o de reloj (HU-Q13.1). */
+  formatoHora: FormatoDeHora;
+  /** Qué días cuenta el prorrateo de una mensualidad (HU-Q13.3). */
+  diasMensualidad: DiasDeMensualidad;
   nombre: string;
   nit: string;
   direccion: string;
@@ -84,6 +93,8 @@ const tarifaVacia = (): BorradorTarifa =>
 
 export const borradorVacio = (): Borrador => ({
   usaTurnos: false,
+  formatoHora: '24h',
+  diasMensualidad: 'calendario',
   nombre: '',
   nit: '',
   direccion: '',
@@ -114,6 +125,8 @@ function borradorDe(
   if (sede) {
     Object.assign(b, {
       usaTurnos: usaTurnos(sede),
+      formatoHora: sede.formato_hora ?? '24h',
+      diasMensualidad: sede.dias_mensualidad ?? 'calendario',
       nombre: sede.nombre,
       nit: sede.nit,
       direccion: sede.direccion,
@@ -143,6 +156,8 @@ function borradorDe(
       nocheValor: texto(t.nocturna?.valor),
       perdido: texto(t.perdido),
       redondeo: t.redondeo,
+      festivoValor: texto(t.festivo?.valor),
+      festivoPlena: texto(t.festivo?.plena?.valor),
     };
   }
   return b;
@@ -227,9 +242,13 @@ export function leerBorrador(
       if (n[c] === null && !errores[id(c)]) falta(id(c));
     }
     if (!t.redondeo) errores[id('redondeo')] = 'Elija cómo redondear';
-    const conPlena = n['plenaDesde'] !== null || n['plenaValor'] !== null;
+    const conPlena =
+      n['plenaValor'] !== null || (n['plenaDesde'] !== null && n['festivoPlena'] === null);
     if (conPlena && n['plenaDesde'] === null) falta(id('plenaDesde'));
     if (conPlena && n['plenaValor'] === null) falta(id('plenaValor'));
+    // HU-Q13.2: el día completo de festivo cuenta desde los mismos minutos, y pide su valor por minuto.
+    if (n['festivoPlena'] !== null && n['plenaDesde'] === null) falta(id('plenaDesde'));
+    if (n['festivoPlena'] !== null && n['festivoValor'] === null) falta(id('festivoValor'));
     const conNoche = Boolean(t.nocheDesde || t.nocheHasta || t.nocheValor);
     if (conNoche) {
       for (const c of ['nocheDesde', 'nocheHasta'] as const) {
@@ -254,6 +273,17 @@ export function leerBorrador(
       redondeo: t.redondeo as Redondeo,
       tope_minuto: n['tope'] ?? null,
       vigente_desde: vigenteDesde,
+      ...(n['festivoValor'] !== null && n['festivoValor'] !== undefined
+        ? {
+            festivo: {
+              valor: n['festivoValor'],
+              plena:
+                n['festivoPlena'] !== null && n['festivoPlena'] !== undefined
+                  ? { desde_min: n['plenaDesde'] ?? 0, valor: n['festivoPlena'] }
+                  : null,
+            },
+          }
+        : {}),
     };
     // HU-Q3.2 CA3: una tarifa por encima del tope no se guarda, y la caja dice por qué.
     const DE_CAMPO: Record<string, CampoTarifa> = {
@@ -263,6 +293,9 @@ export function leerBorrador(
       gracia_min: 'gracia',
       'plena.desde_min': 'plenaDesde',
       'nocturna.hasta': 'nocheHasta',
+      'festivo.valor': 'festivoValor',
+      'festivo.plena.valor': 'festivoPlena',
+      'festivo.plena.desde_min': 'plenaDesde',
     };
     // HU-Q1.2 CA2: el tope que declara la sede no pasa el de su ciudad.
     const legal = topeDeLaCiudad(b.ciudad, v);
@@ -421,6 +454,8 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
         db,
         {
           usa_turnos: b.usaTurnos,
+          formato_hora: b.formatoHora,
+          dias_mensualidad: b.diasMensualidad,
           nombre: b.nombre,
           nit: b.nit,
           direccion: b.direccion,
@@ -542,6 +577,43 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
           {b.usaTurnos
             ? 'Abra con el nombre del cajero y la base. Cierre con el conteo de efectivo.'
             : 'Registre entradas y cobre directamente. Consulte lo cobrado por día en Reportes.'}
+        </p>
+        <fieldset class="campo">
+          <legend>Cómo se escribe la hora</legend>
+          <div class="opciones">
+            {(['24h', '12h'] as const).map((x) => (
+              <button
+                key={x}
+                type="button"
+                class="opcion"
+                aria-pressed={b.formatoHora === x}
+                onClick={() => setB({ ...b, formatoHora: x })}
+              >
+                {x === '24h' ? 'Militar: 18:05' : 'Con a. m. y p. m.: 6:05 p. m.'}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset class="campo">
+          <legend>Una mensualidad empezada cobra</legend>
+          <div class="opciones">
+            {(['calendario', 'habiles'] as const).map((x) => (
+              <button
+                key={x}
+                type="button"
+                class="opcion"
+                aria-pressed={b.diasMensualidad === x}
+                onClick={() => setB({ ...b, diasMensualidad: x })}
+              >
+                {x === 'calendario' ? 'Días calendario' : 'Días hábiles'}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <p class="ayuda">
+          {b.diasMensualidad === 'calendario'
+            ? 'Cuenta todos los días del mes, también sábados, domingos y festivos.'
+            : 'Cuenta solo de lunes a viernes que no son festivo.'}
         </p>
       </fieldset>
 
@@ -694,6 +766,10 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
               <div class="dos">
                 {caja('plenaDesde', 'Día completo pasados (min)', 'Opcional')}
                 {caja('plenaValor', 'Valor del día completo', 'En pesos, como 15.000')}
+              </div>
+              <div class="dos">
+                {caja('festivoValor', 'Por minuto en domingos y festivos', 'Opcional')}
+                {caja('festivoPlena', 'Día completo en domingos y festivos', 'Opcional, en pesos')}
               </div>
               <div class="dos">
                 <Campo

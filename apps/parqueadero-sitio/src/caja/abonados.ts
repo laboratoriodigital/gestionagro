@@ -3,7 +3,7 @@
  * fechas `desde` y `hasta` son días de Bogotá y los dos cuentan: un abono hasta el 31 cubre hasta
  * las 23:59 del 31. Desde HU-Q8.4 la caja cobra cada periodo y lo suma a la vigencia (`conPagos`).
  */
-import type { Abonado, PlanDeAbono } from '@ed1/parqueadero-schema';
+import type { Abonado, DiasDeMensualidad, PlanDeAbono } from '@ed1/parqueadero-schema';
 import { diaSiguiente, finDelPeriodo, finDeMes, prorrateo } from '@ed1/parqueadero-tarifas';
 
 const DIA_MS = 24 * 60 * 60 * 1000;
@@ -90,15 +90,25 @@ export const planDe = (a: Pick<Abonado, 'plan'>): PlanDeAbono => a.plan ?? 'mes'
 export function periodoPorCobrar(
   a: Abonado,
   hoy: string,
-  o: { readonly primero?: boolean; readonly hastaFinDeMes?: boolean } = {},
+  o: {
+    readonly primero?: boolean;
+    readonly hastaFinDeMes?: boolean;
+    /** Los días que cuenta el prorrateo: los de la sede (HU-Q13.3). */
+    readonly cuenta?: DiasDeMensualidad;
+  } = {},
 ): { readonly desde: string; readonly hasta: string; readonly valor: number } {
   const plan = planDe(a);
+  const cuenta = o.cuenta ?? 'calendario';
   if (o.primero) {
-    return { desde: a.desde, hasta: a.hasta, valor: prorrateo(a.valor, plan, a.desde, a.hasta) };
+    return {
+      desde: a.desde,
+      hasta: a.hasta,
+      valor: prorrateo(a.valor, plan, a.desde, a.hasta, cuenta),
+    };
   }
   const desde = a.hasta >= hoy ? diaSiguiente(a.hasta) : hoy;
   const hasta = o.hastaFinDeMes ? finDeMes(desde) : finDelPeriodo(plan, desde);
-  return { desde, hasta, valor: prorrateo(a.valor, plan, desde, hasta) };
+  return { desde, hasta, valor: prorrateo(a.valor, plan, desde, hasta, cuenta) };
 }
 
 /**

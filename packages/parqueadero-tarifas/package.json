@@ -10,6 +10,7 @@
     "./casos-de-mensualidad": "./src/mensualidad.fixture.ts"
   },
   "dependencies": {
+    "@ed1/calendario": "workspace:*",
     "@ed1/dinero": "workspace:*",
     "@ed1/parqueadero-schema": "workspace:*"
   }

@@ -15,7 +15,7 @@ import {
   type RegistroImpresora,
 } from './datos.ts';
 import { Estadias } from './Estadias.tsx';
-import { diaLocalBogota, horaBogota } from './fecha.ts';
+import { diaLocalBogota, horaBogota, ponerHora12 } from './fecha.ts';
 import { useConsulta } from './ganchos.ts';
 import { diferenciaDeHora, senalDeHora } from './hora.ts';
 import { alVolverALaCaja, type ControlDeImpresora } from './impresora.ts';
@@ -70,6 +70,17 @@ export function App({ db, control, propuesta, prueba, reloj, nube, regreso }: Pr
     false,
   );
   const enCola = useConsulta(() => db.outbox.count(), 0);
+  // HU-Q13.1: la hora militar o de reloj que eligió la sede, antes de pintar las pantallas.
+  const hora12 = useConsulta<boolean>(
+    () =>
+      db.catalogos
+        .where('entidad')
+        .equals('sede')
+        .first()
+        .then((s) => (s as { formato_hora?: string } | undefined)?.formato_hora === '12h'),
+    false,
+  );
+  ponerHora12(hora12);
   // HU-Q7.10 CA2: el aviso del plan, como lo trae la sesión del CORE (HU-C5.5).
   const avisoDelPlan = useConsulta<AvisoDelPlan>(
     () =>

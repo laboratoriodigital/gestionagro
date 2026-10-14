@@ -151,6 +151,8 @@ export function papelDelCierre(
     readonly columnas: number;
     readonly paginaDeCodigos: PaginaDeCodigos;
     readonly desfaseMin?: number;
+    /** Las horas como de reloj (HU-Q13.1). */
+    readonly hora12?: boolean;
   },
 ): Bloque[] {
   const col = o.columnas;
@@ -169,7 +171,7 @@ export function papelDelCierre(
     }
   };
   const regla = () => bloques.push({ tipo: 'regla' });
-  const f = (ms: number) => fechaHora(ms, o.desfaseMin);
+  const f = (ms: number) => fechaHora(ms, o.desfaseMin, o.hora12);
   const diferencia = c.contado - r.esperado;
 
   texto(c.nombreDeLaSede.toUpperCase(), { alinear: 'centro', negrita: true });
