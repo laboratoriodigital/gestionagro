@@ -1,6 +1,6 @@
 # Qué usa hoy cada tienda 2.0 (HU-T12.1)
 
-**Estado:** cerrada el 13 oct 2026. **Ninguna tienda 2.0 se migra a la 3.0** (decisión del dueño): esta hoja ya no es la lista de lo que hay que tener antes de cargarlas, sino la **referencia** de lo que ya funciona en la 2.0. Lo que la 3.0 toma de aquí se puede cambiar, mejorar o quitar (bitácora tienda3 9).
+**Estado:** cerrada el 13 oct 2026. **Ninguna tienda 2.0 se migra a la 3.0** (decisión del dueño): esta hoja ya no es la lista de lo que hay que tener antes de cargarlas, sino la **referencia** de lo que ya funciona en la 2.0. Lo que la 3.0 toma de aquí se puede cambiar, mejorar o quitar (bitácora tienda3 9). **Nada de su apariencia pasa a la 3.0**: ni colores, ni tipografía, ni plantillas (pedido del dueño del 13 oct 2026; el diseño es el de BACKLOG_TIENDA3 §5).
 
 **Para qué sirve:** decir qué usan de verdad los comercios de la línea, para ordenar el plan de la 3.0. *(Antes del 13 oct 2026 servía para cargar estas tiendas en M6, que se retiró.)*
 

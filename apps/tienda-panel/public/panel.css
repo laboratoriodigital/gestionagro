@@ -1,16 +1,8 @@
 /*
  * El panel de la Tienda mientras se construye (HU-T2.4): la portada en el lenguaje «editorial
- * técnico» de la galería (BACKLOG_TIENDA3 §5.5), con el acento cobre de la Tienda.
+ * técnico» de la galería (BACKLOG_TIENDA3 §5.5). El acento cobre es el tema `tienda` de @ed1/ui v2
+ * (HU-T3.2): `tokens.css` lo aplica con `data-producto="tienda"`, sin otra copia aquí (P2).
  */
-[data-producto="tienda"] {
-  --acento: #9c4a1a; /* cobre: 6,1:1 sobre blanco */
-}
-@media (prefers-color-scheme: dark) {
-  [data-producto="tienda"]:not([data-tema="claro"]) {
-    --acento: #f0a878;
-  }
-}
-
 *,
 *::before,
 *::after {
