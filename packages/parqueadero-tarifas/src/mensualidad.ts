@@ -74,21 +74,65 @@ export function habilesEntre(desde: string, hasta: string): number {
 function contar(desde: string, hasta: string, entero: [string, string], cuenta: DiasDeMensualidad) {
   const habiles = cuenta === 'habiles' && habilesEntre(entero[0], entero[1]) > 0;
   return habiles
-    ? { dias: habilesEntre(desde, hasta), completo: habilesEntre(entero[0], entero[1]) }
-    : { dias: diasEntre(desde, hasta), completo: diasEntre(entero[0], entero[1]) };
+    ? { dias: habilesEntre(desde, hasta), completo: habilesEntre(entero[0], entero[1]), habiles }
+    : { dias: diasEntre(desde, hasta), completo: diasEntre(entero[0], entero[1]), habiles };
 }
 
 const parte = (valor: number, dias: number, completo: number) =>
   dias >= completo ? valor : Math.floor((valor * dias) / completo / 100) * 100;
 
+/** Un tramo del prorrateo, con lo que la caja necesita para explicarlo (HU-Q13.5). */
+export interface TramoDeProrrateo {
+  readonly desde: string;
+  readonly hasta: string;
+  /** Los días que cubre: calendario, o hábiles si `habiles`. */
+  readonly dias: number;
+  /** Los días del periodo entero con que se compara. */
+  readonly completo: number;
+  readonly habiles: boolean;
+  /** Cubre el periodo entero: vale el valor del plan. */
+  readonly entero: boolean;
+  readonly valor: number;
+}
+
 /**
- * Lo que vale cubrir de `desde` a `hasta` con un plan de `valor`, hacia abajo a la centena; los días
- * son calendario, o hábiles con `cuenta` (HU-Q13.3).
- * - De fecha a fecha (por omisión) y en la quincena: entero si cubre el periodo completo o más; si no,
- *   la parte de sus días sobre los del periodo que empieza en `desde`.
- * - Del 1 al último día (`periodo: 'calendario'`, HU-Q13.4): cada mes calendario que toca, entero si
- *   lo cubre todo, y si no, la parte de sus días sobre los de ese mes.
+ * Los tramos de cubrir de `desde` a `hasta` con un plan de `valor`, cada uno hacia abajo a la
+ * centena; los días son calendario, o hábiles con `cuenta` (HU-Q13.3).
+ * - De fecha a fecha (por omisión) y en la quincena: un tramo, entero si cubre el periodo completo o
+ *   más; si no, la parte de sus días sobre los del periodo que empieza en `desde`.
+ * - Del 1 al último día (`periodo: 'calendario'`, HU-Q13.4): un tramo por mes calendario que toca,
+ *   entero si lo cubre todo, y si no, la parte de sus días sobre los de ese mes.
  */
+export function detalleDelProrrateo(
+  valor: number,
+  plan: PlanDeAbono,
+  desde: string,
+  hasta: string,
+  cuenta: DiasDeMensualidad = 'calendario',
+  periodo: PeriodoDeMensualidad = 'fecha',
+): TramoDeProrrateo[] {
+  const tramo = (d: string, h: string, entero: [string, string]): TramoDeProrrateo => {
+    const c = contar(d, h, entero, cuenta);
+    return {
+      desde: d,
+      hasta: h,
+      ...c,
+      entero: c.dias >= c.completo,
+      valor: parte(valor, c.dias, c.completo),
+    };
+  };
+  if (plan === 'quincena' || periodo === 'fecha') {
+    return [tramo(desde, hasta, [desde, finDelPeriodo(plan, desde)])];
+  }
+  const tramos: TramoDeProrrateo[] = [];
+  for (let d = desde; d <= hasta; d = diaSiguiente(finDeMes(d))) {
+    const mes: [string, string] = [`${d.slice(0, 8)}01`, finDeMes(d)];
+    tramos.push(tramo(d, hasta < mes[1] ? hasta : mes[1], mes));
+  }
+  return tramos;
+}
+
+/** Lo que vale cubrir de `desde` a `hasta`: la suma de sus tramos (`detalleDelProrrateo`). */
 export function prorrateo(
   valor: number,
   plan: PlanDeAbono,
@@ -97,19 +141,10 @@ export function prorrateo(
   cuenta: DiasDeMensualidad = 'calendario',
   periodo: PeriodoDeMensualidad = 'fecha',
 ): number {
-  if (plan === 'quincena' || periodo === 'fecha') {
-    const entero: [string, string] = [desde, finDelPeriodo(plan, desde)];
-    const { dias, completo } = contar(desde, hasta, entero, cuenta);
-    return parte(valor, dias, completo);
-  }
-  let total = 0;
-  for (let d = desde; d <= hasta; d = diaSiguiente(finDeMes(d))) {
-    const mes: [string, string] = [`${d.slice(0, 8)}01`, finDeMes(d)];
-    const h = hasta < mes[1] ? hasta : mes[1];
-    const { dias, completo } = contar(d, h, mes, cuenta);
-    total += parte(valor, dias, completo);
-  }
-  return total;
+  return detalleDelProrrateo(valor, plan, desde, hasta, cuenta, periodo).reduce(
+    (a, t) => a + t.valor,
+    0,
+  );
 }
 
 /** Un periodo de una liquidación de mensualidades (HU-Q11.6), con lo que hace falta para explicarlo. */

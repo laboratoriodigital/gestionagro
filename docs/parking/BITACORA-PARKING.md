@@ -1097,3 +1097,21 @@ La regla: **una capacidad disponible puede fallar al usarla; el respaldo necesit
 La regla: **lo que el cajero escanea cien veces al día se prueba con el papel y el teléfono de verdad antes de entregar; un QR que «se lee» en el escritorio no es uno que se lee en la caja.**
 
 *Ficha:* parqueadero · *(mío y del terreno)* · 🟡 Medio · P16, P20 · parqueadero-0.4.1 · 2026-10-13
+
+**40 · Después de «No cobrar ahora», la mensualidad se cobraba con otra fecha y otro valor, y la lista no decía quién debía.**
+
+*Qué pasó.* El 14 oct 2026, con el cliente en operación, el dueño agregó un abonado con «No cobrar ahora» y luego le cobró desde su detalle.
+
+*Síntoma literal.* «La fecha que muestra luego de pagar la mensualidad está mal, el valor también» y «en la sección de abonados no se distingue quién debe y quién ya pagó» (el dueño).
+
+*Causa raíz.* Mía. La caja daba por pagada la vigencia del catálogo: «No cobrar ahora» se pensó para el talonario de antes (HU-Q8.4), y desde el detalle «Cobrar mensualidad» cobraba siempre el periodo siguiente al `hasta`, entero. El abonado que no había pagado octubre recibía el cobro de noviembre. La lista decía «Vigente · del … al …», que es igual para el que pagó y para el que no.
+
+*Cómo se reprodujo.* La e2e de HU-Q8.4 lo afirmaba como correcto: después de «No cobrar ahora», el cobro esperaba $300.000 del 01/11 al 30/11.
+
+*Arreglo.* La caja calcula hasta dónde pagó cada abonado con sus mensualidades no anuladas (`pagadoHastaDe`). El cobro empieza por lo que falta de la vigencia que corre, con su prorrateo, y lo muestra tramo por tramo (`detalleDelProrrateo`). La lista y el detalle dicen «Al día», «Debe» o «Venció» con su color. Al probarlo salió otro: dos mensualidades cobradas en el mismo minuto se ordenaban al azar, y «Anular la mensualidad» podía anular la primera. Ahora la última es la que llega más lejos. Sale en la `0.7.1`.
+
+**Lo prueban** `cuenta-del-abonado.test.ts` y `detalle-del-prorrateo.test.ts`, y la e2e de HU-Q8.4: debe, paga octubre en proporción, queda al día y renueva noviembre entero. Los abonados de antes sin pagos en la caja aparecen como «Debe»: el cliente empezó el 13 oct, así que se acepta.
+
+La regla: **lo que no se cobró no está pagado; la pantalla dice quién debe con la misma fuente que cobra.**
+
+*Ficha:* parqueadero · *(mío)* · 🔴 Alto · P1, P15 · parqueadero-0.7.1 · 2026-10-14

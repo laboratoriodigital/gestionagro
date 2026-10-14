@@ -102,21 +102,67 @@ export function periodoPorCobrar(
     readonly cuenta?: DiasDeMensualidad;
     /** De fecha a fecha, o del 1 al último día del mes: el de la sede (HU-Q13.4). */
     readonly periodo?: PeriodoDeMensualidad;
+    /** Hasta dónde lo pagó en la caja (`pagadoHastaDe`); `null`, nunca pagó (HU-Q13.5). */
+    readonly pagadoHasta?: string | null;
   } = {},
 ): { readonly desde: string; readonly hasta: string; readonly valor: number } {
   const plan = planDe(a);
   const cuenta = o.cuenta ?? 'calendario';
   const periodo = o.periodo ?? 'fecha';
-  if (o.primero) {
+  // HU-Q13.5: lo que falta pagar de la vigencia que corre va primero. Sin `pagadoHasta` (las cajas
+  // de antes), `primero` dice si es la vigencia con que se agregó.
+  const debe =
+    o.pagadoHasta !== undefined
+      ? a.hasta >= hoy && (o.pagadoHasta === null || o.pagadoHasta < a.hasta)
+      : o.primero === true;
+  if (debe) {
+    const desde = o.pagadoHasta && o.pagadoHasta >= a.desde ? diaSiguiente(o.pagadoHasta) : a.desde;
     return {
-      desde: a.desde,
+      desde,
       hasta: a.hasta,
-      valor: prorrateo(a.valor, plan, a.desde, a.hasta, cuenta, periodo),
+      valor: prorrateo(a.valor, plan, desde, a.hasta, cuenta, periodo),
     };
   }
   const desde = a.hasta >= hoy ? diaSiguiente(a.hasta) : hoy;
   const hasta = o.hastaFinDeMes ? finDeMes(desde) : finDelPeriodo(plan, desde, periodo);
   return { desde, hasta, valor: prorrateo(a.valor, plan, desde, hasta, cuenta, periodo) };
+}
+
+/** Hasta qué día pagó cada abonado en la caja, con los pagos no anulados; sin pagos, no aparece. */
+export function pagadoHastaDe(pagos: readonly PagoDelAbono[]): Map<string, string> {
+  const hasta = new Map<string, string>();
+  for (const p of pagos) {
+    const antes = hasta.get(p.abonado_id);
+    if (!antes || p.hasta > antes) hasta.set(p.abonado_id, p.hasta);
+  }
+  return hasta;
+}
+
+/** Cómo está la cuenta de un abonado, para la lista y el detalle (HU-Q13.5). */
+export type CuentaDelAbonado =
+  | { readonly es: 'inactivo' }
+  | { readonly es: 'al-dia'; readonly hasta: string }
+  | { readonly es: 'debe'; readonly desde: string; readonly hasta: string }
+  | { readonly es: 'vencido'; readonly hasta: string };
+
+/**
+ * Al día, si pagó hasta hoy o más; debe, si su vigencia corre (o empieza) y no la pagó entera;
+ * vencido, si su vigencia ya pasó. `hoy` es el día de Bogotá.
+ */
+export function cuentaDelAbonado(
+  a: Abonado,
+  pagadoHasta: string | null,
+  hoy: string,
+): CuentaDelAbonado {
+  if (!a.activo) return { es: 'inactivo' };
+  if (pagadoHasta && pagadoHasta >= hoy && pagadoHasta >= a.hasta) {
+    return { es: 'al-dia', hasta: pagadoHasta };
+  }
+  if (a.hasta >= hoy) {
+    const desde = pagadoHasta && pagadoHasta >= a.desde ? diaSiguiente(pagadoHasta) : a.desde;
+    return { es: 'debe', desde, hasta: a.hasta };
+  }
+  return { es: 'vencido', hasta: a.hasta };
 }
 
 /**

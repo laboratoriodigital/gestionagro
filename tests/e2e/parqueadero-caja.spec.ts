@@ -619,12 +619,12 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('aviso-abonado')).toHaveText('Ese no es el PIN de administrador');
     await f.getByLabel('PIN de administrador').fill('2468');
     await f.getByRole('button', { name: 'Guardar abonado' }).click();
-    // Ya pagó en el talonario: no se cobra (HU-Q8.4).
+    // No se cobra ahora: entra como abonado, pero la lista dice que debe (HU-Q8.4, HU-Q13.5).
     await page.getByRole('button', { name: 'No cobrar ahora' }).click();
     await page.getByRole('button', { name: 'Volver a abonados' }).click();
     const fila = page.getByTestId('abonado-fila');
     await expect(fila).toContainText('JKL456');
-    await expect(fila).toContainText('Vigente · 06/10/2026 a 05/11/2026');
+    await expect(fila.getByTestId('cuenta-abonado')).toHaveText('Debe desde el 06/10/2026');
     await sinDesborde(page);
     await revisar();
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
@@ -681,6 +681,9 @@ test.describe('la caja del parqueadero', () => {
     const cobro = page.getByTestId('cobrar-mensualidad');
     await expect(page.getByTestId('total-mensualidad')).toHaveText('$116.100');
     await expect(page.getByTestId('prorrateo')).toContainText('el mes completo vale $300.000');
+    // HU-Q13.5: el detalle del prorrateo, tramo por tramo.
+    await expect(page.getByTestId('tramos')).toContainText('20/10 al 31/10 · 12 de 31 días');
+    await expect(page.getByTestId('tramos')).toContainText('$116.100');
     await revisar();
     await cobro.getByRole('button', { name: 'Efectivo' }).click();
     await cobro.getByRole('button', { name: 'Cobrar $116.100' }).click();
@@ -695,12 +698,14 @@ test.describe('la caja del parqueadero', () => {
     await page.getByRole('button', { name: 'Cancelar' }).click();
 
     await abrirMenu(page, 'Abonados');
+    await expect(page.getByTestId('cuenta-abonado')).toHaveText('Debe desde el 20/10/2026');
     await page.getByTestId('abonado-fila').click();
+    await expect(page.getByTestId('estado-abonado')).toHaveText('Debe desde el 20/10/2026');
     await page.getByRole('button', { name: 'Cobrar mensualidad' }).click();
-    // Ya está cubierto hasta el 31 por el talonario de antes: sigue noviembre.
-    await expect(page.getByTestId('total-mensualidad')).toHaveText('$300.000');
-    await expect(cobro).toContainText('01/11/2026');
-    await expect(cobro).toContainText('30/11/2026');
+    // HU-Q13.5: no lo pagó al agregarlo, así que lo primero es lo que falta de octubre.
+    await expect(page.getByTestId('total-mensualidad')).toHaveText('$116.100');
+    await expect(cobro).toContainText('20/10/2026');
+    await expect(cobro).toContainText('31/10/2026');
     await cobro.getByRole('button', { name: 'Cancelar' }).click();
     await page.getByRole('button', { name: 'Volver a abonados' }).click();
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
@@ -750,21 +755,38 @@ test.describe('la caja del parqueadero', () => {
     );
     await page.getByRole('button', { name: 'Cancelar' }).click();
 
-    // La renueva en datáfono: noviembre completo, y sale de la lista.
+    // Paga en datáfono lo que debe de octubre: queda al día, y la fecha y el valor son los de octubre.
     await abrirMenu(page, 'Abonados');
     await pronto.getByTestId('abonado-fila').click();
-    await expect(page.getByTestId('estado-abonado')).toHaveText(
-      'Vigente · 20/10/2026 a 31/10/2026',
-    );
+    await expect(page.getByTestId('estado-abonado')).toHaveText('Debe desde el 20/10/2026');
     await page.getByRole('button', { name: 'Cobrar mensualidad' }).click();
     await cobro.getByRole('button', { name: 'Datáfono' }).click();
-    await cobro.getByRole('button', { name: 'Cobrar $300.000' }).click();
+    await cobro.getByRole('button', { name: 'Cobrar $116.100' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mensualidad A-000002');
+    await expect(page.getByTestId('mensualidad-cobrada')).toContainText(
+      'JKL456 queda al día hasta el 31/10/2026: $116.100',
+    );
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
+    const jkl = page
+      .getByTestId('abonados')
+      .getByTestId('abonado-fila')
+      .filter({ hasText: 'JKL456' });
+    await expect(jkl.getByTestId('cuenta-abonado')).toHaveText('Al día hasta el 31/10/2026');
+
+    // La renueva en datáfono: noviembre completo, y sale de la lista.
+    await pronto.getByTestId('abonado-fila').click();
+    await page.getByRole('button', { name: 'Cobrar mensualidad' }).click();
+    // El mes entero no se prorratea: no hay detalle que explicar.
+    await expect(page.getByTestId('total-mensualidad')).toHaveText('$300.000');
+    await expect(cobro).toContainText('01/11/2026');
+    await expect(cobro).toContainText('30/11/2026');
+    await expect(page.getByTestId('tramos')).toHaveCount(0);
+    await cobro.getByRole('button', { name: 'Datáfono' }).click();
+    await cobro.getByRole('button', { name: 'Cobrar $300.000' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mensualidad A-000003');
     await page.getByRole('button', { name: 'Volver a abonados' }).click();
     await expect(page.getByTestId('vencen-pronto')).toHaveCount(0);
-    await expect(page.getByTestId('abonado-fila').filter({ hasText: 'JKL456' })).toContainText(
-      'Vigente · 20/10/2026 a 30/11/2026',
-    );
+    await expect(jkl.getByTestId('cuenta-abonado')).toHaveText('Al día hasta el 30/11/2026');
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
 
     // El efectivo de la mensualidad entra al cierre; la de datáfono, a su medio.
@@ -782,7 +804,7 @@ test.describe('la caja del parqueadero', () => {
     await anulacion.getByRole('button', { name: 'Anular la mensualidad' }).click();
     await expect(
       page.getByTestId('abonados').getByTestId('abonado-fila').filter({ hasText: 'JKL456' }),
-    ).toContainText('Vigente · 20/10/2026 a 31/10/2026');
+    ).toContainText('Al día hasta el 31/10/2026');
     await expect(page.getByTestId('vencen-pronto')).toContainText('JKL456');
     await page.getByRole('button', { name: 'Volver al inicio' }).click();
 

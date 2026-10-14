@@ -259,7 +259,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q10** | 25 ene–5 feb | Firma sin red por dispositivo y su verificación; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q11.4 (2), HU-Q11.5 (2). HU-Q8.3 pasó a Q11 (espera R2) | 14 | — |
 | **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). HU-Q8.5, HU-Q8.6 y HU-Q10.3 en el PR #156; HU-Q8.4 en el #157, sin el número del abonado; HU-Q11.6 y HU-Q11.7 en el #158 con la `v0.3.0` de la entrega. HU-Q8.3 hecha en el #158, con las fotos en el Drive de la cuenta (decisión del dueño, 12 oct 2026); HU-Q8.7 espera M1 en producción (HU-Q7.12) | 17 | M2, **`v1.0.0`** |
 | **Q12** | 22 feb–5 mar | Sin el disparador de M3 (12 oct 2026), como dice la nota de abajo: el cobro del plan por periodo, que HC4 desbloqueó (#161). EQ9 sigue preparada | HU-Q7.10 (3) | 3 | — |
-| **Q13** | 8–19 mar | Sin el disparador de M3 (14 oct 2026): lo que pidió el dueño con el cliente en operación. EQ9 sigue preparada | HU-Q13.1 (1), HU-Q13.2 (3), HU-Q13.3 (2), HU-Q13.4 (2) | 8 | `v0.6.0`, `v0.7.0` |
+| **Q13** | 8–19 mar | Sin el disparador de M3 (14 oct 2026): lo que pidió el dueño con el cliente en operación. EQ9 sigue preparada | HU-Q13.1 (1), HU-Q13.2 (3), HU-Q13.3 (2), HU-Q13.4 (2), HU-Q13.5 (2) | 10 | `v0.6.0`, `v0.7.0`, `v0.7.1` |
 
 **Total:** 229 puntos en 14 sprints. M0: 116 (Q0–Q5). M1: 57 (Q6–Q9). M2: 31 (Q10–Q11). M3: 25 (Q12–Q13).
 
@@ -842,6 +842,15 @@ Pedido del dueño del 14 oct 2026, con el primer parqueadero ya operando. Sin el
 - **CA2.** Del 1 al último día: el abonado nuevo vence el último día del mes; el primer cobro, contratado a mitad de mes, cobra esos días sobre los del mes (calendario u hábiles, HU-Q13.3); el siguiente es el mes entero. Una vigencia que cruza meses cobra cada mes en su proporción.
 - **CA3 ❌.** Sin la opción, todo sigue de fecha a fecha: los abonados de antes no cambian. El liquidador del sitio (HU-Q11.6) sigue con sus dos formas.
 
+#### HU-Q13.5 · Quién debe y quién está al día, y cómo se llegó al cobro de la mensualidad
+- **Capa:** paquete y caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q13 · **Estado:** En revisión (rama `fix/mensualidad-cobro`)
+- Como cajero, quiero ver en la lista qué abonado debe y cuál ya pagó, y que el cobro de la mensualidad diga sus fechas y su valor correctos con el detalle del prorrateo.
+- **Respaldo:** el dueño, 2026-10-14: «la fecha que muestra luego de pagar la mensualidad está mal, el valor también», «mostrar el detalle del prorrateo en el cobro de la mensualidad» y «en la sección de abonados no se distingue quién debe y quién ya pagó». Bitácora 40.
+- **CA1.** La lista y el detalle dicen la cuenta de cada abonado con su color: «Al día hasta el …» (verde), «Debe desde el …» (rojo), «Venció el …» (amarillo) o «Inactivo». Al día es haber pagado en la caja hasta hoy y hasta el fin de la vigencia.
+- **CA2.** «Cobrar mensualidad» cobra primero lo que falta pagar de la vigencia que corre (desde el día siguiente a lo pagado, o desde que empezó), con su prorrateo; con la vigencia pagada, el periodo siguiente.
+- **CA3.** El cobro muestra el prorrateo tramo por tramo: «20/10 al 31/10 · 12 de 31 días» y su valor; un periodo entero no lleva detalle.
+- **CA4 ❌.** «No cobrar ahora» no deja al abonado al día: entra como abonado (HU-Q13.3 CA3), pero la lista dice que debe. Dos mensualidades cobradas en el mismo minuto se anulan de la última a la primera.
+
 ---
 
 ## 9. Preparadas, sin sprint
@@ -961,7 +970,7 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 | Q9 | 15 | Solo staging | #154. HU-Q7.10 espera HC4 y HU-Q7.12 es la `v0.5.0` |
 | Q10 | 14 | Solo staging | #155 |
 | Q11 | 17 | Lo que no necesita la nube, en la `v0.3.0` de la entrega | #156–#158: 20 puntos hechos (HU-Q8.3, HU-Q8.4, HU-Q8.5, HU-Q8.6, HU-Q10.3, HU-Q11.6 y HU-Q11.7, estas dos sin sprint); HU-Q8.7 espera M1 en producción |
-| Q13 | 8 | Con la `0.6.0` y la `0.7.0` | HU-Q13.1 a HU-Q13.4, pedidas por el dueño el 2026-10-14 |
+| Q13 | 10 | Con la `0.6.0`, la `0.7.0` y la `0.7.1` | HU-Q13.1 a HU-Q13.5, pedidas por el dueño el 2026-10-14 |
 | Q12 | 3 | En producción con la `0.5.0` | HU-Q7.10, sin el disparador de M3. HU-Q7.12 (M1 en producción) espera la decisión del dueño |
 
 Desde el 12 oct 2026, un PR y un push por sprint completo, para ahorrar minutos de Actions (decisión del dueño).
