@@ -160,6 +160,11 @@
             "pattern": "^[a-z0-9-]{3,55}$",
             "description": "El bucket R2 de la celda (HU-T4.4, TIENDA-3.0 §5.6): sitios horneados y sus objetos. En staging lleva -staging. Lo crea el dueño una vez en el panel: el token de despliegue no tiene permiso de R2 (HU-C11.5)."
           },
+          "medios": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{3,55}$",
+            "description": "El bucket R2 público de las fotos (HU-T5.6): el único con dominio propio (img.laboratorio-digital.app). Nunca el mismo que `almacen`, que guarda respaldos y exportaciones con datos personales; cargarCeldas lo exige."
+          },
           "control": {
             "type": "string",
             "pattern": "^[a-z0-9-]{2,24}_control$",

@@ -776,7 +776,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T5.5.1 `[código]` · WI-T5.5.2 `[prueba]` la tabla de `dinero` por la API.
 
 #### HU-T5.6 · Las fotos sin Worker
-- **Capa:** infraestructura · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T4 · **Depende de:** HU-T2.3 · **Estado:** Refinada
+- **Capa:** infraestructura · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T4 · **Depende de:** HU-T2.3 · **Estado:** En validación, esperando al dueño (WI-T5.6.1) (rama `feat/t4-sprint`. **Cambió por seguridad** (bitácora tienda3 10): TIENDA §5.6 ponía las fotos en el mismo bucket que los respaldos y las exportaciones, y un dominio propio de R2 hace público **todo** su bucket. Las fotos van en un bucket aparte, `tienda-c1-medios` (`medios` en `celdas.json`), el único con dominio propio; `cargarCeldas` rechaza que sea el mismo que el almacén. Una prueba exige que ninguna configuración de Worker tome `img.` ni `img--staging.`: las fotos nunca ejecutan un Worker (CA2). El `Cache-Control: public, max-age=31536000, immutable` va en cada objeto al subirlo, y la subida llega con HU-T8.3, que también enlaza el bucket a la API. Pasos del dueño: `docs/runbooks/tienda-fotos.md`. Controles negativos: un `medios` igual al almacén no carga; una ruta de Worker en `img.` pone la prueba en rojo)
 - Como plataforma, quiero que ver una foto no cueste una ejecución.
 - **Respaldo:** TIENDA §3.2 y §11.5.
 - **CA1.** `img.laboratorio-digital.app` es el dominio personalizado del bucket, con `Cache-Control: public, max-age=31536000, immutable`, en la ruta `<org>/<huella>/<ancho>.<formato>`.

@@ -236,7 +236,7 @@ Se heredan ED1 §3, los patrones P1–P21 y las reglas R1–R6 de `PLATAFORMA.md
 | **D1 `tienda_c{N}_s{k}`** | Shards de la celda (anexo A) | Una tienda vive entera en un shard (como el agro) |
 | **D1 `tienda_control`** | Una por despliegue: nombres cortos y hostnames, únicos en todo el producto (anexo B) | La unicidad global no cabe en un shard |
 | **KV `TIENDA_HOSTS`** | `h:<hostname>` → `{org, celda, shard, version, canonico, estado}` | Lectura caliente y barata en cada visita. Se deriva de D1 (P2) y un cron diario lo reconstruye completo |
-| **R2 `tienda-c{N}`** | `sitios/` (manifiestos), `objetos/` (archivos por huella), `medios/` (fotos), `legal/` (textos aceptados, sin vencimiento), `respaldos/` y `exportaciones/` | Contenido direccionado: un archivo idéntico se guarda una vez para todas las versiones |
+| **R2 `tienda-c{N}`** | `sitios/` (manifiestos), `objetos/` (archivos por huella), `medios/` (fotos), `legal/` (textos aceptados, sin vencimiento), `respaldos/` y `exportaciones/` *(Hoy: las fotos van en un bucket aparte, `tienda-c{N}-medios`, el único con dominio propio; ver §5.6 y bitácora tienda3 10)* | Contenido direccionado: un archivo idéntico se guarda una vez para todas las versiones |
 | **Queues `tienda-horno`** | Un mensaje por publicación | El horneado puede tardar más que una solicitud y se reintenta solo |
 | **Crons** | Cada 5 min, cada 15 min, cada hora, diario y semanal (§15.3) | Con Workers Paid hay 250 por cuenta; en el plan gratuito, 5, y ya se usan 4 |
 
@@ -502,6 +502,9 @@ R2 tienda-c{N}/
   sitios/<org>/<version>/manifiesto.json   {ruta: {huella, tipo, bytes, cabeceras}} + huella del conjunto
   objetos/<hh>/<huella>                     archivos del sitio por contenido (compartidos entre versiones)
   medios/<org>/<huella>/<400|800|1600>.webp fotos (servidas por img.laboratorio-digital.app)
+                                            (Hoy: en el bucket aparte tienda-c{N}-medios. Un dominio
+                                            propio hace público todo su bucket, y este guarda
+                                            respaldos y exportaciones: bitácora tienda3 10)
   legal/<org>/<huella>.md                   términos y política tal como se aceptaron
   respaldos/<shard>/<AAAA-MM-DD>/<org>.json.gz   tienda-export semanal
   exportaciones/<org>/<id>.zip              descargas del comercio (vencen a los 7 días, regla de ciclo de vida)

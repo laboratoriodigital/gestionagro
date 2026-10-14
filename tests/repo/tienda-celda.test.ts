@@ -151,3 +151,28 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
     expect(() => wranglerDeLaCeldaDeLaTienda(sinControl)).toThrow(/no declara su control/);
   });
 });
+
+describe('las fotos sin Worker y en su propio bucket (HU-T5.6)', () => {
+  it('el bucket público de las fotos nunca es el almacén, que guarda datos personales', () => {
+    for (const c of celdas) {
+      expect(c.medios).toMatch(/-medios$/);
+      expect(c.medios).not.toBe(c.almacen);
+    }
+  });
+
+  it('❌ un bucket de fotos igual al almacén no carga', () => {
+    const datos = JSON.parse(JSON.stringify(config));
+    const c1 = datos.celdas.find((c: { id: string }) => c.id === 'c1');
+    c1.medios = c1.almacen;
+    expect(() => cargarCeldas(datos)).toThrow(/datos personales/);
+  });
+
+  it('❌ ninguna configuración de Worker toma img.: ver una foto no ejecuta código (CA2)', () => {
+    const textos = [
+      ...celdas.map((c) => textoWranglerDeLaCeldaDeLaTienda(c)),
+      textoWranglerDelSitioDeLaTienda(config),
+      textoWranglerDelPanelDeLaTienda(config),
+    ];
+    for (const t of textos) expect(t).not.toMatch(/img(--staging)?\.laboratorio-digital\.app/);
+  });
+});
