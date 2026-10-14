@@ -1386,7 +1386,7 @@ Formato de cada historia, el del CORE:
 ### ET15 · Agentes
 
 #### HU-T15.1 · Cada tienda, legible por agentes (la capa estática)
-- **Capa:** horno · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T5 · **Depende de:** HU-T4.1, D-T6 · **Estado:** Refinada
+- **Capa:** horno · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T5 · **Depende de:** HU-T4.1, D-T6 · **Estado:** En validación (rama `feat/t5-sprint`. `packages/tienda-horno/src/agentes.ts`: el `robots.txt` lleva las familias de `content/agentes.json` (las mismas del sitio, P2) y decide cada una con las señales de la sección `agentes` de esa tienda; `Disallow: /api/` y `/pedido/`, y la `Content-Signal`. `llms.txt` enlaza a los gemelos `.md` de productos y colecciones y al catálogo; `manifest.webmanifest` con el nombre y el color de la tienda. **Cambió:** `security.txt` no se hornea, porque su `Expires` depende del día y el horno no tiene reloj (P17): lo sirve el despacho con el correo del responsable de la plataforma (`content/tienda/privacidad/politica.json`). El despacho anuncia el gemelo también en la cabecera `Link` (CA2). Controles negativos: un enlace de `llms.txt` que no existe detiene la compuerta (CA3); con `ai-train=no` la familia de entrenamiento no lee nada)
 - Como agente de un comprador, quiero entender qué vende la tienda y cómo comprar sin ejecutar JavaScript.
 - **Respaldo:** TIENDA §11.8; ED1 §3.12; PLATAFORMA §5.3; ADR-24 (propuesta).
 - **CA1.** `robots.txt` con las familias de `content/agentes.json`, `Disallow: /api/` y el `Content-Signal` de la sección `agentes`; `llms.txt`; `security.txt`; `manifest.webmanifest`.

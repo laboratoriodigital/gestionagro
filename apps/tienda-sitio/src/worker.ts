@@ -14,11 +14,16 @@
  *   gemelo `.md` (`Vary: Accept`). Cada respuesta lleva las cabeceras de la vitrina.
  * - Un `Host` sin tienda: 404 «Esta dirección no tiene tienda». Una tienda sin versión publicada:
  *   404 «Esta tienda todavía no abre». Kill switches (HU-T2.7): `ks:tienda` y `ks:tienda:<org>`.
+ * - Cada página dice dónde está su gemelo `.md` también en la cabecera `Link` (HU-T15.1, CA2).
+ * - `/.well-known/security.txt` (RFC 9116) no se hornea: su `Expires` cambia con el día. Lo sirve el
+ *   despacho con el correo del responsable de la plataforma, de su política (P2).
  *
  * Ningún identificador de cuenta, base o dominio en el código (ADR-6).
  */
 
 import { crearLectorKillSwitch, type LectorKillSwitch } from '@ed1/kill-switch';
+import politica from '../../../content/tienda/privacidad/politica.json' with { type: 'json' };
+import { securityTxt } from '../../core/src/security-txt.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
 export const CABECERA_TIENDA = 'x-tienda';
@@ -249,6 +254,10 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       }
       if (!archivo && markdown) archivo = m.archivos[archivoDeLaRuta(url.pathname, false)];
       if (!archivo || !HUELLA.test(archivo.huella)) return noEsta();
+      const gemelo =
+        url.pathname.endsWith('/') && m.archivos[`${url.pathname}index.md`]
+          ? { link: `<${url.pathname}index.md>; rel="alternate"; type="text/markdown"` }
+          : {};
       const objeto = await sitios.get(`objetos/${archivo.huella.slice(0, 2)}/${archivo.huella}`);
       if (!objeto) {
         console.error(`tienda-sitio: falta el objeto ${archivo.huella}`);
@@ -261,6 +270,7 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
           'cache-control': 'public, max-age=60',
           vary: 'Accept',
           etag: `"${archivo.huella}"`,
+          ...gemelo,
         },
       });
     } catch (e) {
@@ -287,6 +297,22 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       }
       if (solicitud.method !== 'GET' && solicitud.method !== 'HEAD') {
         return new Response(null, { status: 405, headers: { allow: 'GET, HEAD' } });
+      }
+      if (url.pathname === '/.well-known/security.txt') {
+        return new Response(
+          securityTxt({
+            correo: politica.responsable.correo,
+            canonical: `https://${url.hostname}/.well-known/security.txt`,
+            ahora: ahora(),
+          }),
+          {
+            headers: {
+              ...CABECERAS_DE_LA_VITRINA,
+              'content-type': 'text/plain; charset=utf-8',
+              'cache-control': 'public, max-age=3600',
+            },
+          },
+        );
       }
       return servir(solicitud, env, destino);
     },

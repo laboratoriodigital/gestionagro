@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Cada tienda se deja leer por los asistentes y los buscadores (HU-T15.1): dice qué agentes la pueden leer según lo que elija el comercio, ofrece un índice con sus productos en texto plano y se puede guardar en la pantalla del teléfono con su nombre y su color. También dice a quién escribir si alguien encuentra un fallo de seguridad.
 - Las tareas periódicas de la Tienda (HU-T17.1): corren solas cada hora en producción y dicen en la salud si alguna se atrasó o falló, sin que una que falla detenga a las demás. Cada día se revisa que cada dirección lleve a su tienda; si algo no cuadra, se corrige desde la base y se avisa al dueño por Telegram.
 - Las fotos de las tiendas tendrán su propio almacén público, aparte del que guarda los respaldos y las exportaciones (HU-T5.6): así un enlace a una foto nunca deja ver otra cosa. Los pasos para crearlo están en `docs/runbooks/tienda-fotos.md`.
 - Publicar una tienda (HU-T4.4): la tienda se hornea, pasa la compuerta y sube a su almacén solo lo que cambió; si algo falla a la mitad, la tienda sigue como estaba. Sin cambios, dice «Nada cambió». En staging, los dos comercios de prueba se publican en cada despliegue y se ven en sus direcciones.

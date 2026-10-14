@@ -92,6 +92,9 @@ export function coloresDelTema(a: Apariencia): {
   };
 }
 
+/** El color de fondo principal de la tienda: el del modo que usa (el manifiesto lo necesita). */
+export const fondoDelTema = (a: Apariencia): string => (a.modo === 'oscuro' ? OSCURO : CLARO);
+
 /** El CSS del tema: solo variables, nada en línea en el HTML (la CSP lo ignoraría sin avisar). */
 export function cssDelTema(a: Apariencia): string {
   const c = coloresDelTema(a);

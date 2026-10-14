@@ -12,10 +12,11 @@
  * 6. todo producto sin retracto tiene su motivo;
  * 7. el pie enlaza a la SIC; el enlace a las solicitudes se suma con HU-T7.1;
  * 8. cada página pesa lo que permite el presupuesto; el validador de HTML llega con HU-T3.6;
- * 9. los enlaces internos existen. Las huellas del manifiesto las verifica la publicación al
+ * 9. los enlaces internos existen, también los de `llms.txt` (HU-T15.1). Las huellas del manifiesto las verifica la publicación al
  *    releerlo (HU-T4.4).
  */
 import { faltantes, type Seccion } from '@ed1/tienda-schema';
+import { enlacesDeLlms } from './agentes.ts';
 import type { ArchivoHorneado } from './horno.ts';
 
 export type CodigoDeFalla =
@@ -70,6 +71,7 @@ const SIN_HORNEAR = [
   /^\/_m$/,
   /^\/mcp/,
   /^\/pedido\/$/,
+  /^\/\.well-known\//,
 ];
 const SIC = 'https://www.sic.gov.co';
 
@@ -154,6 +156,15 @@ export function compuerta(e: EntradaDeLaCompuerta): { ok: boolean; fallas: Falla
           donde: 'Productos y Colecciones',
         });
       }
+    }
+  }
+  for (const destino of enlacesDeLlms(e.archivos.get('/llms.txt')?.contenido ?? '')) {
+    if (!e.archivos.has(archivoDelEnlace(destino))) {
+      fallar({
+        codigo: 'enlace-roto',
+        mensaje: `El índice para asistentes (llms.txt) enlaza a ${destino}, que no existe`,
+        donde: 'Productos y Colecciones',
+      });
     }
   }
   const portada = e.archivos.get('/index.html')?.contenido ?? '';

@@ -14,8 +14,9 @@
  */
 import { formatearPesos } from '@ed1/dinero';
 import { etiquetaDeVerificacionGoogle } from '@ed1/tienda-schema';
+import { llmsTxt, manifiestoWeb, robotsDeLaTienda } from './agentes.ts';
 import { escaparHtml, markdownPlano, markdownSeguro } from './escapar.ts';
-import { type Apariencia, cssDelTema } from './tema.ts';
+import { type Apariencia, coloresDelTema, cssDelTema, fondoDelTema } from './tema.ts';
 import { estadoDeLaEleccion } from './vitrina/seleccion.ts';
 
 export interface VarianteParaHornear {
@@ -69,6 +70,7 @@ const TIPOS = {
   xml: 'application/xml',
   txt: 'text/plain; charset=utf-8',
   css: 'text/css; charset=utf-8',
+  webmanifest: 'application/manifest+json',
 } as const;
 
 /** Un dato que se puede mostrar: ni vacío, ni entre corchetes, ni `undefined` (bitácora ecommerce 31). */
@@ -168,6 +170,7 @@ export async function hornear(t: TiendaParaHornear): Promise<Map<string, Archivo
 <title>${escaparHtml(p.titulo)}</title>${descripcion}
 <link rel="canonical" href="${escaparHtml(url(p.ruta))}">
 <link rel="alternate" type="text/markdown" href="${escaparHtml(gemelo)}">
+<link rel="manifest" href="/manifest.webmanifest">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${escaparHtml(t.nombre)}">
 <meta property="og:title" content="${escaparHtml(p.titulo)}">
@@ -425,10 +428,50 @@ ${p.cuerpo}
       )
       .join('\n')}\n</urlset>\n`,
   );
+  // La capa para agentes (HU-T15.1): robots con las familias del ecosistema y las señales de esta
+  // tienda, llms.txt con los gemelos y el manifiesto de la app web.
+  poner('/robots.txt', 'txt', robotsDeLaTienda(t.agentes, url('').replace(/\/$/, '')));
   poner(
-    '/robots.txt',
+    '/llms.txt',
     'txt',
-    `User-agent: *\nContent-Signal: search=${t.agentes.search}, ai-input=${t.agentes.aiInput}, ai-train=${t.agentes.aiTrain}\nAllow: /\nDisallow: /api/\n\nSitemap: ${url('/sitemap.xml')}\n`,
+    llmsTxt({
+      nombre: markdownPlano(t.nombre),
+      ...(presente(t.frase) ? { frase: markdownPlano(t.frase) } : {}),
+      secciones: [
+        {
+          titulo: 'Productos',
+          enlaces: productos.map((p) => ({
+            titulo: markdownPlano(p.nombre),
+            ruta: `/p/${p.slug}/index.md`,
+            nota: `${variaElPrecio(p) ? 'desde ' : ''}${formatearPesos(precioDesde(p))}`,
+          })),
+        },
+        {
+          titulo: 'Colecciones',
+          enlaces: colecciones.map((c) => ({
+            titulo: markdownPlano(c.nombre),
+            ruta: `/c/${c.slug}/index.md`,
+          })),
+        },
+        {
+          titulo: 'Opcional',
+          enlaces: [
+            { titulo: 'Catálogo completo', ruta: '/catalogo.md', nota: 'precios y variantes' },
+          ],
+        },
+      ],
+    }),
+  );
+  const colores = coloresDelTema(t.apariencia);
+  poner(
+    '/manifest.webmanifest',
+    'webmanifest',
+    manifiestoWeb({
+      nombre: t.nombre,
+      ...(presente(t.frase) ? { frase: t.frase } : {}),
+      color: t.apariencia.modo === 'oscuro' ? colores.oscuro.acento : colores.claro.acento,
+      fondo: fondoDelTema(t.apariencia),
+    }),
   );
   poner(rutaTema, 'css', tema);
   return archivos;

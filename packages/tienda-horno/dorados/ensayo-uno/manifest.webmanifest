@@ -1,0 +1,11 @@
+{
+  "name": "Comercio Ensayo Uno",
+  "short_name": "Comercio Ens",
+  "description": "Ropa de lino hecha en Medellín.",
+  "lang": "es-CO",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "theme_color": "#9c4a1a",
+  "background_color": "#ffffff"
+}

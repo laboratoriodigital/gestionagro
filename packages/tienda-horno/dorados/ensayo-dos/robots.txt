@@ -1,6 +1,29 @@
-User-agent: *
-Content-Signal: search=yes, ai-input=yes, ai-train=no
+# Buscadores y asistentes que citan y enlazan al sitio (search=yes)
+User-agent: OAI-SearchBot
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: ChatGPT-User
+User-agent: Claude-User
+User-agent: Perplexity-User
 Allow: /
 Disallow: /api/
+Disallow: /pedido/
+
+# Recolectores para entrenar modelos (ai-train=no)
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: Google-Extended
+User-agent: CCBot
+User-agent: Applebot-Extended
+User-agent: meta-externalagent
+User-agent: Bytespider
+Disallow: /
+
+# Todos los demás
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /pedido/
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 
 Sitemap: https://ensayo-dos--staging.laboratorio-digital.app/sitemap.xml
