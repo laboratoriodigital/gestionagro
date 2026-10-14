@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/celdas.schema.json",
-  "nota": "Única lista de celdas (ARQUITECTURA §5.5, P2). De aquí salen apps/sitio/wrangler.jsonc y apps/core/wrangler.jsonc (scripts/generar-wrangler.ts), la tabla celda del CORE (HU-E4.1) y el orden del despliegue (scripts/desplegar.ts). La celda c1 es la de la Tienda (HU-T2.3): su shard, su base de control y las configuraciones de sus tres Workers (tienda-api-c1, tienda-sitio y tienda-panel) salen de aquí. Su `api` es el panel, el único camino a su API (TIENDA-3.0 §3.1). Ningún id de cuenta va aquí: cada celda nombra los secretos de GitHub que los tienen.",
+  "nota": "Única lista de celdas (ARQUITECTURA §5.5, P2). De aquí salen apps/sitio/wrangler.jsonc y apps/core/wrangler.jsonc (scripts/generar-wrangler.ts), la tabla celda del CORE (HU-E4.1) y el orden del despliegue (scripts/desplegar.ts). La celda c1 es la de la Tienda (HU-T2.3): su shard, su base de control y las configuraciones de sus tres Workers (tienda-api-c1, tienda-sitio y tienda-panel) salen de aquí. Su `api` es el panel, el único camino a su API (TIENDA-3.0 §3.1), y su `almacen` es el bucket R2 de los sitios horneados (`tienda-c1` y `tienda-c1-staging`, creados por el dueño el 14 oct 2026). Ningún id de cuenta va aquí: cada celda nombra los secretos de GitHub que los tienen.",
   "sitio": {
     "celda": "c0",
     "worker": "agro-sitio",
@@ -66,7 +66,8 @@
         "metricas": "CF_METRICAS_TOKEN"
       },
       "shards": ["tienda_c1_s1"],
-      "control": "tienda_control"
+      "control": "tienda_control",
+      "almacen": "tienda-c1"
     }
   ]
 }

@@ -72,7 +72,7 @@ async function montar(opciones: { version?: number | null; sinAlmacen?: boolean 
           ? JSON.stringify({ org: ENSAYO_UNO.org, celda: 'c1', shard: 'tienda_c1_s1', version })
           : null,
     },
-    ...(opciones.sinAlmacen ? {} : { SITIOS: sitios }),
+    ...(opciones.sinAlmacen ? {} : { SITIOS_C1: sitios }),
     SECRETO_DESPACHO: 'secreto',
     API_C1: { fetch: async () => Response.json({ desde: 'api' }) },
     tienda_c1_s1: trampa,

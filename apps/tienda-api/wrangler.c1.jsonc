@@ -22,6 +22,12 @@
       "migrations_dir": "../../infrastructure/migraciones/tienda-control"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "SITIOS",
+      "bucket_name": "tienda-c1"
+    }
+  ],
   "observability": {
     "enabled": true
   },
@@ -44,6 +50,12 @@
           "binding": "tienda_control",
           "database_name": "tienda_control_staging",
           "migrations_dir": "../../infrastructure/migraciones/tienda-control"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "SITIOS",
+          "bucket_name": "tienda-c1-staging"
         }
       ]
     }

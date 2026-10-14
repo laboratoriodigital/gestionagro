@@ -16,6 +16,7 @@ import { formatearPesos } from '@ed1/dinero';
 import { etiquetaDeVerificacionGoogle } from '@ed1/tienda-schema';
 import { escaparHtml, markdownPlano, markdownSeguro } from './escapar.ts';
 import { type Apariencia, cssDelTema } from './tema.ts';
+import { estadoDeLaEleccion } from './vitrina/seleccion.ts';
 
 export interface VarianteParaHornear {
   id: string;
@@ -176,7 +177,7 @@ export async function hornear(t: TiendaParaHornear): Promise<Map<string, Archivo
 ${p.ld.map(jsonLd).join('\n')}
 </head>
 <body>
-<header class="franja"><a class="marca" href="/">${escaparHtml(t.nombre)}</a></header>
+<header class="franja"><a class="marca" href="/">${escaparHtml(t.nombre)}</a><a class="franja__buscar" href="/buscar/">Buscar</a></header>
 <main>
 ${p.cuerpo}
 </main>
@@ -184,6 +185,8 @@ ${p.cuerpo}
 <p>${escaparHtml(t.nombre)}</p>
 <p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>
 </footer>
+<a class="barra-pedido" href="/pedido/" data-pedido hidden>Tu pedido <span class="cifra" data-cantidad>0</span></a>
+<script type="module" src="/_t/${escaparHtml(t.release)}/vitrina.js"></script>
 </body>
 </html>
 `;
@@ -198,7 +201,7 @@ ${p.cuerpo}
     poner(`${base}.md`, 'md', p.gemelo);
   };
   const tarjeta = (p: ProductoParaHornear) =>
-    `<li class="tarjeta"><a href="/p/${escaparHtml(p.slug)}/">${escaparHtml(p.nombre)}</a> <span class="precio">${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}</span></li>`;
+    `<li class="tarjeta"><a href="/p/${escaparHtml(p.slug)}/"><span class="tarjeta__foto" aria-hidden="true"></span><span class="tarjeta__nombre">${escaparHtml(p.nombre)}</span><span class="precio">${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}</span></a></li>`;
   const lineaMd = (p: ProductoParaHornear) =>
     `- [${markdownPlano(p.nombre)}](/p/${p.slug}/): ${variaElPrecio(p) ? 'desde ' : ''}${formatearPesos(precioDesde(p))}`;
 
@@ -210,7 +213,9 @@ ${p.cuerpo}
     cuerpo: [
       `<h1>${escaparHtml(t.nombre)}</h1>`,
       presente(t.frase) ? `<p class="frase">${escaparHtml(t.frase)}</p>` : '',
-      `<ul class="productos">${productos.map(tarjeta).join('')}</ul>`,
+      productos.length > 0
+        ? `<ul class="productos">${productos.map(tarjeta).join('')}</ul>`
+        : '<p class="estado">Esta tienda todavía no tiene productos.</p>',
     ]
       .filter(Boolean)
       .join('\n'),
@@ -240,6 +245,51 @@ ${p.cuerpo}
       .concat('\n'),
   });
 
+  /**
+   * La ficha (HU-T3.4): la foto, el precio y la elección de la variante. Sin JavaScript se lee
+   * entera; con él, el botón dice qué falta (`vitrina.ts`). Las variantes van como datos, no como
+   * código: `<script type="application/json">` no se ejecuta.
+   */
+  const fichaHtml = (p: ProductoParaHornear, opcionesLista: string) => {
+    const variantes = [...p.variantes]
+      .sort((a, b) => (a.id < b.id ? -1 : 1))
+      .map((v) => ({
+        id: v.id,
+        clave: v.clave,
+        precioCop: v.precioCop,
+        disponible: disponible(v),
+      }));
+    const inicial = estadoDeLaEleccion(p.opciones, variantes, {});
+    const grupos = p.opciones
+      .map(
+        (o) =>
+          `<fieldset class="opcion"><legend>${escaparHtml(o.nombre)}</legend><div class="pildoras">${o.valores
+            .map(
+              (v) =>
+                `<label class="pildora"><input type="radio" name="${escaparHtml(o.nombre)}" value="${escaparHtml(v)}"><span>${escaparHtml(v)}</span></label>`,
+            )
+            .join('')}</div></fieldset>`,
+      )
+      .join('');
+    return [
+      '<article class="ficha">',
+      '<div class="ficha__foto" aria-hidden="true"></div>',
+      '<div class="ficha__datos">',
+      `<h1>${escaparHtml(p.nombre)}</h1>`,
+      `<p class="precio" data-precio>${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}</p>`,
+      `<form class="eleccion" data-eleccion>${grupos}<p class="avisame" data-avisame hidden>Esta combinación está agotada.</p><button class="boton boton--principal" type="submit" data-boton aria-disabled="${inicial.tipo !== 'lista'}">${escaparHtml(inicial.texto)}</button></form>`,
+      opcionesLista ? `<ul class="opciones">${opcionesLista}</ul>` : '',
+      presente(p.descripcion)
+        ? `<div class="descripcion">${markdownSeguro(p.descripcion)}</div>`
+        : '',
+      '</div>',
+      `<script type="application/json" id="variantes">${jsonEstable({ opciones: p.opciones, variantes }).replace(/</g, '\\u003c')}</script>`,
+      '</article>',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  };
+
   // Una ficha por producto, con un Offer por variante.
   for (const p of productos) {
     const ruta = `/p/${p.slug}/`;
@@ -252,16 +302,7 @@ ${p.cuerpo}
       ...(presente(p.descripcion)
         ? { descripcion: markdownPlano(p.descripcion).slice(0, 160) }
         : {}),
-      cuerpo: [
-        `<h1>${escaparHtml(p.nombre)}</h1>`,
-        `<p class="precio">${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}</p>`,
-        opciones ? `<ul class="opciones">${opciones}</ul>` : '',
-        presente(p.descripcion)
-          ? `<div class="descripcion">${markdownSeguro(p.descripcion)}</div>`
-          : '',
-      ]
-        .filter(Boolean)
-        .join('\n'),
+      cuerpo: fichaHtml(p, opciones),
       ld: [
         {
           '@context': 'https://schema.org',
@@ -316,6 +357,25 @@ ${p.cuerpo}
       gemelo: `# ${markdownPlano(c.nombre)}\n\n${suyos.map(lineaMd).join('\n')}\n`,
     });
   }
+
+  // La búsqueda (HU-T5.3): la página está horneada; buscar ocurre en el teléfono, sobre el catálogo.
+  const colecciones = [...(t.colecciones ?? [])].sort((a, b) => (a.slug < b.slug ? -1 : 1));
+  pagina({
+    ruta: '/buscar/',
+    titulo: `Buscar · ${t.nombre}`,
+    cuerpo: [
+      '<h1>Buscar</h1>',
+      '<form class="buscar" role="search" data-buscar><label for="q">¿Qué buscas?</label><input id="q" name="q" type="search" autocomplete="off"></form>',
+      '<ul class="productos" data-resultados></ul>',
+      `<div class="estado" data-sin-resultados hidden><p>No encontramos eso. Prueba con otra palabra, o sin tildes ni plurales.</p>${
+        colecciones.length > 0
+          ? `<ul>${colecciones.map((c) => `<li><a href="/c/${escaparHtml(c.slug)}/">${escaparHtml(c.nombre)}</a></li>`).join('')}</ul>`
+          : ''
+      }</div>`,
+    ].join('\n'),
+    ld: [],
+    gemelo: `# Buscar en ${markdownPlano(t.nombre)}\n\nEl catálogo completo está en [/catalogo.md](/catalogo.md).\n`,
+  });
 
   // El catálogo para agentes, el sitemap, robots y el tema.
   poner(

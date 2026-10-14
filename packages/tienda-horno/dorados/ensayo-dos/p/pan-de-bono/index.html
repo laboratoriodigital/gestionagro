@@ -18,15 +18,24 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://ensayo-dos--staging.laboratorio-digital.app/","name":"Comercio Ensayo Dos","position":1},{"@type":"ListItem","item":"https://ensayo-dos--staging.laboratorio-digital.app/p/pan-de-bono/","name":"Pan de bono","position":2}]}</script>
 </head>
 <body>
-<header class="franja"><a class="marca" href="/">Comercio Ensayo Dos</a></header>
+<header class="franja"><a class="marca" href="/">Comercio Ensayo Dos</a><a class="franja__buscar" href="/buscar/">Buscar</a></header>
 <main>
+<article class="ficha">
+<div class="ficha__foto" aria-hidden="true"></div>
+<div class="ficha__datos">
 <h1>Pan de bono</h1>
-<p class="precio">$1.500</p>
+<p class="precio" data-precio>$1.500</p>
+<form class="eleccion" data-eleccion><p class="avisame" data-avisame hidden>Esta combinación está agotada.</p><button class="boton boton--principal" type="submit" data-boton aria-disabled="false">Agregar al pedido</button></form>
 <div class="descripcion"><p>Recién horneado. Pídelo antes de las 10 a. m.</p></div>
+</div>
+<script type="application/json" id="variantes">{"opciones":[],"variantes":[{"disponible":true,"id":"v-pan-de-bono","precioCop":1500}]}</script>
+</article>
 </main>
 <footer class="pie">
 <p>Comercio Ensayo Dos</p>
 <p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>
 </footer>
+<a class="barra-pedido" href="/pedido/" data-pedido hidden>Tu pedido <span class="cifra" data-cantidad>0</span></a>
+<script type="module" src="/_t/r1/vitrina.js"></script>
 </body>
 </html>

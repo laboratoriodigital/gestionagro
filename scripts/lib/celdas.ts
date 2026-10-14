@@ -23,6 +23,8 @@ export interface Celda {
   shards: string[];
   /** La base de control del producto (`<producto>_control`), si la tiene: la Tienda (HU-T2.3). */
   control?: string;
+  /** El bucket R2 de la celda (HU-T4.4); en staging, con `-staging`. */
+  almacen?: string;
 }
 
 export interface ConfigCeldas {

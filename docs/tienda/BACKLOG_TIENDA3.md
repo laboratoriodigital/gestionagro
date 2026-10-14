@@ -618,7 +618,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T3.2.1 `[diseño]` paleta de acentos · WI-T3.2.2 `[código]` generador del tema · WI-T3.2.3 `[prueba]` contraste calculado.
 
 #### HU-T3.3 · La tipografía de la vitrina y del panel
-- **Capa:** diseño · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T2 · **Depende de:** D-T2, HU-C6.2 · **Estado:** Refinada
+- **Capa:** diseño · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T4 (era T2; esperó D-T2) · **Depende de:** D-T2, HU-C6.2 · **Estado:** En validación (rama `feat/t4-sprint`. D-T2 decidida el 13 oct 2026: Geist y Geist Mono, las del ecosistema, sin serif; CA1 cambió en eso. `scripts/armar-vitrina.ts` arma `/_t/<release>/` con los tokens y las fuentes de `@ed1/ui` v2 en una sola hoja (P2), las fuentes con su licencia y la isla de la vitrina sin tipos; `<release>` es la huella del contenido. Esos archivos son assets del despacho y no ejecutan el Worker (`run_worker_first: ["/*", "!/_t/*"]`). Las dos fuentes pesan 57 KB en total, cada una menos de 30 KB, con `font-display: swap` y respaldos con `size-adjust` de 104,8 % y 100 %. Controles negativos: una fuente de más de 35 KB, un `url(https:…)`, un `@import` o una `font-family` que no sea un token ponen la prueba en rojo)
 - Como comprador, quiero que la tienda tenga carácter sin que tarde más en abrir.
 - **Respaldo:** §5.3; ADR-29; bitácora core 5 (métricas del respaldo); bitácora ecommerce 84 (sin fuentes de terceros).
 - **CA1.** Con D-T2 (a): Geist y Geist Mono del CORE, sin otra copia (P2), y para «Editorial» una serif OFL recortada al español con su licencia al lado; servidas desde `/_t/<release>/` con `font-display: swap` y un respaldo con `size-adjust`.
@@ -627,7 +627,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T3.3.1 `[código]` recorte · WI-T3.3.2 `[prueba]` peso, licencia y respaldo · WI-T3.3.3 `[dueño]` D-T2.
 
 #### HU-T3.4 · Los componentes de la vitrina
-- **Capa:** diseño · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T4 · **Depende de:** HU-T3.2 · **Estado:** Refinada
+- **Capa:** diseño · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T4 · **Depende de:** HU-T3.2 · **Estado:** En validación (rama `feat/t4-sprint`. `apps/tienda-sitio/vitrina/vitrina.css`, sobre los tokens del ecosistema: franja con «Buscar», tarjetas con la foto en la proporción de la tienda, la ficha con su elección en píldoras (lo agotado tachado), el botón principal, la barra del pedido, la búsqueda y el estado vacío. El horno escribe ese HTML, y la isla (`@ed1/tienda-horno/src/vitrina/`) lo mejora: `seleccion.ts`, pura y probada, decide el botón («Elige talla», «Agotada», «Agregar al pedido») y qué se tacha; `vitrina.ts` lo conecta, y al tocar el botón con algo faltando lleva al campo. La elección no se guarda (CA3). «Agregar al pedido» suma a una lista en el teléfono; el pedido llega con HU-T5.2 y HU-T6.1. **Lo que falta:** la galería con `srcset` espera las fotos (HU-T8.3), «Avísame» espera HU-T6.5, y la revisión con axe en el navegador va con las e2e de la vitrina (HU-T3.6). Controles negativos: una combinación agotada o que no existe nunca queda «lista»; nada táctil mide menos de 48 px)
 - Como comprador en un teléfono barato, quiero entender el producto, elegir y pedir sin tropezar.
 - **Respaldo:** §5.3 y §5.4; bitácora ecommerce, crítico «El botón de WhatsApp se apagaba sin decir por qué», y 53; bitácora agro, terreno («un aviso fuera de la vista…»).
 - **CA1.** Tarjeta de producto, galería con `srcset`, selector de variantes (píldoras y muestras de color, lo agotado tachado y con «Avísame»), precio en cifras tabulares, barra fija del carrito, franja superior y pie legal; y los estados cargando, vacío y error.
@@ -747,7 +747,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T5.2.1 `[código]` · WI-T5.2.2 `[prueba]` e2e 360 y 1280 · WI-T5.2.3 `[dueño]` revisión visual.
 
 #### HU-T5.3 · Buscar en el teléfono, sin red
-- **Capa:** vitrina · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T4 · **Depende de:** HU-T4.1 · **Estado:** Refinada
+- **Capa:** vitrina · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T4 · **Depende de:** HU-T4.1 · **Estado:** En validación (rama `feat/t4-sprint`. El horno hornea `/buscar/` y la isla busca con `buscar()` (`@ed1/tienda-horno/src/vitrina/buscar.ts`) sobre `catalogo.json`, cargado una vez al abrir: escribir no pide nada. Sin tildes ni mayúsculas y con todas las palabras; sin resultados dice qué probar y muestra las colecciones, y el aviso de «sin resultados» no aparece mientras carga. Controles negativos: una consulta sin coincidencias y una vacía no devuelven nada)
 - Como comprador, quiero buscar «vestido rosa» y encontrarlo aunque escriba sin tildes.
 - **Respaldo:** TIENDA §11.2 (`/buscar/?q=`).
 - **CA1.** Busca sobre `catalogo.json` en el navegador, sin distinguir tildes ni mayúsculas.
