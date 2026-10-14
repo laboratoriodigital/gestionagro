@@ -90,7 +90,7 @@ Si alguno es falso, se reordena el plan.
 
 - **Tipos:** `feat`, `fix`, `docs`, `refactor`, `test`, `ci`, `build`, `perf`, `chore`, `revert`.
 - **Alcances de la Tienda** (en minúsculas, como exige la guardia de HU-C0.2): `tienda`, `vitrina`, `panel`, `horno`, `despacho`, `pedidos`, `cobros`, `bold`, `inventario`, `recaudos`, `legal`, `solicitudes`, `dominios`, `planes`, `medicion`, `agentes`, `mcp`, `factura`, `carga`, `migraciones`, `cifrado`, `dinero`, `calendario`, `ui`, `despliegue`, `ci`, `versiones`, `bitacora`.
-- **Descripción** en español, en minúscula, sin punto final, de 72 caracteres o menos. Dice qué cambia para quien usa la tienda, no qué archivo se tocó.
+- **Descripción** en español, en minúscula, sin punto final, de 120 caracteres o menos (eran 72 hasta el 13 oct 2026). Dice qué cambia para quien usa la tienda, no qué archivo se tocó.
 - **Cuerpo:** el porqué, la historia (`HU-T6.1`), el control negativo y lo que no cambia.
 - **Sin la marca de Claude Code**, ni en commits ni en PR: ni `Co-Authored-By`, ni `Claude-Session`, ni «Generated with Claude Code» (pedido del dueño; lo vigila la guardia del CI).
 

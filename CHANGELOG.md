@@ -12,6 +12,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Los campos del sistema de diseño cuentan su borde y su relleno dentro del ancho: uno al 100 % ya no se sale de la pantalla de un teléfono.
 
 ### Cambiado
+- El título de un commit o de un PR puede tener hasta 120 caracteres; antes eran 72, y un título de 77 detenía el CI.
 - En Planes, cualquiera puede comparar los periodos del plan Finca (el total, lo que sale al mes y el ahorro), aunque no haya entrado o no tenga su finca en la nube. Pagar sigue siendo solo para quien la administra.
 - El despliegue corre en tres pasos, CORE, agro y parqueadero, y cada uno recibe solo sus secretos: las llaves de Bold y de Google solo llegan al del CORE, y el token de métricas y Telegram solo al del agro. Una parte sin nada que desplegar termina en segundos (HU-C11.3).
 - La revisión de permisos de más vuelve a detener por el permiso de DNS: la publicación de CORE 0.4.0 mostró que el token no lo tiene y que el dominio propio de la cuenta responde sin él (HU-C11.5).
