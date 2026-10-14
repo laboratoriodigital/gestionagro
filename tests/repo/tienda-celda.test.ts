@@ -117,8 +117,19 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
     ]) {
       const c = generada as unknown as Config;
       expect([c.workers_dev, c.routes]).toEqual([false, []]);
-      expect([c.env.staging.workers_dev, c.env.staging.routes]).toEqual([true, []]);
+      expect(c.env.staging.workers_dev).toBe(true);
     }
+    expect((wranglerDelPanelDeLaTienda(config) as unknown as Config).env.staging.routes).toEqual(
+      [],
+    );
+  });
+
+  it('el despacho de staging atiende las direcciones de los dos comercios de prueba (HU-T2.6)', () => {
+    const sitio = wranglerDelSitioDeLaTienda(config) as unknown as Config;
+    expect(sitio.env.staging.routes).toEqual([
+      { pattern: 'ensayo-uno--staging.laboratorio-digital.app', custom_domain: true },
+      { pattern: 'ensayo-dos--staging.laboratorio-digital.app', custom_domain: true },
+    ]);
   });
 
   it('❌ una celda de la Tienda sin base de control no genera su API', () => {

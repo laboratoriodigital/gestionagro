@@ -12,6 +12,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { RegistroDeProductos } from '@ed1/productos';
+import { ENSAYOS, hostDeStaging } from '../packages/tienda-schema/src/ensayos.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas } from './lib/celdas.ts';
 import { RUTAS_DEL_WORKER } from './lib/cuenta.ts';
 import { cargarProductos } from './lib/registro-productos.ts';
@@ -342,8 +343,9 @@ export const textoWranglerDeLaCeldaDelParqueadero = (celda: Celda): string =>
  * - `tienda-sitio`: el despacho por `Host`, con un binding a la API de cada celda (`API_C1`).
  * - `tienda-panel`: solo assets; el Worker corre únicamente en `/api/*`, que pasa a la API.
  *
- * Staging vive en workers.dev mientras no haya tiendas (HU-T2.4): las direcciones
- * `<slug>--staging.laboratorio-digital.app` llegan con los comercios de prueba (HU-T2.6). Producción
+ * Staging vive en workers.dev, y el despacho de staging atiende además las direcciones
+ * `<slug>--staging.laboratorio-digital.app` de los dos comercios de prueba (HU-T2.6), del mismo
+ * fixture que siembra sus datos (P2). Producción
  * no lleva rutas hasta que la Tienda salga a producción (HU-T2.9): no se declara lo que todavía no
  * existe (P1), y un despliegue a producción por error no toma ningún hostname. Los ids de las bases
  * y de los KV (flags y `TIENDA_HOSTS`) los agrega el despliegue, fuera de git (ADR-6).
@@ -424,7 +426,7 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
       staging: {
         name: `${WORKER_TIENDA_SITIO}-staging`,
         workers_dev: true,
-        routes: [],
+        routes: ENSAYOS.map((e) => ({ pattern: hostDeStaging(e.slug), custom_domain: true })),
         services: serviciosDeLaTienda(config, true),
       },
     },

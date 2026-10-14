@@ -10,20 +10,33 @@
  *    tienda que ya tenga ese nombre: la base lo rechaza con el nombre (P1);
  * 3. el KV de flags con los kill switches del producto, creados en «encendido» solo si faltan, y el
  *    KV `TIENDA_HOSTS` del despacho;
- * 4. la API, el despacho y el panel, con el secreto del despacho y la KEK por stdin;
- * 5. la prueba de humo: la salud de las dos bases por el panel, la página «sin tienda» del despacho
- *    y que la API no responda por fuera de sus bindings (CA4).
+ * 4. solo en staging, los dos comercios de prueba (HU-T2.6): su siembra en el shard y en la base
+ *    de control y sus direcciones `<slug>--staging` en `TIENDA_HOSTS`;
+ * 5. la API, el despacho y el panel, con el secreto del despacho y la KEK por stdin;
+ * 6. la prueba de humo: la salud de las dos bases por el panel, la página «sin tienda» del despacho,
+ *    que la API no responda por fuera de sus bindings (CA4) y, en staging, que cada comercio de
+ *    prueba responda en su dirección.
  *
  * Funciones puras o con `fetch` inyectado, para probarlas sin tocar Cloudflare.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import {
+  type ComercioDeEnsayo,
+  ENSAYOS,
+  hostDeStaging,
+  hostsDeStaging,
+  siembraDelControl,
+  siembraDelShard,
+} from '../../packages/tienda-schema/src/ensayos.ts';
 import type { Celda } from './celdas.ts';
 import type { Destino, Fetch } from './despliegue.ts';
 import { RAIZ } from './repo.ts';
 
 export const ARCHIVO_DESPLIEGUE_TIENDA = 'wrangler.despliegue.jsonc';
 export const ARCHIVO_SQL_RESERVADOS = 'reservados.despliegue.sql';
+export const ARCHIVO_SQL_SIEMBRA_SHARD = 'siembra-shard.despliegue.sql';
+export const ARCHIVO_SQL_SIEMBRA_CONTROL = 'siembra-control.despliegue.sql';
 export const SECRETO_DESPACHO = 'SECRETO_DESPACHO';
 export const SECRETO_KEK = 'TIENDA_KEK_V1';
 
@@ -70,11 +83,62 @@ export function escribirReservados(sentencias: readonly string[]): string {
   return ruta;
 }
 
+/**
+ * Los comercios de prueba que se siembran en ese destino: los dos en staging, **ninguno** en
+ * producción (HU-T2.6 CA3).
+ */
+export const ensayosDelDestino = (destino: Destino): readonly ComercioDeEnsayo[] =>
+  destino === 'staging' ? ENSAYOS : [];
+
+/** La siembra de staging en dos archivos para `wrangler d1 execute --file` (fuera de git). */
+export function escribirSiembra(celda: Celda, ahora: string): { shard: string; control: string } {
+  const dir = join(RAIZ, 'apps', 'tienda-api');
+  writeFileSync(
+    join(dir, ARCHIVO_SQL_SIEMBRA_SHARD),
+    `${siembraDelShard(ENSAYOS, ahora).join('\n')}\n`,
+  );
+  writeFileSync(
+    join(dir, ARCHIVO_SQL_SIEMBRA_CONTROL),
+    `${siembraDelControl(ENSAYOS, celda.id, ahora).join('\n')}\n`,
+  );
+  return { shard: ARCHIVO_SQL_SIEMBRA_SHARD, control: ARCHIVO_SQL_SIEMBRA_CONTROL };
+}
+
+/**
+ * Escribe las direcciones de staging en `TIENDA_HOSTS`. Siempre las reescribe: el KV se deriva de
+ * la base de control (P2), y la siembra es la misma en cada despliegue.
+ */
+export async function escribirHosts(
+  fetchFn: Fetch,
+  token: string,
+  cuenta: string,
+  namespaceId: string,
+  entradas: readonly [string, string][],
+): Promise<void> {
+  for (const [clave, valor] of entradas) {
+    const r = await fetchFn(
+      `https://api.cloudflare.com/client/v4/accounts/${cuenta}/storage/kv/namespaces/${namespaceId}/values/${encodeURIComponent(clave)}`,
+      { method: 'PUT', headers: { authorization: `Bearer ${token}` }, body: valor },
+    );
+    if (r.status !== 200)
+      throw new Error(`no se pudo escribir ${clave} en TIENDA_HOSTS (HTTP ${r.status})`);
+  }
+}
+
+/** Las entradas de `TIENDA_HOSTS` de los comercios de prueba de una celda. */
+export const hostsDeLaCelda = (celda: Celda): [string, string][] => {
+  const [shard] = celda.shards;
+  if (!shard) throw new Error(`${celda.id}: no tiene shards`);
+  return hostsDeStaging(ENSAYOS, celda.id, shard);
+};
+
 /** Lo que el despliegue agrega a la configuración generada: ids de bases y de KV (fuera de git). */
 export interface DespliegueDeLaTienda {
   bases: Readonly<Record<string, string>>;
   flagsId: string;
   hostsId: string;
+  /** Las claves públicas del CORE del destino (HU-T2.8). */
+  clavesCore: readonly unknown[];
 }
 
 /** La configuración de la API con los ids de este despliegue, solo en el destino que se prepara. */
@@ -94,6 +158,10 @@ export function configDeLaApi(
       { binding: 'FLAGS', id: d.flagsId },
       { binding: 'TIENDA_HOSTS', id: d.hostsId },
     ],
+    vars: {
+      ...(bloque['vars'] as Record<string, string>),
+      CORE_CLAVES: JSON.stringify(d.clavesCore),
+    },
   });
   return enDestino(generada, destino, agregar);
 }
@@ -177,6 +245,7 @@ export function urlQueNoDebeResponder(celda: Celda, destino: Destino): string {
 export async function humoDeLaTienda(
   fetchFn: Fetch,
   urls: { panel: string; sitio: string; apiPorFuera: string },
+  ensayos: readonly ComercioDeEnsayo[] = [],
 ): Promise<{ fallas: string[]; avisos: string[] }> {
   const fallas: string[] = [];
   const avisos: string[] = [];
@@ -224,6 +293,22 @@ export async function humoDeLaTienda(
     fallas.push(
       `${urls.apiPorFuera} respondió ${porFuera.status}: la API de la Tienda no puede tener workers.dev (CA4)`,
     );
+  }
+  // HU-T2.6: cada comercio de prueba responde en su dirección, con su nombre: el despacho resolvió
+  // el Host en TIENDA_HOSTS y la API confió en la tienda que le pasó.
+  for (const e of ensayos) {
+    const url = `https://${hostDeStaging(e.slug)}/api/v1/tienda`;
+    const r = await pedir(url);
+    if (!r) continue;
+    let nombre: unknown;
+    try {
+      nombre = ((await r.json()) as { nombre?: unknown }).nombre;
+    } catch {
+      nombre = undefined;
+    }
+    if (r.status !== 200 || nombre !== e.nombre) {
+      fallas.push(`${url} respondió ${r.status} sin el nombre de ${e.nombre}`);
+    }
   }
   return { fallas, avisos };
 }

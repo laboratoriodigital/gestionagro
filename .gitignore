@@ -31,4 +31,6 @@ apps/api-celda/wrangler.despliegue.jsonc
 apps/parqueadero-api/wrangler.despliegue.jsonc
 apps/tienda-api/wrangler.despliegue.jsonc
 apps/tienda-api/reservados.despliegue.sql
+apps/tienda-api/siembra-shard.despliegue.sql
+apps/tienda-api/siembra-control.despliegue.sql
 apps/tienda-sitio/wrangler.despliegue.jsonc

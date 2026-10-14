@@ -5,6 +5,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { ENSAYOS } from '../../packages/tienda-schema/src/ensayos.ts';
 import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 import {
   fallasDeCuentas,
@@ -61,6 +62,7 @@ describe('dominios.json', () => {
         ['ED1 principal'],
         nombresAppDeWorkers(),
         reservadosDeLaTienda(),
+        ENSAYOS.map((e) => e.slug),
       ),
     ).toEqual([]);
     expect(dominiosReales().dominios.map((d: { dominio: string }) => d.dominio)).toEqual([
@@ -132,5 +134,33 @@ describe('los instrumentos', () => {
 
   it('sin la migración de la Tienda (antes de su M0), no inventa reservados', () => {
     expect(reservadosDeLaTienda(mkdtempSync(join(tmpdir(), 'sin-')))).toEqual([]);
+  });
+});
+
+describe('las direcciones de staging de los comercios de prueba (HU-T2.6)', () => {
+  const usados = (nombre: string) => [{ archivo: 'apps/tienda-sitio/wrangler.jsonc', nombre }];
+
+  it('«<comercio de prueba>--staging» vale: ninguna tienda puede tomar un nombre con «--»', () => {
+    expect(
+      fallasDeDominios(
+        dominiosReales(),
+        ['ED1 principal'],
+        usados('ensayo-uno--staging'),
+        [],
+        ['ensayo-uno'],
+      ),
+    ).toEqual([]);
+  });
+
+  it('❌ el mismo nombre sin «--staging» no vale: ese sí lo podría tomar una tienda', () => {
+    expect(
+      fallasDeDominios(
+        dominiosReales(),
+        ['ED1 principal'],
+        usados('ensayo-uno'),
+        [],
+        ['ensayo-uno'],
+      ),
+    ).toHaveLength(1);
   });
 });

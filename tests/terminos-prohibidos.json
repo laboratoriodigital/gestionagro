@@ -1,5 +1,5 @@
 {
-  "nota": "Nombres reales de la finca cero, del parqueadero cero y de sus personas, y los números que los identifican (NIT, póliza, teléfonos). Ninguno puede aparecer en apps/, packages/, content/, schemas/, infrastructure/, scripts/ ni tests/ (P4, HU-E1.7). Vive aquí mientras el repositorio sea privado; antes de hacerlo público sale del repositorio y se pasa por TERMINOS_PROHIBIDOS_RUTA. Los nombres de pila solos no se listan: son demasiado comunes.",
+  "nota": "Nombres reales de la finca cero, del parqueadero cero, de las dos tiendas 2.0 que se cargarán en la Tienda 3.0 (HU-T2.6) y de sus personas, y los números que los identifican (NIT, póliza, teléfonos). Ninguno puede aparecer en apps/, packages/, content/, schemas/, infrastructure/, scripts/ ni tests/ (P4, HU-E1.7). Vive aquí mientras el repositorio sea privado; antes de hacerlo público sale del repositorio y se pasa por TERMINOS_PROHIBIDOS_RUTA. Los nombres de pila solos no se listan: son demasiado comunes.",
   "terminos": [
     { "tipo": "nombre-propio", "valor": "Orgánico" },
     { "tipo": "nombre", "valor": "Cristian Cardona" },
@@ -12,6 +12,7 @@
     { "tipo": "nombre", "valor": "77175546" },
     { "tipo": "nombre", "valor": "1003605" },
     { "tipo": "nombre", "valor": "7979907" },
-    { "tipo": "nombre", "valor": "3178284725" }
+    { "tipo": "nombre", "valor": "3178284725" },
+    { "tipo": "nombre", "valor": "Cinnamon Beauty" }
   ]
 }

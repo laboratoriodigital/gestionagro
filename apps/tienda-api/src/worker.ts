@@ -11,6 +11,8 @@
  * - `GET /api/salud`: la prueba de humo del despliegue, por el panel. Cada shard y la base de
  *   control responden con las tablas de su migración; dice si la llave maestra (KEK) está y se
  *   puede leer, nunca su valor. Sin configuración o con una base caída responde 503 y dice cuál (P1).
+ * - `GET /api/v1/tienda` (HU-T2.6): la tienda que resolvió el despacho por el `Host`, de la cabecera
+ *   `x-tienda`; solo su nombre y su estado. Es la prueba de humo de las direcciones de staging.
  * - `/api/panel/v1/*` (HU-T2.8, TIENDA §12.1 y §13.3): exige un token del CORE con `aud = tienda`,
  *   verificado con sus claves públicas sin llamarlo (ADR-10). La organización, el rol, el plan, la
  *   entrada reciente (`auth_time`) y el shard salen del token, nunca del cuerpo ni de la URL. Un token
@@ -233,6 +235,28 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       db,
     });
     return siguiente();
+  });
+
+  // HU-T2.6: lo público llega por el despacho, con la tienda que resolvió en `x-tienda`. Sin ella,
+  // o con un shard que no es de esta celda, no existe.
+  app.get('/api/v1/tienda', async (c) => {
+    let destino: { org?: unknown; shard?: unknown };
+    try {
+      destino = JSON.parse(c.req.header(CABECERA_TIENDA) ?? 'null') ?? {};
+    } catch {
+      destino = {};
+    }
+    const { org, shard } = destino;
+    const db =
+      typeof shard === 'string' && SHARD.test(shard)
+        ? (c.env[shard] as BaseD1 | undefined)
+        : undefined;
+    if (typeof org !== 'string' || !db) return c.json(NO_EXISTE, 404);
+    const tienda = await db
+      .prepare('SELECT nombre, estado FROM tienda WHERE org_id = ?')
+      .bind(org)
+      .first<{ nombre: string; estado: string }>();
+    return tienda ? c.json(tienda) : c.json(NO_EXISTE, 404);
   });
 
   app.get('/api/panel/v1/yo', async (c) => {

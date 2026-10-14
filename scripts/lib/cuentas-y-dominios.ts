@@ -98,6 +98,8 @@ export function fallasDeDominios(
   cuentasDeclaradas: readonly string[],
   usados: readonly { archivo: string; nombre: string }[],
   deLaTienda: readonly string[],
+  /** Los nombres de los comercios de prueba: solo valen con «--staging», que ninguna tienda toma. */
+  deEnsayo: readonly string[] = [],
 ): string[] {
   const fallas = fallasDeEsquema('schemas/dominios.schema.json', datos);
   if (fallas.length > 0) return fallas;
@@ -120,6 +122,7 @@ export function fallasDeDominios(
   for (const { archivo, nombre } of usados) {
     // `<nombre>--staging` es el mismo nombre en staging (PLATAFORMA §3.4).
     const base = nombre.replace(/--staging$/, '');
+    if (nombre !== base && deEnsayo.includes(base)) continue;
     if (!declarados.has(base)) {
       fallas.push(
         `${archivo} usa «${nombre}.${DOMINIO_APP}», que no está reservado: una tienda podría tomarlo`,

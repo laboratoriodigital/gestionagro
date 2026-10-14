@@ -23,6 +23,7 @@ import { sentenciasDeCeldas } from '../apps/core/src/celdas.ts';
 import { killSwitchesDelCore } from '../apps/core/src/constantes.ts';
 import { SITIO } from '../apps/sitio/src/lib/seo.ts';
 import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
+import { hostDeStaging } from '../packages/tienda-schema/src/ensayos.ts';
 import { generarClavePrivada } from '../packages/tokens/src/index.ts';
 import {
   baseDelShard,
@@ -61,8 +62,12 @@ import {
   ARCHIVO_SQL_RESERVADOS,
   configDeLaApi,
   configDelSitio,
+  ensayosDelDestino,
   escribirDespliegue,
+  escribirHosts,
   escribirReservados,
+  escribirSiembra,
+  hostsDeLaCelda,
   humoDeLaTienda,
   nombreKvHosts,
   preparaLaTienda,
@@ -826,6 +831,7 @@ async function prepararCeldaDeLaTienda(
   const bases: Record<string, string> = {};
   const nuevas: string[] = [];
   let notaKv: string;
+  let hostsId = '';
   try {
     for (const base of [...celda.shards, control]) {
       const b = await asegurarBaseD1(fetch, cred.token, cred.cuenta, baseDelShard(base, staging));
@@ -844,6 +850,7 @@ async function prepararCeldaDeLaTienda(
       cred.cuenta,
       nombreKvHosts(celda.id, dest),
     );
+    hostsId = hosts.id;
     const producto = cargarRegistroDeProductos().productos.find((p) => p.id === celda.producto);
     const claves = await asegurarClaves(
       fetch,
@@ -859,6 +866,7 @@ async function prepararCeldaDeLaTienda(
         bases,
         flagsId: flags.id,
         hostsId: hosts.id,
+        clavesCore: await clavesDelCore(fetch, staging ? config.core.url_staging : config.core.url),
       }),
     );
     escribirDespliegue(
@@ -914,6 +922,35 @@ async function prepararCeldaDeLaTienda(
       ],
     };
   }
+  // HU-T2.6: los comercios de prueba, solo en staging (CA3).
+  const ensayos = ensayosDelDestino(dest);
+  if (ensayos.length > 0) {
+    const archivos = escribirSiembra(celda, new Date().toISOString());
+    for (const [base, archivo] of [
+      [celda.shards[0] ?? '', archivos.shard],
+      [control, archivos.control],
+    ] as const) {
+      const siembra = wrangler(
+        '@ed1/tienda-api',
+        `d1 execute ${base} --remote --file ${archivo} ${c}`,
+        cred,
+      );
+      if (!siembra.ok) {
+        return {
+          ok: false,
+          detalle: [
+            `la siembra de los comercios de prueba en ${base} falló:`,
+            ...causaDeWrangler(siembra.salida),
+          ],
+        };
+      }
+    }
+    try {
+      await escribirHosts(fetch, cred.token, cred.cuenta, hostsId, hostsDeLaCelda(celda));
+    } catch (e) {
+      return { ok: false, detalle: [`tienda: ${(e as Error).message}`] };
+    }
+  }
   // La API primero: el despacho y el panel la nombran en sus bindings de servicio.
   const pasos: [string, string, Record<string, string>][] = [
     ['@ed1/tienda-api', c, secretos.api],
@@ -951,11 +988,15 @@ async function prepararCeldaDeLaTienda(
   }
   let avisos: string[] = [];
   const fallas = await conReintentos(async () => {
-    const r = await humoDeLaTienda(fetch, {
-      panel,
-      sitio,
-      apiPorFuera: urlQueNoDebeResponder(celda, dest),
-    });
+    const r = await humoDeLaTienda(
+      fetch,
+      {
+        panel,
+        sitio,
+        apiPorFuera: urlQueNoDebeResponder(celda, dest),
+      },
+      ensayos,
+    );
     avisos = r.avisos;
     return r.fallas;
   });
@@ -970,6 +1011,11 @@ async function prepararCeldaDeLaTienda(
     detalle: [
       `celda ${celda.id} de la Tienda (${dest}): shard y control con migraciones aplicadas${nuevas.length > 0 ? ` (creadas: ${nuevas.join(', ')})` : ''}, y los reservados de dominios.json`,
       notaKv,
+      ...(ensayos.length > 0
+        ? [
+            `comercios de prueba: ${ensayos.map((e) => `https://${hostDeStaging(e.slug)}`).join(', ')}`,
+          ]
+        : []),
       `panel: ${panel}`,
       `despacho: ${sitio}`,
       ...avisos,

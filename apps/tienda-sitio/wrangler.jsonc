@@ -19,7 +19,16 @@
     "staging": {
       "name": "tienda-sitio-staging",
       "workers_dev": true,
-      "routes": [],
+      "routes": [
+        {
+          "pattern": "ensayo-uno--staging.laboratorio-digital.app",
+          "custom_domain": true
+        },
+        {
+          "pattern": "ensayo-dos--staging.laboratorio-digital.app",
+          "custom_domain": true
+        }
+      ],
       "services": [
         {
           "binding": "API_C1",
