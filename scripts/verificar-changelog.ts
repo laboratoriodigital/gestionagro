@@ -33,6 +33,8 @@ for (const [archivo, prefijo, desde] of [
   ['apps/core/CHANGELOG.md', 'core-v', '0.2.0'],
   // HU-Q0.3: todas las del parqueadero, desde la primera.
   ['apps/parqueadero-sitio/CHANGELOG.md', 'parqueadero-v', '0.0.0'],
+  // HU-T0.2: todas las de la Tienda, desde la primera.
+  ['apps/tienda-api/CHANGELOG.md', 'tienda-v', '0.0.0'],
 ] as const) {
   const etiquetas = git('tag', '--list', `${prefijo}[0-9]*`)
     .stdout.split(/\r?\n/)

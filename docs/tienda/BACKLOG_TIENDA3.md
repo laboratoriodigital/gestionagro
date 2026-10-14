@@ -20,7 +20,7 @@
 
 | Hito | Qué queda funcionando | Cierra | Fecha objetivo (plan base) | Necesita del CORE o del dueño | Versión |
 |---|---|---|---|---|---|
-| **M0 · Fundación** | Paquetes puros (`dinero`, `calendario`, `cifrado`, `tienda-schema`), migraciones en D1, la Tienda en el registro de productos, celda, KEK, tres apps en staging, dos comercios de prueba, presupuesto y kill switches | T2 | 23 dic 2026 (staging) | HC1 y HU-C4.3; los secretos de la Tienda (dueño). En el plan gratuito: la zona `.app` ya está activa y Workers Paid espera un dato que lo exija (bitácora tienda3 7) | — |
+| **M0 · Fundación** | Paquetes puros (`dinero`, `calendario`, `cifrado`, `tienda-schema`), migraciones en D1, la Tienda en el registro de productos, celda, KEK, tres apps en staging, dos comercios de prueba, presupuesto y kill switches | T2 (la aceptación con un token real, en T3: HU-T2.10) | 23 dic 2026 (staging) | HC1 y HU-C4.3; los secretos de la Tienda (dueño). En el plan gratuito: la zona `.app` ya está activa y Workers Paid espera un dato que lo exija (bitácora tienda3 7) | — |
 | **M1 · La tienda pública** | Horno, compuerta, publicación en cola, despacho por `Host`, vitrina con su diseño, carrito, cotizar, pedido por WhatsApp con su forma de pago, acuse, seguimiento, solicitudes con radicado, textos legales, carga del operador. La vitrina en producción, sin tiendas | T7 | 19 mar 2027 | — | `tienda-v0.1.0` (T6) y `v0.2.0` |
 | **M2 · El panel** | Entrar, productos con variantes y fotos, inventario, pedidos, confirmar por WhatsApp, despacho, contraentrega con su recaudo y liquidación, envíos, cupones, ajustes, publicar y volver atrás, equipo, registro, exportar y el tablero | T11 | 14 may 2027 | HU-C4.3 y HU-C4.4 (C5), HU-C3.2 | `v0.3.0` |
 | **M3 · Cobrar** | Llaves de Bold cifradas, cobro de prueba guiado, apartados, botón y links de pago, avisos firmados, conciliación, caos, revisión de seguridad y restauración probada | T14 | 25 jun 2027 | — | `v0.4.0` |
@@ -90,7 +90,7 @@ Si alguno es falso, se reordena el plan.
 
 - **Tipos:** `feat`, `fix`, `docs`, `refactor`, `test`, `ci`, `build`, `perf`, `chore`, `revert`.
 - **Alcances de la Tienda** (en minúsculas, como exige la guardia de HU-C0.2): `tienda`, `vitrina`, `panel`, `horno`, `despacho`, `pedidos`, `cobros`, `bold`, `inventario`, `recaudos`, `legal`, `solicitudes`, `dominios`, `planes`, `medicion`, `agentes`, `mcp`, `factura`, `carga`, `migraciones`, `cifrado`, `dinero`, `calendario`, `ui`, `despliegue`, `ci`, `versiones`, `bitacora`.
-- **Descripción** en español, en minúscula, sin punto final, de 72 caracteres o menos. Dice qué cambia para quien usa la tienda, no qué archivo se tocó.
+- **Descripción** en español, en minúscula, sin punto final, de 120 caracteres o menos (eran 72 hasta el 13 oct 2026). Dice qué cambia para quien usa la tienda, no qué archivo se tocó.
 - **Cuerpo:** el porqué, la historia (`HU-T6.1`), el control negativo y lo que no cambia.
 - **Sin la marca de Claude Code**, ni en commits ni en PR: ni `Co-Authored-By`, ni `Claude-Session`, ni «Generated with Claude Code» (pedido del dueño; lo vigila la guardia del CI).
 
@@ -322,7 +322,7 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T1** (festivo) | 30 nov–11 dic | La Tienda existe en el registro y en staging: celda, bases, KEK y tres apps desplegadas | HU-T2.1 (3), HU-T2.2 (3), HU-T2.3 (3), HU-T2.4 (5), HU-T2.5 (2) | 16 | — |
 | **T2** (corto) | 14–23 dic | **M0.** Dos comercios de prueba en staging que entran con tokens de la Tienda, con versión propia y presupuesto vigilado. Solo staging desde el 18 dic | HU-T0.2 (3), HU-T2.6 (3), HU-T2.7 (2), HU-T2.8 (2), HU-T3.3 (2) | 12 | M0 |
 | — | 24 dic–8 ene | Pausa y congelamiento | — | — | — |
-| **T3** (festivo) | 12–22 ene 2027 | El horno produce los bytes de una tienda y el despacho los sirve sin tocar la base | HU-T3.2 (3), HU-T4.1 (5), HU-T4.2 (2), HU-T5.1 (5) | 15 | — |
+| **T3** (festivo) | 12–22 ene 2027 | El horno produce los bytes de una tienda y el despacho los sirve sin tocar la base | HU-T2.10 (2), HU-T3.2 (3), HU-T4.1 (5), HU-T4.2 (2), HU-T5.1 (5) | 17 | — |
 | **T4** | 25 ene–5 feb | Publicar es hornear en cola con su compuerta; la vitrina tiene sus componentes | HU-T3.4 (5), HU-T4.3 (3), HU-T4.4 (5), HU-T5.3 (2), HU-T5.6 (2), HU-T17.1 (3) | 20 | — |
 | **T5** | 8–19 feb | La vitrina completa: portada, colecciones, fichas, carrito, cotizar y los textos legales | HU-T5.2 (5), HU-T5.4 (3), HU-T5.5 (3), HU-T6.5 (1), HU-T7.1 (5), HU-T15.1 (3) | 20 | — |
 | **T6** | 22 feb–5 mar | Se pide por WhatsApp con acuse y seguimiento; la carga del operador; la vitrina en producción sin tiendas | HU-T2.9 (2), HU-T3.6 (3), HU-T6.1 (5), HU-T6.2 (2), HU-T6.3 (3), HU-T12.2 (5) | 20 | `v0.1.0` |
@@ -332,12 +332,12 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T10** | 19–30 abr | Despachar, recaudar y liquidar la contraentrega; envíos, cupones, versiones y equipo | HU-T9.4 (3), HU-T9.5 (5), HU-T9.6 (3), HU-T10.1 (3), HU-T10.4 (3), HU-T10.5 (3) | 20 | — |
 | **T11** (festivo) | 3–14 may | **M2.** Solicitudes en el panel, derechos del titular, exportación y tablero; revisión con la tienda llena | HU-T3.7 (2), HU-T7.3 (3), HU-T9.7 (3), HU-T10.7 (3), HU-T14.2 (5) | 16 | M2 |
 | **T12** | 17–28 may | Las llaves del comercio cifradas y el primer cobro de prueba guiado | HU-T11.1 (3), HU-T11.2 (5), HU-T11.3 (3), HU-T11.4 (5), HU-T17.3 (3) | 19 | — |
-| **T13** (festivo) | 1–11 jun | Bold avisa, se concilia, y cada respuesta tiene su camino | HU-T11.5 (5), HU-T11.6 (3), HU-T11.7 (3), HU-T11.9 (2) | 13 | — |
+| **T13** (festivo) | 1–11 jun | Bold avisa, se concilia, y cada respuesta tiene su camino | HU-T11.5 (5), HU-T11.6 (3), HU-T11.7 (3), HU-T11.9 (2), HU-T14.3 (3) | 16 | — |
 | **T14** | 14–25 jun | **M3.** Links de pago, caos, revisión de seguridad y restauración probada; listos para cargar | HU-T0.3 (1), HU-T4.6 (3), HU-T11.8 (3), HU-T11.10 (3), HU-T11.11 (3), HU-T12.3 (3), HU-T17.4 (3) | 19 | M3 |
 | **T15** (festivo) | 28 jun–9 jul | Las tiendas 2.0 pasan la paridad y la primera se corta, con marca de vuelta | HU-T12.4 (3), HU-T12.5 (5), HU-T12.6 (2), HU-T12.7 (3), HU-T17.5 (2) | 15 | — |
 | **T16** (festivo) | 12–23 jul | **M6.** La segunda tienda en la 3.0; dominios propios con prevalidación | HU-T12.8 (2), HU-T13.1 (5), HU-T13.2 (3), HU-T13.3 (2), HU-T17.6 (3) | 15 | M6 |
 | **T17** | 26 jul–6 ago | **M4.** Alta abierta, plan por periodo, antiabuso y baja; medición propia y feeds | HU-T13.4 (5), HU-T13.5 (3), HU-T13.6 (3), HU-T13.7 (2), HU-T14.1 (3), HU-T14.5 (3) | 19 | M4 |
-| **T18** (festivo) | 9–20 ago | **M5 · `tienda-v1.0.0`.** Resumen diario, consentimiento, reconciliación y lo que quedó después de M6 | HU-T8.6 (2), HU-T10.2 (2), HU-T14.3 (3), HU-T14.4 (3), HU-T14.6 (2), HU-T14.7 (2) | 14 | M5 |
+| **T18** (festivo) | 9–20 ago | **M5 · `tienda-v1.0.0`.** Resumen diario, consentimiento, reconciliación y lo que quedó después de M6 | HU-T8.6 (2), HU-T10.2 (2), HU-T14.4 (3), HU-T14.6 (2), HU-T14.7 (2) | 11 | M5 |
 | **T19** | 23 ago–3 sep | **M7.** Los agentes preparan pedidos que una persona confirma | HU-T15.2 (2), HU-T15.3 (2), HU-T15.4 (5), HU-T15.5 (3), HU-T15.6 (2), HU-T15.7 (5) | 19 | M7 |
 | **T20** | 6–17 sep | **M8.** La factura, en el facturador del comercio | HU-T16.1 (2), HU-T16.2 (5), HU-T16.3 (3), HU-T16.4 (2) | 12 | M8 |
 
@@ -428,7 +428,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T0.1.1 `[doc]` backlog · WI-T0.1.2 `[doc]` bitácora · WI-T0.1.3 `[doc]` mapa de `docs/`, filas en los otros backlogs y CHANGELOG · WI-T0.1.4 `[doc]` notas en TIENDA §9.3, §11.5, §15.4 y §19.
 
 #### HU-T0.2 · Versión propia de la Tienda y su publicación
-- **Capa:** CI y despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T2 · **Depende de:** HU-T2.4, HU-C0.3 (hecha) · **Estado:** Refinada
+- **Capa:** CI y despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T2 · **Depende de:** HU-T2.4, HU-C0.3 (hecha) · **Estado:** En validación (rama `feat/t2-sprint`. La versión vive en `apps/tienda-api/package.json` (0.0.0) con su `CHANGELOG.md`, adonde pasaron las entradas de T1 que estaban en el de la raíz sin publicar; el despacho y el panel no llevan versión, y una prueba lo exige. `decidirPublicacion` suma la Tienda al final del orden (CORE, agro, parqueadero, Tienda); el flujo crea `tienda-vX.Y.Z` con las notas de su CHANGELOG (`notas-de-version.ts --tienda`), y `verificar-changelog.ts` vigila sus versiones publicadas. La guardia del PR (`cambiaLaTienda`) cubre `apps/tienda-*` y `packages/tienda-*`, código y páginas, pero no sus pruebas ni los paquetes que la Tienda comparte (`dinero`, `calendario`, `cifrado`), que no son solo suyos. Controles negativos: en 0.0.0 no se publica, una prueba que cambia no exige CHANGELOG, `packages/dinero` tampoco)
 - Como dueño, quiero publicar la Tienda cuando cambia la Tienda, con su versión y su registro de cambios, para no arrastrar el agro ni el CORE.
 - **Respaldo:** PLATAFORMA §6.3; HU-C0.3; memoria del proyecto «publicar agro y CORE».
 - **CA1.** La versión vive en un solo `package.json` (propuesta: `apps/tienda-api`), con su `CHANGELOG.md` y etiquetas `tienda-vX.Y.Z`. Las otras dos apps no llevan versión propia, y una prueba lo exige (P2).
@@ -547,7 +547,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T2.5.1 `[código]` · WI-T2.5.2 `[prueba]` · WI-T2.5.3 `[dueño]` generarla y guardar la copia.
 
 #### HU-T2.6 · Los dos comercios de prueba, en local y en staging
-- **Capa:** prueba · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T2 · **Depende de:** HU-T2.1, HU-C3.7 · **Estado:** Refinada
+- **Capa:** prueba · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T2 · **Depende de:** HU-T2.1, HU-C3.7 · **Estado:** En validación (rama `feat/t2-sprint`. Un solo fixture, `@ed1/tienda-schema/ensayos`: Ensayo Uno (ropa, talla y color, inventario, plan `entrada`) y Ensayo Dos (panadería, sin inventario, plan `gratis`, sin retracto por perecedero). De él salen la siembra del shard y de la base de control (idempotente), las entradas de `TIENDA_HOSTS` y las dos direcciones de staging del despacho, `ensayo-uno--staging` y `ensayo-dos--staging.laboratorio-digital.app`, como dominios propios del Worker de staging (P2). La API gana `GET /api/v1/tienda`, lo público por el despacho, y la prueba de humo de staging exige que cada comercio responda en su dirección con su nombre: el camino entero, Host → KV → despacho → API → shard. La regla de dominios acepta `<comercio de prueba>--staging`, que ninguna tienda puede tomar, y no el mismo nombre sin `--staging`. Los nombres de las dos tiendas reales están en los términos prohibidos (WI-T2.6.3: los puse yo desde la flota; el dueño puede sumar otros). CA3 a medias: la siembra nunca corre en producción (`ensayosDelDestino`), y la prueba de humo de producción que los busca llega con HU-T2.9. **Las organizaciones en el CORE de staging pasan a HU-T2.10**, con la aceptación de M0. Controles negativos: la siembra en producción es vacía; sin la cabecera del despacho, con un shard ajeno o con otra organización, la tienda no existe; `ensayo-uno` sin `--staging` no pasa la regla de dominios)
 - Como plataforma, quiero dos comercios de prueba con datos distintos en cada prueba, para que nada funcione solo para el primero.
 - **Respaldo:** TIENDA §16; P4; P11.
 - **CA1.** **Comercio Ensayo Uno** (ropa: talla y color, inventario, pago en línea y dominio propio de prueba) y **Comercio Ensayo Dos** (panadería: sin inventario, solo WhatsApp, en el subdominio), con sus organizaciones en el CORE de staging.
@@ -556,7 +556,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T2.6.1 `[código]` fixture y siembra · WI-T2.6.2 `[prueba]` · WI-T2.6.3 `[dueño]` los términos prohibidos.
 
 #### HU-T2.7 · Presupuesto, kill switches y vigía de la Tienda
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T2 · **Depende de:** HU-C11.1, HU-C3.6 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T2 · **Depende de:** HU-C11.1, HU-C3.6 · **Estado:** En validación (rama `feat/t2-sprint`. Cambió en un punto, por el plan gratuito: el presupuesto no va en un `product.yaml` sino en `productos.json`, como el del parqueadero (P2: un solo lugar), con USD 1 y 5.000 filas escritas de D1 al día mientras no haya tiendas, y `al_agotarse` con el horno y el MCP. En el plan gratuito el vigía de la cuenta solo avisa; desde esta historia cuenta `tienda_control` como de la Tienda, no como «otras bases». Los cinco kill switches los crea el despliegue (HU-T2.4) y ya hacen algo: `ks:tienda` deja toda tienda en «Volvemos pronto» (503, sin caché) y la API en solo lectura; `ks:tienda:<org>` pausa una sola tienda. Los de cobros, MCP y horno quedan creados y se conectan con su historia. Runbook: `docs/runbooks/kill-switch.md`, con sus 2 minutos dichos (P7). Controles negativos: con `ks:tienda` apagado escribir da 503 y leer no; la pausa de una tienda no toca a la otra; un host sin tienda sigue en 404; el presupuesto nunca apaga `ks:tienda` ni `ks:tienda-cobros`)
 - Como dueño, quiero saber cuánto cuesta la Tienda este mes y poder apagar una parte sin apagar la venta.
 - **Respaldo:** TIENDA §15.1 y §15.2; ED1 §25.1; PLATAFORMA §9.1.
 - **CA1.** `product.yaml` de la Tienda con los presupuestos de TIENDA §15.1 y su `usd_mes` (≤ 10, o lo que fije el dueño).
@@ -565,7 +565,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T2.7.1 `[código]` · WI-T2.7.2 `[prueba]` · WI-T2.7.3 `[doc]` `docs/runbooks/kill-switch.md` · WI-T2.7.4 `[dueño]` el presupuesto.
 
 #### HU-T2.8 · La API de la Tienda verifica los tokens del CORE
-- **Capa:** API y seguridad · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T2 · **Depende de:** HU-C4.1, HU-C4.3 · **Estado:** Refinada
+- **Capa:** API y seguridad · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T2 · **Depende de:** HU-C4.1, HU-C4.3 · **Estado:** En validación (rama `feat/t2-sprint`. `/api/panel/v1/*` verifica con `@ed1/tokens` y las claves públicas del CORE, que el despliegue pone en `CORE_CLAVES` (las del CORE de staging en staging), sin llamarlo: `aud = tienda`, organización, rol, plan, `auth_time`, celda y shard salen del token. `GET /api/panel/v1/yo` dice a qué tienda llegó la sesión. La prueba estática `org-id-en-consultas` cubre la API de la Tienda con las tablas de su migración. **La aceptación de M0 con un token real del CORE de staging se movió a HU-T2.10**: la Tienda está pausada en el CORE, y emitir un token `aud = tienda` pide activarla solo en staging, que es trabajo del CORE. Controles negativos: tokens del agro, del parqueadero, vencido, firmado con otra clave, sin tienda, de otra celda y con un shard ajeno; una organización en la URL no cambia la tienda; la regla estática ve una consulta sin `org_id`)
 - Como comercio, quiero que mi sesión del panel sirva solo para mi tienda.
 - **Respaldo:** TIENDA §12.1 y §14.1; PLATAFORMA §4.6; ADR-10.
 - **CA1.** El middleware de `/api/panel/v1/*` verifica con `@ed1/tokens`: `aud = tienda`, organización, rol, plan y `auth_time`.
@@ -582,6 +582,16 @@ Formato de cada historia, el del CORE:
 - **CA2.** La prueba de humo mira el dominio público, no solo staging.
 - **CA3 ❌.** Falla si encuentra un comercio de prueba en producción, o si el destino, el dominio y el ambiente no coinciden.
 - **Work items:** WI-T2.9.1 `[ci]` · WI-T2.9.2 `[prueba]` · WI-T2.9.3 `[dueño]` abrir el dominio público.
+
+#### HU-T2.10 · La Tienda activa solo en staging, con las dos organizaciones de prueba
+- **Capa:** CORE y prueba · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T3 · **Depende de:** HU-T2.6, HU-T2.8, HU-C3.7 (hecha) · **Estado:** Refinada (nace del T2: la aceptación de M0 de HU-T2.8 y la parte del CORE de HU-T2.6 CA1)
+- Como dueño, quiero que el CORE de staging emita un token de la Tienda para Ensayo Uno, para probar el panel con una sesión de verdad sin abrir la Tienda en producción.
+- **Respaldo:** HU-T2.2 (la Tienda pausada); HU-C3.7 (productos que solo existen en staging); TIENDA §12.1.
+- **CA1.** `productos-de-prueba.json` puede activar en staging un producto que en producción está pausado; el catálogo del CORE de staging y su base lo dicen igual (P2). Producción sigue igual.
+- **CA2.** Las organizaciones de Ensayo Uno y Ensayo Dos existen en el CORE de staging, en la celda c1 y su shard, con los ids del fixture de HU-T2.6.
+- **CA3 ❌.** Con la Tienda activa en staging, el CORE de producción sigue respondiendo «pausado» para la Tienda: una prueba lo exige.
+- **Aceptación de M0:** el CORE de staging emite un token `aud = tienda` para Ensayo Uno y `GET /api/panel/v1/yo` del panel de staging lo acepta.
+- **Work items:** WI-T2.10.1 `[código]` activar en staging · WI-T2.10.2 `[código]` las organizaciones de prueba · WI-T2.10.3 `[prueba]` · WI-T2.10.4 `[dueño]` entrar con su cuenta y probarlo.
 
 ### ET3 · Diseño de la Tienda
 
@@ -1156,7 +1166,7 @@ Formato de cada historia, el del CORE:
 ### ET12 · Carga de las tiendas 2.0
 
 #### HU-T12.1 · Qué usa hoy cada tienda 2.0
-- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** En sprint, esperando al dueño (`docs/tienda/paridad-tiendas-2.0.md`. La parte pública ya cambió el plan: las dos tiendas que venden son de la **Tienda Básica** (solo la hoja, 3.6.2), no de la Tienda Panel con la que se escribió el anexo C, y ninguna tiene dominio propio: viven en `workers.dev` (bitácora tienda3 6). La segunda parte son 11 preguntas de sí, no o una cifra para el dueño. No se leyó el repositorio privado de una tienda real: tiene datos de su operación, y la herramienta lo detuvo; lo que hace falta lo sabe el dueño)
+- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T0 · **Depende de:** — · **Estado:** En sprint, esperando al dueño (`docs/tienda/paridad-tiendas-2.0.md`. El 13 oct 2026 el dueño contestó para las dos tiendas: cobran con Bold (y vendrán otras pasarelas), ofrecen contraentrega, usan cupones, «Avísame» y correos, y la tienda activa paga 25.000 al mes. Los correos se adelantaron a T13 (bitácora tienda3 8); quedan seis preguntas, reescritas en §4 del documento. La parte pública ya cambió el plan: las dos tiendas que venden son de la **Tienda Básica** (solo la hoja, 3.6.2), no de la Tienda Panel con la que se escribió el anexo C, y ninguna tiene dominio propio: viven en `workers.dev` (bitácora tienda3 6). La segunda parte son 11 preguntas de sí, no o una cifra para el dueño. No se leyó el repositorio privado de una tienda real: tiene datos de su operación, y la herramienta lo detuvo; lo que hace falta lo sabe el dueño)
 - Como dueño, quiero saber desde ya qué de la 2.0 usa cada tienda, para que el orden del plan no lo descubra el día del corte.
 - **Respaldo:** TIENDA §17.3 y anexo C; estudio §15.3 [C12] y §16.2 (preguntas 8 y 9); bitácora tienda3 1.
 - **CA1.** Una tabla por tienda con cada puerta del anexo C, más: dominio propio, GA4 o píxel de Meta, los correos que manda, páginas propias, cobro en línea, contraentrega, volumen de pedidos y qué tan cerca está de cada techo de la 2.0.
@@ -1315,7 +1325,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T14.2.1 `[código]` · WI-T14.2.2 `[prueba]` el reloj.
 
 #### HU-T14.3 · El resumen diario y los correos de la tienda
-- **Capa:** operación · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T18 · **Depende de:** HU-C10.1, HU-T14.2, D-T8 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T13 (antes del primer corte; era T18) · **Depende de:** HU-C10.1, HU-T14.2, D-T8, D-T11 · **Estado:** Refinada (las tiendas 2.0 mandan correos hoy: HU-T12.1, bitácora tienda3 8)
 - Como comerciante, quiero un correo cada mañana con lo que tengo que hacer hoy; como comprador, el acuse en mi correo si lo dejé.
 - **Respaldo:** TIENDA §8.5 y §15.5; ED1 §20.2 [D8].
 - **CA1.** Remitente `«<Tienda>» <pedidos@laboratorio-digital.app>`, con respuesta al correo del comercio; SPF, DKIM y DMARC en `laboratorio-digital.app`, comprobados con un envío real.
@@ -1517,7 +1527,7 @@ Formato de cada historia, el del CORE:
 | HU-T7.4 · Revisión legal de las plantillas (3) | Haya presupuesto para un abogado (TIENDA §20.2.7). Recomendado antes del alta abierta (M4). Corregir es cambiar una plantilla y re-hornear |
 | Cuentas de comprador | Más del 30 % de los pedidos de una tienda son de compradores que repiten, y lo piden (TIENDA §20.3) |
 | Directorio o marketplace de tiendas | Nunca sin tratarlo antes como portal de contacto (Ley 2439 art. 6; Ley 1480 art. 53) |
-| Otra pasarela (Wompi, Mercado Pago) | Un comercio que no puede usar Bold, o un cambio de Bold. `ProveedorDePago` ya lo permite |
+| Otra pasarela (Mercado Pago, PayPal, Wompi) | El dueño elige la segunda pasarela (anunció Mercado Pago y PayPal el 13 oct 2026, HU-T12.1), un comercio no puede usar Bold o Bold cambia. `ProveedorDePago` ya lo permite: una pasarela nueva es un adaptador en `@ed1/pagos` |
 | Emitir factura electrónica | La DIAN reglamenta el art. 616-1 inc. 8, o tres comercios sin facturador propio la piden |
 | WhatsApp Cloud API para avisos de estado | Se demuestra ahorro de atención y la contribución por pedido lo soporta. La barrera es habilitar el canal, no el costo (estudio §11.1 [C5]) |
 | Guías integradas (cotizar, generar y seguir) | Tres comercios con el mismo operador o agregador |
@@ -1547,6 +1557,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | D-T7 | Las tiendas actuales antes del alta abierta: M6 → M4 (§20.2.5) | Sí | Planeación de T15 |
 | D-T8 | El correo de la Tienda (§20.2.6) | El adaptador del CORE (HU-C10.1) con el servicio de correo de Cloudflare, enviando desde `laboratorio-digital.app` | HU-T14.3 (T18, o antes si HU-T12.1 lo pide) |
 | D-T9 | Velocidad y carriles | 20 puntos por sprint en la Tienda; como mucho 3 historias suyas esperando validación y 6 entre los dos carriles (§3.6) | Planeación de T1 |
+| D-T11 | Cómo manda correos la Tienda antes de M6 en el plan gratuito: el adaptador del CORE (HU-C10.1) espera Workers Paid y las tiendas 2.0 ya mandan correos | Un proveedor de correo con cuota gratuita detrás del mismo adaptador del CORE, o Workers Paid si el servicio de correo de Cloudflare sigue siendo solo del plan pago: este es el primer dato que puede exigirlo | HU-T14.3 (T13) |
 | D-T10 | Los cron de la Tienda en el plan gratuito: queda 1 de los 5 de la cuenta y TIENDA §15.3 pide cinco frecuencias | Un solo cron por hora que reparte el trabajo por minuto y hora; lo que pueda ser perezoso, perezoso (como los apartados). Workers Paid solo si un dato lo exige | El primer cron (HU-T4.6) |
 
 **Tareas que solo puede hacer el dueño**, con la fecha que no frena el camino crítico:
@@ -1556,6 +1567,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | Activar Workers Paid y las alertas de facturación | Cuando un dato lo exija | Decisión del 6 oct 2026: el plan gratuito mientras se pueda. Los datos que lo decidirían, en la bitácora tienda3 7 |
 | Agregar la zona `laboratorio-digital.app` a la cuenta | Hecho | Activa: el parqueadero sale a producción en ella (13 oct 2026) |
 | T1 | 16 | 0 (en validación: HU-T2.1 a HU-T2.5) | Construido el 13 oct 2026, en el plan gratuito (bitácora tienda3 7), en el PR del sprint. El dueño pidió avanzar por sprint: con T1 hay 7 historias esperando validación, más que el tope de 3 (§3.6). HU-T2.5 espera que el dueño corra el script de los secretos; sin él, el paso de la Tienda del despliegue queda en rojo sin detener a los demás |
+| T2 | 12 | 0 (en validación: HU-T0.2, HU-T2.6, HU-T2.7 y HU-T2.8) | Construido el 13 oct 2026. La Tienda de T1 quedó viva en staging con sus secretos (salud de las dos bases, KEK legible). HU-T3.3 (2) espera la elección de la tipografía (D-T2). Nació HU-T2.10 (2, en T3): la Tienda activa solo en staging, con las organizaciones de prueba y la aceptación de M0, que es trabajo del CORE |
 | Contestar qué usa cada tienda 2.0 | T1 | HU-T12.1 |
 | Generar la KEK y el secreto del despacho, y guardar la copia de la KEK | Validar T1 | `node scripts/tienda/generar-secretos.ts --ambiente staging` (HU-T2.5, `docs/runbooks/secretos-de-la-tienda.md`). Sin el secreto del despacho, el paso de la Tienda en el despliegue falla y lo dice |
 | Decidir R2: activarlo en la cuenta y permitirlo al token de despliegue | T3 | El horno guarda las tiendas en R2 (HU-T4.1), y HU-C11.5 hoy lo prohíbe al token. Bitácora tienda3 7 |

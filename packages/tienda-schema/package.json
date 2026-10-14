@@ -5,7 +5,8 @@
   "description": "Esquemas de la Tienda 3.0: las secciones de ajustes con sus versiones, la matriz de permisos y el formato de carga y exportación. Única fuente para el panel, la API y el horno (P2, HU-T1.4).",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./ensayos": "./src/ensayos.ts"
   },
   "dependencies": {
     "zod": "^4.6.5"

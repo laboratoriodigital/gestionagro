@@ -49,6 +49,13 @@ describe('la Tienda en productos.json (HU-T2.2)', () => {
     ]);
   });
 
+  it('al agotar su presupuesto apaga el horno y el MCP, nunca la venta ni los cobros (HU-T2.7 CA3)', () => {
+    const apaga = tienda().presupuesto?.al_agotarse ?? [];
+    expect(apaga).toEqual(['ks:tienda-horno', 'ks:tienda-mcp']);
+    expect(apaga).not.toContain('ks:tienda');
+    expect(apaga).not.toContain('ks:tienda-cobros');
+  });
+
   it('declara solo sus kill switches de TIENDA §15.2', () => {
     expect(tienda().kill_switches).toEqual([
       'ks:tienda',

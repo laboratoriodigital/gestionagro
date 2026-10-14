@@ -272,6 +272,10 @@ describe('qué producto escribe en cada base (HU-Q7.13)', () => {
   it('el CORE, los shards por su prefijo y las de staging aparte; otra base no se adivina', () => {
     expect(productoDeLaBase('agro_core', 'agro_core')).toBe('core');
     expect(productoDeLaBase('agro_core_staging', 'agro_core')).toBe('core (staging)');
+    // HU-T2.7: la base de control de la Tienda cuenta como de la Tienda, no como «otras bases».
+    expect(productoDeLaBase('tienda_control', 'agro_core')).toBe('tienda');
+    expect(productoDeLaBase('tienda_control_staging', 'agro_core')).toBe('tienda (staging)');
+    expect(productoDeLaBase('tienda_controles', 'agro_core')).toBeNull();
     expect(productoDeLaBase('agro_c0_s1', 'agro_core')).toBe('agro');
     expect(productoDeLaBase('parqueadero_c2_s1_staging', 'agro_core')).toBe(
       'parqueadero (staging)',

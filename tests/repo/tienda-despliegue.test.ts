@@ -6,9 +6,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { BaseD1 } from '../../packages/d1/src/index.ts';
 import { baseLocal } from '../../packages/d1/src/local.ts';
-import { celdasDeLaTienda, wranglerDeLaCeldaDeLaTienda } from '../../scripts/generar-wrangler.ts';
+import {
+  celdasDeLaTienda,
+  wranglerDeLaCeldaDeLaTienda,
+  wranglerDelSitioDeLaTienda,
+} from '../../scripts/generar-wrangler.ts';
 import {
   configDeLaApi,
+  configDelSitio,
   humoDeLaTienda,
   nombreKvHosts,
   preparaLaTienda,
@@ -115,15 +120,23 @@ describe('los ids del despliegue, fuera de git (ADR-6)', () => {
     bases: { tienda_c1_s1: 'id-shard', tienda_control: 'id-control' },
     flagsId: 'kv-flags',
     hostsId: 'kv-hosts',
+    clavesCore: [{ kid: 'k1' }],
   };
 
   it('staging recibe los ids de sus bases y sus dos KV; producción queda como estaba', () => {
     const config = configDeLaApi(generada, 'staging', ids) as {
       d1_databases: unknown[];
       env: {
-        staging: { d1_databases: { database_id: string }[]; kv_namespaces: { binding: string }[] };
+        staging: {
+          d1_databases: { database_id: string }[];
+          kv_namespaces: { binding: string }[];
+          vars: Record<string, string>;
+        };
       };
     };
+    // HU-T2.8: las claves públicas del CORE de staging, para verificar sus tokens sin llamarlo.
+    expect(config.env.staging.vars['CORE_CLAVES']).toBe('[{"kid":"k1"}]');
+    expect(config.env.staging.vars['CELDA']).toBe('c1');
     expect(config.env.staging.d1_databases.map((d) => d.database_id)).toEqual([
       'id-shard',
       'id-control',
@@ -139,6 +152,19 @@ describe('los ids del despliegue, fuera de git (ADR-6)', () => {
     expect(() =>
       configDeLaApi(generada, 'staging', { ...ids, bases: { tienda_c1_s1: 'id-shard' } }),
     ).toThrow(/tienda_control/);
+  });
+});
+
+describe('el despacho lee los kill switches (HU-T2.7)', () => {
+  it('su configuración de staging lleva el KV de hosts y el de flags', () => {
+    const config = configDelSitio(wranglerDelSitioDeLaTienda(cargarCeldas()), 'staging', {
+      hostsId: 'kv-hosts',
+      flagsId: 'kv-flags',
+    }) as { env: { staging: { kv_namespaces: { binding: string; id: string }[] } } };
+    expect(config.env.staging.kv_namespaces).toEqual([
+      { binding: 'TIENDA_HOSTS', id: 'kv-hosts' },
+      { binding: 'FLAGS', id: 'kv-flags' },
+    ]);
   });
 });
 

@@ -6,6 +6,9 @@
   "scripts": {
     "build": "wrangler deploy --dry-run --outdir .wrangler/dry-run --env= && wrangler deploy --dry-run --outdir .wrangler/dry-run-staging --env staging"
   },
+  "dependencies": {
+    "@ed1/kill-switch": "workspace:*"
+  },
   "devDependencies": {
     "wrangler": "^4.144.0"
   }

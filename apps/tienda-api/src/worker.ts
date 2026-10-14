@@ -11,13 +11,29 @@
  * - `GET /api/salud`: la prueba de humo del despliegue, por el panel. Cada shard y la base de
  *   control responden con las tablas de su migración; dice si la llave maestra (KEK) está y se
  *   puede leer, nunca su valor. Sin configuración o con una base caída responde 503 y dice cuál (P1).
+ * - `GET /api/v1/tienda` (HU-T2.6): la tienda que resolvió el despacho por el `Host`, de la cabecera
+ *   `x-tienda`; solo su nombre y su estado. Es la prueba de humo de las direcciones de staging.
+ * - `/api/panel/v1/*` (HU-T2.8, TIENDA §12.1 y §13.3): exige un token del CORE con `aud = tienda`,
+ *   verificado con sus claves públicas sin llamarlo (ADR-10). La organización, el rol, el plan, la
+ *   entrada reciente (`auth_time`) y el shard salen del token, nunca del cuerpo ni de la URL. Un token
+ *   de otro producto, vencido o de otra celda responde 401 o 403 con un motivo que el panel muestra.
+ *   `GET /api/panel/v1/yo`: a qué tienda llegó la sesión.
+ * - Kill switch `ks:tienda` (HU-T2.7, TIENDA §15.2): apagado, la API queda en solo lectura. Lo que
+ *   escribe responde 503 con `Retry-After`; lo que lee sigue. Caché de 60 s (`@ed1/kill-switch`, P7).
  *
  * Ningún identificador de cuenta, base o dominio en el código (ADR-6): llega por la configuración
  * que arma el despliegue desde `celdas.json`.
  */
 import { importarKek } from '@ed1/cifrado';
 import type { BaseD1 } from '@ed1/d1';
-import { Hono } from 'hono';
+import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
+import {
+  aceptarEnProducto,
+  type ClavePublica,
+  TokenInvalido,
+  verificarConClaves,
+} from '@ed1/tokens';
+import { type Context, Hono } from 'hono';
 
 export const CABECERA_DESPACHO = 'x-despacho';
 export const CABECERA_TIENDA = 'x-tienda';
@@ -36,6 +52,10 @@ export interface Env {
   PLAN?: string;
   SECRETO_DESPACHO?: string;
   TIENDA_KEK_V1?: string;
+  /** El KV de flags de la celda, con los kill switches del producto. */
+  FLAGS?: LectorKv;
+  /** Claves públicas del CORE (JSON): las lee el despliegue de `/api/core/claves`. */
+  CORE_CLAVES?: string;
   /** Un binding D1 por shard, con el nombre del shard, y `tienda_control`. */
   [base: string]: unknown;
 }
@@ -78,14 +98,67 @@ async function faltanTablas(db: BaseD1, tablas: readonly string[]): Promise<bool
 
 const NO_EXISTE = { estado: 'no-existe' } as const;
 
-export function crearApp() {
-  const app = new Hono<{ Bindings: Env }>();
+/** La sesión del panel: todo sale del token del CORE (TIENDA §12.1). */
+export interface Sesion {
+  usuario: string;
+  org: string;
+  rol: string;
+  plan: string;
+  /** Instante (s) de la última entrada con Google: lo que mueve dinero pide una reciente. */
+  authTime: number | null;
+  shard: string;
+  db: BaseD1;
+}
+type Variables = { sesion: Sesion };
+export type ContextoTienda = Context<{ Bindings: Env; Variables: Variables }>;
+
+function clavesDe(env: Env): ClavePublica[] {
+  try {
+    const claves = JSON.parse(env.CORE_CLAVES ?? '[]') as ClavePublica[];
+    return Array.isArray(claves) ? claves : [];
+  } catch {
+    return [];
+  }
+}
+
+const VUELVE_A_ENTRAR = 'Tu sesión venció o no es de la tienda. Vuelve a entrar.';
+const LECTURA = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+let lector: { kv: LectorKv; lector: LectorKillSwitch } | null = null;
+const lectorDe = (kv: LectorKv) => {
+  if (lector?.kv !== kv) lector = { kv, lector: crearLectorKillSwitch({ kv }) };
+  return lector.lector;
+};
+
+export function crearApp(opciones: { ahora?: () => number } = {}) {
+  const ahora = opciones.ahora ?? (() => Date.now());
+  const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
   // Solo el despacho y el panel: sin el secreto, la API no existe (TIENDA §14.1).
   app.use('*', async (c, siguiente) => {
     const secreto = c.env.SECRETO_DESPACHO;
     const dado = c.req.header(CABECERA_DESPACHO);
     if (!secreto || !dado || !mismoSecreto(secreto, dado)) return c.json(NO_EXISTE, 404);
+    return siguiente();
+  });
+
+  // ks:tienda apagado: solo lectura. Se revisa después del secreto, que es más barato.
+  app.use('*', async (c, siguiente) => {
+    if (
+      !LECTURA.has(c.req.method) &&
+      c.env.FLAGS &&
+      (await lectorDe(c.env.FLAGS).apagado('tienda'))
+    ) {
+      c.header('retry-after', '120');
+      return c.json(
+        {
+          estado: 'apagado',
+          motivo:
+            'La tienda está en pausa por unos minutos: puedes ver todo, pero no cambiar nada.',
+        },
+        503,
+      );
+    }
     return siguiente();
   });
 
@@ -121,6 +194,78 @@ export function crearApp() {
       control: true,
       kek: await estadoDeLaKek(c.env.TIENDA_KEK_V1),
     });
+  });
+
+  // HU-T2.8: el panel, con el token del CORE. Nada del cuerpo ni de la URL dice de qué tienda es.
+  app.use('/api/panel/v1/*', async (c, siguiente) => {
+    const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
+    if (!token) return c.json({ estado: 'sin-sesion', motivo: 'Entra con tu cuenta.' }, 401);
+    const producto = c.env.PRODUCTO;
+    if (!producto || !c.env.CELDA) {
+      console.error('tienda-api: falta PRODUCTO o CELDA');
+      return c.json({ estado: 'sin-configurar' }, 503);
+    }
+    let acceso: ReturnType<typeof aceptarEnProducto>;
+    try {
+      acceso = aceptarEnProducto(
+        await verificarConClaves(clavesDe(c.env), token, ahora()),
+        producto,
+      );
+    } catch (e) {
+      if (!(e instanceof TokenInvalido)) throw e;
+      return c.json({ estado: 'sin-sesion', motivo: VUELVE_A_ENTRAR }, 401);
+    }
+    if (!acceso.org || !acceso.rol || !acceso.shard) {
+      return c.json(
+        { estado: 'sin-tienda', motivo: 'Tu cuenta todavía no tiene una tienda.' },
+        403,
+      );
+    }
+    const db = c.env[acceso.shard] as BaseD1 | undefined;
+    if (acceso.celda !== c.env.CELDA || !SHARD.test(acceso.shard) || !db) {
+      return c.json({ estado: 'otra-celda', motivo: VUELVE_A_ENTRAR }, 403);
+    }
+    c.set('sesion', {
+      usuario: acceso.sub,
+      org: acceso.org,
+      rol: acceso.rol,
+      plan: acceso.plan,
+      authTime: acceso.auth_time ?? null,
+      shard: acceso.shard,
+      db,
+    });
+    return siguiente();
+  });
+
+  // HU-T2.6: lo público llega por el despacho, con la tienda que resolvió en `x-tienda`. Sin ella,
+  // o con un shard que no es de esta celda, no existe.
+  app.get('/api/v1/tienda', async (c) => {
+    let destino: { org?: unknown; shard?: unknown };
+    try {
+      destino = JSON.parse(c.req.header(CABECERA_TIENDA) ?? 'null') ?? {};
+    } catch {
+      destino = {};
+    }
+    const { org, shard } = destino;
+    const db =
+      typeof shard === 'string' && SHARD.test(shard)
+        ? (c.env[shard] as BaseD1 | undefined)
+        : undefined;
+    if (typeof org !== 'string' || !db) return c.json(NO_EXISTE, 404);
+    const tienda = await db
+      .prepare('SELECT nombre, estado FROM tienda WHERE org_id = ?')
+      .bind(org)
+      .first<{ nombre: string; estado: string }>();
+    return tienda ? c.json(tienda) : c.json(NO_EXISTE, 404);
+  });
+
+  app.get('/api/panel/v1/yo', async (c) => {
+    const s = c.get('sesion');
+    const tienda = await s.db
+      .prepare('SELECT slug, nombre, estado FROM tienda WHERE org_id = ?')
+      .bind(s.org)
+      .first<{ slug: string; nombre: string; estado: string }>();
+    return c.json({ org: s.org, rol: s.rol, plan: s.plan, tienda: tienda ?? null });
   });
 
   app.all('*', (c) => c.json(NO_EXISTE, 404));

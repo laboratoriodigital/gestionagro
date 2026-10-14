@@ -1,7 +1,8 @@
 /**
  * Convención de commits y PR (HU-C0.2, BACKLOG_CORE §2.2): `tipo(alcance): descripción`, en
- * español, de 72 caracteres o menos, y **sin la marca de Claude Code** en ninguna parte (pedido
- * del dueño, 5 oct 2026). Una regla escrita sin guardia se incumple el día que llega la prisa
+ * español, de 120 caracteres o menos, y **sin la marca de Claude Code** en ninguna parte (pedido
+ * del dueño, 5 oct 2026). El tope era 72; el dueño lo subió a 120 el 13 oct 2026, cuando un título de
+ * PR de 77 detuvo el CI de un sprint completo. Una regla escrita sin guardia se incumple el día que llega la prisa
  * (bitácora agro 5); esta es la guardia.
  *
  * Solo mira los commits del PR, nunca la historia vieja: los de antes del 5 oct 2026 tienen
@@ -22,7 +23,7 @@ export const TIPOS = [
   'revert',
 ] as const;
 
-export const LARGO_MAXIMO = 72;
+export const LARGO_MAXIMO = 120;
 
 const ASUNTO = new RegExp(`^(${TIPOS.join('|')})(\\(([a-z0-9][a-z0-9.-]*)\\))?(!)?: (\\S.*)$`);
 

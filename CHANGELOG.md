@@ -5,11 +5,6 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
-- `node scripts/tienda/generar-secretos.ts --ambiente staging|produccion` (HU-T2.5): genera una vez la llave maestra de la Tienda y el secreto del despacho, y los guarda en el ambiente de GitHub. La llave maestra va al portapapeles, nunca a la pantalla, y no se guarda sin la copia en el gestor de contraseñas. Runbook: `docs/runbooks/secretos-de-la-tienda.md`.
-- Las tres apps de la Tienda en staging (HU-T2.4): la API, que solo responde al despacho y al panel; el despacho, que resuelve la tienda por la dirección sin tocar la base y muestra «Esta dirección no tiene tienda» cuando no la hay; y el panel, por ahora con su portada. El despliegue tiene un paso propio para la Tienda, que no detiene a los demás productos mientras no tenga tiendas.
-- Las migraciones de la Tienda pasan a `infrastructure/migraciones/` (HU-T2.1), con sus 82 comprobaciones como pruebas en la base en proceso y en el D1 local de workerd. Los anexos de TIENDA-3.0 tienen que ser copias exactas de esos archivos.
-- La celda c1 de la Tienda en `celdas.json` (HU-T2.3), con su shard y su base de control, y las configuraciones de sus tres Workers (API, despacho y panel) generadas desde ese archivo. La API no tiene rutas propias: solo se llega a ella desde el despacho y el panel.
-- La Tienda 3.0 en el registro de productos, pausada (HU-T2.2): sus tipos, roles, planes como hipótesis (`content/tienda/planes.json`), lo que permite cada plan (`funciones.json`) y la política de sus cuentas en borrador. El CORE la conoce, pero no crea tiendas ni cobra planes hasta que exista su panel.
 - El MCP del cuaderno (HU-C9.7): un asistente con permiso de la persona puede leer el calendario de carencias («¿qué nave puedo cosechar hoy?») y los últimos registros de la finca, sin escribir nada. Vive en la celda, en `mcp.cultivopro.co` en producción, y se apaga con `ks:agro-mcp` sin tocar el cuaderno. Por ahora solo en staging, como el servidor de autorización.
 
 ### Corregido
@@ -17,6 +12,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Los campos del sistema de diseño cuentan su borde y su relleno dentro del ancho: uno al 100 % ya no se sale de la pantalla de un teléfono.
 
 ### Cambiado
+- El título de un commit o de un PR puede tener hasta 120 caracteres; antes eran 72, y un título de 77 detenía el CI.
 - En Planes, cualquiera puede comparar los periodos del plan Finca (el total, lo que sale al mes y el ahorro), aunque no haya entrado o no tenga su finca en la nube. Pagar sigue siendo solo para quien la administra.
 - El despliegue corre en tres pasos, CORE, agro y parqueadero, y cada uno recibe solo sus secretos: las llaves de Bold y de Google solo llegan al del CORE, y el token de métricas y Telegram solo al del agro. Una parte sin nada que desplegar termina en segundos (HU-C11.3).
 - La revisión de permisos de más vuelve a detener por el permiso de DNS: la publicación de CORE 0.4.0 mostró que el token no lo tiene y que el dominio propio de la cuenta responde sin él (HU-C11.5).

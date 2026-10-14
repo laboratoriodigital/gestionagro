@@ -224,7 +224,9 @@ export function huerfanasDeLaSalida(salida: string): string[] | null {
 export function productoDeLaBase(nombre: string, baseDelCore: string): string | null {
   const staging = nombre.endsWith('_staging');
   const base = staging ? nombre.slice(0, -'_staging'.length) : nombre;
-  const producto = base === baseDelCore ? 'core' : (/^([a-z]+)_c\d+_s\d+$/.exec(base)?.[1] ?? null);
+  // HU-T2.7: también la base de control de un producto (`tienda_control`), que no es un shard.
+  const producto =
+    base === baseDelCore ? 'core' : (/^([a-z]+)_(?:c\d+_s\d+|control)$/.exec(base)?.[1] ?? null);
   return producto && staging ? `${producto} (staging)` : producto;
 }
 

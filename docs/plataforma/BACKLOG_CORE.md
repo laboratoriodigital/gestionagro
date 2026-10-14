@@ -66,7 +66,7 @@ Si alguno es falso, se reordena el plan.
 
 - **Tipos:** `feat`, `fix`, `docs`, `refactor`, `test`, `ci`, `build`, `perf`, `chore`, `revert`.
 - **Alcances del CORE:** `core`, `cuenta`, `ui`, `tokens`, `productos`, `migraciones`, `pagos`, `planes`, `oauth`, `mcp`, `agentes`, `correo`, `vigia`, `despliegue`, `ci`, `versiones`, `bitacora`.
-- **Descripción** en español, en minúscula, sin punto final, de 72 caracteres o menos. Dice qué cambia para quien usa el sistema, no qué archivo se tocó.
+- **Descripción** en español, en minúscula, sin punto final, de 120 caracteres o menos (eran 72 hasta el 13 oct 2026). Dice qué cambia para quien usa el sistema, no qué archivo se tocó.
 - **Cuerpo:** el porqué, la historia (`HU-C3.1`), el control negativo y lo que no cambia.
 - **Sin la marca de Claude Code:** ni `Co-Authored-By`, ni `Claude-Session`, ni «Generated with Claude Code», en commits ni en PR (pedido del dueño, 5 oct 2026). Lo vigila HU-C0.2.
 
