@@ -30,7 +30,7 @@ import {
   type ProductoParaLaCompuerta,
   type TiendaParaHornear,
 } from '@ed1/tienda-horno';
-import { type Seccion, validarSeccion } from '@ed1/tienda-schema';
+import { leerFormatos, type Seccion, validarSeccion } from '@ed1/tienda-schema';
 
 /** Lo que la publicación usa de un bucket R2. */
 export interface Almacen {
@@ -84,6 +84,29 @@ interface FilaProducto {
   solo_mayores: number;
   destacado: number;
   actualizado: string;
+  seo: string;
+}
+
+/**
+ * HU-T8.2 CA3: las direcciones viejas de cada producto activo (`seo.slugsAnteriores`, que guarda
+ * el panel al cambiar el slug) llevan a la de ahora.
+ */
+export function redireccionesDe(productos: readonly Pick<FilaProducto, 'slug' | 'seo'>[]) {
+  const saltos: Record<string, string> = {};
+  for (const p of productos) {
+    let anteriores: unknown;
+    try {
+      anteriores = (JSON.parse(p.seo) as { slugsAnteriores?: unknown }).slugsAnteriores;
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(anteriores)) continue;
+    for (const viejo of anteriores) {
+      if (typeof viejo === 'string' && /^[a-z0-9-]{1,100}$/.test(viejo) && viejo !== p.slug)
+        saltos[`/p/${viejo}/`] = `/p/${p.slug}/`;
+    }
+  }
+  return saltos;
 }
 
 /** `{ clave: valor }` si hay valor; si no, nada (exactOptionalPropertyTypes). */
@@ -141,7 +164,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     >;
     const { results: productos } = await c.shard
       .prepare(
-        `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, actualizado
+        `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, actualizado, seo
          FROM producto WHERE org_id = ? AND borrado IS NULL ORDER BY posicion, slug`,
       )
       .bind(c.org)
@@ -180,13 +203,13 @@ export async function publicar(c: Contexto): Promise<Resultado> {
           alt: f.alt,
           ancho: f.ancho,
           alto: f.alto,
-          anchos: Object.keys(JSON.parse(f.formatos) as Record<string, number>).map(Number),
+          ...leerFormatos(f.formatos),
         }));
     const { results: colecciones } = await c.shard
       .prepare(
         `SELECT c.slug, c.nombre, p.slug AS producto FROM coleccion c
          LEFT JOIN coleccion_producto cp ON cp.org_id = c.org_id AND cp.coleccion_id = c.id
-         LEFT JOIN producto p ON p.org_id = cp.org_id AND p.id = cp.producto_id
+         LEFT JOIN producto p ON p.org_id = cp.org_id AND p.id = cp.producto_id AND p.borrado IS NULL AND p.estado = 'activo'
          WHERE c.org_id = ? AND c.borrado IS NULL AND c.visible = 1 ORDER BY c.posicion, cp.posicion`,
       )
       .bind(c.org)
@@ -345,7 +368,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     }
 
     // 4 y 6. El manifiesto, y si nada cambió.
-    const m = await manifiesto(archivos);
+    const m = await manifiesto(archivos, redireccionesDe(activos));
     if (tienda.version_publicada !== null) {
       const anterior = await c.shard
         .prepare('SELECT huella FROM publicacion WHERE org_id = ? AND version = ?')

@@ -258,3 +258,413 @@ test('HU-T3.5 · lo que no se puede deshacer pide un segundo paso', async ({ pag
   await page.getByRole('button', { name: 'Sí, archivarlo' }).click();
   await expect(page.getByText('Producto archivado')).toBeVisible();
 });
+
+// ── HU-T8.2, HU-T8.4 y HU-T10.6: el catálogo y el registro desde el teléfono ─────────────────
+
+/** Entra a Ensayo Uno con la sesión ya guardada: lo que se prueba aquí es lo que sigue. */
+async function enElPanel(page: Page) {
+  await coreFalso(page, sesion());
+  await apiFalsa(page);
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await expect(page.getByRole('heading', { level: 1, name: 'Comercio Ensayo Uno' })).toBeVisible();
+}
+
+test('HU-T8.2 · CA1 y CA4: un vestido con tallas y colores; un precio vacío no se manda como 0', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const enviados: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/productos?*`, (r) =>
+    r.fulfill({ json: { productos: [] } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/productos/guardar`, (r) => {
+    const cuerpo = r.request().postDataJSON() as { variantes: { precioCop: number | null }[] };
+    enviados.push(cuerpo);
+    const sinPrecio = cuerpo.variantes.findIndex((v) => v.precioCop === null);
+    return sinPrecio >= 0
+      ? r.fulfill({
+          status: 422,
+          json: {
+            estado: 'problemas',
+            problemas: [
+              { campo: `variantes.${sinPrecio}.precioCop`, mensaje: 'escribe el precio en pesos' },
+            ],
+          },
+        })
+      : r.fulfill({ json: { estado: 'guardado', id: 'p-vestido', version: 1, slug: 'vestido' } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/productos/p-vestido`, (r) =>
+    r.fulfill({
+      json: {
+        id: 'p-vestido',
+        version: 1,
+        slug: 'vestido',
+        nombre: 'Vestido',
+        descripcionMd: '',
+        estado: 'borrador',
+        enPapelera: false,
+        opciones: [{ nombre: 'Talla', valores: ['S', 'M'] }],
+        retracto: { aplica: true },
+        soloMayores: false,
+        ivaPct: null,
+        variantes: [],
+        medios: [],
+      },
+    }),
+  );
+  await page.getByRole('link', { name: 'Productos' }).click();
+  await expect(page.getByText('Todavía no tienes productos.')).toBeVisible();
+  await page.getByRole('link', { name: 'Nuevo producto' }).first().click();
+  await page.getByLabel('Nombre', { exact: true }).fill('Vestido');
+  await page.getByRole('button', { name: 'Agregar una opción' }).click();
+  await page.getByLabel('Nombre de la opción 1').fill('Talla');
+  await page.getByLabel('Valores de Talla').fill('S, M');
+  await page.getByLabel('Precio de S', { exact: true }).fill('159.000');
+  await page.getByLabel('Existencias de S').fill('2');
+  await page.getByLabel('No se cuentan las de M').check();
+  await page.getByRole('button', { name: 'Crear producto' }).click();
+  // CA4: M va sin precio, como `null`, y el error vuelve a su campo.
+  await expect(page.locator('#c1-precio-error')).toHaveText('escribe el precio en pesos');
+  const primero = enviados[0] as { variantes: { precioCop: unknown }[] };
+  expect(primero.variantes[1]?.precioCop).toBeNull();
+  await page.getByLabel('Precio de M', { exact: true }).fill('159000');
+  await page.getByRole('button', { name: 'Crear producto' }).click();
+  await expect(page.getByText('Guardado', { exact: true })).toBeVisible();
+  expect(page.url()).toBe(`${PANEL}/productos/p-vestido/`);
+  const [, bien] = enviados as { op: string; variantes: unknown[] }[];
+  // Corregir y volver a enviar reusa la misma operación: lo rechazado no se aplicó.
+  expect(bien?.op).toBe((enviados[0] as { op: string }).op);
+  expect(bien?.variantes).toEqual([
+    { valores: ['S'], sku: null, precioCop: 159000, precioAntesCop: null, stock: 2 },
+    { valores: ['M'], sku: null, precioCop: 159000, precioAntesCop: null, stock: null },
+  ]);
+  const [ancho, visible] = await page.evaluate(() => [
+    document.documentElement.scrollWidth,
+    document.documentElement.clientWidth,
+  ]);
+  expect(ancho).toBeLessThanOrEqual(visible ?? 0);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('HU-T8.2 · CA2: si alguien más guardó antes, lo dice y no pisa lo de la otra persona', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  let version = 4;
+  await page.route(`${PANEL}/api/panel/v1/productos/p-camisa`, (r) =>
+    r.fulfill({
+      json: {
+        id: 'p-camisa',
+        version,
+        slug: 'camisa-de-lino',
+        nombre: version === 4 ? 'Camisa de lino' : 'Camisa de lino claro',
+        descripcionMd: '',
+        estado: 'activo',
+        enPapelera: false,
+        opciones: [],
+        retracto: { aplica: true },
+        soloMayores: false,
+        ivaPct: null,
+        variantes: [
+          {
+            id: 'v1',
+            valores: [],
+            sku: null,
+            precioCop: 129000,
+            precioAntesCop: null,
+            stock: 3,
+            reservado: 0,
+          },
+        ],
+        medios: [],
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/productos/guardar`, (r) => {
+    version = 5;
+    return r.fulfill({
+      status: 409,
+      json: {
+        estado: 'cambiado',
+        motivo: 'Alguien más cambió esto mientras lo editabas.',
+        version: 5,
+      },
+    });
+  });
+  await page.goto(`${PANEL}/productos/p-camisa/`);
+  await expect(page.getByLabel('Precio', { exact: true })).toHaveValue('129.000');
+  await page.getByLabel('Precio', { exact: true }).fill('119.000');
+  await page.getByRole('button', { name: 'Guardar cambios' }).click();
+  await expect(page.getByText('Alguien más guardó este producto')).toBeVisible();
+  await page.getByRole('button', { name: 'Ver cómo quedó' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Camisa de lino claro' })).toBeVisible();
+  await expect(page.getByLabel('Precio', { exact: true })).toHaveValue('129.000');
+});
+
+test('HU-T8.4 · CA2: borrar una colección dice que sus productos se quedan', async ({ page }) => {
+  await enElPanel(page);
+  let borrada = false;
+  await page.route(`${PANEL}/api/panel/v1/colecciones`, (r) =>
+    r.fulfill({
+      json: {
+        colecciones: borrada
+          ? []
+          : [
+              {
+                id: 'c-lino',
+                slug: 'lino',
+                nombre: 'Lino',
+                descripcionMd: '',
+                visible: true,
+                version: 1,
+                productos: ['p-camisa'],
+              },
+            ],
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/productos?*`, (r) =>
+    r.fulfill({
+      json: {
+        productos: [
+          {
+            id: 'p-camisa',
+            slug: 'camisa-de-lino',
+            nombre: 'Camisa de lino',
+            estado: 'activo',
+            version: 1,
+            combinaciones: 3,
+            desde: 129000,
+            existencias: 5,
+            borrado: null,
+          },
+        ],
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/productos`, (r) =>
+    r.fulfill({
+      json: {
+        productos: [
+          {
+            id: 'p-camisa',
+            slug: 'camisa-de-lino',
+            nombre: 'Camisa de lino',
+            estado: 'activo',
+            version: 1,
+            combinaciones: 3,
+            desde: 129000,
+            existencias: 5,
+            borrado: null,
+          },
+        ],
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/colecciones/borrar`, (r) => {
+    borrada = true;
+    return r.fulfill({ json: { estado: 'guardado', id: 'c-lino', version: 2 } });
+  });
+  await page.goto(`${PANEL}/productos/colecciones/c-lino/`);
+  await expect(page.getByLabel('Camisa de lino')).toBeChecked();
+  await page.getByText('Borrar la colección', { exact: true }).click();
+  await expect(page.getByText('Se borra «Lino». Sus productos siguen en la tienda.')).toBeVisible();
+  await page.getByRole('button', { name: 'Sí, borrar la colección' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Colecciones' })).toBeVisible();
+  await expect(page.getByText('Todavía no tienes colecciones.')).toBeVisible();
+});
+
+/** Las partes de un `multipart/form-data`: su nombre, el del archivo si es uno, y sus bytes. */
+function partesDe(cuerpo: Buffer, tipo: string) {
+  const limite = Buffer.from(`--${tipo.split('boundary=')[1]}`);
+  const partes: { nombre: string; archivo: string | null; bytes: Buffer }[] = [];
+  let i = cuerpo.indexOf(limite);
+  while (i >= 0) {
+    const siguiente = cuerpo.indexOf(limite, i + limite.length);
+    if (siguiente < 0) break;
+    const parte = cuerpo.subarray(i + limite.length + 2, siguiente - 2);
+    const fin = parte.indexOf('\r\n\r\n');
+    const cabeza = parte.subarray(0, fin).toString();
+    partes.push({
+      nombre: /name="([^"]+)"/.exec(cabeza)?.[1] ?? '',
+      archivo: /filename="([^"]+)"/.exec(cabeza)?.[1] ?? null,
+      bytes: parte.subarray(fin + 4),
+    });
+    i = siguiente;
+  }
+  return partes;
+}
+
+test('HU-T8.3 · CA3: en Safari, que no hace WebP, la foto sube en JPEG y con su descripción', async ({
+  page,
+}) => {
+  // Safari pide WebP a `canvas.toBlob` y devuelve PNG sin avisar (bitácora tienda3 2).
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (listo, tipo, calidad) {
+      original.call(this, listo, tipo === 'image/webp' ? 'image/png' : tipo, calidad);
+    };
+  });
+  await enElPanel(page);
+  let medios: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/productos/p-lino`, (r) =>
+    r.fulfill({
+      json: {
+        id: 'p-lino',
+        version: 1,
+        slug: 'camisa-de-lino',
+        nombre: 'Camisa de lino',
+        descripcionMd: '',
+        estado: 'activo',
+        enPapelera: false,
+        opciones: [],
+        retracto: { aplica: true },
+        soloMayores: false,
+        ivaPct: null,
+        variantes: [
+          {
+            id: 'v1',
+            valores: [],
+            sku: null,
+            precioCop: 129000,
+            precioAntesCop: null,
+            stock: 3,
+            reservado: 0,
+          },
+        ],
+        medios,
+      },
+    }),
+  );
+  const subidas: { partes: ReturnType<typeof partesDe> }[] = [];
+  await page.route(`${PANEL}/api/panel/v1/medios/subir`, (r) => {
+    const partes = partesDe(
+      r.request().postDataBuffer() ?? Buffer.alloc(0),
+      r.request().headers()['content-type'] ?? '',
+    );
+    subidas.push({ partes });
+    medios = [
+      {
+        id: 'a'.repeat(64),
+        alt: 'Camisa de lino arena, de frente',
+        ancho: 900,
+        alto: 600,
+        formato: 'jpeg',
+        anchos: [400, 800],
+        src: `https://img.laboratorio-digital.app/org-ensayo-uno/${'a'.repeat(64)}/400.jpeg`,
+      },
+    ];
+    return r.fulfill({
+      json: { estado: 'guardado', id: 'a'.repeat(64), formato: 'jpeg', anchos: [400, 800] },
+    });
+  });
+  await page.route('https://img.laboratorio-digital.app/**', (r) =>
+    r.fulfill({
+      contentType: 'image/png',
+      body: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        'base64',
+      ),
+    }),
+  );
+  await page.goto(`${PANEL}/productos/p-lino/`);
+  await expect(page.getByText('Todavía no tiene fotos.')).toBeVisible();
+  // Una foto de 900×600 hecha en el mismo teléfono, elegida como si viniera de la galería.
+  await page.evaluate(async () => {
+    const lienzo = document.createElement('canvas');
+    lienzo.width = 900;
+    lienzo.height = 600;
+    const ctx = lienzo.getContext('2d');
+    if (!ctx) throw new Error('sin canvas');
+    ctx.fillStyle = '#c8b89a';
+    ctx.fillRect(0, 0, 900, 600);
+    const blob = await new Promise<Blob | null>((listo) => lienzo.toBlob(listo, 'image/png'));
+    if (!blob) throw new Error('sin foto');
+    const entrada = document.querySelector<HTMLInputElement>('#foto-nueva');
+    if (!entrada) throw new Error('sin campo');
+    const dt = new DataTransfer();
+    dt.items.add(new File([blob], 'IMG_0001.png', { type: 'image/png' }));
+    entrada.files = dt.files;
+    entrada.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  // CA1: sin descripción no sube.
+  await page.getByRole('button', { name: 'Subir foto' }).click();
+  await expect(page.locator('#foto-alt-error')).toHaveText(
+    'Describe la foto en pocas palabras, para quien no la puede ver.',
+  );
+  expect(subidas).toHaveLength(0);
+  await page.getByLabel('Describe la foto').fill('Camisa de lino arena, de frente');
+  await page.getByRole('button', { name: 'Subir foto' }).click();
+  await expect(page.getByText('Foto subida.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Camisa de lino arena, de frente' })).toBeVisible();
+
+  const [subida] = subidas;
+  const partes = subida?.partes ?? [];
+  const valor = (n: string) => partes.find((p) => p.nombre === n)?.bytes.toString();
+  expect(valor('formato')).toBe('jpeg');
+  expect(valor('alt')).toBe('Camisa de lino arena, de frente');
+  expect([valor('ancho'), valor('alto')]).toEqual(['900', '600']);
+  const archivos = partes.filter((p) => p.archivo !== null);
+  // Solo las derivadas que alcanza el original, en JPEG de verdad: el original no sale del teléfono.
+  expect(archivos.map((p) => [p.nombre, p.archivo])).toEqual([
+    ['d400', '400.jpeg'],
+    ['d800', '800.jpeg'],
+  ]);
+  for (const a of archivos) expect([...a.bytes.subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test.describe('con el teléfono en otra zona horaria', () => {
+  // La hora del registro es la de Bogotá aunque el teléfono esté en Madrid.
+  test.use({ timezoneId: 'Europe/Madrid' });
+
+  test('HU-T10.6 · CA1: el registro en frases, con la hora de Bogotá', async ({ page }) => {
+    await enElPanel(page);
+    await page.route(`${PANEL}/api/panel/v1/registro`, (r) =>
+      r.fulfill({
+        json: {
+          filas: [
+            {
+              id: 2,
+              instante: '2026-10-15T15:42:00.000Z',
+              frase: 'Tú cambiaste el precio de $129.000 a $119.000 en «Camisa de lino»',
+            },
+          ],
+          siguiente: 2,
+        },
+      }),
+    );
+    await page.route(`${PANEL}/api/panel/v1/registro?cursor=2`, (r) =>
+      r.fulfill({
+        json: {
+          filas: [
+            {
+              id: 1,
+              instante: '2026-10-15T14:00:00.000Z',
+              frase: 'Otra persona del equipo creó «Camisa de lino»',
+            },
+          ],
+          siguiente: null,
+        },
+      }),
+    );
+    await page.getByRole('link', { name: 'Más' }).click();
+    await page.getByRole('link', { name: 'Registro: quién cambió qué' }).click();
+    await expect(
+      page.getByText('Tú cambiaste el precio de $129.000 a $119.000 en «Camisa de lino»'),
+    ).toBeVisible();
+    // 15:42 UTC son las 10:42 en Bogotá, esté donde esté el teléfono.
+    await expect(page.locator('.registro__hora').first()).toContainText('10:42');
+    await page.getByRole('button', { name: 'Ver más' }).click();
+    await expect(page.getByText('Otra persona del equipo creó «Camisa de lino»')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ver más' })).toBeHidden();
+  });
+});

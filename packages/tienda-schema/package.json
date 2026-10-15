@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./ensayos": "./src/ensayos.ts"
+    "./ensayos": "./src/ensayos.ts",
+    "./medios": "./src/medios.ts"
   },
   "dependencies": {
     "zod": "^4.6.5"

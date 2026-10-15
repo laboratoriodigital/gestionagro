@@ -18,6 +18,9 @@ export function Mas({
       </p>
       <ul class="mas">
         <li>
+          <a href="/mas/registro/">Registro: quién cambió qué</a>
+        </li>
+        <li>
           <a href="/privacidad/">Política de tratamiento de datos</a>
         </li>
       </ul>

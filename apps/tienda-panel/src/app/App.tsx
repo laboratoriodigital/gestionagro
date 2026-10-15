@@ -28,6 +28,7 @@ import {
   urlDeEntrada,
   urlDelCore,
 } from './sesion.ts';
+import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
 import { ElegirTienda, NOMBRE_DEL_ROL } from './vistas/ElegirTienda.tsx';
 import { Entrar } from './vistas/Entrar.tsx';
 import { Galeria } from './vistas/Galeria.tsx';
@@ -35,6 +36,9 @@ import { Inicio } from './vistas/Inicio.tsx';
 import { Mas } from './vistas/Mas.tsx';
 import { PorLlegar } from './vistas/PorLlegar.tsx';
 import { Privacidad } from './vistas/Privacidad.tsx';
+import { Producto } from './vistas/Producto.tsx';
+import { Productos } from './vistas/Productos.tsx';
+import { Registro } from './vistas/Registro.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
 
 const LIBRES = new Set(['/privacidad/', '/_galeria/']);
@@ -59,6 +63,7 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
   // preguntar a la API sin fin.
   const almacen = useMemo(() => dado ?? almacenIndexedDb(), [dado]);
   const core = useMemo(() => urlDelCore(location.hostname, __CORE_DEL_PANEL__), []);
+  const conexion = useMemo(() => ({ almacen, core }), [almacen, core]);
   const ruta = usarRuta();
   const [abriendo, setAbriendo] = useState(true);
   const [sesion, setSesion] = useState<Sesion | null>(null);
@@ -185,13 +190,38 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         texto="Aquí vas a confirmar, cobrar y despachar los pedidos de tu tienda. Mientras tanto, te llegan por WhatsApp."
       />
     );
-  else if (ruta.startsWith('/productos/'))
+  else if (ruta === '/productos/' || ruta === '/productos/papelera/')
     cuerpo = (
-      <PorLlegar
-        titulo="Productos"
-        texto="Aquí vas a cargar y editar tus productos, con sus fotos, precios e inventario."
+      <Productos
+        key={ruta}
+        conexion={conexion}
+        papelera={ruta === '/productos/papelera/'}
+        alVencer={setVencida}
       />
     );
+  else if (ruta === '/productos/colecciones/')
+    cuerpo = <Colecciones conexion={conexion} alVencer={setVencida} />;
+  else if (/^\/productos\/colecciones\/[^/]+\/$/.test(ruta))
+    cuerpo = (
+      <Coleccion
+        key={ruta}
+        conexion={conexion}
+        id={decodeURIComponent(ruta.split('/')[3] ?? '')}
+        alVencer={setVencida}
+      />
+    );
+  else if (/^\/productos\/[^/]+\/$/.test(ruta)) {
+    const id = decodeURIComponent(ruta.split('/')[2] ?? '');
+    cuerpo = (
+      <Producto
+        conexion={conexion}
+        almacen={almacen}
+        id={id === 'nuevo' ? null : id}
+        alVencer={setVencida}
+      />
+    );
+  } else if (ruta === '/mas/registro/')
+    cuerpo = <Registro conexion={conexion} alVencer={setVencida} />;
   else if (ruta.startsWith('/mas/') && sesion)
     cuerpo = (
       <Mas

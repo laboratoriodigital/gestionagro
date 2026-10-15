@@ -68,7 +68,8 @@
       "shards": ["tienda_c1_s1"],
       "control": "tienda_control",
       "almacen": "tienda-c1",
-      "medios": "tienda-c1-medios"
+      "medios": "tienda-c1-medios",
+      "medios_creados": []
     }
   ]
 }

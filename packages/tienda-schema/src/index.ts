@@ -2,6 +2,8 @@
  * Esquemas de la Tienda 3.0 (HU-T1.4): una sola fuente para el panel, la API y el horno (P2).
  */
 export * from './carga.ts';
+export * from './catalogo.ts';
+export * from './medios.ts';
 export * from './permisos.ts';
 export * from './planes.ts';
 export * from './secciones.ts';

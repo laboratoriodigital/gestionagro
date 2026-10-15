@@ -38,8 +38,10 @@ export interface FotoParaHornear {
   alt: string;
   ancho: number;
   alto: number;
-  /** Los anchos que tiene en `.webp`: 400, 800 y 1600 (los que no alcanza su original, no). */
+  /** Los anchos de sus derivadas: 400, 800 y 1600 (los que no alcanza su original, no). */
   anchos: readonly number[];
+  /** HU-T8.3 CA2: `jpeg` si el teléfono no pudo hacer WebP (Safari). Sin decirlo, WebP. */
+  formato?: 'webp' | 'jpeg';
 }
 
 export interface ProductoParaHornear {
@@ -285,7 +287,7 @@ ${p.cuerpo}
    * prioridad. Sin host de fotos o sin derivadas, el marco vacío de siempre.
    */
   const urlDeFoto = (f: FotoParaHornear, ancho: number) =>
-    `https://${t.medios}/${t.org}/${f.huella}/${ancho}.webp`;
+    `https://${t.medios}/${t.org}/${f.huella}/${ancho}.${f.formato ?? 'webp'}`;
   const imagen = (
     f: FotoParaHornear | undefined,
     clase: string,
@@ -829,9 +831,17 @@ ${p.cuerpo}
 /**
  * El manifiesto de una versión (TIENDA §5.6): la huella, el tipo y los bytes de cada archivo, y la
  * huella del conjunto. Un archivo idéntico tiene la misma huella en todas las versiones.
+ *
+ * HU-T8.2 CA3: `redirecciones` lleva cada dirección vieja de un producto a la nueva (301). Entra en
+ * la huella del conjunto: cambiar solo una redirección también es publicar. Sin redirecciones, la
+ * huella es la de siempre.
  */
-export async function manifiesto(archivos: Map<string, ArchivoHorneado>): Promise<{
+export async function manifiesto(
+  archivos: Map<string, ArchivoHorneado>,
+  redirecciones: Readonly<Record<string, string>> = {},
+): Promise<{
   archivos: Record<string, { huella: string; tipo: string; bytes: number }>;
+  redirecciones?: Record<string, string>;
   huella: string;
 }> {
   const entradas: [string, { huella: string; tipo: string; bytes: number }][] = [];
@@ -846,8 +856,18 @@ export async function manifiesto(archivos: Map<string, ArchivoHorneado>): Promis
       },
     ]);
   }
+  // Una dirección que es un archivo de esta versión no se redirige: la tomó otro producto.
+  const saltos = Object.entries(redirecciones)
+    .filter(([desde]) => !archivos.has(`${desde}index.html`))
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   return {
     archivos: Object.fromEntries(entradas),
-    huella: await huella(entradas.map(([r, e]) => `${r} ${e.huella}`).join('\n')),
+    ...(saltos.length > 0 ? { redirecciones: Object.fromEntries(saltos) } : {}),
+    huella: await huella(
+      [
+        ...entradas.map(([r, e]) => `${r} ${e.huella}`),
+        ...saltos.map(([desde, hacia]) => `${desde} -> ${hacia}`),
+      ].join('\n'),
+    ),
   };
 }

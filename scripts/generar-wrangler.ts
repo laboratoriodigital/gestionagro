@@ -431,6 +431,16 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
   ];
   const vars = { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan };
   const medios = { MEDIOS: MEDIOS_DE_LA_TIENDA.produccion, AMBIENTE: 'produccion' };
+  // HU-T8.3: el bucket de las fotos, solo donde ya existe.
+  const fotos = (ambiente: 'produccion' | 'staging') =>
+    celda.medios && celda.medios_creados?.includes(ambiente)
+      ? [
+          {
+            binding: 'FOTOS',
+            bucket_name: ambiente === 'staging' ? `${celda.medios}-staging` : celda.medios,
+          },
+        ]
+      : [];
   return {
     $schema: '../../node_modules/wrangler/config-schema.json',
     name: workerDeLaApiDeLaTienda(celda.id),
@@ -439,7 +449,7 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
     workers_dev: false,
     vars: { ...vars, ...medios },
     d1_databases: bases(false),
-    r2_buckets: [{ binding: 'SITIOS', bucket_name: almacen }],
+    r2_buckets: [{ binding: 'SITIOS', bucket_name: almacen }, ...fotos('produccion')],
     // HU-T17.1 y D-T10: el quinto cron de la cuenta, solo en producción; staging no tiene.
     triggers: { crons: [CRON_DE_LA_TIENDA] },
     ratelimits: limitadoresDeLaTienda(false),
@@ -451,7 +461,7 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
         // HU-T2.6 y HU-T4.4: solo staging publica a los comercios de prueba.
         vars: { ...vars, MEDIOS: MEDIOS_DE_LA_TIENDA.staging, AMBIENTE: 'staging', ENSAYOS: '1' },
         d1_databases: bases(true),
-        r2_buckets: [{ binding: 'SITIOS', bucket_name: `${almacen}-staging` }],
+        r2_buckets: [{ binding: 'SITIOS', bucket_name: `${almacen}-staging` }, ...fotos('staging')],
         triggers: { crons: [] },
         ratelimits: limitadoresDeLaTienda(true),
       },

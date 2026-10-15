@@ -14,8 +14,16 @@ import { estadoDeSesion, leerSesion, renovar, type Sesion } from './sesion.ts';
 export type RespuestaDelPanel<T> =
   | { tipo: 'ok'; datos: T }
   | { tipo: 'sin-sesion'; motivo: string }
-  | { tipo: 'sin-tienda'; motivo: string }
-  | { tipo: 'error'; motivo: string };
+  | { tipo: 'sin-tienda'; motivo: string; estado?: never; problemas?: never; version?: never }
+  | {
+      tipo: 'error';
+      motivo: string;
+      /** Lo que dijo la API, cuando lo dijo: `problemas` (422), `cambiado` (409), `no-existe` (404). */
+      estado?: string;
+      problemas?: { campo: string; mensaje: string }[];
+      /** Con `cambiado`: la versión que hay ahora, para volver a leer. */
+      version?: number | null;
+    };
 
 /** `GET /api/panel/v1/yo`: la tienda de la sesión, el rol, el plan y lo que el plan permite. */
 export interface Yo {
@@ -46,17 +54,21 @@ async function conAcceso(c: Conexion): Promise<{ sesion: Sesion | null; motivo: 
 export async function pedirAlPanel<T>(
   c: Conexion,
   ruta: string,
-  opciones: { metodo?: 'GET' | 'POST'; cuerpo?: unknown } = {},
+  opciones: { metodo?: 'GET' | 'POST'; cuerpo?: unknown; formulario?: FormData } = {},
 ): Promise<RespuestaDelPanel<T>> {
   const fetchFn = c.fetchFn ?? fetch;
+  // HU-T8.3: las fotos van como formulario; el navegador pone su `content-type` con el límite.
+  const cuerpo =
+    opciones.formulario ??
+    (opciones.cuerpo === undefined ? undefined : JSON.stringify(opciones.cuerpo));
   const pedir = (acceso: string) =>
     fetchFn(`/api/panel/v1/${ruta}`, {
-      method: opciones.metodo ?? (opciones.cuerpo === undefined ? 'GET' : 'POST'),
+      method: opciones.metodo ?? (cuerpo === undefined ? 'GET' : 'POST'),
       headers: {
         authorization: `Bearer ${acceso}`,
         ...(opciones.cuerpo === undefined ? {} : { 'content-type': 'application/json' }),
       },
-      ...(opciones.cuerpo === undefined ? {} : { body: JSON.stringify(opciones.cuerpo) }),
+      ...(cuerpo === undefined ? {} : { body: cuerpo }),
     });
   try {
     let { sesion, motivo } = await conAcceso(c);
@@ -67,7 +79,12 @@ export async function pedirAlPanel<T>(
       if (!sesion) return { tipo: 'sin-sesion', motivo: motivo ?? SIN_SESION };
       r = await pedir(sesion.acceso);
     }
-    const datos = (await r.json().catch(() => ({}))) as T & { estado?: string; motivo?: string };
+    const datos = (await r.json().catch(() => ({}))) as T & {
+      estado?: string;
+      motivo?: string;
+      problemas?: { campo: string; mensaje: string }[];
+      version?: number | null;
+    };
     if (r.ok) return { tipo: 'ok', datos };
     if (r.status === 401) return { tipo: 'sin-sesion', motivo: datos.motivo ?? SIN_SESION };
     if (r.status === 403 && datos.estado === 'sin-tienda') {
@@ -79,8 +96,29 @@ export async function pedirAlPanel<T>(
     if (r.status === 403 && datos.estado === 'otra-celda') {
       return { tipo: 'sin-sesion', motivo: datos.motivo ?? SIN_SESION };
     }
+    // HU-T8.2: lo que el formulario necesita para decir qué corregir o que alguien más guardó.
+    if (r.status === 422 && Array.isArray(datos.problemas)) {
+      return {
+        tipo: 'error',
+        estado: 'problemas',
+        problemas: datos.problemas,
+        motivo:
+          datos.problemas.length === 1
+            ? 'Falta corregir una cosa.'
+            : `Falta corregir ${datos.problemas.length} cosas.`,
+      };
+    }
+    if (r.status === 409 && datos.estado === 'cambiado') {
+      return {
+        tipo: 'error',
+        estado: 'cambiado',
+        version: datos.version ?? null,
+        motivo: datos.motivo ?? 'Alguien más cambió esto mientras lo editabas.',
+      };
+    }
     return {
       tipo: 'error',
+      ...(r.status === 404 && datos.estado === 'no-existe' ? { estado: 'no-existe' } : {}),
       motivo: datos.motivo ?? `La tienda no respondió bien (${r.status}). Intenta de nuevo.`,
     };
   } catch (e) {

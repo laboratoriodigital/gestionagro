@@ -40,9 +40,23 @@ import {
 import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { avisame, PeticionDeAvisame } from './avisame.ts';
+import {
+  borrarLaColeccion,
+  guardarLaColeccion,
+  guardarProducto,
+  leerProducto,
+  listarColecciones,
+  listarProductos,
+  ordenarLasColecciones,
+  ordenarProductos,
+  type Quien,
+  type Resultado as ResultadoDelCatalogo,
+  tocarElProducto,
+} from './catalogo.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import { kekDelEntorno } from './llaves.ts';
+import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
 import {
   PeticionDePedido,
   PeticionDeSeguimiento,
@@ -51,6 +65,7 @@ import {
   sha256,
 } from './pedidos.ts';
 import { type Almacen, type EscritorKv, publicar, type Resultado } from './publicar.ts';
+import { enFrase, leerRegistro } from './registro.ts';
 import {
   PeticionDeSeguimientoDeSolicitud,
   PeticionDeSolicitud,
@@ -90,6 +105,11 @@ export interface Env {
   ENSAYOS?: string;
   /** El host público de las fotos (HU-T5.6): `img.` en producción, `img--staging.` en staging. */
   MEDIOS?: string;
+  /**
+   * HU-T8.3: el bucket de las fotos, donde la API escribe las derivadas. Solo existe donde el dueño
+   * ya lo creó (`medios_creados` en `celdas.json`); sin él, subir responde 503 y lo dice.
+   */
+  FOTOS?: BucketDeFotos;
   /** El aviso al dueño (HU-T17.1): lo usa la tarea que reconstruye los hostnames. */
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
@@ -782,6 +802,152 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       partes: partes.length,
       siguiente: ultima ? null : parte + 1,
       resumen: r.plan.resumen,
+    });
+  });
+
+  /**
+   * HU-T8.2 y HU-T8.4: el catálogo desde el panel, con el permiso `catalogo.editar` (HU-T1.4).
+   * Leer también lo pide: el colaborador y el propietario lo tienen, y nadie más entra al panel.
+   * 422 con los problemas por campo, 409 si alguien más guardó antes (con la versión actual), 404
+   * si ya no está.
+   */
+  const delCatalogo = (c: ContextoTienda): Quien | Response => {
+    const s = c.get('sesion');
+    const decision = decidir(s.rol, 'catalogo.editar', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido') {
+      return c.json({ estado: decision, motivo: 'Tu rol no puede editar el catálogo.' }, 403);
+    }
+    return {
+      db: s.db,
+      org: s.org,
+      actor: `usuario:${s.usuario}`,
+      instante: new Date(ahora()).toISOString(),
+    };
+  };
+  const responderCatalogo = (c: ContextoTienda, r: ResultadoDelCatalogo) => {
+    if (r.estado === 'guardado') return c.json(r);
+    if (r.estado === 'problemas') return c.json(r, 422);
+    if (r.estado === 'cambiado') return c.json(r, 409);
+    return c.json(r, 404);
+  };
+  const escrituraDelCatalogo =
+    (hacer: (q: Quien, cuerpo: unknown) => Promise<ResultadoDelCatalogo>) =>
+    async (c: ContextoTienda) => {
+      const q = delCatalogo(c);
+      if (q instanceof Response) return q;
+      let cuerpo: unknown;
+      try {
+        cuerpo = await c.req.json();
+      } catch {
+        return c.json(
+          { estado: 'problemas', problemas: [{ campo: '', mensaje: 'no es JSON' }] },
+          422,
+        );
+      }
+      return responderCatalogo(c, await hacer(q, cuerpo));
+    };
+  app.get('/api/panel/v1/productos', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    return c.json({
+      productos: await listarProductos(q, {
+        papelera: c.req.query('papelera') === '1',
+        buscar: (c.req.query('q') ?? '').slice(0, 80),
+      }),
+    });
+  });
+  app.get('/api/panel/v1/productos/:id', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    const p = await leerProducto(q, c.req.param('id'));
+    if (!p) return c.json({ estado: 'no-existe', motivo: 'Ese producto no está.' }, 404);
+    // HU-T8.3: la miniatura de cada foto, en el host público de las fotos.
+    const host = c.env.MEDIOS;
+    return c.json({
+      ...p,
+      medios: p.medios.map((m) => ({
+        ...m,
+        src: host ? `https://${host}/${q.org}/${m.id}/${m.anchos[0] ?? 400}.${m.formato}` : null,
+      })),
+    });
+  });
+  app.post('/api/panel/v1/productos/guardar', escrituraDelCatalogo(guardarProducto));
+  app.post(
+    '/api/panel/v1/productos/estado',
+    escrituraDelCatalogo((q, b) => tocarElProducto(q, b, 'estado')),
+  );
+  app.post(
+    '/api/panel/v1/productos/borrar',
+    escrituraDelCatalogo((q, b) => tocarElProducto(q, b, 'borrar')),
+  );
+  app.post(
+    '/api/panel/v1/productos/restaurar',
+    escrituraDelCatalogo((q, b) => tocarElProducto(q, b, 'restaurar')),
+  );
+  app.post('/api/panel/v1/productos/ordenar', escrituraDelCatalogo(ordenarProductos));
+  app.get('/api/panel/v1/colecciones', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    return c.json({ colecciones: await listarColecciones(q) });
+  });
+  app.post('/api/panel/v1/colecciones/guardar', escrituraDelCatalogo(guardarLaColeccion));
+  app.post('/api/panel/v1/colecciones/ordenar', escrituraDelCatalogo(ordenarLasColecciones));
+  app.post('/api/panel/v1/colecciones/borrar', escrituraDelCatalogo(borrarLaColeccion));
+
+  // HU-T8.3: las fotos. El teléfono manda solo las derivadas; el original no sale de él.
+  app.post('/api/panel/v1/medios/subir', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    if (!c.env.FOTOS) {
+      return c.json(
+        {
+          estado: 'sin-fotos',
+          motivo:
+            'Las fotos todavía no están listas en esta tienda. El resto del producto sí se guarda.',
+        },
+        503,
+      );
+    }
+    let datos: FormData;
+    try {
+      datos = await c.req.formData();
+    } catch {
+      return c.json(
+        { estado: 'problemas', problemas: [{ campo: '', mensaje: 'no llegaron las fotos' }] },
+        422,
+      );
+    }
+    const r = await subirFoto(q, c.env.FOTOS, datos);
+    if (r.estado === 'problemas') return c.json(r, 422);
+    if (r.estado === 'no-existe') return c.json(r, 404);
+    return c.json(r);
+  });
+  app.post('/api/panel/v1/medios/quitar', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    const r = await quitarFoto(q, await c.req.json().catch(() => null));
+    if (r.estado === 'problemas') return c.json(r, 422);
+    if (r.estado === 'no-existe') return c.json(r, 404);
+    return c.json(r);
+  });
+
+  // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.
+  app.get('/api/panel/v1/registro', async (c) => {
+    const s = c.get('sesion');
+    const decision = decidir(s.rol, 'registro.ver', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido') {
+      return c.json({ estado: decision, motivo: 'Tu rol no puede ver el registro.' }, 403);
+    }
+    const cursor = Number(c.req.query('cursor'));
+    const quien = `usuario:${s.usuario}`;
+    const r = await leerRegistro(
+      s.db,
+      s.org,
+      Number.isSafeInteger(cursor) && cursor > 0 ? cursor : null,
+    );
+    return c.json({
+      filas: r.filas.map((f) => ({ id: f.id, instante: f.instante, frase: enFrase(f, quien) })),
+      siguiente: r.siguiente,
     });
   });
 
