@@ -237,6 +237,12 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('volv', 'iste', 'ió')} la tienda a la versión ${despues['version']}`;
     case 'ajustes.guardar':
       return `${hizo('cambi', 'aste', 'ó')} los ajustes de ${TITULOS_DE_SECCION[f.entidad_id as keyof typeof TITULOS_DE_SECCION] ?? f.entidad_id}`;
+    case 'solicitud.ver':
+      return `${hizo('abr', 'iste', 'ió')} la solicitud ${despues['radicado']}`;
+    case 'solicitud.responder':
+      return `${hizo('respond', 'iste', 'ió')} la solicitud ${despues['radicado']}`;
+    case 'solicitud.cerrar':
+      return `${hizo('cerr', 'aste', 'ó')} la solicitud ${despues['radicado']}`;
     case 'ajustes.whatsapp_verificado':
       return `${hizo('verific', 'aste', 'ó')} el WhatsApp de la tienda`;
     default:

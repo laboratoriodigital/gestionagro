@@ -47,6 +47,7 @@ import { Publicar } from './vistas/Publicar.tsx';
 import { Recaudos } from './vistas/Recaudos.tsx';
 import { Registro } from './vistas/Registro.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
+import { Solicitud, Solicitudes } from './vistas/Solicitudes.tsx';
 import { Unirme } from './vistas/Unirme.tsx';
 import { CuponDeLaTienda, EnvioDeLaTienda, Venta } from './vistas/Venta.tsx';
 
@@ -212,6 +213,17 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     cuerpo = <Anotar conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/pedidos/recaudos/')
     cuerpo = <Recaudos conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/pedidos/solicitudes/')
+    cuerpo = <Solicitudes conexion={conexion} alVencer={setVencida} />;
+  else if (/^\/pedidos\/solicitudes\/[^/]+\/$/.test(ruta))
+    cuerpo = (
+      <Solicitud
+        key={ruta}
+        conexion={conexion}
+        id={decodeURIComponent(ruta.split('/')[3] ?? '')}
+        alVencer={setVencida}
+      />
+    );
   else if (/^\/pedidos\/[^/]+\/$/.test(ruta))
     cuerpo = (
       <Pedido

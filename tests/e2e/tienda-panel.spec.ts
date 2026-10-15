@@ -1772,3 +1772,161 @@ test.describe('con el teléfono en otra zona horaria', () => {
     await expect(page.getByRole('button', { name: 'Ver más' })).toBeHidden();
   });
 });
+
+test('HU-T9.7 · CA1 y CA3: la vencida arriba y en rojo; responder, mandarla y solo entonces cerrar', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const fila = (o: Record<string, unknown>) => ({
+    tipo: 'Queja',
+    tipoId: 'queja',
+    estado: 'radicada',
+    creada: '2026-10-01T15:00:00.000Z',
+    respondida: null as string | null,
+    cerrada: null as string | null,
+    pedido: null,
+    alerta: null,
+    reloj: 'respuesta',
+    ...o,
+  });
+  const vencida = fila({
+    id: 's-3',
+    radicado: 'R-3',
+    vence: '2026-10-13',
+    dias: -2,
+    alerta: 'vencida',
+    pedido: 1050,
+  });
+  const lista = {
+    solicitudes: [
+      vencida,
+      fila({
+        id: 's-5',
+        radicado: 'R-5',
+        tipo: 'Retracto',
+        tipoId: 'retracto',
+        vence: '2026-10-18',
+        dias: 3,
+        alerta: 'pronto',
+        reloj: 'reembolso',
+      }),
+      fila({
+        id: 's-6',
+        radicado: 'R-6',
+        tipo: 'Consulta de datos',
+        tipoId: 'datos_consulta',
+        vence: '2026-10-25',
+        dias: 10,
+      }),
+      fila({
+        id: 's-2',
+        radicado: 'R-2',
+        estado: 'respondida',
+        vence: '2026-10-20',
+        dias: 5,
+        respondida: '2026-10-14T15:00:00.000Z',
+      }),
+    ],
+    reembolsos: [
+      {
+        pedidoId: 'ped-1061',
+        pedido: 1061,
+        aprobado: '2026-09-30T15:00:00.000Z',
+        vence: '2026-10-15',
+        dias: 0,
+        alerta: 'hoy',
+      },
+    ],
+  };
+  const detalle = {
+    estado: 'ok',
+    solicitud: vencida,
+    contacto: '3001234567',
+    texto: 'La camisa llegó con una costura abierta en la manga.',
+    codigoDelPedido: 'K7M2Q9',
+    respuesta: null as { texto: string; instante: string } | null,
+  };
+  const llamadas: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/pedidos`, (r) =>
+    r.fulfill({ json: { atencion: [], pedidos: [], siguiente: null } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/solicitudes`, (r) => r.fulfill({ json: lista }));
+  await page.route(`${PANEL}/api/panel/v1/solicitudes/ver`, (r) => {
+    expect(r.request().postDataJSON()).toEqual({ id: 's-3' });
+    return r.fulfill({ json: detalle });
+  });
+  await page.route(`${PANEL}/api/panel/v1/solicitudes/responder`, (r) => {
+    const cuerpo = r.request().postDataJSON() as { respuesta: string };
+    llamadas.push({ ruta: 'responder', ...cuerpo });
+    detalle.respuesta = { texto: cuerpo.respuesta, instante: '2026-10-15T15:00:00.000Z' };
+    detalle.solicitud = {
+      ...vencida,
+      estado: 'respondida',
+      alerta: null,
+      respondida: '2026-10-15T15:00:00.000Z',
+    };
+    return r.fulfill({ json: { estado: 'guardado', id: 's-3', version: null } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/solicitudes/cerrar`, (r) => {
+    llamadas.push({ ruta: 'cerrar', ...(r.request().postDataJSON() as object) });
+    detalle.solicitud = {
+      ...detalle.solicitud,
+      estado: 'cerrada',
+      cerrada: '2026-10-15T15:05:00.000Z',
+    };
+    return r.fulfill({ json: { estado: 'guardado', id: 's-3', version: null } });
+  });
+
+  await page.getByRole('link', { name: 'Pedidos', exact: true }).click();
+  await page.getByRole('link', { name: 'Solicitudes' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Solicitudes' })).toBeVisible();
+  await expect(page.getByText('Una solicitud venció')).toBeVisible();
+  // CA3: la vencida va primero entre las que esperan, en rojo y dicho en palabras.
+  const primera = page.getByRole('listitem').filter({ hasText: /^R-/ }).first();
+  await expect(primera).toContainText('R-3');
+  await expect(primera).toContainText('Venció hace 2 días, sin respuesta');
+  await expect(primera).toHaveClass(/solicitud--vencida/);
+  await expect(primera.locator('.vence--mal')).toHaveCount(1);
+  // CA1: a 3 días avisa; el retracto dice que corre el reembolso; el pago sin existencias, el suyo.
+  await expect(page.getByText('Vence en 3 días, el 18 de octubre')).toBeVisible();
+  await expect(page.getByText(/retracto: el reembolso corre/)).toBeVisible();
+  await expect(page.getByText('Vence hoy: reembolsar antes de que acabe el día')).toBeVisible();
+  await sinFallasDeAxe(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+
+  await page.getByRole('link', { name: /R-3/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: /R-3/ })).toBeVisible();
+  await expect(
+    page.getByText('La camisa llegó con una costura abierta en la manga.'),
+  ).toBeVisible();
+  // ❌ CA3: sin respuesta no hay cómo cerrarla.
+  await expect(page.getByText('Cerrar la solicitud')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Guardar la respuesta' }).click();
+  await expect(page.getByLabel('Tu respuesta')).toHaveAttribute('aria-invalid', 'true');
+  expect(llamadas).toEqual([]);
+  await sinFallasDeAxe(page);
+
+  await page
+    .getByLabel('Tu respuesta')
+    .fill('Te mandamos otra camisa esta semana; la guía te llega por WhatsApp.');
+  await page.getByRole('button', { name: 'Guardar la respuesta' }).click();
+  await expect(page.getByText('Respuesta guardada. Ahora mándasela a la persona.')).toBeVisible();
+  const mandar = page.getByRole('link', { name: 'Mandarla por WhatsApp' });
+  await expect(mandar).toHaveAttribute(
+    'href',
+    /^https:\/\/wa\.me\/573001234567\?text=Respuesta%20a%20tu%20solicitud%20R-3/,
+  );
+  await page.getByText('Cerrar la solicitud').click();
+  await page.getByRole('button', { name: 'Sí, cerrarla' }).click();
+  await expect(page.getByText('Solicitud cerrada.')).toBeVisible();
+  await expect(page.getByText('Cerrar la solicitud')).toHaveCount(0);
+  expect(llamadas).toEqual([
+    expect.objectContaining({
+      ruta: 'responder',
+      id: 's-3',
+      respuesta: 'Te mandamos otra camisa esta semana; la guía te llega por WhatsApp.',
+    }),
+    expect.objectContaining({ ruta: 'cerrar', id: 's-3' }),
+  ]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});

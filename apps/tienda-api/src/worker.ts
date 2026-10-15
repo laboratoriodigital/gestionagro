@@ -93,6 +93,12 @@ import {
 import { kekDelEntorno } from './llaves.ts';
 import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
 import {
+  cerrarSolicitud,
+  listarSolicitudes,
+  responderSolicitud,
+  verSolicitud,
+} from './panel-solicitudes.ts';
+import {
   PeticionDePedido,
   PeticionDeSeguimiento,
   registrar,
@@ -1279,6 +1285,41 @@ export function crearApp(
     const q = quienPuede(c, 'ajustes.contacto', 'Tu rol no puede cambiar el WhatsApp.');
     if (q instanceof Response) return q;
     return responderCatalogo(c, await verificarWhatsapp(q, await c.req.json().catch(() => null)));
+  });
+
+  // HU-T9.7: las solicitudes, con su vencimiento; abrir, responder y cerrar.
+  const deSolicitudes = (c: ContextoTienda) =>
+    quienPuede(c, 'solicitudes.gestionar', 'Tu rol no puede atender las solicitudes.');
+  const ESTADO_DE_SOLICITUD = {
+    guardado: 200,
+    ok: 200,
+    problemas: 422,
+    cambiado: 409,
+    'no-existe': 404,
+    'sin-llave': 503,
+  } as const;
+  app.get('/api/panel/v1/solicitudes', async (c) => {
+    const q = deSolicitudes(c);
+    if (q instanceof Response) return q;
+    return c.json(await listarSolicitudes(q, ahora()));
+  });
+  app.post('/api/panel/v1/solicitudes/ver', async (c) => {
+    const q = deSolicitudes(c);
+    if (q instanceof Response) return q;
+    const r = await verSolicitud(q, await kekDe(c), await c.req.json().catch(() => null), ahora());
+    return c.json(r, ESTADO_DE_SOLICITUD[r.estado]);
+  });
+  app.post('/api/panel/v1/solicitudes/responder', async (c) => {
+    const q = deSolicitudes(c);
+    if (q instanceof Response) return q;
+    const cuerpo = await c.req.json().catch(() => null);
+    const r = await responderSolicitud(q, await kekDe(c), cuerpo, ahora());
+    return c.json(r, ESTADO_DE_SOLICITUD[r.estado]);
+  });
+  app.post('/api/panel/v1/solicitudes/cerrar', async (c) => {
+    const q = deSolicitudes(c);
+    if (q instanceof Response) return q;
+    return responderCatalogo(c, await cerrarSolicitud(q, await c.req.json().catch(() => null)));
   });
 
   // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.

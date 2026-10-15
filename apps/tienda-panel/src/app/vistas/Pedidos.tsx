@@ -182,6 +182,9 @@ export function Bandeja({
         <a class="ed1-boton ed1-boton--secundario" href="/pedidos/recaudos/">
           Recaudos
         </a>
+        <a class="ed1-boton ed1-boton--secundario" href="/pedidos/solicitudes/">
+          Solicitudes
+        </a>
         <button
           class="ed1-boton ed1-boton--secundario"
           type="button"
