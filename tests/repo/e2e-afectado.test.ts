@@ -60,12 +60,14 @@ describe('las e2e de lo afectado, con el repositorio de verdad', () => {
     expect(grupos(['tests/repo/flujos.test.ts', 'tests/integracion/arnes.ts'])).toEqual([]);
   });
 
-  it('el horno o la vitrina corren solo las de la Tienda (HU-T5.4)', () => {
+  it('el horno, la vitrina o el panel corren solo las de la Tienda (HU-T5.4, HU-T8.1)', () => {
     expect(grupos(['packages/tienda-horno/src/horno.ts'])).toEqual(['tienda']);
     expect(grupos(['apps/tienda-sitio/vitrina/vitrina.css'])).toEqual(['tienda']);
     expect(grupos(['content/tienda/legal/terminos.md'])).toEqual(['tienda']);
     expect(grupoDelSpec('tienda-vitrina')).toBe('tienda');
+    expect(grupos(['apps/tienda-panel/src/app/App.tsx'])).toEqual(['tienda']);
     expect(specsDe(['tienda'])).toEqual([
+      'tests/e2e/tienda-panel.spec.ts',
       'tests/e2e/tienda-presupuestos.spec.ts',
       'tests/e2e/tienda-vitrina.spec.ts',
     ]);

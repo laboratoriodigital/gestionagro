@@ -29,7 +29,7 @@
 import { importarKek } from '@ed1/cifrado';
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
-import { decidir } from '@ed1/tienda-schema';
+import { decidir, type FuncionesPorPlan, funcionesDelPlan } from '@ed1/tienda-schema';
 import { ENSAYOS } from '@ed1/tienda-schema/ensayos';
 import {
   aceptarEnProducto,
@@ -38,6 +38,7 @@ import {
   verificarConClaves,
 } from '@ed1/tokens';
 import { type Context, Hono } from 'hono';
+import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { avisame, PeticionDeAvisame } from './avisame.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
@@ -613,7 +614,14 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       .prepare('SELECT slug, nombre, estado FROM tienda WHERE org_id = ?')
       .bind(s.org)
       .first<{ slug: string; nombre: string; estado: string }>();
-    return c.json({ org: s.org, rol: s.rol, plan: s.plan, tienda: tienda ?? null });
+    // HU-T8.1 CA1: lo que permite el plan, para que el panel esconda lo que no hay. Lo decide la API.
+    return c.json({
+      org: s.org,
+      rol: s.rol,
+      plan: s.plan,
+      funciones: s.plan ? funcionesDelPlan(funciones as unknown as FuncionesPorPlan, s.plan) : null,
+      tienda: tienda ?? null,
+    });
   });
 
   // HU-T4.4: publicar. Lo decide la matriz de permisos (HU-T1.4), y `ks:tienda-horno` lo pausa

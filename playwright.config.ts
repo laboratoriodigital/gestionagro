@@ -65,6 +65,14 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
+      // El panel de la Tienda (HU-T8.1), una PWA de una sola página, en su propio origen y con sus
+      // cabeceras (la CSP de `_headers`). El CORE y la API se reemplazan en cada prueba.
+      command:
+        'node scripts/servir-estatico.ts apps/tienda-panel/dist 4333 /=apps/tienda-panel/dist',
+      url: 'http://localhost:4333/',
+      reuseExistingServer: false,
+    },
+    {
       // La cuenta (HU-C7.2), en su propio origen, como en producción.
       command: 'node scripts/servir-estatico.ts apps/cuenta/dist 4330',
       url: 'http://localhost:4330/',

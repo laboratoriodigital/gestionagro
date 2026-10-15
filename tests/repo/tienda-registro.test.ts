@@ -14,6 +14,7 @@ import {
   cabe,
   type FuncionesPorPlan,
   fallasDeFunciones,
+  funcionesDelPlan,
   valorDe,
 } from '../../packages/tienda-schema/src/index.ts';
 import { cargarProductos, catalogoDelRepositorio } from '../../scripts/lib/registro-productos.ts';
@@ -121,6 +122,14 @@ describe('los planes y lo que permite cada uno', () => {
   it('❌ un límite que no se puede leer lanza, nunca vale «sin límite»', () => {
     expect(() => valorDe(funciones(), 'productos', 'mayorista')).toThrow(/mayorista/);
     expect(() => valorDe(funciones(), 'bodegas', 'gratis')).toThrow(/bodegas/);
+  });
+
+  it('lo que permite un plan, función por función; un plan que no está no permite nada (HU-T8.1)', () => {
+    expect(funcionesDelPlan(funciones(), 'gratis')).toMatchObject({ productos: 15 });
+    expect(Object.keys(funcionesDelPlan(funciones(), 'alto') ?? {})).toEqual(
+      Object.keys(funciones()).filter((f) => f !== 'nota'),
+    );
+    expect(funcionesDelPlan(funciones(), 'mayorista')).toBeNull();
   });
 
   it('❌ un semestral más caro que seis meses', () => {

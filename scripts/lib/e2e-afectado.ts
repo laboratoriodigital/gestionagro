@@ -38,10 +38,10 @@ export const E2E_DE_LA_APP: Readonly<Record<string, GrupoE2e | null>> = {
   'api-celda': null,
   ensayo: null,
   // La Tienda: sus Workers se prueban con pruebas de integración; la vitrina que sirve el
-  // despacho, horneada por el build de `tienda-sitio`, tiene sus e2e (HU-T5.4). El panel, con
-  // HU-T8.1.
+  // despacho, horneada por el build de `tienda-sitio`, tiene sus e2e (HU-T5.4), y el panel también
+  // (HU-T8.1).
   'tienda-api': null,
-  'tienda-panel': null,
+  'tienda-panel': 'tienda',
   'tienda-sitio': 'tienda',
 };
 

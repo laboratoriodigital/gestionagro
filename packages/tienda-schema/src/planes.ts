@@ -67,3 +67,22 @@ export function valorDe(
 /** Si caben `cantidad` cosas con ese límite (`null`: sin límite). */
 export const cabe = (limite: number | null, cantidad: number): boolean =>
   limite === null || cantidad <= limite;
+
+/**
+ * Lo que permite un plan, función por función (HU-T8.1 CA1: la sesión del panel lo trae). Un plan
+ * que `funciones.json` no nombra devuelve `null`: nunca «todo encendido» ni «sin límite» (P1).
+ */
+export function funcionesDelPlan(
+  funciones: FuncionesPorPlan,
+  plan: string,
+): Record<string, ValorDeFuncion> | null {
+  const del: Record<string, ValorDeFuncion> = {};
+  for (const [funcion, porPlan] of Object.entries(funciones)) {
+    // La `nota` del archivo no es una función.
+    if (typeof porPlan !== 'object' || porPlan === null) continue;
+    const valor = porPlan[plan];
+    if (valor === undefined) return null;
+    del[funcion] = valor;
+  }
+  return del;
+}

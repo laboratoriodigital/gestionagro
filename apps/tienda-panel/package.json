@@ -1,12 +1,27 @@
 {
   "name": "@ed1/tienda-panel",
   "private": true,
-  "description": "El panel de la Tienda 3.0: solo assets, y el Worker únicamente en /api/*, que pasa a la API de la celda (TIENDA-3.0 §3.1 y §12, HU-T2.4).",
+  "description": "El panel de la Tienda 3.0: una PWA de Preact, solo assets, y el Worker únicamente en /api/*, que pasa a la API de la celda (TIENDA-3.0 §3.1 y §12, HU-T2.4, HU-T3.5 y HU-T8.1).",
   "type": "module",
   "scripts": {
-    "build": "node ../../scripts/armar-panel-tienda.ts && wrangler deploy --dry-run --outdir .wrangler/dry-run --env= && wrangler deploy --dry-run --outdir .wrangler/dry-run-staging --env staging"
+    "build": "vite build && node ../../scripts/armar-panel-tienda.ts && wrangler deploy --dry-run --outdir .wrangler/dry-run --env= && wrangler deploy --dry-run --outdir .wrangler/dry-run-staging --env staging"
+  },
+  "dependencies": {
+    "@ed1/dinero": "workspace:*",
+    "@ed1/tienda-schema": "workspace:*",
+    "@ed1/ui": "workspace:*",
+    "preact": "^10.29.8",
+    "workbox-window": "^7.4.1"
   },
   "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "fake-indexeddb": "^6.2.5",
+    "preact-render-to-string": "^6.7.0",
+    "vite": "^8.3.1",
+    "vite-plugin-pwa": "^1.3.0",
+    "workbox-core": "^7.4.1",
+    "workbox-precaching": "^7.4.1",
+    "workbox-routing": "^7.4.1",
     "wrangler": "^4.144.0"
   }
 }
