@@ -56,6 +56,7 @@ import {
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import { kekDelEntorno } from './llaves.ts';
+import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
 import {
   PeticionDePedido,
   PeticionDeSeguimiento,
@@ -104,6 +105,11 @@ export interface Env {
   ENSAYOS?: string;
   /** El host público de las fotos (HU-T5.6): `img.` en producción, `img--staging.` en staging. */
   MEDIOS?: string;
+  /**
+   * HU-T8.3: el bucket de las fotos, donde la API escribe las derivadas. Solo existe donde el dueño
+   * ya lo creó (`medios_creados` en `celdas.json`); sin él, subir responde 503 y lo dice.
+   */
+  FOTOS?: BucketDeFotos;
   /** El aviso al dueño (HU-T17.1): lo usa la tarea que reconstruye los hostnames. */
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
@@ -854,7 +860,16 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
     const q = delCatalogo(c);
     if (q instanceof Response) return q;
     const p = await leerProducto(q, c.req.param('id'));
-    return p ? c.json(p) : c.json({ estado: 'no-existe', motivo: 'Ese producto no está.' }, 404);
+    if (!p) return c.json({ estado: 'no-existe', motivo: 'Ese producto no está.' }, 404);
+    // HU-T8.3: la miniatura de cada foto, en el host público de las fotos.
+    const host = c.env.MEDIOS;
+    return c.json({
+      ...p,
+      medios: p.medios.map((m) => ({
+        ...m,
+        src: host ? `https://${host}/${q.org}/${m.id}/${m.anchos[0] ?? 400}.${m.formato}` : null,
+      })),
+    });
   });
   app.post('/api/panel/v1/productos/guardar', escrituraDelCatalogo(guardarProducto));
   app.post(
@@ -878,6 +893,43 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
   app.post('/api/panel/v1/colecciones/guardar', escrituraDelCatalogo(guardarLaColeccion));
   app.post('/api/panel/v1/colecciones/ordenar', escrituraDelCatalogo(ordenarLasColecciones));
   app.post('/api/panel/v1/colecciones/borrar', escrituraDelCatalogo(borrarLaColeccion));
+
+  // HU-T8.3: las fotos. El teléfono manda solo las derivadas; el original no sale de él.
+  app.post('/api/panel/v1/medios/subir', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    if (!c.env.FOTOS) {
+      return c.json(
+        {
+          estado: 'sin-fotos',
+          motivo:
+            'Las fotos todavía no están listas en esta tienda. El resto del producto sí se guarda.',
+        },
+        503,
+      );
+    }
+    let datos: FormData;
+    try {
+      datos = await c.req.formData();
+    } catch {
+      return c.json(
+        { estado: 'problemas', problemas: [{ campo: '', mensaje: 'no llegaron las fotos' }] },
+        422,
+      );
+    }
+    const r = await subirFoto(q, c.env.FOTOS, datos);
+    if (r.estado === 'problemas') return c.json(r, 422);
+    if (r.estado === 'no-existe') return c.json(r, 404);
+    return c.json(r);
+  });
+  app.post('/api/panel/v1/medios/quitar', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    const r = await quitarFoto(q, await c.req.json().catch(() => null));
+    if (r.estado === 'problemas') return c.json(r, 422);
+    if (r.estado === 'no-existe') return c.json(r, 404);
+    return c.json(r);
+  });
 
   // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.
   app.get('/api/panel/v1/registro', async (c) => {

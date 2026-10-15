@@ -7,6 +7,7 @@
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { MEDIOS_DE_LA_TIENDA } from './generar-wrangler.ts';
 import { RAIZ } from './lib/repo.ts';
 
 const dist = join(RAIZ, 'apps', 'tienda-panel', 'dist');
@@ -19,10 +20,18 @@ export function origenesDelCore(): string[] {
   return [...new Set([new URL(core.url).origin, new URL(core.url_staging).origin])];
 }
 
+/**
+ * HU-T8.3: las miniaturas de las fotos vienen de su host público (el de producción o el de
+ * staging), y la vista previa de una foto recién elegida es un `blob:` del mismo teléfono.
+ */
+const FOTOS = Object.values(MEDIOS_DE_LA_TIENDA)
+  .map((h) => `https://${h}`)
+  .join(' ');
+
 export function cabecerasDelPanel(core: readonly string[]): string {
   return [
     '/*',
-    `  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${core.join(' ')}; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
+    `  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: ${FOTOS}; font-src 'self'; connect-src 'self' ${core.join(' ')}; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
     '  X-Content-Type-Options: nosniff',
     '  Referrer-Policy: no-referrer',
     '  X-Robots-Tag: noindex',

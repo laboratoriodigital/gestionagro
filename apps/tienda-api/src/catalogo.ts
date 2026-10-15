@@ -20,6 +20,7 @@ import {
   guardarColeccion as esquemaGuardarColeccion,
   ordenarColecciones as esquemaOrdenar,
   type GuardarProducto,
+  leerFormatos,
   revisarProducto,
   tocarProducto,
 } from '@ed1/tienda-schema';
@@ -238,7 +239,7 @@ export async function leerProducto(q: Quien, id: string) {
       alt: m.alt,
       ancho: m.ancho,
       alto: m.alto,
-      anchos: Object.keys(JSON.parse(m.formatos) as Record<string, number>).map(Number),
+      ...leerFormatos(m.formatos),
     })),
   };
 }

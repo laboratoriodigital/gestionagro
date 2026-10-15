@@ -30,7 +30,7 @@ import {
   type ProductoParaLaCompuerta,
   type TiendaParaHornear,
 } from '@ed1/tienda-horno';
-import { type Seccion, validarSeccion } from '@ed1/tienda-schema';
+import { leerFormatos, type Seccion, validarSeccion } from '@ed1/tienda-schema';
 
 /** Lo que la publicación usa de un bucket R2. */
 export interface Almacen {
@@ -203,7 +203,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
           alt: f.alt,
           ancho: f.ancho,
           alto: f.alto,
-          anchos: Object.keys(JSON.parse(f.formatos) as Record<string, number>).map(Number),
+          ...leerFormatos(f.formatos),
         }));
     const { results: colecciones } = await c.shard
       .prepare(

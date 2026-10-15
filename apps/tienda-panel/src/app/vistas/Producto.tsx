@@ -27,6 +27,7 @@ import {
 } from '../catalogo.ts';
 import { Confirmar } from '../componentes/index.ts';
 import { irA } from '../ruta.ts';
+import { Fotos } from './Fotos.tsx';
 
 type Error = { campo: string; mensaje: string };
 
@@ -548,6 +549,14 @@ export function Producto({
               else void cargar();
             }}
           />
+          {producto && !producto.enPapelera ? (
+            <Fotos
+              conexion={conexion}
+              producto={producto}
+              alVencer={alVencer}
+              alCambiar={() => void cargar()}
+            />
+          ) : null}
         </>
       )}
     </main>

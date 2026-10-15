@@ -54,17 +54,21 @@ async function conAcceso(c: Conexion): Promise<{ sesion: Sesion | null; motivo: 
 export async function pedirAlPanel<T>(
   c: Conexion,
   ruta: string,
-  opciones: { metodo?: 'GET' | 'POST'; cuerpo?: unknown } = {},
+  opciones: { metodo?: 'GET' | 'POST'; cuerpo?: unknown; formulario?: FormData } = {},
 ): Promise<RespuestaDelPanel<T>> {
   const fetchFn = c.fetchFn ?? fetch;
+  // HU-T8.3: las fotos van como formulario; el navegador pone su `content-type` con el límite.
+  const cuerpo =
+    opciones.formulario ??
+    (opciones.cuerpo === undefined ? undefined : JSON.stringify(opciones.cuerpo));
   const pedir = (acceso: string) =>
     fetchFn(`/api/panel/v1/${ruta}`, {
-      method: opciones.metodo ?? (opciones.cuerpo === undefined ? 'GET' : 'POST'),
+      method: opciones.metodo ?? (cuerpo === undefined ? 'GET' : 'POST'),
       headers: {
         authorization: `Bearer ${acceso}`,
         ...(opciones.cuerpo === undefined ? {} : { 'content-type': 'application/json' }),
       },
-      ...(opciones.cuerpo === undefined ? {} : { body: JSON.stringify(opciones.cuerpo) }),
+      ...(cuerpo === undefined ? {} : { body: cuerpo }),
     });
   try {
     let { sesion, motivo } = await conAcceso(c);

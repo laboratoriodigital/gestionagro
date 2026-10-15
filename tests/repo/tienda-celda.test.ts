@@ -208,6 +208,30 @@ describe('las fotos sin Worker y en su propio bucket (HU-T5.6)', () => {
     }
   });
 
+  it('HU-T8.3: la API enlaza el bucket de las fotos solo donde el dueño ya lo creó', () => {
+    const [c1] = celdas;
+    if (!c1) throw new Error('sin celda c1');
+    const buckets = (c: typeof c1) => {
+      const w = wranglerDeLaCeldaDeLaTienda(c) as {
+        r2_buckets: { binding: string; bucket_name: string }[];
+        env: { staging: { r2_buckets: { binding: string; bucket_name: string }[] } };
+      };
+      return [w.r2_buckets, w.env.staging.r2_buckets].map((l) =>
+        l.filter((b) => b.binding === 'FOTOS').map((b) => b.bucket_name),
+      );
+    };
+    // ❌ Sin crear, ningún ambiente lo enlaza: enlazar un bucket que no existe tumba el despliegue.
+    expect(buckets({ ...c1, medios_creados: [] })).toEqual([[], []]);
+    expect(buckets({ ...c1, medios_creados: ['staging'] })).toEqual([
+      [],
+      ['tienda-c1-medios-staging'],
+    ]);
+    expect(buckets({ ...c1, medios_creados: ['produccion', 'staging'] })).toEqual([
+      ['tienda-c1-medios'],
+      ['tienda-c1-medios-staging'],
+    ]);
+  });
+
   it('❌ un bucket de fotos igual al almacén no carga', () => {
     const datos = JSON.parse(JSON.stringify(config));
     const c1 = datos.celdas.find((c: { id: string }) => c.id === 'c1');

@@ -311,6 +311,40 @@ h2 {
   gap: var(--espacio-2);
 }
 
+/* HU-T8.3: las fotos de un producto. */
+.fotos {
+  display: grid;
+  gap: var(--espacio-3);
+  max-width: var(--ancho-lectura);
+}
+/* El selector de archivo tiene un ancho propio: sin esto empuja la pantalla de 360 px de lado. */
+.fotos > *,
+.fotos input[type="file"] {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.fotos__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--espacio-3);
+}
+.fotos__foto {
+  display: grid;
+  gap: var(--espacio-1);
+}
+.fotos__foto img,
+.fotos__vista {
+  max-inline-size: 100%;
+  block-size: auto;
+}
+.fotos__vista {
+  max-block-size: 240px;
+  object-fit: contain;
+}
+
 /* HU-T10.6: el registro, una frase por fila con su hora. */
 .registro .ed1-lista {
   list-style: none;

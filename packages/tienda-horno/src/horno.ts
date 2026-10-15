@@ -38,8 +38,10 @@ export interface FotoParaHornear {
   alt: string;
   ancho: number;
   alto: number;
-  /** Los anchos que tiene en `.webp`: 400, 800 y 1600 (los que no alcanza su original, no). */
+  /** Los anchos de sus derivadas: 400, 800 y 1600 (los que no alcanza su original, no). */
   anchos: readonly number[];
+  /** HU-T8.3 CA2: `jpeg` si el teléfono no pudo hacer WebP (Safari). Sin decirlo, WebP. */
+  formato?: 'webp' | 'jpeg';
 }
 
 export interface ProductoParaHornear {
@@ -285,7 +287,7 @@ ${p.cuerpo}
    * prioridad. Sin host de fotos o sin derivadas, el marco vacío de siempre.
    */
   const urlDeFoto = (f: FotoParaHornear, ancho: number) =>
-    `https://${t.medios}/${t.org}/${f.huella}/${ancho}.webp`;
+    `https://${t.medios}/${t.org}/${f.huella}/${ancho}.${f.formato ?? 'webp'}`;
   const imagen = (
     f: FotoParaHornear | undefined,
     clase: string,

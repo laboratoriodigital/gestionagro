@@ -27,6 +27,16 @@ export interface ProductoDelPanel {
     stock: number | null;
     reservado: number;
   }[];
+  /** HU-T8.3: las fotos, con su miniatura en el host público de las fotos. */
+  medios: {
+    id: string;
+    alt: string;
+    ancho: number;
+    alto: number;
+    formato: string;
+    anchos: number[];
+    src: string | null;
+  }[];
 }
 
 export interface FilaDeProducto {

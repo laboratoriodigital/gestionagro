@@ -47,6 +47,7 @@ const camisa: ProductoDelPanel = {
       reservado: 0,
     },
   ],
+  medios: [],
 };
 
 describe('el formulario de un producto', () => {

@@ -27,6 +27,12 @@ export interface Celda {
   almacen?: string;
   /** El bucket R2 público de las fotos (HU-T5.6), aparte del almacén privado. */
   medios?: string;
+  /**
+   * HU-T8.3: los ambientes donde el dueño ya creó el bucket de las fotos
+   * (`docs/runbooks/tienda-fotos.md`). Solo ahí la API lo enlaza como `FOTOS`: enlazar un bucket que
+   * no existe hace fallar el despliegue.
+   */
+  medios_creados?: ('produccion' | 'staging')[];
 }
 
 export interface ConfigCeldas {

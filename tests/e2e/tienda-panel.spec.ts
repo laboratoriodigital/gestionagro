@@ -309,6 +309,7 @@ test('HU-T8.2 · CA1 y CA4: un vestido con tallas y colores; un precio vacío no
         soloMayores: false,
         ivaPct: null,
         variantes: [],
+        medios: [],
       },
     }),
   );
@@ -379,6 +380,7 @@ test('HU-T8.2 · CA2: si alguien más guardó antes, lo dice y no pisa lo de la 
             reservado: 0,
           },
         ],
+        medios: [],
       },
     }),
   );
@@ -474,6 +476,150 @@ test('HU-T8.4 · CA2: borrar una colección dice que sus productos se quedan', a
   await page.getByRole('button', { name: 'Sí, borrar la colección' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Colecciones' })).toBeVisible();
   await expect(page.getByText('Todavía no tienes colecciones.')).toBeVisible();
+});
+
+/** Las partes de un `multipart/form-data`: su nombre, el del archivo si es uno, y sus bytes. */
+function partesDe(cuerpo: Buffer, tipo: string) {
+  const limite = Buffer.from(`--${tipo.split('boundary=')[1]}`);
+  const partes: { nombre: string; archivo: string | null; bytes: Buffer }[] = [];
+  let i = cuerpo.indexOf(limite);
+  while (i >= 0) {
+    const siguiente = cuerpo.indexOf(limite, i + limite.length);
+    if (siguiente < 0) break;
+    const parte = cuerpo.subarray(i + limite.length + 2, siguiente - 2);
+    const fin = parte.indexOf('\r\n\r\n');
+    const cabeza = parte.subarray(0, fin).toString();
+    partes.push({
+      nombre: /name="([^"]+)"/.exec(cabeza)?.[1] ?? '',
+      archivo: /filename="([^"]+)"/.exec(cabeza)?.[1] ?? null,
+      bytes: parte.subarray(fin + 4),
+    });
+    i = siguiente;
+  }
+  return partes;
+}
+
+test('HU-T8.3 · CA3: en Safari, que no hace WebP, la foto sube en JPEG y con su descripción', async ({
+  page,
+}) => {
+  // Safari pide WebP a `canvas.toBlob` y devuelve PNG sin avisar (bitácora tienda3 2).
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (listo, tipo, calidad) {
+      original.call(this, listo, tipo === 'image/webp' ? 'image/png' : tipo, calidad);
+    };
+  });
+  await enElPanel(page);
+  let medios: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/productos/p-lino`, (r) =>
+    r.fulfill({
+      json: {
+        id: 'p-lino',
+        version: 1,
+        slug: 'camisa-de-lino',
+        nombre: 'Camisa de lino',
+        descripcionMd: '',
+        estado: 'activo',
+        enPapelera: false,
+        opciones: [],
+        retracto: { aplica: true },
+        soloMayores: false,
+        ivaPct: null,
+        variantes: [
+          {
+            id: 'v1',
+            valores: [],
+            sku: null,
+            precioCop: 129000,
+            precioAntesCop: null,
+            stock: 3,
+            reservado: 0,
+          },
+        ],
+        medios,
+      },
+    }),
+  );
+  const subidas: { partes: ReturnType<typeof partesDe> }[] = [];
+  await page.route(`${PANEL}/api/panel/v1/medios/subir`, (r) => {
+    const partes = partesDe(
+      r.request().postDataBuffer() ?? Buffer.alloc(0),
+      r.request().headers()['content-type'] ?? '',
+    );
+    subidas.push({ partes });
+    medios = [
+      {
+        id: 'a'.repeat(64),
+        alt: 'Camisa de lino arena, de frente',
+        ancho: 900,
+        alto: 600,
+        formato: 'jpeg',
+        anchos: [400, 800],
+        src: `https://img.laboratorio-digital.app/org-ensayo-uno/${'a'.repeat(64)}/400.jpeg`,
+      },
+    ];
+    return r.fulfill({
+      json: { estado: 'guardado', id: 'a'.repeat(64), formato: 'jpeg', anchos: [400, 800] },
+    });
+  });
+  await page.route('https://img.laboratorio-digital.app/**', (r) =>
+    r.fulfill({
+      contentType: 'image/png',
+      body: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        'base64',
+      ),
+    }),
+  );
+  await page.goto(`${PANEL}/productos/p-lino/`);
+  await expect(page.getByText('Todavía no tiene fotos.')).toBeVisible();
+  // Una foto de 900×600 hecha en el mismo teléfono, elegida como si viniera de la galería.
+  await page.evaluate(async () => {
+    const lienzo = document.createElement('canvas');
+    lienzo.width = 900;
+    lienzo.height = 600;
+    const ctx = lienzo.getContext('2d');
+    if (!ctx) throw new Error('sin canvas');
+    ctx.fillStyle = '#c8b89a';
+    ctx.fillRect(0, 0, 900, 600);
+    const blob = await new Promise<Blob | null>((listo) => lienzo.toBlob(listo, 'image/png'));
+    if (!blob) throw new Error('sin foto');
+    const entrada = document.querySelector<HTMLInputElement>('#foto-nueva');
+    if (!entrada) throw new Error('sin campo');
+    const dt = new DataTransfer();
+    dt.items.add(new File([blob], 'IMG_0001.png', { type: 'image/png' }));
+    entrada.files = dt.files;
+    entrada.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  // CA1: sin descripción no sube.
+  await page.getByRole('button', { name: 'Subir foto' }).click();
+  await expect(page.locator('#foto-alt-error')).toHaveText(
+    'Describe la foto en pocas palabras, para quien no la puede ver.',
+  );
+  expect(subidas).toHaveLength(0);
+  await page.getByLabel('Describe la foto').fill('Camisa de lino arena, de frente');
+  await page.getByRole('button', { name: 'Subir foto' }).click();
+  await expect(page.getByText('Foto subida.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Camisa de lino arena, de frente' })).toBeVisible();
+
+  const [subida] = subidas;
+  const partes = subida?.partes ?? [];
+  const valor = (n: string) => partes.find((p) => p.nombre === n)?.bytes.toString();
+  expect(valor('formato')).toBe('jpeg');
+  expect(valor('alt')).toBe('Camisa de lino arena, de frente');
+  expect([valor('ancho'), valor('alto')]).toEqual(['900', '600']);
+  const archivos = partes.filter((p) => p.archivo !== null);
+  // Solo las derivadas que alcanza el original, en JPEG de verdad: el original no sale del teléfono.
+  expect(archivos.map((p) => [p.nombre, p.archivo])).toEqual([
+    ['d400', '400.jpeg'],
+    ['d800', '800.jpeg'],
+  ]);
+  for (const a of archivos) expect([...a.bytes.subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
 test.describe('con el teléfono en otra zona horaria', () => {
