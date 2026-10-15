@@ -6,20 +6,24 @@
  *   toma un turno y solo se pinta la última; mientras llega, se ve la lista de antes.
  * - **Un pedido.** El comprador tapado y «Ver datos de entrega», que queda registrado; «Confirmar
  *   por WhatsApp» arma el mensaje, y «Confirmar» descuenta el inventario.
+ * - **Despachar (HU-T9.4).** La transportadora y la guía; contra entrega, son obligatorias, y la
+ *   comisión y el flete de ida, si se saben, entran al recaudo que nace con el despacho.
  */
-import { Aviso, type EstadoDeContenido } from '@ed1/ui/v2/componentes';
+import { Aviso, type EstadoDeContenido, ResumenDeErrores } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { type Conexion, pedirAlPanel } from '../api.ts';
 import { enPesos, opNueva } from '../catalogo.ts';
-import { Confirmar, ESTADOS_DE_PEDIDO, Estado, Lista } from '../componentes/index.ts';
+import { Confirmar, ESTADOS_DE_PEDIDO, Estado, Lista, Texto } from '../componentes/index.ts';
 import {
   ATENCION,
   crearTurno,
   type FilaDePedido,
   type Filtros,
   FORMAS_DE_PAGO,
+  type FormularioDeDespacho,
   filtrar,
   type PaginaDePedidos,
+  revisarDespacho,
   unir,
 } from '../pedidos.ts';
 import { horaDeBogota } from './Registro.tsx';
@@ -237,6 +241,134 @@ interface PedidoDelPanel extends FilaDePedido {
     quien: string;
   }[];
   conContacto: boolean;
+  transportadora: string | null;
+  guia: string | null;
+  recaudo: Recaudo | null;
+}
+
+interface Recaudo {
+  estado: string;
+  montoCop: number;
+  comisionCop: number | null;
+  fleteIdaCop: number | null;
+  fleteVueltaCop: number | null;
+  liquidado: string | null;
+  liquidacionRef: string | null;
+}
+
+/** La plata de la contraentrega, en palabras (HU-T9.4 y HU-T9.5). */
+export const ESTADOS_DEL_RECAUDO: Readonly<Record<string, string>> = {
+  por_recaudar: 'Por recaudar: la transportadora lo cobra al entregar',
+  recaudado: 'Recaudado: falta que la transportadora lo liquide',
+  devuelto: 'Devuelto: el comprador no lo recibió',
+  perdido: 'Perdido: la transportadora no responde por él',
+};
+
+type Error = { campo: string; mensaje: string };
+
+/** HU-T9.4: despachar, con la guía y, contra entrega, lo que cuesta el recaudo si se sabe. */
+function Despachar({
+  conexion,
+  pedido,
+  alVencer,
+  alDespachar,
+}: {
+  conexion: Conexion;
+  pedido: PedidoDelPanel;
+  alVencer: (motivo: string) => void;
+  alDespachar: (aviso: string) => Promise<void>;
+}) {
+  const contraentrega = pedido.formaPago === 'contraentrega';
+  const [f, setF] = useState<FormularioDeDespacho>({
+    transportadora: '',
+    guia: '',
+    comision: '',
+    fleteIda: '',
+  });
+  const [errores, setErrores] = useState<Error[]>([]);
+  const [ocupado, setOcupado] = useState(false);
+  const op = useRef(opNueva());
+  const campo = (c: keyof FormularioDeDespacho) => (v: string) => setF((x) => ({ ...x, [c]: v }));
+  const error = (c: string) => errores.find((e) => e.campo === c)?.mensaje;
+
+  const enviar = async (e: Event) => {
+    e.preventDefault();
+    const revisado = revisarDespacho(f, contraentrega);
+    setErrores(revisado.errores);
+    if (revisado.errores.length) return;
+    setOcupado(true);
+    const r = await pedirAlPanel(conexion, 'pedidos/despachar', {
+      cuerpo: { op: op.current, pedido: pedido.id, version: pedido.version, ...revisado.cuerpo },
+    });
+    setOcupado(false);
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok') {
+      op.current = opNueva();
+      return setErrores(r.problemas ?? [{ campo: 'transportadora', mensaje: r.motivo }]);
+    }
+    await alDespachar(
+      contraentrega
+        ? 'Pedido despachado. La plata queda por recaudar hasta que la transportadora lo entregue.'
+        : 'Pedido despachado.',
+    );
+  };
+
+  return (
+    <section class="acciones">
+      <h2>Despachar</h2>
+      <form class="formulario" onSubmit={(e) => void enviar(e)} noValidate>
+        <ResumenDeErrores errores={errores} />
+        <Texto
+          id="transportadora"
+          etiqueta="Transportadora"
+          valor={f.transportadora}
+          alCambiar={campo('transportadora')}
+          error={error('transportadora')}
+          opcional={!contraentrega}
+        />
+        <Texto
+          id="guia"
+          etiqueta="Número de guía"
+          valor={f.guia}
+          alCambiar={campo('guia')}
+          error={error('guia')}
+          opcional={!contraentrega}
+          ayuda="El comprador la ve en el seguimiento de su pedido."
+        />
+        {contraentrega ? (
+          <>
+            <Texto
+              id="comisionCop"
+              etiqueta="Comisión del recaudo, con IVA"
+              valor={f.comision}
+              alCambiar={campo('comision')}
+              error={error('comisionCop')}
+              opcional
+              numerico
+            />
+            <Texto
+              id="fleteIdaCop"
+              etiqueta="Flete de ida"
+              valor={f.fleteIda}
+              alCambiar={campo('fleteIda')}
+              error={error('fleteIdaCop')}
+              opcional
+              numerico
+              ayuda="Si todavía no los sabes, los dejas vacíos: no cuentan como $0."
+            />
+          </>
+        ) : null}
+        <button
+          class="ed1-boton ed1-boton--primario"
+          type="submit"
+          disabled={ocupado}
+          aria-busy={ocupado ? 'true' : undefined}
+        >
+          Despachar
+        </button>
+      </form>
+    </section>
+  );
 }
 
 interface Contacto {
@@ -341,6 +473,11 @@ export function Pedido({
 
   const unidades = pedido.lineas.reduce((s, l) => s + (l.descontado ? 0 : l.cantidad), 0);
   const porConfirmar = pedido.estado === 'pendiente' && pedido.formaPago !== 'en_linea';
+  const porDespachar = pedido.estado === 'confirmado' || pedido.estado === 'pagado';
+  const alCambiar = async (texto: string) => {
+    setAviso({ tono: 'info', texto });
+    await cargar();
+  };
 
   return (
     <main class="contenido">
@@ -440,6 +577,24 @@ export function Pedido({
             <dd>{pedido.ciudad}</dd>
           </div>
         ) : null}
+        {pedido.transportadora ? (
+          <div>
+            <dt>Transportadora</dt>
+            <dd>{pedido.transportadora}</dd>
+          </div>
+        ) : null}
+        {pedido.guia ? (
+          <div>
+            <dt>Guía</dt>
+            <dd class="cifra">{pedido.guia}</dd>
+          </div>
+        ) : null}
+        {pedido.recaudo ? (
+          <div>
+            <dt>Recaudo</dt>
+            <dd>{ESTADOS_DEL_RECAUDO[pedido.recaudo.estado] ?? pedido.recaudo.estado}</dd>
+          </div>
+        ) : null}
       </dl>
 
       {porConfirmar ? (
@@ -481,6 +636,16 @@ export function Pedido({
             alConfirmar={confirmar}
           />
         </section>
+      ) : null}
+
+      {porDespachar ? (
+        <Despachar
+          key={pedido.version}
+          conexion={conexion}
+          pedido={pedido}
+          alVencer={alVencer}
+          alDespachar={alCambiar}
+        />
       ) : null}
 
       <h2>Historia</h2>

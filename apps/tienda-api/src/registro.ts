@@ -201,6 +201,8 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
         : `${hizo('v', 'iste', 'io')} los datos de entrega del pedido #${despues['numero']}`;
     case 'pedido.confirmar':
       return `${hizo('confirm', 'aste', 'ó')} el pedido #${despues['numero']}`;
+    case 'pedido.despachar':
+      return `${hizo('despach', 'aste', 'ó')} el pedido #${despues['numero']}${despues['transportadora'] ? ` por ${despues['transportadora']}` : ''}${despues['guia'] ? `, guía ${despues['guia']}` : ''}`;
     case 'ajustes.guardar':
       return `${hizo('cambi', 'aste', 'ó')} los ajustes de ${TITULOS_DE_SECCION[f.entidad_id as keyof typeof TITULOS_DE_SECCION] ?? f.entidad_id}`;
     case 'ajustes.whatsapp_verificado':

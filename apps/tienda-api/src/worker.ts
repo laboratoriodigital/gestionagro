@@ -68,6 +68,7 @@ import {
   type Resultado as ResultadoDelCatalogo,
   tocarElProducto,
 } from './catalogo.ts';
+import { despacharPedido } from './ciclo.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import {
@@ -1084,6 +1085,13 @@ export function crearApp(
     const r = await confirmarPedido(q, cuerpo);
     if (r.estado === 'guardado') await despues?.();
     return responderCatalogo(c, r);
+  });
+
+  // HU-T9.4: despachar, con la guía y, contra entrega, su recaudo.
+  app.post('/api/panel/v1/pedidos/despachar', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede despachar pedidos.');
+    if (q instanceof Response) return q;
+    return responderCatalogo(c, await despacharPedido(q, await c.req.json().catch(() => null)));
   });
 
   // HU-T10.3: los ajustes por sección. Lo que pide cada cambio lo decide `accionesDeAjuste`.

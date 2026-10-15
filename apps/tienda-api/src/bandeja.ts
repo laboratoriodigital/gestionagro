@@ -247,6 +247,21 @@ export interface PedidoDelPanel extends FilaDePedido {
   }[];
   /** Si el comprador dejó datos de entrega: «Ver datos de entrega» los abre. */
   conContacto: boolean;
+  /** HU-T9.4: con qué transportadora y qué guía salió. */
+  transportadora: string | null;
+  guia: string | null;
+  /** HU-T9.4 y HU-T9.5: la plata de la contraentrega, desde que se despacha. */
+  recaudo: Recaudo | null;
+}
+
+export interface Recaudo {
+  estado: string;
+  montoCop: number;
+  comisionCop: number | null;
+  fleteIdaCop: number | null;
+  fleteVueltaCop: number | null;
+  liquidado: string | null;
+  liquidacionRef: string | null;
 }
 
 const quienEs = (actor: string, quienPregunta: string) =>
@@ -267,6 +282,7 @@ export async function leerPedido(
   const p = await q.db
     .prepare(
       `SELECT ${COLUMNAS}, p.canal, p.subtotal_cop, p.descuento_cop, p.envio_cop, p.cupon_codigo, p.envio_nombre,
+              p.transportadora, p.guia,
               EXISTS (SELECT 1 FROM pedido_contacto c WHERE c.org_id = ? AND c.pedido_id = p.id) AS con_contacto
          FROM pedido p WHERE p.org_id = ? AND p.id = ?`,
     )
@@ -279,6 +295,8 @@ export async function leerPedido(
         envio_cop: number;
         cupon_codigo: string | null;
         envio_nombre: string | null;
+        transportadora: string | null;
+        guia: string | null;
         con_contacto: number;
       }
     >();
@@ -305,6 +323,21 @@ export async function leerPedido(
     )
     .bind(q.org, id)
     .all<{ instante: string; tipo: string; de: string | null; a: string | null; actor: string }>();
+  const recaudo = await q.db
+    .prepare(
+      `SELECT estado, monto_cop, comision_cop, flete_ida_cop, flete_vuelta_cop, liquidado, liquidacion_ref
+         FROM contraentrega WHERE org_id = ? AND pedido_id = ?`,
+    )
+    .bind(q.org, id)
+    .first<{
+      estado: string;
+      monto_cop: number;
+      comision_cop: number | null;
+      flete_ida_cop: number | null;
+      flete_vuelta_cop: number | null;
+      liquidado: string | null;
+      liquidacion_ref: string | null;
+    }>();
   return {
     ...(fila as FilaDePedido),
     canal: p.canal,
@@ -330,6 +363,19 @@ export async function leerPedido(
       quien: quienEs(e.actor, q.actor),
     })),
     conContacto: p.con_contacto === 1,
+    transportadora: p.transportadora,
+    guia: p.guia,
+    recaudo: recaudo
+      ? {
+          estado: recaudo.estado,
+          montoCop: recaudo.monto_cop,
+          comisionCop: recaudo.comision_cop,
+          fleteIdaCop: recaudo.flete_ida_cop,
+          fleteVueltaCop: recaudo.flete_vuelta_cop,
+          liquidado: recaudo.liquidado,
+          liquidacionRef: recaudo.liquidacion_ref,
+        }
+      : null,
   };
 }
 

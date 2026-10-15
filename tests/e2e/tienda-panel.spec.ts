@@ -909,6 +909,92 @@ test('HU-T9.2 y HU-T9.3 · ver los datos de entrega, confirmar por WhatsApp y co
   expect(consola.filter((t) => /Compradora|3001234567|Calle de prueba/.test(t))).toEqual([]);
 });
 
+/** Un pedido como lo da `GET /pedidos/:id`, de una camisa contra entrega, ya confirmado. */
+const pedidoDelPanel = (numero: number, extra: Record<string, unknown> = {}) => ({
+  ...filaDePedido(numero, { estado: 'confirmado', formaPago: 'contraentrega', version: 2 }),
+  canal: 'whatsapp',
+  subtotalCop: 129000,
+  descuentoCop: 0,
+  envioCop: 0,
+  cuponCodigo: null,
+  envioNombre: null,
+  lineas: [
+    {
+      variante: 'v-camisa-m-arena',
+      nombre: 'Camisa de lino',
+      opciones: 'Talla: M · Color: Arena',
+      cantidad: 1,
+      precioUnitarioCop: 129000,
+      totalCop: 129000,
+      descontado: true,
+    },
+  ],
+  historia: [] as object[],
+  conContacto: false,
+  transportadora: null as string | null,
+  guia: null as string | null,
+  recaudo: null as Record<string, unknown> | null,
+  ...extra,
+});
+
+/** Los errores de axe de la pantalla, por su nombre: ninguno. */
+async function sinFallasDeAxe(page: Page) {
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+}
+
+test('HU-T9.4 · CA2: contra entrega, el panel dice cuál falta; con la guía, despacha y nace el recaudo', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const pedido = pedidoDelPanel(1050);
+  const despachos: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/pedidos/ped-1050`, (r) => r.fulfill({ json: pedido }));
+  await page.route(`${PANEL}/api/panel/v1/pedidos/despachar`, (r) => {
+    const cuerpo = r.request().postDataJSON() as Record<string, unknown>;
+    despachos.push(cuerpo);
+    Object.assign(pedido, {
+      estado: 'despachado',
+      version: 3,
+      transportadora: cuerpo['transportadora'],
+      guia: cuerpo['guia'],
+      recaudo: { estado: 'por_recaudar', montoCop: 129000, comisionCop: 3500, fleteIdaCop: null },
+    });
+    return r.fulfill({ json: { estado: 'guardado', id: pedido.id, version: 3 } });
+  });
+
+  await page.goto(`${PANEL}/pedidos/ped-1050/`);
+  await expect(page.getByRole('heading', { level: 2, name: 'Despachar' })).toBeVisible();
+  await page.getByRole('button', { name: 'Despachar' }).click();
+  // Todos los errores en la misma vuelta, y la API no se llama.
+  await expect(page.getByText('Falta corregir 2 cosas:')).toBeVisible();
+  await expect(page.getByLabel('Transportadora')).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByLabel('Número de guía')).toHaveAttribute('aria-invalid', 'true');
+  expect(despachos).toEqual([]);
+
+  await page.getByLabel('Transportadora').fill('Transportadora Ensayo');
+  await page.getByLabel('Número de guía').fill('GE-000123');
+  await page.getByLabel(/Comisión del recaudo/).fill('3.500');
+  await sinFallasDeAxe(page);
+  await page.getByRole('button', { name: 'Despachar' }).click();
+  await expect(page.getByText(/La plata queda por recaudar/)).toBeVisible();
+  expect(despachos).toEqual([
+    expect.objectContaining({
+      pedido: 'ped-1050',
+      version: 2,
+      transportadora: 'Transportadora Ensayo',
+      guia: 'GE-000123',
+      comisionCop: 3500,
+      fleteIdaCop: null,
+    }),
+  ]);
+  await expect(page.getByText('GE-000123')).toBeVisible();
+  await expect(page.getByText(/^Por recaudar/)).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Despachar' })).toHaveCount(0);
+});
+
 test('HU-T10.3 · CA2 y CA3: cambiar el WhatsApp pide volver a entrar sin perder lo escrito, y se verifica', async ({
   page,
 }) => {
