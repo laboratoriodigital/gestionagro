@@ -207,7 +207,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         </button>
       </main>
     );
-  else if (ruta === '/') cuerpo = <Inicio yo={yo.datos} />;
+  else if (ruta === '/')
+    cuerpo = <Inicio yo={yo.datos} conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/pedidos/') cuerpo = <Bandeja conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/pedidos/nuevo/')
     cuerpo = <Anotar conexion={conexion} alVencer={setVencida} />;

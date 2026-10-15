@@ -73,9 +73,40 @@ async function coreFalso(page: Page, alCanjear: object) {
   return refrescos;
 }
 
-/** La API falsa: `/yo` responde con la tienda del último token pedido. */
+const cifrasEnCero = { pedidos: 0, vendidos: 0, ventasCop: 0, ticketCop: null, tasaDeCierre: null };
+/** HU-T14.2: el tablero de una tienda que todavía no vende. */
+const tableroVacio = () => ({
+  periodos: { altura: '2026-09-15', anteriorCompleto: false },
+  hoy: cifrasEnCero,
+  mes: cifrasEnCero,
+  anterior: cifrasEnCero,
+  pendientes: {
+    porConfirmar: 0,
+    porDespachar: 0,
+    recaudosAtrasados: 0,
+    solicitudesPorVencer: 0,
+    solicitudesVencidas: 0,
+    pagosSinExistencias: 0,
+    cobrosARevisar: 0,
+    agotados: 0,
+  },
+  contraentrega: {
+    cerrados: 0,
+    devueltos: 0,
+    cobradoCop: 0,
+    costosCop: 0,
+    netoCop: 0,
+    sinCostos: 0,
+    enCamino: 0,
+  },
+});
+
+/** La API falsa: `/yo` responde con la tienda del último token pedido; Inicio, sin ventas. */
 async function apiFalsa(page: Page, tienda = UNO) {
   const pedidos: string[] = [];
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (ruta) =>
+    ruta.fulfill({ json: tableroVacio() }),
+  );
   await page.route(`${PANEL}/api/panel/v1/yo`, (ruta) => {
     pedidos.push(ruta.request().headers()['authorization'] ?? '');
     return ruta.fulfill({ json: yo(tienda) });
@@ -1929,4 +1960,84 @@ test('HU-T9.7 · CA1 y CA3: la vencida arriba y en rojo; responder, mandarla y s
     expect.objectContaining({ ruta: 'cerrar', id: 's-3' }),
   ]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});
+
+test('HU-T14.2 · CA1: Inicio dice lo urgente arriba, cómo voy frente a febrero entero y el margen', async ({
+  page,
+}) => {
+  await coreFalso(page, sesion());
+  await apiFalsa(page);
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (r) =>
+    r.fulfill({
+      json: {
+        ...tableroVacio(),
+        periodos: { altura: '2028-02-29', anteriorCompleto: true },
+        hoy: { pedidos: 3, vendidos: 1, ventasCop: 100000, ticketCop: 100000, tasaDeCierre: 1 / 3 },
+        mes: { pedidos: 8, vendidos: 5, ventasCop: 440000, ticketCop: 88000, tasaDeCierre: 5 / 8 },
+        anterior: {
+          pedidos: 3,
+          vendidos: 2,
+          ventasCop: 120000,
+          ticketCop: 60000,
+          tasaDeCierre: 2 / 3,
+        },
+        pendientes: {
+          ...tableroVacio().pendientes,
+          porConfirmar: 1,
+          porDespachar: 4,
+          recaudosAtrasados: 1,
+          solicitudesVencidas: 1,
+          agotados: 1,
+        },
+        contraentrega: {
+          cerrados: 3,
+          devueltos: 1,
+          cobradoCop: 190000,
+          costosCop: 43500,
+          netoCop: 146500,
+          sinCostos: 1,
+          enCamino: 1,
+        },
+      },
+    }),
+  );
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await expect(page.getByRole('heading', { level: 2, name: 'Lo que hay que hacer' })).toBeVisible();
+  const pendientes = page.locator('.pendientes li');
+  await expect(pendientes.first()).toHaveText('1 solicitud vencida sin respuesta');
+  await expect(pendientes.first()).toHaveClass(/pendiente--urgente/);
+  await expect(pendientes).toHaveText([
+    '1 solicitud vencida sin respuesta',
+    '1 recaudo sin liquidar hace más de 3 días hábiles',
+    '1 pedido por confirmar',
+    '4 pedidos por despachar',
+    '1 combinación agotada',
+  ]);
+  // CA3: el 31 de marzo no existe en febrero, y lo dice.
+  await expect(page.getByText(/Sube 267 %/)).toBeVisible();
+  await expect(page.getByText(/frente a febrero entero/)).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 3, name: 'El mes anterior (febrero entero)' }),
+  ).toBeVisible();
+  await expect(page.getByText('$440.000')).toBeVisible();
+  await expect(page.getByText('77 %')).toBeVisible();
+  await expect(page.getByText(/A 1 pedido le falta la comisión o el flete/)).toBeVisible();
+  await sinFallasDeAxe(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await pendientes.first().getByRole('link').click();
+  await expect(page).toHaveURL(`${PANEL}/pedidos/solicitudes/`);
+});
+
+test('HU-T14.2 · ❌ si el tablero no llega, lo dice sin inventar ceros', async ({ page }) => {
+  await coreFalso(page, sesion());
+  await apiFalsa(page);
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (r) =>
+    r.fulfill({ status: 503, json: { estado: 'error', motivo: 'La tienda no responde ahora.' } }),
+  );
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await expect(page.getByText('No pudimos leer el tablero')).toBeVisible();
+  await expect(page.getByText('$0')).toHaveCount(0);
+  await expect(page.getByText('Productos en tu plan')).toBeVisible();
 });

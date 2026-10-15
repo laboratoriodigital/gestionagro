@@ -98,6 +98,7 @@ import {
   responderSolicitud,
   verSolicitud,
 } from './panel-solicitudes.ts';
+import { tablero } from './panel-tablero.ts';
 import {
   PeticionDePedido,
   PeticionDeSeguimiento,
@@ -1235,6 +1236,13 @@ export function crearApp(
     );
     return r.estado === 'ok' ? c.json(r) : responderCatalogo(c, r);
   });
+  // HU-T14.2: el tablero de Inicio.
+  app.get('/api/panel/v1/tablero', async (c) => {
+    const q = quienPuede(c, 'tablero.ver', 'Tu rol no puede ver el tablero.');
+    if (q instanceof Response) return q;
+    return c.json(await tablero(q, ahora()));
+  });
+
   app.get('/api/panel/v1/recaudos', async (c) => {
     const q = quienPuede(c, 'recaudos.gestionar', 'Tu rol no puede ver los recaudos.');
     if (q instanceof Response) return q;
