@@ -201,6 +201,14 @@ describe('la prueba de humo', () => {
     );
   });
 
+  it('en producción también: el panel tiene su dominio, pero la API se busca en workers.dev', () => {
+    // El 15 oct 2026 se buscaba en `tienda-api-c1.laboratorio-digital.app`, que no existe, y el
+    // humo de producción falló sin que nada estuviera mal (bitácora tienda3 14).
+    expect(urlQueNoDebeResponder(c1, 'produccion')).toBe(
+      'https://tienda-api-c1.laboratoriodigital-la.workers.dev',
+    );
+  });
+
   it('con todo en su sitio no hay fallas ni avisos', async () => {
     expect(await humoDeLaTienda(nube(sana), urls)).toEqual({ fallas: [], avisos: [] });
   });

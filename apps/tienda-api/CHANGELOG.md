@@ -8,6 +8,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Las solicitudes con radicado (HU-T6.4): en «Solicitudes» de cada tienda, cualquier persona, con o sin pedido, hace una pregunta, una queja o un reclamo, se retracta de una compra, pide la reversión de un pago o pide ver, corregir o borrar sus datos. Recibe un número de radicado, la fecha y la hora, la fecha límite para la respuesta (en días hábiles de Colombia, con festivos) y un enlace para ver en qué va. Lo que cuenta la persona y cómo responderle se guardan cifrados con la llave de cada tienda. El texto de «Solicitudes» explica cómo hacerla y pasa a la versión 2 de las plantillas legales.
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
 
+### Corregido
+- El despliegue a producción de la Tienda ya no falla al final por buscar la API en una dirección que no existe: la revisión de que la API no se puede abrir desde afuera mira la dirección correcta en los dos ambientes.
+
 ## [0.1.0] - 2026-10-14
 
 La Tienda sale a producción sin tiendas: el camino queda probado antes de la primera tienda real. La vitrina está completa en staging, con los dos comercios de prueba.

@@ -569,3 +569,21 @@ La regla: **una versión publicada no es una versión desplegada; con `continue-
 La regla: **al retirar un hito o mover un archivo, se busca cada documento que lo nombra, no solo el que se está editando.**
 
 *Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P2, P18 · tienda-0.1.0 · 2026-10-15
+
+**14 · La Tienda llegó a producción y la prueba de humo dijo que no, porque buscaba la API en un dominio que no existe.**
+
+*Qué pasó.* El 15 oct 2026, después de que el dueño generó los secretos de producción, se repitió a mano el despliegue a producción con `productos: tienda` (corrida 38669194046). El dueño pegó el resumen de la corrida en el hilo.
+
+*Síntoma literal.* «✨ 1 secrets successfully created», luego «humo, intento 1: 1 fallas» hasta el intento 5, y «c1 · fallo · la Tienda se desplegó, pero la prueba de humo falló: https://tienda-api-c1.laboratorio-digital.app/api/salud: no respondió (fetch failed)».
+
+*Causa raíz.* `urlQueNoDebeResponder` arma la dirección workers.dev de la API con el sufijo del host del panel. En staging el panel vive en `tienda-panel-staging.laboratoriodigital-la.workers.dev` y el sufijo es el subdominio de la cuenta; en producción el panel tiene su dominio (`panel.laboratorio-digital.app`, HU-T2.9) y el sufijo pasó a ser `laboratorio-digital.app`. El humo pedía `tienda-api-c1.laboratorio-digital.app`, un nombre que no resuelve, y contaba el «no respondió» como falla. Lo demás del humo pasó: era la única falla de cada intento. La prueba que fijaba esta función solo miraba staging (P5: la prueba cubría el ambiente donde ya funcionaba).
+
+*Cómo se reprodujo.* Una prueba en `tests/repo/tienda-despliegue.test.ts` con el destino `produccion`: esperaba `https://tienda-api-c1.laboratoriodigital-la.workers.dev` y recibió `https://tienda-api-c1.laboratorio-digital.app`.
+
+*Arreglo.* El subdominio de la cuenta sale siempre de `api_staging`, que vive en workers.dev en los dos ambientes. Después de fusionar, se repite el despliegue a mano a producción con `productos: tienda`.
+
+**Lo prueba:** `tests/repo/tienda-despliegue.test.ts`, «en producción también: el panel tiene su dominio, pero la API se busca en workers.dev». Control negativo: con la función de antes, la prueba queda en rojo con el dominio que no existe.
+
+La regla: **una prueba de despliegue que solo corre contra staging no prueba producción; cada función que arma una URL por destino se prueba con los dos destinos.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P5, P11 · tienda-0.1.0 · 2026-10-15
