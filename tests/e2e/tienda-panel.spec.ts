@@ -622,6 +622,96 @@ test('HU-T8.3 · CA3: en Safari, que no hace WebP, la foto sube en JPEG y con su
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
+test('HU-T8.5 · CA1 y CA2: ajustar y contar, con su libro, y lo apartado dicho con palabras', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const fila = {
+    variante: 'v-camisa-m-arena',
+    producto: 'p-camisa',
+    nombre: 'Camisa de lino',
+    combinacion: 'M / Arena',
+    sku: null,
+    stock: 4,
+    apartadas: 2,
+    esperan: 3,
+    version: 1,
+  };
+  const movimientos: object[] = [];
+  const enviados: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/inventario`, (r) =>
+    r.fulfill({ json: { filas: [fila] } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/inventario/v-camisa-m-arena`, (r) =>
+    r.fulfill({ json: { fila, movimientos, siguiente: null } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/inventario/ajustar`, (r) => {
+    const cuerpo = r.request().postDataJSON() as { tipo: string; cantidad: number };
+    enviados.push(cuerpo);
+    if (cuerpo.tipo === 'conteo' && cuerpo.cantidad < 2) {
+      return r.fulfill({
+        status: 422,
+        json: {
+          estado: 'problemas',
+          problemas: [
+            {
+              campo: 'cantidad',
+              mensaje:
+                'Hay 2 unidades apartadas por pagos en curso: las existencias no pueden quedar en menos de 2.',
+            },
+          ],
+        },
+      });
+    }
+    movimientos.unshift({
+      id: 1,
+      delta: 3,
+      stock: 7,
+      motivo: 'conteo',
+      ref: 'op',
+      instante: '2026-10-15T15:42:00.000Z',
+    });
+    Object.assign(fila, { stock: 7, version: 2 });
+    return r.fulfill({ json: { estado: 'guardado', id: fila.variante, version: 2 } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/avisame/atender`, (r) => {
+    fila.esperan = 0;
+    return r.fulfill({ json: { estado: 'guardado', id: fila.variante, version: 1 } });
+  });
+
+  await page.route(`${PANEL}/api/panel/v1/productos?*`, (r) =>
+    r.fulfill({ json: { productos: [] } }),
+  );
+  await page.getByRole('link', { name: 'Productos' }).click();
+  await page.getByRole('link', { name: 'Inventario', exact: true }).click();
+  await page.getByRole('link', { name: /Camisa de lino · M \/ Arena/ }).click();
+  await expect(page.getByText('4 en existencia · 2 apartadas · 3 esperan')).toBeVisible();
+
+  await page.getByLabel('Las conté').check();
+  await page.getByLabel('¿Cuántas hay?').fill('1');
+  await page.getByRole('button', { name: 'Guardar el conteo' }).click();
+  await expect(
+    page.getByText('Hay 2 unidades apartadas por pagos en curso', { exact: false }).first(),
+  ).toBeVisible();
+  await expect(page.getByLabel('¿Cuántas hay?')).toHaveAttribute('aria-invalid', 'true');
+
+  await page.getByLabel('¿Cuántas hay?').fill('7');
+  await page.getByRole('button', { name: 'Guardar el conteo' }).click();
+  await expect(page.getByText('Conteo guardado.')).toBeVisible();
+  await expect(page.getByText('Conteo: +3 → quedan 7')).toBeVisible();
+  expect(enviados.at(-1)).toMatchObject({ tipo: 'conteo', cantidad: 7, version: 1 });
+
+  await page.getByText('Ya les avisé', { exact: true }).click();
+  await page.getByRole('button', { name: 'Sí, ya les avisé' }).click();
+  await expect(page.getByText('3 personas pidieron que les avises')).toBeHidden();
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});
+
 test.describe('con el teléfono en otra zona horaria', () => {
   // La hora del registro es la de Bogotá aunque el teléfono esté en Madrid.
   test.use({ timezoneId: 'Europe/Madrid' });

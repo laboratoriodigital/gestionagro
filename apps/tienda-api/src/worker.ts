@@ -29,7 +29,7 @@
 import { importarKek } from '@ed1/cifrado';
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
-import { decidir, type FuncionesPorPlan, funcionesDelPlan } from '@ed1/tienda-schema';
+import { type Accion, decidir, type FuncionesPorPlan, funcionesDelPlan } from '@ed1/tienda-schema';
 import { ENSAYOS } from '@ed1/tienda-schema/ensayos';
 import {
   aceptarEnProducto,
@@ -55,6 +55,7 @@ import {
 } from './catalogo.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
+import { ajustarInventario, atenderAvisame, libroDe, listarInventario } from './inventario.ts';
 import { kekDelEntorno } from './llaves.ts';
 import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
 import {
@@ -811,12 +812,10 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
    * 422 con los problemas por campo, 409 si alguien más guardó antes (con la versión actual), 404
    * si ya no está.
    */
-  const delCatalogo = (c: ContextoTienda): Quien | Response => {
+  const quienPuede = (c: ContextoTienda, accion: Accion, motivo: string): Quien | Response => {
     const s = c.get('sesion');
-    const decision = decidir(s.rol, 'catalogo.editar', s.authTime ?? 0, Math.floor(ahora() / 1000));
-    if (decision !== 'permitido') {
-      return c.json({ estado: decision, motivo: 'Tu rol no puede editar el catálogo.' }, 403);
-    }
+    const decision = decidir(s.rol, accion, s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido') return c.json({ estado: decision, motivo }, 403);
     return {
       db: s.db,
       org: s.org,
@@ -824,6 +823,8 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       instante: new Date(ahora()).toISOString(),
     };
   };
+  const delCatalogo = (c: ContextoTienda) =>
+    quienPuede(c, 'catalogo.editar', 'Tu rol no puede editar el catálogo.');
   const responderCatalogo = (c: ContextoTienda, r: ResultadoDelCatalogo) => {
     if (r.estado === 'guardado') return c.json(r);
     if (r.estado === 'problemas') return c.json(r, 422);
@@ -929,6 +930,36 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
     if (r.estado === 'problemas') return c.json(r, 422);
     if (r.estado === 'no-existe') return c.json(r, 404);
     return c.json(r);
+  });
+
+  // HU-T8.5: el inventario y su libro, con los permisos `inventario.ajustar` y `avisame.atender`.
+  const delInventario = (c: ContextoTienda) =>
+    quienPuede(c, 'inventario.ajustar', 'Tu rol no puede ajustar el inventario.');
+  app.get('/api/panel/v1/inventario', async (c) => {
+    const q = delInventario(c);
+    if (q instanceof Response) return q;
+    return c.json({ filas: await listarInventario(q) });
+  });
+  app.get('/api/panel/v1/inventario/:variante', async (c) => {
+    const q = delInventario(c);
+    if (q instanceof Response) return q;
+    const cursor = Number(c.req.query('cursor'));
+    const r = await libroDe(
+      q,
+      c.req.param('variante'),
+      Number.isSafeInteger(cursor) && cursor > 0 ? cursor : null,
+    );
+    return r ? c.json(r) : c.json({ estado: 'no-existe', motivo: 'Esa combinación no está.' }, 404);
+  });
+  app.post('/api/panel/v1/inventario/ajustar', async (c) => {
+    const q = delInventario(c);
+    if (q instanceof Response) return q;
+    return responderCatalogo(c, await ajustarInventario(q, await c.req.json().catch(() => null)));
+  });
+  app.post('/api/panel/v1/avisame/atender', async (c) => {
+    const q = quienPuede(c, 'avisame.atender', 'Tu rol no puede atender los avisos.');
+    if (q instanceof Response) return q;
+    return responderCatalogo(c, await atenderAvisame(q, await c.req.json().catch(() => null)));
   });
 
   // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.

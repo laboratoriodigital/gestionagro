@@ -33,6 +33,7 @@ import { ElegirTienda, NOMBRE_DEL_ROL } from './vistas/ElegirTienda.tsx';
 import { Entrar } from './vistas/Entrar.tsx';
 import { Galeria } from './vistas/Galeria.tsx';
 import { Inicio } from './vistas/Inicio.tsx';
+import { Existencias, Inventario } from './vistas/Inventario.tsx';
 import { Mas } from './vistas/Mas.tsx';
 import { PorLlegar } from './vistas/PorLlegar.tsx';
 import { Privacidad } from './vistas/Privacidad.tsx';
@@ -201,6 +202,17 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     );
   else if (ruta === '/productos/colecciones/')
     cuerpo = <Colecciones conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/productos/inventario/')
+    cuerpo = <Inventario conexion={conexion} alVencer={setVencida} />;
+  else if (/^\/productos\/inventario\/[^/]+\/$/.test(ruta))
+    cuerpo = (
+      <Existencias
+        key={ruta}
+        conexion={conexion}
+        variante={decodeURIComponent(ruta.split('/')[3] ?? '')}
+        alVencer={setVencida}
+      />
+    );
   else if (/^\/productos\/colecciones\/[^/]+\/$/.test(ruta))
     cuerpo = (
       <Coleccion

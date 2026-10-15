@@ -185,6 +185,15 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('sub', 'iste', 'ió')} una foto de «${nombre}»`;
     case 'medio.quitar':
       return `${hizo('quit', 'aste', 'ó')} una foto de «${nombre}»`;
+    case 'inventario.ajustar':
+      return `${hizo('ajust', 'aste', 'ó')} las existencias de ${combinacion(despues)} en «${nombre}» de ${antes['stock']} a ${despues['stock']}`;
+    case 'inventario.contar':
+      return `${hizo('cont', 'aste', 'ó')} ${combinacion(despues)} de «${nombre}»: había ${antes['stock']}, hay ${despues['stock']}`;
+    case 'avisame.atender': {
+      const n = Number(antes['personas'] ?? 0);
+      const a = n === 1 ? 'a la persona que esperaba' : `a las ${n} personas que esperaban`;
+      return `${hizo('avis', 'aste', 'ó')} ${a} ${combinacion(antes)} de «${nombre}»`;
+    }
     default:
       return `${quien}: ${f.accion} (${f.entidad})`;
   }
