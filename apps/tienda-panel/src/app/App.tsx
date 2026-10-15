@@ -45,6 +45,7 @@ import { Productos } from './vistas/Productos.tsx';
 import { Recaudos } from './vistas/Recaudos.tsx';
 import { Registro } from './vistas/Registro.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
+import { CuponDeLaTienda, EnvioDeLaTienda, Venta } from './vistas/Venta.tsx';
 
 const LIBRES = new Set(['/privacidad/', '/_galeria/']);
 
@@ -256,7 +257,28 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         alVencer={setVencida}
       />
     );
-  else if (ruta === '/mas/registro/')
+  else if (ruta === '/mas/venta/') cuerpo = <Venta conexion={conexion} alVencer={setVencida} />;
+  else if (/^\/mas\/venta\/envios\/[^/]+\/$/.test(ruta)) {
+    const id = decodeURIComponent(ruta.split('/')[4] ?? '');
+    cuerpo = (
+      <EnvioDeLaTienda
+        key={ruta}
+        conexion={conexion}
+        id={id === 'nuevo' ? null : id}
+        alVencer={setVencida}
+      />
+    );
+  } else if (/^\/mas\/venta\/cupones\/[^/]+\/$/.test(ruta)) {
+    const codigo = decodeURIComponent(ruta.split('/')[4] ?? '');
+    cuerpo = (
+      <CuponDeLaTienda
+        key={ruta}
+        conexion={conexion}
+        codigo={codigo === 'nuevo' ? null : codigo}
+        alVencer={setVencida}
+      />
+    );
+  } else if (ruta === '/mas/registro/')
     cuerpo = <Registro conexion={conexion} alVencer={setVencida} />;
   else if (ruta.startsWith('/mas/') && sesion)
     cuerpo = (

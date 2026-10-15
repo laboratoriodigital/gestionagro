@@ -20,7 +20,13 @@ import {
 } from '@ed1/tienda-schema';
 import { llmsTxt, manifiestoWeb, robotsDeLaTienda } from './agentes.ts';
 import { escaparHtml, markdownPlano, markdownSeguro } from './escapar.ts';
-import { type DatosLegales, type FormaDePago, TEXTOS_LEGALES, textosLegales } from './legal.ts';
+import {
+  type DatosLegales,
+  type FormaDePago,
+  plazoDelEnvio,
+  TEXTOS_LEGALES,
+  textosLegales,
+} from './legal.ts';
 import { type Apariencia, coloresDelTema, cssDelTema, fondoDelTema } from './tema.ts';
 import { estadoDeLaEleccion } from './vitrina/seleccion.ts';
 
@@ -404,12 +410,7 @@ ${p.cuerpo}
    */
   const envios = t.legal?.envios ?? [];
   const condiciones = (p: ProductoParaHornear): string[] => {
-    const plazo = (e: (typeof envios)[number]) =>
-      e.diasMin !== null && e.diasMax !== null && e.diasMin !== e.diasMax
-        ? `llega en ${e.diasMin} a ${e.diasMax} días`
-        : e.diasMax !== null || e.diasMin !== null
-          ? `llega en ${e.diasMax ?? e.diasMin} ${(e.diasMax ?? e.diasMin) === 1 ? 'día' : 'días'}`
-          : 'el plazo te lo confirma la tienda';
+    const plazo = (e: (typeof envios)[number]) => plazoDelEnvio(e.diasMin, e.diasMax);
     return [
       ...(envios.length > 0
         ? envios.map(
@@ -583,19 +584,17 @@ ${p.cuerpo}
   const whatsapp = presente(t.whatsapp) ? t.whatsapp.replace(/\D/g, '') : '';
   const formas = (t.legal?.formas ?? []).filter((f) => f.forma !== 'en_linea');
   const enviosConId = (t.legal?.envios ?? []).filter((e) => presente(e.id));
-  const plazoDelEnvio = (e: (typeof enviosConId)[number]) =>
-    e.diasMin !== null && e.diasMax !== null && e.diasMin !== e.diasMax
-      ? `llega en ${e.diasMin} a ${e.diasMax} días`
-      : e.diasMax !== null || e.diasMin !== null
-        ? `llega en ${e.diasMax ?? e.diasMin} ${(e.diasMax ?? e.diasMin) === 1 ? 'día' : 'días'}`
-        : 'el plazo te lo confirma la tienda';
   const tarjetaDeForma = (f: (typeof formas)[number]) =>
     `<label class="opcion-grande"><input type="radio" name="forma" value="${f.forma}"><span class="opcion-grande__nombre">${escaparHtml(NOMBRE_DE_LA_FORMA[f.forma])}</span><span class="opcion-grande__nota">${escaparHtml(NOTA_DE_LA_FORMA[f.forma])}</span></label>`;
   const tarjetaDeEnvio = (e: (typeof enviosConId)[number]) =>
-    `<label class="opcion-grande"><input type="radio" name="envio" value="${escaparHtml(e.id ?? '')}"><span class="opcion-grande__nombre">${escaparHtml(e.nombre)} · ${e.precioCop === 0 ? 'gratis' : formatearPesos(e.precioCop)}</span><span class="opcion-grande__nota">${escaparHtml(`${e.gratisDesdeCop !== null && e.precioCop > 0 ? `Gratis desde ${formatearPesos(e.gratisDesdeCop)}; ` : ''}${plazoDelEnvio(e)}.`)}</span></label>`;
+    `<label class="opcion-grande"><input type="radio" name="envio" value="${escaparHtml(e.id ?? '')}"><span class="opcion-grande__nombre">${escaparHtml(e.nombre)} · ${e.precioCop === 0 ? 'gratis' : formatearPesos(e.precioCop)}</span><span class="opcion-grande__nota">${escaparHtml(`${e.gratisDesdeCop !== null && e.precioCop > 0 ? `Gratis desde ${formatearPesos(e.gratisDesdeCop)}; ` : ''}${plazoDelEnvio(e.diasMin, e.diasMax)}.`)}</span></label>`;
   const datosDeVenta = {
     formas: formas.map((f) => ({ forma: f.forma, nombre: NOMBRE_DE_LA_FORMA[f.forma] })),
-    envios: enviosConId.map((e) => ({ id: e.id, nombre: e.nombre, plazo: plazoDelEnvio(e) })),
+    envios: enviosConId.map((e) => ({
+      id: e.id,
+      nombre: e.nombre,
+      plazo: plazoDelEnvio(e.diasMin, e.diasMax),
+    })),
     terminos: huellaDeLosTerminos,
   };
   pagina({

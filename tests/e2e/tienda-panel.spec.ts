@@ -1269,6 +1269,105 @@ test('HU-T9.6 · CA1 y CA2: una nota, un enlace nuevo y cancelar preguntando si 
   await expect(page.getByText('Cancelar el pedido', { exact: true })).toHaveCount(0);
 });
 
+test('HU-T10.1 · CA1 y CA2: un envío de 45 días lo avisa, y un cupón dice sus usos y si se agotó', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const venta = {
+    envios: [
+      {
+        id: 'e-medellin',
+        nombre: 'Medellín',
+        precioCop: 8000,
+        gratisDesdeCop: 150000,
+        ciudades: ['Medellín', 'Envigado'],
+        diasMin: 1,
+        diasMax: 2,
+        activa: true,
+        version: 1,
+        plazo: 'llega en 1 a 2 días',
+      },
+    ],
+    cupones: [
+      {
+        codigo: 'CINCUENTA',
+        tipo: 'porcentaje',
+        valor: 10,
+        minimoCop: 0,
+        desde: null,
+        hasta: '2026-10-31',
+        usosMaximos: 50,
+        usos: 50,
+        activo: true,
+        version: 3,
+      },
+    ],
+  };
+  await page.route(`${PANEL}/api/panel/v1/venta`, (r) => r.fulfill({ json: venta }));
+  const guardados: Record<string, Record<string, unknown>[]> = { envios: [], cupones: [] };
+  await page.route(`${PANEL}/api/panel/v1/*/guardar`, (r) => {
+    const que = new URL(r.request().url()).pathname.split('/')[4] ?? '';
+    guardados[que]?.push(r.request().postDataJSON() as Record<string, unknown>);
+    return r.fulfill({ json: { estado: 'guardado', id: 'x', version: 1 } });
+  });
+
+  await page.goto(`${PANEL}/mas/`);
+  await page.getByRole('link', { name: 'Envíos y cupones' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Envíos y cupones' })).toBeVisible();
+  await expect(page.getByText('en Medellín, Envigado · llega en 1 a 2 días')).toBeVisible();
+  await expect(page.getByText('agotado: 50 de 50 usos')).toBeVisible();
+  await sinFallasDeAxe(page);
+
+  await page.getByRole('link', { name: 'Agregar un envío' }).click();
+  await page.getByRole('button', { name: 'Guardar el envío' }).click();
+  await expect(page.getByText('Falta corregir 2 cosas:')).toBeVisible();
+  await page.getByLabel(/^Nombre/).fill('Bodega');
+  await page.getByLabel(/^Precio/).fill('40.000');
+  await page.getByLabel(/como mínimo/).fill('35');
+  await page.getByLabel(/como máximo/).fill('45');
+  await expect(page.getByText('Pasa de 30 días calendario')).toBeVisible();
+  await sinFallasDeAxe(page);
+  await page.getByRole('button', { name: 'Guardar el envío' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Envíos y cupones' })).toBeVisible();
+  expect(guardados['envios']).toEqual([
+    expect.objectContaining({
+      nombre: 'Bodega',
+      precioCop: 40000,
+      gratisDesdeCop: null,
+      ciudades: null,
+      diasMin: 35,
+      diasMax: 45,
+      activa: true,
+    }),
+  ]);
+
+  await page.getByRole('link', { name: 'Crear un cupón' }).click();
+  await page.getByLabel(/^Código/).fill('bienvenida');
+  await page.getByLabel('Un porcentaje').check();
+  await page.getByLabel(/^Porcentaje/).fill('150');
+  await page.getByLabel(/^Vale desde/).fill('2026-11-01');
+  await page.getByLabel(/^Vale hasta/).fill('2026-10-01');
+  await page.getByRole('button', { name: 'Guardar el cupón' }).click();
+  await expect(page.getByText('Falta corregir 2 cosas:')).toBeVisible();
+  expect(guardados['cupones']).toEqual([]);
+  await page.getByLabel(/^Porcentaje/).fill('15');
+  await page.getByLabel(/^Vale hasta/).fill('2026-11-30');
+  await page.getByLabel(/Cuántas veces/).fill('50');
+  await sinFallasDeAxe(page);
+  await page.getByRole('button', { name: 'Guardar el cupón' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Envíos y cupones' })).toBeVisible();
+  expect(guardados['cupones']).toEqual([
+    expect.objectContaining({
+      codigo: 'BIENVENIDA',
+      tipo: 'porcentaje',
+      valor: 15,
+      desde: '2026-11-01',
+      hasta: '2026-11-30',
+      usosMaximos: 50,
+    }),
+  ]);
+});
+
 test('HU-T10.3 · CA2 y CA3: cambiar el WhatsApp pide volver a entrar sin perder lo escrito, y se verifica', async ({
   page,
 }) => {

@@ -114,6 +114,7 @@ import {
   seguirSolicitud,
 } from './solicitudes.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
+import { borrarCupon, borrarEnvio, guardarCupon, guardarEnvio, listarVenta } from './venta.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
 export const CABECERA_TIENDA = 'x-tienda';
@@ -1107,9 +1108,13 @@ export function crearApp(
 
   // HU-T9.5: entregar (y recaudar), devolver, perder y liquidar; la pantalla Recaudos.
   const cambioDelPedido =
-    (accion: Accion, hacer: (q: Quien, cuerpo: unknown) => Promise<ResultadoDelCatalogo>) =>
+    (
+      accion: Accion,
+      hacer: (q: Quien, cuerpo: unknown) => Promise<ResultadoDelCatalogo>,
+      motivo = 'Tu rol no puede cambiar este pedido.',
+    ) =>
     async (c: ContextoTienda) => {
-      const q = quienPuede(c, accion, 'Tu rol no puede cambiar este pedido.');
+      const q = quienPuede(c, accion, motivo);
       if (q instanceof Response) return q;
       return responderCatalogo(c, await hacer(q, await c.req.json().catch(() => null)));
     };
@@ -1153,6 +1158,28 @@ export function crearApp(
     if (q instanceof Response) return q;
     return c.json(await listarRecaudos(q));
   });
+
+  // HU-T10.1: envíos y cupones. Leer pide cualquiera de los dos permisos; escribir, el de cada uno.
+  app.get('/api/panel/v1/venta', async (c) => {
+    const q = quienPuede(c, 'envios.editar', 'Tu rol no puede ver los envíos ni los cupones.');
+    if (q instanceof Response) return q;
+    return c.json(await listarVenta(q));
+  });
+  const deEnvios = 'Tu rol no puede cambiar los envíos.';
+  const deCupones = 'Tu rol no puede cambiar los cupones.';
+  app.post(
+    '/api/panel/v1/envios/guardar',
+    cambioDelPedido('envios.editar', guardarEnvio, deEnvios),
+  );
+  app.post('/api/panel/v1/envios/borrar', cambioDelPedido('envios.editar', borrarEnvio, deEnvios));
+  app.post(
+    '/api/panel/v1/cupones/guardar',
+    cambioDelPedido('cupones.editar', guardarCupon, deCupones),
+  );
+  app.post(
+    '/api/panel/v1/cupones/borrar',
+    cambioDelPedido('cupones.editar', borrarCupon, deCupones),
+  );
 
   // HU-T10.3: los ajustes por sección. Lo que pide cada cambio lo decide `accionesDeAjuste`.
   app.get('/api/panel/v1/ajustes', async (c) => {

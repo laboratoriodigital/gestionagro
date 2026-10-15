@@ -13,6 +13,7 @@ export function Texto({
   ayuda,
   opcional,
   numerico,
+  fecha,
   deshabilitado,
 }: {
   id: string;
@@ -23,6 +24,8 @@ export function Texto({
   ayuda?: string;
   opcional?: boolean;
   numerico?: boolean;
+  /** Una fecha `AAAA-MM-DD`, con el calendario del teléfono. */
+  fecha?: boolean;
   deshabilitado?: boolean;
 }) {
   const describe = [ayuda ? `${id}-ayuda` : null, error ? `${id}-error` : null]
@@ -37,7 +40,7 @@ export function Texto({
       <input
         class="ed1-campo__control"
         id={id}
-        type="text"
+        type={fecha ? 'date' : 'text'}
         inputMode={numerico ? 'numeric' : undefined}
         value={valor}
         disabled={deshabilitado}

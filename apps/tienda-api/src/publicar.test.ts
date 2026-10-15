@@ -262,6 +262,28 @@ describe('publicar (HU-T4.4)', () => {
     expect(r2.escrituras()).toBe(0);
   });
 
+  it('❌ un envío de 45 días se publica, porque la tienda lo dice con su plazo (HU-T10.1 CA1)', async () => {
+    await shard
+      .prepare(
+        `INSERT INTO envio_opcion (org_id, id, nombre, precio_cop, dias_min, dias_max)
+         VALUES (?, 'e-bodega', 'Bodega', 40000, 35, 45)`,
+      )
+      .bind(ENSAYO_UNO.org)
+      .run();
+    try {
+      const r2 = almacen();
+      const r = await publicar(contexto(ENSAYO_UNO.org, r2));
+      expect(r).toMatchObject({ estado: 'publicada' });
+      const ficha = [...r2.objetos.values()].find((t) => t.includes('Envío Bodega: $40.000'));
+      expect(ficha).toContain('45 días calendario: más que los 30 de la ley');
+    } finally {
+      await shard
+        .prepare("DELETE FROM envio_opcion WHERE org_id = ? AND id = 'e-bodega'")
+        .bind(ENSAYO_UNO.org)
+        .run();
+    }
+  });
+
   it('❌ una segunda publicación mientras otra está en curso responde «en curso»', async () => {
     await shard
       .prepare(

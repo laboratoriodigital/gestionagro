@@ -221,6 +221,18 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
     }
     case 'pedido.despachar':
       return `${hizo('despach', 'aste', 'ó')} el pedido #${despues['numero']}${despues['transportadora'] ? ` por ${despues['transportadora']}` : ''}${despues['guia'] ? `, guía ${despues['guia']}` : ''}`;
+    case 'envio.crear':
+      return `${hizo('cre', 'aste', 'ó')} el envío «${nombre}»`;
+    case 'envio.editar':
+      return `${hizo('edit', 'aste', 'ó')} el envío «${nombre}»`;
+    case 'envio.borrar':
+      return `${hizo('mand', 'aste', 'ó')} el envío «${nombre}» a la papelera`;
+    case 'cupon.crear':
+      return `${hizo('cre', 'aste', 'ó')} el cupón ${nombre}`;
+    case 'cupon.editar':
+      return `${hizo('edit', 'aste', 'ó')} el cupón ${nombre}`;
+    case 'cupon.borrar':
+      return `${hizo('mand', 'aste', 'ó')} el cupón ${nombre} a la papelera`;
     case 'ajustes.guardar':
       return `${hizo('cambi', 'aste', 'ó')} los ajustes de ${TITULOS_DE_SECCION[f.entidad_id as keyof typeof TITULOS_DE_SECCION] ?? f.entidad_id}`;
     case 'ajustes.whatsapp_verificado':

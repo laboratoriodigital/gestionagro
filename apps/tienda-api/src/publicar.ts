@@ -28,6 +28,7 @@ import {
   manifiesto,
   type ProductoParaHornear,
   type ProductoParaLaCompuerta,
+  plazoDelEnvio,
   type TiendaParaHornear,
 } from '@ed1/tienda-horno';
 import { leerFormatos, type Seccion, validarSeccion } from '@ed1/tienda-schema';
@@ -366,7 +367,12 @@ export async function publicar(c: Contexto): Promise<Resultado> {
         }),
       ),
       archivos,
-      envios: envios.map((e) => ({ nombre: e.nombre, plazoDias: e.dias_max ?? 0 })),
+      // La compuerta lee el mismo texto que verá el comprador (HU-T10.1 CA1).
+      envios: envios.map((e) => ({
+        nombre: e.nombre,
+        plazoDias: Math.max(e.dias_min ?? 0, e.dias_max ?? 0),
+        texto: plazoDelEnvio(e.dias_min, e.dias_max),
+      })),
       ...(c.omitir ? { omitir: c.omitir } : {}),
     });
     if (!revision.ok) {
