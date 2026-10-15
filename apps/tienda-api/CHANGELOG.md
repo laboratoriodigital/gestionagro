@@ -4,7 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.1.0] - 2026-10-14
+
+La Tienda sale a producción sin tiendas: el camino queda probado antes de la primera tienda real. La vitrina está completa en staging, con los dos comercios de prueba.
+
 ### Agregado
+- La Tienda en producción (HU-T2.9): el panel en panel.laboratorio-digital.app y el despacho en origen.laboratorio-digital.app, que sin tienda dice «Esta dirección no tiene tienda». La prueba de humo mira los dominios públicos y falla si encuentra un comercio de prueba en producción o si el ambiente no es el del despliegue.
 - Cargar una tienda entera desde un archivo (HU-T12.2): primero se revisa y se dicen todos los problemas a la vez; después se aplica por partes, sin duplicar nada si se corre dos veces y sin borrar lo que ya estaba.
 - La tienda no puede pesar de más ni cargar cosas de terceros (HU-T3.6): cada página se mide en un teléfono lento antes de salir, y una tienda que traiga algo de afuera no se publica.
 - Seguir el pedido (HU-T6.3): el comprador ve en qué va su pedido con el enlace que recibió, sin crear una cuenta, y nadie más puede verlo.
