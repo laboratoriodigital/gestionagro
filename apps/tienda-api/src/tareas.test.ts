@@ -20,6 +20,8 @@ import {
   estadoDeLasTareas,
   hostsEsperados,
   type KvDeTareas,
+  PURGAS,
+  purgarTienda,
   RECONSTRUIR_HOSTS,
   type Tarea,
   tocan,
@@ -171,5 +173,215 @@ describe('la diaria rehace TIENDA_HOSTS desde la base (CA2)', () => {
     expect(t.enviados).toHaveLength(1);
     expect(t.enviados[0]).toContain(`${hostDeStaging(ENSAYO_DOS.slug)}: difería`);
     expect(t.enviados[0]).toContain(`${hostDeStaging(ENSAYO_UNO.slug)}: faltaba`);
+  });
+});
+
+describe('las purgas diarias (HU-T17.2)', () => {
+  /** Las 3 a. m. de Bogotá del 20 nov 2026: la papelera vence lo borrado hasta el 21 oct a esta hora. */
+  const INSTANTE = Date.parse('2026-11-20T08:00:00.000Z');
+  const TREINTA_DIAS = '2026-10-21T08:00:00.000Z';
+  const CASI_TREINTA = '2026-10-21T08:00:00.001Z';
+  const MUY_VIEJO = '2026-09-01T00:00:00.000Z';
+  const HUELLA = 'a'.repeat(64);
+
+  const correr = (sql: string, ...valores: unknown[]) =>
+    shard
+      .prepare(sql)
+      .bind(...valores)
+      .run();
+  const hay = async (sql: string, ...valores: unknown[]) =>
+    (
+      await shard
+        .prepare(sql)
+        .bind(...valores)
+        .first<{ n: number }>()
+    )?.n ?? 0;
+
+  /** Un producto con una variante, foto, enlace a una colección, libro de inventario y «avísame». */
+  async function producto(org: string, id: string, borrado: string | null, enColeccion: string) {
+    await correr(
+      `INSERT INTO producto (org_id, id, slug, nombre, estado, creado, actualizado, borrado)
+       VALUES (?, ?, ?, ?, 'archivado', ?, ?, ?)`,
+      org,
+      id,
+      id,
+      `Producto ${id}`,
+      AHORA,
+      AHORA,
+      borrado,
+    );
+    await correr(
+      'INSERT INTO variante (org_id, id, producto_id, clave, precio_cop, stock, actualizado) VALUES (?, ?, ?, ?, 1000, 5, ?)',
+      org,
+      `${id}-v`,
+      id,
+      'unica',
+      AHORA,
+    );
+    await correr(
+      'UPDATE variante SET stock = 4, actualizado = ? WHERE org_id = ? AND id = ?',
+      AHORA,
+      org,
+      `${id}-v`,
+    );
+    await correr(
+      `INSERT INTO medio (org_id, id, producto_id, ancho, alto, formatos, creado)
+       VALUES (?, ?, ?, 800, 800, '{"400":1}', ?)`,
+      org,
+      HUELLA,
+      id,
+      AHORA,
+    );
+    await correr(
+      'INSERT INTO interes_reposicion (org_id, variante_id, personas, desde, ultimo) VALUES (?, ?, 1, ?, ?)',
+      org,
+      `${id}-v`,
+      AHORA,
+      AHORA,
+    );
+    await correr(
+      'INSERT INTO coleccion_producto (org_id, coleccion_id, producto_id) VALUES (?, ?, ?)',
+      org,
+      enColeccion,
+      id,
+    );
+  }
+  const coleccion = (org: string, id: string, borrado: string | null) =>
+    correr(
+      'INSERT INTO coleccion (org_id, id, slug, nombre, actualizado, borrado) VALUES (?, ?, ?, ?, ?, ?)',
+      org,
+      id,
+      id,
+      `Colección ${id}`,
+      AHORA,
+      borrado,
+    );
+  const envio = (org: string, id: string, borrado: string) =>
+    correr(
+      "INSERT INTO envio_opcion (org_id, id, nombre, precio_cop, borrado) VALUES (?, ?, 'Envío', 0, ?)",
+      org,
+      id,
+      borrado,
+    );
+  const operacion = (org: string, op: string, creada: string) =>
+    correr(
+      "INSERT INTO operacion (org_id, op, ruta, respuesta, creada) VALUES (?, ?, '/x', '{}', ?)",
+      org,
+      op,
+      creada,
+    );
+  const existe = (tabla: string, org: string, id: string) =>
+    hay(`SELECT count(*) AS n FROM ${tabla} WHERE org_id = ? AND id = ?`, org, id);
+
+  beforeAll(async () => {
+    for (const org of [ENSAYO_UNO.org, ENSAYO_DOS.org]) {
+      await coleccion(org, 'pz-viva', null);
+      await coleccion(org, 'pz-col-vieja', MUY_VIEJO);
+      await coleccion(org, 'pz-col-casi', CASI_TREINTA);
+      await producto(org, 'pz-viejo', TREINTA_DIAS, 'pz-viva');
+      await producto(org, 'pz-casi', CASI_TREINTA, 'pz-col-vieja');
+      await producto(org, 'pz-vendido', MUY_VIEJO, 'pz-viva');
+      await envio(org, 'pz-env-viejo', TREINTA_DIAS);
+      await envio(org, 'pz-env-casi', CASI_TREINTA);
+      await operacion(org, 'pz-op-vieja', '2026-11-18T08:00:00.000Z');
+      await operacion(org, 'pz-op-nueva', '2026-11-18T08:00:00.001Z');
+    }
+    // El producto vendido: una de sus variantes está en un pedido.
+    await correr(
+      `INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, forma_pago, subtotal_cop, total_cop, cambiado_por, creado, actualizado)
+       VALUES (?, 'pz-pedido', 'PZK234', 7001, 'pendiente', 'whatsapp', 'transferencia', 1000, 1000, 'prueba', ?, ?)`,
+      ENSAYO_UNO.org,
+      AHORA,
+      AHORA,
+    );
+    await correr(
+      `INSERT INTO pedido_linea (org_id, pedido_id, linea, producto_id, variante_id, nombre, precio_unitario_cop, cantidad, total_cop)
+       VALUES (?, 'pz-pedido', 1, 'pz-vendido', 'pz-vendido-v', 'Producto pz-vendido', 1000, 1, 1000)`,
+      ENSAYO_UNO.org,
+    );
+  });
+
+  it('CA1 · purga la tienda: lo que cumplió su plazo se va con todo lo suyo, y nada de otra tienda', async () => {
+    const r = await purgarTienda(shard, ENSAYO_UNO.org, TREINTA_DIAS, '2026-11-18T08:00:00.000Z');
+    const uno = ENSAYO_UNO.org;
+    expect(await existe('producto', uno, 'pz-viejo')).toBe(0);
+    expect(await existe('variante', uno, 'pz-viejo-v')).toBe(0);
+    expect(
+      await hay(
+        'SELECT count(*) AS n FROM medio WHERE org_id = ? AND producto_id = ?',
+        uno,
+        'pz-viejo',
+      ),
+    ).toBe(0);
+    expect(
+      await hay(
+        'SELECT count(*) AS n FROM movimiento_inventario WHERE org_id = ? AND variante_id = ?',
+        uno,
+        'pz-viejo-v',
+      ),
+    ).toBe(0);
+    expect(
+      await hay(
+        'SELECT count(*) AS n FROM interes_reposicion WHERE org_id = ? AND variante_id = ?',
+        uno,
+        'pz-viejo-v',
+      ),
+    ).toBe(0);
+    expect(await existe('coleccion', uno, 'pz-col-vieja')).toBe(0);
+    expect(await existe('envio_opcion', uno, 'pz-env-viejo')).toBe(0);
+    expect(
+      await hay(
+        'SELECT count(*) AS n FROM operacion WHERE org_id = ? AND op = ?',
+        uno,
+        'pz-op-vieja',
+      ),
+    ).toBe(0);
+    expect(r.retenidos).toBe(1);
+    expect(r.filas).toBeGreaterThanOrEqual(10);
+    // Ensayo Dos tiene lo mismo y no se tocó.
+    expect(await existe('producto', ENSAYO_DOS.org, 'pz-viejo')).toBe(1);
+    expect(await existe('coleccion', ENSAYO_DOS.org, 'pz-col-vieja')).toBe(1);
+  });
+
+  it('CA2 ❌ · nada se purga antes de su plazo, ni un milisegundo', async () => {
+    const uno = ENSAYO_UNO.org;
+    expect(await existe('producto', uno, 'pz-casi')).toBe(1);
+    expect(await existe('variante', uno, 'pz-casi-v')).toBe(1);
+    expect(await existe('coleccion', uno, 'pz-col-casi')).toBe(1);
+    expect(await existe('envio_opcion', uno, 'pz-env-casi')).toBe(1);
+    expect(
+      await hay(
+        'SELECT count(*) AS n FROM operacion WHERE org_id = ? AND op = ?',
+        uno,
+        'pz-op-nueva',
+      ),
+    ).toBe(1);
+    // Una colección viva conserva sus enlaces a productos vivos.
+    expect(await existe('coleccion', uno, 'pz-viva')).toBe(1);
+  });
+
+  it('un producto vendido se queda en la papelera: el pedido nombra su variante (P21)', async () => {
+    const uno = ENSAYO_UNO.org;
+    expect(await existe('producto', uno, 'pz-vendido')).toBe(1);
+    expect(await existe('variante', uno, 'pz-vendido-v')).toBe(1);
+  });
+
+  it('la tarea diaria purga cada tienda de cada shard con el reloj de su corrida', async () => {
+    const corridas = await despachar(entorno(), INSTANTE, [PURGAS]);
+    expect(corridas).toEqual([
+      {
+        nombre: 'purgas',
+        ok: true,
+        resumen: expect.stringMatching(
+          /^\d+ filas purgadas; 1 productos vendidos se quedan en la papelera$/,
+        ),
+      },
+    ]);
+    const dos = ENSAYO_DOS.org;
+    expect(await existe('producto', dos, 'pz-viejo')).toBe(0);
+    expect(await existe('producto', dos, 'pz-vendido')).toBe(0);
+    expect(await existe('producto', dos, 'pz-casi')).toBe(1);
+    // El día anterior a las 3 a. m. la diaria no toca: nada se corre fuera de su hora.
+    expect(tocan(INSTANTE - 60 * 60 * 1000)).toEqual(['hora']);
   });
 });

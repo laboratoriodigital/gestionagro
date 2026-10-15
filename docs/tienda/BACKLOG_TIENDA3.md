@@ -1496,7 +1496,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T17.1.1 `[código]` · WI-T17.1.2 `[prueba]`.
 
 #### HU-T17.2 · Las purgas diarias
-- **Capa:** operación · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T7 · **Depende de:** HU-T17.1 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T7 · **Depende de:** HU-T17.1 · **Estado:** En validación (rama `feat/t7-sprint`. La tarea diaria `purgas` en `apps/tienda-api/src/tareas.ts` recorre cada tienda de cada shard y purga, con su `org_id`, lo borrado hace 30 días o más (colecciones, productos, envíos, cupones y páginas) y las `operacion` de 48 horas o más. Un producto se lleva sus variantes, fotos, enlaces a colecciones, libro de inventario y «avísame». **Cambió:** un producto con alguna variante en un pedido o un apartado se queda en la papelera, porque el pedido nombra la variante (P21); el resumen de la tarea dice cuántos. Las fotos en R2 no se tocan: son por huella y otra versión publicada puede usarlas. Las exportaciones vencen con una regla de ciclo de vida del almacén que pone el dueño: `docs/runbooks/tienda-ciclo-de-vida.md` (§10). Controles negativos: con 29 días, la tarea purga un producto al que le faltaba un milisegundo; sin retener lo vendido, la purga choca con la clave foránea del pedido y no borra nada)
 - Como plataforma, quiero que lo temporal se borre a su plazo, y nunca antes.
 - **Respaldo:** TIENDA §15.3 (diario); P21. Los contactos vencidos los purga HU-T7.3.
 - **CA1.** Papelera a 30 días, `operacion` a 48 h, exportaciones a 7 días (regla de ciclo de vida de R2).
@@ -1593,6 +1593,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | La cuenta de Gmail de los correos y su permiso de OAuth, en producción | T13 | HU-C10.1 y D-T11: PLATAFORMA §4.11 |
 | Leer, con un abogado, las plantillas de los textos legales de las tiendas | T7 | WI-T7.1.4: `content/tienda/legal/`, hoy en la versión 2 (15 oct 2026: «Solicitudes» explica el formulario con radicado, HU-T6.4). Corregir es editar el `.md`, subir la versión y generar; las tiendas lo toman al publicar |
 | Los datos de Laboratorio Digital como encargado (nombre o razón social, identificación, domicilio, correo, teléfono) | T7 | HU-T7.2: términos y contrato de transmisión |
+| Poner la regla de ciclo de vida de 7 días a `exportaciones/` en `tienda-c1` y `tienda-c1-staging` | T10 | HU-T17.2: `docs/runbooks/tienda-ciclo-de-vida.md`. Antes de que el panel ofrezca «Descargar todo» (HU-T10.7) |
 | Escribir a Bold por un esquema para plataformas | T12 | PLATAFORMA §9.7 (soporte.online@bold.co) |
 | Llaves de pruebas de Bold para Ensayo Uno | T12 | HU-T11.2 |
 | Fijar los umbrales de validación | T14 | HU-T0.3 |

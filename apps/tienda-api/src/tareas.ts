@@ -11,6 +11,9 @@
  *   alguna está atrasada (CA1).
  * - La diaria reconstruye `TIENDA_HOSTS` desde las bases: si difiere, gana la base y se avisa por
  *   Telegram con lo que cambió (CA2).
+ * - La diaria purga lo que cumplió su plazo, y nada antes (HU-T17.2): la papelera a los 30 días y
+ *   las respuestas guardadas de `operacion` a las 48 horas. Las exportaciones las borra la regla de
+ *   ciclo de vida del bucket a los 7 días (`docs/runbooks/tienda-ciclo-de-vida.md`).
  */
 import type { BaseD1 } from '@ed1/d1';
 import { enviarTelegram } from '@ed1/telegram';
@@ -191,4 +194,111 @@ export const RECONSTRUIR_HOSTS: Tarea = {
   },
 };
 
-export const TAREAS: readonly Tarea[] = [RECONSTRUIR_HOSTS];
+/** Los plazos de las purgas (TIENDA §15.3, HU-T17.2 CA1). */
+export const DIAS_EN_LA_PAPELERA = 30;
+export const HORAS_DE_UNA_OPERACION = 48;
+
+/** Las tablas con papelera que nada más nombra: se purgan con su fila. */
+const PAPELERA_SIMPLE = ['envio_opcion', 'cupon', 'pagina'] as const;
+
+/**
+ * Purga una tienda. El límite es un instante ISO: se va lo que se borró **en** o antes de él.
+ * - Una colección se lleva sus enlaces a productos.
+ * - Un producto se lleva sus variantes, fotos, enlaces, libro de inventario y «avísame», pero solo
+ *   si ninguna de sus variantes está en un pedido o un apartado: lo vendido se queda en la
+ *   papelera, porque el pedido nombra la variante (P21). Las fotos en R2 no se tocan aquí: son por
+ *   huella y otra versión publicada puede usarlas.
+ */
+export async function purgarTienda(
+  db: BaseD1,
+  org: string,
+  limitePapelera: string,
+  limiteOperacion: string,
+): Promise<{ filas: number; retenidos: number }> {
+  const { results: productos } = await db
+    .prepare(
+      `SELECT p.id,
+         EXISTS (SELECT 1 FROM variante v WHERE v.org_id = ? AND v.producto_id = p.id AND (
+           EXISTS (SELECT 1 FROM pedido_linea l WHERE l.org_id = ? AND l.variante_id = v.id)
+           OR EXISTS (SELECT 1 FROM apartado a WHERE a.org_id = ? AND a.variante_id = v.id))) AS vendido
+       FROM producto p WHERE p.org_id = ? AND p.borrado IS NOT NULL AND p.borrado <= ?`,
+    )
+    .bind(org, org, org, org, limitePapelera)
+    .all<{ id: string; vendido: number }>();
+  const ids = JSON.stringify(productos.filter((p) => !p.vendido).map((p) => p.id));
+  const variantes = `SELECT id FROM variante WHERE org_id = ? AND producto_id IN (SELECT value FROM json_each(?))`;
+  const colecciones = `SELECT id FROM coleccion WHERE org_id = ? AND borrado IS NOT NULL AND borrado <= ?`;
+  const lote = [
+    db
+      .prepare(
+        `DELETE FROM coleccion_producto WHERE org_id = ? AND (producto_id IN (SELECT value FROM json_each(?)) OR coleccion_id IN (${colecciones}))`,
+      )
+      .bind(org, ids, org, limitePapelera),
+    db
+      .prepare(
+        'DELETE FROM medio WHERE org_id = ? AND producto_id IN (SELECT value FROM json_each(?))',
+      )
+      .bind(org, ids),
+    db
+      .prepare(`DELETE FROM interes_reposicion WHERE org_id = ? AND variante_id IN (${variantes})`)
+      .bind(org, org, ids),
+    db
+      .prepare(
+        `DELETE FROM movimiento_inventario WHERE org_id = ? AND variante_id IN (${variantes})`,
+      )
+      .bind(org, org, ids),
+    db
+      .prepare(
+        'DELETE FROM variante WHERE org_id = ? AND producto_id IN (SELECT value FROM json_each(?))',
+      )
+      .bind(org, ids),
+    db
+      .prepare('DELETE FROM producto WHERE org_id = ? AND id IN (SELECT value FROM json_each(?))')
+      .bind(org, ids),
+    db
+      .prepare('DELETE FROM coleccion WHERE org_id = ? AND borrado IS NOT NULL AND borrado <= ?')
+      .bind(org, limitePapelera),
+    ...PAPELERA_SIMPLE.map((tabla) =>
+      db
+        .prepare(`DELETE FROM ${tabla} WHERE org_id = ? AND borrado IS NOT NULL AND borrado <= ?`)
+        .bind(org, limitePapelera),
+    ),
+    db.prepare('DELETE FROM operacion WHERE org_id = ? AND creada <= ?').bind(org, limiteOperacion),
+  ];
+  const resultados = await db.batch(lote);
+  return {
+    filas: resultados.reduce((n, r) => n + (r.meta?.changes ?? 0), 0),
+    retenidos: productos.filter((p) => p.vendido).length,
+  };
+}
+
+/** La diaria: las purgas de cada tienda de cada shard. Una tienda que falla no detiene a las demás. */
+export const PURGAS: Tarea = {
+  nombre: 'purgas',
+  frecuencia: 'dia',
+  async correr(e, instante) {
+    const limitePapelera = new Date(instante - DIAS_EN_LA_PAPELERA * 24 * HORA_MS).toISOString();
+    const limiteOperacion = new Date(instante - HORAS_DE_UNA_OPERACION * HORA_MS).toISOString();
+    let filas = 0;
+    let retenidos = 0;
+    const fallas: string[] = [];
+    for (const [nombre, db] of e.shards) {
+      const { results } = await db.prepare('SELECT org_id FROM tienda').all<{ org_id: string }>();
+      for (const { org_id } of results) {
+        try {
+          const r = await purgarTienda(db, org_id, limitePapelera, limiteOperacion);
+          filas += r.filas;
+          retenidos += r.retenidos;
+        } catch (error) {
+          fallas.push(
+            `${nombre}/${org_id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+    }
+    if (fallas.length > 0) throw new Error(`purgas con fallas: ${fallas.slice(0, 5).join('; ')}`);
+    return `${filas} filas purgadas${retenidos > 0 ? `; ${retenidos} productos vendidos se quedan en la papelera` : ''}`;
+  },
+};
+
+export const TAREAS: readonly Tarea[] = [RECONSTRUIR_HOSTS, PURGAS];

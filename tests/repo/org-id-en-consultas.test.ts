@@ -169,6 +169,8 @@ const TIENDA: Api = {
   excepciones: {
     'select org_id, version_publicada, estado from tienda':
       'la tarea diaria rehace TIENDA_HOSTS con todas las tiendas del shard; no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.1)',
+    'select org_id from tienda':
+      'la purga diaria recorre las tiendas del shard y purga cada una con su org_id = ?; no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.2)',
     'select count(*) as n from tienda where ?':
       'la salud cuenta los comercios de prueba del fixture (un org_id = ? por cada uno) para que el humo de producción exija cero; no hay token y solo sale el número (worker.ts, HU-T2.9)',
   },
