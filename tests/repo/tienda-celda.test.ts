@@ -8,6 +8,7 @@ import {
   bindingDeLaApi,
   CRON_DE_LA_TIENDA,
   celdasDeLaTienda,
+  DOMINIOS_DE_LA_TIENDA,
   MEDIOS_DE_LA_TIENDA,
   RUTA_WRANGLER_TIENDA_PANEL,
   RUTA_WRANGLER_TIENDA_SITIO,
@@ -112,15 +113,18 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
     expect(panel.assets?.run_worker_first).toEqual(['/api/*']);
   });
 
-  it('staging vive en workers.dev y producción no toma ningún hostname hasta HU-T2.9 (P1)', () => {
-    for (const generada of [
-      wranglerDelSitioDeLaTienda(config),
-      wranglerDelPanelDeLaTienda(config),
-    ]) {
-      const c = generada as unknown as Config;
-      expect([c.workers_dev, c.routes]).toEqual([false, []]);
+  it('staging vive en workers.dev; producción, solo en panel. y origen., sin el comodín todavía (HU-T2.9)', () => {
+    const sitio = wranglerDelSitioDeLaTienda(config) as unknown as Config;
+    const panel = wranglerDelPanelDeLaTienda(config) as unknown as Config;
+    expect(sitio.routes).toEqual([{ pattern: DOMINIOS_DE_LA_TIENDA.origen, custom_domain: true }]);
+    expect(panel.routes).toEqual([{ pattern: DOMINIOS_DE_LA_TIENDA.panel, custom_domain: true }]);
+    for (const c of [sitio, panel]) {
+      expect(c.workers_dev).toBe(false);
       expect(c.env.staging.workers_dev).toBe(true);
+      expect(JSON.stringify(c)).not.toContain('*.laboratorio-digital.app');
     }
+    // El panel de producción es el que celdas.json da a la celda: el humo lo compara.
+    for (const c of celdas) expect(c.api).toBe(`https://${DOMINIOS_DE_LA_TIENDA.panel}`);
     expect((wranglerDelPanelDeLaTienda(config) as unknown as Config).env.staging.routes).toEqual(
       [],
     );
@@ -132,6 +136,10 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
         vars: Record<string, string>;
       };
       expect(api.vars['ENSAYOS']).toBeUndefined();
+      expect(api.vars['AMBIENTE']).toBe('produccion');
+      expect(
+        (api.env.staging as unknown as { vars: Record<string, string> }).vars['AMBIENTE'],
+      ).toBe('staging');
       expect((api.env.staging as unknown as { vars: Record<string, string> }).vars['ENSAYOS']).toBe(
         '1',
       );
@@ -167,6 +175,8 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
       expect(api.ratelimits.map((l) => [l.name, l.simple.limit, l.simple.period])).toEqual([
         ['LIMITE_COTIZAR', 30, 60],
         ['LIMITE_AVISAME', 10, 60],
+        ['LIMITE_PEDIDOS', 10, 60],
+        ['LIMITE_SEGUIMIENTO', 20, 60],
       ]);
       const ids = [...api.ratelimits, ...api.env.staging.ratelimits].map((l) => l.namespace_id);
       expect(new Set(ids).size).toBe(ids.length);

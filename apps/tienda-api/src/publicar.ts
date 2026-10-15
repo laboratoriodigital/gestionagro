@@ -193,10 +193,11 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       .all<{ slug: string; nombre: string; producto: string | null }>();
     const { results: envios } = await c.shard
       .prepare(
-        'SELECT nombre, precio_cop, gratis_desde_cop, dias_min, dias_max FROM envio_opcion WHERE org_id = ? AND activa = 1 AND borrado IS NULL ORDER BY posicion, nombre',
+        'SELECT id, nombre, precio_cop, gratis_desde_cop, dias_min, dias_max FROM envio_opcion WHERE org_id = ? AND activa = 1 AND borrado IS NULL ORDER BY posicion, nombre',
       )
       .bind(c.org)
       .all<{
+        id: string;
         nombre: string;
         precio_cop: number;
         gratis_desde_cop: number | null;
@@ -262,6 +263,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       ...opcional('retracto', texto(legal['retracto'])),
       formas: ((ajustes.venta?.['formas'] ?? []) as DatosLegales['formas']).slice(),
       envios: envios.map((e) => ({
+        id: e.id,
         nombre: e.nombre,
         precioCop: e.precio_cop,
         gratisDesdeCop: e.gratis_desde_cop,

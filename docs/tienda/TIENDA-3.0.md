@@ -117,7 +117,7 @@ Van en la página de planes y las vigila una prueba o el vigía:
 
 | Promesa | Medida | Dónde se vigila |
 |---|---|---|
-| Abre rápido en un teléfono barato | LCP < 2,5 s en 4G lento, 360 px. HTML de la portada < 50 KB; JS < 60 KB comprimido | Lighthouse CI con presupuesto, en cada PR del horno |
+| Abre rápido en un teléfono barato | LCP < 2,5 s en 4G lento, 360 px. HTML de la portada < 50 KB; JS < 60 KB comprimido | Lighthouse CI con presupuesto, en cada PR del horno. *Hoy (HU-T3.6): Playwright mide lo horneado de Ensayo Uno, como la cuenta (HU-C6.6), sin otro navegador: JS ≤ 60 KB y hoja ≤ 20 KB con gzip por página, la portada ≤ 50 KB (también en la compuerta), todo del origen que permite su CSP, y el LCP con 4G lenta y CPU ×4, mediana de 3* |
 | Una visita no consulta la base | Cero consultas a D1 en `GET` de páginas | Prueba del despacho con un D1 que falla si se le habla |
 | Lo que el comprador vio es lo que paga | El servidor recalcula; un carrito distinto no se cobra | §6, §7 y pruebas de cotización |
 | No se vende lo que no hay | `CHECK (reservado <= stock)` | §7 y la prueba de la última unidad |

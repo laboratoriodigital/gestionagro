@@ -55,7 +55,7 @@ test('HU-T5.2 CA4 · sin JavaScript, la ficha se lee entera', async ({ browser }
   await expect(page.getByText('Precio final.')).toBeVisible();
   await expect(page.getByText(/Puedes retractarte de la compra/)).toBeVisible();
   await expect(page.getByRole('link', { name: 'Términos' })).toBeVisible();
-  await page.goto(`${TIENDA}/pedido/`);
+  await page.goto(`${TIENDA}/carrito/`);
   await expect(page.getByRole('link', { name: 'Pide por WhatsApp' })).toHaveAttribute(
     'href',
     'https://wa.me/573000000001',
@@ -79,7 +79,7 @@ test('HU-T5.4 · el carrito: elegir, agregar, ver el pedido con su código y cam
   await expect(barra.locator('[data-cantidad]')).toHaveText('1');
 
   await barra.click();
-  await expect(page).toHaveURL(`${TIENDA}/pedido/`);
+  await expect(page).toHaveURL(`${TIENDA}/carrito/`);
   const linea = page.locator('.linea');
   await expect(linea).toHaveCount(1);
   await expect(linea.locator('.linea__nombre')).toHaveText('Camisa de lino');
@@ -118,7 +118,7 @@ test('HU-T5.4 P10 · un carrito del formato anterior se lee y lo dice; lo agotad
       );
     }
   });
-  await page.goto(`${TIENDA}/pedido/`);
+  await page.goto(`${TIENDA}/carrito/`);
   await expect(page.locator('[data-aviso-carrito]')).toContainText('Actualizamos tu pedido');
   await expect(page.locator('[data-aviso-carrito]')).toContainText(
     'Un producto ya no está disponible',
@@ -154,7 +154,7 @@ test('HU-T5.5 CA2 · si el servidor corrige el pedido o el total cambió, la pá
       },
     }),
   );
-  await page.goto(`${TIENDA}/pedido/`);
+  await page.goto(`${TIENDA}/carrito/`);
   await expect(page.locator('.linea output')).toHaveText('4');
   await expect(page.locator('[data-aviso-carrito]')).toHaveText(
     'Ajustamos tu pedido con lo que la tienda tiene disponible.',
@@ -191,4 +191,143 @@ test('HU-T6.5 · «Avísame cuando haya» en una combinación agotada, una sola 
     'Ya le dijiste a la tienda que esperas esta combinación.',
   );
   await expect(boton).toBeHidden();
+});
+
+test('HU-T6.1 y HU-T6.2 · enviar el pedido: dice qué falta, lo registra y muestra el acuse con WhatsApp', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('sembrado')) {
+      sessionStorage.setItem('sembrado', '1');
+      localStorage.setItem(
+        'tienda:carrito',
+        JSON.stringify({
+          v: 1,
+          codigo: 'ABC234',
+          lineas: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+        }),
+      );
+    }
+  });
+  const enviados: Record<string, unknown>[] = [];
+  await page.route('**/api/v1/cotizar', (ruta) =>
+    ruta.fulfill({
+      json: {
+        subtotal: 129000,
+        descuento: 0,
+        envio: 0,
+        total: 129000,
+        avisos: [],
+        cobrable: true,
+        carrito: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+        cambio: false,
+      },
+    }),
+  );
+  await page.route('**/api/v1/pedidos', async (ruta) => {
+    enviados.push(JSON.parse(ruta.request().postData() ?? '{}') as Record<string, unknown>);
+    await ruta.fulfill({
+      json: {
+        estado: 'registrado',
+        codigo: 'ABC234',
+        numero: 1001,
+        total: 129000,
+        texto: 'Hola, Comercio Ensayo Uno. Quiero hacer este pedido:\nPedido ABC234 · #1001',
+        whatsapp: '573000000001',
+      },
+    });
+  });
+  await page.route('**/api/v1/seguimiento', (ruta) =>
+    ruta.fulfill({
+      json: {
+        codigo: 'ABC234',
+        numero: 1001,
+        estado: 'pendiente',
+        enPalabras: 'Recibido: la tienda lo va a confirmar',
+        pasos: [
+          {
+            estado: 'pendiente',
+            enPalabras: 'Recibido: la tienda lo va a confirmar',
+            instante: '2026-10-14T15:00:00.000Z',
+          },
+        ],
+        lineas: [
+          {
+            nombre: 'Camisa de lino',
+            opciones: 'Talla: M · Color: Arena',
+            cantidad: 1,
+            total: 129000,
+          },
+        ],
+        subtotal: 129000,
+        descuento: 0,
+        envio: 0,
+        total: 129000,
+        envioNombre: null,
+        plazo: null,
+        forma: 'Transferencia',
+        transportadora: null,
+        guia: null,
+      },
+    }),
+  );
+
+  await page.goto(`${TIENDA}/carrito/`);
+  const enviar = page.locator('[data-enviar]');
+  await expect(enviar).toHaveText('Elige cómo pagar');
+  // aria-disabled no impide tocarlo: al tocarlo, dice qué falta y lleva al campo.
+  await enviar.click({ force: true });
+  await expect(page.locator('[data-aviso-venta]')).toHaveText('Elige cómo pagar');
+  expect(enviados).toEqual([]);
+  await page.locator('label.opcion-grande', { hasText: 'Transferencia' }).click();
+  await expect(enviar).toHaveText('Acepta los términos para enviar');
+  // La casilla nunca viene marcada (Ley 1480 art. 50 lit. d).
+  await expect(page.locator('[data-acepta]')).not.toBeChecked();
+  await page.locator('[data-acepta]').check();
+  await expect(enviar).toHaveText('Enviar por WhatsApp');
+  await enviar.click();
+
+  await expect(page).toHaveURL(/\/pedido\/#c=ABC234&s=[A-Za-z0-9_-]{22}$/);
+  expect(enviados).toHaveLength(1);
+  expect(enviados[0]).toMatchObject({
+    codigo: 'ABC234',
+    forma: 'transferencia',
+    acepta: true,
+    totalVisto: 129000,
+  });
+  expect(String(enviados[0]?.['terminos'])).toMatch(/^[0-9a-f]{64}$/);
+  await expect(page.locator('[data-acuse-estado]')).toHaveText(
+    'Recibido: la tienda lo va a confirmar',
+  );
+  await expect(page.locator('[data-acuse-numero]')).toHaveText('#1001');
+  await expect(page.locator('[data-acuse-total]')).toHaveText('$129.000');
+  await expect(page.locator('[data-acuse-forma]')).toHaveText('Transferencia');
+  const whatsapp = page.getByRole('link', { name: 'Enviar por WhatsApp' });
+  await expect(whatsapp).toHaveAttribute(
+    'href',
+    `https://wa.me/573000000001?text=${encodeURIComponent('Hola, Comercio Ensayo Uno. Quiero hacer este pedido:\nPedido ABC234 · #1001')}`,
+  );
+  // El carrito quedó vacío, con otro código: el pedido ya salió.
+  const carrito = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('tienda:carrito') ?? '{}'),
+  );
+  expect(carrito.lineas).toEqual([]);
+  expect(carrito.codigo).not.toBe('ABC234');
+});
+
+test('HU-T6.3 CA3 · un enlace que no es: la página lo dice, sin mostrar ningún pedido', async ({
+  page,
+}) => {
+  const consultas: string[] = [];
+  await page.route('**/api/v1/seguimiento', async (ruta) => {
+    consultas.push(ruta.request().url());
+    await ruta.fulfill({ status: 404, json: { estado: 'no-encontrado' } });
+  });
+  await page.goto(`${TIENDA}/pedido/#c=ZZZ234&s=abcdefghijklmnopqrstuv`);
+  await expect(page.locator('[data-seguimiento-aviso]')).toContainText(
+    'No encontramos un pedido con ese enlace',
+  );
+  await expect(page.locator('[data-acuse]')).toBeHidden();
+  // El secreto viajó en el cuerpo, nunca en la URL de la API.
+  expect(consultas.every((u) => !u.includes('abcdefghijklmnopqrstuv'))).toBe(true);
 });

@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Tu pedido · Comercio Ensayo Dos</title>
+<title>Tu pedido enviado · Comercio Ensayo Dos</title>
 <link rel="canonical" href="https://ensayo-dos--staging.laboratorio-digital.app/pedido/">
 <link rel="alternate" type="text/markdown" href="/pedido/index.md">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Comercio Ensayo Dos">
-<meta property="og:title" content="Tu pedido · Comercio Ensayo Dos">
+<meta property="og:title" content="Tu pedido enviado · Comercio Ensayo Dos">
 <meta property="og:url" content="https://ensayo-dos--staging.laboratorio-digital.app/pedido/">
 <link rel="stylesheet" href="/_t/r1/vitrina.css">
 <link rel="stylesheet" href="/tema-af65663c99ddefa5.css">
@@ -20,13 +20,19 @@
 <header class="franja"><a class="marca" href="/">Comercio Ensayo Dos</a><a class="franja__buscar" href="/buscar/">Buscar</a></header>
 <main>
 <h1>Tu pedido</h1>
-<div class="pedido" data-pedido-pagina>
-<p class="aviso" data-aviso-carrito role="status" hidden></p>
-<p class="pedido__codigo" data-codigo-bloque hidden>Código de tu pedido: <span class="cifra" data-codigo></span></p>
-<p class="estado" data-vacio>Aquí ves lo que agregas a tu pedido desde cada producto. <a href="/">Mira los productos</a>.</p>
-<ul class="lineas" data-lineas></ul>
-<div class="resumen" data-resumen hidden><p class="resumen__fila">Subtotal <span class="cifra" data-subtotal></span></p><p class="resumen__fila resumen__total">Total <span class="cifra" data-total></span></p><p class="aviso aviso--fuerte" data-aviso-total role="alert" hidden></p><p class="resumen__nota" data-nota>El envío se confirma antes de enviar el pedido.</p></div>
-<p class="pedido__whatsapp">¿Prefieres escribir? <a href="https://wa.me/573000000002" rel="nofollow">Pide por WhatsApp</a></p>
+<div class="seguimiento" data-seguimiento>
+<p class="estado" data-seguimiento-vacio>Abre esta página con el enlace de seguimiento que te llegó con tu pedido.</p>
+<p class="aviso" data-seguimiento-aviso role="status" hidden></p>
+<section class="acuse" data-acuse hidden>
+<p class="acuse__codigo">Pedido <span class="cifra" data-acuse-codigo></span> · <span data-acuse-numero></span></p>
+<p class="acuse__estado" data-acuse-estado></p>
+<dl class="acuse__datos"><dt>Total</dt><dd class="cifra" data-acuse-total></dd><dt>Forma de pago</dt><dd data-acuse-forma></dd><dt>Entrega</dt><dd data-acuse-plazo></dd><dt>Guía</dt><dd data-acuse-guia>Te la damos al despachar.</dd></dl>
+<ul class="lineas lineas--acuse" data-acuse-lineas></ul>
+<ol class="pasos" data-acuse-pasos></ol>
+<a class="boton boton--principal" data-acuse-whatsapp hidden>Enviar por WhatsApp</a>
+<p class="acuse__enlace">Guarda este enlace para seguir tu pedido: <a data-acuse-enlace></a></p>
+<button class="boton boton--secundario" type="button" data-imprimir>Imprimir o guardar como PDF</button>
+</section>
 </div>
 </main>
 <footer class="pie">
@@ -36,7 +42,7 @@
 <p><a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a></p>
 <p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>
 </footer>
-<a class="barra-pedido" href="/pedido/" data-pedido hidden>Tu pedido <span class="cifra" data-cantidad>0</span></a>
+<a class="barra-pedido" href="/carrito/" data-pedido hidden>Tu pedido <span class="cifra" data-cantidad>0</span></a>
 <script type="module" src="/_t/r1/vitrina.js"></script>
 </body>
 </html>

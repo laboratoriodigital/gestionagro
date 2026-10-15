@@ -16,7 +16,7 @@ import { formatearPesos } from '@ed1/dinero';
 import { etiquetaDeVerificacionGoogle } from '@ed1/tienda-schema';
 import { llmsTxt, manifiestoWeb, robotsDeLaTienda } from './agentes.ts';
 import { escaparHtml, markdownPlano, markdownSeguro } from './escapar.ts';
-import { type DatosLegales, TEXTOS_LEGALES, textosLegales } from './legal.ts';
+import { type DatosLegales, type FormaDePago, TEXTOS_LEGALES, textosLegales } from './legal.ts';
 import { type Apariencia, coloresDelTema, cssDelTema, fondoDelTema } from './tema.ts';
 import { estadoDeLaEleccion } from './vitrina/seleccion.ts';
 
@@ -108,6 +108,22 @@ const ENLACE_DEL_PIE: Record<string, string> = {
   solicitud: 'Solicitudes',
 };
 const SIGLA_DEL_DOCUMENTO = { NIT: 'NIT', CC: 'C.C.', CE: 'C.E.' } as const;
+
+/** Las formas de pago en el carrito (HU-T6.1): su nombre y qué pasa después, sin datos de cuentas. */
+export const NOMBRE_DE_LA_FORMA: Record<FormaDePago, string> = {
+  a_convenir: 'Lo acordamos por WhatsApp',
+  en_linea: 'En línea',
+  contraentrega: 'Contra entrega',
+  transferencia: 'Transferencia',
+  efectivo: 'Efectivo',
+};
+const NOTA_DE_LA_FORMA: Record<FormaDePago, string> = {
+  a_convenir: 'La tienda te dice cómo pagar al confirmar tu pedido.',
+  en_linea: 'En la página de pago segura.',
+  contraentrega: 'Pagas cuando recibes tu pedido.',
+  transferencia: 'La tienda te manda sus datos al confirmar tu pedido.',
+  efectivo: 'Al recibir o recoger tu pedido.',
+};
 
 /** Un dato que se puede mostrar: ni vacío, ni entre corchetes, ni `undefined` (bitácora ecommerce 31). */
 export function presente(valor: string | undefined | null): valor is string {
@@ -244,7 +260,7 @@ ${p.cuerpo}
 <p><a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a></p>
 <p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>
 </footer>
-<a class="barra-pedido" href="/pedido/" data-pedido hidden>Tu pedido <span class="cifra" data-cantidad>0</span></a>
+<a class="barra-pedido" href="/carrito/" data-pedido hidden>Tu pedido <span class="cifra" data-cantidad>0</span></a>
 <script type="module" src="/_t/${escaparHtml(t.release)}/vitrina.js"></script>
 </body>
 </html>
@@ -546,11 +562,38 @@ ${p.cuerpo}
     });
   }
 
-  // El pedido (HU-T5.4): se arma en el teléfono del comprador; la isla pinta sus líneas. Sin ella,
-  // la página dice para qué es y ofrece el WhatsApp de la tienda.
+  // Los textos legales (HU-T7.1): el carrito necesita la huella de los términos que muestra.
+  const legales = t.legal ? textosLegales(t.legal) : [];
+  const terminos = legales.find((x) => x.id === 'terminos');
+  const huellaDeLosTerminos = terminos ? await huella(terminos.markdown) : '';
+
+  /**
+   * El carrito (HU-T5.4 y HU-T6.1, TIENDA §5.4): se arma en el teléfono del comprador; la isla pinta
+   * sus líneas, cotiza y registra el pedido antes de abrir WhatsApp. Lo que la isla necesita va como
+   * datos: las formas de pago que ofrece la tienda (solo sus nombres: los datos de la transferencia
+   * nunca se hornean, HU-T6.2 CA2), los envíos con su id y la huella de los términos que se aceptan.
+   * Sin la isla, la página ofrece el WhatsApp de la tienda.
+   */
   const whatsapp = presente(t.whatsapp) ? t.whatsapp.replace(/\D/g, '') : '';
+  const formas = (t.legal?.formas ?? []).filter((f) => f.forma !== 'en_linea');
+  const enviosConId = (t.legal?.envios ?? []).filter((e) => presente(e.id));
+  const plazoDelEnvio = (e: (typeof enviosConId)[number]) =>
+    e.diasMin !== null && e.diasMax !== null && e.diasMin !== e.diasMax
+      ? `llega en ${e.diasMin} a ${e.diasMax} días`
+      : e.diasMax !== null || e.diasMin !== null
+        ? `llega en ${e.diasMax ?? e.diasMin} ${(e.diasMax ?? e.diasMin) === 1 ? 'día' : 'días'}`
+        : 'el plazo te lo confirma la tienda';
+  const tarjetaDeForma = (f: (typeof formas)[number]) =>
+    `<label class="opcion-grande"><input type="radio" name="forma" value="${f.forma}"><span class="opcion-grande__nombre">${escaparHtml(NOMBRE_DE_LA_FORMA[f.forma])}</span><span class="opcion-grande__nota">${escaparHtml(NOTA_DE_LA_FORMA[f.forma])}</span></label>`;
+  const tarjetaDeEnvio = (e: (typeof enviosConId)[number]) =>
+    `<label class="opcion-grande"><input type="radio" name="envio" value="${escaparHtml(e.id ?? '')}"><span class="opcion-grande__nombre">${escaparHtml(e.nombre)} · ${e.precioCop === 0 ? 'gratis' : formatearPesos(e.precioCop)}</span><span class="opcion-grande__nota">${escaparHtml(`${e.gratisDesdeCop !== null && e.precioCop > 0 ? `Gratis desde ${formatearPesos(e.gratisDesdeCop)}; ` : ''}${plazoDelEnvio(e)}.`)}</span></label>`;
+  const datosDeVenta = {
+    formas: formas.map((f) => ({ forma: f.forma, nombre: NOMBRE_DE_LA_FORMA[f.forma] })),
+    envios: enviosConId.map((e) => ({ id: e.id, nombre: e.nombre, plazo: plazoDelEnvio(e) })),
+    terminos: huellaDeLosTerminos,
+  };
   pagina({
-    ruta: '/pedido/',
+    ruta: '/carrito/',
     titulo: `Tu pedido · ${t.nombre}`,
     privada: true,
     cuerpo: [
@@ -560,7 +603,21 @@ ${p.cuerpo}
       '<p class="pedido__codigo" data-codigo-bloque hidden>Código de tu pedido: <span class="cifra" data-codigo></span></p>',
       '<p class="estado" data-vacio>Aquí ves lo que agregas a tu pedido desde cada producto. <a href="/">Mira los productos</a>.</p>',
       '<ul class="lineas" data-lineas></ul>',
-      '<div class="resumen" data-resumen hidden><p class="resumen__fila">Subtotal <span class="cifra" data-subtotal></span></p><p class="resumen__fila resumen__total">Total <span class="cifra" data-total></span></p><p class="aviso aviso--fuerte" data-aviso-total role="alert" hidden></p><p class="resumen__nota" data-nota>El envío se confirma antes de enviar el pedido.</p></div>',
+      '<div class="resumen" data-resumen hidden><p class="resumen__fila">Subtotal <span class="cifra" data-subtotal></span></p><p class="resumen__fila" data-fila-envio hidden>Envío <span class="cifra" data-envio></span></p><p class="resumen__fila" data-fila-descuento hidden>Descuento <span class="cifra" data-descuento></span></p><p class="resumen__fila resumen__total">Total <span class="cifra" data-total></span></p><p class="aviso aviso--fuerte" data-aviso-total role="alert" hidden></p><p class="resumen__nota" data-nota>El envío se confirma antes de enviar el pedido.</p></div>',
+      `<form class="venta" data-venta hidden novalidate>`,
+      formas.length > 0
+        ? `<fieldset class="grupo"><legend>¿Cómo quieres pagar?</legend>${formas.map(tarjetaDeForma).join('')}</fieldset>`
+        : '',
+      enviosConId.length > 0
+        ? `<fieldset class="grupo"><legend>¿Cómo te llega?</legend>${enviosConId.map(tarjetaDeEnvio).join('')}</fieldset>`
+        : '',
+      '<label class="campo">Ciudad de entrega (si te lo envían)<input name="ciudad" maxlength="60" autocomplete="address-level2"></label>',
+      '<label class="acepto"><input type="checkbox" name="acepta" data-acepta><span>Acepto los <a href="/legal/terminos/">términos y condiciones</a> y la <a href="/legal/privacidad/">política de datos</a>.</span></label>',
+      '<p class="aviso" data-aviso-venta role="status" hidden></p>',
+      '<button class="boton boton--principal" type="submit" data-enviar aria-disabled="true">Elige cómo pagar</button>',
+      '<p class="resumen__nota">Te llevamos a WhatsApp con tu pedido escrito. Los datos de entrega se los das a la tienda allí.</p>',
+      '</form>',
+      `<script type="application/json" id="venta">${jsonEstable(datosDeVenta).replace(/</g, '\\u003c')}</script>`,
       whatsapp
         ? `<p class="pedido__whatsapp">¿Prefieres escribir? <a href="https://wa.me/${whatsapp}" rel="nofollow">Pide por WhatsApp</a></p>`
         : '',
@@ -569,11 +626,40 @@ ${p.cuerpo}
       .filter(Boolean)
       .join('\n'),
     ld: [],
-    gemelo: `# Tu pedido\n\nEl pedido se arma en el teléfono de cada comprador, desde las fichas de los productos. El catálogo está en [/catalogo.md](/catalogo.md).\n`,
+    gemelo: `# Tu pedido\n\nEl pedido se arma en el teléfono de cada comprador, desde las fichas de los productos, y se envía por WhatsApp. El catálogo está en [/catalogo.md](/catalogo.md).\n`,
+  });
+
+  /**
+   * El pedido enviado (HU-T6.2 y HU-T6.3, TIENDA §8.4 y §8.5): `/pedido/#c=<código>&s=<secreto>`. El
+   * fragmento no llega a ningún servidor; la isla lo lee y pregunta por POST. Muestra el acuse
+   * (código, número, total, plazo, forma de pago y el enlace) y el estado, y se puede imprimir.
+   */
+  pagina({
+    ruta: '/pedido/',
+    titulo: `Tu pedido enviado · ${t.nombre}`,
+    privada: true,
+    cuerpo: [
+      '<h1>Tu pedido</h1>',
+      '<div class="seguimiento" data-seguimiento>',
+      '<p class="estado" data-seguimiento-vacio>Abre esta página con el enlace de seguimiento que te llegó con tu pedido.</p>',
+      '<p class="aviso" data-seguimiento-aviso role="status" hidden></p>',
+      '<section class="acuse" data-acuse hidden>',
+      '<p class="acuse__codigo">Pedido <span class="cifra" data-acuse-codigo></span> · <span data-acuse-numero></span></p>',
+      '<p class="acuse__estado" data-acuse-estado></p>',
+      '<dl class="acuse__datos"><dt>Total</dt><dd class="cifra" data-acuse-total></dd><dt>Forma de pago</dt><dd data-acuse-forma></dd><dt>Entrega</dt><dd data-acuse-plazo></dd><dt>Guía</dt><dd data-acuse-guia>Te la damos al despachar.</dd></dl>',
+      '<ul class="lineas lineas--acuse" data-acuse-lineas></ul>',
+      '<ol class="pasos" data-acuse-pasos></ol>',
+      '<a class="boton boton--principal" data-acuse-whatsapp hidden>Enviar por WhatsApp</a>',
+      '<p class="acuse__enlace">Guarda este enlace para seguir tu pedido: <a data-acuse-enlace></a></p>',
+      '<button class="boton boton--secundario" type="button" data-imprimir>Imprimir o guardar como PDF</button>',
+      '</section>',
+      '</div>',
+    ].join('\n'),
+    ld: [],
+    gemelo: `# Tu pedido\n\nEl estado de un pedido se ve con su enlace de seguimiento, que solo tiene quien lo hizo.\n`,
   });
 
   // Los textos legales (HU-T7.1), cada uno con su gemelo.
-  const legales = t.legal ? textosLegales(t.legal) : [];
   for (const texto of legales) {
     pagina({
       ruta: texto.ruta,

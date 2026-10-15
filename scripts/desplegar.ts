@@ -29,6 +29,7 @@ import { archivosDeLaVitrina } from './armar-vitrina.ts';
 import {
   baseDelShard,
   DOMINIO_PARQUEADERO,
+  DOMINIOS_DE_LA_TIENDA,
   WORKER_PARQUEADERO,
   wranglerDeLaCelda,
   wranglerDeLaCeldaDeLaTienda,
@@ -979,8 +980,9 @@ async function prepararCeldaDeLaTienda(
       };
     }
   }
-  const panel = urls['@ed1/tienda-panel'];
-  const sitio = urls['@ed1/tienda-sitio'];
+  // HU-T2.9: producción no tiene workers.dev; el panel y el despacho están en sus dominios.
+  const panel = staging ? urls['@ed1/tienda-panel'] : `https://${DOMINIOS_DE_LA_TIENDA.panel}`;
+  const sitio = staging ? urls['@ed1/tienda-sitio'] : `https://${DOMINIOS_DE_LA_TIENDA.origen}`;
   const esperado = staging ? celda.api_staging : celda.api;
   if (!panel || !sitio || panel !== esperado) {
     return {
@@ -1014,6 +1016,7 @@ async function prepararCeldaDeLaTienda(
         apiPorFuera: urlQueNoDebeResponder(celda, dest),
       },
       ensayos,
+      { ambiente: dest },
     );
     avisos = r.avisos;
     return r.fallas;

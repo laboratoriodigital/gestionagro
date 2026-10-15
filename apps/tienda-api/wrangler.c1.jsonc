@@ -9,7 +9,8 @@
     "CELDA": "c1",
     "PRODUCTO": "tienda",
     "PLAN": "free",
-    "MEDIOS": "img.laboratorio-digital.app"
+    "MEDIOS": "img.laboratorio-digital.app",
+    "AMBIENTE": "produccion"
   },
   "d1_databases": [
     {
@@ -50,6 +51,22 @@
         "limit": 10,
         "period": 60
       }
+    },
+    {
+      "name": "LIMITE_PEDIDOS",
+      "namespace_id": "3003",
+      "simple": {
+        "limit": 10,
+        "period": 60
+      }
+    },
+    {
+      "name": "LIMITE_SEGUIMIENTO",
+      "namespace_id": "3004",
+      "simple": {
+        "limit": 20,
+        "period": 60
+      }
     }
   ],
   "observability": {
@@ -64,6 +81,7 @@
         "PRODUCTO": "tienda",
         "PLAN": "free",
         "MEDIOS": "img--staging.laboratorio-digital.app",
+        "AMBIENTE": "staging",
         "ENSAYOS": "1"
       },
       "d1_databases": [
@@ -101,6 +119,22 @@
           "namespace_id": "3102",
           "simple": {
             "limit": 10,
+            "period": 60
+          }
+        },
+        {
+          "name": "LIMITE_PEDIDOS",
+          "namespace_id": "3103",
+          "simple": {
+            "limit": 10,
+            "period": 60
+          }
+        },
+        {
+          "name": "LIMITE_SEGUIMIENTO",
+          "namespace_id": "3104",
+          "simple": {
+            "limit": 20,
             "period": 60
           }
         }

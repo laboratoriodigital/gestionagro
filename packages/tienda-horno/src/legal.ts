@@ -31,6 +31,8 @@ export interface DatosLegales {
   whatsapp?: string;
   formas: readonly { forma: FormaDePago; ciudades?: readonly string[] | null }[];
   envios: readonly {
+    /** Su id en `envio_opcion`: el carrito lo manda al cotizar y al pedir (HU-T6.1). */
+    id?: string;
     nombre: string;
     precioCop: number;
     gratisDesdeCop: number | null;

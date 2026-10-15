@@ -34,6 +34,11 @@ export interface Carrito {
   lineas: LineaDelCarrito[];
   /** ISO 8601: hay un cobro en pantalla desde entonces. Mientras exista, no se sanea. */
   cobro?: string;
+  /**
+   * El secreto del enlace de seguimiento (HU-T6.3): 128 bits en base64url, nacido aquí la primera vez
+   * que se envía el pedido y reusado en cada reintento, así reenviar responde el mismo pedido.
+   */
+  seguimiento?: string;
 }
 
 export type Azar = (n: number) => Uint8Array;
@@ -42,6 +47,24 @@ export type Azar = (n: number) => Uint8Array;
 export function codigoNuevo(azar: Azar): string {
   return [...azar(6)].map((b) => ALFABETO_CROCKFORD[b % 32]).join('');
 }
+
+export const esSecreto = (s: string): boolean => /^[A-Za-z0-9_-]{22}$/.test(s);
+
+/** 16 bytes de azar en base64url, sin relleno: 22 caracteres (TIENDA §8.4). */
+export function secretoNuevo(azar: Azar): string {
+  const ALFABETO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  const b = azar(16);
+  let s = '';
+  for (let i = 0; i < 16; i += 3) {
+    const n = ((b[i] ?? 0) << 16) | ((b[i + 1] ?? 0) << 8) | (b[i + 2] ?? 0);
+    for (const corrimiento of [18, 12, 6, 0]) s += ALFABETO.charAt((n >> corrimiento) & 63);
+  }
+  return s.slice(0, 22);
+}
+
+/** El carrito con su secreto de seguimiento: el que ya tenía, o uno nuevo. */
+export const conSecreto = (c: Carrito, azar: Azar): Carrito =>
+  c.seguimiento ? c : { ...c, seguimiento: secretoNuevo(azar) };
 
 export const esCodigo = (c: unknown): c is string =>
   typeof c === 'string' && /^[0-9A-HJKMNP-TV-Z]{6}$/.test(c);
@@ -119,6 +142,9 @@ export function leerCarrito(
     codigo: x.codigo,
     lineas,
     ...(typeof x.cobro === 'string' ? { cobro: x.cobro } : {}),
+    ...(typeof x.seguimiento === 'string' && esSecreto(x.seguimiento)
+      ? { seguimiento: x.seguimiento }
+      : {}),
   };
   return recortado ? { carrito, aviso: 'recortado' } : { carrito };
 }

@@ -90,7 +90,14 @@ describe('GET /api/salud, la prueba de humo del despliegue', () => {
       shards: 1,
       control: true,
       kek: 'falta',
+      ambiente: null,
+      comerciosDePrueba: 0,
     });
+  });
+
+  it('dice su ambiente, el de su configuración (HU-T2.9 CA3)', async () => {
+    const r = await pedir('/api/salud', env({ AMBIENTE: 'produccion' }));
+    expect((await r.json()) as { ambiente: string }).toMatchObject({ ambiente: 'produccion' });
   });
 
   it('dice si la KEK se puede leer, nunca su valor', async () => {

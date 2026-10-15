@@ -284,6 +284,8 @@ export async function humoDeLaTienda(
   fetchFn: Fetch,
   urls: { panel: string; sitio: string; apiPorFuera: string },
   ensayos: readonly ComercioDeEnsayo[] = [],
+  /** HU-T2.9 CA3: el ambiente del destino; la API tiene que decir el mismo y sus comercios de prueba. */
+  esperado?: { ambiente: Destino },
 ): Promise<{ fallas: string[]; avisos: string[] }> {
   const fallas: string[] = [];
   const avisos: string[] = [];
@@ -297,7 +299,13 @@ export async function humoDeLaTienda(
   };
   const salud = await pedir(`${urls.panel}/api/salud`);
   if (salud) {
-    let cuerpo: { estado?: string; motivo?: string; kek?: string } = {};
+    let cuerpo: {
+      estado?: string;
+      motivo?: string;
+      kek?: string;
+      ambiente?: string | null;
+      comerciosDePrueba?: number;
+    } = {};
     try {
       cuerpo = (await salud.json()) as typeof cuerpo;
     } catch {
@@ -307,8 +315,22 @@ export async function humoDeLaTienda(
       fallas.push(
         `${urls.panel}/api/salud respondió ${salud.status} (${cuerpo.estado ?? 'sin JSON'}${cuerpo.motivo ? `: ${cuerpo.motivo}` : ''})`,
       );
-    } else if (cuerpo.kek !== 'ok') {
-      avisos.push(`la KEK de la Tienda: ${cuerpo.kek ?? '?'} (nada se cifra todavía)`);
+    } else {
+      if (cuerpo.kek !== 'ok') {
+        avisos.push(`la KEK de la Tienda: ${cuerpo.kek ?? '?'} (nada se cifra todavía)`);
+      }
+      if (esperado && cuerpo.ambiente !== esperado.ambiente) {
+        fallas.push(
+          `${urls.panel} es la API de «${cuerpo.ambiente ?? 'sin ambiente'}», pero el despliegue era a ${esperado.ambiente}: el destino, el dominio y el ambiente no coinciden`,
+        );
+      }
+      if (esperado && cuerpo.comerciosDePrueba !== ensayos.length) {
+        fallas.push(
+          esperado.ambiente === 'produccion'
+            ? `hay ${cuerpo.comerciosDePrueba ?? '?'} comercios de prueba en producción: nunca se siembran allí (HU-T2.6 CA3)`
+            : `hay ${cuerpo.comerciosDePrueba ?? '?'} comercios de prueba en ${esperado.ambiente}, y se esperaban ${ensayos.length}`,
+        );
+      }
     }
   }
   const portada = await pedir(`${urls.panel}/`);

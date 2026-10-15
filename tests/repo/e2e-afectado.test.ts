@@ -65,7 +65,10 @@ describe('las e2e de lo afectado, con el repositorio de verdad', () => {
     expect(grupos(['apps/tienda-sitio/vitrina/vitrina.css'])).toEqual(['tienda']);
     expect(grupos(['content/tienda/legal/terminos.md'])).toEqual(['tienda']);
     expect(grupoDelSpec('tienda-vitrina')).toBe('tienda');
-    expect(specsDe(['tienda'])).toEqual(['tests/e2e/tienda-vitrina.spec.ts']);
+    expect(specsDe(['tienda'])).toEqual([
+      'tests/e2e/tienda-presupuestos.spec.ts',
+      'tests/e2e/tienda-vitrina.spec.ts',
+    ]);
   });
 
   it('la galería y la cuenta son del mismo origen', () => {

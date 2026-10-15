@@ -360,6 +360,17 @@ export const MEDIOS_DE_LA_TIENDA = {
   staging: 'img--staging.laboratorio-digital.app',
 } as const;
 
+/**
+ * Los hostnames de la Tienda en producción (HU-T2.9, TIENDA §4.1), como dominios propios de sus
+ * Workers: el panel y `origen.`, el origen de respaldo de Cloudflare for SaaS, que sin tienda responde
+ * «Esta dirección no tiene tienda». El comodín `*.laboratorio-digital.app` llega con la primera
+ * tienda real: pide un registro DNS del dueño y no hace falta antes (P1).
+ */
+export const DOMINIOS_DE_LA_TIENDA = {
+  panel: 'panel.laboratorio-digital.app',
+  origen: 'origen.laboratorio-digital.app',
+} as const;
+
 /** El cron de la Tienda: uno por hora, que reparte las tareas por frecuencia (HU-T17.1). */
 export const CRON_DE_LA_TIENDA = '0 * * * *';
 
@@ -372,6 +383,8 @@ export const CRON_DE_LA_TIENDA = '0 * * * *';
 export const LIMITES_DE_LA_TIENDA = {
   LIMITE_COTIZAR: { produccion: '3001', staging: '3101', limit: 30, period: 60 },
   LIMITE_AVISAME: { produccion: '3002', staging: '3102', limit: 10, period: 60 },
+  LIMITE_PEDIDOS: { produccion: '3003', staging: '3103', limit: 10, period: 60 },
+  LIMITE_SEGUIMIENTO: { produccion: '3004', staging: '3104', limit: 20, period: 60 },
 } as const;
 const limitadoresDeLaTienda = (staging: boolean) =>
   Object.entries(LIMITES_DE_LA_TIENDA).map(([name, l]) => ({
@@ -416,7 +429,7 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
     },
   ];
   const vars = { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan };
-  const medios = { MEDIOS: MEDIOS_DE_LA_TIENDA.produccion };
+  const medios = { MEDIOS: MEDIOS_DE_LA_TIENDA.produccion, AMBIENTE: 'produccion' };
   return {
     $schema: '../../node_modules/wrangler/config-schema.json',
     name: workerDeLaApiDeLaTienda(celda.id),
@@ -435,7 +448,7 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
         name: workerDeLaApiDeLaTienda(celda.id, true),
         workers_dev: false,
         // HU-T2.6 y HU-T4.4: solo staging publica a los comercios de prueba.
-        vars: { ...vars, MEDIOS: MEDIOS_DE_LA_TIENDA.staging, ENSAYOS: '1' },
+        vars: { ...vars, MEDIOS: MEDIOS_DE_LA_TIENDA.staging, AMBIENTE: 'staging', ENSAYOS: '1' },
         d1_databases: bases(true),
         r2_buckets: [{ binding: 'SITIOS', bucket_name: `${almacen}-staging` }],
         triggers: { crons: [] },
@@ -472,7 +485,8 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
     // Worker. Todo lo demás pasa por el despacho.
     assets: { directory: './dist', binding: 'ASSETS', run_worker_first: ['/*', '!/_t/*'] },
     workers_dev: false,
-    routes: [],
+    // HU-T2.9: en producción, `origen.`; el comodín llega con la primera tienda real.
+    routes: [{ pattern: DOMINIOS_DE_LA_TIENDA.origen, custom_domain: true }],
     services: serviciosDeLaTienda(config, false),
     r2_buckets: almacenesDeLaTienda(config, false),
     vars: { MEDIOS: MEDIOS_DE_LA_TIENDA.produccion },
@@ -498,7 +512,7 @@ export function wranglerDelPanelDeLaTienda(config: ConfigCeldas): Record<string,
     compatibility_date: FECHA_COMPATIBILIDAD,
     assets: { directory: './dist', binding: 'ASSETS', run_worker_first: ['/api/*'] },
     workers_dev: false,
-    routes: [],
+    routes: [{ pattern: DOMINIOS_DE_LA_TIENDA.panel, custom_domain: true }],
     services: serviciosDeLaTienda(config, false),
     observability: { enabled: true },
     env: {
