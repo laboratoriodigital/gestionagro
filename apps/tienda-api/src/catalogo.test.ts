@@ -7,8 +7,11 @@ import { baseLocal } from '@ed1/d1/local';
 import { ENSAYO_DOS, ENSAYO_UNO, siembraDelShard } from '@ed1/tienda-schema/ensayos';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  borrarLaColeccion,
+  guardarLaColeccion,
   guardarProducto,
   leerProducto,
+  listarColecciones,
   listarProductos,
   ordenarProductos,
   type Quien,
@@ -401,5 +404,54 @@ describe('HU-T8.2 · productos con sus combinaciones', () => {
     if (a.estado !== 'guardado') throw new Error(a.estado);
     await ordenarProductos(quien(), { op: op(), ids: [a.id, 'p-camisa'] });
     expect((await listarProductos(quien())).map((p) => p.id)).toEqual([a.id, 'p-camisa']);
+  });
+});
+
+describe('HU-T8.4 · colecciones', () => {
+  it('CA1: una colección con sus productos en orden; un producto puede estar en varias', async () => {
+    const a = await guardarProducto(quien(), delantal());
+    if (a.estado !== 'guardado') throw new Error(a.estado);
+    await guardarLaColeccion(quien(), { op: op(), nombre: 'Lino', productos: [a.id, 'p-camisa'] });
+    await guardarLaColeccion(quien(), { op: op(), nombre: 'Nuevos', productos: [a.id] });
+    expect((await listarColecciones(quien())).map((c) => [c.slug, c.productos])).toEqual([
+      ['lino', [a.id, 'p-camisa']],
+      ['nuevos', [a.id]],
+    ]);
+  });
+
+  it('CA2: borrar una colección no borra sus productos', async () => {
+    const c = await guardarLaColeccion(quien(), {
+      op: op(),
+      nombre: 'Lino',
+      productos: ['p-camisa'],
+    });
+    if (c.estado !== 'guardado') throw new Error(c.estado);
+    const b = await borrarLaColeccion(quien(), { op: op(), id: c.id, version: 1 });
+    expect(b).toMatchObject({ estado: 'guardado' });
+    expect(await listarColecciones(quien())).toEqual([]);
+    const camisa = await leerProducto(quien(), 'p-camisa');
+    expect(camisa).toMatchObject({ estado: 'activo', enPapelera: false });
+    expect(camisa?.variantes).toHaveLength(3);
+  });
+
+  it('una colección con un producto que no está no se guarda', async () => {
+    const r = await guardarLaColeccion(quien(), {
+      op: op(),
+      nombre: 'Lino',
+      productos: ['p-no-esta'],
+    });
+    expect(r).toEqual({
+      estado: 'problemas',
+      problemas: [{ campo: 'productos', mensaje: 'el producto p-no-esta no está' }],
+    });
+  });
+
+  it('editar una colección con la versión vieja responde «cambiado»', async () => {
+    const c = await guardarLaColeccion(quien(), { op: op(), nombre: 'Lino' });
+    if (c.estado !== 'guardado') throw new Error(c.estado);
+    await guardarLaColeccion(quien(), { op: op(), id: c.id, version: 1, nombre: 'Lino claro' });
+    expect(
+      await guardarLaColeccion(quien(), { op: op(), id: c.id, version: 1, nombre: 'Lino oscuro' }),
+    ).toMatchObject({ estado: 'cambiado', version: 2 });
   });
 });

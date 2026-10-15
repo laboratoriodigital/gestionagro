@@ -28,6 +28,7 @@ import {
   urlDeEntrada,
   urlDelCore,
 } from './sesion.ts';
+import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
 import { ElegirTienda, NOMBRE_DEL_ROL } from './vistas/ElegirTienda.tsx';
 import { Entrar } from './vistas/Entrar.tsx';
 import { Galeria } from './vistas/Galeria.tsx';
@@ -195,6 +196,17 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         key={ruta}
         conexion={conexion}
         papelera={ruta === '/productos/papelera/'}
+        alVencer={setVencida}
+      />
+    );
+  else if (ruta === '/productos/colecciones/')
+    cuerpo = <Colecciones conexion={conexion} alVencer={setVencida} />;
+  else if (/^\/productos\/colecciones\/[^/]+\/$/.test(ruta))
+    cuerpo = (
+      <Coleccion
+        key={ruta}
+        conexion={conexion}
+        id={decodeURIComponent(ruta.split('/')[3] ?? '')}
         alVencer={setVencida}
       />
     );

@@ -41,9 +41,13 @@ import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { avisame, PeticionDeAvisame } from './avisame.ts';
 import {
+  borrarLaColeccion,
+  guardarLaColeccion,
   guardarProducto,
   leerProducto,
+  listarColecciones,
   listarProductos,
+  ordenarLasColecciones,
   ordenarProductos,
   type Quien,
   type Resultado as ResultadoDelCatalogo,
@@ -866,6 +870,14 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
     escrituraDelCatalogo((q, b) => tocarElProducto(q, b, 'restaurar')),
   );
   app.post('/api/panel/v1/productos/ordenar', escrituraDelCatalogo(ordenarProductos));
+  app.get('/api/panel/v1/colecciones', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    return c.json({ colecciones: await listarColecciones(q) });
+  });
+  app.post('/api/panel/v1/colecciones/guardar', escrituraDelCatalogo(guardarLaColeccion));
+  app.post('/api/panel/v1/colecciones/ordenar', escrituraDelCatalogo(ordenarLasColecciones));
+  app.post('/api/panel/v1/colecciones/borrar', escrituraDelCatalogo(borrarLaColeccion));
 
   // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.
   app.get('/api/panel/v1/registro', async (c) => {

@@ -147,11 +147,32 @@ describe('el catálogo por la API del panel', () => {
     expect((await pedir('/api/panel/v1/registro', undefined, ajeno)).status).toBe(403);
   });
 
+  it('HU-T8.4: una colección por la API, y borrarla deja sus productos', async () => {
+    const c = await pedir('/api/panel/v1/colecciones/guardar', {
+      op: 'op-coleccion-01',
+      nombre: 'Verano',
+      productos: ['p-camisa'],
+    });
+    expect(c.status).toBe(200);
+    const { id } = (await c.json()) as { id: string };
+    const b = await pedir('/api/panel/v1/colecciones/borrar', {
+      op: 'op-coleccion-02',
+      id,
+      version: 1,
+    });
+    expect(b.status).toBe(200);
+    expect((await (await pedir('/api/panel/v1/colecciones')).json()).colecciones).toEqual([]);
+    expect((await pedir('/api/panel/v1/productos/p-camisa')).status).toBe(200);
+  });
+
   it('HU-T10.6: el registro cuenta en frases lo que pasó, y cada tienda ve solo el suyo', async () => {
     const r = await pedir('/api/panel/v1/registro');
     expect(r.status).toBe(200);
     const { filas } = (await r.json()) as { filas: { frase: string; instante: string }[] };
     expect(filas.map((f) => f.frase)).toContain('Tú creaste «Gorra de lino»');
+    expect(filas.map((f) => f.frase)).toContain(
+      'Tú borraste la colección «Verano»; sus productos siguen en la tienda',
+    );
     const otra = await pedir(
       '/api/panel/v1/registro',
       undefined,

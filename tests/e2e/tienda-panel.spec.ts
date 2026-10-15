@@ -403,6 +403,79 @@ test('HU-T8.2 · CA2: si alguien más guardó antes, lo dice y no pisa lo de la 
   await expect(page.getByLabel('Precio', { exact: true })).toHaveValue('129.000');
 });
 
+test('HU-T8.4 · CA2: borrar una colección dice que sus productos se quedan', async ({ page }) => {
+  await enElPanel(page);
+  let borrada = false;
+  await page.route(`${PANEL}/api/panel/v1/colecciones`, (r) =>
+    r.fulfill({
+      json: {
+        colecciones: borrada
+          ? []
+          : [
+              {
+                id: 'c-lino',
+                slug: 'lino',
+                nombre: 'Lino',
+                descripcionMd: '',
+                visible: true,
+                version: 1,
+                productos: ['p-camisa'],
+              },
+            ],
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/productos?*`, (r) =>
+    r.fulfill({
+      json: {
+        productos: [
+          {
+            id: 'p-camisa',
+            slug: 'camisa-de-lino',
+            nombre: 'Camisa de lino',
+            estado: 'activo',
+            version: 1,
+            combinaciones: 3,
+            desde: 129000,
+            existencias: 5,
+            borrado: null,
+          },
+        ],
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/productos`, (r) =>
+    r.fulfill({
+      json: {
+        productos: [
+          {
+            id: 'p-camisa',
+            slug: 'camisa-de-lino',
+            nombre: 'Camisa de lino',
+            estado: 'activo',
+            version: 1,
+            combinaciones: 3,
+            desde: 129000,
+            existencias: 5,
+            borrado: null,
+          },
+        ],
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/colecciones/borrar`, (r) => {
+    borrada = true;
+    return r.fulfill({ json: { estado: 'guardado', id: 'c-lino', version: 2 } });
+  });
+  await page.goto(`${PANEL}/productos/colecciones/c-lino/`);
+  await expect(page.getByLabel('Camisa de lino')).toBeChecked();
+  await page.getByText('Borrar la colección', { exact: true }).click();
+  await expect(page.getByText('Se borra «Lino». Sus productos siguen en la tienda.')).toBeVisible();
+  await page.getByRole('button', { name: 'Sí, borrar la colección' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Colecciones' })).toBeVisible();
+  await expect(page.getByText('Todavía no tienes colecciones.')).toBeVisible();
+});
+
 test.describe('con el teléfono en otra zona horaria', () => {
   // La hora del registro es la de Bogotá aunque el teléfono esté en Madrid.
   test.use({ timezoneId: 'Europe/Madrid' });

@@ -76,6 +76,9 @@ export function Productos({
           <a class="ed1-boton ed1-boton--primario" href="/productos/nuevo/">
             Nuevo producto
           </a>
+          <a class="ed1-boton ed1-boton--secundario" href="/productos/colecciones/">
+            Colecciones
+          </a>
         </div>
       )}
       <div class="ed1-campo">

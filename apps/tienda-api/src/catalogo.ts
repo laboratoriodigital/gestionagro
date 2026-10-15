@@ -16,6 +16,8 @@
 import type { BaseD1, SentenciaD1 } from '@ed1/d1';
 import {
   cambiarEstadoDeProducto,
+  borrarColeccion as esquemaBorrarColeccion,
+  guardarColeccion as esquemaGuardarColeccion,
   ordenarColecciones as esquemaOrdenar,
   type GuardarProducto,
   revisarProducto,
@@ -720,6 +722,221 @@ export async function ordenarProductos(q: Quien, cuerpo: unknown): Promise<Resul
     ],
     r,
     async () => null,
+  );
+}
+
+// ── Colecciones (HU-T8.4) ──────────────────────────────────────────────────────────────────
+
+export async function listarColecciones(q: Quien) {
+  const { results } = await q.db
+    .prepare(
+      `SELECT c.id, c.slug, c.nombre, c.descripcion_md, c.visible, c.version,
+              (SELECT json_group_array(cp.producto_id) FROM (SELECT producto_id FROM coleccion_producto
+                 WHERE org_id = ? AND coleccion_id = c.id ORDER BY posicion) cp) AS productos
+         FROM coleccion c WHERE c.org_id = ? AND c.borrado IS NULL ORDER BY c.posicion, c.nombre`,
+    )
+    .bind(q.org, q.org)
+    .all<{
+      id: string;
+      slug: string;
+      nombre: string;
+      descripcion_md: string;
+      visible: number;
+      version: number;
+      productos: string;
+    }>();
+  return results.map((c) => ({
+    id: c.id,
+    slug: c.slug,
+    nombre: c.nombre,
+    descripcionMd: c.descripcion_md,
+    visible: c.visible === 1,
+    version: c.version,
+    productos: JSON.parse(c.productos) as string[],
+  }));
+}
+
+export async function guardarLaColeccion(q: Quien, cuerpo: unknown): Promise<Resultado> {
+  const r0 = esquemaGuardarColeccion.safeParse(cuerpo);
+  if (!r0.success) return { estado: 'problemas', problemas: problemasDe(r0) };
+  const d = r0.data;
+  const previa = await yaAplicada(q, d.op);
+  if (previa) return previa;
+  const actual = d.id
+    ? await q.db
+        .prepare(
+          'SELECT id, slug, nombre, version FROM coleccion WHERE org_id = ? AND id = ? AND borrado IS NULL',
+        )
+        .bind(q.org, d.id)
+        .first<{ id: string; slug: string; nombre: string; version: number }>()
+    : null;
+  if (d.id && !actual) return { estado: 'no-existe', motivo: MOTIVO_NO_EXISTE };
+  if (actual && actual.version !== d.version)
+    return { estado: 'cambiado', motivo: MOTIVO_CAMBIADO, version: actual.version };
+  const slug = d.slug ?? actual?.slug ?? slugDe(d.nombre).slice(0, 80).replace(/-$/, '');
+  const problemas: Problema[] = [];
+  if (slug.length > 80)
+    problemas.push({
+      campo: 'slug',
+      mensaje: 'la dirección de una colección va hasta 80 caracteres',
+    });
+  const otra = await q.db
+    .prepare(
+      'SELECT id FROM coleccion WHERE org_id = ? AND slug = ? AND borrado IS NULL AND id IS NOT ?',
+    )
+    .bind(q.org, slug, actual?.id ?? null)
+    .first();
+  if (otra)
+    problemas.push({ campo: 'slug', mensaje: `la dirección «${slug}» ya la usa otra colección` });
+  const productos = [...new Set(d.productos)];
+  if (productos.length > 0) {
+    const { results } = await q.db
+      .prepare(
+        `SELECT id FROM producto WHERE org_id = ? AND borrado IS NULL AND id IN (${productos.map(() => '?').join(', ')})`,
+      )
+      .bind(q.org, ...productos)
+      .all<{ id: string }>();
+    const hay = new Set(results.map((x) => x.id));
+    for (const p of productos)
+      if (!hay.has(p)) problemas.push({ campo: 'productos', mensaje: `el producto ${p} no está` });
+  }
+  if (problemas.length > 0) return { estado: 'problemas', problemas };
+
+  const id = actual?.id ?? idNuevo('c');
+  const r: Resultado = { estado: 'guardado', id, version: (actual?.version ?? 0) + 1, slug };
+  const lote: SentenciaD1[] = actual
+    ? [
+        q.db
+          .prepare(
+            `UPDATE coleccion SET slug = ?, nombre = ?, descripcion_md = ?, visible = ?, version = version + 1, actualizado = ?
+              WHERE org_id = ? AND id = ? AND version = ? AND borrado IS NULL`,
+          )
+          .bind(
+            slug,
+            d.nombre,
+            d.descripcionMd,
+            d.visible ? 1 : 0,
+            q.instante,
+            q.org,
+            id,
+            actual.version,
+          ),
+        q.db.prepare(SI_CAMBIO),
+      ]
+    : [
+        q.db
+          .prepare(
+            `INSERT INTO coleccion (org_id, id, slug, nombre, descripcion_md, visible, posicion, actualizado)
+             VALUES (?, ?, ?, ?, ?, ?, (SELECT coalesce(max(posicion), -1) + 1 FROM coleccion WHERE org_id = ?), ?)`,
+          )
+          .bind(q.org, id, slug, d.nombre, d.descripcionMd, d.visible ? 1 : 0, q.org, q.instante),
+      ];
+  lote.push(
+    q.db
+      .prepare('DELETE FROM coleccion_producto WHERE org_id = ? AND coleccion_id = ?')
+      .bind(q.org, id),
+  );
+  for (const [i, p] of productos.entries()) {
+    lote.push(
+      q.db
+        .prepare(
+          'INSERT INTO coleccion_producto (org_id, coleccion_id, producto_id, posicion) VALUES (?, ?, ?, ?)',
+        )
+        .bind(q.org, id, p, i),
+    );
+  }
+  lote.push(
+    await anotar(q.db, {
+      org: q.org,
+      actor: q.actor,
+      accion: actual ? 'coleccion.editar' : 'coleccion.crear',
+      entidad: 'coleccion',
+      entidadId: id,
+      antes: actual ? { nombre: actual.nombre, slug: actual.slug } : null,
+      despues: { nombre: d.nombre, slug, productos: productos.length },
+      instante: q.instante,
+    }),
+    guardarOperacion(q, d.op, 'colecciones/guardar', r),
+  );
+  return aplicar(q, d.op, lote, r, versionDe(q, 'coleccion', id));
+}
+
+export async function ordenarLasColecciones(q: Quien, cuerpo: unknown): Promise<Resultado> {
+  const r0 = esquemaOrdenar.safeParse(cuerpo);
+  if (!r0.success) return { estado: 'problemas', problemas: problemasDe(r0) };
+  const previa = await yaAplicada(q, r0.data.op);
+  if (previa) return previa;
+  const r: Resultado = { estado: 'guardado', id: 'colecciones', version: 1 };
+  return aplicar(
+    q,
+    r0.data.op,
+    [
+      ...r0.data.ids.map((id, i) =>
+        q.db
+          .prepare('UPDATE coleccion SET posicion = ?, actualizado = ? WHERE org_id = ? AND id = ?')
+          .bind(i, q.instante, q.org, id),
+      ),
+      await anotar(q.db, {
+        org: q.org,
+        actor: q.actor,
+        accion: 'colecciones.ordenar',
+        entidad: 'coleccion',
+        entidadId: null,
+        antes: null,
+        despues: { orden: r0.data.ids },
+        instante: q.instante,
+      }),
+      guardarOperacion(q, r0.data.op, 'colecciones/ordenar', r),
+    ],
+    r,
+    async () => null,
+  );
+}
+
+/** Borrar una colección no borra sus productos (CA2): solo la colección y sus vínculos. */
+export async function borrarLaColeccion(q: Quien, cuerpo: unknown): Promise<Resultado> {
+  const r0 = esquemaBorrarColeccion.safeParse(cuerpo);
+  if (!r0.success) return { estado: 'problemas', problemas: problemasDe(r0) };
+  const d = r0.data;
+  const previa = await yaAplicada(q, d.op);
+  if (previa) return previa;
+  const actual = await q.db
+    .prepare(
+      'SELECT id, slug, nombre, version FROM coleccion WHERE org_id = ? AND id = ? AND borrado IS NULL',
+    )
+    .bind(q.org, d.id)
+    .first<{ id: string; slug: string; nombre: string; version: number }>();
+  if (!actual) return { estado: 'no-existe', motivo: MOTIVO_NO_EXISTE };
+  if (actual.version !== d.version)
+    return { estado: 'cambiado', motivo: MOTIVO_CAMBIADO, version: actual.version };
+  const r: Resultado = { estado: 'guardado', id: d.id, version: actual.version + 1 };
+  return aplicar(
+    q,
+    d.op,
+    [
+      q.db
+        .prepare(
+          'UPDATE coleccion SET borrado = ?, version = version + 1, actualizado = ? WHERE org_id = ? AND id = ? AND version = ? AND borrado IS NULL',
+        )
+        .bind(q.instante, q.instante, q.org, d.id, actual.version),
+      q.db.prepare(SI_CAMBIO),
+      q.db
+        .prepare('DELETE FROM coleccion_producto WHERE org_id = ? AND coleccion_id = ?')
+        .bind(q.org, d.id),
+      await anotar(q.db, {
+        org: q.org,
+        actor: q.actor,
+        accion: 'coleccion.borrar',
+        entidad: 'coleccion',
+        entidadId: d.id,
+        antes: { nombre: actual.nombre, slug: actual.slug },
+        despues: null,
+        instante: q.instante,
+      }),
+      guardarOperacion(q, d.op, 'colecciones/borrar', r),
+    ],
+    r,
+    versionDe(q, 'coleccion', d.id),
   );
 }
 
