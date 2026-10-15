@@ -194,6 +194,10 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       const a = n === 1 ? 'a la persona que esperaba' : `a las ${n} personas que esperaban`;
       return `${hizo('avis', 'aste', 'ó')} ${a} ${combinacion(antes)} de «${nombre}»`;
     }
+    case 'pedido.contacto_ver':
+      return despues['para'] === 'whatsapp'
+        ? `${hizo('abr', 'iste', 'ió')} el WhatsApp del pedido #${despues['numero']} con sus datos de entrega`
+        : `${hizo('v', 'iste', 'io')} los datos de entrega del pedido #${despues['numero']}`;
     default:
       return `${quien}: ${f.accion} (${f.entidad})`;
   }

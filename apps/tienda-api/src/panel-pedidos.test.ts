@@ -2,7 +2,7 @@
  * HU-T9.1, HU-T9.2 y HU-T9.3 por la API del panel: con tokens del CORE firmados de verdad, contra
  * el shard local con los dos comercios de prueba, una KEK de prueba y pedidos sembrados aquí. El
  * comprador de prueba se llama «Ensayo Dos Compradora»: ninguna respuesta del panel lo dice en
- * claro, salvo «Ver datos de entrega» y el mensaje de «Confirmar por WhatsApp», que quedan registradas.
+ * claro, salvo «Ver datos de entrega», que queda registrada.
  */
 import { importarKek } from '@ed1/cifrado';
 import type { BaseD1 } from '@ed1/d1';
@@ -27,6 +27,8 @@ const COMPRADORA: ContactoDelPedido = {
   direccion: 'Calle de prueba 99, apto 101',
   ciudad: 'Medellín',
 };
+/** Lo que nunca debe salir en claro por fuera de «Ver datos de entrega». */
+const EN_CLARO = ['Compradora', '3001234567', '1234567', 'Calle de prueba 99'];
 
 let shard: BaseD1;
 let cerrar: () => Promise<void>;
@@ -215,5 +217,71 @@ describe('la bandeja de pedidos (HU-T9.1)', () => {
     expect((await pedir('/api/panel/v1/pedidos/ped-0001', undefined, dos)).status).toBe(404);
     const otro = await token({ rol: 'contador' });
     expect((await pedir('/api/panel/v1/pedidos', undefined, otro)).status).toBe(403);
+  });
+});
+
+describe('ver los datos de entrega deja huella (HU-T9.2)', () => {
+  it('CA1: los abre para ese pedido, y queda en su historia y en el registro', async () => {
+    const id = await sembrarPedido(202, { contacto: COMPRADORA, creado: AHORA });
+    const r = await pedir('/api/panel/v1/pedidos/contacto', { pedido: id });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ estado: 'ok', contacto: COMPRADORA });
+    const detalle = (await (await pedir(`/api/panel/v1/pedidos/${id}`)).json()) as {
+      historia: { tipo: string; quien: string }[];
+    };
+    expect(detalle.historia).toContainEqual(
+      expect.objectContaining({ tipo: 'contacto_leido', quien: 'Tú' }),
+    );
+    const registro = (await (await pedir('/api/panel/v1/registro')).json()) as {
+      filas: { frase: string }[];
+    };
+    expect(registro.filas[0]?.frase).toBe('Tú viste los datos de entrega del pedido #1202');
+  });
+
+  it('un pedido sin datos de entrega lo dice, y no deja huella', async () => {
+    const r = await pedir('/api/panel/v1/pedidos/contacto', { pedido: 'ped-0010' });
+    expect(r.status).toBe(404);
+    expect(await r.json()).toMatchObject({ estado: 'sin-contacto' });
+    const leidos = await shard
+      .prepare("SELECT COUNT(*) AS n FROM pedido_evento WHERE pedido_id = 'ped-0010'")
+      .first<{ n: number }>();
+    expect(leidos?.n).toBe(0);
+  });
+
+  it('❌ otra tienda no los abre', async () => {
+    const r = await pedir(
+      '/api/panel/v1/pedidos/contacto',
+      { pedido: 'ped-0202' },
+      await token({ org: ENSAYO_DOS.org }),
+    );
+    expect(r.status).toBe(404);
+  });
+});
+
+describe('los datos del comprador no salen en claro (HU-T9.2 CA2)', () => {
+  /** La que lee el contacto, y cada lectura queda en la historia y en el registro. */
+  const LEEN_EL_CONTACTO = ['/api/panel/v1/pedidos/contacto'];
+
+  it('❌ ninguna respuesta del panel los dice, salvo «Ver datos de entrega»', async () => {
+    for (const ruta of [
+      '/api/panel/v1/yo',
+      '/api/panel/v1/pedidos',
+      '/api/panel/v1/pedidos/ped-0201',
+      '/api/panel/v1/registro',
+      '/api/panel/v1/inventario',
+      '/api/panel/v1/productos',
+    ])
+      await pedir(ruta);
+    const conDatos = respuestas.filter(
+      (r) => !LEEN_EL_CONTACTO.includes(r.ruta) && EN_CLARO.some((d) => r.texto.includes(d)),
+    );
+    expect(conDatos.map((r) => r.ruta)).toEqual([]);
+    // Y la que sí los dice, los dijo: la búsqueda funciona.
+    expect(
+      respuestas.some(
+        (r) => r.ruta === '/api/panel/v1/pedidos/contacto' && r.texto.includes('3001234567'),
+      ),
+    ).toBe(true);
+    expect(respuestas.length).toBeGreaterThan(15);
   });
 });

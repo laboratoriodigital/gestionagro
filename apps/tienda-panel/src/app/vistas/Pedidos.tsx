@@ -239,6 +239,15 @@ interface PedidoDelPanel extends FilaDePedido {
   conContacto: boolean;
 }
 
+interface Contacto {
+  nombre?: string;
+  celular?: string;
+  correo?: string;
+  direccion?: string;
+  ciudad?: string;
+  notas?: string;
+}
+
 const EVENTOS: Record<string, string> = {
   nota: 'Nota',
   pago: 'Pago',
@@ -267,6 +276,8 @@ export function Pedido({
 }) {
   const [pedido, setPedido] = useState<PedidoDelPanel | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [contacto, setContacto] = useState<Contacto | null>(null);
+  const [aviso, setAviso] = useState<{ tono: 'info' | 'peligro'; texto: string } | null>(null);
 
   const cargar = useCallback(async () => {
     const r = await pedirAlPanel<PedidoDelPanel>(conexion, `pedidos/${encodeURIComponent(id)}`);
@@ -296,6 +307,16 @@ export function Pedido({
       </main>
     );
 
+  const verDatos = async () => {
+    const r = await pedirAlPanel<{ contacto: Contacto }>(conexion, 'pedidos/contacto', {
+      cuerpo: { pedido: pedido.id },
+    });
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok') return setAviso({ tono: 'peligro', texto: r.motivo });
+    setContacto(r.datos.contacto);
+    await cargar();
+  };
+
   return (
     <main class="contenido">
       <p>
@@ -305,6 +326,11 @@ export function Pedido({
       <p>
         <Estado id={pedido.estado} /> <span class="cifra">{horaDeBogota(pedido.creado)}</span>
       </p>
+      {aviso ? (
+        <Aviso tono={aviso.tono} titulo={aviso.tono === 'info' ? 'Listo' : 'No se pudo'}>
+          {aviso.texto}
+        </Aviso>
+      ) : null}
       {pedido.atencion ? (
         <Aviso tono="peligro" titulo="Necesita atención">
           {ATENCION[pedido.atencion] ?? pedido.atencion}
@@ -312,10 +338,40 @@ export function Pedido({
       ) : null}
 
       <h2>Comprador</h2>
-      {pedido.comprador ? (
-        <p class="tapado">
-          {[pedido.comprador.nombre, pedido.comprador.celular].filter(Boolean).join(' · ')}
-        </p>
+      {contacto ? (
+        <dl class="datos">
+          {(
+            [
+              ['Nombre', contacto.nombre],
+              ['Celular', contacto.celular],
+              ['Correo', contacto.correo],
+              ['Dirección', contacto.direccion],
+              ['Ciudad', contacto.ciudad],
+              ['Notas', contacto.notas],
+            ] as const
+          )
+            .filter(([, v]) => v)
+            .map(([k, v]) => (
+              <div key={k}>
+                <dt>{k}</dt>
+                <dd>{v}</dd>
+              </div>
+            ))}
+        </dl>
+      ) : pedido.conContacto ? (
+        <>
+          <p class="tapado">
+            {[pedido.comprador?.nombre, pedido.comprador?.celular].filter(Boolean).join(' · ')}
+          </p>
+          <button
+            class="ed1-boton ed1-boton--secundario"
+            type="button"
+            onClick={() => void verDatos()}
+          >
+            Ver datos de entrega
+          </button>
+          <p class="nota">Queda en el registro quién los vio y cuándo.</p>
+        </>
       ) : (
         <p class="nota">Llegó por WhatsApp: los datos del comprador están en esa conversación.</p>
       )}

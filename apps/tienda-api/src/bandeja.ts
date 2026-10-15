@@ -23,6 +23,7 @@ import { taparCelular, taparNombre } from '@ed1/tienda-schema/tapado';
 import { z } from 'zod';
 import type { Quien } from './catalogo.ts';
 import { deksDeLaTienda, dekVigente } from './llaves.ts';
+import { anotar } from './registro.ts';
 
 /** Lo que guarda el sobre de `pedido_contacto`: lo que el comprador dejó para la entrega. */
 export const ContactoDelPedido = z.object({
@@ -319,4 +320,70 @@ export async function leerPedido(
     })),
     conContacto: p.con_contacto === 1,
   };
+}
+
+const PeticionDeContacto = z.object({ pedido: z.string().min(1).max(64) });
+
+export type ResultadoDelContacto =
+  | { estado: 'ok'; contacto: ContactoDelPedido }
+  | { estado: 'no-existe'; motivo: string }
+  | { estado: 'sin-contacto'; motivo: string }
+  | { estado: 'sin-llave'; motivo: string };
+
+const SIN_CONTACTO =
+  'Este pedido no tiene datos de entrega guardados: llegó por WhatsApp, y la conversación con el comprador está en ese chat.';
+
+/** Abre el contacto de un pedido y deja la lectura en su historia y en el registro, en un lote. */
+async function leerContacto(
+  q: Quien,
+  kek: Kek | null,
+  cuerpo: unknown,
+  para: 'ver' | 'whatsapp',
+): Promise<ResultadoDelContacto & { numero?: number }> {
+  const r0 = PeticionDeContacto.safeParse(cuerpo);
+  if (!r0.success) return { estado: 'no-existe', motivo: 'Ese pedido no está.' };
+  const id = r0.data.pedido;
+  const p = await q.db
+    .prepare('SELECT numero FROM pedido WHERE org_id = ? AND id = ?')
+    .bind(q.org, id)
+    .first<{ numero: number }>();
+  if (!p) return { estado: 'no-existe', motivo: 'Ese pedido no está.' };
+  if (!kek) {
+    console.error('tienda-api: sin la KEK no se abren los datos de entrega');
+    return {
+      estado: 'sin-llave',
+      motivo: 'No pudimos abrir los datos de entrega ahora. Intenta en unos minutos.',
+    };
+  }
+  const contacto = (await abrirContactos(q, kek, [id])).get(id);
+  if (!contacto) return { estado: 'sin-contacto', motivo: SIN_CONTACTO, numero: p.numero };
+  await q.db.batch([
+    q.db
+      .prepare(
+        `INSERT INTO pedido_evento (org_id, pedido_id, instante, tipo, actor, detalle)
+         VALUES (?, ?, ?, 'contacto_leido', ?, ?)`,
+      )
+      .bind(q.org, id, q.instante, q.actor, JSON.stringify({ para })),
+    await anotar(q.db, {
+      org: q.org,
+      actor: q.actor,
+      accion: 'pedido.contacto_ver',
+      entidad: 'pedido',
+      entidadId: id,
+      antes: null,
+      despues: { numero: p.numero, para },
+      instante: q.instante,
+    }),
+  ]);
+  return { estado: 'ok', contacto, numero: p.numero };
+}
+
+/** HU-T9.2: «Ver datos de entrega». La única respuesta del panel con el contacto en claro. */
+export async function verContacto(
+  q: Quien,
+  kek: Kek | null,
+  cuerpo: unknown,
+): Promise<ResultadoDelContacto> {
+  const { numero: _, ...r } = await leerContacto(q, kek, cuerpo, 'ver');
+  return r;
 }

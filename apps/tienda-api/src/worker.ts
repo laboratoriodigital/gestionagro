@@ -40,7 +40,7 @@ import {
 import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { avisame, PeticionDeAvisame } from './avisame.ts';
-import { leerPedido, listarPedidos } from './bandeja.ts';
+import { leerPedido, listarPedidos, verContacto } from './bandeja.ts';
 import {
   borrarLaColeccion,
   guardarLaColeccion,
@@ -1033,6 +1033,13 @@ export function crearApp(
     if (q instanceof Response) return q;
     const p = await leerPedido(q, await kekDe(c), c.req.param('id'));
     return p ? c.json(p) : c.json({ estado: 'no-existe', motivo: 'Ese pedido no está.' }, 404);
+  });
+  const ESTADO_DEL_CONTACTO = { 'no-existe': 404, 'sin-contacto': 404, 'sin-llave': 503 } as const;
+  app.post('/api/panel/v1/pedidos/contacto', async (c) => {
+    const q = quienPuede(c, 'pedidos.contacto_ver', 'Tu rol no puede ver los datos de entrega.');
+    if (q instanceof Response) return q;
+    const r = await verContacto(q, await kekDe(c), await c.req.json().catch(() => null));
+    return r.estado === 'ok' ? c.json(r) : c.json(r, ESTADO_DEL_CONTACTO[r.estado]);
   });
   // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.
   app.get('/api/panel/v1/registro', async (c) => {
