@@ -21,15 +21,13 @@ docs/
 ├── tienda/                la Tienda 3.0 y la línea ecommerce
 │   ├── BACKLOG_TIENDA3.md plan, sprints e historias de la Tienda 3.0
 │   ├── BITACORA_TIENDA3.md lo que se rompió y se aprendió en la Tienda 3.0 (la bitácora tienda3)
-│   ├── historia/          el estudio de mercado anterior
-│   └── sql/               migraciones propuestas de la tienda, con su prueba
+│   └── historia/          el estudio de mercado anterior
 ├── parking/               el Parqueadero ED1, para su primer cliente
 │   ├── ESTUDIO-MERCADO-PARQUEADEROS-ED1-2026-10.md el mercado de los parqueaderos en Colombia
 │   ├── ARQUITECTURA-PARQUEADERO.md la arquitectura de la solución (ADR-31 a ADR-40)
 │   ├── BACKLOG-PARKING.md plan, sprints e historias del parqueadero (M0 a M3)
 │   ├── BACKLOG-PARKING_MVP.md las 37 historias del MVP, las demostraciones y el piloto
-│   ├── BITACORA-PARKING.md lo que se rompió y se aprendió en el parqueadero (la bitácora parqueadero)
-│   └── sql/               el modelo de datos propuesto, con su prueba
+│   └── BITACORA-PARKING.md lo que se rompió y se aprendió en el parqueadero (la bitácora parqueadero)
 ├── runbooks/              procedimientos paso a paso
 └── seguridad/             revisiones de seguridad
 ```
@@ -68,7 +66,6 @@ docs/
 | `parking/BACKLOG-PARKING.md` | Hitos, sprints, épicas, historias, work items y velocidad del parqueadero (M0 a M3), con la dirección de diseño de la caja | Planeación y cierre de cada sprint del parqueadero |
 | `parking/BACKLOG-PARKING_MVP.md` | El MVP del primer cliente (M0): sus 37 historias, las demostraciones de cada viernes, el piloto y lo que se necesita del cliente | Planeación y cierre de cada sprint de M0 |
 | `parking/BITACORA-PARKING.md` | Lo que se rompió y se aprendió en el parqueadero («bitácora parqueadero N»), con las mismas convenciones que las otras bitácoras para unirlas | Algo se rompe o se aprende en el parqueadero. Una entrada nueva va al final |
-| `parking/sql/` | El modelo de datos propuesto del parqueadero y su prueba con `node:sqlite` (ver su `README.md`) | Con el diseño |
 | `runbooks/` | Procedimientos paso a paso: despliegue, ambientes de GitHub, pagos con Bold, cambio de dominio, kill switch, vigía de cuota, los secretos de la Tienda y renombrar el repositorio | Cambia el procedimiento |
 | `seguridad/` | Revisiones de seguridad, con cada hallazgo, su arreglo y su prueba | Cada revisión |
 
@@ -107,3 +104,4 @@ Los documentos de `historia/`, el CHANGELOG y las entradas ya escritas de las bi
 | `BITACORA-ecommerce.md` | `tienda/BITACORA-ecommerce.md` |
 | `arquitectura/sql/tienda/`, `arquitectura/sql/tienda-control/`, `arquitectura/sql/probar-tienda.mjs` | `infrastructure/migraciones/tienda/`, `infrastructure/migraciones/tienda-control/` y `tests/repo/shard-tienda.test.ts` (HU-T2.1) |
 | `arquitectura/sql/README.md` | `plataforma/sql/README.md` (el de la tienda se retiró con HU-T2.1) |
+| `parking/sql/parqueadero/`, `parking/sql/probar-parqueadero.mjs` | `infrastructure/migraciones/parqueadero/` y `tests/repo/shard-parqueadero.test.ts` (HU-Q7.2) |

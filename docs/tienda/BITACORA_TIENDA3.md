@@ -275,9 +275,10 @@ Cuatro reglas que no se rompen:
 
 Van aparte porque no son fallos de código: son cosas que dije con seguridad y no eran ciertas.
 
-*(Ninguna todavía. Las del diseño de la Tienda hasta el 5 oct 2026 están en la bitácora agro, por ejemplo la 3, sobre el cobro de WhatsApp.)*
+*(Ninguna todavía. Las del diseño de la Tienda hasta el 5 oct 2026 están en la bitácora agro, por ejemplo la 3, sobre el cobro de WhatsApp.)* *(Hoy: hay dos, abajo.)*
 
 - **14 oct 2026: «el carrito vive en `/pedido/`».** En HU-T5.4 horneé el carrito en `/pedido/` y lo dejé así en el PR #180, sin contrastarlo con TIENDA §5.4, que pone el carrito en `/carrito/` y deja `/pedido/#c=…&s=…` para el seguimiento (y `/pedido/pago/` para la vuelta de Bold). Lo vi al escribir HU-T6.3, que necesita esa ruta. Se corrigió en T6 antes de que hubiera un enlace compartido: el carrito se guarda en `localStorage`, no en la ruta, así que nadie perdió nada. La regla de siempre (premisas antes de decidir): **una ruta pública se toma de la tabla de rutas del diseño, no de la historia que la usa primero.**
+- **15 oct 2026: «la Tienda quedó en producción».** En la revisión del estado del proyecto lo afirmé porque el paso «Desplegar la Tienda» del despliegue a producción figuraba «success» en la API de GitHub. Ese paso tiene `continue-on-error: true`: el paso figura en verde aunque falle, y el error está en la anotación del trabajo («Process completed with exit code 1.»). La regla: **el estado de un paso con `continue-on-error` no dice si funcionó; se leen las anotaciones o el resumen de la corrida** (bitácora tienda3 12).
 
 ---
 
@@ -287,7 +288,7 @@ No son errores. Son decisiones que cambiaron con información nueva. Las anterio
 
 | De | A | Por qué |
 |---|---|---|
-| El tablero en M5, después de cargar las tiendas (TIENDA §19) | El tablero en M2, antes de M6 (HU-T14.2) | El anexo C de TIENDA exige que cada puerta que una tienda usa pase antes de cargarla, y la 2.0 tiene tablero (bitácora tienda3 1) |
+| El tablero en M5, después de cargar las tiendas (TIENDA §19) | El tablero en M2, antes de M6 (HU-T14.2) *(Hoy: M6 se retiró el 13 oct 2026; el tablero sigue en M2)* | El anexo C de TIENDA exige que cada puerta que una tienda usa pase antes de cargarla, y la 2.0 tiene tablero (bitácora tienda3 1) |
 | Los días hábiles «en `packages/dinero` o en un `packages/calendario`» (TIENDA §8.6) | `@ed1/calendario`, neutro y compartido con el CORE (HU-T1.2) | El CORE necesita lo mismo para la Ley 1581 (HU-C7.7): una sola fuente (P2) |
 | Las fotos siempre en WebP (TIENDA §11.5) | WebP, o JPEG donde el navegador no produce WebP (HU-T8.3) | Safari devuelve PNG (bitácora tienda3 2) |
 | Hitos con fechas fijas desde el diseño (TIENDA §19) | Sprints con el calendario del CORE, que arrancan cuando se cumplen sus condiciones (HC1, Workers Paid y la zona `.app`) | El CORE construyó sus tres primeros sprints en tres días: lo que manda es el orden de las dependencias |
@@ -532,3 +533,39 @@ La regla: **lo público y lo privado no comparten bucket: un dominio propio expo
 La regla: **un límite de negocio se escribe en las unidades que la herramienta sabe contar; si no, la historia promete lo que el plan no da.**
 
 *Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P1, P18 · tienda-0.0.0 · 2026-10-14
+
+**12 · `tienda-v0.1.0` se etiquetó, el despliegue a producción figura en verde, y el paso de la Tienda en producción terminó en error.**
+
+*Qué pasó.* El 15 oct 2026 a las 00:29 UTC, al fusionar el PR #181 (sprint T6), la corrida 38660320774 de «desplegar» subió la Tienda a `0.1.0`: staging, publicar (etiqueta y versión `tienda-v0.1.0` a las 00:32) y producción. Se vio el 15 oct al revisar el estado del proyecto.
+
+*Síntoma literal.* La corrida y sus cuatro trabajos: `success`. El paso «Desplegar la Tienda» del trabajo `produccion / desplegar`: `success`. Las anotaciones de ese trabajo: «failure: Process completed with exit code 1.». Los trabajos de staging y publicar no tienen anotaciones de falla, ni el de producción de la corrida anterior (38583260273).
+
+*Causa raíz.* El paso de la Tienda lleva `continue-on-error: true` a propósito (`desplegar-destino.yml`: «si falla, el paso queda en rojo y el resumen dice por qué, pero el trabajo sigue»), así que la corrida queda en verde aunque la Tienda no llegue a producción. Qué falló dentro del paso: **sin reproducir**; el registro de la corrida no se pudo descargar desde la sesión. Lo más probable es lo que el backlog ya anunciaba: la KEK y el secreto del despacho de producción eran tarea del dueño «antes de fusionar el PR de T6» y no figuraban hechos (BACKLOG_TIENDA3 §10). También puede ser la prueba de humo de HU-T2.9, que corre en el mismo paso.
+
+*Cómo se reprodujo.* Sin reproducir. Se leyó la API de GitHub: `actions/runs/38660320774/jobs` y `check-runs/116180849752/annotations`.
+
+*Arreglo.* Pendiente: el dueño lee el resumen de la corrida para confirmar la causa, genera los secretos de producción si faltan (`node scripts/tienda/generar-secretos.ts --ambiente produccion`) y repite el despliegue a mano a producción con `productos: tienda`. El backlog lo marca: HU-T2.9 sigue sin cumplir CA1 y la tarea del dueño pasa a «ya frena».
+
+**Lo prueba:** nada todavía. Una etiqueta que sale aunque su producto no llegó a producción pide una comprobación en el despliegue, que es otra historia.
+
+La regla: **una versión publicada no es una versión desplegada; con `continue-on-error`, lo que dice si funcionó es la anotación o el resumen, no el color del paso.**
+
+*Ficha:* tienda3 · *(compartido)* · 🟠 Medio · P15, P16, P19 · tienda-0.1.0 · 2026-10-15
+
+**13 · El plan y el mapa de documentos decían cosas que el repositorio ya no cumplía.**
+
+*Qué pasó.* El 15 oct 2026, al contrastar el backlog, la bitácora y `docs/README.md` con el historial de git después del sprint T6.
+
+*Síntoma literal.* BACKLOG_TIENDA3 §3.3: «`tienda-v0.5.0` | T16 | M4…» y «`tienda-v0.6.0` | T17 | M4…», con `tienda-v1.0.0` en T18, mientras §0 y §6.1 ponen M5 (`v1.0.0`) en T17. §6.1: «T6 | 22 feb–5 mar», con T6 fusionado el 14 oct 2026. §13: 34 historias «En validación» con un tope de 3 (§3.6). `docs/README.md`: `tienda/sql/` y `parking/sql/`, que no existen en `main`.
+
+*Causa raíz.* Al retirar M6 (bitácora tienda3 9) se rehicieron la tabla de hitos y el plan de sprints, pero no la tabla de versiones; al mover las migraciones a `infrastructure/` (HU-T2.1 y HU-Q7.2) no se tocó el mapa. Cada cambio corrigió el documento que tenía al frente, no todos los que lo nombran (P2, P18).
+
+*Cómo se reprodujo.* `ls docs/tienda/sql docs/parking/sql` falla en `main`; `git log` de `feat/t6-sprint`; la tabla de §3.3 contra la de §0.
+
+*Arreglo.* La tabla de versiones se alineó con §0 y §6.1; §6.1 dice lo real y por qué las fechas no se recalculan hasta validar T1 a T6; el mapa nombra dónde están hoy las migraciones.
+
+**Lo prueba:** nada todavía; una prueba de repositorio que compare las versiones de §0 con las de §3.3 sería la siguiente.
+
+La regla: **al retirar un hito o mover un archivo, se busca cada documento que lo nombra, no solo el que se está editando.**
+
+*Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P2, P18 · tienda-0.1.0 · 2026-10-15

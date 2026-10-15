@@ -118,11 +118,12 @@ La Tienda tiene versión propia (HU-T0.2, como HU-C0.3 para el CORE): un solo `p
 | `tienda-v0.2.0` | T7 | M1: la tienda pública |
 | `tienda-v0.3.0` | T11 | M2: el panel |
 | `tienda-v0.4.0` | T14 | M3: cobrar en línea |
-| `tienda-v0.5.0` | T16 | M4: dominios propios, alta abierta y plan (era M6, retirado el 13 oct 2026) |
-| `tienda-v0.6.0` | T17 | M4: dominios propios, alta abierta y plan |
-| **`tienda-v1.0.0`** | T18 | M5. El contrato público queda estable: `/api/v1`, los formatos de carga y exportación y los ajustes con esquema |
-| `tienda-v1.1.0` | T19 | M7: agentes |
-| `tienda-v1.2.0` | T20 | M8: factura integrada |
+| `tienda-v0.5.0` | T16 | M4: dominios propios, alta abierta y plan |
+| **`tienda-v1.0.0`** | T17 | M5. El contrato público queda estable: `/api/v1`, los formatos de carga y exportación y los ajustes con esquema |
+| `tienda-v1.1.0` | T18 | M7: agentes |
+| `tienda-v1.2.0` | T19 | M8: factura integrada |
+
+*15 oct 2026:* al retirar M6 (13 oct) esta tabla quedó corrida un sprint (dos filas de M4 y `v1.0.0` en T18), distinta de la tabla de hitos de §0 y del plan de §6.1. Se alineó con ellas: M4 es `v0.5.0` en T16 y lo demás llega un sprint antes (bitácora tienda3 13).
 
 ### 3.4 Pull request
 
@@ -342,6 +343,8 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T18** (festivo) | 9–20 ago | **M7.** Los agentes preparan pedidos que una persona confirma | HU-T15.2 (2), HU-T15.3 (2), HU-T15.4 (5), HU-T15.5 (3), HU-T15.6 (2), HU-T15.7 (5) | 19 | M7 |
 | **T19** | 23 ago–3 sep | **M8.** La factura, en el facturador del comercio | HU-T16.1 (2), HU-T16.2 (5), HU-T16.3 (3), HU-T16.4 (2) | 12 | M8 |
 | **T20** | 6–17 sep | Holgura: lo que traiga la validación con los primeros comercios | — | 0 | — |
+
+**Lo real al 15 oct 2026:** T0 a T6 se construyeron entre el 6 y el 14 oct de 2026, meses antes de las fechas de esta tabla. Las fechas no se recalculan todavía: §6.2 las recalcula con la velocidad **validada**, que sigue en 17 puntos (solo T0), con 34 historias esperando validación frente al tope de 3 (§3.6). La planeación de T7 las recalcula cuando el dueño valide lo construido de T1 a T6 (bitácora tienda3 13).
 
 **Total:** 345 puntos. Hasta el alta abierta (T0 a T16, M4): 303. Desde el 13 oct 2026 ninguna tienda 2.0 se migra (bitácora tienda3 9): sus 15 puntos de carga y corte salieron, y los hitos de M4 en adelante llegan un sprint antes.
 
@@ -577,7 +580,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T2.8.1 `[código]` · WI-T2.8.2 `[prueba]` contrato con tokens firmados de verdad (P17) · WI-T2.8.3 `[prueba]` `org_id`.
 
 #### HU-T2.9 · La Tienda en producción, sin tiendas, con su prueba de humo
-- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T6 · **Depende de:** HU-T0.2, HU-T4.4, HU-T5.1 · **Estado:** En validación, esperando al dueño (WI-T2.9.3) (rama `feat/t6-sprint`. La versión sube a `0.1.0` al cerrar T6 y la fusión la despliega a producción. **Cambió:** en producción el despacho toma `origen.laboratorio-digital.app` y el panel `panel.laboratorio-digital.app`, los dos como dominios propios de sus Workers, que crean su registro DNS solos; el comodín `*.laboratorio-digital.app` pide un registro del dueño y llega con la primera tienda real (P1). `origen.`, sin tienda, responde «Esta dirección no tiene tienda» (CA1), y es el mismo origen de respaldo que Cloudflare for SaaS necesitará (TIENDA §4.1). La API dice en `/api/salud` su `ambiente` (variable generada por destino) y cuántos comercios de prueba hay en sus shards; la prueba de humo mira los dominios públicos en producción (CA2) y falla si el ambiente no es el del destino o si hay un comercio de prueba en producción (CA3). Controles negativos: una salud de staging en el despliegue a producción y dos comercios de prueba en producción ponen el humo en rojo)
+- **Capa:** despliegue · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T6 · **Depende de:** HU-T0.2, HU-T4.4, HU-T5.1 · **Estado:** En validación, esperando al dueño (WI-T2.9.3) (rama `feat/t6-sprint`. La versión sube a `0.1.0` al cerrar T6 y la fusión la despliega a producción. **Cambió:** en producción el despacho toma `origen.laboratorio-digital.app` y el panel `panel.laboratorio-digital.app`, los dos como dominios propios de sus Workers, que crean su registro DNS solos; el comodín `*.laboratorio-digital.app` pide un registro del dueño y llega con la primera tienda real (P1). `origen.`, sin tienda, responde «Esta dirección no tiene tienda» (CA1), y es el mismo origen de respaldo que Cloudflare for SaaS necesitará (TIENDA §4.1). La API dice en `/api/salud` su `ambiente` (variable generada por destino) y cuántos comercios de prueba hay en sus shards; la prueba de humo mira los dominios públicos en producción (CA2) y falla si el ambiente no es el del destino o si hay un comercio de prueba en producción (CA3). Controles negativos: una salud de staging en el despliegue a producción y dos comercios de prueba en producción ponen el humo en rojo. 15 oct 2026: la fusión etiquetó `tienda-v0.1.0`, pero el paso de la Tienda en el despliegue a producción terminó en error; CA1 sigue sin cumplirse hasta repetirlo con los secretos de producción (bitácora tienda3 12))
 - Como dueño, quiero el camino a producción probado mucho antes de la primera tienda real, para que el día del corte no sea la primera vez.
 - **Respaldo:** P16; bitácora agro, terreno («staging se despliega solo y producción no»; «un dominio en el Worker equivocado»).
 - **CA1.** `tienda-v0.1.0` en producción: un hostname de `laboratorio-digital.app` sin tienda responde «Esta dirección no tiene tienda» (404), y `panel.laboratorio-digital.app` abre.
@@ -1583,7 +1586,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | Activar Workers Paid y las alertas de facturación | Cuando un dato lo exija | Decisión del 6 oct 2026: el plan gratuito mientras se pueda. Los datos que lo decidirían, en la bitácora tienda3 7 |
 | Agregar la zona `laboratorio-digital.app` a la cuenta | Hecho | Activa: el parqueadero sale a producción en ella (13 oct 2026) |
 | Contestar qué usa cada tienda 2.0 | T1 | HU-T12.1 |
-| Generar la KEK y el secreto del despacho de **producción**, y guardar la copia de la KEK | Fusionar el PR de T6 | `node scripts/tienda/generar-secretos.ts --ambiente produccion` (`docs/runbooks/secretos-de-la-tienda.md`). Sin ellos, el paso de la Tienda del despliegue a producción falla y lo dice; los demás productos salen igual |
+| Generar la KEK y el secreto del despacho de **producción**, y guardar la copia de la KEK | **Ya frena** (era: fusionar el PR de T6) | 15 oct 2026: el PR de T6 se fusionó y la etiqueta `tienda-v0.1.0` salió, pero el paso de la Tienda en el despliegue a producción terminó en error (bitácora tienda3 12). Después de generarlos, se repite el despliegue a mano a producción con `productos: tienda`. Cómo: `node scripts/tienda/generar-secretos.ts --ambiente produccion` (`docs/runbooks/secretos-de-la-tienda.md`). Sin ellos, el paso de la Tienda del despliegue a producción falla y lo dice; los demás productos salen igual |
 | Generar la KEK y el secreto del despacho, y guardar la copia de la KEK | Hecho (staging) | `node scripts/tienda/generar-secretos.ts --ambiente staging` (HU-T2.5, `docs/runbooks/secretos-de-la-tienda.md`). Sin el secreto del despacho, el paso de la Tienda en el despliegue falla y lo dice |
 | Activar R2 y crear `tienda-c1` y `tienda-c1-staging` | Hecho | 14 oct 2026. El token de despliegue sigue sin permiso de R2 (HU-C11.5): los buckets los crea el dueño en el panel |
 | Crear los buckets de las fotos y conectarles `img.` e `img--staging.` | T8 | **Buckets creados el 14 oct 2026; falta conectarles los dominios** (pasos 2 y 3 de `docs/runbooks/tienda-fotos.md`): hoy `img.` e `img--staging.` no resuelven. Nunca un dominio en el almacén |
@@ -1650,7 +1653,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | T3 | 19 | 0 (en validación: HU-T2.10, HU-T3.2, HU-T4.1, HU-T4.2, HU-T5.1 y HU-T14.8) | Construido el 13 oct 2026, con el plan rehecho sin M6 (bitácora tienda3 9). El horno hornea a los dos comercios de prueba y el despacho los sirve en proceso; en staging falta el almacén R2, que espera al dueño. La tipografía (D-T2) espera su elección, con la recomendación nueva: la del ecosistema |
 | T4 | 22 (20 + HU-T3.3, que esperó D-T2) | 0 (en validación: HU-T3.3, HU-T3.4, HU-T4.3, HU-T4.4, HU-T5.3, HU-T5.6 y HU-T17.1) | Construido el 14 oct 2026. Publicar ya hornea, pasa la compuerta y sube a R2 sin cola (plan gratuito); en staging los dos comercios de prueba se publican en cada despliegue. Las fotos cambiaron por seguridad a un bucket propio (bitácora tienda3 10), que espera al dueño. El cron de la Tienda es el quinto de la cuenta, solo en producción (D-T10) |
 | T5 | 20 | 0 (en validación: HU-T5.2, HU-T5.4, HU-T5.5, HU-T6.5, HU-T7.1 y HU-T15.1) | Construido el 14 oct 2026. La vitrina queda completa en el horno: las tres portadas, la ficha con lo que pide la ley, las fotos con sus derivadas, el carrito con su código, cotizar en el servidor y «Avísame», y los textos legales de cada tienda. La Tienda tiene e2e propias (360 y 1280 px, CLS, sin JavaScript). El límite de «Avísame» quedó por minuto (bitácora tienda3 11). Esperan al dueño: la lectura de las plantillas legales (WI-T7.1.4) y la revisión visual (WI-T5.2.3) |
-| T6 | 20 | 0 (en validación: HU-T2.9, HU-T3.6, HU-T6.1, HU-T6.2, HU-T6.3 y HU-T12.2) | Construido el 14 oct 2026. Se pide por WhatsApp con la aceptación verificable, el acuse y el seguimiento secreto; la vitrina tiene presupuestos y CSP en el CI; una tienda se carga desde un archivo. La versión `0.1.0` lleva la Tienda a producción sin tiendas, en `panel.` y `origen.`. El carrito pasó a `/carrito/`, como dice TIENDA §5.4 (bitácora tienda3, «Afirmaciones mías») |
+| T6 | 20 | 0 (en validación: HU-T2.9, HU-T3.6, HU-T6.1, HU-T6.2, HU-T6.3 y HU-T12.2) | Construido el 14 oct 2026. Se pide por WhatsApp con la aceptación verificable, el acuse y el seguimiento secreto; la vitrina tiene presupuestos y CSP en el CI; una tienda se carga desde un archivo. La versión `0.1.0` lleva la Tienda a producción sin tiendas, en `panel.` y `origen.`. El carrito pasó a `/carrito/`, como dice TIENDA §5.4 (bitácora tienda3, «Afirmaciones mías»). PR #181 fusionado el 14 oct; `tienda-v0.1.0` etiquetada el 15 oct, pero el paso de la Tienda en producción terminó en error: CA1 de HU-T2.9 sigue sin cumplirse (bitácora tienda3 12) |
 
 ---
 
