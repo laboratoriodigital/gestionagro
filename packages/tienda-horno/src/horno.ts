@@ -13,7 +13,11 @@
  * ecommerce 31). Todo texto con el nombre del comercio sale de sus datos.
  */
 import { formatearPesos } from '@ed1/dinero';
-import { etiquetaDeVerificacionGoogle } from '@ed1/tienda-schema';
+import {
+  etiquetaDeVerificacionGoogle,
+  NOMBRE_DEL_TIPO,
+  TIPOS_DE_SOLICITUD,
+} from '@ed1/tienda-schema';
 import { llmsTxt, manifiestoWeb, robotsDeLaTienda } from './agentes.ts';
 import { escaparHtml, markdownPlano, markdownSeguro } from './escapar.ts';
 import { type DatosLegales, type FormaDePago, TEXTOS_LEGALES, textosLegales } from './legal.ts';
@@ -659,12 +663,40 @@ ${p.cuerpo}
     gemelo: `# Tu pedido\n\nEl estado de un pedido se ve con su enlace de seguimiento, que solo tiene quien lo hizo.\n`,
   });
 
+  /**
+   * La solicitud con radicado (HU-T6.4, TIENDA §8.6): el formulario va debajo del texto de
+   * `/solicitud/`. La isla crea el secreto del enlace en el teléfono, radica por POST y muestra el
+   * radicado; con `#r=…&s=…` muestra en qué va. Sin JavaScript queda el texto, con el correo y el
+   * WhatsApp de la tienda.
+   */
+  const formularioDeSolicitud = [
+    '<section class="solicitud" data-solicitud>',
+    '<h2 id="hacerla">Hazla aquí</h2>',
+    '<form class="venta" data-solicitud-form hidden novalidate>',
+    `<label class="campo">¿Qué necesitas?<select name="tipo" required><option value="">Elige una opción</option>${TIPOS_DE_SOLICITUD.map((x) => `<option value="${x}">${escaparHtml(NOMBRE_DEL_TIPO[x])}</option>`).join('')}</select></label>`,
+    '<label class="campo">Código de tu pedido (si tienes uno)<input name="pedido" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>',
+    '<label class="campo">Cuéntanos qué pasa<textarea name="texto" rows="5" minlength="10" maxlength="2000" required></textarea></label>',
+    '<label class="campo">¿Cómo te respondemos? (correo o WhatsApp)<input name="contacto" maxlength="120" autocomplete="email" required></label>',
+    '<label class="acepto"><input type="checkbox" name="acepta" data-acepta><span>Autorizo usar estos datos para atender mi solicitud, como dice la <a href="/legal/privacidad/">política de datos</a>.</span></label>',
+    '<p class="aviso" data-solicitud-aviso role="status" hidden></p>',
+    '<button class="boton boton--principal" type="submit" data-solicitud-enviar aria-disabled="true">Elige qué necesitas</button>',
+    '</form>',
+    '<section class="acuse" data-radicado hidden>',
+    '<p class="acuse__codigo">Solicitud <span class="cifra" data-radicado-numero></span></p>',
+    '<p class="acuse__estado" data-radicado-estado></p>',
+    '<dl class="acuse__datos"><dt>Tipo</dt><dd data-radicado-tipo></dd><dt>Recibida</dt><dd data-radicado-creada></dd><dt>Te respondemos a más tardar</dt><dd data-radicado-vence></dd></dl>',
+    '<p class="acuse__enlace">Guarda este enlace para seguir tu solicitud: <a data-radicado-enlace></a></p>',
+    '<button class="boton boton--secundario" type="button" data-imprimir>Imprimir o guardar como PDF</button>',
+    '</section>',
+    '</section>',
+  ].join('\n');
+
   // Los textos legales (HU-T7.1), cada uno con su gemelo.
   for (const texto of legales) {
     pagina({
       ruta: texto.ruta,
       titulo: `${texto.titulo} · ${t.nombre}`,
-      cuerpo: texto.html,
+      cuerpo: texto.id === 'solicitud' ? `${texto.html}\n${formularioDeSolicitud}` : texto.html,
       ld: [
         migas([
           [t.nombre, '/'],

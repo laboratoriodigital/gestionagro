@@ -1,0 +1,95 @@
+/**
+ * Hablar con la API de la tienda desde el panel (HU-T8.1): `/api/panel/v1/*`, en el mismo origen
+ * (el Worker del panel la pasa a la celda), con el token en la cabecera.
+ *
+ * - Un acceso vencido se renueva antes de pedir; un 401 se renueva una vez y se repite.
+ * - Si aun así no hay sesión, la respuesta es `sin-sesion` con el motivo: la pantalla dice «vuelve a
+ *   entrar» sin perder lo que la persona estaba escribiendo (CA2), porque no navega ni recarga.
+ * - «Sin tienda», «error» y «sin sesión» son estados distintos y se dicen distinto.
+ */
+import type { ValorDeFuncion } from '@ed1/tienda-schema';
+import type { Almacen } from './almacen.ts';
+import { estadoDeSesion, leerSesion, renovar, type Sesion } from './sesion.ts';
+
+export type RespuestaDelPanel<T> =
+  | { tipo: 'ok'; datos: T }
+  | { tipo: 'sin-sesion'; motivo: string }
+  | { tipo: 'sin-tienda'; motivo: string }
+  | { tipo: 'error'; motivo: string };
+
+/** `GET /api/panel/v1/yo`: la tienda de la sesión, el rol, el plan y lo que el plan permite. */
+export interface Yo {
+  org: string;
+  rol: string;
+  plan: string | null;
+  funciones: Record<string, ValorDeFuncion> | null;
+  tienda: { slug: string; nombre: string; estado: string } | null;
+}
+
+export interface Conexion {
+  almacen: Almacen;
+  core: string;
+  fetchFn?: typeof fetch;
+  ahora?: () => number;
+}
+
+const SIN_SESION = 'Tu sesión venció. Vuelve a entrar con Google.';
+
+async function conAcceso(c: Conexion): Promise<{ sesion: Sesion | null; motivo: string | null }> {
+  const sesion = await leerSesion(c.almacen);
+  const estado = estadoDeSesion(sesion, (c.ahora ?? Date.now)());
+  if (estado === 'activa') return { sesion, motivo: null };
+  if (estado === 'sin-sesion' || estado === 'vencida') return { sesion: null, motivo: SIN_SESION };
+  return renovar(c.almacen, c.core, { fetchFn: c.fetchFn ?? fetch });
+}
+
+export async function pedirAlPanel<T>(
+  c: Conexion,
+  ruta: string,
+  opciones: { metodo?: 'GET' | 'POST'; cuerpo?: unknown } = {},
+): Promise<RespuestaDelPanel<T>> {
+  const fetchFn = c.fetchFn ?? fetch;
+  const pedir = (acceso: string) =>
+    fetchFn(`/api/panel/v1/${ruta}`, {
+      method: opciones.metodo ?? (opciones.cuerpo === undefined ? 'GET' : 'POST'),
+      headers: {
+        authorization: `Bearer ${acceso}`,
+        ...(opciones.cuerpo === undefined ? {} : { 'content-type': 'application/json' }),
+      },
+      ...(opciones.cuerpo === undefined ? {} : { body: JSON.stringify(opciones.cuerpo) }),
+    });
+  try {
+    let { sesion, motivo } = await conAcceso(c);
+    if (!sesion) return { tipo: 'sin-sesion', motivo: motivo ?? SIN_SESION };
+    let r = await pedir(sesion.acceso);
+    if (r.status === 401) {
+      ({ sesion, motivo } = await renovar(c.almacen, c.core, { fetchFn }));
+      if (!sesion) return { tipo: 'sin-sesion', motivo: motivo ?? SIN_SESION };
+      r = await pedir(sesion.acceso);
+    }
+    const datos = (await r.json().catch(() => ({}))) as T & { estado?: string; motivo?: string };
+    if (r.ok) return { tipo: 'ok', datos };
+    if (r.status === 401) return { tipo: 'sin-sesion', motivo: datos.motivo ?? SIN_SESION };
+    if (r.status === 403 && datos.estado === 'sin-tienda') {
+      return {
+        tipo: 'sin-tienda',
+        motivo: datos.motivo ?? 'Tu cuenta todavía no tiene una tienda.',
+      };
+    }
+    if (r.status === 403 && datos.estado === 'otra-celda') {
+      return { tipo: 'sin-sesion', motivo: datos.motivo ?? SIN_SESION };
+    }
+    return {
+      tipo: 'error',
+      motivo: datos.motivo ?? `La tienda no respondió bien (${r.status}). Intenta de nuevo.`,
+    };
+  } catch (e) {
+    return {
+      tipo: 'error',
+      motivo:
+        e instanceof Error && e.name === 'ErrorDeSesion'
+          ? e.message
+          : 'Sin conexión: no pudimos hablar con tu tienda. Revisa la señal e intenta de nuevo.',
+    };
+  }
+}

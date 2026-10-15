@@ -694,6 +694,7 @@ La guarda contra la sobreventa sigue siendo un `CHECK` en una fila, ahora por bo
   | Reclamo de datos personales | 15 días hábiles + 8 (Ley 1581 art. 15) |
 
 - **El vencimiento** se calcula con un calendario de **días hábiles colombianos con festivos**. La Ley 51 de 1983 corre varios festivos al lunes, así que no basta con saltar sábados y domingos. Va en `packages/dinero` o en un `packages/calendario`, con pruebas para cada año, Semana Santa incluida.
+- **Lo que se guarda** (HU-T6.4): el contacto, el texto, el código del pedido y la autorización (su instante y la huella de la política publicada) van en `solicitud.sobre`, cifrados con la DEK `datos_personales` de la tienda (§14.2); en claro, solo el tipo, las fechas y el estado. El enlace para seguirla lleva un secreto que nace en el teléfono (`/solicitud/#r=<radicado>&s=<secreto>`); la tienda guarda su SHA-256. Límite: 5 por minuto por IP, porque Workers Rate Limiting solo cuenta de a 10 o 60 segundos (bitácora tienda3 11).
 - **Avisos al comercio:** el panel avisa a 3 días y el día del vencimiento, y lo incluye en el resumen diario.
 - **Retracto por producto:** `producto.retracto`. El comercio marca las excepciones de la ley (perecederos, personalizados, de uso personal…) con su motivo, y la ficha lo dice antes de comprar.
 - **Reversión:** el comprador la pide con una solicitud de tipo `reversion`. El comercio la gestiona con Bold. Si Bold anula (`VOID_APPROVED`), el cobro pasa a `reembolsado`.

@@ -331,3 +331,93 @@ test('HU-T6.3 CA3 · un enlace que no es: la página lo dice, sin mostrar ningú
   // El secreto viajó en el cuerpo, nunca en la URL de la API.
   expect(consultas.every((u) => !u.includes('abcdefghijklmnopqrstuv'))).toBe(true);
 });
+
+test('HU-T6.4 CA1 · radicar una solicitud: dice qué falta, recibe el radicado y el enlace para seguirla', async ({
+  page,
+}) => {
+  const enviadas: Record<string, unknown>[] = [];
+  await page.route('**/api/v1/solicitudes', async (ruta) => {
+    enviadas.push(JSON.parse(ruta.request().postData() ?? '{}') as Record<string, unknown>);
+    await ruta.fulfill({
+      json: {
+        estado: 'radicada',
+        radicado: 'R-7',
+        numero: 7,
+        tipo: 'Queja',
+        creada: '2026-10-14T15:00:00.000Z',
+        vence: '2026-11-05',
+      },
+    });
+  });
+
+  await page.goto(`${TIENDA}/solicitud/`);
+  const enviar = page.locator('[data-solicitud-enviar]');
+  await expect(enviar).toHaveText('Elige qué necesitas');
+  await enviar.click({ force: true });
+  await expect(page.locator('[data-solicitud-aviso]')).toHaveText('Elige qué necesitas');
+  expect(enviadas).toEqual([]);
+  await page.getByLabel('¿Qué necesitas?').selectOption('queja');
+  await page.getByLabel('Código de tu pedido').fill('abc234');
+  await page.getByLabel('Cuéntanos qué pasa').fill('La camisa llegó con una mancha.');
+  await page.getByLabel('¿Cómo te respondemos?').fill('ensayo@ejemplo.co');
+  // La autorización nunca viene marcada (Ley 1581 art. 9).
+  await expect(page.locator('[data-solicitud] [data-acepta]')).not.toBeChecked();
+  await expect(enviar).toHaveText('Autoriza el uso de tus datos para enviar');
+  await page.locator('[data-solicitud] [data-acepta]').check();
+  await expect(enviar).toHaveText('Enviar la solicitud');
+  await enviar.click();
+
+  await expect(page.locator('[data-radicado-numero]')).toHaveText('R-7');
+  await expect(page.locator('[data-radicado-vence]')).toHaveText('5 de noviembre de 2026');
+  await expect(page.locator('[data-solicitud-form]')).toBeHidden();
+  expect(enviadas).toHaveLength(1);
+  expect(enviadas[0]).toMatchObject({
+    tipo: 'queja',
+    pedido: 'abc234',
+    contacto: 'ensayo@ejemplo.co',
+    acepta: true,
+  });
+  const secreto = String(enviadas[0]?.['seguimiento']);
+  expect(secreto).toMatch(/^[A-Za-z0-9_-]{22}$/);
+  // El enlace lleva el secreto en el fragmento, que no llega a ningún servidor.
+  await expect(page).toHaveURL(`${TIENDA}/solicitud/#r=7&s=${secreto}`);
+  await expect(page.locator('[data-radicado-enlace]')).toHaveText(
+    `${TIENDA}/solicitud/#r=7&s=${secreto}`,
+  );
+});
+
+test('HU-T6.4 · con el enlace, la solicitud dice en qué va; uno que no es, lo dice sin mostrar nada', async ({
+  page,
+}) => {
+  const cuerpos: string[] = [];
+  await page.route('**/api/v1/solicitudes/seguimiento', async (ruta) => {
+    const cuerpo = ruta.request().postData() ?? '';
+    cuerpos.push(cuerpo);
+    await (cuerpo.includes('"radicado":7')
+      ? ruta.fulfill({
+          json: {
+            radicado: 'R-7',
+            tipo: 'Queja',
+            estado: 'en_tramite',
+            enPalabras: 'En trámite',
+            creada: '2026-10-14T15:00:00.000Z',
+            vence: '2026-11-05',
+            respondida: null,
+          },
+        })
+      : ruta.fulfill({ status: 404, json: { estado: 'no-encontrada' } }));
+  });
+  await page.goto(`${TIENDA}/solicitud/#r=7&s=abcdefghijklmnopqrstuv`);
+  await expect(page.locator('[data-radicado-estado]')).toHaveText('En trámite');
+  expect(JSON.parse(cuerpos[0] ?? '{}')).toEqual({
+    radicado: 7,
+    secreto: 'abcdefghijklmnopqrstuv',
+  });
+
+  await page.goto(`${TIENDA}/solicitud/#r=8&s=abcdefghijklmnopqrstuv`);
+  await page.reload();
+  await expect(page.locator('[data-solicitud-aviso]')).toContainText(
+    'No encontramos una solicitud con ese enlace',
+  );
+  await expect(page.locator('[data-radicado]')).toBeHidden();
+});

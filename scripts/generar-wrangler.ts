@@ -375,7 +375,7 @@ export const DOMINIOS_DE_LA_TIENDA = {
 export const CRON_DE_LA_TIENDA = '0 * * * *';
 
 /**
- * Los limitadores por IP de lo público de la Tienda (HU-T5.5 y HU-T6.5), con Workers Rate Limiting:
+ * Los limitadores por IP de lo público de la Tienda (HU-T5.5, HU-T6.4 y HU-T6.5), con Workers Rate Limiting:
  * un contador por clave y periodo, sin escribir en la base ni en el KV. Solo admite periodos de 10 o
  * 60 segundos (bitácora tienda3 11). El `namespace_id` es un número propio de la cuenta, distinto
  * por destino, para que staging no gaste el de producción.
@@ -385,6 +385,7 @@ export const LIMITES_DE_LA_TIENDA = {
   LIMITE_AVISAME: { produccion: '3002', staging: '3102', limit: 10, period: 60 },
   LIMITE_PEDIDOS: { produccion: '3003', staging: '3103', limit: 10, period: 60 },
   LIMITE_SEGUIMIENTO: { produccion: '3004', staging: '3104', limit: 20, period: 60 },
+  LIMITE_SOLICITUDES: { produccion: '3005', staging: '3105', limit: 5, period: 60 },
 } as const;
 const limitadoresDeLaTienda = (staging: boolean) =>
   Object.entries(LIMITES_DE_LA_TIENDA).map(([name, l]) => ({
@@ -510,7 +511,13 @@ export function wranglerDelPanelDeLaTienda(config: ConfigCeldas): Record<string,
     name: WORKER_TIENDA_PANEL,
     main: 'src/worker.ts',
     compatibility_date: FECHA_COMPATIBILIDAD,
-    assets: { directory: './dist', binding: 'ASSETS', run_worker_first: ['/api/*'] },
+    // HU-T8.1: una PWA de una sola página; una ruta del panel sin archivo es `index.html`.
+    assets: {
+      directory: './dist',
+      binding: 'ASSETS',
+      run_worker_first: ['/api/*'],
+      not_found_handling: 'single-page-application',
+    },
     workers_dev: false,
     routes: [{ pattern: DOMINIOS_DE_LA_TIENDA.panel, custom_domain: true }],
     services: serviciosDeLaTienda(config, false),

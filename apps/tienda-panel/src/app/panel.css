@@ -1,0 +1,381 @@
+/*
+ * El panel de la Tienda (HU-T3.5): la dirección de la galería (HU-T3.1, `packages/ui/galeria-tienda/
+ * panel.css`) hecha componentes, sobre los tokens y los componentes de `@ed1/ui` v2. Solo tokens:
+ * ningún color suelto. Se usa desde el teléfono todo el día: navegación abajo, la acción principal
+ * al alcance del pulgar y lo urgente arriba, en palabras. En escritorio, la navegación va a un lado
+ * y las listas son tablas.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--superficie-2);
+  color: var(--texto);
+  font-family: var(--fuente-sans);
+  font-size: var(--texto-base);
+  line-height: var(--interlineado);
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  overflow-wrap: anywhere;
+}
+a {
+  color: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--foco);
+  outline-offset: 3px;
+}
+h1,
+h2 {
+  margin: 0;
+  font-weight: var(--peso-display);
+  letter-spacing: var(--interletrado-display);
+  line-height: 1.1;
+  text-wrap: balance;
+}
+h1 {
+  font-size: var(--texto-titulo-1);
+}
+h2 {
+  font-size: var(--texto-titulo-3);
+}
+.etiqueta {
+  font-family: var(--fuente-mono);
+  font-size: var(--texto-etiqueta);
+  letter-spacing: var(--interletrado-etiqueta);
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+.cifra {
+  font-family: var(--fuente-mono);
+  font-variant-numeric: tabular-nums;
+}
+.nota {
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+  margin: 0;
+}
+
+/* La portada: entrar, sin tienda, abriendo. */
+.portada {
+  max-width: var(--ancho-lectura);
+  margin: 0 auto;
+  padding: var(--espacio-16) var(--espacio-4);
+  display: grid;
+  gap: var(--espacio-6);
+}
+.portada__entrada {
+  margin: 0;
+  color: var(--texto-suave);
+}
+.acepto {
+  display: flex;
+  gap: var(--espacio-3);
+  align-items: flex-start;
+  min-height: var(--objetivo-tactil);
+}
+.acepto input {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  margin: 0;
+  accent-color: var(--acento);
+}
+
+/* La barra de arriba: la tienda y el rol, siempre a la vista. */
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--superficie);
+  border-bottom: var(--borde-ancho) solid var(--borde);
+  display: flex;
+  gap: var(--espacio-3);
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--espacio-3) var(--espacio-4);
+}
+.barra__tienda {
+  font-weight: var(--peso-fuerte);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.barra .etiqueta {
+  flex: none;
+}
+
+.contenido {
+  padding: var(--espacio-6) var(--espacio-4);
+  display: grid;
+  gap: var(--espacio-6);
+  max-width: var(--ancho-pagina);
+  min-width: 0;
+}
+.contenido > * {
+  min-width: 0;
+}
+
+/* Estados: el punto y el texto dicen lo mismo; el color nunca va solo. */
+.estados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-4);
+  margin: 0;
+}
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  font-size: var(--texto-etiqueta);
+  font-family: var(--fuente-mono);
+  letter-spacing: var(--interletrado-etiqueta);
+  text-transform: uppercase;
+}
+.estado::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.estado--pendiente {
+  color: var(--aviso);
+}
+.estado--en-curso {
+  color: var(--acento);
+}
+.estado--bien {
+  color: var(--exito);
+}
+.estado--neutro {
+  color: var(--texto-suave);
+}
+.estado--mal {
+  color: var(--peligro);
+}
+
+/* Listas: tarjetas en el teléfono; tabla en escritorio. Reusan `Contenido` de @ed1/ui v2. */
+.filas .ed1-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espacio-2);
+}
+.filas .ed1-lista__elemento {
+  background: var(--superficie);
+  border: var(--borde-ancho) solid var(--borde);
+  border-radius: var(--radio-campo);
+  min-width: 0;
+}
+.fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--espacio-1) var(--espacio-3);
+  padding: var(--espacio-4);
+  text-decoration: none;
+  min-height: var(--objetivo-tactil);
+}
+.fila__monto {
+  text-align: right;
+  font-weight: var(--peso-fuerte);
+}
+.fila__detalle {
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+  min-width: 0;
+}
+.fila > .estado,
+.fila > .fila__detalle {
+  grid-column: 1 / -1;
+}
+
+/* Datos: etiqueta a la izquierda, valor a la derecha. */
+.datos {
+  margin: 0;
+  display: grid;
+  gap: var(--espacio-2);
+}
+.datos div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+.datos dt {
+  color: var(--texto-suave);
+}
+.datos dd {
+  margin: 0;
+  text-align: right;
+  min-width: 0;
+}
+.tapado {
+  letter-spacing: 0.05em;
+}
+
+.acciones {
+  display: grid;
+  gap: var(--espacio-2);
+}
+.formulario {
+  display: grid;
+  gap: var(--espacio-4);
+  max-width: var(--ancho-lectura);
+}
+
+/* Elegir la tienda: una tarjeta por tienda. */
+.tiendas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espacio-4);
+}
+.tienda {
+  background: var(--superficie);
+  border: var(--borde-ancho) solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  padding: var(--espacio-6);
+  display: grid;
+  gap: var(--espacio-3);
+}
+.tienda__nombre {
+  font-size: var(--texto-titulo-3);
+}
+.tienda__datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-3);
+  margin: 0;
+}
+.mas {
+  margin: 0;
+  padding-left: var(--espacio-6);
+  display: grid;
+  gap: var(--espacio-2);
+}
+
+/* La navegación: abajo en el teléfono, al lado en escritorio. */
+.navegacion {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--superficie);
+  border-top: var(--borde-ancho) solid var(--borde);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.navegacion a {
+  min-height: 64px;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+  font-size: var(--texto-etiqueta);
+  font-family: var(--fuente-mono);
+  letter-spacing: var(--interletrado-etiqueta);
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+.navegacion a[aria-current="page"] {
+  color: var(--texto);
+  box-shadow: inset 0 3px 0 var(--acento);
+}
+
+/* Vuelve a entrar (HU-T8.1 CA2): encima de lo que se estaba haciendo, que sigue ahí debajo. */
+.vuelve-a-entrar,
+.aviso-actualizacion {
+  position: fixed;
+  inset: auto var(--espacio-4) calc(80px + env(safe-area-inset-bottom)) var(--espacio-4);
+  z-index: 3;
+  background: var(--superficie);
+  border: var(--borde-ancho) solid var(--texto);
+  border-radius: var(--radio-tarjeta);
+  padding: var(--espacio-4);
+  display: grid;
+  gap: var(--espacio-2);
+  max-width: var(--ancho-lectura);
+}
+.vuelve-a-entrar p,
+.aviso-actualizacion p {
+  margin: 0;
+}
+.vuelve-a-entrar__titulo {
+  font-weight: var(--peso-fuerte);
+}
+
+.texto-legal {
+  max-width: var(--ancho-lectura);
+}
+.texto-legal__aviso {
+  border-left: 3px solid var(--aviso);
+  padding-left: var(--espacio-3);
+}
+
+@media (min-width: 64rem) {
+  body {
+    padding: 0 0 0 220px;
+  }
+  .navegacion {
+    inset: 0 auto 0 0;
+    width: 220px;
+    grid-template-columns: 1fr;
+    grid-auto-rows: 56px;
+    align-content: start;
+    padding-top: var(--espacio-16);
+    border-top: 0;
+    border-right: var(--borde-ancho) solid var(--borde);
+  }
+  .navegacion a {
+    min-height: 0;
+    place-items: center start;
+    padding-inline: var(--espacio-6);
+  }
+  .navegacion a[aria-current="page"] {
+    box-shadow: inset 3px 0 0 var(--acento);
+  }
+  .contenido {
+    padding: var(--espacio-8) var(--espacio-12);
+  }
+  .filas .ed1-lista {
+    gap: 0;
+    border: var(--borde-ancho) solid var(--borde);
+    border-radius: var(--radio-campo);
+    overflow: hidden;
+  }
+  .filas .ed1-lista__elemento {
+    border: 0;
+    border-radius: 0;
+    border-bottom: var(--borde-ancho) solid var(--borde);
+  }
+  .fila {
+    grid-template-columns: 9rem minmax(0, 1fr) 10rem 8rem;
+    align-items: center;
+  }
+  .fila__dato {
+    order: 1;
+  }
+  .fila > .fila__detalle {
+    grid-column: auto;
+    order: 2;
+  }
+  .fila > .estado {
+    grid-column: auto;
+    order: 3;
+  }
+  .fila__monto {
+    order: 4;
+  }
+  .vuelve-a-entrar,
+  .aviso-actualizacion {
+    inset: auto auto var(--espacio-6) calc(220px + var(--espacio-6));
+  }
+}

@@ -8,6 +8,7 @@
  *   barra del pedido, que aparece cuando hay algo en él;
  * - en `/carrito/`, las líneas, el total que confirma el servidor y el envío por WhatsApp
  *   (`venta.ts`); en `/pedido/`, el acuse y el estado con el enlace de seguimiento;
+ * - en `/solicitud/`, radicar una solicitud y seguirla con su enlace (HU-T6.4);
  * - en `/buscar/`, la búsqueda sobre `catalogo.json`, sin red al escribir.
  *
  * Todo texto que llega del catálogo se pone con `textContent`, nunca como HTML.
@@ -25,6 +26,7 @@ import {
   conSecreto,
   leerCarrito,
   sanear,
+  secretoNuevo,
   TOPES,
   type Tope,
   unidades,
@@ -36,7 +38,7 @@ import {
   type VarianteDeLaFicha,
   valorAgotado,
 } from './seleccion.ts';
-import { estadoDeLaVenta, leerFragmento } from './venta.ts';
+import { estadoDeLaSolicitud, estadoDeLaVenta, leerFragmento, leerRadicado } from './venta.ts';
 
 const azar = (n: number) => crypto.getRandomValues(new Uint8Array(n));
 /** Las variantes por las que este teléfono ya pidió «Avísame» (HU-T6.5). */
@@ -674,6 +676,171 @@ async function pedidoEnviado(): Promise<void> {
   );
 }
 
+interface Radicado {
+  radicado: string;
+  numero?: number;
+  tipo: string;
+  creada: string;
+  vence: string;
+  enPalabras?: string;
+}
+
+const MOTIVOS_DE_LA_SOLICITUD: Record<string, string> = {
+  limite: 'Son muchas solicitudes seguidas. Espera un minuto e intenta de nuevo.',
+  'sin-configurar':
+    'La tienda no puede recibir solicitudes aquí en este momento. Escríbele por el correo o el WhatsApp de arriba.',
+};
+/** El secreto de la solicitud que se está enviando: si se reenvía, es la misma (`duplicada`). */
+const CLAVE_SOLICITUD = 'tienda:solicitud';
+
+/** `AAAA-MM-DD` dicho en palabras, sin pasar por la zona horaria del teléfono. */
+const fechaEnPalabras = (dia: string) =>
+  new Date(`${dia}T12:00:00Z`).toLocaleDateString('es-CO', {
+    dateStyle: 'long',
+    timeZone: 'UTC',
+  });
+
+/**
+ * `/solicitud/` (HU-T6.4): radicar y seguir. El secreto del enlace nace aquí y solo viaja en el
+ * cuerpo del POST y en el fragmento, que no llega a ningún servidor; la API guarda su huella.
+ */
+async function solicitudPagina(): Promise<void> {
+  const raiz = document.querySelector<HTMLElement>('[data-solicitud]');
+  if (!raiz) return;
+  const form = raiz.querySelector<HTMLFormElement>('[data-solicitud-form]');
+  const acuse = raiz.querySelector<HTMLElement>('[data-radicado]');
+  const aviso = raiz.querySelector<HTMLElement>('[data-solicitud-aviso]');
+  const boton = raiz.querySelector<HTMLButtonElement>('[data-solicitud-enviar]');
+  if (!form || !acuse) return;
+  const poner = (selector: string, texto: string) => {
+    const campo = raiz.querySelector<HTMLElement>(selector);
+    if (campo) campo.textContent = texto;
+  };
+  raiz.querySelector('[data-imprimir]')?.addEventListener('click', () => window.print());
+  const mostrar = (r: Radicado, suEnlace: string) => {
+    form.hidden = true;
+    acuse.hidden = false;
+    poner('[data-radicado-numero]', r.radicado);
+    poner('[data-radicado-estado]', r.enPalabras ?? 'Recibida: la tienda la va a revisar');
+    poner('[data-radicado-tipo]', r.tipo);
+    poner(
+      '[data-radicado-creada]',
+      new Date(r.creada).toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' }),
+    );
+    poner('[data-radicado-vence]', fechaEnPalabras(r.vence));
+    const a = raiz.querySelector<HTMLAnchorElement>('[data-radicado-enlace]');
+    if (a) {
+      a.href = suEnlace;
+      a.textContent = suEnlace;
+    }
+  };
+
+  // Con el enlace: en qué va.
+  const enlace = leerRadicado(location.hash);
+  if (enlace) {
+    try {
+      const r = await fetch('/api/v1/solicitudes/seguimiento', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(enlace),
+      });
+      if (r.ok) {
+        mostrar((await r.json()) as Radicado, location.href);
+        return;
+      }
+    } catch {
+      // Abajo: el formulario, con el aviso.
+    }
+    decir(
+      aviso,
+      'No encontramos una solicitud con ese enlace, o no pudimos consultarla ahora. Revisa el enlace e intenta de nuevo.',
+    );
+  }
+
+  // Sin enlace: el formulario.
+  form.hidden = false;
+  const valor = (nombre: string) =>
+    form.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+      `[name="${nombre}"]`,
+    )?.value ?? '';
+  const acepta = form.querySelector<HTMLInputElement>('[data-acepta]');
+  const estado = () =>
+    estadoDeLaSolicitud({
+      tipo: valor('tipo'),
+      texto: valor('texto'),
+      contacto: valor('contacto'),
+      acepta: Boolean(acepta?.checked),
+    });
+  const pintarBoton = () => {
+    if (!boton) return;
+    const e = estado();
+    boton.textContent = e.texto;
+    boton.setAttribute('aria-disabled', String(!e.listo));
+  };
+  form.addEventListener('input', () => {
+    decir(aviso, undefined);
+    pintarBoton();
+  });
+  form.addEventListener('change', pintarBoton);
+  let enviando = false;
+  form.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const e = estado();
+    if (!e.listo) {
+      form
+        .querySelector<HTMLElement>(e.falta === 'acepta' ? '[data-acepta]' : `[name="${e.falta}"]`)
+        ?.focus();
+      decir(aviso, e.texto);
+      return;
+    }
+    if (enviando) return;
+    enviando = true;
+    boton?.setAttribute('aria-busy', 'true');
+    // El mismo secreto mientras no se radique: tocar dos veces o recargar no abre otra.
+    const secreto = almacen.leer(CLAVE_SOLICITUD) ?? secretoNuevo(azar);
+    almacen.escribir(CLAVE_SOLICITUD, secreto);
+    try {
+      const pedido = valor('pedido').trim();
+      const r = await fetch('/api/v1/solicitudes', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          tipo: valor('tipo'),
+          ...(pedido ? { pedido } : {}),
+          texto: valor('texto'),
+          contacto: valor('contacto'),
+          acepta: true,
+          seguimiento: secreto,
+        }),
+      });
+      const cuerpo = (await r.json().catch(() => ({}))) as Partial<Radicado> & {
+        estado?: string;
+      };
+      if (r.ok && cuerpo.radicado && cuerpo.numero) {
+        almacen.borrar(CLAVE_SOLICITUD);
+        const propio = `${location.origin}${location.pathname}#r=${cuerpo.numero}&s=${secreto}`;
+        history.replaceState(null, '', propio);
+        mostrar(cuerpo as Radicado, propio);
+        acuse.querySelector<HTMLElement>('[data-radicado-numero]')?.focus();
+        return;
+      }
+      decir(
+        aviso,
+        MOTIVOS_DE_LA_SOLICITUD[cuerpo.estado ?? ''] ??
+          (r.status === 422
+            ? 'Revisa los datos: el código de pedido tiene 6 letras y números, y el texto, al menos 10 letras.'
+            : 'No pudimos enviar tu solicitud. Intenta de nuevo.'),
+      );
+    } catch {
+      decir(aviso, 'No pudimos enviar tu solicitud. Revisa tu conexión e intenta de nuevo.');
+    } finally {
+      enviando = false;
+      boton?.removeAttribute('aria-busy');
+    }
+  });
+  pintarBoton();
+}
+
 async function busqueda(): Promise<void> {
   const form = document.querySelector<HTMLFormElement>('[data-buscar]');
   const lista = document.querySelector<HTMLElement>('[data-resultados]');
@@ -708,4 +875,5 @@ ficha();
 pintarBarra(cargar());
 void carritoPagina();
 void pedidoEnviado();
+void solicitudPagina();
 void busqueda();

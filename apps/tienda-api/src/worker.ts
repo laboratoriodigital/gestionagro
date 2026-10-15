@@ -18,6 +18,8 @@
  *   entrada reciente (`auth_time`) y el shard salen del token, nunca del cuerpo ni de la URL. Un token
  *   de otro producto, vencido o de otra celda responde 401 o 403 con un motivo que el panel muestra.
  *   `GET /api/panel/v1/yo`: a qué tienda llegó la sesión.
+ * - `POST /api/v1/solicitudes` y `/api/v1/solicitudes/seguimiento` (HU-T6.4): radicar una
+ *   solicitud y seguirla, con el contacto cifrado con la llave de la tienda (`solicitudes.ts`).
  * - Kill switch `ks:tienda` (HU-T2.7, TIENDA §15.2): apagado, la API queda en solo lectura. Lo que
  *   escribe responde 503 con `Retry-After`; lo que lee sigue. Caché de 60 s (`@ed1/kill-switch`, P7).
  *
@@ -27,7 +29,7 @@
 import { importarKek } from '@ed1/cifrado';
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
-import { decidir } from '@ed1/tienda-schema';
+import { decidir, type FuncionesPorPlan, funcionesDelPlan } from '@ed1/tienda-schema';
 import { ENSAYOS } from '@ed1/tienda-schema/ensayos';
 import {
   aceptarEnProducto,
@@ -36,9 +38,11 @@ import {
   verificarConClaves,
 } from '@ed1/tokens';
 import { type Context, Hono } from 'hono';
+import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { avisame, PeticionDeAvisame } from './avisame.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
+import { kekDelEntorno } from './llaves.ts';
 import {
   PeticionDePedido,
   PeticionDeSeguimiento,
@@ -47,6 +51,12 @@ import {
   sha256,
 } from './pedidos.ts';
 import { type Almacen, type EscritorKv, publicar, type Resultado } from './publicar.ts';
+import {
+  PeticionDeSeguimientoDeSolicitud,
+  PeticionDeSolicitud,
+  radicar,
+  seguirSolicitud,
+} from './solicitudes.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
@@ -90,6 +100,7 @@ export interface Env {
   LIMITE_AVISAME?: Limitador;
   LIMITE_PEDIDOS?: Limitador;
   LIMITE_SEGUIMIENTO?: Limitador;
+  LIMITE_SOLICITUDES?: Limitador;
   /** Un binding D1 por shard, con el nombre del shard, y `tienda_control`. */
   [base: string]: unknown;
 }
@@ -166,6 +177,7 @@ const LECTURA = new Set(['GET', 'HEAD', 'OPTIONS']);
 const SOLO_LEEN = new Set([
   '/api/v1/cotizar',
   '/api/v1/seguimiento',
+  '/api/v1/solicitudes/seguimiento',
   '/api/panel/v1/importar/revisar',
 ]);
 
@@ -210,13 +222,15 @@ async function comerciosDePrueba(shards: [string, BaseD1][]): Promise<number> {
 }
 
 /**
- * La huella de los términos de la versión publicada (HU-T6.1): un pedido solo cita los términos que
- * la tienda mostró. `null` si la tienda no ha publicado o el manifiesto no se puede leer.
+ * La huella de un texto de la versión publicada: un pedido solo cita los términos que la tienda
+ * mostró (HU-T6.1), y una solicitud, la política (HU-T6.4). `null` si la tienda no ha publicado o
+ * el manifiesto no se puede leer.
  */
-async function terminosPublicados(
+async function huellaPublicada(
   db: BaseD1,
   org: string,
   sitios: Almacen | undefined,
+  ruta = '/legal/terminos/index.md',
 ): Promise<string | null> {
   if (!sitios) return null;
   const t = await db
@@ -227,7 +241,7 @@ async function terminosPublicados(
   const objeto = await sitios.get(`sitios/${org}/${t.version_publicada}/manifiesto.json`);
   if (!objeto) return null;
   const m = JSON.parse(await objeto.text()) as { archivos: Record<string, { huella: string }> };
-  return m.archivos['/legal/terminos/index.md']?.huella ?? null;
+  return m.archivos[ruta]?.huella ?? null;
 }
 
 /** Lee el cuerpo JSON y lo valida; `null` si no se puede leer o no cumple el esquema. */
@@ -482,7 +496,7 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
         org: destino.org,
         host: new URL(c.req.url).host,
         ahora: new Date(ahora()).toISOString(),
-        terminosPublicados: await terminosPublicados(destino.db, destino.org, c.env.SITIOS),
+        terminosPublicados: await huellaPublicada(destino.db, destino.org, c.env.SITIOS),
         id: crypto.randomUUID(),
       },
       p,
@@ -516,13 +530,98 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
     return r ? c.json(r) : c.json(NO_ENCONTRADO, 404);
   });
 
+  /**
+   * HU-T6.4: radicar una solicitud. Público, por el despacho; 5 por minuto por IP
+   * (`LIMITE_SOLICITUDES`: el limitador solo cuenta de a 10 o 60 s, bitácora tienda3 11). Sin la
+   * KEK no hay dónde guardar el contacto: responde 503 y lo dice, y la página ofrece los canales de
+   * la tienda.
+   */
+  app.post('/api/v1/solicitudes', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_SOLICITUDES, 'LIMITE_SOLICITUDES'))) {
+      c.header('retry-after', '60');
+      return c.json(
+        { estado: 'limite', motivo: 'Son muchas solicitudes seguidas. Espera un minuto.' },
+        429,
+      );
+    }
+    const p = await cuerpoValido(c, PeticionDeSolicitud);
+    if (!p) {
+      return c.json(
+        {
+          estado: 'invalido',
+          motivo: 'A la solicitud le falta algo. Revisa el formulario y vuelve a enviarla.',
+        },
+        422,
+      );
+    }
+    const kek = await kekDelEntorno(c.env.TIENDA_KEK_V1);
+    if (!kek) {
+      console.error('tienda-api: sin la KEK no se pueden guardar solicitudes');
+      return c.json(
+        {
+          estado: 'sin-configurar',
+          motivo:
+            'No pudimos recibir tu solicitud ahora. Usa el correo o el WhatsApp de la tienda.',
+        },
+        503,
+      );
+    }
+    const r = await radicar(
+      {
+        db: destino.db,
+        org: destino.org,
+        ahora: ahora(),
+        kek,
+        politicaPublicada: await huellaPublicada(
+          destino.db,
+          destino.org,
+          c.env.SITIOS,
+          '/legal/privacidad/index.md',
+        ),
+        id: crypto.randomUUID(),
+      },
+      p,
+    );
+    return r.estado === 'no-existe' ? c.json(NO_EXISTE, 404) : c.json(r);
+  });
+
+  /** HU-T6.4: seguir una solicitud; como el pedido, todo fallo responde lo mismo. */
+  app.post('/api/v1/solicitudes/seguimiento', async (c) => {
+    const NO_ENCONTRADA = {
+      estado: 'no-encontrada',
+      motivo: 'No encontramos una solicitud con ese enlace.',
+    };
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_SEGUIMIENTO, 'LIMITE_SEGUIMIENTO'))) {
+      c.header('retry-after', '60');
+      return c.json(
+        { estado: 'limite', motivo: 'Son muchas consultas seguidas. Espera un minuto.' },
+        429,
+      );
+    }
+    const p = await cuerpoValido(c, PeticionDeSeguimientoDeSolicitud);
+    if (!p) return c.json(NO_ENCONTRADA, 404);
+    const r = await seguirSolicitud(destino.db, destino.org, p.radicado, p.secreto);
+    return r ? c.json(r) : c.json(NO_ENCONTRADA, 404);
+  });
+
   app.get('/api/panel/v1/yo', async (c) => {
     const s = c.get('sesion');
     const tienda = await s.db
       .prepare('SELECT slug, nombre, estado FROM tienda WHERE org_id = ?')
       .bind(s.org)
       .first<{ slug: string; nombre: string; estado: string }>();
-    return c.json({ org: s.org, rol: s.rol, plan: s.plan, tienda: tienda ?? null });
+    // HU-T8.1 CA1: lo que permite el plan, para que el panel esconda lo que no hay. Lo decide la API.
+    return c.json({
+      org: s.org,
+      rol: s.rol,
+      plan: s.plan,
+      funciones: s.plan ? funcionesDelPlan(funciones as unknown as FuncionesPorPlan, s.plan) : null,
+      tienda: tienda ?? null,
+    });
   });
 
   // HU-T4.4: publicar. Lo decide la matriz de permisos (HU-T1.4), y `ks:tienda-horno` lo pausa

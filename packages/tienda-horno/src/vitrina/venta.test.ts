@@ -3,7 +3,7 @@
  * lee del fragmento, nunca de otra parte.
  */
 import { describe, expect, it } from 'vitest';
-import { estadoDeLaVenta, leerFragmento } from './venta.ts';
+import { estadoDeLaSolicitud, estadoDeLaVenta, leerFragmento, leerRadicado } from './venta.ts';
 
 const listo = { lineas: 2, forma: 'transferencia', hayEnvios: true, envio: 'e1', acepta: true };
 
@@ -45,4 +45,43 @@ describe('el enlace de seguimiento (HU-T6.3)', () => {
       expect(leerFragmento(hash)).toBeNull();
     },
   );
+});
+
+describe('la solicitud (HU-T6.4)', () => {
+  const lista = {
+    tipo: 'queja',
+    texto: 'El pedido llegó roto',
+    contacto: 'ensayo@ejemplo.co',
+    acepta: true,
+  };
+
+  it('con todo, «Enviar la solicitud»', () => {
+    expect(estadoDeLaSolicitud(lista)).toEqual({ listo: true, texto: 'Enviar la solicitud' });
+  });
+
+  it.each([
+    ['sin tipo', { tipo: '' }, 'tipo'],
+    ['un texto de menos de 10 letras', { texto: '  corto   ' }, 'texto'],
+    ['sin contacto', { contacto: 'abc' }, 'contacto'],
+    ['❌ sin autorizar: la casilla nunca viene marcada', { acepta: false }, 'acepta'],
+  ])('%s', (_caso, cambio, falta) => {
+    expect(estadoDeLaSolicitud({ ...lista, ...cambio })).toMatchObject({ listo: false, falta });
+  });
+
+  it('lee el radicado y el secreto del fragmento', () => {
+    expect(leerRadicado('#r=12&s=abcdefghijklmnopqrstuv')).toEqual({
+      radicado: 12,
+      secreto: 'abcdefghijklmnopqrstuv',
+    });
+  });
+
+  it.each([
+    '',
+    '#r=12',
+    '#r=0&s=abcdefghijklmnopqrstuv',
+    '#r=R-12&s=abcdefghijklmnopqrstuv',
+    '#r=12&s=corto',
+  ])('❌ «%s» no es un enlace de solicitud', (hash) => {
+    expect(leerRadicado(hash)).toBeNull();
+  });
 });

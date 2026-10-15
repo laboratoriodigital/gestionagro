@@ -67,6 +67,14 @@
         "limit": 20,
         "period": 60
       }
+    },
+    {
+      "name": "LIMITE_SOLICITUDES",
+      "namespace_id": "3005",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
     }
   ],
   "observability": {
@@ -135,6 +143,14 @@
           "namespace_id": "3104",
           "simple": {
             "limit": 20,
+            "period": 60
+          }
+        },
+        {
+          "name": "LIMITE_SOLICITUDES",
+          "namespace_id": "3105",
+          "simple": {
+            "limit": 5,
             "period": 60
           }
         }

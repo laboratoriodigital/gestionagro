@@ -17,4 +17,4 @@ La ley no permite el retracto en algunos productos: los perecederos, los hechos 
 
 Cada producto dice en su página si admite retracto antes de que lo agregues a tu pedido.
 
-Versión 1 de las plantillas, del 14 de octubre de 2026.
+Versión 2 de las plantillas, del 15 de octubre de 2026.

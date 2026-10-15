@@ -164,6 +164,8 @@ export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = 
     // HU-C7.7: los radicados de la Ley 1581 le llegan al dueño por Telegram.
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_CHAT_ID',
+    // HU-T2.10 CA2: el dueño, propietario de los comercios de prueba de la Tienda en staging.
+    'TIENDA_CORREO_DUENO_STAGING',
   ],
   // El vigía de la celda del agro mide con el token de métricas y avisa por Telegram.
   agro: [...CLOUDFLARE, 'CF_METRICAS_TOKEN', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'],

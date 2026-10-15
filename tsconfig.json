@@ -18,6 +18,7 @@
     "node_modules",
     "**/dist",
     "apps/cuaderno/src/sw.ts",
-    "apps/parqueadero-sitio/src/caja/sw.ts"
+    "apps/parqueadero-sitio/src/caja/sw.ts",
+    "apps/tienda-panel/src/app/sw.ts"
   ]
 }

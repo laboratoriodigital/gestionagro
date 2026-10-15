@@ -3,9 +3,11 @@ import {
   abrirDek,
   type Contexto,
   cifrarCampo,
+  cifrarSobre,
   crearDek,
   DescifradoFallido,
   descifrarCampo,
+  descifrarSobre,
   importarKek,
   indiceCiego,
   type Kek,
@@ -152,5 +154,39 @@ describe('cifrado de sobre (TIENDA-3.0 §14.2)', () => {
 
   it('la KEK es de 32 bytes', async () => {
     await expect(importarKek('v1', bytes(16, 1))).rejects.toThrow(/32 bytes/);
+  });
+});
+
+describe('el campo en columnas: sobre, iv y versión (anexo A, HU-T6.4)', () => {
+  const sol = (org: string, id = 'sol-1'): Contexto => ({
+    org,
+    tabla: 'solicitud',
+    campo: 'sobre',
+    id,
+  });
+
+  it('vuelve igual, con un IV de 12 bytes y la versión de la DEK', async () => {
+    const { dek } = await crearDek(ORG_UNO, 'datos_personales', 3, await kek('v1', 1));
+    const s = await cifrarSobre(dek, sol(ORG_UNO), CONTACTO);
+    expect(s.iv).toHaveLength(12);
+    expect(s.version).toBe(3);
+    expect(new TextDecoder().decode(s.sobre)).not.toContain('María');
+    expect(await descifrarSobre(new Map([[3, dek]]), sol(ORG_UNO), s)).toBe(CONTACTO);
+  });
+
+  it('❌ copiado a otra fila, a otra tienda o alterado no se descifra', async () => {
+    const { dek } = await crearDek(ORG_UNO, 'datos_personales', 1, await kek('v1', 1));
+    const otra = await crearDek(ORG_DOS, 'datos_personales', 1, await kek('v1', 1));
+    const s = await cifrarSobre(dek, sol(ORG_UNO), CONTACTO);
+    const deks = new Map([[1, dek]]);
+    await expect(descifrarSobre(deks, sol(ORG_UNO, 'sol-2'), s)).rejects.toThrow(DescifradoFallido);
+    await expect(descifrarSobre(new Map([[1, otra.dek]]), sol(ORG_DOS), s)).rejects.toThrow(
+      DescifradoFallido,
+    );
+    const alterado = { ...s, sobre: Uint8Array.from(s.sobre, (b, i) => (i === 0 ? b ^ 1 : b)) };
+    await expect(descifrarSobre(deks, sol(ORG_UNO), alterado)).rejects.toThrow(DescifradoFallido);
+    await expect(descifrarSobre(deks, sol(ORG_UNO), { ...s, version: 2 })).rejects.toThrow(
+      DescifradoFallido,
+    );
   });
 });

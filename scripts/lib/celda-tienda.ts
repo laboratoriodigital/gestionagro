@@ -90,6 +90,104 @@ export function escribirReservados(sentencias: readonly string[]): string {
 export const ensayosDelDestino = (destino: Destino): readonly ComercioDeEnsayo[] =>
   destino === 'staging' ? ENSAYOS : [];
 
+/**
+ * El correo del dueño en el CORE de staging (HU-T2.10 CA2, decisión del dueño del 15 oct 2026): un
+ * secreto del ambiente de GitHub, nunca el repositorio, porque es un dato de una persona (P4).
+ */
+export const SECRETO_CORREO_DUENO = 'TIENDA_CORREO_DUENO_STAGING';
+
+/** Un correo que puede ir dentro de un SQL y de una línea de comandos sin escaparse de ellos. */
+const CORREO = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
+
+export function correoDelDueno(
+  entorno: Readonly<Record<string, string | undefined>>,
+): { ok: true; correo: string | null } | { ok: false; motivo: string } {
+  const correo = entorno[SECRETO_CORREO_DUENO]?.trim();
+  if (!correo) return { ok: true, correo: null };
+  if (!CORREO.test(correo)) {
+    return {
+      ok: false,
+      motivo: `${SECRETO_CORREO_DUENO} no es un correo; corrígelo en el ambiente`,
+    };
+  }
+  return { ok: true, correo };
+}
+
+/**
+ * Las organizaciones de los comercios de prueba en el CORE de staging (HU-T2.10 CA2): con los ids
+ * del fixture, en la celda de la Tienda y su primer shard. Una que ya existe no se toca: su plan
+ * puede haber cambiado en una prueba de pagos.
+ *
+ * El dueño queda de propietario de las dos si su correo ya tiene cuenta en ese CORE: la membresía
+ * pide el usuario, y el usuario nace al entrar por primera vez. Si todavía no entró, no se crea
+ * nada a su nombre; entra una vez (el panel le dice «sin tienda») y el siguiente despliegue lo suma.
+ */
+export function ensayosEnElCore(
+  comercios: readonly ComercioDeEnsayo[],
+  celda: Pick<Celda, 'id' | 'shards'>,
+  correo: string | null,
+  ahora: string,
+): string[] {
+  if (comercios.length === 0) return [];
+  const [shard] = celda.shards;
+  if (!shard) throw new Error(`${celda.id}: no tiene shards para los comercios de prueba`);
+  if (correo !== null && !CORREO.test(correo)) throw new Error('el correo del dueño no es válido');
+  return comercios.flatMap((c) => [
+    'INSERT INTO organizacion (id, producto, nombre, tipo, plan, celda_id, shard, anillo, creado) VALUES ' +
+      `(${texto(c.org)}, 'tienda', ${texto(c.nombre)}, 'tienda', ${texto(c.plan)}, ${texto(celda.id)}, ${texto(shard)}, 1, ${texto(ahora)}) ` +
+      'ON CONFLICT (id) DO NOTHING;',
+    ...(correo === null
+      ? []
+      : [
+          'INSERT INTO membresia (usuario_id, org_id, producto, rol, creado) ' +
+            `SELECT id, ${texto(c.org)}, 'tienda', 'propietario', ${texto(ahora)} FROM usuario ` +
+            `WHERE lower(email) = lower(${texto(correo)}) ON CONFLICT (usuario_id, org_id) DO NOTHING;`,
+        ]),
+  ]);
+}
+
+/** Cuántas de las organizaciones de prueba existen en el CORE y en cuántas el dueño es propietario. */
+export function consultaDeEnsayosEnElCore(
+  comercios: readonly ComercioDeEnsayo[],
+  correo: string | null,
+): string {
+  const ids = comercios.map((c) => texto(c.org)).join(', ');
+  const propietario =
+    correo === null
+      ? '0'
+      : `(SELECT count(*) FROM membresia m JOIN usuario u ON u.id = m.usuario_id WHERE m.org_id IN (${ids}) AND m.rol = 'propietario' AND lower(u.email) = lower(${texto(correo)}))`;
+  return `SELECT (SELECT count(*) FROM organizacion WHERE id IN (${ids}) AND producto = 'tienda') AS orgs, ${propietario} AS propias`;
+}
+
+/** Lo que el despliegue dice de los comercios de prueba en el CORE. Solo falla si faltan. */
+export function notaDeEnsayosEnElCore(
+  esperadas: number,
+  fila: { orgs?: unknown; propias?: unknown } | undefined,
+  correo: string | null,
+): { ok: boolean; nota: string } {
+  const orgs = Number(fila?.orgs ?? 0);
+  const propias = Number(fila?.propias ?? 0);
+  if (orgs !== esperadas) {
+    return {
+      ok: false,
+      nota: `comercios de prueba en el CORE: ${orgs} de ${esperadas} organizaciones (HU-T2.10 CA2)`,
+    };
+  }
+  if (correo === null) {
+    return {
+      ok: true,
+      nota: `comercios de prueba en el CORE: ${orgs} organizaciones, sin propietario (falta ${SECRETO_CORREO_DUENO})`,
+    };
+  }
+  return {
+    ok: true,
+    nota:
+      propias === esperadas
+        ? `comercios de prueba en el CORE: ${orgs} organizaciones, el dueño es propietario`
+        : `comercios de prueba en el CORE: ${orgs} organizaciones; el correo del dueño todavía no tiene cuenta en staging. Entra una vez al panel de staging y vuelve a desplegar`,
+  };
+}
+
 /** La siembra de staging en dos archivos para `wrangler d1 execute --file` (fuera de git). */
 export function escribirSiembra(celda: Celda, ahora: string): { shard: string; control: string } {
   const dir = join(RAIZ, 'apps', 'tienda-api');
