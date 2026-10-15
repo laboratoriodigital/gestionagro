@@ -66,7 +66,7 @@ docs/
 | `parking/BACKLOG-PARKING.md` | Hitos, sprints, épicas, historias, work items y velocidad del parqueadero (M0 a M3), con la dirección de diseño de la caja | Planeación y cierre de cada sprint del parqueadero |
 | `parking/BACKLOG-PARKING_MVP.md` | El MVP del primer cliente (M0): sus 37 historias, las demostraciones de cada viernes, el piloto y lo que se necesita del cliente | Planeación y cierre de cada sprint de M0 |
 | `parking/BITACORA-PARKING.md` | Lo que se rompió y se aprendió en el parqueadero («bitácora parqueadero N»), con las mismas convenciones que las otras bitácoras para unirlas | Algo se rompe o se aprende en el parqueadero. Una entrada nueva va al final |
-| `runbooks/` | Procedimientos paso a paso: despliegue, ambientes de GitHub, pagos con Bold, cambio de dominio, kill switch, vigía de cuota, los secretos, las fotos y el ciclo de vida de las exportaciones de la Tienda, y renombrar el repositorio | Cambia el procedimiento |
+| `runbooks/` | Procedimientos paso a paso: despliegue, ambientes de GitHub, pagos con Bold, cambio de dominio, kill switch, vigía de cuota, los secretos, las fotos, el ciclo de vida de las exportaciones y la compra de prueba de M1 de la Tienda, y renombrar el repositorio | Cambia el procedimiento |
 | `seguridad/` | Revisiones de seguridad, con cada hallazgo, su arreglo y su prueba | Cada revisión |
 
 **Orden de precedencia ante una contradicción:** documentos de ED1 → `ARQUITECTURA.md` → `BACKLOG.md`. Los diseños de `plataforma/`, `tienda/` y `parking/` proponen; `ARQUITECTURA.md` decide, y lo construido manda sobre lo diseñado. Si una instrucción nueva contradice alguno, se señala antes de actuar (instrucciones del proyecto §1).

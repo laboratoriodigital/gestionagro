@@ -4,6 +4,7 @@
  * origen. El despacho y la API tienen sus pruebas; aquí, el diseño en 360 y 1280 px, la ficha sin
  * JavaScript y el carrito con su código.
  */
+import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
 const TIENDA = 'http://localhost:4332';
@@ -193,22 +194,11 @@ test('HU-T6.5 · «Avísame cuando haya» en una combinación agotada, una sola 
   await expect(boton).toBeHidden();
 });
 
-test('HU-T6.1 y HU-T6.2 · enviar el pedido: dice qué falta, lo registra y muestra el acuse con WhatsApp', async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    if (!sessionStorage.getItem('sembrado')) {
-      sessionStorage.setItem('sembrado', '1');
-      localStorage.setItem(
-        'tienda:carrito',
-        JSON.stringify({
-          v: 1,
-          codigo: 'ABC234',
-          lineas: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
-        }),
-      );
-    }
-  });
+/**
+ * La API de la tienda para un pedido de una camisa M Arena: cotizar, registrarlo y seguirlo. El
+ * servidor de las e2e es estático; la API tiene sus propias pruebas (P17).
+ */
+async function apiDelPedido(page: Page) {
   const enviados: Record<string, unknown>[] = [];
   await page.route('**/api/v1/cotizar', (ruta) =>
     ruta.fulfill({
@@ -271,6 +261,26 @@ test('HU-T6.1 y HU-T6.2 · enviar el pedido: dice qué falta, lo registra y mues
       },
     }),
   );
+  return enviados;
+}
+
+test('HU-T6.1 y HU-T6.2 · enviar el pedido: dice qué falta, lo registra y muestra el acuse con WhatsApp', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('sembrado')) {
+      sessionStorage.setItem('sembrado', '1');
+      localStorage.setItem(
+        'tienda:carrito',
+        JSON.stringify({
+          v: 1,
+          codigo: 'ABC234',
+          lineas: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+        }),
+      );
+    }
+  });
+  const enviados = await apiDelPedido(page);
 
   await page.goto(`${TIENDA}/carrito/`);
   const enviar = page.locator('[data-enviar]');
@@ -420,4 +430,52 @@ test('HU-T6.4 · con el enlace, la solicitud dice en qué va; uno que no es, lo 
     'No encontramos una solicitud con ese enlace',
   );
   await expect(page.locator('[data-radicado]')).toBeHidden();
+});
+
+/** axe en la pantalla que se ve, con las reglas de WCAG 2.1 AA. */
+async function sinFallasDeAxe(page: Page, donde: string) {
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${donde} · ${v.id}: ${v.help}`)).toEqual([]);
+}
+
+test('HU-T5.7 CA2 · el comprador de punta a punta a 360 px: portada, ficha, pedido y WhatsApp, con axe', async ({
+  page,
+}) => {
+  const enviados = await apiDelPedido(page);
+  await page.goto(`${TIENDA}/`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Comercio Ensayo Uno' })).toBeVisible();
+  await sinFallasDeAxe(page, 'portada');
+
+  await page
+    .getByRole('link', { name: /Camisa de lino/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(FICHA);
+  await sinFallasDeAxe(page, 'ficha');
+  await page.locator('label.pildora', { hasText: 'M' }).click();
+  await page.locator('label.pildora', { hasText: 'Arena' }).click();
+  await page.locator('[data-boton]').click();
+  await page.locator('[data-pedido]').click();
+
+  await expect(page).toHaveURL(`${TIENDA}/carrito/`);
+  await expect(page.locator('.linea')).toHaveCount(1);
+  await sinFallasDeAxe(page, 'pedido');
+  await page.locator('label.opcion-grande', { hasText: 'Transferencia' }).click();
+  await page.locator('[data-acepta]').check();
+  await page.locator('[data-enviar]').click();
+
+  await expect(page).toHaveURL(/\/pedido\/#c=[0-9A-HJKMNP-TV-Z]{6}&s=[A-Za-z0-9_-]{22}$/);
+  expect(enviados).toHaveLength(1);
+  await expect(page.getByRole('link', { name: 'Enviar por WhatsApp' })).toHaveAttribute(
+    'href',
+    /^https:\/\/wa\.me\/573000000001\?text=/,
+  );
+  await sinFallasDeAxe(page, 'acuse');
+  const [ancho, visible] = await page.evaluate(() => [
+    document.documentElement.scrollWidth,
+    document.documentElement.clientWidth,
+  ]);
+  expect(ancho).toBeLessThanOrEqual(visible ?? 0);
 });

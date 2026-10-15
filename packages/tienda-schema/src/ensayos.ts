@@ -168,6 +168,35 @@ export function legalDeEnsayo(c: ComercioDeEnsayo) {
   };
 }
 
+/**
+ * El comercio de prueba como archivo `tienda-import/1` (HU-T5.7 CA1): el mismo fixture, por el
+ * camino con que llegará una tienda de verdad (HU-T12.2). La referencia externa de cada producto es
+ * su id del fixture, y su slug, el mismo.
+ */
+export function cargaDeEnsayo(c: ComercioDeEnsayo) {
+  return {
+    formato: 'tienda-import/1' as const,
+    tienda: { slug: c.slug, nombre: c.nombre },
+    ajustes: c.ajustes,
+    productos: c.productos.map((p) => ({
+      refExterna: p.id,
+      nombre: p.nombre,
+      slug: p.slug,
+      estado: 'activo' as const,
+      opciones: p.opciones,
+      variantes: p.variantes.map((v) => ({
+        valores: v.clave === '' ? [] : v.clave.split('|'),
+        precioCop: v.precioCop,
+        stock: v.stock,
+      })),
+      retracto:
+        p.retracto === 'aplica'
+          ? { aplica: true as const }
+          : { aplica: false as const, motivo: p.retracto.motivo },
+    })),
+  };
+}
+
 /** Su dirección de staging: `--` no lo puede tomar ninguna tienda (TIENDA §4.1). */
 export const hostDeStaging = (slug: string): string => `${slug}--staging.laboratorio-digital.app`;
 
