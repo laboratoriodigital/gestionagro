@@ -14,7 +14,7 @@
 4. Toca **Tu pedido**. Está la camisa con su precio, 129.000. Elige **Transferencia**; el botón dice lo que falta hasta que marques la casilla de los términos.
 5. Marca la casilla y toca **Enviar por WhatsApp**. Llegas al acuse: el código del pedido, el número, el total, la forma de pago y el envío con su plazo.
 6. En el acuse, toca **Enviar por WhatsApp**. WhatsApp se abre con el pedido escrito y el enlace de seguimiento. **No lo envíes.** Copia el enlace de seguimiento y cierra WhatsApp.
-7. Abre el enlace de seguimiento en el navegador. Es la misma página del acuse, al día: debajo del código dice en qué va el pedido («pendiente») y la lista de sus pasos con la hora (HU-T6.3).
+7. Abre el enlace de seguimiento en el navegador. Es la misma página del acuse, al día: debajo del código dice «Estado: Recibido: la tienda lo va a confirmar», y abajo la lista de sus pasos con la fecha y la hora (HU-T6.3).
 8. Abre `https://ensayo-dos--staging.laboratorio-digital.app` → **Pan de bono**. Dice que no tiene derecho de retracto por ser un alimento perecedero.
 9. En el panel de staging, `https://tienda-panel-staging.laboratoriodigital-la.workers.dev`, entra con tu cuenta de Google, elige **Comercio Ensayo Uno** y luego **Comercio Ensayo Dos**: cada una muestra su estado, tu rol de propietario y su plan.
 10. Escribe en el hilo qué pasos pasaron y cuáles no, con una captura de lo que falló.
