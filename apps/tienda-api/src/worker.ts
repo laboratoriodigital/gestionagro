@@ -51,6 +51,7 @@ import {
   sha256,
 } from './pedidos.ts';
 import { type Almacen, type EscritorKv, publicar, type Resultado } from './publicar.ts';
+import { enFrase, leerRegistro } from './registro.ts';
 import {
   PeticionDeSeguimientoDeSolicitud,
   PeticionDeSolicitud,
@@ -782,6 +783,26 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       partes: partes.length,
       siguiente: ultima ? null : parte + 1,
       resumen: r.plan.resumen,
+    });
+  });
+
+  // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.
+  app.get('/api/panel/v1/registro', async (c) => {
+    const s = c.get('sesion');
+    const decision = decidir(s.rol, 'registro.ver', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido') {
+      return c.json({ estado: decision, motivo: 'Tu rol no puede ver el registro.' }, 403);
+    }
+    const cursor = Number(c.req.query('cursor'));
+    const quien = `usuario:${s.usuario}`;
+    const r = await leerRegistro(
+      s.db,
+      s.org,
+      Number.isSafeInteger(cursor) && cursor > 0 ? cursor : null,
+    );
+    return c.json({
+      filas: r.filas.map((f) => ({ id: f.id, instante: f.instante, frase: enFrase(f, quien) })),
+      siguiente: r.siguiente,
     });
   });
 

@@ -35,6 +35,7 @@ import { Inicio } from './vistas/Inicio.tsx';
 import { Mas } from './vistas/Mas.tsx';
 import { PorLlegar } from './vistas/PorLlegar.tsx';
 import { Privacidad } from './vistas/Privacidad.tsx';
+import { Registro } from './vistas/Registro.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
 
 const LIBRES = new Set(['/privacidad/', '/_galeria/']);
@@ -59,6 +60,7 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
   // preguntar a la API sin fin.
   const almacen = useMemo(() => dado ?? almacenIndexedDb(), [dado]);
   const core = useMemo(() => urlDelCore(location.hostname, __CORE_DEL_PANEL__), []);
+  const conexion = useMemo(() => ({ almacen, core }), [almacen, core]);
   const ruta = usarRuta();
   const [abriendo, setAbriendo] = useState(true);
   const [sesion, setSesion] = useState<Sesion | null>(null);
@@ -192,6 +194,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         texto="Aquí vas a cargar y editar tus productos, con sus fotos, precios e inventario."
       />
     );
+  else if (ruta === '/mas/registro/')
+    cuerpo = <Registro conexion={conexion} alVencer={setVencida} />;
   else if (ruta.startsWith('/mas/') && sesion)
     cuerpo = (
       <Mas

@@ -258,3 +258,61 @@ test('HU-T3.5 · lo que no se puede deshacer pide un segundo paso', async ({ pag
   await page.getByRole('button', { name: 'Sí, archivarlo' }).click();
   await expect(page.getByText('Producto archivado')).toBeVisible();
 });
+
+// ── HU-T8.2, HU-T8.4 y HU-T10.6: el catálogo y el registro desde el teléfono ─────────────────
+
+/** Entra a Ensayo Uno con la sesión ya guardada: lo que se prueba aquí es lo que sigue. */
+async function enElPanel(page: Page) {
+  await coreFalso(page, sesion());
+  await apiFalsa(page);
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await expect(page.getByRole('heading', { level: 1, name: 'Comercio Ensayo Uno' })).toBeVisible();
+}
+
+test.describe('con el teléfono en otra zona horaria', () => {
+  // La hora del registro es la de Bogotá aunque el teléfono esté en Madrid.
+  test.use({ timezoneId: 'Europe/Madrid' });
+
+  test('HU-T10.6 · CA1: el registro en frases, con la hora de Bogotá', async ({ page }) => {
+    await enElPanel(page);
+    await page.route(`${PANEL}/api/panel/v1/registro`, (r) =>
+      r.fulfill({
+        json: {
+          filas: [
+            {
+              id: 2,
+              instante: '2026-10-15T15:42:00.000Z',
+              frase: 'Tú cambiaste el precio de $129.000 a $119.000 en «Camisa de lino»',
+            },
+          ],
+          siguiente: 2,
+        },
+      }),
+    );
+    await page.route(`${PANEL}/api/panel/v1/registro?cursor=2`, (r) =>
+      r.fulfill({
+        json: {
+          filas: [
+            {
+              id: 1,
+              instante: '2026-10-15T14:00:00.000Z',
+              frase: 'Otra persona del equipo creó «Camisa de lino»',
+            },
+          ],
+          siguiente: null,
+        },
+      }),
+    );
+    await page.getByRole('link', { name: 'Más' }).click();
+    await page.getByRole('link', { name: 'Registro: quién cambió qué' }).click();
+    await expect(
+      page.getByText('Tú cambiaste el precio de $129.000 a $119.000 en «Camisa de lino»'),
+    ).toBeVisible();
+    // 15:42 UTC son las 10:42 en Bogotá, esté donde esté el teléfono.
+    await expect(page.locator('.registro__hora').first()).toContainText('10:42');
+    await page.getByRole('button', { name: 'Ver más' }).click();
+    await expect(page.getByText('Otra persona del equipo creó «Camisa de lino»')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ver más' })).toBeHidden();
+  });
+});

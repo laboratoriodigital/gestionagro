@@ -263,6 +263,25 @@ h2 {
   gap: var(--espacio-2);
 }
 
+/* HU-T10.6: el registro, una frase por fila con su hora. */
+.registro .ed1-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espacio-3);
+}
+.registro__fila {
+  margin: 0;
+  display: grid;
+  gap: var(--espacio-1);
+  overflow-wrap: anywhere;
+}
+.registro__hora {
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+
 /* La navegación: abajo en el teléfono, al lado en escritorio. */
 .navegacion {
   position: fixed;
