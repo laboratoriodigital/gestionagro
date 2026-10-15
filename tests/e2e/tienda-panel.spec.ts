@@ -1368,6 +1368,99 @@ test('HU-T10.1 · CA1 y CA2: un envío de 45 días lo avisa, y un cupón dice su
   ]);
 });
 
+test('HU-T10.4 · CA1 y CA2: publicar dice todo lo que falta; las versiones y volver a una anterior', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const version = (n: number, estado: string, extra: Record<string, unknown> = {}) => ({
+    version: n,
+    estado,
+    autor: 'Tú',
+    automatica: false,
+    pedida: `2026-10-1${n}T15:00:00.000Z`,
+    publicada: `2026-10-1${n}T15:00:05.000Z`,
+    archivos: 30 + n,
+    motivo: null,
+    ...extra,
+  });
+  let datos = {
+    versionPublicada: 2,
+    versiones: [
+      version(2, 'publicada'),
+      version(1, 'reemplazada', { autor: 'Otra persona del equipo' }),
+    ],
+  };
+  await page.route(`${PANEL}/api/panel/v1/publicaciones`, (r) => r.fulfill({ json: datos }));
+  const respuestas = [
+    {
+      status: 422,
+      json: {
+        estado: 'compuerta',
+        fallas: [
+          {
+            codigo: 'dato-faltante',
+            mensaje: 'Escribe el WhatsApp donde recibes los pedidos',
+            donde: 'Ajustes › Contacto',
+          },
+          { codigo: 'sin-foto', mensaje: 'Sube una foto de «Camisa de lino»', donde: 'Productos' },
+        ],
+      },
+    },
+    { status: 200, json: { estado: 'publicada', version: 3, archivos: 33, nuevos: 4 } },
+  ];
+  await page.route(`${PANEL}/api/panel/v1/publicar`, (r) => {
+    const siguiente = respuestas.shift();
+    if (siguiente?.status === 200)
+      datos = {
+        versionPublicada: 3,
+        versiones: [
+          version(3, 'publicada'),
+          version(2, 'reemplazada'),
+          ...datos.versiones.slice(1),
+        ],
+      };
+    return r.fulfill(siguiente ?? { status: 500, json: {} });
+  });
+  const vueltas: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/publicaciones/volver`, (r) => {
+    vueltas.push(r.request().postDataJSON());
+    datos = {
+      versionPublicada: 1,
+      versiones: [version(3, 'reemplazada'), version(2, 'reemplazada'), version(1, 'publicada')],
+    };
+    return r.fulfill({ json: { estado: 'publicada', version: 1, antes: 3 } });
+  });
+
+  await page.goto(`${PANEL}/mas/`);
+  await page.getByRole('link', { name: 'Publicar y versiones' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Publicar' })).toBeVisible();
+  await expect(page.getByText('La que ve la tienda · 32 archivos')).toBeVisible();
+  await expect(page.getByText(/Otra persona del equipo/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Publicar los cambios' }).click();
+  await expect(page.getByText('Antes de publicar, corrige 2 cosas.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Ajustes › Contacto' })).toHaveAttribute(
+    'href',
+    '/mas/ajustes/contacto/',
+  );
+  await expect(page.getByText('Sube una foto de «Camisa de lino»')).toBeVisible();
+  await sinFallasDeAxe(page);
+
+  await page.getByRole('button', { name: 'Publicar los cambios' }).click();
+  await expect(page.getByText('Publicaste la versión 3')).toBeVisible();
+  await expect(page.getByText('Antes de publicar, corrige 2 cosas.')).toHaveCount(0);
+
+  await page.getByText('Volver a la versión 1', { exact: true }).click();
+  await page.getByRole('button', { name: 'Sí, volver a la versión 1' }).click();
+  await expect(page.getByText('La tienda volvió a la versión 1')).toBeVisible();
+  await expect(
+    page.getByText('Los pedidos y el inventario no cambian.', { exact: false }).first(),
+  ).toBeVisible();
+  expect(vueltas).toEqual([{ version: 1 }]);
+  await expect(page.getByText('Volver a la versión 3', { exact: true })).toBeVisible();
+  await sinFallasDeAxe(page);
+});
+
 test('HU-T10.3 · CA2 y CA3: cambiar el WhatsApp pide volver a entrar sin perder lo escrito, y se verifica', async ({
   page,
 }) => {

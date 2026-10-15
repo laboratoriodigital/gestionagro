@@ -102,9 +102,11 @@ import {
 import {
   type Almacen,
   type EscritorKv,
+  leerVersiones,
   publicar,
   type Resultado,
   rehornearExistencias,
+  volverA,
 } from './publicar.ts';
 import { enFrase, leerRegistro } from './registro.ts';
 import {
@@ -749,6 +751,80 @@ export function crearApp(
     const ctx = contextoDePublicacion(c, s.org, s.shard, `usuario:${s.usuario}`);
     if (!ctx) return c.json({ estado: 'sin-configurar' }, 503);
     return responder(c, await publicar(ctx));
+  });
+
+  // HU-T10.4: las versiones y «Volver a esta», con el permiso `publicar`. Volver mueve el puntero
+  // en la misma solicitud; las existencias de ahora se re-hornean después, sin esperar.
+  app.get('/api/panel/v1/publicaciones', async (c) => {
+    const s = c.get('sesion');
+    const decision = decidir(s.rol, 'publicar', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido')
+      return c.json({ estado: decision, motivo: 'Tu rol no puede ver las versiones.' }, 403);
+    const quien = `usuario:${s.usuario}`;
+    const tienda = await s.db
+      .prepare('SELECT version_publicada FROM tienda WHERE org_id = ?')
+      .bind(s.org)
+      .first<{ version_publicada: number | null }>();
+    return c.json({
+      versionPublicada: tienda?.version_publicada ?? null,
+      versiones: (await leerVersiones(s.db, s.org)).map(({ pedidaPor, ...v }) => ({
+        ...v,
+        autor:
+          pedidaPor === quien
+            ? 'Tú'
+            : pedidaPor.startsWith('sistema:')
+              ? 'La tienda'
+              : 'Otra persona del equipo',
+        automatica: pedidaPor === 'sistema:existencias',
+      })),
+    });
+  });
+  app.post('/api/panel/v1/publicaciones/volver', async (c) => {
+    const s = c.get('sesion');
+    const decision = decidir(s.rol, 'publicar', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido')
+      return c.json(
+        { estado: decision, motivo: 'Tu rol no puede cambiar la versión publicada.' },
+        403,
+      );
+    const cuerpo = (await c.req.json().catch(() => null)) as { version?: unknown } | null;
+    const version = cuerpo?.version;
+    if (typeof version !== 'number' || !Number.isSafeInteger(version) || version < 1)
+      return c.json(
+        { estado: 'problemas', problemas: [{ campo: 'version', mensaje: 'falta la versión' }] },
+        422,
+      );
+    if (await hornoApagado(c))
+      return c.json(
+        {
+          estado: 'apagado',
+          motivo: 'Publicar está en pausa unos minutos; tu tienda sigue igual.',
+        },
+        503,
+      );
+    const ctx = contextoDePublicacion(c, s.org, s.shard, `usuario:${s.usuario}`);
+    if (!ctx) return c.json({ estado: 'sin-configurar' }, 503);
+    const r = await volverA(ctx, version);
+    if (r.estado === 'publicada') {
+      enSegundoPlano(
+        c,
+        rehornearExistencias({ ...ctx, pedidaPor: 'sistema:existencias' }).then(
+          (x) => {
+            if (x.estado === 'fallida' || x.estado === 'en-curso')
+              console.error(`tienda-api: las existencias al volver quedaron ${x.estado}`);
+          },
+          (e: unknown) => console.error(`tienda-api: las existencias al volver fallaron (${e})`),
+        ),
+      );
+      return c.json(r);
+    }
+    if (r.estado === 'ya-esta') return c.json(r);
+    if (r.estado === 'no-existe')
+      return c.json({ ...r, motivo: 'Esa versión no se puede volver a publicar.' }, 404);
+    if (r.estado === 'en-curso')
+      return c.json({ ...r, motivo: 'Hay una publicación en curso: espera a que termine.' }, 409);
+    console.error(`tienda-api: volver a la versión ${version} falló (${r.motivo})`);
+    return c.json(r, 500);
   });
 
   /**

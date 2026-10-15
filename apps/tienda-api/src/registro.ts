@@ -233,6 +233,8 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('edit', 'aste', 'ó')} el cupón ${nombre}`;
     case 'cupon.borrar':
       return `${hizo('mand', 'aste', 'ó')} el cupón ${nombre} a la papelera`;
+    case 'publicacion.volver':
+      return `${hizo('volv', 'iste', 'ió')} la tienda a la versión ${despues['version']}`;
     case 'ajustes.guardar':
       return `${hizo('cambi', 'aste', 'ó')} los ajustes de ${TITULOS_DE_SECCION[f.entidad_id as keyof typeof TITULOS_DE_SECCION] ?? f.entidad_id}`;
     case 'ajustes.whatsapp_verificado':

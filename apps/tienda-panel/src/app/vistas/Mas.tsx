@@ -18,6 +18,9 @@ export function Mas({
       </p>
       <ul class="mas">
         <li>
+          <a href="/mas/publicar/">Publicar y versiones</a>
+        </li>
+        <li>
           <a href="/mas/venta/">Envíos y cupones</a>
         </li>
         <li>

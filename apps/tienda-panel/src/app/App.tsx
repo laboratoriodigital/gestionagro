@@ -42,6 +42,7 @@ import { Bandeja, Pedido } from './vistas/Pedidos.tsx';
 import { Privacidad } from './vistas/Privacidad.tsx';
 import { Producto } from './vistas/Producto.tsx';
 import { Productos } from './vistas/Productos.tsx';
+import { Publicar } from './vistas/Publicar.tsx';
 import { Recaudos } from './vistas/Recaudos.tsx';
 import { Registro } from './vistas/Registro.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
@@ -257,6 +258,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         alVencer={setVencida}
       />
     );
+  else if (ruta === '/mas/publicar/')
+    cuerpo = <Publicar conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/mas/venta/') cuerpo = <Venta conexion={conexion} alVencer={setVencida} />;
   else if (/^\/mas\/venta\/envios\/[^/]+\/$/.test(ruta)) {
     const id = decodeURIComponent(ruta.split('/')[4] ?? '');
