@@ -261,6 +261,62 @@ export async function descifrarCampo(
   return new TextDecoder().decode(bytes);
 }
 
+/**
+ * Un campo cifrado en las tres columnas del anexo A (`sobre`, `iv`, `llave_version`), como lo
+ * guardan `pedido_contacto` y `solicitud`: los mismos AES-256-GCM y datos asociados que
+ * `cifrarCampo`, con el IV aparte porque la base exige que mida 12 bytes.
+ */
+export interface Sobre {
+  sobre: Uint8Array;
+  iv: Uint8Array;
+  version: number;
+}
+
+/** Cifra un campo en columnas, atado a su fila (`org|tabla|campo|id`). */
+export async function cifrarSobre(
+  dek: Dek,
+  contexto: Contexto,
+  texto: string,
+  aleatorio: Aleatorio = aleatorioDelSistema,
+): Promise<Sobre> {
+  if (dek.proposito === 'indices') throw new RangeError('La DEK de índices no cifra campos');
+  if (dek.org !== contexto.org) throw new RangeError('La DEK no es de esta tienda');
+  const { org, tabla, campo, id } = contexto;
+  const iv = copia(aleatorio(12));
+  if (iv.length !== 12) throw new RangeError('El IV de AES-GCM es de 12 bytes');
+  const sobre = new Uint8Array(
+    await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv, additionalData: aad([org, tabla, campo, id]) },
+      dek.llave,
+      codificador.encode(texto),
+    ),
+  );
+  return { sobre, iv, version: dek.version };
+}
+
+/** Descifra un campo en columnas con la DEK de su versión. Cualquier falla es `DescifradoFallido`. */
+export async function descifrarSobre(
+  deks: ReadonlyMap<number, Dek>,
+  contexto: Contexto,
+  s: Sobre,
+): Promise<string> {
+  const dek = deks.get(s.version);
+  if (!dek || dek.proposito === 'indices' || dek.org !== contexto.org || s.iv.length !== 12) {
+    throw new DescifradoFallido();
+  }
+  const { org, tabla, campo, id } = contexto;
+  try {
+    const bytes = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: copia(s.iv), additionalData: aad([org, tabla, campo, id]) },
+      dek.llave,
+      copia(s.sobre),
+    );
+    return new TextDecoder().decode(bytes);
+  } catch {
+    throw new DescifradoFallido();
+  }
+}
+
 /** Índice ciego: 128 bits de HMAC-SHA256 en hexadecimal. Igual valor, igual índice, en esa tienda. */
 export async function indiceCiego(dek: Dek, valor: string): Promise<string> {
   exigir(dek, 'indices', dek.org);

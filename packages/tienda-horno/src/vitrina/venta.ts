@@ -49,3 +49,43 @@ export function leerFragmento(hash: string): { codigo: string; secreto: string }
     ? { codigo, secreto }
     : null;
 }
+
+/** Lee `#r=<radicado>&s=<secreto>` del fragmento de `/solicitud/` (HU-T6.4): nunca de otra parte. */
+export function leerRadicado(hash: string): { radicado: number; secreto: string } | null {
+  const p = new URLSearchParams(hash.replace(/^#/, ''));
+  const r = p.get('r') ?? '';
+  const secreto = p.get('s') ?? '';
+  return /^[1-9][0-9]{0,8}$/.test(r) && /^[A-Za-z0-9_-]{22}$/.test(secreto)
+    ? { radicado: Number(r), secreto }
+    : null;
+}
+
+export type FaltaEnLaSolicitud = 'tipo' | 'texto' | 'contacto' | 'acepta';
+
+const TEXTOS_DE_LA_SOLICITUD: Record<FaltaEnLaSolicitud, string> = {
+  tipo: 'Elige qué necesitas',
+  texto: 'Cuéntanos qué pasa (al menos 10 letras)',
+  contacto: 'Dinos cómo te respondemos',
+  acepta: 'Autoriza el uso de tus datos para enviar',
+};
+
+/** Qué falta para radicar (HU-T6.4): lo mismo que la API exige, dicho antes de enviar. */
+export function estadoDeLaSolicitud(s: {
+  tipo: string;
+  texto: string;
+  contacto: string;
+  acepta: boolean;
+}): { listo: boolean; texto: string; falta?: FaltaEnLaSolicitud } {
+  const falta: FaltaEnLaSolicitud | undefined = !s.tipo
+    ? 'tipo'
+    : s.texto.trim().length < 10
+      ? 'texto'
+      : s.contacto.trim().length < 5
+        ? 'contacto'
+        : !s.acepta
+          ? 'acepta'
+          : undefined;
+  return falta
+    ? { listo: false, texto: TEXTOS_DE_LA_SOLICITUD[falta], falta }
+    : { listo: true, texto: 'Enviar la solicitud' };
+}

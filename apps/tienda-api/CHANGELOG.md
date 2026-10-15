@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- Las solicitudes con radicado (HU-T6.4): en «Solicitudes» de cada tienda, cualquier persona, con o sin pedido, hace una pregunta, una queja o un reclamo, se retracta de una compra, pide la reversión de un pago o pide ver, corregir o borrar sus datos. Recibe un número de radicado, la fecha y la hora, la fecha límite para la respuesta (en días hábiles de Colombia, con festivos) y un enlace para ver en qué va. Lo que cuenta la persona y cómo responderle se guardan cifrados con la llave de cada tienda. El texto de «Solicitudes» explica cómo hacerla y pasa a la versión 2 de las plantillas legales.
+
 ## [0.1.0] - 2026-10-14
 
 La Tienda sale a producción sin tiendas: el camino queda probado antes de la primera tienda real. La vitrina está completa en staging, con los dos comercios de prueba.

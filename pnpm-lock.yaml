@@ -380,6 +380,9 @@ importers:
 
   apps/tienda-api:
     dependencies:
+      '@ed1/calendario':
+        specifier: workspace:*
+        version: link:../../packages/calendario
       '@ed1/cifrado':
         specifier: workspace:*
         version: link:../../packages/cifrado
