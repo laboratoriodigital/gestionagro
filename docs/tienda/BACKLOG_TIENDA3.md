@@ -708,7 +708,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T4.4.1 `[código]` cola y consumidor · WI-T4.4.2 `[prueba]` caos · WI-T4.4.3 `[doc]` ARQUITECTURA §5.
 
 #### HU-T4.5 · Re-horneado mínimo cuando algo se agota
-- **Capa:** horno · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T9 · **Depende de:** HU-T4.4, HU-T8.5 · **Estado:** Refinada
+- **Capa:** horno · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T9 · **Depende de:** HU-T4.4, HU-T8.5 · **Estado:** En validación (rama `feat/t9-sprint`. Publicar guarda junto al manifiesto lo que horneó (`datos.json`). Cuando un ajuste de inventario o un pedido confirmado deja una combinación en 0 o la saca de 0, `apps/tienda-api/src/publicar.ts` (`rehornearExistencias`) vuelve a hornear esa misma versión con las existencias de ahora, después de responder y sin bloquear al comercio; nada más cambia. Con el interruptor `ks:tienda-horno` apagado no re-hornea y lo deja en el log. Controles negativos: sin la regla de cruzar el 0, un cambio que no agota ni repone re-hornea; sin mirar el interruptor, re-hornea con el horno apagado; publicar en vez de re-hornear sube lo que nadie ha publicado. La prueba lee la disponibilidad de cada combinación en los datos para buscadores de la ficha horneada)
 - Como comprador, quiero que Google, los agentes y la ficha no me ofrezcan lo que ya no hay.
 - **Respaldo:** TIENDA §7.4 («Existencias en la vitrina»).
 - **CA1.** Una variante que pasa de disponible a agotada, o al revés, encola el re-horneado de su ficha, el catálogo y los feeds.
@@ -917,7 +917,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T8.4.1 `[código]` · WI-T8.4.2 `[prueba]`.
 
 #### HU-T8.5 · El inventario y su libro
-- **Capa:** panel y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T9 · **Depende de:** HU-T8.2 · **Estado:** Refinada
+- **Capa:** panel y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T9 · **Depende de:** HU-T8.2 · **Estado:** En validación (rama `feat/t9-sprint`. «Productos → Inventario» lista cada combinación con cuántas hay, cuántas están apartadas por pagos en curso y cuántas personas esperan. Cada una abre su libro: por qué cambió cada número (pedido confirmado, ajuste, conteo, carga). **CA1:** ajustar suma o resta y contar dice cuántas hay; ninguno baja de lo apartado. **CA2:** «Ya les avisé» pone en cero a quienes esperan y queda en el registro. Controles negativos: un ajuste o un conteo por debajo de lo apartado, o de cero, no cambia nada; otra tienda no ve ni toca el inventario; la e2e de 360 px con axe)
 - Como comerciante, quiero ajustar existencias, contar, y saber por qué cambió cada número.
 - **Respaldo:** TIENDA §7.1 y §7.4; anexo C (columna `Inventario`, `avisame_hecho`).
 - **CA1.** Ajuste y conteo con su motivo; el libro de cada variante lo escribe un trigger; los «Avísame» de cada variante se ven y se marcan atendidos.
@@ -935,7 +935,7 @@ Formato de cada historia, el del CORE:
 ### ET9 · Panel: pedidos y contraentrega
 
 #### HU-T9.1 · La bandeja de pedidos
-- **Capa:** panel · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T9 · **Depende de:** HU-T8.1, HU-T6.1 · **Estado:** Refinada
+- **Capa:** panel · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T9 · **Depende de:** HU-T8.1, HU-T6.1 · **Estado:** En validación (rama `feat/t9-sprint`. «Pedidos» trae de a 50, del más nuevo al más viejo, con lo que necesita atención arriba. Los filtros por estado, forma de pago y número o comprador trabajan sobre lo que ya llegó, sin pedir nada. El comprador sale tapado desde el servidor («Ensayo D. · 300 ••• 4567»). Se actualiza al volver a la pestaña; una lectura vieja que llega tarde no pisa la nueva. Controles negativos: sin el turno, la lectura vieja pisa la lista; sin el cursor se repiten pedidos; ninguna respuesta de la bandeja lleva el nombre, el celular ni la dirección en claro; la e2e con 300 pedidos en 360 px y axe)
 - Como comerciante, quiero ver qué pedidos tengo que confirmar, despachar o cobrar, y encontrar uno por su número o su comprador.
 - **Respaldo:** TIENDA §12.2; anexo C (`pedidos`); bitácora ecommerce 62.
 - **Boceto:** filtros de estado y forma de pago arriba; tarjetas con número, hora, total, forma y estado; y antes de todo, en rojo, lo que necesita atención (un cobro a revisar, un pago sin existencias).
@@ -945,7 +945,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T9.1.1 `[código]` · WI-T9.1.2 `[prueba]` e2e con 300 pedidos.
 
 #### HU-T9.2 · Ver los datos de entrega deja huella
-- **Capa:** panel y seguridad · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T9 · **Depende de:** HU-T9.1, HU-T1.3 · **Estado:** Refinada
+- **Capa:** panel y seguridad · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T9 · **Depende de:** HU-T9.1, HU-T1.3 · **Estado:** En validación (rama `feat/t9-sprint`. «Ver datos de entrega» descifra el contacto del pedido con la llave de la tienda y lo muestra; queda en la historia del pedido y en el registro («Tú viste los datos de entrega del pedido #1045»). Es la única ruta, con «Confirmar por WhatsApp», que devuelve el contacto en claro, y pide el permiso `pedidos.contacto_ver`. Controles negativos: sin la fila de la historia, la prueba queda en rojo; un rol sin el permiso no lo lee; los registros de la consola no lo guardan. **Falta un dato:** la vitrina todavía no le pide el contacto al comprador, así que los pedidos por WhatsApp dicen «Llegó por WhatsApp» y no tienen datos que ver)
 - Como comprador, quiero que mis datos los vea solo quien despacha, y que quede registrado.
 - **Respaldo:** TIENDA §12.5.
 - **CA1.** «Ver datos de entrega» descifra ese pedido y escribe `contacto_leido` en su historial y en `registro`.
@@ -953,7 +953,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T9.2.1 `[código]` · WI-T9.2.2 `[prueba]`.
 
 #### HU-T9.3 · Confirmar por WhatsApp y confirmar el pedido
-- **Capa:** panel y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T9 · **Depende de:** HU-T9.1, HU-T8.5 · **Estado:** Refinada
+- **Capa:** panel y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T9 · **Depende de:** HU-T9.1, HU-T8.5 · **Estado:** En validación (rama `feat/t9-sprint`. «Confirmar por WhatsApp» arma el mensaje con las líneas, el total, la dirección y, si paga por transferencia, los datos de la cuenta, y abre el chat del comprador. Confirmar descuenta el inventario en el mismo lote que el pedido, con su línea en el libro («Pedido confirmado»), o dice qué combinación no alcanza sin tocar nada. Un pedido en línea no se confirma a mano. Controles negativos: sin el descuento, el inventario no cambia; sin revisar las existencias, confirmar no dice qué falta; sin la regla, un pedido en línea se confirmaría a mano; la e2e con axe)
 - Como comerciante, quiero confirmar con el comprador antes de despachar, con el mensaje ya armado, y que el inventario baje al confirmar.
 - **Respaldo:** TIENDA §7.4 y §8.7 («Confirmar antes de despachar»); estudio §11.3 [C7].
 - **CA1.** «Confirmar por WhatsApp» abre `wa.me` con el resumen, la dirección si la dejó y lo que sigue según la forma de pago; en una transferencia, con los datos de la cuenta del comercio.
@@ -1017,7 +1017,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T10.2.1 `[código]` · WI-T10.2.2 `[prueba]`.
 
 #### HU-T10.3 · Ajustes por sección, con la entrada reciente donde se mueve la plata
-- **Capa:** panel y API · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T9 · **Depende de:** HU-T1.4, HU-T8.1, HU-C4.3 (`auth_time`) · **Estado:** Refinada
+- **Capa:** panel y API · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T9 · **Depende de:** HU-T1.4, HU-T8.1, HU-C4.3 (`auth_time`) · **Estado:** En validación (rama `feat/t9-sprint`. «Más → Ajustes» lista las 9 secciones y lo que falta para publicar, en palabras. `apps/tienda-api/src/ajustes.ts` guarda cada sección sola. **CA1:** cada guardada lleva su `version`; si alguien guardó antes, responde 409 con la de ahora. **CA2:** cambiar el WhatsApp, el modo de pedido o el cobro con una entrada de hace más de 10 minutos responde 401 `reautenticar`; el panel pide entrar con Google sin renovar el acceso, y al volver el formulario está como estaba (borrador en el teléfono, con su versión). El colaborador no cambia el modo ni el cobro, y no ve el cobro. **CA3:** `whatsappVerificado` lo pone la API, nunca el formulario; un número nuevo queda sin verificar hasta abrir el chat de prueba y tocar «Sí, es mi WhatsApp». **CA4:** lo vacío no se guarda, y la compuerta no publica sin lo obligatorio. Controles negativos: uno por criterio en `panel-ajustes.test.ts`, más los datos de la transferencia que no salen en el registro; en la e2e, sin el borrador el número escrito se pierde al volver de entrar, y sin abrir el chat el botón de verificar aparece antes de tiempo)
 - Como comerciante, quiero configurar mi tienda por partes; como plataforma, que cambiar por dónde llegan los pedidos o el dinero pida volver a entrar.
 - **Respaldo:** TIENDA §5.7 y §12.3; bitácora ecommerce, crítico «la configuración de fábrica traía el celular de la primera tienda».
 - **CA1.** Las 9 secciones con su esquema; guardar una es atómico y lleva su `version`.
@@ -1658,6 +1658,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | T6 | 20 | 0 (en validación: HU-T2.9, HU-T3.6, HU-T6.1, HU-T6.2, HU-T6.3 y HU-T12.2) | Construido el 14 oct 2026. Se pide por WhatsApp con la aceptación verificable, el acuse y el seguimiento secreto; la vitrina tiene presupuestos y CSP en el CI; una tienda se carga desde un archivo. La versión `0.1.0` lleva la Tienda a producción sin tiendas, en `panel.` y `origen.`. El carrito pasó a `/carrito/`, como dice TIENDA §5.4 (bitácora tienda3, «Afirmaciones mías»). PR #181 fusionado el 14 oct; `tienda-v0.1.0` etiquetada el 15 oct, pero el paso de la Tienda en producción terminó en error: CA1 de HU-T2.9 sigue sin cumplirse (bitácora tienda3 12) |
 | T7 | 17 de 19 | 0 (en validación: HU-T3.5, HU-T5.7, HU-T6.4, HU-T8.1 y HU-T17.2) | Construido el 15 oct 2026. Las solicitudes con radicado, cifradas y con su plazo en días hábiles; las purgas diarias; y el panel abre la puerta: entrar con Google, elegir la tienda y los componentes con una tienda llena. Se cerró además el CA2 de HU-T2.10: el despliegue de staging crea Ensayo Uno y Ensayo Dos en el CORE con el dueño de propietario. HU-T7.2 (2) espera los datos de Laboratorio Digital como encargado; HU-T5.7 (2), la aceptación de M1, quedó en validación: espera la compra de prueba del dueño |
 | T8 | 12 | 0 (en validación: HU-T8.2, HU-T8.3, HU-T8.4 y HU-T10.6) | Construido el 15 oct 2026. Los productos con combinaciones, colecciones y fotos se editan desde el teléfono sin pisarse, y cada cambio queda en el registro en frases. Las fotos se comprimen en el teléfono y caen a JPEG donde no hay WebP. El bucket de las fotos se enlazó primero en staging, por decisión del dueño; producción espera a que una foto suba allí. Los cambios se ven en la tienda cuando se publique; publicar desde el panel llega con HU-T10.4 (T10) |
+| T9 | 20 | 0 (en validación: HU-T4.5, HU-T8.5, HU-T9.1, HU-T9.2, HU-T9.3 y HU-T10.3) | Construido el 15 oct 2026. El panel ya atiende la tienda: el inventario con su libro, la bandeja de pedidos con el comprador tapado, ver sus datos de entrega dejando huella, confirmar por WhatsApp descontando el inventario, y los ajustes por sección con la entrada reciente donde se mueve la plata. Agotar o reponer re-hornea lo publicado sin publicar nada más. Se corrigió el registro, que decía «única» en vez de la combinación (bitácora tienda3 19). La vitrina todavía no pide el contacto del comprador: sin él, «Ver datos de entrega» no tiene qué mostrar en los pedidos por WhatsApp |
 
 ---
 

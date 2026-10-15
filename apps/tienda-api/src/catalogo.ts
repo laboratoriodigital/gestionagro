@@ -43,13 +43,14 @@ export interface Quien {
   instante: string;
 }
 
-const MOTIVO_CAMBIADO =
+export const MOTIVO_CAMBIADO =
   'Alguien más cambió esto mientras lo editabas. Revisa cómo quedó y vuelve a guardar tus cambios.';
 const MOTIVO_NO_EXISTE = 'Eso ya no está: puede que lo hayan borrado.';
 /** Aborta el lote si la sentencia anterior no cambió ninguna fila (`json()` de un texto inválido). */
-const SI_CAMBIO = "SELECT CASE changes() WHEN 0 THEN json('cambiado') ELSE 1 END";
-const esCambiado = (e: unknown) => /malformed JSON/i.test(String(e));
-const esOperacionRepetida = (e: unknown) => /UNIQUE constraint failed: operacion/i.test(String(e));
+export const SI_CAMBIO = "SELECT CASE changes() WHEN 0 THEN json('cambiado') ELSE 1 END";
+export const esCambiado = (e: unknown) => /malformed JSON/i.test(String(e));
+export const esOperacionRepetida = (e: unknown) =>
+  /UNIQUE constraint failed: operacion/i.test(String(e));
 /** Otra escritura tomó la dirección o el SKU entre la revisión y el lote. */
 const choqueDe = (e: unknown): Problema | null => {
   const t = String(e);
@@ -84,15 +85,15 @@ const problemasDe = (r: z.ZodSafeParseResult<unknown>): Problema[] =>
     : r.error.issues.map((i) => ({ campo: i.path.map(String).join('.'), mensaje: i.message }));
 
 /** La respuesta guardada de una `op`, si ya se aplicó. */
-async function yaAplicada(q: Quien, op: string): Promise<Resultado | null> {
+export async function yaAplicada<R = Resultado>(q: Quien, op: string): Promise<R | null> {
   const fila = await q.db
     .prepare('SELECT respuesta FROM operacion WHERE org_id = ? AND op = ?')
     .bind(q.org, op)
     .first<{ respuesta: string }>();
-  return fila ? (JSON.parse(fila.respuesta) as Resultado) : null;
+  return fila ? (JSON.parse(fila.respuesta) as R) : null;
 }
 
-const guardarOperacion = (q: Quien, op: string, ruta: string, r: Resultado) =>
+export const guardarOperacion = (q: Quien, op: string, ruta: string, r: object) =>
   q.db
     .prepare('INSERT INTO operacion (org_id, op, ruta, respuesta, creada) VALUES (?, ?, ?, ?, ?)')
     .bind(q.org, op, ruta, JSON.stringify(r), q.instante);
@@ -487,7 +488,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
     },
   ) => ({
     nombre: d.nombre,
-    clave,
+    combinacion: clave,
     precioCop: v.precioCop,
     precioAntesCop: v.precioAntesCop,
     stock: v.stock,
@@ -612,7 +613,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
         accion: 'variante.quitar',
         entidad: 'variante',
         entidadId: vieja.id,
-        antes: { nombre: d.nombre, clave: vieja.clave },
+        antes: { nombre: d.nombre, combinacion: vieja.clave },
         despues: null,
         instante: q.instante,
       }),

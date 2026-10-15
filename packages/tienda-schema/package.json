@@ -7,7 +7,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./ensayos": "./src/ensayos.ts",
-    "./medios": "./src/medios.ts"
+    "./medios": "./src/medios.ts",
+    "./tapado": "./src/tapado.ts",
+    "./titulos": "./src/titulos.ts"
   },
   "dependencies": {
     "zod": "^4.6.5"

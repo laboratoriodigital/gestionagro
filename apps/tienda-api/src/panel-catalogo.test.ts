@@ -165,6 +165,31 @@ describe('el catálogo por la API del panel', () => {
     expect((await pedir('/api/panel/v1/productos/p-camisa')).status).toBe(200);
   });
 
+  it('❌ HU-T10.6: la frase de una combinación la nombra, no dice «única»', async () => {
+    const sombrero = (precioCop: number, extra: Record<string, unknown> = {}) =>
+      gorra({
+        nombre: 'Sombrero',
+        opciones: [{ nombre: 'Color', valores: ['Arena', 'Azul'] }],
+        variantes: [
+          { valores: ['Arena'], precioCop, stock: 2 },
+          { valores: ['Azul'], precioCop: 45000, stock: 2 },
+        ],
+        ...extra,
+      });
+    const { id } = (await (
+      await pedir('/api/panel/v1/productos/guardar', sombrero(45000))
+    ).json()) as { id: string };
+    expect(
+      (await pedir('/api/panel/v1/productos/guardar', sombrero(40000, { id, version: 1 }))).status,
+    ).toBe(200);
+    const { filas } = (await (await pedir('/api/panel/v1/registro')).json()) as {
+      filas: { frase: string }[];
+    };
+    expect(filas.map((f) => f.frase)).toContain(
+      'Tú cambiaste el precio de $45.000 a $40.000 de Arena en «Sombrero»',
+    );
+  });
+
   it('HU-T10.6: el registro cuenta en frases lo que pasó, y cada tienda ve solo el suyo', async () => {
     const r = await pedir('/api/panel/v1/registro');
     expect(r.status).toBe(200);

@@ -12,6 +12,7 @@
 import { Aviso } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
+import { esSeccion, type Seccion } from './ajustes.ts';
 import { type Almacen, almacenIndexedDb } from './almacen.ts';
 import { pedirAlPanel, type RespuestaDelPanel, type Yo } from './api.ts';
 import { Barra, Navegacion } from './componentes/index.ts';
@@ -28,13 +29,15 @@ import {
   urlDeEntrada,
   urlDelCore,
 } from './sesion.ts';
+import { AjusteDeSeccion, Ajustes } from './vistas/Ajustes.tsx';
 import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
 import { ElegirTienda, NOMBRE_DEL_ROL } from './vistas/ElegirTienda.tsx';
 import { Entrar } from './vistas/Entrar.tsx';
 import { Galeria } from './vistas/Galeria.tsx';
 import { Inicio } from './vistas/Inicio.tsx';
+import { Existencias, Inventario } from './vistas/Inventario.tsx';
 import { Mas } from './vistas/Mas.tsx';
-import { PorLlegar } from './vistas/PorLlegar.tsx';
+import { Bandeja, Pedido } from './vistas/Pedidos.tsx';
 import { Privacidad } from './vistas/Privacidad.tsx';
 import { Producto } from './vistas/Producto.tsx';
 import { Productos } from './vistas/Productos.tsx';
@@ -183,11 +186,14 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
       </main>
     );
   else if (ruta === '/') cuerpo = <Inicio yo={yo.datos} />;
-  else if (ruta.startsWith('/pedidos/'))
+  else if (ruta === '/pedidos/') cuerpo = <Bandeja conexion={conexion} alVencer={setVencida} />;
+  else if (/^\/pedidos\/[^/]+\/$/.test(ruta))
     cuerpo = (
-      <PorLlegar
-        titulo="Pedidos"
-        texto="Aquí vas a confirmar, cobrar y despachar los pedidos de tu tienda. Mientras tanto, te llegan por WhatsApp."
+      <Pedido
+        key={ruta}
+        conexion={conexion}
+        id={decodeURIComponent(ruta.split('/')[2] ?? '')}
+        alVencer={setVencida}
       />
     );
   else if (ruta === '/productos/' || ruta === '/productos/papelera/')
@@ -201,6 +207,17 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     );
   else if (ruta === '/productos/colecciones/')
     cuerpo = <Colecciones conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/productos/inventario/')
+    cuerpo = <Inventario conexion={conexion} alVencer={setVencida} />;
+  else if (/^\/productos\/inventario\/[^/]+\/$/.test(ruta))
+    cuerpo = (
+      <Existencias
+        key={ruta}
+        conexion={conexion}
+        variante={decodeURIComponent(ruta.split('/')[3] ?? '')}
+        alVencer={setVencida}
+      />
+    );
   else if (/^\/productos\/colecciones\/[^/]+\/$/.test(ruta))
     cuerpo = (
       <Coleccion
@@ -220,7 +237,20 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         alVencer={setVencida}
       />
     );
-  } else if (ruta === '/mas/registro/')
+  } else if (ruta === '/mas/ajustes/')
+    cuerpo = <Ajustes conexion={conexion} alVencer={setVencida} />;
+  else if (esSeccion(ruta.match(/^\/mas\/ajustes\/([^/]+)\/$/)?.[1] ?? '') && sesion?.org_id)
+    cuerpo = (
+      <AjusteDeSeccion
+        key={ruta}
+        conexion={conexion}
+        almacen={almacen}
+        org={sesion.org_id}
+        seccion={ruta.split('/')[3] as Seccion}
+        alVencer={setVencida}
+      />
+    );
+  else if (ruta === '/mas/registro/')
     cuerpo = <Registro conexion={conexion} alVencer={setVencida} />;
   else if (ruta.startsWith('/mas/') && sesion)
     cuerpo = (

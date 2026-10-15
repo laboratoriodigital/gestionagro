@@ -12,11 +12,12 @@
  */
 import type { BaseD1, SentenciaD1 } from '@ed1/d1';
 import { formatearPesos } from '@ed1/dinero';
+import { TITULOS_DE_SECCION } from '@ed1/tienda-schema/titulos';
 import { sha256 } from './pedidos.ts';
 
 /** Los campos que nunca se guardan en claro: datos personales y secretos. */
 const SENSIBLE =
-  /telefono|celular|whatsapp|correo|email|documento|direccion|contacto|comprador|llave|secret|token|clave|credencial|password|contrasena/i;
+  /telefono|celular|whatsapp|correo|email|documento|direccion|contacto|comprador|transferencia|llave|secret|token|clave|credencial|password|contrasena/i;
 
 export const esSensible = (campo: string): boolean => SENSIBLE.test(campo);
 
@@ -122,9 +123,15 @@ function cambios(antes: Record<string, unknown>, despues: Record<string, unknown
   return dichos;
 }
 
-/** La combinación como la lee el comercio: «M / Arena»; la única de un producto sin opciones. */
-const combinacion = (clave: unknown) =>
-  typeof clave === 'string' && clave !== '' ? clave.split('|').join(' / ') : 'única';
+/**
+ * La combinación como la lee el comercio: «M / Arena»; la única de un producto sin opciones. Se
+ * anota como `combinacion`: un campo `clave` se guarda como huella, porque «clave» también es una
+ * contraseña (`SENSIBLE`).
+ */
+const combinacion = (fila: Record<string, unknown>) => {
+  const c = fila['combinacion'];
+  return typeof c === 'string' && c !== '' ? c.split('|').join(' / ') : 'única';
+};
 
 /**
  * La frase de una fila, para quien pregunta (`usuario:<sub>`). Una acción que no conoce se dice
@@ -157,16 +164,16 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
     case 'productos.ordenar':
       return `${hizo('reorden', 'aste', 'ó')} los productos`;
     case 'variante.crear':
-      return `${hizo('agreg', 'aste', 'ó')} la combinación ${combinacion(despues['clave'])} a «${nombre}»`;
+      return `${hizo('agreg', 'aste', 'ó')} la combinación ${combinacion(despues)} a «${nombre}»`;
     case 'variante.editar': {
       const c = cambios(antes, despues);
-      const clave = combinacion(despues['clave'] ?? antes['clave']);
+      const clave = combinacion('combinacion' in despues ? despues : antes);
       return c.length > 0
         ? `${hizo('cambi', 'aste', 'ó')} ${c.join(', ')} de ${clave} en «${nombre}»`
         : `${hizo('edit', 'aste', 'ó')} la combinación ${clave} de «${nombre}»`;
     }
     case 'variante.quitar':
-      return `${hizo('quit', 'aste', 'ó')} la combinación ${combinacion(antes['clave'])} de «${nombre}»`;
+      return `${hizo('quit', 'aste', 'ó')} la combinación ${combinacion(antes)} de «${nombre}»`;
     case 'coleccion.crear':
       return `${hizo('cre', 'aste', 'ó')} la colección «${nombre}»`;
     case 'coleccion.editar':
@@ -179,6 +186,25 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('sub', 'iste', 'ió')} una foto de «${nombre}»`;
     case 'medio.quitar':
       return `${hizo('quit', 'aste', 'ó')} una foto de «${nombre}»`;
+    case 'inventario.ajustar':
+      return `${hizo('ajust', 'aste', 'ó')} las existencias de ${combinacion(despues)} en «${nombre}» de ${antes['stock']} a ${despues['stock']}`;
+    case 'inventario.contar':
+      return `${hizo('cont', 'aste', 'ó')} ${combinacion(despues)} de «${nombre}»: había ${antes['stock']}, hay ${despues['stock']}`;
+    case 'avisame.atender': {
+      const n = Number(antes['personas'] ?? 0);
+      const a = n === 1 ? 'a la persona que esperaba' : `a las ${n} personas que esperaban`;
+      return `${hizo('avis', 'aste', 'ó')} ${a} ${combinacion(antes)} de «${nombre}»`;
+    }
+    case 'pedido.contacto_ver':
+      return despues['para'] === 'whatsapp'
+        ? `${hizo('abr', 'iste', 'ió')} el WhatsApp del pedido #${despues['numero']} con sus datos de entrega`
+        : `${hizo('v', 'iste', 'io')} los datos de entrega del pedido #${despues['numero']}`;
+    case 'pedido.confirmar':
+      return `${hizo('confirm', 'aste', 'ó')} el pedido #${despues['numero']}`;
+    case 'ajustes.guardar':
+      return `${hizo('cambi', 'aste', 'ó')} los ajustes de ${TITULOS_DE_SECCION[f.entidad_id as keyof typeof TITULOS_DE_SECCION] ?? f.entidad_id}`;
+    case 'ajustes.whatsapp_verificado':
+      return `${hizo('verific', 'aste', 'ó')} el WhatsApp de la tienda`;
     default:
       return `${quien}: ${f.accion} (${f.entidad})`;
   }

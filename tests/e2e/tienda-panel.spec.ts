@@ -193,6 +193,8 @@ test('HU-T8.1 · CA2: si la sesión vence, «vuelve a entrar» aparece encima, s
   // La sesión vence del lado del CORE: la API dice 401 y renovar también.
   await page.unroute(`${PANEL}/api/panel/v1/yo`);
   await page.route(`${PANEL}/api/panel/v1/yo`, (r) => r.fulfill({ status: 401, json: {} }));
+  // La bandeja (HU-T9.1) también le pregunta a la API, y también oye 401.
+  await page.route(`${PANEL}/api/panel/v1/pedidos*`, (r) => r.fulfill({ status: 401, json: {} }));
   await page.unroute(`${CORE}/api/core/auth/refrescar`);
   await page.route(`${CORE}/api/core/auth/refrescar`, (r) =>
     r.fulfill({ status: 401, json: {}, headers: CORS }),
@@ -616,6 +618,386 @@ test('HU-T8.3 · CA3: en Safari, que no hace WebP, la foto sube en JPEG y con su
   ]);
   for (const a of archivos) expect([...a.bytes.subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
 
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('HU-T8.5 · CA1 y CA2: ajustar y contar, con su libro, y lo apartado dicho con palabras', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const fila = {
+    variante: 'v-camisa-m-arena',
+    producto: 'p-camisa',
+    nombre: 'Camisa de lino',
+    combinacion: 'M / Arena',
+    sku: null,
+    stock: 4,
+    apartadas: 2,
+    esperan: 3,
+    version: 1,
+  };
+  const movimientos: object[] = [];
+  const enviados: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/inventario`, (r) =>
+    r.fulfill({ json: { filas: [fila] } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/inventario/v-camisa-m-arena`, (r) =>
+    r.fulfill({ json: { fila, movimientos, siguiente: null } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/inventario/ajustar`, (r) => {
+    const cuerpo = r.request().postDataJSON() as { tipo: string; cantidad: number };
+    enviados.push(cuerpo);
+    if (cuerpo.tipo === 'conteo' && cuerpo.cantidad < 2) {
+      return r.fulfill({
+        status: 422,
+        json: {
+          estado: 'problemas',
+          problemas: [
+            {
+              campo: 'cantidad',
+              mensaje:
+                'Hay 2 unidades apartadas por pagos en curso: las existencias no pueden quedar en menos de 2.',
+            },
+          ],
+        },
+      });
+    }
+    movimientos.unshift({
+      id: 1,
+      delta: 3,
+      stock: 7,
+      motivo: 'conteo',
+      ref: 'op',
+      instante: '2026-10-15T15:42:00.000Z',
+    });
+    Object.assign(fila, { stock: 7, version: 2 });
+    return r.fulfill({ json: { estado: 'guardado', id: fila.variante, version: 2 } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/avisame/atender`, (r) => {
+    fila.esperan = 0;
+    return r.fulfill({ json: { estado: 'guardado', id: fila.variante, version: 1 } });
+  });
+
+  await page.route(`${PANEL}/api/panel/v1/productos?*`, (r) =>
+    r.fulfill({ json: { productos: [] } }),
+  );
+  await page.getByRole('link', { name: 'Productos' }).click();
+  await page.getByRole('link', { name: 'Inventario', exact: true }).click();
+  await page.getByRole('link', { name: /Camisa de lino · M \/ Arena/ }).click();
+  await expect(page.getByText('4 en existencia · 2 apartadas · 3 esperan')).toBeVisible();
+
+  await page.getByLabel('Las conté').check();
+  await page.getByLabel('¿Cuántas hay?').fill('1');
+  await page.getByRole('button', { name: 'Guardar el conteo' }).click();
+  await expect(
+    page.getByText('Hay 2 unidades apartadas por pagos en curso', { exact: false }).first(),
+  ).toBeVisible();
+  await expect(page.getByLabel('¿Cuántas hay?')).toHaveAttribute('aria-invalid', 'true');
+
+  await page.getByLabel('¿Cuántas hay?').fill('7');
+  await page.getByRole('button', { name: 'Guardar el conteo' }).click();
+  await expect(page.getByText('Conteo guardado.')).toBeVisible();
+  await expect(page.getByText('Conteo: +3 → quedan 7')).toBeVisible();
+  expect(enviados.at(-1)).toMatchObject({ tipo: 'conteo', cantidad: 7, version: 1 });
+
+  await page.getByText('Ya les avisé', { exact: true }).click();
+  await page.getByRole('button', { name: 'Sí, ya les avisé' }).click();
+  await expect(page.getByText('3 personas pidieron que les avises')).toBeHidden();
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});
+
+/** Un pedido de la bandeja como lo da la API: el comprador ya viene tapado. */
+const filaDePedido = (numero: number, extra: Record<string, unknown> = {}) => ({
+  id: `ped-${numero}`,
+  numero,
+  estado: numero % 3 === 0 ? 'confirmado' : 'pendiente',
+  formaPago: numero % 2 === 0 ? 'contraentrega' : 'transferencia',
+  totalCop: 129000,
+  creado: new Date(Date.UTC(2026, 9, 15, 15) - (2000 - numero) * 60_000).toISOString(),
+  ciudad: 'Medellín',
+  articulos: 1,
+  atencion: null,
+  comprador: { nombre: 'Ensayo D.', celular: '300 ••• 4567' },
+  version: 1,
+  ...extra,
+});
+
+test('HU-T9.1 · 300 pedidos en 360 px: filtros sin red, y una respuesta vieja no pisa la nueva', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const todos = Array.from({ length: 300 }, (_, i) => filaDePedido(1300 - i));
+  let lecturas = 0;
+  /** La próxima primera página trae una lista vieja, y no llega hasta que la prueba la suelta. */
+  let lenta = false;
+  let soltar: () => void = () => undefined;
+  const suelta = new Promise<void>((listo) => {
+    soltar = listo;
+  });
+  await page.route(`${PANEL}/api/panel/v1/pedidos*`, async (r) => {
+    lecturas++;
+    const cursor = new URL(r.request().url()).searchParams.get('cursor');
+    const desde = cursor ? Number(cursor) : 0;
+    if (!cursor && lenta) {
+      lenta = false;
+      await suelta;
+      return r.fulfill({
+        json: { atencion: [], pedidos: [filaDePedido(999, { ciudad: 'Vieja' })], siguiente: null },
+      });
+    }
+    return r.fulfill({
+      json: {
+        atencion: cursor ? [] : [filaDePedido(1290, { atencion: 'monto' })],
+        pedidos: todos.slice(desde, desde + 50),
+        siguiente: desde + 50 < todos.length ? String(desde + 50) : null,
+      },
+    });
+  });
+  await page.getByRole('link', { name: 'Pedidos' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Pedidos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Necesitan atención' })).toBeVisible();
+  await expect(
+    page.getByText('Cobro a revisar: el monto no cuadra', { exact: false }),
+  ).toBeVisible();
+  for (let i = 0; i < 5; i++) {
+    await page.getByRole('button', { name: 'Ver más' }).click();
+    await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(50 * (i + 2));
+  }
+  await expect(page.getByRole('button', { name: 'Ver más' })).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+
+  // CA1: los filtros trabajan sobre lo que ya llegó, sin pedir nada.
+  const antes = lecturas;
+  await page.getByLabel('Estado').selectOption('confirmado');
+  await page.getByLabel('Forma de pago').selectOption('contraentrega');
+  await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(50);
+  await page.getByLabel('Número o comprador').fill('#1296');
+  await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(1);
+  expect(lecturas).toBe(antes);
+  await page.getByLabel('Número o comprador').fill('');
+  await page.getByLabel('Estado').selectOption('');
+  await page.getByLabel('Forma de pago').selectOption('');
+
+  // CA2 y CA3: la lectura lenta sale primero y llega de última; la lista de antes sigue mientras
+  // tanto, y al final queda la de la lectura nueva.
+  lenta = true;
+  await page.getByRole('button', { name: 'Actualizar' }).click();
+  await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(300);
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(50);
+  // Ahora llega la vieja; la pantalla ya la procesó cuando pasan dos cuadros después de leerla.
+  const vieja = page.waitForResponse((r) => r.url().endsWith('/api/panel/v1/pedidos'));
+  soltar();
+  await (await vieja).finished();
+  await page.evaluate(
+    () => new Promise((listo) => requestAnimationFrame(() => requestAnimationFrame(listo))),
+  );
+  await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(50);
+  await expect(page.getByText('Vieja', { exact: false })).toHaveCount(0);
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('HU-T9.2 y HU-T9.3 · ver los datos de entrega, confirmar por WhatsApp y confirmar', async ({
+  page,
+}) => {
+  const consola: string[] = [];
+  page.on('console', (m) => consola.push(m.text()));
+  await enElPanel(page);
+  const pedido = {
+    ...filaDePedido(1045, { estado: 'pendiente', formaPago: 'transferencia', articulos: 2 }),
+    canal: 'whatsapp',
+    subtotalCop: 258000,
+    descuentoCop: 0,
+    envioCop: 0,
+    cuponCodigo: null,
+    envioNombre: null,
+    totalCop: 258000,
+    lineas: [
+      {
+        variante: 'v-camisa-m-arena',
+        nombre: 'Camisa de lino',
+        opciones: 'Talla: M · Color: Arena',
+        cantidad: 2,
+        precioUnitarioCop: 129000,
+        totalCop: 258000,
+        descontado: false,
+      },
+    ],
+    historia: [] as object[],
+    conContacto: true,
+  };
+  const mensaje =
+    'Hola, Ensayo. Te escribimos de Comercio Ensayo Uno por tu pedido #1045:\n• 2 × Camisa de lino (Talla: M · Color: Arena): $258.000\nTotal: $258.000';
+  const confirmados: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/pedidos/ped-1045`, (r) => r.fulfill({ json: pedido }));
+  await page.route(`${PANEL}/api/panel/v1/pedidos/contacto`, (r) => {
+    pedido.historia.push({
+      instante: '2026-10-15T15:50:00.000Z',
+      tipo: 'contacto_leido',
+      de: null,
+      a: null,
+      quien: 'Tú',
+    });
+    return r.fulfill({
+      json: {
+        estado: 'ok',
+        contacto: {
+          nombre: 'Ensayo Dos Compradora',
+          celular: '3001234567',
+          direccion: 'Calle de prueba 99',
+        },
+      },
+    });
+  });
+  await page.route(`${PANEL}/api/panel/v1/pedidos/whatsapp`, (r) =>
+    r.fulfill({
+      json: {
+        estado: 'ok',
+        url: `https://wa.me/573001234567?text=${encodeURIComponent(mensaje)}`,
+        mensaje,
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/pedidos/confirmar`, (r) => {
+    confirmados.push(r.request().postDataJSON());
+    Object.assign(pedido, { estado: 'confirmado', version: 2 });
+    return r.fulfill({ json: { estado: 'guardado', id: pedido.id, version: 2 } });
+  });
+
+  await page.goto(`${PANEL}/pedidos/ped-1045/`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Pedido #1045' })).toBeVisible();
+  await expect(page.getByText('Ensayo D. · 300 ••• 4567')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('Compradora');
+
+  await page.getByRole('button', { name: 'Ver datos de entrega' }).click();
+  await expect(page.getByText('Calle de prueba 99')).toBeVisible();
+  await expect(page.getByText('Tú vio los datos de entrega')).toHaveCount(0);
+  await expect(page.getByText('Tú viste los datos de entrega')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Confirmar por WhatsApp' }).click();
+  await expect(page.locator('pre.mensaje')).toHaveText(mensaje);
+  await expect(page.getByRole('link', { name: 'Abrir WhatsApp con el mensaje' })).toHaveAttribute(
+    'href',
+    /^https:\/\/wa\.me\/573001234567\?text=/,
+  );
+
+  await page.getByText('Confirmar el pedido', { exact: true }).click();
+  await expect(
+    page.getByText('Salen 2 unidades del inventario y el pedido queda confirmado.'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Sí, confirmar' }).click();
+  await expect(page.getByText('Pedido confirmado.', { exact: false })).toBeVisible();
+  expect(confirmados).toEqual([expect.objectContaining({ pedido: 'ped-1045', version: 1 })]);
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  // HU-T9.2 CA2: los datos de la compradora no quedan en los registros de la consola.
+  expect(consola.filter((t) => /Compradora|3001234567|Calle de prueba/.test(t))).toEqual([]);
+});
+
+test('HU-T10.3 · CA2 y CA3: cambiar el WhatsApp pide volver a entrar sin perder lo escrito, y se verifica', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const contacto = {
+    datos: {
+      whatsapp: '+573000000001',
+      whatsappVerificado: true,
+      correo: 'ensayo-uno@ejemplo.test',
+    } as Record<string, unknown>,
+    version: 3,
+  };
+  const ajustes = () => ({
+    secciones: {
+      identidad: { datos: { nombre: 'Comercio Ensayo Uno' }, version: 1 },
+      contacto,
+      legal: { datos: { tipoPersona: 'juridica' }, version: 1 },
+    },
+    faltantes:
+      contacto.datos['whatsappVerificado'] === true
+        ? ['legal.razonSocial']
+        : ['legal.razonSocial', 'contacto.whatsappVerificado'],
+  });
+  const guardados: { version: number; datos: Record<string, unknown> }[] = [];
+  const verificados: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/ajustes`, (r) => r.fulfill({ json: ajustes() }));
+  await page.route(`${PANEL}/api/panel/v1/ajustes/guardar`, (r) => {
+    const cuerpo = r.request().postDataJSON() as (typeof guardados)[number];
+    guardados.push(cuerpo);
+    // La primera vez entró hace más de 10 minutos.
+    if (guardados.length === 1)
+      return r.fulfill({
+        status: 401,
+        json: {
+          estado: 'reautenticar',
+          motivo: 'Para cambiar esto, vuelve a entrar con Google.',
+        },
+      });
+    contacto.datos = { ...cuerpo.datos, whatsappVerificado: false };
+    contacto.version = 4;
+    return r.fulfill({ json: { estado: 'guardado', id: 'contacto', version: 4 } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/ajustes/verificar-whatsapp`, (r) => {
+    verificados.push(r.request().postDataJSON());
+    contacto.datos = { ...contacto.datos, whatsappVerificado: true };
+    contacto.version = 5;
+    return r.fulfill({ json: { estado: 'guardado', id: 'contacto', version: 5 } });
+  });
+  await page.context().route('https://wa.me/**', (r) => r.fulfill({ body: 'chat de prueba' }));
+
+  await page.goto(`${PANEL}/mas/`);
+  await page.getByRole('link', { name: 'Ajustes de la tienda' }).click();
+  await expect(page.getByText('Falta 1 dato para publicar')).toBeVisible();
+  await expect(page.getByText('Datos legales: Razón social o nombre completo')).toBeVisible();
+  await page.getByRole('link', { name: /Contacto/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Contacto' })).toBeVisible();
+  await expect(page.getByText('Tu WhatsApp está verificado')).toBeVisible();
+
+  await page.getByLabel('WhatsApp de la tienda').fill('300 999 8877');
+  await page.getByRole('button', { name: 'Guardar contacto' }).click();
+  const dialogo = page.getByRole('alertdialog', { name: 'Vuelve a entrar' });
+  await expect(dialogo).toContainText('Para cambiar esto, vuelve a entrar con Google.');
+
+  // CA2: vuelve de Google a la misma pantalla, con lo que había escrito.
+  await dialogo.getByRole('button', { name: 'Entrar con Google' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Contacto' })).toBeVisible();
+  expect(page.url()).toBe(`${PANEL}/mas/ajustes/contacto/`);
+  await expect(page.getByLabel('WhatsApp de la tienda')).toHaveValue('300 999 8877');
+  await page.getByRole('button', { name: 'Guardar contacto' }).click();
+  await expect(page.getByText('Guardamos contacto.')).toBeVisible();
+  expect(guardados).toHaveLength(2);
+  for (const g of guardados) {
+    expect(g).toMatchObject({ version: 3, datos: { whatsapp: '+573009998877' } });
+    expect(g.datos).not.toHaveProperty('whatsappVerificado');
+  }
+
+  // CA3: sin verificar hasta abrir el chat de prueba y decir que es el propio.
+  await expect(page.getByText('Tu WhatsApp está sin verificar')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sí, es mi WhatsApp' })).toHaveCount(0);
+  const chat = page.getByRole('link', { name: 'Abrir el chat de prueba' });
+  await expect(chat).toHaveAttribute('href', /^https:\/\/wa\.me\/573009998877\?text=/);
+  const [ventana] = await Promise.all([page.waitForEvent('popup'), chat.click()]);
+  await ventana.close();
+  await page.getByRole('button', { name: 'Sí, es mi WhatsApp' }).click();
+  await expect(page.getByText('Tu WhatsApp quedó verificado.')).toBeVisible();
+  expect(verificados).toEqual([expect.objectContaining({ version: 4 })]);
+
+  const ancho = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(ancho).toBeLessThanOrEqual(360);
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

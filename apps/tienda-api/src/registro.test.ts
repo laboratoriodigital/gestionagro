@@ -96,13 +96,13 @@ describe('HU-T10.6 · el registro', () => {
           accion: 'variante.editar',
           antes: JSON.stringify({
             nombre: 'Camisa de lino',
-            clave: 'M|Arena',
+            combinacion: 'M|Arena',
             precioCop: 129000,
             stock: 4,
           }),
           despues: JSON.stringify({
             nombre: 'Camisa de lino',
-            clave: 'M|Arena',
+            combinacion: 'M|Arena',
             precioCop: 119000,
             stock: 4,
           }),

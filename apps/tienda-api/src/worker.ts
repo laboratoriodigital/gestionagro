@@ -29,7 +29,13 @@
 import { importarKek } from '@ed1/cifrado';
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
-import { decidir, type FuncionesPorPlan, funcionesDelPlan } from '@ed1/tienda-schema';
+import {
+  type Accion,
+  decidir,
+  type FuncionesPorPlan,
+  funcionesDelPlan,
+  puede,
+} from '@ed1/tienda-schema';
 import { ENSAYOS } from '@ed1/tienda-schema/ensayos';
 import {
   aceptarEnProducto,
@@ -39,7 +45,16 @@ import {
 } from '@ed1/tokens';
 import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
+import { guardarAjuste, leerAjustes, PIDE_ENTRADA, verificarWhatsapp } from './ajustes.ts';
 import { avisame, PeticionDeAvisame } from './avisame.ts';
+import {
+  confirmarPedido,
+  leerPedido,
+  listarPedidos,
+  mensajeDeConfirmacion,
+  variantesDelPedido,
+  verContacto,
+} from './bandeja.ts';
 import {
   borrarLaColeccion,
   guardarLaColeccion,
@@ -55,6 +70,14 @@ import {
 } from './catalogo.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
+import {
+  ajustarInventario,
+  atenderAvisame,
+  cruzo,
+  disponibilidad,
+  libroDe,
+  listarInventario,
+} from './inventario.ts';
 import { kekDelEntorno } from './llaves.ts';
 import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
 import {
@@ -64,7 +87,13 @@ import {
   seguimiento,
   sha256,
 } from './pedidos.ts';
-import { type Almacen, type EscritorKv, publicar, type Resultado } from './publicar.ts';
+import {
+  type Almacen,
+  type EscritorKv,
+  publicar,
+  type Resultado,
+  rehornearExistencias,
+} from './publicar.ts';
 import { enFrase, leerRegistro } from './registro.ts';
 import {
   PeticionDeSeguimientoDeSolicitud,
@@ -291,8 +320,16 @@ async function dentroDelLimite(
   return (await limitador.limit({ key: ip })).success;
 }
 
-export function crearApp(opciones: { ahora?: () => number } = {}) {
+export function crearApp(
+  opciones: {
+    ahora?: () => number;
+    /** Lo que sigue después de responder (`waitUntil`); las pruebas lo esperan. */
+    enSegundoPlano?: (trabajo: Promise<unknown>) => void;
+  } = {},
+) {
   const ahora = opciones.ahora ?? (() => Date.now());
+  const enSegundoPlano = (c: ContextoTienda, trabajo: Promise<unknown>) =>
+    opciones.enSegundoPlano ? opciones.enSegundoPlano(trabajo) : c.executionCtx.waitUntil(trabajo);
   const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
   // Solo el despacho y el panel: sin el secreto, la API no existe (TIENDA §14.1).
@@ -811,12 +848,12 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
    * 422 con los problemas por campo, 409 si alguien más guardó antes (con la versión actual), 404
    * si ya no está.
    */
-  const delCatalogo = (c: ContextoTienda): Quien | Response => {
+  const quienPuede = (c: ContextoTienda, accion: Accion, motivo: string): Quien | Response => {
     const s = c.get('sesion');
-    const decision = decidir(s.rol, 'catalogo.editar', s.authTime ?? 0, Math.floor(ahora() / 1000));
-    if (decision !== 'permitido') {
-      return c.json({ estado: decision, motivo: 'Tu rol no puede editar el catálogo.' }, 403);
-    }
+    const decision = decidir(s.rol, accion, s.authTime ?? 0, Math.floor(ahora() / 1000));
+    // HU-T10.3 CA2: lo que pide una entrada reciente responde 401 y el panel abre la entrada.
+    if (decision === 'reautenticar') return c.json({ estado: decision, motivo: PIDE_ENTRADA }, 401);
+    if (decision !== 'permitido') return c.json({ estado: decision, motivo }, 403);
     return {
       db: s.db,
       org: s.org,
@@ -824,6 +861,8 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       instante: new Date(ahora()).toISOString(),
     };
   };
+  const delCatalogo = (c: ContextoTienda) =>
+    quienPuede(c, 'catalogo.editar', 'Tu rol no puede editar el catálogo.');
   const responderCatalogo = (c: ContextoTienda, r: ResultadoDelCatalogo) => {
     if (r.estado === 'guardado') return c.json(r);
     if (r.estado === 'problemas') return c.json(r, 422);
@@ -929,6 +968,146 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
     if (r.estado === 'problemas') return c.json(r, 422);
     if (r.estado === 'no-existe') return c.json(r, 404);
     return c.json(r);
+  });
+
+  /**
+   * HU-T4.5: si una escritura cambia qué se puede comprar, se vuelve a hornear lo publicado después
+   * de responder. Con `ks:tienda-horno` apagado no se hornea, y la cotización sigue impidiendo
+   * vender lo que no hay (CA2).
+   */
+  const vigilarExistencias = async (c: ContextoTienda, variantes: readonly string[]) => {
+    const s = c.get('sesion');
+    const antes = await disponibilidad(s, variantes);
+    return async () => {
+      if (!cruzo(antes, await disponibilidad(s, variantes))) return;
+      if (await hornoApagado(c)) {
+        console.error('tienda-api: ks:tienda-horno apagado; las existencias no se re-hornean');
+        return;
+      }
+      const ctx = contextoDePublicacion(c, s.org, s.shard, 'sistema:existencias');
+      if (!ctx) return;
+      enSegundoPlano(
+        c,
+        rehornearExistencias(ctx).then(
+          (r) => {
+            if (r.estado === 'fallida' || r.estado === 'en-curso')
+              console.error(`tienda-api: el re-horneado de existencias quedó ${r.estado}`);
+          },
+          (e: unknown) => console.error(`tienda-api: el re-horneado de existencias falló (${e})`),
+        ),
+      );
+    };
+  };
+
+  // HU-T8.5: el inventario y su libro, con los permisos `inventario.ajustar` y `avisame.atender`.
+  const delInventario = (c: ContextoTienda) =>
+    quienPuede(c, 'inventario.ajustar', 'Tu rol no puede ajustar el inventario.');
+  app.get('/api/panel/v1/inventario', async (c) => {
+    const q = delInventario(c);
+    if (q instanceof Response) return q;
+    return c.json({ filas: await listarInventario(q) });
+  });
+  app.get('/api/panel/v1/inventario/:variante', async (c) => {
+    const q = delInventario(c);
+    if (q instanceof Response) return q;
+    const cursor = Number(c.req.query('cursor'));
+    const r = await libroDe(
+      q,
+      c.req.param('variante'),
+      Number.isSafeInteger(cursor) && cursor > 0 ? cursor : null,
+    );
+    return r ? c.json(r) : c.json({ estado: 'no-existe', motivo: 'Esa combinación no está.' }, 404);
+  });
+  app.post('/api/panel/v1/inventario/ajustar', async (c) => {
+    const q = delInventario(c);
+    if (q instanceof Response) return q;
+    const cuerpo = (await c.req.json().catch(() => null)) as { variante?: unknown } | null;
+    const variante = typeof cuerpo?.variante === 'string' ? cuerpo.variante : null;
+    const despues = variante ? await vigilarExistencias(c, [variante]) : null;
+    const r = await ajustarInventario(q, cuerpo);
+    if (r.estado === 'guardado') await despues?.();
+    return responderCatalogo(c, r);
+  });
+  app.post('/api/panel/v1/avisame/atender', async (c) => {
+    const q = quienPuede(c, 'avisame.atender', 'Tu rol no puede atender los avisos.');
+    if (q instanceof Response) return q;
+    return responderCatalogo(c, await atenderAvisame(q, await c.req.json().catch(() => null)));
+  });
+
+  // HU-T9.1 a HU-T9.3: los pedidos, con `pedidos.ver`, `pedidos.contacto_ver` y `pedidos.gestionar`.
+  const deLosPedidos = (c: ContextoTienda) =>
+    quienPuede(c, 'pedidos.ver', 'Tu rol no puede ver los pedidos.');
+  const kekDe = (c: ContextoTienda) => kekDelEntorno(c.env.TIENDA_KEK_V1);
+  app.get('/api/panel/v1/pedidos', async (c) => {
+    const q = deLosPedidos(c);
+    if (q instanceof Response) return q;
+    const cursor = c.req.query('cursor');
+    return c.json(await listarPedidos(q, await kekDe(c), cursor ? cursor.slice(0, 100) : null));
+  });
+  app.get('/api/panel/v1/pedidos/:id', async (c) => {
+    const q = deLosPedidos(c);
+    if (q instanceof Response) return q;
+    const p = await leerPedido(q, await kekDe(c), c.req.param('id'));
+    return p ? c.json(p) : c.json({ estado: 'no-existe', motivo: 'Ese pedido no está.' }, 404);
+  });
+  const ESTADO_DEL_CONTACTO = { 'no-existe': 404, 'sin-contacto': 404, 'sin-llave': 503 } as const;
+  app.post('/api/panel/v1/pedidos/contacto', async (c) => {
+    const q = quienPuede(c, 'pedidos.contacto_ver', 'Tu rol no puede ver los datos de entrega.');
+    if (q instanceof Response) return q;
+    const r = await verContacto(q, await kekDe(c), await c.req.json().catch(() => null));
+    return r.estado === 'ok' ? c.json(r) : c.json(r, ESTADO_DEL_CONTACTO[r.estado]);
+  });
+  app.post('/api/panel/v1/pedidos/whatsapp', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede confirmar pedidos.');
+    if (q instanceof Response) return q;
+    const s = c.get('sesion');
+    if (
+      decidir(s.rol, 'pedidos.contacto_ver', s.authTime ?? 0, Math.floor(ahora() / 1000)) !==
+      'permitido'
+    ) {
+      return c.json(
+        { estado: 'prohibido', motivo: 'Tu rol no puede ver los datos de entrega.' },
+        403,
+      );
+    }
+    const r = await mensajeDeConfirmacion(q, await kekDe(c), await c.req.json().catch(() => null));
+    return r.estado === 'ok' ? c.json(r) : c.json(r, ESTADO_DEL_CONTACTO[r.estado]);
+  });
+  app.post('/api/panel/v1/pedidos/confirmar', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede confirmar pedidos.');
+    if (q instanceof Response) return q;
+    const cuerpo = (await c.req.json().catch(() => null)) as { pedido?: unknown } | null;
+    const pedido = typeof cuerpo?.pedido === 'string' ? cuerpo.pedido : null;
+    const despues = pedido
+      ? await vigilarExistencias(c, await variantesDelPedido(q, pedido))
+      : null;
+    const r = await confirmarPedido(q, cuerpo);
+    if (r.estado === 'guardado') await despues?.();
+    return responderCatalogo(c, r);
+  });
+
+  // HU-T10.3: los ajustes por sección. Lo que pide cada cambio lo decide `accionesDeAjuste`.
+  app.get('/api/panel/v1/ajustes', async (c) => {
+    const q = quienPuede(c, 'ajustes.editar', 'Tu rol no puede ver los ajustes.');
+    if (q instanceof Response) return q;
+    const rol = c.get('sesion').rol;
+    return c.json(await leerAjustes(q, (s) => s !== 'cobro' || puede(rol, 'cobro.gestionar')));
+  });
+  app.post('/api/panel/v1/ajustes/guardar', async (c) => {
+    const q = quienPuede(c, 'ajustes.editar', 'Tu rol no puede cambiar los ajustes.');
+    if (q instanceof Response) return q;
+    const s = c.get('sesion');
+    const r = await guardarAjuste(q, await c.req.json().catch(() => null), (accion) =>
+      decidir(s.rol, accion, s.authTime ?? 0, Math.floor(ahora() / 1000)),
+    );
+    if (r.estado === 'reautenticar') return c.json(r, 401);
+    if (r.estado === 'prohibido') return c.json(r, 403);
+    return responderCatalogo(c, r);
+  });
+  app.post('/api/panel/v1/ajustes/verificar-whatsapp', async (c) => {
+    const q = quienPuede(c, 'ajustes.contacto', 'Tu rol no puede cambiar el WhatsApp.');
+    if (q instanceof Response) return q;
+    return responderCatalogo(c, await verificarWhatsapp(q, await c.req.json().catch(() => null)));
   });
 
   // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.

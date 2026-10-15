@@ -1,7 +1,8 @@
 /**
  * Los datos de una persona, tapados (TIENDA-3.0 §12.5, HU-T3.5): «María F.», «300 ••• 4567». El
  * panel los muestra así siempre; verlos completos es una acción aparte que queda registrada.
- * Puras, para probarlas sin navegador.
+ * Las usa la API (HU-T9.1): lo que llega al panel ya viene tapado. Puras, para probarlas sin
+ * navegador.
  */
 
 /** La primera palabra y la inicial de la segunda: «María Fernanda Gómez» → «María F.». */

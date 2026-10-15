@@ -1,4 +1,4 @@
-import { taparCelular, taparCorreo, taparNombre } from './tapado.ts';
+import { taparCelular, taparCorreo, taparNombre } from '@ed1/tienda-schema/tapado';
 
 export type TipoDeDato = 'nombre' | 'celular' | 'correo';
 

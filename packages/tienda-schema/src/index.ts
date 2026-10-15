@@ -8,4 +8,6 @@ export * from './permisos.ts';
 export * from './planes.ts';
 export * from './secciones.ts';
 export * from './solicitudes.ts';
+export * from './tapado.ts';
+export * from './titulos.ts';
 export * from './verificacion.ts';
