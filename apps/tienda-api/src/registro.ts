@@ -201,6 +201,16 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
         : `${hizo('v', 'iste', 'io')} los datos de entrega del pedido #${despues['numero']}`;
     case 'pedido.confirmar':
       return `${hizo('confirm', 'aste', 'ó')} el pedido #${despues['numero']}`;
+    case 'pedido.entregar':
+      return `${hizo('marc', 'aste', 'ó')} entregado el pedido #${despues['numero']}${typeof despues['recaudadoCop'] === 'number' ? `: ${formatearPesos(despues['recaudadoCop'])} recaudados` : ''}`;
+    case 'pedido.devolver':
+      return `${hizo('recib', 'iste', 'ió')} la devolución del pedido #${despues['numero']}${despues['volvio'] ? '; las unidades volvieron al inventario' : ''}`;
+    case 'pedido.perder':
+      return `${hizo('marc', 'aste', 'ó')} como perdida la plata del pedido #${despues['numero']}`;
+    case 'recaudos.liquidar': {
+      const n = Array.isArray(despues['pedidos']) ? despues['pedidos'].length : 0;
+      return `${hizo('liquid', 'aste', 'ó')} ${n === 1 ? '1 recaudo' : `${n} recaudos`} con la liquidación ${despues['liquidacion']}${typeof despues['montoCop'] === 'number' ? ` por ${formatearPesos(despues['montoCop'])}` : ''}`;
+    }
     case 'pedido.despachar':
       return `${hizo('despach', 'aste', 'ó')} el pedido #${despues['numero']}${despues['transportadora'] ? ` por ${despues['transportadora']}` : ''}${despues['guia'] ? `, guía ${despues['guia']}` : ''}`;
     case 'ajustes.guardar':

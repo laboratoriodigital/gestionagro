@@ -41,6 +41,7 @@ import { Bandeja, Pedido } from './vistas/Pedidos.tsx';
 import { Privacidad } from './vistas/Privacidad.tsx';
 import { Producto } from './vistas/Producto.tsx';
 import { Productos } from './vistas/Productos.tsx';
+import { Recaudos } from './vistas/Recaudos.tsx';
 import { Registro } from './vistas/Registro.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
 
@@ -187,6 +188,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     );
   else if (ruta === '/') cuerpo = <Inicio yo={yo.datos} />;
   else if (ruta === '/pedidos/') cuerpo = <Bandeja conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/pedidos/recaudos/')
+    cuerpo = <Recaudos conexion={conexion} alVencer={setVencida} />;
   else if (/^\/pedidos\/[^/]+\/$/.test(ruta))
     cuerpo = (
       <Pedido

@@ -8,12 +8,21 @@
  *   por WhatsApp» arma el mensaje, y «Confirmar» descuenta el inventario.
  * - **Despachar (HU-T9.4).** La transportadora y la guía; contra entrega, son obligatorias, y la
  *   comisión y el flete de ida, si se saben, entran al recaudo que nace con el despacho.
+ * - **En camino (HU-T9.5).** Entregar, que contra entrega es recaudar; recibir una devolución, con el
+ *   flete de vuelta y si las unidades volvieron; o marcar la plata como perdida.
  */
 import { Aviso, type EstadoDeContenido, ResumenDeErrores } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { type Conexion, pedirAlPanel } from '../api.ts';
 import { enPesos, opNueva } from '../catalogo.ts';
-import { Confirmar, ESTADOS_DE_PEDIDO, Estado, Lista, Texto } from '../componentes/index.ts';
+import {
+  Casilla,
+  Confirmar,
+  ESTADOS_DE_PEDIDO,
+  Estado,
+  Lista,
+  Texto,
+} from '../componentes/index.ts';
 import {
   ATENCION,
   crearTurno,
@@ -26,6 +35,7 @@ import {
   revisarDespacho,
   unir,
 } from '../pedidos.ts';
+import { fleteDeVuelta } from '../recaudos.ts';
 import { horaDeBogota } from './Registro.tsx';
 
 const forma = (id: string) => FORMAS_DE_PAGO[id] ?? id;
@@ -164,6 +174,9 @@ export function Bandeja({
         </div>
       </div>
       <div class="acciones acciones--fila">
+        <a class="ed1-boton ed1-boton--secundario" href="/pedidos/recaudos/">
+          Recaudos
+        </a>
         <button
           class="ed1-boton ed1-boton--secundario"
           type="button"
@@ -254,6 +267,7 @@ interface Recaudo {
   fleteVueltaCop: number | null;
   liquidado: string | null;
   liquidacionRef: string | null;
+  netoCop: number;
 }
 
 /** La plata de la contraentrega, en palabras (HU-T9.4 y HU-T9.5). */
@@ -371,6 +385,101 @@ function Despachar({
   );
 }
 
+/**
+ * HU-T9.5 CA1 y HU-T9.6 CA2: recibir una devolución. Pide decir si las unidades volvieron (solo
+ * entonces suman al inventario) y, si viajaba contra entrega, el flete de vuelta si se sabe.
+ */
+function Devolver({
+  conexion,
+  pedido,
+  alVencer,
+  alDevolver,
+}: {
+  conexion: Conexion;
+  pedido: PedidoDelPanel;
+  alVencer: (motivo: string) => void;
+  alDevolver: (aviso: string) => Promise<void>;
+}) {
+  const conFlete = pedido.formaPago === 'contraentrega' && pedido.estado === 'despachado';
+  const [volvio, setVolvio] = useState(false);
+  const [flete, setFlete] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const op = useRef(opNueva());
+  const enviar = async (e: Event) => {
+    e.preventDefault();
+    const fleteVueltaCop = conFlete ? fleteDeVuelta(flete) : null;
+    if (fleteVueltaCop === undefined)
+      return setError('Escribe el flete en pesos, como 10.000, o déjalo vacío.');
+    setError(null);
+    setOcupado(true);
+    const r = await pedirAlPanel(conexion, 'pedidos/devolver', {
+      cuerpo: {
+        op: op.current,
+        pedido: pedido.id,
+        version: pedido.version,
+        volvio,
+        fleteVueltaCop,
+      },
+    });
+    setOcupado(false);
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok') {
+      op.current = opNueva();
+      return setError(r.problemas?.[0]?.mensaje ?? r.motivo);
+    }
+    await alDevolver(
+      volvio
+        ? 'Devolución recibida. Las unidades volvieron al inventario.'
+        : 'Devolución recibida. El inventario no cambió.',
+    );
+  };
+  return (
+    <details class="ed1-confirmacion">
+      <summary class="ed1-boton ed1-boton--secundario">Recibir una devolución</summary>
+      <form
+        class="ed1-confirmacion__formulario formulario"
+        onSubmit={(e) => void enviar(e)}
+        noValidate
+      >
+        <Casilla
+          id="volvio"
+          etiqueta="Las unidades volvieron y se pueden vender otra vez"
+          marcada={volvio}
+          alCambiar={setVolvio}
+        />
+        {conFlete ? (
+          <Texto
+            id="fleteVueltaCop"
+            etiqueta="Flete de vuelta"
+            valor={flete}
+            alCambiar={setFlete}
+            error={error ?? undefined}
+            opcional
+            numerico
+          />
+        ) : error ? (
+          <p class="ed1-campo__error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <p class="ed1-confirmacion__consecuencia">
+          El pedido queda devuelto{conFlete ? ' y la plata de la contraentrega no se cobra' : ''}.
+          {volvio ? ' Las unidades vuelven al inventario una sola vez.' : ''}
+        </p>
+        <button
+          class="ed1-boton ed1-boton--peligro"
+          type="submit"
+          disabled={ocupado}
+          aria-busy={ocupado ? 'true' : undefined}
+        >
+          Sí, recibir la devolución
+        </button>
+      </form>
+    </details>
+  );
+}
+
 interface Contacto {
   nombre?: string;
   celular?: string;
@@ -392,6 +501,8 @@ const enFrase = (e: PedidoDelPanel['historia'][number]) => {
     const a = ESTADOS_DE_PEDIDO[e.a ?? '']?.texto ?? e.a;
     return `${e.quien}: ${e.de ? `de «${ESTADOS_DE_PEDIDO[e.de]?.texto ?? e.de}» a ` : ''}«${a}»`;
   }
+  if (e.tipo === 'recaudo')
+    return `${e.quien}: recaudo ${e.a === 'liquidado' ? 'liquidado' : `«${(ESTADOS_DEL_RECAUDO[e.a ?? ''] ?? e.a ?? '').split(':')[0]}»`}`;
   if (e.tipo === 'contacto_leido')
     return `${e.quien} ${e.quien === 'Tú' ? 'viste' : 'vio'} los datos de entrega`;
   return `${e.quien}: ${EVENTOS[e.tipo] ?? e.tipo}`;
@@ -474,6 +585,19 @@ export function Pedido({
   const unidades = pedido.lineas.reduce((s, l) => s + (l.descontado ? 0 : l.cantidad), 0);
   const porConfirmar = pedido.estado === 'pendiente' && pedido.formaPago !== 'en_linea';
   const porDespachar = pedido.estado === 'confirmado' || pedido.estado === 'pagado';
+  const contraentrega = pedido.formaPago === 'contraentrega';
+  const cambiar = (ruta: string, listo: string) => async () => {
+    const r = await pedirAlPanel(conexion, ruta, {
+      cuerpo: { op: opNueva(), pedido: pedido.id, version: pedido.version },
+    });
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    setAviso(
+      r.tipo === 'ok'
+        ? { tono: 'info', texto: listo }
+        : { tono: 'peligro', texto: r.problemas?.[0]?.mensaje ?? r.motivo },
+    );
+    await cargar();
+  };
   const alCambiar = async (texto: string) => {
     setAviso({ tono: 'info', texto });
     await cargar();
@@ -590,10 +714,22 @@ export function Pedido({
           </div>
         ) : null}
         {pedido.recaudo ? (
-          <div>
-            <dt>Recaudo</dt>
-            <dd>{ESTADOS_DEL_RECAUDO[pedido.recaudo.estado] ?? pedido.recaudo.estado}</dd>
-          </div>
+          <>
+            <div>
+              <dt>Recaudo</dt>
+              <dd>{ESTADOS_DEL_RECAUDO[pedido.recaudo.estado] ?? pedido.recaudo.estado}</dd>
+            </div>
+            <div>
+              <dt>Te queda, con comisión y fletes</dt>
+              <dd class="cifra">{enPesos(pedido.recaudo.netoCop)}</dd>
+            </div>
+            {pedido.recaudo.liquidacionRef ? (
+              <div>
+                <dt>Liquidación</dt>
+                <dd class="cifra">{pedido.recaudo.liquidacionRef}</dd>
+              </div>
+            ) : null}
+          </>
         ) : null}
       </dl>
 
@@ -646,6 +782,54 @@ export function Pedido({
           alVencer={alVencer}
           alDespachar={alCambiar}
         />
+      ) : null}
+
+      {pedido.estado === 'despachado' ? (
+        <section class="acciones">
+          <h2>En camino</h2>
+          <Confirmar
+            abrir="Marcar entregado"
+            consecuencia={
+              contraentrega
+                ? `La transportadora lo entregó y cobró ${enPesos(pedido.totalCop)}: la plata queda recaudada, por liquidar.`
+                : 'El pedido queda entregado.'
+            }
+            confirmar="Sí, se entregó"
+            alConfirmar={cambiar(
+              'pedidos/entregar',
+              contraentrega
+                ? 'Pedido entregado. La plata queda recaudada: falta que la transportadora la liquide.'
+                : 'Pedido entregado.',
+            )}
+          />
+          <Devolver
+            key={pedido.version}
+            conexion={conexion}
+            pedido={pedido}
+            alVencer={alVencer}
+            alDevolver={alCambiar}
+          />
+          {contraentrega ? (
+            <Confirmar
+              abrir="La plata se perdió"
+              consecuencia="La transportadora no responde por el paquete ni por la plata. El pedido se cierra y queda aparte en Recaudos."
+              confirmar="Sí, se perdió"
+              alConfirmar={cambiar('pedidos/perder', 'Quedó como perdido, aparte en Recaudos.')}
+            />
+          ) : null}
+        </section>
+      ) : null}
+      {pedido.estado === 'entregado' ? (
+        <section class="acciones">
+          <h2>Devolución</h2>
+          <Devolver
+            key={pedido.version}
+            conexion={conexion}
+            pedido={pedido}
+            alVencer={alVencer}
+            alDevolver={alCambiar}
+          />
+        </section>
       ) : null}
 
       <h2>Historia</h2>

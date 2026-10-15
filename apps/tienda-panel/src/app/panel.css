@@ -514,3 +514,15 @@ h2 {
     inset: auto auto var(--espacio-6) calc(220px + var(--espacio-6));
   }
 }
+
+/* HU-T9.5: los dos totales de Recaudos, uno al lado del otro cuando caben. */
+.totales {
+  display: grid;
+  gap: var(--espacio-2);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+.total {
+  margin: 0;
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-fuerte);
+}

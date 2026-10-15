@@ -68,7 +68,14 @@ import {
   type Resultado as ResultadoDelCatalogo,
   tocarElProducto,
 } from './catalogo.ts';
-import { despacharPedido } from './ciclo.ts';
+import {
+  despacharPedido,
+  devolverPedido,
+  entregarPedido,
+  liquidarRecaudos,
+  listarRecaudos,
+  perderEnvio,
+} from './ciclo.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import {
@@ -1092,6 +1099,27 @@ export function crearApp(
     const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede despachar pedidos.');
     if (q instanceof Response) return q;
     return responderCatalogo(c, await despacharPedido(q, await c.req.json().catch(() => null)));
+  });
+
+  // HU-T9.5: entregar (y recaudar), devolver, perder y liquidar; la pantalla Recaudos.
+  const cambioDelPedido =
+    (accion: Accion, hacer: (q: Quien, cuerpo: unknown) => Promise<ResultadoDelCatalogo>) =>
+    async (c: ContextoTienda) => {
+      const q = quienPuede(c, accion, 'Tu rol no puede cambiar este pedido.');
+      if (q instanceof Response) return q;
+      return responderCatalogo(c, await hacer(q, await c.req.json().catch(() => null)));
+    };
+  app.post('/api/panel/v1/pedidos/entregar', cambioDelPedido('pedidos.gestionar', entregarPedido));
+  app.post('/api/panel/v1/pedidos/devolver', cambioDelPedido('pedidos.gestionar', devolverPedido));
+  app.post('/api/panel/v1/pedidos/perder', cambioDelPedido('recaudos.gestionar', perderEnvio));
+  app.post(
+    '/api/panel/v1/recaudos/liquidar',
+    cambioDelPedido('recaudos.gestionar', liquidarRecaudos),
+  );
+  app.get('/api/panel/v1/recaudos', async (c) => {
+    const q = quienPuede(c, 'recaudos.gestionar', 'Tu rol no puede ver los recaudos.');
+    if (q instanceof Response) return q;
+    return c.json(await listarRecaudos(q));
   });
 
   // HU-T10.3: los ajustes por sección. Lo que pide cada cambio lo decide `accionesDeAjuste`.

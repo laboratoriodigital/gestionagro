@@ -995,6 +995,148 @@ test('HU-T9.4 · CA2: contra entrega, el panel dice cuál falta; con la guía, d
   await expect(page.getByRole('heading', { level: 2, name: 'Despachar' })).toHaveCount(0);
 });
 
+test('HU-T9.5 · aceptación de M2: contra entrega de punta a punta, confirmar, despachar, recaudar y liquidar', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const pedido = pedidoDelPanel(1060, {
+    estado: 'pendiente',
+    version: 1,
+    lineas: [{ ...pedidoDelPanel(1060).lineas[0], descontado: false }],
+  });
+  const llamadas: string[] = [];
+  /** La API falsa lleva el pedido de estado en estado, como la de verdad. */
+  const cambio = (ruta: string, hacer: (cuerpo: Record<string, unknown>) => void) =>
+    page.route(`${PANEL}/api/panel/v1/${ruta}`, (r) => {
+      const cuerpo = r.request().postDataJSON() as Record<string, unknown>;
+      llamadas.push(ruta);
+      expect(cuerpo['version'] ?? pedido.version).toBe(pedido.version);
+      hacer(cuerpo);
+      pedido.version += 1;
+      return r.fulfill({ json: { estado: 'guardado', id: pedido.id, version: pedido.version } });
+    });
+  await page.route(`${PANEL}/api/panel/v1/pedidos/ped-1060`, (r) => r.fulfill({ json: pedido }));
+  await cambio('pedidos/confirmar', () => Object.assign(pedido, { estado: 'confirmado' }));
+  await cambio('pedidos/despachar', (c) =>
+    Object.assign(pedido, {
+      estado: 'despachado',
+      transportadora: c['transportadora'],
+      guia: c['guia'],
+      recaudo: { estado: 'por_recaudar', montoCop: 129000, netoCop: 117000, liquidacionRef: null },
+    }),
+  );
+  await cambio('pedidos/entregar', () =>
+    Object.assign(pedido, {
+      estado: 'entregado',
+      recaudo: { estado: 'recaudado', montoCop: 129000, netoCop: 117000, liquidacionRef: null },
+    }),
+  );
+  const liquidaciones: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/recaudos/liquidar`, (r) => {
+    liquidaciones.push(r.request().postDataJSON());
+    Object.assign(pedido.recaudo ?? {}, { liquidacionRef: 'LIQ-0001' });
+    return r.fulfill({ json: { estado: 'guardado', id: 'LIQ-0001', version: 1 } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/recaudos`, (r) => {
+    const recaudo = pedido.recaudo as { estado: string; liquidacionRef: string | null } | null;
+    const fila = {
+      pedido: pedido.id,
+      numero: 1060,
+      estado: recaudo?.estado,
+      montoCop: 129000,
+      comisionCop: null,
+      fleteIdaCop: 12000,
+      fleteVueltaCop: null,
+      netoCop: 117000,
+      transportadora: pedido.transportadora,
+      guia: pedido.guia,
+      desde: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+    };
+    const abierta = recaudo && !recaudo.liquidacionRef;
+    const sinLiquidar = abierta && recaudo.estado === 'recaudado';
+    return r.fulfill({
+      json: {
+        porRecaudar: { montoCop: 0, cantidad: 0, desde: null },
+        sinLiquidar: sinLiquidar
+          ? { montoCop: 129000, cantidad: 1, desde: fila.desde }
+          : { montoCop: 0, cantidad: 0, desde: null },
+        perdidos: { montoCop: 0, cantidad: 0, desde: null },
+        recaudos: abierta ? [fila] : [],
+      },
+    });
+  });
+
+  await page.goto(`${PANEL}/pedidos/ped-1060/`);
+  await page.getByText('Confirmar el pedido', { exact: true }).click();
+  await page.getByRole('button', { name: 'Sí, confirmar' }).click();
+  await page.getByLabel('Transportadora').fill('Transportadora Ensayo');
+  await page.getByLabel('Número de guía').fill('GE-000777');
+  await page.getByRole('button', { name: 'Despachar' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'En camino' })).toBeVisible();
+  await page.getByText('Marcar entregado', { exact: true }).click();
+  await expect(page.getByText(/cobró \$129\.000: la plata queda recaudada/)).toBeVisible();
+  await page.getByRole('button', { name: 'Sí, se entregó' }).click();
+  await expect(page.getByText(/^Recaudado: falta que la transportadora lo liquide/)).toBeVisible();
+
+  await page.goto(`${PANEL}/pedidos/recaudos/`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Recaudos' })).toBeVisible();
+  await expect(page.getByText('1 pedido; el más viejo se cobró hace 2 días.')).toBeVisible();
+  await page.getByRole('button', { name: 'Liquidar' }).click();
+  await expect(page.getByText('Falta corregir 2 cosas:')).toBeVisible();
+  expect(liquidaciones).toEqual([]);
+  await page.getByLabel(/#1060/).check();
+  await page.getByLabel('Número de la liquidación').fill('LIQ-0001');
+  await sinFallasDeAxe(page);
+  await page.getByRole('button', { name: 'Liquidar 1 pedido por $129.000' }).click();
+  await expect(
+    page.getByText('Liquidación LIQ-0001 guardada: 1 pedido por $129.000.'),
+  ).toBeVisible();
+  expect(liquidaciones).toEqual([
+    expect.objectContaining({ pedidos: ['ped-1060'], liquidacionRef: 'LIQ-0001' }),
+  ]);
+  expect(llamadas).toEqual(['pedidos/confirmar', 'pedidos/despachar', 'pedidos/entregar']);
+  await expect(
+    page.getByText('La transportadora no te debe nada de lo que ya cobró.'),
+  ).toBeVisible();
+});
+
+test('HU-T9.5 · CA1: devolver pide si las unidades volvieron y el flete de vuelta', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const pedido = pedidoDelPanel(1061, {
+    estado: 'despachado',
+    version: 3,
+    transportadora: 'Transportadora Ensayo',
+    guia: 'GE-1',
+    recaudo: { estado: 'por_recaudar', montoCop: 129000, netoCop: 117000, liquidacionRef: null },
+  });
+  const devoluciones: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/pedidos/ped-1061`, (r) => r.fulfill({ json: pedido }));
+  await page.route(`${PANEL}/api/panel/v1/pedidos/devolver`, (r) => {
+    devoluciones.push(r.request().postDataJSON());
+    Object.assign(pedido, { estado: 'devuelto', version: 4 });
+    return r.fulfill({ json: { estado: 'guardado', id: pedido.id, version: 4 } });
+  });
+  await page.goto(`${PANEL}/pedidos/ped-1061/`);
+  await page.getByText('Recibir una devolución', { exact: true }).click();
+  await page.getByLabel(/Las unidades volvieron/).check();
+  await page.getByLabel('Flete de vuelta').fill('10.000');
+  await sinFallasDeAxe(page);
+  await page.getByRole('button', { name: 'Sí, recibir la devolución' }).click();
+  await expect(
+    page.getByText('Devolución recibida. Las unidades volvieron al inventario.'),
+  ).toBeVisible();
+  expect(devoluciones).toEqual([
+    expect.objectContaining({
+      pedido: 'ped-1061',
+      version: 3,
+      volvio: true,
+      fleteVueltaCop: 10000,
+    }),
+  ]);
+});
+
 test('HU-T10.3 · CA2 y CA3: cambiar el WhatsApp pide volver a entrar sin perder lo escrito, y se verifica', async ({
   page,
 }) => {

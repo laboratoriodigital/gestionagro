@@ -1,5 +1,5 @@
 /**
- * El pedido después de confirmarlo, por la API del panel (HU-T9.4): con tokens del CORE firmados
+ * El pedido después de confirmarlo, por la API del panel (HU-T9.4 y HU-T9.5): con tokens del CORE firmados
  * de verdad, contra el shard local con los dos comercios de prueba y pedidos sembrados aquí.
  */
 import type { BaseD1 } from '@ed1/d1';
@@ -7,7 +7,7 @@ import { baseLocal } from '@ed1/d1/local';
 import { ENSAYO_DOS, ENSAYO_UNO, siembraDelShard } from '@ed1/tienda-schema/ensayos';
 import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { FALTA_GUIA, FALTA_TRANSPORTADORA } from './ciclo.ts';
+import { FALTA_GUIA, FALTA_TRANSPORTADORA, netoDelRecaudo } from './ciclo.ts';
 import { CABECERA_DESPACHO, crearApp, type Env } from './worker.ts';
 
 const SECRETO = 'secreto-de-prueba-del-despacho';
@@ -309,5 +309,213 @@ describe('despachar con guía (HU-T9.4)', () => {
     const dos = await token({ org: ENSAYO_DOS.org });
     expect((await pedir('/api/panel/v1/pedidos/despachar', cuerpo, dos)).status).toBe(404);
     expect((await detalle(id)).estado).toBe('confirmado');
+  });
+});
+
+/** Un pedido contra entrega confirmado y despachado por la API, con el flete de ida de 12.000. */
+async function despachado(n: number, forma?: string) {
+  const id = await confirmado(n, forma);
+  const r = await pedir('/api/panel/v1/pedidos/despachar', {
+    op: op(),
+    pedido: id,
+    version: 2,
+    transportadora: 'Transportadora Ensayo',
+    guia: `GE-${n}`,
+    ...(forma && forma !== 'contraentrega' ? {} : { comisionCop: 3500, fleteIdaCop: 12000 }),
+  });
+  expect(r.status).toBe(200);
+  return id;
+}
+
+const stock = async () =>
+  (
+    await shard
+      .prepare('SELECT stock FROM variante WHERE org_id = ? AND id = ?')
+      .bind(UNO, M)
+      .first<{ stock: number }>()
+  )?.stock;
+
+interface Recaudos {
+  porRecaudar: { montoCop: number; cantidad: number; desde: string | null };
+  sinLiquidar: { montoCop: number; cantidad: number; desde: string | null };
+  perdidos: { montoCop: number; cantidad: number };
+  recaudos: { pedido: string; numero: number; estado: string; netoCop: number }[];
+}
+const recaudos = async () => (await (await pedir('/api/panel/v1/recaudos')).json()) as Recaudos;
+
+describe('recaudar, devolver, perder y liquidar (HU-T9.5)', () => {
+  it('CA1: entregar contra entrega es recaudar, en el mismo lote', async () => {
+    const id = await despachado(101);
+    const r = await pedir('/api/panel/v1/pedidos/entregar', { op: op(), pedido: id, version: 3 });
+    expect(r.status).toBe(200);
+    const p = await detalle(id);
+    expect(p).toMatchObject({
+      estado: 'entregado',
+      recaudo: { estado: 'recaudado', montoCop: 129000, netoCop: 129000 - 3500 - 12000 },
+    });
+    expect(p.historia).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tipo: 'recaudo', de: 'por_recaudar', a: 'recaudado' }),
+        expect.objectContaining({ tipo: 'estado', de: 'despachado', a: 'entregado' }),
+      ]),
+    );
+  });
+
+  it('❌ CA3: la base no deja entregar con la plata por recaudar', async () => {
+    const id = await despachado(102);
+    await expect(
+      shard
+        .prepare(
+          "UPDATE pedido SET estado = 'entregado', cambiado_por = 'sistema' WHERE org_id = ? AND id = ?",
+        )
+        .bind(UNO, id)
+        .run(),
+    ).rejects.toThrow(/contraentrega-por-recaudar/);
+    expect((await detalle(id)).recaudo).toMatchObject({ estado: 'por_recaudar' });
+  });
+
+  it('CA1: devolver dice el flete de vuelta, y las unidades vuelven al inventario si volvieron', async () => {
+    const id = await despachado(103);
+    const antes = await stock();
+    const r = await pedir('/api/panel/v1/pedidos/devolver', {
+      op: op(),
+      pedido: id,
+      version: 3,
+      volvio: true,
+      fleteVueltaCop: 10000,
+    });
+    expect(r.status).toBe(200);
+    expect(await detalle(id)).toMatchObject({
+      estado: 'devuelto',
+      recaudo: { estado: 'devuelto', fleteVueltaCop: 10000, netoCop: -22000 },
+    });
+    expect(await stock()).toBe((antes ?? 0) + 1);
+    const libro = await shard
+      .prepare(
+        'SELECT delta, motivo, ref FROM movimiento_inventario WHERE org_id = ? AND variante_id = ? ORDER BY id DESC',
+      )
+      .bind(UNO, M)
+      .first();
+    expect(libro).toEqual({ delta: 1, motivo: 'devolucion', ref: id });
+  });
+
+  it('devolver sin que vuelvan las unidades no toca el inventario; sin decirlo, no devuelve', async () => {
+    const id = await despachado(104);
+    const antes = await stock();
+    const sinDecir = await pedir('/api/panel/v1/pedidos/devolver', {
+      op: op(),
+      pedido: id,
+      version: 3,
+    });
+    expect(sinDecir.status).toBe(422);
+    expect(await sinDecir.json()).toMatchObject({ problemas: [{ campo: 'volvio' }] });
+    const r = await pedir('/api/panel/v1/pedidos/devolver', {
+      op: op(),
+      pedido: id,
+      version: 3,
+      volvio: false,
+    });
+    expect(r.status).toBe(200);
+    expect(await stock()).toBe(antes);
+  });
+
+  it('CA1: «perdido» queda aparte, sin unidades que vuelvan', async () => {
+    const id = await despachado(105);
+    const antes = await stock();
+    const r = await pedir('/api/panel/v1/pedidos/perder', { op: op(), pedido: id, version: 3 });
+    expect(r.status).toBe(200);
+    expect(await detalle(id)).toMatchObject({
+      estado: 'devuelto',
+      recaudo: { estado: 'perdido', netoCop: -12000 },
+    });
+    expect(await stock()).toBe(antes);
+    const t = await recaudos();
+    expect(t.perdidos).toMatchObject({ cantidad: 1, montoCop: 129000 });
+    expect(t.recaudos.find((x) => x.pedido === id)?.estado).toBe('perdido');
+  });
+
+  it('CA2 y aceptación de M2: confirmar, despachar, recaudar y liquidar varios con su número', async () => {
+    const a = await despachado(106);
+    const b = await despachado(107);
+    const enCamino = await despachado(108);
+    const antes = (await recaudos()).sinLiquidar;
+    for (const id of [a, b])
+      expect(
+        (await pedir('/api/panel/v1/pedidos/entregar', { op: op(), pedido: id, version: 3 }))
+          .status,
+      ).toBe(200);
+    const t = await recaudos();
+    expect(t.sinLiquidar).toMatchObject({
+      cantidad: antes.cantidad + 2,
+      montoCop: antes.montoCop + 258000,
+    });
+    expect(t.porRecaudar.cantidad).toBeGreaterThanOrEqual(1);
+    expect(t.recaudos.find((x) => x.pedido === enCamino)).toMatchObject({
+      estado: 'por_recaudar',
+      netoCop: 129000 - 3500 - 12000,
+    });
+
+    const r = await pedir('/api/panel/v1/recaudos/liquidar', {
+      op: op(),
+      pedidos: [a, b],
+      liquidacionRef: 'LIQ-0001',
+    });
+    expect(r.status).toBe(200);
+    const despues = await recaudos();
+    expect(despues.sinLiquidar.cantidad).toBe(antes.cantidad);
+    expect(despues.recaudos.map((x) => x.pedido)).not.toContain(a);
+    const p = await detalle(a);
+    expect(p.recaudo).toMatchObject({ liquidacionRef: 'LIQ-0001', liquidado: AHORA });
+    expect(p.historia).toContainEqual(
+      expect.objectContaining({ tipo: 'recaudo', de: 'recaudado', a: 'liquidado' }),
+    );
+    const registro = (await (await pedir('/api/panel/v1/registro')).json()) as {
+      filas: { frase: string }[];
+    };
+    expect(registro.filas[0]?.frase).toBe(
+      'Tú liquidaste 2 recaudos con la liquidación LIQ-0001 por $258.000',
+    );
+  });
+
+  it('❌ CA3: no se liquida lo que no se recaudó, y en ese caso no se marca ninguno', async () => {
+    const recaudado = await despachado(109);
+    await pedir('/api/panel/v1/pedidos/entregar', { op: op(), pedido: recaudado, version: 3 });
+    const enCamino = await despachado(110);
+    const r = await pedir('/api/panel/v1/recaudos/liquidar', {
+      op: op(),
+      pedidos: [recaudado, enCamino],
+      liquidacionRef: 'LIQ-0002',
+    });
+    expect(r.status).toBe(422);
+    expect(await r.json()).toEqual({
+      estado: 'problemas',
+      problemas: [{ campo: 'pedidos', mensaje: '#1110 no se ha recaudado: no se puede liquidar.' }],
+    });
+    expect((await detalle(recaudado)).recaudo).toMatchObject({ liquidado: null });
+    // La base tampoco lo deja.
+    await expect(
+      shard
+        .prepare(
+          "UPDATE contraentrega SET liquidado = ?, liquidacion_ref = 'LIQ-X' WHERE org_id = ? AND pedido_id = ?",
+        )
+        .bind(AHORA, UNO, enCamino)
+        .run(),
+    ).rejects.toThrow(/CHECK constraint failed/);
+  });
+
+  it('el neto resta la comisión y los fletes; lo devuelto y lo perdido cuestan los fletes', () => {
+    const base = { montoCop: 100000, comisionCop: 3000, fleteIdaCop: 10000, fleteVueltaCop: null };
+    expect(netoDelRecaudo({ ...base, estado: 'recaudado' })).toBe(87000);
+    expect(netoDelRecaudo({ ...base, estado: 'devuelto', fleteVueltaCop: 8000 })).toBe(-18000);
+    expect(netoDelRecaudo({ ...base, estado: 'perdido' })).toBe(-10000);
+    expect(
+      netoDelRecaudo({ ...base, estado: 'recaudado', comisionCop: null, fleteIdaCop: null }),
+    ).toBe(100000);
+  });
+
+  it('❌ el colaborador gestiona recaudos; un rol fuera de la matriz no los ve', async () => {
+    const otro = await token({ rol: 'contador' });
+    expect((await pedir('/api/panel/v1/recaudos', undefined, otro)).status).toBe(403);
+    expect((await pedir('/api/panel/v1/recaudos')).status).toBe(200);
   });
 });

@@ -33,6 +33,7 @@ import {
   SI_CAMBIO,
   yaAplicada,
 } from './catalogo.ts';
+import { netoDelRecaudo } from './ciclo.ts';
 import { deksDeLaTienda, dekVigente } from './llaves.ts';
 import { anotar } from './registro.ts';
 
@@ -262,6 +263,8 @@ export interface Recaudo {
   fleteVueltaCop: number | null;
   liquidado: string | null;
   liquidacionRef: string | null;
+  /** HU-T9.5 CA2: lo que le queda al comercio, con la comisión y los fletes. */
+  netoCop: number;
 }
 
 const quienEs = (actor: string, quienPregunta: string) =>
@@ -374,6 +377,13 @@ export async function leerPedido(
           fleteVueltaCop: recaudo.flete_vuelta_cop,
           liquidado: recaudo.liquidado,
           liquidacionRef: recaudo.liquidacion_ref,
+          netoCop: netoDelRecaudo({
+            estado: recaudo.estado,
+            montoCop: recaudo.monto_cop,
+            comisionCop: recaudo.comision_cop,
+            fleteIdaCop: recaudo.flete_ida_cop,
+            fleteVueltaCop: recaudo.flete_vuelta_cop,
+          }),
         }
       : null,
   };
