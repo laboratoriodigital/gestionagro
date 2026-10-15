@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Corregido
+- El despliegue a producción de la Tienda ya no falla al final por buscar la API en una dirección que no existe: la revisión de que la API no se puede abrir desde afuera mira la dirección correcta en los dos ambientes.
+
 ## [0.1.0] - 2026-10-14
 
 La Tienda sale a producción sin tiendas: el camino queda probado antes de la primera tienda real. La vitrina está completa en staging, con los dos comercios de prueba.

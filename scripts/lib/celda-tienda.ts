@@ -266,11 +266,13 @@ export function secretosDeLaTienda(
 }
 
 /**
- * La dirección workers.dev que tendría la API si se publicara ahí: la del panel con el nombre de la
- * API. Sirve para comprobar que **no** responde (CA4).
+ * La dirección workers.dev que tendría la API si se publicara ahí: el subdominio de la cuenta con el
+ * nombre de la API. Sirve para comprobar que **no** responde (CA4). El subdominio sale del panel de
+ * staging, que sí vive en workers.dev: el de producción tiene su dominio (`panel.`), y de él salía
+ * `tienda-api-c1.laboratorio-digital.app`, que no existe (bitácora tienda3 14).
  */
 export function urlQueNoDebeResponder(celda: Celda, destino: Destino): string {
-  const panel = new URL(destino === 'staging' ? celda.api_staging : celda.api);
+  const panel = new URL(celda.api_staging);
   const sufijo = panel.hostname.split('.').slice(1).join('.');
   return `https://tienda-api-${celda.id}${destino === 'staging' ? '-staging' : ''}.${sufijo}`;
 }
