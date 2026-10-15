@@ -120,9 +120,8 @@ function seccion(fila: { seccion: string; datos: string } | undefined): Record<s
   return r.ok ? r.datos : {};
 }
 
-export async function publicar(c: Contexto): Promise<Resultado> {
-  // 1. Reservar la versión: si hay otra en curso, el índice único lo impide.
-  let version: number;
+/** Reserva la versión: si hay otra en curso, el índice único lo impide. */
+async function reservar(c: Contexto): Promise<number | null> {
   try {
     const fila = await c.shard
       .prepare(
@@ -133,12 +132,16 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       .bind(c.org, c.org, c.pedidaPor, c.ahora)
       .first<{ version: number }>();
     if (!fila) throw new Error('no se pudo reservar la versión');
-    version = fila.version;
+    return fila.version;
   } catch (e) {
-    if (/UNIQUE|publicacion_en_curso/i.test(String(e))) return { estado: 'en-curso' };
+    if (/UNIQUE|publicacion_en_curso/i.test(String(e))) return null;
     throw e;
   }
-  const fallar = async (motivo: string): Promise<Resultado> => {
+}
+
+const fallarCon =
+  (c: Contexto, version: number) =>
+  async (motivo: string): Promise<Resultado> => {
     await c.shard
       .prepare(
         "UPDATE publicacion SET estado = 'fallida', motivo = ? WHERE org_id = ? AND version = ?",
@@ -147,6 +150,31 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       .run();
     return { estado: 'fallida', motivo };
   };
+
+/** Las direcciones activas de la tienda y su canónica (TIENDA §5.6). */
+async function direccionesDe(c: Contexto) {
+  const { results: dominios } = await c.control
+    .prepare("SELECT hostname, rol FROM dominio WHERE org_id = ? AND estado = 'activo'")
+    .bind(c.org)
+    .all<{ hostname: string; rol: string }>();
+  return { dominios, canonico: dominios.find((d) => d.rol === 'canonico')?.hostname };
+}
+
+/**
+ * HU-T4.5: lo que se horneó, junto al manifiesto de su versión. Con él, un cambio de existencias
+ * vuelve a hornear lo publicado y no lo que el comercio todavía no ha publicado.
+ */
+interface Horneado {
+  datos: TiendaParaHornear;
+  redirecciones: Record<string, string>;
+}
+const claveDeDatos = (org: string, version: number) => `sitios/${org}/${version}/datos.json`;
+
+export async function publicar(c: Contexto): Promise<Resultado> {
+  // 1. Reservar la versión.
+  const version = await reservar(c);
+  if (version === null) return { estado: 'en-curso' };
+  const fallar = fallarCon(c, version);
 
   try {
     // 2. Los datos de la tienda.
@@ -227,29 +255,8 @@ export async function publicar(c: Contexto): Promise<Resultado> {
         dias_min: number | null;
         dias_max: number | null;
       }>();
-    const { results: dominios } = await c.control
-      .prepare("SELECT hostname, rol FROM dominio WHERE org_id = ? AND estado = 'activo'")
-      .bind(c.org)
-      .all<{ hostname: string; rol: string }>();
-    const canonico = dominios.find((d) => d.rol === 'canonico')?.hostname;
+    const { canonico } = await direccionesDe(c);
     if (!canonico) return await fallar('la tienda no tiene una dirección activa');
-    /** Cada dirección de la tienda, apuntando a la versión publicada (TIENDA §5.6). */
-    const apuntar = async (v: number) => {
-      for (const d of dominios) {
-        await c.hosts.put(
-          `h:${d.hostname}`,
-          JSON.stringify({
-            org: c.org,
-            celda: c.celda,
-            shard: c.shardNombre,
-            version: v,
-            canonico,
-            estado: 'abierta',
-            rol: d.rol,
-          }),
-        );
-      }
-    };
 
     // 3. Hornear y pasar la compuerta.
     const activos = productos.filter((p) => p.estado === 'activo');
@@ -367,90 +374,184 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       return { estado: 'compuerta', fallas: revision.fallas };
     }
 
-    // 4 y 6. El manifiesto, y si nada cambió.
-    const m = await manifiesto(archivos, redireccionesDe(activos));
-    if (tienda.version_publicada !== null) {
-      const anterior = await c.shard
-        .prepare('SELECT huella FROM publicacion WHERE org_id = ? AND version = ?')
-        .bind(c.org, tienda.version_publicada)
-        .first<{ huella: string | null }>();
-      if (anterior?.huella === m.huella) {
-        await c.shard
-          .prepare('DELETE FROM publicacion WHERE org_id = ? AND version = ?')
-          .bind(c.org, version)
-          .run();
-        // Bitácora tienda3 16: los punteros se reescriben igual, por si alguien los pisó.
-        await apuntar(tienda.version_publicada);
-        return { estado: 'nada-cambio', version: tienda.version_publicada };
-      }
-    }
-    const previas = new Set<string>();
-    if (tienda.version_publicada !== null) {
-      const previo = await c.sitios.get(
-        `sitios/${c.org}/${tienda.version_publicada}/manifiesto.json`,
-      );
-      if (previo) {
-        const pm = JSON.parse(await previo.text()) as typeof m;
-        for (const a of Object.values(pm.archivos)) previas.add(a.huella);
-      }
-    }
-    let nuevos = 0;
-    for (const [ruta, archivo] of archivos) {
-      const entrada = m.archivos[ruta];
-      if (!entrada || previas.has(entrada.huella)) continue;
-      await c.sitios.put(
-        `objetos/${entrada.huella.slice(0, 2)}/${entrada.huella}`,
-        archivo.contenido,
-        {
-          httpMetadata: { contentType: archivo.tipo },
-        },
-      );
-      previas.add(entrada.huella);
-      nuevos++;
-      // HU-T7.1 CA2: cada texto legal, también por su huella en `legal/`, sin vencimiento: un
-      // pedido cita la huella de los términos que aceptó (Ley 1480 art. 50 lit. e).
-      if (/^\/(legal\/[a-z]+|solicitud)\/index\.md$/.test(ruta)) {
-        await c.sitios.put(`legal/${c.org}/${entrada.huella}.md`, archivo.contenido, {
-          httpMetadata: { contentType: archivo.tipo },
-        });
-      }
-    }
-
-    // 5. El manifiesto, guardado y releído.
-    const claveManifiesto = `sitios/${c.org}/${version}/manifiesto.json`;
-    await c.sitios.put(claveManifiesto, JSON.stringify(m), {
-      httpMetadata: { contentType: 'application/json' },
+    return await entregar(c, version, tienda.version_publicada, archivos, {
+      datos,
+      redirecciones: redireccionesDe(activos),
     });
-    const releido = await c.sitios.get(claveManifiesto);
-    const verificado = releido ? (JSON.parse(await releido.text()) as typeof m) : null;
-    if (
-      !verificado ||
-      verificado.huella !== m.huella ||
-      Object.keys(verificado.archivos).length !== archivos.size
-    ) {
-      return await fallar('el manifiesto guardado no es el que se horneó');
-    }
-
-    // 7. Los punteros y, al final, la versión publicada.
-    await apuntar(version);
-    const bytes = Object.values(m.archivos).reduce((s, a) => s + a.bytes, 0);
-    await c.shard.batch([
-      c.shard
-        .prepare(
-          "UPDATE publicacion SET estado = 'reemplazada' WHERE org_id = ? AND estado = 'publicada'",
-        )
-        .bind(c.org),
-      c.shard
-        .prepare(
-          "UPDATE publicacion SET estado = 'publicada', archivos = ?, bytes = ?, huella = ?, publicada = ? WHERE org_id = ? AND version = ?",
-        )
-        .bind(archivos.size, bytes, m.huella, c.ahora, c.org, version),
-      c.shard
-        .prepare('UPDATE tienda SET version_publicada = ? WHERE org_id = ?')
-        .bind(version, c.org),
-    ]);
-    return { estado: 'publicada', version, archivos: archivos.size, nuevos };
   } catch (e) {
     return await fallar(e instanceof Error ? e.message : String(e));
+  }
+}
+
+/**
+ * Pasos 4 a 7: subir lo nuevo, guardar el manifiesto y lo horneado, y apuntar las direcciones.
+ * Si la huella del conjunto es la de la versión publicada, «Nada cambió» y la versión se descarta.
+ */
+async function entregar(
+  c: Contexto,
+  version: number,
+  versionPublicada: number | null,
+  archivos: Awaited<ReturnType<typeof hornear>>,
+  h: Horneado,
+): Promise<Resultado> {
+  const fallar = fallarCon(c, version);
+  const { dominios, canonico } = await direccionesDe(c);
+  if (!canonico) return await fallar('la tienda no tiene una dirección activa');
+  /** Cada dirección de la tienda, apuntando a la versión publicada (TIENDA §5.6). */
+  const apuntar = async (v: number) => {
+    for (const d of dominios) {
+      await c.hosts.put(
+        `h:${d.hostname}`,
+        JSON.stringify({
+          org: c.org,
+          celda: c.celda,
+          shard: c.shardNombre,
+          version: v,
+          canonico,
+          estado: 'abierta',
+          rol: d.rol,
+        }),
+      );
+    }
+  };
+
+  // 4 y 6. El manifiesto, y si nada cambió.
+  const m = await manifiesto(archivos, h.redirecciones);
+  if (versionPublicada !== null) {
+    const anterior = await c.shard
+      .prepare('SELECT huella FROM publicacion WHERE org_id = ? AND version = ?')
+      .bind(c.org, versionPublicada)
+      .first<{ huella: string | null }>();
+    if (anterior?.huella === m.huella) {
+      await c.shard
+        .prepare('DELETE FROM publicacion WHERE org_id = ? AND version = ?')
+        .bind(c.org, version)
+        .run();
+      // Bitácora tienda3 16: los punteros se reescriben igual, por si alguien los pisó.
+      await apuntar(versionPublicada);
+      return { estado: 'nada-cambio', version: versionPublicada };
+    }
+  }
+  const previas = new Set<string>();
+  if (versionPublicada !== null) {
+    const previo = await c.sitios.get(`sitios/${c.org}/${versionPublicada}/manifiesto.json`);
+    if (previo) {
+      const pm = JSON.parse(await previo.text()) as typeof m;
+      for (const a of Object.values(pm.archivos)) previas.add(a.huella);
+    }
+  }
+  let nuevos = 0;
+  for (const [ruta, archivo] of archivos) {
+    const entrada = m.archivos[ruta];
+    if (!entrada || previas.has(entrada.huella)) continue;
+    await c.sitios.put(
+      `objetos/${entrada.huella.slice(0, 2)}/${entrada.huella}`,
+      archivo.contenido,
+      {
+        httpMetadata: { contentType: archivo.tipo },
+      },
+    );
+    previas.add(entrada.huella);
+    nuevos++;
+    // HU-T7.1 CA2: cada texto legal, también por su huella en `legal/`, sin vencimiento: un
+    // pedido cita la huella de los términos que aceptó (Ley 1480 art. 50 lit. e).
+    if (/^\/(legal\/[a-z]+|solicitud)\/index\.md$/.test(ruta)) {
+      await c.sitios.put(`legal/${c.org}/${entrada.huella}.md`, archivo.contenido, {
+        httpMetadata: { contentType: archivo.tipo },
+      });
+    }
+  }
+
+  // 5. Lo horneado y el manifiesto, guardados; el manifiesto, releído.
+  await c.sitios.put(claveDeDatos(c.org, version), JSON.stringify(h), {
+    httpMetadata: { contentType: 'application/json' },
+  });
+  const claveManifiesto = `sitios/${c.org}/${version}/manifiesto.json`;
+  await c.sitios.put(claveManifiesto, JSON.stringify(m), {
+    httpMetadata: { contentType: 'application/json' },
+  });
+  const releido = await c.sitios.get(claveManifiesto);
+  const verificado = releido ? (JSON.parse(await releido.text()) as typeof m) : null;
+  if (
+    !verificado ||
+    verificado.huella !== m.huella ||
+    Object.keys(verificado.archivos).length !== archivos.size
+  ) {
+    return await fallar('el manifiesto guardado no es el que se horneó');
+  }
+
+  // 7. Los punteros y, al final, la versión publicada.
+  await apuntar(version);
+  const bytes = Object.values(m.archivos).reduce((s, a) => s + a.bytes, 0);
+  await c.shard.batch([
+    c.shard
+      .prepare(
+        "UPDATE publicacion SET estado = 'reemplazada' WHERE org_id = ? AND estado = 'publicada'",
+      )
+      .bind(c.org),
+    c.shard
+      .prepare(
+        "UPDATE publicacion SET estado = 'publicada', archivos = ?, bytes = ?, huella = ?, publicada = ? WHERE org_id = ? AND version = ?",
+      )
+      .bind(archivos.size, bytes, m.huella, c.ahora, c.org, version),
+    c.shard
+      .prepare('UPDATE tienda SET version_publicada = ? WHERE org_id = ?')
+      .bind(version, c.org),
+  ]);
+  return { estado: 'publicada', version, archivos: archivos.size, nuevos };
+}
+
+/**
+ * HU-T4.5 (TIENDA §7.4): el re-horneado mínimo. Una combinación pasó de disponible a agotada, o al
+ * revés: se vuelve a hornear **lo publicado** con las existencias de ahora, y nada más. Lo que el
+ * comercio editó y no ha publicado sigue sin publicar. Solo cambian la ficha, el catálogo y los
+ * feeds que dicen si hay, y se suben solo esos archivos (van por huella).
+ *
+ * Sin una versión publicada, o si esa versión no guardó lo que horneó (es de antes de esta
+ * historia), no hace nada: la próxima publicación del comercio lleva las existencias de ahora.
+ */
+export async function rehornearExistencias(
+  c: Contexto,
+): Promise<Resultado | { estado: 'sin-publicar' }> {
+  const tienda = await c.shard
+    .prepare('SELECT version_publicada FROM tienda WHERE org_id = ?')
+    .bind(c.org)
+    .first<{ version_publicada: number | null }>();
+  if (!tienda?.version_publicada) return { estado: 'sin-publicar' };
+  const guardado = await c.sitios.get(claveDeDatos(c.org, tienda.version_publicada));
+  if (!guardado) return { estado: 'sin-publicar' };
+  const h = JSON.parse(await guardado.text()) as Horneado;
+
+  const version = await reservar(c);
+  if (version === null) return { estado: 'en-curso' };
+  try {
+    const { results } = await c.shard
+      .prepare('SELECT id, stock, reservado FROM variante WHERE org_id = ?')
+      .bind(c.org)
+      .all<{ id: string; stock: number | null; reservado: number }>();
+    const ahora = new Map(results.map((v) => [v.id, v]));
+    const datos: TiendaParaHornear = {
+      ...h.datos,
+      // El release de la vitrina es el de ahora: los archivos comunes de antes ya no se sirven.
+      release: c.release,
+      productos: h.datos.productos.map((p) => ({
+        ...p,
+        variantes: p.variantes.map((v) => {
+          const fila = ahora.get(v.id);
+          // Una combinación que ya no existe se muestra agotada hasta que el comercio publique.
+          if (!fila) return { ...v, stock: 0 };
+          return {
+            ...v,
+            stock: fila.stock === null ? null : Math.max(0, fila.stock - fila.reservado),
+          };
+        }),
+      })),
+    };
+    return await entregar(c, version, tienda.version_publicada, await hornear(datos), {
+      datos,
+      redirecciones: h.redirecciones,
+    });
+  } catch (e) {
+    return await fallarCon(c, version)(e instanceof Error ? e.message : String(e));
   }
 }

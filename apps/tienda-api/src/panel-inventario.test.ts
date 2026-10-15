@@ -12,8 +12,9 @@ import {
   siembraDelShard,
 } from '@ed1/tienda-schema/ensayos';
 import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { Almacen } from './publicar.ts';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { cotizar } from './cotizar.ts';
+import { type Almacen, publicar } from './publicar.ts';
 import { CABECERA_DESPACHO, crearApp, type Env } from './worker.ts';
 
 const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
@@ -22,6 +23,7 @@ const T0 = Date.UTC(2026, 9, 15, 15);
 const AHORA = new Date(T0).toISOString();
 const PERSONA = '0199e0a0-0000-7000-8000-0000000000d1';
 const UNO = ENSAYO_UNO.org;
+const S = 'v-camisa-s-arena'; // 1 en inventario
 const M = 'v-camisa-m-arena'; // 4 en inventario
 const L = 'v-camisa-l-azul'; // agotada
 
@@ -72,9 +74,11 @@ const kv = () => {
   return { valores, put: async (k: string, v: string) => void valores.set(k, v) };
 };
 
-const sitios = almacen();
-const hosts = kv();
+let sitios = almacen();
+let hosts = kv();
 let flags: Env['FLAGS'];
+/** Lo que la API dejó para después de responder: la prueba lo espera. */
+let enCola: Promise<unknown>[] = [];
 
 const env = (): Env => ({
   CELDA: 'c1',
@@ -111,7 +115,7 @@ const token = async (extra: Partial<Parameters<typeof firmarAcceso>[1]> = {}) =>
   ).token;
 
 const pedir = async (ruta: string, cuerpo?: unknown, t?: string) =>
-  crearApp({ ahora: () => T0 }).request(
+  crearApp({ ahora: () => T0, enSegundoPlano: (p) => void enCola.push(p) }).request(
     ruta,
     {
       method: cuerpo === undefined ? 'GET' : 'POST',
@@ -286,5 +290,123 @@ describe('el inventario y su libro (HU-T8.5)', () => {
     expect(
       (await pedir('/api/panel/v1/avisame/atender', { op: op(), variante: L }, otro)).status,
     ).toBe(403);
+  });
+});
+
+describe('el re-horneado mínimo cuando algo se agota (HU-T4.5)', () => {
+  const contexto = () => ({
+    shard,
+    shardNombre: 'tienda_c1_s1',
+    control,
+    sitios,
+    hosts,
+    celda: 'c1',
+    release: 'r1',
+    org: UNO,
+    pedidaPor: 'usuario:prueba',
+    ahora: AHORA,
+    omitir: ['sin-foto'] as const,
+  });
+  /** El texto de un archivo de la versión publicada. */
+  const publicado = async (ruta: string) => {
+    const v = (
+      await shard
+        .prepare('SELECT version_publicada AS v FROM tienda WHERE org_id = ?')
+        .bind(UNO)
+        .first<{ v: number }>()
+    )?.v;
+    const m = JSON.parse(sitios.objetos.get(`sitios/${UNO}/${v}/manifiesto.json`) ?? '{}') as {
+      archivos: Record<string, { huella: string }>;
+    };
+    const h = m.archivos[ruta]?.huella ?? '';
+    return { version: v, texto: sitios.objetos.get(`objetos/${h.slice(0, 2)}/${h}`) ?? '' };
+  };
+  const FICHA = '/p/camisa-de-lino/index.html';
+  /** Lo que dice el JSON-LD de la ficha de una combinación: `InStock` u `OutOfStock`. */
+  const disponibleEn = (html: string, variante: string) => {
+    const ld = /<script type="application\/ld\+json">(.*?)<\/script>/s.exec(html)?.[1] ?? '{}';
+    const producto = JSON.parse(ld) as { offers?: { sku: string; availability: string }[] };
+    return producto.offers
+      ?.find((o) => o.sku === variante)
+      ?.availability.split('/')
+      .at(-1);
+  };
+
+  beforeEach(async () => {
+    sitios = almacen();
+    hosts = kv();
+    flags = undefined;
+    enCola = [];
+    await shard.prepare('DELETE FROM publicacion').run();
+    await shard.prepare('UPDATE tienda SET version_publicada = NULL').run();
+    await ponerStock(S, 1);
+    await shard
+      .prepare("UPDATE producto SET nombre = 'Camisa de lino' WHERE org_id = ? AND id = 'p-camisa'")
+      .bind(UNO)
+      .run();
+    expect(await publicar(contexto())).toMatchObject({ estado: 'publicada', version: 1 });
+  });
+
+  it('CA1: agotar una combinación vuelve a hornear lo publicado, sin publicar lo que no se ha publicado', async () => {
+    const antes = await publicado(FICHA);
+    expect(disponibleEn(antes.texto, S)).toBe('InStock');
+    // Un cambio que el comercio no ha publicado.
+    await shard
+      .prepare(
+        "UPDATE producto SET nombre = 'Camisa de lino nueva' WHERE org_id = ? AND id = 'p-camisa'",
+      )
+      .bind(UNO)
+      .run();
+
+    const r = await pedir('/api/panel/v1/inventario/ajustar', {
+      op: op(),
+      variante: S,
+      version: (await fila(S)).version,
+      tipo: 'conteo',
+      cantidad: 0,
+    });
+    expect(r.status).toBe(200);
+    expect(enCola).toHaveLength(1);
+    await Promise.all(enCola);
+
+    const despues = await publicado(FICHA);
+    expect(despues.version).toBe(2);
+    expect(disponibleEn(despues.texto, S)).toBe('OutOfStock');
+    expect(despues.texto).not.toContain('Camisa de lino nueva');
+    const pub = await shard
+      .prepare('SELECT pedida_por FROM publicacion WHERE org_id = ? AND version = 2')
+      .bind(UNO)
+      .first<{ pedida_por: string }>();
+    expect(pub?.pedida_por).toBe('sistema:existencias');
+  });
+
+  it('un cambio que no agota ni repone no hornea nada', async () => {
+    await ponerStock(M, 4);
+    const r = await pedir('/api/panel/v1/inventario/ajustar', {
+      op: op(),
+      variante: M,
+      version: (await fila(M)).version,
+      tipo: 'ajuste',
+      cantidad: 1,
+    });
+    expect(r.status).toBe(200);
+    expect(enCola).toHaveLength(0);
+  });
+
+  it('❌ CA2: con ks:tienda-horno apagado no se hornea, y la cotización igual no vende lo que no hay', async () => {
+    flags = { get: async (k: string) => (k === 'ks:tienda-horno' ? 'apagado' : null) };
+    const r = await pedir('/api/panel/v1/inventario/ajustar', {
+      op: op(),
+      variante: S,
+      version: (await fila(S)).version,
+      tipo: 'conteo',
+      cantidad: 0,
+    });
+    expect(r.status).toBe(200);
+    expect(enCola).toHaveLength(0);
+    expect((await publicado(FICHA)).version).toBe(1);
+    const c = await cotizar(shard, UNO, { lineas: [{ variante: S, cantidad: 1 }] }, AHORA);
+    expect(c.carrito).toEqual([]);
+    expect(c.avisos).toContainEqual({ codigo: 'linea_quitada', variante: S });
   });
 });

@@ -55,7 +55,14 @@ import {
 } from './catalogo.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
-import { ajustarInventario, atenderAvisame, libroDe, listarInventario } from './inventario.ts';
+import {
+  ajustarInventario,
+  atenderAvisame,
+  cruzo,
+  disponibilidad,
+  libroDe,
+  listarInventario,
+} from './inventario.ts';
 import { kekDelEntorno } from './llaves.ts';
 import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
 import {
@@ -65,7 +72,13 @@ import {
   seguimiento,
   sha256,
 } from './pedidos.ts';
-import { type Almacen, type EscritorKv, publicar, type Resultado } from './publicar.ts';
+import {
+  type Almacen,
+  type EscritorKv,
+  publicar,
+  type Resultado,
+  rehornearExistencias,
+} from './publicar.ts';
 import { enFrase, leerRegistro } from './registro.ts';
 import {
   PeticionDeSeguimientoDeSolicitud,
@@ -292,8 +305,16 @@ async function dentroDelLimite(
   return (await limitador.limit({ key: ip })).success;
 }
 
-export function crearApp(opciones: { ahora?: () => number } = {}) {
+export function crearApp(
+  opciones: {
+    ahora?: () => number;
+    /** Lo que sigue después de responder (`waitUntil`); las pruebas lo esperan. */
+    enSegundoPlano?: (trabajo: Promise<unknown>) => void;
+  } = {},
+) {
   const ahora = opciones.ahora ?? (() => Date.now());
+  const enSegundoPlano = (c: ContextoTienda, trabajo: Promise<unknown>) =>
+    opciones.enSegundoPlano ? opciones.enSegundoPlano(trabajo) : c.executionCtx.waitUntil(trabajo);
   const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
   // Solo el despacho y el panel: sin el secreto, la API no existe (TIENDA §14.1).
@@ -932,6 +953,35 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
     return c.json(r);
   });
 
+  /**
+   * HU-T4.5: si una escritura cambia qué se puede comprar, se vuelve a hornear lo publicado después
+   * de responder. Con `ks:tienda-horno` apagado no se hornea, y la cotización sigue impidiendo
+   * vender lo que no hay (CA2).
+   */
+  const vigilarExistencias = async (c: ContextoTienda, variantes: readonly string[]) => {
+    const s = c.get('sesion');
+    const antes = await disponibilidad(s, variantes);
+    return async () => {
+      if (!cruzo(antes, await disponibilidad(s, variantes))) return;
+      if (await hornoApagado(c)) {
+        console.error('tienda-api: ks:tienda-horno apagado; las existencias no se re-hornean');
+        return;
+      }
+      const ctx = contextoDePublicacion(c, s.org, s.shard, 'sistema:existencias');
+      if (!ctx) return;
+      enSegundoPlano(
+        c,
+        rehornearExistencias(ctx).then(
+          (r) => {
+            if (r.estado === 'fallida' || r.estado === 'en-curso')
+              console.error(`tienda-api: el re-horneado de existencias quedó ${r.estado}`);
+          },
+          (e: unknown) => console.error(`tienda-api: el re-horneado de existencias falló (${e})`),
+        ),
+      );
+    };
+  };
+
   // HU-T8.5: el inventario y su libro, con los permisos `inventario.ajustar` y `avisame.atender`.
   const delInventario = (c: ContextoTienda) =>
     quienPuede(c, 'inventario.ajustar', 'Tu rol no puede ajustar el inventario.');
@@ -954,7 +1004,12 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
   app.post('/api/panel/v1/inventario/ajustar', async (c) => {
     const q = delInventario(c);
     if (q instanceof Response) return q;
-    return responderCatalogo(c, await ajustarInventario(q, await c.req.json().catch(() => null)));
+    const cuerpo = (await c.req.json().catch(() => null)) as { variante?: unknown } | null;
+    const variante = typeof cuerpo?.variante === 'string' ? cuerpo.variante : null;
+    const despues = variante ? await vigilarExistencias(c, [variante]) : null;
+    const r = await ajustarInventario(q, cuerpo);
+    if (r.estado === 'guardado') await despues?.();
+    return responderCatalogo(c, r);
   });
   app.post('/api/panel/v1/avisame/atender', async (c) => {
     const q = quienPuede(c, 'avisame.atender', 'Tu rol no puede atender los avisos.');
