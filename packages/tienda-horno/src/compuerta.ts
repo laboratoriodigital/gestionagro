@@ -12,7 +12,9 @@
  * 6. todo producto sin retracto tiene su motivo;
  * 7. el pie enlaza a la SIC, a los textos legales y a las solicitudes (HU-T7.1): un texto que falta
  *    es un enlace roto, y un dato de la ficha que falta deja su `{{campo}}` a la vista;
- * 8. cada página pesa lo que permite el presupuesto; el validador de HTML llega con HU-T3.6;
+ * 8. cada página pesa lo que permite el presupuesto (la portada, menos: TIENDA §1.3), y nada va en
+ *    línea ni viene de un tercero: ni `<style>`, ni `style=`, ni un script que no sea un archivo propio
+ *    o datos (HU-T3.6 CA3), porque la CSP lo bloquearía en silencio;
  * 9. los enlaces internos existen, también los de `llms.txt` (HU-T15.1). Las huellas del manifiesto las verifica la publicación al
  *    releerlo (HU-T4.4).
  */
@@ -30,7 +32,8 @@ export type CodigoDeFalla =
   | 'retracto'
   | 'pie-legal'
   | 'peso'
-  | 'enlace-roto';
+  | 'enlace-roto'
+  | 'en-linea';
 
 export interface Falla {
   codigo: CodigoDeFalla;
@@ -64,6 +67,29 @@ export interface EntradaDeLaCompuerta {
 
 /** El peso máximo de una página horneada (TIENDA §1.3: que abra en un teléfono barato). */
 export const PESO_MAXIMO_HTML = 60 * 1024;
+/** La portada, la que más se abre: «HTML de la portada < 50 KB» (TIENDA §1.3). */
+export const PESO_MAXIMO_PORTADA = 50 * 1024;
+
+/** Lo que la CSP de la vitrina bloquearía, o lo que viene de un tercero (HU-T3.6 CA3). */
+export function enLinea(html: string): string | null {
+  if (/<style\b/i.test(html)) return 'un <style>';
+  if (/\sstyle\s*=/i.test(html)) return 'un atributo style';
+  if (/\son[a-z]+\s*=/i.test(html)) return 'un manejador en línea (on…=)';
+  for (const m of html.matchAll(/<script\b([^>]*)>/gi)) {
+    const atributos = m[1] ?? '';
+    const src = /\ssrc="([^"]*)"/i.exec(atributos)?.[1];
+    if (src !== undefined) {
+      if (!src.startsWith('/') || src.startsWith('//')) return `un script de afuera (${src})`;
+      continue;
+    }
+    if (!/type="application\/(ld\+)?json"/i.test(atributos)) return 'un script en línea';
+  }
+  for (const m of html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*>/gi)) {
+    const href = /href="([^"]*)"/i.exec(m[0])?.[1] ?? '';
+    if (!href.startsWith('/') || href.startsWith('//')) return `una hoja de afuera (${href})`;
+  }
+  return null;
+}
 /** Rutas que existen sin hornearse: los assets, el tema, la API y `security.txt`. */
 const SIN_HORNEAR = [
   /^\/_t\//,
@@ -139,11 +165,21 @@ export function compuerta(e: EntradaDeLaCompuerta): { ok: boolean; fallas: Falla
         donde: 'Productos y Ajustes',
       });
     }
-    if (new TextEncoder().encode(a.contenido).length > PESO_MAXIMO_HTML) {
+    const bytes = new TextEncoder().encode(a.contenido).length;
+    const tope = ruta === '/index.html' ? PESO_MAXIMO_PORTADA : PESO_MAXIMO_HTML;
+    if (bytes > tope) {
       fallar({
         codigo: 'peso',
-        mensaje: `La página ${ruta} pesa demasiado para abrir rápido en un teléfono: acorta su texto`,
+        mensaje: `La página ${ruta} pesa ${Math.ceil(bytes / 1024)} KB y el tope es ${tope / 1024} KB: acorta su texto para que abra rápido en un teléfono`,
         donde: 'Productos',
+      });
+    }
+    const prohibido = enLinea(a.contenido);
+    if (prohibido) {
+      fallar({
+        codigo: 'en-linea',
+        mensaje: `La página ${ruta} trae ${prohibido}, y la tienda solo carga lo suyo: escríbenos a soporte`,
+        donde: 'Soporte',
       });
     }
     for (const m of a.contenido.matchAll(/href="(\/[^"#?]*)/g)) {

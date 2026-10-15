@@ -646,7 +646,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T3.5.1 `[diseño]` · WI-T3.5.2 `[código]` · WI-T3.5.3 `[prueba]` e2e con una tienda llena.
 
 #### HU-T3.6 · Presupuestos y CSP de la Tienda en el CI
-- **Capa:** CI · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T6 · **Depende de:** HU-T5.2, HU-C6.6 · **Estado:** Refinada
+- **Capa:** CI · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T6 · **Depende de:** HU-T5.2, HU-C6.6 · **Estado:** En validación (rama `feat/t6-sprint`. **Cambió la herramienta:** sin Lighthouse CI, que pedía otro navegador y más minutos; `tests/e2e/tienda-presupuestos.spec.ts` mide lo horneado de Ensayo Uno con Playwright, como la cuenta (HU-C6.6): por página (portada, ficha, colección, carrito, pedido y un texto legal) JS ≤ 60 KB y hoja ≤ 20 KB con gzip, la portada ≤ 50 KB de HTML, y el LCP de la portada y la ficha ≤ 2,5 s con 4G lenta y CPU ×4, en `@rendimiento`, solo y con la mediana de tres (CA4). La CSP sale del horno (`@ed1/tienda-horno/csp`), la usa el despacho y la prueba compara cada recurso que la página carga con lo que ella permite (CA2). La compuerta rechaza un `<style>`, un `style=`, un `on…=`, un script en línea que no sea datos y un script o una hoja de afuera, y una portada de más de 50 KB (CA3, con la página, la cifra y el tope). Los presupuestos del panel llegan con sus pantallas (HU-T8.1). TIENDA §1.3 lleva la nota)
 - Como dueño, quiero que el CI rechace una vitrina que se pase de peso o de tiempo, para cumplir la promesa de abrir en un teléfono barato.
 - **Respaldo:** TIENDA §1.3 y §11.9; §5.6.
 - **CA1.** Lighthouse CI sobre lo horneado de los dos comercios con los topes de §5.6, y los del panel sobre sus pantallas.

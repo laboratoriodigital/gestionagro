@@ -4,7 +4,12 @@
  */
 import { ENSAYO_DOS, legalDeEnsayo } from '@ed1/tienda-schema/ensayos';
 import { describe, expect, it } from 'vitest';
-import { compuerta, type EntradaDeLaCompuerta, type ProductoParaLaCompuerta } from './compuerta.ts';
+import {
+  compuerta,
+  type EntradaDeLaCompuerta,
+  enLinea,
+  type ProductoParaLaCompuerta,
+} from './compuerta.ts';
 import { hornear, type TiendaParaHornear } from './horno.ts';
 
 const AJUSTES = {
@@ -172,5 +177,54 @@ describe('la compuerta de publicación (HU-T4.3)', () => {
     const sinFoto = [{ ...PRODUCTOS[0], fotos: 0 } as ProductoParaLaCompuerta];
     expect(compuerta(await entrada({ productos: sinFoto, omitir: ['sin-foto'] })).ok).toBe(true);
     expect(compuerta(await entrada({ productos: sinFoto, omitir: ['retracto'] })).ok).toBe(false);
+  });
+});
+
+describe('nada en línea ni de terceros, y la portada liviana (HU-T3.6 CA3)', () => {
+  it.each([
+    ['un <style>', '<style>body{}</style>'],
+    ['un atributo style', '<p style="color:red">x</p>'],
+    ['un manejador en línea (on…=)', '<a href="/" onclick="x()">x</a>'],
+    ['un script en línea', '<script>alert(1)</script>'],
+    [
+      'un script de afuera (https://terceros.test/x.js)',
+      '<script src="https://terceros.test/x.js"></script>',
+    ],
+    ['una hoja de afuera (//cdn.test/a.css)', '<link rel="stylesheet" href="//cdn.test/a.css">'],
+  ])('❌ %s detiene la compuerta, con la página y qué trae', async (que, fragmento) => {
+    const base = await entrada();
+    const archivos = new Map(base.archivos);
+    const ficha = archivos.get('/p/pan-de-bono/index.html');
+    if (!ficha) throw new Error('sin ficha');
+    archivos.set('/p/pan-de-bono/index.html', {
+      ...ficha,
+      contenido: ficha.contenido.replace('<main>', `<main>${fragmento}`),
+    });
+    const fallas = compuerta({ ...base, archivos }).fallas.filter((f) => f.codigo === 'en-linea');
+    expect(fallas.map((f) => f.mensaje)).toEqual([
+      `La página /p/pan-de-bono/index.html trae ${que}, y la tienda solo carga lo suyo: escríbenos a soporte`,
+    ]);
+  });
+
+  it('los datos (JSON y JSON-LD) y los archivos propios sí pasan', async () => {
+    expect(
+      enLinea(
+        '<script type="application/json" id="x">{}</script><script type="module" src="/_t/r1/vitrina.js"></script><script type="application/ld+json">{}</script>',
+      ),
+    ).toBeNull();
+  });
+
+  it('❌ una portada de más de 50 KB no se publica; una ficha de ese tamaño sí (TIENDA §1.3)', async () => {
+    const base = await entrada();
+    const archivos = new Map(base.archivos);
+    const relleno = `<p>${'a'.repeat(52 * 1024)}</p>`;
+    for (const ruta of ['/index.html', '/p/pan-de-bono/index.html']) {
+      const a = archivos.get(ruta);
+      if (!a) throw new Error(ruta);
+      archivos.set(ruta, { ...a, contenido: a.contenido.replace('<main>', `<main>${relleno}`) });
+    }
+    const peso = compuerta({ ...base, archivos }).fallas.filter((f) => f.codigo === 'peso');
+    expect(peso).toHaveLength(1);
+    expect(peso[0]?.mensaje).toMatch(/^La página \/index\.html pesa 5\d KB y el tope es 50 KB/);
   });
 });

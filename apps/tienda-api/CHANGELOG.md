@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La tienda no puede pesar de más ni cargar cosas de terceros (HU-T3.6): cada página se mide en un teléfono lento antes de salir, y una tienda que traiga algo de afuera no se publica.
 - Seguir el pedido (HU-T6.3): el comprador ve en qué va su pedido con el enlace que recibió, sin crear una cuenta, y nadie más puede verlo.
 - El acuse de recibo (HU-T6.2): al enviar el pedido, el comprador ve su código, el número, el total, la forma de pago, el envío y su plazo, y lo puede imprimir o guardar como PDF.
 - Pedir por WhatsApp (HU-T6.1): en «Tu pedido» el comprador elige cómo pagar entre las formas que ofrece la tienda, acepta los términos y envía. La tienda guarda el pedido con lo que aceptó y abre WhatsApp con el pedido ya escrito. Si se toca dos veces, sigue siendo un solo pedido.

@@ -22,6 +22,7 @@
  */
 
 import { crearLectorKillSwitch, type LectorKillSwitch } from '@ed1/kill-switch';
+import { cspDeLaVitrina } from '@ed1/tienda-horno/csp';
 import politica from '../../../content/tienda/privacidad/politica.json' with { type: 'json' };
 import { securityTxt } from '../../core/src/security-txt.ts';
 
@@ -145,7 +146,7 @@ const CABECERAS_DE_AVISO = {
  * Las fotos, solo de su host (`MEDIOS`, HU-T5.6): el de producción o el de staging, nunca los dos.
  */
 export const cabecerasDeLaVitrina = (medios: string | undefined) => ({
-  'content-security-policy': `default-src 'self'; img-src 'self'${medios ? ` https://${medios}` : ''} data:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
+  'content-security-policy': cspDeLaVitrina(medios),
   // Sin includeSubDomains: los otros subdominios de un comercio no son nuestros (TIENDA §4.4).
   'strict-transport-security': 'max-age=31536000',
   'x-content-type-options': 'nosniff',
