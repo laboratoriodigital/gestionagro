@@ -84,6 +84,23 @@ describe('pedirAlPanel', () => {
     expect(r).toEqual({ tipo: 'sin-sesion', motivo: expect.stringMatching(/Vuelve a entrar/) });
   });
 
+  it('❌ HU-T10.3 CA2: «reautenticar» no renueva: pide entrar, con el motivo de la API', async () => {
+    const almacen = almacenEnMemoria({ sesion: sesion() });
+    const { pedidos, fetchFn } = red({
+      '/api/panel/v1/ajustes/guardar': [
+        json(401, { estado: 'reautenticar', motivo: 'Para cambiar esto, vuelve a entrar.' }),
+      ],
+      [`${CORE}/api/core/auth/refrescar`]: [renovada],
+    });
+    const r = await pedirAlPanel(
+      { almacen, core: CORE, fetchFn, ahora: () => AHORA },
+      'ajustes/guardar',
+      { cuerpo: {} },
+    );
+    expect(r).toEqual({ tipo: 'sin-sesion', motivo: 'Para cambiar esto, vuelve a entrar.' });
+    expect(pedidos).toEqual(['/api/panel/v1/ajustes/guardar Bearer acceso-viejo']);
+  });
+
   it('❌ sin sesión guardada no se llama a la API', async () => {
     const { pedidos, fetchFn } = red({});
     const r = await pedirAlPanel(

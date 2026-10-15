@@ -29,7 +29,13 @@
 import { importarKek } from '@ed1/cifrado';
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
-import { type Accion, decidir, type FuncionesPorPlan, funcionesDelPlan } from '@ed1/tienda-schema';
+import {
+  type Accion,
+  decidir,
+  type FuncionesPorPlan,
+  funcionesDelPlan,
+  puede,
+} from '@ed1/tienda-schema';
 import { ENSAYOS } from '@ed1/tienda-schema/ensayos';
 import {
   aceptarEnProducto,
@@ -39,6 +45,7 @@ import {
 } from '@ed1/tokens';
 import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
+import { guardarAjuste, leerAjustes, PIDE_ENTRADA, verificarWhatsapp } from './ajustes.ts';
 import { avisame, PeticionDeAvisame } from './avisame.ts';
 import {
   confirmarPedido,
@@ -844,6 +851,8 @@ export function crearApp(
   const quienPuede = (c: ContextoTienda, accion: Accion, motivo: string): Quien | Response => {
     const s = c.get('sesion');
     const decision = decidir(s.rol, accion, s.authTime ?? 0, Math.floor(ahora() / 1000));
+    // HU-T10.3 CA2: lo que pide una entrada reciente responde 401 y el panel abre la entrada.
+    if (decision === 'reautenticar') return c.json({ estado: decision, motivo: PIDE_ENTRADA }, 401);
     if (decision !== 'permitido') return c.json({ estado: decision, motivo }, 403);
     return {
       db: s.db,
@@ -1075,6 +1084,30 @@ export function crearApp(
     const r = await confirmarPedido(q, cuerpo);
     if (r.estado === 'guardado') await despues?.();
     return responderCatalogo(c, r);
+  });
+
+  // HU-T10.3: los ajustes por sección. Lo que pide cada cambio lo decide `accionesDeAjuste`.
+  app.get('/api/panel/v1/ajustes', async (c) => {
+    const q = quienPuede(c, 'ajustes.editar', 'Tu rol no puede ver los ajustes.');
+    if (q instanceof Response) return q;
+    const rol = c.get('sesion').rol;
+    return c.json(await leerAjustes(q, (s) => s !== 'cobro' || puede(rol, 'cobro.gestionar')));
+  });
+  app.post('/api/panel/v1/ajustes/guardar', async (c) => {
+    const q = quienPuede(c, 'ajustes.editar', 'Tu rol no puede cambiar los ajustes.');
+    if (q instanceof Response) return q;
+    const s = c.get('sesion');
+    const r = await guardarAjuste(q, await c.req.json().catch(() => null), (accion) =>
+      decidir(s.rol, accion, s.authTime ?? 0, Math.floor(ahora() / 1000)),
+    );
+    if (r.estado === 'reautenticar') return c.json(r, 401);
+    if (r.estado === 'prohibido') return c.json(r, 403);
+    return responderCatalogo(c, r);
+  });
+  app.post('/api/panel/v1/ajustes/verificar-whatsapp', async (c) => {
+    const q = quienPuede(c, 'ajustes.contacto', 'Tu rol no puede cambiar el WhatsApp.');
+    if (q instanceof Response) return q;
+    return responderCatalogo(c, await verificarWhatsapp(q, await c.req.json().catch(() => null)));
   });
 
   // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.

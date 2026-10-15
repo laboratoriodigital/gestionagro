@@ -2,7 +2,8 @@
  * Hablar con la API de la tienda desde el panel (HU-T8.1): `/api/panel/v1/*`, en el mismo origen
  * (el Worker del panel la pasa a la celda), con el token en la cabecera.
  *
- * - Un acceso vencido se renueva antes de pedir; un 401 se renueva una vez y se repite.
+ * - Un acceso vencido se renueva antes de pedir; un 401 se renueva una vez y se repite, salvo
+ *   `reautenticar` (HU-T10.3), que pide volver a entrar con Google.
  * - Si aun así no hay sesión, la respuesta es `sin-sesion` con el motivo: la pantalla dice «vuelve a
  *   entrar» sin perder lo que la persona estaba escribiendo (CA2), porque no navega ni recarga.
  * - «Sin tienda», «error» y «sin sesión» son estados distintos y se dicen distinto.
@@ -74,7 +75,17 @@ export async function pedirAlPanel<T>(
     let { sesion, motivo } = await conAcceso(c);
     if (!sesion) return { tipo: 'sin-sesion', motivo: motivo ?? SIN_SESION };
     let r = await pedir(sesion.acceso);
-    if (r.status === 401) {
+    // HU-T10.3: «reautenticar» pide entrar con Google otra vez; renovar el acceso no lo arregla,
+    // porque la entrada reciente es la de la cuenta, no la del acceso.
+    const reautenticar =
+      r.status === 401 &&
+      (
+        (await r
+          .clone()
+          .json()
+          .catch(() => null)) as { estado?: string } | null
+      )?.estado === 'reautenticar';
+    if (r.status === 401 && !reautenticar) {
       ({ sesion, motivo } = await renovar(c.almacen, c.core, { fetchFn }));
       if (!sesion) return { tipo: 'sin-sesion', motivo: motivo ?? SIN_SESION };
       r = await pedir(sesion.acceso);

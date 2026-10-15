@@ -909,6 +909,101 @@ test('HU-T9.2 y HU-T9.3 · ver los datos de entrega, confirmar por WhatsApp y co
   expect(consola.filter((t) => /Compradora|3001234567|Calle de prueba/.test(t))).toEqual([]);
 });
 
+test('HU-T10.3 · CA2 y CA3: cambiar el WhatsApp pide volver a entrar sin perder lo escrito, y se verifica', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const contacto = {
+    datos: {
+      whatsapp: '+573000000001',
+      whatsappVerificado: true,
+      correo: 'ensayo-uno@ejemplo.test',
+    } as Record<string, unknown>,
+    version: 3,
+  };
+  const ajustes = () => ({
+    secciones: {
+      identidad: { datos: { nombre: 'Comercio Ensayo Uno' }, version: 1 },
+      contacto,
+      legal: { datos: { tipoPersona: 'juridica' }, version: 1 },
+    },
+    faltantes:
+      contacto.datos['whatsappVerificado'] === true
+        ? ['legal.razonSocial']
+        : ['legal.razonSocial', 'contacto.whatsappVerificado'],
+  });
+  const guardados: { version: number; datos: Record<string, unknown> }[] = [];
+  const verificados: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/ajustes`, (r) => r.fulfill({ json: ajustes() }));
+  await page.route(`${PANEL}/api/panel/v1/ajustes/guardar`, (r) => {
+    const cuerpo = r.request().postDataJSON() as (typeof guardados)[number];
+    guardados.push(cuerpo);
+    // La primera vez entró hace más de 10 minutos.
+    if (guardados.length === 1)
+      return r.fulfill({
+        status: 401,
+        json: {
+          estado: 'reautenticar',
+          motivo: 'Para cambiar esto, vuelve a entrar con Google.',
+        },
+      });
+    contacto.datos = { ...cuerpo.datos, whatsappVerificado: false };
+    contacto.version = 4;
+    return r.fulfill({ json: { estado: 'guardado', id: 'contacto', version: 4 } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/ajustes/verificar-whatsapp`, (r) => {
+    verificados.push(r.request().postDataJSON());
+    contacto.datos = { ...contacto.datos, whatsappVerificado: true };
+    contacto.version = 5;
+    return r.fulfill({ json: { estado: 'guardado', id: 'contacto', version: 5 } });
+  });
+  await page.context().route('https://wa.me/**', (r) => r.fulfill({ body: 'chat de prueba' }));
+
+  await page.goto(`${PANEL}/mas/`);
+  await page.getByRole('link', { name: 'Ajustes de la tienda' }).click();
+  await expect(page.getByText('Falta 1 dato para publicar')).toBeVisible();
+  await expect(page.getByText('Datos legales: Razón social o nombre completo')).toBeVisible();
+  await page.getByRole('link', { name: /Contacto/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Contacto' })).toBeVisible();
+  await expect(page.getByText('Tu WhatsApp está verificado')).toBeVisible();
+
+  await page.getByLabel('WhatsApp de la tienda').fill('300 999 8877');
+  await page.getByRole('button', { name: 'Guardar contacto' }).click();
+  const dialogo = page.getByRole('alertdialog', { name: 'Vuelve a entrar' });
+  await expect(dialogo).toContainText('Para cambiar esto, vuelve a entrar con Google.');
+
+  // CA2: vuelve de Google a la misma pantalla, con lo que había escrito.
+  await dialogo.getByRole('button', { name: 'Entrar con Google' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Contacto' })).toBeVisible();
+  expect(page.url()).toBe(`${PANEL}/mas/ajustes/contacto/`);
+  await expect(page.getByLabel('WhatsApp de la tienda')).toHaveValue('300 999 8877');
+  await page.getByRole('button', { name: 'Guardar contacto' }).click();
+  await expect(page.getByText('Guardamos contacto.')).toBeVisible();
+  expect(guardados).toHaveLength(2);
+  for (const g of guardados) {
+    expect(g).toMatchObject({ version: 3, datos: { whatsapp: '+573009998877' } });
+    expect(g.datos).not.toHaveProperty('whatsappVerificado');
+  }
+
+  // CA3: sin verificar hasta abrir el chat de prueba y decir que es el propio.
+  await expect(page.getByText('Tu WhatsApp está sin verificar')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sí, es mi WhatsApp' })).toHaveCount(0);
+  const chat = page.getByRole('link', { name: 'Abrir el chat de prueba' });
+  await expect(chat).toHaveAttribute('href', /^https:\/\/wa\.me\/573009998877\?text=/);
+  const [ventana] = await Promise.all([page.waitForEvent('popup'), chat.click()]);
+  await ventana.close();
+  await page.getByRole('button', { name: 'Sí, es mi WhatsApp' }).click();
+  await expect(page.getByText('Tu WhatsApp quedó verificado.')).toBeVisible();
+  expect(verificados).toEqual([expect.objectContaining({ version: 4 })]);
+
+  const ancho = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(ancho).toBeLessThanOrEqual(360);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
 test.describe('con el teléfono en otra zona horaria', () => {
   // La hora del registro es la de Bogotá aunque el teléfono esté en Madrid.
   test.use({ timezoneId: 'Europe/Madrid' });

@@ -12,11 +12,12 @@
  */
 import type { BaseD1, SentenciaD1 } from '@ed1/d1';
 import { formatearPesos } from '@ed1/dinero';
+import { TITULOS_DE_SECCION } from '@ed1/tienda-schema/titulos';
 import { sha256 } from './pedidos.ts';
 
 /** Los campos que nunca se guardan en claro: datos personales y secretos. */
 const SENSIBLE =
-  /telefono|celular|whatsapp|correo|email|documento|direccion|contacto|comprador|llave|secret|token|clave|credencial|password|contrasena/i;
+  /telefono|celular|whatsapp|correo|email|documento|direccion|contacto|comprador|transferencia|llave|secret|token|clave|credencial|password|contrasena/i;
 
 export const esSensible = (campo: string): boolean => SENSIBLE.test(campo);
 
@@ -200,6 +201,10 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
         : `${hizo('v', 'iste', 'io')} los datos de entrega del pedido #${despues['numero']}`;
     case 'pedido.confirmar':
       return `${hizo('confirm', 'aste', 'ó')} el pedido #${despues['numero']}`;
+    case 'ajustes.guardar':
+      return `${hizo('cambi', 'aste', 'ó')} los ajustes de ${TITULOS_DE_SECCION[f.entidad_id as keyof typeof TITULOS_DE_SECCION] ?? f.entidad_id}`;
+    case 'ajustes.whatsapp_verificado':
+      return `${hizo('verific', 'aste', 'ó')} el WhatsApp de la tienda`;
     default:
       return `${quien}: ${f.accion} (${f.entidad})`;
   }
