@@ -35,7 +35,7 @@ import { Galeria } from './vistas/Galeria.tsx';
 import { Inicio } from './vistas/Inicio.tsx';
 import { Existencias, Inventario } from './vistas/Inventario.tsx';
 import { Mas } from './vistas/Mas.tsx';
-import { PorLlegar } from './vistas/PorLlegar.tsx';
+import { Bandeja, Pedido } from './vistas/Pedidos.tsx';
 import { Privacidad } from './vistas/Privacidad.tsx';
 import { Producto } from './vistas/Producto.tsx';
 import { Productos } from './vistas/Productos.tsx';
@@ -184,11 +184,14 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
       </main>
     );
   else if (ruta === '/') cuerpo = <Inicio yo={yo.datos} />;
-  else if (ruta.startsWith('/pedidos/'))
+  else if (ruta === '/pedidos/') cuerpo = <Bandeja conexion={conexion} alVencer={setVencida} />;
+  else if (/^\/pedidos\/[^/]+\/$/.test(ruta))
     cuerpo = (
-      <PorLlegar
-        titulo="Pedidos"
-        texto="Aquí vas a confirmar, cobrar y despachar los pedidos de tu tienda. Mientras tanto, te llegan por WhatsApp."
+      <Pedido
+        key={ruta}
+        conexion={conexion}
+        id={decodeURIComponent(ruta.split('/')[2] ?? '')}
+        alVencer={setVencida}
       />
     );
   else if (ruta === '/productos/' || ruta === '/productos/papelera/')

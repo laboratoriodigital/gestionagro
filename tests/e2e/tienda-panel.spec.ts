@@ -193,6 +193,8 @@ test('HU-T8.1 · CA2: si la sesión vence, «vuelve a entrar» aparece encima, s
   // La sesión vence del lado del CORE: la API dice 401 y renovar también.
   await page.unroute(`${PANEL}/api/panel/v1/yo`);
   await page.route(`${PANEL}/api/panel/v1/yo`, (r) => r.fulfill({ status: 401, json: {} }));
+  // La bandeja (HU-T9.1) también le pregunta a la API, y también oye 401.
+  await page.route(`${PANEL}/api/panel/v1/pedidos*`, (r) => r.fulfill({ status: 401, json: {} }));
   await page.unroute(`${CORE}/api/core/auth/refrescar`);
   await page.route(`${CORE}/api/core/auth/refrescar`, (r) =>
     r.fulfill({ status: 401, json: {}, headers: CORS }),
@@ -710,6 +712,101 @@ test('HU-T8.5 · CA1 y CA2: ajustar y contar, con su libro, y lo apartado dicho 
     .analyze();
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});
+
+/** Un pedido de la bandeja como lo da la API: el comprador ya viene tapado. */
+const filaDePedido = (numero: number, extra: Record<string, unknown> = {}) => ({
+  id: `ped-${numero}`,
+  numero,
+  estado: numero % 3 === 0 ? 'confirmado' : 'pendiente',
+  formaPago: numero % 2 === 0 ? 'contraentrega' : 'transferencia',
+  totalCop: 129000,
+  creado: new Date(Date.UTC(2026, 9, 15, 15) - (2000 - numero) * 60_000).toISOString(),
+  ciudad: 'Medellín',
+  articulos: 1,
+  atencion: null,
+  comprador: { nombre: 'Ensayo D.', celular: '300 ••• 4567' },
+  version: 1,
+  ...extra,
+});
+
+test('HU-T9.1 · 300 pedidos en 360 px: filtros sin red, y una respuesta vieja no pisa la nueva', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const todos = Array.from({ length: 300 }, (_, i) => filaDePedido(1300 - i));
+  let lecturas = 0;
+  /** La próxima primera página trae una lista vieja, y no llega hasta que la prueba la suelta. */
+  let lenta = false;
+  let soltar: () => void = () => undefined;
+  const suelta = new Promise<void>((listo) => {
+    soltar = listo;
+  });
+  await page.route(`${PANEL}/api/panel/v1/pedidos*`, async (r) => {
+    lecturas++;
+    const cursor = new URL(r.request().url()).searchParams.get('cursor');
+    const desde = cursor ? Number(cursor) : 0;
+    if (!cursor && lenta) {
+      lenta = false;
+      await suelta;
+      return r.fulfill({
+        json: { atencion: [], pedidos: [filaDePedido(999, { ciudad: 'Vieja' })], siguiente: null },
+      });
+    }
+    return r.fulfill({
+      json: {
+        atencion: cursor ? [] : [filaDePedido(1290, { atencion: 'monto' })],
+        pedidos: todos.slice(desde, desde + 50),
+        siguiente: desde + 50 < todos.length ? String(desde + 50) : null,
+      },
+    });
+  });
+  await page.getByRole('link', { name: 'Pedidos' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Pedidos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Necesitan atención' })).toBeVisible();
+  await expect(
+    page.getByText('Cobro a revisar: el monto no cuadra', { exact: false }),
+  ).toBeVisible();
+  for (let i = 0; i < 5; i++) {
+    await page.getByRole('button', { name: 'Ver más' }).click();
+    await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(50 * (i + 2));
+  }
+  await expect(page.getByRole('button', { name: 'Ver más' })).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+
+  // CA1: los filtros trabajan sobre lo que ya llegó, sin pedir nada.
+  const antes = lecturas;
+  await page.getByLabel('Estado').selectOption('confirmado');
+  await page.getByLabel('Forma de pago').selectOption('contraentrega');
+  await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(50);
+  await page.getByLabel('Número o comprador').fill('#1296');
+  await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(1);
+  expect(lecturas).toBe(antes);
+  await page.getByLabel('Número o comprador').fill('');
+  await page.getByLabel('Estado').selectOption('');
+  await page.getByLabel('Forma de pago').selectOption('');
+
+  // CA2 y CA3: la lectura lenta sale primero y llega de última; la lista de antes sigue mientras
+  // tanto, y al final queda la de la lectura nueva.
+  lenta = true;
+  await page.getByRole('button', { name: 'Actualizar' }).click();
+  await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(300);
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(50);
+  // Ahora llega la vieja; la pantalla ya la procesó cuando pasan dos cuadros después de leerla.
+  const vieja = page.waitForResponse((r) => r.url().endsWith('/api/panel/v1/pedidos'));
+  soltar();
+  await (await vieja).finished();
+  await page.evaluate(
+    () => new Promise((listo) => requestAnimationFrame(() => requestAnimationFrame(listo))),
+  );
+  await expect(page.locator('.filas').last().locator('.fila')).toHaveCount(50);
+  await expect(page.getByText('Vieja', { exact: false })).toHaveCount(0);
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
 test.describe('con el teléfono en otra zona horaria', () => {

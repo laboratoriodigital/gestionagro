@@ -225,6 +225,40 @@ h2 {
   display: grid;
   gap: var(--espacio-2);
 }
+
+/* HU-T9.1: los filtros de la bandeja, y lo que necesita atención antes de todo. */
+.filtros {
+  display: grid;
+  gap: var(--espacio-2);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+.atencion .ed1-lista__elemento {
+  border-color: var(--peligro);
+  border-inline-start-width: 4px;
+}
+.lineas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espacio-2);
+}
+.lineas li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  min-width: 0;
+}
+.mensaje {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  margin: 0;
+  padding: var(--espacio-3);
+  background: var(--superficie);
+  border: var(--borde-ancho) solid var(--borde);
+  border-radius: var(--radio-campo);
+}
 .formulario {
   display: grid;
   gap: var(--espacio-4);

@@ -40,6 +40,7 @@ import {
 import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { avisame, PeticionDeAvisame } from './avisame.ts';
+import { leerPedido, listarPedidos } from './bandeja.ts';
 import {
   borrarLaColeccion,
   guardarLaColeccion,
@@ -1017,6 +1018,22 @@ export function crearApp(
     return responderCatalogo(c, await atenderAvisame(q, await c.req.json().catch(() => null)));
   });
 
+  // HU-T9.1 a HU-T9.3: los pedidos, con `pedidos.ver`, `pedidos.contacto_ver` y `pedidos.gestionar`.
+  const deLosPedidos = (c: ContextoTienda) =>
+    quienPuede(c, 'pedidos.ver', 'Tu rol no puede ver los pedidos.');
+  const kekDe = (c: ContextoTienda) => kekDelEntorno(c.env.TIENDA_KEK_V1);
+  app.get('/api/panel/v1/pedidos', async (c) => {
+    const q = deLosPedidos(c);
+    if (q instanceof Response) return q;
+    const cursor = c.req.query('cursor');
+    return c.json(await listarPedidos(q, await kekDe(c), cursor ? cursor.slice(0, 100) : null));
+  });
+  app.get('/api/panel/v1/pedidos/:id', async (c) => {
+    const q = deLosPedidos(c);
+    if (q instanceof Response) return q;
+    const p = await leerPedido(q, await kekDe(c), c.req.param('id'));
+    return p ? c.json(p) : c.json({ estado: 'no-existe', motivo: 'Ese pedido no está.' }, 404);
+  });
   // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.
   app.get('/api/panel/v1/registro', async (c) => {
     const s = c.get('sesion');
