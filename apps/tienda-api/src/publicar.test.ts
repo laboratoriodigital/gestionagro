@@ -175,6 +175,23 @@ describe('publicar (HU-T4.4)', () => {
     expect(results).toEqual([{ version: 1, estado: 'publicada' }]);
   });
 
+  it('❌ sin cambios, los punteros vuelven a la versión publicada aunque alguien los haya pisado', async () => {
+    // Bitácora tienda3 16: cada despliegue de staging reescribía los hosts con `version: null` y,
+    // como nada había cambiado, la publicación no los tocaba: las dos tiendas quedaban en 404.
+    const r2 = almacen();
+    const hosts = kv();
+    await publicar(contexto(ENSAYO_DOS.org, r2, hosts));
+    const [clave, valor] = [...hosts.valores].find(([, v]) => v.includes('"canonico"')) ?? [];
+    expect(clave).toBeDefined();
+    const pisado = { ...JSON.parse(valor ?? '{}'), version: null };
+    hosts.valores.set(clave ?? '', JSON.stringify(pisado));
+
+    const r = await publicar(contexto(ENSAYO_DOS.org, r2, hosts));
+    expect(r).toMatchObject({ estado: 'nada-cambio' });
+    const version = r.estado === 'nada-cambio' ? r.version : null;
+    expect(JSON.parse(hosts.valores.get(clave ?? '') ?? '{}')).toEqual({ ...pisado, version });
+  });
+
   it('un cambio sube solo los objetos nuevos, y la versión anterior queda reemplazada', async () => {
     const r2 = almacen();
     await publicar(contexto(ENSAYO_UNO.org, r2));

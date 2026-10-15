@@ -605,3 +605,21 @@ La regla: **una prueba de despliegue que solo corre contra staging no prueba pro
 La regla: **en un componente, un valor por defecto que crea un objeto es un objeto nuevo en cada render; lo que un efecto o un `useCallback` usa como dependencia se crea una vez.**
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Medio · P5, P19 · tienda-0.1.0 · 2026-10-15
+
+**16 · Volver a desplegar staging sin cambios dejaba las dos tiendas de prueba en 404.**
+
+*Qué pasó.* El 15 oct 2026 se relanzó el despliegue de staging con «productos: core», para que el dueño quedara de propietario de los comercios de prueba (HU-T2.10). El CORE salió bien; el paso de la Tienda salió en rojo, y como ese paso no detiene el trabajo, la corrida se vio verde. Lo encontró el dueño al pegar el resumen.
+
+*Síntoma literal.* «la Tienda se desplegó, pero la prueba de humo falló: https://ensayo-uno--staging.laboratorio-digital.app/ respondió 404 sin la portada de Comercio Ensayo Uno», y lo mismo con Ensayo Dos. El despliegue de las 03:17, con el mismo código pero con una vitrina nueva, había pasado.
+
+*Causa raíz.* En cada despliegue de staging, la siembra reescribe las entradas de `TIENDA_HOSTS` de los comercios de prueba con `version: null` y luego los publica. Si nada cambió desde la última publicación, `publicar` responde «nada cambió» y vuelve sin tocar los punteros, así que quedan en `null` y el despacho dice «Esta tienda todavía no abre». Solo pasaba cuando la vitrina no cambiaba, por eso no se vio antes.
+
+*Cómo se reprodujo.* Una prueba publica, pisa el puntero con `version: null` y publica otra vez sin cambios: el puntero queda en `null`.
+
+*Arreglo.* «Nada cambió» también reescribe los punteros de cada dirección con la versión publicada.
+
+**Lo prueba:** `apps/tienda-api/src/publicar.test.ts`, «sin cambios, los punteros vuelven a la versión publicada aunque alguien los haya pisado». Control negativo: sin el arreglo, queda en rojo.
+
+La regla: **lo que se deriva de la base (un puntero en el KV) se reescribe en cada publicación, cambie o no el contenido; nunca se confía en que siga como se dejó.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P5, P7 · tienda-0.1.0 · 2026-10-15

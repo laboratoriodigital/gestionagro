@@ -11,6 +11,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
 
 ### Corregido
+- Volver a desplegar staging sin cambios en la vitrina ya no deja a los comercios de prueba en «Esta tienda todavía no abre»: publicar sin cambios también vuelve a apuntar cada dirección a la versión publicada.
 - El despliegue a producción de la Tienda ya no falla al final por buscar la API en una dirección que no existe: la revisión de que la API no se puede abrir desde afuera mira la dirección correcta en los dos ambientes.
 
 ## [0.1.0] - 2026-10-14

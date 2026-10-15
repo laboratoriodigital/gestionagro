@@ -210,6 +210,23 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       .all<{ hostname: string; rol: string }>();
     const canonico = dominios.find((d) => d.rol === 'canonico')?.hostname;
     if (!canonico) return await fallar('la tienda no tiene una dirección activa');
+    /** Cada dirección de la tienda, apuntando a la versión publicada (TIENDA §5.6). */
+    const apuntar = async (v: number) => {
+      for (const d of dominios) {
+        await c.hosts.put(
+          `h:${d.hostname}`,
+          JSON.stringify({
+            org: c.org,
+            celda: c.celda,
+            shard: c.shardNombre,
+            version: v,
+            canonico,
+            estado: 'abierta',
+            rol: d.rol,
+          }),
+        );
+      }
+    };
 
     // 3. Hornear y pasar la compuerta.
     const activos = productos.filter((p) => p.estado === 'activo');
@@ -339,6 +356,8 @@ export async function publicar(c: Contexto): Promise<Resultado> {
           .prepare('DELETE FROM publicacion WHERE org_id = ? AND version = ?')
           .bind(c.org, version)
           .run();
+        // Bitácora tienda3 16: los punteros se reescriben igual, por si alguien los pisó.
+        await apuntar(tienda.version_publicada);
         return { estado: 'nada-cambio', version: tienda.version_publicada };
       }
     }
@@ -390,20 +409,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     }
 
     // 7. Los punteros y, al final, la versión publicada.
-    for (const d of dominios) {
-      await c.hosts.put(
-        `h:${d.hostname}`,
-        JSON.stringify({
-          org: c.org,
-          celda: c.celda,
-          shard: c.shardNombre,
-          version,
-          canonico,
-          estado: 'abierta',
-          rol: d.rol,
-        }),
-      );
-    }
+    await apuntar(version);
     const bytes = Object.values(m.archivos).reduce((s, a) => s + a.bytes, 0);
     await c.shard.batch([
       c.shard
