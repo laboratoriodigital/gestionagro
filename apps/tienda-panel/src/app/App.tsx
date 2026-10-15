@@ -15,7 +15,7 @@ import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { type Almacen, almacenIndexedDb } from './almacen.ts';
 import { pedirAlPanel, type RespuestaDelPanel, type Yo } from './api.ts';
 import { Barra, Navegacion } from './componentes/index.ts';
-import { usarRuta } from './ruta.ts';
+import { irA, usarRuta } from './ruta.ts';
 import {
   canjear,
   leerRegreso,
@@ -94,9 +94,10 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
   }, [almacen, core]);
 
   const pantalla = pantallaDe(sesion);
+  const orgElegida = sesion?.org_id ?? null;
 
-  // Con la tienda elegida: a qué tienda llegó la sesión. Se pregunta al cambiar de pantalla y al
-  // volver a la pestaña.
+  // Con la tienda elegida: a qué tienda llegó la sesión. Se pregunta al cambiar de pantalla o de
+  // tienda y al volver a la pestaña.
   const preguntar = useCallback(async () => {
     if (pantallaDe(await leerSesion(almacen)) !== 'panel') return;
     const r = await pedirAlPanel<Yo>({ almacen, core }, 'yo');
@@ -110,8 +111,10 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
   }, [almacen, core]);
 
   useEffect(() => {
+    // `orgElegida`: cambiar de tienda desde «Más» no cambia la pantalla ni la ruta, y sin ella
+    // nadie preguntaba por la tienda nueva (bitácora tienda3 17).
     if (!abriendo && pantalla === 'panel') void preguntar();
-  }, [abriendo, pantalla, ruta, preguntar]);
+  }, [abriendo, pantalla, ruta, orgElegida, preguntar]);
   useEffect(() => {
     const alVolver = () => {
       if (document.visibilityState === 'visible') void preguntar();
@@ -126,6 +129,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     setEligiendo(false);
     setYo(null);
     setSesion(r.sesion);
+    // La tienda nueva abre en su inicio, no en «Más».
+    if (r.sesion?.org_id) irA('/');
   };
   const alSalir = async () => {
     await salir(almacen);

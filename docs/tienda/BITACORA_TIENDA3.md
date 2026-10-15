@@ -623,3 +623,21 @@ La regla: **en un componente, un valor por defecto que crea un objeto es un obje
 La regla: **lo que se deriva de la base (un puntero en el KV) se reescribe en cada publicación, cambie o no el contenido; nunca se confía en que siga como se dejó.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Medio · P5, P7 · tienda-0.1.0 · 2026-10-15
+
+**17 · Cambiar de tienda desde «Más» se quedaba en «Abriendo tu tienda…» hasta recargar.**
+
+*Qué pasó.* El 15 oct 2026, en la aceptación de staging (WI-T8.1.3), el dueño entró al panel con sus dos tiendas, abrió Ensayo Uno y luego eligió Ensayo Dos desde «Más».
+
+*Síntoma literal.* «Al entrar a la tienda dos se queda el mensaje de entrando, toca actualizar la página para que muestre el inicio de tienda 2.»
+
+*Causa raíz.* Elegir la tienda renovaba la sesión hacia ella y borraba lo que el panel sabía de la tienda anterior (`yo`), pero la pregunta a `/api/panel/v1/yo` solo se repetía al cambiar la pantalla o la ruta. Desde «Más» las dos seguían iguales (`panel` y `/mas/`), así que nadie preguntaba por la tienda nueva. La e2e de elegir tienda empezaba sin tienda elegida, donde la pantalla sí cambia, y no lo veía.
+
+*Cómo se reprodujo.* Una e2e entra con Ensayo Uno, va a «Más», toca «Cambiar de tienda» y abre Ensayo Dos: la página queda en «Abriendo tu tienda…».
+
+*Arreglo.* La pregunta se repite también cuando cambia la tienda de la sesión, y la tienda elegida abre en su inicio.
+
+**Lo prueba:** `tests/e2e/tienda-panel.spec.ts`, «cambiar de tienda desde «Más» abre el inicio de la otra, sin recargar». Control negativo: sin el arreglo, queda en rojo con «Abriendo tu tienda…» en pantalla.
+
+La regla: **lo que un efecto pregunta depende de todo lo que cambia la respuesta, no solo de la pantalla; y la e2e de un cambio empieza desde un estado ya elegido, no solo desde cero.**
+
+*Ficha:* tienda3 · *(mío)* · 🟡 Medio · P5 · tienda-0.1.0 · 2026-10-15
