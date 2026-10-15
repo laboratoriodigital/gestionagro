@@ -1,0 +1,36 @@
+# La tienda llena en staging (HU-T3.7 CA1, docs/runbooks/tienda-revision-con-la-tienda-llena.md):
+# 2.000 productos y 300 pedidos del mes en Comercio Ensayo Uno, para revisar la vitrina y el panel.
+# Solo a mano y solo en staging: el script rechaza cualquier otro destino. Volver a correrlo no
+# duplica nada.
+name: sembrar-volumen-tienda
+
+on:
+  workflow_dispatch:
+
+# Cancelar uno a mitad no deja nada roto: el siguiente termina lo que faltó.
+concurrency:
+  group: sembrar-volumen-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sembrar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+      - name: Llenar a Ensayo Uno en staging
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: node scripts/tienda/sembrar-volumen.ts --destino staging

@@ -177,6 +177,12 @@ export async function huella(texto: string): Promise<string> {
 
 /** Los anchos de las derivadas de una foto (TIENDA §5.6). */
 export const ANCHOS_DE_FOTO: readonly number[] = [400, 800, 1600];
+/**
+ * Cuántos productos caben en una página sin pasar su presupuesto, con foto (HU-T3.7, TIENDA §1.3):
+ * la portada muestra los primeros 24; las colecciones y «todos los productos», 48 por página.
+ */
+export const EN_LA_PORTADA = 24;
+export const POR_PAGINA = 48;
 const precioDesde = (p: ProductoParaHornear) => Math.min(...p.variantes.map((v) => v.precioCop));
 /** «Desde» solo cuando las variantes cuestan distinto. */
 const variaElPrecio = (p: ProductoParaHornear) =>
@@ -326,6 +332,30 @@ ${p.cuerpo}
     `- [${markdownPlano(p.nombre)}](/p/${p.slug}/): ${variaElPrecio(p) ? 'desde ' : ''}${formatearPesos(precioDesde(p))}`;
 
   /**
+   * Una lista larga, en páginas (HU-T3.7: con 2.000 productos la portada pesaba 434 KB y la
+   * compuerta no la dejaba publicar). La primera vive en `base`; las demás, en `base` + su número.
+   */
+  const rutaDePagina = (base: string, n: number) => (n === 1 ? base : `${base}${n}/`);
+  const enPaginas = <T>(lista: readonly T[]) =>
+    Array.from({ length: Math.max(1, Math.ceil(lista.length / POR_PAGINA)) }, (_, k) =>
+      lista.slice(k * POR_PAGINA, (k + 1) * POR_PAGINA),
+    );
+  const navegacion = (base: string, n: number, total: number) =>
+    total <= 1
+      ? ''
+      : `<nav class="paginas" aria-label="Páginas">${n > 1 ? `<a href="${escaparHtml(rutaDePagina(base, n - 1))}" rel="prev">Anteriores</a>` : ''}<span class="paginas__cual">Página ${n} de ${total}</span>${n < total ? `<a href="${escaparHtml(rutaDePagina(base, n + 1))}" rel="next">Siguientes</a>` : ''}</nav>`;
+  const navegacionMd = (base: string, n: number, total: number) =>
+    total <= 1
+      ? ''
+      : `\n${[n > 1 ? `[Anteriores](${rutaDePagina(base, n - 1)}index.md)` : '', n < total ? `[Siguientes](${rutaDePagina(base, n + 1)}index.md)` : ''].filter(Boolean).join(' · ')}\n`;
+  /** La portada muestra los primeros; si hay más, enlaza a todos. */
+  const enLaPortada = productos.slice(0, EN_LA_PORTADA);
+  const hayMas = productos.length > EN_LA_PORTADA;
+  const verTodos = hayMas
+    ? `<p class="ver-todos"><a href="/productos/">Ver los ${productos.length} productos</a></p>`
+    : '';
+
+  /**
    * Las tres portadas de `apariencia` (HU-T5.2 CA1), sobre el mismo contenido:
    * - `catalogo`: el nombre, la frase y todos los productos;
    * - `editorial`: un producto grande arriba (el destacado, o el primero) y los demás debajo;
@@ -343,10 +373,11 @@ ${p.cuerpo}
     }
     if (t.apariencia.portada === 'editorial') {
       const grande = productos.find((p) => p.destacado) ?? (productos[0] as ProductoParaHornear);
-      const resto = productos.filter((p) => p !== grande);
+      const resto = enLaPortada.filter((p) => p !== grande);
       return [
         `<section class="portada-editorial"><a class="portada-editorial__producto" href="/p/${escaparHtml(grande.slug)}/">${imagen(grande.fotos?.[0], 'portada-editorial__foto', TAMANO_PORTADA, true, grande.nombre)}<div class="portada-editorial__texto">${encabezado.filter(Boolean).join('')}<span class="portada-editorial__ver">Ver ${escaparHtml(grande.nombre)}</span></div></a></section>`,
         ...(resto.length > 0 ? ['<h2>Más productos</h2>', rejilla(resto, false)] : []),
+        verTodos,
       ];
     }
     if (t.apariencia.portada === 'colecciones' && colecciones.length > 0) {
@@ -358,11 +389,12 @@ ${p.cuerpo}
             return `<li class="coleccion"><a href="/c/${escaparHtml(c.slug)}/">${imagen(primero?.fotos?.[0], 'coleccion__foto', TAMANO_TARJETA, i === 0, c.nombre)}<span class="coleccion__nombre">${escaparHtml(c.nombre)}</span></a></li>`;
           })
           .join('')}</ul>`,
-        '<h2>Todos los productos</h2>',
-        rejilla(productos, false),
+        hayMas ? '<h2>Productos</h2>' : '<h2>Todos los productos</h2>',
+        rejilla(enLaPortada, false),
+        verTodos,
       ];
     }
-    return [...encabezado, rejilla(productos, true)];
+    return [...encabezado, rejilla(enLaPortada, true), verTodos];
   };
 
   // La portada.
@@ -395,7 +427,8 @@ ${p.cuerpo}
           ]
         : []),
       '\n## Productos\n',
-      ...productos.map(lineaMd),
+      ...enLaPortada.map(lineaMd),
+      hayMas ? `\n[Ver los ${productos.length} productos](/productos/index.md)` : '',
       '',
     ]
       .filter((l) => l !== '')
@@ -552,20 +585,48 @@ ${p.cuerpo}
     });
   }
 
-  // Las colecciones.
+  // Todos los productos, en páginas, cuando no caben en la portada.
+  const todos = enPaginas(productos);
+  if (hayMas) {
+    todos.forEach((lista, k) => {
+      const n = k + 1;
+      const ruta = rutaDePagina('/productos/', n);
+      pagina({
+        ruta,
+        titulo: `Productos${n > 1 ? `, página ${n}` : ''} · ${t.nombre}`,
+        cuerpo: `<h1>Productos</h1>\n${rejilla(lista, true)}\n${navegacion('/productos/', n, todos.length)}`,
+        ld: [
+          migas([
+            [t.nombre, '/'],
+            ['Productos', '/productos/'],
+          ]),
+        ],
+        gemelo: `# Productos${n > 1 ? `, página ${n}` : ''}\n\n${lista.map(lineaMd).join('\n')}\n${navegacionMd('/productos/', n, todos.length)}`,
+      });
+    });
+  }
+
+  // Las colecciones, en páginas si son largas.
+  const paginasDeColeccion: string[] = [];
   for (const c of [...(t.colecciones ?? [])].sort((a, b) => (a.slug < b.slug ? -1 : 1))) {
     const suyos = productos.filter((p) => c.productos.includes(p.slug));
-    pagina({
-      ruta: `/c/${c.slug}/`,
-      titulo: `${c.nombre} · ${t.nombre}`,
-      cuerpo: `<h1>${escaparHtml(c.nombre)}</h1>\n${rejilla(suyos, true)}`,
-      ld: [
-        migas([
-          [t.nombre, '/'],
-          [c.nombre, `/c/${c.slug}/`],
-        ]),
-      ],
-      gemelo: `# ${markdownPlano(c.nombre)}\n\n${suyos.map(lineaMd).join('\n')}\n`,
+    const base = `/c/${c.slug}/`;
+    const paginas = enPaginas(suyos);
+    paginas.forEach((lista, k) => {
+      const n = k + 1;
+      if (n > 1) paginasDeColeccion.push(rutaDePagina(base, n));
+      pagina({
+        ruta: rutaDePagina(base, n),
+        titulo: `${c.nombre}${n > 1 ? `, página ${n}` : ''} · ${t.nombre}`,
+        cuerpo: `<h1>${escaparHtml(c.nombre)}</h1>\n${rejilla(lista, true)}${paginas.length > 1 ? `\n${navegacion(base, n, paginas.length)}` : ''}`,
+        ld: [
+          migas([
+            [t.nombre, '/'],
+            [c.nombre, base],
+          ]),
+        ],
+        gemelo: `# ${markdownPlano(c.nombre)}${n > 1 ? `, página ${n}` : ''}\n\n${lista.map(lineaMd).join('\n')}\n${navegacionMd(base, n, paginas.length)}`,
+      });
     });
   }
 
@@ -762,6 +823,8 @@ ${p.cuerpo}
     ...[...(t.colecciones ?? [])]
       .sort((a, b) => (a.slug < b.slug ? -1 : 1))
       .map((c) => [`/c/${c.slug}/`, ultima] as const),
+    ...paginasDeColeccion.map((r) => [r, ultima] as const),
+    ...(hayMas ? todos.map((_, k) => [rutaDePagina('/productos/', k + 1), ultima] as const) : []),
     ...legales.map((x) => [x.ruta, undefined] as const),
   ] as const;
   poner(

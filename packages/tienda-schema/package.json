@@ -10,7 +10,8 @@
     "./medios": "./src/medios.ts",
     "./permisos": "./src/permisos.ts",
     "./tapado": "./src/tapado.ts",
-    "./titulos": "./src/titulos.ts"
+    "./titulos": "./src/titulos.ts",
+    "./volumen": "./src/volumen.ts"
   },
   "dependencies": {
     "zod": "^4.6.5"
