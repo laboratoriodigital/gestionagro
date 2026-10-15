@@ -213,6 +213,63 @@ async function leer(q: Quien, kek: Kek | null, id: string, ahoraMs: number): Pro
   }
 }
 
+/**
+ * HU-T10.7 CA2: todas las solicitudes con lo que contó cada persona, para «Descargar todo» con
+ * datos personales. Una que no se puede abrir sale sin su sobre, y lo dice.
+ */
+export async function abrirSolicitudes(q: Quien, kek: Kek): Promise<Record<string, unknown>[]> {
+  const { results } = await q.db
+    .prepare(
+      `SELECT s.id, s.radicado, s.tipo, s.estado, s.creada, s.vence, s.respondida, s.cerrada, s.sobre, s.iv,
+              s.llave_version FROM solicitud s WHERE s.org_id = ? ORDER BY s.radicado LIMIT 50000`,
+    )
+    .bind(q.org)
+    .all<
+      Omit<FilaCruda, 'numero'> & {
+        sobre: ArrayBuffer | Uint8Array;
+        iv: ArrayBuffer | Uint8Array;
+        llave_version: number;
+      }
+    >();
+  if (results.length === 0) return [];
+  const deks = await deksDeLaTienda(q.db, q.org, 'datos_personales', new Map([[kek.id, kek]]));
+  const filas: Record<string, unknown>[] = [];
+  for (const f of results) {
+    const base = {
+      radicado: `R-${f.radicado}`,
+      tipo: NOMBRE_DEL_TIPO[f.tipo] ?? f.tipo,
+      estado: f.estado,
+      creada: f.creada,
+      vence: f.vence,
+      respondida: f.respondida,
+      cerrada: f.cerrada,
+    };
+    try {
+      const sobre = Sobre.parse(
+        JSON.parse(
+          await descifrarSobre(deks, contexto(q.org, f.id), {
+            sobre: bytes(f.sobre),
+            iv: bytes(f.iv),
+            version: f.llave_version,
+          }),
+        ),
+      );
+      filas.push({
+        ...base,
+        contacto: sobre.contacto,
+        texto: sobre.texto,
+        pedido: sobre.pedido,
+        respuesta: sobre.respuesta ?? null,
+      });
+    } catch (e) {
+      if (!(e instanceof DescifradoFallido) && !(e instanceof z.ZodError)) throw e;
+      console.error('tienda-api: una solicitud no se pudo abrir');
+      filas.push({ ...base, sinAbrir: true });
+    }
+  }
+  return filas;
+}
+
 const PeticionDeSolicitud = z.object({ id: z.string().min(1).max(64) });
 
 export type Detalle =

@@ -1,6 +1,6 @@
 /**
  * «Más» (HU-T8.1): lo que no cabe en la navegación de abajo, cambiar de tienda y salir. «Equipo»
- * solo para quien lo puede manejar (HU-T10.5 CA2).
+ * solo para quien lo puede manejar (HU-T10.5 CA2); «Descargar todo», para quien puede exportar (HU-T10.7).
  */
 import { puede } from '@ed1/tienda-schema/permisos';
 
@@ -41,6 +41,11 @@ export function Mas({
         <li>
           <a href="/mas/registro/">Registro: quién cambió qué</a>
         </li>
+        {puede(rol, 'exportar') ? (
+          <li>
+            <a href="/mas/datos/">Descargar todo</a>
+          </li>
+        ) : null}
         <li>
           <a href="/privacidad/">Política de tratamiento de datos</a>
         </li>

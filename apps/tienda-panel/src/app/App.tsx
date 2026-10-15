@@ -32,6 +32,7 @@ import {
 import { AjusteDeSeccion, Ajustes } from './vistas/Ajustes.tsx';
 import { Anotar } from './vistas/Anotar.tsx';
 import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
+import { Datos } from './vistas/Datos.tsx';
 import { ElegirTienda, NOMBRE_DEL_ROL } from './vistas/ElegirTienda.tsx';
 import { Entrar } from './vistas/Entrar.tsx';
 import { Equipo } from './vistas/Equipo.tsx';
@@ -314,6 +315,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     );
   } else if (ruta === '/mas/registro/')
     cuerpo = <Registro conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/mas/datos/')
+    cuerpo = <Datos conexion={conexion} rol={yo.datos.rol} alVencer={setVencida} />;
   else if (ruta === '/mas/equipo/')
     cuerpo = (
       <Equipo

@@ -81,6 +81,7 @@ import {
   perderEnvio,
 } from './ciclo.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
+import { exportarTienda } from './exportar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import {
   ajustarInventario,
@@ -1236,6 +1237,26 @@ export function crearApp(
     );
     return r.estado === 'ok' ? c.json(r) : responderCatalogo(c, r);
   });
+  // HU-T10.7: «Descargar todo». Con los datos personales, solo el propietario y recién entrado.
+  app.get('/api/panel/v1/exportar', async (c) => {
+    const datosPersonales = c.req.query('datos') === 'personales';
+    const q = datosPersonales
+      ? quienPuede(
+          c,
+          'exportar.datos_personales',
+          'Solo quien administra la tienda descarga los datos personales.',
+        )
+      : quienPuede(c, 'exportar', 'Tu rol no puede descargar los datos de la tienda.');
+    if (q instanceof Response) return q;
+    const r = await exportarTienda(q, {
+      medios: c.env.MEDIOS,
+      datosPersonales,
+      kek: datosPersonales ? await kekDe(c) : null,
+    });
+    if ('estado' in r) return c.json(r, 503);
+    return c.json(r, 200, { 'cache-control': 'no-store' });
+  });
+
   // HU-T14.2: el tablero de Inicio.
   app.get('/api/panel/v1/tablero', async (c) => {
     const q = quienPuede(c, 'tablero.ver', 'Tu rol no puede ver el tablero.');

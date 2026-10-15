@@ -2041,3 +2041,127 @@ test('HU-T14.2 · ❌ si el tablero no llega, lo dice sin inventar ceros', async
   await expect(page.getByText('$0')).toHaveCount(0);
   await expect(page.getByText('Productos en tu plan')).toBeVisible();
 });
+
+const exportacionDeEnsayo = (personales: boolean) => ({
+  formato: 'tienda-export/1',
+  exportada: '2026-10-15T15:00:00.000Z',
+  tienda: { slug: 'ensayo-uno', nombre: 'Comercio Ensayo Uno' },
+  ajustes: {},
+  colecciones: [],
+  productos: [
+    {
+      refExterna: 'p-camisa',
+      nombre: 'Camisa de lino',
+      slug: 'camisa-de-lino',
+      estado: 'activo',
+      variantes: [{ valores: ['M', 'Arena'], precioCop: 129000, stock: 4 }],
+      medios: [],
+    },
+  ],
+  envios: [],
+  cupones: [],
+  paginas: [],
+  pedidos: [
+    {
+      codigo: 'EXP0BB',
+      creado: '2026-10-15T06:00:00.000Z',
+      estado: 'entregado',
+      formaPago: 'transferencia',
+      lineas: [],
+      totales: { subtotal: 129000, descuento: 0, envio: 0, total: 129000 },
+    },
+  ],
+  excluidos: { pedidosEnCurso: 1, pedidosSinSuVariante: 0 },
+  huellas: {},
+  ...(personales
+    ? {
+        datosPersonales: {
+          pedidos: [{ codigo: 'EXP0BB', nombre: 'Ensayo Dos Compradora' }],
+          solicitudes: [],
+        },
+      }
+    : {}),
+});
+
+test('HU-T10.7 · CA1 y CA2: descargar todo en JSON, las hojas en el teléfono y los datos personales con su casilla', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const pedidas: string[] = [];
+  await page.route(`${PANEL}/api/panel/v1/exportar*`, (r) => {
+    const url = new URL(r.request().url());
+    pedidas.push(url.search);
+    return r.fulfill({ json: exportacionDeEnsayo(url.searchParams.get('datos') === 'personales') });
+  });
+  await page.getByRole('link', { name: 'Más' }).click();
+  await page.getByRole('link', { name: 'Descargar todo' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Descargar todo' })).toBeVisible();
+  const casilla = page.getByLabel(/Incluir los datos personales de los compradores/);
+  await expect(casilla).not.toBeChecked();
+  await sinFallasDeAxe(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+
+  // Sin la casilla: el archivo sin datos personales.
+  const [json] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Descargar todo', exact: true }).click(),
+  ]);
+  expect(json.suggestedFilename()).toBe('ensayo-uno-2026-10-15.json');
+  const archivo = JSON.parse(readFileSync((await json.path()) ?? '', 'utf8')) as Record<
+    string,
+    unknown
+  >;
+  expect(archivo['formato']).toBe('tienda-export/1');
+  expect(archivo).not.toHaveProperty('datosPersonales');
+  await expect(page.getByText(/No van 1 pedido: 1 en curso/)).toBeVisible();
+
+  const [xlsx] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Productos y pedidos en Excel' }).click(),
+  ]);
+  expect(xlsx.suggestedFilename()).toBe('ensayo-uno-2026-10-15.xlsx');
+  expect(
+    readFileSync((await xlsx.path()) ?? '')
+      .subarray(0, 2)
+      .toString(),
+  ).toBe('PK');
+  const [csv] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Pedidos en CSV' }).click(),
+  ]);
+  expect(csv.suggestedFilename()).toBe('ensayo-uno-pedidos-2026-10-15.csv');
+  expect(readFileSync((await csv.path()) ?? '', 'utf8')).toContain(
+    'EXP0BB,2026-10-15T06:00:00.000Z,entregado',
+  );
+
+  // Con la casilla: lo pide aparte y lo dice.
+  await casilla.check();
+  const [conDatos] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Descargar todo, con datos personales' }).click(),
+  ]);
+  expect(JSON.parse(readFileSync((await conDatos.path()) ?? '', 'utf8'))).toHaveProperty(
+    'datosPersonales',
+  );
+  await expect(
+    page.getByText(/Lleva los datos personales: guárdalo en un lugar seguro/),
+  ).toBeVisible();
+  expect(pedidas).toEqual(['', '', '', '?datos=personales']);
+});
+
+test('HU-T10.7 · ❌ CA2: el colaborador descarga sin datos personales y no ve la casilla', async ({
+  page,
+}) => {
+  await coreFalso(page, sesion());
+  await apiFalsa(page, DOS);
+  await page.route(`${PANEL}/api/panel/v1/exportar*`, (r) =>
+    r.fulfill({ json: exportacionDeEnsayo(false) }),
+  );
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await page.getByRole('link', { name: 'Más' }).click();
+  await page.getByRole('link', { name: 'Descargar todo' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Descargar todo' })).toBeVisible();
+  await expect(page.getByLabel(/Incluir los datos personales/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Descargar todo', exact: true })).toBeVisible();
+});

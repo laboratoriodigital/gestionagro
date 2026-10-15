@@ -243,6 +243,10 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('respond', 'iste', 'ió')} la solicitud ${despues['radicado']}`;
     case 'solicitud.cerrar':
       return `${hizo('cerr', 'aste', 'ó')} la solicitud ${despues['radicado']}`;
+    case 'exportar':
+      return `${hizo('descarg', 'aste', 'ó')} todos los datos de la tienda`;
+    case 'exportar.datos_personales':
+      return `${hizo('descarg', 'aste', 'ó')} todos los datos de la tienda, con los datos personales`;
     case 'ajustes.whatsapp_verificado':
       return `${hizo('verific', 'aste', 'ó')} el WhatsApp de la tienda`;
     default:

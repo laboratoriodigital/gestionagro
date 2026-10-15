@@ -71,7 +71,7 @@ const bytes = (v: ArrayBuffer | Uint8Array | number[]) =>
   v instanceof Uint8Array ? v : new Uint8Array(v as ArrayBuffer);
 
 /** Abre los sobres de estos pedidos. Uno que no se puede abrir no sale: se registra y se sigue. */
-async function abrirContactos(
+export async function abrirContactos(
   q: Quien,
   kek: Kek | null,
   pedidos: readonly string[],
