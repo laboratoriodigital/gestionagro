@@ -28,6 +28,10 @@
     {
       "binding": "SITIOS",
       "bucket_name": "tienda-c1"
+    },
+    {
+      "binding": "FOTOS",
+      "bucket_name": "tienda-c1-medios"
     }
   ],
   "triggers": {
