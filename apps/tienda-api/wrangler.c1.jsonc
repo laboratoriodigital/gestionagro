@@ -108,6 +108,10 @@
         {
           "binding": "SITIOS",
           "bucket_name": "tienda-c1-staging"
+        },
+        {
+          "binding": "FOTOS",
+          "bucket_name": "tienda-c1-medios-staging"
         }
       ],
       "triggers": {
