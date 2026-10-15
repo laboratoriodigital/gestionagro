@@ -10,6 +10,8 @@
  *   comisión y el flete de ida, si se saben, entran al recaudo que nace con el despacho.
  * - **En camino (HU-T9.5).** Entregar, que contra entrega es recaudar; recibir una devolución, con el
  *   flete de vuelta y si las unidades volvieron; o marcar la plata como perdida.
+ * - **Notas, enlace y cancelar (HU-T9.6).** Las notas van a la historia; un enlace de seguimiento
+ *   nuevo deja sin servir el anterior; cancelar pregunta si las unidades vuelven al inventario.
  */
 import { Aviso, type EstadoDeContenido, ResumenDeErrores } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
@@ -174,6 +176,9 @@ export function Bandeja({
         </div>
       </div>
       <div class="acciones acciones--fila">
+        <a class="ed1-boton ed1-boton--primario" href="/pedidos/nuevo/">
+          Anotar un pedido
+        </a>
         <a class="ed1-boton ed1-boton--secundario" href="/pedidos/recaudos/">
           Recaudos
         </a>
@@ -252,6 +257,7 @@ interface PedidoDelPanel extends FilaDePedido {
     de: string | null;
     a: string | null;
     quien: string;
+    nota?: string;
   }[];
   conContacto: boolean;
   transportadora: string | null;
@@ -480,6 +486,127 @@ function Devolver({
   );
 }
 
+/** HU-T9.6 CA2: cancelar. Si ya había descontado, pregunta si las unidades vuelven. */
+function Cancelar({
+  conexion,
+  pedido,
+  alVencer,
+  alCancelar,
+}: {
+  conexion: Conexion;
+  pedido: PedidoDelPanel;
+  alVencer: (motivo: string) => void;
+  alCancelar: (aviso: string) => Promise<void>;
+}) {
+  const descontado = pedido.lineas.some((l) => l.descontado);
+  const [volvio, setVolvio] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const op = useRef(opNueva());
+  const enviar = async (e: Event) => {
+    e.preventDefault();
+    setOcupado(true);
+    const r = await pedirAlPanel(conexion, 'pedidos/cancelar', {
+      cuerpo: {
+        op: op.current,
+        pedido: pedido.id,
+        version: pedido.version,
+        volvio: descontado && volvio,
+      },
+    });
+    setOcupado(false);
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok') {
+      op.current = opNueva();
+      return setError(r.problemas?.[0]?.mensaje ?? r.motivo);
+    }
+    await alCancelar(
+      descontado && volvio
+        ? 'Pedido cancelado. Las unidades volvieron al inventario.'
+        : 'Pedido cancelado.',
+    );
+  };
+  return (
+    <details class="ed1-confirmacion">
+      <summary class="ed1-boton ed1-boton--secundario">Cancelar el pedido</summary>
+      <form
+        class="ed1-confirmacion__formulario formulario"
+        onSubmit={(e) => void enviar(e)}
+        noValidate
+      >
+        {descontado ? (
+          <Casilla
+            id="cancelar-volvio"
+            etiqueta="Las unidades siguen aquí: vuelven al inventario"
+            marcada={volvio}
+            alCambiar={setVolvio}
+          />
+        ) : null}
+        <p class="ed1-confirmacion__consecuencia">
+          El pedido queda cancelado y no se puede volver a confirmar.
+        </p>
+        {error ? (
+          <p class="ed1-campo__error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <button
+          class="ed1-boton ed1-boton--peligro"
+          type="submit"
+          disabled={ocupado}
+          aria-busy={ocupado ? 'true' : undefined}
+        >
+          Sí, cancelar el pedido
+        </button>
+      </form>
+    </details>
+  );
+}
+
+/** HU-T9.6 CA1: una nota en la historia del pedido. */
+function Nota({
+  conexion,
+  pedido,
+  alVencer,
+  alAnotar,
+}: {
+  conexion: Conexion;
+  pedido: PedidoDelPanel;
+  alVencer: (motivo: string) => void;
+  alAnotar: (aviso: string) => Promise<void>;
+}) {
+  const [texto, setTexto] = useState('');
+  const [error, setError] = useState<string | undefined>(undefined);
+  const op = useRef(opNueva());
+  const enviar = async (e: Event) => {
+    e.preventDefault();
+    if (!texto.trim()) return setError('Escribe la nota.');
+    const r = await pedirAlPanel(conexion, 'pedidos/nota', {
+      cuerpo: { op: op.current, pedido: pedido.id, texto: texto.trim() },
+    });
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    op.current = opNueva();
+    if (r.tipo !== 'ok') return setError(r.problemas?.[0]?.mensaje ?? r.motivo);
+    setError(undefined);
+    setTexto('');
+    await alAnotar('Nota guardada en la historia del pedido.');
+  };
+  return (
+    <form class="formulario" onSubmit={(e) => void enviar(e)} noValidate>
+      <Texto
+        id="nota"
+        etiqueta="Agregar una nota"
+        valor={texto}
+        alCambiar={setTexto}
+        error={error}
+      />
+      <button class="ed1-boton ed1-boton--secundario" type="submit">
+        Guardar la nota
+      </button>
+    </form>
+  );
+}
+
 interface Contacto {
   nombre?: string;
   celular?: string;
@@ -501,6 +628,7 @@ const enFrase = (e: PedidoDelPanel['historia'][number]) => {
     const a = ESTADOS_DE_PEDIDO[e.a ?? '']?.texto ?? e.a;
     return `${e.quien}: ${e.de ? `de «${ESTADOS_DE_PEDIDO[e.de]?.texto ?? e.de}» a ` : ''}«${a}»`;
   }
+  if (e.tipo === 'nota') return `${e.quien}: «${e.nota ?? ''}»`;
   if (e.tipo === 'recaudo')
     return `${e.quien}: recaudo ${e.a === 'liquidado' ? 'liquidado' : `«${(ESTADOS_DEL_RECAUDO[e.a ?? ''] ?? e.a ?? '').split(':')[0]}»`}`;
   if (e.tipo === 'contacto_leido')
@@ -522,6 +650,7 @@ export function Pedido({
   const [contacto, setContacto] = useState<Contacto | null>(null);
   const [aviso, setAviso] = useState<{ tono: 'info' | 'peligro'; texto: string } | null>(null);
   const [whatsapp, setWhatsapp] = useState<{ url: string; mensaje: string } | null>(null);
+  const [enlace, setEnlace] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
     const r = await pedirAlPanel<PedidoDelPanel>(conexion, `pedidos/${encodeURIComponent(id)}`);
@@ -586,6 +715,17 @@ export function Pedido({
   const porConfirmar = pedido.estado === 'pendiente' && pedido.formaPago !== 'en_linea';
   const porDespachar = pedido.estado === 'confirmado' || pedido.estado === 'pagado';
   const contraentrega = pedido.formaPago === 'contraentrega';
+  const cancelable = pedido.estado === 'pendiente' || pedido.estado === 'confirmado';
+  const hacerEnlace = async () => {
+    const r = await pedirAlPanel<{ enlace: string }>(conexion, 'pedidos/enlace', {
+      cuerpo: { pedido: pedido.id },
+    });
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok')
+      return setAviso({ tono: 'peligro', texto: r.problemas?.[0]?.mensaje ?? r.motivo });
+    setEnlace(r.datos.enlace);
+    await cargar();
+  };
   const cambiar = (ruta: string, listo: string) => async () => {
     const r = await pedirAlPanel(conexion, ruta, {
       cuerpo: { op: opNueva(), pedido: pedido.id, version: pedido.version },
@@ -832,11 +972,48 @@ export function Pedido({
         </section>
       ) : null}
 
+      {cancelable ? (
+        <Cancelar
+          key={`cancelar-${pedido.version}`}
+          conexion={conexion}
+          pedido={pedido}
+          alVencer={alVencer}
+          alCancelar={alCambiar}
+        />
+      ) : null}
+
+      <h2>Seguimiento</h2>
+      {enlace ? (
+        <>
+          <p class="nota">Este es el enlace nuevo; el de antes ya no sirve.</p>
+          <pre class="mensaje">{enlace}</pre>
+          <a
+            class="ed1-boton ed1-boton--primario"
+            href={`https://wa.me/?text=${encodeURIComponent(`Aquí puedes seguir tu pedido #${pedido.numero}: ${enlace}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Mandarlo por WhatsApp
+          </a>
+        </>
+      ) : (
+        <Confirmar
+          abrir="Hacer un enlace de seguimiento nuevo"
+          consecuencia="El comprador ve su pedido con el enlace nuevo. El que tenía antes deja de servir."
+          confirmar="Sí, hacer uno nuevo"
+          alConfirmar={hacerEnlace}
+        />
+      )}
+
       <h2>Historia</h2>
       <ol class="registro">
         <li class="registro__fila">
           <span class="registro__hora cifra">{horaDeBogota(pedido.creado)}</span>
-          <span>Llegó el pedido{pedido.canal === 'whatsapp' ? ' por WhatsApp' : ''}</span>
+          <span>
+            {pedido.canal === 'panel'
+              ? 'Se anotó en el panel'
+              : `Llegó el pedido${pedido.canal === 'whatsapp' ? ' por WhatsApp' : ''}`}
+          </span>
         </li>
         {pedido.historia.map((e) => (
           <li key={`${e.instante}-${e.tipo}-${e.a ?? ''}`} class="registro__fila">
@@ -845,6 +1022,7 @@ export function Pedido({
           </li>
         ))}
       </ol>
+      <Nota conexion={conexion} pedido={pedido} alVencer={alVencer} alAnotar={alCambiar} />
     </main>
   );
 }

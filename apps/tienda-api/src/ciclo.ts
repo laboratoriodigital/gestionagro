@@ -9,9 +9,15 @@
  *   flete de vuelta y si las unidades vuelven al inventario; «perdido» queda aparte. Liquidar marca
  *   varios recaudos con el número de la liquidación de la transportadora. La base no deja entregar
  *   con la plata por recaudar, ni liquidar lo que no se recaudó.
+ * - **Pedidos anotados, notas, enlace y cancelar (HU-T9.6).** Un pedido que llegó por teléfono se
+ *   anota con el canal `panel` (no pide aceptar términos); las notas van a su historia; un enlace de
+ *   seguimiento nuevo cambia la huella y el anterior deja de servir. Cancelar suma al inventario
+ *   solo si el comercio dice que las unidades volvieron, y una sola vez (`descontado`).
  */
+import type { Kek } from '@ed1/cifrado';
 import type { SentenciaD1 } from '@ed1/d1';
 import { z } from 'zod';
+import { ContactoDelPedido, cifrarContacto, netoDelRecaudo } from './bandeja.ts';
 import {
   esCambiado,
   esOperacionRepetida,
@@ -22,6 +28,7 @@ import {
   SI_CAMBIO,
   yaAplicada,
 } from './catalogo.ts';
+import { enlaceDeSeguimiento, opcionesEnPalabras, sha256 } from './pedidos.ts';
 import { anotar } from './registro.ts';
 
 const Op = z.string().min(8).max(64);
@@ -43,6 +50,7 @@ const problemasDe = (r: z.ZodSafeParseResult<unknown>): Problema[] =>
     : r.error.issues.map((i) => ({ campo: i.path.map(String).join('.'), mensaje: i.message }));
 
 interface FilaDelPedido {
+  codigo: string;
   numero: number;
   estado: string;
   forma_pago: string;
@@ -53,7 +61,7 @@ interface FilaDelPedido {
 async function leerFila(q: Quien, id: string) {
   return q.db
     .prepare(
-      'SELECT numero, estado, forma_pago, total_cop, version FROM pedido WHERE org_id = ? AND id = ?',
+      'SELECT codigo, numero, estado, forma_pago, total_cop, version FROM pedido WHERE org_id = ? AND id = ?',
     )
     .bind(q.org, id)
     .first<FilaDelPedido>();
@@ -219,17 +227,17 @@ const cerrarRecaudo = (q: Quien, id: string, a: string, fleteVuelta: number | nu
  * HU-T9.5 y HU-T9.6 CA2: las unidades que salieron vuelven al inventario, una sola vez: cada línea
  * que vuelve deja de estar `descontado`, y lo que ya volvió no vuelve dos veces.
  */
-const devolverAlInventario = (q: Quien, id: string) => [
+const devolverAlInventario = (q: Quien, id: string, motivo: 'devolucion' | 'cancelacion') => [
   q.db
     .prepare(
       `UPDATE variante SET stock = stock + (
            SELECT SUM(l.cantidad) FROM pedido_linea l
             WHERE l.org_id = ? AND l.pedido_id = ? AND l.variante_id = variante.id AND l.descontado = 1),
-         cambio_motivo = 'devolucion', cambio_ref = ?, actualizado = ?
+         cambio_motivo = ?, cambio_ref = ?, actualizado = ?
         WHERE org_id = ? AND stock IS NOT NULL AND id IN (
           SELECT l.variante_id FROM pedido_linea l WHERE l.org_id = ? AND l.pedido_id = ? AND l.descontado = 1)`,
     )
-    .bind(q.org, id, id, q.instante, q.org, q.org, id),
+    .bind(q.org, id, motivo, id, q.instante, q.org, q.org, id),
   q.db
     .prepare(
       'UPDATE pedido_linea SET descontado = 0 WHERE org_id = ? AND pedido_id = ? AND descontado = 1',
@@ -321,7 +329,7 @@ export async function devolverPedido(q: Quien, cuerpo: unknown): Promise<Resulta
   const lote: SentenciaD1[] = [
     ...(viajaba ? cerrarRecaudo(q, d.pedido, 'devuelto', d.fleteVueltaCop ?? null) : []),
     ...cambiarEstado(q, d.pedido, d.version, ['despachado', 'entregado'], 'devuelto'),
-    ...(d.volvio ? devolverAlInventario(q, d.pedido) : []),
+    ...(d.volvio ? devolverAlInventario(q, d.pedido, 'devolucion') : []),
     await anotar(q.db, {
       org: q.org,
       actor: q.actor,
@@ -480,23 +488,6 @@ export async function liquidarRecaudos(q: Quien, cuerpo: unknown): Promise<Resul
   }
 }
 
-/**
- * CA2: lo que le queda al comercio de un pedido contra entrega, con la comisión y los fletes.
- * Recaudado o por recaudar: el monto menos lo que costó llevarlo; devuelto o perdido: lo que costó.
- */
-export function netoDelRecaudo(r: {
-  estado: string;
-  montoCop: number;
-  comisionCop: number | null;
-  fleteIdaCop: number | null;
-  fleteVueltaCop: number | null;
-}): number {
-  const costos = (r.comisionCop ?? 0) + (r.fleteIdaCop ?? 0) + (r.fleteVueltaCop ?? 0);
-  if (r.estado === 'devuelto' || r.estado === 'perdido')
-    return -((r.fleteIdaCop ?? 0) + (r.fleteVueltaCop ?? 0));
-  return r.montoCop - costos;
-}
-
 export interface FilaDeRecaudo {
   pedido: string;
   numero: number;
@@ -583,4 +574,339 @@ export async function listarRecaudos(q: Quien): Promise<{
     perdidos: total('perdido'),
     recaudos,
   };
+}
+
+// ── HU-T9.6: cancelar, notas, enlace nuevo y pedidos anotados ───────────────────────────────
+
+const Cancelar = CambioDeEstado.extend({
+  volvio: z.boolean({ error: 'di si las unidades vuelven al inventario' }),
+});
+
+/**
+ * CA2 y CA3: cancelar. Si el pedido ya había descontado el inventario, las unidades vuelven solo
+ * si el comercio lo dice, y una sola vez: la línea deja de estar `descontado`. Un pago en línea en
+ * curso o aprobado se cancela con su reembolso, que llega con el cobro en línea.
+ */
+export async function cancelarPedido(q: Quien, cuerpo: unknown): Promise<Resultado> {
+  const r0 = Cancelar.safeParse(cuerpo);
+  if (!r0.success) return { estado: 'problemas', problemas: problemasDe(r0) };
+  const d = r0.data;
+  const fila = await leerFila(q, d.pedido);
+  if (fila && (fila.estado === 'por_pagar' || fila.estado === 'pagado'))
+    return problemas({
+      campo: 'pedido',
+      mensaje:
+        'Este pedido tiene un pago en línea en curso o aprobado: se cancela con su reembolso, desde el cobro en línea.',
+    });
+  const leido = await paraCambiar(
+    q,
+    d,
+    ['pendiente', 'confirmado'],
+    'Este pedido ya salió o ya se cerró: no se puede cancelar.',
+  );
+  if ('r' in leido) return leido.r;
+  const { p } = leido;
+  const r: Resultado = { estado: 'guardado', id: d.pedido, version: p.version + 1 };
+  const lote: SentenciaD1[] = [
+    ...cambiarEstado(q, d.pedido, d.version, ['pendiente', 'confirmado'], 'cancelado'),
+    ...(d.volvio ? devolverAlInventario(q, d.pedido, 'cancelacion') : []),
+    await anotar(q.db, {
+      org: q.org,
+      actor: q.actor,
+      accion: 'pedido.cancelar',
+      entidad: 'pedido',
+      entidadId: d.pedido,
+      antes: { numero: p.numero, estado: p.estado },
+      despues: { numero: p.numero, estado: 'cancelado', volvio: d.volvio },
+      instante: q.instante,
+    }),
+    guardarOperacion(q, d.op, 'pedidos/cancelar', r),
+  ];
+  return aplicar(q, d.op, d.pedido, lote, r);
+}
+
+const Nota = z.object({
+  op: Op,
+  pedido: IdDePedido,
+  texto: z
+    .string()
+    .trim()
+    .min(1, { error: 'escribe la nota' })
+    .max(600, { error: 'máximo 600 letras' }),
+});
+
+/** CA1: una nota en la historia del pedido. El registro dice que hubo nota, no lo que dice. */
+export async function anotarNota(q: Quien, cuerpo: unknown): Promise<Resultado> {
+  const r0 = Nota.safeParse(cuerpo);
+  if (!r0.success) return { estado: 'problemas', problemas: problemasDe(r0) };
+  const d = r0.data;
+  const previa = await yaAplicada(q, d.op);
+  if (previa) return previa;
+  const p = await leerFila(q, d.pedido);
+  if (!p) return { estado: 'no-existe', motivo: 'Ese pedido no está.' };
+  const r: Resultado = { estado: 'guardado', id: d.pedido, version: p.version };
+  return aplicar(
+    q,
+    d.op,
+    d.pedido,
+    [
+      q.db
+        .prepare(
+          `INSERT INTO pedido_evento (org_id, pedido_id, instante, tipo, actor, detalle)
+         VALUES (?, ?, ?, 'nota', ?, ?)`,
+        )
+        .bind(q.org, d.pedido, q.instante, q.actor, JSON.stringify({ texto: d.texto })),
+      await anotar(q.db, {
+        org: q.org,
+        actor: q.actor,
+        accion: 'pedido.nota',
+        entidad: 'pedido',
+        entidadId: d.pedido,
+        antes: null,
+        despues: { numero: p.numero },
+        instante: q.instante,
+      }),
+      guardarOperacion(q, d.op, 'pedidos/nota', r),
+    ],
+    r,
+  );
+}
+
+const PeticionDeEnlace = z.object({ pedido: IdDePedido });
+const base64url = (b: Uint8Array) =>
+  btoa(String.fromCharCode(...b))
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/, '');
+
+/**
+ * CA1: un enlace de seguimiento nuevo. El secreto nace aquí y solo queda su huella: el enlace de
+ * antes deja de servir. Sin `op`: guardar la respuesta guardaría el secreto en claro; repetir solo
+ * hace otro enlace.
+ */
+export async function enlaceNuevo(
+  q: Quien,
+  cuerpo: unknown,
+  host: string | null,
+): Promise<{ estado: 'ok'; enlace: string } | Resultado> {
+  const r0 = PeticionDeEnlace.safeParse(cuerpo);
+  if (!r0.success) return { estado: 'no-existe', motivo: 'Ese pedido no está.' };
+  const p = await leerFila(q, r0.data.pedido);
+  if (!p) return { estado: 'no-existe', motivo: 'Ese pedido no está.' };
+  if (!host)
+    return problemas({
+      campo: 'pedido',
+      mensaje: 'Tu tienda todavía no tiene una dirección activa: el enlace sale cuando la tenga.',
+    });
+  const secreto = base64url(crypto.getRandomValues(new Uint8Array(16)));
+  await q.db.batch([
+    q.db
+      .prepare('UPDATE pedido SET seguimiento_huella = ? WHERE org_id = ? AND id = ?')
+      .bind(await sha256(secreto), q.org, r0.data.pedido),
+    await anotar(q.db, {
+      org: q.org,
+      actor: q.actor,
+      accion: 'pedido.enlace',
+      entidad: 'pedido',
+      entidadId: r0.data.pedido,
+      antes: null,
+      despues: { numero: p.numero },
+      instante: q.instante,
+    }),
+  ]);
+  return { estado: 'ok', enlace: enlaceDeSeguimiento(host, p.codigo, secreto) };
+}
+
+/** Las formas de pago que se anotan a mano; en línea pide el link de pago (HU-T11.8). */
+export const FORMAS_ANOTADAS = [
+  'a_convenir',
+  'contraentrega',
+  'transferencia',
+  'efectivo',
+] as const;
+
+const Anotado = z.object({
+  op: Op,
+  lineas: z
+    .array(
+      z.object({
+        variante: z.string().min(1).max(64),
+        cantidad: z
+          .number()
+          .int({ error: 'escribe una cantidad entera' })
+          .min(1, { error: 'al menos 1' })
+          .max(999, { error: 'máximo 999' }),
+      }),
+    )
+    .min(1, { error: 'agrega al menos un producto' })
+    .max(50, { error: 'máximo 50 líneas' }),
+  formaPago: z.enum(FORMAS_ANOTADAS, { error: 'elige cómo paga' }),
+  envioCop: z
+    .number()
+    .int({ error: 'escribe el envío en pesos, sin puntos' })
+    .min(0, { error: 'no puede ser negativo' })
+    .max(10_000_000, { error: 'revisa el valor del envío' })
+    .default(0),
+  ciudad: z.string().trim().max(80).optional(),
+  contacto: ContactoDelPedido.optional(),
+});
+
+const ALFABETO = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+/** Seis letras y números de Crockford, como los que nacen en el navegador del comprador. */
+const codigoNuevo = () =>
+  Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => ALFABETO[b % 32]).join('');
+/** La retención del contacto: 24 meses después del pedido (TIENDA-3.0, conservación). */
+const purgarDespues = (instante: string) => {
+  const d = new Date(instante);
+  d.setUTCMonth(d.getUTCMonth() + 24);
+  return d.toISOString();
+};
+
+/**
+ * CA1: anotar un pedido que llegó por teléfono o en persona. Canal `panel`, por confirmar, con los
+ * precios de hoy; los datos del comprador, si los hay, en su sobre cifrado.
+ */
+export async function crearPedidoAnotado(
+  q: Quien,
+  kek: Kek | null,
+  cuerpo: unknown,
+  intento = 0,
+): Promise<Resultado> {
+  const r0 = Anotado.safeParse(cuerpo);
+  if (!r0.success) return { estado: 'problemas', problemas: problemasDe(r0) };
+  const d = r0.data;
+  const previa = await yaAplicada(q, d.op);
+  if (previa) return previa;
+  const ids = [...new Set(d.lineas.map((l) => l.variante))];
+  const { results } = await q.db
+    .prepare(
+      `SELECT v.id, v.clave, v.sku, v.precio_cop, p.id AS producto_id, p.nombre, p.opciones
+         FROM variante v JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
+        WHERE v.org_id = ? AND v.activa = 1 AND p.borrado IS NULL
+          AND v.id IN (${ids.map(() => '?').join(', ')})`,
+    )
+    .bind(q.org, ...ids)
+    .all<{
+      id: string;
+      clave: string;
+      sku: string | null;
+      precio_cop: number;
+      producto_id: string;
+      nombre: string;
+      opciones: string;
+    }>();
+  const porId = new Map(results.map((v) => [v.id, v]));
+  const faltan = d.lineas.flatMap((l, i) =>
+    porId.has(l.variante)
+      ? []
+      : [{ campo: `lineas.${i}.variante`, mensaje: 'Esa combinación ya no está a la venta.' }],
+  );
+  if (faltan.length) return problemas(...faltan);
+  const contacto =
+    d.contacto && Object.values(d.contacto).some((v) => v?.trim()) ? d.contacto : null;
+  if (contacto && !kek) {
+    console.error('tienda-api: sin la KEK no se guardan los datos del comprador');
+    return problemas({
+      campo: 'contacto',
+      mensaje: 'No pudimos guardar los datos del comprador ahora. Intenta en unos minutos.',
+    });
+  }
+
+  const id = crypto.randomUUID();
+  const lineas = d.lineas.map((l) => {
+    const v = porId.get(l.variante) as (typeof results)[number];
+    return { ...l, v, total: v.precio_cop * l.cantidad };
+  });
+  const subtotal = lineas.reduce((s, l) => s + l.total, 0);
+  const total = subtotal + d.envioCop;
+  const r: Resultado = { estado: 'guardado', id, version: 1 };
+  const sobre = contacto && kek ? await cifrarContacto(q, kek, id, contacto, q.instante) : null;
+  const lote: SentenciaD1[] = [
+    q.db
+      .prepare(
+        `INSERT INTO pedido (org_id, id, codigo, numero, estado, canal, forma_pago, subtotal_cop, envio_cop,
+           total_cop, ciudad, cambiado_por, creado, actualizado)
+         VALUES (?, ?, ?, (SELECT COALESCE(MAX(numero), 1000) + 1 FROM pedido WHERE org_id = ?), 'pendiente',
+           'panel', ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        q.org,
+        id,
+        codigoNuevo(),
+        q.org,
+        d.formaPago,
+        subtotal,
+        d.envioCop,
+        total,
+        d.ciudad || contacto?.ciudad || null,
+        q.actor,
+        q.instante,
+        q.instante,
+      ),
+    ...lineas.map((l, i) =>
+      q.db
+        .prepare(
+          `INSERT INTO pedido_linea (org_id, pedido_id, linea, producto_id, variante_id, nombre, opciones, sku,
+             precio_unitario_cop, cantidad, total_cop) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          q.org,
+          id,
+          i + 1,
+          l.v.producto_id,
+          l.v.id,
+          l.v.nombre,
+          opcionesEnPalabras(l.v.opciones, l.v.clave),
+          l.v.sku,
+          l.v.precio_cop,
+          l.cantidad,
+          l.total,
+        ),
+    ),
+    q.db
+      .prepare(
+        `INSERT INTO pedido_evento (org_id, pedido_id, instante, tipo, de, a, actor, detalle)
+         VALUES (?, ?, ?, 'estado', NULL, 'pendiente', ?, ?)`,
+      )
+      .bind(q.org, id, q.instante, q.actor, JSON.stringify({ canal: 'panel' })),
+    ...(sobre
+      ? [
+          q.db
+            .prepare(
+              `INSERT INTO pedido_contacto (org_id, pedido_id, sobre, iv, llave_version, creado, purgar_despues)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            )
+            .bind(
+              q.org,
+              id,
+              sobre.sobre,
+              sobre.iv,
+              sobre.version,
+              q.instante,
+              purgarDespues(q.instante),
+            ),
+        ]
+      : []),
+    await anotar(q.db, {
+      org: q.org,
+      actor: q.actor,
+      accion: 'pedido.anotar',
+      entidad: 'pedido',
+      entidadId: id,
+      antes: null,
+      despues: { totalCop: total, formaPago: d.formaPago },
+      instante: q.instante,
+    }),
+    guardarOperacion(q, d.op, 'pedidos/anotar', r),
+  ];
+  try {
+    await q.db.batch(lote);
+    return r;
+  } catch (e) {
+    if (esOperacionRepetida(e)) return (await yaAplicada(q, d.op)) ?? r;
+    // Otro pedido tomó el mismo número o el mismo código entre la lectura y el lote: otra vez.
+    if (/UNIQUE constraint failed: pedido\./i.test(String(e)) && intento < 3)
+      return crearPedidoAnotado(q, kek, cuerpo, intento + 1);
+    throw e;
+  }
 }

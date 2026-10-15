@@ -201,6 +201,14 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
         : `${hizo('v', 'iste', 'io')} los datos de entrega del pedido #${despues['numero']}`;
     case 'pedido.confirmar':
       return `${hizo('confirm', 'aste', 'ó')} el pedido #${despues['numero']}`;
+    case 'pedido.anotar':
+      return `${hizo('anot', 'aste', 'ó')} un pedido por ${formatearPesos(Number(despues['totalCop'] ?? 0))}`;
+    case 'pedido.cancelar':
+      return `${hizo('cancel', 'aste', 'ó')} el pedido #${despues['numero']}${despues['volvio'] ? '; las unidades volvieron al inventario' : ''}`;
+    case 'pedido.nota':
+      return `${hizo('dej', 'aste', 'ó')} una nota en el pedido #${despues['numero']}`;
+    case 'pedido.enlace':
+      return `${hizo('hi', 'ciste', 'zo')} un enlace de seguimiento nuevo para el pedido #${despues['numero']}`;
     case 'pedido.entregar':
       return `${hizo('marc', 'aste', 'ó')} entregado el pedido #${despues['numero']}${typeof despues['recaudadoCop'] === 'number' ? `: ${formatearPesos(despues['recaudadoCop'])} recaudados` : ''}`;
     case 'pedido.devolver':

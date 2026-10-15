@@ -30,6 +30,7 @@ import {
   urlDelCore,
 } from './sesion.ts';
 import { AjusteDeSeccion, Ajustes } from './vistas/Ajustes.tsx';
+import { Anotar } from './vistas/Anotar.tsx';
 import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
 import { ElegirTienda, NOMBRE_DEL_ROL } from './vistas/ElegirTienda.tsx';
 import { Entrar } from './vistas/Entrar.tsx';
@@ -188,6 +189,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     );
   else if (ruta === '/') cuerpo = <Inicio yo={yo.datos} />;
   else if (ruta === '/pedidos/') cuerpo = <Bandeja conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/pedidos/nuevo/')
+    cuerpo = <Anotar conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/pedidos/recaudos/')
     cuerpo = <Recaudos conexion={conexion} alVencer={setVencida} />;
   else if (/^\/pedidos\/[^/]+\/$/.test(ruta))

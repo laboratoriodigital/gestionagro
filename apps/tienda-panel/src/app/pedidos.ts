@@ -3,7 +3,8 @@
  * sin pedir nada a la red (CA1), y el turno de las lecturas, para que una respuesta vieja nunca
  * pise a la nueva (CA3). Puras, para probarlas sin navegador.
  *
- * Despachar (HU-T9.4): lo que el formulario revisa antes de mandar, con todos sus errores juntos.
+ * Despachar (HU-T9.4) y anotar un pedido (HU-T9.6): lo que cada formulario revisa antes de
+ * mandar, con todos sus errores juntos.
  */
 import { pesos } from './catalogo.ts';
 
@@ -144,6 +145,76 @@ export function revisarDespacho(
       transportadora: f.transportadora.trim(),
       guia: f.guia.trim(),
       ...(contraentrega ? { comisionCop: comision ?? null, fleteIdaCop: flete ?? null } : {}),
+    },
+  };
+}
+
+/** HU-T9.6: las formas de pago de un pedido anotado; en línea pide el link de pago. */
+export const FORMAS_ANOTADAS = [
+  'a_convenir',
+  'contraentrega',
+  'transferencia',
+  'efectivo',
+] as const;
+
+export interface FormularioDeAnotado {
+  /** Cuántas de cada combinación, como texto del campo; vacío es ninguna. */
+  cantidades: Record<string, string>;
+  formaPago: string;
+  envio: string;
+  nombre: string;
+  celular: string;
+  direccion: string;
+  ciudad: string;
+  notas: string;
+}
+
+/**
+ * HU-T9.6 CA1: lo que revisa «Anotar el pedido». Al menos una combinación, cantidades enteras,
+ * la forma de pago y el envío en pesos; los datos del comprador son opcionales y van solo si hay.
+ */
+export function revisarAnotado(f: FormularioDeAnotado): {
+  errores: { campo: string; mensaje: string }[];
+  cuerpo: {
+    lineas: { variante: string; cantidad: number }[];
+    formaPago: string;
+    envioCop: number;
+    ciudad?: string;
+    contacto?: Record<string, string>;
+  };
+} {
+  const errores: { campo: string; mensaje: string }[] = [];
+  const lineas: { variante: string; cantidad: number }[] = [];
+  for (const [variante, texto] of Object.entries(f.cantidades)) {
+    if (texto.trim() === '') continue;
+    const n = Number(texto.trim());
+    if (!Number.isInteger(n) || n < 0 || n > 999)
+      errores.push({ campo: `cantidad-${variante}`, mensaje: 'Escribe cuántas, de 1 a 999.' });
+    else if (n > 0) lineas.push({ variante, cantidad: n });
+  }
+  if (lineas.length === 0 && errores.length === 0)
+    errores.push({ campo: 'productos', mensaje: 'Escribe cuántas lleva de al menos un producto.' });
+  if (!(FORMAS_ANOTADAS as readonly string[]).includes(f.formaPago))
+    errores.push({ campo: 'formaPago', mensaje: 'Elige cómo paga.' });
+  const envio = f.envio.trim() === '' ? 0 : pesos(f.envio);
+  if (envio === null || !Number.isInteger(envio) || envio < 0)
+    errores.push({
+      campo: 'envio',
+      mensaje: 'Escribe el envío en pesos, como 8.000, o déjalo vacío.',
+    });
+  const contacto = Object.fromEntries(
+    (['nombre', 'celular', 'direccion', 'ciudad', 'notas'] as const)
+      .map((k) => [k, f[k].trim()] as const)
+      .filter(([, v]) => v !== ''),
+  );
+  return {
+    errores,
+    cuerpo: {
+      lineas,
+      formaPago: f.formaPago,
+      envioCop: envio ?? 0,
+      ...(contacto['ciudad'] ? { ciudad: contacto['ciudad'] } : {}),
+      ...(Object.keys(contacto).length ? { contacto } : {}),
     },
   };
 }

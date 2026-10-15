@@ -146,7 +146,7 @@ export function textoDelPedido(d: DatosDelTexto): string {
   ].join('\n');
 }
 
-const enlaceDeSeguimiento = (host: string, codigo: string, secreto: string) =>
+export const enlaceDeSeguimiento = (host: string, codigo: string, secreto: string) =>
   `https://${host}/pedido/#c=${codigo}&s=${secreto}`;
 
 async function datosDeLaTienda(db: BaseD1, org: string) {

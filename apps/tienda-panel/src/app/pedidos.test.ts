@@ -9,6 +9,7 @@ import {
   FALTA_TRANSPORTADORA,
   type FilaDePedido,
   filtrar,
+  revisarAnotado,
   revisarDespacho,
   unir,
 } from './pedidos.ts';
@@ -101,5 +102,49 @@ describe('despachar (HU-T9.4)', () => {
     expect(revisarDespacho({ ...f, fleteIda: 'doce mil' }, true).errores).toEqual([
       { campo: 'fleteIdaCop', mensaje: 'Escribe el valor en pesos, como 12.000, o déjalo vacío.' },
     ]);
+  });
+});
+
+describe('anotar un pedido (HU-T9.6)', () => {
+  const vacio = {
+    cantidades: { 'v-m': '', 'v-s': '' },
+    formaPago: '',
+    envio: '',
+    nombre: '',
+    celular: '',
+    direccion: '',
+    ciudad: '',
+    notas: '',
+  };
+
+  it('❌ sin productos ni forma de pago, lo dice todo en la misma vuelta', () => {
+    expect(revisarAnotado(vacio).errores.map((e) => e.campo)).toEqual(['productos', 'formaPago']);
+    expect(
+      revisarAnotado({ ...vacio, cantidades: { 'v-m': '1,5' }, formaPago: 'efectivo' }).errores,
+    ).toEqual([{ campo: 'cantidad-v-m', mensaje: 'Escribe cuántas, de 1 a 999.' }]);
+  });
+
+  it('manda solo lo que lleva, el envío en pesos y el comprador si lo hay', () => {
+    const r = revisarAnotado({
+      ...vacio,
+      cantidades: { 'v-m': '2', 'v-s': '0' },
+      formaPago: 'contraentrega',
+      envio: '8.000',
+      nombre: ' Ensayo Dos Compradora ',
+      ciudad: 'Medellín',
+    });
+    expect(r).toEqual({
+      errores: [],
+      cuerpo: {
+        lineas: [{ variante: 'v-m', cantidad: 2 }],
+        formaPago: 'contraentrega',
+        envioCop: 8000,
+        ciudad: 'Medellín',
+        contacto: { nombre: 'Ensayo Dos Compradora', ciudad: 'Medellín' },
+      },
+    });
+    expect(
+      revisarAnotado({ ...vacio, cantidades: { 'v-m': '1' }, formaPago: 'efectivo' }).cuerpo,
+    ).toEqual({ lineas: [{ variante: 'v-m', cantidad: 1 }], formaPago: 'efectivo', envioCop: 0 });
   });
 });

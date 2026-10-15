@@ -1,13 +1,20 @@
 /**
- * El pedido después de confirmarlo, por la API del panel (HU-T9.4 y HU-T9.5): con tokens del CORE firmados
+ * El pedido después de confirmarlo, por la API del panel (HU-T9.4 a HU-T9.6): con tokens del CORE firmados
  * de verdad, contra el shard local con los dos comercios de prueba y pedidos sembrados aquí.
  */
 import type { BaseD1 } from '@ed1/d1';
 import { baseLocal } from '@ed1/d1/local';
-import { ENSAYO_DOS, ENSAYO_UNO, siembraDelShard } from '@ed1/tienda-schema/ensayos';
+import {
+  ENSAYO_DOS,
+  ENSAYO_UNO,
+  siembraDelControl,
+  siembraDelShard,
+} from '@ed1/tienda-schema/ensayos';
 import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { FALTA_GUIA, FALTA_TRANSPORTADORA, netoDelRecaudo } from './ciclo.ts';
+import { type ContactoDelPedido, netoDelRecaudo } from './bandeja.ts';
+import { FALTA_GUIA, FALTA_TRANSPORTADORA } from './ciclo.ts';
+import { seguimiento, sha256 } from './pedidos.ts';
 import { CABECERA_DESPACHO, crearApp, type Env } from './worker.ts';
 
 const SECRETO = 'secreto-de-prueba-del-despacho';
@@ -16,9 +23,17 @@ const AHORA = new Date(T0).toISOString();
 const PERSONA = '0199e0a0-0000-7000-8000-0000000000d1';
 const UNO = ENSAYO_UNO.org;
 const M = 'v-camisa-m-arena';
+const KEK = Buffer.from(Array.from({ length: 32 }, (_, i) => i + 7)).toString('base64');
+const COMPRADORA: ContactoDelPedido = {
+  nombre: 'Ensayo Dos Compradora',
+  celular: '3001234567',
+  direccion: 'Calle de prueba 99',
+  ciudad: 'Medellín',
+};
 
 let shard: BaseD1;
-let cerrar: () => Promise<void>;
+let control: BaseD1;
+const cerrar: (() => Promise<void>)[] = [];
 let firmante: Firmante;
 
 const ALFABETO = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -62,11 +77,21 @@ async function sembrarPedido(n: number, o: { forma?: string; cantidad?: number }
 }
 
 beforeAll(async () => {
-  ({ db: shard, cerrar } = await baseLocal({
+  const s = await baseLocal({
     configuracion: 'apps/tienda-api/wrangler.c1.jsonc',
     binding: 'tienda_c1_s1',
     base: 'tienda',
-  }));
+  });
+  const c = await baseLocal({
+    configuracion: 'apps/tienda-api/wrangler.c1.jsonc',
+    binding: 'tienda_control',
+    base: 'tienda-control',
+  });
+  shard = s.db;
+  control = c.db;
+  cerrar.push(s.cerrar, c.cerrar);
+  for (const sql of siembraDelControl([ENSAYO_UNO, ENSAYO_DOS], 'c1', AHORA))
+    await control.prepare(sql.replace(/;$/, '')).run();
   for (const sql of siembraDelShard([ENSAYO_UNO, ENSAYO_DOS], AHORA))
     await shard.prepare(sql.replace(/;$/, '')).run();
   // Camisas de sobra: aquí no se prueba si alcanzan (eso es HU-T9.3).
@@ -76,14 +101,18 @@ beforeAll(async () => {
     .run();
   firmante = await firmanteDesde(await generarClavePrivada());
 }, 120_000);
-afterAll(async () => cerrar?.());
+afterAll(async () => {
+  for (const c of cerrar) await c();
+});
 
 const env = (): Env => ({
   CELDA: 'c1',
   PRODUCTO: 'tienda',
   SECRETO_DESPACHO: SECRETO,
   CORE_CLAVES: JSON.stringify([firmante.publica]),
+  TIENDA_KEK_V1: KEK,
   tienda_c1_s1: shard,
+  tienda_control: control,
 });
 
 const token = async (extra: Partial<Parameters<typeof firmarAcceso>[1]> = {}) =>
@@ -131,7 +160,7 @@ interface Detalle {
   transportadora: string | null;
   guia: string | null;
   recaudo: Record<string, unknown> | null;
-  historia: { tipo: string; de: string | null; a: string | null; quien: string }[];
+  historia: { tipo: string; de: string | null; a: string | null; quien: string; nota?: string }[];
 }
 const detalle = async (id: string) =>
   (await (await pedir(`/api/panel/v1/pedidos/${id}`)).json()) as Detalle;
@@ -517,5 +546,161 @@ describe('recaudar, devolver, perder y liquidar (HU-T9.5)', () => {
     const otro = await token({ rol: 'contador' });
     expect((await pedir('/api/panel/v1/recaudos', undefined, otro)).status).toBe(403);
     expect((await pedir('/api/panel/v1/recaudos')).status).toBe(200);
+  });
+});
+
+const libro = async (ref: string) =>
+  (
+    await shard
+      .prepare(
+        'SELECT delta, motivo FROM movimiento_inventario WHERE org_id = ? AND variante_id = ? AND ref = ? ORDER BY id',
+      )
+      .bind(UNO, M, ref)
+      .all()
+  ).results;
+
+describe('pedidos anotados, notas, enlace nuevo y cancelar (HU-T9.6)', () => {
+  it('CA1: un pedido que llegó por teléfono se anota con el canal panel y se confirma sin aceptar términos', async () => {
+    const cuerpo = {
+      op: op(),
+      lineas: [{ variante: M, cantidad: 2 }],
+      formaPago: 'efectivo',
+      envioCop: 5000,
+      contacto: COMPRADORA,
+    };
+    const r = await pedir('/api/panel/v1/pedidos/anotar', cuerpo);
+    expect(r.status).toBe(200);
+    const { id } = (await r.json()) as { id: string };
+    // Repetir la misma operación no anota otro.
+    expect(await (await pedir('/api/panel/v1/pedidos/anotar', cuerpo)).json()).toMatchObject({
+      id,
+    });
+    const p = (await detalle(id)) as Detalle & Record<string, unknown>;
+    expect(p).toMatchObject({
+      canal: 'panel',
+      estado: 'pendiente',
+      formaPago: 'efectivo',
+      subtotalCop: 258000,
+      envioCop: 5000,
+      totalCop: 263000,
+      ciudad: 'Medellín',
+      conContacto: true,
+      comprador: { nombre: 'Ensayo D.', celular: '300 ••• 4567' },
+      lineas: [{ variante: M, nombre: 'Camisa de lino', cantidad: 2, precioUnitarioCop: 129000 }],
+    });
+    expect(JSON.stringify(p)).not.toContain('Compradora');
+    const confirmar = await pedir('/api/panel/v1/pedidos/confirmar', {
+      op: op(),
+      pedido: id,
+      version: 1,
+    });
+    expect(confirmar.status).toBe(200);
+  });
+
+  it('❌ anotar una combinación que no está a la venta dice cuál', async () => {
+    const r = await pedir('/api/panel/v1/pedidos/anotar', {
+      op: op(),
+      lineas: [
+        { variante: M, cantidad: 1 },
+        { variante: 'v-que-no-existe', cantidad: 1 },
+      ],
+      formaPago: 'transferencia',
+    });
+    expect(r.status).toBe(422);
+    expect(await r.json()).toMatchObject({
+      problemas: [
+        { campo: 'lineas.1.variante', mensaje: 'Esa combinación ya no está a la venta.' },
+      ],
+    });
+  });
+
+  it('CA1: una nota va a la historia del pedido; el registro no copia lo que dice', async () => {
+    const id = await sembrarPedido(201);
+    const r = await pedir('/api/panel/v1/pedidos/nota', {
+      op: op(),
+      pedido: id,
+      texto: 'Llamar antes de las 5',
+    });
+    expect(r.status).toBe(200);
+    expect((await detalle(id)).historia).toContainEqual(
+      expect.objectContaining({ tipo: 'nota', nota: 'Llamar antes de las 5', quien: 'Tú' }),
+    );
+    const registro = (await (await pedir('/api/panel/v1/registro')).json()) as {
+      filas: { frase: string }[];
+    };
+    expect(registro.filas[0]?.frase).toBe('Tú dejaste una nota en el pedido #1201');
+  });
+
+  it('❌ CA1: un enlace de seguimiento nuevo invalida el anterior', async () => {
+    const id = await sembrarPedido(202);
+    const viejo = 'SecretoViejoDePrueba01';
+    await shard
+      .prepare('UPDATE pedido SET seguimiento_huella = ? WHERE org_id = ? AND id = ?')
+      .bind(await sha256(viejo), UNO, id)
+      .run();
+    const codigo = codigoDe(202);
+    expect(await seguimiento(shard, UNO, codigo, viejo)).not.toBeNull();
+    const r = await pedir('/api/panel/v1/pedidos/enlace', { pedido: id });
+    expect(r.status).toBe(200);
+    const { enlace } = (await r.json()) as { enlace: string };
+    const m = enlace.match(/^https:\/\/([^/]+)\/pedido\/#c=([0-9A-Z]{6})&s=([A-Za-z0-9_-]{22})$/);
+    expect(m?.[1]).toMatch(/--staging\./);
+    expect(m?.[2]).toBe(codigo);
+    expect(await seguimiento(shard, UNO, codigo, m?.[3] ?? '')).not.toBeNull();
+    expect(await seguimiento(shard, UNO, codigo, viejo)).toBeNull();
+  });
+
+  it('❌ CA2 y CA3: confirmar, cancelar y volver a confirmar no descuadra el inventario', async () => {
+    const inicio = await stock();
+    const id = await sembrarPedido(203, { cantidad: 2 });
+    await pedir('/api/panel/v1/pedidos/confirmar', { op: op(), pedido: id, version: 1 });
+    expect(await stock()).toBe((inicio ?? 0) - 2);
+    const cancelar = { op: op(), pedido: id, version: 2, volvio: true };
+    expect((await pedir('/api/panel/v1/pedidos/cancelar', cancelar)).status).toBe(200);
+    expect(await stock()).toBe(inicio);
+    // La misma operación otra vez, otra cancelación y otra confirmación: nada se mueve.
+    expect((await pedir('/api/panel/v1/pedidos/cancelar', cancelar)).status).toBe(200);
+    expect(
+      (await pedir('/api/panel/v1/pedidos/cancelar', { ...cancelar, op: op(), version: 3 })).status,
+    ).toBe(422);
+    expect(
+      (await pedir('/api/panel/v1/pedidos/confirmar', { op: op(), pedido: id, version: 3 })).status,
+    ).toBe(422);
+    expect(await stock()).toBe(inicio);
+    expect(await libro(id)).toEqual([
+      { delta: -2, motivo: 'venta' },
+      { delta: 2, motivo: 'cancelacion' },
+    ]);
+    const lineas = (await detalle(id)) as Detalle & { lineas: { descontado: boolean }[] };
+    expect(lineas.lineas.every((l) => !l.descontado)).toBe(true);
+  });
+
+  it('CA2: cancelar sin que vuelvan las unidades no toca el inventario', async () => {
+    const id = await sembrarPedido(204);
+    await pedir('/api/panel/v1/pedidos/confirmar', { op: op(), pedido: id, version: 1 });
+    const antes = await stock();
+    const r = await pedir('/api/panel/v1/pedidos/cancelar', {
+      op: op(),
+      pedido: id,
+      version: 2,
+      volvio: false,
+    });
+    expect(r.status).toBe(200);
+    expect(await stock()).toBe(antes);
+    expect((await detalle(id)).estado).toBe('cancelado');
+  });
+
+  it('un pedido despachado no se cancela: se recibe la devolución', async () => {
+    const id = await despachado(205);
+    const r = await pedir('/api/panel/v1/pedidos/cancelar', {
+      op: op(),
+      pedido: id,
+      version: 3,
+      volvio: true,
+    });
+    expect(r.status).toBe(422);
+    expect(await r.json()).toMatchObject({
+      problemas: [{ mensaje: 'Este pedido ya salió o ya se cerró: no se puede cancelar.' }],
+    });
   });
 });

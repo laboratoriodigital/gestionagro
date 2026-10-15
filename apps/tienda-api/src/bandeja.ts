@@ -33,7 +33,6 @@ import {
   SI_CAMBIO,
   yaAplicada,
 } from './catalogo.ts';
-import { netoDelRecaudo } from './ciclo.ts';
 import { deksDeLaTienda, dekVigente } from './llaves.ts';
 import { anotar } from './registro.ts';
 
@@ -245,6 +244,8 @@ export interface PedidoDelPanel extends FilaDePedido {
     de: string | null;
     a: string | null;
     quien: string;
+    /** HU-T9.6: lo que dice una nota. */
+    nota?: string;
   }[];
   /** Si el comprador dejó datos de entrega: «Ver datos de entrega» los abre. */
   conContacto: boolean;
@@ -253,6 +254,23 @@ export interface PedidoDelPanel extends FilaDePedido {
   guia: string | null;
   /** HU-T9.4 y HU-T9.5: la plata de la contraentrega, desde que se despacha. */
   recaudo: Recaudo | null;
+}
+
+/**
+ * CA2: lo que le queda al comercio de un pedido contra entrega, con la comisión y los fletes.
+ * Recaudado o por recaudar: el monto menos lo que costó llevarlo; devuelto o perdido: lo que costó.
+ */
+export function netoDelRecaudo(r: {
+  estado: string;
+  montoCop: number;
+  comisionCop: number | null;
+  fleteIdaCop: number | null;
+  fleteVueltaCop: number | null;
+}): number {
+  const costos = (r.comisionCop ?? 0) + (r.fleteIdaCop ?? 0) + (r.fleteVueltaCop ?? 0);
+  if (r.estado === 'devuelto' || r.estado === 'perdido')
+    return -((r.fleteIdaCop ?? 0) + (r.fleteVueltaCop ?? 0));
+  return r.montoCop - costos;
 }
 
 export interface Recaudo {
@@ -322,10 +340,17 @@ export async function leerPedido(
     }>();
   const { results: eventos } = await q.db
     .prepare(
-      'SELECT instante, tipo, de, a, actor FROM pedido_evento WHERE org_id = ? AND pedido_id = ? ORDER BY id',
+      'SELECT instante, tipo, de, a, actor, detalle FROM pedido_evento WHERE org_id = ? AND pedido_id = ? ORDER BY id',
     )
     .bind(q.org, id)
-    .all<{ instante: string; tipo: string; de: string | null; a: string | null; actor: string }>();
+    .all<{
+      instante: string;
+      tipo: string;
+      de: string | null;
+      a: string | null;
+      actor: string;
+      detalle: string | null;
+    }>();
   const recaudo = await q.db
     .prepare(
       `SELECT estado, monto_cop, comision_cop, flete_ida_cop, flete_vuelta_cop, liquidado, liquidacion_ref
@@ -364,6 +389,9 @@ export async function leerPedido(
       de: e.de,
       a: e.a,
       quien: quienEs(e.actor, q.actor),
+      ...(e.tipo === 'nota' && e.detalle
+        ? { nota: String((JSON.parse(e.detalle) as { texto?: unknown }).texto ?? '') }
+        : {}),
     })),
     conContacto: p.con_contacto === 1,
     transportadora: p.transportadora,

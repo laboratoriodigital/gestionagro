@@ -35,6 +35,8 @@ export interface FilaDeInventario {
   /** «M / Arena»; '' en un producto sin opciones. */
   combinacion: string;
   sku: string | null;
+  /** HU-T9.6: el precio de hoy, para anotar un pedido. */
+  precioCop: number;
   stock: number | null;
   apartadas: number;
   esperan: number;
@@ -47,7 +49,7 @@ const combinacionDe = (clave: string) => (clave === '' ? '' : clave.split('|').j
 export async function listarInventario(q: Quien): Promise<FilaDeInventario[]> {
   const { results } = await q.db
     .prepare(
-      `SELECT v.id, v.producto_id, p.nombre, v.clave, v.sku, v.stock, v.reservado, v.version,
+      `SELECT v.id, v.producto_id, p.nombre, v.clave, v.sku, v.precio_cop, v.stock, v.reservado, v.version,
               (SELECT i.personas FROM interes_reposicion i WHERE i.org_id = ? AND i.variante_id = v.id) AS esperan
          FROM variante v JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
         WHERE v.org_id = ? AND v.activa = 1 AND p.borrado IS NULL
@@ -60,6 +62,7 @@ export async function listarInventario(q: Quien): Promise<FilaDeInventario[]> {
       nombre: string;
       clave: string;
       sku: string | null;
+      precio_cop: number;
       stock: number | null;
       reservado: number;
       version: number;
@@ -71,6 +74,7 @@ export async function listarInventario(q: Quien): Promise<FilaDeInventario[]> {
     nombre: v.nombre,
     combinacion: combinacionDe(v.clave),
     sku: v.sku,
+    precioCop: v.precio_cop,
     stock: v.stock,
     apartadas: v.reservado,
     esperan: v.esperan ?? 0,

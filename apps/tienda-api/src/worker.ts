@@ -69,8 +69,12 @@ import {
   tocarElProducto,
 } from './catalogo.ts';
 import {
+  anotarNota,
+  cancelarPedido,
+  crearPedidoAnotado,
   despacharPedido,
   devolverPedido,
+  enlaceNuevo,
   entregarPedido,
   liquidarRecaudos,
   listarRecaudos,
@@ -1116,6 +1120,34 @@ export function crearApp(
     '/api/panel/v1/recaudos/liquidar',
     cambioDelPedido('recaudos.gestionar', liquidarRecaudos),
   );
+  // HU-T9.6: cancelar, notas, un enlace de seguimiento nuevo y los pedidos anotados.
+  app.post('/api/panel/v1/pedidos/cancelar', cambioDelPedido('pedidos.gestionar', cancelarPedido));
+  app.post('/api/panel/v1/pedidos/nota', cambioDelPedido('pedidos.gestionar', anotarNota));
+  app.post('/api/panel/v1/pedidos/anotar', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede anotar pedidos.');
+    if (q instanceof Response) return q;
+    const cuerpo = await c.req.json().catch(() => null);
+    return responderCatalogo(c, await crearPedidoAnotado(q, await kekDe(c), cuerpo));
+  });
+  app.post('/api/panel/v1/pedidos/enlace', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede mandar enlaces de seguimiento.');
+    if (q instanceof Response) return q;
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    const canonico = control
+      ? await control
+          .prepare(
+            "SELECT hostname FROM dominio WHERE org_id = ? AND estado = 'activo' AND rol = 'canonico'",
+          )
+          .bind(q.org)
+          .first<{ hostname: string }>()
+      : null;
+    const r = await enlaceNuevo(
+      q,
+      await c.req.json().catch(() => null),
+      canonico?.hostname ?? null,
+    );
+    return r.estado === 'ok' ? c.json(r) : responderCatalogo(c, r);
+  });
   app.get('/api/panel/v1/recaudos', async (c) => {
     const q = quienPuede(c, 'recaudos.gestionar', 'Tu rol no puede ver los recaudos.');
     if (q instanceof Response) return q;

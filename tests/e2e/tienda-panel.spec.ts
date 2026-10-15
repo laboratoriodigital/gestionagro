@@ -1137,6 +1137,138 @@ test('HU-T9.5 · CA1: devolver pide si las unidades volvieron y el flete de vuel
   ]);
 });
 
+test('HU-T9.6 · CA1: anotar un pedido que llegó por teléfono, con todos sus errores en la misma vuelta', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const fila = (variante: string, combinacion: string, stock: number) => ({
+    variante,
+    producto: 'p-camisa',
+    nombre: 'Camisa de lino',
+    combinacion,
+    sku: null,
+    precioCop: 129000,
+    stock,
+    apartadas: 0,
+    esperan: 0,
+    version: 1,
+  });
+  await page.route(`${PANEL}/api/panel/v1/inventario`, (r) =>
+    r.fulfill({
+      json: {
+        filas: [fila('v-camisa-m-arena', 'M / Arena', 4), fila('v-camisa-s-arena', 'S / Arena', 1)],
+      },
+    }),
+  );
+  const anotados: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/pedidos/anotar`, (r) => {
+    anotados.push(r.request().postDataJSON() as Record<string, unknown>);
+    return r.fulfill({ json: { estado: 'guardado', id: 'ped-2001', version: 1 } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/pedidos/ped-2001`, (r) =>
+    r.fulfill({
+      json: pedidoDelPanel(2001, {
+        estado: 'pendiente',
+        formaPago: 'efectivo',
+        canal: 'panel',
+        version: 1,
+        totalCop: 266000,
+      }),
+    }),
+  );
+
+  await page.route(`${PANEL}/api/panel/v1/pedidos`, (r) =>
+    r.fulfill({ json: { atencion: [], pedidos: [], siguiente: null } }),
+  );
+  await page.goto(`${PANEL}/pedidos/`);
+  await page.getByRole('link', { name: 'Anotar un pedido' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Anotar un pedido' })).toBeVisible();
+  await page.getByRole('button', { name: 'Anotar el pedido' }).click();
+  await expect(page.getByText('Falta corregir 2 cosas:')).toBeVisible();
+  expect(anotados).toEqual([]);
+
+  await page.getByLabel(/M \/ Arena/).fill('2');
+  await page.getByLabel('Cómo paga').selectOption('efectivo');
+  await page.getByLabel(/^Envío/).fill('8.000');
+  await page.getByLabel(/^Nombre/).fill('Ensayo Dos Compradora');
+  await expect(page.getByText('Total: $266.000')).toBeVisible();
+  await sinFallasDeAxe(page);
+  await page.getByRole('button', { name: 'Anotar el pedido' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Pedido #2001' })).toBeVisible();
+  await expect(page.getByText('Se anotó en el panel')).toBeVisible();
+  expect(anotados).toEqual([
+    expect.objectContaining({
+      lineas: [{ variante: 'v-camisa-m-arena', cantidad: 2 }],
+      formaPago: 'efectivo',
+      envioCop: 8000,
+      contacto: { nombre: 'Ensayo Dos Compradora' },
+    }),
+  ]);
+});
+
+test('HU-T9.6 · CA1 y CA2: una nota, un enlace nuevo y cancelar preguntando si las unidades vuelven', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const pedido = pedidoDelPanel(1070, { formaPago: 'transferencia' });
+  const pedidos: Record<string, unknown[]> = { nota: [], enlace: [], cancelar: [] };
+  await page.route(`${PANEL}/api/panel/v1/pedidos/ped-1070`, (r) => r.fulfill({ json: pedido }));
+  await page.route(`${PANEL}/api/panel/v1/pedidos/nota`, (r) => {
+    const cuerpo = r.request().postDataJSON() as { texto: string };
+    pedidos['nota']?.push(cuerpo);
+    pedido.historia.push({
+      instante: '2026-10-15T16:00:00.000Z',
+      tipo: 'nota',
+      de: null,
+      a: null,
+      quien: 'Tú',
+      nota: cuerpo.texto,
+    });
+    return r.fulfill({ json: { estado: 'guardado', id: pedido.id, version: 2 } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/pedidos/enlace`, (r) => {
+    pedidos['enlace']?.push(r.request().postDataJSON());
+    return r.fulfill({
+      json: {
+        estado: 'ok',
+        enlace:
+          'https://ensayo-uno--staging.laboratorio-digital.app/pedido/#c=ABC123&s=SecretoNuevoDePrueba01',
+      },
+    });
+  });
+  await page.route(`${PANEL}/api/panel/v1/pedidos/cancelar`, (r) => {
+    pedidos['cancelar']?.push(r.request().postDataJSON());
+    Object.assign(pedido, { estado: 'cancelado', version: 3 });
+    return r.fulfill({ json: { estado: 'guardado', id: pedido.id, version: 3 } });
+  });
+
+  await page.goto(`${PANEL}/pedidos/ped-1070/`);
+  await page.getByLabel('Agregar una nota').fill('Llamar antes de las 5');
+  await page.getByRole('button', { name: 'Guardar la nota' }).click();
+  await expect(page.getByText('Tú: «Llamar antes de las 5»')).toBeVisible();
+
+  await page.getByText('Hacer un enlace de seguimiento nuevo', { exact: true }).click();
+  await expect(page.getByText(/El que tenía antes deja de servir/)).toBeVisible();
+  await page.getByRole('button', { name: 'Sí, hacer uno nuevo' }).click();
+  await expect(page.getByText('Este es el enlace nuevo; el de antes ya no sirve.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Mandarlo por WhatsApp' })).toHaveAttribute(
+    'href',
+    /^https:\/\/wa\.me\/\?text=.*SecretoNuevoDePrueba01/,
+  );
+
+  await page.getByText('Cancelar el pedido', { exact: true }).click();
+  await expect(page.getByLabel(/vuelven al inventario/)).toBeChecked();
+  await sinFallasDeAxe(page);
+  await page.getByRole('button', { name: 'Sí, cancelar el pedido' }).click();
+  await expect(
+    page.getByText('Pedido cancelado. Las unidades volvieron al inventario.'),
+  ).toBeVisible();
+  expect(pedidos['cancelar']).toEqual([
+    expect.objectContaining({ pedido: 'ped-1070', version: 2, volvio: true }),
+  ]);
+  await expect(page.getByText('Cancelar el pedido', { exact: true })).toHaveCount(0);
+});
+
 test('HU-T10.3 · CA2 y CA3: cambiar el WhatsApp pide volver a entrar sin perder lo escrito, y se verifica', async ({
   page,
 }) => {
