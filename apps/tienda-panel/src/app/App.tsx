@@ -34,6 +34,7 @@ import { Anotar } from './vistas/Anotar.tsx';
 import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
 import { ElegirTienda, NOMBRE_DEL_ROL } from './vistas/ElegirTienda.tsx';
 import { Entrar } from './vistas/Entrar.tsx';
+import { Equipo } from './vistas/Equipo.tsx';
 import { Galeria } from './vistas/Galeria.tsx';
 import { Inicio } from './vistas/Inicio.tsx';
 import { Existencias, Inventario } from './vistas/Inventario.tsx';
@@ -46,9 +47,10 @@ import { Publicar } from './vistas/Publicar.tsx';
 import { Recaudos } from './vistas/Recaudos.tsx';
 import { Registro } from './vistas/Registro.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
+import { Unirme } from './vistas/Unirme.tsx';
 import { CuponDeLaTienda, EnvioDeLaTienda, Venta } from './vistas/Venta.tsx';
 
-const LIBRES = new Set(['/privacidad/', '/_galeria/']);
+const LIBRES = new Set(['/privacidad/', '/_galeria/', '/unirme/']);
 
 function VuelveAEntrar({ motivo, alEntrar }: { motivo: string; alEntrar: () => void }) {
   return (
@@ -161,6 +163,21 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         Abriendo tu panel…
       </main>
     );
+  // Después de abrir: el regreso de Google ya salió de la barra y la sesión está guardada.
+  else if (ruta === '/unirme/')
+    cuerpo = (
+      <Unirme
+        conexion={conexion}
+        sesion={sesion}
+        alEntrar={entrar}
+        alUnirse={(nueva) => {
+          setYo(null);
+          setEligiendo(false);
+          setSesion(nueva);
+          irA('/');
+        }}
+      />
+    );
   else if (pantalla === 'entrar') cuerpo = <Entrar aviso={aviso} alEntrar={entrar} />;
   else if (pantalla === 'sin-tienda' && sesion)
     cuerpo = <SinTienda correo={sesion.usuario.email} alSalir={() => void alSalir()} />;
@@ -254,6 +271,7 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         conexion={conexion}
         almacen={almacen}
         org={sesion.org_id}
+        rol={yo.datos.rol}
         seccion={ruta.split('/')[3] as Seccion}
         alVencer={setVencida}
       />
@@ -283,10 +301,19 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     );
   } else if (ruta === '/mas/registro/')
     cuerpo = <Registro conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/mas/equipo/')
+    cuerpo = (
+      <Equipo
+        conexion={conexion}
+        rol={yo.datos.rol}
+        tienda={yo.datos.tienda?.nombre ?? 'tu tienda'}
+      />
+    );
   else if (ruta.startsWith('/mas/') && sesion)
     cuerpo = (
       <Mas
         correo={sesion.usuario.email}
+        rol={yo.datos.rol}
         variasTiendas={sesion.organizaciones.length > 1}
         alCambiar={() => setEligiendo(true)}
         alSalir={() => void alSalir()}

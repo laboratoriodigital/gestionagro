@@ -19,7 +19,10 @@ export type RespuestaDelPanel<T> =
   | {
       tipo: 'error';
       motivo: string;
-      /** Lo que dijo la API, cuando lo dijo: `problemas` (422), `cambiado` (409), `no-existe` (404). */
+      /**
+       * Lo que dijo la API, cuando lo dijo: `problemas` (422), `cambiado` (409), `no-existe` (404),
+       * `prohibido` (403).
+       */
       estado?: string;
       problemas?: { campo: string; mensaje: string }[];
       /** Con `cambiado`: la versión que hay ahora, para volver a leer. */
@@ -52,7 +55,9 @@ export interface Conexion {
 
 const SIN_SESION = 'Tu sesión venció. Vuelve a entrar con Google.';
 
-async function conAcceso(c: Conexion): Promise<{ sesion: Sesion | null; motivo: string | null }> {
+export async function conAcceso(
+  c: Conexion,
+): Promise<{ sesion: Sesion | null; motivo: string | null }> {
   const sesion = await leerSesion(c.almacen);
   const estado = estadoDeSesion(sesion, (c.ahora ?? Date.now)());
   if (estado === 'activa') return { sesion, motivo: null };
@@ -151,6 +156,8 @@ export async function pedirAlPanel<T>(
     return {
       tipo: 'error',
       ...(r.status === 404 && datos.estado === 'no-existe' ? { estado: 'no-existe' } : {}),
+      // HU-T10.5 CA3: la matriz de permisos dijo que no; la pantalla lo dice sin culpar a un campo.
+      ...(r.status === 403 && datos.estado === 'prohibido' ? { estado: 'prohibido' } : {}),
       motivo: datos.motivo ?? `La tienda no respondió bien (${r.status}). Intenta de nuevo.`,
     };
   } catch (e) {

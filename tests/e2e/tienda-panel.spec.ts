@@ -1556,6 +1556,176 @@ test('HU-T10.3 · CA2 y CA3: cambiar el WhatsApp pide volver a entrar sin perder
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
+test('HU-T10.5 · CA1: el propietario invita por WhatsApp; quien recibe entra con Google y se une', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const CODIGO = 'codigo-de-ensayo-t105';
+  const creadas: unknown[] = [];
+  await page.route(`${CORE}/api/core/invitaciones`, (r) => {
+    creadas.push(r.request().postDataJSON());
+    return r.fulfill({
+      status: 201,
+      json: { codigo: CODIGO, rol: 'colaborador', expira: '2026-10-22T15:00:00.000Z' },
+      headers: CORS,
+    });
+  });
+  await page.goto(`${PANEL}/mas/`);
+  await page.getByRole('link', { name: 'Equipo' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Equipo' })).toBeVisible();
+  await expect(page.getByText(/No puede cambiar el cobro, el dominio, el plan/)).toBeVisible();
+  await page.getByRole('button', { name: 'Invitar a un colaborador' }).click();
+  const whatsapp = page.getByRole('link', { name: 'Mandar por WhatsApp' });
+  await expect(whatsapp).toHaveAttribute('href', /^https:\/\/wa\.me\/\?text=/);
+  expect(creadas).toEqual([{ rol: 'colaborador' }]);
+  const mensaje =
+    new URL((await whatsapp.getAttribute('href')) ?? '').searchParams.get('text') ?? '';
+  const enlace = `${PANEL}/unirme/#invitacion=${CODIGO}`;
+  expect(mensaje).toContain(`tienda Comercio Ensayo Uno`);
+  expect(mensaje).toContain(enlace);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // Quien recibe abre el enlace sin sesión y entra con una cuenta que todavía no tiene tienda.
+  await page.goto(`${PANEL}/mas/`);
+  await page.getByRole('button', { name: 'Salir de la cuenta en este teléfono' }).click();
+  // Salir borra la sesión del teléfono sin esperar a nadie: abrir el enlace antes la encuentra.
+  await expect(page.getByRole('button', { name: 'Entrar con Google' })).toBeVisible();
+  await page.route(`${CORE}/api/core/auth/canje`, (r) =>
+    r.fulfill({ json: sesion({ organizaciones: [], org_id: null }), headers: CORS }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/yo`, (r) => r.fulfill({ json: yo(DOS) }));
+  const vistas: { codigo: unknown; auth: string | undefined }[] = [];
+  await page.route(`${CORE}/api/core/invitaciones/ver`, (r) => {
+    vistas.push({
+      codigo: (r.request().postDataJSON() as { codigo: unknown }).codigo,
+      auth: r.request().headers()['authorization'],
+    });
+    return r.fulfill({
+      json: {
+        estado: 'vigente',
+        finca: 'Comercio Ensayo Dos',
+        rol: 'colaborador',
+        invita: 'Ensayo Uno',
+        expira: '2026-10-22T15:00:00.000Z',
+      },
+      headers: CORS,
+    });
+  });
+  const aceptadas: { codigo: unknown; auth: string | undefined }[] = [];
+  await page.route(`${CORE}/api/core/invitaciones/aceptar`, (r) => {
+    aceptadas.push({
+      codigo: (r.request().postDataJSON() as { codigo: unknown }).codigo,
+      auth: r.request().headers()['authorization'],
+    });
+    return r.fulfill({
+      json: { org_id: DOS.org_id, finca: 'Comercio Ensayo Dos', rol: 'colaborador' },
+      headers: CORS,
+    });
+  });
+
+  await page.goto(enlace);
+  await expect(
+    page.getByText('Ensayo Uno te invitó a Comercio Ensayo Dos como colaborador.'),
+  ).toBeVisible();
+  // El código sale de la barra antes de cualquier pedido, y va en el cuerpo, sin sesión.
+  expect(page.url()).toBe(`${PANEL}/unirme/`);
+  expect(vistas).toEqual([{ codigo: CODIGO, auth: undefined }]);
+  await page.getByLabel(/Leí y acepto la política de tratamiento de datos/).check();
+  await page.getByRole('button', { name: 'Entrar con Google para unirme' }).click();
+
+  // Vuelve de Google a «Unirme», con el código guardado en el teléfono.
+  await page.getByRole('button', { name: 'Unirme a Comercio Ensayo Dos' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Comercio Ensayo Dos' })).toBeVisible();
+  expect(page.url()).toBe(`${PANEL}/`);
+  expect(aceptadas).toEqual([{ codigo: CODIGO, auth: `Bearer ${token('tienda')}` }]);
+  await expect(page.locator('.barra')).toContainText('Colaborador');
+});
+
+test('HU-T10.5 · aceptación de M2: el colaborador sin equipo ni cobro, el modo sin cambiar, y el 403 dicho', async ({
+  page,
+}) => {
+  await coreFalso(page, sesion({ organizaciones: [DOS], org_id: DOS.org_id }));
+  await apiFalsa(page, DOS);
+  const venta = {
+    datos: {
+      modo: 'whatsapp',
+      formas: ['contraentrega', 'transferencia'],
+      abierta: true,
+      pedidoMinimoCop: 20000,
+    } as Record<string, unknown>,
+    version: 2,
+  };
+  // Como la API: al colaborador no le manda el cobro.
+  await page.route(`${PANEL}/api/panel/v1/ajustes`, (r) =>
+    r.fulfill({
+      json: {
+        secciones: { identidad: { datos: { nombre: 'Comercio Ensayo Dos' }, version: 1 }, venta },
+        faltantes: [],
+      },
+    }),
+  );
+  const guardados: { datos: Record<string, unknown> }[] = [];
+  await page.route(`${PANEL}/api/panel/v1/ajustes/guardar`, (r) => {
+    const cuerpo = r.request().postDataJSON() as { datos: Record<string, unknown> };
+    guardados.push(cuerpo);
+    // La segunda vez, el propietario ya le había quitado el permiso: la API decide.
+    if (guardados.length === 2)
+      return r.fulfill({
+        status: 403,
+        json: { estado: 'prohibido', motivo: 'Tu rol no puede cambiar esta parte de los ajustes.' },
+      });
+    venta.datos = cuerpo.datos;
+    venta.version += 1;
+    return r.fulfill({ json: { estado: 'guardado', id: 'venta', version: venta.version } });
+  });
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await expect(page.getByRole('heading', { level: 1, name: 'Comercio Ensayo Dos' })).toBeVisible();
+
+  // CA2: «Más» no ofrece el equipo; abierto directo, tampoco.
+  await page.getByRole('link', { name: 'Más' }).click();
+  await expect(page.getByRole('link', { name: 'Ajustes de la tienda' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Equipo' })).toHaveCount(0);
+  await page.goto(`${PANEL}/mas/equipo/`);
+  await expect(page.getByText('Solo quien administra la tienda maneja el equipo.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Invitar a un colaborador' })).toHaveCount(0);
+
+  // Ajustes sin cobro; en la venta, el modo se ve pero no se cambia.
+  await page.goto(`${PANEL}/mas/ajustes/`);
+  await expect(page.getByRole('link', { name: /Venta/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Cobro/ })).toHaveCount(0);
+  await page.getByRole('link', { name: /Venta/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Venta' })).toBeVisible();
+  await expect(page.getByText('Lo cambia quien administra la tienda.')).toBeVisible();
+  await expect(page.getByText('Por WhatsApp', { exact: true })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Las dos' })).toHaveCount(0);
+
+  // Lo del día a día sí, y el modo viaja como estaba.
+  await page.getByLabel('Pedido mínimo').fill('30000');
+  await page.getByRole('button', { name: 'Guardar venta' }).click();
+  await expect(page.getByText('Guardamos venta.')).toBeVisible();
+  expect(guardados[0]?.datos).toMatchObject({ modo: 'whatsapp', pedidoMinimoCop: 30000 });
+
+  // CA3 ❌: si la API dice que no, lo dice en palabras y nada se da por guardado.
+  await page.getByLabel('Pedido mínimo').fill('35000');
+  await page.getByRole('button', { name: 'Guardar venta' }).click();
+  await expect(
+    page.getByText('Tu rol no puede cambiar esta parte de los ajustes.', { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByText('No se guardó')).toBeVisible();
+  expect(venta.datos['pedidoMinimoCop']).toBe(30000);
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
 test.describe('con el teléfono en otra zona horaria', () => {
   // La hora del registro es la de Bogotá aunque el teléfono esté en Madrid.
   test.use({ timezoneId: 'Europe/Madrid' });

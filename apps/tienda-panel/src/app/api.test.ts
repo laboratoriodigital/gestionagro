@@ -178,6 +178,20 @@ describe('pedirAlPanel', () => {
     });
   });
 
+  it('❌ HU-T10.5 CA3: el 403 de la matriz es «prohibido», con el motivo de la API', async () => {
+    const almacen = almacenEnMemoria({ sesion: sesion() });
+    const motivo = 'Tu rol no puede cambiar esta parte de los ajustes.';
+    const { fetchFn } = red({
+      '/api/panel/v1/ajustes/guardar': [json(403, { estado: 'prohibido', motivo })],
+    });
+    const c = { almacen, core: CORE, fetchFn, ahora: () => AHORA };
+    expect(await pedirAlPanel(c, 'ajustes/guardar', { cuerpo: {} })).toEqual({
+      tipo: 'error',
+      estado: 'prohibido',
+      motivo,
+    });
+  });
+
   it('❌ sin red es un error con palabras, no una excepción', async () => {
     const almacen = almacenEnMemoria({ sesion: sesion() });
     const fetchFn = (async () => {
