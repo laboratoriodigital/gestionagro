@@ -140,6 +140,25 @@ test('HU-T8.1 · con dos tiendas, elige una y la sesión se renueva hacia ella',
   await expect(page.locator('.barra')).toContainText('Colaborador');
 });
 
+test('HU-T8.1 · ❌ cambiar de tienda desde «Más» abre el inicio de la otra, sin recargar', async ({
+  page,
+}) => {
+  // Bitácora tienda3 17: elegir la otra tienda dejaba «Abriendo tu tienda…» hasta recargar.
+  const refrescos = await coreFalso(page, sesion({ organizaciones: [UNO, DOS] }));
+  await page.route(`${PANEL}/api/panel/v1/yo`, (ruta) =>
+    ruta.fulfill({ json: yo(refrescos.at(-1)?.['org_id'] === DOS.org_id ? DOS : UNO) }),
+  );
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await expect(page.getByRole('heading', { level: 1, name: 'Comercio Ensayo Uno' })).toBeVisible();
+  await page.getByRole('link', { name: 'Más' }).click();
+  await page.getByRole('button', { name: 'Cambiar de tienda' }).click();
+  await page.getByRole('button', { name: 'Abrir Comercio Ensayo Dos' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Comercio Ensayo Dos' })).toBeVisible();
+  expect(page.url()).toBe(`${PANEL}/`);
+  await expect(page.locator('.barra')).toContainText('Colaborador');
+});
+
 test('HU-T8.1 · sin tiendas, lo dice sin error y ofrece entrar con otra cuenta', async ({
   page,
 }) => {
