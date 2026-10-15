@@ -198,6 +198,8 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return despues['para'] === 'whatsapp'
         ? `${hizo('abr', 'iste', 'ió')} el WhatsApp del pedido #${despues['numero']} con sus datos de entrega`
         : `${hizo('v', 'iste', 'io')} los datos de entrega del pedido #${despues['numero']}`;
+    case 'pedido.confirmar':
+      return `${hizo('confirm', 'aste', 'ó')} el pedido #${despues['numero']}`;
     default:
       return `${quien}: ${f.accion} (${f.entidad})`;
   }

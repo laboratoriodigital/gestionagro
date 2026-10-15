@@ -40,7 +40,14 @@ import {
 import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { avisame, PeticionDeAvisame } from './avisame.ts';
-import { leerPedido, listarPedidos, verContacto } from './bandeja.ts';
+import {
+  confirmarPedido,
+  leerPedido,
+  listarPedidos,
+  mensajeDeConfirmacion,
+  variantesDelPedido,
+  verContacto,
+} from './bandeja.ts';
 import {
   borrarLaColeccion,
   guardarLaColeccion,
@@ -1041,6 +1048,35 @@ export function crearApp(
     const r = await verContacto(q, await kekDe(c), await c.req.json().catch(() => null));
     return r.estado === 'ok' ? c.json(r) : c.json(r, ESTADO_DEL_CONTACTO[r.estado]);
   });
+  app.post('/api/panel/v1/pedidos/whatsapp', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede confirmar pedidos.');
+    if (q instanceof Response) return q;
+    const s = c.get('sesion');
+    if (
+      decidir(s.rol, 'pedidos.contacto_ver', s.authTime ?? 0, Math.floor(ahora() / 1000)) !==
+      'permitido'
+    ) {
+      return c.json(
+        { estado: 'prohibido', motivo: 'Tu rol no puede ver los datos de entrega.' },
+        403,
+      );
+    }
+    const r = await mensajeDeConfirmacion(q, await kekDe(c), await c.req.json().catch(() => null));
+    return r.estado === 'ok' ? c.json(r) : c.json(r, ESTADO_DEL_CONTACTO[r.estado]);
+  });
+  app.post('/api/panel/v1/pedidos/confirmar', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede confirmar pedidos.');
+    if (q instanceof Response) return q;
+    const cuerpo = (await c.req.json().catch(() => null)) as { pedido?: unknown } | null;
+    const pedido = typeof cuerpo?.pedido === 'string' ? cuerpo.pedido : null;
+    const despues = pedido
+      ? await vigilarExistencias(c, await variantesDelPedido(q, pedido))
+      : null;
+    const r = await confirmarPedido(q, cuerpo);
+    if (r.estado === 'guardado') await despues?.();
+    return responderCatalogo(c, r);
+  });
+
   // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.
   app.get('/api/panel/v1/registro', async (c) => {
     const s = c.get('sesion');

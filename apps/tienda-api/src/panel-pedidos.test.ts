@@ -2,7 +2,7 @@
  * HU-T9.1, HU-T9.2 y HU-T9.3 por la API del panel: con tokens del CORE firmados de verdad, contra
  * el shard local con los dos comercios de prueba, una KEK de prueba y pedidos sembrados aquí. El
  * comprador de prueba se llama «Ensayo Dos Compradora»: ninguna respuesta del panel lo dice en
- * claro, salvo «Ver datos de entrega», que queda registrada.
+ * claro, salvo «Ver datos de entrega» y el mensaje de «Confirmar por WhatsApp», que quedan registradas.
  */
 import { importarKek } from '@ed1/cifrado';
 import type { BaseD1 } from '@ed1/d1';
@@ -20,6 +20,7 @@ const AHORA = new Date(T0).toISOString();
 const PERSONA = '0199e0a0-0000-7000-8000-0000000000d1';
 const UNO = ENSAYO_UNO.org;
 const M = 'v-camisa-m-arena'; // 4 en inventario
+const S = 'v-camisa-s-arena'; // 1 en inventario
 const KEK = Buffer.from(Array.from({ length: 32 }, (_, i) => i + 7)).toString('base64');
 const COMPRADORA: ContactoDelPedido = {
   nombre: 'Ensayo Dos Compradora',
@@ -171,6 +172,9 @@ type Pagina = {
   siguiente: string | null;
 };
 
+let ops = 0;
+const op = () => `op-pedidos-${++ops}`.padEnd(12, '0');
+
 describe('la bandeja de pedidos (HU-T9.1)', () => {
   it('CA1: de a 50, del más nuevo al más viejo, con cursor; lo que necesita atención va aparte', async () => {
     const vistos: number[] = [];
@@ -258,11 +262,169 @@ describe('ver los datos de entrega deja huella (HU-T9.2)', () => {
   });
 });
 
-describe('los datos del comprador no salen en claro (HU-T9.2 CA2)', () => {
-  /** La que lee el contacto, y cada lectura queda en la historia y en el registro. */
-  const LEEN_EL_CONTACTO = ['/api/panel/v1/pedidos/contacto'];
+describe('confirmar por WhatsApp y confirmar (HU-T9.3)', () => {
+  const stock = async (v: string) =>
+    (
+      await shard
+        .prepare('SELECT stock FROM variante WHERE org_id = ? AND id = ?')
+        .bind(UNO, v)
+        .first<{ stock: number }>()
+    )?.stock;
 
-  it('❌ ninguna respuesta del panel los dice, salvo «Ver datos de entrega»', async () => {
+  it('CA1: el mensaje lleva el resumen, la dirección y la cuenta para transferir', async () => {
+    await shard
+      .prepare(
+        `INSERT INTO ajuste (org_id, seccion, esquema, datos, actualizado, actualizado_por)
+         VALUES (?, 'cobro', 1, ?, ?, 'sistema')
+         ON CONFLICT (org_id, seccion) DO UPDATE SET datos = excluded.datos`,
+      )
+      .bind(
+        UNO,
+        JSON.stringify({
+          transferencia: {
+            banco: 'Banco de Prueba',
+            tipoCuenta: 'ahorros',
+            numero: '000-111222',
+            titular: 'Comercio Ensayo Uno',
+            documento: 'NIT 900000001-1',
+          },
+        }),
+        AHORA,
+      )
+      .run();
+    const id = await sembrarPedido(203, { contacto: COMPRADORA, cantidad: 2, creado: AHORA });
+    const r = await pedir('/api/panel/v1/pedidos/whatsapp', { pedido: id });
+    expect(r.status).toBe(200);
+    const { url, mensaje } = (await r.json()) as { url: string; mensaje: string };
+    expect(url.startsWith('https://wa.me/573001234567?text=')).toBe(true);
+    expect(decodeURIComponent(url.split('text=')[1] ?? '')).toBe(mensaje);
+    expect(mensaje).toBe(
+      [
+        'Hola, Ensayo. Te escribimos de Comercio Ensayo Uno por tu pedido #1203:',
+        '• 2 × Camisa de lino (Talla: M · Color: Arena): $258.000',
+        'Total: $258.000',
+        'Lo enviamos a: Calle de prueba 99, apto 101, Medellín.',
+        'Para pagar, transfiere $258.000 a Banco de Prueba, cuenta de ahorros 000-111222, a nombre de Comercio Ensayo Uno (NIT 900000001-1), y mándanos el comprobante por aquí.',
+        '¿Lo confirmamos?',
+      ].join('\n'),
+    );
+    const registro = (await (await pedir('/api/panel/v1/registro')).json()) as {
+      filas: { frase: string }[];
+    };
+    expect(registro.filas[0]?.frase).toBe(
+      'Tú abriste el WhatsApp del pedido #1203 con sus datos de entrega',
+    );
+  });
+
+  it('sin datos de entrega, el mensaje sale igual y WhatsApp deja elegir el chat', async () => {
+    const r = await pedir('/api/panel/v1/pedidos/whatsapp', { pedido: 'ped-0011' });
+    expect(r.status).toBe(200);
+    const { url, mensaje } = (await r.json()) as { url: string; mensaje: string };
+    expect(url.startsWith('https://wa.me/?text=')).toBe(true);
+    expect(
+      mensaje.startsWith('Hola. Te escribimos de Comercio Ensayo Uno por tu pedido #1011:'),
+    ).toBe(true);
+  });
+
+  it('CA2: confirmar descuenta el inventario en el mismo lote, con el pedido en el libro', async () => {
+    const antes = await stock(M);
+    const id = await sembrarPedido(204, { cantidad: 2, creado: AHORA });
+    const r = await pedir('/api/panel/v1/pedidos/confirmar', { op: op(), pedido: id, version: 1 });
+    expect(r.status).toBe(200);
+    expect(await stock(M)).toBe((antes ?? 0) - 2);
+    const libro = await shard
+      .prepare(
+        'SELECT delta, motivo, ref FROM movimiento_inventario WHERE org_id = ? AND variante_id = ? ORDER BY id DESC',
+      )
+      .bind(UNO, M)
+      .first();
+    expect(libro).toEqual({ delta: -2, motivo: 'venta', ref: id });
+    const detalle = (await (await pedir(`/api/panel/v1/pedidos/${id}`)).json()) as {
+      estado: string;
+      lineas: { descontado: boolean }[];
+      historia: { tipo: string; de: string; a: string; quien: string }[];
+    };
+    expect(detalle.estado).toBe('confirmado');
+    expect(detalle.lineas.every((l) => l.descontado)).toBe(true);
+    expect(detalle.historia).toContainEqual(
+      expect.objectContaining({ tipo: 'estado', de: 'pendiente', a: 'confirmado', quien: 'Tú' }),
+    );
+    // Repetir la misma operación no descuenta dos veces.
+    const otra = await pedir('/api/panel/v1/pedidos/confirmar', {
+      op: `op-pedidos-${ops}`.padEnd(12, '0'),
+      pedido: id,
+      version: 1,
+    });
+    expect(otra.status).toBe(200);
+    expect(await stock(M)).toBe((antes ?? 0) - 2);
+  });
+
+  it('❌ CA2: si no alcanza, lo dice y no confirma: nada cambia', async () => {
+    const antes = await stock(S);
+    const id = await sembrarPedido(205, { variante: S, cantidad: 3, creado: AHORA });
+    const r = await pedir('/api/panel/v1/pedidos/confirmar', { op: op(), pedido: id, version: 1 });
+    expect(r.status).toBe(422);
+    expect(await r.json()).toMatchObject({
+      problemas: [
+        {
+          mensaje:
+            'No alcanza: de «Camisa de lino (Talla: M · Color: Arena)» hay 1 y el pedido lleva 3. Habla con el comprador o ajusta el inventario antes de confirmar.',
+        },
+      ],
+    });
+    expect(await stock(S)).toBe(antes);
+    const p = await shard
+      .prepare('SELECT estado FROM pedido WHERE org_id = ? AND id = ?')
+      .bind(UNO, id)
+      .first<{ estado: string }>();
+    expect(p?.estado).toBe('pendiente');
+  });
+
+  it('❌ CA3: la base no despacha un contra entrega sin confirmar ni confirma a mano un pago en línea', async () => {
+    const ce = await sembrarPedido(206, { forma: 'contraentrega', creado: AHORA });
+    await expect(
+      shard
+        .prepare(
+          "UPDATE pedido SET estado = 'despachado', guia = 'G-1' WHERE org_id = ? AND id = ?",
+        )
+        .bind(UNO, ce)
+        .run(),
+    ).rejects.toThrow(/transicion-de-pedido-invalida|contraentrega-sin-guia/);
+    const enLinea = await sembrarPedido(207, { forma: 'en_linea', creado: AHORA });
+    await expect(
+      shard
+        .prepare("UPDATE pedido SET estado = 'confirmado' WHERE org_id = ? AND id = ?")
+        .bind(UNO, enLinea)
+        .run(),
+    ).rejects.toThrow(/CHECK constraint failed/);
+    const r = await pedir('/api/panel/v1/pedidos/confirmar', {
+      op: op(),
+      pedido: enLinea,
+      version: 1,
+    });
+    expect(r.status).toBe(422);
+    expect(await r.json()).toMatchObject({
+      problemas: [{ mensaje: expect.stringMatching(/^Este pedido se paga en línea/) }],
+    });
+  });
+
+  it('una versión vieja responde 409 con la de ahora', async () => {
+    const id = await sembrarPedido(208, { creado: AHORA });
+    await shard
+      .prepare("UPDATE pedido SET version = 2, ciudad = 'Bello' WHERE org_id = ? AND id = ?")
+      .bind(UNO, id)
+      .run();
+    const r = await pedir('/api/panel/v1/pedidos/confirmar', { op: op(), pedido: id, version: 1 });
+    expect(r.status).toBe(409);
+    expect(await r.json()).toMatchObject({ estado: 'cambiado', version: 2 });
+  });
+});
+
+describe('los datos del comprador no salen en claro (HU-T9.2 CA2)', () => {
+  /** Las dos que leen el contacto, y cada lectura queda en la historia y en el registro. */
+  const LEEN_EL_CONTACTO = ['/api/panel/v1/pedidos/contacto', '/api/panel/v1/pedidos/whatsapp'];
+
+  it('❌ ninguna respuesta del panel los dice, salvo «Ver datos de entrega» y el WhatsApp', async () => {
     for (const ruta of [
       '/api/panel/v1/yo',
       '/api/panel/v1/pedidos',
@@ -282,6 +444,6 @@ describe('los datos del comprador no salen en claro (HU-T9.2 CA2)', () => {
         (r) => r.ruta === '/api/panel/v1/pedidos/contacto' && r.texto.includes('3001234567'),
       ),
     ).toBe(true);
-    expect(respuestas.length).toBeGreaterThan(15);
+    expect(respuestas.length).toBeGreaterThan(20);
   });
 });

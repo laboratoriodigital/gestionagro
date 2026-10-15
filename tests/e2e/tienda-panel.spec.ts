@@ -809,6 +809,106 @@ test('HU-T9.1 · 300 pedidos en 360 px: filtros sin red, y una respuesta vieja n
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
+test('HU-T9.2 y HU-T9.3 · ver los datos de entrega, confirmar por WhatsApp y confirmar', async ({
+  page,
+}) => {
+  const consola: string[] = [];
+  page.on('console', (m) => consola.push(m.text()));
+  await enElPanel(page);
+  const pedido = {
+    ...filaDePedido(1045, { estado: 'pendiente', formaPago: 'transferencia', articulos: 2 }),
+    canal: 'whatsapp',
+    subtotalCop: 258000,
+    descuentoCop: 0,
+    envioCop: 0,
+    cuponCodigo: null,
+    envioNombre: null,
+    totalCop: 258000,
+    lineas: [
+      {
+        variante: 'v-camisa-m-arena',
+        nombre: 'Camisa de lino',
+        opciones: 'Talla: M · Color: Arena',
+        cantidad: 2,
+        precioUnitarioCop: 129000,
+        totalCop: 258000,
+        descontado: false,
+      },
+    ],
+    historia: [] as object[],
+    conContacto: true,
+  };
+  const mensaje =
+    'Hola, Ensayo. Te escribimos de Comercio Ensayo Uno por tu pedido #1045:\n• 2 × Camisa de lino (Talla: M · Color: Arena): $258.000\nTotal: $258.000';
+  const confirmados: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/pedidos/ped-1045`, (r) => r.fulfill({ json: pedido }));
+  await page.route(`${PANEL}/api/panel/v1/pedidos/contacto`, (r) => {
+    pedido.historia.push({
+      instante: '2026-10-15T15:50:00.000Z',
+      tipo: 'contacto_leido',
+      de: null,
+      a: null,
+      quien: 'Tú',
+    });
+    return r.fulfill({
+      json: {
+        estado: 'ok',
+        contacto: {
+          nombre: 'Ensayo Dos Compradora',
+          celular: '3001234567',
+          direccion: 'Calle de prueba 99',
+        },
+      },
+    });
+  });
+  await page.route(`${PANEL}/api/panel/v1/pedidos/whatsapp`, (r) =>
+    r.fulfill({
+      json: {
+        estado: 'ok',
+        url: `https://wa.me/573001234567?text=${encodeURIComponent(mensaje)}`,
+        mensaje,
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/pedidos/confirmar`, (r) => {
+    confirmados.push(r.request().postDataJSON());
+    Object.assign(pedido, { estado: 'confirmado', version: 2 });
+    return r.fulfill({ json: { estado: 'guardado', id: pedido.id, version: 2 } });
+  });
+
+  await page.goto(`${PANEL}/pedidos/ped-1045/`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Pedido #1045' })).toBeVisible();
+  await expect(page.getByText('Ensayo D. · 300 ••• 4567')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('Compradora');
+
+  await page.getByRole('button', { name: 'Ver datos de entrega' }).click();
+  await expect(page.getByText('Calle de prueba 99')).toBeVisible();
+  await expect(page.getByText('Tú vio los datos de entrega')).toHaveCount(0);
+  await expect(page.getByText('Tú viste los datos de entrega')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Confirmar por WhatsApp' }).click();
+  await expect(page.locator('pre.mensaje')).toHaveText(mensaje);
+  await expect(page.getByRole('link', { name: 'Abrir WhatsApp con el mensaje' })).toHaveAttribute(
+    'href',
+    /^https:\/\/wa\.me\/573001234567\?text=/,
+  );
+
+  await page.getByText('Confirmar el pedido', { exact: true }).click();
+  await expect(
+    page.getByText('Salen 2 unidades del inventario y el pedido queda confirmado.'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Sí, confirmar' }).click();
+  await expect(page.getByText('Pedido confirmado.', { exact: false })).toBeVisible();
+  expect(confirmados).toEqual([expect.objectContaining({ pedido: 'ped-1045', version: 1 })]);
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  // HU-T9.2 CA2: los datos de la compradora no quedan en los registros de la consola.
+  expect(consola.filter((t) => /Compradora|3001234567|Calle de prueba/.test(t))).toEqual([]);
+});
+
 test.describe('con el teléfono en otra zona horaria', () => {
   // La hora del registro es la de Bogotá aunque el teléfono esté en Madrid.
   test.use({ timezoneId: 'Europe/Madrid' });

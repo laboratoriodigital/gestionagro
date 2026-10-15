@@ -19,9 +19,20 @@ import {
   descifrarSobre,
   type Kek,
 } from '@ed1/cifrado';
+import type { SentenciaD1 } from '@ed1/d1';
+import { formatearPesos } from '@ed1/dinero';
 import { taparCelular, taparNombre } from '@ed1/tienda-schema/tapado';
 import { z } from 'zod';
-import type { Quien } from './catalogo.ts';
+import {
+  esCambiado,
+  esOperacionRepetida,
+  guardarOperacion,
+  MOTIVO_CAMBIADO,
+  type Quien,
+  type Resultado,
+  SI_CAMBIO,
+  yaAplicada,
+} from './catalogo.ts';
 import { deksDeLaTienda, dekVigente } from './llaves.ts';
 import { anotar } from './registro.ts';
 
@@ -386,4 +397,246 @@ export async function verContacto(
 ): Promise<ResultadoDelContacto> {
   const { numero: _, ...r } = await leerContacto(q, kek, cuerpo, 'ver');
   return r;
+}
+
+const CUENTAS: Record<string, string> = {
+  ahorros: 'cuenta de ahorros',
+  corriente: 'cuenta corriente',
+  deposito: 'depósito electrónico',
+};
+
+interface Transferencia {
+  banco: string;
+  tipoCuenta: string;
+  numero: string;
+  titular: string;
+  documento: string;
+}
+
+/** Lo que sigue según la forma de pago, en la voz del comercio. */
+function loQueSigue(forma: string, total: number, cuenta: Transferencia | null): string {
+  const monto = formatearPesos(total);
+  switch (forma) {
+    case 'transferencia':
+      return cuenta
+        ? `Para pagar, transfiere ${monto} a ${cuenta.banco}, ${CUENTAS[cuenta.tipoCuenta] ?? cuenta.tipoCuenta} ${cuenta.numero}, a nombre de ${cuenta.titular} (${cuenta.documento}), y mándanos el comprobante por aquí.`
+        : `Para pagar, te mandamos por aquí los datos de la cuenta para transferir ${monto}.`;
+    case 'contraentrega':
+      return `Lo pagas al recibirlo: ${monto} a la transportadora.`;
+    case 'efectivo':
+      return `Lo pagas en efectivo al recogerlo: ${monto}.`;
+    case 'en_linea':
+      return `Te mandamos por aquí el link para pagar ${monto} en línea.`;
+    default:
+      return `¿Cómo prefieres pagar los ${monto}? Te contamos las opciones.`;
+  }
+}
+
+/**
+ * HU-T9.3 CA1: el mensaje para confirmar con el comprador, y el enlace de WhatsApp que lo abre. Si
+ * el comprador dejó su celular, va a su chat (y eso es leer el contacto: queda registrado); si no,
+ * WhatsApp deja elegir el chat.
+ */
+export async function mensajeDeConfirmacion(
+  q: Quien,
+  kek: Kek | null,
+  cuerpo: unknown,
+): Promise<
+  | { estado: 'ok'; url: string; mensaje: string }
+  | { estado: 'no-existe' | 'sin-llave'; motivo: string }
+> {
+  const r0 = PeticionDeContacto.safeParse(cuerpo);
+  if (!r0.success) return { estado: 'no-existe', motivo: 'Ese pedido no está.' };
+  const pedido = await leerPedido(q, null, r0.data.pedido);
+  if (!pedido) return { estado: 'no-existe', motivo: 'Ese pedido no está.' };
+  let contacto: ContactoDelPedido | null = null;
+  if (pedido.conContacto) {
+    const r = await leerContacto(q, kek, cuerpo, 'whatsapp');
+    if (r.estado === 'sin-llave' || r.estado === 'no-existe') return r;
+    if (r.estado === 'ok') contacto = r.contacto;
+  }
+  const { results: ajustes } = await q.db
+    .prepare(
+      "SELECT seccion, datos FROM ajuste WHERE org_id = ? AND seccion IN ('identidad', 'cobro')",
+    )
+    .bind(q.org)
+    .all<{ seccion: string; datos: string }>();
+  const seccion = (s: string) =>
+    JSON.parse(ajustes.find((a) => a.seccion === s)?.datos ?? '{}') as Record<string, unknown>;
+  const tienda = await q.db
+    .prepare('SELECT nombre FROM tienda WHERE org_id = ?')
+    .bind(q.org)
+    .first<{ nombre: string }>();
+  const nombreTienda = String(seccion('identidad')['nombre'] ?? tienda?.nombre ?? 'la tienda');
+  const cuenta = (seccion('cobro')['transferencia'] as Transferencia | undefined) ?? null;
+
+  const saludo = contacto?.nombre ? `Hola, ${contacto.nombre.trim().split(/\s+/)[0]}.` : 'Hola.';
+  const lineas = pedido.lineas.map(
+    (l) =>
+      `• ${l.cantidad} × ${l.nombre}${l.opciones ? ` (${l.opciones})` : ''}: ${formatearPesos(l.totalCop)}`,
+  );
+  const partes = [
+    `${saludo} Te escribimos de ${nombreTienda} por tu pedido #${pedido.numero}:`,
+    ...lineas,
+    ...(pedido.descuentoCop > 0
+      ? [
+          `Descuento${pedido.cuponCodigo ? ` (${pedido.cuponCodigo})` : ''}: −${formatearPesos(pedido.descuentoCop)}`,
+        ]
+      : []),
+    ...(pedido.envioNombre
+      ? [`Envío (${pedido.envioNombre}): ${formatearPesos(pedido.envioCop)}`]
+      : []),
+    `Total: ${formatearPesos(pedido.totalCop)}`,
+    ...(contacto?.direccion
+      ? [`Lo enviamos a: ${contacto.direccion}${contacto.ciudad ? `, ${contacto.ciudad}` : ''}.`]
+      : []),
+    loQueSigue(pedido.formaPago, pedido.totalCop, cuenta),
+    '¿Lo confirmamos?',
+  ];
+  const mensaje = partes.join('\n');
+  const digitos = contacto?.celular?.replace(/\D/g, '') ?? '';
+  const numero = digitos.length === 10 && digitos.startsWith('3') ? `57${digitos}` : digitos;
+  const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+  return { estado: 'ok', url, mensaje };
+}
+
+const Confirmar = z.object({
+  op: z.string().min(8).max(64),
+  pedido: z.string().min(1).max(64),
+  version: z.number().int().min(1),
+});
+
+/** Las combinaciones de un pedido: lo que confirmar puede agotar (HU-T4.5). */
+export async function variantesDelPedido(q: Pick<Quien, 'db' | 'org'>, pedido: string) {
+  const { results } = await q.db
+    .prepare('SELECT DISTINCT variante_id FROM pedido_linea WHERE org_id = ? AND pedido_id = ?')
+    .bind(q.org, pedido)
+    .all<{ variante_id: string }>();
+  return results.map((r) => r.variante_id);
+}
+
+/**
+ * HU-T9.3 CA2: confirmar. En un lote: el estado (con la versión), el inventario de cada línea que
+ * no ha salido, y el registro. Si no alcanza, lo dice con la combinación y no confirma (P1). La
+ * base impide confirmar a mano un pago en línea (CA3).
+ */
+export async function confirmarPedido(q: Quien, cuerpo: unknown): Promise<Resultado> {
+  const r0 = Confirmar.safeParse(cuerpo);
+  if (!r0.success) {
+    return { estado: 'problemas', problemas: [{ campo: 'pedido', mensaje: 'falta el pedido' }] };
+  }
+  const d = r0.data;
+  const previa = await yaAplicada(q, d.op);
+  if (previa) return previa;
+  const p = await q.db
+    .prepare('SELECT numero, estado, forma_pago, version FROM pedido WHERE org_id = ? AND id = ?')
+    .bind(q.org, d.pedido)
+    .first<{ numero: number; estado: string; forma_pago: string; version: number }>();
+  if (!p) return { estado: 'no-existe', motivo: 'Ese pedido no está.' };
+  if (p.version !== d.version)
+    return { estado: 'cambiado', motivo: MOTIVO_CAMBIADO, version: p.version };
+  const problema = (mensaje: string): Resultado => ({
+    estado: 'problemas',
+    problemas: [{ campo: 'pedido', mensaje }],
+  });
+  if (p.forma_pago === 'en_linea') {
+    return problema(
+      'Este pedido se paga en línea: se confirma solo cuando el pago llega. Si el comprador pagó por otro lado, cámbiale la forma de pago primero.',
+    );
+  }
+  if (p.estado !== 'pendiente') return problema('Este pedido ya no está por confirmar.');
+
+  const leerLineas = async () =>
+    (
+      await q.db
+        .prepare(
+          `SELECT l.linea, l.variante_id, l.nombre, l.opciones, l.cantidad, v.stock, v.reservado
+             FROM pedido_linea l JOIN variante v ON v.org_id = l.org_id AND v.id = l.variante_id
+            WHERE l.org_id = ? AND l.pedido_id = ? AND l.descontado = 0 ORDER BY l.linea`,
+        )
+        .bind(q.org, d.pedido)
+        .all<{
+          linea: number;
+          variante_id: string;
+          nombre: string;
+          opciones: string;
+          cantidad: number;
+          stock: number | null;
+          reservado: number;
+        }>()
+    ).results;
+  const sinAlcanzar = (pendientes: Awaited<ReturnType<typeof leerLineas>>) => {
+    const pide = new Map<string, number>();
+    for (const l of pendientes)
+      pide.set(l.variante_id, (pide.get(l.variante_id) ?? 0) + l.cantidad);
+    const corta = pendientes.find(
+      (l) => l.stock !== null && l.stock - l.reservado < (pide.get(l.variante_id) ?? 0),
+    );
+    if (!corta || corta.stock === null) return null;
+    const hay = Math.max(0, corta.stock - corta.reservado);
+    return problema(
+      `No alcanza: de «${corta.nombre}${corta.opciones ? ` (${corta.opciones})` : ''}» ${hay === 1 ? 'hay 1' : `hay ${hay}`} y el pedido lleva ${pide.get(corta.variante_id)}. Habla con el comprador o ajusta el inventario antes de confirmar.`,
+    );
+  };
+  const lineas = await leerLineas();
+  const falta = sinAlcanzar(lineas);
+  if (falta) return falta;
+
+  const r: Resultado = { estado: 'guardado', id: d.pedido, version: p.version + 1 };
+  const lote: SentenciaD1[] = [
+    q.db
+      .prepare(
+        `UPDATE pedido SET estado = 'confirmado', cambiado_por = ?, version = version + 1, actualizado = ?
+          WHERE org_id = ? AND id = ? AND version = ? AND estado = 'pendiente'`,
+      )
+      .bind(q.actor, q.instante, q.org, d.pedido, d.version),
+    q.db.prepare(SI_CAMBIO),
+    ...lineas
+      .filter((l) => l.stock !== null)
+      .map((l) =>
+        q.db
+          .prepare(
+            `UPDATE variante SET stock = stock - ?, cambio_motivo = 'venta', cambio_ref = ?, actualizado = ?
+              WHERE org_id = ? AND id = ?`,
+          )
+          .bind(l.cantidad, d.pedido, q.instante, q.org, l.variante_id),
+      ),
+    q.db
+      .prepare('UPDATE pedido_linea SET descontado = 1 WHERE org_id = ? AND pedido_id = ?')
+      .bind(q.org, d.pedido),
+    await anotar(q.db, {
+      org: q.org,
+      actor: q.actor,
+      accion: 'pedido.confirmar',
+      entidad: 'pedido',
+      entidadId: d.pedido,
+      antes: { numero: p.numero, estado: p.estado },
+      despues: { numero: p.numero, estado: 'confirmado' },
+      instante: q.instante,
+    }),
+    guardarOperacion(q, d.op, 'pedidos/confirmar', r),
+  ];
+  try {
+    await q.db.batch(lote);
+    return r;
+  } catch (e) {
+    if (esCambiado(e)) {
+      const ahora = await q.db
+        .prepare('SELECT version FROM pedido WHERE org_id = ? AND id = ?')
+        .bind(q.org, d.pedido)
+        .first<{ version: number }>();
+      return { estado: 'cambiado', motivo: MOTIVO_CAMBIADO, version: ahora?.version ?? null };
+    }
+    if (esOperacionRepetida(e)) return (await yaAplicada(q, d.op)) ?? r;
+    // Otra venta o un pago se llevó las unidades entre la lectura y el lote: el CHECK lo detuvo.
+    if (/CHECK constraint failed/i.test(String(e))) {
+      return (
+        sinAlcanzar(await leerLineas()) ??
+        problema(
+          'No alcanza el inventario para confirmar. Revisa las existencias y vuelve a intentar.',
+        )
+      );
+    }
+    throw e;
+  }
 }

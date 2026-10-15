@@ -10,8 +10,8 @@
 import { Aviso, type EstadoDeContenido } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { type Conexion, pedirAlPanel } from '../api.ts';
-import { enPesos } from '../catalogo.ts';
-import { ESTADOS_DE_PEDIDO, Estado, Lista } from '../componentes/index.ts';
+import { enPesos, opNueva } from '../catalogo.ts';
+import { Confirmar, ESTADOS_DE_PEDIDO, Estado, Lista } from '../componentes/index.ts';
 import {
   ATENCION,
   crearTurno,
@@ -278,6 +278,7 @@ export function Pedido({
   const [error, setError] = useState<string | null>(null);
   const [contacto, setContacto] = useState<Contacto | null>(null);
   const [aviso, setAviso] = useState<{ tono: 'info' | 'peligro'; texto: string } | null>(null);
+  const [whatsapp, setWhatsapp] = useState<{ url: string; mensaje: string } | null>(null);
 
   const cargar = useCallback(async () => {
     const r = await pedirAlPanel<PedidoDelPanel>(conexion, `pedidos/${encodeURIComponent(id)}`);
@@ -316,6 +317,30 @@ export function Pedido({
     setContacto(r.datos.contacto);
     await cargar();
   };
+  const armarWhatsapp = async () => {
+    const r = await pedirAlPanel<{ url: string; mensaje: string }>(conexion, 'pedidos/whatsapp', {
+      cuerpo: { pedido: pedido.id },
+    });
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok') return setAviso({ tono: 'peligro', texto: r.motivo });
+    setWhatsapp(r.datos);
+    await cargar();
+  };
+  const confirmar = async () => {
+    const r = await pedirAlPanel(conexion, 'pedidos/confirmar', {
+      cuerpo: { op: opNueva(), pedido: pedido.id, version: pedido.version },
+    });
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    setAviso(
+      r.tipo === 'ok'
+        ? { tono: 'info', texto: 'Pedido confirmado. Sus unidades ya salieron del inventario.' }
+        : { tono: 'peligro', texto: r.problemas?.[0]?.mensaje ?? r.motivo },
+    );
+    await cargar();
+  };
+
+  const unidades = pedido.lineas.reduce((s, l) => s + (l.descontado ? 0 : l.cantidad), 0);
+  const porConfirmar = pedido.estado === 'pendiente' && pedido.formaPago !== 'en_linea';
 
   return (
     <main class="contenido">
@@ -416,6 +441,47 @@ export function Pedido({
           </div>
         ) : null}
       </dl>
+
+      {porConfirmar ? (
+        <section class="acciones">
+          <h2>Confirmar</h2>
+          <p class="nota">
+            Primero confirma con el comprador; después, confirma aquí para que las unidades salgan
+            del inventario.
+          </p>
+          {whatsapp ? (
+            <>
+              <pre class="mensaje">{whatsapp.mensaje}</pre>
+              <a
+                class="ed1-boton ed1-boton--primario"
+                href={whatsapp.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Abrir WhatsApp con el mensaje
+              </a>
+            </>
+          ) : (
+            <button
+              class="ed1-boton ed1-boton--primario"
+              type="button"
+              onClick={() => void armarWhatsapp()}
+            >
+              Confirmar por WhatsApp
+            </button>
+          )}
+          <Confirmar
+            abrir="Confirmar el pedido"
+            consecuencia={
+              unidades === 1
+                ? 'Sale 1 unidad del inventario y el pedido queda confirmado.'
+                : `Salen ${unidades} unidades del inventario y el pedido queda confirmado.`
+            }
+            confirmar="Sí, confirmar"
+            alConfirmar={confirmar}
+          />
+        </section>
+      ) : null}
 
       <h2>Historia</h2>
       <ol class="registro">
