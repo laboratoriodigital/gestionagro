@@ -829,9 +829,17 @@ ${p.cuerpo}
 /**
  * El manifiesto de una versión (TIENDA §5.6): la huella, el tipo y los bytes de cada archivo, y la
  * huella del conjunto. Un archivo idéntico tiene la misma huella en todas las versiones.
+ *
+ * HU-T8.2 CA3: `redirecciones` lleva cada dirección vieja de un producto a la nueva (301). Entra en
+ * la huella del conjunto: cambiar solo una redirección también es publicar. Sin redirecciones, la
+ * huella es la de siempre.
  */
-export async function manifiesto(archivos: Map<string, ArchivoHorneado>): Promise<{
+export async function manifiesto(
+  archivos: Map<string, ArchivoHorneado>,
+  redirecciones: Readonly<Record<string, string>> = {},
+): Promise<{
   archivos: Record<string, { huella: string; tipo: string; bytes: number }>;
+  redirecciones?: Record<string, string>;
   huella: string;
 }> {
   const entradas: [string, { huella: string; tipo: string; bytes: number }][] = [];
@@ -846,8 +854,18 @@ export async function manifiesto(archivos: Map<string, ArchivoHorneado>): Promis
       },
     ]);
   }
+  // Una dirección que es un archivo de esta versión no se redirige: la tomó otro producto.
+  const saltos = Object.entries(redirecciones)
+    .filter(([desde]) => !archivos.has(`${desde}index.html`))
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   return {
     archivos: Object.fromEntries(entradas),
-    huella: await huella(entradas.map(([r, e]) => `${r} ${e.huella}`).join('\n')),
+    ...(saltos.length > 0 ? { redirecciones: Object.fromEntries(saltos) } : {}),
+    huella: await huella(
+      [
+        ...entradas.map(([r, e]) => `${r} ${e.huella}`),
+        ...saltos.map(([desde, hacia]) => `${desde} -> ${hacia}`),
+      ].join('\n'),
+    ),
   };
 }

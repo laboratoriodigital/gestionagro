@@ -40,6 +40,15 @@ import {
 import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { avisame, PeticionDeAvisame } from './avisame.ts';
+import {
+  guardarProducto,
+  leerProducto,
+  listarProductos,
+  ordenarProductos,
+  type Quien,
+  type Resultado as ResultadoDelCatalogo,
+  tocarElProducto,
+} from './catalogo.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import { kekDelEntorno } from './llaves.ts';
@@ -785,6 +794,78 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       resumen: r.plan.resumen,
     });
   });
+
+  /**
+   * HU-T8.2 y HU-T8.4: el catálogo desde el panel, con el permiso `catalogo.editar` (HU-T1.4).
+   * Leer también lo pide: el colaborador y el propietario lo tienen, y nadie más entra al panel.
+   * 422 con los problemas por campo, 409 si alguien más guardó antes (con la versión actual), 404
+   * si ya no está.
+   */
+  const delCatalogo = (c: ContextoTienda): Quien | Response => {
+    const s = c.get('sesion');
+    const decision = decidir(s.rol, 'catalogo.editar', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido') {
+      return c.json({ estado: decision, motivo: 'Tu rol no puede editar el catálogo.' }, 403);
+    }
+    return {
+      db: s.db,
+      org: s.org,
+      actor: `usuario:${s.usuario}`,
+      instante: new Date(ahora()).toISOString(),
+    };
+  };
+  const responderCatalogo = (c: ContextoTienda, r: ResultadoDelCatalogo) => {
+    if (r.estado === 'guardado') return c.json(r);
+    if (r.estado === 'problemas') return c.json(r, 422);
+    if (r.estado === 'cambiado') return c.json(r, 409);
+    return c.json(r, 404);
+  };
+  const escrituraDelCatalogo =
+    (hacer: (q: Quien, cuerpo: unknown) => Promise<ResultadoDelCatalogo>) =>
+    async (c: ContextoTienda) => {
+      const q = delCatalogo(c);
+      if (q instanceof Response) return q;
+      let cuerpo: unknown;
+      try {
+        cuerpo = await c.req.json();
+      } catch {
+        return c.json(
+          { estado: 'problemas', problemas: [{ campo: '', mensaje: 'no es JSON' }] },
+          422,
+        );
+      }
+      return responderCatalogo(c, await hacer(q, cuerpo));
+    };
+  app.get('/api/panel/v1/productos', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    return c.json({
+      productos: await listarProductos(q, {
+        papelera: c.req.query('papelera') === '1',
+        buscar: (c.req.query('q') ?? '').slice(0, 80),
+      }),
+    });
+  });
+  app.get('/api/panel/v1/productos/:id', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    const p = await leerProducto(q, c.req.param('id'));
+    return p ? c.json(p) : c.json({ estado: 'no-existe', motivo: 'Ese producto no está.' }, 404);
+  });
+  app.post('/api/panel/v1/productos/guardar', escrituraDelCatalogo(guardarProducto));
+  app.post(
+    '/api/panel/v1/productos/estado',
+    escrituraDelCatalogo((q, b) => tocarElProducto(q, b, 'estado')),
+  );
+  app.post(
+    '/api/panel/v1/productos/borrar',
+    escrituraDelCatalogo((q, b) => tocarElProducto(q, b, 'borrar')),
+  );
+  app.post(
+    '/api/panel/v1/productos/restaurar',
+    escrituraDelCatalogo((q, b) => tocarElProducto(q, b, 'restaurar')),
+  );
+  app.post('/api/panel/v1/productos/ordenar', escrituraDelCatalogo(ordenarProductos));
 
   // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.
   app.get('/api/panel/v1/registro', async (c) => {

@@ -263,6 +263,54 @@ h2 {
   gap: var(--espacio-2);
 }
 
+/* HU-T8.2 y HU-T8.4: el catálogo. */
+.acciones--fila {
+  grid-auto-flow: column;
+  justify-content: start;
+}
+.casilla {
+  display: flex;
+  gap: var(--espacio-2);
+  align-items: center;
+  min-height: 48px;
+}
+.casilla input {
+  inline-size: 24px;
+  block-size: 24px;
+  flex: none;
+}
+.opcion,
+.combinacion {
+  display: grid;
+  gap: var(--espacio-3);
+  padding-block: var(--espacio-3);
+  border-top: 1px solid var(--borde);
+}
+.combinacion__nombre {
+  margin: 0;
+  font-weight: 600;
+}
+.colecciones,
+.papelera {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--espacio-3);
+}
+.coleccion,
+.papelera__fila {
+  display: grid;
+  gap: var(--espacio-1);
+  padding-block: var(--espacio-2);
+  border-bottom: 1px solid var(--borde);
+}
+.coleccion__orden {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
 /* HU-T10.6: el registro, una frase por fila con su hora. */
 .registro .ed1-lista {
   list-style: none;

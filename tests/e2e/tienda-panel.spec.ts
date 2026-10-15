@@ -270,6 +270,139 @@ async function enElPanel(page: Page) {
   await expect(page.getByRole('heading', { level: 1, name: 'Comercio Ensayo Uno' })).toBeVisible();
 }
 
+test('HU-T8.2 · CA1 y CA4: un vestido con tallas y colores; un precio vacío no se manda como 0', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const enviados: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/productos?*`, (r) =>
+    r.fulfill({ json: { productos: [] } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/productos/guardar`, (r) => {
+    const cuerpo = r.request().postDataJSON() as { variantes: { precioCop: number | null }[] };
+    enviados.push(cuerpo);
+    const sinPrecio = cuerpo.variantes.findIndex((v) => v.precioCop === null);
+    return sinPrecio >= 0
+      ? r.fulfill({
+          status: 422,
+          json: {
+            estado: 'problemas',
+            problemas: [
+              { campo: `variantes.${sinPrecio}.precioCop`, mensaje: 'escribe el precio en pesos' },
+            ],
+          },
+        })
+      : r.fulfill({ json: { estado: 'guardado', id: 'p-vestido', version: 1, slug: 'vestido' } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/productos/p-vestido`, (r) =>
+    r.fulfill({
+      json: {
+        id: 'p-vestido',
+        version: 1,
+        slug: 'vestido',
+        nombre: 'Vestido',
+        descripcionMd: '',
+        estado: 'borrador',
+        enPapelera: false,
+        opciones: [{ nombre: 'Talla', valores: ['S', 'M'] }],
+        retracto: { aplica: true },
+        soloMayores: false,
+        ivaPct: null,
+        variantes: [],
+      },
+    }),
+  );
+  await page.getByRole('link', { name: 'Productos' }).click();
+  await expect(page.getByText('Todavía no tienes productos.')).toBeVisible();
+  await page.getByRole('link', { name: 'Nuevo producto' }).first().click();
+  await page.getByLabel('Nombre', { exact: true }).fill('Vestido');
+  await page.getByRole('button', { name: 'Agregar una opción' }).click();
+  await page.getByLabel('Nombre de la opción 1').fill('Talla');
+  await page.getByLabel('Valores de Talla').fill('S, M');
+  await page.getByLabel('Precio de S', { exact: true }).fill('159.000');
+  await page.getByLabel('Existencias de S').fill('2');
+  await page.getByLabel('No se cuentan las de M').check();
+  await page.getByRole('button', { name: 'Crear producto' }).click();
+  // CA4: M va sin precio, como `null`, y el error vuelve a su campo.
+  await expect(page.locator('#c1-precio-error')).toHaveText('escribe el precio en pesos');
+  const primero = enviados[0] as { variantes: { precioCop: unknown }[] };
+  expect(primero.variantes[1]?.precioCop).toBeNull();
+  await page.getByLabel('Precio de M', { exact: true }).fill('159000');
+  await page.getByRole('button', { name: 'Crear producto' }).click();
+  await expect(page.getByText('Guardado', { exact: true })).toBeVisible();
+  expect(page.url()).toBe(`${PANEL}/productos/p-vestido/`);
+  const [, bien] = enviados as { op: string; variantes: unknown[] }[];
+  // Corregir y volver a enviar reusa la misma operación: lo rechazado no se aplicó.
+  expect(bien?.op).toBe((enviados[0] as { op: string }).op);
+  expect(bien?.variantes).toEqual([
+    { valores: ['S'], sku: null, precioCop: 159000, precioAntesCop: null, stock: 2 },
+    { valores: ['M'], sku: null, precioCop: 159000, precioAntesCop: null, stock: null },
+  ]);
+  const [ancho, visible] = await page.evaluate(() => [
+    document.documentElement.scrollWidth,
+    document.documentElement.clientWidth,
+  ]);
+  expect(ancho).toBeLessThanOrEqual(visible ?? 0);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('HU-T8.2 · CA2: si alguien más guardó antes, lo dice y no pisa lo de la otra persona', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  let version = 4;
+  await page.route(`${PANEL}/api/panel/v1/productos/p-camisa`, (r) =>
+    r.fulfill({
+      json: {
+        id: 'p-camisa',
+        version,
+        slug: 'camisa-de-lino',
+        nombre: version === 4 ? 'Camisa de lino' : 'Camisa de lino claro',
+        descripcionMd: '',
+        estado: 'activo',
+        enPapelera: false,
+        opciones: [],
+        retracto: { aplica: true },
+        soloMayores: false,
+        ivaPct: null,
+        variantes: [
+          {
+            id: 'v1',
+            valores: [],
+            sku: null,
+            precioCop: 129000,
+            precioAntesCop: null,
+            stock: 3,
+            reservado: 0,
+          },
+        ],
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/productos/guardar`, (r) => {
+    version = 5;
+    return r.fulfill({
+      status: 409,
+      json: {
+        estado: 'cambiado',
+        motivo: 'Alguien más cambió esto mientras lo editabas.',
+        version: 5,
+      },
+    });
+  });
+  await page.goto(`${PANEL}/productos/p-camisa/`);
+  await expect(page.getByLabel('Precio', { exact: true })).toHaveValue('129.000');
+  await page.getByLabel('Precio', { exact: true }).fill('119.000');
+  await page.getByRole('button', { name: 'Guardar cambios' }).click();
+  await expect(page.getByText('Alguien más guardó este producto')).toBeVisible();
+  await page.getByRole('button', { name: 'Ver cómo quedó' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Camisa de lino claro' })).toBeVisible();
+  await expect(page.getByLabel('Precio', { exact: true })).toHaveValue('129.000');
+});
+
 test.describe('con el teléfono en otra zona horaria', () => {
   // La hora del registro es la de Bogotá aunque el teléfono esté en Madrid.
   test.use({ timezoneId: 'Europe/Madrid' });

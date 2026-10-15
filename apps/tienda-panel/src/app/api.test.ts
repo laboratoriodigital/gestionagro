@@ -112,6 +112,37 @@ describe('pedirAlPanel', () => {
     });
   });
 
+  it('HU-T8.2: 422 trae los problemas por campo; 409, la versión actual; 404, que ya no está', async () => {
+    const almacen = almacenEnMemoria({ sesion: sesion() });
+    const problemas = [{ campo: 'variantes.0.precioCop', mensaje: 'un precio de 0 no se guarda' }];
+    const { fetchFn } = red({
+      '/api/panel/v1/productos/guardar': [
+        json(422, { estado: 'problemas', problemas }),
+        json(409, { estado: 'cambiado', motivo: 'Alguien más cambió esto.', version: 4 }),
+        json(404, { estado: 'no-existe', motivo: 'Eso ya no está.' }),
+      ],
+    });
+    const c = { almacen, core: CORE, fetchFn, ahora: () => AHORA };
+    const pedir = () => pedirAlPanel(c, 'productos/guardar', { cuerpo: {} });
+    expect(await pedir()).toEqual({
+      tipo: 'error',
+      estado: 'problemas',
+      problemas,
+      motivo: 'Falta corregir una cosa.',
+    });
+    expect(await pedir()).toEqual({
+      tipo: 'error',
+      estado: 'cambiado',
+      version: 4,
+      motivo: 'Alguien más cambió esto.',
+    });
+    expect(await pedir()).toEqual({
+      tipo: 'error',
+      estado: 'no-existe',
+      motivo: 'Eso ya no está.',
+    });
+  });
+
   it('❌ sin red es un error con palabras, no una excepción', async () => {
     const almacen = almacenEnMemoria({ sesion: sesion() });
     const fetchFn = (async () => {

@@ -55,6 +55,8 @@ export interface Almacen {
 /** El manifiesto de una versión (`@ed1/tienda-horno`, `manifiesto()`). */
 export interface Manifiesto {
   archivos: Record<string, { huella: string; tipo: string; bytes: number }>;
+  /** HU-T8.2 CA3: la dirección vieja de un producto y la de ahora. */
+  redirecciones?: Record<string, string>;
   huella: string;
 }
 
@@ -257,6 +259,13 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       if (!archivo && !url.pathname.endsWith('/') && m.archivos[`${url.pathname}/index.html`]) {
         return Response.redirect(`${url.origin}${url.pathname}/${url.search}`, 301);
       }
+      // HU-T8.2 CA3: la dirección vieja de un producto lleva a la nueva, horneada en el manifiesto.
+      const salto = archivo
+        ? undefined
+        : (m.redirecciones?.[url.pathname] ?? m.redirecciones?.[`${url.pathname}/`]);
+      // Solo a la ficha de un producto de esta misma tienda: nunca a otro origen.
+      if (salto && /^\/p\/[a-z0-9-]+\/$/.test(salto))
+        return Response.redirect(`${url.origin}${salto}${url.search}`, 301);
       if (!archivo && markdown) archivo = m.archivos[archivoDeLaRuta(url.pathname, false)];
       if (!archivo || !HUELLA.test(archivo.huella)) return noEsta();
       const gemelo =

@@ -35,6 +35,8 @@ import { Inicio } from './vistas/Inicio.tsx';
 import { Mas } from './vistas/Mas.tsx';
 import { PorLlegar } from './vistas/PorLlegar.tsx';
 import { Privacidad } from './vistas/Privacidad.tsx';
+import { Producto } from './vistas/Producto.tsx';
+import { Productos } from './vistas/Productos.tsx';
 import { Registro } from './vistas/Registro.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
 
@@ -187,14 +189,26 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         texto="Aquí vas a confirmar, cobrar y despachar los pedidos de tu tienda. Mientras tanto, te llegan por WhatsApp."
       />
     );
-  else if (ruta.startsWith('/productos/'))
+  else if (ruta === '/productos/' || ruta === '/productos/papelera/')
     cuerpo = (
-      <PorLlegar
-        titulo="Productos"
-        texto="Aquí vas a cargar y editar tus productos, con sus fotos, precios e inventario."
+      <Productos
+        key={ruta}
+        conexion={conexion}
+        papelera={ruta === '/productos/papelera/'}
+        alVencer={setVencida}
       />
     );
-  else if (ruta === '/mas/registro/')
+  else if (/^\/productos\/[^/]+\/$/.test(ruta)) {
+    const id = decodeURIComponent(ruta.split('/')[2] ?? '');
+    cuerpo = (
+      <Producto
+        conexion={conexion}
+        almacen={almacen}
+        id={id === 'nuevo' ? null : id}
+        alVencer={setVencida}
+      />
+    );
+  } else if (ruta === '/mas/registro/')
     cuerpo = <Registro conexion={conexion} alVencer={setVencida} />;
   else if (ruta.startsWith('/mas/') && sesion)
     cuerpo = (
