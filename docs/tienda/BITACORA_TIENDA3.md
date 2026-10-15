@@ -587,3 +587,21 @@ La regla: **al retirar un hito o mover un archivo, se busca cada documento que l
 La regla: **una prueba de despliegue que solo corre contra staging no prueba producción; cada función que arma una URL por destino se prueba con los dos destinos.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Medio · P5, P11 · tienda-0.1.0 · 2026-10-15
+
+**15 · El panel le preguntaba a la API sin parar, porque el almacén se creaba de nuevo en cada render.**
+
+*Qué pasó.* El 15 oct 2026, al escribir las e2e del panel (HU-T8.1), la prueba de «vuelve a entrar» nunca pudo tocar el enlace «Pedidos».
+
+*Síntoma literal.* «locator.click: Test timeout of 30000ms exceeded … element was detached from the DOM, retrying», y la foto final mostraba la pantalla de entrar con el diálogo «Vuelve a entrar» encima.
+
+*Causa raíz.* `App` recibía el almacén con un valor por defecto en sus parámetros (`{ almacen = almacenIndexedDb() }`). Ese valor se evalúa en cada render, así que cada render traía un almacén nuevo; `preguntar` dependía de él, el efecto que pregunta a `/api/panel/v1/yo` volvía a correr, su respuesta causaba otro render, y así sin fin. El efecto de apertura también dependía del almacén y releía la sesión en cada vuelta: cuando la sesión venció, la borró de la pantalla. Las pruebas unitarias no lo veían porque prueban las funciones, no el componente montado.
+
+*Cómo se reprodujo.* La e2e de CA1 cuenta las preguntas a `/yo`: una al abrir y otra al cambiar de pantalla. Con el valor por defecto, la cuenta ya era mayor al abrir.
+
+*Arreglo.* El almacén se crea una vez por montaje (`useMemo`).
+
+**Lo prueba:** `tests/e2e/tienda-panel.spec.ts`, «CA1: entra con Google…» (las preguntas se cuentan) y «CA2: si la sesión vence…». Control negativo: con el valor por defecto de antes, las dos quedan en rojo.
+
+La regla: **en un componente, un valor por defecto que crea un objeto es un objeto nuevo en cada render; lo que un efecto o un `useCallback` usa como dependencia se crea una vez.**
+
+*Ficha:* tienda3 · *(mío)* · 🟡 Medio · P5, P19 · tienda-0.1.0 · 2026-10-15
