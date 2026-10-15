@@ -277,6 +277,8 @@ Van aparte porque no son fallos de código: son cosas que dije con seguridad y n
 
 *(Ninguna todavía. Las del diseño de la Tienda hasta el 5 oct 2026 están en la bitácora agro, por ejemplo la 3, sobre el cobro de WhatsApp.)*
 
+- **14 oct 2026: «el carrito vive en `/pedido/`».** En HU-T5.4 horneé el carrito en `/pedido/` y lo dejé así en el PR #180, sin contrastarlo con TIENDA §5.4, que pone el carrito en `/carrito/` y deja `/pedido/#c=…&s=…` para el seguimiento (y `/pedido/pago/` para la vuelta de Bold). Lo vi al escribir HU-T6.3, que necesita esa ruta. Se corrigió en T6 antes de que hubiera un enlace compartido: el carrito se guarda en `localStorage`, no en la ruta, así que nadie perdió nada. La regla de siempre (premisas antes de decidir): **una ruta pública se toma de la tabla de rutas del diseño, no de la historia que la usa primero.**
+
 ---
 
 ## Cambios de rumbo

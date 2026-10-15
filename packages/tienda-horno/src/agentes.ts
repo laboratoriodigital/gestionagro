@@ -28,8 +28,8 @@ interface Familia {
 
 export const FAMILIAS_DE_AGENTES: readonly Familia[] = agentesDelEcosistema.familias as Familia[];
 
-/** Lo que nadie lee: la API y el pedido de cada comprador, que vive en su teléfono. */
-export const CERRADO_EN_LA_TIENDA = ['/api/', '/pedido/'] as const;
+/** Lo que nadie lee: la API, el carrito y el pedido de cada comprador. */
+export const CERRADO_EN_LA_TIENDA = ['/api/', '/carrito/', '/pedido/'] as const;
 
 const valorDe = (s: SenalesDeLaTienda, senal: SenalDeAgentes) =>
   senal === 'search' ? s.search : senal === 'ai-input' ? s.aiInput : s.aiTrain;

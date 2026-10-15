@@ -6,7 +6,8 @@
  *   botón que dice qué falta y, al tocarlo, lleva al campo; la edad, si el producto la pide;
  * - el carrito (`carrito.ts`) en el `localStorage` de la tienda, con su código y sus topes, y la
  *   barra del pedido, que aparece cuando hay algo en él;
- * - en `/pedido/`, las líneas del carrito con sus cantidades;
+ * - en `/carrito/`, las líneas, el total que confirma el servidor y el envío por WhatsApp
+ *   (`venta.ts`); en `/pedido/`, el acuse y el estado con el enlace de seguimiento;
  * - en `/buscar/`, la búsqueda sobre `catalogo.json`, sin red al escribir.
  *
  * Todo texto que llega del catálogo se pone con `textContent`, nunca como HTML.
@@ -20,11 +21,14 @@ import {
   CLAVE_ANTERIOR,
   CLAVE_DEL_CARRITO,
   cambiarCantidad,
+  carritoVacio,
+  conSecreto,
   leerCarrito,
   sanear,
   TOPES,
   type Tope,
   unidades,
+  vaciar,
 } from './carrito.ts';
 import {
   estadoDeLaEleccion,
@@ -32,6 +36,7 @@ import {
   type VarianteDeLaFicha,
   valorAgotado,
 } from './seleccion.ts';
+import { estadoDeLaVenta, leerFragmento } from './venta.ts';
 
 const azar = (n: number) => crypto.getRandomValues(new Uint8Array(n));
 /** Las variantes por las que este teléfono ya pidió «Avísame» (HU-T6.5). */
@@ -98,7 +103,7 @@ function pintarBarra(c: Carrito): void {
   const cantidad = unidades(c);
   const contador = barra.querySelector('[data-cantidad]');
   if (contador) contador.textContent = String(cantidad);
-  barra.hidden = cantidad === 0 || location.pathname === '/pedido/';
+  barra.hidden = cantidad === 0 || location.pathname === '/carrito/';
 }
 
 const formato = (pesos: number) => `$${String(pesos).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
@@ -244,8 +249,11 @@ const leerCatalogo = () => {
   return catalogo;
 };
 
-/** `/pedido/`: las líneas del carrito, sus cantidades y el subtotal que se ve en la tienda. */
-async function pedido(): Promise<void> {
+/**
+ * `/carrito/` (HU-T5.4, HU-T5.5 y HU-T6.1): las líneas del carrito, sus cantidades, el total que
+ * confirma el servidor y el envío del pedido por WhatsApp.
+ */
+async function carritoPagina(): Promise<void> {
   const pagina = document.querySelector<HTMLElement>('[data-pedido-pagina]');
   if (!pagina) return;
   const lista = pagina.querySelector<HTMLElement>('[data-lineas]');
@@ -253,6 +261,11 @@ async function pedido(): Promise<void> {
   const resumen = pagina.querySelector<HTMLElement>('[data-resumen]');
   const aviso = pagina.querySelector<HTMLElement>('[data-aviso-carrito]');
   const codigo = pagina.querySelector<HTMLElement>('[data-codigo]');
+  const venta = pagina.querySelector<HTMLFormElement>('[data-venta]');
+  const datosDeVenta = JSON.parse(document.getElementById('venta')?.textContent ?? '{}') as {
+    envios?: { id: string }[];
+    terminos?: string;
+  };
   if (!lista || !vacio || !resumen) return;
   const { productos } = await leerCatalogo();
   const porVariante = new Map(
@@ -275,6 +288,14 @@ async function pedido(): Promise<void> {
       : []),
   ];
   decir(aviso ?? null, avisos.join(' ') || undefined);
+
+  const poner = (selector: string, texto: string) => {
+    const campo = resumen.querySelector<HTMLElement>(selector);
+    if (campo) campo.textContent = texto;
+  };
+  const elegido = (nombre: string) =>
+    venta?.querySelector<HTMLInputElement>(`input[name="${nombre}"]:checked`)?.value ?? null;
+  const hayEnvios = (datosDeVenta.envios ?? []).length > 0;
 
   const pintar = () => {
     lista.replaceChildren(
@@ -324,6 +345,7 @@ async function pedido(): Promise<void> {
     const vacioAhora = carrito.lineas.length === 0;
     vacio.hidden = !vacioAhora;
     resumen.hidden = vacioAhora;
+    if (venta) venta.hidden = vacioAhora;
     if (codigo) {
       codigo.textContent = carrito.codigo;
       codigo.closest<HTMLElement>('[data-codigo-bloque]')?.removeAttribute('hidden');
@@ -337,17 +359,14 @@ async function pedido(): Promise<void> {
     poner('[data-total]', formato(subtotal));
     totalVisto = subtotal;
     pintarBarra(carrito);
+    pintarBoton();
     if (!vacioAhora) programarCotizacion();
-  };
-  const poner = (selector: string, texto: string) => {
-    const campo = resumen.querySelector<HTMLElement>(selector);
-    if (campo) campo.textContent = texto;
   };
 
   /**
-   * HU-T5.5: el servidor recalcula con los precios y las existencias de la base. Lo que corrige se
-   * aplica diciéndolo (nunca con un cobro en pantalla), y un total distinto del que se vio pide
-   * revisarlo: nunca sigue en silencio (CA2 y CA3).
+   * HU-T5.5: el servidor recalcula con los precios y las existencias de la base, y con el envío
+   * elegido. Lo que corrige se aplica diciéndolo (nunca con un cobro en pantalla), y un total
+   * distinto del que se vio pide revisarlo: nunca sigue en silencio (CA2 y CA3).
    */
   let totalVisto = 0;
   let espera: ReturnType<typeof setTimeout> | undefined;
@@ -355,15 +374,8 @@ async function pedido(): Promise<void> {
     clearTimeout(espera);
     espera = setTimeout(() => void confirmar(), 300);
   };
-  const confirmar = async () => {
-    const r = await cotizarEnLaTienda(carrito, totalVisto);
-    const nota = resumen.querySelector<HTMLElement>('[data-nota]');
+  const aplicar = (r: Cotizacion) => {
     const alerta = resumen.querySelector<HTMLElement>('[data-aviso-total]');
-    if (!r) {
-      decir(nota, 'No pudimos confirmar el total ahora. Lo confirmamos antes de enviar tu pedido.');
-      return;
-    }
-    decir(nota, 'El envío se confirma antes de enviar el pedido.');
     const corregido = r.carrito.map((x) => ({
       ...x,
       ...(carrito.lineas.find((l) => l.variante === x.variante)?.mayorDeEdad
@@ -382,6 +394,14 @@ async function pedido(): Promise<void> {
       clearTimeout(espera);
     }
     poner('[data-subtotal]', formato(r.subtotal));
+    poner('[data-envio]', formato(r.envio));
+    poner('[data-descuento]', `-${formato(r.descuento)}`);
+    resumen
+      .querySelector<HTMLElement>('[data-fila-envio]')
+      ?.toggleAttribute('hidden', !elegido('envio'));
+    resumen
+      .querySelector<HTMLElement>('[data-fila-descuento]')
+      ?.toggleAttribute('hidden', r.descuento === 0);
     poner('[data-total]', formato(r.total));
     decir(
       alerta,
@@ -391,18 +411,153 @@ async function pedido(): Promise<void> {
     );
     totalVisto = r.total;
   };
+  const confirmar = async () => {
+    const r = await cotizarEnLaTienda(carrito, totalVisto, elegido('envio'));
+    const nota = resumen.querySelector<HTMLElement>('[data-nota]');
+    if (!r) {
+      decir(nota, 'No pudimos confirmar el total ahora. Lo confirmamos antes de enviar tu pedido.');
+      return;
+    }
+    decir(nota, elegido('envio') ? undefined : 'El envío se confirma antes de enviar el pedido.');
+    aplicar(r);
+  };
+
+  // HU-T6.1: enviar el pedido. El botón dice lo primero que falta; al tocarlo, lleva a ese campo.
+  const boton = venta?.querySelector<HTMLButtonElement>('[data-enviar]');
+  const avisoVenta = venta?.querySelector<HTMLElement>('[data-aviso-venta]') ?? null;
+  const acepta = venta?.querySelector<HTMLInputElement>('[data-acepta]');
+  const estado = () =>
+    estadoDeLaVenta({
+      lineas: carrito.lineas.length,
+      forma: elegido('forma'),
+      hayEnvios,
+      envio: elegido('envio'),
+      acepta: Boolean(acepta?.checked),
+    });
+  const pintarBoton = () => {
+    if (!boton) return;
+    const e = estado();
+    boton.textContent = e.texto;
+    boton.setAttribute('aria-disabled', String(!e.listo));
+  };
+  venta?.addEventListener('change', (evento) => {
+    decir(avisoVenta, undefined);
+    pintarBoton();
+    if ((evento.target as HTMLInputElement | null)?.name === 'envio') programarCotizacion();
+  });
+  const ciudad = () =>
+    venta?.querySelector<HTMLInputElement>('input[name="ciudad"]')?.value.trim() ?? '';
+  let enviando = false;
+  venta?.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const e = estado();
+    if (!e.listo) {
+      const campo =
+        e.falta === 'acepta'
+          ? acepta
+          : venta.querySelector<HTMLInputElement>(`input[name="${e.falta}"]`);
+      campo?.focus();
+      decir(avisoVenta, e.texto);
+      return;
+    }
+    if (enviando) return;
+    enviando = true;
+    boton?.setAttribute('aria-busy', 'true');
+    try {
+      carrito = conSecreto(carrito, azar);
+      guardar(carrito);
+      const enviar = () =>
+        fetch('/api/v1/pedidos', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            codigo: carrito.codigo,
+            lineas: carrito.lineas,
+            forma: elegido('forma'),
+            ...(elegido('envio') ? { envio: elegido('envio') } : {}),
+            ...(ciudad() ? { ciudad: ciudad() } : {}),
+            acepta: true,
+            terminos: datosDeVenta.terminos,
+            seguimiento: carrito.seguimiento,
+            totalVisto,
+          }),
+        });
+      let r = await enviar();
+      let cuerpo = (await r.json().catch(() => ({}))) as RespuestaDePedido;
+      if (r.status === 409 && cuerpo.estado === 'codigo-en-uso') {
+        // Otro pedido de la tienda ya tiene este código: uno nuevo, una sola vez.
+        carrito = { ...carrito, codigo: carritoVacio(azar).codigo };
+        guardar(carrito);
+        r = await enviar();
+        cuerpo = (await r.json().catch(() => ({}))) as RespuestaDePedido;
+      }
+      if (r.ok && cuerpo.codigo && carrito.seguimiento) {
+        const secreto = carrito.seguimiento;
+        almacen.escribir(
+          CLAVE_ULTIMO,
+          JSON.stringify({
+            codigo: cuerpo.codigo,
+            texto: cuerpo.texto,
+            whatsapp: cuerpo.whatsapp,
+          }),
+        );
+        carrito = vaciar(azar);
+        guardar(carrito);
+        location.assign(`/pedido/#c=${cuerpo.codigo}&s=${secreto}`);
+        return;
+      }
+      if (cuerpo.estado === 'cambio' && cuerpo.cotizacion) {
+        aplicar({ ...cuerpo.cotizacion, cambio: true });
+        decir(avisoVenta, 'Tu pedido cambió. Revisa el total y vuelve a enviarlo.');
+      } else {
+        decir(
+          avisoVenta,
+          MOTIVOS_DEL_PEDIDO[cuerpo.estado ?? ''] ??
+            cuerpo.motivo ??
+            'No pudimos enviar tu pedido. Intenta de nuevo.',
+        );
+      }
+    } catch {
+      decir(avisoVenta, 'No pudimos enviar tu pedido. Revisa tu conexión e intenta de nuevo.');
+    } finally {
+      enviando = false;
+      boton?.removeAttribute('aria-busy');
+    }
+  });
   pintar();
 }
 
+interface RespuestaDePedido {
+  estado?: string;
+  motivo?: string;
+  codigo?: string;
+  texto?: string;
+  whatsapp?: string | null;
+  cotizacion?: Cotizacion;
+}
+const MOTIVOS_DEL_PEDIDO: Record<string, string> = {
+  terminos: 'La tienda cambió sus términos. Recarga la página para verlos antes de enviar.',
+  cerrada: 'La tienda no está recibiendo pedidos en este momento.',
+  limite: 'Son muchos pedidos seguidos. Espera un minuto e intenta de nuevo.',
+};
+/** El último pedido enviado desde este teléfono: el texto para WhatsApp del acuse (HU-T6.2). */
+const CLAVE_ULTIMO = 'tienda:ultimo';
+
 interface Cotizacion {
   subtotal: number;
+  descuento: number;
+  envio: number;
   total: number;
   carrito: { variante: string; cantidad: number }[];
   cambio: boolean;
 }
 
 /** `POST /api/v1/cotizar`; `null` si no responde o no se pudo (la página sigue con lo que sabe). */
-async function cotizarEnLaTienda(c: Carrito, totalVisto: number): Promise<Cotizacion | null> {
+async function cotizarEnLaTienda(
+  c: Carrito,
+  totalVisto: number,
+  envio: string | null,
+): Promise<Cotizacion | null> {
   try {
     const r = await fetch('/api/v1/cotizar', {
       method: 'POST',
@@ -410,12 +565,113 @@ async function cotizarEnLaTienda(c: Carrito, totalVisto: number): Promise<Cotiza
       body: JSON.stringify({
         lineas: c.lineas.map((l) => ({ variante: l.variante, cantidad: l.cantidad })),
         totalVisto,
+        ...(envio ? { envio } : {}),
       }),
     });
     return r.ok ? ((await r.json()) as Cotizacion) : null;
   } catch {
     return null;
   }
+}
+
+interface Seguimiento {
+  codigo: string;
+  numero: number;
+  enPalabras: string;
+  pasos: { enPalabras: string; instante: string }[];
+  lineas: { nombre: string; opciones: string; cantidad: number; total: number }[];
+  total: number;
+  envioNombre: string | null;
+  plazo: string | null;
+  forma: string;
+  transportadora: string | null;
+  guia: string | null;
+}
+
+/**
+ * `/pedido/#c=…&s=…` (HU-T6.2 y HU-T6.3): el acuse y el estado. El secreto viene en el fragmento,
+ * que no llega a ningún servidor, y se pregunta por POST. Desde el teléfono que hizo el pedido,
+ * además, el botón para mandarlo por WhatsApp.
+ */
+async function pedidoEnviado(): Promise<void> {
+  const raiz = document.querySelector<HTMLElement>('[data-seguimiento]');
+  if (!raiz) return;
+  const enlace = leerFragmento(location.hash);
+  const acuse = raiz.querySelector<HTMLElement>('[data-acuse]');
+  const vacio = raiz.querySelector<HTMLElement>('[data-seguimiento-vacio]');
+  const aviso = raiz.querySelector<HTMLElement>('[data-seguimiento-aviso]');
+  if (!enlace || !acuse) return;
+  const poner = (selector: string, texto: string) => {
+    const campo = raiz.querySelector<HTMLElement>(selector);
+    if (campo) campo.textContent = texto;
+  };
+  if (vacio) vacio.hidden = true;
+  let ultimo: { codigo?: string; texto?: string; whatsapp?: string | null } = {};
+  try {
+    ultimo = JSON.parse(almacen.leer(CLAVE_ULTIMO) ?? '{}') as typeof ultimo;
+  } catch {
+    ultimo = {};
+  }
+  const whatsapp = raiz.querySelector<HTMLAnchorElement>('[data-acuse-whatsapp]');
+  if (whatsapp && ultimo.codigo === enlace.codigo && ultimo.texto && ultimo.whatsapp) {
+    whatsapp.href = `https://wa.me/${ultimo.whatsapp}?text=${encodeURIComponent(ultimo.texto)}`;
+    whatsapp.hidden = false;
+  }
+  const propio = raiz.querySelector<HTMLAnchorElement>('[data-acuse-enlace]');
+  if (propio) {
+    propio.href = location.href;
+    propio.textContent = location.href;
+  }
+  raiz.querySelector('[data-imprimir]')?.addEventListener('click', () => window.print());
+  let s: Seguimiento | null = null;
+  try {
+    const r = await fetch('/api/v1/seguimiento', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(enlace),
+    });
+    s = r.ok ? ((await r.json()) as Seguimiento) : null;
+  } catch {
+    s = null;
+  }
+  if (!s) {
+    decir(
+      aviso,
+      'No encontramos un pedido con ese enlace, o no pudimos consultarlo ahora. Revisa el enlace e intenta de nuevo.',
+    );
+    if (ultimo.codigo === enlace.codigo) {
+      acuse.hidden = false;
+      poner('[data-acuse-codigo]', enlace.codigo);
+    }
+    return;
+  }
+  acuse.hidden = false;
+  poner('[data-acuse-codigo]', s.codigo);
+  poner('[data-acuse-numero]', `#${s.numero}`);
+  poner('[data-acuse-estado]', s.enPalabras);
+  poner('[data-acuse-total]', formato(s.total));
+  poner('[data-acuse-forma]', s.forma);
+  poner(
+    '[data-acuse-plazo]',
+    [s.envioNombre, s.plazo].filter(Boolean).join(': ') ||
+      'La tienda te confirma el envío y su plazo.',
+  );
+  if (s.guia) poner('[data-acuse-guia]', [s.transportadora, s.guia].filter(Boolean).join(' · '));
+  raiz.querySelector('[data-acuse-lineas]')?.replaceChildren(
+    ...s.lineas.map((l) => {
+      const li = document.createElement('li');
+      li.className = 'linea';
+      li.textContent = `${l.cantidad} × ${l.nombre}${l.opciones ? ` (${l.opciones})` : ''} — ${formato(l.total)}`;
+      return li;
+    }),
+  );
+  raiz.querySelector('[data-acuse-pasos]')?.replaceChildren(
+    ...s.pasos.map((p) => {
+      const li = document.createElement('li');
+      li.textContent = `${p.enPalabras} · ${new Date(p.instante).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}`;
+      return li;
+    }),
+  );
 }
 
 async function busqueda(): Promise<void> {
@@ -450,5 +706,6 @@ async function busqueda(): Promise<void> {
 
 ficha();
 pintarBarra(cargar());
-void pedido();
+void carritoPagina();
+void pedidoEnviado();
 void busqueda();

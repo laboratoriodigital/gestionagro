@@ -112,6 +112,39 @@ describe('publicar (HU-T4.4)', () => {
     expect(await versionPublicada(ENSAYO_UNO.org)).toBe(1);
   });
 
+  it('❌ los datos de la transferencia del comercio no están en ningún archivo horneado (HU-T6.2 CA2)', async () => {
+    const cobro = {
+      transferencia: {
+        banco: 'Banco de Prueba',
+        tipoCuenta: 'ahorros',
+        numero: '987-654321-00',
+        titular: 'Titular de Prueba',
+        documento: '900000001',
+      },
+    };
+    await shard
+      .prepare(
+        "INSERT INTO ajuste (org_id, seccion, esquema, datos, actualizado, actualizado_por) VALUES (?, 'cobro', 1, ?, ?, 'prueba')",
+      )
+      .bind(ENSAYO_UNO.org, JSON.stringify(cobro), AHORA)
+      .run();
+    try {
+      const r2 = almacen();
+      expect(await publicar(contexto(ENSAYO_UNO.org, r2))).toMatchObject({ estado: 'publicada' });
+      const todo = [...r2.objetos.values()].join('\n');
+      for (const dato of ['987-654321-00', 'Banco de Prueba', 'Titular de Prueba']) {
+        expect(todo).not.toContain(dato);
+      }
+      // Control: lo horneado sí lleva las formas de pago que ofrece, solo por su nombre.
+      expect(todo).toContain('Transferencia');
+    } finally {
+      await shard
+        .prepare("DELETE FROM ajuste WHERE org_id = ? AND seccion = 'cobro'")
+        .bind(ENSAYO_UNO.org)
+        .run();
+    }
+  });
+
   it('cada texto legal queda también en legal/<org>/<huella>.md, el que citará el pedido (HU-T7.1 CA2)', async () => {
     const r2 = almacen();
     await publicar(contexto(ENSAYO_UNO.org, r2));

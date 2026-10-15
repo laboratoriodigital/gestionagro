@@ -5,6 +5,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Seguir el pedido (HU-T6.3): el comprador ve en qué va su pedido con el enlace que recibió, sin crear una cuenta, y nadie más puede verlo.
+- El acuse de recibo (HU-T6.2): al enviar el pedido, el comprador ve su código, el número, el total, la forma de pago, el envío y su plazo, y lo puede imprimir o guardar como PDF.
+- Pedir por WhatsApp (HU-T6.1): en «Tu pedido» el comprador elige cómo pagar entre las formas que ofrece la tienda, acepta los términos y envía. La tienda guarda el pedido con lo que aceptó y abre WhatsApp con el pedido ya escrito. Si se toca dos veces, sigue siendo un solo pedido.
 - «Avísame cuando haya» (HU-T6.5): en una combinación agotada, el comprador le dice a la tienda que la espera, con un toque y sin dejar ningún dato suyo. La tienda sabe cuántas personas esperan cada producto.
 - Cotizar (HU-T5.5): antes de pedir, la tienda confirma con sus precios y su inventario lo que hay en el pedido. Si algo cambió, se agotó o ya no alcanza, el pedido se corrige y se le dice al comprador, y si el total es otro, se le pide revisarlo: nunca se pide un total distinto del que vio.
 - El carrito de cada tienda (HU-T5.4): lo que el comprador elige se guarda en su teléfono, con un código de pedido que no cambia aunque cierre la página, y se ve en «Tu pedido», donde puede cambiar las cantidades. Si algo se agotó mientras tanto, sale del pedido y se lo decimos.

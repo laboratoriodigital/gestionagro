@@ -38,6 +38,7 @@ import {
 import { type Context, Hono } from 'hono';
 import { avisame, PeticionDeAvisame } from './avisame.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
+import { PeticionDePedido, PeticionDeSeguimiento, registrar, seguimiento } from './pedidos.ts';
 import { type Almacen, type EscritorKv, publicar, type Resultado } from './publicar.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
 
@@ -80,6 +81,8 @@ export interface Env {
   /** Los limitadores por IP de lo público (HU-T5.5 y HU-T6.5): Workers Rate Limiting. */
   LIMITE_COTIZAR?: Limitador;
   LIMITE_AVISAME?: Limitador;
+  LIMITE_PEDIDOS?: Limitador;
+  LIMITE_SEGUIMIENTO?: Limitador;
   /** Un binding D1 por shard, con el nombre del shard, y `tienda_control`. */
   [base: string]: unknown;
 }
@@ -153,7 +156,7 @@ function clavesDe(env: Env): ClavePublica[] {
 const VUELVE_A_ENTRAR = 'Tu sesión venció o no es de la tienda. Vuelve a entrar.';
 const LECTURA = new Set(['GET', 'HEAD', 'OPTIONS']);
 /** Rutas que van por POST pero solo leen: siguen con `ks:tienda` apagado. */
-const SOLO_LEEN = new Set(['/api/v1/cotizar']);
+const SOLO_LEEN = new Set(['/api/v1/cotizar', '/api/v1/seguimiento']);
 
 let lector: { kv: LectorKv; lector: LectorKillSwitch } | null = null;
 const lectorDe = (kv: LectorKv) => {
@@ -193,6 +196,40 @@ async function comerciosDePrueba(shards: [string, BaseD1][]): Promise<number> {
     n += fila?.n ?? 0;
   }
   return n;
+}
+
+/**
+ * La huella de los términos de la versión publicada (HU-T6.1): un pedido solo cita los términos que
+ * la tienda mostró. `null` si la tienda no ha publicado o el manifiesto no se puede leer.
+ */
+async function terminosPublicados(
+  db: BaseD1,
+  org: string,
+  sitios: Almacen | undefined,
+): Promise<string | null> {
+  if (!sitios) return null;
+  const t = await db
+    .prepare('SELECT version_publicada FROM tienda WHERE org_id = ?')
+    .bind(org)
+    .first<{ version_publicada: number | null }>();
+  if (!t?.version_publicada) return null;
+  const objeto = await sitios.get(`sitios/${org}/${t.version_publicada}/manifiesto.json`);
+  if (!objeto) return null;
+  const m = JSON.parse(await objeto.text()) as { archivos: Record<string, { huella: string }> };
+  return m.archivos['/legal/terminos/index.md']?.huella ?? null;
+}
+
+/** Lee el cuerpo JSON y lo valida; `null` si no se puede leer o no cumple el esquema. */
+async function cuerpoValido<T>(
+  c: ContextoTienda,
+  esquema: { safeParse(x: unknown): { success: true; data: T } | { success: false } },
+): Promise<T | null> {
+  try {
+    const r = esquema.safeParse(await c.req.json());
+    return r.success ? r.data : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Si la IP sigue dentro del límite. Sin limitador, lo registra y deja pasar (P1: se dice). */
@@ -405,6 +442,67 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
       return c.json({ estado: r, motivo: 'Esta combinación ya está disponible.' }, 409);
     }
     return c.json({ estado: r });
+  });
+
+  /**
+   * HU-T6.1: registrar el pedido antes de abrir WhatsApp. Público, por el despacho; 10 por minuto
+   * por IP (`LIMITE_PEDIDOS`; la hora no la cuenta el limitador, bitácora tienda3 11).
+   */
+  app.post('/api/v1/pedidos', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_PEDIDOS, 'LIMITE_PEDIDOS'))) {
+      c.header('retry-after', '60');
+      return c.json(
+        { estado: 'limite', motivo: 'Son muchos pedidos seguidos. Espera un minuto.' },
+        429,
+      );
+    }
+    const p = await cuerpoValido(c, PeticionDePedido);
+    if (!p) {
+      return c.json(
+        { estado: 'invalido', motivo: 'Al pedido le falta algo. Revísalo y vuelve a enviarlo.' },
+        422,
+      );
+    }
+    const r = await registrar(
+      {
+        db: destino.db,
+        org: destino.org,
+        host: new URL(c.req.url).host,
+        ahora: new Date(ahora()).toISOString(),
+        terminosPublicados: await terminosPublicados(destino.db, destino.org, c.env.SITIOS),
+        id: crypto.randomUUID(),
+      },
+      p,
+    );
+    if (r.estado === 'registrado' || r.estado === 'duplicado') return c.json(r);
+    if (r.estado === 'forma' || r.estado === 'edad') return c.json(r, 422);
+    return c.json(r, 409);
+  });
+
+  /**
+   * HU-T6.3: el seguimiento. El secreto llega en el cuerpo, nunca en la URL; todo fallo responde lo
+   * mismo; 20 por minuto por IP (`LIMITE_SEGUIMIENTO`).
+   */
+  app.post('/api/v1/seguimiento', async (c) => {
+    const NO_ENCONTRADO = {
+      estado: 'no-encontrado',
+      motivo: 'No encontramos un pedido con ese enlace.',
+    };
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_SEGUIMIENTO, 'LIMITE_SEGUIMIENTO'))) {
+      c.header('retry-after', '60');
+      return c.json(
+        { estado: 'limite', motivo: 'Son muchas consultas seguidas. Espera un minuto.' },
+        429,
+      );
+    }
+    const p = await cuerpoValido(c, PeticionDeSeguimiento);
+    if (!p) return c.json(NO_ENCONTRADO, 404);
+    const r = await seguimiento(destino.db, destino.org, p.codigo, p.secreto);
+    return r ? c.json(r) : c.json(NO_ENCONTRADO, 404);
   });
 
   app.get('/api/panel/v1/yo', async (c) => {

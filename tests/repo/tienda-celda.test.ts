@@ -175,6 +175,8 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
       expect(api.ratelimits.map((l) => [l.name, l.simple.limit, l.simple.period])).toEqual([
         ['LIMITE_COTIZAR', 30, 60],
         ['LIMITE_AVISAME', 10, 60],
+        ['LIMITE_PEDIDOS', 10, 60],
+        ['LIMITE_SEGUIMIENTO', 20, 60],
       ]);
       const ids = [...api.ratelimits, ...api.env.staging.ratelimits].map((l) => l.namespace_id);
       expect(new Set(ids).size).toBe(ids.length);

@@ -7,6 +7,7 @@ User-agent: Claude-User
 User-agent: Perplexity-User
 Allow: /
 Disallow: /api/
+Disallow: /carrito/
 Disallow: /pedido/
 
 # Recolectores para entrenar modelos (ai-train=no)
@@ -23,6 +24,7 @@ Disallow: /
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /carrito/
 Disallow: /pedido/
 Content-Signal: search=yes, ai-input=yes, ai-train=no
 

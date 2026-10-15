@@ -383,6 +383,8 @@ export const CRON_DE_LA_TIENDA = '0 * * * *';
 export const LIMITES_DE_LA_TIENDA = {
   LIMITE_COTIZAR: { produccion: '3001', staging: '3101', limit: 30, period: 60 },
   LIMITE_AVISAME: { produccion: '3002', staging: '3102', limit: 10, period: 60 },
+  LIMITE_PEDIDOS: { produccion: '3003', staging: '3103', limit: 10, period: 60 },
+  LIMITE_SEGUIMIENTO: { produccion: '3004', staging: '3104', limit: 20, period: 60 },
 } as const;
 const limitadoresDeLaTienda = (staging: boolean) =>
   Object.entries(LIMITES_DE_LA_TIENDA).map(([name, l]) => ({
