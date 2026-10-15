@@ -54,7 +54,7 @@ Escríbenos por [Solicitudes](/solicitud/), o al correo {{correo}}. Una consulta
 
 ## Cuánto tiempo los guardamos
 
-Tus datos de contacto se guardan mientras haga falta para atender tu pedido y sus garantías, y hasta 24 meses después de él. Lo que la ley obliga a conservar, como la prueba de la venta, se guarda el tiempo que esa ley exija.
+Tus datos de contacto se guardan mientras haga falta para atender tu pedido y sus garantías, y hasta {{meses_de_conservacion}} meses después de él. Pasado ese plazo se borran solos. Lo que la ley obliga a conservar, como la prueba de la venta, se guarda el tiempo que esa ley exija.
 
 ## Cambios
 

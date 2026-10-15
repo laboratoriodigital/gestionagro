@@ -144,7 +144,16 @@ const SOLO_DEL_PROPIETARIO: Record<string, Intento[] | { sinRuta: string }> = {
   'plan.gestionar': { sinRuta: 'el plan se cambia en el CORE' },
   'factura.gestionar': { sinRuta: 'la factura llega con el cobro en línea' },
   'exportar.datos_personales': [async () => ['exportar?datos=personales', undefined]],
-  'titular.gestionar': { sinRuta: 'los derechos del titular llegan con su historia' },
+  'titular.gestionar': [
+    async () => ['titular/buscar', { celular: '3001234567' }],
+    async () => ['titular/exportar', { celular: '3001234567' }],
+    async () => [
+      'titular/corregir',
+      { op: op(), celular: '3001234567', contacto: { ciudad: 'x' } },
+    ],
+    async () => ['titular/suprimir', { op: op(), celular: '3001234567' }],
+    async () => ['ajustes/guardar', await guardar('legal', { conservacionMeses: 12 })],
+  ],
 };
 
 const fuentesDeLaApi = readdirSync('apps/tienda-api/src')

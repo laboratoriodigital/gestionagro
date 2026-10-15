@@ -346,6 +346,10 @@ export async function publicar(c: Contexto): Promise<Resultado> {
         .map((p) => ({ nombre: p.nombre, motivo: p.retracto_motivo as string })),
       medicion: { ga4: Boolean(medicion['ga4']), pixelMeta: Boolean(medicion['pixelMeta']) },
       responsableIva: legal['responsableIva'] === true,
+      ...opcional(
+        'conservacionMeses',
+        typeof legal['conservacionMeses'] === 'number' ? legal['conservacionMeses'] : undefined,
+      ),
     };
     const porColeccion = new Map<string, { nombre: string; productos: string[] }>();
     for (const f of colecciones) {

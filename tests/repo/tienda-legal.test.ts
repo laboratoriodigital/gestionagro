@@ -51,6 +51,17 @@ describe('las plantillas, en un solo lugar (CA1)', () => {
     for (const t of conTodo) expect(t.markdown).not.toContain('{{');
   });
 
+  it('HU-T7.3 · la política dice los meses que la tienda guarda los contactos: 24 si no dijo otros', () => {
+    const privacidad = (conservacionMeses?: number) =>
+      textosLegales({
+        ...(legalDeEnsayo(ENSAYO_UNO) as DatosLegales),
+        ...(conservacionMeses ? { conservacionMeses } : {}),
+      }).find((t) => t.id === 'privacidad')?.markdown ?? '';
+    expect(privacidad()).toContain('hasta 24 meses después de él');
+    expect(privacidad(36)).toContain('hasta 36 meses después de él');
+    expect(privacidad(36)).not.toContain('24 meses');
+  });
+
   it('❌ los textos no cuentan cómo está hecha la tienda', () => {
     const tecnicos =
       /\b(Worker|D1|R2|KV|JavaScript|API|JSON|servidor web|base de datos|horno|manifiesto|localStorage)\b/;

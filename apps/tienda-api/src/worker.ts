@@ -124,6 +124,7 @@ import {
   seguirSolicitud,
 } from './solicitudes.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
+import { buscarTitular, corregirTitular, exportarTitular, suprimirTitular } from './titular.ts';
 import { borrarCupon, borrarEnvio, guardarCupon, guardarEnvio, listarVenta } from './venta.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
@@ -1256,6 +1257,28 @@ export function crearApp(
     if ('estado' in r) return c.json(r, 503);
     return c.json(r, 200, { 'cache-control': 'no-store' });
   });
+
+  // HU-T7.3: los derechos del titular. Solo el propietario, recién entrado; todo queda en el registro.
+  const delTitular = (c: ContextoTienda) =>
+    quienPuede(
+      c,
+      'titular.gestionar',
+      'Solo quien administra la tienda atiende los datos de un comprador.',
+    );
+  const ESTADO_DEL_TITULAR = { ok: 200, guardado: 200, problemas: 422, 'sin-llave': 503 } as const;
+  for (const [ruta, hacer] of [
+    ['buscar', buscarTitular],
+    ['exportar', exportarTitular],
+    ['corregir', corregirTitular],
+    ['suprimir', suprimirTitular],
+  ] as const) {
+    app.post(`/api/panel/v1/titular/${ruta}`, async (c) => {
+      const q = delTitular(c);
+      if (q instanceof Response) return q;
+      const r = await hacer(q, await kekDe(c), await c.req.json().catch(() => null));
+      return c.json(r, ESTADO_DEL_TITULAR[r.estado], { 'cache-control': 'no-store' });
+    });
+  }
 
   // HU-T14.2: el tablero de Inicio.
   app.get('/api/panel/v1/tablero', async (c) => {

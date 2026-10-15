@@ -17,6 +17,7 @@
  */
 import type { BaseD1 } from '@ed1/d1';
 import { enviarTelegram } from '@ed1/telegram';
+import { purgarContactos } from './titular.ts';
 
 export type Frecuencia = 'hora' | 'dia' | 'semana';
 
@@ -208,13 +209,16 @@ const PAPELERA_SIMPLE = ['envio_opcion', 'cupon', 'pagina'] as const;
  *   si ninguna de sus variantes está en un pedido o un apartado: lo vendido se queda en la
  *   papelera, porque el pedido nombra la variante (P21). Las fotos en R2 no se tocan aquí: son por
  *   huella y otra versión publicada puede usarlas.
+ * - Un contacto de pedido cuyo `purgar_despues` ya llegó a `ahora` se va; el pedido queda, con la
+ *   purga en su historia (HU-T7.3 CA2).
  */
 export async function purgarTienda(
   db: BaseD1,
   org: string,
   limitePapelera: string,
   limiteOperacion: string,
-): Promise<{ filas: number; retenidos: number }> {
+  ahora: string,
+): Promise<{ filas: number; retenidos: number; contactos: number }> {
   const { results: productos } = await db
     .prepare(
       `SELECT p.id,
@@ -265,10 +269,11 @@ export async function purgarTienda(
     ),
     db.prepare('DELETE FROM operacion WHERE org_id = ? AND creada <= ?').bind(org, limiteOperacion),
   ];
-  const resultados = await db.batch(lote);
+  const resultados = await db.batch([...lote, ...purgarContactos(db, org, ahora)]);
   return {
-    filas: resultados.reduce((n, r) => n + (r.meta?.changes ?? 0), 0),
+    filas: resultados.slice(0, lote.length).reduce((n, r) => n + (r.meta?.changes ?? 0), 0),
     retenidos: productos.filter((p) => p.vendido).length,
+    contactos: resultados.at(-1)?.meta?.changes ?? 0,
   };
 }
 
@@ -281,14 +286,22 @@ export const PURGAS: Tarea = {
     const limiteOperacion = new Date(instante - HORAS_DE_UNA_OPERACION * HORA_MS).toISOString();
     let filas = 0;
     let retenidos = 0;
+    let contactos = 0;
     const fallas: string[] = [];
     for (const [nombre, db] of e.shards) {
       const { results } = await db.prepare('SELECT org_id FROM tienda').all<{ org_id: string }>();
       for (const { org_id } of results) {
         try {
-          const r = await purgarTienda(db, org_id, limitePapelera, limiteOperacion);
+          const r = await purgarTienda(
+            db,
+            org_id,
+            limitePapelera,
+            limiteOperacion,
+            new Date(instante).toISOString(),
+          );
           filas += r.filas;
           retenidos += r.retenidos;
+          contactos += r.contactos;
         } catch (error) {
           fallas.push(
             `${nombre}/${org_id}: ${error instanceof Error ? error.message : String(error)}`,
@@ -297,7 +310,7 @@ export const PURGAS: Tarea = {
       }
     }
     if (fallas.length > 0) throw new Error(`purgas con fallas: ${fallas.slice(0, 5).join('; ')}`);
-    return `${filas} filas purgadas${retenidos > 0 ? `; ${retenidos} productos vendidos se quedan en la papelera` : ''}`;
+    return `${filas} filas purgadas${contactos > 0 ? `; ${contactos} contactos vencidos` : ''}${retenidos > 0 ? `; ${retenidos} productos vendidos se quedan en la papelera` : ''}`;
   },
 };
 

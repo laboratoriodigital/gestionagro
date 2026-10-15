@@ -636,6 +636,13 @@ const enFrase = (e: PedidoDelPanel['historia'][number]) => {
     return `${e.quien}: recaudo ${e.a === 'liquidado' ? 'liquidado' : `«${(ESTADOS_DEL_RECAUDO[e.a ?? ''] ?? e.a ?? '').split(':')[0]}»`}`;
   if (e.tipo === 'contacto_leido')
     return `${e.quien} ${e.quien === 'Tú' ? 'viste' : 'vio'} los datos de entrega`;
+  // HU-T7.3: el comprador pidió corregir o borrar sus datos, o se cumplió el plazo.
+  if (e.tipo === 'contacto_corregido')
+    return `${e.quien} ${e.quien === 'Tú' ? 'corregiste' : 'corrigió'} los datos de entrega`;
+  if (e.tipo === 'contacto_suprimido')
+    return e.quien === 'La tienda'
+      ? 'Los datos de entrega se borraron al cumplir su plazo'
+      : `${e.quien} ${e.quien === 'Tú' ? 'borraste' : 'borró'} los datos de entrega, a pedido del comprador`;
   return `${e.quien}: ${EVENTOS[e.tipo] ?? e.tipo}`;
 };
 

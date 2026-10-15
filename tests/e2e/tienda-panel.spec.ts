@@ -2165,3 +2165,125 @@ test('HU-T10.7 · ❌ CA2: el colaborador descarga sin datos personales y no ve 
   await expect(page.getByLabel(/Incluir los datos personales/)).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Descargar todo', exact: true })).toBeVisible();
 });
+
+test('HU-T7.3 · CA1: buscar a un comprador por su celular, descargar, corregir y borrar sus datos', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const pedidas: { ruta: string; cuerpo: Record<string, unknown> }[] = [];
+  let borrados = false;
+  await page.route(`${PANEL}/api/panel/v1/titular/*`, (r) => {
+    const ruta = new URL(r.request().url()).pathname.split('/').at(-1) ?? '';
+    const cuerpo = r.request().postDataJSON() as Record<string, unknown>;
+    pedidas.push({ ruta, cuerpo });
+    const pedido = (id: string, numero: number, estado: string, terminado: boolean) => ({
+      id,
+      numero,
+      creado: '2026-10-01T15:00:00.000Z',
+      estado,
+      totalCop: 129000,
+      terminado,
+      ciudad: 'Medellín',
+    });
+    if (ruta === 'buscar')
+      return r.fulfill({
+        json: {
+          estado: 'ok',
+          comprador: { nombre: 'Ensayo D.', celular: '300 ••• 4567' },
+          pedidos: borrados
+            ? [pedido('ped-2', 1502, 'pendiente', false)]
+            : [pedido('ped-1', 1501, 'entregado', true), pedido('ped-2', 1502, 'pendiente', false)],
+        },
+      });
+    if (ruta === 'exportar')
+      return r.fulfill({
+        json: {
+          estado: 'ok',
+          formato: 'titular/1',
+          exportada: '2026-10-15T15:00:00.000Z',
+          pedidos: [{ numero: 1501, contacto: { nombre: 'Ensayo Dos Compradora' } }],
+        },
+      });
+    if (ruta === 'corregir')
+      return r.fulfill({ json: { estado: 'guardado', pedidos: 2, enCurso: 0 } });
+    borrados = true;
+    return r.fulfill({ json: { estado: 'guardado', pedidos: 1, enCurso: 1 } });
+  });
+  await page.getByRole('link', { name: 'Más' }).click();
+  await page.getByRole('link', { name: 'Datos de un comprador' }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Datos de un comprador' }),
+  ).toBeVisible();
+
+  // Un celular que no es de Colombia no se busca.
+  await page.getByLabel('Celular del comprador').fill('12345');
+  await page.getByRole('button', { name: 'Buscar' }).click();
+  await expect(
+    page.getByText('Escribe los 10 dígitos del celular, empezando por 3.'),
+  ).toBeVisible();
+  expect(pedidas).toEqual([]);
+
+  await page.getByLabel('Celular del comprador').fill('+57 300 123 4567');
+  await page.getByRole('button', { name: 'Buscar' }).click();
+  await expect(
+    page.getByRole('heading', { level: 2, name: /Ensayo D\. · 300 ••• 4567/ }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Pedido 1501' })).toBeVisible();
+  await sinFallasDeAxe(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+
+  const [descarga] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Descargar sus datos' }).click(),
+  ]);
+  expect(descarga.suggestedFilename()).toBe('datos-del-comprador-2026-10-15.json');
+  expect(JSON.parse(readFileSync((await descarga.path()) ?? '', 'utf8'))).toMatchObject({
+    formato: 'titular/1',
+  });
+
+  await page.getByText('Corregir sus datos').click();
+  await page.getByLabel('Dirección').fill('Calle de prueba 100');
+  await page.getByRole('button', { name: 'Guardar la corrección' }).click();
+  await expect(page.getByText('Se corrigieron los datos de 2 pedidos.')).toBeVisible();
+
+  await page.getByText('Borrar sus datos', { exact: true }).first().click();
+  await page.getByRole('button', { name: 'Borrar sus datos' }).click();
+  await expect(page.getByText(/Se borraron los datos de 1 pedido/)).toBeVisible();
+  await expect(page.getByText(/Un pedido en curso guarda los suyos hasta terminar/)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Pedido 1501' })).toHaveCount(0);
+
+  expect(pedidas.map((p) => p.ruta)).toEqual([
+    'buscar',
+    'exportar',
+    'corregir',
+    'buscar',
+    'suprimir',
+    'buscar',
+  ]);
+  expect(pedidas[0]?.cuerpo).toEqual({ celular: '3001234567' });
+  expect(pedidas[2]?.cuerpo).toMatchObject({
+    celular: '3001234567',
+    contacto: { direccion: 'Calle de prueba 100' },
+  });
+});
+
+test('HU-T7.3 · ❌ CA3: el colaborador no ve la herramienta y, si entra por la dirección, no la usa', async ({
+  page,
+}) => {
+  await coreFalso(page, sesion());
+  await apiFalsa(page, DOS);
+  let pedidas = 0;
+  await page.route(`${PANEL}/api/panel/v1/titular/*`, (r) => {
+    pedidas++;
+    return r.fulfill({ status: 403, json: { estado: 'prohibido', motivo: 'no' } });
+  });
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await page.getByRole('link', { name: 'Más' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Más' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Datos de un comprador' })).toHaveCount(0);
+  await page.goto(`${PANEL}/mas/titular/`);
+  await expect(page.getByText('Solo quien administra la tienda')).toBeVisible();
+  await expect(page.getByLabel('Celular del comprador')).toHaveCount(0);
+  expect(pedidas).toBe(0);
+});

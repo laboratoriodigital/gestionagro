@@ -46,6 +46,8 @@ export interface DatosLegales {
   medicion: { ga4: boolean; pixelMeta: boolean };
   /** Si el comercio es responsable de IVA: la ficha dice «con IVA incluido» solo entonces. */
   responsableIva?: boolean;
+  /** Los meses de conservación de los contactos (HU-T7.3); 24 si el comercio no lo cambió. */
+  conservacionMeses?: number;
 }
 
 export interface TextoLegal {
@@ -56,6 +58,9 @@ export interface TextoLegal {
   markdown: string;
   html: string;
 }
+
+/** D-T5: lo que se guardan los contactos si el comercio no dice otra cosa. */
+export const MESES_DE_CONSERVACION = 24;
 
 export const VERSION_DE_LAS_PLANTILLAS: string = plantillas.version;
 export const TEXTOS_LEGALES: readonly { id: string; titulo: string; ruta: string }[] =
@@ -203,6 +208,7 @@ function campos(d: DatosLegales): Record<string, string | undefined> {
     telefono: d.telefono ? telefonoLegible(d.telefono) : undefined,
     correo: d.correo,
     whatsapp: d.whatsapp ? telefonoLegible(d.whatsapp) : undefined,
+    meses_de_conservacion: String(d.conservacionMeses ?? MESES_DE_CONSERVACION),
     version: plantillas.version,
     fecha_plantilla: fechaEnPalabras(plantillas.fecha),
   };

@@ -159,6 +159,34 @@ describe('publicar (HU-T4.4)', () => {
     );
   });
 
+  it('la política publicada dice los meses de conservación de la ficha legal (HU-T7.3 CA2)', async () => {
+    const legal = async (datos: string) =>
+      shard
+        .prepare("UPDATE ajuste SET datos = ? WHERE org_id = ? AND seccion = 'legal'")
+        .bind(datos, ENSAYO_UNO.org)
+        .run();
+    const antes = await shard
+      .prepare("SELECT datos FROM ajuste WHERE org_id = ? AND seccion = 'legal'")
+      .bind(ENSAYO_UNO.org)
+      .first<{ datos: string }>();
+    await legal(JSON.stringify({ ...JSON.parse(antes?.datos ?? '{}'), conservacionMeses: 36 }));
+    try {
+      const r2 = almacen();
+      await publicar(contexto(ENSAYO_UNO.org, r2));
+      const m = JSON.parse(
+        r2.objetos.get(`sitios/${ENSAYO_UNO.org}/1/manifiesto.json`) ?? '{}',
+      ) as {
+        archivos: Record<string, { huella: string }>;
+      };
+      const huella = m.archivos['/legal/privacidad/index.md']?.huella;
+      expect(r2.objetos.get(`legal/${ENSAYO_UNO.org}/${huella}.md`)).toContain(
+        'hasta 36 meses después de él',
+      );
+    } finally {
+      await legal(antes?.datos ?? '{}');
+    }
+  });
+
   it('sin cambios, «Nada cambió» y ninguna versión nueva (CA2)', async () => {
     const r2 = almacen();
     await publicar(contexto(ENSAYO_DOS.org, r2));

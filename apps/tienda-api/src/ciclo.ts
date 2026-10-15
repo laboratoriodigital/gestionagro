@@ -30,6 +30,7 @@ import {
 } from './catalogo.ts';
 import { enlaceDeSeguimiento, opcionesEnPalabras, sha256 } from './pedidos.ts';
 import { anotar } from './registro.ts';
+import { indiceDelContacto, PURGAR_DESPUES } from './titular.ts';
 
 const Op = z.string().min(8).max(64);
 const IdDePedido = z.string().min(1).max(64);
@@ -755,13 +756,6 @@ const ALFABETO = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 /** Seis letras y números de Crockford, como los que nacen en el navegador del comprador. */
 const codigoNuevo = () =>
   Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => ALFABETO[b % 32]).join('');
-/** La retención del contacto: 24 meses después del pedido (TIENDA-3.0, conservación). */
-const purgarDespues = (instante: string) => {
-  const d = new Date(instante);
-  d.setUTCMonth(d.getUTCMonth() + 24);
-  return d.toISOString();
-};
-
 /**
  * CA1: anotar un pedido que llegó por teléfono o en persona. Canal `panel`, por confirmar, con los
  * precios de hoy; los datos del comprador, si los hay, en su sobre cifrado.
@@ -821,6 +815,7 @@ export async function crearPedidoAnotado(
   const total = subtotal + d.envioCop;
   const r: Resultado = { estado: 'guardado', id, version: 1 };
   const sobre = contacto && kek ? await cifrarContacto(q, kek, id, contacto, q.instante) : null;
+  const indice = contacto && kek ? await indiceDelContacto(q, kek, contacto, q.instante) : null;
   const lote: SentenciaD1[] = [
     q.db
       .prepare(
@@ -873,8 +868,8 @@ export async function crearPedidoAnotado(
       ? [
           q.db
             .prepare(
-              `INSERT INTO pedido_contacto (org_id, pedido_id, sobre, iv, llave_version, creado, purgar_despues)
-               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              `INSERT INTO pedido_contacto (org_id, pedido_id, sobre, iv, llave_version, celular_indice, creado,
+                 purgar_despues) VALUES (?, ?, ?, ?, ?, ?, ?, ${PURGAR_DESPUES})`,
             )
             .bind(
               q.org,
@@ -882,8 +877,10 @@ export async function crearPedidoAnotado(
               sobre.sobre,
               sobre.iv,
               sobre.version,
+              indice,
               q.instante,
-              purgarDespues(q.instante),
+              q.instante,
+              q.org,
             ),
         ]
       : []),

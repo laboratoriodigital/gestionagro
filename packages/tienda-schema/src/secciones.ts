@@ -128,6 +128,13 @@ const legalV1 = z.object({
   responsableIva: z.boolean().optional(),
   garantia: texto(4000).optional(),
   retracto: texto(4000).optional(),
+  /** Cuántos meses se guardan los contactos de los compradores (HU-T7.3, D-T5): 24 si no se dice. */
+  conservacionMeses: z
+    .number()
+    .int({ error: 'escribe los meses en número entero' })
+    .min(12, { error: 'mínimo 12 meses' })
+    .max(60, { error: 'máximo 60 meses' })
+    .optional(),
 });
 
 const medicionV1 = z.object({

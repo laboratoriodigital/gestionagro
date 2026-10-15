@@ -18,4 +18,4 @@ Usamos lo que nos cuentas solo para atender tu solicitud, y lo guardamos cifrado
 
 Quien atiende las solicitudes es Comercio Ensayo Dos, cédula de ciudadanía 1000000002, en Calle de prueba 2, Medellín. Si no quedas conforme, puedes acudir a la Superintendencia de Industria y Comercio, en www.sic.gov.co.
 
-Versión 2 de las plantillas, del 15 de octubre de 2026.
+Versión 3 de las plantillas, del 15 de octubre de 2026.

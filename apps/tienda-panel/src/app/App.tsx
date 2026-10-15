@@ -49,6 +49,7 @@ import { Recaudos } from './vistas/Recaudos.tsx';
 import { Registro } from './vistas/Registro.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
 import { Solicitud, Solicitudes } from './vistas/Solicitudes.tsx';
+import { Titular } from './vistas/Titular.tsx';
 import { Unirme } from './vistas/Unirme.tsx';
 import { CuponDeLaTienda, EnvioDeLaTienda, Venta } from './vistas/Venta.tsx';
 
@@ -317,6 +318,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     cuerpo = <Registro conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/mas/datos/')
     cuerpo = <Datos conexion={conexion} rol={yo.datos.rol} alVencer={setVencida} />;
+  else if (ruta === '/mas/titular/')
+    cuerpo = <Titular conexion={conexion} rol={yo.datos.rol} alVencer={setVencida} />;
   else if (ruta === '/mas/equipo/')
     cuerpo = (
       <Equipo

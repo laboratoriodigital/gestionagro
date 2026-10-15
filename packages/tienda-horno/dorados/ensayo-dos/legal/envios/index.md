@@ -22,4 +22,4 @@ Puedes devolver un producto:
 
 Para devolverlo, escríbenos primero: te decimos cómo y a dónde enviarlo.
 
-Versión 2 de las plantillas, del 15 de octubre de 2026.
+Versión 3 de las plantillas, del 15 de octubre de 2026.
