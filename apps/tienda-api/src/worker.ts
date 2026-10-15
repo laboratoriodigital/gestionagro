@@ -38,7 +38,14 @@ import {
 import { type Context, Hono } from 'hono';
 import { avisame, PeticionDeAvisame } from './avisame.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
-import { PeticionDePedido, PeticionDeSeguimiento, registrar, seguimiento } from './pedidos.ts';
+import { aplicarParte, revisarLaCarga } from './importar.ts';
+import {
+  PeticionDePedido,
+  PeticionDeSeguimiento,
+  registrar,
+  seguimiento,
+  sha256,
+} from './pedidos.ts';
 import { type Almacen, type EscritorKv, publicar, type Resultado } from './publicar.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
 
@@ -156,7 +163,11 @@ function clavesDe(env: Env): ClavePublica[] {
 const VUELVE_A_ENTRAR = 'Tu sesión venció o no es de la tienda. Vuelve a entrar.';
 const LECTURA = new Set(['GET', 'HEAD', 'OPTIONS']);
 /** Rutas que van por POST pero solo leen: siguen con `ks:tienda` apagado. */
-const SOLO_LEEN = new Set(['/api/v1/cotizar', '/api/v1/seguimiento']);
+const SOLO_LEEN = new Set([
+  '/api/v1/cotizar',
+  '/api/v1/seguimiento',
+  '/api/panel/v1/importar/revisar',
+]);
 
 let lector: { kv: LectorKv; lector: LectorKillSwitch } | null = null;
 const lectorDe = (kv: LectorKv) => {
@@ -569,6 +580,110 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
     const ctx = contextoDePublicacion(c, s.org, s.shard, `usuario:${s.usuario}`);
     if (!ctx) return c.json({ estado: 'sin-configurar' }, 503);
     return responder(c, await publicar(ctx));
+  });
+
+  /**
+   * HU-T12.2: cargar una tienda desde un `tienda-import/1`, con el permiso `importar` (HU-T1.4).
+   * «Revisar» no escribe; «aplicar» escribe una parte por solicitud y dice cuál sigue. Cada parte
+   * vuelve a revisar el archivo entero: una parte nunca se aplica sobre un archivo con problemas.
+   */
+  const puedeImportar = (c: ContextoTienda) => {
+    const s = c.get('sesion');
+    return decidir(s.rol, 'importar', s.authTime ?? 0, Math.floor(ahora() / 1000));
+  };
+  app.post('/api/panel/v1/importar/revisar', async (c) => {
+    const decision = puedeImportar(c);
+    if (decision !== 'permitido') {
+      return c.json({ estado: decision, motivo: 'Tu rol no puede cargar una tienda.' }, 403);
+    }
+    const s = c.get('sesion');
+    let cuerpo: { carga?: unknown };
+    try {
+      cuerpo = (await c.req.json()) as { carga?: unknown };
+    } catch {
+      return c.json(
+        { ok: false, problemas: [{ campo: '', mensaje: 'el archivo no es JSON' }] },
+        422,
+      );
+    }
+    const r = await revisarLaCarga(s.db, s.org, cuerpo.carga, new Date(ahora()).toISOString());
+    return r.ok ? c.json({ ok: true, resumen: r.plan.resumen }) : c.json(r, 422);
+  });
+  app.post('/api/panel/v1/importar/aplicar', async (c) => {
+    const decision = puedeImportar(c);
+    if (decision !== 'permitido') {
+      return c.json({ estado: decision, motivo: 'Tu rol no puede cargar una tienda.' }, 403);
+    }
+    const s = c.get('sesion');
+    let cuerpo: { carga?: unknown; parte?: unknown };
+    try {
+      cuerpo = (await c.req.json()) as typeof cuerpo;
+    } catch {
+      return c.json(
+        { ok: false, problemas: [{ campo: '', mensaje: 'el archivo no es JSON' }] },
+        422,
+      );
+    }
+    const instante = new Date(ahora()).toISOString();
+    const r = await revisarLaCarga(s.db, s.org, cuerpo.carga, instante);
+    if (!r.ok) return c.json(r, 422);
+    const parte = cuerpo.parte;
+    const partes = r.plan.partes;
+    if (
+      typeof parte !== 'number' ||
+      !Number.isInteger(parte) ||
+      parte < 0 ||
+      parte >= partes.length
+    ) {
+      return c.json(
+        { ok: false, problemas: [{ campo: 'parte', mensaje: `va de 0 a ${partes.length - 1}` }] },
+        422,
+      );
+    }
+    // El registro de la carga: una fila por archivo (su huella), que dice en qué va.
+    const id = (await sha256(JSON.stringify(cuerpo.carga))).slice(0, 32);
+    const anotar = (estado: string, detalle: object) =>
+      s.db
+        .prepare(
+          `INSERT INTO importacion (org_id, id, formato, estado, resumen, pedida_por, creada, terminada)
+           VALUES (?, ?, 'tienda-import/1', ?, ?, ?, ?, ?)
+           ON CONFLICT (org_id, id) DO UPDATE SET estado = excluded.estado, resumen = excluded.resumen,
+             terminada = excluded.terminada`,
+        )
+        .bind(
+          s.org,
+          id,
+          estado,
+          JSON.stringify({ ...r.plan.resumen, ...detalle }),
+          `usuario:${s.usuario}`,
+          instante,
+          estado === 'aplicada' || estado === 'fallida' ? instante : null,
+        )
+        .run();
+    try {
+      await aplicarParte(s.db, partes[parte] ?? []);
+    } catch (e) {
+      await anotar('fallida', { parte });
+      console.error(`tienda-api: la parte ${parte} de una carga falló (${(e as Error).message})`);
+      return c.json(
+        {
+          ok: false,
+          estado: 'fallida',
+          parte,
+          motivo: 'Esta parte no se aplicó y nada de ella quedó escrito. Vuelve a aplicarla.',
+        },
+        500,
+      );
+    }
+    const ultima = parte === partes.length - 1;
+    await anotar(ultima ? 'aplicada' : 'aplicando', { parte });
+    return c.json({
+      ok: true,
+      parte,
+      partes: partes.length,
+      siguiente: ultima ? null : parte + 1,
+      resumen: r.plan.resumen,
+    });
   });
 
   // HU-T2.6 y HU-T4.4: en staging, el despliegue publica a los comercios de prueba con el secreto
