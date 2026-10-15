@@ -122,9 +122,15 @@ function cambios(antes: Record<string, unknown>, despues: Record<string, unknown
   return dichos;
 }
 
-/** La combinación como la lee el comercio: «M / Arena»; la única de un producto sin opciones. */
-const combinacion = (clave: unknown) =>
-  typeof clave === 'string' && clave !== '' ? clave.split('|').join(' / ') : 'única';
+/**
+ * La combinación como la lee el comercio: «M / Arena»; la única de un producto sin opciones. Se
+ * anota como `combinacion`: un campo `clave` se guarda como huella, porque «clave» también es una
+ * contraseña (`SENSIBLE`).
+ */
+const combinacion = (fila: Record<string, unknown>) => {
+  const c = fila['combinacion'];
+  return typeof c === 'string' && c !== '' ? c.split('|').join(' / ') : 'única';
+};
 
 /**
  * La frase de una fila, para quien pregunta (`usuario:<sub>`). Una acción que no conoce se dice
@@ -157,16 +163,16 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
     case 'productos.ordenar':
       return `${hizo('reorden', 'aste', 'ó')} los productos`;
     case 'variante.crear':
-      return `${hizo('agreg', 'aste', 'ó')} la combinación ${combinacion(despues['clave'])} a «${nombre}»`;
+      return `${hizo('agreg', 'aste', 'ó')} la combinación ${combinacion(despues)} a «${nombre}»`;
     case 'variante.editar': {
       const c = cambios(antes, despues);
-      const clave = combinacion(despues['clave'] ?? antes['clave']);
+      const clave = combinacion('combinacion' in despues ? despues : antes);
       return c.length > 0
         ? `${hizo('cambi', 'aste', 'ó')} ${c.join(', ')} de ${clave} en «${nombre}»`
         : `${hizo('edit', 'aste', 'ó')} la combinación ${clave} de «${nombre}»`;
     }
     case 'variante.quitar':
-      return `${hizo('quit', 'aste', 'ó')} la combinación ${combinacion(antes['clave'])} de «${nombre}»`;
+      return `${hizo('quit', 'aste', 'ó')} la combinación ${combinacion(antes)} de «${nombre}»`;
     case 'coleccion.crear':
       return `${hizo('cre', 'aste', 'ó')} la colección «${nombre}»`;
     case 'coleccion.editar':

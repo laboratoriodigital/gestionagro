@@ -487,7 +487,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
     },
   ) => ({
     nombre: d.nombre,
-    clave,
+    combinacion: clave,
     precioCop: v.precioCop,
     precioAntesCop: v.precioAntesCop,
     stock: v.stock,
@@ -612,7 +612,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
         accion: 'variante.quitar',
         entidad: 'variante',
         entidadId: vieja.id,
-        antes: { nombre: d.nombre, clave: vieja.clave },
+        antes: { nombre: d.nombre, combinacion: vieja.clave },
         despues: null,
         instante: q.instante,
       }),
