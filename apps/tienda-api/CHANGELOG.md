@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El inventario con su libro (HU-T8.5): en «Productos → Inventario» se ve cuántas hay de cada combinación, cuántas están apartadas por pagos en curso y cuántas personas esperan una agotada. Cada combinación cuenta por qué cambió cada número. Se puede ajustar (entraron o salieron) o contar (cuántas hay de verdad), sin bajar nunca de lo apartado. «Ya les avisé» marca que se avisó a quienes esperaban.
+- Agotar o reponer se ve en la tienda sin publicar (HU-T4.5): cuando una combinación se agota o vuelve a haber, la tienda publicada se actualiza sola con las existencias de ahora, y nada más cambia.
+- La bandeja de pedidos (HU-T9.1): en «Pedidos» se ven de a 50, del más nuevo al más viejo, con lo que necesita atención arriba. Los filtros por estado, forma de pago y número funcionan sin señal sobre lo que ya llegó. El nombre y el celular del comprador salen tapados.
+- Ver los datos de entrega (HU-T9.2): «Ver datos de entrega» muestra el nombre, el celular y la dirección del comprador, y deja dicho en el pedido y en el registro quién los vio.
+- Confirmar un pedido (HU-T9.3): «Confirmar por WhatsApp» arma el mensaje para el comprador con lo que pidió, el total, la dirección y, si paga por transferencia, los datos de la cuenta. Confirmar descuenta el inventario; si una combinación no alcanza, lo dice y no confirma.
+- Los ajustes de la tienda (HU-T10.3): en «Más → Ajustes» se configura la tienda por partes (identidad, contacto, apariencia, venta, cobro, datos legales, medición, buscadores y avisos) y se ve qué falta para publicar. Cambiar el WhatsApp, cómo llegan los pedidos o los datos del cobro pide haber entrado con Google hace menos de 10 minutos; si no, el panel pide volver a entrar sin perder lo escrito. Un WhatsApp nuevo queda sin verificar hasta abrir el chat de prueba y confirmar que es el propio. Lo vacío nunca se guarda como un valor de fábrica.
 - Los productos desde el teléfono (HU-T8.2): en «Productos» del panel el comerciante crea un vestido con tallas y colores, y cada combinación lleva su precio, su referencia y sus existencias. Un precio vacío nunca se guarda como 0. Si dos personas editan el mismo producto, la segunda ve que alguien guardó antes y no pisa lo de la otra. Si cambia la dirección de un producto, la anterior lleva a la nueva. Lo borrado queda 30 días en la papelera y se puede restaurar.
 - Las colecciones (HU-T8.4): agrupar los productos en colecciones, como «Lino» o «Para regalar», y ordenarlas. Un producto puede estar en varias, y borrar una colección no borra sus productos.
 - Las fotos de los productos (HU-T8.3): se comprimen en el teléfono, y solo suben los tamaños que la tienda necesita; la foto original no sale del teléfono. En Safari, que no hace WebP, salen en JPEG. Cada foto necesita una descripción para quien no la puede ver. En staging ya se pueden subir; en producción, cuando se compruebe allí el almacén de las fotos.
@@ -15,6 +21,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
 
 ### Corregido
+- En «Más → Registro», cambiar una combinación ya no dice «la combinación única» cuando el producto tiene tallas o colores: dice «M / Arena».
 - En el seguimiento del pedido, la línea que dice en qué va ahora empieza por «Estado:», para que no se confunda con el resto del acuse.
 - En el panel, cambiar de tienda desde «Más» ya no se queda en «Abriendo tu tienda…»: abre el inicio de la tienda elegida sin recargar.
 - Volver a desplegar staging sin cambios en la vitrina ya no deja a los comercios de prueba en «Esta tienda todavía no abre»: publicar sin cambios también vuelve a apuntar cada dirección a la versión publicada.

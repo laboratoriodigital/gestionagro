@@ -659,3 +659,21 @@ La regla: **lo que un efecto pregunta depende de todo lo que cambia la respuesta
 La regla: **un dato que el comprador tiene que encontrar lleva su nombre al lado; y un runbook cita el texto que se ve en pantalla, nunca el nombre interno.**
 
 *Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P5 · tienda-0.1.0 · 2026-10-15
+
+**19 · El registro decía «la combinación única» de un producto con tallas y colores.**
+
+*Qué pasó.* El 15 oct 2026, al escribir las frases del inventario (HU-T8.5) sobre Ensayo Uno, la frase de un ajuste de M / Arena en «Camisa de lino» salió con «única». El registro de T8 (HU-T10.6) ya hacía lo mismo con cada combinación agregada, editada o quitada.
+
+*Síntoma literal.* «Tú ajustaste las existencias de única en «Camisa de lino» de 4 a 10».
+
+*Causa raíz.* El registro guardaba la combinación en un campo llamado `clave`, y `clave` también es una contraseña: la regla de lo sensible (CA2 de HU-T10.6) la cambiaba por su huella. La frase no encontraba texto y caía en «única», que es el nombre de la combinación de un producto sin opciones. Las pruebas del registro miraban que no hubiera datos sensibles en claro, y lo cumplía; ninguna leía la frase de una combinación con nombre.
+
+*Cómo se reprodujo.* D1 local: una prueba del panel cambia el precio de la combinación Arena de un «Sombrero» con colores y lee el registro; con el campo `clave` la frase dice «única» en vez de «Arena».
+
+*Arreglo.* La combinación se anota como `combinacion`, que no es un nombre sensible, y la frase la lee de ahí. `clave` sigue en la regla: sigue siendo una contraseña.
+
+**Lo prueba:** `apps/tienda-api/src/panel-catalogo.test.ts`, «HU-T10.6: la frase de una combinación la nombra, no dice «única»». Control negativo: con el campo `clave`, la prueba queda en rojo con «única».
+
+La regla: **una regla que borra por nombre de campo también borra lo que no es secreto y se llama igual; la prueba de que algo se tapa va con otra de que lo demás se sigue leyendo.**
+
+*Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P5 · tienda-0.1.0 · 2026-10-15
