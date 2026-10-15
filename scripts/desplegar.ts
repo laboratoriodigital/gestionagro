@@ -64,7 +64,10 @@ import {
   ARCHIVO_SQL_RESERVADOS,
   configDeLaApi,
   configDelSitio,
+  consultaDeEnsayosEnElCore,
+  correoDelDueno,
   ensayosDelDestino,
+  ensayosEnElCore,
   escribirDespliegue,
   escribirHosts,
   escribirReservados,
@@ -72,6 +75,7 @@ import {
   hostsDeLaCelda,
   humoDeLaTienda,
   nombreKvHosts,
+  notaDeEnsayosEnElCore,
   preparaLaTienda,
   publicarEnsayos,
   reservadosDeDominios,
@@ -336,6 +340,12 @@ async function desplegarCore(
   const nombre = nombreD1Core(config.core.d1, dest);
   const titulo = nombreKvFlags(celda.id, dest);
   let notaD1: string;
+  // HU-T2.10 CA2: en staging, las organizaciones de los comercios de prueba de la Tienda, con el
+  // dueño de propietario si su correo está en el ambiente. Un correo mal escrito no detiene el CORE.
+  const ensayos = ensayosDelDestino(dest);
+  const celdaDeLaTienda = config.celdas.find((x) => x.producto === 'tienda');
+  const delDueno = correoDelDueno(process.env);
+  const correo = delDueno.ok ? delDueno.correo : null;
   try {
     const base = await asegurarBaseD1(fetch, cred.token, cred.cuenta, nombre);
     // HU-E4.2: el kill switch del CORE vive en el mismo KV de flags de la celda.
@@ -369,6 +379,9 @@ async function desplegarCore(
           ],
           dest,
         ),
+        ...(celdaDeLaTienda
+          ? ensayosEnElCore(ensayos, celdaDeLaTienda, correo, new Date().toISOString())
+          : []),
       ],
     );
     notaD1 = `D1 ${nombre}${base.creada ? ' (creada)' : ''}`;
@@ -452,6 +465,24 @@ async function desplegarCore(
     if (!r.ok)
       return { ok: false, detalle: [`${nombrePaso} falló:`, ...causaDeWrangler(r.salida)] };
     salidaDeploy = r.salida;
+  }
+  // HU-T2.10 CA2: se lee lo que quedó, no se le cree a wrangler (P16).
+  let notaEnsayos: string | null = null;
+  if (ensayos.length > 0 && celdaDeLaTienda) {
+    const lectura = wrangler(
+      '@ed1/core',
+      `d1 execute DB --remote --json --command "${consultaDeEnsayosEnElCore(ensayos, correo)}" ${c}`,
+      cred,
+    );
+    const fila = lectura.ok ? resultadosDeLaSalida(lectura.salida)?.[0]?.[0] : undefined;
+    const r = notaDeEnsayosEnElCore(ensayos.length, fila, correo);
+    if (!r.ok) {
+      return {
+        ok: false,
+        detalle: [r.nota, ...(lectura.ok ? [] : causaDeWrangler(lectura.salida))],
+      };
+    }
+    notaEnsayos = delDueno.ok ? r.nota : `${r.nota} (${delDueno.motivo})`;
   }
   const url = urlDeWorkersDev(salidaDeploy);
   const configurada = dest === 'produccion' ? config.core.url : config.core.url_staging;
@@ -541,6 +572,7 @@ async function desplegarCore(
       `CORE: ${url}`,
       `${notaD1}: migraciones aplicadas y ${activas} celdas activas en el directorio`,
       `Entrar con Google: responde, ${notaClave}, vuelve a ${origenApp}`,
+      ...(notaEnsayos ? [notaEnsayos] : []),
       ...(destino === 'produccion' && config.core.dominio
         ? [await notaDelDominio(fetch, config.core.dominio)]
         : []),

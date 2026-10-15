@@ -106,6 +106,8 @@ jobs:
           # HU-C7.7: los radicados de la Ley 1581 le llegan al dueño por Telegram.
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # HU-T2.10 CA2: el dueño, propietario de los comercios de prueba de la Tienda (solo staging).
+          TIENDA_CORREO_DUENO_STAGING: ${{ secrets.TIENDA_CORREO_DUENO_STAGING }}
           DESTINO: ${{ inputs.destino }}
           SOLO_CELDA: ${{ inputs.solo_celda }}
           PRODUCTOS: ${{ inputs.productos }}
