@@ -309,6 +309,10 @@ test('HU-T6.1 y HU-T6.2 · enviar el pedido: dice qué falta, lo registra y mues
   await expect(page.locator('[data-acuse-estado]')).toHaveText(
     'Recibido: la tienda lo va a confirmar',
   );
+  // Bitácora tienda3 18: sin su nombre, la línea del estado no se reconocía como tal.
+  await expect(page.locator('.acuse__estado')).toHaveText(
+    'Estado: Recibido: la tienda lo va a confirmar',
+  );
   await expect(page.locator('[data-acuse-numero]')).toHaveText('#1001');
   await expect(page.locator('[data-acuse-total]')).toHaveText('$129.000');
   await expect(page.locator('[data-acuse-forma]')).toHaveText('Transferencia');

@@ -641,3 +641,21 @@ La regla: **lo que se deriva de la base (un puntero en el KV) se reescribe en ca
 La regla: **lo que un efecto pregunta depende de todo lo que cambia la respuesta, no solo de la pantalla; y la e2e de un cambio empieza desde un estado ya elegido, no solo desde cero.**
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Medio · P5 · tienda-0.1.0 · 2026-10-15
+
+**18 · En el seguimiento del pedido, la línea del estado no se reconocía como el estado.**
+
+*Qué pasó.* El 15 oct 2026, en la compra de prueba de M1 (WI-T5.7.2), el dueño abrió el enlace de seguimiento y no encontró en qué iba el pedido.
+
+*Síntoma literal.* «El enlace de seguimiento lleva de nuevo al acuse», y luego: «no veo la línea con el estado».
+
+*Causa raíz.* La línea estaba (las pruebas la miraban), pero iba sola y sin nombre debajo del código: «Recibido: la tienda lo va a confirmar». El runbook, además, decía que diría «pendiente», que es el nombre interno del estado, no lo que ve el comprador. Leída sin contexto, la frase parecía parte del acuse.
+
+*Cómo se reprodujo.* La e2e del pedido pide que la línea diga «Estado: Recibido: la tienda lo va a confirmar»; con la página de antes recibe la frase sin «Estado:».
+
+*Arreglo.* La línea dice «Estado:» y el estado en negrita. Si el estado no se puede consultar, lo dice en esa misma línea. El paso 7 del runbook cita el texto que se ve.
+
+**Lo prueba:** `tests/e2e/tienda-vitrina.spec.ts`, «HU-T6.1 y HU-T6.2 · enviar el pedido…» (la línea del estado con su nombre) y los dorados del horno. Control negativo: con la página de antes, la e2e queda en rojo.
+
+La regla: **un dato que el comprador tiene que encontrar lleva su nombre al lado; y un runbook cita el texto que se ve en pantalla, nunca el nombre interno.**
+
+*Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P5 · tienda-0.1.0 · 2026-10-15

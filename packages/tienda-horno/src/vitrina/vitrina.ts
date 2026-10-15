@@ -644,6 +644,7 @@ async function pedidoEnviado(): Promise<void> {
     if (ultimo.codigo === enlace.codigo) {
       acuse.hidden = false;
       poner('[data-acuse-codigo]', enlace.codigo);
+      poner('[data-acuse-estado]', 'no lo pudimos consultar ahora');
     }
     return;
   }
