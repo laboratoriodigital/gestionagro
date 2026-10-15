@@ -244,9 +244,45 @@ export interface PedidoDelPanel extends FilaDePedido {
     de: string | null;
     a: string | null;
     quien: string;
+    /** HU-T9.6: lo que dice una nota. */
+    nota?: string;
   }[];
   /** Si el comprador dejó datos de entrega: «Ver datos de entrega» los abre. */
   conContacto: boolean;
+  /** HU-T9.4: con qué transportadora y qué guía salió. */
+  transportadora: string | null;
+  guia: string | null;
+  /** HU-T9.4 y HU-T9.5: la plata de la contraentrega, desde que se despacha. */
+  recaudo: Recaudo | null;
+}
+
+/**
+ * CA2: lo que le queda al comercio de un pedido contra entrega, con la comisión y los fletes.
+ * Recaudado o por recaudar: el monto menos lo que costó llevarlo; devuelto o perdido: lo que costó.
+ */
+export function netoDelRecaudo(r: {
+  estado: string;
+  montoCop: number;
+  comisionCop: number | null;
+  fleteIdaCop: number | null;
+  fleteVueltaCop: number | null;
+}): number {
+  const costos = (r.comisionCop ?? 0) + (r.fleteIdaCop ?? 0) + (r.fleteVueltaCop ?? 0);
+  if (r.estado === 'devuelto' || r.estado === 'perdido')
+    return -((r.fleteIdaCop ?? 0) + (r.fleteVueltaCop ?? 0));
+  return r.montoCop - costos;
+}
+
+export interface Recaudo {
+  estado: string;
+  montoCop: number;
+  comisionCop: number | null;
+  fleteIdaCop: number | null;
+  fleteVueltaCop: number | null;
+  liquidado: string | null;
+  liquidacionRef: string | null;
+  /** HU-T9.5 CA2: lo que le queda al comercio, con la comisión y los fletes. */
+  netoCop: number;
 }
 
 const quienEs = (actor: string, quienPregunta: string) =>
@@ -267,6 +303,7 @@ export async function leerPedido(
   const p = await q.db
     .prepare(
       `SELECT ${COLUMNAS}, p.canal, p.subtotal_cop, p.descuento_cop, p.envio_cop, p.cupon_codigo, p.envio_nombre,
+              p.transportadora, p.guia,
               EXISTS (SELECT 1 FROM pedido_contacto c WHERE c.org_id = ? AND c.pedido_id = p.id) AS con_contacto
          FROM pedido p WHERE p.org_id = ? AND p.id = ?`,
     )
@@ -279,6 +316,8 @@ export async function leerPedido(
         envio_cop: number;
         cupon_codigo: string | null;
         envio_nombre: string | null;
+        transportadora: string | null;
+        guia: string | null;
         con_contacto: number;
       }
     >();
@@ -301,10 +340,32 @@ export async function leerPedido(
     }>();
   const { results: eventos } = await q.db
     .prepare(
-      'SELECT instante, tipo, de, a, actor FROM pedido_evento WHERE org_id = ? AND pedido_id = ? ORDER BY id',
+      'SELECT instante, tipo, de, a, actor, detalle FROM pedido_evento WHERE org_id = ? AND pedido_id = ? ORDER BY id',
     )
     .bind(q.org, id)
-    .all<{ instante: string; tipo: string; de: string | null; a: string | null; actor: string }>();
+    .all<{
+      instante: string;
+      tipo: string;
+      de: string | null;
+      a: string | null;
+      actor: string;
+      detalle: string | null;
+    }>();
+  const recaudo = await q.db
+    .prepare(
+      `SELECT estado, monto_cop, comision_cop, flete_ida_cop, flete_vuelta_cop, liquidado, liquidacion_ref
+         FROM contraentrega WHERE org_id = ? AND pedido_id = ?`,
+    )
+    .bind(q.org, id)
+    .first<{
+      estado: string;
+      monto_cop: number;
+      comision_cop: number | null;
+      flete_ida_cop: number | null;
+      flete_vuelta_cop: number | null;
+      liquidado: string | null;
+      liquidacion_ref: string | null;
+    }>();
   return {
     ...(fila as FilaDePedido),
     canal: p.canal,
@@ -328,8 +389,31 @@ export async function leerPedido(
       de: e.de,
       a: e.a,
       quien: quienEs(e.actor, q.actor),
+      ...(e.tipo === 'nota' && e.detalle
+        ? { nota: String((JSON.parse(e.detalle) as { texto?: unknown }).texto ?? '') }
+        : {}),
     })),
     conContacto: p.con_contacto === 1,
+    transportadora: p.transportadora,
+    guia: p.guia,
+    recaudo: recaudo
+      ? {
+          estado: recaudo.estado,
+          montoCop: recaudo.monto_cop,
+          comisionCop: recaudo.comision_cop,
+          fleteIdaCop: recaudo.flete_ida_cop,
+          fleteVueltaCop: recaudo.flete_vuelta_cop,
+          liquidado: recaudo.liquidado,
+          liquidacionRef: recaudo.liquidacion_ref,
+          netoCop: netoDelRecaudo({
+            estado: recaudo.estado,
+            montoCop: recaudo.monto_cop,
+            comisionCop: recaudo.comision_cop,
+            fleteIdaCop: recaudo.flete_ida_cop,
+            fleteVueltaCop: recaudo.flete_vuelta_cop,
+          }),
+        }
+      : null,
   };
 }
 

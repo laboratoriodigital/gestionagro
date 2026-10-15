@@ -6,6 +6,7 @@
 
 export { taparCelular, taparCorreo, taparNombre } from '@ed1/tienda-schema/tapado';
 export { Barra } from './Barra.tsx';
+export { Casilla, Texto } from './Campos.tsx';
 export { Confirmar } from './Confirmar.tsx';
 export { DatoTapado, type TipoDeDato } from './DatoTapado.tsx';
 export { Estado } from './Estado.tsx';

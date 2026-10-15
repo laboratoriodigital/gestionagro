@@ -160,6 +160,38 @@ describe('pedirAlPanel', () => {
     });
   });
 
+  it('❌ HU-T10.4 CA1: la compuerta trae todas sus fallas, con dónde se arregla', async () => {
+    const almacen = almacenEnMemoria({ sesion: sesion() });
+    const fallas = [
+      { codigo: 'sin-foto', mensaje: 'Sube una foto de «Pan»', donde: 'Productos' },
+      { codigo: 'envio', mensaje: 'El envío «Bodega» tarda más de 30 días', donde: 'Envíos' },
+    ];
+    const { fetchFn } = red({
+      '/api/panel/v1/publicar': [json(422, { estado: 'compuerta', fallas })],
+    });
+    const c = { almacen, core: CORE, fetchFn, ahora: () => AHORA };
+    expect(await pedirAlPanel(c, 'publicar', { cuerpo: {} })).toEqual({
+      tipo: 'error',
+      estado: 'compuerta',
+      fallas,
+      motivo: 'Antes de publicar, corrige 2 cosas.',
+    });
+  });
+
+  it('❌ HU-T10.5 CA3: el 403 de la matriz es «prohibido», con el motivo de la API', async () => {
+    const almacen = almacenEnMemoria({ sesion: sesion() });
+    const motivo = 'Tu rol no puede cambiar esta parte de los ajustes.';
+    const { fetchFn } = red({
+      '/api/panel/v1/ajustes/guardar': [json(403, { estado: 'prohibido', motivo })],
+    });
+    const c = { almacen, core: CORE, fetchFn, ahora: () => AHORA };
+    expect(await pedirAlPanel(c, 'ajustes/guardar', { cuerpo: {} })).toEqual({
+      tipo: 'error',
+      estado: 'prohibido',
+      motivo,
+    });
+  });
+
   it('❌ sin red es un error con palabras, no una excepción', async () => {
     const almacen = almacenEnMemoria({ sesion: sesion() });
     const fetchFn = (async () => {

@@ -28,9 +28,11 @@ import {
   manifiesto,
   type ProductoParaHornear,
   type ProductoParaLaCompuerta,
+  plazoDelEnvio,
   type TiendaParaHornear,
 } from '@ed1/tienda-horno';
 import { leerFormatos, type Seccion, validarSeccion } from '@ed1/tienda-schema';
+import { anotar } from './registro.ts';
 
 /** Lo que la publicación usa de un bucket R2. */
 export interface Almacen {
@@ -158,6 +160,28 @@ async function direccionesDe(c: Contexto) {
     .bind(c.org)
     .all<{ hostname: string; rol: string }>();
   return { dominios, canonico: dominios.find((d) => d.rol === 'canonico')?.hostname };
+}
+
+/** Cada dirección de la tienda, apuntando a la versión `v` (TIENDA §5.6). */
+async function apuntarA(
+  c: Contexto,
+  { dominios, canonico }: Awaited<ReturnType<typeof direccionesDe>>,
+  v: number,
+) {
+  for (const d of dominios) {
+    await c.hosts.put(
+      `h:${d.hostname}`,
+      JSON.stringify({
+        org: c.org,
+        celda: c.celda,
+        shard: c.shardNombre,
+        version: v,
+        canonico,
+        estado: 'abierta',
+        rol: d.rol,
+      }),
+    );
+  }
 }
 
 /**
@@ -366,7 +390,12 @@ export async function publicar(c: Contexto): Promise<Resultado> {
         }),
       ),
       archivos,
-      envios: envios.map((e) => ({ nombre: e.nombre, plazoDias: e.dias_max ?? 0 })),
+      // La compuerta lee el mismo texto que verá el comprador (HU-T10.1 CA1).
+      envios: envios.map((e) => ({
+        nombre: e.nombre,
+        plazoDias: Math.max(e.dias_min ?? 0, e.dias_max ?? 0),
+        texto: plazoDelEnvio(e.dias_min, e.dias_max),
+      })),
       ...(c.omitir ? { omitir: c.omitir } : {}),
     });
     if (!revision.ok) {
@@ -395,25 +424,9 @@ async function entregar(
   h: Horneado,
 ): Promise<Resultado> {
   const fallar = fallarCon(c, version);
-  const { dominios, canonico } = await direccionesDe(c);
-  if (!canonico) return await fallar('la tienda no tiene una dirección activa');
-  /** Cada dirección de la tienda, apuntando a la versión publicada (TIENDA §5.6). */
-  const apuntar = async (v: number) => {
-    for (const d of dominios) {
-      await c.hosts.put(
-        `h:${d.hostname}`,
-        JSON.stringify({
-          org: c.org,
-          celda: c.celda,
-          shard: c.shardNombre,
-          version: v,
-          canonico,
-          estado: 'abierta',
-          rol: d.rol,
-        }),
-      );
-    }
-  };
+  const direcciones = await direccionesDe(c);
+  if (!direcciones.canonico) return await fallar('la tienda no tiene una dirección activa');
+  const apuntar = (v: number) => apuntarA(c, direcciones, v);
 
   // 4 y 6. El manifiesto, y si nada cambió.
   const m = await manifiesto(archivos, h.redirecciones);
@@ -554,4 +567,116 @@ export async function rehornearExistencias(
   } catch (e) {
     return await fallarCon(c, version)(e instanceof Error ? e.message : String(e));
   }
+}
+
+// ── HU-T10.4: las versiones y volver a una ─────────────────────────────────────────────────
+
+export interface FilaDeVersion {
+  version: number;
+  estado: 'en_cola' | 'horneando' | 'lista' | 'publicada' | 'reemplazada' | 'fallida';
+  pedidaPor: string;
+  pedida: string;
+  publicada: string | null;
+  archivos: number | null;
+  /** Las fallas de la compuerta, o el motivo de una falla; nada si salió bien. */
+  motivo: string | null;
+}
+
+/** Las últimas versiones, de la más nueva a la más vieja. */
+export async function leerVersiones(shard: BaseD1, org: string, limite = 30) {
+  const { results } = await shard
+    .prepare(
+      `SELECT version, estado, pedida_por, pedida, publicada, archivos, motivo FROM publicacion
+        WHERE org_id = ? ORDER BY version DESC LIMIT ?`,
+    )
+    .bind(org, limite)
+    .all<{
+      version: number;
+      estado: FilaDeVersion['estado'];
+      pedida_por: string;
+      pedida: string;
+      publicada: string | null;
+      archivos: number | null;
+      motivo: string | null;
+    }>();
+  return results.map(
+    (f): FilaDeVersion => ({
+      version: f.version,
+      estado: f.estado,
+      pedidaPor: f.pedida_por,
+      pedida: f.pedida,
+      publicada: f.publicada,
+      archivos: f.archivos,
+      motivo: f.motivo,
+    }),
+  );
+}
+
+export type ResultadoDeVolver =
+  | { estado: 'publicada'; version: number; antes: number | null }
+  | { estado: 'ya-esta'; version: number }
+  | { estado: 'no-existe' }
+  | { estado: 'en-curso' }
+  | { estado: 'fallida'; motivo: string };
+
+/**
+ * HU-T10.4 CA2 y CA3: volver a una versión que ya estuvo publicada es mover el puntero, sin
+ * hornear: el manifiesto de esa versión y sus objetos siguen en el almacén (son inmutables). No
+ * toca pedidos ni inventario. Las existencias que horneó esa versión pueden ser viejas: quien llama
+ * re-hornea las de ahora después (`rehornearExistencias`), y mientras tanto la vitrina vende con lo
+ * que diga la API, que siempre cuenta con las de ahora.
+ */
+export async function volverA(c: Contexto, version: number): Promise<ResultadoDeVolver> {
+  const [destino, tienda, enCurso] = await Promise.all([
+    c.shard
+      .prepare('SELECT estado FROM publicacion WHERE org_id = ? AND version = ?')
+      .bind(c.org, version)
+      .first<{ estado: string }>(),
+    c.shard
+      .prepare('SELECT version_publicada FROM tienda WHERE org_id = ?')
+      .bind(c.org)
+      .first<{ version_publicada: number | null }>(),
+    c.shard
+      .prepare(
+        "SELECT version FROM publicacion WHERE org_id = ? AND estado IN ('en_cola', 'horneando')",
+      )
+      .bind(c.org)
+      .first(),
+  ]);
+  if (!destino || (destino.estado !== 'publicada' && destino.estado !== 'reemplazada'))
+    return { estado: 'no-existe' };
+  if (enCurso) return { estado: 'en-curso' };
+  const antes = tienda?.version_publicada ?? null;
+  if (antes === version) return { estado: 'ya-esta', version };
+  if (!(await c.sitios.get(`sitios/${c.org}/${version}/manifiesto.json`)))
+    return { estado: 'fallida', motivo: 'el manifiesto de esa versión no está en el almacén' };
+  const direcciones = await direccionesDe(c);
+  if (!direcciones.canonico)
+    return { estado: 'fallida', motivo: 'la tienda no tiene una dirección activa' };
+
+  await apuntarA(c, direcciones, version);
+  await c.shard.batch([
+    c.shard
+      .prepare(
+        "UPDATE publicacion SET estado = 'reemplazada' WHERE org_id = ? AND estado = 'publicada'",
+      )
+      .bind(c.org),
+    c.shard
+      .prepare("UPDATE publicacion SET estado = 'publicada' WHERE org_id = ? AND version = ?")
+      .bind(c.org, version),
+    c.shard
+      .prepare('UPDATE tienda SET version_publicada = ? WHERE org_id = ?')
+      .bind(version, c.org),
+    await anotar(c.shard, {
+      org: c.org,
+      actor: c.pedidaPor,
+      accion: 'publicacion.volver',
+      entidad: 'publicacion',
+      entidadId: String(version),
+      antes: { version: antes },
+      despues: { version },
+      instante: c.ahora,
+    }),
+  ]);
+  return { estado: 'publicada', version, antes };
 }

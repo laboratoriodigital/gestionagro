@@ -113,6 +113,26 @@ describe('la ficha dice lo que la ley pide antes de comprar (CA2)', () => {
     expect(md).toContain('- Envío Nacional: $15.000; llega en 5 días.');
   });
 
+  it('❌ un envío de más de 30 días calendario lo dice en la ficha y en «Envíos» (HU-T10.1 CA1)', async () => {
+    const legal = {
+      ...legalDeEnsayo(ENSAYO_UNO),
+      envios: [
+        { nombre: 'Medellín', precioCop: 8000, gratisDesdeCop: null, diasMin: 1, diasMax: 2 },
+        { nombre: 'Bodega', precioCop: 40000, gratisDesdeCop: null, diasMin: 35, diasMax: 45 },
+      ],
+    };
+    const largo =
+      'llega en 35 a 45 días calendario: más que los 30 de la ley, y es el plazo que aceptas al pedir.';
+    const h = await html(tienda({ legal }), '/p/uno/index.html');
+    expect(h).toContain(`Envío Bodega: $40.000; ${largo}`);
+    expect(h).toContain('Envío Medellín: $8.000; llega en 1 a 2 días.');
+    const envios =
+      (await hornear(tienda({ legal }))).get('/legal/envios/index.md')?.contenido ?? '';
+    expect(envios).toContain(`- Bodega: $40.000; ${largo}`);
+    // Antes decía «llega en de 1 a 2 días».
+    expect(envios).toContain('- Medellín: $8.000; llega en 1 a 2 días.');
+  });
+
   it('❌ sin IVA declarado no promete «IVA incluido»; sin retracto, dice por qué', async () => {
     const t = tienda({
       productos: [producto('pan', { retracto: { aplica: false, motivo: 'Es perecedero' } })],

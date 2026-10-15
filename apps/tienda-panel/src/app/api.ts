@@ -19,12 +19,23 @@ export type RespuestaDelPanel<T> =
   | {
       tipo: 'error';
       motivo: string;
-      /** Lo que dijo la API, cuando lo dijo: `problemas` (422), `cambiado` (409), `no-existe` (404). */
+      /**
+       * Lo que dijo la API, cuando lo dijo: `problemas` (422), `cambiado` (409), `no-existe` (404),
+       * `prohibido` (403).
+       */
       estado?: string;
       problemas?: { campo: string; mensaje: string }[];
       /** Con `cambiado`: la versión que hay ahora, para volver a leer. */
       version?: number | null;
+      /** Con `compuerta` (HU-T10.4): todo lo que falta para publicar, con dónde se arregla. */
+      fallas?: FallaDeLaCompuerta[];
     };
+
+export interface FallaDeLaCompuerta {
+  codigo: string;
+  mensaje: string;
+  donde: string;
+}
 
 /** `GET /api/panel/v1/yo`: la tienda de la sesión, el rol, el plan y lo que el plan permite. */
 export interface Yo {
@@ -44,7 +55,9 @@ export interface Conexion {
 
 const SIN_SESION = 'Tu sesión venció. Vuelve a entrar con Google.';
 
-async function conAcceso(c: Conexion): Promise<{ sesion: Sesion | null; motivo: string | null }> {
+export async function conAcceso(
+  c: Conexion,
+): Promise<{ sesion: Sesion | null; motivo: string | null }> {
   const sesion = await leerSesion(c.almacen);
   const estado = estadoDeSesion(sesion, (c.ahora ?? Date.now)());
   if (estado === 'activa') return { sesion, motivo: null };
@@ -95,6 +108,7 @@ export async function pedirAlPanel<T>(
       motivo?: string;
       problemas?: { campo: string; mensaje: string }[];
       version?: number | null;
+      fallas?: FallaDeLaCompuerta[];
     };
     if (r.ok) return { tipo: 'ok', datos };
     if (r.status === 401) return { tipo: 'sin-sesion', motivo: datos.motivo ?? SIN_SESION };
@@ -119,6 +133,18 @@ export async function pedirAlPanel<T>(
             : `Falta corregir ${datos.problemas.length} cosas.`,
       };
     }
+    // HU-T10.4 CA1: la compuerta dice todas sus fallas a la vez.
+    if (r.status === 422 && datos.estado === 'compuerta' && Array.isArray(datos.fallas)) {
+      return {
+        tipo: 'error',
+        estado: 'compuerta',
+        fallas: datos.fallas,
+        motivo:
+          datos.fallas.length === 1
+            ? 'Antes de publicar, corrige una cosa.'
+            : `Antes de publicar, corrige ${datos.fallas.length} cosas.`,
+      };
+    }
     if (r.status === 409 && datos.estado === 'cambiado') {
       return {
         tipo: 'error',
@@ -130,6 +156,8 @@ export async function pedirAlPanel<T>(
     return {
       tipo: 'error',
       ...(r.status === 404 && datos.estado === 'no-existe' ? { estado: 'no-existe' } : {}),
+      // HU-T10.5 CA3: la matriz de permisos dijo que no; la pantalla lo dice sin culpar a un campo.
+      ...(r.status === 403 && datos.estado === 'prohibido' ? { estado: 'prohibido' } : {}),
       motivo: datos.motivo ?? `La tienda no respondió bien (${r.status}). Intenta de nuevo.`,
     };
   } catch (e) {

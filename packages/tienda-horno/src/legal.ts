@@ -113,12 +113,27 @@ const parrafo = (texto: string): Bloque => ({
 });
 const VACIO: Bloque = { md: '', html: '' };
 
-const dias = (min: number | null, max: number | null) => {
-  if (max === null && min === null) return 'el plazo que te confirma la tienda';
-  if (min !== null && max !== null && min !== max) return `de ${min} a ${max} días`;
+/** Sin otro pacto, un pedido llega en máximo 30 días calendario (Ley 1480 art. 50 lit. h, Ley 2439). */
+export const PLAZO_DE_LEY_DIAS = 30;
+
+/**
+ * El plazo de una opción de envío, con las mismas palabras en la ficha, en el pedido y en «Envíos»
+ * (Ley 1480 art. 50 lit. b). Si pasa de 30 días calendario lo dice (HU-T10.1 CA1): ese plazo es el
+ * que la persona acepta al pedir, no el de la ley.
+ */
+export function plazoDelEnvio(min: number | null, max: number | null): string {
+  if (max === null && min === null) return 'el plazo te lo confirma la tienda';
+  const largo = Math.max(min ?? 0, max ?? 0) > PLAZO_DE_LEY_DIAS;
+  const unidad = largo ? 'días calendario' : 'días';
   const n = max ?? min ?? 0;
-  return `${n} ${n === 1 ? 'día' : 'días'}`;
-};
+  const plazo =
+    min !== null && max !== null && min !== max
+      ? `llega en ${min} a ${max} ${unidad}`
+      : `llega en ${n} ${n === 1 ? 'día' : unidad}`;
+  return largo
+    ? `${plazo}: más que los ${PLAZO_DE_LEY_DIAS} de la ley, y es el plazo que aceptas al pedir`
+    : plazo;
+}
 
 function bloques(d: DatosLegales): Record<string, Bloque> {
   const formas = d.formas.map((f) =>
@@ -157,7 +172,7 @@ function bloques(d: DatosLegales): Record<string, Bloque> {
                   e.gratisDesdeCop !== null && e.precioCop > 0
                     ? `, gratis desde ${formatearPesos(e.gratisDesdeCop)}`
                     : ''
-                }; llega en ${dias(e.diasMin, e.diasMax)}.`,
+                }; ${plazoDelEnvio(e.diasMin, e.diasMax)}.`,
             ),
           )
         : parrafo(

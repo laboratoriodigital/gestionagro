@@ -1,11 +1,18 @@
-/** «Más» (HU-T8.1): lo que no cabe en la navegación de abajo, cambiar de tienda y salir. */
+/**
+ * «Más» (HU-T8.1): lo que no cabe en la navegación de abajo, cambiar de tienda y salir. «Equipo»
+ * solo para quien lo puede manejar (HU-T10.5 CA2).
+ */
+import { puede } from '@ed1/tienda-schema/permisos';
+
 export function Mas({
   correo,
+  rol,
   variasTiendas,
   alCambiar,
   alSalir,
 }: {
   correo: string;
+  rol: string;
   variasTiendas: boolean;
   alCambiar: () => void;
   alSalir: () => void;
@@ -18,8 +25,19 @@ export function Mas({
       </p>
       <ul class="mas">
         <li>
+          <a href="/mas/publicar/">Publicar y versiones</a>
+        </li>
+        <li>
+          <a href="/mas/venta/">Envíos y cupones</a>
+        </li>
+        <li>
           <a href="/mas/ajustes/">Ajustes de la tienda</a>
         </li>
+        {puede(rol, 'equipo.gestionar') ? (
+          <li>
+            <a href="/mas/equipo/">Equipo</a>
+          </li>
+        ) : null}
         <li>
           <a href="/mas/registro/">Registro: quién cambió qué</a>
         </li>

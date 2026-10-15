@@ -8,7 +8,6 @@
  * - Lo escrito se guarda en el teléfono mientras se escribe (HU-T8.1 CA2).
  */
 import { Aviso, ResumenDeErrores } from '@ed1/ui/v2/componentes';
-import type { ComponentChildren } from 'preact';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import type { Almacen } from '../almacen.ts';
 import { type Conexion, pedirAlPanel } from '../api.ts';
@@ -25,90 +24,11 @@ import {
   opNueva,
   type ProductoDelPanel,
 } from '../catalogo.ts';
-import { Confirmar } from '../componentes/index.ts';
+import { Casilla, Confirmar, Texto } from '../componentes/index.ts';
 import { irA } from '../ruta.ts';
 import { Fotos } from './Fotos.tsx';
 
 type Error = { campo: string; mensaje: string };
-
-function Texto({
-  id,
-  etiqueta,
-  valor,
-  alCambiar,
-  error,
-  ayuda,
-  opcional,
-  numerico,
-  deshabilitado,
-}: {
-  id: string;
-  etiqueta: string;
-  valor: string;
-  alCambiar: (v: string) => void;
-  error?: string | undefined;
-  ayuda?: string;
-  opcional?: boolean;
-  numerico?: boolean;
-  deshabilitado?: boolean;
-}) {
-  const describe = [ayuda ? `${id}-ayuda` : null, error ? `${id}-error` : null]
-    .filter(Boolean)
-    .join(' ');
-  return (
-    <div class={`ed1-campo${error ? ' ed1-campo--con-error' : ''}`}>
-      <label class="ed1-campo__etiqueta" for={id}>
-        {etiqueta}
-        {opcional ? <span class="ed1-campo__opcional"> (opcional)</span> : null}
-      </label>
-      <input
-        class="ed1-campo__control"
-        id={id}
-        type="text"
-        inputMode={numerico ? 'numeric' : undefined}
-        value={valor}
-        disabled={deshabilitado}
-        aria-invalid={error ? 'true' : undefined}
-        aria-describedby={describe || undefined}
-        onInput={(e) => alCambiar((e.target as HTMLInputElement).value)}
-      />
-      {ayuda ? (
-        <p class="ed1-campo__ayuda" id={`${id}-ayuda`}>
-          {ayuda}
-        </p>
-      ) : null}
-      {error ? (
-        <p class="ed1-campo__error" id={`${id}-error`}>
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function Casilla({
-  id,
-  etiqueta,
-  marcada,
-  alCambiar,
-}: {
-  id: string;
-  etiqueta: ComponentChildren;
-  marcada: boolean;
-  alCambiar: (v: boolean) => void;
-}) {
-  return (
-    <label class="casilla" for={id}>
-      <input
-        id={id}
-        type="checkbox"
-        checked={marcada}
-        onChange={(e) => alCambiar((e.target as HTMLInputElement).checked)}
-      />
-      {etiqueta}
-    </label>
-  );
-}
 
 /** El borrador de este producto en esta versión: otra versión empieza de lo que hay en la tienda. */
 const claveDelBorrador = (p: ProductoDelPanel | null) =>

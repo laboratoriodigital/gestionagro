@@ -2,7 +2,11 @@
  * La bandeja de pedidos sin la pantalla (HU-T9.1): los filtros, que trabajan sobre lo que ya llegó
  * sin pedir nada a la red (CA1), y el turno de las lecturas, para que una respuesta vieja nunca
  * pise a la nueva (CA3). Puras, para probarlas sin navegador.
+ *
+ * Despachar (HU-T9.4) y anotar un pedido (HU-T9.6): lo que cada formulario revisa antes de
+ * mandar, con todos sus errores juntos.
  */
+import { pesos } from './catalogo.ts';
 
 export interface FilaDePedido {
   id: string;
@@ -90,4 +94,127 @@ export function crearTurno() {
 export function unir(antes: readonly FilaDePedido[], nuevos: readonly FilaDePedido[]) {
   const vistos = new Set(antes.map((p) => p.id));
   return [...antes, ...nuevos.filter((p) => !vistos.has(p.id))];
+}
+
+export interface FormularioDeDespacho {
+  transportadora: string;
+  guia: string;
+  comision: string;
+  fleteIda: string;
+}
+
+export const FALTA_TRANSPORTADORA = 'Falta la transportadora que lleva el paquete.';
+export const FALTA_GUIA =
+  'Falta la guía: sin ella no se puede seguir la plata de la contraentrega ni el comprador puede rastrear su paquete.';
+const EN_PESOS = 'Escribe el valor en pesos, como 12.000, o déjalo vacío.';
+
+/** Pesos opcionales: vacío es «no lo sé todavía» (`null`), nunca 0. */
+const pesosOpcionales = (texto: string): number | null | undefined => {
+  if (texto.trim() === '') return null;
+  const n = pesos(texto);
+  return n !== null && Number.isInteger(n) && n >= 0 ? n : undefined;
+};
+
+/**
+ * HU-T9.4 CA2: contra entrega, la transportadora y la guía son obligatorias, y el panel dice cuál
+ * falta. La comisión y el flete, si se escriben, en pesos.
+ */
+export function revisarDespacho(
+  f: FormularioDeDespacho,
+  contraentrega: boolean,
+): {
+  errores: { campo: string; mensaje: string }[];
+  cuerpo: {
+    transportadora: string;
+    guia: string;
+    comisionCop?: number | null;
+    fleteIdaCop?: number | null;
+  };
+} {
+  const errores: { campo: string; mensaje: string }[] = [];
+  if (contraentrega && !f.transportadora.trim())
+    errores.push({ campo: 'transportadora', mensaje: FALTA_TRANSPORTADORA });
+  if (contraentrega && !f.guia.trim()) errores.push({ campo: 'guia', mensaje: FALTA_GUIA });
+  const comision = contraentrega ? pesosOpcionales(f.comision) : null;
+  const flete = contraentrega ? pesosOpcionales(f.fleteIda) : null;
+  if (comision === undefined) errores.push({ campo: 'comisionCop', mensaje: EN_PESOS });
+  if (flete === undefined) errores.push({ campo: 'fleteIdaCop', mensaje: EN_PESOS });
+  return {
+    errores,
+    cuerpo: {
+      transportadora: f.transportadora.trim(),
+      guia: f.guia.trim(),
+      ...(contraentrega ? { comisionCop: comision ?? null, fleteIdaCop: flete ?? null } : {}),
+    },
+  };
+}
+
+/** HU-T9.6: las formas de pago de un pedido anotado; en línea pide el link de pago. */
+export const FORMAS_ANOTADAS = [
+  'a_convenir',
+  'contraentrega',
+  'transferencia',
+  'efectivo',
+] as const;
+
+export interface FormularioDeAnotado {
+  /** Cuántas de cada combinación, como texto del campo; vacío es ninguna. */
+  cantidades: Record<string, string>;
+  formaPago: string;
+  envio: string;
+  nombre: string;
+  celular: string;
+  direccion: string;
+  ciudad: string;
+  notas: string;
+}
+
+/**
+ * HU-T9.6 CA1: lo que revisa «Anotar el pedido». Al menos una combinación, cantidades enteras,
+ * la forma de pago y el envío en pesos; los datos del comprador son opcionales y van solo si hay.
+ */
+export function revisarAnotado(f: FormularioDeAnotado): {
+  errores: { campo: string; mensaje: string }[];
+  cuerpo: {
+    lineas: { variante: string; cantidad: number }[];
+    formaPago: string;
+    envioCop: number;
+    ciudad?: string;
+    contacto?: Record<string, string>;
+  };
+} {
+  const errores: { campo: string; mensaje: string }[] = [];
+  const lineas: { variante: string; cantidad: number }[] = [];
+  for (const [variante, texto] of Object.entries(f.cantidades)) {
+    if (texto.trim() === '') continue;
+    const n = Number(texto.trim());
+    if (!Number.isInteger(n) || n < 0 || n > 999)
+      errores.push({ campo: `cantidad-${variante}`, mensaje: 'Escribe cuántas, de 1 a 999.' });
+    else if (n > 0) lineas.push({ variante, cantidad: n });
+  }
+  if (lineas.length === 0 && errores.length === 0)
+    errores.push({ campo: 'productos', mensaje: 'Escribe cuántas lleva de al menos un producto.' });
+  if (!(FORMAS_ANOTADAS as readonly string[]).includes(f.formaPago))
+    errores.push({ campo: 'formaPago', mensaje: 'Elige cómo paga.' });
+  const envio = f.envio.trim() === '' ? 0 : pesos(f.envio);
+  if (envio === null || !Number.isInteger(envio) || envio < 0)
+    errores.push({
+      campo: 'envio',
+      mensaje: 'Escribe el envío en pesos, como 8.000, o déjalo vacío.',
+    });
+  const contacto = Object.fromEntries(
+    (['nombre', 'celular', 'direccion', 'ciudad', 'notas'] as const)
+      .map((k) => [k, f[k].trim()] as const)
+      .filter(([, v]) => v !== ''),
+  );
+  return {
+    errores,
+    cuerpo: {
+      lineas,
+      formaPago: f.formaPago,
+      envioCop: envio ?? 0,
+      ...(contacto['ciudad'] ? { ciudad: contacto['ciudad'] } : {}),
+      ...(Object.keys(contacto).length ? { contacto } : {}),
+    },
+  };
 }

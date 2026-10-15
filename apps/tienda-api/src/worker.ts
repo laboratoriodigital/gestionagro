@@ -68,6 +68,18 @@ import {
   type Resultado as ResultadoDelCatalogo,
   tocarElProducto,
 } from './catalogo.ts';
+import {
+  anotarNota,
+  cancelarPedido,
+  crearPedidoAnotado,
+  despacharPedido,
+  devolverPedido,
+  enlaceNuevo,
+  entregarPedido,
+  liquidarRecaudos,
+  listarRecaudos,
+  perderEnvio,
+} from './ciclo.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import {
@@ -90,9 +102,11 @@ import {
 import {
   type Almacen,
   type EscritorKv,
+  leerVersiones,
   publicar,
   type Resultado,
   rehornearExistencias,
+  volverA,
 } from './publicar.ts';
 import { enFrase, leerRegistro } from './registro.ts';
 import {
@@ -102,6 +116,7 @@ import {
   seguirSolicitud,
 } from './solicitudes.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
+import { borrarCupon, borrarEnvio, guardarCupon, guardarEnvio, listarVenta } from './venta.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
 export const CABECERA_TIENDA = 'x-tienda';
@@ -738,6 +753,80 @@ export function crearApp(
     return responder(c, await publicar(ctx));
   });
 
+  // HU-T10.4: las versiones y «Volver a esta», con el permiso `publicar`. Volver mueve el puntero
+  // en la misma solicitud; las existencias de ahora se re-hornean después, sin esperar.
+  app.get('/api/panel/v1/publicaciones', async (c) => {
+    const s = c.get('sesion');
+    const decision = decidir(s.rol, 'publicar', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido')
+      return c.json({ estado: decision, motivo: 'Tu rol no puede ver las versiones.' }, 403);
+    const quien = `usuario:${s.usuario}`;
+    const tienda = await s.db
+      .prepare('SELECT version_publicada FROM tienda WHERE org_id = ?')
+      .bind(s.org)
+      .first<{ version_publicada: number | null }>();
+    return c.json({
+      versionPublicada: tienda?.version_publicada ?? null,
+      versiones: (await leerVersiones(s.db, s.org)).map(({ pedidaPor, ...v }) => ({
+        ...v,
+        autor:
+          pedidaPor === quien
+            ? 'Tú'
+            : pedidaPor.startsWith('sistema:')
+              ? 'La tienda'
+              : 'Otra persona del equipo',
+        automatica: pedidaPor === 'sistema:existencias',
+      })),
+    });
+  });
+  app.post('/api/panel/v1/publicaciones/volver', async (c) => {
+    const s = c.get('sesion');
+    const decision = decidir(s.rol, 'publicar', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido')
+      return c.json(
+        { estado: decision, motivo: 'Tu rol no puede cambiar la versión publicada.' },
+        403,
+      );
+    const cuerpo = (await c.req.json().catch(() => null)) as { version?: unknown } | null;
+    const version = cuerpo?.version;
+    if (typeof version !== 'number' || !Number.isSafeInteger(version) || version < 1)
+      return c.json(
+        { estado: 'problemas', problemas: [{ campo: 'version', mensaje: 'falta la versión' }] },
+        422,
+      );
+    if (await hornoApagado(c))
+      return c.json(
+        {
+          estado: 'apagado',
+          motivo: 'Publicar está en pausa unos minutos; tu tienda sigue igual.',
+        },
+        503,
+      );
+    const ctx = contextoDePublicacion(c, s.org, s.shard, `usuario:${s.usuario}`);
+    if (!ctx) return c.json({ estado: 'sin-configurar' }, 503);
+    const r = await volverA(ctx, version);
+    if (r.estado === 'publicada') {
+      enSegundoPlano(
+        c,
+        rehornearExistencias({ ...ctx, pedidaPor: 'sistema:existencias' }).then(
+          (x) => {
+            if (x.estado === 'fallida' || x.estado === 'en-curso')
+              console.error(`tienda-api: las existencias al volver quedaron ${x.estado}`);
+          },
+          (e: unknown) => console.error(`tienda-api: las existencias al volver fallaron (${e})`),
+        ),
+      );
+      return c.json(r);
+    }
+    if (r.estado === 'ya-esta') return c.json(r);
+    if (r.estado === 'no-existe')
+      return c.json({ ...r, motivo: 'Esa versión no se puede volver a publicar.' }, 404);
+    if (r.estado === 'en-curso')
+      return c.json({ ...r, motivo: 'Hay una publicación en curso: espera a que termine.' }, 409);
+    console.error(`tienda-api: volver a la versión ${version} falló (${r.motivo})`);
+    return c.json(r, 500);
+  });
+
   /**
    * HU-T12.2: cargar una tienda desde un `tienda-import/1`, con el permiso `importar` (HU-T1.4).
    * «Revisar» no escribe; «aplicar» escribe una parte por solicitud y dice cuál sigue. Cada parte
@@ -1085,6 +1174,88 @@ export function crearApp(
     if (r.estado === 'guardado') await despues?.();
     return responderCatalogo(c, r);
   });
+
+  // HU-T9.4: despachar, con la guía y, contra entrega, su recaudo.
+  app.post('/api/panel/v1/pedidos/despachar', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede despachar pedidos.');
+    if (q instanceof Response) return q;
+    return responderCatalogo(c, await despacharPedido(q, await c.req.json().catch(() => null)));
+  });
+
+  // HU-T9.5: entregar (y recaudar), devolver, perder y liquidar; la pantalla Recaudos.
+  const cambioDelPedido =
+    (
+      accion: Accion,
+      hacer: (q: Quien, cuerpo: unknown) => Promise<ResultadoDelCatalogo>,
+      motivo = 'Tu rol no puede cambiar este pedido.',
+    ) =>
+    async (c: ContextoTienda) => {
+      const q = quienPuede(c, accion, motivo);
+      if (q instanceof Response) return q;
+      return responderCatalogo(c, await hacer(q, await c.req.json().catch(() => null)));
+    };
+  app.post('/api/panel/v1/pedidos/entregar', cambioDelPedido('pedidos.gestionar', entregarPedido));
+  app.post('/api/panel/v1/pedidos/devolver', cambioDelPedido('pedidos.gestionar', devolverPedido));
+  app.post('/api/panel/v1/pedidos/perder', cambioDelPedido('recaudos.gestionar', perderEnvio));
+  app.post(
+    '/api/panel/v1/recaudos/liquidar',
+    cambioDelPedido('recaudos.gestionar', liquidarRecaudos),
+  );
+  // HU-T9.6: cancelar, notas, un enlace de seguimiento nuevo y los pedidos anotados.
+  app.post('/api/panel/v1/pedidos/cancelar', cambioDelPedido('pedidos.gestionar', cancelarPedido));
+  app.post('/api/panel/v1/pedidos/nota', cambioDelPedido('pedidos.gestionar', anotarNota));
+  app.post('/api/panel/v1/pedidos/anotar', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede anotar pedidos.');
+    if (q instanceof Response) return q;
+    const cuerpo = await c.req.json().catch(() => null);
+    return responderCatalogo(c, await crearPedidoAnotado(q, await kekDe(c), cuerpo));
+  });
+  app.post('/api/panel/v1/pedidos/enlace', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede mandar enlaces de seguimiento.');
+    if (q instanceof Response) return q;
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    const canonico = control
+      ? await control
+          .prepare(
+            "SELECT hostname FROM dominio WHERE org_id = ? AND estado = 'activo' AND rol = 'canonico'",
+          )
+          .bind(q.org)
+          .first<{ hostname: string }>()
+      : null;
+    const r = await enlaceNuevo(
+      q,
+      await c.req.json().catch(() => null),
+      canonico?.hostname ?? null,
+    );
+    return r.estado === 'ok' ? c.json(r) : responderCatalogo(c, r);
+  });
+  app.get('/api/panel/v1/recaudos', async (c) => {
+    const q = quienPuede(c, 'recaudos.gestionar', 'Tu rol no puede ver los recaudos.');
+    if (q instanceof Response) return q;
+    return c.json(await listarRecaudos(q));
+  });
+
+  // HU-T10.1: envíos y cupones. Leer pide cualquiera de los dos permisos; escribir, el de cada uno.
+  app.get('/api/panel/v1/venta', async (c) => {
+    const q = quienPuede(c, 'envios.editar', 'Tu rol no puede ver los envíos ni los cupones.');
+    if (q instanceof Response) return q;
+    return c.json(await listarVenta(q));
+  });
+  const deEnvios = 'Tu rol no puede cambiar los envíos.';
+  const deCupones = 'Tu rol no puede cambiar los cupones.';
+  app.post(
+    '/api/panel/v1/envios/guardar',
+    cambioDelPedido('envios.editar', guardarEnvio, deEnvios),
+  );
+  app.post('/api/panel/v1/envios/borrar', cambioDelPedido('envios.editar', borrarEnvio, deEnvios));
+  app.post(
+    '/api/panel/v1/cupones/guardar',
+    cambioDelPedido('cupones.editar', guardarCupon, deCupones),
+  );
+  app.post(
+    '/api/panel/v1/cupones/borrar',
+    cambioDelPedido('cupones.editar', borrarCupon, deCupones),
+  );
 
   // HU-T10.3: los ajustes por sección. Lo que pide cada cambio lo decide `accionesDeAjuste`.
   app.get('/api/panel/v1/ajustes', async (c) => {

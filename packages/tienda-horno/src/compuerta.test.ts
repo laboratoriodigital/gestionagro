@@ -11,6 +11,7 @@ import {
   type ProductoParaLaCompuerta,
 } from './compuerta.ts';
 import { hornear, type TiendaParaHornear } from './horno.ts';
+import { plazoDelEnvio } from './legal.ts';
 
 const AJUSTES = {
   identidad: { nombre: ENSAYO_DOS.nombre },
@@ -148,6 +149,20 @@ describe('la compuerta de publicación (HU-T4.3)', () => {
         }),
       ).ok,
     ).toBe(true);
+  });
+
+  it('❌ el texto que hornea la tienda para más de 30 días lo dice, y pasa (HU-T10.1 CA1)', async () => {
+    expect(plazoDelEnvio(35, 45)).toBe(
+      'llega en 35 a 45 días calendario: más que los 30 de la ley, y es el plazo que aceptas al pedir',
+    );
+    expect(plazoDelEnvio(null, 31)).toContain('31 días calendario: más que los 30 de la ley');
+    // Hasta 30 se dice como siempre; 30 justos no pasan del límite.
+    expect(plazoDelEnvio(1, 2)).toBe('llega en 1 a 2 días');
+    expect(plazoDelEnvio(30, 30)).toBe('llega en 30 días');
+    expect(plazoDelEnvio(null, 1)).toBe('llega en 1 día');
+    expect(plazoDelEnvio(null, null)).toBe('el plazo te lo confirma la tienda');
+    const envios = [{ nombre: 'Bodega', plazoDias: 45, texto: plazoDelEnvio(35, 45) }];
+    expect(compuerta(await entrada({ envios })).ok).toBe(true);
   });
 
   it('❌ un enlace interno roto o un pie sin la SIC', async () => {

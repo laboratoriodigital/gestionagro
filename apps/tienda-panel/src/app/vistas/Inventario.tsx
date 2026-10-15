@@ -16,6 +16,7 @@ export interface FilaDeInventario {
   nombre: string;
   combinacion: string;
   sku: string | null;
+  precioCop: number;
   stock: number | null;
   apartadas: number;
   esperan: number;

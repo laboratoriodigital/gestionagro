@@ -5,6 +5,7 @@
  * formulario está como estaba. Un WhatsApp nuevo queda sin verificar hasta abrir el chat de prueba
  * y decir que es el propio (CA3).
  */
+import { puede } from '@ed1/tienda-schema/permisos';
 import { TITULOS_DE_SECCION } from '@ed1/tienda-schema/titulos';
 import { Aviso, Campo, type EstadoDeContenido, ResumenDeErrores } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useState } from 'preact/hooks';
@@ -110,12 +111,14 @@ export function AjusteDeSeccion({
   conexion,
   almacen,
   org,
+  rol,
   seccion,
   alVencer,
 }: {
   conexion: Conexion;
   almacen: Almacen;
   org: string;
+  rol: string;
   seccion: Seccion;
   alVencer: (motivo: string) => void;
 }) {
@@ -181,6 +184,7 @@ export function AjusteDeSeccion({
         conexion={conexion}
         almacen={almacen}
         borrador={`ajustes:${org}:${seccion}`}
+        rol={rol}
         seccion={seccion}
         datos={lectura.datos}
         version={lectura.version}
@@ -259,6 +263,7 @@ function Formulario({
   conexion,
   almacen,
   borrador,
+  rol,
   seccion,
   datos,
   version,
@@ -269,6 +274,7 @@ function Formulario({
   conexion: Conexion;
   almacen: Almacen;
   borrador: string;
+  rol: string;
   seccion: Seccion;
   datos: Record<string, unknown>;
   version: number;
@@ -281,6 +287,7 @@ function Formulario({
   const { valores, cambiar, olvidar } = usarBorrador(almacen, borrador, inicial);
   const [errores, setErrores] = useState<{ campo: string; mensaje: string }[]>([]);
   const [cambiado, setCambiado] = useState<string | null>(null);
+  const [prohibido, setProhibido] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const campos = CAMPOS[seccion];
   const errorDe = (campo: string) => errores.find((e) => e.campo === idDe(campo))?.mensaje;
@@ -288,6 +295,7 @@ function Formulario({
   const guardar = async (e: Event) => {
     e.preventDefault();
     setGuardando(true);
+    setProhibido(null);
     const r = await pedirAlPanel(conexion, 'ajustes/guardar', {
       cuerpo: {
         op: opNueva(),
@@ -300,6 +308,8 @@ function Formulario({
     if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
     if (r.tipo !== 'ok') {
       if (r.estado === 'cambiado') return setCambiado(r.motivo);
+      // HU-T10.5 CA3: la API decide, aunque la pantalla no lo haya ofrecido.
+      if (r.estado === 'prohibido') return setProhibido(r.motivo);
       setErrores(
         (r.problemas ?? [{ campo: campos[0]?.campo ?? '', mensaje: r.motivo }]).map((p) => {
           const campo = campoDelProblema(seccion, p.campo);
@@ -337,16 +347,33 @@ function Formulario({
           </button>
         </Aviso>
       ) : null}
+      {prohibido ? (
+        <Aviso tono="peligro" titulo="No se guardó">
+          {prohibido} Lo cambia quien administra la tienda.
+        </Aviso>
+      ) : null}
       <ResumenDeErrores errores={errores} />
-      {campos.map((c) => (
-        <CampoDeSeccion
-          key={c.campo}
-          c={c}
-          valor={valores[c.campo] ?? ''}
-          error={errorDe(c.campo)}
-          alCambiar={(v) => cambiar(c.campo, v)}
-        />
-      ))}
+      {campos.map((c) =>
+        c.pide && !puede(rol, c.pide) ? (
+          // HU-T10.5 CA2: se ve, pero lo cambia quien administra la tienda; la API también lo niega.
+          <div class="ed1-campo" key={c.campo}>
+            <p class="ed1-campo__etiqueta">{c.etiqueta}</p>
+            <p>
+              {(c.opciones ?? []).find(([v]) => v === valores[c.campo])?.[1] ??
+                (valores[c.campo] || 'Sin elegir')}
+            </p>
+            <p class="ed1-campo__ayuda">Lo cambia quien administra la tienda.</p>
+          </div>
+        ) : (
+          <CampoDeSeccion
+            key={c.campo}
+            c={c}
+            valor={valores[c.campo] ?? ''}
+            error={errorDe(c.campo)}
+            alCambiar={(v) => cambiar(c.campo, v)}
+          />
+        ),
+      )}
       <button
         class="ed1-boton ed1-boton--primario"
         type="submit"

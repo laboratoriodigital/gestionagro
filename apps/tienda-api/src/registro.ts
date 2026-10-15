@@ -201,6 +201,40 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
         : `${hizo('v', 'iste', 'io')} los datos de entrega del pedido #${despues['numero']}`;
     case 'pedido.confirmar':
       return `${hizo('confirm', 'aste', 'ó')} el pedido #${despues['numero']}`;
+    case 'pedido.anotar':
+      return `${hizo('anot', 'aste', 'ó')} un pedido por ${formatearPesos(Number(despues['totalCop'] ?? 0))}`;
+    case 'pedido.cancelar':
+      return `${hizo('cancel', 'aste', 'ó')} el pedido #${despues['numero']}${despues['volvio'] ? '; las unidades volvieron al inventario' : ''}`;
+    case 'pedido.nota':
+      return `${hizo('dej', 'aste', 'ó')} una nota en el pedido #${despues['numero']}`;
+    case 'pedido.enlace':
+      return `${hizo('hi', 'ciste', 'zo')} un enlace de seguimiento nuevo para el pedido #${despues['numero']}`;
+    case 'pedido.entregar':
+      return `${hizo('marc', 'aste', 'ó')} entregado el pedido #${despues['numero']}${typeof despues['recaudadoCop'] === 'number' ? `: ${formatearPesos(despues['recaudadoCop'])} recaudados` : ''}`;
+    case 'pedido.devolver':
+      return `${hizo('recib', 'iste', 'ió')} la devolución del pedido #${despues['numero']}${despues['volvio'] ? '; las unidades volvieron al inventario' : ''}`;
+    case 'pedido.perder':
+      return `${hizo('marc', 'aste', 'ó')} como perdida la plata del pedido #${despues['numero']}`;
+    case 'recaudos.liquidar': {
+      const n = Array.isArray(despues['pedidos']) ? despues['pedidos'].length : 0;
+      return `${hizo('liquid', 'aste', 'ó')} ${n === 1 ? '1 recaudo' : `${n} recaudos`} con la liquidación ${despues['liquidacion']}${typeof despues['montoCop'] === 'number' ? ` por ${formatearPesos(despues['montoCop'])}` : ''}`;
+    }
+    case 'pedido.despachar':
+      return `${hizo('despach', 'aste', 'ó')} el pedido #${despues['numero']}${despues['transportadora'] ? ` por ${despues['transportadora']}` : ''}${despues['guia'] ? `, guía ${despues['guia']}` : ''}`;
+    case 'envio.crear':
+      return `${hizo('cre', 'aste', 'ó')} el envío «${nombre}»`;
+    case 'envio.editar':
+      return `${hizo('edit', 'aste', 'ó')} el envío «${nombre}»`;
+    case 'envio.borrar':
+      return `${hizo('mand', 'aste', 'ó')} el envío «${nombre}» a la papelera`;
+    case 'cupon.crear':
+      return `${hizo('cre', 'aste', 'ó')} el cupón ${nombre}`;
+    case 'cupon.editar':
+      return `${hizo('edit', 'aste', 'ó')} el cupón ${nombre}`;
+    case 'cupon.borrar':
+      return `${hizo('mand', 'aste', 'ó')} el cupón ${nombre} a la papelera`;
+    case 'publicacion.volver':
+      return `${hizo('volv', 'iste', 'ió')} la tienda a la versión ${despues['version']}`;
     case 'ajustes.guardar':
       return `${hizo('cambi', 'aste', 'ó')} los ajustes de ${TITULOS_DE_SECCION[f.entidad_id as keyof typeof TITULOS_DE_SECCION] ?? f.entidad_id}`;
     case 'ajustes.whatsapp_verificado':

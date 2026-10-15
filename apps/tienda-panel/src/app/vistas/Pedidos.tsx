@@ -6,22 +6,38 @@
  *   toma un turno y solo se pinta la última; mientras llega, se ve la lista de antes.
  * - **Un pedido.** El comprador tapado y «Ver datos de entrega», que queda registrado; «Confirmar
  *   por WhatsApp» arma el mensaje, y «Confirmar» descuenta el inventario.
+ * - **Despachar (HU-T9.4).** La transportadora y la guía; contra entrega, son obligatorias, y la
+ *   comisión y el flete de ida, si se saben, entran al recaudo que nace con el despacho.
+ * - **En camino (HU-T9.5).** Entregar, que contra entrega es recaudar; recibir una devolución, con el
+ *   flete de vuelta y si las unidades volvieron; o marcar la plata como perdida.
+ * - **Notas, enlace y cancelar (HU-T9.6).** Las notas van a la historia; un enlace de seguimiento
+ *   nuevo deja sin servir el anterior; cancelar pregunta si las unidades vuelven al inventario.
  */
-import { Aviso, type EstadoDeContenido } from '@ed1/ui/v2/componentes';
+import { Aviso, type EstadoDeContenido, ResumenDeErrores } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { type Conexion, pedirAlPanel } from '../api.ts';
 import { enPesos, opNueva } from '../catalogo.ts';
-import { Confirmar, ESTADOS_DE_PEDIDO, Estado, Lista } from '../componentes/index.ts';
+import {
+  Casilla,
+  Confirmar,
+  ESTADOS_DE_PEDIDO,
+  Estado,
+  Lista,
+  Texto,
+} from '../componentes/index.ts';
 import {
   ATENCION,
   crearTurno,
   type FilaDePedido,
   type Filtros,
   FORMAS_DE_PAGO,
+  type FormularioDeDespacho,
   filtrar,
   type PaginaDePedidos,
+  revisarDespacho,
   unir,
 } from '../pedidos.ts';
+import { fleteDeVuelta } from '../recaudos.ts';
 import { horaDeBogota } from './Registro.tsx';
 
 const forma = (id: string) => FORMAS_DE_PAGO[id] ?? id;
@@ -160,6 +176,12 @@ export function Bandeja({
         </div>
       </div>
       <div class="acciones acciones--fila">
+        <a class="ed1-boton ed1-boton--primario" href="/pedidos/nuevo/">
+          Anotar un pedido
+        </a>
+        <a class="ed1-boton ed1-boton--secundario" href="/pedidos/recaudos/">
+          Recaudos
+        </a>
         <button
           class="ed1-boton ed1-boton--secundario"
           type="button"
@@ -235,8 +257,354 @@ interface PedidoDelPanel extends FilaDePedido {
     de: string | null;
     a: string | null;
     quien: string;
+    nota?: string;
   }[];
   conContacto: boolean;
+  transportadora: string | null;
+  guia: string | null;
+  recaudo: Recaudo | null;
+}
+
+interface Recaudo {
+  estado: string;
+  montoCop: number;
+  comisionCop: number | null;
+  fleteIdaCop: number | null;
+  fleteVueltaCop: number | null;
+  liquidado: string | null;
+  liquidacionRef: string | null;
+  netoCop: number;
+}
+
+/** La plata de la contraentrega, en palabras (HU-T9.4 y HU-T9.5). */
+export const ESTADOS_DEL_RECAUDO: Readonly<Record<string, string>> = {
+  por_recaudar: 'Por recaudar: la transportadora lo cobra al entregar',
+  recaudado: 'Recaudado: falta que la transportadora lo liquide',
+  devuelto: 'Devuelto: el comprador no lo recibió',
+  perdido: 'Perdido: la transportadora no responde por él',
+};
+
+type Error = { campo: string; mensaje: string };
+
+/** HU-T9.4: despachar, con la guía y, contra entrega, lo que cuesta el recaudo si se sabe. */
+function Despachar({
+  conexion,
+  pedido,
+  alVencer,
+  alDespachar,
+}: {
+  conexion: Conexion;
+  pedido: PedidoDelPanel;
+  alVencer: (motivo: string) => void;
+  alDespachar: (aviso: string) => Promise<void>;
+}) {
+  const contraentrega = pedido.formaPago === 'contraentrega';
+  const [f, setF] = useState<FormularioDeDespacho>({
+    transportadora: '',
+    guia: '',
+    comision: '',
+    fleteIda: '',
+  });
+  const [errores, setErrores] = useState<Error[]>([]);
+  const [ocupado, setOcupado] = useState(false);
+  const op = useRef(opNueva());
+  const campo = (c: keyof FormularioDeDespacho) => (v: string) => setF((x) => ({ ...x, [c]: v }));
+  const error = (c: string) => errores.find((e) => e.campo === c)?.mensaje;
+
+  const enviar = async (e: Event) => {
+    e.preventDefault();
+    const revisado = revisarDespacho(f, contraentrega);
+    setErrores(revisado.errores);
+    if (revisado.errores.length) return;
+    setOcupado(true);
+    const r = await pedirAlPanel(conexion, 'pedidos/despachar', {
+      cuerpo: { op: op.current, pedido: pedido.id, version: pedido.version, ...revisado.cuerpo },
+    });
+    setOcupado(false);
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok') {
+      op.current = opNueva();
+      return setErrores(r.problemas ?? [{ campo: 'transportadora', mensaje: r.motivo }]);
+    }
+    await alDespachar(
+      contraentrega
+        ? 'Pedido despachado. La plata queda por recaudar hasta que la transportadora lo entregue.'
+        : 'Pedido despachado.',
+    );
+  };
+
+  return (
+    <section class="acciones">
+      <h2>Despachar</h2>
+      <form class="formulario" onSubmit={(e) => void enviar(e)} noValidate>
+        <ResumenDeErrores errores={errores} />
+        <Texto
+          id="transportadora"
+          etiqueta="Transportadora"
+          valor={f.transportadora}
+          alCambiar={campo('transportadora')}
+          error={error('transportadora')}
+          opcional={!contraentrega}
+        />
+        <Texto
+          id="guia"
+          etiqueta="Número de guía"
+          valor={f.guia}
+          alCambiar={campo('guia')}
+          error={error('guia')}
+          opcional={!contraentrega}
+          ayuda="El comprador la ve en el seguimiento de su pedido."
+        />
+        {contraentrega ? (
+          <>
+            <Texto
+              id="comisionCop"
+              etiqueta="Comisión del recaudo, con IVA"
+              valor={f.comision}
+              alCambiar={campo('comision')}
+              error={error('comisionCop')}
+              opcional
+              numerico
+            />
+            <Texto
+              id="fleteIdaCop"
+              etiqueta="Flete de ida"
+              valor={f.fleteIda}
+              alCambiar={campo('fleteIda')}
+              error={error('fleteIdaCop')}
+              opcional
+              numerico
+              ayuda="Si todavía no los sabes, los dejas vacíos: no cuentan como $0."
+            />
+          </>
+        ) : null}
+        <button
+          class="ed1-boton ed1-boton--primario"
+          type="submit"
+          disabled={ocupado}
+          aria-busy={ocupado ? 'true' : undefined}
+        >
+          Despachar
+        </button>
+      </form>
+    </section>
+  );
+}
+
+/**
+ * HU-T9.5 CA1 y HU-T9.6 CA2: recibir una devolución. Pide decir si las unidades volvieron (solo
+ * entonces suman al inventario) y, si viajaba contra entrega, el flete de vuelta si se sabe.
+ */
+function Devolver({
+  conexion,
+  pedido,
+  alVencer,
+  alDevolver,
+}: {
+  conexion: Conexion;
+  pedido: PedidoDelPanel;
+  alVencer: (motivo: string) => void;
+  alDevolver: (aviso: string) => Promise<void>;
+}) {
+  const conFlete = pedido.formaPago === 'contraentrega' && pedido.estado === 'despachado';
+  const [volvio, setVolvio] = useState(false);
+  const [flete, setFlete] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const op = useRef(opNueva());
+  const enviar = async (e: Event) => {
+    e.preventDefault();
+    const fleteVueltaCop = conFlete ? fleteDeVuelta(flete) : null;
+    if (fleteVueltaCop === undefined)
+      return setError('Escribe el flete en pesos, como 10.000, o déjalo vacío.');
+    setError(null);
+    setOcupado(true);
+    const r = await pedirAlPanel(conexion, 'pedidos/devolver', {
+      cuerpo: {
+        op: op.current,
+        pedido: pedido.id,
+        version: pedido.version,
+        volvio,
+        fleteVueltaCop,
+      },
+    });
+    setOcupado(false);
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok') {
+      op.current = opNueva();
+      return setError(r.problemas?.[0]?.mensaje ?? r.motivo);
+    }
+    await alDevolver(
+      volvio
+        ? 'Devolución recibida. Las unidades volvieron al inventario.'
+        : 'Devolución recibida. El inventario no cambió.',
+    );
+  };
+  return (
+    <details class="ed1-confirmacion">
+      <summary class="ed1-boton ed1-boton--secundario">Recibir una devolución</summary>
+      <form
+        class="ed1-confirmacion__formulario formulario"
+        onSubmit={(e) => void enviar(e)}
+        noValidate
+      >
+        <Casilla
+          id="volvio"
+          etiqueta="Las unidades volvieron y se pueden vender otra vez"
+          marcada={volvio}
+          alCambiar={setVolvio}
+        />
+        {conFlete ? (
+          <Texto
+            id="fleteVueltaCop"
+            etiqueta="Flete de vuelta"
+            valor={flete}
+            alCambiar={setFlete}
+            error={error ?? undefined}
+            opcional
+            numerico
+          />
+        ) : error ? (
+          <p class="ed1-campo__error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <p class="ed1-confirmacion__consecuencia">
+          El pedido queda devuelto{conFlete ? ' y la plata de la contraentrega no se cobra' : ''}.
+          {volvio ? ' Las unidades vuelven al inventario una sola vez.' : ''}
+        </p>
+        <button
+          class="ed1-boton ed1-boton--peligro"
+          type="submit"
+          disabled={ocupado}
+          aria-busy={ocupado ? 'true' : undefined}
+        >
+          Sí, recibir la devolución
+        </button>
+      </form>
+    </details>
+  );
+}
+
+/** HU-T9.6 CA2: cancelar. Si ya había descontado, pregunta si las unidades vuelven. */
+function Cancelar({
+  conexion,
+  pedido,
+  alVencer,
+  alCancelar,
+}: {
+  conexion: Conexion;
+  pedido: PedidoDelPanel;
+  alVencer: (motivo: string) => void;
+  alCancelar: (aviso: string) => Promise<void>;
+}) {
+  const descontado = pedido.lineas.some((l) => l.descontado);
+  const [volvio, setVolvio] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const op = useRef(opNueva());
+  const enviar = async (e: Event) => {
+    e.preventDefault();
+    setOcupado(true);
+    const r = await pedirAlPanel(conexion, 'pedidos/cancelar', {
+      cuerpo: {
+        op: op.current,
+        pedido: pedido.id,
+        version: pedido.version,
+        volvio: descontado && volvio,
+      },
+    });
+    setOcupado(false);
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok') {
+      op.current = opNueva();
+      return setError(r.problemas?.[0]?.mensaje ?? r.motivo);
+    }
+    await alCancelar(
+      descontado && volvio
+        ? 'Pedido cancelado. Las unidades volvieron al inventario.'
+        : 'Pedido cancelado.',
+    );
+  };
+  return (
+    <details class="ed1-confirmacion">
+      <summary class="ed1-boton ed1-boton--secundario">Cancelar el pedido</summary>
+      <form
+        class="ed1-confirmacion__formulario formulario"
+        onSubmit={(e) => void enviar(e)}
+        noValidate
+      >
+        {descontado ? (
+          <Casilla
+            id="cancelar-volvio"
+            etiqueta="Las unidades siguen aquí: vuelven al inventario"
+            marcada={volvio}
+            alCambiar={setVolvio}
+          />
+        ) : null}
+        <p class="ed1-confirmacion__consecuencia">
+          El pedido queda cancelado y no se puede volver a confirmar.
+        </p>
+        {error ? (
+          <p class="ed1-campo__error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <button
+          class="ed1-boton ed1-boton--peligro"
+          type="submit"
+          disabled={ocupado}
+          aria-busy={ocupado ? 'true' : undefined}
+        >
+          Sí, cancelar el pedido
+        </button>
+      </form>
+    </details>
+  );
+}
+
+/** HU-T9.6 CA1: una nota en la historia del pedido. */
+function Nota({
+  conexion,
+  pedido,
+  alVencer,
+  alAnotar,
+}: {
+  conexion: Conexion;
+  pedido: PedidoDelPanel;
+  alVencer: (motivo: string) => void;
+  alAnotar: (aviso: string) => Promise<void>;
+}) {
+  const [texto, setTexto] = useState('');
+  const [error, setError] = useState<string | undefined>(undefined);
+  const op = useRef(opNueva());
+  const enviar = async (e: Event) => {
+    e.preventDefault();
+    if (!texto.trim()) return setError('Escribe la nota.');
+    const r = await pedirAlPanel(conexion, 'pedidos/nota', {
+      cuerpo: { op: op.current, pedido: pedido.id, texto: texto.trim() },
+    });
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    op.current = opNueva();
+    if (r.tipo !== 'ok') return setError(r.problemas?.[0]?.mensaje ?? r.motivo);
+    setError(undefined);
+    setTexto('');
+    await alAnotar('Nota guardada en la historia del pedido.');
+  };
+  return (
+    <form class="formulario" onSubmit={(e) => void enviar(e)} noValidate>
+      <Texto
+        id="nota"
+        etiqueta="Agregar una nota"
+        valor={texto}
+        alCambiar={setTexto}
+        error={error}
+      />
+      <button class="ed1-boton ed1-boton--secundario" type="submit">
+        Guardar la nota
+      </button>
+    </form>
+  );
 }
 
 interface Contacto {
@@ -260,6 +628,9 @@ const enFrase = (e: PedidoDelPanel['historia'][number]) => {
     const a = ESTADOS_DE_PEDIDO[e.a ?? '']?.texto ?? e.a;
     return `${e.quien}: ${e.de ? `de «${ESTADOS_DE_PEDIDO[e.de]?.texto ?? e.de}» a ` : ''}«${a}»`;
   }
+  if (e.tipo === 'nota') return `${e.quien}: «${e.nota ?? ''}»`;
+  if (e.tipo === 'recaudo')
+    return `${e.quien}: recaudo ${e.a === 'liquidado' ? 'liquidado' : `«${(ESTADOS_DEL_RECAUDO[e.a ?? ''] ?? e.a ?? '').split(':')[0]}»`}`;
   if (e.tipo === 'contacto_leido')
     return `${e.quien} ${e.quien === 'Tú' ? 'viste' : 'vio'} los datos de entrega`;
   return `${e.quien}: ${EVENTOS[e.tipo] ?? e.tipo}`;
@@ -279,6 +650,7 @@ export function Pedido({
   const [contacto, setContacto] = useState<Contacto | null>(null);
   const [aviso, setAviso] = useState<{ tono: 'info' | 'peligro'; texto: string } | null>(null);
   const [whatsapp, setWhatsapp] = useState<{ url: string; mensaje: string } | null>(null);
+  const [enlace, setEnlace] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
     const r = await pedirAlPanel<PedidoDelPanel>(conexion, `pedidos/${encodeURIComponent(id)}`);
@@ -341,6 +713,35 @@ export function Pedido({
 
   const unidades = pedido.lineas.reduce((s, l) => s + (l.descontado ? 0 : l.cantidad), 0);
   const porConfirmar = pedido.estado === 'pendiente' && pedido.formaPago !== 'en_linea';
+  const porDespachar = pedido.estado === 'confirmado' || pedido.estado === 'pagado';
+  const contraentrega = pedido.formaPago === 'contraentrega';
+  const cancelable = pedido.estado === 'pendiente' || pedido.estado === 'confirmado';
+  const hacerEnlace = async () => {
+    const r = await pedirAlPanel<{ enlace: string }>(conexion, 'pedidos/enlace', {
+      cuerpo: { pedido: pedido.id },
+    });
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok')
+      return setAviso({ tono: 'peligro', texto: r.problemas?.[0]?.mensaje ?? r.motivo });
+    setEnlace(r.datos.enlace);
+    await cargar();
+  };
+  const cambiar = (ruta: string, listo: string) => async () => {
+    const r = await pedirAlPanel(conexion, ruta, {
+      cuerpo: { op: opNueva(), pedido: pedido.id, version: pedido.version },
+    });
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    setAviso(
+      r.tipo === 'ok'
+        ? { tono: 'info', texto: listo }
+        : { tono: 'peligro', texto: r.problemas?.[0]?.mensaje ?? r.motivo },
+    );
+    await cargar();
+  };
+  const alCambiar = async (texto: string) => {
+    setAviso({ tono: 'info', texto });
+    await cargar();
+  };
 
   return (
     <main class="contenido">
@@ -440,6 +841,36 @@ export function Pedido({
             <dd>{pedido.ciudad}</dd>
           </div>
         ) : null}
+        {pedido.transportadora ? (
+          <div>
+            <dt>Transportadora</dt>
+            <dd>{pedido.transportadora}</dd>
+          </div>
+        ) : null}
+        {pedido.guia ? (
+          <div>
+            <dt>Guía</dt>
+            <dd class="cifra">{pedido.guia}</dd>
+          </div>
+        ) : null}
+        {pedido.recaudo ? (
+          <>
+            <div>
+              <dt>Recaudo</dt>
+              <dd>{ESTADOS_DEL_RECAUDO[pedido.recaudo.estado] ?? pedido.recaudo.estado}</dd>
+            </div>
+            <div>
+              <dt>Te queda, con comisión y fletes</dt>
+              <dd class="cifra">{enPesos(pedido.recaudo.netoCop)}</dd>
+            </div>
+            {pedido.recaudo.liquidacionRef ? (
+              <div>
+                <dt>Liquidación</dt>
+                <dd class="cifra">{pedido.recaudo.liquidacionRef}</dd>
+              </div>
+            ) : null}
+          </>
+        ) : null}
       </dl>
 
       {porConfirmar ? (
@@ -483,11 +914,106 @@ export function Pedido({
         </section>
       ) : null}
 
+      {porDespachar ? (
+        <Despachar
+          key={pedido.version}
+          conexion={conexion}
+          pedido={pedido}
+          alVencer={alVencer}
+          alDespachar={alCambiar}
+        />
+      ) : null}
+
+      {pedido.estado === 'despachado' ? (
+        <section class="acciones">
+          <h2>En camino</h2>
+          <Confirmar
+            abrir="Marcar entregado"
+            consecuencia={
+              contraentrega
+                ? `La transportadora lo entregó y cobró ${enPesos(pedido.totalCop)}: la plata queda recaudada, por liquidar.`
+                : 'El pedido queda entregado.'
+            }
+            confirmar="Sí, se entregó"
+            alConfirmar={cambiar(
+              'pedidos/entregar',
+              contraentrega
+                ? 'Pedido entregado. La plata queda recaudada: falta que la transportadora la liquide.'
+                : 'Pedido entregado.',
+            )}
+          />
+          <Devolver
+            key={pedido.version}
+            conexion={conexion}
+            pedido={pedido}
+            alVencer={alVencer}
+            alDevolver={alCambiar}
+          />
+          {contraentrega ? (
+            <Confirmar
+              abrir="La plata se perdió"
+              consecuencia="La transportadora no responde por el paquete ni por la plata. El pedido se cierra y queda aparte en Recaudos."
+              confirmar="Sí, se perdió"
+              alConfirmar={cambiar('pedidos/perder', 'Quedó como perdido, aparte en Recaudos.')}
+            />
+          ) : null}
+        </section>
+      ) : null}
+      {pedido.estado === 'entregado' ? (
+        <section class="acciones">
+          <h2>Devolución</h2>
+          <Devolver
+            key={pedido.version}
+            conexion={conexion}
+            pedido={pedido}
+            alVencer={alVencer}
+            alDevolver={alCambiar}
+          />
+        </section>
+      ) : null}
+
+      {cancelable ? (
+        <Cancelar
+          key={`cancelar-${pedido.version}`}
+          conexion={conexion}
+          pedido={pedido}
+          alVencer={alVencer}
+          alCancelar={alCambiar}
+        />
+      ) : null}
+
+      <h2>Seguimiento</h2>
+      {enlace ? (
+        <>
+          <p class="nota">Este es el enlace nuevo; el de antes ya no sirve.</p>
+          <pre class="mensaje">{enlace}</pre>
+          <a
+            class="ed1-boton ed1-boton--primario"
+            href={`https://wa.me/?text=${encodeURIComponent(`Aquí puedes seguir tu pedido #${pedido.numero}: ${enlace}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Mandarlo por WhatsApp
+          </a>
+        </>
+      ) : (
+        <Confirmar
+          abrir="Hacer un enlace de seguimiento nuevo"
+          consecuencia="El comprador ve su pedido con el enlace nuevo. El que tenía antes deja de servir."
+          confirmar="Sí, hacer uno nuevo"
+          alConfirmar={hacerEnlace}
+        />
+      )}
+
       <h2>Historia</h2>
       <ol class="registro">
         <li class="registro__fila">
           <span class="registro__hora cifra">{horaDeBogota(pedido.creado)}</span>
-          <span>Llegó el pedido{pedido.canal === 'whatsapp' ? ' por WhatsApp' : ''}</span>
+          <span>
+            {pedido.canal === 'panel'
+              ? 'Se anotó en el panel'
+              : `Llegó el pedido${pedido.canal === 'whatsapp' ? ' por WhatsApp' : ''}`}
+          </span>
         </li>
         {pedido.historia.map((e) => (
           <li key={`${e.instante}-${e.tipo}-${e.a ?? ''}`} class="registro__fila">
@@ -496,6 +1022,7 @@ export function Pedido({
           </li>
         ))}
       </ol>
+      <Nota conexion={conexion} pedido={pedido} alVencer={alVencer} alAnotar={alCambiar} />
     </main>
   );
 }

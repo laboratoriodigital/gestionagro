@@ -7,6 +7,7 @@
  * - Lo que el formulario no muestra (el logo, las ciudades de la contraentrega) sigue como estaba.
  * - `whatsappVerificado` no es un campo: lo pone la API cuando el comercio confirma su número.
  */
+import type { Accion } from '@ed1/tienda-schema/permisos';
 import { TITULOS_DE_SECCION } from '@ed1/tienda-schema/titulos';
 import { FORMAS_DE_PAGO } from './pedidos.ts';
 
@@ -34,6 +35,8 @@ export interface CampoDeAjuste {
   ayuda?: string;
   /** Lo pide la compuerta para publicar (`REQUERIDOS_PARA_PUBLICAR`); una prueba los ata. */
   requerido?: true;
+  /** HU-T10.5 CA2: el permiso que pide cambiarlo; sin él, el panel lo muestra sin dejar cambiarlo. */
+  pide?: Accion;
 }
 
 const SI_NO_SENAL = [
@@ -124,6 +127,7 @@ export const CAMPOS: Record<Seccion, readonly CampoDeAjuste[]> = {
       etiqueta: '¿Cómo llegan los pedidos?',
       tipo: 'opciones',
       requerido: true,
+      pide: 'ajustes.modo_pedido',
       ayuda: 'El pago en línea todavía no está listo: por ahora, los pedidos llegan por WhatsApp.',
       opciones: [
         ['whatsapp', 'Por WhatsApp'],
