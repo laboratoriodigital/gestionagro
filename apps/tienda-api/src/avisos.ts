@@ -42,6 +42,11 @@ export interface ContextoDelAviso {
   org: string;
   ahora: string;
   kekTexto: string | undefined;
+  /**
+   * Un cobro de pruebas que Bold resolvió, y por dónde se supo (HU-T14.3): el correo al comercio.
+   * Nunca demora ni tumba la respuesta: quien lo da lo manda en segundo plano.
+   */
+  alResolverPrueba?: (cobroId: string, via: 'aviso' | 'consulta') => void;
 }
 
 const AvisoDeBold = z.object({
@@ -359,13 +364,25 @@ async function aplicar(
         k,
         [registrar(c, aviso, k.id, 'aplicado')],
       ));
-    if (movio) return 'aplicado';
+    if (movio) {
+      if (k.ambiente === 'pruebas') avisarPrueba(c, k.id, 'aviso');
+      return 'aplicado';
+    }
     // Una anulación antes que su venta, u otro aviso que no mueve nada: queda dicho (CA3).
     await registrar(c, aviso, k.id, 'ignorado').run();
     return 'ignorado';
   } catch (e) {
     if (/UNIQUE|PRIMARY KEY/i.test(String(e))) return 'repetido';
     throw e;
+  }
+}
+
+/** El correo del cobro de prueba nunca cambia lo que se le responde a Bold ni a la página. */
+export function avisarPrueba(c: ContextoDelAviso, cobro: string, via: 'aviso' | 'consulta'): void {
+  try {
+    c.alResolverPrueba?.(cobro, via);
+  } catch (e) {
+    console.error(`tienda-api: el correo de la prueba ${cobro} no se pudo pedir (${String(e)})`);
   }
 }
 

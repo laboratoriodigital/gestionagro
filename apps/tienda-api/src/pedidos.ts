@@ -106,7 +106,7 @@ export function opcionesEnPalabras(opciones: string, clave: string): string {
     .join(' · ');
 }
 
-interface DatosDelTexto {
+export interface DatosDelTexto {
   tienda: string;
   codigo: string;
   numero: number;
@@ -125,9 +125,12 @@ interface DatosDelTexto {
  * final (bitácora ecommerce, menores).
  */
 export function textoDelPedido(d: DatosDelTexto): string {
+  return [`Hola, ${d.tienda}. Quiero hacer este pedido:`, '', ...resumenDelPedido(d)].join('\n');
+}
+
+/** Las líneas del pedido, del código al enlace: las comparten el WhatsApp y el acuse por correo. */
+export function resumenDelPedido(d: DatosDelTexto): string[] {
   return [
-    `Hola, ${d.tienda}. Quiero hacer este pedido:`,
-    '',
     `Pedido ${d.codigo} · #${d.numero}`,
     ...d.lineas.map(
       (l) =>
@@ -143,7 +146,7 @@ export function textoDelPedido(d: DatosDelTexto): string {
     `Forma de pago: ${NOMBRE_DE_LA_FORMA[d.forma as keyof typeof NOMBRE_DE_LA_FORMA] ?? d.forma}`,
     ...(d.ciudad ? [`Ciudad de entrega: ${d.ciudad}`] : []),
     ...(d.enlace ? ['', `Sigue tu pedido: ${d.enlace}`] : []),
-  ].join('\n');
+  ];
 }
 
 export const enlaceDeSeguimiento = (host: string, codigo: string, secreto: string) =>
@@ -179,6 +182,17 @@ async function textoDesdeLaBase(
   tienda: string,
   secreto: string | null,
 ): Promise<{ numero: number; total: number; texto: string; codigo: string }> {
+  const d = await datosDelPedidoEscrito(c, pedidoId, tienda, secreto);
+  return { codigo: d.codigo, numero: d.numero, total: d.total, texto: textoDelPedido(d) };
+}
+
+/** Lo que dicen el mensaje y el acuse de un pedido ya escrito, leído de la base. */
+export async function datosDelPedidoEscrito(
+  c: Pick<ContextoDePedido, 'db' | 'org' | 'host'>,
+  pedidoId: string,
+  tienda: string,
+  secreto: string | null,
+): Promise<DatosDelTexto> {
   const p = await c.db
     .prepare(
       `SELECT codigo, numero, forma_pago, descuento_cop, envio_cop, total_cop, cupon_codigo, envio_nombre, ciudad
@@ -204,21 +218,16 @@ async function textoDesdeLaBase(
     .bind(c.org, pedidoId)
     .all<{ nombre: string; opciones: string; cantidad: number; total_cop: number }>();
   return {
+    tienda,
     codigo: p.codigo,
     numero: p.numero,
+    lineas: lineas.map((l) => ({ ...l, total: l.total_cop })),
+    envio: p.envio_nombre ? { nombre: p.envio_nombre, cop: p.envio_cop } : null,
+    descuento: { cupon: p.cupon_codigo, cop: p.descuento_cop },
     total: p.total_cop,
-    texto: textoDelPedido({
-      tienda,
-      codigo: p.codigo,
-      numero: p.numero,
-      lineas: lineas.map((l) => ({ ...l, total: l.total_cop })),
-      envio: p.envio_nombre ? { nombre: p.envio_nombre, cop: p.envio_cop } : null,
-      descuento: { cupon: p.cupon_codigo, cop: p.descuento_cop },
-      total: p.total_cop,
-      forma: p.forma_pago,
-      ciudad: p.ciudad,
-      enlace: secreto ? enlaceDeSeguimiento(c.host, p.codigo, secreto) : null,
-    }),
+    forma: p.forma_pago,
+    ciudad: p.ciudad,
+    enlace: secreto ? enlaceDeSeguimiento(c.host, p.codigo, secreto) : null,
   };
 }
 

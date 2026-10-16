@@ -151,6 +151,13 @@ export const PARTES = ['core', 'agro', 'parqueadero', 'tienda'] as const;
 export type Parte = (typeof PARTES)[number];
 
 const CLOUDFLARE = ['CF_API_TOKEN', 'CF_ACCOUNT_ID'] as const;
+/** La cuenta de Gmail que envía los correos (PLATAFORMA §4.11): su cliente, su permiso y su dirección. */
+export const CORREO_GMAIL = [
+  'CORREO_GMAIL_CLIENTE_ID',
+  'CORREO_GMAIL_CLIENTE_SECRETO',
+  'CORREO_GMAIL_REFRESH',
+  'CORREO_GMAIL_REMITENTE',
+] as const;
 export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = {
   // Entrar con Google, cobrar con Bold y avisar de los radicados de datos son del CORE.
   core: [
@@ -177,6 +184,8 @@ export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = 
     'TIENDA_KEK_V1',
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_CHAT_ID',
+    // HU-T14.3: los correos de las tiendas por Gmail (PLATAFORMA §4.11); sin ellos, no salen.
+    ...CORREO_GMAIL,
   ],
 };
 

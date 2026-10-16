@@ -768,3 +768,21 @@ La regla: **un vencimiento perezoso va antes de la primera lectura que lo necesi
 La regla: **cuando la llave depende del contenido, se prueban las llaves posibles antes de leerlo, y lo que firma la llave pública no escribe nada que no sea suyo.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Alto · P9, P17 · tienda-0.1.0 · 2026-10-16
+
+**25 · La guardia del `org_id` solo conocía las tablas de la primera migración.**
+
+*Qué pasó.* El 16 oct 2026, al agregar la tabla `correo` en la 0006 para los correos de la tienda (HU-T14.3).
+
+*Síntoma literal.* Con la consulta `SELECT estado, intentos, motivo FROM correo WHERE clave = ?`, sin `org_id`, `tests/repo/org-id-en-consultas.test.ts` quedaba en verde.
+
+*Causa raíz.* La lista de tablas de la Tienda salía de `0001_tienda_v1.sql`, porque cuando se escribió (HU-T2.8) no había otra migración. Las 0002 a 0005 solo agregaron columnas y referencias, así que nadie lo notó. La primera tabla nueva habría quedado sin guardia, y una consulta suya podría leer los correos de otra tienda.
+
+*Cómo se reprodujo.* La consulta de arriba, con la guardia como estaba.
+
+*Arreglo.* La guardia lee todas las migraciones del shard, y exige que `correo` esté en su lista.
+
+**Lo prueba** `tests/repo/org-id-en-consultas.test.ts`, «conoce las tablas del shard y encuentra las consultas». Control negativo: leyendo solo la 0001, esa prueba queda en rojo; leyendo todas, la consulta sin `org_id` queda en rojo.
+
+La regla: **una guardia que lee una lista de archivos lee todos los que cumplen la regla, no el que existía cuando se escribió.**
+
+*Ficha:* tienda3 · *(mío)* · 🟡 Medio · P1, P9 · tienda-0.1.0 · 2026-10-16

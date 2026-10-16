@@ -1314,6 +1314,7 @@ Lo incluido lo comparten el agro y el CORE. Hoy consumen una fracción, que el v
 | `ks:tienda-cobros` | Se apaga el pago en línea. Las tiendas siguen recibiendo pedidos por WhatsApp |
 | `ks:tienda-mcp` | MCP público y del comercio apagados |
 | `ks:tienda-horno` | No se publica nada nuevo. Lo publicado sigue sirviéndose |
+| `ks:tienda-correos` | No sale ningún correo de las tiendas: ni el resumen, ni el acuse, ni el del cobro de prueba. Todo lo demás sigue igual *(Hoy: agregado con HU-T14.3)* |
 
 ### 15.3 Crons (con Workers Paid)
 
@@ -1344,7 +1345,7 @@ Lo incluido lo comparten el agro y el CORE. Hoy consumen una fracción, que el v
   - el resumen diario al comercio;
   - los avisos de solicitudes por vencer;
   - el resultado del cobro de prueba.
-- **Tope por tienda y por día**, para que una tienda no gaste la cuota de todas.
+- **Tope por tienda y por día**, para que una tienda no gaste la cuota de todas. *(Hoy, con HU-T14.3: 40 por tienda y 300 por celda al día, de los 400 de Gmail; el resto queda para el CORE. El resumen sale a la hora de Ajustes › Avisos, las 7 de Bogotá si no dice, y lleva las solicitudes por vencer; el acuse, al nacer el pedido en línea, con el enlace de seguimiento. Un correo que no salió queda anotado con su motivo y nunca cuenta como enviado.)*
 
 ### 15.6 Runbooks
 

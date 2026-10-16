@@ -22,10 +22,12 @@ import { enviarTelegram } from '@ed1/telegram';
 import { z } from 'zod';
 import {
   aplicarRespuesta,
+  avisarPrueba,
   type CobroDelAviso,
   type ContextoDelAviso,
   type RespuestaDeBold,
 } from './avisos.ts';
+import { correosDeLaCelda, mandarResultadoDePrueba } from './correos.ts';
 import { type Ambiente, llavesDeBold } from './credenciales.ts';
 import { kekDelEntorno } from './llaves.ts';
 import { sha256 } from './pedidos.ts';
@@ -83,7 +85,10 @@ export async function consultarCobro(
   }
   const r = respuestaDeLaConsulta(e);
   const anotar = anotarConsulta(c, k, e.crudo);
-  if (r && (await aplicarRespuesta(c, r, k, [anotar]))) return 'movido';
+  if (r && (await aplicarRespuesta(c, r, k, [anotar]))) {
+    if (k.ambiente === 'pruebas') avisarPrueba(c, k.id, 'consulta');
+    return 'movido';
+  }
   await anotar.run();
   return 'esperando';
 }
@@ -253,13 +258,46 @@ export const CONCILIAR: Tarea = {
     const total = { consultas: 0, movidos: 0, vencidos: 0, sinLlaves: 0 };
     const saltadas: string[] = [];
     const fallas: string[] = [];
+    // HU-T14.3: el resultado de los cobros de prueba que esta vuelta resolvió, al final.
+    const correos: Promise<unknown>[] = [];
+    const ahora = new Date(instante).toISOString();
+    const bases = e.shards.map(([, db]) => db);
     for (const [nombre, db] of e.shards) {
       // Cada tienda del shard, como las purgas; la consulta de sus cobros filtra por su org_id.
       const { results } = await db.prepare('SELECT org_id FROM tienda').all<{ org_id: string }>();
       for (const { org_id } of results) {
         try {
+          const correo = e.correo;
           const v = await conciliarTienda(
-            { db, org: org_id, ahora: new Date(instante).toISOString(), kekTexto: e.kekTexto },
+            {
+              db,
+              org: org_id,
+              ahora,
+              kekTexto: e.kekTexto,
+              ...(correo
+                ? {
+                    alResolverPrueba: (cobro: string, via: 'aviso' | 'consulta') => {
+                      correos.push(
+                        mandarResultadoDePrueba(
+                          {
+                            db,
+                            org: org_id,
+                            ahora,
+                            correo,
+                            enLaCelda: (d) => correosDeLaCelda(bases, d),
+                          },
+                          cobro,
+                          via,
+                        ).catch((error) =>
+                          console.error(
+                            `tienda-api: el correo de la prueba ${cobro} falló (${String(error)})`,
+                          ),
+                        ),
+                      );
+                    },
+                  }
+                : {}),
+            },
             instante,
             e.fetch ?? fetch,
           );
@@ -276,6 +314,7 @@ export const CONCILIAR: Tarea = {
         }
       }
     }
+    await Promise.all(correos);
     if (saltadas.length > 0) {
       const aviso = await enviarTelegram(
         e.telegram,

@@ -63,6 +63,7 @@ describe('la Tienda en productos.json (HU-T2.2)', () => {
       'ks:tienda-cobros',
       'ks:tienda-mcp',
       'ks:tienda-horno',
+      'ks:tienda-correos',
     ]);
   });
 });

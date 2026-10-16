@@ -151,14 +151,15 @@ describe.each(APIS.map((api) => [api.nombre, api] as const))(
   },
 );
 
-// HU-T2.8 CA2: la API de la Tienda. Sus tablas son las de la migración del shard (todas llevan
-// `org_id`, y `shard-tienda.test.ts` lo exige), salvo las de referencia.
-const TABLAS_TIENDA = [
-  ...readFileSync(
-    join(RAIZ, 'infrastructure/migraciones/tienda/0001_tienda_v1.sql'),
-    'utf8',
-  ).matchAll(/^CREATE TABLE (\w+)/gm),
-]
+// HU-T2.8 CA2: la API de la Tienda. Sus tablas son las de las migraciones del shard (todas llevan
+// `org_id`, y `shard-tienda.test.ts` lo exige), salvo las de referencia. Todas las migraciones, no
+// solo la 0001: una tabla nueva también se cuida (HU-T14.3 agregó `correo` en la 0006).
+const DIR_DEL_SHARD = join(RAIZ, 'infrastructure/migraciones/tienda');
+const TABLAS_TIENDA = readdirSync(DIR_DEL_SHARD)
+  .filter((f) => f.endsWith('.sql'))
+  .flatMap((f) => [
+    ...readFileSync(join(DIR_DEL_SHARD, f), 'utf8').matchAll(/^CREATE TABLE (\w+)/gm),
+  ])
   .map((m) => m[1] as string)
   .filter((t) => !t.startsWith('ref_'));
 const TIENDA: Api = {
@@ -171,6 +172,8 @@ const TIENDA: Api = {
       'la tarea diaria rehace TIENDA_HOSTS con todas las tiendas del shard; no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.1)',
     'select org_id from tienda':
       'la purga diaria recorre las tiendas del shard y purga cada una con su org_id = ?; no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.2)',
+    'select count(*) as n from correo where dia = ?':
+      'el tope diario de correos es de la celda entera, que comparte la cuenta de Gmail: se suman los shards; no hay token y solo sale el número (correos.ts, HU-T14.3)',
     'select count(*) as n from tienda where ?':
       'la salud cuenta los comercios de prueba del fixture (un org_id = ? por cada uno) para que el humo de producción exija cero; no hay token y solo sale el número (worker.ts, HU-T2.9)',
   },
@@ -182,6 +185,7 @@ describe('HU-T2.8 CA2 · toda consulta de la API de la Tienda filtra por el org_
   it('conoce las tablas del shard y encuentra las consultas', () => {
     expect(TABLAS_TIENDA).toContain('pedido');
     expect(TABLAS_TIENDA).toContain('tienda');
+    expect(TABLAS_TIENDA).toContain('correo');
     expect(consultas.some((c) => /\bfrom tienda\b/.test(c.sql))).toBe(true);
   });
 
