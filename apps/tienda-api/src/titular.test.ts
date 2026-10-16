@@ -483,5 +483,6 @@ describe('HU-T7.3 · un comprador con muchos pedidos', () => {
     expect(s.cuerpo).toEqual({ estado: 'guardado', pedidos: 120, enCurso: 0 });
     expect(contado.mas()).toBeGreaterThan(0);
     expect(contado.mas()).toBeLessThanOrEqual(TOPE_DE_PARAMETROS_D1);
-  });
+    // Con el D1 de workerd (12 a 14 ms por sentencia), sembrar 120 pedidos pasa de los 5 s.
+  }, 60_000);
 });
