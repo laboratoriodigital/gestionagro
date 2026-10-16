@@ -117,6 +117,7 @@ import {
   volverA,
 } from './publicar.ts';
 import { enFrase, leerRegistro } from './registro.ts';
+import type { AlmacenDeRespaldos } from './respaldos.ts';
 import {
   PeticionDeSeguimientoDeSolicitud,
   PeticionDeSolicitud,
@@ -1450,6 +1451,8 @@ export async function alCron(env: Env, instante: number): Promise<void> {
       hosts,
       flags,
       telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
+      ...(env.SITIOS ? { almacen: env.SITIOS as unknown as AlmacenDeRespaldos } : {}),
+      ...(env.MEDIOS ? { medios: env.MEDIOS } : {}),
     },
     instante,
     TAREAS,

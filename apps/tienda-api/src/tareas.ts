@@ -11,12 +11,15 @@
  *   alguna está atrasada (CA1).
  * - La diaria reconstruye `TIENDA_HOSTS` desde las bases: si difiere, gana la base y se avisa por
  *   Telegram con lo que cambió (CA2).
+ * - La semanal respalda cada tienda en `respaldos/` del almacén (HU-T17.3, `respaldos.ts`); si un
+ *   respaldo no cuadra con la base, avisa por Telegram con la tienda y la causa.
  * - La diaria purga lo que cumplió su plazo, y nada antes (HU-T17.2): la papelera a los 30 días y
  *   las respuestas guardadas de `operacion` a las 48 horas. Las exportaciones las borra la regla de
  *   ciclo de vida del bucket a los 7 días (`docs/runbooks/tienda-ciclo-de-vida.md`).
  */
 import type { BaseD1 } from '@ed1/d1';
 import { enviarTelegram } from '@ed1/telegram';
+import { type AlmacenDeRespaldos, respaldarTienda } from './respaldos.ts';
 import { purgarContactos } from './titular.ts';
 
 export type Frecuencia = 'hora' | 'dia' | 'semana';
@@ -33,6 +36,10 @@ export interface EntornoDeTareas {
   hosts: KvDeTareas;
   flags: KvDeTareas;
   telegram: { token: string | undefined; chat: string | undefined };
+  /** El almacén de la celda (`SITIOS`), donde van los respaldos; sin él, la semanal falla. */
+  almacen?: AlmacenDeRespaldos;
+  /** El host de las fotos (`MEDIOS`): los respaldos las nombran por su enlace. */
+  medios?: string;
   /** Para las pruebas; en el Worker, el `fetch` global. */
   fetch?: typeof fetch;
 }
@@ -314,4 +321,40 @@ export const PURGAS: Tarea = {
   },
 };
 
-export const TAREAS: readonly Tarea[] = [RECONSTRUIR_HOSTS, PURGAS];
+/** La semanal: el respaldo de cada tienda de cada shard. Una que no cuadra no detiene a las demás. */
+export const RESPALDOS: Tarea = {
+  nombre: 'respaldos',
+  frecuencia: 'semana',
+  async correr(e, instante) {
+    if (!e.almacen) throw new Error('el cron no tiene el almacén de la celda (SITIOS)');
+    let hechos = 0;
+    let borrados = 0;
+    const fallas: string[] = [];
+    for (const [nombre, db] of e.shards) {
+      const { results } = await db.prepare('SELECT org_id FROM tienda').all<{ org_id: string }>();
+      for (const { org_id } of results) {
+        try {
+          const r = await respaldarTienda(db, org_id, e.almacen, instante, e.medios);
+          hechos++;
+          borrados += r.borrados;
+        } catch (error) {
+          fallas.push(
+            `${nombre}/${org_id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+    }
+    if (fallas.length > 0) {
+      const aviso = await enviarTelegram(
+        e.telegram,
+        `Tienda · ${fallas.length} respaldo(s) semanal(es) fallaron:\n${fallas.slice(0, 10).join('\n')}`,
+        e.fetch,
+      );
+      if (aviso) console.error(`tienda-api: no se pudo avisar por Telegram (${aviso})`);
+      throw new Error(`respaldos con fallas: ${fallas.slice(0, 5).join('; ')}`);
+    }
+    return `${hechos} tiendas respaldadas${borrados > 0 ? `; ${borrados} respaldos viejos borrados` : ''}`;
+  },
+};
+
+export const TAREAS: readonly Tarea[] = [RECONSTRUIR_HOSTS, PURGAS, RESPALDOS];

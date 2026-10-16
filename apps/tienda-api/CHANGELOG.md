@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El respaldo semanal de cada tienda (HU-T17.3): cada lunes la tienda queda guardada en el almacén de la celda, con todos sus pedidos y los datos de los compradores cifrados como están en la base. Se guardan las 4 últimas semanas y un respaldo por cada uno de los 3 últimos meses. Si un respaldo no cuadra con la base, avisa por Telegram y no queda como bueno.
 - Las solicitudes en el panel (HU-T9.7): en «Pedidos → Solicitudes» la que venció sin respuesta va arriba y en rojo, y se avisa a 3 días y el día que vence. El retracto cuenta los 15 días del reembolso. Responder ofrece mandar la respuesta por donde la persona dejó su contacto, y una solicitud no se cierra sin respuesta.
 - El tablero de Inicio (HU-T14.2): ventas, pedidos, ticket y tasa de cierre de hoy y del mes, contra el mes anterior a la misma altura del calendario; lo pendiente, con lo urgente arriba; y el margen de la contraentrega.
 - Descargar todo (HU-T10.7): en «Más → Descargar todo» la tienda baja en `tienda-export/1`, el mismo formato de la carga, y en hojas para Excel. Los datos de los compradores van aparte, solo para el propietario recién entrado, y queda registrado.
