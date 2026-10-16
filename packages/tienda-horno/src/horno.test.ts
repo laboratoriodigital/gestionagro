@@ -243,3 +243,27 @@ describe('HU-T3.7 · una tienda llena, en páginas que caben en un teléfono', (
     expect(texto(a, '/c/todo/index.html')).not.toContain('class="paginas"');
   });
 });
+
+describe('HU-T11.4 · el carrito de una tienda que cobra en línea', () => {
+  const texto = (a: Map<string, { contenido: string }>, ruta: string) =>
+    a.get(ruta)?.contenido ?? '';
+
+  it('ofrece pagar en línea primero, pide la entrega y hornea la vuelta de Bold', async () => {
+    const a = await hornear(paraHornear(ENSAYO_UNO, { cobroEnLinea: true }));
+    const carrito = texto(a, '/carrito/index.html');
+    const formas = [...carrito.matchAll(/name="forma" value="([a-z_]+)"/g)].map((m) => m[1]);
+    expect(formas[0]).toBe('en_linea');
+    expect(carrito).toContain('<fieldset class="grupo" data-entrega hidden>');
+    expect(carrito).toContain('autocomplete="tel"');
+    expect(carrito).toContain('"enLinea":true');
+    expect(a.has('/pedido/pago/index.html')).toBe(true);
+  });
+
+  it('❌ una que vende solo por WhatsApp no ofrece pagar en línea ni pide datos de entrega', async () => {
+    const a = await hornear(paraHornear(ENSAYO_UNO));
+    const carrito = texto(a, '/carrito/index.html');
+    expect(carrito).not.toContain('value="en_linea"');
+    expect(carrito).not.toContain('data-entrega');
+    expect(a.has('/pedido/pago/index.html')).toBe(false);
+  });
+});

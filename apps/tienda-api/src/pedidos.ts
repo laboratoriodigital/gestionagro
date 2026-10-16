@@ -88,7 +88,7 @@ export async function sha256(texto: string): Promise<string> {
 }
 
 /** Compara sin cortar en la primera diferencia. */
-function igual(a: string, b: string): boolean {
+export function igual(a: string, b: string): boolean {
   let d = a.length ^ b.length;
   for (let i = 0; i < Math.max(a.length, b.length); i++) {
     d |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
@@ -149,7 +149,7 @@ export function textoDelPedido(d: DatosDelTexto): string {
 export const enlaceDeSeguimiento = (host: string, codigo: string, secreto: string) =>
   `https://${host}/pedido/#c=${codigo}&s=${secreto}`;
 
-async function datosDeLaTienda(db: BaseD1, org: string) {
+export async function datosDeLaTienda(db: BaseD1, org: string) {
   const tienda = await db
     .prepare('SELECT nombre FROM tienda WHERE org_id = ?')
     .bind(org)
@@ -222,34 +222,39 @@ async function textoDesdeLaBase(
   };
 }
 
-export async function registrar(
+/** Lo que un pedido necesita antes de escribirse, sea por WhatsApp o en línea (HU-T11.4). */
+export interface PedidoPreparado {
+  cotizacion: Cotizacion;
+  porId: Map<string, VarianteDelPedido>;
+  conEdad: Set<string>;
+  envio: { nombre: string } | null;
+}
+
+interface VarianteDelPedido {
+  id: string;
+  clave: string;
+  sku: string | null;
+  precio_cop: number;
+  producto_id: string;
+  nombre: string;
+  opciones: string;
+  solo_mayores: number;
+}
+
+/**
+ * Los términos publicados, la cotización del servidor (HU-T5.5) y la edad (Ley 1480 art. 52): lo
+ * mismo para registrar un pedido por WhatsApp que para cobrarlo en línea. Si algo no cuadra,
+ * devuelve la respuesta para el comprador; si cuadra, lo que hace falta para escribirlo.
+ */
+export async function prepararPedido(
   c: ContextoDePedido,
-  p: PeticionDePedido,
-): Promise<ResultadoDePedido> {
-  const huellaDelSecreto = await sha256(p.seguimiento);
-  const tienda = await datosDeLaTienda(c.db, c.org);
-
-  // CA3: el mismo código es el mismo pedido. Con otro secreto, es otro pedido que chocó.
-  const previo = await c.db
-    .prepare('SELECT id, seguimiento_huella FROM pedido WHERE org_id = ? AND codigo = ?')
-    .bind(c.org, p.codigo)
-    .first<{ id: string; seguimiento_huella: string | null }>();
-  if (previo) {
-    if (!previo.seguimiento_huella || !igual(previo.seguimiento_huella, huellaDelSecreto)) {
-      return { estado: 'codigo-en-uso' };
-    }
-    return {
-      estado: 'duplicado',
-      whatsapp: tienda.whatsapp,
-      ...(await textoDesdeLaBase(c, previo.id, tienda.nombre, p.seguimiento)),
-    };
-  }
-
-  if (tienda.venta['abierta'] === false) return { estado: 'cerrada' };
-  const ofrecidas = ((tienda.venta['formas'] ?? []) as { forma: string }[]).map((f) => f.forma);
-  if (!ofrecidas.includes(p.forma)) {
-    return { estado: 'forma', motivo: 'Esta tienda no ofrece esa forma de pago. Elige otra.' };
-  }
+  p: Omit<PeticionDePedido, 'forma'>,
+): Promise<
+  | PedidoPreparado
+  | { estado: 'terminos' }
+  | { estado: 'cambio'; cotizacion: Cotizacion }
+  | { estado: 'edad'; motivo: string }
+> {
   if (!c.terminosPublicados || !igual(c.terminosPublicados, p.terminos)) {
     return { estado: 'terminos' };
   }
@@ -282,16 +287,7 @@ export async function registrar(
        WHERE v.org_id = ? AND v.id IN (${cotizacion.carrito.map(() => '?').join(', ')})`,
     )
     .bind(c.org, ...cotizacion.carrito.map((l) => l.variante))
-    .all<{
-      id: string;
-      clave: string;
-      sku: string | null;
-      precio_cop: number;
-      producto_id: string;
-      nombre: string;
-      opciones: string;
-      solo_mayores: number;
-    }>();
+    .all<VarianteDelPedido>();
   const porId = new Map(filas.map((f) => [f.id, f]));
   const conEdad = new Set(p.lineas.filter((l) => l.mayorDeEdad).map((l) => l.variante));
   const sinEdad = cotizacion.carrito.filter(
@@ -309,6 +305,70 @@ export async function registrar(
         .bind(c.org, p.envio)
         .first<{ nombre: string }>()
     : null;
+  return { cotizacion, porId, conEdad, envio };
+}
+
+/** Las líneas del pedido, con las copias del día (nombre, opciones, precio). */
+export function lineasDelPedido(
+  c: Pick<ContextoDePedido, 'db' | 'org' | 'id'>,
+  cotizacion: Cotizacion,
+  porId: ReadonlyMap<string, VarianteDelPedido>,
+) {
+  return cotizacion.carrito.map((l, i) => {
+    const v = porId.get(l.variante);
+    if (!v) throw new Error(`la variante ${l.variante} se cotizó y no se pudo leer`);
+    return c.db
+      .prepare(
+        `INSERT INTO pedido_linea (org_id, pedido_id, linea, producto_id, variante_id, nombre, opciones, sku,
+           precio_unitario_cop, cantidad, total_cop) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        c.org,
+        c.id,
+        i + 1,
+        v.producto_id,
+        v.id,
+        v.nombre,
+        opcionesEnPalabras(v.opciones, v.clave),
+        v.sku,
+        v.precio_cop,
+        l.cantidad,
+        v.precio_cop * l.cantidad,
+      );
+  });
+}
+
+export async function registrar(
+  c: ContextoDePedido,
+  p: PeticionDePedido,
+): Promise<ResultadoDePedido> {
+  const huellaDelSecreto = await sha256(p.seguimiento);
+  const tienda = await datosDeLaTienda(c.db, c.org);
+
+  // CA3: el mismo código es el mismo pedido. Con otro secreto, es otro pedido que chocó.
+  const previo = await c.db
+    .prepare('SELECT id, seguimiento_huella FROM pedido WHERE org_id = ? AND codigo = ?')
+    .bind(c.org, p.codigo)
+    .first<{ id: string; seguimiento_huella: string | null }>();
+  if (previo) {
+    if (!previo.seguimiento_huella || !igual(previo.seguimiento_huella, huellaDelSecreto)) {
+      return { estado: 'codigo-en-uso' };
+    }
+    return {
+      estado: 'duplicado',
+      whatsapp: tienda.whatsapp,
+      ...(await textoDesdeLaBase(c, previo.id, tienda.nombre, p.seguimiento)),
+    };
+  }
+
+  if (tienda.venta['abierta'] === false) return { estado: 'cerrada' };
+  const ofrecidas = ((tienda.venta['formas'] ?? []) as { forma: string }[]).map((f) => f.forma);
+  if (!ofrecidas.includes(p.forma)) {
+    return { estado: 'forma', motivo: 'Esta tienda no ofrece esa forma de pago. Elige otra.' };
+  }
+  const preparado = await prepararPedido(c, p);
+  if ('estado' in preparado) return preparado;
+  const { cotizacion, porId, conEdad, envio } = preparado;
 
   const sentencias = [
     c.db
@@ -339,28 +399,7 @@ export async function registrar(
         c.ahora,
         c.ahora,
       ),
-    ...cotizacion.carrito.map((l, i) => {
-      const v = porId.get(l.variante);
-      if (!v) throw new Error(`la variante ${l.variante} se cotizó y no se pudo leer`);
-      return c.db
-        .prepare(
-          `INSERT INTO pedido_linea (org_id, pedido_id, linea, producto_id, variante_id, nombre, opciones, sku,
-             precio_unitario_cop, cantidad, total_cop) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .bind(
-          c.org,
-          c.id,
-          i + 1,
-          v.producto_id,
-          v.id,
-          v.nombre,
-          opcionesEnPalabras(v.opciones, v.clave),
-          v.sku,
-          v.precio_cop,
-          l.cantidad,
-          v.precio_cop * l.cantidad,
-        );
-    }),
+    ...lineasDelPedido(c, cotizacion, porId),
     // El primer paso del historial (el trigger escribe los cambios de estado, no el nacimiento), con
     // la edad confirmada de cada línea que la pedía (Ley 1480 art. 52).
     c.db

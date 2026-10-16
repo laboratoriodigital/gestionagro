@@ -329,6 +329,121 @@ test('HU-T6.1 y HU-T6.2 · enviar el pedido: dice qué falta, lo registra y mues
   expect(carrito.codigo).not.toBe('ABC234');
 });
 
+test('HU-T11.4 · pagar en línea: pide la entrega, abre el botón de Bold embebido y guarda solo el token', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('sembrado')) {
+      sessionStorage.setItem('sembrado', '1');
+      localStorage.setItem(
+        'tienda:carrito',
+        JSON.stringify({
+          v: 1,
+          codigo: 'PAG234',
+          lineas: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+        }),
+      );
+    }
+  });
+  await apiDelPedido(page);
+  const cobros: Record<string, unknown>[] = [];
+  const checkout = {
+    orderId: 'PAG234-1',
+    currency: 'COP',
+    amount: '129000',
+    apiKey: 'identidad-de-prueba-0001',
+    integritySignature: 'f'.repeat(64),
+    renderMode: 'embedded',
+  };
+  await page.route('**/api/v1/cobros', async (ruta) => {
+    cobros.push(JSON.parse(ruta.request().postData() ?? '{}') as Record<string, unknown>);
+    await ruta.fulfill({
+      json: {
+        estado: 'registrado',
+        codigo: 'PAG234',
+        numero: 1001,
+        total: 129000,
+        vence: '2026-10-16T15:15:00.000Z',
+        boton: { libreria: 'https://checkout.bold.co/library/boldPaymentButton.js', checkout },
+      },
+    });
+  });
+  // Bold de mentira: guarda lo que recibe y anota que se abrió.
+  await page.route('https://checkout.bold.co/**', (ruta) =>
+    ruta.fulfill({
+      contentType: 'text/javascript',
+      body: 'window.BoldCheckout = class { constructor(d) { window.__bold = d; } open() { window.__boldAbierto = true; } };',
+    }),
+  );
+
+  await page.goto(`${TIENDA}/carrito/`);
+  const enviar = page.locator('[data-enviar]');
+  const entrega = page.locator('[data-entrega]');
+  await expect(entrega).toBeHidden();
+  await page.locator('label.opcion-grande', { hasText: 'En línea' }).click();
+  await expect(entrega).toBeVisible();
+  await expect(enviar).toHaveText('Escribe tu nombre y tu celular');
+  await enviar.click({ force: true });
+  await expect(page.locator('input[name="nombre"]')).toBeFocused();
+  await page.locator('input[name="nombre"]').fill('Ensayo Dos Compradora');
+  await page.locator('input[name="celular"]').fill('300 123 456');
+  await expect(enviar).toHaveText('Escribe tu nombre y tu celular');
+  await page.locator('input[name="celular"]').fill('3001234567');
+  await page.locator('input[name="direccion"]').fill('Calle de prueba 99');
+  await expect(enviar).toHaveText('Acepta los términos para enviar');
+  await page.locator('[data-acepta]').check();
+  await expect(enviar).toHaveText('Pagar en línea');
+  await enviar.click();
+
+  await expect
+    .poll(() => page.evaluate(() => (window as { __boldAbierto?: boolean }).__boldAbierto))
+    .toBe(true);
+  expect(await page.evaluate(() => (window as { __bold?: unknown }).__bold)).toEqual(checkout);
+  expect(cobros).toHaveLength(1);
+  expect(cobros[0]).toMatchObject({
+    codigo: 'PAG234',
+    acepta: true,
+    totalVisto: 129000,
+    entrega: {
+      nombre: 'Ensayo Dos Compradora',
+      celular: '3001234567',
+      direccion: 'Calle de prueba 99',
+    },
+  });
+  expect(cobros[0]).not.toHaveProperty('forma');
+  const token = String(cobros[0]?.['token']);
+  expect(token).toMatch(/^[A-Za-z0-9_-]{22}$/);
+  // El enlace del pedido, a la vista antes de pagar (HU-T11.9 CA1).
+  await expect(page.locator('[data-enlace-del-pago]')).toBeVisible();
+  await expect(page.locator('[data-enlace-del-pedido]')).toHaveAttribute(
+    'href',
+    /^\/pedido\/#c=PAG234&s=[A-Za-z0-9_-]{22}$/,
+  );
+
+  // ❌ CA2 y WI-T11.4.3: lo guardado no tiene datos del comprador; la sesión, solo el token.
+  const guardado = await page.evaluate(() => ({
+    sesion: Object.fromEntries(Object.entries(sessionStorage)),
+    local: Object.fromEntries(Object.entries(localStorage)),
+  }));
+  expect(guardado.sesion).toEqual({ sembrado: '1', 'tienda:cobro': token });
+  const todo = JSON.stringify(guardado);
+  for (const dato of ['Ensayo Dos', '3001234567', 'Calle de prueba'])
+    expect(todo).not.toContain(dato);
+  expect(JSON.parse(guardado.local['tienda:carrito'] ?? '{}').cobro).toEqual(expect.any(String));
+
+  // La vuelta de Bold: lo que dice la dirección no se cree; lleva al pedido con su enlace.
+  await page.goto(`${TIENDA}/pedido/pago/?bold-order-id=PAG234-1&bold-tx-status=approved`);
+  await expect(page).toHaveURL(/\/pedido\/#c=PAG234&s=[A-Za-z0-9_-]{22}$/);
+  await expect(page.locator('[data-acuse-estado]')).toHaveText(
+    'Recibido: la tienda lo va a confirmar',
+  );
+  const despues = await page.evaluate(() => ({
+    token: sessionStorage.getItem('tienda:cobro'),
+    lineas: JSON.parse(localStorage.getItem('tienda:carrito') ?? '{}').lineas,
+  }));
+  expect(despues).toEqual({ token: null, lineas: [] });
+});
+
 test('HU-T6.3 CA3 · un enlace que no es: la página lo dice, sin mostrar ningún pedido', async ({
   page,
 }) => {

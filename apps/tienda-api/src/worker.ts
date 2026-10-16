@@ -80,6 +80,7 @@ import {
   listarRecaudos,
   perderEnvio,
 } from './ciclo.ts';
+import { iniciarCobro, PeticionDeCobro } from './cobros.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { exportarTienda } from './exportar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
@@ -117,6 +118,7 @@ import {
   volverA,
 } from './publicar.ts';
 import { enFrase, leerRegistro } from './registro.ts';
+import type { AlmacenDeRespaldos } from './respaldos.ts';
 import {
   PeticionDeSeguimientoDeSolicitud,
   PeticionDeSolicitud,
@@ -174,6 +176,7 @@ export interface Env {
   LIMITE_PEDIDOS?: Limitador;
   LIMITE_SEGUIMIENTO?: Limitador;
   LIMITE_SOLICITUDES?: Limitador;
+  LIMITE_COBROS?: Limitador;
   /** Un binding D1 por shard, con el nombre del shard, y `tienda_control`. */
   [base: string]: unknown;
 }
@@ -584,6 +587,56 @@ export function crearApp(
     );
     if (r.estado === 'registrado' || r.estado === 'duplicado') return c.json(r);
     if (r.estado === 'forma' || r.estado === 'edad') return c.json(r, 422);
+    return c.json(r, 409);
+  });
+
+  /**
+   * HU-T11.4: pagar en línea. Público, por el despacho; 3 por minuto por IP (`LIMITE_COBROS`: el
+   * limitador no cuenta 15 minutos, bitácora tienda3 11) y 40 cobros abiertos por tienda. Con
+   * `ks:tienda-cobros` apagado no se cobra en línea y la página ofrece WhatsApp (TIENDA §15.2).
+   */
+  app.post('/api/v1/cobros', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda-cobros'))) {
+      return c.json(
+        {
+          estado: 'sin-linea',
+          motivo: 'El pago en línea está en pausa. Puedes enviar tu pedido por WhatsApp.',
+        },
+        503,
+      );
+    }
+    if (!(await dentroDelLimite(c, c.env.LIMITE_COBROS, 'LIMITE_COBROS'))) {
+      c.header('retry-after', '60');
+      return c.json(
+        { estado: 'limite', motivo: 'Son muchos intentos de pago seguidos. Espera un minuto.' },
+        429,
+      );
+    }
+    const p = await cuerpoValido(c, PeticionDeCobro);
+    if (!p) {
+      return c.json(
+        { estado: 'invalido', motivo: 'Al pedido le falta algo. Revisa tus datos de entrega.' },
+        422,
+      );
+    }
+    const r = await iniciarCobro(
+      {
+        db: destino.db,
+        org: destino.org,
+        host: new URL(c.req.url).host,
+        ahora: new Date(ahora()).toISOString(),
+        terminosPublicados: await huellaPublicada(destino.db, destino.org, c.env.SITIOS),
+        id: crypto.randomUUID(),
+        kekTexto: c.env.TIENDA_KEK_V1,
+      },
+      p,
+    );
+    if (r.estado === 'registrado' || r.estado === 'duplicado') return c.json(r);
+    if (r.estado === 'sin-linea') return c.json(r, 503);
+    if (r.estado === 'ocupada') return c.json(r, 429);
+    if (r.estado === 'forma' || r.estado === 'edad' || r.estado === 'monto') return c.json(r, 422);
     return c.json(r, 409);
   });
 
@@ -1450,6 +1503,8 @@ export async function alCron(env: Env, instante: number): Promise<void> {
       hosts,
       flags,
       telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
+      ...(env.SITIOS ? { almacen: env.SITIOS as unknown as AlmacenDeRespaldos } : {}),
+      ...(env.MEDIOS ? { medios: env.MEDIOS } : {}),
     },
     instante,
     TAREAS,

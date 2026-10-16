@@ -146,9 +146,10 @@ const CABECERAS_DE_AVISO = {
 /**
  * Las cabeceras de una página de la vitrina (TIENDA §11.4): CSP sin nada en línea ni de terceros.
  * Las fotos, solo de su host (`MEDIOS`, HU-T5.6): el de producción o el de staging, nunca los dos.
+ * El carrito suma Bold, para pagar en línea (HU-T11.4).
  */
-export const cabecerasDeLaVitrina = (medios: string | undefined) => ({
-  'content-security-policy': cspDeLaVitrina(medios),
+export const cabecerasDeLaVitrina = (medios: string | undefined, ruta?: string) => ({
+  'content-security-policy': cspDeLaVitrina(medios, ruta),
   // Sin includeSubDomains: los otros subdominios de un comercio no son nuestros (TIENDA §4.4).
   'strict-transport-security': 'max-age=31536000',
   'x-content-type-options': 'nosniff',
@@ -279,7 +280,7 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       }
       return new Response(await objeto.text(), {
         headers: {
-          ...cabecerasDeLaVitrina(env.MEDIOS),
+          ...cabecerasDeLaVitrina(env.MEDIOS, url.pathname),
           'content-type': archivo.tipo,
           'cache-control': 'public, max-age=60',
           vary: 'Accept',

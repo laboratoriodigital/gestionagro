@@ -398,6 +398,9 @@ importers:
       '@ed1/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
+      '@ed1/pagos':
+        specifier: workspace:*
+        version: link:../../packages/pagos
       '@ed1/telegram':
         specifier: workspace:*
         version: link:../../packages/telegram

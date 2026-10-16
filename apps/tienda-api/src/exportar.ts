@@ -151,7 +151,13 @@ const MAS = 5000;
 
 export async function exportarTienda(
   q: Quien,
-  o: { medios: string | undefined; datosPersonales: boolean; kek: Kek | null },
+  o: {
+    medios: string | undefined;
+    datosPersonales: boolean;
+    kek: Kek | null;
+    /** El respaldo semanal (HU-T17.3) no se anota: no lo descargó nadie, y su rastro es la tarea. */
+    sinAnotar?: boolean;
+  },
 ): Promise<Exportacion | { estado: 'sin-llave'; motivo: string }> {
   if (o.datosPersonales && !o.kek) {
     console.error('tienda-api: sin la KEK no se exportan los datos personales');
@@ -470,6 +476,7 @@ export async function exportarTienda(
       solicitudes: await abrirSolicitudes(q, o.kek),
     };
   }
+  if (o.sinAnotar) return exportacion;
   await anotar(q.db, {
     org: q.org,
     actor: q.actor,

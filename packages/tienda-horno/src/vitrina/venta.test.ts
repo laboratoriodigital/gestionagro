@@ -3,7 +3,14 @@
  * lee del fragmento, nunca de otra parte.
  */
 import { describe, expect, it } from 'vitest';
-import { estadoDeLaSolicitud, estadoDeLaVenta, leerFragmento, leerRadicado } from './venta.ts';
+import {
+  celularValido,
+  estadoDeLaSolicitud,
+  estadoDeLaVenta,
+  faltaDeLaEntrega,
+  leerFragmento,
+  leerRadicado,
+} from './venta.ts';
 
 const listo = { lineas: 2, forma: 'transferencia', hayEnvios: true, envio: 'e1', acepta: true };
 
@@ -28,6 +35,36 @@ describe('qué falta para enviar (HU-T6.1)', () => {
 
   it('una tienda sin envíos no pide elegir uno', () => {
     expect(estadoDeLaVenta({ ...listo, hayEnvios: false, envio: null }).listo).toBe(true);
+  });
+});
+
+describe('pagar en línea (HU-T11.4)', () => {
+  const enLinea = { ...listo, forma: 'en_linea' };
+  it('con los datos de entrega, «Pagar en línea»', () => {
+    expect(estadoDeLaVenta({ ...enLinea, entrega: true })).toEqual({
+      listo: true,
+      texto: 'Pagar en línea',
+    });
+  });
+
+  it('❌ sin el nombre y el celular de quien recibe, no paga', () => {
+    expect(estadoDeLaVenta({ ...enLinea, entrega: false })).toEqual({
+      listo: false,
+      texto: 'Escribe tu nombre y tu celular',
+      falta: 'entrega',
+    });
+    // Por WhatsApp no se piden: se dan en el chat.
+    expect(estadoDeLaVenta({ ...listo, entrega: false }).listo).toBe(true);
+  });
+
+  it('el celular es de Colombia, con o sin +57', () => {
+    expect(celularValido('3001234567')).toBe(true);
+    expect(celularValido('+57 300 123 4567')).toBe(true);
+    expect(celularValido('300 123 456')).toBe(false);
+    expect(celularValido('6041234567')).toBe(false);
+    expect(faltaDeLaEntrega({ nombre: 'Ensayo Dos Compradora', celular: '3001234567' })).toBeNull();
+    expect(faltaDeLaEntrega({ nombre: ' ', celular: '3001234567' })).toBe('nombre');
+    expect(faltaDeLaEntrega({ nombre: 'Ensayo Dos', celular: '12345' })).toBe('celular');
   });
 });
 
