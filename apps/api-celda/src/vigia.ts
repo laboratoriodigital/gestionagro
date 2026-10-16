@@ -56,7 +56,7 @@ export const CUOTAS_GRATUITAS = {
 export type Cuota = keyof typeof CUOTAS_GRATUITAS;
 
 /** Operaciones de R2 de clase A (escrituras y listados); las demás que cobran son de clase B. */
-const R2_CLASE_A = new Set([
+export const R2_CLASE_A = new Set([
   'ListBuckets',
   'PutBucket',
   'ListObjects',
@@ -72,7 +72,7 @@ const R2_CLASE_A = new Set([
   'PutBucketLifecycleConfiguration',
 ]);
 /** Operaciones de R2 que no cobran. */
-const R2_GRATIS = new Set(['DeleteObject', 'DeleteBucket', 'AbortMultipartUpload']);
+export const R2_GRATIS = new Set(['DeleteObject', 'DeleteBucket', 'AbortMultipartUpload']);
 
 type Fetch = typeof fetch;
 const GRAPHQL = 'https://api.cloudflare.com/client/v4/graphql';
@@ -322,9 +322,17 @@ function escritasPorBase(filas: unknown): Record<string, number> {
   return total;
 }
 
-/** El nivel que corresponde: por la cuota más usada; con fallas, al menos «alerta» y sin bajar. */
+/**
+ * El nivel que corresponde: por la cuota **diaria** más usada (§8.2); con fallas, al menos «alerta»
+ * y sin bajar. Las de R2 son del mes y no se detienen al agotarse, cobran: pausar la sincronización
+ * del agro no las baja, así que se miden y se dicen, pero no mueven el nivel. Las frena la Tienda,
+ * que es quien escribe en R2 (`apps/tienda-api/src/freno-r2.ts`, bitácora tienda3 27).
+ */
 export function decidirNivel(m: Medicion, actual: NivelDeCelda): NivelDeCelda {
-  const maximo = Math.max(0, ...Object.values(m.uso));
+  const diarias = (Object.entries(m.uso) as [Cuota, number][])
+    .filter(([c]) => CUOTAS_GRATUITAS[c].periodo === 'dia')
+    .map(([, p]) => p);
+  const maximo = Math.max(0, ...diarias);
   const medido = nivelPorUso(maximo);
   if (m.fallas.length === 0) return medido;
   return elMayor(elMayor(medido, 'alerta'), actual);

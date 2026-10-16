@@ -12,11 +12,14 @@
  * - La diaria reconstruye `TIENDA_HOSTS` desde las bases: si difiere, gana la base y se avisa por
  *   Telegram con lo que cambió (CA2).
  * - La semanal respalda cada tienda en `respaldos/` del almacén (HU-T17.3, `respaldos.ts`); si un
- *   respaldo no cuadra con la base, avisa por Telegram con la tienda y la causa.
+ *   respaldo no cuadra con la base, avisa por Telegram con la tienda y la causa. Cada tienda tiene
+ *   su hora de la semana, y la purga diaria su hora del día (`repartida`, bitácora tienda3 27).
  * - Cada hora se concilian los cobros que esperan sin aviso (HU-T11.6, `conciliar.ts`): lo que
  *   pedía 15 minutos pasa a cada hora.
  * - Cada hora sale el resumen diario de las tiendas a las que ya les toca, a la hora que eligió
  *   cada comercio (HU-T14.3, `correos.ts`).
+ * - Cada hora, el freno de R2 mide lo de la cuenta y, antes de que cobre, apaga publicar y subir
+ *   fotos (bitácora tienda3 27, `freno-r2.ts`).
  * - La diaria purga lo que cumplió su plazo, y nada antes (HU-T17.2): la papelera a los 30 días y
  *   las respuestas guardadas de `operacion` a las 48 horas. Las exportaciones las borra la regla de
  *   ciclo de vida del bucket a los 7 días (`docs/runbooks/tienda-ciclo-de-vida.md`).
@@ -26,6 +29,7 @@ import type { BaseD1 } from '@ed1/d1';
 import { enviarTelegram } from '@ed1/telegram';
 import { CONCILIAR } from './conciliar.ts';
 import { CORREOS } from './correos.ts';
+import { FRENO_R2 } from './freno-r2.ts';
 import { type AlmacenDeRespaldos, respaldarTienda } from './respaldos.ts';
 import { purgarContactos } from './titular.ts';
 
@@ -53,11 +57,19 @@ export interface EntornoDeTareas {
   fetch?: typeof fetch;
   /** Los correos de las tiendas (HU-T14.3); sin él, la tarea dice que no hay con qué enviar. */
   correo?: CorreoTransaccional;
+  /** El token de solo lectura de métricas y la cuenta: el freno de R2 mide con ellos. */
+  metricas?: { token: string | undefined; cuenta: string | undefined };
 }
 
 export interface Tarea {
   nombre: string;
   frecuencia: Frecuencia;
+  /**
+   * Corre cada hora, y a cada tienda le toca una vez por su frecuencia, en su turno (`leToca`).
+   * En el plan gratuito una corrida del cron tiene un tope de 50 consultas a D1 (bitácora tienda3
+   * 27): con todas las tiendas en la misma hora, la purga y el respaldo dejaban de caber.
+   */
+  repartida?: boolean;
   /** Devuelve un resumen corto de lo que hizo; lanza si falla. */
   correr(e: EntornoDeTareas, instante: number): Promise<string>;
 }
@@ -82,6 +94,35 @@ export function tocan(instante: number): Frecuencia[] {
   return frecuencias;
 }
 
+const HORAS_DEL_CICLO = { dia: 24, semana: 168 } as const;
+export type Ciclo = keyof typeof HORAS_DEL_CICLO;
+/** El 1 de enero de 1970 fue jueves: la semana del cron empieza 4 días después, un lunes. */
+const LUNES_MS = 4 * 24 * HORA_MS;
+
+/** La hora del ciclo de una tienda: siempre la misma, sacada de su id (FNV-1a de 32 bits). */
+export function turnoDe(org: string, ciclo: Ciclo): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < org.length; i++) h = Math.imul(h ^ org.charCodeAt(i), 0x01000193) >>> 0;
+  return h % HORAS_DEL_CICLO[ciclo];
+}
+
+/** Qué hora del ciclo es un instante: la hora UTC del día, o la de la semana desde el lunes. */
+export function horaDelCiclo(instante: number, ciclo: Ciclo): number {
+  const horas = Math.floor((instante - (ciclo === 'semana' ? LUNES_MS : 0)) / HORA_MS);
+  const n = HORAS_DEL_CICLO[ciclo];
+  return ((horas % n) + n) % n;
+}
+
+export const leToca = (org: string, instante: number, ciclo: Ciclo) =>
+  turnoDe(org, ciclo) === horaDelCiclo(instante, ciclo);
+
+/** La primera hora en punto, desde `desde`, en que le toca a una tienda. */
+export function siguienteTurno(org: string, ciclo: Ciclo, desde: number): number {
+  let t = Math.ceil(desde / HORA_MS) * HORA_MS;
+  while (!leToca(org, t, ciclo)) t += HORA_MS;
+  return t;
+}
+
 export interface Corrida {
   nombre: string;
   ok: boolean;
@@ -95,7 +136,7 @@ export async function despachar(
 ): Promise<Corrida[]> {
   const toca = new Set(tocan(instante));
   const corridas: Corrida[] = [];
-  for (const t of tareas.filter((x) => toca.has(x.frecuencia))) {
+  for (const t of tareas.filter((x) => x.repartida || toca.has(x.frecuencia))) {
     let corrida: Corrida;
     try {
       corrida = { nombre: t.nombre, ok: true, resumen: await t.correr(e, instante) };
@@ -313,13 +354,18 @@ export async function purgarTienda(
   };
 }
 
-/** La diaria: las purgas de cada tienda de cada shard. Una tienda que falla no detiene a las demás. */
+/**
+ * La diaria: las purgas de cada tienda de cada shard, cada una en su hora del día. Una tienda que
+ * falla no detiene a las demás.
+ */
 export const PURGAS: Tarea = {
   nombre: 'purgas',
   frecuencia: 'dia',
+  repartida: true,
   async correr(e, instante) {
     const limitePapelera = new Date(instante - DIAS_EN_LA_PAPELERA * 24 * HORA_MS).toISOString();
     const limiteOperacion = new Date(instante - HORAS_DE_UNA_OPERACION * HORA_MS).toISOString();
+    let tiendas = 0;
     let filas = 0;
     let retenidos = 0;
     let contactos = 0;
@@ -327,6 +373,8 @@ export const PURGAS: Tarea = {
     for (const [nombre, db] of e.shards) {
       const { results } = await db.prepare('SELECT org_id FROM tienda').all<{ org_id: string }>();
       for (const { org_id } of results) {
+        if (!leToca(org_id, instante, 'dia')) continue;
+        tiendas++;
         try {
           const r = await purgarTienda(
             db,
@@ -346,14 +394,19 @@ export const PURGAS: Tarea = {
       }
     }
     if (fallas.length > 0) throw new Error(`purgas con fallas: ${fallas.slice(0, 5).join('; ')}`);
+    if (tiendas === 0) return 'ninguna tienda tiene esta hora';
     return `${filas} filas purgadas${contactos > 0 ? `; ${contactos} contactos vencidos` : ''}${retenidos > 0 ? `; ${retenidos} productos vendidos se quedan en la papelera` : ''}`;
   },
 };
 
-/** La semanal: el respaldo de cada tienda de cada shard. Una que no cuadra no detiene a las demás. */
+/**
+ * La semanal: el respaldo de cada tienda de cada shard, cada una en su hora de la semana. Una que
+ * no cuadra no detiene a las demás.
+ */
 export const RESPALDOS: Tarea = {
   nombre: 'respaldos',
   frecuencia: 'semana',
+  repartida: true,
   async correr(e, instante) {
     if (!e.almacen) throw new Error('el cron no tiene el almacén de la celda (SITIOS)');
     let hechos = 0;
@@ -362,6 +415,7 @@ export const RESPALDOS: Tarea = {
     for (const [nombre, db] of e.shards) {
       const { results } = await db.prepare('SELECT org_id FROM tienda').all<{ org_id: string }>();
       for (const { org_id } of results) {
+        if (!leToca(org_id, instante, 'semana')) continue;
         try {
           const r = await respaldarTienda(db, org_id, e.almacen, instante, e.medios);
           hechos++;
@@ -382,8 +436,16 @@ export const RESPALDOS: Tarea = {
       if (aviso) console.error(`tienda-api: no se pudo avisar por Telegram (${aviso})`);
       throw new Error(`respaldos con fallas: ${fallas.slice(0, 5).join('; ')}`);
     }
+    if (hechos === 0) return 'ninguna tienda tiene esta hora';
     return `${hechos} tiendas respaldadas${borrados > 0 ? `; ${borrados} respaldos viejos borrados` : ''}`;
   },
 };
 
-export const TAREAS: readonly Tarea[] = [RECONSTRUIR_HOSTS, PURGAS, RESPALDOS, CONCILIAR, CORREOS];
+export const TAREAS: readonly Tarea[] = [
+  RECONSTRUIR_HOSTS,
+  PURGAS,
+  RESPALDOS,
+  CONCILIAR,
+  CORREOS,
+  FRENO_R2,
+];

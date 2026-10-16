@@ -321,4 +321,31 @@ describe('publicar (HU-T4.4)', () => {
       .run();
     expect(await publicar(contexto(ENSAYO_DOS.org, almacen()))).toEqual({ estado: 'en-curso' });
   });
+
+  it('❌ una que se cortó a mitad vence a los 10 minutos y deja publicar (bitácora tienda3 27)', async () => {
+    const hace = (min: number) => new Date(Date.parse(AHORA) - min * 60_000).toISOString();
+    const estado = async () =>
+      shard
+        .prepare('SELECT estado, motivo FROM publicacion WHERE org_id = ? AND version = 1')
+        .bind(ENSAYO_DOS.org)
+        .first<{ estado: string; motivo: string | null }>();
+    await shard
+      .prepare(
+        "INSERT INTO publicacion (org_id, version, estado, pedida_por, pedida) VALUES (?, 1, 'horneando', 'x', ?)",
+      )
+      .bind(ENSAYO_DOS.org, hace(9))
+      .run();
+    expect(await publicar(contexto(ENSAYO_DOS.org, almacen()))).toEqual({ estado: 'en-curso' });
+    expect((await estado())?.estado).toBe('horneando');
+    await shard
+      .prepare('UPDATE publicacion SET pedida = ? WHERE org_id = ? AND version = 1')
+      .bind(hace(11), ENSAYO_DOS.org)
+      .run();
+    const r = await publicar(contexto(ENSAYO_DOS.org, almacen()));
+    expect(r.estado).not.toBe('en-curso');
+    expect(await estado()).toEqual({
+      estado: 'fallida',
+      motivo: 'Se cortó a mitad: pasaron 10 minutos sin terminar. Vuelve a publicar.',
+    });
+  });
 });

@@ -904,6 +904,7 @@ async function prepararCeldaDeLaTienda(
         hostsId: hosts.id,
         clavesCore: await clavesDelCore(fetch, staging ? config.core.url_staging : config.core.url),
         vitrinaRelease: archivosDeLaVitrina().release,
+        cuenta: cred.cuenta,
       }),
     );
     escribirDespliegue(

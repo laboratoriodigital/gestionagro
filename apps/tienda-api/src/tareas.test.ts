@@ -18,13 +18,16 @@ import {
   despachar,
   type EntornoDeTareas,
   estadoDeLasTareas,
+  horaDelCiclo,
   hostsEsperados,
   type KvDeTareas,
   PURGAS,
   purgarTienda,
   RECONSTRUIR_HOSTS,
+  siguienteTurno,
   type Tarea,
   tocan,
+  turnoDe,
 } from './tareas.ts';
 
 const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
@@ -94,6 +97,43 @@ describe('qué toca en cada hora (HU-T17.1)', () => {
     expect(tocan(Date.parse('2026-10-14T08:00:00Z'))).toEqual(['hora', 'dia']);
     expect(tocan(Date.parse('2026-10-12T08:00:00Z'))).toEqual(['hora', 'dia', 'semana']);
     expect(tocan(Date.parse('2026-10-12T09:00:00Z'))).toEqual(['hora']);
+  });
+});
+
+describe('bitácora tienda3 27 · el turno de cada tienda', () => {
+  it('la semana empieza el lunes a las 00:00 UTC y el día a las 00:00 UTC', () => {
+    expect(horaDelCiclo(Date.parse('2026-10-12T00:00:00Z'), 'semana')).toBe(0);
+    expect(horaDelCiclo(Date.parse('2026-10-18T23:30:00Z'), 'semana')).toBe(167);
+    expect(horaDelCiclo(Date.parse('2026-10-14T15:59:00Z'), 'dia')).toBe(15);
+  });
+
+  it('❌ las tiendas se reparten entre las horas: ninguna hora carga con todas', () => {
+    const orgs = Array.from(
+      { length: 480 },
+      (_, i) => `0199e0a0-0000-7000-8000-${i.toString(16).padStart(12, '0')}`,
+    );
+    for (const [ciclo, horas] of [
+      ['dia', 24],
+      ['semana', 168],
+    ] as const) {
+      const porHora = new Map<number, number>();
+      for (const o of orgs)
+        porHora.set(turnoDe(o, ciclo), (porHora.get(turnoDe(o, ciclo)) ?? 0) + 1);
+      expect(porHora.size, ciclo).toBeGreaterThan(horas * 0.6);
+      expect(Math.max(...porHora.values()), ciclo).toBeLessThanOrEqual((3 * orgs.length) / horas);
+    }
+  });
+
+  it('una tarea repartida corre cada hora, aunque su frecuencia sea la semana', async () => {
+    const semanal: Tarea = {
+      nombre: 'semanal',
+      frecuencia: 'semana',
+      repartida: true,
+      correr: async () => 'hecho',
+    };
+    expect(await despachar(entorno(), Date.parse(AHORA), [semanal])).toEqual([
+      { nombre: 'semanal', ok: true, resumen: 'hecho' },
+    ]);
   });
 });
 
@@ -372,22 +412,22 @@ describe('las purgas diarias (HU-T17.2)', () => {
     expect(await existe('variante', uno, 'pz-vendido-v')).toBe(1);
   });
 
-  it('la tarea diaria purga cada tienda de cada shard con el reloj de su corrida', async () => {
-    const corridas = await despachar(entorno(), INSTANTE, [PURGAS]);
-    expect(corridas).toEqual([
-      {
-        nombre: 'purgas',
-        ok: true,
-        resumen: expect.stringMatching(
-          /^\d+ filas purgadas; 1 productos vendidos se quedan en la papelera$/,
-        ),
-      },
-    ]);
+  it('❌ la diaria purga cada tienda en su hora del día, con el reloj de su corrida (bitácora tienda3 27)', async () => {
     const dos = ENSAYO_DOS.org;
-    expect(await existe('producto', dos, 'pz-viejo')).toBe(0);
+    // A las 3 a. m. de Bogotá no le toca a ninguna de las dos: nada se purga.
+    expect(await despachar(entorno(), INSTANTE, [PURGAS])).toEqual([
+      { nombre: 'purgas', ok: true, resumen: 'ninguna tienda tiene esta hora' },
+    ]);
+    expect(await existe('producto', dos, 'pz-viejo')).toBe(1);
+    // A las 2 a. m. UTC le toca a Ensayo Dos, aunque no sea la hora de las diarias.
+    const turno = siguienteTurno(dos, 'dia', INSTANTE - 24 * 60 * 60 * 1000);
+    expect(new Date(turno).toISOString()).toBe('2026-11-20T02:00:00.000Z');
+    expect(tocan(turno)).toEqual(['hora']);
+    const corridas = await despachar(entorno(), turno, [PURGAS]);
+    expect(corridas).toEqual([
+      { nombre: 'purgas', ok: true, resumen: expect.stringMatching(/^\d+ filas purgadas$/) },
+    ]);
     expect(await existe('producto', dos, 'pz-vendido')).toBe(0);
     expect(await existe('producto', dos, 'pz-casi')).toBe(1);
-    // El día anterior a las 3 a. m. la diaria no toca: nada se corre fuera de su hora.
-    expect(tocan(INSTANTE - 60 * 60 * 1000)).toEqual(['hora']);
   });
 });

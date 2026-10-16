@@ -122,8 +122,33 @@ function seccion(fila: { seccion: string; datos: string } | undefined): Record<s
   return r.ok ? r.datos : {};
 }
 
+/**
+ * Lo que una publicación puede tardar antes de darse por cortada (bitácora tienda3 27). Hornea
+ * dentro de la solicitud, y en el plan gratuito Cloudflare corta la que pasa de 10 ms de CPU: la
+ * fila quedaba «horneando» para siempre, el índice único no dejaba publicar ni re-hornear esa
+ * tienda nunca más, y el panel preguntaba cada 3 segundos mientras siguiera abierto.
+ */
+export const MINUTOS_DE_UNA_PUBLICACION = 10;
+
+/** La publicación en curso que pasó su plazo queda fallida, con el motivo; las demás no se tocan. */
+export async function vencerLasCortadas(shard: BaseD1, org: string, ahora: string) {
+  const limite = new Date(Date.parse(ahora) - MINUTOS_DE_UNA_PUBLICACION * 60_000).toISOString();
+  await shard
+    .prepare(
+      `UPDATE publicacion SET estado = 'fallida', motivo = ?
+        WHERE org_id = ? AND estado IN ('en_cola', 'horneando') AND pedida < ?`,
+    )
+    .bind(
+      `Se cortó a mitad: pasaron ${MINUTOS_DE_UNA_PUBLICACION} minutos sin terminar. Vuelve a publicar.`,
+      org,
+      limite,
+    )
+    .run();
+}
+
 /** Reserva la versión: si hay otra en curso, el índice único lo impide. */
 async function reservar(c: Contexto): Promise<number | null> {
+  await vencerLasCortadas(c.shard, c.org, c.ahora);
   try {
     const fila = await c.shard
       .prepare(
@@ -635,6 +660,7 @@ export type ResultadoDeVolver =
  * que diga la API, que siempre cuenta con las de ahora.
  */
 export async function volverA(c: Contexto, version: number): Promise<ResultadoDeVolver> {
+  await vencerLasCortadas(c.shard, c.org, c.ahora);
   const [destino, tienda, enCurso] = await Promise.all([
     c.shard
       .prepare('SELECT estado FROM publicacion WHERE org_id = ? AND version = ?')

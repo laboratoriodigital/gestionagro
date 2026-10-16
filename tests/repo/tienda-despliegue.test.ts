@@ -100,6 +100,12 @@ describe('los secretos de la Tienda', () => {
     });
   });
 
+  it('el token de métricas va a la API, para el freno de R2 (bitácora tienda3 27)', () => {
+    const r = secretosDeLaTienda({ SECRETO_DESPACHO: 'd', CF_METRICAS_TOKEN: 'm' });
+    expect(r.ok && r.api['CF_METRICAS_TOKEN']).toBe('m');
+    expect(r.ok && r.frente['CF_METRICAS_TOKEN']).toBeUndefined();
+  });
+
   it('sin la KEK se despliega: nada cifra todavía (HU-T11.1)', () => {
     expect(secretosDeLaTienda({ SECRETO_DESPACHO: 'd' })).toMatchObject({
       ok: true,
@@ -122,6 +128,7 @@ describe('los ids del despliegue, fuera de git (ADR-6)', () => {
     hostsId: 'kv-hosts',
     clavesCore: [{ kid: 'k1' }],
     vitrinaRelease: 'r9',
+    cuenta: 'cuenta-ensayo',
   };
 
   it('staging recibe los ids de sus bases y sus dos KV; producción queda como estaba', () => {
@@ -139,6 +146,8 @@ describe('los ids del despliegue, fuera de git (ADR-6)', () => {
     expect(config.env.staging.vars['CORE_CLAVES']).toBe('[{"kid":"k1"}]');
     expect(config.env.staging.vars['CELDA']).toBe('c1');
     expect(config.env.staging.vars['VITRINA_RELEASE']).toBe('r9');
+    // Bitácora tienda3 27: la cuenta que mide el freno de R2.
+    expect(config.env.staging.vars['CF_CUENTA']).toBe('cuenta-ensayo');
     expect(config.env.staging.vars['ENSAYOS']).toBe('1');
     expect(config.env.staging.d1_databases.map((d) => d.database_id)).toEqual([
       'id-shard',

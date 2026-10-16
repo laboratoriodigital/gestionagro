@@ -694,7 +694,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 - **Vigía (HU-E8.2, `apps/api-celda/src/vigia.ts`):**
   - Corre con el Cron Trigger horario de la celda.
   - Lee las métricas de toda la cuenta en la API GraphQL de Cloudflare: Workers, D1 (filas leídas y escritas), KV (lecturas, y la mayor de escrituras, borrados y listados) y R2 (operaciones de clase A y B del mes).
-  - Compara contra las cuotas del plan gratuito.
+  - Compara contra las cuotas del plan gratuito. El nivel lo deciden solo las diarias: las de R2 son del mes, no se detienen sino que cobran, y pausar el cuaderno no las baja. Se miden y se dicen; las frena la Tienda, que es la que escribe en R2 (`apps/tienda-api/src/freno-r2.ts`, bitácora tienda3 27).
   - Si no puede leer algo, el nivel queda al menos en «alerta» y no baja (P1).
   - **Filas de D1 por producto (HU-Q7.13):** las 100.000 filas escritas al día son de toda la cuenta. El vigía las pide por base (`databaseId`) y las reparte por producto con el mapa que hornea el despliegue (`PRODUCTO_DE_BASE`: el CORE por `celdas.json › core.d1`, cada shard por su prefijo `<producto>_c<N>_s<k>`, staging aparte). Avisa por Telegram al 50, 75 y 90 % del límite y cuando un producto pasa las filas que declara en `productos.json › presupuesto.d1_filas_escritas_dia`. Solo avisa: no apaga nada en el plan gratuito.
   - Token de solo lectura `CF_METRICAS_TOKEN` (§7.5). Runbook: `docs/runbooks/vigia-de-cuota.md`.

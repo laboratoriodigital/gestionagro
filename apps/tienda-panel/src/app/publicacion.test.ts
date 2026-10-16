@@ -1,6 +1,12 @@
 /** HU-T10.4: dónde se arregla cada falla de la compuerta y cómo se dice cada versión. */
 import { describe, expect, it } from 'vitest';
-import { enlaceDe, resumenDe, sePuedeVolver, type VersionDelPanel } from './publicacion.ts';
+import {
+  enlaceDe,
+  esperaAntesDeLeer,
+  resumenDe,
+  sePuedeVolver,
+  type VersionDelPanel,
+} from './publicacion.ts';
 
 const v = (extra: Partial<VersionDelPanel> = {}): VersionDelPanel => ({
   version: 2,
@@ -43,5 +49,11 @@ describe('publicar y las versiones', () => {
     expect(sePuedeVolver(v({ estado: 'publicada' }), 2)).toBe(false);
     expect(sePuedeVolver(v({ estado: 'fallida' }), 3)).toBe(false);
     expect(sePuedeVolver(v({ estado: 'horneando' }), 3)).toBe(false);
+  });
+
+  it('mientras se hornea, la lista se lee cada vez más espaciado, hasta un minuto (bitácora tienda3 27)', () => {
+    expect([0, 1, 2, 3, 4, 5, 30].map(esperaAntesDeLeer)).toEqual([
+      3000, 6000, 12_000, 24_000, 48_000, 60_000, 60_000,
+    ]);
   });
 });

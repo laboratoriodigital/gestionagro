@@ -11,6 +11,7 @@ import {
   cuando,
   enCurso,
   enlaceDe,
+  esperaAntesDeLeer,
   resumenDe,
   sePuedeVolver,
   type Versiones,
@@ -23,9 +24,6 @@ type Resultado =
   | { tipo: 'compuerta'; fallas: FallaDeLaCompuerta[]; motivo: string }
   | { tipo: 'error'; motivo: string };
 
-/** Mientras algo se hornea, la lista se vuelve a leer cada tanto. */
-const CADA_MS = 3000;
-
 export function Publicar({
   conexion,
   alVencer,
@@ -37,6 +35,7 @@ export function Publicar({
   const [falla, setFalla] = useState<string | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [publicando, setPublicando] = useState(false);
+  const [lecturas, setLecturas] = useState(0);
 
   const cargar = useCallback(async () => {
     const r = await pedirAlPanel<Versiones>(conexion, 'publicaciones');
@@ -49,11 +48,16 @@ export function Publicar({
     void cargar();
   }, [cargar]);
   const horneando = datos?.versiones.some(enCurso) ?? false;
+  // Mientras algo se hornea, la lista se vuelve a leer cada vez más espaciado; al terminar, vuelve
+  // a empezar en 3 s para la próxima.
   useEffect(() => {
-    if (!horneando) return;
-    const t = setTimeout(() => void cargar(), CADA_MS);
+    if (!horneando) return setLecturas(0);
+    const t = setTimeout(() => {
+      setLecturas((n) => n + 1);
+      void cargar();
+    }, esperaAntesDeLeer(lecturas));
     return () => clearTimeout(t);
-  }, [horneando, datos, cargar]);
+  }, [horneando, datos, cargar, lecturas]);
 
   const publicar = async () => {
     setPublicando(true);

@@ -119,6 +119,7 @@ import {
   publicar,
   type Resultado,
   rehornearExistencias,
+  vencerLasCortadas,
   volverA,
 } from './publicar.ts';
 import { enFrase, leerRegistro } from './registro.ts';
@@ -180,6 +181,9 @@ export interface Env {
   CORREO_GMAIL_CLIENTE_SECRETO?: string;
   CORREO_GMAIL_REFRESH?: string;
   CORREO_GMAIL_REMITENTE?: string;
+  /** El token de solo lectura de métricas y la cuenta: el freno de R2 (bitácora tienda3 27). */
+  CF_METRICAS_TOKEN?: string;
+  CF_CUENTA?: string;
   /** `produccion` o `staging`: la prueba de humo lo compara con el destino (HU-T2.9 CA3). */
   AMBIENTE?: string;
   /** Los limitadores por IP de lo público (HU-T5.5 y HU-T6.5): Workers Rate Limiting. */
@@ -964,6 +968,7 @@ export function crearApp(
     if (decision !== 'permitido')
       return c.json({ estado: decision, motivo: 'Tu rol no puede ver las versiones.' }, 403);
     const quien = `usuario:${s.usuario}`;
+    await vencerLasCortadas(s.db, s.org, new Date(ahora()).toISOString());
     const tienda = await s.db
       .prepare('SELECT version_publicada FROM tienda WHERE org_id = ?')
       .bind(s.org)
@@ -1231,6 +1236,18 @@ export function crearApp(
   app.post('/api/panel/v1/medios/subir', async (c) => {
     const q = delCatalogo(c);
     if (q instanceof Response) return q;
+    // Con `ks:tienda-fotos` apagado (a mano o por el freno de R2, bitácora tienda3 27) no se sube:
+    // cada foto ocupa espacio en R2, que pasado lo gratis cobra a la tarjeta. Lo demás sigue.
+    if (c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda-fotos'))) {
+      return c.json(
+        {
+          estado: 'apagado',
+          motivo:
+            'Subir fotos está en pausa por ahora. Las que ya tienes siguen en la tienda y el resto del producto sí se guarda.',
+        },
+        503,
+      );
+    }
     if (!c.env.FOTOS) {
       return c.json(
         {
@@ -1645,6 +1662,7 @@ export async function alCron(env: Env, instante: number): Promise<void> {
       flags,
       telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
       correo: correoDe(env, (url, init) => fetch(url, init)),
+      metricas: { token: env.CF_METRICAS_TOKEN, cuenta: env.CF_CUENTA },
       ...(env.TIENDA_KEK_V1 ? { kekTexto: env.TIENDA_KEK_V1 } : {}),
       ...(env.SITIOS ? { almacen: env.SITIOS as unknown as AlmacenDeRespaldos } : {}),
       ...(env.MEDIOS ? { medios: env.MEDIOS } : {}),

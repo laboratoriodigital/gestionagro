@@ -186,6 +186,8 @@ export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = 
     'TELEGRAM_CHAT_ID',
     // HU-T14.3: los correos de las tiendas por Gmail (PLATAFORMA §4.11); sin ellos, no salen.
     ...CORREO_GMAIL,
+    // Bitácora tienda3 27: el freno de R2 mide con el token de métricas.
+    'CF_METRICAS_TOKEN',
   ],
 };
 

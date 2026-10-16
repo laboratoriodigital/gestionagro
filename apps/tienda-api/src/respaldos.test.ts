@@ -19,12 +19,14 @@ import {
   respaldarTienda,
   respaldosQueSobran,
 } from './respaldos.ts';
-import { type EntornoDeTareas, RESPALDOS } from './tareas.ts';
+import { type EntornoDeTareas, RESPALDOS, siguienteTurno } from './tareas.ts';
 
 const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
 /** Un lunes a las 3 a. m. de Bogotá: cuando toca la semanal. */
 const T0 = Date.UTC(2026, 9, 19, 8);
 const AHORA = new Date(T0).toISOString();
+/** Bitácora tienda3 27: cada tienda tiene su hora de la semana; la de Ensayo Uno cae el mismo lunes. */
+const TURNO_UNO = siguienteTurno('0199e0a0-0000-7000-8000-0000000000c1', 'semana', T0);
 const UNO = ENSAYO_UNO.org;
 const KEK = Buffer.from(Array.from({ length: 32 }, (_, i) => i + 7)).toString('base64');
 const CONTACTO = {
@@ -154,11 +156,22 @@ describe('HU-T17.3 · el respaldo semanal de cada tienda', () => {
   it('CA1: la semanal respalda cada tienda en respaldos/<org>/<fecha>.json, con todos sus pedidos', async () => {
     const a = almacen();
     const t = telegram();
-    const resumen = await RESPALDOS.correr(entorno(a, t), T0);
-    expect(resumen).toBe('2 tiendas respaldadas');
+    // Bitácora tienda3 27: cada una en su hora de la semana, y en otra hora no se respalda ninguna.
+    expect(await RESPALDOS.correr(entorno(a, t), T0)).toBe('ninguna tienda tiene esta hora');
+    expect(a.datos.size).toBe(0);
+    const turnoDos = siguienteTurno(ENSAYO_DOS.org, 'semana', T0);
+    expect([TURNO_UNO, turnoDos].map((x) => new Date(x).toISOString())).toEqual([
+      '2026-10-19T15:00:00.000Z',
+      '2026-10-25T02:00:00.000Z',
+    ]);
+    expect(await RESPALDOS.correr(entorno(a, t), TURNO_UNO)).toBe('1 tiendas respaldadas');
+    expect(await RESPALDOS.correr(entorno(a, t), turnoDos)).toBe('1 tiendas respaldadas');
     expect(t.enviados).toEqual([]);
     expect([...a.datos.keys()].sort()).toEqual(
-      [ENSAYO_UNO.org, ENSAYO_DOS.org].map((o) => `respaldos/${o}/2026-10-19.json`).sort(),
+      [
+        `respaldos/${ENSAYO_UNO.org}/2026-10-19.json`,
+        `respaldos/${ENSAYO_DOS.org}/2026-10-24.json`,
+      ].sort(),
     );
     const r = JSON.parse(a.datos.get(claveDeRespaldo(UNO, T0)) ?? '{}') as Respaldo;
     expect(r.formato).toBe('tienda-respaldo/1');
@@ -238,7 +251,7 @@ describe('HU-T17.3 · el respaldo semanal de cada tienda', () => {
           : Reflect.get(b, k),
     });
     await expect(
-      RESPALDOS.correr({ ...entorno(a, t), shards: [['tienda_c1_s1', conUnoDeMas]] }, T0),
+      RESPALDOS.correr({ ...entorno(a, t), shards: [['tienda_c1_s1', conUnoDeMas]] }, TURNO_UNO),
     ).rejects.toThrow(/respaldos con fallas/);
     expect(t.enviados).toHaveLength(1);
     expect(t.enviados[0]).toContain(
