@@ -750,3 +750,21 @@ La regla: **una prueba de publicación no se salta ninguna puerta de la compuert
 La regla: **un vencimiento perezoso va antes de la primera lectura que lo necesita, no solo antes de la escritura.**
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Medio · P5 · tienda-0.1.0 · 2026-10-16
+
+**24 · La verificación de los avisos de Bold pedía el cobro antes de poder leerlo.**
+
+*Qué pasó.* El 16 oct 2026, al escribir los avisos de Bold (HU-T11.5) sobre TIENDA §9.4.
+
+*Síntoma literal.* El pseudocódigo de §9.4 dice «cobro = por metadata.reference → su ambiente → la llave secreta de ESE ambiente», y la misma sección dice que la verificación va «antes de leer el JSON». `metadata.reference` está dentro del JSON.
+
+*Causa raíz.* Las dos frases venían de dos ideas buenas, escritas por separado: elegir la llave por el ambiente del cobro, y no parsear un cuerpo que nadie firmó. Juntas no se pueden cumplir.
+
+*Cómo se reprodujo.* Sin reproducir: se vio al escribir el código, antes de correrlo.
+
+*Arreglo.* La firma se verifica primero contra las dos llaves que la tienda puede tener: su secreta de producción y la de pruebas (64 bytes en cero). La que firma dice el ambiente del aviso. Solo entonces se lee el JSON y la referencia busca el cobro, y si el cobro es del otro ambiente, de otra tienda o no existe, no se escribe nada, ni en `aviso_proveedor`. Lo segundo importa porque la llave de pruebas es pública: sin esa regla, cualquiera podría llenar la tabla con avisos inventados. TIENDA §9.4 lleva una nota que lo dice.
+
+**Lo prueban:** `apps/tienda-api/src/avisos.test.ts`, «❌ un aviso de pruebas sobre un cobro de producción no lo mueve ni deja fila; el de producción sí» y «❌ un aviso de pruebas de un cobro que no existe responde 200 sin escribir nada». Control negativo: sin comparar el ambiente, el primero queda en rojo, porque el aviso de pruebas mueve el cobro de producción.
+
+La regla: **cuando la llave depende del contenido, se prueban las llaves posibles antes de leerlo, y lo que firma la llave pública no escribe nada que no sea suyo.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Alto · P9, P17 · tienda-0.1.0 · 2026-10-16

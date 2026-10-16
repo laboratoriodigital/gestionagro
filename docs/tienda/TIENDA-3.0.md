@@ -807,6 +807,7 @@ En la 2.0 no se podían usar: Apps Script no lee las cabeceras de una solicitud.
 
   - **En el ambiente de pruebas, Bold firma con una llave vacía.** WebCrypto no importa una llave HMAC de longitud cero. Se usan 64 bytes en cero, que por la definición de HMAC (la llave se rellena con ceros hasta el bloque) dan el mismo resultado. Una prueba lo fija con un vector conocido.
   - **Consecuencia:** cualquiera puede firmar un aviso «de pruebas». Por eso un aviso solo puede mover un cobro **de su mismo ambiente**, y una tienda en pruebas lo dice en una franja visible.
+  - *(Hoy: la llave no se elige por el cobro, porque el cobro sale del JSON y la firma va antes de leerlo. Se prueba la secreta de producción de la tienda y luego la llave de pruebas; la que firma dice el ambiente del aviso, y después la referencia dice el cobro. Si el cobro no existe, es de otra tienda o es del otro ambiente, no se escribe ni una fila, ni en `aviso_proveedor`: un aviso «de pruebas» lo puede mandar cualquiera. Bitácora tienda3 24.)*
 - **Proceso:**
   1. `INSERT OR IGNORE` en `aviso_proveedor` con `subject` + `type`. Si ya estaba, responde 200 (`repetido`).
   2. Si no, aplica la transición (§7.3) en un lote y verifica que `amount.total` sea igual a `monto_cop`; si no, pasa a `revisar`.

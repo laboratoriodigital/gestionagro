@@ -47,6 +47,7 @@ import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { guardarAjuste, leerAjustes, PIDE_ENTRADA, verificarWhatsapp } from './ajustes.ts';
 import { avisame, PeticionDeAvisame } from './avisame.ts';
+import { recibirAvisoDeBold } from './avisos.ts';
 import {
   confirmarPedido,
   leerPedido,
@@ -638,6 +639,36 @@ export function crearApp(
     if (r.estado === 'ocupada') return c.json(r, 429);
     if (r.estado === 'forma' || r.estado === 'edad' || r.estado === 'monto') return c.json(r, 422);
     return c.json(r, 409);
+  });
+
+  /**
+   * HU-T11.5: los avisos firmados de Bold, en el subdominio de la plataforma de la tienda (el
+   * despacho la resuelve por el `Host`). La firma se verifica con el cuerpo crudo antes de leerlo.
+   * Responde 200 a todo lo que Bold no debe reintentar, y 500 si algo falló, para que reintente: el
+   * proceso es idempotente. Con `ks:tienda` apagado responde 503 y Bold reintenta después.
+   */
+  app.post('/api/v1/avisos/bold', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    try {
+      const r = await recibirAvisoDeBold(
+        {
+          db: destino.db,
+          org: destino.org,
+          ahora: new Date(ahora()).toISOString(),
+          kekTexto: c.env.TIENDA_KEK_V1,
+        },
+        new Uint8Array(await c.req.arrayBuffer()),
+        c.req.header('x-bold-signature') ?? null,
+      );
+      if (r === 'firma-invalida') return c.json({ resultado: r }, 401);
+      if (r === 'ilegible') return c.json({ resultado: r }, 400);
+      if (r === 'sin-cobro') console.error(`tienda-api: aviso de Bold sin cobro en ${destino.org}`);
+      return c.json({ resultado: r });
+    } catch (e) {
+      console.error(`tienda-api: el aviso de Bold falló (${String(e)})`);
+      return c.json({ resultado: 'error' }, 500);
+    }
   });
 
   /**
