@@ -81,7 +81,11 @@ export const COMBINACIONES_POR_PAGINA = 50;
 /**
  * Las combinaciones activas de los productos que no están en la papelera, en el orden del catálogo,
  * de a 50 y con el total; `buscar` filtra por el nombre del producto. Con la tienda llena eran
- * 12.000 filas y 2,2 MB de una vez (bitácora tienda3 21).
+ * 12.000 filas y 2,2 MB de una vez (bitácora tienda3 21). La página elige primero los productos y
+ * después lee sus combinaciones por `variante_por_producto`, y el total suma `combinaciones` de cada
+ * producto: unir y contar todas las combinaciones leía 60.000 filas por página (bitácora tienda3 26).
+ * Se piden dos productos más que combinaciones: el del cursor puede no tener ninguna después de él,
+ * y cada uno de los demás tiene al menos una, así que siempre alcanza para saber si hay siguiente.
  */
 export async function listarInventario(
   q: Quien,
@@ -98,20 +102,31 @@ export async function listarInventario(
   const [pagina, cuenta] = await Promise.all([
     q.db
       .prepare(
-        `SELECT v.id, v.producto_id, p.nombre, v.clave, v.sku, v.precio_cop, v.stock, v.reservado, v.version,
-                p.posicion AS posicion_producto, p.slug, v.posicion,
+        `WITH productos AS MATERIALIZED (
+           SELECT p.id, p.nombre, p.posicion, p.slug FROM producto p INDEXED BY producto_en_orden_por_slug
+            WHERE p.org_id = ? AND p.borrado IS NULL AND p.combinaciones > 0
+              AND (? = '' OR lower(p.nombre) LIKE '%' || ? || '%')
+              AND (? IS NULL OR (p.posicion, p.slug) >= (?, ?))
+            ORDER BY p.posicion, p.slug LIMIT ?
+         )
+         SELECT v.id, v.producto_id, g.nombre, v.clave, v.sku, v.precio_cop, v.stock, v.reservado, v.version,
+                g.posicion AS posicion_producto, g.slug, v.posicion,
                 (SELECT i.personas FROM interes_reposicion i WHERE i.org_id = ? AND i.variante_id = v.id) AS esperan
-           FROM variante v JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
-          WHERE v.org_id = ? AND v.activa = 1 AND p.borrado IS NULL
-            AND (? = '' OR lower(p.nombre) LIKE '%' || ? || '%')
-            AND (? IS NULL OR (p.posicion, p.slug, v.posicion, v.id) > (?, ?, ?, ?))
-          ORDER BY p.posicion, p.slug, v.posicion, v.id LIMIT ?`,
+           FROM productos g JOIN variante v INDEXED BY variante_por_producto ON v.org_id = ? AND v.producto_id = g.id
+          WHERE v.activa = 1
+            AND (? IS NULL OR (g.posicion, g.slug, v.posicion, v.id) > (?, ?, ?, ?))
+          ORDER BY g.posicion, g.slug, v.posicion, v.id LIMIT ?`,
       )
       .bind(
         q.org,
+        buscar,
+        buscar,
+        despues ? 1 : null,
+        despues?.[0] ?? 0,
+        despues?.[1] ?? '',
+        limite + 2,
         q.org,
-        buscar,
-        buscar,
+        q.org,
         despues ? 1 : null,
         despues?.[0] ?? 0,
         despues?.[1] ?? '',
@@ -122,9 +137,8 @@ export async function listarInventario(
       .all<FilaLeida>(),
     q.db
       .prepare(
-        `SELECT count(*) AS n
-           FROM variante v JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
-          WHERE v.org_id = ? AND v.activa = 1 AND p.borrado IS NULL
+        `SELECT coalesce(sum(p.combinaciones), 0) AS n FROM producto p
+          WHERE p.org_id = ? AND p.borrado IS NULL
             AND (? = '' OR lower(p.nombre) LIKE '%' || ? || '%')`,
       )
       .bind(q.org, buscar, buscar)

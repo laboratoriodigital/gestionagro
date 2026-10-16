@@ -164,7 +164,8 @@ async function variantesDe(q: Quien, productoId: string) {
   const { results } = await q.db
     .prepare(
       `SELECT id, clave, sku, precio_cop, precio_antes_cop, stock, reservado, activa, posicion
-         FROM variante WHERE org_id = ? AND producto_id = ? ORDER BY posicion, clave`,
+         FROM variante INDEXED BY variante_por_producto
+        WHERE org_id = ? AND producto_id = ? ORDER BY posicion, clave`,
     )
     .bind(q.org, productoId)
     .all<FilaVariante>();
@@ -276,9 +277,10 @@ export function leerCursor<T extends (string | number)[]>(
 
 /**
  * La lista del panel: nombre, estado, cuántas combinaciones, el precio desde y las existencias, de
- * a 50 y con el total. Las combinaciones se cuentan en una sola pasada por la tienda: unidas
- * producto por producto, SQLite recorría todas las combinaciones de la tienda por cada producto
- * (1,4 s con 2.000 productos; bitácora tienda3 21).
+ * a 50 y con el total. Primero se elige la página de productos y después se leen las combinaciones
+ * de esos 50, por `variante_por_producto`: unidas producto por producto, SQLite recorría todas las
+ * combinaciones de la tienda por cada producto (24 millones de filas leídas con 2.000 productos,
+ * bitácora tienda3 21 y 26), y agrupadas en una pasada leía las 12.000 en cada página.
  */
 export async function listarProductos(
   q: Quien,
@@ -308,30 +310,35 @@ export async function listarProductos(
   const [pagina, cuenta] = await Promise.all([
     q.db
       .prepare(
-        `SELECT p.id, p.slug, p.nombre, p.estado, p.version, p.posicion, p.borrado,
-                coalesce(v.combinaciones, 0) AS combinaciones, v.desde, v.existencias,
-                (SELECT m.id FROM medio m WHERE m.org_id = ? AND m.producto_id = p.id ORDER BY m.posicion, m.id LIMIT 1) AS foto
-           FROM producto p LEFT JOIN (
-             SELECT producto_id, count(*) AS combinaciones, min(precio_cop) AS desde,
-                    CASE WHEN count(stock) = count(*) THEN sum(stock) END AS existencias
-               FROM variante WHERE org_id = ? AND activa = 1 GROUP BY producto_id
-           ) v ON v.producto_id = p.id
-          WHERE p.org_id = ? AND (p.borrado IS NULL) = ? AND (p.borrado IS NULL OR p.borrado >= ?)
-            AND (? = '' OR lower(p.nombre) LIKE '%' || ? || '%')
-            AND (? = '' OR EXISTS (SELECT 1 FROM coleccion_producto cp
-                   WHERE cp.org_id = ? AND cp.coleccion_id = ? AND cp.producto_id = p.id))
-            AND (? IS NULL OR (p.posicion, p.nombre, p.id) > (?, ?, ?))
-          ORDER BY p.posicion, p.nombre, p.id LIMIT ?`,
+        `WITH elegidos AS MATERIALIZED (
+           SELECT p.id, p.slug, p.nombre, p.estado, p.version, p.posicion, p.borrado, p.combinaciones
+             FROM producto p INDEXED BY producto_en_orden
+            WHERE p.org_id = ? AND (p.borrado IS NULL) = ? AND (p.borrado IS NULL OR p.borrado >= ?)
+              AND (? = '' OR lower(p.nombre) LIKE '%' || ? || '%')
+              AND (? = '' OR EXISTS (SELECT 1 FROM coleccion_producto cp
+                     WHERE cp.org_id = ? AND cp.coleccion_id = ? AND cp.producto_id = p.id))
+              AND (? IS NULL OR (p.posicion, p.nombre, p.id) > (?, ?, ?))
+            ORDER BY p.posicion, p.nombre, p.id LIMIT ?
+         )
+         SELECT g.id, g.slug, g.nombre, g.estado, g.version, g.posicion, g.borrado, g.combinaciones,
+                (SELECT min(v.precio_cop) FROM variante v INDEXED BY variante_por_producto
+                  WHERE v.org_id = ? AND v.producto_id = g.id AND v.activa = 1) AS desde,
+                (SELECT CASE WHEN count(v.stock) = count(*) THEN sum(v.stock) END FROM variante v INDEXED BY variante_por_producto
+                  WHERE v.org_id = ? AND v.producto_id = g.id AND v.activa = 1) AS existencias,
+                (SELECT m.id FROM medio m WHERE m.org_id = ? AND m.producto_id = g.id ORDER BY m.posicion, m.id LIMIT 1) AS foto
+           FROM elegidos g
+          ORDER BY g.posicion, g.nombre, g.id`,
       )
       .bind(
-        q.org,
-        q.org,
         ...parametros,
         despues ? 1 : null,
         despues?.[0] ?? 0,
         despues?.[1] ?? '',
         despues?.[2] ?? '',
         limite + 1,
+        q.org,
+        q.org,
+        q.org,
       )
       .all<{
         id: string;
