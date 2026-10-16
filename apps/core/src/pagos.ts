@@ -3,7 +3,7 @@
  * Finca se cobra cuando un cliente lo pide.
  *
  * Aquí está lo que se cobra y lo que se activa; con quién se cobra está detrás del adaptador
- * (`proveedor-de-pago.ts`, ED1 §5.3). Del método de la Tienda con Bold se toma lo que vale para un
+ * (`@ed1/pagos`, ED1 §5.3). Del método de la Tienda con Bold se toma lo que vale para un
  * plan: el monto lo calcula el CORE, el cobro va firmado, la dirección de vuelta no se cree (la
  * verdad se le pregunta al proveedor), un monto distinto queda para revisar y un cobro sale de
  * «esperando» una sola vez.
@@ -21,6 +21,7 @@
 
 import type { BaseD1 } from '@ed1/d1';
 import { uuidv7 } from '@ed1/ids';
+import type { EstadoEnElProveedor, ProveedorDePago } from '@ed1/pagos';
 import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import { filaDeAuditoria } from './auditoria.ts';
@@ -33,7 +34,6 @@ import {
   rolAdministra,
   vueltaDelProducto,
 } from './productos.ts';
-import type { EstadoEnElProveedor, ProveedorDePago } from './proveedor-de-pago.ts';
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 /** Pasado esto sin noticias, el cobro queda vencido (el proveedor deja de responder por él). */

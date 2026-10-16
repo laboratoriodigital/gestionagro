@@ -125,7 +125,7 @@ Y los **contratos de datos** de TRASLADO §7 (producto, combinación, estados de
 En CultivoPro **el vendedor es Laboratorio Digital**: una sola cuenta de Bold, con llaves en los secretos del CORE. En la Tienda **el vendedor es cada comercio**: cada uno tiene su Bold, y el dinero entra a su cuenta, no a la nuestra. Eso pide:
 
 - **Llaves por organización, cifradas en D1.** Cifrado de sobre: una llave maestra (KEK) en los secretos del Worker, que cifra la llave de cada comercio (AES-GCM, `crypto.subtle`). Nunca en texto plano, nunca en el navegador; la de identidad solo viaja dentro de un cobro ya firmado, como hoy.
-- **El adaptador recibe las llaves en cada llamada**, en vez de leerlas del entorno: `proveedorBold(llavesDe(org), fetch)`. Es un cambio pequeño en `proveedor-de-pago.ts`.
+- **El adaptador recibe las llaves en cada llamada**, en vez de leerlas del entorno: `proveedorBold(llavesDe(org), fetch)`. Es un cambio pequeño en `proveedor-de-pago.ts`. *(Hoy: el adaptador vive en `packages/pagos` (`@ed1/pagos`) y el CORE lo importa de ahí, HU-T11.1.)*
 - **Apartar las unidades antes de cobrar** (lo que la Tienda hace con `LockService`) pasa a ser una fila con vencimiento en D1. La conciliación por Cron de CultivoPro, cada 15 min, la libera si nadie pagó.
 - **Responsabilidad:** con el dinero en la cuenta del comercio, Laboratorio Digital no es el vendedor ni maneja fondos de terceros. Conviene dejarlo escrito en los términos (TRASLADO D5).
 

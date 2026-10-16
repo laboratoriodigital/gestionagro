@@ -111,6 +111,9 @@ importers:
       '@ed1/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
+      '@ed1/pagos':
+        specifier: workspace:*
+        version: link:../../packages/pagos
       '@ed1/productos':
         specifier: workspace:*
         version: link:../../packages/productos
@@ -528,6 +531,8 @@ importers:
         version: 2.7.4
 
   packages/kill-switch: {}
+
+  packages/pagos: {}
 
   packages/parqueadero-recibos:
     dependencies:

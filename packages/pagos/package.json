@@ -1,0 +1,10 @@
+{
+  "name": "@ed1/pagos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "El adaptador del proveedor de pagos (ED1 §5.3, HU-T11.1): Bold, con las llaves en cada llamada, para que el CORE cobre los planes con las suyas y la Tienda las ventas con las de cada comercio.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

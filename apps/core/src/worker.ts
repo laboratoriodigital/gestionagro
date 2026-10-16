@@ -34,6 +34,7 @@
 
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
+import { type ProveedorDePago, proveedorBold } from '@ed1/pagos';
 import { type ClavePublica, type Firmante, firmanteDesde, verificarAcceso } from '@ed1/tokens';
 import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
@@ -93,7 +94,6 @@ import {
   productoDe,
   productoDeOrganizacion,
 } from './productos.ts';
-import { type ProveedorDePago, proveedorBold } from './proveedor-de-pago.ts';
 import { securityTxt } from './security-txt.ts';
 import { canjearToken, revocarToken } from './token-oauth.ts';
 

@@ -1065,7 +1065,7 @@ Formato de cada historia, el del CORE:
 ### ET11 · Cobro en línea con Bold
 
 #### HU-T11.1 · `@ed1/pagos`: el adaptador sale del CORE y recibe las llaves en cada llamada
-- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T12 · **Depende de:** — · **Estado:** Refinada
+- **Capa:** paquete · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T12 · **Depende de:** — · **Estado:** En validación (rama `feat/t11.1-pagos`, PR aparte con permiso del dueño del 16 oct 2026. `packages/pagos` tiene `ProveedorDePago`, `proveedorBold(llaves, fetch)`, la firma de integridad y la tabla `ESTADOS_BOLD`; es un paquete puro, con la red como parámetro. El CORE solo cambia sus importaciones y sus pruebas pasan sin tocarlas. Lo que Bold diga y la tabla no conozca (`APPROVED_PARTIALLY`, `REFUNDED`, `constructor`…) es «revisar». Controles negativos: con «esperando» como respaldo, con `in` en vez de `Object.hasOwn` y con otra llave secreta, rojo)
 - Como plataforma, quiero un solo adaptador de Bold para cobrar los planes y para cobrar las ventas de cada comercio.
 - **Respaldo:** PLATAFORMA §6.2; análisis de integración §4.3; ED1 §5.3.
 - **CA1.** `ProveedorDePago` y la traducción de los estados de Bold viven en `@ed1/pagos`; el CORE lo usa con sus llaves y la Tienda con las del comercio, pasadas en cada llamada.
