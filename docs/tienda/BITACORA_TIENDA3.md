@@ -279,6 +279,7 @@ Van aparte porque no son fallos de código: son cosas que dije con seguridad y n
 
 - **14 oct 2026: «el carrito vive en `/pedido/`».** En HU-T5.4 horneé el carrito en `/pedido/` y lo dejé así en el PR #180, sin contrastarlo con TIENDA §5.4, que pone el carrito en `/carrito/` y deja `/pedido/#c=…&s=…` para el seguimiento (y `/pedido/pago/` para la vuelta de Bold). Lo vi al escribir HU-T6.3, que necesita esa ruta. Se corrigió en T6 antes de que hubiera un enlace compartido: el carrito se guarda en `localStorage`, no en la ruta, así que nadie perdió nada. La regla de siempre (premisas antes de decidir): **una ruta pública se toma de la tabla de rutas del diseño, no de la historia que la usa primero.**
 - **15 oct 2026: «la Tienda quedó en producción».** En la revisión del estado del proyecto lo afirmé porque el paso «Desplegar la Tienda» del despliegue a producción figuraba «success» en la API de GitHub. Ese paso tiene `continue-on-error: true`: el paso figura en verde aunque falle, y el error está en la anotación del trabajo («Process completed with exit code 1.»). La regla: **el estado de un paso con `continue-on-error` no dice si funcionó; se leen las anotaciones o el resumen de la corrida** (bitácora tienda3 12).
+- **15 oct 2026: «la prueba automática ya cubre que la tienda llena se publica».** Lo escribí en el runbook de la revisión con la tienda llena (HU-T3.7). La prueba publicaba con `omitir: ['sin-foto']`, como la publicación de los comercios de prueba, y la siembra no ponía fotos: en staging, la tienda llena no se pudo publicar. La regla: **una prueba que se salta una puerta de la compuerta no dice que se publica; dice que se publicaría sin esa puerta** (bitácora tienda3 22).
 
 ---
 
@@ -690,8 +691,44 @@ La regla: **una regla que borra por nombre de campo también borra lo que no es 
 
 *Arreglo.* La portada muestra los primeros 24 productos y «Ver los N productos», que lleva a `/productos/`. Esa lista y cada colección van de a 48 por página, con «Anteriores» y «Siguientes», `rel="prev"` y `rel="next"`, y cada página tiene su gemelo `.md` y su entrada en `sitemap.xml`. Una tienda de 24 productos o menos sale igual que antes: los dorados no cambiaron.
 
-**Lo prueba:** `packages/tienda-horno/src/horno.test.ts`, «❌ con 2.000 productos con foto, ninguna página pasa su presupuesto», y `apps/tienda-api/src/volumen.test.ts`, «publicar pasa la compuerta en menos de un minuto…». Control negativo: con 5.000 por página, las dos quedan en rojo con el peso.
+**Lo prueba:** `packages/tienda-horno/src/horno.test.ts`, «❌ con 2.000 productos con foto, ninguna página pasa su presupuesto», y `apps/tienda-api/src/volumen.test.ts`, «publicar pasa la compuerta en menos de un minuto…». Control negativo: con 5.000 por página, las dos quedan en rojo con el peso. *(Después: bitácora tienda3 22; la segunda se saltaba las fotos.)*
 
 La regla: **un presupuesto medido en la tienda de prueba vale para la tienda de prueba; se mide también con la tienda del tamaño que se promete, antes de que llegue una real.**
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Medio · P4/P5 · tienda-0.1.0 · 2026-10-15
+
+**21 · Con la tienda llena, el panel tardaba en abrir los productos y las colecciones, y una colección perdía productos al guardarse.**
+
+*Qué pasó.* El 16 oct 2026, en el recorrido con la tienda llena en staging (WI-T3.7.3), el dueño sembró a Ensayo Uno con 2.000 productos y recorrió el panel. Al revisar por qué, salieron tres defectos más que nadie había visto todavía.
+
+*Síntoma literal.* «Se demora un par de segundos en cargar los productos, colecciones, etc.» (el dueño).
+
+*Causa raíz.* La lista de productos unía cada producto con sus combinaciones y agrupaba: SQLite recorría las 12.000 combinaciones de la tienda una vez por producto (1,4 s en D1 local, más la red). La lista traía hasta 500 de una vez y cortaba ahí sin decirlo. El editor de una colección pedía esa misma lista para pintar una casilla por producto, y al guardar mandaba solo los marcados que se veían: los miembros que no alcanzaban a cargarse salían de la colección. Guardar una colección de más de 99 productos revisaba que existieran con una sola consulta de un parámetro por producto, y D1 admite 100. El inventario y «Anotar un pedido» bajaban las 12.000 combinaciones de una vez (2,2 MB) y la segunda pintaba 12.000 casillas. Todo se escribió y se probó con los comercios de prueba, de 3 a 8 productos (P4); la prueba de volumen de T11 miraba que cada ruta respondiera, no qué traía ni cuánto tardaba.
+
+*Cómo se reprodujo.* D1 local, con la siembra de volumen: la primera página de productos tardaba 1,4 s; el inventario devolvía 12.003 filas; guardar «De lino» (200 productos) llevaba 201 parámetros en una consulta; el editor de una colección de 60, con 50 a la vista, guardaba 50.
+
+*Arreglo.* Las combinaciones se cuentan en una sola pasada (una subconsulta agrupada), y la primera página tarda 16 ms. Productos e inventario van de a 50 con un cursor, dicen el total («Se ven 50 de 2.001 productos.») y traen más con «Ver más»; los dos se buscan por nombre. El editor de una colección muestra sus productos de a 50, agrega otros buscándolos y guarda en el orden de la colección: lo que no se ha cargado sigue elegido, y solo sale lo que se desmarca. La revisión de los productos de una colección va de a 50. «Anotar un pedido» busca el producto, y lo que ya lleva cantidad sube a «En el pedido» al buscar otra cosa. El libro de una combinación la lee sola.
+
+**Lo prueban:** `apps/tienda-api/src/volumen.test.ts`, «bitácora tienda3 21 · productos, colecciones e inventario con la tienda llena» (la lista de a 50 llega al último sin repetir, la primera página no pasa de 500 ms, guardar 200 no pasa de 100 parámetros, el inventario de a 50 y su búsqueda), y `tests/e2e/tienda-panel.spec.ts`, «bitácora tienda3 21 ❌: guardar una colección de 60 no saca a los que no se ven…» y «…anotar con 2.001 combinaciones…». Control negativo: con la unión de antes, la página tarda más de 500 ms; sin cursor, la lista no llega al último; revisando de a 500, la consulta lleva 201 parámetros; sin límite, el inventario trae 12.003 filas; guardando solo lo visible, faltan los 10 que no se veían; sin «En el pedido», la cantidad anotada se pierde al buscar.
+
+La regla: **una lista que puede crecer se pide de a poco desde el primer día, dice cuántas hay y nunca guarda «lo que se ve» como si fuera todo.**
+
+*Ficha:* tienda3 · *(mío)* · 🟡 Medio · P4, P21 · tienda-0.1.0 · 2026-10-16
+
+**22 · La tienda llena no se pudo publicar porque sus productos no tenían foto.**
+
+*Qué pasó.* El 16 oct 2026, en el mismo recorrido (WI-T3.7.3), el dueño publicó a Ensayo Uno llena desde el panel de staging. La compuerta la detuvo.
+
+*Síntoma literal.* «la tienda no publico porque no tienen foto los productos» (el dueño). La compuerta da una falla por producto: «Sube una foto de «Bata de algodón Brisa»».
+
+*Causa raíz.* La siembra de volumen creaba productos activos sin foto, y la compuerta no publica un producto activo sin foto (HU-T3.6). La prueba que debía verlo, «publicar pasa la compuerta en menos de un minuto», publicaba con `omitir: ['sin-foto']`, copiado de la publicación de los comercios de prueba: pasaba con el defecto y sin él (P5). Nadie había publicado la tienda llena por el camino del panel antes del recorrido (P16).
+
+*Cómo se reprodujo.* D1 local: `volumen.test.ts` sin `omitir` devuelve `compuerta` con un «Sube una foto de…» por cada producto.
+
+*Arreglo.* La siembra le pone a cada producto de Ensayo Uno que no tiene foto la primera que el comercio subió desde el panel: la misma huella, así que el archivo ya está en el almacén de medios y no se sube nada. En staging, si Ensayo Uno no tiene ninguna foto, no siembra nada y lo dice: «… sube una a cualquier producto desde el panel de staging y vuelve a correr esto». La prueba publica sin omitir nada, con el host de las fotos, y mira que la ficha lleve su imagen. El runbook dice, como primer paso, que se suba una foto.
+
+**Lo prueban:** `apps/tienda-api/src/volumen.test.ts`, «publicar pasa la compuerta en menos de un minuto…» y «2.000 productos de 6 combinaciones…» (cada producto con su foto, una sola huella), y `tests/repo/tienda-sembrar-volumen.test.ts`, «❌ sin ninguna foto subida, no siembra nada y pide subir una desde el panel». Control negativo: sin poner las fotos, la publicación queda en rojo con «Sube una foto de «Bata de algodón Brisa»».
+
+La regla: **una prueba de publicación no se salta ninguna puerta de la compuerta; si una puerta estorba, se siembra lo que la abre.**
+
+*Ficha:* tienda3 · *(mío)* · 🟡 Medio · P5, P16 · tienda-0.1.0 · 2026-10-16

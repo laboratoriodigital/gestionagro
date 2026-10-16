@@ -32,6 +32,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
 
 ### Corregido
+- Con la tienda llena, el panel ya no tarda en abrir los productos, las colecciones ni el inventario. Las listas van de a 50, dicen cuántos hay y se buscan por nombre; una colección ya no pierde al guardar los productos que no se veían, y una de más de 99 productos ya se puede guardar. «Anotar un pedido» busca el producto en vez de mostrar todas las combinaciones (bitácora tienda3 21).
+- La siembra de la tienda llena le pone a cada producto de Ensayo Uno la foto que ya se subió desde el panel, para que se pueda publicar; sin ninguna foto, lo dice antes de sembrar (bitácora tienda3 22).
 - Una tienda con muchos productos ya se puede publicar: la portada muestra los primeros 24 con «Ver los N productos», y la lista de productos y cada colección van de a 48 por página. Antes la portada de una tienda con 2.000 productos pesaba 434 KB y no pasaba la revisión de publicar.
 - En «Más → Registro», cambiar una combinación ya no dice «la combinación única» cuando el producto tiene tallas o colores: dice «M / Arena».
 - En el seguimiento del pedido, la línea que dice en qué va ahora empieza por «Estado:», para que no se confunda con el resto del acuse.

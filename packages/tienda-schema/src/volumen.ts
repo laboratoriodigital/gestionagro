@@ -8,6 +8,9 @@
  * - **Determinista.** Sin azar ni reloj propio: los mismos datos cada vez, y el mes es el de
  *   `ahora`, en la hora de Colombia.
  * - **Sin datos de nadie.** Los pedidos no llevan contacto: la bandeja los muestra sin comprador.
+ * - **Con fotos.** La compuerta no publica un producto activo sin foto, y la siembra no sube
+ *   ninguna: `fotosDeVolumen` le pone a cada producto sin foto la primera que el comercio subió
+ *   (bitácora tienda3 22).
  */
 import type { ComercioDeEnsayo, ProductoDeEnsayo } from './ensayos.ts';
 
@@ -250,4 +253,20 @@ export function siembraDeVolumen(c: ComercioDeEnsayo, ahora: string): string[] {
       ),
     ),
   ];
+}
+
+/**
+ * Cada producto del comercio que no tiene foto recibe la primera que el comercio subió: la misma
+ * huella, así que el archivo ya está en el almacén de medios y no se sube nada. Sin ninguna foto
+ * subida no inserta nada; quien la corre lo revisa antes (`scripts/tienda/sembrar-volumen.ts`).
+ */
+export function fotosDeVolumen(c: ComercioDeEnsayo, ahora: string): string {
+  const org = texto(c.org);
+  return `INSERT INTO medio (org_id, id, producto_id, variante_id, posicion, alt, ancho, alto, formatos, creado)
+SELECT p.org_id, m.id, p.id, NULL, 0, p.nombre, m.ancho, m.alto, m.formatos, ${texto(ahora)}
+FROM producto p,
+  (SELECT id, ancho, alto, formatos FROM medio WHERE org_id = ${org} ORDER BY creado, producto_id, id LIMIT 1) m
+WHERE p.org_id = ${org}
+  AND NOT EXISTS (SELECT 1 FROM medio x WHERE x.org_id = ${org} AND x.producto_id = p.id)
+ON CONFLICT DO NOTHING;`;
 }

@@ -9,13 +9,19 @@
  *   la base local del shard, después de sus migraciones y de la siembra de los comercios de prueba.
  * - `staging`: por la API HTTP de D1, con `CF_API_TOKEN` y `CF_ACCOUNT_ID`, sentencia por sentencia,
  *   sobre la base de staging del shard de la Tienda. Exige que Ensayo Uno ya exista (lo crea el
- *   despliegue de staging). Volver a correrlo no duplica nada.
+ *   despliegue de staging) y que tenga al menos una foto subida desde el panel: esa foto se le pone
+ *   a cada producto que no tiene, porque sin foto la tienda no se publica (bitácora tienda3 22).
+ *   Volver a correrlo no duplica nada.
  */
 import { spawnSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ENSAYO_UNO, siembraDelShard } from '../../packages/tienda-schema/src/ensayos.ts';
-import { siembraDeVolumen, VOLUMEN } from '../../packages/tienda-schema/src/volumen.ts';
+import {
+  fotosDeVolumen,
+  siembraDeVolumen,
+  VOLUMEN,
+} from '../../packages/tienda-schema/src/volumen.ts';
 import { baseDelShard } from '../generar-wrangler.ts';
 import { cargarCeldas } from '../lib/celdas.ts';
 import { RAIZ } from '../lib/repo.ts';
@@ -92,7 +98,18 @@ export async function sembrarEnStaging(o: OpcionesDeStaging): Promise<number> {
       `${ENSAYO_UNO.nombre} no está en ${base}: despliega staging primero, que lo crea (HU-T2.6)`,
     );
   }
-  const sentencias = siembraDeVolumen(ENSAYO_UNO, o.ahora);
+  const [fotos] = await consultar('SELECT count(*) AS n FROM medio WHERE org_id = ?', [
+    ENSAYO_UNO.org,
+  ]);
+  if (!Number(fotos?.['n'])) {
+    throw new SiembraRechazada(
+      `${ENSAYO_UNO.nombre} no tiene ninguna foto, y sin fotos la tienda no se publica: sube una a cualquier producto desde el panel de staging y vuelve a correr esto`,
+    );
+  }
+  const sentencias = [
+    ...siembraDeVolumen(ENSAYO_UNO, o.ahora),
+    fotosDeVolumen(ENSAYO_UNO, o.ahora),
+  ];
   for (const [i, sql] of sentencias.entries()) {
     await consultar(sql.replace(/;$/, ''));
     if ((i + 1) % 25 === 0 || i + 1 === sentencias.length)
@@ -105,7 +122,7 @@ function sembrarEnLocal(ahora: string): void {
   const dir = join(RAIZ, 'apps', 'tienda-api');
   writeFileSync(
     join(dir, ARCHIVO_LOCAL),
-    `${[...siembraDelShard([ENSAYO_UNO], ahora), ...siembraDeVolumen(ENSAYO_UNO, ahora)].join('\n')}\n`,
+    `${[...siembraDelShard([ENSAYO_UNO], ahora), ...siembraDeVolumen(ENSAYO_UNO, ahora), fotosDeVolumen(ENSAYO_UNO, ahora)].join('\n')}\n`,
   );
   const correr = (argumentos: string) => {
     const r = spawnSync(

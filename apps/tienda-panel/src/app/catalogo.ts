@@ -51,6 +51,57 @@ export interface FilaDeProducto {
   borrado: string | null;
 }
 
+/** Una página de la lista de productos: de a 50, con el total (bitácora tienda3 21). */
+export interface PaginaDeProductos {
+  productos: FilaDeProducto[];
+  siguiente: string | null;
+  total: number;
+}
+
+/** La ruta de una página de productos: `q` va siempre, como antes; lo demás, si tiene valor. */
+export function rutaDeProductos(o: {
+  papelera?: boolean;
+  q?: string;
+  coleccion?: string;
+  cursor?: string | null;
+}) {
+  const p = new URLSearchParams();
+  if (o.papelera) p.set('papelera', '1');
+  p.set('q', o.q ?? '');
+  if (o.coleccion) p.set('coleccion', o.coleccion);
+  if (o.cursor) p.set('cursor', o.cursor);
+  return `productos?${p}`;
+}
+
+/** Lo que ya se ve, más lo que llega sin repetir: dos páginas pueden traer el mismo si algo cambió entre una y otra. */
+export function unirSinRepetir<T>(
+  antes: readonly T[],
+  nuevos: readonly T[],
+  clave: (x: T) => string,
+) {
+  const vistos = new Set(antes.map(clave));
+  return [...antes, ...nuevos.filter((x) => !vistos.has(clave(x)))];
+}
+
+export const unirProductos = (
+  antes: readonly FilaDeProducto[],
+  nuevos: readonly FilaDeProducto[],
+) => unirSinRepetir(antes, nuevos, (p) => p.id);
+
+/** La ruta de una página del inventario (bitácora tienda3 21). */
+export function rutaDeInventario(o: { q?: string; cursor?: string | null }) {
+  const p = new URLSearchParams({ q: o.q ?? '' });
+  if (o.cursor) p.set('cursor', o.cursor);
+  return `inventario?${p}`;
+}
+
+/** «50 de 2.008»: cuántos se ven de cuántos hay, cuando no se ven todos. */
+export function cuantosSeVen(vistos: number, total: number, que = 'productos'): string | null {
+  if (vistos >= total) return null;
+  const n = (x: number) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `Se ven ${n(vistos)} de ${n(total)} ${que}.`;
+}
+
 export interface Combinacion {
   /** Se vende: si no, no se manda y la API la deja inactiva. */
   vende: boolean;

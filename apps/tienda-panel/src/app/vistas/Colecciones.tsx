@@ -1,12 +1,25 @@
 /**
  * HU-T8.4: las colecciones. Un producto puede estar en varias; las colecciones se ordenan (CA1).
  * Borrar una colección no borra sus productos (CA2), y la confirmación lo dice.
+ *
+ * Una colección muestra sus productos de a 50 y agrega otros buscándolos, en vez de una casilla
+ * por cada producto de la tienda: con 2.000, la lista se cortaba en 500 y guardar quitaba de la
+ * colección los que no alcanzaban a verse (bitácora tienda3 21). Lo que no se ha cargado sigue
+ * elegido: solo sale lo que se desmarca.
  */
 import { Aviso, ResumenDeErrores } from '@ed1/ui/v2/componentes';
-import { useCallback, useEffect, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { type Conexion, pedirAlPanel } from '../api.ts';
-import { type FilaDeProducto, opNueva } from '../catalogo.ts';
+import {
+  cuantosSeVen,
+  type FilaDeProducto,
+  opNueva,
+  type PaginaDeProductos,
+  rutaDeProductos,
+  unirProductos,
+} from '../catalogo.ts';
 import { Confirmar } from '../componentes/index.ts';
+import { crearTurno } from '../pedidos.ts';
 import { irA } from '../ruta.ts';
 
 export interface ColeccionDelPanel {
@@ -23,30 +36,21 @@ type Lectura = { tipo: 'cargando' } | { tipo: 'error'; motivo: string } | { tipo
 
 function usarColecciones(conexion: Conexion, alVencer: (m: string) => void) {
   const [colecciones, setColecciones] = useState<ColeccionDelPanel[]>([]);
-  const [productos, setProductos] = useState<FilaDeProducto[]>([]);
   const [lectura, setLectura] = useState<Lectura>({ tipo: 'cargando' });
   const cargar = useCallback(async () => {
-    const [c, p] = await Promise.all([
-      pedirAlPanel<{ colecciones: ColeccionDelPanel[] }>(conexion, 'colecciones'),
-      pedirAlPanel<{ productos: FilaDeProducto[] }>(conexion, 'productos'),
-    ]);
+    const c = await pedirAlPanel<{ colecciones: ColeccionDelPanel[] }>(conexion, 'colecciones');
     if (c.tipo === 'sin-sesion') return alVencer(c.motivo);
-    if (p.tipo === 'sin-sesion') return alVencer(p.motivo);
-    if (c.tipo !== 'ok' || p.tipo !== 'ok') {
-      setLectura({
-        tipo: 'error',
-        motivo: c.tipo !== 'ok' ? c.motivo : (p as { motivo: string }).motivo,
-      });
+    if (c.tipo !== 'ok') {
+      setLectura({ tipo: 'error', motivo: c.motivo });
       return;
     }
     setColecciones(c.datos.colecciones);
-    setProductos(p.datos.productos);
     setLectura({ tipo: 'listo' });
   }, [conexion, alVencer]);
   useEffect(() => {
     void cargar();
   }, [cargar]);
-  return { colecciones, productos, lectura, cargar };
+  return { colecciones, lectura, cargar };
 }
 
 export function Colecciones({
@@ -178,8 +182,47 @@ export function Coleccion({
   id: string;
   alVencer: (motivo: string) => void;
 }) {
-  const { colecciones, productos, lectura, cargar } = usarColecciones(conexion, alVencer);
+  const { colecciones, lectura, cargar } = usarColecciones(conexion, alVencer);
   const actual = colecciones.find((c) => c.id === id) ?? null;
+  // Los productos que se ven: los de la colección, de a 50, y los que se agregaron buscando.
+  const [vistos, setVistos] = useState<FilaDeProducto[]>([]);
+  const [siguiente, setSiguiente] = useState<string | null>(null);
+  const [buscar, setBuscar] = useState('');
+  const [hallados, setHallados] = useState<FilaDeProducto[]>([]);
+  const turno = useRef(crearTurno());
+
+  const leerMiembros = useCallback(
+    async (cursor: string | null) => {
+      const r = await pedirAlPanel<PaginaDeProductos>(
+        conexion,
+        rutaDeProductos({ coleccion: id, cursor }),
+      );
+      if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+      if (r.tipo !== 'ok') return;
+      setSiguiente(r.datos.siguiente ?? null);
+      setVistos((antes) => (cursor ? unirProductos(antes, r.datos.productos) : r.datos.productos));
+    },
+    [conexion, id, alVencer],
+  );
+  useEffect(() => {
+    void leerMiembros(null);
+  }, [leerMiembros, actual?.version]);
+
+  useEffect(() => {
+    const q = buscar.trim();
+    const t = turno.current.tomar();
+    if (!q) {
+      setHallados([]);
+      return;
+    }
+    const espera = setTimeout(async () => {
+      const r = await pedirAlPanel<PaginaDeProductos>(conexion, rutaDeProductos({ q }));
+      if (!turno.current.vigente(t)) return;
+      if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+      setHallados(r.tipo === 'ok' ? r.datos.productos : []);
+    }, 250);
+    return () => clearTimeout(espera);
+  }, [buscar, conexion, alVencer]);
   const [nombre, setNombre] = useState('');
   const [visible, setVisible] = useState(true);
   const [elegidos, setElegidos] = useState<string[]>([]);
@@ -195,13 +238,23 @@ export function Coleccion({
     setElegidos(actual.productos);
   }, [actual?.id, actual?.version]);
 
+  /** Marcar agrega al final (si no estaba) y deja el producto a la vista; desmarcar lo saca. */
+  const elegir = (p: FilaDeProducto, si: boolean) => {
+    setElegidos((antes) =>
+      si ? (antes.includes(p.id) ? antes : [...antes, p.id]) : antes.filter((x) => x !== p.id),
+    );
+    setVistos((antes) => unirProductos(antes, [p]));
+  };
+  const porAgregar = hallados.filter((p) => !vistos.some((v) => v.id === p.id));
+  // Los de la colección que todavía no se han cargado: siguen elegidos.
+  const sinVer = elegidos.filter((x) => !vistos.some((v) => v.id === x)).length;
+
   const guardar = async (e: Event) => {
     e.preventDefault();
     if (!actual) return;
-    // En el orden del catálogo: así lo ve el comprador.
-    const enOrden = productos.map((p) => p.id).filter((p) => elegidos.includes(p));
+    // En el orden de la colección; lo que se agregó va al final.
     const r = await pedirAlPanel(conexion, 'colecciones/guardar', {
-      cuerpo: { op: opNueva(), id, version: actual.version, nombre, visible, productos: enOrden },
+      cuerpo: { op: opNueva(), id, version: actual.version, nombre, visible, productos: elegidos },
     });
     if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
     if (r.tipo === 'ok') {
@@ -286,29 +339,61 @@ export function Coleccion({
         </label>
         <fieldset class="ed1-grupo">
           <legend class="ed1-grupo__titulo">Productos en «{actual.nombre}»</legend>
-          {productos.length === 0 ? (
-            <p>
-              Todavía no tienes productos. <a href="/productos/nuevo/">Crea uno</a>
+          {vistos.length === 0 ? (
+            <p>Esta colección todavía no tiene productos. Búscalos aquí abajo para agregarlos.</p>
+          ) : null}
+          {vistos.map((p) => (
+            <Casilla
+              key={p.id}
+              producto={p}
+              elegido={elegidos.includes(p.id)}
+              alCambiar={(si) => elegir(p, si)}
+            />
+          ))}
+          {sinVer > 0 ? (
+            <p class="nota">
+              {cuantosSeVen(vistos.length, vistos.length + sinVer)} Los que no se ven siguen en la
+              colección.
             </p>
           ) : null}
-          {productos.map((p) => (
-            <label class="casilla" key={p.id} for={`p-${p.id}`}>
-              <input
-                id={`p-${p.id}`}
-                type="checkbox"
-                checked={elegidos.includes(p.id)}
-                onChange={(e) =>
-                  setElegidos((antes) =>
-                    (e.target as HTMLInputElement).checked
-                      ? [...antes, p.id]
-                      : antes.filter((x) => x !== p.id),
-                  )
-                }
-              />
-              {p.nombre}
-            </label>
-          ))}
+          {siguiente !== null ? (
+            <button
+              class="ed1-boton ed1-boton--secundario"
+              type="button"
+              onClick={() => void leerMiembros(siguiente)}
+            >
+              Ver más de «{actual.nombre}»
+            </button>
+          ) : null}
         </fieldset>
+        <div class="ed1-campo">
+          <label class="ed1-campo__etiqueta" for="agregar">
+            Agregar productos: búscalos por nombre
+          </label>
+          <input
+            class="ed1-campo__control"
+            id="agregar"
+            type="search"
+            value={buscar}
+            onInput={(e) => setBuscar((e.target as HTMLInputElement).value)}
+          />
+        </div>
+        {buscar.trim() ? (
+          <fieldset class="ed1-grupo">
+            <legend class="ed1-grupo__titulo">Para agregar</legend>
+            {porAgregar.length === 0 ? (
+              <p>Ningún otro producto se llama «{buscar.trim()}».</p>
+            ) : null}
+            {porAgregar.map((p) => (
+              <Casilla
+                key={p.id}
+                producto={p}
+                elegido={elegidos.includes(p.id)}
+                alCambiar={(si) => elegir(p, si)}
+              />
+            ))}
+          </fieldset>
+        ) : null}
         <button class="ed1-boton ed1-boton--primario" type="submit">
           Guardar colección
         </button>
@@ -320,5 +405,27 @@ export function Coleccion({
         alConfirmar={borrar}
       />
     </main>
+  );
+}
+
+function Casilla({
+  producto,
+  elegido,
+  alCambiar,
+}: {
+  producto: FilaDeProducto;
+  elegido: boolean;
+  alCambiar: (si: boolean) => void;
+}) {
+  return (
+    <label class="casilla" for={`p-${producto.id}`}>
+      <input
+        id={`p-${producto.id}`}
+        type="checkbox"
+        checked={elegido}
+        onChange={(e) => alCambiar((e.target as HTMLInputElement).checked)}
+      />
+      {producto.nombre}
+    </label>
   );
 }

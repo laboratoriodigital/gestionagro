@@ -511,6 +511,108 @@ test('HU-T8.4 · CA2: borrar una colección dice que sus productos se quedan', a
   await expect(page.getByText('Todavía no tienes colecciones.')).toBeVisible();
 });
 
+// ── Bitácora tienda3 21: los productos y las colecciones con la tienda llena ─────────────────
+
+const filaDe = (n: number, nombre = `Camisa de lino ${n}`) => ({
+  id: `p-${String(n).padStart(4, '0')}`,
+  slug: `camisa-${n}`,
+  nombre,
+  estado: 'activo',
+  version: 1,
+  combinaciones: 6,
+  desde: 39000,
+  existencias: 4,
+  borrado: null,
+});
+
+/** La API de productos de a 50, como la de verdad: `cursor` es el índice del siguiente. */
+async function productosDeA50(
+  page: Page,
+  todos: ReturnType<typeof filaDe>[],
+  coleccion?: string[],
+) {
+  await page.route(`${PANEL}/api/panel/v1/productos?*`, (r) => {
+    const u = new URL(r.request().url());
+    const q = u.searchParams.get('q') ?? '';
+    const c = u.searchParams.get('coleccion');
+    const lista = q
+      ? todos.filter((p) => p.nombre.toLowerCase().includes(q.toLowerCase()))
+      : c && coleccion
+        ? todos.filter((p) => coleccion.includes(p.id))
+        : todos;
+    const desde = Number(u.searchParams.get('cursor') ?? 0);
+    const hasta = desde + 50;
+    return r.fulfill({
+      json: {
+        productos: lista.slice(desde, hasta),
+        siguiente: hasta < lista.length ? String(hasta) : null,
+        total: lista.length,
+      },
+    });
+  });
+}
+
+test('bitácora tienda3 21: con 2.008 productos la lista va de a 50, dice cuántos hay y trae más', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  await productosDeA50(
+    page,
+    Array.from({ length: 2008 }, (_, i) => filaDe(i + 1)),
+  );
+  await page.goto(`${PANEL}/productos/`);
+  await expect(page.getByText('Se ven 50 de 2.008 productos.')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Camisa de lino 51\b/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Ver más productos' }).click();
+  await expect(page.getByText('Se ven 100 de 2.008 productos.')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Camisa de lino 51\b/ })).toBeVisible();
+});
+
+test('bitácora tienda3 21 ❌: guardar una colección de 60 no saca a los que no se ven, y agrega buscando', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const todos = [
+    ...Array.from({ length: 60 }, (_, i) => filaDe(i + 1)),
+    filaDe(999, 'Vestido de seda Brisa'),
+  ];
+  const miembros = todos.slice(0, 60).map((p) => p.id);
+  await page.route(`${PANEL}/api/panel/v1/colecciones`, (r) =>
+    r.fulfill({
+      json: {
+        colecciones: [
+          {
+            id: 'c-lino',
+            slug: 'lino',
+            nombre: 'Lino',
+            descripcionMd: '',
+            visible: true,
+            version: 1,
+            productos: miembros,
+          },
+        ],
+      },
+    }),
+  );
+  await productosDeA50(page, todos, miembros);
+  const enviados: { productos: string[] }[] = [];
+  await page.route(`${PANEL}/api/panel/v1/colecciones/guardar`, (r) => {
+    enviados.push(r.request().postDataJSON() as { productos: string[] });
+    return r.fulfill({ json: { estado: 'guardado', id: 'c-lino', version: 2 } });
+  });
+  await page.goto(`${PANEL}/productos/colecciones/c-lino/`);
+  await expect(page.getByLabel('Camisa de lino 1', { exact: true })).toBeChecked();
+  await expect(
+    page.getByText('Se ven 50 de 60 productos. Los que no se ven siguen en la colección.'),
+  ).toBeVisible();
+  await page.getByLabel('Camisa de lino 2', { exact: true }).uncheck();
+  await page.getByLabel('Agregar productos: búscalos por nombre').fill('vestido');
+  await page.getByLabel('Vestido de seda Brisa').check();
+  await page.getByRole('button', { name: 'Guardar colección' }).click();
+  await expect.poll(() => enviados.length).toBe(1);
+  expect(enviados[0]?.productos).toEqual([...miembros.filter((id) => id !== 'p-0002'), 'p-0999']);
+});
+
 /** Las partes de un `multipart/form-data`: su nombre, el del archivo si es uno, y sus bytes. */
 function partesDe(cuerpo: Buffer, tipo: string) {
   const limite = Buffer.from(`--${tipo.split('boundary=')[1]}`);
@@ -672,7 +774,7 @@ test('HU-T8.5 · CA1 y CA2: ajustar y contar, con su libro, y lo apartado dicho 
   };
   const movimientos: object[] = [];
   const enviados: Record<string, unknown>[] = [];
-  await page.route(`${PANEL}/api/panel/v1/inventario`, (r) =>
+  await page.route(`${PANEL}/api/panel/v1/inventario?*`, (r) =>
     r.fulfill({ json: { filas: [fila] } }),
   );
   await page.route(`${PANEL}/api/panel/v1/inventario/v-camisa-m-arena`, (r) =>
@@ -1184,7 +1286,7 @@ test('HU-T9.6 · CA1: anotar un pedido que llegó por teléfono, con todos sus e
     esperan: 0,
     version: 1,
   });
-  await page.route(`${PANEL}/api/panel/v1/inventario`, (r) =>
+  await page.route(`${PANEL}/api/panel/v1/inventario?*`, (r) =>
     r.fulfill({
       json: {
         filas: [fila('v-camisa-m-arena', 'M / Arena', 4), fila('v-camisa-s-arena', 'S / Arena', 1)],
@@ -1235,6 +1337,64 @@ test('HU-T9.6 · CA1: anotar un pedido que llegó por teléfono, con todos sus e
       contacto: { nombre: 'Ensayo Dos Compradora' },
     }),
   ]);
+});
+
+test('bitácora tienda3 21: anotar con 2.001 combinaciones se busca, y lo anotado no se pierde al buscar otra', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const combinacion = (n: number, nombre: string, precioCop: number) => ({
+    variante: `v-${n}`,
+    producto: `p-${n}`,
+    nombre,
+    combinacion: 'M / Arena',
+    sku: null,
+    precioCop,
+    stock: 5,
+    apartadas: 0,
+    esperan: 0,
+    version: 1,
+  });
+  const todas = [
+    ...Array.from({ length: 2000 }, (_, i) => combinacion(i + 1, `Camisa de lino ${i + 1}`, 39000)),
+    combinacion(9999, 'Vestido de seda Brisa', 59000),
+  ];
+  await page.route(`${PANEL}/api/panel/v1/inventario?*`, (r) => {
+    const u = new URL(r.request().url());
+    const q = (u.searchParams.get('q') ?? '').toLowerCase();
+    const lista = todas.filter((c) => c.nombre.toLowerCase().includes(q));
+    const desde = Number(u.searchParams.get('cursor') ?? 0);
+    return r.fulfill({
+      json: {
+        filas: lista.slice(desde, desde + 50),
+        siguiente: desde + 50 < lista.length ? String(desde + 50) : null,
+        total: lista.length,
+      },
+    });
+  });
+  const anotados: { lineas: unknown[] }[] = [];
+  await page.route(`${PANEL}/api/panel/v1/pedidos/anotar`, (r) => {
+    anotados.push(r.request().postDataJSON() as { lineas: unknown[] });
+    return r.fulfill({ status: 503, json: { estado: 'error', motivo: 'Prueba: no se anota.' } });
+  });
+  await page.goto(`${PANEL}/pedidos/nuevo/`);
+  await expect(page.getByText('Se ven 50 de 2.001 combinaciones.')).toBeVisible();
+  await page.getByLabel(/^Camisa de lino 1 ·/).fill('2');
+  await page.getByLabel('Busca el producto por nombre').fill('vestido');
+  await page.getByLabel(/^Vestido de seda Brisa/).fill('1');
+  const enElPedido = page.getByRole('group', { name: 'En el pedido' });
+  await expect(enElPedido.getByLabel(/^Camisa de lino 1 ·/)).toHaveValue('2');
+  await page.getByLabel('Cómo paga').selectOption('efectivo');
+  await expect(page.getByText('Total: $137.000')).toBeVisible();
+  await page.getByRole('button', { name: 'Anotar el pedido' }).click();
+  await expect.poll(() => anotados.length).toBe(1);
+  expect(anotados[0]?.lineas).toEqual(
+    expect.arrayContaining([
+      { variante: 'v-1', cantidad: 2 },
+      { variante: 'v-9999', cantidad: 1 },
+    ]),
+  );
+  expect(anotados[0]?.lineas).toHaveLength(2);
 });
 
 test('HU-T9.6 · CA1 y CA2: una nota, un enlace nuevo y cancelar preguntando si las unidades vuelven', async ({

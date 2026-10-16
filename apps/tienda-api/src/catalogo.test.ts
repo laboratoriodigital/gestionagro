@@ -203,7 +203,7 @@ describe('HU-T8.2 · productos con sus combinaciones', () => {
     const b = await guardarProducto(quien(), cuerpo);
     expect(b).toEqual(a);
     expect(
-      (await listarProductos(quien())).filter((p) => p.nombre === 'Delantal de lino'),
+      (await listarProductos(quien())).productos.filter((p) => p.nombre === 'Delantal de lino'),
     ).toHaveLength(1);
     expect((await registro()).filter((f) => f.accion === 'producto.crear')).toHaveLength(1);
   });
@@ -351,8 +351,10 @@ describe('HU-T8.2 · productos con sus combinaciones', () => {
     if (a.estado !== 'guardado') throw new Error(a.estado);
     const b = await tocarElProducto(quien(), { op: op(), id: a.id, version: 1 }, 'borrar');
     expect(b).toMatchObject({ estado: 'guardado', version: 2 });
-    expect((await listarProductos(quien())).map((p) => p.id)).not.toContain(a.id);
-    expect((await listarProductos(quien(), { papelera: true })).map((p) => p.id)).toEqual([a.id]);
+    expect((await listarProductos(quien())).productos.map((p) => p.id)).not.toContain(a.id);
+    expect((await listarProductos(quien(), { papelera: true })).productos.map((p) => p.id)).toEqual(
+      [a.id],
+    );
     expect(
       await tocarElProducto(quien(), { op: op(), id: a.id, version: 2 }, 'borrar'),
     ).toMatchObject({
@@ -375,10 +377,10 @@ describe('HU-T8.2 · productos con sus combinaciones', () => {
       ...quien(),
       instante: new Date(Date.parse(AHORA) + dias * 86_400_000).toISOString(),
     });
-    expect((await listarProductos(despues(29), { papelera: true })).map((p) => p.id)).toEqual([
-      a.id,
-    ]);
-    expect(await listarProductos(despues(31), { papelera: true })).toEqual([]);
+    expect(
+      (await listarProductos(despues(29), { papelera: true })).productos.map((p) => p.id),
+    ).toEqual([a.id]);
+    expect((await listarProductos(despues(31), { papelera: true })).productos).toEqual([]);
     expect(
       await tocarElProducto(despues(31), { op: op(), id: a.id, version: 2 }, 'restaurar'),
     ).toMatchObject({
@@ -403,7 +405,7 @@ describe('HU-T8.2 · productos con sus combinaciones', () => {
     const a = await guardarProducto(quien(), delantal());
     if (a.estado !== 'guardado') throw new Error(a.estado);
     await ordenarProductos(quien(), { op: op(), ids: [a.id, 'p-camisa'] });
-    expect((await listarProductos(quien())).map((p) => p.id)).toEqual([a.id, 'p-camisa']);
+    expect((await listarProductos(quien())).productos.map((p) => p.id)).toEqual([a.id, 'p-camisa']);
   });
 });
 

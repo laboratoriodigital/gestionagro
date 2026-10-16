@@ -14,9 +14,11 @@
 import type { SentenciaD1 } from '@ed1/d1';
 import { z } from 'zod';
 import {
+  cursorDe,
   esCambiado,
   esOperacionRepetida,
   guardarOperacion,
+  leerCursor,
   MOTIVO_CAMBIADO,
   type Quien,
   type Resultado,
@@ -45,41 +47,117 @@ export interface FilaDeInventario {
 
 const combinacionDe = (clave: string) => (clave === '' ? '' : clave.split('|').join(' / '));
 
-/** Las combinaciones activas de los productos que no están en la papelera, en el orden del catálogo. */
-export async function listarInventario(q: Quien): Promise<FilaDeInventario[]> {
-  const { results } = await q.db
+type FilaLeida = {
+  id: string;
+  producto_id: string;
+  nombre: string;
+  clave: string;
+  sku: string | null;
+  precio_cop: number;
+  stock: number | null;
+  reservado: number;
+  version: number;
+  esperan: number | null;
+  posicion_producto: number;
+  slug: string;
+  posicion: number;
+};
+
+const filaDe = (v: FilaLeida): FilaDeInventario => ({
+  variante: v.id,
+  producto: v.producto_id,
+  nombre: v.nombre,
+  combinacion: combinacionDe(v.clave),
+  sku: v.sku,
+  precioCop: v.precio_cop,
+  stock: v.stock,
+  apartadas: v.reservado,
+  esperan: v.esperan ?? 0,
+  version: v.version,
+});
+
+export const COMBINACIONES_POR_PAGINA = 50;
+
+/**
+ * Las combinaciones activas de los productos que no están en la papelera, en el orden del catálogo,
+ * de a 50 y con el total; `buscar` filtra por el nombre del producto. Con la tienda llena eran
+ * 12.000 filas y 2,2 MB de una vez (bitácora tienda3 21).
+ */
+export async function listarInventario(
+  q: Quien,
+  opciones: { buscar?: string; cursor?: string; limite?: number } = {},
+): Promise<{ filas: FilaDeInventario[]; siguiente: string | null; total: number }> {
+  const buscar = (opciones.buscar ?? '').trim().toLowerCase();
+  const limite = opciones.limite ?? COMBINACIONES_POR_PAGINA;
+  const despues = leerCursor<[number, string, number, string]>(opciones.cursor, [
+    'n',
+    's',
+    'n',
+    's',
+  ]);
+  const [pagina, cuenta] = await Promise.all([
+    q.db
+      .prepare(
+        `SELECT v.id, v.producto_id, p.nombre, v.clave, v.sku, v.precio_cop, v.stock, v.reservado, v.version,
+                p.posicion AS posicion_producto, p.slug, v.posicion,
+                (SELECT i.personas FROM interes_reposicion i WHERE i.org_id = ? AND i.variante_id = v.id) AS esperan
+           FROM variante v JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
+          WHERE v.org_id = ? AND v.activa = 1 AND p.borrado IS NULL
+            AND (? = '' OR lower(p.nombre) LIKE '%' || ? || '%')
+            AND (? IS NULL OR (p.posicion, p.slug, v.posicion, v.id) > (?, ?, ?, ?))
+          ORDER BY p.posicion, p.slug, v.posicion, v.id LIMIT ?`,
+      )
+      .bind(
+        q.org,
+        q.org,
+        buscar,
+        buscar,
+        despues ? 1 : null,
+        despues?.[0] ?? 0,
+        despues?.[1] ?? '',
+        despues?.[2] ?? 0,
+        despues?.[3] ?? '',
+        limite + 1,
+      )
+      .all<FilaLeida>(),
+    q.db
+      .prepare(
+        `SELECT count(*) AS n
+           FROM variante v JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
+          WHERE v.org_id = ? AND v.activa = 1 AND p.borrado IS NULL
+            AND (? = '' OR lower(p.nombre) LIKE '%' || ? || '%')`,
+      )
+      .bind(q.org, buscar, buscar)
+      .first<{ n: number }>(),
+  ]);
+  const filas = pagina.results.slice(0, limite);
+  const ultima = filas.at(-1);
+  return {
+    filas: filas.map(filaDe),
+    siguiente:
+      pagina.results.length > limite && ultima
+        ? cursorDe([ultima.posicion_producto, ultima.slug, ultima.posicion, ultima.id])
+        : null,
+    total: cuenta?.n ?? 0,
+  };
+}
+
+/** Una combinación del inventario, o `null` si no es de la tienda o está en la papelera. */
+export async function filaDeInventario(
+  q: Quien,
+  variante: string,
+): Promise<FilaDeInventario | null> {
+  const v = await q.db
     .prepare(
       `SELECT v.id, v.producto_id, p.nombre, v.clave, v.sku, v.precio_cop, v.stock, v.reservado, v.version,
+              p.posicion AS posicion_producto, p.slug, v.posicion,
               (SELECT i.personas FROM interes_reposicion i WHERE i.org_id = ? AND i.variante_id = v.id) AS esperan
          FROM variante v JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
-        WHERE v.org_id = ? AND v.activa = 1 AND p.borrado IS NULL
-        ORDER BY p.posicion, p.slug, v.posicion`,
+        WHERE v.org_id = ? AND v.id = ? AND v.activa = 1 AND p.borrado IS NULL`,
     )
-    .bind(q.org, q.org)
-    .all<{
-      id: string;
-      producto_id: string;
-      nombre: string;
-      clave: string;
-      sku: string | null;
-      precio_cop: number;
-      stock: number | null;
-      reservado: number;
-      version: number;
-      esperan: number | null;
-    }>();
-  return results.map((v) => ({
-    variante: v.id,
-    producto: v.producto_id,
-    nombre: v.nombre,
-    combinacion: combinacionDe(v.clave),
-    sku: v.sku,
-    precioCop: v.precio_cop,
-    stock: v.stock,
-    apartadas: v.reservado,
-    esperan: v.esperan ?? 0,
-    version: v.version,
-  }));
+    .bind(q.org, q.org, variante)
+    .first<FilaLeida>();
+  return v ? filaDe(v) : null;
 }
 
 export interface Movimiento {
@@ -98,7 +176,7 @@ export async function libroDe(
   cursor: number | null,
   limite = 50,
 ): Promise<{ fila: FilaDeInventario; movimientos: Movimiento[]; siguiente: number | null } | null> {
-  const fila = (await listarInventario(q)).find((f) => f.variante === variante);
+  const fila = await filaDeInventario(q, variante);
   if (!fila) return null;
   const { results } = await q.db
     .prepare(
