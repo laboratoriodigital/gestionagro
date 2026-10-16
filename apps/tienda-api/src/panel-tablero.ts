@@ -167,10 +167,10 @@ export async function tablero(q: Quien, ahoraMs: number): Promise<Tablero> {
       cuenta(q, `SELECT count(*) AS n FROM cobro WHERE org_id = ? AND estado = 'revisar'`),
       cuenta(
         q,
-        `SELECT count(*) AS n FROM variante v
+        `SELECT count(*) AS n FROM variante v INDEXED BY variante_agotada
            JOIN producto p ON p.org_id = ? AND p.id = v.producto_id
           WHERE v.org_id = ? AND v.activa = 1 AND p.borrado IS NULL
-            AND v.stock IS NOT NULL AND v.stock - v.reservado <= 0`,
+            AND v.stock IS NOT NULL AND v.stock <= v.reservado`,
         q.org,
       ),
       listarSolicitudes(q, ahoraMs),

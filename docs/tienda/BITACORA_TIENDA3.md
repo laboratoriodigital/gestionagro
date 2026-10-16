@@ -786,3 +786,34 @@ La regla: **cuando la llave depende del contenido, se prueban las llaves posible
 La regla: **una guardia que lee una lista de archivos lee todos los que cumplen la regla, no el que existía cuando se escribió.**
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Medio · P1, P9 · tienda-0.1.0 · 2026-10-16
+
+**26 · Una sola carga de Productos con la tienda llena gastó el día de D1 de toda la cuenta.**
+
+*Qué pasó.* El 16 oct 2026, en el recorrido con la tienda llena en staging (WI-T3.7.3). Desde las 14:20 UTC fallaron los despliegues de #194, #195, #196 y #198, en «Desplegar el CORE», y hasta las 00:00 UTC ninguna base de la cuenta respondió: el CORE, el agro, el parqueadero y la Tienda, en staging y en producción.
+
+*Síntoma literal.* `Your account has exceeded D1's free tier daily row read limit. Upgrade to a paid plan or wait until tomorrow (midnight UTC) to continue. [code: 7500]`.
+
+*Causa raíz.* El plan gratuito da 5 millones de filas leídas al día para toda la cuenta, y D1 cuenta cada fila que recorre una consulta, también las de un índice. En la versión de staging (056a1a6), la lista de Productos unía cada producto con las combinaciones de la tienda: 2.001 × 12.003, es decir 24.025.578 filas en una sola carga. La #194 la había bajado a 25 mil, pero su despliegue ya no pudo correr. Midiendo lo demás salieron tres más:
+
+- Sin estadísticas, SQLite prefiere recorrer la tienda entera por la llave primaria (`org_id`) antes que el índice de las combinaciones de un producto. Por eso abrir o guardar un producto leía las 12.000 combinaciones, y la purga diaria leía 40.000 filas aunque no tuviera nada que purgar.
+- El inventario leía 60.000 filas por página, porque unía y contaba todas las combinaciones.
+- El tablero leía 13.000 filas para contar las agotadas.
+
+Ninguna prueba medía filas leídas: la base en proceso no las cuenta, y la de workerd sí, pero nadie las sumaba (P17).
+
+*Cómo se reprodujo.* `apps/tienda-api/src/lecturas.test.ts` con la versión de antes: la lista de productos lee 24.716 filas y el inventario 60.015.
+
+*Arreglo.* La 0007 agrega cuatro índices, `variante_por_producto`, `variante_agotada`, `producto_en_orden` y `producto_en_orden_por_slug`, y la columna `producto.combinaciones`, que mantienen tres triggers. Las consultas nombran su índice con `INDEXED BY`, para que el plan no dependa de lo que el planificador adivine. Si el índice falta, la consulta falla en vez de leer la tienda. Las listas eligen primero la página de productos y después leen sus combinaciones. La purga no nombra productos cuando no hay ninguno que purgar.
+
+| Lectura | Antes | Después |
+|---|---|---|
+| Lista de Productos | 24.716 | menos de 5.000 |
+| Inventario | 60.015 | menos de 5.000 |
+| Tablero | 14.256 | menos de 5.000 |
+| Abrir un producto | 12.013 | menos de 300 |
+
+**Lo prueba** `apps/tienda-api/src/lecturas.test.ts`, que corre siempre con el D1 de workerd y la tienda llena. Pone un tope por lista (5.000 filas), por ficha o cambio (300), por corrida de cada tarea (300 la de cada hora, 5.000 la diaria, 50.000 la semanal) y para publicar y exportar. El mensaje nombra la consulta que más leyó. Control negativo: con el código de antes, 8 de esas pruebas quedan en rojo; sin el trigger que cambia de producto una combinación, la cuenta de `combinaciones` queda desfasada.
+
+La regla: **una consulta se mide por las filas que lee, no por lo que tarda; y si importa qué índice usa, lo nombra.**
+
+*Ficha:* tienda3 · *(mío)* · 🔴 Alto · P17, P7 · tienda-0.1.0 · 2026-10-16

@@ -247,36 +247,54 @@ export async function purgarTienda(
     )
     .bind(org, org, org, org, limitePapelera)
     .all<{ id: string; vendido: number }>();
-  const ids = JSON.stringify(productos.filter((p) => !p.vendido).map((p) => p.id));
-  const variantes = `SELECT id FROM variante WHERE org_id = ? AND producto_id IN (SELECT value FROM json_each(?))`;
+  const purgables = productos.filter((p) => !p.vendido).map((p) => p.id);
+  const ids = JSON.stringify(purgables);
+  const variantes = `SELECT id FROM variante INDEXED BY variante_por_producto WHERE org_id = ? AND producto_id IN (SELECT value FROM json_each(?))`;
   const colecciones = `SELECT id FROM coleccion WHERE org_id = ? AND borrado IS NOT NULL AND borrado <= ?`;
+  // Sin productos que purgar no se nombra ninguno: con la lista vacía, SQLite igual recorría las
+  // combinaciones de la tienda en cada borrado (40.000 filas leídas al día, bitácora tienda3 26).
+  const deProductos =
+    purgables.length === 0
+      ? []
+      : [
+          db
+            .prepare(
+              'DELETE FROM coleccion_producto WHERE org_id = ? AND producto_id IN (SELECT value FROM json_each(?))',
+            )
+            .bind(org, ids),
+          db
+            .prepare(
+              'DELETE FROM medio WHERE org_id = ? AND producto_id IN (SELECT value FROM json_each(?))',
+            )
+            .bind(org, ids),
+          db
+            .prepare(
+              `DELETE FROM interes_reposicion WHERE org_id = ? AND variante_id IN (${variantes})`,
+            )
+            .bind(org, org, ids),
+          db
+            .prepare(
+              `DELETE FROM movimiento_inventario WHERE org_id = ? AND variante_id IN (${variantes})`,
+            )
+            .bind(org, org, ids),
+          db
+            .prepare(
+              'DELETE FROM variante INDEXED BY variante_por_producto WHERE org_id = ? AND producto_id IN (SELECT value FROM json_each(?))',
+            )
+            .bind(org, ids),
+          db
+            .prepare(
+              'DELETE FROM producto WHERE org_id = ? AND id IN (SELECT value FROM json_each(?))',
+            )
+            .bind(org, ids),
+        ];
   const lote = [
     db
       .prepare(
-        `DELETE FROM coleccion_producto WHERE org_id = ? AND (producto_id IN (SELECT value FROM json_each(?)) OR coleccion_id IN (${colecciones}))`,
+        `DELETE FROM coleccion_producto WHERE org_id = ? AND coleccion_id IN (${colecciones})`,
       )
-      .bind(org, ids, org, limitePapelera),
-    db
-      .prepare(
-        'DELETE FROM medio WHERE org_id = ? AND producto_id IN (SELECT value FROM json_each(?))',
-      )
-      .bind(org, ids),
-    db
-      .prepare(`DELETE FROM interes_reposicion WHERE org_id = ? AND variante_id IN (${variantes})`)
-      .bind(org, org, ids),
-    db
-      .prepare(
-        `DELETE FROM movimiento_inventario WHERE org_id = ? AND variante_id IN (${variantes})`,
-      )
-      .bind(org, org, ids),
-    db
-      .prepare(
-        'DELETE FROM variante WHERE org_id = ? AND producto_id IN (SELECT value FROM json_each(?))',
-      )
-      .bind(org, ids),
-    db
-      .prepare('DELETE FROM producto WHERE org_id = ? AND id IN (SELECT value FROM json_each(?))')
-      .bind(org, ids),
+      .bind(org, org, limitePapelera),
+    ...deProductos,
     db
       .prepare('DELETE FROM coleccion WHERE org_id = ? AND borrado IS NOT NULL AND borrado <= ?')
       .bind(org, limitePapelera),
