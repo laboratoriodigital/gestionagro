@@ -1,0 +1,10 @@
+{
+  "name": "@ed1/correo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "El adaptador de correo transaccional (PLATAFORMA §4.11, HU-C10.1): Gmail por su API mientras dure, con el fetch inyectado, para que el CORE y la Tienda envíen con sus propios secretos. Sin configuración responde «no disponible» y nunca finge haber enviado.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

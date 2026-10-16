@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- El adaptador de correo `@ed1/correo` (HU-C10.1): Gmail por su API, con el refresh token de OAuth y el permiso `gmail.send`, para el CORE y la Tienda, cada uno con sus secretos. Sin configuración responde «no disponible» y nunca finge haber enviado. El código del CORE no cambia todavía: lo usará el enlace para entrar (HU-C10.2) y los avisos de vencimiento (HU-C10.3).
+
 ### Cambiado
 - El adaptador de Bold sale del CORE a `@ed1/pagos` (HU-T11.1), para que la Tienda cobre con las llaves de cada comercio. El CORE solo cambia de dónde lo importa y sigue cobrando igual, con sus llaves en cada llamada. Un estado de Bold que no se conoce se traduce a «revisar», y el CORE lo trata como antes: sigue esperando hasta que venza.
 - En staging, el CORE atiende la Tienda aunque en producción siga pausada (HU-T2.10): `productos-de-prueba.json` dice qué productos pausados se activan solo en staging, y la base de staging dice lo mismo. Producción no cambia.
