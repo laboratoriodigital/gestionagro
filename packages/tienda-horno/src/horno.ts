@@ -695,7 +695,7 @@ ${p.cuerpo}
       '<button class="boton boton--principal" type="submit" data-enviar aria-disabled="true">Elige cómo pagar</button>',
       '<p class="resumen__nota" data-nota-venta>Te llevamos a WhatsApp con tu pedido escrito. Los datos de entrega se los das a la tienda allí.</p>',
       t.cobroEnLinea
-        ? '<p class="resumen__nota" data-nota-en-linea hidden>Pagas en la página segura de Bold sin salir de la tienda. Tus datos de entrega le llegan cifrados a la tienda.</p><p class="acuse__enlace" data-enlace-del-pago hidden>Guarda este enlace para seguir tu pedido: <a data-enlace-del-pedido></a></p>'
+        ? '<p class="resumen__nota" data-nota-en-linea hidden>Pagas en la página segura de Bold sin salir de la tienda. Tus datos de entrega le llegan cifrados a la tienda.</p><div class="acuse__enlace" data-enlace-del-pago hidden><p>Guarda este enlace para seguir tu pedido, aunque vuelvas desde otro navegador: <a data-enlace-del-pedido></a></p><p class="acuse__acciones"><button type="button" class="boton" data-copiar-enlace>Copiar el enlace</button> <a class="boton" data-enlace-whatsapp rel="nofollow">Mandármelo por WhatsApp</a></p></div>'
         : '',
       '</form>',
       `<script type="application/json" id="venta">${jsonEstable(datosDeVenta).replace(/</g, '\\u003c')}</script>`,
@@ -755,7 +755,9 @@ ${p.cuerpo}
         '<h1>Tu pago</h1>',
         '<div class="seguimiento" data-vuelta-del-pago>',
         '<p class="estado">Si pagaste, Bold le avisa a la tienda y tu pedido queda pagado. Lo ves con el enlace de seguimiento que guardaste antes de pagar.</p>',
+        '<p class="aviso" data-vuelta-aviso role="status" hidden></p>',
         '<a class="boton boton--principal" data-vuelta-enlace hidden>Ver mi pedido</a>',
+        '<a class="boton" href="/carrito/" data-vuelta-carrito hidden>Volver al carrito</a>',
         '</div>',
       ].join('\n'),
       ld: [],

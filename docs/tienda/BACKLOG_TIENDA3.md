@@ -1143,7 +1143,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T11.8.1 `[código]` · WI-T11.8.2 `[prueba]` · WI-T11.8.3 `[dueño]` el pago de prueba con link.
 
 #### HU-T11.9 · Volver de Bold sin perder el pedido
-- **Capa:** vitrina · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T13 · **Depende de:** HU-T11.4, HU-T6.3 · **Estado:** Refinada
+- **Capa:** vitrina · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T13 · **Depende de:** HU-T11.4, HU-T6.3 · **Estado:** En validación (rama `feat/t13-sprint`. Antes de abrir Bold, el enlace del pedido queda a la vista con «Copiar el enlace» y «Mandármelo por WhatsApp», y en el `localStorage` de la tienda; el correo en el acuse llega con HU-T14.3. En `/pedido/pago/` la página pregunta con el token de la sesión (`POST /api/v1/cobros/estado`, HU-T11.6): pagado, vacía el carrito y lleva al pedido; en proceso, lleva al pedido sin tocar el carrito; rechazado o vencido, deja los productos en el carrito con otro código y ofrece volver a él, porque el pedido de ese pago ya no se puede pagar otra vez. Sin token (otro navegador), explica cómo encontrar el pedido, sin un error; si este navegador guardó el enlace, lo abre. La e2e paga en un contexto y vuelve en otro. Controles negativos: sin renovar el carrito, sin preguntar con el token y sin la explicación, rojo)
 - Como comprador que pagó con PSE y volvió en otro navegador, quiero igual encontrar mi pedido.
 - **Respaldo:** TIENDA §8.4 y §9.3; bitácora ecommerce 47 y 61; bitácora tienda3 3 (PT1).
 - **CA1.** Antes de abrir Bold, la página entrega el enlace de seguimiento para guardarlo (copiarlo o mandárselo por WhatsApp) y lo deja en el `localStorage` de la tienda. Si la persona dejó correo, va también en el acuse (desde HU-T14.3).

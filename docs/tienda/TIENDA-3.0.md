@@ -786,6 +786,7 @@ botón       = { orderId, currency: "COP", amount, apiKey: <identidad>, integrit
 - **La vuelta no lleva secretos.** Bold le agrega `?bold-order-id=…&bold-tx-status=…`, y esos parámetros **nunca se creen**.
 - La página guarda el token opaco del cobro en `sessionStorage` antes de abrir Bold. Al volver, pregunta con él (§9.5).
 - Si el token se perdió (la persona volvió en otro navegador), la página ofrece el enlace de seguimiento, que llegó en el acuse.
+- *(Hoy: con el token, lo que responde decide el carrito. Pagado, se vacía y la página lleva al pedido; en proceso, lleva al pedido sin tocarlo; rechazado o vencido, los productos se quedan en el carrito con otro código, porque el pedido de ese pago ya no se paga otra vez. Sin token, la página explica cómo encontrar el pedido, sin un error, y si este navegador guardó el enlace, lo abre. HU-T11.9.)*
 - **Nota del plan (6 oct 2026):** en el pago en línea el acuse puede no haber salido del navegador que empezó (no hay mensaje de WhatsApp, y el correo es opcional). Por eso la página entrega el enlace de seguimiento **antes** de abrir Bold, para copiarlo o mandárselo por WhatsApp, y lo guarda en el `localStorage` de la tienda (`BACKLOG_TIENDA3.md` HU-T11.9; bitácora tienda3 3).
 
 ### 9.4 Avisos de Bold (webhooks)

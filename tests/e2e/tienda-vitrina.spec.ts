@@ -431,7 +431,13 @@ test('HU-T11.4 · pagar en línea: pide la entrega, abre el botón de Bold embeb
     expect(todo).not.toContain(dato);
   expect(JSON.parse(guardado.local['tienda:carrito'] ?? '{}').cobro).toEqual(expect.any(String));
 
-  // La vuelta de Bold: lo que dice la dirección no se cree; lleva al pedido con su enlace.
+  // La vuelta de Bold: lo que dice la dirección no se cree. La página pregunta con el token
+  // (HU-T11.9 CA2) y, pagado, lleva al pedido con su enlace.
+  const estados: unknown[] = [];
+  await page.route('**/api/v1/cobros/estado', async (ruta) => {
+    estados.push(JSON.parse(ruta.request().postData() ?? '{}'));
+    await ruta.fulfill({ json: { estado: 'pagado', pedido: 'PAG234' } });
+  });
   await page.goto(`${TIENDA}/pedido/pago/?bold-order-id=PAG234-1&bold-tx-status=approved`);
   await expect(page).toHaveURL(/\/pedido\/#c=PAG234&s=[A-Za-z0-9_-]{22}$/);
   await expect(page.locator('[data-acuse-estado]')).toHaveText(
@@ -442,6 +448,108 @@ test('HU-T11.4 · pagar en línea: pide la entrega, abre el botón de Bold embeb
     lineas: JSON.parse(localStorage.getItem('tienda:carrito') ?? '{}').lineas,
   }));
   expect(despues).toEqual({ token: null, lineas: [] });
+  expect(estados).toEqual([{ token }]);
+});
+
+test('HU-T11.9 CA3 ❌ · paga en un navegador y vuelve en otro: llega con el enlace guardado, y el primero no pierde el carrito', async ({
+  browser,
+}) => {
+  const primero = await browser.newContext({ viewport: { width: 360, height: 740 } });
+  const a = await primero.newPage();
+  await a.addInitScript(() => {
+    if (!sessionStorage.getItem('sembrado')) {
+      sessionStorage.setItem('sembrado', '1');
+      localStorage.setItem(
+        'tienda:carrito',
+        JSON.stringify({
+          v: 1,
+          codigo: 'PRB234',
+          lineas: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+        }),
+      );
+    }
+  });
+  await apiDelPedido(a);
+  await a.route('**/api/v1/cobros', (ruta) =>
+    ruta.fulfill({
+      json: {
+        estado: 'registrado',
+        codigo: 'PRB234',
+        numero: 1002,
+        total: 129000,
+        vence: '2026-10-16T15:15:00.000Z',
+        boton: {
+          libreria: 'https://checkout.bold.co/library/boldPaymentButton.js',
+          checkout: { orderId: 'PRB234-1', amount: '129000', currency: 'COP' },
+        },
+      },
+    }),
+  );
+  await a.route('https://checkout.bold.co/**', (ruta) =>
+    ruta.fulfill({
+      contentType: 'text/javascript',
+      body: 'window.BoldCheckout = class { open() { window.__boldAbierto = true; } };',
+    }),
+  );
+  await a.goto(`${TIENDA}/carrito/`);
+  await a.locator('label.opcion-grande', { hasText: 'En línea' }).click();
+  await a.locator('input[name="nombre"]').fill('Ensayo Dos Compradora');
+  await a.locator('input[name="celular"]').fill('3001234567');
+  await a.locator('[data-acepta]').check();
+  await a.locator('[data-enviar]').click();
+  await expect
+    .poll(() => a.evaluate(() => (window as { __boldAbierto?: boolean }).__boldAbierto))
+    .toBe(true);
+
+  // CA1: antes de pagar, el enlace a la vista, para copiarlo o mandárselo por WhatsApp.
+  const enlace = await a.locator('[data-enlace-del-pedido]').textContent();
+  expect(enlace).toMatch(/^http:\/\/localhost:4332\/pedido\/#c=PRB234&s=[A-Za-z0-9_-]{22}$/);
+  await expect(a.getByRole('button', { name: 'Copiar el enlace' })).toBeVisible();
+  await expect(a.getByRole('link', { name: 'Mandármelo por WhatsApp' })).toHaveAttribute(
+    'href',
+    `https://wa.me/?text=${encodeURIComponent(`Mi pedido PRB234: ${enlace}`)}`,
+  );
+
+  // Vuelve en otro navegador: sin token ni enlace, explica cómo encontrar el pedido, sin error.
+  const segundo = await browser.newContext({ viewport: { width: 360, height: 740 } });
+  const b = await segundo.newPage();
+  const preguntas: string[] = [];
+  await b.route('**/api/v1/cobros/estado', async (ruta) => {
+    preguntas.push(ruta.request().url());
+    await ruta.fulfill({ status: 404, json: { estado: 'no-encontrado' } });
+  });
+  await apiDelPedido(b);
+  await b.goto(`${TIENDA}/pedido/pago/?bold-order-id=PRB234-1&bold-tx-status=approved`);
+  await expect(b.locator('[data-vuelta-aviso]')).toHaveText(
+    /^No encontramos tu pago en este navegador\. .*abre el enlace de tu pedido que guardaste antes de pagar/,
+  );
+  await expect(b).toHaveURL(/\/pedido\/pago\/\?/);
+  await expect(b.getByText(/error/i)).toHaveCount(0);
+  expect(preguntas).toEqual([]);
+  // Con el enlace que guardó, llega a su pedido.
+  await b.goto(String(enlace));
+  await expect(b.locator('[data-acuse-estado]')).toHaveText(
+    'Recibido: la tienda lo va a confirmar',
+  );
+
+  // En el primero, Bold no aprobó: el carrito sigue con sus productos, con otro código.
+  await a.route('**/api/v1/cobros/estado', (ruta) =>
+    ruta.fulfill({ json: { estado: 'rechazado', pedido: 'PRB234' } }),
+  );
+  await a.goto(`${TIENDA}/pedido/pago/?bold-order-id=PRB234-1&bold-tx-status=approved`);
+  await expect(a.locator('[data-vuelta-aviso]')).toHaveText(
+    'Bold no aprobó el pago y no se te cobró. Tus productos siguen en el carrito para intentarlo otra vez.',
+  );
+  await expect(a.getByRole('link', { name: 'Volver al carrito' })).toBeVisible();
+  const carrito = await a.evaluate(() => ({
+    token: sessionStorage.getItem('tienda:cobro'),
+    carrito: JSON.parse(localStorage.getItem('tienda:carrito') ?? '{}'),
+  }));
+  expect(carrito.token).toBeNull();
+  expect(carrito.carrito.lineas).toEqual([{ variante: 'v-camisa-m-arena', cantidad: 1 }]);
+  expect(carrito.carrito.codigo).not.toBe('PRB234');
+  await primero.close();
+  await segundo.close();
 });
 
 test('HU-T6.3 CA3 · un enlace que no es: la página lo dice, sin mostrar ningún pedido', async ({
