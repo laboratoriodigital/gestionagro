@@ -14,6 +14,8 @@ export interface VersionDelPanel {
   publicada: string | null;
   archivos: number | null;
   motivo: string | null;
+  /** Cuándo se borraron sus archivos (bitácora tienda3 28): ya no se puede volver a ella. */
+  purgada?: string | null;
 }
 
 export interface Versiones {
@@ -56,7 +58,7 @@ export const enCurso = (v: VersionDelPanel) =>
 export const esperaAntesDeLeer = (lecturas: number) => Math.min(3000 * 2 ** lecturas, 60_000);
 
 export const sePuedeVolver = (v: VersionDelPanel, publicada: number | null) =>
-  (v.estado === 'reemplazada' || v.estado === 'publicada') && v.version !== publicada;
+  (v.estado === 'reemplazada' || v.estado === 'publicada') && v.version !== publicada && !v.purgada;
 
 const cuantas = (n: number) => (n === 1 ? '1 cosa' : `${n} cosas`);
 
@@ -78,6 +80,7 @@ export function resumenDe(v: VersionDelPanel, publicada: number | null): string 
     v.version === publicada ? 'La que ve la tienda' : null,
     v.automatica ? 'Existencias al día' : null,
     v.archivos === null ? null : v.archivos === 1 ? '1 archivo' : `${v.archivos} archivos`,
+    v.purgada ? 'Ya no se puede volver a ella: tenía más de 90 días' : null,
   ].filter(Boolean);
   return partes.join(' · ');
 }

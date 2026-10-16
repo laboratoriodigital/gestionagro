@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Las versiones viejas del sitio se borran solas de R2 (bitácora tienda3 28). Se borran las de más de 90 días que no son la que ve la tienda ni una de las 5 anteriores. Cada lunes se borran los archivos que ya no usa ninguna tienda; si no se sabe con certeza, no se borra nada. En «Publicar y versiones», una versión borrada dice que ya no se puede volver a ella.
 - El freno de R2 (bitácora tienda3 27): cada hora la Tienda mide cuánto de lo gratis de R2 usó la cuenta. Al 75 % avisa por Telegram; al 90 % del espacio o de las escrituras apaga publicar y subir fotos, para que no empiece a cobrar a la tarjeta, y los vuelve a encender solo por debajo del 80 %. La venta y los cobros nunca se apagan. Necesita el token de métricas (`CF_METRICAS_TOKEN`), el mismo del vigía.
 - `ks:tienda-fotos` pausa la subida de fotos; las que ya están siguen en la tienda.
 - Los correos de la tienda (HU-T14.3): cada mañana, a la hora que el comercio eligió en Avisos, un resumen con lo que hay que hacer hoy, las solicitudes por vencer y lo vendido ayer; al pagar en línea, el acuse al comprador que dejó su correo, con el enlace para seguir su pedido; y el resultado del cobro de prueba. Salen por Gmail con el nombre de la tienda y las respuestas le llegan al comercio. Un correo que no salió queda anotado y nunca cuenta como enviado. Mientras no esté la cuenta de Gmail, no sale ninguno. `ks:tienda-correos` los apaga.
@@ -41,6 +42,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
 
 ### Corregido
+- El cron de la Tienda ya no escribe en el KV en cada corrida de cada tarea: una que sigue bien se anota una vez por su plazo, y una falla siempre. Eran 120 de las 1.000 escrituras diarias de la cuenta (bitácora tienda3 28).
 - Una publicación que se cortó a mitad ya no deja la tienda sin poder publicar: a los 10 minutos queda fallida, con el motivo, y se puede publicar otra vez. Mientras algo se publica, el panel revisa cada vez más espaciado, hasta una vez por minuto, en vez de cada 3 segundos (bitácora tienda3 27).
 - La purga diaria y el respaldo semanal ya no corren todas las tiendas a la misma hora: cada una tiene la suya, para que cada corrida quepa en el tope de consultas del plan gratuito (bitácora tienda3 27).
 - Con la tienda llena, el panel ya no gasta el límite diario de D1 de toda la cuenta (bitácora tienda3 26). Antes, una carga de Productos leía 24 millones de filas; ahora cada lista lee menos de 5.000 filas y abrir un producto menos de 300. Lo vigila una prueba con tope de filas por pantalla y por tarea.

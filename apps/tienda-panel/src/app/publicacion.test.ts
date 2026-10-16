@@ -51,6 +51,14 @@ describe('publicar y las versiones', () => {
     expect(sePuedeVolver(v({ estado: 'horneando' }), 3)).toBe(false);
   });
 
+  it('❌ a una versión purgada no se vuelve, y el resumen dice por qué (bitácora tienda3 28)', () => {
+    const purgada = v({ purgada: '2026-10-17T02:00:00.000Z' });
+    expect(sePuedeVolver(purgada, 3)).toBe(false);
+    expect(resumenDe(purgada, 3)).toBe(
+      '34 archivos · Ya no se puede volver a ella: tenía más de 90 días',
+    );
+  });
+
   it('mientras se hornea, la lista se lee cada vez más espaciado, hasta un minuto (bitácora tienda3 27)', () => {
     expect([0, 1, 2, 3, 4, 5, 30].map(esperaAntesDeLeer)).toEqual([
       3000, 6000, 12_000, 24_000, 48_000, 60_000, 60_000,

@@ -844,3 +844,28 @@ La regla: **una consulta se mide por las filas que lee, no por lo que tarda; y s
 La regla: **lo que cobra al pasarse se frena antes, desde el producto que lo gasta; y lo que puede quedar a medias tiene un plazo.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1, P7 · tienda-0.1.0 · 2026-10-16
+
+**28 · Lo que R2 guarda del sitio solo crecía, y no se podía borrar sin saber quién lo usa**
+
+*Qué pasó.* Lo que quedó pendiente de la 27, el 16 oct 2026, mientras el día de D1 se reiniciaba.
+
+*Causa raíz.* Tres cosas, encontradas leyendo el código:
+
+- Cada versión deja en R2 su manifiesto y lo horneado, que en una tienda llena pesan cientos de KB, y la tienda publica sola cada vez que algo se agota o vuelve a haber (HU-T4.5). Nada se borraba nunca: el espacio solo crecía, hasta que el freno de la 27 apagara publicar.
+- Los objetos van por huella y los comparten todas las versiones y todas las tiendas de la celda que tengan el mismo archivo. Nada decía cuáles se usaban: borrar uno que otra tienda todavía sirve rompe su vitrina, y R2 no avisa.
+- El cron anotaba cada tarea en el KV de flags en cada corrida. Desde la 27 la purga y el respaldo corren cada hora, y eran 120 escrituras al día de las 1.000 que tiene toda la cuenta.
+
+*Arreglo.*
+
+- **Cada día, en la hora de cada tienda** (`versiones-del-sitio`, `apps/tienda-api/src/purga-de-sitios.ts`): lee los manifiestos de sus versiones nuevas y anota en `sitios/<org>/vivos.json`, por huella, la versión más nueva que la usa. Con ese índice al día, purga las versiones de más de 90 días que no son la vigente ni una de las 5 anteriores (TIENDA §351). Borra su manifiesto y lo horneado y las marca con `publicacion.purgada` (migración 0008), y saca del índice las huellas que solo usaban ellas. El panel dice que a una purgada ya no se puede volver, y la API tampoco deja.
+- **Cada lunes** (`objetos-sin-uso`): borra los objetos que no nombra el índice de ninguna tienda y que se subieron 6 horas antes del índice más viejo. Lo que sube una publicación en curso queda después, y no se toca. Las tiendas salen de las carpetas de `sitios/`, no de la base. Si a una le falta el índice, o lo tiene de hace más de 2 días, no borra nada y lo dice. `legal/`, los respaldos y las exportaciones no se tocan.
+- El índice basta porque lo que se purga es siempre lo más viejo, salvo la vigente, que no se purga nunca. Una huella cuya versión más nueva se purgó solo la usaban versiones purgadas, o la vigente si es más vieja (después de «Volver a esta»): esa se vuelve a leer.
+- **Una tarea que sigue bien se anota una vez por su plazo**: la diaria, una vez al día; la semanal, una vez a la semana. Una falla, y la vuelta de una falla, se anotan siempre.
+
+*Lo que falta.* El cron de la Tienda corre solo en producción: el almacén de staging no se purga. Una corrida lee hasta 20 manifiestos por tienda, porque el CPU del cron en el plan gratuito es poco. Una tienda que publica más que eso al día no purga ni deja barrer hasta ponerse al día; la tarea lo dice en `/api/salud`.
+
+**Lo prueba** `purga-de-sitios.test.ts`, contra el shard local con Ensayo Uno y Ensayo Dos. Prueba cuáles se purgan, también después de «Volver a esta», y que borra lo de las purgadas y no deja volver a ellas. Prueba que la vigente vieja conserva sus huellas, que sin el índice al día no purga y que lo que se hornea queda para mañana. En el barrido, la huella que Ensayo Uno dejó de usar y Ensayo Dos usa se queda, lo de una publicación en curso se queda, y sin un índice no se borra nada. `tareas.test.ts`: en 24 horas la repartida se anota 3 veces (la primera, la falla y la vuelta). `publicacion.test.ts` del panel: a una purgada no se vuelve. Control negativo: sin la vigente vieja, sin esperar el índice, sin el margen, sin el índice de la otra tienda, sin las 5 anteriores o sin los 90 días, barriendo fuera de `objetos/`, sin la marca en «Volver», o anotando siempre, cada una queda en rojo.
+
+La regla: **antes de borrar lo que se comparte, se sabe quién lo usa; y si no se sabe, no se borra.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P4, P21 · tienda-0.1.0 · 2026-10-16

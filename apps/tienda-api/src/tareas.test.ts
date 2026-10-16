@@ -170,6 +170,39 @@ describe('el despacho de las tareas', () => {
     });
     expect((await estadoDeLasTareas(flags, [ok], ahora + 3 * 3_600_000))['ok']).toBe('atrasada');
   });
+
+  it('❌ una repartida que sigue bien se anota una vez por su plazo; una falla, siempre (bitácora tienda3 28)', async () => {
+    let falla = false;
+    const repartida: Tarea = {
+      nombre: 'repartida',
+      frecuencia: 'dia',
+      repartida: true,
+      correr: async () => {
+        if (falla) throw new Error('el almacén no respondió');
+        return 'hecho';
+      },
+    };
+    const flags = kv();
+    const escrituras: string[] = [];
+    const contadas: KvDeTareas = {
+      get: flags.get,
+      put: async (k, v) => {
+        escrituras.push(k);
+        await flags.put(k, v);
+      },
+    };
+    const t0 = Date.parse(AHORA);
+    const horas = (n: number) => t0 + n * 3_600_000;
+    for (let h = 0; h < 24; h++) {
+      // Falla a las 5 h y vuelve a las 6 h.
+      falla = h === 5;
+      await despachar(entorno({ flags: contadas }), horas(h), [repartida, ok]);
+    }
+    // La primera, la falla y la vuelta; las demás horas ya no.
+    expect(escrituras.filter((k) => k === 'tarea:repartida')).toHaveLength(3);
+    expect(escrituras.filter((k) => k === 'tarea:ok')).toHaveLength(24);
+    expect(await estadoDeLasTareas(flags, [repartida], horas(23))).toEqual({ repartida: 'al-dia' });
+  });
 });
 
 describe('la diaria rehace TIENDA_HOSTS desde la base (CA2)', () => {
