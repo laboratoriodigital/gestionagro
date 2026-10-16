@@ -268,6 +268,8 @@ export interface DespliegueDeLaTienda {
   clavesCore: readonly unknown[];
   /** La release de los archivos comunes de la vitrina con que hornea la API (HU-T3.3). */
   vitrinaRelease: string;
+  /** La cuenta de Cloudflare: el freno de R2 mide la suya (bitácora tienda3 27). */
+  cuenta: string;
 }
 
 /** La configuración de la API con los ids de este despliegue, solo en el destino que se prepara. */
@@ -291,6 +293,7 @@ export function configDeLaApi(
       ...(bloque['vars'] as Record<string, string>),
       CORE_CLAVES: JSON.stringify(d.clavesCore),
       VITRINA_RELEASE: d.vitrinaRelease,
+      CF_CUENTA: d.cuenta,
     },
   });
   return enDestino(generada, destino, agregar);
@@ -351,8 +354,11 @@ export function secretosDeLaTienda(
   const kek = entorno[SECRETO_KEK]?.trim();
   // HU-T17.1: el aviso de la tarea diaria; sin Telegram, la tarea lo dice en el registro.
   // HU-T14.3: los correos por Gmail, opcionales igual; sin ellos, la API dice «no disponible».
+  // Bitácora tienda3 27: el token de métricas del freno de R2; sin él, la tarea queda en falla.
   const telegram = Object.fromEntries(
-    (['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID', ...CORREO_GMAIL] as const).flatMap((k) => {
+    (
+      ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID', ...CORREO_GMAIL, 'CF_METRICAS_TOKEN'] as const
+    ).flatMap((k) => {
       const v = entorno[k]?.trim();
       return v ? [[k, v]] : [];
     }),

@@ -170,6 +170,23 @@ describe('POST /api/panel/v1/publicar (HU-T4.4)', () => {
     expect((await r.json()).estado).toBe('apagado');
   });
 
+  it('❌ con ks:tienda-fotos apagado, subir fotos está en pausa (bitácora tienda3 27)', async () => {
+    const r = await crearApp({ ahora: () => T0 }).request(
+      '/api/panel/v1/medios/subir',
+      {
+        method: 'POST',
+        headers: { [CABECERA_DESPACHO]: SECRETO, authorization: `Bearer ${await token()}` },
+        body: new FormData(),
+      },
+      {
+        ...env(),
+        FLAGS: { get: async (k: string) => (k === 'ks:tienda-fotos' ? 'apagado' : null) },
+      },
+    );
+    expect(r.status).toBe(503);
+    expect((await r.json()).estado).toBe('apagado');
+  });
+
   it('❌ sin el almacén ni los punteros configurados, no finge publicar (P1)', async () => {
     const r = await publicarCon(env(), await token());
     expect(r.status).toBe(503);

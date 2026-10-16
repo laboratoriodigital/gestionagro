@@ -48,6 +48,13 @@ export const enCurso = (v: VersionDelPanel) =>
   v.estado === 'en_cola' || v.estado === 'horneando' || v.estado === 'lista';
 
 /** Se puede volver a una que estuvo publicada y ya no lo está (CA2). */
+/**
+ * Cada cuánto se vuelve a leer la lista mientras algo se hornea: 3 s la primera vez y el doble cada
+ * vez, hasta un minuto. Un panel abierto mientras una publicación se corta ya no lee la lista cada
+ * 3 s para siempre (bitácora tienda3 27: cada lectura gasta filas de D1 del plan gratuito).
+ */
+export const esperaAntesDeLeer = (lecturas: number) => Math.min(3000 * 2 ** lecturas, 60_000);
+
 export const sePuedeVolver = (v: VersionDelPanel, publicada: number | null) =>
   (v.estado === 'reemplazada' || v.estado === 'publicada') && v.version !== publicada;
 

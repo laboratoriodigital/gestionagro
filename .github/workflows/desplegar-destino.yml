@@ -149,6 +149,8 @@ jobs:
           CORREO_GMAIL_CLIENTE_SECRETO: ${{ secrets.CORREO_GMAIL_CLIENTE_SECRETO }}
           CORREO_GMAIL_REFRESH: ${{ secrets.CORREO_GMAIL_REFRESH }}
           CORREO_GMAIL_REMITENTE: ${{ secrets.CORREO_GMAIL_REMITENTE }}
+          # Bitácora tienda3 27: el freno de R2 mide con el token de solo lectura de métricas.
+          CF_METRICAS_TOKEN: ${{ secrets.CF_METRICAS_TOKEN }}
           DESTINO: ${{ inputs.destino }}
           SOLO_CELDA: ${{ inputs.solo_celda }}
           PRODUCTOS: ${{ inputs.productos }}

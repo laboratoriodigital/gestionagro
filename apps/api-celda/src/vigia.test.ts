@@ -130,6 +130,19 @@ describe('CA1 · mide toda la cuenta desde que se reinicia cada cuota', () => {
     });
     expect(decidirNivel(m, 'normal')).toBe('alerta'); // manda la cuota más usada
   });
+
+  it('❌ R2 casi agotado no mueve el nivel: es del mes y cobra, no se detiene (bitácora tienda3 27)', async () => {
+    const { kv, escrituras } = kvFalso();
+    const { fn } = graphql({
+      d1: d1(1_000),
+      r2: [{ sum: { requests: 950_000 }, dimensions: { actionType: 'PutObject' } }],
+    });
+    const v = await vigilar(kv, 't', 'c', AHORA, fn);
+    expect(v.uso.r2_clase_a).toBe(95);
+    expect(v.nivel).toBe('normal');
+    expect(escrituras).toEqual([]);
+    expect(resumen(v)).toContain('operaciones clase A de R2 95 %');
+  });
 });
 
 describe('CA2 · escribe el nivel solo cuando cambia', () => {

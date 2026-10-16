@@ -17,7 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { contandoFilas } from './lecturas.fixture.ts';
 import { type Almacen, type Contexto, publicar } from './publicar.ts';
 import type { AlmacenDeRespaldos } from './respaldos.ts';
-import { type Frecuencia, TAREAS } from './tareas.ts';
+import { type Ciclo, type Frecuencia, siguienteTurno, TAREAS } from './tareas.ts';
 import { CABECERA_DESPACHO, crearApp, type Env } from './worker.ts';
 
 const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
@@ -236,7 +236,8 @@ describe('bitácora tienda3 26 ❌: las filas que lee el panel con la tienda lle
       },
     };
     const kv = { get: async () => null, put: async () => undefined };
-    for (const tarea of TAREAS) {
+    // El freno de R2 no lee D1: mide con la API de métricas, que aquí no hay.
+    for (const tarea of TAREAS.filter((t) => t.nombre !== 'freno-r2')) {
       leido();
       await tarea.correr(
         {
@@ -250,7 +251,8 @@ describe('bitácora tienda3 26 ❌: las filas que lee el panel con la tienda lle
           medios: 'img--staging.laboratorio-digital.app',
           fetch: (async () => new Response('{}', { status: 200 })) as unknown as typeof fetch,
         },
-        T0,
+        // Una repartida, en la hora de la tienda llena: si no, no la tocaría (bitácora tienda3 27).
+        tarea.repartida ? siguienteTurno(UNO, tarea.frecuencia as Ciclo, T0) : T0,
       );
       const l = leido();
       expect(l.filas, `${tarea.nombre}: ${mensaje(l)}`).toBeLessThanOrEqual(

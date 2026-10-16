@@ -817,3 +817,30 @@ Ninguna prueba medía filas leídas: la base en proceso no las cuenta, y la de w
 La regla: **una consulta se mide por las filas que lee, no por lo que tarda; y si importa qué índice usa, lo nombra.**
 
 *Ficha:* tienda3 · *(mío)* · 🔴 Alto · P17, P7 · tienda-0.1.0 · 2026-10-16
+
+**27 · R2 no se detiene al agotarse: cobra. Y nada lo frenaba.**
+
+*Qué pasó.* El 16 oct 2026, después de la 26, el dueño pidió revisar qué otro límite de la cuenta podía fallar igual y vigilar R2, que no para el servicio sino que cobra a la tarjeta. El dueño decidió seguir en el plan gratuito. La revisión completa está en `tienda/limites/riesgos-de-la-cuenta-cloudflare.md`, en los archivos del proyecto.
+
+*Causa raíz.* Cuatro cosas, encontradas leyendo el código, no en producción:
+
+- El vigía del agro medía las operaciones de R2, pero no el espacio guardado. Al acercarse a lo gratis subía el nivel del agro, que pausa la sincronización del cuaderno y no usa R2. La Tienda, que es la que escribe en R2, seguía igual.
+- Una publicación que se cortaba a mitad (el Worker se reinicia, se pasa de tiempo) quedaba «horneando» para siempre: nadie más podía publicar ni volver a una versión, y el panel abierto la leía cada 3 segundos todo el día.
+- La purga diaria y el respaldo semanal recorrían todas las tiendas en la misma corrida del cron. En el plan gratuito una corrida tiene un tope de 50 consultas a D1: con unas pocas tiendas, el respaldo dejaba de caber.
+- Nadie podía pausar la subida de fotos, que es lo que más espacio ocupa.
+
+*Arreglo.*
+
+- **El freno de R2** (`apps/tienda-api/src/freno-r2.ts`), una tarea de cada hora del cron de producción. Mide en la API de métricas lo de toda la cuenta: el espacio de las últimas 24 horas y las operaciones del mes. Desde el 75 % avisa por Telegram, una vez por escalón. Desde el 90 % del espacio o de las escrituras apaga `ks:tienda-horno` y `ks:tienda-fotos`, nunca la venta ni los cobros, y anota cuáles apagó él. Por debajo del 80 % enciende solo esas; si el dueño cambió una a mano, no la toca. Las lecturas (clase B) las hace la vitrina al servir las páginas, y apagar no las baja: solo avisa. Si no puede medir, no apaga ni enciende nada y la tarea queda en falla en `/api/salud`. Mide con el mismo token de solo lectura del vigía (`CF_METRICAS_TOKEN`), que ahora también recibe la Tienda.
+- **`ks:tienda-fotos`**: apagado, subir una foto responde 503 «Subir fotos está en pausa»; las que ya están siguen en la tienda.
+- **El vigía del agro** sigue midiendo y diciendo R2, pero el nivel lo deciden solo las cuotas diarias, como dice ARQUITECTURA §8.2.
+- **Una publicación que lleva 10 minutos sin terminar vence**: queda «fallida» con el motivo, al pedir otra, al volver a una versión o al abrir «Publicar y versiones». El panel, mientras algo se hornea, lee la lista a los 3, 6, 12… segundos, hasta una vez por minuto.
+- **La purga y el respaldo se reparten**: cada tienda tiene su hora del día para la purga y su hora de la semana para el respaldo, sacadas de su id. La tarea corre cada hora y solo atiende a las tiendas de esa hora.
+
+*Lo que falta.* Borrar de R2 las versiones de más de 90 días que no sean la vigente ni una de las 5 anteriores (TIENDA §351), con los objetos que ya ningún manifiesto nombra. Los objetos son por huella y los comparten todas las tiendas de la celda: borrar uno que todavía se usa rompe una vitrina. Va en su propio cambio, con su prueba. Mientras tanto, el freno impide que R2 cobre. Las reglas de caché, de WAF y de tope por visitante del dominio de las fotos se ponen en el panel de Cloudflare: los pasos están en `docs/runbooks/tienda-fotos.md`.
+
+**Lo prueba** `freno-r2.test.ts`: lo que mide y desde cuándo; al 91 % apaga las dos y avisa una vez; entre el 80 y el 90 % no suelta; por debajo, enciende solo lo suyo; la clase B solo avisa; sin poder medir no toca nada. `vigia.test.ts`: R2 al 95 % deja el nivel en «normal». `publicar.test.ts`: una publicación de 9 minutos sigue en curso y una de 11 vence. `tareas.test.ts` y `respaldos.test.ts`: fuera de su hora no se purga ni se respalda ninguna tienda, y 480 tiendas se reparten entre las horas. Control negativo: sin el freno, sin la condición de lo suyo, soltando sin medir, sin vencer, sin el turno o con todas en la misma hora, cada una de esas pruebas queda en rojo.
+
+La regla: **lo que cobra al pasarse se frena antes, desde el producto que lo gasta; y lo que puede quedar a medias tiene un plazo.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1, P7 · tienda-0.1.0 · 2026-10-16
