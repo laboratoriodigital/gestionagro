@@ -35,6 +35,7 @@ import {
   yaAplicada,
 } from './catalogo.ts';
 import { anotar } from './registro.ts';
+import { acortarConservacion, mesesDe } from './titular.ts';
 
 interface FilaDeAjuste {
   seccion: string;
@@ -155,6 +156,11 @@ export async function guardarAjuste(
   if (!v.ok) return { estado: 'problemas', problemas: v.problemas };
 
   const r: Resultado = { estado: 'guardado', id: d.seccion, version: d.version + 1 };
+  // HU-T7.3 CA2: bajar los meses de conservación acorta también los contactos que ya están.
+  const acortar =
+    d.seccion === 'legal' && mesesDe(v.datos) < mesesDe(antes)
+      ? [acortarConservacion(q, mesesDe(v.datos))]
+      : [];
   const escribir =
     d.version === 0
       ? q.db
@@ -188,6 +194,7 @@ export async function guardarAjuste(
     await q.db.batch([
       escribir,
       q.db.prepare(SI_CAMBIO),
+      ...acortar,
       await anotar(q.db, {
         org: q.org,
         actor: q.actor,

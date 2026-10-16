@@ -73,9 +73,40 @@ async function coreFalso(page: Page, alCanjear: object) {
   return refrescos;
 }
 
-/** La API falsa: `/yo` responde con la tienda del último token pedido. */
+const cifrasEnCero = { pedidos: 0, vendidos: 0, ventasCop: 0, ticketCop: null, tasaDeCierre: null };
+/** HU-T14.2: el tablero de una tienda que todavía no vende. */
+const tableroVacio = () => ({
+  periodos: { altura: '2026-09-15', anteriorCompleto: false },
+  hoy: cifrasEnCero,
+  mes: cifrasEnCero,
+  anterior: cifrasEnCero,
+  pendientes: {
+    porConfirmar: 0,
+    porDespachar: 0,
+    recaudosAtrasados: 0,
+    solicitudesPorVencer: 0,
+    solicitudesVencidas: 0,
+    pagosSinExistencias: 0,
+    cobrosARevisar: 0,
+    agotados: 0,
+  },
+  contraentrega: {
+    cerrados: 0,
+    devueltos: 0,
+    cobradoCop: 0,
+    costosCop: 0,
+    netoCop: 0,
+    sinCostos: 0,
+    enCamino: 0,
+  },
+});
+
+/** La API falsa: `/yo` responde con la tienda del último token pedido; Inicio, sin ventas. */
 async function apiFalsa(page: Page, tienda = UNO) {
   const pedidos: string[] = [];
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (ruta) =>
+    ruta.fulfill({ json: tableroVacio() }),
+  );
   await page.route(`${PANEL}/api/panel/v1/yo`, (ruta) => {
     pedidos.push(ruta.request().headers()['authorization'] ?? '');
     return ruta.fulfill({ json: yo(tienda) });
@@ -1771,4 +1802,488 @@ test.describe('con el teléfono en otra zona horaria', () => {
     await expect(page.getByText('Otra persona del equipo creó «Camisa de lino»')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Ver más' })).toBeHidden();
   });
+});
+
+test('HU-T9.7 · CA1 y CA3: la vencida arriba y en rojo; responder, mandarla y solo entonces cerrar', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const fila = (o: Record<string, unknown>) => ({
+    tipo: 'Queja',
+    tipoId: 'queja',
+    estado: 'radicada',
+    creada: '2026-10-01T15:00:00.000Z',
+    respondida: null as string | null,
+    cerrada: null as string | null,
+    pedido: null,
+    alerta: null,
+    reloj: 'respuesta',
+    ...o,
+  });
+  const vencida = fila({
+    id: 's-3',
+    radicado: 'R-3',
+    vence: '2026-10-13',
+    dias: -2,
+    alerta: 'vencida',
+    pedido: 1050,
+  });
+  const lista = {
+    solicitudes: [
+      vencida,
+      fila({
+        id: 's-5',
+        radicado: 'R-5',
+        tipo: 'Retracto',
+        tipoId: 'retracto',
+        vence: '2026-10-18',
+        dias: 3,
+        alerta: 'pronto',
+        reloj: 'reembolso',
+      }),
+      fila({
+        id: 's-6',
+        radicado: 'R-6',
+        tipo: 'Consulta de datos',
+        tipoId: 'datos_consulta',
+        vence: '2026-10-25',
+        dias: 10,
+      }),
+      fila({
+        id: 's-2',
+        radicado: 'R-2',
+        estado: 'respondida',
+        vence: '2026-10-20',
+        dias: 5,
+        respondida: '2026-10-14T15:00:00.000Z',
+      }),
+    ],
+    reembolsos: [
+      {
+        pedidoId: 'ped-1061',
+        pedido: 1061,
+        aprobado: '2026-09-30T15:00:00.000Z',
+        vence: '2026-10-15',
+        dias: 0,
+        alerta: 'hoy',
+      },
+    ],
+  };
+  const detalle = {
+    estado: 'ok',
+    solicitud: vencida,
+    contacto: '3001234567',
+    texto: 'La camisa llegó con una costura abierta en la manga.',
+    codigoDelPedido: 'K7M2Q9',
+    respuesta: null as { texto: string; instante: string } | null,
+  };
+  const llamadas: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/pedidos`, (r) =>
+    r.fulfill({ json: { atencion: [], pedidos: [], siguiente: null } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/solicitudes`, (r) => r.fulfill({ json: lista }));
+  await page.route(`${PANEL}/api/panel/v1/solicitudes/ver`, (r) => {
+    expect(r.request().postDataJSON()).toEqual({ id: 's-3' });
+    return r.fulfill({ json: detalle });
+  });
+  await page.route(`${PANEL}/api/panel/v1/solicitudes/responder`, (r) => {
+    const cuerpo = r.request().postDataJSON() as { respuesta: string };
+    llamadas.push({ ruta: 'responder', ...cuerpo });
+    detalle.respuesta = { texto: cuerpo.respuesta, instante: '2026-10-15T15:00:00.000Z' };
+    detalle.solicitud = {
+      ...vencida,
+      estado: 'respondida',
+      alerta: null,
+      respondida: '2026-10-15T15:00:00.000Z',
+    };
+    return r.fulfill({ json: { estado: 'guardado', id: 's-3', version: null } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/solicitudes/cerrar`, (r) => {
+    llamadas.push({ ruta: 'cerrar', ...(r.request().postDataJSON() as object) });
+    detalle.solicitud = {
+      ...detalle.solicitud,
+      estado: 'cerrada',
+      cerrada: '2026-10-15T15:05:00.000Z',
+    };
+    return r.fulfill({ json: { estado: 'guardado', id: 's-3', version: null } });
+  });
+
+  await page.getByRole('link', { name: 'Pedidos', exact: true }).click();
+  await page.getByRole('link', { name: 'Solicitudes' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Solicitudes' })).toBeVisible();
+  await expect(page.getByText('Una solicitud venció')).toBeVisible();
+  // CA3: la vencida va primero entre las que esperan, en rojo y dicho en palabras.
+  const primera = page.getByRole('listitem').filter({ hasText: /^R-/ }).first();
+  await expect(primera).toContainText('R-3');
+  await expect(primera).toContainText('Venció hace 2 días, sin respuesta');
+  await expect(primera).toHaveClass(/solicitud--vencida/);
+  await expect(primera.locator('.vence--mal')).toHaveCount(1);
+  // CA1: a 3 días avisa; el retracto dice que corre el reembolso; el pago sin existencias, el suyo.
+  await expect(page.getByText('Vence en 3 días, el 18 de octubre')).toBeVisible();
+  await expect(page.getByText(/retracto: el reembolso corre/)).toBeVisible();
+  await expect(page.getByText('Vence hoy: reembolsar antes de que acabe el día')).toBeVisible();
+  await sinFallasDeAxe(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+
+  await page.getByRole('link', { name: /R-3/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: /R-3/ })).toBeVisible();
+  await expect(
+    page.getByText('La camisa llegó con una costura abierta en la manga.'),
+  ).toBeVisible();
+  // ❌ CA3: sin respuesta no hay cómo cerrarla.
+  await expect(page.getByText('Cerrar la solicitud')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Guardar la respuesta' }).click();
+  await expect(page.getByLabel('Tu respuesta')).toHaveAttribute('aria-invalid', 'true');
+  expect(llamadas).toEqual([]);
+  await sinFallasDeAxe(page);
+
+  await page
+    .getByLabel('Tu respuesta')
+    .fill('Te mandamos otra camisa esta semana; la guía te llega por WhatsApp.');
+  await page.getByRole('button', { name: 'Guardar la respuesta' }).click();
+  await expect(page.getByText('Respuesta guardada. Ahora mándasela a la persona.')).toBeVisible();
+  const mandar = page.getByRole('link', { name: 'Mandarla por WhatsApp' });
+  await expect(mandar).toHaveAttribute(
+    'href',
+    /^https:\/\/wa\.me\/573001234567\?text=Respuesta%20a%20tu%20solicitud%20R-3/,
+  );
+  await page.getByText('Cerrar la solicitud').click();
+  await page.getByRole('button', { name: 'Sí, cerrarla' }).click();
+  await expect(page.getByText('Solicitud cerrada.')).toBeVisible();
+  await expect(page.getByText('Cerrar la solicitud')).toHaveCount(0);
+  expect(llamadas).toEqual([
+    expect.objectContaining({
+      ruta: 'responder',
+      id: 's-3',
+      respuesta: 'Te mandamos otra camisa esta semana; la guía te llega por WhatsApp.',
+    }),
+    expect.objectContaining({ ruta: 'cerrar', id: 's-3' }),
+  ]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});
+
+test('HU-T14.2 · CA1: Inicio dice lo urgente arriba, cómo voy frente a febrero entero y el margen', async ({
+  page,
+}) => {
+  await coreFalso(page, sesion());
+  await apiFalsa(page);
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (r) =>
+    r.fulfill({
+      json: {
+        ...tableroVacio(),
+        periodos: { altura: '2028-02-29', anteriorCompleto: true },
+        hoy: { pedidos: 3, vendidos: 1, ventasCop: 100000, ticketCop: 100000, tasaDeCierre: 1 / 3 },
+        mes: { pedidos: 8, vendidos: 5, ventasCop: 440000, ticketCop: 88000, tasaDeCierre: 5 / 8 },
+        anterior: {
+          pedidos: 3,
+          vendidos: 2,
+          ventasCop: 120000,
+          ticketCop: 60000,
+          tasaDeCierre: 2 / 3,
+        },
+        pendientes: {
+          ...tableroVacio().pendientes,
+          porConfirmar: 1,
+          porDespachar: 4,
+          recaudosAtrasados: 1,
+          solicitudesVencidas: 1,
+          agotados: 1,
+        },
+        contraentrega: {
+          cerrados: 3,
+          devueltos: 1,
+          cobradoCop: 190000,
+          costosCop: 43500,
+          netoCop: 146500,
+          sinCostos: 1,
+          enCamino: 1,
+        },
+      },
+    }),
+  );
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await expect(page.getByRole('heading', { level: 2, name: 'Lo que hay que hacer' })).toBeVisible();
+  const pendientes = page.locator('.pendientes li');
+  await expect(pendientes.first()).toHaveText('1 solicitud vencida sin respuesta');
+  await expect(pendientes.first()).toHaveClass(/pendiente--urgente/);
+  await expect(pendientes).toHaveText([
+    '1 solicitud vencida sin respuesta',
+    '1 recaudo sin liquidar hace más de 3 días hábiles',
+    '1 pedido por confirmar',
+    '4 pedidos por despachar',
+    '1 combinación agotada',
+  ]);
+  // CA3: el 31 de marzo no existe en febrero, y lo dice.
+  await expect(page.getByText(/Sube 267 %/)).toBeVisible();
+  await expect(page.getByText(/frente a febrero entero/)).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 3, name: 'El mes anterior (febrero entero)' }),
+  ).toBeVisible();
+  await expect(page.getByText('$440.000')).toBeVisible();
+  await expect(page.getByText('77 %')).toBeVisible();
+  await expect(page.getByText(/A 1 pedido le falta la comisión o el flete/)).toBeVisible();
+  await sinFallasDeAxe(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await pendientes.first().getByRole('link').click();
+  await expect(page).toHaveURL(`${PANEL}/pedidos/solicitudes/`);
+});
+
+test('HU-T14.2 · ❌ si el tablero no llega, lo dice sin inventar ceros', async ({ page }) => {
+  await coreFalso(page, sesion());
+  await apiFalsa(page);
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (r) =>
+    r.fulfill({ status: 503, json: { estado: 'error', motivo: 'La tienda no responde ahora.' } }),
+  );
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await expect(page.getByText('No pudimos leer el tablero')).toBeVisible();
+  await expect(page.getByText('$0')).toHaveCount(0);
+  await expect(page.getByText('Productos en tu plan')).toBeVisible();
+});
+
+const exportacionDeEnsayo = (personales: boolean) => ({
+  formato: 'tienda-export/1',
+  exportada: '2026-10-15T15:00:00.000Z',
+  tienda: { slug: 'ensayo-uno', nombre: 'Comercio Ensayo Uno' },
+  ajustes: {},
+  colecciones: [],
+  productos: [
+    {
+      refExterna: 'p-camisa',
+      nombre: 'Camisa de lino',
+      slug: 'camisa-de-lino',
+      estado: 'activo',
+      variantes: [{ valores: ['M', 'Arena'], precioCop: 129000, stock: 4 }],
+      medios: [],
+    },
+  ],
+  envios: [],
+  cupones: [],
+  paginas: [],
+  pedidos: [
+    {
+      codigo: 'EXP0BB',
+      creado: '2026-10-15T06:00:00.000Z',
+      estado: 'entregado',
+      formaPago: 'transferencia',
+      lineas: [],
+      totales: { subtotal: 129000, descuento: 0, envio: 0, total: 129000 },
+    },
+  ],
+  excluidos: { pedidosEnCurso: 1, pedidosSinSuVariante: 0 },
+  huellas: {},
+  ...(personales
+    ? {
+        datosPersonales: {
+          pedidos: [{ codigo: 'EXP0BB', nombre: 'Ensayo Dos Compradora' }],
+          solicitudes: [],
+        },
+      }
+    : {}),
+});
+
+test('HU-T10.7 · CA1 y CA2: descargar todo en JSON, las hojas en el teléfono y los datos personales con su casilla', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const pedidas: string[] = [];
+  await page.route(`${PANEL}/api/panel/v1/exportar*`, (r) => {
+    const url = new URL(r.request().url());
+    pedidas.push(url.search);
+    return r.fulfill({ json: exportacionDeEnsayo(url.searchParams.get('datos') === 'personales') });
+  });
+  await page.getByRole('link', { name: 'Más' }).click();
+  await page.getByRole('link', { name: 'Descargar todo' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Descargar todo' })).toBeVisible();
+  const casilla = page.getByLabel(/Incluir los datos personales de los compradores/);
+  await expect(casilla).not.toBeChecked();
+  await sinFallasDeAxe(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+
+  // Sin la casilla: el archivo sin datos personales.
+  const [json] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Descargar todo', exact: true }).click(),
+  ]);
+  expect(json.suggestedFilename()).toBe('ensayo-uno-2026-10-15.json');
+  const archivo = JSON.parse(readFileSync((await json.path()) ?? '', 'utf8')) as Record<
+    string,
+    unknown
+  >;
+  expect(archivo['formato']).toBe('tienda-export/1');
+  expect(archivo).not.toHaveProperty('datosPersonales');
+  await expect(page.getByText(/No van 1 pedido: 1 en curso/)).toBeVisible();
+
+  const [xlsx] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Productos y pedidos en Excel' }).click(),
+  ]);
+  expect(xlsx.suggestedFilename()).toBe('ensayo-uno-2026-10-15.xlsx');
+  expect(
+    readFileSync((await xlsx.path()) ?? '')
+      .subarray(0, 2)
+      .toString(),
+  ).toBe('PK');
+  const [csv] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Pedidos en CSV' }).click(),
+  ]);
+  expect(csv.suggestedFilename()).toBe('ensayo-uno-pedidos-2026-10-15.csv');
+  expect(readFileSync((await csv.path()) ?? '', 'utf8')).toContain(
+    'EXP0BB,2026-10-15T06:00:00.000Z,entregado',
+  );
+
+  // Con la casilla: lo pide aparte y lo dice.
+  await casilla.check();
+  const [conDatos] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Descargar todo, con datos personales' }).click(),
+  ]);
+  expect(JSON.parse(readFileSync((await conDatos.path()) ?? '', 'utf8'))).toHaveProperty(
+    'datosPersonales',
+  );
+  await expect(
+    page.getByText(/Lleva los datos personales: guárdalo en un lugar seguro/),
+  ).toBeVisible();
+  expect(pedidas).toEqual(['', '', '', '?datos=personales']);
+});
+
+test('HU-T10.7 · ❌ CA2: el colaborador descarga sin datos personales y no ve la casilla', async ({
+  page,
+}) => {
+  await coreFalso(page, sesion());
+  await apiFalsa(page, DOS);
+  await page.route(`${PANEL}/api/panel/v1/exportar*`, (r) =>
+    r.fulfill({ json: exportacionDeEnsayo(false) }),
+  );
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await page.getByRole('link', { name: 'Más' }).click();
+  await page.getByRole('link', { name: 'Descargar todo' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Descargar todo' })).toBeVisible();
+  await expect(page.getByLabel(/Incluir los datos personales/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Descargar todo', exact: true })).toBeVisible();
+});
+
+test('HU-T7.3 · CA1: buscar a un comprador por su celular, descargar, corregir y borrar sus datos', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const pedidas: { ruta: string; cuerpo: Record<string, unknown> }[] = [];
+  let borrados = false;
+  await page.route(`${PANEL}/api/panel/v1/titular/*`, (r) => {
+    const ruta = new URL(r.request().url()).pathname.split('/').at(-1) ?? '';
+    const cuerpo = r.request().postDataJSON() as Record<string, unknown>;
+    pedidas.push({ ruta, cuerpo });
+    const pedido = (id: string, numero: number, estado: string, terminado: boolean) => ({
+      id,
+      numero,
+      creado: '2026-10-01T15:00:00.000Z',
+      estado,
+      totalCop: 129000,
+      terminado,
+      ciudad: 'Medellín',
+    });
+    if (ruta === 'buscar')
+      return r.fulfill({
+        json: {
+          estado: 'ok',
+          comprador: { nombre: 'Ensayo D.', celular: '300 ••• 4567' },
+          pedidos: borrados
+            ? [pedido('ped-2', 1502, 'pendiente', false)]
+            : [pedido('ped-1', 1501, 'entregado', true), pedido('ped-2', 1502, 'pendiente', false)],
+        },
+      });
+    if (ruta === 'exportar')
+      return r.fulfill({
+        json: {
+          estado: 'ok',
+          formato: 'titular/1',
+          exportada: '2026-10-15T15:00:00.000Z',
+          pedidos: [{ numero: 1501, contacto: { nombre: 'Ensayo Dos Compradora' } }],
+        },
+      });
+    if (ruta === 'corregir')
+      return r.fulfill({ json: { estado: 'guardado', pedidos: 2, enCurso: 0 } });
+    borrados = true;
+    return r.fulfill({ json: { estado: 'guardado', pedidos: 1, enCurso: 1 } });
+  });
+  await page.getByRole('link', { name: 'Más' }).click();
+  await page.getByRole('link', { name: 'Datos de un comprador' }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Datos de un comprador' }),
+  ).toBeVisible();
+
+  // Un celular que no es de Colombia no se busca.
+  await page.getByLabel('Celular del comprador').fill('12345');
+  await page.getByRole('button', { name: 'Buscar' }).click();
+  await expect(
+    page.getByText('Escribe los 10 dígitos del celular, empezando por 3.'),
+  ).toBeVisible();
+  expect(pedidas).toEqual([]);
+
+  await page.getByLabel('Celular del comprador').fill('+57 300 123 4567');
+  await page.getByRole('button', { name: 'Buscar' }).click();
+  await expect(
+    page.getByRole('heading', { level: 2, name: /Ensayo D\. · 300 ••• 4567/ }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Pedido 1501' })).toBeVisible();
+  await sinFallasDeAxe(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+
+  const [descarga] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Descargar sus datos' }).click(),
+  ]);
+  expect(descarga.suggestedFilename()).toBe('datos-del-comprador-2026-10-15.json');
+  expect(JSON.parse(readFileSync((await descarga.path()) ?? '', 'utf8'))).toMatchObject({
+    formato: 'titular/1',
+  });
+
+  await page.getByText('Corregir sus datos').click();
+  await page.getByLabel('Dirección').fill('Calle de prueba 100');
+  await page.getByRole('button', { name: 'Guardar la corrección' }).click();
+  await expect(page.getByText('Se corrigieron los datos de 2 pedidos.')).toBeVisible();
+
+  await page.getByText('Borrar sus datos', { exact: true }).first().click();
+  await page.getByRole('button', { name: 'Borrar sus datos' }).click();
+  await expect(page.getByText(/Se borraron los datos de 1 pedido/)).toBeVisible();
+  await expect(page.getByText(/Un pedido en curso guarda los suyos hasta terminar/)).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Pedido 1501' })).toHaveCount(0);
+
+  expect(pedidas.map((p) => p.ruta)).toEqual([
+    'buscar',
+    'exportar',
+    'corregir',
+    'buscar',
+    'suprimir',
+    'buscar',
+  ]);
+  expect(pedidas[0]?.cuerpo).toEqual({ celular: '3001234567' });
+  expect(pedidas[2]?.cuerpo).toMatchObject({
+    celular: '3001234567',
+    contacto: { direccion: 'Calle de prueba 100' },
+  });
+});
+
+test('HU-T7.3 · ❌ CA3: el colaborador no ve la herramienta y, si entra por la dirección, no la usa', async ({
+  page,
+}) => {
+  await coreFalso(page, sesion());
+  await apiFalsa(page, DOS);
+  let pedidas = 0;
+  await page.route(`${PANEL}/api/panel/v1/titular/*`, (r) => {
+    pedidas++;
+    return r.fulfill({ status: 403, json: { estado: 'prohibido', motivo: 'no' } });
+  });
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await page.getByRole('link', { name: 'Más' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Más' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Datos de un comprador' })).toHaveCount(0);
+  await page.goto(`${PANEL}/mas/titular/`);
+  await expect(page.getByText('Solo quien administra la tienda')).toBeVisible();
+  await expect(page.getByLabel('Celular del comprador')).toHaveCount(0);
+  expect(pedidas).toBe(0);
 });

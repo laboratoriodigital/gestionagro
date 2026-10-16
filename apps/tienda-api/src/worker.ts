@@ -81,6 +81,7 @@ import {
   perderEnvio,
 } from './ciclo.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
+import { exportarTienda } from './exportar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import {
   ajustarInventario,
@@ -92,6 +93,13 @@ import {
 } from './inventario.ts';
 import { kekDelEntorno } from './llaves.ts';
 import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
+import {
+  cerrarSolicitud,
+  listarSolicitudes,
+  responderSolicitud,
+  verSolicitud,
+} from './panel-solicitudes.ts';
+import { tablero } from './panel-tablero.ts';
 import {
   PeticionDePedido,
   PeticionDeSeguimiento,
@@ -116,6 +124,7 @@ import {
   seguirSolicitud,
 } from './solicitudes.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
+import { buscarTitular, corregirTitular, exportarTitular, suprimirTitular } from './titular.ts';
 import { borrarCupon, borrarEnvio, guardarCupon, guardarEnvio, listarVenta } from './venta.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
@@ -1229,6 +1238,55 @@ export function crearApp(
     );
     return r.estado === 'ok' ? c.json(r) : responderCatalogo(c, r);
   });
+  // HU-T10.7: «Descargar todo». Con los datos personales, solo el propietario y recién entrado.
+  app.get('/api/panel/v1/exportar', async (c) => {
+    const datosPersonales = c.req.query('datos') === 'personales';
+    const q = datosPersonales
+      ? quienPuede(
+          c,
+          'exportar.datos_personales',
+          'Solo quien administra la tienda descarga los datos personales.',
+        )
+      : quienPuede(c, 'exportar', 'Tu rol no puede descargar los datos de la tienda.');
+    if (q instanceof Response) return q;
+    const r = await exportarTienda(q, {
+      medios: c.env.MEDIOS,
+      datosPersonales,
+      kek: datosPersonales ? await kekDe(c) : null,
+    });
+    if ('estado' in r) return c.json(r, 503);
+    return c.json(r, 200, { 'cache-control': 'no-store' });
+  });
+
+  // HU-T7.3: los derechos del titular. Solo el propietario, recién entrado; todo queda en el registro.
+  const delTitular = (c: ContextoTienda) =>
+    quienPuede(
+      c,
+      'titular.gestionar',
+      'Solo quien administra la tienda atiende los datos de un comprador.',
+    );
+  const ESTADO_DEL_TITULAR = { ok: 200, guardado: 200, problemas: 422, 'sin-llave': 503 } as const;
+  for (const [ruta, hacer] of [
+    ['buscar', buscarTitular],
+    ['exportar', exportarTitular],
+    ['corregir', corregirTitular],
+    ['suprimir', suprimirTitular],
+  ] as const) {
+    app.post(`/api/panel/v1/titular/${ruta}`, async (c) => {
+      const q = delTitular(c);
+      if (q instanceof Response) return q;
+      const r = await hacer(q, await kekDe(c), await c.req.json().catch(() => null));
+      return c.json(r, ESTADO_DEL_TITULAR[r.estado], { 'cache-control': 'no-store' });
+    });
+  }
+
+  // HU-T14.2: el tablero de Inicio.
+  app.get('/api/panel/v1/tablero', async (c) => {
+    const q = quienPuede(c, 'tablero.ver', 'Tu rol no puede ver el tablero.');
+    if (q instanceof Response) return q;
+    return c.json(await tablero(q, ahora()));
+  });
+
   app.get('/api/panel/v1/recaudos', async (c) => {
     const q = quienPuede(c, 'recaudos.gestionar', 'Tu rol no puede ver los recaudos.');
     if (q instanceof Response) return q;
@@ -1279,6 +1337,41 @@ export function crearApp(
     const q = quienPuede(c, 'ajustes.contacto', 'Tu rol no puede cambiar el WhatsApp.');
     if (q instanceof Response) return q;
     return responderCatalogo(c, await verificarWhatsapp(q, await c.req.json().catch(() => null)));
+  });
+
+  // HU-T9.7: las solicitudes, con su vencimiento; abrir, responder y cerrar.
+  const deSolicitudes = (c: ContextoTienda) =>
+    quienPuede(c, 'solicitudes.gestionar', 'Tu rol no puede atender las solicitudes.');
+  const ESTADO_DE_SOLICITUD = {
+    guardado: 200,
+    ok: 200,
+    problemas: 422,
+    cambiado: 409,
+    'no-existe': 404,
+    'sin-llave': 503,
+  } as const;
+  app.get('/api/panel/v1/solicitudes', async (c) => {
+    const q = deSolicitudes(c);
+    if (q instanceof Response) return q;
+    return c.json(await listarSolicitudes(q, ahora()));
+  });
+  app.post('/api/panel/v1/solicitudes/ver', async (c) => {
+    const q = deSolicitudes(c);
+    if (q instanceof Response) return q;
+    const r = await verSolicitud(q, await kekDe(c), await c.req.json().catch(() => null), ahora());
+    return c.json(r, ESTADO_DE_SOLICITUD[r.estado]);
+  });
+  app.post('/api/panel/v1/solicitudes/responder', async (c) => {
+    const q = deSolicitudes(c);
+    if (q instanceof Response) return q;
+    const cuerpo = await c.req.json().catch(() => null);
+    const r = await responderSolicitud(q, await kekDe(c), cuerpo, ahora());
+    return c.json(r, ESTADO_DE_SOLICITUD[r.estado]);
+  });
+  app.post('/api/panel/v1/solicitudes/cerrar', async (c) => {
+    const q = deSolicitudes(c);
+    if (q instanceof Response) return q;
+    return responderCatalogo(c, await cerrarSolicitud(q, await c.req.json().catch(() => null)));
   });
 
   // HU-T10.6: el registro, en frases, de a 50, con el permiso `registro.ver`.

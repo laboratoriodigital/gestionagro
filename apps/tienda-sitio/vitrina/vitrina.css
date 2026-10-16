@@ -642,3 +642,27 @@ a.boton[hidden] {
 [hidden] {
   display: none;
 }
+
+/* --- Listas largas en páginas (HU-T3.7) -------------------------------------------------------- */
+.ver-todos {
+  margin: var(--espacio-6) 0 0;
+}
+.paginas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  margin: var(--espacio-8) 0 0;
+}
+.paginas a,
+.ver-todos a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  color: inherit;
+  font-weight: 600;
+}
+.paginas__cual {
+  color: var(--texto-suave);
+}

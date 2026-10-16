@@ -249,6 +249,35 @@ h2 {
   gap: var(--espacio-4);
   min-width: 0;
 }
+/* HU-T14.2: lo pendiente de Inicio; lo urgente, con su borde rojo y dicho en palabras. */
+.lineas li.pendiente {
+  padding-inline-start: var(--espacio-2);
+  border-inline-start: 4px solid var(--borde);
+}
+.lineas li.pendiente--urgente {
+  border-inline-start-color: var(--peligro);
+  font-weight: 600;
+}
+/* HU-T9.7: la solicitud vencida va arriba y en rojo; el texto lo dice igual. */
+.lineas li.solicitud {
+  flex-wrap: wrap;
+  padding-inline-start: var(--espacio-2);
+  border-inline-start: 4px solid transparent;
+}
+.lineas li.solicitud--vencida {
+  border-inline-start-color: var(--peligro);
+}
+.solicitud .fila__detalle {
+  flex-basis: 100%;
+}
+.vence--mal {
+  color: var(--peligro);
+  font-weight: 600;
+}
+.vence--pendiente {
+  color: var(--aviso);
+  font-weight: 600;
+}
 .mensaje {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

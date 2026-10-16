@@ -65,13 +65,17 @@ export const MATRIZ: Readonly<Record<Accion, readonly Rol[]>> = Object.fromEntri
   ]),
 ) as unknown as Record<Accion, readonly Rol[]>;
 
-/** Lo que mueve la plata o cambia por dónde llegan los pedidos pide haber entrado hace poco (§12.3). */
+/**
+ * Lo que mueve la plata, cambia por dónde llegan los pedidos o abre los datos de un comprador pide
+ * haber entrado hace poco (§12.3).
+ */
 export const PIDEN_ENTRADA_RECIENTE: ReadonlySet<Accion> = new Set<Accion>([
   'ajustes.contacto',
   'ajustes.modo_pedido',
   'cobro.gestionar',
   'factura.gestionar',
   'exportar.datos_personales',
+  'titular.gestionar',
 ]);
 
 /** Diez minutos desde la última entrada interactiva (`auth_time` del token). */
@@ -114,5 +118,8 @@ export function accionesDeAjuste(
   }
   if (seccion === 'venta' && antes?.['modo'] !== despues['modo'])
     acciones.push('ajustes.modo_pedido');
+  // HU-T7.3: cuánto se guardan los contactos de los compradores lo decide quien responde por ellos.
+  if (seccion === 'legal' && antes?.['conservacionMeses'] !== despues['conservacionMeses'])
+    acciones.push('titular.gestionar');
   return acciones;
 }

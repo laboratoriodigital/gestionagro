@@ -302,7 +302,13 @@ describe('las purgas diarias (HU-T17.2)', () => {
   });
 
   it('CA1 · purga la tienda: lo que cumplió su plazo se va con todo lo suyo, y nada de otra tienda', async () => {
-    const r = await purgarTienda(shard, ENSAYO_UNO.org, TREINTA_DIAS, '2026-11-18T08:00:00.000Z');
+    const r = await purgarTienda(
+      shard,
+      ENSAYO_UNO.org,
+      TREINTA_DIAS,
+      '2026-11-18T08:00:00.000Z',
+      AHORA,
+    );
     const uno = ENSAYO_UNO.org;
     expect(await existe('producto', uno, 'pz-viejo')).toBe(0);
     expect(await existe('variante', uno, 'pz-viejo-v')).toBe(0);

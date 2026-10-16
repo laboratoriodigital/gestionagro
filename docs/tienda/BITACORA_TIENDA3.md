@@ -677,3 +677,21 @@ La regla: **un dato que el comprador tiene que encontrar lleva su nombre al lado
 La regla: **una regla que borra por nombre de campo también borra lo que no es secreto y se llama igual; la prueba de que algo se tapa va con otra de que lo demás se sigue leyendo.**
 
 *Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P5 · tienda-0.1.0 · 2026-10-15
+
+**20 · Con 2.000 productos, la portada pesaba 434 KB y la tienda no se podía publicar.**
+
+*Qué pasó.* El 15 oct 2026, al publicar a Ensayo Uno llena (HU-T3.7) por la misma ruta de la cola del horno, la compuerta la detuvo. La portada, `/productos/` y cada colección listaban todos sus productos en una sola página.
+
+*Síntoma literal.* «La página /index.html pesa 434 KB y el tope es 50 KB: acorta su texto para que abra rápido en un teléfono».
+
+*Causa raíz.* El horno se escribió y se probó con los comercios de prueba, de 3 a 8 productos, y su presupuesto de peso (HU-T3.6) se midió en esa tienda. Nada había horneado una tienda del tamaño que TIENDA §10.3 promete, 2.000 productos. La compuerta hizo su trabajo: con una tienda real así, el comercio se habría quedado sin publicar.
+
+*Cómo se reprodujo.* D1 local: `apps/tienda-api/src/volumen.test.ts` siembra la tienda llena y llama a `publicar`; antes del arreglo devuelve `bloqueada` con el peso de la portada.
+
+*Arreglo.* La portada muestra los primeros 24 productos y «Ver los N productos», que lleva a `/productos/`. Esa lista y cada colección van de a 48 por página, con «Anteriores» y «Siguientes», `rel="prev"` y `rel="next"`, y cada página tiene su gemelo `.md` y su entrada en `sitemap.xml`. Una tienda de 24 productos o menos sale igual que antes: los dorados no cambiaron.
+
+**Lo prueba:** `packages/tienda-horno/src/horno.test.ts`, «❌ con 2.000 productos con foto, ninguna página pasa su presupuesto», y `apps/tienda-api/src/volumen.test.ts`, «publicar pasa la compuerta en menos de un minuto…». Control negativo: con 5.000 por página, las dos quedan en rojo con el peso.
+
+La regla: **un presupuesto medido en la tienda de prueba vale para la tienda de prueba; se mide también con la tienda del tamaño que se promete, antes de que llegue una real.**
+
+*Ficha:* tienda3 · *(mío)* · 🟡 Medio · P4/P5 · tienda-0.1.0 · 2026-10-15

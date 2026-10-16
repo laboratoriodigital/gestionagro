@@ -209,6 +209,14 @@ export const CAMPOS: Record<Seccion, readonly CampoDeAjuste[]> = {
     { campo: 'responsableIva', etiqueta: '¿Eres responsable de IVA?', tipo: 'si-no' },
     { campo: 'garantia', etiqueta: 'Garantía', tipo: 'parrafo' },
     { campo: 'retracto', etiqueta: 'Derecho de retracto', tipo: 'parrafo' },
+    {
+      campo: 'conservacionMeses',
+      etiqueta: 'Meses que guardas los datos de los compradores',
+      tipo: 'numero',
+      ayuda:
+        'De 12 a 60; si lo dejas vacío, 24. Pasado ese tiempo se borran solos y el pedido queda sin ellos. Bajarlo aplica también a los que ya tienes.',
+      pide: 'titular.gestionar',
+    },
   ],
   medicion: [
     { campo: 'ga4', etiqueta: 'Google Analytics (G-…)', tipo: 'texto' },

@@ -133,6 +133,8 @@ const combinacion = (fila: Record<string, unknown>) => {
   return typeof c === 'string' && c !== '' ? c.split('|').join(' / ') : 'única';
 };
 
+const pedidosEn = (n: unknown) => (n === 1 ? '1 pedido' : `${Number(n) || 0} pedidos`);
+
 /**
  * La frase de una fila, para quien pregunta (`usuario:<sub>`). Una acción que no conoce se dice
  * igual, con su nombre: nunca se esconde una fila.
@@ -237,6 +239,24 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('volv', 'iste', 'ió')} la tienda a la versión ${despues['version']}`;
     case 'ajustes.guardar':
       return `${hizo('cambi', 'aste', 'ó')} los ajustes de ${TITULOS_DE_SECCION[f.entidad_id as keyof typeof TITULOS_DE_SECCION] ?? f.entidad_id}`;
+    case 'solicitud.ver':
+      return `${hizo('abr', 'iste', 'ió')} la solicitud ${despues['radicado']}`;
+    case 'solicitud.responder':
+      return `${hizo('respond', 'iste', 'ió')} la solicitud ${despues['radicado']}`;
+    case 'solicitud.cerrar':
+      return `${hizo('cerr', 'aste', 'ó')} la solicitud ${despues['radicado']}`;
+    case 'exportar':
+      return `${hizo('descarg', 'aste', 'ó')} todos los datos de la tienda`;
+    case 'exportar.datos_personales':
+      return `${hizo('descarg', 'aste', 'ó')} todos los datos de la tienda, con los datos personales`;
+    case 'titular.buscar':
+      return `${hizo('busc', 'aste', 'ó')} a un comprador por su celular (${pedidosEn(despues['pedidos'])})`;
+    case 'titular.exportar':
+      return `${hizo('descarg', 'aste', 'ó')} los datos de un comprador (${pedidosEn(despues['pedidos'])})`;
+    case 'titular.corregir':
+      return `${hizo('corrig', 'iste', 'ió')} los datos de un comprador (${pedidosEn(despues['pedidos'])})`;
+    case 'titular.suprimir':
+      return `${hizo('borr', 'aste', 'ó')} los datos de un comprador (${pedidosEn(despues['pedidos'])})`;
     case 'ajustes.whatsapp_verificado':
       return `${hizo('verific', 'aste', 'ó')} el WhatsApp de la tienda`;
     default:

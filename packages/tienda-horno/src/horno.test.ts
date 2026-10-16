@@ -14,7 +14,16 @@ import {
   legalDeEnsayo,
 } from '@ed1/tienda-schema/ensayos';
 import { describe, expect, it } from 'vitest';
-import { hornear, jsonEstable, manifiesto, presente, type TiendaParaHornear } from './horno.ts';
+import { compuerta } from './compuerta.ts';
+import {
+  EN_LA_PORTADA,
+  hornear,
+  jsonEstable,
+  manifiesto,
+  POR_PAGINA,
+  presente,
+  type TiendaParaHornear,
+} from './horno.ts';
 import { ACENTOS_DE_LA_VITRINA } from './tema.ts';
 
 const DORADOS = join(import.meta.dirname, '..', 'dorados');
@@ -156,5 +165,81 @@ describe('determinismo y lo que nunca llega al HTML', () => {
     const dos =
       (await hornear(paraHornear(ENSAYO_DOS))).get('/p/pan-de-bono/index.html')?.contenido ?? '';
     expect(dos).toContain('https://schema.org/InStock');
+  });
+});
+
+describe('HU-T3.7 · una tienda llena, en páginas que caben en un teléfono', () => {
+  const muchos = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      slug: `producto-${i + 1}`,
+      nombre: `Producto ${i + 1}`,
+      opciones: [],
+      variantes: [{ id: `v-${i + 1}`, clave: '', precioCop: 10000 + i, stock: null }],
+      actualizado: '2026-10-13T15:00:00.000Z',
+      fotos: [
+        {
+          huella: (i % 16).toString(16).repeat(64),
+          alt: `Producto ${i + 1}`,
+          ancho: 1600,
+          alto: 2000,
+          anchos: [400, 800, 1600],
+        },
+      ],
+    }));
+  const tienda = (n: number, portada: 'catalogo' | 'editorial' | 'colecciones') => {
+    const productos = muchos(n);
+    const base = paraHornear(ENSAYO_UNO);
+    return hornear({
+      ...base,
+      apariencia: { ...base.apariencia, portada },
+      productos,
+      colecciones: [{ slug: 'todo', nombre: 'Todo', productos: productos.map((p) => p.slug) }],
+    });
+  };
+  const texto = (a: Map<string, { contenido: string }>, ruta: string) =>
+    a.get(ruta)?.contenido ?? '';
+
+  it.each(['catalogo', 'editorial', 'colecciones'] as const)(
+    'portada %s: los primeros 24 y «Ver los 100 productos»; las listas, de a 48 con su navegación',
+    async (portada) => {
+      const a = await tienda(100, portada);
+      const inicio = texto(a, '/index.html');
+      // La editorial pone el primero en grande y los demás en tarjetas: 24 en total.
+      expect(inicio.match(/class="tarjeta"/g)).toHaveLength(
+        portada === 'editorial' ? EN_LA_PORTADA - 1 : EN_LA_PORTADA,
+      );
+      expect(inicio).toContain('<a href="/productos/">Ver los 100 productos</a>');
+      expect(texto(a, '/index.md')).toContain('[Ver los 100 productos](/productos/index.md)');
+      for (const base of ['/productos/', '/c/todo/']) {
+        const paginas = [base, `${base}2/`, `${base}3/`].map((r) => texto(a, `${r}index.html`));
+        expect(paginas.map((p) => p.match(/class="tarjeta"/g)?.length)).toEqual([
+          POR_PAGINA,
+          POR_PAGINA,
+          100 - 2 * POR_PAGINA,
+        ]);
+        expect(paginas[0]).toContain(`<a href="${base}2/" rel="next">Siguientes</a>`);
+        expect(paginas[1]).toContain(`<a href="${base}" rel="prev">Anteriores</a>`);
+        expect(paginas[2]).toContain('Página 3 de 3');
+        expect(a.has(`${base}4/index.html`)).toBe(false);
+        expect(texto(a, `${base}2/index.md`)).toContain(`[Siguientes](${base}3/index.md)`);
+      }
+      const mapa = texto(a, '/sitemap.xml');
+      for (const r of ['/productos/', '/productos/3/', '/c/todo/2/'])
+        expect(mapa).toContain(`laboratorio-digital.app${r}</loc>`);
+    },
+  );
+
+  it('❌ con 2.000 productos con foto, ninguna página pasa su presupuesto', async () => {
+    const a = await tienda(2000, 'catalogo');
+    const r = compuerta({ ajustes: ENSAYO_UNO.ajustes, productos: [], archivos: a });
+    expect(r.fallas.filter((f) => f.codigo === 'peso')).toEqual([]);
+  });
+
+  it('con pocos productos no hay páginas de más: todo cabe en la portada', async () => {
+    const a = await tienda(EN_LA_PORTADA, 'catalogo');
+    expect(texto(a, '/index.html').match(/class="tarjeta"/g)).toHaveLength(EN_LA_PORTADA);
+    expect(texto(a, '/index.html')).not.toContain('Ver los');
+    expect(a.has('/productos/index.html')).toBe(false);
+    expect(texto(a, '/c/todo/index.html')).not.toContain('class="paginas"');
   });
 });

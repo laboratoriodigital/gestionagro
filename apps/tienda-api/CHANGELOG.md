@@ -5,6 +5,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Las solicitudes en el panel (HU-T9.7): en «Pedidos → Solicitudes» la que venció sin respuesta va arriba y en rojo, y se avisa a 3 días y el día que vence. El retracto cuenta los 15 días del reembolso. Responder ofrece mandar la respuesta por donde la persona dejó su contacto, y una solicitud no se cierra sin respuesta.
+- El tablero de Inicio (HU-T14.2): ventas, pedidos, ticket y tasa de cierre de hoy y del mes, contra el mes anterior a la misma altura del calendario; lo pendiente, con lo urgente arriba; y el margen de la contraentrega.
+- Descargar todo (HU-T10.7): en «Más → Descargar todo» la tienda baja en `tienda-export/1`, el mismo formato de la carga, y en hojas para Excel. Los datos de los compradores van aparte, solo para el propietario recién entrado, y queda registrado.
+- Datos de un comprador (HU-T7.3): en «Más → Datos de un comprador» el propietario busca por el celular y descarga, corrige o borra sus datos; el pedido queda como prueba de la venta. En «Datos legales» se elige cuántos meses se guardan los contactos (de 12 a 60, 24 si no se dice), y la política de privacidad dice ese plazo.
+- La tienda llena (HU-T3.7): el flujo «sembrar-volumen-tienda» llena a Comercio Ensayo Uno en staging con 2.000 productos y 300 pedidos para revisar la vitrina y el panel, con su recorrido en `docs/runbooks/tienda-revision-con-la-tienda-llena.md`.
 - Despachar un pedido (HU-T9.4): se anota la transportadora y la guía, y el comprador las ve en su seguimiento. Un pedido contra entrega no sale sin guía, y al salir queda la plata por recaudar, con la comisión y el flete si se saben.
 - Los recaudos de la contraentrega (HU-T9.5): entregar es recaudar; devolver pregunta si las unidades volvieron y cuánto costó el flete de vuelta; un envío perdido queda aparte. En «Pedidos → Recaudos» se ve lo pendiente, con sus días, y se liquidan varios a la vez con el número de la liquidación.
 - Más sobre cada pedido (HU-T9.6): anotar uno que llegó por teléfono, dejarle notas, mandar un enlace de seguimiento nuevo (el anterior deja de servir) y cancelarlo preguntando si las unidades vuelven al inventario.
@@ -27,6 +32,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
 
 ### Corregido
+- Una tienda con muchos productos ya se puede publicar: la portada muestra los primeros 24 con «Ver los N productos», y la lista de productos y cada colección van de a 48 por página. Antes la portada de una tienda con 2.000 productos pesaba 434 KB y no pasaba la revisión de publicar.
 - En «Más → Registro», cambiar una combinación ya no dice «la combinación única» cuando el producto tiene tallas o colores: dice «M / Arena».
 - En el seguimiento del pedido, la línea que dice en qué va ahora empieza por «Estado:», para que no se confunda con el resto del acuse.
 - En el panel, cambiar de tienda desde «Más» ya no se queda en «Abriendo tu tienda…»: abre el inicio de la tienda elegida sin recargar.

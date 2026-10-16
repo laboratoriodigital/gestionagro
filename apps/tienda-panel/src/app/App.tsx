@@ -32,6 +32,7 @@ import {
 import { AjusteDeSeccion, Ajustes } from './vistas/Ajustes.tsx';
 import { Anotar } from './vistas/Anotar.tsx';
 import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
+import { Datos } from './vistas/Datos.tsx';
 import { ElegirTienda, NOMBRE_DEL_ROL } from './vistas/ElegirTienda.tsx';
 import { Entrar } from './vistas/Entrar.tsx';
 import { Equipo } from './vistas/Equipo.tsx';
@@ -47,6 +48,8 @@ import { Publicar } from './vistas/Publicar.tsx';
 import { Recaudos } from './vistas/Recaudos.tsx';
 import { Registro } from './vistas/Registro.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
+import { Solicitud, Solicitudes } from './vistas/Solicitudes.tsx';
+import { Titular } from './vistas/Titular.tsx';
 import { Unirme } from './vistas/Unirme.tsx';
 import { CuponDeLaTienda, EnvioDeLaTienda, Venta } from './vistas/Venta.tsx';
 
@@ -206,12 +209,24 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         </button>
       </main>
     );
-  else if (ruta === '/') cuerpo = <Inicio yo={yo.datos} />;
+  else if (ruta === '/')
+    cuerpo = <Inicio yo={yo.datos} conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/pedidos/') cuerpo = <Bandeja conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/pedidos/nuevo/')
     cuerpo = <Anotar conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/pedidos/recaudos/')
     cuerpo = <Recaudos conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/pedidos/solicitudes/')
+    cuerpo = <Solicitudes conexion={conexion} alVencer={setVencida} />;
+  else if (/^\/pedidos\/solicitudes\/[^/]+\/$/.test(ruta))
+    cuerpo = (
+      <Solicitud
+        key={ruta}
+        conexion={conexion}
+        id={decodeURIComponent(ruta.split('/')[3] ?? '')}
+        alVencer={setVencida}
+      />
+    );
   else if (/^\/pedidos\/[^/]+\/$/.test(ruta))
     cuerpo = (
       <Pedido
@@ -301,6 +316,10 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     );
   } else if (ruta === '/mas/registro/')
     cuerpo = <Registro conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/mas/datos/')
+    cuerpo = <Datos conexion={conexion} rol={yo.datos.rol} alVencer={setVencida} />;
+  else if (ruta === '/mas/titular/')
+    cuerpo = <Titular conexion={conexion} rol={yo.datos.rol} alVencer={setVencida} />;
   else if (ruta === '/mas/equipo/')
     cuerpo = (
       <Equipo
