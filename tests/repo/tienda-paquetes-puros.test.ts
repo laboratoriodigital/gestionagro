@@ -13,7 +13,7 @@ import { RAIZ } from '../../scripts/lib/repo.ts';
  * parqueadero, `whatsapp` e `impresion`, siguen la misma regla (BACKLOG-PARKING_MVP HU-Q1.6, HU-Q2.2),
  * y también los del parqueadero: su esquema, sus tarifas y sus recibos (HU-Q1.1, HU-Q1.3, HU-Q1.4).
  * `pagos` también: el CORE y la Tienda lo usan en sus Workers, y la red le llega como parámetro
- * (HU-T11.1).
+ * (HU-T11.1). `correo` igual, por la misma razón (HU-C10.1).
  */
 const PAQUETES = [
   'dinero',
@@ -25,6 +25,7 @@ const PAQUETES = [
   'impresion',
   'firma',
   'pagos',
+  'correo',
   'parqueadero-schema',
   'parqueadero-tarifas',
   'parqueadero-recibos',

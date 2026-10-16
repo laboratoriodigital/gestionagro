@@ -501,6 +501,8 @@ importers:
 
   packages/cifrado: {}
 
+  packages/correo: {}
+
   packages/d1:
     devDependencies:
       wrangler:
