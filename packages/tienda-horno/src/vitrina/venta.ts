@@ -1,9 +1,10 @@
 /**
  * Qué falta para enviar el pedido (HU-T6.1): el botón dice lo primero que falta, y al tocarlo lleva
- * a ese campo, como el de la ficha (HU-T3.4). Puro, para probarlo sin navegador.
+ * a ese campo, como el de la ficha (HU-T3.4). Pagando en línea (HU-T11.4) faltan también el nombre
+ * y el celular de quien recibe, porque no hay chat donde darlos. Puro, para probarlo sin navegador.
  */
 
-export type Falta = 'lineas' | 'forma' | 'envio' | 'acepta';
+export type Falta = 'lineas' | 'forma' | 'envio' | 'entrega' | 'acepta';
 
 export interface EstadoDeLaVenta {
   listo: boolean;
@@ -15,6 +16,7 @@ const TEXTOS: Record<Falta, string> = {
   lineas: 'Tu pedido está vacío',
   forma: 'Elige cómo pagar',
   envio: 'Elige cómo te llega',
+  entrega: 'Escribe tu nombre y tu celular',
   acepta: 'Acepta los términos para enviar',
 };
 
@@ -24,7 +26,10 @@ export function estadoDeLaVenta(v: {
   hayEnvios: boolean;
   envio: string | null;
   acepta: boolean;
+  /** Pagando en línea: el nombre y el celular de quien recibe están bien escritos. */
+  entrega?: boolean;
 }): EstadoDeLaVenta {
+  const enLinea = v.forma === 'en_linea';
   const falta: Falta | undefined =
     v.lineas === 0
       ? 'lineas'
@@ -32,12 +37,30 @@ export function estadoDeLaVenta(v: {
         ? 'forma'
         : v.hayEnvios && !v.envio
           ? 'envio'
-          : !v.acepta
-            ? 'acepta'
-            : undefined;
+          : enLinea && !v.entrega
+            ? 'entrega'
+            : !v.acepta
+              ? 'acepta'
+              : undefined;
   return falta
     ? { listo: false, texto: TEXTOS[falta], falta }
-    : { listo: true, texto: 'Enviar por WhatsApp' };
+    : { listo: true, texto: enLinea ? 'Pagar en línea' : 'Enviar por WhatsApp' };
+}
+
+/** Un celular de Colombia: 10 dígitos que empiezan por 3, con o sin +57, espacios o guiones. */
+export function celularValido(texto: string): boolean {
+  const d = texto.replace(/\D/g, '');
+  return /^3\d{9}$/.test(d.length === 12 && d.startsWith('57') ? d.slice(2) : d);
+}
+
+/** El primer dato de entrega que falta o está mal escrito; `null` si están los dos. */
+export function faltaDeLaEntrega(e: {
+  nombre: string;
+  celular: string;
+}): 'nombre' | 'celular' | null {
+  if (e.nombre.trim().length < 2) return 'nombre';
+  if (!celularValido(e.celular)) return 'celular';
+  return null;
 }
 
 /** Lee `#c=<código>&s=<secreto>` del fragmento: nunca de la ruta ni de la consulta (P13). */

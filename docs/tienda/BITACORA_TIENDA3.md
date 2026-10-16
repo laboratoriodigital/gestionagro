@@ -732,3 +732,21 @@ La regla: **una lista que puede crecer se pide de a poco desde el primer día, d
 La regla: **una prueba de publicación no se salta ninguna puerta de la compuerta; si una puerta estorba, se siembra lo que la abre.**
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Medio · P5, P16 · tienda-0.1.0 · 2026-10-16
+
+**23 · Pasado el plazo de un pago abandonado, la última unidad seguía pareciendo agotada.**
+
+*Qué pasó.* El 16 oct 2026, al probar el pago en línea (HU-T11.4) contra el D1 local: un comprador aparta la última camisa S Arena y no paga; a los 16 minutos otro la pide.
+
+*Síntoma literal.* `POST /api/v1/cobros` respondió `{"estado":"cambio","cotizacion":{…"avisos":[{"codigo":"linea_quitada","variante":"v-camisa-s-arena"}…]}}`: la tienda le quitó la camisa del pedido al segundo comprador.
+
+*Causa raíz.* TIENDA §7.2 pone el vencimiento perezoso dentro del lote (paso 2a), después de recalcular (paso 1). La cotización cuenta `stock − reservado`, y `reservado` todavía incluía el apartado vencido, así que el lote nunca llegaba a correr. Hasta que pase el cron de conciliación (HU-T11.6), cada pago abandonado escondía sus unidades.
+
+*Cómo se reprodujo.* D1 local: `apps/tienda-api/src/cobros.test.ts`, «pasados los 15 minutos, lo apartado vence al apartar otra vez».
+
+*Arreglo.* Lo vencido de esas variantes se vence antes de cotizar, y el lote lo vuelve a hacer por si otro apartó entre tanto. TIENDA §7.2 lleva una nota que lo dice.
+
+**Lo prueba** esa misma prueba. Control negativo: sin el vencimiento antes de cotizar, queda en rojo con `cambio`.
+
+La regla: **un vencimiento perezoso va antes de la primera lectura que lo necesita, no solo antes de la escritura.**
+
+*Ficha:* tienda3 · *(mío)* · 🟡 Medio · P5 · tienda-0.1.0 · 2026-10-16

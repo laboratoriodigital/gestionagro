@@ -97,6 +97,18 @@ describe('la vitrina por el despacho (HU-T5.1)', () => {
     expect(await ficha.text()).toContain('"@type":"Product"');
   });
 
+  it('❌ solo el carrito deja cargar a Bold, y solo como programa y marco (HU-T11.4)', async () => {
+    const d = await montar();
+    const carrito = (await pedir(d, '/carrito/')).headers.get('content-security-policy') ?? '';
+    expect(carrito).toContain("script-src 'self' https://checkout.bold.co;");
+    expect(carrito).toContain('frame-src https://checkout.bold.co;');
+    expect(carrito).toContain("connect-src 'self';");
+    for (const ruta of ['/', '/p/camisa-de-lino/', '/pedido/']) {
+      const csp = (await pedir(d, ruta)).headers.get('content-security-policy') ?? '';
+      expect(csp, ruta).not.toContain('bold');
+    }
+  });
+
   it('con Accept: text/markdown, el gemelo', async () => {
     const d = await montar();
     const r = await pedir(d, '/p/camisa-de-lino/', { headers: { accept: 'text/markdown' } });

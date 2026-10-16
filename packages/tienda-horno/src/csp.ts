@@ -6,13 +6,22 @@
  *
  * Cuando una tienda con dominio propio mida con GA4 o Meta (D-T13), sus orígenes se suman aquí, por
  * tienda, y la prueba lo exige igual.
+ *
+ * El carrito (`/carrito/`) es la única página que deja cargar algo de afuera: el programa de Bold,
+ * que la isla carga solo al tocar «Pagar en línea», y su pago embebido en un marco (HU-T11.4,
+ * TIENDA §9.3). Ninguna otra página lo permite.
  */
-export function cspDeLaVitrina(medios: string | undefined): string {
+export const ORIGEN_DE_BOLD = 'https://checkout.bold.co';
+export const RUTA_DEL_PAGO = '/carrito/';
+
+export function cspDeLaVitrina(medios: string | undefined, ruta?: string): string {
+  const pago = ruta === RUTA_DEL_PAGO;
   return [
     "default-src 'self'",
     `img-src 'self'${medios ? ` https://${medios}` : ''} data:`,
     "style-src 'self'",
-    "script-src 'self'",
+    `script-src 'self'${pago ? ` ${ORIGEN_DE_BOLD}` : ''}`,
+    ...(pago ? [`frame-src ${ORIGEN_DE_BOLD}`] : []),
     "connect-src 'self'",
     "object-src 'none'",
     "base-uri 'none'",
@@ -25,9 +34,10 @@ export function cspDeLaVitrina(medios: string | undefined): string {
 export function origenesPermitidos(
   medios: string | undefined,
   propio: string,
+  ruta?: string,
 ): Record<'script' | 'stylesheet' | 'font' | 'image' | 'fetch', readonly string[]> {
   return {
-    script: [propio],
+    script: [propio, ...(ruta === RUTA_DEL_PAGO ? [ORIGEN_DE_BOLD] : [])],
     stylesheet: [propio],
     font: [propio],
     image: [propio, ...(medios ? [`https://${medios}`] : [])],

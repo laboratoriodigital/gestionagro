@@ -44,6 +44,8 @@ export async function hornearEnsayo(): Promise<Map<string, string | Buffer>> {
         p.retracto === 'aplica' ? { aplica: true } : { aplica: false, motivo: p.retracto.motivo },
     })),
     colecciones: [{ slug: 'lino', nombre: 'Lino', productos: ['camisa-de-lino'] }],
+    // HU-T11.4: las e2e pagan en línea con un Bold de mentira; el despacho de verdad no lo publica.
+    cobroEnLinea: true,
   });
   const salida = new Map<string, string | Buffer>();
   for (const [ruta, a] of horneados) salida.set(ruta.slice(1), a.contenido);

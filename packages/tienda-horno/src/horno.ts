@@ -93,6 +93,11 @@ export interface TiendaParaHornear {
   legal?: DatosLegales;
   productos: ProductoParaHornear[];
   colecciones?: ColeccionParaHornear[];
+  /**
+   * La tienda cobra en línea con su Bold (HU-T11.4): el carrito ofrece pagar ahí y pide los datos de
+   * entrega. La compuerta no deja publicarla así hasta el cobro de prueba guiado (HU-T11.3).
+   */
+  cobroEnLinea?: boolean;
 }
 
 export interface ArchivoHorneado {
@@ -643,7 +648,9 @@ ${p.cuerpo}
    * Sin la isla, la página ofrece el WhatsApp de la tienda.
    */
   const whatsapp = presente(t.whatsapp) ? t.whatsapp.replace(/\D/g, '') : '';
-  const formas = (t.legal?.formas ?? []).filter((f) => f.forma !== 'en_linea');
+  // En línea, primero y solo si la tienda cobra con su Bold (HU-T11.4); las demás, como las declara.
+  const otras = (t.legal?.formas ?? []).filter((f) => f.forma !== 'en_linea');
+  const formas = t.cobroEnLinea ? [{ forma: 'en_linea' as const }, ...otras] : otras;
   const enviosConId = (t.legal?.envios ?? []).filter((e) => presente(e.id));
   const tarjetaDeForma = (f: (typeof formas)[number]) =>
     `<label class="opcion-grande"><input type="radio" name="forma" value="${f.forma}"><span class="opcion-grande__nombre">${escaparHtml(NOMBRE_DE_LA_FORMA[f.forma])}</span><span class="opcion-grande__nota">${escaparHtml(NOTA_DE_LA_FORMA[f.forma])}</span></label>`;
@@ -657,6 +664,7 @@ ${p.cuerpo}
       plazo: plazoDelEnvio(e.diasMin, e.diasMax),
     })),
     terminos: huellaDeLosTerminos,
+    ...(t.cobroEnLinea ? { enLinea: true } : {}),
   };
   pagina({
     ruta: '/carrito/',
@@ -678,10 +686,17 @@ ${p.cuerpo}
         ? `<fieldset class="grupo"><legend>¿Cómo te llega?</legend>${enviosConId.map(tarjetaDeEnvio).join('')}</fieldset>`
         : '',
       '<label class="campo">Ciudad de entrega (si te lo envían)<input name="ciudad" maxlength="60" autocomplete="address-level2"></label>',
+      // HU-T11.4: pagando en línea no hay chat donde dar la entrega; van cifrados a la tienda.
+      t.cobroEnLinea
+        ? '<fieldset class="grupo" data-entrega hidden><legend>¿A quién se lo entregamos?</legend><label class="campo">Nombre de quien recibe<input name="nombre" maxlength="120" autocomplete="name"></label><label class="campo">Celular<input name="celular" type="tel" inputmode="tel" maxlength="20" autocomplete="tel"></label><label class="campo">Dirección (si te lo envían)<input name="direccion" maxlength="300" autocomplete="street-address"></label><label class="campo">Correo (opcional)<input name="correo" type="email" maxlength="200" autocomplete="email"></label></fieldset>'
+        : '',
       '<label class="acepto"><input type="checkbox" name="acepta" data-acepta><span>Acepto los <a href="/legal/terminos/">términos y condiciones</a> y la <a href="/legal/privacidad/">política de datos</a>.</span></label>',
       '<p class="aviso" data-aviso-venta role="status" hidden></p>',
       '<button class="boton boton--principal" type="submit" data-enviar aria-disabled="true">Elige cómo pagar</button>',
-      '<p class="resumen__nota">Te llevamos a WhatsApp con tu pedido escrito. Los datos de entrega se los das a la tienda allí.</p>',
+      '<p class="resumen__nota" data-nota-venta>Te llevamos a WhatsApp con tu pedido escrito. Los datos de entrega se los das a la tienda allí.</p>',
+      t.cobroEnLinea
+        ? '<p class="resumen__nota" data-nota-en-linea hidden>Pagas en la página segura de Bold sin salir de la tienda. Tus datos de entrega le llegan cifrados a la tienda.</p><p class="acuse__enlace" data-enlace-del-pago hidden>Guarda este enlace para seguir tu pedido: <a data-enlace-del-pedido></a></p>'
+        : '',
       '</form>',
       `<script type="application/json" id="venta">${jsonEstable(datosDeVenta).replace(/</g, '\\u003c')}</script>`,
       whatsapp
@@ -724,6 +739,29 @@ ${p.cuerpo}
     ld: [],
     gemelo: `# Tu pedido\n\nEl estado de un pedido se ve con su enlace de seguimiento, que solo tiene quien lo hizo.\n`,
   });
+
+  /**
+   * La vuelta de Bold (HU-T11.4, TIENDA §9.3): `redirectionUrl` del botón. Bold le agrega
+   * `?bold-order-id=…&bold-tx-status=…`, que nunca se creen: la isla no los lee. Lleva al pedido con
+   * el enlace que la página guardó antes de abrir Bold; el estado lo dice el seguimiento, con lo que
+   * confirme Bold (HU-T11.5 y HU-T11.6).
+   */
+  if (t.cobroEnLinea) {
+    pagina({
+      ruta: '/pedido/pago/',
+      titulo: `Tu pago · ${t.nombre}`,
+      privada: true,
+      cuerpo: [
+        '<h1>Tu pago</h1>',
+        '<div class="seguimiento" data-vuelta-del-pago>',
+        '<p class="estado">Si pagaste, Bold le avisa a la tienda y tu pedido queda pagado. Lo ves con el enlace de seguimiento que guardaste antes de pagar.</p>',
+        '<a class="boton boton--principal" data-vuelta-enlace hidden>Ver mi pedido</a>',
+        '</div>',
+      ].join('\n'),
+      ld: [],
+      gemelo: `# Tu pago\n\nEl estado de un pago se ve con el enlace de seguimiento del pedido, que solo tiene quien lo hizo.\n`,
+    });
+  }
 
   /**
    * La solicitud con radicado (HU-T6.4, TIENDA §8.6): el formulario va debajo del texto de

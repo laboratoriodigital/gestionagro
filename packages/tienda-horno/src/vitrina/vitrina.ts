@@ -38,7 +38,13 @@ import {
   type VarianteDeLaFicha,
   valorAgotado,
 } from './seleccion.ts';
-import { estadoDeLaSolicitud, estadoDeLaVenta, leerFragmento, leerRadicado } from './venta.ts';
+import {
+  estadoDeLaSolicitud,
+  estadoDeLaVenta,
+  faltaDeLaEntrega,
+  leerFragmento,
+  leerRadicado,
+} from './venta.ts';
 
 const azar = (n: number) => crypto.getRandomValues(new Uint8Array(n));
 /** Las variantes por las que este teléfono ya pidió «Avísame» (HU-T6.5). */
@@ -267,6 +273,7 @@ async function carritoPagina(): Promise<void> {
   const datosDeVenta = JSON.parse(document.getElementById('venta')?.textContent ?? '{}') as {
     envios?: { id: string }[];
     terminos?: string;
+    enLinea?: boolean;
   };
   if (!lista || !vacio || !resumen) return;
   const { productos } = await leerCatalogo();
@@ -428,6 +435,9 @@ async function carritoPagina(): Promise<void> {
   const boton = venta?.querySelector<HTMLButtonElement>('[data-enviar]');
   const avisoVenta = venta?.querySelector<HTMLElement>('[data-aviso-venta]') ?? null;
   const acepta = venta?.querySelector<HTMLInputElement>('[data-acepta]');
+  const valorDe = (nombre: string) =>
+    venta?.querySelector<HTMLInputElement>(`input[name="${nombre}"]`)?.value.trim() ?? '';
+  const entrega = () => ({ nombre: valorDe('nombre'), celular: valorDe('celular') });
   const estado = () =>
     estadoDeLaVenta({
       lineas: carrito.lineas.length,
@@ -435,7 +445,15 @@ async function carritoPagina(): Promise<void> {
       hayEnvios,
       envio: elegido('envio'),
       acepta: Boolean(acepta?.checked),
+      entrega: faltaDeLaEntrega(entrega()) === null,
     });
+  // HU-T11.4: pagando en línea se piden los datos de entrega y la nota dice dónde se paga.
+  const pintarForma = () => {
+    const enLinea = elegido('forma') === 'en_linea';
+    venta?.querySelector<HTMLElement>('[data-entrega]')?.toggleAttribute('hidden', !enLinea);
+    venta?.querySelector<HTMLElement>('[data-nota-venta]')?.toggleAttribute('hidden', enLinea);
+    venta?.querySelector<HTMLElement>('[data-nota-en-linea]')?.toggleAttribute('hidden', !enLinea);
+  };
   const pintarBoton = () => {
     if (!boton) return;
     const e = estado();
@@ -444,11 +462,88 @@ async function carritoPagina(): Promise<void> {
   };
   venta?.addEventListener('change', (evento) => {
     decir(avisoVenta, undefined);
+    pintarForma();
     pintarBoton();
     if ((evento.target as HTMLInputElement | null)?.name === 'envio') programarCotizacion();
   });
-  const ciudad = () =>
-    venta?.querySelector<HTMLInputElement>('input[name="ciudad"]')?.value.trim() ?? '';
+  venta?.addEventListener('input', pintarBoton);
+
+  /**
+   * HU-T11.4: pagar en línea. El servidor escribe el pedido, el cobro y los apartados en un lote y
+   * devuelve el botón de Bold firmado. Aquí queda solo el token del cobro, en `sessionStorage`
+   * (CA2): ni el nombre, ni el celular, ni la dirección. Antes de abrir Bold, la página deja el
+   * enlace de seguimiento a la vista y en el `localStorage` de la tienda (HU-T11.9 CA1).
+   */
+  const pagarEnLinea = async () => {
+    carrito = conSecreto(carrito, azar);
+    guardar(carrito);
+    let token = sesion.leer(CLAVE_DEL_COBRO);
+    if (!token || !/^[A-Za-z0-9_-]{22}$/.test(token)) {
+      token = secretoNuevo(azar);
+      sesion.escribir(CLAVE_DEL_COBRO, token);
+    }
+    const opcional = (nombre: string) => (valorDe(nombre) ? { [nombre]: valorDe(nombre) } : {});
+    let r: Response;
+    let cuerpo: RespuestaDeCobro;
+    try {
+      r = await fetch('/api/v1/cobros', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          codigo: carrito.codigo,
+          lineas: carrito.lineas,
+          ...(elegido('envio') ? { envio: elegido('envio') } : {}),
+          ...(ciudad() ? { ciudad: ciudad() } : {}),
+          acepta: true,
+          terminos: datosDeVenta.terminos,
+          seguimiento: carrito.seguimiento,
+          totalVisto,
+          token,
+          entrega: { ...entrega(), ...opcional('direccion'), ...opcional('correo') },
+        }),
+      });
+      cuerpo = (await r.json().catch(() => ({}))) as RespuestaDeCobro;
+    } catch {
+      decir(avisoVenta, 'No pudimos iniciar el pago. Revisa tu conexión e intenta de nuevo.');
+      return;
+    }
+    if (!r.ok || !cuerpo.boton || !cuerpo.codigo || !carrito.seguimiento) {
+      if (cuerpo.estado === 'cambio' && cuerpo.cotizacion) {
+        aplicar({ ...cuerpo.cotizacion, cambio: true });
+        decir(avisoVenta, 'Tu pedido cambió. Revisa el total antes de pagar.');
+        return;
+      }
+      if (cuerpo.estado === 'sin-existencias') programarCotizacion();
+      decir(
+        avisoVenta,
+        MOTIVOS_DEL_PEDIDO[cuerpo.estado ?? ''] ??
+          cuerpo.motivo ??
+          'No pudimos iniciar el pago. Intenta de nuevo.',
+      );
+      return;
+    }
+    // Desde aquí hay un cobro en pantalla: el carrito no se sanea (bitácora ecommerce 47).
+    const enlace = `/pedido/#c=${cuerpo.codigo}&s=${carrito.seguimiento}`;
+    carrito = { ...carrito, cobro: carrito.cobro ?? new Date().toISOString() };
+    guardar(carrito);
+    almacen.escribir(CLAVE_ULTIMO, JSON.stringify({ codigo: cuerpo.codigo, enlace }));
+    const bloque = venta?.querySelector<HTMLElement>('[data-enlace-del-pago]');
+    const a = bloque?.querySelector<HTMLAnchorElement>('[data-enlace-del-pedido]');
+    if (bloque && a) {
+      a.href = enlace;
+      a.textContent = new URL(enlace, location.href).href;
+      bloque.hidden = false;
+    }
+    try {
+      await abrirBold(cuerpo.boton);
+    } catch {
+      decir(
+        avisoVenta,
+        'No pudimos abrir la página de pago de Bold. Toca «Pagar en línea» otra vez.',
+      );
+    }
+  };
+  const ciudad = () => valorDe('ciudad');
   let enviando = false;
   venta?.addEventListener('submit', async (evento) => {
     evento.preventDefault();
@@ -457,7 +552,9 @@ async function carritoPagina(): Promise<void> {
       const campo =
         e.falta === 'acepta'
           ? acepta
-          : venta.querySelector<HTMLInputElement>(`input[name="${e.falta}"]`);
+          : venta.querySelector<HTMLInputElement>(
+              `input[name="${e.falta === 'entrega' ? faltaDeLaEntrega(entrega()) : e.falta}"]`,
+            );
       campo?.focus();
       decir(avisoVenta, e.texto);
       return;
@@ -465,6 +562,15 @@ async function carritoPagina(): Promise<void> {
     if (enviando) return;
     enviando = true;
     boton?.setAttribute('aria-busy', 'true');
+    if (elegido('forma') === 'en_linea') {
+      try {
+        await pagarEnLinea();
+      } finally {
+        enviando = false;
+        boton?.removeAttribute('aria-busy');
+      }
+      return;
+    }
     try {
       carrito = conSecreto(carrito, azar);
       guardar(carrito);
@@ -526,6 +632,7 @@ async function carritoPagina(): Promise<void> {
       boton?.removeAttribute('aria-busy');
     }
   });
+  pintarForma();
   pintar();
 }
 
@@ -544,6 +651,94 @@ const MOTIVOS_DEL_PEDIDO: Record<string, string> = {
 };
 /** El último pedido enviado desde este teléfono: el texto para WhatsApp del acuse (HU-T6.2). */
 const CLAVE_ULTIMO = 'tienda:ultimo';
+/** El token opaco del cobro en curso (HU-T11.4 CA2): lo único que guarda la página al pagar. */
+const CLAVE_DEL_COBRO = 'tienda:cobro';
+
+/** `sessionStorage`, que puede no existir: entonces cada intento lleva un token nuevo. */
+const sesion = {
+  leer(clave: string): string | null {
+    try {
+      return sessionStorage.getItem(clave);
+    } catch {
+      return null;
+    }
+  },
+  escribir(clave: string, valor: string): void {
+    try {
+      sessionStorage.setItem(clave, valor);
+    } catch {
+      // Sin almacenamiento, el reintento crea otro cobro: el servidor lo dice.
+    }
+  },
+  borrar(clave: string): void {
+    try {
+      sessionStorage.removeItem(clave);
+    } catch {
+      // Nada que borrar.
+    }
+  },
+};
+
+interface RespuestaDeCobro {
+  estado?: string;
+  motivo?: string;
+  codigo?: string;
+  cotizacion?: Cotizacion;
+  boton?: { libreria: string; checkout: Record<string, string> };
+}
+
+declare global {
+  interface Window {
+    BoldCheckout?: new (datos: Record<string, string>) => { open: () => void };
+  }
+}
+
+/**
+ * Carga el programa de Bold solo al pagar (la CSP de `/carrito/` lo permite, y solo de
+ * `checkout.bold.co`) y abre el pago embebido con los datos que firmó el servidor, tal cual.
+ */
+async function abrirBold(boton: { libreria: string; checkout: Record<string, string> }) {
+  if (!/^https:\/\/checkout\.bold\.co\//.test(boton.libreria)) throw new Error('No es Bold');
+  if (!window.BoldCheckout) {
+    await new Promise<void>((resolver, rechazar) => {
+      const s = document.createElement('script');
+      s.src = boton.libreria;
+      s.async = true;
+      s.onload = () => resolver();
+      s.onerror = () => rechazar(new Error('No cargó Bold'));
+      document.head.append(s);
+    });
+  }
+  const Checkout = window.BoldCheckout;
+  if (!Checkout) throw new Error('No cargó Bold');
+  new Checkout(boton.checkout).open();
+}
+
+/**
+ * La vuelta de Bold (HU-T11.4): lleva al pedido con el enlace guardado antes de pagar. Lo que Bold
+ * pone en la dirección no se lee: el estado lo dice el seguimiento.
+ */
+function vueltaDelPago(): void {
+  const raiz = document.querySelector<HTMLElement>('[data-vuelta-del-pago]');
+  if (!raiz) return;
+  let ultimo: { enlace?: string } = {};
+  try {
+    ultimo = JSON.parse(almacen.leer(CLAVE_ULTIMO) ?? '{}') as typeof ultimo;
+  } catch {
+    ultimo = {};
+  }
+  const enlace = ultimo.enlace;
+  if (!enlace || !leerFragmento(enlace.replace(/^[^#]*/, ''))) return;
+  // El pedido ya existe: el carrito que se pagó se vacía y el token del cobro ya no hace falta.
+  guardar(vaciar(azar));
+  sesion.borrar(CLAVE_DEL_COBRO);
+  const a = raiz.querySelector<HTMLAnchorElement>('[data-vuelta-enlace]');
+  if (a) {
+    a.href = enlace;
+    a.hidden = false;
+  }
+  location.replace(enlace);
+}
 
 interface Cotizacion {
   subtotal: number;
@@ -876,5 +1071,6 @@ ficha();
 pintarBarra(cargar());
 void carritoPagina();
 void pedidoEnviado();
+vueltaDelPago();
 void solicitudPagina();
 void busqueda();

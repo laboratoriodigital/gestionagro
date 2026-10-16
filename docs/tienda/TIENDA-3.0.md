@@ -585,6 +585,8 @@ POST /api/v1/cobros  {codigo, items, cupon, envio, entrega, acepta: {terminos_hu
 
 El lote cuesta unas 3 + 3n consultas. Con 30 líneas son unas 95, bien por debajo de las 1.000 por invocación del plan pago.
 
+*(Hoy, HU-T11.4: lo vencido de esas variantes se vence también **antes** de recalcular, porque la cotización cuenta `stock − reservado` y sin eso un pago abandonado escondía sus unidades hasta el cron (bitácora tienda3 23). No hay `ultimo_numero`: el número es `MAX(numero) + 1` en la misma sentencia del `INSERT`, y un lote que falla no lo gasta. El lote son 6 + 2n sentencias. `POST /api/v1/cobros` lleva también el token del cobro y los datos de entrega (`entrega`), cifrados en `pedido_contacto`.)*
+
 ### 7.3 Cuando Bold responde
 
 | Respuesta | Lote |

@@ -378,6 +378,10 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       legal: datosLegales,
       productos: paraHornear,
       colecciones: [...porColeccion].map(([slug, col]) => ({ slug, ...col })),
+      // HU-T11.4: el carrito ofrece pagar en línea. La compuerta no lo publica así todavía (HU-T11.3).
+      ...(ajustes.venta?.['modo'] === 'en_linea' || ajustes.venta?.['modo'] === 'ambos'
+        ? { cobroEnLinea: true }
+        : {}),
     };
     const archivos = await hornear(datos);
     const revision = compuerta({

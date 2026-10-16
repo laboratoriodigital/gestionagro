@@ -79,6 +79,14 @@
         "limit": 5,
         "period": 60
       }
+    },
+    {
+      "name": "LIMITE_COBROS",
+      "namespace_id": "3006",
+      "simple": {
+        "limit": 3,
+        "period": 60
+      }
     }
   ],
   "observability": {
@@ -159,6 +167,14 @@
           "namespace_id": "3105",
           "simple": {
             "limit": 5,
+            "period": 60
+          }
+        },
+        {
+          "name": "LIMITE_COBROS",
+          "namespace_id": "3106",
+          "simple": {
+            "limit": 3,
             "period": 60
           }
         }
