@@ -823,6 +823,7 @@ En la 2.0 no se podían usar: Apps Script no lee las cabeceras de una solicitud.
   - Como mucho 20 consultas por tienda y por vuelta, porque Bold bloquea por exceso sin publicar la cifra.
   - Con 24 h sin noticias, pasa a `vencido`.
   - Si Bold responde 429, la tienda se salta esa vuelta y se avisa.
+  - *(Hoy: la vuelta es cada hora, no cada 15 minutos. La cuenta tiene un solo cron, por hora (HU-T17.1, D-T10). La espera creciente y el tope de 20 quedan iguales; con 24 h sin noticias el cobro vence sin otra consulta, y el pedido sigue por pagar para que un aviso tardío todavía lo pague. La página consulta con el token del cobro y nada más.)*
 - **Estados de Bold** (`PROCESSING`, `PENDING`, `APPROVED`, `REJECTED`, `FAILED`, `VOIDED`, `NO_TRANSACTION_FOUND`): se traducen en un solo sitio, `packages/pagos`.
   - `NO_TRANSACTION_FOUND` y `PENDING` siguen esperando.
   - `REJECTED` y `FAILED` son rechazo.

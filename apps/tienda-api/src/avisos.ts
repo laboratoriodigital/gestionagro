@@ -85,7 +85,7 @@ export async function firmaValida(
   return crypto.subtle.verify('HMAC', k, deHex(firma), new TextEncoder().encode(base64(cuerpo)));
 }
 
-interface CobroDelAviso {
+export interface CobroDelAviso {
   id: string;
   pedido_id: string;
   ambiente: Ambiente;
@@ -93,18 +93,17 @@ interface CobroDelAviso {
   monto_cop: number;
 }
 
-const registrar = (
-  c: ContextoDelAviso,
-  aviso: AvisoDeBold,
-  cobro: string,
-  resultado: 'aplicado' | 'ignorado',
-) =>
-  c.db
-    .prepare(
-      `INSERT INTO aviso_proveedor (org_id, proveedor, aviso_id, recibido, cobro_id, tipo, resultado)
-       VALUES (?, 'bold', ?, ?, ?, ?, ?)`,
-    )
-    .bind(c.org, `${aviso.type}:${aviso.subject}`, c.ahora, cobro, aviso.type, resultado);
+/**
+ * Lo que Bold dijo de un cobro, venga por un aviso o por una consulta (HU-T11.6): las dos llegan
+ * aquí y hacen lo mismo con el cobro, en un solo sitio.
+ */
+export interface RespuestaDeBold {
+  tipo: 'aprobado' | 'rechazado' | 'anulado';
+  /** Lo que Bold dice que se pagó; `null` si no lo dijo, y entonces no se aprueba por el monto. */
+  total: number | null;
+  transaccion: string | null;
+  medio: string | null;
+}
 
 /** El primer paso del historial del pago, solo si el pedido todavía espera (no se repite). */
 const eventoDelPago = (
@@ -132,7 +131,7 @@ const eventoDelPago = (
 /** Aprobado por el monto: el inventario sale una vez por línea y el pedido queda pagado. */
 async function aprobar(
   c: ContextoDelAviso,
-  aviso: AvisoDeBold,
+  r: RespuestaDeBold,
   k: CobroDelAviso,
 ): Promise<SentenciaD1[]> {
   const { results: lineas } = await c.db
@@ -141,14 +140,13 @@ async function aprobar(
     )
     .bind(c.org, k.pedido_id)
     .all<{ linea: number; variante_id: string; cantidad: number }>();
-  const transaccion = aviso.data.payment_id ?? aviso.subject;
   return [
     c.db
       .prepare(
         `UPDATE cobro SET estado = 'aprobado', estado_proveedor = 'APPROVED', transaccion = ?, medio = ?,
            actualizado = ? WHERE org_id = ? AND id = ?`,
       )
-      .bind(transaccion, aviso.data.payment_method ?? null, c.ahora, c.org, k.id),
+      .bind(r.transaccion, r.medio, c.ahora, c.org, k.id),
     // Lo apartado se consume antes de descontar, para que `reservado <= stock` se cumpla.
     c.db
       .prepare(
@@ -168,7 +166,7 @@ async function aprobar(
     c.db
       .prepare('UPDATE pedido_linea SET descontado = 1 WHERE org_id = ? AND pedido_id = ?')
       .bind(c.org, k.pedido_id),
-    eventoDelPago(c, k, { resultado: 'aprobado', transaccion, medio: aviso.data.payment_method }),
+    eventoDelPago(c, k, { resultado: 'aprobado', transaccion: r.transaccion, medio: r.medio }),
     c.db
       .prepare(
         `UPDATE pedido SET estado = 'pagado', cambiado_por = 'sistema', actualizado = ?
@@ -179,22 +177,21 @@ async function aprobar(
 }
 
 /** Aprobado tarde, sin unidades: pagado, sin tocar el inventario, y el comercio decide (§7.3). */
-function aprobarSinExistencias(c: ContextoDelAviso, aviso: AvisoDeBold, k: CobroDelAviso) {
-  const transaccion = aviso.data.payment_id ?? aviso.subject;
+function aprobarSinExistencias(c: ContextoDelAviso, r: RespuestaDeBold, k: CobroDelAviso) {
   return [
     c.db
       .prepare(
         `UPDATE cobro SET estado = 'aprobado_sin_existencias', estado_proveedor = 'APPROVED', transaccion = ?,
            medio = ?, actualizado = ? WHERE org_id = ? AND id = ?`,
       )
-      .bind(transaccion, aviso.data.payment_method ?? null, c.ahora, c.org, k.id),
+      .bind(r.transaccion, r.medio, c.ahora, c.org, k.id),
     c.db
       .prepare(
         `UPDATE apartado SET estado = 'liberado', cerrado = ?
           WHERE org_id = ? AND cobro_id = ? AND estado = 'activo'`,
       )
       .bind(c.ahora, c.org, k.id),
-    eventoDelPago(c, k, { resultado: 'aprobado_sin_existencias', transaccion }),
+    eventoDelPago(c, k, { resultado: 'aprobado_sin_existencias', transaccion: r.transaccion }),
     c.db
       .prepare(
         `UPDATE pedido SET estado = 'pagado', atencion = 'sin_existencias', cambiado_por = 'sistema',
@@ -205,21 +202,15 @@ function aprobarSinExistencias(c: ContextoDelAviso, aviso: AvisoDeBold, k: Cobro
 }
 
 /** Aprobado por otro monto: a revisar. Lo apartado sigue hasta que el comercio decida (§7.3). */
-function revisar(c: ContextoDelAviso, aviso: AvisoDeBold, k: CobroDelAviso, total: number) {
+function revisar(c: ContextoDelAviso, r: RespuestaDeBold, k: CobroDelAviso) {
   return [
     c.db
       .prepare(
         `UPDATE cobro SET estado = 'revisar', estado_proveedor = 'APPROVED', transaccion = ?, medio = ?,
            actualizado = ? WHERE org_id = ? AND id = ?`,
       )
-      .bind(
-        aviso.data.payment_id ?? aviso.subject,
-        aviso.data.payment_method ?? null,
-        c.ahora,
-        c.org,
-        k.id,
-      ),
-    eventoDelPago(c, k, { resultado: 'revisar', monto: k.monto_cop, pagado: total }),
+      .bind(r.transaccion, r.medio, c.ahora, c.org, k.id),
+    eventoDelPago(c, k, { resultado: 'revisar', monto: k.monto_cop, pagado: r.total }),
     c.db
       .prepare(
         "UPDATE pedido SET atencion = 'monto', actualizado = ? WHERE org_id = ? AND id = ? AND estado = 'por_pagar'",
@@ -271,36 +262,74 @@ function anular(c: ContextoDelAviso, k: CobroDelAviso) {
 
 const APROBADOS = new Set(['aprobado', 'aprobado_sin_existencias', 'revisar']);
 
-/** Lo que el aviso hace con el cobro: las sentencias, o `null` si no le toca hacer nada. */
+/** Lo que la respuesta hace con el cobro: las sentencias, o `null` si no le toca hacer nada. */
 async function sentenciasDe(
   c: ContextoDelAviso,
-  aviso: AvisoDeBold,
+  r: RespuestaDeBold,
   k: CobroDelAviso,
 ): Promise<{ lote: SentenciaD1[]; respaldo?: SentenciaD1[] } | null> {
   const abierto = k.estado === 'esperando' || k.estado === 'vencido';
-  switch (aviso.type) {
-    case 'SALE_APPROVED': {
+  switch (r.tipo) {
+    case 'aprobado':
       if (!abierto) return null;
-      const total = aviso.data.amount?.total;
-      if (total !== k.monto_cop) return { lote: revisar(c, aviso, k, total ?? 0) };
-      return { lote: await aprobar(c, aviso, k), respaldo: aprobarSinExistencias(c, aviso, k) };
-    }
-    case 'SALE_REJECTED':
+      if (r.total !== k.monto_cop) return { lote: revisar(c, r, k) };
+      return { lote: await aprobar(c, r, k), respaldo: aprobarSinExistencias(c, r, k) };
+    case 'rechazado':
       return k.estado === 'esperando' ? { lote: rechazar(c, k) } : null;
-    case 'VOID_APPROVED':
+    case 'anulado':
       return APROBADOS.has(k.estado) ? { lote: anular(c, k) } : null;
-    default:
-      return null;
   }
 }
 
-const leerCobro = (c: ContextoDelAviso, id: string) =>
+/**
+ * Aplica lo que Bold dijo, con `antes` al principio del mismo lote (el registro del aviso, o la
+ * consulta anotada). Devuelve si movió el cobro; si no le tocaba, no escribe nada.
+ */
+export async function aplicarRespuesta(
+  c: ContextoDelAviso,
+  r: RespuestaDeBold,
+  k: CobroDelAviso,
+  antes: SentenciaD1[] = [],
+): Promise<boolean> {
+  const hacer = await sentenciasDe(c, r, k);
+  if (!hacer) return false;
+  try {
+    await c.db.batch([...antes, ...hacer.lote]);
+  } catch (e) {
+    // Aprobado tarde y ya no hay unidades: el lote de respaldo (TIENDA §7.3).
+    if (!hacer.respaldo || !/CHECK/i.test(String(e))) throw e;
+    await c.db.batch([...antes, ...hacer.respaldo]);
+  }
+  if (r.tipo === 'aprobado') await reaplicarAnulaciones(c, k.id);
+  return true;
+}
+
+export const leerCobro = (c: ContextoDelAviso, id: string) =>
   c.db
     .prepare(
       'SELECT id, pedido_id, ambiente, estado, monto_cop FROM cobro WHERE org_id = ? AND id = ?',
     )
     .bind(c.org, id)
     .first<CobroDelAviso>();
+
+const registrar = (
+  c: ContextoDelAviso,
+  aviso: AvisoDeBold,
+  cobro: string,
+  resultado: 'aplicado' | 'ignorado',
+) =>
+  c.db
+    .prepare(
+      `INSERT INTO aviso_proveedor (org_id, proveedor, aviso_id, recibido, cobro_id, tipo, resultado)
+       VALUES (?, 'bold', ?, ?, ?, ?, ?)`,
+    )
+    .bind(c.org, `${aviso.type}:${aviso.subject}`, c.ahora, cobro, aviso.type, resultado);
+
+const TIPOS: Record<string, RespuestaDeBold['tipo']> = {
+  SALE_APPROVED: 'aprobado',
+  SALE_REJECTED: 'rechazado',
+  VOID_APPROVED: 'anulado',
+};
 
 /** Aplica un aviso ya verificado sobre su cobro. */
 async function aplicar(
@@ -315,26 +344,29 @@ async function aplicar(
     .bind(c.org, `${aviso.type}:${aviso.subject}`)
     .first<{ resultado: string }>();
   if (ya) return 'repetido';
-  const hacer = await sentenciasDe(c, aviso, k);
+  const tipo = Object.hasOwn(TIPOS, aviso.type) ? TIPOS[aviso.type] : undefined;
   try {
-    if (!hacer) {
-      // Una anulación antes que su venta, u otro aviso que no mueve nada: queda dicho (CA3).
-      await registrar(c, aviso, k.id, 'ignorado').run();
-      return 'ignorado';
-    }
-    try {
-      await c.db.batch([registrar(c, aviso, k.id, 'aplicado'), ...hacer.lote]);
-    } catch (e) {
-      // Aprobado tarde y ya no hay unidades: el lote de respaldo (TIENDA §7.3).
-      if (!hacer.respaldo || !/CHECK/i.test(String(e))) throw e;
-      await c.db.batch([registrar(c, aviso, k.id, 'aplicado'), ...hacer.respaldo]);
-    }
+    const movio =
+      tipo !== undefined &&
+      (await aplicarRespuesta(
+        c,
+        {
+          tipo,
+          total: aviso.data.amount?.total ?? null,
+          transaccion: aviso.data.payment_id ?? aviso.subject,
+          medio: aviso.data.payment_method ?? null,
+        },
+        k,
+        [registrar(c, aviso, k.id, 'aplicado')],
+      ));
+    if (movio) return 'aplicado';
+    // Una anulación antes que su venta, u otro aviso que no mueve nada: queda dicho (CA3).
+    await registrar(c, aviso, k.id, 'ignorado').run();
+    return 'ignorado';
   } catch (e) {
     if (/UNIQUE|PRIMARY KEY/i.test(String(e))) return 'repetido';
     throw e;
   }
-  if (aviso.type === 'SALE_APPROVED') await reaplicarAnulaciones(c, k.id);
-  return 'aplicado';
 }
 
 /** La anulación que llegó antes que la venta se aplica cuando la venta ya está (CA3). */

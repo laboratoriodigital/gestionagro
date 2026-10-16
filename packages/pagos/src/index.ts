@@ -38,6 +38,16 @@ export interface ProveedorDePago {
   consultar(orden: string): Promise<EstadoEnElProveedor>;
 }
 
+/** Bold respondió con un error: `estado` es el HTTP, para que quien llama distinga un 429 (HU-T11.6). */
+export class ErrorDeBold extends Error {
+  readonly estado: number;
+  constructor(estado: number) {
+    super(`Bold respondió ${estado}`);
+    this.name = 'ErrorDeBold';
+    this.estado = estado;
+  }
+}
+
 export const LIBRERIA_BOLD = 'https://checkout.bold.co/library/boldPaymentButton.js';
 const CONSULTA_BOLD = 'https://payments.api.bold.co/v2/payment-voucher/';
 /** Los estados que Bold documenta, y lo que cada uno quiere decir aquí (TIENDA §9.5). */
@@ -105,7 +115,7 @@ export function proveedorBold(llaves: LlavesBold, fetchFn: typeof fetch): Provee
         };
       }
       const dato = (await r.json().catch(() => null)) as Record<string, unknown> | null;
-      if (!r.ok || !dato) throw new Error(`Bold respondió ${r.status}`);
+      if (!r.ok || !dato) throw new ErrorDeBold(r.status);
       const d = (dato['payload'] as Record<string, unknown> | undefined) ?? dato;
       const crudo = String(d['payment_status'] ?? 'NO_TRANSACTION_FOUND').toUpperCase();
       const total = d['total'];

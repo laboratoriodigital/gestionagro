@@ -13,12 +13,15 @@
  *   Telegram con lo que cambió (CA2).
  * - La semanal respalda cada tienda en `respaldos/` del almacén (HU-T17.3, `respaldos.ts`); si un
  *   respaldo no cuadra con la base, avisa por Telegram con la tienda y la causa.
+ * - Cada hora se concilian los cobros que esperan sin aviso (HU-T11.6, `conciliar.ts`): lo que
+ *   pedía 15 minutos pasa a cada hora.
  * - La diaria purga lo que cumplió su plazo, y nada antes (HU-T17.2): la papelera a los 30 días y
  *   las respuestas guardadas de `operacion` a las 48 horas. Las exportaciones las borra la regla de
  *   ciclo de vida del bucket a los 7 días (`docs/runbooks/tienda-ciclo-de-vida.md`).
  */
 import type { BaseD1 } from '@ed1/d1';
 import { enviarTelegram } from '@ed1/telegram';
+import { CONCILIAR } from './conciliar.ts';
 import { type AlmacenDeRespaldos, respaldarTienda } from './respaldos.ts';
 import { purgarContactos } from './titular.ts';
 
@@ -40,6 +43,8 @@ export interface EntornoDeTareas {
   almacen?: AlmacenDeRespaldos;
   /** El host de las fotos (`MEDIOS`): los respaldos las nombran por su enlace. */
   medios?: string;
+  /** La KEK de la celda: la conciliación descifra con ella las llaves de Bold (HU-T11.6). */
+  kekTexto?: string;
   /** Para las pruebas; en el Worker, el `fetch` global. */
   fetch?: typeof fetch;
 }
@@ -357,4 +362,4 @@ export const RESPALDOS: Tarea = {
   },
 };
 
-export const TAREAS: readonly Tarea[] = [RECONSTRUIR_HOSTS, PURGAS, RESPALDOS];
+export const TAREAS: readonly Tarea[] = [RECONSTRUIR_HOSTS, PURGAS, RESPALDOS, CONCILIAR];

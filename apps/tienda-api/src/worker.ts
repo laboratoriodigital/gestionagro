@@ -82,6 +82,7 @@ import {
   perderEnvio,
 } from './ciclo.ts';
 import { iniciarCobro, PeticionDeCobro } from './cobros.ts';
+import { estadoDelCobro, PeticionDeEstadoDelCobro } from './conciliar.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { exportarTienda } from './exportar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
@@ -353,9 +354,12 @@ export function crearApp(
     ahora?: () => number;
     /** Lo que sigue después de responder (`waitUntil`); las pruebas lo esperan. */
     enSegundoPlano?: (trabajo: Promise<unknown>) => void;
+    /** Para hablar con Bold (HU-T11.6); las pruebas ponen uno de mentira. */
+    fetch?: typeof fetch;
   } = {},
 ) {
   const ahora = opciones.ahora ?? (() => Date.now());
+  const alProveedor: typeof fetch = opciones.fetch ?? ((url, init) => fetch(url, init));
   const enSegundoPlano = (c: ContextoTienda, trabajo: Promise<unknown>) =>
     opciones.enSegundoPlano ? opciones.enSegundoPlano(trabajo) : c.executionCtx.waitUntil(trabajo);
   const app = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -669,6 +673,34 @@ export function crearApp(
       console.error(`tienda-api: el aviso de Bold falló (${String(e)})`);
       return c.json({ resultado: 'error' }, 500);
     }
+  });
+
+  /**
+   * HU-T11.6: la página pregunta por su cobro con el token (nada de lo que trae la vuelta de Bold
+   * en la dirección cuenta). Si sigue esperando, se le pregunta a Bold como mucho cada 20 s por
+   * cobro. Comparte el límite por IP del seguimiento, 20 por minuto.
+   */
+  app.post('/api/v1/cobros/estado', async (c) => {
+    const NO_ENCONTRADO = { estado: 'no-encontrado' };
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_SEGUIMIENTO, 'LIMITE_SEGUIMIENTO'))) {
+      c.header('retry-after', '60');
+      return c.json({ estado: 'limite' }, 429);
+    }
+    const p = await cuerpoValido(c, PeticionDeEstadoDelCobro);
+    if (!p) return c.json(NO_ENCONTRADO, 404);
+    const r = await estadoDelCobro(
+      {
+        db: destino.db,
+        org: destino.org,
+        ahora: new Date(ahora()).toISOString(),
+        kekTexto: c.env.TIENDA_KEK_V1,
+      },
+      p.token,
+      alProveedor,
+    );
+    return r ? c.json(r) : c.json(NO_ENCONTRADO, 404);
   });
 
   /**
@@ -1534,6 +1566,7 @@ export async function alCron(env: Env, instante: number): Promise<void> {
       hosts,
       flags,
       telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
+      ...(env.TIENDA_KEK_V1 ? { kekTexto: env.TIENDA_KEK_V1 } : {}),
       ...(env.SITIOS ? { almacen: env.SITIOS as unknown as AlmacenDeRespaldos } : {}),
       ...(env.MEDIOS ? { medios: env.MEDIOS } : {}),
     },
