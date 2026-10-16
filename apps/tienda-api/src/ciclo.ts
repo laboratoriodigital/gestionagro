@@ -56,13 +56,14 @@ interface FilaDelPedido {
   estado: string;
   forma_pago: string;
   total_cop: number;
+  atencion: string | null;
   version: number;
 }
 
 async function leerFila(q: Quien, id: string) {
   return q.db
     .prepare(
-      'SELECT codigo, numero, estado, forma_pago, total_cop, version FROM pedido WHERE org_id = ? AND id = ?',
+      'SELECT codigo, numero, estado, forma_pago, total_cop, atencion, version FROM pedido WHERE org_id = ? AND id = ?',
     )
     .bind(q.org, id)
     .first<FilaDelPedido>();
@@ -135,8 +136,36 @@ export async function despacharPedido(q: Quien, cuerpo: unknown): Promise<Result
     if (faltan.length) return problemas(...faltan);
   }
 
+  // HU-T11.7: pagado sin existencias. Despacharlo es haber repuesto: lo que no salió del
+  // inventario sale ahora, y si todavía no alcanza, no se despacha y se dice qué falta.
+  const sinExistencias = p.atencion === 'sin_existencias';
+  const leerPendientes = async () => (sinExistencias ? await lineasSinDescontar(q, d.pedido) : []);
+  const pendientes = await leerPendientes();
+  const noAlcanza = faltaParaDespachar(pendientes);
+  if (noAlcanza) return noAlcanza;
+
   const r: Resultado = { estado: 'guardado', id: d.pedido, version: p.version + 1 };
   const lote: SentenciaD1[] = [
+    ...pendientes
+      .filter((l) => l.stock !== null)
+      .map((l) =>
+        q.db
+          .prepare(
+            `UPDATE variante SET stock = stock - ?, cambio_motivo = 'venta', cambio_ref = ?, actualizado = ?
+              WHERE org_id = ? AND id = ? AND EXISTS (SELECT 1 FROM pedido_linea
+                WHERE org_id = ? AND pedido_id = ? AND linea = ? AND descontado = 0)`,
+          )
+          .bind(l.cantidad, d.pedido, q.instante, q.org, l.variante_id, q.org, d.pedido, l.linea),
+      ),
+    ...(sinExistencias
+      ? [
+          q.db
+            .prepare(
+              'UPDATE pedido_linea SET descontado = 1 WHERE org_id = ? AND pedido_id = ? AND descontado = 0',
+            )
+            .bind(q.org, d.pedido),
+        ]
+      : []),
     // CA1: el recaudo nace en el mismo lote, antes del cambio de estado que lo exige.
     ...(contraentrega
       ? [
@@ -161,6 +190,7 @@ export async function despacharPedido(q: Quien, cuerpo: unknown): Promise<Result
     q.db
       .prepare(
         `UPDATE pedido SET estado = 'despachado', transportadora = ?, guia = ?, cambiado_por = ?,
+           atencion = CASE WHEN atencion = 'sin_existencias' THEN NULL ELSE atencion END,
            version = version + 1, actualizado = ?
           WHERE org_id = ? AND id = ? AND version = ? AND estado IN ('confirmado', 'pagado')`,
       )
@@ -191,11 +221,59 @@ export async function despacharPedido(q: Quien, cuerpo: unknown): Promise<Result
     }),
     guardarOperacion(q, d.op, 'pedidos/despachar', r),
   ];
-  return aplicar(q, d.op, d.pedido, lote, r, (e) =>
+  const traducido = await aplicar(q, d.op, d.pedido, lote, r, (e) =>
     /contraentrega-sin-guia/.test(String(e))
       ? problemas({ campo: 'guia', mensaje: FALTA_GUIA })
-      : null,
+      : /CHECK constraint failed/i.test(String(e))
+        ? problemas({ campo: 'pedido', mensaje: FALTA_REPONER })
+        : null,
   );
+  // Otra venta se llevó lo repuesto entre la lectura y el lote: decir cuál, si se puede.
+  if (traducido.estado === 'problemas' && traducido.problemas[0]?.mensaje === FALTA_REPONER) {
+    return faltaParaDespachar(await leerPendientes()) ?? traducido;
+  }
+  return traducido;
+}
+
+const FALTA_REPONER =
+  'Todavía no alcanzan las existencias para despacharlo. Repón las unidades en Inventario, o cancélalo y devuelve el dinero.';
+
+/** Las líneas de un pedido que todavía no salieron del inventario, con lo que hay de cada una. */
+async function lineasSinDescontar(q: Quien, pedido: string) {
+  const { results } = await q.db
+    .prepare(
+      `SELECT l.linea, l.variante_id, l.nombre, l.opciones, l.cantidad, v.stock, v.reservado
+         FROM pedido_linea l JOIN variante v ON v.org_id = l.org_id AND v.id = l.variante_id
+        WHERE l.org_id = ? AND l.pedido_id = ? AND l.descontado = 0 ORDER BY l.linea`,
+    )
+    .bind(q.org, pedido)
+    .all<{
+      linea: number;
+      variante_id: string;
+      nombre: string;
+      opciones: string;
+      cantidad: number;
+      stock: number | null;
+      reservado: number;
+    }>();
+  return results;
+}
+
+/** La primera combinación que no alcanza para despachar, dicha con lo que hay y lo que lleva. */
+function faltaParaDespachar(
+  pendientes: Awaited<ReturnType<typeof lineasSinDescontar>>,
+): Resultado | null {
+  const pide = new Map<string, number>();
+  for (const l of pendientes) pide.set(l.variante_id, (pide.get(l.variante_id) ?? 0) + l.cantidad);
+  const corta = pendientes.find(
+    (l) => l.stock !== null && l.stock - l.reservado < (pide.get(l.variante_id) ?? 0),
+  );
+  if (!corta || corta.stock === null) return null;
+  const hay = Math.max(0, corta.stock - corta.reservado);
+  return problemas({
+    campo: 'pedido',
+    mensaje: `Todavía no alcanza: de «${corta.nombre}${corta.opciones ? ` (${corta.opciones})` : ''}» hay ${hay} y el pedido lleva ${pide.get(corta.variante_id)}. Repón las unidades en Inventario, o cancélalo y devuelve el dinero.`,
+  });
 }
 
 // ── HU-T9.5: entregar, devolver, perder y liquidar ──────────────────────────────────────────

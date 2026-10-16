@@ -16,6 +16,9 @@ import {
 } from '@ed1/tienda-schema/ensayos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { firmaValida } from './avisos.ts';
+import { listarPedidos } from './bandeja.ts';
+import { despacharPedido } from './ciclo.ts';
+import { conciliarTienda } from './conciliar.ts';
 import { dekDeCredenciales, guardarCredencial } from './credenciales.ts';
 import { KEK_VIGENTE } from './llaves.ts';
 import { CABECERA_DESPACHO, CABECERA_TIENDA, crearApp, type Env } from './worker.ts';
@@ -317,6 +320,162 @@ describe('un pago aprobado (HU-T11.5)', () => {
       atencion: 'sin_existencias',
     });
     expect(await varianteDe(S)).toEqual({ stock: 0, reservado: 0 });
+  });
+});
+
+describe('cada respuesta de Bold, con su camino (HU-T11.7)', () => {
+  it('aprobado después de vencer, con unidades: igual que a tiempo, desde vencido (CA1)', async () => {
+    const cobro = await cobrar('RSP001');
+    const antes = await varianteDe(M);
+    const despues = '2026-10-17T15:00:00.000Z';
+    await conciliarTienda(
+      { db: shard, org: UNO, ahora: despues, kekTexto: KEK },
+      Date.parse(despues),
+      fetch,
+    );
+    expect(await estadoDe(cobro)).toEqual({
+      cobro: 'vencido',
+      pedido: 'por_pagar',
+      atencion: null,
+    });
+    const r = await avisar(avisoDe('SALE_APPROVED', cobro), undefined, '2026-10-17T15:10:00.000Z');
+    expect(await r.json()).toEqual({ resultado: 'aplicado' });
+    expect(await estadoDe(cobro)).toEqual({ cobro: 'aprobado', pedido: 'pagado', atencion: null });
+    expect((await varianteDe(M)).stock).toBe((antes.stock ?? 0) - 1);
+  });
+
+  it('anulación aprobada después del pago: reembolsado, y el pedido lo mueve el comercio (CA1)', async () => {
+    const cobro = await cobrar('RSP002');
+    await avisar(avisoDe('SALE_APPROVED', cobro));
+    const r = await avisar(avisoDe('VOID_APPROVED', cobro), undefined, '2026-10-16T16:00:00.000Z');
+    expect(await r.json()).toEqual({ resultado: 'aplicado' });
+    expect(await estadoDe(cobro)).toEqual({
+      cobro: 'reembolsado',
+      pedido: 'pagado',
+      atencion: null,
+    });
+  });
+
+  it('«Pagado sin existencias» va arriba con su fecha; despacharlo pide reponer y entonces descuenta (CA2)', async () => {
+    const quien = (instante: string) => ({
+      db: shard,
+      org: UNO,
+      actor: 'usuario:ensayo-uno',
+      instante,
+    });
+    // Otro pedido con atención, más nuevo: el pagado sin existencias va antes.
+    const otroMonto = await cobrar('RSP003', M, '2026-10-16T15:40:00.000Z');
+    await avisar(avisoDe('SALE_APPROVED', otroMonto, 1000), undefined, '2026-10-16T15:41:00.000Z');
+    const { results } = await shard
+      .prepare(
+        "SELECT p.id, p.version, k.actualizado FROM pedido p JOIN cobro k ON k.org_id = p.org_id AND k.pedido_id = p.id WHERE p.org_id = ? AND k.estado = 'aprobado_sin_existencias'",
+      )
+      .bind(UNO)
+      .all<{ id: string; version: number; actualizado: string }>();
+    const sinExistencias = results[0];
+    if (!sinExistencias)
+      throw new Error('falta el pedido pagado sin existencias de la prueba anterior');
+    const bandeja = await listarPedidos(quien('2026-10-16T16:00:00.000Z'), null, null);
+    // El de «por otro monto queda a revisar» y RSP003 son más nuevos, y van después.
+    expect(bandeja.atencion.map((f) => [f.atencion, f.atencionDesde])).toEqual([
+      ['sin_existencias', sinExistencias.actualizado],
+      ['monto', null],
+      ['monto', null],
+    ]);
+
+    const despachar = (instante: string, version: number, op: string) =>
+      despacharPedido(quien(instante), {
+        op,
+        pedido: sinExistencias.id,
+        version,
+        transportadora: 'Transportadora de prueba',
+        guia: 'GUIA-0001',
+      });
+    const sinReponer = await despachar(
+      '2026-10-16T16:05:00.000Z',
+      sinExistencias.version,
+      'op-rsp-0001',
+    );
+    expect(sinReponer).toEqual({
+      estado: 'problemas',
+      problemas: [
+        {
+          campo: 'pedido',
+          mensaje: expect.stringMatching(
+            /^Todavía no alcanza: de «.+» hay 0 y el pedido lleva 1\. Repón/,
+          ),
+        },
+      ],
+    });
+    await shard
+      .prepare(
+        `UPDATE variante SET stock = stock + 1, cambio_motivo = 'ajuste', cambio_ref = 'prueba', actualizado = ?
+          WHERE org_id = ? AND id = ?`,
+      )
+      .bind('2026-10-16T16:06:00.000Z', UNO, S)
+      .run();
+    const repuesto = await despachar(
+      '2026-10-16T16:07:00.000Z',
+      sinExistencias.version,
+      'op-rsp-0002',
+    );
+    expect(repuesto).toMatchObject({ estado: 'guardado' });
+    expect(await varianteDe(S)).toEqual({ stock: 0, reservado: 0 });
+    expect(
+      await uno<{ estado: string; atencion: string | null }>(
+        'SELECT estado, atencion FROM pedido WHERE org_id = ? AND id = ?',
+        UNO,
+        sinExistencias.id,
+      ),
+    ).toEqual({ estado: 'despachado', atencion: null });
+    expect(
+      await n(
+        'SELECT COUNT(*) AS n FROM pedido_linea WHERE org_id = ? AND pedido_id = ? AND descontado = 0',
+        UNO,
+        sinExistencias.id,
+      ),
+    ).toBe(0);
+  });
+
+  it('❌ ningún caso fallido parece un pago confirmado: ni el pedido ni el seguimiento dicen pagado (CA3)', async () => {
+    const casos: [string, () => Promise<void>][] = [];
+    const otroMonto = await cobrar('RSP004');
+    casos.push([
+      otroMonto,
+      async () => void (await avisar(avisoDe('SALE_APPROVED', otroMonto, 1000))),
+    ]);
+    const rechazado = await cobrar('RSP005');
+    casos.push([rechazado, async () => void (await avisar(avisoDe('SALE_REJECTED', rechazado)))]);
+    const vencido = await cobrar('RSP006');
+    casos.push([
+      vencido,
+      async () =>
+        void (await conciliarTienda(
+          { db: shard, org: UNO, ahora: '2026-10-17T15:00:00.000Z', kekTexto: KEK },
+          Date.parse('2026-10-17T15:00:00.000Z'),
+          fetch,
+        )),
+    ]);
+    const anuladoAntes = await cobrar('RSP007');
+    casos.push([
+      anuladoAntes,
+      async () => void (await avisar(avisoDe('VOID_APPROVED', anuladoAntes))),
+    ]);
+    for (const [cobro, pasar] of casos) {
+      await pasar();
+      const e = await estadoDe(cobro);
+      expect([cobro, e.pedido]).not.toEqual([cobro, 'pagado']);
+      expect([cobro, e.pedido]).not.toEqual([cobro, 'confirmado']);
+      expect(['aprobado', 'aprobado_sin_existencias']).not.toContain(e.cobro);
+      const codigo = cobro.split('-')[0];
+      const s = await pedir(
+        '/api/v1/seguimiento',
+        JSON.stringify({ codigo, secreto: `seguimiento-${codigo}-xxxxxxxxx`.slice(0, 22) }),
+        '2026-10-17T15:30:00.000Z',
+      );
+      expect(s.status, cobro).toBe(200);
+      expect((await s.json()) as { estado: string }, cobro).not.toMatchObject({ estado: 'pagado' });
+    }
   });
 });
 

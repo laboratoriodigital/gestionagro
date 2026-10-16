@@ -26,7 +26,6 @@ import {
   Texto,
 } from '../componentes/index.ts';
 import {
-  ATENCION,
   crearTurno,
   type FilaDePedido,
   type Filtros,
@@ -35,6 +34,7 @@ import {
   filtrar,
   type PaginaDePedidos,
   revisarDespacho,
+  textoDeAtencion,
   unir,
 } from '../pedidos.ts';
 import { fleteDeVuelta } from '../recaudos.ts';
@@ -209,7 +209,7 @@ export function Bandeja({
             vacio={{ porque: '' }}
             fila={(p: FilaDePedido) => ({
               ...filaDe(p),
-              detalle: `${ATENCION[p.atencion ?? ''] ?? p.atencion} · ${detalleDe(p)}`,
+              detalle: `${textoDeAtencion(p, Date.now())} · ${detalleDe(p)}`,
             })}
           />
         </section>
@@ -769,7 +769,10 @@ export function Pedido({
       ) : null}
       {pedido.atencion ? (
         <Aviso tono="peligro" titulo="Necesita atención">
-          {ATENCION[pedido.atencion] ?? pedido.atencion}
+          {textoDeAtencion(pedido, Date.now())}.
+          {pedido.atencion === 'sin_existencias'
+            ? ' Repón las unidades en Inventario y despáchalo, o cancélalo y devuelve el dinero desde tu cuenta de Bold.'
+            : null}
         </Aviso>
       ) : null}
 

@@ -1125,7 +1125,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T11.6.1 `[código]` · WI-T11.6.2 `[prueba]` con un Bold falso que firma y responde de verdad (P17).
 
 #### HU-T11.7 · Cada respuesta de Bold, con su camino
-- **Capa:** API y panel · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T13 · **Depende de:** HU-T11.5 · **Estado:** Refinada
+- **Capa:** API y panel · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T13 · **Depende de:** HU-T11.5 · **Estado:** En validación (rama `feat/t13-sprint`. Cada fila de TIENDA §7.3 tiene su prueba en `avisos.test.ts` y `conciliar.test.ts`; se sumaron aprobado tarde con unidades, desde `vencido`, y la anulación después del pago. En la bandeja, «Pagado sin existencias» va antes que toda otra atención, con la fecha del pago, y el panel cuenta 15 días calendario de Bogotá: «quedan N días para reponer o devolver el dinero», y pasado el plazo lo sigue diciendo. **Despacharlo es haber repuesto**: lo que no salió del inventario sale al despachar, y si todavía no alcanza, no se despacha y dice qué combinación falta; despachado, deja de pedir atención. Devolver el dinero es cancelarlo y anular el pago en Bold, que llega como `reembolsado`. Controles negativos: sin ponerlo arriba, sin descontar al despachar, sin quitar la atención, el rechazo como pagado, los días en UTC y el reloj que se queda en cero, rojo)
 - Como comerciante, quiero que el caso raro (otro monto, pagó tarde, ya no hay) me llegue arriba y con qué hacer.
 - **Respaldo:** TIENDA §7.3; P1 y P15.
 - **CA1.** Cada fila de TIENDA §7.3 es un caso de prueba: aprobado, otro monto (`revisar`), aprobado tarde con unidades y sin ellas, rechazado, vencido y anulado (`reembolsado`).

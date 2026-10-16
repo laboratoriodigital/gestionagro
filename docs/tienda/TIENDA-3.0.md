@@ -599,6 +599,8 @@ El lote cuesta unas 3 + 3n consultas. Con 30 líneas son unas 95, bien por debaj
 | Sin noticias en 24 h | `cobro` → `vencido`; apartados ya vencidos |
 | Anulación aprobada (`VOID_APPROVED`) | `cobro` → `reembolsado`. El pedido lo mueve el comercio (`cancelado` o `devuelto`) con su motivo |
 
+*(Hoy: «Pagado sin existencias» va antes que toda otra atención del panel, con 15 días calendario para reponer o devolver el dinero. Reponer es despacharlo: lo que no salió del inventario sale en el lote del despacho, y si todavía no alcanza, no se despacha. Devolver es cancelarlo y anular el pago en Bold. HU-T11.7.)*
+
 ### 7.4 Los demás caminos del inventario
 
 - **Pedido por WhatsApp:** no aparta. Como en la 2.0, solo el pedido confirmado o pagado descuenta. Confirmarlo es un lote que descuenta con la misma guarda. Si no alcanza, el panel lo dice y no confirma (P1).

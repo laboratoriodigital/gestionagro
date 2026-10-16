@@ -18,6 +18,8 @@ export interface FilaDePedido {
   ciudad: string | null;
   articulos: number;
   atencion: string | null;
+  /** Desde cuándo está pagado sin existencias; el plazo de 15 días cuenta desde aquí (HU-T11.7). */
+  atencionDesde: string | null;
   /** Ya viene tapado de la API: «María F.», «300 ••• 4567». */
   comprador: { nombre: string | null; celular: string | null } | null;
   version: number;
@@ -39,10 +41,39 @@ export const FORMAS_DE_PAGO: Readonly<Record<string, string>> = {
 
 /** Lo que necesita atención, en palabras (`pedido.atencion`). */
 export const ATENCION: Readonly<Record<string, string>> = {
-  sin_existencias: 'Se pagó, pero ya no hay existencias',
+  sin_existencias: 'Pagado sin existencias',
   monto: 'Cobro a revisar: el monto no cuadra',
   datos: 'Faltan datos para despachar',
 };
+
+/** Días calendario para reponer o devolver el dinero de un pedido pagado sin existencias. */
+export const DIAS_PARA_RESOLVER = 15;
+const DIA_MS = 86_400_000;
+/** El día del calendario de Bogotá (UTC−5, sin horario de verano) de un instante. */
+const diaDeBogota = (t: number) => Math.floor((t - 5 * 3_600_000) / DIA_MS);
+
+/**
+ * HU-T11.7 CA2: el reloj de un pedido pagado sin existencias, en días calendario de Bogotá desde
+ * el pago. Cuando el plazo pasa, lo sigue diciendo: un pago sin entregar no se olvida.
+ */
+export function plazoSinExistencias(desde: string, ahora: number): string {
+  const quedan = DIAS_PARA_RESOLVER - (diaDeBogota(ahora) - diaDeBogota(Date.parse(desde)));
+  if (quedan > 1) return `quedan ${quedan} días para reponer o devolver el dinero`;
+  if (quedan === 1) return 'queda 1 día para reponer o devolver el dinero';
+  if (quedan === 0) return 'hoy es el último día para reponer o devolver el dinero';
+  return `el plazo para reponer o devolver el dinero venció hace ${quedan === -1 ? '1 día' : `${-quedan} días`}`;
+}
+
+/** Lo que necesita atención, en palabras, con el reloj si está pagado sin existencias. */
+export function textoDeAtencion(
+  p: Pick<FilaDePedido, 'atencion' | 'atencionDesde'>,
+  ahora: number,
+): string {
+  const texto = ATENCION[p.atencion ?? ''] ?? p.atencion ?? '';
+  return p.atencion === 'sin_existencias' && p.atencionDesde
+    ? `${texto}: ${plazoSinExistencias(p.atencionDesde, ahora)}`
+    : texto;
+}
 
 export interface Filtros {
   estado: string;
