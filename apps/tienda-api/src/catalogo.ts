@@ -245,49 +245,139 @@ export async function leerProducto(q: Quien, id: string) {
   };
 }
 
-/** La lista del panel: nombre, estado, cuántas combinaciones, el precio desde y las existencias. */
+/** De a cuántos trae la lista del panel (bitácora tienda3 21: con 2.000, la lista se cortaba en 500). */
+export const PRODUCTOS_POR_PAGINA = 50;
+
+/** Las claves de orden del último de la página, en base64url: la siguiente empieza después. */
+export const cursorDe = (claves: readonly (string | number)[]) =>
+  btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(claves))))
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/, '');
+
+/** Las claves de un cursor, si tienen la forma pedida (`n` entero, `s` texto); si no, `null`. */
+export function leerCursor<T extends (string | number)[]>(
+  cursor: string | undefined,
+  forma: readonly ('n' | 's')[],
+): T | null {
+  if (!cursor) return null;
+  try {
+    const b = atob(cursor.replaceAll('-', '+').replaceAll('_', '/'));
+    const v = JSON.parse(new TextDecoder().decode(Uint8Array.from(b, (c) => c.charCodeAt(0))));
+    return Array.isArray(v) &&
+      v.length === forma.length &&
+      forma.every((f, k) => (f === 'n' ? Number.isInteger(v[k]) : typeof v[k] === 'string'))
+      ? (v as T)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * La lista del panel: nombre, estado, cuántas combinaciones, el precio desde y las existencias, de
+ * a 50 y con el total. Las combinaciones se cuentan en una sola pasada por la tienda: unidas
+ * producto por producto, SQLite recorría todas las combinaciones de la tienda por cada producto
+ * (1,4 s con 2.000 productos; bitácora tienda3 21).
+ */
 export async function listarProductos(
   q: Quien,
-  opciones: { papelera?: boolean; buscar?: string } = {},
+  opciones: {
+    papelera?: boolean;
+    buscar?: string;
+    coleccion?: string;
+    cursor?: string;
+    limite?: number;
+  } = {},
 ) {
   const buscar = (opciones.buscar ?? '').trim().toLowerCase();
-  const { results } = await q.db
-    .prepare(
-      `SELECT p.id, p.slug, p.nombre, p.estado, p.version, p.posicion, p.borrado,
-              count(v.id) AS combinaciones, min(v.precio_cop) AS desde,
-              CASE WHEN count(v.id) > 0 AND count(v.stock) = count(v.id) THEN sum(v.stock) END AS existencias,
-              (SELECT m.id FROM medio m WHERE m.org_id = ? AND m.producto_id = p.id ORDER BY m.posicion, m.id LIMIT 1) AS foto
-         FROM producto p LEFT JOIN variante v ON v.org_id = p.org_id AND v.producto_id = p.id AND v.activa = 1
-        WHERE p.org_id = ? AND (p.borrado IS NULL) = ? AND (p.borrado IS NULL OR p.borrado >= ?)
-          AND (? = '' OR lower(p.nombre) LIKE '%' || ? || '%')
-        GROUP BY p.id ORDER BY p.posicion, p.nombre LIMIT 500`,
-    )
-    .bind(q.org, q.org, opciones.papelera ? 0 : 1, finDePapelera(q.instante), buscar, buscar)
-    .all<{
-      id: string;
-      slug: string;
-      nombre: string;
-      estado: string;
-      version: number;
-      posicion: number;
-      borrado: string | null;
-      combinaciones: number;
-      desde: number | null;
-      existencias: number | null;
-      foto: string | null;
-    }>();
-  return results.map((r) => ({
-    id: r.id,
-    slug: r.slug,
-    nombre: r.nombre,
-    estado: r.estado,
-    version: r.version,
-    combinaciones: r.combinaciones,
-    desde: r.desde,
-    existencias: r.existencias,
-    foto: r.foto,
-    borrado: r.borrado,
-  }));
+  const coleccion = opciones.coleccion ?? '';
+  const limite = opciones.limite ?? PRODUCTOS_POR_PAGINA;
+  const despues = leerCursor<[number, string, string]>(opciones.cursor, ['n', 's', 's']);
+  // El mismo filtro en la página y en el total: van escritos enteros para que la guarda del org_id los lea.
+  const parametros = [
+    q.org,
+    opciones.papelera ? 0 : 1,
+    finDePapelera(q.instante),
+    buscar,
+    buscar,
+    coleccion,
+    q.org,
+    coleccion,
+  ];
+  const [pagina, cuenta] = await Promise.all([
+    q.db
+      .prepare(
+        `SELECT p.id, p.slug, p.nombre, p.estado, p.version, p.posicion, p.borrado,
+                coalesce(v.combinaciones, 0) AS combinaciones, v.desde, v.existencias,
+                (SELECT m.id FROM medio m WHERE m.org_id = ? AND m.producto_id = p.id ORDER BY m.posicion, m.id LIMIT 1) AS foto
+           FROM producto p LEFT JOIN (
+             SELECT producto_id, count(*) AS combinaciones, min(precio_cop) AS desde,
+                    CASE WHEN count(stock) = count(*) THEN sum(stock) END AS existencias
+               FROM variante WHERE org_id = ? AND activa = 1 GROUP BY producto_id
+           ) v ON v.producto_id = p.id
+          WHERE p.org_id = ? AND (p.borrado IS NULL) = ? AND (p.borrado IS NULL OR p.borrado >= ?)
+            AND (? = '' OR lower(p.nombre) LIKE '%' || ? || '%')
+            AND (? = '' OR EXISTS (SELECT 1 FROM coleccion_producto cp
+                   WHERE cp.org_id = ? AND cp.coleccion_id = ? AND cp.producto_id = p.id))
+            AND (? IS NULL OR (p.posicion, p.nombre, p.id) > (?, ?, ?))
+          ORDER BY p.posicion, p.nombre, p.id LIMIT ?`,
+      )
+      .bind(
+        q.org,
+        q.org,
+        ...parametros,
+        despues ? 1 : null,
+        despues?.[0] ?? 0,
+        despues?.[1] ?? '',
+        despues?.[2] ?? '',
+        limite + 1,
+      )
+      .all<{
+        id: string;
+        slug: string;
+        nombre: string;
+        estado: string;
+        version: number;
+        posicion: number;
+        borrado: string | null;
+        combinaciones: number;
+        desde: number | null;
+        existencias: number | null;
+        foto: string | null;
+      }>(),
+    q.db
+      .prepare(
+        `SELECT count(*) AS n FROM producto p
+          WHERE p.org_id = ? AND (p.borrado IS NULL) = ? AND (p.borrado IS NULL OR p.borrado >= ?)
+            AND (? = '' OR lower(p.nombre) LIKE '%' || ? || '%')
+            AND (? = '' OR EXISTS (SELECT 1 FROM coleccion_producto cp
+                   WHERE cp.org_id = ? AND cp.coleccion_id = ? AND cp.producto_id = p.id))`,
+      )
+      .bind(...parametros)
+      .first<{ n: number }>(),
+  ]);
+  const filas = pagina.results.slice(0, limite);
+  const ultima = filas.at(-1);
+  return {
+    productos: filas.map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      nombre: r.nombre,
+      estado: r.estado,
+      version: r.version,
+      combinaciones: r.combinaciones,
+      desde: r.desde,
+      existencias: r.existencias,
+      foto: r.foto,
+      borrado: r.borrado,
+    })),
+    siguiente:
+      pagina.results.length > limite && ultima
+        ? cursorDe([ultima.posicion, ultima.nombre, ultima.id])
+        : null,
+    total: cuenta?.n ?? 0,
+  };
 }
 
 /** Lo que el registro guarda de un producto: lo que la frase cuenta, sin la descripción entera. */
@@ -792,13 +882,18 @@ export async function guardarLaColeccion(q: Quien, cuerpo: unknown): Promise<Res
     problemas.push({ campo: 'slug', mensaje: `la dirección «${slug}» ya la usa otra colección` });
   const productos = [...new Set(d.productos)];
   if (productos.length > 0) {
-    const { results } = await q.db
-      .prepare(
-        `SELECT id FROM producto WHERE org_id = ? AND borrado IS NULL AND id IN (${productos.map(() => '?').join(', ')})`,
-      )
-      .bind(q.org, ...productos)
-      .all<{ id: string }>();
-    const hay = new Set(results.map((x) => x.id));
+    // De a 50: una colección llega a 500 productos y D1 admite 100 parámetros por consulta.
+    const hay = new Set<string>();
+    for (let k = 0; k < productos.length; k += 50) {
+      const lote = productos.slice(k, k + 50);
+      const { results } = await q.db
+        .prepare(
+          `SELECT id FROM producto WHERE org_id = ? AND borrado IS NULL AND id IN (${lote.map(() => '?').join(', ')})`,
+        )
+        .bind(q.org, ...lote)
+        .all<{ id: string }>();
+      for (const x of results) hay.add(x.id);
+    }
     for (const p of productos)
       if (!hay.has(p)) problemas.push({ campo: 'productos', mensaje: `el producto ${p} no está` });
   }

@@ -6,10 +6,15 @@ import { describe, expect, it } from 'vitest';
 import {
   campoDelProblema,
   combinacionesDe,
+  cuantosSeVen,
   cuerpoDe,
+  type FilaDeProducto,
   formularioDe,
   type ProductoDelPanel,
   pesos,
+  rutaDeInventario,
+  rutaDeProductos,
+  unirProductos,
 } from './catalogo.ts';
 
 const camisa: ProductoDelPanel = {
@@ -125,5 +130,47 @@ describe('el formulario de un producto', () => {
     expect(campoDelProblema('variantes.0', enviadas, enPantalla)).toBe('c0-precio');
     expect(campoDelProblema('slug', enviadas, enPantalla)).toBe('slug');
     expect(campoDelProblema('opciones.1.valores', enviadas, enPantalla)).toBe('opciones');
+  });
+});
+
+describe('la lista de productos de a 50 (bitácora tienda3 21)', () => {
+  const fila = (id: string): FilaDeProducto => ({
+    id,
+    slug: id,
+    nombre: id,
+    estado: 'activo',
+    version: 1,
+    combinaciones: 1,
+    desde: null,
+    existencias: null,
+    borrado: null,
+  });
+
+  it('la ruta lleva la búsqueda siempre, y lo demás solo si tiene valor', () => {
+    expect(rutaDeProductos({})).toBe('productos?q=');
+    expect(rutaDeProductos({ q: '', cursor: null })).toBe('productos?q=');
+    expect(rutaDeProductos({ papelera: true, q: 'lino', cursor: 'abc' })).toBe(
+      'productos?papelera=1&q=lino&cursor=abc',
+    );
+    expect(rutaDeProductos({ coleccion: 'vol-col-lino' })).toBe(
+      'productos?q=&coleccion=vol-col-lino',
+    );
+  });
+
+  it('❌ la página siguiente se une sin repetir lo que ya se ve', () => {
+    const unidos = unirProductos([fila('a'), fila('b')], [fila('b'), fila('c')]);
+    expect(unidos.map((p) => p.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('❌ dice cuántos se ven de cuántos hay, y calla cuando se ven todos', () => {
+    expect(cuantosSeVen(50, 2008)).toBe('Se ven 50 de 2.008 productos.');
+    expect(cuantosSeVen(1000, 1000)).toBeNull();
+    expect(cuantosSeVen(3, 3)).toBeNull();
+    expect(cuantosSeVen(50, 12006, 'combinaciones')).toBe('Se ven 50 de 12.006 combinaciones.');
+  });
+
+  it('la ruta del inventario lleva la búsqueda y el cursor', () => {
+    expect(rutaDeInventario({})).toBe('inventario?q=');
+    expect(rutaDeInventario({ q: 'lino', cursor: 'abc' })).toBe('inventario?q=lino&cursor=abc');
   });
 });

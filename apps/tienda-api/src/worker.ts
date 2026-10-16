@@ -986,12 +986,14 @@ export function crearApp(
   app.get('/api/panel/v1/productos', async (c) => {
     const q = delCatalogo(c);
     if (q instanceof Response) return q;
-    return c.json({
-      productos: await listarProductos(q, {
+    return c.json(
+      await listarProductos(q, {
         papelera: c.req.query('papelera') === '1',
         buscar: (c.req.query('q') ?? '').slice(0, 80),
+        coleccion: (c.req.query('coleccion') ?? '').slice(0, 80),
+        cursor: (c.req.query('cursor') ?? '').slice(0, 400),
       }),
-    });
+    );
   });
   app.get('/api/panel/v1/productos/:id', async (c) => {
     const q = delCatalogo(c);
@@ -1103,7 +1105,12 @@ export function crearApp(
   app.get('/api/panel/v1/inventario', async (c) => {
     const q = delInventario(c);
     if (q instanceof Response) return q;
-    return c.json({ filas: await listarInventario(q) });
+    return c.json(
+      await listarInventario(q, {
+        buscar: (c.req.query('q') ?? '').slice(0, 80),
+        cursor: (c.req.query('cursor') ?? '').slice(0, 400),
+      }),
+    );
   });
   app.get('/api/panel/v1/inventario/:variante', async (c) => {
     const q = delInventario(c);

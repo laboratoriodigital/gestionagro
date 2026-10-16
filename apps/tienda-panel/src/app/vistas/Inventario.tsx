@@ -2,12 +2,15 @@
  * HU-T8.5: el inventario y su libro. La lista dice cuántas hay de cada combinación, cuántas están
  * apartadas por pagos en curso y cuántas personas esperan una agotada. Cada combinación tiene su
  * libro: por qué cambió cada número. Ajustar suma o resta; contar dice cuántas hay de verdad.
+ * Va de a 50 y se busca por el nombre del producto: con la tienda llena eran 12.000 combinaciones
+ * de una vez (bitácora tienda3 21).
  */
 import { Aviso, type EstadoDeContenido, ResumenDeErrores } from '@ed1/ui/v2/componentes';
-import { useCallback, useEffect, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { type Conexion, pedirAlPanel } from '../api.ts';
-import { opNueva } from '../catalogo.ts';
+import { cuantosSeVen, opNueva, rutaDeInventario, unirSinRepetir } from '../catalogo.ts';
 import { Confirmar, Lista } from '../componentes/index.ts';
+import { crearTurno } from '../pedidos.ts';
 import { horaDeBogota } from './Registro.tsx';
 
 export interface FilaDeInventario {
@@ -21,6 +24,13 @@ export interface FilaDeInventario {
   apartadas: number;
   esperan: number;
   version: number;
+}
+
+/** Una página del inventario, con el total. */
+export interface PaginaDeInventario {
+  filas: FilaDeInventario[];
+  siguiente?: string | null;
+  total?: number;
 }
 
 interface Movimiento {
@@ -61,18 +71,41 @@ export function Inventario({
   alVencer: (motivo: string) => void;
 }) {
   const [estado, setEstado] = useState<EstadoDeContenido<FilaDeInventario>>({ tipo: 'cargando' });
-  const cargar = useCallback(async () => {
-    const r = await pedirAlPanel<{ filas: FilaDeInventario[] }>(conexion, 'inventario');
-    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
-    setEstado(
-      r.tipo === 'ok'
-        ? { tipo: 'listo', elementos: r.datos.filas }
-        : { tipo: 'error', causa: r.motivo },
-    );
-  }, [conexion, alVencer]);
+  const [buscar, setBuscar] = useState('');
+  const [siguiente, setSiguiente] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+  const [leyendo, setLeyendo] = useState(false);
+  const turno = useRef(crearTurno());
+  /** La primera página (`cursor` nulo) o la siguiente, que se une a lo que ya se ve. */
+  const cargar = useCallback(
+    async (q: string, cursor: string | null = null) => {
+      const t = turno.current.tomar();
+      setLeyendo(true);
+      const r = await pedirAlPanel<PaginaDeInventario>(conexion, rutaDeInventario({ q, cursor }));
+      if (!turno.current.vigente(t)) return;
+      setLeyendo(false);
+      if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+      if (r.tipo !== 'ok') {
+        setEstado({ tipo: 'error', causa: r.motivo });
+        return;
+      }
+      setSiguiente(r.datos.siguiente ?? null);
+      setTotal(r.datos.total ?? r.datos.filas.length);
+      setEstado((antes) => ({
+        tipo: 'listo',
+        elementos:
+          cursor && antes.tipo === 'listo'
+            ? unirSinRepetir(antes.elementos, r.datos.filas, (f) => f.variante)
+            : r.datos.filas,
+      }));
+    },
+    [conexion, alVencer],
+  );
   useEffect(() => {
-    void cargar();
-  }, [cargar]);
+    const t = setTimeout(() => void cargar(buscar.trim()), buscar ? 250 : 0);
+    return () => clearTimeout(t);
+  }, [cargar, buscar]);
+  const vistas = estado.tipo === 'listo' ? estado.elementos.length : 0;
 
   return (
     <main class="contenido">
@@ -83,13 +116,29 @@ export function Inventario({
       <p class="nota">
         Cuántas hay de cada combinación. Abre una para ajustarla, contarla o ver por qué cambió.
       </p>
+      <div class="ed1-campo">
+        <label class="ed1-campo__etiqueta" for="buscar">
+          Buscar por nombre
+        </label>
+        <input
+          class="ed1-campo__control"
+          id="buscar"
+          type="search"
+          value={buscar}
+          onInput={(e) => setBuscar((e.target as HTMLInputElement).value)}
+        />
+      </div>
       <Lista
         titulo="Inventario"
         estado={estado}
-        vacio={{
-          porque: 'Todavía no tienes productos.',
-          accion: <a href="/productos/nuevo/">Crea el primero</a>,
-        }}
+        vacio={
+          buscar
+            ? { porque: `Ningún producto se llama «${buscar}».` }
+            : {
+                porque: 'Todavía no tienes productos.',
+                accion: <a href="/productos/nuevo/">Crea el primero</a>,
+              }
+        }
         fila={(f: FilaDeInventario) => ({
           href: `/productos/inventario/${encodeURIComponent(f.variante)}/`,
           dato: nombreDe(f),
@@ -100,6 +149,19 @@ export function Inventario({
           detalle: existencias(f),
         })}
       />
+      {estado.tipo === 'listo' && cuantosSeVen(vistas, total, 'combinaciones') ? (
+        <p class="nota">{cuantosSeVen(vistas, total, 'combinaciones')}</p>
+      ) : null}
+      {siguiente !== null ? (
+        <button
+          class="ed1-boton ed1-boton--secundario"
+          type="button"
+          disabled={leyendo}
+          onClick={() => void cargar(buscar.trim(), siguiente)}
+        >
+          Ver más combinaciones
+        </button>
+      ) : null}
     </main>
   );
 }
