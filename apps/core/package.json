@@ -12,6 +12,7 @@
     "@ed1/d1": "workspace:*",
     "@ed1/ids": "workspace:*",
     "@ed1/kill-switch": "workspace:*",
+    "@ed1/pagos": "workspace:*",
     "@ed1/productos": "workspace:*",
     "@ed1/telegram": "workspace:*",
     "@ed1/tokens": "workspace:*",

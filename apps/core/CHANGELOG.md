@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Cambiado
+- El adaptador de Bold sale del CORE a `@ed1/pagos` (HU-T11.1), para que la Tienda cobre con las llaves de cada comercio. El CORE solo cambia de dónde lo importa y sigue cobrando igual, con sus llaves en cada llamada. Un estado de Bold que no se conoce se traduce a «revisar», y el CORE lo trata como antes: sigue esperando hasta que venza.
 - En staging, el CORE atiende la Tienda aunque en producción siga pausada (HU-T2.10): `productos-de-prueba.json` dice qué productos pausados se activan solo en staging, y la base de staging dice lo mismo. Producción no cambia.
 - El catálogo conoce la Tienda, pausada (HU-T2.2): con sus planes y su política, pero el CORE no crea tiendas ni cobra sus planes mientras siga pausada.
 
