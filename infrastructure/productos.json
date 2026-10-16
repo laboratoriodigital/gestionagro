@@ -136,7 +136,13 @@
         "al_agotarse": ["ks:tienda-horno", "ks:tienda-mcp"],
         "d1_filas_escritas_dia": 5000
       },
-      "kill_switches": ["ks:tienda", "ks:tienda-cobros", "ks:tienda-mcp", "ks:tienda-horno"]
+      "kill_switches": [
+        "ks:tienda",
+        "ks:tienda-cobros",
+        "ks:tienda-mcp",
+        "ks:tienda-horno",
+        "ks:tienda-correos"
+      ]
     },
     {
       "id": "cuenta",

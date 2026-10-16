@@ -27,6 +27,7 @@
  * que arma el despliegue desde `celdas.json`.
  */
 import { importarKek } from '@ed1/cifrado';
+import { type CorreoTransaccional, correoGmail } from '@ed1/correo';
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
 import {
@@ -47,6 +48,7 @@ import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { guardarAjuste, leerAjustes, PIDE_ENTRADA, verificarWhatsapp } from './ajustes.ts';
 import { avisame, PeticionDeAvisame } from './avisame.ts';
+import { recibirAvisoDeBold } from './avisos.ts';
 import {
   confirmarPedido,
   leerPedido,
@@ -81,6 +83,8 @@ import {
   perderEnvio,
 } from './ciclo.ts';
 import { iniciarCobro, PeticionDeCobro } from './cobros.ts';
+import { estadoDelCobro, PeticionDeEstadoDelCobro } from './conciliar.ts';
+import { correosDeLaCelda, mandarAcuse, mandarResultadoDePrueba } from './correos.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { exportarTienda } from './exportar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
@@ -168,6 +172,14 @@ export interface Env {
   /** El aviso al dueño (HU-T17.1): lo usa la tarea que reconstruye los hostnames. */
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
+  /**
+   * Los correos de la tienda por Gmail (HU-T14.3, PLATAFORMA §4.11). Sin los cuatro, cada correo
+   * responde «no disponible» y queda anotado como no enviado.
+   */
+  CORREO_GMAIL_CLIENTE_ID?: string;
+  CORREO_GMAIL_CLIENTE_SECRETO?: string;
+  CORREO_GMAIL_REFRESH?: string;
+  CORREO_GMAIL_REMITENTE?: string;
   /** `produccion` o `staging`: la prueba de humo lo compara con el destino (HU-T2.9 CA3). */
   AMBIENTE?: string;
   /** Los limitadores por IP de lo público (HU-T5.5 y HU-T6.5): Workers Rate Limiting. */
@@ -282,6 +294,24 @@ function tiendaDelDespacho(c: ContextoTienda): { org: string; db: BaseD1 } | nul
   return typeof org === 'string' && db ? { org, db } : null;
 }
 
+/** El correo de la celda, con el `fetch` que se le dé (HU-T14.3). */
+export const correoDe = (env: Env, fetchFn: typeof fetch): CorreoTransaccional =>
+  correoGmail(
+    {
+      clienteId: env.CORREO_GMAIL_CLIENTE_ID,
+      clienteSecreto: env.CORREO_GMAIL_CLIENTE_SECRETO,
+      refresh: env.CORREO_GMAIL_REFRESH,
+      remitente: env.CORREO_GMAIL_REMITENTE,
+    },
+    fetchFn,
+  );
+
+/** Los shards de esta celda, para sumar lo que la celda lleva de correos hoy. */
+const shardsDe = (env: Env) =>
+  Object.entries(env)
+    .filter(([n, b]) => SHARD.test(n) && b)
+    .map(([, b]) => b as BaseD1);
+
 /** Cuántos de los comercios de prueba (HU-T2.6) hay en los shards de esta celda. */
 async function comerciosDePrueba(shards: [string, BaseD1][]): Promise<number> {
   let n = 0;
@@ -352,11 +382,40 @@ export function crearApp(
     ahora?: () => number;
     /** Lo que sigue después de responder (`waitUntil`); las pruebas lo esperan. */
     enSegundoPlano?: (trabajo: Promise<unknown>) => void;
+    /** Para hablar con Bold (HU-T11.6); las pruebas ponen uno de mentira. */
+    fetch?: typeof fetch;
   } = {},
 ) {
   const ahora = opciones.ahora ?? (() => Date.now());
+  const alProveedor: typeof fetch = opciones.fetch ?? ((url, init) => fetch(url, init));
   const enSegundoPlano = (c: ContextoTienda, trabajo: Promise<unknown>) =>
     opciones.enSegundoPlano ? opciones.enSegundoPlano(trabajo) : c.executionCtx.waitUntil(trabajo);
+  /**
+   * HU-T14.3: un correo de la tienda, después de responder. Con `ks:tienda-correos` apagado no
+   * sale; nunca demora ni tumba la respuesta.
+   */
+  const correoEnSegundoPlano = (
+    c: ContextoTienda,
+    destino: { db: BaseD1; org: string },
+    nombre: string,
+    mandar: (ctx: Parameters<typeof mandarResultadoDePrueba>[0]) => Promise<unknown>,
+  ) => {
+    const trabajo = (async () => {
+      if (c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda-correos'))) return;
+      await mandar({
+        db: destino.db,
+        org: destino.org,
+        ahora: new Date(ahora()).toISOString(),
+        correo: correoDe(c.env, alProveedor),
+        enLaCelda: (d) => correosDeLaCelda(shardsDe(c.env), d),
+      });
+    })().catch((e) => console.error(`tienda-api: el correo ${nombre} falló (${String(e)})`));
+    try {
+      enSegundoPlano(c, trabajo);
+    } catch {
+      // Sin contexto de ejecución (una prueba que no lo da): el trabajo sigue solo.
+    }
+  };
   const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
   // Solo el despacho y el panel: sin el secreto, la API no existe (TIENDA §14.1).
@@ -621,23 +680,105 @@ export function crearApp(
         422,
       );
     }
+    const pedidoId = crypto.randomUUID();
+    const host = new URL(c.req.url).host;
     const r = await iniciarCobro(
       {
         db: destino.db,
         org: destino.org,
-        host: new URL(c.req.url).host,
+        host,
         ahora: new Date(ahora()).toISOString(),
         terminosPublicados: await huellaPublicada(destino.db, destino.org, c.env.SITIOS),
-        id: crypto.randomUUID(),
+        id: pedidoId,
         kekTexto: c.env.TIENDA_KEK_V1,
       },
       p,
     );
-    if (r.estado === 'registrado' || r.estado === 'duplicado') return c.json(r);
+    if (r.estado === 'registrado' || r.estado === 'duplicado') {
+      // HU-T14.3: el acuse con el enlace, si dejó su correo. Solo al nacer: el duplicado ya lo tuvo.
+      const correo = p.entrega.correo;
+      if (r.estado === 'registrado' && correo) {
+        correoEnSegundoPlano(c, destino, `acuse de ${r.codigo}`, (ctx) =>
+          mandarAcuse(
+            { ...ctx, host },
+            pedidoId,
+            { nombre: p.entrega.nombre, correo },
+            p.seguimiento,
+          ),
+        );
+      }
+      return c.json(r);
+    }
     if (r.estado === 'sin-linea') return c.json(r, 503);
     if (r.estado === 'ocupada') return c.json(r, 429);
     if (r.estado === 'forma' || r.estado === 'edad' || r.estado === 'monto') return c.json(r, 422);
     return c.json(r, 409);
+  });
+
+  /**
+   * HU-T11.5: los avisos firmados de Bold, en el subdominio de la plataforma de la tienda (el
+   * despacho la resuelve por el `Host`). La firma se verifica con el cuerpo crudo antes de leerlo.
+   * Responde 200 a todo lo que Bold no debe reintentar, y 500 si algo falló, para que reintente: el
+   * proceso es idempotente. Con `ks:tienda` apagado responde 503 y Bold reintenta después.
+   */
+  app.post('/api/v1/avisos/bold', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    try {
+      const r = await recibirAvisoDeBold(
+        {
+          db: destino.db,
+          org: destino.org,
+          ahora: new Date(ahora()).toISOString(),
+          kekTexto: c.env.TIENDA_KEK_V1,
+          alResolverPrueba: (cobro, via) =>
+            correoEnSegundoPlano(c, destino, `prueba ${cobro}`, (ctx) =>
+              mandarResultadoDePrueba(ctx, cobro, via),
+            ),
+        },
+        new Uint8Array(await c.req.arrayBuffer()),
+        c.req.header('x-bold-signature') ?? null,
+      );
+      if (r === 'firma-invalida') return c.json({ resultado: r }, 401);
+      if (r === 'ilegible') return c.json({ resultado: r }, 400);
+      if (r === 'sin-cobro') console.error(`tienda-api: aviso de Bold sin cobro en ${destino.org}`);
+      return c.json({ resultado: r });
+    } catch (e) {
+      console.error(`tienda-api: el aviso de Bold falló (${String(e)})`);
+      return c.json({ resultado: 'error' }, 500);
+    }
+  });
+
+  /**
+   * HU-T11.6: la página pregunta por su cobro con el token (nada de lo que trae la vuelta de Bold
+   * en la dirección cuenta). Si sigue esperando, se le pregunta a Bold como mucho cada 20 s por
+   * cobro. Comparte el límite por IP del seguimiento, 20 por minuto.
+   */
+  app.post('/api/v1/cobros/estado', async (c) => {
+    const NO_ENCONTRADO = { estado: 'no-encontrado' };
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_SEGUIMIENTO, 'LIMITE_SEGUIMIENTO'))) {
+      c.header('retry-after', '60');
+      return c.json({ estado: 'limite' }, 429);
+    }
+    const p = await cuerpoValido(c, PeticionDeEstadoDelCobro);
+    if (!p) return c.json(NO_ENCONTRADO, 404);
+    const r = await estadoDelCobro(
+      {
+        db: destino.db,
+        org: destino.org,
+        ahora: new Date(ahora()).toISOString(),
+        kekTexto: c.env.TIENDA_KEK_V1,
+        alResolverPrueba: (cobro, via) =>
+          correoEnSegundoPlano(c, destino, `prueba ${cobro}`, (ctx) =>
+            mandarResultadoDePrueba(ctx, cobro, via),
+          ),
+      },
+      p.token,
+      alProveedor,
+    );
+    return r ? c.json(r) : c.json(NO_ENCONTRADO, 404);
   });
 
   /**
@@ -1503,6 +1644,8 @@ export async function alCron(env: Env, instante: number): Promise<void> {
       hosts,
       flags,
       telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
+      correo: correoDe(env, (url, init) => fetch(url, init)),
+      ...(env.TIENDA_KEK_V1 ? { kekTexto: env.TIENDA_KEK_V1 } : {}),
       ...(env.SITIOS ? { almacen: env.SITIOS as unknown as AlmacenDeRespaldos } : {}),
       ...(env.MEDIOS ? { medios: env.MEDIOS } : {}),
     },

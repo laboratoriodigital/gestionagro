@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  ErrorDeBold,
   ESTADOS_BOLD,
   estadoDeBold,
   firmaDeIntegridad,
@@ -114,5 +115,14 @@ describe('HU-T11.1 · @ed1/pagos: Bold con las llaves en cada llamada', () => {
     await expect(proveedorBold(LLAVES, caido.fetchFalso).consultar('ped-0001')).rejects.toThrow(
       'Bold respondió 500',
     );
+  });
+
+  it('un 429 sale como ErrorDeBold con su estado, para saltar esa tienda (HU-T11.6)', async () => {
+    const lleno = boldFalso(429, { error: 'too many' });
+    const e = await proveedorBold(LLAVES, lleno.fetchFalso)
+      .consultar('ped-0001')
+      .catch((x: unknown) => x);
+    expect(e).toBeInstanceOf(ErrorDeBold);
+    expect((e as ErrorDeBold).estado).toBe(429);
   });
 });

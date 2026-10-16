@@ -128,6 +128,8 @@ export interface FilaDePedido {
   ciudad: string | null;
   articulos: number;
   atencion: string | null;
+  /** Desde cuándo está pagado sin existencias (HU-T11.7): el panel cuenta 15 días desde aquí. */
+  atencionDesde: string | null;
   comprador: { nombre: string | null; celular: string | null } | null;
   version: number;
 }
@@ -142,11 +144,15 @@ interface FilaCruda {
   ciudad: string | null;
   articulos: number | null;
   atencion: string | null;
+  atencion_desde: string | null;
   version: number;
 }
 
 const COLUMNAS = `p.id, p.numero, p.estado, p.forma_pago, p.total_cop, p.creado, p.ciudad, p.atencion, p.version,
-  (SELECT SUM(l.cantidad) FROM pedido_linea l WHERE l.org_id = p.org_id AND l.pedido_id = p.id) AS articulos`;
+  (SELECT SUM(l.cantidad) FROM pedido_linea l WHERE l.org_id = p.org_id AND l.pedido_id = p.id) AS articulos,
+  CASE WHEN p.atencion = 'sin_existencias' THEN (SELECT MAX(k.actualizado) FROM cobro k
+    WHERE k.org_id = p.org_id AND k.id > p.codigo || '-' AND k.id < p.codigo || '.'
+      AND k.estado = 'aprobado_sin_existencias') END AS atencion_desde`;
 
 async function enFilas(q: Quien, kek: Kek | null, crudas: FilaCruda[]): Promise<FilaDePedido[]> {
   const contactos = await abrirContactos(
@@ -164,6 +170,7 @@ async function enFilas(q: Quien, kek: Kek | null, crudas: FilaCruda[]): Promise<
     ciudad: f.ciudad,
     articulos: f.articulos ?? 0,
     atencion: f.atencion,
+    atencionDesde: f.atencion_desde,
     comprador: tapado(contactos.get(f.id)),
     version: f.version,
   }));
@@ -210,7 +217,7 @@ export async function listarPedidos(
         `SELECT ${COLUMNAS} FROM pedido p
           WHERE p.org_id = ? AND p.atencion IS NOT NULL
             AND p.estado NOT IN (SELECT id FROM ref_estado_pedido WHERE terminal = 1)
-          ORDER BY p.creado DESC LIMIT 50`,
+          ORDER BY p.atencion = 'sin_existencias' DESC, p.creado DESC LIMIT 50`,
       )
       .bind(q.org)
       .all<FilaCruda>());

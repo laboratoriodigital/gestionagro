@@ -594,6 +594,11 @@ h1 {
   align-items: center;
   min-height: 48px;
 }
+.acuse__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
 .pasos {
   display: grid;
   gap: var(--espacio-2);

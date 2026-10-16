@@ -31,6 +31,7 @@ import {
 } from '../../packages/tienda-schema/src/ensayos.ts';
 import type { Celda } from './celdas.ts';
 import type { Destino, Fetch } from './despliegue.ts';
+import { CORREO_GMAIL } from './publicacion.ts';
 import { RAIZ } from './repo.ts';
 
 export const ARCHIVO_DESPLIEGUE_TIENDA = 'wrangler.despliegue.jsonc';
@@ -349,8 +350,9 @@ export function secretosDeLaTienda(
   }
   const kek = entorno[SECRETO_KEK]?.trim();
   // HU-T17.1: el aviso de la tarea diaria; sin Telegram, la tarea lo dice en el registro.
+  // HU-T14.3: los correos por Gmail, opcionales igual; sin ellos, la API dice «no disponible».
   const telegram = Object.fromEntries(
-    (['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'] as const).flatMap((k) => {
+    (['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID', ...CORREO_GMAIL] as const).flatMap((k) => {
       const v = entorno[k]?.trim();
       return v ? [[k, v]] : [];
     }),

@@ -113,7 +113,7 @@ export interface Tablero {
   };
 }
 
-async function cifras(q: Quien, p: Periodo): Promise<Cifras> {
+export async function cifras(q: Quien, p: Periodo): Promise<Cifras> {
   const f = await q.db
     .prepare(
       `SELECT count(*) AS pedidos,

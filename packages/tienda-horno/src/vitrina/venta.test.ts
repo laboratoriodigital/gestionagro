@@ -10,6 +10,8 @@ import {
   faltaDeLaEntrega,
   leerFragmento,
   leerRadicado,
+  TEXTO_SIN_EL_PAGO,
+  vueltaDelPago,
 } from './venta.ts';
 
 const listo = { lineas: 2, forma: 'transferencia', hayEnvios: true, envio: 'e1', acepta: true };
@@ -120,5 +122,41 @@ describe('la solicitud (HU-T6.4)', () => {
     '#r=12&s=corto',
   ])('❌ «%s» no es un enlace de solicitud', (hash) => {
     expect(leerRadicado(hash)).toBeNull();
+  });
+});
+
+describe('volver de Bold (HU-T11.9 CA2)', () => {
+  it('pagado: el carrito se vacía y va al pedido; en proceso, se queda como está', () => {
+    expect(vueltaDelPago('pagado', true)).toEqual({
+      carrito: 'vaciar',
+      irAlPedido: true,
+      texto: null,
+    });
+    expect(vueltaDelPago('revisar', true).carrito).toBe('vaciar');
+    expect(vueltaDelPago('esperando', true)).toEqual({
+      carrito: 'conservar',
+      irAlPedido: true,
+      texto: null,
+    });
+  });
+
+  it('❌ un pago que no pasó deja los productos en el carrito, con otro código, y no va al pedido', () => {
+    for (const estado of ['rechazado', 'vencido']) {
+      const v = vueltaDelPago(estado, true);
+      expect(v.carrito, estado).toBe('renovar');
+      expect(v.irAlPedido, estado).toBe(false);
+      expect(v.texto, estado).toMatch(/siguen en el carrito/);
+    }
+  });
+
+  it('❌ sin token (otro navegador) o sin respuesta: explica cómo encontrar el pedido, sin un error', () => {
+    expect(vueltaDelPago(null, false)).toEqual({
+      carrito: 'conservar',
+      irAlPedido: false,
+      texto: TEXTO_SIN_EL_PAGO,
+    });
+    expect(TEXTO_SIN_EL_PAGO).not.toMatch(/error/i);
+    // Con el enlace guardado en este navegador, lo abre.
+    expect(vueltaDelPago(null, true)).toMatchObject({ carrito: 'conservar', irAlPedido: true });
   });
 });

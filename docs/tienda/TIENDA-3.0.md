@@ -599,6 +599,8 @@ El lote cuesta unas 3 + 3n consultas. Con 30 líneas son unas 95, bien por debaj
 | Sin noticias en 24 h | `cobro` → `vencido`; apartados ya vencidos |
 | Anulación aprobada (`VOID_APPROVED`) | `cobro` → `reembolsado`. El pedido lo mueve el comercio (`cancelado` o `devuelto`) con su motivo |
 
+*(Hoy: «Pagado sin existencias» va antes que toda otra atención del panel, con 15 días calendario para reponer o devolver el dinero. Reponer es despacharlo: lo que no salió del inventario sale en el lote del despacho, y si todavía no alcanza, no se despacha. Devolver es cancelarlo y anular el pago en Bold. HU-T11.7.)*
+
 ### 7.4 Los demás caminos del inventario
 
 - **Pedido por WhatsApp:** no aparta. Como en la 2.0, solo el pedido confirmado o pagado descuenta. Confirmarlo es un lote que descuenta con la misma guarda. Si no alcanza, el panel lo dice y no confirma (P1).
@@ -784,6 +786,7 @@ botón       = { orderId, currency: "COP", amount, apiKey: <identidad>, integrit
 - **La vuelta no lleva secretos.** Bold le agrega `?bold-order-id=…&bold-tx-status=…`, y esos parámetros **nunca se creen**.
 - La página guarda el token opaco del cobro en `sessionStorage` antes de abrir Bold. Al volver, pregunta con él (§9.5).
 - Si el token se perdió (la persona volvió en otro navegador), la página ofrece el enlace de seguimiento, que llegó en el acuse.
+- *(Hoy: con el token, lo que responde decide el carrito. Pagado, se vacía y la página lleva al pedido; en proceso, lleva al pedido sin tocarlo; rechazado o vencido, los productos se quedan en el carrito con otro código, porque el pedido de ese pago ya no se paga otra vez. Sin token, la página explica cómo encontrar el pedido, sin un error, y si este navegador guardó el enlace, lo abre. HU-T11.9.)*
 - **Nota del plan (6 oct 2026):** en el pago en línea el acuse puede no haber salido del navegador que empezó (no hay mensaje de WhatsApp, y el correo es opcional). Por eso la página entrega el enlace de seguimiento **antes** de abrir Bold, para copiarlo o mandárselo por WhatsApp, y lo guarda en el `localStorage` de la tienda (`BACKLOG_TIENDA3.md` HU-T11.9; bitácora tienda3 3).
 
 ### 9.4 Avisos de Bold (webhooks)
@@ -807,6 +810,7 @@ En la 2.0 no se podían usar: Apps Script no lee las cabeceras de una solicitud.
 
   - **En el ambiente de pruebas, Bold firma con una llave vacía.** WebCrypto no importa una llave HMAC de longitud cero. Se usan 64 bytes en cero, que por la definición de HMAC (la llave se rellena con ceros hasta el bloque) dan el mismo resultado. Una prueba lo fija con un vector conocido.
   - **Consecuencia:** cualquiera puede firmar un aviso «de pruebas». Por eso un aviso solo puede mover un cobro **de su mismo ambiente**, y una tienda en pruebas lo dice en una franja visible.
+  - *(Hoy: la llave no se elige por el cobro, porque el cobro sale del JSON y la firma va antes de leerlo. Se prueba la secreta de producción de la tienda y luego la llave de pruebas; la que firma dice el ambiente del aviso, y después la referencia dice el cobro. Si el cobro no existe, es de otra tienda o es del otro ambiente, no se escribe ni una fila, ni en `aviso_proveedor`: un aviso «de pruebas» lo puede mandar cualquiera. Bitácora tienda3 24.)*
 - **Proceso:**
   1. `INSERT OR IGNORE` en `aviso_proveedor` con `subject` + `type`. Si ya estaba, responde 200 (`repetido`).
   2. Si no, aplica la transición (§7.3) en un lote y verifica que `amount.total` sea igual a `monto_cop`; si no, pasa a `revisar`.
@@ -822,6 +826,7 @@ En la 2.0 no se podían usar: Apps Script no lee las cabeceras de una solicitud.
   - Como mucho 20 consultas por tienda y por vuelta, porque Bold bloquea por exceso sin publicar la cifra.
   - Con 24 h sin noticias, pasa a `vencido`.
   - Si Bold responde 429, la tienda se salta esa vuelta y se avisa.
+  - *(Hoy: la vuelta es cada hora, no cada 15 minutos. La cuenta tiene un solo cron, por hora (HU-T17.1, D-T10). La espera creciente y el tope de 20 quedan iguales; con 24 h sin noticias el cobro vence sin otra consulta, y el pedido sigue por pagar para que un aviso tardío todavía lo pague. La página consulta con el token del cobro y nada más.)*
 - **Estados de Bold** (`PROCESSING`, `PENDING`, `APPROVED`, `REJECTED`, `FAILED`, `VOIDED`, `NO_TRANSACTION_FOUND`): se traducen en un solo sitio, `packages/pagos`.
   - `NO_TRANSACTION_FOUND` y `PENDING` siguen esperando.
   - `REJECTED` y `FAILED` son rechazo.
@@ -1309,6 +1314,7 @@ Lo incluido lo comparten el agro y el CORE. Hoy consumen una fracción, que el v
 | `ks:tienda-cobros` | Se apaga el pago en línea. Las tiendas siguen recibiendo pedidos por WhatsApp |
 | `ks:tienda-mcp` | MCP público y del comercio apagados |
 | `ks:tienda-horno` | No se publica nada nuevo. Lo publicado sigue sirviéndose |
+| `ks:tienda-correos` | No sale ningún correo de las tiendas: ni el resumen, ni el acuse, ni el del cobro de prueba. Todo lo demás sigue igual *(Hoy: agregado con HU-T14.3)* |
 
 ### 15.3 Crons (con Workers Paid)
 
@@ -1339,7 +1345,7 @@ Lo incluido lo comparten el agro y el CORE. Hoy consumen una fracción, que el v
   - el resumen diario al comercio;
   - los avisos de solicitudes por vencer;
   - el resultado del cobro de prueba.
-- **Tope por tienda y por día**, para que una tienda no gaste la cuota de todas.
+- **Tope por tienda y por día**, para que una tienda no gaste la cuota de todas. *(Hoy, con HU-T14.3: 40 por tienda y 300 por celda al día, de los 400 de Gmail; el resto queda para el CORE. El resumen sale a la hora de Ajustes › Avisos, las 7 de Bogotá si no dice, y lleva las solicitudes por vencer; el acuse, al nacer el pedido en línea, con el enlace de seguimiento. Un correo que no salió queda anotado con su motivo y nunca cuenta como enviado.)*
 
 ### 15.6 Runbooks
 

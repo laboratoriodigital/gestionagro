@@ -389,6 +389,9 @@ importers:
       '@ed1/cifrado':
         specifier: workspace:*
         version: link:../../packages/cifrado
+      '@ed1/correo':
+        specifier: workspace:*
+        version: link:../../packages/correo
       '@ed1/d1':
         specifier: workspace:*
         version: link:../../packages/d1

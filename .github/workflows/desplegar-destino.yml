@@ -144,6 +144,11 @@ jobs:
           TIENDA_KEK_V1: ${{ secrets.TIENDA_KEK_V1 }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # HU-T14.3: los correos de las tiendas por Gmail. Sin ellos, cada correo queda sin enviar.
+          CORREO_GMAIL_CLIENTE_ID: ${{ secrets.CORREO_GMAIL_CLIENTE_ID }}
+          CORREO_GMAIL_CLIENTE_SECRETO: ${{ secrets.CORREO_GMAIL_CLIENTE_SECRETO }}
+          CORREO_GMAIL_REFRESH: ${{ secrets.CORREO_GMAIL_REFRESH }}
+          CORREO_GMAIL_REMITENTE: ${{ secrets.CORREO_GMAIL_REMITENTE }}
           DESTINO: ${{ inputs.destino }}
           SOLO_CELDA: ${{ inputs.solo_celda }}
           PRODUCTOS: ${{ inputs.productos }}

@@ -23,7 +23,9 @@ import {
   CLAVE_DEL_CARRITO,
   cambiarCantidad,
   carritoVacio,
+  codigoNuevo,
   conSecreto,
+  esSecreto,
   leerCarrito,
   sanear,
   secretoNuevo,
@@ -44,6 +46,7 @@ import {
   faltaDeLaEntrega,
   leerFragmento,
   leerRadicado,
+  vueltaDelPago,
 } from './venta.ts';
 
 const azar = (n: number) => crypto.getRandomValues(new Uint8Array(n));
@@ -530,8 +533,27 @@ async function carritoPagina(): Promise<void> {
     const bloque = venta?.querySelector<HTMLElement>('[data-enlace-del-pago]');
     const a = bloque?.querySelector<HTMLAnchorElement>('[data-enlace-del-pedido]');
     if (bloque && a) {
+      const completo = new URL(enlace, location.href).href;
       a.href = enlace;
-      a.textContent = new URL(enlace, location.href).href;
+      a.textContent = completo;
+      // HU-T11.9 CA1: guardarlo, copiándolo o mandándoselo por WhatsApp a sí mismo.
+      const whatsapp = bloque.querySelector<HTMLAnchorElement>('[data-enlace-whatsapp]');
+      if (whatsapp) {
+        whatsapp.href = `https://wa.me/?text=${encodeURIComponent(`Mi pedido ${cuerpo.codigo}: ${completo}`)}`;
+      }
+      const copiar = bloque.querySelector<HTMLButtonElement>('[data-copiar-enlace]');
+      if (copiar) {
+        copiar.onclick = () => {
+          navigator.clipboard?.writeText(completo).then(
+            () => {
+              copiar.textContent = 'Copiado';
+            },
+            () => {
+              copiar.textContent = 'Mantén presionado el enlace para copiarlo';
+            },
+          );
+        };
+      }
       bloque.hidden = false;
     }
     try {
@@ -715,29 +737,68 @@ async function abrirBold(boton: { libreria: string; checkout: Record<string, str
 }
 
 /**
- * La vuelta de Bold (HU-T11.4): lleva al pedido con el enlace guardado antes de pagar. Lo que Bold
- * pone en la dirección no se lee: el estado lo dice el seguimiento.
+ * La vuelta de Bold (HU-T11.4 y HU-T11.9). Lo que Bold pone en la dirección no se lee: la página
+ * pregunta por su cobro con el token de esta sesión (`POST /api/v1/cobros/estado`), y la respuesta
+ * decide qué pasa con el carrito y si va al pedido con el enlace que guardó antes de pagar. Sin
+ * token (volvió en otro navegador) explica cómo encontrar el pedido, sin mostrar un error.
  */
-function vueltaDelPago(): void {
+async function alVolverDelPago(): Promise<void> {
   const raiz = document.querySelector<HTMLElement>('[data-vuelta-del-pago]');
   if (!raiz) return;
-  let ultimo: { enlace?: string } = {};
+  let ultimo: { codigo?: string; enlace?: string } = {};
   try {
     ultimo = JSON.parse(almacen.leer(CLAVE_ULTIMO) ?? '{}') as typeof ultimo;
   } catch {
     ultimo = {};
   }
-  const enlace = ultimo.enlace;
-  if (!enlace || !leerFragmento(enlace.replace(/^[^#]*/, ''))) return;
-  // El pedido ya existe: el carrito que se pagó se vacía y el token del cobro ya no hace falta.
-  guardar(vaciar(azar));
-  sesion.borrar(CLAVE_DEL_COBRO);
+  const token = sesion.leer(CLAVE_DEL_COBRO);
+  let estado: string | null = null;
+  let pedido: string | null = null;
+  if (token && esSecreto(token)) {
+    try {
+      const r = await fetch('/api/v1/cobros/estado', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const cuerpo = (await r.json().catch(() => ({}))) as { estado?: string; pedido?: string };
+      if (r.ok && cuerpo.estado) {
+        estado = cuerpo.estado;
+        pedido = cuerpo.pedido ?? null;
+      }
+    } catch {
+      estado = null;
+    }
+  }
+  const enlace =
+    ultimo.enlace &&
+    leerFragmento(ultimo.enlace.replace(/^[^#]*/, '')) &&
+    (pedido === null || ultimo.codigo === pedido)
+      ? ultimo.enlace
+      : null;
+  const v = vueltaDelPago(estado, enlace !== null);
+  if (v.carrito === 'vaciar') {
+    guardar(vaciar(azar));
+    sesion.borrar(CLAVE_DEL_COBRO);
+  } else if (v.carrito === 'renovar') {
+    // El pedido de ese pago queda como estaba; el próximo intento es otro pedido, con otro token.
+    const c = cargar();
+    guardar({ v: 1, codigo: codigoNuevo(azar), lineas: c.lineas });
+    sesion.borrar(CLAVE_DEL_COBRO);
+  }
   const a = raiz.querySelector<HTMLAnchorElement>('[data-vuelta-enlace]');
-  if (a) {
+  if (a && enlace) {
     a.href = enlace;
     a.hidden = false;
   }
-  location.replace(enlace);
+  const aviso = raiz.querySelector<HTMLElement>('[data-vuelta-aviso]');
+  if (aviso && v.texto) {
+    aviso.textContent = v.texto;
+    aviso.hidden = false;
+  }
+  const alCarrito = raiz.querySelector<HTMLElement>('[data-vuelta-carrito]');
+  if (alCarrito) alCarrito.hidden = v.carrito !== 'renovar';
+  if (v.irAlPedido && enlace) location.replace(enlace);
 }
 
 interface Cotizacion {
@@ -1071,6 +1132,6 @@ ficha();
 pintarBarra(cargar());
 void carritoPagina();
 void pedidoEnviado();
-vueltaDelPago();
+void alVolverDelPago();
 void solicitudPagina();
 void busqueda();

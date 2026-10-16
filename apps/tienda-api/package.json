@@ -10,6 +10,7 @@
   "dependencies": {
     "@ed1/calendario": "workspace:*",
     "@ed1/cifrado": "workspace:*",
+    "@ed1/correo": "workspace:*",
     "@ed1/d1": "workspace:*",
     "@ed1/dinero": "workspace:*",
     "@ed1/kill-switch": "workspace:*",
