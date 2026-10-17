@@ -24,8 +24,11 @@ CREATE INDEX producto_en_orden_por_slug ON producto (org_id, posicion, slug) WHE
 --    combinaciones (una fila por combinación). Costo: una escritura más en el producto cuando una
 --    combinación nace, se borra o cambia de activa.
 ALTER TABLE producto ADD COLUMN combinaciones INTEGER NOT NULL DEFAULT 0 CHECK (combinaciones >= 0);
+-- Bitácora tienda3 29: sin `INDEXED BY`, SQLite recorría todas las combinaciones de la tienda por
+-- cada producto, y con la tienda llena esta sentencia leyó 24 millones de filas en staging. Con el
+-- índice lee unas 16.000. La migración ya corrió en staging; producción la corre así.
 UPDATE producto SET combinaciones = (
-  SELECT count(*) FROM variante v
+  SELECT count(*) FROM variante v INDEXED BY variante_por_producto
    WHERE v.org_id = producto.org_id AND v.producto_id = producto.id AND v.activa = 1
 );
 CREATE TRIGGER variante_cuenta_al_crear AFTER INSERT ON variante WHEN NEW.activa = 1

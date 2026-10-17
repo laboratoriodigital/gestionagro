@@ -869,3 +869,24 @@ La regla: **lo que cobra al pasarse se frena antes, desde el producto que lo gas
 La regla: **antes de borrar lo que se comparte, se sabe quién lo usa; y si no se sabe, no se borra.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Medio · P4, P21 · tienda-0.1.0 · 2026-10-16
+
+**29 · Una migración leyó 24 millones de filas y volvió a agotar el día de D1 de la cuenta**
+
+*Qué pasó.* El 17 oct 2026 a las 00:03 UTC, recién reiniciado el día de D1, se volvió a desplegar staging. A las 00:15 el despliegue del parqueadero de staging ya decía «Your account has exceeded D1's free tier daily row read limit». El límite es de toda la cuenta: también lo usa el parqueadero de producción, que tiene un cliente.
+
+*Causa raíz.* La 0007 (bitácora 26) corrió a las 00:05 en el shard de staging, con Ensayo Uno lleno. Su `UPDATE producto SET combinaciones = (SELECT count(*) FROM variante …)` no nombraba el índice, y SQLite recorría todas las combinaciones de la tienda por cada producto: 2.000 × 12.000 = 24 millones de filas, casi 5 veces el día de toda la cuenta. La 26 arregló las consultas del panel con `INDEXED BY`, pero nadie midió la migración con la tienda llena: la prueba de lecturas siembra la tienda con todas las migraciones ya aplicadas (P17).
+
+*Cómo se reprodujo.* `apps/tienda-api/src/migraciones.test.ts` con la 0007 de antes: «la que más leyó (24020004 filas): UPDATE producto SET combinaciones …».
+
+*Arreglo.*
+
+- **Cada migración del shard se mide contra la tienda llena**, con el D1 de workerd. La prueba siembra a Ensayo Uno con el esquema de antes de la 0007, aplica cada migración siguiente, una por una, y ninguna puede leer más de 200.000 filas. Una migración nueva entra sola en la prueba. `baseLocal` acepta `antesDe` para aplicar solo las migraciones de antes.
+- **La 0007 nombra su índice** (`INDEXED BY variante_por_producto`) y lee 16.004 filas. Ya corrió en staging y no se repite allí: wrangler la recuerda por su nombre. Producción todavía no la corre, y la correrá así.
+
+*Lo que falta.* El CORE, el agro y el parqueadero no tienen una tienda llena con que medir sus migraciones. El parqueadero tiene datos de un cliente: una migración suya que recorra una tabla grande por cada fila haría lo mismo.
+
+**Lo prueba** `migraciones.test.ts`. Control negativo: con la 0007 de antes, la prueba queda en rojo con 24.065.649 filas.
+
+La regla: **una migración se mide como una consulta: con la tienda llena y contando filas, antes de que corra donde cuesta.**
+
+*Ficha:* tienda3 · *(mío)* · 🔴 Alto · P17, P1 · tienda-0.1.0 · 2026-10-17
