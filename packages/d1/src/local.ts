@@ -54,11 +54,14 @@ export function sentenciasDe(sql: string): string[] {
   return sentencias.filter(Boolean);
 }
 
-export const migraciones = (base: Base): string[] =>
+/** Los archivos de migración de una base, en orden, con su nombre. */
+export const archivosDeMigracion = (base: Base): { nombre: string; sql: string }[] =>
   readdirSync(dirMigraciones(base))
     .filter((f) => f.endsWith('.sql'))
     .sort()
-    .map((f) => readFileSync(join(dirMigraciones(base), f), 'utf8'));
+    .map((nombre) => ({ nombre, sql: readFileSync(join(dirMigraciones(base), nombre), 'utf8') }));
+
+export const migraciones = (base: Base): string[] => archivosDeMigracion(base).map((a) => a.sql);
 
 /**
  * Con qué se prueba (HU-C11.7): `sqlite` es la base en proceso de `./sqlite.ts`, rápida; `workerd`
@@ -85,6 +88,8 @@ export async function baseLocal(opciones: {
   binding: string;
   base: Base;
   instrumento?: Instrumento;
+  /** Solo las migraciones cuyo archivo va antes de este (p. ej. `0007`), para probar las demás. */
+  antesDe?: string;
 }): Promise<{ db: BaseD1; cerrar: () => Promise<void> }> {
   let db: BaseD1 | undefined;
   let cerrar: () => Promise<void>;
@@ -99,7 +104,9 @@ export async function baseLocal(opciones: {
     cerrar = () => proxy.dispose();
   }
   if (!db) throw new Error(`${opciones.configuracion} no declara el binding ${opciones.binding}`);
-  for (const sql of migraciones(opciones.base)) {
+  const { antesDe } = opciones;
+  for (const { nombre, sql } of archivosDeMigracion(opciones.base)) {
+    if (antesDe !== undefined && nombre >= antesDe) break;
     for (const sentencia of sentenciasDe(sql)) await db.prepare(sentencia).run();
   }
   return { db, cerrar };
