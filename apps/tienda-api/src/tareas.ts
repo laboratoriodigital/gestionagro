@@ -23,6 +23,10 @@
  * - La diaria purga lo que cumplió su plazo, y nada antes (HU-T17.2): la papelera a los 30 días y
  *   las respuestas guardadas de `operacion` a las 48 horas. Las exportaciones las borra la regla de
  *   ciclo de vida del bucket a los 7 días (`docs/runbooks/tienda-ciclo-de-vida.md`).
+ * - Cada día, en la hora de cada tienda, se purgan de R2 las versiones viejas de su sitio, y cada
+ *   semana los objetos que ya no usa ninguna tienda (bitácora tienda3 28, `purga-de-sitios.ts`).
+ * - Una tarea que sigue bien no se vuelve a anotar antes de su plazo: cada escritura del KV cuenta
+ *   contra las 1.000 diarias de la cuenta (bitácora tienda3 28).
  */
 import type { CorreoTransaccional } from '@ed1/correo';
 import type { BaseD1 } from '@ed1/d1';
@@ -30,6 +34,7 @@ import { enviarTelegram } from '@ed1/telegram';
 import { CONCILIAR } from './conciliar.ts';
 import { CORREOS } from './correos.ts';
 import { FRENO_R2 } from './freno-r2.ts';
+import { barrerObjetos, mantenerSitio } from './purga-de-sitios.ts';
 import { type AlmacenDeRespaldos, respaldarTienda } from './respaldos.ts';
 import { purgarContactos } from './titular.ts';
 
@@ -150,6 +155,7 @@ export async function despachar(
     }
     corridas.push(corrida);
     try {
+      if (await sinCambios(e.flags, t, corrida, instante)) continue;
       await e.flags.put(
         `tarea:${t.nombre}`,
         JSON.stringify({
@@ -164,6 +170,26 @@ export async function despachar(
   }
   return corridas;
 }
+
+/**
+ * Una tarea que sigue bien y se anotó hace menos de su plazo no se anota otra vez: una repartida
+ * corre cada hora, pero basta con que diga una vez al día, o a la semana, que está bien. Una falla, o
+ * la vuelta de una falla, se anota siempre.
+ */
+async function sinCambios(flags: KvDeTareas, t: Tarea, corrida: Corrida, instante: number) {
+  if (!corrida.ok) return false;
+  const texto = await flags.get(`tarea:${t.nombre}`);
+  if (!texto) return false;
+  try {
+    const r = JSON.parse(texto) as { ultima: string; ok: boolean };
+    return r.ok && instante - Date.parse(r.ultima) < PLAZO_MS[t.frecuencia] - HOLGURA_MS;
+  } catch {
+    return false;
+  }
+}
+
+/** Lo que un cron se puede adelantar o atrasar: una por hora se anota igual cada hora. */
+const HOLGURA_MS = 5 * 60 * 1000;
 
 /** Si cada tarea corrió a tiempo: «al-dia», «atrasada» (más del doble de su frecuencia) o «nunca». */
 export async function estadoDeLasTareas(
@@ -441,10 +467,64 @@ export const RESPALDOS: Tarea = {
   },
 };
 
+/**
+ * La diaria del sitio horneado: a cada tienda, en su hora del día, se le pone al día el índice de lo
+ * que usa su sitio y se purgan sus versiones viejas de R2 (TIENDA §351, bitácora tienda3 28).
+ */
+export const VERSIONES_DEL_SITIO: Tarea = {
+  nombre: 'versiones-del-sitio',
+  frecuencia: 'dia',
+  repartida: true,
+  async correr(e, instante) {
+    if (!e.almacen) throw new Error('el cron no tiene el almacén de la celda (SITIOS)');
+    let tiendas = 0;
+    let purgadas = 0;
+    const atrasadas: string[] = [];
+    const fallas: string[] = [];
+    for (const [nombre, db] of e.shards) {
+      const { results } = await db.prepare('SELECT org_id FROM tienda').all<{ org_id: string }>();
+      for (const { org_id } of results) {
+        if (!leToca(org_id, instante, 'dia')) continue;
+        tiendas++;
+        try {
+          const r = await mantenerSitio(db, org_id, e.almacen, instante);
+          purgadas += r.purgadas;
+          if (!r.alDia) atrasadas.push(org_id);
+        } catch (error) {
+          fallas.push(
+            `${nombre}/${org_id}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+    }
+    if (fallas.length > 0)
+      throw new Error(`versiones del sitio con fallas: ${fallas.slice(0, 5).join('; ')}`);
+    if (tiendas === 0) return 'ninguna tienda tiene esta hora';
+    return `${purgadas} versiones viejas purgadas${atrasadas.length > 0 ? `; con versiones por leer: ${atrasadas.slice(0, 5).join(', ')}` : ''}`;
+  },
+};
+
+/**
+ * La semanal del sitio horneado: los objetos de R2 que no usa ninguna tienda de la celda. Si no
+ * puede saber con certeza qué se usa, no borra nada y lo dice (bitácora tienda3 28).
+ */
+export const OBJETOS_SIN_USO: Tarea = {
+  nombre: 'objetos-sin-uso',
+  frecuencia: 'semana',
+  async correr(e, instante) {
+    if (!e.almacen) throw new Error('el cron no tiene el almacén de la celda (SITIOS)');
+    const r = await barrerObjetos(e.almacen, instante);
+    if (r.estado === 'sin-barrer') return `no barrí: ${r.motivo}`;
+    return `${r.borrados} de ${r.revisados} objetos borrados${r.incompleto ? '; quedaron objetos sin revisar' : ''}`;
+  },
+};
+
 export const TAREAS: readonly Tarea[] = [
   RECONSTRUIR_HOSTS,
   PURGAS,
   RESPALDOS,
+  VERSIONES_DEL_SITIO,
+  OBJETOS_SIN_USO,
   CONCILIAR,
   CORREOS,
   FRENO_R2,

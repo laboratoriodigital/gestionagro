@@ -348,7 +348,7 @@ El «apex proxying» de Cloudflare for SaaS es de Enterprise (investigación, po
 | Comercios, productos, variantes, inventario, pedidos, cobros, solicitudes y ajustes | D1 `tienda_c{N}_s{k}` (anexo A) | Sí | Una tienda entera en un shard |
 | Nombres cortos y hostnames | D1 `tienda_control` (anexo B) | Sí | Únicos en todo el producto |
 | Qué tienda y qué versión sirve cada hostname | KV `TIENDA_HOSTS` | No: se deriva de D1 | Un cron diario lo reconstruye. Si el KV y D1 difieren, gana D1 y se avisa (P1) |
-| Sitios horneados | R2 `sitios/<org>/<versión>/manifiesto.json` y `objetos/<huella>` | No: se derivan de D1 | Inmutables. Se purgan las versiones de más de 90 días que no sean la vigente ni una de las 5 anteriores |
+| Sitios horneados | R2 `sitios/<org>/<versión>/manifiesto.json` y `objetos/<huella>` | No: se derivan de D1 | Inmutables. Se purgan las versiones de más de 90 días que no sean la vigente ni una de las 5 anteriores *(Hoy: cada día, en la hora de cada tienda; los objetos que ya no usa ninguna, cada lunes. Bitácora tienda3 28)* |
 | Fotos | R2 `medios/<org>/<huella>/<ancho>.webp` *(hoy: `<org>/<huella>/<ancho>.webp` en el bucket aparte `tienda-c{N}-medios`, y su URL es `https://img.laboratorio-digital.app/<org>/<huella>/<ancho>.webp`; HU-T5.2 y HU-T5.6)* | Sí (el original no se guarda: el navegador sube las derivadas) | Contenido direccionado. Se borran 30 días después de que ningún producto las use |
 | Textos legales aceptados | R2 `legal/<org>/<huella>.md` | Sí | **Sin vencimiento mientras haya pedidos que los citen**: son la prueba de la aceptación (Ley 1480 art. 50 lit. e) |
 | Identidad del comercio, roles y plan | CORE | Sí | La celda guarda una copia del plan (`PLATAFORMA.md` §4.13) |
@@ -500,6 +500,9 @@ Filas escritas, contando índices como lo cuenta D1:
 ```text
 R2 tienda-c{N}/
   sitios/<org>/<version>/manifiesto.json   {ruta: {huella, tipo, bytes, cabeceras}} + huella del conjunto
+  sitios/<org>/vivos.json                   (Hoy: por huella, la versión más nueva que la usa. Con él
+                                            se purgan las versiones y se barren los objetos sin uso:
+                                            bitácora tienda3 28)
   objetos/<hh>/<huella>                     archivos del sitio por contenido (compartidos entre versiones)
   medios/<org>/<huella>/<400|800|1600>.webp fotos (servidas por img.laboratorio-digital.app)
                                             (Hoy: en el bucket aparte tienda-c{N}-medios. Un dominio

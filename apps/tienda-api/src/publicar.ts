@@ -613,13 +613,15 @@ export interface FilaDeVersion {
   archivos: number | null;
   /** Las fallas de la compuerta, o el motivo de una falla; nada si salió bien. */
   motivo: string | null;
+  /** Cuándo se borraron sus archivos de R2 (bitácora tienda3 28): ya no se puede volver a ella. */
+  purgada: string | null;
 }
 
 /** Las últimas versiones, de la más nueva a la más vieja. */
 export async function leerVersiones(shard: BaseD1, org: string, limite = 30) {
   const { results } = await shard
     .prepare(
-      `SELECT version, estado, pedida_por, pedida, publicada, archivos, motivo FROM publicacion
+      `SELECT version, estado, pedida_por, pedida, publicada, archivos, motivo, purgada FROM publicacion
         WHERE org_id = ? ORDER BY version DESC LIMIT ?`,
     )
     .bind(org, limite)
@@ -631,6 +633,7 @@ export async function leerVersiones(shard: BaseD1, org: string, limite = 30) {
       publicada: string | null;
       archivos: number | null;
       motivo: string | null;
+      purgada: string | null;
     }>();
   return results.map(
     (f): FilaDeVersion => ({
@@ -641,6 +644,7 @@ export async function leerVersiones(shard: BaseD1, org: string, limite = 30) {
       publicada: f.publicada,
       archivos: f.archivos,
       motivo: f.motivo,
+      purgada: f.purgada,
     }),
   );
 }
@@ -663,9 +667,9 @@ export async function volverA(c: Contexto, version: number): Promise<ResultadoDe
   await vencerLasCortadas(c.shard, c.org, c.ahora);
   const [destino, tienda, enCurso] = await Promise.all([
     c.shard
-      .prepare('SELECT estado FROM publicacion WHERE org_id = ? AND version = ?')
+      .prepare('SELECT estado, purgada FROM publicacion WHERE org_id = ? AND version = ?')
       .bind(c.org, version)
-      .first<{ estado: string }>(),
+      .first<{ estado: string; purgada: string | null }>(),
     c.shard
       .prepare('SELECT version_publicada FROM tienda WHERE org_id = ?')
       .bind(c.org)
@@ -677,7 +681,12 @@ export async function volverA(c: Contexto, version: number): Promise<ResultadoDe
       .bind(c.org)
       .first(),
   ]);
-  if (!destino || (destino.estado !== 'publicada' && destino.estado !== 'reemplazada'))
+  // Una versión purgada ya no tiene sus archivos en R2 (bitácora tienda3 28).
+  if (
+    !destino ||
+    destino.purgada !== null ||
+    (destino.estado !== 'publicada' && destino.estado !== 'reemplazada')
+  )
     return { estado: 'no-existe' };
   if (enCurso) return { estado: 'en-curso' };
   const antes = tienda?.version_publicada ?? null;

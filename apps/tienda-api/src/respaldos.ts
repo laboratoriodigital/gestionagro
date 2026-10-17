@@ -32,8 +32,10 @@ export const MENSUALES = 3;
 export interface AlmacenDeRespaldos {
   put(clave: string, valor: string, opciones?: unknown): Promise<unknown>;
   get(clave: string): Promise<{ text(): Promise<string> } | null>;
-  list(opciones: { prefix: string; cursor?: string }): Promise<{
-    objects: { key: string }[];
+  list(opciones: { prefix: string; cursor?: string; delimiter?: string }): Promise<{
+    objects: { key: string; uploaded?: Date }[];
+    /** Con `delimiter`, las «carpetas» que hay debajo de `prefix`. */
+    delimitedPrefixes?: string[];
     truncated: boolean;
     cursor?: string;
   }>;
