@@ -231,24 +231,36 @@ export const hostsDeLaCelda = (celda: Celda): [string, string][] => {
   return hostsDeStaging(ENSAYOS, celda.id, shard);
 };
 
+/** Cuántas veces se vuelve a pedir mientras una tienda sube por tandas (bitácora tienda3 30). */
+export const TANDAS_DE_LOS_ENSAYOS = 20;
+
 /**
  * Publica a los comercios de prueba en staging, por el panel y con el secreto del despacho en
- * `x-ensayo` (HU-T4.4). Una frase por falla.
+ * `x-ensayo` (HU-T4.4). Una tienda grande sube por tandas: mientras responda 202, se vuelve a
+ * pedir (bitácora tienda3 30). Una frase por falla.
  */
 export async function publicarEnsayos(
   fetchFn: Fetch,
   panel: string,
   secreto: string,
 ): Promise<string[]> {
-  let r: Response;
-  try {
-    r = await fetchFn(`${panel}/api/ensayo/publicar`, {
-      method: 'POST',
-      headers: { 'x-ensayo': secreto },
-    });
-  } catch (e) {
-    return [`publicar a los comercios de prueba: no respondió (${(e as Error).message})`];
+  let r: Response | undefined;
+  for (let tanda = 1; tanda <= TANDAS_DE_LOS_ENSAYOS; tanda++) {
+    try {
+      r = await fetchFn(`${panel}/api/ensayo/publicar`, {
+        method: 'POST',
+        headers: { 'x-ensayo': secreto },
+      });
+    } catch (e) {
+      return [`publicar a los comercios de prueba: no respondió (${(e as Error).message})`];
+    }
+    if (r.status !== 202) break;
   }
+  if (!r) return ['publicar a los comercios de prueba: no se pidió'];
+  if (r.status === 202)
+    return [
+      `publicar a los comercios de prueba: después de ${TANDAS_DE_LOS_ENSAYOS} tandas todavía faltaban archivos`,
+    ];
   if (r.status === 200) return [];
   let detalle = '';
   try {

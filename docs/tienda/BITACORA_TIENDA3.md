@@ -889,4 +889,24 @@ La regla: **antes de borrar lo que se comparte, se sabe quién lo usa; y si no s
 
 La regla: **una migración se mide como una consulta: con la tienda llena y contando filas, antes de que corra donde cuesta.**
 
+**30 · La tienda llena no se podía publicar: una solicitud no alcanza para 4.200 archivos**
+
+*Qué pasó.* El 17 oct 2026 a las 00:03 UTC, en el despliegue de staging, la celda c1 falló al publicar a los comercios de prueba. Ensayo Uno estaba lleno (HU-T3.7) y nunca se había publicado así. El despliegue se detuvo y la celda c2 no se desplegó.
+
+*Causa raíz.* En el plan gratuito, una invocación de un Worker hace como mucho 1.000 operaciones con R2, D1 y KV. La primera publicación de Ensayo Uno lleno sube 4.221 archivos, uno por uno, en una sola solicitud: se cortaba a la mitad. Ninguna prueba contaba las escrituras de una publicación con la tienda llena; la de lecturas contaba filas de D1, no operaciones (P17). Además, el despliegue publicaba a los dos comercios de prueba en la misma solicitud.
+
+*Cómo se reprodujo.* `lecturas.test.ts` con la tienda llena y sin tandas: «operaciones con R2 en la tanda 1: expected 4223 to be less than or equal to 950».
+
+*Arreglo.*
+
+- **Publicar sube por tandas** de hasta 800 escrituras, 6 a la vez. Un texto legal cuenta por dos, porque también va a `legal/`. Si faltan archivos, se anota lo subido en `sitios/<org>/tandas.json`, se descarta la versión reservada y la API responde 202 con cuántos faltan. La tienda sigue mostrando la versión que tenía. La solicitud siguiente no vuelve a subir lo de las tandas de la última hora, y en la última se guardan el manifiesto y los punteros, como siempre. Lo subido y todavía sin manifiesto lo protege el margen de 6 horas del barrido de objetos (bitácora 28).
+- **El panel vuelve a pedir solo**, hasta 30 veces, y dice cuántos archivos faltan. Si no alcanza, pide volver a publicar: sigue donde quedó.
+- **El despliegue también**: mientras `/api/ensayo/publicar` responda 202 vuelve a pedir, hasta 20 veces. Cada solicitud sube archivos para una sola tienda de prueba; la otra va en la siguiente.
+
+*Lo que falta.* El re-horneado de existencias (HU-T4.5) no va por tandas: sube solo las fichas, el catálogo y los feeds que cambiaron. Si un día cambian cientos de combinaciones a la vez, habría que partirlo igual.
+
+**Lo prueba** `lecturas.test.ts`: la tienda llena se publica en 6 tandas y ninguna pasa de 950 operaciones. `publicar.test.ts`: con tandas de 5, la tienda queda como estaba hasta la última; nada se sube dos veces; una tanda de hace 61 minutos ya no cuenta. `tienda-ensayos.test.ts`: el despliegue publica en dos solicitudes y no pide sin fin. Control negativo: sin leer las tandas anotadas, sin su hora, contando un texto legal por uno, sin descartar la versión, sin repartir los comercios, sin repetir en el despliegue o sin el tope, cada una de esas pruebas queda en rojo.
+
+La regla: **lo que hace una solicitud se cuenta contra el tope de una invocación, con la tienda llena; y lo que no cabe se parte en tandas que se pueden retomar.**
+
 *Ficha:* tienda3 · *(mío)* · 🔴 Alto · P17, P1 · tienda-0.1.0 · 2026-10-17

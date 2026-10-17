@@ -1,6 +1,7 @@
 /** HU-T10.4: dónde se arregla cada falla de la compuerta y cómo se dice cada versión. */
 import { describe, expect, it } from 'vitest';
 import {
+  avanceDe,
   enlaceDe,
   esperaAntesDeLeer,
   resumenDe,
@@ -63,5 +64,15 @@ describe('publicar y las versiones', () => {
     expect([0, 1, 2, 3, 4, 5, 30].map(esperaAntesDeLeer)).toEqual([
       3000, 6000, 12_000, 24_000, 48_000, 60_000, 60_000,
     ]);
+  });
+
+  it('una tienda grande dice cuánto falta mientras sube por tandas (bitácora tienda3 30)', () => {
+    expect(avanceDe(null)).toBe(
+      'Publicando: revisando tu tienda, armándola y subiendo lo que cambió…',
+    );
+    expect(avanceDe(3421)).toBe(
+      'Publicando por partes, porque tu tienda es grande: faltan 3.421 archivos. No cierres esta página.',
+    );
+    expect(avanceDe(1)).toContain('faltan 1 archivo.');
   });
 });
