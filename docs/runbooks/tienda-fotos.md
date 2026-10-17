@@ -18,7 +18,7 @@
 
 ## Frenar a quien pide fotos de más (bitácora tienda3 27)
 
-**Por qué:** R2 no se detiene al pasarse de lo gratis: cobra a la tarjeta. Una foto que está en la caché no gasta R2, pero una dirección con algo después del `?`, o con un nombre que no existe, se salta la caché y lee R2 cada vez. Un robot que haga eso sin parar cuesta dinero. El freno de R2 de la Tienda no lo para, porque esas son lecturas, y apagar no las baja. Estas tres reglas se ponen en el panel de Cloudflare, una vez, y cubren los dos ambientes.
+**Por qué:** R2 no se detiene al pasarse de lo gratis: cobra a la tarjeta. Una foto que está en la caché no gasta R2, pero una dirección con algo después del `?`, o con un nombre que no existe, se salta la caché y lee R2 cada vez. Un robot que haga eso sin parar cuesta dinero. El freno de R2 de la Tienda no lo para, porque esas son lecturas, y apagar no las baja. Estas reglas se ponen en el panel de Cloudflare, una vez, y cubren los dos ambientes.
 
 Una foto nuestra tiene siempre esta forma: `/<id de la tienda, 36 caracteres>/<huella, 64>/<400, 800 o 1600>.webp` o `.jpeg`. Mide 111 o 112 caracteres.
 
@@ -34,8 +34,8 @@ Una foto nuestra tiene siempre esta forma: `/<id de la tienda, 36 caracteres>/<h
    ```
 
    Acción: **Block**. **Deploy**.
-2. **Security → WAF → Rate limiting rules → Create rule** (el plan gratuito trae una). Nombre: `fotos: tope por visitante`. Expresión: `(http.host in {"img.laboratorio-digital.app" "img--staging.laboratorio-digital.app"})`. Con las mismas características (IP), más de **300 solicitudes en 10 segundos**: **Block** durante 10 segundos. Una vitrina con 48 fotos por página pide unas 50; 300 en 10 segundos ya no es una persona.
-3. **Caching → Cache Rules → Create rule.** Nombre: `fotos: caché`. Misma expresión del paso 2. **Cache eligibility: Eligible for cache**; **Edge TTL: Use cache-control header if present**; **Browser TTL: Respect origin**. Las fotos ya dicen un año (`immutable`).
+2. **El tope por visitante no se pone.** En el plan gratuito una regla de *Rate limiting* no acepta el host en la expresión: el panel la da por inválida (el dueño, 17 oct 2026), y sin el host frenaría todo el dominio. Para R2 no hace falta: lo que cobra es saltarse la caché, y eso lo bloquea el paso 1.
+3. **La caché, solo si hace falta.** Cloudflare guarda en caché los `.webp` y `.jpeg` por defecto, y las fotos dicen un año (`immutable`). Se comprueba pidiendo la misma foto dos veces: la segunda debe decir `cf-cache-status: HIT`. Si dice `DYNAMIC` o `BYPASS`: **Rules → Overview → Create rule → Cache Rule** (antes estaba en Caching → Cache Rules), con la expresión `(http.host in {"img.laboratorio-digital.app" "img--staging.laboratorio-digital.app"})`, **Eligible for cache**, **Edge TTL: Use cache-control header if present** y **Browser TTL: Respect origin**.
 
 **Verificar** (Git Bash), con la dirección de una foto que exista en staging:
 
@@ -43,6 +43,7 @@ Una foto nuestra tiene siempre esta forma: `/<id de la tienda, 36 caracteres>/<h
 curl -s -o /dev/null -w "%{http_code}\n" "https://img--staging.laboratorio-digital.app/<la foto>"       # 200
 curl -s -o /dev/null -w "%{http_code}\n" "https://img--staging.laboratorio-digital.app/<la foto>?x=1"   # 403
 curl -s -o /dev/null -w "%{http_code}\n" "https://img--staging.laboratorio-digital.app/nada.webp"       # 403
+curl -sI "https://img--staging.laboratorio-digital.app/<la foto>" | grep -i cf-cache-status        # HIT la segunda vez
 ```
 
 Si el panel dice que una función o una opción no está en el plan gratuito, no la cambies por otra sin revisar: anota el mensaje exacto. Estas reglas se escribieron sin probarlas en el panel.
