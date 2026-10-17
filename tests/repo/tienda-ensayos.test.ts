@@ -23,6 +23,7 @@ import {
   ensayosDelDestino,
   humoDeLaTienda,
   publicarEnsayos,
+  TANDAS_DE_LOS_ENSAYOS,
 } from '../../scripts/lib/celda-tienda.ts';
 import type { Fetch } from '../../scripts/lib/despliegue.ts';
 
@@ -160,7 +161,15 @@ describe('la siembra, en las bases locales', () => {
         ? new Response('Esta dirección no tiene tienda', { status: 404 })
         : new Response('El panel de tu tienda');
     };
-    expect(await publicarEnsayos(nube, panel, SECRETO)).toEqual([]);
+    // Bitácora tienda3 30: una solicitud sube archivos para una sola tienda; la otra va en la siguiente.
+    const pedidas: number[] = [];
+    const contando: Fetch = async (url, init) => {
+      const r = await nube(url, init);
+      if (new URL(String(url)).pathname === '/api/ensayo/publicar') pedidas.push(r.status);
+      return r;
+    };
+    expect(await publicarEnsayos(contando, panel, SECRETO)).toEqual([]);
+    expect(pedidas).toEqual([202, 200]);
     expect(await publicarEnsayos(nube, panel, 'adivinado')).toEqual([
       'publicar a los comercios de prueba respondió 404: {"estado":"no-existe"}',
     ]);
@@ -174,6 +183,24 @@ describe('la siembra, en las bases locales', () => {
         ? Response.json({ estado: 'ok', kek: 'ok' })
         : nube(url, init);
     expect(await humoDeLaTienda(conSalud, urls, ENSAYOS)).toEqual({ fallas: [], avisos: [] });
+  });
+
+  it('❌ publicar a los comercios de prueba vuelve a pedir mientras falten tandas, y no sin fin (bitácora tienda3 30)', async () => {
+    const panel = 'https://tienda-panel-staging.ejemplo.workers.dev';
+    let pedidas = 0;
+    const tandas =
+      (hasta: number): Fetch =>
+      async () => {
+        pedidas++;
+        return Response.json({}, { status: pedidas < hasta ? 202 : 200 });
+      };
+    expect(await publicarEnsayos(tandas(3), panel, SECRETO)).toEqual([]);
+    expect(pedidas).toBe(3);
+    pedidas = 0;
+    expect(await publicarEnsayos(tandas(Number.POSITIVE_INFINITY), panel, SECRETO)).toEqual([
+      `publicar a los comercios de prueba: después de ${TANDAS_DE_LOS_ENSAYOS} tandas todavía faltaban archivos`,
+    ]);
+    expect(pedidas).toBe(TANDAS_DE_LOS_ENSAYOS);
   });
 
   it('❌ sin la cabecera del despacho, o con un shard ajeno, la tienda no existe', async () => {

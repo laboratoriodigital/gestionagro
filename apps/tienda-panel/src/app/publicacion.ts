@@ -57,6 +57,15 @@ export const enCurso = (v: VersionDelPanel) =>
  */
 export const esperaAntesDeLeer = (lecturas: number) => Math.min(3000 * 2 ** lecturas, 60_000);
 
+/** Cuántas tandas pide el panel antes de decir que vuelvan a publicar (bitácora tienda3 30). */
+export const TANDAS_DEL_PANEL = 30;
+
+/** Qué dice mientras publica: una tienda grande sube por tandas y dice cuánto falta. */
+export const avanceDe = (faltan: number | null) =>
+  faltan === null
+    ? 'Publicando: revisando tu tienda, armándola y subiendo lo que cambió…'
+    : `Publicando por partes, porque tu tienda es grande: faltan ${faltan === 1 ? '1 archivo' : `${faltan.toLocaleString('es-CO')} archivos`}. No cierres esta página.`;
+
 export const sePuedeVolver = (v: VersionDelPanel, publicada: number | null) =>
   (v.estado === 'reemplazada' || v.estado === 'publicada') && v.version !== publicada && !v.purgada;
 

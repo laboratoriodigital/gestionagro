@@ -65,6 +65,8 @@ export interface Contexto {
   ahora: string;
   /** Solo para los comercios de prueba de staging (HU-T2.6). */
   omitir?: readonly CodigoDeFalla[];
+  /** Las escrituras de una tanda; `SUBIDAS_POR_TANDA` si no se dice (bitácora tienda3 30). */
+  subidasPorTanda?: number;
 }
 
 export type Resultado =
@@ -72,7 +74,29 @@ export type Resultado =
   | { estado: 'nada-cambio'; version: number | null }
   | { estado: 'compuerta'; fallas: Falla[] }
   | { estado: 'en-curso' }
-  | { estado: 'fallida'; motivo: string };
+  | { estado: 'fallida'; motivo: string }
+  /** Bitácora tienda3 30: subió una tanda y faltan archivos; se vuelve a pedir para seguir. */
+  | { estado: 'por-tandas'; subidos: number; faltan: number };
+
+/**
+ * Lo que sube una solicitud (bitácora tienda3 30). En el plan gratuito una invocación hace como
+ * mucho 1.000 operaciones con R2, D1 y KV, y la primera publicación de una tienda de 2.000 productos
+ * sube 4.221 archivos: se cortaba a la mitad sin decir por qué. Se sube por tandas, y lo que quede
+ * para después de los archivos (el manifiesto, lo horneado, las direcciones) cabe en lo que sobra.
+ */
+export const SUBIDAS_POR_TANDA = 800;
+/** Cuántas subidas van a la vez: un Worker abre hasta 6 conexiones simultáneas. */
+const SUBIDAS_A_LA_VEZ = 6;
+/**
+ * Lo que dura una tanda anotada. Lo subido y todavía sin manifiesto lo protege el barrido de
+ * objetos por 6 horas; pasada la hora se vuelve a subir, que no cuesta más que una tanda.
+ */
+const MINUTOS_DE_UNA_TANDA = 60;
+const claveDeLasTandas = (org: string) => `sitios/${org}/tandas.json`;
+interface Tanda {
+  desde: string;
+  huellas: string[];
+}
 
 interface FilaProducto {
   id: string;
@@ -479,6 +503,18 @@ async function entregar(
     }
   }
   const previas = new Set<string>();
+  // Lo que ya subieron las tandas de la última hora.
+  const desde = new Date(Date.parse(c.ahora) - MINUTOS_DE_UNA_TANDA * 60_000).toISOString();
+  const anotadas = await c.sitios.get(claveDeLasTandas(c.org));
+  let tandas: Tanda[] = [];
+  if (anotadas) {
+    try {
+      tandas = (JSON.parse(await anotadas.text()) as Tanda[]).filter((t) => t.desde >= desde);
+    } catch {
+      tandas = [];
+    }
+  }
+  for (const t of tandas) for (const huella of t.huellas) previas.add(huella);
   if (versionPublicada !== null) {
     const previo = await c.sitios.get(`sitios/${c.org}/${versionPublicada}/manifiesto.json`);
     if (previo) {
@@ -486,26 +522,58 @@ async function entregar(
       for (const a of Object.values(pm.archivos)) previas.add(a.huella);
     }
   }
-  let nuevos = 0;
+  // Lo que falta subir, una vez por huella; un texto legal sube también a `legal/` (dos escrituras).
+  const pendientes: { ruta: string; huella: string; contenido: string; tipo: string }[] = [];
+  const vistas = new Set(previas);
   for (const [ruta, archivo] of archivos) {
     const entrada = m.archivos[ruta];
-    if (!entrada || previas.has(entrada.huella)) continue;
-    await c.sitios.put(
-      `objetos/${entrada.huella.slice(0, 2)}/${entrada.huella}`,
-      archivo.contenido,
-      {
-        httpMetadata: { contentType: archivo.tipo },
-      },
+    if (!entrada || vistas.has(entrada.huella)) continue;
+    vistas.add(entrada.huella);
+    pendientes.push({
+      ruta,
+      huella: entrada.huella,
+      contenido: archivo.contenido,
+      tipo: archivo.tipo,
+    });
+  }
+  const esLegal = (ruta: string) => /^\/(legal\/[a-z]+|solicitud)\/index\.md$/.test(ruta);
+  const tanda: typeof pendientes = [];
+  let escrituras = 0;
+  for (const p of pendientes) {
+    const costo = esLegal(p.ruta) ? 2 : 1;
+    if (escrituras + costo > (c.subidasPorTanda ?? SUBIDAS_POR_TANDA)) break;
+    tanda.push(p);
+    escrituras += costo;
+  }
+  for (let i = 0; i < tanda.length; i += SUBIDAS_A_LA_VEZ) {
+    await Promise.all(
+      tanda.slice(i, i + SUBIDAS_A_LA_VEZ).map(async (p) => {
+        await c.sitios.put(`objetos/${p.huella.slice(0, 2)}/${p.huella}`, p.contenido, {
+          httpMetadata: { contentType: p.tipo },
+        });
+        // HU-T7.1 CA2: cada texto legal, también por su huella en `legal/`, sin vencimiento: un
+        // pedido cita la huella de los términos que aceptó (Ley 1480 art. 50 lit. e).
+        if (esLegal(p.ruta)) {
+          await c.sitios.put(`legal/${c.org}/${p.huella}.md`, p.contenido, {
+            httpMetadata: { contentType: p.tipo },
+          });
+        }
+      }),
     );
-    previas.add(entrada.huella);
-    nuevos++;
-    // HU-T7.1 CA2: cada texto legal, también por su huella en `legal/`, sin vencimiento: un
-    // pedido cita la huella de los términos que aceptó (Ley 1480 art. 50 lit. e).
-    if (/^\/(legal\/[a-z]+|solicitud)\/index\.md$/.test(ruta)) {
-      await c.sitios.put(`legal/${c.org}/${entrada.huella}.md`, archivo.contenido, {
-        httpMetadata: { contentType: archivo.tipo },
-      });
-    }
+  }
+  const nuevos = tanda.length;
+  if (tanda.length < pendientes.length) {
+    // Faltan archivos: se anota lo subido y la versión se descarta, como si no se hubiera pedido.
+    // La tienda sigue mostrando la que tenía; la próxima solicitud sigue donde esta quedó.
+    tandas.push({ desde: c.ahora, huellas: tanda.map((p) => p.huella) });
+    await c.sitios.put(claveDeLasTandas(c.org), JSON.stringify(tandas), {
+      httpMetadata: { contentType: 'application/json' },
+    });
+    await c.shard
+      .prepare('DELETE FROM publicacion WHERE org_id = ? AND version = ?')
+      .bind(c.org, version)
+      .run();
+    return { estado: 'por-tandas', subidos: nuevos, faltan: pendientes.length - nuevos };
   }
 
   // 5. Lo horneado y el manifiesto, guardados; el manifiesto, releído.

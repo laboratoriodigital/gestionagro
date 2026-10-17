@@ -8,12 +8,14 @@ import { useCallback, useEffect, useState } from 'preact/hooks';
 import { type Conexion, type FallaDeLaCompuerta, pedirAlPanel } from '../api.ts';
 import { Confirmar } from '../componentes/index.ts';
 import {
+  avanceDe,
   cuando,
   enCurso,
   enlaceDe,
   esperaAntesDeLeer,
   resumenDe,
   sePuedeVolver,
+  TANDAS_DEL_PANEL,
   type Versiones,
 } from '../publicacion.ts';
 
@@ -36,6 +38,7 @@ export function Publicar({
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [publicando, setPublicando] = useState(false);
   const [lecturas, setLecturas] = useState(0);
+  const [faltan, setFaltan] = useState<number | null>(null);
 
   const cargar = useCallback(async () => {
     const r = await pedirAlPanel<Versiones>(conexion, 'publicaciones');
@@ -62,12 +65,31 @@ export function Publicar({
   const publicar = async () => {
     setPublicando(true);
     setResultado(null);
-    const r = await pedirAlPanel<{ estado: string; version: number | null }>(conexion, 'publicar', {
-      cuerpo: {},
-    });
+    setFaltan(null);
+    // Una tienda grande se sube por tandas (bitácora tienda3 30): se pide otra mientras falte.
+    let r = await pedirAlPanel<{ estado: string; version: number | null; faltan?: number }>(
+      conexion,
+      'publicar',
+      { cuerpo: {} },
+    );
+    for (
+      let tanda = 1;
+      tanda < TANDAS_DEL_PANEL && r.tipo === 'ok' && r.datos.estado === 'por-tandas';
+      tanda++
+    ) {
+      setFaltan(r.datos.faltan ?? null);
+      r = await pedirAlPanel(conexion, 'publicar', { cuerpo: {} });
+    }
     setPublicando(false);
+    setFaltan(null);
     if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
-    if (r.tipo === 'ok')
+    if (r.tipo === 'ok' && r.datos.estado === 'por-tandas')
+      setResultado({
+        tipo: 'error',
+        motivo:
+          'Tu tienda es grande y no alcanzó a subir toda. Vuelve a publicar: sigue donde quedó.',
+      });
+    else if (r.tipo === 'ok')
       setResultado(
         r.datos.estado === 'publicada'
           ? { tipo: 'publicada', version: r.datos.version as number }
@@ -110,7 +132,7 @@ export function Publicar({
       {publicando || horneando ? (
         <p role="status">
           {publicando
-            ? 'Publicando: revisando tu tienda, armándola y subiendo lo que cambió…'
+            ? avanceDe(faltan)
             : 'Hay una publicación en curso; esta página se pone al día sola.'}
         </p>
       ) : null}

@@ -169,13 +169,17 @@ describe('HU-T3.7 · CA3 ❌: la tienda llena se publica a tiempo y dentro de su
       pedidaPor: 'usuario:prueba',
       ahora: AHORA,
     };
-    contado.reiniciar();
-    const inicio = performance.now();
-    const r = await publicar(contexto);
-    const ms = performance.now() - inicio;
+    // La tienda llena sube por tandas (bitácora tienda3 30): cada solicitud, dentro de sus topes.
+    let r: Awaited<ReturnType<typeof publicar>> = { estado: 'en-curso' };
+    for (let tanda = 0; tanda < 10 && (tanda === 0 || r.estado === 'por-tandas'); tanda++) {
+      contado.reiniciar();
+      const inicio = performance.now();
+      r = await publicar(contexto);
+      const ms = performance.now() - inicio;
+      expect(ms).toBeLessThan(UN_MINUTO);
+      expect(contado.mas()).toBeLessThanOrEqual(TOPE_DE_PARAMETROS_D1);
+    }
     expect(r, JSON.stringify(r).slice(0, 2000)).toMatchObject({ estado: 'publicada', version: 1 });
-    expect(ms).toBeLessThan(UN_MINUTO);
-    expect(contado.mas()).toBeLessThanOrEqual(TOPE_DE_PARAMETROS_D1);
     const m = JSON.parse(objetos.get(`sitios/${UNO}/1/manifiesto.json`) ?? '{}') as {
       archivos: Record<string, unknown>;
     };

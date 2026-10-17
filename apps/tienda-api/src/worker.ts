@@ -932,6 +932,8 @@ export function crearApp(
   const responder = (c: ContextoTienda, r: Resultado) => {
     if (r.estado === 'publicada' || r.estado === 'nada-cambio') return c.json(r);
     if (r.estado === 'compuerta') return c.json(r, 422);
+    // Bitácora tienda3 30: subió una tanda; quien publica vuelve a pedir para seguir.
+    if (r.estado === 'por-tandas') return c.json(r, 202);
     if (r.estado === 'en-curso')
       return c.json({ ...r, motivo: 'Ya hay una publicación en curso.' }, 409);
     console.error(`tienda-api: la publicación falló (${r.motivo})`);
@@ -1614,25 +1616,33 @@ export function crearApp(
 
   // HU-T2.6 y HU-T4.4: en staging, el despliegue publica a los comercios de prueba con el secreto
   // del despacho en `x-ensayo`. En producción la ruta no existe: `ENSAYOS` no está.
+  const malo = (r: Resultado) =>
+    r.estado !== 'publicada' && r.estado !== 'nada-cambio' && r.estado !== 'por-tandas';
   app.post('/api/ensayo/publicar', async (c) => {
     const dado = c.req.header('x-ensayo');
     if (c.env.ENSAYOS !== '1' || !dado || !mismoSecreto(c.env.SECRETO_DESPACHO ?? '', dado)) {
       return c.json(NO_EXISTE, 404);
     }
     const resultados: Record<string, Resultado> = {};
-    for (const e of ENSAYOS) {
+    let quedan = false;
+    for (const [i, e] of ENSAYOS.entries()) {
       const shard = Object.keys(c.env).find((k) => SHARD.test(k));
       const ctx = shard
         ? contextoDePublicacion(c as ContextoTienda, e.org, shard, 'sistema:ensayo')
         : null;
       if (!ctx) return c.json({ estado: 'sin-configurar' }, 503);
       // Los comercios de prueba no tienen fotos hasta HU-T8.3: es lo único que se omite.
-      resultados[e.slug] = await publicar({ ...ctx, omitir: ['sin-foto'] });
+      const r = await publicar({ ...ctx, omitir: ['sin-foto'] });
+      resultados[e.slug] = r;
+      // Bitácora tienda3 30: las subidas de una solicitud son para una sola tienda; si una subió
+      // archivos, las demás van en la siguiente. Con 202, el despliegue vuelve a pedir.
+      if (r.estado === 'por-tandas' || (r.estado === 'publicada' && r.nuevos > 0)) {
+        quedan = r.estado === 'por-tandas' || i < ENSAYOS.length - 1;
+        break;
+      }
     }
-    const ok = Object.values(resultados).every(
-      (r) => r.estado === 'publicada' || r.estado === 'nada-cambio',
-    );
-    return c.json(resultados, ok ? 200 : 500);
+    const estados = Object.values(resultados);
+    return c.json(resultados, estados.some(malo) ? 500 : quedan ? 202 : 200);
   });
 
   app.all('*', (c) => c.json(NO_EXISTE, 404));

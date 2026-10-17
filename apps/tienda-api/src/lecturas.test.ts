@@ -188,14 +188,19 @@ describe('bitácora tienda3 26 ❌: las filas que lee el panel con la tienda lle
     expect(l2.filas, mensaje(l2)).toBeLessThanOrEqual(TOPE_DE_UNA_FICHA);
   });
 
-  it('publicar y exportar leen la tienda una vez', async () => {
+  it('publicar y exportar leen la tienda una vez; la tienda llena sube por tandas que caben en una solicitud', async () => {
     const objetos = new Map<string, string>();
+    let operaciones = 0;
     const sitios: Almacen = {
       get: async (k) => {
+        operaciones++;
         const t = objetos.get(k);
         return t === undefined ? null : { text: async () => t };
       },
-      put: async (k, v) => void objetos.set(k, v),
+      put: async (k, v) => {
+        operaciones++;
+        objetos.set(k, v);
+      },
     };
     const contexto: Contexto = {
       shard: contado.db,
@@ -210,10 +215,23 @@ describe('bitácora tienda3 26 ❌: las filas que lee el panel con la tienda lle
       pedidaPor: 'usuario:prueba',
       ahora: AHORA,
     };
-    leido();
-    await publicar(contexto);
-    const p = leido();
-    expect(p.filas, mensaje(p)).toBeLessThanOrEqual(TOPE_DE_PUBLICAR);
+    // Bitácora tienda3 30: la primera publicación de la tienda llena sube unos 4.200 archivos, y
+    // una solicitud del plan gratuito hace como mucho 1.000 operaciones con R2, D1 y KV.
+    const estados: string[] = [];
+    for (let tanda = 0; tanda < 10 && estados.at(-1) !== 'publicada'; tanda++) {
+      leido();
+      operaciones = 0;
+      const r = await publicar(contexto);
+      estados.push(r.estado);
+      const p = leido();
+      expect(p.filas, mensaje(p)).toBeLessThanOrEqual(TOPE_DE_PUBLICAR);
+      // De las 1.000, 50 quedan para las consultas a D1, su tope por solicitud.
+      expect(operaciones, `operaciones con R2 en la tanda ${tanda + 1}`).toBeLessThanOrEqual(
+        1000 - 50,
+      );
+    }
+    expect(estados.at(-1)).toBe('publicada');
+    expect(estados.length).toBeGreaterThan(1);
     expect((await pedir('exportar')).status).toBe(200);
     const e = leido();
     expect(e.filas, mensaje(e)).toBeLessThanOrEqual(TOPE_DE_EXPORTAR);

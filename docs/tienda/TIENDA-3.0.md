@@ -923,6 +923,7 @@ Falla en cualquier paso → publicacion → fallida con el motivo; el sitio sigu
 
 - **Por qué cola y no la solicitud del panel:** el horneado de una tienda grande (2.000 productos) puede pasar de lo que conviene esperar en una solicitud, y la cola reintenta sola. Con Workers Paid, el consumidor tiene hasta 5 minutos de CPU.
 - **Costo:** clase A de R2 solo por los archivos nuevos. Republicar con un precio cambiado escribe la ficha, el catálogo, los feeds y el manifiesto: unos 6 objetos.
+- **Por tandas** *(Hoy: no hay cola y publicar corre en la solicitud del panel. En el plan gratuito una invocación hace como mucho 1.000 operaciones con R2, D1 y KV, y la primera publicación de una tienda de 2.000 productos sube unos 4.200 archivos. El paso 4 sube hasta 800 escrituras por solicitud; si faltan, anota lo subido en `sitios/<org>/tandas.json`, descarta la versión reservada y responde 202 con cuántos faltan. El panel vuelve a pedir, y la solicitud siguiente no sube otra vez lo de la última hora. Bitácora tienda3 30.)*
 
 ### 10.4 Determinismo
 

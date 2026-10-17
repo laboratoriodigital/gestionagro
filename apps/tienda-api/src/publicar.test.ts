@@ -312,6 +312,75 @@ describe('publicar (HU-T4.4)', () => {
     }
   });
 
+  it('una tienda que no cabe en una solicitud sube por tandas y se publica en la última (bitácora tienda3 30)', async () => {
+    const entera = almacen();
+    await publicar(contexto(ENSAYO_UNO.org, entera));
+    const todos = [...entera.objetos.keys()].filter((k) => k.startsWith('objetos/')).length;
+    await shard.prepare('DELETE FROM publicacion').run();
+    await shard.prepare('UPDATE tienda SET version_publicada = NULL').run();
+
+    const r2 = almacen();
+    const hosts = kv();
+    const c = { ...contexto(ENSAYO_UNO.org, r2, hosts), subidasPorTanda: 5 };
+    const primera = await publicar(c);
+    expect(primera).toEqual({
+      estado: 'por-tandas',
+      subidos: expect.any(Number),
+      faltan: expect.any(Number),
+    });
+    // Cinco escrituras de archivos y la anotación de la tanda; un texto legal cuenta por dos.
+    expect(r2.escrituras()).toBeLessThanOrEqual(6);
+    expect(primera.estado === 'por-tandas' && primera.subidos + primera.faltan).toBe(todos);
+    // La tienda sigue como estaba: sin versión nueva y sin punteros.
+    expect(await versionPublicada(ENSAYO_UNO.org)).toBeNull();
+    expect(hosts.valores.size).toBe(0);
+    expect(
+      (
+        await shard
+          .prepare('SELECT count(*) AS n FROM publicacion WHERE org_id = ?')
+          .bind(ENSAYO_UNO.org)
+          .first<{ n: number }>()
+      )?.n,
+    ).toBe(0);
+
+    let r = primera;
+    for (let i = 0; i < todos && r.estado === 'por-tandas'; i++) {
+      const antes = r2.escrituras();
+      r = await publicar(c);
+      if (r.estado === 'por-tandas') expect(r2.escrituras() - antes).toBeLessThanOrEqual(6);
+    }
+    expect(r).toMatchObject({ estado: 'publicada', version: 1 });
+    // Ningún archivo se subió dos veces.
+    const subidos = [...r2.objetos.keys()].filter((k) => k.startsWith('objetos/')).length;
+    expect(subidos).toBe(todos);
+    expect(r2.escrituras()).toBeLessThan(entera.escrituras() + todos);
+    expect(await versionPublicada(ENSAYO_UNO.org)).toBe(1);
+    expect(hosts.valores.has('h:ensayo-uno--staging.laboratorio-digital.app')).toBe(true);
+  });
+
+  it('❌ una tanda de hace más de una hora no cuenta: lo suyo se vuelve a subir (bitácora tienda3 30)', async () => {
+    const r2 = almacen();
+    const c = { ...contexto(ENSAYO_UNO.org, r2), subidasPorTanda: 5 };
+    const subidos = () => [...r2.objetos.keys()].filter((k) => k.startsWith('objetos/')).sort();
+    const vaciar = () => {
+      for (const k of subidos()) r2.objetos.delete(k);
+    };
+    const despues = (min: number) => new Date(Date.parse(AHORA) + min * 60_000).toISOString();
+    const tandas = `sitios/${ENSAYO_UNO.org}/tandas.json`;
+
+    expect((await publicar(c)).estado).toBe('por-tandas');
+    const primeras = subidos();
+    const anotada = r2.objetos.get(tandas) ?? '';
+    vaciar();
+    expect((await publicar({ ...c, ahora: despues(59) })).estado).toBe('por-tandas');
+    expect(subidos().filter((k) => primeras.includes(k))).toEqual([]);
+
+    vaciar();
+    r2.objetos.set(tandas, anotada);
+    expect((await publicar({ ...c, ahora: despues(61) })).estado).toBe('por-tandas');
+    expect(subidos()).toEqual(primeras);
+  });
+
   it('❌ una segunda publicación mientras otra está en curso responde «en curso»', async () => {
     await shard
       .prepare(
