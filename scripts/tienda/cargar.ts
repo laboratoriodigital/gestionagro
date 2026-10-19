@@ -5,10 +5,13 @@
  * solo revisa: dice todos los problemas y no escribe nada. Con él, aplica parte por parte; si una
  * falla, dice cuál y volver a correrlo termina el trabajo (cada parte es idempotente).
  *
- * Las fotos del archivo se cuentan, y se suben cuando exista su API (HU-T8.3): por ahora el comercio
- * las sube desde el panel.
+ * Después de aplicar, sube las fotos del archivo (HU-T12.3, `fotos-de-la-carga.ts`): las baja, hace
+ * sus derivadas y las sube como el teléfono. Una que falla se dice y las demás siguen; si faltó
+ * alguna, sale con 1, y volver a correrlo termina el trabajo.
  */
 import { readFileSync } from 'node:fs';
+import { cargaTienda } from '../../packages/tienda-schema/src/carga.ts';
+import { type OpcionesDeLasFotos, subirFotosDeLaCarga } from './fotos-de-la-carga.ts';
 
 type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -19,6 +22,8 @@ export interface OpcionesDeCarga {
   aplicar: boolean;
   fetch?: Fetch;
   decir?: (linea: string) => void;
+  /** Cómo se abren las fotos (`sharp` si no se dice); `false`: no subirlas. */
+  fotos?: Pick<OpcionesDeLasFotos, 'abrir'> | false;
 }
 
 /** Devuelve 0 si todo salió, 1 si algo no. */
@@ -52,7 +57,7 @@ export async function cargar(o: OpcionesDeCarga): Promise<number> {
     `✅ Sin problemas: ${resumen['productos'] ?? 0} productos (${resumen['variantes'] ?? 0} variantes), ${resumen['colecciones'] ?? 0} colecciones, ${resumen['pedidos'] ?? 0} pedidos históricos, en ${resumen['partes'] ?? 0} partes.`,
   );
   if ((resumen['fotos'] ?? 0) > 0) {
-    decir(`ℹ️  ${resumen['fotos']} fotos quedan para subir desde el panel (HU-T8.3).`);
+    decir(`ℹ️  ${resumen['fotos']} fotos para subir después de aplicar.`);
   }
   if (!o.aplicar) {
     decir('Para escribirlo, vuelve a correrlo con --aplicar.');
@@ -74,7 +79,21 @@ export async function cargar(o: OpcionesDeCarga): Promise<number> {
     decir(`  parte ${parte + 1} de ${resumen['partes'] ?? '?'} aplicada`);
     parte = cuerpo.siguiente ?? null;
   }
-  decir('✅ Tienda cargada. Revísala en el panel y publícala cuando esté lista.');
+  decir('✅ Tienda cargada.');
+  const carga = cargaTienda.safeParse(o.carga);
+  if (o.fotos !== false && carga.success && (resumen['fotos'] ?? 0) > 0) {
+    decir('Subiendo las fotos…');
+    const { faltaron } = await subirFotosDeLaCarga({
+      carga: carga.data,
+      panel: o.panel,
+      token: o.token,
+      fetch: f,
+      decir,
+      ...(o.fotos?.abrir ? { abrir: o.fotos.abrir } : {}),
+    });
+    if (faltaron > 0) return 1;
+  }
+  decir('Revisa la tienda en el panel y publícala cuando esté lista.');
   return 0;
 }
 

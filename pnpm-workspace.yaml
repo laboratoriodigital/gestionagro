@@ -4,3 +4,6 @@ packages:
 allowBuilds:
   esbuild: true
   workerd: true
+  # Su script de instalación compila desde el código si falta el binario; trae los binarios hechos
+  # por plataforma (@img/sharp-*), así que no hace falta correrlo (HU-T12.3).
+  sharp: false
