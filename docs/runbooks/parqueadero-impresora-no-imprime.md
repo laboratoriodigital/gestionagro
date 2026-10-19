@@ -4,6 +4,8 @@
 
 **Mientras tanto, nadie se queda sin recibo.** El registro ya está guardado. Desde la pantalla del recibo, **«Enviar por WhatsApp»** o **«Mostrar QR»** le entregan el recibo al conductor, y lo que no salió en papel queda en entregas pendientes (la cabecera lo cuenta). Toque esa señal para ver la lista: «Abrir para imprimir» lo imprime otra vez cuando la impresora vuelva, y «Quitar de la lista» lo quita si ya lo entregó de otra forma.
 
+**Si la impresora saca de golpe varios recibos al volver.** Pasa cuando se quedó sin papel, con la tapa abierta o dormida: guarda lo que le llega y lo imprime todo junto. Revise el papel antes de seguir cobrando. Si no necesita el recibo de salida en papel, en Ajustes › «¿Y el recibo de salida?» elija «En papel solo si lo pide».
+
 ![El recibo que no salió: el motivo, «Reconectar impresora», «Elegir la impresora otra vez» y «Copiar diagnóstico para soporte», a 360 px](img/parqueadero-recibo-no-salio.png)
 
 Los textos en negrita entre comillas (**«así»**) son lo que el cajero ve en la caja. Una prueba de repositorio comprueba que existen (`tests/repo/runbooks-parqueadero.test.ts`).

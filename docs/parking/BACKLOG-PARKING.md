@@ -259,7 +259,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q10** | 25 ene–5 feb | Firma sin red por dispositivo y su verificación; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q11.4 (2), HU-Q11.5 (2). HU-Q8.3 pasó a Q11 (espera R2) | 14 | — |
 | **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). HU-Q8.5, HU-Q8.6 y HU-Q10.3 en el PR #156; HU-Q8.4 en el #157, sin el número del abonado; HU-Q11.6 y HU-Q11.7 en el #158 con la `v0.3.0` de la entrega. HU-Q8.3 hecha en el #158, con las fotos en el Drive de la cuenta (decisión del dueño, 12 oct 2026); HU-Q8.7 espera M1 en producción (HU-Q7.12) | 17 | M2, **`v1.0.0`** |
 | **Q12** | 22 feb–5 mar | Sin el disparador de M3 (12 oct 2026), como dice la nota de abajo: el cobro del plan por periodo, que HC4 desbloqueó (#161). EQ9 sigue preparada | HU-Q7.10 (3) | 3 | — |
-| **Q13** | 8–19 mar | Sin el disparador de M3 (14 oct 2026): lo que pidió el dueño con el cliente en operación. EQ9 sigue preparada | HU-Q13.1 (1), HU-Q13.2 (3), HU-Q13.3 (2), HU-Q13.4 (2), HU-Q13.5 (2), HU-Q13.6 (1) | 11 | `v0.6.0`, `v0.7.0`, `v0.7.1`, `v0.7.2` |
+| **Q13** | 8–19 mar | Sin el disparador de M3 (14 oct 2026): lo que pidió el dueño con el cliente en operación. EQ9 sigue preparada | HU-Q13.1 (1), HU-Q13.2 (3), HU-Q13.3 (2), HU-Q13.4 (2), HU-Q13.5 (2), HU-Q13.6 (1), HU-Q13.7 (2) | 13 | `v0.6.0`, `v0.7.0`, `v0.7.1`, `v0.7.2`, `v0.8.0` |
 
 **Total:** 229 puntos en 14 sprints. M0: 116 (Q0–Q5). M1: 57 (Q6–Q9). M2: 31 (Q10–Q11). M3: 25 (Q12–Q13).
 
@@ -860,6 +860,15 @@ Pedido del dueño del 14 oct 2026, con el primer parqueadero ya operando. Sin el
 - **CA3.** «Quitar de la lista» quita la fila: el recibo se entregó de otra forma, o era una impresión que no es recibo (aviso, cierre, página de prueba).
 - **CA4 ❌.** Un papel que no salió no quita la fila: la suma a la misma. El registro nunca se toca; solo la lista de lo que falta entregar.
 
+#### HU-Q13.7 · El recibo de salida en papel solo si lo piden, y nada dado por perdido sale después
+- **Capa:** caja y `@ed1/impresion` · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q13 · **Estado:** En revisión (rama `fix/impresion-en-rafaga`)
+- Como parqueadero, quiero que el recibo de salida no se imprima si el conductor no lo pide, y que la impresora nunca saque de golpe recibos que la caja ya dio por no salidos.
+- **Respaldo:** el dueño, 2026-10-19: «luego de un día de trabajo, al cobrar todas las entradas y no imprimir el recibo de salida, la impresora imprimió de largo todos esos recibos de salida que no se necesitaban». Bitácora 43.
+- **CA1.** Ajustes › «¿Y el recibo de salida?»: «Igual que el de entrada» (como siempre, por omisión) o «En papel solo si lo pide». A pedido, el de salida no se imprime al abrirse ni al volver; sigue en la pantalla, por WhatsApp y con «Imprimir».
+- **CA2.** El de entrada no cambia: sale como diga «¿Cuándo sale el recibo en papel?». Es el que la ley exige al recibir el vehículo (Ley 1480 art. 18).
+- **CA3.** Cuando la cola deja de esperar a la impresora (45 s), le pide al adaptador que corte el trabajo: por el puerto serie descarta lo que el navegador tenía por mandar y suelta el puerto; por Bluetooth no manda un trozo más. Un trabajo nuevo no reactiva el cortado.
+- **CA4 ❌.** Lo que la caja dio por no salido no se imprime cuando la impresora despierta (prueba con una impresora falsa que se queda dormida a mitad de un recibo). Lo que la impresora ya recibió en su memoria no se puede retirar: la caja no lo ve (ver bitácora 43).
+
 ---
 
 ## 9. Preparadas, sin sprint
@@ -979,7 +988,7 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 | Q9 | 15 | Solo staging | #154. HU-Q7.10 espera HC4 y HU-Q7.12 es la `v0.5.0` |
 | Q10 | 14 | Solo staging | #155 |
 | Q11 | 17 | Lo que no necesita la nube, en la `v0.3.0` de la entrega | #156–#158: 20 puntos hechos (HU-Q8.3, HU-Q8.4, HU-Q8.5, HU-Q8.6, HU-Q10.3, HU-Q11.6 y HU-Q11.7, estas dos sin sprint); HU-Q8.7 espera M1 en producción |
-| Q13 | 11 | Con la `0.6.0`, la `0.7.0`, la `0.7.1` y la `0.7.2` | HU-Q13.1 a HU-Q13.6, pedidas por el dueño el 2026-10-14 |
+| Q13 | 13 | Con la `0.6.0`, la `0.7.0`, la `0.7.1`, la `0.7.2` y la `0.8.0` | HU-Q13.1 a HU-Q13.7, pedidas por el dueño del 14 al 19 oct 2026 |
 | Q12 | 3 | En producción con la `0.5.0` | HU-Q7.10, sin el disparador de M3. HU-Q7.12 (M1 en producción) espera la decisión del dueño |
 
 Desde el 12 oct 2026, un PR y un push por sprint completo, para ahorrar minutos de Actions (decisión del dueño).

@@ -65,6 +65,11 @@ export interface Impresora {
   estado(): EstadoImpresora;
   /** Al cerrar la caja: suelta la conexión para que la próxima no la encuentre ocupada. */
   soltar?(): void;
+  /**
+   * Corta el trabajo en curso cuando la cola ya lo dio por perdido: lo que no salió, ya no sale
+   * (bitácora parqueadero 43). Sin él, un recibo dado por perdido podía imprimirse horas después.
+   */
+  cancelar?(): void;
 }
 
 /** Un fallo que un adaptador lanza al vincular; la caja muestra `detalle` (§7.4 paso 5). */

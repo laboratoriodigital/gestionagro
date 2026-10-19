@@ -10,7 +10,8 @@ export interface OpcionesDeCola {
   readonly alFallar?: (trabajo: Trabajo, resultado: Extract<Resultado, { ok: false }>) => unknown;
   /**
    * Cuánto esperar a la impresora antes de darlo por perdido. Más que lo que tarda el adaptador en
-   * rendirse al reconectar (unos 30 s): si no, un recibo dado por perdido podría salir después.
+   * rendirse al reconectar (unos 30 s). Al vencer, la cola le pide al adaptador que lo corte
+   * (`cancelar`): un recibo dado por perdido nunca sale después (bitácora parqueadero 43).
    */
   readonly msMaximo?: number;
 }
@@ -34,15 +35,14 @@ export function crearCola(impresora: Impresora, opciones: OpcionesDeCola = {}): 
   async function uno(trabajo: Trabajo): Promise<Resultado> {
     let reloj: ReturnType<typeof setTimeout> | undefined;
     const tiempo = new Promise<Resultado>((resolver) => {
-      reloj = setTimeout(
-        () =>
-          resolver({
-            ok: false,
-            motivo: 'tiempo',
-            detalle: `Sin respuesta en ${Math.round(msMaximo / 1000)} s`,
-          }),
-        msMaximo,
-      );
+      reloj = setTimeout(() => {
+        impresora.cancelar?.();
+        resolver({
+          ok: false,
+          motivo: 'tiempo',
+          detalle: `Sin respuesta en ${Math.round(msMaximo / 1000)} s`,
+        });
+      }, msMaximo);
     });
     let resultado: Resultado;
     try {

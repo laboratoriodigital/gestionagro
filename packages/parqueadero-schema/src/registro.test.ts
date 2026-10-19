@@ -215,6 +215,20 @@ describe('el ajuste papel (HU-Q4.3)', () => {
     expect(papelDeLaSede({ imprimir_siempre: false })).toBe('salvo_digital');
     expect(papelDeLaSede({})).toBe('siempre');
   });
+
+  it('HU-Q13.7: el de salida puede ir a pedido; el de entrada sigue como diga la sede', async () => {
+    const { papelDelRecibo, sede, SEDE_ENSAYO_UNO } = {
+      ...(await import('./index.ts')),
+      ...(await import('./ensayos.fixture.ts')),
+    };
+    const s = { papel: 'siempre' as const, papel_salida: 'a_pedido' as const };
+    expect(papelDelRecibo(s, 'salida')).toBe('a_pedido');
+    expect(papelDelRecibo(s, 'entrada')).toBe('siempre');
+    expect(papelDelRecibo({ papel: 'salvo_digital' }, 'salida')).toBe('salvo_digital');
+    expect(sede.safeParse({ ...SEDE_ENSAYO_UNO, papel_salida: 'a_pedido' }).success).toBe(true);
+    // ❌ La entrada nunca va a pedido: el campo es solo de la salida.
+    expect(sede.safeParse({ ...SEDE_ENSAYO_UNO, papel_salida: 'nunca' }).success).toBe(false);
+  });
 });
 
 describe('el texto de responsabilidad del ajuste del recibo (HU-Q4.5)', () => {

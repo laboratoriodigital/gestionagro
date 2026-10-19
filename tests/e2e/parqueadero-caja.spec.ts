@@ -267,6 +267,37 @@ test.describe('la caja del parqueadero', () => {
     await expect(page.getByTestId('aviso-entrada')).toContainText('ABC123');
   });
 
+  test('HU-Q13.7 · con la salida a pedido, el recibo de salida no se imprime solo; la entrada sí', async ({
+    page,
+  }) => {
+    const entrada = new Date('2026-10-06T23:05:00Z');
+    await page.clock.setFixedTime(entrada);
+    await page.goto(CAJA);
+    await configurarImpresora(page, 'Línea 1');
+    await page.getByRole('button', { name: 'Volver a la caja' }).click();
+    await abrirMenu(page, 'Ajustes del parqueadero');
+    await llenarAjustes(page, { salidaAPedido: true });
+    await page.getByRole('button', { name: 'Nueva entrada' }).click();
+    await abrirTurno(page);
+    await teclearPlaca(page, 'ABC123');
+    await page.getByRole('button', { name: 'Registrar' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Enviado a la impresora');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+
+    await page.clock.setFixedTime(new Date(entrada.getTime() + 60 * 60_000));
+    await page.getByTestId('estadia').click();
+    await page.getByRole('button', { name: 'Efectivo' }).click();
+    const antes = (await bytesImpresos(page)).length;
+    await page.getByRole('button', { name: /^Cobrar/ }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Recibo de salida A-000002');
+    // ❌ Ni al abrir el recibo ni al volver: el conductor no lo pidió (bitácora 43).
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('');
+    await page.getByRole('button', { name: 'Volver al inicio' }).click();
+    await expect(page.getByTestId('estadias')).toContainText('No hay vehículos adentro.');
+    expect((await bytesImpresos(page)).length).toBe(antes);
+    await expect(page.getByTestId('senal-pendientes')).toHaveText('Sin entregas pendientes');
+  });
+
   test('HU-Q3.4, HU-Q3.5 y HU-Q3.9 · la estadía se busca, se cobra y el turno cierra con su papel', async ({
     page,
   }) => {
