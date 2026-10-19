@@ -1,7 +1,8 @@
 /**
  * «Más» (HU-T8.1): lo que no cabe en la navegación de abajo, cambiar de tienda y salir. «Equipo»
  * solo para quien lo puede manejar (HU-T10.5 CA2); «Descargar todo», para quien puede exportar (HU-T10.7);
- * «Datos de un comprador», para quien atiende sus derechos (HU-T7.3).
+ * «Datos de un comprador», para quien atiende sus derechos (HU-T7.3); «Cobro en línea», para quien
+ * maneja el cobro (HU-T11.2).
  */
 import { puede } from '@ed1/tienda-schema/permisos';
 
@@ -34,6 +35,11 @@ export function Mas({
         <li>
           <a href="/mas/ajustes/">Ajustes de la tienda</a>
         </li>
+        {puede(rol, 'cobro.gestionar') ? (
+          <li>
+            <a href="/mas/cobro/">Cobro en línea</a>
+          </li>
+        ) : null}
         {puede(rol, 'equipo.gestionar') ? (
           <li>
             <a href="/mas/equipo/">Equipo</a>
@@ -52,6 +58,9 @@ export function Mas({
             <a href="/mas/titular/">Datos de un comprador</a>
           </li>
         ) : null}
+        <li>
+          <a href="/mas/terminos/">Términos del servicio</a>
+        </li>
         <li>
           <a href="/privacidad/">Política de tratamiento de datos</a>
         </li>

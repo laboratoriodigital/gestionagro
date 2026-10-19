@@ -528,3 +528,88 @@ describe('❌ lo que no mueve nada (HU-T11.5 CA4)', () => {
     expect(await n('SELECT COUNT(*) AS n FROM aviso_proveedor WHERE org_id = ?', UNO)).toBe(filas);
   });
 });
+
+describe('el cobro de prueba guiado (HU-T11.3 CA1)', () => {
+  // Unidades de sobra: lo que se prueba aquí es la marca, no el inventario.
+  beforeAll(async () => {
+    await shard
+      .prepare('UPDATE variante SET stock = 50 WHERE org_id = ? AND id = ?')
+      .bind(UNO, S)
+      .run();
+  });
+  const prueba = () =>
+    uno<{ prueba_aprobada: string | null; prueba_cobro: string | null }>(
+      'SELECT prueba_aprobada, prueba_cobro FROM tienda WHERE org_id = ?',
+      UNO,
+    );
+  const sinPrueba = () =>
+    shard
+      .prepare('UPDATE tienda SET prueba_aprobada = NULL, prueba_cobro = NULL WHERE org_id = ?')
+      .bind(UNO)
+      .run();
+  /** Bold, preguntado por la página o el cron, dice que el cobro se aprobó. */
+  const boldAprueba: typeof fetch = async () =>
+    Response.json({ payment_status: 'APPROVED', total: 129000, transaction_id: 'tx-consulta' });
+
+  it('❌ la consulta sola no la da por hecha; el aviso que llega después sobre el mismo cobro, sí', async () => {
+    await sinPrueba();
+    const cobro = await cobrar('PRB001', S);
+    const consulta = '2026-10-16T15:06:00.000Z';
+    await conciliarTienda(
+      { db: shard, org: UNO, ahora: consulta, kekTexto: KEK },
+      Date.parse(consulta),
+      boldAprueba,
+    );
+    expect((await estadoDe(cobro)).cobro).toBe('aprobado');
+    expect(await prueba()).toEqual({ prueba_aprobada: null, prueba_cobro: null });
+    // El aviso firmado llega unos segundos después: el cobro ya está aprobado y no se mueve, pero
+    // prueba la llave secreta y el aviso.
+    const llega = '2026-10-16T15:06:30.000Z';
+    const r = await avisar(avisoDe('SALE_APPROVED', cobro), undefined, llega);
+    expect(await r.json()).toEqual({ resultado: 'ignorado' });
+    expect(await prueba()).toEqual({ prueba_aprobada: llega, prueba_cobro: cobro });
+  });
+
+  it('el aviso que aprueba un cobro de pruebas la deja dicha una sola vez; el siguiente no la pisa', async () => {
+    await sinPrueba();
+    const primero = await cobrar('PRB002', S);
+    const segundo = await cobrar('PRB003', S);
+    await avisar(avisoDe('SALE_APPROVED', primero), undefined, '2026-10-16T15:07:00.000Z');
+    await avisar(avisoDe('SALE_APPROVED', segundo), undefined, '2026-10-16T15:08:00.000Z');
+    expect(await prueba()).toEqual({
+      prueba_aprobada: '2026-10-16T15:07:00.000Z',
+      prueba_cobro: primero,
+    });
+  });
+
+  it('❌ un aviso que rechaza no la da por hecha', async () => {
+    await sinPrueba();
+    const cobro = await cobrar('PRB004', S);
+    const r = await avisar(avisoDe('SALE_REJECTED', cobro), undefined, '2026-10-16T15:09:00.000Z');
+    expect(await r.json()).toEqual({ resultado: 'aplicado' });
+    expect(await prueba()).toEqual({ prueba_aprobada: null, prueba_cobro: null });
+  });
+});
+
+describe('❌ el tope por IP de los avisos (HU-T11.11)', () => {
+  it('pasado el tope responde 429 antes de leer el cuerpo, y no escribe nada', async () => {
+    const filas = await n('SELECT COUNT(*) AS n FROM aviso_proveedor WHERE org_id = ?', UNO);
+    const cuerpo = avisoDe('SALE_APPROVED', 'ZZZZZZ-1');
+    const r = await crearApp({ ahora: () => Date.parse(AHORA) }).request(
+      `https://${HOST}/api/v1/avisos/bold`,
+      {
+        method: 'POST',
+        body: cuerpo,
+        headers: {
+          [CABECERA_DESPACHO]: SECRETO,
+          [CABECERA_TIENDA]: JSON.stringify({ org: UNO, shard: 'tienda_c1_s1' }),
+          'x-bold-signature': firmar(cuerpo),
+        },
+      },
+      { ...env(), LIMITE_AVISOS: { limit: async () => ({ success: false }) } },
+    );
+    expect(r.status).toBe(429);
+    expect(r.headers.get('retry-after')).toBe('60');
+    expect(await n('SELECT COUNT(*) AS n FROM aviso_proveedor WHERE org_id = ?', UNO)).toBe(filas);
+  });
+});

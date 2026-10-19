@@ -14,6 +14,9 @@ import { ESQUEMAS, type Problema } from './secciones.ts';
 /** Topes de las opciones de un producto (TIENDA-3.0 §5.3 y §5.4). */
 export const TOPES = { grupos: 3, valoresPorGrupo: 20, variantes: 100 } as const;
 
+/** El id que la carga le da a un producto: lo usan la API al cargarlo y el script al subir sus fotos (HU-T12.3, P2). */
+export const idDelProductoCargado = (refExterna: string) => `imp-p-${refExterna}`;
+
 const ref = z
   .string()
   .regex(/^[A-Za-z0-9._-]{1,60}$/, 'una referencia externa sin espacios, de 1 a 60');

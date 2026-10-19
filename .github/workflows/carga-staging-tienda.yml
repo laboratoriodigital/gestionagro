@@ -1,0 +1,30 @@
+# La prueba de carga de la Tienda en staging (HU-T11.10 CA2): las páginas de un comercio de prueba y
+# `cotizar` por encima del límite por IP. Solo a mano y solo contra staging: el script rechaza
+# cualquier otra dirección. Unas 500 solicitudes, sin secretos.
+name: carga-staging-tienda
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: carga-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  carga:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+      - name: Cargar a Ensayo Dos en staging
+        run: node scripts/tienda/carga-de-staging.ts

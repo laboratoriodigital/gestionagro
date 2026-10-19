@@ -4,3 +4,12 @@ packages:
 allowBuilds:
   esbuild: true
   workerd: true
+  # Su script de instalación compila desde el código si falta el binario; trae los binarios hechos
+  # por plataforma (@img/sharp-*), así que no hace falta correrlo (HU-T12.3).
+  sharp: false
+
+# Revisión de seguridad de la Tienda (19 oct 2026): GHSA-68fv-2mgg-jv7q, solo del build (vite, astro).
+overrides:
+  source-map-js: ">=1.2.2"
+  # La que marca pnpm audit vía astro (max-stale), corregida desde 4.3.0.
+  http-cache-semantics: ">=4.3.0"

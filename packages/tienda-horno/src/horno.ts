@@ -95,9 +95,11 @@ export interface TiendaParaHornear {
   colecciones?: ColeccionParaHornear[];
   /**
    * La tienda cobra en línea con su Bold (HU-T11.4): el carrito ofrece pagar ahí y pide los datos de
-   * entrega. La compuerta no deja publicarla así hasta el cobro de prueba guiado (HU-T11.3).
+   * entrega. La compuerta pide sus llaves y, para cobrar de verdad, el cobro de prueba (HU-T11.3).
    */
   cobroEnLinea?: boolean;
+  /** HU-T11.3 CA2: cobra en el ambiente de pruebas de Bold; una franja lo dice en cada página. */
+  cobroEnPruebas?: boolean;
 }
 
 export interface ArchivoHorneado {
@@ -246,6 +248,11 @@ export async function hornear(t: TiendaParaHornear): Promise<Map<string, Archivo
       ? `\n<p class="pie__identidad">${datosDeIdentidad.map(escaparHtml).join(' · ')}</p>`
       : '';
 
+  // HU-T11.3 CA2: mientras cobre en pruebas, cada página lo dice antes que nada.
+  const enPruebas =
+    t.cobroEnLinea && t.cobroEnPruebas
+      ? '<p class="en-pruebas" role="note">Tienda en pruebas: los pagos en línea de esta tienda todavía no cobran de verdad.</p>\n'
+      : '';
   const documento = (p: Pagina) => {
     const verificacion =
       p.ruta === '/' && t.googleVerificacion
@@ -273,7 +280,7 @@ export async function hornear(t: TiendaParaHornear): Promise<Map<string, Archivo
 ${p.ld.map(jsonLd).join('\n')}
 </head>
 <body>
-<header class="franja"><a class="marca" href="/">${escaparHtml(t.nombre)}</a><a class="franja__buscar" href="/buscar/">Buscar</a></header>
+${enPruebas}<header class="franja"><a class="marca" href="/">${escaparHtml(t.nombre)}</a><a class="franja__buscar" href="/buscar/">Buscar</a></header>
 <main>
 ${p.cuerpo}
 </main>

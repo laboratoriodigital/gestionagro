@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Los términos del comercio (HU-T7.2): antes de publicar por primera vez, el propietario lee y acepta los términos de la plataforma y el acuerdo de custodia de los datos de sus compradores. Queda dicho quién aceptó, cuándo y qué texto; si el texto cambia, se vuelve a aceptar antes de publicar.
+- Las llaves de Bold de cada tienda (HU-T11.2): en «Más → Cobro en línea» el propietario pega sus llaves de pruebas y de producción, recién entrado. Se comprueban con Bold antes de guardarlas, se guardan cifradas y nunca se vuelven a mostrar; la pantalla dice las comisiones de Bold y la dirección de avisos que va en su panel.
+- El cobro de prueba guiado (HU-T11.3): con las llaves de pruebas, la tienda se publica con una franja «en pruebas» en cada página y se hace un pago de prueba. Solo después de un pago de prueba aprobado se pasa a cobrar de verdad, y el cobro usa siempre el ambiente de la versión publicada: nunca se cobra de verdad con la franja a la vista. Los pasos están en `docs/runbooks/tienda-cobro-de-prueba.md`.
+- Los links de pago (HU-T11.8): en un pedido por pagar, «Cobrar con un link» crea un link de Bold por el total, con su vencimiento, para mandarlo por WhatsApp. Cuando Bold avisa, el pedido queda pagado como con el botón; un link vencido se cierra solo y el pedido vuelve a «a convenir».
+- Restaurar una tienda (HU-T17.4): una tienda se restaura desde su respaldo semanal sin pisar lo que ya existe, y el flujo «simulacro-restauracion-tienda» lo prueba en staging en una base aparte que se borra al terminar. Los pasos están en `docs/runbooks/tienda-restaurar.md`.
+- La vitrina por anillos (HU-T4.6): una versión nueva del código de la vitrina re-hornea primero las tiendas del primer anillo, y las demás 24 horas después si nada falló. Las tiendas horneadas con una versión anterior la siguen viendo 90 días. Volver atrás está en `docs/runbooks/tienda-volver-atras-el-codigo.md`.
+- Las fotos de la carga (HU-T12.3): al cargar una tienda desde un archivo, las fotos de cada producto se suben con sus tamaños, como desde el panel; si falta alguna, la carga lo dice y termina con error.
+- Los umbrales de validación (HU-T0.3): `content/tienda/validacion.json` propone qué se mide, cada cuánto y desde dónde, antes de la primera tienda real.
+- La prueba de carga de staging (HU-T11.10): el flujo «carga-staging-tienda» pide las páginas de un comercio de prueba muchas veces a la vez y revisa que ninguna falle, que respondan rápido y que el límite por visitante responda.
+- El permiso de Gmail (HU-T14.3): `scripts/correo/permiso-de-gmail.ts` guarda el permiso de enviar correos de la cuenta en el ambiente de GitHub, sin mostrarlo. Los pasos están en `docs/runbooks/correo-de-gmail.md`.
 - Las versiones viejas del sitio se borran solas de R2 (bitácora tienda3 28). Se borran las de más de 90 días que no son la que ve la tienda ni una de las 5 anteriores. Cada lunes se borran los archivos que ya no usa ninguna tienda; si no se sabe con certeza, no se borra nada. En «Publicar y versiones», una versión borrada dice que ya no se puede volver a ella.
 - El freno de R2 (bitácora tienda3 27): cada hora la Tienda mide cuánto de lo gratis de R2 usó la cuenta. Al 75 % avisa por Telegram; al 90 % del espacio o de las escrituras apaga publicar y subir fotos, para que no empiece a cobrar a la tarjeta, y los vuelve a encender solo por debajo del 80 %. La venta y los cobros nunca se apagan. Necesita el token de métricas (`CF_METRICAS_TOKEN`), el mismo del vigía.
 - `ks:tienda-fotos` pausa la subida de fotos; las que ya están siguen en la tienda.
@@ -42,6 +52,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
 
 ### Corregido
+- Ya no pueden quedar más cobros abiertos que el tope de la tienda cuando muchas personas pagan a la vez: el tope se cuenta en el mismo paso que aparta las unidades (bitácora tienda3 33).
+- Los avisos de Bold tienen un tope de 60 por minuto por visitante, para que nadie pueda gastar el día de D1 de la cuenta mandando avisos falsos (`docs/seguridad/revision-tienda-2026-10-19.md`).
+- Una versión nueva de la vitrina ya no deja sin estilos a las tiendas horneadas con la anterior (HU-T4.6).
+- El despliegue de staging ya no falla con la tienda llena: la publica solo si cabe en el plan gratuito, y si no, la omite y lo dice (bitácora tienda3 31).
+- Dos dependencias del armado con fallas conocidas pasan a su versión corregida.
 - El cron de la Tienda ya no escribe en el KV en cada corrida de cada tarea: una que sigue bien se anota una vez por su plazo, y una falla siempre. Eran 120 de las 1.000 escrituras diarias de la cuenta (bitácora tienda3 28).
 - Una migración de la Tienda ya no puede gastar el día de D1 de toda la cuenta: cada una se prueba contra la tienda llena, y ninguna puede leer más de 200.000 filas. La 0007 leía 24 millones con Ensayo Uno lleno, y ahora lee 16.000 (bitácora tienda3 29).
 - Una tienda grande ya se puede publicar: sube por partes, el panel dice cuántos archivos faltan y la tienda sigue mostrando la versión anterior hasta que termina. Antes, la primera publicación de una tienda de 2.000 productos se cortaba a la mitad, porque una solicitud del plan gratuito no alcanza para 4.200 archivos (bitácora tienda3 30).

@@ -555,3 +555,10 @@ h2 {
   font-size: var(--texto-titulo);
   font-weight: var(--peso-fuerte);
 }
+
+/* HU-T11.3: los pasos del cobro de prueba, numerados. */
+.pasos {
+  display: grid;
+  gap: var(--espacio-2);
+  padding-inline-start: 1.25rem;
+}

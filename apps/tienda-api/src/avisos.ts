@@ -96,6 +96,8 @@ export interface CobroDelAviso {
   ambiente: Ambiente;
   estado: string;
   monto_cop: number;
+  /** HU-T11.8: el id del link de pago de Bold, si el cobro es un link. */
+  link?: string | null;
 }
 
 /**
@@ -245,6 +247,17 @@ function rechazar(c: ContextoDelAviso, k: CobroDelAviso) {
           WHERE org_id = ? AND id = ? AND estado = 'por_pagar'`,
       )
       .bind(c.ahora, c.org, k.pedido_id),
+    // HU-T11.8: el pedido que se cobró con un link vuelve a convenir la forma, como al vencer.
+    ...(k.link
+      ? [
+          c.db
+            .prepare(
+              `UPDATE pedido SET forma_pago = 'a_convenir' WHERE org_id = ? AND id = ?
+                  AND estado = 'pendiente' AND forma_pago = 'en_linea'`,
+            )
+            .bind(c.org, k.pedido_id),
+        ]
+      : []),
   ];
 }
 
@@ -312,7 +325,7 @@ export async function aplicarRespuesta(
 export const leerCobro = (c: ContextoDelAviso, id: string) =>
   c.db
     .prepare(
-      'SELECT id, pedido_id, ambiente, estado, monto_cop FROM cobro WHERE org_id = ? AND id = ?',
+      'SELECT id, pedido_id, ambiente, estado, monto_cop, link FROM cobro WHERE org_id = ? AND id = ?',
     )
     .bind(c.org, id)
     .first<CobroDelAviso>();
@@ -329,6 +342,19 @@ const registrar = (
        VALUES (?, 'bold', ?, ?, ?, ?, ?)`,
     )
     .bind(c.org, `${aviso.type}:${aviso.subject}`, c.ahora, cobro, aviso.type, resultado);
+
+/**
+ * HU-T11.3: el primer cobro de pruebas que un aviso firmado aprueba prueba la llave secreta (Bold
+ * aceptó la firma de integridad) y el aviso (llegó y se verificó). Va en el lote del aviso: solo
+ * un aviso lo marca, nunca la consulta, y nunca se pisa la primera.
+ */
+const marcarLaPrueba = (c: ContextoDelAviso, cobro: string) =>
+  c.db
+    .prepare(
+      `UPDATE tienda SET prueba_aprobada = ?, prueba_cobro = ?
+        WHERE org_id = ? AND prueba_aprobada IS NULL`,
+    )
+    .bind(c.ahora, cobro, c.org);
 
 const TIPOS: Record<string, RespuestaDeBold['tipo']> = {
   SALE_APPROVED: 'aprobado',
@@ -350,6 +376,9 @@ async function aplicar(
     .first<{ resultado: string }>();
   if (ya) return 'repetido';
   const tipo = Object.hasOwn(TIPOS, aviso.type) ? TIPOS[aviso.type] : undefined;
+  // HU-T11.3: un aviso firmado que aprueba un cobro de pruebas es la prueba, aunque la consulta de
+  // la página lo haya aprobado unos segundos antes (y entonces el aviso ya no lo mueve).
+  const prueba = k.ambiente === 'pruebas' && tipo === 'aprobado' ? [marcarLaPrueba(c, k.id)] : [];
   try {
     const movio =
       tipo !== undefined &&
@@ -362,14 +391,15 @@ async function aplicar(
           medio: aviso.data.payment_method ?? null,
         },
         k,
-        [registrar(c, aviso, k.id, 'aplicado')],
+        [registrar(c, aviso, k.id, 'aplicado'), ...prueba],
       ));
     if (movio) {
       if (k.ambiente === 'pruebas') avisarPrueba(c, k.id, 'aviso');
       return 'aplicado';
     }
     // Una anulación antes que su venta, u otro aviso que no mueve nada: queda dicho (CA3).
-    await registrar(c, aviso, k.id, 'ignorado').run();
+    const yaAprobado = k.estado === 'aprobado' || k.estado === 'aprobado_sin_existencias';
+    await c.db.batch([registrar(c, aviso, k.id, 'ignorado'), ...(yaAprobado ? prueba : [])]);
     return 'ignorado';
   } catch (e) {
     if (/UNIQUE|PRIMARY KEY/i.test(String(e))) return 'repetido';

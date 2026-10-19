@@ -45,7 +45,9 @@ export async function hornearEnsayo(): Promise<Map<string, string | Buffer>> {
     })),
     colecciones: [{ slug: 'lino', nombre: 'Lino', productos: ['camisa-de-lino'] }],
     // HU-T11.4: las e2e pagan en línea con un Bold de mentira; el despacho de verdad no lo publica.
+    // HU-T11.3: en el ambiente de pruebas, como los comercios de prueba: la franja lo dice.
     cobroEnLinea: true,
+    cobroEnPruebas: true,
   });
   const salida = new Map<string, string | Buffer>();
   for (const [ruta, a] of horneados) salida.set(ruta.slice(1), a.contenido);

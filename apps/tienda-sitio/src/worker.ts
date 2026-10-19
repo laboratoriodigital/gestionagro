@@ -15,6 +15,10 @@
  * - Un `Host` sin tienda: 404 «Esta dirección no tiene tienda». Una tienda sin versión publicada:
  *   404 «Esta tienda todavía no abre». Kill switches (HU-T2.7): `ks:tienda` y `ks:tienda:<org>`.
  * - Cada página dice dónde está su gemelo `.md` también en la cabecera `Link` (HU-T15.1, CA2).
+ * - `/_t/<release>/…`, los archivos comunes de la vitrina, salen de los assets sin pasar por aquí.
+ *   Los de una release anterior ya no están en los assets: salen del almacén de la celda
+ *   (`vitrina/<release>/…`, que sube cada despliegue), para que una página horneada con ella siga
+ *   cargando sus estilos y su JavaScript mientras su tienda no se re-hornea (HU-T4.6, TIENDA §10.6).
  * - `/.well-known/security.txt` (RFC 9116) no se hornea: su `Expires` cambia con el día. Lo sirve el
  *   despacho con el correo del responsable de la plataforma, de su política (P2).
  *
@@ -49,8 +53,19 @@ export interface Servicio {
 
 /** Lo que el despacho usa de un bucket R2: leer un objeto por su clave. */
 export interface Almacen {
-  get(clave: string): Promise<{ text(): Promise<string> } | null>;
+  get(
+    clave: string,
+  ): Promise<{ text(): Promise<string>; arrayBuffer?(): Promise<ArrayBuffer> } | null>;
 }
+
+/** Una ruta de la vitrina: `/_t/<release>/<archivo>`, con la release por su huella. */
+const RUTA_DE_LA_VITRINA = /^\/_t\/([0-9a-f]{12})\/([a-z0-9_-]+(?:\/[a-z0-9_-]+)*\.[a-z0-9]+)$/i;
+const TIPOS_DE_LA_VITRINA: Record<string, string> = {
+  css: 'text/css; charset=utf-8',
+  js: 'text/javascript; charset=utf-8',
+  woff2: 'font/woff2',
+  txt: 'text/plain; charset=utf-8',
+};
 
 /** El manifiesto de una versión (`@ed1/tienda-horno`, `manifiesto()`). */
 export interface Manifiesto {
@@ -241,6 +256,28 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
     return m;
   }
 
+  /** HU-T4.6 CA3: un archivo de una release que ya no está en los assets, desde el almacén. */
+  async function servirRelease(env: Env, destino: DestinoDeHost, ruta: string): Promise<Response> {
+    const m = RUTA_DE_LA_VITRINA.exec(ruta);
+    const sitios = env[`SITIOS_${destino.celda.toUpperCase()}`] as Almacen | undefined;
+    if (!m || !sitios) return new Response('No existe', { status: 404 });
+    try {
+      const objeto = await sitios.get(`vitrina/${m[1]}/${m[2]}`);
+      if (!objeto?.arrayBuffer) return new Response('No existe', { status: 404 });
+      const extension = (m[2] ?? '').slice((m[2] ?? '').lastIndexOf('.') + 1).toLowerCase();
+      return new Response(await objeto.arrayBuffer(), {
+        headers: {
+          'content-type': TIPOS_DE_LA_VITRINA[extension] ?? 'application/octet-stream',
+          'cache-control': 'public, max-age=31536000, immutable',
+          'x-content-type-options': 'nosniff',
+        },
+      });
+    } catch (e) {
+      console.error(`tienda-sitio: el almacén falló con ${ruta} (${String(e)})`);
+      return new Response('No disponible', { status: 503, headers: { 'retry-after': '60' } });
+    }
+  }
+
   async function servir(solicitud: Request, env: Env, destino: DestinoDeHost): Promise<Response> {
     if (destino.version === null) return sinPublicar();
     const sitios = env[`SITIOS_${destino.celda.toUpperCase()}`] as Almacen | undefined;
@@ -313,6 +350,7 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       if (solicitud.method !== 'GET' && solicitud.method !== 'HEAD') {
         return new Response(null, { status: 405, headers: { allow: 'GET, HEAD' } });
       }
+      if (url.pathname.startsWith('/_t/')) return servirRelease(env, destino, url.pathname);
       if (url.pathname === '/.well-known/security.txt') {
         return new Response(
           securityTxt({

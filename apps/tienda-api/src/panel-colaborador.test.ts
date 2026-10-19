@@ -16,6 +16,7 @@ import {
 import { ACCIONES, type Accion, puede } from '@ed1/tienda-schema/permisos';
 import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { textosVigentes } from './terminos.ts';
 import { CABECERA_DESPACHO, crearApp, type Env } from './worker.ts';
 
 const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
@@ -134,6 +135,13 @@ const SOLO_DEL_PROPIETARIO: Record<string, Intento[] | { sinRuta: string }> = {
   ],
   'cobro.gestionar': [
     async () => ['ajustes/guardar', await guardar('cobro', { ambiente: 'pruebas' })],
+    // HU-T11.2: la pantalla Cobro, verla, pegar las llaves y probarlas.
+    async () => ['cobro', undefined],
+    async () => [
+      'cobro/llaves',
+      { op: op(), ambiente: 'pruebas', identidad: 'i'.repeat(20), secreta: 's'.repeat(20) },
+    ],
+    async () => ['cobro/probar', { ambiente: 'pruebas' }],
   ],
   importar: [
     async () => ['importar/revisar', { carga }],
@@ -142,6 +150,12 @@ const SOLO_DEL_PROPIETARIO: Record<string, Intento[] | { sinRuta: string }> = {
   'equipo.gestionar': { sinRuta: 'el equipo es del CORE: invitar pide un rol que administra' },
   'dominios.gestionar': { sinRuta: 'el dominio propio llega con su historia' },
   'plan.gestionar': { sinRuta: 'el plan se cambia en el CORE' },
+  'terminos.aceptar': [
+    async () => [
+      'terminos/aceptar',
+      { op: op(), cual: 'terminos', huella: (await textosVigentes()).terminos.huella },
+    ],
+  ],
   'factura.gestionar': { sinRuta: 'la factura llega con el cobro en línea' },
   'exportar.datos_personales': [async () => ['exportar?datos=personales', undefined]],
   'titular.gestionar': [

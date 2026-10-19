@@ -93,6 +93,11 @@ export interface ContextoDeCobro extends ContextoDePedido {
   kekTexto: string | undefined;
 }
 
+const OCUPADA = {
+  estado: 'ocupada',
+  motivo: 'La tienda tiene muchos pagos en curso. Intenta en unos minutos o pide por WhatsApp.',
+} as const;
+
 const SIN_LINEA = {
   estado: 'sin-linea',
   motivo: 'El pago en línea no está disponible ahora. Puedes enviar tu pedido por WhatsApp.',
@@ -140,15 +145,35 @@ async function boton(
   };
 }
 
-/** El ambiente en que cobra la tienda: pruebas mientras no diga producción (HU-T11.3). */
-async function ambienteDe(db: BaseD1, org: string): Promise<{ ambiente: Ambiente; tope: number }> {
-  const fila = await db
-    .prepare("SELECT datos FROM ajuste WHERE org_id = ? AND seccion = 'cobro'")
-    .bind(org)
-    .first<{ datos: string }>();
+/**
+ * El ambiente en que cobra la tienda (HU-T11.3): el de la versión que muestra. Así la franja «en
+ * pruebas» y el cobro de verdad nunca se contradicen: pasar a producción en los ajustes cobra de
+ * verdad cuando se publica, no antes. Una versión de antes de HU-T11.3 no lo guardó: usa el de los
+ * ajustes, pruebas mientras no diga producción. `null`: la versión publicada no cobra en línea.
+ */
+async function ambienteDe(
+  db: BaseD1,
+  org: string,
+): Promise<{ ambiente: Ambiente; tope: number } | null> {
+  const [fila, publicada] = await Promise.all([
+    db
+      .prepare("SELECT datos FROM ajuste WHERE org_id = ? AND seccion = 'cobro'")
+      .bind(org)
+      .first<{ datos: string }>(),
+    db
+      .prepare(
+        `SELECT p.cobro_ambiente FROM tienda t JOIN publicacion p
+           ON p.org_id = t.org_id AND p.version = t.version_publicada WHERE t.org_id = ?`,
+      )
+      .bind(org)
+      .first<{ cobro_ambiente: string | null }>(),
+  ]);
   const cobro = JSON.parse(fila?.datos ?? '{}') as { ambiente?: string; topeCop?: number };
+  const deLaVersion = publicada?.cobro_ambiente ?? null;
+  if (deLaVersion === 'ninguno') return null;
+  const ambiente = deLaVersion ?? (cobro.ambiente === 'produccion' ? 'produccion' : 'pruebas');
   return {
-    ambiente: cobro.ambiente === 'produccion' ? 'produccion' : 'pruebas',
+    ambiente: ambiente === 'produccion' ? 'produccion' : 'pruebas',
     tope: Math.min(MONTO_MAXIMO, cobro.topeCop ?? MONTO_MAXIMO),
   };
 }
@@ -260,7 +285,9 @@ export async function iniciarCobro(
     console.error('tienda-api: sin la KEK no se abren las llaves de Bold ni se cifra la entrega');
     return SIN_LINEA;
   }
-  const { ambiente, tope } = await ambienteDe(c.db, c.org);
+  const delCobro = await ambienteDe(c.db, c.org);
+  if (!delCobro) return SIN_LINEA;
+  const { ambiente, tope } = delCobro;
   const llaves = await llavesDeBold(c.db, c.org, ambiente, kek);
   if (!llaves) {
     console.error(`tienda-api: ${c.org} cobra en línea y le faltan las llaves de ${ambiente}`);
@@ -288,12 +315,7 @@ export async function iniciarCobro(
     )
     .bind(c.org, c.ahora)
     .first<{ n: number }>();
-  if ((abiertos?.n ?? 0) >= COBROS_ABIERTOS_POR_TIENDA) {
-    return {
-      estado: 'ocupada',
-      motivo: 'La tienda tiene muchos pagos en curso. Intenta en unos minutos o pide por WhatsApp.',
-    };
-  }
+  if ((abiertos?.n ?? 0) >= COBROS_ABIERTOS_POR_TIENDA) return OCUPADA;
 
   const orden = `${p.codigo}-1`;
   const vence = new Date(Date.parse(c.ahora) + MINUTOS_DEL_COBRO * 60_000).toISOString();
@@ -373,11 +395,21 @@ export async function iniciarCobro(
         )
         .bind(c.org, orden, l.variante, l.cantidad, vence, c.ahora),
     ),
+    // HU-T11.10: el tope de cobros abiertos se cuenta dentro del lote, que es una transacción.
+    // Contado antes, 100 cobros a la vez pasaban todos (la batería de caos lo encontró: 101 abiertos).
+    c.db
+      .prepare(
+        `SELECT CASE WHEN (SELECT count(*) FROM cobro INDEXED BY cobro_esperando
+           WHERE org_id = ? AND estado = 'esperando' AND vence > ?) > ? THEN json('ocupada') ELSE 1 END`,
+      )
+      .bind(c.org, c.ahora, COBROS_ABIERTOS_POR_TIENDA),
   ];
   try {
     await c.db.batch(lote);
   } catch (e) {
     const texto = String(e);
+    // El tope, contado en el lote: nada de este cobro quedó escrito.
+    if (/malformed JSON/i.test(texto)) return OCUPADA;
     // Dos envíos del mismo pedido a la vez: el UNIQUE atrapa al segundo, que responde como duplicado.
     if (/UNIQUE/i.test(texto)) return iniciarCobro(c, p);
     // CA3: otro lote se llevó lo que quedaba. Nada de este quedó escrito.

@@ -387,6 +387,9 @@ export const LIMITES_DE_LA_TIENDA = {
   LIMITE_SEGUIMIENTO: { produccion: '3004', staging: '3104', limit: 20, period: 60 },
   LIMITE_SOLICITUDES: { produccion: '3005', staging: '3105', limit: 5, period: 60 },
   LIMITE_COBROS: { produccion: '3006', staging: '3106', limit: 3, period: 60 },
+  // HU-T11.11: un aviso «de pruebas» lo firma cualquiera; sin tope, cada uno lee D1. Bold avisa una vez
+  // por pago y reintenta lo que no recibió: 60 por minuto desde una IP no lo frena.
+  LIMITE_AVISOS: { produccion: '3007', staging: '3107', limit: 60, period: 60 },
 } as const;
 const limitadoresDeLaTienda = (staging: boolean) =>
   Object.entries(LIMITES_DE_LA_TIENDA).map(([name, l]) => ({

@@ -174,6 +174,10 @@ const TIENDA: Api = {
       'la purga diaria recorre las tiendas del shard y purga cada una con su org_id = ?; no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.2)',
     'select count(*) as n from correo where dia = ?':
       'el tope diario de correos es de la celda entera, que comparte la cuenta de Gmail: se suman los shards; no hay token y solo sale el número (correos.ts, HU-T14.3)',
+    'select t.org_id, t.anillo from tienda t join publicacion p':
+      'el re-horneado por anillos busca, en todo el shard, las tiendas cuya versión publicada se horneó con otra release; no hay token, y cada una se re-hornea con su org_id = ? (releases.ts, HU-T4.6)',
+    "select count(*) as n from publicacion where release = ? and estado = 'publicada'":
+      'antes de borrar una release vieja se cuenta si alguna versión publicada del shard la usa; no hay token y solo sale el número (releases.ts, HU-T4.6)',
     'select count(*) as n from tienda where ?':
       'la salud cuenta los comercios de prueba del fixture (un org_id = ? por cada uno) para que el humo de producción exija cero; no hay token y solo sale el número (worker.ts, HU-T2.9)',
   },

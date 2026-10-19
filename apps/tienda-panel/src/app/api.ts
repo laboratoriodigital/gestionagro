@@ -44,6 +44,10 @@ export interface Yo {
   plan: string | null;
   funciones: Record<string, ValorDeFuncion> | null;
   tienda: { slug: string; nombre: string; estado: string } | null;
+  /** HU-T7.2: si la tienda aceptó los términos vigentes. */
+  terminos?: { aceptados: boolean };
+  /** HU-T11.2 CA3: con el pago en línea encendido, lo que falta para cobrar, en palabras. */
+  cobro?: { faltan: string[] };
 }
 
 export interface Conexion {

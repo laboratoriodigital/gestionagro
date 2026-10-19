@@ -15,10 +15,15 @@ import { dekVigente, KEK_VIGENTE } from './llaves.ts';
 import {
   type AlmacenDeRespaldos,
   claveDeRespaldo,
+  filasDeLaTienda,
+  huellasDeLasFilas,
   type Respaldo,
   respaldarTienda,
   respaldosQueSobran,
+  TABLAS_DEL_RESPALDO,
+  type Valor,
 } from './respaldos.ts';
+import { RespaldoQueNoSirve, restaurar, sqlDeRestauracion } from './restaurar.ts';
 import { type EntornoDeTareas, RESPALDOS, siguienteTurno } from './tareas.ts';
 
 const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
@@ -174,12 +179,12 @@ describe('HU-T17.3 · el respaldo semanal de cada tienda', () => {
       ].sort(),
     );
     const r = JSON.parse(a.datos.get(claveDeRespaldo(UNO, T0)) ?? '{}') as Respaldo;
-    expect(r.formato).toBe('tienda-respaldo/1');
+    expect(r.formato).toBe('tienda-respaldo/2');
     expect(r.tienda.formato).toBe('tienda-export/1');
     // El pedido por confirmar no está en la exportación, pero sí en el respaldo.
     expect(r.tienda.excluidos.pedidosEnCurso).toBe(1);
-    expect(r.pedidos.pedidos.map((p) => p['codigo'])).toEqual(['RSP001', 'RSP002']);
-    expect(r.pedidos.lineas).toHaveLength(2);
+    expect(r.filas.pedido.map((p) => p['codigo'])).toEqual(['RSP001', 'RSP002']);
+    expect(r.filas.pedido_linea).toHaveLength(2);
     // No lo descargó nadie: el registro de la tienda no lo cuenta como «Descargar todo».
     expect(
       await shard
@@ -205,27 +210,28 @@ describe('HU-T17.3 · el respaldo semanal de cada tienda', () => {
 
     // Restaurar: solo con lo que trae el archivo y la KEK, que vive fuera de él.
     const r = JSON.parse(texto) as Respaldo;
-    const bytes = (b64: string) => Uint8Array.from(Buffer.from(b64, 'base64'));
+    const bytes = (v: Valor | undefined) =>
+      Uint8Array.from(Buffer.from((v as { b64: string }).b64, 'base64'));
     const kek = await importarKek(KEK_VIGENTE, Buffer.from(KEK, 'base64'));
-    const llave = r.llaves.find((l) => l.proposito === 'datos_personales');
+    const llave = r.filas.llave.find((l) => l['proposito'] === 'datos_personales');
     if (!llave) throw new Error('el respaldo no trae la llave de los datos personales');
-    expect(r.llaves.map((l) => l.proposito)).not.toContain('credenciales');
+    expect(r.filas.llave.map((l) => l['proposito'])).not.toContain('credenciales');
     const dek = await abrirDek(
       {
         org: UNO,
-        proposito: llave.proposito as Proposito,
-        version: llave.version,
-        kekId: llave.kekId,
-        envuelta: new TextDecoder().decode(bytes(llave.envuelta)),
+        proposito: llave['proposito'] as Proposito,
+        version: Number(llave['version']),
+        kekId: String(llave['kek_id']),
+        envuelta: new TextDecoder().decode(bytes(llave['envuelta'])),
       },
       new Map([[kek.id, kek]]),
     );
-    const [c] = r.sobres.contactos;
+    const [c] = r.filas.pedido_contacto;
     if (!c) throw new Error('el respaldo no trae el contacto');
     const abierto = await descifrarSobre(
       new Map([[dek.version, dek]]),
-      { org: UNO, tabla: 'pedido_contacto', campo: 'sobre', id: c.pedidoId },
-      { sobre: bytes(c.sobre), iv: bytes(c.iv), version: c.llaveVersion },
+      { org: UNO, tabla: 'pedido_contacto', campo: 'sobre', id: String(c['pedido_id']) },
+      { sobre: bytes(c['sobre']), iv: bytes(c['iv']), version: Number(c['llave_version']) },
     );
     expect(JSON.parse(abierto)).toMatchObject(CONTACTO);
   });
@@ -284,5 +290,138 @@ describe('HU-T17.3 · el respaldo semanal de cada tienda', () => {
       '2026-10-12',
       '2026-10-19',
     ]);
+  }, 60_000);
+});
+
+describe('HU-T17.4 · el simulacro de restauración', () => {
+  /** El respaldo de Ensayo Uno, como lo guarda la tarea semanal. */
+  const respaldo = async () => {
+    const a = almacen();
+    await respaldarTienda(shard, UNO, a, T0, undefined);
+    return JSON.parse(a.datos.get(claveDeRespaldo(UNO, T0)) ?? '{}') as Respaldo;
+  };
+  const vacio = async () => {
+    const b = await baseLocal({
+      configuracion: CONFIGURACION,
+      binding: 'tienda_c1_s1',
+      base: 'tienda',
+    });
+    cerrar.push(b.cerrar);
+    return b.db;
+  };
+
+  it('CA1: en un shard vacío, la tienda vuelve con las mismas huellas, tabla por tabla, y sus sobres se abren', async () => {
+    // Un poco de todo lo que se mueve: un apartado activo y una combinación más del producto.
+    await correr(
+      `INSERT INTO cobro (org_id, id, pedido_id, proveedor, ambiente, monto_cop, estado, token_huella, vence, creado, actualizado)
+       VALUES (?, 'RSP002-1', 'ped-resp-2', 'bold', 'pruebas', 129000, 'esperando', ?, ?, ?, ?)`,
+      UNO,
+      'e'.repeat(64),
+      '2026-10-19T08:15:00.000Z',
+      AHORA,
+      AHORA,
+    );
+    await correr(
+      `INSERT INTO apartado (org_id, cobro_id, variante_id, cantidad, estado, vence, creado)
+       VALUES (?, 'RSP002-1', 'v-camisa-m-arena', 1, 'activo', ?, ?)`,
+      UNO,
+      '2026-10-19T08:15:00.000Z',
+      AHORA,
+    );
+    // Los pedidos de la prueba entraron a mano: el consecutivo, como lo deja la API.
+    await correr(
+      'UPDATE tienda SET ultimo_numero = (SELECT max(numero) FROM pedido WHERE org_id = ?) WHERE org_id = ?',
+      UNO,
+      UNO,
+    );
+    const r = await respaldo();
+    const nuevo = await vacio();
+    const hecho = await restaurar(nuevo, r);
+    for (const [tabla] of TABLAS_DEL_RESPALDO) {
+      expect(hecho.tablas[tabla].entraron, tabla).toBe(hecho.tablas[tabla].enElRespaldo);
+    }
+    expect(hecho.tablas.pedido.entraron).toBe(2);
+    expect(await huellasDeLasFilas(await filasDeLaTienda(nuevo, UNO))).toEqual(
+      await huellasDeLasFilas(r.filas),
+    );
+    // Lo que cuentan los triggers no se cuenta dos veces.
+    expect(
+      await nuevo
+        .prepare("SELECT reservado FROM variante WHERE org_id = ? AND id = 'v-camisa-m-arena'")
+        .bind(UNO)
+        .first(),
+    ).toEqual({ reservado: 1 });
+    // El contacto se abre en la base nueva, con la KEK de siempre.
+    const kek = await importarKek(KEK_VIGENTE, Buffer.from(KEK, 'base64'));
+    const { abrirContactos } = await import('./bandeja.ts');
+    const abiertos = await abrirContactos(
+      { db: nuevo, org: UNO, actor: 'sistema', instante: AHORA },
+      kek,
+      ['ped-resp-1'],
+    );
+    expect(abiertos.get('ped-resp-1')).toMatchObject(CONTACTO);
+    // Restaurar otra vez no cambia nada.
+    const otra = await restaurar(nuevo, r);
+    for (const [tabla] of TABLAS_DEL_RESPALDO) expect(otra.tablas[tabla].entraron, tabla).toBe(0);
+  }, 60_000);
+
+  it('❌ CA2: sobre la tienda con pedidos nuevos, une lo que falta y nunca reemplaza el presente', async () => {
+    const r = await respaldo();
+    // Después del respaldo: un pedido nuevo, un producto cambiado, y se perdieron el contacto de un
+    // pedido y el registro.
+    await pedido('ped-resp-3', 'RSP003', 'pendiente');
+    await correr(
+      "UPDATE producto SET nombre = 'Camisa de lino, nueva' WHERE org_id = ? AND id = 'p-camisa'",
+      UNO,
+    );
+    await correr("DELETE FROM pedido_contacto WHERE org_id = ? AND pedido_id = 'ped-resp-1'", UNO);
+    const registro = (await filasDeLaTienda(shard, UNO)).registro.length;
+    await correr('DELETE FROM registro WHERE org_id = ?', UNO);
+    const hecho = await restaurar(shard, r);
+    expect(hecho.tablas.pedido_contacto.entraron).toBe(1);
+    expect(hecho.tablas.registro.entraron).toBe(r.filas.registro.length);
+    expect(hecho.tablas.pedido.entraron).toBe(0);
+    const ahora = await filasDeLaTienda(shard, UNO);
+    expect(ahora.pedido.map((p) => p['codigo'])).toEqual(['RSP001', 'RSP002', 'RSP003']);
+    expect(ahora.producto.find((p) => p['id'] === 'p-camisa')?.['nombre']).toBe(
+      'Camisa de lino, nueva',
+    );
+    expect(ahora.registro.length).toBeGreaterThanOrEqual(
+      Math.min(registro, r.filas.registro.length),
+    );
+    // El siguiente pedido no choca con uno restaurado.
+    const t = await shard
+      .prepare('SELECT ultimo_numero FROM tienda WHERE org_id = ?')
+      .bind(UNO)
+      .first<{ ultimo_numero: number }>();
+    expect(t?.ultimo_numero).toBeGreaterThanOrEqual(
+      Math.max(...ahora.pedido.map((p) => Number(p['numero']))),
+    );
   });
+
+  it('❌ un respaldo de la versión 1, o con filas de otra tienda, no se restaura a medias', async () => {
+    const r = await respaldo();
+    await expect(restaurar(shard, { ...r, formato: 'tienda-respaldo/1' })).rejects.toBeInstanceOf(
+      RespaldoQueNoSirve,
+    );
+    const ajena = structuredClone(r);
+    ajena.filas.pedido.push({ ...(ajena.filas.pedido[0] ?? {}), org_id: ENSAYO_DOS.org, id: 'x' });
+    await expect(restaurar(shard, ajena)).rejects.toThrow(/fila de otra tienda/);
+  });
+
+  it('el operador recibe el mismo lote como SQL para wrangler, con los sobres en hexadecimal', async () => {
+    const r = await respaldo();
+    const sql = sqlDeRestauracion(r);
+    expect(sql.split('\n').filter((l) => l.startsWith('INSERT INTO pedido ('))).toHaveLength(3);
+    expect(sql).toMatch(
+      /INSERT INTO pedido_contacto \([^)]*\) VALUES \('[^']+', 'ped-resp-1', X'[0-9a-f]+'/,
+    );
+    for (const dato of Object.values(CONTACTO)) expect(sql).not.toContain(dato);
+    // Aplicado a un shard vacío, deja lo mismo que la restauración por la API.
+    const nuevo = await vacio();
+    for (const linea of sql.split(';\n').filter((l) => l.trim())) await nuevo.prepare(linea).run();
+    expect(await huellasDeLasFilas(await filasDeLaTienda(nuevo, UNO))).toEqual(
+      await huellasDeLasFilas(r.filas),
+    );
+  }, 60_000);
 });

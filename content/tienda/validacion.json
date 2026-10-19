@@ -1,0 +1,67 @@
+{
+  "nota": "Los umbrales de validación de la Tienda (HU-T0.3, estudio §16.3 [V8]): se fijan antes de cargar la primera tienda real, no después de ver los datos. Cada métrica tiene su umbral, cada cuánto se mide y de dónde sale el dato; lo que no se puede anticipar dice cuál es y por qué (`porDefinir`). Hasta HU-T14.7 el dueño las mide con el tablero de la Tienda y las tablas que se nombran; desde entonces, las trae el reporte semanal. «propuesta» es la recomendación del 19 oct 2026: el dueño la cambia y la pasa a «fijada», con su fecha, antes de la primera tienda real. Cambiar un umbral fijado deja su fecha y su motivo en el historial de este archivo.",
+  "estado": "propuesta",
+  "fijada": null,
+  "metricas": [
+    {
+      "id": "pago-real",
+      "nombre": "Pago real",
+      "definicion": "Comercios que pagan su primer plan, de los que recibieron una oferta concreta.",
+      "umbral": "Al menos 3 de cada 10, a los 60 días de la oferta.",
+      "frecuencia": "mensual",
+      "fuente": "Las ofertas que anota el dueño y los planes pagados en el CORE."
+    },
+    {
+      "id": "soporte-por-comercio",
+      "nombre": "Soporte por comercio",
+      "definicion": "Minutos que el dueño dedica a cada comercio, por semana.",
+      "umbral": "Hasta 30 minutos por semana el primer mes, y hasta 15 desde el segundo.",
+      "frecuencia": "semanal",
+      "fuente": "La hoja de soporte del dueño: un renglón por atención, con sus minutos."
+    },
+    {
+      "id": "retencion",
+      "nombre": "Retención",
+      "definicion": "Comercios de una cohorte que siguen activos al mes siguiente: al menos un pedido o un cambio del catálogo.",
+      "umbral": "Al menos 7 de cada 10.",
+      "frecuencia": "mensual",
+      "fuente": "El tablero de la Tienda (pedidos del mes) y el registro de cada tienda."
+    },
+    {
+      "id": "confiabilidad-del-cobro",
+      "nombre": "Confiabilidad del cobro",
+      "definicion": "Cobros en línea con estado final y total que cuadran con Bold.",
+      "umbral": "Ningún caso fallido parece pagado, y todo cobro en línea queda en un estado final antes de 24 horas.",
+      "frecuencia": "semanal",
+      "fuente": "Las tablas `cobro` y `aviso_proveedor`, y la tarea de conciliación en `/api/salud`."
+    },
+    {
+      "id": "activacion",
+      "nombre": "Activación del comercio",
+      "definicion": "Tiendas creadas que publican un catálogo usable.",
+      "umbral": "Al menos 6 de cada 10 publican con 5 productos activos con foto antes de 14 días.",
+      "frecuencia": "semanal",
+      "fuente": "Las tablas `publicacion` y `producto` de cada tienda."
+    },
+    {
+      "id": "costo-por-uso",
+      "nombre": "Costo por uso",
+      "definicion": "Lo que gasta cada tienda activa de la cuenta de Cloudflare.",
+      "umbral": "Cada tienda activa usa menos del 2 % del día gratuito de D1, y R2 no cobra nada.",
+      "frecuencia": "semanal",
+      "fuente": "El vigía de cuota y el freno de R2 (bitácora tienda3 26 y 27)."
+    },
+    {
+      "id": "publico-adecuado",
+      "nombre": "Público adecuado",
+      "definicion": "Comerciantes que usan el panel, de las personas que entran.",
+      "porDefinir": "Se fija después de las 4 primeras semanas: hasta que entren los primeros comercios no se sabe cuántas entradas al panel son de comercios y cuántas de curiosos (estudio §16.3)."
+    },
+    {
+      "id": "tiempo-por-tarea",
+      "nombre": "Tiempo por tarea",
+      "definicion": "Lo que tarda un comercio en recibir y confirmar un pedido, contra lo que tarda hoy.",
+      "porDefinir": "Depende de cómo trabaja hoy cada comercio piloto: se mide en la primera entrevista (estudio §16.2) y el umbral es mejorarlo sin perder exactitud."
+    }
+  ]
+}

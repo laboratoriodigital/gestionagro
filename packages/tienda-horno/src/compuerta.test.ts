@@ -126,13 +126,58 @@ describe('la compuerta de publicación (HU-T4.3)', () => {
     expect(r.fallas.map((f) => f.codigo)).toEqual(['sin-producto']);
   });
 
-  it('❌ el pago en línea, mientras el cobro no exista (M3)', async () => {
+  it('❌ el pago en línea sin las llaves de Bold del ambiente en que cobra (HU-T11.3)', async () => {
+    const ambos = { ...AJUSTES, venta: { modo: 'ambos', formas: [{ forma: 'a_convenir' }] } };
+    const r = compuerta(await entrada({ ajustes: ambos }));
+    expect(r.fallas).toEqual([
+      {
+        codigo: 'pago-en-linea',
+        mensaje:
+          'Pega tus llaves de Bold de pruebas para cobrar en línea, o recibe los pedidos solo por WhatsApp',
+        donde: 'Más › Cobro en línea',
+      },
+    ]);
+    const sinLlaves = compuerta(
+      await entrada({
+        ajustes: ambos,
+        cobro: { ambiente: 'pruebas', llaves: false, pruebaAprobada: false },
+      }),
+    );
+    expect(sinLlaves.fallas.map((f) => f.codigo)).toEqual(['pago-en-linea']);
+  });
+
+  it('el pago en línea en pruebas, con sus llaves, se publica sin el cobro de prueba (CA2 lo dice)', async () => {
     const r = compuerta(
       await entrada({
         ajustes: { ...AJUSTES, venta: { modo: 'ambos', formas: [{ forma: 'a_convenir' }] } },
+        cobro: { ambiente: 'pruebas', llaves: true, pruebaAprobada: false },
       }),
     );
-    expect(r.fallas.map((f) => f.codigo)).toEqual(['pago-en-linea']);
+    expect(r).toEqual({ ok: true, fallas: [] });
+  });
+
+  it('❌ HU-T11.3 CA3: cobrar de verdad pide el cobro de prueba aprobado', async () => {
+    const ambos = { ...AJUSTES, venta: { modo: 'ambos', formas: [{ forma: 'a_convenir' }] } };
+    const sinPrueba = compuerta(
+      await entrada({
+        ajustes: ambos,
+        cobro: { ambiente: 'produccion', llaves: true, pruebaAprobada: false },
+      }),
+    );
+    expect(sinPrueba.fallas).toEqual([
+      {
+        codigo: 'pago-en-linea',
+        mensaje: 'Haz el cobro de prueba antes de cobrar de verdad',
+        donde: 'Más › Cobro en línea',
+      },
+    ]);
+    const conPrueba = compuerta(
+      await entrada({
+        ajustes: ambos,
+        cobro: { ambiente: 'produccion', llaves: true, pruebaAprobada: true },
+      }),
+    );
+    expect(conPrueba.ok).toBe(true);
   });
 
   it('❌ un envío de más de 30 días que no lo dice', async () => {

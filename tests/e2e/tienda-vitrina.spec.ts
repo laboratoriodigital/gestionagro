@@ -47,6 +47,24 @@ for (const [ancho, alto] of [
   });
 }
 
+test('HU-T11.3 CA2 · cobrando en pruebas, la franja lo dice arriba en cada página, sin mover nada', async ({
+  page,
+}) => {
+  for (const ruta of ['/', '/p/camisa-de-lino/', '/carrito/', '/legal/terminos/']) {
+    await page.goto(`${TIENDA}${ruta}`);
+    const franja = page.getByRole('note');
+    await expect(franja, ruta).toHaveText(
+      'Tienda en pruebas: los pagos en línea de esta tienda todavía no cobran de verdad.',
+    );
+    // Arriba de todo: antes de la marca de la tienda.
+    const [arriba, marca] = await Promise.all([
+      franja.boundingBox(),
+      page.locator('.franja').boundingBox(),
+    ]);
+    expect(arriba?.y ?? 99, ruta).toBeLessThan(marca?.y ?? 0);
+  }
+});
+
 test('HU-T5.2 CA4 · sin JavaScript, la ficha se lee entera', async ({ browser }) => {
   const contexto = await browser.newContext({ javaScriptEnabled: false });
   const page = await contexto.newPage();

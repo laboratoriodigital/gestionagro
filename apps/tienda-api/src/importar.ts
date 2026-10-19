@@ -17,7 +17,12 @@
  *   reescriben: su historia es la que fue.
  */
 import type { BaseD1 } from '@ed1/d1';
-import { type CargaTienda, type Problema, revisarCarga } from '@ed1/tienda-schema';
+import {
+  type CargaTienda,
+  idDelProductoCargado,
+  type Problema,
+  revisarCarga,
+} from '@ed1/tienda-schema';
 
 /** Cuántas sentencias por lote: el plan gratuito permite 50 consultas por solicitud. */
 export const SENTENCIAS_POR_PARTE = 40;
@@ -173,7 +178,7 @@ export function planDeLaCarga(c: CargaTienda, org: string, ahora: string): Plan 
          OR producto.retracto_motivo IS NOT excluded.retracto_motivo OR producto.solo_mayores IS NOT excluded.solo_mayores
          OR producto.iva_pct IS NOT excluded.iva_pct OR producto.posicion IS NOT excluded.posicion`,
       org,
-      `imp-p-${p.refExterna}`,
+      idDelProductoCargado(p.refExterna),
       p.slug ?? slugDe(p.nombre),
       p.nombre,
       p.descripcionMd ?? '',

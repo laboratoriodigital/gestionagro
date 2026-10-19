@@ -44,7 +44,7 @@ describe('scripts/tienda/cargar.ts (HU-T12.2)', () => {
     expect(salida).toBe(0);
     expect(p.pedidas.map((x) => x.ruta)).toEqual(['/api/panel/v1/importar/revisar']);
     expect(p.pedidas[0]?.auth).toBe('Bearer t');
-    expect(l.dichas.join('\n')).toContain('1 fotos quedan para subir desde el panel');
+    expect(l.dichas.join('\n')).toContain('1 fotos para subir después de aplicar');
   });
 
   it('con --aplicar va parte por parte hasta que no sigue ninguna', async () => {
@@ -118,5 +118,49 @@ describe('scripts/tienda/cargar.ts (HU-T12.2)', () => {
     expect(l.dichas.at(-1)).toBe(
       '❌ La parte 1 no se aplicó (500: Esta parte no se aplicó). Vuelve a correr el comando.',
     );
+  });
+});
+
+describe('scripts/tienda/cargar.ts: las fotos, después de aplicar (HU-T12.3)', () => {
+  it('❌ CA3: si una foto falta, la carga queda aplicada, lo dice y sale con 1', async () => {
+    const p = panel({
+      revisar: [200, { ok: true, resumen: { ...resumen, partes: 1, fotos: 1 } }],
+      partes: [[200, { ok: true, siguiente: null }]],
+    });
+    const l = lineas();
+    const salida = await cargar({
+      carga: {
+        formato: 'tienda-import/1',
+        tienda: { slug: 'ensayo-uno', nombre: 'Comercio Ensayo Uno' },
+        ajustes: {},
+        productos: [
+          {
+            refExterna: 'camisa',
+            nombre: 'Camisa de lino',
+            estado: 'activo',
+            opciones: [],
+            variantes: [{ valores: [], precioCop: 129000, stock: 3 }],
+            medios: [{ url: 'https://fotos.test/no-esta.jpg', alt: 'Camisa de frente' }],
+          },
+        ],
+      },
+      panel: 'https://panel.test',
+      token: 't',
+      aplicar: true,
+      fetch: async (url, init) =>
+        url.startsWith('https://fotos.test/')
+          ? new Response('no', { status: 404 })
+          : p.f(url, init),
+      decir: l.decir,
+    });
+    expect(salida).toBe(1);
+    expect(l.dichas).toContain('✅ Tienda cargada.');
+    expect(l.dichas).toContain(
+      '  ❌ Camisa de lino (camisa): https://fotos.test/no-esta.jpg: no se pudo bajar (HTTP 404)',
+    );
+    expect(p.pedidas.map((x) => x.ruta)).toEqual([
+      '/api/panel/v1/importar/revisar',
+      '/api/panel/v1/importar/aplicar',
+    ]);
   });
 });
