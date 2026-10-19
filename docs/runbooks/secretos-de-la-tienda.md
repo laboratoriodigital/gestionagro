@@ -30,7 +30,7 @@
 
 ## Lo que el script nunca hace
 
-- **Reemplazar un secreto que ya existe.** Una KEK nueva dejaría ilegible lo cifrado con la vieja. Rotarla es otra historia: se reenvuelven todas las llaves de las tiendas con la nueva antes de retirar la vieja (TIENDA §14.2).
+- **Reemplazar un secreto que ya existe.** Una KEK nueva dejaría ilegible lo cifrado con la vieja. Rotarla es otro paso, con `--rotar-kek`: se crea la siguiente y el despliegue reenvuelve todas las llaves de las tiendas con ella antes de retirar la vieja ([tienda-rotar-la-kek.md](tienda-rotar-la-kek.md)).
 - **Mostrar la llave maestra** en la pantalla o en el resumen de Actions.
 - **Guardar la llave maestra sin tu copia.** Si respondes `no`, o el equipo no tiene portapapeles, no la guarda: vuelve a correrlo cuando puedas copiarla.
 

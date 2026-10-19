@@ -32,6 +32,7 @@ import {
   type TiendaParaHornear,
 } from '@ed1/tienda-horno';
 import { leerFormatos, type Seccion, validarSeccion } from '@ed1/tienda-schema';
+import { claveDelHost, punteroDelHost } from './hosts.ts';
 import { estadoDeLaPrueba } from './llaves-de-bold.ts';
 import { anotar } from './registro.ts';
 
@@ -220,8 +221,8 @@ async function apuntarA(
 ) {
   for (const d of dominios) {
     await c.hosts.put(
-      `h:${d.hostname}`,
-      JSON.stringify({
+      claveDelHost(d.hostname),
+      punteroDelHost({
         org: c.org,
         celda: c.celda,
         shard: c.shardNombre,
@@ -661,6 +662,10 @@ async function entregar(
  *
  * Sin una versión publicada, o si esa versión no guardó lo que horneó (es de antes de esta
  * historia), no hace nada: la próxima publicación del comercio lleva las existencias de ahora.
+ *
+ * HU-T13.2 CA1: se hornea con la dirección canónica de ahora. Así, al elegir el dominio propio como
+ * principal (o al desconectarlo), lo publicado cambia su sitemap, sus canónicos, su JSON-LD y sus
+ * feeds sin publicar lo que el comercio todavía no publica.
  */
 export async function rehornearExistencias(
   c: Contexto,
@@ -682,8 +687,10 @@ export async function rehornearExistencias(
       .bind(c.org)
       .all<{ id: string; stock: number | null; reservado: number }>();
     const ahora = new Map(results.map((v) => [v.id, v]));
+    const { canonico } = await direccionesDe(c);
     const datos: TiendaParaHornear = {
       ...h.datos,
+      dominio: canonico ?? h.datos.dominio,
       // El release de la vitrina es el de ahora: los archivos comunes de antes ya no se sirven.
       release: c.release,
       productos: h.datos.productos.map((p) => ({

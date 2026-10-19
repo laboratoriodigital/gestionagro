@@ -316,6 +316,12 @@ Las tiendas viven en `laboratorio-digital.app` (ADR-27, `PLATAFORMA.md` §3.3), 
 5. Activo el dominio, el comercio elige si es el **canónico**. Si lo es, el subdominio de la plataforma pasa a `alias` y responde 301 al canónico, con ruta y consulta intactas.
 6. El KV se actualiza y la versión vigente se vuelve a hornear con el canónico nuevo. Así cambian el sitemap, los canónicos, el JSON-LD y los feeds.
 
+*(Hoy, HU-T13.1 a HU-T13.3, bitácora tienda3 34:*
+- *La pantalla es «Más › Tu dominio». El estado no lo pregunta un cron cada 5 minutos: lo pregunta la pantalla al abrirse y cada minuto mientras sigue abierta, y la tarea `dominios` del cron de cada hora (D-T10).*
+- *Un dominio nuevo nace alias y responde 301 a la plataforma hasta que el comercio lo elige principal.*
+- *Solo hay dominios propios en producción, y solo con la celda marcada `saas` en `celdas.json`: el origen de respaldo es uno por zona.*
+- *Runbook: `docs/runbooks/tienda-conectar-un-dominio.md`.)*
+
 ### 4.3 El dominio raíz
 
 El «apex proxying» de Cloudflare for SaaS es de Enterprise (investigación, por resumen). Sin él:
@@ -1223,7 +1229,7 @@ Sin contador ni abogado por ahora (decisión 5 del dueño): **cada obligación l
 | **DEK** por tienda y propósito | AES-256-GCM al azar, una por `credenciales`, `datos_personales` e `indices`. Envuelta con la KEK, con AAD `org\|proposito\|version`, en `llave` |
 | Campo cifrado | AES-256-GCM, IV de 96 bits al azar por escritura, AAD `org\|tabla\|campo\|id`. Copiar un cifrado a otra fila o a otra tienda no descifra |
 | Índice ciego | `HMAC-SHA256(DEK indices, celular en E.164)`, truncado a 128 bits. Busca sin guardar en claro |
-| Rotar la KEK | KEK nueva → la cola reenvuelve todas las DEK → la vieja se retira cuando ninguna la usa |
+| Rotar la KEK | KEK nueva → la cola reenvuelve todas las DEK → la vieja se retira cuando ninguna la usa. *(Hoy, HU-T17.6, sin colas en el plan gratuito: la nueva es `TIENDA_KEK_V<n+1>` y la de número más alto es la vigente. Reenvuelve el despliegue al cargarla, y el cron cada hora lo que falte. El despliegue borra del Worker la que salió del ambiente solo si ninguna DEK la usa y la vigente sola abre todas. Runbook: `docs/runbooks/tienda-rotar-la-kek.md`)* |
 | Rotar una DEK | Versión nueva para lo que se escribe. Lo viejo se vuelve a cifrar en segundo plano o se queda con su versión |
 | **Borrado criptográfico** | Dar de baja una tienda, ofrecida su exportación y pasados 30 días, borra su DEK `datos_personales`. Los respaldos de llaves se retienen 35 días y Time Travel guarda 30, así que **el borrado es efectivo a los 35 días** como máximo. Así lo dice la política |
 
@@ -1370,6 +1376,8 @@ Se escriben con el hito que los necesita:
 - restaurar una tienda;
 - agregar un shard;
 - volver atrás una versión del código.
+
+*(Hoy, HU-T17.5: están todos en `docs/runbooks/tienda-*.md` menos el de alta, que se escribe con HU-T13.4, cuando exista la operación. `tests/repo/runbooks-tienda.test.ts` falla si un runbook nombra un archivo, un secreto, una ruta, un kill switch, un KV o un flujo que no existe.)*
 
 ---
 

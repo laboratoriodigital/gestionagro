@@ -40,6 +40,10 @@ export const ARCHIVO_SQL_SIEMBRA_SHARD = 'siembra-shard.despliegue.sql';
 export const ARCHIVO_SQL_SIEMBRA_CONTROL = 'siembra-control.despliegue.sql';
 export const SECRETO_DESPACHO = 'SECRETO_DESPACHO';
 export const SECRETO_KEK = 'TIENDA_KEK_V1';
+/** HU-T17.6: los secretos de las KEK. La de número más alto es la vigente; las demás, para abrir. */
+export const PATRON_SECRETO_KEK = /^TIENDA_KEK_V([1-9][0-9]?)$/;
+/** `TIENDA_KEK_V2` → `v2`: el id que la tabla `llave` guarda en `kek_id`. */
+export const idDeLaKek = (secreto: string) => `v${PATRON_SECRETO_KEK.exec(secreto)?.[1] ?? '?'}`;
 
 /** Si este despliegue prepara la celda de la Tienda: staging siempre; producción, con HU-T2.9. */
 export const preparaLaTienda = (destino: Destino, productos: ReadonlySet<string>): boolean =>
@@ -305,6 +309,80 @@ export async function subirRelease(
   ];
 }
 
+/** Lo que dice la API de las llaves de la celda después de reenvolver (HU-T17.6). */
+export interface UsoDeLasKeks {
+  vigente: string | null;
+  cargadas: string[];
+  reenvueltas: number;
+  enUso: Record<string, number>;
+  quedan: number;
+  /** Las DEK que la vigente sola no abre; `null` si no se comprobó (una sola KEK o quedan). */
+  ilegibles: number | null;
+}
+
+/**
+ * HU-T17.6 CA1: pide a la API que reenvuelva con la KEK vigente hasta que ninguna DEK quede con otra,
+ * de a unas vueltas por llamada. Devuelve cuántas usa cada KEK al final.
+ */
+export async function reenvolverEnLaCelda(
+  fetchFn: Fetch,
+  panel: string,
+  secreto: string,
+  llamadas = 20,
+): Promise<{ uso: UsoDeLasKeks | null; fallas: string[] }> {
+  let uso: UsoDeLasKeks | null = null;
+  let reenvueltas = 0;
+  for (let i = 0; i < llamadas; i++) {
+    let r: Response;
+    try {
+      r = await fetchFn(`${panel}/api/despliegue/llaves`, {
+        method: 'POST',
+        headers: { 'x-despliegue': secreto },
+      });
+    } catch (e) {
+      return { uso, fallas: [`reenvolver las llaves: no respondió (${(e as Error).message})`] };
+    }
+    if (!r.ok) {
+      const detalle = await r.text().catch(() => '');
+      return {
+        uso,
+        fallas: [`reenvolver las llaves respondió ${r.status}: ${detalle.slice(0, 300)}`],
+      };
+    }
+    uso = (await r.json()) as UsoDeLasKeks;
+    reenvueltas += uso.reenvueltas;
+    if (uso.quedan === 0 || uso.reenvueltas === 0) break;
+  }
+  return { uso: uso ? { ...uso, reenvueltas } : null, fallas: [] };
+}
+
+/**
+ * HU-T17.6 CA2: las KEK que se borran del Worker porque salieron del ambiente de GitHub. Una que
+ * todavía envuelve alguna DEK no se borra: el despliegue falla, lo dice y no borra ninguna.
+ */
+export function kekQueSeRetiran(
+  enElWorker: readonly string[],
+  enGithub: readonly string[],
+  enUso: Readonly<Record<string, number>>,
+  ilegibles: number | null = null,
+): { borrar: string[]; fallas: string[] } {
+  const salen = enElWorker.filter((s) => PATRON_SECRETO_KEK.test(s) && !enGithub.includes(s));
+  const fallas = salen.flatMap((s) => {
+    const n = enUso[idDeLaKek(s)] ?? 0;
+    return n > 0
+      ? [
+          `${s} salió del ambiente de GitHub, pero todavía envuelve ${n} llave(s) de las tiendas: no se borra del Worker. Vuelve a ponerla en el ambiente, o espera a que el despliegue termine de reenvolver (docs/runbooks/tienda-rotar-la-kek.md)`,
+        ]
+      : [];
+  });
+  if (salen.length > 0 && ilegibles !== null && ilegibles > 0) {
+    fallas.push(
+      `la KEK vigente no abre ${ilegibles} llave(s) de las tiendas: no se borra ninguna KEK del Worker. Es un incidente: no retires la vieja (docs/runbooks/tienda-rotar-la-kek.md)`,
+    );
+  }
+  return { borrar: fallas.length > 0 ? [] : salen, fallas };
+}
+
 /** Lo que el despliegue agrega a la configuración generada: ids de bases y de KV (fuera de git). */
 export interface DespliegueDeLaTienda {
   bases: Readonly<Record<string, string>>;
@@ -397,7 +475,12 @@ export function secretosDeLaTienda(
       motivo: `falta ${SECRETO_DESPACHO} en el ambiente de GitHub: el dueño corre «node scripts/tienda/generar-secretos.ts --ambiente <staging|produccion>» (docs/runbooks/secretos-de-la-tienda.md)`,
     };
   }
-  const kek = entorno[SECRETO_KEK]?.trim();
+  // HU-T17.6: todas las KEK del ambiente; rotar es agregar la siguiente.
+  const keks = Object.fromEntries(
+    Object.entries(entorno).flatMap(([k, v]) =>
+      PATRON_SECRETO_KEK.test(k) && v?.trim() ? [[k, v.trim()]] : [],
+    ),
+  );
   // HU-T17.1: el aviso de la tarea diaria; sin Telegram, la tarea lo dice en el registro.
   // HU-T14.3: los correos por Gmail, opcionales igual; sin ellos, la API dice «no disponible».
   // Bitácora tienda3 27: el token de métricas del freno de R2; sin él, la tarea queda en falla.
@@ -411,9 +494,9 @@ export function secretosDeLaTienda(
   );
   return {
     ok: true,
-    api: { [SECRETO_DESPACHO]: despacho, ...(kek ? { [SECRETO_KEK]: kek } : {}), ...telegram },
+    api: { [SECRETO_DESPACHO]: despacho, ...keks, ...telegram },
     frente: { [SECRETO_DESPACHO]: despacho },
-    conKek: Boolean(kek),
+    conKek: Object.keys(keks).length > 0,
   };
 }
 

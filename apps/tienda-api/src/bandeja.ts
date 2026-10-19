@@ -34,7 +34,7 @@ import {
   yaAplicada,
 } from './catalogo.ts';
 import { mensajeDelLink } from './links.ts';
-import { deksDeLaTienda, dekVigente } from './llaves.ts';
+import { deksDeLaTienda, dekVigente, paraAbrir } from './llaves.ts';
 import { anotar } from './registro.ts';
 
 /** Lo que guarda el sobre de `pedido_contacto`: lo que el comprador dejó para la entrega. */
@@ -92,7 +92,7 @@ export async function abrirContactos(
       llave_version: number;
     }>();
   if (results.length === 0) return abiertos;
-  const deks = await deksDeLaTienda(q.db, q.org, 'datos_personales', new Map([[kek.id, kek]]));
+  const deks = await deksDeLaTienda(q.db, q.org, 'datos_personales', paraAbrir(kek));
   for (const f of results) {
     try {
       const texto = await descifrarSobre(deks, contexto(q.org, f.pedido_id), {

@@ -148,7 +148,12 @@ const SOLO_DEL_PROPIETARIO: Record<string, Intento[] | { sinRuta: string }> = {
     async () => ['importar/aplicar', { carga, parte: 0 }],
   ],
   'equipo.gestionar': { sinRuta: 'el equipo es del CORE: invitar pide un rol que administra' },
-  'dominios.gestionar': { sinRuta: 'el dominio propio llega con su historia' },
+  // HU-T13.1 y HU-T13.2: conectar, elegir el principal y desconectar. Verlo, no: lo ve el equipo.
+  'dominios.gestionar': [
+    async () => ['dominios/conectar', { op: op(), hostname: 'www.tienda-uno.example' }],
+    async () => ['dominios/canonico', { op: op(), hostname: 'www.tienda-uno.example' }],
+    async () => ['dominios/retirar', { op: op(), hostname: 'www.tienda-uno.example' }],
+  ],
   'plan.gestionar': { sinRuta: 'el plan se cambia en el CORE' },
   'terminos.aceptar': [
     async () => [

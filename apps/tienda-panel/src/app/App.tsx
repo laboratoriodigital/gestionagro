@@ -35,6 +35,7 @@ import { Anotar } from './vistas/Anotar.tsx';
 import { Cobro } from './vistas/Cobro.tsx';
 import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
 import { Datos } from './vistas/Datos.tsx';
+import { Dominio } from './vistas/Dominio.tsx';
 import { ElegirTienda, NOMBRE_DEL_ROL } from './vistas/ElegirTienda.tsx';
 import { Entrar } from './vistas/Entrar.tsx';
 import { Equipo } from './vistas/Equipo.tsx';
@@ -333,6 +334,14 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
       />
     );
   } else if (ruta === '/mas/cobro/') cuerpo = <Cobro conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/mas/dominio/')
+    cuerpo = (
+      <Dominio
+        conexion={conexion}
+        puedeGestionar={puede(yo.datos.rol, 'dominios.gestionar')}
+        alVencer={setVencida}
+      />
+    );
   else if (ruta === '/mas/terminos/')
     cuerpo = (
       <Terminos

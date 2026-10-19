@@ -41,7 +41,15 @@ export interface DestinoDeHost {
   shard: string;
   /** La versión publicada; `null` mientras la tienda no publica. */
   version: number | null;
+  /**
+   * HU-T13.2: la dirección canónica de la tienda, si esta es un alias. Un alias responde 301 a ella,
+   * con la ruta y la consulta intactas, salvo la API.
+   */
+  aliasDe?: string;
 }
+
+/** Un hostname, para no redirigir a lo que no lo es aunque el KV lo diga (P1). */
+const HOSTNAME = /^(?=.{1,253}$)(?:(?!-)[a-z0-9-]{1,63}(?<!-)\.)+[a-z0-9-]{2,63}$/;
 
 export interface LectorKv {
   get(clave: string): Promise<string | null>;
@@ -101,7 +109,18 @@ export function destinoDe(texto: string | null): DestinoDeHost | null {
       CELDA.test(d.celda ?? '') &&
       (version === null || (Number.isInteger(version) && version > 0))
     ) {
-      return { org: d.org, celda: d.celda as string, shard: d.shard, version };
+      const { rol, canonico } = d as { rol?: unknown; canonico?: unknown };
+      const aliasDe =
+        rol === 'alias' && typeof canonico === 'string' && HOSTNAME.test(canonico)
+          ? canonico
+          : undefined;
+      return {
+        org: d.org,
+        celda: d.celda as string,
+        shard: d.shard,
+        version,
+        ...(aliasDe ? { aliasDe } : {}),
+      };
     }
   } catch {
     // Abajo: se registra y se trata como un host sin tienda.
@@ -339,6 +358,17 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       if (!destino) return sinTienda();
       if (await apagado(env, 'tienda')) return enPausa(true);
       if (await apagado(env, `tienda:${destino.org}`)) return enPausa(false);
+      // HU-T13.2: un alias lleva a la dirección canónica. La API nunca: un 301 a un POST, como el
+      // aviso de Bold, no lo sigue cualquier cliente (CA2).
+      if (destino.aliasDe && destino.aliasDe !== url.hostname && !esDeLaApi(url.pathname)) {
+        return new Response(null, {
+          status: 301,
+          headers: {
+            location: `https://${destino.aliasDe}${url.pathname}${url.search}`,
+            'cache-control': 'public, max-age=3600',
+          },
+        });
+      }
       if (esDeLaApi(url.pathname)) {
         const api = env[`API_${destino.celda.toUpperCase()}`] as Servicio | undefined;
         if (!api || !env.SECRETO_DESPACHO) {

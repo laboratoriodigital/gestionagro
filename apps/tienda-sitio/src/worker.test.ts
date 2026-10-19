@@ -186,3 +186,56 @@ describe('los kill switches del despacho (HU-T2.7, TIENDA §15.2)', () => {
     expect(r.status).toBe(404);
   });
 });
+
+describe('un alias lleva a la dirección canónica (HU-T13.2)', () => {
+  const plataforma = 'ensayo-uno.laboratorio-digital.app';
+  const propio = 'www.tienda-uno.example';
+  const env = (canonico: string) => {
+    const a = api();
+    return {
+      a,
+      env: {
+        TIENDA_HOSTS: kv({
+          [`h:${plataforma}`]: JSON.stringify({ ...UNO, version: 3, canonico, rol: 'alias' }),
+        }),
+        SECRETO_DESPACHO: SECRETO,
+        API_C1: a.servicio,
+      } as Env,
+    };
+  };
+
+  it('CA1: 301 a la canónica, con la ruta y la consulta intactas', async () => {
+    const { env: e } = env(propio);
+    const r = await crearDespacho().fetch(
+      new Request(`https://${plataforma}/p/camisa-de-lino/?talla=m&utm_source=wa`),
+      e,
+    );
+    expect(r.status).toBe(301);
+    expect(r.headers.get('location')).toBe(
+      `https://${propio}/p/camisa-de-lino/?talla=m&utm_source=wa`,
+    );
+  });
+
+  it('❌ CA2: la API nunca se redirige, ni el aviso de Bold', async () => {
+    const { a, env: e } = env(propio);
+    const despacho = crearDespacho();
+    const aviso = await despacho.fetch(
+      new Request(`https://${plataforma}/api/v1/avisos/bold`, { method: 'POST', body: '{}' }),
+      e,
+    );
+    const cotizar = await despacho.fetch(new Request(`https://${plataforma}/api/v1/cotizar`), e);
+    expect([aviso.status, cotizar.status]).toEqual([200, 200]);
+    expect(a.recibidas.map((x) => new URL(x.url).pathname)).toEqual([
+      '/api/v1/avisos/bold',
+      '/api/v1/cotizar',
+    ]);
+  });
+
+  it('❌ una canónica que no es un hostname no redirige a ninguna parte (P1)', async () => {
+    for (const malo of ['https://otro.example/', 'otro.example/ruta', 'javascript:alert(1)', '']) {
+      const { env: e } = env(malo);
+      const r = await crearDespacho().fetch(new Request(`https://${plataforma}/`), e);
+      expect(r.status, malo).not.toBe(301);
+    }
+  });
+});

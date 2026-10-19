@@ -33,6 +33,13 @@ export interface Celda {
    * no existe hace fallar el despliegue.
    */
   medios_creados?: ('produccion' | 'staging')[];
+  /**
+   * HU-T13.1: el dueño ya activó Cloudflare for SaaS en la zona de las tiendas, con su origen de
+   * respaldo (`docs/runbooks/tienda-conectar-un-dominio.md`). Solo entonces la API de producción sabe
+   * su zona y el despacho recibe los dominios propios. Staging nunca: el origen de respaldo es uno
+   * por zona y es el de producción.
+   */
+  saas?: boolean;
 }
 
 export interface ConfigCeldas {

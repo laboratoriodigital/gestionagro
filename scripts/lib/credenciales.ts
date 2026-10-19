@@ -21,7 +21,7 @@ import type { Fetch } from './despliegue.ts';
 
 const API = 'https://api.cloudflare.com/client/v4';
 
-export type Proposito = 'despliegue' | 'metricas';
+export type Proposito = 'despliegue' | 'metricas' | 'saas';
 
 /** Una lectura que solo un token con `permiso` puede hacer. */
 export interface Sonda {
@@ -87,12 +87,15 @@ export const PERMISOS_DE_MAS: Readonly<Record<Proposito, readonly Sonda[]>> = {
     SONDAS.kv,
     SONDAS.d1,
   ],
+  // HU-T13.1: el de Cloudflare for SaaS empieza en observación, como toda sonda que no se ha visto.
+  saas: [],
 };
 
 /** El nombre del secreto de GitHub de cada propósito, para los mensajes. */
 const SECRETO: Readonly<Record<Proposito, string>> = {
   despliegue: 'CF_API_TOKEN',
   metricas: 'CF_METRICAS_TOKEN',
+  saas: 'CF_SAAS_TOKEN',
 };
 
 /**
@@ -108,6 +111,9 @@ const SECRETO: Readonly<Record<Proposito, string>> = {
 export const EN_OBSERVACION: Readonly<Record<Proposito, readonly Sonda[]>> = {
   despliegue: [],
   metricas: [],
+  // HU-T13.1: el de SaaS solo maneja hostnames y certificados de la zona de las tiendas. Lo demás
+  // avisa hasta verse contra Cloudflare con el token tal como lo pide el runbook.
+  saas: [SONDAS.tokens, SONDAS.miembros, SONDAS.r2, SONDAS.pages, SONDAS.kv, SONDAS.d1, SONDAS.dns],
 };
 
 /** Los avisos de las sondas en observación: lo que parece de más, sin detener nada. */
@@ -235,4 +241,47 @@ export async function verificarTokenDeMetricas(
         'CF_METRICAS_TOKEN no puede leer las métricas de la cuenta (Account Analytics: Read): el vigía dejará la celda en alerta',
       ];
   return { fallas: await permisosDeMas(fetchFn, 'metricas', token, cuenta), avisos };
+}
+
+/**
+ * HU-T13.1 CA1 y HU-C11.5 CA1: el token de Cloudflare for SaaS, probado con lo que la API va a hacer
+ * antes de cargarlo: ver la zona de las tiendas y leer sus hostnames personalizados. Sin token, o si
+ * no puede, es un aviso: la API no lo recibe y conectar un dominio dice «todavía no está
+ * disponible». Lo que parece de más avisa, en observación.
+ */
+export async function verificarTokenDeSaas(
+  fetchFn: Fetch,
+  token: string | undefined,
+  cuenta: string,
+  zona: string,
+): Promise<{ cargar: boolean; avisos: string[] }> {
+  if (!token) {
+    return {
+      cargar: false,
+      avisos: ['sin CF_SAAS_TOKEN: los dominios propios de las tiendas no están disponibles'],
+    };
+  }
+  const [id] = await idsDeZonas(fetchFn, token, [zona]).catch(() => []);
+  let lee = false;
+  if (id) {
+    try {
+      const r = await fetchFn(`${API}/zones/${id}/custom_hostnames?per_page=1`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      lee = r.status === 200;
+    } catch {
+      lee = false;
+    }
+  }
+  const observados = id ? await permisosEnObservacion(fetchFn, 'saas', token, cuenta, [id]) : [];
+  if (!lee) {
+    return {
+      cargar: false,
+      avisos: [
+        `CF_SAAS_TOKEN no puede leer los hostnames personalizados de ${zona} (Zone: SSL and Certificates, y Zone: Read): no se carga y los dominios propios no están disponibles`,
+        ...observados,
+      ],
+    };
+  }
+  return { cargar: true, avisos: observados };
 }

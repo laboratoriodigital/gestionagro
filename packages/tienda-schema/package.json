@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./comercio": "./src/comercio.ts",
+    "./dominios": "./src/dominios.ts",
     "./ensayos": "./src/ensayos.ts",
     "./medios": "./src/medios.ts",
     "./permisos": "./src/permisos.ts",

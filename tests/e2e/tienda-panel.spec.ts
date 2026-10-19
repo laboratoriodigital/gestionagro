@@ -2867,3 +2867,85 @@ test('HU-T7.3 · ❌ CA3: el colaborador no ve la herramienta y, si entra por la
   await expect(page.getByLabel('Celular del comprador')).toHaveCount(0);
   expect(pedidas).toBe(0);
 });
+
+test('HU-T13.1 y HU-T13.3 · CA1: conectar el dominio, sus registros en palabras y la raíz sin «www»', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const plataforma = {
+    hostname: 'ensayo-uno--staging.laboratorio-digital.app',
+    tipo: 'plataforma',
+    rol: 'canonico',
+    estado: 'activo',
+    enPalabras: 'Conectado',
+    motivo: null,
+    registros: [],
+    activado: '2026-10-20T15:00:00.000Z',
+  };
+  const pendiente = {
+    hostname: 'www.tienda-uno.example',
+    tipo: 'propio',
+    rol: 'alias',
+    estado: 'pendiente',
+    enPalabras: 'Esperando tus registros',
+    motivo: null,
+    activado: null,
+    registros: [
+      {
+        tipo: 'TXT',
+        nombre: '_cf-custom-hostname.www',
+        completo: '_cf-custom-hostname.www.tienda-uno.example',
+        valor: 'propiedad-1',
+        paraQue: 'Prueba que el dominio es tuyo.',
+      },
+      {
+        tipo: 'TXT',
+        nombre: '_acme-challenge.www',
+        completo: '_acme-challenge.www.tienda-uno.example',
+        valor: 'acme-1',
+        paraQue: 'Deja listo el candado (HTTPS) antes de que llegue la primera visita.',
+      },
+      {
+        tipo: 'CNAME',
+        nombre: 'www',
+        completo: 'www.tienda-uno.example',
+        valor: 'origen.laboratorio-digital.app',
+        paraQue: 'Lleva a tu tienda a quien escriba esta dirección. Créalo de último.',
+      },
+    ],
+  };
+  let dominios: unknown[] = [plataforma];
+  const conectados: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/dominios`, (r) =>
+    r.fulfill({ json: { disponible: true, dominios } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/dominios/conectar`, (r) => {
+    conectados.push(r.request().postDataJSON());
+    dominios = [plataforma, pendiente];
+    return r.fulfill({ json: { estado: 'guardado', id: pendiente.hostname, version: 1 } });
+  });
+  await page.goto(`${PANEL}/mas/`);
+  await page.getByRole('link', { name: 'Tu dominio' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Tu dominio' })).toBeVisible();
+
+  // HU-T13.3: la raíz pregunta antes de conectarse.
+  await page.getByLabel('La dirección de tu tienda').fill('tienda-uno.example');
+  await page.getByRole('button', { name: 'Conectar', exact: true }).click();
+  await expect(page.getByText('tienda-uno.example no lleva «www»')).toBeVisible();
+  await page.getByRole('button', { name: 'Conectar www.tienda-uno.example' }).click();
+
+  await expect(page.getByText('Ahora crea los registros que ves en tu proveedor.')).toBeVisible();
+  expect(conectados).toEqual([expect.objectContaining({ hostname: 'www.tienda-uno.example' })]);
+  const registros = page.locator('.registros > li');
+  await expect(registros).toHaveCount(3);
+  await expect(registros.nth(2)).toContainText('origen.laboratorio-digital.app');
+  await expect(page.getByRole('button', { name: 'Copiar el valor del CNAME' })).toBeVisible();
+  // ❌ CA2 de HU-T13.3: nunca se le pide mover su dominio a la plataforma.
+  await expect(page.getByRole('heading', { level: 2, name: '¿Y sin «www»?' })).toBeVisible();
+  await expect(page.getByText(/servidores de nombres|nameservers|transferir/i)).toHaveCount(0);
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
