@@ -443,7 +443,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T0.2.1 `[código]` publicación por producto · WI-T0.2.2 `[ci]` destino `tienda` en `desplegar.yml` · WI-T0.2.3 `[prueba]` tabla de casos (sube la Tienda, el CORE, las dos o ninguna) · WI-T0.2.4 `[doc]` ARQUITECTURA §7.
 
 #### HU-T0.3 · Los umbrales de validación, escritos antes de medir
-- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T14 (antes del alta abierta; era «antes del primer corte», que ya no existe) · **Depende de:** HU-T12.1 · **Estado:** Refinada
+- **Capa:** producto · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** T14 (antes del alta abierta; era «antes del primer corte», que ya no existe) · **Depende de:** HU-T12.1 · **Estado:** En validación (rama `feat/t14-sprint`. `content/tienda/validacion.json`, en «propuesta»: pago real, soporte por comercio, retención, confiabilidad del cobro, activación y costo por uso, cada una con su umbral, su frecuencia y la tabla o la hoja de donde sale; el público adecuado y el tiempo por tarea dicen por qué se fijan después. `tests/repo/tienda-validacion.test.ts`: una métrica sin umbral, o con «por definir» sin motivo, no pasa (CA3, con su control negativo). Falta WI-T0.3.1, del dueño: cambiar lo que quiera y pasarla a «fijada», con su fecha, antes de la primera tienda real)
 - Como dueño, quiero las métricas del estudio con su número antes de cargar la primera tienda, para no acomodar la regla a lo que salga.
 - **Respaldo:** estudio §16.3 [V8]; ED1 §2.1 [D3] (excepción con métricas fijadas antes de medir); TIENDA §19.
 - **CA1.** Un archivo de contenido (`content/tienda/validacion.json`) con pago real, soporte por comercio (minutos por semana), retención, confiabilidad del cobro, activación y costo por uso: cada una con umbral, frecuencia y fuente. Lo que no se puede anticipar dice cuál es y por qué.
@@ -1599,7 +1599,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | Poner la regla de ciclo de vida de 7 días a `exportaciones/` en `tienda-c1` y `tienda-c1-staging` | T10 | HU-T17.2: `docs/runbooks/tienda-ciclo-de-vida.md`. Antes de que el panel ofrezca «Descargar todo» (HU-T10.7) |
 | Escribir a Bold por un esquema para plataformas | T12 | PLATAFORMA §9.7 (soporte.online@bold.co) |
 | Llaves de pruebas de Bold para un comercio de prueba | Al terminar T14 | El dueño las tiene (19 oct 2026). Se pegan en el panel de staging de **Ensayo Dos**, en Más › Cobro en línea; nunca en un chat, un archivo ni un secreto de GitHub. Ensayo Uno lleno no se publica en staging hasta Workers Paid (bitácora tienda3 31) |
-| Fijar los umbrales de validación | T14 | HU-T0.3 |
+| Fijar los umbrales de validación | Antes de la primera tienda real | HU-T0.3: `content/tienda/validacion.json` trae la propuesta del 19 oct 2026; se cambia lo que haga falta y se pone `"estado": "fijada"` con la fecha |
 | Acordar con cada comercio la fecha de su corte | T15 | HU-T12.7 y HU-T12.8 |
 | Un dominio de prueba para conectarlo como propio | T16 | HU-T13.1 |
 
