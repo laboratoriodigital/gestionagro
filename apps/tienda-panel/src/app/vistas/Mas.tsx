@@ -2,7 +2,7 @@
  * «Más» (HU-T8.1): lo que no cabe en la navegación de abajo, cambiar de tienda y salir. «Equipo»
  * solo para quien lo puede manejar (HU-T10.5 CA2); «Descargar todo», para quien puede exportar (HU-T10.7);
  * «Datos de un comprador», para quien atiende sus derechos (HU-T7.3); «Cobro en línea», para quien
- * maneja el cobro (HU-T11.2).
+ * maneja el cobro (HU-T11.2); «Tu dominio», para quien lo conecta (HU-T13.1).
  */
 import { puede } from '@ed1/tienda-schema/permisos';
 
@@ -38,6 +38,11 @@ export function Mas({
         {puede(rol, 'cobro.gestionar') ? (
           <li>
             <a href="/mas/cobro/">Cobro en línea</a>
+          </li>
+        ) : null}
+        {puede(rol, 'dominios.gestionar') ? (
+          <li>
+            <a href="/mas/dominio/">Tu dominio</a>
           </li>
         ) : null}
         {puede(rol, 'equipo.gestionar') ? (

@@ -316,6 +316,12 @@ Las tiendas viven en `laboratorio-digital.app` (ADR-27, `PLATAFORMA.md` §3.3), 
 5. Activo el dominio, el comercio elige si es el **canónico**. Si lo es, el subdominio de la plataforma pasa a `alias` y responde 301 al canónico, con ruta y consulta intactas.
 6. El KV se actualiza y la versión vigente se vuelve a hornear con el canónico nuevo. Así cambian el sitemap, los canónicos, el JSON-LD y los feeds.
 
+*(Hoy, HU-T13.1 a HU-T13.3, bitácora tienda3 34:*
+- *La pantalla es «Más › Tu dominio». El estado no lo pregunta un cron cada 5 minutos: lo pregunta la pantalla al abrirse y cada minuto mientras sigue abierta, y la tarea `dominios` del cron de cada hora (D-T10).*
+- *Un dominio nuevo nace alias y responde 301 a la plataforma hasta que el comercio lo elige principal.*
+- *Solo hay dominios propios en producción, y solo con la celda marcada `saas` en `celdas.json`: el origen de respaldo es uno por zona.*
+- *Runbook: `docs/runbooks/tienda-conectar-un-dominio.md`.)*
+
 ### 4.3 El dominio raíz
 
 El «apex proxying» de Cloudflare for SaaS es de Enterprise (investigación, por resumen). Sin él:
@@ -1370,6 +1376,8 @@ Se escriben con el hito que los necesita:
 - restaurar una tienda;
 - agregar un shard;
 - volver atrás una versión del código.
+
+*(Hoy, HU-T17.5: están todos en `docs/runbooks/tienda-*.md` menos el de alta, que se escribe con HU-T13.4, cuando exista la operación. `tests/repo/runbooks-tienda.test.ts` falla si un runbook nombra un archivo, un secreto, una ruta, un kill switch, un KV o un flujo que no existe.)*
 
 ---
 

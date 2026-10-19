@@ -347,7 +347,7 @@ h2 {
   display: grid;
   gap: var(--espacio-3);
   padding-block: var(--espacio-3);
-  border-top: 1px solid var(--borde);
+  border-top: var(--borde-ancho) solid var(--borde);
 }
 .combinacion__nombre {
   margin: 0;
@@ -561,4 +561,21 @@ h2 {
   display: grid;
   gap: var(--espacio-2);
   padding-inline-start: 1.25rem;
+}
+
+/* HU-T13.1: el dominio propio, una dirección por bloque y sus registros en orden. */
+.dominio {
+  display: grid;
+  gap: var(--espacio-3);
+  padding-block: var(--espacio-4);
+  border-top: var(--borde-ancho) solid var(--borde);
+}
+.registros {
+  margin: 0;
+  padding-inline-start: var(--espacio-6);
+  display: grid;
+  gap: var(--espacio-4);
+}
+.registros dd {
+  overflow-wrap: anywhere;
 }

@@ -978,3 +978,27 @@ La regla: **un respaldo se prueba restaurándolo, en una base vacía y sobre la 
 La regla: **un tope que protege algo compartido se cuenta en la misma transacción que lo gasta.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Medio · P5 · tienda-0.1.0 · 2026-10-19
+
+**34 · El dominio propio no se puede probar en staging, y su cron no puede ser cada 5 minutos.**
+
+*Qué pasó.* El 19 oct 2026, al construir HU-T13.1, contrasté la historia con TIENDA §4.1 y §4.2, D-T10 y el plan gratuito antes de escribirla. Dos de sus premisas no se cumplen tal como estaban.
+
+*Premisa 1, «un cron cada 5 minutos pregunta el estado» (CA2).* La cuenta tiene 5 Cron Triggers en el plan gratuito y usa 4. El de la Tienda es uno por hora y reparte sus tareas (D-T10, decisión del dueño). Uno cada 5 minutos sería el quinto, y solo para esto.
+
+*Premisa 2, «la aceptación de M4 se hace con un dominio de prueba».* Cloudflare for SaaS tiene **un** origen de respaldo por zona, y en `laboratorio-digital.app` es el despacho de producción (`origen.`). Un dominio conectado desde staging llegaría al despacho de producción, que no conoce a los comercios de prueba. Producción todavía no tiene tiendas: el alta abierta es HU-T13.4 (T16).
+
+*Lo que se hizo.*
+- **El estado:** lo pregunta la pantalla al abrirse y cada minuto mientras sigue abierta, que es lo que mira el comercio, y la tarea `dominios` del cron de cada hora. Así no se gasta un cron.
+- **Solo producción:** `ZONA_TIENDAS` y la ruta `*/*` del despacho van solo a producción, y solo con la celda marcada `saas` en `celdas.json`. El dueño la marca después de activar SaaS en la zona (`docs/runbooks/tienda-conectar-un-dominio.md`). En staging la pantalla dice «todavía no disponible».
+- **La aceptación de M4** (un dominio de prueba conectado sin un minuto sin HTTPS) se hace en producción con la primera tienda del alta (T16).
+- **El token:** `CF_SAAS_TOKEN` es nuevo y sus sondas nunca se han visto contra Cloudflare. Empiezan en observación, como pide la bitácora core 10: avisan y no detienen.
+
+*Lo que no se pudo verificar sin la cuenta (P17).*
+- Que la ruta `*/*` del despacho no le gane al dominio de R2 de las fotos (`img.`). El runbook dice cómo verlo y cómo excluirlo.
+- Los nombres exactos de los estados de `ssl.status` que devuelve Cloudflare en el plan gratuito: los mapea `estadoDe`, con un desconocido como «pendiente», nunca como activo.
+
+**Lo prueba** `dominios.test.ts`: pendiente, validando y activo con un Cloudflare de mentira; el retirado que otra tienda vuelve a pedir con un TXT nuevo; la dirección principal y su vuelta. `tienda-saas.test.ts`: el token y la configuración, con y sin la marca. Control negativo: sin la marca, ninguna ruta de toda la zona; en staging, nunca.
+
+La regla: **antes de construir lo que depende de la infraestructura, se mira dónde puede probarse; si no es en staging, se dice antes y se mueve la aceptación a donde sí.**
+
+*Ficha:* tienda3 · *(mío)* · 🟡 Bajo · P1, P12, P17 · tienda-0.1.0 · 2026-10-19

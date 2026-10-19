@@ -85,6 +85,15 @@ import { iniciarCobro, PeticionDeCobro } from './cobros.ts';
 import { estadoDelCobro, PeticionDeEstadoDelCobro } from './conciliar.ts';
 import { correosDeLaCelda, mandarAcuse, mandarResultadoDePrueba } from './correos.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
+import {
+  conectarDominio,
+  elegirCanonico,
+  type KvDeHosts,
+  listarDominios,
+  type QuienDelDominio,
+  type ResultadoDelDominio,
+  retirarDominio,
+} from './dominios.ts';
 import { exportarTienda } from './exportar.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import {
@@ -132,6 +141,7 @@ import {
 import { enFrase, leerRegistro } from './registro.ts';
 import { type AlmacenDeReleases, guardarRelease } from './releases.ts';
 import type { AlmacenDeRespaldos } from './respaldos.ts';
+import type { Saas } from './saas.ts';
 import {
   PeticionDeSeguimientoDeSolicitud,
   PeticionDeSolicitud,
@@ -204,6 +214,12 @@ export interface Env {
   CORREO_GMAIL_CLIENTE_SECRETO?: string;
   CORREO_GMAIL_REFRESH?: string;
   CORREO_GMAIL_REMITENTE?: string;
+  /**
+   * HU-T13.1: el token de Cloudflare for SaaS (solo hostnames y certificados de la zona) y el nombre
+   * de la zona de las tiendas. Sin los dos, conectar un dominio dice «todavía no está disponible».
+   */
+  CF_SAAS_TOKEN?: string;
+  ZONA_TIENDAS?: string;
   /** El token de solo lectura de métricas y la cuenta: el freno de R2 (bitácora tienda3 27). */
   CF_METRICAS_TOKEN?: string;
   CF_CUENTA?: string;
@@ -321,6 +337,12 @@ function tiendaDelDespacho(c: ContextoTienda): { org: string; db: BaseD1 } | nul
 }
 
 /** El correo de la celda, con el `fetch` que se le dé (HU-T14.3). */
+/** HU-T13.1: Cloudflare for SaaS, si el ambiente tiene su token y su zona. */
+export const saasDe = (env: Env, fetchFn: typeof fetch): Saas | null =>
+  env.CF_SAAS_TOKEN && env.ZONA_TIENDAS
+    ? { token: env.CF_SAAS_TOKEN, zona: env.ZONA_TIENDAS, fetch: fetchFn }
+    : null;
+
 export const correoDe = (env: Env, fetchFn: typeof fetch): CorreoTransaccional =>
   correoGmail(
     {
@@ -968,6 +990,66 @@ export function crearApp(
     );
     if (q instanceof Response) return q;
     return responderCatalogo(c, await aceptar(q, await c.req.json().catch(() => null)));
+  });
+
+  /**
+   * HU-T13.1 a HU-T13.3: el dominio propio. Verlo lo puede todo el equipo; conectarlo, elegir el
+   * principal y desconectarlo, solo el propietario (`dominios.gestionar`, TIENDA §12.1).
+   */
+  const delDominio = (c: ContextoTienda, accion: Accion | null): QuienDelDominio | Response => {
+    const s = c.get('sesion');
+    // El rol primero: un colaborador recibe 403 aunque el ambiente no tenga con qué.
+    const q: Quien | Response = accion
+      ? quienPuede(c, accion, 'Solo quien administra la tienda conecta su dominio.')
+      : {
+          db: s.db,
+          org: s.org,
+          actor: `usuario:${s.usuario}`,
+          instante: new Date(ahora()).toISOString(),
+        };
+    if (q instanceof Response) return q;
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    const hosts = c.env.TIENDA_HOSTS as (EscritorKv & KvDeHosts) | undefined;
+    if (!control || !hosts || !c.env.CELDA) return c.json({ estado: 'sin-configurar' }, 503);
+    return { ...q, control, celda: c.env.CELDA, shardNombre: s.shard, hosts };
+  };
+  const responderDominio = (c: ContextoTienda, r: ResultadoDelDominio) => {
+    if (r.estado === 'guardado') return c.json(r);
+    if (r.estado === 'problemas') return c.json(r, 422);
+    if (r.estado === 'no-existe') return c.json(r, 404);
+    return c.json(r, 503);
+  };
+  /** Con otro canónico, lo publicado se vuelve a hornear con él (sitemap, canónicos, JSON-LD). */
+  const rehornearConElCanonico = (c: ContextoTienda) => {
+    const s = c.get('sesion');
+    const ctx = contextoDePublicacion(c, s.org, s.shard, 'sistema:dominio');
+    if (ctx) enSegundoPlano(c, rehornearExistencias(ctx));
+  };
+  app.get('/api/panel/v1/dominios', async (c) => {
+    const q = delDominio(c, null);
+    if (q instanceof Response) return q;
+    return c.json(await listarDominios(q, saasDe(c.env, alProveedor)));
+  });
+  app.post('/api/panel/v1/dominios/conectar', async (c) => {
+    const q = delDominio(c, 'dominios.gestionar');
+    if (q instanceof Response) return q;
+    const cuerpo = await c.req.json().catch(() => null);
+    return responderDominio(c, await conectarDominio(q, saasDe(c.env, alProveedor), cuerpo));
+  });
+  app.post('/api/panel/v1/dominios/canonico', async (c) => {
+    const q = delDominio(c, 'dominios.gestionar');
+    if (q instanceof Response) return q;
+    const r = await elegirCanonico(q, await c.req.json().catch(() => null));
+    if (r.estado === 'guardado' && r.cambio) rehornearConElCanonico(c);
+    return responderDominio(c, r);
+  });
+  app.post('/api/panel/v1/dominios/retirar', async (c) => {
+    const q = delDominio(c, 'dominios.gestionar');
+    if (q instanceof Response) return q;
+    const cuerpo = await c.req.json().catch(() => null);
+    const r = await retirarDominio(q, saasDe(c.env, alProveedor), cuerpo);
+    if (r.estado === 'guardado' && r.eraCanonico) rehornearConElCanonico(c);
+    return responderDominio(c, r);
   });
 
   // HU-T4.4: publicar. Lo decide la matriz de permisos (HU-T1.4), y `ks:tienda-horno` lo pausa
@@ -1914,6 +1996,7 @@ export async function alCron(env: Env, instante: number): Promise<void> {
   const hosts = env.TIENDA_HOSTS as (EscritorKv & KvDeTareas) | undefined;
   const flags = env.FLAGS as KvDeTareas | undefined;
   const kekTexto = textoDeLasKeks(env);
+  const saas = saasDe(env, (url, init) => fetch(url, init));
   if (!control || shards.length === 0 || !hosts || !flags || !env.CELDA) {
     console.error('tienda-api: el cron no tiene sus bases o sus KV');
     return;
@@ -1929,6 +2012,7 @@ export async function alCron(env: Env, instante: number): Promise<void> {
       correo: correoDe(env, (url, init) => fetch(url, init)),
       metricas: { token: env.CF_METRICAS_TOKEN, cuenta: env.CF_CUENTA },
       ...(kekTexto ? { kekTexto } : {}),
+      ...(saas ? { saas } : {}),
       ...(env.SITIOS ? { almacen: env.SITIOS as unknown as AlmacenDeRespaldos } : {}),
       ...(env.MEDIOS ? { medios: env.MEDIOS } : {}),
       ...(env.VITRINA_RELEASE ? { release: env.VITRINA_RELEASE } : {}),

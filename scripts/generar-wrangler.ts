@@ -371,6 +371,9 @@ export const DOMINIOS_DE_LA_TIENDA = {
   origen: 'origen.laboratorio-digital.app',
 } as const;
 
+/** La zona de las tiendas: la de Cloudflare for SaaS y sus dominios propios (HU-T13.1). */
+export const ZONA_DE_LAS_TIENDAS = 'laboratorio-digital.app';
+
 /** El cron de la Tienda: uno por hora, que reparte las tareas por frecuencia (HU-T17.1). */
 export const CRON_DE_LA_TIENDA = '0 * * * *';
 
@@ -434,7 +437,12 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
     },
   ];
   const vars = { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan };
-  const medios = { MEDIOS: MEDIOS_DE_LA_TIENDA.produccion, AMBIENTE: 'produccion' };
+  const medios = {
+    MEDIOS: MEDIOS_DE_LA_TIENDA.produccion,
+    AMBIENTE: 'produccion',
+    // HU-T13.1: los dominios propios, solo con Cloudflare for SaaS activo en la zona.
+    ...(celda.saas ? { ZONA_TIENDAS: ZONA_DE_LAS_TIENDAS } : {}),
+  };
   // HU-T8.3: el bucket de las fotos, solo donde ya existe.
   const fotos = (ambiente: 'produccion' | 'staging') =>
     celda.medios && celda.medios_creados?.includes(ambiente)
@@ -500,8 +508,15 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
     // Worker. Todo lo demás pasa por el despacho.
     assets: { directory: './dist', binding: 'ASSETS', run_worker_first: ['/*', '!/_t/*'] },
     workers_dev: false,
-    // HU-T2.9: en producción, `origen.`; el comodín llega con la primera tienda real.
-    routes: [{ pattern: DOMINIOS_DE_LA_TIENDA.origen, custom_domain: true }],
+    // HU-T2.9: en producción, `origen.`; el comodín llega con la primera tienda real. HU-T13.1: con
+    // Cloudflare for SaaS, los dominios propios llegan por la ruta de toda la zona; los dominios de
+    // los Workers (el panel, `origen.`) y las rutas más específicas siguen ganándole.
+    routes: [
+      { pattern: DOMINIOS_DE_LA_TIENDA.origen, custom_domain: true },
+      ...(config.celdas.some((c) => c.producto === 'tienda' && c.saas)
+        ? [{ pattern: '*/*', zone_name: ZONA_DE_LAS_TIENDAS }]
+        : []),
+    ],
     services: serviciosDeLaTienda(config, false),
     r2_buckets: almacenesDeLaTienda(config, false),
     vars: { MEDIOS: MEDIOS_DE_LA_TIENDA.produccion },

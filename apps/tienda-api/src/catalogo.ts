@@ -27,7 +27,7 @@ import {
 import type { z } from 'zod';
 import { anotar } from './registro.ts';
 
-type Problema = { campo: string; mensaje: string };
+export type Problema = { campo: string; mensaje: string };
 
 export type Resultado =
   | { estado: 'guardado'; id: string; version: number; slug?: string }

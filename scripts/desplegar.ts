@@ -37,6 +37,7 @@ import {
   wranglerDelCore,
   wranglerDelSitio,
   wranglerDelSitioDeLaTienda,
+  ZONA_DE_LAS_TIENDAS,
   ZONA_PARQUEADERO,
 } from './generar-wrangler.ts';
 import {
@@ -100,6 +101,7 @@ import {
   permisosDeMas,
   permisosEnObservacion,
   verificarTokenDeMetricas,
+  verificarTokenDeSaas,
 } from './lib/credenciales.ts';
 import {
   ARCHIVO_DESPLIEGUE_CORE,
@@ -992,6 +994,19 @@ async function prepararCeldaDeLaTienda(
       return { ok: false, detalle: [`tienda: ${(e as Error).message}`] };
     }
   }
+  // HU-T13.1: el token de Cloudflare for SaaS, probado antes de cargarlo; solo en producción y con
+  // SaaS activo en la zona (celdas.json). Sin él, conectar un dominio dice «no disponible».
+  const avisosDeSaas: string[] = [];
+  if (!staging && celda.saas) {
+    const saas = await verificarTokenDeSaas(
+      fetch,
+      process.env['CF_SAAS_TOKEN']?.trim(),
+      cred.cuenta,
+      ZONA_DE_LAS_TIENDAS,
+    );
+    avisosDeSaas.push(...saas.avisos);
+    if (saas.cargar) secretos.api['CF_SAAS_TOKEN'] = process.env['CF_SAAS_TOKEN']?.trim() ?? '';
+  }
   // La API primero: el despacho y el panel la nombran en sus bindings de servicio.
   const pasos: [string, string, Record<string, string>][] = [
     ['@ed1/tienda-api', c, secretos.api],
@@ -1138,6 +1153,7 @@ async function prepararCeldaDeLaTienda(
       `panel: ${panel}`,
       `despacho: ${sitio}`,
       ...(notaLlaves ? [notaLlaves] : []),
+      ...avisosDeSaas,
       ...avisos,
     ],
   };

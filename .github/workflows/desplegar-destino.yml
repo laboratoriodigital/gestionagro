@@ -147,6 +147,8 @@ jobs:
           TIENDA_KEK_V3: ${{ secrets.TIENDA_KEK_V3 }}
           TIENDA_KEK_V4: ${{ secrets.TIENDA_KEK_V4 }}
           TIENDA_KEK_V5: ${{ secrets.TIENDA_KEK_V5 }}
+          # HU-T13.1: Cloudflare for SaaS, solo hostnames de la zona de las tiendas; se prueba antes de cargarlo.
+          CF_SAAS_TOKEN: ${{ secrets.CF_SAAS_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           # HU-T14.3: los correos de las tiendas por Gmail. Sin ellos, cada correo queda sin enviar.
