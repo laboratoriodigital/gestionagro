@@ -2,13 +2,13 @@
  * HU-T17.3: el respaldo semanal de cada tienda en R2 (TIENDA-3.0 §15.4, punto 2). Para poder
  * recuperar una tienda aunque se dañe su base, sin depender de Time Travel.
  *
- * - **Lo que lleva.** La tienda en `tienda-export/1`, lo mismo que «Descargar todo» (HU-T10.7);
- *   todos los pedidos con sus líneas, tal como están en la base, porque la exportación deja fuera
- *   los que están en curso y son los que más importa no perder; y los datos personales **en sus
- *   sobres**: el contacto de cada pedido y cada solicitud, cifrados como están en la base, con su
- *   IV y la versión de su llave, más esas llaves envueltas por la KEK, que no viaja: sin ellas un
- *   sobre restaurado no se podría abrir. Nada sale en claro (CA2). Las llaves de las credenciales
- *   no viajan, como el cobro en «Descargar todo»: se vuelven a pegar en el panel.
+ * - **Lo que lleva.** Las filas de cada tabla de la tienda **tal como están en la base**
+ *   (`TABLAS_DEL_RESPALDO`), con sus ids, para que restaurarlas (HU-T17.4, `restaurar.ts`) deje cada
+ *   pedido unido a su combinación y a su cobro. Los datos personales van **en sus sobres**: el
+ *   contacto de cada pedido y cada solicitud, cifrados como están, con su IV y la versión de su
+ *   llave, más esas llaves envueltas por la KEK, que no viaja. Nada sale en claro (CA2). Las
+ *   llaves de las credenciales no viajan: se vuelven a pegar en el panel. Lleva también la tienda en
+ *   `tienda-export/1`, lo mismo que «Descargar todo» (HU-T10.7), para leerla sin la base.
  * - **Dónde.** `respaldos/<org>/<fecha>.json` del almacén de la celda, fuera de `exportaciones/`,
  *   que vence a los 7 días (`docs/runbooks/tienda-ciclo-de-vida.md`). Se guardan las 4 últimas y
  *   la primera de cada uno de los 3 últimos meses; lo demás se borra.
@@ -16,6 +16,9 @@
  *   productos, los pedidos y sus líneas, los contactos y las solicitudes, y se comparan con el archivo; después
  *   de guardarlo se relee y se compara su huella. Si algo no cuadra, se avisa por Telegram con la
  *   tienda y la causa, y la tarea queda en falla en `/api/salud`.
+ * - **Por qué la versión 2** (bitácora tienda3 32): la 1 llevaba el catálogo como la exportación,
+ *   que al cargarse estrena ids, y los pedidos respaldados quedaban sin su combinación. El simulacro
+ *   de restauración (HU-T17.4) lo encontró antes de que hiciera falta.
  * - La copia fuera de Cloudflare la hace HU-C11.4 del CORE, que todavía no existe: cuando exista,
  *   suma estos archivos (TIENDA §15.4, punto 3).
  */
@@ -23,10 +26,50 @@ import type { BaseD1 } from '@ed1/d1';
 import { type Exportacion, exportarTienda } from './exportar.ts';
 import { sha256 } from './pedidos.ts';
 
-export const FORMATO_DE_RESPALDO = 'tienda-respaldo/1';
+export const FORMATO_DE_RESPALDO = 'tienda-respaldo/2';
 export const PREFIJO_DE_RESPALDOS = 'respaldos/';
 export const SEMANALES = 4;
 export const MENSUALES = 3;
+
+/**
+ * Las tablas de una tienda, en el orden en que se restauran: lo que otra fila nombra va antes.
+ * Con su orden de lectura, para que dos respaldos de la misma base salgan iguales. No viajan la
+ * credencial (las llaves del comercio se pegan otra vez), las operaciones (la memoria de los
+ * reintentos) ni las importaciones (su archivo ya está en las demás tablas).
+ */
+export const TABLAS_DEL_RESPALDO = [
+  ['tienda', 'org_id'],
+  ['ajuste', 'seccion'],
+  ['llave', 'proposito, version'],
+  ['coleccion', 'id'],
+  ['producto', 'id'],
+  ['coleccion_producto', 'coleccion_id, producto_id'],
+  ['variante', 'id'],
+  ['medio', 'producto_id, id'],
+  ['movimiento_inventario', 'id'],
+  ['interes_reposicion', 'variante_id'],
+  ['envio_opcion', 'id'],
+  ['cupon', 'codigo'],
+  ['pedido', 'id'],
+  ['pedido_linea', 'pedido_id, linea'],
+  ['pedido_contacto', 'pedido_id'],
+  ['pedido_evento', 'id'],
+  ['contraentrega', 'pedido_id'],
+  ['cobro', 'id'],
+  ['apartado', 'id'],
+  ['aviso_proveedor', 'proveedor, aviso_id'],
+  ['solicitud', 'id'],
+  ['pagina', 'id'],
+  ['publicacion', 'version'],
+  ['registro', 'id'],
+  ['correo', 'clave'],
+] as const;
+export type TablaDelRespaldo = (typeof TABLAS_DEL_RESPALDO)[number][0];
+
+/** Un valor de una fila: los bytes (sobres, IV, llaves envueltas) van en base64. */
+export type Valor = string | number | null | { b64: string };
+export type Fila = Record<string, Valor>;
+export type Filas = Record<TablaDelRespaldo, Fila[]>;
 
 /** Lo que el respaldo necesita del almacén R2 de la celda. */
 export interface AlmacenDeRespaldos {
@@ -42,50 +85,14 @@ export interface AlmacenDeRespaldos {
   delete(claves: string | string[]): Promise<void>;
 }
 
-/** Un sobre, como está en la base: los bytes en base64. */
-export interface Sobre {
-  sobre: string;
-  iv: string;
-  llaveVersion: number;
-}
-
 export interface Respaldo {
   formato: typeof FORMATO_DE_RESPALDO;
   org: string;
   hecho: string;
+  /** La tienda como «Descargar todo»: para leerla sin la base. */
   tienda: Exportacion;
-  /** Las filas de `pedido` y `pedido_linea`, todas, con sus columnas. */
-  pedidos: { pedidos: Record<string, unknown>[]; lineas: Record<string, unknown>[] };
-  sobres: {
-    contactos: ({
-      pedidoId: string;
-      codigo: string;
-      celularIndice: string | null;
-      creado: string;
-      purgarDespues: string;
-    } & Sobre)[];
-    solicitudes: ({
-      id: string;
-      radicado: number;
-      tipo: string;
-      pedido: string | null;
-      canal: string;
-      estado: string;
-      creada: string;
-      vence: string;
-      respondida: string | null;
-      cerrada: string | null;
-    } & Sobre)[];
-  };
-  /** Las DEK de `datos_personales` e `indices`, envueltas por la KEK (`kekId`) como en la base. */
-  llaves: {
-    proposito: string;
-    version: number;
-    envuelta: string;
-    kekId: string;
-    creada: string;
-    retirada: string | null;
-  }[];
+  /** Las filas de cada tabla, como están en la base: lo que se restaura. */
+  filas: Filas;
   /** Lo que la base tenía al respaldar; el archivo tiene que decir lo mismo. */
   recuentos: Recuentos;
 }
@@ -104,6 +111,50 @@ const enBase64 = (b: ArrayBuffer | Uint8Array | number[]) => {
   for (const x of bytes) s += String.fromCharCode(x);
   return btoa(s);
 };
+
+/** D1 devuelve un BLOB como `ArrayBuffer` o, según el runtime, como una lista de bytes. */
+const esBytes = (v: unknown): v is ArrayBuffer | Uint8Array | number[] =>
+  v instanceof ArrayBuffer || v instanceof Uint8Array || Array.isArray(v);
+
+/**
+ * Las filas de cada tabla de la tienda, como están en la base. Las llaves de las credenciales no
+ * salen. Lo usan el respaldo y la restauración, que compara las huellas tabla por tabla (HU-T17.4).
+ */
+export async function filasDeLaTienda(db: BaseD1, org: string): Promise<Filas> {
+  const leidas = await Promise.all(
+    TABLAS_DEL_RESPALDO.map(([tabla, orden]) =>
+      db
+        .prepare(
+          `SELECT * FROM ${tabla} WHERE org_id = ?${tabla === 'llave' ? " AND proposito <> 'credenciales'" : ''} ORDER BY ${orden}`,
+        )
+        .bind(org)
+        .all<Record<string, unknown>>(),
+    ),
+  );
+  return Object.fromEntries(
+    TABLAS_DEL_RESPALDO.map(([tabla], i) => [
+      tabla,
+      (leidas[i]?.results ?? []).map((f) =>
+        Object.fromEntries(
+          Object.entries(f).map(([k, v]) => [
+            k,
+            esBytes(v) ? { b64: enBase64(v) } : (v as string | number | null),
+          ]),
+        ),
+      ),
+    ]),
+  ) as Filas;
+}
+
+/** La huella de cada tabla: dos tiendas con las mismas filas dan las mismas huellas. */
+export async function huellasDeLasFilas(f: Filas): Promise<Record<TablaDelRespaldo, string>> {
+  const pares = await Promise.all(
+    TABLAS_DEL_RESPALDO.map(
+      async ([tabla]) => [tabla, await sha256(JSON.stringify(f[tabla]))] as const,
+    ),
+  );
+  return Object.fromEntries(pares) as Record<TablaDelRespaldo, string>;
+}
 
 /** La fecha del respaldo en Bogotá (UTC−5, sin horario de verano): `AAAA-MM-DD`. */
 export const fechaDeRespaldo = (instante: number) =>
@@ -160,11 +211,11 @@ async function recuentosDeLaBase(db: BaseD1, org: string): Promise<Recuentos> {
 
 /** Lo que dice el archivo, contado igual que la base. */
 export const recuentosDelRespaldo = (r: Omit<Respaldo, 'recuentos'>): Recuentos => ({
-  productos: r.tienda.productos.length,
-  pedidos: r.pedidos.pedidos.length,
-  lineas: r.pedidos.lineas.length,
-  contactos: r.sobres.contactos.length,
-  solicitudes: r.sobres.solicitudes.length,
+  productos: r.filas.producto.filter((p) => p['borrado'] === null).length,
+  pedidos: r.filas.pedido.length,
+  lineas: r.filas.pedido_linea.length,
+  contactos: r.filas.pedido_contacto.length,
+  solicitudes: r.filas.solicitud.length,
 });
 
 export class RespaldoQueNoCuadra extends Error {}
@@ -183,103 +234,12 @@ export async function respaldarTienda(
     { medios, datosPersonales: false, kek: null, sinAnotar: true },
   );
   if (!('formato' in tienda)) throw new RespaldoQueNoCuadra(tienda.motivo);
-  const [pedidos, lineas, contactos, solicitudes, llaves] = await Promise.all([
-    db
-      .prepare('SELECT * FROM pedido WHERE org_id = ? ORDER BY creado, codigo')
-      .bind(org)
-      .all<Record<string, unknown>>(),
-    db
-      .prepare('SELECT * FROM pedido_linea WHERE org_id = ? ORDER BY pedido_id, linea')
-      .bind(org)
-      .all<Record<string, unknown>>(),
-    db
-      .prepare(
-        `SELECT c.pedido_id, p.codigo, c.sobre, c.iv, c.llave_version, c.celular_indice, c.creado,
-                c.purgar_despues
-           FROM pedido_contacto c JOIN pedido p ON p.org_id = ? AND p.id = c.pedido_id
-          WHERE c.org_id = ? ORDER BY p.codigo`,
-      )
-      .bind(org, org)
-      .all<{
-        pedido_id: string;
-        codigo: string;
-        sobre: ArrayBuffer;
-        iv: ArrayBuffer;
-        llave_version: number;
-        celular_indice: string | null;
-        creado: string;
-        purgar_despues: string;
-      }>(),
-    db
-      .prepare(
-        `SELECT s.id, s.radicado, s.tipo, p.codigo AS pedido, s.canal, s.estado, s.sobre, s.iv,
-                s.llave_version, s.creada, s.vence, s.respondida, s.cerrada
-           FROM solicitud s LEFT JOIN pedido p ON p.org_id = ? AND p.id = s.pedido_id
-          WHERE s.org_id = ? ORDER BY s.radicado`,
-      )
-      .bind(org, org)
-      .all<{
-        id: string;
-        radicado: number;
-        tipo: string;
-        pedido: string | null;
-        canal: string;
-        estado: string;
-        sobre: ArrayBuffer;
-        iv: ArrayBuffer;
-        llave_version: number;
-        creada: string;
-        vence: string;
-        respondida: string | null;
-        cerrada: string | null;
-      }>(),
-    db
-      .prepare(
-        `SELECT proposito, version, envuelta, kek_id, creada, retirada FROM llave
-          WHERE org_id = ? AND proposito IN ('datos_personales', 'indices') ORDER BY proposito, version`,
-      )
-      .bind(org)
-      .all<{
-        proposito: string;
-        version: number;
-        envuelta: ArrayBuffer;
-        kek_id: string;
-        creada: string;
-        retirada: string | null;
-      }>(),
-  ]);
   const sinRecuentos: Omit<Respaldo, 'recuentos'> = {
     formato: FORMATO_DE_RESPALDO,
     org,
     hecho,
     tienda,
-    pedidos: { pedidos: pedidos.results, lineas: lineas.results },
-    sobres: {
-      contactos: contactos.results.map((c) => ({
-        pedidoId: c.pedido_id,
-        codigo: c.codigo,
-        sobre: enBase64(c.sobre),
-        iv: enBase64(c.iv),
-        llaveVersion: c.llave_version,
-        celularIndice: c.celular_indice,
-        creado: c.creado,
-        purgarDespues: c.purgar_despues,
-      })),
-      solicitudes: solicitudes.results.map(({ sobre, iv, llave_version, ...s }) => ({
-        ...s,
-        sobre: enBase64(sobre),
-        iv: enBase64(iv),
-        llaveVersion: llave_version,
-      })),
-    },
-    llaves: llaves.results.map((l) => ({
-      proposito: l.proposito,
-      version: l.version,
-      envuelta: enBase64(l.envuelta),
-      kekId: l.kek_id,
-      creada: l.creada,
-      retirada: l.retirada,
-    })),
+    filas: await filasDeLaTienda(db, org),
   };
   const enLaBase = await recuentosDeLaBase(db, org);
   const enElArchivo = recuentosDelRespaldo(sinRecuentos);

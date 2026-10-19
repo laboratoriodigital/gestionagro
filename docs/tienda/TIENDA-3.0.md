@@ -1369,6 +1369,8 @@ Se escriben con el hito que los necesita:
 
 ---
 
+*(Hoy, HU-T17.4: el respaldo es `tienda-respaldo/2`, con las filas de cada tabla como están en la base, y se restaura uniendo lo que falta sin reemplazar lo presente. El simulacro de staging es el flujo `simulacro-restauracion-tienda`; el paso a paso, `docs/runbooks/tienda-restaurar.md`.)*
+
 ## 16. Calidad y pruebas
 
 - **Siempre dos comercios de prueba, con datos distintos (P4):**

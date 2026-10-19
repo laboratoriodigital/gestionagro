@@ -936,3 +936,27 @@ Mientras tanto, el paso de la Tienda del despliegue de staging queda en rojo con
 La regla: **el horno se mide en CPU con la tienda más grande que se va a vender, antes de decir que cabe en una solicitud.**
 
 *Ficha:* tienda3 · *(mío)* · 🔴 Alto · P17, P16 · tienda-0.1.0 · 2026-10-19
+
+**32 · El respaldo semanal no se podía restaurar: los pedidos quedaban sin su combinación.**
+
+*Qué pasó.* El 19 oct 2026, al escribir el simulacro de restauración (HU-T17.4), antes de que hiciera falta restaurar nada. El respaldo de HU-T17.3 ya corría cada semana en producción, sin tiendas reales todavía.
+
+*Síntoma literal.* Sin reproducir en una restauración: se vio leyendo el código. La carga de un `tienda-export/1` le pone a cada producto el id `imp-p-<ref>` y a cada combinación `imp-v-<ref>-<clave>` (`importar.ts`), y las líneas de los pedidos respaldados nombran los ids de antes.
+
+*Causa raíz.* El respaldo llevaba el catálogo como «Descargar todo», que sirve para llevarse la tienda a otro lado, y los pedidos como filas de la base. Son dos formatos que no se encuentran: en una base vacía, las líneas de los pedidos no tienen a qué combinación apuntar y la llave foránea las rechaza. HU-T17.3 probó que el archivo cuadra con la base y que sus sobres se abren, pero no que vuelve a ser una tienda (P16: un flujo que nunca ha corrido de verdad no está probado).
+
+*Cómo se reprodujo.* No hizo falta: el simulacro se escribió con las filas tal como están.
+
+*Arreglo.*
+
+- **`tienda-respaldo/2`:** las filas de cada tabla de la tienda tal como están en la base (`TABLAS_DEL_RESPALDO`, en el orden en que se restauran), los bytes en base64. La exportación sigue en el archivo, para leerlo sin la base. Las llaves de las credenciales siguen sin viajar.
+- **Restaurar une, no reemplaza:** cada fila con `ON CONFLICT DO NOTHING`. Las columnas que llevan los triggers (`producto.combinaciones`, `variante.reservado`) entran en cero y los triggers las cuentan al entrar cada combinación y cada apartado: copiadas, se contaban dos veces y el `CHECK` de lo apartado fallaba. Los consecutivos quedan por encima de lo restaurado.
+- **El simulacro en staging** lee a Ensayo Uno por la API de D1, lo restaura en una base nueva y compara las huellas tabla por tabla. Staging no tiene cron y no tiene respaldos: el simulacro arma el suyo con la misma función.
+
+*Lo que falta.* Correr el flujo en staging (dueño). Los respaldos de la versión 1 que haya en producción no se restauran: no hay tiendas reales, y el script los rechaza diciéndolo. Con la tienda llena, el respaldo y el simulacro leen el doble que antes: el tope de lecturas de la tarea semanal (50.000) se sigue cumpliendo.
+
+**Lo prueba** `respaldos.test.ts`: en un shard vacío, las huellas de las 25 tablas salen iguales y el contacto se abre con la KEK; sobre la tienda con un pedido nuevo y un producto cambiado, vuelve lo que faltaba y lo presente se queda; restaurar dos veces no cambia nada; un respaldo de la versión 1 o con filas de otra tienda no se restaura. `tests/repo/tienda-simulacro.test.ts`: el simulacro contra una API de D1 de mentira, que también borra su base cuando algo falla. Control negativo: con `INSERT OR REPLACE` y copiando lo que cuentan los triggers, rojo.
+
+La regla: **un respaldo se prueba restaurándolo, en una base vacía y sobre la tienda viva, antes de que haga falta.**
+
+*Ficha:* tienda3 · *(mío)* · 🔴 Alto · P16, P21 · tienda-0.1.0 · 2026-10-19

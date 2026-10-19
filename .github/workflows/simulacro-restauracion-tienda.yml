@@ -1,0 +1,35 @@
+# El simulacro de restauración (HU-T17.4 CA1, docs/runbooks/tienda-restaurar.md): Comercio Ensayo
+# Uno de staging, restaurado en una base vacía y comparado tabla por tabla. Solo a mano y solo en
+# staging. Crea su base y la borra al final, aunque falle; staging no se toca.
+name: simulacro-restauracion-tienda
+
+on:
+  workflow_dispatch:
+
+# Cancelarlo a mitad puede dejar su base tienda-simulacro-*: se borra a mano (el runbook dice cómo).
+concurrency:
+  group: simulacro-restauracion-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  simulacro:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+      - name: Restaurar a Ensayo Uno en una base vacía y comparar
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: node scripts/tienda/simulacro-de-restauracion.ts
