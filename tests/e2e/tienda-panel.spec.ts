@@ -49,6 +49,7 @@ const yo = (org: typeof UNO) => ({
   plan: org.plan,
   funciones: { productos: 15, cobro_en_linea: false },
   tienda: { slug: 'ensayo', nombre: org.nombre, estado: 'borrador' },
+  terminos: { aceptados: true },
 });
 
 /** El CORE falso: el inicio «vuelve de Google» con un código, el canje entrega `alCanjear`. */
@@ -188,6 +189,111 @@ test('HU-T8.1 · ❌ cambiar de tienda desde «Más» abre el inicio de la otra,
   await expect(page.getByRole('heading', { level: 1, name: 'Comercio Ensayo Dos' })).toBeVisible();
   expect(page.url()).toBe(`${PANEL}/`);
   await expect(page.locator('.barra')).toContainText('Colaborador');
+});
+
+/** HU-T7.2: los textos que da la API, con su huella; la casilla de la custodia es otra. */
+const HUELLA = 'c'.repeat(64);
+const terminosFalsos = (aceptados: boolean) => ({
+  fecha: '2026-10-19',
+  estado: 'borrador',
+  revision: 'requiere revisión de abogado',
+  terminos: {
+    cual: 'terminos',
+    version: '1',
+    aceptar:
+      'Acepto los términos del servicio y el contrato de transmisión de datos en nombre de esta tienda.',
+    secciones: [
+      [
+        'El dinero de tus ventas',
+        'Lo que tus compradores pagan en línea va directo a tu cuenta de Bold.',
+      ],
+      ['Encargado', 'Laboratorio Digital, identificación por completar.'],
+    ],
+    huella: HUELLA,
+    aceptados,
+  },
+  custodia: {
+    cual: 'custodia',
+    version: '1',
+    aceptar: 'Autorizo a Laboratorio Digital a guardar las llaves de Bold de esta tienda.',
+    secciones: [['Para qué se guardan tus llaves de Bold', 'Solo para tres cosas.']],
+    huella: 'd'.repeat(64),
+    aceptada: false,
+  },
+});
+
+test('HU-T7.2 · CA1: el propietario lee y acepta los términos antes que el resto del panel', async ({
+  page,
+}) => {
+  await coreFalso(page, sesion());
+  let aceptados = false;
+  const aceptaciones: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (ruta) =>
+    ruta.fulfill({ json: tableroVacio() }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/yo`, (ruta) =>
+    ruta.fulfill({ json: { ...yo(UNO), terminos: { aceptados } } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/terminos`, (ruta) =>
+    ruta.fulfill({ json: terminosFalsos(aceptados) }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/terminos/aceptar`, (ruta) => {
+    aceptaciones.push(ruta.request().postDataJSON() as Record<string, unknown>);
+    aceptados = true;
+    return ruta.fulfill({ json: { estado: 'guardado', id: 'terminos', version: 1 } });
+  });
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  const titulo = page.getByRole('heading', {
+    level: 1,
+    name: 'Términos del servicio de la Tienda',
+  });
+  await expect(titulo).toBeVisible();
+  await expect(page.getByText('Borrador: requiere revisión de abogado.')).toBeVisible();
+  await expect(page.getByText(/va directo a tu cuenta de Bold/)).toBeVisible();
+  // La casilla nunca viene marcada, y sin ella el botón no acepta.
+  const casilla = page.getByLabel(/Acepto los términos del servicio/);
+  await expect(casilla).not.toBeChecked();
+  const boton = page.getByRole('button', { name: 'Aceptar y seguir' });
+  await expect(boton).toBeDisabled();
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  // ❌ Ir a otra pantalla no los salta.
+  await page.getByRole('link', { name: 'Productos' }).click();
+  await expect(titulo).toBeVisible();
+  await page.getByLabel(/Acepto los términos del servicio/).check();
+  await page.getByRole('button', { name: 'Aceptar y seguir' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Productos' })).toBeVisible();
+  expect(aceptaciones).toHaveLength(1);
+  expect(aceptaciones[0]).toMatchObject({ cual: 'terminos', huella: HUELLA });
+  // Siguen a la mano en «Más», ya aceptados.
+  await page.getByRole('link', { name: 'Más' }).click();
+  await page.getByRole('link', { name: 'Términos del servicio' }).click();
+  await expect(page.getByText('Tu tienda ya los aceptó')).toBeVisible();
+});
+
+test('HU-T7.2 · el colaborador sigue trabajando, y el inicio dice quién los acepta', async ({
+  page,
+}) => {
+  await coreFalso(page, sesion({ organizaciones: [DOS], org_id: DOS.org_id }));
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (ruta) =>
+    ruta.fulfill({ json: tableroVacio() }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/yo`, (ruta) =>
+    ruta.fulfill({ json: { ...yo(DOS), terminos: { aceptados: false } } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/terminos`, (ruta) =>
+    ruta.fulfill({ json: terminosFalsos(false) }),
+  );
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await expect(page.getByRole('heading', { level: 1, name: 'Comercio Ensayo Dos' })).toBeVisible();
+  await expect(page.getByText('Faltan los términos del servicio')).toBeVisible();
+  await page.getByRole('link', { name: 'Leerlos' }).click();
+  await expect(page.getByText('Los acepta quien administra la tienda')).toBeVisible();
+  await expect(page.getByLabel(/Acepto los términos del servicio/)).toHaveCount(0);
 });
 
 test('HU-T8.1 · sin tiendas, lo dice sin error y ofrece entrar con otra cuenta', async ({

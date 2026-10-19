@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./comercio": "./src/comercio.ts",
     "./ensayos": "./src/ensayos.ts",
     "./medios": "./src/medios.ts",
     "./permisos": "./src/permisos.ts",

@@ -7,6 +7,7 @@ import type { BaseD1 } from '@ed1/d1';
 import { baseLocal } from '@ed1/d1/local';
 import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { conTerminosAceptados } from './terminos.fixture.ts';
 import { CABECERA_DESPACHO, crearApp, type Env } from './worker.ts';
 
 const SECRETO = 'secreto-de-prueba-del-despacho';
@@ -37,6 +38,8 @@ beforeAll(async () => {
       .bind(org, slug, nombre)
       .run();
   }
+  // HU-T7.2: estas pruebas publican; la aceptación de los términos la prueba terminos.test.ts.
+  await conTerminosAceptados(shard, [UNO, DOS], 'x');
   firmante = await firmanteDesde(await generarClavePrivada());
   otroFirmante = await firmanteDesde(await generarClavePrivada());
 }, 60_000);
@@ -97,6 +100,7 @@ describe('GET /api/panel/v1/yo, con el token del CORE (HU-T2.8)', () => {
       plan: 'gratis',
       funciones: expect.objectContaining({ productos: 15, cobro_en_linea: expect.any(Boolean) }),
       tienda: { slug: 'ensayo-uno', nombre: 'Comercio Ensayo Uno', estado: 'borrador' },
+      terminos: { aceptados: true },
     });
   });
 

@@ -281,12 +281,13 @@ describe('bitácora tienda3 26 ❌: las filas que lee el panel con la tienda lle
 });
 
 describe('bitácora tienda3 26 ❌: `producto.combinaciones` dice las activas de cada producto', () => {
+  // Con su índice: sin él, la cuenta recorre las 12.000 combinaciones por cada producto (bitácora 29).
   const desfasados = async () =>
     (
       await shard
         .prepare(
           `SELECT count(*) AS n FROM producto p WHERE p.org_id = ? AND p.combinaciones <> (
-             SELECT count(*) FROM variante v WHERE v.org_id = p.org_id AND v.producto_id = p.id AND v.activa = 1)`,
+             SELECT count(*) FROM variante v INDEXED BY variante_por_producto WHERE v.org_id = p.org_id AND v.producto_id = p.id AND v.activa = 1)`,
         )
         .bind(UNO)
         .first<{ n: number }>()

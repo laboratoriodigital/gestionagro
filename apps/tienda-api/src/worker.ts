@@ -131,6 +131,13 @@ import {
   seguirSolicitud,
 } from './solicitudes.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
+import {
+  aceptacionDe,
+  aceptar,
+  ESTADO_DEL_TEXTO,
+  SIN_TERMINOS,
+  textosVigentes,
+} from './terminos.ts';
 import { buscarTitular, corregirTitular, exportarTitular, suprimirTitular } from './titular.ts';
 import { borrarCupon, borrarEnvio, guardarCupon, guardarEnvio, listarVenta } from './venta.ts';
 
@@ -900,7 +907,33 @@ export function crearApp(
       plan: s.plan,
       funciones: s.plan ? funcionesDelPlan(funciones as unknown as FuncionesPorPlan, s.plan) : null,
       tienda: tienda ?? null,
+      // HU-T7.2 CA1: si falta aceptar los términos vigentes, el panel los pide antes de seguir.
+      terminos: { aceptados: (await aceptacionDe(s)).terminos.aceptados },
     });
+  });
+
+  /**
+   * HU-T7.2 y HU-T11.2: los textos que acepta el comercio, con su huella y si ya los aceptó. Los lee
+   * cualquiera del equipo; aceptarlos, solo el propietario, en nombre de la tienda.
+   */
+  app.get('/api/panel/v1/terminos', async (c) => {
+    const s = c.get('sesion');
+    const v = await textosVigentes();
+    const a = await aceptacionDe(s);
+    return c.json({
+      ...ESTADO_DEL_TEXTO,
+      terminos: { ...v.terminos, aceptados: a.terminos.aceptados },
+      custodia: { ...v.custodia, aceptada: a.custodia.aceptada },
+    });
+  });
+  app.post('/api/panel/v1/terminos/aceptar', async (c) => {
+    const q = quienPuede(
+      c,
+      'terminos.aceptar',
+      'Solo quien administra la tienda acepta los términos en su nombre.',
+    );
+    if (q instanceof Response) return q;
+    return responderCatalogo(c, await aceptar(q, await c.req.json().catch(() => null)));
   });
 
   // HU-T4.4: publicar. Lo decide la matriz de permisos (HU-T1.4), y `ks:tienda-horno` lo pausa
@@ -948,6 +981,7 @@ export function crearApp(
     if (decision !== 'permitido') {
       return c.json({ estado: decision, motivo: 'Tu rol no puede publicar la tienda.' }, 403);
     }
+    if (!(await aceptacionDe(s)).terminos.aceptados) return c.json(SIN_TERMINOS, 403);
     if (await hornoApagado(c)) {
       return c.json(
         {
@@ -1004,6 +1038,7 @@ export function crearApp(
         { estado: 'problemas', problemas: [{ campo: 'version', mensaje: 'falta la versión' }] },
         422,
       );
+    if (!(await aceptacionDe(s)).terminos.aceptados) return c.json(SIN_TERMINOS, 403);
     if (await hornoApagado(c))
       return c.json(
         {

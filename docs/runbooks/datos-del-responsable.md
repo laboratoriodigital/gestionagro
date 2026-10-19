@@ -20,6 +20,8 @@ Lo que está en `null` la página lo muestra como «por completar».
 
 **El parqueadero** tiene la suya: [`content/parqueadero/privacidad/politica.json`](../../content/parqueadero/privacidad/politica.json), con el mismo bloque `responsable`. De ahí toman los datos de Laboratorio Digital como encargado los términos de la nube y el contrato de transmisión que la caja muestra antes de entrar con la cuenta (`content/parqueadero/privacidad/terminos.json`, HU-Q7.11); lo que está en `null` sale como «por completar». Cambiar lo que esos términos prometen exige subir su `version`: las cajas los piden otra vez.
 
+**La Tienda** tiene la suya: [`content/tienda/privacidad/politica.json`](../../content/tienda/privacidad/politica.json), la de las cuentas del panel. De su bloque `responsable` salen también los datos de Laboratorio Digital como encargado en los términos del servicio y el contrato de transmisión que acepta cada comercio (`content/tienda/comercio/terminos.json`, HU-T7.2); lo que está en `null` sale como «por completar». Completar esos datos cambia la huella del texto: cada tienda los vuelve a aceptar al entrar al panel, y mientras tanto no publica ni conecta su cobro. Por eso conviene completarlos todos de una vez, antes de la primera tienda real.
+
 ## Cómo editarlo desde GitHub, sin instalar nada
 
 1. Abre el archivo en GitHub y toca el lápiz (**Edit this file**).

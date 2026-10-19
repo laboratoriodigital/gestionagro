@@ -259,6 +259,10 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('borr', 'aste', 'ó')} los datos de un comprador (${pedidosEn(despues['pedidos'])})`;
     case 'ajustes.whatsapp_verificado':
       return `${hizo('verific', 'aste', 'ó')} el WhatsApp de la tienda`;
+    case 'terminos.aceptar':
+      return `${hizo('acept', 'aste', 'ó')} los términos del servicio y el contrato de datos (versión ${despues['version']})`;
+    case 'custodia.aceptar':
+      return `${hizo('autoriz', 'aste', 'ó')} guardar las llaves de Bold de la tienda (versión ${despues['version']})`;
     default:
       return `${quien}: ${f.accion} (${f.entidad})`;
   }

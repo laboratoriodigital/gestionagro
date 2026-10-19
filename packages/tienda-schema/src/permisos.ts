@@ -7,7 +7,7 @@
  *
  * El colaborador hace todo lo del día a día, menos lo que decide a dónde llega la plata o quién
  * entra: cobro, dominio, equipo, plan, exportar datos personales, los derechos del titular y el
- * modo de pedido (TIENDA-3.0 §12.1).
+ * modo de pedido (TIENDA-3.0 §12.1). Tampoco acepta los términos en nombre de la tienda (HU-T7.2).
  */
 import type { Seccion } from './secciones.ts';
 
@@ -43,6 +43,7 @@ export const ACCIONES = [
   'importar',
   'equipo.gestionar',
   'plan.gestionar',
+  'terminos.aceptar',
 ] as const;
 export type Accion = (typeof ACCIONES)[number];
 
@@ -56,6 +57,8 @@ const SOLO_PROPIETARIO: ReadonlySet<Accion> = new Set<Accion>([
   'importar',
   'equipo.gestionar',
   'plan.gestionar',
+  // HU-T7.2: los términos del servicio y la custodia de las llaves se aceptan en nombre de la tienda.
+  'terminos.aceptar',
 ]);
 
 export const MATRIZ: Readonly<Record<Accion, readonly Rol[]>> = Object.fromEntries(

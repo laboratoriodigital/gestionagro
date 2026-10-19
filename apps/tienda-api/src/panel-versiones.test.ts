@@ -16,6 +16,7 @@ import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { crearDespacho, type Env as EnvDelSitio } from '../../tienda-sitio/src/worker.ts';
 import { type Almacen, publicar } from './publicar.ts';
+import { conTerminosAceptados } from './terminos.fixture.ts';
 import { CABECERA_DESPACHO, crearApp, type Env } from './worker.ts';
 
 const SECRETO = 'secreto-de-prueba-de-las-versiones';
@@ -77,6 +78,8 @@ beforeAll(async () => {
     await control.prepare(sql.replace(/;$/, '')).run();
   for (const sql of siembraDelShard([ENSAYO_UNO, ENSAYO_DOS], AHORA))
     await shard.prepare(sql.replace(/;$/, '')).run();
+  // HU-T7.2: estas pruebas vuelven a versiones; la aceptación la prueba terminos.test.ts.
+  await conTerminosAceptados(shard, [ENSAYO_UNO.org, ENSAYO_DOS.org], AHORA);
   firmante = await firmanteDesde(await generarClavePrivada());
 }, 120_000);
 afterAll(async () => {

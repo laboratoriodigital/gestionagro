@@ -9,6 +9,7 @@
  * - Si la sesión vence (401 aun renovando), aparece «vuelve a entrar» encima de lo que se estaba
  *   haciendo, sin navegar ni recargar (CA2); los formularios guardan su borrador.
  */
+import { puede } from '@ed1/tienda-schema/permisos';
 import { Aviso } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
@@ -49,6 +50,7 @@ import { Recaudos } from './vistas/Recaudos.tsx';
 import { Registro } from './vistas/Registro.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
 import { Solicitud, Solicitudes } from './vistas/Solicitudes.tsx';
+import { Terminos } from './vistas/Terminos.tsx';
 import { Titular } from './vistas/Titular.tsx';
 import { Unirme } from './vistas/Unirme.tsx';
 import { CuponDeLaTienda, EnvioDeLaTienda, Venta } from './vistas/Venta.tsx';
@@ -209,6 +211,21 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         </button>
       </main>
     );
+  // HU-T7.2 CA1: sin los términos vigentes, el propietario los ve antes que el resto del panel.
+  else if (
+    yo.datos.terminos?.aceptados === false &&
+    puede(yo.datos.rol, 'terminos.aceptar') &&
+    ruta !== '/mas/terminos/'
+  )
+    cuerpo = (
+      <Terminos
+        conexion={conexion}
+        rol={yo.datos.rol}
+        pedir
+        alAceptar={() => void preguntar()}
+        alVencer={setVencida}
+      />
+    );
   else if (ruta === '/')
     cuerpo = <Inicio yo={yo.datos} conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/pedidos/') cuerpo = <Bandeja conexion={conexion} alVencer={setVencida} />;
@@ -314,7 +331,17 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         alVencer={setVencida}
       />
     );
-  } else if (ruta === '/mas/registro/')
+  } else if (ruta === '/mas/terminos/')
+    cuerpo = (
+      <Terminos
+        conexion={conexion}
+        rol={yo.datos.rol}
+        pedir={false}
+        alAceptar={() => void preguntar()}
+        alVencer={setVencida}
+      />
+    );
+  else if (ruta === '/mas/registro/')
     cuerpo = <Registro conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/mas/datos/')
     cuerpo = <Datos conexion={conexion} rol={yo.datos.rol} alVencer={setVencida} />;

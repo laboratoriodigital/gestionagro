@@ -152,6 +152,12 @@ export function Inicio({
   return (
     <main class="contenido">
       <h1>{yo.tienda?.nombre ?? 'Tu tienda'}</h1>
+      {yo.terminos?.aceptados === false ? (
+        <Aviso tono="aviso" titulo="Faltan los términos del servicio">
+          Quien administra la tienda tiene que aceptarlos para publicar o cobrar en línea.{' '}
+          <a href="/mas/terminos/">Leerlos</a>
+        </Aviso>
+      ) : null}
       {yo.tienda?.estado === 'borrador' ? (
         <Aviso tono="info" titulo="Tu tienda todavía no está publicada">
           Los compradores la verán cuando la publiques.

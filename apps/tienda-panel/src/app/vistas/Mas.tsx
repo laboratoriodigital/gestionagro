@@ -53,6 +53,9 @@ export function Mas({
           </li>
         ) : null}
         <li>
+          <a href="/mas/terminos/">Términos del servicio</a>
+        </li>
+        <li>
           <a href="/privacidad/">Política de tratamiento de datos</a>
         </li>
       </ul>
