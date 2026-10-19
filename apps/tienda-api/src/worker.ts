@@ -208,6 +208,7 @@ export interface Env {
   LIMITE_SEGUIMIENTO?: Limitador;
   LIMITE_SOLICITUDES?: Limitador;
   LIMITE_COBROS?: Limitador;
+  LIMITE_AVISOS?: Limitador;
   /** Un binding D1 por shard, con el nombre del shard, y `tienda_control`. */
   [base: string]: unknown;
 }
@@ -746,6 +747,11 @@ export function crearApp(
   app.post('/api/v1/avisos/bold', async (c) => {
     const destino = tiendaDelDespacho(c);
     if (!destino) return c.json(NO_EXISTE, 404);
+    // HU-T11.11: el tope por IP, antes de leer el cuerpo. Un 429 Bold lo reintenta después.
+    if (!(await dentroDelLimite(c, c.env.LIMITE_AVISOS, 'LIMITE_AVISOS'))) {
+      c.header('retry-after', '60');
+      return c.json({ resultado: 'limite' }, 429);
+    }
     try {
       const r = await recibirAvisoDeBold(
         {

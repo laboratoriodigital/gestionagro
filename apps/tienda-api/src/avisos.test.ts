@@ -590,3 +590,26 @@ describe('el cobro de prueba guiado (HU-T11.3 CA1)', () => {
     expect(await prueba()).toEqual({ prueba_aprobada: null, prueba_cobro: null });
   });
 });
+
+describe('❌ el tope por IP de los avisos (HU-T11.11)', () => {
+  it('pasado el tope responde 429 antes de leer el cuerpo, y no escribe nada', async () => {
+    const filas = await n('SELECT COUNT(*) AS n FROM aviso_proveedor WHERE org_id = ?', UNO);
+    const cuerpo = avisoDe('SALE_APPROVED', 'ZZZZZZ-1');
+    const r = await crearApp({ ahora: () => Date.parse(AHORA) }).request(
+      `https://${HOST}/api/v1/avisos/bold`,
+      {
+        method: 'POST',
+        body: cuerpo,
+        headers: {
+          [CABECERA_DESPACHO]: SECRETO,
+          [CABECERA_TIENDA]: JSON.stringify({ org: UNO, shard: 'tienda_c1_s1' }),
+          'x-bold-signature': firmar(cuerpo),
+        },
+      },
+      { ...env(), LIMITE_AVISOS: { limit: async () => ({ success: false }) } },
+    );
+    expect(r.status).toBe(429);
+    expect(r.headers.get('retry-after')).toBe('60');
+    expect(await n('SELECT COUNT(*) AS n FROM aviso_proveedor WHERE org_id = ?', UNO)).toBe(filas);
+  });
+});

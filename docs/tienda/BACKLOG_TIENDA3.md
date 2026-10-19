@@ -1162,7 +1162,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T11.10.1 `[prueba]` · WI-T11.10.2 `[doc]` resultados en la bitácora.
 
 #### HU-T11.11 · La revisión de seguridad antes del primer cobro real
-- **Capa:** seguridad · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T14 · **Depende de:** HU-T11.10 · **Estado:** Refinada
+- **Capa:** seguridad · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T14 · **Depende de:** HU-T11.10 · **Estado:** En validación (rama `feat/t14-sprint`. `docs/seguridad/revision-tienda-2026-10-19.md`: la tabla de TIENDA §14.1 contra lo construido, con el control y la prueba de cada amenaza (CA1). Ocho hallazgos: el tope de cobros que no aguantaba la concurrencia, los avisos sin tope por IP (ahora `LIMITE_AVISOS`, 60 por minuto, antes de leer el cuerpo), la franja «en pruebas» con cobro de verdad, las releases viejas sin servir y dos dependencias del build, todos remediados; la regla de límite de la zona, pendiente del dueño; dos bajos aceptados. CA2: ningún hallazgo alto abierto en lo construido; la toma de subdominios y la suspensión con un clic tienen su historia en M4, y los agentes en M7. Falta, del dueño: la regla de *Rate limiting* de la zona antes de la primera tienda real)
 - Como dueño, quiero que alguien busque los huecos antes de guardar llaves y datos de comercios reales.
 - **Respaldo:** análisis de integración §8 («revisión de seguridad antes del primer cobro real»); TIENDA §14.1; `docs/seguridad/`.
 - **CA1.** La tabla de amenazas de TIENDA §14.1 contra lo construido, con cada hallazgo, su arreglo y su prueba en `docs/seguridad/`.
@@ -1599,6 +1599,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | Poner la regla de ciclo de vida de 7 días a `exportaciones/` en `tienda-c1` y `tienda-c1-staging` | T10 | HU-T17.2: `docs/runbooks/tienda-ciclo-de-vida.md`. Antes de que el panel ofrezca «Descargar todo» (HU-T10.7) |
 | Escribir a Bold por un esquema para plataformas | T12 | PLATAFORMA §9.7 (soporte.online@bold.co) |
 | Llaves de pruebas de Bold para un comercio de prueba | Al terminar T14 | El dueño las tiene (19 oct 2026). Se pegan en el panel de staging de **Ensayo Dos**, en Más › Cobro en línea; nunca en un chat, un archivo ni un secreto de GitHub. Ensayo Uno lleno no se publica en staging hasta Workers Paid (bitácora tienda3 31) |
+| La regla de *Rate limiting* de la zona `laboratorio-digital.app`: `/api/v1/*`, 60 solicitudes en 10 s por IP, bloquear 10 minutos | Antes de la primera tienda real | HU-T11.11, hallazgo 6 de `docs/seguridad/revision-tienda-2026-10-19.md` (y 4 de la revisión del 3 oct). Cloudflare › la zona › Security › WAF › Rate limiting rules |
 | Correr la carga de staging (`carga-staging-tienda`) y el simulacro de restauración (`simulacro-restauracion-tienda`) | Antes de la primera tienda real | HU-T11.10 y HU-T17.4: Actions › el flujo › Run workflow. Si falla, el resumen dice qué; se anota en la bitácora de la Tienda |
 | Fijar los umbrales de validación | Antes de la primera tienda real | HU-T0.3: `content/tienda/validacion.json` trae la propuesta del 19 oct 2026; se cambia lo que haga falta y se pone `"estado": "fijada"` con la fecha |
 | Acordar con cada comercio la fecha de su corte | T15 | HU-T12.7 y HU-T12.8 |

@@ -1211,6 +1211,8 @@ Sin contador ni abogado por ahora (decisión 5 del dueño): **cada obligación l
 | Cuenta de Cloudflare o GitHub comprometida | Segundo factor, tokens con alcance mínimo por propósito, recuperación aparte (`PLATAFORMA.md` §3.5) | Revisión trimestral de tokens |
 | Inyección de instrucciones a agentes | `PLATAFORMA.md` §5.7 | — |
 
+*(Hoy, HU-T11.11: la revisión contra lo construido está en `docs/seguridad/revision-tienda-2026-10-19.md`, con cada control y su prueba. La toma de subdominios y la suspensión con un clic llegan con M4; los agentes, con M7.)*
+
 **Turnstile no es la defensa principal.** El plan gratuito admite 10 hostnames por widget, y «cualquier hostname» es de Enterprise (investigación de la cuenta). Con dominios de comercios no escala. Se usa solo en `panel.` y en el alta de tiendas.
 
 ### 14.2 Cifrado

@@ -87,6 +87,14 @@
         "limit": 3,
         "period": 60
       }
+    },
+    {
+      "name": "LIMITE_AVISOS",
+      "namespace_id": "3007",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
     }
   ],
   "observability": {
@@ -175,6 +183,14 @@
           "namespace_id": "3106",
           "simple": {
             "limit": 3,
+            "period": 60
+          }
+        },
+        {
+          "name": "LIMITE_AVISOS",
+          "namespace_id": "3107",
+          "simple": {
+            "limit": 60,
             "period": 60
           }
         }
