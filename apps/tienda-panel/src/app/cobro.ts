@@ -28,6 +28,13 @@ export interface CobroDelPanel {
   ambiente: Ambiente;
   llaves: Record<Ambiente, { identidad: LlaveVista | null; secreta: LlaveVista | null }>;
   faltan: string[];
+  /** HU-T11.3: el cobro de prueba guiado. */
+  prueba: {
+    aprobada: string | null;
+    ultimo: { id: string; estado: string; creado: string } | null;
+  };
+  /** La dirección que el comercio pega en Bold para los avisos (TIENDA §9.4). */
+  avisos: string | null;
 }
 
 export const leerCobro = (c: Conexion) => pedirAlPanel<CobroDelPanel>(c, 'cobro');
@@ -47,10 +54,14 @@ export const probarLlaves = (c: Conexion, ambiente: Ambiente) =>
     { cuerpo: { ambiente } },
   );
 
+/** El día de un instante en Bogotá (UTC−5, sin horario de verano), en palabras. */
+export const diaEnBogota = (iso: string) =>
+  fechaLegible(new Date(Date.parse(iso) - 5 * 3_600_000).toISOString().slice(0, 10));
+
 /** Las llaves de un ambiente, dichas para el comercio: cuáles están y si Bold las reconoció. */
 export function llavesEnPalabras(
   l: CobroDelPanel['llaves'][Ambiente],
-  dia: (iso: string) => string = (iso) => fechaLegible(iso.slice(0, 10)),
+  dia: (iso: string) => string = diaEnBogota,
 ): string {
   if (!l.identidad && !l.secreta) return 'Sin llaves.';
   const partes: string[] = [];
@@ -65,6 +76,38 @@ export function llavesEnPalabras(
   } else partes.push('Falta la de identidad.');
   partes.push(l.secreta ? `La secreta termina en ${l.secreta.fin}.` : 'Falta la secreta.');
   return partes.join(' ');
+}
+
+/**
+ * HU-T11.3: en qué va la prueba, en palabras. Aprobada por la consulta y sin aviso es la señal de
+ * que la dirección de los avisos en Bold está mal: el pago funcionó, el aviso no llegó.
+ */
+export function pruebaEnPalabras(p: CobroDelPanel['prueba']): {
+  tono: 'exito' | 'aviso' | 'info';
+  texto: string;
+} {
+  if (p.aprobada)
+    return {
+      tono: 'exito',
+      texto: `Bold aprobó tu cobro de prueba y avisó el ${diaEnBogota(p.aprobada)}: tu llave secreta y los avisos funcionan.`,
+    };
+  const u = p.ultimo;
+  if (!u) return { tono: 'info', texto: 'Todavía no has hecho el cobro de prueba.' };
+  if (u.estado === 'aprobado' || u.estado === 'aprobado_sin_existencias')
+    return {
+      tono: 'aviso',
+      texto:
+        'Tu pago de prueba se aprobó, pero el aviso de Bold no llegó. Revisa en tu cuenta de Bold la dirección de los avisos (paso 2) y haz otro pago de prueba.',
+    };
+  if (u.estado === 'esperando')
+    return {
+      tono: 'info',
+      texto: 'Tu pago de prueba está en curso. Cuando Bold avise, lo verás aquí.',
+    };
+  return {
+    tono: 'aviso',
+    texto: `Tu último pago de prueba quedó ${u.estado === 'rechazado' ? 'rechazado' : 'sin terminar'}: inténtalo otra vez.`,
+  };
 }
 
 /** «la llave de identidad de pruebas y la llave secreta de pruebas». */

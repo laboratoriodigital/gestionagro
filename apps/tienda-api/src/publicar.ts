@@ -32,6 +32,7 @@ import {
   type TiendaParaHornear,
 } from '@ed1/tienda-horno';
 import { leerFormatos, type Seccion, validarSeccion } from '@ed1/tienda-schema';
+import { estadoDeLaPrueba } from './llaves-de-bold.ts';
 import { anotar } from './registro.ts';
 
 /** Lo que la publicación usa de un bucket R2. */
@@ -263,6 +264,9 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     const ajustes = Object.fromEntries(filasAjuste.map((f) => [f.seccion, seccion(f)])) as Partial<
       Record<Seccion, Record<string, unknown>>
     >;
+    const enLinea = ajustes.venta?.['modo'] === 'en_linea' || ajustes.venta?.['modo'] === 'ambos';
+    const ambienteDelCobro: 'pruebas' | 'produccion' =
+      ajustes.cobro?.['ambiente'] === 'produccion' ? 'produccion' : 'pruebas';
     const { results: productos } = await c.shard
       .prepare(
         `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, actualizado, seo
@@ -427,12 +431,32 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       legal: datosLegales,
       productos: paraHornear,
       colecciones: [...porColeccion].map(([slug, col]) => ({ slug, ...col })),
-      // HU-T11.4: el carrito ofrece pagar en línea. La compuerta no lo publica así todavía (HU-T11.3).
-      ...(ajustes.venta?.['modo'] === 'en_linea' || ajustes.venta?.['modo'] === 'ambos'
-        ? { cobroEnLinea: true }
+      // HU-T11.4: el carrito ofrece pagar en línea; HU-T11.3: en pruebas, la franja lo dice.
+      ...(enLinea
+        ? {
+            cobroEnLinea: true,
+            ...(ambienteDelCobro === 'pruebas' ? { cobroEnPruebas: true } : {}),
+          }
         : {}),
     };
     const archivos = await hornear(datos);
+    // HU-T11.3: lo que la compuerta pide para ofrecer el pago en línea.
+    const cobroParaLaCompuerta = enLinea
+      ? {
+          ambiente: ambienteDelCobro,
+          llaves:
+            (
+              await c.shard
+                .prepare(
+                  `SELECT count(*) AS n FROM credencial WHERE org_id = ? AND proveedor = 'bold'
+                    AND ambiente = ? AND campo IN ('identidad', 'secreta')`,
+                )
+                .bind(c.org, ambienteDelCobro)
+                .first<{ n: number }>()
+            )?.n === 2,
+          pruebaAprobada: (await estadoDeLaPrueba(c.shard, c.org)).aprobada !== null,
+        }
+      : undefined;
     const revision = compuerta({
       ajustes,
       productos: productos.map(
@@ -453,6 +477,7 @@ export async function publicar(c: Contexto): Promise<Resultado> {
         plazoDias: Math.max(e.dias_min ?? 0, e.dias_max ?? 0),
         texto: plazoDelEnvio(e.dias_min, e.dias_max),
       })),
+      ...(cobroParaLaCompuerta ? { cobro: cobroParaLaCompuerta } : {}),
       ...(c.omitir ? { omitir: c.omitir } : {}),
     });
     if (!revision.ok) {
@@ -468,6 +493,10 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     return await fallar(e instanceof Error ? e.message : String(e));
   }
 }
+
+/** HU-T11.3: en qué ambiente cobra lo que se hornea; el cobro usa el de la versión publicada. */
+const cobroDe = (t: TiendaParaHornear) =>
+  t.cobroEnLinea ? (t.cobroEnPruebas ? 'pruebas' : 'produccion') : 'ninguno';
 
 /**
  * Pasos 4 a 7: subir lo nuevo, guardar el manifiesto y lo horneado, y apuntar las direcciones.
@@ -605,9 +634,9 @@ async function entregar(
       .bind(c.org),
     c.shard
       .prepare(
-        "UPDATE publicacion SET estado = 'publicada', archivos = ?, bytes = ?, huella = ?, publicada = ? WHERE org_id = ? AND version = ?",
+        "UPDATE publicacion SET estado = 'publicada', archivos = ?, bytes = ?, huella = ?, publicada = ?, cobro_ambiente = ? WHERE org_id = ? AND version = ?",
       )
-      .bind(archivos.size, bytes, m.huella, c.ahora, c.org, version),
+      .bind(archivos.size, bytes, m.huella, c.ahora, cobroDe(h.datos), c.org, version),
     c.shard
       .prepare('UPDATE tienda SET version_publicada = ? WHERE org_id = ?')
       .bind(version, c.org),

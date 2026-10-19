@@ -34,6 +34,7 @@ import {
   SI_CAMBIO,
   yaAplicada,
 } from './catalogo.ts';
+import { motivoParaNoCobrarDeVerdad } from './llaves-de-bold.ts';
 import { anotar } from './registro.ts';
 import { acortarConservacion, mesesDe } from './titular.ts';
 
@@ -154,6 +155,16 @@ export async function guardarAjuste(
 
   const v = validarSeccion(d.seccion, nuevos);
   if (!v.ok) return { estado: 'problemas', problemas: v.problemas };
+  // HU-T11.3 CA3: a producción, solo con el cobro de prueba aprobado y las llaves de producción.
+  if (
+    d.seccion === 'cobro' &&
+    v.datos['ambiente'] === 'produccion' &&
+    antes['ambiente'] !== 'produccion'
+  ) {
+    const motivo = await motivoParaNoCobrarDeVerdad(q.db, q.org);
+    if (motivo)
+      return { estado: 'problemas', problemas: [{ campo: 'cobro.ambiente', mensaje: motivo }] };
+  }
 
   const r: Resultado = { estado: 'guardado', id: d.seccion, version: d.version + 1 };
   // HU-T7.3 CA2: bajar los meses de conservación acorta también los contactos que ya están.

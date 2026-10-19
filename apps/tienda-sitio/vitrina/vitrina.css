@@ -73,6 +73,16 @@ h1 {
 }
 
 /* --- Franja y pie ---------------------------------------------------------------------------- */
+/* HU-T11.3 CA2: la tienda cobra en el ambiente de pruebas de Bold; arriba de todo, en cada página. */
+.en-pruebas {
+  margin: 0;
+  padding: var(--espacio-2) max(1rem, (100% - 72rem) / 2);
+  border-bottom: 2px solid var(--aviso);
+  background: color-mix(in srgb, var(--aviso) 12%, var(--superficie));
+  color: var(--texto);
+  font-size: var(--texto-pequeno);
+  font-weight: var(--peso-fuerte);
+}
 .franja {
   position: sticky;
   top: 0;

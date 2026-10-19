@@ -5,7 +5,8 @@
  *
  * Las comprobaciones de §10.2, y en qué estado está cada una:
  * 1. ficha legal completa, y 4. WhatsApp verificado: `faltantes()` de `@ed1/tienda-schema`; el
- *    pago en línea se ofrece cuando exista el cobro (M3), y mientras tanto detiene;
+ *    pago en línea pide las llaves de Bold del ambiente en que cobra y, para cobrar de verdad, el
+ *    cobro de prueba aprobado (HU-T11.3);
  * 2. ningún texto visible con `[`, `{{`, `undefined` o `NaN`;
  * 3. al menos un producto activo con precio, y cada activo con su foto;
  * 5. un envío de más de 30 días lo dice en su texto (Ley 2439);
@@ -58,6 +59,11 @@ export interface EntradaDeLaCompuerta {
   productos: readonly ProductoParaLaCompuerta[];
   archivos: ReadonlyMap<string, ArchivoHorneado>;
   envios?: readonly { nombre: string; plazoDias: number; texto?: string }[];
+  /**
+   * HU-T11.3: el cobro en línea de la tienda, si lo ofrece. Sin las llaves del ambiente en que cobra
+   * no se publica así; en producción, tampoco sin el cobro de prueba aprobado.
+   */
+  cobro?: { ambiente: 'pruebas' | 'produccion'; llaves: boolean; pruebaAprobada: boolean };
   /**
    * Comprobaciones que se saltan, con nombre. Solo para los comercios de prueba de staging, que
    * no tienen fotos hasta HU-T8.3. Nunca en producción.
@@ -148,11 +154,20 @@ export function compuerta(e: EntradaDeLaCompuerta): { ok: boolean; fallas: Falla
   }
   const modo = e.ajustes.venta?.['modo'];
   if (modo === 'en_linea' || modo === 'ambos') {
-    fallar({
-      codigo: 'pago-en-linea',
-      mensaje: 'El cobro en línea todavía no está listo: por ahora recibe los pedidos por WhatsApp',
-      donde: 'Ajustes › Venta',
-    });
+    const c = e.cobro;
+    if (!c?.llaves) {
+      fallar({
+        codigo: 'pago-en-linea',
+        mensaje: `Pega tus llaves de Bold de ${c?.ambiente === 'produccion' ? 'producción' : 'pruebas'} para cobrar en línea, o recibe los pedidos solo por WhatsApp`,
+        donde: 'Más › Cobro en línea',
+      });
+    } else if (c.ambiente === 'produccion' && !c.pruebaAprobada) {
+      fallar({
+        codigo: 'pago-en-linea',
+        mensaje: 'Haz el cobro de prueba antes de cobrar de verdad',
+        donde: 'Más › Cobro en línea',
+      });
+    }
   }
 
   const html = [...e.archivos].filter(([r]) => r.endsWith('.html'));

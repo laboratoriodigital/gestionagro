@@ -57,6 +57,57 @@ export interface CobroDelPanel {
   llaves: Record<Ambiente, { identidad: LlaveVista | null; secreta: LlaveVista | null }>;
   /** CA3: lo que falta para cobrar en línea, en palabras; vacío si no cobra en línea. */
   faltan: string[];
+  /** HU-T11.3: el cobro de prueba guiado. */
+  prueba: EstadoDeLaPrueba;
+}
+
+/**
+ * HU-T11.3: en qué va el cobro de prueba. `aprobada` es el instante en que un aviso firmado de Bold
+ * aprobó el primero; `ultimo`, el cobro de pruebas más reciente, para decir si se pagó y el aviso
+ * no llegó (entonces la dirección de los avisos en Bold está mal).
+ */
+export interface EstadoDeLaPrueba {
+  aprobada: string | null;
+  ultimo: { id: string; estado: string; creado: string } | null;
+}
+
+export async function estadoDeLaPrueba(db: BaseD1, org: string): Promise<EstadoDeLaPrueba> {
+  const [tienda, ultimo] = await Promise.all([
+    db
+      .prepare('SELECT prueba_aprobada FROM tienda WHERE org_id = ?')
+      .bind(org)
+      .first<{ prueba_aprobada: string | null }>(),
+    db
+      .prepare(
+        `SELECT id, estado, creado FROM cobro INDEXED BY cobro_de_prueba
+          WHERE org_id = ? AND ambiente = 'pruebas' ORDER BY creado DESC LIMIT 1`,
+      )
+      .bind(org)
+      .first<{ id: string; estado: string; creado: string }>(),
+  ]);
+  return { aprobada: tienda?.prueba_aprobada ?? null, ultimo: ultimo ?? null };
+}
+
+/**
+ * HU-T11.3 CA3: por qué la tienda todavía no puede cobrar de verdad; `null` si ya puede. Lo usa
+ * guardar los ajustes, así que la API lo niega aunque la pantalla no lo pida.
+ */
+export async function motivoParaNoCobrarDeVerdad(db: BaseD1, org: string): Promise<string | null> {
+  const [prueba, { results }] = await Promise.all([
+    estadoDeLaPrueba(db, org),
+    db
+      .prepare(
+        `SELECT campo FROM credencial WHERE org_id = ? AND proveedor = 'bold'
+          AND ambiente = 'produccion' AND campo IN ('identidad', 'secreta')`,
+      )
+      .bind(org)
+      .all<{ campo: string }>(),
+  ]);
+  if (!prueba.aprobada)
+    return 'Antes de cobrar de verdad, haz el cobro de prueba desde tu tienda y espera a que Bold avise que se aprobó (Más › Cobro en línea).';
+  if (results.length !== 2)
+    return 'Antes de cobrar de verdad, pega tus llaves de producción de Bold (Más › Cobro en línea).';
+  return null;
 }
 
 async function modoYAmbiente(db: BaseD1, org: string) {
@@ -75,9 +126,10 @@ async function modoYAmbiente(db: BaseD1, org: string) {
 
 /** Lo que el panel ve de las llaves: nunca su valor. */
 export async function leerElCobro(q: Pick<Quien, 'db' | 'org'>): Promise<CobroDelPanel> {
-  const [a, m, { results }] = await Promise.all([
+  const [a, m, prueba, { results }] = await Promise.all([
     aceptacionDe(q),
     modoYAmbiente(q.db, q.org),
+    estadoDeLaPrueba(q.db, q.org),
     q.db
       .prepare(
         `SELECT ambiente, campo, huella, guardada, verificada FROM credencial
@@ -113,6 +165,7 @@ export async function leerElCobro(q: Pick<Quien, 'db' | 'org'>): Promise<CobroDe
     ...m,
     llaves,
     faltan,
+    prueba,
   };
 }
 

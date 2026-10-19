@@ -244,6 +244,27 @@ describe('HU-T3.7 · una tienda llena, en páginas que caben en un teléfono', (
   });
 });
 
+describe('HU-T11.3 CA2 · una tienda que cobra en pruebas lo dice en todas sus páginas', () => {
+  const FRANJA =
+    '<p class="en-pruebas" role="note">Tienda en pruebas: los pagos en línea de esta tienda todavía no cobran de verdad.</p>';
+
+  it('cada página horneada la trae, antes que la franja de arriba', async () => {
+    const a = await hornear(paraHornear(ENSAYO_UNO, { cobroEnLinea: true, cobroEnPruebas: true }));
+    const paginas = [...a].filter(([r]) => r.endsWith('.html'));
+    expect(paginas.length).toBeGreaterThan(5);
+    for (const [ruta, { contenido }] of paginas) {
+      expect(contenido, ruta).toContain(`<body>\n${FRANJA}\n<header class="franja">`);
+    }
+  });
+
+  it('❌ cobrando de verdad, o sin pago en línea, no la trae', async () => {
+    for (const t of [{ cobroEnLinea: true }, { cobroEnPruebas: true }, {}]) {
+      const a = await hornear(paraHornear(ENSAYO_UNO, t));
+      for (const [ruta, { contenido }] of a) expect(contenido, ruta).not.toContain('en-pruebas');
+    }
+  });
+});
+
 describe('HU-T11.4 · el carrito de una tienda que cobra en línea', () => {
   const texto = (a: Map<string, { contenido: string }>, ruta: string) =>
     a.get(ruta)?.contenido ?? '';

@@ -417,6 +417,41 @@ describe('cuándo no se cobra en línea', () => {
     await sinEscribir('NPX003');
   });
 
+  it('HU-T11.3: cobra en el ambiente de la versión publicada, no en el de los ajustes', async () => {
+    const publicada = (cobroAmbiente: string) =>
+      shard
+        .prepare(
+          `INSERT INTO publicacion (org_id, version, estado, pedida_por, pedida, cobro_ambiente)
+           VALUES (?, 1, 'publicada', 'usuario:prueba', ?, ?)
+           ON CONFLICT (org_id, version) DO UPDATE SET cobro_ambiente = excluded.cobro_ambiente`,
+        )
+        .bind(UNO, AHORA, cobroAmbiente)
+        .run();
+    // Los ajustes ya dicen producción, pero lo publicado es de pruebas y su franja lo dice: se cobra
+    // en pruebas hasta que se publique.
+    await ajuste('cobro', { ambiente: 'produccion' }).run();
+    try {
+      await publicada('pruebas');
+      const r = await pagar(cobro('NPX010'), env(), despues);
+      expect(r.status).toBe(200);
+      expect(
+        await uno('SELECT ambiente FROM cobro WHERE org_id = ? AND id = ?', UNO, 'NPX010-1'),
+      ).toEqual({ ambiente: 'pruebas' });
+      // ❌ Lo publicado no ofrecía pagar en línea: no se cobra, aunque los ajustes digan que sí.
+      await publicada('ninguno');
+      const r2 = await pagar(cobro('NPX011'), env(), despues);
+      expect(r2.status).toBe(503);
+      expect(await r2.json()).toMatchObject({ estado: 'sin-linea' });
+      await sinEscribir('NPX011');
+    } finally {
+      await ajuste('cobro', {}).run();
+      await shard
+        .prepare('DELETE FROM publicacion WHERE org_id = ? AND version = 1')
+        .bind(UNO)
+        .run();
+    }
+  });
+
   it('❌ una tienda que solo vende por WhatsApp no cobra en línea', async () => {
     const venta = ENSAYO_UNO.ajustes['venta'] as Record<string, unknown>;
     await ajuste('venta', { ...venta, modo: 'whatsapp' }).run();

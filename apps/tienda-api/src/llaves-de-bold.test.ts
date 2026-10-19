@@ -344,6 +344,18 @@ describe('las llaves de Bold del comercio (HU-T11.2)', () => {
       });
       expect(r.estado).toBe('publicada');
       expect(objetos.size).toBeGreaterThan(10);
+      // HU-T11.3: cobra en pruebas, lo guarda la versión y la franja lo dice en cada página.
+      expect(
+        await shard
+          .prepare(
+            "SELECT cobro_ambiente FROM publicacion WHERE org_id = ? AND estado = 'publicada'",
+          )
+          .bind(UNO)
+          .first(),
+      ).toEqual({ cobro_ambiente: 'pruebas' });
+      const paginas = [...objetos.values()].filter((o) => o.startsWith('<!doctype html>'));
+      expect(paginas.length).toBeGreaterThan(5);
+      for (const p of paginas) expect(p).toContain('class="en-pruebas"');
       const registro = await shard
         .prepare('SELECT antes, despues, entidad_id FROM registro WHERE org_id = ?')
         .bind(UNO)
@@ -368,5 +380,67 @@ describe('las llaves de Bold del comercio (HU-T11.2)', () => {
     } finally {
       for (const e of espias) e.mockRestore();
     }
+  });
+});
+
+describe('el cobro de prueba guiado (HU-T11.3)', () => {
+  interface Seccion {
+    version: number;
+    datos: Record<string, unknown>;
+  }
+  const cobroDe = async () =>
+    ((await pedir('ajustes')).cuerpo as { secciones: Record<string, Seccion> }).secciones[
+      'cobro'
+    ] ?? { version: 0, datos: {} };
+  const aAmbiente = async (ambiente: 'pruebas' | 'produccion') => {
+    const c = await cobroDe();
+    return pedir('ajustes/guardar', {
+      op: op(),
+      seccion: 'cobro',
+      version: c.version,
+      datos: { ...c.datos, ambiente },
+    });
+  };
+
+  it('CA1: la pantalla dice en qué va la prueba y a qué dirección manda Bold sus avisos', async () => {
+    const c = (await pedir('cobro')).cuerpo;
+    expect(c['prueba']).toEqual({ aprobada: null, ultimo: null });
+    expect(c['avisos']).toBe(
+      'https://ensayo-uno--staging.laboratorio-digital.app/api/v1/avisos/bold',
+    );
+  });
+
+  it('❌ CA3: sin el cobro de prueba aprobado, la API no deja pasar a producción', async () => {
+    const r = await aAmbiente('produccion');
+    expect(r.status).toBe(422);
+    expect(r.cuerpo['problemas']).toEqual([
+      { campo: 'cobro.ambiente', mensaje: expect.stringMatching(/haz el cobro de prueba/) },
+    ]);
+    expect((await cobroDe()).datos['ambiente']).not.toBe('produccion');
+  });
+
+  it('❌ CA3: con la prueba aprobada pero sin las llaves de producción, tampoco', async () => {
+    await shard
+      .prepare("UPDATE tienda SET prueba_aprobada = ?, prueba_cobro = 'PRB001-1' WHERE org_id = ?")
+      .bind(AHORA, UNO)
+      .run();
+    const r = await aAmbiente('produccion');
+    expect(r.status).toBe(422);
+    expect(JSON.stringify(r.cuerpo['problemas'])).toMatch(/llaves de producción/);
+  });
+
+  it('CA3: con la prueba y las llaves de producción, pasa; volver a pruebas no pide nada', async () => {
+    const produccion = await pedir(
+      'cobro/llaves',
+      llaves({
+        ambiente: 'produccion',
+        identidad: 'IdentidadDeProduccion_000000-aaaa',
+        secreta: 'SecretaDeProduccion_00000000-bbbb',
+      }),
+    );
+    expect(produccion.status).toBe(200);
+    expect((await aAmbiente('produccion')).status).toBe(200);
+    expect((await pedir('cobro')).cuerpo['prueba']).toMatchObject({ aprobada: AHORA });
+    expect((await aAmbiente('pruebas')).status).toBe(200);
   });
 });

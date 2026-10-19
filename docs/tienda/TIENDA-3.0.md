@@ -772,6 +772,7 @@ El estudio v1.3 pone tres capacidades en el básico colombiano (§8.1 [C3]): la 
    - `NO_TRANSACTION_FOUND` (404): la llave es válida.
    - 401 o 403: no lo es, y se dice así.
    - La secreta no se puede probar contra Bold sin un cobro. Se prueba con el **cobro de prueba guiado**: un pago real en el ambiente de pruebas de Bold desde la tienda, que verifica la firma de integridad y el aviso. Sin él, el panel no deja pasar a producción.
+   - *(Hoy, HU-T11.2 y HU-T11.3: la pantalla es Más › Cobro en línea. La prueba la da por hecha solo un aviso firmado que aprueba un cobro de pruebas, también si la consulta de la página lo aprobó segundos antes; queda en `tienda.prueba_aprobada`. Cada versión publicada guarda en qué ambiente cobra (`publicacion.cobro_ambiente`) y el cobro usa el de la versión que la tienda muestra: pasar a producción en los ajustes cobra de verdad al publicar, nunca mientras la franja «en pruebas» siga a la vista. Runbook: `docs/runbooks/tienda-cobro-de-prueba.md`.)*
 5. **Rotación de la KEK.** Una KEK nueva (`kek_id`) reenvuelve las DEK con un trabajo de la cola. La vieja se retira cuando ninguna DEK la usa (P21). Una llave del comercio se rota cuando él la cambia en Bold.
 
 ### 9.3 Firmar un cobro

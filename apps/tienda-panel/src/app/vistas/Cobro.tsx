@@ -6,10 +6,14 @@
  * - Pegar las llaves pide haber entrado hace poco; si pide volver a entrar, lo pegado se pierde a
  *   propósito: las llaves nunca se guardan en el teléfono (CA4).
  * - Lo que cobra Bold, y que recibir el dinero de inmediato cuesta más.
+ * - HU-T11.3: el cobro de prueba guiado, paso a paso, y pasar a cobrar de verdad, que la API niega
+ *   sin la prueba aprobada (CA3). El cambio llega a los compradores al publicar: hasta entonces el
+ *   cobro sigue en el ambiente de lo publicado, igual que su franja.
  */
 import { Aviso, ResumenDeErrores } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useState } from 'preact/hooks';
-import type { Conexion } from '../api.ts';
+import { type Conexion, pedirAlPanel } from '../api.ts';
+import { opNueva } from '../catalogo.ts';
 import {
   AMBIENTES,
   type Ambiente,
@@ -22,6 +26,7 @@ import {
   llavesEnPalabras,
   NOMBRE_DEL_AMBIENTE,
   probarLlaves,
+  pruebaEnPalabras,
 } from '../cobro.ts';
 import { leerTerminos, type TerminosDelPanel } from '../terminos.ts';
 import { Aceptable } from './Terminos.tsx';
@@ -173,6 +178,155 @@ function PegarLlaves({
   );
 }
 
+/** HU-T11.3: el cobro de prueba, paso a paso, y el paso a cobrar de verdad. */
+function CobroDePrueba({
+  conexion,
+  cobro,
+  alCambiar,
+  alVencer,
+}: {
+  conexion: Conexion;
+  cobro: CobroDelPanel;
+  alCambiar: () => void;
+  alVencer: (motivo: string) => void;
+}) {
+  const [cambiando, setCambiando] = useState(false);
+  const [aviso, setAviso] = useState<{ tono: 'exito' | 'peligro'; texto: string } | null>(null);
+  const [copiada, setCopiada] = useState(false);
+  const estado = pruebaEnPalabras(cobro.prueba);
+  const llavesDe = (a: Ambiente) => Boolean(cobro.llaves[a].identidad && cobro.llaves[a].secreta);
+
+  /** El ambiente se guarda en la sección `cobro` de los ajustes, con su versión (HU-T10.3). */
+  const pasarA = async (ambiente: Ambiente) => {
+    setCambiando(true);
+    setAviso(null);
+    const a = await pedirAlPanel<{
+      secciones: Record<string, { datos: Record<string, unknown>; version: number }>;
+    }>(conexion, 'ajustes');
+    if (a.tipo === 'sin-sesion') return alVencer(a.motivo);
+    if (a.tipo !== 'ok') {
+      setCambiando(false);
+      return setAviso({ tono: 'peligro', texto: a.motivo });
+    }
+    const actual = a.datos.secciones['cobro'] ?? { datos: {}, version: 0 };
+    const g = await pedirAlPanel(conexion, 'ajustes/guardar', {
+      cuerpo: {
+        op: opNueva(),
+        seccion: 'cobro',
+        version: actual.version,
+        datos: { ...actual.datos, ambiente },
+      },
+    });
+    setCambiando(false);
+    if (g.tipo === 'sin-sesion') return alVencer(g.motivo);
+    if (g.tipo !== 'ok')
+      return setAviso({
+        tono: 'peligro',
+        texto: g.problemas?.map((p) => p.mensaje).join(' ') || g.motivo,
+      });
+    setAviso({
+      tono: 'exito',
+      texto:
+        ambiente === 'produccion'
+          ? 'Listo. Publica tu tienda para que tus compradores paguen de verdad: hasta entonces sigue en pruebas, con su franja.'
+          : 'Listo. Publica tu tienda para que vuelva a pruebas: hasta entonces sigue cobrando de verdad.',
+    });
+    alCambiar();
+  };
+
+  return (
+    <section>
+      <h2>El cobro de prueba</h2>
+      <Aviso tono={estado.tono} titulo={cobro.prueba.aprobada ? 'Prueba aprobada' : 'En qué va'}>
+        {estado.texto}
+      </Aviso>
+      {cobro.prueba.aprobada ? null : (
+        <ol class="pasos">
+          <li>
+            Pega tus llaves de pruebas de Bold, aquí arriba.{' '}
+            {llavesDe('pruebas') ? <strong>Listo.</strong> : null}
+          </li>
+          <li>
+            En tu cuenta de Bold, pon esta dirección para los avisos de pago:{' '}
+            {cobro.avisos ? (
+              <>
+                <span class="cifra">{cobro.avisos}</span>{' '}
+                <button
+                  class="ed1-boton ed1-boton--texto"
+                  type="button"
+                  onClick={() =>
+                    void navigator.clipboard
+                      ?.writeText(cobro.avisos ?? '')
+                      .then(() => setCopiada(true))
+                  }
+                >
+                  {copiada ? 'Copiada' : 'Copiar la dirección'}
+                </button>
+              </>
+            ) : (
+              'tu tienda todavía no tiene su dirección.'
+            )}
+          </li>
+          <li>
+            En Ajustes › Venta, elige recibir pagos en línea y publica tu tienda. Mientras cobre en
+            pruebas, una franja lo dice en cada página.{' '}
+            {cobro.modo !== 'whatsapp' ? <strong>Listo.</strong> : null}
+          </li>
+          <li>
+            Abre tu tienda, compra algo y paga «En línea» con un medio de prueba de Bold: no cobra
+            de verdad.
+          </li>
+          <li>
+            Vuelve aquí. Cuando Bold avise que se aprobó, tu llave secreta y los avisos quedan
+            probados.
+          </li>
+        </ol>
+      )}
+      <button class="ed1-boton ed1-boton--secundario" type="button" onClick={alCambiar}>
+        Ver cómo va
+      </button>
+      {aviso ? (
+        <Aviso tono={aviso.tono} titulo={aviso.tono === 'exito' ? 'Guardado' : 'No se cambió'}>
+          {aviso.texto}
+        </Aviso>
+      ) : null}
+      {cobro.ambiente === 'pruebas' ? (
+        <>
+          <h3>Cobrar de verdad</h3>
+          <p>
+            {!cobro.prueba.aprobada
+              ? 'Se habilita cuando el cobro de prueba esté aprobado.'
+              : !llavesDe('produccion')
+                ? 'Primero pega tus llaves de producción, aquí arriba.'
+                : 'Tus compradores pagarán de verdad, y el dinero llegará a tu cuenta de Bold.'}
+          </p>
+          <button
+            class="ed1-boton ed1-boton--primario"
+            type="button"
+            disabled={!cobro.prueba.aprobada || !llavesDe('produccion') || cambiando}
+            aria-busy={cambiando ? 'true' : undefined}
+            onClick={() => void pasarA('produccion')}
+          >
+            Pasar a cobrar de verdad
+          </button>
+        </>
+      ) : (
+        <>
+          <h3>Cobrando de verdad</h3>
+          <button
+            class="ed1-boton ed1-boton--secundario"
+            type="button"
+            disabled={cambiando}
+            onClick={() => void pasarA('pruebas')}
+          >
+            Volver a pruebas
+          </button>
+        </>
+      )}
+    </section>
+  );
+}
+
 export function Cobro({
   conexion,
   alVencer,
@@ -317,6 +471,15 @@ export function Cobro({
             );
             void cargar();
           }}
+          alVencer={alVencer}
+        />
+      ) : null}
+
+      {cobro.terminos && cobro.custodia ? (
+        <CobroDePrueba
+          conexion={conexion}
+          cobro={cobro}
+          alCambiar={() => void cargar()}
           alVencer={alVencer}
         />
       ) : null}

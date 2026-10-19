@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { COMISIONES, comisionEnTexto, enLista, llavesEnPalabras } from './cobro.ts';
+import {
+  COMISIONES,
+  comisionEnTexto,
+  diaEnBogota,
+  enLista,
+  llavesEnPalabras,
+  pruebaEnPalabras,
+} from './cobro.ts';
 
 describe('la pantalla Cobro (HU-T11.2)', () => {
   it('las comisiones son las de TIENDA-3.0 §9.7, fila por fila (P2)', () => {
@@ -54,5 +61,36 @@ describe('la pantalla Cobro (HU-T11.2)', () => {
   it('lo que falta, en una frase', () => {
     expect(enLista(['la llave secreta de pruebas'])).toBe('la llave secreta de pruebas');
     expect(enLista(['a', 'b', 'c'])).toBe('a, b y c');
+  });
+
+  it('HU-T11.3: en qué va el cobro de prueba; aprobado sin aviso dice que revise la dirección en Bold', () => {
+    const ultimo = (estado: string) => ({
+      id: 'PRB001-1',
+      estado,
+      creado: '2026-10-19T16:00:00.000Z',
+    });
+    expect(pruebaEnPalabras({ aprobada: null, ultimo: null })).toEqual({
+      tono: 'info',
+      texto: 'Todavía no has hecho el cobro de prueba.',
+    });
+    expect(pruebaEnPalabras({ aprobada: null, ultimo: ultimo('aprobado') }).texto).toMatch(
+      /el aviso de Bold no llegó/,
+    );
+    expect(pruebaEnPalabras({ aprobada: null, ultimo: ultimo('rechazado') }).texto).toMatch(
+      /rechazado/,
+    );
+    expect(pruebaEnPalabras({ aprobada: null, ultimo: ultimo('esperando') }).tono).toBe('info');
+    expect(
+      pruebaEnPalabras({ aprobada: '2026-10-20T03:00:00.000Z', ultimo: ultimo('aprobado') }),
+    ).toEqual({
+      tono: 'exito',
+      texto:
+        'Bold aprobó tu cobro de prueba y avisó el 19 de octubre de 2026: tu llave secreta y los avisos funcionan.',
+    });
+  });
+
+  it('❌ el día es el de Bogotá, no el de UTC', () => {
+    expect(diaEnBogota('2026-10-20T04:59:00.000Z')).toBe('19 de octubre de 2026');
+    expect(diaEnBogota('2026-10-20T05:00:00.000Z')).toBe('20 de octubre de 2026');
   });
 });

@@ -374,6 +374,8 @@ test('HU-T11.2 · CA1, CA3 y CA4: autorizar la custodia, pegar las llaves y que 
           produccion: { identidad: null, secreta: null },
         },
         faltan: faltan(),
+        prueba: { aprobada: null, ultimo: null },
+        avisos: 'https://ensayo-uno--staging.laboratorio-digital.app/api/v1/avisos/bold',
       },
     }),
   );
@@ -437,6 +439,96 @@ test('HU-T11.2 · CA1, CA3 y CA4: autorizar la custodia, pegar las llaves y que 
     expect(consola.join('\n')).not.toContain(valor);
     expect(page.url()).not.toContain(valor);
   }
+});
+
+test('HU-T11.3 · CA1 y CA3: la prueba paso a paso, el aviso que no llegó, y cobrar de verdad solo después', async ({
+  page,
+}) => {
+  await coreFalso(page, sesion());
+  const llave = (fin: string) => ({ fin, guardada: '2026-10-19T16:00:00.000Z', verificada: null });
+  let aprobada: string | null = null;
+  let ambiente = 'pruebas';
+  const guardados: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (ruta) =>
+    ruta.fulfill({ json: tableroVacio() }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/yo`, (ruta) =>
+    ruta.fulfill({ json: { ...yo(UNO), cobro: { faltan: [] } } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/terminos`, (ruta) => {
+    const t = terminosFalsos(true);
+    return ruta.fulfill({ json: { ...t, custodia: { ...t.custodia, aceptada: true } } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/cobro`, (ruta) =>
+    ruta.fulfill({
+      json: {
+        terminos: true,
+        custodia: true,
+        modo: 'ambos',
+        ambiente,
+        llaves: {
+          pruebas: { identidad: llave('wxyz'), secreta: llave('abcd') },
+          produccion: { identidad: llave('pppp'), secreta: llave('qqqq') },
+        },
+        faltan: [],
+        // El pago de prueba se aprobó preguntándole a Bold, y el aviso no llegó.
+        prueba: {
+          aprobada,
+          ultimo: { id: 'PRB001-1', estado: 'aprobado', creado: '2026-10-19T16:00:00.000Z' },
+        },
+        avisos: 'https://ensayo-uno--staging.laboratorio-digital.app/api/v1/avisos/bold',
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/ajustes`, (ruta) =>
+    ruta.fulfill({
+      json: { secciones: { cobro: { datos: { topeCop: 900000 }, version: 2 } }, faltantes: [] },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/ajustes/guardar`, (ruta) => {
+    const cuerpo = ruta.request().postDataJSON() as { datos: { ambiente: string } };
+    guardados.push(cuerpo);
+    ambiente = cuerpo.datos.ambiente;
+    return ruta.fulfill({ json: { estado: 'guardado', id: 'cobro', version: 3 } });
+  });
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await page.getByRole('link', { name: 'Más' }).click();
+  await page.getByRole('link', { name: 'Cobro en línea' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'El cobro de prueba' })).toBeVisible();
+  await expect(page.getByText(/se aprobó, pero el aviso de Bold no llegó/)).toBeVisible();
+  await expect(
+    page.getByText('https://ensayo-uno--staging.laboratorio-digital.app/api/v1/avisos/bold'),
+  ).toBeVisible();
+  // ❌ CA3: sin la prueba aprobada por el aviso, no se pasa a cobrar de verdad.
+  const pasar = page.getByRole('button', { name: 'Pasar a cobrar de verdad' });
+  await expect(pasar).toBeDisabled();
+  await expect(
+    page.getByText('Se habilita cuando el cobro de prueba esté aprobado.'),
+  ).toBeVisible();
+  // Llega el aviso: la prueba queda hecha.
+  aprobada = '2026-10-19T16:05:00.000Z';
+  await page.getByRole('button', { name: 'Ver cómo va' }).click();
+  await expect(
+    page.getByText(/Bold aprobó tu cobro de prueba y avisó el 19 de octubre de 2026/),
+  ).toBeVisible();
+  await expect(pasar).toBeEnabled();
+  await pasar.click();
+  await expect(
+    page.getByText(/Publica tu tienda para que tus compradores paguen de verdad/),
+  ).toBeVisible();
+  expect(guardados).toEqual([
+    expect.objectContaining({
+      seccion: 'cobro',
+      version: 2,
+      datos: { topeCop: 900000, ambiente: 'produccion' },
+    }),
+  ]);
+  await expect(page.getByRole('button', { name: 'Volver a pruebas' })).toBeVisible();
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
 test('HU-T11.2 · ❌ el colaborador ve que falta, no la pantalla Cobro', async ({ page }) => {

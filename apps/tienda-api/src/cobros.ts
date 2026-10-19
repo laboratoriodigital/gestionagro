@@ -140,15 +140,35 @@ async function boton(
   };
 }
 
-/** El ambiente en que cobra la tienda: pruebas mientras no diga producción (HU-T11.3). */
-async function ambienteDe(db: BaseD1, org: string): Promise<{ ambiente: Ambiente; tope: number }> {
-  const fila = await db
-    .prepare("SELECT datos FROM ajuste WHERE org_id = ? AND seccion = 'cobro'")
-    .bind(org)
-    .first<{ datos: string }>();
+/**
+ * El ambiente en que cobra la tienda (HU-T11.3): el de la versión que muestra. Así la franja «en
+ * pruebas» y el cobro de verdad nunca se contradicen: pasar a producción en los ajustes cobra de
+ * verdad cuando se publica, no antes. Una versión de antes de HU-T11.3 no lo guardó: usa el de los
+ * ajustes, pruebas mientras no diga producción. `null`: la versión publicada no cobra en línea.
+ */
+async function ambienteDe(
+  db: BaseD1,
+  org: string,
+): Promise<{ ambiente: Ambiente; tope: number } | null> {
+  const [fila, publicada] = await Promise.all([
+    db
+      .prepare("SELECT datos FROM ajuste WHERE org_id = ? AND seccion = 'cobro'")
+      .bind(org)
+      .first<{ datos: string }>(),
+    db
+      .prepare(
+        `SELECT p.cobro_ambiente FROM tienda t JOIN publicacion p
+           ON p.org_id = t.org_id AND p.version = t.version_publicada WHERE t.org_id = ?`,
+      )
+      .bind(org)
+      .first<{ cobro_ambiente: string | null }>(),
+  ]);
   const cobro = JSON.parse(fila?.datos ?? '{}') as { ambiente?: string; topeCop?: number };
+  const deLaVersion = publicada?.cobro_ambiente ?? null;
+  if (deLaVersion === 'ninguno') return null;
+  const ambiente = deLaVersion ?? (cobro.ambiente === 'produccion' ? 'produccion' : 'pruebas');
   return {
-    ambiente: cobro.ambiente === 'produccion' ? 'produccion' : 'pruebas',
+    ambiente: ambiente === 'produccion' ? 'produccion' : 'pruebas',
     tope: Math.min(MONTO_MAXIMO, cobro.topeCop ?? MONTO_MAXIMO),
   };
 }
@@ -260,7 +280,9 @@ export async function iniciarCobro(
     console.error('tienda-api: sin la KEK no se abren las llaves de Bold ni se cifra la entrega');
     return SIN_LINEA;
   }
-  const { ambiente, tope } = await ambienteDe(c.db, c.org);
+  const delCobro = await ambienteDe(c.db, c.org);
+  if (!delCobro) return SIN_LINEA;
+  const { ambiente, tope } = delCobro;
   const llaves = await llavesDeBold(c.db, c.org, ambiente, kek);
   if (!llaves) {
     console.error(`tienda-api: ${c.org} cobra en línea y le faltan las llaves de ${ambiente}`);

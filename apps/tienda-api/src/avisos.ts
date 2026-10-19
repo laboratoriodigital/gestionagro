@@ -330,6 +330,19 @@ const registrar = (
     )
     .bind(c.org, `${aviso.type}:${aviso.subject}`, c.ahora, cobro, aviso.type, resultado);
 
+/**
+ * HU-T11.3: el primer cobro de pruebas que un aviso firmado aprueba prueba la llave secreta (Bold
+ * aceptó la firma de integridad) y el aviso (llegó y se verificó). Va en el lote del aviso: solo
+ * un aviso lo marca, nunca la consulta, y nunca se pisa la primera.
+ */
+const marcarLaPrueba = (c: ContextoDelAviso, cobro: string) =>
+  c.db
+    .prepare(
+      `UPDATE tienda SET prueba_aprobada = ?, prueba_cobro = ?
+        WHERE org_id = ? AND prueba_aprobada IS NULL`,
+    )
+    .bind(c.ahora, cobro, c.org);
+
 const TIPOS: Record<string, RespuestaDeBold['tipo']> = {
   SALE_APPROVED: 'aprobado',
   SALE_REJECTED: 'rechazado',
@@ -350,6 +363,9 @@ async function aplicar(
     .first<{ resultado: string }>();
   if (ya) return 'repetido';
   const tipo = Object.hasOwn(TIPOS, aviso.type) ? TIPOS[aviso.type] : undefined;
+  // HU-T11.3: un aviso firmado que aprueba un cobro de pruebas es la prueba, aunque la consulta de
+  // la página lo haya aprobado unos segundos antes (y entonces el aviso ya no lo mueve).
+  const prueba = k.ambiente === 'pruebas' && tipo === 'aprobado' ? [marcarLaPrueba(c, k.id)] : [];
   try {
     const movio =
       tipo !== undefined &&
@@ -362,14 +378,15 @@ async function aplicar(
           medio: aviso.data.payment_method ?? null,
         },
         k,
-        [registrar(c, aviso, k.id, 'aplicado')],
+        [registrar(c, aviso, k.id, 'aplicado'), ...prueba],
       ));
     if (movio) {
       if (k.ambiente === 'pruebas') avisarPrueba(c, k.id, 'aviso');
       return 'aplicado';
     }
     // Una anulación antes que su venta, u otro aviso que no mueve nada: queda dicho (CA3).
-    await registrar(c, aviso, k.id, 'ignorado').run();
+    const yaAprobado = k.estado === 'aprobado' || k.estado === 'aprobado_sin_existencias';
+    await c.db.batch([registrar(c, aviso, k.id, 'ignorado'), ...(yaAprobado ? prueba : [])]);
     return 'ignorado';
   } catch (e) {
     if (/UNIQUE|PRIMARY KEY/i.test(String(e))) return 'repetido';

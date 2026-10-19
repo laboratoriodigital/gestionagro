@@ -1609,7 +1609,25 @@ export function crearApp(
     const s = c.get('sesion');
     if (!puede(s.rol, 'cobro.gestionar'))
       return c.json({ estado: 'prohibido', motivo: NO_COBRO }, 403);
-    return c.json(await leerElCobro(s), 200, { 'cache-control': 'no-store' });
+    // HU-T11.3: la dirección de los avisos que el comercio pega en Bold es la del subdominio de la
+    // plataforma, que no cambia aunque la tienda estrene dominio (TIENDA §9.4).
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    const plataforma = control
+      ? await control
+          .prepare(
+            "SELECT hostname FROM dominio WHERE org_id = ? AND tipo = 'plataforma' AND estado = 'activo'",
+          )
+          .bind(s.org)
+          .first<{ hostname: string }>()
+      : null;
+    return c.json(
+      {
+        ...(await leerElCobro(s)),
+        avisos: plataforma ? `https://${plataforma.hostname}/api/v1/avisos/bold` : null,
+      },
+      200,
+      { 'cache-control': 'no-store' },
+    );
   });
   app.post('/api/panel/v1/cobro/llaves', async (c) => {
     const q = quienPuede(c, 'cobro.gestionar', NO_COBRO);
