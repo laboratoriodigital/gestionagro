@@ -296,6 +296,166 @@ test('HU-T7.2 · el colaborador sigue trabajando, y el inicio dice quién los ac
   await expect(page.getByLabel(/Acepto los términos del servicio/)).toHaveCount(0);
 });
 
+/** HU-T11.2: lo que guarda el teléfono, entero: localStorage, sessionStorage e IndexedDB. */
+async function loQueGuardaElTelefono(page: Page): Promise<string> {
+  return page.evaluate(async () => {
+    const partes = [JSON.stringify({ ...localStorage }), JSON.stringify({ ...sessionStorage })];
+    for (const { name } of await indexedDB.databases()) {
+      if (!name) continue;
+      const db = await new Promise<IDBDatabase>((ok, mal) => {
+        const r = indexedDB.open(name);
+        r.onsuccess = () => ok(r.result);
+        r.onerror = () => mal(r.error);
+      });
+      for (const almacen of db.objectStoreNames) {
+        const todo = await new Promise<unknown[]>((ok, mal) => {
+          const r = db.transaction(almacen).objectStore(almacen).getAll();
+          r.onsuccess = () => ok(r.result);
+          r.onerror = () => mal(r.error);
+        });
+        partes.push(JSON.stringify(todo));
+      }
+      db.close();
+    }
+    return partes.join('\n');
+  });
+}
+
+test('HU-T11.2 · CA1, CA3 y CA4: autorizar la custodia, pegar las llaves y que no queden en el teléfono', async ({
+  page,
+}) => {
+  const IDENTIDAD = 'IdentidadE2E_0123456789-wxyz';
+  const SECRETA = 'SecretaE2E_9876543210-abcd';
+  const consola: string[] = [];
+  page.on('console', (m) => consola.push(m.text()));
+  await coreFalso(page, sesion());
+  let custodia = false;
+  let puestas = false;
+  const enviadas: Record<string, unknown>[] = [];
+  const faltan = () =>
+    puestas
+      ? []
+      : [
+          ...(custodia ? [] : ['autorizar que se guarden tus llaves de Bold']),
+          'la llave de identidad de pruebas',
+          'la llave secreta de pruebas',
+        ];
+  const llave = (fin: string, verificada: string | null) => ({
+    fin,
+    guardada: '2026-10-19T16:00:00.000Z',
+    verificada,
+  });
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (ruta) =>
+    ruta.fulfill({ json: tableroVacio() }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/yo`, (ruta) =>
+    ruta.fulfill({ json: { ...yo(UNO), cobro: { faltan: faltan() } } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/terminos`, (ruta) => {
+    const t = terminosFalsos(true);
+    return ruta.fulfill({ json: { ...t, custodia: { ...t.custodia, aceptada: custodia } } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/terminos/aceptar`, (ruta) => {
+    enviadas.push(ruta.request().postDataJSON() as Record<string, unknown>);
+    custodia = true;
+    return ruta.fulfill({ json: { estado: 'guardado', id: 'custodia', version: 1 } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/cobro`, (ruta) =>
+    ruta.fulfill({
+      json: {
+        terminos: true,
+        custodia,
+        modo: 'ambos',
+        ambiente: 'pruebas',
+        llaves: {
+          pruebas: puestas
+            ? { identidad: llave('wxyz', '2026-10-19T16:00:00.000Z'), secreta: llave('abcd', null) }
+            : { identidad: null, secreta: null },
+          produccion: { identidad: null, secreta: null },
+        },
+        faltan: faltan(),
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/cobro/llaves`, (ruta) => {
+    enviadas.push(ruta.request().postDataJSON() as Record<string, unknown>);
+    puestas = true;
+    return ruta.fulfill({ json: { estado: 'guardado', id: 'pruebas', version: 1 } });
+  });
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  // CA3: arriba y en rojo, con el nombre de lo que falta.
+  await expect(page.getByText('El pago en línea todavía no funciona')).toBeVisible();
+  await expect(
+    page.getByText(
+      /Falta autorizar que se guarden tus llaves de Bold, la llave de identidad de pruebas y la llave secreta de pruebas\./,
+    ),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Arreglarlo' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Cobro en línea' })).toBeVisible();
+  // CA1: la custodia se acepta antes de pegar, con la casilla sin marcar.
+  await expect(page.getByLabel('Llave de identidad')).toHaveCount(0);
+  const casilla = page.getByLabel(/Autorizo a Laboratorio Digital/);
+  await expect(casilla).not.toBeChecked();
+  await expect(page.getByRole('button', { name: 'Autorizar' })).toBeDisabled();
+  await casilla.check();
+  await page.getByRole('button', { name: 'Autorizar' }).click();
+  await expect(page.getByLabel('Llave de identidad')).toBeVisible();
+  expect(enviadas[0]).toMatchObject({ cual: 'custodia' });
+  // Las comisiones de Bold, y que el dinero rápido cuesta más.
+  await expect(page.getByText('2,99 % + $900')).toBeVisible();
+  await expect(page.getByText(/cuesta 0,6 puntos más/)).toBeVisible();
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  // ❌ Sin las dos, no se manda nada.
+  await page.getByRole('button', { name: 'Guardar y comprobar con Bold' }).click();
+  await expect(page.getByText('Falta corregir 2 cosas:')).toBeVisible();
+  expect(enviadas).toHaveLength(1);
+  await page.getByLabel('Llave de identidad').fill(IDENTIDAD);
+  await page.getByLabel('Llave secreta').fill(SECRETA);
+  // CA4: lo que se escribe no se queda en el teléfono, ni antes ni después de guardar.
+  expect(await loQueGuardaElTelefono(page)).not.toContain(SECRETA);
+  await page.getByRole('button', { name: 'Guardar y comprobar con Bold' }).click();
+  await expect(page.getByText('Llaves guardadas')).toBeVisible();
+  expect(enviadas[1]).toMatchObject({
+    ambiente: 'pruebas',
+    identidad: IDENTIDAD,
+    secreta: SECRETA,
+  });
+  await expect(
+    page.getByText(
+      /La de identidad termina en wxyz y Bold la reconoció el 19 de octubre de 2026\. La secreta termina en abcd\./,
+    ),
+  ).toBeVisible();
+  await expect(page.getByText('El pago en línea todavía no funciona')).toHaveCount(0);
+  await expect(page.getByLabel('Llave de identidad')).toHaveValue('');
+  const guardado = await loQueGuardaElTelefono(page);
+  for (const valor of [IDENTIDAD, SECRETA]) {
+    expect(guardado).not.toContain(valor);
+    expect(consola.join('\n')).not.toContain(valor);
+    expect(page.url()).not.toContain(valor);
+  }
+});
+
+test('HU-T11.2 · ❌ el colaborador ve que falta, no la pantalla Cobro', async ({ page }) => {
+  await coreFalso(page, sesion({ organizaciones: [DOS], org_id: DOS.org_id }));
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (ruta) =>
+    ruta.fulfill({ json: tableroVacio() }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/yo`, (ruta) =>
+    ruta.fulfill({ json: { ...yo(DOS), cobro: { faltan: ['la llave secreta de pruebas'] } } }),
+  );
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await expect(
+    page.getByText(/Falta la llave secreta de pruebas\. Lo arregla quien administra la tienda\./),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Más' }).click();
+  await expect(page.getByRole('link', { name: 'Cobro en línea' })).toHaveCount(0);
+});
+
 test('HU-T8.1 · sin tiendas, lo dice sin error y ofrece entrar con otra cuenta', async ({
   page,
 }) => {

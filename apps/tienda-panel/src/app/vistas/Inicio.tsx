@@ -4,10 +4,12 @@
  * mes anterior a la misma altura, y el margen de la contraentrega. Las cifras vienen de la API: si
  * no llegan, se dice, sin inventar ceros.
  */
+import { puede } from '@ed1/tienda-schema/permisos';
 import { Aviso, Tarjeta } from '@ed1/ui/v2/componentes';
 import { useEffect, useState } from 'preact/hooks';
 import { type Conexion, pedirAlPanel, type Yo } from '../api.ts';
 import { enPesos } from '../catalogo.ts';
+import { enLista } from '../cobro.ts';
 import {
   type Cifras,
   comparacion,
@@ -152,6 +154,16 @@ export function Inicio({
   return (
     <main class="contenido">
       <h1>{yo.tienda?.nombre ?? 'Tu tienda'}</h1>
+      {yo.cobro && yo.cobro.faltan.length > 0 ? (
+        <Aviso tono="peligro" titulo="El pago en línea todavía no funciona">
+          Falta {enLista(yo.cobro.faltan)}.{' '}
+          {puede(yo.rol, 'cobro.gestionar') ? (
+            <a href="/mas/cobro/">Arreglarlo</a>
+          ) : (
+            'Lo arregla quien administra la tienda.'
+          )}
+        </Aviso>
+      ) : null}
       {yo.terminos?.aceptados === false ? (
         <Aviso tono="aviso" titulo="Faltan los términos del servicio">
           Quien administra la tienda tiene que aceptarlos para publicar o cobrar en línea.{' '}

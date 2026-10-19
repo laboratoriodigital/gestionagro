@@ -135,6 +135,13 @@ const SOLO_DEL_PROPIETARIO: Record<string, Intento[] | { sinRuta: string }> = {
   ],
   'cobro.gestionar': [
     async () => ['ajustes/guardar', await guardar('cobro', { ambiente: 'pruebas' })],
+    // HU-T11.2: la pantalla Cobro, verla, pegar las llaves y probarlas.
+    async () => ['cobro', undefined],
+    async () => [
+      'cobro/llaves',
+      { op: op(), ambiente: 'pruebas', identidad: 'i'.repeat(20), secreta: 's'.repeat(20) },
+    ],
+    async () => ['cobro/probar', { ambiente: 'pruebas' }],
   ],
   importar: [
     async () => ['importar/revisar', { carga }],

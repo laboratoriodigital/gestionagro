@@ -101,6 +101,7 @@ describe('GET /api/panel/v1/yo, con el token del CORE (HU-T2.8)', () => {
       funciones: expect.objectContaining({ productos: 15, cobro_en_linea: expect.any(Boolean) }),
       tienda: { slug: 'ensayo-uno', nombre: 'Comercio Ensayo Uno', estado: 'borrador' },
       terminos: { aceptados: true },
+      cobro: { faltan: [] },
     });
   });
 

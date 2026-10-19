@@ -32,6 +32,7 @@ import {
 } from './sesion.ts';
 import { AjusteDeSeccion, Ajustes } from './vistas/Ajustes.tsx';
 import { Anotar } from './vistas/Anotar.tsx';
+import { Cobro } from './vistas/Cobro.tsx';
 import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
 import { Datos } from './vistas/Datos.tsx';
 import { ElegirTienda, NOMBRE_DEL_ROL } from './vistas/ElegirTienda.tsx';
@@ -331,7 +332,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         alVencer={setVencida}
       />
     );
-  } else if (ruta === '/mas/terminos/')
+  } else if (ruta === '/mas/cobro/') cuerpo = <Cobro conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/mas/terminos/')
     cuerpo = (
       <Terminos
         conexion={conexion}

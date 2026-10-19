@@ -97,6 +97,7 @@ import {
   listarInventario,
 } from './inventario.ts';
 import { kekDelEntorno } from './llaves.ts';
+import { comprobarIdentidad, guardarLlaves, leerElCobro, probarLlaves } from './llaves-de-bold.ts';
 import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
 import {
   cerrarSolicitud,
@@ -909,6 +910,8 @@ export function crearApp(
       tienda: tienda ?? null,
       // HU-T7.2 CA1: si falta aceptar los términos vigentes, el panel los pide antes de seguir.
       terminos: { aceptados: (await aceptacionDe(s)).terminos.aceptados },
+      // HU-T11.2 CA3: con el pago en línea encendido, lo que falta para cobrar, en palabras.
+      cobro: { faltan: (await leerElCobro(s)).faltan },
     });
   });
 
@@ -1592,6 +1595,46 @@ export function crearApp(
     const q = quienPuede(c, 'ajustes.contacto', 'Tu rol no puede cambiar el WhatsApp.');
     if (q instanceof Response) return q;
     return responderCatalogo(c, await verificarWhatsapp(q, await c.req.json().catch(() => null)));
+  });
+
+  /**
+   * HU-T11.2: la pantalla Cobro. Ver el estado lo pide el permiso `cobro.gestionar`, sin entrada
+   * reciente; pegar las llaves también la pide (la matriz). Las llaves nunca vuelven en una
+   * respuesta: solo sus últimos 4 caracteres (CA4).
+   */
+  const comprobar = (identidad: string, ambiente: 'pruebas' | 'produccion') =>
+    comprobarIdentidad(identidad, ambiente, alProveedor, `ed1-comprobar-${crypto.randomUUID()}`);
+  const NO_COBRO = 'Solo quien administra la tienda maneja el cobro en línea.';
+  app.get('/api/panel/v1/cobro', async (c) => {
+    const s = c.get('sesion');
+    if (!puede(s.rol, 'cobro.gestionar'))
+      return c.json({ estado: 'prohibido', motivo: NO_COBRO }, 403);
+    return c.json(await leerElCobro(s), 200, { 'cache-control': 'no-store' });
+  });
+  app.post('/api/panel/v1/cobro/llaves', async (c) => {
+    const q = quienPuede(c, 'cobro.gestionar', NO_COBRO);
+    if (q instanceof Response) return q;
+    const r = await guardarLlaves(
+      q,
+      c.env.TIENDA_KEK_V1,
+      await c.req.json().catch(() => null),
+      comprobar,
+    );
+    if (r.estado === 'sin-terminos' || r.estado === 'sin-custodia') return c.json(r, 403);
+    if (r.estado === 'sin-llave' || r.estado === 'sin-respuesta') return c.json(r, 503);
+    return responderCatalogo(c, r as ResultadoDelCatalogo);
+  });
+  app.post('/api/panel/v1/cobro/probar', async (c) => {
+    const s = c.get('sesion');
+    if (!puede(s.rol, 'cobro.gestionar'))
+      return c.json({ estado: 'prohibido', motivo: NO_COBRO }, 403);
+    const r = await probarLlaves(
+      { db: s.db, org: s.org, instante: new Date(ahora()).toISOString() },
+      c.env.TIENDA_KEK_V1,
+      await c.req.json().catch(() => null),
+      comprobar,
+    );
+    return c.json(r, r.estado === 'problemas' ? 422 : 200);
   });
 
   // HU-T9.7: las solicitudes, con su vencimiento; abrir, responder y cerrar.

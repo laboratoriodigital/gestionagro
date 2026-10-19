@@ -261,6 +261,8 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('verific', 'aste', 'ó')} el WhatsApp de la tienda`;
     case 'terminos.aceptar':
       return `${hizo('acept', 'aste', 'ó')} los términos del servicio y el contrato de datos (versión ${despues['version']})`;
+    case 'cobro.llaves':
+      return `${hizo('guard', 'aste', 'ó')} las llaves de Bold de ${despues['ambiente'] === 'produccion' ? 'producción' : 'pruebas'}`;
     case 'custodia.aceptar':
       return `${hizo('autoriz', 'aste', 'ó')} guardar las llaves de Bold de la tienda (versión ${despues['version']})`;
     default:
