@@ -2,7 +2,7 @@
 
 **Para qué:** dejar una tienda lista para cobrar en línea con Bold. Primero cobra en el ambiente de pruebas de Bold, donde nadie paga de verdad. Cuando un pago de prueba se aprueba y el aviso de Bold llega, la tienda puede pasar a cobrar de verdad. La API no deja pasar sin eso.
 
-Lo hace quien administra la tienda, desde el panel: **Más › Cobro en línea**. En staging, el dueño lo hace con Ensayo Uno y las llaves de pruebas que tiene (WI-T11.2.3 y WI-T11.3.3).
+Lo hace quien administra la tienda, desde el panel: **Más › Cobro en línea**. En staging, el dueño lo hace con **Ensayo Dos** y las llaves de pruebas que tiene (WI-T11.2.3 y WI-T11.3.3): Ensayo Uno lleno no se publica en staging hasta Workers Paid (bitácora tienda3 31).
 
 ## Antes de empezar
 
@@ -13,7 +13,7 @@ Lo hace quien administra la tienda, desde el panel: **Más › Cobro en línea**
 
 1. **Autorizar que se guarden las llaves.** En Más › Cobro en línea, lee la cláusula, marca la casilla y toca «Autorizar».
 2. **Pegar las llaves de pruebas.** Elige «Pruebas», pega la de identidad y la secreta, y toca «Guardar y comprobar con Bold». Pide haber entrado hace menos de 10 minutos. Si Bold no reconoce la de identidad, lo dice y no guarda nada.
-3. **La dirección de los avisos.** Copia la que muestra el paso 2 de «El cobro de prueba» y pégala en la cuenta de Bold, en la configuración de los avisos de pago (webhooks). Es la del subdominio de la tienda, por ejemplo `https://ensayo-uno--staging.laboratorio-digital.app/api/v1/avisos/bold`.
+3. **La dirección de los avisos.** Copia la que muestra el paso 2 de «El cobro de prueba» y pégala en la cuenta de Bold, en la configuración de los avisos de pago (webhooks). Es la del subdominio de la tienda, por ejemplo `https://ensayo-dos--staging.laboratorio-digital.app/api/v1/avisos/bold`.
 4. **Recibir pagos en línea.** En Ajustes › Venta, elige «En línea» o «Ambos» y publica la tienda. Mientras cobre en pruebas, cada página de la tienda lo dice en una franja arriba.
 5. **El pago de prueba.** Abre la tienda, agrega algo al carrito y paga «En línea» con uno de los medios de prueba que da Bold. No cobra de verdad.
 6. **Ver cómo va.** De vuelta en Más › Cobro en línea, toca «Ver cómo va»:

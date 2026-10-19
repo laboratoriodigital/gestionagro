@@ -929,7 +929,7 @@ La regla: **lo que hace una solicitud se cuenta contra el tope de una invocació
 
 Mientras tanto, el paso de la Tienda del despliegue de staging queda en rojo con Ensayo Uno lleno y lo dice en el resumen, sin detener a los demás (`continue-on-error`). Ensayo Dos no tiene volumen: quedó «en-curso» porque la invocación que lo publicaba también se cortó.
 
-*Lo que falta.* La decisión del dueño. Con Workers Paid no hay que cambiar el código, porque el tope por defecto es de 30 s: basta volver a desplegar staging. Sin él: hornear por partes, que es una historia nueva de unos 5 puntos.
+*Lo que falta.* La decisión del dueño. Con Workers Paid no hay que cambiar el código, porque el tope por defecto es de 30 s: basta volver a desplegar staging. Sin él: hornear por partes, que es una historia nueva de unos 5 puntos. *(Hoy, 19 oct 2026: el dueño decidió activar Workers Paid cuando la Tienda esté completa. Mientras tanto, el despliegue de staging omite, diciéndolo, la tienda de prueba de más de 50 productos (`PRODUCTOS_DE_UN_ENSAYO_EN_EL_PLAN_GRATUITO`): Ensayo Uno lleno sigue con la versión que tenía y Ensayo Dos se publica. Lo prueba `apps/tienda-api/src/ensayo.test.ts`.)*
 
 **Lo prueba** solo la medición, todavía: una prueba de CPU en Node no dice lo que mide Cloudflare. Con la decisión, la prueba es el despliegue de staging en verde con la tienda llena publicada.
 

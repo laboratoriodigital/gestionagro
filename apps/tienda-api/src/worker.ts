@@ -144,6 +144,11 @@ import { buscarTitular, corregirTitular, exportarTitular, suprimirTitular } from
 import { borrarCupon, borrarEnvio, guardarCupon, guardarEnvio, listarVenta } from './venta.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
+/**
+ * Bitácora tienda3 31: cuántos productos puede tener una tienda de prueba para que el despliegue de
+ * staging la publique en el plan gratuito. La llena (HU-T3.7) se omite hasta Workers Paid.
+ */
+export const PRODUCTOS_DE_UN_ENSAYO_EN_EL_PLAN_GRATUITO = 50;
 export const CABECERA_TIENDA = 'x-tienda';
 /** El secreto de la KEK vigente (TIENDA §14.2). La versión sube cuando se rota. */
 export const SECRETO_KEK = 'TIENDA_KEK_V1';
@@ -1741,14 +1746,18 @@ export function crearApp(
 
   // HU-T2.6 y HU-T4.4: en staging, el despliegue publica a los comercios de prueba con el secreto
   // del despacho en `x-ensayo`. En producción la ruta no existe: `ENSAYOS` no está.
-  const malo = (r: Resultado) =>
-    r.estado !== 'publicada' && r.estado !== 'nada-cambio' && r.estado !== 'por-tandas';
+  type DelEnsayo = Resultado | { estado: 'omitida'; motivo: string };
+  const malo = (r: DelEnsayo) =>
+    r.estado !== 'publicada' &&
+    r.estado !== 'nada-cambio' &&
+    r.estado !== 'por-tandas' &&
+    r.estado !== 'omitida';
   app.post('/api/ensayo/publicar', async (c) => {
     const dado = c.req.header('x-ensayo');
     if (c.env.ENSAYOS !== '1' || !dado || !mismoSecreto(c.env.SECRETO_DESPACHO ?? '', dado)) {
       return c.json(NO_EXISTE, 404);
     }
-    const resultados: Record<string, Resultado> = {};
+    const resultados: Record<string, DelEnsayo> = {};
     let quedan = false;
     for (const [i, e] of ENSAYOS.entries()) {
       const shard = Object.keys(c.env).find((k) => SHARD.test(k));
@@ -1756,6 +1765,21 @@ export function crearApp(
         ? contextoDePublicacion(c as ContextoTienda, e.org, shard, 'sistema:ensayo')
         : null;
       if (!ctx) return c.json({ estado: 'sin-configurar' }, 503);
+      // Bitácora tienda3 31: una tienda de prueba llena no cabe en los 10 ms de CPU del plan
+      // gratuito. Se omite diciéndolo, sigue con la versión que tenía, y las demás se publican.
+      // Decisión del dueño (19 oct 2026): Workers Paid cuando la Tienda esté completa.
+      const productos = await ctx.shard
+        .prepare('SELECT count(*) AS n FROM producto WHERE org_id = ? AND borrado IS NULL')
+        .bind(e.org)
+        .first<{ n: number }>();
+      if ((productos?.n ?? 0) > PRODUCTOS_DE_UN_ENSAYO_EN_EL_PLAN_GRATUITO) {
+        resultados[e.slug] = {
+          estado: 'omitida',
+          motivo: `tiene ${productos?.n} productos y no cabe en el plan gratuito (bitácora tienda3 31); sigue con la versión que tenía`,
+        };
+        console.error(`tienda-api: ${e.slug} ${(resultados[e.slug] as { motivo: string }).motivo}`);
+        continue;
+      }
       // Los comercios de prueba no tienen fotos hasta HU-T8.3: es lo único que se omite.
       const r = await publicar({ ...ctx, omitir: ['sin-foto'] });
       resultados[e.slug] = r;
