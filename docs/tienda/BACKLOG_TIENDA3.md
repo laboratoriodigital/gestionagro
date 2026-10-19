@@ -329,14 +329,14 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T4** | 25 ene–5 feb | Publicar es hornear en cola con su compuerta; la vitrina tiene sus componentes | HU-T3.4 (5), HU-T4.3 (3), HU-T4.4 (5), HU-T5.3 (2), HU-T5.6 (2), HU-T17.1 (3) | 20 | — |
 | **T5** | 8–19 feb | La vitrina completa: portada, colecciones, fichas, carrito, cotizar y los textos legales | HU-T5.2 (5), HU-T5.4 (3), HU-T5.5 (3), HU-T6.5 (1), HU-T7.1 (5), HU-T15.1 (3) | 20 | — |
 | **T6** | 22 feb–5 mar | Se pide por WhatsApp con acuse y seguimiento; la carga del operador; la vitrina en producción sin tiendas | HU-T2.9 (2), HU-T3.6 (3), HU-T6.1 (5), HU-T6.2 (2), HU-T6.3 (3), HU-T12.2 (5) | 20 | `v0.1.0` |
-| **T7** | 8–19 mar | **M1.** Solicitudes con radicado y la aceptación de la tienda pública; el panel abre la puerta | HU-T3.5 (5), HU-T5.7 (2), HU-T6.4 (5), HU-T7.2 (2), HU-T8.1 (3), HU-T17.2 (2) | 19 | M1 |
+| **T7** | 8–19 mar | **M1.** Solicitudes con radicado y la aceptación de la tienda pública; el panel abre la puerta | HU-T3.5 (5), HU-T5.7 (2), HU-T6.4 (5), HU-T7.2 (2, pasó a T14), HU-T8.1 (3), HU-T17.2 (2) | 19 | M1 |
 | **T8** (corto) | 23 mar–2 abr | Productos con variantes y fotos desde el teléfono | HU-T8.2 (5), HU-T8.3 (3), HU-T8.4 (2), HU-T10.6 (2) | 12 | — |
 | **T9** | 5–16 abr | Inventario con su libro, la bandeja de pedidos y los ajustes | HU-T4.5 (2), HU-T8.5 (3), HU-T9.1 (5), HU-T9.2 (2), HU-T9.3 (3), HU-T10.3 (5) | 20 | — |
 | **T10** | 19–30 abr | Despachar, recaudar y liquidar la contraentrega; envíos, cupones, versiones y equipo | HU-T9.4 (3), HU-T9.5 (5), HU-T9.6 (3), HU-T10.1 (3), HU-T10.4 (3), HU-T10.5 (3) | 20 | — |
 | **T11** (festivo) | 3–14 may | **M2.** Solicitudes en el panel, derechos del titular, exportación y tablero; revisión con la tienda llena | HU-T3.7 (2), HU-T7.3 (3), HU-T9.7 (3), HU-T10.7 (3), HU-T14.2 (5) | 16 | M2 |
-| **T12** | 17–28 may | Las llaves del comercio cifradas y el primer cobro de prueba guiado | HU-T11.1 (3), HU-T11.2 (5), HU-T11.3 (3), HU-T11.4 (5), HU-T17.3 (3) | 19 | — |
+| **T12** | 17–28 may | Las llaves del comercio cifradas y el primer cobro de prueba guiado | HU-T11.1 (3), HU-T11.2 (5, pasó a T14), HU-T11.3 (3, pasó a T14), HU-T11.4 (5), HU-T17.3 (3) | 19 | — |
 | **T13** (festivo) | 1–11 jun | Bold avisa, se concilia, y cada respuesta tiene su camino | HU-T11.5 (5), HU-T11.6 (3), HU-T11.7 (3), HU-T11.9 (2), HU-T14.3 (3) | 16 | — |
-| **T14** | 14–25 jun | **M3.** Links de pago, caos, revisión de seguridad y restauración probada; la carga asistida de fotos | HU-T0.3 (1), HU-T4.6 (3), HU-T11.8 (3), HU-T11.10 (3), HU-T11.11 (3), HU-T12.3 (3), HU-T17.4 (3) | 19 | M3 |
+| **T14** | 14–25 jun | **M3.** Los términos del comercio, sus llaves de Bold y el cobro de prueba guiado (lo que quedó de T7 y T12); links de pago, caos, revisión de seguridad y restauración probada; la carga asistida de fotos | HU-T7.2 (2), HU-T11.2 (5), HU-T11.3 (3), HU-T0.3 (1), HU-T4.6 (3), HU-T11.8 (3), HU-T11.10 (3), HU-T11.11 (3), HU-T12.3 (3), HU-T17.4 (3) | 29 (19 + 10 que vienen de T7 y T12) | M3 |
 | **T15** (festivo) | 28 jun–9 jul | Dominios propios con prevalidación, los runbooks y la rotación de la KEK | HU-T13.1 (5), HU-T13.2 (3), HU-T13.3 (2), HU-T17.5 (2), HU-T17.6 (3) | 15 | — |
 | **T16** (festivo) | 12–23 jul | **M4.** Alta abierta, plan por periodo, antiabuso y baja; medición propia y feeds | HU-T13.4 (5), HU-T13.5 (3), HU-T13.6 (3), HU-T13.7 (2), HU-T14.1 (3), HU-T14.5 (3) | 19 | M4 |
 | **T17** | 26 jul–6 ago | **M5 · `tienda-v1.0.0`.** Resumen diario, consentimiento, reconciliación, páginas propias y el reporte del dueño | HU-T8.6 (2), HU-T10.2 (2), HU-T14.4 (3), HU-T14.6 (2), HU-T14.7 (2) | 11 | M5 |
@@ -344,7 +344,7 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T19** | 23 ago–3 sep | **M8.** La factura, en el facturador del comercio | HU-T16.1 (2), HU-T16.2 (5), HU-T16.3 (3), HU-T16.4 (2) | 12 | M8 |
 | **T20** | 6–17 sep | Holgura: lo que traiga la validación con los primeros comercios | — | 0 | — |
 
-**Lo real al 15 oct 2026:** T0 a T11 se construyeron entre el 6 y el 15 oct de 2026, meses antes de las fechas de esta tabla. Las fechas no se recalculan todavía: §6.2 las recalcula con la velocidad **validada**, que llega a 25 puntos (T0, y HU-T8.2 y HU-T8.3 de T8, el 15 oct), con 58 historias esperando validación frente al tope de 3 (§3.6). Se recalculan cuando el dueño valide lo construido de T1 a T11 (bitácora tienda3 13).
+**Lo real al 15 oct 2026:** T0 a T11 se construyeron entre el 6 y el 15 oct de 2026, meses antes de las fechas de esta tabla. Las fechas no se recalculan todavía: §6.2 las recalcula con la velocidad **validada**, que llega a 25 puntos (T0, y HU-T8.2 y HU-T8.3 de T8, el 15 oct), con 58 historias esperando validación frente al tope de 3 (§3.6). Se recalculan cuando el dueño valide lo construido de T1 a T11 (bitácora tienda3 13). *(Hoy, 19 oct 2026: T0 a T13 se construyeron entre el 6 y el 17 oct. T12 quedó a medias: HU-T11.2 y HU-T11.3 esperaban HU-T7.2, que esperaba los datos del encargado, y las tres pasan a T14, donde los términos salen con «por completar» hasta que el dueño los dé, como en el parqueadero. Entre el 16 y el 17 oct el plan gratuito pidió cinco arreglos fuera de los sprints (PR #194 y #199 a #203; bitácora tienda3 26 a 30). La velocidad validada sigue en 25 puntos, con 66 historias esperando validación. El 19 oct se midió que la tienda llena no se puede hornear en una solicitud del plan gratuito (bitácora tienda3 31): es una decisión del dueño.)*
 
 **Total:** 345 puntos. Hasta el alta abierta (T0 a T16, M4): 303. Desde el 13 oct 2026 ninguna tienda 2.0 se migra (bitácora tienda3 9): sus 15 puntos de carga y corte salieron, y los hitos de M4 en adelante llegan un sprint antes.
 
@@ -857,7 +857,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T7.1.1 `[doc]` plantillas · WI-T7.1.2 `[código]` · WI-T7.1.3 `[prueba]` · WI-T7.1.4 `[dueño]` lectura de las plantillas.
 
 #### HU-T7.2 · Términos del comercio y contrato de transmisión, al entrar por primera vez
-- **Capa:** cumplimiento y panel · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T7 · **Depende de:** HU-T8.1 (mismo sprint, antes) · **Estado:** Refinada
+- **Capa:** cumplimiento y panel · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** T14 (era T7; esperaba los datos del encargado, que mientras tanto salen «por completar») · **Depende de:** HU-T8.1 · **Estado:** Refinada
 - Como Laboratorio Digital, encargado de los datos de los compradores, quiero que cada comercio acepte los términos y el contrato de transmisión antes de operar su tienda.
 - **Respaldo:** TIENDA §4.4, §9.1 y §14.3 (Decreto 1377 art. 25); análisis de integración §4.3 (el dinero va a la cuenta del comercio).
 - **CA1.** Al entrar por primera vez, o cuando cambie su versión, el panel pide aceptar; la aceptación queda en `registro` con la huella del texto.
@@ -1075,7 +1075,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T11.1.1 `[código]` · WI-T11.1.2 `[prueba]` · WI-T11.1.3 `[doc]` CHANGELOG del CORE.
 
 #### HU-T11.2 · Las llaves de Bold del comercio
-- **Capa:** panel, API y seguridad · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T12 · **Depende de:** HU-T11.1, HU-T1.3, HU-T10.3, HU-T7.2 · **Estado:** Refinada
+- **Capa:** panel, API y seguridad · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T14 (era T12) · **Depende de:** HU-T11.1, HU-T1.3, HU-T10.3, HU-T7.2 · **Estado:** Refinada
 - Como comerciante, quiero conectar mi cuenta de Bold y saber que mi llave secreta está a salvo.
 - **Respaldo:** TIENDA §9.2, §9.7 y §12.3; bitácora ecommerce 57 y crítico «la llave de pago estaba en el repositorio».
 - **Boceto:** la pantalla Cobro: la cláusula para aceptar, las llaves de pruebas y de producción, «Probar», el estado en palabras, las comisiones por medio y «recibir el dinero de inmediato cuesta más».
@@ -1086,7 +1086,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T11.2.1 `[código]` · WI-T11.2.2 `[prueba]` · WI-T11.2.3 `[dueño]` las llaves de pruebas de Ensayo Uno.
 
 #### HU-T11.3 · El cobro de prueba guiado
-- **Capa:** panel y vitrina · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T12 · **Depende de:** HU-T11.2, HU-T11.4 (mismo sprint, antes) · **Estado:** Refinada
+- **Capa:** panel y vitrina · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T14 (era T12) · **Depende de:** HU-T11.2 (mismo sprint, antes), HU-T11.4 · **Estado:** Refinada
 - Como comerciante, quiero hacer un pago de prueba de verdad antes de cobrarle a un cliente.
 - **Respaldo:** TIENDA §9.2 (4); P16.
 - **CA1.** El panel guía un pago en el ambiente de pruebas de Bold desde la propia tienda, y comprueba la firma de integridad y el aviso.
@@ -1591,12 +1591,14 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | Activar R2 y crear `tienda-c1` y `tienda-c1-staging` | Hecho | 14 oct 2026. El token de despliegue sigue sin permiso de R2 (HU-C11.5): los buckets los crea el dueño en el panel |
 | Crear los buckets de las fotos y conectarles `img.` e `img--staging.` | Hecho | Buckets creados el 14 oct 2026; el dueño les conectó `img.` e `img--staging.` el 15 oct 2026 (pasos 2 y 3 de `docs/runbooks/tienda-fotos.md`). Sin comprobar desde la sesión, que no alcanza `*.laboratorio-digital.app`: lo comprueba la primera foto que suba HU-T8.3. Nunca un dominio en el almacén |
 | La cuenta de Gmail de los correos y su permiso de OAuth, en producción | T13 | HU-C10.1 y D-T11: PLATAFORMA §4.11 |
+| La cuenta de Gmail de prueba y su permiso de OAuth, en staging | Al terminar T14 | El dueño tiene la cuenta (19 oct 2026). Falta su permiso: `node scripts/correo/permiso-de-gmail.ts --ambiente staging` (T14) guarda los cuatro secretos `CORREO_GMAIL_*` en el ambiente `staging` de GitHub |
+| Decidir si se activa Workers Paid para publicar tiendas grandes | Antes de la primera tienda real con más de unos 15 productos | Bitácora tienda3 31: publicar la tienda llena gasta 1,3 s de CPU por solicitud y el plan gratuito da 10 ms. Es el dato que la bitácora tienda3 7 esperaba |
 | Leer, con un abogado, las plantillas de los textos legales de las tiendas | T7 | WI-T7.1.4: `content/tienda/legal/`, hoy en la versión 2 (15 oct 2026: «Solicitudes» explica el formulario con radicado, HU-T6.4). Corregir es editar el `.md`, subir la versión y generar; las tiendas lo toman al publicar |
-| Los datos de Laboratorio Digital como encargado (nombre o razón social, identificación, domicilio, correo, teléfono) | T7 | HU-T7.2: términos y contrato de transmisión |
-| Guardar el secreto `TIENDA_CORREO_DUENO_STAGING` (tu correo de Google) en el ambiente `staging` de GitHub, entrar una vez al panel de staging y volver a desplegar staging | T7 | HU-T2.10 CA2 y la aceptación de M0 (WI-T8.1.3): el despliegue te hace propietario de Ensayo Uno y Ensayo Dos en el CORE de staging. Decisión del 15 oct 2026 |
+| Los datos de Laboratorio Digital como encargado (nombre o razón social, identificación, domicilio, correo, teléfono) | Antes de la primera tienda real | HU-T7.2: términos y contrato de transmisión |
+| Guardar el secreto `TIENDA_CORREO_DUENO_STAGING` (tu correo de Google) en el ambiente `staging` de GitHub, entrar una vez al panel de staging y volver a desplegar staging | Hecho | Guardado el 15 oct 2026. El despliegue del 19 oct dijo «comercios de prueba en el CORE: 2 organizaciones, el dueño es propietario» (HU-T2.10 CA2) |
 | Poner la regla de ciclo de vida de 7 días a `exportaciones/` en `tienda-c1` y `tienda-c1-staging` | T10 | HU-T17.2: `docs/runbooks/tienda-ciclo-de-vida.md`. Antes de que el panel ofrezca «Descargar todo» (HU-T10.7) |
 | Escribir a Bold por un esquema para plataformas | T12 | PLATAFORMA §9.7 (soporte.online@bold.co) |
-| Llaves de pruebas de Bold para Ensayo Uno | T12 | HU-T11.2 |
+| Llaves de pruebas de Bold para Ensayo Uno | Al terminar T14 | El dueño las tiene (19 oct 2026). Se pegan en el panel de staging, en Más › Cobro, cuando HU-T11.2 llegue a staging; nunca en un chat, un archivo ni un secreto de GitHub |
 | Fijar los umbrales de validación | T14 | HU-T0.3 |
 | Acordar con cada comercio la fecha de su corte | T15 | HU-T12.7 y HU-T12.8 |
 | Un dominio de prueba para conectarlo como propio | T16 | HU-T13.1 |
@@ -1661,6 +1663,8 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | T9 | 20 | 0 (en validación: HU-T4.5, HU-T8.5, HU-T9.1, HU-T9.2, HU-T9.3 y HU-T10.3) | Construido el 15 oct 2026. El panel ya atiende la tienda: el inventario con su libro, la bandeja de pedidos con el comprador tapado, ver sus datos de entrega dejando huella, confirmar por WhatsApp descontando el inventario, y los ajustes por sección con la entrada reciente donde se mueve la plata. Agotar o reponer re-hornea lo publicado sin publicar nada más. Se corrigió el registro, que decía «única» en vez de la combinación (bitácora tienda3 19). La vitrina todavía no pide el contacto del comprador: sin él, «Ver datos de entrega» no tiene qué mostrar en los pedidos por WhatsApp |
 | T10 | 20 | 0 (en validación: HU-T9.4, HU-T9.5, HU-T9.6, HU-T10.1, HU-T10.4 y HU-T10.5) | Construido el 15 oct 2026. La contraentrega va de punta a punta: despachar con guía, recaudar al entregar, devolver o perder, y liquidar varios. Los pedidos que llegan por teléfono se anotan, y cancelar no descuadra el inventario. Envíos y cupones desde el panel: el cupón se agota en su tope sin hacer fallar un pago. Publicar dice todo lo que falta, y «Volver a esta» mueve la tienda a una versión anterior sin tocar pedidos ni inventario. El colaborador llega por WhatsApp y recibe 403 en lo que es del propietario. Las fotos se enlazaron en producción (PR #191) |
 | T11 | 16 | 0 (en validación: HU-T3.7, HU-T7.3, HU-T9.7, HU-T10.7 y HU-T14.2) | Construido el 15 oct 2026. Las solicitudes se atienden desde el panel con su plazo; el tablero de Inicio compara con el mes anterior por el calendario; «Descargar todo» sale en el formato de la carga y vuelve igual; el comprador pide sus datos, que se corrijan o que se borren, y el plazo de conservación lo pone el comercio. La tienda llena (2.000 productos y 300 pedidos) se publica dentro de sus presupuestos después de partir la portada y las listas en páginas (bitácora tienda3 20). M2 queda construido; el recorrido del dueño con la tienda llena (WI-T3.7.3) y su validación lo cierran. |
+| T12 | 11 de 19 | 0 (en validación: HU-T11.1, HU-T11.4 y HU-T17.3) | Construido el 16 oct 2026. El adaptador de Bold salió del CORE a `@ed1/pagos` (PR #195, aparte, con permiso del dueño); se paga en línea con el botón de Bold, con el pedido, el cobro y lo apartado en un solo lote, y cada tienda tiene su respaldo semanal en R2. HU-T11.2 y HU-T11.3 (8) pasaron a T14: esperaban HU-T7.2 |
+| T13 | 16 | 0 (en validación: HU-T11.5, HU-T11.6, HU-T11.7, HU-T11.9 y HU-T14.3) | Construido el 16 oct 2026. Los avisos firmados de Bold dejan el pedido pagado solos, la página y el cron le preguntan a Bold por lo que no avisó, el pagado sin existencias tiene su camino, y la tienda manda correos por Gmail (`@ed1/correo`, HU-C10.1, PR #198). Después, sin sprint, el plan gratuito pidió cinco arreglos medidos con la tienda llena: listas de a 50, filas leídas, el freno de R2, la purga de versiones, las migraciones y publicar por tandas (PR #194 y #199 a #203; bitácora tienda3 26 a 30) |
 
 ---
 

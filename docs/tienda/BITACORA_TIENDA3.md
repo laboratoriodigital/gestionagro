@@ -280,6 +280,7 @@ Van aparte porque no son fallos de código: son cosas que dije con seguridad y n
 - **14 oct 2026: «el carrito vive en `/pedido/`».** En HU-T5.4 horneé el carrito en `/pedido/` y lo dejé así en el PR #180, sin contrastarlo con TIENDA §5.4, que pone el carrito en `/carrito/` y deja `/pedido/#c=…&s=…` para el seguimiento (y `/pedido/pago/` para la vuelta de Bold). Lo vi al escribir HU-T6.3, que necesita esa ruta. Se corrigió en T6 antes de que hubiera un enlace compartido: el carrito se guarda en `localStorage`, no en la ruta, así que nadie perdió nada. La regla de siempre (premisas antes de decidir): **una ruta pública se toma de la tabla de rutas del diseño, no de la historia que la usa primero.**
 - **15 oct 2026: «la Tienda quedó en producción».** En la revisión del estado del proyecto lo afirmé porque el paso «Desplegar la Tienda» del despliegue a producción figuraba «success» en la API de GitHub. Ese paso tiene `continue-on-error: true`: el paso figura en verde aunque falle, y el error está en la anotación del trabajo («Process completed with exit code 1.»). La regla: **el estado de un paso con `continue-on-error` no dice si funcionó; se leen las anotaciones o el resumen de la corrida** (bitácora tienda3 12).
 - **15 oct 2026: «la prueba automática ya cubre que la tienda llena se publica».** Lo escribí en el runbook de la revisión con la tienda llena (HU-T3.7). La prueba publicaba con `omitir: ['sin-foto']`, como la publicación de los comercios de prueba, y la siembra no ponía fotos: en staging, la tienda llena no se pudo publicar. La regla: **una prueba que se salta una puerta de la compuerta no dice que se publica; dice que se publicaría sin esa puerta** (bitácora tienda3 22).
+- **17 oct 2026: «la tienda llena se publica en 6 tandas».** Lo escribí en la bitácora tienda3 30 y en el PR #203. Lo decía una prueba que corre en Node, donde una solicitud no tiene tope de CPU, y cada tanda vuelve a hornear la tienda entera: 1,3 s de CPU contra los 10 ms del plan gratuito. En staging no se publicó (bitácora tienda3 31). La regla: **lo que se afirma de una solicitud en la plataforma se mide contra todos sus topes, también el de CPU, no solo los que se acaban de romper.**
 
 ---
 
@@ -910,3 +911,28 @@ La regla: **una migración se mide como una consulta: con la tienda llena y cont
 La regla: **lo que hace una solicitud se cuenta contra el tope de una invocación, con la tienda llena; y lo que no cabe se parte en tandas que se pueden retomar.**
 
 *Ficha:* tienda3 · *(mío)* · 🔴 Alto · P17, P1 · tienda-0.1.0 · 2026-10-17
+
+**31 · La tienda llena no se puede hornear en una solicitud del plan gratuito: gasta 1,3 s de CPU y el tope es 10 ms.**
+
+*Qué pasó.* El 19 oct 2026 el dueño volvió a correr el despliegue de staging del PR #203, que el 17 oct había fallado por el día de D1 (bitácora 29). El CORE, el agro y el parqueadero se desplegaron. La Tienda se desplegó, pero no pudo publicar a los comercios de prueba, y la prueba de humo falló 5 veces. Era la primera vez que Ensayo Uno lleno (HU-T3.7) llegaba a publicarse en staging.
+
+*Síntoma literal.* «publicar a los comercios de prueba respondió 500: {"ensayo-uno":{"estado":"en-curso"},"ensayo-dos":{"estado":"en-curso"}}».
+
+*Causa raíz.* En el plan gratuito una invocación tiene 10 ms de CPU. Publicar hornea la tienda entera en cada solicitud, también en cada tanda de la 30, que repartió las escrituras pero no el horno. Medido en local con `process.cpuUsage` alrededor de `publicar`: con Ensayo Uno lleno (2.000 productos, 4.221 archivos), cada tanda gasta entre 1,2 y 1,6 s de CPU; con Ensayo Uno de siempre (29 archivos), 31 ms la primera vez. Cloudflare tolera de más una tienda chica, no 100 veces más. La solicitud cortada deja su versión «horneando», y la siguiente, antes de los 10 minutos de la 27, responde «en-curso». La bitácora 7 ya lo había dejado escrito: «el horno de una tienda puede no caber. Se mide en HU-T4.1; si no cabe, ese es el dato que justifica Workers Paid». Se midió el 19 oct, con la tienda llena; con las de prueba cabía (P17: la prueba corre en Node, donde nada corta por CPU).
+
+*Cómo se reprodujo.* En local, con la siembra de `lecturas.test.ts` y una prueba temporal que no quedó en el repositorio: cinco tandas «por-tandas» y una «publicada», cada una entre 1.235 y 1.563 ms de CPU. En staging no hay registros: la sesión no tiene acceso a la cuenta.
+
+*Arreglo.* Ninguno en el código: es una decisión del dueño (§10 del backlog). Las salidas:
+
+- **Workers Paid** (USD 5 al mes): 30 s de CPU por invocación, hasta 5 minutos. Una tienda de 2.000 productos cabe sin cambiar nada, y la misma activación trae las colas que TIENDA §1.3 supone para hornear. Es la que recomiendo, antes de la primera tienda real con más de unos 15 productos: una de 100 productos gastaría unos 70 ms por solicitud.
+- **Hornear por partes**, sin pagar: cada solicitud hornea unas pocas fichas y las guarda; la última arma el manifiesto. Con unos 0,6 ms por producto, una tienda de 300 productos pediría unas 20 solicitudes, cada una por encima de los 10 ms, confiando en la tolerancia de Cloudflare, que no está escrita.
+
+Mientras tanto, el paso de la Tienda del despliegue de staging queda en rojo con Ensayo Uno lleno y lo dice en el resumen, sin detener a los demás (`continue-on-error`). Ensayo Dos no tiene volumen: quedó «en-curso» porque la invocación que lo publicaba también se cortó.
+
+*Lo que falta.* La decisión del dueño. Con Workers Paid no hay que cambiar el código, porque el tope por defecto es de 30 s: basta volver a desplegar staging. Sin él: hornear por partes, que es una historia nueva de unos 5 puntos.
+
+**Lo prueba** solo la medición, todavía: una prueba de CPU en Node no dice lo que mide Cloudflare. Con la decisión, la prueba es el despliegue de staging en verde con la tienda llena publicada.
+
+La regla: **el horno se mide en CPU con la tienda más grande que se va a vender, antes de decir que cabe en una solicitud.**
+
+*Ficha:* tienda3 · *(mío)* · 🔴 Alto · P17, P16 · tienda-0.1.0 · 2026-10-19
