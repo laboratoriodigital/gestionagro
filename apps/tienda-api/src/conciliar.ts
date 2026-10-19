@@ -29,6 +29,7 @@ import {
 } from './avisos.ts';
 import { correosDeLaCelda, mandarResultadoDePrueba } from './correos.ts';
 import { type Ambiente, llavesDeBold } from './credenciales.ts';
+import { cerrarLinksVencidos } from './links.ts';
 import { kekDelEntorno } from './llaves.ts';
 import { sha256 } from './pedidos.ts';
 import type { Tarea } from './tareas.ts';
@@ -59,6 +60,7 @@ interface CobroEnEspera extends CobroDelAviso {
   consultas: number;
   ultima_consulta: string | null;
   creado: string;
+  vence: string;
 }
 
 const anotarConsulta = (c: ContextoDelAviso, k: CobroDelAviso, crudo: string) =>
@@ -79,11 +81,13 @@ export async function consultarCobro(
   llaves: LlavesBold,
   fetchFn: typeof fetch,
 ): Promise<'movido' | 'esperando'> {
-  const e = await proveedorBold(llaves, fetchFn).consultar(k.id);
+  // HU-T11.8: de un link se le pregunta a Bold por el link; vencido, lo cierra quien vence links.
+  const bold = proveedorBold(llaves, fetchFn);
+  const e = k.link ? await bold.consultarLink(k.link) : await bold.consultar(k.id);
   if (e.estado === 'revisar') {
     console.error(`tienda-api: Bold dijo ${e.crudo} del cobro ${k.id}; se sigue esperando`);
   }
-  const r = respuestaDeLaConsulta(e);
+  const r = k.link && e.crudo === 'EXPIRED' ? null : respuestaDeLaConsulta(e);
   const anotar = anotarConsulta(c, k, e.crudo);
   if (r && (await aplicarRespuesta(c, r, k, [anotar]))) {
     if (k.ambiente === 'pruebas') avisarPrueba(c, k.id, 'consulta');
@@ -212,14 +216,17 @@ export async function conciliarTienda(
   };
   const { results } = await c.db
     .prepare(
-      `SELECT id, pedido_id, ambiente, estado, monto_cop, consultas, ultima_consulta, creado FROM cobro
-        WHERE org_id = ? AND estado = 'esperando' AND creado <= ? ORDER BY creado LIMIT 200`,
+      `SELECT id, pedido_id, ambiente, estado, monto_cop, consultas, ultima_consulta, creado, vence, link
+         FROM cobro WHERE org_id = ? AND estado = 'esperando' AND creado <= ? ORDER BY creado LIMIT 200`,
     )
     .bind(c.org, new Date(instante - ESPERAS_EN_MINUTOS[0] * MINUTO_MS).toISOString())
     .all<CobroEnEspera>();
   const kek = await kekDelEntorno(c.kekTexto);
   const llaves = new Map<Ambiente, LlavesBold | null>();
+  // HU-T11.8 CA2: los links vencidos, cada uno con su última pregunta a Bold.
+  v.vencidos += await cerrarLinksVencidos(c, fetchFn);
   for (const k of results) {
+    if (k.link && Date.parse(k.vence) <= instante) continue;
     if (instante - Date.parse(k.creado) >= HORAS_SIN_NOTICIAS * 60 * MINUTO_MS) {
       // Un aviso tardío todavía lo aprueba desde `vencido` (§7.3): vencer no pierde un pago.
       await c.db.batch(vencerCobro(c, k));

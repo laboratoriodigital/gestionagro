@@ -96,6 +96,7 @@ import {
   libroDe,
   listarInventario,
 } from './inventario.ts';
+import { cerrarLinksVencidos, cobrarConLink } from './links.ts';
 import { kekDelEntorno } from './llaves.ts';
 import { comprobarIdentidad, guardarLlaves, leerElCobro, probarLlaves } from './llaves-de-bold.ts';
 import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
@@ -1403,8 +1404,36 @@ export function crearApp(
   app.get('/api/panel/v1/pedidos/:id', async (c) => {
     const q = deLosPedidos(c);
     if (q instanceof Response) return q;
+    // HU-T11.8 CA2: un link vencido de este pedido se cierra antes de mostrarlo.
+    await cerrarLinksVencidos(
+      { db: q.db, org: q.org, ahora: q.instante, kekTexto: c.env.TIENDA_KEK_V1 },
+      alProveedor,
+      c.req.param('id'),
+    ).catch((e: unknown) => console.error(`tienda-api: no se cerraron los links (${String(e)})`));
     const p = await leerPedido(q, await kekDe(c), c.req.param('id'));
     return p ? c.json(p) : c.json({ estado: 'no-existe', motivo: 'Ese pedido no está.' }, 404);
+  });
+  // HU-T11.8: cobrar con link el pedido que llegó por el chat.
+  const ESTADO_DEL_LINK = {
+    guardado: 200,
+    problemas: 422,
+    cambiado: 409,
+    'no-existe': 404,
+    'sin-terminos': 403,
+    'sin-llaves': 409,
+    'sin-existencias': 409,
+    'sin-respuesta': 503,
+  } as const;
+  app.post('/api/panel/v1/pedidos/link', async (c) => {
+    const q = quienPuede(c, 'pedidos.link_pago', 'Tu rol no puede cobrar con link.');
+    if (q instanceof Response) return q;
+    const r = await cobrarConLink(
+      q,
+      c.env.TIENDA_KEK_V1,
+      await c.req.json().catch(() => null),
+      alProveedor,
+    );
+    return c.json(r, ESTADO_DEL_LINK[r.estado]);
   });
   const ESTADO_DEL_CONTACTO = { 'no-existe': 404, 'sin-contacto': 404, 'sin-llave': 503 } as const;
   app.post('/api/panel/v1/pedidos/contacto', async (c) => {

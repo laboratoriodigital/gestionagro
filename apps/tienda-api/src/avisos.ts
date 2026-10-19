@@ -96,6 +96,8 @@ export interface CobroDelAviso {
   ambiente: Ambiente;
   estado: string;
   monto_cop: number;
+  /** HU-T11.8: el id del link de pago de Bold, si el cobro es un link. */
+  link?: string | null;
 }
 
 /**
@@ -245,6 +247,17 @@ function rechazar(c: ContextoDelAviso, k: CobroDelAviso) {
           WHERE org_id = ? AND id = ? AND estado = 'por_pagar'`,
       )
       .bind(c.ahora, c.org, k.pedido_id),
+    // HU-T11.8: el pedido que se cobró con un link vuelve a convenir la forma, como al vencer.
+    ...(k.link
+      ? [
+          c.db
+            .prepare(
+              `UPDATE pedido SET forma_pago = 'a_convenir' WHERE org_id = ? AND id = ?
+                  AND estado = 'pendiente' AND forma_pago = 'en_linea'`,
+            )
+            .bind(c.org, k.pedido_id),
+        ]
+      : []),
   ];
 }
 
@@ -312,7 +325,7 @@ export async function aplicarRespuesta(
 export const leerCobro = (c: ContextoDelAviso, id: string) =>
   c.db
     .prepare(
-      'SELECT id, pedido_id, ambiente, estado, monto_cop FROM cobro WHERE org_id = ? AND id = ?',
+      'SELECT id, pedido_id, ambiente, estado, monto_cop, link FROM cobro WHERE org_id = ? AND id = ?',
     )
     .bind(c.org, id)
     .first<CobroDelAviso>();

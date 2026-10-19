@@ -256,6 +256,8 @@ export interface PedidoDelPanel extends FilaDePedido {
   }[];
   /** Si el comprador dejó datos de entrega: «Ver datos de entrega» los abre. */
   conContacto: boolean;
+  /** HU-T11.8: el link de pago que sigue vigente, para volver a mandarlo. */
+  link: { url: string; vence: string } | null;
   /** HU-T9.4: con qué transportadora y qué guía salió. */
   transportadora: string | null;
   guia: string | null;
@@ -373,8 +375,17 @@ export async function leerPedido(
       liquidado: string | null;
       liquidacion_ref: string | null;
     }>();
+  // Con su índice: un pedido tiene a lo sumo un cobro esperando.
+  const link = await q.db
+    .prepare(
+      `SELECT link_url, vence FROM cobro INDEXED BY cobro_uno_esperando
+        WHERE org_id = ? AND pedido_id = ? AND estado = 'esperando' AND link_url IS NOT NULL`,
+    )
+    .bind(q.org, id)
+    .first<{ link_url: string; vence: string }>();
   return {
     ...(fila as FilaDePedido),
+    link: link ? { url: link.link_url, vence: link.vence } : null,
     canal: p.canal,
     subtotalCop: p.subtotal_cop,
     descuentoCop: p.descuento_cop,

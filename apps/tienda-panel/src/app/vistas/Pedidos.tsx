@@ -263,6 +263,8 @@ interface PedidoDelPanel extends FilaDePedido {
     nota?: string;
   }[];
   conContacto: boolean;
+  /** HU-T11.8: el link de pago que sigue vigente. */
+  link?: { url: string; vence: string } | null;
   transportadora: string | null;
   guia: string | null;
   recaudo: Recaudo | null;
@@ -646,6 +648,118 @@ const enFrase = (e: PedidoDelPanel['historia'][number]) => {
   return `${e.quien}: ${EVENTOS[e.tipo] ?? e.tipo}`;
 };
 
+/** HU-T11.8: cuánto dura el link, de 15 minutos a 24 horas; 60 minutos si no se elige. */
+const DURACIONES: readonly [number, string][] = [
+  [15, '15 minutos'],
+  [30, '30 minutos'],
+  [60, '1 hora'],
+  [120, '2 horas'],
+  [240, '4 horas'],
+  [720, '12 horas'],
+  [1440, '24 horas'],
+];
+
+/**
+ * HU-T11.8 CA1: cobrar con un link de Bold el pedido que llegó por el chat. El pedido pasa a «por
+ * pagar» y sus unidades quedan apartadas hasta que el link vence. WhatsApp se abre con un enlace, no
+ * después de esperar a la red: el navegador no deja abrir una ventana tarde.
+ */
+function CobrarConLink({
+  conexion,
+  pedido,
+  alVencer,
+  alCobrar,
+}: {
+  conexion: Conexion;
+  pedido: PedidoDelPanel;
+  alVencer: (motivo: string) => void;
+  alCobrar: () => void;
+}) {
+  const [minutos, setMinutos] = useState(60);
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hecho, setHecho] = useState<{ link: string; mensaje: string } | null>(null);
+  const vigente = pedido.link
+    ? {
+        link: pedido.link.url,
+        mensaje: `Hola. Este es el link para pagar tu pedido #${pedido.numero}, por ${enPesos(pedido.totalCop)}: ${pedido.link.url}\nSirve hasta las ${horaDeBogota(pedido.link.vence)}.`,
+      }
+    : null;
+  const mostrado = hecho ?? vigente;
+  const cobrar = async () => {
+    setEnviando(true);
+    setError(null);
+    const r = await pedirAlPanel<{ link: string; mensaje: string }>(conexion, 'pedidos/link', {
+      cuerpo: { op: opNueva(), pedido: pedido.id, version: pedido.version, minutos },
+    });
+    setEnviando(false);
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok') return setError(r.problemas?.[0]?.mensaje ?? r.motivo);
+    setHecho({ link: r.datos.link, mensaje: r.datos.mensaje });
+    alCobrar();
+  };
+  if (mostrado)
+    return (
+      <section class="acciones">
+        <h2>Link de pago</h2>
+        <pre class="mensaje">{mostrado.mensaje}</pre>
+        <a
+          class="ed1-boton ed1-boton--primario"
+          href={`https://wa.me/?text=${encodeURIComponent(mostrado.mensaje)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Mandarlo por WhatsApp
+        </a>
+        <p class="nota">
+          Cuando el comprador pague, Bold avisa y el pedido queda pagado. Si el link vence sin pago,
+          las unidades vuelven a estar disponibles y el pedido vuelve a pendiente.
+        </p>
+      </section>
+    );
+  if (pedido.estado !== 'pendiente') return null;
+  return (
+    <section class="acciones">
+      <h2>Cobrar con link</h2>
+      <p class="nota">
+        Bold crea un link de pago por {enPesos(pedido.totalCop)}. Mientras sirve, las unidades del
+        pedido quedan apartadas.
+      </p>
+      {error ? (
+        <Aviso tono="peligro" titulo="No se creó el link">
+          {error}
+        </Aviso>
+      ) : null}
+      <div class="ed1-campo">
+        <label class="ed1-campo__etiqueta" for="duracion-del-link">
+          El link sirve por
+        </label>
+        <select
+          class="ed1-campo__control"
+          id="duracion-del-link"
+          value={String(minutos)}
+          onChange={(e) => setMinutos(Number((e.target as HTMLSelectElement).value))}
+        >
+          {DURACIONES.map(([m, texto]) => (
+            <option key={m} value={String(m)}>
+              {texto}
+            </option>
+          ))}
+        </select>
+      </div>
+      <button
+        class="ed1-boton ed1-boton--secundario"
+        type="button"
+        disabled={enviando}
+        aria-busy={enviando ? 'true' : undefined}
+        onClick={() => void cobrar()}
+      >
+        Cobrar con link
+      </button>
+    </section>
+  );
+}
+
 export function Pedido({
   conexion,
   id,
@@ -925,6 +1039,16 @@ export function Pedido({
             alConfirmar={confirmar}
           />
         </section>
+      ) : null}
+
+      {pedido.estado === 'pendiente' || pedido.link ? (
+        <CobrarConLink
+          key={pedido.version}
+          conexion={conexion}
+          pedido={pedido}
+          alVencer={alVencer}
+          alCobrar={() => void cargar()}
+        />
       ) : null}
 
       {porDespachar ? (

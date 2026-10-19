@@ -1300,6 +1300,68 @@ test('HU-T9.1 · 300 pedidos en 360 px: filtros sin red, y una respuesta vieja n
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
 
+test('HU-T11.8 · CA1: cobrar con link un pedido del chat, elegir cuánto dura y mandarlo por WhatsApp', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const pedido: Record<string, unknown> = {
+    ...filaDePedido(1047, { estado: 'pendiente', formaPago: 'transferencia', articulos: 2 }),
+    canal: 'whatsapp',
+    subtotalCop: 258000,
+    descuentoCop: 0,
+    envioCop: 0,
+    cuponCodigo: null,
+    envioNombre: null,
+    totalCop: 258000,
+    lineas: [],
+    historia: [],
+    conContacto: false,
+    link: null,
+  };
+  const mensaje =
+    'Hola. Este es el link para pagar tu pedido #1047 de Comercio Ensayo Uno, por $258.000: https://checkout.bold.co/LNK_E2E\nSirve hasta las 2:00 p. m.';
+  const pedidos: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/pedidos/ped-1047`, (r) => r.fulfill({ json: pedido }));
+  await page.route(`${PANEL}/api/panel/v1/pedidos/link`, (r) => {
+    pedidos.push(r.request().postDataJSON() as Record<string, unknown>);
+    Object.assign(pedido, {
+      estado: 'por_pagar',
+      formaPago: 'en_linea',
+      version: 2,
+      link: { url: 'https://checkout.bold.co/LNK_E2E', vence: '2026-10-19T19:00:00.000Z' },
+    });
+    return r.fulfill({
+      json: {
+        estado: 'guardado',
+        id: 'ped-1047',
+        version: 2,
+        link: 'https://checkout.bold.co/LNK_E2E',
+        vence: '2026-10-19T19:00:00.000Z',
+        mensaje,
+      },
+    });
+  });
+  await page.goto(`${PANEL}/pedidos/ped-1047/`);
+  await expect(page.getByRole('heading', { level: 2, name: 'Cobrar con link' })).toBeVisible();
+  await expect(page.getByLabel('El link sirve por')).toHaveValue('60');
+  await page.getByLabel('El link sirve por').selectOption('240');
+  await page.getByRole('button', { name: 'Cobrar con link' }).click();
+  await expect(page.locator('pre.mensaje')).toHaveText(mensaje);
+  await expect(page.getByRole('link', { name: 'Mandarlo por WhatsApp' })).toHaveAttribute(
+    'href',
+    `https://wa.me/?text=${encodeURIComponent(mensaje)}`,
+  );
+  expect(pedidos).toEqual([
+    expect.objectContaining({ pedido: 'ped-1047', version: 1, minutos: 240 }),
+  ]);
+  // Ya por pagar, no se ofrece confirmarlo a mano.
+  await expect(page.getByRole('button', { name: 'Confirmar por WhatsApp' })).toHaveCount(0);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
 test('HU-T9.2 y HU-T9.3 · ver los datos de entrega, confirmar por WhatsApp y confirmar', async ({
   page,
 }) => {

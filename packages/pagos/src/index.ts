@@ -36,6 +36,19 @@ export interface ProveedorDePago {
     vuelta: string;
   }): Promise<{ libreria: string; checkout: Record<string, string> }>;
   consultar(orden: string): Promise<EstadoEnElProveedor>;
+  /**
+   * HU-T11.8 (TIENDA §9.6): un link de pago de monto cerrado, con la referencia del cobro y su
+   * vencimiento. El aviso de Bold trae esa referencia, como el del botón.
+   */
+  crearLink(link: {
+    referencia: string;
+    monto: number;
+    descripcion: string;
+    /** Instante ISO en que deja de servir. */
+    vence: string;
+  }): Promise<{ link: string; url: string }>;
+  /** El estado de un link (`GET /online/link/v1/{id}`), traducido como el de un cobro. */
+  consultarLink(link: string): Promise<EstadoEnElProveedor>;
 }
 
 /** Bold respondió con un error: `estado` es el HTTP, para que quien llama distinga un 429 (HU-T11.6). */
@@ -50,6 +63,8 @@ export class ErrorDeBold extends Error {
 
 export const LIBRERIA_BOLD = 'https://checkout.bold.co/library/boldPaymentButton.js';
 const CONSULTA_BOLD = 'https://payments.api.bold.co/v2/payment-voucher/';
+/** La API de links de pago (developers.bold.co, «API Link de pagos»). */
+export const LINKS_BOLD = 'https://integrations.api.bold.co/online/link/v1';
 /** Los estados que Bold documenta, y lo que cada uno quiere decir aquí (TIENDA §9.5). */
 export const ESTADOS_BOLD: Readonly<Record<string, EstadoEnElProveedor['estado']>> = {
   APPROVED: 'aprobado',
@@ -59,6 +74,19 @@ export const ESTADOS_BOLD: Readonly<Record<string, EstadoEnElProveedor['estado']
   PENDING: 'esperando',
   PROCESSING: 'esperando',
   NO_TRANSACTION_FOUND: 'esperando',
+};
+
+/**
+ * Los estados de un link de pago. `ACTIVE` sigue esperando aunque un intento haya fallado;
+ * `EXPIRED` y `CANCELLED` ya no se pagan: quien llama vence el cobro (HU-T11.8 CA2).
+ */
+export const ESTADOS_LINK: Readonly<Record<string, EstadoEnElProveedor['estado']>> = {
+  ACTIVE: 'esperando',
+  PROCESSING: 'esperando',
+  PAID: 'aprobado',
+  REJECTED: 'rechazado',
+  CANCELLED: 'rechazado',
+  EXPIRED: 'rechazado',
 };
 
 /** El estado de Bold, traducido. Lo que no está en la lista es «revisar» (CA3). */
@@ -99,6 +127,54 @@ export function proveedorBold(llaves: LlavesBold, fetchFn: typeof fetch): Provee
           description: descripcion.slice(0, 100),
           redirectionUrl: vuelta,
         },
+      };
+    },
+    async crearLink({ referencia, monto, descripcion, vence }) {
+      const r = await fetchFn(LINKS_BOLD, {
+        method: 'POST',
+        headers: {
+          authorization: `x-api-key ${llaves.identidad}`,
+          'content-type': 'application/json',
+          accept: 'application/json',
+        },
+        body: JSON.stringify({
+          amount_type: 'CLOSE',
+          amount: { currency: 'COP', total_amount: monto, tip_amount: 0, taxes: [] },
+          reference: referencia,
+          description: descripcion.slice(0, 100),
+          // Nanosegundos desde la época, como `expirationDate` del botón.
+          expiration_date: Number(BigInt(Date.parse(vence)) * 1_000_000n),
+        }),
+      });
+      const dato = (await r.json().catch(() => null)) as {
+        payload?: { payment_link?: unknown; url?: unknown };
+      } | null;
+      const link = dato?.payload?.payment_link;
+      const url = dato?.payload?.url;
+      if (
+        !r.ok ||
+        typeof link !== 'string' ||
+        typeof url !== 'string' ||
+        !url.startsWith('https://')
+      )
+        throw new ErrorDeBold(r.status);
+      return { link, url };
+    },
+    async consultarLink(link) {
+      const r = await fetchFn(`${LINKS_BOLD}/${encodeURIComponent(link)}`, {
+        headers: { authorization: `x-api-key ${llaves.identidad}`, accept: 'application/json' },
+      });
+      const d = (await r.json().catch(() => null)) as Record<string, unknown> | null;
+      if (!r.ok || !d) throw new ErrorDeBold(r.status);
+      const crudo = String(d['status'] ?? '').toUpperCase();
+      return {
+        estado: Object.hasOwn(ESTADOS_LINK, crudo)
+          ? (ESTADOS_LINK[crudo] as EstadoEnElProveedor['estado'])
+          : 'revisar',
+        total: typeof d['total'] === 'number' ? d['total'] : null,
+        transaccion:
+          typeof d['transaction_id'] === 'string' ? d['transaction_id'].slice(0, 80) : null,
+        crudo,
       };
     },
     async consultar(orden) {

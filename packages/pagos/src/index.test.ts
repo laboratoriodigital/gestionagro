@@ -126,3 +126,77 @@ describe('HU-T11.1 · @ed1/pagos: Bold con las llaves en cada llamada', () => {
     expect((e as ErrorDeBold).estado).toBe(429);
   });
 });
+
+describe('HU-T11.8 · los links de pago de Bold', () => {
+  it('crea un link de monto cerrado con la referencia del cobro y su vencimiento en nanosegundos', async () => {
+    const cuerpos: unknown[] = [];
+    const fetchFalso = (async (url: string, init?: RequestInit) => {
+      cuerpos.push({
+        url,
+        metodo: init?.method,
+        autorizacion: new Headers(init?.headers).get('authorization'),
+        cuerpo: JSON.parse(String(init?.body)),
+      });
+      return Response.json({
+        payload: { payment_link: 'LNK_PRUEBA1', url: 'https://checkout.bold.co/LNK_PRUEBA1' },
+        errors: [],
+      });
+    }) as unknown as typeof fetch;
+    const r = await proveedorBold(LLAVES, fetchFalso).crearLink({
+      referencia: 'KKKKK1-2',
+      monto: 129000,
+      descripcion: 'Pedido KKKKK1 · Comercio Ensayo Uno',
+      vence: '2026-10-19T17:00:00.000Z',
+    });
+    expect(r).toEqual({ link: 'LNK_PRUEBA1', url: 'https://checkout.bold.co/LNK_PRUEBA1' });
+    expect(cuerpos).toEqual([
+      {
+        url: 'https://integrations.api.bold.co/online/link/v1',
+        metodo: 'POST',
+        autorizacion: 'x-api-key identidad-de-prueba',
+        cuerpo: {
+          amount_type: 'CLOSE',
+          amount: { currency: 'COP', total_amount: 129000, tip_amount: 0, taxes: [] },
+          reference: 'KKKKK1-2',
+          description: 'Pedido KKKKK1 · Comercio Ensayo Uno',
+          expiration_date: Date.parse('2026-10-19T17:00:00.000Z') * 1_000_000,
+        },
+      },
+    ]);
+    // La llave secreta no viaja: el link se crea con la de identidad.
+    expect(JSON.stringify(cuerpos)).not.toContain(LLAVES.secreta);
+  });
+
+  it('❌ si Bold no devuelve un link con su dirección, se lanza, no se inventa', async () => {
+    for (const [status, cuerpo] of [
+      [401, { errors: ['x'] }],
+      [200, { payload: {} }],
+      [200, { payload: { payment_link: 'LNK_X', url: 'http://inseguro' } }],
+    ] as const) {
+      const b = boldFalso(status, cuerpo);
+      await expect(
+        proveedorBold(LLAVES, b.fetchFalso).crearLink({
+          referencia: 'R-1',
+          monto: 1000,
+          descripcion: 'x',
+          vence: '2026-10-19T17:00:00.000Z',
+        }),
+      ).rejects.toBeInstanceOf(ErrorDeBold);
+    }
+  });
+
+  it.each([
+    ['ACTIVE', 'esperando'],
+    ['PROCESSING', 'esperando'],
+    ['PAID', 'aprobado'],
+    ['REJECTED', 'rechazado'],
+    ['CANCELLED', 'rechazado'],
+    ['EXPIRED', 'rechazado'],
+    ['ALGO_NUEVO', 'revisar'],
+  ] as const)('el estado %s de un link es «%s»', async (status, estado) => {
+    const b = boldFalso(200, { id: 'LNK_X', status, total: 129000, transaction_id: 'tx-1' });
+    const r = await proveedorBold(LLAVES, b.fetchFalso).consultarLink('LNK_X');
+    expect(r).toEqual({ estado, total: 129000, transaccion: 'tx-1', crudo: status });
+    expect(b.llamadas[0]?.url).toBe('https://integrations.api.bold.co/online/link/v1/LNK_X');
+  });
+});

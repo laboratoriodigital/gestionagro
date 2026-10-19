@@ -849,6 +849,8 @@ La API de links de Bold (`POST integrations.api.bold.co/online/link/v1`, con la 
 3. La API pide el link a Bold y el panel abre `wa.me` con el enlace, para que el comercio se lo mande al comprador.
 4. El aviso firmado y la consulta son los de §9.4 y §9.5. Si el link vence sin pago, el cobro pasa a `vencido`, los apartados se liberan y el pedido vuelve a `pendiente`.
 
+*(Hoy, HU-T11.8: primero se crea el link en Bold y después se escribe el lote; si Bold no responde, el pedido sigue igual. El cobro guarda el id del link (`cobro.link`) y la consulta le pregunta a Bold por el link (`GET /online/link/v1/{id}`). Al vencer, una última pregunta a Bold decide entre aprobarlo y vencerlo; vencido, el pedido vuelve a pendiente y a convenir. Lo hacen la vuelta del cron, cada hora, y el panel al abrir el pedido.)*
+
 El link sirve también para el **traspaso de un pedido preparado por un agente** (`PLATAFORMA.md` §5.6), cuando la persona prefiere pagar desde el chat.
 
 ### 9.7 Lo que no se hace
