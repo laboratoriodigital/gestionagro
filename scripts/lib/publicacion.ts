@@ -182,6 +182,10 @@ export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = 
     ...CLOUDFLARE,
     'SECRETO_DESPACHO',
     'TIENDA_KEK_V1',
+    'TIENDA_KEK_V2',
+    'TIENDA_KEK_V3',
+    'TIENDA_KEK_V4',
+    'TIENDA_KEK_V5',
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_CHAT_ID',
     // HU-T14.3: los correos de las tiendas por Gmail (PLATAFORMA §4.11); sin ellos, no salen.

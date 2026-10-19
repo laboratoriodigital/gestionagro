@@ -28,7 +28,7 @@ import {
   type Resultado,
   yaAplicada,
 } from './catalogo.ts';
-import { deksDeLaTienda, dekVigente } from './llaves.ts';
+import { deksDeLaTienda, dekVigente, paraAbrir } from './llaves.ts';
 import { anotar } from './registro.ts';
 
 /** Los 10 dígitos de un celular de Colombia, con o sin +57; `null` si no lo es. */
@@ -104,7 +104,7 @@ interface FilaDelPedido {
  * tienen índice, que se abren de a 50 y quedan indexados (los que no traen celular siguen sin él).
  */
 async function delTitular(q: Quien, kek: Kek, celular: string): Promise<PedidoDelTitular[]> {
-  const deks = await deksDeLaTienda(q.db, q.org, 'indices', new Map([[kek.id, kek]]));
+  const deks = await deksDeLaTienda(q.db, q.org, 'indices', paraAbrir(kek));
   const indices = await Promise.all([...deks.values()].map((d) => indiceCiego(d, celular)));
   const ids = new Set<string>();
   if (indices.length > 0) {

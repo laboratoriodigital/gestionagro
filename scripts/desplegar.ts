@@ -74,10 +74,12 @@ import {
   escribirSiembra,
   hostsDeLaCelda,
   humoDeLaTienda,
+  kekQueSeRetiran,
   nombreKvHosts,
   notaDeEnsayosEnElCore,
   preparaLaTienda,
   publicarEnsayos,
+  reenvolverEnLaCelda,
   reservadosDeDominios,
   SECRETO_DESPACHO,
   secretosDeLaTienda,
@@ -1042,6 +1044,52 @@ async function prepararCeldaDeLaTienda(
       };
     }
   }
+  // HU-T17.6: las llaves de las tiendas, reenvueltas con la KEK vigente; la que salió del ambiente
+  // de GitHub se borra del Worker solo si ninguna llave la usa (CA2).
+  let notaLlaves: string | null = null;
+  if (secretos.conKek) {
+    const llaves = await reenvolverEnLaCelda(fetch, panel, secretos.frente[SECRETO_DESPACHO] ?? '');
+    if (llaves.fallas.length > 0 || !llaves.uso) {
+      return {
+        ok: false,
+        detalle: ['la Tienda se desplegó, pero sus llaves no se reenvolvieron:', ...llaves.fallas],
+      };
+    }
+    const lista = wrangler('@ed1/tienda-api', `secret list --format json ${c}`, cred);
+    let enElWorker: string[];
+    try {
+      enElWorker = (
+        JSON.parse(lista.salida.slice(lista.salida.indexOf('['))) as { name: string }[]
+      ).map((x) => x.name);
+    } catch {
+      return {
+        ok: false,
+        detalle: [
+          'no se pudo leer la lista de secretos de la API de la Tienda (wrangler secret list)',
+        ],
+      };
+    }
+    const retiro = kekQueSeRetiran(
+      enElWorker,
+      Object.keys(secretos.api),
+      llaves.uso.enUso,
+      llaves.uso.ilegibles,
+    );
+    if (retiro.fallas.length > 0) {
+      return { ok: false, detalle: ['la Tienda se desplegó, pero:', ...retiro.fallas] };
+    }
+    for (const nombre of retiro.borrar) {
+      const borrar = wrangler('@ed1/tienda-api', `secret delete ${nombre} ${c}`, cred, 'y\n');
+      if (!borrar.ok) {
+        return {
+          ok: false,
+          detalle: [`${nombre} no se pudo borrar del Worker:`, ...causaDeWrangler(borrar.salida)],
+        };
+      }
+    }
+    const u = llaves.uso;
+    notaLlaves = `llaves de la Tienda: envuelve ${u.vigente}${u.reenvueltas > 0 ? `, ${u.reenvueltas} reenvueltas` : ''}${u.quedan > 0 ? `, ${u.quedan} todavía con otra KEK (sigue el cron)` : ''}${retiro.borrar.length > 0 ? `; retiradas del Worker: ${retiro.borrar.join(', ')}` : ''}`;
+  }
   // HU-T4.4: en staging, publicar a los comercios de prueba antes del humo, que mira sus portadas.
   if (ensayos.length > 0 && secretos.ok) {
     const despacho = secretos.frente[SECRETO_DESPACHO] ?? '';
@@ -1089,6 +1137,7 @@ async function prepararCeldaDeLaTienda(
         : []),
       `panel: ${panel}`,
       `despacho: ${sitio}`,
+      ...(notaLlaves ? [notaLlaves] : []),
       ...avisos,
     ],
   };

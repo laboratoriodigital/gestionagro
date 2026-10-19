@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Rotar la llave maestra (HU-T17.6): `generar-secretos.ts --rotar-kek` crea la siguiente con su copia fuera de línea, y el despliegue vuelve a envolver con ella las llaves de todas las tiendas, sin tocar los datos cifrados. La vieja se borra solo cuando ya nada la usa y la nueva abre todo; si se quita antes de tiempo, el despliegue lo dice y no borra nada. Los pasos están en `docs/runbooks/tienda-rotar-la-kek.md`.
 - Los términos del comercio (HU-T7.2): antes de publicar por primera vez, el propietario lee y acepta los términos de la plataforma y el acuerdo de custodia de los datos de sus compradores. Queda dicho quién aceptó, cuándo y qué texto; si el texto cambia, se vuelve a aceptar antes de publicar.
 - Las llaves de Bold de cada tienda (HU-T11.2): en «Más → Cobro en línea» el propietario pega sus llaves de pruebas y de producción, recién entrado. Se comprueban con Bold antes de guardarlas, se guardan cifradas y nunca se vuelven a mostrar; la pantalla dice las comisiones de Bold y la dirección de avisos que va en su panel.
 - El cobro de prueba guiado (HU-T11.3): con las llaves de pruebas, la tienda se publica con una franja «en pruebas» en cada página y se hace un pago de prueba. Solo después de un pago de prueba aprobado se pasa a cobrar de verdad, y el cobro usa siempre el ambiente de la versión publicada: nunca se cobra de verdad con la franja a la vista. Los pasos están en `docs/runbooks/tienda-cobro-de-prueba.md`.

@@ -90,6 +90,7 @@ describe('GET /api/salud, la prueba de humo del despliegue', () => {
       shards: 1,
       control: true,
       kek: 'falta',
+      keks: [],
       ambiente: null,
       comerciosDePrueba: 0,
     });

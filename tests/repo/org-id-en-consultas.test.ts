@@ -180,6 +180,12 @@ const TIENDA: Api = {
       'antes de borrar una release vieja se cuenta si alguna versión publicada del shard la usa; no hay token y solo sale el número (releases.ts, HU-T4.6)',
     'select count(*) as n from tienda where ?':
       'la salud cuenta los comercios de prueba del fixture (un org_id = ? por cada uno) para que el humo de producción exija cero; no hay token y solo sale el número (worker.ts, HU-T2.9)',
+    'select kek_id, count(*) as n from llave indexed by llave_por_kek group by kek_id':
+      'antes de retirar una KEK vieja, el despliegue cuenta cuántas DEK envuelve cada una en todo el shard; no hay token y solo salen los nombres de las KEK y números (llaves.ts, HU-T17.6)',
+    'select org_id, proposito, version, envuelta, kek_id from llave indexed by llave_por_kek where kek_id in':
+      'rotar la KEK reenvuelve las DEK de todas las tiendas del shard; cada una se reescribe con su org_id = ?, y nada sale en una respuesta (llaves.ts, HU-T17.6)',
+    'select org_id, proposito, version, envuelta, kek_id from llave indexed by llave_por_kek':
+      'terminada la rotación se comprueba que la KEK vigente abre cada DEK del shard; solo sale cuántas no abre (llaves.ts, HU-T17.6 CA2)',
   },
 };
 

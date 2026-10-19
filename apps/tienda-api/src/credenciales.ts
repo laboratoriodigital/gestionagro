@@ -10,7 +10,7 @@
 import { type Aleatorio, cifrarSobre, type Dek, descifrarSobre, type Kek } from '@ed1/cifrado';
 import type { BaseD1, SentenciaD1 } from '@ed1/d1';
 import type { LlavesBold } from '@ed1/pagos';
-import { deksDeLaTienda, dekVigente } from './llaves.ts';
+import { deksDeLaTienda, dekVigente, paraAbrir } from './llaves.ts';
 
 export type Ambiente = 'pruebas' | 'produccion';
 
@@ -87,7 +87,7 @@ export async function llavesDeBold(
     }>();
   if (results.length !== 2) return null;
   try {
-    const deks = await deksDeLaTienda(db, org, 'credenciales', new Map([[kek.id, kek]]));
+    const deks = await deksDeLaTienda(db, org, 'credenciales', paraAbrir(kek));
     const valor: Record<string, string> = {};
     for (const f of results) {
       valor[f.campo] = await descifrarSobre(deks, contexto(org, 'bold', ambiente, f.campo), {

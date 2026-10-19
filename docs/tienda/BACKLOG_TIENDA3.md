@@ -1528,7 +1528,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T17.5.1 `[doc]` · WI-T17.5.2 `[prueba]`.
 
 #### HU-T17.6 · Rotar la KEK sin perder un dato
-- **Capa:** seguridad · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T15 · **Depende de:** HU-T1.3, HU-T2.5 · **Estado:** Refinada
+- **Capa:** seguridad · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T15 · **Depende de:** HU-T1.3, HU-T2.5 · **Estado:** En validación (rama `feat/t15-sprint`. Sin colas en el plan gratuito, la reenvoltura la hacen el despliegue (`POST /api/despliegue/llaves`, unas vueltas de a 40 DEK por llamada) y la tarea por hora `reenvolver-llaves`. La KEK nueva es `TIENDA_KEK_V<n+1>`, de `generar-secretos.ts --rotar-kek`, con su copia fuera de línea; el flujo carga de la V1 a la V5 y la de número más alto es la vigente. Al desplegar, la que salió del ambiente de GitHub se borra del Worker solo si ninguna DEK la usa y la vigente sola abre todas; si no, falla y no borra ninguna (CA2). La 0013 indexa `llave` por `kek_id`. `rotar-kek.test.ts` rota sobre los dos comercios de prueba y compara las llaves de Bold y los índices ciegos antes y después; `tienda-rotar-kek.test.ts`, el despliegue y el script. Runbook `docs/runbooks/tienda-rotar-la-kek.md`. Falta el simulacro del dueño en staging: rotar, desplegar dos veces y ver «retiradas del Worker»)
 - Como dueño, quiero cambiar la llave maestra si alguna vez se expone, sin perder lo cifrado.
 - **Respaldo:** TIENDA §9.2 (5) y §14.2.
 - **CA1.** Una KEK nueva reenvuelve todas las DEK por la cola; la vieja se retira solo cuando ninguna la usa.

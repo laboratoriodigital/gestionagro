@@ -1223,7 +1223,7 @@ Sin contador ni abogado por ahora (decisión 5 del dueño): **cada obligación l
 | **DEK** por tienda y propósito | AES-256-GCM al azar, una por `credenciales`, `datos_personales` e `indices`. Envuelta con la KEK, con AAD `org\|proposito\|version`, en `llave` |
 | Campo cifrado | AES-256-GCM, IV de 96 bits al azar por escritura, AAD `org\|tabla\|campo\|id`. Copiar un cifrado a otra fila o a otra tienda no descifra |
 | Índice ciego | `HMAC-SHA256(DEK indices, celular en E.164)`, truncado a 128 bits. Busca sin guardar en claro |
-| Rotar la KEK | KEK nueva → la cola reenvuelve todas las DEK → la vieja se retira cuando ninguna la usa |
+| Rotar la KEK | KEK nueva → la cola reenvuelve todas las DEK → la vieja se retira cuando ninguna la usa. *(Hoy, HU-T17.6, sin colas en el plan gratuito: la nueva es `TIENDA_KEK_V<n+1>` y la de número más alto es la vigente. Reenvuelve el despliegue al cargarla, y el cron cada hora lo que falte. El despliegue borra del Worker la que salió del ambiente solo si ninguna DEK la usa y la vigente sola abre todas. Runbook: `docs/runbooks/tienda-rotar-la-kek.md`)* |
 | Rotar una DEK | Versión nueva para lo que se escribe. Lo viejo se vuelve a cifrar en segundo plano o se queda con su versión |
 | **Borrado criptográfico** | Dar de baja una tienda, ofrecida su exportación y pasados 30 días, borra su DEK `datos_personales`. Los respaldos de llaves se retienen 35 días y Time Travel guarda 30, así que **el borrado es efectivo a los 35 días** como máximo. Así lo dice la política |
 

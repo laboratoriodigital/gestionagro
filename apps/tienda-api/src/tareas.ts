@@ -34,6 +34,7 @@ import { enviarTelegram } from '@ed1/telegram';
 import { CONCILIAR } from './conciliar.ts';
 import { CORREOS } from './correos.ts';
 import { FRENO_R2 } from './freno-r2.ts';
+import { kekDelEntorno, reenvolverLlaves } from './llaves.ts';
 import { barrerObjetos, mantenerSitio } from './purga-de-sitios.ts';
 import { REHORNEAR_POR_RELEASE, RELEASES_VIEJAS } from './releases.ts';
 import { type AlmacenDeRespaldos, respaldarTienda } from './respaldos.ts';
@@ -522,6 +523,23 @@ export const OBJETOS_SIN_USO: Tarea = {
   },
 };
 
+/**
+ * HU-T17.6 CA1: cada hora, si el Worker tiene una KEK nueva, reenvuelve con ella unas pocas DEK de
+ * cada shard; el despliegue hace lo mismo al cargarla. Con una sola KEK no lee nada.
+ */
+export const REENVOLVER_LLAVES: Tarea = {
+  nombre: 'reenvolver-llaves',
+  frecuencia: 'hora',
+  async correr(e) {
+    const kek = await kekDelEntorno(e.kekTexto);
+    if (!kek) return 'sin KEK: nada que reenvolver';
+    if (kek.todas.size === 1) return `solo está ${kek.id}: nada que reenvolver`;
+    let reenvueltas = 0;
+    for (const [, db] of e.shards) reenvueltas += (await reenvolverLlaves(db, kek)).reenvueltas;
+    return `${reenvueltas} llaves reenvueltas con ${kek.id}`;
+  },
+};
+
 export const TAREAS: readonly Tarea[] = [
   RECONSTRUIR_HOSTS,
   PURGAS,
@@ -533,4 +551,5 @@ export const TAREAS: readonly Tarea[] = [
   FRENO_R2,
   REHORNEAR_POR_RELEASE,
   RELEASES_VIEJAS,
+  REENVOLVER_LLAVES,
 ];

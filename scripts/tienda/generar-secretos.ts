@@ -10,7 +10,9 @@
  *   contraseñas. Después vacía el portapapeles.
  *
  * Lo que ya existe en el ambiente no se reemplaza: una KEK nueva dejaría ilegible lo cifrado con la
- * vieja (rotarla es otra historia, con su cola de reenvoltura). Si `gh` no puede leer el ambiente, lo
+ * vieja. Rotarla es `--rotar-kek` (HU-T17.6): crea la siguiente (`TIENDA_KEK_V2`…) con la misma copia
+ * fuera de línea, sin tocar la anterior; el despliegue reenvuelve con ella y retira la vieja cuando
+ * el dueño la quita del ambiente y ninguna llave la usa (`docs/runbooks/tienda-rotar-la-kek.md`). Si `gh` no puede leer el ambiente, lo
  * dice y no genera nada: nunca queda una KEK a medias (CA3). Node y `gh`, sin shell (P3: corre en
  * Windows). Los pasos están en `docs/runbooks/secretos-de-la-tienda.md`.
  */
@@ -20,6 +22,9 @@ import { createInterface } from 'node:readline/promises';
 export const SECRETOS = ['SECRETO_DESPACHO', 'TIENDA_KEK_V1'] as const;
 export type Secreto = (typeof SECRETOS)[number];
 export const AMBIENTES = ['staging', 'produccion'] as const;
+/** Los secretos de las KEK, `TIENDA_KEK_V1` a `TIENDA_KEK_V5`: los que carga el flujo de despliegue. */
+export const PATRON_KEK = /^TIENDA_KEK_V([1-9][0-9]?)$/;
+export const KEKS_DEL_FLUJO = 5;
 export type Ambiente = (typeof AMBIENTES)[number];
 
 /** 32 bytes al azar en base64: lo que lee `estadoDeLaKek` de la API. */
@@ -60,13 +65,44 @@ export interface Resultado {
   motivo?: string;
 }
 
-export async function generar(ambiente: Ambiente, mundo: Mundo): Promise<Resultado> {
+/**
+ * La llave maestra va al portapapeles, nunca a la pantalla, y se guarda solo si el dueño dice que la
+ * pegó en su gestor. Devuelve el motivo para no guardarla, o `null`. Siempre vacía el portapapeles.
+ */
+async function copiaFueraDeLinea(
+  mundo: Mundo,
+  valor: string,
+  nombre: string,
+  ambiente: Ambiente,
+): Promise<string | null> {
+  if (!mundo.copiar(valor)) {
+    return 'no se pudo copiar la llave maestra al portapapeles, y no se muestra en pantalla. No se guardó: corre el script desde un equipo con portapapeles.';
+  }
+  mundo.decir(
+    `La llave maestra de la Tienda está en tu portapapeles. Pégala ahora en tu gestor de contraseñas, con el nombre «Tienda · ${nombre} · ${ambiente}». Sin esa copia, si un día se pierde la de GitHub, los datos cifrados de los comercios no se recuperan.`,
+  );
+  const respuesta = (await mundo.preguntar('¿La guardaste en tu gestor de contraseñas? (sí/no): '))
+    .trim()
+    .toLowerCase();
+  mundo.copiar('');
+  return respuesta === 'sí' || respuesta === 'si'
+    ? null
+    : 'sin la copia fuera de línea la llave maestra no se guarda. Vuelve a correr el script cuando tengas el gestor de contraseñas a mano.';
+}
+
+const leerExistentes = (mundo: Mundo, ambiente: Ambiente): string[] | null => {
   const lista = mundo.gh(['secret', 'list', '--env', ambiente, '--json', 'name']);
-  let existentes: string[];
   try {
     if (!lista.ok) throw new Error();
-    existentes = (JSON.parse(lista.salida) as { name: string }[]).map((x) => x.name);
+    return (JSON.parse(lista.salida) as { name: string }[]).map((x) => x.name);
   } catch {
+    return null;
+  }
+};
+
+export async function generar(ambiente: Ambiente, mundo: Mundo): Promise<Resultado> {
+  const existentes = leerExistentes(mundo, ambiente);
+  if (!existentes) {
     return {
       ok: false,
       creados: [],
@@ -80,35 +116,8 @@ export async function generar(ambiente: Ambiente, mundo: Mundo): Promise<Resulta
   for (const secreto of faltan) {
     const valor = nuevoSecreto(mundo.aleatorio);
     if (secreto === 'TIENDA_KEK_V1') {
-      if (!mundo.copiar(valor)) {
-        return {
-          ok: false,
-          creados,
-          existian,
-          motivo:
-            'no se pudo copiar la llave maestra al portapapeles, y no se muestra en pantalla. No se guardó: corre el script desde un equipo con portapapeles.',
-        };
-      }
-      mundo.decir(
-        'La llave maestra de la Tienda está en tu portapapeles. Pégala ahora en tu gestor de contraseñas, con el nombre «Tienda · llave maestra · ' +
-          ambiente +
-          '». Sin esa copia, si un día se pierde la de GitHub, los datos cifrados de los comercios no se recuperan.',
-      );
-      const respuesta = (
-        await mundo.preguntar('¿La guardaste en tu gestor de contraseñas? (sí/no): ')
-      )
-        .trim()
-        .toLowerCase();
-      mundo.copiar('');
-      if (respuesta !== 'sí' && respuesta !== 'si') {
-        return {
-          ok: false,
-          creados,
-          existian,
-          motivo:
-            'sin la copia fuera de línea la llave maestra no se guarda. Vuelve a correr el script cuando tengas el gestor de contraseñas a mano.',
-        };
-      }
+      const motivo = await copiaFueraDeLinea(mundo, valor, 'llave maestra', ambiente);
+      if (motivo) return { ok: false, creados, existian, motivo };
     }
     const guardar = mundo.gh(['secret', 'set', secreto, '--env', ambiente], valor);
     if (!guardar.ok) {
@@ -122,6 +131,53 @@ export async function generar(ambiente: Ambiente, mundo: Mundo): Promise<Resulta
     creados.push(secreto);
   }
   return { ok: true, creados, existian };
+}
+
+/** La KEK que sigue a las del ambiente: `TIENDA_KEK_V2` si está la V1. `null` si no hay ninguna. */
+export function siguienteKek(existentes: readonly string[]): { nombre: string; n: number } | null {
+  const n = Math.max(0, ...existentes.map((e) => Number(PATRON_KEK.exec(e)?.[1] ?? 0)));
+  return n === 0 ? null : { nombre: `TIENDA_KEK_V${n + 1}`, n: n + 1 };
+}
+
+/**
+ * HU-T17.6: crea la KEK siguiente, con su copia fuera de línea, y no toca las anteriores: lo cifrado
+ * con ellas se sigue abriendo hasta que el despliegue lo reenvuelve con la nueva.
+ */
+export async function rotarKek(
+  ambiente: Ambiente,
+  mundo: Mundo,
+): Promise<{ ok: boolean; creada?: string; motivo?: string }> {
+  const existentes = leerExistentes(mundo, ambiente);
+  if (!existentes) {
+    return {
+      ok: false,
+      motivo: `gh no pudo leer los secretos del ambiente «${ambiente}». Revisa «gh auth status». No se generó nada.`,
+    };
+  }
+  const siguiente = siguienteKek(existentes);
+  if (!siguiente) {
+    return {
+      ok: false,
+      motivo: `«${ambiente}» no tiene una llave maestra que rotar: corre el script sin --rotar-kek para crear la primera.`,
+    };
+  }
+  if (siguiente.n > KEKS_DEL_FLUJO) {
+    return {
+      ok: false,
+      motivo: `el flujo de despliegue carga hasta TIENDA_KEK_V${KEKS_DEL_FLUJO}: retira primero las viejas del ambiente (docs/runbooks/tienda-rotar-la-kek.md).`,
+    };
+  }
+  const valor = nuevoSecreto(mundo.aleatorio);
+  const motivo = await copiaFueraDeLinea(mundo, valor, `llave maestra V${siguiente.n}`, ambiente);
+  if (motivo) return { ok: false, motivo };
+  const guardar = mundo.gh(['secret', 'set', siguiente.nombre, '--env', ambiente], valor);
+  if (!guardar.ok) {
+    return {
+      ok: false,
+      motivo: `gh no pudo guardar ${siguiente.nombre} en «${ambiente}»: ${guardar.salida.trim().slice(0, 200)}`,
+    };
+  }
+  return { ok: true, creada: siguiente.nombre };
 }
 
 function mundoReal(): Mundo {
@@ -152,8 +208,19 @@ if (process.argv[1]?.endsWith('generar-secretos.ts')) {
   const i = process.argv.indexOf('--ambiente');
   const ambiente = process.argv[i + 1] as Ambiente | undefined;
   if (i < 0 || !ambiente || !AMBIENTES.includes(ambiente)) {
-    console.error('❌ Uso: node scripts/tienda/generar-secretos.ts --ambiente staging|produccion');
+    console.error(
+      '❌ Uso: node scripts/tienda/generar-secretos.ts --ambiente staging|produccion [--rotar-kek]',
+    );
     process.exit(1);
+  }
+  if (process.argv.includes('--rotar-kek')) {
+    const rotada = await rotarKek(ambiente, mundoReal());
+    if (rotada.ok)
+      console.log(
+        `✅ ${rotada.creada} guardada en «${ambiente}». El próximo despliegue reenvuelve las llaves con ella.`,
+      );
+    else console.error(`❌ ${rotada.motivo}`);
+    process.exit(rotada.ok ? 0 : 1);
   }
   const r = await generar(ambiente, mundoReal());
   if (r.creados.length > 0) console.log(`✅ Guardados en «${ambiente}»: ${r.creados.join(', ')}`);

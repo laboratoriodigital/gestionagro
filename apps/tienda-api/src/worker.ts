@@ -26,7 +26,6 @@
  * Ningún identificador de cuenta, base o dominio en el código (ADR-6): llega por la configuración
  * que arma el despliegue desde `celdas.json`.
  */
-import { importarKek } from '@ed1/cifrado';
 import { type CorreoTransaccional, correoGmail } from '@ed1/correo';
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
@@ -97,7 +96,13 @@ import {
   listarInventario,
 } from './inventario.ts';
 import { cerrarLinksVencidos, cobrarConLink } from './links.ts';
-import { kekDelEntorno } from './llaves.ts';
+import {
+  kekDelEntorno,
+  llavesQueNoAbre,
+  reenvolverLlaves,
+  textoDeLasKeks,
+  usoDeLasKeks,
+} from './llaves.ts';
 import { comprobarIdentidad, guardarLlaves, leerElCobro, probarLlaves } from './llaves-de-bold.ts';
 import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
 import {
@@ -151,7 +156,10 @@ export const CABECERA_DESPACHO = 'x-despacho';
  */
 export const PRODUCTOS_DE_UN_ENSAYO_EN_EL_PLAN_GRATUITO = 50;
 export const CABECERA_TIENDA = 'x-tienda';
-/** El secreto de la KEK vigente (TIENDA §14.2). La versión sube cuando se rota. */
+/**
+ * El secreto de la primera KEK (TIENDA §14.2). Rotar carga `TIENDA_KEK_V2`, y así; la de número más
+ * alto es la vigente (`PATRON_KEK`, HU-T17.6).
+ */
 export const SECRETO_KEK = 'TIENDA_KEK_V1';
 
 /** Tablas que prueban que cada base tiene su migración 0001 (`infrastructure/migraciones/tienda*`). */
@@ -229,19 +237,15 @@ export function mismoSecreto(a: string, b: string): boolean {
   return diferencia === 0;
 }
 
-/** La KEK: 32 bytes en base64. `ilegible` si no lo son; el valor nunca sale de aquí. */
+/**
+ * Las KEK: cada una, 32 bytes en base64. `ilegible` si alguna no lo es; los valores nunca salen de
+ * aquí. Acepta una sola (`TIENDA_KEK_V1`) o el texto de todas (`textoDeLasKeks`, HU-T17.6).
+ */
 export async function estadoDeLaKek(
   texto: string | undefined,
 ): Promise<'ok' | 'falta' | 'ilegible'> {
-  if (!texto) return 'falta';
-  try {
-    const binario = atob(texto.trim());
-    const bytes = Uint8Array.from(binario, (c) => c.charCodeAt(0));
-    await importarKek('v1', bytes);
-    return 'ok';
-  } catch {
-    return 'ilegible';
-  }
+  if (!texto?.trim()) return 'falta';
+  return (await kekDelEntorno(texto)) ? 'ok' : 'ilegible';
 }
 
 async function faltanTablas(db: BaseD1, tablas: readonly string[]): Promise<boolean> {
@@ -499,7 +503,9 @@ export function crearApp(
       celda: c.env.CELDA,
       shards: shards.length,
       control: true,
-      kek: await estadoDeLaKek(c.env.TIENDA_KEK_V1),
+      kek: await estadoDeLaKek(textoDeLasKeks(c.env)),
+      // HU-T17.6: las KEK cargadas, solo sus nombres; la última envuelve lo nuevo.
+      keks: [...((await kekDelEntorno(textoDeLasKeks(c.env)))?.todas.keys() ?? [])],
       // HU-T2.9 CA3: el ambiente que dice su configuración y los comercios de prueba que hay en sus
       // shards. En producción, la prueba de humo exige 0.
       ambiente: c.env.AMBIENTE ?? null,
@@ -713,7 +719,7 @@ export function crearApp(
         ahora: new Date(ahora()).toISOString(),
         terminosPublicados: await huellaPublicada(destino.db, destino.org, c.env.SITIOS),
         id: pedidoId,
-        kekTexto: c.env.TIENDA_KEK_V1,
+        kekTexto: textoDeLasKeks(c.env),
       },
       p,
     );
@@ -758,7 +764,7 @@ export function crearApp(
           db: destino.db,
           org: destino.org,
           ahora: new Date(ahora()).toISOString(),
-          kekTexto: c.env.TIENDA_KEK_V1,
+          kekTexto: textoDeLasKeks(c.env),
           alResolverPrueba: (cobro, via) =>
             correoEnSegundoPlano(c, destino, `prueba ${cobro}`, (ctx) =>
               mandarResultadoDePrueba(ctx, cobro, via),
@@ -797,7 +803,7 @@ export function crearApp(
         db: destino.db,
         org: destino.org,
         ahora: new Date(ahora()).toISOString(),
-        kekTexto: c.env.TIENDA_KEK_V1,
+        kekTexto: textoDeLasKeks(c.env),
         alResolverPrueba: (cobro, via) =>
           correoEnSegundoPlano(c, destino, `prueba ${cobro}`, (ctx) =>
             mandarResultadoDePrueba(ctx, cobro, via),
@@ -859,7 +865,7 @@ export function crearApp(
         422,
       );
     }
-    const kek = await kekDelEntorno(c.env.TIENDA_KEK_V1);
+    const kek = await kekDelEntorno(textoDeLasKeks(c.env));
     if (!kek) {
       console.error('tienda-api: sin la KEK no se pueden guardar solicitudes');
       return c.json(
@@ -1418,7 +1424,7 @@ export function crearApp(
   // HU-T9.1 a HU-T9.3: los pedidos, con `pedidos.ver`, `pedidos.contacto_ver` y `pedidos.gestionar`.
   const deLosPedidos = (c: ContextoTienda) =>
     quienPuede(c, 'pedidos.ver', 'Tu rol no puede ver los pedidos.');
-  const kekDe = (c: ContextoTienda) => kekDelEntorno(c.env.TIENDA_KEK_V1);
+  const kekDe = (c: ContextoTienda) => kekDelEntorno(textoDeLasKeks(c.env));
   app.get('/api/panel/v1/pedidos', async (c) => {
     const q = deLosPedidos(c);
     if (q instanceof Response) return q;
@@ -1430,7 +1436,7 @@ export function crearApp(
     if (q instanceof Response) return q;
     // HU-T11.8 CA2: un link vencido de este pedido se cierra antes de mostrarlo.
     await cerrarLinksVencidos(
-      { db: q.db, org: q.org, ahora: q.instante, kekTexto: c.env.TIENDA_KEK_V1 },
+      { db: q.db, org: q.org, ahora: q.instante, kekTexto: textoDeLasKeks(c.env) },
       alProveedor,
       c.req.param('id'),
     ).catch((e: unknown) => console.error(`tienda-api: no se cerraron los links (${String(e)})`));
@@ -1453,7 +1459,7 @@ export function crearApp(
     if (q instanceof Response) return q;
     const r = await cobrarConLink(
       q,
-      c.env.TIENDA_KEK_V1,
+      textoDeLasKeks(c.env),
       await c.req.json().catch(() => null),
       alProveedor,
     );
@@ -1687,7 +1693,7 @@ export function crearApp(
     if (q instanceof Response) return q;
     const r = await guardarLlaves(
       q,
-      c.env.TIENDA_KEK_V1,
+      textoDeLasKeks(c.env),
       await c.req.json().catch(() => null),
       comprobar,
     );
@@ -1701,7 +1707,7 @@ export function crearApp(
       return c.json({ estado: 'prohibido', motivo: NO_COBRO }, 403);
     const r = await probarLlaves(
       { db: s.db, org: s.org, instante: new Date(ahora()).toISOString() },
-      c.env.TIENDA_KEK_V1,
+      textoDeLasKeks(c.env),
       await c.req.json().catch(() => null),
       comprobar,
     );
@@ -1843,9 +1849,59 @@ export function crearApp(
     return c.json(r, r.estado === 'problemas' ? 422 : 200);
   });
 
+  /**
+   * HU-T17.6: después de cargar los secretos, el despliegue reenvuelve con la KEK vigente las DEK
+   * que envuelve otra, unas pocas vueltas por llamada (P10), y pregunta cuántas usa cada KEK. Con
+   * eso decide si una KEK que salió del ambiente de GitHub se puede borrar del Worker (CA2).
+   */
+  app.post('/api/despliegue/llaves', async (c) => {
+    const dado = c.req.header('x-despliegue');
+    if (!dado || !mismoSecreto(c.env.SECRETO_DESPACHO ?? '', dado)) return c.json(NO_EXISTE, 404);
+    const shards = Object.entries(c.env).filter(([n, b]) => SHARD.test(n) && b) as [
+      string,
+      BaseD1,
+    ][];
+    const kek = await kekDelEntorno(textoDeLasKeks(c.env));
+    if (shards.length === 0) return c.json({ estado: 'sin-configurar' }, 503);
+    let reenvueltas = 0;
+    const enUso: Record<string, number> = {};
+    for (const [, db] of shards) {
+      if (kek) {
+        for (let vuelta = 0; vuelta < VUELTAS_DE_LLAVES_POR_LLAMADA; vuelta++) {
+          const r = await reenvolverLlaves(db, kek);
+          reenvueltas += r.reenvueltas;
+          if (r.reenvueltas === 0) break;
+        }
+      }
+      for (const [id, n] of Object.entries(await usoDeLasKeks(db)))
+        enUso[id] = (enUso[id] ?? 0) + n;
+    }
+    const quedan = Object.entries(enUso)
+      .filter(([id]) => id !== kek?.id)
+      .reduce((s, [, n]) => s + n, 0);
+    // CA2: terminada la rotación, la vigente sola tiene que abrir todas; si no, nada se retira.
+    let ilegibles: number | null = null;
+    if (kek && kek.todas.size > 1 && quedan === 0) {
+      ilegibles = 0;
+      for (const [, db] of shards) ilegibles += await llavesQueNoAbre(db, kek);
+    }
+    return c.json({
+      estado: 'ok',
+      vigente: kek?.id ?? null,
+      cargadas: [...(kek?.todas.keys() ?? [])],
+      reenvueltas,
+      enUso,
+      quedan,
+      ilegibles,
+    });
+  });
+
   app.all('*', (c) => c.json(NO_EXISTE, 404));
   return app;
 }
+
+/** Las vueltas de `reenvolverLlaves` por shard en una llamada del despliegue: 5 × 40 DEK. */
+export const VUELTAS_DE_LLAVES_POR_LLAMADA = 5;
 
 const app = crearApp();
 /**
@@ -1857,6 +1913,7 @@ export async function alCron(env: Env, instante: number): Promise<void> {
   const shards = Object.entries(env).filter(([n, b]) => SHARD.test(n) && b) as [string, BaseD1][];
   const hosts = env.TIENDA_HOSTS as (EscritorKv & KvDeTareas) | undefined;
   const flags = env.FLAGS as KvDeTareas | undefined;
+  const kekTexto = textoDeLasKeks(env);
   if (!control || shards.length === 0 || !hosts || !flags || !env.CELDA) {
     console.error('tienda-api: el cron no tiene sus bases o sus KV');
     return;
@@ -1871,7 +1928,7 @@ export async function alCron(env: Env, instante: number): Promise<void> {
       telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
       correo: correoDe(env, (url, init) => fetch(url, init)),
       metricas: { token: env.CF_METRICAS_TOKEN, cuenta: env.CF_CUENTA },
-      ...(env.TIENDA_KEK_V1 ? { kekTexto: env.TIENDA_KEK_V1 } : {}),
+      ...(kekTexto ? { kekTexto } : {}),
       ...(env.SITIOS ? { almacen: env.SITIOS as unknown as AlmacenDeRespaldos } : {}),
       ...(env.MEDIOS ? { medios: env.MEDIOS } : {}),
       ...(env.VITRINA_RELEASE ? { release: env.VITRINA_RELEASE } : {}),

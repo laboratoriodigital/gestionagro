@@ -24,7 +24,7 @@ import {
   SI_CAMBIO,
   yaAplicada,
 } from './catalogo.ts';
-import { deksDeLaTienda, dekVigente } from './llaves.ts';
+import { deksDeLaTienda, dekVigente, paraAbrir } from './llaves.ts';
 import { anotar } from './registro.ts';
 import { DIAS_DEL_REEMBOLSO, NOMBRE_DEL_TIPO, type TipoDeSolicitud } from './solicitudes.ts';
 
@@ -197,7 +197,7 @@ async function leer(q: Quien, kek: Kek | null, id: string, ahoraMs: number): Pro
     console.error('tienda-api: sin la KEK no se abren las solicitudes');
     return SIN_LLAVE;
   }
-  const deks = await deksDeLaTienda(q.db, q.org, 'datos_personales', new Map([[kek.id, kek]]));
+  const deks = await deksDeLaTienda(q.db, q.org, 'datos_personales', paraAbrir(kek));
   try {
     const texto = await descifrarSobre(deks, contexto(q.org, id), {
       sobre: bytes(f.sobre),
@@ -232,7 +232,7 @@ export async function abrirSolicitudes(q: Quien, kek: Kek): Promise<Record<strin
       }
     >();
   if (results.length === 0) return [];
-  const deks = await deksDeLaTienda(q.db, q.org, 'datos_personales', new Map([[kek.id, kek]]));
+  const deks = await deksDeLaTienda(q.db, q.org, 'datos_personales', paraAbrir(kek));
   const filas: Record<string, unknown>[] = [];
   for (const f of results) {
     const base = {
