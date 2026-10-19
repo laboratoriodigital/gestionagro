@@ -954,6 +954,8 @@ Cuando una versión nueva del producto cambia las plantillas, todas las tiendas 
 
 Cada versión del sitio guarda la versión del horno que la hizo. Los assets comunes de una release (`/_t/<release>/`) **se conservan 90 días**: una página horneada con la release anterior sigue cargando sus scripts mientras su tienda no se re-hornea (P10).
 
+*(Hoy, HU-T4.6: sin cola, una tarea del cron por hora, de a 3 tiendas por shard. Los assets de un despliegue solo traen su release: las anteriores las sube cada despliegue al almacén de la celda (`vitrina/<release>/`) y el despacho las sirve desde ahí. Runbook: `docs/runbooks/tienda-volver-atras-el-codigo.md`.)*
+
 ---
 
 ## 11. El sitio público

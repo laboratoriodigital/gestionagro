@@ -271,6 +271,40 @@ export async function publicarEnsayos(
   return [`publicar a los comercios de prueba respondió ${r.status}: ${detalle}`];
 }
 
+/**
+ * HU-T4.6 CA2: sube los archivos comunes de la release al almacén de la celda, por el panel y con el
+ * secreto del despacho en `x-despliegue`, para que el despacho los siga sirviendo cuando el
+ * siguiente despliegue cambie sus assets. Una frase por falla.
+ */
+export async function subirRelease(
+  fetchFn: Fetch,
+  panel: string,
+  secreto: string,
+  release: string,
+  archivos: ReadonlyMap<string, Uint8Array>,
+): Promise<string[]> {
+  let r: Response;
+  try {
+    r = await fetchFn(`${panel}/api/despliegue/vitrina`, {
+      method: 'POST',
+      headers: { 'x-despliegue': secreto, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        release,
+        archivos: Object.fromEntries(
+          [...archivos].map(([ruta, bytes]) => [ruta, Buffer.from(bytes).toString('base64')]),
+        ),
+      }),
+    });
+  } catch (e) {
+    return [`subir la release ${release} de la vitrina: no respondió (${(e as Error).message})`];
+  }
+  if (r.ok) return [];
+  const detalle = await r.text().catch(() => '');
+  return [
+    `subir la release ${release} de la vitrina respondió ${r.status}: ${detalle.slice(0, 300)}`,
+  ];
+}
+
 /** Lo que el despliegue agrega a la configuración generada: ids de bases y de KV (fuera de git). */
 export interface DespliegueDeLaTienda {
   bases: Readonly<Record<string, string>>;

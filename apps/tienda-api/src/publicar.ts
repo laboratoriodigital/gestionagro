@@ -634,9 +634,18 @@ async function entregar(
       .bind(c.org),
     c.shard
       .prepare(
-        "UPDATE publicacion SET estado = 'publicada', archivos = ?, bytes = ?, huella = ?, publicada = ?, cobro_ambiente = ? WHERE org_id = ? AND version = ?",
+        "UPDATE publicacion SET estado = 'publicada', archivos = ?, bytes = ?, huella = ?, publicada = ?, cobro_ambiente = ?, release = ? WHERE org_id = ? AND version = ?",
       )
-      .bind(archivos.size, bytes, m.huella, c.ahora, cobroDe(h.datos), c.org, version),
+      .bind(
+        archivos.size,
+        bytes,
+        m.huella,
+        c.ahora,
+        cobroDe(h.datos),
+        h.datos.release,
+        c.org,
+        version,
+      ),
     c.shard
       .prepare('UPDATE tienda SET version_publicada = ? WHERE org_id = ?')
       .bind(version, c.org),

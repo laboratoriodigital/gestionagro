@@ -125,6 +125,7 @@ import {
   volverA,
 } from './publicar.ts';
 import { enFrase, leerRegistro } from './registro.ts';
+import { type AlmacenDeReleases, guardarRelease } from './releases.ts';
 import type { AlmacenDeRespaldos } from './respaldos.ts';
 import {
   PeticionDeSeguimientoDeSolicitud,
@@ -262,6 +263,8 @@ export interface Sesion {
   plan: string;
   /** Instante (s) de la última entrada con Google: lo que mueve dinero pide una reciente. */
   authTime: number | null;
+  /** HU-T4.6: el anillo de despliegue de la organización, del token. */
+  anillo: number | null;
   shard: string;
   db: BaseD1;
 }
@@ -542,6 +545,7 @@ export function crearApp(
       rol: acceso.rol,
       plan: acceso.plan,
       authTime: acceso.auth_time ?? null,
+      anillo: acceso.anillo ?? null,
       shard: acceso.shard,
       db,
     });
@@ -903,6 +907,15 @@ export function crearApp(
 
   app.get('/api/panel/v1/yo', async (c) => {
     const s = c.get('sesion');
+    // HU-T4.6: el anillo de despliegue viene del CORE en el token; la tienda lo guarda para que el
+    // re-horneado por anillos lo sepa sin llamar al CORE. Solo escribe si cambió.
+    const anillo = s.anillo;
+    if (anillo !== null && Number.isInteger(anillo) && anillo >= 1) {
+      await s.db
+        .prepare('UPDATE tienda SET anillo = ? WHERE org_id = ? AND anillo IS NOT ?')
+        .bind(anillo, s.org, anillo)
+        .run();
+    }
     const tienda = await s.db
       .prepare('SELECT slug, nombre, estado FROM tienda WHERE org_id = ?')
       .bind(s.org)
@@ -1794,6 +1807,36 @@ export function crearApp(
     return c.json(resultados, estados.some(malo) ? 500 : quedan ? 202 : 200);
   });
 
+  /**
+   * HU-T4.6 CA2: el despliegue sube los archivos comunes de su release al almacén de la celda, con
+   * el secreto del despacho en `x-despliegue`, para que el despacho los siga sirviendo cuando el
+   * siguiente despliegue cambie sus assets. Existe en los dos ambientes.
+   */
+  app.post('/api/despliegue/vitrina', async (c) => {
+    const dado = c.req.header('x-despliegue');
+    if (!dado || !mismoSecreto(c.env.SECRETO_DESPACHO ?? '', dado)) return c.json(NO_EXISTE, 404);
+    if (!c.env.SITIOS) return c.json({ estado: 'sin-configurar' }, 503);
+    const cuerpo = (await c.req.json().catch(() => null)) as {
+      release?: unknown;
+      archivos?: unknown;
+    } | null;
+    const archivos = cuerpo?.archivos;
+    if (
+      typeof cuerpo?.release !== 'string' ||
+      !archivos ||
+      typeof archivos !== 'object' ||
+      !Object.values(archivos).every((v) => typeof v === 'string')
+    )
+      return c.json({ estado: 'problemas', motivo: 'falta la release o sus archivos' }, 422);
+    const r = await guardarRelease(
+      c.env.SITIOS as unknown as AlmacenDeReleases,
+      cuerpo.release,
+      archivos as Record<string, string>,
+      new Date(ahora()).toISOString(),
+    );
+    return c.json(r, r.estado === 'problemas' ? 422 : 200);
+  });
+
   app.all('*', (c) => c.json(NO_EXISTE, 404));
   return app;
 }
@@ -1825,6 +1868,7 @@ export async function alCron(env: Env, instante: number): Promise<void> {
       ...(env.TIENDA_KEK_V1 ? { kekTexto: env.TIENDA_KEK_V1 } : {}),
       ...(env.SITIOS ? { almacen: env.SITIOS as unknown as AlmacenDeRespaldos } : {}),
       ...(env.MEDIOS ? { medios: env.MEDIOS } : {}),
+      ...(env.VITRINA_RELEASE ? { release: env.VITRINA_RELEASE } : {}),
     },
     instante,
     TAREAS,

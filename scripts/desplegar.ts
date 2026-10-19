@@ -82,6 +82,7 @@ import {
   SECRETO_DESPACHO,
   secretosDeLaTienda,
   sentenciasDeReservados,
+  subirRelease,
   urlQueNoDebeResponder,
 } from './lib/celda-tienda.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas, planDeDespliegue } from './lib/celdas.ts';
@@ -1024,6 +1025,22 @@ async function prepararCeldaDeLaTienda(
         `panel desplegado en ${panel ?? '?'} y despacho en ${sitio ?? '?'}, pero celdas.json dice ${esperado} para el panel: corrígelo por PR y vuelve a desplegar.`,
       ],
     };
+  }
+  // HU-T4.6 CA2: la release de este despliegue, al almacén, para cuando llegue la siguiente.
+  if (secretos.ok) {
+    const { release, archivos } = archivosDeLaVitrina();
+    const fallasDeLaRelease = await conReintentos(() =>
+      subirRelease(fetch, panel, secretos.frente[SECRETO_DESPACHO] ?? '', release, archivos),
+    );
+    if (fallasDeLaRelease.length > 0) {
+      return {
+        ok: false,
+        detalle: [
+          'la Tienda se desplegó, pero su vitrina no quedó guardada:',
+          ...fallasDeLaRelease,
+        ],
+      };
+    }
   }
   // HU-T4.4: en staging, publicar a los comercios de prueba antes del humo, que mira sus portadas.
   if (ensayos.length > 0 && secretos.ok) {

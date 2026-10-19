@@ -267,6 +267,7 @@ describe('bitácora tienda3 26 ❌: las filas que lee el panel con la tienda lle
           telegram: { token: undefined, chat: undefined },
           almacen,
           medios: 'img--staging.laboratorio-digital.app',
+          release: 'r1',
           fetch: (async () => new Response('{}', { status: 200 })) as unknown as typeof fetch,
         },
         // Una repartida, en la hora de la tienda llena: si no, no la tocaría (bitácora tienda3 27).

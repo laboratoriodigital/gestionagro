@@ -35,6 +35,7 @@ import { CONCILIAR } from './conciliar.ts';
 import { CORREOS } from './correos.ts';
 import { FRENO_R2 } from './freno-r2.ts';
 import { barrerObjetos, mantenerSitio } from './purga-de-sitios.ts';
+import { REHORNEAR_POR_RELEASE, RELEASES_VIEJAS } from './releases.ts';
 import { type AlmacenDeRespaldos, respaldarTienda } from './respaldos.ts';
 import { purgarContactos } from './titular.ts';
 
@@ -64,6 +65,8 @@ export interface EntornoDeTareas {
   correo?: CorreoTransaccional;
   /** El token de solo lectura de métricas y la cuenta: el freno de R2 mide con ellos. */
   metricas?: { token: string | undefined; cuenta: string | undefined };
+  /** HU-T4.6: la release de la vitrina de este despliegue; las tiendas se re-hornean con ella. */
+  release?: string;
 }
 
 export interface Tarea {
@@ -528,4 +531,6 @@ export const TAREAS: readonly Tarea[] = [
   CONCILIAR,
   CORREOS,
   FRENO_R2,
+  REHORNEAR_POR_RELEASE,
+  RELEASES_VIEJAS,
 ];
