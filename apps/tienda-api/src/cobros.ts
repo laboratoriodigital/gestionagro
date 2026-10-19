@@ -93,6 +93,11 @@ export interface ContextoDeCobro extends ContextoDePedido {
   kekTexto: string | undefined;
 }
 
+const OCUPADA = {
+  estado: 'ocupada',
+  motivo: 'La tienda tiene muchos pagos en curso. Intenta en unos minutos o pide por WhatsApp.',
+} as const;
+
 const SIN_LINEA = {
   estado: 'sin-linea',
   motivo: 'El pago en línea no está disponible ahora. Puedes enviar tu pedido por WhatsApp.',
@@ -310,12 +315,7 @@ export async function iniciarCobro(
     )
     .bind(c.org, c.ahora)
     .first<{ n: number }>();
-  if ((abiertos?.n ?? 0) >= COBROS_ABIERTOS_POR_TIENDA) {
-    return {
-      estado: 'ocupada',
-      motivo: 'La tienda tiene muchos pagos en curso. Intenta en unos minutos o pide por WhatsApp.',
-    };
-  }
+  if ((abiertos?.n ?? 0) >= COBROS_ABIERTOS_POR_TIENDA) return OCUPADA;
 
   const orden = `${p.codigo}-1`;
   const vence = new Date(Date.parse(c.ahora) + MINUTOS_DEL_COBRO * 60_000).toISOString();
@@ -395,11 +395,21 @@ export async function iniciarCobro(
         )
         .bind(c.org, orden, l.variante, l.cantidad, vence, c.ahora),
     ),
+    // HU-T11.10: el tope de cobros abiertos se cuenta dentro del lote, que es una transacción.
+    // Contado antes, 100 cobros a la vez pasaban todos (la batería de caos lo encontró: 101 abiertos).
+    c.db
+      .prepare(
+        `SELECT CASE WHEN (SELECT count(*) FROM cobro INDEXED BY cobro_esperando
+           WHERE org_id = ? AND estado = 'esperando' AND vence > ?) > ? THEN json('ocupada') ELSE 1 END`,
+      )
+      .bind(c.org, c.ahora, COBROS_ABIERTOS_POR_TIENDA),
   ];
   try {
     await c.db.batch(lote);
   } catch (e) {
     const texto = String(e);
+    // El tope, contado en el lote: nada de este cobro quedó escrito.
+    if (/malformed JSON/i.test(texto)) return OCUPADA;
     // Dos envíos del mismo pedido a la vez: el UNIQUE atrapa al segundo, que responde como duplicado.
     if (/UNIQUE/i.test(texto)) return iniciarCobro(c, p);
     // CA3: otro lote se llevó lo que quedaba. Nada de este quedó escrito.

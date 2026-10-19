@@ -960,3 +960,21 @@ La regla: **el horno se mide en CPU con la tienda más grande que se va a vender
 La regla: **un respaldo se prueba restaurándolo, en una base vacía y sobre la tienda viva, antes de que haga falta.**
 
 *Ficha:* tienda3 · *(mío)* · 🔴 Alto · P16, P21 · tienda-0.1.0 · 2026-10-19
+
+**33 · Con 100 cobros a la vez, la tienda abrió 101: el tope de 40 se contaba antes del lote.**
+
+*Qué pasó.* El 19 oct 2026, en la batería de caos del cobro (HU-T11.10), antes de que hubiera un cobro de verdad.
+
+*Síntoma literal.* «expected 101 to be less than or equal to 40».
+
+*Causa raíz.* `iniciarCobro` contaba los cobros abiertos de la tienda con un `SELECT` y, si eran menos de 40, escribía el lote. Cien solicitudes a la vez leían el mismo número antes de que ninguna escribiera, y todas pasaban. El tope protege lo apartado: sin él, un ataque de cobros que nadie paga deja la tienda sin unidades por 15 minutos. La prueba de HU-T11.4 abría los 40 de uno en uno, y así el defecto no se veía (P5: una comprobación que da lo mismo con el defecto y sin él no comprueba nada).
+
+*Cómo se reprodujo.* `caos.test.ts`: cien `POST /api/v1/cobros` con `Promise.all` contra el D1 de workerd.
+
+*Arreglo.* El lote del cobro termina con una sentencia que cuenta los abiertos de la tienda, con el nuevo incluido, y aborta el lote entero si pasan de 40 (`json('ocupada')`, como `SI_CAMBIO`). D1 aplica un lote como una transacción: dos lotes no se cuentan a la vez. El conteo de antes se queda, para no escribir lo que de todos modos no cabe.
+
+**Lo prueba** `caos.test.ts`: con cien a la vez quedan 40 abiertos, y los demás reciben «ocupada» sin dejar pedido ni cobro. Control negativo: con el conteo solo antes del lote, rojo.
+
+La regla: **un tope que protege algo compartido se cuenta en la misma transacción que lo gasta.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P5 · tienda-0.1.0 · 2026-10-19

@@ -185,3 +185,20 @@ describe('la vitrina por el despacho (HU-T5.1)', () => {
     expect((await pedir(await montar(), '/', { method: 'POST' })).status).toBe(405);
   });
 });
+
+describe('HU-T11.10 CA2 · el CPU del despacho por página', () => {
+  it('cada página, ya caliente, gasta menos de 2 ms de CPU (HU-T5.1)', async () => {
+    const d = await montar();
+    const rutas = ['/', '/p/camisa-de-lino/', '/c/lino/', '/carrito/', '/legal/terminos/'];
+    // En caliente: el manifiesto ya está en memoria, como en un isolate que ya atendió.
+    for (const ruta of rutas) await (await pedir(d, ruta)).text();
+    const vueltas = 60;
+    const antes = process.cpuUsage();
+    for (let i = 0; i < vueltas; i++) {
+      for (const ruta of rutas) await (await pedir(d, ruta)).arrayBuffer();
+    }
+    const cpu = process.cpuUsage(antes);
+    const msPorPagina = (cpu.user + cpu.system) / 1000 / (vueltas * rutas.length);
+    expect(msPorPagina, `${msPorPagina.toFixed(3)} ms por página`).toBeLessThan(2);
+  });
+});
