@@ -17,7 +17,7 @@ import {
 import {
   type DatosDeEntrega,
   type Papel,
-  papelDeLaSede,
+  papelDelRecibo,
   type Registro,
 } from '@ed1/parqueadero-schema';
 import { enlaceConNumero } from '@ed1/whatsapp';
@@ -55,8 +55,11 @@ interface Props {
 interface Armado {
   readonly recibo: ReciboArmado;
   readonly enlace: string;
-  /** HU-Q4.3: `siempre` imprime al registrar; `salvo_digital`, al salir si no hubo digital. */
-  readonly papel: Papel;
+  /**
+   * HU-Q4.3: `siempre` imprime al registrar; `salvo_digital`, al salir si no hubo digital.
+   * HU-Q13.7: `a_pedido`, el de salida solo con «Imprimir».
+   */
+  readonly papel: Papel | 'a_pedido';
   readonly pideNumero: boolean;
 }
 
@@ -98,7 +101,7 @@ export function Recibo({ db, ctx, control, registro, prueba, alNueva, alVolver }
             await enlaceCompleto(recibo, origenDelRecibo(location)),
             recibo.numero,
           ),
-          papel: sede ? papelDeLaSede(sede) : 'siempre',
+          papel: sede ? papelDelRecibo(sede, registro.tipo) : 'siempre',
           pideNumero: avisoAceptado(sede),
         });
       } catch (e) {

@@ -178,7 +178,12 @@ export async function enviarEnTrozos(
     try {
       await escribir(parte);
     } catch (error) {
-      if (nombreDelError(error) === 'NetworkError' || trozo.bytes <= TROZO_PEQUENO.bytes)
+      const nombre = nombreDelError(error);
+      if (
+        nombre === 'NetworkError' ||
+        nombre === 'AbortError' ||
+        trozo.bytes <= TROZO_PEQUENO.bytes
+      )
         throw error;
       trozo = TROZO_PEQUENO;
       continue;
@@ -205,6 +210,11 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
   let conexion: Conexion | undefined;
   const vistos: string[] = [];
   let ultimoError = '';
+  /**
+   * El número del trabajo que puede mandar trozos. `cancelar` lo sube: el que la cola dio por
+   * perdido ya no manda nada, aunque otro trabajo haya empezado después.
+   */
+  let vigente = 0;
   /** El nombre del último equipo elegido, aunque no se haya podido usar. */
   let nombre = '';
   /**
@@ -413,7 +423,14 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
       conexion.dispositivo.gatt.disconnect?.();
     },
 
+    cancelar() {
+      vigente++;
+      marcar('la cola lo dio por perdido: no se manda lo que faltaba');
+    },
+
     async imprimir(trabajo: Trabajo): Promise<Resultado> {
+      const mio = ++vigente;
+      const cortado = () => mio !== vigente;
       if (trabajo.formato !== 'escpos') {
         return {
           ok: false,
@@ -438,7 +455,10 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
           ? (d: Uint8Array) => c.writeValueWithoutResponse(d)
           : (d: Uint8Array) => c.writeValueWithResponse(d);
         return enviarEnTrozos(
-          (d) => escribir(d).then(() => void salieron++),
+          (d) =>
+            cortado()
+              ? Promise.reject(new DOMException('La cola lo dio por perdido', 'AbortError'))
+              : escribir(d).then(() => void salieron++),
           trabajo.bytes,
           trozo,
           esperar,
@@ -452,7 +472,7 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
         } catch (error) {
           // La conexión parecía abierta y estaba muerta (el teléfono se bloqueó): se abre otra y
           // se manda una vez más. Solo si no salió nada: un recibo a medias no se repite.
-          if (salieron > 0 || nombreDelError(error) !== 'NetworkError') throw error;
+          if (salieron > 0 || cortado() || nombreDelError(error) !== 'NetworkError') throw error;
           const nota = `Al imprimir: ${detalleDe(error)}; se reconecta y se reintenta una vez`;
           // Reconectar limpia lo visto: la nota va después, para que el diagnóstico la cuente.
           const reconecto = await reconectar(true);
@@ -466,11 +486,14 @@ export function crearImpresoraBluetooth(opciones: OpcionesBluetooth): ImpresoraB
           opciones.alCambiarTrozo?.(final);
         }
       } catch (error) {
+        // Ya cortado, la conexión es de quien siguió: este trabajo no cambia el estado.
+        if (cortado()) return { ok: false, motivo: 'tiempo', detalle: 'Se cortó por tiempo' };
         ultimoError = detalleDe(error);
         marcar(`no imprimió: ${ultimoError}`);
         cambiar(actual.dispositivo.gatt?.connected ? 'conectada' : 'desconectada');
         return { ok: false, motivo: motivoDelError(error, false), detalle: ultimoError };
       }
+      if (cortado()) return { ok: false, motivo: 'tiempo', detalle: 'Se cortó por tiempo' };
       cambiar('conectada');
       marcar(`imprimió ${trabajo.bytes.length} bytes`);
       return {

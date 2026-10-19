@@ -65,6 +65,8 @@ export interface Borrador {
   usaTurnos: boolean;
   /** Hora militar o de reloj (HU-Q13.1). */
   formatoHora: FormatoDeHora;
+  /** El recibo de salida en papel: como el de entrada, o solo si lo piden (HU-Q13.7). */
+  papelSalida: 'igual' | 'a_pedido';
   /** Qué días cuenta el prorrateo de una mensualidad (HU-Q13.3). */
   diasMensualidad: DiasDeMensualidad;
   /** Los meses de la mensualidad: de fecha a fecha o del 1 al último día (HU-Q13.4). */
@@ -97,6 +99,7 @@ const tarifaVacia = (): BorradorTarifa =>
 export const borradorVacio = (): Borrador => ({
   usaTurnos: false,
   formatoHora: '24h',
+  papelSalida: 'igual',
   diasMensualidad: 'calendario',
   periodoMensualidad: 'fecha',
   nombre: '',
@@ -130,6 +133,7 @@ function borradorDe(
     Object.assign(b, {
       usaTurnos: usaTurnos(sede),
       formatoHora: sede.formato_hora ?? '24h',
+      papelSalida: sede.papel_salida ?? 'igual',
       diasMensualidad: sede.dias_mensualidad ?? 'calendario',
       periodoMensualidad: sede.periodo_mensualidad ?? 'fecha',
       nombre: sede.nombre,
@@ -470,6 +474,7 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
           poliza: b.poliza === 'si' ? { aseguradora: b.aseguradora, numero: b.numeroPoliza } : null,
           registro: b.registro.trim() || null,
           papel: b.imprimir || 'siempre',
+          papel_salida: b.papelSalida,
           costo_papel: costoPapelDe(b),
           // Aceptarlo otra vez no cambia la fecha en que se aceptó esta versión.
           aviso_privacidad: !b.aviso
@@ -725,6 +730,26 @@ export function Ajustes({ db, ctx, alTerminar, enfocar }: Props) {
               {errores['sede-imprimir']}
             </p>
           )}
+        </fieldset>
+        <fieldset class="campo">
+          <legend>¿Y el recibo de salida?</legend>
+          <div class="opciones">
+            {(['igual', 'a_pedido'] as const).map((x) => (
+              <button
+                key={x}
+                type="button"
+                class="opcion"
+                aria-pressed={b.papelSalida === x}
+                onClick={() => setB({ ...b, papelSalida: x })}
+              >
+                {x === 'igual' ? 'Igual que el de entrada' : 'En papel solo si lo pide'}
+              </button>
+            ))}
+          </div>
+          <p class="ayuda">
+            El de entrada sale siempre como diga arriba. El de salida, si solo lo pide, queda en la
+            pantalla, por WhatsApp y con «Imprimir».
+          </p>
         </fieldset>
         <Campo
           id="sede-costoPapel"

@@ -197,6 +197,8 @@ export async function llenarAjustes(
     aviso?: boolean;
     ensayo?: keyof typeof ENSAYOS;
     sinTurnos?: boolean;
+    /** El recibo de salida en papel solo si lo pide (HU-Q13.7). */
+    salidaAPedido?: boolean;
   } = {},
 ) {
   const e = ENSAYOS[o.ensayo ?? 'dos'];
@@ -224,6 +226,12 @@ export async function llenarAjustes(
       name: o.imprimir === 'No' ? 'Si no lo recibe por WhatsApp o QR' : 'Siempre, al registrar',
     })
     .click();
+  if (o.salidaAPedido) {
+    await f
+      .getByRole('group', { name: '¿Y el recibo de salida?' })
+      .getByRole('button', { name: 'En papel solo si lo pide' })
+      .click();
+  }
   const carro = f.getByTestId('tarifa-carro');
   await carro.getByLabel('Pesos por minuto', { exact: true }).fill(o.valor ?? '230');
   await carro.getByLabel('Tope legal por minuto', { exact: true }).fill('230');

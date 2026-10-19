@@ -30,6 +30,14 @@ export const nit = z
 /** Cuándo sale el recibo en papel (HU-Q4.3). Sin «nunca», a propósito (CA3). */
 export const PAPEL = ['siempre', 'salvo_digital'] as const;
 
+/**
+ * El recibo de salida en papel (HU-Q13.7, bitácora parqueadero 43): como el de entrada, o solo si
+ * el conductor lo pide. El de entrada no cambia: es el que la ley exige al recibir el vehículo
+ * (Ley 1480 art. 18). El de salida sigue en la pantalla, por WhatsApp y con «Imprimir».
+ */
+export const PAPEL_DE_SALIDA = ['igual', 'a_pedido'] as const;
+export type PapelDeSalida = (typeof PAPEL_DE_SALIDA)[number];
+
 /** Hora militar (`18:05`) o de reloj (`6:05 p. m.`), HU-Q13.1. */
 export const FORMATOS_DE_HORA = ['24h', '12h'] as const;
 export type FormatoDeHora = (typeof FORMATOS_DE_HORA)[number];
@@ -50,6 +58,14 @@ export function papelDeLaSede(s: {
 }): Papel {
   if (s.papel) return s.papel;
   return s.imprimir_siempre === false ? 'salvo_digital' : 'siempre';
+}
+
+/** Cuándo sale en papel un recibo: el de salida, con `a_pedido`, solo con «Imprimir». */
+export function papelDelRecibo(
+  s: Parameters<typeof papelDeLaSede>[0] & { papel_salida?: PapelDeSalida | undefined },
+  tipo: string,
+): Papel | 'a_pedido' {
+  return tipo === 'salida' && s.papel_salida === 'a_pedido' ? 'a_pedido' : papelDeLaSede(s);
 }
 
 /** Datos legales del prestador (Circular Única de la SIC; §6.1). */
@@ -93,6 +109,8 @@ export const sede = z.strictObject({
    * Opcional: las sedes de Q2 y Q3 traen `imprimir_siempre`; `papelDeLaSede` lee las dos.
    */
   papel: z.enum(PAPEL).optional(),
+  /** El recibo de salida en papel (HU-Q13.7): omitido = `igual`, como el de entrada. */
+  papel_salida: z.enum(PAPEL_DE_SALIDA).optional(),
   /** Antes de HU-Q4.3. Se lee en los respaldos viejos; la caja ya no lo escribe. */
   imprimir_siempre: z.boolean().optional(),
   /**

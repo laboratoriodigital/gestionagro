@@ -4,6 +4,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.8.0] - 2026-10-19
+
+El recibo de salida en papel puede salir solo si lo piden, y la impresora ya no saca después lo que la caja dio por perdido.
+
+### Agregado
+- Ajustes › «¿Y el recibo de salida?» (HU-Q13.7): «Igual que el de entrada» (como siempre) o «En papel solo si lo pide». A pedido, el recibo de salida no se imprime solo; sigue en la pantalla, por WhatsApp y con «Imprimir». El de entrada no cambia.
+
+### Corregido
+- Un recibo que la caja dio por no salido podía imprimirse después, cuando la impresora volvía (bitácora 43). Ahora, al dejar de esperarla, la caja corta lo que faltaba por mandar.
+
 ## [0.7.2] - 2026-10-14
 
 Las entregas pendientes se ven y bajan.

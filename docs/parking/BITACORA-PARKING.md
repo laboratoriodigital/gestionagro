@@ -1151,3 +1151,24 @@ La regla: **un despliegue en verde que no tocó lo que se quería es una falla s
 La regla: **una señal que cuenta un problema necesita el camino para resolverlo; si solo sube, enseña a no mirarla.**
 
 *Ficha:* parqueadero · *(mío)* · 🟡 Medio · P15, P5 · parqueadero-0.7.2 · 2026-10-14
+
+**43 · Al final del día, la impresora sacó de largo los recibos de salida que nadie había pedido.**
+
+*Qué pasó.* El 19 oct 2026 el cliente le contó al dueño que, después de un día de trabajo, cobró las salidas sin imprimir su recibo y la impresora los imprimió todos seguidos.
+
+*Síntoma literal.* «Luego de un día de trabajo, al cobrar todas las entradas y no imprimir el recibo de salida, la impresora imprimió de largo todos esos recibos de salida que no se necesitaban» (el cliente, por el dueño).
+
+*Causa raíz.* Tres cosas; las dos primeras, mías.
+- **La caja manda siempre el de salida.** Con «Siempre, al registrar» lo imprime al abrir el recibo; con «Si no lo recibe por WhatsApp o QR», al volver si no hubo digital. No había forma de no imprimir el de salida, que el cliente no necesita.
+- **Lo dado por perdido seguía en camino.** La cola deja de esperar a los 45 s y lo anota como pendiente, pero el adaptador seguía con su envío: el puerto serie guardaba los bytes por mandar y Bluetooth seguía con los trozos. Cuando la impresora volvía, salía lo que la caja ya había dado por no salido. Una prueba con una impresora falsa que se duerme a mitad del recibo lo muestra.
+- **Lo que la impresora ya recibió.** *Inferencia*, sin medir con la PT-210 del cliente: sin papel, con la tapa abierta o dormida, la impresora puede guardar en su memoria lo que le llega e imprimirlo todo al volver. La caja escribe sin respuesta y no lo puede saber, ni retirarlo. Hay que preguntarle al cliente si se le acabó el papel o la apagó durante el día.
+
+*Cómo se reprodujo.* La segunda, en `cortar.test.ts`: por el puerto serie y por Bluetooth, con el segundo trozo esperando a la impresora. La primera, leyendo `Recibo.tsx`. La tercera, sin reproducir: no hay cómo con la PT-210 falsa.
+
+*Arreglo.* Ajustes › «¿Y el recibo de salida?» → «En papel solo si lo pide»: el de salida sale solo con «Imprimir»; el de entrada no cambia (Ley 1480 art. 18). La cola le pide al adaptador que corte el trabajo al vencer el tiempo (`cancelar`), con un número por trabajo para que uno nuevo no reactive el cortado. Sale en la `0.8.0`.
+
+**Lo prueban** `cortar.test.ts` (la cola corta; por el puerto serie y por Bluetooth no sale el resto; ❌ sin cortar habría salido), `registro.test.ts` (`papelDelRecibo`) y la e2e HU-Q13.7: con la salida a pedido, la entrada sale en papel y la salida no manda un byte. Falta la PT-210 del cliente sin papel: va a la matriz de validación.
+
+La regla: **lo que la caja da por perdido tiene que estar perdido de verdad; y lo que nadie pidió no se imprime.**
+
+*Ficha:* parqueadero · *(mío y del terreno)* · 🔴 Alto · P1, P15, P17 · parqueadero-0.8.0 · 2026-10-19

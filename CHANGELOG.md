@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- `@ed1/impresion`: `Impresora.cancelar` corta el trabajo en curso, y la cola lo pide al dejar de esperar a la impresora: lo dado por perdido no sale después (Web Serial descarta lo que tenía por mandar; Bluetooth no manda un trozo más). `@ed1/parqueadero-schema`: `papel_salida` en la sede y `papelDelRecibo` (HU-Q13.7, bitácora parqueadero 43).
 - `@ed1/parqueadero-tarifas`: `detalleDelProrrateo` da los tramos de un prorrateo (días, días del periodo entero, si son hábiles y lo que vale cada uno); `prorrateo` es su suma (HU-Q13.5).
 - `@ed1/parqueadero-tarifas`: `prorrateo` y `finDelPeriodo` aceptan meses del 1 al último día (`periodo: 'calendario'`), que parten la vigencia por meses calendario; por omisión siguen de fecha a fecha (HU-Q13.4).
 - `@ed1/parqueadero-tarifas` cobra los domingos y festivos de Colombia con su propia tarifa, si la tarifa la trae, y prorratea una mensualidad por días hábiles (usa `@ed1/calendario`). `@ed1/parqueadero-recibos` escribe la hora con a. m. y p. m. si la sede lo pide, y su enlace pasa a la versión 3 solo cuando un recibo lleva alguna de las dos cosas (HU-Q13.1 y HU-Q13.2).

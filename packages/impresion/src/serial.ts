@@ -85,6 +85,13 @@ export function crearImpresoraSerial(opciones: OpcionesSerial): ImpresoraSerial 
   let abierto = false;
   let estado: EstadoImpresora = 'sin_vincular';
   let ultimoError = '';
+  /** El escritor del trabajo en curso, para cortarlo si la cola lo da por perdido. */
+  let escritor: WritableStreamDefaultWriter<Uint8Array> | undefined;
+  /**
+   * El número del trabajo que puede escribir. `cancelar` lo sube: el que la cola dio por perdido
+   * no manda un trozo más ni se reintenta, aunque otro haya empezado después.
+   */
+  let vigente = 0;
   const vistos: string[] = [];
   /** Lo último que pasó, para soporte; sin crecer sin fin en un turno largo. */
   const anotar = (v: string) => {
@@ -134,17 +141,24 @@ export function crearImpresoraSerial(opciones: OpcionesSerial): ImpresoraSerial 
     }
   }
 
-  async function escribir(bytes: Uint8Array, salieron: { n: number }): Promise<void> {
+  async function escribir(
+    bytes: Uint8Array,
+    salieron: { n: number },
+    cortado: () => boolean,
+  ): Promise<void> {
     const destino = puerto?.writable;
     if (!destino) throw new DOMException('El puerto no está abierto', 'InvalidStateError');
     const w = destino.getWriter();
+    escritor = w;
     try {
       for (let i = 0; i < bytes.length; i += TROZO_SERIE.bytes) {
+        if (cortado()) throw new DOMException('La cola lo dio por perdido', 'AbortError');
         await w.write(bytes.subarray(i, i + TROZO_SERIE.bytes));
         salieron.n++;
         if (i + TROZO_SERIE.bytes < bytes.length) await esperar(TROZO_SERIE.ms);
       }
     } finally {
+      escritor = undefined;
       w.releaseLock();
     }
   }
@@ -198,24 +212,29 @@ export function crearImpresoraSerial(opciones: OpcionesSerial): ImpresoraSerial 
       }
       const inicio = reloj();
       const salieron = { n: 0 };
+      const mio = ++vigente;
+      const cortado = () => mio !== vigente;
       cambiar('ocupada');
       try {
         try {
-          await escribir(trabajo.bytes, salieron);
+          await escribir(trabajo.bytes, salieron, cortado);
         } catch (error) {
           // Android no avisa que la impresora se apagó: se nota al escribir (CA2).
-          if (salieron.n > 0) throw error;
+          if (salieron.n > 0 || cortado()) throw error;
           anotar(`Al imprimir: ${detalleDe(error)}; se abre otra vez y se reintenta una vez`);
           if (!(await abrir())) throw error;
           cambiar('ocupada');
-          await escribir(trabajo.bytes, salieron);
+          await escribir(trabajo.bytes, salieron, cortado);
         }
       } catch (error) {
+        // Ya cortado, el puerto es de quien siguió: este trabajo no lo cierra ni cambia el estado.
+        if (cortado()) return { ok: false, motivo: 'tiempo', detalle: 'Se cortó por tiempo' };
         ultimoError = detalleDe(error);
         await cerrar();
         cambiar('desconectada');
         return { ok: false, motivo: 'fuera_de_alcance', detalle: ultimoError };
       }
+      if (cortado()) return { ok: false, motivo: 'tiempo', detalle: 'Se cortó por tiempo' };
       cambiar('conectada');
       return {
         ok: true,
@@ -227,6 +246,16 @@ export function crearImpresoraSerial(opciones: OpcionesSerial): ImpresoraSerial 
 
     soltar() {
       void cerrar();
+    },
+
+    cancelar() {
+      // `abort` descarta lo que el navegador tenía por mandar; cerrar suelta el puerto colgado.
+      vigente++;
+      anotar('La cola lo dio por perdido: se cortó lo que faltaba por mandar');
+      const w = escritor;
+      escritor = undefined;
+      void (w ? w.abort().catch(() => undefined) : Promise.resolve()).then(cerrar);
+      cambiar('desconectada');
     },
 
     estado: () => estado,
