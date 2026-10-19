@@ -33,6 +33,7 @@ import {
   SI_CAMBIO,
   yaAplicada,
 } from './catalogo.ts';
+import { mensajeDelLink } from './links.ts';
 import { deksDeLaTienda, dekVigente } from './llaves.ts';
 import { anotar } from './registro.ts';
 
@@ -257,7 +258,7 @@ export interface PedidoDelPanel extends FilaDePedido {
   /** Si el comprador dejó datos de entrega: «Ver datos de entrega» los abre. */
   conContacto: boolean;
   /** HU-T11.8: el link de pago que sigue vigente, para volver a mandarlo. */
-  link: { url: string; vence: string } | null;
+  link: { url: string; vence: string; mensaje: string } | null;
   /** HU-T9.4: con qué transportadora y qué guía salió. */
   transportadora: string | null;
   guia: string | null;
@@ -378,14 +379,27 @@ export async function leerPedido(
   // Con su índice: un pedido tiene a lo sumo un cobro esperando.
   const link = await q.db
     .prepare(
-      `SELECT link_url, vence FROM cobro INDEXED BY cobro_uno_esperando
-        WHERE org_id = ? AND pedido_id = ? AND estado = 'esperando' AND link_url IS NOT NULL`,
+      `SELECT c.link_url, c.vence, t.nombre AS tienda
+         FROM cobro AS c INDEXED BY cobro_uno_esperando JOIN tienda t ON t.org_id = c.org_id
+        WHERE c.org_id = ? AND c.pedido_id = ? AND c.estado = 'esperando' AND c.link_url IS NOT NULL`,
     )
     .bind(q.org, id)
-    .first<{ link_url: string; vence: string }>();
+    .first<{ link_url: string; vence: string; tienda: string }>();
   return {
     ...(fila as FilaDePedido),
-    link: link ? { url: link.link_url, vence: link.vence } : null,
+    link: link
+      ? {
+          url: link.link_url,
+          vence: link.vence,
+          mensaje: mensajeDelLink({
+            numero: p.numero,
+            tienda: link.tienda,
+            totalCop: p.total_cop,
+            url: link.link_url,
+            vence: link.vence,
+          }),
+        }
+      : null,
     canal: p.canal,
     subtotalCop: p.subtotal_cop,
     descuentoCop: p.descuento_cop,

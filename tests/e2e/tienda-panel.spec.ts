@@ -1328,7 +1328,7 @@ test('HU-T11.8 · CA1: cobrar con link un pedido del chat, elegir cuánto dura y
       estado: 'por_pagar',
       formaPago: 'en_linea',
       version: 2,
-      link: { url: 'https://checkout.bold.co/LNK_E2E', vence: '2026-10-19T19:00:00.000Z' },
+      link: { url: 'https://checkout.bold.co/LNK_E2E', vence: '2026-10-19T19:00:00.000Z', mensaje },
     });
     return r.fulfill({
       json: {

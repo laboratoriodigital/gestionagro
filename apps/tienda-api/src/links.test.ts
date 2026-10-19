@@ -277,7 +277,7 @@ describe('los links de pago (HU-T11.8)', () => {
       vence: minutos(60),
     });
     expect(String(r.cuerpo['mensaje'])).toMatch(
-      /pagar tu pedido #\d+ de Comercio Ensayo Uno, por \$258\.000: https:\/\/checkout\.bold\.co\/LNK_1\nSirve hasta las 11:00 a\. m\./,
+      /pagar tu pedido #\d+ de Comercio Ensayo Uno, por \$258\.000: https:\/\/checkout\.bold\.co\/LNK_1\nSirve hasta las 11:00 a\. m\.$/,
     );
     expect(await leer(pedido)).toMatchObject({ estado: 'por_pagar', forma_pago: 'en_linea' });
     expect((await reservado()).reservado).toBe(antes.reservado + 2);
@@ -304,9 +304,11 @@ describe('los links de pago (HU-T11.8)', () => {
     });
     // El panel lo muestra para volver a mandarlo.
     const visto = await panel(`pedidos/${pedido}`, undefined, minutos(5));
+    // El mismo mensaje del cobro: al recargar el pedido, el panel no arma otro.
     expect(visto.cuerpo['link']).toEqual({
       url: 'https://checkout.bold.co/LNK_1',
       vence: minutos(60),
+      mensaje: r.cuerpo['mensaje'],
     });
   });
 

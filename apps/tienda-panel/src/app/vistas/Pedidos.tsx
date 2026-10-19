@@ -264,7 +264,7 @@ interface PedidoDelPanel extends FilaDePedido {
   }[];
   conContacto: boolean;
   /** HU-T11.8: el link de pago que sigue vigente. */
-  link?: { url: string; vence: string } | null;
+  link?: { url: string; vence: string; mensaje: string } | null;
   transportadora: string | null;
   guia: string | null;
   recaudo: Recaudo | null;
@@ -682,7 +682,8 @@ function CobrarConLink({
   const vigente = pedido.link
     ? {
         link: pedido.link.url,
-        mensaje: `Hola. Este es el link para pagar tu pedido #${pedido.numero}, por ${enPesos(pedido.totalCop)}: ${pedido.link.url}\nSirve hasta las ${horaDeBogota(pedido.link.vence)}.`,
+        // El mismo mensaje que dio la API al crearlo: al recargar el pedido no cambia.
+        mensaje: pedido.link.mensaje,
       }
     : null;
   const mostrado = hecho ?? vigente;

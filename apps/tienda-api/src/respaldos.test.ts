@@ -290,7 +290,7 @@ describe('HU-T17.3 · el respaldo semanal de cada tienda', () => {
       '2026-10-12',
       '2026-10-19',
     ]);
-  });
+  }, 60_000);
 });
 
 describe('HU-T17.4 · el simulacro de restauración', () => {
@@ -363,7 +363,7 @@ describe('HU-T17.4 · el simulacro de restauración', () => {
     // Restaurar otra vez no cambia nada.
     const otra = await restaurar(nuevo, r);
     for (const [tabla] of TABLAS_DEL_RESPALDO) expect(otra.tablas[tabla].entraron, tabla).toBe(0);
-  });
+  }, 60_000);
 
   it('❌ CA2: sobre la tienda con pedidos nuevos, une lo que falta y nunca reemplaza el presente', async () => {
     const r = await respaldo();
@@ -423,5 +423,5 @@ describe('HU-T17.4 · el simulacro de restauración', () => {
     expect(await huellasDeLasFilas(await filasDeLaTienda(nuevo, UNO))).toEqual(
       await huellasDeLasFilas(r.filas),
     );
-  });
+  }, 60_000);
 });

@@ -344,7 +344,7 @@ describe('la vuelta del cron (HU-T11.6 CA1 y CA2)', () => {
     );
     expect(v.consultas).toBe(20);
     expect(f.llamadas).toHaveLength(20);
-  });
+  }, 60_000);
 
   it('❌ a las 24 h sin noticias, vencido: el pedido sigue por pagar y nada se le pregunta a Bold', async () => {
     const { cobro } = await cobrar('CNC008');

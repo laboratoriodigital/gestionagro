@@ -102,6 +102,20 @@ function horaEnBogota(iso: string): string {
   return `${h % 12 === 0 ? 12 : h % 12}:${m} ${h < 12 ? 'a. m.' : 'p. m.'}`;
 }
 
+/**
+ * El mensaje para mandar el link por WhatsApp. Solo lo arma la API: el panel muestra el mismo al
+ * crearlo y al volver a abrir el pedido.
+ */
+export function mensajeDelLink(l: {
+  numero: number;
+  tienda: string;
+  totalCop: number;
+  url: string;
+  vence: string;
+}): string {
+  return `Hola. Este es el link para pagar tu pedido #${l.numero} de ${l.tienda}, por ${formatearPesos(l.totalCop)}: ${l.url}\nSirve hasta las ${horaEnBogota(l.vence)}`;
+}
+
 /** Un token opaco que nadie usa: el cobro lo exige único, y con link no hay página que pregunte. */
 const tokenDelLink = () => {
   const b = crypto.getRandomValues(new Uint8Array(16));
@@ -211,7 +225,13 @@ export async function cobrarConLink(
     };
   }
 
-  const mensaje = `Hola. Este es el link para pagar tu pedido #${p.numero} de ${p.tienda}, por ${formatearPesos(p.total_cop)}: ${link.url}\nSirve hasta las ${horaEnBogota(vence)}.`;
+  const mensaje = mensajeDelLink({
+    numero: p.numero,
+    tienda: p.tienda,
+    totalCop: p.total_cop,
+    url: link.url,
+    vence,
+  });
   const r = {
     estado: 'guardado',
     id: d.pedido,
