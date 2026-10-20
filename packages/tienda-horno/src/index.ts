@@ -11,3 +11,10 @@ export * from './feeds.ts';
 export * from './horno.ts';
 export * from './legal.ts';
 export * from './tema.ts';
+export {
+  EVENTOS_DE_LA_TIENDA,
+  type EventoDeLaTienda,
+  type LoteDeMedicion,
+  motivoDeRechazoDeLaMedicion,
+  TAMANO_MAXIMO_DEL_LOTE,
+} from './vitrina/medicion.ts';

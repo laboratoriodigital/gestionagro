@@ -1041,6 +1041,8 @@ La CSP de cada tienda se calcula al hornear según sus ajustes y va en el manifi
   - la base manda: las ventas del tablero salen de los pedidos, nunca de los eventos.
 - **La conversión del lado del servidor** (la API de conversiones de Meta) queda fuera del MVP, con su disparador (§20.3).
 
+*(Hoy, HU-T14.1: la vitrina manda un lote de conteos por página con `sendBeacon` a `/_m`; la API escribe un punto en Analytics Engine por lote, con la tienda como índice. Sin cookies, IP ni identificadores. 60 lotes por minuto por IP.)*
+
 ### 11.7 Buscadores y vista previa
 
 - **JSON-LD:**

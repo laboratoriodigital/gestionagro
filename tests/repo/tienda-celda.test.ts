@@ -180,6 +180,7 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
         ['LIMITE_SOLICITUDES', 5, 60],
         ['LIMITE_COBROS', 3, 60],
         ['LIMITE_AVISOS', 60, 60],
+        ['LIMITE_MEDICION', 60, 60],
       ]);
       const ids = [...api.ratelimits, ...api.env.staging.ratelimits].map((l) => l.namespace_id);
       expect(new Set(ids).size).toBe(ids.length);

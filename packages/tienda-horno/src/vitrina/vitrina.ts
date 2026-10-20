@@ -34,6 +34,7 @@ import {
   unidades,
   vaciar,
 } from './carrito.ts';
+import { contar } from './medicion.ts';
 import {
   estadoDeLaEleccion,
   type OpcionDeLaFicha,
@@ -133,6 +134,7 @@ function ficha(): void {
     opciones: OpcionDeLaFicha[];
     variantes: VarianteDeLaFicha[];
   };
+  contar('ver_producto');
   const boton = form.querySelector<HTMLButtonElement>('[data-boton]');
   const precio = document.querySelector<HTMLElement>('[data-precio]');
   const avisame = form.querySelector<HTMLElement>('[data-avisame]');
@@ -240,6 +242,7 @@ function ficha(): void {
     const r = agregar(cargar(), estado.variante.id, 1, { mayorDeEdad: Boolean(mayoria) });
     guardar(r.carrito);
     decir(aviso, r.tope ? AVISOS_DE_TOPE[r.tope] : 'Agregado a tu pedido.');
+    if (!r.tope) contar('agregar_al_carrito');
     pintarBarra(r.carrito);
   });
   pintar();
@@ -480,6 +483,7 @@ async function carritoPagina(): Promise<void> {
    * enlace de seguimiento a la vista y en el `localStorage` de la tienda (HU-T11.9 CA1).
    */
   const pagarEnLinea = async () => {
+    contar('iniciar_pedido');
     carrito = conSecreto(carrito, azar);
     guardar(carrito);
     let token = sesion.leer(CLAVE_DEL_COBRO);
@@ -577,6 +581,7 @@ async function carritoPagina(): Promise<void> {
     }
     try {
       await abrirBold(cuerpo.boton);
+      contar('pagar_en_linea');
     } catch {
       decir(
         avisoVenta,
@@ -652,6 +657,7 @@ async function carritoPagina(): Promise<void> {
         );
         carrito = vaciar(azar);
         guardar(carrito);
+        contar('iniciar_pedido');
         location.assign(`/pedido/#c=${cuerpo.codigo}&s=${secreto}`);
         return;
       }
@@ -809,6 +815,7 @@ async function alVolverDelPago(): Promise<void> {
       : null;
   const v = vueltaDelPago(estado, enlace !== null);
   if (v.carrito === 'vaciar') {
+    contar('pago_confirmado');
     guardar(vaciar(azar));
     sesion.borrar(CLAVE_DEL_COBRO);
   } else if (v.carrito === 'renovar') {

@@ -393,7 +393,12 @@ export const LIMITES_DE_LA_TIENDA = {
   // HU-T11.11: un aviso «de pruebas» lo firma cualquiera; sin tope, cada uno lee D1. Bold avisa una vez
   // por pago y reintenta lo que no recibió: 60 por minuto desde una IP no lo frena.
   LIMITE_AVISOS: { produccion: '3007', staging: '3107', limit: 60, period: 60 },
+  // HU-T14.1: los lotes de la medición propia; la vitrina manda uno por página que se cierra.
+  LIMITE_MEDICION: { produccion: '3008', staging: '3108', limit: 60, period: 60 },
 } as const;
+
+/** HU-T14.1: el dataset de Analytics Engine de la medición propia de las tiendas. */
+export const DATASET_TIENDA = 'tienda_eventos';
 const limitadoresDeLaTienda = (staging: boolean) =>
   Object.entries(LIMITES_DE_LA_TIENDA).map(([name, l]) => ({
     name,
@@ -465,6 +470,7 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
     // HU-T17.1 y D-T10: el quinto cron de la cuenta, solo en producción; staging no tiene.
     triggers: { crons: [CRON_DE_LA_TIENDA] },
     ratelimits: limitadoresDeLaTienda(false),
+    analytics_engine_datasets: [{ binding: 'MEDICION', dataset: DATASET_TIENDA }],
     observability: { enabled: true },
     env: {
       staging: {
@@ -476,6 +482,7 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
         r2_buckets: [{ binding: 'SITIOS', bucket_name: `${almacen}-staging` }, ...fotos('staging')],
         triggers: { crons: [] },
         ratelimits: limitadoresDeLaTienda(true),
+        analytics_engine_datasets: [{ binding: 'MEDICION', dataset: `${DATASET_TIENDA}_staging` }],
       },
     },
   };

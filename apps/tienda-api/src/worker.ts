@@ -30,6 +30,12 @@ import { type CorreoTransaccional, correoGmail } from '@ed1/correo';
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
 import {
+  EVENTOS_DE_LA_TIENDA,
+  type LoteDeMedicion,
+  motivoDeRechazoDeLaMedicion,
+  TAMANO_MAXIMO_DEL_LOTE,
+} from '@ed1/tienda-horno';
+import {
   type Accion,
   decidir,
   type FuncionesPorPlan,
@@ -236,6 +242,11 @@ export interface Env {
   LIMITE_SOLICITUDES?: Limitador;
   LIMITE_COBROS?: Limitador;
   LIMITE_AVISOS?: Limitador;
+  /** HU-T14.1: el tope de lotes de la medición propia, y su dataset de Analytics Engine. */
+  LIMITE_MEDICION?: Limitador;
+  MEDICION?: {
+    writeDataPoint(p: { indexes?: string[]; blobs?: string[]; doubles?: number[] }): void;
+  };
   /** Un binding D1 por shard, con el nombre del shard, y `tienda_control`. */
   [base: string]: unknown;
 }
@@ -768,6 +779,42 @@ export function crearApp(
     if (r.estado === 'ocupada') return c.json(r, 429);
     if (r.estado === 'forma' || r.estado === 'edad' || r.estado === 'monto') return c.json(r, 422);
     return c.json(r, 409);
+  });
+
+  /**
+   * HU-T14.1: la medición propia. La vitrina manda un lote de conteos al salir de cada página; se
+   * escribe un punto en Analytics Engine con la tienda como índice y los cinco conteos en orden. Ni
+   * la IP, ni las cabeceras, ni un identificador del visitante: el lote no los trae y nada de la
+   * solicitud se escribe (CA2). 60 lotes por minuto por IP.
+   */
+  app.post('/_m', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_MEDICION, 'LIMITE_MEDICION'))) {
+      c.header('retry-after', '60');
+      return c.body(null, 429);
+    }
+    const texto = await c.req.text();
+    if (new TextEncoder().encode(texto).length > TAMANO_MAXIMO_DEL_LOTE) return c.body(null, 413);
+    let lote: unknown;
+    try {
+      lote = JSON.parse(texto);
+    } catch {
+      return c.body(null, 400);
+    }
+    if (motivoDeRechazoDeLaMedicion(lote)) return c.body(null, 400);
+    if (!c.env.MEDICION) {
+      // Sin destino no se finge éxito (P1).
+      console.error('tienda-api: falta el binding MEDICION de Analytics Engine');
+      return c.body(null, 503);
+    }
+    const { conteos } = lote as LoteDeMedicion;
+    c.env.MEDICION.writeDataPoint({
+      indexes: [destino.org],
+      blobs: ['tienda'],
+      doubles: EVENTOS_DE_LA_TIENDA.map((e) => conteos[e] ?? 0),
+    });
+    return c.body(null, 204);
   });
 
   /**

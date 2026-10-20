@@ -95,6 +95,20 @@
         "limit": 60,
         "period": 60
       }
+    },
+    {
+      "name": "LIMITE_MEDICION",
+      "namespace_id": "3008",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    }
+  ],
+  "analytics_engine_datasets": [
+    {
+      "binding": "MEDICION",
+      "dataset": "tienda_eventos"
     }
   ],
   "observability": {
@@ -193,6 +207,20 @@
             "limit": 60,
             "period": 60
           }
+        },
+        {
+          "name": "LIMITE_MEDICION",
+          "namespace_id": "3108",
+          "simple": {
+            "limit": 60,
+            "period": 60
+          }
+        }
+      ],
+      "analytics_engine_datasets": [
+        {
+          "binding": "MEDICION",
+          "dataset": "tienda_eventos_staging"
         }
       ]
     }

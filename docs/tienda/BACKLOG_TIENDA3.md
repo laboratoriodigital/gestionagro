@@ -1315,7 +1315,7 @@ Formato de cada historia, el del CORE:
 ### ET14 · Medición, tablero y feeds
 
 #### HU-T14.1 · Medición propia, sin cookies
-- **Capa:** vitrina y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T16 · **Depende de:** HU-T5.1 · **Estado:** Refinada
+- **Capa:** vitrina y API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T16 · **Depende de:** HU-T5.1 · **Estado:** En validación (rama `feat/t16-sprint`. La vitrina cuenta los cinco eventos en el teléfono (`vitrina/medicion.ts`) y manda un lote al esconderse o cerrarse la página, con `sendBeacon`; `POST /_m` escribe un punto en Analytics Engine (`tienda_eventos`, `_staging` en staging) con la tienda como índice y los cinco conteos en orden. CA2: el lote es solo conteos de una lista cerrada; ni la IP, ni las cabeceras, ni un identificador llegan al punto, y la e2e mira que la visita no deja cookies. `LIMITE_MEDICION`: 60 lotes por minuto por IP. Sin el dataset, 503 y nunca un falso éxito. Falta: leer los eventos en el tablero (HU-T14.6, T17))
 - Como comerciante, quiero saber qué miran y qué piden en mi tienda sin espiar a nadie.
 - **Respaldo:** TIENDA §11.6; ED1 §17.1 (eventos fuera de D1).
 - **CA1.** `POST /_m` con lotes de `ver_producto`, `agregar_al_carrito`, `iniciar_pedido`, `pagar_en_linea` y `pago_confirmado` al Analytics Engine, con la tienda como índice.
