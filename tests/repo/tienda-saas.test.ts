@@ -104,3 +104,23 @@ describe('la configuración con SaaS activo', () => {
     );
   });
 });
+
+describe('las tiendas nuevas del alta (HU-T13.4)', () => {
+  const config = cargarCeldas();
+  it('con el comodín, el despacho recibe sus direcciones en cada ambiente; sin él, nada cambia', () => {
+    const sin = wranglerDelSitioDeLaTienda(config) as { routes: { pattern: string }[] };
+    expect(sin.routes.some((r) => r.pattern.startsWith('*.'))).toBe(false);
+    const con = wranglerDelSitioDeLaTienda({
+      ...config,
+      celdas: config.celdas.map((c) => (c.producto === 'tienda' ? { ...c, comodin: true } : c)),
+    }) as { routes: unknown[]; env: { staging: { routes: unknown[] } } };
+    expect(con.routes).toContainEqual({
+      pattern: `*.${ZONA_DE_LAS_TIENDAS}/*`,
+      zone_name: ZONA_DE_LAS_TIENDAS,
+    });
+    expect(con.env.staging.routes).toContainEqual({
+      pattern: `*--staging.${ZONA_DE_LAS_TIENDAS}/*`,
+      zone_name: ZONA_DE_LAS_TIENDAS,
+    });
+  });
+});

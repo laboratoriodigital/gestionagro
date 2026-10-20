@@ -523,6 +523,10 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
       ...(config.celdas.some((c) => c.producto === 'tienda' && c.saas)
         ? [{ pattern: '*/*', zone_name: ZONA_DE_LAS_TIENDAS }]
         : []),
+      // HU-T13.4: las tiendas que abre el alta, con el registro DNS comodín del dueño.
+      ...(config.celdas.some((c) => c.producto === 'tienda' && c.comodin)
+        ? [{ pattern: `*.${ZONA_DE_LAS_TIENDAS}/*`, zone_name: ZONA_DE_LAS_TIENDAS }]
+        : []),
     ],
     services: serviciosDeLaTienda(config, false),
     r2_buckets: almacenesDeLaTienda(config, false),
@@ -532,7 +536,12 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
       staging: {
         name: `${WORKER_TIENDA_SITIO}-staging`,
         workers_dev: true,
-        routes: ENSAYOS.map((e) => ({ pattern: hostDeStaging(e.slug), custom_domain: true })),
+        routes: [
+          ...ENSAYOS.map((e) => ({ pattern: hostDeStaging(e.slug), custom_domain: true })),
+          ...(config.celdas.some((c) => c.producto === 'tienda' && c.comodin)
+            ? [{ pattern: `*--staging.${ZONA_DE_LAS_TIENDAS}/*`, zone_name: ZONA_DE_LAS_TIENDAS }]
+            : []),
+        ],
         services: serviciosDeLaTienda(config, true),
         r2_buckets: almacenesDeLaTienda(config, true),
         vars: { MEDIOS: MEDIOS_DE_LA_TIENDA.staging },

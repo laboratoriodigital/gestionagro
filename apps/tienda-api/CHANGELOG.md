@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Abrir una tienda desde el panel (HU-T13.4): quien entra sin tienda escribe el nombre y la dirección, que dice al momento si está libre, confirma que es una persona y la tienda queda lista para llenarla, con pedidos por WhatsApp y pago a convenir o por transferencia. Por ahora solo en staging.
 - Dar de baja la tienda (HU-T13.7): en «Más › Dar de baja la tienda» el propietario la saca de internet, después de ofrecerle descargar todo. Tiene 30 días para descargar lo suyo; ese día se borran las llaves de los datos de sus compradores y las copias de seguridad de la tienda. La política de datos y los términos del comercio dicen el plazo real: 60 días como máximo.
 - Suspender una tienda con un clic (HU-T13.6): el flujo «suspender-tienda» la deja fuera del aire con una página neutra, sin tocar a las demás, y su motivo queda en el registro; con el mismo flujo se levanta. Cada día se revisa si algún dominio que una tienda dejó todavía apunta aquí, y se avisa.
 - La medición propia de la tienda (HU-T14.1): la tienda cuenta cuántas veces se ve un producto, se agrega al pedido, se empieza un pedido, se abre el pago y se confirma, sin cookies ni datos de quien visita. Es la base de lo que el tablero dirá de las visitas.

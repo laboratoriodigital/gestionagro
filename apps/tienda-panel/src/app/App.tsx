@@ -154,6 +154,13 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     // La tienda nueva abre en su inicio, no en «Más».
     if (r.sesion?.org_id) irA('/');
   };
+  // HU-T13.4: la tienda recién abierta, con la sesión que ya apunta a ella, en su inicio.
+  const alAbrir = (nueva: Sesion) => {
+    setYo(null);
+    setEligiendo(false);
+    setSesion(nueva);
+    irA('/');
+  };
   const alSalir = async () => {
     await salir(almacen);
     setYo(null);
@@ -188,7 +195,15 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     );
   else if (pantalla === 'entrar') cuerpo = <Entrar aviso={aviso} alEntrar={entrar} />;
   else if (pantalla === 'sin-tienda' && sesion)
-    cuerpo = <SinTienda correo={sesion.usuario.email} alSalir={() => void alSalir()} />;
+    cuerpo = (
+      <SinTienda
+        correo={sesion.usuario.email}
+        conexion={conexion}
+        alAbrir={alAbrir}
+        alVencer={setVencida}
+        alSalir={() => void alSalir()}
+      />
+    );
   else if ((pantalla === 'elegir' || eligiendo) && sesion)
     cuerpo = <ElegirTienda tiendas={sesion.organizaciones} aviso={aviso} alElegir={alElegir} />;
   else if (!yo)
@@ -198,7 +213,15 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
       </main>
     );
   else if (yo.tipo === 'sin-tienda' && sesion)
-    cuerpo = <SinTienda correo={sesion.usuario.email} alSalir={() => void alSalir()} />;
+    cuerpo = (
+      <SinTienda
+        correo={sesion.usuario.email}
+        conexion={conexion}
+        alAbrir={alAbrir}
+        alVencer={setVencida}
+        alSalir={() => void alSalir()}
+      />
+    );
   else if (yo.tipo !== 'ok')
     cuerpo = (
       <main class="contenido">

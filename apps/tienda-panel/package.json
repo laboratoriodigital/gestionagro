@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@ed1/dinero": "workspace:*",
+    "@ed1/ids": "workspace:*",
     "@ed1/tienda-schema": "workspace:*",
     "@ed1/ui": "workspace:*",
     "preact": "^10.29.8",

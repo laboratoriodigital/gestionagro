@@ -28,10 +28,13 @@ const FOTOS = Object.values(MEDIOS_DE_LA_TIENDA)
   .map((h) => `https://${h}`)
   .join(' ');
 
+/** HU-T13.4: Turnstile en el alta. Su programa y su marco vienen de este origen, y nada más de afuera. */
+export const ORIGEN_DE_TURNSTILE = 'https://challenges.cloudflare.com';
+
 export function cabecerasDelPanel(core: readonly string[]): string {
   return [
     '/*',
-    `  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: ${FOTOS}; font-src 'self'; connect-src 'self' ${core.join(' ')}; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
+    `  Content-Security-Policy: default-src 'self'; script-src 'self' ${ORIGEN_DE_TURNSTILE}; frame-src ${ORIGEN_DE_TURNSTILE}; style-src 'self'; img-src 'self' data: blob: ${FOTOS}; font-src 'self'; connect-src 'self' ${core.join(' ')}; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
     '  X-Content-Type-Options: nosniff',
     '  Referrer-Policy: no-referrer',
     '  X-Robots-Tag: noindex',

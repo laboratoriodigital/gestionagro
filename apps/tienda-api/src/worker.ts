@@ -52,6 +52,11 @@ import {
 import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { guardarAjuste, leerAjustes, PIDE_ENTRADA, verificarWhatsapp } from './ajustes.ts';
+import {
+  abrirTienda,
+  disponibilidad as disponibilidadDeLaDireccion,
+  verificarTurnstile,
+} from './alta.ts';
 import { avisame, PeticionDeAvisame } from './avisame.ts';
 import { recibirAvisoDeBold } from './avisos.ts';
 import { darDeBaja } from './baja.ts';
@@ -230,6 +235,12 @@ export interface Env {
    * de la zona de las tiendas. Sin los dos, conectar un dominio dice «todavía no está disponible».
    */
   CF_SAAS_TOKEN?: string;
+  /**
+   * HU-T13.4: Turnstile en el alta. La clave del sitio la pide el panel; el secreto verifica el
+   * token en el servidor. Sin el secreto, abrir una tienda dice «todavía no disponible».
+   */
+  TURNSTILE_SITIO?: string;
+  TURNSTILE_SECRETO?: string;
   ZONA_TIENDAS?: string;
   /** El token de solo lectura de métricas y la cuenta: el freno de R2 (bitácora tienda3 27). */
   CF_METRICAS_TOKEN?: string;
@@ -557,6 +568,30 @@ export function crearApp(
   });
 
   // HU-T2.8: el panel, con el token del CORE. Nada del cuerpo ni de la URL dice de qué tienda es.
+  /**
+   * HU-T13.4: lo del alta que se pide antes de tener una tienda. Basta una sesión de la Tienda, sin
+   * organización: la dirección libre y la clave del sitio de Turnstile.
+   */
+  app.get('/api/alta/v1/disponible', async (c) => {
+    const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
+    const producto = c.env.PRODUCTO;
+    if (!token || !producto)
+      return c.json({ estado: 'sin-sesion', motivo: 'Entra con tu cuenta.' }, 401);
+    try {
+      aceptarEnProducto(await verificarConClaves(clavesDe(c.env), token, ahora()), producto);
+    } catch (e) {
+      if (!(e instanceof TokenInvalido)) throw e;
+      return c.json({ estado: 'sin-sesion', motivo: VUELVE_A_ENTRAR }, 401);
+    }
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    if (!control) return c.json({ estado: 'sin-configurar' }, 503);
+    const ambiente = c.env.AMBIENTE === 'staging' ? 'staging' : 'produccion';
+    return c.json({
+      ...(await disponibilidadDeLaDireccion(control, c.req.query('slug') ?? '', ambiente)),
+      turnstile: c.env.TURNSTILE_SITIO ?? null,
+    });
+  });
+
   app.use('/api/panel/v1/*', async (c, siguiente) => {
     const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
     if (!token) return c.json({ estado: 'sin-sesion', motivo: 'Entra con tu cuenta.' }, 401);
@@ -1104,6 +1139,32 @@ export function crearApp(
     if (r.estado === 'guardado' && r.cambio) rehornearConElCanonico(c);
     return responderDominio(c, r);
   });
+  /**
+   * HU-T13.4: abrir la tienda de la organización que el panel acaba de crear en el CORE. El token ya
+   * trae su celda y su shard; la tienda todavía no existe en él.
+   */
+  app.post('/api/panel/v1/alta', async (c) => {
+    const q = delDominio(c, null);
+    if (q instanceof Response) return q;
+    const s = c.get('sesion');
+    if (s.rol !== 'propietario')
+      return c.json({ estado: 'prohibido', motivo: 'Abre la tienda quien la crea.' }, 403);
+    const secreto = c.env.TURNSTILE_SECRETO;
+    const r = await abrirTienda(
+      { ...q, plan: s.plan ?? null },
+      await c.req.json().catch(() => null),
+      {
+        ambiente: c.env.AMBIENTE === 'staging' ? 'staging' : 'produccion',
+        turnstile: secreto
+          ? (token) =>
+              verificarTurnstile(secreto, token, c.req.header('cf-connecting-ip'), alProveedor)
+          : null,
+      },
+    );
+    if (r.estado === 'guardado') return c.json(r);
+    return c.json(r, r.estado === 'problemas' ? 422 : 503);
+  });
+
   /** HU-T13.7: dar de baja la tienda, solo el propietario y recién entrado. */
   app.post('/api/panel/v1/baja', async (c) => {
     const q = delDominio(c, 'tienda.baja');
