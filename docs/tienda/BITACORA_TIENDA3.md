@@ -999,6 +999,11 @@ La regla: **un tope que protege algo compartido se cuenta en la misma transacci�
 
 **Lo prueba** `dominios.test.ts`: pendiente, validando y activo con un Cloudflare de mentira; el retirado que otra tienda vuelve a pedir con un TXT nuevo; la dirección principal y su vuelta. `tienda-saas.test.ts`: el token y la configuración, con y sin la marca. Control negativo: sin la marca, ninguna ruta de toda la zona; en staging, nunca.
 
+*Corregido el mismo día, leyendo la documentación de Cloudflare.*
+- Activar SaaS pide un medio de pago aunque la zona sea gratuita: 100 hostnames sin costo y USD 0,10 al mes cada uno más.
+- El origen de respaldo tiene que ser un registro sin origen (`AAAA 100::` con proxy), no el dominio de un Worker: el runbook pasó de `origen.` a `saas-respaldo.`.
+- La regla de límite de la zona del plan gratuito solo cuenta y bloquea de a 10 segundos, no 10 minutos como decía la revisión de seguridad (HU-T11.11).
+
 La regla: **antes de construir lo que depende de la infraestructura, se mira dónde puede probarse; si no es en staging, se dice antes y se mueve la aceptación a donde sí.**
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Bajo · P1, P12, P17 · tienda-0.1.0 · 2026-10-19
