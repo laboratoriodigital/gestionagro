@@ -6,6 +6,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CABECERA_DESPACHO,
+  CABECERA_IP,
   CABECERA_TIENDA,
   CACHE_MS,
   crearDespacho,
@@ -237,5 +238,32 @@ describe('un alias lleva a la dirección canónica (HU-T13.2)', () => {
       const r = await crearDespacho().fetch(new Request(`https://${plataforma}/`), e);
       expect(r.status, malo).not.toBe(301);
     }
+  });
+});
+
+describe('la IP del comprador para los límites de la API (bitácora tienda3 37)', () => {
+  const host = 'ensayo-uno--staging.laboratorio-digital.app';
+  it('el despacho la pasa en su cabecera, y ❌ la que llega de afuera se reemplaza', async () => {
+    const a = api();
+    const env = {
+      TIENDA_HOSTS: kv({ [`h:${host}`]: JSON.stringify({ ...UNO, version: 3 }) }),
+      SECRETO_DESPACHO: SECRETO,
+      API_C1: a.servicio,
+    } as Env;
+    await crearDespacho().fetch(
+      new Request(`https://${host}/api/v1/cotizar`, {
+        method: 'POST',
+        headers: { 'cf-connecting-ip': '203.0.113.7', [CABECERA_IP]: '198.51.100.1' },
+      }),
+      env,
+    );
+    await crearDespacho().fetch(
+      new Request(`https://${host}/api/v1/cotizar`, {
+        method: 'POST',
+        headers: { [CABECERA_IP]: '198.51.100.1' },
+      }),
+      env,
+    );
+    expect(a.recibidas.map((r) => r.headers.get(CABECERA_IP))).toEqual(['203.0.113.7', null]);
   });
 });

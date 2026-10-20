@@ -50,6 +50,7 @@ Para producción, lo mismo con `--ambiente produccion` y la cuenta de Laboratori
 | Mensaje | Qué hacer |
 |---|---|
 | «gh no pudo leer el ambiente» | `gh auth login`, y revisa que el ambiente exista en GitHub › Settings › Environments |
+| En el navegador: «Error 400: redirect_uri_mismatch» | El cliente de OAuth es de tipo «Aplicación web». Crea otro de tipo **App de escritorio** (paso 4 de Google Cloud) y corre el script con el id y el secreto nuevos. El de escritorio acepta la vuelta a `http://127.0.0.1` en cualquier puerto; el web, no |
 | «el id del cliente termina en .apps.googleusercontent.com» | Copia otra vez el id y el secreto de **Credenciales** |
 | «Google no dio el permiso (access_denied)» | Volviste atrás en el permiso, o entraste con otra cuenta. Corre el script de nuevo |
 | «Google no dio el permiso duradero» | Google ya había dado uno a esta app. Quita su acceso en [myaccount.google.com/permissions](https://myaccount.google.com/permissions) y vuelve a correrlo |

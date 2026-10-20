@@ -1052,3 +1052,41 @@ La regla: **una integración de terceros se prueba una vez con el tercero de ver
 La regla: **todo lo que se reusa para no duplicar necesita su salida para cuando lo reusado ya no sirve.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1, P5 · tienda-0.1.0 · 2026-10-20
+
+**37 · Ningún límite por IP de la Tienda se cumplía en staging: la API no veía la IP del comprador.**
+
+*Qué pasó.* El 20 oct 2026, el flujo `carga-staging-tienda` mandó 45 cotizaciones seguidas desde una IP y ninguna recibió 429. Desde el equipo del dueño pasó igual: 45 seguidas, y 70 espaciadas en un par de minutos. El límite es de 30 por minuto.
+
+*Síntoma literal.* «❌ 45 cotizaciones seguidas y ningún 429: el limitador por IP no está puesto».
+
+*Causa raíz.* Los límites (`LIMITE_COTIZAR`, `LIMITE_AVISAME`, `LIMITE_PEDIDOS`, `LIMITE_SEGUIMIENTO`, `LIMITE_SOLICITUDES`, `LIMITE_COBROS` y `LIMITE_AVISOS`) sí estaban en el Worker: el registro del despliegue los lista. Pero la API contaba por `cf-connecting-ip`, y la API solo recibe subsolicitudes del despacho por el binding de servicio, donde esa cabecera no es la del comprador. Cada solicitud llegaba con otra llave, y el contador nunca subía.
+
+Las pruebas de la API le ponían `cf-connecting-ip` a mano, como si el comprador llegara directo (P5). La revisión de seguridad dio el hallazgo 2 por remediado con esa misma prueba.
+
+*Arreglo.* El despacho pasa la IP del comprador en `x-ip-del-comprador` y borra la que llegue de afuera, como las demás cabeceras internas. La API cuenta por ella, y solo la cree con el secreto del despacho.
+
+**Lo prueba** `apps/tienda-sitio/src/worker.test.ts` (el despacho la pone y reemplaza la de afuera) y `cotizar.test.ts` (con la conexión cambiando, la llave es la del comprador). Control negativo: contando por `cf-connecting-ip`, la prueba nueva sale roja. La prueba de verdad es el flujo `carga-staging-tienda` después de desplegar: tiene que ver 429.
+
+La regla: **un límite se da por puesto cuando se le ve responder en el ambiente de verdad, no cuando su prueba pasa con una cabecera puesta a mano.**
+
+*Ficha:* tienda3 · *(mío)* · 🔴 Alto · P5, P17 · tienda-0.1.0 · 2026-10-20
+
+**38 · El simulacro de restauración no podía crear su base: la cuenta ya tiene las 10 bases D1 del plan gratuito.**
+
+*Qué pasó.* El 20 oct 2026, el flujo `simulacro-restauracion-tienda` leyó a Ensayo Uno de staging y falló al crear la base vacía.
+
+*Síntoma literal.* «❌ al token le falta «Account → D1: Edit»».
+
+*Causa raíz.* El token sí tiene D1 Edit: con él leyó la base de staging. El plan gratuito admite 10 bases D1 por cuenta, y ya están las 10: el CORE, el agro, el parqueadero, el shard y la base de control de la Tienda, en sus dos ambientes. El simulacro intentaba crear la número 11. El script traducía todo 401 o 403 de D1 como un permiso que falta, sin mostrar lo que decía Cloudflare (P1).
+
+*Arreglo.*
+- El simulacro restaura en un D1 local de workerd, en el mismo runner (el de las pruebas de `main`), con las migraciones del shard y el mismo SQL del operador. Sigue leyendo a Ensayo Uno de verdad, de staging.
+- `--en-la-cuenta` vuelve a la base en la cuenta, para cuando haya lugar (Workers Paid).
+- El error de D1 dice siempre lo que respondió Cloudflare.
+- Agregar un shard (`tienda-agregar-un-shard.md`) ya lo advertía: no hay lugar para otro sin Workers Paid.
+
+**Lo prueba** `tests/repo/tienda-simulacro.test.ts`: restaura en el D1 local y la cuenta no gana ni pierde una base.
+
+La regla: **antes de que un flujo cree algo en la cuenta, se cuenta cuánto de eso deja el plan.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1, P17 · tienda-0.1.0 · 2026-10-20

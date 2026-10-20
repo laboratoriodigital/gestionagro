@@ -6,7 +6,10 @@
  *    respaldo semanal (`filasDeLaTienda`): es su respaldo `tienda-respaldo/2`, armado aquí, porque
  *    staging no tiene cron.
  * 2. Crea una base vacía (`tienda-simulacro-<instante>`), le aplica las migraciones del shard y
- *    restaura el respaldo con el mismo SQL que el operador usaría (`sqlDeRestauracion`).
+ *    restaura el respaldo con el mismo SQL que el operador usaría (`sqlDeRestauracion`). La base es
+ *    un D1 local de workerd en el mismo runner (`destinoLocal`): el plan gratuito admite 10 bases
+ *    por cuenta y ya están las 10 (bitácora tienda3 38). Con `--en-la-cuenta`, una base de verdad en
+ *    la cuenta, cuando haya lugar (Workers Paid).
  * 3. Vuelve a leer la tienda en la base nueva y compara las huellas, tabla por tabla.
  * 4. Borra la base del simulacro, aunque algo haya fallado.
  *
@@ -25,6 +28,7 @@ import {
 } from '../../apps/tienda-api/src/respaldos.ts';
 import { sqlDeRestauracion } from '../../apps/tienda-api/src/restaurar.ts';
 import type { BaseD1 } from '../../packages/d1/src/index.ts';
+import { baseLocal, sentenciasDe } from '../../packages/d1/src/local.ts';
 import { ENSAYO_UNO } from '../../packages/tienda-schema/src/ensayos.ts';
 import { RAIZ } from '../lib/repo.ts';
 import { baseDeStaging } from './sembrar-volumen.ts';
@@ -54,9 +58,7 @@ export function apiDeD1(token: string, cuenta: string, f: Fetch = fetch): ApiDeD
     };
     if (!r.ok || cuerpo.success === false) {
       throw new SimulacroFallido(
-        r.status === 401 || r.status === 403
-          ? 'al token le falta «Account → D1: Edit»'
-          : `D1 respondió ${r.status}: ${cuerpo.errors?.map((e) => e.message).join('; ') || 'sin detalle'}`,
+        `${r.status === 401 || r.status === 403 ? 'al token le falta «Account → D1: Edit», o la cuenta no deja: ' : ''}D1 respondió ${r.status}: ${cuerpo.errors?.map((e) => e.message).join('; ') || 'sin detalle'}`,
       );
     }
     return cuerpo.result as T;
@@ -89,8 +91,54 @@ export function apiDeD1(token: string, cuenta: string, f: Fetch = fetch): ApiDeD
   };
 }
 
+/** Dónde se restaura: crear la base vacía, escribir y leer en ella, y borrarla. */
+export type DestinoDelSimulacro = Pick<ApiDeD1, 'crear' | 'consultar' | 'borrar'>;
+
+/**
+ * Bitácora tienda3 38: la base del simulacro, en un D1 local de workerd del mismo runner (el de las
+ * pruebas de `main`), sin migraciones: el simulacro aplica las suyas. No ocupa una de las 10 bases
+ * de la cuenta y desaparece al cerrar.
+ */
+export function destinoLocal(): DestinoDelSimulacro {
+  const abiertas = new Map<string, Awaited<ReturnType<typeof baseLocal>>>();
+  return {
+    async crear(nombre) {
+      abiertas.set(
+        nombre,
+        await baseLocal({
+          configuracion: 'apps/tienda-api/wrangler.c1.jsonc',
+          binding: 'tienda_c1_s1',
+          base: 'tienda',
+          instrumento: 'workerd',
+          antesDe: '0000',
+        }),
+      );
+      return nombre;
+    },
+    async consultar(id, sql, params) {
+      const b = abiertas.get(id);
+      if (!b) throw new SimulacroFallido(`la base ${id} no está abierta`);
+      if (params)
+        return (
+          await b.db
+            .prepare(sql)
+            .bind(...params)
+            .all()
+        ).results as Record<string, unknown>[];
+      let ultimas: Record<string, unknown>[] = [];
+      for (const sentencia of sentenciasDe(sql))
+        ultimas = (await b.db.prepare(sentencia).all()).results as Record<string, unknown>[];
+      return ultimas;
+    },
+    async borrar(id) {
+      await abiertas.get(id)?.cerrar();
+      abiertas.delete(id);
+    },
+  };
+}
+
 /** Una base de D1 por la API HTTP, con lo que `filasDeLaTienda` necesita: leer. */
-export function comoBase(api: ApiDeD1, id: string): BaseD1 {
+export function comoBase(api: Pick<ApiDeD1, 'consultar'>, id: string): BaseD1 {
   const sentencia = (sql: string, params: unknown[]) => ({
     bind: (...p: unknown[]) => sentencia(sql, p),
     all: async () => ({ results: await api.consultar(id, sql, params), success: true }),
@@ -136,6 +184,8 @@ export interface OpcionesDelSimulacro {
   /** Las migraciones del shard, en orden. */
   migraciones: readonly string[];
   decir?: (linea: string) => void;
+  /** Dónde se restaura; sin él, una base nueva en la cuenta por la misma API. */
+  destino?: DestinoDelSimulacro;
 }
 
 export interface ResultadoDelSimulacro {
@@ -166,17 +216,18 @@ export async function simulacro(o: OpcionesDelSimulacro): Promise<ResultadoDelSi
   );
 
   const nombre = `tienda-simulacro-${new Date(o.instante).toISOString().replace(/\D/g, '').slice(0, 12)}`;
-  const temporal = await o.api.crear(nombre);
+  const d = o.destino ?? o.api;
+  const temporal = await d.crear(nombre);
   decir(`Base vacía ${nombre} creada.`);
   try {
-    for (const m of o.migraciones) await o.api.consultar(temporal, m);
+    for (const m of o.migraciones) await d.consultar(temporal, m);
     const trozos = enTrozos(sqlDeRestauracion(respaldo));
     for (const [i, t] of trozos.entries()) {
-      await o.api.consultar(temporal, t);
+      await d.consultar(temporal, t);
       if ((i + 1) % 20 === 0 || i + 1 === trozos.length)
         decir(`  ${i + 1} de ${trozos.length} trozos restaurados`);
     }
-    const restauradas = await filasDeLaTienda(comoBase(o.api, temporal), o.org);
+    const restauradas = await filasDeLaTienda(comoBase(d, temporal), o.org);
     const [antes, despues] = await Promise.all([
       huellasDeLasFilas(sinConsecutivos(filas)),
       huellasDeLasFilas(sinConsecutivos(restauradas)),
@@ -193,7 +244,7 @@ export async function simulacro(o: OpcionesDelSimulacro): Promise<ResultadoDelSi
     for (const t of tablas) decir(`${t.igual ? '✅' : '❌'} ${t.tabla}: ${t.filas} filas`);
     return { ok: tablas.every((t) => t.igual), tablas };
   } finally {
-    await o.api.borrar(temporal);
+    await d.borrar(temporal);
     decir(`Base ${nombre} borrada.`);
   }
 }
@@ -221,6 +272,7 @@ if (process.argv[1]?.endsWith('simulacro-de-restauracion.ts')) {
       org: ENSAYO_UNO.org,
       instante: Date.now(),
       migraciones: migracionesDelShard(),
+      ...(process.argv.includes('--en-la-cuenta') ? {} : { destino: destinoLocal() }),
     });
     console.log(
       r.ok ? '✅ La tienda volvió igual, tabla por tabla.' : '❌ Alguna tabla no volvió igual.',
