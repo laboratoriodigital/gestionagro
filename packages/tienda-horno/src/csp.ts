@@ -10,6 +10,11 @@
  * El carrito (`/carrito/`) es la única página que deja cargar algo de afuera: el programa de Bold,
  * que la isla carga solo al tocar «Pagar en línea», y su pago embebido en un marco (HU-T11.4,
  * TIENDA §9.3). Ninguna otra página lo permite.
+ *
+ * El pago embebido de Bold pone su propia hoja en línea (`#boldEmbeddedCheckout{…position:fixed…}`,
+ * dentro de su shadow DOM): sin ella, el marco queda de 300 × 150 al final de la página. Por eso
+ * `/carrito/` deja también los estilos en línea. No un hash: Bold cambia su programa sin avisar y
+ * un hash viejo rompería el pago en silencio. Los scripts en línea siguen prohibidos en todas.
  */
 export const ORIGEN_DE_BOLD = 'https://checkout.bold.co';
 export const RUTA_DEL_PAGO = '/carrito/';
@@ -19,7 +24,7 @@ export function cspDeLaVitrina(medios: string | undefined, ruta?: string): strin
   return [
     "default-src 'self'",
     `img-src 'self'${medios ? ` https://${medios}` : ''} data:`,
-    "style-src 'self'",
+    `style-src 'self'${pago ? " 'unsafe-inline'" : ''}`,
     `script-src 'self'${pago ? ` ${ORIGEN_DE_BOLD}` : ''}`,
     ...(pago ? [`frame-src ${ORIGEN_DE_BOLD}`] : []),
     "connect-src 'self'",
