@@ -1007,3 +1007,21 @@ La regla: **un tope que protege algo compartido se cuenta en la misma transacci�
 La regla: **antes de construir lo que depende de la infraestructura, se mira dónde puede probarse; si no es en staging, se dice antes y se mueve la aceptación a donde sí.**
 
 *Ficha:* tienda3 · *(mío)* · 🟡 Bajo · P1, P12, P17 · tienda-0.1.0 · 2026-10-19
+
+**35 · El pago de Bold se abría en un marco de 300 × 150 al pie del carrito: la CSP bloqueaba su hoja.**
+
+*Qué pasó.* El 19 oct 2026, el dueño hizo el primer pago de prueba en Ensayo Dos (staging). Al tocar «Pagar en línea», el pago de Bold salió en una ventanita al pie de la página, a la izquierda, con «Algo salió mal · BTN-002».
+
+*Síntoma literal.* En la consola del carrito: «Applying inline style violates the following Content Security Policy directive 'style-src 'self''… a hash ('sha256-HWW5OulSqEamYflM9NfAJzyYXakwOF3M2m1VSzCGOAo=')». En la consola de la página de Bold: «Bold Payment Button: Integrity key doesn't match».
+
+*Causa raíz: son dos fallas distintas.*
+- **La ventanita.** El programa de Bold mete en su shadow DOM una hoja en línea (`#boldEmbeddedCheckout{…position:fixed…}`), y su hash es el de la consola. La CSP de la vitrina prohíbe todo lo que va en línea, también en el carrito. Sin la hoja, el marco queda con el tamaño por defecto (300 × 150) al final del documento. Las pruebas de HU-T11.4 usan un Bold de mentira que no pone estilos, y por eso no lo vieron (P5).
+- **El BTN-002.** La firma de integridad no coincide con la llave secreta que Bold tiene para esa llave de identidad. La fórmula es la de Bold (`orden + monto + COP + secreta`), así que la llave secreta de pruebas guardada no es la par de la de identidad. La llave secreta no se puede probar contra Bold sin un pago (TIENDA §9.2): para eso está el cobro de prueba, y fue él quien lo encontró.
+
+*Arreglo.* En `/carrito/`, y solo ahí, `style-src 'self' 'unsafe-inline'`. No un hash: Bold cambia su programa sin versión, y un hash viejo rompería el pago en silencio. Los scripts en línea siguen prohibidos en todas las páginas. La llave secreta la vuelve a pegar el dueño, la de pruebas que va con su llave de identidad.
+
+**Lo prueba** `tests/repo/tienda-vitrina.test.ts`: el carrito deja estilos en línea y ningún script en línea, y ninguna otra página deja nada en línea. Control negativo: sin el cambio, rojo. Visto en el navegador contra staging: la hoja de Bold es la del hash bloqueado.
+
+La regla: **una integración de terceros se prueba una vez con el tercero de verdad, en el navegador, antes de darla por hecha; el doble de mentira no trae sus estilos ni sus errores.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P5, P17 · tienda-0.1.0 · 2026-10-19

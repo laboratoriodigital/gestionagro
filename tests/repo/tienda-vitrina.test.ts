@@ -103,9 +103,14 @@ describe('la vitrina por el despacho (HU-T5.1)', () => {
     expect(carrito).toContain("script-src 'self' https://checkout.bold.co;");
     expect(carrito).toContain('frame-src https://checkout.bold.co;');
     expect(carrito).toContain("connect-src 'self';");
+    // El pago embebido de Bold trae su hoja en línea; sin ella su marco queda de 300 × 150 al pie.
+    // Solo estilos: los scripts en línea siguen prohibidos también en el carrito.
+    expect(carrito).toContain("style-src 'self' 'unsafe-inline';");
+    expect(carrito).not.toMatch(/script-src[^;]*unsafe-inline/);
     for (const ruta of ['/', '/p/camisa-de-lino/', '/pedido/']) {
       const csp = (await pedir(d, ruta)).headers.get('content-security-policy') ?? '';
       expect(csp, ruta).not.toContain('bold');
+      expect(csp, ruta).not.toContain('unsafe-inline');
     }
   });
 
