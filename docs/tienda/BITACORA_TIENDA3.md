@@ -1162,3 +1162,17 @@ La regla: **un secreto guardado no está en producción hasta el siguiente despl
 La regla: **cuando una decisión del dueño es posterior al criterio, gana la decisión, y el criterio se corrige en el backlog.**
 
 *Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P1 · tienda-0.1.0 · 2026-10-20
+
+**43 · «El soporte que anota el dueño» no tenía dónde anotarse, y en el repo no puede ir.**
+
+*Qué pasó.* El 20 oct 2026, al construir HU-T14.7, busqué la fuente de la métrica «soporte por comercio» de HU-T0.3: «la hoja de soporte del dueño».
+
+*Causa raíz.* La hoja no existía, y el repositorio es público mientras se construye: un archivo con las tiendas y los minutos de cada una sería información de negocio a la vista. Un renglón con notas libres, además, terminaría con nombres y celulares de los comercios o de sus compradores.
+
+*Arreglo.* La tabla `soporte` de la base de control (la 0003 de control) guarda la tienda, el día, los minutos y un tema de una lista, sin texto libre. El dueño la llena con el flujo «anotar-soporte-tienda», y el reporte semanal solo suma: minutos por semana y por comercio. `validacion.json` nombra la nueva fuente.
+
+*Otra premisa.* La aceptación de M5 pide ver la diferencia de eventos «con los comercios de prueba», y eso es en staging, que no tiene cron (D-T10). El flujo «cuadrar-tienda» cuadra una tienda al momento, con el secreto del despacho.
+
+La regla: **antes de medir algo que «anota alguien», se construye dónde anotarlo; y si es a mano, sin texto libre.**
+
+*Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P1, P13 · tienda-0.1.0 · 2026-10-20
