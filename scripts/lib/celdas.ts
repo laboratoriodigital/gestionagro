@@ -44,8 +44,9 @@ export interface Celda {
    * HU-T13.4: el dueño ya creó el registro DNS comodín `*` de `laboratorio-digital.app`, con proxy
    * (`docs/runbooks/tienda-alta.md`). Solo entonces el despacho recibe las direcciones de las tiendas
    * nuevas: `*.laboratorio-digital.app` en producción y `*--staging.laboratorio-digital.app` en staging.
+   * `"staging"`: solo en staging, mientras la Tienda no se lanza (D-T14); `true`: en los dos.
    */
-  comodin?: boolean;
+  comodin?: boolean | 'staging';
 }
 
 export interface ConfigCeldas {

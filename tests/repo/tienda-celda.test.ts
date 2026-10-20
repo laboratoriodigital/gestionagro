@@ -187,11 +187,13 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
     }
   });
 
-  it('el despacho de staging atiende las direcciones de los dos comercios de prueba (HU-T2.6)', () => {
+  it('el despacho de staging atiende las direcciones de los dos comercios de prueba (HU-T2.6) y las del alta', () => {
     const sitio = wranglerDelSitioDeLaTienda(config) as unknown as Config;
     expect(sitio.env.staging.routes).toEqual([
       { pattern: 'ensayo-uno--staging.laboratorio-digital.app', custom_domain: true },
       { pattern: 'ensayo-dos--staging.laboratorio-digital.app', custom_domain: true },
+      // HU-T13.4: y las tiendas nuevas del alta, con el comodín de staging (D-T14).
+      { pattern: '*--staging.laboratorio-digital.app/*', zone_name: 'laboratorio-digital.app' },
     ]);
   });
 

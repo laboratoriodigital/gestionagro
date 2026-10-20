@@ -108,7 +108,14 @@ describe('la configuración con SaaS activo', () => {
 describe('las tiendas nuevas del alta (HU-T13.4)', () => {
   const config = cargarCeldas();
   it('con el comodín, el despacho recibe sus direcciones en cada ambiente; sin él, nada cambia', () => {
-    const sin = wranglerDelSitioDeLaTienda(config) as { routes: { pattern: string }[] };
+    const sin = wranglerDelSitioDeLaTienda({
+      ...config,
+      celdas: config.celdas.map((c) => {
+        const { comodin: _, ...resto } = c;
+        return resto;
+      }),
+    }) as { routes: { pattern: string }[]; env: { staging: { routes: { pattern: string }[] } } };
+    expect(sin.env.staging.routes.some((r) => r.pattern.startsWith('*'))).toBe(false);
     expect(sin.routes.some((r) => r.pattern.startsWith('*.'))).toBe(false);
     const con = wranglerDelSitioDeLaTienda({
       ...config,
@@ -122,5 +129,23 @@ describe('las tiendas nuevas del alta (HU-T13.4)', () => {
       pattern: `*--staging.${ZONA_DE_LAS_TIENDAS}/*`,
       zone_name: ZONA_DE_LAS_TIENDAS,
     });
+  });
+
+  it('D-T14: con «staging», solo staging recibe las tiendas nuevas; producción sigue igual', () => {
+    const solo = wranglerDelSitioDeLaTienda({
+      ...config,
+      celdas: config.celdas.map((c) =>
+        c.producto === 'tienda' ? { ...c, comodin: 'staging' as const } : c,
+      ),
+    }) as { routes: { pattern: string }[]; env: { staging: { routes: unknown[] } } };
+    expect(solo.routes.some((r) => r.pattern.startsWith('*.'))).toBe(false);
+    expect(solo.env.staging.routes).toContainEqual({
+      pattern: `*--staging.${ZONA_DE_LAS_TIENDAS}/*`,
+      zone_name: ZONA_DE_LAS_TIENDAS,
+    });
+  });
+
+  it('la celda de la Tienda tiene hoy el comodín solo en staging (D-T14)', () => {
+    expect(config.celdas.find((c) => c.producto === 'tienda')?.comodin).toBe('staging');
   });
 });
