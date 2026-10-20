@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El flujo `registrar-pago-en-efectivo` (HU-C5.8): registra un pago del plan que un cliente le hizo al dueño en efectivo, primero en vista previa. Usa una base D1 por la API de Cloudflare (`scripts/lib/d1-remota.ts`) con el token del ambiente. La guardia de los flujos trata los «registrar…» como los de despliegue: nunca se cancelan a medias.
 - `@ed1/impresion`: `Impresora.cancelar` corta el trabajo en curso, y la cola lo pide al dejar de esperar a la impresora: lo dado por perdido no sale después (Web Serial descarta lo que tenía por mandar; Bluetooth no manda un trozo más). `@ed1/parqueadero-schema`: `papel_salida` en la sede y `papelDelRecibo` (HU-Q13.7, bitácora parqueadero 43).
 - `@ed1/parqueadero-tarifas`: `detalleDelProrrateo` da los tramos de un prorrateo (días, días del periodo entero, si son hábiles y lo que vale cada uno); `prorrateo` es su suma (HU-Q13.5).
 - `@ed1/parqueadero-tarifas`: `prorrateo` y `finDelPeriodo` aceptan meses del 1 al último día (`periodo: 'calendario'`), que parten la vigencia por meses calendario; por omisión siguen de fecha a fecha (HU-Q13.4).

@@ -651,6 +651,16 @@ Formato de cada historia:
 - **CA3 ❌.** Un periodo sin precio no aparece; nunca se muestra «COP 0».
 - **Work items:** WI-C5.7.1 `[código]` · WI-C5.7.2 `[prueba]` e2e en 360 px.
 
+#### HU-C5.8 · El dueño registra un pago del plan en efectivo
+- **Capa:** CORE y operación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** fuera de sprint (pedido de campo) · **Depende de:** HU-C5.3, HU-C5.4, HU-C5.6 · **Estado:** En revisión (rama `feat/pago-en-efectivo`)
+- Como dueño, quiero registrar el plan que un cliente me pagó en efectivo, para que su cuenta lo tenga igual que un pago en línea y quede constancia.
+- **Respaldo:** el dueño, 20 oct 2026: «si el cliente me pagó en efectivo el año, ¿cómo lo puedo registrar?», y aprobó la propuesta: un flujo de GitHub. ED1 §5 (auditoría de lo que toca dinero); P21.
+- **CA1.** Flujo `registrar-pago-en-efectivo` (solo a mano, con el ambiente de GitHub): cliente por correo de quien administra o por id de la organización, producto, plan, meses, monto opcional (vacío: el precio del periodo) y nota. Con «confirmar: no» (por omisión) solo muestra lo que haría.
+- **CA2.** Con «confirmar: si»: una fila en `pago` con `proveedor = efectivo`, su periodo y la nota; el plan con la regla de HU-C5.3 y HU-C5.4; una fila de auditoría `pago_cerrado` con quién lo registró. La celda lo recibe en la vuelta de cada hora (HU-C5.6) y «Tus pagos» lo muestra.
+- **CA3.** Sin ruta nueva en el CORE ni secretos nuevos: el script corre la función del CORE contra D1 por la API de Cloudflare, con el token del ambiente. Como esa API no da transacción, las escrituras van en un orden que nunca deja un plan sin su pago (`apps/core/src/pago-en-efectivo.ts`).
+- **CA4 ❌.** No registra nada si el correo no administra una organización del producto, si administra varias sin decir cuál, si el plan es gratuito o no existe, si el periodo no existe, si falta precio y monto, sin nota, o con la organización suspendida. Si la organización cambió entre leer y escribir, el pago queda `rechazado` y el plan no se toca.
+- **Work items:** WI-C5.8.1 `[código]` migración 0010 y función · WI-C5.8.2 `[código]` script, base D1 por API y flujo · WI-C5.8.3 `[prueba]` contra el D1 local y del flujo · WI-C5.8.4 `[doc]` `docs/runbooks/pago-en-efectivo.md`.
+
 ### EC6 · Sistema de diseño ED1
 
 #### HU-C6.1 · Tokens v2 en tres capas, claro y oscuro
