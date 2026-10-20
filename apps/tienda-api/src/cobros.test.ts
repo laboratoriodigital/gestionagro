@@ -279,7 +279,45 @@ describe('pagar en línea: un lote (HU-T11.4 CA1)', () => {
     // Con otro token no hay botón: el pedido ya existe y se sigue con su enlace.
     const ajeno = await pagar(cobro('PAG003', { token: 'otro-token-xxxxxxxxxxx' }));
     expect(ajeno.status).toBe(409);
-    expect(await ajeno.json()).toMatchObject({ estado: 'pedido-existente' });
+    expect(await ajeno.json()).toMatchObject({
+      estado: 'pedido-existente',
+      motivo: expect.stringMatching(/otra pestaña/),
+    });
+  });
+
+  it('con el pago de ese código ya cerrado y el pedido por pagar, la página toma otro código', async () => {
+    await (await pagar(cobro('PAG004'))).json();
+    // Pasaron los 15 minutos del cobro sin pagar: el mismo carrito vuelve a tocar «Pagar».
+    const despues = new Date(Date.parse(AHORA) + 16 * 60_000).toISOString();
+    const r = await pagar(cobro('PAG004'), env(), despues);
+    expect(r.status).toBe(409);
+    expect(await r.json()).toEqual({ estado: 'renovar' });
+    // ❌ Nada nuevo para ese código: ni otro cobro ni otro pedido.
+    expect(
+      await n("SELECT COUNT(*) AS n FROM cobro WHERE org_id = ? AND id LIKE 'PAG004-%'", UNO),
+    ).toBe(1);
+    // Con el código nuevo, el pedido nace y Bold se abre.
+    const nuevo = await pagar(cobro('PAG005'), env(), despues);
+    expect(nuevo.status).toBe(200);
+    expect(await nuevo.json()).toMatchObject({ estado: 'registrado', codigo: 'PAG005' });
+  });
+
+  it('❌ un pedido que ya se pagó no se renueva: se sigue con su enlace', async () => {
+    await (await pagar(cobro('PAG006'))).json();
+    await shard
+      .prepare("UPDATE pedido SET estado = 'pagado' WHERE org_id = ? AND codigo = 'PAG006'")
+      .bind(UNO)
+      .run();
+    await shard
+      .prepare("UPDATE cobro SET estado = 'aprobado' WHERE org_id = ? AND id = 'PAG006-1'")
+      .bind(UNO)
+      .run();
+    const r = await pagar(cobro('PAG006'));
+    expect(r.status).toBe(409);
+    expect(await r.json()).toMatchObject({
+      estado: 'pedido-existente',
+      motivo: expect.stringMatching(/ya está registrado/),
+    });
   });
 });
 

@@ -142,8 +142,9 @@ export function Publicar({
         </Aviso>
       ) : null}
       {resultado?.tipo === 'nada-cambio' ? (
-        <Aviso tono="info" titulo="Nada cambió">
-          La tienda ya muestra lo mismo que tienes en el panel.
+        <Aviso tono="info" titulo="Tu tienda ya está al día">
+          Ya muestra lo mismo que tienes en el panel, así que no hizo falta una versión nueva. Lo
+          que no se ve en la tienda, como las llaves de Bold, funciona sin publicar.
         </Aviso>
       ) : null}
       {resultado?.tipo === 'volvio' ? (

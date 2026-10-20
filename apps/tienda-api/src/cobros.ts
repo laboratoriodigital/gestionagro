@@ -81,7 +81,7 @@ export type ResultadoDeCobro =
       boton: BotonDeBold;
     }
   | { estado: 'cambio'; cotizacion: Cotizacion }
-  | { estado: 'terminos' | 'cerrada' | 'codigo-en-uso' }
+  | { estado: 'terminos' | 'cerrada' | 'codigo-en-uso' | 'renovar' }
   | {
       estado: 'forma' | 'edad' | 'monto' | 'sin-linea' | 'ocupada' | 'pedido-existente';
       motivo: string;
@@ -188,7 +188,13 @@ const vencerApartados = (c: ContextoDeCobro, variantes: readonly string[]) =>
     )
     .bind(c.ahora, c.org, c.ahora, ...variantes);
 
-/** El mismo pedido con el mismo token: el cobro que sigue esperando, otra vez su botón. */
+/**
+ * El mismo código otra vez. Con el mismo token y el cobro todavía abierto, otra vez su botón, firmado
+ * con las llaves de ahora. Si el cobro de ese código ya se cerró (venció, se rechazó o nunca abrió)
+ * y el pedido sigue por pagar, `renovar`: la página toma otro código y vuelve a intentar; el pedido
+ * viejo se queda por pagar, por si el aviso de Bold llega tarde (HU-T11.6). Con otro token y el
+ * cobro abierto, se está pagando en otra pestaña: se espera.
+ */
 async function repetido(
   c: ContextoDeCobro,
   pedidoId: string,
@@ -212,11 +218,23 @@ async function repetido(
       numero: number;
       total_cop: number;
     }>();
-  const kek = await kekDelEntorno(c.kekTexto);
-  if (!cobro || !kek || !igual(cobro.token_huella, await sha256(p.token))) {
+  if (!cobro) {
+    const pedido = await c.db
+      .prepare('SELECT estado FROM pedido WHERE org_id = ? AND id = ?')
+      .bind(c.org, pedidoId)
+      .first<{ estado: string }>();
+    if (pedido?.estado === 'por_pagar') return { estado: 'renovar' };
     return {
       estado: 'pedido-existente',
       motivo: 'Este pedido ya está registrado. Síguelo con el enlace de tu pedido.',
+    };
+  }
+  const kek = await kekDelEntorno(c.kekTexto);
+  if (!kek || !igual(cobro.token_huella, await sha256(p.token))) {
+    return {
+      estado: 'pedido-existente',
+      motivo:
+        'Este pedido se está pagando en otra pestaña o en otro navegador. Termina el pago allá, o vuelve a intentarlo aquí en 15 minutos.',
     };
   }
   const llaves = await llavesDeBold(c.db, c.org, cobro.ambiente, kek);
