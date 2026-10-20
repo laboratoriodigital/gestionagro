@@ -28,7 +28,8 @@ import {
 } from '@ed1/tienda-schema/dominios';
 import { z } from 'zod';
 import { guardarOperacion, type Problema, type Quien, yaAplicada } from './catalogo.ts';
-import { claveDelHost, punteroDelHost } from './hosts.ts';
+import { claveDelHost, direccionesDelPlan, punteroDelHost } from './hosts.ts';
+import { limitesDeLaTienda } from './plan.ts';
 import { anotar } from './registro.ts';
 import {
   borrarHostname,
@@ -128,12 +129,15 @@ export async function apuntarLaTienda(
   q: Omit<QuienDelDominio, 'hosts'> & { hosts: Pick<KvDeHosts, 'put'> },
 ): Promise<void> {
   const tienda = await q.db
-    .prepare('SELECT version_publicada, estado FROM tienda WHERE org_id = ?')
+    .prepare('SELECT version_publicada, estado, plan FROM tienda WHERE org_id = ?')
     .bind(q.org)
-    .first<{ version_publicada: number | null; estado: string }>();
+    .first<{ version_publicada: number | null; estado: string; plan: string }>();
   if (!tienda) return;
-  const activas = (await filasDeLaTienda(q.control, q.org)).filter((f) => f.estado === 'activo');
-  const canonico = activas.find((f) => f.rol === 'canonico')?.hostname;
+  // HU-T13.5 CA3: sin dominio propio en el plan, la dirección de la plataforma es la canónica.
+  const { filas: activas, canonico } = direccionesDelPlan(
+    (await filasDeLaTienda(q.control, q.org)).filter((f) => f.estado === 'activo'),
+    limitesDeLaTienda(tienda.plan).dominioPropio,
+  );
   for (const f of activas) {
     await q.hosts.put(
       claveDelHost(f.hostname),
@@ -256,7 +260,7 @@ const anotarEnLaTienda = async (
 
 /** CA1 y CA3: conectar un dominio propio. */
 export async function conectarDominio(
-  q: QuienDelDominio,
+  q: QuienDelDominio & { plan: string | null },
   saas: Saas | null,
   cuerpo: unknown,
 ): Promise<ResultadoDelDominio> {
@@ -267,6 +271,12 @@ export async function conectarDominio(
   const leido = leerDominio(r0.data.hostname);
   if (!leido.ok) return problema(leido.motivo);
   if (!saas) return { estado: 'sin-configurar', motivo: NO_DISPONIBLE };
+  // HU-T13.5 CA2: el dominio propio es de los planes pagos.
+  if (!limitesDeLaTienda(q.plan).dominioPropio) {
+    return problema(
+      'Tu plan no incluye un dominio propio. Con el plan Entrada o uno mayor, lo conectas aquí.',
+    );
+  }
   const hostname = leido.hostname;
   const propias = (await filasDeLaTienda(q.control, q.org)).filter(
     (f) => f.tipo === 'propio' && f.estado !== 'retirado',

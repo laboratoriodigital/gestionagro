@@ -117,7 +117,8 @@ function kv() {
 let n = 0;
 const op = () => `op-dominio-${++n}-${'x'.repeat(6)}`;
 let hosts = kv();
-const quien = (org = UNO): QuienDelDominio => ({
+const quien = (org = UNO): QuienDelDominio & { plan: string } => ({
+  plan: 'entrada',
   db: shard,
   org,
   actor: 'usuario:0199e0a0-0000-7000-8000-0000000000aa',
@@ -257,6 +258,16 @@ describe('conectar un dominio propio (HU-T13.1)', () => {
       await conectarDominio(quien(), null, { op: op(), hostname: 'www.tienda-uno.example' }),
     ).toMatchObject({
       estado: 'sin-configurar',
+    });
+    // HU-T13.5 CA2: el dominio propio es de los planes pagos.
+    expect(
+      await conectarDominio({ ...quien(), plan: 'gratis' }, cf.saas, {
+        op: op(),
+        hostname: 'www.tienda-uno.example',
+      }),
+    ).toEqual({
+      estado: 'problemas',
+      problemas: [{ campo: 'hostname', mensaje: expect.stringMatching(/no incluye un dominio/) }],
     });
     expect(cf.pedidos).toEqual([]);
   });

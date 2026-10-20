@@ -3043,3 +3043,58 @@ test('HU-T13.4 · CA1: abrir mi tienda desde el teléfono, con la dirección que
   ]);
   expect(consultas.at(-1)).toBe('panaderia-dona-rosa');
 });
+
+test('HU-T13.5 · CA1: los planes con sus cuatro periodos, pagar en el CORE y volver de Bold con el plan pagado', async ({
+  page,
+}) => {
+  const ORDEN = 'tienda-0199f000-0000-7000-8000-00000000a1a1';
+  await enElPanel(page);
+  const cobros: unknown[] = [];
+  const confirmados: unknown[] = [];
+  await page.route(`${CORE}/api/core/pago/crear`, (r) => {
+    cobros.push(r.request().postDataJSON());
+    return r.fulfill({
+      json: { orden: ORDEN, pruebas: true, libreria: `${PANEL}/bold-falso.js`, checkout: {} },
+      headers: CORS,
+    });
+  });
+  // El programa de Bold de mentira: «pagar» vuelve al panel como lo haría Bold.
+  await page.route(`${PANEL}/bold-falso.js`, (r) =>
+    r.fulfill({
+      contentType: 'text/javascript',
+      body: `window.BoldCheckout = class { open() { location.assign('/mas/plan/?pago=${ORDEN}&bold-tx-status=approved'); } };`,
+    }),
+  );
+  await page.route(`${CORE}/api/core/pago/confirmar`, (r) => {
+    confirmados.push(r.request().postDataJSON());
+    return r.fulfill({
+      json: { estado: 'aprobado', motivo: null, plan: 'entrada', plan_vence: '2027-04-27' },
+      headers: CORS,
+    });
+  });
+
+  await page.goto(`${PANEL}/mas/`);
+  await page.getByRole('link', { name: 'Tu plan' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Tu plan' })).toBeVisible();
+  await expect(page.getByText('Hasta 15 productos en tu tienda')).toBeVisible();
+  // Los cuatro periodos de Entrada, con el total y el valor por mes.
+  const entrada = page.locator('section', { hasText: 'Para el comercio que vende cada semana.' });
+  await expect(entrada.getByRole('radio')).toHaveCount(4);
+  await expect(entrada.getByText(/6 meses: COP 161\.000 · COP 26\.833 al mes/)).toBeVisible();
+  await entrada.getByLabel(/6 meses/).check();
+  await entrada.getByRole('button', { name: 'Pagar el plan Entrada' }).click();
+
+  await expect(page.getByText('Listo: pagaste el plan Entrada')).toBeVisible();
+  await expect(
+    page.getByText('Publica tu tienda para que muestre todo lo que incluye.'),
+  ).toBeVisible();
+  // El monto nunca sale del panel; la orden sale de la barra.
+  expect(cobros).toEqual([{ plan: 'entrada', meses: 6, vuelta: `${PANEL}/mas/plan/` }]);
+  expect(confirmados).toEqual([{ orden: ORDEN }]);
+  expect(new URL(page.url()).search).toBe('');
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});

@@ -45,6 +45,7 @@ import { Inicio } from './vistas/Inicio.tsx';
 import { Existencias, Inventario } from './vistas/Inventario.tsx';
 import { Mas } from './vistas/Mas.tsx';
 import { Bandeja, Pedido } from './vistas/Pedidos.tsx';
+import { Plan } from './vistas/Plan.tsx';
 import { Privacidad } from './vistas/Privacidad.tsx';
 import { Producto } from './vistas/Producto.tsx';
 import { Productos } from './vistas/Productos.tsx';
@@ -358,6 +359,18 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
       />
     );
   } else if (ruta === '/mas/cobro/') cuerpo = <Cobro conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/mas/plan/')
+    cuerpo = (
+      <Plan
+        conexion={conexion}
+        plan={yo.datos.plan}
+        vence={yo.datos.planVence ?? null}
+        funciones={yo.datos.funciones}
+        puedePagar={puede(yo.datos.rol, 'plan.gestionar')}
+        alCambiar={preguntar}
+        alVencer={setVencida}
+      />
+    );
   else if (ruta === '/mas/baja/' && puede(yo.datos.rol, 'tienda.baja'))
     cuerpo = (
       <Baja conexion={conexion} nombre={yo.datos.tienda?.nombre ?? ''} alVencer={setVencida} />

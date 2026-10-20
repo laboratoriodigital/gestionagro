@@ -10,6 +10,7 @@ export * from './escapar.ts';
 export * from './feeds.ts';
 export * from './horno.ts';
 export * from './legal.ts';
+export * from './plan.ts';
 export * from './tema.ts';
 export {
   EVENTOS_DE_LA_TIENDA,

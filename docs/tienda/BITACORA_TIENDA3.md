@@ -1107,3 +1107,23 @@ La regla: **antes de que un flujo cree algo en la cuenta, se cuenta cuánto de e
 La regla: **un plazo que la política le promete a una persona se cuenta con todas las copias que existen, no con la tabla que se borra.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1, P21 · tienda-0.1.0 · 2026-10-20
+
+**40 · Un plan que sube no puede mostrar de golpe lo que el plan ocultaba: la compuerta nunca lo revisó.**
+
+*Qué pasó.* El 20 oct 2026, al construir el plan por periodo (HU-T13.5), lo natural era volver a hornear lo publicado con el plan nuevo cada vez que cambia, en las dos direcciones. Contrasté eso con el re-horneado (HU-T4.5) y la compuerta (HU-T4.3).
+
+*Causa raíz.* El re-horneado no pasa por la compuerta: vuelve a hornear lo que ya pasó por ella. Lo que el plan gratuito oculta (los productos después del 15, el pago en línea) nunca se revisó: ni las fotos, ni las llaves de Bold, ni el cobro de prueba. Mostrarlo al subir de plan publicaría algo sin revisar. Ocultarlo al bajar es seguro: solo quita.
+
+*Arreglo.*
+- Lo publicado se guarda completo, con los límites del plan con que se publicó. El horno lo recorta (`alPlan`), y el re-horneado usa el más estricto entre ese plan y el de ahora (`limitesMasEstrictos`): bajar recorta enseguida; subir se ve en la próxima publicación. Al pagar, el panel lo dice: «Publica tu tienda para que muestre todo lo que incluye».
+- El plan llega en el token del CORE, con la gracia ya sumada. Si el comercio no abre el panel, nadie trae un token nuevo: la tarea `planes-vencidos` pasa al gratuito, cada hora, las tiendas con `plan_vence` vencido.
+
+*Otras dos premisas.*
+- El tope de personas del equipo no lo puede cumplir la Tienda: las invitaciones son del CORE, que hoy no cuenta miembros por plan. El panel lo dice, y queda como pendiente del CORE.
+- En staging, Ensayo Dos es del plan gratuito y tiene sus llaves de Bold: desde este cambio no ofrece el pago en línea hasta que se pague su plan de prueba, que es justo la aceptación de M4.
+
+**Lo prueba** `vencimiento.test.ts`, con el reloj movido: antes de la gracia nada cambia; después, la tienda queda en el gratuito, su dominio propio redirige a la dirección de la plataforma, la base de dominios no cambia y lo publicado se vuelve a hornear sin feeds, con lo elegido guardado. `plan.test.ts` del horno revisa el recorte.
+
+La regla: **lo que vuelve a la vista pasa por la compuerta; lo que se oculta no necesita revisión.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1, P2 · tienda-0.1.0 · 2026-10-20

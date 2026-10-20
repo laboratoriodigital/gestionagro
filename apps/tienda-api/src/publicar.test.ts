@@ -207,6 +207,10 @@ describe('publicar (HU-T4.4)', () => {
       .bind(ENSAYO_DOS.org)
       .first<{ datos: string }>();
     await agentes(JSON.stringify({ feeds: { google: true, meta: true, agentes: false } }));
+    // Los feeds son de los planes pagos (HU-T13.5); Ensayo Dos es del gratuito.
+    const plan = (p: string) =>
+      shard.prepare('UPDATE tienda SET plan = ? WHERE org_id = ?').bind(p, ENSAYO_DOS.org).run();
+    await plan('entrada');
     try {
       const r2 = almacen();
       expect((await publicar(contexto(ENSAYO_DOS.org, r2))).estado).toBe('publicada');
@@ -238,6 +242,7 @@ describe('publicar (HU-T4.4)', () => {
       });
       expect(panel.fuera).toHaveLength(ENSAYO_DOS.productos.length);
     } finally {
+      await plan(ENSAYO_DOS.plan);
       await agentes(antes?.datos ?? null);
     }
   });

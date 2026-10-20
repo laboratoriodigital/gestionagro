@@ -171,6 +171,7 @@ import {
   textosVigentes,
 } from './terminos.ts';
 import { buscarTitular, corregirTitular, exportarTitular, suprimirTitular } from './titular.ts';
+import { aplicarElPlan, guardarElPlan } from './vencimiento.ts';
 import { borrarCupon, borrarEnvio, guardarCupon, guardarEnvio, listarVenta } from './venta.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
@@ -309,6 +310,8 @@ export interface Sesion {
   org: string;
   rol: string;
   plan: string;
+  /** HU-T13.5: cuándo vence el plan (s), con la gracia ya sumada por el CORE; null, sin vencimiento. */
+  planVence: number | null;
   /** Instante (s) de la última entrada con Google: lo que mueve dinero pide una reciente. */
   authTime: number | null;
   /** HU-T4.6: el anillo de despliegue de la organización, del token. */
@@ -625,6 +628,7 @@ export function crearApp(
       org: acceso.org,
       rol: acceso.rol,
       plan: acceso.plan,
+      planVence: acceso.plan_vence ?? null,
       authTime: acceso.auth_time ?? null,
       anillo: acceso.anillo ?? null,
       shard: acceso.shard,
@@ -1038,6 +1042,12 @@ export function crearApp(
         .bind(anillo, s.org, anillo)
         .run();
     }
+    // HU-T13.5: el plan del token, guardado en la tienda; si cambió, sus direcciones y lo publicado
+    // quedan como lo deja el plan nuevo.
+    if (await guardarElPlan(s.db, s.org, s.plan, s.planVence)) {
+      const ctx = contextoDePublicacion(c, s.org, s.shard, 'sistema:plan');
+      if (ctx) enSegundoPlano(c, aplicarElPlan({ ...ctx, instante: ctx.ahora }, 'sistema:plan'));
+    }
     const tienda = await s.db
       .prepare('SELECT slug, nombre, estado FROM tienda WHERE org_id = ?')
       .bind(s.org)
@@ -1047,6 +1057,7 @@ export function crearApp(
       org: s.org,
       rol: s.rol,
       plan: s.plan,
+      planVence: s.planVence === null ? null : new Date(s.planVence * 1000).toISOString(),
       funciones: s.plan ? funcionesDelPlan(funciones as unknown as FuncionesPorPlan, s.plan) : null,
       tienda: tienda ?? null,
       // HU-T7.2 CA1: si falta aceptar los términos vigentes, el panel los pide antes de seguir.
@@ -1130,7 +1141,14 @@ export function crearApp(
     const q = delDominio(c, 'dominios.gestionar');
     if (q instanceof Response) return q;
     const cuerpo = await c.req.json().catch(() => null);
-    return responderDominio(c, await conectarDominio(q, saasDe(c.env, alProveedor), cuerpo));
+    return responderDominio(
+      c,
+      await conectarDominio(
+        { ...q, plan: c.get('sesion').plan ?? null },
+        saasDe(c.env, alProveedor),
+        cuerpo,
+      ),
+    );
   });
   app.post('/api/panel/v1/dominios/canonico', async (c) => {
     const q = delDominio(c, 'dominios.gestionar');
@@ -1239,6 +1257,8 @@ export function crearApp(
     }
     const ctx = contextoDePublicacion(c, s.org, s.shard, `usuario:${s.usuario}`);
     if (!ctx) return c.json({ estado: 'sin-configurar' }, 503);
+    // HU-T13.5: se publica con el plan del token.
+    await guardarElPlan(s.db, s.org, s.plan, s.planVence);
     return responder(c, await publicar(ctx));
   });
 

@@ -15,6 +15,7 @@
 import { formatearPesos } from '@ed1/dinero';
 import {
   etiquetaDeVerificacionGoogle,
+  type LimitesDelPlan,
   NOMBRE_DEL_TIPO,
   TIPOS_DE_SOLICITUD,
 } from '@ed1/tienda-schema';
@@ -28,6 +29,7 @@ import {
   TEXTOS_LEGALES,
   textosLegales,
 } from './legal.ts';
+import { alPlan } from './plan.ts';
 import { type Apariencia, coloresDelTema, cssDelTema, fondoDelTema } from './tema.ts';
 import { estadoDeLaEleccion } from './vitrina/seleccion.ts';
 
@@ -103,6 +105,11 @@ export interface TiendaParaHornear {
   cobroEnPruebas?: boolean;
   /** HU-T14.5: los feeds de productos que el comercio encendió en Ajustes › Agentes. */
   feeds?: FeedsEncendidos;
+  /**
+   * HU-T13.5: lo que permite el plan de la tienda. El horno recorta a él lo publicado (`alPlan`):
+   * los productos de más quedan ocultos y lo que el plan no incluye no se ofrece.
+   */
+  plan?: LimitesDelPlan;
 }
 
 export interface ArchivoHorneado {
@@ -213,7 +220,9 @@ interface Pagina {
   privada?: boolean;
 }
 
-export async function hornear(t: TiendaParaHornear): Promise<Map<string, ArchivoHorneado>> {
+export async function hornear(publicada: TiendaParaHornear): Promise<Map<string, ArchivoHorneado>> {
+  // HU-T13.5: lo que el plan permite, nada más.
+  const t = alPlan(publicada).tienda;
   const url = (ruta: string) => `https://${t.dominio}${ruta}`;
   const productos = [...t.productos].sort((a, b) =>
     a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0,

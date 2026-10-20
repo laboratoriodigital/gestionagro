@@ -168,8 +168,10 @@ const TIENDA: Api = {
   tablas: TABLAS_TIENDA,
   archivos: ['worker.ts'],
   excepciones: {
-    'select org_id, version_publicada, estado from tienda':
-      'la tarea diaria rehace TIENDA_HOSTS con todas las tiendas del shard; no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.1)',
+    'select org_id, version_publicada, estado, plan from tienda':
+      'la tarea diaria rehace TIENDA_HOSTS con todas las tiendas del shard, con el plan de cada una (HU-T13.5); no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.1)',
+    'select org_id from tienda where plan_vence is not null':
+      'la tarea de cada hora busca en el shard las tiendas con el plan vencido y pasa cada una al gratuito con su org_id = ?; no hay token ni usuario, y nada sale en una respuesta (vencimiento.ts, HU-T13.5)',
     'select org_id from tienda':
       'la purga diaria recorre las tiendas del shard y purga cada una con su org_id = ?; no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.2)',
     'select count(*) as n from correo where dia = ?':
