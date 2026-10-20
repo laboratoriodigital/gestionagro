@@ -1143,6 +1143,8 @@ La regla: **lo que vuelve a la vista pasa por la compuerta; lo que se oculta no 
 - `comodin` acepta `"staging"`: la celda lo lleva así, y producción no recibe el comodín hasta lanzar (D-T14).
 - Al cambiar la caja de la verificación, un `id="turnstile"` volvía el elemento `window.turnstile` y tapaba el programa. La prueba e2e lo atrapó; ahora es `id="verificacion"`.
 
+*Después del arreglo (20 oct 2026, PR #214).* Con el despliegue, la casilla apareció y las fotos de staging siguen viéndose. La casilla mostró «Código de error: 110200»: es «dominio no permitido», el panel de staging no estaba en la lista de dominios del widget. Se arregla en Cloudflare, sin desplegar; el runbook lo dice.
+
 La regla: **un secreto guardado no está en producción hasta el siguiente despliegue; y una ruta comodín se revisa contra cada dirección que ya existe en la zona.**
 
 *Ficha:* tienda3 · *(dueño y mío)* · 🟠 Medio · P1, P2 · tienda-0.1.0 · 2026-10-20
