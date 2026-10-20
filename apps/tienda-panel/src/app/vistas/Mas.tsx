@@ -69,6 +69,11 @@ export function Mas({
         <li>
           <a href="/privacidad/">Política de tratamiento de datos</a>
         </li>
+        {puede(rol, 'tienda.baja') ? (
+          <li>
+            <a href="/mas/baja/">Dar de baja la tienda</a>
+          </li>
+        ) : null}
       </ul>
       <div class="acciones">
         {variasTiendas ? (

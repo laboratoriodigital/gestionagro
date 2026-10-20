@@ -54,6 +54,7 @@ import funciones from '../../../content/tienda/funciones.json' with { type: 'jso
 import { guardarAjuste, leerAjustes, PIDE_ENTRADA, verificarWhatsapp } from './ajustes.ts';
 import { avisame, PeticionDeAvisame } from './avisame.ts';
 import { recibirAvisoDeBold } from './avisos.ts';
+import { darDeBaja } from './baja.ts';
 import {
   confirmarPedido,
   leerPedido,
@@ -1102,6 +1103,14 @@ export function crearApp(
     const r = await elegirCanonico(q, await c.req.json().catch(() => null));
     if (r.estado === 'guardado' && r.cambio) rehornearConElCanonico(c);
     return responderDominio(c, r);
+  });
+  /** HU-T13.7: dar de baja la tienda, solo el propietario y recién entrado. */
+  app.post('/api/panel/v1/baja', async (c) => {
+    const q = delDominio(c, 'tienda.baja');
+    if (q instanceof Response) return q;
+    const r = await darDeBaja(q, saasDe(c.env, alProveedor), await c.req.json().catch(() => null));
+    if (r.estado === 'guardado') return c.json(r);
+    return c.json(r, r.estado === 'problemas' ? 422 : 404);
   });
   app.post('/api/panel/v1/dominios/retirar', async (c) => {
     const q = delDominio(c, 'dominios.gestionar');

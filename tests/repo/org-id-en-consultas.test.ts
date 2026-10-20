@@ -186,6 +186,8 @@ const TIENDA: Api = {
       'rotar la KEK reenvuelve las DEK de todas las tiendas del shard; cada una se reescribe con su org_id = ?, y nada sale en una respuesta (llaves.ts, HU-T17.6)',
     'select org_id, proposito, version, envuelta, kek_id from llave indexed by llave_por_kek':
       'terminada la rotación se comprueba que la KEK vigente abre cada DEK del shard; solo sale cuántas no abre (llaves.ts, HU-T17.6 CA2)',
+    "select org_id from tienda indexed by tienda_baja_por_borrar where estado = 'baja' and datos_borrados is null and baja_pedida <= ? limit 20":
+      'la tarea diaria busca en el shard las tiendas dadas de baja hace 30 días; cada una se borra con su org_id = ? y nada sale en una respuesta (baja.ts, HU-T13.7)',
   },
 };
 

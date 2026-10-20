@@ -44,6 +44,7 @@ export const ACCIONES = [
   'equipo.gestionar',
   'plan.gestionar',
   'terminos.aceptar',
+  'tienda.baja',
 ] as const;
 export type Accion = (typeof ACCIONES)[number];
 
@@ -59,6 +60,8 @@ const SOLO_PROPIETARIO: ReadonlySet<Accion> = new Set<Accion>([
   'plan.gestionar',
   // HU-T7.2: los términos del servicio y la custodia de las llaves se aceptan en nombre de la tienda.
   'terminos.aceptar',
+  // HU-T13.7: dar de baja la tienda borra los datos de sus compradores.
+  'tienda.baja',
 ]);
 
 export const MATRIZ: Readonly<Record<Accion, readonly Rol[]>> = Object.fromEntries(
@@ -79,6 +82,7 @@ export const PIDEN_ENTRADA_RECIENTE: ReadonlySet<Accion> = new Set<Accion>([
   'factura.gestionar',
   'exportar.datos_personales',
   'titular.gestionar',
+  'tienda.baja',
 ]);
 
 /** Diez minutos desde la última entrada interactiva (`auth_time` del token). */

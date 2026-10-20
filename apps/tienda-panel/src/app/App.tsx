@@ -32,6 +32,7 @@ import {
 } from './sesion.ts';
 import { AjusteDeSeccion, Ajustes } from './vistas/Ajustes.tsx';
 import { Anotar } from './vistas/Anotar.tsx';
+import { Baja } from './vistas/Baja.tsx';
 import { Cobro } from './vistas/Cobro.tsx';
 import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
 import { Datos } from './vistas/Datos.tsx';
@@ -334,6 +335,10 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
       />
     );
   } else if (ruta === '/mas/cobro/') cuerpo = <Cobro conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/mas/baja/' && puede(yo.datos.rol, 'tienda.baja'))
+    cuerpo = (
+      <Baja conexion={conexion} nombre={yo.datos.tienda?.nombre ?? ''} alVencer={setVencida} />
+    );
   else if (ruta === '/mas/dominio/')
     cuerpo = (
       <Dominio

@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Dar de baja la tienda (HU-T13.7): en «Más › Dar de baja la tienda» el propietario la saca de internet, después de ofrecerle descargar todo. Tiene 30 días para descargar lo suyo; ese día se borran las llaves de los datos de sus compradores y las copias de seguridad de la tienda. La política de datos y los términos del comercio dicen el plazo real: 60 días como máximo.
 - Suspender una tienda con un clic (HU-T13.6): el flujo «suspender-tienda» la deja fuera del aire con una página neutra, sin tocar a las demás, y su motivo queda en el registro; con el mismo flujo se levanta. Cada día se revisa si algún dominio que una tienda dejó todavía apunta aquí, y se avisa.
 - La medición propia de la tienda (HU-T14.1): la tienda cuenta cuántas veces se ve un producto, se agrega al pedido, se empieza un pedido, se abre el pago y se confirma, sin cookies ni datos de quien visita. Es la base de lo que el tablero dirá de las visitas.
 - Tus productos en Google, Meta y los asistentes de compra (HU-T14.5): en «Ajustes › Agentes» se encienden los feeds, y la tienda los mantiene al día con cada publicación y con cada cambio de existencias. La pantalla dice la dirección de cada uno para pegarla en Google Merchant Center o en Meta, y qué productos quedaron fuera porque les falta la foto o el precio.

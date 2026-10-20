@@ -56,6 +56,8 @@ Escríbenos por [Solicitudes](/solicitud/), o al correo {{correo}}. Una consulta
 
 Tus datos de contacto se guardan mientras haga falta para atender tu pedido y sus garantías, y hasta {{meses_de_conservacion}} meses después de él. Pasado ese plazo se borran solos. Lo que la ley obliga a conservar, como la prueba de la venta, se guarda el tiempo que esa ley exija.
 
+Si {{nombre_tienda}} deja de vender en esta plataforma, tus datos de contacto se borran 30 días después, y a más tardar 60 días después ya no queda ninguna copia que los pueda leer.
+
 ## Cambios
 
 Si esta política cambia, la nueva versión se publica aquí. Cada pedido guarda la versión que aceptaste.

@@ -31,6 +31,7 @@
 import type { CorreoTransaccional } from '@ed1/correo';
 import type { BaseD1 } from '@ed1/d1';
 import { enviarTelegram } from '@ed1/telegram';
+import { borrarLasBajas } from './baja.ts';
 import { CONCILIAR } from './conciliar.ts';
 import { CORREOS } from './correos.ts';
 import { revisarDominios } from './dominios.ts';
@@ -591,6 +592,22 @@ export const HOSTNAMES_COLGANTES: Tarea = {
   },
 };
 
+/** HU-T13.7: a los 30 días de la baja, el borrado criptográfico y los respaldos de la tienda. */
+export const BAJAS: Tarea = {
+  nombre: 'bajas',
+  frecuencia: 'dia',
+  async correr(e, instante) {
+    const r = await borrarLasBajas({
+      shards: e.shards,
+      ...(e.almacen ? { almacen: e.almacen } : {}),
+      instante: new Date(instante).toISOString(),
+    });
+    return r.borradas.length > 0
+      ? `${r.borradas.length} tienda(s) dadas de baja: sus llaves de datos personales y sus respaldos, borrados`
+      : 'ninguna baja por borrar';
+  },
+};
+
 export const TAREAS: readonly Tarea[] = [
   RECONSTRUIR_HOSTS,
   PURGAS,
@@ -605,4 +622,5 @@ export const TAREAS: readonly Tarea[] = [
   REENVOLVER_LLAVES,
   DOMINIOS,
   HOSTNAMES_COLGANTES,
+  BAJAS,
 ];

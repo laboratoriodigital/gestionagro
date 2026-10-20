@@ -1305,7 +1305,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T13.6.1 `[código]` · WI-T13.6.2 `[infra]` el reenvío de correo · WI-T13.6.3 `[prueba]` · WI-T13.6.4 `[doc]` runbook «suspender una tienda».
 
 #### HU-T13.7 · Dar de baja una tienda, y el borrado criptográfico
-- **Capa:** operación y cumplimiento · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T16 · **Depende de:** HU-T10.7, HU-T1.3 · **Estado:** Refinada
+- **Capa:** operación y cumplimiento · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T16 · **Depende de:** HU-T10.7, HU-T1.3 · **Estado:** En validación (rama `feat/t16-sprint`. «Más › Dar de baja la tienda», solo el propietario y recién entrado (`tienda.baja`): ofrece «Descargar todo» y pide escribir el nombre de la tienda. La tienda queda en `baja` (la 0015 guarda `baja_pedida`), sus direcciones quedan `retirado` y salen de `TIENDA_HOSTS`, y los dominios propios se borran de Cloudflare. La tarea diaria `bajas`, a los 30 días, borra las DEK de datos personales y de índices **y los respaldos de R2 de esa tienda**, que guardan las mismas llaves envueltas. **Cambio de CA2 (bitácora tienda3 39):** el plazo real es 60 días, no 35. La política (plantillas v4) y los términos del comercio lo dicen; los dos piden la lectura del abogado. `baja.test.ts`: a los 29 días nada, a los 30 ninguna llave de esa tienda abre y sus respaldos ya no están; la otra tienda sigue)
 - Como comerciante que se va, quiero llevarme mis datos y que los de mis compradores se borren de verdad.
 - **Respaldo:** TIENDA §14.2 (borrado criptográfico efectivo a los 35 días).
 - **CA1.** La baja ofrece la exportación, retira el hostname (que queda `retirado`, nunca borrado) y a los 30 días borra la DEK de datos personales.

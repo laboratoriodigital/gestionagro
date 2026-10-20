@@ -1090,3 +1090,20 @@ La regla: **un límite se da por puesto cuando se le ve responder en el ambiente
 La regla: **antes de que un flujo cree algo en la cuenta, se cuenta cuánto de eso deja el plan.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1, P17 · tienda-0.1.0 · 2026-10-20
+
+**39 · El borrado a los 35 días que prometía la política no se cumplía: los respaldos guardan las llaves 3 meses.**
+
+*Qué pasó.* El 20 oct 2026, al construir la baja (HU-T13.7), contrasté TIENDA §14.2 («el borrado es efectivo a los 35 días como máximo») con lo que ya existía.
+
+*Causa raíz.* El respaldo semanal (HU-T17.3) guarda la tabla `llave` de cada tienda, con sus DEK envueltas, salvo las de credenciales. Conserva las 4 últimas semanas y uno por cada uno de los 3 últimos meses. Borrar la DEK de la base dejaba copias legibles con la KEK hasta 3 meses. Además, el historial de D1 (Time Travel) puede volver la base a antes del borrado: 30 días con Workers Paid. El 35 de la §14.2 suponía respaldos de llaves de 35 días, que nunca se construyeron así.
+
+*Arreglo.*
+- La tarea `bajas` borra primero los respaldos de R2 de la tienda y después sus DEK de datos personales y de índices. Si R2 falla, la llave sigue y se intenta al otro día (P1).
+- Lo único que queda es el historial de D1, así que el plazo real es 30 días de espera más 30 de historial: **60 días** desde la baja.
+- Lo dicen la política de cada tienda (plantillas legales v4) y los términos del comercio (cambian su huella: cada comercio los vuelve a aceptar). Los dos esperan la lectura del abogado.
+
+**Lo prueba** `baja.test.ts`: a los 30 días ninguna llave de esa tienda abre y sus respaldos ya no están, y la política dice 60 días.
+
+La regla: **un plazo que la política le promete a una persona se cuenta con todas las copias que existen, no con la tabla que se borra.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1, P21 · tienda-0.1.0 · 2026-10-20
