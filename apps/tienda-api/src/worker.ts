@@ -95,6 +95,7 @@ import {
   retirarDominio,
 } from './dominios.ts';
 import { exportarTienda } from './exportar.ts';
+import { feedsDelPanel } from './feeds-del-panel.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import {
   ajustarInventario,
@@ -969,6 +970,14 @@ export function crearApp(
       // HU-T11.2 CA3: con el pago en línea encendido, lo que falta para cobrar, en palabras.
       cobro: { faltan: (await leerElCobro(s)).faltan },
     });
+  });
+
+  /** HU-T14.5: los feeds encendidos, sus direcciones y lo que la versión publicada dejó fuera. */
+  app.get('/api/panel/v1/feeds', async (c) => {
+    const s = c.get('sesion');
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    if (!control) return c.json({ estado: 'sin-configurar' }, 503);
+    return c.json(await feedsDelPanel(s, control));
   });
 
   /**

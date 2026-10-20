@@ -1353,7 +1353,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T14.4.1 `[código]` · WI-T14.4.2 `[prueba]`.
 
 #### HU-T14.5 · Los feeds de Google, Meta y agentes
-- **Capa:** horno · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T16 · **Depende de:** HU-T4.5 · **Estado:** Refinada
+- **Capa:** horno · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** T16 · **Depende de:** HU-T4.5 · **Estado:** En validación (rama `feat/t16-sprint`. `packages/tienda-horno/src/feeds.ts`: una fila por combinación, agrupada por producto, con la disponibilidad de ahora; el re-horneado de existencias los reescribe. Google en RSS con `g:`, Meta en CSV y agentes en JSONL con los campos del Agentic Commerce Protocol (`enable_checkout: false` hasta el MCP). Se encienden en Ajustes › Agentes; apagados si no se dice. CA2: un producto sin foto o sin precio queda fuera; publicar guarda la lista en `publicacion.fuera_de_los_feeds` (la 0014) y el panel la muestra con sus direcciones, leyendo una fila. `feeds.test.ts` revisa cada fila contra los campos obligatorios de su destino. Falta: limitarlos al plan (los feeds no son del plan gratis) con HU-T13.5)
 - Como comerciante, quiero que mis productos salgan en Google, Instagram y WhatsApp sin cargarlos otra vez.
 - **Respaldo:** TIENDA §10.1; estudio §8.1 [C3].
 - **CA1.** `/feeds/google.xml`, `/feeds/meta.csv` y `/feeds/productos.jsonl`, si `agentes.feeds` está encendido, con la disponibilidad del inventario.
@@ -1578,6 +1578,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | D-T12 | El límite de pedidos del plan `gratis` | **Decidida el 13 oct 2026: sin tope de pedidos.** El gratuito se limita por productos (15), un usuario y sin dominio propio, como propone el estudio; si el costo crece, lo dice el vigía | HU-T13.5 |
 | D-T13 | GA4 y el píxel de Meta en una tienda sin dominio propio | **Decidida el 13 oct 2026:** GA4 sí, con su cookie limitada a la dirección de la tienda; el píxel de Meta, solo con dominio propio, porque su cookie no se puede limitar y compartiría al comprador entre tiendas. Los dos, solo con el consentimiento del comprador | HU-T14.4 (T17) |
 | D-T10 | Los cron de la Tienda en el plan gratuito: queda 1 de los 5 de la cuenta y TIENDA §15.3 pide cinco frecuencias | **Aplicada el 14 oct 2026 con la recomendación** (HU-T17.1): un solo cron por hora, solo en producción, que reparte por hora, día y semana; lo que pueda ser perezoso, perezoso (como los apartados). Workers Paid solo si un dato lo exige | El primer cron (HU-T17.1) |
+| D-T14 | El alta abierta y los planes de pago antes del lanzamiento (T16) | **Decidida el 20 oct 2026:** la Tienda sigue activa **solo en staging** (`activos_en_staging`, HU-T2.10) y pausada en producción hasta que el dueño decida lanzar. Los precios de `planes.json` se usan tal cual para probar el pago con el Bold de pruebas en staging; en producción no se cobra hasta fijarlos (D-T3 sigue abierta) | Planeación de T16 |
 
 **Tareas que solo puede hacer el dueño**, con la fecha que no frena el camino crítico:
 

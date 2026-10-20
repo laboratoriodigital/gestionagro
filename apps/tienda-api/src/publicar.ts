@@ -24,6 +24,7 @@ import {
   type DatosLegales,
   type Falla,
   type FotoParaHornear,
+  fueraDeLosFeeds,
   hornear,
   manifiesto,
   type ProductoParaHornear,
@@ -426,6 +427,10 @@ export async function publicar(c: Contexto): Promise<Resultado> {
         aiInput: (agentes['aiInput'] as 'yes' | 'no' | undefined) ?? 'yes',
         aiTrain: (agentes['aiTrain'] as 'yes' | 'no' | undefined) ?? 'no',
       },
+      // HU-T14.5: los feeds que el comercio encendió; apagados si no dice.
+      ...(conDefectos('agentes')['feeds']
+        ? { feeds: conDefectos('agentes')['feeds'] as NonNullable<TiendaParaHornear['feeds']> }
+        : {}),
       ...(medicion['googleVerificacion']
         ? { googleVerificacion: medicion['googleVerificacion'] as string }
         : {}),
@@ -635,7 +640,7 @@ async function entregar(
       .bind(c.org),
     c.shard
       .prepare(
-        "UPDATE publicacion SET estado = 'publicada', archivos = ?, bytes = ?, huella = ?, publicada = ?, cobro_ambiente = ?, release = ? WHERE org_id = ? AND version = ?",
+        "UPDATE publicacion SET estado = 'publicada', archivos = ?, bytes = ?, huella = ?, publicada = ?, cobro_ambiente = ?, release = ?, fuera_de_los_feeds = ? WHERE org_id = ? AND version = ?",
       )
       .bind(
         archivos.size,
@@ -644,6 +649,10 @@ async function entregar(
         c.ahora,
         cobroDe(h.datos),
         h.datos.release,
+        // HU-T14.5 CA2: lo que quedó fuera de los feeds, para el panel.
+        h.datos.feeds && Object.values(h.datos.feeds).some(Boolean)
+          ? JSON.stringify(fueraDeLosFeeds(h.datos))
+          : null,
         c.org,
         version,
       ),

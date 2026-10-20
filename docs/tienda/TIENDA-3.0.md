@@ -893,7 +893,7 @@ El link sirve también para el **traspaso de un pedido preparado por un agente**
 | `/pedido/`, `/pedido/pago/`, `/pedido/confirmar/`, `/solicitud/` | Las páginas dinámicas, que son estáticas con su JavaScript |
 | `/tema-<huella>.css` | Colores y tipografía de la tienda. Así la CSP de estilos queda en `'self'` |
 | `/robots.txt`, `/sitemap.xml`, `/llms.txt`, `/.well-known/{api-catalog, agent-skills/index.json, mcp/server-card.json, security.txt}`, `/skills/comprar/SKILL.md` | Agentes (§11.8). *Hoy (HU-T15.1): `security.txt` no se hornea, porque su `Expires` depende del día y el horno no tiene reloj; lo sirve el despacho. Se hornea también `manifest.webmanifest`* |
-| `/feeds/google.xml`, `/feeds/meta.csv`, `/feeds/productos.jsonl` (si `agentes.feeds`) | Listados gratuitos de Google, el catálogo de Meta (Instagram, Facebook y WhatsApp) y el feed de productos con el formato ACP. El estudio pone el catálogo para Meta y Google en el básico (§8.1 [C3]) |
+| `/feeds/google.xml`, `/feeds/meta.csv`, `/feeds/productos.jsonl` (si `agentes.feeds`) | Listados gratuitos de Google, el catálogo de Meta (Instagram, Facebook y WhatsApp) y el feed de productos con el formato ACP. El estudio pone el catálogo para Meta y Google en el básico (§8.1 [C3]). *(Hoy, HU-T14.5: una fila por combinación; un producto sin foto o sin precio queda fuera y el panel dice por qué)* |
 | `/manifest.webmanifest`, íconos | Instalar la tienda en el teléfono |
 
 Los assets comunes a todas las tiendas (`/_t/<release>/app.js`, `app.css` y las fuentes) son Workers Static Assets de `tienda-sitio`: gratis y fuera de R2.

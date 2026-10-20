@@ -20,6 +20,7 @@ import {
 } from '@ed1/tienda-schema';
 import { llmsTxt, manifiestoWeb, robotsDeLaTienda } from './agentes.ts';
 import { escaparHtml, markdownPlano, markdownSeguro } from './escapar.ts';
+import { archivosDeLosFeeds, type FeedsEncendidos } from './feeds.ts';
 import {
   type DatosLegales,
   type FormaDePago,
@@ -100,6 +101,8 @@ export interface TiendaParaHornear {
   cobroEnLinea?: boolean;
   /** HU-T11.3 CA2: cobra en el ambiente de pruebas de Bold; una franja lo dice en cada página. */
   cobroEnPruebas?: boolean;
+  /** HU-T14.5: los feeds de productos que el comercio encendió en Ajustes › Agentes. */
+  feeds?: FeedsEncendidos;
 }
 
 export interface ArchivoHorneado {
@@ -115,6 +118,8 @@ const TIPOS = {
   txt: 'text/plain; charset=utf-8',
   css: 'text/css; charset=utf-8',
   webmanifest: 'application/manifest+json',
+  csv: 'text/csv; charset=utf-8',
+  jsonl: 'application/jsonl; charset=utf-8',
 } as const;
 
 /** Los enlaces legales del pie, cortos para el teléfono (HU-T7.1). */
@@ -888,6 +893,8 @@ ${p.cuerpo}
   // La capa para agentes (HU-T15.1): robots con las familias del ecosistema y las señales de esta
   // tienda, llms.txt con los gemelos y el manifiesto de la app web.
   poner('/robots.txt', 'txt', robotsDeLaTienda(t.agentes, url('').replace(/\/$/, '')));
+  // HU-T14.5: los feeds encendidos, con la disponibilidad de ahora.
+  for (const f of archivosDeLosFeeds(t, t.feeds)) poner(f.ruta, f.tipo, f.contenido);
   poner(
     '/llms.txt',
     'txt',

@@ -9,10 +9,12 @@ import { baseLocal } from '@ed1/d1/local';
 import {
   ENSAYO_DOS,
   ENSAYO_UNO,
+  hostDeStaging,
   siembraDelControl,
   siembraDelShard,
 } from '@ed1/tienda-schema/ensayos';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { feedsDelPanel } from './feeds-del-panel.ts';
 import { type Almacen, type Contexto, publicar } from './publicar.ts';
 
 const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
@@ -184,6 +186,59 @@ describe('publicar (HU-T4.4)', () => {
       );
     } finally {
       await legal(antes?.datos ?? '{}');
+    }
+  });
+
+  it('HU-T14.5: con los feeds encendidos, salen horneados y lo que quedó fuera queda para el panel', async () => {
+    const agentes = async (datos: string | null) =>
+      datos === null
+        ? shard
+            .prepare("DELETE FROM ajuste WHERE org_id = ? AND seccion = 'agentes'")
+            .bind(ENSAYO_DOS.org)
+            .run()
+        : shard
+            .prepare(
+              "INSERT INTO ajuste (org_id, seccion, esquema, datos, version, actualizado, actualizado_por) VALUES (?, 'agentes', 1, ?, 1, ?, 'sistema') ON CONFLICT (org_id, seccion) DO UPDATE SET datos = excluded.datos",
+            )
+            .bind(ENSAYO_DOS.org, datos, AHORA)
+            .run();
+    const antes = await shard
+      .prepare("SELECT datos FROM ajuste WHERE org_id = ? AND seccion = 'agentes'")
+      .bind(ENSAYO_DOS.org)
+      .first<{ datos: string }>();
+    await agentes(JSON.stringify({ feeds: { google: true, meta: true, agentes: false } }));
+    try {
+      const r2 = almacen();
+      expect((await publicar(contexto(ENSAYO_DOS.org, r2))).estado).toBe('publicada');
+      const m = JSON.parse(
+        r2.objetos.get(`sitios/${ENSAYO_DOS.org}/1/manifiesto.json`) ?? '{}',
+      ) as {
+        archivos: Record<string, unknown>;
+      };
+      expect(
+        Object.keys(m.archivos)
+          .filter((r) => r.startsWith('/feeds/'))
+          .sort(),
+      ).toEqual(['/feeds/google.xml', '/feeds/meta.csv']);
+      // Ensayo Dos no tiene fotos: todo queda fuera, y el panel lo dice con su motivo.
+      const fila = await shard
+        .prepare('SELECT fuera_de_los_feeds FROM publicacion WHERE org_id = ? AND version = 1')
+        .bind(ENSAYO_DOS.org)
+        .first<{ fuera_de_los_feeds: string }>();
+      expect(JSON.parse(fila?.fuera_de_los_feeds ?? '[]')).toEqual(
+        ENSAYO_DOS.productos.map((p) =>
+          expect.objectContaining({ slug: p.slug, motivo: 'no tiene foto' }),
+        ),
+      );
+      const panel = await feedsDelPanel({ db: shard, org: ENSAYO_DOS.org }, control);
+      expect(panel.encendidos).toEqual({ google: true, meta: true, agentes: false });
+      expect(panel.urls).toEqual({
+        google: `https://${hostDeStaging(ENSAYO_DOS.slug)}/feeds/google.xml`,
+        meta: `https://${hostDeStaging(ENSAYO_DOS.slug)}/feeds/meta.csv`,
+      });
+      expect(panel.fuera).toHaveLength(ENSAYO_DOS.productos.length);
+    } finally {
+      await agentes(antes?.datos ?? null);
     }
   });
 
