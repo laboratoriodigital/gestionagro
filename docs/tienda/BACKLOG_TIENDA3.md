@@ -1370,7 +1370,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T14.6.1 `[código]` · WI-T14.6.2 `[prueba]`.
 
 #### HU-T14.7 · La Tienda en el reporte semanal del dueño
-- **Capa:** operación · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T17 · **Depende de:** HU-T0.3, HU-T14.2 · **Estado:** Refinada
+- **Capa:** operación · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T17 · **Depende de:** HU-T0.3, HU-T14.2 · **Estado:** En validación (rama `feat/t17-sprint`. `scripts/lib/reporte-tienda.ts` suma al reporte semanal las secciones «Tienda (producción)» y «Tienda (staging)»: tiendas abiertas, nuevas y publicadas; pedidos y vendidos de la semana; cobros reales y sin estado final después de 24 horas; pago real desde el CORE; minutos de soporte por comercio; y el costo del mes con lo gratis de R2 (`medirR2`, del freno). Cada una lleva el umbral de `validacion.json`. El soporte lo anota el dueño con el flujo `anotar-soporte-tienda` (`POST /api/despliegue/soporte`), en la tabla `soporte` de la base de control (la 0003 de control): la tienda, el día, los minutos y un tema de una lista, sin texto libre. CA2: `tienda-reporte.test.ts` exige que cada columna que sale sea un conteo o una suma y que ninguna consulta nombre un dato de una persona. Runbook `docs/runbooks/tienda-reporte-semanal.md`)
 - Como dueño, quiero ver cada semana cómo van las tiendas y las métricas de validación.
 - **Respaldo:** ED1 §31.1; ADR-16; estudio §16.3.
 - **CA1.** Tiendas activas, pedidos, pago real, soporte (que anota el dueño), costo del mes y las métricas con su umbral (HU-T0.3).

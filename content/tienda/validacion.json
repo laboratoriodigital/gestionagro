@@ -17,7 +17,7 @@
       "definicion": "Minutos que el dueño dedica a cada comercio, por semana.",
       "umbral": "Hasta 30 minutos por semana el primer mes, y hasta 15 desde el segundo.",
       "frecuencia": "semanal",
-      "fuente": "La hoja de soporte del dueño: un renglón por atención, con sus minutos."
+      "fuente": "Lo que el dueño anota con el flujo «anotar-soporte-tienda»: un renglón por atención, con sus minutos y su tema (docs/runbooks/tienda-reporte-semanal.md)."
     },
     {
       "id": "retencion",

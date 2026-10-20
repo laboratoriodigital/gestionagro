@@ -1,0 +1,58 @@
+# Anotar una atención de soporte a un comercio (HU-T14.7, HU-T0.3 «soporte por comercio»): la
+# tienda, los minutos y el tema, sin texto libre. El reporte semanal suma la semana. Solo a mano.
+name: anotar-soporte-tienda
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: "staging o produccion"
+        required: true
+        default: produccion
+        type: choice
+        options: [staging, produccion]
+      org:
+        description: "El id de la organización de la tienda"
+        required: true
+        type: string
+      minutos:
+        description: "Cuántos minutos le dedicaste"
+        required: true
+        type: string
+      tema:
+        description: "De qué se trató"
+        required: true
+        default: otro
+        type: choice
+        options: [alta, catalogo, pedidos, cobro, dominio, otro]
+      dia:
+        description: "El día (AAAA-MM-DD); vacío, hoy"
+        required: false
+        type: string
+
+concurrency:
+  group: anotar-soporte-tienda-${{ github.ref }}-${{ inputs.org }}-${{ github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  anotar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: ${{ inputs.ambiente }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Anotar la atención
+        env:
+          SECRETO_DESPACHO: ${{ secrets.SECRETO_DESPACHO }}
+          AMBIENTE: ${{ inputs.ambiente }}
+          ORG: ${{ inputs.org }}
+          MINUTOS: ${{ inputs.minutos }}
+          TEMA: ${{ inputs.tema }}
+          DIA: ${{ inputs.dia }}
+        run: node scripts/tienda/anotar-soporte.ts --ambiente "$AMBIENTE" --org "$ORG" --minutos "$MINUTOS" --tema "$TEMA" --dia "$DIA"

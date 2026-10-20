@@ -165,6 +165,7 @@ import {
   radicar,
   seguirSolicitud,
 } from './solicitudes.ts';
+import { anotarSoporte } from './soporte.ts';
 import { cambiarSuspension } from './suspension.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
 import {
@@ -2217,6 +2218,17 @@ export function crearApp(
       return c.json({ estado: 'cuadrado', semana: ventanaDeLaSemana(ahora()).semana, ...hecho });
     }
     return c.json(NO_EXISTE, 404);
+  });
+
+  /** HU-T14.7: el dueño anota una atención de soporte (el flujo `anotar-soporte-tienda`). */
+  app.post('/api/despliegue/soporte', async (c) => {
+    const dado = c.req.header('x-despliegue');
+    if (!dado || !mismoSecreto(c.env.SECRETO_DESPACHO ?? '', dado)) return c.json(NO_EXISTE, 404);
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    if (!control) return c.json({ estado: 'sin-configurar' }, 503);
+    const r = await anotarSoporte(control, await c.req.json().catch(() => null), ahora());
+    if (r.estado === 'anotado') return c.json(r);
+    return c.json(r, r.estado === 'no-existe' ? 404 : 422);
   });
 
   /**
