@@ -32,6 +32,12 @@ import { securityTxt } from '../../core/src/security-txt.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
 export const CABECERA_TIENDA = 'x-tienda';
+/**
+ * Bitácora tienda3 37: la IP del comprador, para los límites por IP de la API. La pone el despacho;
+ * la que llega de afuera se borra, como las demás cabeceras internas. En la subsolicitud del binding
+ * de servicio, `cf-connecting-ip` no es la del comprador, y los límites nunca se cumplían.
+ */
+export const CABECERA_IP = 'x-ip-del-comprador';
 export const CACHE_MS = 30_000;
 
 /** Lo que guarda `TIENDA_HOSTS` en `h:<hostname>` (TIENDA §5.6). */
@@ -134,6 +140,9 @@ export function paraLaApi(solicitud: Request, destino: DestinoDeHost, secreto: s
   const cabeceras = new Headers(solicitud.headers);
   cabeceras.delete(CABECERA_DESPACHO);
   cabeceras.delete(CABECERA_TIENDA);
+  cabeceras.delete(CABECERA_IP);
+  const ip = solicitud.headers.get('cf-connecting-ip');
+  if (ip) cabeceras.set(CABECERA_IP, ip);
   cabeceras.set(CABECERA_DESPACHO, secreto);
   cabeceras.set(CABECERA_TIENDA, JSON.stringify({ org: destino.org, shard: destino.shard }));
   return new Request(solicitud, { headers: cabeceras });

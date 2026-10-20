@@ -16,6 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { cotizar } from './cotizar.ts';
 import {
   CABECERA_DESPACHO,
+  CABECERA_IP,
   CABECERA_TIENDA,
   crearApp,
   type Env,
@@ -231,6 +232,29 @@ describe('POST /api/v1/cotizar', () => {
     expect(r.status).toBe(429);
     expect(r.headers.get('retry-after')).toBe('60');
     expect(l.claves).toEqual(['203.0.113.7', '203.0.113.7']);
+  });
+
+  it('cuenta por la IP del comprador que puso el despacho, no por la de la conexión (bitácora tienda3 37)', async () => {
+    const l = limitador(30);
+    // Por el binding de servicio, la conexión es la del despacho: cambia, y no es del comprador.
+    for (const conexion of ['10.0.0.1', '10.0.0.2']) {
+      await crearApp().request(
+        '/api/v1/cotizar',
+        {
+          method: 'POST',
+          body: cuerpo,
+          headers: {
+            [CABECERA_DESPACHO]: SECRETO,
+            [CABECERA_TIENDA]: JSON.stringify({ org: UNO, shard: 'tienda_c1_s1' }),
+            [CABECERA_IP]: '198.51.100.9',
+            'cf-connecting-ip': conexion,
+            'content-type': 'application/json',
+          },
+        },
+        env({ LIMITE_COTIZAR: l }),
+      );
+    }
+    expect(l.claves).toEqual(['198.51.100.9', '198.51.100.9']);
   });
 
   it.each([

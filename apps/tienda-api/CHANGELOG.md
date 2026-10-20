@@ -55,6 +55,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
 
 ### Corregido
+- Los límites por visitante de la tienda (cotizar, pedidos, pagos, avisos de Bold y los demás) ya cuentan por quien visita. Antes no frenaban a nadie, porque la API no veía su dirección (bitácora tienda3 37).
+- El simulacro de restauración ya no necesita una base nueva en la cuenta: restaura en una base local del flujo, porque el plan gratuito no admite más bases (bitácora tienda3 38).
 - Un pago en línea que no se completó ya no deja el pedido atascado: al volver a pagar, la tienda toma otro código sola y abre el pago. El carrito tiene «Vaciar el pedido». Al publicar sin cambios, el panel explica que la tienda ya está al día y que las llaves de Bold no necesitan publicar (bitácora tienda3 36).
 - El pago en línea ya se abre en pantalla completa: antes salía en una ventanita al pie del carrito, porque la tienda no dejaba aplicar el diseño de la página de pago de Bold (bitácora tienda3 35).
 - Ya no pueden quedar más cobros abiertos que el tope de la tienda cuando muchas personas pagan a la vez: el tope se cuenta en el mismo paso que aparta las unidades (bitácora tienda3 33).

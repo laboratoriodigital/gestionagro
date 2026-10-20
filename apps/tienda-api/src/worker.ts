@@ -166,6 +166,8 @@ export const CABECERA_DESPACHO = 'x-despacho';
  */
 export const PRODUCTOS_DE_UN_ENSAYO_EN_EL_PLAN_GRATUITO = 50;
 export const CABECERA_TIENDA = 'x-tienda';
+/** La IP del comprador que pone el despacho (bitácora tienda3 37); solo vale con su secreto. */
+export const CABECERA_IP = 'x-ip-del-comprador';
 /**
  * El secreto de la primera KEK (TIENDA §14.2). Rotar carga `TIENDA_KEK_V2`, y así; la de número más
  * alto es la vigente (`PATRON_KEK`, HU-T17.6).
@@ -421,7 +423,8 @@ async function dentroDelLimite(
     console.error(`tienda-api: falta el limitador ${nombre}`);
     return true;
   }
-  const ip = c.req.header('cf-connecting-ip') ?? 'sin-ip';
+  // Bitácora tienda3 37: la del despacho. Sin ella (una llamada que no pasó por él), la de la conexión.
+  const ip = c.req.header(CABECERA_IP) ?? c.req.header('cf-connecting-ip') ?? 'sin-ip';
   return (await limitador.limit({ key: ip })).success;
 }
 

@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { ENSAYO_UNO, siembraDelShard } from '../../packages/tienda-schema/src/ensayos.ts';
 import {
   type ApiDeD1,
+  destinoLocal,
   enTrozos,
   migracionesDelShard,
   simulacro,
@@ -92,6 +93,16 @@ describe('el simulacro de restauración en staging (HU-T17.4 CA1)', () => {
     expect([...c.bases.keys()]).toEqual(['uuid-1']);
     expect(dicho.at(-1)).toBe('Base tienda-simulacro-202610191500 borrada.');
   });
+
+  it('bitácora tienda3 38: restaura en un D1 local, sin crear una base en la cuenta', async () => {
+    const c = cuenta();
+    const r = await simulacro({ ...opciones(c.api, []), destino: destinoLocal() });
+    expect(r.ok).toBe(true);
+    expect(r.tablas.find((t) => t.tabla === 'producto')?.filas).toBe(ENSAYO_UNO.productos.length);
+    // ❌ La cuenta no ganó ni perdió una base: solo se leyó la de staging.
+    expect([...c.bases.keys()]).toEqual(['uuid-1']);
+    expect(c.borradas).toEqual([]);
+  }, 60_000);
 
   it('❌ si algo no volvió, lo dice por tabla, y la base del simulacro igual se borra', async () => {
     const c = cuenta({ perder: /INSERT INTO pedido_contacto [^;]*;\n/ });

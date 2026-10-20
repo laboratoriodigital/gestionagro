@@ -188,7 +188,8 @@ export async function darPermiso(ambiente: Ambiente, mundo: Mundo): Promise<Resu
   if (!t.scope?.split(' ').includes('https://www.googleapis.com/auth/gmail.send')) {
     return {
       ok: false,
-      motivo: 'el permiso no incluye enviar correos: acepta la casilla de Gmail.',
+      motivo:
+        'el permiso no incluye enviar correos. Vuelve a correr el script y, en la pantalla de Google, marca la casilla «Enviar correo electrónico en tu nombre» (o «Seleccionar todo») antes de Continuar.',
     };
   }
   const remitente = t.id_token ? correoDelIdToken(t.id_token) : null;
