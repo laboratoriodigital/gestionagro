@@ -49,6 +49,10 @@
         {
           "pattern": "ensayo-dos--staging.laboratorio-digital.app",
           "custom_domain": true
+        },
+        {
+          "pattern": "*--staging.laboratorio-digital.app/*",
+          "zone_name": "laboratorio-digital.app"
         }
       ],
       "services": [

@@ -6,7 +6,7 @@
  */
 import { leerDireccion, sugerirDireccion } from '@ed1/tienda-schema/alta';
 import { ResumenDeErrores } from '@ed1/ui/v2/componentes';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { abrirMiTienda, consultarDireccion, type Disponibilidad } from '../alta.ts';
 import type { Conexion } from '../api.ts';
 import type { Sesion } from '../sesion.ts';
@@ -14,11 +14,23 @@ import type { Sesion } from '../sesion.ts';
 declare global {
   interface Window {
     turnstile?: {
-      render(el: HTMLElement, o: { sitekey: string; callback: (t: string) => void }): string;
+      render(
+        el: HTMLElement,
+        o: {
+          sitekey: string;
+          language: string;
+          callback: (t: string) => void;
+          'expired-callback': () => void;
+          'error-callback': () => void;
+        },
+      ): string;
       reset(id?: string): void;
     };
   }
 }
+
+/** El id de la caja de la verificación, al que lleva el resumen de errores. */
+const CAMPO_DE_LA_VERIFICACION = 'verificacion';
 
 /** El programa de Turnstile, una sola vez, solo cuando hace falta. */
 function cargarTurnstile(): Promise<void> {
@@ -33,19 +45,46 @@ function cargarTurnstile(): Promise<void> {
   });
 }
 
-function Turnstile({ clave, alResolver }: { clave: string; alResolver: (t: string) => void }) {
+/**
+ * La verificación de Turnstile. Si su programa no carga, o la verificación falla o vence, lo dice:
+ * sin eso, el comercio toca la casilla y no pasa nada (validación del 20 oct 2026).
+ */
+function Turnstile({
+  clave,
+  alResolver,
+  alFallar,
+}: {
+  clave: string;
+  alResolver: (t: string | null) => void;
+  alFallar: (mensaje: string) => void;
+}) {
   const caja = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let vivo = true;
-    void cargarTurnstile().then(() => {
-      if (vivo && caja.current && window.turnstile)
-        window.turnstile.render(caja.current, { sitekey: clave, callback: alResolver });
-    });
+    cargarTurnstile().then(
+      () => {
+        if (vivo && caja.current && window.turnstile)
+          window.turnstile.render(caja.current, {
+            sitekey: clave,
+            language: 'es',
+            callback: alResolver,
+            'expired-callback': () => alResolver(null),
+            'error-callback': () => {
+              alResolver(null);
+              alFallar(
+                'No pudimos confirmar que eres una persona. Recarga la página e intenta otra vez.',
+              );
+            },
+          });
+      },
+      () => alFallar('No cargó la verificación. Revisa la señal y recarga la página.'),
+    );
     return () => {
       vivo = false;
     };
-  }, [clave, alResolver]);
-  return <div ref={caja} class="turnstile" />;
+  }, [clave, alResolver, alFallar]);
+  // Nunca `id="turnstile"`: el navegador lo volvería `window.turnstile` y taparía el programa.
+  return <div ref={caja} class="turnstile" id={CAMPO_DE_LA_VERIFICACION} tabIndex={-1} />;
 }
 
 function AbrirMiTienda({
@@ -85,6 +124,11 @@ function AbrirMiTienda({
     return () => clearTimeout(id);
   }, [slug, conexion, alVencer]);
 
+  const alFallarTurnstile = useCallback(
+    (mensaje: string) => setError({ campo: CAMPO_DE_LA_VERIFICACION, mensaje }),
+    [],
+  );
+
   const enviar = async (e: Event) => {
     e.preventDefault();
     setError(null);
@@ -92,7 +136,16 @@ function AbrirMiTienda({
       return setError({ campo: 'nombre', mensaje: 'Escribe el nombre de tu tienda.' });
     if (!libre?.disponible)
       return setError({ campo: 'slug', mensaje: libre?.motivo ?? 'Elige una dirección.' });
-    if (!token) return setError({ campo: 'turnstile', mensaje: 'Confirma que eres una persona.' });
+    if (!libre.turnstile)
+      return setError({
+        campo: 'nombre',
+        mensaje: 'Abrir una tienda todavía no está disponible. Intenta más tarde.',
+      });
+    if (!token)
+      return setError({
+        campo: CAMPO_DE_LA_VERIFICACION,
+        mensaje: 'Toca la casilla «Confirma que eres una persona» y espera el visto bueno.',
+      });
     setEnviando(true);
     try {
       const r = await abrirMiTienda(conexion, {
@@ -101,7 +154,10 @@ function AbrirMiTienda({
         turnstile: token,
       });
       if (r.tipo === 'abierta') return alAbrir(r.sesion);
-      setError({ campo: r.campo, mensaje: r.mensaje });
+      setError({
+        campo: r.campo === 'turnstile' ? CAMPO_DE_LA_VERIFICACION : r.campo,
+        mensaje: r.mensaje,
+      });
       setToken(null);
       window.turnstile?.reset();
     } catch (err) {
@@ -154,7 +210,7 @@ function AbrirMiTienda({
         </p>
       </div>
       {libre?.disponible && libre.turnstile ? (
-        <Turnstile clave={libre.turnstile} alResolver={setToken} />
+        <Turnstile clave={libre.turnstile} alResolver={setToken} alFallar={alFallarTurnstile} />
       ) : null}
       {libre?.disponible && !libre.turnstile ? (
         <p class="nota">Abrir una tienda todavía no está disponible. Intenta más tarde.</p>

@@ -165,6 +165,10 @@
             "pattern": "^[a-z0-9-]{3,55}$",
             "description": "El bucket R2 público de las fotos (HU-T5.6): el único con dominio propio (img.laboratorio-digital.app). Nunca el mismo que `almacen`, que guarda respaldos y exportaciones con datos personales; cargarCeldas lo exige."
           },
+          "comodin": {
+            "enum": [true, false, "staging"],
+            "description": "HU-T13.4: el dueño ya creó el registro DNS comodín * de laboratorio-digital.app (docs/runbooks/tienda-alta.md). true: el despacho recibe las tiendas nuevas en los dos ambientes; staging: solo en staging, mientras la Tienda no se lanza (D-T14)."
+          },
           "medios_creados": {
             "type": "array",
             "items": { "enum": ["produccion", "staging"] },

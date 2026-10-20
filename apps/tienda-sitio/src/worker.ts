@@ -206,6 +206,16 @@ export const cabecerasDeLaVitrina = (medios: string | undefined, ruta?: string) 
   'referrer-policy': 'strict-origin-when-cross-origin',
 });
 
+/**
+ * Las direcciones de la plataforma en la zona de las tiendas que no son tiendas: las de las fotos
+ * (HU-T5.6). El comodín de las tiendas nuevas (HU-T13.4) también las cubre, y siguen a su origen sin
+ * pasar por el despacho. Una prueba las ata a `MEDIOS_DE_LA_TIENDA` (P2).
+ */
+export const DIRECCIONES_DE_LA_PLATAFORMA: ReadonlySet<string> = new Set([
+  'img.laboratorio-digital.app',
+  'img--staging.laboratorio-digital.app',
+]);
+
 export const sinTienda = (): Response =>
   new Response(
     pagina(
@@ -258,7 +268,13 @@ export const suspendida = (): Response =>
     { status: 451, headers: { ...CABECERAS_DE_AVISO, 'cache-control': 'no-store' } },
   );
 
-export function crearDespacho(opciones: { ahora?: () => number } = {}) {
+export function crearDespacho(
+  opciones: {
+    ahora?: () => number;
+    /** A quién va lo que no es del despacho; en el Worker, el `fetch` global, que va al origen. */
+    alOrigen?: (s: Request) => Promise<Response>;
+  } = {},
+) {
   const ahora = opciones.ahora ?? (() => Date.now());
   const cache = new Map<string, { destino: DestinoDeHost | null; vence: number }>();
   /** Los manifiestos no cambian nunca: una versión publicada es inmutable. */
@@ -382,6 +398,8 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
   return {
     async fetch(solicitud: Request, env: Env): Promise<Response> {
       const url = new URL(solicitud.url);
+      if (DIRECCIONES_DE_LA_PLATAFORMA.has(url.hostname) || url.hostname === env.MEDIOS)
+        return (opciones.alOrigen ?? fetch)(solicitud);
       const destino = await resolver(env, url.hostname);
       if (destino === undefined) return enPausa(true);
       if (!destino) return sinTienda();

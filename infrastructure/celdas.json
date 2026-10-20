@@ -69,7 +69,8 @@
       "control": "tienda_control",
       "almacen": "tienda-c1",
       "medios": "tienda-c1-medios",
-      "medios_creados": ["produccion", "staging"]
+      "medios_creados": ["produccion", "staging"],
+      "comodin": "staging"
     }
   ]
 }

@@ -73,9 +73,12 @@ export function reservadosDeLaTienda(raiz = RAIZ): string[] {
   );
 }
 
-/** Primer nivel de cada hostname de `laboratorio-digital.app` en un texto. */
+/**
+ * Primer nivel de cada hostname de `laboratorio-digital.app` en un texto. Un comodín de ruta
+ * (`*.`, `*--staging.`, HU-T13.4) no nombra ningún host: no cuenta.
+ */
 export function nombresApp(texto: string): string[] {
-  const patron = /([a-z0-9-]+)\.laboratorio-digital\.app/g;
+  const patron = /(?<![*a-z0-9-])([a-z0-9-]+)\.laboratorio-digital\.app/g;
   return [...texto.matchAll(patron)].map((m) => m[1] as string);
 }
 

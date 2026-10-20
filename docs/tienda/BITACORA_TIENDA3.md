@@ -1127,3 +1127,22 @@ La regla: **un plazo que la política le promete a una persona se cuenta con tod
 La regla: **lo que vuelve a la vista pasa por la compuerta; lo que se oculta no necesita revisión.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1, P2 · tienda-0.1.0 · 2026-10-20
+
+**41 · «Toco la casilla y no pasa nada»: los secretos de Turnstile no estaban en el Worker, y el comodín iba a tapar las fotos.**
+
+*Qué pasó.* El 20 oct 2026 el dueño creó el widget de Turnstile, guardó sus dos claves en `staging` y el registro DNS comodín. Al abrir una tienda en el panel de staging, «confirma que eres una persona» no hacía nada.
+
+*Causa raíz.*
+- Las claves se guardaron a las 11:30 UTC y el último despliegue fue a las 05:52. Un secreto de GitHub llega al Worker solo con el despliegue siguiente. Sin la clave del sitio, la API no la entrega, el panel no dibuja la casilla, y el error al tocar «Abrir mi tienda» decía «Confirma que eres una persona», cuando el problema era que todavía no estaba disponible.
+- Al revisar el comodín antes de encenderlo: la ruta `*--staging.laboratorio-digital.app/*` también cubre `img--staging.laboratorio-digital.app`, la dirección de las fotos. El despacho la habría tomado por una tienda sin publicar y las fotos de staging dejarían de verse.
+- La reproducción local con el Turnstile real (claves de prueba de Cloudflare, con y sin casilla) funcionó con la CSP del panel: no era la CSP.
+
+*Arreglo.*
+- El panel dice qué pasa: sin clave, «todavía no está disponible»; si Turnstile no carga, falla o vence, lo dice y pide recargar.
+- El despacho deja pasar a su origen las direcciones de las fotos (`DIRECCIONES_DE_LA_PLATAFORMA`, atadas a `MEDIOS_DE_LA_TIENDA`).
+- `comodin` acepta `"staging"`: la celda lo lleva así, y producción no recibe el comodín hasta lanzar (D-T14).
+- Al cambiar la caja de la verificación, un `id="turnstile"` volvía el elemento `window.turnstile` y tapaba el programa. La prueba e2e lo atrapó; ahora es `id="verificacion"`.
+
+La regla: **un secreto guardado no está en producción hasta el siguiente despliegue; y una ruta comodín se revisa contra cada dirección que ya existe en la zona.**
+
+*Ficha:* tienda3 · *(dueño y mío)* · 🟠 Medio · P1, P2 · tienda-0.1.0 · 2026-10-20

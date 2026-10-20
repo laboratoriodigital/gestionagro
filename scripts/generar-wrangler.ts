@@ -523,8 +523,9 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
       ...(config.celdas.some((c) => c.producto === 'tienda' && c.saas)
         ? [{ pattern: '*/*', zone_name: ZONA_DE_LAS_TIENDAS }]
         : []),
-      // HU-T13.4: las tiendas que abre el alta, con el registro DNS comodín del dueño.
-      ...(config.celdas.some((c) => c.producto === 'tienda' && c.comodin)
+      // HU-T13.4: las tiendas que abre el alta, con el registro DNS comodín del dueño. En producción,
+      // solo cuando la Tienda se lanza (D-T14).
+      ...(config.celdas.some((c) => c.producto === 'tienda' && c.comodin === true)
         ? [{ pattern: `*.${ZONA_DE_LAS_TIENDAS}/*`, zone_name: ZONA_DE_LAS_TIENDAS }]
         : []),
     ],

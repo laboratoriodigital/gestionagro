@@ -118,6 +118,14 @@ describe('los instrumentos', () => {
     ).toEqual(['panel', 'x--staging']);
   });
 
+  it('un comodín de ruta (HU-T13.4) no nombra ningún host', () => {
+    expect(
+      nombresApp(
+        '"*.laboratorio-digital.app/*", "*--staging.laboratorio-digital.app/*", "img--staging.laboratorio-digital.app"',
+      ),
+    ).toEqual(['img--staging']);
+  });
+
   it('lee los reservados de la migración de la base de control cuando existe', () => {
     const raiz = mkdtempSync(join(tmpdir(), 'reservados-'));
     const dir = join(raiz, 'infrastructure', 'migraciones', 'tienda-control');

@@ -4,12 +4,14 @@
  * de afuera nunca llegan a la API (CA4).
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MEDIOS_DE_LA_TIENDA } from '../../../scripts/generar-wrangler.ts';
 import {
   CABECERA_DESPACHO,
   CABECERA_IP,
   CABECERA_TIENDA,
   CACHE_MS,
   crearDespacho,
+  DIRECCIONES_DE_LA_PLATAFORMA,
   type Env,
   type Servicio,
 } from './worker.ts';
@@ -42,6 +44,33 @@ function api() {
 }
 
 afterEach(() => vi.restoreAllMocks());
+
+describe('las direcciones de la plataforma que cubre el comodín (HU-T13.4)', () => {
+  it('las fotos siguen a su origen: el despacho no las toma por una tienda ni lee el KV', async () => {
+    const hosts = kv({});
+    const alOrigen: Request[] = [];
+    const despacho = crearDespacho({
+      alOrigen: async (s) => {
+        alOrigen.push(s);
+        return new Response('foto', { headers: { 'content-type': 'image/avif' } });
+      },
+    });
+    for (const host of DIRECCIONES_DE_LA_PLATAFORMA) {
+      const r = await despacho.fetch(new Request(`https://${host}/org/foto-800.avif`), {
+        TIENDA_HOSTS: hosts,
+      });
+      expect(await r.text()).toBe('foto');
+    }
+    expect(alOrigen.map((s) => new URL(s.url).hostname)).toEqual([...DIRECCIONES_DE_LA_PLATAFORMA]);
+    expect(hosts.lecturas).toEqual([]);
+  });
+
+  it('son las mismas que el despliegue da a las fotos (P2)', () => {
+    expect([...DIRECCIONES_DE_LA_PLATAFORMA].sort()).toEqual(
+      Object.values(MEDIOS_DE_LA_TIENDA).sort(),
+    );
+  });
+});
 
 describe('un host sin tienda', () => {
   it('responde 404 con la página neutra, que no se indexa y no carga nada', async () => {
