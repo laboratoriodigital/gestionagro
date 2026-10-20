@@ -66,6 +66,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
 
 ### Corregido
+- Vaciar el pedido ya no deja que vuelva un producto cuando la confirmación del total llega tarde (bitácora tienda3 44).
 - Abrir una tienda (HU-T13.4): si la verificación de que eres una persona todavía no está lista, no carga o falla, la pantalla lo dice y pide recargar, en vez de quedarse quieta. Las tiendas nuevas de staging ya tienen dirección, sin tocar la de las fotos.
 - Los límites por visitante de la tienda (cotizar, pedidos, pagos, avisos de Bold y los demás) ya cuentan por quien visita. Antes no frenaban a nadie, porque la API no veía su dirección (bitácora tienda3 37).
 - El simulacro de restauración ya no necesita una base nueva en la cuenta: restaura en una base local del flujo, porque el plan gratuito no admite más bases (bitácora tienda3 38).

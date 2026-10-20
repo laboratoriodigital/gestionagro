@@ -892,3 +892,56 @@ test('HU-T14.4 · ❌ CA3: antes de aceptar, nada de Google ni de Meta; rechazar
   );
   expect(config).toContainEqual(['config', 'G-ENSAYO1234', { cookie_domain: 'localhost' }]);
 });
+
+test('bitácora tienda3 44 · ❌ el total que llega después de vaciar no devuelve lo que se quitó', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('sembrado')) {
+      sessionStorage.setItem('sembrado', '1');
+      localStorage.setItem(
+        'tienda:carrito',
+        JSON.stringify({
+          v: 1,
+          codigo: 'VEN235',
+          lineas: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+        }),
+      );
+    }
+  });
+  await apiDelPedido(page);
+  // El total se demora: llega cuando el comprador ya vació su pedido.
+  let soltar: () => void = () => undefined;
+  const demora = new Promise<void>((listo) => {
+    soltar = listo;
+  });
+  let cotizadas = 0;
+  await page.route('**/api/v1/cotizar', async (ruta) => {
+    cotizadas++;
+    await demora;
+    await ruta.fulfill({
+      json: {
+        subtotal: 129000,
+        descuento: 0,
+        envio: 0,
+        total: 129000,
+        avisos: [],
+        cobrable: true,
+        carrito: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+        cambio: false,
+      },
+    });
+  });
+  await page.goto(`${TIENDA}/carrito/`);
+  await expect.poll(() => cotizadas).toBeGreaterThan(0);
+  page.once('dialog', (d) => void d.accept());
+  await page.getByRole('button', { name: 'Vaciar el pedido' }).click();
+  await expect(page.locator('[data-vacio]')).toBeVisible();
+  soltar();
+  await page.waitForTimeout(500);
+  await expect(page.locator('.linea')).toHaveCount(0);
+  const carrito = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('tienda:carrito') ?? '{}'),
+  );
+  expect(carrito.lineas).toEqual([]);
+});

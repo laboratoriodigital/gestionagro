@@ -430,7 +430,15 @@ async function carritoPagina(): Promise<void> {
     totalVisto = r.total;
   };
   const confirmar = async () => {
+    const pedido = carrito;
     const r = await cotizarEnLaTienda(carrito, totalVisto, elegido('envio'));
+    // Bitácora tienda3 44: una respuesta que llega después de vaciar o cambiar el pedido es de otro
+    // pedido; aplicarla devolvería lo que el comprador ya quitó.
+    if (
+      carrito.codigo !== pedido.codigo ||
+      JSON.stringify(carrito.lineas) !== JSON.stringify(pedido.lineas)
+    )
+      return;
     const nota = resumen.querySelector<HTMLElement>('[data-nota]');
     if (!r) {
       decir(nota, 'No pudimos confirmar el total ahora. Lo confirmamos antes de enviar tu pedido.');

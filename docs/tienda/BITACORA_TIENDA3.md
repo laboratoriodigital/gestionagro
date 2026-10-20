@@ -1176,3 +1176,17 @@ La regla: **cuando una decisión del dueño es posterior al criterio, gana la de
 La regla: **antes de medir algo que «anota alguien», se construye dónde anotarlo; y si es a mano, sin texto libre.**
 
 *Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P1, P13 · tienda-0.1.0 · 2026-10-20
+
+**44 · Vaciar el pedido y que el producto vuelva: una respuesta del total llegó tarde.**
+
+*Qué pasó.* El 20 oct 2026 el CI del PR #215 falló en la e2e de la bitácora 36 («un pago cerrado sin pagarse no deja el carrito atascado»): después de «Vaciar el pedido», la pantalla quedaba vacía pero el teléfono seguía guardando la camisa. En local pasaba.
+
+*Causa raíz.* El carrito confirma el total con `/api/v1/cotizar` en segundo plano. Si esa respuesta llega después de vaciar, `aplicar` compara las líneas que dice el servidor con las del pedido de ahora (vacío), ve una diferencia y «corrige» el pedido con las del servidor: devuelve lo que el comprador quitó. La máquina del CI fue más lenta y la respuesta llegó tarde.
+
+*Arreglo.* La confirmación recuerda el pedido que preguntó; si al llegar la respuesta el pedido ya es otro (otro código u otras líneas), la descarta. Si el pedido cambió, se pide otro total.
+
+**Lo prueba** una e2e nueva que demora el total a propósito hasta después de vaciar. Falla sin el arreglo y pasa con él.
+
+La regla: **una respuesta que llega tarde se compara con lo que se preguntó, no con lo que hay ahora.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1 · tienda-0.1.0 · 2026-10-20
