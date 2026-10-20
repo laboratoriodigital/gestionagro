@@ -155,6 +155,7 @@ import {
   radicar,
   seguirSolicitud,
 } from './solicitudes.ts';
+import { cambiarSuspension } from './suspension.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
 import {
   aceptacionDe,
@@ -2035,6 +2036,49 @@ export function crearApp(
       quedan,
       ilegibles,
     });
+  });
+
+  /**
+   * HU-T13.6: suspender o levantar una tienda, con un clic del operador (el flujo
+   * `suspender-tienda`), con el secreto del despacho en `x-despliegue`.
+   */
+  app.post('/api/despliegue/tienda-estado', async (c) => {
+    const dado = c.req.header('x-despliegue');
+    if (!dado || !mismoSecreto(c.env.SECRETO_DESPACHO ?? '', dado)) return c.json(NO_EXISTE, 404);
+    const shards = Object.entries(c.env).filter(([n, b]) => SHARD.test(n) && b) as [
+      string,
+      BaseD1,
+    ][];
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    const hosts = c.env.TIENDA_HOSTS as EscritorKv | undefined;
+    if (shards.length === 0 || !control || !hosts || !c.env.CELDA)
+      return c.json({ estado: 'sin-configurar' }, 503);
+    const cuerpo = (await c.req.json().catch(() => null)) as {
+      org?: unknown;
+      accion?: unknown;
+      motivo?: unknown;
+    } | null;
+    if (
+      typeof cuerpo?.org !== 'string' ||
+      (cuerpo.accion !== 'suspender' && cuerpo.accion !== 'levantar') ||
+      typeof cuerpo.motivo !== 'string' ||
+      cuerpo.motivo.trim().length < 5
+    )
+      return c.json(
+        { estado: 'problemas', motivo: 'faltan la tienda, la acción o el motivo' },
+        422,
+      );
+    const r = await cambiarSuspension({
+      shards,
+      control,
+      celda: c.env.CELDA,
+      hosts,
+      org: cuerpo.org,
+      accion: cuerpo.accion,
+      motivo: cuerpo.motivo.trim(),
+      instante: new Date(ahora()).toISOString(),
+    });
+    return c.json(r, r.estado === 'no-existe' ? 404 : 200);
   });
 
   app.all('*', (c) => c.json(NO_EXISTE, 404));

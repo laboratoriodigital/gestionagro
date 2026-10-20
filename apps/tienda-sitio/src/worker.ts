@@ -52,6 +52,8 @@ export interface DestinoDeHost {
    * con la ruta y la consulta intactas, salvo la API.
    */
   aliasDe?: string;
+  /** HU-T13.6: la plataforma la suspendió; todas sus direcciones responden 451. */
+  suspendida?: true;
 }
 
 /** Un hostname, para no redirigir a lo que no lo es aunque el KV lo diga (P1). */
@@ -115,7 +117,11 @@ export function destinoDe(texto: string | null): DestinoDeHost | null {
       CELDA.test(d.celda ?? '') &&
       (version === null || (Number.isInteger(version) && version > 0))
     ) {
-      const { rol, canonico } = d as { rol?: unknown; canonico?: unknown };
+      const { rol, canonico, estado } = d as {
+        rol?: unknown;
+        canonico?: unknown;
+        estado?: unknown;
+      };
       const aliasDe =
         rol === 'alias' && typeof canonico === 'string' && HOSTNAME.test(canonico)
           ? canonico
@@ -126,6 +132,7 @@ export function destinoDe(texto: string | null): DestinoDeHost | null {
         shard: d.shard,
         version,
         ...(aliasDe ? { aliasDe } : {}),
+        ...(estado === 'suspendida' ? { suspendida: true as const } : {}),
       };
     }
   } catch {
@@ -236,6 +243,19 @@ export const enPausa = (deTodas: boolean): Response =>
       status: 503,
       headers: { ...CABECERAS_DE_AVISO, 'cache-control': 'no-store', 'retry-after': '300' },
     },
+  );
+
+/**
+ * HU-T13.6: una tienda suspendida por la plataforma. 451 y una página neutra: no dice por qué ni
+ * acusa a nadie, y no se guarda en caché para que levantarla se vea enseguida.
+ */
+export const suspendida = (): Response =>
+  new Response(
+    pagina(
+      'Esta tienda no está disponible',
+      'La plataforma la suspendió mientras revisa algo. Si compraste aquí, escríbele a la tienda por su WhatsApp.',
+    ),
+    { status: 451, headers: { ...CABECERAS_DE_AVISO, 'cache-control': 'no-store' } },
   );
 
 export function crearDespacho(opciones: { ahora?: () => number } = {}) {
@@ -367,6 +387,7 @@ export function crearDespacho(opciones: { ahora?: () => number } = {}) {
       if (!destino) return sinTienda();
       if (await apagado(env, 'tienda')) return enPausa(true);
       if (await apagado(env, `tienda:${destino.org}`)) return enPausa(false);
+      if (destino.suspendida) return suspendida();
       // HU-T13.2: un alias lleva a la dirección canónica. La API nunca: un 301 a un POST, como el
       // aviso de Bold, no lo sigue cualquier cliente (CA2).
       if (destino.aliasDe && destino.aliasDe !== url.hostname && !esDeLaApi(url.pathname)) {

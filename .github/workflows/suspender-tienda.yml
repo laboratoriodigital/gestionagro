@@ -1,0 +1,54 @@
+# Suspender o levantar una tienda (HU-T13.6, TIENDA §4.4): el clic del operador. La API pone la tienda
+# en «suspendida» y el despacho responde 451 en todas sus direcciones; las demás tiendas siguen. Solo
+# a mano. Pasos y simulacro en docs/runbooks/tienda-suspender.md.
+name: suspender-tienda
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: "staging o produccion"
+        required: true
+        default: staging
+        type: choice
+        options: [staging, produccion]
+      org:
+        description: "El id de la organización de la tienda"
+        required: true
+        type: string
+      accion:
+        description: "suspender o levantar"
+        required: true
+        default: suspender
+        type: choice
+        options: [suspender, levantar]
+      motivo:
+        description: "Por qué (queda en el registro de la tienda)"
+        required: true
+        type: string
+
+concurrency:
+  group: suspender-tienda-${{ github.ref }}-${{ inputs.org }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  suspender:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: ${{ inputs.ambiente }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Cambiar el estado de la tienda
+        env:
+          SECRETO_DESPACHO: ${{ secrets.SECRETO_DESPACHO }}
+          AMBIENTE: ${{ inputs.ambiente }}
+          ORG: ${{ inputs.org }}
+          ACCION: ${{ inputs.accion }}
+          MOTIVO: ${{ inputs.motivo }}
+        run: node scripts/tienda/suspender.ts --ambiente "$AMBIENTE" --org "$ORG" --accion "$ACCION" --motivo "$MOTIVO"

@@ -220,6 +220,12 @@ async function apuntarA(
   { dominios, canonico }: Awaited<ReturnType<typeof direccionesDe>>,
   v: number,
 ) {
+  // HU-T13.6: el estado de la tienda, no uno fijo: publicar no levanta una suspensión.
+  const tienda = await c.shard
+    .prepare('SELECT estado FROM tienda WHERE org_id = ?')
+    .bind(c.org)
+    .first<{ estado: string }>();
+  const estado = tienda?.estado === 'suspendida' ? 'suspendida' : 'abierta';
   for (const d of dominios) {
     await c.hosts.put(
       claveDelHost(d.hostname),
@@ -229,7 +235,7 @@ async function apuntarA(
         shard: c.shardNombre,
         version: v,
         canonico,
-        estado: 'abierta',
+        estado,
         rol: d.rol,
       }),
     );

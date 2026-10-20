@@ -41,6 +41,7 @@ import { barrerObjetos, mantenerSitio } from './purga-de-sitios.ts';
 import { REHORNEAR_POR_RELEASE, RELEASES_VIEJAS } from './releases.ts';
 import { type AlmacenDeRespaldos, respaldarTienda } from './respaldos.ts';
 import type { Saas } from './saas.ts';
+import { hostnamesColgantes } from './suspension.ts';
 import { purgarContactos } from './titular.ts';
 
 export type Frecuencia = 'hora' | 'dia' | 'semana';
@@ -569,6 +570,27 @@ export const DOMINIOS: Tarea = {
   },
 };
 
+/**
+ * HU-T13.6 CA2: cada día, los dominios propios retirados que todavía apuntan su CNAME aquí. Avisa
+ * por Telegram; nadie los puede tomar sin su TXT nuevo, pero el comercio debería borrar el registro.
+ */
+export const HOSTNAMES_COLGANTES: Tarea = {
+  nombre: 'hostnames-colgantes',
+  frecuencia: 'dia',
+  async correr(e) {
+    const r = await hostnamesColgantes(e.control, e.fetch ?? ((u, i) => fetch(u, i)));
+    if (r.colgantes.length > 0) {
+      const aviso = await enviarTelegram(
+        e.telegram,
+        `Tienda · ${r.colgantes.length} dominio(s) retirado(s) siguen apuntando aquí. Pídele al comercio que borre su CNAME:\n${r.colgantes.join('\n')}`,
+        e.fetch,
+      );
+      if (aviso) console.error(`tienda-api: no se pudo avisar por Telegram (${aviso})`);
+    }
+    return `$r.revisadosretirados revisados, $r.colgantes.lengthsiguen apuntando aquí`;
+  },
+};
+
 export const TAREAS: readonly Tarea[] = [
   RECONSTRUIR_HOSTS,
   PURGAS,
@@ -582,4 +604,5 @@ export const TAREAS: readonly Tarea[] = [
   RELEASES_VIEJAS,
   REENVOLVER_LLAVES,
   DOMINIOS,
+  HOSTNAMES_COLGANTES,
 ];

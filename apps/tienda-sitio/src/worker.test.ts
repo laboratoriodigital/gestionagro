@@ -267,3 +267,34 @@ describe('la IP del comprador para los límites de la API (bitácora tienda3 37)
     expect(a.recibidas.map((r) => r.headers.get(CABECERA_IP))).toEqual(['203.0.113.7', null]);
   });
 });
+
+describe('una tienda suspendida (HU-T13.6)', () => {
+  const host = 'ensayo-uno--staging.laboratorio-digital.app';
+  const otra = 'ensayo-dos--staging.laboratorio-digital.app';
+  it('responde 451 con la página neutra, también en su API; la otra tienda sigue', async () => {
+    const a = api();
+    const env = {
+      TIENDA_HOSTS: kv({
+        [`h:${host}`]: JSON.stringify({ ...UNO, version: 3, estado: 'suspendida' }),
+        [`h:${otra}`]: JSON.stringify({
+          ...UNO,
+          org: 'org-ensayo-dos',
+          version: 2,
+          estado: 'abierta',
+        }),
+      }),
+      SECRETO_DESPACHO: SECRETO,
+      API_C1: a.servicio,
+    } as Env;
+    const despacho = crearDespacho();
+    const pagina = await despacho.fetch(new Request(`https://${host}/`), env);
+    expect(pagina.status).toBe(451);
+    expect(await pagina.text()).toContain('Esta tienda no está disponible');
+    expect(pagina.headers.get('cache-control')).toBe('no-store');
+    const suApi = await despacho.fetch(new Request(`https://${host}/api/v1/cotizar`), env);
+    expect(suApi.status).toBe(451);
+    const deLaOtra = await despacho.fetch(new Request(`https://${otra}/api/v1/cotizar`), env);
+    expect(deLaOtra.status).toBe(200);
+    expect(a.recibidas).toHaveLength(1);
+  });
+});
