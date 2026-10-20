@@ -2,6 +2,9 @@
  * HU-T10.4: publicar y las versiones. «Publicar» dice todo lo que falta, con dónde se arregla, o
  * cómo va; «Versiones» dice cuándo, quién y qué, y «Volver a esta» mueve la tienda a una anterior
  * sin tocar pedidos ni inventario.
+ *
+ * HU-T8.6: «Ver antes de publicar» hornea lo de ahora sin publicarlo y da el enlace de la vista
+ * previa, que dura un día; si a la tienda le falta algo para publicar, también lo dice.
  */
 import { Aviso } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useState } from 'preact/hooks';
@@ -39,6 +42,25 @@ export function Publicar({
   const [publicando, setPublicando] = useState(false);
   const [lecturas, setLecturas] = useState(0);
   const [faltan, setFaltan] = useState<number | null>(null);
+  const [vista, setVista] = useState<
+    | { tipo: 'lista'; url: string; vence: string; fallas: FallaDeLaCompuerta[] }
+    | { tipo: 'error'; motivo: string }
+    | null
+  >(null);
+  const [preparando, setPreparando] = useState(false);
+
+  const verAntes = async () => {
+    setPreparando(true);
+    setVista(null);
+    const r = await pedirAlPanel<{ url: string; vence: string; fallas: FallaDeLaCompuerta[] }>(
+      conexion,
+      'vista-previa',
+      { cuerpo: {} },
+    );
+    setPreparando(false);
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    setVista(r.tipo === 'ok' ? { tipo: 'lista', ...r.datos } : { tipo: 'error', motivo: r.motivo });
+  };
 
   const cargar = useCallback(async () => {
     const r = await pedirAlPanel<Versiones>(conexion, 'publicaciones');
@@ -129,6 +151,42 @@ export function Publicar({
       >
         Publicar los cambios
       </button>
+      <button
+        class="ed1-boton ed1-boton--secundario"
+        type="button"
+        disabled={preparando || publicando}
+        aria-busy={preparando ? 'true' : undefined}
+        onClick={() => void verAntes()}
+      >
+        Ver antes de publicar
+      </button>
+      {preparando ? <p role="status">Preparando la vista previa…</p> : null}
+      {vista?.tipo === 'lista' ? (
+        <Aviso tono="info" titulo="Tu vista previa está lista">
+          <p>
+            <a href={vista.url} target="_blank" rel="noopener">
+              Abrir la vista previa
+            </a>
+            . Así se verá tu tienda cuando publiques; tus clientes siguen viendo la de ahora. El
+            enlace dura un día.
+          </p>
+          {vista.fallas.length > 0 ? (
+            <>
+              <p>Antes de publicar te falta:</p>
+              <ul>
+                {vista.fallas.map((f) => (
+                  <li key={`${f.codigo}-${f.mensaje}`}>{f.mensaje}</li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </Aviso>
+      ) : null}
+      {vista?.tipo === 'error' ? (
+        <Aviso tono="peligro" titulo="No pudimos preparar la vista previa">
+          {vista.motivo}
+        </Aviso>
+      ) : null}
       {publicando || horneando ? (
         <p role="status">
           {publicando

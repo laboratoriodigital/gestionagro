@@ -3098,3 +3098,43 @@ test('HU-T13.5 · CA1: los planes con sus cuatro periodos, pagar en el CORE y vo
     .analyze();
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
+
+test('HU-T8.6 · CA1: ver antes de publicar da el enlace de la vista previa y lo que falta', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const URL_DE_LA_VISTA = `https://ensayo-uno--staging.laboratorio-digital.app/_vista/${'a'.repeat(64)}/`;
+  const pedidas: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/publicaciones`, (r) =>
+    r.fulfill({ json: { versionPublicada: null, versiones: [] } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/vista-previa`, (r) => {
+    pedidas.push(r.request().postDataJSON());
+    return r.fulfill({
+      json: {
+        estado: 'lista',
+        url: URL_DE_LA_VISTA,
+        vence: '2026-10-21T15:00:00.000Z',
+        fallas: [
+          {
+            codigo: 'sin-foto',
+            mensaje: 'Al producto «Camisa» le falta una foto',
+            donde: 'Productos › Camisa',
+          },
+        ],
+      },
+    });
+  });
+  await page.goto(`${PANEL}/mas/publicar/`);
+  await page.getByRole('button', { name: 'Ver antes de publicar' }).click();
+  await expect(page.getByText('Tu vista previa está lista')).toBeVisible();
+  const enlace = page.getByRole('link', { name: 'Abrir la vista previa' });
+  await expect(enlace).toHaveAttribute('href', URL_DE_LA_VISTA);
+  await expect(enlace).toHaveAttribute('target', '_blank');
+  await expect(page.getByText('Al producto «Camisa» le falta una foto')).toBeVisible();
+  expect(pedidas).toEqual([{}]);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});

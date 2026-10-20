@@ -266,6 +266,257 @@ interface Horneado {
 }
 const claveDeDatos = (org: string, version: number) => `sitios/${org}/${version}/datos.json`;
 
+/**
+ * Pasos 2 y 3: lo que se hornea de la tienda, horneado, y lo que dice la compuerta. Lo usan publicar
+ * y la vista previa (HU-T8.6), que hornea lo mismo sin publicarlo.
+ */
+async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = {}) {
+  const tienda = await c.shard
+    .prepare('SELECT nombre, version_publicada, plan FROM tienda WHERE org_id = ?')
+    .bind(c.org)
+    .first<{ nombre: string; version_publicada: number | null; plan: string }>();
+  if (!tienda) return { falla: 'la tienda no existe en su shard' };
+  // HU-T13.5: lo que permite su plan. El horno recorta a él; aquí, la compuerta.
+  const limites = limitesDeLaTienda(tienda.plan);
+  const { results: filasAjuste } = await c.shard
+    .prepare('SELECT seccion, datos FROM ajuste WHERE org_id = ?')
+    .bind(c.org)
+    .all<{ seccion: string; datos: string }>();
+  const ajustes = Object.fromEntries(filasAjuste.map((f) => [f.seccion, seccion(f)])) as Partial<
+    Record<Seccion, Record<string, unknown>>
+  >;
+  // Lo que el comercio eligió se guarda tal cual; el horno lo recorta a su plan (HU-T13.5).
+  const quiereEnLinea =
+    ajustes.venta?.['modo'] === 'en_linea' || ajustes.venta?.['modo'] === 'ambos';
+  const enLinea = quiereEnLinea && limites.cobroEnLinea;
+  const ambienteDelCobro: 'pruebas' | 'produccion' =
+    ajustes.cobro?.['ambiente'] === 'produccion' ? 'produccion' : 'pruebas';
+  const { results: productos } = await c.shard
+    .prepare(
+      `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, actualizado, seo
+       FROM producto WHERE org_id = ? AND borrado IS NULL ORDER BY posicion, slug`,
+    )
+    .bind(c.org)
+    .all<FilaProducto>();
+  const { results: variantes } = await c.shard
+    .prepare(
+      'SELECT id, producto_id, clave, precio_cop, stock, reservado FROM variante WHERE org_id = ? AND activa = 1',
+    )
+    .bind(c.org)
+    .all<{
+      id: string;
+      producto_id: string;
+      clave: string;
+      precio_cop: number;
+      stock: number | null;
+      reservado: number;
+    }>();
+  const { results: medios } = await c.shard
+    .prepare(
+      'SELECT id, producto_id, alt, ancho, alto, formatos FROM medio WHERE org_id = ? ORDER BY producto_id, posicion, id',
+    )
+    .bind(c.org)
+    .all<{
+      id: string;
+      producto_id: string;
+      alt: string;
+      ancho: number;
+      alto: number;
+      formatos: string;
+    }>();
+  const fotosDe = (productoId: string): FotoParaHornear[] =>
+    medios
+      .filter((f) => f.producto_id === productoId)
+      .map((f) => ({
+        huella: f.id,
+        alt: f.alt,
+        ancho: f.ancho,
+        alto: f.alto,
+        ...leerFormatos(f.formatos),
+      }));
+  const { results: colecciones } = await c.shard
+    .prepare(
+      `SELECT c.slug, c.nombre, p.slug AS producto FROM coleccion c
+       LEFT JOIN coleccion_producto cp ON cp.org_id = c.org_id AND cp.coleccion_id = c.id
+       LEFT JOIN producto p ON p.org_id = cp.org_id AND p.id = cp.producto_id AND p.borrado IS NULL AND p.estado = 'activo'
+       WHERE c.org_id = ? AND c.borrado IS NULL AND c.visible = 1 ORDER BY c.posicion, cp.posicion`,
+    )
+    .bind(c.org)
+    .all<{ slug: string; nombre: string; producto: string | null }>();
+  const { results: envios } = await c.shard
+    .prepare(
+      'SELECT id, nombre, precio_cop, gratis_desde_cop, dias_min, dias_max FROM envio_opcion WHERE org_id = ? AND activa = 1 AND borrado IS NULL ORDER BY posicion, nombre',
+    )
+    .bind(c.org)
+    .all<{
+      id: string;
+      nombre: string;
+      precio_cop: number;
+      gratis_desde_cop: number | null;
+      dias_min: number | null;
+      dias_max: number | null;
+    }>();
+  const { canonico } = await direccionesDe(c);
+  if (!canonico) return { falla: 'la tienda no tiene una dirección activa' };
+
+  // 3. Hornear y pasar la compuerta.
+  const activos = productos.filter((p) => p.estado === 'activo');
+  const paraHornear: ProductoParaHornear[] = activos.flatMap((p) => {
+    const suyas = variantes.filter((v) => v.producto_id === p.id);
+    if (suyas.length === 0) return [];
+    return [
+      {
+        slug: p.slug,
+        nombre: p.nombre,
+        ...(p.descripcion_md ? { descripcion: p.descripcion_md } : {}),
+        opciones: JSON.parse(p.opciones) as ProductoParaHornear['opciones'],
+        variantes: suyas.map((v) => ({
+          id: v.id,
+          clave: v.clave,
+          precioCop: v.precio_cop,
+          stock: v.stock === null ? null : Math.max(0, v.stock - v.reservado),
+        })),
+        actualizado: p.actualizado,
+        fotos: fotosDe(p.id),
+        retracto:
+          p.retracto === 'no_aplica'
+            ? { aplica: false, motivo: p.retracto_motivo ?? '' }
+            : { aplica: true },
+        soloMayores: p.solo_mayores === 1,
+        destacado: p.destacado === 1,
+      },
+    ];
+  });
+  const conDefectos = (s: Seccion) => {
+    const r = validarSeccion(s, ajustes[s] ?? {});
+    return r.ok ? r.datos : {};
+  };
+  const identidad = ajustes.identidad ?? {};
+  const contacto = ajustes.contacto ?? {};
+  const agentes = ajustes.agentes ?? {};
+  const medicion = ajustes.medicion ?? {};
+  const legal = ajustes.legal ?? {};
+  const texto = (v: unknown) => (typeof v === 'string' && v.trim() ? v : undefined);
+  // HU-T7.1: lo que dicen los textos legales sale de la ficha, el contacto, la venta y los envíos.
+  const datosLegales: DatosLegales = {
+    nombreTienda: texto(identidad['nombre']) ?? tienda.nombre,
+    ...opcional('razonSocial', texto(legal['razonSocial'])),
+    ...opcional('documento', legal['documento'] as DatosLegales['documento']),
+    ...opcional('direccion', texto(legal['direccionNotificacion'])),
+    ...opcional('ciudad', texto(legal['ciudad'])),
+    ...opcional('telefono', texto(legal['telefono'])),
+    ...opcional('correo', texto(legal['correo'])),
+    ...opcional('whatsapp', texto(contacto['whatsapp'])),
+    ...opcional('garantia', texto(legal['garantia'])),
+    ...opcional('retracto', texto(legal['retracto'])),
+    formas: ((ajustes.venta?.['formas'] ?? []) as DatosLegales['formas']).slice(),
+    envios: envios.map((e) => ({
+      id: e.id,
+      nombre: e.nombre,
+      precioCop: e.precio_cop,
+      gratisDesdeCop: e.gratis_desde_cop,
+      diasMin: e.dias_min,
+      diasMax: e.dias_max,
+    })),
+    sinRetracto: activos
+      .filter((p) => p.retracto === 'no_aplica' && p.retracto_motivo)
+      .map((p) => ({ nombre: p.nombre, motivo: p.retracto_motivo as string })),
+    medicion: { ga4: Boolean(medicion['ga4']), pixelMeta: Boolean(medicion['pixelMeta']) },
+    responsableIva: legal['responsableIva'] === true,
+    ...opcional(
+      'conservacionMeses',
+      typeof legal['conservacionMeses'] === 'number' ? legal['conservacionMeses'] : undefined,
+    ),
+  };
+  const porColeccion = new Map<string, { nombre: string; productos: string[] }>();
+  for (const f of colecciones) {
+    const actual = porColeccion.get(f.slug) ?? { nombre: f.nombre, productos: [] };
+    if (f.producto) actual.productos.push(f.producto);
+    porColeccion.set(f.slug, actual);
+  }
+  const datos: TiendaParaHornear = {
+    dominio: canonico,
+    release: c.release,
+    org: c.org,
+    ...(c.medios ? { medios: c.medios } : {}),
+    nombre: (identidad['nombre'] as string | undefined) ?? tienda.nombre,
+    ...(identidad['frase'] ? { frase: identidad['frase'] as string } : {}),
+    ...(contacto['whatsapp'] ? { whatsapp: contacto['whatsapp'] as string } : {}),
+    ...(contacto['correo'] ? { correo: contacto['correo'] as string } : {}),
+    apariencia: conDefectos('apariencia') as unknown as TiendaParaHornear['apariencia'],
+    agentes: {
+      search: (agentes['search'] as 'yes' | 'no' | undefined) ?? 'yes',
+      aiInput: (agentes['aiInput'] as 'yes' | 'no' | undefined) ?? 'yes',
+      aiTrain: (agentes['aiTrain'] as 'yes' | 'no' | undefined) ?? 'no',
+    },
+    // HU-T14.5: los feeds que el comercio encendió; apagados si no dice.
+    ...(conDefectos('agentes')['feeds']
+      ? { feeds: conDefectos('agentes')['feeds'] as NonNullable<TiendaParaHornear['feeds']> }
+      : {}),
+    ...(medicion['googleVerificacion']
+      ? { googleVerificacion: medicion['googleVerificacion'] as string }
+      : {}),
+    legal: datosLegales,
+    productos: paraHornear,
+    colecciones: [...porColeccion].map(([slug, col]) => ({ slug, ...col })),
+    // HU-T11.4: el carrito ofrece pagar en línea; HU-T11.3: en pruebas, la franja lo dice.
+    ...(quiereEnLinea
+      ? {
+          cobroEnLinea: true,
+          ...(ambienteDelCobro === 'pruebas' ? { cobroEnPruebas: true } : {}),
+        }
+      : {}),
+    plan: limites,
+    ...(opciones.vistaPrevia ? { vistaPrevia: true } : {}),
+  };
+  const archivos = await hornear(datos);
+  // HU-T13.5 CA3: los productos que pasan del límite quedan ocultos, y la compuerta no los pide.
+  const ocultos = new Set(alPlan(datos).ocultos);
+  // HU-T11.3: lo que la compuerta pide para ofrecer el pago en línea.
+  const cobroParaLaCompuerta = enLinea
+    ? {
+        ambiente: ambienteDelCobro,
+        llaves:
+          (
+            await c.shard
+              .prepare(
+                `SELECT count(*) AS n FROM credencial WHERE org_id = ? AND proveedor = 'bold'
+                  AND ambiente = ? AND campo IN ('identidad', 'secreta')`,
+              )
+              .bind(c.org, ambienteDelCobro)
+              .first<{ n: number }>()
+          )?.n === 2,
+        pruebaAprobada: (await estadoDeLaPrueba(c.shard, c.org)).aprobada !== null,
+      }
+    : undefined;
+  const revision = compuerta({
+    ajustes,
+    productos: productos
+      .filter((p) => !ocultos.has(p.slug))
+      .map(
+        (p): ProductoParaLaCompuerta => ({
+          slug: p.slug,
+          nombre: p.nombre,
+          estado: p.estado,
+          precioCop: variantes.find((v) => v.producto_id === p.id)?.precio_cop ?? null,
+          fotos: medios.filter((f) => f.producto_id === p.id).length,
+          retracto: p.retracto,
+          retractoMotivo: p.retracto_motivo,
+        }),
+      ),
+    archivos,
+    // La compuerta lee el mismo texto que verá el comprador (HU-T10.1 CA1).
+    envios: envios.map((e) => ({
+      nombre: e.nombre,
+      plazoDias: Math.max(e.dias_min ?? 0, e.dias_max ?? 0),
+      texto: plazoDelEnvio(e.dias_min, e.dias_max),
+    })),
+    ...(cobroParaLaCompuerta ? { cobro: cobroParaLaCompuerta } : {}),
+    ...(c.omitir ? { omitir: c.omitir } : {}),
+  });
+  return { tienda, datos, archivos, revision, activos };
+}
+
 export async function publicar(c: Contexto): Promise<Resultado> {
   // 1. Reservar la versión.
   const version = await reservar(c);
@@ -273,249 +524,10 @@ export async function publicar(c: Contexto): Promise<Resultado> {
   const fallar = fallarCon(c, version);
 
   try {
-    // 2. Los datos de la tienda.
-    const tienda = await c.shard
-      .prepare('SELECT nombre, version_publicada, plan FROM tienda WHERE org_id = ?')
-      .bind(c.org)
-      .first<{ nombre: string; version_publicada: number | null; plan: string }>();
-    if (!tienda) return await fallar('la tienda no existe en su shard');
-    // HU-T13.5: lo que permite su plan. El horno recorta a él; aquí, la compuerta.
-    const limites = limitesDeLaTienda(tienda.plan);
-    const { results: filasAjuste } = await c.shard
-      .prepare('SELECT seccion, datos FROM ajuste WHERE org_id = ?')
-      .bind(c.org)
-      .all<{ seccion: string; datos: string }>();
-    const ajustes = Object.fromEntries(filasAjuste.map((f) => [f.seccion, seccion(f)])) as Partial<
-      Record<Seccion, Record<string, unknown>>
-    >;
-    // Lo que el comercio eligió se guarda tal cual; el horno lo recorta a su plan (HU-T13.5).
-    const quiereEnLinea =
-      ajustes.venta?.['modo'] === 'en_linea' || ajustes.venta?.['modo'] === 'ambos';
-    const enLinea = quiereEnLinea && limites.cobroEnLinea;
-    const ambienteDelCobro: 'pruebas' | 'produccion' =
-      ajustes.cobro?.['ambiente'] === 'produccion' ? 'produccion' : 'pruebas';
-    const { results: productos } = await c.shard
-      .prepare(
-        `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, actualizado, seo
-         FROM producto WHERE org_id = ? AND borrado IS NULL ORDER BY posicion, slug`,
-      )
-      .bind(c.org)
-      .all<FilaProducto>();
-    const { results: variantes } = await c.shard
-      .prepare(
-        'SELECT id, producto_id, clave, precio_cop, stock, reservado FROM variante WHERE org_id = ? AND activa = 1',
-      )
-      .bind(c.org)
-      .all<{
-        id: string;
-        producto_id: string;
-        clave: string;
-        precio_cop: number;
-        stock: number | null;
-        reservado: number;
-      }>();
-    const { results: medios } = await c.shard
-      .prepare(
-        'SELECT id, producto_id, alt, ancho, alto, formatos FROM medio WHERE org_id = ? ORDER BY producto_id, posicion, id',
-      )
-      .bind(c.org)
-      .all<{
-        id: string;
-        producto_id: string;
-        alt: string;
-        ancho: number;
-        alto: number;
-        formatos: string;
-      }>();
-    const fotosDe = (productoId: string): FotoParaHornear[] =>
-      medios
-        .filter((f) => f.producto_id === productoId)
-        .map((f) => ({
-          huella: f.id,
-          alt: f.alt,
-          ancho: f.ancho,
-          alto: f.alto,
-          ...leerFormatos(f.formatos),
-        }));
-    const { results: colecciones } = await c.shard
-      .prepare(
-        `SELECT c.slug, c.nombre, p.slug AS producto FROM coleccion c
-         LEFT JOIN coleccion_producto cp ON cp.org_id = c.org_id AND cp.coleccion_id = c.id
-         LEFT JOIN producto p ON p.org_id = cp.org_id AND p.id = cp.producto_id AND p.borrado IS NULL AND p.estado = 'activo'
-         WHERE c.org_id = ? AND c.borrado IS NULL AND c.visible = 1 ORDER BY c.posicion, cp.posicion`,
-      )
-      .bind(c.org)
-      .all<{ slug: string; nombre: string; producto: string | null }>();
-    const { results: envios } = await c.shard
-      .prepare(
-        'SELECT id, nombre, precio_cop, gratis_desde_cop, dias_min, dias_max FROM envio_opcion WHERE org_id = ? AND activa = 1 AND borrado IS NULL ORDER BY posicion, nombre',
-      )
-      .bind(c.org)
-      .all<{
-        id: string;
-        nombre: string;
-        precio_cop: number;
-        gratis_desde_cop: number | null;
-        dias_min: number | null;
-        dias_max: number | null;
-      }>();
-    const { canonico } = await direccionesDe(c);
-    if (!canonico) return await fallar('la tienda no tiene una dirección activa');
-
-    // 3. Hornear y pasar la compuerta.
-    const activos = productos.filter((p) => p.estado === 'activo');
-    const paraHornear: ProductoParaHornear[] = activos.flatMap((p) => {
-      const suyas = variantes.filter((v) => v.producto_id === p.id);
-      if (suyas.length === 0) return [];
-      return [
-        {
-          slug: p.slug,
-          nombre: p.nombre,
-          ...(p.descripcion_md ? { descripcion: p.descripcion_md } : {}),
-          opciones: JSON.parse(p.opciones) as ProductoParaHornear['opciones'],
-          variantes: suyas.map((v) => ({
-            id: v.id,
-            clave: v.clave,
-            precioCop: v.precio_cop,
-            stock: v.stock === null ? null : Math.max(0, v.stock - v.reservado),
-          })),
-          actualizado: p.actualizado,
-          fotos: fotosDe(p.id),
-          retracto:
-            p.retracto === 'no_aplica'
-              ? { aplica: false, motivo: p.retracto_motivo ?? '' }
-              : { aplica: true },
-          soloMayores: p.solo_mayores === 1,
-          destacado: p.destacado === 1,
-        },
-      ];
-    });
-    const conDefectos = (s: Seccion) => {
-      const r = validarSeccion(s, ajustes[s] ?? {});
-      return r.ok ? r.datos : {};
-    };
-    const identidad = ajustes.identidad ?? {};
-    const contacto = ajustes.contacto ?? {};
-    const agentes = ajustes.agentes ?? {};
-    const medicion = ajustes.medicion ?? {};
-    const legal = ajustes.legal ?? {};
-    const texto = (v: unknown) => (typeof v === 'string' && v.trim() ? v : undefined);
-    // HU-T7.1: lo que dicen los textos legales sale de la ficha, el contacto, la venta y los envíos.
-    const datosLegales: DatosLegales = {
-      nombreTienda: texto(identidad['nombre']) ?? tienda.nombre,
-      ...opcional('razonSocial', texto(legal['razonSocial'])),
-      ...opcional('documento', legal['documento'] as DatosLegales['documento']),
-      ...opcional('direccion', texto(legal['direccionNotificacion'])),
-      ...opcional('ciudad', texto(legal['ciudad'])),
-      ...opcional('telefono', texto(legal['telefono'])),
-      ...opcional('correo', texto(legal['correo'])),
-      ...opcional('whatsapp', texto(contacto['whatsapp'])),
-      ...opcional('garantia', texto(legal['garantia'])),
-      ...opcional('retracto', texto(legal['retracto'])),
-      formas: ((ajustes.venta?.['formas'] ?? []) as DatosLegales['formas']).slice(),
-      envios: envios.map((e) => ({
-        id: e.id,
-        nombre: e.nombre,
-        precioCop: e.precio_cop,
-        gratisDesdeCop: e.gratis_desde_cop,
-        diasMin: e.dias_min,
-        diasMax: e.dias_max,
-      })),
-      sinRetracto: activos
-        .filter((p) => p.retracto === 'no_aplica' && p.retracto_motivo)
-        .map((p) => ({ nombre: p.nombre, motivo: p.retracto_motivo as string })),
-      medicion: { ga4: Boolean(medicion['ga4']), pixelMeta: Boolean(medicion['pixelMeta']) },
-      responsableIva: legal['responsableIva'] === true,
-      ...opcional(
-        'conservacionMeses',
-        typeof legal['conservacionMeses'] === 'number' ? legal['conservacionMeses'] : undefined,
-      ),
-    };
-    const porColeccion = new Map<string, { nombre: string; productos: string[] }>();
-    for (const f of colecciones) {
-      const actual = porColeccion.get(f.slug) ?? { nombre: f.nombre, productos: [] };
-      if (f.producto) actual.productos.push(f.producto);
-      porColeccion.set(f.slug, actual);
-    }
-    const datos: TiendaParaHornear = {
-      dominio: canonico,
-      release: c.release,
-      org: c.org,
-      ...(c.medios ? { medios: c.medios } : {}),
-      nombre: (identidad['nombre'] as string | undefined) ?? tienda.nombre,
-      ...(identidad['frase'] ? { frase: identidad['frase'] as string } : {}),
-      ...(contacto['whatsapp'] ? { whatsapp: contacto['whatsapp'] as string } : {}),
-      ...(contacto['correo'] ? { correo: contacto['correo'] as string } : {}),
-      apariencia: conDefectos('apariencia') as unknown as TiendaParaHornear['apariencia'],
-      agentes: {
-        search: (agentes['search'] as 'yes' | 'no' | undefined) ?? 'yes',
-        aiInput: (agentes['aiInput'] as 'yes' | 'no' | undefined) ?? 'yes',
-        aiTrain: (agentes['aiTrain'] as 'yes' | 'no' | undefined) ?? 'no',
-      },
-      // HU-T14.5: los feeds que el comercio encendió; apagados si no dice.
-      ...(conDefectos('agentes')['feeds']
-        ? { feeds: conDefectos('agentes')['feeds'] as NonNullable<TiendaParaHornear['feeds']> }
-        : {}),
-      ...(medicion['googleVerificacion']
-        ? { googleVerificacion: medicion['googleVerificacion'] as string }
-        : {}),
-      legal: datosLegales,
-      productos: paraHornear,
-      colecciones: [...porColeccion].map(([slug, col]) => ({ slug, ...col })),
-      // HU-T11.4: el carrito ofrece pagar en línea; HU-T11.3: en pruebas, la franja lo dice.
-      ...(quiereEnLinea
-        ? {
-            cobroEnLinea: true,
-            ...(ambienteDelCobro === 'pruebas' ? { cobroEnPruebas: true } : {}),
-          }
-        : {}),
-      plan: limites,
-    };
-    const archivos = await hornear(datos);
-    // HU-T13.5 CA3: los productos que pasan del límite quedan ocultos, y la compuerta no los pide.
-    const ocultos = new Set(alPlan(datos).ocultos);
-    // HU-T11.3: lo que la compuerta pide para ofrecer el pago en línea.
-    const cobroParaLaCompuerta = enLinea
-      ? {
-          ambiente: ambienteDelCobro,
-          llaves:
-            (
-              await c.shard
-                .prepare(
-                  `SELECT count(*) AS n FROM credencial WHERE org_id = ? AND proveedor = 'bold'
-                    AND ambiente = ? AND campo IN ('identidad', 'secreta')`,
-                )
-                .bind(c.org, ambienteDelCobro)
-                .first<{ n: number }>()
-            )?.n === 2,
-          pruebaAprobada: (await estadoDeLaPrueba(c.shard, c.org)).aprobada !== null,
-        }
-      : undefined;
-    const revision = compuerta({
-      ajustes,
-      productos: productos
-        .filter((p) => !ocultos.has(p.slug))
-        .map(
-          (p): ProductoParaLaCompuerta => ({
-            slug: p.slug,
-            nombre: p.nombre,
-            estado: p.estado,
-            precioCop: variantes.find((v) => v.producto_id === p.id)?.precio_cop ?? null,
-            fotos: medios.filter((f) => f.producto_id === p.id).length,
-            retracto: p.retracto,
-            retractoMotivo: p.retracto_motivo,
-          }),
-        ),
-      archivos,
-      // La compuerta lee el mismo texto que verá el comprador (HU-T10.1 CA1).
-      envios: envios.map((e) => ({
-        nombre: e.nombre,
-        plazoDias: Math.max(e.dias_min ?? 0, e.dias_max ?? 0),
-        texto: plazoDelEnvio(e.dias_min, e.dias_max),
-      })),
-      ...(cobroParaLaCompuerta ? { cobro: cobroParaLaCompuerta } : {}),
-      ...(c.omitir ? { omitir: c.omitir } : {}),
-    });
+    // 2 y 3. Los datos de la tienda, horneados, y la compuerta.
+    const armada = await armarLaTienda(c);
+    if ('falla' in armada) return await fallar(armada.falla);
+    const { tienda, datos, archivos, revision, activos } = armada;
     if (!revision.ok) {
       await fallar(JSON.stringify(revision.fallas));
       return { estado: 'compuerta', fallas: revision.fallas };
@@ -882,4 +894,85 @@ export async function volverA(c: Contexto, version: number): Promise<ResultadoDe
     }),
   ]);
   return { estado: 'publicada', version, antes };
+}
+
+// ── HU-T8.6: la vista previa ────────────────────────────────────────────────────────────────
+
+/** Lo que dura una vista previa; el despacho usa el mismo plazo (`VIDA_DE_LA_VISTA_MS`). */
+export const HORAS_DE_LA_VISTA = 24;
+
+export type ResultadoDeLaVista =
+  | { estado: 'lista'; url: string; vence: string; fallas: Falla[] }
+  | { estado: 'muy-grande'; motivo: string }
+  | { estado: 'fallida'; motivo: string };
+
+/**
+ * Hornea lo que la tienda tiene ahora, como al publicar, sin reservar versión ni mover el puntero
+ * (CA1). Sube solo los archivos que ni la versión publicada ni la vista anterior tienen, y guarda
+ * una sola vista por tienda en `sitios/<org>/vista.json`. La compuerta no la detiene: lo que falta
+ * para publicar vuelve en `fallas`, para que el panel lo diga.
+ */
+export async function vistaPrevia(c: Contexto): Promise<ResultadoDeLaVista> {
+  try {
+    const armada = await armarLaTienda(c, { vistaPrevia: true });
+    if ('falla' in armada) return { estado: 'fallida', motivo: armada.falla };
+    const { tienda, archivos, revision, activos } = armada;
+    const m = await manifiesto(archivos, redireccionesDe(activos));
+    const previas = new Set<string>();
+    const claves = [
+      ...(tienda.version_publicada !== null
+        ? [`sitios/${c.org}/${tienda.version_publicada}/manifiesto.json`]
+        : []),
+      `sitios/${c.org}/vista.json`,
+    ];
+    for (const clave of claves) {
+      const objeto = await c.sitios.get(clave);
+      if (!objeto) continue;
+      try {
+        const leido = JSON.parse(await objeto.text()) as typeof m | { manifiesto: typeof m };
+        const archivosLeidos = 'manifiesto' in leido ? leido.manifiesto.archivos : leido.archivos;
+        for (const a of Object.values(archivosLeidos)) previas.add(a.huella);
+      } catch {
+        // Ilegible: sus archivos se vuelven a subir.
+      }
+    }
+    const pendientes: { huella: string; contenido: string; tipo: string }[] = [];
+    for (const [ruta, archivo] of archivos) {
+      const entrada = m.archivos[ruta];
+      if (!entrada || previas.has(entrada.huella)) continue;
+      previas.add(entrada.huella);
+      pendientes.push({ huella: entrada.huella, contenido: archivo.contenido, tipo: archivo.tipo });
+    }
+    if (pendientes.length > (c.subidasPorTanda ?? SUBIDAS_POR_TANDA)) {
+      return {
+        estado: 'muy-grande',
+        motivo:
+          'Tu tienda tiene demasiados cambios para verlos antes de publicar. Publica por partes o escríbenos.',
+      };
+    }
+    for (let i = 0; i < pendientes.length; i += SUBIDAS_A_LA_VEZ) {
+      await Promise.all(
+        pendientes.slice(i, i + SUBIDAS_A_LA_VEZ).map((p) =>
+          c.sitios.put(`objetos/${p.huella.slice(0, 2)}/${p.huella}`, p.contenido, {
+            httpMetadata: { contentType: p.tipo },
+          }),
+        ),
+      );
+    }
+    await c.sitios.put(
+      `sitios/${c.org}/vista.json`,
+      JSON.stringify({ huella: m.huella, creada: c.ahora, manifiesto: m }),
+      { httpMetadata: { contentType: 'application/json' } },
+    );
+    const { canonico } = await direccionesDe(c);
+    if (!canonico) return { estado: 'fallida', motivo: 'la tienda no tiene una dirección activa' };
+    return {
+      estado: 'lista',
+      url: `https://${canonico}/_vista/${m.huella}/`,
+      vence: new Date(Date.parse(c.ahora) + HORAS_DE_LA_VISTA * 3_600_000).toISOString(),
+      fallas: revision.ok ? [] : revision.fallas,
+    };
+  } catch (e) {
+    return { estado: 'fallida', motivo: e instanceof Error ? e.message : String(e) };
+  }
 }

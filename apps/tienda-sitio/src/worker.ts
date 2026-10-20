@@ -231,6 +231,53 @@ const sinPublicar = (): Response =>
     { status: 404, headers: { ...CABECERAS_DE_AVISO, 'cache-control': 'no-store' } },
   );
 
+/**
+ * HU-T8.6: la vista previa del comercio, en `/_vista/<huella del manifiesto>/`. La API guarda una
+ * sola por tienda en `sitios/<org>/vista.json`, con su manifiesto, y vence a las 24 horas. Nunca
+ * toca el puntero, la versión publicada ni su sitemap.
+ */
+export const RUTA_DE_LA_VISTA = /^\/_vista\/([0-9a-f]{64})(\/.*)?$/;
+export const VIDA_DE_LA_VISTA_MS = 24 * 60 * 60 * 1000;
+const PEDIR_EN_LA_VISTA =
+  'Es una vista previa: aquí no se puede pedir ni pagar. Publica tu tienda para recibir pedidos.';
+
+export interface VistaGuardada {
+  huella: string;
+  creada: string;
+  manifiesto: Manifiesto;
+}
+
+/** Si la solicitud viene de una página de la vista previa de esta misma dirección. */
+export function desdeLaVista(solicitud: Request): boolean {
+  const desde = solicitud.headers.get('referer');
+  if (!desde) return false;
+  try {
+    const r = new URL(desde);
+    return r.host === new URL(solicitud.url).host && r.pathname.startsWith('/_vista/');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Los enlaces de una página de la vista llevan a la misma vista: `href`, `src` y `action` que
+ * empiezan en `/`, menos los archivos comunes de la vitrina (`/_t/`), que son los de siempre.
+ */
+export const conEnlacesDeLaVista = (html: string, huella: string): string =>
+  html.replace(/(href|src|action)="\/(?!\/|_t\/)/g, `$1="/_vista/${huella}/`);
+
+const vistaVencida = (): Response =>
+  new Response(
+    pagina(
+      'Esta vista previa ya no está',
+      'Las vistas previas duran un día. Pide otra desde el panel de tu tienda.',
+    ),
+    {
+      status: 404,
+      headers: { ...CABECERAS_DE_AVISO, 'cache-control': 'no-store', 'x-robots-tag': 'noindex' },
+    },
+  );
+
 const noEsta = (): Response =>
   new Response(
     pagina(
@@ -395,6 +442,52 @@ export function crearDespacho(
     }
   }
 
+  /** HU-T8.6: un archivo de la vista previa de la tienda, con sus enlaces dentro de ella. */
+  async function servirVista(
+    url: URL,
+    env: Env,
+    destino: DestinoDeHost,
+    huella: string,
+    resto: string | undefined,
+  ): Promise<Response> {
+    if (resto === undefined) return Response.redirect(`${url.origin}/_vista/${huella}/`, 302);
+    const sitios = env[`SITIOS_${destino.celda.toUpperCase()}`] as Almacen | undefined;
+    if (!sitios) return enPausa(false);
+    try {
+      const guardada = await sitios.get(`sitios/${destino.org}/vista.json`);
+      const vista = guardada ? (JSON.parse(await guardada.text()) as VistaGuardada) : null;
+      if (
+        !vista ||
+        vista.huella !== huella ||
+        !(ahora() - Date.parse(vista.creada) < VIDA_DE_LA_VISTA_MS)
+      )
+        return vistaVencida();
+      const m = vista.manifiesto;
+      const archivo = m.archivos[archivoDeLaRuta(resto, false)];
+      if (!archivo && !resto.endsWith('/') && m.archivos[`${resto}/index.html`])
+        return Response.redirect(`${url.origin}/_vista/${huella}${resto}/`, 302);
+      if (!archivo || !HUELLA.test(archivo.huella)) return noEsta();
+      const objeto = await sitios.get(`objetos/${archivo.huella.slice(0, 2)}/${archivo.huella}`);
+      if (!objeto) return vistaVencida();
+      const texto = await objeto.text();
+      return new Response(
+        archivo.tipo.startsWith('text/html') ? conEnlacesDeLaVista(texto, huella) : texto,
+        {
+          headers: {
+            ...cabecerasDeLaVitrina(env.MEDIOS, resto),
+            'content-type': archivo.tipo,
+            // CA2: ni a la caché ni a los buscadores.
+            'cache-control': 'no-store',
+            'x-robots-tag': 'noindex, nofollow',
+          },
+        },
+      );
+    } catch (e) {
+      console.error(`tienda-sitio: la vista previa falló (${String(e)})`);
+      return enPausa(false);
+    }
+  }
+
   return {
     async fetch(solicitud: Request, env: Env): Promise<Response> {
       const url = new URL(solicitud.url);
@@ -418,6 +511,15 @@ export function crearDespacho(
         });
       }
       if (esDeLaApi(url.pathname)) {
+        // HU-T8.6: desde la vista previa no se pide, no se paga ni se mide.
+        if (solicitud.method !== 'GET' && solicitud.method !== 'HEAD' && desdeLaVista(solicitud)) {
+          return url.pathname === '/_m'
+            ? new Response(null, { status: 204 })
+            : Response.json(
+                { estado: 'vista-previa', motivo: PEDIR_EN_LA_VISTA },
+                { status: 403, headers: { 'cache-control': 'no-store' } },
+              );
+        }
         const api = env[`API_${destino.celda.toUpperCase()}`] as Servicio | undefined;
         if (!api || !env.SECRETO_DESPACHO) {
           console.error(`tienda-sitio: sin API o sin secreto para la celda ${destino.celda}`);
@@ -429,6 +531,8 @@ export function crearDespacho(
         return new Response(null, { status: 405, headers: { allow: 'GET, HEAD' } });
       }
       if (url.pathname.startsWith('/_t/')) return servirRelease(env, destino, url.pathname);
+      const vista = RUTA_DE_LA_VISTA.exec(url.pathname);
+      if (vista?.[1]) return servirVista(url, env, destino, vista[1], vista[2]);
       if (url.pathname === '/.well-known/security.txt') {
         return new Response(
           securityTxt({

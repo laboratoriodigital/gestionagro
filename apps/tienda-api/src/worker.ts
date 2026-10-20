@@ -149,6 +149,7 @@ import {
   type Resultado,
   rehornearExistencias,
   vencerLasCortadas,
+  vistaPrevia,
   volverA,
 } from './publicar.ts';
 import { enFrase, leerRegistro } from './registro.ts';
@@ -1260,6 +1261,28 @@ export function crearApp(
     // HU-T13.5: se publica con el plan del token.
     await guardarElPlan(s.db, s.org, s.plan, s.planVence);
     return responder(c, await publicar(ctx));
+  });
+
+  // HU-T8.6: la vista previa, con el mismo permiso de publicar; no publica nada.
+  app.post('/api/panel/v1/vista-previa', async (c) => {
+    const s = c.get('sesion');
+    const decision = decidir(s.rol, 'publicar', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido')
+      return c.json({ estado: decision, motivo: 'Tu rol no puede ver la vista previa.' }, 403);
+    if (await hornoApagado(c)) {
+      return c.json(
+        { estado: 'apagado', motivo: 'La vista previa está en pausa unos minutos.' },
+        503,
+      );
+    }
+    const ctx = contextoDePublicacion(c, s.org, s.shard, `usuario:${s.usuario}`);
+    if (!ctx) return c.json({ estado: 'sin-configurar' }, 503);
+    await guardarElPlan(s.db, s.org, s.plan, s.planVence);
+    const r = await vistaPrevia(ctx);
+    if (r.estado === 'lista') return c.json(r);
+    if (r.estado === 'muy-grande') return c.json(r, 413);
+    console.error(`tienda-api: la vista previa falló (${r.motivo})`);
+    return c.json({ estado: 'fallida', motivo: 'No pudimos preparar la vista previa ahora.' }, 500);
   });
 
   // HU-T10.4: las versiones y «Volver a esta», con el permiso `publicar`. Volver mueve el puntero

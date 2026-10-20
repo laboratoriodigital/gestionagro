@@ -925,7 +925,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T8.5.1 `[código]` · WI-T8.5.2 `[prueba]`.
 
 #### HU-T8.6 · Ver la tienda antes de publicar
-- **Capa:** panel y horno · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T17 · **Depende de:** HU-T4.4 · **Estado:** Refinada
+- **Capa:** panel y horno · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T17 · **Depende de:** HU-T4.4 · **Estado:** En validación (rama `feat/t17-sprint`. «Publicar y versiones › Ver antes de publicar» (`POST /api/panel/v1/vista-previa`, con el permiso de publicar) hornea lo de ahora con lo mismo que publicar (`armarLaTienda`), sin reservar versión ni mover el puntero, y guarda una sola vista por tienda en `sitios/<org>/vista.json`, que dura 24 horas. Sube solo los archivos que no tienen la versión publicada ni la vista anterior. El despacho la sirve en `/_vista/<huella>/` con la franja, `noindex`, `no-store` y los enlaces dentro de la vista. Bloquea los pedidos, los pagos y la medición que salgan de ella (403 en palabras, 204 para la medición). La compuerta no la detiene: el panel dice lo que falta para publicar. CA2: `tienda-vista-previa.test.ts` sirve las dos y la portada, el sitemap y la caché publicados no cambian; `publicar.test.ts`, ninguna versión, puntero ni manifiesto nuevo. Límite conocido: la búsqueda y el carrito de la vista leen el catálogo publicado)
 - Como comerciante, quiero ver cómo queda un cambio antes de que lo vean mis clientes.
 - **Respaldo:** bitácora ecommerce 65. **Ningún documento de la 3.0 la cubre:** es una propuesta de este plan.
 - **CA1.** «Vista previa» hornea sin mover el puntero y abre la versión en `/_vista/<huella del manifiesto>/`, con `noindex`, una franja que lo dice y sin poder pedir ni pagar.

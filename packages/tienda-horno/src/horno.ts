@@ -110,6 +110,11 @@ export interface TiendaParaHornear {
    * los productos de más quedan ocultos y lo que el plan no incluye no se ofrece.
    */
   plan?: LimitesDelPlan;
+  /**
+   * HU-T8.6: la vista previa del comercio. Cada página lo dice en una franja y no se indexa; el
+   * despacho la sirve en `/_vista/<huella>/` y no deja pedir, pagar ni medir desde ella.
+   */
+  vistaPrevia?: boolean;
 }
 
 export interface ArchivoHorneado {
@@ -267,6 +272,10 @@ export async function hornear(publicada: TiendaParaHornear): Promise<Map<string,
     t.cobroEnLinea && t.cobroEnPruebas
       ? '<p class="en-pruebas" role="note">Tienda en pruebas: los pagos en línea de esta tienda todavía no cobran de verdad.</p>\n'
       : '';
+  // HU-T8.6: la vista previa también lo dice antes que nada, en cada página.
+  const enVista = t.vistaPrevia
+    ? '<p class="en-pruebas" role="note">Vista previa: así se verá tu tienda cuando publiques. Solo la ve quien tenga este enlace, y aquí no se puede pedir ni pagar.</p>\n'
+    : '';
   const documento = (p: Pagina) => {
     const verificacion =
       p.ruta === '/' && t.googleVerificacion
@@ -277,10 +286,10 @@ export async function hornear(publicada: TiendaParaHornear): Promise<Map<string,
       : '';
     const gemelo = p.ruta === '/' ? '/index.md' : `${p.ruta}index.md`;
     return `<!doctype html>
-<html lang="es-CO" data-estilo="${t.apariencia.estilo}" data-portada="${t.apariencia.portada}" data-modo="${t.apariencia.modo}">
+<html lang="es-CO" data-estilo="${t.apariencia.estilo}" data-portada="${t.apariencia.portada}" data-modo="${t.apariencia.modo}"${t.vistaPrevia ? ' data-vista-previa' : ''}>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">${p.privada ? '\n<meta name="robots" content="noindex">' : ''}
+<meta name="viewport" content="width=device-width, initial-scale=1">${p.privada || t.vistaPrevia ? '\n<meta name="robots" content="noindex">' : ''}
 <title>${escaparHtml(p.titulo)}</title>${descripcion}
 <link rel="canonical" href="${escaparHtml(url(p.ruta))}">
 <link rel="alternate" type="text/markdown" href="${escaparHtml(gemelo)}">
@@ -294,7 +303,7 @@ export async function hornear(publicada: TiendaParaHornear): Promise<Map<string,
 ${p.ld.map(jsonLd).join('\n')}
 </head>
 <body>
-${enPruebas}<header class="franja"><a class="marca" href="/">${escaparHtml(t.nombre)}</a><a class="franja__buscar" href="/buscar/">Buscar</a></header>
+${enVista}${enPruebas}<header class="franja"><a class="marca" href="/">${escaparHtml(t.nombre)}</a><a class="franja__buscar" href="/buscar/">Buscar</a></header>
 <main>
 ${p.cuerpo}
 </main>
