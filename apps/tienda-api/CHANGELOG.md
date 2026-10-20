@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Tus métricas frente a tus pedidos (HU-T14.6): cada semana, el Inicio del panel compara los pedidos y pagos de tu tienda con lo que contó su medición, y explica la diferencia en los dos sentidos. Tus ventas siempre salen de tus pedidos. El flujo «cuadrar-tienda» lo calcula al momento.
 - Google Analytics y el píxel de Meta, con permiso del comprador (HU-T14.4): con el código en «Ajustes › Medición», la tienda pide permiso antes de medir, con «No acepto» y «Acepto» iguales, y nada de Google ni de Meta carga hasta que la persona acepta. Cada compra lleva el código del pedido. El píxel de Meta solo se ofrece con tu propio dominio.
 - Las páginas propias (HU-T10.2): en «Más › Páginas» el comercio escribe «Quiénes somos», «Cómo comprar» o lo que quiera, con negrita, listas y enlaces. Cada una sale en su tienda al publicar, con su enlace al pie de cada página. Una página no puede tomar una dirección que la tienda ya usa.
 - Ver la tienda antes de publicar (HU-T8.6): en «Publicar y versiones», «Ver antes de publicar» da un enlace que muestra cómo quedará la tienda con lo que tienes ahora en el panel, sin cambiar lo que ven tus clientes. Dura un día, no aparece en los buscadores y ahí no se puede pedir ni pagar. Si a la tienda le falta algo para publicar, también lo dice.

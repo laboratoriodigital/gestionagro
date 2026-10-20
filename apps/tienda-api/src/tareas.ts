@@ -34,6 +34,7 @@ import { enviarTelegram } from '@ed1/telegram';
 import { borrarLasBajas } from './baja.ts';
 import { CONCILIAR } from './conciliar.ts';
 import { CORREOS } from './correos.ts';
+import { cuadrarTiendas, ventanaDeLaSemana } from './cuadre.ts';
 import { revisarDominios } from './dominios.ts';
 import { FRENO_R2 } from './freno-r2.ts';
 import { claveDelHost, direccionesDelPlan, punteroDelHost } from './hosts.ts';
@@ -78,6 +79,8 @@ export interface EntornoDeTareas {
   release?: string;
   /** HU-T13.1: Cloudflare for SaaS, para preguntar por los dominios propios que esperan. */
   saas?: Saas;
+  /** HU-T14.6: el dataset de Analytics Engine de la medición de las tiendas, en este ambiente. */
+  datasetDeEventos?: string;
 }
 
 export interface Tarea {
@@ -657,6 +660,39 @@ export const PLANES_VENCIDOS: Tarea = {
   },
 };
 
+/**
+ * HU-T14.6 CA1: cada semana, en el turno de cada tienda, sus pedidos y pagos de la base frente a lo
+ * que contó la medición de su vitrina, los 7 días anteriores. Una consulta a Analytics Engine por
+ * shard y vuelta; dos lecturas de la base por tienda. El tablero muestra el último cuadre.
+ */
+export const CUADRE_DE_EVENTOS: Tarea = {
+  nombre: 'cuadre-de-eventos',
+  frecuencia: 'semana',
+  repartida: true,
+  async correr(e, instante) {
+    const token = e.metricas?.token;
+    const cuenta = e.metricas?.cuenta;
+    if (!token || !cuenta || !e.datasetDeEventos)
+      return 'sin el token de métricas o el dataset: nada que cuadrar';
+    const v = ventanaDeLaSemana(instante);
+    const m = {
+      token,
+      cuenta,
+      dataset: e.datasetDeEventos,
+      fetch: e.fetch ?? ((u: RequestInfo | URL, i?: RequestInit) => fetch(u, i)),
+    };
+    let cuadradas = 0;
+    for (const [, db] of e.shards) {
+      const { results } = await db
+        .prepare("SELECT org_id FROM tienda WHERE estado IN ('abierta', 'suspendida')")
+        .all<{ org_id: string }>();
+      const orgs = results.map((t) => t.org_id).filter((o) => leToca(o, instante, 'semana'));
+      cuadradas += (await cuadrarTiendas(db, orgs, m, instante)).length;
+    }
+    return `${cuadradas} tienda(s) cuadradas, semana del ${v.semana}`;
+  },
+};
+
 export const TAREAS: readonly Tarea[] = [
   RECONSTRUIR_HOSTS,
   PURGAS,
@@ -673,4 +709,5 @@ export const TAREAS: readonly Tarea[] = [
   HOSTNAMES_COLGANTES,
   BAJAS,
   PLANES_VENCIDOS,
+  CUADRE_DE_EVENTOS,
 ];

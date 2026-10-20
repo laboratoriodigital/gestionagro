@@ -97,6 +97,7 @@ import { iniciarCobro, PeticionDeCobro } from './cobros.ts';
 import { estadoDelCobro, PeticionDeEstadoDelCobro } from './conciliar.ts';
 import { correosDeLaCelda, mandarAcuse, mandarResultadoDePrueba } from './correos.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
+import { cuadrarTiendas, ventanaDeLaSemana } from './cuadre.ts';
 import {
   conectarDominio,
   elegirCanonico,
@@ -2181,6 +2182,44 @@ export function crearApp(
   });
 
   /**
+   * HU-T14.6: cuadrar la semana de una tienda ahora, sin esperar su turno. Lo usa el flujo
+   * `cuadrar-tienda`: staging no tiene cron (D-T10). Responde solo cifras, nunca datos de nadie.
+   */
+  app.post('/api/despliegue/cuadre', async (c) => {
+    const dado = c.req.header('x-despliegue');
+    if (!dado || !mismoSecreto(c.env.SECRETO_DESPACHO ?? '', dado)) return c.json(NO_EXISTE, 404);
+    const cuerpo = (await c.req.json().catch(() => null)) as { org?: unknown } | null;
+    if (typeof cuerpo?.org !== 'string')
+      return c.json({ estado: 'problemas', motivo: 'falta la tienda' }, 422);
+    const { CF_METRICAS_TOKEN: token, CF_CUENTA: cuenta } = c.env;
+    if (!token || !cuenta) return c.json({ estado: 'sin-configurar', motivo: 'sin métricas' }, 503);
+    const shards = Object.entries(c.env).filter(([n, b]) => SHARD.test(n) && b) as [
+      string,
+      BaseD1,
+    ][];
+    for (const [, db] of shards) {
+      const suya = await db
+        .prepare('SELECT 1 AS si FROM tienda WHERE org_id = ?')
+        .bind(cuerpo.org)
+        .first<{ si: number }>();
+      if (!suya) continue;
+      const [hecho] = await cuadrarTiendas(
+        db,
+        [cuerpo.org],
+        {
+          token,
+          cuenta,
+          dataset: c.env.AMBIENTE === 'staging' ? 'tienda_eventos_staging' : 'tienda_eventos',
+          fetch: (u, i) => fetch(u, i),
+        },
+        ahora(),
+      );
+      return c.json({ estado: 'cuadrado', semana: ventanaDeLaSemana(ahora()).semana, ...hecho });
+    }
+    return c.json(NO_EXISTE, 404);
+  });
+
+  /**
    * HU-T13.6: suspender o levantar una tienda, con un clic del operador (el flujo
    * `suspender-tienda`), con el secreto del despacho en `x-despliegue`.
    */
@@ -2261,6 +2300,8 @@ export async function alCron(env: Env, instante: number): Promise<void> {
       ...(env.SITIOS ? { almacen: env.SITIOS as unknown as AlmacenDeRespaldos } : {}),
       ...(env.MEDIOS ? { medios: env.MEDIOS } : {}),
       ...(env.VITRINA_RELEASE ? { release: env.VITRINA_RELEASE } : {}),
+      // HU-T14.6: el dataset de la medición, el mismo que `generar-wrangler.ts` enlaza.
+      datasetDeEventos: env.AMBIENTE === 'staging' ? 'tienda_eventos_staging' : 'tienda_eventos',
     },
     instante,
     TAREAS,

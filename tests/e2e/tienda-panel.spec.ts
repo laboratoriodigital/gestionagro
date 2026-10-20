@@ -2577,6 +2577,13 @@ test('HU-T14.2 · CA1: Inicio dice lo urgente arriba, cómo voy frente a febrero
           sinCostos: 1,
           enCamino: 1,
         },
+        // HU-T14.6: la última semana cuadrada.
+        cuadre: {
+          semana: '2028-03-20',
+          pedidos: { base: 4, eventos: 3 },
+          pagos: { base: 1, eventos: 1 },
+          calculado: '2028-03-27T10:00:00.000Z',
+        },
       },
     }),
   );
@@ -2602,6 +2609,14 @@ test('HU-T14.2 · CA1: Inicio dice lo urgente arriba, cómo voy frente a febrero
   await expect(page.getByText('$440.000')).toBeVisible();
   await expect(page.getByText('77 %')).toBeVisible();
   await expect(page.getByText(/A 1 pedido le falta la comisión o el flete/)).toBeVisible();
+  // HU-T14.6 CA1: la base frente a las métricas, en los dos sentidos.
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Tus métricas frente a tus pedidos' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/4 pedidos en tu tienda y 3 en tus métricas: 1 pedido sin medir/),
+  ).toBeVisible();
+  await expect(page.getByText('Cuadran: 1 pago en tu tienda y en tus métricas.')).toBeVisible();
   await sinFallasDeAxe(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
   await pendientes.first().getByRole('link').click();

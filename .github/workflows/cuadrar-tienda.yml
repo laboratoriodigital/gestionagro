@@ -1,0 +1,42 @@
+# Cuadrar ya la semana de una tienda (HU-T14.6): sus pedidos y pagos frente a lo que contó la
+# medición de su vitrina, sin esperar su turno. Staging no tiene cron (D-T10): así se ve la
+# aceptación de M5 con los comercios de prueba. Solo a mano; el resultado sale en el Inicio del panel.
+name: cuadrar-tienda
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: "staging o produccion"
+        required: true
+        default: staging
+        type: choice
+        options: [staging, produccion]
+      org:
+        description: "El id de la organización de la tienda"
+        required: true
+        type: string
+
+concurrency:
+  group: cuadrar-tienda-${{ github.ref }}-${{ inputs.org }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cuadrar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: ${{ inputs.ambiente }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Cuadrar la semana de la tienda
+        env:
+          SECRETO_DESPACHO: ${{ secrets.SECRETO_DESPACHO }}
+          AMBIENTE: ${{ inputs.ambiente }}
+          ORG: ${{ inputs.org }}
+        run: node scripts/tienda/cuadrar.ts --ambiente "$AMBIENTE" --org "$ORG"

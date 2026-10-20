@@ -13,12 +13,14 @@ import { enLista } from '../cobro.ts';
 import {
   type Cifras,
   comparacion,
+  cuadreEnPalabras,
   enPorcentaje,
   margen,
   mesAnteriorEnPalabras,
   pendientesEnOrden,
   type Tablero,
 } from '../tablero.ts';
+import { fechaLegible } from '../terminos.ts';
 import { NOMBRE_DEL_ROL } from './ElegirTienda.tsx';
 
 const ESTADO_DE_LA_TIENDA: Readonly<Record<string, string>> = {
@@ -126,6 +128,17 @@ function ElTablero({ t }: { t: Tablero }) {
           {ce.enCamino ? <p class="nota">Y {pedidos(ce.enCamino)} en camino.</p> : null}
         </Tarjeta>
       )}
+
+      {t.cuadre ? (
+        <>
+          <h2>Tus métricas frente a tus pedidos</h2>
+          <Tarjeta titulo={`La semana que empezó el ${fechaLegible(t.cuadre.semana)}`}>
+            <p>{cuadreEnPalabras('pedidos', t.cuadre.pedidos)}</p>
+            <p>{cuadreEnPalabras('pagos', t.cuadre.pagos)}</p>
+            <p class="nota">Tus ventas de arriba salen de tus pedidos, no de las métricas.</p>
+          </Tarjeta>
+        </>
+      ) : null}
     </>
   );
 }

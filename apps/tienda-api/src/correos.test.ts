@@ -542,6 +542,7 @@ describe('HU-T14.3 · el resumen diario', () => {
       hoy: cero,
       mes: { ...cero, ventasCop: 1_258_000 },
       anterior: { ...cero, ventasCop: 900_000 },
+      cuadre: null,
       pendientes: {
         porConfirmar: 0,
         porDespachar: 0,
