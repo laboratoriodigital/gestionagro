@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El pago del plan en efectivo (HU-C5.8): el dueño lo registra con el flujo `registrar-pago-en-efectivo` y queda como uno de Bold, con `proveedor = 'efectivo'`, su periodo, la nota y quién lo registró en la auditoría; el plan se activa con la misma regla. La migración 0010 permite ese proveedor en `pago`. Pasos en `docs/runbooks/pago-en-efectivo.md`.
 - El adaptador de correo `@ed1/correo` (HU-C10.1): Gmail por su API, con el refresh token de OAuth y el permiso `gmail.send`, para el CORE y la Tienda, cada uno con sus secretos. Sin configuración responde «no disponible» y nunca finge haber enviado. El código del CORE no cambia todavía: lo usará el enlace para entrar (HU-C10.2) y los avisos de vencimiento (HU-C10.3).
 
 ### Cambiado

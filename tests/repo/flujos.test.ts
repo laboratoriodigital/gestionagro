@@ -83,6 +83,17 @@ describe('despliegue e inyección (HU-E1.5)', () => {
     expect(revisarConcurrencia('d.yml', sinCancelar)).toEqual([]);
   });
 
+  it('un registro del dueño tampoco se corta a medio escribir (HU-C5.8)', () => {
+    const conCancelar = flujo(
+      'name: registrar-pago\nconcurrency: { group: r, cancel-in-progress: true }',
+    );
+    const sinCancelar = flujo(
+      'name: registrar-pago\nconcurrency: { group: r, cancel-in-progress: false }',
+    );
+    expect(revisarConcurrencia('r.yml', conCancelar)).toHaveLength(1);
+    expect(revisarConcurrencia('r.yml', sinCancelar)).toEqual([]);
+  });
+
   it('rechaza interpolar una entrada dentro de un run; por env está bien', () => {
     const expresion = ['$', '{{ inputs.solo_celda }}'].join('');
     const f = flujo(

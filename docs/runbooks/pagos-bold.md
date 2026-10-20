@@ -39,6 +39,7 @@ Solo después: `BOLD_IDENTIDAD_PRODUCCION` y `BOLD_SECRETA_PRODUCCION` en GitHub
 
 ## Lo que no hace todavía
 
+- **Pago en efectivo:** si el cliente paga en mano, se registra con el flujo `registrar-pago-en-efectivo` (`pago-en-efectivo.md`).
 - **Factura electrónica (DIAN):** el pago no la emite. **Decisión provisional del dueño (5 oct 2026):** por ahora se entrega una factura simple, hecha a mano, con el comprobante de Bold, mientras se define con el contador qué hacer de forma definitiva. Esa decisión **no está validada por el contador**: antes del primer cobro real hay que confirmarle que esta factura simple es suficiente para el caso (ED1 §5.3). La app no genera ni guarda facturas.
 - **Débito automático:** no hay. Se paga por 1, 3, 6 o 12 meses (HU-C5.3), y cada periodo cuenta meses calendario desde el vencimiento vigente o desde hoy. Una semana antes del vencimiento, Planes lo avisa; al vencer, la finca vuelve al plan Gratis sin perder nada.
 - **Cambiar el precio:** `cobro` del plan en `content/agro/cuaderno/planes.json`, un monto por periodo (`cobro_mensual_cop` es el de 1 mes). Lo fija el dueño, dentro del rango que muestra el plan. Hoy, el plan Finca cuesta 39.000 por 1 mes, 111.000 por 3, 210.000 por 6 y 390.000 por 12. Desde HU-C5.3, el cobro sale del precio vigente en la base (`plan_precio`), que el despliegue copia de ese archivo: un precio nuevo entra como fila nueva y el anterior queda como historia.

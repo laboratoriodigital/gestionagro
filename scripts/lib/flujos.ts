@@ -67,22 +67,23 @@ export function revisarTiempos(archivo: string, flujo: Flujo): Hallazgo[] {
 
 /**
  * CI: cancela la corrida vieja de la misma rama (ahorra minutos).
- * Despliegue (flujos «desplegar…»): NUNCA cancela uno a medias; los encola en un solo grupo.
+ * Despliegue (flujos «desplegar…») y registros de datos del dueño («registrar…», HU-C5.8): NUNCA
+ * cancela uno a medias; los encola en un solo grupo.
  */
 export function revisarConcurrencia(archivo: string, flujo: Flujo): Hallazgo[] {
   const c = flujo.concurrency;
-  const esDespliegue = /^desplegar/.test(flujo.name ?? '');
+  const noSeCorta = /^(desplegar|registrar)/.test(flujo.name ?? '');
   if (typeof c !== 'object') {
     return [{ archivo, motivo: 'falta «concurrency»' }];
   }
-  if (esDespliegue) {
+  if (noSeCorta) {
     return c['cancel-in-progress'] === false && c.group
       ? []
       : [
           {
             archivo,
             motivo:
-              'un flujo de despliegue necesita «concurrency» con grupo y «cancel-in-progress: false»: cancelar a medias deja celdas a medio desplegar',
+              'un flujo de despliegue o de registro necesita «concurrency» con grupo y «cancel-in-progress: false»: cancelar a medias deja celdas a medio desplegar o un registro a medio escribir',
           },
         ];
   }

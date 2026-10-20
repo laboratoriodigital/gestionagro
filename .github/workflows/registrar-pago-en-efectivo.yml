@@ -1,0 +1,87 @@
+# Registrar un pago del plan en efectivo (HU-C5.8): el cliente le pagó al dueño en mano. Queda como
+# un pago de Bold, con su periodo, «efectivo» y quién lo registró, y el plan se activa con la misma
+# regla. Sin «confirmar: si» solo muestra lo que haría. Solo a mano. Pasos en
+# docs/runbooks/pago-en-efectivo.md.
+name: registrar-pago-en-efectivo
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: "staging o produccion"
+        required: true
+        default: produccion
+        type: choice
+        options: [staging, produccion]
+      producto:
+        description: "El producto del plan"
+        required: true
+        default: parqueadero
+        type: choice
+        options: [parqueadero, agro]
+      cliente:
+        description: "El correo de quien administra la cuenta del cliente, o el id de su organización"
+        required: true
+        type: string
+      plan:
+        description: "El plan que pagó (parqueadero, finca…)"
+        required: true
+        default: parqueadero
+        type: string
+      meses:
+        description: "Cuántos meses pagó"
+        required: true
+        default: "12"
+        type: choice
+        options: ["1", "3", "6", "12"]
+      monto:
+        description: "Opcional: lo que pagó, en pesos. Vacío: el precio del plan por esos meses"
+        required: false
+        default: ""
+        type: string
+      nota:
+        description: "Cómo y dónde pagó (queda en el pago y en la auditoría)"
+        required: true
+        type: string
+      confirmar:
+        description: "«no» solo muestra lo que haría; «si» lo registra"
+        required: true
+        default: "no"
+        type: choice
+        options: ["no", "si"]
+
+concurrency:
+  group: registrar-pago-en-efectivo-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  registrar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: ${{ inputs.ambiente }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+      - name: Registrar el pago
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          AMBIENTE: ${{ inputs.ambiente }}
+          PRODUCTO: ${{ inputs.producto }}
+          CLIENTE: ${{ inputs.cliente }}
+          PLAN: ${{ inputs.plan }}
+          MESES: ${{ inputs.meses }}
+          MONTO: ${{ inputs.monto }}
+          NOTA: ${{ inputs.nota }}
+          CONFIRMAR: ${{ inputs.confirmar }}
+          REGISTRA: ${{ github.actor }}
+        run: node scripts/registrar-pago-en-efectivo.ts
