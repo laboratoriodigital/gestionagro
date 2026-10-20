@@ -11,6 +11,7 @@
     "./dominios": "./src/dominios.ts",
     "./ensayos": "./src/ensayos.ts",
     "./medios": "./src/medios.ts",
+    "./paginas": "./src/paginas.ts",
     "./permisos": "./src/permisos.ts",
     "./tapado": "./src/tapado.ts",
     "./titulos": "./src/titulos.ts",

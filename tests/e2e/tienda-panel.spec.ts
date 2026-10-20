@@ -3138,3 +3138,64 @@ test('HU-T8.6 · CA1: ver antes de publicar da el enlace de la vista previa y lo
     .analyze();
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
+
+test('HU-T10.2 · CA1 y CA2: una página «Quiénes somos», con la dirección que sale del título y la que no se puede', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  let paginas: Record<string, unknown>[] = [];
+  const guardadas: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/paginas`, (r) => r.fulfill({ json: { paginas } }));
+  await page.route(`${PANEL}/api/panel/v1/paginas/guardar`, (r) => {
+    const cuerpo = r.request().postDataJSON() as Record<string, unknown>;
+    guardadas.push(cuerpo);
+    if (cuerpo['slug'] === 'carrito')
+      return r.fulfill({
+        status: 422,
+        json: {
+          estado: 'problemas',
+          problemas: [
+            {
+              campo: 'slug',
+              mensaje: 'Esa dirección la usa la tienda. Elige otra, como quienes-somos.',
+            },
+          ],
+        },
+      });
+    paginas = [{ id: 'pg-1', version: 1, visible: true, ...cuerpo }];
+    return r.fulfill({
+      json: { estado: 'guardado', id: 'pg-1', version: 1, slug: cuerpo['slug'] },
+    });
+  });
+  await page.goto(`${PANEL}/mas/`);
+  await page.getByRole('link', { name: 'Páginas: quiénes somos y más' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Páginas' })).toBeVisible();
+  await page.getByRole('button', { name: 'Nueva página' }).click();
+  await page.getByLabel('Título').fill('Quiénes somos');
+  await expect(page.getByLabel('Su dirección en tu tienda')).toHaveValue('quienes-somos');
+  await page.getByLabel('El texto').fill('Un taller **familiar** de Medellín.');
+
+  // ❌ CA2: una dirección de la tienda la rechaza la API, y el panel lo dice en el campo.
+  await page.getByLabel('Su dirección en tu tienda').fill('carrito');
+  await page.getByRole('button', { name: 'Guardar la página' }).click();
+  await expect(page.getByText('Esa dirección la usa la tienda').first()).toBeVisible();
+
+  await page.getByLabel('Su dirección en tu tienda').fill('quienes-somos');
+  await page.getByRole('button', { name: 'Guardar la página' }).click();
+  await expect(
+    page.getByText(
+      'Guardaste «Quiénes somos». Sale en tu tienda en /quienes-somos/ cuando publiques.',
+    ),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Editar «Quiénes somos»' })).toBeVisible();
+  expect(guardadas.at(-1)).toMatchObject({
+    slug: 'quienes-somos',
+    titulo: 'Quiénes somos',
+    cuerpo: 'Un taller **familiar** de Medellín.',
+    visible: true,
+  });
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});

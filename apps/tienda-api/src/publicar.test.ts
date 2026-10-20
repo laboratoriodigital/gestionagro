@@ -538,3 +538,41 @@ describe('la vista previa (HU-T8.6)', () => {
     }
   });
 });
+
+describe('las páginas propias al publicar (HU-T10.2)', () => {
+  it('CA1: la visible sale en la tienda; la oculta y la borrada, no', async () => {
+    const poner = (id: string, slug: string, visible: number, borrado: string | null) =>
+      shard
+        .prepare(
+          'INSERT INTO pagina (org_id, id, slug, titulo, cuerpo_md, visible, actualizado, borrado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        )
+        .bind(
+          ENSAYO_DOS.org,
+          id,
+          slug,
+          `Página ${slug}`,
+          'Texto de prueba.',
+          visible,
+          AHORA,
+          borrado,
+        )
+        .run();
+    await poner('pg-1', 'quienes-somos', 1, null);
+    await poner('pg-2', 'borrador-oculto', 0, null);
+    await poner('pg-3', 'ya-borrada', 1, AHORA);
+    try {
+      const r2 = almacen();
+      expect(await publicar(contexto(ENSAYO_DOS.org, r2))).toMatchObject({ estado: 'publicada' });
+      const m = JSON.parse(
+        r2.objetos.get(`sitios/${ENSAYO_DOS.org}/1/manifiesto.json`) ?? '{}',
+      ) as {
+        archivos: Record<string, unknown>;
+      };
+      expect(m.archivos['/quienes-somos/index.html']).toBeDefined();
+      expect(m.archivos['/borrador-oculto/index.html']).toBeUndefined();
+      expect(m.archivos['/ya-borrada/index.html']).toBeUndefined();
+    } finally {
+      await shard.prepare('DELETE FROM pagina WHERE org_id = ?').bind(ENSAYO_DOS.org).run();
+    }
+  });
+});

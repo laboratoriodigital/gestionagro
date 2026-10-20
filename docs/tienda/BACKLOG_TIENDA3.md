@@ -1009,7 +1009,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T10.1.1 `[código]` · WI-T10.1.2 `[prueba]` casos de `dinero`.
 
 #### HU-T10.2 · Páginas propias
-- **Capa:** panel · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** T17 · **Depende de:** HU-T4.2 · **Estado:** Refinada
+- **Capa:** panel · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** T17 · **Depende de:** HU-T4.2 · **Estado:** En validación (rama `feat/t17-sprint`. «Más › Páginas» (`paginas.editar`) crea, edita con su versión y borra a la papelera de 30 días las páginas de la tabla `pagina`, que ya existía; cada cambio deja su frase en el registro. La dirección sale del título. Al publicar, cada página visible se hornea en `/<dirección>/` con Markdown seguro (`markdownSeguro`) y su gemelo, entra al sitemap y su enlace va en el pie de toda página. CA2: `leerDireccionDePagina` (`@ed1/tienda-schema/paginas`) rechaza las direcciones de `DIRECCIONES_DEL_SISTEMA`, y la base rechaza dos páginas con la misma. `paginas.test.ts` del horno hornea una tienda completa y exige que cada tramo que hornea esté reservado (P2). `paginas.test.ts` de la API prueba crear, editar, el conflicto de versión, borrar y el registro)
 - Como comerciante, quiero una página «Quiénes somos» sin tocar código.
 - **Respaldo:** TIENDA §5.3 (`pagina`). Va después de M6 porque el anexo C no la lista; si HU-T12.1 dice que una tienda 2.0 la usa, se adelanta.
 - **CA1.** Markdown seguro, con su enlace en el pie o el menú.

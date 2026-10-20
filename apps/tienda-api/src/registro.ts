@@ -229,6 +229,12 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('edit', 'aste', 'ó')} el envío «${nombre}»`;
     case 'envio.borrar':
       return `${hizo('mand', 'aste', 'ó')} el envío «${nombre}» a la papelera`;
+    case 'pagina.crear':
+      return `${hizo('cre', 'aste', 'ó')} la página «${nombre}»`;
+    case 'pagina.editar':
+      return `${hizo('edit', 'aste', 'ó')} la página «${nombre}»`;
+    case 'pagina.borrar':
+      return `${hizo('mand', 'aste', 'ó')} la página «${nombre}» a la papelera`;
     case 'cupon.crear':
       return `${hizo('cre', 'aste', 'ó')} el cupón ${nombre}`;
     case 'cupon.editar':

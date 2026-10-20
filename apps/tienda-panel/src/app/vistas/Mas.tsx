@@ -36,6 +36,11 @@ export function Mas({
         <li>
           <a href="/mas/ajustes/">Ajustes de la tienda</a>
         </li>
+        {puede(rol, 'paginas.editar') ? (
+          <li>
+            <a href="/mas/paginas/">Páginas: quiénes somos y más</a>
+          </li>
+        ) : null}
         <li>
           <a href="/mas/plan/">Tu plan</a>
         </li>

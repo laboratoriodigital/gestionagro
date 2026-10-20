@@ -115,6 +115,14 @@ export interface TiendaParaHornear {
    * despacho la sirve en `/_vista/<huella>/` y no deja pedir, pagar ni medir desde ella.
    */
   vistaPrevia?: boolean;
+  /** HU-T10.2: las páginas propias visibles, en Markdown, cada una en `/<slug>/`. */
+  paginas?: readonly PaginaParaHornear[];
+}
+
+export interface PaginaParaHornear {
+  slug: string;
+  titulo: string;
+  cuerpo: string;
 }
 
 export interface ArchivoHorneado {
@@ -272,6 +280,12 @@ export async function hornear(publicada: TiendaParaHornear): Promise<Map<string,
     t.cobroEnLinea && t.cobroEnPruebas
       ? '<p class="en-pruebas" role="note">Tienda en pruebas: los pagos en línea de esta tienda todavía no cobran de verdad.</p>\n'
       : '';
+  // HU-T10.2 CA1: las páginas propias, enlazadas en el pie de cada página.
+  const paginasPropias = [...(t.paginas ?? [])].sort((a, b) => (a.slug < b.slug ? -1 : 1));
+  const propias =
+    paginasPropias.length > 0
+      ? `\n<nav class="pie__enlaces" aria-label="Sobre la tienda">${paginasPropias.map((p) => `<a href="/${escaparHtml(p.slug)}/">${escaparHtml(p.titulo)}</a>`).join('')}</nav>`
+      : '';
   // HU-T8.6: la vista previa también lo dice antes que nada, en cada página.
   const enVista = t.vistaPrevia
     ? '<p class="en-pruebas" role="note">Vista previa: así se verá tu tienda cuando publiques. Solo la ve quien tenga este enlace, y aquí no se puede pedir ni pagar.</p>\n'
@@ -308,7 +322,7 @@ ${enVista}${enPruebas}<header class="franja"><a class="marca" href="/">${escapar
 ${p.cuerpo}
 </main>
 <footer class="pie">
-<p class="pie__nombre">${escaparHtml(t.nombre)}</p>${identidad}
+<p class="pie__nombre">${escaparHtml(t.nombre)}</p>${identidad}${propias}
 <nav class="pie__enlaces" aria-label="Información legal">${TEXTOS_LEGALES.map((l) => `<a href="${l.ruta}">${escaparHtml(ENLACE_DEL_PIE[l.id] ?? l.titulo)}</a>`).join('')}</nav>
 <p><a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a></p>
 <p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>
@@ -840,6 +854,24 @@ ${p.cuerpo}
     });
   }
 
+  // HU-T10.2: cada página propia, con su gemelo. Su texto es Markdown seguro, como la descripción
+  // de un producto: nada de HTML del comercio llega a la página.
+  for (const p of paginasPropias) {
+    const ruta = `/${p.slug}/`;
+    pagina({
+      ruta,
+      titulo: `${p.titulo} · ${t.nombre}`,
+      cuerpo: `<h1>${escaparHtml(p.titulo)}</h1>\n<div class="legal">${markdownSeguro(p.cuerpo)}</div>`,
+      ld: [
+        migas([
+          [t.nombre, '/'],
+          [p.titulo, ruta],
+        ]),
+      ],
+      gemelo: `# ${markdownPlano(p.titulo)}\n\n${p.cuerpo.trim()}\n`,
+    });
+  }
+
   // La búsqueda (HU-T5.3): la página está horneada; buscar ocurre en el teléfono, sobre el catálogo.
   pagina({
     ruta: '/buscar/',
@@ -897,6 +929,7 @@ ${p.cuerpo}
     ...paginasDeColeccion.map((r) => [r, ultima] as const),
     ...(hayMas ? todos.map((_, k) => [rutaDePagina('/productos/', k + 1), ultima] as const) : []),
     ...legales.map((x) => [x.ruta, undefined] as const),
+    ...paginasPropias.map((p) => [`/${p.slug}/`, undefined] as const),
   ] as const;
   poner(
     '/sitemap.xml',

@@ -127,6 +127,7 @@ import {
 } from './llaves.ts';
 import { comprobarIdentidad, guardarLlaves, leerElCobro, probarLlaves } from './llaves-de-bold.ts';
 import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
+import { borrarPagina, guardarPagina, listarPaginas } from './paginas.ts';
 import {
   cerrarSolicitud,
   listarSolicitudes,
@@ -1885,6 +1886,22 @@ export function crearApp(
   app.post(
     '/api/panel/v1/cupones/borrar',
     cambioDelPedido('cupones.editar', borrarCupon, deCupones),
+  );
+
+  // HU-T10.2: las páginas propias. Salen en la tienda al publicar.
+  app.get('/api/panel/v1/paginas', async (c) => {
+    const q = quienPuede(c, 'paginas.editar', 'Tu rol no puede ver las páginas.');
+    if (q instanceof Response) return q;
+    return c.json(await listarPaginas(q));
+  });
+  const dePaginas = 'Tu rol no puede cambiar las páginas.';
+  app.post(
+    '/api/panel/v1/paginas/guardar',
+    cambioDelPedido('paginas.editar', guardarPagina, dePaginas),
+  );
+  app.post(
+    '/api/panel/v1/paginas/borrar',
+    cambioDelPedido('paginas.editar', borrarPagina, dePaginas),
   );
 
   // HU-T10.3: los ajustes por sección. Lo que pide cada cambio lo decide `accionesDeAjuste`.

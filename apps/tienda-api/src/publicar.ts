@@ -356,6 +356,13 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
       dias_min: number | null;
       dias_max: number | null;
     }>();
+  // HU-T10.2: las páginas propias visibles.
+  const { results: paginas } = await c.shard
+    .prepare(
+      'SELECT slug, titulo, cuerpo_md FROM pagina WHERE org_id = ? AND visible = 1 AND borrado IS NULL ORDER BY slug',
+    )
+    .bind(c.org)
+    .all<{ slug: string; titulo: string; cuerpo_md: string }>();
   const { canonico } = await direccionesDe(c);
   if (!canonico) return { falla: 'la tienda no tiene una dirección activa' };
 
@@ -459,6 +466,9 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     legal: datosLegales,
     productos: paraHornear,
     colecciones: [...porColeccion].map(([slug, col]) => ({ slug, ...col })),
+    ...(paginas.length > 0
+      ? { paginas: paginas.map((p) => ({ slug: p.slug, titulo: p.titulo, cuerpo: p.cuerpo_md })) }
+      : {}),
     // HU-T11.4: el carrito ofrece pagar en línea; HU-T11.3: en pruebas, la franja lo dice.
     ...(quiereEnLinea
       ? {
