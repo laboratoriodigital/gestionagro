@@ -26,7 +26,7 @@
  */
 
 import { crearLectorKillSwitch, type LectorKillSwitch } from '@ed1/kill-switch';
-import { cspDeLaVitrina } from '@ed1/tienda-horno/csp';
+import { cspDeLaVitrina, type Tercero, tercerosDeLaDireccion } from '@ed1/tienda-horno/csp';
 import politica from '../../../content/tienda/privacidad/politica.json' with { type: 'json' };
 import { securityTxt } from '../../core/src/security-txt.ts';
 
@@ -88,6 +88,8 @@ export interface Manifiesto {
   archivos: Record<string, { huella: string; tipo: string; bytes: number }>;
   /** HU-T8.2 CA3: la dirección vieja de un producto y la de ahora. */
   redirecciones?: Record<string, string>;
+  /** HU-T14.4: lo que la versión mide con terceros. */
+  terceros?: Tercero[];
   huella: string;
 }
 
@@ -198,8 +200,12 @@ const CABECERAS_DE_AVISO = {
  * Las fotos, solo de su host (`MEDIOS`, HU-T5.6): el de producción o el de staging, nunca los dos.
  * El carrito suma Bold, para pagar en línea (HU-T11.4).
  */
-export const cabecerasDeLaVitrina = (medios: string | undefined, ruta?: string) => ({
-  'content-security-policy': cspDeLaVitrina(medios, ruta),
+export const cabecerasDeLaVitrina = (
+  medios: string | undefined,
+  ruta?: string,
+  terceros: readonly Tercero[] = [],
+) => ({
+  'content-security-policy': cspDeLaVitrina(medios, ruta, terceros),
   // Sin includeSubDomains: los otros subdominios de un comercio no son nuestros (TIENDA §4.4).
   'strict-transport-security': 'max-age=31536000',
   'x-content-type-options': 'nosniff',
@@ -428,7 +434,12 @@ export function crearDespacho(
       }
       return new Response(await objeto.text(), {
         headers: {
-          ...cabecerasDeLaVitrina(env.MEDIOS, url.pathname),
+          // HU-T14.4: Meta nunca en una dirección de la plataforma (D-T13).
+          ...cabecerasDeLaVitrina(
+            env.MEDIOS,
+            url.pathname,
+            tercerosDeLaDireccion(m.terceros, url.hostname),
+          ),
           'content-type': archivo.tipo,
           'cache-control': 'public, max-age=60',
           vary: 'Accept',

@@ -333,6 +333,7 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         org={sesion.org_id}
         rol={yo.datos.rol}
         seccion={ruta.split('/')[3] as Seccion}
+        dominioPropio={yo.datos.dominioPropio === true}
         alVencer={setVencida}
       />
     );

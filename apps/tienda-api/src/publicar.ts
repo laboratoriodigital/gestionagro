@@ -32,6 +32,7 @@ import {
   type ProductoParaLaCompuerta,
   plazoDelEnvio,
   type TiendaParaHornear,
+  tercerosDe,
 } from '@ed1/tienda-horno';
 import {
   leerFormatos,
@@ -463,6 +464,16 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     ...(medicion['googleVerificacion']
       ? { googleVerificacion: medicion['googleVerificacion'] as string }
       : {}),
+    // HU-T14.4: GA4 y el píxel de Meta, con su aviso; el horno y el despacho deciden qué carga.
+    ...(medicion['ga4'] || medicion['pixelMeta']
+      ? {
+          terceros: {
+            ...opcional('ga4', texto(medicion['ga4'])),
+            ...opcional('pixelMeta', texto(medicion['pixelMeta'])),
+            ...opcional('aviso', texto(medicion['avisoConsentimiento'])),
+          },
+        }
+      : {}),
     legal: datosLegales,
     productos: paraHornear,
     colecciones: [...porColeccion].map(([slug, col]) => ({ slug, ...col })),
@@ -573,7 +584,8 @@ async function entregar(
   const apuntar = (v: number) => apuntarA(c, direcciones, v);
 
   // 4 y 6. El manifiesto, y si nada cambió.
-  const m = await manifiesto(archivos, h.redirecciones);
+  // HU-T14.4: lo que la versión mide con terceros, para la CSP del despacho.
+  const m = await manifiesto(archivos, h.redirecciones, tercerosDe(h.datos));
   if (versionPublicada !== null) {
     const anterior = await c.shard
       .prepare('SELECT huella FROM publicacion WHERE org_id = ? AND version = ?')

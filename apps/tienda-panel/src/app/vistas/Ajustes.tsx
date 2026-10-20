@@ -114,6 +114,7 @@ export function AjusteDeSeccion({
   org,
   rol,
   seccion,
+  dominioPropio = false,
   alVencer,
 }: {
   conexion: Conexion;
@@ -121,6 +122,8 @@ export function AjusteDeSeccion({
   org: string;
   rol: string;
   seccion: Seccion;
+  /** HU-T14.4: si la dirección principal es el dominio propio del comercio. */
+  dominioPropio?: boolean;
   alVencer: (motivo: string) => void;
 }) {
   const [lectura, setLectura] = useState<Lectura>({ tipo: 'cargando' });
@@ -189,6 +192,7 @@ export function AjusteDeSeccion({
         seccion={seccion}
         datos={lectura.datos}
         version={lectura.version}
+        dominioPropio={dominioPropio}
         alVencer={alVencer}
         alGuardar={async () => {
           setAviso(`Guardamos ${titulo.toLowerCase()}.`);
@@ -271,6 +275,7 @@ function Formulario({
   seccion,
   datos,
   version,
+  dominioPropio,
   alVencer,
   alGuardar,
   alRecargar,
@@ -282,6 +287,7 @@ function Formulario({
   seccion: Seccion;
   datos: Record<string, unknown>;
   version: number;
+  dominioPropio: boolean;
   alVencer: (motivo: string) => void;
   alGuardar: () => Promise<void>;
   alRecargar: () => Promise<void>;
@@ -293,7 +299,8 @@ function Formulario({
   const [cambiado, setCambiado] = useState<string | null>(null);
   const [prohibido, setProhibido] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
-  const campos = CAMPOS[seccion];
+  // HU-T14.4 CA3: lo que pide dominio propio no se ofrece sin él; su valor guardado no se toca.
+  const campos = CAMPOS[seccion].filter((c) => !c.soloConDominioPropio || dominioPropio);
   const errorDe = (campo: string) => errores.find((e) => e.campo === idDe(campo))?.mensaje;
 
   const guardar = async (e: Event) => {

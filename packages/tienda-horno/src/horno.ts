@@ -20,6 +20,7 @@ import {
   TIPOS_DE_SOLICITUD,
 } from '@ed1/tienda-schema';
 import { llmsTxt, manifiestoWeb, robotsDeLaTienda } from './agentes.ts';
+import { esDeLaPlataforma, type Tercero } from './csp.ts';
 import { escaparHtml, markdownPlano, markdownSeguro } from './escapar.ts';
 import { archivosDeLosFeeds, type FeedsEncendidos } from './feeds.ts';
 import {
@@ -115,6 +116,11 @@ export interface TiendaParaHornear {
    * despacho la sirve en `/_vista/<huella>/` y no deja pedir, pagar ni medir desde ella.
    */
   vistaPrevia?: boolean;
+  /**
+   * HU-T14.4 (D-T13): GA4 y el píxel de Meta que el comercio configuró, y su aviso. Nada carga sin
+   * el consentimiento del comprador; el píxel, solo con dominio propio.
+   */
+  terceros?: { ga4?: string; pixelMeta?: string; aviso?: string };
   /** HU-T10.2: las páginas propias visibles, en Markdown, cada una en `/<slug>/`. */
   paginas?: readonly PaginaParaHornear[];
 }
@@ -123,6 +129,21 @@ export interface PaginaParaHornear {
   slug: string;
   titulo: string;
   cuerpo: string;
+}
+
+const GA4 = /^G-[A-Z0-9]{4,12}$/;
+const PIXEL = /^\d{8,20}$/;
+
+/**
+ * HU-T14.4: lo que la tienda mide con terceros, para la CSP de su versión: GA4 si su código es
+ * válido; el píxel de Meta, además, solo con dominio propio (D-T13).
+ */
+export function tercerosDe(t: Pick<TiendaParaHornear, 'terceros' | 'dominio'>): Tercero[] {
+  const r: Tercero[] = [];
+  if (t.terceros?.ga4 && GA4.test(t.terceros.ga4)) r.push('ga4');
+  if (t.terceros?.pixelMeta && PIXEL.test(t.terceros.pixelMeta) && !esDeLaPlataforma(t.dominio))
+    r.push('meta');
+  return r;
 }
 
 export interface ArchivoHorneado {
@@ -286,6 +307,24 @@ export async function hornear(publicada: TiendaParaHornear): Promise<Map<string,
     paginasPropias.length > 0
       ? `\n<nav class="pie__enlaces" aria-label="Sobre la tienda">${paginasPropias.map((p) => `<a href="/${escaparHtml(p.slug)}/">${escaparHtml(p.titulo)}</a>`).join('')}</nav>`
       : '';
+  // HU-T14.4 CA1: el aviso de consentimiento, oculto hasta que la vitrina sepa si hace falta.
+  // Aceptar y rechazar, dos botones iguales; nada de afuera carga antes de aceptar.
+  const medidos = tercerosDe(t);
+  const nombresDeLaMedicion = medidos
+    .map((x) => (x === 'ga4' ? 'Google Analytics' : 'Meta'))
+    .join(' y ');
+  const avisoDeMedicion =
+    medidos.length > 0
+      ? `\n<aside class="consentimiento" data-consentimiento${medidos.includes('ga4') ? ` data-ga4="${escaparHtml(t.terceros?.ga4 ?? '')}"` : ''}${medidos.includes('meta') ? ` data-pixel="${escaparHtml(t.terceros?.pixelMeta ?? '')}"` : ''} aria-label="Tus datos de medición" hidden><p>${escaparHtml(
+          presente(t.terceros?.aviso)
+            ? (t.terceros?.aviso as string)
+            : `Con tu permiso, esta tienda mide sus visitas con ${nombresDeLaMedicion} para saber qué funciona y mostrar sus productos a más personas. Si no aceptas, la tienda funciona igual.`,
+        )} <a href="/legal/privacidad/">Política de datos</a></p><div class="consentimiento__botones"><button class="boton boton--secundario" type="button" data-rechazar>No acepto</button><button class="boton boton--secundario" type="button" data-aceptar>Acepto</button></div></aside>`
+      : '';
+  const preferencias =
+    medidos.length > 0
+      ? '\n<p><button class="enlace" type="button" data-preferencias>Tus datos de medición</button></p>'
+      : '';
   // HU-T8.6: la vista previa también lo dice antes que nada, en cada página.
   const enVista = t.vistaPrevia
     ? '<p class="en-pruebas" role="note">Vista previa: así se verá tu tienda cuando publiques. Solo la ve quien tenga este enlace, y aquí no se puede pedir ni pagar.</p>\n'
@@ -325,8 +364,8 @@ ${p.cuerpo}
 <p class="pie__nombre">${escaparHtml(t.nombre)}</p>${identidad}${propias}
 <nav class="pie__enlaces" aria-label="Información legal">${TEXTOS_LEGALES.map((l) => `<a href="${l.ruta}">${escaparHtml(ENLACE_DEL_PIE[l.id] ?? l.titulo)}</a>`).join('')}</nav>
 <p><a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a></p>
-<p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>
-</footer>
+<p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>${preferencias}
+</footer>${avisoDeMedicion}
 <a class="barra-pedido" href="/carrito/" data-pedido hidden>Tu pedido <span class="cifra" data-cantidad>0</span></a>
 <script type="module" src="/_t/${escaparHtml(t.release)}/vitrina.js"></script>
 </body>
@@ -1007,9 +1046,12 @@ ${p.cuerpo}
 export async function manifiesto(
   archivos: Map<string, ArchivoHorneado>,
   redirecciones: Readonly<Record<string, string>> = {},
+  /** HU-T14.4: lo que la versión mide con terceros; el despacho suma sus orígenes a la CSP. */
+  terceros: readonly Tercero[] = [],
 ): Promise<{
   archivos: Record<string, { huella: string; tipo: string; bytes: number }>;
   redirecciones?: Record<string, string>;
+  terceros?: Tercero[];
   huella: string;
 }> {
   const entradas: [string, { huella: string; tipo: string; bytes: number }][] = [];
@@ -1030,11 +1072,13 @@ export async function manifiesto(
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   return {
     archivos: Object.fromEntries(entradas),
+    ...(terceros.length > 0 ? { terceros: [...terceros].sort() } : {}),
     ...(saltos.length > 0 ? { redirecciones: Object.fromEntries(saltos) } : {}),
     huella: await huella(
       [
         ...entradas.map(([r, e]) => `${r} ${e.huella}`),
         ...saltos.map(([desde, hacia]) => `${desde} -> ${hacia}`),
+        ...[...terceros].sort().map((x) => `tercero ${x}`),
       ].join('\n'),
     ),
   };

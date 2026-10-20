@@ -1148,3 +1148,17 @@ La regla: **lo que vuelve a la vista pasa por la compuerta; lo que se oculta no 
 La regla: **un secreto guardado no está en producción hasta el siguiente despliegue; y una ruta comodín se revisa contra cada dirección que ya existe en la zona.**
 
 *Ficha:* tienda3 · *(dueño y mío)* · 🟠 Medio · P1, P2 · tienda-0.1.0 · 2026-10-20
+
+**42 · El CA1 de GA4 y el píxel decía «solo con dominio propio»; la decisión del dueño, otra cosa.**
+
+*Qué pasó.* El 20 oct 2026, al construir HU-T14.4, contrasté su CA1 («solo con dominio propio») con D-T13, decidida el 13 oct.
+
+*Causa raíz.* La historia se refinó antes de la decisión. D-T13 separa a los dos: GA4 deja su cookie en la dirección exacta de la tienda, así que una tienda en `laboratorio-digital.app` no comparte al comprador con otra; la cookie del píxel de Meta no se puede limitar así.
+
+*Arreglo.* Se construyó con D-T13: GA4 también en la dirección de la plataforma, con `cookie_domain`; Meta solo con dominio propio, en el panel, el horno y la CSP del despacho. Los dos, solo después de que el comprador acepta.
+
+*Otra premisa.* «El consentimiento se guarda con su versión»: se guarda en el teléfono del comprador, no en la base. La tienda no sabe quién visita, y guardarlo en la base pediría un identificador del visitante, que es lo que el aviso protege. Si el aviso cambia de versión, se vuelve a preguntar.
+
+La regla: **cuando una decisión del dueño es posterior al criterio, gana la decisión, y el criterio se corrige en el backlog.**
+
+*Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P1 · tienda-0.1.0 · 2026-10-20

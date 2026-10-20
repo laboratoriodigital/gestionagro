@@ -142,6 +142,7 @@ import {
   seguimiento,
   sha256,
 } from './pedidos.ts';
+import { limitesDeLaTienda } from './plan.ts';
 import {
   type Almacen,
   type EscritorKv,
@@ -1054,12 +1055,23 @@ export function crearApp(
       .prepare('SELECT slug, nombre, estado FROM tienda WHERE org_id = ?')
       .bind(s.org)
       .first<{ slug: string; nombre: string; estado: string }>();
+    // HU-T14.4 CA3: el píxel de Meta solo se ofrece con el dominio propio como dirección principal.
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    const canonica = control
+      ? await control
+          .prepare(
+            "SELECT tipo FROM dominio INDEXED BY dominio_por_tienda WHERE org_id = ? AND estado = 'activo' AND rol = 'canonico'",
+          )
+          .bind(s.org)
+          .first<{ tipo: string }>()
+      : null;
     // HU-T8.1 CA1: lo que permite el plan, para que el panel esconda lo que no hay. Lo decide la API.
     return c.json({
       org: s.org,
       rol: s.rol,
       plan: s.plan,
       planVence: s.planVence === null ? null : new Date(s.planVence * 1000).toISOString(),
+      dominioPropio: canonica?.tipo === 'propio' && limitesDeLaTienda(s.plan).dominioPropio,
       funciones: s.plan ? funcionesDelPlan(funciones as unknown as FuncionesPorPlan, s.plan) : null,
       tienda: tienda ?? null,
       // HU-T7.2 CA1: si falta aceptar los términos vigentes, el panel los pide antes de seguir.
