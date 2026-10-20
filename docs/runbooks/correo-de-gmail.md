@@ -54,7 +54,7 @@ Para producción, lo mismo con `--ambiente produccion` y la cuenta de Laboratori
 | «el id del cliente termina en .apps.googleusercontent.com» | Copia otra vez el id y el secreto de **Credenciales** |
 | «Google no dio el permiso (access_denied)» | Volviste atrás en el permiso, o entraste con otra cuenta. Corre el script de nuevo |
 | «Google no dio el permiso duradero» | Google ya había dado uno a esta app. Quita su acceso en [myaccount.google.com/permissions](https://myaccount.google.com/permissions) y vuelve a correrlo |
-| «el permiso no incluye enviar correos» | En la pantalla de Google, marca la casilla de Gmail |
+| «el permiso no incluye enviar correos» | Google muestra una casilla por cada permiso, y la de enviar correo empieza sin marcar. Vuelve a correr el script y marca «Enviar correo electrónico en tu nombre» (o «Seleccionar todo») antes de Continuar. Si Google no muestra las casillas, quita el acceso de la app en [myaccount.google.com/permissions](https://myaccount.google.com/permissions) y vuelve a correrlo |
 | «pasaron 5 minutos sin la vuelta de Google» | Vuelve a correrlo y acepta en el navegador antes de los 5 minutos |
 | En `/api/salud`: «el permiso de Gmail no sirve» | Se venció (la app quedó «en prueba») o alguien lo quitó: revisa el paso 3 de Google Cloud y vuelve a correr el script |
 
