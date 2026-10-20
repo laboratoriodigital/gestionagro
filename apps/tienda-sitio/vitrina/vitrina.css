@@ -499,6 +499,9 @@ h1 {
   color: var(--texto-suave);
   font-size: var(--texto-pequeno);
 }
+.pedido__vaciar {
+  margin: 0;
+}
 .pedido__whatsapp a {
   display: inline-flex;
   align-items: center;

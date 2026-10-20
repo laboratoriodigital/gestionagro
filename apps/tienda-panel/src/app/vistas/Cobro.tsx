@@ -467,7 +467,7 @@ export function Cobro({
           conexion={conexion}
           alGuardar={(a) => {
             setListo(
-              `Bold reconoció tu llave de identidad de ${NOMBRE_DEL_AMBIENTE[a].toLowerCase()}. La secreta se comprueba con el cobro de prueba.`,
+              `Bold reconoció tu llave de identidad de ${NOMBRE_DEL_AMBIENTE[a].toLowerCase()}. La secreta se comprueba con el cobro de prueba. No hace falta publicar: la tienda usa estas llaves desde ya.`,
             );
             void cargar();
           }}

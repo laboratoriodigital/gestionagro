@@ -272,6 +272,7 @@ async function carritoPagina(): Promise<void> {
   const resumen = pagina.querySelector<HTMLElement>('[data-resumen]');
   const aviso = pagina.querySelector<HTMLElement>('[data-aviso-carrito]');
   const codigo = pagina.querySelector<HTMLElement>('[data-codigo]');
+  const vaciarBoton = pagina.querySelector<HTMLButtonElement>('[data-vaciar]');
   const venta = pagina.querySelector<HTMLFormElement>('[data-venta]');
   const datosDeVenta = JSON.parse(document.getElementById('venta')?.textContent ?? '{}') as {
     envios?: { id: string }[];
@@ -356,6 +357,7 @@ async function carritoPagina(): Promise<void> {
     );
     const vacioAhora = carrito.lineas.length === 0;
     vacio.hidden = !vacioAhora;
+    if (vaciarBoton) vaciarBoton.hidden = vacioAhora;
     resumen.hidden = vacioAhora;
     if (venta) venta.hidden = vacioAhora;
     if (codigo) {
@@ -486,10 +488,8 @@ async function carritoPagina(): Promise<void> {
       sesion.escribir(CLAVE_DEL_COBRO, token);
     }
     const opcional = (nombre: string) => (valorDe(nombre) ? { [nombre]: valorDe(nombre) } : {});
-    let r: Response;
-    let cuerpo: RespuestaDeCobro;
-    try {
-      r = await fetch('/api/v1/cobros', {
+    const pedir = async () => {
+      const respuesta = await fetch('/api/v1/cobros', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -505,7 +505,26 @@ async function carritoPagina(): Promise<void> {
           entrega: { ...entrega(), ...opcional('direccion'), ...opcional('correo') },
         }),
       });
-      cuerpo = (await r.json().catch(() => ({}))) as RespuestaDeCobro;
+      return {
+        r: respuesta,
+        cuerpo: (await respuesta.json().catch(() => ({}))) as RespuestaDeCobro,
+      };
+    };
+    let r: Response;
+    let cuerpo: RespuestaDeCobro;
+    try {
+      ({ r, cuerpo } = await pedir());
+      // El pago de este código ya se cerró sin pagarse, u otro pedido tiene el código: el carrito
+      // toma otro código y otro token, y lo intenta una vez más (el pedido viejo queda por pagar).
+      if (r.status === 409 && (cuerpo.estado === 'renovar' || cuerpo.estado === 'codigo-en-uso')) {
+        carrito = { v: 1, codigo: codigoNuevo(azar), lineas: carrito.lineas };
+        carrito = conSecreto(carrito, azar);
+        guardar(carrito);
+        token = secretoNuevo(azar);
+        sesion.escribir(CLAVE_DEL_COBRO, token);
+        if (codigo) codigo.textContent = carrito.codigo;
+        ({ r, cuerpo } = await pedir());
+      }
     } catch {
       decir(avisoVenta, 'No pudimos iniciar el pago. Revisa tu conexión e intenta de nuevo.');
       return;
@@ -653,6 +672,18 @@ async function carritoPagina(): Promise<void> {
       enviando = false;
       boton?.removeAttribute('aria-busy');
     }
+  });
+  // Vaciar el pedido: otro código y otro token. Un pedido ya registrado con el código anterior
+  // queda en la tienda, por pagar, y se sigue con su enlace.
+  vaciarBoton?.addEventListener('click', () => {
+    if (!window.confirm('¿Vaciar tu pedido? Se quitan todos los productos.')) return;
+    carrito = vaciar(azar);
+    guardar(carrito);
+    sesion.escribir(CLAVE_DEL_COBRO, '');
+    decir(avisoVenta, undefined);
+    const enlaceDelPago = venta?.querySelector<HTMLElement>('[data-enlace-del-pago]');
+    if (enlaceDelPago) enlaceDelPago.hidden = true;
+    pintar();
   });
   pintarForma();
   pintar();

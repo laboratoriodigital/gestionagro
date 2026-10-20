@@ -1025,3 +1025,30 @@ La regla: **antes de construir lo que depende de la infraestructura, se mira dó
 La regla: **una integración de terceros se prueba una vez con el tercero de verdad, en el navegador, antes de darla por hecha; el doble de mentira no trae sus estilos ni sus errores.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Medio · P5, P17 · tienda-0.1.0 · 2026-10-19
+
+**36 · Un pago que no se completó dejaba el carrito atascado en su código, y no había cómo vaciarlo.**
+
+*Qué pasó.* El 20 oct 2026, después del primer pago de prueba fallido en Ensayo Dos (bitácora 35), el dueño volvió a pedir.
+- El carrito seguía con el mismo código.
+- Al tocar «Pagar en línea» la tienda decía «Este pedido ya está registrado».
+- No había forma de empezar de cero.
+
+*Síntoma literal.* «Este pedido ya está registrado. Síguelo con el enlace de tu pedido.»
+
+*Causa raíz.* El código del carrito se reusa a propósito, para que tocar «Pagar» dos veces no cree dos pedidos (HU-T6.3 CA3), y el carrito solo se vaciaba cuando el pago salía bien. Si el cobro de ese código ya se había cerrado (venció a los 15 minutos o Bold lo rechazó), la API no tenía un botón que devolver y respondía «ya registrado» para siempre. El código nunca cambiaba. Las pruebas cubrían el reintento con el cobro todavía abierto, no con el cobro cerrado.
+
+*Arreglo.*
+- **La API** distingue los tres casos:
+  - el cobro sigue abierto y es la misma pestaña: el mismo botón, firmado con las llaves de ahora;
+  - el cobro sigue abierto en otra pestaña: espera, y lo dice;
+  - el cobro se cerró y el pedido sigue por pagar: responde `renovar`.
+
+  El pedido viejo queda por pagar, por si el aviso de Bold llega tarde (HU-T11.6).
+- **La página**, con `renovar` (o `codigo-en-uso`), toma otro código, otro enlace de seguimiento y otro token, y lo intenta una vez más sin que el comprador haga nada.
+- **«Vaciar el pedido»** en el carrito: pregunta, quita todo y deja otro código.
+
+**Lo prueba** `cobros.test.ts`: con el cobro vencido, `renovar` sin otro cobro, y el código nuevo registra; un pedido pagado no se renueva. `tienda-vitrina.spec.ts`: el carrito atascado se renueva solo y abre Bold con el código nuevo, y vaciar deja otro código sin cobro. Control negativo: sin `renovar`, la e2e se queda en «ya registrado».
+
+La regla: **todo lo que se reusa para no duplicar necesita su salida para cuando lo reusado ya no sirve.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1, P5 · tienda-0.1.0 · 2026-10-20

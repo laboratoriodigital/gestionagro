@@ -724,3 +724,85 @@ test('HU-T5.7 CA2 · el comprador de punta a punta a 360 px: portada, ficha, ped
   ]);
   expect(ancho).toBeLessThanOrEqual(visible ?? 0);
 });
+
+test('bitácora tienda3 36 · un pago cerrado sin pagarse no deja el carrito atascado, y el pedido se vacía', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('sembrado')) {
+      sessionStorage.setItem('sembrado', '1');
+      localStorage.setItem(
+        'tienda:carrito',
+        JSON.stringify({
+          v: 1,
+          codigo: 'VEN234',
+          lineas: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+          cobro: '2026-10-16T15:00:00.000Z',
+          seguimiento: 'seguimiento-viejo-xxxx',
+        }),
+      );
+    }
+  });
+  await apiDelPedido(page);
+  const cobros: Record<string, unknown>[] = [];
+  await page.route('**/api/v1/cobros', async (ruta) => {
+    const cuerpo = JSON.parse(ruta.request().postData() ?? '{}') as Record<string, unknown>;
+    cobros.push(cuerpo);
+    // El primer intento es del código viejo, cuyo pago ya se cerró: la API pide renovar.
+    if (cuerpo['codigo'] === 'VEN234') {
+      return ruta.fulfill({ status: 409, json: { estado: 'renovar' } });
+    }
+    return ruta.fulfill({
+      json: {
+        estado: 'registrado',
+        codigo: cuerpo['codigo'],
+        numero: 1002,
+        total: 129000,
+        vence: '2026-10-16T15:30:00.000Z',
+        boton: {
+          libreria: 'https://checkout.bold.co/library/boldPaymentButton.js',
+          checkout: { orderId: `${String(cuerpo['codigo'])}-1` },
+        },
+      },
+    });
+  });
+  await page.route('https://checkout.bold.co/**', (ruta) =>
+    ruta.fulfill({
+      contentType: 'text/javascript',
+      body: 'window.BoldCheckout = class { constructor(d) { window.__bold = d; } open() { window.__boldAbierto = true; } };',
+    }),
+  );
+
+  await page.goto(`${TIENDA}/carrito/`);
+  await page.locator('label.opcion-grande', { hasText: 'En línea' }).click();
+  await page.locator('input[name="nombre"]').fill('Ensayo Dos Compradora');
+  await page.locator('input[name="celular"]').fill('3001234567');
+  await page.locator('[data-acepta]').check();
+  await page.locator('[data-enviar]').click();
+
+  await expect
+    .poll(() => page.evaluate(() => (window as { __boldAbierto?: boolean }).__boldAbierto))
+    .toBe(true);
+  expect(cobros).toHaveLength(2);
+  const [viejo, nuevo] = cobros;
+  expect(viejo?.['codigo']).toBe('VEN234');
+  expect(nuevo?.['codigo']).toMatch(/^[0-9A-HJKMNP-TV-Z]{6}$/);
+  expect(nuevo?.['codigo']).not.toBe('VEN234');
+  // Otro token y otro enlace de seguimiento: el pedido viejo no se mezcla con el nuevo.
+  expect(nuevo?.['token']).not.toBe(viejo?.['token']);
+  expect(nuevo?.['seguimiento']).not.toBe('seguimiento-viejo-xxxx');
+  await expect(page.locator('[data-codigo]')).toHaveText(String(nuevo?.['codigo']));
+
+  // Vaciar el pedido: pregunta, quita todo y deja otro código.
+  page.once('dialog', (d) => void d.accept());
+  await page.getByRole('button', { name: 'Vaciar el pedido' }).click();
+  await expect(page.locator('.linea')).toHaveCount(0);
+  await expect(page.locator('[data-vacio]')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Vaciar el pedido' })).toBeHidden();
+  const carrito = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('tienda:carrito') ?? '{}'),
+  );
+  expect(carrito.lineas).toEqual([]);
+  expect(carrito.codigo).not.toBe(nuevo?.['codigo']);
+  expect(carrito).not.toHaveProperty('cobro');
+});
