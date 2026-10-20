@@ -149,6 +149,9 @@ jobs:
           TIENDA_KEK_V5: ${{ secrets.TIENDA_KEK_V5 }}
           # HU-T13.1: Cloudflare for SaaS, solo hostnames de la zona de las tiendas; se prueba antes de cargarlo.
           CF_SAAS_TOKEN: ${{ secrets.CF_SAAS_TOKEN }}
+          # HU-T13.4: el widget de Turnstile del alta (la clave del sitio y su secreto).
+          TURNSTILE_SITIO: ${{ secrets.TURNSTILE_SITIO }}
+          TURNSTILE_SECRETO: ${{ secrets.TURNSTILE_SECRETO }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           # HU-T14.3: los correos de las tiendas por Gmail. Sin ellos, cada correo queda sin enviar.

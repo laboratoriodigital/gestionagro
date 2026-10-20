@@ -168,8 +168,10 @@ const TIENDA: Api = {
   tablas: TABLAS_TIENDA,
   archivos: ['worker.ts'],
   excepciones: {
-    'select org_id, version_publicada, estado from tienda':
-      'la tarea diaria rehace TIENDA_HOSTS con todas las tiendas del shard; no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.1)',
+    'select org_id, version_publicada, estado, plan from tienda':
+      'la tarea diaria rehace TIENDA_HOSTS con todas las tiendas del shard, con el plan de cada una (HU-T13.5); no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.1)',
+    'select org_id from tienda where plan_vence is not null':
+      'la tarea de cada hora busca en el shard las tiendas con el plan vencido y pasa cada una al gratuito con su org_id = ?; no hay token ni usuario, y nada sale en una respuesta (vencimiento.ts, HU-T13.5)',
     'select org_id from tienda':
       'la purga diaria recorre las tiendas del shard y purga cada una con su org_id = ?; no hay token ni usuario, y nada sale en una respuesta (tareas.ts, HU-T17.2)',
     'select count(*) as n from correo where dia = ?':
@@ -186,6 +188,8 @@ const TIENDA: Api = {
       'rotar la KEK reenvuelve las DEK de todas las tiendas del shard; cada una se reescribe con su org_id = ?, y nada sale en una respuesta (llaves.ts, HU-T17.6)',
     'select org_id, proposito, version, envuelta, kek_id from llave indexed by llave_por_kek':
       'terminada la rotación se comprueba que la KEK vigente abre cada DEK del shard; solo sale cuántas no abre (llaves.ts, HU-T17.6 CA2)',
+    "select org_id from tienda indexed by tienda_baja_por_borrar where estado = 'baja' and datos_borrados is null and baja_pedida <= ? limit 20":
+      'la tarea diaria busca en el shard las tiendas dadas de baja hace 30 días; cada una se borra con su org_id = ? y nada sale en una respuesta (baja.ts, HU-T13.7)',
   },
 };
 

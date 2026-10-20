@@ -893,7 +893,7 @@ El link sirve también para el **traspaso de un pedido preparado por un agente**
 | `/pedido/`, `/pedido/pago/`, `/pedido/confirmar/`, `/solicitud/` | Las páginas dinámicas, que son estáticas con su JavaScript |
 | `/tema-<huella>.css` | Colores y tipografía de la tienda. Así la CSP de estilos queda en `'self'` |
 | `/robots.txt`, `/sitemap.xml`, `/llms.txt`, `/.well-known/{api-catalog, agent-skills/index.json, mcp/server-card.json, security.txt}`, `/skills/comprar/SKILL.md` | Agentes (§11.8). *Hoy (HU-T15.1): `security.txt` no se hornea, porque su `Expires` depende del día y el horno no tiene reloj; lo sirve el despacho. Se hornea también `manifest.webmanifest`* |
-| `/feeds/google.xml`, `/feeds/meta.csv`, `/feeds/productos.jsonl` (si `agentes.feeds`) | Listados gratuitos de Google, el catálogo de Meta (Instagram, Facebook y WhatsApp) y el feed de productos con el formato ACP. El estudio pone el catálogo para Meta y Google en el básico (§8.1 [C3]) |
+| `/feeds/google.xml`, `/feeds/meta.csv`, `/feeds/productos.jsonl` (si `agentes.feeds`) | Listados gratuitos de Google, el catálogo de Meta (Instagram, Facebook y WhatsApp) y el feed de productos con el formato ACP. El estudio pone el catálogo para Meta y Google en el básico (§8.1 [C3]). *(Hoy, HU-T14.5: una fila por combinación; un producto sin foto o sin precio queda fuera y el panel dice por qué)* |
 | `/manifest.webmanifest`, íconos | Instalar la tienda en el teléfono |
 
 Los assets comunes a todas las tiendas (`/_t/<release>/app.js`, `app.css` y las fuentes) son Workers Static Assets de `tienda-sitio`: gratis y fuera de R2.
@@ -1040,6 +1040,8 @@ La CSP de cada tienda se calcula al hornear según sus ajustes y va en el manifi
   - el tablero compara cada semana los pedidos de la base con los eventos `pago_confirmado` y `iniciar_pedido`, y muestra la diferencia: lo que no midieron los bloqueadores o el rechazo del consentimiento, y lo que se midió sin pedido;
   - la base manda: las ventas del tablero salen de los pedidos, nunca de los eventos.
 - **La conversión del lado del servidor** (la API de conversiones de Meta) queda fuera del MVP, con su disparador (§20.3).
+
+*(Hoy, HU-T14.1: la vitrina manda un lote de conteos por página con `sendBeacon` a `/_m`; la API escribe un punto en Analytics Engine por lote, con la tienda como índice. Sin cookies, IP ni identificadores. 60 lotes por minuto por IP.)*
 
 ### 11.7 Buscadores y vista previa
 
@@ -1231,7 +1233,7 @@ Sin contador ni abogado por ahora (decisión 5 del dueño): **cada obligación l
 | Índice ciego | `HMAC-SHA256(DEK indices, celular en E.164)`, truncado a 128 bits. Busca sin guardar en claro |
 | Rotar la KEK | KEK nueva → la cola reenvuelve todas las DEK → la vieja se retira cuando ninguna la usa. *(Hoy, HU-T17.6, sin colas en el plan gratuito: la nueva es `TIENDA_KEK_V<n+1>` y la de número más alto es la vigente. Reenvuelve el despliegue al cargarla, y el cron cada hora lo que falte. El despliegue borra del Worker la que salió del ambiente solo si ninguna DEK la usa y la vigente sola abre todas. Runbook: `docs/runbooks/tienda-rotar-la-kek.md`)* |
 | Rotar una DEK | Versión nueva para lo que se escribe. Lo viejo se vuelve a cifrar en segundo plano o se queda con su versión |
-| **Borrado criptográfico** | Dar de baja una tienda, ofrecida su exportación y pasados 30 días, borra su DEK `datos_personales`. Los respaldos de llaves se retienen 35 días y Time Travel guarda 30, así que **el borrado es efectivo a los 35 días** como máximo. Así lo dice la política |
+| **Borrado criptográfico** | Dar de baja una tienda, ofrecida su exportación y pasados 30 días, borra su DEK `datos_personales`. Los respaldos de llaves se retienen 35 días y Time Travel guarda 30, así que **el borrado es efectivo a los 35 días** como máximo. Así lo dice la política. *(Hoy, HU-T13.7, bitácora tienda3 39: a los 30 días se borran las DEK de datos personales y de índices y los respaldos de R2 de esa tienda, que las guardan envueltas hasta 3 meses. Queda el historial de D1, 30 días con Workers Paid: el borrado es efectivo a los **60 días** de la baja, y eso dice la política)* |
 
 ### 14.3 Ley 1581 de 2012: controles técnicos
 

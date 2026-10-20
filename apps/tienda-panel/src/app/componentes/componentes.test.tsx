@@ -95,7 +95,13 @@ describe('las cabeceras del panel', () => {
     expect(core).toHaveLength(2);
     const csp = cabecerasDelPanel(core).match(/Content-Security-Policy: (.*)/)?.[1] ?? '';
     expect(csp).toContain(`connect-src 'self' ${core.join(' ')};`);
-    expect(csp).toContain("script-src 'self';");
+    // HU-T13.4: Turnstile, solo su origen, como programa y como marco.
+    // HU-T13.5: el programa de Bold para pagar el plan, solo como programa.
+    expect(csp).toContain(
+      "script-src 'self' https://challenges.cloudflare.com https://checkout.bold.co;",
+    );
+    expect(csp).toContain('frame-src https://challenges.cloudflare.com;');
+    expect(csp).not.toContain('unsafe-inline');
     expect(csp).toContain("frame-ancestors 'none'");
     expect(cabecerasDelPanel(core)).toContain('X-Robots-Tag: noindex');
   });

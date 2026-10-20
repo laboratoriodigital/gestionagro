@@ -439,6 +439,9 @@ importers:
       '@ed1/dinero':
         specifier: workspace:*
         version: link:../../packages/dinero
+      '@ed1/ids':
+        specifier: workspace:*
+        version: link:../../packages/ids
       '@ed1/tienda-schema':
         specifier: workspace:*
         version: link:../../packages/tienda-schema

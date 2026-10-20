@@ -32,6 +32,7 @@ import {
 } from './sesion.ts';
 import { AjusteDeSeccion, Ajustes } from './vistas/Ajustes.tsx';
 import { Anotar } from './vistas/Anotar.tsx';
+import { Baja } from './vistas/Baja.tsx';
 import { Cobro } from './vistas/Cobro.tsx';
 import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
 import { Datos } from './vistas/Datos.tsx';
@@ -44,6 +45,7 @@ import { Inicio } from './vistas/Inicio.tsx';
 import { Existencias, Inventario } from './vistas/Inventario.tsx';
 import { Mas } from './vistas/Mas.tsx';
 import { Bandeja, Pedido } from './vistas/Pedidos.tsx';
+import { Plan } from './vistas/Plan.tsx';
 import { Privacidad } from './vistas/Privacidad.tsx';
 import { Producto } from './vistas/Producto.tsx';
 import { Productos } from './vistas/Productos.tsx';
@@ -153,6 +155,13 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     // La tienda nueva abre en su inicio, no en «Más».
     if (r.sesion?.org_id) irA('/');
   };
+  // HU-T13.4: la tienda recién abierta, con la sesión que ya apunta a ella, en su inicio.
+  const alAbrir = (nueva: Sesion) => {
+    setYo(null);
+    setEligiendo(false);
+    setSesion(nueva);
+    irA('/');
+  };
   const alSalir = async () => {
     await salir(almacen);
     setYo(null);
@@ -187,7 +196,15 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     );
   else if (pantalla === 'entrar') cuerpo = <Entrar aviso={aviso} alEntrar={entrar} />;
   else if (pantalla === 'sin-tienda' && sesion)
-    cuerpo = <SinTienda correo={sesion.usuario.email} alSalir={() => void alSalir()} />;
+    cuerpo = (
+      <SinTienda
+        correo={sesion.usuario.email}
+        conexion={conexion}
+        alAbrir={alAbrir}
+        alVencer={setVencida}
+        alSalir={() => void alSalir()}
+      />
+    );
   else if ((pantalla === 'elegir' || eligiendo) && sesion)
     cuerpo = <ElegirTienda tiendas={sesion.organizaciones} aviso={aviso} alElegir={alElegir} />;
   else if (!yo)
@@ -197,7 +214,15 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
       </main>
     );
   else if (yo.tipo === 'sin-tienda' && sesion)
-    cuerpo = <SinTienda correo={sesion.usuario.email} alSalir={() => void alSalir()} />;
+    cuerpo = (
+      <SinTienda
+        correo={sesion.usuario.email}
+        conexion={conexion}
+        alAbrir={alAbrir}
+        alVencer={setVencida}
+        alSalir={() => void alSalir()}
+      />
+    );
   else if (yo.tipo !== 'ok')
     cuerpo = (
       <main class="contenido">
@@ -334,6 +359,22 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
       />
     );
   } else if (ruta === '/mas/cobro/') cuerpo = <Cobro conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/mas/plan/')
+    cuerpo = (
+      <Plan
+        conexion={conexion}
+        plan={yo.datos.plan}
+        vence={yo.datos.planVence ?? null}
+        funciones={yo.datos.funciones}
+        puedePagar={puede(yo.datos.rol, 'plan.gestionar')}
+        alCambiar={preguntar}
+        alVencer={setVencida}
+      />
+    );
+  else if (ruta === '/mas/baja/' && puede(yo.datos.rol, 'tienda.baja'))
+    cuerpo = (
+      <Baja conexion={conexion} nombre={yo.datos.tienda?.nombre ?? ''} alVencer={setVencida} />
+    );
   else if (ruta === '/mas/dominio/')
     cuerpo = (
       <Dominio

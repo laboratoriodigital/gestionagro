@@ -25,6 +25,7 @@ import { type Conexion, pedirAlPanel } from '../api.ts';
 import { usarBorrador } from '../borradores.ts';
 import { opNueva } from '../catalogo.ts';
 import { Lista } from '../componentes/index.ts';
+import { FeedsDeLaTienda } from './Feeds.tsx';
 
 interface AjustesDelPanel {
   secciones: Partial<Record<Seccion, { datos: Record<string, unknown>; version: number }>>;
@@ -195,6 +196,9 @@ export function AjusteDeSeccion({
         }}
         alRecargar={cargar}
       />
+      {seccion === 'agentes' ? (
+        <FeedsDeLaTienda key={lectura.version} conexion={conexion} alVencer={alVencer} />
+      ) : null}
     </main>
   );
 }

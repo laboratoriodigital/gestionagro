@@ -42,6 +42,8 @@ export interface Yo {
   org: string;
   rol: string;
   plan: string | null;
+  /** HU-T13.5: hasta cuándo dura el plan, con la gracia; null si no vence. */
+  planVence?: string | null;
   funciones: Record<string, ValorDeFuncion> | null;
   tienda: { slug: string; nombre: string; estado: string } | null;
   /** HU-T7.2: si la tienda aceptó los términos vigentes. */

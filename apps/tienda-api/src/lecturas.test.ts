@@ -137,6 +137,8 @@ describe('bitácora tienda3 26 ❌: las filas que lee el panel con la tienda lle
     ['recaudos'],
     ['venta'],
     ['registro'],
+    // HU-T14.5: lo que quedó fuera de los feeds lo calculó publicar; el panel lee una fila.
+    ['feeds'],
   ])('la lista %s no pasa de su tope', async (ruta) => {
     leido();
     const r = await pedir(ruta);

@@ -19,11 +19,13 @@
  */
 import type { BaseD1 } from '@ed1/d1';
 import {
+  alPlan,
   type CodigoDeFalla,
   compuerta,
   type DatosLegales,
   type Falla,
   type FotoParaHornear,
+  fueraDeLosFeeds,
   hornear,
   manifiesto,
   type ProductoParaHornear,
@@ -31,9 +33,15 @@ import {
   plazoDelEnvio,
   type TiendaParaHornear,
 } from '@ed1/tienda-horno';
-import { leerFormatos, type Seccion, validarSeccion } from '@ed1/tienda-schema';
-import { claveDelHost, punteroDelHost } from './hosts.ts';
+import {
+  leerFormatos,
+  limitesMasEstrictos,
+  type Seccion,
+  validarSeccion,
+} from '@ed1/tienda-schema';
+import { claveDelHost, direccionesDelPlan, punteroDelHost } from './hosts.ts';
 import { estadoDeLaPrueba } from './llaves-de-bold.ts';
+import { limitesDeLaTienda, planDeLaTienda } from './plan.ts';
 import { anotar } from './registro.ts';
 
 /** Lo que la publicación usa de un bucket R2. */
@@ -204,13 +212,20 @@ const fallarCon =
     return { estado: 'fallida', motivo };
   };
 
-/** Las direcciones activas de la tienda y su canónica (TIENDA §5.6). */
+/**
+ * Las direcciones activas de la tienda y su canónica (TIENDA §5.6), como las deja su plan: sin
+ * dominio propio en el plan, la canónica es la de la plataforma (HU-T13.5 CA3).
+ */
 async function direccionesDe(c: Contexto) {
-  const { results: dominios } = await c.control
-    .prepare("SELECT hostname, rol FROM dominio WHERE org_id = ? AND estado = 'activo'")
+  const { results } = await c.control
+    .prepare("SELECT hostname, tipo, rol FROM dominio WHERE org_id = ? AND estado = 'activo'")
     .bind(c.org)
-    .all<{ hostname: string; rol: string }>();
-  return { dominios, canonico: dominios.find((d) => d.rol === 'canonico')?.hostname };
+    .all<{ hostname: string; tipo: string; rol: string }>();
+  const { filas, canonico } = direccionesDelPlan(
+    results,
+    limitesDeLaTienda(await planDeLaTienda(c.shard, c.org)).dominioPropio,
+  );
+  return { dominios: filas, canonico };
 }
 
 /** Cada dirección de la tienda, apuntando a la versión `v` (TIENDA §5.6). */
@@ -219,6 +234,12 @@ async function apuntarA(
   { dominios, canonico }: Awaited<ReturnType<typeof direccionesDe>>,
   v: number,
 ) {
+  // HU-T13.6: el estado de la tienda, no uno fijo: publicar no levanta una suspensión.
+  const tienda = await c.shard
+    .prepare('SELECT estado FROM tienda WHERE org_id = ?')
+    .bind(c.org)
+    .first<{ estado: string }>();
+  const estado = tienda?.estado === 'suspendida' ? 'suspendida' : 'abierta';
   for (const d of dominios) {
     await c.hosts.put(
       claveDelHost(d.hostname),
@@ -228,7 +249,7 @@ async function apuntarA(
         shard: c.shardNombre,
         version: v,
         canonico,
-        estado: 'abierta',
+        estado,
         rol: d.rol,
       }),
     );
@@ -254,10 +275,12 @@ export async function publicar(c: Contexto): Promise<Resultado> {
   try {
     // 2. Los datos de la tienda.
     const tienda = await c.shard
-      .prepare('SELECT nombre, version_publicada FROM tienda WHERE org_id = ?')
+      .prepare('SELECT nombre, version_publicada, plan FROM tienda WHERE org_id = ?')
       .bind(c.org)
-      .first<{ nombre: string; version_publicada: number | null }>();
+      .first<{ nombre: string; version_publicada: number | null; plan: string }>();
     if (!tienda) return await fallar('la tienda no existe en su shard');
+    // HU-T13.5: lo que permite su plan. El horno recorta a él; aquí, la compuerta.
+    const limites = limitesDeLaTienda(tienda.plan);
     const { results: filasAjuste } = await c.shard
       .prepare('SELECT seccion, datos FROM ajuste WHERE org_id = ?')
       .bind(c.org)
@@ -265,7 +288,10 @@ export async function publicar(c: Contexto): Promise<Resultado> {
     const ajustes = Object.fromEntries(filasAjuste.map((f) => [f.seccion, seccion(f)])) as Partial<
       Record<Seccion, Record<string, unknown>>
     >;
-    const enLinea = ajustes.venta?.['modo'] === 'en_linea' || ajustes.venta?.['modo'] === 'ambos';
+    // Lo que el comercio eligió se guarda tal cual; el horno lo recorta a su plan (HU-T13.5).
+    const quiereEnLinea =
+      ajustes.venta?.['modo'] === 'en_linea' || ajustes.venta?.['modo'] === 'ambos';
+    const enLinea = quiereEnLinea && limites.cobroEnLinea;
     const ambienteDelCobro: 'pruebas' | 'produccion' =
       ajustes.cobro?.['ambiente'] === 'produccion' ? 'produccion' : 'pruebas';
     const { results: productos } = await c.shard
@@ -426,6 +452,10 @@ export async function publicar(c: Contexto): Promise<Resultado> {
         aiInput: (agentes['aiInput'] as 'yes' | 'no' | undefined) ?? 'yes',
         aiTrain: (agentes['aiTrain'] as 'yes' | 'no' | undefined) ?? 'no',
       },
+      // HU-T14.5: los feeds que el comercio encendió; apagados si no dice.
+      ...(conDefectos('agentes')['feeds']
+        ? { feeds: conDefectos('agentes')['feeds'] as NonNullable<TiendaParaHornear['feeds']> }
+        : {}),
       ...(medicion['googleVerificacion']
         ? { googleVerificacion: medicion['googleVerificacion'] as string }
         : {}),
@@ -433,14 +463,17 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       productos: paraHornear,
       colecciones: [...porColeccion].map(([slug, col]) => ({ slug, ...col })),
       // HU-T11.4: el carrito ofrece pagar en línea; HU-T11.3: en pruebas, la franja lo dice.
-      ...(enLinea
+      ...(quiereEnLinea
         ? {
             cobroEnLinea: true,
             ...(ambienteDelCobro === 'pruebas' ? { cobroEnPruebas: true } : {}),
           }
         : {}),
+      plan: limites,
     };
     const archivos = await hornear(datos);
+    // HU-T13.5 CA3: los productos que pasan del límite quedan ocultos, y la compuerta no los pide.
+    const ocultos = new Set(alPlan(datos).ocultos);
     // HU-T11.3: lo que la compuerta pide para ofrecer el pago en línea.
     const cobroParaLaCompuerta = enLinea
       ? {
@@ -460,17 +493,19 @@ export async function publicar(c: Contexto): Promise<Resultado> {
       : undefined;
     const revision = compuerta({
       ajustes,
-      productos: productos.map(
-        (p): ProductoParaLaCompuerta => ({
-          slug: p.slug,
-          nombre: p.nombre,
-          estado: p.estado,
-          precioCop: variantes.find((v) => v.producto_id === p.id)?.precio_cop ?? null,
-          fotos: medios.filter((f) => f.producto_id === p.id).length,
-          retracto: p.retracto,
-          retractoMotivo: p.retracto_motivo,
-        }),
-      ),
+      productos: productos
+        .filter((p) => !ocultos.has(p.slug))
+        .map(
+          (p): ProductoParaLaCompuerta => ({
+            slug: p.slug,
+            nombre: p.nombre,
+            estado: p.estado,
+            precioCop: variantes.find((v) => v.producto_id === p.id)?.precio_cop ?? null,
+            fotos: medios.filter((f) => f.producto_id === p.id).length,
+            retracto: p.retracto,
+            retractoMotivo: p.retracto_motivo,
+          }),
+        ),
       archivos,
       // La compuerta lee el mismo texto que verá el comprador (HU-T10.1 CA1).
       envios: envios.map((e) => ({
@@ -627,6 +662,8 @@ async function entregar(
   // 7. Los punteros y, al final, la versión publicada.
   await apuntar(version);
   const bytes = Object.values(m.archivos).reduce((s, a) => s + a.bytes, 0);
+  // HU-T13.5: lo que se horneó de verdad, recortado a su plan.
+  const horneada = alPlan(h.datos).tienda;
   await c.shard.batch([
     c.shard
       .prepare(
@@ -635,15 +672,19 @@ async function entregar(
       .bind(c.org),
     c.shard
       .prepare(
-        "UPDATE publicacion SET estado = 'publicada', archivos = ?, bytes = ?, huella = ?, publicada = ?, cobro_ambiente = ?, release = ? WHERE org_id = ? AND version = ?",
+        "UPDATE publicacion SET estado = 'publicada', archivos = ?, bytes = ?, huella = ?, publicada = ?, cobro_ambiente = ?, release = ?, fuera_de_los_feeds = ? WHERE org_id = ? AND version = ?",
       )
       .bind(
         archivos.size,
         bytes,
         m.huella,
         c.ahora,
-        cobroDe(h.datos),
+        cobroDe(horneada),
         h.datos.release,
+        // HU-T14.5 CA2: lo que quedó fuera de los feeds, para el panel.
+        horneada.feeds && Object.values(horneada.feeds).some(Boolean)
+          ? JSON.stringify(fueraDeLosFeeds(horneada))
+          : null,
         c.org,
         version,
       ),
@@ -671,9 +712,9 @@ export async function rehornearExistencias(
   c: Contexto,
 ): Promise<Resultado | { estado: 'sin-publicar' }> {
   const tienda = await c.shard
-    .prepare('SELECT version_publicada FROM tienda WHERE org_id = ?')
+    .prepare('SELECT version_publicada, plan FROM tienda WHERE org_id = ?')
     .bind(c.org)
-    .first<{ version_publicada: number | null }>();
+    .first<{ version_publicada: number | null; plan: string }>();
   if (!tienda?.version_publicada) return { estado: 'sin-publicar' };
   const guardado = await c.sitios.get(claveDeDatos(c.org, tienda.version_publicada));
   if (!guardado) return { estado: 'sin-publicar' };
@@ -691,6 +732,12 @@ export async function rehornearExistencias(
     const datos: TiendaParaHornear = {
       ...h.datos,
       dominio: canonico ?? h.datos.dominio,
+      // HU-T13.5: lo publicado se guarda completo y se recorta al plan. Un plan que baja recorta
+      // aquí, sin que el comercio publique; uno que sube espera a su próxima publicación, que pasa
+      // por la compuerta.
+      plan: h.datos.plan
+        ? limitesMasEstrictos(h.datos.plan, limitesDeLaTienda(tienda.plan))
+        : limitesDeLaTienda(tienda.plan),
       // El release de la vitrina es el de ahora: los archivos comunes de antes ya no se sirven.
       release: c.release,
       productos: h.datos.productos.map((p) => ({

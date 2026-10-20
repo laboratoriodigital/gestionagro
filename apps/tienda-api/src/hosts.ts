@@ -27,3 +27,29 @@ export const punteroDelHost = (p: Puntero): string =>
   });
 
 export const claveDelHost = (hostname: string) => `h:${hostname}`;
+
+/**
+ * HU-T13.5 CA3: las direcciones activas como las deja el plan. Si el plan no incluye el dominio
+ * propio y el canónico es propio, la dirección de la plataforma pasa a ser la canónica y la propia
+ * queda de alias, que el despacho redirige con un 301. La base no cambia: con el plan de vuelta, el
+ * dominio propio vuelve a ser el principal.
+ */
+export function direccionesDelPlan<F extends { hostname: string; tipo: string; rol: string }>(
+  activas: readonly F[],
+  dominioPropio: boolean,
+): { filas: F[]; canonico: string | undefined } {
+  const canonica = activas.find((f) => f.rol === 'canonico');
+  const plataforma = activas.find((f) => f.tipo === 'plataforma');
+  if (dominioPropio || canonica?.tipo !== 'propio' || !plataforma)
+    return { filas: [...activas], canonico: canonica?.hostname };
+  return {
+    filas: activas.map((f) =>
+      f === plataforma
+        ? { ...f, rol: 'canonico' }
+        : f.tipo === 'propio'
+          ? { ...f, rol: 'alias' }
+          : f,
+    ),
+    canonico: plataforma.hostname,
+  };
+}

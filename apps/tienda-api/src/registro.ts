@@ -265,6 +265,16 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('mand', 'aste', 'ó')} un link de pago del pedido #${despues['numero']}, por ${despues['minutos']} minutos`;
     case 'cobro.llaves':
       return `${hizo('guard', 'aste', 'ó')} las llaves de Bold de ${despues['ambiente'] === 'produccion' ? 'producción' : 'pruebas'}`;
+    case 'tienda.alta':
+      return `${hizo('abri', 'ste', 'ó')} la tienda ${despues['nombre'] ?? ''}`;
+    case 'tienda.baja':
+      return `${hizo('di', 'ste', 'o')} de baja la tienda; los datos de sus compradores se borran el ${String(despues['borrado'] ?? '').slice(0, 10)}`;
+    case 'tienda.datos_borrados':
+      return 'Se borraron las llaves de los datos de los compradores y los respaldos de la tienda';
+    case 'tienda.suspender':
+      return `La plataforma suspendió la tienda: ${despues['motivo'] ?? 'sin motivo'}`;
+    case 'tienda.levantar':
+      return `La plataforma levantó la suspensión de la tienda: ${despues['motivo'] ?? 'sin motivo'}`;
     case 'dominio.conectar':
       return `${hizo('empez', 'aste', 'ó')} a conectar el dominio ${despues['hostname']}`;
     case 'dominio.canonico':

@@ -243,6 +243,26 @@ export const CAMPOS: Record<Seccion, readonly CampoDeAjuste[]> = {
       tipo: 'opciones',
       opciones: SI_NO_SENAL,
     },
+    // HU-T14.5: los feeds de productos, apagados hasta que el comercio los encienda.
+    {
+      campo: 'feeds.google',
+      etiqueta: '¿Tus productos en Google?',
+      tipo: 'si-no',
+      ayuda: 'Un archivo que Google Merchant Center lee para mostrar tus productos gratis.',
+    },
+    {
+      campo: 'feeds.meta',
+      etiqueta: '¿Tu catálogo en Instagram, Facebook y WhatsApp?',
+      tipo: 'si-no',
+      ayuda: 'Un archivo que cargas en el Commerce Manager de Meta.',
+    },
+    {
+      campo: 'feeds.agentes',
+      etiqueta: '¿Tus productos para los asistentes de compra?',
+      tipo: 'si-no',
+      ayuda:
+        'Un archivo que leen los asistentes con inteligencia artificial para encontrar tus productos.',
+    },
   ],
   avisos: [
     { campo: 'correo', etiqueta: 'Correo para los avisos', tipo: 'correo' },

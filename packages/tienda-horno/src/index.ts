@@ -7,6 +7,15 @@ export * from './agentes.ts';
 export * from './compuerta.ts';
 export * from './csp.ts';
 export * from './escapar.ts';
+export * from './feeds.ts';
 export * from './horno.ts';
 export * from './legal.ts';
+export * from './plan.ts';
 export * from './tema.ts';
+export {
+  EVENTOS_DE_LA_TIENDA,
+  type EventoDeLaTienda,
+  type LoteDeMedicion,
+  motivoDeRechazoDeLaMedicion,
+  TAMANO_MAXIMO_DEL_LOTE,
+} from './vitrina/medicion.ts';

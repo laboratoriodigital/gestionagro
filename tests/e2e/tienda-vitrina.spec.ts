@@ -806,3 +806,30 @@ test('bitácora tienda3 36 · un pago cerrado sin pagarse no deja el carrito ata
   expect(carrito.codigo).not.toBe(nuevo?.['codigo']);
   expect(carrito).not.toHaveProperty('cobro');
 });
+
+test('HU-T14.1 · la ficha cuenta lo que pasó y lo manda en un lote al salir, sin cookies', async ({
+  page,
+}) => {
+  const lotes: unknown[] = [];
+  // sendBeacon sale cuando la página ya se va: se anota en la sesión de la pestaña, que sobrevive.
+  await page.addInitScript(() => {
+    navigator.sendBeacon = (url, datos) => {
+      const lista = JSON.parse(sessionStorage.getItem('beacons') ?? '[]') as unknown[];
+      lista.push({ url: String(url), lote: JSON.parse(String(datos)) });
+      sessionStorage.setItem('beacons', JSON.stringify(lista));
+      return true;
+    };
+  });
+  await page.goto(FICHA);
+  await page.locator('label.pildora', { hasText: 'M' }).click();
+  await page.locator('label.pildora', { hasText: 'Arena' }).click();
+  await page.locator('[data-boton]').click();
+  await expect(page.locator('[data-aviso]')).toHaveText('Agregado a tu pedido.');
+  await page.goto(`${TIENDA}/`);
+  lotes.push(...(await page.evaluate(() => JSON.parse(sessionStorage.getItem('beacons') ?? '[]'))));
+  expect(lotes).toEqual([
+    { url: '/_m', lote: { v: 1, conteos: { ver_producto: 1, agregar_al_carrito: 1 } } },
+  ]);
+  // ❌ CA2: ni una cookie en toda la visita.
+  expect(await page.context().cookies()).toEqual([]);
+});

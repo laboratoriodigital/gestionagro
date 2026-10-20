@@ -17,10 +17,7 @@ const leer = (rel: string) => readFileSync(join(RAIZ, rel), 'utf8');
 
 /** CA1: cada operación de TIENDA §15.6, con su runbook o el motivo por el que todavía no lo tiene. */
 const OPERACIONES: Record<string, string | { pendiente: string }> = {
-  'alta de una tienda': {
-    pendiente:
-      'el alta abierta es HU-T13.4 (T16): hoy no existe la operación; su runbook se escribe con ella',
-  },
+  'alta de una tienda': 'tienda-alta.md',
   'conectar un dominio': 'tienda-conectar-un-dominio.md',
   'suspender una tienda': 'tienda-suspender.md',
   'rotar la KEK': 'tienda-rotar-la-kek.md',

@@ -485,8 +485,16 @@ export function secretosDeLaTienda(
   // HU-T14.3: los correos por Gmail, opcionales igual; sin ellos, la API dice «no disponible».
   // Bitácora tienda3 27: el token de métricas del freno de R2; sin él, la tarea queda en falla.
   const telegram = Object.fromEntries(
+    // HU-T13.4: Turnstile en el alta; sin el secreto, abrir una tienda dice «todavía no disponible».
     (
-      ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID', ...CORREO_GMAIL, 'CF_METRICAS_TOKEN'] as const
+      [
+        'TELEGRAM_BOT_TOKEN',
+        'TELEGRAM_CHAT_ID',
+        ...CORREO_GMAIL,
+        'CF_METRICAS_TOKEN',
+        'TURNSTILE_SITIO',
+        'TURNSTILE_SECRETO',
+      ] as const
     ).flatMap((k) => {
       const v = entorno[k]?.trim();
       return v ? [[k, v]] : [];

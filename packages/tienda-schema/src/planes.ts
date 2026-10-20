@@ -86,3 +86,88 @@ export function funcionesDelPlan(
   }
   return del;
 }
+
+/**
+ * HU-T13.5 CA2: lo que la API y el horno limitan de un plan, con nombre y tipo. Son los mismos
+ * valores de `funciones.json`; las funciones que todavía no tienen su historia no están aquí.
+ */
+export interface LimitesDelPlan {
+  /** Cuántos productos muestra la vitrina (`null`: todos). Los demás quedan ocultos, nunca borrados. */
+  productos: number | null;
+  /** Cuántas personas tiene el equipo, contando al propietario (`null`: sin límite). */
+  usuarios: number | null;
+  cobroEnLinea: boolean;
+  contraentrega: boolean;
+  dominioPropio: boolean;
+  feeds: boolean;
+}
+
+/**
+ * Los límites de un plan. Un plan que `funciones.json` no nombra tiene los del gratuito: nunca
+ * «todo encendido» (P1). Si el archivo tampoco nombra el gratuito, lanza.
+ */
+export function limitesDelPlan(
+  funciones: FuncionesPorPlan,
+  plan: string,
+  gratuito: string,
+): LimitesDelPlan {
+  const del = funcionesDelPlan(funciones, plan) ?? funcionesDelPlan(funciones, gratuito);
+  if (!del) throw new Error(`funciones.json no dice nada del plan gratuito «${gratuito}»`);
+  const limite = (f: string): number | null => {
+    const v = del[f];
+    if (v === null || typeof v === 'number') return v;
+    throw new Error(`«${f}» tiene que ser un límite en funciones.json`);
+  };
+  const encendida = (f: string): boolean => {
+    const v = del[f];
+    if (typeof v === 'boolean') return v;
+    throw new Error(`«${f}» tiene que ser un booleano en funciones.json`);
+  };
+  return {
+    productos: limite('productos'),
+    usuarios: limite('usuarios'),
+    cobroEnLinea: encendida('cobro_en_linea'),
+    contraentrega: encendida('contraentrega'),
+    dominioPropio: encendida('dominio_propio'),
+    feeds: encendida('feeds'),
+  };
+}
+
+/**
+ * Lo que permiten los dos a la vez: el menor límite y solo lo que los dos encienden. El re-horneado
+ * lo usa para que un plan que baja recorte enseguida y uno que sube espere a que el comercio publique
+ * (y la compuerta revise lo que vuelve a mostrarse).
+ */
+export function limitesMasEstrictos(a: LimitesDelPlan, b: LimitesDelPlan): LimitesDelPlan {
+  const menor = (x: number | null, y: number | null) =>
+    x === null ? y : y === null ? x : Math.min(x, y);
+  return {
+    productos: menor(a.productos, b.productos),
+    usuarios: menor(a.usuarios, b.usuarios),
+    cobroEnLinea: a.cobroEnLinea && b.cobroEnLinea,
+    contraentrega: a.contraentrega && b.contraentrega,
+    dominioPropio: a.dominioPropio && b.dominioPropio,
+    feeds: a.feeds && b.feeds,
+  };
+}
+
+/**
+ * Las formas de pago que el plan deja ofrecer (HU-T13.5 CA3). Sin el plan que las incluye, salen el
+ * pago en línea y la contraentrega. Si el plan quitó algo (también el pago en línea de una tienda que
+ * cobra en línea, `enLinea`) y no queda ninguna forma para pedir por WhatsApp, queda «a convenir»:
+ * la tienda sigue recibiendo pedidos. Lo que el plan no toca queda como el comercio lo eligió.
+ */
+export function formasDelPlan<F extends { forma: string }>(
+  formas: readonly F[],
+  l: Pick<LimitesDelPlan, 'cobroEnLinea' | 'contraentrega'>,
+  enLinea = false,
+): (F | { forma: 'a_convenir' })[] {
+  const quedan: (F | { forma: 'a_convenir' })[] = formas.filter(
+    (f) =>
+      (f.forma !== 'en_linea' || l.cobroEnLinea) &&
+      (f.forma !== 'contraentrega' || l.contraentrega),
+  );
+  const quito = quedan.length < formas.length || (enLinea && !l.cobroEnLinea);
+  if (quito && !quedan.some((f) => f.forma !== 'en_linea')) quedan.push({ forma: 'a_convenir' });
+  return quedan;
+}

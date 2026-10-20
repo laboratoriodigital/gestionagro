@@ -162,6 +162,8 @@ const SOLO_DEL_PROPIETARIO: Record<string, Intento[] | { sinRuta: string }> = {
     ],
   ],
   'factura.gestionar': { sinRuta: 'la factura llega con el cobro en línea' },
+  // HU-T13.7: dar de baja la tienda.
+  'tienda.baja': [async () => ['baja', { op: op(), nombre: 'Comercio Ensayo Uno' }]],
   'exportar.datos_personales': [async () => ['exportar?datos=personales', undefined]],
   'titular.gestionar': [
     async () => ['titular/buscar', { celular: '3001234567' }],

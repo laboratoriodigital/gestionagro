@@ -548,15 +548,14 @@ test('HU-T11.2 · ❌ el colaborador ve que falta, no la pantalla Cobro', async 
   await expect(page.getByRole('link', { name: 'Cobro en línea' })).toHaveCount(0);
 });
 
-test('HU-T8.1 · sin tiendas, lo dice sin error y ofrece entrar con otra cuenta', async ({
+test('HU-T8.1 y HU-T13.4 · sin tiendas, ofrece abrir una sin error, o entrar con otra cuenta', async ({
   page,
 }) => {
   await coreFalso(page, sesion({ organizaciones: [], org_id: null }));
   await page.goto(`${PANEL}/`);
   await entrar(page);
-  await expect(
-    page.getByRole('heading', { level: 1, name: 'Tu cuenta todavía no tiene una tienda' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Abre tu tienda' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Abrir mi tienda' })).toBeVisible();
   await page.getByRole('button', { name: 'Entrar con otra cuenta' }).click();
   await expect(page.getByRole('button', { name: 'Entrar con Google' })).toBeVisible();
 });
@@ -2943,6 +2942,156 @@ test('HU-T13.1 y HU-T13.3 · CA1: conectar el dominio, sus registros en palabras
   // ❌ CA2 de HU-T13.3: nunca se le pide mover su dominio a la plataforma.
   await expect(page.getByRole('heading', { level: 2, name: '¿Y sin «www»?' })).toBeVisible();
   await expect(page.getByText(/servidores de nombres|nameservers|transferir/i)).toHaveCount(0);
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('HU-T13.4 · CA1: abrir mi tienda desde el teléfono, con la dirección que se sugiere y Turnstile', async ({
+  page,
+}) => {
+  const NUEVA = { org_id: '', nombre: 'Panadería Doña Rosa', rol: 'propietario', plan: 'gratis' };
+  await coreFalso(page, sesion({ organizaciones: [], org_id: null }));
+  const creadas: Record<string, unknown>[] = [];
+  await page.route(`${CORE}/api/core/organizaciones`, (ruta) => {
+    const cuerpo = ruta.request().postDataJSON() as { id: string; nombre: string };
+    creadas.push(cuerpo);
+    NUEVA.org_id = cuerpo.id;
+    return ruta.fulfill({
+      status: 201,
+      json: { org_id: cuerpo.id, nombre: cuerpo.nombre, ya_existia: false },
+      headers: CORS,
+    });
+  });
+  // Después de crearla, la sesión apunta a la tienda nueva.
+  await page.route(`${CORE}/api/core/auth/refrescar`, (ruta) =>
+    ruta.fulfill({
+      json: sesion({ organizaciones: [NUEVA], org_id: NUEVA.org_id }),
+      headers: CORS,
+    }),
+  );
+  const consultas: string[] = [];
+  await page.route(`${PANEL}/api/alta/v1/disponible?*`, (ruta) => {
+    const slug = new URL(ruta.request().url()).searchParams.get('slug') ?? '';
+    consultas.push(slug);
+    return ruta.fulfill({
+      json: {
+        disponible: true,
+        slug,
+        direccion: `${slug}--staging.laboratorio-digital.app`,
+        turnstile: 'clave-del-sitio-e2e',
+      },
+    });
+  });
+  // Turnstile de mentira: resuelve en cuanto se dibuja.
+  await page.route('https://challenges.cloudflare.com/**', (ruta) =>
+    ruta.fulfill({
+      contentType: 'text/javascript',
+      body: 'window.turnstile = { render(el, o) { el.textContent = "Verificado"; o.callback("token-e2e"); return "w1"; }, reset() {} };',
+    }),
+  );
+  const altas: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/alta`, (ruta) => {
+    altas.push(ruta.request().postDataJSON() as Record<string, unknown>);
+    return ruta.fulfill({
+      json: {
+        estado: 'guardado',
+        id: NUEVA.org_id,
+        version: 1,
+        slug: 'panaderia-dona-rosa',
+        direccion: 'panaderia-dona-rosa--staging.laboratorio-digital.app',
+      },
+    });
+  });
+  await page.route(`${PANEL}/api/panel/v1/tablero`, (ruta) =>
+    ruta.fulfill({ json: tableroVacio() }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/yo`, (ruta) => ruta.fulfill({ json: yo(NUEVA) }));
+
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  await expect(page.getByRole('heading', { level: 1, name: 'Abre tu tienda' })).toBeVisible();
+  await page.getByLabel('El nombre de tu tienda').fill('Panadería Doña Rosa');
+  await expect(page.getByLabel('Su dirección')).toHaveValue('panaderia-dona-rosa');
+  await expect(
+    page.getByText('Libre: tu tienda será panaderia-dona-rosa--staging.laboratorio-digital.app'),
+  ).toBeVisible();
+  await expect(page.getByText('Verificado')).toBeVisible();
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  await page.getByRole('button', { name: 'Abrir mi tienda' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Panadería Doña Rosa' })).toBeVisible();
+  expect(creadas).toEqual([
+    {
+      id: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      ),
+      nombre: 'Panadería Doña Rosa',
+    },
+  ]);
+  expect(altas).toEqual([
+    expect.objectContaining({
+      slug: 'panaderia-dona-rosa',
+      nombre: 'Panadería Doña Rosa',
+      turnstile: 'token-e2e',
+    }),
+  ]);
+  expect(consultas.at(-1)).toBe('panaderia-dona-rosa');
+});
+
+test('HU-T13.5 · CA1: los planes con sus cuatro periodos, pagar en el CORE y volver de Bold con el plan pagado', async ({
+  page,
+}) => {
+  const ORDEN = 'tienda-0199f000-0000-7000-8000-00000000a1a1';
+  await enElPanel(page);
+  const cobros: unknown[] = [];
+  const confirmados: unknown[] = [];
+  await page.route(`${CORE}/api/core/pago/crear`, (r) => {
+    cobros.push(r.request().postDataJSON());
+    return r.fulfill({
+      json: { orden: ORDEN, pruebas: true, libreria: `${PANEL}/bold-falso.js`, checkout: {} },
+      headers: CORS,
+    });
+  });
+  // El programa de Bold de mentira: «pagar» vuelve al panel como lo haría Bold.
+  await page.route(`${PANEL}/bold-falso.js`, (r) =>
+    r.fulfill({
+      contentType: 'text/javascript',
+      body: `window.BoldCheckout = class { open() { location.assign('/mas/plan/?pago=${ORDEN}&bold-tx-status=approved'); } };`,
+    }),
+  );
+  await page.route(`${CORE}/api/core/pago/confirmar`, (r) => {
+    confirmados.push(r.request().postDataJSON());
+    return r.fulfill({
+      json: { estado: 'aprobado', motivo: null, plan: 'entrada', plan_vence: '2027-04-27' },
+      headers: CORS,
+    });
+  });
+
+  await page.goto(`${PANEL}/mas/`);
+  await page.getByRole('link', { name: 'Tu plan' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Tu plan' })).toBeVisible();
+  await expect(page.getByText('Hasta 15 productos en tu tienda')).toBeVisible();
+  // Los cuatro periodos de Entrada, con el total y el valor por mes.
+  const entrada = page.locator('section', { hasText: 'Para el comercio que vende cada semana.' });
+  await expect(entrada.getByRole('radio')).toHaveCount(4);
+  await expect(entrada.getByText(/6 meses: COP 161\.000 · COP 26\.833 al mes/)).toBeVisible();
+  await entrada.getByLabel(/6 meses/).check();
+  await entrada.getByRole('button', { name: 'Pagar el plan Entrada' }).click();
+
+  await expect(page.getByText('Listo: pagaste el plan Entrada')).toBeVisible();
+  await expect(
+    page.getByText('Publica tu tienda para que muestre todo lo que incluye.'),
+  ).toBeVisible();
+  // El monto nunca sale del panel; la orden sale de la barra.
+  expect(cobros).toEqual([{ plan: 'entrada', meses: 6, vuelta: `${PANEL}/mas/plan/` }]);
+  expect(confirmados).toEqual([{ orden: ORDEN }]);
+  expect(new URL(page.url()).search).toBe('');
 
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

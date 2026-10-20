@@ -187,6 +187,8 @@ export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = 
     'TIENDA_KEK_V4',
     'TIENDA_KEK_V5',
     'CF_SAAS_TOKEN',
+    'TURNSTILE_SITIO',
+    'TURNSTILE_SECRETO',
     'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_CHAT_ID',
     // HU-T14.3: los correos de las tiendas por Gmail (PLATAFORMA §4.11); sin ellos, no salen.

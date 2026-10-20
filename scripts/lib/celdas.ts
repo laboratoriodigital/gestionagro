@@ -40,6 +40,12 @@ export interface Celda {
    * por zona y es el de producción.
    */
   saas?: boolean;
+  /**
+   * HU-T13.4: el dueño ya creó el registro DNS comodín `*` de `laboratorio-digital.app`, con proxy
+   * (`docs/runbooks/tienda-alta.md`). Solo entonces el despacho recibe las direcciones de las tiendas
+   * nuevas: `*.laboratorio-digital.app` en producción y `*--staging.laboratorio-digital.app` en staging.
+   */
+  comodin?: boolean;
 }
 
 export interface ConfigCeldas {

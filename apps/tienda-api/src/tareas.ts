@@ -31,17 +31,22 @@
 import type { CorreoTransaccional } from '@ed1/correo';
 import type { BaseD1 } from '@ed1/d1';
 import { enviarTelegram } from '@ed1/telegram';
+import { borrarLasBajas } from './baja.ts';
 import { CONCILIAR } from './conciliar.ts';
 import { CORREOS } from './correos.ts';
 import { revisarDominios } from './dominios.ts';
 import { FRENO_R2 } from './freno-r2.ts';
-import { claveDelHost, punteroDelHost } from './hosts.ts';
+import { claveDelHost, direccionesDelPlan, punteroDelHost } from './hosts.ts';
 import { kekDelEntorno, reenvolverLlaves } from './llaves.ts';
+import { limitesDeLaTienda } from './plan.ts';
+import type { Almacen } from './publicar.ts';
 import { barrerObjetos, mantenerSitio } from './purga-de-sitios.ts';
 import { REHORNEAR_POR_RELEASE, RELEASES_VIEJAS } from './releases.ts';
 import { type AlmacenDeRespaldos, respaldarTienda } from './respaldos.ts';
 import type { Saas } from './saas.ts';
+import { hostnamesColgantes } from './suspension.ts';
 import { purgarContactos } from './titular.ts';
+import { vencerLosPlanes } from './vencimiento.ts';
 
 export type Frecuencia = 'hora' | 'dia' | 'semana';
 
@@ -228,20 +233,38 @@ export async function estadoDeLasTareas(
  * base de control dice los hostnames y el shard de cada tienda dice su versión publicada.
  */
 export async function hostsEsperados(e: EntornoDeTareas): Promise<Map<string, string>> {
-  const deTienda = new Map<string, { shard: string; version: number | null; estado: string }>();
+  const deTienda = new Map<
+    string,
+    { shard: string; version: number | null; estado: string; plan: string }
+  >();
   for (const [nombre, db] of e.shards) {
     const { results } = await db
-      .prepare('SELECT org_id, version_publicada, estado FROM tienda')
-      .all<{ org_id: string; version_publicada: number | null; estado: string }>();
+      .prepare('SELECT org_id, version_publicada, estado, plan FROM tienda')
+      .all<{ org_id: string; version_publicada: number | null; estado: string; plan: string }>();
     for (const t of results)
-      deTienda.set(t.org_id, { shard: nombre, version: t.version_publicada, estado: t.estado });
+      deTienda.set(t.org_id, {
+        shard: nombre,
+        version: t.version_publicada,
+        estado: t.estado,
+        plan: t.plan,
+      });
   }
-  const { results: dominios } = await e.control
-    .prepare("SELECT hostname, org_id, rol FROM dominio WHERE estado = 'activo' ORDER BY hostname")
-    .all<{ hostname: string; org_id: string; rol: string }>();
-  const canonicos = new Map(
-    dominios.filter((d) => d.rol === 'canonico').map((d) => [d.org_id, d.hostname]),
-  );
+  const { results: todos } = await e.control
+    .prepare(
+      "SELECT hostname, org_id, tipo, rol FROM dominio WHERE estado = 'activo' ORDER BY hostname",
+    )
+    .all<{ hostname: string; org_id: string; tipo: string; rol: string }>();
+  // HU-T13.5 CA3: las direcciones de cada tienda como las deja su plan.
+  const porTienda = new Map<string, typeof todos>();
+  for (const d of todos) porTienda.set(d.org_id, [...(porTienda.get(d.org_id) ?? []), d]);
+  const canonicos = new Map<string, string>();
+  const dominios: typeof todos = [];
+  for (const [org, suyos] of porTienda) {
+    const t = deTienda.get(org);
+    const { filas, canonico } = direccionesDelPlan(suyos, limitesDeLaTienda(t?.plan).dominioPropio);
+    if (canonico) canonicos.set(org, canonico);
+    dominios.push(...filas);
+  }
   const esperados = new Map<string, string>();
   for (const d of dominios) {
     const t = deTienda.get(d.org_id);
@@ -569,6 +592,71 @@ export const DOMINIOS: Tarea = {
   },
 };
 
+/**
+ * HU-T13.6 CA2: cada día, los dominios propios retirados que todavía apuntan su CNAME aquí. Avisa
+ * por Telegram; nadie los puede tomar sin su TXT nuevo, pero el comercio debería borrar el registro.
+ */
+export const HOSTNAMES_COLGANTES: Tarea = {
+  nombre: 'hostnames-colgantes',
+  frecuencia: 'dia',
+  async correr(e) {
+    const r = await hostnamesColgantes(e.control, e.fetch ?? ((u, i) => fetch(u, i)));
+    if (r.colgantes.length > 0) {
+      const aviso = await enviarTelegram(
+        e.telegram,
+        `Tienda · ${r.colgantes.length} dominio(s) retirado(s) siguen apuntando aquí. Pídele al comercio que borre su CNAME:\n${r.colgantes.join('\n')}`,
+        e.fetch,
+      );
+      if (aviso) console.error(`tienda-api: no se pudo avisar por Telegram (${aviso})`);
+    }
+    return `${r.revisados} retirados revisados, ${r.colgantes.length} siguen apuntando aquí`;
+  },
+};
+
+/** HU-T13.7: a los 30 días de la baja, el borrado criptográfico y los respaldos de la tienda. */
+export const BAJAS: Tarea = {
+  nombre: 'bajas',
+  frecuencia: 'dia',
+  async correr(e, instante) {
+    const r = await borrarLasBajas({
+      shards: e.shards,
+      ...(e.almacen ? { almacen: e.almacen } : {}),
+      instante: new Date(instante).toISOString(),
+    });
+    return r.borradas.length > 0
+      ? `${r.borradas.length} tienda(s) dadas de baja: sus llaves de datos personales y sus respaldos, borrados`
+      : 'ninguna baja por borrar';
+  },
+};
+
+/**
+ * HU-T13.5 CA3: cada hora, las tiendas cuyo plan venció con su gracia pasan al gratuito, aunque el
+ * comercio no abra el panel: lo que pasa del límite se oculta, el cobro en línea se apaga y el
+ * dominio propio redirige a la dirección de la plataforma. Nada se borra.
+ */
+export const PLANES_VENCIDOS: Tarea = {
+  nombre: 'planes-vencidos',
+  frecuencia: 'hora',
+  async correr(e, instante) {
+    const r = await vencerLosPlanes({
+      shards: e.shards,
+      control: e.control,
+      hosts: e.hosts,
+      celda: e.celda,
+      instante: new Date(instante).toISOString(),
+      ...(e.almacen && e.release
+        ? { sitios: e.almacen as unknown as Almacen, release: e.release }
+        : {}),
+      ...(e.medios ? { medios: e.medios } : {}),
+    });
+    if (r.fallas.length > 0)
+      throw new Error(`planes vencidos que no se re-hornearon: ${r.fallas.slice(0, 5).join('; ')}`);
+    return r.vencidas.length > 0
+      ? `${r.vencidas.length} tienda(s) pasaron al plan gratuito`
+      : 'ningún plan vencido';
+  },
+};
+
 export const TAREAS: readonly Tarea[] = [
   RECONSTRUIR_HOSTS,
   PURGAS,
@@ -582,4 +670,7 @@ export const TAREAS: readonly Tarea[] = [
   RELEASES_VIEJAS,
   REENVOLVER_LLAVES,
   DOMINIOS,
+  HOSTNAMES_COLGANTES,
+  BAJAS,
+  PLANES_VENCIDOS,
 ];

@@ -393,7 +393,12 @@ export const LIMITES_DE_LA_TIENDA = {
   // HU-T11.11: un aviso «de pruebas» lo firma cualquiera; sin tope, cada uno lee D1. Bold avisa una vez
   // por pago y reintenta lo que no recibió: 60 por minuto desde una IP no lo frena.
   LIMITE_AVISOS: { produccion: '3007', staging: '3107', limit: 60, period: 60 },
+  // HU-T14.1: los lotes de la medición propia; la vitrina manda uno por página que se cierra.
+  LIMITE_MEDICION: { produccion: '3008', staging: '3108', limit: 60, period: 60 },
 } as const;
+
+/** HU-T14.1: el dataset de Analytics Engine de la medición propia de las tiendas. */
+export const DATASET_TIENDA = 'tienda_eventos';
 const limitadoresDeLaTienda = (staging: boolean) =>
   Object.entries(LIMITES_DE_LA_TIENDA).map(([name, l]) => ({
     name,
@@ -465,6 +470,7 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
     // HU-T17.1 y D-T10: el quinto cron de la cuenta, solo en producción; staging no tiene.
     triggers: { crons: [CRON_DE_LA_TIENDA] },
     ratelimits: limitadoresDeLaTienda(false),
+    analytics_engine_datasets: [{ binding: 'MEDICION', dataset: DATASET_TIENDA }],
     observability: { enabled: true },
     env: {
       staging: {
@@ -476,6 +482,7 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
         r2_buckets: [{ binding: 'SITIOS', bucket_name: `${almacen}-staging` }, ...fotos('staging')],
         triggers: { crons: [] },
         ratelimits: limitadoresDeLaTienda(true),
+        analytics_engine_datasets: [{ binding: 'MEDICION', dataset: `${DATASET_TIENDA}_staging` }],
       },
     },
   };
@@ -516,6 +523,10 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
       ...(config.celdas.some((c) => c.producto === 'tienda' && c.saas)
         ? [{ pattern: '*/*', zone_name: ZONA_DE_LAS_TIENDAS }]
         : []),
+      // HU-T13.4: las tiendas que abre el alta, con el registro DNS comodín del dueño.
+      ...(config.celdas.some((c) => c.producto === 'tienda' && c.comodin)
+        ? [{ pattern: `*.${ZONA_DE_LAS_TIENDAS}/*`, zone_name: ZONA_DE_LAS_TIENDAS }]
+        : []),
     ],
     services: serviciosDeLaTienda(config, false),
     r2_buckets: almacenesDeLaTienda(config, false),
@@ -525,7 +536,12 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
       staging: {
         name: `${WORKER_TIENDA_SITIO}-staging`,
         workers_dev: true,
-        routes: ENSAYOS.map((e) => ({ pattern: hostDeStaging(e.slug), custom_domain: true })),
+        routes: [
+          ...ENSAYOS.map((e) => ({ pattern: hostDeStaging(e.slug), custom_domain: true })),
+          ...(config.celdas.some((c) => c.producto === 'tienda' && c.comodin)
+            ? [{ pattern: `*--staging.${ZONA_DE_LAS_TIENDAS}/*`, zone_name: ZONA_DE_LAS_TIENDAS }]
+            : []),
+        ],
         services: serviciosDeLaTienda(config, true),
         r2_buckets: almacenesDeLaTienda(config, true),
         vars: { MEDIOS: MEDIOS_DE_LA_TIENDA.staging },

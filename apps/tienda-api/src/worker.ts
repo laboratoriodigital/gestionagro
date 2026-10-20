@@ -30,6 +30,12 @@ import { type CorreoTransaccional, correoGmail } from '@ed1/correo';
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
 import {
+  EVENTOS_DE_LA_TIENDA,
+  type LoteDeMedicion,
+  motivoDeRechazoDeLaMedicion,
+  TAMANO_MAXIMO_DEL_LOTE,
+} from '@ed1/tienda-horno';
+import {
   type Accion,
   decidir,
   type FuncionesPorPlan,
@@ -46,8 +52,14 @@ import {
 import { type Context, Hono } from 'hono';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import { guardarAjuste, leerAjustes, PIDE_ENTRADA, verificarWhatsapp } from './ajustes.ts';
+import {
+  abrirTienda,
+  disponibilidad as disponibilidadDeLaDireccion,
+  verificarTurnstile,
+} from './alta.ts';
 import { avisame, PeticionDeAvisame } from './avisame.ts';
 import { recibirAvisoDeBold } from './avisos.ts';
+import { darDeBaja } from './baja.ts';
 import {
   confirmarPedido,
   leerPedido,
@@ -95,6 +107,7 @@ import {
   retirarDominio,
 } from './dominios.ts';
 import { exportarTienda } from './exportar.ts';
+import { feedsDelPanel } from './feeds-del-panel.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import {
   ajustarInventario,
@@ -148,6 +161,7 @@ import {
   radicar,
   seguirSolicitud,
 } from './solicitudes.ts';
+import { cambiarSuspension } from './suspension.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
 import {
   aceptacionDe,
@@ -157,6 +171,7 @@ import {
   textosVigentes,
 } from './terminos.ts';
 import { buscarTitular, corregirTitular, exportarTitular, suprimirTitular } from './titular.ts';
+import { aplicarElPlan, guardarElPlan } from './vencimiento.ts';
 import { borrarCupon, borrarEnvio, guardarCupon, guardarEnvio, listarVenta } from './venta.ts';
 
 export const CABECERA_DESPACHO = 'x-despacho';
@@ -221,6 +236,12 @@ export interface Env {
    * de la zona de las tiendas. Sin los dos, conectar un dominio dice «todavía no está disponible».
    */
   CF_SAAS_TOKEN?: string;
+  /**
+   * HU-T13.4: Turnstile en el alta. La clave del sitio la pide el panel; el secreto verifica el
+   * token en el servidor. Sin el secreto, abrir una tienda dice «todavía no disponible».
+   */
+  TURNSTILE_SITIO?: string;
+  TURNSTILE_SECRETO?: string;
   ZONA_TIENDAS?: string;
   /** El token de solo lectura de métricas y la cuenta: el freno de R2 (bitácora tienda3 27). */
   CF_METRICAS_TOKEN?: string;
@@ -235,6 +256,11 @@ export interface Env {
   LIMITE_SOLICITUDES?: Limitador;
   LIMITE_COBROS?: Limitador;
   LIMITE_AVISOS?: Limitador;
+  /** HU-T14.1: el tope de lotes de la medición propia, y su dataset de Analytics Engine. */
+  LIMITE_MEDICION?: Limitador;
+  MEDICION?: {
+    writeDataPoint(p: { indexes?: string[]; blobs?: string[]; doubles?: number[] }): void;
+  };
   /** Un binding D1 por shard, con el nombre del shard, y `tienda_control`. */
   [base: string]: unknown;
 }
@@ -284,6 +310,8 @@ export interface Sesion {
   org: string;
   rol: string;
   plan: string;
+  /** HU-T13.5: cuándo vence el plan (s), con la gracia ya sumada por el CORE; null, sin vencimiento. */
+  planVence: number | null;
   /** Instante (s) de la última entrada con Google: lo que mueve dinero pide una reciente. */
   authTime: number | null;
   /** HU-T4.6: el anillo de despliegue de la organización, del token. */
@@ -543,6 +571,30 @@ export function crearApp(
   });
 
   // HU-T2.8: el panel, con el token del CORE. Nada del cuerpo ni de la URL dice de qué tienda es.
+  /**
+   * HU-T13.4: lo del alta que se pide antes de tener una tienda. Basta una sesión de la Tienda, sin
+   * organización: la dirección libre y la clave del sitio de Turnstile.
+   */
+  app.get('/api/alta/v1/disponible', async (c) => {
+    const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
+    const producto = c.env.PRODUCTO;
+    if (!token || !producto)
+      return c.json({ estado: 'sin-sesion', motivo: 'Entra con tu cuenta.' }, 401);
+    try {
+      aceptarEnProducto(await verificarConClaves(clavesDe(c.env), token, ahora()), producto);
+    } catch (e) {
+      if (!(e instanceof TokenInvalido)) throw e;
+      return c.json({ estado: 'sin-sesion', motivo: VUELVE_A_ENTRAR }, 401);
+    }
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    if (!control) return c.json({ estado: 'sin-configurar' }, 503);
+    const ambiente = c.env.AMBIENTE === 'staging' ? 'staging' : 'produccion';
+    return c.json({
+      ...(await disponibilidadDeLaDireccion(control, c.req.query('slug') ?? '', ambiente)),
+      turnstile: c.env.TURNSTILE_SITIO ?? null,
+    });
+  });
+
   app.use('/api/panel/v1/*', async (c, siguiente) => {
     const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
     if (!token) return c.json({ estado: 'sin-sesion', motivo: 'Entra con tu cuenta.' }, 401);
@@ -576,6 +628,7 @@ export function crearApp(
       org: acceso.org,
       rol: acceso.rol,
       plan: acceso.plan,
+      planVence: acceso.plan_vence ?? null,
       authTime: acceso.auth_time ?? null,
       anillo: acceso.anillo ?? null,
       shard: acceso.shard,
@@ -770,6 +823,42 @@ export function crearApp(
   });
 
   /**
+   * HU-T14.1: la medición propia. La vitrina manda un lote de conteos al salir de cada página; se
+   * escribe un punto en Analytics Engine con la tienda como índice y los cinco conteos en orden. Ni
+   * la IP, ni las cabeceras, ni un identificador del visitante: el lote no los trae y nada de la
+   * solicitud se escribe (CA2). 60 lotes por minuto por IP.
+   */
+  app.post('/_m', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_MEDICION, 'LIMITE_MEDICION'))) {
+      c.header('retry-after', '60');
+      return c.body(null, 429);
+    }
+    const texto = await c.req.text();
+    if (new TextEncoder().encode(texto).length > TAMANO_MAXIMO_DEL_LOTE) return c.body(null, 413);
+    let lote: unknown;
+    try {
+      lote = JSON.parse(texto);
+    } catch {
+      return c.body(null, 400);
+    }
+    if (motivoDeRechazoDeLaMedicion(lote)) return c.body(null, 400);
+    if (!c.env.MEDICION) {
+      // Sin destino no se finge éxito (P1).
+      console.error('tienda-api: falta el binding MEDICION de Analytics Engine');
+      return c.body(null, 503);
+    }
+    const { conteos } = lote as LoteDeMedicion;
+    c.env.MEDICION.writeDataPoint({
+      indexes: [destino.org],
+      blobs: ['tienda'],
+      doubles: EVENTOS_DE_LA_TIENDA.map((e) => conteos[e] ?? 0),
+    });
+    return c.body(null, 204);
+  });
+
+  /**
    * HU-T11.5: los avisos firmados de Bold, en el subdominio de la plataforma de la tienda (el
    * despacho la resuelve por el `Host`). La firma se verifica con el cuerpo crudo antes de leerlo.
    * Responde 200 a todo lo que Bold no debe reintentar, y 500 si algo falló, para que reintente: el
@@ -953,6 +1042,12 @@ export function crearApp(
         .bind(anillo, s.org, anillo)
         .run();
     }
+    // HU-T13.5: el plan del token, guardado en la tienda; si cambió, sus direcciones y lo publicado
+    // quedan como lo deja el plan nuevo.
+    if (await guardarElPlan(s.db, s.org, s.plan, s.planVence)) {
+      const ctx = contextoDePublicacion(c, s.org, s.shard, 'sistema:plan');
+      if (ctx) enSegundoPlano(c, aplicarElPlan({ ...ctx, instante: ctx.ahora }, 'sistema:plan'));
+    }
     const tienda = await s.db
       .prepare('SELECT slug, nombre, estado FROM tienda WHERE org_id = ?')
       .bind(s.org)
@@ -962,6 +1057,7 @@ export function crearApp(
       org: s.org,
       rol: s.rol,
       plan: s.plan,
+      planVence: s.planVence === null ? null : new Date(s.planVence * 1000).toISOString(),
       funciones: s.plan ? funcionesDelPlan(funciones as unknown as FuncionesPorPlan, s.plan) : null,
       tienda: tienda ?? null,
       // HU-T7.2 CA1: si falta aceptar los términos vigentes, el panel los pide antes de seguir.
@@ -969,6 +1065,14 @@ export function crearApp(
       // HU-T11.2 CA3: con el pago en línea encendido, lo que falta para cobrar, en palabras.
       cobro: { faltan: (await leerElCobro(s)).faltan },
     });
+  });
+
+  /** HU-T14.5: los feeds encendidos, sus direcciones y lo que la versión publicada dejó fuera. */
+  app.get('/api/panel/v1/feeds', async (c) => {
+    const s = c.get('sesion');
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    if (!control) return c.json({ estado: 'sin-configurar' }, 503);
+    return c.json(await feedsDelPanel(s, control));
   });
 
   /**
@@ -1037,7 +1141,14 @@ export function crearApp(
     const q = delDominio(c, 'dominios.gestionar');
     if (q instanceof Response) return q;
     const cuerpo = await c.req.json().catch(() => null);
-    return responderDominio(c, await conectarDominio(q, saasDe(c.env, alProveedor), cuerpo));
+    return responderDominio(
+      c,
+      await conectarDominio(
+        { ...q, plan: c.get('sesion').plan ?? null },
+        saasDe(c.env, alProveedor),
+        cuerpo,
+      ),
+    );
   });
   app.post('/api/panel/v1/dominios/canonico', async (c) => {
     const q = delDominio(c, 'dominios.gestionar');
@@ -1045,6 +1156,40 @@ export function crearApp(
     const r = await elegirCanonico(q, await c.req.json().catch(() => null));
     if (r.estado === 'guardado' && r.cambio) rehornearConElCanonico(c);
     return responderDominio(c, r);
+  });
+  /**
+   * HU-T13.4: abrir la tienda de la organización que el panel acaba de crear en el CORE. El token ya
+   * trae su celda y su shard; la tienda todavía no existe en él.
+   */
+  app.post('/api/panel/v1/alta', async (c) => {
+    const q = delDominio(c, null);
+    if (q instanceof Response) return q;
+    const s = c.get('sesion');
+    if (s.rol !== 'propietario')
+      return c.json({ estado: 'prohibido', motivo: 'Abre la tienda quien la crea.' }, 403);
+    const secreto = c.env.TURNSTILE_SECRETO;
+    const r = await abrirTienda(
+      { ...q, plan: s.plan ?? null },
+      await c.req.json().catch(() => null),
+      {
+        ambiente: c.env.AMBIENTE === 'staging' ? 'staging' : 'produccion',
+        turnstile: secreto
+          ? (token) =>
+              verificarTurnstile(secreto, token, c.req.header('cf-connecting-ip'), alProveedor)
+          : null,
+      },
+    );
+    if (r.estado === 'guardado') return c.json(r);
+    return c.json(r, r.estado === 'problemas' ? 422 : 503);
+  });
+
+  /** HU-T13.7: dar de baja la tienda, solo el propietario y recién entrado. */
+  app.post('/api/panel/v1/baja', async (c) => {
+    const q = delDominio(c, 'tienda.baja');
+    if (q instanceof Response) return q;
+    const r = await darDeBaja(q, saasDe(c.env, alProveedor), await c.req.json().catch(() => null));
+    if (r.estado === 'guardado') return c.json(r);
+    return c.json(r, r.estado === 'problemas' ? 422 : 404);
   });
   app.post('/api/panel/v1/dominios/retirar', async (c) => {
     const q = delDominio(c, 'dominios.gestionar');
@@ -1112,6 +1257,8 @@ export function crearApp(
     }
     const ctx = contextoDePublicacion(c, s.org, s.shard, `usuario:${s.usuario}`);
     if (!ctx) return c.json({ estado: 'sin-configurar' }, 503);
+    // HU-T13.5: se publica con el plan del token.
+    await guardarElPlan(s.db, s.org, s.plan, s.planVence);
     return responder(c, await publicar(ctx));
   });
 
@@ -1979,6 +2126,49 @@ export function crearApp(
       quedan,
       ilegibles,
     });
+  });
+
+  /**
+   * HU-T13.6: suspender o levantar una tienda, con un clic del operador (el flujo
+   * `suspender-tienda`), con el secreto del despacho en `x-despliegue`.
+   */
+  app.post('/api/despliegue/tienda-estado', async (c) => {
+    const dado = c.req.header('x-despliegue');
+    if (!dado || !mismoSecreto(c.env.SECRETO_DESPACHO ?? '', dado)) return c.json(NO_EXISTE, 404);
+    const shards = Object.entries(c.env).filter(([n, b]) => SHARD.test(n) && b) as [
+      string,
+      BaseD1,
+    ][];
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    const hosts = c.env.TIENDA_HOSTS as EscritorKv | undefined;
+    if (shards.length === 0 || !control || !hosts || !c.env.CELDA)
+      return c.json({ estado: 'sin-configurar' }, 503);
+    const cuerpo = (await c.req.json().catch(() => null)) as {
+      org?: unknown;
+      accion?: unknown;
+      motivo?: unknown;
+    } | null;
+    if (
+      typeof cuerpo?.org !== 'string' ||
+      (cuerpo.accion !== 'suspender' && cuerpo.accion !== 'levantar') ||
+      typeof cuerpo.motivo !== 'string' ||
+      cuerpo.motivo.trim().length < 5
+    )
+      return c.json(
+        { estado: 'problemas', motivo: 'faltan la tienda, la acción o el motivo' },
+        422,
+      );
+    const r = await cambiarSuspension({
+      shards,
+      control,
+      celda: c.env.CELDA,
+      hosts,
+      org: cuerpo.org,
+      accion: cuerpo.accion,
+      motivo: cuerpo.motivo.trim(),
+      instante: new Date(ahora()).toISOString(),
+    });
+    return c.json(r, r.estado === 'no-existe' ? 404 : 200);
   });
 
   app.all('*', (c) => c.json(NO_EXISTE, 404));

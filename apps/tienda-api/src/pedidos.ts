@@ -19,8 +19,10 @@
 import type { BaseD1 } from '@ed1/d1';
 import { formatearPesos, LIMITES } from '@ed1/dinero';
 import { NOMBRE_DE_LA_FORMA } from '@ed1/tienda-horno';
+import { formasDelPlan } from '@ed1/tienda-schema';
 import { z } from 'zod';
 import { type Cotizacion, cotizar } from './cotizar.ts';
+import { limitesDeLaTienda } from './plan.ts';
 
 const CROCKFORD = /^[0-9A-HJKMNP-TV-Z]{6}$/;
 const SECRETO = /^[A-Za-z0-9_-]{22}$/;
@@ -154,9 +156,9 @@ export const enlaceDeSeguimiento = (host: string, codigo: string, secreto: strin
 
 export async function datosDeLaTienda(db: BaseD1, org: string) {
   const tienda = await db
-    .prepare('SELECT nombre FROM tienda WHERE org_id = ?')
+    .prepare('SELECT nombre, plan FROM tienda WHERE org_id = ?')
     .bind(org)
-    .first<{ nombre: string }>();
+    .first<{ nombre: string; plan: string }>();
   const { results } = await db
     .prepare(
       "SELECT seccion, datos FROM ajuste WHERE org_id = ? AND seccion IN ('identidad', 'contacto', 'venta')",
@@ -172,6 +174,8 @@ export async function datosDeLaTienda(db: BaseD1, org: string) {
     whatsapp:
       typeof contacto['whatsapp'] === 'string' ? contacto['whatsapp'].replace(/\D/g, '') : null,
     venta: ajuste('venta'),
+    // HU-T13.5: lo que permite su plan.
+    limites: limitesDeLaTienda(tienda?.plan),
   };
 }
 
@@ -371,7 +375,12 @@ export async function registrar(
   }
 
   if (tienda.venta['abierta'] === false) return { estado: 'cerrada' };
-  const ofrecidas = ((tienda.venta['formas'] ?? []) as { forma: string }[]).map((f) => f.forma);
+  // HU-T13.5 CA3: las que su plan deja ofrecer, las mismas que hornea la vitrina.
+  const ofrecidas = formasDelPlan(
+    (tienda.venta['formas'] ?? []) as { forma: string }[],
+    tienda.limites,
+    tienda.venta['modo'] === 'en_linea' || tienda.venta['modo'] === 'ambos',
+  ).map((f) => f.forma);
   if (!ofrecidas.includes(p.forma)) {
     return { estado: 'forma', motivo: 'Esta tienda no ofrece esa forma de pago. Elige otra.' };
   }

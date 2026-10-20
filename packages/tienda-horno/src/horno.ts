@@ -15,11 +15,13 @@
 import { formatearPesos } from '@ed1/dinero';
 import {
   etiquetaDeVerificacionGoogle,
+  type LimitesDelPlan,
   NOMBRE_DEL_TIPO,
   TIPOS_DE_SOLICITUD,
 } from '@ed1/tienda-schema';
 import { llmsTxt, manifiestoWeb, robotsDeLaTienda } from './agentes.ts';
 import { escaparHtml, markdownPlano, markdownSeguro } from './escapar.ts';
+import { archivosDeLosFeeds, type FeedsEncendidos } from './feeds.ts';
 import {
   type DatosLegales,
   type FormaDePago,
@@ -27,6 +29,7 @@ import {
   TEXTOS_LEGALES,
   textosLegales,
 } from './legal.ts';
+import { alPlan } from './plan.ts';
 import { type Apariencia, coloresDelTema, cssDelTema, fondoDelTema } from './tema.ts';
 import { estadoDeLaEleccion } from './vitrina/seleccion.ts';
 
@@ -100,6 +103,13 @@ export interface TiendaParaHornear {
   cobroEnLinea?: boolean;
   /** HU-T11.3 CA2: cobra en el ambiente de pruebas de Bold; una franja lo dice en cada página. */
   cobroEnPruebas?: boolean;
+  /** HU-T14.5: los feeds de productos que el comercio encendió en Ajustes › Agentes. */
+  feeds?: FeedsEncendidos;
+  /**
+   * HU-T13.5: lo que permite el plan de la tienda. El horno recorta a él lo publicado (`alPlan`):
+   * los productos de más quedan ocultos y lo que el plan no incluye no se ofrece.
+   */
+  plan?: LimitesDelPlan;
 }
 
 export interface ArchivoHorneado {
@@ -115,6 +125,8 @@ const TIPOS = {
   txt: 'text/plain; charset=utf-8',
   css: 'text/css; charset=utf-8',
   webmanifest: 'application/manifest+json',
+  csv: 'text/csv; charset=utf-8',
+  jsonl: 'application/jsonl; charset=utf-8',
 } as const;
 
 /** Los enlaces legales del pie, cortos para el teléfono (HU-T7.1). */
@@ -208,7 +220,9 @@ interface Pagina {
   privada?: boolean;
 }
 
-export async function hornear(t: TiendaParaHornear): Promise<Map<string, ArchivoHorneado>> {
+export async function hornear(publicada: TiendaParaHornear): Promise<Map<string, ArchivoHorneado>> {
+  // HU-T13.5: lo que el plan permite, nada más.
+  const t = alPlan(publicada).tienda;
   const url = (ruta: string) => `https://${t.dominio}${ruta}`;
   const productos = [...t.productos].sort((a, b) =>
     a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0,
@@ -888,6 +902,8 @@ ${p.cuerpo}
   // La capa para agentes (HU-T15.1): robots con las familias del ecosistema y las señales de esta
   // tienda, llms.txt con los gemelos y el manifiesto de la app web.
   poner('/robots.txt', 'txt', robotsDeLaTienda(t.agentes, url('').replace(/\/$/, '')));
+  // HU-T14.5: los feeds encendidos, con la disponibilidad de ahora.
+  for (const f of archivosDeLosFeeds(t, t.feeds)) poner(f.ruta, f.tipo, f.contenido);
   poner(
     '/llms.txt',
     'txt',

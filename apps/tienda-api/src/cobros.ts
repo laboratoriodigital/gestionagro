@@ -295,7 +295,11 @@ export async function iniciarCobro(
   }
 
   if (tienda.venta['abierta'] === false) return { estado: 'cerrada' };
-  if (tienda.venta['modo'] !== 'en_linea' && tienda.venta['modo'] !== 'ambos') {
+  // HU-T13.5 CA3: sin el plan que lo incluye, no cobra en línea; sigue recibiendo por WhatsApp.
+  if (
+    (tienda.venta['modo'] !== 'en_linea' && tienda.venta['modo'] !== 'ambos') ||
+    !tienda.limites.cobroEnLinea
+  ) {
     return { estado: 'forma', motivo: 'Esta tienda no cobra en línea. Elige otra forma de pago.' };
   }
   const kek = await kekDelEntorno(c.kekTexto);
