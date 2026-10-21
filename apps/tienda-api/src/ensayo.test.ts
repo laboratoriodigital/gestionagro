@@ -63,6 +63,7 @@ afterAll(async () => {
 });
 
 const objetos = new Map<string, string>();
+const hosts = new Map<string, string>();
 const sitios: Almacen = {
   get: async (k) => {
     const t = objetos.get(k);
@@ -76,7 +77,7 @@ const env = (): Env => ({
   SECRETO_DESPACHO: SECRETO,
   ENSAYOS: '1',
   SITIOS: sitios,
-  TIENDA_HOSTS: { put: async () => undefined },
+  TIENDA_HOSTS: { put: async (k: string, v: string) => void hosts.set(k, v) },
   VITRINA_RELEASE: 'r1',
   tienda_c1_s1: shard,
   tienda_control: control,
@@ -107,5 +108,21 @@ describe('el despliegue de staging publica a los comercios de prueba (bitácora 
       .prepare('SELECT org_id FROM tienda WHERE version_publicada IS NOT NULL ORDER BY org_id')
       .all<{ org_id: string }>();
     expect(publicadas.results.map((t) => t.org_id)).toEqual([ENSAYO_DOS.org]);
+  });
+
+  it('❌ bitácora tienda3 49: la que se omite vuelve a apuntar a la versión que ya tenía publicada', async () => {
+    await shard
+      .prepare('UPDATE tienda SET version_publicada = 3 WHERE org_id = ?')
+      .bind(ENSAYO_UNO.org)
+      .run();
+    hosts.clear();
+    let r = await publicarEnsayos();
+    for (let vuelta = 0; r.status === 202 && vuelta < 10; vuelta++) r = await publicarEnsayos();
+    expect(r.cuerpo['ensayo-uno']?.estado).toBe('omitida');
+    const uno = JSON.parse(hosts.get('h:ensayo-uno--staging.laboratorio-digital.app') ?? '{}') as {
+      version?: number;
+      org?: string;
+    };
+    expect(uno).toMatchObject({ org: ENSAYO_UNO.org, version: 3 });
   });
 });

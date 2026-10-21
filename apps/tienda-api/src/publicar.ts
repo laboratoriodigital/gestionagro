@@ -261,6 +261,21 @@ async function apuntarA(
 }
 
 /**
+ * Bitácora tienda3 49: el despliegue de staging deja las direcciones de los comercios de prueba sin
+ * versión antes de publicarlos. El que no se publica en esa vuelta (lleno, con otra publicación en
+ * curso o frenado por la compuerta) vuelve a apuntar a la que ya tenía; si nunca publicó, sigue sin.
+ */
+export async function apuntarALaPublicada(c: Contexto): Promise<number | null> {
+  const t = await c.shard
+    .prepare('SELECT version_publicada FROM tienda WHERE org_id = ?')
+    .bind(c.org)
+    .first<{ version_publicada: number | null }>();
+  const v = t?.version_publicada ?? null;
+  if (v !== null) await apuntarA(c, await direccionesDe(c), v);
+  return v;
+}
+
+/**
  * HU-T4.5: lo que se horneó, junto al manifiesto de su versión. Con él, un cambio de existencias
  * vuelve a hornear lo publicado y no lo que el comercio todavía no ha publicado.
  */

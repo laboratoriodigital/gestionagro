@@ -1282,3 +1282,20 @@ La regla: **una prueba que compara posiciones exige primero que lo buscado exist
 La regla: **una regla de la base que protege avanzar tiene que dejar salir: cancelar no es avanzar.**
 
 *Ficha:* tienda3 · *(mía)* · 🟡 Medio · P1, P2, P5 · tienda-0.1.0 · 2026-10-21
+
+**49 · El despliegue dejaba sin versión a la tienda de prueba que no publicaba.**
+
+*Qué pasó.* El 21 oct 2026, al probar el MCP de T18, el dueño agregó en Claude el conector `https://ensayo-uno--staging.laboratorio-digital.app/mcp` y recibió 404. El despliegue de staging de #219 había fallado en la prueba de humo: la portada de Ensayo Uno decía «Esta tienda todavía no abre».
+
+*La causa.* Antes de publicar a los comercios de prueba, el despliegue reescribe sus direcciones en `TIENDA_HOSTS` con `version: null` (`hostsDeStaging`); publicar las vuelve a apuntar. Ensayo Uno está llena y se omite al publicar (bitácora tienda3 31: no cabe en el CPU del plan gratuito), así que su dirección quedó sin versión, aunque la base sí tenía su versión publicada. «Sigue con la versión que tenía» era cierto en la base y falso en la dirección.
+
+*El arreglo.*
+- El comercio de prueba que no se publica en esa vuelta vuelve a apuntar a su versión publicada (`apuntarALaPublicada`).
+- El despliegue sabe cuál se omitió y no le pasa `verificar-tienda`: su versión es de antes de la capa para agentes y fallaría por eso, no por un error.
+- Para probar el MCP mientras Ensayo Uno siga llena, se usa Ensayo Dos, que sí se publica con lo nuevo.
+
+**Lo prueban** `ensayo.test.ts` (la omitida vuelve a su versión) y `tienda-ensayos.test.ts` (el despliegue recibe las omitidas).
+
+La regla: **lo que se borra para reescribirlo, se reescribe también cuando el paso que lo reescribe se salta.**
+
+*Ficha:* tienda3 · *(dueño y mío)* · 🟡 Medio · P1, P7 · tienda-0.1.0 · 2026-10-21
