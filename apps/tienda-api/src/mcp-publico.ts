@@ -435,8 +435,8 @@ async function prepararPedidoDeAgente(
     // los cobros abiertos (HU-T11.10).
     c.db
       .prepare(
-        `SELECT CASE WHEN (SELECT count(*) FROM pedido INDEXED BY pedido_por_estado
-           WHERE org_id = ? AND estado = 'pendiente' AND canal = 'agente') > ? THEN json('ocupada') ELSE 1 END`,
+        `SELECT CASE WHEN (SELECT count(*) FROM pedido INDEXED BY pedido_de_agente_por_confirmar
+           WHERE org_id = ? AND canal = 'agente' AND estado = 'pendiente' AND aceptado IS NULL) > ? THEN json('ocupada') ELSE 1 END`,
       )
       .bind(c.org, PENDIENTES_DE_AGENTE_POR_TIENDA),
   ];

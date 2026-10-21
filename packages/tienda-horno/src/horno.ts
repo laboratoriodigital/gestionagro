@@ -995,6 +995,50 @@ ${p.cuerpo}
   });
 
   /**
+   * HU-T15.5: confirmar el pedido que preparó un asistente, `/pedido/confirmar/#c=…&s=…`. La isla lo
+   * lee por POST con el secreto del fragmento y pide lo que el agente no dio: la forma de pago, la
+   * edad si algún producto la pide, la entrega para pagar en línea y la aceptación de los términos.
+   * Se hornea siempre: un enlace que ya se dio sigue sirviendo aunque el comercio apague el MCP.
+   */
+  pagina({
+    ruta: '/pedido/confirmar/',
+    titulo: `Confirma tu pedido · ${t.nombre}`,
+    privada: true,
+    cuerpo: [
+      '<h1>Confirma tu pedido</h1>',
+      '<div class="pedido" data-confirmar>',
+      '<p class="estado" data-confirmar-vacio>Abre esta página con el enlace que te dio tu asistente.</p>',
+      '<p class="aviso" data-aviso-confirmar role="status" hidden></p>',
+      '<section data-confirmar-pedido hidden>',
+      '<p class="resumen__nota">Lo preparó tu asistente. Revísalo: el pedido se hace cuando lo confirmas tú.</p>',
+      '<p class="pedido__codigo">Pedido <span class="cifra" data-codigo></span></p>',
+      '<ul class="lineas lineas--acuse" data-lineas></ul>',
+      '<div class="resumen"><p class="resumen__fila">Subtotal <span class="cifra" data-subtotal></span></p><p class="resumen__fila" data-fila-envio hidden>Envío <span class="cifra" data-envio></span></p><p class="resumen__fila" data-fila-descuento hidden>Descuento <span class="cifra" data-descuento></span></p><p class="resumen__fila resumen__total">Total <span class="cifra" data-total></span></p></div>',
+      '<form class="venta" data-venta novalidate>',
+      formas.length > 0
+        ? `<fieldset class="grupo"><legend>¿Cómo quieres pagar?</legend>${formas.map(tarjetaDeForma).join('')}</fieldset>`
+        : '',
+      '<fieldset class="grupo" data-edad hidden><legend>Confirma tu edad</legend><div data-edad-lista></div></fieldset>',
+      '<label class="campo">Ciudad de entrega (si te lo envían)<input name="ciudad" maxlength="60" autocomplete="address-level2"></label>',
+      t.cobroEnLinea
+        ? '<fieldset class="grupo" data-entrega hidden><legend>¿A quién se lo entregamos?</legend><label class="campo">Nombre de quien recibe<input name="nombre" maxlength="120" autocomplete="name"></label><label class="campo">Celular<input name="celular" type="tel" inputmode="tel" maxlength="20" autocomplete="tel"></label><label class="campo">Dirección (si te lo envían)<input name="direccion" maxlength="300" autocomplete="street-address"></label><label class="campo">Correo (opcional)<input name="correo" type="email" maxlength="200" autocomplete="email"></label></fieldset>'
+        : '',
+      '<label class="acepto"><input type="checkbox" name="acepta" data-acepta><span>Acepto los <a href="/legal/terminos/">términos y condiciones</a> y la <a href="/legal/privacidad/">política de datos</a>.</span></label>',
+      '<p class="aviso" data-aviso-venta role="status" hidden></p>',
+      '<button class="boton boton--principal" type="submit" data-enviar aria-disabled="true">Elige cómo pagar</button>',
+      '<p class="resumen__nota">Nadie aparta ni cobra nada hasta que lo confirmas.</p>',
+      '</form>',
+      '</section>',
+      `<script type="application/json" id="venta">${jsonEstable(datosDeVenta).replace(/</g, '\\u003c')}</script>`,
+      '</div>',
+    ]
+      .filter(Boolean)
+      .join('\n'),
+    ld: [],
+    gemelo: `# Confirma tu pedido\n\nEsta página muestra el pedido que preparó el asistente de una persona, con el enlace que solo ella tiene. Ahí lo revisa, acepta los términos y elige cómo pagar.\n`,
+  });
+
+  /**
    * La vuelta de Bold (HU-T11.4, TIENDA §9.3): `redirectionUrl` del botón. Bold le agrega
    * `?bold-order-id=…&bold-tx-status=…`, que nunca se creen: la isla no los lee. Lleva al pedido con
    * el enlace que la página guardó antes de abrir Bold; el estado lo dice el seguimiento, con lo que

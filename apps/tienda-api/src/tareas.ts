@@ -33,6 +33,7 @@ import type { BaseD1 } from '@ed1/d1';
 import { enviarTelegram } from '@ed1/telegram';
 import { borrarLasBajas } from './baja.ts';
 import { CONCILIAR } from './conciliar.ts';
+import { cancelarPreparadosVencidos, HORAS_PARA_CONFIRMAR } from './confirmar.ts';
 import { CORREOS } from './correos.ts';
 import { cuadrarTiendas, ventanaDeLaSemana } from './cuadre.ts';
 import { revisarDominios } from './dominios.ts';
@@ -693,6 +694,23 @@ export const CUADRE_DE_EVENTOS: Tarea = {
   },
 };
 
+/**
+ * HU-T15.5 CA2: cada hora, los pedidos que preparó un asistente y nadie confirmó en 48 horas se
+ * cancelan. Una sentencia por shard, sobre el índice parcial de los que esperan.
+ */
+export const PREPARADOS_VENCIDOS: Tarea = {
+  nombre: 'preparados-vencidos',
+  frecuencia: 'hora',
+  async correr(e, instante) {
+    let n = 0;
+    for (const [, db] of e.shards)
+      n += await cancelarPreparadosVencidos(db, new Date(instante).toISOString());
+    return n > 0
+      ? `${n} pedido(s) preparados sin confirmar en ${HORAS_PARA_CONFIRMAR} h, cancelados`
+      : 'ningún preparado vencido';
+  },
+};
+
 export const TAREAS: readonly Tarea[] = [
   RECONSTRUIR_HOSTS,
   PURGAS,
@@ -710,4 +728,5 @@ export const TAREAS: readonly Tarea[] = [
   BAJAS,
   PLANES_VENCIDOS,
   CUADRE_DE_EVENTOS,
+  PREPARADOS_VENCIDOS,
 ];

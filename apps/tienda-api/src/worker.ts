@@ -95,6 +95,7 @@ import {
 } from './ciclo.ts';
 import { iniciarCobro, PeticionDeCobro } from './cobros.ts';
 import { estadoDelCobro, PeticionDeEstadoDelCobro } from './conciliar.ts';
+import { confirmarPedidoDeAgente, PeticionDeConfirmar } from './confirmar.ts';
 import { correosDeLaCelda, mandarAcuse, mandarResultadoDePrueba } from './correos.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { cuadrarTiendas, ventanaDeLaSemana } from './cuadre.ts';
@@ -830,6 +831,61 @@ export function crearApp(
     if (r.estado === 'sin-linea') return c.json(r, 503);
     if (r.estado === 'ocupada') return c.json(r, 429);
     if (r.estado === 'forma' || r.estado === 'edad' || r.estado === 'monto') return c.json(r, 422);
+    return c.json(r, 409);
+  });
+
+  /**
+   * HU-T15.5: la persona confirma el pedido que preparó su asistente, desde
+   * `/pedido/confirmar/#c=…&s=…`. Público, por el despacho; el mismo límite que pedir
+   * (`LIMITE_PEDIDOS`). Con `ks:tienda-cobros` apagado no se paga en línea, como en el carrito.
+   */
+  app.post('/api/v1/pedidos/confirmar', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_PEDIDOS, 'LIMITE_PEDIDOS'))) {
+      c.header('retry-after', '60');
+      return c.json(
+        { estado: 'limite', motivo: 'Son muchos intentos seguidos. Espera un minuto.' },
+        429,
+      );
+    }
+    const p = await cuerpoValido(c, PeticionDeConfirmar);
+    if (!p) {
+      return c.json(
+        { estado: 'invalido', motivo: 'Al pedido le falta algo. Revísalo y vuelve a intentarlo.' },
+        422,
+      );
+    }
+    if (
+      p.forma === 'en_linea' &&
+      c.env.FLAGS &&
+      (await lectorDe(c.env.FLAGS).apagado('tienda-cobros'))
+    ) {
+      return c.json(
+        {
+          estado: 'sin-linea',
+          motivo: 'El pago en línea no está disponible ahora. Elige otra forma de pago.',
+        },
+        503,
+      );
+    }
+    const r = await confirmarPedidoDeAgente(
+      {
+        db: destino.db,
+        org: destino.org,
+        host: new URL(c.req.url).host,
+        ahora: new Date(ahora()).toISOString(),
+        terminosPublicados: await huellaPublicada(destino.db, destino.org, c.env.SITIOS),
+        id: crypto.randomUUID(),
+        kekTexto: textoDeLasKeks(c.env),
+      },
+      p,
+    );
+    if (r.estado === 'confirmado' || r.estado === 'por-pagar') return c.json(r);
+    if (r.estado === 'no-encontrado') return c.json(r, 404);
+    if (r.estado === 'sin-linea') return c.json(r, 503);
+    if (r.estado === 'ocupada') return c.json(r, 429);
+    if (['forma', 'edad', 'monto', 'entrega'].includes(r.estado)) return c.json(r, 422);
     return c.json(r, 409);
   });
 

@@ -486,6 +486,11 @@ export interface Seguimiento {
   forma: string;
   transportadora: string | null;
   guia: string | null;
+  /**
+   * HU-T15.5: el pedido lo preparó un asistente y espera que la persona lo confirme: las
+   * combinaciones que piden confirmar la edad (Ley 1480 art. 52).
+   */
+  porConfirmar?: { edad: { variante: string; nombre: string }[] };
 }
 
 /** El pedido, si el secreto es el suyo; `null` para todo lo demás, sin decir qué falló (CA3). */
@@ -499,7 +504,7 @@ export async function seguimiento(
   const p = await db
     .prepare(
       `SELECT id, codigo, numero, estado, forma_pago, subtotal_cop, descuento_cop, envio_cop, total_cop,
-         envio_opcion_id, envio_nombre, transportadora, guia, seguimiento_huella
+         envio_opcion_id, envio_nombre, transportadora, guia, seguimiento_huella, canal, aceptado
        FROM pedido WHERE org_id = ? AND codigo = ?`,
     )
     .bind(org, codigo)
@@ -518,6 +523,8 @@ export async function seguimiento(
       transportadora: string | null;
       guia: string | null;
       seguimiento_huella: string | null;
+      canal: string;
+      aceptado: string | null;
     }>();
   // El mismo trabajo con o sin pedido: comparar contra una huella de relleno.
   const guardada = p?.seguimiento_huella ?? '0'.repeat(64);
@@ -554,11 +561,27 @@ export async function seguimiento(
     const n = opcion.dias_max ?? opcion.dias_min ?? 0;
     return `Llega en ${n} ${n === 1 ? 'día' : 'días'}`;
   })();
+  const porConfirmar = p.canal === 'agente' && p.estado === 'pendiente' && p.aceptado === null;
+  const edad = porConfirmar
+    ? (
+        await db
+          .prepare(
+            `SELECT l.variante_id AS variante, l.nombre FROM pedido_linea l
+               JOIN producto p ON p.org_id = l.org_id AND p.id = l.producto_id
+              WHERE l.org_id = ? AND l.pedido_id = ? AND p.solo_mayores = 1 ORDER BY l.linea`,
+          )
+          .bind(org, p.id)
+          .all<{ variante: string; nombre: string }>()
+      ).results
+    : [];
   return {
+    ...(porConfirmar ? { porConfirmar: { edad } } : {}),
     codigo: p.codigo,
     numero: p.numero,
     estado: p.estado,
-    enPalabras: ESTADO_EN_PALABRAS[p.estado] ?? p.estado,
+    enPalabras: porConfirmar
+      ? 'Preparado por tu asistente: falta que lo confirmes'
+      : (ESTADO_EN_PALABRAS[p.estado] ?? p.estado),
     pasos: pasos.map((x) => ({
       estado: x.a,
       enPalabras: ESTADO_EN_PALABRAS[x.a] ?? x.a,

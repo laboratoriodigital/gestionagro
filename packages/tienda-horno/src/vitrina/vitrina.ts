@@ -1361,6 +1361,240 @@ function irABuscar(): void {
   });
 }
 
+interface PedidoPorConfirmar {
+  codigo: string;
+  numero: number;
+  lineas: { nombre: string; opciones: string; cantidad: number; total: number }[];
+  subtotal: number;
+  descuento: number;
+  envio: number;
+  total: number;
+  porConfirmar?: { edad: { variante: string; nombre: string }[] };
+}
+interface RespuestaDeConfirmar {
+  estado?: string;
+  motivo?: string;
+  codigo?: string;
+  texto?: string;
+  whatsapp?: string | null;
+  enlace?: string;
+  boton?: { libreria: string; checkout: Record<string, string> };
+}
+const MOTIVOS_DE_CONFIRMAR: Record<string, string> = {
+  terminos: 'La tienda cambió sus términos. Recarga la página para verlos antes de confirmar.',
+  cerrada: 'La tienda no está recibiendo pedidos en este momento.',
+  limite: 'Son muchos intentos seguidos. Espera un minuto e intenta de nuevo.',
+  'no-encontrado': 'No encontramos este pedido. Revisa que el enlace esté completo.',
+};
+
+/**
+ * `/pedido/confirmar/#c=…&s=…` (HU-T15.5): el pedido que preparó un asistente, con el secreto del
+ * fragmento, que no llega a ningún servidor. La persona elige cómo pagar, confirma su edad si hace
+ * falta y acepta los términos; por WhatsApp va al acuse, como un pedido de la tienda, y en línea
+ * abre Bold, como el carrito. Un pedido ya confirmado lleva directo a su seguimiento.
+ */
+async function confirmarPagina(): Promise<void> {
+  const raiz = document.querySelector<HTMLElement>('[data-confirmar]');
+  if (!raiz) return;
+  const enlace = leerFragmento(location.hash);
+  const vacio = raiz.querySelector<HTMLElement>('[data-confirmar-vacio]');
+  const aviso = raiz.querySelector<HTMLElement>('[data-aviso-confirmar]');
+  const bloque = raiz.querySelector<HTMLElement>('[data-confirmar-pedido]');
+  const venta = raiz.querySelector<HTMLFormElement>('[data-venta]');
+  const boton = venta?.querySelector<HTMLButtonElement>('[data-enviar]');
+  const acepta = venta?.querySelector<HTMLInputElement>('[data-acepta]');
+  const avisoVenta = venta?.querySelector<HTMLElement>('[data-aviso-venta]') ?? null;
+  const datosDeVenta = JSON.parse(document.getElementById('venta')?.textContent ?? '{}') as {
+    terminos?: string;
+  };
+  if (!enlace || !bloque || !venta || !boton || !acepta) return;
+  const seguimiento = `/pedido/#c=${enlace.codigo}&s=${enlace.secreto}`;
+  const pedido = await (async (): Promise<PedidoPorConfirmar | null> => {
+    try {
+      const r = await fetch('/api/v1/seguimiento', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ codigo: enlace.codigo, secreto: enlace.secreto }),
+      });
+      if (r.ok) return (await r.json()) as PedidoPorConfirmar;
+      decir(aviso, MOTIVOS_DE_CONFIRMAR['no-encontrado']);
+    } catch {
+      decir(aviso, 'No pudimos leer el pedido. Revisa tu conexión y recarga la página.');
+    }
+    return null;
+  })();
+  if (!pedido) return;
+  if (!pedido.porConfirmar) {
+    location.replace(seguimiento);
+    return;
+  }
+  if (vacio) vacio.hidden = true;
+  bloque.hidden = false;
+  const poner = (selector: string, texto: string) => {
+    const campo = bloque.querySelector<HTMLElement>(selector);
+    if (campo) campo.textContent = texto;
+  };
+  poner('[data-codigo]', pedido.codigo);
+  bloque.querySelector<HTMLElement>('[data-lineas]')?.replaceChildren(
+    ...pedido.lineas.map((l) => {
+      const li = nodo('li', 'linea');
+      li.append(
+        nodo('span', 'linea__nombre', `${l.cantidad} × ${l.nombre}`),
+        ...(l.opciones ? [nodo('span', 'linea__detalle', l.opciones)] : []),
+        nodo('span', 'cifra', formato(l.total)),
+      );
+      return li;
+    }),
+  );
+  poner('[data-subtotal]', formato(pedido.subtotal));
+  poner('[data-envio]', formato(pedido.envio));
+  poner('[data-descuento]', `-${formato(pedido.descuento)}`);
+  poner('[data-total]', formato(pedido.total));
+  const fila = (s: string, ver: boolean) => {
+    const f = bloque.querySelector<HTMLElement>(s);
+    if (f) f.hidden = !ver;
+  };
+  fila('[data-fila-envio]', pedido.envio > 0);
+  fila('[data-fila-descuento]', pedido.descuento > 0);
+  // La edad, si algún producto la pide (Ley 1480 art. 52): una casilla por cada uno.
+  const edad = pedido.porConfirmar.edad;
+  const campoDeEdad = venta.querySelector<HTMLElement>('[data-edad]');
+  if (campoDeEdad && edad.length > 0) {
+    campoDeEdad.querySelector('[data-edad-lista]')?.replaceChildren(
+      ...edad.map((e) => {
+        const label = nodo('label', 'acepto');
+        const casilla = document.createElement('input');
+        casilla.type = 'checkbox';
+        casilla.name = 'edad';
+        casilla.value = e.variante;
+        label.append(casilla, nodo('span', '', `Soy mayor de edad para comprar ${e.nombre}.`));
+        return label;
+      }),
+    );
+    campoDeEdad.hidden = false;
+  }
+
+  const elegido = (nombre: string) =>
+    venta.querySelector<HTMLInputElement>(`input[name="${nombre}"]:checked`)?.value ?? null;
+  const valorDe = (nombre: string) =>
+    venta.querySelector<HTMLInputElement>(`input[name="${nombre}"]`)?.value.trim() ?? '';
+  const entrega = () => ({ nombre: valorDe('nombre'), celular: valorDe('celular') });
+  const conEdad = () =>
+    [...venta.querySelectorAll<HTMLInputElement>('input[name="edad"]:checked')].map((c) => c.value);
+  const estado = () => {
+    const e = estadoDeLaVenta({
+      lineas: pedido.lineas.length,
+      forma: elegido('forma'),
+      hayEnvios: false,
+      envio: null,
+      acepta: acepta.checked,
+      entrega: faltaDeLaEntrega(entrega()) === null,
+    });
+    if (e.listo && conEdad().length < edad.length) {
+      return { listo: false, texto: 'Confirma tu edad', falta: 'edad' as const };
+    }
+    return e;
+  };
+  const pintar = () => {
+    const e = estado();
+    boton.textContent = e.texto;
+    boton.setAttribute('aria-disabled', String(!e.listo));
+    const datos = venta.querySelector<HTMLElement>('[data-entrega]');
+    if (datos) datos.hidden = elegido('forma') !== 'en_linea';
+  };
+  venta.addEventListener('change', pintar);
+  venta.addEventListener('input', pintar);
+  pintar();
+
+  let enviando = false;
+  venta.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const e = estado();
+    if (!e.listo) {
+      const campo =
+        e.falta === 'acepta'
+          ? acepta
+          : venta.querySelector<HTMLInputElement>(
+              e.falta === 'edad'
+                ? 'input[name="edad"]:not(:checked)'
+                : `input[name="${e.falta === 'entrega' ? faltaDeLaEntrega(entrega()) : e.falta}"]`,
+            );
+      campo?.focus();
+      decir(avisoVenta, e.texto);
+      return;
+    }
+    if (enviando) return;
+    enviando = true;
+    boton.setAttribute('aria-busy', 'true');
+    const enLinea = elegido('forma') === 'en_linea';
+    const token = enLinea ? secretoNuevo(azar) : null;
+    const opcional = (nombre: string) => (valorDe(nombre) ? { [nombre]: valorDe(nombre) } : {});
+    try {
+      const r = await fetch('/api/v1/pedidos/confirmar', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          codigo: enlace.codigo,
+          secreto: enlace.secreto,
+          forma: elegido('forma'),
+          acepta: true,
+          terminos: datosDeVenta.terminos,
+          totalVisto: pedido.total,
+          ...(conEdad().length > 0 ? { mayorDeEdad: conEdad() } : {}),
+          ...opcional('ciudad'),
+          ...(token
+            ? { token, entrega: { ...entrega(), ...opcional('direccion'), ...opcional('correo') } }
+            : {}),
+        }),
+      });
+      const cuerpo = (await r.json().catch(() => ({}))) as RespuestaDeConfirmar;
+      if (cuerpo.estado === 'ya-confirmado') {
+        location.replace(seguimiento);
+        return;
+      }
+      if (r.ok && cuerpo.estado === 'confirmado' && cuerpo.codigo) {
+        almacen.escribir(
+          CLAVE_ULTIMO,
+          JSON.stringify({ codigo: cuerpo.codigo, texto: cuerpo.texto, whatsapp: cuerpo.whatsapp }),
+        );
+        contar('iniciar_pedido');
+        medirCompra(cuerpo.codigo, pedido.total);
+        location.assign(seguimiento);
+        return;
+      }
+      if (r.ok && cuerpo.estado === 'por-pagar' && cuerpo.boton && cuerpo.codigo && token) {
+        // Como el carrito: la vuelta de Bold pregunta por este cobro y lleva a su seguimiento.
+        sesion.escribir(CLAVE_DEL_COBRO, token);
+        almacen.escribir(
+          CLAVE_ULTIMO,
+          JSON.stringify({ codigo: cuerpo.codigo, enlace: seguimiento }),
+        );
+        try {
+          await abrirBold(cuerpo.boton);
+          contar('pagar_en_linea');
+        } catch {
+          decir(
+            avisoVenta,
+            'No pudimos abrir la página de pago de Bold. Abre tu pedido para pagarlo.',
+          );
+        }
+        return;
+      }
+      decir(
+        avisoVenta,
+        MOTIVOS_DE_CONFIRMAR[cuerpo.estado ?? ''] ??
+          cuerpo.motivo ??
+          'No pudimos confirmar tu pedido. Intenta de nuevo.',
+      );
+    } catch {
+      decir(avisoVenta, 'No pudimos confirmar tu pedido. Revisa tu conexión e intenta de nuevo.');
+    } finally {
+      enviando = false;
+      boton.removeAttribute('aria-busy');
+    }
+  });
+}
+
 async function busqueda(): Promise<void> {
   const form = document.querySelector<HTMLFormElement>('[data-buscar]');
   const lista = document.querySelector<HTMLElement>('[data-resultados]');
@@ -1488,4 +1722,5 @@ void carritoPagina();
 void pedidoEnviado();
 void alVolverDelPago();
 void solicitudPagina();
+void confirmarPagina();
 void busqueda();

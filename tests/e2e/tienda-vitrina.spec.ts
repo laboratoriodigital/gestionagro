@@ -1108,3 +1108,75 @@ test('validación del 20 oct (T17b) · el pedido arriba, el precio sin encimarse
   await pedido.click();
   await expect(page).toHaveURL(`${TIENDA}/carrito/`);
 });
+
+test('HU-T15.5 · la persona confirma lo que preparó su asistente: revisa, elige cómo pagar y acepta, con axe', async ({
+  page,
+}) => {
+  const enviados: Record<string, unknown>[] = [];
+  await page.route('**/api/v1/seguimiento', (ruta) =>
+    ruta.fulfill({
+      json: {
+        codigo: 'AGT234',
+        numero: 1007,
+        estado: 'pendiente',
+        enPalabras: 'Preparado por tu asistente: falta que lo confirmes',
+        pasos: [],
+        lineas: [
+          {
+            nombre: 'Camisa de lino',
+            opciones: 'Talla: M · Color: Arena',
+            cantidad: 2,
+            total: 258000,
+          },
+        ],
+        subtotal: 258000,
+        descuento: 0,
+        envio: 0,
+        total: 258000,
+        envioNombre: null,
+        plazo: null,
+        forma: 'A convenir',
+        transportadora: null,
+        guia: null,
+        porConfirmar: { edad: [] },
+      },
+    }),
+  );
+  await page.route('**/api/v1/pedidos/confirmar', async (ruta) => {
+    enviados.push(JSON.parse(ruta.request().postData() ?? '{}') as Record<string, unknown>);
+    await ruta.fulfill({
+      json: {
+        estado: 'confirmado',
+        codigo: 'AGT234',
+        numero: 1007,
+        total: 258000,
+        texto: 'Hola, Comercio Ensayo Uno. Quiero hacer este pedido:\nPedido AGT234 · #1007',
+        whatsapp: '573000000001',
+        enlace: `${TIENDA}/pedido/#c=AGT234&s=abcdefghijklmnopqrstuv`,
+      },
+    });
+  });
+  await page.goto(`${TIENDA}/pedido/confirmar/#c=AGT234&s=abcdefghijklmnopqrstuv`);
+  await expect(page.locator('[data-confirmar-pedido]')).toBeVisible();
+  await expect(page.locator('[data-lineas] .linea')).toContainText('2 × Camisa de lino');
+  await expect(page.locator('[data-total]')).toHaveText('$258.000');
+  const boton = page.locator('[data-enviar]');
+  await expect(boton).toHaveText('Elige cómo pagar');
+  await sinFallasDeAxe(page, 'confirmar');
+  // Sin la casilla no se envía: el botón dice qué falta.
+  await page.locator('input[name="forma"][value="transferencia"]').check();
+  await expect(boton).toHaveText('Acepta los términos para enviar');
+  await expect(boton).toHaveAttribute('aria-disabled', 'true');
+  expect(enviados).toEqual([]);
+  await page.locator('[data-acepta]').check();
+  await expect(boton).toHaveText('Enviar por WhatsApp');
+  await boton.click();
+  await expect(page).toHaveURL(`${TIENDA}/pedido/#c=AGT234&s=abcdefghijklmnopqrstuv`);
+  expect(enviados[0]).toMatchObject({
+    codigo: 'AGT234',
+    secreto: 'abcdefghijklmnopqrstuv',
+    forma: 'transferencia',
+    acepta: true,
+    totalVisto: 258000,
+  });
+});
