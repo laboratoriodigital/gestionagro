@@ -175,6 +175,12 @@ function ficha(): void {
         if (tachado) tachado.textContent = a ? formato(a) : '';
       }
     }
+    // HU-T5.9: la combinación con su foto la muestra; sin foto propia, la galería queda como está.
+    if (
+      (estado.tipo === 'lista' || estado.tipo === 'agotada') &&
+      typeof estado.variante.foto === 'number'
+    )
+      mostrarFoto(estado.variante.foto);
     // «Quedan 2»: solo de la combinación elegida y si se puede pedir.
     if (quedan) {
       const q = estado.tipo === 'lista' ? estado.variante.quedan : undefined;
@@ -1215,22 +1221,28 @@ pintarBarra(cargar());
  * Las fotos de la ficha (validación del 20 oct 2026): tocar una miniatura muestra esa foto, y pasar
  * con el dedo marca la miniatura de la que se ve. Sin JavaScript, las miniaturas son enlaces.
  */
+const marcarMiniatura = (i: number) => {
+  for (const [j, m] of document.querySelectorAll<HTMLAnchorElement>('[data-miniatura]').entries()) {
+    if (j === i) m.setAttribute('aria-current', 'true');
+    else m.removeAttribute('aria-current');
+  }
+};
+/** Muestra la foto `i` de la galería de la ficha: la tocada o la de la combinación elegida (HU-T5.9). */
+function mostrarFoto(i: number): void {
+  const fotos = document.querySelector<HTMLElement>('[data-fotos]');
+  if (!fotos) return;
+  fotos.scrollTo({ left: i * fotos.clientWidth, behavior: 'smooth' });
+  marcarMiniatura(i);
+}
 function galeria(): void {
   const fotos = document.querySelector<HTMLElement>('[data-fotos]');
   const minis = [...document.querySelectorAll<HTMLAnchorElement>('[data-miniatura]')];
   if (!fotos || minis.length === 0) return;
-  const marcar = (i: number) => {
-    minis.forEach((m, j) => {
-      if (j === i) m.setAttribute('aria-current', 'true');
-      else m.removeAttribute('aria-current');
-    });
-  };
+  const marcar = marcarMiniatura;
   for (const m of minis) {
     m.addEventListener('click', (e) => {
       e.preventDefault();
-      const i = Number(m.dataset['miniatura'] ?? 0);
-      fotos.scrollTo({ left: i * fotos.clientWidth, behavior: 'smooth' });
-      marcar(i);
+      mostrarFoto(Number(m.dataset['miniatura'] ?? 0));
     });
   }
   fotos.addEventListener(
@@ -1240,7 +1252,54 @@ function galeria(): void {
   );
 }
 
+/** HU-T5.8 CA3: «Compartir» abre el menú del teléfono si lo tiene; si no, sigue su enlace de WhatsApp. */
+function compartir(): void {
+  const a = document.querySelector<HTMLAnchorElement>('[data-compartir]');
+  if (!a || typeof navigator.share !== 'function') return;
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigator
+      .share({
+        title: a.dataset['compartirTitulo'] ?? document.title,
+        url: a.dataset['compartir'] ?? location.href,
+      })
+      .catch(() => undefined);
+  });
+}
+
+/**
+ * HU-T5.12 CA2: «Ordenar por» ordena las tarjetas que muestra la página. Recomendado es el orden en
+ * que vienen (lo destacado primero, después el del comercio).
+ */
+function ordenarListas(): void {
+  for (const control of document.querySelectorAll<HTMLElement>('[data-ordenar]')) {
+    const lista = control.nextElementSibling;
+    const select = control.querySelector('select');
+    if (!(lista instanceof HTMLElement) || !select) continue;
+    control.hidden = false;
+    select.addEventListener('change', () => {
+      const tarjetas = [...lista.querySelectorAll<HTMLElement>(':scope > .tarjeta')];
+      const n = (t: HTMLElement, k: string) => Number(t.dataset[k] ?? 0);
+      const comparar: Record<string, (a: HTMLElement, b: HTMLElement) => number> = {
+        recomendado: (a, b) => n(a, 'orden') - n(b, 'orden'),
+        nombre: (a, b) =>
+          (a.dataset['nombre'] ?? '').localeCompare(b.dataset['nombre'] ?? '', 'es'),
+        menor: (a, b) => n(a, 'precio') - n(b, 'precio') || n(a, 'orden') - n(b, 'orden'),
+        mayor: (a, b) => n(b, 'precio') - n(a, 'precio') || n(a, 'orden') - n(b, 'orden'),
+        // Lo marcado como nuevo primero, y después lo cambiado más recién.
+        nuevo: (a, b) =>
+          Number('nuevo' in b.dataset) - Number('nuevo' in a.dataset) ||
+          (b.dataset['fecha'] ?? '').localeCompare(a.dataset['fecha'] ?? ''),
+      };
+      const orden = comparar[select.value] ?? comparar['recomendado'];
+      for (const t of tarjetas.sort(orden)) lista.append(t);
+    });
+  }
+}
+
 galeria();
+compartir();
+ordenarListas();
 iniciarConsentimiento();
 void carritoPagina();
 void pedidoEnviado();

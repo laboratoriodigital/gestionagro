@@ -19,17 +19,20 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://ensayo-dos--staging.laboratorio-digital.app/","name":"Comercio Ensayo Dos","position":1},{"@type":"ListItem","item":"https://ensayo-dos--staging.laboratorio-digital.app/p/pan-de-bono/","name":"Pan de bono","position":2}]}</script>
 </head>
 <body>
-<header class="franja"><a class="marca" href="/">Comercio Ensayo Dos</a><a class="franja__buscar" href="/buscar/">Buscar</a></header>
+<header class="franja"><a class="marca" href="/">Comercio Ensayo Dos</a><form class="franja__buscar" action="/buscar/" role="search"><label class="oculto" for="q-franja">Buscar en la tienda</label><input id="q-franja" name="q" type="search" placeholder="Buscar" autocomplete="off" enterkeyhint="search"></form><a class="franja__pedido" href="/carrito/" data-pedido hidden>Pedido <span class="cifra" data-cantidad>0</span></a></header>
 <main>
 <article class="ficha">
 <div class="ficha__foto" aria-hidden="true"></div>
 <div class="ficha__datos">
 <h1>Pan de bono</h1>
+<div class="ficha__precio">
 <p class="precio" data-precio>$1.500</p>
 <p class="precio__antes" data-antes hidden>Antes <s></s></p>
 <p class="quedan" data-quedan hidden></p>
 <p class="precio__nota">Precio final.</p>
+</div>
 <form class="eleccion" data-eleccion><div class="avisame" data-avisame hidden><p>Esta combinación está agotada.</p><button class="boton boton--secundario" type="button" data-avisame-boton>Avísame cuando haya</button><p class="aviso" data-avisame-estado role="status" hidden></p></div><p class="aviso" data-aviso role="status" hidden></p><button class="boton boton--principal" type="submit" data-boton aria-disabled="false">Agregar al pedido</button></form>
+<p class="compartir"><a class="boton boton--secundario" href="https://wa.me/?text=Pan%20de%20bono%20https%3A%2F%2Fensayo-dos--staging.laboratorio-digital.app%2Fp%2Fpan-de-bono%2F" target="_blank" rel="noopener" data-compartir="https://ensayo-dos--staging.laboratorio-digital.app/p/pan-de-bono/" data-compartir-titulo="Pan de bono">Compartir</a></p>
 <ul class="condiciones"><li>El envío, su costo y su plazo los acuerdas con la tienda antes de pagar.</li><li>No admite retracto: Alimento perecedero (Ley 1480, art. 47).</li><li><a href="/legal/envios/">Envíos y devoluciones</a> · <a href="/legal/retracto/">Retracto</a> · <a href="/legal/garantia/">Garantía</a></li></ul>
 <div class="descripcion"><p>Recién horneado. Pídelo antes de las 10 a. m.</p></div>
 </div>
@@ -43,7 +46,6 @@
 <p><a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a></p>
 <p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>
 </footer>
-<a class="barra-pedido" href="/carrito/" data-pedido hidden>Tu pedido <span class="cifra" data-cantidad>0</span></a>
 <script type="module" src="/_t/r1/vitrina.js"></script>
 </body>
 </html>

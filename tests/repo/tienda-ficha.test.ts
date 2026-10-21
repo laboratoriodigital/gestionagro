@@ -94,7 +94,7 @@ describe('las tres portadas (CA1)', () => {
 });
 
 describe('la ficha dice lo que la ley pide antes de comprar (CA2)', () => {
-  it('el precio final, cada envío con su plazo y el retracto', async () => {
+  it('el precio final y el retracto; los envíos, en «Envíos» y en el pedido (HU-T5.8)', async () => {
     const legal = {
       ...legalDeEnsayo(ENSAYO_UNO),
       responsableIva: true,
@@ -105,15 +105,20 @@ describe('la ficha dice lo que la ley pide antes de comprar (CA2)', () => {
     };
     const h = await html(tienda({ legal }), '/p/uno/index.html');
     expect(h).toContain('<p class="precio__nota">Precio final, con IVA incluido.</p>');
-    expect(h).toContain('Envío Medellín: $8.000, gratis desde $150.000; llega en 1 a 2 días.');
-    expect(h).toContain('Envío Nacional: $15.000; llega en 5 días.');
+    // Validación del 20 oct 2026: con cinco envíos la ficha se llenaba. Cada uno con su precio y su
+    // plazo sigue antes de pagar: en «Envíos», enlazada desde el pie, y en el pedido, que lo cobra.
+    expect(h).not.toContain('Envío Medellín');
     expect(h).toContain('Puedes retractarte de la compra en los 5 días hábiles siguientes');
-    const md = (await hornear(tienda({ legal }))).get('/p/uno/index.md')?.contenido ?? '';
+    const archivos = await hornear(tienda({ legal }));
+    const md = archivos.get('/p/uno/index.md')?.contenido ?? '';
     expect(md).toContain('## Antes de comprar');
-    expect(md).toContain('- Envío Nacional: $15.000; llega en 5 días.');
+    expect(md).not.toContain('Envío Nacional');
+    expect(archivos.get('/legal/envios/index.md')?.contenido).toContain(
+      '- Nacional: $15.000; llega en 5 días.',
+    );
   });
 
-  it('❌ un envío de más de 30 días calendario lo dice en la ficha y en «Envíos» (HU-T10.1 CA1)', async () => {
+  it('❌ un envío de más de 30 días calendario lo dice en «Envíos» (HU-T10.1 CA1)', async () => {
     const legal = {
       ...legalDeEnsayo(ENSAYO_UNO),
       envios: [
@@ -123,9 +128,6 @@ describe('la ficha dice lo que la ley pide antes de comprar (CA2)', () => {
     };
     const largo =
       'llega en 35 a 45 días calendario: más que los 30 de la ley, y es el plazo que aceptas al pedir.';
-    const h = await html(tienda({ legal }), '/p/uno/index.html');
-    expect(h).toContain(`Envío Bodega: $40.000; ${largo}`);
-    expect(h).toContain('Envío Medellín: $8.000; llega en 1 a 2 días.');
     const envios =
       (await hornear(tienda({ legal }))).get('/legal/envios/index.md')?.contenido ?? '';
     expect(envios).toContain(`- Bodega: $40.000; ${largo}`);

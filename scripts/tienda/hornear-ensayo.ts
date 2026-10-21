@@ -56,6 +56,8 @@ export async function hornearEnsayo(): Promise<Map<string, string | Buffer>> {
           { id: 'v-bolsa', clave: '', precioCop: 35000, precioAntesCop: 45000, stock: 2 },
         ],
         actualizado: '2026-10-14T15:00:00.000Z',
+        // HU-T5.10: marcado como nuevo.
+        nuevo: true,
       },
     ],
     colecciones: [{ slug: 'lino', nombre: 'Lino', productos: ['camisa-de-lino'] }],

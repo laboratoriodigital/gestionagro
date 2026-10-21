@@ -88,6 +88,8 @@ export function manifiestoWeb(datos: {
   frase?: string;
   color: string;
   fondo: string;
+  /** HU-T5.13: el ícono de la tienda, si lo subió. */
+  icono?: { src: string; tamano: string; tipo: string };
 }): string {
   return `${JSON.stringify(
     {
@@ -100,6 +102,9 @@ export function manifiestoWeb(datos: {
       display: 'browser',
       theme_color: datos.color,
       background_color: datos.fondo,
+      ...(datos.icono
+        ? { icons: [{ src: datos.icono.src, sizes: datos.icono.tamano, type: datos.icono.tipo }] }
+        : {}),
     },
     null,
     2,

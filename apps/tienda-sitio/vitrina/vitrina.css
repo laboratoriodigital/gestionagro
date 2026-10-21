@@ -89,28 +89,80 @@ h1 {
   z-index: 2;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: var(--espacio-4);
+  gap: var(--espacio-2) var(--espacio-4);
   min-height: 56px;
+  padding-block: var(--espacio-2);
   padding-inline: max(1rem, (100% - 72rem) / 2);
   background: var(--superficie);
   border-bottom: 1px solid var(--borde);
 }
 .marca {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-weight: var(--peso-fuerte);
   text-decoration: none;
   letter-spacing: -0.01em;
 }
+/* HU-T5.12 CA1: buscar, en la franja de cada página. En el teléfono, en su propia fila, para que
+   el pedido no lo encoja; desde 48rem, entre la marca y el pedido. */
 .franja__buscar {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  flex: 1 0 100%;
+  order: 3;
   min-height: 48px;
+  align-items: center;
+}
+@media (min-width: 48rem) {
+  .franja {
+    flex-wrap: nowrap;
+  }
+  .franja__buscar {
+    flex: 1;
+    order: 0;
+    max-width: 24rem;
+  }
+}
+.franja__buscar input {
+  width: 100%;
+  min-height: 44px;
   padding-inline: var(--espacio-3);
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
   font-size: var(--texto-pequeno);
-  color: var(--texto-suave);
+}
+/* HU-T5.15: el pedido, arriba, con su cantidad. */
+.franja__pedido {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: 44px;
+  padding-inline: var(--espacio-4);
+  border-radius: 999px;
+  background: var(--tinta, var(--texto));
+  color: var(--superficie);
+  font-size: var(--texto-pequeno);
+  font-weight: var(--peso-fuerte);
+  text-decoration: none;
+}
+.franja__pedido[hidden] {
+  display: none;
+}
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .pie {
-  padding: var(--espacio-8) max(1rem, (100% - 72rem) / 2) var(--espacio-24);
+  padding: var(--espacio-8) max(1rem, (100% - 72rem) / 2);
   border-top: 1px solid var(--borde);
   font-size: var(--texto-pequeno);
   color: var(--texto-suave);
@@ -325,9 +377,18 @@ h1 {
     align-items: start;
   }
 }
-.ficha .precio {
+/* HU-T5.8 CA1: el precio, el de antes, las existencias y la nota, cada uno en su renglón. */
+.ficha__precio {
+  display: grid;
+  gap: var(--espacio-1, 0.25rem);
   margin: 0 0 var(--espacio-6);
+}
+.ficha .precio {
+  margin: 0;
   font-size: var(--texto-titulo-3);
+}
+.compartir {
+  margin: var(--espacio-3) 0 0;
 }
 .eleccion {
   display: grid;
@@ -418,7 +479,7 @@ h1 {
   font-size: var(--texto-pequeno);
 }
 .precio__nota {
-  margin: calc(-1 * var(--espacio-4)) 0 var(--espacio-6);
+  margin: 0;
   color: var(--texto-suave);
   font-size: var(--texto-pequeno);
 }
@@ -458,24 +519,6 @@ h1 {
 }
 
 /* --- Barra del pedido, búsqueda y estados ---------------------------------------------------- */
-.barra-pedido {
-  position: fixed;
-  inset: auto var(--espacio-4) var(--espacio-4);
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 56px;
-  padding-inline: var(--espacio-6);
-  border-radius: 999px;
-  background: var(--tinta, var(--texto));
-  color: var(--superficie);
-  text-decoration: none;
-  font-weight: var(--peso-fuerte);
-}
-.barra-pedido[hidden] {
-  display: none;
-}
 
 /* --- El pedido (HU-T5.4) --------------------------------------------------------------------- */
 .aviso {
@@ -686,7 +729,6 @@ a.boton[hidden] {
 @media print {
   .franja,
   .pie,
-  .barra-pedido,
   [data-imprimir],
   [data-acuse-whatsapp] {
     display: none;
@@ -783,4 +825,105 @@ a.boton[hidden] {
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* --- HU-T5.10 a HU-T5.12: categorías, ordenar y lo nuevo -------------------------------------- */
+.categorias {
+  display: flex;
+  gap: var(--espacio-2);
+  margin-bottom: var(--espacio-4);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.categorias a {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: var(--espacio-4);
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  color: var(--texto);
+  font-size: var(--texto-pequeno);
+  text-decoration: none;
+}
+.categorias a[aria-current="page"] {
+  border-color: var(--tinta, var(--texto));
+  background: var(--tinta, var(--texto));
+  color: var(--superficie);
+}
+.ordenar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--espacio-2);
+  margin-bottom: var(--espacio-3);
+  font-size: var(--texto-pequeno);
+  color: var(--texto-suave);
+}
+.ordenar[hidden] {
+  display: none;
+}
+.ordenar select {
+  min-height: 44px;
+  padding-inline: var(--espacio-3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-campo);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+}
+.etiqueta-nuevo {
+  align-self: flex-start;
+  justify-self: start;
+  width: fit-content;
+  margin: 0;
+  padding: 0.125rem var(--espacio-2);
+  border-radius: 999px;
+  background: var(--acento);
+  color: var(--acento-texto, var(--superficie));
+  font-size: var(--texto-etiqueta, var(--texto-pequeno));
+  font-weight: var(--peso-fuerte);
+}
+
+/* --- HU-T5.13 y HU-T5.14: el logo y el hero ----------------------------------------------------- */
+.marca__logo {
+  display: block;
+  width: auto;
+  max-width: 10rem;
+  height: 40px;
+  object-fit: contain;
+}
+.hero {
+  display: grid;
+  gap: var(--espacio-4);
+  margin-bottom: var(--espacio-8);
+}
+.hero__foto {
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: var(--superficie-2);
+  border-radius: var(--radio-campo);
+}
+.hero__foto img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero__texto {
+  display: grid;
+  gap: var(--espacio-3);
+  justify-items: start;
+}
+.hero__texto h1,
+.hero__texto p {
+  margin: 0;
+}
+@media (min-width: 48rem) {
+  .hero {
+    grid-template-columns: 3fr 2fr;
+    align-items: center;
+  }
 }

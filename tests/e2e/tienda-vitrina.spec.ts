@@ -985,3 +985,89 @@ test('validación del 20 oct · un producto sin opciones se agrega y llega al ca
   await expect(tarjeta.getByText('Últimas unidades')).toBeVisible();
   await expect(tarjeta.locator('.precio__antes')).toHaveText('Antes $45.000');
 });
+
+test('validación del 20 oct (T17b) · buscar arriba, las categorías y «Ordenar por» en la portada', async ({
+  page,
+}) => {
+  await page.goto(`${TIENDA}/`);
+  const nombres = page.locator('.productos .tarjeta__nombre');
+  await expect(nombres).toHaveText(['Camisa de lino', 'Bolsa de tela']);
+  const bolsa = page.locator('.tarjeta', { hasText: 'Bolsa de tela' });
+  await expect(bolsa.getByText('Nuevo', { exact: true })).toBeVisible();
+
+  const ordenar = page.getByLabel('Ordenar por');
+  await ordenar.selectOption('menor');
+  await expect(nombres).toHaveText(['Bolsa de tela', 'Camisa de lino']);
+  await ordenar.selectOption('mayor');
+  await expect(nombres).toHaveText(['Camisa de lino', 'Bolsa de tela']);
+  await ordenar.selectOption('nombre');
+  await expect(nombres).toHaveText(['Bolsa de tela', 'Camisa de lino']);
+  await ordenar.selectOption('recomendado');
+  await expect(nombres).toHaveText(['Camisa de lino', 'Bolsa de tela']);
+  await ordenar.selectOption('nuevo');
+  await expect(nombres).toHaveText(['Bolsa de tela', 'Camisa de lino']);
+
+  const categorias = page.getByRole('navigation', { name: 'Categorías' });
+  await expect(categorias.getByRole('link', { name: 'Todo' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await categorias.getByRole('link', { name: 'Lino' }).click();
+  await expect(page).toHaveURL(`${TIENDA}/c/lino/`);
+  await expect(nombres).toHaveText(['Camisa de lino']);
+  await expect(categorias.getByRole('link', { name: 'Lino' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+
+  // Buscar va en la franja de cada página y lleva a los resultados.
+  const buscar = page.getByRole('searchbox', { name: 'Buscar en la tienda' });
+  await buscar.fill('bolsa');
+  await buscar.press('Enter');
+  await expect(page).toHaveURL(`${TIENDA}/buscar/?q=bolsa`);
+  await expect(page.locator('[data-resultados] .tarjeta')).toHaveText(['Bolsa de tela']);
+});
+
+test('validación del 20 oct (T17b) · el pedido arriba, el precio sin encimarse y compartir', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page.goto(`${TIENDA}/p/bolsa-de-tela/`);
+  // El precio, el de antes, la nota y cuántas quedan no se pisan.
+  const cajas = await Promise.all(
+    ['.ficha__precio .precio', '[data-antes]', '.precio__nota', '[data-quedan]'].map((s) =>
+      page.locator(s).first().boundingBox(),
+    ),
+  );
+  for (const [i, a] of cajas.entries()) {
+    for (const b of cajas.slice(i + 1)) {
+      if (!a || !b) continue;
+      const seCruzan =
+        a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+      // El precio y el de antes van en la misma línea, uno al lado del otro.
+      if (seCruzan) expect(a.x + a.width <= b.x || b.x + b.width <= a.x).toBe(true);
+    }
+  }
+  // Los envíos ya no van en la ficha, solo una línea que dice dónde: están en «Envíos», en el pie,
+  // y en el pedido.
+  await expect(page.locator('.ficha').getByText(/^Envío .+: \$/)).toHaveCount(0);
+  await expect(page.locator('.ficha .condiciones').getByText(/^El envío/)).toBeVisible();
+
+  // Sin «compartir» del teléfono, el enlace abre WhatsApp con el producto.
+  const compartir = page.getByRole('link', { name: 'Compartir' });
+  await expect(compartir).toHaveAttribute(
+    'href',
+    /^https:\/\/wa\.me\/\?text=Bolsa%20de%20tela%20http/,
+  );
+
+  const pedido = page.locator('.franja [data-pedido]');
+  await expect(pedido).toBeHidden();
+  await page.locator('[data-boton]').click();
+  await expect(pedido).toBeVisible();
+  await expect(pedido.locator('[data-cantidad]')).toHaveText('1');
+  const franja = await page.locator('.franja').boundingBox();
+  const caja = await pedido.boundingBox();
+  expect(caja && franja && caja.y + caja.height <= franja.y + franja.height + 1).toBe(true);
+  await pedido.click();
+  await expect(page).toHaveURL(`${TIENDA}/carrito/`);
+});
