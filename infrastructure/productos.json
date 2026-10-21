@@ -136,6 +136,30 @@
         "al_agotarse": ["ks:tienda-horno", "ks:tienda-mcp"],
         "d1_filas_escritas_dia": 5000
       },
+      "recursos_oauth": [
+        {
+          "produccion": "https://mcp.laboratorio-digital.app",
+          "staging": "https://tienda-panel-staging.laboratoriodigital-la.workers.dev"
+        }
+      ],
+      "alcances": [
+        {
+          "id": "tienda:pedidos:leer",
+          "descripcion": "Ver los pedidos de tu tienda, sin los datos de tus compradores. No puede cambiar nada."
+        },
+        {
+          "id": "tienda:pedidos:estado",
+          "descripcion": "Confirmar, despachar y entregar tus pedidos. No cobra, no reembolsa ni cancela."
+        },
+        {
+          "id": "tienda:inventario:leer",
+          "descripcion": "Ver cuántas unidades tienes de cada producto."
+        },
+        {
+          "id": "tienda:inventario:ajustar",
+          "descripcion": "Sumar o restar unidades de tus productos. Cada cambio queda en el libro del inventario."
+        }
+      ],
       "kill_switches": [
         "ks:tienda",
         "ks:tienda-cobros",

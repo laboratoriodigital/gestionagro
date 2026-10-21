@@ -128,6 +128,7 @@ import {
   usoDeLasKeks,
 } from './llaves.ts';
 import { comprobarIdentidad, guardarLlaves, leerElCobro, probarLlaves } from './llaves-de-bold.ts';
+import { atenderMcpDelComercio, documentoDelMcpDelComercio } from './mcp-comercio.ts';
 import { mcpEncendido, responderMcp } from './mcp-publico.ts';
 import { type BucketDeFotos, fotoDeLaVariante, quitarFoto, subirFoto } from './medios.ts';
 import { borrarPagina, guardarPagina, listarPaginas } from './paginas.ts';
@@ -268,6 +269,10 @@ export interface Env {
   /** HU-T15.4: los mensajes del MCP público y, aparte, preparar un pedido. */
   LIMITE_MCP?: Limitador;
   LIMITE_MCP_PEDIDOS?: Limitador;
+  /** HU-T15.7: el recurso del MCP del comercio (RFC 8707), su emisor y el CORE, que dice si una concesión sigue viva. */
+  RECURSO_MCP_COMERCIO?: string;
+  EMISOR_OAUTH?: string;
+  CORE?: { concesionVigente(id: string): Promise<boolean> };
   MEDICION?: {
     writeDataPoint(p: { indexes?: string[]; blobs?: string[]; doubles?: number[] }): void;
   };
@@ -1027,9 +1032,33 @@ export function crearApp(
    * cuenta horas, bitácora tienda3 11).
    */
   app.get('/mcp', (c) => c.json({ error: 'Este servidor no abre un flujo SSE: usa POST.' }, 405));
+  // HU-T15.7: los metadatos del recurso (RFC 9728) y la tarjeta del MCP del comercio, por el panel.
+  for (const [ruta, cual] of [
+    ['/.well-known/oauth-protected-resource', 'recurso'],
+    ['/.well-known/oauth-protected-resource/mcp', 'recurso'],
+    ['/.well-known/mcp/server-card.json', 'tarjeta'],
+  ] as const) {
+    app.get(ruta, (c) => {
+      const doc = documentoDelMcpDelComercio(c.env, cual);
+      if (!doc) return c.json(NO_EXISTE, 404);
+      c.header('access-control-allow-origin', '*');
+      return c.json(doc);
+    });
+  }
   app.post('/mcp', async (c) => {
     const destino = tiendaDelDespacho(c);
-    if (!destino || !(await mcpEncendido(destino.db, destino.org))) return c.json(NO_EXISTE, 404);
+    // HU-T15.7: sin tienda resuelta llega por el panel: es el MCP del comercio, con su token.
+    if (!destino) {
+      return atenderMcpDelComercio(c as unknown as Parameters<typeof atenderMcpDelComercio>[0], {
+        claves: clavesDe(c.env),
+        ahora: ahora(),
+        apagado: async () =>
+          Boolean(c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda-mcp'))),
+        soloLectura: async () =>
+          Boolean(c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda'))),
+      });
+    }
+    if (!(await mcpEncendido(destino.db, destino.org))) return c.json(NO_EXISTE, 404);
     const enPausa = (motivo: string, estado: 429 | 503) => {
       c.header('retry-after', estado === 429 ? '60' : '120');
       return c.json({ jsonrpc: '2.0', id: null, error: { code: -32000, message: motivo } }, estado);

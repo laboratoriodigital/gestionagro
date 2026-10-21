@@ -49,6 +49,25 @@ describe('el panel', () => {
     expect(recibida?.headers.has(CABECERA_TIENDA)).toBe(false);
   });
 
+  it('HU-T15.7: el MCP del comercio y sus metadatos también van a la API, sin tienda resuelta', async () => {
+    for (const ruta of [
+      '/mcp',
+      '/.well-known/oauth-protected-resource',
+      '/.well-known/mcp/server-card.json',
+    ]) {
+      const assets = servicio();
+      const api = servicio();
+      await atender(
+        new Request(`https://mcp.ejemplo.test${ruta}`, {
+          headers: { [CABECERA_TIENDA]: '{"org":"otra"}' },
+        }),
+        { ASSETS: assets.s, API_C1: api.s, SECRETO_DESPACHO: SECRETO },
+      );
+      expect([assets.recibidas.length, api.recibidas.length], ruta).toEqual([0, 1]);
+      expect(api.recibidas[0]?.headers.has(CABECERA_TIENDA), ruta).toBe(false);
+    }
+  });
+
   it.each<[string, Env]>([
     ['sin el secreto', { API_C1: servicio().s }],
     [

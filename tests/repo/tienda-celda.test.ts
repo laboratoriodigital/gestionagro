@@ -108,16 +108,21 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
     }
   });
 
-  it('el panel ejecuta el Worker solo en /api/*: una pantalla nunca gasta una invocación', () => {
+  it('el panel ejecuta el Worker solo en /api/* y en el MCP del comercio: una pantalla nunca gasta una invocación', () => {
     const panel = wranglerDelPanelDeLaTienda(config) as unknown as Config;
-    expect(panel.assets?.run_worker_first).toEqual(['/api/*']);
+    // HU-T15.7: el MCP del comercio y sus metadatos (RFC 9728).
+    expect(panel.assets?.run_worker_first).toEqual(['/api/*', '/mcp', '/.well-known/*']);
   });
 
-  it('staging vive en workers.dev; producción, solo en panel. y origen., sin el comodín todavía (HU-T2.9)', () => {
+  it('staging vive en workers.dev; producción, solo en panel., mcp. y origen., sin el comodín todavía (HU-T2.9)', () => {
     const sitio = wranglerDelSitioDeLaTienda(config) as unknown as Config;
     const panel = wranglerDelPanelDeLaTienda(config) as unknown as Config;
     expect(sitio.routes).toEqual([{ pattern: DOMINIOS_DE_LA_TIENDA.origen, custom_domain: true }]);
-    expect(panel.routes).toEqual([{ pattern: DOMINIOS_DE_LA_TIENDA.panel, custom_domain: true }]);
+    expect(panel.routes).toEqual([
+      { pattern: DOMINIOS_DE_LA_TIENDA.panel, custom_domain: true },
+      // HU-T15.7: el MCP del comercio, el recurso que nombra productos.json.
+      { pattern: DOMINIOS_DE_LA_TIENDA.mcp, custom_domain: true },
+    ]);
     for (const c of [sitio, panel]) {
       expect(c.workers_dev).toBe(false);
       expect(c.env.staging.workers_dev).toBe(true);

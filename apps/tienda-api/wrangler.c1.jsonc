@@ -10,8 +10,17 @@
     "PRODUCTO": "tienda",
     "PLAN": "free",
     "MEDIOS": "img.laboratorio-digital.app",
-    "AMBIENTE": "produccion"
+    "AMBIENTE": "produccion",
+    "RECURSO_MCP_COMERCIO": "https://mcp.laboratorio-digital.app",
+    "EMISOR_OAUTH": "https://cuenta.laboratorio-digital.com"
   },
+  "services": [
+    {
+      "binding": "CORE",
+      "service": "agro-core",
+      "entrypoint": "ServicioDelCore"
+    }
+  ],
   "d1_databases": [
     {
       "binding": "tienda_c1_s1",
@@ -140,8 +149,17 @@
         "PLAN": "free",
         "MEDIOS": "img--staging.laboratorio-digital.app",
         "AMBIENTE": "staging",
-        "ENSAYOS": "1"
+        "ENSAYOS": "1",
+        "RECURSO_MCP_COMERCIO": "https://tienda-panel-staging.laboratoriodigital-la.workers.dev",
+        "EMISOR_OAUTH": "https://agro-core-staging.laboratoriodigital-la.workers.dev"
       },
+      "services": [
+        {
+          "binding": "CORE",
+          "service": "agro-core-staging",
+          "entrypoint": "ServicioDelCore"
+        }
+      ],
       "d1_databases": [
         {
           "binding": "tienda_c1_s1",

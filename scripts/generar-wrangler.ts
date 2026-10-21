@@ -369,6 +369,8 @@ export const MEDIOS_DE_LA_TIENDA = {
 export const DOMINIOS_DE_LA_TIENDA = {
   panel: 'panel.laboratorio-digital.app',
   origen: 'origen.laboratorio-digital.app',
+  // HU-T15.7: el MCP del comercio, en el Worker del panel.
+  mcp: 'mcp.laboratorio-digital.app',
 } as const;
 
 /** La zona de las tiendas: la de Cloudflare for SaaS y sus dominios propios (HU-T13.1). */
@@ -446,6 +448,34 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
     },
   ];
   const vars = { CELDA: celda.id, PRODUCTO: celda.producto, PLAN: celda.plan };
+  // HU-T15.7: el MCP del comercio, si la Tienda declara su recurso, con el CORE de cada destino
+  // como servidor de autorización; la API le pregunta por service binding si una concesión sigue viva.
+  const core = cargarCeldas().core;
+  const recurso = cargarProductos().productos.find((p) => p.id === celda.producto)
+    ?.recursos_oauth?.[0];
+  const mcp = (staging: boolean) =>
+    recurso
+      ? {
+          RECURSO_MCP_COMERCIO: staging ? recurso.staging : recurso.produccion,
+          EMISOR_OAUTH: staging
+            ? core.url_staging
+            : core.dominio
+              ? `https://${core.dominio}`
+              : core.url,
+        }
+      : {};
+  const alCore = (staging: boolean) =>
+    recurso
+      ? {
+          services: [
+            {
+              binding: 'CORE',
+              service: staging ? `${core.worker}-staging` : core.worker,
+              entrypoint: 'ServicioDelCore',
+            },
+          ],
+        }
+      : {};
   const medios = {
     MEDIOS: MEDIOS_DE_LA_TIENDA.produccion,
     AMBIENTE: 'produccion',
@@ -468,7 +498,8 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
     main: 'src/worker.ts',
     compatibility_date: FECHA_COMPATIBILIDAD,
     workers_dev: false,
-    vars: { ...vars, ...medios },
+    vars: { ...vars, ...medios, ...mcp(false) },
+    ...alCore(false),
     d1_databases: bases(false),
     r2_buckets: [{ binding: 'SITIOS', bucket_name: almacen }, ...fotos('produccion')],
     // HU-T17.1 y D-T10: el quinto cron de la cuenta, solo en producción; staging no tiene.
@@ -481,7 +512,14 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
         name: workerDeLaApiDeLaTienda(celda.id, true),
         workers_dev: false,
         // HU-T2.6 y HU-T4.4: solo staging publica a los comercios de prueba.
-        vars: { ...vars, MEDIOS: MEDIOS_DE_LA_TIENDA.staging, AMBIENTE: 'staging', ENSAYOS: '1' },
+        vars: {
+          ...vars,
+          MEDIOS: MEDIOS_DE_LA_TIENDA.staging,
+          AMBIENTE: 'staging',
+          ENSAYOS: '1',
+          ...mcp(true),
+        },
+        ...alCore(true),
         d1_databases: bases(true),
         r2_buckets: [{ binding: 'SITIOS', bucket_name: `${almacen}-staging` }, ...fotos('staging')],
         triggers: { crons: [] },
@@ -565,11 +603,15 @@ export function wranglerDelPanelDeLaTienda(config: ConfigCeldas): Record<string,
     assets: {
       directory: './dist',
       binding: 'ASSETS',
-      run_worker_first: ['/api/*'],
+      // HU-T15.7: también el MCP del comercio y sus metadatos (RFC 9728), que pasan a la API.
+      run_worker_first: ['/api/*', '/mcp', '/.well-known/*'],
       not_found_handling: 'single-page-application',
     },
     workers_dev: false,
-    routes: [{ pattern: DOMINIOS_DE_LA_TIENDA.panel, custom_domain: true }],
+    routes: [
+      { pattern: DOMINIOS_DE_LA_TIENDA.panel, custom_domain: true },
+      { pattern: DOMINIOS_DE_LA_TIENDA.mcp, custom_domain: true },
+    ],
     services: serviciosDeLaTienda(config, false),
     observability: { enabled: true },
     env: {
