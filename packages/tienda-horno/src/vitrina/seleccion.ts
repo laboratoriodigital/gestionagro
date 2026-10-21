@@ -16,6 +16,10 @@ export interface VarianteDeLaFicha {
   clave: string;
   precioCop: number;
   disponible: boolean;
+  /** El precio de antes, si bajó; se muestra tachado. */
+  precioAntesCop?: number;
+  /** Cuántas quedan, si son pocas. */
+  quedan?: number;
 }
 
 export type EstadoDelBoton =

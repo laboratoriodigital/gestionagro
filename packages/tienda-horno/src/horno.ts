@@ -39,7 +39,12 @@ export interface VarianteParaHornear {
   clave: string;
   precioCop: number;
   stock: number | null;
+  /** El precio de antes, tachado al lado, solo si es mayor que el de ahora (validación del 20 oct). */
+  precioAntesCop?: number | null;
 }
+
+/** Con estas unidades o menos, la ficha dice «Quedan N» y la tarjeta «Últimas unidades». */
+export const POCAS_UNIDADES = 3;
 
 /** Una foto ya subida (HU-T8.3): sus derivadas viven en el bucket público de las fotos (HU-T5.6). */
 export interface FotoParaHornear {
@@ -241,6 +246,23 @@ const precioDesde = (p: ProductoParaHornear) => Math.min(...p.variantes.map((v) 
 const variaElPrecio = (p: ProductoParaHornear) =>
   new Set(p.variantes.map((v) => v.precioCop)).size > 1;
 const disponible = (v: VarianteParaHornear) => v.stock === null || v.stock > 0;
+/** Cuántas quedan de una combinación, si son pocas; `null` si hay más o no se cuentan. */
+const quedanDe = (v: VarianteParaHornear) =>
+  v.stock !== null && v.stock > 0 && v.stock <= POCAS_UNIDADES ? v.stock : null;
+/** El precio de antes, si de verdad bajó. */
+const antesDe = (v: VarianteParaHornear) =>
+  typeof v.precioAntesCop === 'number' && v.precioAntesCop > v.precioCop ? v.precioAntesCop : null;
+const masBarata = (p: ProductoParaHornear) =>
+  p.variantes.reduce((a, b) => (b.precioCop < a.precioCop ? b : a));
+/** Todo lo que se puede pedir de un producto se cuenta, y son pocas unidades en total. */
+const ultimasUnidades = (p: ProductoParaHornear) => {
+  const hay = p.variantes.filter(disponible);
+  return (
+    hay.length > 0 &&
+    hay.every((v) => v.stock !== null) &&
+    hay.reduce((suma, v) => suma + (v.stock ?? 0), 0) <= POCAS_UNIDADES
+  );
+};
 const fecha = (iso: string) => iso.slice(0, 10);
 
 interface Pagina {
@@ -412,8 +434,20 @@ ${p.cuerpo}
   const TAMANO_FICHA = '(min-width: 64rem) 36rem, 100vw';
   const TAMANO_PORTADA = '(min-width: 64rem) 72rem, 100vw';
 
+  // Validación del 20 oct 2026: con varias fotos, la tarjeta deja pasarlas con el dedo; las demás
+  // cargan solo cuando se ven.
+  const fotosDeTarjeta = (p: ProductoParaHornear, prioridad: boolean) => {
+    const lista = (p.fotos ?? []).slice(0, 5);
+    if (lista.length <= 1)
+      return imagen(lista[0], 'tarjeta__foto', TAMANO_TARJETA, prioridad, p.nombre);
+    return `<span class="tarjeta__fotos">${lista.map((f, i) => imagen(f, 'tarjeta__foto', TAMANO_TARJETA, prioridad && i === 0, p.nombre)).join('')}</span><span class="tarjeta__cuantas">${lista.length} fotos</span>`;
+  };
+  const antesEnTarjeta = (p: ProductoParaHornear) => {
+    const antes = antesDe(masBarata(p));
+    return antes ? ` <span class="precio__antes">Antes <s>${formatearPesos(antes)}</s></span>` : '';
+  };
   const tarjeta = (p: ProductoParaHornear, prioridad = false) =>
-    `<li class="tarjeta"><a href="/p/${escaparHtml(p.slug)}/">${imagen(p.fotos?.[0], 'tarjeta__foto', TAMANO_TARJETA, prioridad, p.nombre)}<span class="tarjeta__nombre">${escaparHtml(p.nombre)}</span><span class="precio">${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}</span></a></li>`;
+    `<li class="tarjeta"><a href="/p/${escaparHtml(p.slug)}/">${fotosDeTarjeta(p, prioridad)}<span class="tarjeta__nombre">${escaparHtml(p.nombre)}</span><span class="precio">${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}${antesEnTarjeta(p)}</span>${ultimasUnidades(p) ? '<span class="tarjeta__quedan">Últimas unidades</span>' : ''}</a></li>`;
   const rejilla = (lista: readonly ProductoParaHornear[], primeraConPrioridad: boolean) =>
     `<ul class="productos">${lista.map((p, i) => tarjeta(p, primeraConPrioridad && i === 0)).join('')}</ul>`;
   const lineaMd = (p: ProductoParaHornear) =>
@@ -562,8 +596,15 @@ ${p.cuerpo}
         clave: v.clave,
         precioCop: v.precioCop,
         disponible: disponible(v),
+        ...(antesDe(v) ? { precioAntesCop: antesDe(v) as number } : {}),
+        ...(quedanDe(v) ? { quedan: quedanDe(v) as number } : {}),
       }));
     const inicial = estadoDeLaEleccion(p.opciones, variantes, {});
+    const antesInicial =
+      inicial.tipo === 'lista' || inicial.tipo === 'agotada'
+        ? (inicial.variante.precioAntesCop ?? null)
+        : antesDe(masBarata(p));
+    const quedanInicial = inicial.tipo === 'lista' ? (inicial.variante.quedan ?? null) : null;
     const grupos = p.opciones
       .map(
         (o) =>
@@ -579,9 +620,14 @@ ${p.cuerpo}
       ? '<label class="mayoria"><input type="checkbox" name="mayor-de-edad" data-mayoria><span>Confirmo que soy mayor de edad</span></label>'
       : '';
     const fotos = p.fotos ?? [];
+    // Validación del 20 oct 2026: con varias fotos, miniaturas debajo para elegir, en vez de la barra.
+    const miniaturas =
+      fotos.length > 1
+        ? `<nav class="ficha__miniaturas" aria-label="Fotos de ${escaparHtml(p.nombre)}">${fotos.map((f, i) => `<a href="#foto-${i + 1}" data-miniatura="${i}"${i === 0 ? ' aria-current="true"' : ''} aria-label="Foto ${i + 1} de ${fotos.length}">${imagen(f, 'ficha__miniatura', '4rem', false, '')}</a>`).join('')}</nav>`
+        : '';
     const galeria =
       fotos.length > 0 && t.medios
-        ? `<div class="ficha__fotos">${fotos.map((f, i) => imagen(f, 'ficha__foto', TAMANO_FICHA, i === 0, p.nombre)).join('')}</div>`
+        ? `<div class="ficha__galeria"><div class="ficha__fotos" data-fotos>${fotos.map((f, i) => imagen(f, 'ficha__foto', TAMANO_FICHA, i === 0, p.nombre).replace('<span class="ficha__foto">', `<span class="ficha__foto" id="foto-${i + 1}">`)).join('')}</div>${miniaturas}</div>`
         : '<div class="ficha__foto" aria-hidden="true"></div>';
     return [
       `<article class="ficha"${p.soloMayores ? ' data-solo-mayores' : ''}>`,
@@ -589,6 +635,8 @@ ${p.cuerpo}
       '<div class="ficha__datos">',
       `<h1>${escaparHtml(p.nombre)}</h1>`,
       `<p class="precio" data-precio>${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}</p>`,
+      `<p class="precio__antes" data-antes${antesInicial ? '' : ' hidden'}>Antes <s>${antesInicial ? formatearPesos(antesInicial) : ''}</s></p>`,
+      `<p class="quedan" data-quedan${quedanInicial ? '' : ' hidden'}>${quedanInicial ? (quedanInicial === 1 ? 'Queda 1' : `Quedan ${quedanInicial}`) : ''}</p>`,
       `<p class="precio__nota">${notaDelPrecio}</p>`,
       `<form class="eleccion" data-eleccion>${grupos}${mayoria}<div class="avisame" data-avisame hidden><p>Esta combinación está agotada.</p><button class="boton boton--secundario" type="button" data-avisame-boton>Avísame cuando haya</button><p class="aviso" data-avisame-estado role="status" hidden></p></div><p class="aviso" data-aviso role="status" hidden></p><button class="boton boton--principal" type="submit" data-boton aria-disabled="${inicial.tipo !== 'lista'}">${escaparHtml(inicial.texto)}</button></form>`,
       `<ul class="condiciones">${condiciones(p)

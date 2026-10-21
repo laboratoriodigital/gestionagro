@@ -154,7 +154,14 @@ describe('la ficha dice lo que la ley pide antes de comprar (CA2)', () => {
 
 describe('las fotos (CA3) y la ficha sin JavaScript (CA4)', () => {
   it('srcset de 400, 800 y 1600, medidas explícitas, y carga diferida salvo la primera', async () => {
-    const h = main(await html(tienda(), '/p/uno/index.html'));
+    const todo = main(await html(tienda(), '/p/uno/index.html'));
+    // Las miniaturas van aparte (validación del 20 oct 2026): sin texto propio, las nombra su enlace.
+    const [h = '', miniaturas = ''] = todo.split('<nav class="ficha__miniaturas"');
+    for (const img of miniaturas.match(/<img [^>]+>/g) ?? []) {
+      expect(img).toContain('alt=""');
+      expect(img).toContain('loading="lazy"');
+    }
+    expect(miniaturas.match(/aria-label="Foto \d de 2"/g)).toHaveLength(2);
     const imgs = h.match(/<img [^>]+>/g) ?? [];
     expect(imgs).toHaveLength(2);
     const base = `https://img.laboratorio-digital.app/${ENSAYO_UNO.org}/${'a'.repeat(64)}`;

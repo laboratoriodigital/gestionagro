@@ -131,13 +131,18 @@ function ficha(): void {
   const form = document.querySelector<HTMLFormElement>('[data-eleccion]');
   const datos = document.getElementById('variantes');
   if (!form || !datos) return;
-  const { opciones, variantes } = JSON.parse(datos.textContent ?? '{}') as {
+  const leidos = JSON.parse(datos.textContent ?? '{}') as {
     opciones: OpcionDeLaFicha[];
     variantes: VarianteDeLaFicha[];
   };
+  const opciones = leidos.opciones;
+  // La única combinación de un producto sin opciones llega sin `clave`: es `''` (ver leerCatalogo).
+  const variantes = leidos.variantes.map((v) => ({ ...v, clave: v.clave ?? '' }));
   contar('ver_producto');
   const boton = form.querySelector<HTMLButtonElement>('[data-boton]');
   const precio = document.querySelector<HTMLElement>('[data-precio]');
+  const antes = document.querySelector<HTMLElement>('[data-antes]');
+  const quedan = document.querySelector<HTMLElement>('[data-quedan]');
   const avisame = form.querySelector<HTMLElement>('[data-avisame]');
   const aviso = form.querySelector<HTMLElement>('[data-aviso]');
   // Ley 1480 art. 52: un producto solo para mayores pide confirmar la edad antes de agregarlo.
@@ -162,6 +167,19 @@ function ficha(): void {
     }
     if (precio && (estado.tipo === 'lista' || estado.tipo === 'agotada')) {
       precio.textContent = formato(estado.variante.precioCop);
+      // El precio de antes, de la combinación elegida, si bajó.
+      const a = estado.variante.precioAntesCop;
+      if (antes) {
+        antes.hidden = !a;
+        const tachado = antes.querySelector('s');
+        if (tachado) tachado.textContent = a ? formato(a) : '';
+      }
+    }
+    // «Quedan 2»: solo de la combinación elegida y si se puede pedir.
+    if (quedan) {
+      const q = estado.tipo === 'lista' ? estado.variante.quedan : undefined;
+      quedan.hidden = !q;
+      quedan.textContent = q ? (q === 1 ? 'Queda 1' : `Quedan ${q}`) : '';
     }
     if (avisame) avisame.hidden = estado.tipo !== 'agotada';
     if (estado.tipo === 'agotada') pintarAvisame(estado.variante.id);
@@ -259,8 +277,20 @@ interface ProductoConVariantes extends ProductoDelCatalogo {
   variantes: VarianteDelCatalogo[];
 }
 let catalogo: Promise<{ productos: ProductoConVariantes[] }> | undefined;
+/**
+ * El horno no escribe los textos vacíos (`jsonEstable`): la única combinación de un producto sin
+ * opciones llega sin `opciones` (validación del 20 oct 2026). Aquí vuelve a ser `''`.
+ */
 const leerCatalogo = () => {
-  catalogo ??= fetch('/catalogo.json').then((r) => r.json());
+  catalogo ??= fetch('/catalogo.json')
+    .then((r) => r.json() as Promise<{ productos: ProductoConVariantes[] }>)
+    .then((c) => ({
+      ...c,
+      productos: c.productos.map((p) => ({
+        ...p,
+        variantes: p.variantes.map((v) => ({ ...v, opciones: v.opciones ?? '' })),
+      })),
+    }));
   return catalogo;
 };
 
@@ -1181,6 +1211,36 @@ async function busqueda(): Promise<void> {
 
 ficha();
 pintarBarra(cargar());
+/**
+ * Las fotos de la ficha (validación del 20 oct 2026): tocar una miniatura muestra esa foto, y pasar
+ * con el dedo marca la miniatura de la que se ve. Sin JavaScript, las miniaturas son enlaces.
+ */
+function galeria(): void {
+  const fotos = document.querySelector<HTMLElement>('[data-fotos]');
+  const minis = [...document.querySelectorAll<HTMLAnchorElement>('[data-miniatura]')];
+  if (!fotos || minis.length === 0) return;
+  const marcar = (i: number) => {
+    minis.forEach((m, j) => {
+      if (j === i) m.setAttribute('aria-current', 'true');
+      else m.removeAttribute('aria-current');
+    });
+  };
+  for (const m of minis) {
+    m.addEventListener('click', (e) => {
+      e.preventDefault();
+      const i = Number(m.dataset['miniatura'] ?? 0);
+      fotos.scrollTo({ left: i * fotos.clientWidth, behavior: 'smooth' });
+      marcar(i);
+    });
+  }
+  fotos.addEventListener(
+    'scroll',
+    () => marcar(Math.round(fotos.scrollLeft / Math.max(1, fotos.clientWidth))),
+    { passive: true },
+  );
+}
+
+galeria();
 iniciarConsentimiento();
 void carritoPagina();
 void pedidoEnviado();
