@@ -23,6 +23,20 @@ node scripts/verificar-agentes.ts https://cultivopro.co
 
 Sin dirección, revisa staging. Como segunda opinión, abre <https://isitagentready.com> con `cultivopro.co` desde tu computador: su puntaje no es el criterio, pero si dice algo que el script no ve, avísame.
 
+## Las tiendas (HU-T15.1 a HU-T15.7)
+
+Cada tienda hornea lo suyo: `robots.txt`, `llms.txt`, los gemelos `.md`, `/openapi.json` con su catálogo en `/.well-known/api-catalog`, y `/.well-known/agent-skills/comprar/SKILL.md` con su huella. Si el comercio encendió el MCP en Ajustes › Agentes, también `/.well-known/mcp/server-card.json`, y `POST /mcp` responde.
+
+El despliegue de la Tienda revisa los dos comercios de prueba de staging con `scripts/lib/verificar-tienda.ts` después de su humo; una falla detiene producción. Para probar el MCP con un cliente real (Claude, ChatGPT o el inspector de MCP), en un comercio de prueba con el MCP encendido:
+
+```text
+https://<tienda>/mcp
+```
+
+Sin autenticación. El asistente prepara el pedido y entrega un enlace `/pedido/confirmar/#c=…&s=…`: ábrelo, acepta los términos y paga con el Bold de pruebas.
+
+El MCP del comercio (`https://tienda-panel-staging.laboratoriodigital-la.workers.dev/mcp` en staging, `https://mcp.laboratorio-digital.app/mcp` en producción) pide OAuth del CORE. Mientras la Tienda siga `pausado` en `infrastructure/productos.json`, el CORE no lo autoriza.
+
 ## Pedir Markdown con `Accept: text/markdown` (el spike de HU-C8.2, CA2)
 
 El Worker del sitio no corre en las páginas públicas (static-first), así que la negociación solo la puede hacer una **regla de reescritura de la zona**. Falta comprobar si el plan gratuito la permite. Toma unos 10 minutos:

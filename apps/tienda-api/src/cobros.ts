@@ -93,12 +93,12 @@ export interface ContextoDeCobro extends ContextoDePedido {
   kekTexto: string | undefined;
 }
 
-const OCUPADA = {
+export const OCUPADA = {
   estado: 'ocupada',
   motivo: 'La tienda tiene muchos pagos en curso. Intenta en unos minutos o pide por WhatsApp.',
 } as const;
 
-const SIN_LINEA = {
+export const SIN_LINEA = {
   estado: 'sin-linea',
   motivo: 'El pago en línea no está disponible ahora. Puedes enviar tu pedido por WhatsApp.',
 } as const;
@@ -106,7 +106,7 @@ const SIN_LINEA = {
 /** «2026-10-14T15:15:00.000Z» en nanosegundos, como pide `expirationDate` de Bold. */
 const enNanosegundos = (iso: string) => (BigInt(Date.parse(iso)) * 1_000_000n).toString();
 
-async function boton(
+export async function boton(
   c: ContextoDeCobro,
   llaves: NonNullable<Awaited<ReturnType<typeof llavesDeBold>>>,
   datos: {
@@ -151,7 +151,7 @@ async function boton(
  * verdad cuando se publica, no antes. Una versión de antes de HU-T11.3 no lo guardó: usa el de los
  * ajustes, pruebas mientras no diga producción. `null`: la versión publicada no cobra en línea.
  */
-async function ambienteDe(
+export async function ambienteDe(
   db: BaseD1,
   org: string,
 ): Promise<{ ambiente: Ambiente; tope: number } | null> {
@@ -179,7 +179,7 @@ async function ambienteDe(
 }
 
 /** Los apartados activos de estas variantes que ya vencieron pasan a `vencido` (el trigger resta). */
-const vencerApartados = (c: ContextoDeCobro, variantes: readonly string[]) =>
+export const vencerApartados = (c: ContextoDeCobro, variantes: readonly string[]) =>
   c.db
     .prepare(
       `UPDATE apartado SET estado = 'vencido', cerrado = ?
@@ -257,7 +257,7 @@ async function repetido(
 }
 
 /** Después de un CHECK que falló: la primera línea que ya no alcanza, para decirla. */
-async function laQueNoAlcanzo(
+export async function laQueNoAlcanzo(
   c: ContextoDeCobro,
   carrito: Cotizacion['carrito'],
 ): Promise<string | null> {

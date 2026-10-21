@@ -156,6 +156,7 @@ import {
   informeDeAgentes,
   verificarAgentes,
 } from './lib/verificar-agentes.ts';
+import { verificarTienda } from './lib/verificar-tienda.ts';
 
 const argumento = (nombre: string) => {
   const i = process.argv.indexOf(nombre);
@@ -1140,6 +1141,31 @@ async function prepararCeldaDeLaTienda(
       detalle: ['la Tienda se desplegó, pero la prueba de humo falló:', ...fallas],
     };
   }
+  // HU-T15.6: lo legible por agentes de cada comercio de prueba, con todas las fallas a la vez. Una
+  // falla en staging detiene la salida a producción (P16).
+  const agentesDelEcosistema = (
+    JSON.parse(readFileSync(join(RAIZ, 'content', 'agentes.json'), 'utf8')) as {
+      familias: { agentes: string[] }[];
+    }
+  ).familias.flatMap((x) => x.agentes);
+  const deLosAgentes: string[] = [];
+  const sinMcp: string[] = [];
+  for (const e of ensayos) {
+    const base = `https://${hostDeStaging(e.slug)}`;
+    let informe: InformeDeAgentes = { fallas: [], avisos: [], noAplica: [] };
+    await conReintentos(async () => {
+      informe = await verificarTienda(fetch, base, agentesDelEcosistema);
+      return informe.fallas;
+    });
+    deLosAgentes.push(...informe.fallas.map((x) => `${e.slug}: ${x}`));
+    sinMcp.push(...informe.noAplica.map((x) => `agentes de ${e.slug}: ${x}`));
+  }
+  if (deLosAgentes.length > 0) {
+    return {
+      ok: false,
+      detalle: ['la Tienda se desplegó, pero lo legible por agentes falló:', ...deLosAgentes],
+    };
+  }
   return {
     ok: true,
     detalle: [
@@ -1155,6 +1181,7 @@ async function prepararCeldaDeLaTienda(
       ...(notaLlaves ? [notaLlaves] : []),
       ...avisosDeSaas,
       ...avisos,
+      ...sinMcp,
     ],
   };
 }

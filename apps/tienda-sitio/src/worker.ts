@@ -423,10 +423,16 @@ export function crearDespacho(
         return Response.redirect(`${url.origin}${salto}${url.search}`, 301);
       if (!archivo && markdown) archivo = m.archivos[archivoDeLaRuta(url.pathname, false)];
       if (!archivo || !HUELLA.test(archivo.huella)) return noEsta();
-      const gemelo =
-        url.pathname.endsWith('/') && m.archivos[`${url.pathname}index.md`]
-          ? { link: `<${url.pathname}index.md>; rel="alternate"; type="text/markdown"` }
-          : {};
+      // HU-T15.2: la portada también anuncia el catálogo de la API (RFC 9727) y el índice para agentes.
+      const enlaces = [
+        ...(url.pathname.endsWith('/') && m.archivos[`${url.pathname}index.md`]
+          ? [`<${url.pathname}index.md>; rel="alternate"; type="text/markdown"`]
+          : []),
+        ...(url.pathname === '/' && m.archivos['/.well-known/api-catalog']
+          ? ['</.well-known/api-catalog>; rel="api-catalog"', '</llms.txt>; rel="describedby"']
+          : []),
+      ];
+      const gemelo = enlaces.length > 0 ? { link: enlaces.join(', ') } : {};
       const objeto = await sitios.get(`objetos/${archivo.huella.slice(0, 2)}/${archivo.huella}`);
       if (!objeto) {
         console.error(`tienda-sitio: falta el objeto ${archivo.huella}`);

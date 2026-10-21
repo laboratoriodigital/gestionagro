@@ -27,6 +27,9 @@ export const DIRECCIONES_DEL_SISTEMA: ReadonlySet<string> = new Set([
   'robots',
   'llms',
   'manifest',
+  // HU-T15.2 a HU-T15.4: la API pública, las habilidades y la tarjeta del MCP.
+  'openapi',
+  '.well-known',
   'index',
   'well-known',
   'paginas',

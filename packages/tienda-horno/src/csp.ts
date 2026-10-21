@@ -9,9 +9,10 @@
  * dirección de la plataforma: su cookie compartiría al comprador entre tiendas. Los programas solo
  * cargan después de que el comprador acepta; la CSP es lo que nunca deja pasar lo demás.
  *
- * El carrito (`/carrito/`) es la única página que deja cargar algo de afuera: el programa de Bold,
- * que la isla carga solo al tocar «Pagar en línea», y su pago embebido en un marco (HU-T11.4,
- * TIENDA §9.3). Ninguna otra página lo permite.
+ * El carrito (`/carrito/`) y la confirmación de lo que preparó un asistente (`/pedido/confirmar/`,
+ * HU-T15.5) son las únicas páginas que dejan cargar algo de afuera: el programa de Bold, que la isla
+ * carga solo al tocar «Pagar en línea», y su pago embebido en un marco (HU-T11.4, TIENDA §9.3).
+ * Ninguna otra página lo permite.
  *
  * El pago embebido de Bold pone su propia hoja en línea (`#boldEmbeddedCheckout{…position:fixed…}`,
  * dentro de su shadow DOM): sin ella, el marco queda de 300 × 150 al final de la página. Por eso
@@ -20,6 +21,9 @@
  */
 export const ORIGEN_DE_BOLD = 'https://checkout.bold.co';
 export const RUTA_DEL_PAGO = '/carrito/';
+/** HU-T15.5: las páginas que pagan con Bold. */
+export const RUTAS_DEL_PAGO: readonly string[] = [RUTA_DEL_PAGO, '/pedido/confirmar/'];
+const esDelPago = (ruta: string | undefined) => ruta !== undefined && RUTAS_DEL_PAGO.includes(ruta);
 
 export type Tercero = 'ga4' | 'meta';
 /** Lo que cada uno carga, pide y pinta. */
@@ -63,7 +67,7 @@ export function cspDeLaVitrina(
   ruta?: string,
   terceros: readonly Tercero[] = [],
 ): string {
-  const pago = ruta === RUTA_DEL_PAGO;
+  const pago = esDelPago(ruta);
   return [
     "default-src 'self'",
     `img-src 'self'${medios ? ` https://${medios}` : ''} data:${lista(de(terceros, 'img'))}`,
@@ -85,7 +89,7 @@ export function origenesPermitidos(
   ruta?: string,
 ): Record<'script' | 'stylesheet' | 'font' | 'image' | 'fetch', readonly string[]> {
   return {
-    script: [propio, ...(ruta === RUTA_DEL_PAGO ? [ORIGEN_DE_BOLD] : [])],
+    script: [propio, ...(esDelPago(ruta) ? [ORIGEN_DE_BOLD] : [])],
     stylesheet: [propio],
     font: [propio],
     image: [propio, ...(medios ? [`https://${medios}`] : [])],

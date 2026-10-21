@@ -93,6 +93,8 @@ describe('llms.txt, el manifiesto y el gemelo anunciado', () => {
       '/legal/retracto/index.md',
       '/legal/garantia/index.md',
       '/solicitud/index.md',
+      // HU-T15.3: cómo comprar aquí.
+      '/.well-known/agent-skills/comprar/SKILL.md',
       '/catalogo.md',
     ]);
     for (const e of enlaces) expect(archivos.has(e)).toBe(true);

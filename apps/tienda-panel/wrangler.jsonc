@@ -8,7 +8,9 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "run_worker_first": [
-      "/api/*"
+      "/api/*",
+      "/mcp",
+      "/.well-known/*"
     ],
     "not_found_handling": "single-page-application"
   },
@@ -16,6 +18,10 @@
   "routes": [
     {
       "pattern": "panel.laboratorio-digital.app",
+      "custom_domain": true
+    },
+    {
+      "pattern": "mcp.laboratorio-digital.app",
       "custom_domain": true
     }
   ],

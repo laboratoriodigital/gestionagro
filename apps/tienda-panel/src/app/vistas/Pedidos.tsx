@@ -240,6 +240,7 @@ export function Bandeja({
 
 interface PedidoDelPanel extends FilaDePedido {
   canal: string;
+  esperaAlComprador: boolean;
   subtotalCop: number;
   descuentoCop: number;
   envioCop: number;
@@ -626,6 +627,8 @@ const EVENTOS: Record<string, string> = {
   pago: 'Pago',
   envio: 'Envío',
   recaudo: 'Recaudo',
+  // HU-T15.5: la persona aceptó lo que preparó su asistente.
+  aceptacion: 'aceptó los términos y eligió cómo pagar',
 };
 
 const enFrase = (e: PedidoDelPanel['historia'][number]) => {
@@ -837,7 +840,9 @@ export function Pedido({
   };
 
   const unidades = pedido.lineas.reduce((s, l) => s + (l.descontado ? 0 : l.cantidad), 0);
-  const porConfirmar = pedido.estado === 'pendiente' && pedido.formaPago !== 'en_linea';
+  // HU-T15.5: lo que preparó un asistente lo confirma primero la persona, con su aceptación.
+  const porConfirmar =
+    pedido.estado === 'pendiente' && pedido.formaPago !== 'en_linea' && !pedido.esperaAlComprador;
   const porDespachar = pedido.estado === 'confirmado' || pedido.estado === 'pagado';
   const contraentrega = pedido.formaPago === 'contraentrega';
   const cancelable = pedido.estado === 'pendiente' || pedido.estado === 'confirmado';
@@ -1001,6 +1006,16 @@ export function Pedido({
         ) : null}
       </dl>
 
+      {pedido.esperaAlComprador ? (
+        <section class="acciones">
+          <h2>Espera a tu cliente</h2>
+          <p class="nota">
+            Lo preparó el asistente de un cliente. Tu cliente tiene que revisarlo, aceptar tus
+            términos y elegir cómo pagar desde su enlace. Si no lo hace en 48 horas, se cancela
+            solo.
+          </p>
+        </section>
+      ) : null}
       {porConfirmar ? (
         <section class="acciones">
           <h2>Confirmar</h2>
@@ -1150,7 +1165,9 @@ export function Pedido({
           <span>
             {pedido.canal === 'panel'
               ? 'Se anotó en el panel'
-              : `Llegó el pedido${pedido.canal === 'whatsapp' ? ' por WhatsApp' : ''}`}
+              : pedido.canal === 'agente'
+                ? 'Lo preparó el asistente de un cliente'
+                : `Llegó el pedido${pedido.canal === 'whatsapp' ? ' por WhatsApp' : ''}`}
           </span>
         </li>
         {pedido.historia.map((e) => (

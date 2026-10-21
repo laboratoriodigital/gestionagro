@@ -31,6 +31,7 @@ import {
   type ProductoParaHornear,
   type ProductoParaLaCompuerta,
   plazoDelEnvio,
+  revisarHabilidades,
   type TiendaParaHornear,
   tercerosDe,
 } from '@ed1/tienda-horno';
@@ -42,6 +43,7 @@ import {
 } from '@ed1/tienda-schema';
 import { claveDelHost, direccionesDelPlan, punteroDelHost } from './hosts.ts';
 import { estadoDeLaPrueba } from './llaves-de-bold.ts';
+import { apiPublica } from './openapi.ts';
 import { limitesDeLaTienda, planDeLaTienda } from './plan.ts';
 import { anotar } from './registro.ts';
 
@@ -507,6 +509,9 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
       aiInput: (agentes['aiInput'] as 'yes' | 'no' | undefined) ?? 'yes',
       aiTrain: (agentes['aiTrain'] as 'yes' | 'no' | undefined) ?? 'no',
     },
+    // HU-T15.2 y HU-T15.4: la API pública y, si el comercio lo encendió, el MCP.
+    api: apiPublica(),
+    ...(conDefectos('agentes')['mcp'] === true ? { mcp: true } : {}),
     // HU-T14.5: los feeds que el comercio encendió; apagados si no dice.
     ...(conDefectos('agentes')['feeds']
       ? { feeds: conDefectos('agentes')['feeds'] as NonNullable<TiendaParaHornear['feeds']> }
@@ -585,6 +590,14 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     ...(cobroParaLaCompuerta ? { cobro: cobroParaLaCompuerta } : {}),
     ...(c.omitir ? { omitir: c.omitir } : {}),
   });
+  // HU-T15.3 CA2: la huella de cada habilidad, aparte porque es asíncrona.
+  const deLasHabilidades = (await revisarHabilidades(archivos)).filter(
+    (f) => !c.omitir?.includes(f.codigo),
+  );
+  if (deLasHabilidades.length > 0) {
+    revision.fallas.push(...deLasHabilidades);
+    revision.ok = false;
+  }
   return { tienda, datos, archivos, revision, activos };
 }
 

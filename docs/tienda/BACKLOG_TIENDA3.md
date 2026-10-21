@@ -1489,7 +1489,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T15.1.1 `[código]` · WI-T15.1.2 `[prueba]`.
 
 #### HU-T15.2 · La API pública, con su OpenAPI y su catálogo
-- **Capa:** API · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T18 · **Depende de:** HU-T1.4 · **Estado:** Refinada
+- **Capa:** API · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T18 · **Depende de:** HU-T1.4 · **Estado:** En validación (rama `feat/t18-agentes`. `apps/tienda-api/src/openapi.ts` arma la OpenAPI 3.1 con `z.toJSONSchema` desde los mismos esquemas con que la API valida; el horno la escribe en `/openapi.json` con la dirección de cada tienda y `/.well-known/api-catalog` (RFC 9727) la anuncia, como la cabecera `Link` de la portada. Fuera quedan el cobro, su estado, el aviso de Bold y la medición, que son del navegador o de Bold. **Cambió:** los esquemas viven en `apps/tienda-api`, no en `packages/tienda-schema`, y los errores son `{estado, motivo}`, no RFC 9457 (§13.1); la OpenAPI describe lo que de verdad responde (bitácora tienda3 48). CA2: `contrato/openapi-v1.json` guarda el contrato y `cambiosQueRompen` detiene una ruta o un campo que se quita, uno que se vuelve obligatorio, un tipo distinto o un valor que deja de aceptarse. Pruebas: `openapi.test.ts` y `tienda-agentes-t18.test.ts`)
 - Como agente o integrador, quiero saber qué ofrece la API de una tienda sin adivinar.
 - **Respaldo:** TIENDA §11.8 y §13.1.
 - **CA1.** OpenAPI 3.1 generada desde los esquemas zod, en `/openapi.json`, y `/.well-known/api-catalog`.
@@ -1497,24 +1497,24 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T15.2.1 `[código]` · WI-T15.2.2 `[prueba]`.
 
 #### HU-T15.3 · La habilidad de compra
-- **Capa:** horno · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T18 · **Depende de:** HU-T15.2 · **Estado:** Refinada
+- **Capa:** horno · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T18 · **Depende de:** HU-T15.2 · **Estado:** En validación (rama `feat/t18-agentes`. `habilidadDeCompra` (horno) escribe el `SKILL.md`: el catálogo, cotizar, preparar el pedido con el MCP si está encendido, y lo que hace siempre la persona. Su `sha256` va en el índice y `revisarHabilidades` de la compuerta la vuelve a calcular (CA2). **Cambió:** la habilidad vive en `/.well-known/agent-skills/comprar/SKILL.md`, donde el sitio pone las suyas, y no en `/skills/comprar/` (P2). Pruebas: `tienda-agentes-t18.test.ts`)
 - Como agente, quiero las instrucciones para comprar en esta tienda: dónde está el catálogo, cómo preparar un pedido y que el pago lo hace la persona.
 - **Respaldo:** TIENDA §11.8 (`/skills/comprar/SKILL.md`).
-- **CA1.** `SKILL.md` por tienda, con su `sha256` en `/.well-known/agent-skills/index.json`.
+- **CA1.** `SKILL.md` por tienda, con su `sha256` en `/.well-known/agent-skills/index.json`. *(Ajustado el 21 oct 2026: en `/.well-known/agent-skills/comprar/SKILL.md`, como las del sitio.)*
 - **CA2 ❌.** Una huella que no coincide detiene la compuerta.
 - **Work items:** WI-T15.3.1 `[código]` · WI-T15.3.2 `[prueba]`.
 
 #### HU-T15.4 · El MCP público de la tienda
-- **Capa:** API · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** T18 · **Depende de:** HU-T15.2, HU-T5.5 · **Estado:** Refinada
+- **Capa:** API · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** T18 · **Depende de:** HU-T15.2, HU-T5.5 · **Estado:** En validación (rama `feat/t18-agentes`. `apps/tienda-api/src/mcp-publico.ts`, en `POST /mcp` por el despacho, solo con «¿Los asistentes pueden preparar pedidos en tu tienda?» encendido en Ajustes › Agentes. Buscar y ver leen `catalogo.json` y el gemelo de la ficha en R2; consultar es la cotización; preparar escribe un pedido `pendiente` de canal `agente`, sin contacto ni aceptación, con el enlace `/pedido/confirmar/#c=&s=`. El tope de 50 se cuenta dentro del lote, sobre el índice parcial de la 0018. **Cambió:** preparar es uno por minuto por IP (`LIMITE_MCP_PEDIDOS`), no 5 por hora: el limitador solo cuenta 10 o 60 s (bitácora tienda3 11). Devuelve un mensaje para la persona en vez del texto de WhatsApp, que exige su aceptación. La tarjeta se hornea solo con el MCP encendido. Pruebas: `mcp-publico.test.ts` y `lecturas.test.ts` (filas leídas con la tienda llena))
 - Como agente de un comprador, quiero buscar, consultar disponibilidad y preparar un pedido para que la persona lo confirme.
 - **Respaldo:** TIENDA §13.4; PLATAFORMA §5.6 y §5.7.
 - **CA1.** `https://<tienda>/mcp`, sin estado (Streamable HTTP), con su Server Card y las cinco herramientas; buscar y ver leen lo horneado, no D1.
 - **CA2.** `preparar_pedido` crea un pedido `pendiente` de canal `agente`, sin datos personales ni aceptación, con el enlace para que la persona lo confirme.
-- **CA3 ❌.** Los agentes no apartan unidades; 5 por hora por IP y 50 pendientes de agente por tienda; ninguna herramienta mueve dinero; `ks:tienda-mcp` lo apaga sin tocar la tienda.
+- **CA3 ❌.** Los agentes no apartan unidades; 5 por hora por IP y 50 pendientes de agente por tienda; ninguna herramienta mueve dinero; `ks:tienda-mcp` lo apaga sin tocar la tienda. *(Ajustado el 21 oct 2026: uno por minuto por IP, lo más cercano que cuenta el limitador.)*
 - **Work items:** WI-T15.4.1 `[código]` · WI-T15.4.2 `[prueba]` con un cliente MCP.
 
 #### HU-T15.5 · Confirmar el pedido que preparó un agente
-- **Capa:** vitrina · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T18 · **Depende de:** HU-T15.4, HU-T11.4 · **Estado:** Refinada
+- **Capa:** vitrina · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T18 · **Depende de:** HU-T15.4, HU-T11.4 · **Estado:** En validación (rama `feat/t18-agentes`. `/pedido/confirmar/` se hornea en cada tienda; la isla lee el pedido con el seguimiento (`porConfirmar`) y pide la forma de pago, la edad si algún producto la pide, la entrega para pagar en línea y la aceptación. `POST /api/v1/pedidos/confirmar` (`confirmar.ts`) vuelve a cotizar: por WhatsApp el pedido queda pendiente con su aceptación; en línea pasa a por pagar con su cobro y aparta, en un lote. La CSP de Bold vale también en esta página. La migración 0018 agrega el evento `aceptacion`, deja cancelar sin aceptación y crea el índice parcial de los preparados; la tarea `preparados-vencidos` los cancela a las 48 h (CA2). En el panel, el pedido dice «Espera a tu cliente» y no se puede confirmar. Pruebas: `confirmar.test.ts`, la e2e «la persona confirma lo que preparó su asistente» con axe y `org-id-en-consultas.test.ts`. Falta WI-T15.5.3 del dueño: un cliente MCP real)
 - Como comprador, quiero revisar y aceptar yo el pedido que preparó mi asistente, y pagarlo si quiero.
 - **Respaldo:** TIENDA §8.2 (canal agente); ED1 §3.12 («el agente prepara y una persona paga»).
 - **CA1.** `/pedido/confirmar/#<token>` muestra el pedido, pide la aceptación y, si la persona quiere pagar, crea el cobro o le ofrece seguir por WhatsApp.
@@ -1524,7 +1524,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T15.5.1 `[código]` · WI-T15.5.2 `[prueba]` · WI-T15.5.3 `[dueño]` probarlo con un cliente real.
 
 #### HU-T15.6 · `verificar-agentes`, tienda por tienda
-- **Capa:** CI · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T18 · **Depende de:** HU-C8.5, HU-T15.1 a HU-T15.4 · **Estado:** Refinada
+- **Capa:** CI · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T18 · **Depende de:** HU-C8.5, HU-T15.1 a HU-T15.4 · **Estado:** En validación (rama `feat/t18-agentes`. `scripts/lib/verificar-tienda.ts` mira robots, la cabecera `Link` de la portada, `llms.txt`, la OpenAPI y su catálogo, la habilidad de comprar con su `sha256` y, si la tarjeta existe, que `/mcp` responda `initialize` y sus cinco herramientas. `desplegar.ts` lo corre contra los dos comercios de prueba de staging después de su humo y detiene la salida a producción con todas las fallas a la vez. Pruebas: `verificar-tienda.test.ts`, con los controles negativos de quitar la habilidad y alterar su huella)
 - Como dueño, quiero que producción se detenga si una tienda deja de ser legible por agentes.
 - **Respaldo:** PLATAFORMA §5.8.
 - **CA1.** Las comprobaciones corren contra las dos tiendas de prueba en staging, con todas las fallas a la vez.
@@ -1532,10 +1532,10 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T15.6.1 `[ci]` · WI-T15.6.2 `[prueba]`.
 
 #### HU-T15.7 · El MCP del comercio
-- **Capa:** API · **Prioridad:** Could · **Puntos:** 5 · **Sprint:** T18 · **Depende de:** HC6 (HU-C9.5 y HU-C9.6), HU-T10.5 · **Estado:** Refinada
+- **Capa:** API · **Prioridad:** Could · **Puntos:** 5 · **Sprint:** T18 · **Depende de:** HC6 (HU-C9.5 y HU-C9.6), HU-T10.5 · **Estado:** En validación (rama `feat/t18-agentes`. `apps/tienda-api/src/mcp-comercio.ts`, en `POST /mcp` por el origen del panel (en producción, `mcp.laboratorio-digital.app`), con un token de agente del CORE para ese recurso y la concesión viva. Herramientas según los alcances concedidos: `pedidos`, `ver_pedido`, `cambiar_estado_del_pedido` (confirmar, despachar y entregar, con las mismas funciones del panel), `inventario` y `ajustar_inventario`. Sin datos de compradores, nada cobra ni reembolsa, solo en el plan Alto. `productos.json` declara el recurso y cuatro alcances; la API lleva el binding al CORE. **Cambió:** crear, editar y publicar el catálogo quedan para después (no se declara un alcance que no existe, P1). **Bloqueado para probar de punta a punta:** el CORE solo autoriza productos `activo`, y la Tienda sigue `pausado` en `productos.json` (bitácora tienda3 48). Pruebas: `mcp-comercio.test.ts` y `worker.test.ts` del panel)
 - Como comerciante, quiero que mi asistente me diga qué pedidos tengo por despachar y me ayude con el inventario.
 - **Respaldo:** TIENDA §1.2 y §1.4 (plan `alto`); PLATAFORMA §5.4 y §5.5.
-- **CA1.** `mcp.laboratorio-digital.app` con OAuth del CORE, recurso RFC 8707 y los permisos que el comerciante conceda: pedidos, inventario y catálogo.
+- **CA1.** `mcp.laboratorio-digital.app` con OAuth del CORE, recurso RFC 8707 y los permisos que el comerciante conceda: pedidos, inventario y catálogo. *(Ajustado el 21 oct 2026: pedidos e inventario; el catálogo queda para después.)*
 - **CA2 ❌.** Ninguna herramienta mueve dinero ni lee llaves o datos personales; un token de otro recurso se rechaza; solo en el plan `alto`.
 - **Work items:** WI-T15.7.1 `[código]` · WI-T15.7.2 `[prueba]` · WI-T15.7.3 `[dueño]` conectar un cliente real.
 
@@ -1774,6 +1774,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | T17 | 11 | 0 (en validación: HU-T8.6, HU-T10.2, HU-T14.4, HU-T14.6 y HU-T14.7) | Construido el 20 oct 2026. **M5 queda construido, solo en staging (D-T14):** el comercio ve su tienda antes de publicar en una vista previa de un día; escribe sus páginas propias; mide con GA4 o el píxel de Meta solo con el permiso del comprador (D-T13 ajustó el CA1, bitácora tienda3 42); ve cada semana sus métricas frente a sus pedidos; y el dueño recibe la Tienda en su reporte semanal, con el soporte que anota sin texto libre (bitácora tienda3 43). Esperan al dueño: la aceptación de M5 con el flujo «cuadrar-tienda» en staging y la primera anotación de soporte |
 | T17b | 19 | 0 (en validación: HU-T5.8 a HU-T5.15) | Construido el 20 oct 2026, con lo que pidió la validación de la vitrina. La ficha agrupa el precio y deja los envíos para el pedido; se comparte; cada combinación puede tener su foto. El comercio marca lo destacado y lo nuevo, y sube su logo, su ícono y la bienvenida de la portada. El comprador elige una categoría, busca desde la franja, ordena la lista y ve su pedido arriba. Tres premisas no se cumplían (bitácora tienda3 46). Esperan al dueño: subir el logo, el ícono y la bienvenida en staging, asignar una foto a una combinación y marcar un destacado y un nuevo |
 | T17c | 5 | 0 (en validación: HU-T5.16 y HU-T5.17) | Construido el 21 oct 2026, con lo que pidió la validación de la vitrina y atoms.com como referencia. Buscar bajó encima de la lista, con las categorías y «Ordenar por» debajo, y muestra las coincidencias con foto y precio al escribir. La bienvenida va de lado a lado, con el texto y el botón sobre la foto (bitácora tienda3 47). Espera al dueño: publicar y revisar en el teléfono |
+| T18 | 19 | 0 (en validación: HU-T15.2 a HU-T15.7) | Construido el 21 oct 2026. Cada tienda publica su API en OpenAPI 3.1 y cómo comprar en ella, con su huella; el asistente de un comprador busca, cotiza y le deja un pedido que la persona confirma y paga, y lo que nadie confirma se cancela a las 48 h. verificar-agentes revisa las dos tiendas de prueba. El MCP del comercio está construido, pero el CORE no lo autoriza mientras la Tienda siga pausada (bitácora tienda3 48). Esperan al dueño: encender el MCP en una tienda de prueba, probarlo con un cliente MCP real (aceptación de M7) y decidir cuándo pasa la Tienda a activa |
 
 ---
 

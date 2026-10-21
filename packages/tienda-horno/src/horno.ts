@@ -19,7 +19,16 @@ import {
   NOMBRE_DEL_TIPO,
   TIPOS_DE_SOLICITUD,
 } from '@ed1/tienda-schema';
-import { llmsTxt, manifiestoWeb, robotsDeLaTienda } from './agentes.ts';
+import {
+  catalogoDeLaApi,
+  habilidadDeCompra,
+  llmsTxt,
+  manifiestoWeb,
+  RUTA_DE_LAS_HABILIDADES,
+  RUTA_DEL_CATALOGO_DE_LA_API,
+  robotsDeLaTienda,
+  tarjetaDelMcp,
+} from './agentes.ts';
 import { esDeLaPlataforma, type Tercero } from './csp.ts';
 import { escaparHtml, markdownPlano, markdownSeguro } from './escapar.ts';
 import { archivosDeLosFeeds, type FeedsEncendidos } from './feeds.ts';
@@ -115,6 +124,10 @@ export interface TiendaParaHornear {
   cobroEnPruebas?: boolean;
   /** HU-T14.5: los feeds de productos que el comercio encendió en Ajustes › Agentes. */
   feeds?: FeedsEncendidos;
+  /** HU-T15.2: la OpenAPI de la API pública, sin `servers`: el horno pone la dirección de la tienda. */
+  api?: Record<string, unknown>;
+  /** HU-T15.4: el MCP público de la tienda, si el comercio lo encendió en Ajustes › Agentes. */
+  mcp?: boolean;
   /**
    * HU-T13.5: lo que permite el plan de la tienda. El horno recorta a él lo publicado (`alPlan`):
    * los productos de más quedan ocultos y lo que el plan no incluye no se ofrece.
@@ -175,6 +188,8 @@ const TIPOS = {
   webmanifest: 'application/manifest+json',
   csv: 'text/csv; charset=utf-8',
   jsonl: 'application/jsonl; charset=utf-8',
+  // HU-T15.2: el catálogo de la API (RFC 9727).
+  linkset: 'application/linkset+json',
 } as const;
 
 /** Los enlaces legales del pie, cortos para el teléfono (HU-T7.1). */
@@ -980,6 +995,50 @@ ${p.cuerpo}
   });
 
   /**
+   * HU-T15.5: confirmar el pedido que preparó un asistente, `/pedido/confirmar/#c=…&s=…`. La isla lo
+   * lee por POST con el secreto del fragmento y pide lo que el agente no dio: la forma de pago, la
+   * edad si algún producto la pide, la entrega para pagar en línea y la aceptación de los términos.
+   * Se hornea siempre: un enlace que ya se dio sigue sirviendo aunque el comercio apague el MCP.
+   */
+  pagina({
+    ruta: '/pedido/confirmar/',
+    titulo: `Confirma tu pedido · ${t.nombre}`,
+    privada: true,
+    cuerpo: [
+      '<h1>Confirma tu pedido</h1>',
+      '<div class="pedido" data-confirmar>',
+      '<p class="estado" data-confirmar-vacio>Abre esta página con el enlace que te dio tu asistente.</p>',
+      '<p class="aviso" data-aviso-confirmar role="status" hidden></p>',
+      '<section data-confirmar-pedido hidden>',
+      '<p class="resumen__nota">Lo preparó tu asistente. Revísalo: el pedido se hace cuando lo confirmas tú.</p>',
+      '<p class="pedido__codigo">Pedido <span class="cifra" data-codigo></span></p>',
+      '<ul class="lineas lineas--acuse" data-lineas></ul>',
+      '<div class="resumen"><p class="resumen__fila">Subtotal <span class="cifra" data-subtotal></span></p><p class="resumen__fila" data-fila-envio hidden>Envío <span class="cifra" data-envio></span></p><p class="resumen__fila" data-fila-descuento hidden>Descuento <span class="cifra" data-descuento></span></p><p class="resumen__fila resumen__total">Total <span class="cifra" data-total></span></p></div>',
+      '<form class="venta" data-venta novalidate>',
+      formas.length > 0
+        ? `<fieldset class="grupo"><legend>¿Cómo quieres pagar?</legend>${formas.map(tarjetaDeForma).join('')}</fieldset>`
+        : '',
+      '<fieldset class="grupo" data-edad hidden><legend>Confirma tu edad</legend><div data-edad-lista></div></fieldset>',
+      '<label class="campo">Ciudad de entrega (si te lo envían)<input name="ciudad" maxlength="60" autocomplete="address-level2"></label>',
+      t.cobroEnLinea
+        ? '<fieldset class="grupo" data-entrega hidden><legend>¿A quién se lo entregamos?</legend><label class="campo">Nombre de quien recibe<input name="nombre" maxlength="120" autocomplete="name"></label><label class="campo">Celular<input name="celular" type="tel" inputmode="tel" maxlength="20" autocomplete="tel"></label><label class="campo">Dirección (si te lo envían)<input name="direccion" maxlength="300" autocomplete="street-address"></label><label class="campo">Correo (opcional)<input name="correo" type="email" maxlength="200" autocomplete="email"></label></fieldset>'
+        : '',
+      '<label class="acepto"><input type="checkbox" name="acepta" data-acepta><span>Acepto los <a href="/legal/terminos/">términos y condiciones</a> y la <a href="/legal/privacidad/">política de datos</a>.</span></label>',
+      '<p class="aviso" data-aviso-venta role="status" hidden></p>',
+      '<button class="boton boton--principal" type="submit" data-enviar aria-disabled="true">Elige cómo pagar</button>',
+      '<p class="resumen__nota">Nadie aparta ni cobra nada hasta que lo confirmas.</p>',
+      '</form>',
+      '</section>',
+      `<script type="application/json" id="venta">${jsonEstable(datosDeVenta).replace(/</g, '\\u003c')}</script>`,
+      '</div>',
+    ]
+      .filter(Boolean)
+      .join('\n'),
+    ld: [],
+    gemelo: `# Confirma tu pedido\n\nEsta página muestra el pedido que preparó el asistente de una persona, con el enlace que solo ella tiene. Ahí lo revisa, acepta los términos y elige cómo pagar.\n`,
+  });
+
+  /**
    * La vuelta de Bold (HU-T11.4, TIENDA §9.3): `redirectionUrl` del botón. Bold le agrega
    * `?bold-order-id=…&bold-tx-status=…`, que nunca se creen: la isla no los lee. Lleva al pedido con
    * el enlace que la página guardó antes de abrir Bold; el estado lo dice el seguimiento, con lo que
@@ -1090,6 +1149,16 @@ ${p.cuerpo}
     'json',
     `${jsonEstable({
       tienda: { nombre: t.nombre, url: url('/') },
+      // HU-T15.4: las categorías, para buscar en una sin leer la base.
+      ...(colecciones.length > 0
+        ? {
+            colecciones: colecciones.map((c) => ({
+              slug: c.slug,
+              nombre: c.nombre,
+              productos: c.productos,
+            })),
+          }
+        : {}),
       productos: productos.map((p) => ({
         slug: p.slug,
         nombre: p.nombre,
@@ -1138,6 +1207,48 @@ ${p.cuerpo}
   );
   // La capa para agentes (HU-T15.1): robots con las familias del ecosistema y las señales de esta
   // tienda, llms.txt con los gemelos y el manifiesto de la app web.
+  const sitio = url('').replace(/\/$/, '');
+  // HU-T15.2: la API pública con la dirección de esta tienda, y su catálogo (RFC 9727).
+  if (t.api) {
+    poner(
+      '/openapi.json',
+      'json',
+      `${JSON.stringify({ ...t.api, servers: [{ url: sitio }] }, null, 2)}\n`,
+    );
+    poner(RUTA_DEL_CATALOGO_DE_LA_API, 'linkset', catalogoDeLaApi(sitio));
+  }
+  // HU-T15.3: cómo comprar aquí, con su huella en el índice; la compuerta la vuelve a calcular.
+  const rutaDeLaHabilidad = `${RUTA_DE_LAS_HABILIDADES}comprar/SKILL.md`;
+  const habilidad = habilidadDeCompra({
+    nombre: markdownPlano(t.nombre),
+    ...(presente(t.frase) ? { frase: markdownPlano(t.frase) } : {}),
+    mcp: Boolean(t.mcp),
+    formas: formas.map((f) => NOMBRE_DE_LA_FORMA[f.forma]),
+    legales: legales.map((x) => ({ titulo: x.titulo, ruta: x.ruta })),
+  });
+  poner(rutaDeLaHabilidad, 'md', habilidad.texto);
+  poner(
+    `${RUTA_DE_LAS_HABILIDADES}index.json`,
+    'json',
+    `${JSON.stringify(
+      {
+        skills: [
+          {
+            name: 'comprar',
+            type: 'skill-md',
+            description: habilidad.descripcion,
+            url: `${sitio}${rutaDeLaHabilidad}`,
+            sha256: await huella(habilidad.texto),
+          },
+        ],
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  // HU-T15.4: la tarjeta del MCP público, solo si el comercio lo encendió.
+  if (t.mcp)
+    poner('/.well-known/mcp/server-card.json', 'json', tarjetaDelMcp({ nombre: t.nombre, sitio }));
   poner('/robots.txt', 'txt', robotsDeLaTienda(t.agentes, url('').replace(/\/$/, '')));
   // HU-T14.5: los feeds encendidos, con la disponibilidad de ahora.
   for (const f of archivosDeLosFeeds(t, t.feeds)) poner(f.ruta, f.tipo, f.contenido);
@@ -1166,6 +1277,19 @@ ${p.cuerpo}
         {
           titulo: 'Políticas',
           enlaces: legales.map((x) => ({ titulo: x.titulo, ruta: `${x.ruta}index.md` })),
+        },
+        {
+          titulo: 'Para agentes',
+          enlaces: [
+            {
+              titulo: 'Cómo comprar aquí',
+              ruta: rutaDeLaHabilidad,
+              nota: 'el catálogo, cotizar y preparar un pedido que la persona confirma',
+            },
+            ...(t.api
+              ? [{ titulo: 'La API pública', ruta: '/openapi.json', nota: 'OpenAPI 3.1' }]
+              : []),
+          ],
         },
         {
           titulo: 'Opcional',

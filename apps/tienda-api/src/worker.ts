@@ -95,6 +95,7 @@ import {
 } from './ciclo.ts';
 import { iniciarCobro, PeticionDeCobro } from './cobros.ts';
 import { estadoDelCobro, PeticionDeEstadoDelCobro } from './conciliar.ts';
+import { confirmarPedidoDeAgente, PeticionDeConfirmar } from './confirmar.ts';
 import { correosDeLaCelda, mandarAcuse, mandarResultadoDePrueba } from './correos.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { cuadrarTiendas, ventanaDeLaSemana } from './cuadre.ts';
@@ -127,6 +128,8 @@ import {
   usoDeLasKeks,
 } from './llaves.ts';
 import { comprobarIdentidad, guardarLlaves, leerElCobro, probarLlaves } from './llaves-de-bold.ts';
+import { atenderMcpDelComercio, documentoDelMcpDelComercio } from './mcp-comercio.ts';
+import { mcpEncendido, responderMcp } from './mcp-publico.ts';
 import { type BucketDeFotos, fotoDeLaVariante, quitarFoto, subirFoto } from './medios.ts';
 import { borrarPagina, guardarPagina, listarPaginas } from './paginas.ts';
 import {
@@ -263,6 +266,13 @@ export interface Env {
   LIMITE_AVISOS?: Limitador;
   /** HU-T14.1: el tope de lotes de la medición propia, y su dataset de Analytics Engine. */
   LIMITE_MEDICION?: Limitador;
+  /** HU-T15.4: los mensajes del MCP público y, aparte, preparar un pedido. */
+  LIMITE_MCP?: Limitador;
+  LIMITE_MCP_PEDIDOS?: Limitador;
+  /** HU-T15.7: el recurso del MCP del comercio (RFC 8707), su emisor y el CORE, que dice si una concesión sigue viva. */
+  RECURSO_MCP_COMERCIO?: string;
+  EMISOR_OAUTH?: string;
+  CORE?: { concesionVigente(id: string): Promise<boolean> };
   MEDICION?: {
     writeDataPoint(p: { indexes?: string[]; blobs?: string[]; doubles?: number[] }): void;
   };
@@ -344,6 +354,8 @@ const SOLO_LEEN = new Set([
   '/api/v1/seguimiento',
   '/api/v1/solicitudes/seguimiento',
   '/api/panel/v1/importar/revisar',
+  // HU-T15.4: el MCP lee con la tienda en pausa; preparar un pedido lo revisa por su cuenta.
+  '/mcp',
 ]);
 
 let lector: { kv: LectorKv; lector: LectorKillSwitch } | null = null;
@@ -828,6 +840,61 @@ export function crearApp(
   });
 
   /**
+   * HU-T15.5: la persona confirma el pedido que preparó su asistente, desde
+   * `/pedido/confirmar/#c=…&s=…`. Público, por el despacho; el mismo límite que pedir
+   * (`LIMITE_PEDIDOS`). Con `ks:tienda-cobros` apagado no se paga en línea, como en el carrito.
+   */
+  app.post('/api/v1/pedidos/confirmar', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_PEDIDOS, 'LIMITE_PEDIDOS'))) {
+      c.header('retry-after', '60');
+      return c.json(
+        { estado: 'limite', motivo: 'Son muchos intentos seguidos. Espera un minuto.' },
+        429,
+      );
+    }
+    const p = await cuerpoValido(c, PeticionDeConfirmar);
+    if (!p) {
+      return c.json(
+        { estado: 'invalido', motivo: 'Al pedido le falta algo. Revísalo y vuelve a intentarlo.' },
+        422,
+      );
+    }
+    if (
+      p.forma === 'en_linea' &&
+      c.env.FLAGS &&
+      (await lectorDe(c.env.FLAGS).apagado('tienda-cobros'))
+    ) {
+      return c.json(
+        {
+          estado: 'sin-linea',
+          motivo: 'El pago en línea no está disponible ahora. Elige otra forma de pago.',
+        },
+        503,
+      );
+    }
+    const r = await confirmarPedidoDeAgente(
+      {
+        db: destino.db,
+        org: destino.org,
+        host: new URL(c.req.url).host,
+        ahora: new Date(ahora()).toISOString(),
+        terminosPublicados: await huellaPublicada(destino.db, destino.org, c.env.SITIOS),
+        id: crypto.randomUUID(),
+        kekTexto: textoDeLasKeks(c.env),
+      },
+      p,
+    );
+    if (r.estado === 'confirmado' || r.estado === 'por-pagar') return c.json(r);
+    if (r.estado === 'no-encontrado') return c.json(r, 404);
+    if (r.estado === 'sin-linea') return c.json(r, 503);
+    if (r.estado === 'ocupada') return c.json(r, 429);
+    if (['forma', 'edad', 'monto', 'entrega'].includes(r.estado)) return c.json(r, 422);
+    return c.json(r, 409);
+  });
+
+  /**
    * HU-T14.1: la medición propia. La vitrina manda un lote de conteos al salir de cada página; se
    * escribe un punto en Analytics Engine con la tienda como índice y los cinco conteos en orden. Ni
    * la IP, ni las cabeceras, ni un identificador del visitante: el lote no los trae y nada de la
@@ -956,6 +1023,77 @@ export function crearApp(
     if (!p) return c.json(NO_ENCONTRADO, 404);
     const r = await seguimiento(destino.db, destino.org, p.codigo, p.secreto);
     return r ? c.json(r) : c.json(NO_ENCONTRADO, 404);
+  });
+
+  /**
+   * HU-T15.4: el MCP público de la tienda, por el despacho. Solo si el comercio lo encendió; con
+   * `ks:tienda-mcp` apagado responde 503 y la tienda sigue igual. 60 mensajes por minuto por IP
+   * (`LIMITE_MCP`), y preparar un pedido, uno por minuto (`LIMITE_MCP_PEDIDOS`: el limitador no
+   * cuenta horas, bitácora tienda3 11).
+   */
+  app.get('/mcp', (c) => c.json({ error: 'Este servidor no abre un flujo SSE: usa POST.' }, 405));
+  // HU-T15.7: los metadatos del recurso (RFC 9728) y la tarjeta del MCP del comercio, por el panel.
+  for (const [ruta, cual] of [
+    ['/.well-known/oauth-protected-resource', 'recurso'],
+    ['/.well-known/oauth-protected-resource/mcp', 'recurso'],
+    ['/.well-known/mcp/server-card.json', 'tarjeta'],
+  ] as const) {
+    app.get(ruta, (c) => {
+      const doc = documentoDelMcpDelComercio(c.env, cual);
+      if (!doc) return c.json(NO_EXISTE, 404);
+      c.header('access-control-allow-origin', '*');
+      return c.json(doc);
+    });
+  }
+  app.post('/mcp', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    // HU-T15.7: sin tienda resuelta llega por el panel: es el MCP del comercio, con su token.
+    if (!destino) {
+      return atenderMcpDelComercio(c as unknown as Parameters<typeof atenderMcpDelComercio>[0], {
+        claves: clavesDe(c.env),
+        ahora: ahora(),
+        apagado: async () =>
+          Boolean(c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda-mcp'))),
+        soloLectura: async () =>
+          Boolean(c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda'))),
+      });
+    }
+    if (!(await mcpEncendido(destino.db, destino.org))) return c.json(NO_EXISTE, 404);
+    const enPausa = (motivo: string, estado: 429 | 503) => {
+      c.header('retry-after', estado === 429 ? '60' : '120');
+      return c.json({ jsonrpc: '2.0', id: null, error: { code: -32000, message: motivo } }, estado);
+    };
+    if (c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda-mcp'))) {
+      return enPausa(
+        'El asistente de compras de la tienda está en pausa. La tienda sigue abierta.',
+        503,
+      );
+    }
+    if (!(await dentroDelLimite(c, c.env.LIMITE_MCP, 'LIMITE_MCP'))) {
+      return enPausa('Son muchas consultas seguidas. Espera un minuto.', 429);
+    }
+    let cuerpo: unknown = null;
+    try {
+      cuerpo = await c.req.json();
+    } catch {
+      // Un cuerpo que no es JSON responde el error de JSON-RPC.
+    }
+    const r = await responderMcp(
+      {
+        db: destino.db,
+        org: destino.org,
+        host: new URL(c.req.url).host,
+        ahora: new Date(ahora()).toISOString(),
+        sitios: c.env.SITIOS,
+        puedePreparar: () => dentroDelLimite(c, c.env.LIMITE_MCP_PEDIDOS, 'LIMITE_MCP_PEDIDOS'),
+        soloLectura: async () =>
+          Boolean(c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda'))),
+        id: () => crypto.randomUUID(),
+        azar: (n) => crypto.getRandomValues(new Uint8Array(n)),
+      },
+      cuerpo,
+    );
+    return r.status === 202 ? c.body(null, 202) : c.json(r.cuerpo, r.status);
   });
 
   /**

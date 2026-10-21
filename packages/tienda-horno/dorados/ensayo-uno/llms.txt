@@ -19,6 +19,10 @@
 - [Garantía](/legal/garantia/index.md)
 - [Solicitudes](/solicitud/index.md)
 
+## Para agentes
+
+- [Cómo comprar aquí](/.well-known/agent-skills/comprar/SKILL.md): el catálogo, cotizar y preparar un pedido que la persona confirma
+
 ## Opcional
 
 - [Catálogo completo](/catalogo.md): precios y variantes

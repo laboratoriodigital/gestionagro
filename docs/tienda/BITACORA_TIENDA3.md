@@ -1258,3 +1258,27 @@ La regla: **un campo del esquema que ningún formulario llena no está probado; 
 La regla: **una prueba que compara posiciones exige primero que lo buscado exista.**
 
 *Ficha:* tienda3 · *(dueño y mío)* · 🟢 Bajo · P1, P2 · tienda-0.1.0 · 2026-10-21
+
+**48 · Cancelar no es avanzar: la base no dejaba cancelar lo que preparó un asistente.**
+
+*Qué pasó.* El 21 oct 2026 se construyó T18 (M7, los agentes). Antes de escribir se contrastaron las historias con TIENDA-3.0 §8.2, §11.8 y §13, y con PLATAFORMA §5.
+
+*Premisas que no se cumplían.*
+- §13.1 dice que los esquemas zod viven en `packages/tienda-schema` y que los errores son RFC 9457. Los cuerpos se validan en `apps/tienda-api`, y las respuestas son `{estado, motivo}`. La OpenAPI sale de donde están los esquemas y describe lo que de verdad responde: cambiar las respuestas rompería el contrato, que solo crece.
+- El trigger `pedido_aceptacion` exigía la aceptación para salir de `pendiente` a cualquier estado, también a `cancelado`. Un pedido preparado por un asistente, que nunca tuvo aceptación, no se podía cancelar: ni la tarea de las 48 h ni el comercio. La 0018 lo rehace: cancelar ya no lo exige, todo lo demás sí.
+- Cancelar a las 48 h en todo el shard, sin índice, recorría todos los pedidos cada hora. La 0018 crea un índice parcial con solo los preparados sin confirmar; el tope de 50 por tienda lo usa también.
+- El limitador no cuenta horas (bitácora tienda3 11): «5 por hora» quedó en uno por minuto.
+- El CORE solo autoriza un recurso de un producto `activo`, y la Tienda sigue `pausado` en `productos.json`. El MCP del comercio está construido y probado con tokens firmados, pero ningún cliente real lo puede usar hasta que el dueño pase la Tienda a activa.
+- La CSP solo dejaba cargar Bold en `/carrito/`. Confirmar en línea un pedido preparado necesita lo mismo en `/pedido/confirmar/`.
+
+*Lo que se decidió.*
+- La habilidad de comprar va en `/.well-known/agent-skills/comprar/SKILL.md`, donde el sitio pone las suyas (P2), aunque §11.8 decía `/skills/comprar/`.
+- `preparar_pedido` devuelve un mensaje para la persona con su enlace, no el texto de WhatsApp: ese texto sale cuando la persona acepta.
+- El MCP del comercio lee y cambia pedidos e inventario; el catálogo queda para después, sin declarar alcances que no existen (P1).
+- El MCP del comprador y el del comercio comparten `POST /mcp`: el despacho trae la tienda en `x-tienda` y el panel la borra, así cada uno llega al suyo.
+
+**Lo prueban** `openapi.test.ts`, `tienda-agentes-t18.test.ts`, `mcp-publico.test.ts`, `confirmar.test.ts`, `mcp-comercio.test.ts`, `verificar-tienda.test.ts`, `lecturas.test.ts` (las herramientas con la tienda llena) y una e2e de la confirmación con axe.
+
+La regla: **una regla de la base que protege avanzar tiene que dejar salir: cancelar no es avanzar.**
+
+*Ficha:* tienda3 · *(mía)* · 🟡 Medio · P1, P2, P5 · tienda-0.1.0 · 2026-10-21

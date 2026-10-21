@@ -1,6 +1,6 @@
 /**
  * El Worker del panel de la Tienda 3.0 (HU-T2.4, TIENDA-3.0 §3.1 y §12). El panel es solo assets:
- * este código corre únicamente en `/api/*` (`run_worker_first`), así ninguna pantalla gasta una
+ * este código corre únicamente en `/api/*`, `/mcp` y `/.well-known/*` (`run_worker_first`, HU-T15.7), así ninguna pantalla gasta una
  * invocación. Pasa la solicitud a la API de la celda por su binding de servicio, en el mismo origen
  * y sin CORS, con el secreto del despacho; las cabeceras internas que llegan de afuera se borran
  * (TIENDA §14.1).
@@ -35,7 +35,12 @@ export function paraLaApi(solicitud: Request, secreto: string): Request {
 
 export async function atender(solicitud: Request, env: Env): Promise<Response> {
   const url = new URL(solicitud.url);
-  if (!url.pathname.startsWith('/api/')) {
+  // HU-T15.7: el MCP del comercio y sus metadatos también van a la API, sin tienda resuelta.
+  const deLaApi =
+    url.pathname.startsWith('/api/') ||
+    url.pathname === '/mcp' ||
+    url.pathname.startsWith('/.well-known/');
+  if (!deLaApi) {
     if (env.ASSETS) return env.ASSETS.fetch(solicitud);
     return new Response('No existe', { status: 404 });
   }

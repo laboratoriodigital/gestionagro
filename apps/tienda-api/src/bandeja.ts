@@ -232,6 +232,8 @@ export async function listarPedidos(
 
 export interface PedidoDelPanel extends FilaDePedido {
   canal: string;
+  /** HU-T15.5: lo preparó un asistente y la persona todavía no lo acepta: no se puede confirmar. */
+  esperaAlComprador: boolean;
   subtotalCop: number;
   descuentoCop: number;
   envioCop: number;
@@ -313,7 +315,7 @@ export async function leerPedido(
   const p = await q.db
     .prepare(
       `SELECT ${COLUMNAS}, p.canal, p.subtotal_cop, p.descuento_cop, p.envio_cop, p.cupon_codigo, p.envio_nombre,
-              p.transportadora, p.guia,
+              p.transportadora, p.guia, p.aceptado IS NULL AS sin_aceptar,
               EXISTS (SELECT 1 FROM pedido_contacto c WHERE c.org_id = ? AND c.pedido_id = p.id) AS con_contacto
          FROM pedido p WHERE p.org_id = ? AND p.id = ?`,
     )
@@ -328,6 +330,7 @@ export async function leerPedido(
         envio_nombre: string | null;
         transportadora: string | null;
         guia: string | null;
+        sin_aceptar: number;
         con_contacto: number;
       }
     >();
@@ -401,6 +404,7 @@ export async function leerPedido(
         }
       : null,
     canal: p.canal,
+    esperaAlComprador: p.canal === 'agente' && p.sin_aceptar === 1 && p.estado === 'pendiente',
     subtotalCop: p.subtotal_cop,
     descuentoCop: p.descuento_cop,
     envioCop: p.envio_cop,
