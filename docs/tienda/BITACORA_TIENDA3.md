@@ -1302,11 +1302,11 @@ La regla: **lo que se borra para reescribirlo, se reescribe también cuando el p
 
 **50 · El asistente preparó un pedido con un enlace a una página que la tienda no tenía.**
 
-*Qué pasó.* El 21 oct 2026 el dueño conectó Claude a Ensayo Uno, encendió el MCP en Ajustes › Agentes y le pidió un pedido. El pedido se preparó, pero el enlace  respondió «Esta página no existe».
+*Qué pasó.* El 21 oct 2026 el dueño conectó Claude a Ensayo Uno, encendió el MCP en Ajustes › Agentes y le pidió un pedido. El pedido se preparó, pero el enlace `/pedido/confirmar/#c=…` respondió «Esta página no existe».
 
 *La causa.* El MCP miraba solo el ajuste en la base, que vale al guardar. La página de confirmar se hornea al publicar, y Ensayo Uno no se vuelve a publicar por llena (bitácora tienda3 31 y 49): sigue con una versión de antes de T18.
 
-*El arreglo.* El MCP responde solo si el ajuste está encendido **y** la versión publicada trae su tarjeta y la página de confirmar (). Encenderlo pide publicar, como cualquier cambio de la vitrina; apagarlo corta enseguida.
+*El arreglo.* El MCP responde solo si el ajuste está encendido **y** la versión publicada trae su tarjeta y la página de confirmar (`publicadoConMcp`). Encenderlo pide publicar, como cualquier cambio de la vitrina; apagarlo corta enseguida.
 
 La regla: **lo que el agente le entrega a la persona tiene que existir en lo publicado, no solo en los ajustes.**
 
