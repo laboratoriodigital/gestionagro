@@ -1216,3 +1216,26 @@ La regla: **una respuesta que llega tarde se compara con lo que se preguntó, no
 La regla: **un serializador que quita lo vacío no sirve para datos donde lo vacío significa algo; y cada forma de producto que el panel deja crear tiene su producto en la tienda de ensayo.**
 
 *Ficha:* tienda3 · *(dueño y mío)* · 🔴 Alto · P1, P2 · tienda-0.1.0 · 2026-10-20
+
+**46 · El logo era solo una huella, y la portada iba por orden alfabético.**
+
+*Qué pasó.* El 20 oct 2026 el dueño pidió doce cambios a la vitrina de staging (sprint T17b). Antes de construirlos los contrasté con lo que ya había.
+
+*Premisas que no se cumplían.*
+- `identidad.logo` e `identidad.icono` estaban en el esquema desde HU-T10.3, pero solo como una huella: sin ancho ni alto, el horno no podía escribir la imagen con sus medidas ni sus tamaños, y saltaría la página al cargar. Ningún formulario los llenaba, así que ninguna tienda los tenía.
+- La portada, «Todos los productos» y las colecciones mostraban los productos en orden de dirección (`slug`), no en el del comercio. `destacado` estaba en la base, pero solo lo usaba la portada editorial para su producto grande.
+- La foto de una combinación no necesitaba migración: `medio.variante_id` existía desde la 0001 y nadie lo escribía.
+
+*Lo que se decidió.*
+- Los envíos salen de la ficha. HU-T5.2 los ponía ahí por la Ley 1480, art. 50: el comprador debe conocer el costo y el plazo antes de pagar. Eso se sigue cumpliendo: el pedido los muestra al elegir, antes de pagar, y la ficha enlaza «Envíos y devoluciones». Con cinco envíos la ficha se llenaba.
+- El botón de la bienvenida lleva a los productos de la portada. Elegir una categoría como destino pedía leer las categorías desde Ajustes, y quedó para después.
+
+*Lo que encontraron las capturas.*
+- En 360 px, cuando aparecía «Pedido», el buscador de la franja se encogía hasta no servir. Ahora va en su propia fila en el teléfono.
+- En el panel, el selector de archivo del logo empujaba la pantalla de 360 px de lado, el mismo error que ya tenían las fotos del producto. Lleva el mismo arreglo.
+
+**Lo prueban** `tienda-vitrina-t17b.test.ts` (16 casos), las pruebas de la API de fotos, catálogo y publicación, `ajustes.test.ts` del panel y cuatro e2e nuevas, dos de la vitrina y dos del panel.
+
+La regla: **un campo del esquema que ningún formulario llena no está probado; antes de construir sobre él, se lee qué guarda de verdad.**
+
+*Ficha:* tienda3 · *(dueño y mío)* · 🟡 Bajo · P1, P2 · tienda-0.1.0 · 2026-10-20

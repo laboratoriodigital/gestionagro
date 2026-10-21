@@ -5,6 +5,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La vitrina con más vida (sprint T17b, lo que pidió la validación del 20 oct 2026):
+  - la bienvenida de la portada, con tu título, tu texto y tu imagen, en «Ajustes › Apariencia»;
+  - tu logo en la franja y tu ícono en la pestaña y al guardar la tienda en el teléfono, en «Ajustes › Identidad»;
+  - marca un producto como destacado, para que vaya primero, o como nuevo, para que lleve su etiqueta;
+  - cada foto puede mostrarse con una combinación: al elegir «Azul», se ve la foto del azul;
+  - las categorías arriba de los productos, para ver solo una;
+  - «Ordenar por»: recomendado, lo más nuevo, nombre de la A a la Z y precio en los dos sentidos;
+  - «Compartir» en cada producto, con el menú del teléfono o por WhatsApp.
 - Lo que pidió la validación del 20 oct 2026:
   - el precio de antes sale tachado en la ficha y en la tarjeta;
   - la ficha dice «Quedan 2» y la tarjeta «Últimas unidades» cuando quedan pocas;
@@ -70,6 +78,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - El panel de la tienda abre la puerta (HU-T8.1 y HU-T3.5): el comerciante entra con Google desde su teléfono y llega a su tienda; si tiene dos, elige cuál. Ve el estado de su tienda, su rol y lo que su plan permite. Si la sesión vence, el panel le pide volver a entrar sin sacarlo de donde estaba, y lo que estaba escribiendo se queda guardado en el teléfono. Una sesión de otra aplicación no abre el panel. Los pedidos y los productos llegan en las próximas versiones.
 - Comercio Ensayo Uno y Comercio Ensayo Dos tienen dueño en la cuenta de staging (HU-T2.10): el despliegue de staging crea sus organizaciones y hace propietario al dueño con el correo guardado en un secreto, para probar el panel con una sesión de verdad.
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
+
+### Cambiado
+- Buscar y el pedido van en la franja de arriba de cada página; la barra del pedido de abajo ya no está. En la ficha, el precio, el de antes y cuántas quedan van juntos, sin encimarse, y los envíos se ven en el pedido y en «Envíos y devoluciones». En el panel, las colecciones se llaman categorías.
 
 ### Corregido
 - Un producto sin opciones ya se puede agregar al pedido, y llega bien al carrito (bitácora tienda3 45).
