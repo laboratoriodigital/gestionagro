@@ -317,6 +317,14 @@ export const CAMPOS: Record<Seccion, readonly CampoDeAjuste[]> = {
       ayuda:
         'Un archivo que leen los asistentes con inteligencia artificial para encontrar tus productos.',
     },
+    // HU-T15.4: el MCP público, apagado hasta que el comercio lo encienda.
+    {
+      campo: 'mcp',
+      etiqueta: '¿Los asistentes pueden preparar pedidos en tu tienda?',
+      tipo: 'si-no',
+      ayuda:
+        'El asistente de tu cliente busca productos y le deja el pedido listo; tu cliente lo revisa, acepta tus términos y paga. Un asistente nunca paga ni aparta unidades.',
+    },
   ],
   avisos: [
     { campo: 'correo', etiqueta: 'Correo para los avisos', tipo: 'correo' },

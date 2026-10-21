@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./csp": "./src/csp.ts"
+    "./csp": "./src/csp.ts",
+    "./buscar": "./src/vitrina/buscar.ts"
   },
   "dependencies": {
     "@ed1/dinero": "workspace:*",

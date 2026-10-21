@@ -395,6 +395,10 @@ export const LIMITES_DE_LA_TIENDA = {
   LIMITE_AVISOS: { produccion: '3007', staging: '3107', limit: 60, period: 60 },
   // HU-T14.1: los lotes de la medición propia; la vitrina manda uno por página que se cierra.
   LIMITE_MEDICION: { produccion: '3008', staging: '3108', limit: 60, period: 60 },
+  // HU-T15.4: el MCP público; preparar un pedido, aparte (la spec dice 5 por hora: el limitador no
+  // cuenta horas, y uno por minuto es lo más cercano).
+  LIMITE_MCP: { produccion: '3009', staging: '3109', limit: 60, period: 60 },
+  LIMITE_MCP_PEDIDOS: { produccion: '3010', staging: '3110', limit: 1, period: 60 },
 } as const;
 
 /** HU-T14.1: el dataset de Analytics Engine de la medición propia de las tiendas. */

@@ -127,6 +127,7 @@ import {
   usoDeLasKeks,
 } from './llaves.ts';
 import { comprobarIdentidad, guardarLlaves, leerElCobro, probarLlaves } from './llaves-de-bold.ts';
+import { mcpEncendido, responderMcp } from './mcp-publico.ts';
 import { type BucketDeFotos, fotoDeLaVariante, quitarFoto, subirFoto } from './medios.ts';
 import { borrarPagina, guardarPagina, listarPaginas } from './paginas.ts';
 import {
@@ -263,6 +264,9 @@ export interface Env {
   LIMITE_AVISOS?: Limitador;
   /** HU-T14.1: el tope de lotes de la medición propia, y su dataset de Analytics Engine. */
   LIMITE_MEDICION?: Limitador;
+  /** HU-T15.4: los mensajes del MCP público y, aparte, preparar un pedido. */
+  LIMITE_MCP?: Limitador;
+  LIMITE_MCP_PEDIDOS?: Limitador;
   MEDICION?: {
     writeDataPoint(p: { indexes?: string[]; blobs?: string[]; doubles?: number[] }): void;
   };
@@ -344,6 +348,8 @@ const SOLO_LEEN = new Set([
   '/api/v1/seguimiento',
   '/api/v1/solicitudes/seguimiento',
   '/api/panel/v1/importar/revisar',
+  // HU-T15.4: el MCP lee con la tienda en pausa; preparar un pedido lo revisa por su cuenta.
+  '/mcp',
 ]);
 
 let lector: { kv: LectorKv; lector: LectorKillSwitch } | null = null;
@@ -956,6 +962,53 @@ export function crearApp(
     if (!p) return c.json(NO_ENCONTRADO, 404);
     const r = await seguimiento(destino.db, destino.org, p.codigo, p.secreto);
     return r ? c.json(r) : c.json(NO_ENCONTRADO, 404);
+  });
+
+  /**
+   * HU-T15.4: el MCP público de la tienda, por el despacho. Solo si el comercio lo encendió; con
+   * `ks:tienda-mcp` apagado responde 503 y la tienda sigue igual. 60 mensajes por minuto por IP
+   * (`LIMITE_MCP`), y preparar un pedido, uno por minuto (`LIMITE_MCP_PEDIDOS`: el limitador no
+   * cuenta horas, bitácora tienda3 11).
+   */
+  app.get('/mcp', (c) => c.json({ error: 'Este servidor no abre un flujo SSE: usa POST.' }, 405));
+  app.post('/mcp', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino || !(await mcpEncendido(destino.db, destino.org))) return c.json(NO_EXISTE, 404);
+    const enPausa = (motivo: string, estado: 429 | 503) => {
+      c.header('retry-after', estado === 429 ? '60' : '120');
+      return c.json({ jsonrpc: '2.0', id: null, error: { code: -32000, message: motivo } }, estado);
+    };
+    if (c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda-mcp'))) {
+      return enPausa(
+        'El asistente de compras de la tienda está en pausa. La tienda sigue abierta.',
+        503,
+      );
+    }
+    if (!(await dentroDelLimite(c, c.env.LIMITE_MCP, 'LIMITE_MCP'))) {
+      return enPausa('Son muchas consultas seguidas. Espera un minuto.', 429);
+    }
+    let cuerpo: unknown = null;
+    try {
+      cuerpo = await c.req.json();
+    } catch {
+      // Un cuerpo que no es JSON responde el error de JSON-RPC.
+    }
+    const r = await responderMcp(
+      {
+        db: destino.db,
+        org: destino.org,
+        host: new URL(c.req.url).host,
+        ahora: new Date(ahora()).toISOString(),
+        sitios: c.env.SITIOS,
+        puedePreparar: () => dentroDelLimite(c, c.env.LIMITE_MCP_PEDIDOS, 'LIMITE_MCP_PEDIDOS'),
+        soloLectura: async () =>
+          Boolean(c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda'))),
+        id: () => crypto.randomUUID(),
+        azar: (n) => crypto.getRandomValues(new Uint8Array(n)),
+      },
+      cuerpo,
+    );
+    return r.status === 202 ? c.body(null, 202) : c.json(r.cuerpo, r.status);
   });
 
   /**

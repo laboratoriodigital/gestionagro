@@ -103,6 +103,22 @@
         "limit": 60,
         "period": 60
       }
+    },
+    {
+      "name": "LIMITE_MCP",
+      "namespace_id": "3009",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    },
+    {
+      "name": "LIMITE_MCP_PEDIDOS",
+      "namespace_id": "3010",
+      "simple": {
+        "limit": 1,
+        "period": 60
+      }
     }
   ],
   "analytics_engine_datasets": [
@@ -213,6 +229,22 @@
           "namespace_id": "3108",
           "simple": {
             "limit": 60,
+            "period": 60
+          }
+        },
+        {
+          "name": "LIMITE_MCP",
+          "namespace_id": "3109",
+          "simple": {
+            "limit": 60,
+            "period": 60
+          }
+        },
+        {
+          "name": "LIMITE_MCP_PEDIDOS",
+          "namespace_id": "3110",
+          "simple": {
+            "limit": 1,
             "period": 60
           }
         }

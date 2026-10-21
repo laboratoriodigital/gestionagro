@@ -261,14 +261,22 @@ interface VarianteDelPedido {
  */
 export async function prepararPedido(
   c: ContextoDePedido,
-  p: Omit<PeticionDePedido, 'forma'>,
+  p: Pick<PeticionDePedido, 'lineas' | 'envio' | 'cupon' | 'totalVisto'> & { terminos?: string },
+  /**
+   * HU-T15.4: el pedido que prepara un agente no trae la aceptación ni la edad. Las da la persona al
+   * confirmarlo (HU-T15.5), que vuelve a pasar por aquí sin esta opción.
+   */
+  opciones: { deAgente?: boolean } = {},
 ): Promise<
   | PedidoPreparado
   | { estado: 'terminos' }
   | { estado: 'cambio'; cotizacion: Cotizacion }
   | { estado: 'edad'; motivo: string }
 > {
-  if (!c.terminosPublicados || !igual(c.terminosPublicados, p.terminos)) {
+  if (
+    !opciones.deAgente &&
+    (!c.terminosPublicados || !p.terminos || !igual(c.terminosPublicados, p.terminos))
+  ) {
     return { estado: 'terminos' };
   }
 
@@ -306,7 +314,7 @@ export async function prepararPedido(
   const sinEdad = cotizacion.carrito.filter(
     (l) => porId.get(l.variante)?.solo_mayores === 1 && !conEdad.has(l.variante),
   );
-  if (sinEdad.length > 0) {
+  if (!opciones.deAgente && sinEdad.length > 0) {
     return {
       estado: 'edad',
       motivo: 'Confirma que eres mayor de edad en cada producto que lo pide.',

@@ -190,6 +190,44 @@ describe('bitácora tienda3 26 ❌: las filas que lee el panel con la tienda lle
     expect(l2.filas, mensaje(l2)).toBeLessThanOrEqual(TOPE_DE_UNA_FICHA);
   });
 
+  it('HU-T15.4: el MCP público cotiza y prepara un pedido sin recorrer la tienda', async () => {
+    await shard
+      .prepare(
+        `INSERT INTO ajuste (org_id, seccion, esquema, datos, actualizado, actualizado_por)
+         VALUES (?, 'agentes', 1, '{"mcp":true}', ?, 'sistema')
+         ON CONFLICT (org_id, seccion) DO UPDATE SET datos = excluded.datos`,
+      )
+      .bind(UNO, AHORA)
+      .run();
+    const libre = { limit: async () => ({ success: true }) };
+    const mcp = (name: string, args: unknown) =>
+      crearApp({ ahora: () => T0, enSegundoPlano: () => undefined }).request(
+        'https://ensayo-uno--staging.laboratorio-digital.app/mcp',
+        {
+          method: 'POST',
+          headers: {
+            [CABECERA_DESPACHO]: SECRETO,
+            'x-tienda': JSON.stringify({ org: UNO, shard: 'tienda_c1_s1' }),
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'tools/call',
+            params: { name, arguments: args },
+          }),
+        },
+        { ...env(), LIMITE_MCP: libre, LIMITE_MCP_PEDIDOS: libre },
+      );
+    const items = [{ variante: 'vol-p-0004-2', cantidad: 1 }];
+    for (const herramienta of ['consultar_disponibilidad', 'preparar_pedido']) {
+      leido();
+      expect((await mcp(herramienta, { items })).status, herramienta).toBe(200);
+      const l = leido();
+      expect(l.filas, `${herramienta}: ${mensaje(l)}`).toBeLessThanOrEqual(TOPE_DE_UNA_FICHA);
+    }
+  });
+
   it('publicar y exportar leen la tienda una vez; la tienda llena sube por tandas que caben en una solicitud', async () => {
     const objetos = new Map<string, string>();
     let operaciones = 0;
