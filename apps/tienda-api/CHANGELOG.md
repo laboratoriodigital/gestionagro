@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Lo que pidió la validación del 20 oct 2026:
+  - el precio de antes sale tachado en la ficha y en la tarjeta;
+  - la ficha dice «Quedan 2» y la tarjeta «Últimas unidades» cuando quedan pocas;
+  - con varias fotos, la tarjeta deja pasarlas con el dedo y la ficha trae miniaturas para elegir;
+  - en «Más › Equipo», quién tiene acceso, con «Quitar», y el tope de personas del plan;
+  - «Publicar» queda arriba en cada pantalla del panel.
 - La Tienda en el reporte semanal (HU-T14.7): el issue de cada lunes dice cuántas tiendas hay y venden, los cobros reales, el pago de los planes, el soporte que anotó el dueño y lo gratis de R2 que se ha usado, con el umbral de cada métrica. Solo conteos: nada de un comprador. El flujo «anotar-soporte-tienda» anota cada atención con sus minutos.
 - Tus métricas frente a tus pedidos (HU-T14.6): cada semana, el Inicio del panel compara los pedidos y pagos de tu tienda con lo que contó su medición, y explica la diferencia en los dos sentidos. Tus ventas siempre salen de tus pedidos. El flujo «cuadrar-tienda» lo calcula al momento.
 - Google Analytics y el píxel de Meta, con permiso del comprador (HU-T14.4): con el código en «Ajustes › Medición», la tienda pide permiso antes de medir, con «No acepto» y «Acepto» iguales, y nada de Google ni de Meta carga hasta que la persona acepta. Cada compra lleva el código del pedido. El píxel de Meta solo se ofrece con tu propio dominio.
@@ -66,6 +72,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
 
 ### Corregido
+- Un producto sin opciones ya se puede agregar al pedido, y llega bien al carrito (bitácora tienda3 45).
+- El aviso de «Guardado» de un producto sale junto al botón cada vez que guardas, con la hora y un acceso a publicar.
+- Los flujos «cuadrar-tienda», «suspender-tienda» y «anotar-soporte-tienda» instalan lo que necesitan antes de correr.
 - Vaciar el pedido ya no deja que vuelva un producto cuando la confirmación del total llega tarde (bitácora tienda3 44).
 - Abrir una tienda (HU-T13.4): si la verificación de que eres una persona todavía no está lista, no carga o falla, la pantalla lo dice y pide recargar, en vez de quedarse quieta. Las tiendas nuevas de staging ya tienen dirección, sin tocar la de las fotos.
 - Los límites por visitante de la tienda (cotizar, pedidos, pagos, avisos de Bold y los demás) ya cuentan por quien visita. Antes no frenaban a nadie, porque la API no veía su dirección (bitácora tienda3 37).

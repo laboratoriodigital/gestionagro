@@ -2,13 +2,24 @@
  * HU-T10.5: el equipo. Quien administra la tienda invita a un colaborador con un enlace por
  * WhatsApp; el colaborador ayuda con el día a día y no ve a dónde llega la plata. Lo que puede y lo
  * que no lo decide la matriz de permisos en la API; aquí se dice en palabras.
+ *
+ * Validación del 20 oct 2026: la lista de quién tiene acceso, del CORE, con «Quitar». Y el tope de
+ * personas del plan (HU-T13.5): con el equipo lleno, el panel no ofrece invitar.
  */
 
 import { puede } from '@ed1/tienda-schema/permisos';
 import { Aviso } from '@ed1/ui/v2/componentes';
-import { useState } from 'preact/hooks';
+import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { Conexion } from '../api.ts';
-import { crearInvitacion, enlaceDeWhatsApp } from '../equipo.ts';
+import { Confirmar } from '../componentes/index.ts';
+import {
+  crearInvitacion,
+  enlaceDeWhatsApp,
+  type Miembro,
+  quitarDelEquipo,
+  verEquipo,
+} from '../equipo.ts';
+import { NOMBRE_DEL_ROL } from './ElegirTienda.tsx';
 
 type Estado =
   | { tipo: 'nada' }
@@ -20,13 +31,35 @@ export function Equipo({
   conexion,
   rol,
   tienda,
+  limite = null,
 }: {
   conexion: Conexion;
   rol: string;
   tienda: string;
+  /** Cuántas personas permite el plan, contándote; `null`: sin límite. */
+  limite?: number | null;
 }) {
   const [estado, setEstado] = useState<Estado>({ tipo: 'nada' });
-  if (!puede(rol, 'equipo.gestionar'))
+  const [miembros, setMiembros] = useState<Miembro[] | null>(null);
+  const [falla, setFalla] = useState<string | null>(null);
+  const gestiona = puede(rol, 'equipo.gestionar');
+  const cargar = useCallback(async () => {
+    const r = await verEquipo(conexion);
+    if (r.tipo === 'ok') {
+      setFalla(null);
+      setMiembros(r.miembros);
+    } else setFalla(r.motivo);
+  }, [conexion]);
+  useEffect(() => {
+    if (gestiona) void cargar();
+  }, [gestiona, cargar]);
+  const quitar = async (m: Miembro) => {
+    const r = await quitarDelEquipo(conexion, m.usuario_id);
+    if (r.tipo === 'error') setFalla(r.motivo);
+    await cargar();
+  };
+  const lleno = limite !== null && miembros !== null && miembros.length >= limite;
+  if (!gestiona)
     return (
       <main class="contenido">
         <h1>Equipo</h1>
@@ -60,10 +93,45 @@ export function Equipo({
         No puede cambiar el cobro, el dominio, el plan, el equipo ni cómo llegan los pedidos, ni
         descargar los datos de tus compradores.
       </p>
+      <h2>Quién tiene acceso</h2>
+      {falla ? (
+        <Aviso tono="peligro" titulo="No pudimos leer tu equipo">
+          {falla}
+        </Aviso>
+      ) : null}
+      {!miembros && !falla ? <p role="status">Leyendo tu equipo…</p> : null}
+      {miembros ? (
+        <ul class="lineas">
+          {miembros.map((m) => (
+            <li key={m.usuario_id}>
+              <span>
+                <strong>{m.tu ? `${m.nombre} (tú)` : m.nombre}</strong>
+                <span class="fila__detalle"> · {NOMBRE_DEL_ROL[m.rol] ?? m.rol}</span>
+              </span>
+              {m.tu ? null : (
+                <Confirmar
+                  abrir={`Quitar a ${m.nombre}`}
+                  consecuencia="Deja de entrar al panel de la tienda a más tardar en 12 horas. Lo que hizo en la tienda se queda."
+                  confirmar={`Sí, quitar a ${m.nombre}`}
+                  alConfirmar={() => quitar(m)}
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <h2>Invitar</h2>
+      {lleno ? (
+        <p class="nota">
+          Tu plan permite {limite === 1 ? 'una persona: tú' : `${limite} personas en tu equipo`}.
+          Para invitar a alguien más, cambia de plan en <a href="/mas/plan/">Tu plan</a>.
+        </p>
+      ) : null}
       <button
         class="ed1-boton ed1-boton--primario"
         type="button"
-        disabled={estado.tipo === 'creando'}
+        disabled={estado.tipo === 'creando' || lleno}
         aria-busy={estado.tipo === 'creando' ? 'true' : undefined}
         onClick={() => void invitar()}
       >

@@ -1190,3 +1190,29 @@ La regla: **antes de medir algo que «anota alguien», se construye dónde anota
 La regla: **una respuesta que llega tarde se compara con lo que se preguntó, no con lo que hay ahora.**
 
 *Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1 · tienda-0.1.0 · 2026-10-20
+
+**45 · Un producto sin combinaciones no se podía comprar: el horno borraba su clave vacía.**
+
+*Qué pasó.* El 20 oct 2026 el dueño validó la vitrina de staging y reportó siete cosas. La más grave: un producto sin opciones («manzana» en Ensayo Dos) decía «Esa combinación no está disponible» y no dejaba agregarlo.
+
+*Causa raíz.* El horno escribe los datos de la ficha con `jsonEstable`, que no escribe los textos vacíos: sirve para el JSON-LD, donde un campo vacío sobra. Pero la única combinación de un producto sin opciones tiene la clave `''`, y sin ella la ficha buscaba una combinación con clave `''` y no encontraba ninguna. El mismo vacío rompía el carrito, que leía `opciones` de esa combinación sin que viniera. Las pruebas de la vitrina solo tenían productos con opciones.
+
+*Otras premisas que la validación encontró.*
+- El «precio antes» se guardaba en el panel desde HU-T8.2, pero el horno nunca lo recibió.
+- La vitrina no decía cuándo quedaban pocas unidades, y el re-horneado solo saltaba cuando una combinación se agotaba o volvía.
+- El equipo del CORE ya tenía `equipo/ver` y `equipo/quitar`, pero el panel de la Tienda no los usaba: el propietario no veía a quién había invitado.
+- El flujo «cuadrar-tienda» corría su script sin instalar las dependencias; «suspender-tienda» y «anotar-soporte-tienda» tenían el mismo error, sin estrenar.
+
+*Arreglo.*
+- La vitrina vuelve a leer como `''` la clave y las opciones que faltan.
+- La tienda de ensayo de las e2e tiene ahora un producto sin opciones, con pocas unidades y precio de antes.
+- El precio de antes se hornea tachado, solo si es mayor que el de ahora.
+- «Quedan N» sale con 3 o menos (`POCAS_UNIDADES`), y cada cambio de ese número se re-hornea.
+- El panel lista el equipo, quita a una persona y respeta el tope de personas del plan.
+- Los tres flujos instalan antes, y una guardia lo exige.
+
+**Lo prueban** la e2e nueva del producto sin opciones (agregar, carrito, «Quedan 2», «Antes»), `ficha.test.ts` del horno y la e2e del equipo.
+
+La regla: **un serializador que quita lo vacío no sirve para datos donde lo vacío significa algo; y cada forma de producto que el panel deja crear tiene su producto en la tienda de ensayo.**
+
+*Ficha:* tienda3 · *(dueño y mío)* · 🔴 Alto · P1, P2 · tienda-0.1.0 · 2026-10-20

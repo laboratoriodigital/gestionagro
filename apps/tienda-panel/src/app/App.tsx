@@ -409,6 +409,11 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         conexion={conexion}
         rol={yo.datos.rol}
         tienda={yo.datos.tienda?.nombre ?? 'tu tienda'}
+        limite={
+          typeof yo.datos.funciones?.['usuarios'] === 'number'
+            ? (yo.datos.funciones['usuarios'] as number)
+            : null
+        }
       />
     );
   else if (ruta.startsWith('/mas/') && sesion)
@@ -439,7 +444,14 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         <Barra
           tienda={yo.datos.tienda?.nombre ?? tienda?.nombre ?? 'Tu tienda'}
           rol={NOMBRE_DEL_ROL[yo.datos.rol] ?? yo.datos.rol}
-        />
+        >
+          {/* Validación del 20 oct 2026: publicar, a un toque desde cualquier pantalla. */}
+          {puede(yo.datos.rol, 'publicar') && ruta !== '/mas/publicar/' ? (
+            <a class="barra__publicar" href="/mas/publicar/">
+              Publicar
+            </a>
+          ) : null}
+        </Barra>
       ) : null}
       {cuerpo}
       {conMarco ? <Navegacion ruta={ruta} /> : null}

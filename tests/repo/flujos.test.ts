@@ -257,3 +257,22 @@ describe('esperas por tiempo en las pruebas (P19)', () => {
     expect(conEspera).toEqual([]);
   });
 });
+
+describe('los scripts del repo se corren con sus dependencias (validación del 20 oct 2026)', () => {
+  // «cuadrar-tienda» corría `node scripts/…` sin `pnpm install`: el script lee celdas.json con ajv.
+  const flujos = readdirSync(join(RAIZ, '.github/workflows')).filter((f) => f.endsWith('.yml'));
+  it('todo trabajo que corre «node scripts/tienda/» instala antes con pnpm', () => {
+    const sinInstalar: string[] = [];
+    for (const f of flujos) {
+      const fl = flujo(readFileSync(join(RAIZ, '.github/workflows', f), 'utf8'));
+      for (const [id, trabajo] of Object.entries(fl.jobs ?? {})) {
+        const pasos = trabajo.steps ?? [];
+        const corre = pasos.findIndex((p) => /\bnode scripts\/tienda\//.test(p.run ?? ''));
+        if (corre < 0) continue;
+        const instala = pasos.findIndex((p) => /pnpm (install|i)\b/.test(p.run ?? ''));
+        if (instala < 0 || instala > corre) sinInstalar.push(`${f} › ${id}`);
+      }
+    }
+    expect(sinInstalar).toEqual([]);
+  });
+});

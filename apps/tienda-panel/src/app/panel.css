@@ -110,6 +110,25 @@ h2 {
 .barra .etiqueta {
   flex: none;
 }
+.barra__tienda {
+  flex: 1;
+}
+.guardado {
+  margin: 0;
+  color: var(--texto-suave);
+}
+.barra__publicar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: var(--espacio-4);
+  border-radius: var(--radio-campo);
+  background: var(--acento);
+  color: var(--acento-texto);
+  font-weight: var(--peso-fuerte);
+  text-decoration: none;
+}
 
 .contenido {
   padding: var(--espacio-6) var(--espacio-4);

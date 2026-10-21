@@ -34,15 +34,30 @@ export async function hornearEnsayo(): Promise<Map<string, string | Buffer>> {
     apariencia,
     agentes: { search: 'yes', aiInput: 'yes', aiTrain: 'no' },
     legal: legalDeEnsayo(ENSAYO_UNO),
-    productos: ENSAYO_UNO.productos.map((p) => ({
-      slug: p.slug,
-      nombre: p.nombre,
-      opciones: p.opciones,
-      variantes: p.variantes,
-      actualizado: '2026-10-14T15:00:00.000Z',
-      retracto:
-        p.retracto === 'aplica' ? { aplica: true } : { aplica: false, motivo: p.retracto.motivo },
-    })),
+    productos: [
+      ...ENSAYO_UNO.productos.map((p) => ({
+        slug: p.slug,
+        nombre: p.nombre,
+        opciones: p.opciones,
+        variantes: p.variantes,
+        actualizado: '2026-10-14T15:00:00.000Z',
+        retracto:
+          p.retracto === 'aplica'
+            ? { aplica: true as const }
+            : { aplica: false as const, motivo: p.retracto.motivo },
+      })),
+      // Validación del 20 oct 2026: un producto sin opciones (una sola combinación), con pocas
+      // unidades y con su precio de antes.
+      {
+        slug: 'bolsa-de-tela',
+        nombre: 'Bolsa de tela',
+        opciones: [],
+        variantes: [
+          { id: 'v-bolsa', clave: '', precioCop: 35000, precioAntesCop: 45000, stock: 2 },
+        ],
+        actualizado: '2026-10-14T15:00:00.000Z',
+      },
+    ],
     colecciones: [{ slug: 'lino', nombre: 'Lino', productos: ['camisa-de-lino'] }],
     // HU-T11.4: las e2e pagan en línea con un Bold de mentira; el despacho de verdad no lo publica.
     // HU-T11.3: en el ambiente de pruebas, como los comercios de prueba: la franja lo dice.

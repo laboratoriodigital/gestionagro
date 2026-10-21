@@ -720,7 +720,15 @@ test('HU-T8.2 · CA1 y CA4: un vestido con tallas y colores; un precio vacío no
   expect(primero.variantes[1]?.precioCop).toBeNull();
   await page.getByLabel('Precio de M', { exact: true }).fill('159000');
   await page.getByRole('button', { name: 'Crear producto' }).click();
-  await expect(page.getByText('Guardado', { exact: true })).toBeVisible();
+  // Validación del 20 oct 2026: se dice junto al botón, con la hora y el acceso a publicar.
+  const guardado = page.locator('.guardado');
+  await expect(guardado).toContainText(/^Guardado a las .+ Sale en tu tienda cuando publiques\./);
+  await expect(guardado.getByRole('link', { name: 'Publicar ahora' })).toHaveAttribute(
+    'href',
+    '/mas/publicar/',
+  );
+  // Y publicar está arriba, a un toque, en cualquier pantalla.
+  await expect(page.locator('.barra').getByRole('link', { name: 'Publicar' })).toBeVisible();
   expect(page.url()).toBe(`${PANEL}/productos/p-vestido/`);
   const [, bien] = enviados as { op: string; variantes: unknown[] }[];
   // Corregir y volver a enviar reusa la misma operación: lo rechazado no se aplicó.
@@ -3209,6 +3217,44 @@ test('HU-T10.2 · CA1 y CA2: una página «Quiénes somos», con la dirección q
     cuerpo: 'Un taller **familiar** de Medellín.',
     visible: true,
   });
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('validación del 20 oct · el propietario ve quién tiene acceso, puede quitarlo, y el plan dice cuántos caben', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  // El plan de esta tienda permite una persona: el equipo ya pasa del tope.
+  await page.route(`${PANEL}/api/panel/v1/yo`, (r) =>
+    r.fulfill({ json: { ...yo(UNO), funciones: { productos: 15, usuarios: 1 } } }),
+  );
+  let miembros = [
+    { usuario_id: 'u-1', nombre: 'Ensayo Propietaria', rol: 'propietario', tu: true },
+    { usuario_id: 'u-2', nombre: 'Ana Colaboradora', rol: 'colaborador', tu: false },
+  ];
+  const quitados: unknown[] = [];
+  await page.route(`${CORE}/api/core/equipo/ver`, (r) =>
+    r.fulfill({ json: { miembros }, headers: CORS }),
+  );
+  await page.route(`${CORE}/api/core/equipo/quitar`, (r) => {
+    quitados.push(r.request().postDataJSON());
+    miembros = miembros.filter((m) => m.usuario_id !== 'u-2');
+    return r.fulfill({ json: { usuario_id: 'u-2', quitado: true }, headers: CORS });
+  });
+  await page.goto(`${PANEL}/mas/equipo/`);
+  await expect(page.getByRole('heading', { level: 2, name: 'Quién tiene acceso' })).toBeVisible();
+  await expect(page.getByText('Ensayo Propietaria (tú)')).toBeVisible();
+  await expect(page.getByText('Ana Colaboradora', { exact: true })).toBeVisible();
+  // Con el equipo lleno, no se ofrece invitar.
+  await expect(page.getByText(/Tu plan permite una persona: tú/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Invitar a un colaborador' })).toBeDisabled();
+  await page.getByText('Quitar a Ana Colaboradora', { exact: true }).click();
+  await page.getByRole('button', { name: 'Sí, quitar a Ana Colaboradora' }).click();
+  await expect(page.getByText('Ana Colaboradora', { exact: true })).toHaveCount(0);
+  expect(quitados).toEqual([{ usuario_id: 'u-2' }]);
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

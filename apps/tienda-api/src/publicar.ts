@@ -301,7 +301,7 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     .all<FilaProducto>();
   const { results: variantes } = await c.shard
     .prepare(
-      'SELECT id, producto_id, clave, precio_cop, stock, reservado FROM variante WHERE org_id = ? AND activa = 1',
+      'SELECT id, producto_id, clave, precio_cop, precio_antes_cop, stock, reservado FROM variante WHERE org_id = ? AND activa = 1',
     )
     .bind(c.org)
     .all<{
@@ -309,6 +309,7 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
       producto_id: string;
       clave: string;
       precio_cop: number;
+      precio_antes_cop: number | null;
       stock: number | null;
       reservado: number;
     }>();
@@ -382,6 +383,7 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
           id: v.id,
           clave: v.clave,
           precioCop: v.precio_cop,
+          ...(v.precio_antes_cop !== null ? { precioAntesCop: v.precio_antes_cop } : {}),
           stock: v.stock === null ? null : Math.max(0, v.stock - v.reservado),
         })),
         actualizado: p.actualizado,

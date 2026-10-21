@@ -44,9 +44,14 @@ jobs:
     environment: ${{ inputs.ambiente }}
     steps:
       - uses: actions/checkout@v7
+      # El script lee celdas.json con su esquema (ajv): sin instalar, no arranca.
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: pnpm
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
       - name: Anotar la atención
         env:
           SECRETO_DESPACHO: ${{ secrets.SECRETO_DESPACHO }}

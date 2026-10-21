@@ -218,20 +218,26 @@ test('HU-T6.5 · «Avísame cuando haya» en una combinación agotada, una sola 
  */
 async function apiDelPedido(page: Page) {
   const enviados: Record<string, unknown>[] = [];
-  await page.route('**/api/v1/cotizar', (ruta) =>
-    ruta.fulfill({
+  // Como el de verdad: responde por las líneas que se le preguntaron (bitácora tienda3 44: uno que
+  // siempre decía una camisa devolvía la línea a un pedido recién vaciado).
+  await page.route('**/api/v1/cotizar', (ruta) => {
+    const { lineas } = JSON.parse(ruta.request().postData() ?? '{}') as {
+      lineas?: { variante: string; cantidad: number }[];
+    };
+    const hay = (lineas?.length ?? 0) > 0;
+    return ruta.fulfill({
       json: {
-        subtotal: 129000,
+        subtotal: hay ? 129000 : 0,
         descuento: 0,
         envio: 0,
-        total: 129000,
+        total: hay ? 129000 : 0,
         avisos: [],
         cobrable: true,
-        carrito: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+        carrito: lineas ?? [],
         cambio: false,
       },
-    }),
-  );
+    });
+  });
   await page.route('**/api/v1/pedidos', async (ruta) => {
     enviados.push(JSON.parse(ruta.request().postData() ?? '{}') as Record<string, unknown>);
     await ruta.fulfill({
@@ -918,16 +924,20 @@ test('bitácora tienda3 44 · ❌ el total que llega después de vaciar no devue
   let cotizadas = 0;
   await page.route('**/api/v1/cotizar', async (ruta) => {
     cotizadas++;
+    // Como el de verdad: responde por las líneas que se le preguntaron.
+    const { lineas } = JSON.parse(ruta.request().postData() ?? '{}') as {
+      lineas?: { variante: string; cantidad: number }[];
+    };
     await demora;
     await ruta.fulfill({
       json: {
-        subtotal: 129000,
+        subtotal: 129000 * (lineas?.length ?? 0),
         descuento: 0,
         envio: 0,
-        total: 129000,
+        total: 129000 * (lineas?.length ?? 0),
         avisos: [],
         cobrable: true,
-        carrito: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+        carrito: lineas ?? [],
         cambio: false,
       },
     });
@@ -952,4 +962,26 @@ test('bitácora tienda3 44 · ❌ el total que llega después de vaciar no devue
     JSON.parse(localStorage.getItem('tienda:carrito') ?? '{}'),
   );
   expect(carrito.lineas).toEqual([]);
+});
+
+test('validación del 20 oct · un producto sin opciones se agrega y llega al carrito, con cuántas quedan y su precio de antes', async ({
+  page,
+}) => {
+  await apiDelPedido(page);
+  await page.goto(`${TIENDA}/p/bolsa-de-tela/`);
+  await expect(page.locator('[data-quedan]')).toHaveText('Quedan 2');
+  await expect(page.locator('[data-antes]')).toHaveText('Antes $45.000');
+  const boton = page.locator('[data-boton]');
+  await expect(boton).toHaveText('Agregar al pedido');
+  await boton.click();
+  await expect(page.locator('[data-aviso]')).toHaveText('Agregado a tu pedido.');
+  await page.goto(`${TIENDA}/carrito/`);
+  const linea = page.locator('.linea');
+  await expect(linea).toHaveCount(1);
+  await expect(linea).toContainText('Bolsa de tela');
+  // En la portada, la tarjeta lo dice también.
+  await page.goto(`${TIENDA}/`);
+  const tarjeta = page.locator('.tarjeta', { hasText: 'Bolsa de tela' });
+  await expect(tarjeta.getByText('Últimas unidades')).toBeVisible();
+  await expect(tarjeta.locator('.precio__antes')).toHaveText('Antes $45.000');
 });

@@ -12,6 +12,7 @@
  * - Cada escritura lleva `version` y `op`, como el catálogo (HU-T8.2), y deja su fila en el registro.
  */
 import type { SentenciaD1 } from '@ed1/d1';
+import { POCAS_UNIDADES } from '@ed1/tienda-horno';
 import { z } from 'zod';
 import {
   cursorDe,
@@ -416,25 +417,34 @@ export async function atenderAvisame(q: Quien, cuerpo: unknown): Promise<Resulta
  * HU-T4.5: qué combinaciones se pueden comprar ahora, como las ve la vitrina: activas, de un
  * producto activo, y sin contar o con más existencias que lo apartado.
  */
+/**
+ * Cómo está cada combinación para la vitrina: agotada (0), cuántas quedan si son pocas (1 a
+ * `POCAS_UNIDADES`), o hay (-1). La vitrina dice «Quedan 2» (validación del 20 oct 2026): cada
+ * cambio de este número también se re-hornea.
+ */
 export async function disponibilidad(
   q: Pick<Quien, 'db' | 'org'>,
   variantes: readonly string[],
-): Promise<Map<string, boolean>> {
+): Promise<Map<string, number>> {
   if (variantes.length === 0) return new Map();
   const { results } = await q.db
     .prepare(
-      `SELECT v.id, (v.activa = 1 AND p.estado = 'activo' AND p.borrado IS NULL
-                     AND (v.stock IS NULL OR v.stock - v.reservado > 0)) AS hay
+      `SELECT v.id, CASE
+           WHEN NOT (v.activa = 1 AND p.estado = 'activo' AND p.borrado IS NULL) THEN 0
+           WHEN v.stock IS NULL THEN -1
+           WHEN v.stock - v.reservado <= 0 THEN 0
+           WHEN v.stock - v.reservado <= ? THEN v.stock - v.reservado
+           ELSE -1 END AS nivel
          FROM variante v JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
         WHERE v.org_id = ? AND v.id IN (${variantes.map(() => '?').join(', ')})`,
     )
-    .bind(q.org, ...variantes)
-    .all<{ id: string; hay: number }>();
-  return new Map(results.map((r) => [r.id, r.hay === 1]));
+    .bind(POCAS_UNIDADES, q.org, ...variantes)
+    .all<{ id: string; nivel: number }>();
+  return new Map(results.map((r) => [r.id, r.nivel]));
 }
 
-/** Si alguna combinación pasó de disponible a agotada, o al revés. */
-export function cruzo(antes: Map<string, boolean>, despues: Map<string, boolean>): boolean {
+/** Si alguna combinación cambió lo que dice la vitrina: agotada, cuántas quedan, o hay. */
+export function cruzo(antes: Map<string, number>, despues: Map<string, number>): boolean {
   for (const [id, hay] of despues) if (antes.has(id) && antes.get(id) !== hay) return true;
   return false;
 }

@@ -171,3 +171,56 @@ export async function aceptarInvitacion(
     };
   return { tipo: 'ok', sesion: nueva.sesion, tienda: String(r.datos['finca'] ?? '') };
 }
+
+export interface Miembro {
+  usuario_id: string;
+  nombre: string;
+  rol: string;
+  /** Es quien está mirando: no se puede quitar a sí mismo. */
+  tu: boolean;
+}
+
+/** Validación del 20 oct 2026: quiénes tienen acceso a la tienda, del CORE (`equipo/ver`). */
+export async function verEquipo(
+  c: Conexion,
+): Promise<{ tipo: 'ok'; miembros: Miembro[] } | { tipo: 'error'; motivo: string }> {
+  const { sesion, motivo } = await conAcceso(c);
+  if (!sesion)
+    return { tipo: 'error', motivo: motivo ?? 'Entra con tu cuenta para ver tu equipo.' };
+  const r = await alCore(c.fetchFn ?? fetch, `${c.core}/api/core/equipo/ver`, {}, sesion.acceso);
+  if (!r) return { tipo: 'error', motivo: SIN_SENAL };
+  if (r.estado !== 200)
+    return {
+      tipo: 'error',
+      motivo:
+        r.estado === 403
+          ? 'Solo quien administra la tienda ve su equipo.'
+          : `No pudimos leer tu equipo (${r.estado}).`,
+    };
+  return { tipo: 'ok', miembros: (r.datos['miembros'] ?? []) as Miembro[] };
+}
+
+/** Quita a alguien de la tienda. En su próxima renovación (a más tardar 12 h) ya no entra. */
+export async function quitarDelEquipo(
+  c: Conexion,
+  usuario: string,
+): Promise<{ tipo: 'ok' } | { tipo: 'error'; motivo: string }> {
+  const { sesion, motivo } = await conAcceso(c);
+  if (!sesion) return { tipo: 'error', motivo: motivo ?? 'Entra con tu cuenta.' };
+  const r = await alCore(
+    c.fetchFn ?? fetch,
+    `${c.core}/api/core/equipo/quitar`,
+    { usuario_id: usuario },
+    sesion.acceso,
+  );
+  if (!r) return { tipo: 'error', motivo: SIN_SENAL };
+  if (r.estado !== 200)
+    return {
+      tipo: 'error',
+      motivo: String(r.datos['motivo'] ?? 'No pudimos quitar a esa persona.').replace(
+        /la finca/g,
+        'la tienda',
+      ),
+    };
+  return { tipo: 'ok' };
+}
