@@ -17,11 +17,13 @@
  *    línea ni viene de un tercero: ni `<style>`, ni `style=`, ni un script que no sea un archivo propio
  *    o datos (HU-T3.6 CA3), porque la CSP lo bloquearía en silencio;
  * 9. los enlaces internos existen, también los de `llms.txt` (HU-T15.1). Las huellas del manifiesto las verifica la publicación al
- *    releerlo (HU-T4.4).
+ *    releerlo (HU-T4.4);
+ * 10. cada habilidad para agentes es la que se hornea, con su huella (HU-T15.3 CA2,
+ *    `revisarHabilidades`, aparte porque la huella es asíncrona).
  */
 import { faltantes, type Seccion } from '@ed1/tienda-schema';
-import { enlacesDeLlms } from './agentes.ts';
-import type { ArchivoHorneado } from './horno.ts';
+import { enlacesDeLlms, RUTA_DE_LAS_HABILIDADES } from './agentes.ts';
+import { type ArchivoHorneado, huella } from './horno.ts';
 
 export type CodigoDeFalla =
   | 'dato-faltante'
@@ -34,7 +36,8 @@ export type CodigoDeFalla =
   | 'pie-legal'
   | 'peso'
   | 'enlace-roto'
-  | 'en-linea';
+  | 'en-linea'
+  | 'habilidad';
 
 export interface Falla {
   codigo: CodigoDeFalla;
@@ -258,4 +261,51 @@ export function compuerta(e: EntradaDeLaCompuerta): { ok: boolean; fallas: Falla
     }
   }
   return { ok: fallas.length === 0, fallas };
+}
+
+/**
+ * HU-T15.3 CA2: cada habilidad del índice existe en lo horneado y su `sha256` es la de su archivo.
+ * Una huella que no coincide le daría a un agente instrucciones que no son las publicadas, y el
+ * agente que la verifica la descartaría: la tienda dejaría de explicar cómo se compra en ella.
+ */
+export async function revisarHabilidades(
+  archivos: ReadonlyMap<string, ArchivoHorneado>,
+): Promise<Falla[]> {
+  const donde = 'Soporte';
+  const indice = archivos.get(`${RUTA_DE_LAS_HABILIDADES}index.json`);
+  if (!indice) {
+    return [
+      { codigo: 'habilidad', mensaje: 'Falta el índice de habilidades para asistentes', donde },
+    ];
+  }
+  let skills: { name?: unknown; url?: unknown; sha256?: unknown }[] = [];
+  try {
+    skills = (JSON.parse(indice.contenido) as { skills?: typeof skills }).skills ?? [];
+  } catch {
+    return [{ codigo: 'habilidad', mensaje: 'El índice de habilidades no se puede leer', donde }];
+  }
+  const fallas: Falla[] = [];
+  for (const s of skills) {
+    let ruta = '';
+    try {
+      ruta = new URL(String(s.url)).pathname;
+    } catch {
+      // Sin una dirección que se lea, la habilidad no existe.
+    }
+    const archivo = archivos.get(ruta);
+    if (!archivo) {
+      fallas.push({
+        codigo: 'habilidad',
+        mensaje: `La habilidad «${String(s.name)}» no está en la tienda`,
+        donde,
+      });
+    } else if ((await huella(archivo.contenido)) !== s.sha256) {
+      fallas.push({
+        codigo: 'habilidad',
+        mensaje: `La huella de la habilidad «${String(s.name)}» no es la de su archivo`,
+        donde,
+      });
+    }
+  }
+  return fallas;
 }

@@ -21,6 +21,7 @@
       "!apps/tienda-sitio/wrangler.jsonc",
       "!apps/tienda-panel/wrangler.jsonc",
       "!packages/tienda-horno/dorados",
+      "!apps/tienda-api/contrato",
       "!packages/ui/src/v2/tokens.css",
       "!packages/ui/src/v2/fuentes.css",
       "!schemas/agro-export.schema.json"

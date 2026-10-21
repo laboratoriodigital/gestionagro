@@ -19,7 +19,16 @@ import {
   NOMBRE_DEL_TIPO,
   TIPOS_DE_SOLICITUD,
 } from '@ed1/tienda-schema';
-import { llmsTxt, manifiestoWeb, robotsDeLaTienda } from './agentes.ts';
+import {
+  catalogoDeLaApi,
+  habilidadDeCompra,
+  llmsTxt,
+  manifiestoWeb,
+  RUTA_DE_LAS_HABILIDADES,
+  RUTA_DEL_CATALOGO_DE_LA_API,
+  robotsDeLaTienda,
+  tarjetaDelMcp,
+} from './agentes.ts';
 import { esDeLaPlataforma, type Tercero } from './csp.ts';
 import { escaparHtml, markdownPlano, markdownSeguro } from './escapar.ts';
 import { archivosDeLosFeeds, type FeedsEncendidos } from './feeds.ts';
@@ -115,6 +124,10 @@ export interface TiendaParaHornear {
   cobroEnPruebas?: boolean;
   /** HU-T14.5: los feeds de productos que el comercio encendió en Ajustes › Agentes. */
   feeds?: FeedsEncendidos;
+  /** HU-T15.2: la OpenAPI de la API pública, sin `servers`: el horno pone la dirección de la tienda. */
+  api?: Record<string, unknown>;
+  /** HU-T15.4: el MCP público de la tienda, si el comercio lo encendió en Ajustes › Agentes. */
+  mcp?: boolean;
   /**
    * HU-T13.5: lo que permite el plan de la tienda. El horno recorta a él lo publicado (`alPlan`):
    * los productos de más quedan ocultos y lo que el plan no incluye no se ofrece.
@@ -175,6 +188,8 @@ const TIPOS = {
   webmanifest: 'application/manifest+json',
   csv: 'text/csv; charset=utf-8',
   jsonl: 'application/jsonl; charset=utf-8',
+  // HU-T15.2: el catálogo de la API (RFC 9727).
+  linkset: 'application/linkset+json',
 } as const;
 
 /** Los enlaces legales del pie, cortos para el teléfono (HU-T7.1). */
@@ -1090,6 +1105,16 @@ ${p.cuerpo}
     'json',
     `${jsonEstable({
       tienda: { nombre: t.nombre, url: url('/') },
+      // HU-T15.4: las categorías, para buscar en una sin leer la base.
+      ...(colecciones.length > 0
+        ? {
+            colecciones: colecciones.map((c) => ({
+              slug: c.slug,
+              nombre: c.nombre,
+              productos: c.productos,
+            })),
+          }
+        : {}),
       productos: productos.map((p) => ({
         slug: p.slug,
         nombre: p.nombre,
@@ -1138,6 +1163,48 @@ ${p.cuerpo}
   );
   // La capa para agentes (HU-T15.1): robots con las familias del ecosistema y las señales de esta
   // tienda, llms.txt con los gemelos y el manifiesto de la app web.
+  const sitio = url('').replace(/\/$/, '');
+  // HU-T15.2: la API pública con la dirección de esta tienda, y su catálogo (RFC 9727).
+  if (t.api) {
+    poner(
+      '/openapi.json',
+      'json',
+      `${JSON.stringify({ ...t.api, servers: [{ url: sitio }] }, null, 2)}\n`,
+    );
+    poner(RUTA_DEL_CATALOGO_DE_LA_API, 'linkset', catalogoDeLaApi(sitio));
+  }
+  // HU-T15.3: cómo comprar aquí, con su huella en el índice; la compuerta la vuelve a calcular.
+  const rutaDeLaHabilidad = `${RUTA_DE_LAS_HABILIDADES}comprar/SKILL.md`;
+  const habilidad = habilidadDeCompra({
+    nombre: markdownPlano(t.nombre),
+    ...(presente(t.frase) ? { frase: markdownPlano(t.frase) } : {}),
+    mcp: Boolean(t.mcp),
+    formas: formas.map((f) => NOMBRE_DE_LA_FORMA[f.forma]),
+    legales: legales.map((x) => ({ titulo: x.titulo, ruta: x.ruta })),
+  });
+  poner(rutaDeLaHabilidad, 'md', habilidad.texto);
+  poner(
+    `${RUTA_DE_LAS_HABILIDADES}index.json`,
+    'json',
+    `${JSON.stringify(
+      {
+        skills: [
+          {
+            name: 'comprar',
+            type: 'skill-md',
+            description: habilidad.descripcion,
+            url: `${sitio}${rutaDeLaHabilidad}`,
+            sha256: await huella(habilidad.texto),
+          },
+        ],
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  // HU-T15.4: la tarjeta del MCP público, solo si el comercio lo encendió.
+  if (t.mcp)
+    poner('/.well-known/mcp/server-card.json', 'json', tarjetaDelMcp({ nombre: t.nombre, sitio }));
   poner('/robots.txt', 'txt', robotsDeLaTienda(t.agentes, url('').replace(/\/$/, '')));
   // HU-T14.5: los feeds encendidos, con la disponibilidad de ahora.
   for (const f of archivosDeLosFeeds(t, t.feeds)) poner(f.ruta, f.tipo, f.contenido);
@@ -1166,6 +1233,19 @@ ${p.cuerpo}
         {
           titulo: 'Políticas',
           enlaces: legales.map((x) => ({ titulo: x.titulo, ruta: `${x.ruta}index.md` })),
+        },
+        {
+          titulo: 'Para agentes',
+          enlaces: [
+            {
+              titulo: 'Cómo comprar aquí',
+              ruta: rutaDeLaHabilidad,
+              nota: 'el catálogo, cotizar y preparar un pedido que la persona confirma',
+            },
+            ...(t.api
+              ? [{ titulo: 'La API pública', ruta: '/openapi.json', nota: 'OpenAPI 3.1' }]
+              : []),
+          ],
         },
         {
           titulo: 'Opcional',

@@ -1,0 +1,783 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API pública de la tienda",
+    "version": "v1",
+    "description": "Lo que cualquiera puede hacer con una tienda de laboratorio-digital.app sin entrar: cotizar, registrar un pedido que la persona acepta, seguirlo, pedir aviso y radicar solicitudes. El catálogo está horneado en `/catalogo.json` y `/catalogo.md`; un agente prepara pedidos con el MCP de la tienda, y el pago y la aceptación los hace siempre la persona. Los precios son en pesos colombianos e incluyen IVA."
+  },
+  "paths": {
+    "/api/v1/tienda": {
+      "get": {
+        "operationId": "tienda",
+        "summary": "La tienda",
+        "description": "El nombre y el estado de la tienda de esta dirección.",
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La tienda o lo pedido no existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "La tienda está en pausa unos minutos: se puede leer, no escribir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cotizar": {
+      "post": {
+        "operationId": "cotizar",
+        "summary": "Cotizar un carrito",
+        "description": "El subtotal, el descuento, el envío y el total de unas combinaciones, con los avisos de lo que cambió (precio, existencias, cupón o envío) y el carrito corregido. No aparta unidades ni escribe nada. Las combinaciones (`variante`) salen de `/catalogo.json`. Límite: 30 por minuto por IP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lineas": {
+                    "minItems": 1,
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "variante": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64
+                        },
+                        "cantidad": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 200
+                        }
+                      },
+                      "required": [
+                        "variante",
+                        "cantidad"
+                      ]
+                    }
+                  },
+                  "envio": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "cupon": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 24
+                  },
+                  "totalVisto": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "lineas"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La tienda o lo pedido no existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "El cuerpo no cumple el esquema o falta algo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Pasó el límite: 30 por minuto por IP.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "La tienda está en pausa unos minutos: se puede leer, no escribir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pedidos": {
+      "post": {
+        "operationId": "registrarPedido",
+        "summary": "Registrar un pedido para enviarlo por WhatsApp",
+        "description": "Lo envía la persona desde la tienda: exige que haya aceptado los términos publicados (`terminos` es la huella de `/legal/terminos/index.md`) y una forma de pago de las que ofrece la tienda. Un agente no lo usa en nombre de nadie: prepara el pedido con el MCP de la tienda y la persona lo confirma. Límite: 10 por minuto por IP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "codigo": {
+                    "type": "string",
+                    "pattern": "^[0-9A-HJKMNP-TV-Z]{6}$"
+                  },
+                  "lineas": {
+                    "minItems": 1,
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "variante": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64
+                        },
+                        "cantidad": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 200
+                        },
+                        "mayorDeEdad": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "variante",
+                        "cantidad"
+                      ]
+                    }
+                  },
+                  "envio": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "cupon": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 24
+                  },
+                  "ciudad": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "forma": {
+                    "type": "string",
+                    "enum": [
+                      "a_convenir",
+                      "contraentrega",
+                      "transferencia",
+                      "efectivo"
+                    ]
+                  },
+                  "acepta": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "terminos": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "seguimiento": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{22}$"
+                  },
+                  "totalVisto": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "codigo",
+                  "lineas",
+                  "forma",
+                  "acepta",
+                  "terminos",
+                  "seguimiento",
+                  "totalVisto"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La tienda o lo pedido no existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "El cuerpo no cumple el esquema o falta algo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Pasó el límite: 10 por minuto por IP.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "La tienda está en pausa unos minutos: se puede leer, no escribir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/seguimiento": {
+      "post": {
+        "operationId": "seguimiento",
+        "summary": "Seguir un pedido",
+        "description": "El estado, los pasos y las líneas de un pedido, con su código y el secreto de su enlace de seguimiento. Cualquier fallo responde lo mismo, y nada dice quién compró. Límite: 20 por minuto por IP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "codigo": {
+                    "type": "string",
+                    "pattern": "^[0-9A-HJKMNP-TV-Z]{6}$"
+                  },
+                  "secreto": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{22}$"
+                  }
+                },
+                "required": [
+                  "codigo",
+                  "secreto"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La tienda o lo pedido no existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "El cuerpo no cumple el esquema o falta algo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Pasó el límite: 20 por minuto por IP.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "La tienda está en pausa unos minutos: se puede leer, no escribir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/avisame": {
+      "post": {
+        "operationId": "avisame",
+        "summary": "Avísame cuando haya",
+        "description": "Suma una persona interesada en una combinación agotada. No guarda ningún dato de quien lo pide. Límite: 10 por minuto por IP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "variante": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                },
+                "required": [
+                  "variante"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La tienda o lo pedido no existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "El cuerpo no cumple el esquema o falta algo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Pasó el límite: 10 por minuto por IP.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "La tienda está en pausa unos minutos: se puede leer, no escribir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/solicitudes": {
+      "post": {
+        "operationId": "radicarSolicitud",
+        "summary": "Radicar una solicitud",
+        "description": "Una petición, queja, reclamo, retracto, garantía o solicitud sobre los datos personales, con su radicado y la fecha. Límite: 5 por minuto por IP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tipo": {
+                    "type": "string",
+                    "enum": [
+                      "peticion",
+                      "queja",
+                      "reclamo",
+                      "retracto",
+                      "reversion",
+                      "datos_consulta",
+                      "datos_reclamo"
+                    ]
+                  },
+                  "pedido": {
+                    "type": "string",
+                    "pattern": "^[0-9A-HJKMNP-TV-Z]{6}$"
+                  },
+                  "texto": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 2000
+                  },
+                  "contacto": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 120
+                  },
+                  "acepta": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "seguimiento": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{22}$"
+                  }
+                },
+                "required": [
+                  "tipo",
+                  "texto",
+                  "contacto",
+                  "acepta",
+                  "seguimiento"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La tienda o lo pedido no existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "El cuerpo no cumple el esquema o falta algo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Pasó el límite: 5 por minuto por IP.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "La tienda está en pausa unos minutos: se puede leer, no escribir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/solicitudes/seguimiento": {
+      "post": {
+        "operationId": "seguimientoDeSolicitud",
+        "summary": "Seguir una solicitud",
+        "description": "En qué va una solicitud y su respuesta, con su radicado y su secreto. Límite: 20 por minuto por IP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "radicado": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "secreto": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{22}$"
+                  }
+                },
+                "required": [
+                  "radicado",
+                  "secreto"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Hecho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "La tienda o lo pedido no existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "El cuerpo no cumple el esquema o falta algo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Pasó el límite: 20 por minuto por IP.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "La tienda está en pausa unos minutos: se puede leer, no escribir.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Respuesta"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Respuesta": {
+        "type": "object",
+        "description": "Toda respuesta trae `estado`, que dice qué pasó, y, si algo no salió, `motivo`, en palabras para la persona.",
+        "properties": {
+          "estado": {
+            "type": "string"
+          },
+          "motivo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "estado"
+        ]
+      }
+    }
+  }
+}
