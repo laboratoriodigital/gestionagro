@@ -129,7 +129,7 @@ import {
 } from './llaves.ts';
 import { comprobarIdentidad, guardarLlaves, leerElCobro, probarLlaves } from './llaves-de-bold.ts';
 import { atenderMcpDelComercio, documentoDelMcpDelComercio } from './mcp-comercio.ts';
-import { mcpEncendido, responderMcp } from './mcp-publico.ts';
+import { mcpEncendido, publicadoConMcp, responderMcp } from './mcp-publico.ts';
 import { type BucketDeFotos, fotoDeLaVariante, quitarFoto, subirFoto } from './medios.ts';
 import { borrarPagina, guardarPagina, listarPaginas } from './paginas.ts';
 import {
@@ -1060,6 +1060,16 @@ export function crearApp(
       });
     }
     if (!(await mcpEncendido(destino.db, destino.org))) return c.json(NO_EXISTE, 404);
+    // Bitácora tienda3 50: encendido y publicado; si no, el enlace de confirmar no existiría.
+    if (!(await publicadoConMcp({ db: destino.db, org: destino.org, sitios: c.env.SITIOS }))) {
+      return c.json(
+        {
+          estado: 'sin-publicar',
+          motivo: 'Publica la tienda para que los asistentes puedan preparar pedidos.',
+        },
+        404,
+      );
+    }
     const enPausa = (motivo: string, estado: 429 | 503) => {
       c.header('retry-after', estado === 429 ? '60' : '120');
       return c.json({ jsonrpc: '2.0', id: null, error: { code: -32000, message: motivo } }, estado);

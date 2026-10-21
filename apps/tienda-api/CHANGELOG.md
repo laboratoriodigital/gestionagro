@@ -90,6 +90,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Buscar y el pedido van en la franja de arriba de cada página; la barra del pedido de abajo ya no está. En la ficha, el precio, el de antes y cuántas quedan van juntos, sin encimarse, y los envíos se ven en el pedido y en «Envíos y devoluciones». En el panel, las colecciones se llaman categorías.
 
 ### Corregido
+- El asistente de compras solo prepara pedidos cuando la tienda ya se publicó con él encendido: antes, sin publicar, el enlace para confirmar llevaba a una página que no existía (bitácora tienda3 50).
 - En staging, una tienda de prueba que no se volvía a publicar en un despliegue quedaba diciendo «Esta tienda todavía no abre»; ahora sigue mostrando su última versión (bitácora tienda3 49).
 - Un producto sin opciones ya se puede agregar al pedido, y llega bien al carrito (bitácora tienda3 45).
 - El aviso de «Guardado» de un producto sale junto al botón cada vez que guardas, con la hora y un acceso a publicar.

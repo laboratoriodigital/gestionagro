@@ -83,6 +83,8 @@ const objetos = new Map<string, string>([
       archivos: {
         '/catalogo.json': { huella: `aa${'1'.repeat(62)}` },
         '/p/camisa-de-lino/index.md': { huella: `bb${'2'.repeat(62)}` },
+        '/.well-known/mcp/server-card.json': { huella: `cc${'3'.repeat(62)}` },
+        '/pedido/confirmar/index.html': { huella: `dd${'4'.repeat(62)}` },
       },
     }),
   ],
@@ -131,6 +133,20 @@ describe('el MCP público de la tienda (HU-T15.4)', () => {
   it('❌ sin encenderlo en Ajustes › Agentes no existe', async () => {
     await ajuste('agentes', { mcp: false });
     expect((await mcp('initialize')).status).toBe(404);
+  });
+
+  it('❌ bitácora tienda3 50: encendido pero sin publicar con el MCP, tampoco: su enlace no existiría', async () => {
+    const viejo = objetos.get(`sitios/${UNO}/1/manifiesto.json`) ?? '';
+    const m = JSON.parse(viejo) as { archivos: Record<string, unknown> };
+    delete m.archivos['/pedido/confirmar/index.html'];
+    objetos.set(`sitios/${UNO}/1/manifiesto.json`, JSON.stringify(m));
+    await shard.prepare('UPDATE tienda SET version_publicada = 2 WHERE org_id = ?').bind(UNO).run();
+    objetos.set(`sitios/${UNO}/2/manifiesto.json`, JSON.stringify(m));
+    const r = await mcp('initialize');
+    expect(r.status).toBe(404);
+    expect(r.cuerpo).toMatchObject({ estado: 'sin-publicar' });
+    await shard.prepare('UPDATE tienda SET version_publicada = 1 WHERE org_id = ?').bind(UNO).run();
+    objetos.set(`sitios/${UNO}/1/manifiesto.json`, viejo);
   });
 
   it('se presenta con las instrucciones: la persona acepta y paga; y lista sus cinco herramientas', async () => {

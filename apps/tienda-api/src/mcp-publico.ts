@@ -181,8 +181,10 @@ const recordar = <V>(m: Map<string, V>, clave: string, valor: V) => {
   m.set(clave, valor);
 };
 
-/** Un archivo de la versión publicada de la tienda; `null` si no está o no publicó. */
-async function publicado(c: ContextoDelMcp, ruta: string): Promise<string | null> {
+/** Los archivos de la versión publicada de la tienda, de su manifiesto; `null` si no publicó. */
+async function archivosPublicados(
+  c: Pick<ContextoDelMcp, 'db' | 'org' | 'sitios'>,
+): Promise<Record<string, { huella: string }> | null> {
   if (!c.sitios) return null;
   const t = await c.db
     .prepare('SELECT version_publicada FROM tienda WHERE org_id = ?')
@@ -198,10 +200,29 @@ async function publicado(c: ContextoDelMcp, ruta: string): Promise<string | null
       .archivos;
     recordar(manifiestos, clave, archivos);
   }
-  const h = archivos[ruta]?.huella;
-  if (!h) return null;
+  return archivos;
+}
+
+/** Un archivo de la versión publicada de la tienda; `null` si no está o no publicó. */
+async function publicado(c: ContextoDelMcp, ruta: string): Promise<string | null> {
+  const h = (await archivosPublicados(c))?.[ruta]?.huella;
+  if (!h || !c.sitios) return null;
   const o = await c.sitios.get(`objetos/${h.slice(0, 2)}/${h}`);
   return o ? o.text() : null;
+}
+
+/**
+ * Bitácora tienda3 50: el MCP responde cuando la versión publicada lo trae, con su tarjeta y la
+ * página donde la persona confirma. Encenderlo sin publicar no basta: el enlace que entrega
+ * `preparar_pedido` llevaría a una página que la tienda todavía no tiene.
+ */
+export async function publicadoConMcp(
+  c: Pick<ContextoDelMcp, 'db' | 'org' | 'sitios'>,
+): Promise<boolean> {
+  const archivos = await archivosPublicados(c);
+  return Boolean(
+    archivos?.['/.well-known/mcp/server-card.json'] && archivos['/pedido/confirmar/index.html'],
+  );
 }
 
 async function catalogoDe(c: ContextoDelMcp): Promise<Catalogo | null> {
