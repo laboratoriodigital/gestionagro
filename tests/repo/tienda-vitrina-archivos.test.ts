@@ -53,6 +53,8 @@ describe('los componentes (HU-T3.4)', () => {
       '.pildora span',
       '.boton',
       '.franja__buscar',
+      '.buscador input',
+      '.coincidencia a',
       '.tarjeta a',
       '.buscar input',
     ]) {

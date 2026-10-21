@@ -9,7 +9,8 @@
  * - en `/carrito/`, las líneas, el total que confirma el servidor y el envío por WhatsApp
  *   (`venta.ts`); en `/pedido/`, el acuse y el estado con el enlace de seguimiento;
  * - en `/solicitud/`, radicar una solicitud y seguirla con su enlace (HU-T6.4);
- * - en `/buscar/`, la búsqueda sobre `catalogo.json`, sin red al escribir.
+ * - en `/buscar/` y en el buscador de cada lista, la búsqueda sobre `catalogo.json`, sin red al
+ *   escribir; en la lista, las coincidencias salen debajo del campo.
  *
  * Todo texto que llega del catálogo se pone con `textContent`, nunca como HTML.
  * `scripts/armar-vitrina.ts` le quita los tipos al armarla; no lleva dependencias.
@@ -1185,6 +1186,181 @@ async function solicitudPagina(): Promise<void> {
   pintarBoton();
 }
 
+/** Un elemento con su clase y, si lo trae, su texto (siempre como texto, nunca como HTML). */
+function nodo(etiqueta: string, clase: string, texto?: string): HTMLElement {
+  const e = document.createElement(etiqueta);
+  e.className = clase;
+  if (texto !== undefined) e.textContent = texto;
+  return e;
+}
+/** El precio de la lista: «Desde» solo cuando las combinaciones cuestan distinto. */
+function precioDeLista(p: ProductoConVariantes): string {
+  const precios = p.variantes.map((v) => v.precioCop);
+  const menor = Math.min(...precios);
+  return `${precios.some((x) => x !== menor) ? 'Desde ' : ''}${formato(menor)}`;
+}
+/** La foto pequeña del catálogo; sin ella, el marco vacío de siempre. */
+function fotoDeLista(p: ProductoConVariantes, clase: string): HTMLElement {
+  const marco = nodo('span', clase);
+  if (p.foto) {
+    const img = document.createElement('img');
+    img.src = p.foto;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    marco.append(img);
+  } else marco.setAttribute('aria-hidden', 'true');
+  return marco;
+}
+const suave = (): ScrollBehavior =>
+  matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
+const MAX_COINCIDENCIAS = 6;
+/**
+ * Validación del 21 oct 2026: al escribir en el buscador de la lista, las coincidencias salen
+ * debajo del campo, con su foto y su precio. Las flechas las recorren, Enter abre la elegida (sin
+ * elegir, todos los resultados en /buscar/) y Escape las cierra. El catálogo se pide al tocar el
+ * campo, una sola vez; escribir no pide nada al servidor (HU-T5.3 CA3).
+ */
+function buscador(): void {
+  const form = document.querySelector<HTMLFormElement>('[data-buscador]');
+  const campo = form?.querySelector<HTMLInputElement>('input[role="combobox"]');
+  const caja = form?.querySelector<HTMLElement>('[data-coincidencias]');
+  const lista = caja?.querySelector<HTMLElement>('[role="listbox"]');
+  const vacio = form?.querySelector<HTMLElement>('[data-sin-coincidencias]');
+  const cuantas = form?.querySelector<HTMLElement>('[data-cuantas]');
+  if (!form || !campo || !caja || !lista || !vacio || !cuantas) return;
+  let activa = -1;
+  let vez = 0;
+  const opciones = () => [...lista.querySelectorAll<HTMLElement>('[role="option"]')];
+  const marcar = (i: number) => {
+    activa = i;
+    for (const [j, o] of opciones().entries()) o.setAttribute('aria-selected', String(j === i));
+    const elegida = opciones()[i];
+    if (elegida) {
+      campo.setAttribute('aria-activedescendant', elegida.id);
+      elegida.scrollIntoView({ block: 'nearest' });
+    } else campo.removeAttribute('aria-activedescendant');
+  };
+  const cerrar = () => {
+    caja.hidden = true;
+    campo.setAttribute('aria-expanded', 'false');
+    marcar(-1);
+  };
+  const opcion = (id: string, href: string, ...hijos: Node[]) => {
+    const li = nodo('li', 'coincidencia');
+    li.id = id;
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', 'false');
+    const a = document.createElement('a');
+    a.href = href;
+    a.tabIndex = -1;
+    a.append(...hijos);
+    li.append(a);
+    return li;
+  };
+  const pintar = async () => {
+    const q = campo.value.trim();
+    const n = ++vez;
+    if (q === '') {
+      cerrar();
+      cuantas.textContent = '';
+      return;
+    }
+    let productos: ProductoConVariantes[];
+    try {
+      ({ productos } = await leerCatalogo());
+    } catch {
+      cerrar();
+      return;
+    }
+    // Si llegó otra letra mientras cargaba el catálogo, pinta esa.
+    if (n !== vez) return;
+    const hallados = buscar(productos, q);
+    lista.replaceChildren(
+      ...hallados
+        .slice(0, MAX_COINCIDENCIAS)
+        .map((p, i) =>
+          opcion(
+            `coincidencia-${i}`,
+            new URL(p.url).pathname,
+            fotoDeLista(p, 'coincidencia__foto'),
+            nodo('span', 'coincidencia__nombre', p.nombre),
+            nodo('span', 'precio', precioDeLista(p)),
+          ),
+        ),
+    );
+    if (hallados.length > MAX_COINCIDENCIAS) {
+      lista.append(
+        opcion(
+          'coincidencia-todas',
+          `/buscar/?q=${encodeURIComponent(q)}`,
+          nodo('span', 'coincidencia__todas', `Ver los ${hallados.length} resultados`),
+        ),
+      );
+    }
+    vacio.textContent = `No encontramos «${q}». Prueba con otra palabra, o sin tildes ni plurales.`;
+    vacio.hidden = hallados.length > 0;
+    caja.hidden = false;
+    campo.setAttribute('aria-expanded', 'true');
+    marcar(-1);
+    cuantas.textContent =
+      hallados.length === 0
+        ? 'Sin coincidencias'
+        : `${hallados.length} ${hallados.length === 1 ? 'coincidencia' : 'coincidencias'}`;
+  };
+  campo.addEventListener('input', () => void pintar());
+  campo.addEventListener('focus', () => {
+    // En el teléfono, el campo sube para que el teclado no tape las coincidencias.
+    if (matchMedia('(max-width: 47.99rem)').matches) {
+      campo.scrollIntoView({ block: 'start', behavior: suave() });
+    }
+    if (campo.value.trim() === '') void leerCatalogo().catch(() => undefined);
+    else void pintar();
+  });
+  campo.addEventListener('keydown', (e) => {
+    const total = opciones().length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (caja.hidden) {
+        void pintar();
+        return;
+      }
+      if (total === 0) return;
+      const abajo = e.key === 'ArrowDown';
+      marcar(abajo ? (activa + 1) % total : activa <= 0 ? total - 1 : activa - 1);
+    } else if (e.key === 'Enter' && activa >= 0) {
+      const a = opciones()[activa]?.querySelector('a');
+      if (a) {
+        e.preventDefault();
+        location.assign(a.href);
+      }
+    } else if (e.key === 'Escape' && !caja.hidden) {
+      e.preventDefault();
+      cerrar();
+    }
+  });
+  // Tocar una coincidencia no le quita el foco al campo antes de abrirla.
+  caja.addEventListener('pointerdown', (e) => e.preventDefault());
+  form.addEventListener('focusout', (e) => {
+    if (!(e.relatedTarget instanceof Node && form.contains(e.relatedTarget))) cerrar();
+  });
+}
+
+/** La lupa de la franja lleva al buscador de la página si lo hay; si no, a /buscar/. */
+function irABuscar(): void {
+  const lupa = document.querySelector<HTMLAnchorElement>('[data-ir-a-buscar]');
+  const campo = document.querySelector<HTMLInputElement>(
+    '[data-buscador] input, [data-buscar] input',
+  );
+  if (!lupa || !campo) return;
+  lupa.addEventListener('click', (e) => {
+    e.preventDefault();
+    campo.scrollIntoView({ block: 'center', behavior: suave() });
+    campo.focus({ preventScroll: true });
+  });
+}
+
 async function busqueda(): Promise<void> {
   const form = document.querySelector<HTMLFormElement>('[data-buscar]');
   const lista = document.querySelector<HTMLElement>('[data-resultados]');
@@ -1196,13 +1372,17 @@ async function busqueda(): Promise<void> {
   const pintar = () => {
     const q = campo?.value ?? '';
     const hallados = buscar(productos, q);
+    // Validación del 21 oct 2026: cada resultado, como la tarjeta de la lista, con foto y precio.
     lista.replaceChildren(
       ...hallados.map((p) => {
-        const li = document.createElement('li');
-        li.className = 'tarjeta';
+        const li = nodo('li', 'tarjeta');
         const a = document.createElement('a');
         a.href = new URL(p.url).pathname;
-        a.textContent = p.nombre;
+        a.append(
+          fotoDeLista(p, 'tarjeta__foto'),
+          nodo('span', 'tarjeta__nombre', p.nombre),
+          nodo('span', 'precio', precioDeLista(p)),
+        );
         li.append(a);
         return li;
       }),
@@ -1273,7 +1453,8 @@ function compartir(): void {
  */
 function ordenarListas(): void {
   for (const control of document.querySelectorAll<HTMLElement>('[data-ordenar]')) {
-    const lista = control.nextElementSibling;
+    // La lista va justo después de sus herramientas (buscar, las categorías y ordenar).
+    const lista = control.closest('[data-herramientas]')?.nextElementSibling;
     const select = control.querySelector('select');
     if (!(lista instanceof HTMLElement) || !select) continue;
     control.hidden = false;
@@ -1300,6 +1481,8 @@ function ordenarListas(): void {
 galeria();
 compartir();
 ordenarListas();
+buscador();
+irABuscar();
 iniciarConsentimiento();
 void carritoPagina();
 void pedidoEnviado();

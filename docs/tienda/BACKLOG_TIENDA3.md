@@ -341,6 +341,7 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T16** (festivo) | 12–23 jul | **M4.** Alta abierta, plan por periodo, antiabuso y baja; medición propia y feeds | HU-T13.4 (5), HU-T13.5 (3), HU-T13.6 (3), HU-T13.7 (2), HU-T14.1 (3), HU-T14.5 (3) | 19 | M4 |
 | **T17** | 26 jul–6 ago | **M5 · `tienda-v1.0.0`.** Resumen diario, consentimiento, reconciliación, páginas propias y el reporte del dueño | HU-T8.6 (2), HU-T10.2 (2), HU-T14.4 (3), HU-T14.6 (2), HU-T14.7 (2) | 11 | M5 |
 | **T17b** | entre T17 y T18 | Lo que pidió la validación de la vitrina del 20 oct 2026 | HU-T5.8 (2), HU-T5.9 (3), HU-T5.10 (2), HU-T5.11 (2), HU-T5.12 (3), HU-T5.13 (3), HU-T5.14 (3), HU-T5.15 (1) | 19 | — |
+| **T17c** | entre T17b y T18 | Lo que pidió la validación de la vitrina del 21 oct 2026, con atoms.com como referencia | HU-T5.16 (3), HU-T5.17 (2) | 5 | — |
 | **T18** (festivo) | 9–20 ago | **M7.** Los agentes preparan pedidos que una persona confirma | HU-T15.2 (2), HU-T15.3 (2), HU-T15.4 (5), HU-T15.5 (3), HU-T15.6 (2), HU-T15.7 (5) | 19 | M7 |
 | **T19** | 23 ago–3 sep | **M8.** La factura, en el facturador del comercio | HU-T16.1 (2), HU-T16.2 (5), HU-T16.3 (3), HU-T16.4 (2) | 12 | M8 |
 | **T20** | 6–17 sep | Holgura: lo que traiga la validación con los primeros comercios | — | 0 | — |
@@ -836,7 +837,7 @@ Formato de cada historia, el del CORE:
 - **Capa:** vitrina · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T17b · **Depende de:** HU-T5.3 · **Estado:** En validación (rama `feat/t17b-vitrina`. La franja trae un formulario que va a `/buscar/?q=`, que ya leía lo escrito. En el teléfono, el campo va en su propia fila para que el pedido no lo encoja. «Ordenar por» sale oculto en el HTML y lo muestra la vitrina; cada tarjeta lleva su orden, nombre, precio, fecha y si es nueva. «Lo más nuevo» pone primero lo marcado como nuevo y después lo cambiado más recién. Pruebas: `tienda-vitrina-t17b.test.ts` y la e2e «buscar arriba, las categorías y Ordenar por»)
 - Como comprador, quiero buscar desde cualquier página y ordenar lo que veo.
 - **Respaldo:** pedido del dueño en la validación de staging del 20 oct 2026.
-- **CA1.** La franja de arriba trae el campo de búsqueda; buscar lleva a «Buscar» con lo escrito.
+- **CA1.** La franja de arriba trae el campo de búsqueda; buscar lleva a «Buscar» con lo escrito. *(Ajustado el 21 oct 2026: el campo bajó encima de la lista y la franja deja la lupa, HU-T5.16.)*
 - **CA2.** «Ordenar por»: recomendado (destacados primero y el orden del comercio), lo más nuevo, nombre de la A a la Z, precio de menor a mayor y de mayor a menor. Ordena lo que muestra la página.
 - **CA3 ❌.** Sin JavaScript, la lista se ve en el orden recomendado.
 - **Work items:** WI-T5.12.1 `[código]` · WI-T5.12.2 `[prueba]`.
@@ -866,6 +867,24 @@ Formato de cada historia, el del CORE:
 - **CA1.** El pedido va en la franja de arriba, con su cantidad, en vez de la barra flotante de abajo.
 - **CA2 ❌.** Con el pedido vacío, no se muestra.
 - **Work items:** WI-T5.15.1 `[código]` · WI-T5.15.2 `[prueba]`.
+
+#### HU-T5.16 · Buscar encima de la lista, con las coincidencias al escribir
+- **Capa:** vitrina · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T17c · **Depende de:** HU-T5.12 · **Estado:** En validación (rama `feat/t17c-vitrina`. Debajo de «Productos», `.herramientas` trae el buscador y, en una fila, las categorías y «Ordenar por»; igual en cada categoría. El campo es un `combobox` con su `listbox`: al escribir muestra hasta 6 coincidencias con su foto y su precio, y «Ver los N resultados» si hay más. Las flechas las recorren, Enter abre la elegida o, sin elegir, `/buscar/`, y Escape las cierra. `catalogo.json` lleva la foto más pequeña de cada producto y se pide al tocar el campo, no al abrir la página (bitácora tienda3 47). Primero sale lo que empieza por lo escrito. En la franja queda la lupa: lleva al buscador de la página o a `/buscar/`, cuyos resultados ahora traen foto y precio. Pruebas: `tienda-vitrina-t17b.test.ts`, `vitrina.test.ts` y la e2e «al escribir salen las coincidencias»)
+- Como comprador, quiero ver lo que encuentro mientras escribo, justo donde están los productos.
+- **Respaldo:** pedido del dueño en la validación de staging del 21 oct 2026, con atoms.com como referencia.
+- **CA1.** Buscar va debajo del título «Productos» y encima de las categorías; las categorías y «Ordenar por» van juntos debajo.
+- **CA2.** Al escribir, salen las coincidencias con su foto y su precio, sin pedir nada al servidor por cada letra; se eligen con el dedo o con el teclado.
+- **CA3 ❌.** Sin coincidencias lo dice; sin JavaScript, buscar lleva a «Buscar» con lo escrito.
+- **Work items:** WI-T5.16.1 `[código]` · WI-T5.16.2 `[prueba]`.
+
+#### HU-T5.17 · La bienvenida de lado a lado
+- **Capa:** vitrina · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T17c · **Depende de:** HU-T5.14 · **Estado:** En validación (rama `feat/t17c-vitrina`. La bienvenida va pegada a la franja y ocupa todo el ancho (`hero--con-foto`); el título, el texto y el botón van sobre la foto, abajo a la izquierda y alineados con la página, con una sombra suave para que se lean. El botón es de vidrio sobre la foto. Sin foto, la bienvenida va sobre el acento de la tienda. La foto se pide con `sizes="100vw"`. Pruebas: `tienda-vitrina-t17b.test.ts`, `publicar.test.ts` y los presupuestos e2e de la portada)
+- Como comerciante, quiero que la bienvenida de mi tienda se vea grande, con mi mensaje sobre mi foto.
+- **Respaldo:** pedido del dueño en la validación de staging del 21 oct 2026, con atoms.com como referencia.
+- **CA1.** La bienvenida ocupa la página de lado a lado, en el teléfono y en el computador.
+- **CA2.** El botón y el texto van dentro de la foto y se leen sobre cualquier imagen.
+- **CA3 ❌.** La página no se desplaza de lado; sin foto, la bienvenida sigue viéndose completa.
+- **Work items:** WI-T5.17.1 `[código]` · WI-T5.17.2 `[prueba]`.
 
 ### ET6 · Pedido y posventa del comprador
 
@@ -1754,6 +1773,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | T16 | 19 | 0 (en validación: HU-T13.4, HU-T13.5, HU-T13.6, HU-T13.7, HU-T14.1 y HU-T14.5) | Construido el 20 oct 2026. **M4 queda construido, solo en staging (D-T14):** el comercio abre su tienda desde el teléfono con Turnstile; paga su plan por 1, 3, 6 o 12 meses con el Bold de Laboratorio Digital, y si vence, la tienda sigue vendiendo por WhatsApp con lo que su plan permite, sin borrar nada; una tienda fraudulenta se suspende con un clic sin tocar a las demás; la baja borra las llaves de sus compradores, con el plazo real de 60 días (bitácora tienda3 39); la tienda se mide sin cookies y sus productos salen en los feeds de Google, Meta y los agentes. Al cerrar, la tarea de dominios colgantes tenía su resumen dañado por el shell; se corrigió. Esperan al dueño: Turnstile y sus secretos, el comodín de DNS con la marca `comodin`, el alta desde cero en staging, el reenvío de abuse@, el simulacro de suspender, el pago de prueba de 6 meses (aceptación de M4) y la lectura del abogado de los textos v4 |
 | T17 | 11 | 0 (en validación: HU-T8.6, HU-T10.2, HU-T14.4, HU-T14.6 y HU-T14.7) | Construido el 20 oct 2026. **M5 queda construido, solo en staging (D-T14):** el comercio ve su tienda antes de publicar en una vista previa de un día; escribe sus páginas propias; mide con GA4 o el píxel de Meta solo con el permiso del comprador (D-T13 ajustó el CA1, bitácora tienda3 42); ve cada semana sus métricas frente a sus pedidos; y el dueño recibe la Tienda en su reporte semanal, con el soporte que anota sin texto libre (bitácora tienda3 43). Esperan al dueño: la aceptación de M5 con el flujo «cuadrar-tienda» en staging y la primera anotación de soporte |
 | T17b | 19 | 0 (en validación: HU-T5.8 a HU-T5.15) | Construido el 20 oct 2026, con lo que pidió la validación de la vitrina. La ficha agrupa el precio y deja los envíos para el pedido; se comparte; cada combinación puede tener su foto. El comercio marca lo destacado y lo nuevo, y sube su logo, su ícono y la bienvenida de la portada. El comprador elige una categoría, busca desde la franja, ordena la lista y ve su pedido arriba. Tres premisas no se cumplían (bitácora tienda3 46). Esperan al dueño: subir el logo, el ícono y la bienvenida en staging, asignar una foto a una combinación y marcar un destacado y un nuevo |
+| T17c | 5 | 0 (en validación: HU-T5.16 y HU-T5.17) | Construido el 21 oct 2026, con lo que pidió la validación de la vitrina y atoms.com como referencia. Buscar bajó encima de la lista, con las categorías y «Ordenar por» debajo, y muestra las coincidencias con foto y precio al escribir. La bienvenida va de lado a lado, con el texto y el botón sobre la foto (bitácora tienda3 47). Espera al dueño: publicar y revisar en el teléfono |
 
 ---
 

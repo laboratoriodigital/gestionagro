@@ -80,6 +80,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Las purgas diarias (HU-T17.2): lo que el comercio borró se va a los 30 días, y nunca antes; los productos que ya se vendieron se quedan, porque sus pedidos los nombran. Las descargas del comercio vencerán a los 7 días con una regla del almacén (`docs/runbooks/tienda-ciclo-de-vida.md`).
 
 ### Cambiado
+- Buscar va debajo de «Productos», encima de las categorías y junto a «Ordenar por», y al escribir muestra lo que coincide, con su foto y su precio. Arriba queda la lupa. La bienvenida de la portada va de lado a lado, con tu título, tu texto y el botón sobre tu foto.
 - Buscar y el pedido van en la franja de arriba de cada página; la barra del pedido de abajo ya no está. En la ficha, el precio, el de antes y cuántas quedan van juntos, sin encimarse, y los envíos se ven en el pedido y en «Envíos y devoluciones». En el panel, las colecciones se llaman categorías.
 
 ### Corregido

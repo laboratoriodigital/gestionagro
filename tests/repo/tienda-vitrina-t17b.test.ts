@@ -173,13 +173,78 @@ describe('las categorías, buscar y el pedido (HU-T5.11 y HU-T5.12)', () => {
     );
   });
 
-  it('buscar y el pedido van arriba en la franja; la barra de abajo ya no está', async () => {
+  it('el pedido y la lupa van arriba en la franja; la barra de abajo ya no está', async () => {
     const h = await html(tienda(), '/p/uno/index.html');
     const franja = h.slice(h.indexOf('<header class="franja">'), h.indexOf('</header>'));
-    expect(franja).toContain('<form class="franja__buscar" action="/buscar/" role="search">');
-    expect(franja).toContain('<input id="q-franja" name="q" type="search"');
+    // Validación del 21 oct 2026: el campo bajó a la lista; en la franja queda la lupa.
+    expect(franja).toContain('<a class="franja__buscar" href="/buscar/" data-ir-a-buscar>');
+    expect(franja).toContain('<span class="oculto">Buscar</span>');
+    expect(franja).not.toContain('<input');
     expect(franja).toContain('<a class="franja__pedido" href="/carrito/" data-pedido hidden>');
     expect(h).not.toContain('barra-pedido');
+  });
+});
+
+describe('buscar encima de la lista, con sus coincidencias (validación del 21 oct 2026)', () => {
+  const herramientas = (h: string) =>
+    h.slice(h.indexOf('<div class="herramientas"'), h.indexOf('<ul class="productos">'));
+
+  it('debajo de «Productos»: buscar, y después las categorías y «Ordenar por»', async () => {
+    const h = main(await html(tienda({ hero: { titulo: 'Hola' } }), '/index.html'));
+    const orden = [
+      '<h2 id="productos">Productos</h2>',
+      '<div class="herramientas" data-herramientas>',
+      '<form class="buscador" action="/buscar/" role="search" data-buscador>',
+      '<div class="herramientas__fila"><nav class="categorias"',
+      '<label class="ordenar" data-ordenar hidden>',
+      '<ul class="productos">',
+    ].map((x) => h.indexOf(x));
+    expect(orden.every((i) => i > -1)).toBe(true);
+    expect(orden).toEqual([...orden].sort((a, b) => a - b));
+  });
+
+  it('las mismas herramientas en el catálogo sin bienvenida y en cada categoría', async () => {
+    const archivos = await hornear(tienda());
+    const portada = main(archivos.get('/index.html')?.contenido ?? '');
+    expect(portada).toContain('<h2 id="productos">Productos</h2>');
+    expect(herramientas(portada)).toContain('data-buscador');
+    expect(herramientas(portada)).toContain('class="categorias"');
+    const verano = main(archivos.get('/c/verano/index.html')?.contenido ?? '');
+    expect(herramientas(verano)).toContain('data-buscador');
+    expect(herramientas(verano)).toContain('<a href="/c/verano/" aria-current="page">Verano</a>');
+  });
+
+  it('el campo anuncia sus coincidencias: combobox, lista y conteo para el lector', async () => {
+    const h = main(await html(tienda(), '/index.html'));
+    expect(h).toContain(
+      '<input id="q-lista" name="q" type="search" placeholder="Buscar en la tienda" autocomplete="off" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="coincidencias">',
+    );
+    expect(h).toContain(
+      '<div class="coincidencias" data-coincidencias hidden><ul id="coincidencias" role="listbox" aria-label="Coincidencias"></ul>',
+    );
+    expect(h).toContain('<p class="oculto" aria-live="polite" data-cuantas></p>');
+  });
+
+  it('❌ con un solo producto no hay buscador, ni categorías, ni nada que ordenar', async () => {
+    const h = main(
+      await html(tienda({ productos: [producto('uno')], colecciones: [] }), '/index.html'),
+    );
+    expect(h).not.toContain('data-herramientas');
+    expect(h).not.toContain('data-buscador');
+  });
+
+  it('el catálogo lleva la foto más pequeña de cada producto; sin foto, nada', async () => {
+    const t = tienda({
+      productos: [producto('uno'), producto('dos', { fotos: [] })],
+    });
+    const catalogo = JSON.parse((await hornear(t)).get('/catalogo.json')?.contenido ?? '{}') as {
+      productos: { slug: string; foto?: string }[];
+    };
+    const por = new Map(catalogo.productos.map((p) => [p.slug, p.foto]));
+    expect(por.get('uno')).toBe(
+      `https://img.laboratorio-digital.app/${ENSAYO_UNO.org}/${'a'.repeat(64)}/400.webp`,
+    );
+    expect(por.get('dos')).toBeUndefined();
   });
 });
 
@@ -222,12 +287,14 @@ describe('el logo, el ícono y la bienvenida (HU-T5.13 y HU-T5.14)', () => {
       imagen: foto('e', { ancho: 1600, alto: 900 }),
     };
     const h = main(await html(tienda({ hero }), '/index.html'));
-    expect(h.indexOf('<section class="hero">')).toBeLessThan(h.indexOf('class="productos"'));
+    // Validación del 21 oct 2026: de lado a lado, con el texto y el botón sobre la foto.
+    const inicio = h.indexOf('<section class="hero hero--con-foto">');
+    expect(inicio).toBeGreaterThan(-1);
+    expect(inicio).toBeLessThan(h.indexOf('class="productos"'));
+    expect(h).toContain('sizes="100vw"');
     expect(h).toContain('<h1>Ropa de lino</h1>');
     expect(h).toContain('<p>Hecha en Medellín.</p>');
-    expect(h).toContain(
-      '<a class="boton boton--principal" href="#productos">Ver los productos</a>',
-    );
+    expect(h).toContain('<a class="boton hero__boton" href="#productos">Ver los productos</a>');
     expect(h).toContain('<h2 id="productos">Productos</h2>');
     expect(h.match(/fetchpriority="high"/g)).toHaveLength(1);
     // La que tiene prioridad es la del hero, que va antes que las tarjetas.
@@ -237,9 +304,11 @@ describe('el logo, el ícono y la bienvenida (HU-T5.13 y HU-T5.14)', () => {
 
   it('❌ una bienvenida vacía no se muestra; sin título, lleva el nombre de la tienda', async () => {
     const vacia = main(await html(tienda({ hero: { boton: 'Entrar' } }), '/index.html'));
-    expect(vacia).not.toContain('class="hero"');
+    expect(vacia).not.toContain('class="hero');
     const sinTitulo = main(await html(tienda({ hero: { texto: 'Hola' } }), '/index.html'));
     expect(sinTitulo).toContain('<h1>Comercio Ensayo Uno</h1>');
+    // Sin foto, la bienvenida va sobre el acento de la tienda.
+    expect(sinTitulo).toContain('<section class="hero">');
     expect(sinTitulo).not.toContain('hero__foto');
   });
 });

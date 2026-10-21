@@ -1020,12 +1020,49 @@ test('validación del 20 oct (T17b) · buscar arriba, las categorías y «Ordena
     'page',
   );
 
-  // Buscar va en la franja de cada página y lleva a los resultados.
-  const buscar = page.getByRole('searchbox', { name: 'Buscar en la tienda' });
+  // Buscar va encima de la lista; Enter sin elegir lleva a todos los resultados.
+  const buscar = page.getByRole('combobox', { name: 'Buscar en la tienda' });
   await buscar.fill('bolsa');
   await buscar.press('Enter');
   await expect(page).toHaveURL(`${TIENDA}/buscar/?q=bolsa`);
-  await expect(page.locator('[data-resultados] .tarjeta')).toHaveText(['Bolsa de tela']);
+  await expect(page.locator('[data-resultados] .tarjeta__nombre')).toHaveText(['Bolsa de tela']);
+  await expect(page.locator('[data-resultados] .precio')).toHaveText(['$35.000']);
+});
+
+test('validación del 21 oct (T17c) · al escribir salen las coincidencias, y la lupa lleva a buscar', async ({
+  page,
+}) => {
+  await page.goto(`${TIENDA}/`);
+  const buscar = page.getByRole('combobox', { name: 'Buscar en la tienda' });
+  // Buscar va debajo de «Productos» y antes de las categorías.
+  const arriba = async (selector: string) =>
+    (await page.locator(selector).first().boundingBox())?.y ?? -1;
+  expect(await arriba('#productos')).toBeLessThan(await arriba('[data-buscador]'));
+  expect(await arriba('[data-buscador]')).toBeLessThan(await arriba('.categorias'));
+
+  await buscar.click();
+  await buscar.pressSequentially('bol');
+  const opciones = page.getByRole('listbox', { name: 'Coincidencias' }).getByRole('option');
+  await expect(opciones).toHaveCount(1);
+  await expect(opciones.first()).toContainText('Bolsa de tela');
+  await expect(opciones.first()).toContainText('$35.000');
+  await expect(buscar).toHaveAttribute('aria-expanded', 'true');
+  await buscar.press('ArrowDown');
+  await expect(opciones.first()).toHaveAttribute('aria-selected', 'true');
+  await buscar.press('Enter');
+  await expect(page).toHaveURL(`${TIENDA}/p/bolsa-de-tela/`);
+
+  // ❌ Sin coincidencias lo dice; Escape cierra.
+  await page.goto(`${TIENDA}/`);
+  await buscar.fill('zapatos');
+  await expect(page.getByText('No encontramos «zapatos».', { exact: false })).toBeVisible();
+  await buscar.press('Escape');
+  await expect(buscar).toHaveAttribute('aria-expanded', 'false');
+
+  // En la ficha no hay lista: la lupa de la franja lleva a /buscar/.
+  await page.goto(`${TIENDA}/p/bolsa-de-tela/`);
+  await page.locator('[data-ir-a-buscar]').click();
+  await expect(page).toHaveURL(`${TIENDA}/buscar/`);
 });
 
 test('validación del 20 oct (T17b) · el pedido arriba, el precio sin encimarse y compartir', async ({

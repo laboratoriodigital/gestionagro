@@ -39,6 +39,7 @@ body {
   font-family: var(--fuente-sans);
   font-size: var(--texto-base);
   line-height: var(--interlineado);
+  overflow-x: clip;
 }
 main {
   flex: 1;
@@ -86,10 +87,9 @@ h1 {
 .franja {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 3;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--espacio-2) var(--espacio-4);
   min-height: 56px;
@@ -105,35 +105,31 @@ h1 {
   text-decoration: none;
   letter-spacing: -0.01em;
 }
-/* HU-T5.12 CA1: buscar, en la franja de cada página. En el teléfono, en su propia fila, para que
-   el pedido no lo encoja; desde 48rem, entre la marca y el pedido. */
-.franja__buscar {
+.franja__acciones {
   display: flex;
-  flex: 1 0 100%;
-  order: 3;
-  min-height: 48px;
+  flex: none;
   align-items: center;
+  gap: var(--espacio-2);
 }
-@media (min-width: 48rem) {
-  .franja {
-    flex-wrap: nowrap;
-  }
-  .franja__buscar {
-    flex: 1;
-    order: 0;
-    max-width: 24rem;
-  }
-}
-.franja__buscar input {
-  width: 100%;
-  min-height: 44px;
-  padding-inline: var(--espacio-3);
-  border: 1px solid var(--borde);
+/* Validación del 21 oct 2026: buscar bajó a la lista; en la franja queda la lupa, que lleva a él. */
+.franja__buscar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
   border-radius: 999px;
-  background: var(--superficie-2);
   color: var(--texto);
-  font: inherit;
-  font-size: var(--texto-pequeno);
+}
+.franja__buscar:hover {
+  background: var(--superficie-2);
+}
+.lupa {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 /* HU-T5.15: el pedido, arriba, con su cantidad. */
 .franja__pedido {
@@ -827,13 +823,41 @@ a.boton[hidden] {
   cursor: pointer;
 }
 
-/* --- HU-T5.10 a HU-T5.12: categorías, ordenar y lo nuevo -------------------------------------- */
+/* --- HU-T5.10 a HU-T5.12: buscar, categorías, ordenar y lo nuevo ------------------------------ */
+/* Validación del 21 oct 2026: encima de la lista, buscar; debajo, en una fila, las categorías y
+   «Ordenar por». En el teléfono, ordenar va en su propia línea, a la derecha. */
+.herramientas {
+  display: grid;
+  gap: var(--espacio-4);
+  margin-bottom: var(--espacio-6);
+}
+.herramientas__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--espacio-3) var(--espacio-4);
+}
+.herramientas__fila:has(.ordenar[hidden]):not(:has(.categorias)) {
+  display: none;
+}
+@media (min-width: 48rem) {
+  .herramientas__fila {
+    flex-wrap: nowrap;
+  }
+}
 .categorias {
   display: flex;
+  flex: 1 1 100%;
   gap: var(--espacio-2);
-  margin-bottom: var(--espacio-4);
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
+}
+@media (min-width: 48rem) {
+  .categorias {
+    flex-basis: auto;
+  }
 }
 .categorias a {
   display: inline-flex;
@@ -847,6 +871,9 @@ a.boton[hidden] {
   font-size: var(--texto-pequeno);
   text-decoration: none;
 }
+.categorias a:hover {
+  border-color: var(--tinta, var(--texto));
+}
 .categorias a[aria-current="page"] {
   border-color: var(--tinta, var(--texto));
   background: var(--tinta, var(--texto));
@@ -854,10 +881,10 @@ a.boton[hidden] {
 }
 .ordenar {
   display: flex;
+  flex: none;
   align-items: center;
-  justify-content: flex-end;
   gap: var(--espacio-2);
-  margin-bottom: var(--espacio-3);
+  margin-left: auto;
   font-size: var(--texto-pequeno);
   color: var(--texto-suave);
 }
@@ -866,12 +893,106 @@ a.boton[hidden] {
 }
 .ordenar select {
   min-height: 44px;
-  padding-inline: var(--espacio-3);
+  padding-inline: var(--espacio-4) var(--espacio-3);
   border: 1px solid var(--borde);
-  border-radius: var(--radio-campo);
+  border-radius: 999px;
   background: var(--superficie);
   color: var(--texto);
   font: inherit;
+  font-weight: var(--peso-fuerte);
+  cursor: pointer;
+}
+.buscador {
+  position: relative;
+  max-width: 40rem;
+  scroll-margin-top: 5rem;
+}
+.buscador .lupa {
+  position: absolute;
+  top: 50%;
+  left: var(--espacio-4);
+  translate: 0 -50%;
+  color: var(--texto-suave);
+  pointer-events: none;
+}
+.buscador input {
+  width: 100%;
+  min-height: 52px;
+  padding-inline: 3rem var(--espacio-4);
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie-2);
+  color: var(--texto);
+  font: inherit;
+}
+.buscador input:focus {
+  border-color: var(--tinta, var(--texto));
+  background: var(--superficie);
+}
+.coincidencias {
+  position: absolute;
+  top: calc(100% + var(--espacio-2));
+  inset-inline: 0;
+  z-index: 2;
+  max-height: min(60vh, 28rem);
+  overflow-y: auto;
+  padding: var(--espacio-2);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-campo);
+  background: var(--superficie);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--gris-1000) 14%, transparent);
+}
+.coincidencias ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.coincidencia a {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--espacio-3);
+  min-height: 56px;
+  padding: var(--espacio-1) var(--espacio-2);
+  border-radius: calc(var(--radio-campo) - 4px);
+  text-decoration: none;
+}
+.coincidencia a:hover,
+.coincidencia[aria-selected="true"] a {
+  background: var(--superficie-2);
+}
+.coincidencia__foto {
+  display: block;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: calc(var(--radio-campo) - 4px);
+  background: var(--superficie-2);
+}
+.coincidencia__foto img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.coincidencia__nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.coincidencia .precio {
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+.coincidencia__todas {
+  grid-column: 1 / -1;
+  font-weight: var(--peso-fuerte);
+}
+.coincidencias__vacio {
+  margin: 0;
+  padding: var(--espacio-3);
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
 }
 .etiqueta-nuevo {
   align-self: flex-start;
@@ -894,17 +1015,26 @@ a.boton[hidden] {
   height: 40px;
   object-fit: contain;
 }
+/* Validación del 21 oct 2026: la bienvenida va de lado a lado, pegada a la franja, y el texto y el
+   botón van sobre la foto, abajo a la izquierda, alineados con la página. Sin foto, el acento. */
 .hero {
+  position: relative;
   display: grid;
-  gap: var(--espacio-4);
-  margin-bottom: var(--espacio-8);
+  align-items: end;
+  min-height: min(72svh, 34rem);
+  margin: calc(-1 * var(--espacio-8)) calc(50% - 50vw) var(--espacio-12);
+  overflow: hidden;
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+.hero--con-foto {
+  background: var(--gris-900);
+  color: var(--gris-0);
 }
 .hero__foto {
+  position: absolute;
+  inset: 0;
   display: block;
-  overflow: hidden;
-  aspect-ratio: 16 / 9;
-  background: var(--superficie-2);
-  border-radius: var(--radio-campo);
 }
 .hero__foto img {
   display: block;
@@ -912,18 +1042,64 @@ a.boton[hidden] {
   height: 100%;
   object-fit: cover;
 }
-.hero__texto {
-  display: grid;
-  gap: var(--espacio-3);
-  justify-items: start;
+/* Una sombra suave debajo del texto, para que se lea sobre cualquier foto. */
+.hero--con-foto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--gris-1000) 72%, transparent),
+    color-mix(in srgb, var(--gris-1000) 28%, transparent) 45%,
+    transparent 75%
+  );
+  pointer-events: none;
 }
-.hero__texto h1,
-.hero__texto p {
+.hero__texto {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: var(--espacio-4);
+  justify-items: start;
+  padding: var(--espacio-16) max(1rem, (100% - 72rem) / 2) var(--espacio-12);
+}
+.hero__texto h1 {
+  max-width: 18ch;
   margin: 0;
+  font-size: clamp(2.25rem, 7vw, 4.5rem);
+  text-wrap: balance;
+}
+.hero__texto p {
+  max-width: 36rem;
+  margin: 0;
+  font-size: var(--texto-titulo-3);
+  text-wrap: pretty;
+}
+.hero__boton {
+  margin-top: var(--espacio-2);
+  background: var(--superficie);
+  color: var(--tinta, var(--texto));
+  text-decoration: none;
+}
+.hero__boton:hover {
+  background: var(--superficie-2);
+}
+/* Sobre la foto, el botón es de vidrio: deja ver la foto y se lee encima. */
+.hero--con-foto .hero__boton {
+  border: 1px solid color-mix(in srgb, var(--gris-0) 55%, transparent);
+  background: color-mix(in srgb, var(--gris-0) 18%, transparent);
+  color: var(--gris-0);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.hero--con-foto .hero__boton:hover {
+  background: color-mix(in srgb, var(--gris-0) 30%, transparent);
 }
 @media (min-width: 48rem) {
   .hero {
-    grid-template-columns: 3fr 2fr;
-    align-items: center;
+    min-height: min(80svh, 44rem);
+  }
+  .hero__texto {
+    padding-block: var(--espacio-24) var(--espacio-16);
   }
 }
