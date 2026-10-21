@@ -17,6 +17,9 @@ export interface ProductoDelPanel {
   opciones: { nombre: string; valores: string[] }[];
   retracto: { aplica: true } | { aplica: false; motivo: string };
   soloMayores: boolean;
+  /** HU-T5.10: va primero en la tienda; lleva la etiqueta «Nuevo». */
+  destacado?: boolean;
+  nuevo?: boolean;
   ivaPct: number | null;
   variantes: {
     id: string;
@@ -30,6 +33,8 @@ export interface ProductoDelPanel {
   /** HU-T8.3: las fotos, con su miniatura en el host público de las fotos. */
   medios: {
     id: string;
+    /** HU-T5.9: la combinación de esta foto; `null`: es una foto general. */
+    varianteId?: string | null;
     alt: string;
     ancho: number;
     alto: number;
@@ -123,6 +128,9 @@ export interface FormularioDeProducto {
   retractoAplica: boolean;
   retractoMotivo: string;
   soloMayores: boolean;
+  /** HU-T5.10: va primero en la tienda; lleva la etiqueta «Nuevo». */
+  destacado?: boolean;
+  nuevo?: boolean;
 }
 
 export const ESTADOS: readonly { id: string; texto: string }[] = [
@@ -195,6 +203,8 @@ export function formularioDe(p: ProductoDelPanel | null): FormularioDeProducto {
     retractoAplica: p ? p.retracto.aplica : true,
     retractoMotivo: p && !p.retracto.aplica ? p.retracto.motivo : '',
     soloMayores: p?.soloMayores ?? false,
+    destacado: p?.destacado ?? false,
+    nuevo: p?.nuevo ?? false,
   };
 }
 
@@ -243,6 +253,8 @@ export function cuerpoDe(
       variantes,
       retracto: f.retractoAplica ? { aplica: true } : { aplica: false, motivo: f.retractoMotivo },
       soloMayores: f.soloMayores,
+      destacado: f.destacado ?? false,
+      nuevo: f.nuevo ?? false,
     },
   };
 }

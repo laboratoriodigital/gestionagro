@@ -370,6 +370,18 @@ function Formulario({
         marcada={f.soloMayores}
         alCambiar={(v) => poner('soloMayores', v)}
       />
+      <Casilla
+        id="destacado"
+        etiqueta="Destacado: va primero en tu tienda"
+        marcada={f.destacado ?? false}
+        alCambiar={(v) => poner('destacado', v)}
+      />
+      <Casilla
+        id="nuevo"
+        etiqueta="Nuevo: lleva la etiqueta «Nuevo»"
+        marcada={f.nuevo ?? false}
+        alCambiar={(v) => poner('nuevo', v)}
+      />
       {falla ? (
         <Aviso tono="peligro" titulo="No se guardó">
           {falla}

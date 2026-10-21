@@ -75,6 +75,9 @@ export const guardarProducto = z.object({
     ])
     .default({ aplica: true }),
   soloMayores: z.boolean().default(false),
+  /** HU-T5.10: lo destacado va primero en la portada; lo nuevo lleva su etiqueta. */
+  destacado: z.boolean().default(false),
+  nuevo: z.boolean().default(false),
   ivaPct: z
     .union([z.literal(0), z.literal(5), z.literal(19)])
     .nullable()

@@ -88,6 +88,21 @@ export function Fotos({
     }
   };
 
+  // HU-T5.9: la foto de una combinación; al elegirla en la tienda, se muestra esta.
+  const asignar = async (id: string, variante: string) => {
+    const r = await pedirAlPanel(conexion, 'medios/variante', {
+      cuerpo: { producto: producto.id, id, variante: variante || null },
+    });
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok') {
+      setAviso(r.motivo);
+      return;
+    }
+    setAviso('Listo: la tienda la muestra con esa combinación cuando publiques.');
+    alCambiar();
+  };
+  const combinaciones = producto.variantes.filter((v) => v.valores.length > 0);
+
   const quitar = async (id: string) => {
     const r = await pedirAlPanel(conexion, 'medios/quitar', {
       cuerpo: { producto: producto.id, id },
@@ -119,6 +134,24 @@ export function Fotos({
                 />
               ) : null}
               <span class="nota">{m.alt}</span>
+              {combinaciones.length > 0 ? (
+                <label class="ed1-campo" for={`foto-de-${m.id}`}>
+                  <span class="ed1-campo__etiqueta">Se muestra con</span>
+                  <select
+                    class="ed1-campo__control"
+                    id={`foto-de-${m.id}`}
+                    value={m.varianteId ?? ''}
+                    onChange={(e) => void asignar(m.id, (e.target as HTMLSelectElement).value)}
+                  >
+                    <option value="">Todas las combinaciones</option>
+                    {combinaciones.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.valores.join(' · ')}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <Confirmar
                 abrir="Quitar foto"
                 consecuencia="La foto deja de verse en este producto."

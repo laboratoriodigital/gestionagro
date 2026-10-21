@@ -457,3 +457,22 @@ describe('HU-T8.4 · colecciones', () => {
     ).toMatchObject({ estado: 'cambiado', version: 2 });
   });
 });
+
+describe('HU-T5.10 · destacado y nuevo', () => {
+  it('se guardan, se leen y se apagan; sin decirlo, ninguno', async () => {
+    const a = await guardarProducto(quien(), delantal({ destacado: true, nuevo: true }));
+    if (a.estado !== 'guardado') throw new Error(a.estado);
+    expect(await leerProducto(quien(), a.id)).toMatchObject({ destacado: true, nuevo: true });
+    await guardarProducto(quien(), delantal({ id: a.id, version: 1, nuevo: false }));
+    expect(await leerProducto(quien(), a.id)).toMatchObject({ destacado: false, nuevo: false });
+    const b = await guardarProducto(quien(), {
+      op: op(),
+      nombre: 'Delantal corto',
+      estado: 'activo',
+      opciones: [],
+      variantes: [{ valores: [], precioCop: 39000, stock: 2 }],
+    });
+    if (b.estado !== 'guardado') throw new Error(b.estado);
+    expect(await leerProducto(quien(), b.id)).toMatchObject({ destacado: false, nuevo: false });
+  });
+});
