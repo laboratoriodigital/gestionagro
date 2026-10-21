@@ -249,6 +249,9 @@ export const ANCHOS_DE_FOTO: readonly number[] = [400, 800, 1600];
  * la portada muestra los primeros 24; las colecciones y «todos los productos», 48 por página.
  */
 export const EN_LA_PORTADA = 24;
+/** La lupa de buscar: se dibuja con el color del texto (`.lupa` en la hoja). */
+const LUPA =
+  '<svg class="lupa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
 export const POR_PAGINA = 48;
 const precioDesde = (p: ProductoParaHornear) => Math.min(...p.variantes.map((v) => v.precioCop));
 /** «Desde» solo cuando las variantes cuestan distinto. */
@@ -398,7 +401,7 @@ export async function hornear(publicada: TiendaParaHornear): Promise<Map<string,
 ${p.ld.map(jsonLd).join('\n')}
 </head>
 <body>
-${enVista}${enPruebas}<header class="franja"><a class="marca" href="/">${marca()}</a><form class="franja__buscar" action="/buscar/" role="search"><label class="oculto" for="q-franja">Buscar en la tienda</label><input id="q-franja" name="q" type="search" placeholder="Buscar" autocomplete="off" enterkeyhint="search"></form><a class="franja__pedido" href="/carrito/" data-pedido hidden>Pedido <span class="cifra" data-cantidad>0</span></a></header>
+${enVista}${enPruebas}<header class="franja"><a class="marca" href="/">${marca()}</a><div class="franja__acciones"><a class="franja__buscar" href="/buscar/" data-ir-a-buscar>${LUPA}<span class="oculto">Buscar</span></a><a class="franja__pedido" href="/carrito/" data-pedido hidden>Pedido <span class="cifra" data-cantidad>0</span></a></div></header>
 <main>
 ${p.cuerpo}
 </main>
@@ -449,6 +452,13 @@ ${p.cuerpo}
       presente(f.alt) ? f.alt : alt,
     )}"${prioridad ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async"></span>`;
   };
+  /** La derivada más pequeña de una foto, o nada si no la hay (las coincidencias de buscar). */
+  const fotoPequena = (f: FotoParaHornear | undefined) => {
+    const ancho = [...(f?.anchos ?? [])]
+      .filter((a) => ANCHOS_DE_FOTO.includes(a))
+      .sort((a, b) => a - b)[0];
+    return f && t.medios && t.org && ancho ? urlDeFoto(f, ancho) : undefined;
+  };
   const TAMANO_TARJETA = '(min-width: 64rem) 22rem, (min-width: 40rem) 33vw, 50vw';
   const TAMANO_FICHA = '(min-width: 64rem) 36rem, 100vw';
   const TAMANO_PORTADA = '(min-width: 64rem) 72rem, 100vw';
@@ -471,8 +481,28 @@ ${p.cuerpo}
   // recomendado; con él, ordena lo que muestra la página.
   const ordenar =
     '<label class="ordenar" data-ordenar hidden><span>Ordenar por</span><select><option value="recomendado">Recomendado</option><option value="nuevo">Lo más nuevo</option><option value="nombre">Nombre, de la A a la Z</option><option value="menor">Precio, de menor a mayor</option><option value="mayor">Precio, de mayor a menor</option></select></label>';
-  const rejilla = (lista: readonly ProductoParaHornear[], primeraConPrioridad: boolean) =>
-    `${lista.length > 1 ? ordenar : ''}<ul class="productos">${lista.map((p, i) => tarjeta(p, primeraConPrioridad && i === 0, i)).join('')}</ul>`;
+  /**
+   * Validación del 21 oct 2026: buscar va encima de la lista, justo antes de las categorías, y al
+   * escribir muestra las coincidencias debajo del campo. Sin JavaScript, lleva a /buscar/.
+   */
+  const buscador = `<form class="buscador" action="/buscar/" role="search" data-buscador><label class="oculto" for="q-lista">Buscar en la tienda</label>${LUPA}<input id="q-lista" name="q" type="search" placeholder="Buscar en la tienda" autocomplete="off" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="coincidencias"><div class="coincidencias" data-coincidencias hidden><ul id="coincidencias" role="listbox" aria-label="Coincidencias"></ul><p class="coincidencias__vacio" data-sin-coincidencias hidden></p></div><p class="oculto" aria-live="polite" data-cuantas></p></form>`;
+  /**
+   * La lista de productos con sus herramientas encima: buscar, y en una fila las categorías
+   * (`categoria`: la de la página, `null` para «Todo», sin ella no van) y «Ordenar por».
+   */
+  const rejilla = (
+    lista: readonly ProductoParaHornear[],
+    primeraConPrioridad: boolean,
+    categoria?: string | null,
+  ) => {
+    const fila = `${categoria === undefined ? '' : categorias(categoria)}${lista.length > 1 ? ordenar : ''}`;
+    const conBuscador = productos.length > 1;
+    const herramientas =
+      conBuscador || fila
+        ? `<div class="herramientas" data-herramientas>${conBuscador ? buscador : ''}${fila ? `<div class="herramientas__fila">${fila}</div>` : ''}</div>`
+        : '';
+    return `${herramientas}<ul class="productos">${lista.map((p, i) => tarjeta(p, primeraConPrioridad && i === 0, i)).join('')}</ul>`;
+  };
   const lineaMd = (p: ProductoParaHornear) =>
     `- [${markdownPlano(p.nombre)}](/p/${p.slug}/): ${variaElPrecio(p) ? 'desde ' : ''}${formatearPesos(precioDesde(p))}`;
 
@@ -527,13 +557,14 @@ ${p.cuerpo}
       : '';
   /**
    * HU-T5.14: el hero de la portada, con su imagen como la más importante de la página (LCP). Con
-   * él, la portada abre así en cualquier estilo, y su botón lleva a los productos.
+   * él, la portada abre así en cualquier estilo, y su botón lleva a los productos. Validación del
+   * 21 oct 2026: va de lado a lado, con el texto y el botón sobre la foto.
    */
   const hero = (): string | null => {
     const h = t.hero;
     if (!h || (!presente(h.titulo) && !presente(h.texto) && !h.imagen)) return null;
     const titulo = presente(h.titulo) ? h.titulo : t.nombre;
-    return `<section class="hero">${h.imagen ? imagen(h.imagen, 'hero__foto', TAMANO_PORTADA, true, titulo) : ''}<div class="hero__texto"><h1>${escaparHtml(titulo)}</h1>${presente(h.texto) ? `<p>${escaparHtml(h.texto)}</p>` : ''}<a class="boton boton--principal" href="#productos">${escaparHtml(presente(h.boton) ? h.boton : 'Ver los productos')}</a></div></section>`;
+    return `<section class="hero${h.imagen ? ' hero--con-foto' : ''}">${h.imagen ? imagen(h.imagen, 'hero__foto', '100vw', true, titulo) : ''}<div class="hero__texto"><h1>${escaparHtml(titulo)}</h1>${presente(h.texto) ? `<p>${escaparHtml(h.texto)}</p>` : ''}<a class="boton hero__boton" href="#productos">${escaparHtml(presente(h.boton) ? h.boton : 'Ver los productos')}</a></div></section>`;
   };
   const cuerpoDeLaPortada = (): string[] => {
     if (productos.length === 0) {
@@ -544,8 +575,7 @@ ${p.cuerpo}
       return [
         conHero,
         '<h2 id="productos">Productos</h2>',
-        categorias(null),
-        rejilla(enLaPortada, false),
+        rejilla(enLaPortada, false, null),
         verTodos,
       ];
     }
@@ -554,8 +584,9 @@ ${p.cuerpo}
       const resto = enLaPortada.filter((p) => p !== grande);
       return [
         `<section class="portada-editorial"><a class="portada-editorial__producto" href="/p/${escaparHtml(grande.slug)}/">${imagen(grande.fotos?.[0], 'portada-editorial__foto', TAMANO_PORTADA, true, grande.nombre)}<div class="portada-editorial__texto">${encabezado.filter(Boolean).join('')}<span class="portada-editorial__ver">Ver ${escaparHtml(grande.nombre)}</span></div></a></section>`,
-        categorias(null),
-        ...(resto.length > 0 ? ['<h2>Más productos</h2>', rejilla(resto, false)] : []),
+        ...(resto.length > 0
+          ? ['<h2 id="productos">Más productos</h2>', rejilla(resto, false, null)]
+          : [categorias(null)]),
         verTodos,
       ];
     }
@@ -573,7 +604,12 @@ ${p.cuerpo}
         verTodos,
       ];
     }
-    return [...encabezado, categorias(null), rejilla(enLaPortada, true), verTodos];
+    return [
+      ...encabezado,
+      '<h2 id="productos">Productos</h2>',
+      rejilla(enLaPortada, true, null),
+      verTodos,
+    ];
   };
 
   // La portada.
@@ -825,7 +861,7 @@ ${p.cuerpo}
       pagina({
         ruta: rutaDePagina(base, n),
         titulo: `${c.nombre}${n > 1 ? `, página ${n}` : ''} · ${t.nombre}`,
-        cuerpo: `<h1>${escaparHtml(c.nombre)}</h1>\n${categorias(c.slug)}\n${rejilla(lista, true)}${paginas.length > 1 ? `\n${navegacion(base, n, paginas.length)}` : ''}`,
+        cuerpo: `<h1>${escaparHtml(c.nombre)}</h1>\n${rejilla(lista, true, c.slug)}${paginas.length > 1 ? `\n${navegacion(base, n, paginas.length)}` : ''}`,
         ld: [
           migas([
             [t.nombre, '/'],
@@ -1058,6 +1094,7 @@ ${p.cuerpo}
         slug: p.slug,
         nombre: p.nombre,
         url: url(`/p/${p.slug}/`),
+        ...(fotoPequena(p.fotos?.[0]) ? { foto: fotoPequena(p.fotos?.[0]) } : {}),
         variantes: [...p.variantes]
           .sort((a, b) => (a.id < b.id ? -1 : 1))
           .map((v) => ({

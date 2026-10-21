@@ -76,6 +76,14 @@ describe('buscar sin red (HU-T5.3)', () => {
     expect(normalizar('  Camisa   DE Lino ')).toBe('camisa de lino');
   });
 
+  it('primero lo que empieza por lo escrito, después lo demás en su orden', () => {
+    const con = [
+      { slug: 'gorro-de-campo', nombre: 'Gorro de campo', url: 'https://x.test/p/gorro/' },
+      ...catalogo,
+    ];
+    expect(buscar(con, 'cam').map((p) => p.slug)).toEqual(['camisa-de-lino', 'gorro-de-campo']);
+  });
+
   it('❌ sin resultados o sin consulta, nada', () => {
     expect(buscar(catalogo, 'zapatos')).toEqual([]);
     expect(buscar(catalogo, '   ')).toEqual([]);

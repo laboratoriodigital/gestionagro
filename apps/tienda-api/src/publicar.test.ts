@@ -394,7 +394,9 @@ describe('publicar (HU-T4.4)', () => {
       const r2 = almacen();
       const conFotos = { ...contexto(ENSAYO_UNO.org, r2), medios: 'img.laboratorio-digital.app' };
       expect(await publicar(conFotos)).toMatchObject({ estado: 'publicada' });
-      const portada = [...r2.objetos.values()].find((t) => t.includes('<section class="hero">'));
+      const portada = [...r2.objetos.values()].find((t) =>
+        t.includes('<section class="hero hero--con-foto">'),
+      );
       expect(portada).toContain('<h1>Lino de Medellín</h1>');
       expect(portada).toContain(`/${'e'.repeat(64)}/800.webp`);
       expect(portada).toContain('class="marca__logo" src="');
