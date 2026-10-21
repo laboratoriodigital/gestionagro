@@ -426,6 +426,25 @@ h2 {
   max-block-size: 240px;
   object-fit: contain;
 }
+/* HU-T5.13 y HU-T5.14: el logo, el ícono y la imagen de la bienvenida en Ajustes. */
+.campo-de-imagen {
+  min-inline-size: 0;
+}
+.campo-de-imagen input[type="file"] {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.campo-de-imagen img {
+  max-inline-size: 100%;
+  max-block-size: 96px;
+  inline-size: auto;
+  block-size: auto;
+  object-fit: contain;
+  justify-self: start;
+}
+.campo-de-imagen .ed1-boton {
+  justify-self: start;
+}
 
 /* HU-T10.6: el registro, una frase por fila con su hora. */
 .registro .ed1-lista {

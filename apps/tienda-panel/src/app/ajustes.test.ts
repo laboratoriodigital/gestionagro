@@ -75,6 +75,22 @@ describe('ajustes del panel', () => {
     ).toMatchObject({ banco: 'Banco Ensayo', numero: '' });
   });
 
+  it('HU-T5.13 y HU-T5.14: el logo y la imagen de la bienvenida van y vuelven como imagen', () => {
+    const logo = { huella: 'c'.repeat(64), formato: 'webp', ancho: 800, alto: 200, anchos: [400] };
+    const texto = aTexto('identidad', { nombre: 'Ensayo', logo });
+    expect(JSON.parse(texto['logo'] ?? '')).toEqual(logo);
+    expect(texto['icono']).toBe('');
+    expect(aDatos('identidad', texto, {})).toMatchObject({ logo, icono: '' });
+    // «Quitar» lo deja vacío, y la API lo quita.
+    expect(aDatos('identidad', { ...texto, logo: '' }, { logo })['logo']).toBe('');
+    const hero = aDatos(
+      'apariencia',
+      { 'hero.titulo': 'Lino', 'hero.imagen': texto['logo'] ?? '' },
+      {},
+    );
+    expect(hero['hero']).toEqual({ titulo: 'Lino', texto: '', imagen: logo, boton: '' });
+  });
+
   it('cada problema de la API llega a su campo, con un nombre que se entiende', () => {
     expect(campoDelProblema('legal', 'legal.documento.numero')).toBe('documento.numero');
     expect(campoDelProblema('cobro', 'cobro.transferencia')).toBe('transferencia.banco');

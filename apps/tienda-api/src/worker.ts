@@ -127,7 +127,7 @@ import {
   usoDeLasKeks,
 } from './llaves.ts';
 import { comprobarIdentidad, guardarLlaves, leerElCobro, probarLlaves } from './llaves-de-bold.ts';
-import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
+import { type BucketDeFotos, fotoDeLaVariante, quitarFoto, subirFoto } from './medios.ts';
 import { borrarPagina, guardarPagina, listarPaginas } from './paginas.ts';
 import {
   cerrarSolicitud,
@@ -1609,6 +1609,54 @@ export function crearApp(
       );
     }
     const r = await subirFoto(q, c.env.FOTOS, datos);
+    if (r.estado === 'problemas') return c.json(r, 422);
+    if (r.estado === 'no-existe') return c.json(r, 404);
+    return c.json(r);
+  });
+  // HU-T5.13 y HU-T5.14: el logo, el favicon y la imagen del hero, por el mismo camino de las fotos.
+  app.post('/api/panel/v1/medios/marca', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    // Con `ks:tienda-fotos` apagado (a mano o por el freno de R2, bitácora tienda3 27) no se sube:
+    // cada foto ocupa espacio en R2, que pasado lo gratis cobra a la tarjeta. Lo demás sigue.
+    if (c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda-fotos'))) {
+      return c.json(
+        {
+          estado: 'apagado',
+          motivo:
+            'Subir fotos está en pausa por ahora. Las que ya tienes siguen en la tienda y el resto del producto sí se guarda.',
+        },
+        503,
+      );
+    }
+    if (!c.env.FOTOS) {
+      return c.json(
+        {
+          estado: 'sin-fotos',
+          motivo:
+            'Las fotos todavía no están listas en esta tienda. El resto del producto sí se guarda.',
+        },
+        503,
+      );
+    }
+    let datos: FormData;
+    try {
+      datos = await c.req.formData();
+    } catch {
+      return c.json(
+        { estado: 'problemas', problemas: [{ campo: '', mensaje: 'no llegaron las fotos' }] },
+        422,
+      );
+    }
+    const r = await subirFoto(q, c.env.FOTOS, datos, { deLaTienda: true });
+    if (r.estado === 'problemas') return c.json(r, 422);
+    if (r.estado === 'no-existe') return c.json(r, 404);
+    return c.json(r);
+  });
+  app.post('/api/panel/v1/medios/variante', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    const r = await fotoDeLaVariante(q, await c.req.json().catch(() => null));
     if (r.estado === 'problemas') return c.json(r, 422);
     if (r.estado === 'no-existe') return c.json(r, 404);
     return c.json(r);

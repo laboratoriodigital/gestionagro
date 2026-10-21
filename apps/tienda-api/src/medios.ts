@@ -36,6 +36,7 @@ export type ResultadoDeFoto =
   | { estado: 'guardado'; id: string; formato: FormatoDeFoto; anchos: number[] }
   | { estado: 'problemas'; problemas: Problema[] }
   | { estado: 'quitada'; id: string }
+  | { estado: 'asignada'; id: string; variante: string | null }
   | { estado: 'no-existe'; motivo: string };
 
 const HUELLA = /^[0-9a-f]{64}$/;
@@ -51,6 +52,11 @@ export async function subirFoto(
   q: Quien,
   bucket: BucketDeFotos,
   datos: FormData,
+  /**
+   * HU-T5.13 y HU-T5.14: una imagen de la tienda (el logo, el favicon, el hero), no de un producto:
+   * se sube igual, por huella, y el panel la guarda en su ajuste. No lleva fila en `medio`.
+   */
+  opciones: { deLaTienda?: boolean } = {},
 ): Promise<ResultadoDeFoto> {
   const problemas: Problema[] = [];
   const producto = texto(datos.get('producto'));
@@ -59,7 +65,8 @@ export async function subirFoto(
   const formato = texto(datos.get('formato')) as FormatoDeFoto;
   const ancho = entero(datos.get('ancho'));
   const alto = entero(datos.get('alto'));
-  if (!ID.test(producto)) problemas.push({ campo: 'producto', mensaje: 'falta el producto' });
+  if (!opciones.deLaTienda && !ID.test(producto))
+    problemas.push({ campo: 'producto', mensaje: 'falta el producto' });
   if (!HUELLA.test(huella))
     problemas.push({ campo: 'huella', mensaje: 'falta la huella de la foto' });
   if (alt.length < 3 || alt.length > 300) {
@@ -112,6 +119,18 @@ export async function subirFoto(
     });
   }
   if (problemas.length > 0) return { estado: 'problemas', problemas };
+
+  if (opciones.deLaTienda) {
+    for (const d of derivadas) {
+      await bucket.put(`${q.org}/${huella}/${d.ancho}.${formato}`, d.bytes, {
+        httpMetadata: {
+          contentType: TIPO_DE_FOTO[formato],
+          cacheControl: 'public, max-age=31536000, immutable',
+        },
+      });
+    }
+    return { estado: 'guardado', id: huella, formato, anchos: derivadas.map((d) => d.ancho) };
+  }
 
   const fila = await q.db
     .prepare(
@@ -218,4 +237,40 @@ export async function quitarFoto(q: Quien, cuerpo: unknown): Promise<ResultadoDe
     }),
   ]);
   return { estado: 'quitada', id: c.id };
+}
+
+/**
+ * HU-T5.9 CA1: la foto de una combinación (`medio.variante_id`, que ya existía). Al elegir esa
+ * combinación, la ficha la muestra. `variante: null` la vuelve una foto general.
+ */
+export async function fotoDeLaVariante(q: Quien, cuerpo: unknown): Promise<ResultadoDeFoto> {
+  const c = (cuerpo ?? {}) as { producto?: unknown; id?: unknown; variante?: unknown };
+  if (
+    typeof c.producto !== 'string' ||
+    !ID.test(c.producto) ||
+    typeof c.id !== 'string' ||
+    !HUELLA.test(c.id) ||
+    (c.variante !== null && (typeof c.variante !== 'string' || !ID.test(c.variante)))
+  ) {
+    return {
+      estado: 'problemas',
+      problemas: [{ campo: 'variante', mensaje: 'falta la foto o la combinación' }],
+    };
+  }
+  const variante = c.variante as string | null;
+  if (variante) {
+    const suya = await q.db
+      .prepare(
+        'SELECT 1 AS si FROM variante WHERE org_id = ? AND id = ? AND producto_id = ? AND activa = 1',
+      )
+      .bind(q.org, variante, c.producto)
+      .first<{ si: number }>();
+    if (!suya) return { estado: 'no-existe', motivo: 'Esa combinación ya no está.' };
+  }
+  const r = await q.db
+    .prepare('UPDATE medio SET variante_id = ? WHERE org_id = ? AND producto_id = ? AND id = ?')
+    .bind(variante, q.org, c.producto, c.id)
+    .run();
+  if ((r.meta?.changes ?? 0) === 0) return { estado: 'no-existe', motivo: 'Esa foto ya no está.' };
+  return { estado: 'asignada', id: c.id, variante };
 }

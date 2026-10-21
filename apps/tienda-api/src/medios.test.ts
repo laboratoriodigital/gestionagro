@@ -7,7 +7,7 @@ import { baseLocal } from '@ed1/d1/local';
 import { ENSAYO_DOS, ENSAYO_UNO, siembraDelShard } from '@ed1/tienda-schema/ensayos';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { leerProducto, type Quien } from './catalogo.ts';
-import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
+import { type BucketDeFotos, fotoDeLaVariante, quitarFoto, subirFoto } from './medios.ts';
 
 const AHORA = '2026-10-15T15:00:00.000Z';
 const HUELLA = 'a'.repeat(64);
@@ -181,5 +181,63 @@ describe('HU-T8.3 · las fotos de un producto', () => {
       .bind(ENSAYO_UNO.org)
       .all<{ accion: string }>();
     expect(results.map((f) => f.accion)).toEqual(['medio.subir', 'medio.quitar']);
+  });
+});
+
+describe('HU-T5.9 y HU-T5.13 · la foto de una combinación y las imágenes de la tienda', () => {
+  it('una foto se asigna a una combinación del producto y vuelve a ser general', async () => {
+    const { b } = bucket();
+    await subirFoto(quien(), b, formulario({}));
+    const asignar = (variante: string | null) =>
+      fotoDeLaVariante(quien(), { producto: 'p-camisa', id: HUELLA, variante });
+    expect(await asignar('v-camisa-m-arena')).toEqual({
+      estado: 'asignada',
+      id: HUELLA,
+      variante: 'v-camisa-m-arena',
+    });
+    expect((await leerProducto(quien(), 'p-camisa'))?.medios[0]?.varianteId).toBe(
+      'v-camisa-m-arena',
+    );
+    expect(await asignar(null)).toMatchObject({ estado: 'asignada', variante: null });
+    expect((await leerProducto(quien(), 'p-camisa'))?.medios[0]?.varianteId).toBeNull();
+  });
+
+  it('❌ ni la combinación de otro producto, ni la foto de otra tienda (P4)', async () => {
+    const { b } = bucket();
+    await subirFoto(quien(), b, formulario({}));
+    expect(
+      await fotoDeLaVariante(quien(), { producto: 'p-camisa', id: HUELLA, variante: 'v-otra' }),
+    ).toMatchObject({ estado: 'no-existe' });
+    expect(
+      await fotoDeLaVariante(quien(ENSAYO_DOS.org), {
+        producto: 'p-camisa',
+        id: HUELLA,
+        variante: null,
+      }),
+    ).toMatchObject({ estado: 'no-existe' });
+    expect(await fotoDeLaVariante(quien(), { producto: 'p-camisa' })).toMatchObject({
+      estado: 'problemas',
+    });
+  });
+
+  it('el logo se guarda en las fotos de la tienda, sin producto y sin tocar `medio`', async () => {
+    const { b, guardados } = bucket();
+    const f = formulario({});
+    f.set('producto', '');
+    expect(await subirFoto(quien(), b, f, { deLaTienda: true })).toEqual({
+      estado: 'guardado',
+      id: HUELLA,
+      formato: 'webp',
+      anchos: [400, 800],
+    });
+    expect([...guardados.keys()]).toEqual([
+      `${ENSAYO_UNO.org}/${HUELLA}/400.webp`,
+      `${ENSAYO_UNO.org}/${HUELLA}/800.webp`,
+    ]);
+    const { results } = await db
+      .prepare('SELECT id FROM medio WHERE org_id = ?')
+      .bind(ENSAYO_UNO.org)
+      .all();
+    expect(results).toEqual([]);
   });
 });

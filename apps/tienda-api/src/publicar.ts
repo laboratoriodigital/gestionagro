@@ -120,6 +120,7 @@ interface FilaProducto {
   retracto_motivo: string | null;
   solo_mayores: number;
   destacado: number;
+  nuevo: number;
   actualizado: string;
   seo: string;
 }
@@ -267,6 +268,47 @@ interface Horneado {
 }
 const claveDeDatos = (org: string, version: number) => `sitios/${org}/${version}/datos.json`;
 
+type Imagen = {
+  huella: string;
+  formato: 'webp' | 'jpeg';
+  ancho: number;
+  alto: number;
+  anchos: number[];
+};
+const comoFoto = (x: unknown, alt: string): FotoParaHornear | undefined => {
+  const i = x as Imagen | undefined;
+  return i && typeof i.huella === 'string'
+    ? { huella: i.huella, alt, ancho: i.ancho, alto: i.alto, anchos: i.anchos, formato: i.formato }
+    : undefined;
+};
+/** HU-T5.13 y HU-T5.14: las imágenes de la tienda de sus ajustes, como fotos del horno. */
+function imagenesDeLaTienda(
+  identidad: Record<string, unknown>,
+  apariencia: Record<string, unknown>,
+  nombre: string,
+): Pick<TiendaParaHornear, 'logo' | 'icono' | 'hero'> {
+  const logo = comoFoto(identidad['logo'], nombre);
+  const icono = comoFoto(identidad['icono'], nombre);
+  const h = apariencia['hero'] as
+    | { titulo?: string; texto?: string; imagen?: unknown; boton?: string }
+    | undefined;
+  const imagenDelHero = h ? comoFoto(h.imagen, h.titulo ?? nombre) : undefined;
+  return {
+    ...(logo ? { logo } : {}),
+    ...(icono ? { icono } : {}),
+    ...(h
+      ? {
+          hero: {
+            ...(h.titulo ? { titulo: h.titulo } : {}),
+            ...(h.texto ? { texto: h.texto } : {}),
+            ...(h.boton ? { boton: h.boton } : {}),
+            ...(imagenDelHero ? { imagen: imagenDelHero } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 /**
  * Pasos 2 y 3: lo que se hornea de la tienda, horneado, y lo que dice la compuerta. Lo usan publicar
  * y la vista previa (HU-T8.6), que hornea lo mismo sin publicarlo.
@@ -294,7 +336,7 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     ajustes.cobro?.['ambiente'] === 'produccion' ? 'produccion' : 'pruebas';
   const { results: productos } = await c.shard
     .prepare(
-      `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, actualizado, seo
+      `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, actualizado, seo
        FROM producto WHERE org_id = ? AND borrado IS NULL ORDER BY posicion, slug`,
     )
     .bind(c.org)
@@ -315,12 +357,13 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     }>();
   const { results: medios } = await c.shard
     .prepare(
-      'SELECT id, producto_id, alt, ancho, alto, formatos FROM medio WHERE org_id = ? ORDER BY producto_id, posicion, id',
+      'SELECT id, producto_id, variante_id, alt, ancho, alto, formatos FROM medio WHERE org_id = ? ORDER BY producto_id, posicion, id',
     )
     .bind(c.org)
     .all<{
       id: string;
       producto_id: string;
+      variante_id: string | null;
       alt: string;
       ancho: number;
       alto: number;
@@ -332,6 +375,8 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
       .map((f) => ({
         huella: f.id,
         alt: f.alt,
+        // HU-T5.9: la foto de una combinación.
+        ...(f.variante_id ? { variante: f.variante_id } : {}),
         ancho: f.ancho,
         alto: f.alto,
         ...leerFormatos(f.formatos),
@@ -394,6 +439,7 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
             : { aplica: true },
         soloMayores: p.solo_mayores === 1,
         destacado: p.destacado === 1,
+        ...(p.nuevo === 1 ? { nuevo: true } : {}),
       },
     ];
   });
@@ -454,6 +500,8 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     ...(contacto['whatsapp'] ? { whatsapp: contacto['whatsapp'] as string } : {}),
     ...(contacto['correo'] ? { correo: contacto['correo'] as string } : {}),
     apariencia: conDefectos('apariencia') as unknown as TiendaParaHornear['apariencia'],
+    // HU-T5.13 y HU-T5.14: el logo, el ícono y el hero, ya validados por su sección.
+    ...imagenesDeLaTienda(conDefectos('identidad'), conDefectos('apariencia'), tienda.nombre),
     agentes: {
       search: (agentes['search'] as 'yes' | 'no' | undefined) ?? 'yes',
       aiInput: (agentes['aiInput'] as 'yes' | 'no' | undefined) ?? 'yes',

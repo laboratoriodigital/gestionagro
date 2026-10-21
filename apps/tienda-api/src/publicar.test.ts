@@ -356,6 +356,56 @@ describe('publicar (HU-T4.4)', () => {
     expect(r2.escrituras()).toBe(0);
   });
 
+  it('el logo, el ícono y la bienvenida de los ajustes salen en la tienda (HU-T5.13 y HU-T5.14)', async () => {
+    const imagen = (letra: string) => ({
+      huella: letra.repeat(64),
+      formato: 'webp',
+      ancho: 800,
+      alto: 400,
+      anchos: [400, 800],
+    });
+    const leer = (seccion: string) =>
+      shard
+        .prepare('SELECT datos FROM ajuste WHERE org_id = ? AND seccion = ?')
+        .bind(ENSAYO_UNO.org, seccion)
+        .first<{ datos: string }>();
+    const poner = (seccion: string, datos: string) =>
+      shard
+        .prepare(
+          "INSERT INTO ajuste (org_id, seccion, esquema, datos, version, actualizado, actualizado_por) VALUES (?, ?, 1, ?, 1, ?, 'prueba') ON CONFLICT (org_id, seccion) DO UPDATE SET datos = excluded.datos",
+        )
+        .bind(ENSAYO_UNO.org, seccion, datos, AHORA)
+        .run();
+    const identidad = await leer('identidad');
+    const apariencia = await leer('apariencia');
+    const antes = (f: { datos: string } | null) => JSON.parse(f?.datos ?? '{}') as object;
+    await poner(
+      'identidad',
+      JSON.stringify({ ...antes(identidad), logo: imagen('c'), icono: imagen('d') }),
+    );
+    await poner(
+      'apariencia',
+      JSON.stringify({
+        ...antes(apariencia),
+        hero: { titulo: 'Lino de Medellín', imagen: imagen('e') },
+      }),
+    );
+    try {
+      const r2 = almacen();
+      const conFotos = { ...contexto(ENSAYO_UNO.org, r2), medios: 'img.laboratorio-digital.app' };
+      expect(await publicar(conFotos)).toMatchObject({ estado: 'publicada' });
+      const portada = [...r2.objetos.values()].find((t) => t.includes('<section class="hero">'));
+      expect(portada).toContain('<h1>Lino de Medellín</h1>');
+      expect(portada).toContain(`/${'e'.repeat(64)}/800.webp`);
+      expect(portada).toContain('class="marca__logo" src="');
+      expect(portada).toContain(`/${'c'.repeat(64)}/400.webp`);
+      expect(portada).toContain('<link rel="icon" href="');
+    } finally {
+      await poner('identidad', identidad?.datos ?? '{}');
+      await poner('apariencia', apariencia?.datos ?? '{}');
+    }
+  });
+
   it('❌ un envío de 45 días se publica, porque la tienda lo dice con su plazo (HU-T10.1 CA1)', async () => {
     await shard
       .prepare(
@@ -368,8 +418,8 @@ describe('publicar (HU-T4.4)', () => {
       const r2 = almacen();
       const r = await publicar(contexto(ENSAYO_UNO.org, r2));
       expect(r).toMatchObject({ estado: 'publicada' });
-      const ficha = [...r2.objetos.values()].find((t) => t.includes('Envío Bodega: $40.000'));
-      expect(ficha).toContain('45 días calendario: más que los 30 de la ley');
+      const envios = [...r2.objetos.values()].find((t) => t.includes('Bodega: $40.000'));
+      expect(envios).toContain('45 días calendario: más que los 30 de la ley');
     } finally {
       await shard
         .prepare("DELETE FROM envio_opcion WHERE org_id = ? AND id = 'e-bodega'")

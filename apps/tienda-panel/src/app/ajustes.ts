@@ -4,7 +4,7 @@
  * los datos de la sección y de vuelta.
  *
  * - Un campo vacío se manda vacío y la API no lo guarda: vacío nunca es un valor de fábrica (CA4).
- * - Lo que el formulario no muestra (el logo, las ciudades de la contraentrega) sigue como estaba.
+ * - Lo que el formulario no muestra (las ciudades de la contraentrega) sigue como estaba.
  * - `whatsappVerificado` no es un campo: lo pone la API cuando el comercio confirma su número.
  */
 import type { Accion } from '@ed1/tienda-schema/permisos';
@@ -24,7 +24,9 @@ export type TipoDeCampo =
   | 'color'
   | 'opciones'
   | 'si-no'
-  | 'formas';
+  | 'formas'
+  /** HU-T5.13 y HU-T5.14: una imagen de la tienda, subida como las fotos de un producto. */
+  | 'imagen';
 
 export interface CampoDeAjuste {
   /** El camino dentro de la sección: `documento.numero`. */
@@ -51,6 +53,20 @@ export const CAMPOS: Record<Seccion, readonly CampoDeAjuste[]> = {
   identidad: [
     { campo: 'nombre', etiqueta: 'Nombre de la tienda', tipo: 'texto', requerido: true },
     { campo: 'frase', etiqueta: 'Frase corta', tipo: 'texto', ayuda: 'Hasta 140 caracteres.' },
+    {
+      campo: 'logo',
+      etiqueta: 'Logo',
+      tipo: 'imagen',
+      ayuda:
+        'Va arriba en tu tienda, en lugar del nombre. Mejor si es horizontal y con fondo claro.',
+    },
+    {
+      campo: 'icono',
+      etiqueta: 'Ícono de la pestaña (favicon)',
+      tipo: 'imagen',
+      ayuda:
+        'Una imagen cuadrada: se ve en la pestaña del navegador y al guardar la tienda en el teléfono.',
+    },
   ],
   contacto: [
     {
@@ -121,6 +137,26 @@ export const CAMPOS: Record<Seccion, readonly CampoDeAjuste[]> = {
         ['precio_asc', 'Precio de menor a mayor'],
         ['precio_desc', 'Precio de mayor a menor'],
       ],
+    },
+    // HU-T5.14: la bienvenida de la portada; sin título ni imagen, la portada empieza con los productos.
+    {
+      campo: 'hero.titulo',
+      etiqueta: 'Bienvenida: título',
+      tipo: 'texto',
+      ayuda: 'Hasta 80 caracteres.',
+    },
+    {
+      campo: 'hero.texto',
+      etiqueta: 'Bienvenida: texto',
+      tipo: 'parrafo',
+      ayuda: 'Hasta 240 caracteres.',
+    },
+    { campo: 'hero.imagen', etiqueta: 'Bienvenida: imagen', tipo: 'imagen' },
+    {
+      campo: 'hero.boton',
+      etiqueta: 'Bienvenida: texto del botón',
+      tipo: 'texto',
+      ayuda: 'Si lo dejas vacío, dice «Ver los productos».',
     },
   ],
   venta: [
@@ -329,6 +365,7 @@ export function aTexto(seccion: Seccion, datos: Record<string, unknown>): Record
         ? v.map((f) => String((f as { forma?: unknown }).forma)).join(',')
         : '';
     else if (c.tipo === 'celular') texto[c.campo] = String(v).replace(/^\+57/, '');
+    else if (c.tipo === 'imagen') texto[c.campo] = typeof v === 'object' ? JSON.stringify(v) : '';
     else texto[c.campo] = String(v);
   }
   return texto;
@@ -356,6 +393,12 @@ export function aDatos(
     else if (c.tipo === 'telefono') {
       const d = digitos(t).replace(/^57(?=\d{7,10}$)/, '');
       v = /^\d{7,10}$/.test(d) ? `+57${d}` : t;
+    } else if (c.tipo === 'imagen') {
+      try {
+        v = JSON.parse(t) as unknown;
+      } catch {
+        v = '';
+      }
     } else if (c.tipo === 'formas') {
       const antes = Array.isArray(guardado[c.campo])
         ? (guardado[c.campo] as { forma: string }[])

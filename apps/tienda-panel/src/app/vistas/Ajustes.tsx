@@ -25,6 +25,7 @@ import { type Conexion, pedirAlPanel } from '../api.ts';
 import { usarBorrador } from '../borradores.ts';
 import { opNueva } from '../catalogo.ts';
 import { Lista } from '../componentes/index.ts';
+import { CampoDeImagen } from './CampoDeImagen.tsx';
 import { FeedsDeLaTienda } from './Feeds.tsx';
 
 interface AjustesDelPanel {
@@ -381,6 +382,7 @@ function Formulario({
             c={c}
             valor={valores[c.campo] ?? ''}
             error={errorDe(c.campo)}
+            conexion={conexion}
             alCambiar={(v) => cambiar(c.campo, v)}
           />
         ),
@@ -401,15 +403,30 @@ function CampoDeSeccion({
   c,
   valor,
   error,
+  conexion,
   alCambiar,
 }: {
   c: CampoDeAjuste;
   valor: string;
   error: string | undefined;
+  conexion: Conexion;
   alCambiar: (v: string) => void;
 }) {
   const id = idDe(c.campo);
   const conError = error ? { error } : {};
+  if (c.tipo === 'imagen') {
+    return (
+      <CampoDeImagen
+        id={id}
+        etiqueta={c.etiqueta}
+        ayuda={c.ayuda}
+        valor={valor}
+        error={error}
+        conexion={conexion}
+        alCambiar={alCambiar}
+      />
+    );
+  }
   if (
     c.tipo === 'texto' ||
     c.tipo === 'correo' ||

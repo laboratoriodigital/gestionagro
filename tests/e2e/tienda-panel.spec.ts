@@ -869,11 +869,13 @@ test('HU-T8.4 · CA2: borrar una colección dice que sus productos se quedan', a
   });
   await page.goto(`${PANEL}/productos/colecciones/c-lino/`);
   await expect(page.getByLabel('Camisa de lino')).toBeChecked();
-  await page.getByText('Borrar la colección', { exact: true }).click();
+  await page.getByText('Borrar la categoría', { exact: true }).click();
   await expect(page.getByText('Se borra «Lino». Sus productos siguen en la tienda.')).toBeVisible();
-  await page.getByRole('button', { name: 'Sí, borrar la colección' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Colecciones' })).toBeVisible();
-  await expect(page.getByText('Todavía no tienes colecciones.')).toBeVisible();
+  await page.getByRole('button', { name: 'Sí, borrar la categoría' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Categorías' })).toBeVisible();
+  await expect(
+    page.getByText('Todavía no tienes categorías. Crea la primera aquí abajo.'),
+  ).toBeVisible();
 });
 
 // ── Bitácora tienda3 21: los productos y las colecciones con la tienda llena ─────────────────
@@ -968,12 +970,12 @@ test('bitácora tienda3 21 ❌: guardar una colección de 60 no saca a los que n
   await page.goto(`${PANEL}/productos/colecciones/c-lino/`);
   await expect(page.getByLabel('Camisa de lino 1', { exact: true })).toBeChecked();
   await expect(
-    page.getByText('Se ven 50 de 60 productos. Los que no se ven siguen en la colección.'),
+    page.getByText('Se ven 50 de 60 productos. Los que no se ven siguen en la categoría.'),
   ).toBeVisible();
   await page.getByLabel('Camisa de lino 2', { exact: true }).uncheck();
   await page.getByLabel('Agregar productos: búscalos por nombre').fill('vestido');
   await page.getByLabel('Vestido de seda Brisa').check();
-  await page.getByRole('button', { name: 'Guardar colección' }).click();
+  await page.getByRole('button', { name: 'Guardar categoría' }).click();
   await expect.poll(() => enviados.length).toBe(1);
   expect(enviados[0]?.productos).toEqual([...miembros.filter((id) => id !== 'p-0002'), 'p-0999']);
 });
@@ -3255,6 +3257,169 @@ test('validación del 20 oct · el propietario ve quién tiene acceso, puede qui
   await page.getByRole('button', { name: 'Sí, quitar a Ana Colaboradora' }).click();
   await expect(page.getByText('Ana Colaboradora', { exact: true })).toHaveCount(0);
   expect(quitados).toEqual([{ usuario_id: 'u-2' }]);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('validación del 20 oct (T17b) · destacado y nuevo, y una foto que se muestra con su combinación', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const FOTO = 'a'.repeat(64);
+  const producto = {
+    id: 'p-lino',
+    version: 1,
+    slug: 'camisa-de-lino',
+    nombre: 'Camisa de lino',
+    descripcionMd: '',
+    estado: 'activo',
+    enPapelera: false,
+    destacado: false,
+    nuevo: false,
+    opciones: [{ nombre: 'Color', valores: ['Arena', 'Azul'] }],
+    retracto: { aplica: true },
+    soloMayores: false,
+    ivaPct: null,
+    variantes: [
+      {
+        id: 'v-arena',
+        valores: ['Arena'],
+        sku: null,
+        precioCop: 129000,
+        precioAntesCop: null,
+        stock: 3,
+        reservado: 0,
+      },
+      {
+        id: 'v-azul',
+        valores: ['Azul'],
+        sku: null,
+        precioCop: 129000,
+        precioAntesCop: null,
+        stock: 3,
+        reservado: 0,
+      },
+    ],
+    medios: [
+      {
+        id: FOTO,
+        alt: 'Camisa azul, de frente',
+        ancho: 900,
+        alto: 600,
+        formato: 'webp',
+        anchos: [400, 800],
+        varianteId: null as string | null,
+        src: `https://img.laboratorio-digital.app/org-ensayo-uno/${FOTO}/400.webp`,
+      },
+    ],
+  };
+  await page.route(`${PANEL}/api/panel/v1/productos/p-lino`, (r) => r.fulfill({ json: producto }));
+  await page.route('https://img.laboratorio-digital.app/**', (r) => r.fulfill({ status: 404 }));
+  const asignadas: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/medios/variante`, (r) => {
+    const cuerpo = r.request().postDataJSON() as { variante: string | null };
+    asignadas.push(cuerpo);
+    producto.medios[0] = {
+      ...(producto.medios[0] as (typeof producto.medios)[number]),
+      varianteId: cuerpo.variante,
+    };
+    return r.fulfill({ json: { estado: 'asignada', id: FOTO, variante: cuerpo.variante } });
+  });
+  const guardados: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/productos/guardar`, (r) => {
+    guardados.push(r.request().postDataJSON() as Record<string, unknown>);
+    return r.fulfill({
+      json: { estado: 'guardado', id: 'p-lino', version: 2, slug: 'camisa-de-lino' },
+    });
+  });
+
+  await page.goto(`${PANEL}/productos/p-lino/`);
+  const conQue = page.getByLabel('Se muestra con');
+  await expect(conQue).toHaveValue('');
+  await conQue.selectOption({ label: 'Azul' });
+  await expect(
+    page.getByText('Listo: la tienda la muestra con esa combinación cuando publiques.'),
+  ).toBeVisible();
+  expect(asignadas).toEqual([{ producto: 'p-lino', id: FOTO, variante: 'v-azul' }]);
+  await expect(conQue).toHaveValue('v-azul');
+
+  await page.getByLabel('Destacado: va primero en tu tienda').check();
+  await page.getByLabel('Nuevo: lleva la etiqueta «Nuevo»').check();
+  await page.getByRole('button', { name: 'Guardar cambios' }).click();
+  await expect.poll(() => guardados.length).toBe(1);
+  expect(guardados[0]).toMatchObject({ destacado: true, nuevo: true });
+});
+
+test('validación del 20 oct (T17b) · el logo se prepara en el teléfono, sube aparte y se guarda en Identidad', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const identidad = {
+    datos: { nombre: 'Comercio Ensayo Uno' } as Record<string, unknown>,
+    version: 1,
+  };
+  await page.route(`${PANEL}/api/panel/v1/ajustes`, (r) =>
+    r.fulfill({ json: { secciones: { identidad }, faltantes: [] } }),
+  );
+  const subidas: string[] = [];
+  await page.route(`${PANEL}/api/panel/v1/medios/marca`, (r) => {
+    const partes = partesDe(
+      r.request().postDataBuffer() ?? Buffer.alloc(0),
+      r.request().headers()['content-type'] ?? '',
+    );
+    subidas.push(...partes.filter((p) => p.archivo !== null).map((p) => p.nombre));
+    const huella = partes.find((p) => p.nombre === 'huella')?.bytes.toString() ?? '';
+    return r.fulfill({
+      json: { estado: 'guardado', id: huella, formato: 'webp', anchos: [400, 800] },
+    });
+  });
+  const guardados: { datos: Record<string, unknown> }[] = [];
+  await page.route(`${PANEL}/api/panel/v1/ajustes/guardar`, (r) => {
+    const cuerpo = r.request().postDataJSON() as { datos: Record<string, unknown> };
+    guardados.push(cuerpo);
+    identidad.datos = cuerpo.datos;
+    identidad.version = 2;
+    return r.fulfill({ json: { estado: 'guardado', id: 'identidad', version: 2 } });
+  });
+
+  await page.goto(`${PANEL}/mas/ajustes/identidad/`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Identidad' })).toBeVisible();
+  await page.evaluate(async () => {
+    const lienzo = document.createElement('canvas');
+    lienzo.width = 800;
+    lienzo.height = 200;
+    const ctx = lienzo.getContext('2d');
+    if (!ctx) throw new Error('sin canvas');
+    ctx.fillStyle = '#1a3a5c';
+    ctx.fillRect(0, 0, 800, 200);
+    const blob = await new Promise<Blob | null>((listo) => lienzo.toBlob(listo, 'image/png'));
+    if (!blob) throw new Error('sin imagen');
+    const entrada = document.querySelector<HTMLInputElement>('#ajuste-logo');
+    if (!entrada) throw new Error('sin campo');
+    const dt = new DataTransfer();
+    dt.items.add(new File([blob], 'logo.png', { type: 'image/png' }));
+    entrada.files = dt.files;
+    entrada.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect(
+    page.getByText('Lista. Guarda esta sección y publica', { exact: false }),
+  ).toBeVisible();
+  expect(subidas).toEqual(['d400', 'd800']);
+  await page.getByRole('button', { name: 'Guardar identidad' }).click();
+  await expect(page.getByText('Guardamos identidad.')).toBeVisible();
+  expect(guardados[0]?.datos['logo']).toMatchObject({
+    formato: 'webp',
+    ancho: 800,
+    alto: 200,
+    anchos: [400, 800],
+  });
+  expect(guardados[0]?.datos['logo']).toHaveProperty(
+    'huella',
+    expect.stringMatching(/^[0-9a-f]{64}$/),
+  );
+
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

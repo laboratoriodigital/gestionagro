@@ -47,18 +47,25 @@ export const FORMAS_DE_PAGO = [
   'efectivo',
 ] as const;
 
+/**
+ * HU-T5.13 y HU-T5.14: una imagen de la tienda subida como las fotos (por huella, en el host de las
+ * fotos), nunca una URL de afuera: lo que el horno necesita para armar sus direcciones.
+ */
+export const imagenDeLaTienda = z.object({
+  huella: z.string().regex(/^[0-9a-f]{64}$/),
+  formato: z.enum(['webp', 'jpeg']),
+  ancho: z.number().int().positive(),
+  alto: z.number().int().positive(),
+  anchos: z.array(z.number().int().positive()).min(1).max(3),
+});
+export type ImagenDeLaTienda = z.infer<typeof imagenDeLaTienda>;
+
 const identidadV1 = z.object({
   nombre: texto(80).optional(),
   frase: texto(140).optional(),
-  /** Huella del medio subido (SHA-256), nunca una URL de afuera. */
-  logo: z
-    .string()
-    .regex(/^[0-9a-f]{64}$/)
-    .optional(),
-  icono: z
-    .string()
-    .regex(/^[0-9a-f]{64}$/)
-    .optional(),
+  /** HU-T5.13: el logo de la franja y el ícono de la pestaña y de la app. */
+  logo: imagenDeLaTienda.optional(),
+  icono: imagenDeLaTienda.optional(),
 });
 
 const contactoV1 = z.object({
@@ -80,6 +87,15 @@ const apariencia = z.object({
   proporcion: z.enum(['4:5', '1:1']).default('1:1'),
   modo: z.enum(['claro', 'oscuro', 'telefono']).default('claro'),
   orden: z.enum(['manual', 'nuevos', 'precio_asc', 'precio_desc']).default('manual'),
+  /** HU-T5.14: el hero de la portada: su título, su texto, su imagen y su botón. */
+  hero: z
+    .object({
+      titulo: texto(80).optional(),
+      texto: texto(240).optional(),
+      imagen: imagenDeLaTienda.optional(),
+      boton: texto(30).optional(),
+    })
+    .optional(),
 });
 
 const formaOfrecida = z.object({

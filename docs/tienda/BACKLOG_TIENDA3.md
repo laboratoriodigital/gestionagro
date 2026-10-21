@@ -340,6 +340,7 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T15** (festivo) | 28 jun–9 jul | Dominios propios con prevalidación, los runbooks y la rotación de la KEK | HU-T13.1 (5), HU-T13.2 (3), HU-T13.3 (2), HU-T17.5 (2), HU-T17.6 (3) | 15 | — |
 | **T16** (festivo) | 12–23 jul | **M4.** Alta abierta, plan por periodo, antiabuso y baja; medición propia y feeds | HU-T13.4 (5), HU-T13.5 (3), HU-T13.6 (3), HU-T13.7 (2), HU-T14.1 (3), HU-T14.5 (3) | 19 | M4 |
 | **T17** | 26 jul–6 ago | **M5 · `tienda-v1.0.0`.** Resumen diario, consentimiento, reconciliación, páginas propias y el reporte del dueño | HU-T8.6 (2), HU-T10.2 (2), HU-T14.4 (3), HU-T14.6 (2), HU-T14.7 (2) | 11 | M5 |
+| **T17b** | entre T17 y T18 | Lo que pidió la validación de la vitrina del 20 oct 2026 | HU-T5.8 (2), HU-T5.9 (3), HU-T5.10 (2), HU-T5.11 (2), HU-T5.12 (3), HU-T5.13 (3), HU-T5.14 (3), HU-T5.15 (1) | 19 | — |
 | **T18** (festivo) | 9–20 ago | **M7.** Los agentes preparan pedidos que una persona confirma | HU-T15.2 (2), HU-T15.3 (2), HU-T15.4 (5), HU-T15.5 (3), HU-T15.6 (2), HU-T15.7 (5) | 19 | M7 |
 | **T19** | 23 ago–3 sep | **M8.** La factura, en el facturador del comercio | HU-T16.1 (2), HU-T16.2 (5), HU-T16.3 (3), HU-T16.4 (2) | 12 | M8 |
 | **T20** | 6–17 sep | Holgura: lo que traiga la validación con los primeros comercios | — | 0 | — |
@@ -794,6 +795,77 @@ Formato de cada historia, el del CORE:
 - **CA2.** La e2e del comprador por WhatsApp a 360 px con axe, y los presupuestos de HU-T3.6 en verde.
 - **CA3 ❌.** Cero consultas a D1 por visita en la prueba del despacho.
 - **Work items:** WI-T5.7.1 `[prueba]` · WI-T5.7.2 `[dueño]` una compra de prueba con los pasos exactos.
+
+#### HU-T5.8 · La ficha en orden: precio, antes y existencias, sin el envío y con compartir
+- **Capa:** vitrina · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T17b · **Depende de:** HU-T5.2 · **Estado:** En validación (rama `feat/t17b-vitrina`. El precio, el de antes, la nota y «Quedan N» van juntos en `.ficha__precio`. La ficha deja una sola línea que dice dónde se elige el envío y enlaza «Envíos y devoluciones»; cada envío con su precio y su plazo sigue en esa página y en el pedido, antes de pagar (bitácora tienda3 46). «Compartir» abre el menú del teléfono (`navigator.share`); sin él o sin JavaScript es un enlace a WhatsApp con el nombre y la dirección. Pruebas: `tienda-vitrina-t17b.test.ts`, `tienda-ficha.test.ts` y la e2e «el pedido arriba, el precio sin encimarse y compartir»)
+- Como comprador, quiero leer la ficha sin que nada se monte y compartir el producto con alguien.
+- **Respaldo:** pedido del dueño en la validación de staging del 20 oct 2026.
+- **CA1.** El precio, el precio de antes, «Quedan N» y la nota del precio van en un bloque, sin encimarse en 360 px.
+- **CA2.** La ficha no repite los envíos: se eligen en el carrito, con su precio y su plazo, y la ficha enlaza «Envíos y devoluciones».
+- **CA3.** «Compartir» abre el menú del teléfono; sin él, manda el enlace por WhatsApp.
+- **CA4 ❌.** Sin JavaScript, «Compartir» sigue siendo un enlace que funciona.
+- **Work items:** WI-T5.8.1 `[código]` · WI-T5.8.2 `[prueba]`.
+
+#### HU-T5.9 · La foto de cada combinación
+- **Capa:** panel y vitrina · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T17b · **Depende de:** HU-T8.2, HU-T8.3 · **Estado:** En validación (rama `feat/t17b-vitrina`. `medio.variante_id` ya existía: no hizo falta migración (bitácora tienda3 46). En el producto del panel, cada foto tiene «Se muestra con» (`POST medios/variante`, que solo acepta una combinación activa del mismo producto). El horno pone en cada combinación el lugar de su foto en la galería y la vitrina la muestra al elegirla. Pruebas: `medios.test.ts`, `tienda-vitrina-t17b.test.ts` y la e2e del panel)
+- Como comerciante, quiero que al elegir «rojo» se vea la foto del rojo.
+- **Respaldo:** pedido del dueño en la validación de staging del 20 oct 2026.
+- **CA1.** En el producto, cada combinación puede tener una de sus fotos.
+- **CA2.** En la ficha, al elegir esa combinación la galería muestra su foto.
+- **CA3 ❌.** Una combinación sin foto deja las fotos generales como estaban.
+- **Work items:** WI-T5.9.1 `[código]` · WI-T5.9.2 `[prueba]`.
+
+#### HU-T5.10 · Destacado y nuevo
+- **Capa:** panel y vitrina · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T17b · **Depende de:** HU-T8.2 · **Estado:** En validación (rama `feat/t17b-vitrina`. La migración 0017 agrega `producto.nuevo`; `destacado` ya estaba en la base pero solo lo usaba la portada editorial. Dos casillas en el producto. Lo destacado va primero en la portada, en «Todos los productos» y en cada categoría; lo nuevo lleva su etiqueta en la tarjeta y en la ficha. Pruebas: `catalogo.test.ts`, `tienda-vitrina-t17b.test.ts` y las e2e)
+- Como comerciante, quiero poner arriba lo que más quiero vender y marcar lo nuevo.
+- **Respaldo:** pedido del dueño en la validación de staging del 20 oct 2026.
+- **CA1.** En el producto, «Destacado» y «Nuevo». Lo destacado va primero en la portada; lo nuevo lleva su etiqueta en la tarjeta y la ficha.
+- **CA2 ❌.** Sin nada marcado, la portada sigue el orden del comercio.
+- **Work items:** WI-T5.10.1 `[código]` · WI-T5.10.2 `[prueba]`.
+
+#### HU-T5.11 · Las categorías a la vista
+- **Capa:** vitrina · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** T17b · **Depende de:** HU-T8.4 · **Estado:** En validación (rama `feat/t17b-vitrina`. La portada (en sus tres estilos y con bienvenida) y cada colección traen la fila de categorías con «Todo», con la de la página marcada (`aria-current`). El panel dice «Categorías» en sus textos; por dentro siguen siendo colecciones. Pruebas: `tienda-vitrina-t17b.test.ts` y las e2e)
+- Como comprador, quiero ver solo los productos de una categoría.
+- **Respaldo:** pedido del dueño en la validación de staging del 20 oct 2026.
+- **CA1.** La portada y cada colección muestran las categorías (las colecciones visibles) para elegir una, con «Todo».
+- **CA2.** El panel las llama «Categorías».
+- **CA3 ❌.** Sin categorías, no aparece la fila.
+- **Work items:** WI-T5.11.1 `[código]` · WI-T5.11.2 `[prueba]`.
+
+#### HU-T5.12 · Buscar en la franja y ordenar
+- **Capa:** vitrina · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T17b · **Depende de:** HU-T5.3 · **Estado:** En validación (rama `feat/t17b-vitrina`. La franja trae un formulario que va a `/buscar/?q=`, que ya leía lo escrito. En el teléfono, el campo va en su propia fila para que el pedido no lo encoja. «Ordenar por» sale oculto en el HTML y lo muestra la vitrina; cada tarjeta lleva su orden, nombre, precio, fecha y si es nueva. «Lo más nuevo» pone primero lo marcado como nuevo y después lo cambiado más recién. Pruebas: `tienda-vitrina-t17b.test.ts` y la e2e «buscar arriba, las categorías y Ordenar por»)
+- Como comprador, quiero buscar desde cualquier página y ordenar lo que veo.
+- **Respaldo:** pedido del dueño en la validación de staging del 20 oct 2026.
+- **CA1.** La franja de arriba trae el campo de búsqueda; buscar lleva a «Buscar» con lo escrito.
+- **CA2.** «Ordenar por»: recomendado (destacados primero y el orden del comercio), lo más nuevo, nombre de la A a la Z, precio de menor a mayor y de mayor a menor. Ordena lo que muestra la página.
+- **CA3 ❌.** Sin JavaScript, la lista se ve en el orden recomendado.
+- **Work items:** WI-T5.12.1 `[código]` · WI-T5.12.2 `[prueba]`.
+
+#### HU-T5.13 · Logo y favicon
+- **Capa:** panel y vitrina · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T17b · **Depende de:** HU-T8.3, HU-T10.3 · **Estado:** En validación (rama `feat/t17b-vitrina`. `identidad.logo` e `identidad.icono` eran solo una huella, sin medidas para hornear la imagen (bitácora tienda3 46): ahora son una imagen con huella, formato, ancho, alto y tamaños (`imagenDeLaTienda`). `POST medios/marca` las guarda en el bucket de fotos sin producto, preparadas en el teléfono como las fotos. En Ajustes › Identidad, `CampoDeImagen`. La franja muestra el logo de 40 px de alto; el ícono va en la pestaña, en `apple-touch-icon` y en el manifiesto. Pruebas: `medios.test.ts`, `publicar.test.ts`, `ajustes.test.ts` del panel, `tienda-vitrina-t17b.test.ts` y la e2e del logo)
+- Como comerciante, quiero que mi tienda lleve mi logo, también en la pestaña del navegador.
+- **Respaldo:** pedido del dueño en la validación de staging del 20 oct 2026.
+- **CA1.** En Ajustes › Identidad se suben el logo y el favicon, con el mismo proceso de las fotos.
+- **CA2.** La franja muestra el logo con el nombre como texto alternativo; la pestaña y el ícono de la app usan el favicon.
+- **CA3 ❌.** Sin logo, la franja muestra el nombre; sin favicon, el del navegador.
+- **Work items:** WI-T5.13.1 `[código]` · WI-T5.13.2 `[prueba]`.
+
+#### HU-T5.14 · El hero de la portada
+- **Capa:** panel y vitrina · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** T17b · **Depende de:** HU-T5.13 · **Estado:** En validación (rama `feat/t17b-vitrina`. `apariencia.hero` con título, texto, imagen y texto del botón, en Ajustes › Apariencia. Con bienvenida, la portada abre con ella en cualquier estilo, su imagen es la única con prioridad y su botón lleva a los productos. Elegir una categoría como destino del botón quedó para después (bitácora tienda3 46). Pruebas: `tienda-vitrina-t17b.test.ts` y `publicar.test.ts`)
+- Como comerciante, quiero que mi portada abra con mi imagen y mi mensaje.
+- **Respaldo:** pedido del dueño en la validación de staging del 20 oct 2026.
+- **CA1.** En Ajustes › Apariencia: el título, el texto, la imagen y el texto del botón, que lleva a los productos. *(Ajustado el 20 oct 2026: elegir una categoría como destino queda para después, bitácora tienda3 46.)*
+- **CA2.** La portada abre con el hero, con su imagen como la más importante de la página (LCP).
+- **CA3 ❌.** Sin hero, la portada queda como estaba; los presupuestos de la portada siguen en verde.
+- **Work items:** WI-T5.14.1 `[código]` · WI-T5.14.2 `[prueba]`.
+
+#### HU-T5.15 · El pedido arriba
+- **Capa:** vitrina · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** T17b · **Depende de:** HU-T5.4 · **Estado:** En validación (rama `feat/t17b-vitrina`. La barra flotante de abajo se fue: «Pedido» con su cantidad va en la franja, a la derecha, y solo se muestra con algo en el pedido. Pruebas: `tienda-vitrina-t17b.test.ts` y las e2e del carrito)
+- Como comprador, quiero ver mi pedido arriba, donde lo busco.
+- **Respaldo:** pedido del dueño en la validación de staging del 20 oct 2026.
+- **CA1.** El pedido va en la franja de arriba, con su cantidad, en vez de la barra flotante de abajo.
+- **CA2 ❌.** Con el pedido vacío, no se muestra.
+- **Work items:** WI-T5.15.1 `[código]` · WI-T5.15.2 `[prueba]`.
 
 ### ET6 · Pedido y posventa del comprador
 
@@ -1681,6 +1753,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | T15 | 15 | 0 (en validación: HU-T13.1, HU-T13.2, HU-T13.3, HU-T17.5 y HU-T17.6) | Construido el 19 oct 2026. El comercio conecta su dominio propio desde el panel, con los registros en palabras y el candado listo antes de la primera visita; lo vuelve su dirección principal y la de la plataforma lleva a él con 301, menos la API. La llave maestra se rota sin perder un dato, y el despliegue no deja borrar la vieja mientras algo la use. Los runbooks de la Tienda tienen una prueba que falla si nombran algo que no existe. Dos premisas de los dominios no se cumplían (bitácora tienda3 34): el estado se pregunta cada hora y al abrir la pantalla, no cada 5 minutos, y los dominios propios solo funcionan en producción, así que la aceptación de M4 pasa a T16. Esperan al dueño: activar Cloudflare for SaaS con su token, y el simulacro de rotar la KEK en staging |
 | T16 | 19 | 0 (en validación: HU-T13.4, HU-T13.5, HU-T13.6, HU-T13.7, HU-T14.1 y HU-T14.5) | Construido el 20 oct 2026. **M4 queda construido, solo en staging (D-T14):** el comercio abre su tienda desde el teléfono con Turnstile; paga su plan por 1, 3, 6 o 12 meses con el Bold de Laboratorio Digital, y si vence, la tienda sigue vendiendo por WhatsApp con lo que su plan permite, sin borrar nada; una tienda fraudulenta se suspende con un clic sin tocar a las demás; la baja borra las llaves de sus compradores, con el plazo real de 60 días (bitácora tienda3 39); la tienda se mide sin cookies y sus productos salen en los feeds de Google, Meta y los agentes. Al cerrar, la tarea de dominios colgantes tenía su resumen dañado por el shell; se corrigió. Esperan al dueño: Turnstile y sus secretos, el comodín de DNS con la marca `comodin`, el alta desde cero en staging, el reenvío de abuse@, el simulacro de suspender, el pago de prueba de 6 meses (aceptación de M4) y la lectura del abogado de los textos v4 |
 | T17 | 11 | 0 (en validación: HU-T8.6, HU-T10.2, HU-T14.4, HU-T14.6 y HU-T14.7) | Construido el 20 oct 2026. **M5 queda construido, solo en staging (D-T14):** el comercio ve su tienda antes de publicar en una vista previa de un día; escribe sus páginas propias; mide con GA4 o el píxel de Meta solo con el permiso del comprador (D-T13 ajustó el CA1, bitácora tienda3 42); ve cada semana sus métricas frente a sus pedidos; y el dueño recibe la Tienda en su reporte semanal, con el soporte que anota sin texto libre (bitácora tienda3 43). Esperan al dueño: la aceptación de M5 con el flujo «cuadrar-tienda» en staging y la primera anotación de soporte |
+| T17b | 19 | 0 (en validación: HU-T5.8 a HU-T5.15) | Construido el 20 oct 2026, con lo que pidió la validación de la vitrina. La ficha agrupa el precio y deja los envíos para el pedido; se comparte; cada combinación puede tener su foto. El comercio marca lo destacado y lo nuevo, y sube su logo, su ícono y la bienvenida de la portada. El comprador elige una categoría, busca desde la franja, ordena la lista y ve su pedido arriba. Tres premisas no se cumplían (bitácora tienda3 46). Esperan al dueño: subir el logo, el ícono y la bienvenida en staging, asignar una foto a una combinación y marcar un destacado y un nuevo |
 
 ---
 

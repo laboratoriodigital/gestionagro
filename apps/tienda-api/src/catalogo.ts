@@ -134,6 +134,8 @@ interface FilaProducto {
   retracto: string;
   retracto_motivo: string | null;
   solo_mayores: number;
+  destacado: number;
+  nuevo: number;
   iva_pct: number | null;
   seo: string;
   version: number;
@@ -152,7 +154,7 @@ interface FilaVariante {
 }
 
 const COLUMNAS_PRODUCTO =
-  'id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, iva_pct, seo, version, borrado';
+  'id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, iva_pct, seo, version, borrado';
 
 async function filaDelProducto(q: Quien, id: string) {
   return q.db
@@ -225,6 +227,8 @@ export async function leerProducto(q: Quien, id: string) {
         ? { aplica: true }
         : { aplica: false, motivo: p.retracto_motivo ?? '' },
     soloMayores: p.solo_mayores === 1,
+    destacado: p.destacado === 1,
+    nuevo: p.nuevo === 1,
     ivaPct: p.iva_pct,
     variantes: variantes.map((v) => ({
       id: v.id,
@@ -479,7 +483,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
       q.db
         .prepare(
           `UPDATE producto SET slug = ?, nombre = ?, descripcion_md = ?, estado = ?, opciones = ?, retracto = ?,
-             retracto_motivo = ?, solo_mayores = ?, iva_pct = ?, seo = ?, version = version + 1, actualizado = ?
+             retracto_motivo = ?, solo_mayores = ?, destacado = ?, nuevo = ?, iva_pct = ?, seo = ?, version = version + 1, actualizado = ?
            WHERE org_id = ? AND id = ? AND version = ? AND borrado IS NULL`,
         )
         .bind(
@@ -491,6 +495,8 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
           retracto,
           motivo,
           d.soloMayores ? 1 : 0,
+          d.destacado ? 1 : 0,
+          d.nuevo ? 1 : 0,
           d.ivaPct,
           JSON.stringify(seo),
           q.instante,
@@ -527,8 +533,8 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
       q.db
         .prepare(
           `INSERT INTO producto (org_id, id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo,
-             solo_mayores, iva_pct, posicion, creado, actualizado)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+             solo_mayores, destacado, nuevo, iva_pct, posicion, creado, actualizado)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
              (SELECT coalesce(max(posicion), -1) + 1 FROM producto WHERE org_id = ?), ?, ?)`,
         )
         .bind(
@@ -542,6 +548,8 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
           retracto,
           motivo,
           d.soloMayores ? 1 : 0,
+          d.destacado ? 1 : 0,
+          d.nuevo ? 1 : 0,
           d.ivaPct,
           q.org,
           q.instante,

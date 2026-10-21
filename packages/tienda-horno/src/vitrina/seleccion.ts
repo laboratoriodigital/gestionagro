@@ -20,6 +20,8 @@ export interface VarianteDeLaFicha {
   precioAntesCop?: number;
   /** Cuántas quedan, si son pocas. */
   quedan?: number;
+  /** HU-T5.9: el lugar de su foto en la galería, si tiene una. */
+  foto?: number;
 }
 
 export type EstadoDelBoton =

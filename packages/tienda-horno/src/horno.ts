@@ -57,6 +57,8 @@ export interface FotoParaHornear {
   anchos: readonly number[];
   /** HU-T8.3 CA2: `jpeg` si el teléfono no pudo hacer WebP (Safari). Sin decirlo, WebP. */
   formato?: 'webp' | 'jpeg';
+  /** HU-T5.9: la combinación de esta foto (su id); sin ella, es una foto general. */
+  variante?: string;
 }
 
 export interface ProductoParaHornear {
@@ -74,6 +76,8 @@ export interface ProductoParaHornear {
   /** Solo para mayores de edad (art. 52): se confirma la edad antes de agregarlo. */
   soloMayores?: boolean;
   destacado?: boolean;
+  /** HU-T5.10: lleva la etiqueta «Nuevo». */
+  nuevo?: boolean;
 }
 
 export interface ColeccionParaHornear {
@@ -126,6 +130,11 @@ export interface TiendaParaHornear {
    * el consentimiento del comprador; el píxel, solo con dominio propio.
    */
   terceros?: { ga4?: string; pixelMeta?: string; aviso?: string };
+  /** HU-T5.13: el logo de la franja y el ícono de la pestaña y de la app. */
+  logo?: FotoParaHornear;
+  icono?: FotoParaHornear;
+  /** HU-T5.14: el hero de la portada. */
+  hero?: { titulo?: string; texto?: string; imagen?: FotoParaHornear; boton?: string };
   /** HU-T10.2: las páginas propias visibles, en Markdown, cada una en `/<slug>/`. */
   paginas?: readonly PaginaParaHornear[];
 }
@@ -347,6 +356,17 @@ export async function hornear(publicada: TiendaParaHornear): Promise<Map<string,
     medidos.length > 0
       ? '\n<p><button class="enlace" type="button" data-preferencias>Tus datos de medición</button></p>'
       : '';
+  // HU-T5.13: el logo en la franja, con el nombre como texto; sin logo, el nombre. Funciones: las
+  // direcciones de las fotos se arman más abajo.
+  const ALTO_DEL_LOGO = 40;
+  const marca = () =>
+    t.logo && t.medios && t.org
+      ? `<img class="marca__logo" src="${escaparHtml(urlDeFoto(t.logo, 400))}" alt="${escaparHtml(t.nombre)}" width="${Math.max(1, Math.round((ALTO_DEL_LOGO * t.logo.ancho) / t.logo.alto))}" height="${ALTO_DEL_LOGO}">`
+      : escaparHtml(t.nombre);
+  const icono = () =>
+    t.icono && t.medios && t.org
+      ? `\n<link rel="icon" href="${escaparHtml(urlDeFoto(t.icono, 400))}">\n<link rel="apple-touch-icon" href="${escaparHtml(urlDeFoto(t.icono, 400))}">`
+      : '';
   // HU-T8.6: la vista previa también lo dice antes que nada, en cada página.
   const enVista = t.vistaPrevia
     ? '<p class="en-pruebas" role="note">Vista previa: así se verá tu tienda cuando publiques. Solo la ve quien tenga este enlace, y aquí no se puede pedir ni pagar.</p>\n'
@@ -368,7 +388,7 @@ export async function hornear(publicada: TiendaParaHornear): Promise<Map<string,
 <title>${escaparHtml(p.titulo)}</title>${descripcion}
 <link rel="canonical" href="${escaparHtml(url(p.ruta))}">
 <link rel="alternate" type="text/markdown" href="${escaparHtml(gemelo)}">
-<link rel="manifest" href="/manifest.webmanifest">
+<link rel="manifest" href="/manifest.webmanifest">${icono()}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${escaparHtml(t.nombre)}">
 <meta property="og:title" content="${escaparHtml(p.titulo)}">
@@ -378,7 +398,7 @@ export async function hornear(publicada: TiendaParaHornear): Promise<Map<string,
 ${p.ld.map(jsonLd).join('\n')}
 </head>
 <body>
-${enVista}${enPruebas}<header class="franja"><a class="marca" href="/">${escaparHtml(t.nombre)}</a><a class="franja__buscar" href="/buscar/">Buscar</a></header>
+${enVista}${enPruebas}<header class="franja"><a class="marca" href="/">${marca()}</a><form class="franja__buscar" action="/buscar/" role="search"><label class="oculto" for="q-franja">Buscar en la tienda</label><input id="q-franja" name="q" type="search" placeholder="Buscar" autocomplete="off" enterkeyhint="search"></form><a class="franja__pedido" href="/carrito/" data-pedido hidden>Pedido <span class="cifra" data-cantidad>0</span></a></header>
 <main>
 ${p.cuerpo}
 </main>
@@ -388,7 +408,6 @@ ${p.cuerpo}
 <p><a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a></p>
 <p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>${preferencias}
 </footer>${avisoDeMedicion}
-<a class="barra-pedido" href="/carrito/" data-pedido hidden>Tu pedido <span class="cifra" data-cantidad>0</span></a>
 <script type="module" src="/_t/${escaparHtml(t.release)}/vitrina.js"></script>
 </body>
 </html>
@@ -446,10 +465,14 @@ ${p.cuerpo}
     const antes = antesDe(masBarata(p));
     return antes ? ` <span class="precio__antes">Antes <s>${formatearPesos(antes)}</s></span>` : '';
   };
-  const tarjeta = (p: ProductoParaHornear, prioridad = false) =>
-    `<li class="tarjeta"><a href="/p/${escaparHtml(p.slug)}/">${fotosDeTarjeta(p, prioridad)}<span class="tarjeta__nombre">${escaparHtml(p.nombre)}</span><span class="precio">${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}${antesEnTarjeta(p)}</span>${ultimasUnidades(p) ? '<span class="tarjeta__quedan">Últimas unidades</span>' : ''}</a></li>`;
+  const tarjeta = (p: ProductoParaHornear, prioridad = false, orden = 0) =>
+    `<li class="tarjeta" data-orden="${orden}" data-nombre="${escaparHtml(p.nombre.toLowerCase())}" data-precio="${precioDesde(p)}" data-fecha="${escaparHtml(p.actualizado)}"${p.nuevo ? ' data-nuevo' : ''}><a href="/p/${escaparHtml(p.slug)}/">${fotosDeTarjeta(p, prioridad)}${p.nuevo ? '<span class="etiqueta-nuevo">Nuevo</span>' : ''}<span class="tarjeta__nombre">${escaparHtml(p.nombre)}</span><span class="precio">${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}${antesEnTarjeta(p)}</span>${ultimasUnidades(p) ? '<span class="tarjeta__quedan">Últimas unidades</span>' : ''}</a></li>`;
+  // HU-T5.12 CA2: «Ordenar por». Sin JavaScript queda escondido y la lista va en el orden
+  // recomendado; con él, ordena lo que muestra la página.
+  const ordenar =
+    '<label class="ordenar" data-ordenar hidden><span>Ordenar por</span><select><option value="recomendado">Recomendado</option><option value="nuevo">Lo más nuevo</option><option value="nombre">Nombre, de la A a la Z</option><option value="menor">Precio, de menor a mayor</option><option value="mayor">Precio, de mayor a menor</option></select></label>';
   const rejilla = (lista: readonly ProductoParaHornear[], primeraConPrioridad: boolean) =>
-    `<ul class="productos">${lista.map((p, i) => tarjeta(p, primeraConPrioridad && i === 0)).join('')}</ul>`;
+    `${lista.length > 1 ? ordenar : ''}<ul class="productos">${lista.map((p, i) => tarjeta(p, primeraConPrioridad && i === 0, i)).join('')}</ul>`;
   const lineaMd = (p: ProductoParaHornear) =>
     `- [${markdownPlano(p.nombre)}](/p/${p.slug}/): ${variaElPrecio(p) ? 'desde ' : ''}${formatearPesos(precioDesde(p))}`;
 
@@ -470,8 +493,16 @@ ${p.cuerpo}
     total <= 1
       ? ''
       : `\n${[n > 1 ? `[Anteriores](${rutaDePagina(base, n - 1)}index.md)` : '', n < total ? `[Siguientes](${rutaDePagina(base, n + 1)}index.md)` : ''].filter(Boolean).join(' · ')}\n`;
+  /**
+   * HU-T5.10 y HU-T5.12: el orden recomendado: lo destacado primero, y después el orden del
+   * comercio. El sitemap y el catálogo siguen en orden de dirección, para que no cambien solos.
+   */
+  const recomendados = [
+    ...t.productos.filter((p) => p.destacado),
+    ...t.productos.filter((p) => !p.destacado),
+  ];
   /** La portada muestra los primeros; si hay más, enlaza a todos. */
-  const enLaPortada = productos.slice(0, EN_LA_PORTADA);
+  const enLaPortada = recomendados.slice(0, EN_LA_PORTADA);
   const hayMas = productos.length > EN_LA_PORTADA;
   const verTodos = hayMas
     ? `<p class="ver-todos"><a href="/productos/">Ver los ${productos.length} productos</a></p>`
@@ -489,15 +520,41 @@ ${p.cuerpo}
     `<h1>${escaparHtml(t.nombre)}</h1>`,
     presente(t.frase) ? `<p class="frase">${escaparHtml(t.frase)}</p>` : '',
   ];
+  /** HU-T5.11: las categorías para elegir, con «Todo»; la de esta página, marcada. */
+  const categorias = (actual: string | null) =>
+    colecciones.length > 0
+      ? `<nav class="categorias" aria-label="Categorías"><a href="/"${actual === null ? ' aria-current="page"' : ''}>Todo</a>${colecciones.map((c) => `<a href="/c/${escaparHtml(c.slug)}/"${actual === c.slug ? ' aria-current="page"' : ''}>${escaparHtml(c.nombre)}</a>`).join('')}</nav>`
+      : '';
+  /**
+   * HU-T5.14: el hero de la portada, con su imagen como la más importante de la página (LCP). Con
+   * él, la portada abre así en cualquier estilo, y su botón lleva a los productos.
+   */
+  const hero = (): string | null => {
+    const h = t.hero;
+    if (!h || (!presente(h.titulo) && !presente(h.texto) && !h.imagen)) return null;
+    const titulo = presente(h.titulo) ? h.titulo : t.nombre;
+    return `<section class="hero">${h.imagen ? imagen(h.imagen, 'hero__foto', TAMANO_PORTADA, true, titulo) : ''}<div class="hero__texto"><h1>${escaparHtml(titulo)}</h1>${presente(h.texto) ? `<p>${escaparHtml(h.texto)}</p>` : ''}<a class="boton boton--principal" href="#productos">${escaparHtml(presente(h.boton) ? h.boton : 'Ver los productos')}</a></div></section>`;
+  };
   const cuerpoDeLaPortada = (): string[] => {
     if (productos.length === 0) {
       return [...encabezado, '<p class="estado">Esta tienda todavía no tiene productos.</p>'];
+    }
+    const conHero = hero();
+    if (conHero) {
+      return [
+        conHero,
+        '<h2 id="productos">Productos</h2>',
+        categorias(null),
+        rejilla(enLaPortada, false),
+        verTodos,
+      ];
     }
     if (t.apariencia.portada === 'editorial') {
       const grande = productos.find((p) => p.destacado) ?? (productos[0] as ProductoParaHornear);
       const resto = enLaPortada.filter((p) => p !== grande);
       return [
         `<section class="portada-editorial"><a class="portada-editorial__producto" href="/p/${escaparHtml(grande.slug)}/">${imagen(grande.fotos?.[0], 'portada-editorial__foto', TAMANO_PORTADA, true, grande.nombre)}<div class="portada-editorial__texto">${encabezado.filter(Boolean).join('')}<span class="portada-editorial__ver">Ver ${escaparHtml(grande.nombre)}</span></div></a></section>`,
+        categorias(null),
         ...(resto.length > 0 ? ['<h2>Más productos</h2>', rejilla(resto, false)] : []),
         verTodos,
       ];
@@ -516,7 +573,7 @@ ${p.cuerpo}
         verTodos,
       ];
     }
-    return [...encabezado, rejilla(enLaPortada, true), verTodos];
+    return [...encabezado, categorias(null), rejilla(enLaPortada, true), verTodos];
   };
 
   // La portada.
@@ -564,15 +621,13 @@ ${p.cuerpo}
    * y si es solo para mayores de edad. En HTML y en el gemelo, con las mismas palabras.
    */
   const envios = t.legal?.envios ?? [];
+  // HU-T5.8 CA2: la ficha no repite los envíos; se eligen en el pedido, con su costo y su plazo
+  // (Ley 1480 art. 50: antes de pagar), y la ficha enlaza «Envíos y devoluciones».
   const condiciones = (p: ProductoParaHornear): string[] => {
-    const plazo = (e: (typeof envios)[number]) => plazoDelEnvio(e.diasMin, e.diasMax);
     return [
-      ...(envios.length > 0
-        ? envios.map(
-            (e) =>
-              `Envío ${e.nombre}: ${e.precioCop === 0 ? 'gratis' : formatearPesos(e.precioCop)}${e.gratisDesdeCop !== null && e.precioCop > 0 ? `, gratis desde ${formatearPesos(e.gratisDesdeCop)}` : ''}; ${plazo(e)}.`,
-          )
-        : ['El envío, su costo y su plazo los acuerdas con la tienda antes de pagar.']),
+      envios.length > 0
+        ? 'El envío lo eliges en tu pedido, con su costo y su plazo.'
+        : 'El envío, su costo y su plazo los acuerdas con la tienda antes de pagar.',
       p.retracto?.aplica === false
         ? `No admite retracto: ${p.retracto.motivo}.`
         : 'Puedes retractarte de la compra en los 5 días hábiles siguientes a recibirla.',
@@ -598,6 +653,10 @@ ${p.cuerpo}
         disponible: disponible(v),
         ...(antesDe(v) ? { precioAntesCop: antesDe(v) as number } : {}),
         ...(quedanDe(v) ? { quedan: quedanDe(v) as number } : {}),
+        // HU-T5.9: la foto de esta combinación, por su lugar en la galería.
+        ...((p.fotos ?? []).findIndex((f) => f.variante === v.id) >= 0
+          ? { foto: (p.fotos ?? []).findIndex((f) => f.variante === v.id) }
+          : {}),
       }));
     const inicial = estadoDeLaEleccion(p.opciones, variantes, {});
     const antesInicial =
@@ -633,12 +692,18 @@ ${p.cuerpo}
       `<article class="ficha"${p.soloMayores ? ' data-solo-mayores' : ''}>`,
       galeria,
       '<div class="ficha__datos">',
+      p.nuevo ? '<p class="etiqueta-nuevo">Nuevo</p>' : '',
       `<h1>${escaparHtml(p.nombre)}</h1>`,
+      // HU-T5.8 CA1: el precio, el de antes, las existencias y la nota, en un bloque.
+      '<div class="ficha__precio">',
       `<p class="precio" data-precio>${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}</p>`,
       `<p class="precio__antes" data-antes${antesInicial ? '' : ' hidden'}>Antes <s>${antesInicial ? formatearPesos(antesInicial) : ''}</s></p>`,
       `<p class="quedan" data-quedan${quedanInicial ? '' : ' hidden'}>${quedanInicial ? (quedanInicial === 1 ? 'Queda 1' : `Quedan ${quedanInicial}`) : ''}</p>`,
       `<p class="precio__nota">${notaDelPrecio}</p>`,
+      '</div>',
       `<form class="eleccion" data-eleccion>${grupos}${mayoria}<div class="avisame" data-avisame hidden><p>Esta combinación está agotada.</p><button class="boton boton--secundario" type="button" data-avisame-boton>Avísame cuando haya</button><p class="aviso" data-avisame-estado role="status" hidden></p></div><p class="aviso" data-aviso role="status" hidden></p><button class="boton boton--principal" type="submit" data-boton aria-disabled="${inicial.tipo !== 'lista'}">${escaparHtml(inicial.texto)}</button></form>`,
+      // HU-T5.8 CA3: compartir. Sin JavaScript, el enlace de WhatsApp; con él, el menú del teléfono.
+      `<p class="compartir"><a class="boton boton--secundario" href="https://wa.me/?text=${encodeURIComponent(`${p.nombre} ${url(`/p/${p.slug}/`)}`)}" target="_blank" rel="noopener" data-compartir="${escaparHtml(url(`/p/${p.slug}/`))}" data-compartir-titulo="${escaparHtml(p.nombre)}">Compartir</a></p>`,
       `<ul class="condiciones">${condiciones(p)
         .map((c) => `<li>${escaparHtml(c)}</li>`)
         .join(
@@ -722,7 +787,7 @@ ${p.cuerpo}
   }
 
   // Todos los productos, en páginas, cuando no caben en la portada.
-  const todos = enPaginas(productos);
+  const todos = enPaginas(recomendados);
   if (hayMas) {
     todos.forEach((lista, k) => {
       const n = k + 1;
@@ -745,7 +810,13 @@ ${p.cuerpo}
   // Las colecciones, en páginas si son largas.
   const paginasDeColeccion: string[] = [];
   for (const c of [...(t.colecciones ?? [])].sort((a, b) => (a.slug < b.slug ? -1 : 1))) {
-    const suyos = productos.filter((p) => c.productos.includes(p.slug));
+    // HU-T5.10: en su colección, lo destacado primero y después el orden de la colección.
+    const porSlug = new Map(productos.map((p) => [p.slug, p]));
+    const enOrden = c.productos.flatMap((slug) => {
+      const p = porSlug.get(slug);
+      return p ? [p] : [];
+    });
+    const suyos = [...enOrden.filter((p) => p.destacado), ...enOrden.filter((p) => !p.destacado)];
     const base = `/c/${c.slug}/`;
     const paginas = enPaginas(suyos);
     paginas.forEach((lista, k) => {
@@ -754,7 +825,7 @@ ${p.cuerpo}
       pagina({
         ruta: rutaDePagina(base, n),
         titulo: `${c.nombre}${n > 1 ? `, página ${n}` : ''} · ${t.nombre}`,
-        cuerpo: `<h1>${escaparHtml(c.nombre)}</h1>\n${rejilla(lista, true)}${paginas.length > 1 ? `\n${navegacion(base, n, paginas.length)}` : ''}`,
+        cuerpo: `<h1>${escaparHtml(c.nombre)}</h1>\n${categorias(c.slug)}\n${rejilla(lista, true)}${paginas.length > 1 ? `\n${navegacion(base, n, paginas.length)}` : ''}`,
         ld: [
           migas([
             [t.nombre, '/'],
@@ -1075,6 +1146,16 @@ ${p.cuerpo}
     manifiestoWeb({
       nombre: t.nombre,
       ...(presente(t.frase) ? { frase: t.frase } : {}),
+      // HU-T5.13: el ícono de la app, el mismo de la pestaña.
+      ...(t.icono && t.medios && t.org
+        ? {
+            icono: {
+              src: urlDeFoto(t.icono, 400),
+              tamano: `400x${Math.round((400 * t.icono.alto) / t.icono.ancho)}`,
+              tipo: t.icono.formato === 'jpeg' ? 'image/jpeg' : 'image/webp',
+            },
+          }
+        : {}),
       color: t.apariencia.modo === 'oscuro' ? colores.oscuro.acento : colores.claro.acento,
       fondo: fondoDelTema(t.apariencia),
     }),

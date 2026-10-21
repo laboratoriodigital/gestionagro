@@ -107,7 +107,7 @@ export function Productos({
             Nuevo producto
           </a>
           <a class="ed1-boton ed1-boton--secundario" href="/productos/colecciones/">
-            Colecciones
+            Categorías
           </a>
           <a class="ed1-boton ed1-boton--secundario" href="/productos/inventario/">
             Inventario

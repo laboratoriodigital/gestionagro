@@ -103,7 +103,7 @@ export function Colecciones({
       <p>
         <a href="/productos/">Productos</a>
       </p>
-      <h1>Colecciones</h1>
+      <h1>Categorías</h1>
       <p class="nota">
         Agrupa tus productos: «Lino», «Nuevos», «Para regalar». Un producto puede estar en varias.
       </p>
@@ -112,14 +112,14 @@ export function Colecciones({
           {aviso}
         </Aviso>
       ) : null}
-      {lectura.tipo === 'cargando' ? <p role="status">Cargando las colecciones…</p> : null}
+      {lectura.tipo === 'cargando' ? <p role="status">Cargando las categorías…</p> : null}
       {lectura.tipo === 'error' ? (
-        <Aviso tono="peligro" titulo="No pudimos leer las colecciones">
+        <Aviso tono="peligro" titulo="No pudimos leer las categorías">
           {lectura.motivo}
         </Aviso>
       ) : null}
       {lectura.tipo === 'listo' && colecciones.length === 0 ? (
-        <p>Todavía no tienes colecciones. Crea la primera aquí abajo.</p>
+        <p>Todavía no tienes categorías. Crea la primera aquí abajo.</p>
       ) : null}
       <ol class="colecciones">
         {colecciones.map((c, i) => (
@@ -154,7 +154,7 @@ export function Colecciones({
         <ResumenDeErrores errores={errores} />
         <div class={`ed1-campo${errores.length ? ' ed1-campo--con-error' : ''}`}>
           <label class="ed1-campo__etiqueta" for="nueva-coleccion">
-            Nombre de la colección nueva
+            Nombre de la categoría nueva
           </label>
           <input
             class="ed1-campo__control"
@@ -166,7 +166,7 @@ export function Colecciones({
           />
         </div>
         <button class="ed1-boton ed1-boton--primario" type="submit">
-          Crear colección
+          Crear categoría
         </button>
       </form>
     </main>
@@ -259,7 +259,7 @@ export function Coleccion({
     if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
     if (r.tipo === 'ok') {
       setErrores([]);
-      setAviso({ tono: 'exito', texto: 'Colección guardada.' });
+      setAviso({ tono: 'exito', texto: 'Categoría guardada.' });
       await cargar();
       return;
     }
@@ -287,18 +287,18 @@ export function Coleccion({
   if (lectura.tipo === 'cargando')
     return (
       <main class="contenido" role="status">
-        Cargando la colección…
+        Cargando la categoría…
       </main>
     );
   if (lectura.tipo === 'error' || !actual)
     return (
       <main class="contenido">
-        <h1>Colección</h1>
-        <Aviso tono="peligro" titulo="No pudimos abrir la colección">
-          {lectura.tipo === 'error' ? lectura.motivo : 'Esa colección ya no está.'}
+        <h1>Categoría</h1>
+        <Aviso tono="peligro" titulo="No pudimos abrir la categoría">
+          {lectura.tipo === 'error' ? lectura.motivo : 'Esa categoría ya no está.'}
         </Aviso>
         <p>
-          <a href="/productos/colecciones/">Volver a colecciones</a>
+          <a href="/productos/colecciones/">Volver a categorías</a>
         </p>
       </main>
     );
@@ -306,7 +306,7 @@ export function Coleccion({
   return (
     <main class="contenido">
       <p>
-        <a href="/productos/colecciones/">Colecciones</a>
+        <a href="/productos/colecciones/">Categorías</a>
       </p>
       <h1>{actual.nombre}</h1>
       {aviso ? (
@@ -340,7 +340,7 @@ export function Coleccion({
         <fieldset class="ed1-grupo">
           <legend class="ed1-grupo__titulo">Productos en «{actual.nombre}»</legend>
           {vistos.length === 0 ? (
-            <p>Esta colección todavía no tiene productos. Búscalos aquí abajo para agregarlos.</p>
+            <p>Esta categoría todavía no tiene productos. Búscalos aquí abajo para agregarlos.</p>
           ) : null}
           {vistos.map((p) => (
             <Casilla
@@ -353,7 +353,7 @@ export function Coleccion({
           {sinVer > 0 ? (
             <p class="nota">
               {cuantosSeVen(vistos.length, vistos.length + sinVer)} Los que no se ven siguen en la
-              colección.
+              categoría.
             </p>
           ) : null}
           {siguiente !== null ? (
@@ -395,13 +395,13 @@ export function Coleccion({
           </fieldset>
         ) : null}
         <button class="ed1-boton ed1-boton--primario" type="submit">
-          Guardar colección
+          Guardar categoría
         </button>
       </form>
       <Confirmar
-        abrir="Borrar la colección"
+        abrir="Borrar la categoría"
         consecuencia={`Se borra «${actual.nombre}». Sus productos siguen en la tienda.`}
-        confirmar="Sí, borrar la colección"
+        confirmar="Sí, borrar la categoría"
         alConfirmar={borrar}
       />
     </main>
