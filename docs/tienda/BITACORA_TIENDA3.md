@@ -1239,3 +1239,22 @@ La regla: **un serializador que quita lo vacío no sirve para datos donde lo vac
 La regla: **un campo del esquema que ningún formulario llena no está probado; antes de construir sobre él, se lee qué guarda de verdad.**
 
 *Ficha:* tienda3 · *(dueño y mío)* · 🟡 Bajo · P1, P2 · tienda-0.1.0 · 2026-10-20
+
+**47 · Buscar al escribir pedía el catálogo, y el catálogo no tenía fotos.**
+
+*Qué pasó.* El 21 oct 2026 el dueño pidió tres cambios a la vitrina, con atoms.com como referencia (sprint T17c): que buscar muestre las coincidencias al escribir; que el campo baje debajo de «Productos», encima de las categorías y junto a «Ordenar por»; y que la bienvenida vaya de lado a lado, con el botón dentro de la foto.
+
+*Premisas que se revisaron.*
+- Buscar en la vitrina no pide nada al servidor por cada letra (HU-T5.3 CA3): busca sobre `catalogo.json`. Ese archivo no tenía fotos, y una coincidencia sin foto no se reconoce. Ahora lleva la derivada más pequeña de cada producto (400 px). Con 2.000 productos son unos 240 KB más sin comprimir, así que el catálogo ya no se pide al abrir la página: se pide al tocar el campo, una sola vez. La portada pesa lo mismo y los presupuestos e2e siguen en verde.
+- «De lado a lado» con `100vw` cuenta la barra de desplazamiento del computador y abre un desplazamiento de lado. El cuerpo lleva `overflow-x: clip`, que no rompe la franja fija (`hidden` sí la rompería).
+- «El botón de tienda prueba staging» se leyó como el botón de la bienvenida de la tienda de pruebas. La franja «Tienda en pruebas» de arriba no se movió: avisa en cada página que los pagos no cobran de verdad (HU-T11.3 CA2), y dentro de la foto solo se vería en la portada.
+
+*Lo que encontraron las pruebas.*
+- En la e2e, `getByRole('option')` contaba también las cinco opciones de «Ordenar por». Las coincidencias se buscan dentro de su lista, por su nombre.
+- La prueba de la bienvenida de T17b comparaba la posición de `<section class="hero">` con la de la lista sin exigir que existiera: `-1` siempre es menor. Ahora exige encontrarla.
+
+**Lo prueban** `tienda-vitrina-t17b.test.ts` (5 casos nuevos y 3 ajustados), `vitrina.test.ts` (el orden de las coincidencias), `publicar.test.ts` y una e2e nueva de la vitrina; las 31 e2e de la vitrina y sus presupuestos, en verde.
+
+La regla: **una prueba que compara posiciones exige primero que lo buscado exista.**
+
+*Ficha:* tienda3 · *(dueño y mío)* · 🟢 Bajo · P1, P2 · tienda-0.1.0 · 2026-10-21
