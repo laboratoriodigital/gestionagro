@@ -44,6 +44,8 @@ export interface Yo {
   plan: string | null;
   /** HU-T13.5: hasta cuándo dura el plan, con la gracia; null si no vence. */
   planVence?: string | null;
+  /** HU-T14.4: la dirección principal es el dominio propio, y el plan lo incluye. */
+  dominioPropio?: boolean;
   funciones: Record<string, ValorDeFuncion> | null;
   tienda: { slug: string; nombre: string; estado: string } | null;
   /** HU-T7.2: si la tienda aceptó los términos vigentes. */

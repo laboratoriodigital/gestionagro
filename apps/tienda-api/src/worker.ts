@@ -97,6 +97,7 @@ import { iniciarCobro, PeticionDeCobro } from './cobros.ts';
 import { estadoDelCobro, PeticionDeEstadoDelCobro } from './conciliar.ts';
 import { correosDeLaCelda, mandarAcuse, mandarResultadoDePrueba } from './correos.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
+import { cuadrarTiendas, ventanaDeLaSemana } from './cuadre.ts';
 import {
   conectarDominio,
   elegirCanonico,
@@ -127,6 +128,7 @@ import {
 } from './llaves.ts';
 import { comprobarIdentidad, guardarLlaves, leerElCobro, probarLlaves } from './llaves-de-bold.ts';
 import { type BucketDeFotos, quitarFoto, subirFoto } from './medios.ts';
+import { borrarPagina, guardarPagina, listarPaginas } from './paginas.ts';
 import {
   cerrarSolicitud,
   listarSolicitudes,
@@ -141,6 +143,7 @@ import {
   seguimiento,
   sha256,
 } from './pedidos.ts';
+import { limitesDeLaTienda } from './plan.ts';
 import {
   type Almacen,
   type EscritorKv,
@@ -149,6 +152,7 @@ import {
   type Resultado,
   rehornearExistencias,
   vencerLasCortadas,
+  vistaPrevia,
   volverA,
 } from './publicar.ts';
 import { enFrase, leerRegistro } from './registro.ts';
@@ -161,6 +165,7 @@ import {
   radicar,
   seguirSolicitud,
 } from './solicitudes.ts';
+import { anotarSoporte } from './soporte.ts';
 import { cambiarSuspension } from './suspension.ts';
 import { despachar, estadoDeLasTareas, type KvDeTareas, TAREAS } from './tareas.ts';
 import {
@@ -1052,12 +1057,23 @@ export function crearApp(
       .prepare('SELECT slug, nombre, estado FROM tienda WHERE org_id = ?')
       .bind(s.org)
       .first<{ slug: string; nombre: string; estado: string }>();
+    // HU-T14.4 CA3: el píxel de Meta solo se ofrece con el dominio propio como dirección principal.
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    const canonica = control
+      ? await control
+          .prepare(
+            "SELECT tipo FROM dominio INDEXED BY dominio_por_tienda WHERE org_id = ? AND estado = 'activo' AND rol = 'canonico'",
+          )
+          .bind(s.org)
+          .first<{ tipo: string }>()
+      : null;
     // HU-T8.1 CA1: lo que permite el plan, para que el panel esconda lo que no hay. Lo decide la API.
     return c.json({
       org: s.org,
       rol: s.rol,
       plan: s.plan,
       planVence: s.planVence === null ? null : new Date(s.planVence * 1000).toISOString(),
+      dominioPropio: canonica?.tipo === 'propio' && limitesDeLaTienda(s.plan).dominioPropio,
       funciones: s.plan ? funcionesDelPlan(funciones as unknown as FuncionesPorPlan, s.plan) : null,
       tienda: tienda ?? null,
       // HU-T7.2 CA1: si falta aceptar los términos vigentes, el panel los pide antes de seguir.
@@ -1260,6 +1276,28 @@ export function crearApp(
     // HU-T13.5: se publica con el plan del token.
     await guardarElPlan(s.db, s.org, s.plan, s.planVence);
     return responder(c, await publicar(ctx));
+  });
+
+  // HU-T8.6: la vista previa, con el mismo permiso de publicar; no publica nada.
+  app.post('/api/panel/v1/vista-previa', async (c) => {
+    const s = c.get('sesion');
+    const decision = decidir(s.rol, 'publicar', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido')
+      return c.json({ estado: decision, motivo: 'Tu rol no puede ver la vista previa.' }, 403);
+    if (await hornoApagado(c)) {
+      return c.json(
+        { estado: 'apagado', motivo: 'La vista previa está en pausa unos minutos.' },
+        503,
+      );
+    }
+    const ctx = contextoDePublicacion(c, s.org, s.shard, `usuario:${s.usuario}`);
+    if (!ctx) return c.json({ estado: 'sin-configurar' }, 503);
+    await guardarElPlan(s.db, s.org, s.plan, s.planVence);
+    const r = await vistaPrevia(ctx);
+    if (r.estado === 'lista') return c.json(r);
+    if (r.estado === 'muy-grande') return c.json(r, 413);
+    console.error(`tienda-api: la vista previa falló (${r.motivo})`);
+    return c.json({ estado: 'fallida', motivo: 'No pudimos preparar la vista previa ahora.' }, 500);
   });
 
   // HU-T10.4: las versiones y «Volver a esta», con el permiso `publicar`. Volver mueve el puntero
@@ -1864,6 +1902,22 @@ export function crearApp(
     cambioDelPedido('cupones.editar', borrarCupon, deCupones),
   );
 
+  // HU-T10.2: las páginas propias. Salen en la tienda al publicar.
+  app.get('/api/panel/v1/paginas', async (c) => {
+    const q = quienPuede(c, 'paginas.editar', 'Tu rol no puede ver las páginas.');
+    if (q instanceof Response) return q;
+    return c.json(await listarPaginas(q));
+  });
+  const dePaginas = 'Tu rol no puede cambiar las páginas.';
+  app.post(
+    '/api/panel/v1/paginas/guardar',
+    cambioDelPedido('paginas.editar', guardarPagina, dePaginas),
+  );
+  app.post(
+    '/api/panel/v1/paginas/borrar',
+    cambioDelPedido('paginas.editar', borrarPagina, dePaginas),
+  );
+
   // HU-T10.3: los ajustes por sección. Lo que pide cada cambio lo decide `accionesDeAjuste`.
   app.get('/api/panel/v1/ajustes', async (c) => {
     const q = quienPuede(c, 'ajustes.editar', 'Tu rol no puede ver los ajustes.');
@@ -2129,6 +2183,55 @@ export function crearApp(
   });
 
   /**
+   * HU-T14.6: cuadrar la semana de una tienda ahora, sin esperar su turno. Lo usa el flujo
+   * `cuadrar-tienda`: staging no tiene cron (D-T10). Responde solo cifras, nunca datos de nadie.
+   */
+  app.post('/api/despliegue/cuadre', async (c) => {
+    const dado = c.req.header('x-despliegue');
+    if (!dado || !mismoSecreto(c.env.SECRETO_DESPACHO ?? '', dado)) return c.json(NO_EXISTE, 404);
+    const cuerpo = (await c.req.json().catch(() => null)) as { org?: unknown } | null;
+    if (typeof cuerpo?.org !== 'string')
+      return c.json({ estado: 'problemas', motivo: 'falta la tienda' }, 422);
+    const { CF_METRICAS_TOKEN: token, CF_CUENTA: cuenta } = c.env;
+    if (!token || !cuenta) return c.json({ estado: 'sin-configurar', motivo: 'sin métricas' }, 503);
+    const shards = Object.entries(c.env).filter(([n, b]) => SHARD.test(n) && b) as [
+      string,
+      BaseD1,
+    ][];
+    for (const [, db] of shards) {
+      const suya = await db
+        .prepare('SELECT 1 AS si FROM tienda WHERE org_id = ?')
+        .bind(cuerpo.org)
+        .first<{ si: number }>();
+      if (!suya) continue;
+      const [hecho] = await cuadrarTiendas(
+        db,
+        [cuerpo.org],
+        {
+          token,
+          cuenta,
+          dataset: c.env.AMBIENTE === 'staging' ? 'tienda_eventos_staging' : 'tienda_eventos',
+          fetch: (u, i) => fetch(u, i),
+        },
+        ahora(),
+      );
+      return c.json({ estado: 'cuadrado', semana: ventanaDeLaSemana(ahora()).semana, ...hecho });
+    }
+    return c.json(NO_EXISTE, 404);
+  });
+
+  /** HU-T14.7: el dueño anota una atención de soporte (el flujo `anotar-soporte-tienda`). */
+  app.post('/api/despliegue/soporte', async (c) => {
+    const dado = c.req.header('x-despliegue');
+    if (!dado || !mismoSecreto(c.env.SECRETO_DESPACHO ?? '', dado)) return c.json(NO_EXISTE, 404);
+    const control = c.env[CONTROL] as BaseD1 | undefined;
+    if (!control) return c.json({ estado: 'sin-configurar' }, 503);
+    const r = await anotarSoporte(control, await c.req.json().catch(() => null), ahora());
+    if (r.estado === 'anotado') return c.json(r);
+    return c.json(r, r.estado === 'no-existe' ? 404 : 422);
+  });
+
+  /**
    * HU-T13.6: suspender o levantar una tienda, con un clic del operador (el flujo
    * `suspender-tienda`), con el secreto del despacho en `x-despliegue`.
    */
@@ -2209,6 +2312,8 @@ export async function alCron(env: Env, instante: number): Promise<void> {
       ...(env.SITIOS ? { almacen: env.SITIOS as unknown as AlmacenDeRespaldos } : {}),
       ...(env.MEDIOS ? { medios: env.MEDIOS } : {}),
       ...(env.VITRINA_RELEASE ? { release: env.VITRINA_RELEASE } : {}),
+      // HU-T14.6: el dataset de la medición, el mismo que `generar-wrangler.ts` enlaza.
+      datasetDeEventos: env.AMBIENTE === 'staging' ? 'tienda_eventos_staging' : 'tienda_eventos',
     },
     instante,
     TAREAS,

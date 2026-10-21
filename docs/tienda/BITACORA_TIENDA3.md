@@ -1143,6 +1143,50 @@ La regla: **lo que vuelve a la vista pasa por la compuerta; lo que se oculta no 
 - `comodin` acepta `"staging"`: la celda lo lleva así, y producción no recibe el comodín hasta lanzar (D-T14).
 - Al cambiar la caja de la verificación, un `id="turnstile"` volvía el elemento `window.turnstile` y tapaba el programa. La prueba e2e lo atrapó; ahora es `id="verificacion"`.
 
+*Después del arreglo (20 oct 2026, PR #214).* Con el despliegue, la casilla apareció y las fotos de staging siguen viéndose. La casilla mostró «Código de error: 110200»: es «dominio no permitido», el panel de staging no estaba en la lista de dominios del widget. Se arregla en Cloudflare, sin desplegar; el runbook lo dice. Con el dominio agregado, el dueño abrió una tienda nueva desde el panel de staging.
+
 La regla: **un secreto guardado no está en producción hasta el siguiente despliegue; y una ruta comodín se revisa contra cada dirección que ya existe en la zona.**
 
 *Ficha:* tienda3 · *(dueño y mío)* · 🟠 Medio · P1, P2 · tienda-0.1.0 · 2026-10-20
+
+**42 · El CA1 de GA4 y el píxel decía «solo con dominio propio»; la decisión del dueño, otra cosa.**
+
+*Qué pasó.* El 20 oct 2026, al construir HU-T14.4, contrasté su CA1 («solo con dominio propio») con D-T13, decidida el 13 oct.
+
+*Causa raíz.* La historia se refinó antes de la decisión. D-T13 separa a los dos: GA4 deja su cookie en la dirección exacta de la tienda, así que una tienda en `laboratorio-digital.app` no comparte al comprador con otra; la cookie del píxel de Meta no se puede limitar así.
+
+*Arreglo.* Se construyó con D-T13: GA4 también en la dirección de la plataforma, con `cookie_domain`; Meta solo con dominio propio, en el panel, el horno y la CSP del despacho. Los dos, solo después de que el comprador acepta.
+
+*Otra premisa.* «El consentimiento se guarda con su versión»: se guarda en el teléfono del comprador, no en la base. La tienda no sabe quién visita, y guardarlo en la base pediría un identificador del visitante, que es lo que el aviso protege. Si el aviso cambia de versión, se vuelve a preguntar.
+
+La regla: **cuando una decisión del dueño es posterior al criterio, gana la decisión, y el criterio se corrige en el backlog.**
+
+*Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P1 · tienda-0.1.0 · 2026-10-20
+
+**43 · «El soporte que anota el dueño» no tenía dónde anotarse, y en el repo no puede ir.**
+
+*Qué pasó.* El 20 oct 2026, al construir HU-T14.7, busqué la fuente de la métrica «soporte por comercio» de HU-T0.3: «la hoja de soporte del dueño».
+
+*Causa raíz.* La hoja no existía, y el repositorio es público mientras se construye: un archivo con las tiendas y los minutos de cada una sería información de negocio a la vista. Un renglón con notas libres, además, terminaría con nombres y celulares de los comercios o de sus compradores.
+
+*Arreglo.* La tabla `soporte` de la base de control (la 0003 de control) guarda la tienda, el día, los minutos y un tema de una lista, sin texto libre. El dueño la llena con el flujo «anotar-soporte-tienda», y el reporte semanal solo suma: minutos por semana y por comercio. `validacion.json` nombra la nueva fuente.
+
+*Otra premisa.* La aceptación de M5 pide ver la diferencia de eventos «con los comercios de prueba», y eso es en staging, que no tiene cron (D-T10). El flujo «cuadrar-tienda» cuadra una tienda al momento, con el secreto del despacho.
+
+La regla: **antes de medir algo que «anota alguien», se construye dónde anotarlo; y si es a mano, sin texto libre.**
+
+*Ficha:* tienda3 · *(mío)* · 🟢 Bajo · P1, P13 · tienda-0.1.0 · 2026-10-20
+
+**44 · Vaciar el pedido y que el producto vuelva: una respuesta del total llegó tarde.**
+
+*Qué pasó.* El 20 oct 2026 el CI del PR #215 falló en la e2e de la bitácora 36 («un pago cerrado sin pagarse no deja el carrito atascado»): después de «Vaciar el pedido», la pantalla quedaba vacía pero el teléfono seguía guardando la camisa. En local pasaba.
+
+*Causa raíz.* El carrito confirma el total con `/api/v1/cotizar` en segundo plano. Si esa respuesta llega después de vaciar, `aplicar` compara las líneas que dice el servidor con las del pedido de ahora (vacío), ve una diferencia y «corrige» el pedido con las del servidor: devuelve lo que el comprador quitó. La máquina del CI fue más lenta y la respuesta llegó tarde.
+
+*Arreglo.* La confirmación recuerda el pedido que preguntó; si al llegar la respuesta el pedido ya es otro (otro código u otras líneas), la descarta. Si el pedido cambió, se pide otro total.
+
+**Lo prueba** una e2e nueva que demora el total a propósito hasta después de vaciar. Falla sin el arreglo y pasa con él.
+
+La regla: **una respuesta que llega tarde se compara con lo que se preguntó, no con lo que hay ahora.**
+
+*Ficha:* tienda3 · *(mío)* · 🟠 Medio · P1 · tienda-0.1.0 · 2026-10-20

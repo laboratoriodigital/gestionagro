@@ -4,8 +4,10 @@
  * página carga de verdad. Sin nada en línea ni de terceros: el JavaScript, la hoja y las fuentes son
  * del mismo origen, y las fotos, de su host (`MEDIOS`, HU-T5.6).
  *
- * Cuando una tienda con dominio propio mida con GA4 o Meta (D-T13), sus orígenes se suman aquí, por
- * tienda, y la prueba lo exige igual.
+ * HU-T14.4 (D-T13): cuando una tienda mide con GA4 o con el píxel de Meta, sus orígenes se suman
+ * aquí, solo para esa tienda (`terceros`, del manifiesto de su versión). El de Meta, nunca en una
+ * dirección de la plataforma: su cookie compartiría al comprador entre tiendas. Los programas solo
+ * cargan después de que el comprador acepta; la CSP es lo que nunca deja pasar lo demás.
  *
  * El carrito (`/carrito/`) es la única página que deja cargar algo de afuera: el programa de Bold,
  * que la isla carga solo al tocar «Pagar en línea», y su pago embebido en un marco (HU-T11.4,
@@ -19,15 +21,56 @@
 export const ORIGEN_DE_BOLD = 'https://checkout.bold.co';
 export const RUTA_DEL_PAGO = '/carrito/';
 
-export function cspDeLaVitrina(medios: string | undefined, ruta?: string): string {
+export type Tercero = 'ga4' | 'meta';
+/** Lo que cada uno carga, pide y pinta. */
+export const ORIGENES_DE_TERCEROS: Readonly<
+  Record<Tercero, { script: string[]; connect: string[]; img: string[] }>
+> = {
+  ga4: {
+    script: ['https://www.googletagmanager.com'],
+    connect: [
+      'https://www.googletagmanager.com',
+      'https://*.google-analytics.com',
+      'https://*.analytics.google.com',
+    ],
+    img: ['https://www.googletagmanager.com', 'https://*.google-analytics.com'],
+  },
+  meta: {
+    script: ['https://connect.facebook.net'],
+    connect: ['https://connect.facebook.net', 'https://www.facebook.com'],
+    img: ['https://www.facebook.com'],
+  },
+};
+export const ZONA_DE_LA_PLATAFORMA = 'laboratorio-digital.app';
+export const esDeLaPlataforma = (host: string): boolean =>
+  host === ZONA_DE_LA_PLATAFORMA || host.endsWith(`.${ZONA_DE_LA_PLATAFORMA}`);
+
+/** Los terceros que una dirección deja medir: Meta nunca en una de la plataforma (D-T13). */
+export const tercerosDeLaDireccion = (
+  terceros: readonly Tercero[] | undefined,
+  host: string,
+): Tercero[] =>
+  [...new Set(terceros ?? [])].filter(
+    (t) => t === 'ga4' || (t === 'meta' && !esDeLaPlataforma(host)),
+  );
+
+const de = (terceros: readonly Tercero[], tipo: 'script' | 'connect' | 'img') =>
+  terceros.flatMap((t) => ORIGENES_DE_TERCEROS[t][tipo]);
+const lista = (o: string[]) => (o.length > 0 ? ` ${o.join(' ')}` : '');
+
+export function cspDeLaVitrina(
+  medios: string | undefined,
+  ruta?: string,
+  terceros: readonly Tercero[] = [],
+): string {
   const pago = ruta === RUTA_DEL_PAGO;
   return [
     "default-src 'self'",
-    `img-src 'self'${medios ? ` https://${medios}` : ''} data:`,
+    `img-src 'self'${medios ? ` https://${medios}` : ''} data:${lista(de(terceros, 'img'))}`,
     `style-src 'self'${pago ? " 'unsafe-inline'" : ''}`,
-    `script-src 'self'${pago ? ` ${ORIGEN_DE_BOLD}` : ''}`,
+    `script-src 'self'${pago ? ` ${ORIGEN_DE_BOLD}` : ''}${lista(de(terceros, 'script'))}`,
     ...(pago ? [`frame-src ${ORIGEN_DE_BOLD}`] : []),
-    "connect-src 'self'",
+    `connect-src 'self'${lista(de(terceros, 'connect'))}`,
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'self'",

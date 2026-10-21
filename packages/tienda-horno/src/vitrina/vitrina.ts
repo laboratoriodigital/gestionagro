@@ -34,6 +34,7 @@ import {
   unidades,
   vaciar,
 } from './carrito.ts';
+import { iniciarConsentimiento, medirCompra } from './consentimiento.ts';
 import { contar } from './medicion.ts';
 import {
   estadoDeLaEleccion,
@@ -429,7 +430,15 @@ async function carritoPagina(): Promise<void> {
     totalVisto = r.total;
   };
   const confirmar = async () => {
+    const pedido = carrito;
     const r = await cotizarEnLaTienda(carrito, totalVisto, elegido('envio'));
+    // Bitácora tienda3 44: una respuesta que llega después de vaciar o cambiar el pedido es de otro
+    // pedido; aplicarla devolvería lo que el comprador ya quitó.
+    if (
+      carrito.codigo !== pedido.codigo ||
+      JSON.stringify(carrito.lineas) !== JSON.stringify(pedido.lineas)
+    )
+      return;
     const nota = resumen.querySelector<HTMLElement>('[data-nota]');
     if (!r) {
       decir(nota, 'No pudimos confirmar el total ahora. Lo confirmamos antes de enviar tu pedido.');
@@ -658,6 +667,8 @@ async function carritoPagina(): Promise<void> {
         carrito = vaciar(azar);
         guardar(carrito);
         contar('iniciar_pedido');
+        // HU-T14.4: la compra, con su código, solo si el comprador aceptó medir.
+        medirCompra(cuerpo.codigo, totalVisto);
         location.assign(`/pedido/#c=${cuerpo.codigo}&s=${secreto}`);
         return;
       }
@@ -816,6 +827,8 @@ async function alVolverDelPago(): Promise<void> {
   const v = vueltaDelPago(estado, enlace !== null);
   if (v.carrito === 'vaciar') {
     contar('pago_confirmado');
+    const codigo = pedido ?? ultimo.codigo;
+    if (codigo) medirCompra(codigo);
     guardar(vaciar(azar));
     sesion.borrar(CLAVE_DEL_COBRO);
   } else if (v.carrito === 'renovar') {
@@ -1168,6 +1181,7 @@ async function busqueda(): Promise<void> {
 
 ficha();
 pintarBarra(cargar());
+iniciarConsentimiento();
 void carritoPagina();
 void pedidoEnviado();
 void alVolverDelPago();

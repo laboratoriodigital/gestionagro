@@ -37,6 +37,8 @@ export interface CampoDeAjuste {
   requerido?: true;
   /** HU-T10.5 CA2: el permiso que pide cambiarlo; sin él, el panel lo muestra sin dejar cambiarlo. */
   pide?: Accion;
+  /** HU-T14.4 CA3 (D-T13): solo se ofrece con el dominio propio como dirección principal. */
+  soloConDominioPropio?: true;
 }
 
 const SI_NO_SENAL = [
@@ -219,9 +221,25 @@ export const CAMPOS: Record<Seccion, readonly CampoDeAjuste[]> = {
     },
   ],
   medicion: [
-    { campo: 'ga4', etiqueta: 'Google Analytics (G-…)', tipo: 'texto' },
-    { campo: 'pixelMeta', etiqueta: 'Píxel de Meta', tipo: 'texto' },
-    { campo: 'avisoConsentimiento', etiqueta: 'Aviso de cookies', tipo: 'parrafo' },
+    {
+      campo: 'ga4',
+      etiqueta: 'Google Analytics (G-…)',
+      tipo: 'texto',
+      ayuda: 'Solo mide a quien acepta en el aviso de tu tienda.',
+    },
+    {
+      campo: 'pixelMeta',
+      etiqueta: 'Píxel de Meta',
+      tipo: 'texto',
+      ayuda: 'Solo mide a quien acepta en el aviso de tu tienda.',
+      soloConDominioPropio: true,
+    },
+    {
+      campo: 'avisoConsentimiento',
+      etiqueta: 'Aviso para pedir permiso de medir',
+      tipo: 'parrafo',
+      ayuda: 'Si lo dejas vacío, la tienda usa uno sencillo que nombra lo que mides.',
+    },
     { campo: 'googleVerificacion', etiqueta: 'Código de Google Search Console', tipo: 'texto' },
   ],
   agentes: [

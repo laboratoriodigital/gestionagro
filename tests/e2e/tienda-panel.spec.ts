@@ -2577,6 +2577,13 @@ test('HU-T14.2 · CA1: Inicio dice lo urgente arriba, cómo voy frente a febrero
           sinCostos: 1,
           enCamino: 1,
         },
+        // HU-T14.6: la última semana cuadrada.
+        cuadre: {
+          semana: '2028-03-20',
+          pedidos: { base: 4, eventos: 3 },
+          pagos: { base: 1, eventos: 1 },
+          calculado: '2028-03-27T10:00:00.000Z',
+        },
       },
     }),
   );
@@ -2602,6 +2609,14 @@ test('HU-T14.2 · CA1: Inicio dice lo urgente arriba, cómo voy frente a febrero
   await expect(page.getByText('$440.000')).toBeVisible();
   await expect(page.getByText('77 %')).toBeVisible();
   await expect(page.getByText(/A 1 pedido le falta la comisión o el flete/)).toBeVisible();
+  // HU-T14.6 CA1: la base frente a las métricas, en los dos sentidos.
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Tus métricas frente a tus pedidos' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/4 pedidos en tu tienda y 3 en tus métricas: 1 pedido sin medir/),
+  ).toBeVisible();
+  await expect(page.getByText('Cuadran: 1 pago en tu tienda y en tus métricas.')).toBeVisible();
   await sinFallasDeAxe(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
   await pendientes.first().getByRole('link').click();
@@ -3093,6 +3108,107 @@ test('HU-T13.5 · CA1: los planes con sus cuatro periodos, pagar en el CORE y vo
   expect(confirmados).toEqual([{ orden: ORDEN }]);
   expect(new URL(page.url()).search).toBe('');
 
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('HU-T8.6 · CA1: ver antes de publicar da el enlace de la vista previa y lo que falta', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const URL_DE_LA_VISTA = `https://ensayo-uno--staging.laboratorio-digital.app/_vista/${'a'.repeat(64)}/`;
+  const pedidas: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/publicaciones`, (r) =>
+    r.fulfill({ json: { versionPublicada: null, versiones: [] } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/vista-previa`, (r) => {
+    pedidas.push(r.request().postDataJSON());
+    return r.fulfill({
+      json: {
+        estado: 'lista',
+        url: URL_DE_LA_VISTA,
+        vence: '2026-10-21T15:00:00.000Z',
+        fallas: [
+          {
+            codigo: 'sin-foto',
+            mensaje: 'Al producto «Camisa» le falta una foto',
+            donde: 'Productos › Camisa',
+          },
+        ],
+      },
+    });
+  });
+  await page.goto(`${PANEL}/mas/publicar/`);
+  await page.getByRole('button', { name: 'Ver antes de publicar' }).click();
+  await expect(page.getByText('Tu vista previa está lista')).toBeVisible();
+  const enlace = page.getByRole('link', { name: 'Abrir la vista previa' });
+  await expect(enlace).toHaveAttribute('href', URL_DE_LA_VISTA);
+  await expect(enlace).toHaveAttribute('target', '_blank');
+  await expect(page.getByText('Al producto «Camisa» le falta una foto')).toBeVisible();
+  expect(pedidas).toEqual([{}]);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('HU-T10.2 · CA1 y CA2: una página «Quiénes somos», con la dirección que sale del título y la que no se puede', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  let paginas: Record<string, unknown>[] = [];
+  const guardadas: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/paginas`, (r) => r.fulfill({ json: { paginas } }));
+  await page.route(`${PANEL}/api/panel/v1/paginas/guardar`, (r) => {
+    const cuerpo = r.request().postDataJSON() as Record<string, unknown>;
+    guardadas.push(cuerpo);
+    if (cuerpo['slug'] === 'carrito')
+      return r.fulfill({
+        status: 422,
+        json: {
+          estado: 'problemas',
+          problemas: [
+            {
+              campo: 'slug',
+              mensaje: 'Esa dirección la usa la tienda. Elige otra, como quienes-somos.',
+            },
+          ],
+        },
+      });
+    paginas = [{ id: 'pg-1', version: 1, visible: true, ...cuerpo }];
+    return r.fulfill({
+      json: { estado: 'guardado', id: 'pg-1', version: 1, slug: cuerpo['slug'] },
+    });
+  });
+  await page.goto(`${PANEL}/mas/`);
+  await page.getByRole('link', { name: 'Páginas: quiénes somos y más' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Páginas' })).toBeVisible();
+  await page.getByRole('button', { name: 'Nueva página' }).click();
+  await page.getByLabel('Título').fill('Quiénes somos');
+  await expect(page.getByLabel('Su dirección en tu tienda')).toHaveValue('quienes-somos');
+  await page.getByLabel('El texto').fill('Un taller **familiar** de Medellín.');
+
+  // ❌ CA2: una dirección de la tienda la rechaza la API, y el panel lo dice en el campo.
+  await page.getByLabel('Su dirección en tu tienda').fill('carrito');
+  await page.getByRole('button', { name: 'Guardar la página' }).click();
+  await expect(page.getByText('Esa dirección la usa la tienda').first()).toBeVisible();
+
+  await page.getByLabel('Su dirección en tu tienda').fill('quienes-somos');
+  await page.getByRole('button', { name: 'Guardar la página' }).click();
+  await expect(
+    page.getByText(
+      'Guardaste «Quiénes somos». Sale en tu tienda en /quienes-somos/ cuando publiques.',
+    ),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Editar «Quiénes somos»' })).toBeVisible();
+  expect(guardadas.at(-1)).toMatchObject({
+    slug: 'quienes-somos',
+    titulo: 'Quiénes somos',
+    cuerpo: 'Un taller **familiar** de Medellín.',
+    visible: true,
+  });
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

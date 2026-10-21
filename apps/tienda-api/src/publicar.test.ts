@@ -15,7 +15,13 @@ import {
 } from '@ed1/tienda-schema/ensayos';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { feedsDelPanel } from './feeds-del-panel.ts';
-import { type Almacen, type Contexto, publicar } from './publicar.ts';
+import {
+  type Almacen,
+  type Contexto,
+  HORAS_DE_LA_VISTA,
+  publicar,
+  vistaPrevia,
+} from './publicar.ts';
 
 const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
 const AHORA = '2026-10-14T15:00:00.000Z';
@@ -476,5 +482,97 @@ describe('publicar (HU-T4.4)', () => {
       estado: 'fallida',
       motivo: 'Se cortó a mitad: pasaron 10 minutos sin terminar. Vuelve a publicar.',
     });
+  });
+});
+
+describe('la vista previa (HU-T8.6)', () => {
+  it('CA1 y ❌ CA2: hornea lo de ahora sin publicar: ni versión, ni puntero, ni manifiesto publicado', async () => {
+    const r2 = almacen();
+    const hosts = kv();
+    expect(await publicar(contexto(ENSAYO_DOS.org, r2, hosts))).toMatchObject({
+      estado: 'publicada',
+      version: 1,
+    });
+    const publicado = r2.objetos.get(`sitios/${ENSAYO_DOS.org}/1/manifiesto.json`);
+    const punteros = new Map(hosts.valores);
+    const filas = async () =>
+      (
+        await shard
+          .prepare('SELECT version, estado FROM publicacion WHERE org_id = ? ORDER BY version')
+          .bind(ENSAYO_DOS.org)
+          .all()
+      ).results;
+    const antes = await filas();
+    // Un cambio en el panel, sin publicar.
+    await shard
+      .prepare("UPDATE producto SET nombre = 'Pan de bono recién hecho' WHERE org_id = ?")
+      .bind(ENSAYO_DOS.org)
+      .run();
+    try {
+      const v = await vistaPrevia(contexto(ENSAYO_DOS.org, r2, hosts));
+      if (v.estado !== 'lista') throw new Error(JSON.stringify(v));
+      const guardada = JSON.parse(
+        r2.objetos.get(`sitios/${ENSAYO_DOS.org}/vista.json`) ?? '{}',
+      ) as {
+        huella: string;
+        creada: string;
+      };
+      expect(v.url).toBe(`https://${hostDeStaging(ENSAYO_DOS.slug)}/_vista/${guardada.huella}/`);
+      expect(guardada.creada).toBe(AHORA);
+      expect(v.vence).toBe(
+        new Date(Date.parse(AHORA) + HORAS_DE_LA_VISTA * 3_600_000).toISOString(),
+      );
+      expect(await filas()).toEqual(antes);
+      expect(await versionPublicada(ENSAYO_DOS.org)).toBe(1);
+      expect(hosts.valores).toEqual(punteros);
+      expect(r2.objetos.get(`sitios/${ENSAYO_DOS.org}/1/manifiesto.json`)).toBe(publicado);
+      const textos = [...r2.objetos.values()];
+      expect(
+        textos.some((t) => t.includes('Pan de bono recién hecho') && t.includes('Vista previa')),
+      ).toBe(true);
+    } finally {
+      await shard
+        .prepare("UPDATE producto SET nombre = 'Pan de bono' WHERE org_id = ?")
+        .bind(ENSAYO_DOS.org)
+        .run();
+    }
+  });
+});
+
+describe('las páginas propias al publicar (HU-T10.2)', () => {
+  it('CA1: la visible sale en la tienda; la oculta y la borrada, no', async () => {
+    const poner = (id: string, slug: string, visible: number, borrado: string | null) =>
+      shard
+        .prepare(
+          'INSERT INTO pagina (org_id, id, slug, titulo, cuerpo_md, visible, actualizado, borrado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        )
+        .bind(
+          ENSAYO_DOS.org,
+          id,
+          slug,
+          `Página ${slug}`,
+          'Texto de prueba.',
+          visible,
+          AHORA,
+          borrado,
+        )
+        .run();
+    await poner('pg-1', 'quienes-somos', 1, null);
+    await poner('pg-2', 'borrador-oculto', 0, null);
+    await poner('pg-3', 'ya-borrada', 1, AHORA);
+    try {
+      const r2 = almacen();
+      expect(await publicar(contexto(ENSAYO_DOS.org, r2))).toMatchObject({ estado: 'publicada' });
+      const m = JSON.parse(
+        r2.objetos.get(`sitios/${ENSAYO_DOS.org}/1/manifiesto.json`) ?? '{}',
+      ) as {
+        archivos: Record<string, unknown>;
+      };
+      expect(m.archivos['/quienes-somos/index.html']).toBeDefined();
+      expect(m.archivos['/borrador-oculto/index.html']).toBeUndefined();
+      expect(m.archivos['/ya-borrada/index.html']).toBeUndefined();
+    } finally {
+      await shard.prepare('DELETE FROM pagina WHERE org_id = ?').bind(ENSAYO_DOS.org).run();
+    }
   });
 });

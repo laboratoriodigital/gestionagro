@@ -12,6 +12,7 @@
 import { diasHabilesEntre, fechaEnBogota } from '@ed1/calendario';
 import { netoDelRecaudo } from './bandeja.ts';
 import type { Quien } from './catalogo.ts';
+import { type CuadreDelTablero, ultimoCuadre } from './cuadre.ts';
 import { listarSolicitudes } from './panel-solicitudes.ts';
 
 /** Los estados que son venta: los que descuentan el inventario y no se deshicieron. */
@@ -100,6 +101,11 @@ export interface Tablero {
     cobrosARevisar: number;
     agotados: number;
   };
+  /**
+   * HU-T14.6: la última semana cuadrada, la base frente a la medición; `null` si no hay. Las
+   * ventas de arriba nunca salen de aquí (CA2).
+   */
+  cuadre: CuadreDelTablero | null;
   /** La contraentrega despachada este mes y ya cerrada (recaudada, devuelta o perdida). */
   contraentrega: {
     cerrados: number;
@@ -145,49 +151,60 @@ const cuenta = async (q: Quien, sql: string, ...mas: unknown[]) =>
 
 export async function tablero(q: Quien, ahoraMs: number): Promise<Tablero> {
   const p = periodos(ahoraMs);
-  const [deHoy, delMes, delAnterior, porEstado, sinLiquidar, cobros, agotados, solicitudes, ce] =
-    await Promise.all([
-      cifras(q, p.hoy),
-      cifras(q, p.mes),
-      cifras(q, p.anterior),
-      q.db
-        .prepare(
-          `SELECT estado, count(*) AS n FROM pedido
+  const [
+    deHoy,
+    delMes,
+    delAnterior,
+    porEstado,
+    sinLiquidar,
+    cobros,
+    agotados,
+    solicitudes,
+    cuadre,
+    ce,
+  ] = await Promise.all([
+    cifras(q, p.hoy),
+    cifras(q, p.mes),
+    cifras(q, p.anterior),
+    q.db
+      .prepare(
+        `SELECT estado, count(*) AS n FROM pedido
             WHERE org_id = ? AND estado IN ('pendiente', 'confirmado', 'pagado') GROUP BY estado`,
-        )
-        .bind(q.org)
-        .all<{ estado: string; n: number }>(),
-      q.db
-        .prepare(
-          `SELECT actualizado FROM contraentrega
+      )
+      .bind(q.org)
+      .all<{ estado: string; n: number }>(),
+    q.db
+      .prepare(
+        `SELECT actualizado FROM contraentrega
             WHERE org_id = ? AND estado = 'recaudado' AND liquidado IS NULL LIMIT 1000`,
-        )
-        .bind(q.org)
-        .all<{ actualizado: string }>(),
-      cuenta(q, `SELECT count(*) AS n FROM cobro WHERE org_id = ? AND estado = 'revisar'`),
-      cuenta(
-        q,
-        `SELECT count(*) AS n FROM variante v INDEXED BY variante_agotada
+      )
+      .bind(q.org)
+      .all<{ actualizado: string }>(),
+    cuenta(q, `SELECT count(*) AS n FROM cobro WHERE org_id = ? AND estado = 'revisar'`),
+    cuenta(
+      q,
+      `SELECT count(*) AS n FROM variante v INDEXED BY variante_agotada
            JOIN producto p ON p.org_id = ? AND p.id = v.producto_id
           WHERE v.org_id = ? AND v.activa = 1 AND p.borrado IS NULL
             AND v.stock IS NOT NULL AND v.stock <= v.reservado`,
-        q.org,
-      ),
-      listarSolicitudes(q, ahoraMs),
-      q.db
-        .prepare(
-          `SELECT estado, monto_cop, comision_cop, flete_ida_cop, flete_vuelta_cop FROM contraentrega
+      q.org,
+    ),
+    listarSolicitudes(q, ahoraMs),
+    ultimoCuadre(q.db, q.org),
+    q.db
+      .prepare(
+        `SELECT estado, monto_cop, comision_cop, flete_ida_cop, flete_vuelta_cop FROM contraentrega
             WHERE org_id = ? AND creado >= ? AND creado < ?`,
-        )
-        .bind(q.org, p.mes.desde, p.mes.hasta)
-        .all<{
-          estado: string;
-          monto_cop: number;
-          comision_cop: number | null;
-          flete_ida_cop: number | null;
-          flete_vuelta_cop: number | null;
-        }>(),
-    ]);
+      )
+      .bind(q.org, p.mes.desde, p.mes.hasta)
+      .all<{
+        estado: string;
+        monto_cop: number;
+        comision_cop: number | null;
+        flete_ida_cop: number | null;
+        flete_vuelta_cop: number | null;
+      }>(),
+  ]);
   const enEstado = (e: string) => porEstado.results.find((f) => f.estado === e)?.n ?? 0;
   const abiertas = solicitudes.solicitudes.filter((s) => s.alerta !== null);
   const cerrados = ce.results.filter((c) => c.estado !== 'por_recaudar');
@@ -208,6 +225,7 @@ export async function tablero(q: Quien, ahoraMs: number): Promise<Tablero> {
       cobrosARevisar: cobros,
       agotados,
     },
+    cuadre,
     contraentrega: {
       cerrados: cerrados.length,
       devueltos: cerrados.filter((c) => c.estado === 'devuelto' || c.estado === 'perdido').length,

@@ -833,3 +833,123 @@ test('HU-T14.1 · la ficha cuenta lo que pasó y lo manda en un lote al salir, s
   // ❌ CA2: ni una cookie en toda la visita.
   expect(await page.context().cookies()).toEqual([]);
 });
+
+test('HU-T14.4 · ❌ CA3: antes de aceptar, nada de Google ni de Meta; rechazar es tan fácil como aceptar', async ({
+  page,
+}) => {
+  // La portada de Ensayo Uno, con GA4 y el píxel configurados, como la hornearía su versión: el
+  // mismo programa de la vitrina, con el aviso que el horno pone cuando el comercio mide.
+  const portada = await (await page.request.get(`${TIENDA}/`)).text();
+  const aviso =
+    '<aside class="consentimiento" data-consentimiento data-ga4="G-ENSAYO1234" data-pixel="123456789012" aria-label="Tus datos de medición" hidden><p>Con tu permiso, esta tienda mide sus visitas con Google Analytics y Meta. <a href="/legal/privacidad/">Política de datos</a></p><div class="consentimiento__botones"><button class="boton boton--secundario" type="button" data-rechazar>No acepto</button><button class="boton boton--secundario" type="button" data-aceptar>Acepto</button></div></aside>';
+  const conMedicion = portada.replace(
+    '</footer>',
+    '<p><button class="enlace" type="button" data-preferencias>Tus datos de medición</button></p>\n</footer>' +
+      aviso,
+  );
+  await page.route(`${TIENDA}/medicion/`, (r) =>
+    r.fulfill({ contentType: 'text/html; charset=utf-8', body: conMedicion }),
+  );
+  const deAfuera: string[] = [];
+  await page.route(/googletagmanager|google-analytics|facebook/, (r) => {
+    deAfuera.push(r.request().url());
+    return r.abort();
+  });
+
+  await page.goto(`${TIENDA}/medicion/`);
+  const caja = page.getByRole('complementary', { name: 'Tus datos de medición' });
+  await expect(caja).toBeVisible();
+  const [no, si] = [
+    caja.getByRole('button', { name: 'No acepto' }),
+    caja.getByRole('button', { name: 'Acepto', exact: true }),
+  ];
+  // Rechazar es tan fácil como aceptar: el mismo botón, del mismo tamaño.
+  expect(await no.getAttribute('class')).toBe(await si.getAttribute('class'));
+  const [a, b] = [await no.boundingBox(), await si.boundingBox()];
+  expect(a?.height).toBe(b?.height);
+  expect(Math.abs((a?.width ?? 0) - (b?.width ?? 0))).toBeLessThan(2);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  await no.click();
+  await expect(caja).toBeHidden();
+  await page.reload();
+  await expect(caja).toBeHidden();
+  expect(deAfuera).toEqual([]);
+
+  // Se puede cambiar la decisión: al aceptar, carga GA4 con su cookie en esta dirección.
+  await page.getByRole('button', { name: 'Tus datos de medición' }).click();
+  await caja.getByRole('button', { name: 'Acepto', exact: true }).click();
+  await expect.poll(() => deAfuera.length).toBeGreaterThanOrEqual(2);
+  expect(
+    deAfuera.some((u) => u.startsWith('https://www.googletagmanager.com/gtag/js?id=G-ENSAYO1234')),
+  ).toBe(true);
+  expect(deAfuera.some((u) => u.startsWith('https://connect.facebook.net/'))).toBe(true);
+  const config = await page.evaluate(() =>
+    (window as unknown as { dataLayer: IArguments[] }).dataLayer.map((x) => Array.from(x)),
+  );
+  expect(config).toContainEqual(['config', 'G-ENSAYO1234', { cookie_domain: 'localhost' }]);
+});
+
+test('bitácora tienda3 44 · ❌ el total que llega después de vaciar no devuelve lo que se quitó', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('sembrado')) {
+      sessionStorage.setItem('sembrado', '1');
+      localStorage.setItem(
+        'tienda:carrito',
+        JSON.stringify({
+          v: 1,
+          codigo: 'VEN235',
+          lineas: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+        }),
+      );
+    }
+  });
+  await apiDelPedido(page);
+  // El total se demora: llega cuando el comprador ya vació su pedido.
+  let soltar: () => void = () => undefined;
+  const demora = new Promise<void>((listo) => {
+    soltar = listo;
+  });
+  let cotizadas = 0;
+  await page.route('**/api/v1/cotizar', async (ruta) => {
+    cotizadas++;
+    await demora;
+    await ruta.fulfill({
+      json: {
+        subtotal: 129000,
+        descuento: 0,
+        envio: 0,
+        total: 129000,
+        avisos: [],
+        cobrable: true,
+        carrito: [{ variante: 'v-camisa-m-arena', cantidad: 1 }],
+        cambio: false,
+      },
+    });
+  });
+  await page.goto(`${TIENDA}/carrito/`);
+  await expect.poll(() => cotizadas).toBeGreaterThan(0);
+  page.once('dialog', (d) => void d.accept());
+  await page.getByRole('button', { name: 'Vaciar el pedido' }).click();
+  await expect(page.locator('[data-vacio]')).toBeVisible();
+  // Sin esperas por tiempo (P19): la respuesta llega, y la página tiene dos cuadros para aplicarla.
+  const llego = page.waitForResponse('**/api/v1/cotizar');
+  soltar();
+  await llego;
+  await page.evaluate(
+    () =>
+      new Promise<void>((listo) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => listo())),
+      ),
+  );
+  await expect(page.locator('.linea')).toHaveCount(0);
+  const carrito = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('tienda:carrito') ?? '{}'),
+  );
+  expect(carrito.lineas).toEqual([]);
+});

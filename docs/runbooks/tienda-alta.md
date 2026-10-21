@@ -59,6 +59,7 @@ En staging, con una cuenta de Google que no tenga tiendas:
 |---|---|
 | «Abrir una tienda todavía no está disponible», sin casilla de verificación | Falta `TURNSTILE_SECRETO` o `TURNSTILE_SITIO` en el ambiente, o el despliegue después de guardarlos |
 | «No cargó la verificación» o «No pudimos confirmar que eres una persona. Recarga la página» | Turnstile no cargó o falló en el teléfono. Recargar; si sigue, revisa en Cloudflare que el dominio del panel esté en el widget |
+| La casilla dice «Código de error: 110200» | El dominio del panel no está en el widget. En Cloudflare, Turnstile › el widget › Hostname management, agrega el del panel de ese ambiente (paso 1) y guarda; recargar basta, sin desplegar |
 | «No pudimos confirmar que eres una persona» | Turnstile no aceptó la verificación. Que lo intente otra vez; si sigue, revisa en Cloudflare que el dominio del panel esté en el widget |
 | «Esa dirección la acaba de tomar otra tienda» | Dos altas pidieron la misma dirección a la vez y la otra ganó. Elige otra |
 | «Ese nombre es de una marca conocida» | Está en `infrastructure/dominios.json` como marca. Si de verdad es su marca, se quita de allí por PR, con su prueba |

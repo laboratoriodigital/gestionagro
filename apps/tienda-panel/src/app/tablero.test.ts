@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   comparacion,
+  cuadreEnPalabras,
   enPorcentaje,
   margen,
   mesAnteriorEnPalabras,
@@ -72,5 +73,19 @@ describe('el tablero en palabras (HU-T14.2)', () => {
     };
     expect(margen(ce)).toBe(77);
     expect(margen({ ...ce, cobradoCop: 0, netoCop: -18000 })).toBeNull();
+  });
+});
+
+describe('el cuadre de las métricas (HU-T14.6)', () => {
+  it('CA1: la diferencia en los dos sentidos, en palabras', () => {
+    expect(cuadreEnPalabras('pedidos', { base: 4, eventos: 4 })).toBe(
+      'Cuadran: 4 pedidos en tu tienda y en tus métricas.',
+    );
+    expect(cuadreEnPalabras('pedidos', { base: 4, eventos: 3 })).toBe(
+      '4 pedidos en tu tienda y 3 en tus métricas: 1 pedido sin medir, de compradores que bloquean la medición o cierran la página muy rápido.',
+    );
+    expect(cuadreEnPalabras('pagos', { base: 1, eventos: 2 })).toBe(
+      '1 pago en tu tienda y 2 en tus métricas: 1 de más en tus métricas, intentos que no terminaron.',
+    );
   });
 });

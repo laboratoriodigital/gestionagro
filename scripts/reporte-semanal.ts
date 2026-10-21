@@ -14,6 +14,8 @@
  *   las cuentas, y por plan.
  * - **Google (Search Console):** impresiones y clics de la semana y de la anterior, con una cuenta
  *   de servicio de solo lectura (secreto `GOOGLE_SEARCH_CONSOLE_CLAVE`). Sin ella, el reporte lo dice.
+ * - **Tienda (HU-T14.7):** tiendas, pedidos, pago real, soporte anotado, costo del mes y los umbrales
+ *   de validación, en producción y en staging (`lib/reporte-tienda.ts`). Solo conteos.
  *
  * Una sección que no se puede leer dice por qué y el reporte sale igual (P1).
  * Funciones con `fetch` inyectado, para probarlas sin tocar Cloudflare ni GitHub.
@@ -21,11 +23,13 @@
 import { execFileSync } from 'node:child_process';
 import { createSign } from 'node:crypto';
 import { FUENTES } from '../apps/api-celda/src/vigia.ts';
+import { medirR2 } from '../apps/tienda-api/src/freno-r2.ts';
 import marca from '../content/marca.json' with { type: 'json' };
 import { EVENTOS } from '../packages/eventos/src/index.ts';
 import { celdasDelAgro } from './generar-wrangler.ts';
 import { cargarCeldas } from './lib/celdas.ts';
 import { nombreKvFlags } from './lib/kv-flags.ts';
+import { laTiendaEnLaSemana } from './lib/reporte-tienda.ts';
 
 type Fetch = typeof fetch;
 const API = 'https://api.cloudflare.com/client/v4';
@@ -455,6 +459,29 @@ async function principal() {
             ahora,
           ),
         ];
+  // HU-T14.7: la Tienda, en producción y en staging; R2 es uno para la cuenta.
+  const tienda = config.celdas.find((c) => c.producto === 'tienda');
+  if (tienda?.shards && tienda.control) {
+    const r2 = await medirR2(fetch, token, cuenta, ahora);
+    for (const staging of [false, true]) {
+      const sufijo = staging ? '_staging' : '';
+      secciones.push(
+        await laTiendaEnLaSemana(
+          fetch,
+          tokenD1,
+          cuenta,
+          {
+            shards: tienda.shards.map((sh) => `${sh}${sufijo}`),
+            control: `${tienda.control}${sufijo}`,
+            core: `${config.core.d1}${sufijo}`,
+          },
+          ahora,
+          r2,
+          staging ? 'Tienda (staging)' : 'Tienda (producción)',
+        ),
+      );
+    }
+  }
   secciones.push(
     clave
       ? await buscadorDeGoogle(fetch, clave, `sc-domain:${config.sitio.zona}`, ahora)

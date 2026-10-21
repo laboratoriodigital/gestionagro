@@ -36,6 +36,35 @@ export interface Tablero {
     sinCostos: number;
     enCamino: number;
   };
+  /** HU-T14.6: la última semana, los pedidos y pagos de la base frente a la medición. */
+  cuadre?: {
+    semana: string;
+    pedidos: { base: number; eventos: number };
+    pagos: { base: number; eventos: number };
+  } | null;
+}
+
+/**
+ * HU-T14.6 CA1: la diferencia, en los dos sentidos y en palabras. Las ventas no salen de aquí.
+ * Más en la base: compradores que la medición no alcanza a contar; más en la medición: intentos
+ * que no terminaron en pedido.
+ */
+export function cuadreEnPalabras(
+  cosa: 'pedidos' | 'pagos',
+  c: { base: number; eventos: number },
+): string {
+  const nombre = (n: number) =>
+    cosa === 'pedidos'
+      ? n === 1
+        ? '1 pedido'
+        : `${n} pedidos`
+      : n === 1
+        ? '1 pago'
+        : `${n} pagos`;
+  if (c.base === c.eventos) return `Cuadran: ${nombre(c.base)} en tu tienda y en tus métricas.`;
+  if (c.base > c.eventos)
+    return `${nombre(c.base)} en tu tienda y ${c.eventos} en tus métricas: ${nombre(c.base - c.eventos)} sin medir, de compradores que bloquean la medición o cierran la página muy rápido.`;
+  return `${nombre(c.base)} en tu tienda y ${c.eventos} en tus métricas: ${c.eventos - c.base} de más en tus métricas, intentos que no terminaron.`;
 }
 
 const MESES = [

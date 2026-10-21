@@ -44,6 +44,7 @@ import { Galeria } from './vistas/Galeria.tsx';
 import { Inicio } from './vistas/Inicio.tsx';
 import { Existencias, Inventario } from './vistas/Inventario.tsx';
 import { Mas } from './vistas/Mas.tsx';
+import { Paginas } from './vistas/Paginas.tsx';
 import { Bandeja, Pedido } from './vistas/Pedidos.tsx';
 import { Plan } from './vistas/Plan.tsx';
 import { Privacidad } from './vistas/Privacidad.tsx';
@@ -332,6 +333,7 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         org={sesion.org_id}
         rol={yo.datos.rol}
         seccion={ruta.split('/')[3] as Seccion}
+        dominioPropio={yo.datos.dominioPropio === true}
         alVencer={setVencida}
       />
     );
@@ -359,6 +361,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
       />
     );
   } else if (ruta === '/mas/cobro/') cuerpo = <Cobro conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/mas/paginas/' && puede(yo.datos.rol, 'paginas.editar'))
+    cuerpo = <Paginas conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/mas/plan/')
     cuerpo = (
       <Plan
