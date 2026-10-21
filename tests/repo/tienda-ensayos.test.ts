@@ -168,7 +168,9 @@ describe('la siembra, en las bases locales', () => {
       if (new URL(String(url)).pathname === '/api/ensayo/publicar') pedidas.push(r.status);
       return r;
     };
-    expect(await publicarEnsayos(contando, panel, SECRETO)).toEqual([]);
+    const omitidas: string[] = [];
+    expect(await publicarEnsayos(contando, panel, SECRETO, (s) => omitidas.push(...s))).toEqual([]);
+    expect(omitidas).toEqual([]);
     expect(pedidas).toEqual([202, 200]);
     expect(await publicarEnsayos(nube, panel, 'adivinado')).toEqual([
       'publicar a los comercios de prueba respondió 404: {"estado":"no-existe"}',
@@ -220,5 +222,20 @@ describe('la siembra, en las bases locales', () => {
     expect(
       (await pedir(JSON.stringify({ org: ENSAYO_UNO.org, shard: 'tienda_c1_s1' }))).status,
     ).toBe(200);
+  });
+});
+
+describe('bitácora tienda3 49: el comercio de prueba que se omite por lleno', () => {
+  it('el despliegue sabe cuál se omitió, para no revisar lo que sigue con su versión vieja', async () => {
+    const respuesta: Fetch = async () =>
+      Response.json({
+        'ensayo-uno': { estado: 'omitida', motivo: 'llena' },
+        'ensayo-dos': { estado: 'publicada', version: 4, archivos: 50, nuevos: 0 },
+      });
+    const omitidas: string[] = [];
+    expect(
+      await publicarEnsayos(respuesta, 'https://panel.test', 'secreto', (s) => omitidas.push(...s)),
+    ).toEqual([]);
+    expect(omitidas).toEqual(['ensayo-uno']);
   });
 });

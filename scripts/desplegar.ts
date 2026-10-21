@@ -1106,10 +1106,16 @@ async function prepararCeldaDeLaTienda(
     const u = llaves.uso;
     notaLlaves = `llaves de la Tienda: envuelve ${u.vigente}${u.reenvueltas > 0 ? `, ${u.reenvueltas} reenvueltas` : ''}${u.quedan > 0 ? `, ${u.quedan} todavía con otra KEK (sigue el cron)` : ''}${retiro.borrar.length > 0 ? `; retiradas del Worker: ${retiro.borrar.join(', ')}` : ''}`;
   }
+  // Bitácora tienda3 49: los comercios de prueba que no se publicaron por llenos siguen con su versión.
+  const omitidas = new Set<string>();
   // HU-T4.4: en staging, publicar a los comercios de prueba antes del humo, que mira sus portadas.
   if (ensayos.length > 0 && secretos.ok) {
     const despacho = secretos.frente[SECRETO_DESPACHO] ?? '';
-    const fallasAlPublicar = await conReintentos(() => publicarEnsayos(fetch, panel, despacho));
+    const fallasAlPublicar = await conReintentos(() =>
+      publicarEnsayos(fetch, panel, despacho, (slugs) => {
+        for (const s of slugs) omitidas.add(s);
+      }),
+    );
     if (fallasAlPublicar.length > 0) {
       return {
         ok: false,
@@ -1151,6 +1157,12 @@ async function prepararCeldaDeLaTienda(
   const deLosAgentes: string[] = [];
   const sinMcp: string[] = [];
   for (const e of ensayos) {
+    if (omitidas.has(e.slug)) {
+      sinMcp.push(
+        `agentes de ${e.slug}: no se revisa, se omitió al publicar por llena (bitácora tienda3 31)`,
+      );
+      continue;
+    }
     const base = `https://${hostDeStaging(e.slug)}`;
     let informe: InformeDeAgentes = { fallas: [], avisos: [], noAplica: [] };
     await conReintentos(async () => {

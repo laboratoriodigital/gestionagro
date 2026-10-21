@@ -247,6 +247,8 @@ export async function publicarEnsayos(
   fetchFn: Fetch,
   panel: string,
   secreto: string,
+  /** Bitácora tienda3 49: las que se omitieron (llenas) siguen con su versión; no se revisan. */
+  alOmitir: (slugs: string[]) => void = () => undefined,
 ): Promise<string[]> {
   let r: Response | undefined;
   for (let tanda = 1; tanda <= TANDAS_DE_LOS_ENSAYOS; tanda++) {
@@ -265,7 +267,11 @@ export async function publicarEnsayos(
     return [
       `publicar a los comercios de prueba: después de ${TANDAS_DE_LOS_ENSAYOS} tandas todavía faltaban archivos`,
     ];
-  if (r.status === 200) return [];
+  if (r.status === 200) {
+    const cuerpo = (await r.json().catch(() => ({}))) as Record<string, { estado?: string }>;
+    alOmitir(Object.keys(cuerpo).filter((slug) => cuerpo[slug]?.estado === 'omitida'));
+    return [];
+  }
   let detalle = '';
   try {
     detalle = JSON.stringify(await r.json()).slice(0, 500);

@@ -149,6 +149,7 @@ import {
 import { limitesDeLaTienda } from './plan.ts';
 import {
   type Almacen,
+  apuntarALaPublicada,
   type EscritorKv,
   leerVersiones,
   publicar,
@@ -2275,11 +2276,16 @@ export function crearApp(
           motivo: `tiene ${productos?.n} productos y no cabe en el plan gratuito (bitácora tienda3 31); sigue con la versión que tenía`,
         };
         console.error(`tienda-api: ${e.slug} ${(resultados[e.slug] as { motivo: string }).motivo}`);
+        // Bitácora tienda3 49: el despliegue dejó su dirección sin versión; vuelve a la que tenía.
+        await apuntarALaPublicada(ctx);
         continue;
       }
       // Los comercios de prueba no tienen fotos hasta HU-T8.3: es lo único que se omite.
       const r = await publicar({ ...ctx, omitir: ['sin-foto'] });
       resultados[e.slug] = r;
+      // Bitácora tienda3 49: si no quedó publicada, su dirección vuelve a la versión que tenía.
+      if (r.estado === 'en-curso' || r.estado === 'compuerta' || r.estado === 'fallida')
+        await apuntarALaPublicada(ctx);
       // Bitácora tienda3 30: las subidas de una solicitud son para una sola tienda; si una subió
       // archivos, las demás van en la siguiente. Con 202, el despliegue vuelve a pedir.
       if (r.estado === 'por-tandas' || (r.estado === 'publicada' && r.nuevos > 0)) {
