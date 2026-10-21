@@ -1,6 +1,9 @@
 import type { ComponentChildren } from 'preact';
 
-/** Arriba, siempre: de qué tienda es lo que se ve y con qué rol (HU-T8.1, el boceto). */
+/**
+ * Arriba, siempre: de qué tienda es lo que se ve y con qué rol (HU-T8.1, el boceto), y el acceso a
+ * publicar para quien puede.
+ */
 export function Barra({
   tienda,
   rol,

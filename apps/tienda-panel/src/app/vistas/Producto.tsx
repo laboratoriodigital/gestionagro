@@ -39,6 +39,7 @@ function Formulario({
   almacen,
   producto,
   alGuardar,
+  guardado = null,
   alVencer,
   alRecargar,
 }: {
@@ -46,6 +47,8 @@ function Formulario({
   almacen: Almacen;
   producto: ProductoDelPanel | null;
   alGuardar: (id: string) => void;
+  /** Cuándo se guardó por última vez: se dice junto al botón, con el acceso a publicar. */
+  guardado?: number | null;
   alVencer: (motivo: string) => void;
   alRecargar: () => void;
 }) {
@@ -380,6 +383,15 @@ function Formulario({
       >
         {producto ? 'Guardar cambios' : 'Crear producto'}
       </button>
+      {guardado !== null && !ocupado ? (
+        <p class="guardado" role="status">
+          Guardado a las{' '}
+          {new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit' }).format(
+            guardado,
+          )}
+          . Sale en tu tienda cuando publiques. <a href="/mas/publicar/">Publicar ahora</a>
+        </p>
+      ) : null}
       {producto ? (
         <Confirmar
           abrir="Mandar a la papelera"
@@ -408,7 +420,8 @@ export function Producto({
     id ? 'cargando' : null,
   );
   const [error, setError] = useState<string | null>(null);
-  const [guardado, setGuardado] = useState(false);
+  // La hora del último guardado: cada guardado lo dice junto al botón, no solo el primero.
+  const [guardado, setGuardado] = useState<number | null>(null);
 
   const cargar = useCallback(async () => {
     if (!id) return;
@@ -446,11 +459,6 @@ export function Producto({
         <p role="status">Cargando el producto…</p>
       ) : (
         <>
-          {guardado ? (
-            <Aviso tono="exito" titulo="Guardado">
-              Los cambios quedan en tu tienda la próxima vez que publiques.
-            </Aviso>
-          ) : null}
           {producto?.enPapelera ? (
             <Aviso tono="aviso" titulo="Está en la papelera">
               No se ve en la tienda. <a href="/productos/papelera/">Ir a la papelera</a>
@@ -463,8 +471,9 @@ export function Producto({
             producto={producto}
             alVencer={alVencer}
             alRecargar={() => void cargar()}
+            guardado={guardado}
             alGuardar={(nuevo) => {
-              setGuardado(true);
+              setGuardado(Date.now());
               if (!id) irA(`/productos/${nuevo}/`);
               else void cargar();
             }}
