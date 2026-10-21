@@ -937,8 +937,16 @@ test('bitácora tienda3 44 · ❌ el total que llega después de vaciar no devue
   page.once('dialog', (d) => void d.accept());
   await page.getByRole('button', { name: 'Vaciar el pedido' }).click();
   await expect(page.locator('[data-vacio]')).toBeVisible();
+  // Sin esperas por tiempo (P19): la respuesta llega, y la página tiene dos cuadros para aplicarla.
+  const llego = page.waitForResponse('**/api/v1/cotizar');
   soltar();
-  await page.waitForTimeout(500);
+  await llego;
+  await page.evaluate(
+    () =>
+      new Promise<void>((listo) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => listo())),
+      ),
+  );
   await expect(page.locator('.linea')).toHaveCount(0);
   const carrito = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('tienda:carrito') ?? '{}'),
