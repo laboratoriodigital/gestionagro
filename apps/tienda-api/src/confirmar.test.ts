@@ -90,7 +90,14 @@ const sitios = {
     clave === `sitios/${UNO}/1/manifiesto.json`
       ? {
           text: async () =>
-            JSON.stringify({ archivos: { '/legal/terminos/index.md': { huella: TERMINOS } } }),
+            JSON.stringify({
+              archivos: {
+                '/legal/terminos/index.md': { huella: TERMINOS },
+                // Bitácora tienda3 50: la versión publicada trae el MCP y la página de confirmar.
+                '/.well-known/mcp/server-card.json': { huella: 'e'.repeat(64) },
+                '/pedido/confirmar/index.html': { huella: 'f'.repeat(64) },
+              },
+            }),
         }
       : null,
 };

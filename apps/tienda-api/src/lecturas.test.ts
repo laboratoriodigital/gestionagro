@@ -217,8 +217,33 @@ describe('bitácora tienda3 26 ❌: las filas que lee el panel con la tienda lle
             params: { name, arguments: args },
           }),
         },
-        { ...env(), LIMITE_MCP: libre, LIMITE_MCP_PEDIDOS: libre },
+        {
+          ...env(),
+          LIMITE_MCP: libre,
+          LIMITE_MCP_PEDIDOS: libre,
+          // Bitácora tienda3 50: la versión publicada trae el MCP y la página de confirmar.
+          SITIOS: {
+            put: async () => undefined,
+            get: async (k: string) =>
+              k.endsWith('/manifiesto.json')
+                ? {
+                    text: async () =>
+                      JSON.stringify({
+                        archivos: {
+                          '/.well-known/mcp/server-card.json': { huella: 'e'.repeat(64) },
+                          '/pedido/confirmar/index.html': { huella: 'f'.repeat(64) },
+                        },
+                      }),
+                  }
+                : null,
+          },
+        },
       );
+    const antes = await shard
+      .prepare('SELECT version_publicada AS v FROM tienda WHERE org_id = ?')
+      .bind(UNO)
+      .first<{ v: number | null }>();
+    await shard.prepare('UPDATE tienda SET version_publicada = 1 WHERE org_id = ?').bind(UNO).run();
     const items = [{ variante: 'vol-p-0004-2', cantidad: 1 }];
     for (const herramienta of ['consultar_disponibilidad', 'preparar_pedido']) {
       leido();
@@ -226,6 +251,10 @@ describe('bitácora tienda3 26 ❌: las filas que lee el panel con la tienda lle
       const l = leido();
       expect(l.filas, `${herramienta}: ${mensaje(l)}`).toBeLessThanOrEqual(TOPE_DE_UNA_FICHA);
     }
+    await shard
+      .prepare('UPDATE tienda SET version_publicada = ? WHERE org_id = ?')
+      .bind(antes?.v ?? null, UNO)
+      .run();
   });
 
   it('publicar y exportar leen la tienda una vez; la tienda llena sube por tandas que caben en una solicitud', async () => {
