@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- Los asistentes con inteligencia artificial pueden comprar en tu tienda, sin pagar por nadie (sprint T18, M7):
+  - tu tienda explica a los asistentes cómo se compra en ella y describe lo que pueden pedirle;
+  - con «¿Los asistentes pueden preparar pedidos en tu tienda?» encendido en «Ajustes › Agentes», el asistente de tu cliente busca productos, cotiza y le deja listo el pedido;
+  - tu cliente abre su enlace, revisa el pedido, acepta tus términos y elige cómo pagar: por WhatsApp o en línea. Hasta entonces nada se aparta ni se cobra;
+  - lo que nadie confirma en 48 horas se cancela solo, y en el panel esos pedidos dicen «Espera a tu cliente»;
+  - en el plan Alto, tu propio asistente puede ver tus pedidos por despachar, cambiar su estado y ajustar tu inventario, con tu permiso y sin ver los datos de tus compradores. Se activa cuando la Tienda quede abierta a todos.
 - La vitrina con más vida (sprint T17b, lo que pidió la validación del 20 oct 2026):
   - la bienvenida de la portada, con tu título, tu texto y tu imagen, en «Ajustes › Apariencia»;
   - tu logo en la franja y tu ícono en la pestaña y al guardar la tienda en el teléfono, en «Ajustes › Identidad»;
