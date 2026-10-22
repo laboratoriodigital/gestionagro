@@ -1,0 +1,72 @@
+---
+/**
+ * La política de tratamiento de datos de las cuentas de TiendaPro (HU-T18.5 CA2): la misma que el
+ * CORE pide aceptar y el panel muestra (`content/tienda/privacidad/politica.json`, P2). HU-T18.6
+ * CA2: sale con los datos que hay; lo que falta se omite.
+ */
+import { datosQueHay, NOMBRE_DEL_ENCARGADO } from '@ed1/tienda-schema/comercio';
+import politica from '../../../../../../content/tienda/privacidad/politica.json' with {
+  type: 'json',
+};
+import Marco from '../../../componentes/Marco.astro';
+import { MARCA } from '../../../contenido.ts';
+
+const r = politica.responsable;
+const datos = datosQueHay({ ...r, nombre: r.nombre ?? NOMBRE_DEL_ENCARGADO });
+const MESES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+const [anio, mes, dia] = politica.fecha.split('-').map(Number) as [number, number, number];
+const fecha = `${dia} de ${MESES[mes - 1]} de ${anio}`;
+---
+<Marco
+  titulo={`Política de tratamiento de datos · ${MARCA}`}
+  descripcion={`Qué datos guarda ${MARCA} de quien administra una tienda, para qué y cómo consultarlos, corregirlos o borrarlos.`}
+  ruta="/legal/datos/"
+>
+  <article class="legal">
+    <h1>Política de tratamiento de datos de tu cuenta de {MARCA}</h1>
+    <p class="legal__fecha">Versión {politica.version}, del {fecha}.</p>
+    {politica.estado !== 'vigente' && (
+      <p class="legal__aviso">Borrador en revisión. Algunos datos de quien responde se agregarán antes de que sea la política vigente.</p>
+    )}
+    <p>
+      Con tu cuenta entras al panel de tu tienda. Aquí te contamos qué guardamos de ti, para qué y
+      cómo puedes consultarlo, corregirlo o pedir que lo borremos. De los datos de tus compradores
+      responde tu tienda, con su propia política, publicada en tu tienda.
+    </p>
+    <h2>Quién responde por tus datos</h2>
+    <ul>
+      {datos.map(([etiqueta, valor]) => <li>{etiqueta}: {valor}</li>)}
+    </ul>
+    <h2>Quiénes nos ayudan</h2>
+    <ul>
+      {politica.encargados.map((e) => <li><strong>{e.quien}.</strong> {e.para}</li>)}
+    </ul>
+    <p>{politica.transferencia}</p>
+    <h2>Lo que guardamos en tu teléfono</h2>
+    <ul>
+      {politica.almacenamiento_en_el_telefono.map((t) => <li>{t}</li>)}
+      {politica.cookies.map((c) => <li>{c.texto}</li>)}
+    </ul>
+    <p>Esta página no usa cookies ni programas de terceros.</p>
+    <h2>Tus derechos</h2>
+    <p>
+      Puedes conocer, actualizar y corregir tus datos, pedir que los borremos y revocar esta
+      autorización. Escríbenos a {r.correo}: te respondemos las consultas en máximo 10 días hábiles
+      y los reclamos en máximo 15 (Ley 1581 de 2012). Si no quedas conforme, puedes acudir a la
+      Superintendencia de Industria y Comercio.
+    </p>
+  </article>
+</Marco>

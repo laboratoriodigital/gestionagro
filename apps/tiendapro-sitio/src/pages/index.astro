@@ -1,0 +1,130 @@
+---
+/**
+ * La landing de TiendaPro (HU-T18.5): qué es, cómo llega un pedido, lo que incluye, la IA, los
+ * planes y las preguntas, con «Crear tienda» al alcance en cada parte. Boceto: BACKLOG_TIENDA3,
+ * HU-T18.5.
+ */
+import Marco from '../componentes/Marco.astro';
+import Pedido from '../componentes/Pedido.astro';
+import Vitrina from '../componentes/Vitrina.astro';
+import {
+  DESCRIPCION,
+  LO_QUE_INCLUYE,
+  PANEL,
+  PREGUNTAS,
+  pesos,
+  planesDeLaLanding,
+  TITULO,
+  ZONA_DE_LAS_TIENDAS,
+} from '../contenido.ts';
+
+const planes = planesDeLaLanding();
+---
+<Marco titulo={TITULO} descripcion={DESCRIPCION} ruta="/" gemelo>
+  <section class="portada" aria-labelledby="portada-titulo">
+    <div class="portada__texto">
+      <h1 id="portada-titulo">Tu tienda en línea. <span class="portada__giro">Los pedidos, a&nbsp;tu WhatsApp.</span></h1>
+      <p class="portada__frase">
+        Crea tu catálogo desde el teléfono, comparte tu dirección y recibe cada pedido listo para
+        confirmar. Cuando quieras, cobra en línea con tu cuenta de Bold.
+      </p>
+      <div class="acciones">
+        <a class="boton" href={PANEL} data-panel>Crear mi tienda gratis</a>
+        <a class="enlace-flecha" href="#planes">Ver planes</a>
+      </div>
+      <p class="portada__letra">Gratis para empezar, sin tarjeta. Tu dirección: <span class="cifra">tunombre.{ZONA_DE_LAS_TIENDAS}</span></p>
+    </div>
+    <Vitrina />
+  </section>
+
+  <Pedido />
+
+  <section class="incluye" aria-labelledby="incluye-titulo">
+    <h2 id="incluye-titulo">Todo lo que tu tienda necesita para vender</h2>
+    <dl class="incluye__lista">
+      {LO_QUE_INCLUYE.map((i) => (
+        <div class="incluye__punto">
+          <dt>{i.titulo}</dt>
+          <dd>{i.texto}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  <section class="ia" aria-labelledby="ia-titulo">
+    <div class="ia__texto">
+      <h2 id="ia-titulo">Los asistentes de inteligencia artificial ya hacen pedidos. Tu tienda está lista.</h2>
+      <p>
+        Cuando tu cliente le pide a su asistente «pan de bono para el sábado», el asistente busca
+        en tu tienda y le deja el pedido preparado. Tu cliente lo revisa, acepta y elige cómo
+        pagar: el asistente nunca paga por nadie.
+      </p>
+      <p>
+        Con IA Pro, el asistente es tuyo: le preguntas qué tienes por despachar, le pides marcar un
+        pedido como enviado o ajustar tus existencias, y lo hace con tu permiso.
+      </p>
+      <a class="boton boton--claro" href="#planes">Ver Pro e IA Pro</a>
+    </div>
+    <div class="ia__charla" aria-label="Conversaciones de ejemplo con asistentes" role="img">
+      <p class="charla__quien">El asistente de tu cliente</p>
+      <p class="globo globo--persona">Necesito 12 panes de bono para el sábado en La Espiga.</p>
+      <p class="globo globo--asistente">
+        Listo: 12 × Pan de bono, <span class="cifra">{pesos(18000)}</span>. Te dejé el pedido preparado; ábrelo para confirmar y elegir cómo pagar.
+        <span class="globo__boton">Revisar y confirmar</span>
+      </p>
+      <p class="charla__quien">Tu asistente, con IA Pro</p>
+      <p class="globo globo--persona">¿Qué tengo por despachar hoy?</p>
+      <p class="globo globo--asistente">Tres pedidos: <span class="cifra">LAE-4821</span>, <span class="cifra">LAE-4822</span> y <span class="cifra">LAE-4825</span>. ¿Marco el primero como despachado?</p>
+      <p class="vitrina__nota vitrina__nota--clara">Conversaciones de ejemplo.</p>
+    </div>
+  </section>
+
+  <section class="planes" id="planes" aria-labelledby="planes-titulo">
+    <div class="planes__cabeza">
+      <h2 id="planes-titulo">Un plan para cada momento de tu negocio</h2>
+      <p>Empieza gratis y sube cuando lo necesites. Pagas por meses, sin permanencia.</p>
+    </div>
+    <ul class="planes__lista">
+      {planes.map((p) => (
+        <li class={`plan${p.id === 'pro' ? ' plan--destacado' : ''}`}>
+          <h3 class="plan__nombre">{p.nombre}</h3>
+          <p class="plan__para">{p.paraQuien}</p>
+          <p class="plan__precio">
+            <span class="cifra">{p.gratuito ? '$0' : pesos(p.precioMes)}</span>
+            <span class="plan__periodo">{p.gratuito ? 'para siempre' : 'al mes'}</span>
+          </p>
+          {p.anual && p.anual.ahorro > 0 && (
+            <p class="plan__anual">Pagando un año, <span class="cifra">{pesos(p.anual.total)}</span>: ahorras <span class="cifra">{pesos(p.anual.ahorro)}</span>.</p>
+          )}
+          <ul class="plan__incluye">
+            {p.incluye.map((i) => <li>{i}</li>)}
+          </ul>
+          <a class={`boton${p.id === 'pro' ? ' boton--claro' : ' boton--borde'}`} href={PANEL} data-panel>
+            {p.gratuito ? 'Empezar gratis' : `Empezar con ${p.nombre}`}
+          </a>
+        </li>
+      ))}
+    </ul>
+    <p class="planes__nota">Precios en pesos colombianos. Empiezas en Gratis y cambias de plan desde tu panel cuando quieras.</p>
+  </section>
+
+  <section class="preguntas" id="preguntas" aria-labelledby="preguntas-titulo">
+    <h2 id="preguntas-titulo">Preguntas frecuentes</h2>
+    <div class="preguntas__lista">
+      {PREGUNTAS.map((q) => (
+        <details>
+          <summary>{q.pregunta}</summary>
+          <p>{q.respuesta}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+
+  <section class="cierre" aria-labelledby="cierre-titulo">
+    <h2 id="cierre-titulo">Abre tu tienda hoy. El primer pedido puede llegar esta tarde.</h2>
+    <div class="acciones">
+      <a class="boton" href={PANEL} data-panel>Crear mi tienda gratis</a>
+      <p class="cierre__letra">Gratis para empezar, sin tarjeta y sin permanencia.</p>
+    </div>
+  </section>
+</Marco>

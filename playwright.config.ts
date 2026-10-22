@@ -73,6 +73,12 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
+      // La landing de TiendaPro (HU-T18.5), armada para staging, en su propio origen.
+      command: 'node scripts/servir-estatico.ts apps/tiendapro-sitio/dist 4335',
+      url: 'http://localhost:4335/',
+      reuseExistingServer: false,
+    },
+    {
       // La cuenta (HU-C7.2), en su propio origen, como en producción.
       command: 'node scripts/servir-estatico.ts apps/cuenta/dist 4330',
       url: 'http://localhost:4330/',

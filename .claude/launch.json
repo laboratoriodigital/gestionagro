@@ -17,6 +17,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/servir-estatico.ts", "packages/ui", "4331"],
       "port": 4331
+    },
+    {
+      "name": "tiendapro",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/servir-estatico.ts", "apps/tiendapro-sitio/dist", "4335"],
+      "port": 4335
     }
   ]
 }

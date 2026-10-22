@@ -1,0 +1,68 @@
+---
+/**
+ * El marco de las páginas de TiendaPro: la marca, la navegación mínima y el pie con lo legal.
+ * Las hojas van en archivo y sin terceros (CSP `'self'`). Tema claro siempre: la página se mira en
+ * el teléfono, de día.
+ */
+import '@ed1/ui/v2/fuentes.css';
+import '@ed1/ui/v2/tokens.css';
+import '../estilos/landing.css';
+import { CORREO_DE_REPORTES, MARCA, ORIGEN, PANEL } from '../contenido.ts';
+
+interface Props {
+  titulo: string;
+  descripcion: string;
+  /** La ruta de la página, con su barra final: `/`, `/legal/datos/`. */
+  ruta: string;
+  /** Si la página tiene su gemelo en Markdown para los agentes (`<ruta>index.md`, ADR-24). */
+  gemelo?: boolean;
+}
+const { titulo, descripcion, ruta, gemelo = false } = Astro.props;
+---
+<!doctype html>
+<html lang="es-CO" data-producto="tienda" data-tema="claro">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{titulo}</title>
+    <meta name="description" content={descripcion} />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="canonical" href={`${ORIGEN}${ruta}`} />
+    {gemelo && <link rel="alternate" type="text/markdown" href={`${ruta}index.md`} />}
+    <link rel="icon" href="/icono.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={MARCA} />
+    <meta property="og:title" content={titulo} />
+    <meta property="og:description" content={descripcion} />
+    <meta property="og:url" content={`${ORIGEN}${ruta}`} />
+  </head>
+  <body>
+    <a class="saltar" href="#contenido">Ir al contenido</a>
+    <header class="franja">
+      <a class="marca" href="/" aria-label={`${MARCA}, inicio`}>
+        <span class="marca__signo" aria-hidden="true"></span>{MARCA}
+      </a>
+      <nav class="franja__nav" aria-label="Principal">
+        <a href="/#como-funciona">Cómo funciona</a>
+        <a href="/#planes">Planes</a>
+        <a href="/#preguntas">Preguntas</a>
+      </nav>
+      <a class="boton boton--chico" href={PANEL} data-panel>Crear tienda</a>
+    </header>
+    <main id="contenido">
+      <slot />
+    </main>
+    <footer class="pie">
+      <div class="pie__marca">
+        <p class="marca"><span class="marca__signo" aria-hidden="true"></span>{MARCA}</p>
+        <p>Tiendas en línea para vender en Colombia. Un producto de Laboratorio Digital.</p>
+      </div>
+      <nav class="pie__enlaces" aria-label="Información legal">
+        <a href="/legal/datos/">Política de tratamiento de datos</a>
+        <a href="/legal/terminos/">Términos del servicio</a>
+        <a href={`mailto:${CORREO_DE_REPORTES}`}>Reportar una tienda</a>
+        <a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a>
+      </nav>
+    </footer>
+  </body>
+</html>

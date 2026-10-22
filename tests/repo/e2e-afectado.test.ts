@@ -66,7 +66,9 @@ describe('las e2e de lo afectado, con el repositorio de verdad', () => {
     expect(grupos(['content/tienda/legal/terminos.md'])).toEqual(['tienda']);
     expect(grupoDelSpec('tienda-vitrina')).toBe('tienda');
     expect(grupos(['apps/tienda-panel/src/app/App.tsx'])).toEqual(['tienda']);
+    expect(grupos(['apps/tiendapro-sitio/src/pages/index.astro'])).toEqual(['tienda']);
     expect(specsDe(['tienda'])).toEqual([
+      'tests/e2e/tienda-landing.spec.ts',
       'tests/e2e/tienda-panel.spec.ts',
       'tests/e2e/tienda-presupuestos.spec.ts',
       'tests/e2e/tienda-vitrina.spec.ts',
