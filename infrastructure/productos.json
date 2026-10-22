@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/productos.schema.json",
-  "nota": "Única lista de productos del CORE (PLATAFORMA §4.2, ADR-20, HU-C1.1). El despliegue la copia a las tablas producto, producto_tipo, producto_rol, plan y plan_precio (HU-C2.3); un producto o un plan que sale de aquí queda «retirado», nunca se borra (P21). `presupuesto.usd_mes` del agro (USD 10 encima de la base) es la propuesta, la misma vara de la Tienda (TIENDA-3.0 §15.1), hasta que el dueño la fije; `al_agotarse` va vacío porque el agro todavía no tiene una capacidad accesoria que apagar (su MCP llega en HU-C9.7): con el presupuesto agotado, solo avisa. La Tienda (HU-T2.2) entra «pausada»: el CORE la conoce, con sus tipos, roles, planes y política, pero no crea tiendas ni cobra planes hasta que su panel exista (M2); sus orígenes son los de `tienda-panel`. Mientras no tenga tiendas, su presupuesto es USD 1 y 5.000 filas escritas de D1 al día, lo que gastan las pruebas de staging; HU-T2.7 lo fija con el dueño. Al agotarlo, el vigía apagaría el horno y el MCP, nunca la venta ni los cobros (`ks:tienda`, `ks:tienda-cobros`); en el plan gratuito solo avisa, como con el parqueadero. Con ella, el de la celda del agro pasa de USD 11 a 12. El parqueadero (HU-Q7.1) entra como excepción declarada (ADR-31) con el nombre provisional «Parqueadero» hasta que el dueño fije el comercial (D-Q6); su `presupuesto` es USD 1 (en M0 solo sirve archivos estáticos y no escribe en D1; D-Q10: Workers Paid solo si hace falta). En el plan gratuito su presupuesto son 70.000 filas escritas de D1 al día (HU-Q7.13): el 75 % de las 100.000 de la cuenta menos el doble de lo que la cuenta escribió en la semana al 8 oct 2026 (1.699 al día, medido en el reporte semanal), que a 1.800 filas por parqueadero son unos 38 parqueaderos. Sus kill switches (`ks:parqueadero`, `ks:parqueadero-fotos`) los crea el despliegue en el KV de flags de sus celdas; `al_agotarse` va vacío mientras la cuenta esté en el plan gratuito, donde el vigía avisa y no apaga. Como el presupuesto de las celdas es la suma de todos los productos activos, el de la celda del agro pasa de USD 10 a 11. Sus orígenes son los de su Worker: el dominio propio en producción y workers.dev en staging. La cuenta del ecosistema (ADR-28, HU-C7.3) es un producto sin organizaciones: sin tipos, roles, planes ni cobros. Su app vive en el mismo origen que el CORE, así que sus orígenes son los del CORE.",
+  "nota": "Única lista de productos del CORE (PLATAFORMA §4.2, ADR-20, HU-C1.1). El despliegue la copia a las tablas producto, producto_tipo, producto_rol, plan y plan_precio (HU-C2.3); un producto o un plan que sale de aquí queda «retirado», nunca se borra (P21). `presupuesto.usd_mes` del agro (USD 10 encima de la base) es la propuesta, la misma vara de la Tienda (TIENDA-3.0 §15.1), hasta que el dueño la fije; `al_agotarse` va vacío porque el agro todavía no tiene una capacidad accesoria que apagar (su MCP llega en HU-C9.7): con el presupuesto agotado, solo avisa. La Tienda (HU-T2.2), con su marca TiendaPro desde HU-T18.2 (D-T15), entra «pausada»: el CORE la conoce, con sus tipos, roles, planes y política, pero no crea tiendas ni cobra planes hasta que su panel exista (M2); sus orígenes son los de `tienda-panel`. Mientras no tenga tiendas, su presupuesto es USD 1 y 5.000 filas escritas de D1 al día, lo que gastan las pruebas de staging; HU-T2.7 lo fija con el dueño. Al agotarlo, el vigía apagaría el horno y el MCP, nunca la venta ni los cobros (`ks:tienda`, `ks:tienda-cobros`); en el plan gratuito solo avisa, como con el parqueadero. Con ella, el de la celda del agro pasa de USD 11 a 12. El parqueadero (HU-Q7.1) entra como excepción declarada (ADR-31) con el nombre provisional «Parqueadero» hasta que el dueño fije el comercial (D-Q6); su `presupuesto` es USD 1 (en M0 solo sirve archivos estáticos y no escribe en D1; D-Q10: Workers Paid solo si hace falta). En el plan gratuito su presupuesto son 70.000 filas escritas de D1 al día (HU-Q7.13): el 75 % de las 100.000 de la cuenta menos el doble de lo que la cuenta escribió en la semana al 8 oct 2026 (1.699 al día, medido en el reporte semanal), que a 1.800 filas por parqueadero son unos 38 parqueaderos. Sus kill switches (`ks:parqueadero`, `ks:parqueadero-fotos`) los crea el despliegue en el KV de flags de sus celdas; `al_agotarse` va vacío mientras la cuenta esté en el plan gratuito, donde el vigía avisa y no apaga. Como el presupuesto de las celdas es la suma de todos los productos activos, el de la celda del agro pasa de USD 10 a 11. Sus orígenes son los de su Worker: el dominio propio en producción y workers.dev en staging. La cuenta del ecosistema (ADR-28, HU-C7.3) es un producto sin organizaciones: sin tipos, roles, planes ni cobros. Su app vive en el mismo origen que el CORE, así que sus orígenes son los del CORE.",
   "productos": [
     {
       "id": "agro",
@@ -104,12 +104,12 @@
     },
     {
       "id": "tienda",
-      "nombre": "Tienda",
+      "nombre": "TiendaPro",
       "estado": "pausado",
       "excepcion": "ADR-21",
       "app": {
         "origenes": {
-          "produccion": "https://panel.laboratorio-digital.app",
+          "produccion": "https://app.tiendapro.co",
           "staging": "https://tienda-panel-staging.laboratoriodigital-la.workers.dev"
         },
         "rutas_de_vuelta": ["/"]
@@ -138,7 +138,7 @@
       },
       "recursos_oauth": [
         {
-          "produccion": "https://mcp.laboratorio-digital.app",
+          "produccion": "https://mcp.tiendapro.co",
           "staging": "https://tienda-panel-staging.laboratoriodigital-la.workers.dev"
         }
       ],

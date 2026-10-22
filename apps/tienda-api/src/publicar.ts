@@ -524,7 +524,8 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
       aiInput: (agentes['aiInput'] as 'yes' | 'no' | undefined) ?? 'yes',
       aiTrain: (agentes['aiTrain'] as 'yes' | 'no' | undefined) ?? 'no',
     },
-    // HU-T15.2 y HU-T15.4: la API pública y, si el comercio lo encendió, el MCP.
+    // HU-T15.2 y HU-T15.4: la API pública y, si el comercio lo encendió, el MCP. HU-T18.3: se guarda
+    // como lo eligió; el horno lo recorta a su plan (solo Pro e IA Pro lo anuncian).
     api: apiPublica(),
     ...(conDefectos('agentes')['mcp'] === true ? { mcp: true } : {}),
     // HU-T14.5: los feeds que el comercio encendió; apagados si no dice.

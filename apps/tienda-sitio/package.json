@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "@ed1/kill-switch": "workspace:*",
-    "@ed1/tienda-horno": "workspace:*"
+    "@ed1/tienda-horno": "workspace:*",
+    "@ed1/tienda-schema": "workspace:*"
   },
   "devDependencies": {
     "wrangler": "^4.144.0"

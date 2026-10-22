@@ -20,7 +20,7 @@ const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
 const AHORA = '2026-10-14T15:00:00.000Z';
 const SECRETO = 'secreto-de-prueba-del-despacho';
 const UNO = ENSAYO_UNO.org;
-const HOST = 'ensayo-uno--staging.laboratorio-digital.app';
+const HOST = 'ensayo-uno--staging.mitiendapro.co';
 const M = 'v-camisa-m-arena';
 const S = 'v-camisa-s-arena';
 
@@ -133,6 +133,20 @@ describe('el MCP público de la tienda (HU-T15.4)', () => {
   it('❌ sin encenderlo en Ajustes › Agentes no existe', async () => {
     await ajuste('agentes', { mcp: false });
     expect((await mcp('initialize')).status).toBe(404);
+  });
+
+  it('❌ HU-T18.3 CA3: en el plan Gratis no existe, aunque esté encendido; en Pro e IA Pro sí', async () => {
+    const plan = (p: string) =>
+      shard.prepare('UPDATE tienda SET plan = ? WHERE org_id = ?').bind(p, UNO).run();
+    await plan('gratis');
+    expect((await mcp('initialize')).status).toBe(404);
+    // Un plan retirado vale como el gratuito (P1): la migración 0019 lo pasa a Pro o IA Pro.
+    await plan('entrada');
+    expect((await mcp('initialize')).status).toBe(404);
+    await plan('ia-pro');
+    expect((await mcp('initialize')).status).toBe(200);
+    await plan(ENSAYO_UNO.plan);
+    expect((await mcp('initialize')).status).toBe(200);
   });
 
   it('❌ bitácora tienda3 50: encendido pero sin publicar con el MCP, tampoco: su enlace no existiría', async () => {

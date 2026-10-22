@@ -4,15 +4,22 @@
  * palabras. Lo usan el panel, que explica, y la API, que decide (P2). Puro y sin red.
  */
 
+import { DOMINIO_DE_LA_MARCA, ZONA_DE_LAS_TIENDAS } from './marca.ts';
+
 /** Las direcciones de la plataforma: una tienda no las conecta como dominio propio. */
 export const ZONAS_DE_LA_PLATAFORMA = [
+  ZONA_DE_LAS_TIENDAS,
+  DOMINIO_DE_LA_MARCA,
   'laboratorio-digital.app',
   'laboratorio-digital.com',
   'laboratorio-digital.co',
 ] as const;
 
-/** El destino del CNAME de todo dominio propio: el origen de respaldo de Cloudflare for SaaS. */
-export const DESTINO_DEL_CNAME = 'origen.laboratorio-digital.app';
+/**
+ * El destino del CNAME de todo dominio propio: el origen de respaldo de Cloudflare for SaaS, en la
+ * zona de las tiendas (HU-T18.1).
+ */
+export const DESTINO_DEL_CNAME = `origen.${ZONA_DE_LAS_TIENDAS}`;
 
 /**
  * Los segundos niveles que se registran como un dominio (`midominio.com.co`): sin esta lista, la raíz

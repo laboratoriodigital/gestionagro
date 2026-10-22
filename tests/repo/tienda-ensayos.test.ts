@@ -34,7 +34,7 @@ const SECRETO = 'secreto-de-prueba-del-despacho';
 describe('el fixture (HU-T2.6 CA1, P4)', () => {
   it('son dos comercios distintos en lo que importa', () => {
     expect(ENSAYOS.map((e) => [e.slug, e.plan])).toEqual([
-      ['ensayo-uno', 'entrada'],
+      ['ensayo-uno', 'pro'],
       ['ensayo-dos', 'gratis'],
     ]);
     expect(ENSAYO_UNO.productos[0]?.opciones).toHaveLength(2);
@@ -51,7 +51,7 @@ describe('el fixture (HU-T2.6 CA1, P4)', () => {
   });
 
   it('cada dirección de staging lleva «--», que ninguna tienda puede tomar', () => {
-    expect(hostDeStaging('ensayo-uno')).toBe('ensayo-uno--staging.laboratorio-digital.app');
+    expect(hostDeStaging('ensayo-uno')).toBe('ensayo-uno--staging.mitiendapro.co');
   });
 
   it('❌ en producción no se siembra ningún comercio de prueba (CA3)', () => {
@@ -103,7 +103,7 @@ describe('la siembra, en las bases locales', () => {
 
   it('las direcciones de TIENDA_HOSTS son las que lee el despacho (P2)', () => {
     for (const [clave, valor] of hostsDeStaging(ENSAYOS, 'c1', 'tienda_c1_s1')) {
-      expect(clave).toMatch(/^h:ensayo-(uno|dos)--staging\.laboratorio-digital\.app$/);
+      expect(clave).toMatch(/^h:ensayo-(uno|dos)--staging\.mitiendapro\.co$/);
       expect(destinoDe(valor)).toMatchObject({ celda: 'c1', shard: 'tienda_c1_s1' });
     }
   });
@@ -147,7 +147,7 @@ describe('la siembra, en las bases locales', () => {
     // Cloudflare de mentira: el panel pasa /api/* a la API con el secreto, como tienda-panel.
     const nube: Fetch = async (url, init) => {
       const u = new URL(String(url));
-      if (u.hostname.endsWith('--staging.laboratorio-digital.app')) {
+      if (u.hostname.endsWith('--staging.mitiendapro.co')) {
         return despacho.fetch(new Request(u, init), env);
       }
       if (u.origin === panel && u.pathname.startsWith('/api/')) {

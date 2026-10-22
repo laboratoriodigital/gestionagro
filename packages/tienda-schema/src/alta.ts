@@ -1,6 +1,8 @@
+import { ZONA_DE_LAS_TIENDAS } from './marca.ts';
+
 /**
  * El alta de una tienda (HU-T13.4, TIENDA-3.0 §4.1 y §13.3): el nombre corto de su dirección,
- * `<nombre>.laboratorio-digital.app`. Lo usan el panel, que sugiere y explica mientras se escribe, y
+ * `<nombre>.mitiendapro.co` (HU-T18.1). Lo usan el panel, que sugiere y explica mientras se escribe, y
  * la API, que decide (P2). Las mismas reglas que el `CHECK` de la tabla `slug` de la base de control:
  * de 3 a 40 letras, números y guiones, sin guion al principio, al final ni doble (`--` es de la
  * plataforma: `<nombre>--staging`).
@@ -35,14 +37,14 @@ export function sugerirDireccion(nombre: string): string {
 /** La dirección completa de una tienda, en su ambiente. */
 export const direccionDeLaTienda = (slug: string, ambiente: 'staging' | 'produccion') =>
   ambiente === 'staging'
-    ? `${slug}--staging.laboratorio-digital.app`
-    : `${slug}.laboratorio-digital.app`;
+    ? `${slug}--staging.${ZONA_DE_LAS_TIENDAS}`
+    : `${slug}.${ZONA_DE_LAS_TIENDAS}`;
 
 /** Por qué un nombre reservado no se puede usar, según su motivo en `slug_reservado`. */
 export const MOTIVO_DE_LA_RESERVA: Readonly<Record<string, string>> = {
   infraestructura: 'Esa dirección la usa la plataforma. Elige otra.',
   suplantacion: 'Ese nombre se parece al de otra tienda o servicio y podría confundir. Elige otro.',
-  proyecto: 'Esa dirección es de otro proyecto de Laboratorio Digital. Elige otra.',
+  proyecto: 'Esa dirección está reservada para otro servicio. Elige otra.',
   marca: 'Ese nombre es de una marca conocida. Si es tu marca, escríbenos; si no, elige otro.',
 };
 

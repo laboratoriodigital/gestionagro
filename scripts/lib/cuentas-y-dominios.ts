@@ -2,7 +2,8 @@
  * `infrastructure/cuentas.json` y `infrastructure/dominios.json` (HU-C1.3, PLATAFORMA §3.4–§3.5).
  *
  * - Toda celda nombra una cuenta declarada, y ninguna cuenta lleva su identificador (P13).
- * - Todo hostname de `laboratorio-digital.app` que use un Worker del repositorio está declarado:
+ * - Todo hostname de una zona de tiendas (`mitiendapro.co` y `laboratorio-digital.app`) que use un
+ *   Worker del repositorio está declarado:
  *   como proyecto o marca aquí, o como infraestructura en la base de control de la Tienda.
  *   Así, el día que un despliegue use un nombre, una tienda no lo puede tener ya (PLATAFORMA §3.4).
  */
@@ -74,11 +75,12 @@ export function reservadosDeLaTienda(raiz = RAIZ): string[] {
 }
 
 /**
- * Primer nivel de cada hostname de `laboratorio-digital.app` en un texto. Un comodín de ruta
- * (`*.`, `*--staging.`, HU-T13.4) no nombra ningún host: no cuenta.
+ * Primer nivel de cada hostname de las zonas de las tiendas en un texto: `mitiendapro.co`, donde
+ * viven desde HU-T18.1, y `laboratorio-digital.app`, donde vivieron. Un comodín de ruta (`*.`,
+ * `*--staging.`, HU-T13.4) no nombra ningún host: no cuenta.
  */
 export function nombresApp(texto: string): string[] {
-  const patron = /(?<![*a-z0-9-])([a-z0-9-]+)\.laboratorio-digital\.app/g;
+  const patron = /(?<![*a-z0-9-])([a-z0-9-]+)\.(?:laboratorio-digital\.app|mitiendapro\.co)\b/g;
   return [...texto.matchAll(patron)].map((m) => m[1] as string);
 }
 
@@ -128,7 +130,7 @@ export function fallasDeDominios(
     if (nombre !== base && deEnsayo.includes(base)) continue;
     if (!declarados.has(base)) {
       fallas.push(
-        `${archivo} usa «${nombre}.${DOMINIO_APP}», que no está reservado: una tienda podría tomarlo`,
+        `${archivo} usa «${nombre}» en una zona de tiendas, que no está reservado: una tienda podría tomarlo`,
       );
     }
   }

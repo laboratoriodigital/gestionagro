@@ -1,6 +1,6 @@
 {
   "$schema": "../schemas/dominios.schema.json",
-  "nota": "Los dominios del ecosistema (ADR-27, PLATAFORMA §3.3–§3.4, HU-C1.3). Los reservados de laboratorio-digital.app por proyecto o marca salen de aquí: el despliegue de la Tienda los copia a tienda_control.slug_reservado (P2). Los de infraestructura y suplantación los siembra esa migración. Todo hostname de laboratorio-digital.app que use un Worker del repositorio tiene que estar declarado aquí.",
+  "nota": "Los dominios del ecosistema (ADR-27, PLATAFORMA §3.3–§3.4, HU-C1.3, D-T15). Los reservados por proyecto o marca salen de aquí: el despliegue de la Tienda los copia a tienda_control.slug_reservado (P2). Los de infraestructura y suplantación los siembra esa migración. Todo hostname de una zona donde vive o vivió una tienda (mitiendapro.co y laboratorio-digital.app) que use un Worker del repositorio tiene que estar declarado aquí: una tienda no lo puede tomar.",
   "dominios": [
     {
       "dominio": "laboratorio-digital.com",
@@ -10,7 +10,7 @@
     },
     {
       "dominio": "laboratorio-digital.app",
-      "papel": "Las tiendas sin dominio propio y los proyectos nuevos, en un solo espacio de nombres de primer nivel, sin Public Suffix List.",
+      "papel": "El dominio técnico de la empresa y los proyectos nuevos, como el parqueadero, en un solo espacio de nombres de primer nivel. Las fotos de las tiendas siguen en img.; las direcciones de tienda que tuvo en staging llevan a mitiendapro.co (HU-T18.1).",
       "cuenta": "ED1 principal",
       "zona_activa": true
     },
@@ -19,10 +19,22 @@
       "papel": "CultivoPro y sus derivados: el sitio, las calculadoras, el cuaderno y lo que venga, como mcp.cultivopro.co.",
       "cuenta": "ED1 principal",
       "zona_activa": true
+    },
+    {
+      "dominio": "tiendapro.co",
+      "papel": "La marca TiendaPro (D-T15): la landing, el panel (app.), el MCP del comercio (mcp.) y los correos. Nunca sirve nada de un comercio.",
+      "cuenta": "ED1 principal",
+      "zona_activa": true
+    },
+    {
+      "dominio": "mitiendapro.co",
+      "papel": "Las tiendas sin dominio propio (D-T15, HU-T18.1): <nombre>.mitiendapro.co, el comodín, el origen de los dominios propios y nada más. Inscrito en la Public Suffix List (HU-T18.7).",
+      "cuenta": "ED1 principal",
+      "zona_activa": true
     }
   ],
   "reservados_app": {
     "proyecto": ["parqueadero"],
-    "marca": ["laboratorio", "laboratorio-digital", "cultivopro", "ed1"]
+    "marca": ["laboratorio", "laboratorio-digital", "cultivopro", "ed1", "tiendapro", "mitiendapro"]
   }
 }

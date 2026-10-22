@@ -45,7 +45,7 @@ async function entrada(
   tienda: Partial<TiendaParaHornear> = {},
 ): Promise<EntradaDeLaCompuerta> {
   const archivos = await hornear({
-    dominio: 'ensayo-dos--staging.laboratorio-digital.app',
+    dominio: 'ensayo-dos--staging.mitiendapro.co',
     release: 'r1',
     nombre: ENSAYO_DOS.nombre,
     apariencia: {

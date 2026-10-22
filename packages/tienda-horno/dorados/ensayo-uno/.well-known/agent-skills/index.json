@@ -4,7 +4,7 @@
       "name": "comprar",
       "type": "skill-md",
       "description": "Cómo comprar en Comercio Ensayo Uno: dónde está el catálogo, cómo cotizar y preparar un pedido, y que la aceptación y el pago los hace la persona.",
-      "url": "https://ensayo-uno--staging.laboratorio-digital.app/.well-known/agent-skills/comprar/SKILL.md",
+      "url": "https://ensayo-uno--staging.mitiendapro.co/.well-known/agent-skills/comprar/SKILL.md",
       "sha256": "ca3910ab6682a11333e3825972b520b344bb4b0e784413fdd2b5240009e94757"
     }
   ]

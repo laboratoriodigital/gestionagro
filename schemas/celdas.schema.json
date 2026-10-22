@@ -167,7 +167,7 @@
           },
           "comodin": {
             "enum": [true, false, "staging"],
-            "description": "HU-T13.4: el dueño ya creó el registro DNS comodín * de laboratorio-digital.app (docs/runbooks/tienda-alta.md). true: el despacho recibe las tiendas nuevas en los dos ambientes; staging: solo en staging, mientras la Tienda no se lanza (D-T14)."
+            "description": "HU-T13.4: el dueño ya creó el registro DNS comodín * de la zona de las tiendas, mitiendapro.co desde HU-T18.1 (docs/runbooks/tienda-alta.md). true: el despacho recibe las tiendas nuevas en los dos ambientes; staging: solo en staging, mientras la Tienda no se lanza (D-T14)."
           },
           "medios_creados": {
             "type": "array",

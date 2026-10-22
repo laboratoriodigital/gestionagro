@@ -5,7 +5,8 @@
  * - **Dónde:** `POST https://<tienda>/mcp`, que el despacho pasa a la API con la tienda resuelta
  *   (Streamable HTTP, JSON-RPC 2.0, sin sesión ni flujo SSE). Su tarjeta se hornea en
  *   `/.well-known/mcp/server-card.json`. Sin autenticación: es lo mismo que ve un comprador.
- * - **Solo si el comercio lo encendió** (`agentes.mcp`); si no, no existe.
+ * - **Solo si el comercio lo encendió** (`agentes.mcp`) **y su plan lo trae** (Pro e IA Pro,
+ *   HU-T18.3); si no, no existe.
  * - **Buscar y ver leen lo horneado** (`catalogo.json` y el gemelo de la ficha, en R2), no D1 (CA1).
  *   Consultar la disponibilidad es la cotización del carrito (HU-T5.5).
  * - **Preparar el pedido** (CA2) deja un pedido `pendiente` de canal `agente`, sin datos de nadie ni
@@ -28,6 +29,7 @@ import {
   seguimiento,
   sha256,
 } from './pedidos.ts';
+import { limitesDeLaTienda } from './plan.ts';
 import type { Almacen } from './publicar.ts';
 
 export const PROTOCOLOS_MCP = ['2025-06-18', '2025-03-26'] as const;
@@ -602,14 +604,22 @@ export async function responderMcp(
   }
 }
 
-/** Si el comercio encendió el MCP en Ajustes › Agentes (HU-T15.4: apagado si no lo dice). */
+/**
+ * Si el comercio encendió el MCP en Ajustes › Agentes (HU-T15.4: apagado si no lo dice) y su plan lo
+ * trae (HU-T18.3 CA3: Pro e IA Pro; en Gratis no existe). Una sola lectura: la tienda y su ajuste.
+ */
 export async function mcpEncendido(db: BaseD1, org: string): Promise<boolean> {
   const fila = await db
-    .prepare("SELECT datos FROM ajuste WHERE org_id = ? AND seccion = 'agentes'")
+    .prepare(
+      `SELECT t.plan, a.datos FROM tienda t
+       LEFT JOIN ajuste a ON a.org_id = t.org_id AND a.seccion = 'agentes'
+       WHERE t.org_id = ?`,
+    )
     .bind(org)
-    .first<{ datos: string }>();
+    .first<{ plan: string; datos: string | null }>();
+  if (!fila || !limitesDeLaTienda(fila.plan).mcpPublico) return false;
   try {
-    return (JSON.parse(fila?.datos ?? '{}') as { mcp?: unknown }).mcp === true;
+    return (JSON.parse(fila.datos ?? '{}') as { mcp?: unknown }).mcp === true;
   } catch {
     return false;
   }

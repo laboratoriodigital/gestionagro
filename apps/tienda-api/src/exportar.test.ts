@@ -27,7 +27,7 @@ const T0 = Date.UTC(2026, 9, 15, 15);
 const AHORA = new Date(T0).toISOString();
 const PERSONA = '0199e0a0-0000-7000-8000-0000000000d9';
 const UNO = ENSAYO_UNO.org;
-const HOST = 'ensayo-uno--staging.laboratorio-digital.app';
+const HOST = 'ensayo-uno--staging.mitiendapro.co';
 const MEDIOS = 'img--staging.laboratorio-digital.app';
 const KEK = Buffer.from(Array.from({ length: 32 }, (_, i) => i + 11)).toString('base64');
 /** Una tienda recién creada: sin ajustes ni productos. */
@@ -35,7 +35,7 @@ const ENSAYO_TRES: ComercioDeEnsayo = {
   org: '0199e0a0-0000-7000-8000-0000000000c3',
   slug: 'ensayo-tres',
   nombre: 'Comercio Ensayo Tres',
-  plan: 'entrada',
+  plan: 'pro',
   ajustes: {},
   productos: [],
 };
@@ -74,7 +74,7 @@ const pedir = async (
       shard: 'tienda_c1_s1',
       anillo: 1,
       aud: 'tienda',
-      plan: 'entrada',
+      plan: 'pro',
       auth_time: Math.floor((o.entro ?? T0) / 1000),
     },
     T0,

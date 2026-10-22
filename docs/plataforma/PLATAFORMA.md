@@ -166,7 +166,9 @@ Las otras dos cuentas del dueño (una gratuita y otra con algunos servicios pago
 
 **Lo que no cambia:** HA1. Escalar es pagar, no abrir cuentas. Un producto nunca se reparte entre cuentas gratuitas para sumar cuota (ARQUITECTURA §6.5).
 
-### 3.3 Dominios (ADR-27)
+### 3.3 Dominios (ADR-27 y ADR-42)
+
+**Desde el 22 oct 2026 (D-T15, ADR-42), las tiendas son TiendaPro:** la marca, el panel (`app.`), el MCP del comercio (`mcp.`) y los correos en `tiendapro.co`, que nunca sirve nada de un comercio; las tiendas en `mitiendapro.co` (`<nombre>.mitiendapro.co`, el comodín y `origen.` de Cloudflare for SaaS). `laboratorio-digital.app` sigue para los proyectos nuevos y las fotos de las tiendas (`img.`); las direcciones de tienda que tuvo llevan a `mitiendapro.co` con un 301. Lo que sigue de esta sección describe la decisión del 5 oct 2026 donde no lo contradice. Un nombre reservado vale en las dos zonas de tiendas (`infrastructure/dominios.json`).
 
 | Dominio | Para qué | Regla |
 |---|---|---|

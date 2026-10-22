@@ -19,6 +19,8 @@
  * `/carrito/` deja también los estilos en línea. No un hash: Bold cambia su programa sin avisar y
  * un hash viejo rompería el pago en silencio. Los scripts en línea siguen prohibidos en todas.
  */
+import { DOMINIO_DE_LA_MARCA, ZONA_ANTERIOR, ZONA_DE_LAS_TIENDAS } from '@ed1/tienda-schema/marca';
+
 export const ORIGEN_DE_BOLD = 'https://checkout.bold.co';
 export const RUTA_DEL_PAGO = '/carrito/';
 /** HU-T15.5: las páginas que pagan con Bold. */
@@ -45,9 +47,18 @@ export const ORIGENES_DE_TERCEROS: Readonly<
     img: ['https://www.facebook.com'],
   },
 };
-export const ZONA_DE_LA_PLATAFORMA = 'laboratorio-digital.app';
+/**
+ * HU-T18.1 CA3: las zonas donde una dirección es de la plataforma y no del comercio. Las tiendas viven
+ * en `mitiendapro.co`; las de antes en `laboratorio-digital.app` llevan a ella, y la marca nunca
+ * aloja una tienda.
+ */
+export const ZONAS_DE_LA_PLATAFORMA: readonly string[] = [
+  ZONA_DE_LAS_TIENDAS,
+  ZONA_ANTERIOR,
+  DOMINIO_DE_LA_MARCA,
+];
 export const esDeLaPlataforma = (host: string): boolean =>
-  host === ZONA_DE_LA_PLATAFORMA || host.endsWith(`.${ZONA_DE_LA_PLATAFORMA}`);
+  ZONAS_DE_LA_PLATAFORMA.some((z) => host === z || host.endsWith(`.${z}`));
 
 /** Los terceros que una dirección deja medir: Meta nunca en una de la plataforma (D-T13). */
 export const tercerosDeLaDireccion = (

@@ -23,6 +23,8 @@ const GRATIS: LimitesDelPlan = {
   contraentrega: false,
   dominioPropio: false,
   feeds: false,
+  sinMarca: false,
+  mcpPublico: false,
 };
 const PAGO: LimitesDelPlan = {
   productos: null,
@@ -31,7 +33,11 @@ const PAGO: LimitesDelPlan = {
   contraentrega: true,
   dominioPropio: true,
   feeds: true,
+  sinMarca: true,
+  mcpPublico: true,
 };
+/** Lo que guardó una versión publicada antes de HU-T18.3: sin el sello ni el MCP. */
+const { sinMarca: _s, mcpPublico: _m, ...DE_ANTES } = PAGO;
 
 const producto = (slug: string, nombre: string): ProductoParaHornear => ({
   slug,
@@ -42,7 +48,7 @@ const producto = (slug: string, nombre: string): ProductoParaHornear => ({
 });
 
 const tienda = (extra: Partial<TiendaParaHornear> = {}): TiendaParaHornear => ({
-  dominio: 'ensayo-dos--staging.laboratorio-digital.app',
+  dominio: 'ensayo-dos--staging.mitiendapro.co',
   release: 'r1',
   nombre: DOS.nombre,
   whatsapp: '+573000000002',
@@ -114,22 +120,78 @@ describe('alPlan (HU-T13.5)', () => {
   });
 });
 
-describe('los límites de funciones.json (HU-T13.5 CA2)', () => {
-  it('el gratuito: 15 productos, una persona, sin cobro en línea, contraentrega, dominio propio ni feeds', () => {
+describe('el sello y el MCP público según el plan (HU-T18.2 CA2 y HU-T18.3 CA3)', () => {
+  it('Gratis lleva el sello «Hecha con TiendaPro» al pie; Pro no', async () => {
+    const gratis = (await hornear(tienda({ plan: GRATIS }))).get('/index.html')?.contenido ?? '';
+    expect(gratis).toContain('Hecha con TiendaPro');
+    expect(gratis).toContain('href="https://tiendapro.co/"');
+    const pro = (await hornear(tienda({ plan: PAGO }))).get('/index.html')?.contenido ?? '';
+    expect(pro).not.toContain('Hecha con TiendaPro');
+  });
+
+  it('los reportes van a la marca, en todos los planes', async () => {
+    const portada = (await hornear(tienda({ plan: PAGO }))).get('/index.html')?.contenido ?? '';
+    expect(portada).toContain('href="mailto:abuse@tiendapro.co"');
+    expect(portada).not.toContain('laboratorio-digital');
+  });
+
+  it('❌ una tienda Gratis no anuncia el MCP público aunque el comercio lo haya encendido', async () => {
+    const r = alPlan(tienda({ plan: GRATIS, mcp: true }));
+    expect(r.tienda.mcp).toBeUndefined();
+    const a = await hornear(tienda({ plan: GRATIS, mcp: true }));
+    expect(a.has('/.well-known/mcp/server-card.json')).toBe(false);
+    const b = await hornear(tienda({ plan: PAGO, mcp: true }));
+    expect(b.has('/.well-known/mcp/server-card.json')).toBe(true);
+  });
+
+  it('una versión de antes, sin los campos nuevos, sigue como se publicó: sin sello y con su MCP', async () => {
+    const vieja = tienda({ plan: DE_ANTES as LimitesDelPlan, mcp: true });
+    expect(alPlan(vieja).tienda.mcp).toBe(true);
+    const portada = (await hornear(vieja)).get('/index.html')?.contenido ?? '';
+    expect(portada).not.toContain('Hecha con TiendaPro');
+    // Al re-hornear con el plan de hoy, manda el de hoy.
+    expect(limitesMasEstrictos(DE_ANTES as LimitesDelPlan, GRATIS)).toEqual(GRATIS);
+    expect(limitesMasEstrictos(DE_ANTES as LimitesDelPlan, PAGO)).toEqual(PAGO);
+  });
+});
+
+describe('los límites de funciones.json (HU-T13.5 CA2 y HU-T18.3)', () => {
+  it('Gratis: 10 productos, una persona, con el sello y sin cobro en línea, contraentrega, dominio propio, feeds ni MCP', () => {
     expect(limitesDelPlan(funciones as never, 'gratis', 'gratis')).toEqual({
-      productos: 15,
+      productos: 10,
       usuarios: 1,
       cobroEnLinea: false,
       contraentrega: false,
       dominioPropio: false,
       feeds: false,
+      sinMarca: false,
+      mcpPublico: false,
     });
-    expect(limitesDelPlan(funciones as never, 'intermedio', 'gratis')).toMatchObject({
+  });
+
+  it('Pro: sin límite de productos, 3 personas y todo lo de vender; IA Pro: el equipo sin límite', () => {
+    expect(limitesDelPlan(funciones as never, 'pro', 'gratis')).toEqual({
       productos: null,
-      usuarios: 4,
+      usuarios: 3,
       cobroEnLinea: true,
+      contraentrega: true,
       dominioPropio: true,
+      feeds: true,
+      sinMarca: true,
+      mcpPublico: true,
     });
+    expect(limitesDelPlan(funciones as never, 'ia-pro', 'gratis')).toEqual({
+      ...limitesDelPlan(funciones as never, 'pro', 'gratis'),
+      usuarios: null,
+    });
+  });
+
+  it('❌ los planes retirados (entrada, intermedio, alto) valen como el gratuito: la migración los pasa a Pro o IA Pro', () => {
+    for (const viejo of ['entrada', 'intermedio', 'alto']) {
+      expect(limitesDelPlan(funciones as never, viejo, 'gratis')).toEqual(
+        limitesDelPlan(funciones as never, 'gratis', 'gratis'),
+      );
+    }
   });
 
   it('❌ un plan que el archivo no nombra tiene los límites del gratuito, nunca «todo encendido» (P1)', () => {

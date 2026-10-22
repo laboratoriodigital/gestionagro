@@ -9,7 +9,7 @@
  * - La decisión se guarda en el teléfono con su versión y su fecha. Si el aviso cambia de versión,
  *   se vuelve a preguntar. «Tus datos de medición», en el pie, vuelve a abrir el aviso.
  * - GA4 deja su cookie solo en la dirección de la tienda (`cookie_domain`): una tienda en
- *   laboratorio-digital.app no comparte al comprador con las demás (D-T13).
+ *   mitiendapro.co no comparte al comprador con las demás (D-T13).
  * - Cada compra lleva el código del pedido (CA1): `transaction_id` en GA4 y `eventID` en Meta.
  */
 

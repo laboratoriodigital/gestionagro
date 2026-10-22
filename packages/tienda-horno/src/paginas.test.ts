@@ -10,7 +10,7 @@ import { hornear, type TiendaParaHornear } from './horno.ts';
 import { ACENTOS_DE_LA_VITRINA } from './tema.ts';
 
 const tienda = (extra: Partial<TiendaParaHornear> = {}): TiendaParaHornear => ({
-  dominio: 'ensayo-uno--staging.laboratorio-digital.app',
+  dominio: 'ensayo-uno--staging.mitiendapro.co',
   release: 'r1',
   nombre: ENSAYO_UNO.nombre,
   whatsapp: '+573000000001',
@@ -53,7 +53,7 @@ describe('las páginas propias en la vitrina (HU-T10.2)', () => {
     expect(html).not.toContain('<script>alert(1)</script>');
     expect(a.get('/quienes-somos/index.md')?.contenido).toContain('# Quiénes somos');
     expect(a.get('/sitemap.xml')?.contenido).toContain(
-      '<loc>https://ensayo-uno--staging.laboratorio-digital.app/quienes-somos/</loc>',
+      '<loc>https://ensayo-uno--staging.mitiendapro.co/quienes-somos/</loc>',
     );
     // El enlace va en el pie de toda página, también en la portada.
     expect(a.get('/index.html')?.contenido).toContain(

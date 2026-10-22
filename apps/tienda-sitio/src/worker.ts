@@ -27,6 +27,7 @@
 
 import { crearLectorKillSwitch, type LectorKillSwitch } from '@ed1/kill-switch';
 import { cspDeLaVitrina, type Tercero, tercerosDeLaDireccion } from '@ed1/tienda-horno/csp';
+import { direccionNueva } from '@ed1/tienda-schema/marca';
 import politica from '../../../content/tienda/privacidad/politica.json' with { type: 'json' };
 import { securityTxt } from '../../core/src/security-txt.ts';
 
@@ -510,7 +511,19 @@ export function crearDespacho(
       const url = new URL(solicitud.url);
       if (DIRECCIONES_DE_LA_PLATAFORMA.has(url.hostname) || url.hostname === env.MEDIOS)
         return (opciones.alOrigen ?? fetch)(solicitud);
-      const destino = await resolver(env, url.hostname);
+      // HU-T18.1 CA2: una dirección de antes, en laboratorio-digital.app, lleva a la de mitiendapro.co.
+      // La API no salta: un aviso de Bold ya registrado con la de antes sigue llegando a su tienda.
+      const nueva = direccionNueva(url.hostname);
+      if (nueva && !esDeLaApi(url.pathname)) {
+        return new Response(null, {
+          status: 301,
+          headers: {
+            location: `https://${nueva}${url.pathname}${url.search}`,
+            'cache-control': 'public, max-age=3600',
+          },
+        });
+      }
+      const destino = await resolver(env, nueva ?? url.hostname);
       if (destino === undefined) return enPausa(true);
       if (!destino) return sinTienda();
       if (await apagado(env, 'tienda')) return enPausa(true);

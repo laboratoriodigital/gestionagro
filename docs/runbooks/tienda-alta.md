@@ -2,7 +2,7 @@
 
 **Qué es:** el comercio abre su tienda solo, desde el teléfono (HU-T13.4, TIENDA-3.0 §13.3).
 1. Entra al panel con Google.
-2. Si su cuenta no tiene tienda, el panel le muestra **Abre tu tienda**: escribe el nombre y la dirección (`<nombre>.laboratorio-digital.app`, que dice al escribir si está libre) y pasa la verificación de Turnstile.
+2. Si su cuenta no tiene tienda, el panel le muestra **Abre tu tienda**: escribe el nombre y la dirección (`<nombre>.mitiendapro.co`, que dice al escribir si está libre) y pasa la verificación de Turnstile.
 3. Toca **Abrir mi tienda**. El panel crea su organización en el CORE, que le asigna celda y shard, y la API abre la tienda en `borrador`, con las formas de pago de fábrica (D-T4).
 4. Desde ahí, el panel de siempre: los términos, los datos legales, el WhatsApp, el primer producto y publicar.
 
@@ -14,7 +14,7 @@
 
 1. En Cloudflare, abre **Turnstile › Add widget**:
    - nombre: «Tienda · alta»;
-   - dominios: `panel.laboratorio-digital.app` y el del panel de staging (`tienda-panel-staging.laboratoriodigital-la.workers.dev`);
+   - dominios: `app.tiendapro.co` (desde HU-T18.2; antes `panel.laboratorio-digital.app`) y el del panel de staging (`tienda-panel-staging.laboratoriodigital-la.workers.dev`);
    - modo: **Managed**.
 2. Guarda la clave del sitio y el secreto en cada ambiente de GitHub, sin que aparezcan en la pantalla. Cada comando pide el valor; pégalo y pulsa Enter.
 
@@ -31,25 +31,25 @@
 ### 2. Las direcciones de las tiendas nuevas
 
 Hoy el despacho solo recibe las direcciones de los comercios de prueba. Para las tiendas nuevas:
-1. En Cloudflare, zona `laboratorio-digital.app` › **DNS › Records**, agrega un registro comodín:
+1. En Cloudflare, zona `mitiendapro.co` › **DNS › Records**, agrega un registro comodín (hecho el 22 oct 2026, HU-T18.1):
    - tipo `AAAA`;
    - nombre `*`;
    - contenido `100::`;
    - proxy encendido.
 
-   Los nombres que ya existen (`panel.`, `img.`, `origen.`, el parqueadero) tienen sus propios registros, y ganan.
+   Los nombres que ya existen (`origen.`) tienen sus propios registros, y ganan. El de `laboratorio-digital.app` se queda: lleva las direcciones de antes a las nuevas con un 301.
 2. Marca la celda de la Tienda en `infrastructure/celdas.json`, por PR. El despliegue agrega al despacho:
-   - con `"comodin": "staging"` (hoy, D-T14), solo `*--staging.laboratorio-digital.app/*` en staging;
-   - con `"comodin": true`, al lanzar, también `*.laboratorio-digital.app/*` en producción.
+   - con `"comodin": "staging"` (hoy, D-T14), solo `*--staging.mitiendapro.co/*` en staging (y, para el 301, `*--staging.laboratorio-digital.app/*`);
+   - con `"comodin": true`, al lanzar, también `*.mitiendapro.co/*` en producción.
 
-   El comodín también cubre la dirección de las fotos (`img--staging.`, `img.`): el despacho las deja pasar a su origen sin tomarlas por una tienda.
-3. Revisa después del despliegue que `panel.`, `img.`, `img--staging.` y el parqueadero sigan respondiendo: una foto de Ensayo Dos en staging tiene que verse.
+   El comodín de `laboratorio-digital.app` también cubre la dirección de las fotos (`img--staging.`, `img.`), que siguen ahí: el despacho las deja pasar a su origen sin tomarlas por una tienda.
+3. Revisa después del despliegue que `app.tiendapro.co`, `img.`, `img--staging.` y el parqueadero sigan respondiendo: una foto de Ensayo Dos en staging tiene que verse.
 
 ## Probar el alta desde cero (WI-T13.4.3)
 
 En staging, con una cuenta de Google que no tenga tiendas:
 1. Abre el panel de staging y entra.
-2. Abre una tienda de prueba, por ejemplo «Tienda de prueba del dueño». Su dirección será `tienda-de-prueba-del-dueno--staging.laboratorio-digital.app`.
+2. Abre una tienda de prueba, por ejemplo «Tienda de prueba del dueño». Su dirección será `tienda-de-prueba-del-dueno--staging.mitiendapro.co`.
 3. Acepta los términos, llena los datos legales, agrega un producto con foto y publica.
 4. Abre su dirección: tiene que mostrar la tienda.
 

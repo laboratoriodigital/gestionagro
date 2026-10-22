@@ -96,7 +96,7 @@ const token = async (rol: 'propietario' | 'colaborador', hace = 0) =>
         shard: 'tienda_c1_s1',
         anillo: 1,
         aud: 'tienda',
-        plan: 'entrada',
+        plan: 'pro',
         auth_time: Math.floor((T0 - hace) / 1000),
       },
       T0,
@@ -405,9 +405,7 @@ describe('el cobro de prueba guiado (HU-T11.3)', () => {
   it('CA1: la pantalla dice en qué va la prueba y a qué dirección manda Bold sus avisos', async () => {
     const c = (await pedir('cobro')).cuerpo;
     expect(c['prueba']).toEqual({ aprobada: null, ultimo: null });
-    expect(c['avisos']).toBe(
-      'https://ensayo-uno--staging.laboratorio-digital.app/api/v1/avisos/bold',
-    );
+    expect(c['avisos']).toBe('https://ensayo-uno--staging.mitiendapro.co/api/v1/avisos/bold');
   });
 
   it('❌ CA3: sin el cobro de prueba aprobado, la API no deja pasar a producción', async () => {

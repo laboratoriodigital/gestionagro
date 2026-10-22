@@ -69,7 +69,7 @@ describe('los comercios de prueba en el CORE de staging (HU-T2.10 CA2)', () => {
         id: ENSAYO_UNO.org,
         producto: 'tienda',
         tipo: 'tienda',
-        plan: 'entrada',
+        plan: 'pro',
         celda_id: 'c1',
         shard: 'tienda_c1_s1',
       },
@@ -104,7 +104,7 @@ describe('los comercios de prueba en el CORE de staging (HU-T2.10 CA2)', () => {
       .run();
     // Un plan cambiado por una prueba de pagos no se pisa.
     await db
-      .prepare("UPDATE organizacion SET plan = 'intermedio' WHERE id = ?")
+      .prepare("UPDATE organizacion SET plan = 'ia-pro' WHERE id = ?")
       .bind(ENSAYO_DOS.org)
       .run();
     await correr(ensayosEnElCore(ENSAYOS, c1, CORREO, AHORA));
@@ -124,7 +124,7 @@ describe('los comercios de prueba en el CORE de staging (HU-T2.10 CA2)', () => {
       .prepare('SELECT plan FROM organizacion WHERE id = ?')
       .bind(ENSAYO_DOS.org)
       .first<{ plan: string }>();
-    expect(plan?.plan).toBe('intermedio');
+    expect(plan?.plan).toBe('ia-pro');
     expect(notaDeEnsayosEnElCore(2, await leer(CORREO), CORREO)).toEqual({
       ok: true,
       nota: 'comercios de prueba en el CORE: 2 organizaciones, el dueño es propietario',

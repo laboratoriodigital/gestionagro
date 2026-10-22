@@ -119,7 +119,7 @@ describe('el despliegue de staging publica a los comercios de prueba (bitácora 
     let r = await publicarEnsayos();
     for (let vuelta = 0; r.status === 202 && vuelta < 10; vuelta++) r = await publicarEnsayos();
     expect(r.cuerpo['ensayo-uno']?.estado).toBe('omitida');
-    const uno = JSON.parse(hosts.get('h:ensayo-uno--staging.laboratorio-digital.app') ?? '{}') as {
+    const uno = JSON.parse(hosts.get('h:ensayo-uno--staging.mitiendapro.co') ?? '{}') as {
       version?: number;
       org?: string;
     };

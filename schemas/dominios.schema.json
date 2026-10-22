@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Dominios del ecosistema (infrastructure/dominios.json)",
-  "description": "ADR-27, PLATAFORMA §3.3 y §3.4, HU-C1.3. Los tres dominios con su papel, y los nombres de laboratorio-digital.app que una tienda no puede tomar por ser de un proyecto o una marca. Los de infraestructura y suplantación los siembra la migración de la base de control de la Tienda.",
+  "description": "ADR-27, PLATAFORMA §3.3 y §3.4, HU-C1.3, D-T15. Los dominios con su papel, y los nombres que una tienda no puede tomar por ser de un proyecto o una marca. Los de infraestructura y suplantación los siembra la migración de la base de control de la Tienda.",
   "type": "object",
   "additionalProperties": false,
   "required": ["dominios", "reservados_app"],
@@ -46,7 +46,7 @@
       "items": {
         "type": "string",
         "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-        "description": "Un nombre de primer nivel de laboratorio-digital.app. Nunca con «--», que queda para la plataforma (staging)."
+        "description": "Un nombre de primer nivel de la zona de las tiendas (mitiendapro.co, y laboratorio-digital.app, donde vivieron). Nunca con «--», que queda para la plataforma (staging)."
       }
     }
   }

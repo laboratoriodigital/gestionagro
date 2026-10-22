@@ -10,6 +10,7 @@
     "./comercio": "./src/comercio.ts",
     "./dominios": "./src/dominios.ts",
     "./ensayos": "./src/ensayos.ts",
+    "./marca": "./src/marca.ts",
     "./medios": "./src/medios.ts",
     "./paginas": "./src/paginas.ts",
     "./permisos": "./src/permisos.ts",

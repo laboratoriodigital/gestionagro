@@ -225,7 +225,7 @@ describe('HU-T3.7 · una tienda llena, en páginas que caben en un teléfono', (
       }
       const mapa = texto(a, '/sitemap.xml');
       for (const r of ['/productos/', '/productos/3/', '/c/todo/2/'])
-        expect(mapa).toContain(`laboratorio-digital.app${r}</loc>`);
+        expect(mapa).toContain(`mitiendapro.co${r}</loc>`);
     },
   );
 

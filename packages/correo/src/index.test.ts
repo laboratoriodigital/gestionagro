@@ -7,9 +7,11 @@ import { describe, expect, it } from 'vitest';
 import {
   armarMensaje,
   type ConfiguracionGmail,
+  type ConfiguracionResend,
   type Correo,
   conCupo,
   correoGmail,
+  correoResend,
   palabrasCodificadas,
   problemaDelCorreo,
 } from './index.ts';
@@ -122,6 +124,13 @@ describe('HU-C10.1 · @ed1/correo con Gmail', () => {
     const m = armarMensaje(sinNombre, CONF.remitente);
     expect(leerPalabras(encabezado(m, 'From') ?? '')).toBe('Laboratorio Digital');
     expect(encabezado(m, 'Reply-To')).toBeUndefined();
+  });
+
+  it('HU-T18.2 · con la marca del producto, sale «vía TiendaPro»', async () => {
+    const g = googleFalso([TOKEN(), ENVIADO()]);
+    await correoGmail({ ...CONF, marca: 'TiendaPro' }, g.fetchFalso).enviar(CORREO);
+    const m = mensajeEnviado(g.llamadas[1] as Llamada);
+    expect(leerPalabras(encabezado(m, 'From') ?? '')).toBe('Comercio Ensayo Uno vía TiendaPro');
   });
 
   it('reusa el acceso en el segundo envío, y con un 401 pide otro una sola vez', async () => {
@@ -256,6 +265,93 @@ describe('HU-C10.1 · @ed1/correo con Gmail', () => {
     expect(Buffer.from((html.split('\r\n\r\n')[1] ?? '').trim(), 'base64').toString('utf8')).toBe(
       '<p>Hola, <b>Ensayo Dos</b></p>',
     );
+  });
+});
+
+describe('HU-T18.4 · @ed1/correo con Resend', () => {
+  const RESEND = {
+    clave: 're_de_prueba',
+    remitente: 'avisos@tiendapro.example',
+    marca: 'TiendaPro',
+  } satisfies ConfiguracionResend;
+
+  it.each(['clave', 'remitente'] as const)(
+    'CA3 ❌ · sin %s responde «no disponible» y no toca la red',
+    async (falta) => {
+      const g = googleFalso([ENVIADO()]);
+      const correo = correoResend({ ...RESEND, [falta]: undefined }, g.fetchFalso);
+      expect(correo.disponible).toBe(false);
+      expect(await correo.enviar(CORREO)).toEqual({
+        enviado: false,
+        motivo: 'no-disponible',
+        detalle: 'falta la configuración de Resend',
+      });
+      expect(g.llamadas).toEqual([]);
+    },
+  );
+
+  it('CA1 y CA2 · un POST con la clave, de la marca, con el nombre de la tienda y Reply-To al comercio', async () => {
+    const g = googleFalso([Response.json({ id: 're-1' })]);
+    const correo = correoResend(RESEND, g.fetchFalso);
+    expect(correo.proveedor).toBe('resend');
+    expect(await correo.enviar({ ...CORREO, html: '<p>Hola</p>' })).toEqual({
+      enviado: true,
+      id: 're-1',
+    });
+    const [l] = g.llamadas as [Llamada];
+    expect(l.url).toBe('https://api.resend.com/emails');
+    expect(new Headers(l.init?.headers).get('authorization')).toBe('Bearer re_de_prueba');
+    expect(JSON.parse(String(l.init?.body))).toEqual({
+      from: '"Comercio Ensayo Uno vía TiendaPro" <avisos@tiendapro.example>',
+      to: ['compradora@ensayo.example'],
+      subject: CORREO.asunto,
+      text: CORREO.texto,
+      html: '<p>Hola</p>',
+      reply_to: 'comercio@ensayo.example',
+      headers: { 'Auto-Submitted': 'auto-generated' },
+    });
+  });
+
+  it('❌ · unas comillas en el nombre de la tienda no parten el remitente', async () => {
+    const g = googleFalso([Response.json({ id: 're-2' })]);
+    await correoResend(RESEND, g.fetchFalso).enviar({ ...CORREO, nombre: 'La "Mejor" \\ Tienda' });
+    const { from } = JSON.parse(String((g.llamadas[0] as Llamada).init?.body)) as { from: string };
+    expect(from).toBe('"La Mejor  Tienda vía TiendaPro" <avisos@tiendapro.example>');
+  });
+
+  it('CA3 ❌ · ninguna respuesta que no sea un envío aceptado cuenta como enviado', async () => {
+    const casos: [Response | (() => never), string][] = [
+      [Response.json({ name: 'invalid_api_key' }, { status: 403 }), 'no-disponible'],
+      [Response.json({ name: 'missing_api_key' }, { status: 401 }), 'no-disponible'],
+      [Response.json({ name: 'rate_limit_exceeded' }, { status: 429 }), 'tope'],
+      [Response.json({ name: 'daily_quota_exceeded' }, { status: 429 }), 'tope'],
+      [Response.json({ name: 'validation_error' }, { status: 422 }), 'rechazado'],
+      [Response.json({ name: 'application_error' }, { status: 500 }), 'falla'],
+      [Response.json({}), 'falla'],
+      [
+        () => {
+          throw new Error('sin red');
+        },
+        'falla',
+      ],
+    ];
+    for (const [respuesta, motivo] of casos) {
+      const g = googleFalso([respuesta]);
+      const r = await correoResend(RESEND, g.fetchFalso).enviar(CORREO);
+      expect(r, motivo).toMatchObject({ enviado: false, motivo });
+      // Solo el nombre del error, nunca la dirección del destinatario.
+      expect(JSON.stringify(r)).not.toContain(CORREO.para);
+    }
+  });
+
+  it('❌ · un correo mal armado no sale de aquí', async () => {
+    const g = googleFalso([]);
+    const r = await correoResend(RESEND, g.fetchFalso).enviar({
+      ...CORREO,
+      asunto: 'Hola\r\nBcc: alguien@ensayo.example',
+    });
+    expect(r).toMatchObject({ enviado: false, motivo: 'invalido' });
+    expect(g.llamadas).toEqual([]);
   });
 });
 

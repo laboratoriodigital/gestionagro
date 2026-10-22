@@ -17,11 +17,11 @@
   "workers_dev": false,
   "routes": [
     {
-      "pattern": "panel.laboratorio-digital.app",
+      "pattern": "app.tiendapro.co",
       "custom_domain": true
     },
     {
-      "pattern": "mcp.laboratorio-digital.app",
+      "pattern": "mcp.tiendapro.co",
       "custom_domain": true
     }
   ],

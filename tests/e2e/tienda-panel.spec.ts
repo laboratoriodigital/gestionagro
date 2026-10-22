@@ -23,7 +23,7 @@ const UNO = {
   org_id: 'org-uno',
   nombre: 'Comercio Ensayo Uno',
   rol: 'propietario',
-  plan: 'entrada',
+  plan: 'pro',
 };
 const DOS = {
   org_id: 'org-dos',
@@ -47,7 +47,7 @@ const yo = (org: typeof UNO) => ({
   org: org.org_id,
   rol: org.rol,
   plan: org.plan,
-  funciones: { productos: 15, cobro_en_linea: false },
+  funciones: { productos: 10, cobro_en_linea: false },
   tienda: { slug: 'ensayo', nombre: org.nombre, estado: 'borrador' },
   terminos: { aceptados: true },
 });
@@ -375,7 +375,7 @@ test('HU-T11.2 · CA1, CA3 y CA4: autorizar la custodia, pegar las llaves y que 
         },
         faltan: faltan(),
         prueba: { aprobada: null, ultimo: null },
-        avisos: 'https://ensayo-uno--staging.laboratorio-digital.app/api/v1/avisos/bold',
+        avisos: 'https://ensayo-uno--staging.mitiendapro.co/api/v1/avisos/bold',
       },
     }),
   );
@@ -476,7 +476,7 @@ test('HU-T11.3 · CA1 y CA3: la prueba paso a paso, el aviso que no llegó, y co
           aprobada,
           ultimo: { id: 'PRB001-1', estado: 'aprobado', creado: '2026-10-19T16:00:00.000Z' },
         },
-        avisos: 'https://ensayo-uno--staging.laboratorio-digital.app/api/v1/avisos/bold',
+        avisos: 'https://ensayo-uno--staging.mitiendapro.co/api/v1/avisos/bold',
       },
     }),
   );
@@ -498,7 +498,7 @@ test('HU-T11.3 · CA1 y CA3: la prueba paso a paso, el aviso que no llegó, y co
   await expect(page.getByRole('heading', { level: 2, name: 'El cobro de prueba' })).toBeVisible();
   await expect(page.getByText(/se aprobó, pero el aviso de Bold no llegó/)).toBeVisible();
   await expect(
-    page.getByText('https://ensayo-uno--staging.laboratorio-digital.app/api/v1/avisos/bold'),
+    page.getByText('https://ensayo-uno--staging.mitiendapro.co/api/v1/avisos/bold'),
   ).toBeVisible();
   // ❌ CA3: sin la prueba aprobada por el aviso, no se pasa a cobrar de verdad.
   const pasar = page.getByRole('button', { name: 'Pasar a cobrar de verdad' });
@@ -1852,7 +1852,7 @@ test('HU-T9.6 · CA1 y CA2: una nota, un enlace nuevo y cancelar preguntando si 
       json: {
         estado: 'ok',
         enlace:
-          'https://ensayo-uno--staging.laboratorio-digital.app/pedido/#c=ABC123&s=SecretoNuevoDePrueba01',
+          'https://ensayo-uno--staging.mitiendapro.co/pedido/#c=ABC123&s=SecretoNuevoDePrueba01',
       },
     });
   });
@@ -2897,7 +2897,7 @@ test('HU-T13.1 y HU-T13.3 · CA1: conectar el dominio, sus registros en palabras
 }) => {
   await enElPanel(page);
   const plataforma = {
-    hostname: 'ensayo-uno--staging.laboratorio-digital.app',
+    hostname: 'ensayo-uno--staging.mitiendapro.co',
     tipo: 'plataforma',
     rol: 'canonico',
     estado: 'activo',
@@ -2933,7 +2933,7 @@ test('HU-T13.1 y HU-T13.3 · CA1: conectar el dominio, sus registros en palabras
         tipo: 'CNAME',
         nombre: 'www',
         completo: 'www.tienda-uno.example',
-        valor: 'origen.laboratorio-digital.app',
+        valor: 'origen.mitiendapro.co',
         paraQue: 'Lleva a tu tienda a quien escriba esta dirección. Créalo de último.',
       },
     ],
@@ -2962,7 +2962,7 @@ test('HU-T13.1 y HU-T13.3 · CA1: conectar el dominio, sus registros en palabras
   expect(conectados).toEqual([expect.objectContaining({ hostname: 'www.tienda-uno.example' })]);
   const registros = page.locator('.registros > li');
   await expect(registros).toHaveCount(3);
-  await expect(registros.nth(2)).toContainText('origen.laboratorio-digital.app');
+  await expect(registros.nth(2)).toContainText('origen.mitiendapro.co');
   await expect(page.getByRole('button', { name: 'Copiar el valor del CNAME' })).toBeVisible();
   // ❌ CA2 de HU-T13.3: nunca se le pide mover su dominio a la plataforma.
   await expect(page.getByRole('heading', { level: 2, name: '¿Y sin «www»?' })).toBeVisible();
@@ -3005,7 +3005,7 @@ test('HU-T13.4 · CA1: abrir mi tienda desde el teléfono, con la dirección que
       json: {
         disponible: true,
         slug,
-        direccion: `${slug}--staging.laboratorio-digital.app`,
+        direccion: `${slug}--staging.mitiendapro.co`,
         turnstile: 'clave-del-sitio-e2e',
       },
     });
@@ -3026,7 +3026,7 @@ test('HU-T13.4 · CA1: abrir mi tienda desde el teléfono, con la dirección que
         id: NUEVA.org_id,
         version: 1,
         slug: 'panaderia-dona-rosa',
-        direccion: 'panaderia-dona-rosa--staging.laboratorio-digital.app',
+        direccion: 'panaderia-dona-rosa--staging.mitiendapro.co',
       },
     });
   });
@@ -3041,7 +3041,7 @@ test('HU-T13.4 · CA1: abrir mi tienda desde el teléfono, con la dirección que
   await page.getByLabel('El nombre de tu tienda').fill('Panadería Doña Rosa');
   await expect(page.getByLabel('Su dirección')).toHaveValue('panaderia-dona-rosa');
   await expect(
-    page.getByText('Libre: tu tienda será panaderia-dona-rosa--staging.laboratorio-digital.app'),
+    page.getByText('Libre: tu tienda será panaderia-dona-rosa--staging.mitiendapro.co'),
   ).toBeVisible();
   await expect(page.getByText('Verificado')).toBeVisible();
   const { violations } = await new AxeBuilder({ page })
@@ -3093,7 +3093,7 @@ test('HU-T13.5 · CA1: los planes con sus cuatro periodos, pagar en el CORE y vo
   await page.route(`${CORE}/api/core/pago/confirmar`, (r) => {
     confirmados.push(r.request().postDataJSON());
     return r.fulfill({
-      json: { estado: 'aprobado', motivo: null, plan: 'entrada', plan_vence: '2027-04-27' },
+      json: { estado: 'aprobado', motivo: null, plan: 'pro', plan_vence: '2027-04-27' },
       headers: CORS,
     });
   });
@@ -3101,20 +3101,20 @@ test('HU-T13.5 · CA1: los planes con sus cuatro periodos, pagar en el CORE y vo
   await page.goto(`${PANEL}/mas/`);
   await page.getByRole('link', { name: 'Tu plan' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Tu plan' })).toBeVisible();
-  await expect(page.getByText('Hasta 15 productos en tu tienda')).toBeVisible();
-  // Los cuatro periodos de Entrada, con el total y el valor por mes.
-  const entrada = page.locator('section', { hasText: 'Para el comercio que vende cada semana.' });
-  await expect(entrada.getByRole('radio')).toHaveCount(4);
-  await expect(entrada.getByText(/6 meses: COP 161\.000 · COP 26\.833 al mes/)).toBeVisible();
-  await entrada.getByLabel(/6 meses/).check();
-  await entrada.getByRole('button', { name: 'Pagar el plan Entrada' }).click();
+  await expect(page.getByText('Hasta 10 productos en tu tienda')).toBeVisible();
+  // Los cuatro periodos de Pro, con el total y el valor por mes.
+  const pro = page.locator('section', { hasText: 'Para el comercio que vende cada semana.' });
+  await expect(pro.getByRole('radio')).toHaveCount(4);
+  await expect(pro.getByText(/6 meses: COP 134\.000 · COP 22\.333 al mes/)).toBeVisible();
+  await pro.getByLabel(/6 meses/).check();
+  await pro.getByRole('button', { name: 'Pagar el plan Pro' }).click();
 
-  await expect(page.getByText('Listo: pagaste el plan Entrada')).toBeVisible();
+  await expect(page.getByText('Listo: pagaste el plan Pro')).toBeVisible();
   await expect(
     page.getByText('Publica tu tienda para que muestre todo lo que incluye.'),
   ).toBeVisible();
   // El monto nunca sale del panel; la orden sale de la barra.
-  expect(cobros).toEqual([{ plan: 'entrada', meses: 6, vuelta: `${PANEL}/mas/plan/` }]);
+  expect(cobros).toEqual([{ plan: 'pro', meses: 6, vuelta: `${PANEL}/mas/plan/` }]);
   expect(confirmados).toEqual([{ orden: ORDEN }]);
   expect(new URL(page.url()).search).toBe('');
 
@@ -3128,7 +3128,7 @@ test('HU-T8.6 · CA1: ver antes de publicar da el enlace de la vista previa y lo
   page,
 }) => {
   await enElPanel(page);
-  const URL_DE_LA_VISTA = `https://ensayo-uno--staging.laboratorio-digital.app/_vista/${'a'.repeat(64)}/`;
+  const URL_DE_LA_VISTA = `https://ensayo-uno--staging.mitiendapro.co/_vista/${'a'.repeat(64)}/`;
   const pedidas: unknown[] = [];
   await page.route(`${PANEL}/api/panel/v1/publicaciones`, (r) =>
     r.fulfill({ json: { versionPublicada: null, versiones: [] } }),
@@ -3231,7 +3231,7 @@ test('validación del 20 oct · el propietario ve quién tiene acceso, puede qui
   await enElPanel(page);
   // El plan de esta tienda permite una persona: el equipo ya pasa del tope.
   await page.route(`${PANEL}/api/panel/v1/yo`, (r) =>
-    r.fulfill({ json: { ...yo(UNO), funciones: { productos: 15, usuarios: 1 } } }),
+    r.fulfill({ json: { ...yo(UNO), funciones: { productos: 10, usuarios: 1 } } }),
   );
   let miembros = [
     { usuario_id: 'u-1', nombre: 'Ensayo Propietaria', rol: 'propietario', tu: true },

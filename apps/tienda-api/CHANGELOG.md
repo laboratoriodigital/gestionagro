@@ -5,6 +5,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- TiendaPro, la marca de la Tienda (sprint L1, D-T15):
+  - las tiendas viven en `mitiendapro.co`, como `panaderia.mitiendapro.co`; las direcciones de antes, en `laboratorio-digital.app`, llevan a las nuevas, y los avisos de Bold que ya estaban registrados con ellas siguen llegando;
+  - el panel en `app.tiendapro.co`, con la marca TiendaPro, y el asistente del comerciante en `mcp.tiendapro.co`;
+  - los correos de las tiendas salen como «Tu tienda vía TiendaPro»; en producción, desde `tiendapro.co` con Resend, y la respuesta le llega al comercio. Si el correo no está listo, se anota como no enviado y no gasta el tope del día;
+  - tres planes: Gratis (hasta 10 productos, pedidos por WhatsApp, una persona y el sello «Hecha con TiendaPro» al pie), Pro (COP 24.900 al mes: cobro en línea, dominio propio sin sello, factura, hasta 3 personas y los asistentes de tus clientes pueden prepararles el pedido) e IA Pro (COP 49.000 al mes: lo de Pro, tu asistente gestiona tu tienda y el equipo sin límite). Quien tenía Entrada o Intermedio pasa a Pro y quien tenía Alto a IA Pro, con el tiempo que ya pagó;
+  - «Reportar esta tienda» escribe a `abuse@tiendapro.co`.
 - Los asistentes con inteligencia artificial pueden comprar en tu tienda, sin pagar por nadie (sprint T18, M7):
   - tu tienda explica a los asistentes cómo se compra en ella y describe lo que pueden pedirle;
   - con «¿Los asistentes pueden preparar pedidos en tu tienda?» encendido en «Ajustes › Agentes», el asistente de tu cliente busca productos, cotiza y le deja listo el pedido;

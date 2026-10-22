@@ -8,8 +8,8 @@
 
 | Ambiente de Bold | Dirección que se registra |
 |---|---|
-| Pruebas | `https://<slug>--staging.laboratorio-digital.app/api/v1/avisos/bold` |
-| Producción | `https://<slug>.laboratorio-digital.app/api/v1/avisos/bold` |
+| Pruebas | `https://<slug>--staging.mitiendapro.co/api/v1/avisos/bold` (la de antes, en `laboratorio-digital.app`, sigue llegando: HU-T18.1) |
+| Producción | `https://<slug>.mitiendapro.co/api/v1/avisos/bold` |
 
 - Siempre el subdominio de la plataforma, **nunca el dominio propio** de la tienda: ese puede cambiar, y el subdominio no. Por eso el slug no se cambia después de publicar.
 - Sin barra al final y por HTTPS. Un alias que redirige no sirve: Bold no sigue un 301 en un POST.

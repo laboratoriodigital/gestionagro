@@ -22,7 +22,7 @@ const foto = {
 };
 
 const tienda = (extra: Partial<TiendaParaHornear> = {}): TiendaParaHornear => ({
-  dominio: 'ensayo-uno--staging.laboratorio-digital.app',
+  dominio: 'ensayo-uno--staging.mitiendapro.co',
   release: 'r1',
   org: 'org-ensayo',
   medios: 'img--staging.laboratorio-digital.app',

@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- La Tienda es TiendaPro (D-T15, HU-T18.2): el CORE la nombra así y acepta su panel de producción en `app.tiendapro.co` y su MCP del comercio en `mcp.tiendapro.co`. Sigue pausada en producción.
+- Los planes de la Tienda son Gratis, Pro e IA Pro (HU-T18.3). La migración 0011 pasa las organizaciones de Entrada e Intermedio a Pro y las de Alto a IA Pro, sin tocar hasta cuándo les dura lo pagado; los planes de antes quedan retirados, sin borrarse.
+
 ## [0.6.0] - 2026-10-20
 
 El pago del plan en efectivo, registrado por el dueño desde GitHub, y lo que la Tienda necesita del CORE, todavía pausada en producción.

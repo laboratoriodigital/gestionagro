@@ -21,7 +21,7 @@ const AHORA = '2026-10-14T15:00:00.000Z';
 const SECRETO = 'secreto-de-prueba-del-despacho';
 const UNO = ENSAYO_UNO.org;
 const DOS = ENSAYO_DOS.org;
-const HOST = 'ensayo-uno--staging.laboratorio-digital.app';
+const HOST = 'ensayo-uno--staging.mitiendapro.co';
 const KEK = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 
 let shard: BaseD1;

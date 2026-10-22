@@ -159,6 +159,8 @@ jobs:
           CORREO_GMAIL_CLIENTE_SECRETO: ${{ secrets.CORREO_GMAIL_CLIENTE_SECRETO }}
           CORREO_GMAIL_REFRESH: ${{ secrets.CORREO_GMAIL_REFRESH }}
           CORREO_GMAIL_REMITENTE: ${{ secrets.CORREO_GMAIL_REMITENTE }}
+          # HU-T18.4: los de producción, por Resend desde tiendapro.co; staging no la tiene.
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           # Bitácora tienda3 27: el freno de R2 mide con el token de solo lectura de métricas.
           CF_METRICAS_TOKEN: ${{ secrets.CF_METRICAS_TOKEN }}
           DESTINO: ${{ inputs.destino }}

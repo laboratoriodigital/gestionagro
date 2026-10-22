@@ -1,6 +1,6 @@
 # Runbook · Conectar el dominio propio de una tienda
 
-**Qué es:** una tienda vive en `<slug>.laboratorio-digital.app`. El comercio puede conectarle su dominio, como `www.mitienda.co`, desde **Más › Tu dominio** del panel (HU-T13.1 a HU-T13.3, TIENDA-3.0 §4.2 a §4.4).
+**Qué es:** una tienda vive en `<slug>.mitiendapro.co`. El comercio puede conectarle su dominio, como `www.mitienda.co`, desde **Más › Tu dominio** del panel (HU-T13.1 a HU-T13.3, TIENDA-3.0 §4.2 a §4.4).
 
 - El dominio sigue siendo suyo, en su proveedor: solo crea tres registros.
 - Cloudflare for SaaS emite el certificado **antes** de que llegue el tráfico, así no hay un minuto sin HTTPS.
@@ -12,12 +12,12 @@
 
 Lo hace el dueño, porque el token de despliegue no tiene esos permisos.
 
-1. En Cloudflare, en la zona `laboratorio-digital.app`, abre **SSL/TLS › Custom Hostnames** y pulsa **Enable**. Cloudflare pide un medio de pago aunque la zona sea gratuita: los primeros 100 hostnames no se cobran, y cada uno más cuesta USD 0,10 al mes. Cada tienda usa uno o dos (con «www» y sin ella).
+1. En Cloudflare, en la zona `mitiendapro.co` (la de las tiendas desde HU-T18.1), abre **SSL/TLS › Custom Hostnames** y pulsa **Enable**. Cloudflare pide un medio de pago aunque la zona sea gratuita: los primeros 100 hostnames no se cobran, y cada uno más cuesta USD 0,10 al mes. Cada tienda usa uno o dos (con «www» y sin ella).
 2. El origen de respaldo tiene que ser un registro **sin origen** (así lo pide Cloudflare cuando un Worker atiende). En **DNS › Records**, agrega uno `AAAA`, nombre `saas-respaldo`, contenido `100::`, con el proxy encendido (nube naranja). Luego, en **SSL/TLS › Custom Hostnames › Fallback Origin**, escribe `saas-respaldo.laboratorio-digital.app` y guarda. Espera a que diga **Active**. Los comercios siguen apuntando su CNAME a `origen.laboratorio-digital.app`: cualquier nombre de la zona con proxy sirve de destino.
 3. Crea el token en **My Profile › API Tokens › Create Token › Custom token**:
    - nombre: «Tienda · dominios propios»;
    - permisos: **Zone · SSL and Certificates · Edit** y **Zone · Zone · Read**;
-   - recursos de zona: solo `laboratorio-digital.app`. Ningún permiso de cuenta.
+   - recursos de zona: solo `mitiendapro.co`. Ningún permiso de cuenta.
 4. Guárdalo en el ambiente `produccion` de GitHub, sin que aparezca en la pantalla:
 
    ```bash
@@ -29,7 +29,7 @@ Lo hace el dueño, porque el token de despliegue no tiene esos permisos.
    - prueba el token antes de cargarlo: tiene que ver la zona y leer sus hostnames; si no puede, no lo carga y lo dice en el resumen;
    - le dice a la API la zona de las tiendas (`ZONA_TIENDAS`);
    - agrega al despacho la ruta `*/*` de la zona, por donde llegan los dominios propios.
-6. Revisa que `panel.`, `img.`, `origen.` y el parqueadero sigan respondiendo. Si alguno dejara de hacerlo por la ruta de toda la zona, en **Workers Routes** agrega una ruta para ese nombre (por ejemplo `img.laboratorio-digital.app/*`) con el Worker en **None**: la ruta más específica gana.
+6. Revisa que `origen.` y las tiendas de `mitiendapro.co` sigan respondiendo. Si alguno dejara de hacerlo por la ruta de toda la zona, en **Workers Routes** agrega una ruta para ese nombre (por ejemplo `img.laboratorio-digital.app/*`) con el Worker en **None**: la ruta más específica gana.
 
 ## Con cada tienda (lo hace el comercio; tú acompañas)
 
@@ -37,7 +37,7 @@ Lo hace el dueño, porque el token de despliegue no tiene esos permisos.
 2. La pantalla muestra tres registros, en orden, cada uno con su botón «Copiar»:
    - TXT `_cf-custom-hostname.www`: prueba que el dominio es suyo;
    - TXT `_acme-challenge.www`: deja listo el certificado;
-   - CNAME `www` → `origen.laboratorio-digital.app`: **de último**.
+   - CNAME `www` → `origen.mitiendapro.co`: **de último**.
 3. El estado cambia solo:
    - «Esperando tus registros»;
    - «Registros encontrados: preparando el candado»;

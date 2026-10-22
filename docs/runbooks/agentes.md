@@ -35,7 +35,7 @@ https://<tienda>/mcp
 
 Sin autenticación. El asistente prepara el pedido y entrega un enlace `/pedido/confirmar/#c=…&s=…`: ábrelo, acepta los términos y paga con el Bold de pruebas.
 
-El MCP del comercio (`https://tienda-panel-staging.laboratoriodigital-la.workers.dev/mcp` en staging, `https://mcp.laboratorio-digital.app/mcp` en producción) pide OAuth del CORE. Mientras la Tienda siga `pausado` en `infrastructure/productos.json`, el CORE no lo autoriza.
+El MCP del comercio (`https://tienda-panel-staging.laboratoriodigital-la.workers.dev/mcp` en staging, `https://mcp.tiendapro.co/mcp` en producción) pide OAuth del CORE. Mientras la Tienda siga `pausado` en `infrastructure/productos.json`, el CORE no lo autoriza.
 
 ## Pedir Markdown con `Accept: text/markdown` (el spike de HU-C8.2, CA2)
 

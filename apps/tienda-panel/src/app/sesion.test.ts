@@ -34,7 +34,7 @@ const respuesta = (o: Partial<Sesion> = {}) => ({
   refresh_vence: AHORA + 30 * 86_400_000,
   usuario: { nombre: 'Persona Ensayo', email: 'ensayo@ejemplo.test' },
   organizaciones: [
-    { org_id: 'org-uno', nombre: 'Comercio Ensayo Uno', rol: 'propietario', plan: 'entrada' },
+    { org_id: 'org-uno', nombre: 'Comercio Ensayo Uno', rol: 'propietario', plan: 'pro' },
   ],
   org_id: 'org-uno',
   ...o,

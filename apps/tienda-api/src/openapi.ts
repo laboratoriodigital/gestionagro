@@ -165,7 +165,7 @@ export function apiPublica(): Esquema {
       title: 'API pública de la tienda',
       version: 'v1',
       description:
-        'Lo que cualquiera puede hacer con una tienda de laboratorio-digital.app sin entrar: cotizar, registrar un pedido que la persona acepta, seguirlo, pedir aviso y radicar solicitudes. El catálogo está horneado en `/catalogo.json` y `/catalogo.md`; un agente prepara pedidos con el MCP de la tienda, y el pago y la aceptación los hace siempre la persona. Los precios son en pesos colombianos e incluyen IVA.',
+        'Lo que cualquiera puede hacer con una tienda de TiendaPro sin entrar: cotizar, registrar un pedido que la persona acepta, seguirlo, pedir aviso y radicar solicitudes. El catálogo está horneado en `/catalogo.json` y `/catalogo.md`; un agente prepara pedidos con el MCP de la tienda, y el pago y la aceptación los hace siempre la persona. Los precios son en pesos colombianos e incluyen IVA.',
     },
     paths,
     components: { schemas: { Respuesta: RESPUESTA } },

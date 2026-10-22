@@ -28,4 +28,4 @@ Disallow: /carrito/
 Disallow: /pedido/
 Content-Signal: search=yes, ai-input=yes, ai-train=no
 
-Sitemap: https://ensayo-uno--staging.laboratorio-digital.app/sitemap.xml
+Sitemap: https://ensayo-uno--staging.mitiendapro.co/sitemap.xml
