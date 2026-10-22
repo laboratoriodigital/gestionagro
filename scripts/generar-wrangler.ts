@@ -520,10 +520,15 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
         name: workerDeLaApiDeLaTienda(celda.id, true),
         workers_dev: false,
         // HU-T2.6 y HU-T4.4: solo staging publica a los comercios de prueba.
+        // Bitácora tienda3 52: staging declara todas las variables de producción. Si falta una,
+        // wrangler escribe una advertencia junto a la lista de secretos. Staging manda con Gmail y
+        // no tiene dominios propios: la zona vacía apaga Cloudflare for SaaS (`saasDe`).
         vars: {
           ...vars,
           MEDIOS: MEDIOS_DE_LA_TIENDA.staging,
           AMBIENTE: 'staging',
+          CORREO_REMITENTE: REMITENTE_DE_LOS_CORREOS,
+          ...(celda.saas ? { ZONA_TIENDAS: '' } : {}),
           ENSAYOS: '1',
           ...mcp(true),
         },

@@ -221,6 +221,22 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
     expect(delDespacho).not.toMatch(/[".*]tiendapro\.co/);
   });
 
+  it('bitácora tienda3 52: staging declara cada variable de producción, también con Cloudflare for SaaS', () => {
+    const [c1] = celdas;
+    if (!c1) throw new Error('sin celda c1');
+    for (const celda of [c1, { ...c1, saas: true }]) {
+      const api = wranglerDeLaCeldaDeLaTienda(celda) as unknown as {
+        vars: Record<string, string>;
+        env: { staging: { vars: Record<string, string> } };
+      };
+      const faltan = Object.keys(api.vars).filter((k) => !(k in api.env.staging.vars));
+      expect(faltan, `saas: ${Boolean(celda.saas)}`).toEqual([]);
+      // ❌ Staging nunca manda con Resend ni conecta dominios propios.
+      expect(api.env.staging.vars['AMBIENTE']).toBe('staging');
+      expect(api.env.staging.vars['ZONA_TIENDAS'] ?? '').toBe('');
+    }
+  });
+
   it('❌ una celda de la Tienda sin base de control no genera su API', () => {
     const [c1] = celdas;
     if (!c1) throw new Error('sin celda c1');
