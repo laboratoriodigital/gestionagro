@@ -1,12 +1,13 @@
 # El simulacro de restauración (HU-T17.4 CA1, docs/runbooks/tienda-restaurar.md): Comercio Ensayo
 # Uno de staging, restaurado en una base vacía y comparado tabla por tabla. Solo a mano y solo en
-# staging. Crea su base y la borra al final, aunque falle; staging no se toca.
+# staging. La base vacía es local, en el mismo equipo del flujo: no se crea ninguna en la cuenta
+# (bitácora tienda3 38); staging no se toca.
 name: simulacro-restauracion-tienda
 
 on:
   workflow_dispatch:
 
-# Cancelarlo a mitad puede dejar su base tienda-simulacro-*: se borra a mano (el runbook dice cómo).
+# Cancelarlo a mitad no deja nada: la base local se va con el equipo del flujo.
 concurrency:
   group: simulacro-restauracion-${{ github.ref }}
   cancel-in-progress: true
