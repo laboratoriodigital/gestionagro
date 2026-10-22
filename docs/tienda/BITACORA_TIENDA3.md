@@ -1349,3 +1349,20 @@ La regla: **una decisión que contradice una verificación anterior se vuelve a 
 La regla: **una variable nueva de un Worker se declara en los dos ambientes, aunque uno no la use; y la salida de una herramienta se lee por su forma, no por su posición.**
 
 *Ficha:* tienda3 · *(dueño y mía)* · 🟡 Medio · P1, P7 · tienda-0.1.0 · 2026-10-22
+
+**53 · El limitador por IP de la API dejó pasar 45 cotizaciones una por una, aunque estaba puesto.**
+
+*Qué pasó.* El 22 oct 2026 el dueño corrió `carga-staging-tienda` y salió «❌ 45 cotizaciones seguidas y ningún 429: el limitador por IP no está puesto». El 20 oct, después de la bitácora 37, la misma prueba había pasado.
+
+*La causa.* El limitador sí estaba en el Worker (el registro del despliegue lista `LIMITE_COTIZAR`, 30 por minuto) y la API lo revisa antes de validar. Pero el limitador de los Workers es aproximado: cada máquina de un centro de datos cuenta con su copia y las cuentas se juntan después (documentación de Cloudflare, «Accuracy» y «Locality»). Desde la sesión, 140 cotizaciones una por una no recibieron ni un 429; 100 en ráfagas de 30 recibieron 56. El 20 oct pasó porque esas solicitudes cayeron en pocas máquinas. La prueba exigía un corte exacto que el limitador no promete.
+
+*El arreglo.*
+- La prueba de carga cotiza en ráfagas de 20 (120 en total), como un abuso de verdad, y exige al menos un 429. Corrida desde la sesión contra staging: 12 de 120 cortadas, y pasa.
+- Separa el 429 de la tienda (su JSON) del de la regla de la zona (la página de Cloudflare, «429 zona»), y avisa sin fallar cuando la regla de la zona no bloqueó.
+- El límite estricto es la regla de la zona (60 en 10 s por IP), que no depende de las máquinas. El 22 oct no estaba activa en ninguna de las dos zonas: 100 solicitudes en unos 3 s a una ruta de la API sin limitador propio no recibieron ningún bloqueo.
+
+**Lo prueba** `tienda-carga-de-staging.test.ts`: la ráfaga, el 429 de la zona contado aparte y, ❌, un limitador ausente.
+
+La regla: **un límite aproximado se prueba como lo vive un abuso (en ráfagas), y lo que tiene que ser exacto va en la regla de la zona.**
+
+*Ficha:* tienda3 · *(dueño y mía)* · 🟡 Medio · P1, P5 · tienda-0.1.0 · 2026-10-22

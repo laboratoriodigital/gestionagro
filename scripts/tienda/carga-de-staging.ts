@@ -4,13 +4,17 @@
  *
  * - **Las páginas:** la portada, una ficha, el carrito y los términos, muchas veces y varias a la
  *   vez. Ninguna puede responder 5xx, y el p95 tiene que quedar por debajo de 1,5 s.
- * - **La API:** \`cotizar\` más veces por minuto de las que deja el limitador por IP (30): tiene que
- *   empezar a responder 429, y nunca 5xx. Así se ve que el límite está puesto en staging.
- * - Lo que mide la regla de límite de la zona (un tope por visitante en el panel de Cloudflare) se ve
- *   igual: aparece como 429 en las páginas, y el resumen lo cuenta aparte.
+ * - **La API:** \`cotizar\` en ráfagas, muchas más veces por minuto de las que deja el limitador por
+ *   IP (30): tiene que empezar a responder 429, y nunca 5xx. El limitador de los Workers es
+ *   aproximado: cada máquina de un centro de datos cuenta aparte y las cuentas se juntan después, así
+ *   que una por una pueden pasar de largo (bitácora tienda3 53). En ráfagas, como un abuso de
+ *   verdad, sí corta.
+ * - La regla de límite de la zona (60 en 10 s por IP, en el panel de Cloudflare) responde su propio
+ *   429, sin el JSON de la tienda: el resumen lo cuenta aparte («429 zona») y avisa si no apareció.
  *
- * Lo corre a mano el flujo `carga-staging-tienda`. Con los valores de siempre son unas 500
- * solicitudes: una fracción de las 100.000 diarias del plan gratuito, y \`cotizar\` lee pocas filas.
+ * Lo corre a mano el flujo `carga-staging-tienda`. Con los valores de siempre son unas 320
+ * solicitudes: una fracción de las 100.000 diarias del plan gratuito. Las cotizaciones van vacías:
+ * la API las rechaza después de revisar el límite, sin leer la base.
  */
 import { ENSAYOS, hostDeStaging } from '../../packages/tienda-schema/src/ensayos.ts';
 
@@ -22,8 +26,10 @@ export interface OpcionesDeCarga {
   vueltas?: number;
   /** Cuántas solicitudes a la vez. */
   aLaVez?: number;
-  /** Cuántas veces se cotiza seguido, desde la misma IP. */
+  /** Cuántas veces se cotiza desde la misma IP, en ráfagas. */
   cotizaciones?: number;
+  /** Cuántas cotizaciones a la vez. */
+  rafaga?: number;
   fetch?: Fetch;
   ahora?: () => number;
 }
@@ -32,6 +38,8 @@ export interface ResultadoDeCarga {
   paginas: { pedidas: number; porEstado: Record<string, number>; p50: number; p95: number };
   cotizar: { pedidas: number; porEstado: Record<string, number> };
   fallas: string[];
+  /** Lo que conviene revisar sin que la prueba falle: la regla de la zona que no bloqueó. */
+  avisos: string[];
 }
 
 const percentil = (ms: number[], p: number) => {
@@ -84,22 +92,27 @@ export async function cargaDeStaging(o: OpcionesDeCarga): Promise<ResultadoDeCar
     o.aLaVez ?? 10,
   );
   const cotizar: Record<string, number> = {};
-  const cotizaciones = o.cotizaciones ?? 45;
-  for (let i = 0; i < cotizaciones; i++) {
-    let estado = 'sin respuesta';
-    try {
-      const r = await f(`${base}/api/v1/cotizar`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ lineas: [] }),
-      });
-      await r.arrayBuffer();
-      estado = String(r.status);
-    } catch {
-      // Cuenta como falla abajo.
-    }
-    cotizar[estado] = (cotizar[estado] ?? 0) + 1;
-  }
+  const cotizaciones = o.cotizaciones ?? 120;
+  await enTandas(
+    Array.from({ length: cotizaciones }, () => async () => {
+      let estado = 'sin respuesta';
+      try {
+        const r = await f(`${base}/api/v1/cotizar`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ lineas: [] }),
+        });
+        const texto = await r.text();
+        estado = String(r.status);
+        // El 429 de la tienda trae su JSON; el de la regla de la zona es la página de Cloudflare.
+        if (r.status === 429 && !texto.includes('"limite"')) estado = '429 zona';
+      } catch {
+        // Cuenta como falla abajo.
+      }
+      cotizar[estado] = (cotizar[estado] ?? 0) + 1;
+    }),
+    o.rafaga ?? 20,
+  );
   const errores = (e: Record<string, number>) =>
     Object.entries(e)
       .filter(([k]) => k === 'sin respuesta' || k.startsWith('5'))
@@ -108,9 +121,14 @@ export async function cargaDeStaging(o: OpcionesDeCarga): Promise<ResultadoDeCar
   if (errores(porEstado) > 0) fallas.push(`${errores(porEstado)} páginas respondieron 5xx o nada`);
   if (p95 > 1500) fallas.push(`el p95 de las páginas es ${Math.round(p95)} ms: el tope es 1.500`);
   if (errores(cotizar) > 0) fallas.push(`${errores(cotizar)} cotizaciones respondieron 5xx o nada`);
-  if (cotizaciones > 30 && !cotizar['429'])
+  if (cotizaciones > 30 && !cotizar['429'] && !cotizar['429 zona'])
     fallas.push(
-      `${cotizaciones} cotizaciones seguidas y ningún 429: el limitador por IP no está puesto`,
+      `${cotizaciones} cotizaciones en ráfagas y ningún 429: el limitador por IP no está puesto`,
+    );
+  const avisos: string[] = [];
+  if (cotizaciones > 60 && !cotizar['429 zona'])
+    avisos.push(
+      'la regla de límite de la zona no bloqueó ninguna: revisa en Cloudflare que esté desplegada',
     );
   return {
     paginas: {
@@ -121,6 +139,7 @@ export async function cargaDeStaging(o: OpcionesDeCarga): Promise<ResultadoDeCar
     },
     cotizar: { pedidas: cotizaciones, porEstado: cotizar },
     fallas,
+    avisos,
   };
 }
 
@@ -138,6 +157,7 @@ if (process.argv[1]?.endsWith('carga-de-staging.ts')) {
     `Páginas: ${r.paginas.pedidas}, ${JSON.stringify(r.paginas.porEstado)}, p50 ${r.paginas.p50} ms, p95 ${r.paginas.p95} ms`,
   );
   console.log(`Cotizar: ${r.cotizar.pedidas}, ${JSON.stringify(r.cotizar.porEstado)}`);
+  for (const aviso of r.avisos) console.log(`⚠️ ${aviso}`);
   for (const falla of r.fallas) console.log(`❌ ${falla}`);
   if (r.fallas.length === 0) console.log('✅ Staging aguantó la carga y sus límites respondieron.');
   process.exit(r.fallas.length === 0 ? 0 : 1);

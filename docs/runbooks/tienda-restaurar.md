@@ -15,12 +15,12 @@
 Lo corre el dueño, una vez antes de la primera tienda real, y cada vez que cambie el esquema de la base.
 
 1. En GitHub: **Actions › simulacro-restauracion-tienda › Run workflow**, sobre `main`.
-2. El flujo lee a Comercio Ensayo Uno de la base de staging, crea una base vacía `tienda-simulacro-<fecha>`, le aplica las migraciones, restaura y compara tabla por tabla. Al final borra su base.
+2. El flujo lee a Comercio Ensayo Uno de la base de staging, crea una base vacía, le aplica las migraciones, restaura y compara tabla por tabla. Esa base es local, en el mismo equipo de GitHub que corre el flujo, y desaparece con él: **no se crea ninguna base en la cuenta de Cloudflare**, que en el plan gratuito ya tiene las 10 que admite (bitácora tienda3 38). Solo con `--en-la-cuenta`, cuando haya lugar (Workers Paid), la crea en la cuenta y la borra al final.
 3. **Bien:** cada tabla con ✅ y al final «La tienda volvió igual, tabla por tabla.».
 4. **Mal:** la tabla con ❌ es la que no volvió igual. Se anota en la bitácora de la Tienda antes de cargar datos de terceros.
-5. Si se canceló a mitad, la base `tienda-simulacro-…` puede quedar: se borra en Cloudflare, en **Storage & Databases › D1**. Nunca se borra la del shard (`tienda_c1_s1_staging`).
+5. Solo si se corrió con `--en-la-cuenta` y se canceló a mitad, la base `tienda-simulacro-…` puede quedar: se borra en Cloudflare, en **Storage & Databases › D1**. Nunca se borra la del shard (`tienda_c1_s1_staging`).
 
-Con Ensayo Uno lleno lee unas 40.000 filas y escribe unas 20.000, del día de D1 de toda la cuenta (5 millones de lecturas y 100.000 escrituras): se corre de día, una vez, no en un ciclo.
+Con Ensayo Uno lleno lee unas 40.000 filas de la base de staging, del día de D1 de toda la cuenta (5 millones de lecturas). Las escrituras, unas 20.000, van a la base local y no cuentan. Se corre de día, una vez, no en un ciclo.
 
 ## Restaurar de verdad
 
