@@ -1667,7 +1667,7 @@ Formato de cada historia, el del CORE:
 - **CA1.** Un adaptador de Resend en `@ed1/correo`, detrás de `CorreoTransaccional`; producción lo usa con `RESEND_API_KEY`, staging sigue con Gmail.
 - **CA2.** El dominio de envío es de la marca, con SPF, DKIM y DMARC; `Reply-To` al comercio.
 - **CA3 ❌.** Sin la clave, el correo dice «no disponible» y no finge haber salido; lo fallido no gasta el tope.
-- **Work items:** WI-T18.4.1 `[código]` · WI-T18.4.2 `[prueba]` · WI-T18.4.3 `[dueño]` verificar el dominio en Resend y guardar la clave (22 oct 2026: DKIM `resend._domainkey` y SPF y MX de `send.tiendapro.co` publicados, y `RESEND_API_KEY` en el ambiente `produccion`, comprobados desde la sesión; falta el registro DMARC `_dmarc.tiendapro.co`)
+- **Work items:** WI-T18.4.1 `[código]` · WI-T18.4.2 `[prueba]` · WI-T18.4.3 `[dueño]` verificar el dominio en Resend y guardar la clave (22 oct 2026: DKIM `resend._domainkey` y SPF y MX de `send.tiendapro.co` publicados, y `RESEND_API_KEY` en el ambiente `produccion`, comprobados desde la sesión; el DMARC `_dmarc.tiendapro.co` con `p=none` y los reportes a su correo, publicado y comprobado el 22 oct 2026: queda hecho)
 
 #### HU-T18.5 · La landing de tiendapro.co
 - **Capa:** sitio · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L2 · **Depende de:** HU-T18.2, HU-T18.3 · **Estado:** Refinada
