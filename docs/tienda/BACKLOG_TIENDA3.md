@@ -1640,7 +1640,7 @@ Formato de cada historia, el del CORE:
 - **CA1.** Las tiendas nacen en `<slug>.mitiendapro.co`, y en staging en `<slug>--staging.mitiendapro.co`, con el comodín y el origen de los dominios propios en esa zona.
 - **CA2.** Las direcciones de los comercios de prueba en `laboratorio-digital.app` llevan a las nuevas (301). Producción no tiene tiendas que mover.
 - **CA3 ❌.** Ninguna tienda queda en `tiendapro.co`; la CSP, el píxel de Meta y las cookies tratan `mitiendapro.co` como la zona de la plataforma.
-- **Work items:** WI-T18.1.1 `[código]` · WI-T18.1.2 `[prueba]` · WI-T18.1.3 `[dueño]` el comodín y el permiso del token sobre las dos zonas
+- **Work items:** WI-T18.1.1 `[código]` · WI-T18.1.2 `[prueba]` · WI-T18.1.3 `[dueño]` el comodín y el permiso del token sobre las dos zonas (hecho el 22 oct 2026: el comodín AAAA de `mitiendapro.co` responde, comprobado desde la sesión; el permiso del token, dicho por el dueño)
 
 #### HU-T18.2 · El panel y la marca en tiendapro.co
 - **Capa:** panel, CORE y textos · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** L1 · **Depende de:** HU-T18.1 · **Estado:** Refinada
@@ -1655,7 +1655,7 @@ Formato de cada historia, el del CORE:
 - **Capa:** CORE, API, panel y horno · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L1 · **Depende de:** HU-T13.5 · **Estado:** Refinada
 - Como comerciante, quiero elegir entre tres planes claros.
 - **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
-- **CA1.** `planes.json` y `funciones.json` con Gratis, Pro (COP 24.900 al mes) e IA Pro (COP 49.000 al mes), sus periodos con la regla de PLATAFORMA §4.2 y el reparto de D-T3; una función nueva para el MCP público (Pro e IA Pro).
+- **CA1.** `planes.json` y `funciones.json` con Gratis (10 productos), Pro (COP 24.900 al mes) e IA Pro (COP 49.000 al mes), sus periodos con la regla de PLATAFORMA §4.2 y el reparto de D-T3; una función nueva para el MCP público (Pro e IA Pro).
 - **CA2.** `entrada`, `intermedio` y `alto` quedan retirados, sin borrarse (P21): las tiendas que los tengan pasan a Pro o a IA Pro y lo pagado se respeta.
 - **CA3 ❌.** Una tienda Gratis no ofrece el MCP público ni el del comercio; una Pro no ofrece el del comercio.
 - **Work items:** WI-T18.3.1 `[código]` · WI-T18.3.2 `[prueba]`
@@ -1667,7 +1667,7 @@ Formato de cada historia, el del CORE:
 - **CA1.** Un adaptador de Resend en `@ed1/correo`, detrás de `CorreoTransaccional`; producción lo usa con `RESEND_API_KEY`, staging sigue con Gmail.
 - **CA2.** El dominio de envío es de la marca, con SPF, DKIM y DMARC; `Reply-To` al comercio.
 - **CA3 ❌.** Sin la clave, el correo dice «no disponible» y no finge haber salido; lo fallido no gasta el tope.
-- **Work items:** WI-T18.4.1 `[código]` · WI-T18.4.2 `[prueba]` · WI-T18.4.3 `[dueño]` verificar el dominio en Resend y guardar la clave
+- **Work items:** WI-T18.4.1 `[código]` · WI-T18.4.2 `[prueba]` · WI-T18.4.3 `[dueño]` verificar el dominio en Resend y guardar la clave (22 oct 2026: DKIM `resend._domainkey` y SPF y MX de `send.tiendapro.co` publicados, y `RESEND_API_KEY` en el ambiente `produccion`, comprobados desde la sesión; falta el registro DMARC `_dmarc.tiendapro.co`)
 
 #### HU-T18.5 · La landing de tiendapro.co
 - **Capa:** sitio · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L2 · **Depende de:** HU-T18.2, HU-T18.3 · **Estado:** Refinada
@@ -1727,7 +1727,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 |---|---|---|---|
 | D-T1 | ¿Se abre el carril de holgura T0 antes de HC1? | **Sí**, solo en la holgura del CORE (con 4 historias del CORE esperando validación, o su sprint ya construido), con tope de 21 puntos y nada que toque la nube ni el CORE. No cambia D-C4 | T0 (ya) |
 | D-T2 | Tipografía de la vitrina y del panel | **Decidida el 13 oct 2026:** Geist para todo el texto y Geist Mono para precios, códigos y cifras, las del ecosistema (D-C1), en la vitrina y en el panel. «Editorial» es un tratamiento de la misma Geist, sin otra fuente. La marca del comercio llega por su logo y su color | HU-T3.3 |
-| D-T3 | Los planes: los cuatro niveles del estudio, sus límites (15 productos en `gratis`, 3 colaboradores en `intermedio`) y sus precios por periodo (TIENDA §20.2.1) | **Decidida el 22 oct 2026:** tres planes, Free (COP 0), Pro (COP 24.900 al mes) e IA Pro (COP 49.000 al mes), en lugar de los cuatro del estudio. El reparto, también del 22 oct: **Gratis** (así se llama en la tienda y en la landing) con 15 productos, pedidos por WhatsApp, un usuario y el sello de TiendaPro; **Pro** con productos sin límite, cobro en línea, contraentrega, dominio propio sin sello, feeds, resumen diario, 3 personas, la factura con su facturador y los asistentes de sus clientes que preparan pedidos (MCP público); **IA Pro** con todo lo de Pro, el asistente del comerciante para gestionar su tienda (MCP del comercio) y equipo sin límite. Los de hoy, `entrada`, `intermedio` y `alto`, quedan retirados (P21): HU-T18.3 | HU-T2.2 (T1); fijarlos antes de T17 |
+| D-T3 | Los planes: los cuatro niveles del estudio, sus límites (15 productos en `gratis`, 3 colaboradores en `intermedio`) y sus precios por periodo (TIENDA §20.2.1) | **Decidida el 22 oct 2026:** tres planes, Free (COP 0), Pro (COP 24.900 al mes) e IA Pro (COP 49.000 al mes), en lugar de los cuatro del estudio. El reparto, también del 22 oct: **Gratis** (así se llama en la tienda y en la landing) con 10 productos (bajó de 15 el 22 oct 2026), pedidos por WhatsApp, un usuario y el sello de TiendaPro; **Pro** con productos sin límite, cobro en línea, contraentrega, dominio propio sin sello, feeds, resumen diario, 3 personas, la factura con su facturador y los asistentes de sus clientes que preparan pedidos (MCP público); **IA Pro** con todo lo de Pro, el asistente del comerciante para gestionar su tienda (MCP del comercio) y equipo sin límite. Los de hoy, `entrada`, `intermedio` y `alto`, quedan retirados (P21): HU-T18.3 | HU-T2.2 (T1); fijarlos antes de T17 |
 | D-T4 | Las formas de pago de fábrica de una tienda nueva (§20.2.2) | A convenir y transferencia; contraentrega y efectivo cuando el comercio las active | HU-T6.1 (T6) |
 | D-T5 | La conservación de los contactos (§20.2.3) | 24 meses por defecto, ajustable de 12 a 60 | HU-T7.3 (T11) |
 | D-T6 | `ai-train` de las tiendas (§20.2.4) | `no` por defecto, `search` y `ai-input` en `yes`; cada comercio decide | HU-T15.1 (T5) |
