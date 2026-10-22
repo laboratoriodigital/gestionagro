@@ -128,22 +128,20 @@ Van en la página de planes y las vigila una prueba o el vigía:
 
 Los planes viven en `content/tienda/planes.json` (P2), con el formato de `PLATAFORMA.md` §4.2: precio por 1, 3, 6 y 12 meses. Qué permite cada plan está en `content/tienda/funciones.json`. Una prueba ata los dos archivos, como en el agro.
 
-**Son hipótesis, no tarifas.** El estudio propone cuatro niveles (§13.6 [C11]) para contrastar con los comercios reales de la línea antes de fijar nada. Los precios los fija el dueño.
+**Decididos por el dueño el 22 oct 2026 (D-T3, HU-T18.3): tres planes de TiendaPro.** El estudio proponía cuatro niveles (§13.6 [C11]); `entrada`, `intermedio` y `alto` quedaron retirados sin borrarse (P21), y las tiendas que los tenían pasan a Pro (Entrada e Intermedio) o a IA Pro (Alto), con lo pagado.
 
-| Plan | Mes (hipótesis) | Para quién | Incluye | Límite que empuja al siguiente |
+| Plan | Mes | Para quién | Incluye | Límite que empuja al siguiente |
 |---|---:|---|---|---|
-| `gratis` | COP 0 | Probar y vender poco | Catálogo y pedido por WhatsApp, a convenir. `<nombre>.laboratorio-digital.app`. Marca «Hecha con…» | Hasta 15 productos (propuesta), un usuario, sin dominio propio |
-| `entrada` | COP 29.900 | El comercio que vende cada semana | Cobro en línea con su Bold (botón y link de pago), contraentrega con su recaudo, transferencia y efectivo. Opciones de envío. Dominio propio. Sin marca. Feeds para Google y Meta | Un usuario, sin automatizaciones |
-| `intermedio` | COP 89.900 | El que vende todos los días | Lo anterior, más factura integrada con el facturador del comercio (§14.5), automatizaciones (resumen diario, recordatorios de confirmación y de recaudo, cancelación de lo no pagado) y colaboradores (3, propuesta) | Facturas incluidas, una bodega |
-| `alto` | COP 249.900 | Mayorista o con local | Lo anterior, más el MCP y la API del comercio, y, cuando se construyan, varias bodegas, punto de venta y B2B (§7.5, §20.3) | — |
+| `gratis` (Gratis) | COP 0 | Empezar a vender por WhatsApp | Catálogo y pedido por WhatsApp, a convenir. `<nombre>.mitiendapro.co`. El sello «Hecha con TiendaPro» al pie | Hasta 10 productos, un usuario, sin dominio propio ni cobro en línea |
+| `pro` (Pro) | COP 24.900 | El comercio que vende cada semana | Productos sin límite. Cobro en línea con su Bold (botón y link de pago), contraentrega con su recaudo, transferencia y efectivo. Opciones de envío. Dominio propio, sin el sello. Feeds para Google y Meta. Resumen diario y recordatorios. La factura con su facturador (§14.5). Los asistentes de sus compradores preparan pedidos (MCP público, §13.4) | Hasta 3 personas; sin el asistente del comerciante |
+| `ia-pro` (IA Pro) | COP 49.000 | El que quiere manejar su tienda con su asistente | Lo de Pro, más el MCP del comercio (su asistente ve pedidos, cambia estados y ajusta el inventario) y el equipo sin límite | — |
 
-**Por periodo**, con la propuesta de `PLATAFORMA.md` §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo):
+**Por periodo**, con la regla de `PLATAFORMA.md` §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo):
 
 | Plan | 1 mes | 3 meses | 6 meses | 12 meses |
 |---|---:|---:|---:|---:|
-| `entrada` | 29.900 | 85.000 | 161.000 | 299.000 |
-| `intermedio` | 89.900 | 256.000 | 485.000 | 899.000 |
-| `alto` | 249.900 | 712.000 | 1.349.000 | 2.499.000 |
+| `pro` | 24.900 | 70.000 | 134.000 | 249.000 |
+| `ia-pro` | 49.000 | 139.000 | 264.000 | 490.000 |
 
 **Las cuatro reservas del estudio, que el diseño respeta:**
 

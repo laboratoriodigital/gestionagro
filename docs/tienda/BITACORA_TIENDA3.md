@@ -1311,3 +1311,15 @@ La regla: **lo que se borra para reescribirlo, se reescribe también cuando el p
 La regla: **lo que el agente le entrega a la persona tiene que existir en lo publicado, no solo en los ajustes.**
 
 *Ficha:* tienda3 · *(dueño y mío)* · 🟡 Medio · P1 · tienda-0.1.0 · 2026-10-21
+
+**51 · La Public Suffix List de L2 choca con una verificación del 5 oct 2026 (HA9).**
+
+*Qué pasó.* El 22 oct 2026, al construir L1, el contraste con ARQUITECTURA encontró que HU-T18.7 (inscribir `mitiendapro.co` en la Public Suffix List) contradice HA9: el 5 oct se descartó la PSL para las tiendas porque «Cloudflare no admite como zona un dominio inscrito en ella, salvo en Enterprise». Esa verificación fue por resumen, no de primera mano.
+
+*Lo que se sabe hoy.* La documentación de Cloudflare sobre zonas que no se pueden agregar no lo confirma ni lo descarta; sí dice que Cloudflare usa su propia copia de la PSL y que la actualiza con semanas de retraso. El riesgo concreto: cuando la copia de Cloudflare traiga `mitiendapro.co`, la zona ya creada podría dejar de tratarse como un dominio registrable, y con ella el comodín, `origen.` y Cloudflare for SaaS.
+
+*Lo que se hizo.* Nada de L1 depende de la PSL: las tiendas ya viven en `mitiendapro.co` sin ella (ADR-42). HU-T18.7 queda con un paso antes: preguntarle a Cloudflare, por escrito, si una zona activa del plan gratuito sigue funcionando después de inscribirla en la PSL. Si la respuesta es no, la decisión vuelve al dueño (pedirla igual con otra zona, o quedarse sin ella con el aislamiento por origen de PLATAFORMA §3.4).
+
+La regla: **una decisión que contradice una verificación anterior se vuelve a verificar antes de ejecutarla, y la verificación «por resumen» se hace de primera mano.**
+
+*Ficha:* tienda3 · *(mía)* · 🟡 Medio · P1, P16 · tienda-0.1.0 · 2026-10-22

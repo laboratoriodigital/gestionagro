@@ -4,7 +4,7 @@
 - si una tienda vende con marca ajena, engaña a sus compradores o rompe los términos (TIENDA-3.0 §4.4);
 - si una tienda en particular está fallando y hay que aislarla sin tocar a las demás.
 
-Los reportes llegan a `abuse@laboratorio-digital.app`, el enlace «Reportar esta tienda» del pie de cada tienda.
+Los reportes llegan a `abuse@tiendapro.co` (HU-T18.2), el enlace «Reportar esta tienda» del pie de cada tienda.
 
 ## Suspender: un clic (HU-T13.6)
 
@@ -35,8 +35,8 @@ El mismo flujo con **accion** `levantar` y su motivo. La tienda vuelve a `abiert
 ## El simulacro (CA3), en staging
 
 1. Corre el flujo con ambiente `staging`, la org de Comercio Ensayo Uno (`0199e0a0-0000-7000-8000-0000000000c1`), `suspender` y el motivo «simulacro».
-2. Abre <https://ensayo-uno--staging.laboratorio-digital.app>: tiene que responder 451.
-3. Abre <https://ensayo-dos--staging.laboratorio-digital.app>: tiene que seguir igual.
+2. Abre <https://ensayo-uno--staging.mitiendapro.co>: tiene que responder 451.
+3. Abre <https://ensayo-dos--staging.mitiendapro.co>: tiene que seguir igual.
 4. Levántala con el mismo flujo y comprueba que Ensayo Uno vuelve.
 
 ## Si la falla es de una tienda y no hay tiempo para el flujo
@@ -53,7 +53,7 @@ Cada día, la tarea `hostnames-colgantes` pregunta el DNS público de los domini
 
 ## El correo de los reportes (una vez, el dueño)
 
-En Cloudflare, zona `laboratorio-digital.app` › **Email › Email Routing**:
+En Cloudflare, zona `tiendapro.co` › **Email › Email Routing**:
 1. Activa Email Routing (agrega los registros MX y SPF que pide).
-2. Crea la dirección `abuse@laboratorio-digital.app` y reenvíala a tu correo.
+2. Crea la dirección `abuse@tiendapro.co` y reenvíala a tu correo.
 3. Verifica tu correo cuando Cloudflare lo pida.
