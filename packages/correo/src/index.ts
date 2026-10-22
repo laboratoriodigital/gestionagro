@@ -6,8 +6,12 @@
  *
  * El primer proveedor es Gmail por su API (decisión del dueño del 13 oct 2026): el refresh token de
  * OAuth se cambia por un token de acceso y el mensaje MIME va a `users/me/messages/send`, con el
- * permiso `gmail.send` y nada más. Es HTTP, cabe en el plan gratuito. Resend o el de Cloudflare
- * llegan después como otro proveedor detrás de la misma interfaz, sin que ningún producto cambie.
+ * permiso `gmail.send` y nada más. Es HTTP, cabe en el plan gratuito. El segundo es Resend (D-T11
+ * ajustada el 21 oct 2026, HU-T18.4), detrás de la misma interfaz: una clave de API y un remitente
+ * de un dominio verificado con SPF, DKIM y DMARC. Quien llama elige cuál, sin cambiar sus correos.
+ *
+ * Cada correo sale como «<nombre> vía <marca>»: la marca es la del producto que lo manda (TiendaPro
+ * para la Tienda) y, si no dice, Laboratorio Digital.
  *
  * Nunca finge haber enviado (CA3, P1): sin configuración, con el permiso vencido o con cualquier
  * respuesta que no sea un envío aceptado, `enviar` devuelve `enviado: false` con su motivo. No
@@ -21,7 +25,7 @@ export interface Correo {
   texto: string;
   /** Opcional: si llega, el correo lleva las dos versiones y el lector elige. */
   html?: string;
-  /** En nombre de quién sale, por ejemplo la tienda. Sin él, sale de Laboratorio Digital. */
+  /** En nombre de quién sale, por ejemplo la tienda. Sin él, sale con el nombre de la marca. */
   nombre?: string;
   /** A quién le llega la respuesta, por ejemplo el correo del comercio. */
   responderA?: string;
@@ -43,7 +47,7 @@ export type ResultadoDelEnvio =
   | { enviado: false; motivo: MotivoSinEnviar; detalle: string };
 
 export interface CorreoTransaccional {
-  proveedor: 'gmail';
+  proveedor: 'gmail' | 'resend';
   /** false si falta configuración: `enviar` responderá «no disponible» sin tocar la red. */
   disponible: boolean;
   enviar(c: Correo): Promise<ResultadoDelEnvio>;
@@ -56,9 +60,20 @@ export interface ConfiguracionGmail {
   refresh?: string | undefined;
   /** La dirección de la cuenta que envía: Gmail no deja poner otra en `From`. */
   remitente?: string | undefined;
+  /** La marca del «vía»; sin ella, la de la plataforma. */
+  marca?: string | undefined;
+}
+
+/** Lo que Resend necesita: su clave, de los secretos del ambiente, y una dirección de su dominio. */
+export interface ConfiguracionResend {
+  clave?: string | undefined;
+  /** Una dirección del dominio verificado en Resend, por ejemplo `avisos@tiendapro.co`. */
+  remitente?: string | undefined;
+  marca?: string | undefined;
 }
 
 export const NOMBRE_DE_LA_PLATAFORMA = 'Laboratorio Digital';
+const ENVIO_DE_RESEND = 'https://api.resend.com/emails';
 const TOKEN_DE_GOOGLE = 'https://oauth2.googleapis.com/token';
 const ENVIO_DE_GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
 /** Las razones con que Gmail dice «demasiados» en un 403 (su guía de errores de uso). */
@@ -134,9 +149,13 @@ function cuerpoEnBase64(texto: string): string {
   return (b.match(/.{1,76}/g) ?? ['']).join('\r\n');
 }
 
+/** El nombre visible del remitente: «Panadería Rosa vía TiendaPro», o la marca sola. */
+export const quienEnvia = (c: Pick<Correo, 'nombre'>, marca = NOMBRE_DE_LA_PLATAFORMA): string =>
+  c.nombre ? `${c.nombre} vía ${marca}` : marca;
+
 /** El mensaje MIME completo, tal como sale. `remitente` es la dirección de la cuenta que envía. */
-export function armarMensaje(c: Correo, remitente: string): string {
-  const quien = c.nombre ? `${c.nombre} vía ${NOMBRE_DE_LA_PLATAFORMA}` : NOMBRE_DE_LA_PLATAFORMA;
+export function armarMensaje(c: Correo, remitente: string, marca?: string): string {
+  const quien = quienEnvia(c, marca);
   const encabezados = [
     `From: ${palabrasCodificadas(quien)} <${remitente}>`,
     `To: <${c.para}>`,
@@ -199,7 +218,7 @@ type Acceso = { token: string } | { sin: ResultadoDelEnvio };
  * hace falta un reloj.
  */
 export function correoGmail(conf: ConfiguracionGmail, fetchFn: typeof fetch): CorreoTransaccional {
-  const { clienteId, clienteSecreto, refresh, remitente } = conf;
+  const { clienteId, clienteSecreto, refresh, remitente, marca } = conf;
   const completa = Boolean(clienteId && clienteSecreto && refresh && remitente);
   let acceso: string | null = null;
 
@@ -252,7 +271,7 @@ export function correoGmail(conf: ConfiguracionGmail, fetchFn: typeof fetch): Co
       }
       const problema = problemaDelCorreo(c);
       if (problema) return sinEnviar('invalido', problema);
-      const raw = base64url(armarMensaje(c, remitente));
+      const raw = base64url(armarMensaje(c, remitente, marca));
       for (let intento = 0; intento < 2; intento++) {
         if (acceso === null) {
           const a = await pedirAcceso();
@@ -279,6 +298,73 @@ export function correoGmail(conf: ConfiguracionGmail, fetchFn: typeof fetch): Co
         return sinEnviar('rechazado', `Gmail respondió ${r.status} (${razon})`);
       }
       return sinEnviar('no-disponible', 'Gmail no aceptó el token de acceso dos veces');
+    },
+  };
+}
+
+/** El nombre para `From` entre comillas: sin comillas ni barras adentro que partan la dirección. */
+const nombreEntreComillas = (s: string) => `"${s.replace(/["\\]/g, '')}"`;
+
+/** Las razones con que Resend dice «demasiados» (su guía de errores). */
+const TOPES_DE_RESEND = new Set([
+  'rate_limit_exceeded',
+  'daily_quota_exceeded',
+  'monthly_quota_exceeded',
+]);
+
+/**
+ * Resend por su API (HU-T18.4). Un solo POST por correo, con la clave en `Authorization`. El
+ * remitente es una dirección del dominio verificado; la respuesta va a `responderA`. Sin la clave o
+ * sin el remitente, «no disponible» sin tocar la red (CA3). Lo que Resend dice de la clave o del
+ * dominio también es «no disponible»: reintentar no sirve hasta arreglarlo.
+ */
+export function correoResend(
+  conf: ConfiguracionResend,
+  fetchFn: typeof fetch,
+): CorreoTransaccional {
+  const { clave, remitente, marca } = conf;
+  const completa = Boolean(clave && remitente && esDireccion(remitente));
+  return {
+    proveedor: 'resend',
+    disponible: completa,
+    async enviar(c) {
+      if (!completa || !clave || !remitente) {
+        return sinEnviar('no-disponible', 'falta la configuración de Resend');
+      }
+      const problema = problemaDelCorreo(c);
+      if (problema) return sinEnviar('invalido', problema);
+      let r: Response;
+      try {
+        r = await fetchFn(ENVIO_DE_RESEND, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${clave}`, 'content-type': 'application/json' },
+          body: JSON.stringify({
+            from: `${nombreEntreComillas(quienEnvia(c, marca))} <${remitente}>`,
+            to: [c.para],
+            subject: c.asunto,
+            text: c.texto,
+            ...(c.html !== undefined ? { html: c.html } : {}),
+            ...(c.responderA ? { reply_to: c.responderA } : {}),
+            // Es transaccional: que ningún contestador automático responda (RFC 3834).
+            headers: { 'Auto-Submitted': 'auto-generated' },
+          }),
+        });
+      } catch (e) {
+        return sinEnviar('falla', `Resend no respondió (${(e as Error).message})`);
+      }
+      const d = await cuerpoJson(r);
+      if (r.ok && typeof d['id'] === 'string') return { enviado: true, id: d['id'] };
+      if (r.ok) return sinEnviar('falla', 'Resend respondió sin el id del mensaje');
+      // Solo el nombre del error, para el log; nunca su mensaje, que puede repetir la dirección.
+      const razon = typeof d['name'] === 'string' ? d['name'] : 'sin razón';
+      if (r.status === 429 || TOPES_DE_RESEND.has(razon)) {
+        return sinEnviar('tope', `Resend respondió ${r.status} (${razon})`);
+      }
+      if (r.status === 401 || r.status === 403) {
+        return sinEnviar('no-disponible', `Resend respondió ${r.status} (${razon})`);
+      }
+      if (r.status >= 500) return sinEnviar('falla', `Resend respondió ${r.status}`);
+      return sinEnviar('rechazado', `Resend respondió ${r.status} (${razon})`);
     },
   };
 }
