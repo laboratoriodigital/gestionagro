@@ -1698,7 +1698,7 @@ Formato de cada historia, el del CORE:
 - **CA1.** El PR a la Public Suffix List preparado, con el registro `_psl` en la zona.
 - **CA2.** `mitiendapro.co` y `tiendapro.co` vigilados en Google Search Console.
 - **CA3 ❌.** `tiendapro.co` no se inscribe: es la marca, no aloja tiendas.
-- **Antes de empezar (bitácora tienda3 51):** HA9 dice que Cloudflare no admite como zona un dominio inscrito en la PSL, salvo en Enterprise. Se le pregunta a Cloudflare por escrito si `mitiendapro.co`, zona activa del plan gratuito, sigue funcionando después de inscribirla (con el comodín, `origen.` y Cloudflare for SaaS). Si no, la decisión vuelve al dueño.
+- **Antes de empezar (bitácora tienda3 51):** HA9 decía que Cloudflare no admite como zona un dominio inscrito en la PSL, salvo en Enterprise. Verificado el 22 oct 2026: la regla es para crear zonas nuevas, y hay decenas de zonas inscritas que siguen sirviendo en Cloudflare con comodín y certificado universal (`bearblog.dev`, `srv.us`, `vp4.me`). Se le pregunta a Cloudflare por escrito solo lo que falta: si Cloudflare for SaaS sigue funcionando en la zona inscrita fuera de Enterprise, y si la zona se podría volver a crear. Si no, la decisión vuelve al dueño; la alternativa más barata es no inscribirla, como Tiendanube.
 - **Work items:** WI-T18.7.0 `[dueño]` la pregunta a Cloudflare · WI-T18.7.1 `[dueño]` el registro `_psl` y abrir el PR · WI-T18.7.2 `[dueño]` Search Console
 
 

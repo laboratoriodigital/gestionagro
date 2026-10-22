@@ -1320,6 +1320,16 @@ La regla: **lo que el agente le entrega a la persona tiene que existir en lo pub
 
 *Lo que se hizo.* Nada de L1 depende de la PSL: las tiendas ya viven en `mitiendapro.co` sin ella (ADR-42). HU-T18.7 queda con un paso antes: preguntarle a Cloudflare, por escrito, si una zona activa del plan gratuito sigue funcionando después de inscribirla en la PSL. Si la respuesta es no, la decisión vuelve al dueño (pedirla igual con otra zona, o quedarse sin ella con el aislamiento por origen de PLATAFORMA §3.4).
 
+*Lo que se verificó de primera mano (22 oct 2026, a pedido del dueño, antes de escribirle a Cloudflare).*
+- **HA9 se leyó de más.** La guía de Cloudflare para agregar un dominio dice que el ápice de una zona *nueva* tiene que estar un nivel debajo de un sufijo de la PSL, y que solo Enterprise agrega subniveles («Subdomain setup»). Es una regla para crear zonas, no dice que una zona activa deje de servir al inscribirse.
+- **Hay zonas inscritas que siguen sirviendo en Cloudflare.** De 500 dominios de la sección privada de la PSL (de 1.811 de dos niveles), 44 usan los servidores de nombres normales de Cloudflare (`*.ns.cloudflare.com`) y todos resuelven; varios con un comodín detrás del proxy, como TiendaPro. Llevan tiempo inscritos, así que Cloudflare ya tomó el cambio: `vp4.me` desde 2021 (PR #1351), `srv.us` desde 2024 (#1899), `bearblog.dev` desde octubre de 2025 (#2620).
+- **El certificado gratuito sigue.** `bearblog.dev`, el blog de una persona, sirve `*.bearblog.dev` con el certificado universal de Cloudflare (Google Trust Services WE1, `bearblog.dev` y `*.bearblog.dev`).
+- **Las plataformas grandes, para comparar.** En la PSL: `myshopify.com` (en Cloudflare, con su DNS para empresas), `webflow.io` (Cloudflare), `wixsite.com` (NS1) y `square.site` (AWS). Fuera de ella: `mitiendanube.com`, `jumpseller.com` y `company.site` (Ecwid), los tres en AWS.
+- **La plantilla de la PSL nombra a Cloudflare** como un sistema que trata distinto un dominio inscrito: cada subdominio se vuelve un dominio que se puede agregar como zona aparte. Nadie toma así una tienda sin que el DNS de `mitiendapro.co` lo delegue.
+- **El foro de Cloudflare no se pudo leer:** pide una verificación contra bots. Por sus resúmenes, Cloudflare tarda de 4 a 8 semanas en tomar un cambio de la PSL; ningún hilo trae una respuesta oficial.
+
+*Lo que queda sin confirmar, y es lo que se le pregunta a Cloudflare:* si Cloudflare for SaaS (los dominios propios, con `origen.mitiendapro.co`) sigue funcionando en una zona inscrita fuera de Enterprise (ningún ejemplo pequeño lo usa), y si la zona se podría volver a crear si algún día se borra (por la regla de arriba, parece que no: la regla práctica es no borrarla nunca). Desde fuera no se sabe el plan de los ejemplos. Si Cloudflare dice que no, la alternativa más barata es no inscribirla, como Tiendanube: el comerciante no puede poner código en su tienda (horneada, con CSP estricta), el píxel de Meta solo va con dominio propio (D-T13) y la suspensión es rápida (HU-T13.6).
+
 La regla: **una decisión que contradice una verificación anterior se vuelve a verificar antes de ejecutarla, y la verificación «por resumen» se hace de primera mano.**
 
 *Ficha:* tienda3 · *(mía)* · 🟡 Medio · P1, P16 · tienda-0.1.0 · 2026-10-22
