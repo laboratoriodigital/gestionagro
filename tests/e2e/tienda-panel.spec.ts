@@ -207,7 +207,7 @@ const terminosFalsos = (aceptados: boolean) => ({
         'El dinero de tus ventas',
         'Lo que tus compradores pagan en línea va directo a tu cuenta de Bold.',
       ],
-      ['Encargado', 'Laboratorio Digital, identificación por completar.'],
+      ['Encargado', 'Laboratorio Digital, domicilio Medellín, Colombia.'],
     ],
     huella: HUELLA,
     aceptados,

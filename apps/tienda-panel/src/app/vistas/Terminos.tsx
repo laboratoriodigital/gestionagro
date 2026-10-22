@@ -150,8 +150,8 @@ export function Terminos({
       </p>
       {datos.estado !== 'vigente' ? (
         <p class="texto-legal__aviso">
-          <strong>Borrador: {datos.revision}.</strong> Lo marcado «por completar» se completará
-          antes de que sea la versión vigente.
+          <strong>Borrador: {datos.revision}.</strong> Algunos datos de quien presta el servicio se
+          agregarán antes de que sea la versión vigente.
         </p>
       ) : null}
       {pedir ? (
