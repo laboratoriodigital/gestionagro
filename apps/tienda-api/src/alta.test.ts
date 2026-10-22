@@ -76,7 +76,7 @@ describe('la dirección libre (HU-T13.4)', () => {
     expect(await disponibilidad(control, 'Pan-de-Rosa', 'staging')).toEqual({
       disponible: true,
       slug: 'pan-de-rosa',
-      direccion: 'pan-de-rosa--staging.laboratorio-digital.app',
+      direccion: 'pan-de-rosa--staging.mitiendapro.co',
     });
     expect(await disponibilidad(control, 'ensayo-uno', 'produccion')).toMatchObject({
       disponible: false,
@@ -108,7 +108,7 @@ describe('abrir la tienda (HU-T13.4)', () => {
       id: NUEVA,
       version: 1,
       slug: 'pan-de-rosa',
-      direccion: 'pan-de-rosa--staging.laboratorio-digital.app',
+      direccion: 'pan-de-rosa--staging.mitiendapro.co',
     });
     expect(
       await shard
@@ -135,9 +135,7 @@ describe('abrir la tienda (HU-T13.4)', () => {
         .bind(NUEVA)
         .first(),
     ).toEqual({ tipo: 'plataforma', rol: 'canonico', estado: 'activo' });
-    expect(
-      JSON.parse(hosts.get('h:pan-de-rosa--staging.laboratorio-digital.app') ?? '{}'),
-    ).toMatchObject({
+    expect(JSON.parse(hosts.get('h:pan-de-rosa--staging.mitiendapro.co') ?? '{}')).toMatchObject({
       org: NUEVA,
       version: null,
       estado: 'borrador',

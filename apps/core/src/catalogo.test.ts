@@ -35,8 +35,8 @@ const contar = async (tabla: string) =>
   (await db.prepare(`SELECT COUNT(*) AS n FROM ${tabla}`).first<{ n: number }>())?.n ?? -1;
 
 const real = () => catalogoDelRepositorio();
-/** Un precio por periodo de cada plan que cobra: los 4 del plan Finca del agro, los 4 del plan Parqueadero y los 12 de los tres planes de pago de la Tienda (HU-T2.2). */
-const PRECIOS_REALES = 20;
+/** Un precio por periodo de cada plan que cobra: los 4 del plan Finca del agro, los 4 del plan Parqueadero y los 8 de Pro e IA Pro de la Tienda (HU-T18.3). */
+const PRECIOS_REALES = 16;
 const ensayo = (): ProductoDelCatalogo => ({
   id: 'ensayo',
   nombre: 'Producto Ensayo',

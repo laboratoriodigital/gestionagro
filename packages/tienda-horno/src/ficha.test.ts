@@ -30,7 +30,7 @@ const producto = (extra: Partial<ProductoParaHornear> = {}): ProductoParaHornear
 });
 
 const tienda = (productos: ProductoParaHornear[]): TiendaParaHornear => ({
-  dominio: 'ensayo-uno--staging.laboratorio-digital.app',
+  dominio: 'ensayo-uno--staging.mitiendapro.co',
   release: 'r1',
   org: 'org-ensayo',
   medios: 'img--staging.laboratorio-digital.app',

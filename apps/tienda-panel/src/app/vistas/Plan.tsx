@@ -1,7 +1,7 @@
 /**
  * «Más › Tu plan» (HU-T13.5 CA1): el plan de ahora y hasta cuándo, lo que pasa si vence (CA3), y
  * los planes pagos con sus periodos de 1, 3, 6 o 12 meses, con el total y el valor por mes. Paga
- * quien administra la tienda, con el Bold de Laboratorio Digital: el CORE pone el monto y confirma.
+ * quien administra la tienda, con el Bold de la plataforma: el CORE pone el monto y confirma.
  * Al volver de Bold, la dirección trae `?pago=`: se confirma, se quita de la barra y, si quedó
  * aprobado, la sesión trae el plan nuevo.
  */
@@ -41,7 +41,13 @@ function loQuePermite(funciones: Record<string, unknown> | null): string[] {
     funciones['cobro_en_linea']
       ? 'Cobro en línea con tu Bold'
       : 'Pedidos por WhatsApp, sin cobro en línea',
-    funciones['dominio_propio'] ? 'Tu propio dominio' : 'Tu dirección en laboratorio-digital.app',
+    funciones['dominio_propio'] ? 'Tu propio dominio' : 'Tu dirección en mitiendapro.co',
+    // HU-T18.2 y HU-T18.3: el sello de la marca y los asistentes, según el plan.
+    funciones['sin_marca'] ? 'Sin el sello de TiendaPro' : 'Con el sello «Hecha con TiendaPro»',
+    ...(funciones['mcp_publico']
+      ? ['Los asistentes de tus clientes pueden prepararles el pedido']
+      : []),
+    ...(funciones['mcp_del_comercio'] ? ['Tu asistente con IA gestiona tu tienda'] : []),
   ];
 }
 
@@ -227,7 +233,7 @@ export function Plan({
           <ul>
             <li>Tu tienda sigue en internet y recibiendo pedidos por WhatsApp.</li>
             <li>Deja de cobrar en línea y de ofrecer la contraentrega.</li>
-            <li>Tu dominio propio lleva a tu dirección de laboratorio-digital.app.</li>
+            <li>Tu dominio propio lleva a tu dirección de mitiendapro.co.</li>
             <li>
               Los productos que pasen de 15 quedan ocultos. No se borra nada: al pagar, vuelven.
             </li>

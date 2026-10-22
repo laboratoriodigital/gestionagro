@@ -111,7 +111,7 @@ describe('publicar (HU-T4.4)', () => {
     expect(r2.objetos.has(`sitios/${ENSAYO_UNO.org}/1/manifiesto.json`)).toBe(true);
     expect([...r2.objetos.keys()].some((k) => k.startsWith('objetos/'))).toBe(true);
     expect(
-      JSON.parse(hosts.valores.get('h:ensayo-uno--staging.laboratorio-digital.app') ?? '{}'),
+      JSON.parse(hosts.valores.get('h:ensayo-uno--staging.mitiendapro.co') ?? '{}'),
     ).toMatchObject({
       org: ENSAYO_UNO.org,
       version: 1,
@@ -216,7 +216,7 @@ describe('publicar (HU-T4.4)', () => {
     // Los feeds son de los planes pagos (HU-T13.5); Ensayo Dos es del gratuito.
     const plan = (p: string) =>
       shard.prepare('UPDATE tienda SET plan = ? WHERE org_id = ?').bind(p, ENSAYO_DOS.org).run();
-    await plan('entrada');
+    await plan('pro');
     try {
       const r2 = almacen();
       expect((await publicar(contexto(ENSAYO_DOS.org, r2))).estado).toBe('publicada');
@@ -323,7 +323,7 @@ describe('publicar (HU-T4.4)', () => {
     const bueno = almacen();
     const hosts = kv();
     await publicar(contexto(ENSAYO_UNO.org, bueno, hosts));
-    const puntero = hosts.valores.get('h:ensayo-uno--staging.laboratorio-digital.app');
+    const puntero = hosts.valores.get('h:ensayo-uno--staging.mitiendapro.co');
     await shard
       .prepare(
         "UPDATE producto SET nombre = 'Camisa de lino lavado' WHERE org_id = ? AND id = 'p-camisa'",
@@ -335,7 +335,7 @@ describe('publicar (HU-T4.4)', () => {
     const r = await publicar(contexto(ENSAYO_UNO.org, caido, hosts));
     expect(r).toEqual({ estado: 'fallida', motivo: 'R2 no respondió' });
     expect(await versionPublicada(ENSAYO_UNO.org)).toBe(1);
-    expect(hosts.valores.get('h:ensayo-uno--staging.laboratorio-digital.app')).toBe(puntero);
+    expect(hosts.valores.get('h:ensayo-uno--staging.mitiendapro.co')).toBe(puntero);
     expect(
       await shard
         .prepare('SELECT estado FROM publicacion WHERE org_id = ? AND version = 2')
@@ -473,7 +473,7 @@ describe('publicar (HU-T4.4)', () => {
     expect(subidos).toBe(todos);
     expect(r2.escrituras()).toBeLessThan(entera.escrituras() + todos);
     expect(await versionPublicada(ENSAYO_UNO.org)).toBe(1);
-    expect(hosts.valores.has('h:ensayo-uno--staging.laboratorio-digital.app')).toBe(true);
+    expect(hosts.valores.has('h:ensayo-uno--staging.mitiendapro.co')).toBe(true);
   });
 
   it('❌ una tanda de hace más de una hora no cuenta: lo suyo se vuelve a subir (bitácora tienda3 30)', async () => {

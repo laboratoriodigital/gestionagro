@@ -2,14 +2,15 @@
  * El MCP del comercio (HU-T15.7, TIENDA-3.0 §1.2 y §1.4, PLATAFORMA §5.4 y §5.5): para que el
  * asistente de un comerciante le diga qué pedidos tiene por despachar y le ayude con el inventario.
  *
- * - **Dónde:** `POST /mcp` en el origen del panel (en producción, `mcp.laboratorio-digital.app`),
+ * - **Dónde:** `POST /mcp` en el origen del panel (en producción, `mcp.tiendapro.co`),
  *   que el Worker del panel pasa a la API sin tienda resuelta. El del comprador llega por el
  *   despacho, con la tienda en `x-tienda` (`mcp-publico.ts`): así no se confunden.
  * - **Quién:** solo con un token de agente del CORE cuyo `aud` sea este recurso (RFC 8707) y los
  *   alcances que el comerciante concedió (CA1), para esta celda y su shard. Sin token: 401 con
  *   `WWW-Authenticate` y los metadatos del recurso (RFC 9728). Un token de otro recurso se rechaza
  *   (CA2). Revocar corta la siguiente solicitud: se le pregunta al CORE por la concesión.
- * - **Solo en el plan Alto** (`mcp_del_comercio` de `content/tienda/funciones.json`, CA2).
+ * - **Solo en el plan IA Pro** (`mcp_del_comercio` de `content/tienda/funciones.json`, CA2 y
+ *   HU-T18.3).
  * - **Nada mueve dinero ni lee llaves o datos de compradores** (CA2): pedidos sin su contacto,
  *   estados por las mismas funciones del panel (con su versión, su registro y sus reglas) e
  *   inventario por su ajuste. Lo hace a nombre de `agente:<concesión>`, que queda en el registro.
@@ -383,7 +384,7 @@ const metadatos = (env: EnvDelMcpDelComercio) => ({
   authorization_servers: env.EMISOR_OAUTH ? [env.EMISOR_OAUTH] : [],
   scopes_supported: Object.values(ALCANCES_DEL_COMERCIO),
   bearer_methods_supported: ['header'],
-  resource_name: 'Tu tienda en laboratorio-digital.app',
+  resource_name: 'Tu tienda en TiendaPro',
 });
 
 /** RFC 9728 y la tarjeta del servidor (PLATAFORMA §5.5); `null` si este destino no tiene el recurso. */
@@ -483,7 +484,7 @@ export async function atenderMcpDelComercio(
     );
   }
   if (!vigente) return noAutorizado(c, env, 'invalid_token', 'Quitaron este acceso.');
-  // CA2: solo en el plan Alto.
+  // CA2: solo en el plan IA Pro (HU-T18.3).
   const tienda = await db
     .prepare('SELECT plan FROM tienda WHERE org_id = ?')
     .bind(r.org)
@@ -495,7 +496,7 @@ export async function atenderMcpDelComercio(
     return c.json(
       {
         error: 'insufficient_scope',
-        error_description: 'El asistente de tu tienda es del plan Alto.',
+        error_description: 'El asistente de tu tienda es del plan IA Pro.',
       },
       403,
     );

@@ -390,7 +390,7 @@ export function Cobro({
       <h1>Cobro en línea</h1>
       <p>
         Tus compradores pagan con tarjeta, PSE, Bancolombia o billeteras, y el dinero llega a tu
-        cuenta de Bold. Laboratorio Digital no lo recibe ni lo toca.
+        cuenta de Bold. TiendaPro no lo recibe ni lo toca.
       </p>
       {cobro.faltan.length > 0 ? (
         <Aviso tono="peligro" titulo="El pago en línea todavía no funciona">

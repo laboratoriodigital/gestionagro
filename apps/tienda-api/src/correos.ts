@@ -13,8 +13,9 @@
  *   resolvió, y si se supo por el aviso o por la consulta. Por la consulta quiere decir que el aviso
  *   no llegó, y eso es lo que el comercio tiene que revisar (HU-T11.5).
  *
- * Mientras dure Gmail, el remitente es la cuenta de Gmail con el nombre de la tienda delante, y la
- * respuesta va al correo del comercio (PLATAFORMA §4.11).
+ * El remitente es la marca con el nombre de la tienda delante («Panadería Rosa vía TiendaPro»), y la
+ * respuesta va al correo del comercio (PLATAFORMA §4.11). Producción manda con Resend desde
+ * tiendapro.co; staging, con la cuenta de Gmail (D-T11, HU-T18.4).
  *
  * Cada correo tiene una clave (`correo` en la 0006): dos corridas no mandan dos. Solo `enviado` es
  * enviado (CA3, P1): lo que no salió queda `fallido` con su motivo y no gasta el tope del día. El
@@ -26,6 +27,7 @@ import { fechaEnBogota } from '@ed1/calendario';
 import type { Correo, CorreoTransaccional, MotivoSinEnviar, ResultadoDelEnvio } from '@ed1/correo';
 import type { BaseD1 } from '@ed1/d1';
 import { formatearPesos } from '@ed1/dinero';
+import { PANEL_DE_PRODUCCION } from '@ed1/tienda-schema/marca';
 import { type FilaDeSolicitud, listarSolicitudes } from './panel-solicitudes.ts';
 import { type Cifras, cifras, type Tablero, tablero } from './panel-tablero.ts';
 import { type DatosDelTexto, datosDelPedidoEscrito, resumenDelPedido } from './pedidos.ts';
@@ -39,8 +41,8 @@ export const HORA_DEL_RESUMEN = '07:00';
 /** Los intentos de un correo en su día: lo que no salió por la red o el cupo se reintenta. */
 export const INTENTOS = 3;
 const REINTENTABLES: ReadonlySet<MotivoSinEnviar> = new Set(['falla', 'tope', 'no-disponible']);
-/** El cron corre solo en producción (HU-T17.1), y el panel de producción vive aquí. */
-export const PANEL = 'https://panel.laboratorio-digital.app/';
+/** El cron corre solo en producción (HU-T17.1), y el panel de producción vive aquí (HU-T18.2). */
+export const PANEL = PANEL_DE_PRODUCCION;
 
 export type TipoDeCorreo = 'resumen' | 'acuse' | 'prueba';
 

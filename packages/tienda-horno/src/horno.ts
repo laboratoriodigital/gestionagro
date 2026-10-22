@@ -14,8 +14,11 @@
  */
 import { formatearPesos } from '@ed1/dinero';
 import {
+  CORREO_DE_REPORTES,
+  DOMINIO_DE_LA_MARCA,
   etiquetaDeVerificacionGoogle,
   type LimitesDelPlan,
+  MARCA,
   NOMBRE_DEL_TIPO,
   TIPOS_DE_SOLICITUD,
 } from '@ed1/tienda-schema';
@@ -96,7 +99,7 @@ export interface ColeccionParaHornear {
 }
 
 export interface TiendaParaHornear {
-  /** La dirección canónica, sin esquema: `ensayo-uno.laboratorio-digital.app`. */
+  /** La dirección canónica, sin esquema: `ensayo-uno.mitiendapro.co`. */
   dominio: string;
   /** La versión de los archivos comunes de la vitrina (`/_t/<release>/`). */
   release: string;
@@ -374,6 +377,12 @@ export async function hornear(publicada: TiendaParaHornear): Promise<Map<string,
     medidos.length > 0
       ? '\n<p><button class="enlace" type="button" data-preferencias>Tus datos de medición</button></p>'
       : '';
+  // HU-T18.2 CA2: el sello de la marca, solo en el plan que lo lleva (Gratis). Sin plan (pruebas y
+  // versiones de antes), no sale.
+  const sello =
+    t.plan?.sinMarca === false
+      ? `\n<p class="pie__sello"><a href="https://${DOMINIO_DE_LA_MARCA}/">Hecha con ${MARCA}</a></p>`
+      : '';
   // HU-T5.13: el logo en la franja, con el nombre como texto; sin logo, el nombre. Funciones: las
   // direcciones de las fotos se arman más abajo.
   const ALTO_DEL_LOGO = 40;
@@ -424,7 +433,7 @@ ${p.cuerpo}
 <p class="pie__nombre">${escaparHtml(t.nombre)}</p>${identidad}${propias}
 <nav class="pie__enlaces" aria-label="Información legal">${TEXTOS_LEGALES.map((l) => `<a href="${l.ruta}">${escaparHtml(ENLACE_DEL_PIE[l.id] ?? l.titulo)}</a>`).join('')}</nav>
 <p><a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a></p>
-<p><a href="mailto:abuse@laboratorio-digital.app">Reportar esta tienda</a></p>${preferencias}
+<p><a href="mailto:${CORREO_DE_REPORTES}">Reportar esta tienda</a></p>${preferencias}${sello}
 </footer>${avisoDeMedicion}
 <script type="module" src="/_t/${escaparHtml(t.release)}/vitrina.js"></script>
 </body>

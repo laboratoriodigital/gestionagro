@@ -273,7 +273,7 @@ describe.each<Instrumento>(INSTRUMENTOS)(
       ok(true, 'el esquema del shard se aplica');
       const semilla = await lote([
         [
-          "INSERT INTO tienda (org_id, slug, nombre, estado, plan, creado, actualizado) VALUES ('A', 'ensayo-uno', 'Comercio Ensayo Uno', 'abierta', 'entrada', ?, ?)",
+          "INSERT INTO tienda (org_id, slug, nombre, estado, plan, creado, actualizado) VALUES ('A', 'ensayo-uno', 'Comercio Ensayo Uno', 'abierta', 'pro', ?, ?)",
           T,
           T,
         ],

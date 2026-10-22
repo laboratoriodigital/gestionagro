@@ -88,7 +88,7 @@ const pedirTablero = async (ahora = T0, org = UNO) => {
       shard: 'tienda_c1_s1',
       anillo: 1,
       aud: 'tienda',
-      plan: 'entrada',
+      plan: 'pro',
       auth_time: Math.floor(ahora / 1000),
     },
     ahora,

@@ -19,7 +19,7 @@ const AHORA = '2026-10-14T15:00:00.000Z';
 const SECRETO = 'secreto-de-prueba-del-despacho';
 const UNO = ENSAYO_UNO.org;
 const TERMINOS = 'a'.repeat(64);
-const HOST = 'ensayo-uno--staging.laboratorio-digital.app';
+const HOST = 'ensayo-uno--staging.mitiendapro.co';
 
 let shard: BaseD1;
 let control: BaseD1;

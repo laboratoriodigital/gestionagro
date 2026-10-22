@@ -491,6 +491,9 @@ importers:
       '@ed1/tienda-horno':
         specifier: workspace:*
         version: link:../../packages/tienda-horno
+      '@ed1/tienda-schema':
+        specifier: workspace:*
+        version: link:../../packages/tienda-schema
     devDependencies:
       wrangler:
         specifier: ^4.144.0

@@ -98,7 +98,7 @@ export function audienciaDe(token: string): string | null {
 }
 
 export const OTRA_APLICACION =
-  'Esa sesión es de otra aplicación de Laboratorio Digital. Entra con Google desde aquí para abrir tu tienda.';
+  'Esa sesión es de otra aplicación. Entra con Google desde aquí para abrir tu tienda en TiendaPro.';
 
 export type EstadoDeSesion = 'sin-sesion' | 'activa' | 'por-renovar' | 'vencida';
 

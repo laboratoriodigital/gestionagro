@@ -45,16 +45,24 @@ const json = (estado: number, cuerpo: unknown) => () =>
 describe('los planes y sus periodos (HU-T13.5 CA1)', () => {
   it('cada plan pago tiene 1, 3, 6 y 12 meses, con el total, el valor por mes y lo que se ahorra', () => {
     const planes = planesDeLaTienda();
-    expect(planes.map((p) => p.id)).toEqual(['gratis', 'entrada', 'intermedio', 'alto']);
+    // HU-T18.3: los tres planes de TiendaPro, en el orden de la pantalla.
+    expect(planes.map((p) => [p.id, p.nombre])).toEqual([
+      ['gratis', 'Gratis'],
+      ['pro', 'Pro'],
+      ['ia-pro', 'IA Pro'],
+    ]);
     expect(planes.find((p) => p.id === 'gratis')?.periodos).toEqual([]);
-    const entrada = planes.find((p) => p.id === 'entrada');
-    expect(entrada?.periodos.map((p) => p.meses)).toEqual([1, 3, 6, 12]);
-    expect(entrada?.periodos.find((p) => p.meses === 6)).toEqual({
+    const pro = planes.find((p) => p.id === 'pro');
+    expect(pro?.periodos.map((p) => p.meses)).toEqual([1, 3, 6, 12]);
+    expect(pro?.periodos.find((p) => p.meses === 1)?.total).toBe(24900);
+    expect(pro?.periodos.find((p) => p.meses === 6)).toEqual({
       meses: 6,
-      total: 161000,
-      porMes: 26833,
-      ahorro: 29900 * 6 - 161000,
+      total: 134000,
+      porMes: 22333,
+      ahorro: 24900 * 6 - 134000,
     });
+    const iaPro = planes.find((p) => p.id === 'ia-pro');
+    expect(iaPro?.periodos.find((p) => p.meses === 1)?.total).toBe(49000);
     for (const p of planes.filter((x) => !x.gratuito)) {
       for (const periodo of p.periodos) expect(periodo.total).toBeGreaterThan(0);
     }
@@ -79,13 +87,13 @@ describe('pagar el plan en el CORE (HU-T13.5 CA1)', () => {
     const { pedidos, fetchFn } = red({ [`${CORE}/api/core/pago/crear`]: [json(200, cobro)] });
     const r = await crearCobro(
       { almacen, core: CORE, fetchFn, ahora: () => AHORA },
-      'entrada',
+      'pro',
       6,
       'https://panel.ejemplo.test/mas/plan/',
     );
     expect(r).toEqual({ tipo: 'ok', datos: cobro });
     expect(pedidos[0]?.cuerpo).toEqual({
-      plan: 'entrada',
+      plan: 'pro',
       meses: 6,
       vuelta: 'https://panel.ejemplo.test/mas/plan/',
     });
@@ -99,7 +107,7 @@ describe('pagar el plan en el CORE (HU-T13.5 CA1)', () => {
       ],
     });
     expect(
-      await crearCobro({ almacen, core: CORE, fetchFn, ahora: () => AHORA }, 'entrada', 6, 'x'),
+      await crearCobro({ almacen, core: CORE, fetchFn, ahora: () => AHORA }, 'pro', 6, 'x'),
     ).toEqual({ tipo: 'problema', motivo: 'El plan lo paga quien administra la finca.' });
   });
 
@@ -107,14 +115,14 @@ describe('pagar el plan en el CORE (HU-T13.5 CA1)', () => {
     const almacen = almacenEnMemoria({ sesion: sesion() });
     const { pedidos, fetchFn } = red({
       [`${CORE}/api/core/pago/confirmar`]: [
-        json(200, { estado: 'aprobado', motivo: null, plan: 'entrada', plan_vence: '2027-04-20' }),
+        json(200, { estado: 'aprobado', motivo: null, plan: 'pro', plan_vence: '2027-04-20' }),
       ],
       [`${CORE}/api/core/auth/refrescar`]: [
         json(200, { ...sesion(), acceso_vence: AHORA + 3_600_000 }),
       ],
     });
     const r = await confirmarCobro({ almacen, core: CORE, fetchFn, ahora: () => AHORA }, ORDEN);
-    expect(r).toMatchObject({ tipo: 'ok', datos: { estado: 'aprobado', plan: 'entrada' } });
+    expect(r).toMatchObject({ tipo: 'ok', datos: { estado: 'aprobado', plan: 'pro' } });
     expect(pedidos.map((p) => p.url)).toEqual([
       `${CORE}/api/core/pago/confirmar`,
       `${CORE}/api/core/auth/refrescar`,

@@ -86,7 +86,7 @@ const pedir = async (ruta: string, cuerpo?: unknown) => {
       shard: 'tienda_c1_s1',
       anillo: 1,
       aud: 'tienda',
-      plan: 'entrada',
+      plan: 'pro',
       auth_time: Math.floor(T0 / 1000),
     },
     T0,
@@ -202,7 +202,7 @@ describe('bitácora tienda3 26 ❌: las filas que lee el panel con la tienda lle
     const libre = { limit: async () => ({ success: true }) };
     const mcp = (name: string, args: unknown) =>
       crearApp({ ahora: () => T0, enSegundoPlano: () => undefined }).request(
-        'https://ensayo-uno--staging.laboratorio-digital.app/mcp',
+        'https://ensayo-uno--staging.mitiendapro.co/mcp',
         {
           method: 'POST',
           headers: {

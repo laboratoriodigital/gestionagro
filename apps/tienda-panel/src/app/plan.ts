@@ -1,6 +1,6 @@
 /**
  * El plan de la tienda (HU-T13.5 CA1): los planes y sus periodos de 1, 3, 6 o 12 meses, y pagarlos
- * con el Bold de Laboratorio Digital, en el CORE. El CORE pone el monto (de su precio vigente, nunca
+ * con el Bold de la plataforma, en el CORE. El CORE pone el monto (de su precio vigente, nunca
  * del panel) y confirma con Bold; aquí solo se abre el checkout con lo que el CORE firmó y, al
  * volver, se le pide confirmar. Después la sesión se renueva: el token nuevo trae el plan pagado.
  */

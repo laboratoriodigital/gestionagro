@@ -25,7 +25,7 @@ const AHORA = new Date(T0).toISOString();
 const DIA = 86_400_000;
 const PERSONA = '0199e0a0-0000-7000-8000-0000000000d7';
 const UNO = ENSAYO_UNO.org;
-const HOST = 'ensayo-uno--staging.laboratorio-digital.app';
+const HOST = 'ensayo-uno--staging.mitiendapro.co';
 const KEK = btoa(String.fromCharCode(...new Uint8Array(32).fill(9)));
 
 let shard: BaseD1;
@@ -80,7 +80,7 @@ const token = async (rol: Rol, ahora: number) =>
         shard: 'tienda_c1_s1',
         anillo: 1,
         aud: 'tienda',
-        plan: 'entrada',
+        plan: 'pro',
         auth_time: Math.floor(ahora / 1000),
       },
       ahora,

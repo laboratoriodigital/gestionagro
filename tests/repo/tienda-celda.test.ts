@@ -198,11 +198,27 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
   it('el despacho de staging atiende las direcciones de los dos comercios de prueba (HU-T2.6) y las del alta', () => {
     const sitio = wranglerDelSitioDeLaTienda(config) as unknown as Config;
     expect(sitio.env.staging.routes).toEqual([
+      { pattern: 'ensayo-uno--staging.mitiendapro.co', custom_domain: true },
+      { pattern: 'ensayo-dos--staging.mitiendapro.co', custom_domain: true },
+      // HU-T13.4: y las tiendas nuevas del alta, con el comodín de staging (D-T14).
+      { pattern: '*--staging.mitiendapro.co/*', zone_name: 'mitiendapro.co' },
+      // HU-T18.1 CA2: las de antes siguen llegando, para llevarlas a mitiendapro.co.
       { pattern: 'ensayo-uno--staging.laboratorio-digital.app', custom_domain: true },
       { pattern: 'ensayo-dos--staging.laboratorio-digital.app', custom_domain: true },
-      // HU-T13.4: y las tiendas nuevas del alta, con el comodín de staging (D-T14).
       { pattern: '*--staging.laboratorio-digital.app/*', zone_name: 'laboratorio-digital.app' },
     ]);
+  });
+
+  it('HU-T18.1 y HU-T18.2: producción en las dos zonas de la marca, y ❌ ninguna tienda en tiendapro.co', () => {
+    const sitio = wranglerDelSitioDeLaTienda(config) as unknown as Config;
+    const panel = wranglerDelPanelDeLaTienda(config) as unknown as Config;
+    expect(panel.routes).toEqual([
+      { pattern: 'app.tiendapro.co', custom_domain: true },
+      { pattern: 'mcp.tiendapro.co', custom_domain: true },
+    ]);
+    expect(sitio.routes).toContainEqual({ pattern: 'origen.mitiendapro.co', custom_domain: true });
+    const delDespacho = JSON.stringify([sitio.routes, sitio.env.staging.routes]);
+    expect(delDespacho).not.toMatch(/[".*]tiendapro\.co/);
   });
 
   it('❌ una celda de la Tienda sin base de control no genera su API', () => {

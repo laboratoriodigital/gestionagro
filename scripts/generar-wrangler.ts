@@ -13,6 +13,12 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { RegistroDeProductos } from '@ed1/productos';
 import { ENSAYOS, hostDeStaging } from '../packages/tienda-schema/src/ensayos.ts';
+import {
+  DOMINIO_DE_LA_MARCA,
+  REMITENTE_DE_LOS_CORREOS,
+  ZONA_ANTERIOR,
+  ZONA_DE_LAS_TIENDAS,
+} from '../packages/tienda-schema/src/marca.ts';
 import { type Celda, type ConfigCeldas, cargarCeldas } from './lib/celdas.ts';
 import { RUTAS_DEL_WORKER } from './lib/cuenta.ts';
 import { cargarProductos } from './lib/registro-productos.ts';
@@ -344,7 +350,7 @@ export const textoWranglerDeLaCeldaDelParqueadero = (celda: Celda): string =>
  * - `tienda-panel`: solo assets; el Worker corre únicamente en `/api/*`, que pasa a la API.
  *
  * Staging vive en workers.dev, y el despacho de staging atiende además las direcciones
- * `<slug>--staging.laboratorio-digital.app` de los dos comercios de prueba (HU-T2.6), del mismo
+ * `<slug>--staging.mitiendapro.co` de los dos comercios de prueba (HU-T2.6), del mismo
  * fixture que siembra sus datos (P2). Producción
  * no lleva rutas hasta que la Tienda salga a producción (HU-T2.9): no se declara lo que todavía no
  * existe (P1), y un despliegue a producción por error no toma ningún hostname. Los ids de las bases
@@ -362,19 +368,19 @@ export const MEDIOS_DE_LA_TIENDA = {
 
 /**
  * Los hostnames de la Tienda en producción (HU-T2.9, TIENDA §4.1), como dominios propios de sus
- * Workers: el panel y `origen.`, el origen de respaldo de Cloudflare for SaaS, que sin tienda responde
- * «Esta dirección no tiene tienda». El comodín `*.laboratorio-digital.app` llega con la primera
- * tienda real: pide un registro DNS del dueño y no hace falta antes (P1).
+ * Workers. HU-T18.1 y HU-T18.2 (D-T15): el panel y el MCP del comercio en la marca (`tiendapro.co`),
+ * y `origen.`, el origen de respaldo de Cloudflare for SaaS, en la zona de las tiendas
+ * (`mitiendapro.co`), donde sin tienda responde «Esta dirección no tiene tienda».
  */
 export const DOMINIOS_DE_LA_TIENDA = {
-  panel: 'panel.laboratorio-digital.app',
-  origen: 'origen.laboratorio-digital.app',
+  panel: `app.${DOMINIO_DE_LA_MARCA}`,
+  origen: `origen.${ZONA_DE_LAS_TIENDAS}`,
   // HU-T15.7: el MCP del comercio, en el Worker del panel.
-  mcp: 'mcp.laboratorio-digital.app',
+  mcp: `mcp.${DOMINIO_DE_LA_MARCA}`,
 } as const;
 
-/** La zona de las tiendas: la de Cloudflare for SaaS y sus dominios propios (HU-T13.1). */
-export const ZONA_DE_LAS_TIENDAS = 'laboratorio-digital.app';
+/** La zona de las tiendas: la del comodín, de Cloudflare for SaaS y sus dominios propios (HU-T13.1). */
+export { ZONA_DE_LAS_TIENDAS };
 
 /** El cron de la Tienda: uno por hora, que reparte las tareas por frecuencia (HU-T17.1). */
 export const CRON_DE_LA_TIENDA = '0 * * * *';
@@ -479,6 +485,8 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
   const medios = {
     MEDIOS: MEDIOS_DE_LA_TIENDA.produccion,
     AMBIENTE: 'produccion',
+    // HU-T18.4: producción manda con Resend desde la marca; la clave es un secreto aparte.
+    CORREO_REMITENTE: REMITENTE_DE_LOS_CORREOS,
     // HU-T13.1: los dominios propios, solo con Cloudflare for SaaS activo en la zona.
     ...(celda.saas ? { ZONA_TIENDAS: ZONA_DE_LAS_TIENDAS } : {}),
   };
@@ -583,6 +591,15 @@ export function wranglerDelSitioDeLaTienda(config: ConfigCeldas): Record<string,
           ...ENSAYOS.map((e) => ({ pattern: hostDeStaging(e.slug), custom_domain: true })),
           ...(config.celdas.some((c) => c.producto === 'tienda' && c.comodin)
             ? [{ pattern: `*--staging.${ZONA_DE_LAS_TIENDAS}/*`, zone_name: ZONA_DE_LAS_TIENDAS }]
+            : []),
+          // HU-T18.1 CA2: las direcciones de staging de antes siguen llegando al despacho, que las
+          // lleva a mitiendapro.co con un 301. Producción no tuvo tiendas en la zona anterior.
+          ...ENSAYOS.map((e) => ({
+            pattern: `${e.slug}--staging.${ZONA_ANTERIOR}`,
+            custom_domain: true,
+          })),
+          ...(config.celdas.some((c) => c.producto === 'tienda' && c.comodin)
+            ? [{ pattern: `*--staging.${ZONA_ANTERIOR}/*`, zone_name: ZONA_ANTERIOR }]
             : []),
         ],
         services: serviciosDeLaTienda(config, true),

@@ -100,6 +100,10 @@ export interface LimitesDelPlan {
   contraentrega: boolean;
   dominioPropio: boolean;
   feeds: boolean;
+  /** HU-T18.2: sin el sello «Hecha con TiendaPro» al pie de la tienda. */
+  sinMarca: boolean;
+  /** HU-T18.3: los asistentes de los compradores preparan pedidos por el MCP público. */
+  mcpPublico: boolean;
 }
 
 /**
@@ -130,13 +134,16 @@ export function limitesDelPlan(
     contraentrega: encendida('contraentrega'),
     dominioPropio: encendida('dominio_propio'),
     feeds: encendida('feeds'),
+    sinMarca: encendida('sin_marca'),
+    mcpPublico: encendida('mcp_publico'),
   };
 }
 
 /**
  * Lo que permiten los dos a la vez: el menor límite y solo lo que los dos encienden. El re-horneado
  * lo usa para que un plan que baja recorte enseguida y uno que sube espere a que el comercio publique
- * (y la compuerta revise lo que vuelve a mostrarse).
+ * (y la compuerta revise lo que vuelve a mostrarse). `a` es lo guardado con la versión publicada: una
+ * versión de antes de HU-T18.3 no trae `sinMarca` ni `mcpPublico`, y en ellos manda el plan de hoy.
  */
 export function limitesMasEstrictos(a: LimitesDelPlan, b: LimitesDelPlan): LimitesDelPlan {
   const menor = (x: number | null, y: number | null) =>
@@ -148,6 +155,8 @@ export function limitesMasEstrictos(a: LimitesDelPlan, b: LimitesDelPlan): Limit
     contraentrega: a.contraentrega && b.contraentrega,
     dominioPropio: a.dominioPropio && b.dominioPropio,
     feeds: a.feeds && b.feeds,
+    sinMarca: (a.sinMarca ?? b.sinMarca) && b.sinMarca,
+    mcpPublico: (a.mcpPublico ?? b.mcpPublico) && b.mcpPublico,
   };
 }
 

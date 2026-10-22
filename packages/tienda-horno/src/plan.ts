@@ -8,6 +8,8 @@
  * - Sin cobro en línea, el carrito no ofrece pagar en línea; sin contraentrega, tampoco esa forma. Si
  *   no queda ninguna forma para pedir por WhatsApp, queda «a convenir»: la tienda sigue vendiendo.
  * - Sin feeds, no se hornean.
+ * - Sin el MCP público (Gratis, HU-T18.3), la tienda no lo anuncia; sin `sinMarca` (Gratis,
+ *   HU-T18.2), el pie lleva el sello «Hecha con TiendaPro».
  */
 import { formasDelPlan, type LimitesDelPlan } from '@ed1/tienda-schema';
 import type { TiendaParaHornear } from './horno.ts';
@@ -25,7 +27,7 @@ export function alPlan(t: TiendaParaHornear, plan: LimitesDelPlan | undefined = 
   const ocultos = t.productos.slice(visibles.length).map((p) => p.slug);
   const quedan = new Set(visibles.map((p) => p.slug));
   const nombres = new Set(visibles.map((p) => p.nombre));
-  const { cobroEnLinea, cobroEnPruebas, feeds, ...resto } = t;
+  const { cobroEnLinea, cobroEnPruebas, feeds, mcp, ...resto } = t;
   const tienda: TiendaParaHornear = {
     ...resto,
     plan,
@@ -51,6 +53,8 @@ export function alPlan(t: TiendaParaHornear, plan: LimitesDelPlan | undefined = 
       ? { cobroEnLinea, ...(cobroEnPruebas ? { cobroEnPruebas } : {}) }
       : {}),
     ...(feeds && plan.feeds ? { feeds } : {}),
+    // HU-T18.3 CA3: el MCP público, solo en Pro e IA Pro. Una versión de antes no trae el campo.
+    ...(mcp && plan.mcpPublico !== false ? { mcp } : {}),
   };
   return { tienda, ocultos };
 }

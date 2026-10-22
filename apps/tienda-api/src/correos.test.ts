@@ -31,7 +31,7 @@ import { KEK_VIGENTE } from './llaves.ts';
 import type { FilaDeSolicitud } from './panel-solicitudes.ts';
 import { periodos, type Tablero } from './panel-tablero.ts';
 import type { EntornoDeTareas } from './tareas.ts';
-import { CABECERA_DESPACHO, CABECERA_TIENDA, crearApp, type Env } from './worker.ts';
+import { CABECERA_DESPACHO, CABECERA_TIENDA, correoDe, crearApp, type Env } from './worker.ts';
 
 const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
 /** Las 10 de la mañana del viernes 16 de octubre en Bogotá. */
@@ -39,7 +39,7 @@ const AHORA = '2026-10-16T15:00:00.000Z';
 const SECRETO = 'secreto-de-prueba-del-despacho';
 const UNO = ENSAYO_UNO.org;
 const TERMINOS = 'c'.repeat(64);
-const HOST = 'ensayo-uno--staging.laboratorio-digital.app';
+const HOST = 'ensayo-uno--staging.mitiendapro.co';
 const KEK = Buffer.from(Array.from({ length: 32 }, (_, i) => i + 41)).toString('base64');
 const GMAIL = {
   CORREO_GMAIL_CLIENTE_ID: 'cliente-de-prueba',
@@ -424,7 +424,7 @@ describe('HU-T14.3 · el acuse al comprador (HU-T11.9 CA1)', () => {
     expect((await cobrar('CRA001', g, 'compradora@ensayo.example')).status).toBe(200);
     expect(g.enviados).toHaveLength(1);
     const [m] = g.enviados as [Enviado];
-    expect(m.de).toBe('Comercio Ensayo Uno vía Laboratorio Digital <envios@ensayo.example>');
+    expect(m.de).toBe('Comercio Ensayo Uno vía TiendaPro <envios@ensayo.example>');
     expect(m.para).toBe('<compradora@ensayo.example>');
     expect(m.responderA).toBe('<ensayo-uno@ejemplo.test>');
     expect(m.asunto).toBe('Tu pedido CRA001 en Comercio Ensayo Uno');
@@ -623,7 +623,7 @@ describe('HU-T14.3 · el resumen diario', () => {
         'Ayer vendiste $258.000 en 2 pedidos.',
         'En el mes van $1.258.000, frente a $900.000 del mes anterior a la misma altura.',
         '',
-        'Entra al panel: https://panel.laboratorio-digital.app/',
+        'Entra al panel: https://app.tiendapro.co/',
         '',
         'Este correo te llega porque lo pediste en Ajustes, Avisos. Para dejar de recibirlo, borra el correo de esa sección.',
       ].join('\n'),
@@ -704,5 +704,42 @@ describe('HU-T14.3 · el resumen diario', () => {
       motivo: 'no-disponible',
     });
     await ajuste('avisos', {}).run();
+  });
+});
+
+describe('HU-T18.4 · el proveedor de cada ambiente (D-T11)', () => {
+  const sinRed = (async () => {
+    throw new Error('no debe tocar la red');
+  }) as unknown as typeof fetch;
+  const gmailCompleto = {
+    CORREO_GMAIL_CLIENTE_ID: 'cliente-de-prueba',
+    CORREO_GMAIL_CLIENTE_SECRETO: 'secreto-de-prueba',
+    CORREO_GMAIL_REFRESH: 'refresh-de-prueba',
+    CORREO_GMAIL_REMITENTE: 'envios@ensayo.example',
+  };
+
+  it('producción manda con Resend desde la marca; staging, con Gmail', () => {
+    const produccion = correoDe(
+      {
+        AMBIENTE: 'produccion',
+        RESEND_API_KEY: 're_de_prueba',
+        CORREO_REMITENTE: 'avisos@tiendapro.co',
+      } as Env,
+      sinRed,
+    );
+    expect([produccion.proveedor, produccion.disponible]).toEqual(['resend', true]);
+    const staging = correoDe({ AMBIENTE: 'staging', ...gmailCompleto } as Env, sinRed);
+    expect([staging.proveedor, staging.disponible]).toEqual(['gmail', true]);
+  });
+
+  it('CA3 ❌ · producción sin la clave de Resend no cae a Gmail: «no disponible» y no finge', async () => {
+    const correo = correoDe(
+      { AMBIENTE: 'produccion', CORREO_REMITENTE: 'avisos@tiendapro.co', ...gmailCompleto } as Env,
+      sinRed,
+    );
+    expect([correo.proveedor, correo.disponible]).toEqual(['resend', false]);
+    expect(
+      await correo.enviar({ para: 'a@ensayo.example', asunto: 'Hola', texto: 'Hola' }),
+    ).toMatchObject({ enviado: false, motivo: 'no-disponible' });
   });
 });

@@ -31,7 +31,7 @@ describe('suspender una tienda desde el flujo (HU-T13.6)', () => {
         cuerpo: { org: 'org-de-prueba', accion: 'suspender', motivo: 'reporte de suplantación' },
       },
     ]);
-    expect(panelDe('produccion')).toBe('https://panel.laboratorio-digital.app');
+    expect(panelDe('produccion')).toBe('https://app.tiendapro.co');
   });
 
   it('❌ una tienda que no existe o una API que falla no se dan por hechas', async () => {

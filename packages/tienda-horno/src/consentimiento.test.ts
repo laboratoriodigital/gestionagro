@@ -10,7 +10,7 @@ import { cspDeLaVitrina, tercerosDeLaDireccion } from './csp.ts';
 import { hornear, manifiesto, type TiendaParaHornear, tercerosDe } from './horno.ts';
 import { ACENTOS_DE_LA_VITRINA } from './tema.ts';
 
-const PLATAFORMA = 'ensayo-uno--staging.laboratorio-digital.app';
+const PLATAFORMA = 'ensayo-uno--staging.mitiendapro.co';
 const PROPIO = 'www.tienda-uno.example';
 
 const tienda = (extra: Partial<TiendaParaHornear> = {}): TiendaParaHornear => ({

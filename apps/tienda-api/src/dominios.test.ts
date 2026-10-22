@@ -95,7 +95,7 @@ function cloudflare() {
       if (h.hostname === hostname) Object.assign(h, { status, ssl: { ...h.ssl, status: ssl } });
   };
   return {
-    saas: { token: 'token-de-prueba-saas', zona: 'laboratorio-digital.app', fetch } satisfies Saas,
+    saas: { token: 'token-de-prueba-saas', zona: 'mitiendapro.co', fetch } satisfies Saas,
     hostnames,
     duplicados,
     pedidos,
@@ -118,7 +118,7 @@ let n = 0;
 const op = () => `op-dominio-${++n}-${'x'.repeat(6)}`;
 let hosts = kv();
 const quien = (org = UNO): QuienDelDominio & { plan: string } => ({
-  plan: 'entrada',
+  plan: 'pro',
   db: shard,
   org,
   actor: 'usuario:0199e0a0-0000-7000-8000-0000000000aa',
@@ -212,7 +212,7 @@ describe('conectar un dominio propio (HU-T13.1)', () => {
       registros: [
         { tipo: 'TXT', nombre: '_cf-custom-hostname.www', valor: 'propiedad-1' },
         { tipo: 'TXT', nombre: '_acme-challenge.www', valor: 'acme-1' },
-        { tipo: 'CNAME', nombre: 'www', valor: 'origen.laboratorio-digital.app' },
+        { tipo: 'CNAME', nombre: 'www', valor: 'origen.mitiendapro.co' },
       ],
     });
     expect(await filaDe('www.tienda-uno.example')).toEqual({
@@ -249,7 +249,14 @@ describe('conectar un dominio propio (HU-T13.1)', () => {
 
   it('❌ lo que no es un dominio, una dirección de la plataforma o sin Cloudflare: nada se crea', async () => {
     const cf = cloudflare();
-    for (const hostname of ['tienda', '192.168.1.1', 'www.laboratorio-digital.app', 'com.co']) {
+    for (const hostname of [
+      'tienda',
+      '192.168.1.1',
+      'www.laboratorio-digital.app',
+      'www.mitiendapro.co',
+      'app.tiendapro.co',
+      'com.co',
+    ]) {
       expect((await conectarDominio(quien(), cf.saas, { op: op(), hostname })).estado).toBe(
         'problemas',
       );

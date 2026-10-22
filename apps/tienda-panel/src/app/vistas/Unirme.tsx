@@ -64,7 +64,7 @@ export function Unirme({
 
   return (
     <main class="portada">
-      <p class="etiqueta">Tienda · Laboratorio Digital</p>
+      <p class="etiqueta">TiendaPro</p>
       <h1>Unirme a una tienda</h1>
       {invitacion === undefined ? <p role="status">Revisando la invitación…</p> : null}
       {invitacion === null ? (

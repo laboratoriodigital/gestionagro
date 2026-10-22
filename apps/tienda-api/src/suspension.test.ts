@@ -180,8 +180,7 @@ describe('los hostnames colgantes (HU-T13.6 CA2)', () => {
       const nombre = new URL(url).searchParams.get('name') ?? '';
       preguntados.push(nombre);
       if (nombre === 'www.mudo.example') throw new Error('sin red');
-      const data =
-        nombre === 'www.colgante.example' ? 'origen.laboratorio-digital.app.' : 'otro.example.';
+      const data = nombre === 'www.colgante.example' ? 'origen.mitiendapro.co.' : 'otro.example.';
       return Response.json({ Answer: [{ data }] });
     });
     expect(r).toEqual({ revisados: 3, colgantes: ['www.colgante.example'] });

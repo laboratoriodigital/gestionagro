@@ -69,6 +69,8 @@ describe('dominios.json', () => {
       'laboratorio-digital.com',
       'laboratorio-digital.app',
       'cultivopro.co',
+      'tiendapro.co',
+      'mitiendapro.co',
     ]);
   });
 
@@ -78,8 +80,16 @@ describe('dominios.json', () => {
       { archivo: 'apps/demo/wrangler.jsonc', nombre: 'cultivopro--staging' },
     ];
     expect(fallasDeDominios(dominiosReales(), ['ED1 principal'], usados, [])).toEqual([
-      'apps/demo/wrangler.jsonc usa «demo.laboratorio-digital.app», que no está reservado: una tienda podría tomarlo',
+      'apps/demo/wrangler.jsonc usa «demo» en una zona de tiendas, que no está reservado: una tienda podría tomarlo',
     ]);
+  });
+
+  it('HU-T18.1: cuenta los nombres de mitiendapro.co, la zona de las tiendas, y no los de la marca', () => {
+    expect(
+      nombresApp(
+        '"origen.mitiendapro.co" "*.mitiendapro.co/*" "app.tiendapro.co" "img.laboratorio-digital.app"',
+      ),
+    ).toEqual(['origen', 'img']);
   });
 
   it('acepta un nombre que la Tienda reserva como infraestructura (panel, img, mcp…)', () => {

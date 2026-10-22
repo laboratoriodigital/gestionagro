@@ -9,7 +9,7 @@ export function Entrar({ aviso, alEntrar }: { aviso: string | null; alEntrar: ()
   const [acepta, setAcepta] = useState(false);
   return (
     <main class="portada">
-      <p class="etiqueta">Tienda · Laboratorio Digital</p>
+      <p class="etiqueta">TiendaPro</p>
       <h1>El panel de tu tienda</h1>
       <p class="portada__entrada">
         Aquí recibes tus pedidos, cargas tus productos y ves cómo vende tu tienda, desde el

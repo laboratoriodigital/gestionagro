@@ -25,7 +25,7 @@ const AHORA = '2026-10-16T15:00:00.000Z';
 const SECRETO = 'secreto-de-prueba-del-despacho';
 const UNO = ENSAYO_UNO.org;
 const TERMINOS = 'b'.repeat(64);
-const HOST = 'ensayo-uno--staging.laboratorio-digital.app';
+const HOST = 'ensayo-uno--staging.mitiendapro.co';
 const KEK = Buffer.from(Array.from({ length: 32 }, (_, i) => i + 11)).toString('base64');
 const IDENTIDAD = 'identidad-de-prueba-0001';
 const SECRETA = 'secreta-de-prueba-0002';

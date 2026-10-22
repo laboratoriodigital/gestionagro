@@ -26,7 +26,7 @@
  * Ningún identificador de cuenta, base o dominio en el código (ADR-6): llega por la configuración
  * que arma el despliegue desde `celdas.json`.
  */
-import { type CorreoTransaccional, correoGmail } from '@ed1/correo';
+import { type CorreoTransaccional, correoGmail, correoResend } from '@ed1/correo';
 import type { BaseD1 } from '@ed1/d1';
 import { crearLectorKillSwitch, type LectorKillSwitch, type LectorKv } from '@ed1/kill-switch';
 import {
@@ -43,6 +43,7 @@ import {
   puede,
 } from '@ed1/tienda-schema';
 import { ENSAYOS } from '@ed1/tienda-schema/ensayos';
+import { MARCA } from '@ed1/tienda-schema/marca';
 import {
   aceptarEnProducto,
   type ClavePublica,
@@ -240,6 +241,10 @@ export interface Env {
   CORREO_GMAIL_CLIENTE_SECRETO?: string;
   CORREO_GMAIL_REFRESH?: string;
   CORREO_GMAIL_REMITENTE?: string;
+  /** HU-T18.4: los correos de producción salen con Resend; staging sigue con Gmail (D-T11). */
+  RESEND_API_KEY?: string;
+  /** La dirección de tiendapro.co que envía por Resend: la pone el despliegue, no es un secreto. */
+  CORREO_REMITENTE?: string;
   /**
    * HU-T13.1: el token de Cloudflare for SaaS (solo hostnames y certificados de la zona) y el nombre
    * de la zona de las tiendas. Sin los dos, conectar un dominio dice «todavía no está disponible».
@@ -384,23 +389,33 @@ function tiendaDelDespacho(c: ContextoTienda): { org: string; db: BaseD1 } | nul
   return typeof org === 'string' && db ? { org, db } : null;
 }
 
-/** El correo de la celda, con el `fetch` que se le dé (HU-T14.3). */
 /** HU-T13.1: Cloudflare for SaaS, si el ambiente tiene su token y su zona. */
 export const saasDe = (env: Env, fetchFn: typeof fetch): Saas | null =>
   env.CF_SAAS_TOKEN && env.ZONA_TIENDAS
     ? { token: env.CF_SAAS_TOKEN, zona: env.ZONA_TIENDAS, fetch: fetchFn }
     : null;
 
+/**
+ * El correo de la celda, con el `fetch` que se le dé (HU-T14.3). HU-T18.4: producción manda con
+ * Resend desde tiendapro.co y nunca cae a Gmail: sin su clave, cada correo queda «no disponible»
+ * (CA3). Staging sigue con la cuenta de Gmail (D-T11).
+ */
 export const correoDe = (env: Env, fetchFn: typeof fetch): CorreoTransaccional =>
-  correoGmail(
-    {
-      clienteId: env.CORREO_GMAIL_CLIENTE_ID,
-      clienteSecreto: env.CORREO_GMAIL_CLIENTE_SECRETO,
-      refresh: env.CORREO_GMAIL_REFRESH,
-      remitente: env.CORREO_GMAIL_REMITENTE,
-    },
-    fetchFn,
-  );
+  env.AMBIENTE === 'produccion'
+    ? correoResend(
+        { clave: env.RESEND_API_KEY, remitente: env.CORREO_REMITENTE, marca: MARCA },
+        fetchFn,
+      )
+    : correoGmail(
+        {
+          clienteId: env.CORREO_GMAIL_CLIENTE_ID,
+          clienteSecreto: env.CORREO_GMAIL_CLIENTE_SECRETO,
+          refresh: env.CORREO_GMAIL_REFRESH,
+          remitente: env.CORREO_GMAIL_REMITENTE,
+          marca: MARCA,
+        },
+        fetchFn,
+      );
 
 /** Los shards de esta celda, para sumar lo que la celda lleva de correos hoy. */
 const shardsDe = (env: Env) =>

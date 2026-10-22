@@ -47,7 +47,7 @@ beforeAll(async () => {
   // Ensayo Uno, en el plan Entrada hasta el 25 oct, con su dominio propio como principal.
   await shard
     .prepare('UPDATE tienda SET plan = ?, plan_vence = ? WHERE org_id = ?')
-    .bind('entrada', VENCE_UNO, ENSAYO_UNO.org)
+    .bind('pro', VENCE_UNO, ENSAYO_UNO.org)
     .run();
   await control
     .prepare("UPDATE dominio SET rol = 'alias' WHERE org_id = ?")
@@ -99,12 +99,12 @@ describe('guardar el plan del token (HU-T13.5)', () => {
   it('guarda el plan y su vencimiento solo si cambiaron', async () => {
     expect(await guardarElPlan(shard, ENSAYO_DOS.org, 'gratis', null)).toBe(false);
     const vence = Date.parse('2026-12-01T00:00:00.000Z') / 1000;
-    expect(await guardarElPlan(shard, ENSAYO_DOS.org, 'entrada', vence)).toBe(true);
+    expect(await guardarElPlan(shard, ENSAYO_DOS.org, 'pro', vence)).toBe(true);
     expect(await planDe(ENSAYO_DOS.org)).toEqual({
-      plan: 'entrada',
+      plan: 'pro',
       plan_vence: '2026-12-01T00:00:00.000Z',
     });
-    expect(await guardarElPlan(shard, ENSAYO_DOS.org, 'entrada', vence)).toBe(false);
+    expect(await guardarElPlan(shard, ENSAYO_DOS.org, 'pro', vence)).toBe(false);
     expect(await guardarElPlan(shard, ENSAYO_DOS.org, 'gratis', null)).toBe(true);
   });
 });
@@ -117,7 +117,7 @@ describe('el plan vencido, con el reloj movido (WI-T13.5.2)', () => {
       fallas: [],
     });
     expect(hosts.valores.size).toBe(0);
-    expect((await planDe(ENSAYO_UNO.org))?.plan).toBe('entrada');
+    expect((await planDe(ENSAYO_UNO.org))?.plan).toBe('pro');
   });
 
   it('❌ CA3: pasada la gracia, la tienda queda en el gratuito y el dominio propio redirige a la dirección de la plataforma', async () => {
@@ -154,7 +154,7 @@ describe('el plan vencido, con el reloj movido (WI-T13.5.2)', () => {
     // Ensayo Dos paga Entrada y publica con los feeds encendidos.
     await shard
       .prepare('UPDATE tienda SET plan = ?, plan_vence = ? WHERE org_id = ?')
-      .bind('entrada', '2026-11-01T00:00:00.000Z', ENSAYO_DOS.org)
+      .bind('pro', '2026-11-01T00:00:00.000Z', ENSAYO_DOS.org)
       .run();
     await shard
       .prepare(

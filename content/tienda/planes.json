@@ -1,70 +1,55 @@
 {
-  "nota": "Planes de la Tienda 3.0 (HU-T2.2, TIENDA-3.0 §1.4). **Son hipótesis, no tarifas** (decisión D-T3 del dueño): los cuatro niveles del estudio de mercado (§13.6 [C11]), para contrastar con los comercios reales antes de fijar nada. `cobro` da el monto por periodo de 1, 3, 6 y 12 meses con la regla de PLATAFORMA §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo). Nada se cobra hasta HU-T13.5: el producto está «pausado» en productos.json, así que el CORE no crea tiendas ni cobra planes. Lo que permite cada plan está en funciones.json, y una prueba ata los dos archivos.",
-  "aviso_precio": "Los precios de la tienda son una propuesta: todavía no se cobra ninguno.",
+  "nota": "Planes de TiendaPro (HU-T18.3, D-T3 decidida por el dueño el 22 oct 2026): Gratis, Pro e IA Pro. `cobro` da el monto por periodo de 1, 3, 6 y 12 meses con la regla de PLATAFORMA §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo). Los cuatro niveles del estudio (`gratis`, `entrada`, `intermedio` y `alto`) quedaron retirados: el despliegue los marca así en el CORE sin borrarlos (P21), y las migraciones pasan las tiendas que los tenían a Pro o a IA Pro, con lo pagado. En producción no se cobra mientras la Tienda esté «pausada» en productos.json (D-T14). Lo que permite cada plan está en funciones.json, y una prueba ata los dos archivos.",
   "planes": [
     {
       "id": "gratis",
       "nombre": "Gratis",
       "gratuito": true,
       "precio": "COP 0",
-      "para_quien": "Para probar y vender poco.",
+      "para_quien": "Para empezar a vender por WhatsApp.",
       "incluye": [
         "Tu catálogo en línea, con pedidos que llegan a tu WhatsApp",
-        "Tu dirección en laboratorio-digital.app",
-        "Hasta 15 productos"
+        "Tu dirección en mitiendapro.co",
+        "Hasta 10 productos",
+        "Una persona en el panel"
       ]
     },
     {
-      "id": "entrada",
-      "nombre": "Entrada",
-      "precio": "COP 29.900 al mes",
+      "id": "pro",
+      "nombre": "Pro",
+      "precio": "COP 24.900 al mes",
       "cobro": {
-        "1": 29900,
-        "3": 85000,
-        "6": 161000,
-        "12": 299000
+        "1": 24900,
+        "3": 70000,
+        "6": 134000,
+        "12": 249000
       },
       "para_quien": "Para el comercio que vende cada semana.",
       "incluye": [
-        "Todo lo del plan Gratis, sin límite de productos",
-        "Cobro en línea con tu cuenta de Bold",
-        "Contraentrega, transferencia y efectivo al recoger",
-        "Tu propio dominio y sin la marca de la plataforma",
-        "Tu catálogo en Google y en Meta"
-      ]
-    },
-    {
-      "id": "intermedio",
-      "nombre": "Intermedio",
-      "precio": "COP 89.900 al mes",
-      "cobro": {
-        "1": 89900,
-        "3": 256000,
-        "6": 485000,
-        "12": 899000
-      },
-      "para_quien": "Para el comercio que vende todos los días.",
-      "incluye": [
-        "Todo lo del plan Entrada",
+        "Productos sin límite",
+        "Cobro en línea con tu cuenta de Bold, contraentrega, transferencia y efectivo",
+        "Tu propio dominio y sin el sello de TiendaPro",
         "La factura con tu propio facturador",
-        "Resumen diario y recordatorios de confirmación y de recaudo",
+        "Tu catálogo en Google y en Meta, y un resumen cada mañana",
+        "Los asistentes de tus clientes pueden prepararles el pedido",
         "Hasta 3 personas de tu equipo"
       ]
     },
     {
-      "id": "alto",
-      "nombre": "Alto",
-      "precio": "COP 249.900 al mes",
+      "id": "ia-pro",
+      "nombre": "IA Pro",
+      "precio": "COP 49.000 al mes",
       "cobro": {
-        "1": 249900,
-        "3": 712000,
-        "6": 1349000,
-        "12": 2499000
+        "1": 49000,
+        "3": 139000,
+        "6": 264000,
+        "12": 490000
       },
-      "para_quien": "Para el mayorista o el comercio con local.",
+      "para_quien": "Para el comercio que quiere manejar su tienda con su asistente.",
       "incluye": [
-        "Todo lo del plan Intermedio",
-        "Conecta tu tienda con tus propios asistentes y programas"
+        "Todo lo del plan Pro",
+        "Tu asistente con inteligencia artificial gestiona tu tienda: pedidos e inventario",
+        "Todo tu equipo, sin límite de personas"
       ]
     }
   ]

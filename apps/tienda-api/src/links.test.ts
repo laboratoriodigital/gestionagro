@@ -27,7 +27,7 @@ const AHORA = new Date(T0).toISOString();
 const SECRETO = 'secreto-de-prueba-de-los-links';
 const UNO = ENSAYO_UNO.org;
 const TERMINOS = 'd'.repeat(64);
-const HOST = 'ensayo-uno--staging.laboratorio-digital.app';
+const HOST = 'ensayo-uno--staging.mitiendapro.co';
 const KEK = Buffer.from(Array.from({ length: 32 }, (_, i) => i + 61)).toString('base64');
 const PERSONA = '0199e0a0-0000-7000-8000-0000000000e3';
 const M = 'v-camisa-m-arena';
@@ -157,7 +157,7 @@ const panel = async (ruta: string, cuerpo?: unknown, instante = AHORA) => {
       shard: 'tienda_c1_s1',
       anillo: 1,
       aud: 'tienda',
-      plan: 'entrada',
+      plan: 'pro',
       auth_time: Math.floor(Date.parse(instante) / 1000),
     },
     Date.parse(instante),

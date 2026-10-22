@@ -3,7 +3,7 @@
  * pruebas, la siembra de staging y las direcciones de staging. Distintos a propósito, para que nada
  * funcione solo para el primero:
  *
- * - **Comercio Ensayo Uno**, ropa: talla y color, inventario, plan `entrada` (pago en línea y, más
+ * - **Comercio Ensayo Uno**, ropa: talla y color, inventario, plan `pro` (pago en línea y, más
  *   adelante, un dominio propio de prueba).
  * - **Comercio Ensayo Dos**, panadería: sin inventario, solo WhatsApp, plan `gratis`, en el
  *   subdominio. Su pan no admite retracto: es perecedero (Ley 1480, art. 47).
@@ -11,6 +11,7 @@
  * Nunca se siembran en producción (CA3): la siembra la arma el despliegue solo para staging, y la
  * prueba de humo de producción falla si los encuentra (HU-T2.9).
  */
+import { direccionDeLaTienda } from './alta.ts';
 
 export interface VarianteDeEnsayo {
   id: string;
@@ -34,7 +35,7 @@ export interface ComercioDeEnsayo {
   org: string;
   slug: string;
   nombre: string;
-  plan: 'gratis' | 'entrada';
+  plan: 'gratis' | 'pro';
   /**
    * Sus ajustes por sección, con datos de prueba que pasan la compuerta (HU-T4.3): ningún dato es
    * de una persona o empresa real.
@@ -47,7 +48,7 @@ export const ENSAYO_UNO: ComercioDeEnsayo = {
   org: '0199e0a0-0000-7000-8000-0000000000c1',
   slug: 'ensayo-uno',
   nombre: 'Comercio Ensayo Uno',
-  plan: 'entrada',
+  plan: 'pro',
   ajustes: {
     identidad: { nombre: 'Comercio Ensayo Uno', frase: 'Ropa de lino, hecha despacio.' },
     contacto: {
@@ -198,7 +199,7 @@ export function cargaDeEnsayo(c: ComercioDeEnsayo) {
 }
 
 /** Su dirección de staging: `--` no lo puede tomar ninguna tienda (TIENDA §4.1). */
-export const hostDeStaging = (slug: string): string => `${slug}--staging.laboratorio-digital.app`;
+export const hostDeStaging = (slug: string): string => direccionDeLaTienda(slug, 'staging');
 
 const texto = (v: string) => `'${v.replaceAll("'", "''")}'`;
 const numero = (n: number | null) => (n === null ? 'NULL' : String(n));

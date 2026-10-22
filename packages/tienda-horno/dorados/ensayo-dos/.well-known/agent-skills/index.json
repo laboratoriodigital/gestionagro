@@ -4,7 +4,7 @@
       "name": "comprar",
       "type": "skill-md",
       "description": "Cómo comprar en Comercio Ensayo Dos: dónde está el catálogo, cómo cotizar y preparar un pedido, y que la aceptación y el pago los hace la persona.",
-      "url": "https://ensayo-dos--staging.laboratorio-digital.app/.well-known/agent-skills/comprar/SKILL.md",
+      "url": "https://ensayo-dos--staging.mitiendapro.co/.well-known/agent-skills/comprar/SKILL.md",
       "sha256": "e01401a3d91a0668edf65559e0f0c730c917339bc1570a86fbc1b201f6901782"
     }
   ]

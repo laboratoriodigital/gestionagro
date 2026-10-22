@@ -29,7 +29,7 @@ const T0 = Date.parse('2026-10-19T15:00:00.000Z');
 const AHORA = new Date(T0).toISOString();
 const VIEJA = 'aaaaaaaaaaaa';
 const NUEVA = 'bbbbbbbbbbbb';
-const HOST = 'ensayo-uno--staging.laboratorio-digital.app';
+const HOST = 'ensayo-uno--staging.mitiendapro.co';
 
 /** Un R2 de mentira, con bytes, listas por prefijo y carpetas. */
 function r2() {

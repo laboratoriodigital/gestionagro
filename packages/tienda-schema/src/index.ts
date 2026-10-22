@@ -3,6 +3,7 @@
  */
 export * from './carga.ts';
 export * from './catalogo.ts';
+export * from './marca.ts';
 export * from './medios.ts';
 export * from './paginas.ts';
 export * from './permisos.ts';

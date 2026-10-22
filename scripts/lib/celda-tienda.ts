@@ -489,6 +489,7 @@ export function secretosDeLaTienda(
   );
   // HU-T17.1: el aviso de la tarea diaria; sin Telegram, la tarea lo dice en el registro.
   // HU-T14.3: los correos por Gmail, opcionales igual; sin ellos, la API dice «no disponible».
+  // HU-T18.4: producción manda con Resend; sin RESEND_API_KEY, también «no disponible».
   // Bitácora tienda3 27: el token de métricas del freno de R2; sin él, la tarea queda en falla.
   const telegram = Object.fromEntries(
     // HU-T13.4: Turnstile en el alta; sin el secreto, abrir una tienda dice «todavía no disponible».
@@ -497,6 +498,7 @@ export function secretosDeLaTienda(
         'TELEGRAM_BOT_TOKEN',
         'TELEGRAM_CHAT_ID',
         ...CORREO_GMAIL,
+        'RESEND_API_KEY',
         'CF_METRICAS_TOKEN',
         'TURNSTILE_SITIO',
         'TURNSTILE_SECRETO',

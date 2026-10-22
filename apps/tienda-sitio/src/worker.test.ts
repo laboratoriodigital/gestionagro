@@ -74,7 +74,7 @@ describe('las direcciones de la plataforma que cubre el comodín (HU-T13.4)', ()
 
 describe('un host sin tienda', () => {
   it('responde 404 con la página neutra, que no se indexa y no carga nada', async () => {
-    const r = await crearDespacho().fetch(new Request('https://nadie.laboratorio-digital.app/'), {
+    const r = await crearDespacho().fetch(new Request('https://nadie.mitiendapro.co/'), {
       TIENDA_HOSTS: kv({}),
     });
     expect(r.status).toBe(404);
@@ -87,9 +87,9 @@ describe('un host sin tienda', () => {
   it('❌ sin el KV, o con una entrada ilegible, también: y lo registra (P1)', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const despacho = crearDespacho();
-    const sinKv = await despacho.fetch(new Request('https://a.laboratorio-digital.app/'), {});
-    const ilegible = await despacho.fetch(new Request('https://b.laboratorio-digital.app/'), {
-      TIENDA_HOSTS: kv({ 'h:b.laboratorio-digital.app': '{"org":"x"}' }),
+    const sinKv = await despacho.fetch(new Request('https://a.mitiendapro.co/'), {});
+    const ilegible = await despacho.fetch(new Request('https://b.mitiendapro.co/'), {
+      TIENDA_HOSTS: kv({ 'h:b.mitiendapro.co': '{"org":"x"}' }),
     });
     expect([sinKv.status, ilegible.status]).toEqual([404, 404]);
     expect(error).toHaveBeenCalledTimes(2);
@@ -97,7 +97,7 @@ describe('un host sin tienda', () => {
 });
 
 describe('un host con tienda', () => {
-  const host = 'ensayo-uno--staging.laboratorio-digital.app';
+  const host = 'ensayo-uno--staging.mitiendapro.co';
   const env = (extra: Record<string, unknown> = {}) => {
     const a = api();
     return {
@@ -177,8 +177,8 @@ describe('un host con tienda', () => {
 });
 
 describe('los kill switches del despacho (HU-T2.7, TIENDA §15.2)', () => {
-  const host = 'ensayo-uno--staging.laboratorio-digital.app';
-  const otro = 'ensayo-dos--staging.laboratorio-digital.app';
+  const host = 'ensayo-uno--staging.mitiendapro.co';
+  const otro = 'ensayo-dos--staging.mitiendapro.co';
   const DOS = { org: 'org-ensayo-dos', celda: 'c1', shard: 'tienda_c1_s1' };
   const env = (flags: Record<string, string>) => ({
     TIENDA_HOSTS: kv({ [`h:${host}`]: JSON.stringify(UNO), [`h:${otro}`]: JSON.stringify(DOS) }),
@@ -210,7 +210,7 @@ describe('los kill switches del despacho (HU-T2.7, TIENDA §15.2)', () => {
 
   it('❌ un host sin tienda sigue siendo «sin tienda», aunque todo esté apagado', async () => {
     const r = await crearDespacho().fetch(
-      new Request('https://nadie.laboratorio-digital.app/'),
+      new Request('https://nadie.mitiendapro.co/'),
       env({ 'ks:tienda': 'apagado' }),
     );
     expect(r.status).toBe(404);
@@ -218,7 +218,7 @@ describe('los kill switches del despacho (HU-T2.7, TIENDA §15.2)', () => {
 });
 
 describe('un alias lleva a la dirección canónica (HU-T13.2)', () => {
-  const plataforma = 'ensayo-uno.laboratorio-digital.app';
+  const plataforma = 'ensayo-uno.mitiendapro.co';
   const propio = 'www.tienda-uno.example';
   const env = (canonico: string) => {
     const a = api();
@@ -270,8 +270,56 @@ describe('un alias lleva a la dirección canónica (HU-T13.2)', () => {
   });
 });
 
+describe('las direcciones de antes, en laboratorio-digital.app (HU-T18.1 CA2)', () => {
+  const nueva = 'ensayo-uno--staging.mitiendapro.co';
+  const vieja = 'ensayo-uno--staging.laboratorio-digital.app';
+  const env = () => {
+    const a = api();
+    const hosts = kv({ [`h:${nueva}`]: JSON.stringify({ ...UNO, version: 3 }) });
+    return {
+      a,
+      hosts,
+      env: { TIENDA_HOSTS: hosts, SECRETO_DESPACHO: SECRETO, API_C1: a.servicio } as Env,
+    };
+  };
+
+  it('CA2: 301 a la misma tienda en mitiendapro.co, con la ruta y la consulta, sin leer el KV', async () => {
+    const { hosts, env: e } = env();
+    const r = await crearDespacho().fetch(
+      new Request(`https://${vieja}/p/camisa-de-lino/?talla=m`),
+      e,
+    );
+    expect(r.status).toBe(301);
+    expect(r.headers.get('location')).toBe(`https://${nueva}/p/camisa-de-lino/?talla=m`);
+    expect(hosts.lecturas).toEqual([]);
+  });
+
+  it('❌ su API no salta: un aviso de Bold registrado con la de antes llega a su tienda', async () => {
+    const { a, hosts, env: e } = env();
+    const aviso = await crearDespacho().fetch(
+      new Request(`https://${vieja}/api/v1/avisos/bold`, { method: 'POST', body: '{}' }),
+      e,
+    );
+    expect(aviso.status).toBe(200);
+    expect(hosts.lecturas).toEqual([`h:${nueva}`]);
+    expect(a.recibidas.map((x) => new URL(x.url).pathname)).toEqual(['/api/v1/avisos/bold']);
+  });
+
+  it('❌ las fotos y lo que no es un nombre de un nivel no saltan', async () => {
+    const { env: e } = env();
+    const despacho = crearDespacho({ alOrigen: async () => new Response('foto') });
+    const foto = await despacho.fetch(
+      new Request('https://img--staging.laboratorio-digital.app/x/'),
+      e,
+    );
+    expect(await foto.text()).toBe('foto');
+    const dosNiveles = await despacho.fetch(new Request('https://a.b.laboratorio-digital.app/'), e);
+    expect(dosNiveles.status).toBe(404);
+  });
+});
+
 describe('la IP del comprador para los límites de la API (bitácora tienda3 37)', () => {
-  const host = 'ensayo-uno--staging.laboratorio-digital.app';
+  const host = 'ensayo-uno--staging.mitiendapro.co';
   it('el despacho la pasa en su cabecera, y ❌ la que llega de afuera se reemplaza', async () => {
     const a = api();
     const env = {
@@ -298,8 +346,8 @@ describe('la IP del comprador para los límites de la API (bitácora tienda3 37)
 });
 
 describe('una tienda suspendida (HU-T13.6)', () => {
-  const host = 'ensayo-uno--staging.laboratorio-digital.app';
-  const otra = 'ensayo-dos--staging.laboratorio-digital.app';
+  const host = 'ensayo-uno--staging.mitiendapro.co';
+  const otra = 'ensayo-dos--staging.mitiendapro.co';
   it('responde 451 con la página neutra, también en su API; la otra tienda sigue', async () => {
     const a = api();
     const env = {

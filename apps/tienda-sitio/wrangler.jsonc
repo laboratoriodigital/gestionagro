@@ -15,7 +15,7 @@
   "workers_dev": false,
   "routes": [
     {
-      "pattern": "origen.laboratorio-digital.app",
+      "pattern": "origen.mitiendapro.co",
       "custom_domain": true
     }
   ],
@@ -42,6 +42,18 @@
       "name": "tienda-sitio-staging",
       "workers_dev": true,
       "routes": [
+        {
+          "pattern": "ensayo-uno--staging.mitiendapro.co",
+          "custom_domain": true
+        },
+        {
+          "pattern": "ensayo-dos--staging.mitiendapro.co",
+          "custom_domain": true
+        },
+        {
+          "pattern": "*--staging.mitiendapro.co/*",
+          "zone_name": "mitiendapro.co"
+        },
         {
           "pattern": "ensayo-uno--staging.laboratorio-digital.app",
           "custom_domain": true

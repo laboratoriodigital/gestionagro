@@ -58,7 +58,7 @@
       "plan": "free",
       "anillo_despliegue": 1,
       "estado": "activa",
-      "api": "https://panel.laboratorio-digital.app",
+      "api": "https://app.tiendapro.co",
       "api_staging": "https://tienda-panel-staging.laboratoriodigital-la.workers.dev",
       "secretos": {
         "token": "CF_API_TOKEN",

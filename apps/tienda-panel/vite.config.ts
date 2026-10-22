@@ -51,8 +51,8 @@ export default defineConfig({
       injectManifest: { globPatterns: ['**/*.{js,css,html,svg,woff2,webmanifest}'] },
       manifest: {
         id: '/',
-        name: 'El panel de tu tienda',
-        short_name: 'Mi tienda',
+        name: 'TiendaPro · El panel de tu tienda',
+        short_name: 'TiendaPro',
         description: 'Tus pedidos, tus productos y tu tienda, desde el teléfono.',
         lang: 'es-CO',
         start_url: '/',

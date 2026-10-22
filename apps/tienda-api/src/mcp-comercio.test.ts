@@ -21,7 +21,7 @@ const CONFIGURACION = 'apps/tienda-api/wrangler.c1.jsonc';
 const AHORA = '2026-10-21T15:00:00.000Z';
 const SECRETO = 'secreto-de-prueba-del-despacho';
 const UNO = ENSAYO_UNO.org;
-const RECURSO = 'https://mcp.laboratorio-digital.app';
+const RECURSO = 'https://mcp.tiendapro.co';
 const M = 'v-camisa-m-arena';
 const TODOS = Object.values(ALCANCES_DEL_COMERCIO).join(' ');
 
@@ -45,7 +45,7 @@ afterAll(async () => {
   for (const c of cerrar) await c();
 });
 beforeEach(async () => {
-  await shard.prepare("UPDATE tienda SET plan = 'alto' WHERE org_id = ?").bind(UNO).run();
+  await shard.prepare("UPDATE tienda SET plan = 'ia-pro' WHERE org_id = ?").bind(UNO).run();
 });
 
 const token = async (extra: { scope?: string; aud?: string; cnc?: string } = {}) =>
@@ -163,11 +163,11 @@ describe('el MCP del comercio (HU-T15.7)', () => {
     expect(revocada.cuerpo.error_description).toBe('Quitaron este acceso.');
   });
 
-  it('❌ CA2: solo en el plan Alto', async () => {
-    await shard.prepare("UPDATE tienda SET plan = 'entrada' WHERE org_id = ?").bind(UNO).run();
+  it('❌ CA2: solo en el plan IA Pro (HU-T18.3)', async () => {
+    await shard.prepare("UPDATE tienda SET plan = 'pro' WHERE org_id = ?").bind(UNO).run();
     const r = await mcp('tools/list');
     expect(r.status).toBe(403);
-    expect(r.cuerpo.error_description).toBe('El asistente de tu tienda es del plan Alto.');
+    expect(r.cuerpo.error_description).toBe('El asistente de tu tienda es del plan IA Pro.');
   });
 
   it('CA1: lista solo las herramientas de los permisos que el comerciante concedió', async () => {

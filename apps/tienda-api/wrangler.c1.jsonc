@@ -11,7 +11,8 @@
     "PLAN": "free",
     "MEDIOS": "img.laboratorio-digital.app",
     "AMBIENTE": "produccion",
-    "RECURSO_MCP_COMERCIO": "https://mcp.laboratorio-digital.app",
+    "CORREO_REMITENTE": "avisos@tiendapro.co",
+    "RECURSO_MCP_COMERCIO": "https://mcp.tiendapro.co",
     "EMISOR_OAUTH": "https://cuenta.laboratorio-digital.com"
   },
   "services": [

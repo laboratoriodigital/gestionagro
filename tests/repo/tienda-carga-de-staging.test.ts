@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { cargaDeStaging } from '../../scripts/tienda/carga-de-staging.ts';
 
-const HOST = 'ensayo-dos--staging.laboratorio-digital.app';
+const HOST = 'ensayo-dos--staging.mitiendapro.co';
 
 function tienda(o: { caida?: boolean; sinLimite?: boolean } = {}) {
   let cotizaciones = 0;

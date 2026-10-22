@@ -70,18 +70,22 @@ describe('la Tienda en productos.json (HU-T2.2)', () => {
 });
 
 describe('los planes y lo que permite cada uno', () => {
-  it('son los cuatro niveles de TIENDA §1.4, con el gratuito primero', () => {
-    expect(idsDePlanes()).toEqual(['gratis', 'entrada', 'intermedio', 'alto']);
+  it('son los tres de TiendaPro (D-T3, HU-T18.3), con el gratuito primero', () => {
+    expect(planes().map((p) => [p.id, (p as { nombre?: string }).nombre])).toEqual([
+      ['gratis', 'Gratis'],
+      ['pro', 'Pro'],
+      ['ia-pro', 'IA Pro'],
+    ]);
   });
 
   it('cobran lo que dice la tabla «Por periodo» de TIENDA §1.4 (P2)', () => {
     const tienda = readFileSync(join(RAIZ, 'docs/tienda/TIENDA-3.0.md'), 'utf8');
     const filas = [
       ...tienda.matchAll(
-        /^\| `(entrada|intermedio|alto)` \| ([\d.]+) \| ([\d.]+) \| ([\d.]+) \| ([\d.]+) \|$/gm,
+        /^\| `(pro|ia-pro)` \| ([\d.]+) \| ([\d.]+) \| ([\d.]+) \| ([\d.]+) \|$/gm,
       ),
     ];
-    expect(filas).toHaveLength(3);
+    expect(filas).toHaveLength(2);
     for (const [, id, ...montos] of filas) {
       const numeros = montos.map((m) => Number(m.replaceAll('.', '')));
       const plan = planes().find((p) => p.id === id);
@@ -99,25 +103,36 @@ describe('los planes y lo que permite cada uno', () => {
   });
 
   it('el gratuito tiene su límite de productos y los pagos no', () => {
-    expect(valorDe(funciones(), 'productos', 'gratis')).toBe(15);
-    expect(cabe(15, 15)).toBe(true);
-    expect(cabe(15, 16)).toBe(false);
+    expect(valorDe(funciones(), 'productos', 'gratis')).toBe(10);
+    expect(valorDe(funciones(), 'productos', 'pro')).toBeNull();
+    expect(cabe(10, 10)).toBe(true);
+    expect(cabe(10, 11)).toBe(false);
     expect(cabe(null, 100_000)).toBe(true);
+  });
+
+  it('HU-T18.3: el reparto de D-T3 (personas, sello, MCP público y del comercio)', () => {
+    const de = (f: string) => idsDePlanes().map((p) => valorDe(funciones(), f, p));
+    expect(de('usuarios')).toEqual([1, 3, null]);
+    expect(de('sin_marca')).toEqual([false, true, true]);
+    expect(de('factura_integrada')).toEqual([false, true, true]);
+    expect(de('mcp_publico')).toEqual([false, true, true]);
+    // ❌ CA3: una tienda Pro no ofrece el MCP del comercio; solo IA Pro.
+    expect(de('mcp_del_comercio')).toEqual([false, false, true]);
   });
 
   it('❌ un plan en funciones.json que no está en planes.json, o uno que falta', () => {
     const malas = {
-      productos: { gratis: 15, entrada: null, intermedio: null, alto: null, mayorista: null },
-      feeds: { gratis: false, entrada: true, intermedio: true },
+      productos: { gratis: 10, pro: null, 'ia-pro': null, alto: null },
+      feeds: { gratis: false, pro: true },
     };
     expect(fallasDeFunciones(idsDePlanes(), malas)).toEqual([
-      '«productos» nombra el plan «mayorista», que no está en planes.json',
-      '«feeds» no dice nada del plan «alto»',
+      '«productos» nombra el plan «alto», que no está en planes.json',
+      '«feeds» no dice nada del plan «ia-pro»',
     ]);
   });
 
   it('❌ un límite con decimales, negativo o en texto', () => {
-    const malas = { usuarios: { gratis: 1.5, entrada: -1, intermedio: '3', alto: null } };
+    const malas = { usuarios: { gratis: 1.5, pro: -1, 'ia-pro': '3' } };
     expect(fallasDeFunciones(idsDePlanes(), malas)).toHaveLength(3);
   });
 
@@ -127,17 +142,19 @@ describe('los planes y lo que permite cada uno', () => {
   });
 
   it('lo que permite un plan, función por función; un plan que no está no permite nada (HU-T8.1)', () => {
-    expect(funcionesDelPlan(funciones(), 'gratis')).toMatchObject({ productos: 15 });
-    expect(Object.keys(funcionesDelPlan(funciones(), 'alto') ?? {})).toEqual(
+    expect(funcionesDelPlan(funciones(), 'gratis')).toMatchObject({ productos: 10 });
+    expect(Object.keys(funcionesDelPlan(funciones(), 'ia-pro') ?? {})).toEqual(
       Object.keys(funciones()).filter((f) => f !== 'nota'),
     );
     expect(funcionesDelPlan(funciones(), 'mayorista')).toBeNull();
+    // HU-T18.3 CA2: los retirados ya no están; la migración pasa sus tiendas a Pro o IA Pro.
+    expect(funcionesDelPlan(funciones(), 'alto')).toBeNull();
   });
 
   it('❌ un semestral más caro que seis meses', () => {
-    const entrada = planes().find((p) => p.id === 'entrada') as PlanConCobro;
-    expect(fallasDeCobro([{ ...entrada, cobro: { ...entrada.cobro, '6': 180_000 } }])).toEqual([
-      '«entrada»: a 6 meses el mes sale más caro (30000) que a 3 (28333)',
+    const pro = planes().find((p) => p.id === 'pro') as PlanConCobro;
+    expect(fallasDeCobro([{ ...pro, cobro: { ...pro.cobro, '6': 150_000 } }])).toEqual([
+      '«pro»: a 6 meses el mes sale más caro (25000) que a 3 (23333)',
     ]);
   });
 });
@@ -172,7 +189,41 @@ describe('la Tienda en la base del CORE, sin migración (ADR-20)', () => {
     const { results } = await db
       .prepare("SELECT id FROM plan WHERE producto = 'tienda' ORDER BY id")
       .all<{ id: string }>();
-    expect(results.map((r) => r.id)).toEqual(['alto', 'entrada', 'gratis', 'intermedio']);
+    expect(results.map((r) => r.id)).toEqual(['gratis', 'ia-pro', 'pro']);
+  });
+
+  it('HU-T18.3 CA2: la migración 0011 pasa las tiendas de los planes retirados a Pro o IA Pro, con lo pagado', async () => {
+    const vence = '2027-04-20T00:00:00.000Z';
+    // Como en staging: los planes viejos existían antes de este catálogo; retirarlos no los borra.
+    await correr(`
+      INSERT INTO plan (producto, id, nombre, gratuito, estado) VALUES ('tienda', 'entrada', 'Entrada', 0, 'retirado'), ('tienda', 'intermedio', 'Intermedio', 0, 'retirado'), ('tienda', 'alto', 'Alto', 0, 'retirado');
+      INSERT INTO organizacion (id, producto, nombre, tipo, plan, plan_vence, celda_id, shard, anillo, creado) VALUES ('t-e', 'tienda', 'Comercio Ensayo E', 'tienda', 'entrada', '${vence}', 'c1', 'tienda_c1_s1', 1, 'x');
+      INSERT INTO organizacion (id, producto, nombre, tipo, plan, plan_vence, celda_id, shard, anillo, creado) VALUES ('t-i', 'tienda', 'Comercio Ensayo I', 'tienda', 'intermedio', NULL, 'c1', 'tienda_c1_s1', 1, 'x');
+      INSERT INTO organizacion (id, producto, nombre, tipo, plan, plan_vence, celda_id, shard, anillo, creado) VALUES ('t-a', 'tienda', 'Comercio Ensayo A', 'tienda', 'alto', '${vence}', 'c1', 'tienda_c1_s1', 1, 'x')
+    `);
+    await correr(
+      readFileSync(
+        join(RAIZ, 'infrastructure/migraciones/core/0011_planes_de_tiendapro.sql'),
+        'utf8',
+      ).replace(/--.*$/gm, ''),
+    );
+    const { results } = await db
+      .prepare(
+        "SELECT id, plan, plan_vence FROM organizacion WHERE producto = 'tienda' ORDER BY id",
+      )
+      .all();
+    expect(results).toEqual([
+      { id: 't-a', plan: 'ia-pro', plan_vence: vence },
+      { id: 't-e', plan: 'pro', plan_vence: vence },
+      { id: 't-i', plan: 'pro', plan_vence: null },
+      // ❌ La gratuita no cambia.
+      { id: 't1', plan: 'gratis', plan_vence: null },
+    ]);
+    // Los retirados siguen en la base: los pagos de antes los nombran (P21).
+    const retirados = await db
+      .prepare("SELECT count(*) AS n FROM plan WHERE producto = 'tienda' AND estado = 'retirado'")
+      .first<{ n: number }>();
+    expect(retirados?.n).toBe(3);
   });
 
   it('una tienda admite al propietario y al colaborador', async () => {

@@ -73,7 +73,7 @@ const token = async (rol: 'propietario' | 'colaborador', org = UNO) =>
         shard: 'tienda_c1_s1',
         anillo: 1,
         aud: 'tienda',
-        plan: 'entrada',
+        plan: 'pro',
         auth_time: Math.floor(T0 / 1000),
       },
       T0,

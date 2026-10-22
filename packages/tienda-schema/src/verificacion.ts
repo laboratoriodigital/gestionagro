@@ -1,7 +1,7 @@
 /**
  * La verificación de la tienda en Google Search Console (HU-T14.8, TIENDA-3.0 §11.7).
  *
- * Una tienda en un subdominio de la plataforma (`<nombre>.laboratorio-digital.app`) no se puede
+ * Una tienda en un subdominio de la plataforma (`<nombre>.mitiendapro.co`) no se puede
  * verificar como propiedad de **dominio**: Google pide un registro DNS en una zona que el comercio
  * no controla (así falló en la 2.0). Se verifica como propiedad de **prefijo de URL** con el método
  * **etiqueta HTML**: el comercio pega lo que Google le da, se guarda solo el código, y el horno pone
