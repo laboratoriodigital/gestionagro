@@ -1689,7 +1689,7 @@ Formato de cada historia, el del CORE:
 - **CA1.** La Tienda pasa a `activo` en producción (D-T14 revisada), con Turnstile, el comodín y el cobro de los planes en Bold de producción.
 - **CA2.** Los textos legales y los términos salen con los datos que hay; lo que falte se omite sin dejar `{{campo}}` a la vista, y queda la lista de lo omitido para completarlo.
 - **CA3 ❌.** La prueba de humo de producción abre una tienda de prueba de punta a punta y la borra.
-- **Work items:** WI-T18.6.1 `[código]` · WI-T18.6.2 `[dueño]` las llaves de Bold de producción de la plataforma (el CORE cobra los planes de todos los productos con las de `produccion`, guardadas el 3 oct 2026 y las mismas del plan Finca; el 22 oct 2026 el dueño dijo tener las de producción: falta confirmar si son de la misma cuenta de Bold) · WI-T18.6.3 `[dueño]` `TURNSTILE_SITIO` y `TURNSTILE_SECRETO` en `produccion`
+- **Work items:** WI-T18.6.1 `[código]` · WI-T18.6.2 `[dueño]` las llaves de Bold de producción de la plataforma (el CORE cobra los planes de todos los productos con las de `produccion`, guardadas el 3 oct 2026 y las mismas del plan Finca; hecho: el 22 oct 2026 el dueño confirmó que son de la misma cuenta de Bold, así que TiendaPro no necesita otras) · WI-T18.6.3 `[dueño]` `TURNSTILE_SITIO` y `TURNSTILE_SECRETO` en `produccion`
 
 #### HU-T18.7 · mitiendapro.co en la Public Suffix List
 - **Capa:** operación · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** L2 · **Depende de:** HU-T18.1 · **Estado:** Refinada
