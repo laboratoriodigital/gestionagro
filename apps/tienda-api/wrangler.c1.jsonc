@@ -150,6 +150,7 @@
         "PLAN": "free",
         "MEDIOS": "img--staging.laboratorio-digital.app",
         "AMBIENTE": "staging",
+        "CORREO_REMITENTE": "avisos@tiendapro.co",
         "ENSAYOS": "1",
         "RECURSO_MCP_COMERCIO": "https://tienda-panel-staging.laboratoriodigital-la.workers.dev",
         "EMISOR_OAUTH": "https://agro-core-staging.laboratoriodigital-la.workers.dev"

@@ -1333,3 +1333,19 @@ La regla: **lo que el agente le entrega a la persona tiene que existir en lo pub
 La regla: **una decisión que contradice una verificación anterior se vuelve a verificar antes de ejecutarla, y la verificación «por resumen» se hace de primera mano.**
 
 *Ficha:* tienda3 · *(mía)* · 🟡 Medio · P1, P16 · tienda-0.1.0 · 2026-10-22
+
+**52 · Una variable solo de producción dejó a la Tienda de staging sin publicar.**
+
+*Qué pasó.* El 22 oct 2026, al fusionar L1 (#222), el dueño abrió Ensayo Dos en staging y vio «Esta tienda todavía no abre». El paso «Desplegar la Tienda» estaba en verde, pero su resumen decía «no se pudo leer la lista de secretos de la API de la Tienda (wrangler secret list)».
+
+*La causa.* L1 agregó `CORREO_REMITENTE` a las variables de producción de la API y no a las de staging. Wrangler avisó «The following vars exist at the top level, but not on env.staging.vars», y la advertencia salió pegada después de la lista de secretos. El despliegue leía desde el primer `[` hasta el final de la salida, así que el texto ya no era JSON y se detuvo. Para entonces ya había escrito las direcciones nuevas de los comercios de prueba en `TIENDA_HOSTS` sin versión, y no alcanzó a publicarlos: de ahí la página. El paso queda en verde porque la Tienda no detiene a los demás productos (`continue-on-error`).
+
+*El arreglo.*
+- Staging declara todas las variables de producción: `CORREO_REMITENTE` y, con Cloudflare for SaaS, `ZONA_TIENDAS` vacía, que lo deja apagado en staging. Una prueba lo exige con la celda de hoy y con `saas: true`.
+- La lista de secretos se lee sola (`scripts/lib/secretos-de-wrangler.ts`), con advertencias antes o después; una salida sin lista sigue siendo una falla, nunca «no tiene secretos». Lo usan los cuatro pasos que la leían.
+
+**Lo prueban** `secretos-de-wrangler.test.ts`, con la salida real de ese día, y `tienda-celda.test.ts`.
+
+La regla: **una variable nueva de un Worker se declara en los dos ambientes, aunque uno no la use; y la salida de una herramienta se lee por su forma, no por su posición.**
+
+*Ficha:* tienda3 · *(dueño y mía)* · 🟡 Medio · P1, P7 · tienda-0.1.0 · 2026-10-22

@@ -15,6 +15,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - El MCP del cuaderno (HU-C9.7): un asistente con permiso de la persona puede leer el calendario de carencias («¿qué nave puedo cosechar hoy?») y los últimos registros de la finca, sin escribir nada. Vive en la celda, en `mcp.cultivopro.co` en producción, y se apaga con `ks:agro-mcp` sin tocar el cuaderno. Por ahora solo en staging, como el servidor de autorización.
 
 ### Corregido
+- El despliegue lee la lista de secretos de wrangler aunque venga con una advertencia antes o después: una variable que staging no tenía dejó a la Tienda de staging a medio desplegar y sin publicar sus comercios de prueba. Staging declara ahora todas las variables de producción de la API de la Tienda (bitácora tienda3 52).
 - El vigía ya no sube el nivel del agro por R2: R2 se mide y se dice, pero el nivel lo deciden las cuotas diarias (ARQUITECTURA §8.2). R2 no se detiene al agotarse sino que cobra, y pausar el cuaderno no lo bajaba; ahora lo frena la Tienda (bitácora tienda3 27).
 - El despliegue a mano («Run workflow») acepta `productos`: sin esa entrada solo llevaba el CORE y el agro, y el parqueadero 0.7.1 no llegó a producción. Una versión publicada a mano despliega su producto por el prefijo de la etiqueta (bitácora parqueadero 41).
 - `@ed1/impresion`: el QR del recibo sale más grande (unos 36 mm; módulos de 8 puntos en el QR nativo), para que la cámara de la caja lo lea sin lucha (bitácora parqueadero 39).

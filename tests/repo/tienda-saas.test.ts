@@ -92,8 +92,9 @@ describe('la configuración con SaaS activo', () => {
       env: { staging: { vars: Record<string, string> } };
     };
     expect(api.vars['ZONA_TIENDAS']).toBe(ZONA_DE_LAS_TIENDAS);
-    // ❌ Staging nunca: el origen de respaldo de la zona es el de producción.
-    expect(api.env.staging.vars['ZONA_TIENDAS']).toBeUndefined();
+    // ❌ Staging nunca: el origen de respaldo de la zona es el de producción. La declara vacía
+    // (bitácora tienda3 52), y vacía no enciende Cloudflare for SaaS (`saasDe`).
+    expect(api.env.staging.vars['ZONA_TIENDAS']).toBe('');
     const sitio = wranglerDelSitioDeLaTienda(conSaas) as {
       routes: unknown[];
       env: { staging: { routes: unknown[] } };

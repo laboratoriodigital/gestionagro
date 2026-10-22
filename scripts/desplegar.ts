@@ -150,6 +150,7 @@ import {
   catalogoDelRepositorio,
 } from './lib/registro-productos.ts';
 import { RAIZ } from './lib/repo.ts';
+import { nombresDeSecretos } from './lib/secretos-de-wrangler.ts';
 import {
   esperadoDelRepositorio,
   type InformeDeAgentes,
@@ -505,9 +506,7 @@ async function desplegarCore(
   const lista = wrangler('@ed1/core', `secret list --format json ${c}`, cred);
   let existentes: string[] = [];
   try {
-    existentes = (
-      JSON.parse(lista.salida.slice(lista.salida.indexOf('['))) as { name: string }[]
-    ).map((s) => s.name);
+    existentes = nombresDeSecretos(lista.salida);
   } catch {
     return {
       ok: false,
@@ -786,9 +785,7 @@ async function prepararCeldaDelParqueadero(
   const lista = wrangler('@ed1/parqueadero-api', `secret list --format json ${c}`, cred);
   let existentes: string[];
   try {
-    existentes = (
-      JSON.parse(lista.salida.slice(lista.salida.indexOf('['))) as { name: string }[]
-    ).map((x) => x.name);
+    existentes = nombresDeSecretos(lista.salida);
   } catch {
     return {
       ok: false,
@@ -1074,9 +1071,7 @@ async function prepararCeldaDeLaTienda(
     const lista = wrangler('@ed1/tienda-api', `secret list --format json ${c}`, cred);
     let enElWorker: string[];
     try {
-      enElWorker = (
-        JSON.parse(lista.salida.slice(lista.salida.indexOf('['))) as { name: string }[]
-      ).map((x) => x.name);
+      enElWorker = nombresDeSecretos(lista.salida);
     } catch {
       return {
         ok: false,
@@ -1280,9 +1275,7 @@ async function desplegarApiCelda(
   const lista = wrangler('@ed1/api-celda', `secret list --format json ${c}`, cred);
   let existentes: string[] = [];
   try {
-    existentes = (
-      JSON.parse(lista.salida.slice(lista.salida.indexOf('['))) as { name: string }[]
-    ).map((x) => x.name);
+    existentes = nombresDeSecretos(lista.salida);
   } catch {
     return {
       ok: false,
