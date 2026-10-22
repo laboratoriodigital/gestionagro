@@ -1674,13 +1674,14 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T18.4.1 `[código]` · WI-T18.4.2 `[prueba]` · WI-T18.4.3 `[dueño]` verificar el dominio en Resend y guardar la clave (22 oct 2026: DKIM `resend._domainkey` y SPF y MX de `send.tiendapro.co` publicados, y `RESEND_API_KEY` en el ambiente `produccion`, comprobados desde la sesión; el DMARC `_dmarc.tiendapro.co` con `p=none` y los reportes a su correo, publicado y comprobado el 22 oct 2026: queda hecho)
 
 #### HU-T18.5 · La landing de tiendapro.co
-- **Capa:** sitio · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L2 · **Depende de:** HU-T18.2, HU-T18.3 · **Estado:** Refinada
+- **Capa:** sitio · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L2 · **Depende de:** HU-T18.2, HU-T18.3 · **Estado:** Construida (22 oct 2026), por validar
 - Como comerciante que no conoce TiendaPro, quiero entender en un minuto qué es, cuánto cuesta y crear mi tienda.
 - **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
 - **CA1.** Una página estática y atractiva en `tiendapro.co`: qué hace, los tres planes con sus precios, preguntas frecuentes y «Crear tienda», que lleva al alta del panel.
 - **CA2.** Legible por agentes y buscadores (robots, sitemap, `llms.txt`), con su política de datos y sus términos.
 - **CA3 ❌.** Sin scripts de terceros sin consentimiento; dentro de los presupuestos de la vitrina.
 - **Boceto (decidido por el dueño el 22 oct 2026, con Shopify Colombia, Tiendanube y Jumpseller como referencias):** dirección «el pedido en vivo». Papel blanco y tinta de `@ed1/ui` v2 con el cobre de la Tienda; Geist para todo y Geist Mono para precios y cifras. La primera pantalla: «Tu tienda en línea. Los pedidos, a tu WhatsApp.», «Crear mi tienda gratis» y «Ver planes» a la izquierda, y a la derecha un teléfono hecho en código con una tienda de ejemplo que cambia entre panadería, ropa y belleza (marcada como ejemplo). Al bajar, el pedido avanza en el teléfono: el cliente elige, arma su pedido, te llega por WhatsApp completo y lo confirmas. Después: lo que incluye; una franja oscura propia para la IA (el asistente de tu cliente prepara el pedido y, en IA Pro, tu asistente maneja la tienda); los tres planes de `planes.json`; preguntas frecuentes; el cierre con «Crear mi tienda gratis»; y el pie con la política de datos, los términos y «Reportar una tienda». Nada de cifras, clientes ni testimonios inventados. Tema claro: el comerciante la mira en el teléfono, de día.
+- **Cómo quedó (22 oct 2026):** `apps/tiendapro-sitio`, Astro estático en un Worker solo de assets (`tiendapro.co` y `www.` en producción, workers.dev en staging), desplegado con la Tienda. Con compresión: HTML 5,5 KB, CSS 5,8 KB, JS 0,35 KB y fuentes 57 KB. La tienda de ejemplo cambia de negocio con radios y `:has()`, sin JavaScript; el pedido avanza al bajar con un script de 0,35 KB. Planes, política y términos salen de sus archivos (P2). axe sin fallas a 360 y 1280 px; ningún pedido a un tercero.
 - **Work items:** WI-T18.5.1 `[diseño]` · WI-T18.5.2 `[código]` · WI-T18.5.3 `[prueba]`
 
 #### HU-T18.6 · El alta abierta en producción
@@ -1690,6 +1691,7 @@ Formato de cada historia, el del CORE:
 - **CA1.** La Tienda pasa a `activo` en producción (D-T14 revisada), con Turnstile, el comodín y el cobro de los planes en Bold de producción.
 - **CA2.** Los textos legales y los términos salen con los datos que hay; lo que falte se omite sin dejar `{{campo}}` a la vista, y queda la lista de lo omitido para completarlo.
 - **CA3 ❌.** La prueba de humo de producción abre una tienda de prueba de punta a punta y la borra.
+- **Lo omitido, para completar (22 oct 2026, HU-T18.6 CA2):** del encargado y responsable, en `content/tienda/privacidad/politica.json`: la razón social, la identificación y el teléfono. Mientras falten, los términos y la política dicen «Laboratorio Digital» con el domicilio y el correo, sin «por completar» ni huecos (`datosQueFaltan` da la lista).
 - **Work items:** WI-T18.6.1 `[código]` · WI-T18.6.2 `[dueño]` las llaves de Bold de producción de la plataforma (el CORE cobra los planes de todos los productos con las de `produccion`, guardadas el 3 oct 2026 y las mismas del plan Finca; hecho: el 22 oct 2026 el dueño confirmó que son de la misma cuenta de Bold, así que TiendaPro no necesita otras) · WI-T18.6.3 `[dueño]` `TURNSTILE_SITIO` y `TURNSTILE_SECRETO` en `produccion`
 
 #### HU-T18.7 · mitiendapro.co en la Public Suffix List
@@ -1700,6 +1702,7 @@ Formato de cada historia, el del CORE:
 - **CA2.** `mitiendapro.co` y `tiendapro.co` vigilados en Google Search Console.
 - **CA3 ❌.** `tiendapro.co` no se inscribe: es la marca, no aloja tiendas.
 - **Antes de empezar (bitácora tienda3 51):** HA9 decía que Cloudflare no admite como zona un dominio inscrito en la PSL, salvo en Enterprise. Verificado el 22 oct 2026: la regla es para crear zonas nuevas, y hay decenas de zonas inscritas que siguen sirviendo en Cloudflare con comodín y certificado universal (`bearblog.dev`, `srv.us`, `vp4.me`). Se le pregunta a Cloudflare por escrito solo lo que falta: si Cloudflare for SaaS sigue funcionando en la zona inscrita fuera de Enterprise, y si la zona se podría volver a crear. Si no, la decisión vuelve al dueño; la alternativa más barata es no inscribirla, como Tiendanube.
+- **Cómo se hace:** `docs/runbooks/tienda-public-suffix-list.md` (el PR, el registro `_psl` y Search Console).
 - **Work items:** WI-T18.7.0 `[dueño]` la pregunta a Cloudflare · WI-T18.7.1 `[dueño]` el registro `_psl` y abrir el PR · WI-T18.7.2 `[dueño]` Search Console
 
 
