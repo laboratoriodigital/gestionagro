@@ -343,6 +343,8 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T17b** | entre T17 y T18 | Lo que pidió la validación de la vitrina del 20 oct 2026 | HU-T5.8 (2), HU-T5.9 (3), HU-T5.10 (2), HU-T5.11 (2), HU-T5.12 (3), HU-T5.13 (3), HU-T5.14 (3), HU-T5.15 (1) | 19 | — |
 | **T17c** | entre T17b y T18 | Lo que pidió la validación de la vitrina del 21 oct 2026, con atoms.com como referencia | HU-T5.16 (3), HU-T5.17 (2) | 5 | — |
 | **T18** (festivo) | 9–20 ago | **M7.** Los agentes preparan pedidos que una persona confirma | HU-T15.2 (2), HU-T15.3 (2), HU-T15.4 (5), HU-T15.5 (3), HU-T15.6 (2), HU-T15.7 (5) | 19 | M7 |
+| **L1** | 22 oct 2026 | **Lanzamiento, parte 1.** La marca TiendaPro: las tiendas en `mitiendapro.co`, el panel en `tiendapro.co`, los tres planes y los correos con Resend | HU-T18.1 (5), HU-T18.2 (3), HU-T18.3 (5), HU-T18.4 (3) | 16 | — |
+| **L2** | después de L1 | **Lanzamiento, parte 2.** La landing de `tiendapro.co`, el alta abierta en producción y la Public Suffix List | HU-T18.5 (5), HU-T18.6 (3), HU-T18.7 (1) | 9 | Lanzamiento |
 | **T19** | 23 ago–3 sep | **M8.** La factura, en el facturador del comercio | HU-T16.1 (2), HU-T16.2 (5), HU-T16.3 (3), HU-T16.4 (2) | 12 | M8 |
 | **T20** | 6–17 sep | Holgura: lo que traiga la validación con los primeros comercios | — | 0 | — |
 
@@ -408,6 +410,7 @@ Después de M0, **el camino crítico es el de la Tienda, no el del CORE**: cuand
 | ET15 · Agentes | Capa estática por tienda, OpenAPI, habilidad, MCP público y del comercio | M1, M7 | 22 |
 | ET16 · Factura integrada | `DocumentoFiscal` con el facturador del comercio | M8 | 12 |
 | ET17 · Operación y confiabilidad | Crons, purgas, respaldos, simulacro, runbooks y rotación de la KEK | M1–M4 | 16 |
+| ET18 · Lanzamiento de TiendaPro | La marca, los dominios, los tres planes, Resend, la landing y el alta abierta (D-T3, D-T11, D-T14 y D-T15, 21 y 22 oct 2026) | Lanzamiento | 25 |
 
 ---
 
@@ -1628,6 +1631,72 @@ Formato de cada historia, el del CORE:
 
 ---
 
+### ET18 · Lanzamiento de TiendaPro
+
+#### HU-T18.1 · Las tiendas en mitiendapro.co
+- **Capa:** despacho, API y despliegue · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L1 · **Depende de:** HU-T13.1, HU-T13.4 · **Estado:** Refinada
+- Como comerciante, quiero que mi tienda tenga una dirección con la marca, `mitienda.mitiendapro.co`.
+- **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
+- **CA1.** Las tiendas nacen en `<slug>.mitiendapro.co`, y en staging en `<slug>--staging.mitiendapro.co`, con el comodín y el origen de los dominios propios en esa zona.
+- **CA2.** Las direcciones de los comercios de prueba en `laboratorio-digital.app` llevan a las nuevas (301). Producción no tiene tiendas que mover.
+- **CA3 ❌.** Ninguna tienda queda en `tiendapro.co`; la CSP, el píxel de Meta y las cookies tratan `mitiendapro.co` como la zona de la plataforma.
+- **Work items:** WI-T18.1.1 `[código]` · WI-T18.1.2 `[prueba]` · WI-T18.1.3 `[dueño]` el comodín y el permiso del token sobre las dos zonas
+
+#### HU-T18.2 · El panel y la marca en tiendapro.co
+- **Capa:** panel, CORE y textos · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** L1 · **Depende de:** HU-T18.1 · **Estado:** Refinada
+- Como comerciante, quiero entrar a mi panel en `app.tiendapro.co` y ver la marca TiendaPro en todo.
+- **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
+- **CA1.** El panel en `app.tiendapro.co` y el MCP del comercio en `mcp.tiendapro.co`; el CORE los acepta como orígenes de la Tienda.
+- **CA2.** «TiendaPro» en el panel, el pie de las tiendas, los correos («vía TiendaPro») y los textos; el sello «Hecha con TiendaPro» solo en el plan Gratis; los reportes a `abuse@tiendapro.co`.
+- **CA3 ❌.** Ningún texto que ve el comerciante o el comprador dice «Laboratorio Digital» donde debe decir la marca; lo legal sigue nombrando a la empresa responsable.
+- **Work items:** WI-T18.2.1 `[código]` · WI-T18.2.2 `[prueba]`
+
+#### HU-T18.3 · Los tres planes: Gratis, Pro e IA Pro
+- **Capa:** CORE, API, panel y horno · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L1 · **Depende de:** HU-T13.5 · **Estado:** Refinada
+- Como comerciante, quiero elegir entre tres planes claros.
+- **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
+- **CA1.** `planes.json` y `funciones.json` con Gratis, Pro (COP 24.900 al mes) e IA Pro (COP 49.000 al mes), sus periodos con la regla de PLATAFORMA §4.2 y el reparto de D-T3; una función nueva para el MCP público (Pro e IA Pro).
+- **CA2.** `entrada`, `intermedio` y `alto` quedan retirados, sin borrarse (P21): las tiendas que los tengan pasan a Pro o a IA Pro y lo pagado se respeta.
+- **CA3 ❌.** Una tienda Gratis no ofrece el MCP público ni el del comercio; una Pro no ofrece el del comercio.
+- **Work items:** WI-T18.3.1 `[código]` · WI-T18.3.2 `[prueba]`
+
+#### HU-T18.4 · Los correos de producción con Resend
+- **Capa:** paquete y despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** L1 · **Depende de:** HU-T14.3 · **Estado:** Refinada
+- Como dueño, quiero que los correos de las tiendas de producción salgan con Resend y lleguen.
+- **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
+- **CA1.** Un adaptador de Resend en `@ed1/correo`, detrás de `CorreoTransaccional`; producción lo usa con `RESEND_API_KEY`, staging sigue con Gmail.
+- **CA2.** El dominio de envío es de la marca, con SPF, DKIM y DMARC; `Reply-To` al comercio.
+- **CA3 ❌.** Sin la clave, el correo dice «no disponible» y no finge haber salido; lo fallido no gasta el tope.
+- **Work items:** WI-T18.4.1 `[código]` · WI-T18.4.2 `[prueba]` · WI-T18.4.3 `[dueño]` verificar el dominio en Resend y guardar la clave
+
+#### HU-T18.5 · La landing de tiendapro.co
+- **Capa:** sitio · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L2 · **Depende de:** HU-T18.2, HU-T18.3 · **Estado:** Refinada
+- Como comerciante que no conoce TiendaPro, quiero entender en un minuto qué es, cuánto cuesta y crear mi tienda.
+- **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
+- **CA1.** Una página estática y atractiva en `tiendapro.co`: qué hace, los tres planes con sus precios, preguntas frecuentes y «Crear tienda», que lleva al alta del panel.
+- **CA2.** Legible por agentes y buscadores (robots, sitemap, `llms.txt`), con su política de datos y sus términos.
+- **CA3 ❌.** Sin scripts de terceros sin consentimiento; dentro de los presupuestos de la vitrina.
+- **Work items:** WI-T18.5.1 `[diseño]` · WI-T18.5.2 `[código]` · WI-T18.5.3 `[prueba]`
+
+#### HU-T18.6 · El alta abierta en producción
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** L2 · **Depende de:** HU-T18.1 a HU-T18.5 · **Estado:** Refinada
+- Como dueño, quiero abrir TiendaPro al público con lo legal que ya tengo.
+- **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
+- **CA1.** La Tienda pasa a `activo` en producción (D-T14 revisada), con Turnstile, el comodín y el cobro de los planes en Bold de producción.
+- **CA2.** Los textos legales y los términos salen con los datos que hay; lo que falte se omite sin dejar `{{campo}}` a la vista, y queda la lista de lo omitido para completarlo.
+- **CA3 ❌.** La prueba de humo de producción abre una tienda de prueba de punta a punta y la borra.
+- **Work items:** WI-T18.6.1 `[código]` · WI-T18.6.2 `[dueño]` las llaves de Bold de producción de la plataforma
+
+#### HU-T18.7 · mitiendapro.co en la Public Suffix List
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** L2 · **Depende de:** HU-T18.1 · **Estado:** Refinada
+- Como dueño, quiero que cada tienda cuente como un sitio aparte para los navegadores y Google.
+- **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
+- **CA1.** El PR a la Public Suffix List preparado, con el registro `_psl` en la zona.
+- **CA2.** `mitiendapro.co` y `tiendapro.co` vigilados en Google Search Console.
+- **CA3 ❌.** `tiendapro.co` no se inscribe: es la marca, no aloja tiendas.
+- **Work items:** WI-T18.7.1 `[dueño]` el registro `_psl` y abrir el PR · WI-T18.7.2 `[dueño]` Search Console
+
+
 ## 9. Preparadas, sin sprint
 
 | Historia | Disparador |
@@ -1658,7 +1727,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 |---|---|---|---|
 | D-T1 | ¿Se abre el carril de holgura T0 antes de HC1? | **Sí**, solo en la holgura del CORE (con 4 historias del CORE esperando validación, o su sprint ya construido), con tope de 21 puntos y nada que toque la nube ni el CORE. No cambia D-C4 | T0 (ya) |
 | D-T2 | Tipografía de la vitrina y del panel | **Decidida el 13 oct 2026:** Geist para todo el texto y Geist Mono para precios, códigos y cifras, las del ecosistema (D-C1), en la vitrina y en el panel. «Editorial» es un tratamiento de la misma Geist, sin otra fuente. La marca del comercio llega por su logo y su color | HU-T3.3 |
-| D-T3 | Los planes: los cuatro niveles del estudio, sus límites (15 productos en `gratis`, 3 colaboradores en `intermedio`) y sus precios por periodo (TIENDA §20.2.1) | **Decidida el 22 oct 2026:** tres planes, Free (COP 0), Pro (COP 24.900 al mes) e IA Pro (COP 49.000 al mes), en lugar de los cuatro del estudio. Falta repartir las funciones entre ellos y pasarlo a `planes.json` y `funciones.json` (los de hoy, `entrada`, `intermedio` y `alto`, quedan retirados, P21) | HU-T2.2 (T1); fijarlos antes de T17 |
+| D-T3 | Los planes: los cuatro niveles del estudio, sus límites (15 productos en `gratis`, 3 colaboradores en `intermedio`) y sus precios por periodo (TIENDA §20.2.1) | **Decidida el 22 oct 2026:** tres planes, Free (COP 0), Pro (COP 24.900 al mes) e IA Pro (COP 49.000 al mes), en lugar de los cuatro del estudio. El reparto, también del 22 oct: **Gratis** (así se llama en la tienda y en la landing) con 15 productos, pedidos por WhatsApp, un usuario y el sello de TiendaPro; **Pro** con productos sin límite, cobro en línea, contraentrega, dominio propio sin sello, feeds, resumen diario, 3 personas, la factura con su facturador y los asistentes de sus clientes que preparan pedidos (MCP público); **IA Pro** con todo lo de Pro, el asistente del comerciante para gestionar su tienda (MCP del comercio) y equipo sin límite. Los de hoy, `entrada`, `intermedio` y `alto`, quedan retirados (P21): HU-T18.3 | HU-T2.2 (T1); fijarlos antes de T17 |
 | D-T4 | Las formas de pago de fábrica de una tienda nueva (§20.2.2) | A convenir y transferencia; contraentrega y efectivo cuando el comercio las active | HU-T6.1 (T6) |
 | D-T5 | La conservación de los contactos (§20.2.3) | 24 meses por defecto, ajustable de 12 a 60 | HU-T7.3 (T11) |
 | D-T6 | `ai-train` de las tiendas (§20.2.4) | `no` por defecto, `search` y `ai-input` en `yes`; cada comercio decide | HU-T15.1 (T5) |
@@ -1669,8 +1738,8 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | D-T12 | El límite de pedidos del plan `gratis` | **Decidida el 13 oct 2026: sin tope de pedidos.** El gratuito se limita por productos (15), un usuario y sin dominio propio, como propone el estudio; si el costo crece, lo dice el vigía | HU-T13.5 |
 | D-T13 | GA4 y el píxel de Meta en una tienda sin dominio propio | **Decidida el 13 oct 2026:** GA4 sí, con su cookie limitada a la dirección de la tienda; el píxel de Meta, solo con dominio propio, porque su cookie no se puede limitar y compartiría al comprador entre tiendas. Los dos, solo con el consentimiento del comprador | HU-T14.4 (T17) |
 | D-T10 | Los cron de la Tienda en el plan gratuito: queda 1 de los 5 de la cuenta y TIENDA §15.3 pide cinco frecuencias | **Aplicada el 14 oct 2026 con la recomendación** (HU-T17.1): un solo cron por hora, solo en producción, que reparte por hora, día y semana; lo que pueda ser perezoso, perezoso (como los apartados). Workers Paid solo si un dato lo exige | El primer cron (HU-T17.1) |
-| D-T15 | La marca comercial de la Tienda | **Decidida el 22 oct 2026:** TiendaPro, con el dominio `tiendapro.co` (comprado por el dueño en Cloudflare). Falta decidir dónde viven las tiendas (su dominio) antes de la primera tienda real | Antes del lanzamiento |
-| D-T14 | El alta abierta y los planes de pago antes del lanzamiento (T16) | **Decidida el 20 oct 2026:** la Tienda sigue activa **solo en staging** (`activos_en_staging`, HU-T2.10) y pausada en producción hasta que el dueño decida lanzar. Los precios de `planes.json` se usan tal cual para probar el pago con el Bold de pruebas en staging; en producción no se cobra hasta fijarlos (D-T3 sigue abierta) | Planeación de T16 |
+| D-T15 | La marca comercial de la Tienda | **Decidida el 22 oct 2026:** TiendaPro, con el dominio `tiendapro.co` (comprado por el dueño en Cloudflare). El 22 oct, también el dominio de las tiendas (opción B): la marca, la landing, el panel y los correos en `tiendapro.co`, donde nunca se publica nada de un comercio; las tiendas en `mitiendapro.co` (comprado por el dueño en Cloudflare), un dominio solo para ellas e inscrito en la Public Suffix List, para que una tienda mala no arrastre a la marca ni a las demás. `laboratorio-digital.app` queda como dominio técnico de la empresa | ET18 |
+| D-T14 | El alta abierta y los planes de pago antes del lanzamiento (T16). **Revisada el 22 oct 2026:** al lanzar, la landing abre el alta en producción («Crear tienda»). El dueño ya tiene cuenta de Resend; los datos legales salen con lo que haya y lo que falte se omite hasta tenerlo (HU-T18.6) | **Decidida el 20 oct 2026:** la Tienda sigue activa **solo en staging** (`activos_en_staging`, HU-T2.10) y pausada en producción hasta que el dueño decida lanzar. Los precios de `planes.json` se usan tal cual para probar el pago con el Bold de pruebas en staging; en producción no se cobra hasta fijarlos (D-T3 sigue abierta) | Planeación de T16 |
 
 **Tareas que solo puede hacer el dueño**, con la fecha que no frena el camino crítico:
 
