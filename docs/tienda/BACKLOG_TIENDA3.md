@@ -343,7 +343,7 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T17b** | entre T17 y T18 | Lo que pidió la validación de la vitrina del 20 oct 2026 | HU-T5.8 (2), HU-T5.9 (3), HU-T5.10 (2), HU-T5.11 (2), HU-T5.12 (3), HU-T5.13 (3), HU-T5.14 (3), HU-T5.15 (1) | 19 | — |
 | **T17c** | entre T17b y T18 | Lo que pidió la validación de la vitrina del 21 oct 2026, con atoms.com como referencia | HU-T5.16 (3), HU-T5.17 (2) | 5 | — |
 | **T18** (festivo) | 9–20 ago | **M7.** Los agentes preparan pedidos que una persona confirma | HU-T15.2 (2), HU-T15.3 (2), HU-T15.4 (5), HU-T15.5 (3), HU-T15.6 (2), HU-T15.7 (5) | 19 | M7 |
-| **L1** | 22 oct 2026 | **Lanzamiento, parte 1.** La marca TiendaPro: las tiendas en `mitiendapro.co`, el panel en `tiendapro.co`, los tres planes y los correos con Resend | HU-T18.1 (5), HU-T18.2 (3), HU-T18.3 (5), HU-T18.4 (3) | 16 | — (construido el 22 oct 2026, por validar) |
+| **L1** | 22 oct 2026 | **Lanzamiento, parte 1.** La marca TiendaPro: las tiendas en `mitiendapro.co`, el panel en `tiendapro.co`, los tres planes y los correos con Resend | HU-T18.1 (5), HU-T18.2 (3), HU-T18.3 (5), HU-T18.4 (3) | 16 | — (construido el 22 oct 2026; HU-T18.1 a HU-T18.3 validadas el mismo día; HU-T18.4 se valida al lanzar) |
 | **L2** | después de L1 | **Lanzamiento, parte 2.** La landing de `tiendapro.co`, el alta abierta en producción y la Public Suffix List | HU-T18.5 (5), HU-T18.6 (3), HU-T18.7 (1) | 9 | Lanzamiento |
 | **T19** | 23 ago–3 sep | **M8.** La factura, en el facturador del comercio | HU-T16.1 (2), HU-T16.2 (5), HU-T16.3 (3), HU-T16.4 (2) | 12 | M8 |
 | **T20** | 6–17 sep | Holgura: lo que traiga la validación con los primeros comercios | — | 0 | — |
@@ -1634,7 +1634,7 @@ Formato de cada historia, el del CORE:
 ### ET18 · Lanzamiento de TiendaPro
 
 #### HU-T18.1 · Las tiendas en mitiendapro.co
-- **Capa:** despacho, API y despliegue · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L1 · **Depende de:** HU-T13.1, HU-T13.4 · **Estado:** Construida (22 oct 2026), por validar
+- **Capa:** despacho, API y despliegue · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L1 · **Depende de:** HU-T13.1, HU-T13.4 · **Estado:** Terminada (validada por el dueño en staging el 22 oct 2026)
 - Como comerciante, quiero que mi tienda tenga una dirección con la marca, `mitienda.mitiendapro.co`.
 - **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
 - **CA1.** Las tiendas nacen en `<slug>.mitiendapro.co`, y en staging en `<slug>--staging.mitiendapro.co`, con el comodín y el origen de los dominios propios en esa zona.
@@ -1644,7 +1644,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T18.1.1 `[código]` · WI-T18.1.2 `[prueba]` · WI-T18.1.3 `[dueño]` el comodín y el permiso del token sobre las dos zonas (hecho el 22 oct 2026: el comodín AAAA de `mitiendapro.co` responde, comprobado desde la sesión; el permiso del token, dicho por el dueño)
 
 #### HU-T18.2 · El panel y la marca en tiendapro.co
-- **Capa:** panel, CORE y textos · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** L1 · **Depende de:** HU-T18.1 · **Estado:** Construida (22 oct 2026), por validar
+- **Capa:** panel, CORE y textos · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** L1 · **Depende de:** HU-T18.1 · **Estado:** Terminada (validada por el dueño en staging el 22 oct 2026)
 - Como comerciante, quiero entrar a mi panel en `app.tiendapro.co` y ver la marca TiendaPro en todo.
 - **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
 - **CA1.** El panel en `app.tiendapro.co` y el MCP del comercio en `mcp.tiendapro.co`; el CORE los acepta como orígenes de la Tienda.
@@ -1654,7 +1654,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T18.2.1 `[código]` · WI-T18.2.2 `[prueba]`
 
 #### HU-T18.3 · Los tres planes: Gratis, Pro e IA Pro
-- **Capa:** CORE, API, panel y horno · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L1 · **Depende de:** HU-T13.5 · **Estado:** Construida (22 oct 2026), por validar
+- **Capa:** CORE, API, panel y horno · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L1 · **Depende de:** HU-T13.5 · **Estado:** Terminada (validada por el dueño en staging el 22 oct 2026)
 - Como comerciante, quiero elegir entre tres planes claros.
 - **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
 - **CA1.** `planes.json` y `funciones.json` con Gratis (10 productos), Pro (COP 24.900 al mes) e IA Pro (COP 49.000 al mes), sus periodos con la regla de PLATAFORMA §4.2 y el reparto de D-T3; una función nueva para el MCP público (Pro e IA Pro).
@@ -1664,7 +1664,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T18.3.1 `[código]` · WI-T18.3.2 `[prueba]`
 
 #### HU-T18.4 · Los correos de producción con Resend
-- **Capa:** paquete y despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** L1 · **Depende de:** HU-T14.3 · **Estado:** Construida (22 oct 2026), por validar
+- **Capa:** paquete y despliegue · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** L1 · **Depende de:** HU-T14.3 · **Estado:** Construida (22 oct 2026); el envío de producción se valida con la prueba de humo de HU-T18.6, porque staging manda con Gmail
 - Como dueño, quiero que los correos de las tiendas de producción salgan con Resend y lleguen.
 - **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
 - **CA1.** Un adaptador de Resend en `@ed1/correo`, detrás de `CorreoTransaccional`; producción lo usa con `RESEND_API_KEY`, staging sigue con Gmail.
@@ -1689,7 +1689,7 @@ Formato de cada historia, el del CORE:
 - **CA1.** La Tienda pasa a `activo` en producción (D-T14 revisada), con Turnstile, el comodín y el cobro de los planes en Bold de producción.
 - **CA2.** Los textos legales y los términos salen con los datos que hay; lo que falte se omite sin dejar `{{campo}}` a la vista, y queda la lista de lo omitido para completarlo.
 - **CA3 ❌.** La prueba de humo de producción abre una tienda de prueba de punta a punta y la borra.
-- **Work items:** WI-T18.6.1 `[código]` · WI-T18.6.2 `[dueño]` las llaves de Bold de producción de la plataforma
+- **Work items:** WI-T18.6.1 `[código]` · WI-T18.6.2 `[dueño]` las llaves de Bold de producción de la plataforma (el CORE cobra los planes de todos los productos con las de `produccion`, guardadas el 3 oct 2026 y las mismas del plan Finca; el 22 oct 2026 el dueño dijo tener las de producción: falta confirmar si son de la misma cuenta de Bold) · WI-T18.6.3 `[dueño]` `TURNSTILE_SITIO` y `TURNSTILE_SECRETO` en `produccion`
 
 #### HU-T18.7 · mitiendapro.co en la Public Suffix List
 - **Capa:** operación · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** L2 · **Depende de:** HU-T18.1 · **Estado:** Refinada
@@ -1761,16 +1761,16 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | La cuenta de Gmail de prueba y su permiso de OAuth, en staging | Hecho | 20 oct 2026: el permiso quedó guardado en `staging` con `scripts/correo/permiso-de-gmail.ts`. Falta ver un correo llegar (WI-T14.3.4) |
 | Activar Cloudflare for SaaS en `mitiendapro.co` (desde HU-T18.1; antes `laboratorio-digital.app`), su origen de respaldo `origen.`, y crear `CF_SAAS_TOKEN` en `produccion` con permiso sobre esa zona; luego marcar la celda con `"saas": true` | Cuando llegue la primera tienda paga (decisión del dueño del 22 oct 2026: antes no hace falta, y cobra al pasar de 100 dominios) | HU-T13.1: `docs/runbooks/tienda-conectar-un-dominio.md`. Sin esto, «Tu dominio» dice «todavía no disponible» |
 | Pagar en staging el plan de **Ensayo Dos** con una tarjeta de pruebas de Bold, desde «Más › Tu plan», y publicar | Hecho | 20 oct 2026: el pago del plan funcionó (HU-T13.5 WI-T13.5.3 y aceptación de M4). El BTN-002 del primer intento no se repitió (bitácora tienda3 41). Las fotos de staging siguen viéndose con el comodín encendido |
-| Aceptación de M5 (HU-T14.6): hacer dos pedidos en la vitrina de **Ensayo Dos** en staging, correr el flujo «cuadrar-tienda» con su org y ver el cuadre en el Inicio del panel | Al terminar T17 | La org de Ensayo Dos es `0199e0a0-0000-7000-8000-0000000000c2`. Staging no tiene cron (D-T10): el flujo cuadra al momento |
-| Rotar la KEK en staging como simulacro: `--rotar-kek`, desplegar, quitar la V1 del ambiente y desplegar otra vez | Al terminar T15 | HU-T17.6 CA2: `docs/runbooks/tienda-rotar-la-kek.md` |
+| Aceptación de M5 (HU-T14.6): hacer dos pedidos en la vitrina de **Ensayo Dos** en staging, correr el flujo «cuadrar-tienda» con su org y ver el cuadre en el Inicio del panel | Hecho | La org de Ensayo Dos es `0199e0a0-0000-7000-8000-0000000000c2`. Staging no tiene cron (D-T10): el flujo cuadra al momento. 22 oct 2026: el dueño hizo los pedidos y el cuadre salió correcto en el Inicio del panel |
+| Rotar la KEK en staging como simulacro: `--rotar-kek`, desplegar, quitar la V1 del ambiente y desplegar otra vez | Después de L2 (decisión del dueño del 22 oct 2026) | HU-T17.6 CA2: `docs/runbooks/tienda-rotar-la-kek.md` |
 | Activar Email Routing en `tiendapro.co` y reenviar `abuse@tiendapro.co` a tu correo (HU-T18.2: el pie de cada tienda ya lo nombra) | Hecho | 22 oct 2026: activo, con su DNS configurado, y el dueño recibió en su correo un mensaje de prueba a `abuse@tiendapro.co`. Detalle: HU-T13.6 WI-T13.6.2: `docs/runbooks/tienda-suspender.md` |
 | El simulacro de suspender: el flujo `suspender-tienda` en staging con Ensayo Uno, y levantarla | Al terminar T16 | HU-T13.6 CA3: `docs/runbooks/tienda-suspender.md` |
 | Crear el widget de Turnstile y guardar `TURNSTILE_SITIO` y `TURNSTILE_SECRETO` en `staging` | Hecho (staging) | 20 oct 2026, 11:30 UTC. Llegan al Worker con el despliegue siguiente (bitácora tienda3 41). 22 oct 2026: el dueño agregó al widget los dominios nuevos del panel (`app.tiendapro.co`, HU-T18.2). Para producción, guardar los dos secretos en `produccion` al lanzar |
 | El registro DNS comodín `*` (AAAA `100::` con proxy) en `laboratorio-digital.app` y la marca `comodin` en la celda de la Tienda | Hecho (staging) | El dueño creó el registro el 20 oct 2026; la celda lleva `"comodin": "staging"` (D-T14). Al lanzar, `true` (`docs/runbooks/tienda-alta.md`) |
 | Abrir una tienda desde cero en staging con una cuenta sin tiendas | Hecho | 20 oct 2026, después de agregar el panel de staging a los dominios del widget de Turnstile (HU-T13.4 WI-T13.4.3) |
 | Activar Workers Paid para publicar tiendas grandes | Cuando la Tienda esté completa (decisión del dueño del 19 oct 2026) | Bitácora tienda3 31: publicar la tienda llena gasta 1,3 s de CPU por solicitud y el plan gratuito da 10 ms. Es el dato que la bitácora tienda3 7 esperaba |
-| Leer, con un abogado, las plantillas de los textos legales de las tiendas, y los términos del comercio | T7 | WI-T7.1.4: `content/tienda/legal/`. Desde el 19 oct 2026 también `content/tienda/comercio/terminos.json` (HU-T7.2): los términos del servicio, el contrato de transmisión y la custodia de las llaves de Bold, en borrador. Corregir los del comercio es editar el JSON y subir su `version`: el panel los pide otra vez. Las plantillas de las tiendas están hoy en la versión 2 (15 oct 2026: «Solicitudes» explica el formulario con radicado, HU-T6.4). Corregir es editar el `.md`, subir la versión y generar; las tiendas lo toman al publicar |
-| Los datos de Laboratorio Digital como encargado (nombre o razón social, identificación, domicilio, correo, teléfono) | Antes de la primera tienda real | HU-T7.2: términos y contrato de transmisión |
+| Leer, con un abogado, las plantillas de los textos legales de las tiendas, y los términos del comercio | Después de L2 (decisión del dueño del 22 oct 2026: lo legal sale con lo que haya, HU-T18.6 CA2) | WI-T7.1.4: `content/tienda/legal/`. Desde el 19 oct 2026 también `content/tienda/comercio/terminos.json` (HU-T7.2): los términos del servicio, el contrato de transmisión y la custodia de las llaves de Bold, en borrador. Corregir los del comercio es editar el JSON y subir su `version`: el panel los pide otra vez. Las plantillas de las tiendas están hoy en la versión 2 (15 oct 2026: «Solicitudes» explica el formulario con radicado, HU-T6.4). Corregir es editar el `.md`, subir la versión y generar; las tiendas lo toman al publicar |
+| Los datos de Laboratorio Digital como encargado (nombre o razón social, identificación, domicilio, correo, teléfono) | Después de L2 (decisión del dueño del 22 oct 2026: lo legal sale con lo que haya, HU-T18.6 CA2) | HU-T7.2: términos y contrato de transmisión |
 | Guardar el secreto `TIENDA_CORREO_DUENO_STAGING` (tu correo de Google) en el ambiente `staging` de GitHub, entrar una vez al panel de staging y volver a desplegar staging | Hecho | Guardado el 15 oct 2026. El despliegue del 19 oct dijo «comercios de prueba en el CORE: 2 organizaciones, el dueño es propietario» (HU-T2.10 CA2) |
 | Poner la regla de ciclo de vida de 7 días a `exportaciones/` en `tienda-c1` y `tienda-c1-staging` | T10 | HU-T17.2: `docs/runbooks/tienda-ciclo-de-vida.md`. Antes de que el panel ofrezca «Descargar todo» (HU-T10.7) |
 | Escribir a Bold por un esquema para plataformas | T12 | PLATAFORMA §9.7 (soporte.online@bold.co) |
@@ -1850,6 +1850,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | T17b | 19 | 0 (en validación: HU-T5.8 a HU-T5.15) | Construido el 20 oct 2026, con lo que pidió la validación de la vitrina. La ficha agrupa el precio y deja los envíos para el pedido; se comparte; cada combinación puede tener su foto. El comercio marca lo destacado y lo nuevo, y sube su logo, su ícono y la bienvenida de la portada. El comprador elige una categoría, busca desde la franja, ordena la lista y ve su pedido arriba. Tres premisas no se cumplían (bitácora tienda3 46). Esperan al dueño: subir el logo, el ícono y la bienvenida en staging, asignar una foto a una combinación y marcar un destacado y un nuevo |
 | T17c | 5 | 0 (en validación: HU-T5.16 y HU-T5.17) | Construido el 21 oct 2026, con lo que pidió la validación de la vitrina y atoms.com como referencia. Buscar bajó encima de la lista, con las categorías y «Ordenar por» debajo, y muestra las coincidencias con foto y precio al escribir. La bienvenida va de lado a lado, con el texto y el botón sobre la foto (bitácora tienda3 47). Espera al dueño: publicar y revisar en el teléfono |
 | T18 | 19 | 0 (en validación: HU-T15.2 a HU-T15.7) | Construido el 21 oct 2026. Cada tienda publica su API en OpenAPI 3.1 y cómo comprar en ella, con su huella; el asistente de un comprador busca, cotiza y le deja un pedido que la persona confirma y paga, y lo que nadie confirma se cancela a las 48 h. verificar-agentes revisa las dos tiendas de prueba. El MCP del comercio está construido, pero el CORE no lo autoriza mientras la Tienda siga pausada (bitácora tienda3 48). **Aceptación de M7 cumplida el 21 oct 2026** con Claude en Ensayo Dos (bitácora tienda3 49 y 50: lo que encontró la prueba). Espera al dueño: decidir cuándo pasa la Tienda a activa, para el MCP del comercio |
+| L1 | 16 | 13 (HU-T18.1, HU-T18.2 y HU-T18.3, validadas el 22 oct; HU-T18.4 se valida al lanzar) | Construido y validado el 22 oct 2026 (#222 y el arreglo #223, bitácora tienda3 52). Las tiendas viven en mitiendapro.co y las direcciones de antes llevan a ellas; el panel y los correos dicen TiendaPro; Gratis, Pro e IA Pro con sus límites; producción manda con Resend. El dueño activó Email Routing de abuse@tiendapro.co y agregó el panel nuevo a Turnstile. La PSL de L2 se verificó de primera mano (bitácora tienda3 51) |
 
 ---
 
