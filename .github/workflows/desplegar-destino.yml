@@ -108,6 +108,18 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           # HU-T2.10 CA2: el dueño, propietario de los comercios de prueba de la Tienda (solo staging).
           TIENDA_CORREO_DUENO_STAGING: ${{ secrets.TIENDA_CORREO_DUENO_STAGING }}
+          # HU-C10.1: el enlace para entrar y los avisos; Gmail en staging, Resend en producción.
+          CORREO_GMAIL_CLIENTE_ID: ${{ secrets.CORREO_GMAIL_CLIENTE_ID }}
+          CORREO_GMAIL_CLIENTE_SECRETO: ${{ secrets.CORREO_GMAIL_CLIENTE_SECRETO }}
+          CORREO_GMAIL_REFRESH: ${{ secrets.CORREO_GMAIL_REFRESH }}
+          CORREO_GMAIL_REMITENTE: ${{ secrets.CORREO_GMAIL_REMITENTE }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          # HU-C11.4: la llave de la copia y el permiso del Drive del dueño (copia-en-drive.md).
+          COPIA_LLAVE: ${{ secrets.COPIA_LLAVE }}
+          COPIA_DRIVE_CLIENTE_ID: ${{ secrets.COPIA_DRIVE_CLIENTE_ID }}
+          COPIA_DRIVE_CLIENTE_SECRETO: ${{ secrets.COPIA_DRIVE_CLIENTE_SECRETO }}
+          COPIA_DRIVE_REFRESH: ${{ secrets.COPIA_DRIVE_REFRESH }}
+          COPIA_CF_TOKEN: ${{ secrets.COPIA_CF_TOKEN }}
           DESTINO: ${{ inputs.destino }}
           SOLO_CELDA: ${{ inputs.solo_celda }}
           PRODUCTOS: ${{ inputs.productos }}

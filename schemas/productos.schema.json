@@ -158,6 +158,18 @@
             }
           }
         },
+        "correo": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["remitente"],
+          "description": "El remitente propio de los correos del CORE para este producto (entrar con correo, avisos de vencimiento), en un dominio de su marca verificado en el proveedor de correo. Sin él, salen del remitente del CORE con el nombre del producto delante (HU-C10.1).",
+          "properties": {
+            "remitente": {
+              "type": "string",
+              "pattern": "^[a-z0-9.+-]+@[a-z0-9-]+(\\.[a-z0-9-]+)+$"
+            }
+          }
+        },
         "recursos_oauth": {
           "type": "array",
           "uniqueItems": true,
