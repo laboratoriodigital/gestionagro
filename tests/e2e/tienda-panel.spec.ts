@@ -629,6 +629,13 @@ test('HU-T3.5 · CA1 y HU-T8.1 CA2: el formulario dice todos sus errores y guard
   await page.getByRole('button', { name: 'Guardar' }).click();
   await expect(page.getByText('Escribe el nombre del producto.').first()).toBeVisible();
   await expect(page.getByText('Escribe el precio en pesos, sin centavos.').first()).toBeVisible();
+  // HU-T18.12: lleva solo al primer campo con error, y cada error del resumen lleva al suyo.
+  await expect(page.getByLabel('Nombre')).toBeFocused();
+  await page
+    .locator('.ed1-resumen-errores')
+    .getByRole('link', { name: 'Escribe el precio en pesos, sin centavos.' })
+    .click();
+  await expect(page.getByLabel('Precio')).toBeFocused();
   await page.getByLabel('Nombre').fill('Camisa de lino');
   await page.getByLabel('Precio').fill('129000');
   // Salir y volver (como al entrar otra vez con Google): lo escrito sigue ahí.

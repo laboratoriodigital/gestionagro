@@ -120,9 +120,7 @@ function Formulario({
           mensaje: p.mensaje,
         })),
       );
-      requestAnimationFrame(() =>
-        document.querySelector<HTMLElement>('.ed1-resumen-errores')?.focus(),
-      );
+      // HU-T18.12: el resumen lleva solo al primer campo con error.
       return;
     }
     setErrores([]);
