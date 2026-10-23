@@ -6,9 +6,11 @@
  * - **Refresh token y código de entrada:** secretos opacos al azar. En D1 solo se guarda su hash
  *   SHA-256: quien lea la base no puede usarlos.
  *
- * Dos formatos conviven mientras dura la transición de PLATAFORMA §4.6 (P10): v1 (`agro-core`,
- * sin producto) y v2 (`ed1-core`, con `aud`, `plan` y `ver: 2`). Fase N (HU-C4.1): las celdas
- * aceptan los dos y el CORE sigue emitiendo v1. En N+1 (HU-C4.3) emite v2; en N+2 se contrae.
+ * La transición de PLATAFORMA §4.6 terminó (fase N+2, HU-C4.5): solo existe v2 (`ed1-core`, con
+ * `aud`, `plan` y `ver: 2`). Un v1 (`agro-core`, sin producto) se rechaza como cualquier token que
+ * no sirve, y la app renueva y recibe un v2 (P10). Se contrajo con dos reportes semanales sin un
+ * solo v1 aceptado en producción (CA2). Para probar el rechazo, `@ed1/tokens/prueba` firma un v1;
+ * ninguna app lo importa.
  *
  * La clave privada solo existe como secreto del Worker (`CORE_JWT_PRIVATE_KEY`, PKCS#8 en
  * base64). La genera el despliegue la primera vez y nunca la escribe en disco ni en el
@@ -16,11 +18,9 @@
  */
 
 export const DURACION_ACCESO_MS = 12 * 60 * 60 * 1000;
-export const EMISOR = 'agro-core';
+/** El emisor de los v1, retirados (HU-C4.5): un token suyo ya no se acepta. */
+export const EMISOR_V1 = 'agro-core';
 export const EMISOR_V2 = 'ed1-core';
-const EMISORES = [EMISOR, EMISOR_V2] as const;
-/** Un token sin `aud` (v1) solo puede ser del agro: es el único producto que existía al emitirlo. */
-export const PRODUCTO_SIN_AUD = 'agro';
 /** Sin `plan` en el token, el mínimo: dicho aquí y no adivinado en cada celda. */
 export const PLAN_SIN_RECLAMO = 'gratuito';
 
@@ -59,13 +59,14 @@ export interface Reclamos {
   ver?: 2;
 }
 
-/** Lo que una celda usa, ya con los valores de v1 resueltos: el producto y el plan nunca faltan. */
+/** Lo que una celda usa: el producto y el plan nunca faltan. */
 export interface Acceso extends Reclamos {
   producto: string;
   plan: string;
 }
 
-export type DatosDeAcceso = Omit<Reclamos, 'iss' | 'iat' | 'exp' | 'ver'>;
+/** Lo que el CORE pone en un token: el producto (`aud`) siempre. */
+export type DatosDeAcceso = Omit<Reclamos, 'iss' | 'iat' | 'exp' | 'ver' | 'aud'> & { aud: string };
 
 const texto = new TextEncoder();
 
@@ -134,28 +135,31 @@ export async function generarClavePrivada(): Promise<string> {
 
 const parte = (objeto: unknown) => base64url(texto.encode(JSON.stringify(objeto)));
 
+/** Firma unos reclamos ya armados. Solo para este paquete y su ayudante de pruebas. */
+export async function firmarReclamos(firmante: Firmante, reclamos: object): Promise<string> {
+  const cuerpo = `${parte({ alg: 'EdDSA', typ: 'JWT', kid: firmante.publica.kid })}.${parte(reclamos)}`;
+  const firma = new Uint8Array(
+    await crypto.subtle.sign({ name: 'Ed25519' }, firmante.privada, texto.encode(cuerpo)),
+  );
+  return `${cuerpo}.${base64url(firma)}`;
+}
+
 /**
- * Firma un token de acceso. El CORE emite v1 hasta HU-C4.3; v2 exige `aud`, porque un token v2
- * sin producto es justo lo que la transición quiere dejar de tener.
+ * Firma un token de acceso v2: siempre con su producto (`aud`), porque un token sin producto es
+ * justo lo que la transición dejó de tener (HU-C4.5). `version` queda por las llamadas de antes,
+ * que la pasaban; solo admite 2.
  */
 export async function firmarAcceso(
   firmante: Firmante,
   datos: DatosDeAcceso,
   ahoraMs: number,
-  version: 1 | 2 = 1,
+  _version: 2 = 2,
 ): Promise<{ token: string; vence: number }> {
   const iat = Math.floor(ahoraMs / 1000);
   const exp = iat + DURACION_ACCESO_MS / 1000;
-  if (version === 2 && !datos.aud) throw new Error('Un token v2 nombra su producto (aud)');
-  const reclamos: Reclamos =
-    version === 2
-      ? { iss: EMISOR_V2, iat, exp, ...datos, ver: 2 }
-      : { iss: EMISOR, iat, exp, ...datos };
-  const cuerpo = `${parte({ alg: 'EdDSA', typ: 'JWT', kid: firmante.publica.kid })}.${parte(reclamos)}`;
-  const firma = new Uint8Array(
-    await crypto.subtle.sign({ name: 'Ed25519' }, firmante.privada, texto.encode(cuerpo)),
-  );
-  return { token: `${cuerpo}.${base64url(firma)}`, vence: exp * 1000 };
+  if (!datos.aud) throw new Error('Un token nombra su producto (aud)');
+  const reclamos: Reclamos = { iss: EMISOR_V2, iat, exp, ...datos, ver: 2 };
+  return { token: await firmarReclamos(firmante, reclamos), vence: exp * 1000 };
 }
 
 export class TokenInvalido extends Error {
@@ -185,11 +189,13 @@ export async function verificarAcceso(
   );
   if (!valida) throw new TokenInvalido('La firma no corresponde');
   const reclamos = JSON.parse(new TextDecoder().decode(desdeBase64url(cuerpo))) as Reclamos;
-  if (!(EMISORES as readonly string[]).includes(reclamos.iss)) {
-    throw new TokenInvalido(`Emisor desconocido: ${reclamos.iss}`);
+  // HU-C4.5 CA1: un v1 se rechaza como cualquier token que no sirve; la app renueva y recibe v2.
+  if (reclamos.iss === EMISOR_V1) {
+    throw new TokenInvalido('Un token v1 ya no se acepta: hay que renovar la sesión');
   }
-  // v2 se reconoce sin adivinar: su emisor, su versión y su producto van juntos.
-  if (reclamos.iss === EMISOR_V2 && (reclamos.ver !== 2 || !reclamos.aud)) {
+  if (reclamos.iss !== EMISOR_V2) throw new TokenInvalido(`Emisor desconocido: ${reclamos.iss}`);
+  // Su emisor, su versión y su producto van juntos.
+  if (reclamos.ver !== 2 || !reclamos.aud) {
     throw new TokenInvalido('Un token de ed1-core trae ver 2 y su producto');
   }
   if (reclamos.exp * 1000 <= ahoraMs) throw new TokenInvalido('El token venció');
@@ -223,19 +229,15 @@ export async function verificarConClaves(
 }
 
 /**
- * Lo que decide una celda de `producto` (fase N): un token v2 vale solo con su `aud`; uno sin
- * `aud` (v1) vale solo en el agro. Devuelve el producto y el plan resueltos.
+ * Lo que decide una celda de `producto`: un token vale solo con su `aud`. Devuelve el producto y
+ * el plan resueltos.
  */
 export function aceptarEnProducto(reclamos: Reclamos, producto: string): Acceso {
-  const delToken = reclamos.aud ?? PRODUCTO_SIN_AUD;
-  if (delToken !== producto) {
-    throw new TokenInvalido(
-      reclamos.aud
-        ? `El token es de ${reclamos.aud} y esta celda es de ${producto}`
-        : `Un token sin producto solo vale en ${PRODUCTO_SIN_AUD}, no en ${producto}`,
-    );
+  if (!reclamos.aud) throw new TokenInvalido('El token no dice su producto');
+  if (reclamos.aud !== producto) {
+    throw new TokenInvalido(`El token es de ${reclamos.aud} y esta celda es de ${producto}`);
   }
-  return { ...reclamos, producto: delToken, plan: reclamos.plan ?? PLAN_SIN_RECLAMO };
+  return { ...reclamos, producto: reclamos.aud, plan: reclamos.plan ?? PLAN_SIN_RECLAMO };
 }
 
 // ── Tokens de agentes (OAuth 2.1, PLATAFORMA §5.4, HU-C9.5) ──────────────────────────────────

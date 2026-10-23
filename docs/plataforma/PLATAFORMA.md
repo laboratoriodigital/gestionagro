@@ -463,7 +463,7 @@ Las cuatro están en `sql/core/`. La prueba las aplica encadenadas sobre 0001–
 
 1. **N: verificar ambos.** `packages/tokens` acepta `iss` ∈ {`agro-core`, `ed1-core`}. Un token sin `aud` lo acepta **solo** una celda del producto `agro`. Sin `plan`, el plan es `gratuito`: el mínimo, dicho en el código. Se despliega en todas las celdas.
 2. **N+1: emitir v2.** El CORE emite v2. Los v1 ya emitidos siguen valiendo hasta su `exp`.
-3. **N+2: contraer.** Al menos 12 h después de N+1 en producción, las celdas rechazan v1. Una prueba de contrato firma tokens v1 y v2 y exige lo que acepta cada versión.
+3. **N+2: contraer.** Al menos 12 h después de N+1 en producción, las celdas rechazan v1. Una prueba de contrato firma tokens v1 y v2 y exige lo que acepta cada versión. *(HU-C4.5, 23 oct 2026: el v1 se rechaza como un token que no sirve, con «sin-sesion», y la app renueva; se contrajo después de dos reportes semanales sin un v1 en producción. Solo `@ed1/tokens/prueba` firma un v1, y solo las pruebas lo usan.)*
 
 **JWKS.** Además de `/api/core/claves`, el CORE publica `/.well-known/jwks.json` con las llaves vigente y anterior en formato estándar: JWK `OKP`/`Ed25519`, RFC 7517 y RFC 8037. Lo necesitan los clientes OAuth de §5.4 y cualquier verificador que no sea nuestro.
 

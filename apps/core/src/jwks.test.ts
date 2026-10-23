@@ -38,7 +38,7 @@ describe('HU-C4.2 · JWKS estándar', () => {
     expect(keys[0]).toMatchObject({ kty: 'OKP', crv: 'Ed25519', alg: 'EdDSA', use: 'sig' });
     const { token } = await firmarAcceso(
       await firmanteDesde(privada),
-      { sub: 'u1', org: null, rol: null, celda: null, shard: null, anillo: null },
+      { sub: 'u1', org: null, rol: null, celda: null, shard: null, anillo: null, aud: 'cuenta' },
       T0,
     );
     expect(await verificarConClaves(keys, token, T0)).toMatchObject({ sub: 'u1' });

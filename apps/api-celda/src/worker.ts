@@ -32,7 +32,6 @@ import { type ServicioDelCore, sincronizarPlanes } from './planes.ts';
 import { pull } from './pull.ts';
 import { push } from './push.ts';
 import { clavesQr, firmarLote } from './qr.ts';
-import { anotarTokenV1 } from './tokens-v1.ts';
 import { CLAVE_NIVEL, type KvDeFlags, type MapaDeFilas, resumen, vigilar } from './vigia.ts';
 import { presupuestoDe } from './vigia-pago.ts';
 
@@ -232,8 +231,6 @@ export function crearApp(opciones: { ahora?: () => number } = {}) {
         401,
       );
     }
-    // HU-C4.5 CA2: un día con un token v1 queda anotado, para saber cuándo se pueden rechazar.
-    if (reclamos.ver !== 2) await anotarTokenV1(c.env.FLAGS as KvDeFlags | undefined, ahora());
     if (!reclamos.org || !reclamos.shard || !reclamos.rol) {
       return c.json(
         { estado: 'sin-organizacion', motivo: 'Tu cuenta todavía no tiene una finca en la nube.' },

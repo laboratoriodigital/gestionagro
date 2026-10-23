@@ -96,7 +96,7 @@ export async function montarCelda(): Promise<Celda> {
       (
         await firmarAcceso(
           firmante,
-          { sub: 'u1', org, rol, celda: 'c0', shard: SHARD, anillo: 1 },
+          { sub: 'u1', org, rol, celda: 'c0', shard: SHARD, anillo: 1, aud: 'agro' },
           emitido,
         )
       ).token,

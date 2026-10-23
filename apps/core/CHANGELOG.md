@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- Los tokens v1 ya no se aceptan (HU-C4.5, fase N+2 de PLATAFORMA §4.6): el CORE y las celdas los rechazan como un token que no sirve, y la app renueva y recibe un v2. El CORE solo emitía v2 desde la 0.3.0, y tres reportes semanales seguidos (19 oct, 26 oct y 2 nov) no vieron ni un v1 en producción. Cierra HC3.
+
 ## [0.12.0] - 2026-10-28
 
 Un rol nuevo para TiendaPro: quien solo despacha.
