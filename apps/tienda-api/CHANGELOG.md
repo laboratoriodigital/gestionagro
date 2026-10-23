@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- El panel deja entrar con un enlace al correo, para el comerciante sin Google (HU-C10.2, HU-T13.4): debajo de «Entrar con Google», con la misma política aceptada. El enlace llega desde `avisos@tiendapro.co`.
+
 ## [1.1.0] - 2026-10-23
 
 Lo que pidió el dueño después del lanzamiento: la carga por lotes en Pro, IA Pro a COP 49.900 con la factura, lo legal vigente y en palabras sencillas, los errores que llevan a su campo y la baja que se cumple.

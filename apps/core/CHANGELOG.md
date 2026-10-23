@@ -4,6 +4,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- Entrar con un enlace al correo (HU-C10.2), para quien no tiene Google: `POST /api/core/auth/correo/pedir` manda un enlace de un solo uso que vence en 15 minutos, con el código en el fragmento y solo su huella en la base; la página `/entrar/correo/` de la cuenta lo abre con un toque y termina en el mismo `#entrar=` que Google, así que cada app lo canjea como siempre. Responde lo mismo exista o no la cuenta; quien ya entró con Google y entra con su correo es la misma persona. Topes: 3 enlaces por correo y hora, y 5 por minuto por IP. La migración 0012 pasa los proveedores de identidad a una tabla de referencia (`google`, `correo`) y crea `enlace_correo` y `correo_del_core`.
+- Los correos del CORE (HU-C10.1): producción manda con Resend y staging con la cuenta de Gmail, como la Tienda. Cada producto puede declarar su remitente en `productos.json › correo` (TiendaPro sale de `avisos@tiendapro.co`); los demás salen de `cuenta@laboratorio-digital.com` con el nombre del producto delante. Sin la configuración, o con un remitente que Resend no acepta, el correo queda «no disponible» y nada finge haber salido.
+- Los avisos de vencimiento por correo (HU-C10.3): a 7 días y a 1 día de vencer el plan, quienes administran el espacio reciben un correo, desde el cron que ya existía, una vez por hora y de 8 a. m. a 7 p. m. de Bogotá. Un aviso no se repite, lo que no salió se reintenta hasta 3 veces y el CORE no pasa de 100 correos al día.
+- La copia semanal fuera de Cloudflare (HU-C11.4, ADR-30): cada semana el cron exporta la base del CORE y cada shard de `celdas.json`, la cifra con AES-256-GCM, la sube a la carpeta de la app en el Google Drive del dueño (solo `drive.file`), la vuelve a bajar para comprobarla y rota las viejas (8 semanales y una por mes). Avisa por Telegram si una base falla tres veces o si Drive pasa del 70 %. La migración 0013 crea `copia_base`. Sin su configuración no hace nada.
+
+### Cambiado
+- Los textos de entrar ya no suponen Google: «Vuelve a entrar», y la actividad dice si alguien entró con Google o con su correo.
+
 ## [0.7.1] - 2026-10-23
 
 El catálogo con el precio nuevo de IA Pro y la política vigente de TiendaPro.

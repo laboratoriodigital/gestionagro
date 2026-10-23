@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El cuaderno deja entrar con un enlace al correo, debajo de «Entrar con Google», con la misma política aceptada (HU-C10.2). `@ed1/correo/entrar` es lo que pide el enlace, el mismo en las cuatro apps.
+- `scripts/copia/permiso-de-drive.ts` y `scripts/copia/simulacro.ts` (HU-C11.4): el dueño da una vez el permiso del Drive donde van las copias semanales, con la llave que solo él guarda, y cada trimestre restaura las copias en su computador para comprobar que se abren y cuadran.
 - `@ed1/correo` manda también con Resend (`correoResend`, HU-T18.4): una clave de API y una dirección del dominio verificado, detrás de la misma interfaz. Sin la clave responde «no disponible» sin tocar la red, y lo que Resend rechaza nunca cuenta como enviado. Cada correo sale como «<nombre> vía <marca>»: la marca la elige el producto (TiendaPro para la Tienda) y, si no dice, Laboratorio Digital.
 - La guardia de dominios revisa también `mitiendapro.co`, la zona de las tiendas desde HU-T18.1: un Worker que use ahí un nombre sin reservar detiene el CI. `infrastructure/dominios.json` declara `tiendapro.co` y `mitiendapro.co` (D-T15, ADR-42).
 - El flujo `registrar-pago-en-efectivo` (HU-C5.8): registra un pago del plan que un cliente le hizo al dueño en efectivo, primero en vista previa. Usa una base D1 por la API de Cloudflare (`scripts/lib/d1-remota.ts`) con el token del ambiente. La guardia de los flujos trata los «registrar…» como los de despliegue: nunca se cancelan a medias.

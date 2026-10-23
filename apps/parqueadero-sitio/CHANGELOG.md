@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- «Cuenta y nube» deja entrar con un enlace al correo del operador, para quien no tiene Google (HU-C10.2, HU-Q7.6), con los mismos términos aceptados.
+
 ## [0.8.0] - 2026-10-19
 
 El recibo de salida en papel puede salir solo si lo piden, y la impresora ya no saca después lo que la caja dio por perdido.
