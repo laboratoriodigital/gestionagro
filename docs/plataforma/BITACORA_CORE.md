@@ -503,3 +503,15 @@ Al escribir la e2e de HU-C7.7 (12 oct 2026), la página de la cuenta se podía m
 La regla: **una e2e de teléfono no solo busca textos: dice qué elemento se sale. Un arreglo que vale para cualquier campo va al sistema de diseño, no a la página donde apareció.**
 
 *Ficha:* core · *(mío)* · 🟢 Bajo (no llegó a publicarse) · P17 · core-0.5.0 · 2026-10-12
+
+**13 · El PR de una publicación se cortó a los 15 minutos por un espejo de Ubuntu, no por el código.**
+El 23 oct 2026, el CI del PR #230 (CORE 0.8.0, Tienda 1.2.0 y Parqueadero 0.9.0) se canceló en el paso de las pruebas, con el mismo código que el #229 había verificado en 9½ minutos esa mañana.
+*Síntoma literal.* «##[error]The operation was canceled.», y antes, en el paso «navegadores»: «Fetched 22.7 MB in 11min 0s (34.4 kB/s)». El lint empezó a las 18:14 de un trabajo que arrancó a las 18:03.
+*Causa raíz.* Las dependencias de sistema de Playwright se instalan con `apt` desde el espejo de Ubuntu del equipo de GitHub, que esa vez respondió a 34 kB/s. El tope de 15 minutos de `ci.yml` venía de cuidar los 2.000 minutos del mes con el repositorio privado; con el repositorio público esos minutos no se cobran, y el tope solo cortaba un PR sano.
+*Cómo se reprodujo.* Sin reproducir: es la red de un tercero. Se leyó en el registro de la corrida.
+*Arreglo.* `timeout-minutes: ${{ github.event.repository.private && 15 || 30 }}` en el trabajo del CI: 30 mientras el repositorio sea público y 15 en cuanto vuelva a privado, sin tocar el archivo (pedido del dueño). La guardia de los flujos acepta esa forma y ninguna otra: el tope del privado sigue en 15 y el del público, en 30.
+**Lo prueba** `tests/repo/flujos.test.ts`: la forma con 15 y 30 pasa; con 45 en el público, con 30 en el privado o con otra variable, no. Control negativo: aceptar cualquier texto en `timeout-minutes` pone esa prueba en rojo.
+
+La regla: **antes de culpar al código por un trabajo cortado, se mira en el registro dónde se fue el tiempo. Un tope que existía por costo se revisa cuando el costo cambia, y se deja atado a lo que lo hace cambiar.**
+
+*Ficha:* core · *(del terreno)* · 🟢 Bajo (detuvo el PR de publicación, sin efecto en producción) · P17 · core-0.8.0 · 2026-10-23

@@ -56,6 +56,21 @@ jobs:
     ]);
   });
 
+  it('con el repositorio público acepta hasta 30, solo si vuelve a 15 o menos al pasar a privado', () => {
+    const f = flujo(`
+jobs:
+  bien: { timeout-minutes: "\${{ github.event.repository.private && 15 || 30 }}", steps: [] }
+  publicoLargo: { timeout-minutes: "\${{ github.event.repository.private && 15 || 45 }}", steps: [] }
+  privadoLargo: { timeout-minutes: "\${{ github.event.repository.private && 30 || 30 }}", steps: [] }
+  otraVariable: { timeout-minutes: "\${{ vars.TIEMPO || 30 }}", steps: [] }
+`);
+    expect(revisarTiempos('x.yml', f).map((h) => h.motivo)).toEqual([
+      expect.stringContaining('jobs.publicoLargo'),
+      expect.stringContaining('jobs.privadoLargo'),
+      expect.stringContaining('jobs.otraVariable'),
+    ]);
+  });
+
   it('exige cancelar la corrida vieja de la misma rama', () => {
     expect(revisarConcurrencia('x.yml', flujo('jobs: {}'))).toHaveLength(1);
     expect(

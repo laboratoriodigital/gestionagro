@@ -30,7 +30,9 @@ jobs:
     # Borrar la variable devuelve el CI a GitHub sin tocar este archivo.
     runs-on: ${{ vars.RUNNER_CI || 'ubuntu-latest' }}
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
-    timeout-minutes: 15
+    # 15 minutos con el repositorio privado (cuidan los 2.000 del mes); 30 con el público, que no se
+    # cobra: un espejo de Ubuntu lento no corta un PR sano (bitácora core 13, PR #230).
+    timeout-minutes: ${{ github.event.repository.private && 15 || 30 }}
     steps:
       - uses: actions/checkout@v7
         with:
