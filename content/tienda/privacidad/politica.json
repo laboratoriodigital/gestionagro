@@ -1,5 +1,5 @@
 {
-  "nota": "Política de tratamiento de datos de las cuentas de TiendaPro (HU-T2.2): la del propietario y los colaboradores de un comercio que entran al panel con su cuenta. El CORE pide aceptar esta versión al entrar al producto. No es la de los compradores: de sus datos el responsable es cada comercio, con su propia política, y Laboratorio Digital los guarda como encargado (TIENDA-3.0 §14.3, HU-T7.1). Los datos del responsable que faltan se omiten (HU-T18.6). Versión 2 (HU-T18.10, 23 oct 2026): vigente por decisión del dueño, que asume el riesgo de publicarla sin revisión de abogado mientras el negocio no esté formalizado; quienes ayudan se dicen por lo que hacen, sin nombrar a los proveedores (`proveedor` queda solo para las pruebas que atan la política a lo que el código usa).",
+  "nota": "Política de tratamiento de datos de las cuentas de TiendaPro (HU-T2.2): la del propietario y los colaboradores de un comercio que entran al panel con su cuenta. El CORE pide aceptar esta versión al entrar al producto. No es la de los compradores: de sus datos el responsable es cada comercio, con su propia política, y Laboratorio Digital los guarda como encargado (TIENDA-3.0 §14.3, HU-T7.1). Los datos del responsable que faltan se omiten (HU-T18.6). Versión 2 (HU-T18.10, 23 oct 2026): vigente por decisión del dueño, que asume el riesgo de publicarla sin revisión de abogado mientras el negocio no esté formalizado; quienes ayudan se dicen por lo que hacen; `presentacion`, `que_guardamos` y `derechos` son los textos de la página, los mismos en tiendapro.co y en el panel (HU-T18.10), sin nombrar a los proveedores (`proveedor` queda solo para las pruebas que atan la política a lo que el código usa).",
   "version": "2",
   "fecha": "2026-10-23",
   "estado": "vigente",
@@ -11,6 +11,12 @@
     "correo": "laboratoriodigital.la@gmail.com",
     "telefono": null
   },
+  "presentacion": "Con tu cuenta entras al panel de tu tienda. Aquí te contamos qué guardamos de ti, para qué y cómo puedes consultarlo, corregirlo o pedir que lo borremos. Los datos de tus clientes son responsabilidad de tu tienda, que publica su propia política.",
+  "que_guardamos": [
+    "Tu nombre y tu correo, para que entres a tu cuenta y para escribirte sobre tu tienda y tu plan.",
+    "Los pagos de tu plan: la fecha, el valor y su número, para llevar las cuentas de tu plan.",
+    "Lo que haces en el panel, para que tu equipo sepa quién cambió qué y cuándo."
+  ],
   "encargados": [
     {
       "quien": "Quienes tienen tu tienda en internet",
@@ -40,5 +46,6 @@
   ],
   "almacenamiento_en_el_telefono": [
     "El panel guarda tu sesión en el propio teléfono o PC, para que no tengas que entrar cada vez."
-  ]
+  ],
+  "derechos": "Puedes conocer, actualizar y corregir tus datos, pedir que los borremos y retirar esta autorización cuando quieras. Escríbenos a {correo}: respondemos tus consultas en máximo 10 días hábiles y tus reclamos en máximo 15, como lo pide la ley (Ley 1581 de 2012). Si no quedas conforme con la respuesta, puedes acudir a la Superintendencia de Industria y Comercio."
 }
