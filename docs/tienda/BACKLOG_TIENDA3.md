@@ -1685,7 +1685,7 @@ Formato de cada historia, el del CORE:
 - **Work items:** WI-T18.5.1 `[diseño]` · WI-T18.5.2 `[código]` · WI-T18.5.3 `[prueba]`
 
 #### HU-T18.6 · El alta abierta en producción
-- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** L2 · **Depende de:** HU-T18.1 a HU-T18.5 · **Estado:** Construida (22 oct 2026), sale con tienda-v1.0.0 y core-v0.7.0
+- **Capa:** operación · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** L2 · **Depende de:** HU-T18.1 a HU-T18.5 · **Estado:** En producción desde el 22 oct 2026 (tienda-v1.0.0 y core-v0.7.0, PR #226). El primer despliegue de la Tienda se detuvo por un error interno de D1 (bitácora tienda3 55); el de la celda c1 a mano terminó en verde. Comprobado desde fuera: la landing, el panel, la salud (`alta: lista`, 0 comercios de prueba), `origen.` y una dirección nueva de `mitiendapro.co` con «sin tienda». Falta la revisión a mano del dueño: abrir una tienda y darla de baja
 - Como dueño, quiero abrir TiendaPro al público con lo legal que ya tengo.
 - **Respaldo:** decisiones del dueño del 21 y 22 oct 2026 (D-T3, D-T11, D-T14 y D-T15).
 - **CA1.** La Tienda pasa a `activo` en producción (D-T14 revisada), con Turnstile, el comodín y el cobro de los planes en Bold de producción.

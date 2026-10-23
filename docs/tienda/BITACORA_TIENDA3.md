@@ -1379,3 +1379,17 @@ La regla: **un límite aproximado se prueba como lo vive un abuso (en ráfagas),
 La regla: **lo que se apaga se apaga con un color que cumple el contraste, nunca con transparencia; y un estado que cambia el color de varios hijos lo pasa por variables, no por selectores largos.**
 
 *Ficha:* tienda3 · *(mía)* · 🟢 Bajo · P2 · tienda-0.1.0 · 2026-10-22
+
+**55 · El primer despliegue de TiendaPro a producción se detuvo por un error interno de D1.**
+
+*Qué pasó.* El 22 oct 2026 (23 oct, 01:42 UTC), al fusionar el PR #226, el CORE salió bien como core-v0.7.0, pero la Tienda se detuvo en la celda c1. Las migraciones del shard ya se habían aplicado; al revisar las claves foráneas de `tienda_control` antes de migrarla, Cloudflare respondió «internal error» con el código 7429. El paso «Desplegar la Tienda» quedó en verde por su `continue-on-error`; el error estaba en la anotación y en el resumen (bitácora tienda3 12).
+
+*La causa.* De Cloudflare, no del código: la misma consulta había pasado en staging minutos antes, y al repetirla pasó. El despliegue hizo lo que debía: no migró una base que no pudo revisar (P1) y dijo cómo seguir.
+
+*El arreglo.* El flujo «desplegar» a mano, con destino `produccion`, `solo_celda: c1` y `productos: tienda`, a las 01:45 UTC. Terminó en verde: la base de control migrada (0004), el token de Cloudflare for SaaS probado y cargado, el panel, el despacho con el comodín y la ruta de toda la zona, y la landing en `tiendapro.co`. La prueba de humo del lanzamiento pasó.
+
+**Lo prueba** el humo de cada despliegue; no hay prueba que simule un error interno de Cloudflare.
+
+La regla: **después de fusionar una versión se lee el resumen del despliegue, no el color del paso; un error interno de Cloudflare se repite solo en la celda que falló, con el flujo a mano.**
+
+*Ficha:* tienda3 · *(Cloudflare)* · 🟡 Medio · P1, P7 · tienda-1.0.0 · 2026-10-22
