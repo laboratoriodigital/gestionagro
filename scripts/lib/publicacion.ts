@@ -182,6 +182,8 @@ export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = 
     'COPIA_DRIVE_CLIENTE_SECRETO',
     'COPIA_DRIVE_REFRESH',
     'COPIA_CF_TOKEN',
+    // HU-C13.1 (D-C8): las direcciones del dueño que ven la consola.
+    'CONSOLA_CORREOS',
   ],
   // El vigía de la celda del agro mide con el token de métricas y avisa por Telegram.
   agro: [...CLOUDFLARE, 'CF_METRICAS_TOKEN', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'],

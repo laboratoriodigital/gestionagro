@@ -115,6 +115,8 @@ export function secretosOpcionalesDelCore(destino: Destino): string[] {
     ...(destino === 'produccion' ? ['RESEND_API_KEY'] : CORREO_GMAIL_DEL_CORE),
     ...SECRETOS_DE_LA_COPIA,
     'COPIA_CF_CUENTA',
+    // HU-C13.1 (D-C8): quién ve la consola del dueño.
+    'CONSOLA_CORREOS',
   ];
 }
 

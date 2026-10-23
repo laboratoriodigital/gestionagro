@@ -4,7 +4,8 @@
       "agro": "3",
       "parqueadero": "3",
       "tienda": "2",
-      "cuenta": "1"
+      "cuenta": "1",
+      "consola": "1"
     },
     "planes": {
       "agro": [
@@ -77,7 +78,8 @@
           }
         }
       ],
-      "cuenta": []
+      "cuenta": [],
+      "consola": []
     }
   },
   "prueba": {

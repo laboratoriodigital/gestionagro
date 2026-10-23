@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- La consola del dueño v0 (EC13, HC8; D-C8): `cuenta.laboratorio-digital.com/consola/` muestra lo que entró hoy, en la semana y en el mes, lo que vence, lo que creció, las solicitudes de datos por vencer, la copia de la semana y los correos del día. Se entra como a la cuenta, con la app `consola`; solo ven datos los correos de `CONSOLA_CORREOS` y con una entrada de menos de 12 h. Solo lee y solo números: no entra a los datos de ningún cliente ni nombra personas, y cada vista queda en la auditoría. La migración 0014 agrega los índices que la consola necesita.
+
 ## [0.8.0] - 2026-10-23
 
 Entrar con un enlace al correo, los avisos de vencimiento por correo y la copia semanal fuera de Cloudflare (HC7).

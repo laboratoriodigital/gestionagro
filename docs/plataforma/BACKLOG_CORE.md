@@ -24,6 +24,7 @@
 | **HC5 · Legible por agentes** | Capa estática en `cultivopro.co` y en el CORE; `verificar-agentes` detiene producción | P4 | C8 | 5 feb 2027 | — |
 | **HC6 · OAuth y MCP** | El CORE como servidor de autorización OAuth 2.1; consentimiento y «Aplicaciones conectadas»; MCP del cuaderno (lectura); mis datos (Ley 1581) | P5 | C10 | 5 mar 2027 | **Tienda M7** (agentes) |
 | **HC7 · Correo** | Entrar con correo (enlace mágico) y avisos por correo; copia cifrada fuera de Cloudflare con simulacro | P6 | C11 | 19 mar 2027 | Alta abierta de la Tienda sin Google |
+| **HC8 · Consola del dueño v0** | Lo que entró, lo que creció, lo que se rompió y lo que hay que revisar, de un vistazo y solo lectura, con la entrada del dueño y su auditoría (ED1 §31.1 y §32) | — | C12 | 2 abr 2027 | — |
 
 **Fuera de alcance, a propósito:**
 
@@ -281,6 +282,7 @@ Cada uno con sus estados, sin JavaScript salvo donde se dice:
 | **C9** | 8–19 feb | El CORE autoriza agentes con consentimiento; CI de lo afectado | HU-C9.1 (2), HU-C9.2 (3), HU-C9.3 (3), HU-C9.4 (5), HU-C11.3 (3) | 16 |
 | **C10** | 22 feb–5 mar | **HC6.** Refresh rotado, revocar, MCP del cuaderno y mis datos | HU-C9.5 (3), HU-C9.6 (3), HU-C9.7 (5), HU-C7.7 (5) | 16 |
 | **C11** | 8–19 mar | **HC7.** Entrar con correo, avisos por correo y la copia fuera de Cloudflare | HU-C10.1 (3), HU-C10.2 (5), HU-C10.3 (2), HU-C11.4 (5) | 15 |
+| **C12** (festivo) | 22 mar–2 abr 2027 | **HC8.** La consola del dueño v0: lo que entró, lo que creció, lo que se rompió y lo que hay que revisar, solo lectura | HU-C13.1 (3), HU-C13.2 (3), HU-C13.3 (3), HU-C13.4 (3), HU-C13.5 (3) | 15 |
 
 **Total:** 190 puntos en 11 sprints (182 del plan inicial y 8 de las dos historias de eficiencia del CI, HU-C11.6 y HU-C11.7, agregadas al arrancar). El C2 queda por encima de 20: si la velocidad del C1 no lo sostiene, HU-C11.7 pasa al C3. Si la velocidad real del C1 y el C2 supera los 20, el plan se acorta: lo que manda el orden es el camino crítico de la Tienda (HC1 → HC3 → HC4), no las fechas.
 
@@ -313,6 +315,7 @@ El panel de la Tienda (M2) entra con Google mientras llega el enlace por correo 
 | EC9 · OAuth 2.1 y MCP | El CORE como servidor de autorización y el MCP del cuaderno | HC6 | 24 |
 | EC10 · Correo | Enlace mágico y avisos por correo | HC7 | 10 |
 | EC11 · Operación de la plataforma | Vigía en modo pago, límites, despliegue por producto, copia fuera de Cloudflare, gobierno de la cuenta y un CI que gasta lo justo | HC0–HC7 | 25 |
+| EC13 · Consola del dueño | El Owner OS v0 sobre los datos del CORE, de solo lectura y con números agregados: el Command Center de ED1 §32 en su versión mínima | HC8 | 15 |
 
 ---
 
@@ -1003,6 +1006,61 @@ Formato de cada historia:
 - **Work items:** WI-C11.8.1 `[ci]` `ci.yml`, `desplegar.yml`, `desplegar-destino.yml` y `scripts-windows.yml` · WI-C11.8.2 `[código]` `e2e-afectado.ts` y `esDeLaBase` · WI-C11.8.3 `[prueba]` `e2e-afectado.test.ts`, `alcance.test.ts`, `flujos.test.ts` y `publicacion.test.ts` · WI-C11.8.4 `[medición]` repetir la medición una semana después.
 ---
 
+
+### EC13 · Consola del dueño
+
+Refinada el 23 oct 2026, a pedido del dueño. **Por qué ahora:** ED1 §31.1 dice que el panel propio «se construye cuando existan cuentas, leads y pagos que administrar», y la regla de tres (ED1 §3.11) pide tres casos: hoy hay tres productos con cuentas y pagos (CultivoPro, TiendaPro y el parqueadero), pagos con Bold y en efectivo, y la lista de interés. Hasta hoy el dueño opera con el reporte semanal, Telegram y GitHub, y responde «qué entró hoy» o «qué vence esta semana» preguntándole al asistente. **Lo que no es:** no es un superusuario. No entra a los datos de ningún cliente, no cambia nada (las acciones siguen por GitHub con su registro) y no repite lo que ya dicen el vigía y el reporte de las cuotas de Cloudflare. **Antes de construir:** contrastar con ED1 §31.1 y §32, ARQUITECTURA §9 (aislamiento) y la política de datos de la cuenta, y que el dueño decida D-C8.
+
+#### HU-C13.1 · Entrar a la consola
+- **Capa:** API y cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C12 · **Depende de:** D-C8, HU-C10.2 · **Estado:** En validación (rama `feat/c12-sprint`. `apps/core/src/consola.ts`: la app `consola` en el registro (sin organizaciones, con los orígenes de la cuenta y vuelta a `/consola/`). CA2 y CA3: el correo de la cuenta, en minúsculas, contra `CONSOLA_CORREOS`; a quien no está, o trae el token de otra app, la misma respuesta sin un dato; sin el secreto, nadie. Al dueño con una entrada de más de 12 h le dice que vuelva a entrar. CA4: `consola_vista` en la auditoría por cada bloque entregado; lo rechazado o lo que no se pudo leer no se anota. 5 pruebas; controles negativos: sin revisar la lista, 3 en rojo; sin las 12 h, 1. Falta: WI-C13.1.3, cargar `CONSOLA_CORREOS` (`docs/runbooks/consola-del-dueno.md`))
+- Como dueño, quiero abrir una consola que solo yo puedo ver, sin que la app tenga una cuenta que lo vea todo.
+- **Respaldo:** ED1 §31.1; ADR-28 (la cuenta como producto); P4 (ningún dato de una persona en el repositorio).
+- **CA1.** La consola es un producto del registro (`consola`, sin organizaciones, como la cuenta) que vive en `cuenta.laboratorio-digital.com/consola/`. Se entra con Google o con correo, como cualquier persona, y el token lleva `aud = consola`.
+- **CA2.** Solo las direcciones de `CONSOLA_CORREOS` (secreto del ambiente, nunca en el repositorio) reciben datos. Cualquier otra cuenta ve «Esta página no es para tu cuenta», sin un número.
+- **CA3 ❌.** Las rutas de la consola exigen el token de la consola y una entrada de hace menos de 12 h (`auth_time`). Un token de otro producto, uno vencido o una cuenta fuera de la lista reciben 403, sin ningún dato y sin decir qué faltó.
+- **CA4.** Cada vez que la consola entrega un bloque queda una fila en la auditoría (`consola_vista`), con quién y qué bloque. «Lo que pasó en tus espacios» no la muestra a nadie más.
+- **Work items:** WI-C13.1.1 `[código]` · WI-C13.1.2 `[prueba]` · WI-C13.1.3 `[dueño]` cargar `CONSOLA_CORREOS` en los dos ambientes.
+
+#### HU-C13.2 · Hoy: lo que entró y lo que vence
+- **Capa:** API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C12 · **Depende de:** HU-C13.1 · **Estado:** En validación (rama `feat/c12-sprint`. `POST /api/core/consola/hoy`. Lo aprobado de hoy, de 7 días y del mes, en días de Bogotá, por producto y por medio, en una sola lectura por el índice `pago_por_estado` (0014). Lo que vence en 7 días o está en gracia sale por `organizacion_por_vencimiento`, con `avisoDelPlan`. CA3: `revisar`, o `esperando` hace más de 1 h, aparte y sin sumarse. 3 pruebas con el reloj a las 0:01 y a las 11:59 p. m. de Bogotá)
+- Como dueño, quiero ver qué dinero entró y qué planes vencen, para saber cómo va el mes y a quién recordarle pagar.
+- **Respaldo:** ED1 §32 («What earns money?»); HU-C5.3 a HU-C5.8.
+- **CA1.** Los pagos aprobados de hoy, de los últimos 7 días y del mes (días de Bogotá), por producto y por medio (Bold o efectivo), en pesos.
+- **CA2.** Los espacios cuyo plan vence en 7 días y los que están en gracia, con su producto, su plan y la fecha. Va el nombre del espacio; ningún dato de las personas.
+- **CA3 ❌.** Un pago en `revisar`, o en `esperando` hace más de 1 h, sale aparte como «para revisar» y no se suma al dinero que entró.
+- **Costo:** cada consulta nombra su índice y se mide en filas leídas con mil espacios de prueba, como en la Tienda.
+- **Work items:** WI-C13.2.1 `[código]` · WI-C13.2.2 `[prueba]` con el reloj movido (fin de mes, 18:59 y 19:01 de Bogotá, P8).
+
+#### HU-C13.3 · Lo que creció y lo que convierte
+- **Capa:** API · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** C12 · **Depende de:** HU-C13.1 · **Estado:** En validación (rama `feat/c12-sprint`. `POST /api/core/consola/crecio`. Cuentas y espacios nuevos por semana (las 8 últimas, por `usuario_por_creado` y `organizacion_por_creado`, 0014), espacios por plan, quién pagó por primera vez en el mes y la lista de interés. CA3: la prueba busca en la respuesta entera el correo y el nombre de las dos personas de prueba, y una arroba)
+- Como dueño, quiero ver si los productos crecen y cuántos pasan de gratis a pagar, para saber dónde poner las horas.
+- **Respaldo:** ED1 §32 («What grew?», «What converts?»); HU-E0.6 (la lista de interés).
+- **CA1.** Cuentas nuevas y espacios nuevos por producto, semana a semana (las últimas 8), y los espacios de hoy por plan.
+- **CA2.** La conversión del mes: espacios que pasaron de un plan gratuito a uno pagado, y la lista de interés por plan.
+- **CA3 ❌.** Solo números: ningún correo ni nombre de persona en la respuesta. Una prueba lo revisa sobre la respuesta entera, con un usuario de prueba de nombre y correo conocidos.
+- **Work items:** WI-C13.3.1 `[código]` · WI-C13.3.2 `[prueba]`.
+
+#### HU-C13.4 · Lo que se rompió y lo que hay que revisar
+- **Capa:** API · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C12 · **Depende de:** HU-C13.1, HU-C10.3, HU-C11.4 · **Estado:** En validación (rama `feat/c12-sprint`. `POST /api/core/consola/revisar` y `/roto`. Los radicados abiertos con los días hábiles que quedan (`@ed1/calendario`), en rojo los de 3 o menos, sin el texto de la persona; la copia de la semana base por base con su motivo; los correos del día por estado y motivo, con el cupo usado. CA4: un bloque que falla responde 503 con la causa y no se anota como visto. 3 pruebas)
+- Como dueño, quiero ver en un solo lugar lo que falló o está por vencer, para no enterarme por un cliente.
+- **Respaldo:** ED1 §32 («What broke?», «What is near limit?», «What should be reviewed?»); HU-C7.7, HU-C10.3, HU-C11.4.
+- **CA1.** La copia de la semana, base por base: hecha, pendiente o fallida, con su motivo.
+- **CA2.** Los correos del día: enviados, los que no salieron por motivo, y cuánto del cupo de 100 del CORE se usó.
+- **CA3.** Los radicados de la Ley 1581 abiertos, con su fecha límite; los que vencen en 3 días hábiles o menos, en rojo.
+- **CA4 ❌.** Un bloque que no se pudo leer dice «no se pudo leer» con la causa, nunca cero (P1).
+- **Work items:** WI-C13.4.1 `[código]` · WI-C13.4.2 `[prueba]`.
+
+#### HU-C13.5 · La pantalla de la consola
+- **Capa:** cuenta · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** C12 · **Depende de:** HU-C13.1 a HU-C13.4 · **Estado:** En validación (rama `feat/c12-sprint`. `apps/cuenta/src/pages/consola.astro` y `consola.ts`: entrar con Google o con correo a la app `consola`, su propia sesión en el navegador y una sola renovación para los cuatro bloques (renovar a la vez rotaría el refresh debajo de otro bloque). Los bloques en el orden del Command Center, con cifras grandes, listas y el enlace al runbook. 4 e2e: la entrada, los cuatro bloques sin un solo formulario (CA3), a 360 px sin moverse de lado y axe sin violaciones, la cuenta que no es del dueño y un bloque que falla y se reintenta. Revisada en captura a 360 px, en claro y en oscuro. Falta: WI-C13.5.3, la validación del dueño en staging)
+- Como dueño, quiero ver todo eso en una pantalla clara desde el teléfono.
+- **Respaldo:** ED1 §32; §4 de este documento (dirección de diseño); HU-C7.2.
+- **CA1.** `/consola/` con `@ed1/ui` v2: los bloques en el orden del Command Center (Hoy, Creció, Revisar, Se rompió), cada uno con cargando, vacío con su porqué y error con su causa.
+- **CA2.** A 360 px, claro y oscuro, sin moverse de lado y sin violaciones de axe, como la cuenta.
+- **CA3 ❌.** Ningún botón cambia nada. Cada bloque enlaza al runbook de lo que se hace (registrar un pago en efectivo, el kill switch, la copia), y la e2e exige que no haya formularios.
+- **Work items:** WI-C13.5.1 `[código]` · WI-C13.5.2 `[prueba]` e2e · WI-C13.5.3 `[dueño]` validar en staging con datos de prueba.
+
+**Fuera del C12, a propósito:** acciones desde la consola (registrar pagos, pausar un producto), las cuotas de Cloudflare (las dicen el vigía y el reporte), las métricas de las herramientas y lo de los clientes por dentro (sus pedidos, registros o cajas). Cada una entra, si hace falta, con su historia.
+
 ## 8. Preparadas, sin sprint
 
 | Historia | Disparador |
@@ -1010,7 +1068,6 @@ Formato de cada historia:
 | HU-C6.7 · Migrar el sitio y el cuaderno de CultivoPro a `@ed1/ui` v2 (5) | La cuenta lleva un mes estable en producción y el dueño lo decide. Es un cambio visible para los productores: se hace con la temporada cargada a 360 px (bitácora agro, «una pantalla vacía no enseña lo que una llena sí») |
 | HU-C3.8 · Contraer la transición del CORE: `producto` obligatorio, sin `DEFAULT 'agro'`, sin `usuario.politica_*` ni `ks:agro-core` (3) | Ninguna versión instalada del cuaderno entra sin `producto` durante 30 días. Es **mayor** (core-v2.0.0) si cambia un parámetro obligatorio |
 | HU-C9.8 · MCP del cuaderno con escritura (3) | HU-C9.7 un mes en uso. Las escrituras entran como operaciones con `dispositivo = mcp:<cliente>` y pasan por la cuarentena (PLATAFORMA §5.5) |
-| HU-C11.6 · Consola del dueño v0 (5) | El tercer producto con cuentas y pagos (ED1 §3.11 y §31.1). Mientras tanto, el reporte semanal y los tableros |
 | HU-C12.1 · Sitio principal `laboratorio-digital.com` con el sistema de diseño (5) | La marca pública del ecosistema (ED1 Fase 0, decisión D-C3) |
 | HU-C11.1 · Activar el vigía en modo pago (lo que queda: cambiar `plan` a `paid`) | El dueño activa Workers Paid. Decisión del 6 oct 2026: solo cuando sea estrictamente necesario y no haya otra salida para seguir avanzando o creciendo. El código ya está (C4) |
 | HU-C11.2 · Límites por Worker (2) | El mismo: `limits.cpu_ms` y `limits.subrequests` solo existen en el plan pagado (documentación de Cloudflare, leída el 6 oct 2026). En el gratuito la CPU ya está en 10 ms y las subsolicitudes en 50, fijas. Su CA2 (apagar workers.dev en los Workers nuevos de producción) puede hacerse antes si hace falta |
@@ -1030,6 +1087,7 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 | D-C5 | Dónde va la copia fuera de Cloudflare | **El Google Drive del dueño** (15 GB): semanal y cifrada, además del respaldo semanal en R2 | ADR-30 | HU-C11.4 (C11) |
 | D-C6 | Desde qué dirección salen los correos del CORE en producción (23 oct 2026) | **Por producto:** el que tenga dominio verificado sale de ahí (TiendaPro, `avisos@tiendapro.co`); los demás, de `cuenta@laboratorio-digital.com` cuando se verifique en Resend | PLATAFORMA §4.11 | HU-C10.1, HU-C10.2 (C11) |
 | D-C7 | Cómo se hace la copia con el plan gratuito (23 oct 2026) | **En el cron del CORE**, una base por vuelta, con la API de exportación de D1 | ADR-30 | HU-C11.4 (C11) |
+| D-C8 | Cómo entra el dueño a la consola (23 oct 2026) | **Decidido por el dueño el mismo día:** como cualquier persona (Google o correo) y con su correo en el secreto `CONSOLA_CORREOS`, entrada de menos de 12 h y solo lectura. La otra opción es Cloudflare Access delante de `/consola/` (gratis hasta 50 personas, con su propio código por correo): una llave más, fuera de la app, pero otro servicio que configurar | ED1 §31.1 | HU-C13.1 (C12) |
 | — | Las de PLATAFORMA §9: presupuesto en dólares por producto, `ai-train`, precios de 3, 6 y 12 meses, gracia de la tienda | Las de PLATAFORMA §9 | HU-C11.1, HU-C8.1, HU-C1.2 |
 
 **Tareas que solo puede hacer el dueño** (con fecha para no frenar el camino crítico):
@@ -1060,6 +1118,7 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 | Cumplimiento sin abogado (Ley 1581) | Media | Medio | Controles técnicos verificables (ED1 §20.1); HU-C7.7 radica y mide plazos; revisión legal cuando haya presupuesto |
 | La capa gratis de Resend da 100 correos al día a toda la cuenta, y la Tienda se reparte 300 de los 400 que suponía Gmail (23 oct 2026) | Media | Medio | Cada correo que Resend rechaza por tope queda «no disponible», nunca fingido; entrar con Google sigue. Antes de que un día se acerque a 100, pasar a la capa paga de Resend o bajar `TOPE_DE_LA_CELDA` de la Tienda |
 | Una base pasa de 50 MB y la copia ya no cabe en una vuelta del plan gratuito | Baja | Alto | La copia lo dice por Telegram; partirla o Workers Paid |
+| La cuenta de Google del dueño se vuelve la llave de la consola | Baja | Alto | Segundo factor (hecho el 5 oct 2026), solo lectura, entrada de menos de 12 h, auditoría de cada vista y ningún dato de personas en la consola |
 
 ---
 
@@ -1078,6 +1137,7 @@ Se pidieron todas al principio. **El dueño las decidió el 5 oct 2026, en la no
 | C9 | 16 | 13 (PR #163, fusionado el 12 oct 2026) | 13 puntos en validación y HU-C11.3 a medias (CA1 y CA3; CA2, los secretos por producto, se hace con el dueño). El spike descartó `workers-oauth-provider` (KV y refresh anterior usable) y quedó ADR-41: servidor propio sobre D1. Dos cambios de forma: la migración es la 0008, porque los números siguen el orden de construcción, y todo el servidor se anuncia solo en staging hasta que exista el canje de tokens (C10), para no prometer en producción lo que no responde (P1) |
 | C10 | 16 | — (PR del 12 oct 2026, en revisión) | Las 4 historias en validación, y además HU-C11.3 CA2 (los secretos por parte, opción B del dueño), que venía del C9. **HC6 queda a un paso del dueño:** conectar un cliente MCP real en staging (WI-C9.7.3); hasta entonces el servidor de autorización y el MCP solo responden en staging. HU-C7.7 espera el responsable del tratamiento (WI-C7.7.4). Tres cambios de forma, dichos en cada historia: el token del agente lleva la celda y el shard (el MCP no pregunta dónde están los datos), el recurso se declara por destino en `productos.json`, y el calendario de carencias salió a `@ed1/agro-schema` para que el MCP y el cuaderno hagan las mismas cuentas. La e2e de «Tus datos» a 360 px encontró que los campos del sistema de diseño no contaban su borde en el ancho (bitácora core 12) |
 | C11 | 15 | 8 (PR #229, fusionado el 23 oct 2026: HU-C10.1 y HU-C10.2 validadas en staging; HU-C10.3 y HU-C11.4 en validación) | Las 4 historias en validación el 23 oct 2026, con la Tienda ya abierta en producción: entrar con correo era lo que le faltaba al comercio sin Google. Lo que trajo la evolución de los otros carriles: Resend en producción (la Tienda) y `@ed1/correo` con su reparto del cupo. Dos decisiones del dueño (D-C6 y D-C7). Tres cambios de forma, dichos en cada historia: el enlace abre la cuenta y pide un toque, el permiso de Drive se da con un script y el simulacro corre sin Cloudflare. **HC7 queda a dos pasos del dueño:** un enlace que llegue a un buzón que no es de Google (WI-C10.2.3) y la primera copia en su Drive (WI-C11.4.3). *(Hoy, 23 oct 2026: el enlace llegó a un buzón de Hotmail y entró (aceptación de HC7 cumplida en staging). El permiso de Drive pidió publicar la app de Google con página principal y política de privacidad: el 403 `access_denied` era la app «en prueba».)* |
+| C12 | 15 | — (PR del 23 oct 2026, en revisión) | Las 5 historias el mismo día de la decisión D-C8. Solo lectura y solo números: la consola no tiene tablas propias, solo los índices de la 0014, y la única escritura es la auditoría de cada vista. Un hallazgo de la pantalla: los cuatro bloques renovaban la sesión a la vez, y la rotación del refresh habría sacado al dueño; quedó una sola renovación compartida, y la e2e la cuenta |
 
 ---
 

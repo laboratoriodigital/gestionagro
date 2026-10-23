@@ -44,6 +44,7 @@ import politicaDeLaCuenta from '../../../content/cuenta/privacidad/politica.json
 import { decidirAutorizacion, inicioDeAutorizacion } from './autorizar.ts';
 import { mandarAvisos } from './avisos-por-correo.ts';
 import { registrarCliente } from './clientes-oauth.ts';
+import { type Bloque, verBloque } from './consola.ts';
 import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
 import { pasoDeLaCopia } from './copia.ts';
 import { correoDelCore } from './correo.ts';
@@ -144,6 +145,11 @@ export interface Env {
   COPIA_DRIVE_REFRESH?: string;
   COPIA_CF_TOKEN?: string;
   COPIA_CF_CUENTA?: string;
+  /**
+   * HU-C13.1 (D-C8): las direcciones del dueño, separadas por coma. Solo ellas ven la consola. Es
+   * un dato de una persona: va en el ambiente, nunca en el repositorio (P4).
+   */
+  CONSOLA_CORREOS?: string;
 }
 
 export interface Dependencias {
@@ -373,6 +379,7 @@ export function crearApp(dependencias: Dependencias = {}) {
     '/api/core/drive/*',
     '/api/core/auditoria/*',
     '/api/core/cuenta/*',
+    '/api/core/consola/*',
   ]) {
     app.use(ruta, corsDelCuaderno);
     app.use(ruta, conEntorno);
@@ -428,6 +435,12 @@ export function crearApp(dependencias: Dependencias = {}) {
   // HU-C7.7: tus datos (Ley 1581).
   app.post('/api/core/cuenta/mis-datos', (c) => misDatos(c, c.get('entorno')));
   app.post('/api/core/cuenta/radicados', (c) => verRadicados(c, c.get('entorno')));
+  // HU-C13.1 a HU-C13.4: la consola del dueño, solo lectura (`consola.ts`).
+  for (const bloque of ['hoy', 'crecio', 'revisar', 'roto'] as const satisfies readonly Bloque[]) {
+    app.post(`/api/core/consola/${bloque}`, (c) =>
+      verBloque(c, { ...c.get('entorno'), correosDelDueno: c.env.CONSOLA_CORREOS }, bloque),
+    );
+  }
   app.post('/api/core/cuenta/radicar', (c) =>
     radicar(
       c,

@@ -1,0 +1,111 @@
+---
+/**
+ * La consola del dueño v0 (HU-C13.5, ED1 §31.1 y §32). Se entra como a la cuenta, con la app
+ * `consola` (D-C8); solo las direcciones de `CONSOLA_CORREOS` reciben datos. Los bloques van en el
+ * orden del Command Center y `consola.ts` los llena: solo números, ningún dato de una persona y
+ * ningún botón que cambie algo. Lo que se hace con lo que se ve está en cada runbook.
+ */
+import { Aviso, Boton } from '@ed1/ui/v2/componentes';
+import politica from '../../../../content/cuenta/privacidad/politica.json';
+import EntrarConCorreo from '../componentes/EntrarConCorreo.astro';
+import Base from '../layouts/Base.astro';
+
+const RUNBOOKS = 'https://github.com/laboratoriodigital/gestionagro/blob/main/docs/runbooks';
+const bloques = [
+  {
+    id: 'hoy',
+    titulo: 'Hoy',
+    ayuda: 'Lo que entró y lo que vence. Lo que está en revisión va aparte y no se suma.',
+    runbook: { texto: 'Registrar un pago en efectivo', href: `${RUNBOOKS}/pago-en-efectivo.md` },
+  },
+  {
+    id: 'crecio',
+    titulo: 'Lo que creció',
+    ayuda:
+      'Cuentas y espacios nuevos de las últimas 8 semanas, los planes de hoy y quién pagó por primera vez este mes.',
+    runbook: null,
+  },
+  {
+    id: 'revisar',
+    titulo: 'Para revisar',
+    ayuda: 'Las solicitudes de datos personales abiertas (Ley 1581), con su fecha límite.',
+    runbook: { texto: 'Responder una solicitud', href: `${RUNBOOKS}/datos-del-responsable.md` },
+  },
+  {
+    id: 'roto',
+    titulo: 'Lo que se rompió',
+    ayuda: 'La copia de esta semana en tu Drive y los correos de hoy.',
+    runbook: { texto: 'Si la copia falla', href: `${RUNBOOKS}/copia-en-drive.md` },
+  },
+] as const;
+---
+<Base titulo="Consola" descripcion="Cómo va Laboratorio Digital, de un vistazo y solo para leer.">
+  <main class="portada consola">
+    <h1 class="portada__titulo">Consola</h1>
+
+    <div class="portada__aviso" data-error hidden>
+      <Aviso tono="peligro" titulo="No se puede mostrar la consola">
+        <p data-error-texto>Esta página no es para tu cuenta.</p>
+      </Aviso>
+    </div>
+
+    <section class="portada__accion" data-sin-sesion>
+      <p class="portada__nota" data-sin-sesion-texto>Entra con la cuenta del dueño.</p>
+      <form class="portada__formulario" method="get" action="/api/core/auth/google/inicio">
+        <input type="hidden" name="producto" value="consola" />
+        <input type="hidden" name="politica" value={politica.version} />
+        <input type="hidden" name="vuelta" value="https://cuenta.laboratorio-digital.com/consola/" data-vuelta />
+        <label class="portada__acepto">
+          <input type="checkbox" name="acepto" value="si" required />
+          <span>Leí y acepto la <a href="/privacidad/">política de tratamiento de datos</a>.</span>
+        </label>
+        <Boton tipo="submit">Entrar con Google</Boton>
+      </form>
+      <EntrarConCorreo id="consola" />
+    </section>
+
+    <section class="portada__accion" data-con-sesion hidden>
+      <p class="portada__nota">
+        Solo para leer. Lo que se hace con lo que ves está en cada runbook.
+      </p>
+      <div class="portada__botones">
+        <button class="ed1-boton ed1-boton--secundario" type="button" data-salir>Salir</button>
+      </div>
+    </section>
+
+    {
+      bloques.map((b) => (
+        <section
+          class="portada__espacios consola__bloque"
+          data-con-sesion
+          hidden
+          data-bloque={b.id}
+          aria-labelledby={`titulo-${b.id}`}
+        >
+          <h2 class="portada__subtitulo" id={`titulo-${b.id}`}>{b.titulo}</h2>
+          <p class="portada__detalle">{b.ayuda}</p>
+          <p class="ed1-contenido ed1-contenido--cargando" role="status" data-estado="cargando">
+            Cargando…
+          </p>
+          <div class="ed1-contenido ed1-contenido--error" role="alert" data-estado="error" hidden>
+            <p data-causa>No se pudo leer este bloque.</p>
+            <button class="ed1-boton ed1-boton--secundario" type="button" data-reintentar>
+              Intentar de nuevo
+            </button>
+          </div>
+          <div class="consola__contenido" data-estado="lista" hidden></div>
+          {b.runbook && (
+            <p class="portada__detalle">
+              <a href={b.runbook.href} rel="noopener">{b.runbook.texto}</a>
+            </p>
+          )}
+        </section>
+      ))
+    }
+  </main>
+</Base>
+
+<script>
+  import '../consola.ts';
+  import '../entrar-con-correo.ts';
+</script>
