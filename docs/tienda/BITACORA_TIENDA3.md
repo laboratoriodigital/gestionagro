@@ -1379,3 +1379,60 @@ La regla: **un límite aproximado se prueba como lo vive un abuso (en ráfagas),
 La regla: **lo que se apaga se apaga con un color que cumple el contraste, nunca con transparencia; y un estado que cambia el color de varios hijos lo pasa por variables, no por selectores largos.**
 
 *Ficha:* tienda3 · *(mía)* · 🟢 Bajo · P2 · tienda-0.1.0 · 2026-10-22
+
+**55 · El primer despliegue de TiendaPro a producción se detuvo por un error interno de D1.**
+
+*Qué pasó.* El 22 oct 2026 (23 oct, 01:42 UTC), al fusionar el PR #226, el CORE salió bien como core-v0.7.0, pero la Tienda se detuvo en la celda c1. Las migraciones del shard ya se habían aplicado; al revisar las claves foráneas de `tienda_control` antes de migrarla, Cloudflare respondió «internal error» con el código 7429. El paso «Desplegar la Tienda» quedó en verde por su `continue-on-error`; el error estaba en la anotación y en el resumen (bitácora tienda3 12).
+
+*La causa.* De Cloudflare, no del código: la misma consulta había pasado en staging minutos antes, y al repetirla pasó. El despliegue hizo lo que debía: no migró una base que no pudo revisar (P1) y dijo cómo seguir.
+
+*El arreglo.* El flujo «desplegar» a mano, con destino `produccion`, `solo_celda: c1` y `productos: tienda`, a las 01:45 UTC. Terminó en verde: la base de control migrada (0004), el token de Cloudflare for SaaS probado y cargado, el panel, el despacho con el comodín y la ruta de toda la zona, y la landing en `tiendapro.co`. La prueba de humo del lanzamiento pasó.
+
+**Lo prueba** el humo de cada despliegue; no hay prueba que simule un error interno de Cloudflare.
+
+La regla: **después de fusionar una versión se lee el resumen del despliegue, no el color del paso; un error interno de Cloudflare se repite solo en la celda que falló, con el flujo a mano.**
+
+*Ficha:* tienda3 · *(Cloudflare)* · 🟡 Medio · P1, P7 · tienda-1.0.0 · 2026-10-22
+
+**56 · La carga habría borrado de un producto lo que la hoja no traía.**
+
+*Qué pasó.* El 23 oct 2026, al abrir la carga de la API (HU-T12.2) a los comercios de Pro (HU-T18.11), revisé qué pasa si alguien baja su hoja de productos, cambia precios en Excel y la vuelve a subir. La carga se hizo para el operador, con archivos completos: al actualizar un producto escribía todas sus columnas. Con una hoja, que no trae descripción, retracto, IVA ni dirección, habría dejado la descripción vacía, el retracto en «aplica», el IVA sin decir y la dirección del producto sacada del nombre, que rompe sus enlaces. En una combinación sin la columna de inventario, lo habría dejado «sin contar». Además, un producto creado en el panel se habría duplicado al subir su respaldo, porque no tiene referencia externa. Nada de esto llegó a un comercio.
+
+*El arreglo.*
+- La carga actualiza solo lo que trae el archivo: en el producto y en cada combinación, un dato que el archivo no trae no se toca (`undefined`), y uno vacío se quita (`null`). Lo nuevo nace con lo de siempre. Un producto conserva su lugar en la tienda.
+- Al subir un respaldo, un producto creado en el panel adopta su id como referencia y se actualiza en vez de duplicarse.
+- La hoja «Productos» de «Descargar todo» trae la descripción y los nombres de las opciones, para que vaya y vuelva.
+
+**Lo prueban** `importar.test.ts` (una hoja con solo nombre y precio, y el respaldo de un producto del panel) y `carga-por-lotes.test.ts` (la hoja de «Descargar todo» que vuelve a entrar).
+
+La regla: **una herramienta del operador que se abre a los comercios se revisa con lo que ellos van a subir, no con lo que el operador subía.**
+
+*Ficha:* tienda3 · *(mía)* · 🟡 Medio · P1, P21 · tienda-1.0.0 · 2026-10-23
+
+**57 · Una tienda dada de baja se podía seguir editando y volver a publicar.**
+
+*Qué pasó.* El 23 oct 2026 el dueño probó TiendaPro en producción: abrió una tienda, la dio de baja desde «Más» y descargó todo. Volvió a entrar a los pocos segundos y el panel seguía completo. La tienda sí había salido de internet (sus direcciones se retiraron), pero nada impedía guardar productos o publicar, y abrir el panel podía aplicarle un cambio de plan que la volvía a hornear.
+
+*La causa.* HU-T13.7 hizo la baja y el borrado a los 30 días, pero no cerró la tienda para escribir: se probó la baja, no lo que pasa después.
+
+*El arreglo.* La API del panel responde 409 «dada-de-baja» a toda escritura, salvo los derechos de los compradores (`titular/*`); el asistente del comercio no la atiende; el re-horneado por release la salta; y abrir el panel no le aplica un cambio de plan. El panel muestra «está dada de baja», hasta cuándo se descarga lo suyo y que la cuenta sigue activa: la baja es de la tienda, no de la cuenta.
+
+**Lo prueban** `baja-panel.test.ts` (guardar, publicar y cambiar ajustes dan 409; leer y exportar siguen) y la e2e de la pantalla.
+
+La regla: **un estado final se prueba por lo que ya no se puede hacer después, no solo por el cambio que lo produce.**
+
+*Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟡 Medio · P1 · tienda-1.0.0 · 2026-10-23
+
+**58 · El foco automático de los errores llegaba tarde y se robaba lo que se escribía.**
+
+*Qué pasó.* El 23 oct 2026 el CI del PR #227 falló en dos e2e del panel: en «Agregar un envío» se guardó el nombre «Bodega40.000» con precio 0, y en «Cobro en línea» las llaves no quedaron guardadas. En la máquina local pasaban.
+
+*La causa.* HU-T18.12 ponía el foco en el primer campo con error en el cuadro siguiente a que aparecían los errores (`requestAnimationFrame` dentro de `useEffect`). En una máquina lenta ese cuadro llegó cuando ya se estaba escribiendo en el campo de abajo: el foco volvió a «Nombre» a mitad de la escritura y el precio quedó pegado al nombre. A una persona en un teléfono lento le habría pasado igual.
+
+*El arreglo.* El foco se mueve en el mismo momento en que aparecen los errores (`useLayoutEffect`), antes de que se pueda escribir otra cosa. Y solo cuando aparece un error que no estaba: si los errores bajan porque la persona los va corrigiendo, el foco se queda donde escribe.
+
+**Lo prueban** las e2e de envíos, cobro, anotar y la galería, corridas 8 veces en paralelo con 8 trabajadores; y en la de envíos, que el nombre y el precio se guarden cada uno en su campo.
+
+La regla: **lo que mueve el foco lo hace en el mismo instante del cambio que lo causa, nunca después: después, la persona ya está en otro lado.**
+
+*Ficha:* tienda3 · *(mía)* · 🟡 Medio · P1 · tienda-1.0.0 · 2026-10-23

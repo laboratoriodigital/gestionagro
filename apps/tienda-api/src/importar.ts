@@ -161,33 +161,64 @@ export function planDeLaCarga(c: CargaTienda, org: string, ahora: string): Plan 
     );
   });
   c.productos.forEach((p, i) => {
-    const retracto = p.retracto.aplica ? 'aplica' : 'no_aplica';
-    const motivo = p.retracto.aplica ? null : p.retracto.motivo;
+    // HU-T18.11: un producto creado en el panel sale en «Descargar todo» con su id como referencia.
+    // Al subir ese respaldo, el producto adopta la referencia y la carga lo actualiza en vez de
+    // duplicarlo. Si no hay tal producto, no cambia nada.
+    poner(
+      'UPDATE producto SET ref_externa = id WHERE org_id = ? AND id = ? AND ref_externa IS NULL',
+      org,
+      p.refExterna,
+    );
+    const conRetracto = p.retracto ?? { aplica: true as const };
+    const retracto = conRetracto.aplica ? 'aplica' : 'no_aplica';
+    const motivo = conRetracto.aplica ? null : conRetracto.motivo;
+    // HU-T18.11: lo que trae el archivo, columna por columna. Un producto que ya existe solo cambia
+    // en eso: su dirección, su descripción o su retracto no se borran porque la hoja no los traiga,
+    // y su lugar en la tienda queda como lo dejó el comercio.
+    const trae: [string, string | number | null][] = [
+      ['nombre', p.nombre],
+      ['opciones', json(p.opciones)],
+      ...(p.estado === undefined ? [] : [['estado', p.estado] as [string, string]]),
+      ...(p.slug === undefined ? [] : [['slug', p.slug] as [string, string]]),
+      ...(p.descripcionMd === undefined
+        ? []
+        : [['descripcion_md', p.descripcionMd] as [string, string]]),
+      ...(p.retracto === undefined
+        ? []
+        : [
+            ['retracto', retracto] as [string, string],
+            ['retracto_motivo', motivo] as [string, string | null],
+          ]),
+      ...(p.soloMayores === undefined
+        ? []
+        : [['solo_mayores', p.soloMayores ? 1 : 0] as [string, number]]),
+      ...(p.ivaPct === undefined ? [] : [['iva_pct', p.ivaPct] as [string, number | null]]),
+    ];
+    poner(
+      `UPDATE producto SET ${trae.map(([col]) => `${col} = ?`).join(', ')}, actualizado = ?, version = version + 1
+        WHERE org_id = ? AND ref_externa = ? AND (${trae.map(([col]) => `${col} IS NOT ?`).join(' OR ')})`,
+      ...trae.map(([, v]) => v),
+      ahora,
+      org,
+      p.refExterna,
+      ...trae.map(([, v]) => v),
+    );
     poner(
       `INSERT INTO producto (org_id, id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo,
          solo_mayores, iva_pct, posicion, ref_externa, creado, actualizado)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT (org_id, ref_externa) WHERE ref_externa IS NOT NULL DO UPDATE SET slug = excluded.slug,
-         nombre = excluded.nombre, descripcion_md = excluded.descripcion_md, estado = excluded.estado,
-         opciones = excluded.opciones, retracto = excluded.retracto, retracto_motivo = excluded.retracto_motivo,
-         solo_mayores = excluded.solo_mayores, iva_pct = excluded.iva_pct, posicion = excluded.posicion,
-         actualizado = excluded.actualizado, version = producto.version + 1
-       WHERE producto.slug IS NOT excluded.slug OR producto.nombre IS NOT excluded.nombre
-         OR producto.descripcion_md IS NOT excluded.descripcion_md OR producto.estado IS NOT excluded.estado
-         OR producto.opciones IS NOT excluded.opciones OR producto.retracto IS NOT excluded.retracto
-         OR producto.retracto_motivo IS NOT excluded.retracto_motivo OR producto.solo_mayores IS NOT excluded.solo_mayores
-         OR producto.iva_pct IS NOT excluded.iva_pct OR producto.posicion IS NOT excluded.posicion`,
+       ON CONFLICT (org_id, ref_externa) WHERE ref_externa IS NOT NULL DO NOTHING`,
       org,
       idDelProductoCargado(p.refExterna),
       p.slug ?? slugDe(p.nombre),
       p.nombre,
       p.descripcionMd ?? '',
-      p.estado,
+      p.estado ?? 'borrador',
       json(p.opciones),
       retracto,
       motivo,
       p.soloMayores ? 1 : 0,
-      p.ivaPct,
+      p.ivaPct ?? null,
       i,
       p.refExterna,
       ahora,
@@ -197,16 +228,34 @@ export function planDeLaCarga(c: CargaTienda, org: string, ahora: string): Plan 
   c.productos.forEach((p) => {
     p.variantes.forEach((v, j) => {
       const clave = v.valores.join('|');
+      // HU-T18.11: como en el producto, una combinación que ya existe solo cambia en lo que trae el
+      // archivo, y conserva su lugar. El inventario que cambia queda en su libro como «carga».
+      const trae: [string, string | number | null][] = [
+        ['precio_cop', v.precioCop],
+        ...(v.sku === undefined ? [] : [['sku', v.sku] as [string, string | null]]),
+        ...(v.precioAntesCop === undefined
+          ? []
+          : [['precio_antes_cop', v.precioAntesCop] as [string, number | null]]),
+        ...(v.stock === undefined ? [] : [['stock', v.stock] as [string, number | null]]),
+      ];
+      poner(
+        `UPDATE variante SET ${trae.map(([col]) => `${col} = ?`).join(', ')}, cambio_motivo = 'carga', actualizado = ?,
+           version = version + 1
+          WHERE org_id = ? AND producto_id = (SELECT id FROM producto WHERE org_id = ? AND ref_externa = ?)
+            AND clave = ? AND (${trae.map(([col]) => `${col} IS NOT ?`).join(' OR ')})`,
+        ...trae.map(([, x]) => x),
+        ahora,
+        org,
+        org,
+        p.refExterna,
+        clave,
+        ...trae.map(([, x]) => x),
+      );
       poner(
         `INSERT INTO variante (org_id, id, producto_id, clave, sku, precio_cop, precio_antes_cop, stock, posicion,
            cambio_motivo, actualizado)
          VALUES (?, ?, (SELECT id FROM producto WHERE org_id = ? AND ref_externa = ?), ?, ?, ?, ?, ?, ?, 'carga', ?)
-         ON CONFLICT (org_id, producto_id, clave) DO UPDATE SET sku = excluded.sku, precio_cop = excluded.precio_cop,
-           precio_antes_cop = excluded.precio_antes_cop, stock = excluded.stock, posicion = excluded.posicion,
-           cambio_motivo = 'carga', actualizado = excluded.actualizado, version = variante.version + 1
-         WHERE variante.sku IS NOT excluded.sku OR variante.precio_cop IS NOT excluded.precio_cop
-           OR variante.precio_antes_cop IS NOT excluded.precio_antes_cop OR variante.stock IS NOT excluded.stock
-           OR variante.posicion IS NOT excluded.posicion`,
+         ON CONFLICT (org_id, producto_id, clave) DO NOTHING`,
         org,
         `imp-v-${p.refExterna}-${clave || 'unica'}`,
         org,
@@ -215,7 +264,7 @@ export function planDeLaCarga(c: CargaTienda, org: string, ahora: string): Plan 
         v.sku ?? null,
         v.precioCop,
         v.precioAntesCop ?? null,
-        v.stock,
+        v.stock ?? null,
         j,
         ahora,
       );

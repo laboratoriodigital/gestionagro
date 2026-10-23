@@ -629,6 +629,13 @@ test('HU-T3.5 · CA1 y HU-T8.1 CA2: el formulario dice todos sus errores y guard
   await page.getByRole('button', { name: 'Guardar' }).click();
   await expect(page.getByText('Escribe el nombre del producto.').first()).toBeVisible();
   await expect(page.getByText('Escribe el precio en pesos, sin centavos.').first()).toBeVisible();
+  // HU-T18.12: lleva solo al primer campo con error, y cada error del resumen lleva al suyo.
+  await expect(page.getByLabel('Nombre')).toBeFocused();
+  await page
+    .locator('.ed1-resumen-errores')
+    .getByRole('link', { name: 'Escribe el precio en pesos, sin centavos.' })
+    .click();
+  await expect(page.getByLabel('Precio')).toBeFocused();
   await page.getByLabel('Nombre').fill('Camisa de lino');
   await page.getByLabel('Precio').fill('129000');
   // Salir y volver (como al entrar otra vez con Google): lo escrito sigue ahí.
@@ -1941,6 +1948,9 @@ test('HU-T10.1 · CA1 y CA2: un envío de 45 días lo avisa, y un cupón dice su
   await page.getByRole('link', { name: 'Agregar un envío' }).click();
   await page.getByRole('button', { name: 'Guardar el envío' }).click();
   await expect(page.getByText('Falta corregir 2 cosas:')).toBeVisible();
+  // HU-T18.12: el foco ya está en el primer campo con error cuando el resumen aparece. ❌ Bitácora
+  // tienda3 58: si llegara después, el precio se escribiría dentro del nombre (lo revisa lo guardado).
+  await expect(page.getByLabel(/^Nombre/)).toBeFocused();
   await page.getByLabel(/^Nombre/).fill('Bodega');
   await page.getByLabel(/^Precio/).fill('40.000');
   await page.getByLabel(/como mínimo/).fill('35');
@@ -3424,4 +3434,123 @@ test('validación del 20 oct (T17b) · el logo se prepara en el teléfono, sube 
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+// ── HU-T18.11 y HU-T18.13: cargar por lotes, subir un respaldo y la tienda dada de baja ──────
+
+test('HU-T18.11 · en Pro, una hoja de Excel en español se revisa, dice qué entra y se carga por partes', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  await page.route(`${PANEL}/api/panel/v1/yo`, (r) =>
+    r.fulfill({ json: { ...yo(UNO), funciones: { productos: null, carga_por_lotes: true } } }),
+  );
+  const cargas: { carga: { productos: { refExterna: string }[] }; parte?: number }[] = [];
+  await page.route(`${PANEL}/api/panel/v1/importar/revisar`, (r) => {
+    cargas.push(r.request().postDataJSON());
+    return r.fulfill({
+      json: {
+        ok: true,
+        resumen: {
+          productos: 2,
+          variantes: 3,
+          colecciones: 1,
+          envios: 0,
+          cupones: 0,
+          paginas: 0,
+          pedidos: 0,
+          fotos: 0,
+          partes: 2,
+        },
+      },
+    });
+  });
+  const partes: number[] = [];
+  await page.route(`${PANEL}/api/panel/v1/importar/aplicar`, (r) => {
+    const { parte } = r.request().postDataJSON() as { parte: number };
+    partes.push(parte);
+    return r.fulfill({ json: { ok: true, siguiente: parte === 0 ? 1 : null } });
+  });
+  await page.goto(`${PANEL}/mas/cargar/`);
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Cargar productos y respaldos' }),
+  ).toBeVisible();
+  await page.getByLabel('Elige tu hoja (CSV)').setInputFiles({
+    name: 'productos.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(
+      'Referencia;Producto;Opciones;Variante;Precio;Colección\r\nCAM;Camisa;Talla;S;$ 89.000;Camisas\r\nCAM;Camisa;Talla;M;89000;Camisas\r\nPAN;Pan de bono;;;1500;\r\n',
+    ),
+  });
+  await expect(
+    page.getByText('Se va a cargar: 2 productos, 3 combinaciones y 1 colección.'),
+  ).toBeVisible();
+  expect(cargas[0]?.carga.productos.map((p) => p.refExterna)).toEqual(['CAM', 'PAN']);
+  await page.getByRole('button', { name: 'Cargar', exact: true }).click();
+  await expect(
+    page.getByText('Se cargó: 2 productos, 3 combinaciones y 1 colección.'),
+  ).toBeVisible();
+  expect(partes).toEqual([0, 1]);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('HU-T18.11 · ❌ una hoja con errores dice cada fila y no manda nada; en Gratis se ofrece Pro', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  let pidio = false;
+  await page.route(`${PANEL}/api/panel/v1/importar/**`, (r) => {
+    pidio = true;
+    return r.abort();
+  });
+  await page.route(`${PANEL}/api/panel/v1/yo`, (r) =>
+    r.fulfill({ json: { ...yo(UNO), funciones: { productos: null, carga_por_lotes: true } } }),
+  );
+  await page.goto(`${PANEL}/mas/cargar/`);
+  await page.getByLabel('Elige tu hoja (CSV)').setInputFiles({
+    name: 'productos.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Producto,Precio\nBolso,mil\n,2000\n'),
+  });
+  await expect(
+    page.getByText('Fila 2: escribe el precio en pesos, sin centavos (por ejemplo 24900).'),
+  ).toBeVisible();
+  await expect(page.getByText('Fila 3: falta el nombre del producto.')).toBeVisible();
+  expect(pidio).toBe(false);
+  await page.unroute(`${PANEL}/api/panel/v1/yo`);
+  await page.route(`${PANEL}/api/panel/v1/yo`, (r) => r.fulfill({ json: yo(UNO) }));
+  await page.goto(`${PANEL}/mas/cargar/`);
+  await expect(page.getByText('Es de los planes Pro e IA Pro')).toBeVisible();
+  await expect(page.getByLabel('Elige tu hoja (CSV)')).toHaveCount(0);
+});
+
+test('HU-T18.13 · una tienda dada de baja no abre el panel: dice hasta cuándo se descarga lo suyo', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  await page.route(`${PANEL}/api/panel/v1/yo`, (r) =>
+    r.fulfill({
+      json: {
+        ...yo(UNO),
+        tienda: {
+          slug: 'ensayo',
+          nombre: UNO.nombre,
+          estado: 'baja',
+          descargarHasta: '2026-11-22T15:00:00.000Z',
+        },
+      },
+    }),
+  );
+  await page.goto(`${PANEL}/productos/`);
+  await expect(
+    page.getByRole('heading', { level: 1, name: `${UNO.nombre} está dada de baja` }),
+  ).toBeVisible();
+  await expect(page.getByText('Hasta el 22 de noviembre de 2026 puedes entrar aquí')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Descargar todo' })).toBeVisible();
+  await expect(
+    page.getByText('Tu cuenta sigue activa: la baja es solo de esta tienda.'),
+  ).toBeVisible();
 });

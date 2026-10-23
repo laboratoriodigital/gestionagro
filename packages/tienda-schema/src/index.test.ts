@@ -242,12 +242,13 @@ describe('el formato de carga (TIENDA-3.0 §17.1)', () => {
     ],
   });
 
-  it('una carga bien hecha pasa, con sus valores por defecto explícitos', () => {
+  it('una carga bien hecha pasa; lo que no trae queda sin decir, para no tocarlo (HU-T18.11)', () => {
     const r = revisarCarga(base());
     expect(r.ok).toBe(true);
     if (r.ok) {
       const p = (r.carga as CargaTienda).productos[0];
-      expect(p?.retracto).toEqual({ aplica: true });
+      expect(p?.retracto).toBeUndefined();
+      expect(p?.soloMayores).toBeUndefined();
       expect(r.carga.pedidos).toEqual([]);
     }
     expect(revisarCarga({ ...base(), formato: 'tienda-export/1' }).ok).toBe(true);

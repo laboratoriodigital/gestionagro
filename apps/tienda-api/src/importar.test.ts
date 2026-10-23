@@ -275,7 +275,8 @@ describe('aplicar (CA2, CA3 y CA4)', () => {
 });
 
 describe('por la API del panel', () => {
-  const token = async (rol: string) =>
+  // HU-T18.11: cargar por lotes y subir un respaldo son de Pro e IA Pro.
+  const token = async (rol: string, plan = 'pro') =>
     (
       await firmarAcceso(
         firmante,
@@ -287,7 +288,7 @@ describe('por la API del panel', () => {
           shard: 'tienda_c1_s1',
           anillo: 1,
           aud: 'tienda',
-          plan: 'gratis',
+          plan,
           auth_time: Math.floor(T0 / 1000),
         },
         T0,
@@ -301,7 +302,7 @@ describe('por la API del panel', () => {
     CORE_CLAVES: JSON.stringify([firmante.publica]),
     tienda_c1_s1: shard,
   });
-  const post = async (ruta: string, cuerpo: unknown, rol = 'propietario') =>
+  const post = async (ruta: string, cuerpo: unknown, rol = 'propietario', plan = 'pro') =>
     crearApp({ ahora: () => T0 }).request(
       ruta,
       {
@@ -309,7 +310,7 @@ describe('por la API del panel', () => {
         body: JSON.stringify(cuerpo),
         headers: {
           [CABECERA_DESPACHO]: SECRETO,
-          authorization: `Bearer ${await token(rol)}`,
+          authorization: `Bearer ${await token(rol, plan)}`,
           'content-type': 'application/json',
         },
       },
@@ -345,5 +346,131 @@ describe('por la API del panel', () => {
       parte: 0,
     });
     expect(r.status).toBe(422);
+  });
+
+  it('❌ HU-T18.11: en el plan Gratis no se carga por lotes ni se sube un respaldo', async () => {
+    for (const ruta of ['/api/panel/v1/importar/revisar', '/api/panel/v1/importar/aplicar']) {
+      const r = await post(ruta, { carga: archivo(), parte: 0 }, 'propietario', 'gratis');
+      expect(r.status, ruta).toBe(403);
+      expect(await r.json()).toEqual({
+        estado: 'plan',
+        motivo: 'Cargar productos por lotes y subir un respaldo son de los planes Pro e IA Pro.',
+      });
+    }
+  });
+});
+
+describe('subir un respaldo de «Descargar todo» (HU-T18.11)', () => {
+  it('un producto creado en el panel se actualiza con su respaldo, sin duplicarse', async () => {
+    await shard.batch([
+      shard
+        .prepare(
+          `INSERT INTO producto (org_id, id, slug, nombre, descripcion_md, estado, opciones, retracto,
+             solo_mayores, posicion, creado, actualizado)
+           VALUES (?, 'p-del-panel', 'bolso-del-panel', 'Bolso', '', 'activo', '[]', 'aplica', 0, 9, 'x', 'x')`,
+        )
+        .bind(ORG),
+      shard
+        .prepare(
+          `INSERT INTO variante (org_id, id, producto_id, clave, precio_cop, stock, posicion, actualizado)
+           VALUES (?, 'v-del-panel', 'p-del-panel', '', 50000, 2, 0, 'x')`,
+        )
+        .bind(ORG),
+    ]);
+    const respaldo = archivo({
+      formato: 'tienda-export/1',
+      colecciones: [],
+      envios: [],
+      cupones: [],
+      pedidos: [],
+      productos: [
+        {
+          refExterna: 'p-del-panel',
+          nombre: 'Bolso de cuero',
+          slug: 'bolso-del-panel',
+          estado: 'activo',
+          opciones: [],
+          variantes: [{ valores: [], precioCop: 55000, stock: 4 }],
+        },
+      ],
+    });
+    await aplicarTodo(respaldo);
+    await aplicarTodo(respaldo);
+    const { results } = await shard
+      .prepare(
+        `SELECT p.id, p.nombre, p.ref_externa, v.id AS variante, v.precio_cop, v.stock FROM producto p
+           JOIN variante v ON v.org_id = p.org_id AND v.producto_id = p.id
+          WHERE p.org_id = ? AND p.slug = 'bolso-del-panel'`,
+      )
+      .bind(ORG)
+      .all();
+    expect(results).toEqual([
+      {
+        id: 'p-del-panel',
+        nombre: 'Bolso de cuero',
+        ref_externa: 'p-del-panel',
+        variante: 'v-del-panel',
+        precio_cop: 55000,
+        stock: 4,
+      },
+    ]);
+  });
+
+  it('❌ una hoja con solo nombre y precio cambia eso y no borra lo demás del producto', async () => {
+    await shard.batch([
+      shard
+        .prepare(
+          `INSERT INTO producto (org_id, id, slug, nombre, descripcion_md, estado, opciones, retracto,
+             retracto_motivo, solo_mayores, iva_pct, posicion, ref_externa, creado, actualizado)
+           VALUES (?, 'p-gorra', 'mi-gorra', 'Gorra', 'Hecha a mano.', 'activo', '[]', 'no_aplica',
+             'Se hace a la medida.', 1, 19, 7, 'GOR-1', 'x', 'x')`,
+        )
+        .bind(ORG),
+      shard
+        .prepare(
+          `INSERT INTO variante (org_id, id, producto_id, clave, sku, precio_cop, precio_antes_cop, stock,
+             posicion, actualizado)
+           VALUES (?, 'v-gorra', 'p-gorra', '', 'GOR-1-U', 40000, 50000, 7, 0, 'x')`,
+        )
+        .bind(ORG),
+    ]);
+    await aplicarTodo({
+      formato: 'tienda-import/1',
+      tienda: { slug: 'carga', nombre: 'Tienda de carga' },
+      ajustes: {},
+      productos: [
+        {
+          refExterna: 'GOR-1',
+          nombre: 'Gorra azul',
+          opciones: [],
+          variantes: [{ valores: [], precioCop: 45000 }],
+        },
+      ],
+    });
+    expect(
+      await shard
+        .prepare(
+          `SELECT p.slug, p.nombre, p.descripcion_md, p.estado, p.retracto, p.retracto_motivo,
+             p.solo_mayores, p.iva_pct, p.posicion, v.sku, v.precio_cop, v.precio_antes_cop, v.stock
+             FROM producto p JOIN variante v ON v.org_id = p.org_id AND v.producto_id = p.id
+            WHERE p.org_id = ? AND p.id = 'p-gorra'`,
+        )
+        .bind(ORG)
+        .first(),
+    ).toEqual({
+      slug: 'mi-gorra',
+      nombre: 'Gorra azul',
+      descripcion_md: 'Hecha a mano.',
+      estado: 'activo',
+      retracto: 'no_aplica',
+      retracto_motivo: 'Se hace a la medida.',
+      solo_mayores: 1,
+      iva_pct: 19,
+      posicion: 7,
+      sku: 'GOR-1-U',
+      precio_cop: 45000,
+      precio_antes_cop: 50000,
+      stock: 7,
+    });
   });
 });

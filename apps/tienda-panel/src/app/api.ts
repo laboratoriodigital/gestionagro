@@ -47,7 +47,13 @@ export interface Yo {
   /** HU-T14.4: la dirección principal es el dominio propio, y el plan lo incluye. */
   dominioPropio?: boolean;
   funciones: Record<string, ValorDeFuncion> | null;
-  tienda: { slug: string; nombre: string; estado: string } | null;
+  tienda: {
+    slug: string;
+    nombre: string;
+    estado: string;
+    /** HU-T18.13: dada de baja, hasta cuándo se puede descargar lo suyo. */
+    descargarHasta?: string;
+  } | null;
   /** HU-T7.2: si la tienda aceptó los términos vigentes. */
   terminos?: { aceptados: boolean };
   /** HU-T11.2 CA3: con el pago en línea encendido, lo que falta para cobrar, en palabras. */

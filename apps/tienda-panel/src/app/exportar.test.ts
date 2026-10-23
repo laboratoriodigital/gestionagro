@@ -47,7 +47,9 @@ const exportacion: Exportacion = {
     {
       refExterna: 'p-camisa',
       nombre: 'Camisa de lino, «arena» & <azul>',
+      descripcionMd: 'Fresca.',
       estado: 'activo',
+      opciones: [{ nombre: 'Talla' }, { nombre: 'Color' }],
       variantes: [
         { valores: ['M', 'Arena'], sku: 'CAM-M', precioCop: 129000, stock: 4 },
         { valores: [], precioCop: 99000, precioAntesCop: 119000, stock: null },
@@ -74,6 +76,8 @@ describe('las hojas en el navegador (HU-T10.7 CA1)', () => {
       [
         'Referencia',
         'Producto',
+        'Descripción',
+        'Opciones',
         'Variante',
         'SKU',
         'Precio',
@@ -84,6 +88,8 @@ describe('las hojas en el navegador (HU-T10.7 CA1)', () => {
       [
         'p-camisa',
         'Camisa de lino, «arena» & <azul>',
+        'Fresca.',
+        'Talla / Color',
         'M / Arena',
         'CAM-M',
         129000,
@@ -91,7 +97,18 @@ describe('las hojas en el navegador (HU-T10.7 CA1)', () => {
         4,
         'activo',
       ],
-      ['p-camisa', 'Camisa de lino, «arena» & <azul>', '', null, 99000, 119000, null, 'activo'],
+      [
+        'p-camisa',
+        'Camisa de lino, «arena» & <azul>',
+        null,
+        'Talla / Color',
+        '',
+        null,
+        99000,
+        119000,
+        null,
+        'activo',
+      ],
     ]);
     expect(pedidos?.filas[1]).toEqual([
       'EXP0BB',
@@ -158,7 +175,7 @@ describe('las hojas en el navegador (HU-T10.7 CA1)', () => {
     expect(hoja).toContain(
       '<t xml:space="preserve">Camisa de lino, «arena» &amp; &lt;azul&gt;</t>',
     );
-    expect(hoja).toContain('<c r="E2"><v>129000</v></c>');
+    expect(hoja).toContain('<c r="G2"><v>129000</v></c>');
     // ❌ Un carácter de control no cabe en XML: se quita, y el libro sigue abriendo.
     const raro = dec.decode(
       leerZip(aXlsx([{ nombre: 'Hoja', filas: [['a\u0001b\u001fc\td']] }])).get(
@@ -167,7 +184,7 @@ describe('las hojas en el navegador (HU-T10.7 CA1)', () => {
     );
     expect(raro).toContain('<t xml:space="preserve">abc\td</t>');
     // Una celda vacía no se escribe.
-    expect(hoja).not.toContain('r="D3"');
+    expect(hoja).not.toContain('r="F3"');
     expect(columna(0)).toBe('A');
     expect(columna(25)).toBe('Z');
     expect(columna(26)).toBe('AA');

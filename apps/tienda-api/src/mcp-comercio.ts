@@ -486,9 +486,15 @@ export async function atenderMcpDelComercio(
   if (!vigente) return noAutorizado(c, env, 'invalid_token', 'Quitaron este acceso.');
   // CA2: solo en el plan IA Pro (HU-T18.3).
   const tienda = await db
-    .prepare('SELECT plan FROM tienda WHERE org_id = ?')
+    .prepare('SELECT plan, estado FROM tienda WHERE org_id = ?')
     .bind(r.org)
-    .first<{ plan: string }>();
+    .first<{ plan: string; estado: string }>();
+  // HU-T18.13: una tienda dada de baja no tiene asistente: ya no cambia.
+  if (tienda?.estado === 'baja')
+    return c.json(
+      { error: 'invalid_request', error_description: 'Esta tienda está dada de baja.' },
+      403,
+    );
   const delPlan = tienda
     ? funcionesDelPlan(funciones as unknown as FuncionesPorPlan, tienda.plan)
     : null;

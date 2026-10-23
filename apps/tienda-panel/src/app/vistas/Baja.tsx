@@ -9,6 +9,31 @@ import { type Conexion, pedirAlPanel } from '../api.ts';
 import { opNueva } from '../catalogo.ts';
 import { fechaLegible } from '../terminos.ts';
 
+/**
+ * HU-T18.13: lo que ve quien entra a una tienda dada de baja, en vez del panel. La tienda ya no se
+ * puede cambiar: queda descargar lo suyo y atender los datos de sus compradores hasta el borrado.
+ */
+export function TiendaDadaDeBaja({ nombre, hasta }: { nombre: string; hasta: string | null }) {
+  return (
+    <main class="contenido">
+      <h1>{nombre} está dada de baja</h1>
+      <Aviso tono="info" titulo="Ya no está en internet">
+        Sus direcciones dejaron de responder y ya no se puede cambiar.{' '}
+        {hasta
+          ? `Hasta el ${fechaLegible(hasta.slice(0, 10))} puedes entrar aquí y descargar todo lo suyo; ese día se borran los datos de tus compradores.`
+          : 'Durante 30 días desde la baja puedes entrar aquí y descargar todo lo suyo; después se borran los datos de tus compradores.'}
+      </Aviso>
+      <p>
+        <a href="/mas/datos/">Descargar todo</a>
+      </p>
+      <p>
+        <a href="/mas/titular/">Datos de un comprador</a>
+      </p>
+      <p>Tu cuenta sigue activa: la baja es solo de esta tienda.</p>
+    </main>
+  );
+}
+
 export function Baja({
   conexion,
   nombre,

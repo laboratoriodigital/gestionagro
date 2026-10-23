@@ -45,7 +45,7 @@ describe('la landing de TiendaPro (HU-T18.5)', () => {
     expect(planes.map((p) => [p.id, p.precioMes, p.anual])).toEqual([
       ['gratis', 0, null],
       ['pro', 24900, { total: 249000, ahorro: 49800 }],
-      ['ia-pro', 49000, { total: 490000, ahorro: 98000 }],
+      ['ia-pro', 49900, { total: 499000, ahorro: 99800 }],
     ]);
     expect(planes.find((p) => p.id === 'gratis')?.productos).toBe(10);
   });

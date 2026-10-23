@@ -1,50 +1,50 @@
 {
-  "nota": "Términos del servicio de la Tienda y contrato de transmisión de datos que acepta cada comercio en el panel (HU-T7.2; TIENDA-3.0 §4.4, §9.1 y §14.3; Decreto 1377 de 2013 art. 25, hoy Decreto 1074 de 2015 art. 2.2.2.25.5.2). El comercio es el Responsable de los datos de sus compradores y Laboratorio Digital los guarda como Encargado. Los pide el panel al propietario al entrar por primera vez y cada vez que cambie la `version`; sin la versión vigente aceptada, la API no deja publicar ni conectar el cobro (CA3). `custodia` es la cláusula que autoriza a guardar las llaves de Bold del comercio (HU-T11.2, TIENDA §9.2): se acepta aparte, en la pantalla Cobro, con su propia versión. Los datos del encargado salen de `content/tienda/privacidad/politica.json` (`responsable`); lo que está en null se muestra «por completar» (docs/runbooks/datos-del-responsable.md). Cambiar lo que prometen exige subir la versión: el panel los pide otra vez. Es un borrador para que el dueño y un abogado lo revisen.",
-  "version": "1",
-  "fecha": "2026-10-19",
-  "estado": "borrador",
-  "revision": "requiere revisión de abogado",
+  "nota": "Términos del servicio de la Tienda y contrato de transmisión de datos que acepta cada comercio en el panel (HU-T7.2; TIENDA-3.0 §4.4, §9.1 y §14.3; Decreto 1377 de 2013 art. 25, hoy Decreto 1074 de 2015 art. 2.2.2.25.5.2). El comercio es el Responsable de los datos de sus compradores y Laboratorio Digital los guarda como Encargado. Los pide el panel al propietario al entrar por primera vez y cada vez que cambie la `version`; sin la versión vigente aceptada, la API no deja publicar ni conectar el cobro (CA3). `custodia` es la cláusula que autoriza a guardar las llaves de Bold del comercio (HU-T11.2, TIENDA §9.2): se acepta aparte, en la pantalla Cobro, con su propia versión. Los datos del encargado salen de `content/tienda/privacidad/politica.json` (`responsable`); lo que falta se omite (HU-T18.6). Cambiar lo que prometen exige subir la versión: el panel los pide otra vez. Versión 2 (HU-T18.10, 23 oct 2026): vigente por decisión del dueño, que asume el riesgo de publicarla sin revisión de abogado mientras el negocio no esté formalizado; en palabras sencillas y sin nombrar a los proveedores de la plataforma. Bold sí se nombra: es la cuenta del propio comercio.",
+  "version": "2",
+  "fecha": "2026-10-23",
+  "estado": "vigente",
+  "revision": "vigente por decisión del dueño el 23 oct 2026, sin revisión de abogado",
   "aceptar": "Acepto los términos del servicio y el contrato de transmisión de datos en nombre de esta tienda.",
   "secciones": [
     {
       "titulo": "Quién es quién",
-      "texto": "{encargado} presta el servicio con el que tu tienda vende en línea: la vitrina, el panel y los avisos. Tu tienda es la que vende: Laboratorio Digital no es el vendedor, no es parte de la compraventa y no responde por tus productos ni por su entrega. Quien acepta estos términos lo hace en nombre de la tienda."
+      "texto": "{encargado} te presta TiendaPro: tu tienda en línea, el panel y los avisos. Quien vende es tu tienda: nosotros no somos parte de la venta y no respondemos por tus productos ni por su entrega. Aceptas estos términos en nombre de tu tienda."
     },
     {
       "titulo": "El dinero de tus ventas",
-      "texto": "Lo que tus compradores pagan en línea va directo a tu cuenta de Bold, a tu nombre. Laboratorio Digital no recibe, no guarda ni reparte ese dinero, y no cobra comisión sobre tus ventas: Bold te cobra la suya, según tu contrato con Bold. Lo que te pagan contra entrega, por transferencia o en efectivo también llega a ti directamente. El plan de la tienda se paga aparte."
+      "texto": "Lo que tus clientes pagan en línea llega directo a tu cuenta de Bold, a tu nombre. Nosotros no recibimos, no guardamos ni repartimos ese dinero, y no cobramos comisión por tus ventas: Bold te cobra la suya, según lo que acordaste con Bold. Lo que te pagan contra entrega, por transferencia o en efectivo también te llega directo. El plan de tu tienda se paga aparte."
     },
     {
       "titulo": "Lo que te toca como vendedor",
-      "texto": "Responder por lo que vendes como lo pide el Estatuto del Consumidor (Ley 1480 de 2011): informar el precio total y las condiciones antes de la compra, cumplir la garantía y el derecho de retracto, entregar lo que ofreciste y atender las peticiones, quejas y reclamos de tus compradores en los plazos de la ley. Los datos de tu negocio que publicas en la tienda tienen que ser ciertos."
+      "texto": "Respondes por lo que vendes, como lo pide la ley de protección al consumidor (Ley 1480 de 2011): decir el precio total y las condiciones antes de la compra, cumplir la garantía y el derecho de retracto, entregar lo que ofreciste y atender las peticiones, quejas y reclamos de tus clientes a tiempo. Los datos de tu negocio que publicas en tu tienda tienen que ser ciertos."
     },
     {
       "titulo": "Lo que no se permite",
-      "texto": "Una tienda fraudulenta: cobrar lo que no se piensa entregar, ofrecer lo que no se tiene para quedarse con el pago, hacerse pasar por otra marca, empresa o persona, o vender lo que la ley colombiana prohíbe. Si una tienda hace algo de esto, Laboratorio Digital puede suspenderla de inmediato, avisar a Bold y a las autoridades, y conservar lo necesario para la investigación."
+      "texto": "Usar la tienda para engañar: cobrar lo que no piensas entregar, ofrecer lo que no tienes para quedarte con el pago, hacerte pasar por otra marca, empresa o persona, o vender lo que la ley colombiana prohíbe. Si una tienda hace algo de esto, podemos suspenderla de inmediato, avisar a Bold y a las autoridades, y guardar lo necesario para la investigación."
     },
     {
       "titulo": "Los datos de tus compradores",
-      "texto": "Tu tienda es la Responsable de los datos personales de sus compradores (Ley 1581 de 2012), con su propia política, que se publica en la tienda. {encargado} es el Encargado: los guarda por cuenta de tu tienda y solo para lo que aquí se dice. Este es el contrato de transmisión de datos entre los dos."
+      "texto": "Los datos de tus clientes son responsabilidad de tu tienda (Ley 1581 de 2012), que publica su propia política. {encargado} los cuida por encargo de tu tienda, como Encargado, y solo para lo que aquí se dice. Esta parte es el acuerdo entre los dos para cuidar esos datos."
     },
     {
-      "titulo": "Para qué los usa el Encargado",
-      "texto": "Para recibir los pedidos y las solicitudes de tus compradores, mostrártelos en el panel, mandar los avisos y los correos de cada pedido, consultar sus pagos con Bold y guardar una copia de respaldo. El Encargado no usa estos datos para nada propio: ni publicidad, ni venta, ni perfiles."
+      "titulo": "Para qué los usamos",
+      "texto": "Para recibir los pedidos y las solicitudes de tus clientes, mostrártelos en el panel, enviar los avisos y los correos de cada pedido, confirmar sus pagos y guardar una copia de respaldo. No los usamos para nada nuestro: ni publicidad, ni venta, ni perfiles."
     },
     {
-      "titulo": "Lo que el Encargado se obliga a hacer",
-      "texto": "Tratar los datos solo según las instrucciones de tu tienda y su política; guardarlos cifrados y con medidas de seguridad; mantenerlos en reserva, también después de terminar el servicio; borrar los contactos cuando vence el plazo que tu tienda eligió; avisarle a tu tienda de cualquier incidente que los afecte; y ayudarle a responder las consultas y los reclamos de los titulares."
+      "titulo": "Lo que nos comprometemos a hacer",
+      "texto": "Usar los datos solo como tu tienda lo indica; guardarlos protegidos y en reserva, también después de terminar el servicio; borrar los contactos cuando se cumple el tiempo que tu tienda eligió; avisarte si algo los pone en riesgo; y ayudarte a responder las consultas y los reclamos de tus clientes sobre sus datos."
     },
     {
-      "titulo": "Quién más los guarda",
-      "texto": "La tienda corre en Cloudflare, que tiene servidores fuera de Colombia. Entrar al panel usa Google, que solo recibe el nombre y el correo de quien entra. Los correos de los pedidos salen por Gmail. Los pagos en línea los procesa Bold, con quien tu tienda tiene su propio contrato."
+      "titulo": "Quién nos ayuda",
+      "texto": "Para que tu tienda funcione nos apoyamos en proveedores de tecnología: para tenerla en internet, para que entres con tu cuenta y para enviar los correos. Algunos tienen sus servidores fuera de Colombia. Solo reciben lo necesario para su tarea y deben cuidarlo igual que nosotros. Los pagos en línea los procesa Bold, con quien tu tienda tiene su propio acuerdo."
     },
     {
       "titulo": "Cuando tu tienda se va",
-      "texto": "Tu tienda puede descargar todo lo suyo cuando quiera, desde el panel. Al dar de baja la tienda, sus direcciones dejan de responder y tiene 30 días para descargar lo suyo. Pasados esos días, el Encargado borra las llaves que protegen los datos de sus compradores y sus copias de seguridad, y deja constancia del borrado; a más tardar a los 60 días de la baja no queda ninguna copia legible. Lo que la ley obliga a conservar se conserva solo por el plazo que ella dice."
+      "texto": "Puedes descargar todo lo de tu tienda cuando quieras, desde el panel. Si das de baja tu tienda, deja de verse en internet de inmediato y tienes 30 días para descargar lo tuyo. Después borramos para siempre los datos de tus clientes y las copias de seguridad de tu tienda, y dejamos constancia; a más tardar a los 60 días de la baja no queda ninguna copia que se pueda leer. Lo que la ley obliga a guardar se guarda solo el tiempo que ella dice."
     },
     {
       "titulo": "Cuando estos términos cambian",
-      "texto": "Si cambia lo que aquí se promete, el panel te los muestra otra vez antes de seguir publicando o cobrando, con la fecha y lo que cambió."
+      "texto": "Si cambia lo que aquí prometemos, el panel te los muestra otra vez antes de seguir publicando o cobrando, con la fecha y lo que cambió."
     },
     {
       "titulo": "Encargado",

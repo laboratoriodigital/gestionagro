@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- El catálogo trae IA Pro a COP 49.900 al mes (142.000, 269.000 y 499.000 por 3, 6 y 12 meses) y la versión 2 de la política de datos de las cuentas de TiendaPro, vigente (HU-T18.9 y HU-T18.10). El precio nuevo queda como una fila más de `plan_precio`: lo ya pagado no cambia. Al entrar, el CORE pide aceptar la política nueva.
+- El resumen de errores de los formularios (`@ed1/ui`) lleva al primer campo con error (HU-T18.12). El CORE no lo usa todavía.
+
 ## [0.7.0] - 2026-10-22
 
 El CORE abre TiendaPro en producción: crea sus tiendas y cobra sus planes.
