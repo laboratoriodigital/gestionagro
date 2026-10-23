@@ -5,6 +5,7 @@
   "description": "Tokens de acceso Ed25519 del CORE: firmar (CORE) y verificar (celdas) con la misma función (ADR-10, P2).",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./prueba": "./src/prueba.ts"
   }
 }
