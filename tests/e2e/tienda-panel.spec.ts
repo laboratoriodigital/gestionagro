@@ -1948,7 +1948,11 @@ test('HU-T10.1 · CA1 y CA2: un envío de 45 días lo avisa, y un cupón dice su
   await page.getByRole('link', { name: 'Agregar un envío' }).click();
   await page.getByRole('button', { name: 'Guardar el envío' }).click();
   await expect(page.getByText('Falta corregir 2 cosas:')).toBeVisible();
+  await expect(page.getByLabel(/^Nombre/)).toBeFocused();
   await page.getByLabel(/^Nombre/).fill('Bodega');
+  // ❌ Bitácora tienda3 58: corregir un error no le quita el foco a quien escribe.
+  await page.waitForTimeout(150);
+  await expect(page.getByLabel(/^Nombre/)).toBeFocused();
   await page.getByLabel(/^Precio/).fill('40.000');
   await page.getByLabel(/como mínimo/).fill('35');
   await page.getByLabel(/como máximo/).fill('45');

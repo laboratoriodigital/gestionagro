@@ -1422,3 +1422,17 @@ La regla: **una herramienta del operador que se abre a los comercios se revisa c
 La regla: **un estado final se prueba por lo que ya no se puede hacer después, no solo por el cambio que lo produce.**
 
 *Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟡 Medio · P1 · tienda-1.0.0 · 2026-10-23
+
+**58 · El foco automático de los errores llegaba tarde y se robaba lo que se escribía.**
+
+*Qué pasó.* El 23 oct 2026 el CI del PR #227 falló en dos e2e del panel: en «Agregar un envío» se guardó el nombre «Bodega40.000» con precio 0, y en «Cobro en línea» las llaves no quedaron guardadas. En la máquina local pasaban.
+
+*La causa.* HU-T18.12 ponía el foco en el primer campo con error en el cuadro siguiente a que aparecían los errores (`requestAnimationFrame` dentro de `useEffect`). En una máquina lenta ese cuadro llegó cuando ya se estaba escribiendo en el campo de abajo: el foco volvió a «Nombre» a mitad de la escritura y el precio quedó pegado al nombre. A una persona en un teléfono lento le habría pasado igual.
+
+*El arreglo.* El foco se mueve en el mismo momento en que aparecen los errores (`useLayoutEffect`), antes de que se pueda escribir otra cosa. Y solo cuando aparece un error que no estaba: si los errores bajan porque la persona los va corrigiendo, el foco se queda donde escribe.
+
+**Lo prueban** las e2e de envíos, cobro, anotar y la galería, corridas 8 veces en paralelo con 8 trabajadores; y en la de envíos, que el foco siga en «Nombre» después de escribir en él.
+
+La regla: **lo que mueve el foco lo hace en el mismo instante del cambio que lo causa, nunca después: después, la persona ya está en otro lado.**
+
+*Ficha:* tienda3 · *(mía)* · 🟡 Medio · P1 · tienda-1.0.0 · 2026-10-23
