@@ -1431,7 +1431,7 @@ La regla: **un estado final se prueba por lo que ya no se puede hacer después, 
 
 *El arreglo.* El foco se mueve en el mismo momento en que aparecen los errores (`useLayoutEffect`), antes de que se pueda escribir otra cosa. Y solo cuando aparece un error que no estaba: si los errores bajan porque la persona los va corrigiendo, el foco se queda donde escribe.
 
-**Lo prueban** las e2e de envíos, cobro, anotar y la galería, corridas 8 veces en paralelo con 8 trabajadores; y en la de envíos, que el foco siga en «Nombre» después de escribir en él.
+**Lo prueban** las e2e de envíos, cobro, anotar y la galería, corridas 8 veces en paralelo con 8 trabajadores; y en la de envíos, que el nombre y el precio se guarden cada uno en su campo.
 
 La regla: **lo que mueve el foco lo hace en el mismo instante del cambio que lo causa, nunca después: después, la persona ya está en otro lado.**
 
