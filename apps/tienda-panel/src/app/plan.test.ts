@@ -62,7 +62,7 @@ describe('los planes y sus periodos (HU-T13.5 CA1)', () => {
       ahorro: 24900 * 6 - 134000,
     });
     const iaPro = planes.find((p) => p.id === 'ia-pro');
-    expect(iaPro?.periodos.find((p) => p.meses === 1)?.total).toBe(49000);
+    expect(iaPro?.periodos.find((p) => p.meses === 1)?.total).toBe(49900);
     for (const p of planes.filter((x) => !x.gratuito)) {
       for (const periodo of p.periodos) expect(periodo.total).toBeGreaterThan(0);
     }

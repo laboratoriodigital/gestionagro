@@ -132,13 +132,15 @@ const registro = (org = UNO) =>
 describe('los términos del comercio (HU-T7.2)', () => {
   it('CA2: dicen que el dinero va a la cuenta de Bold del comercio, que no es el vendedor, y prohíben el fraude', async () => {
     const t = (await textos()).terminos.secciones.map(([a, b]) => `${a}. ${b}`).join('\n');
-    expect(t).toMatch(/va directo a tu cuenta de Bold/);
-    expect(t).toMatch(/Laboratorio Digital no es el vendedor/);
-    expect(t).toMatch(/no recibe, no guarda ni reparte ese dinero/);
-    expect(t).toMatch(/Una tienda fraudulenta/);
+    expect(t).toMatch(/llega directo a tu cuenta de Bold/);
+    expect(t).toMatch(/Quien vende es tu tienda: nosotros no somos parte de la venta/);
+    expect(t).toMatch(/no recibimos, no guardamos ni repartimos ese dinero/);
+    expect(t).toMatch(/Usar la tienda para engañar/);
     // El contrato de transmisión: el comercio responde, Laboratorio Digital guarda por su cuenta.
-    expect(t).toMatch(/Tu tienda es la Responsable/);
-    expect(t).toMatch(/contrato de transmisión/);
+    expect(t).toMatch(/son responsabilidad de tu tienda \(Ley 1581 de 2012\)/);
+    expect(t).toMatch(/como Encargado/);
+    // HU-T18.10: sin nombrar a los proveedores de la plataforma; Bold es la cuenta del comercio.
+    expect(t).not.toMatch(/Cloudflare|Google|Gmail|Resend/);
     // HU-T18.6 CA2: lo que falta del encargado se omite, sin inventarlo ni dejar un hueco a la vista.
     expect(t).toMatch(/Encargado\. Laboratorio Digital, domicilio Medellín, Colombia, correo /);
     expect(t).not.toMatch(/por completar|identificación|teléfono|\{\w+\}/);
@@ -152,7 +154,8 @@ describe('los términos del comercio (HU-T7.2)', () => {
     expect(t.terminos.version).toBe(plantilla.version);
     expect(t.terminos.aceptados).toBe(false);
     expect(t.custodia.aceptada).toBe(false);
-    expect(t.estado).toBe('borrador');
+    // HU-T18.10: vigentes por decisión del dueño, sin el aviso de borrador.
+    expect(t.estado).toBe('vigente');
     // El colaborador los puede leer, aunque no aceptarlos.
     expect((await pedir('terminos', undefined, 'colaborador')).status).toBe(200);
   });
