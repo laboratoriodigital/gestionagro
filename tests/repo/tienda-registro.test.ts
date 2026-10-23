@@ -114,7 +114,7 @@ describe('los planes y lo que permite cada uno', () => {
     const de = (f: string) => idsDePlanes().map((p) => valorDe(funciones(), f, p));
     expect(de('usuarios')).toEqual([1, 3, null]);
     expect(de('sin_marca')).toEqual([false, true, true]);
-    expect(de('factura_integrada')).toEqual([false, true, true]);
+    expect(de('factura_integrada')).toEqual([false, false, true]);
     expect(de('mcp_publico')).toEqual([false, true, true]);
     // ❌ CA3: una tienda Pro no ofrece el MCP del comercio; solo IA Pro.
     expect(de('mcp_del_comercio')).toEqual([false, false, true]);

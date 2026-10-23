@@ -133,15 +133,15 @@ Los planes viven en `content/tienda/planes.json` (P2), con el formato de `PLATAF
 | Plan | Mes | Para quién | Incluye | Límite que empuja al siguiente |
 |---|---:|---|---|---|
 | `gratis` (Gratis) | COP 0 | Empezar a vender por WhatsApp | Catálogo y pedido por WhatsApp, a convenir. `<nombre>.mitiendapro.co`. El sello «Hecha con TiendaPro» al pie | Hasta 10 productos, un usuario, sin dominio propio ni cobro en línea |
-| `pro` (Pro) | COP 24.900 | El comercio que vende cada semana | Productos sin límite. Cobro en línea con su Bold (botón y link de pago), contraentrega con su recaudo, transferencia y efectivo. Opciones de envío. Dominio propio, sin el sello. Feeds para Google y Meta. Resumen diario y recordatorios. La factura con su facturador (§14.5). Los asistentes de sus compradores preparan pedidos (MCP público, §13.4) | Hasta 3 personas; sin el asistente del comerciante |
-| `ia-pro` (IA Pro) | COP 49.000 | El que quiere manejar su tienda con su asistente | Lo de Pro, más el MCP del comercio (su asistente ve pedidos, cambia estados y ajusta el inventario) y el equipo sin límite | — |
+| `pro` (Pro) | COP 24.900 | El comercio que vende cada semana | Productos sin límite. Cobro en línea con su Bold (botón y link de pago), contraentrega con su recaudo, transferencia y efectivo. Opciones de envío. Dominio propio, sin el sello. Feeds para Google y Meta. Resumen diario y recordatorios. Los asistentes de sus compradores preparan pedidos (MCP público, §13.4) | Hasta 3 personas; sin el asistente del comerciante |
+| `ia-pro` (IA Pro) | COP 49.900 | El que quiere manejar su tienda con su asistente | Lo de Pro, más el MCP del comercio (su asistente ve pedidos, cambia estados y ajusta el inventario), la factura con su facturador (§14.5; desde el 23 oct 2026, solo aquí) y el equipo sin límite | — |
 
 **Por periodo**, con la regla de `PLATAFORMA.md` §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo):
 
 | Plan | 1 mes | 3 meses | 6 meses | 12 meses |
 |---|---:|---:|---:|---:|
 | `pro` | 24.900 | 70.000 | 134.000 | 249.000 |
-| `ia-pro` | 49.000 | 139.000 | 264.000 | 490.000 |
+| `ia-pro` | 49.900 | 142.000 | 269.000 | 499.000 |
 
 **Las cuatro reservas del estudio, que el diseño respeta:**
 

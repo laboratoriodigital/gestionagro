@@ -35,7 +35,7 @@ for (const ancho of [360, 1280]) {
     const planes = page.locator('#planes');
     await expect(planes.getByRole('heading', { level: 3 })).toHaveText(['Gratis', 'Pro', 'IA Pro']);
     await expect(planes).toContainText('$24.900');
-    await expect(planes).toContainText('$49.000');
+    await expect(planes).toContainText('$49.900');
     // Nada se sale de lo ancho de la pantalla.
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       ancho,

@@ -42,7 +42,7 @@
   },
   "factura_integrada": {
     "gratis": false,
-    "pro": true,
+    "pro": false,
     "ia-pro": true
   },
   "mcp_publico": {
