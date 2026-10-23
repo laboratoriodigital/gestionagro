@@ -22,7 +22,7 @@ Sin todos, la copia no se hace y no escribe nada. El resto sigue igual.
 
 1. Entra a [console.cloud.google.com](https://console.cloud.google.com) con **tu** cuenta de Google, la del Drive donde quieres las copias. Crea un proyecto aparte: «Laboratorio Digital · copias».
 2. **APIs y servicios › Biblioteca:** busca «Google Drive API» y actívala.
-3. **Pantalla de consentimiento de OAuth:** tipo «Externo», nombre «Laboratorio Digital · copias». Agrega el permiso `…/auth/drive.file`. En **Público**, pulsa **Publicar la app** para que quede «En producción»: *en «prueba», el permiso vence a los 7 días.* Google avisará que la app no está verificada: es normal, solo la usa tu cuenta.
+3. **Pantalla de consentimiento de OAuth:** tipo «Externo», nombre «Laboratorio Digital · copias». Agrega el permiso `…/auth/drive.file`. En **Desarrollo de la marca**, Google pide para publicar: página principal `https://cuenta.laboratorio-digital.com/`, política de privacidad `https://cuenta.laboratorio-digital.com/privacidad/` y dominio autorizado `laboratorio-digital.com`. En **Público**, pulsa **Publicar la app** para que quede «En producción»: *en «prueba», el permiso vence a los 7 días, y si tu cuenta no está entre los usuarios de prueba, Google responde «Error 403: access_denied» (le pasó al dueño el 23 oct 2026).* Al dar el permiso, Google avisará que la app no está verificada: toca **Configuración avanzada › Ir a …**; es normal, solo la usa tu cuenta.
 4. **Credenciales › Crear credenciales › ID de cliente de OAuth**, tipo **App de escritorio**, nombre «Copias del CORE». Deja abierta la ventana con el id y el secreto.
 
 ## 2. El permiso y la llave (por ambiente: staging primero)
