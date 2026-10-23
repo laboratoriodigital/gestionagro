@@ -27,13 +27,17 @@ const slug = z
 const nombre = z.string().trim().min(1).max(160);
 const pesos = z.number().int('debe ser un número entero de pesos').min(0);
 
+/**
+ * HU-T18.11: en `sku`, `precioAntesCop` y `stock`, `undefined` es «el archivo no lo trae» y en una
+ * combinación que ya existe no se toca; `null` lo quita (o, en `stock`, deja de contarlo).
+ */
 const variante = z.object({
   valores: z.array(z.string().trim().min(1).max(40)),
-  sku: z.string().trim().min(1).max(60).optional(),
+  sku: z.string().trim().min(1).max(60).nullable().optional(),
   precioCop: pesos.min(1, 'un precio de 0 no se carga: si es un regalo, se dice en el panel'),
-  precioAntesCop: pesos.optional(),
+  precioAntesCop: pesos.nullable().optional(),
   /** `null`: no se cuenta. Nunca se deduce de un vacío (bitácora ecommerce 54). */
-  stock: z.number().int().min(0).nullable(),
+  stock: z.number().int().min(0).nullable().optional(),
 });
 
 const producto = z.object({
@@ -41,7 +45,8 @@ const producto = z.object({
   nombre,
   slug: slug.optional(),
   descripcionMd: z.string().max(20_000).optional(),
-  estado: z.enum(['borrador', 'activo', 'archivado']),
+  // HU-T18.11: sin estado, uno nuevo nace en borrador y uno que existe queda como está.
+  estado: z.enum(['borrador', 'activo', 'archivado']).optional(),
   opciones: z
     .array(
       z.object({
@@ -65,17 +70,20 @@ const producto = z.object({
     .max(30)
     .default([]),
   colecciones: z.array(ref).default([]),
+  // HU-T18.11: lo que no trae el archivo no se toca en un producto que ya existe; en uno nuevo vale
+  // lo de siempre (retracto aplica, sin restricción de edad, IVA sin decir). Así una hoja con solo
+  // precios e inventario no borra lo demás.
   retracto: z
     .union([
       z.object({ aplica: z.literal(true) }),
       z.object({ aplica: z.literal(false), motivo: z.string().trim().min(3).max(300) }),
     ])
-    .default({ aplica: true }),
-  soloMayores: z.boolean().default(false),
+    .optional(),
+  soloMayores: z.boolean().optional(),
   ivaPct: z
     .union([z.literal(0), z.literal(5), z.literal(19)])
     .nullable()
-    .default(null),
+    .optional(),
 });
 
 const linea = z.object({
@@ -223,7 +231,7 @@ export function revisarCarga(
           }
         });
       }
-      if (v.precioAntesCop !== undefined && v.precioAntesCop <= v.precioCop) {
+      if (v.precioAntesCop != null && v.precioAntesCop <= v.precioCop) {
         problemas.push({
           campo: `${lugar}.variantes.${j}`,
           mensaje: 'el precio «antes» tiene que ser mayor que el precio',

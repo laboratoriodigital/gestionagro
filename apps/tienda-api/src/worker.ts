@@ -1578,12 +1578,22 @@ export function crearApp(
    */
   const puedeImportar = (c: ContextoTienda) => {
     const s = c.get('sesion');
-    return decidir(s.rol, 'importar', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    const decision = decidir(s.rol, 'importar', s.authTime ?? 0, Math.floor(ahora() / 1000));
+    if (decision !== 'permitido') return decision;
+    // HU-T18.11: cargar por lotes y subir un respaldo son de Pro e IA Pro (`carga_por_lotes`).
+    const delPlan = s.plan
+      ? funcionesDelPlan(funciones as unknown as FuncionesPorPlan, s.plan)
+      : null;
+    return delPlan?.['carga_por_lotes'] === true ? decision : 'plan';
   };
+  const motivoParaNoImportar = (decision: string) =>
+    decision === 'plan'
+      ? 'Cargar productos por lotes y subir un respaldo son de los planes Pro e IA Pro.'
+      : 'Tu rol no puede cargar una tienda.';
   app.post('/api/panel/v1/importar/revisar', async (c) => {
     const decision = puedeImportar(c);
     if (decision !== 'permitido') {
-      return c.json({ estado: decision, motivo: 'Tu rol no puede cargar una tienda.' }, 403);
+      return c.json({ estado: decision, motivo: motivoParaNoImportar(decision) }, 403);
     }
     const s = c.get('sesion');
     let cuerpo: { carga?: unknown };
@@ -1601,7 +1611,7 @@ export function crearApp(
   app.post('/api/panel/v1/importar/aplicar', async (c) => {
     const decision = puedeImportar(c);
     if (decision !== 'permitido') {
-      return c.json({ estado: decision, motivo: 'Tu rol no puede cargar una tienda.' }, 403);
+      return c.json({ estado: decision, motivo: motivoParaNoImportar(decision) }, 403);
     }
     const s = c.get('sesion');
     let cuerpo: { carga?: unknown; parte?: unknown };

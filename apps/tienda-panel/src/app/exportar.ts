@@ -16,7 +16,9 @@ export interface Exportacion {
   productos: {
     refExterna: string;
     nombre: string;
+    descripcionMd?: string;
     estado: string;
+    opciones?: { nombre: string }[];
     variantes: {
       valores: string[];
       sku?: string;
@@ -43,7 +45,11 @@ export interface Hoja {
   filas: Celda[][];
 }
 
-/** Las hojas: una fila por variante y una por pedido. */
+/**
+ * Las hojas: una fila por variante y una por pedido. La de productos tiene las columnas de la carga
+ * por lotes (HU-T18.11), para que se pueda cambiar en Excel y volver a subir: la descripción va en
+ * la primera fila de cada producto y «Opciones» dice el nombre de cada grupo.
+ */
 export function hojasDe(e: Exportacion): Hoja[] {
   return [
     {
@@ -52,6 +58,8 @@ export function hojasDe(e: Exportacion): Hoja[] {
         [
           'Referencia',
           'Producto',
+          'Descripción',
+          'Opciones',
           'Variante',
           'SKU',
           'Precio',
@@ -60,9 +68,11 @@ export function hojasDe(e: Exportacion): Hoja[] {
           'Estado',
         ],
         ...e.productos.flatMap((p) =>
-          p.variantes.map((v): Celda[] => [
+          p.variantes.map((v, j): Celda[] => [
             p.refExterna,
             p.nombre,
+            j === 0 && p.descripcionMd ? p.descripcionMd : null,
+            (p.opciones ?? []).map((o) => o.nombre).join(' / ') || null,
             v.valores.join(' / '),
             v.sku ?? null,
             v.precioCop,

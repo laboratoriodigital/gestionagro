@@ -67,6 +67,11 @@ export function Mas({
             <a href="/mas/datos/">Descargar todo</a>
           </li>
         ) : null}
+        {puede(rol, 'importar') ? (
+          <li>
+            <a href="/mas/cargar/">Cargar productos y respaldos</a>
+          </li>
+        ) : null}
         {puede(rol, 'titular.gestionar') ? (
           <li>
             <a href="/mas/titular/">Datos de un comprador</a>
