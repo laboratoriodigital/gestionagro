@@ -5,6 +5,7 @@
 import type { BaseD1 } from '@ed1/d1';
 import { baseLocal, vaciar } from '@ed1/d1/local';
 import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
+import { firmarTokenV1DePrueba } from '@ed1/tokens/prueba';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { crearApp, type Env, TABLAS_DEL_SHARD } from './worker.ts';
 
@@ -47,6 +48,7 @@ const token = async (datos: Partial<Parameters<typeof firmarAcceso>[1]> = {}, ah
         celda: 'c0',
         shard: SHARD,
         anillo: 1,
+        aud: 'agro',
         ...datos,
       },
       ahora,
@@ -163,7 +165,15 @@ describe('CA1 · todo /api/v1/* exige un token del CORE; org y shard salen del t
     const ajeno = (
       await firmarAcceso(
         otro,
-        { sub: 'u', org: 'org-uno', rol: 'propietario', celda: 'c0', shard: SHARD, anillo: 1 },
+        {
+          sub: 'u',
+          org: 'org-uno',
+          rol: 'propietario',
+          celda: 'c0',
+          shard: SHARD,
+          anillo: 1,
+          aud: 'agro',
+        },
         T0,
       )
     ).token;
@@ -258,15 +268,14 @@ describe('HU-C4.1 · la celda acepta solo tokens de su producto', () => {
       )
     ).token;
 
-  it('un v2 del agro y un v1 entran; un v2 de otro producto no', async () => {
+  it('un token del agro entra; uno de otro producto no', async () => {
     expect((await yo(await v2('agro'))).status).toBe(200);
-    expect((await yo(await token())).status).toBe(200);
     const otro = await yo(await v2('ensayo'));
     expect(otro.status).toBe(401);
     expect(await otro.json()).toMatchObject({ estado: 'sin-sesion' });
   });
 
-  it('en una celda de otro producto, el v1 (sin producto) ya no entra', async () => {
+  it('en una celda de otro producto, el del agro no entra', async () => {
     expect((await yo(await token(), env({ PRODUCTO: 'ensayo' }))).status).toBe(401);
     expect((await yo(await v2('ensayo'), env({ PRODUCTO: 'ensayo' }))).status).toBe(200);
   });
@@ -282,8 +291,21 @@ describe('HU-C4.1 · la celda acepta solo tokens de su producto', () => {
   });
 });
 
+describe('HU-C4.5 · la celda rechaza los tokens v1', () => {
+  it('CA1 y CA3 ❌: un v1 vigente y firmado con la clave buena responde «sin-sesion», y la app renueva', async () => {
+    const v1 = await firmarTokenV1DePrueba(
+      firmante,
+      { sub: 'u1', org: 'org-uno', rol: 'operario', celda: 'c0', shard: SHARD, anillo: 1 },
+      T0,
+    );
+    const r = await yo(v1);
+    expect(r.status).toBe(401);
+    expect(await r.json()).toMatchObject({ estado: 'sin-sesion' });
+  });
+});
+
 describe('HU-C7.3 · CA4 ❌: un token de la cuenta no abre una celda', () => {
-  it('ni en v2 (aud = cuenta) ni en v1 (sin organización)', async () => {
+  it('ni con aud = cuenta, ni sin organización', async () => {
     const deLaCuenta = (
       await firmarAcceso(
         firmante,
@@ -293,8 +315,8 @@ describe('HU-C7.3 · CA4 ❌: un token de la cuenta no abre una celda', () => {
       )
     ).token;
     expect((await yo(deLaCuenta)).status).toBe(401);
-    const v1 = await token({ org: null, rol: null, celda: null, shard: null, anillo: null });
-    const r = await yo(v1);
+    const sinOrg = await token({ org: null, rol: null, celda: null, shard: null, anillo: null });
+    const r = await yo(sinOrg);
     expect(r.status).toBe(403);
     expect(await r.json()).toMatchObject({ estado: 'sin-organizacion' });
   });

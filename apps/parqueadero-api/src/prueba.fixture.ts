@@ -10,6 +10,7 @@ import { DISPOSITIVO, ENTRADA_ENSAYO } from '@ed1/parqueadero-schema/ensayos';
 import type { Operacion } from '@ed1/parqueadero-schema/sync';
 import { PROTOCOLO } from '@ed1/sync';
 import { type Firmante, firmanteDesde, firmarAcceso, generarClavePrivada } from '@ed1/tokens';
+import { firmarTokenV1DePrueba } from '@ed1/tokens/prueba';
 import { VERSION_DE_LOS_TERMINOS } from './terminos.ts';
 import { crearApp, type Env, TABLAS_DEL_SHARD } from './worker.ts';
 
@@ -74,14 +75,17 @@ export const env = (e: Entorno, extra: Partial<Env> = {}): Env => ({
 
 type Datos = Parameters<typeof firmarAcceso>[1];
 
-/** Un token v2 del CORE para el parqueadero, como lo emite HU-C4.3; uno v1 no lleva `aud`. */
+/**
+ * Un token del CORE para el parqueadero, como lo emite HU-C4.3. Con `version` 1, uno del formato
+ * retirado (HU-C4.5), para probar que se rechaza.
+ */
 export const token = async (
   e: Entorno,
   datos: Partial<Datos> = {},
   ahora = T0,
   version: 1 | 2 = 2,
 ) => {
-  const { aud, ...resto }: Datos = {
+  const completos: Datos = {
     sub: PROPIETARIO,
     org: ORG_UNO,
     rol: 'propietario',
@@ -93,9 +97,11 @@ export const token = async (
     plan: 'parqueadero',
     ...datos,
   };
-  return (
-    await firmarAcceso(e.firmante, version === 2 && aud ? { ...resto, aud } : resto, ahora, version)
-  ).token;
+  if (version === 1) {
+    const { sub, org, rol, celda, shard, anillo } = completos;
+    return firmarTokenV1DePrueba(e.firmante, { sub, org, rol, celda, shard, anillo }, ahora);
+  }
+  return (await firmarAcceso(e.firmante, completos, ahora)).token;
 };
 
 /**

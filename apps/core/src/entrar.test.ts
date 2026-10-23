@@ -15,6 +15,7 @@ import {
   hashDe,
   verificarAcceso,
 } from '@ed1/tokens';
+import { firmarTokenV1DePrueba } from '@ed1/tokens/prueba';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cargarCeldas } from '../../../scripts/lib/celdas.ts';
 import {
@@ -674,6 +675,7 @@ describe('HU-C3.2 · organizaciones, invitaciones y equipo por producto', () => 
         celda: 'c0',
         shard: 'agro_c0_s1',
         anillo: 1,
+        aud: 'agro',
       };
       return (await firmarAcceso(await firmanteDesde(clave), datos, reloj)).token;
     }
@@ -1568,25 +1570,15 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
       expect((await leer(r.acceso)).iat).toBe(Math.floor(reloj / 1000));
     });
 
-    it('CA2 · un token v1 ya emitido sigue sirviendo hasta su exp', async () => {
+    it('HU-C4.5 CA1 ❌ · un token v1 vigente ya no sirve: la app renueva y recibe un v2', async () => {
       const p = await propietario();
       const usuario = (await leer(p.acceso)).sub;
-      const v1 = (
-        await firmarAcceso(
-          await firmanteDesde(clave),
-          {
-            sub: usuario,
-            org: ORG,
-            rol: 'propietario',
-            celda: 'c0',
-            shard: 'agro_c0_s1',
-            anillo: 1,
-          },
-          reloj,
-        )
-      ).token;
-      expect((await leer(v1)).iss).toBe('agro-core');
-      expect((await conToken('/api/core/equipo/ver', v1, {})).status).toBe(200);
+      const v1 = await firmarTokenV1DePrueba(
+        await firmanteDesde(clave),
+        { sub: usuario, org: ORG, rol: 'propietario', celda: 'c0', shard: 'agro_c0_s1', anillo: 1 },
+        reloj,
+      );
+      expect((await conToken('/api/core/equipo/ver', v1, {})).status).toBe(401);
     });
   });
 

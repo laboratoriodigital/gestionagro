@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- La API del parqueadero rechaza los tokens v1 (HU-C4.5); la caja renueva y recibe un v2, como hasta hoy.
+
 ## [0.9.0] - 2026-10-23
 
 El operador sin Google entra a la caja con un enlace a su correo.

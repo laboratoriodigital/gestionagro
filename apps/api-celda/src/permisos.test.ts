@@ -52,7 +52,7 @@ async function pedir(rol: string, ruta: string, cuerpo?: object) {
   const token = (
     await firmarAcceso(
       firmante,
-      { sub: 'u', org: ORG, rol, celda: 'c0', shard: SHARD, anillo: 1 },
+      { sub: 'u', org: ORG, rol, celda: 'c0', shard: SHARD, anillo: 1, aud: 'agro' },
       T0,
     )
   ).token;
