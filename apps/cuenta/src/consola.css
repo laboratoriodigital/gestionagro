@@ -1,0 +1,532 @@
+/*
+ * La consola del dueño: el boletín del día (HU-C13.5, EC13). El mundo del boletín de notas del
+ * colegio: papel bond, una franja institucional azul tinta, filas de formulario con reglas finas y
+ * el desempeño como sello de tinta cuyo tinte cubre la fila entera. Siempre clara: el dueño la mira
+ * de mañana, en el teléfono, con luz natural. Los colores son los tokens `--boletin-*` (tokens.ts).
+ * Solo la carga /consola/.
+ */
+
+.boletin {
+  /* El margen de lectura: 1rem en el teléfono, la columna de 72rem centrada en pantallas anchas.
+   * Las bandas (franja, guía, filas) van de borde a borde y su contenido respeta este margen. */
+  --margen: max(var(--espacio-4), calc((100% - 72rem) / 2));
+  --tinte: 10%;
+  --estado: var(--gris-500);
+
+  padding-bottom: var(--espacio-16);
+  background: var(--gris-0);
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.boletin ::selection {
+  background: var(--boletin-tinta-palido);
+  color: var(--boletin-tinta);
+}
+
+.boletin :focus-visible {
+  outline: 2px solid var(--boletin-tinta);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.boletin [hidden] {
+  display: none;
+}
+
+/* La franja institucional: lo primero que se ve, con el día y el periodo. */
+.boletin__franja {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  padding: var(--espacio-6) var(--margen) var(--espacio-4);
+  border-bottom: 3px double var(--boletin-tinta-palido);
+  background: var(--boletin-tinta);
+  color: var(--gris-0);
+}
+
+.boletin__titulo h1 {
+  margin: 0;
+  font-size: var(--texto-titulo-2);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.boletin__fecha {
+  margin: var(--espacio-1) 0 0;
+  color: var(--boletin-tinta-palido);
+  font-size: var(--texto-pequeno);
+}
+
+.boletin__salir {
+  flex: none;
+  min-height: var(--objetivo-tactil);
+  padding: 0 var(--espacio-4);
+  border: 1px solid color-mix(in srgb, var(--gris-0) 55%, transparent);
+  border-radius: var(--radio-pildora);
+  background: transparent;
+  color: var(--gris-0);
+  font: inherit;
+  font-size: var(--texto-pequeno);
+  cursor: pointer;
+  transition: background var(--tiempo-corto) var(--curva-salida);
+}
+
+.boletin__salir:hover {
+  background: color-mix(in srgb, var(--gris-0) 12%, transparent);
+}
+
+.boletin__salir:focus-visible {
+  outline-color: var(--gris-0);
+}
+
+.boletin__aviso,
+.boletin__entrar {
+  padding-inline: var(--margen);
+}
+
+.boletin__aviso {
+  margin-top: var(--espacio-6);
+}
+
+/* El renglón guía: lo que cubre la vista, en una línea. */
+.boletin__guia {
+  margin: 0;
+  padding: var(--espacio-3) var(--margen);
+  border-bottom: 1px solid var(--boletin-regla);
+  background: var(--boletin-tinta-palido);
+  color: var(--boletin-tinta);
+  font-size: var(--texto-pequeno);
+  font-weight: var(--peso-fuerte);
+}
+
+.boletin__guia[data-estado="atencion"] {
+  background: var(--boletin-atencion-fondo);
+  color: var(--boletin-atencion-texto);
+}
+
+.boletin__entrar {
+  display: grid;
+  gap: var(--espacio-4);
+  padding-top: var(--espacio-8);
+}
+
+.boletin__subtitulo {
+  margin: 0;
+  font-size: var(--texto-titulo-3);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: -0.01em;
+}
+
+.boletin__nota {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+
+.boletin__oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Los encabezados de columna: solo en pantallas anchas, donde el boletín es una tabla. */
+.boletin__columnas {
+  display: none;
+}
+
+/* Las materias: una fila por producto, en su lugar de siempre. */
+.boletin__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.materia {
+  border-bottom: 1px solid var(--boletin-regla);
+  background: color-mix(in srgb, var(--estado) var(--tinte), var(--gris-0));
+  transition: background var(--tiempo-largo) var(--curva-salida);
+}
+
+.materia[data-desempeno="superior"] {
+  --estado: var(--boletin-superior);
+}
+.materia[data-desempeno="alto"] {
+  --estado: var(--boletin-alto);
+}
+.materia[data-desempeno="basico"] {
+  --estado: var(--boletin-basico);
+}
+.materia[data-desempeno="bajo"] {
+  --estado: var(--boletin-bajo);
+}
+.materia[data-desempeno="cargando"] {
+  background: var(--gris-0);
+}
+
+/* Toda la fila abre su detalle: no hay un enlace suelto que parezca llevar a otra página. */
+.materia__fila {
+  position: relative;
+  display: grid;
+  gap: var(--espacio-1);
+  padding: var(--espacio-4) var(--margen);
+  list-style: none;
+  cursor: pointer;
+}
+
+.materia__fila::-webkit-details-marker {
+  display: none;
+}
+
+.materia__fila:hover {
+  background: color-mix(in srgb, var(--estado) 5%, transparent);
+}
+
+.materia__cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding-right: var(--espacio-8);
+}
+
+.materia__nombre {
+  margin: 0;
+  font-size: var(--texto-base);
+  font-weight: var(--peso-fuerte);
+}
+
+/* La cifra del día: la más grande de cada fila, y nada compite con ella. */
+.materia__cifra {
+  display: flex;
+  align-items: baseline;
+  gap: var(--espacio-2);
+}
+
+.materia__valor {
+  font-size: clamp(1.875rem, 8.5vw, 2.5rem);
+  font-weight: var(--peso-display);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.materia__unidad,
+.materia__periodo {
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+
+.materia__periodo > span + span::before {
+  content: " · ";
+}
+
+.materia__observacion {
+  color: color-mix(in srgb, var(--estado) 70%, var(--texto));
+  font-weight: 500;
+}
+
+/* El chevrón: dibujado, gira cuando el detalle está abierto. */
+.materia__chevron {
+  position: absolute;
+  top: var(--espacio-4);
+  right: var(--margen);
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.15rem;
+  color: var(--boletin-tinta);
+  transition: transform var(--tiempo-medio) var(--curva-salida);
+}
+
+.materia__detalle[open] .materia__chevron {
+  transform: rotate(180deg);
+}
+
+.materia__detalle[open] .materia__fila {
+  border-bottom: 1px dashed var(--boletin-regla);
+}
+
+.materia__cuerpo {
+  display: grid;
+  gap: var(--espacio-2);
+  padding: var(--espacio-2) var(--margen) var(--espacio-4);
+  background: var(--gris-0);
+}
+
+.materia__apartado {
+  margin: var(--espacio-2) 0 0;
+  color: var(--texto-suave);
+  font-size: var(--texto-etiqueta);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: var(--interletrado-etiqueta);
+  text-transform: uppercase;
+}
+
+.materia__items {
+  margin: 0;
+  padding-left: var(--espacio-4);
+  font-size: var(--texto-pequeno);
+}
+
+.materia__vacio {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+
+/* El sello del desempeño: tinta de sello, doble filete y un leve giro, del mismo ancho siempre.
+ * Se estampa una vez. */
+.sello {
+  --estado: var(--gris-500);
+  display: inline-grid;
+  place-items: center;
+  width: 7.5rem;
+  padding: var(--espacio-1) var(--espacio-2);
+  border: 3px double var(--estado);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--estado) var(--tinte, 10%), var(--gris-0));
+  color: var(--estado);
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  letter-spacing: var(--interletrado-etiqueta);
+  text-transform: uppercase;
+  transform: rotate(-4deg);
+}
+
+.materia[data-desempeno="superior"] .sello,
+.sello[data-desempeno="superior"] {
+  --estado: var(--boletin-superior);
+}
+.materia[data-desempeno="alto"] .sello,
+.sello[data-desempeno="alto"] {
+  --estado: var(--boletin-alto);
+}
+.materia[data-desempeno="basico"] .sello,
+.sello[data-desempeno="basico"] {
+  --estado: var(--boletin-basico);
+}
+.materia[data-desempeno="bajo"] .sello,
+.sello[data-desempeno="bajo"] {
+  --estado: var(--boletin-bajo);
+}
+
+.sello--estampado {
+  animation: estampar 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.materia:nth-child(2) .sello--estampado {
+  animation-delay: 90ms;
+}
+.materia:nth-child(3) .sello--estampado {
+  animation-delay: 180ms;
+}
+.materia:nth-child(4) .sello--estampado {
+  animation-delay: 270ms;
+}
+
+@keyframes estampar {
+  from {
+    opacity: 0;
+    transform: rotate(-9deg) scale(1.55);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-4deg) scale(1);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sello--estampado {
+    animation: none;
+  }
+  .materia,
+  .materia__chevron {
+    transition: none;
+  }
+}
+
+.boletin__error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-3);
+  margin: var(--espacio-4) 0 0;
+  padding-inline: var(--margen);
+  color: var(--boletin-bajo);
+}
+
+.boletin__reintentar {
+  min-height: var(--objetivo-tactil);
+  padding: 0 var(--espacio-4);
+  border: 1px solid var(--boletin-tinta);
+  border-radius: var(--radio-pildora);
+  background: var(--gris-0);
+  color: var(--boletin-tinta);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Debajo de las materias: las observaciones generales y la regla escrita. */
+.boletin__pie {
+  display: grid;
+  gap: var(--espacio-12);
+  padding: var(--espacio-12) var(--margen) 0;
+}
+
+.boletin__generales,
+.boletin__regla {
+  display: grid;
+  gap: var(--espacio-3);
+  align-content: start;
+}
+
+.boletin__notas {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border-top: 3px double var(--boletin-tinta);
+  list-style: none;
+}
+
+.nota {
+  --estado: var(--boletin-superior);
+  display: grid;
+  gap: var(--espacio-2);
+  padding: var(--espacio-4) 0;
+  border-bottom: 1px solid var(--boletin-regla);
+}
+
+.nota[data-estado="atencion"] {
+  --estado: var(--boletin-basico);
+}
+.nota[data-estado="error"] {
+  --estado: var(--boletin-bajo);
+}
+.nota[data-estado="cargando"] {
+  --estado: var(--gris-500);
+}
+
+.nota__titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin: 0;
+  font-size: var(--texto-base);
+  font-weight: var(--peso-fuerte);
+}
+
+/* La marca de cada observación: un punto de la tinta de su estado, dibujado. */
+.nota__titulo::before {
+  content: "";
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background: var(--estado);
+}
+
+.nota__resumen {
+  margin: 0;
+  color: color-mix(in srgb, var(--estado) 55%, var(--texto));
+}
+
+.nota__lista {
+  margin: 0;
+  padding-left: var(--espacio-6);
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+
+.nota__lista:empty {
+  display: none;
+}
+
+.nota__runbook {
+  justify-self: start;
+  color: var(--boletin-tinta);
+  font-size: var(--texto-pequeno);
+  text-underline-offset: 0.2em;
+}
+
+/* La regla escrita: cómo se califica, sin fórmulas ocultas. */
+.regla {
+  display: grid;
+  gap: var(--espacio-3);
+  margin: 0;
+  padding-top: var(--espacio-3);
+  border-top: 3px double var(--boletin-tinta);
+}
+
+.regla > div {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr;
+  align-items: center;
+  gap: var(--espacio-4);
+}
+
+.regla dd {
+  margin: 0;
+  font-size: var(--texto-pequeno);
+}
+
+/* En pantallas anchas el boletín es una tabla: una fila por producto, con encabezados de columna.
+ * Nunca tarjetas. El orden de prioridad no cambia: materias, observaciones generales, regla. */
+@media (min-width: 52rem) {
+  .boletin__columnas,
+  .materia__fila {
+    display: grid;
+    grid-template-columns:
+      minmax(15rem, 1.4fr) minmax(11rem, 1fr) minmax(7rem, 0.6fr) minmax(7rem, 0.6fr)
+      minmax(0, 2.6fr) 1.5rem;
+    align-items: center;
+    column-gap: var(--espacio-6);
+  }
+  .boletin__columnas {
+    padding: var(--espacio-2) var(--margen);
+    border-bottom: 1px solid var(--boletin-regla);
+    color: var(--texto-suave);
+    font-size: var(--texto-etiqueta);
+    font-weight: var(--peso-fuerte);
+    letter-spacing: var(--interletrado-etiqueta);
+    text-transform: uppercase;
+  }
+  .materia__cabeza {
+    padding-right: 0;
+  }
+  .materia__periodo {
+    display: contents;
+  }
+  /* En la tabla, «Semana», «Mes» y «hoy» los dice el encabezado: se quedan para el lector de
+   * pantalla, no a la vista. */
+  .materia__etiqueta,
+  .materia__unidad {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .materia__valor {
+    white-space: nowrap;
+  }
+  .materia__periodo > span + span::before {
+    content: none;
+  }
+  .materia__valor {
+    font-size: 1.75rem;
+  }
+  .materia__chevron {
+    position: static;
+    margin: 0;
+  }
+  .boletin__pie {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}

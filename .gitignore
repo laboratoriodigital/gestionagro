@@ -37,3 +37,7 @@ apps/tienda-api/siembra-shard.despliegue.sql
 apps/tienda-api/siembra-control.despliegue.sql
 apps/tienda-sitio/wrangler.despliegue.jsonc
 apps/tienda-api/volumen.local.sql
+
+# Impeccable: las páginas de decisión que corren en local
+.impeccable/questions/
+.impeccable/review/

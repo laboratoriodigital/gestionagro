@@ -1,0 +1,344 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-23T22:43:49.053Z",
+  "title": "Design System: Laboratorio Digital",
+  "extensions": {
+    "colorMeta": {
+      "tinta-institucional": {
+        "role": "primary",
+        "displayName": "Azul tinta institucional",
+        "canonical": "#1d3a8a",
+        "tonalRamp": [
+          "#0d1a3e",
+          "#13265a",
+          "#193175",
+          "#1d3a8a",
+          "#6175ad",
+          "#99a6ca",
+          "#cdd4e5",
+          "#edeff6"
+        ]
+      },
+      "tinta-palida": {
+        "role": "primary",
+        "displayName": "Azul tinta pálido",
+        "canonical": "#dbe3f5",
+        "tonalRamp": [
+          "#63666e",
+          "#8e949f",
+          "#bac1d0",
+          "#dbe3f5",
+          "#e6ebf8",
+          "#eff2fb",
+          "#f7f9fd",
+          "#fcfdfe"
+        ]
+      },
+      "regla-azul": {
+        "role": "primary",
+        "displayName": "Regla azul",
+        "canonical": "#c9d3ea",
+        "tonalRamp": [
+          "#5a5f69",
+          "#838998",
+          "#abb3c7",
+          "#c9d3ea",
+          "#d9e0f0",
+          "#e7ebf6",
+          "#f3f5fa",
+          "#fbfbfd"
+        ]
+      },
+      "sello-superior": {
+        "role": "secondary",
+        "displayName": "Verde Superior",
+        "canonical": "#166534",
+        "tonalRamp": [
+          "#0a2d17",
+          "#0e4222",
+          "#13562c",
+          "#166534",
+          "#5c9371",
+          "#96baa4",
+          "#ccddd2",
+          "#ecf3ef"
+        ]
+      },
+      "sello-alto": {
+        "role": "secondary",
+        "displayName": "Azul Alto",
+        "canonical": "#1d3a8a",
+        "tonalRamp": [
+          "#0d1a3e",
+          "#13265a",
+          "#193175",
+          "#1d3a8a",
+          "#6175ad",
+          "#99a6ca",
+          "#cdd4e5",
+          "#edeff6"
+        ]
+      },
+      "sello-basico": {
+        "role": "secondary",
+        "displayName": "Ámbar Básico",
+        "canonical": "#94490a",
+        "tonalRamp": [
+          "#432105",
+          "#602f07",
+          "#7e3e09",
+          "#94490a",
+          "#b48054",
+          "#cfad91",
+          "#e7d7c9",
+          "#f6f0eb"
+        ]
+      },
+      "sello-bajo": {
+        "role": "secondary",
+        "displayName": "Rojo Bajo",
+        "canonical": "#b91c1c",
+        "tonalRamp": [
+          "#530d0d",
+          "#781212",
+          "#9d1818",
+          "#b91c1c",
+          "#ce6060",
+          "#e09999",
+          "#f0cdcd",
+          "#f9eded"
+        ]
+      },
+      "atencion-fondo": {
+        "role": "secondary",
+        "displayName": "Fondo de atención",
+        "canonical": "#fdf0e1",
+        "tonalRamp": [
+          "#726c65",
+          "#a49c92",
+          "#d7ccbf",
+          "#fdf0e1",
+          "#fef5ea",
+          "#fef8f2",
+          "#fffcf8",
+          "#fffefd"
+        ]
+      },
+      "atencion-texto": {
+        "role": "secondary",
+        "displayName": "Texto de atención",
+        "canonical": "#7a3d06",
+        "tonalRamp": [
+          "#371b03",
+          "#4f2804",
+          "#683405",
+          "#7a3d06",
+          "#a27751",
+          "#c3a88f",
+          "#e2d4c8",
+          "#f4efeb"
+        ]
+      },
+      "papel-bond": {
+        "role": "neutral",
+        "displayName": "Papel bond",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#737373",
+          "#a6a6a6",
+          "#d9d9d9",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff"
+        ]
+      },
+      "texto": {
+        "role": "neutral",
+        "displayName": "Tinta de texto",
+        "canonical": "#0b0b0a",
+        "tonalRamp": [
+          "#050505",
+          "#070707",
+          "#090909",
+          "#0b0b0a",
+          "#545454",
+          "#919191",
+          "#c9c9c9",
+          "#ebebeb"
+        ]
+      },
+      "texto-suave": {
+        "role": "neutral",
+        "displayName": "Texto suave",
+        "canonical": "#5a5a54",
+        "tonalRamp": [
+          "#282826",
+          "#3b3b37",
+          "#4d4d47",
+          "#5a5a54",
+          "#8c8c87",
+          "#b5b5b2",
+          "#dbdbd9",
+          "#f2f2f1"
+        ]
+      },
+      "gris-quieto": {
+        "role": "neutral",
+        "displayName": "Gris quieto",
+        "canonical": "#76766f",
+        "tonalRamp": [
+          "#353532",
+          "#4d4d48",
+          "#64645e",
+          "#76766f",
+          "#9f9f9a",
+          "#c1c1be",
+          "#e1e1df",
+          "#f4f4f3"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Cifra del día",
+        "purpose": "La plata de hoy de cada producto; la única cifra grande de la fila."
+      },
+      "headline": {
+        "displayName": "Título de la franja",
+        "purpose": "El título del boletín, en blanco sobre la tinta."
+      },
+      "title": {
+        "displayName": "Título de sección",
+        "purpose": "Observaciones generales y cómo se califica."
+      },
+      "body": {
+        "displayName": "Cuerpo",
+        "purpose": "Nombres de producto (600), observaciones y resúmenes."
+      },
+      "small": {
+        "displayName": "Pequeño",
+        "purpose": "Fecha, semana y mes, notas, enlaces y el texto del sello."
+      },
+      "label": {
+        "displayName": "Etiqueta",
+        "purpose": "Encabezados de columna de la tabla ancha y apartados del detalle."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "estampar",
+        "value": "420ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "El sello se estampa una vez al cargar, con 90ms de desfase por fila; quieto con movimiento reducido."
+      },
+      {
+        "name": "curva-salida",
+        "value": "cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Cambios de estado: fondo de la fila (400ms), chevrón (250ms), botones (150ms)."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "tabla",
+        "value": "52rem"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Franja del boletín",
+      "kind": "nav",
+      "refersTo": "franja",
+      "description": "Encabeza el boletín con el título, el periodo y el botón Salir.",
+      "html": "<header class=\"ds-franja\"><div><h1>Boletín del día</h1><p>Semana del 19 al 25 de oct · vie 23</p></div><button class=\"ds-salir\">Salir</button></header>",
+      "css": ".ds-franja { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.5rem 1rem 1rem; border-bottom: 3px double #dbe3f5; background: #1d3a8a; color: #ffffff; font-family: Geist, system-ui, sans-serif; } .ds-franja h1 { margin: 0; font-size: 1.9rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; } .ds-franja p { margin: 0.25rem 0 0; color: #dbe3f5; font-size: 0.875rem; } .ds-salir { min-height: 48px; padding: 0 1rem; border: 1px solid color-mix(in srgb, #ffffff 55%, transparent); border-radius: 999px; background: transparent; color: #ffffff; font: inherit; font-size: 0.875rem; cursor: pointer; transition: background 150ms cubic-bezier(0.2, 0, 0, 1); } .ds-salir:hover { background: color-mix(in srgb, #ffffff 12%, transparent); } .ds-salir:focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }"
+    },
+    {
+      "name": "Renglón guía",
+      "kind": "custom",
+      "refersTo": "renglon-guia-atencion",
+      "description": "Resume la vista en una línea; ámbar cuando algo pide atención.",
+      "html": "<p class=\"ds-guia\">3 productos · 1 pide atención · 2 observaciones</p>",
+      "css": ".ds-guia { margin: 0; padding: 0.75rem 1rem; border-bottom: 1px solid #c9d3ea; background: #fdf0e1; color: #7a3d06; font: 600 0.875rem/1.4 Geist, system-ui, sans-serif; }"
+    },
+    {
+      "name": "Sellos del desempeño",
+      "kind": "chip",
+      "refersTo": "sello",
+      "description": "Superior, Alto, Básico y Bajo: tinta de sello con doble filete y leve giro.",
+      "html": "<div class=\"ds-sellos\"><span class=\"ds-sello ds-sello--superior\">Superior</span><span class=\"ds-sello ds-sello--alto\">Alto</span><span class=\"ds-sello ds-sello--basico\">Básico</span><span class=\"ds-sello ds-sello--bajo\">Bajo</span></div>",
+      "css": ".ds-sellos { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem; } .ds-sello { --estado: #76766f; display: inline-grid; place-items: center; width: 7.5rem; padding: 0.25rem 0.5rem; border: 3px double var(--estado); border-radius: 10px; background: color-mix(in srgb, var(--estado) 10%, #ffffff); color: var(--estado); font: 700 0.875rem/1.4 Geist, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; transform: rotate(-4deg); } .ds-sello--superior { --estado: #166534; } .ds-sello--alto { --estado: #1d3a8a; } .ds-sello--basico { --estado: #94490a; } .ds-sello--bajo { --estado: #b91c1c; }"
+    },
+    {
+      "name": "Fila de producto",
+      "kind": "custom",
+      "refersTo": "sello",
+      "description": "Toda la fila abre su detalle; su fondo es el tinte del desempeño.",
+      "html": "<details class=\"ds-materia\"><summary><span class=\"ds-cabeza\"><strong>TiendaPro</strong><span class=\"ds-sello ds-sello--basico\">Básico</span></span><span class=\"ds-cifra\">COP 49.800 <small>hoy</small></span><span class=\"ds-periodo\">Semana COP 166.700 · Mes COP 410.400</span><span class=\"ds-obs\">1 plan vence esta semana.</span></summary><div class=\"ds-cuerpo\">Detalle del producto.</div></details>",
+      "css": ".ds-materia { --estado: #94490a; border-bottom: 1px solid #c9d3ea; background: color-mix(in srgb, var(--estado) 10%, #ffffff); font-family: Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; } .ds-materia summary { display: grid; gap: 0.25rem; padding: 1rem; list-style: none; cursor: pointer; } .ds-materia summary::-webkit-details-marker { display: none; } .ds-materia summary:hover { background: color-mix(in srgb, var(--estado) 5%, transparent); } .ds-materia summary:focus-visible { outline: 2px solid #1d3a8a; outline-offset: 3px; } .ds-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; } .ds-cifra { font-size: 2.2rem; font-weight: 350; letter-spacing: -0.03em; line-height: 1.05; } .ds-cifra small, .ds-periodo { color: #5a5a54; font-size: 0.875rem; letter-spacing: 0; } .ds-obs { color: color-mix(in srgb, var(--estado) 70%, #0b0b0a); font-weight: 500; } .ds-cuerpo { padding: 0.5rem 1rem 1rem; background: #ffffff; } .ds-sello { --estado: #76766f; display: inline-grid; place-items: center; width: 7.5rem; padding: 0.25rem 0.5rem; border: 3px double var(--estado); border-radius: 10px; background: color-mix(in srgb, var(--estado) 10%, #ffffff); color: var(--estado); font: 700 0.875rem/1.4 Geist, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; transform: rotate(-4deg); } .ds-sello--superior { --estado: #166534; } .ds-sello--alto { --estado: #1d3a8a; } .ds-sello--basico { --estado: #94490a; } .ds-sello--bajo { --estado: #b91c1c; }"
+    },
+    {
+      "name": "Botón reintentar",
+      "kind": "button",
+      "refersTo": "boton-reintentar",
+      "description": "La única acción fuera de la franja: volver a cargar un bloque que falló.",
+      "html": "<button class=\"ds-reintentar\">Reintentar</button>",
+      "css": ".ds-reintentar { min-height: 48px; padding: 0 1rem; border: 1px solid #1d3a8a; border-radius: 999px; background: #ffffff; color: #1d3a8a; font: 400 1rem Geist, system-ui, sans-serif; cursor: pointer; transition: background 150ms cubic-bezier(0.2, 0, 0, 1); } .ds-reintentar:hover { background: #dbe3f5; } .ds-reintentar:focus-visible { outline: 2px solid #1d3a8a; outline-offset: 3px; }"
+    },
+    {
+      "name": "Observación general",
+      "kind": "card",
+      "refersTo": "sello-basico",
+      "description": "Lo de toda la plataforma: un punto del tono de su estado y el enlace a su runbook.",
+      "html": "<div class=\"ds-nota\"><h3>Copia de la semana en tu Drive</h3><p>3 de 4 bases copiadas.</p><a href=\"#\">Si la copia falla</a></div>",
+      "css": ".ds-nota { --estado: #94490a; display: grid; gap: 0.5rem; padding: 1rem 0; border-top: 3px double #1d3a8a; border-bottom: 1px solid #c9d3ea; font-family: Geist, system-ui, sans-serif; } .ds-nota h3 { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.0625rem; font-weight: 600; } .ds-nota h3::before { content: \"\"; width: 0.625rem; height: 0.625rem; border-radius: 50%; background: var(--estado); } .ds-nota p { margin: 0; color: color-mix(in srgb, var(--estado) 55%, #0b0b0a); } .ds-nota a { color: #1d3a8a; font-size: 0.875rem; text-underline-offset: 0.2em; } .ds-nota a:focus-visible { outline: 2px solid #1d3a8a; outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "El boletín del periodo",
+    "overview": "El boletín de notas del colegio colombiano: papel bond blanco, una franja institucional azul tinta que encabeza la hoja con la fecha y el periodo, filas de formulario separadas por reglas finas y, en cada fila, un desempeño sellado a mano. Quien lo abre sabe en segundos qué va bien y qué pide atención, sin leer una gráfica. El mundo nació en la consola del dueño (C12, 23 oct 2026) y es el punto de partida del rediseño del resto del ecosistema; si cada pantalla lo hereda tal cual o lo adapta se decide al rediseñar la siguiente.\n\nLa densidad es la de un formulario: una fila por asunto, en su lugar de siempre, con una sola cifra grande que nada le disputa. La personalidad vive en los detalles precisos —el doble filete, el leve giro del sello, el tinte que cubre la fila— y no en la decoración. Se rechaza el tablero de tarjetas de cifras y gráficas que trae toda consola de la categoría.",
+    "keyCharacteristics": [
+      "Papel blanco siempre: se lee de mañana, en el teléfono, con luz natural.",
+      "Bandas de borde a borde; el contenido respeta un margen de lectura de 1rem en el teléfono y una columna de 72rem centrada en pantallas anchas.",
+      "El desempeño gobierna el color: el sello y el tinte pálido de su fila salen del mismo tono.",
+      "Cifras tabulares en todo el boletín.",
+      "La regla de calificación está escrita en la pantalla, sin fórmulas ocultas."
+    ],
+    "rules": [
+      {
+        "name": "The Tinte Rule",
+        "body": "La fila se tiñe con su propio tono de sello al 10 % sobre el papel (`color-mix(in srgb, <tono> 10%, papel)`), y ese tono debe pasar 4,5:1 sobre su tinte y sobre el papel. La prueba `tests/repo/boletin-contraste.test.ts` lo calcula; un tono que no pase no entra.",
+        "section": "colors"
+      },
+      {
+        "name": "The Solo Tokens Rule",
+        "body": "Ningún color va suelto en el CSS de la cuenta: todo sale de `--boletin-*` y de los grises de `tokens.ts`, mezclados con `color-mix`.",
+        "section": "colors"
+      },
+      {
+        "name": "The Una Cifra Rule",
+        "body": "Cada fila tiene una sola cifra grande, la de hoy. Semana y mes van en texto pequeño y suave, nunca compitiendo.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sin Sombras Rule",
+        "body": "Nada flota sobre el papel. Si algo necesita separarse, lleva una regla o un tinte.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do poner cada producto siempre en el mismo lugar y orden, aunque cambie su desempeño.",
+      "Do escribir en la pantalla la regla con la que se califica.",
+      "Do teñir la fila con el tono de su sello al 10 % y probar el contraste antes de agregar un tono.",
+      "Do abrir cada sección con el filete doble de 3px en azul tinta."
+    ],
+    "donts": [
+      "Don't armar el boletín con tarjetas de cifras ni gráficas.",
+      "Don't usar sombras ni contenedores redondeados para separar filas.",
+      "Don't poner colores sueltos en el CSS: solo tokens y `color-mix`.",
+      "Don't pasar la consola a tema oscuro: se lee de mañana, con luz natural."
+    ]
+  }
+}

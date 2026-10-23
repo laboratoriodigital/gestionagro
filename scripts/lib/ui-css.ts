@@ -6,6 +6,7 @@
  * semánticos del ecosistema en claro y en oscuro, y los temas de cada producto.
  */
 import {
+  BOLETIN,
   ESPACIO,
   FORMA,
   GRISES,
@@ -34,7 +35,7 @@ const semanticos = (s: Partial<Semanticos>, sangria = '  ') =>
 function primitivos(): string {
   const grises = Object.fromEntries(Object.entries(GRISES).map(([k, v]) => [`gris-${k}`, v]));
   const espacio = Object.fromEntries(Object.entries(ESPACIO).map(([k, v]) => [`espacio-${k}`, v]));
-  return decl({ ...grises, ...TIPO, ...espacio, ...FORMA, ...MOVIMIENTO });
+  return decl({ ...grises, ...TIPO, ...espacio, ...FORMA, ...MOVIMIENTO, ...BOLETIN });
 }
 
 /** Las tres reglas de un modo oscuro: por preferencia (salvo que se fije claro) y fijado. */

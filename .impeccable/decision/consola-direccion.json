@@ -1,0 +1,175 @@
+{
+  "title": "La consola del dueño: elige el mundo visual",
+  "question": "La tirada asignó «El boletín del periodo». Quédate con él, toma otra opción o pide otra mano.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "El boletín del periodo",
+      "kicker": "LA TIRADA",
+      "lineage": "el boletín de notas del colegio colombiano: materias, desempeño y observaciones",
+      "thesis": "Cada mañana, cada producto recibe su boletín: su cifra del día, su desempeño y una observación.",
+      "palette": ["#FFFFFF", "#1D3A8A", "#15803D", "#B45309", "#B91C1C", "#1C1C1A"],
+      "materials": ["formulario impreso en papel bond", "sello de tinta del desempeño"],
+      "viewport": "Encabezado con la fecha y el periodo; tres filas, CultivoPro, TiendaPro y Parqueadero, cada una con su plata de hoy grande, su desempeño sellado y su observación; abajo, lo que hay que revisar.",
+      "risk": "Calificar los productos se siente escolar si el sello se vuelve adorno: el desempeño sale de reglas claras (Bajo si algo se rompió, Básico si hay algo para revisar, Alto al día, Superior al día y creciendo).",
+      "raised": [
+        {
+          "from": "challenger-atlas",
+          "raise": "Una sola escala fija de tamaños: la plata de hoy es la cifra más grande de cada fila y nada compite con ella."
+        },
+        {
+          "from": "challenger-lexicon",
+          "raise": "Un renglón guía arriba dice lo que cubre la vista: «Viernes 23 · 3 productos · 1 para revisar»."
+        },
+        {
+          "from": "challenger-catalogo",
+          "raise": "Cada producto tiene su lugar y su código fijos: el orden nunca cambia de un día a otro."
+        },
+        {
+          "from": "challenger-consola-oscura",
+          "raise": "Al angostarse, los bloques se recogen en un orden de prioridad declarado, nunca al azar."
+        },
+        {
+          "from": "challenger-mapa",
+          "raise": "El color del desempeño gobierna la fila entera, no un punto suelto."
+        }
+      ],
+      "wireframe": {
+        "cols": 6,
+        "rows": 12,
+        "regions": [
+          { "label": "encabezado del periodo", "x": 0, "y": 0, "w": 6, "h": 1, "accent": true },
+          { "label": "renglón guía", "x": 0, "y": 1, "w": 6, "h": 1 },
+          { "label": "CultivoPro: plata, sello, observación", "x": 0, "y": 2, "w": 6, "h": 2 },
+          { "label": "TiendaPro", "x": 0, "y": 4, "w": 6, "h": 2 },
+          { "label": "Parqueadero", "x": 0, "y": 6, "w": 6, "h": 2 },
+          { "label": "para revisar", "x": 0, "y": 8, "w": 6, "h": 2 },
+          { "label": "lo que se rompió", "x": 0, "y": 10, "w": 6, "h": 2 }
+        ]
+      }
+    },
+    {
+      "id": "model-pick",
+      "label": "La pizarra de la plaza",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "el tablero de precios de la plaza de mercado, escrito con marcador cada madrugada",
+      "thesis": "Como la pizarra de la plaza: cada producto en su renglón, con la cifra de hoy y si subió o bajó frente a ayer.",
+      "palette": ["#FFFFFF", "#1E3A8A", "#DC2626", "#15803D", "#FACC15", "#111111"],
+      "materials": [
+        "tablero acrílico blanco",
+        "marcador de colores",
+        "etiqueta amarilla de oferta"
+      ],
+      "viewport": "Una sola pizarra: un renglón por producto con su cifra grande escrita a mano alzada, una flecha de subió o bajó y una etiqueta amarilla cuando algo pide atención.",
+      "risk": "Encabezaba mi lista: se lee como una lista de precios y no como un tablero si la variación no es real; la letra de marcador cansa en las cifras pequeñas.",
+      "wireframe": {
+        "cols": 6,
+        "rows": 12,
+        "regions": [
+          { "label": "fecha de la pizarra", "x": 0, "y": 0, "w": 6, "h": 1, "accent": true },
+          { "label": "CultivoPro ↑", "x": 0, "y": 1, "w": 6, "h": 2 },
+          { "label": "TiendaPro ↓ + etiqueta", "x": 0, "y": 3, "w": 6, "h": 2 },
+          { "label": "Parqueadero", "x": 0, "y": 5, "w": 6, "h": 2 },
+          { "label": "etiquetas: revisar y roto", "x": 0, "y": 7, "w": 6, "h": 3 },
+          { "label": "crecimiento", "x": 0, "y": 10, "w": 6, "h": 2 }
+        ]
+      }
+    },
+    {
+      "id": "challenger-flaps",
+      "label": "El tablero de salidas",
+      "verdict": "competitive",
+      "lineage": "el tablero de letras giratorias de una estación a la hora pico",
+      "thesis": "Cada producto es una ruta con su estado del día: a tiempo, demorado o cancelado, en un tablero que se lee de un vistazo.",
+      "palette": ["#111111", "#F5F5F2", "#F59E0B", "#B91C1C", "#9CA3AF"],
+      "materials": ["paletas negras mate", "letra blanca pintada", "lámpara ámbar de demora"],
+      "viewport": "Un tablero de filas fijas, una por producto, con columnas de hoy, semana y estado; la fila con algo para revisar se enciende en ámbar.",
+      "case": "Fusiona bien: cada producto es una ruta con su estado. Gana en claridad, pierde en identificación, y su negro va contra la luz de la mañana.",
+      "risk": "Sobre fondo negro, con sol de mañana en el teléfono, cuesta leer; la animación de las paletas se vuelve adorno si se repite.",
+      "hero": "https://impeccable.style/worlds/cards/signals-instruments-split-flap-concourse-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/signals-instruments-split-flap-concourse.webp"
+    },
+    {
+      "id": "challenger-atlas",
+      "label": "El atlas de estrellas",
+      "verdict": "declined",
+      "lineage": "carta celeste con magnitudes",
+      "thesis": "Cada producto como una estrella cuyo tamaño dice su peso.",
+      "palette": ["#0B1B3A", "#F5F5F5", "#E11D48"],
+      "materials": ["papel de carta azul noche", "puntos de tiza"],
+      "viewport": "Un cielo con tres astros por producto.",
+      "case": "Fusiona mal: no es tu mundo y oculta las cifras que necesitas leer.",
+      "risk": "Bonito y críptico a la vez.",
+      "kept": "La escala fija de tamaños para la importancia.",
+      "hero": "https://impeccable.style/worlds/cards/notation-diagram-systems-star-atlas-hero.webp"
+    },
+    {
+      "id": "challenger-consola-oscura",
+      "label": "La consola oscura de desarrollador",
+      "verdict": "declined",
+      "lineage": "entorno de programación oscuro",
+      "thesis": "Paneles grafito separados por líneas finas.",
+      "palette": ["#16181D", "#E6E6E6", "#7DD3FC"],
+      "materials": ["grafito", "costuras de un píxel"],
+      "viewport": "Paneles fijos por bloque.",
+      "case": "Fusiona mal: es un disfraz de herramienta y su oscuro va contra tu mañana.",
+      "risk": "Se siente de ingeniero, no de dueño.",
+      "kept": "La prioridad declarada al recoger los bloques.",
+      "hero": "https://impeccable.style/worlds/cards/digital-design-canon-dark-first-developer-console-hero.webp"
+    },
+    {
+      "id": "challenger-catalogo",
+      "label": "El catálogo de la disquera",
+      "verdict": "declined",
+      "lineage": "identidad de catálogo con número para cada pieza",
+      "thesis": "Cada producto como una pieza numerada del catálogo.",
+      "palette": ["#0A0A0A", "#FFFFFF", "#22C55E", "#F97316"],
+      "materials": ["funda negra mate", "códigos de color"],
+      "viewport": "Un índice numerado de productos.",
+      "case": "Fusiona mal: códigos de color en vez de palabras ocultan lo que pasa.",
+      "risk": "Exige descifrar.",
+      "kept": "El lugar y el código fijos de cada producto.",
+      "hero": "https://impeccable.style/worlds/cards/brand-identity-canon-saville-catalog-sleeve-hero.webp"
+    },
+    {
+      "id": "challenger-mapa",
+      "label": "El mapa del zoológico",
+      "verdict": "declined",
+      "lineage": "mapa guía de colores planos",
+      "thesis": "Cada producto como una zona de color.",
+      "palette": ["#8ED462", "#F5F1E4", "#FF705D", "#2BA0FF"],
+      "materials": ["color plano", "costas que dividen"],
+      "viewport": "Una zona domina cada pantalla.",
+      "case": "Fusiona mal: juguetón para leer dinero y alertas cada mañana.",
+      "risk": "Demasiado lúdico para una consola.",
+      "kept": "El color de estado que gobierna toda la fila.",
+      "hero": "https://impeccable.style/worlds/cards/aww2-zoo-gardens-guide-map-hero.webp"
+    },
+    {
+      "id": "challenger-lexicon",
+      "label": "La página del diccionario",
+      "verdict": "declined",
+      "lineage": "léxico del siglo XIX con palabras guía",
+      "thesis": "Cada bloque como una entrada del diccionario.",
+      "palette": ["#111111", "#F4EFE3", "#C2410C"],
+      "materials": ["texto denso", "láminas a color"],
+      "viewport": "Columna de entradas con palabras guía arriba.",
+      "case": "Fusiona mal: es para leer despacio, no para un vistazo.",
+      "risk": "Lento en el teléfono.",
+      "kept": "El renglón guía que nombra lo que cubre la vista.",
+      "hero": "https://impeccable.style/worlds/cards/rw-lexicon-shoulder-and-plate-hero.webp"
+    }
+  ],
+  "reroll": { "registers": ["safer", "bolder"] },
+  "buildPath": { "value": "code" },
+  "canon": true,
+  "canonCard": {
+    "label": "El estándar de la categoría",
+    "thesis": "El tablero de cualquier SaaS, hecho con todo el cuidado.",
+    "palette": ["#FFFFFF", "#111827", "#2563EB", "#E5E7EB"],
+    "materials": ["tarjetas de cifras", "gráfica de líneas"],
+    "viewport": "Tarjetas de cifras arriba, una gráfica de la semana y listas de alertas debajo.",
+    "risk": "Igual a todos los demás, por diseño."
+  },
+  "steer": true
+}

@@ -515,3 +515,15 @@ El 23 oct 2026, el CI del PR #230 (CORE 0.8.0, Tienda 1.2.0 y Parqueadero 0.9.0)
 La regla: **antes de culpar al código por un trabajo cortado, se mira en el registro dónde se fue el tiempo. Un tope que existía por costo se revisa cuando el costo cambia, y se deja atado a lo que lo hace cambiar.**
 
 *Ficha:* core · *(del terreno)* · 🟢 Bajo (detuvo el PR de publicación, sin efecto en producción) · P17 · core-0.8.0 · 2026-10-23
+
+**14 · El verde Superior no se leía sobre el tinte de su propia fila.**
+El 23 oct 2026, al rediseñar la consola del dueño como el boletín del día (HU-C13.5), axe detuvo la e2e de la cuenta en la fila de un producto con desempeño Superior.
+*Síntoma literal.* axe, regla `color-contrast`: el texto verde de la observación daba 4,38:1 sobre el fondo de la fila, y AA pide 4,5:1.
+*Causa raíz.* Cada fila se tiñe con el tono de su sello al 10 % sobre el papel. El verde elegido (#15803d) pasaba sobre papel blanco, pero el tinte oscurece el fondo lo justo para bajarlo de 4,5. El ámbar Básico quedaba al borde por la misma razón. El contraste se había mirado contra el papel, no contra el fondo donde de verdad se lee.
+*Cómo se reprodujo.* La e2e de la consola en `telefono-360` con axe, que nombra el nodo y su contraste.
+*Arreglo.* Verde #166534 y ámbar #94490a, como tokens `--boletin-*` en `tokens.ts`, y el tinte como dato (`TINTE_DEL_BOLETIN`), para que la prueba haga la misma mezcla que el CSS.
+**Lo prueba** `tests/repo/boletin-contraste.test.ts`: cada tono de desempeño pasa 4,5:1 sobre su tinte y sobre el papel, y la franja y el renglón guía también. Control negativo: el verde de antes (#15803d) da menos de 4,5:1 sobre su tinte, y la prueba lo dice.
+
+La regla: **un color se prueba contra el fondo donde se lee, no contra el blanco. Si el fondo se calcula, la prueba hace el mismo cálculo.**
+
+*Ficha:* core · *(mío)* · 🟢 Bajo (no llegó a publicarse) · P18 · core-0.9.0 · 2026-10-23

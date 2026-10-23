@@ -44,6 +44,26 @@ export const ACENTOS = {
   cobre: { claro: '#9c4a1a', oscuro: '#f0a878' },
 } as const;
 
+/**
+ * El boletín del día: la consola del dueño (EC13, contrato de dirección del 23 oct 2026). Papel
+ * blanco, tinta azul institucional y un color por desempeño. Siempre claro: se mira de mañana, con
+ * luz natural. Cada tono pasa 4,5:1 sobre su propio tinte (lo calcula `boletin-contraste.test.ts`).
+ */
+export const BOLETIN = {
+  'boletin-tinta': '#1d3a8a',
+  'boletin-tinta-palido': '#dbe3f5',
+  'boletin-regla': '#c9d3ea',
+  'boletin-superior': '#166534',
+  'boletin-alto': '#1d3a8a',
+  'boletin-basico': '#94490a',
+  'boletin-bajo': '#b91c1c',
+  'boletin-atencion-fondo': '#fdf0e1',
+  'boletin-atencion-texto': '#7a3d06',
+} as const;
+
+/** El tinte de la fila de cada desempeño: cuánto de su tono va sobre el papel. */
+export const TINTE_DEL_BOLETIN = 0.1;
+
 export type Modo = 'claro' | 'oscuro';
 
 /** Lo que significa cada color. Los componentes solo usan estos nombres. */
