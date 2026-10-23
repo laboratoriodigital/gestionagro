@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.8.0] - 2026-10-23
+
+Entrar con un enlace al correo, los avisos de vencimiento por correo y la copia semanal fuera de Cloudflare (HC7).
+
 ### Agregado
 - Entrar con un enlace al correo (HU-C10.2), para quien no tiene Google: `POST /api/core/auth/correo/pedir` manda un enlace de un solo uso que vence en 15 minutos, con el código en el fragmento y solo su huella en la base; la página `/entrar/correo/` de la cuenta lo abre con un toque y termina en el mismo `#entrar=` que Google, así que cada app lo canjea como siempre. Responde lo mismo exista o no la cuenta; quien ya entró con Google y entra con su correo es la misma persona. Topes: 3 enlaces por correo y hora, y 5 por minuto por IP. La migración 0012 pasa los proveedores de identidad a una tabla de referencia (`google`, `correo`) y crea `enlace_correo` y `correo_del_core`.
 - Los correos del CORE (HU-C10.1): producción manda con Resend y staging con la cuenta de Gmail, como la Tienda. Cada producto puede declarar su remitente en `productos.json › correo` (TiendaPro sale de `avisos@tiendapro.co`); los demás salen de `cuenta@laboratorio-digital.com` con el nombre del producto delante. Sin la configuración, o con un remitente que Resend no acepta, el correo queda «no disponible» y nada finge haber salido.
