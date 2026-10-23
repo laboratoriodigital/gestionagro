@@ -87,7 +87,7 @@ describe('la configuración con SaaS activo', () => {
     const api = wranglerDeLaCeldaDeLaTienda(sinMarca) as { vars: Record<string, string> };
     expect(api.vars['ZONA_TIENDAS']).toBeUndefined();
     const sitio = wranglerDelSitioDeLaTienda(sinSaas) as { routes: unknown[] };
-    expect(sitio.routes).toHaveLength(1);
+    expect(sitio.routes).not.toContainEqual(expect.objectContaining({ pattern: '*/*' }));
   });
 
   it('con la marca: la API de producción sabe su zona y el despacho recibe los dominios propios', () => {
@@ -154,7 +154,12 @@ describe('las tiendas nuevas del alta (HU-T13.4)', () => {
     });
   });
 
-  it('la celda de la Tienda tiene hoy el comodín solo en staging (D-T14)', () => {
-    expect(config.celdas.find((c) => c.producto === 'tienda')?.comodin).toBe('staging');
+  it('desde el lanzamiento (HU-T18.6), la celda de la Tienda tiene el comodín en los dos ambientes', () => {
+    expect(config.celdas.find((c) => c.producto === 'tienda')?.comodin).toBe(true);
+    const sitio = wranglerDelSitioDeLaTienda(config) as { routes: unknown[] };
+    expect(sitio.routes).toContainEqual({
+      pattern: `*.${ZONA_DE_LAS_TIENDAS}/*`,
+      zone_name: ZONA_DE_LAS_TIENDAS,
+    });
   });
 });

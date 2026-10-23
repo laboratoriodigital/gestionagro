@@ -115,13 +115,15 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
     expect(panel.assets?.run_worker_first).toEqual(['/api/*', '/mcp', '/.well-known/*']);
   });
 
-  it('staging vive en workers.dev; producción, solo en panel., mcp. y origen., sin el comodín todavía (HU-T2.9)', () => {
+  it('staging vive en workers.dev; producción, en panel., mcp., origen. y las tiendas de la zona (HU-T2.9, HU-T18.6)', () => {
     const sitio = wranglerDelSitioDeLaTienda(config) as unknown as Config;
     const panel = wranglerDelPanelDeLaTienda(config) as unknown as Config;
     expect(sitio.routes).toEqual([
       { pattern: DOMINIOS_DE_LA_TIENDA.origen, custom_domain: true },
       // HU-T13.1: con Cloudflare for SaaS activo, los dominios propios llegan por toda la zona.
       { pattern: '*/*', zone_name: ZONA_DE_LAS_TIENDAS },
+      // HU-T13.4 y HU-T18.6: con el lanzamiento, el comodín lleva las tiendas del alta.
+      { pattern: `*.${ZONA_DE_LAS_TIENDAS}/*`, zone_name: ZONA_DE_LAS_TIENDAS },
     ]);
     expect(panel.routes).toEqual([
       { pattern: DOMINIOS_DE_LA_TIENDA.panel, custom_domain: true },

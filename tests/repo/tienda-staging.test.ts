@@ -24,20 +24,25 @@ describe('la Tienda activa solo en staging (HU-T2.10)', () => {
     });
   });
 
-  it('❌ el CORE de producción la sigue viendo pausada (CA3)', () => {
-    expect(productoDe(CATALOGO, 'tienda')).toEqual({ motivo: 'pausado' });
+  it('desde el lanzamiento (HU-T18.6), el CORE de producción también la atiende', () => {
+    expect(productoDe(CATALOGO, 'tienda')).toMatchObject({
+      producto: { id: 'tienda', estado: 'activo' },
+    });
+    expect(cargarProductosDePrueba().activosEnStaging).toEqual([]);
   });
 
-  it('la base de staging dice lo mismo que el catálogo de staging; la de producción, no la activa', () => {
+  it('la base de cada ambiente dice lo mismo que su catálogo', () => {
     expect(estadoEn(registroDelDestino('staging').productos)).toBe('activo');
-    expect(estadoEn(registroDelDestino('produccion').productos)).toBe('pausado');
+    expect(estadoEn(registroDelDestino('produccion').productos)).toBe('activo');
   });
 
-  it('la regla solo cambia algo en staging', () => {
-    const reales = cargarProductos().productos;
-    expect(estadoEn(conActivosEnStaging(reales, ['tienda'], 'produccion'))).toBe('pausado');
-    expect(estadoEn(conActivosEnStaging(reales, ['tienda'], undefined))).toBe('pausado');
-    expect(estadoEn(conActivosEnStaging(reales, ['tienda'], 'staging'))).toBe('activo');
+  it('❌ la regla solo cambia algo en staging (con un producto pausado)', () => {
+    const pausada = cargarProductos().productos.map((p) =>
+      p.id === 'tienda' ? { ...p, estado: 'pausado' as const } : p,
+    );
+    expect(estadoEn(conActivosEnStaging(pausada, ['tienda'], 'produccion'))).toBe('pausado');
+    expect(estadoEn(conActivosEnStaging(pausada, ['tienda'], undefined))).toBe('pausado');
+    expect(estadoEn(conActivosEnStaging(pausada, ['tienda'], 'staging'))).toBe('activo');
   });
 
   it('❌ solo se activa un producto de verdad que está pausado', () => {
@@ -49,7 +54,11 @@ describe('la Tienda activa solo en staging (HU-T2.10)', () => {
     });
     const reales = cargarProductos();
     const celdas = cargarCeldas().celdas;
-    expect(fallasDePrueba(datos(['tienda']), reales, celdas)).toEqual([]);
+    expect(fallasDePrueba(datos([]), reales, celdas)).toEqual([]);
+    // Lanzada (HU-T18.6), la Tienda ya no se activa aparte.
+    expect(fallasDePrueba(datos(['tienda']), reales, celdas)).toEqual([
+      'activos_en_staging nombra «tienda», que está «activo», no pausado',
+    ]);
     expect(fallasDePrueba(datos(['agro']), reales, celdas)).toEqual([
       'activos_en_staging nombra «agro», que está «activo», no pausado',
     ]);

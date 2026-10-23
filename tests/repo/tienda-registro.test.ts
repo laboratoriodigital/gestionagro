@@ -32,9 +32,9 @@ describe('la Tienda en productos.json (HU-T2.2)', () => {
     return p;
   };
 
-  it('existe pausada: el CORE la conoce, pero no crea tiendas ni cobra planes hasta M2', () => {
+  it('está activa desde su lanzamiento (HU-T18.6): el CORE crea tiendas y cobra sus planes', () => {
     expect(tienda()).toMatchObject({
-      estado: 'pausado',
+      estado: 'activo',
       excepcion: 'ADR-21',
       tipos: ['tienda'],
       prefijo_de_cobro: 'tienda',
@@ -182,9 +182,9 @@ describe('la Tienda en la base del CORE, sin migración (ADR-20)', () => {
   }, 60_000);
   afterAll(async () => cerrar?.());
 
-  it('el catálogo la siembra pausada, con sus roles y sus planes', async () => {
+  it('el catálogo la siembra activa, con sus roles y sus planes', async () => {
     expect(await db.prepare("SELECT estado FROM producto WHERE id = 'tienda'").first()).toEqual({
-      estado: 'pausado',
+      estado: 'activo',
     });
     const { results } = await db
       .prepare("SELECT id FROM plan WHERE producto = 'tienda' ORDER BY id")

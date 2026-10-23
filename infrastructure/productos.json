@@ -105,7 +105,7 @@
     {
       "id": "tienda",
       "nombre": "TiendaPro",
-      "estado": "pausado",
+      "estado": "activo",
       "excepcion": "ADR-21",
       "app": {
         "origenes": {

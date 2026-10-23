@@ -1,5 +1,5 @@
 {
-  "nota": "Productos que existen solo en staging y en D1 local (HU-C3.7): prueban que el CORE atiende a dos productos a la vez sin esperar a la Tienda. El despliegue los copia a la base de staging, nunca a la de producción, y se detiene si encuentra uno en producción (CA3). Cada producto se valida con el mismo esquema y las mismas reglas de productos.json. Sus celdas solo existen en el directorio del CORE de staging: no tienen Worker ni bases propias, y su url_api es la de la celda c0 de staging, que rechaza sus tokens porque no son del agro (HU-C4.1). `activos_en_staging` (HU-T2.10) nombra productos de verdad que en producción están «pausados» y en staging se activan, para probarlos con sesiones de verdad sin abrirlos al público: hoy, la Tienda.",
+  "nota": "Productos que existen solo en staging y en D1 local (HU-C3.7): prueban que el CORE atiende a dos productos a la vez sin esperar a la Tienda. El despliegue los copia a la base de staging, nunca a la de producción, y se detiene si encuentra uno en producción (CA3). Cada producto se valida con el mismo esquema y las mismas reglas de productos.json. Sus celdas solo existen en el directorio del CORE de staging: no tienen Worker ni bases propias, y su url_api es la de la celda c0 de staging, que rechaza sus tokens porque no son del agro (HU-C4.1). `activos_en_staging` (HU-T2.10) nombra productos de verdad que en producción están «pausados» y en staging se activan, para probarlos con sesiones de verdad sin abrirlos al público. Hoy, ninguno: la Tienda lo estuvo hasta su lanzamiento (HU-T18.6, 22 oct 2026).",
   "productos": [
     {
       "id": "ensayo",
@@ -25,5 +25,5 @@
     }
   ],
   "celdas": [{ "id": "c9", "producto": "ensayo", "shards": ["ensayo_c9_s1"] }],
-  "activos_en_staging": ["tienda"]
+  "activos_en_staging": []
 }
