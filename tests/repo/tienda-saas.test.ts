@@ -74,11 +74,19 @@ describe('la configuración con SaaS activo', () => {
   const tienda = config.celdas.find((c) => c.producto === 'tienda');
   if (!tienda) throw new Error('sin la celda de la Tienda');
 
-  it('hoy, sin la marca, nada cambia: ni la zona en la API ni la ruta de toda la zona', () => {
-    expect(tienda.saas).toBeUndefined();
-    const api = wranglerDeLaCeldaDeLaTienda(tienda) as { vars: Record<string, string> };
+  it('la celda está marcada: el dueño activó SaaS en mitiendapro.co el 22 oct 2026', () => {
+    expect(tienda.saas).toBe(true);
+  });
+
+  it('❌ sin la marca, nada cambia: ni la zona en la API ni la ruta de toda la zona', () => {
+    const { saas: _, ...sinMarca } = tienda;
+    const sinSaas = {
+      ...config,
+      celdas: config.celdas.map((c) => (c === tienda ? sinMarca : c)),
+    };
+    const api = wranglerDeLaCeldaDeLaTienda(sinMarca) as { vars: Record<string, string> };
     expect(api.vars['ZONA_TIENDAS']).toBeUndefined();
-    const sitio = wranglerDelSitioDeLaTienda(config) as { routes: unknown[] };
+    const sitio = wranglerDelSitioDeLaTienda(sinSaas) as { routes: unknown[] };
     expect(sitio.routes).toHaveLength(1);
   });
 

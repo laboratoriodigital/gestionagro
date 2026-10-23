@@ -12,6 +12,7 @@
     "MEDIOS": "img.laboratorio-digital.app",
     "AMBIENTE": "produccion",
     "CORREO_REMITENTE": "avisos@tiendapro.co",
+    "ZONA_TIENDAS": "mitiendapro.co",
     "RECURSO_MCP_COMERCIO": "https://mcp.tiendapro.co",
     "EMISOR_OAUTH": "https://cuenta.laboratorio-digital.com"
   },
@@ -151,6 +152,7 @@
         "MEDIOS": "img--staging.laboratorio-digital.app",
         "AMBIENTE": "staging",
         "CORREO_REMITENTE": "avisos@tiendapro.co",
+        "ZONA_TIENDAS": "",
         "ENSAYOS": "1",
         "RECURSO_MCP_COMERCIO": "https://tienda-panel-staging.laboratoriodigital-la.workers.dev",
         "EMISOR_OAUTH": "https://agro-core-staging.laboratoriodigital-la.workers.dev"

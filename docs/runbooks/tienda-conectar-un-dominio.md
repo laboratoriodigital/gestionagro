@@ -10,7 +10,7 @@
 
 ## Una sola vez: activar Cloudflare for SaaS
 
-Lo hace el dueño, porque el token de despliegue no tiene esos permisos.
+Lo hace el dueño, porque el token de despliegue no tiene esos permisos. **Hecho el 22 oct 2026** en `mitiendapro.co`, con la celda marcada: estos pasos quedan para rehacerlo si se cambia la zona o el token.
 
 1. En Cloudflare, en la zona `mitiendapro.co` (la de las tiendas desde HU-T18.1), abre **SSL/TLS › Custom Hostnames** y pulsa **Enable**. Cloudflare pide un medio de pago aunque la zona sea gratuita: los primeros 100 hostnames no se cobran, y cada uno más cuesta USD 0,10 al mes. Cada tienda usa uno o dos (con «www» y sin ella).
 2. El origen de respaldo tiene que ser un registro **sin origen** (así lo pide Cloudflare cuando un Worker atiende). En **DNS › Records**, agrega uno `AAAA`, nombre `saas-respaldo`, contenido `100::`, con el proxy encendido (nube naranja). Luego, en **SSL/TLS › Custom Hostnames › Fallback Origin**, escribe `saas-respaldo.mitiendapro.co` y guarda. Espera a que diga **Active**. El comodín `*` de la zona no sirve de respaldo: Cloudflare pide un registro con su propio nombre. Los comercios apuntan su CNAME a `origen.mitiendapro.co`: cualquier nombre de la zona con proxy sirve de destino.

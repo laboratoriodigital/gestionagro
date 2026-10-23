@@ -70,7 +70,8 @@
       "almacen": "tienda-c1",
       "medios": "tienda-c1-medios",
       "medios_creados": ["produccion", "staging"],
-      "comodin": "staging"
+      "comodin": "staging",
+      "saas": true
     }
   ]
 }

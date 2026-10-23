@@ -19,6 +19,7 @@ import {
   wranglerDeLaCeldaDeLaTienda,
   wranglerDelPanelDeLaTienda,
   wranglerDelSitioDeLaTienda,
+  ZONA_DE_LAS_TIENDAS,
 } from '../../scripts/generar-wrangler.ts';
 import { cargarCeldas } from '../../scripts/lib/celdas.ts';
 import { cargarProductos } from '../../scripts/lib/registro-productos.ts';
@@ -117,7 +118,11 @@ describe('las configuraciones de sus Workers (HU-T2.3 CA2)', () => {
   it('staging vive en workers.dev; producción, solo en panel., mcp. y origen., sin el comodín todavía (HU-T2.9)', () => {
     const sitio = wranglerDelSitioDeLaTienda(config) as unknown as Config;
     const panel = wranglerDelPanelDeLaTienda(config) as unknown as Config;
-    expect(sitio.routes).toEqual([{ pattern: DOMINIOS_DE_LA_TIENDA.origen, custom_domain: true }]);
+    expect(sitio.routes).toEqual([
+      { pattern: DOMINIOS_DE_LA_TIENDA.origen, custom_domain: true },
+      // HU-T13.1: con Cloudflare for SaaS activo, los dominios propios llegan por toda la zona.
+      { pattern: '*/*', zone_name: ZONA_DE_LAS_TIENDAS },
+    ]);
     expect(panel.routes).toEqual([
       { pattern: DOMINIOS_DE_LA_TIENDA.panel, custom_domain: true },
       // HU-T15.7: el MCP del comercio, el recurso que nombra productos.json.
