@@ -1,0 +1,90 @@
+---
+/**
+ * «Así llega un pedido»: el momento propio de la página. El teléfono queda fijo mientras bajan
+ * los cuatro pasos, y cada paso cambia su pantalla (`data-paso`, que pone `pedido.ts` al verlo).
+ * Sin JavaScript, o con el movimiento reducido, se ve la primera pantalla y los pasos se leen
+ * igual. Todo es de ejemplo y lo dice.
+ */
+import { PASOS_DEL_PEDIDO, pesos } from '../contenido.ts';
+import Dibujo from './Dibujo.astro';
+
+const lineas = [
+  { cantidad: 6, nombre: 'Pan de bono', precio: 1500 },
+  { cantidad: 2, nombre: 'Almojábana', precio: 1800 },
+];
+const envio = 3000;
+const total = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0) + envio;
+const codigo = 'LAE-4821';
+---
+<section class="pedido" id="como-funciona" aria-labelledby="pedido-titulo" data-pedido data-paso="elige">
+  <div class="pedido__cabeza">
+    <h2 id="pedido-titulo">Así te llega un pedido</h2>
+    <p>Sin escribir el precio de cada cosa, sin perder mensajes. Tu cliente arma su pedido y tú lo recibes listo.</p>
+  </div>
+
+  <div class="pedido__cuerpo">
+    <div class="pedido__escena" aria-hidden="true">
+      <div class="telefono telefono--pedido">
+        <div class="telefono__pantalla">
+          <div class="pantalla pantalla--elige">
+            <p class="tienda__direccion">la-espiga.mitiendapro.co</p>
+            <span class="producto__foto producto__foto--grande producto--panaderia"><Dibujo dibujo="pan" /></span>
+            <p class="pantalla__titulo">Pan de bono</p>
+            <p class="cifra pantalla__precio">{pesos(1500)}</p>
+            <p class="cantidad"><span>−</span><span class="cifra">6</span><span>+</span></p>
+            <p class="boton-falso">Agregar al pedido</p>
+          </div>
+
+          <div class="pantalla pantalla--arma">
+            <p class="pantalla__titulo">Tu pedido</p>
+            <ul class="lineas">
+              {lineas.map((l) => (
+                <li><span>{l.cantidad} × {l.nombre}</span><span class="cifra">{pesos(l.cantidad * l.precio)}</span></li>
+              ))}
+              <li class="lineas__suave"><span>Domicilio en el barrio</span><span class="cifra">{pesos(envio)}</span></li>
+              <li class="lineas__total"><span>Total</span><span class="cifra">{pesos(total)}</span></li>
+            </ul>
+            <p class="formas"><span class="pildora pildora--activa">A convenir</span><span class="pildora">Transferencia</span></p>
+            <p class="boton-falso">Enviar por WhatsApp</p>
+          </div>
+
+          <div class="pantalla pantalla--llega">
+            <p class="chat__cabeza">Cliente · nuevo pedido</p>
+            <div class="chat__globo">
+              <p>Hola, quiero hacer este pedido en Panadería La Espiga:</p>
+              {lineas.map((l) => <p>· {l.cantidad} × {l.nombre}</p>)}
+              <p>Domicilio en el barrio</p>
+              <p><strong>Total: <span class="cifra">{pesos(total)}</span></strong></p>
+              <p>Pedido <span class="cifra">{codigo}</span></p>
+            </div>
+            <p class="chat__hora cifra">9:41</p>
+            <p class="chat__globo chat__globo--tuyo">¡Recibido! Te lo confirmo en un momento.</p>
+          </div>
+
+          <div class="pantalla pantalla--confirma">
+            <p class="pantalla__titulo">Pedido <span class="cifra">{codigo}</span></p>
+            <p class="estado">Confirmado</p>
+            <ol class="linea-de-tiempo">
+              <li class="hecho">Recibido</li>
+              <li class="hecho">Confirmado</li>
+              <li>Despachado</li>
+              <li>Entregado</li>
+            </ol>
+            <p class="boton-falso">Marcar despachado</p>
+          </div>
+        </div>
+      </div>
+      <p class="vitrina__nota">Pedido de ejemplo.</p>
+    </div>
+
+    <ol class="pedido__pasos">
+      {PASOS_DEL_PEDIDO.map((p) => (
+        <li class="paso" data-paso={p.id}>
+          <h3>{p.titulo}</h3>
+          <p>{p.texto}</p>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+<script src="../pedido.ts"></script>

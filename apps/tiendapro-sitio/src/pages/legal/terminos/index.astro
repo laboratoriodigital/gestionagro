@@ -1,0 +1,62 @@
+---
+/**
+ * Los términos del servicio de TiendaPro, con el contrato de transmisión y la custodia de las llaves
+ * de Bold (HU-T18.5 CA2): el mismo texto que el comercio acepta en el panel (HU-T7.2, P2). HU-T18.6
+ * CA2: sale con los datos del encargado que hay; lo que falta se omite.
+ */
+import { textoParaAceptar } from '@ed1/tienda-schema/comercio';
+import plantilla from '../../../../../../content/tienda/comercio/terminos.json' with {
+  type: 'json',
+};
+import politica from '../../../../../../content/tienda/privacidad/politica.json' with {
+  type: 'json',
+};
+import Marco from '../../../componentes/Marco.astro';
+import { MARCA } from '../../../contenido.ts';
+
+const terminos = textoParaAceptar(plantilla, politica.responsable, 'terminos');
+const custodia = textoParaAceptar(plantilla, politica.responsable, 'custodia');
+const MESES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+const [anio, mes, dia] = plantilla.fecha.split('-').map(Number) as [number, number, number];
+const fecha = `${dia} de ${MESES[mes - 1]} de ${anio}`;
+---
+<Marco
+  titulo={`Términos del servicio · ${MARCA}`}
+  descripcion={`Lo que acepta cada comercio al abrir su tienda en ${MARCA}: el servicio, el dinero de sus ventas, los datos de sus compradores y la custodia de sus llaves de Bold.`}
+  ruta="/legal/terminos/"
+>
+  <article class="legal">
+    <h1>Términos del servicio de {MARCA}</h1>
+    <p class="legal__fecha">Versión {terminos.version}, del {fecha}.</p>
+    {plantilla.estado !== 'vigente' && (
+      <p class="legal__aviso">Borrador en revisión. Algunos datos de quien presta el servicio se agregarán antes de que sea la versión vigente.</p>
+    )}
+    <p>Son los mismos que aceptas en tu panel antes de publicar tu tienda o cobrar en línea.</p>
+    {terminos.secciones.map(([titulo, texto]) => (
+      <section>
+        <h2>{titulo}</h2>
+        <p>{texto}</p>
+      </section>
+    ))}
+    <h2>La custodia de tus llaves de Bold</h2>
+    {custodia.secciones.map(([titulo, texto]) => (
+      <section>
+        <h3>{titulo}</h3>
+        <p>{texto}</p>
+      </section>
+    ))}
+  </article>
+</Marco>

@@ -1366,3 +1366,15 @@ La regla: **una variable nueva de un Worker se declara en los dos ambientes, aun
 La regla: **un límite aproximado se prueba como lo vive un abuso (en ráfagas), y lo que tiene que ser exacto va en la regla de la zona.**
 
 *Ficha:* tienda3 · *(dueño y mía)* · 🟡 Medio · P1, P5 · tienda-0.1.0 · 2026-10-22
+
+**54 · Los pasos del pedido, apagados con transparencia, no pasaban el contraste.**
+
+*Qué pasó.* El 22 oct 2026, en la landing de TiendaPro (HU-T18.5), los pasos que no se están leyendo se apagaban con `opacity: .38`. Se veía bien, pero axe marcó el texto: el gris resultante quedaba por debajo de 4,5:1 sobre el papel. Al corregirlo con una regla `.pedido.con-guia .paso:not([data-actual]) h3, … p`, Biome marcó once avisos: esa regla pesaba más que todos los párrafos que venían después (la IA, las preguntas, los legales).
+
+*El arreglo.* El paso apagado no cambia su transparencia sino su color, y el color se pasa por variables del paso entero (`--tono-paso`, `--fondo-numero`), que `h3` y `p` leen con su valor de siempre como respaldo. El gris de texto es `--gris-600`, que pasa AA. Ninguna regla de la landing compite en especificidad con otra.
+
+**Lo prueban** `tienda-landing.spec.ts` (axe a 360 y 1280 px) y `pnpm lint`.
+
+La regla: **lo que se apaga se apaga con un color que cumple el contraste, nunca con transparencia; y un estado que cambia el color de varios hijos lo pasa por variables, no por selectores largos.**
+
+*Ficha:* tienda3 · *(mía)* · 🟢 Bajo · P2 · tienda-0.1.0 · 2026-10-22

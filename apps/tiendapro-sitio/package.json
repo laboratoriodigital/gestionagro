@@ -1,0 +1,17 @@
+{
+  "name": "@ed1/tiendapro-sitio",
+  "private": true,
+  "description": "La landing de TiendaPro en tiendapro.co (HU-T18.5, D-T15): qué es, cuánto cuesta y «Crear tienda», que lleva al alta del panel. Estática, sin terceros; se publica con la versión de la Tienda.",
+  "type": "module",
+  "scripts": {
+    "build": "astro build && node ../../scripts/armar-tiendapro.ts && wrangler deploy --dry-run --outdir .wrangler/dry-run --env= && wrangler deploy --dry-run --outdir .wrangler/dry-run-staging --env staging"
+  },
+  "dependencies": {
+    "@ed1/tienda-schema": "workspace:*",
+    "@ed1/ui": "workspace:*",
+    "astro": "^7.3.5"
+  },
+  "devDependencies": {
+    "wrangler": "^4.144.0"
+  }
+}

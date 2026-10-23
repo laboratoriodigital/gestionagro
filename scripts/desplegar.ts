@@ -24,6 +24,7 @@ import { killSwitchesDelCore } from '../apps/core/src/constantes.ts';
 import { SITIO } from '../apps/sitio/src/lib/seo.ts';
 import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
 import { hostDeStaging } from '../packages/tienda-schema/src/ensayos.ts';
+import { DOMINIO_DE_LA_MARCA } from '../packages/tienda-schema/src/marca.ts';
 import { generarClavePrivada } from '../packages/tokens/src/index.ts';
 import { archivosDeLaVitrina } from './armar-vitrina.ts';
 import {
@@ -49,6 +50,7 @@ import {
   secretosDeLaCelda,
 } from './lib/api-celda.ts';
 import { escribirCabecerasDelParqueadero } from './lib/cabeceras-parqueadero.ts';
+import { armarLaLandingPara } from './lib/cabeceras-tiendapro.ts';
 import {
   ARCHIVO_DESPLIEGUE_PARQUEADERO,
   CONSULTA_HUMO_SHARD,
@@ -1041,6 +1043,10 @@ async function prepararCeldaDeLaTienda(
       ],
     };
   }
+  // HU-T18.5: la landing de TiendaPro, con el panel de este ambiente en «Crear tienda». Producción
+  // la vuelve a armar para producción: el build la deja lista para staging.
+  const landing = await desplegarLaLanding(dest, cred, panel);
+  if (!landing.ok) return landing;
   // HU-T4.6 CA2: la release de este despliegue, al almacén, para cuando llegue la siguiente.
   if (secretos.ok) {
     const { release, archivos } = archivosDeLaVitrina();
@@ -1185,12 +1191,58 @@ async function prepararCeldaDeLaTienda(
         : []),
       `panel: ${panel}`,
       `despacho: ${sitio}`,
+      ...landing.detalle,
       ...(notaLlaves ? [notaLlaves] : []),
       ...avisosDeSaas,
       ...avisos,
       ...sinMcp,
     ],
   };
+}
+
+/**
+ * HU-T18.5: la landing de TiendaPro (`apps/tiendapro-sitio`), solo assets. En producción va a
+ * `tiendapro.co` y `www.`; en staging, a workers.dev y sin indexar. Después de desplegarla se mira
+ * que responda y que «Crear tienda» lleve al panel de este ambiente (P16).
+ */
+async function desplegarLaLanding(dest: Destino, cred: Credenciales, panel: string): Promise<Paso> {
+  const dist = join(RAIZ, 'apps', 'tiendapro-sitio', 'dist');
+  if (!existsSync(join(dist, 'index.html'))) {
+    return { ok: false, detalle: ['la landing de TiendaPro no está armada: falta su build'] };
+  }
+  armarLaLandingPara(dist, dest);
+  const deploy = wrangler(
+    '@ed1/tiendapro-sitio',
+    `deploy ${dest === 'staging' ? '--env staging' : '--env='}`,
+    cred,
+  );
+  if (!deploy.ok) {
+    return {
+      ok: false,
+      detalle: [
+        'wrangler deploy de la landing de TiendaPro falló:',
+        ...causaDeWrangler(deploy.salida),
+      ],
+    };
+  }
+  const url =
+    dest === 'staging' ? urlDeWorkersDev(deploy.salida) : `https://${DOMINIO_DE_LA_MARCA}`;
+  if (!url) return { ok: false, detalle: ['la landing de TiendaPro no dijo su dirección'] };
+  const fallas = await conReintentos(async () => {
+    try {
+      const r = await fetch(`${url}/`);
+      const html = await r.text();
+      if (r.status !== 200) return [`la landing respondió ${r.status}`];
+      const alPanel = panel.replace(/\/$/, '');
+      return html.includes(`href="${alPanel}/"`)
+        ? []
+        : [`«Crear tienda» de la landing no lleva a ${alPanel}/`];
+    } catch (e) {
+      return [`la landing no respondió (${(e as Error).message})`];
+    }
+  });
+  if (fallas.length > 0) return { ok: false, detalle: ['la landing de TiendaPro:', ...fallas] };
+  return { ok: true, detalle: [`landing: ${url}`] };
 }
 
 async function desplegarApiCelda(

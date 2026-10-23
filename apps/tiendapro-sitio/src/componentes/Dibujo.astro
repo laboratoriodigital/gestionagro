@@ -1,0 +1,94 @@
+---
+/**
+ * El dibujo de un producto de ejemplo: un SVG de un solo trazo y un relleno suave, en el tono de
+ * su negocio. Sin fotos que pesen ni texto adentro: el nombre va al lado, para los lectores de
+ * pantalla.
+ */
+import type { ProductoDeEjemplo } from '../contenido.ts';
+
+interface Props {
+  dibujo: ProductoDeEjemplo['dibujo'];
+}
+const { dibujo } = Astro.props;
+---
+<svg class="dibujo" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+  {dibujo === 'pan' && (
+    <g>
+      <ellipse class="relleno" cx="32" cy="36" rx="20" ry="13" />
+      <path d="M14 36c3-9 11-14 18-14s15 5 18 14" />
+      <path d="M22 30c2 1 4 1 6 0M34 28c2 1 4 1 6 0" />
+    </g>
+  )}
+  {dibujo === 'almojabana' && (
+    <g>
+      <circle class="relleno" cx="32" cy="34" r="17" />
+      <circle cx="32" cy="34" r="17" />
+      <path d="M24 30c4-4 12-4 16 0" />
+    </g>
+  )}
+  {dibujo === 'torta' && (
+    <g>
+      <path class="relleno" d="M14 30h36v18H14z" />
+      <path d="M14 30h36v18H14zM14 38c4 3 8 3 12 0s8-3 12 0 8 3 12 0" />
+      <path d="M32 30v-8M30 20c0-2 2-4 2-4s2 2 2 4-1 2-2 2-2 0-2-2" />
+    </g>
+  )}
+  {dibujo === 'pandeyuca' && (
+    <g>
+      <circle class="relleno" cx="32" cy="34" r="16" />
+      <circle cx="32" cy="34" r="16" />
+      <circle cx="32" cy="34" r="6" />
+    </g>
+  )}
+  {dibujo === 'bolso' && (
+    <g>
+      <path class="relleno" d="M14 28h36l-4 22H18z" />
+      <path d="M14 28h36l-4 22H18zM24 28c0-8 4-12 8-12s8 4 8 12M18 38h28" />
+    </g>
+  )}
+  {dibujo === 'vela' && (
+    <g>
+      <rect class="relleno" x="22" y="26" width="20" height="26" rx="3" />
+      <rect x="22" y="26" width="20" height="26" rx="3" />
+      <path d="M32 26v-5M32 12c-3 4-3 7 0 9 3-2 3-5 0-9z" />
+    </g>
+  )}
+  {dibujo === 'camisa' && (
+    <g>
+      <path class="relleno" d="M24 14l8 6 8-6 12 7-5 9-5-3v23H22V27l-5 3-5-9z" />
+      <path d="M24 14l8 6 8-6 12 7-5 9-5-3v23H22V27l-5 3-5-9zM32 20v30" />
+    </g>
+  )}
+  {dibujo === 'pantalon' && (
+    <g>
+      <path class="relleno" d="M20 12h24l3 40h-9l-6-26-6 26h-9z" />
+      <path d="M20 12h24l3 40h-9l-6-26-6 26h-9zM20 18h24" />
+    </g>
+  )}
+  {dibujo === 'vestido' && (
+    <g>
+      <path class="relleno" d="M26 12h12l-2 12 12 28H16l12-28z" />
+      <path d="M26 12h12l-2 12 12 28H16l12-28zM28 24h8" />
+    </g>
+  )}
+  {dibujo === 'jabon' && (
+    <g>
+      <rect class="relleno" x="14" y="24" width="36" height="22" rx="8" />
+      <rect x="14" y="24" width="36" height="22" rx="8" />
+      <circle cx="23" cy="17" r="3" />
+      <circle cx="40" cy="14" r="2" />
+    </g>
+  )}
+  {dibujo === 'aceite' && (
+    <g>
+      <path class="relleno" d="M26 22h12v6l4 6v16H22V34l4-6z" />
+      <path d="M26 22h12v6l4 6v16H22V34l4-6zM28 14h8v8h-8zM22 40h20" />
+    </g>
+  )}
+  {dibujo === 'crema' && (
+    <g>
+      <path class="relleno" d="M18 20h28l-4 32H22z" />
+      <path d="M18 20h28l-4 32H22zM24 14h16v6H24zM24 34h16" />
+    </g>
+  )}
+</svg>

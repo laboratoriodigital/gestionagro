@@ -3,25 +3,28 @@
  * entrar (HU-T8.1). Sale de `content/tienda/privacidad/politica.json`, la misma fuente con la que el
  * CORE pide aceptarla (P2). Mientras sea borrador, lo dice arriba.
  */
+import { datosQueHay, NOMBRE_DEL_ENCARGADO } from '@ed1/tienda-schema/comercio';
+import { CORREO_DE_REPORTES } from '@ed1/tienda-schema/marca';
 import politica from '../../../../../content/tienda/privacidad/politica.json' with { type: 'json' };
-
-const POR_COMPLETAR = 'por completar';
 
 export function Privacidad() {
   const r = politica.responsable;
+  // HU-T18.6 CA2: lo que falta del responsable no se muestra; mientras no esté su razón social, lo
+  // nombra la marca de la empresa.
+  const datos = datosQueHay({ ...r, nombre: r.nombre ?? NOMBRE_DEL_ENCARGADO });
   const fecha = new Intl.DateTimeFormat('es-CO', { dateStyle: 'long', timeZone: 'UTC' }).format(
     new Date(`${politica.fecha}T00:00:00Z`),
   );
   return (
     <main class="contenido texto-legal">
-      <h1>Política de tratamiento de datos de tu cuenta de la Tienda</h1>
+      <h1>Política de tratamiento de datos de tu cuenta de TiendaPro</h1>
       <p>
         Versión {politica.version}, del {fecha}.
       </p>
       {politica.estado !== 'vigente' ? (
         <p class="texto-legal__aviso">
-          <strong>Borrador: {politica.revision}.</strong> Lo marcado «{POR_COMPLETAR}» se completará
-          antes de que sea la política vigente.
+          <strong>Borrador: {politica.revision}.</strong> Algunos datos de quien responde se
+          agregarán antes de que sea la política vigente.
         </p>
       ) : null}
       <p>
@@ -31,26 +34,12 @@ export function Privacidad() {
       </p>
       <h2>Quién responde por tus datos</h2>
       <dl class="datos">
-        <div>
-          <dt>Nombre</dt>
-          <dd>{r.nombre ?? POR_COMPLETAR}</dd>
-        </div>
-        <div>
-          <dt>Identificación</dt>
-          <dd>{r.identificacion ?? POR_COMPLETAR}</dd>
-        </div>
-        <div>
-          <dt>Domicilio</dt>
-          <dd>{r.domicilio ?? POR_COMPLETAR}</dd>
-        </div>
-        <div>
-          <dt>Correo</dt>
-          <dd>{r.correo ?? POR_COMPLETAR}</dd>
-        </div>
-        <div>
-          <dt>Teléfono</dt>
-          <dd>{r.telefono ?? POR_COMPLETAR}</dd>
-        </div>
+        {datos.map(([etiqueta, valor]) => (
+          <div key={etiqueta}>
+            <dt>{etiqueta}</dt>
+            <dd>{valor}</dd>
+          </div>
+        ))}
       </dl>
       <h2>Quiénes nos ayudan</h2>
       <ul>
@@ -73,7 +62,7 @@ export function Privacidad() {
       <h2>Tus derechos</h2>
       <p>
         Puedes conocer, actualizar y corregir tus datos, pedir que los borremos y revocar esta
-        autorización. Escríbenos a {r.correo ?? POR_COMPLETAR}: te respondemos las consultas en
+        autorización. Escríbenos a {r.correo ?? CORREO_DE_REPORTES}: te respondemos las consultas en
         máximo 10 días hábiles y los reclamos en máximo 15 (Ley 1581 de 2012). Si no quedas
         conforme, puedes acudir a la Superintendencia de Industria y Comercio.
       </p>

@@ -43,6 +43,8 @@ export const E2E_DE_LA_APP: Readonly<Record<string, GrupoE2e | null>> = {
   'tienda-api': null,
   'tienda-panel': 'tienda',
   'tienda-sitio': 'tienda',
+  // La landing de TiendaPro (HU-T18.5): lee los planes y los legales de la Tienda.
+  'tiendapro-sitio': 'tienda',
 };
 
 /**

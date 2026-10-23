@@ -49,22 +49,67 @@ export interface TextoParaAceptar {
   readonly texto: string;
 }
 
-export const POR_COMPLETAR = 'por completar';
+/** El nombre con que el texto nombra al encargado mientras su razón social no está (HU-T18.6). */
+export const NOMBRE_DEL_ENCARGADO = 'Laboratorio Digital';
 
-/** El texto de los términos o de la custodia, con los datos del encargado; lo que falta dice «por completar». */
+const ETIQUETAS_DEL_ENCARGADO: Readonly<Record<keyof DatosDelEncargado, string>> = {
+  nombre: 'razón social',
+  identificacion: 'identificación',
+  domicilio: 'domicilio',
+  correo: 'correo',
+  telefono: 'teléfono',
+};
+
+/**
+ * HU-T18.6 CA2: los datos del encargado que faltan, en palabras. El texto sale sin ellos; esta
+ * lista es la que el dueño completa en `content/tienda/privacidad/politica.json`.
+ */
+export const datosQueFaltan = (e: DatosDelEncargado): string[] =>
+  (Object.keys(ETIQUETAS_DEL_ENCARGADO) as (keyof DatosDelEncargado)[])
+    .filter((k) => !e[k])
+    .map((k) => ETIQUETAS_DEL_ENCARGADO[k]);
+
+/** Los datos de quien responde que sí están, con su etiqueta, en orden: la política los muestra así. */
+export const datosQueHay = (e: DatosDelEncargado): [etiqueta: string, valor: string][] =>
+  (
+    [
+      ['Nombre', e.nombre],
+      ['Identificación', e.identificacion],
+      ['Domicilio', e.domicilio],
+      ['Correo', e.correo],
+      ['Teléfono', e.telefono],
+    ] as const
+  ).flatMap(([etiqueta, valor]) => (valor ? [[etiqueta, valor] as [string, string]] : []));
+
+/**
+ * Un texto con sus `{campo}` llenos. HU-T18.6 CA2: un dato que falta no se inventa ni se deja a la
+ * vista; su frase («teléfono {telefono}») se omite de la lista separada por comas que la lleva.
+ */
+export function llenarConLoQueHay(
+  texto: string,
+  valores: Readonly<Record<string, string | null>>,
+): string {
+  const falta = (frase: string) =>
+    [...frase.matchAll(/\{(\w+)\}/g)].some((m) => !valores[m[1] as string]);
+  const punto = texto.endsWith('.') ? '.' : '';
+  const frases = (punto ? texto.slice(0, -1) : texto).split(', ').filter((f) => !falta(f));
+  return `${frases.join(', ')}${punto}`.replace(/\{(\w+)\}/g, (_, k: string) => valores[k] ?? '');
+}
+
+/** El texto de los términos o de la custodia, con los datos del encargado que hay (HU-T18.6 CA2). */
 export function textoParaAceptar(
   plantilla: PlantillaDelComercio,
   encargado: DatosDelEncargado,
   cual: CualTexto,
 ): TextoParaAceptar {
-  const valores: Record<string, string> = {
-    encargado: encargado.nombre ?? `Laboratorio Digital (razón social ${POR_COMPLETAR})`,
-    identificacion: encargado.identificacion ?? POR_COMPLETAR,
-    domicilio: encargado.domicilio ?? POR_COMPLETAR,
-    correo: encargado.correo ?? POR_COMPLETAR,
-    telefono: encargado.telefono ?? POR_COMPLETAR,
+  const valores: Record<string, string | null> = {
+    encargado: encargado.nombre ?? NOMBRE_DEL_ENCARGADO,
+    identificacion: encargado.identificacion,
+    domicilio: encargado.domicilio,
+    correo: encargado.correo,
+    telefono: encargado.telefono,
   };
-  const llenar = (t: string) => t.replace(/\{(\w+)\}/g, (_, k: string) => valores[k] ?? `{${k}}`);
+  const llenar = (t: string) => llenarConLoQueHay(t, valores);
   const fuente = cual === 'terminos' ? plantilla : plantilla.custodia;
   const secciones = fuente.secciones.map((s) => [s.titulo, llenar(s.texto)] as const);
   const texto = [

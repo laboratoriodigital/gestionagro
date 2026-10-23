@@ -139,9 +139,9 @@ describe('los términos del comercio (HU-T7.2)', () => {
     // El contrato de transmisión: el comercio responde, Laboratorio Digital guarda por su cuenta.
     expect(t).toMatch(/Tu tienda es la Responsable/);
     expect(t).toMatch(/contrato de transmisión/);
-    // Lo que falta del encargado se dice, sin inventarlo (P1).
-    expect(t).toMatch(/identificación por completar/);
-    expect(t).not.toMatch(/\{\w+\}/);
+    // HU-T18.6 CA2: lo que falta del encargado se omite, sin inventarlo ni dejar un hueco a la vista.
+    expect(t).toMatch(/Encargado\. Laboratorio Digital, domicilio Medellín, Colombia, correo /);
+    expect(t).not.toMatch(/por completar|identificación|teléfono|\{\w+\}/);
   });
 
   it('CA1: al entrar por primera vez el panel sabe que faltan, y la API los da con su huella', async () => {

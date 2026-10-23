@@ -1,0 +1,47 @@
+---
+/**
+ * La primera pantalla: un teléfono con una tienda de ejemplo, que el visitante cambia entre
+ * panadería, ropa y belleza. Son radios de verdad (teclado y lector de pantalla incluidos) y el
+ * cambio lo hace la hoja con `:has()`, sin JavaScript. Dice que es un ejemplo.
+ */
+import { pesos, TIENDAS_DE_EJEMPLO } from '../contenido.ts';
+import Dibujo from './Dibujo.astro';
+---
+<div class="vitrina">
+  <fieldset class="vitrina__negocios">
+    <legend>Mira una tienda de ejemplo</legend>
+    {TIENDAS_DE_EJEMPLO.map((t, i) => (
+      <label class="pildora">
+        <input type="radio" name="negocio" value={t.id} id={`negocio-${t.id}`} checked={i === 0} />
+        <span>{t.etiqueta}</span>
+      </label>
+    ))}
+  </fieldset>
+
+  <div class="telefono" aria-label="Una tienda de ejemplo en un teléfono" role="img">
+    <div class="telefono__pantalla">
+      {TIENDAS_DE_EJEMPLO.map((t) => (
+        <div class="tienda" data-tienda={t.id}>
+          <p class="tienda__direccion">{t.direccion}</p>
+          <p class="tienda__nombre">{t.nombre}</p>
+          <p class="tienda__frase">{t.frase}</p>
+          <ul class="tienda__productos">
+            {t.productos.map((p) => (
+              <li class={`producto producto--${t.id}`}>
+                <span class="producto__foto"><Dibujo dibujo={p.dibujo} /></span>
+                <span class="producto__nombre">{p.nombre}</span>
+                <span class="producto__precio">{pesos(p.precio)}</span>
+                {p.detalle && <span class="producto__detalle">{p.detalle}</span>}
+              </li>
+            ))}
+          </ul>
+          <p class="tienda__pedido">
+            <span>Tu pedido</span>
+            <span class="cifra">2</span>
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+  <p class="vitrina__nota">Tienda de ejemplo. Así se ve en el teléfono de tu cliente.</p>
+</div>

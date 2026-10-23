@@ -5,6 +5,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La página de TiendaPro en `tiendapro.co` (sprint L2): qué es, cómo te llega un pedido por WhatsApp, lo que incluye, lo que hacen los asistentes de inteligencia artificial, los tres planes con sus precios y las preguntas frecuentes, con «Crear mi tienda gratis» en cada parte. Una tienda de ejemplo que cambia entre panadería, ropa y belleza, y un pedido que avanza en el teléfono al bajar. Abre rápido en cualquier teléfono y no usa programas de terceros.
+- Los términos y la política de datos de TiendaPro, publicados en la página.
+
+### Cambiado
+- Los términos y la política salen con los datos de quien presta el servicio que hay: lo que falta ya no aparece como «por completar».
 - TiendaPro, la marca de la Tienda (sprint L1, D-T15):
   - las tiendas viven en `mitiendapro.co`, como `panaderia.mitiendapro.co`; las direcciones de antes, en `laboratorio-digital.app`, llevan a las nuevas, y los avisos de Bold que ya estaban registrados con ellas siguen llegando;
   - el panel en `app.tiendapro.co`, con la marca TiendaPro, y el asistente del comerciante en `mcp.tiendapro.co`;

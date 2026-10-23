@@ -647,6 +647,31 @@ export function wranglerDelPanelDeLaTienda(config: ConfigCeldas): Record<string,
   };
 }
 
+/**
+ * HU-T18.5: la landing de TiendaPro, solo assets y sin Worker. En producción, la marca (`tiendapro.co`
+ * y `www.`), donde nunca se sirve nada de un comercio (D-T15); staging, en workers.dev.
+ */
+export const WORKER_TIENDAPRO = 'tiendapro-sitio';
+export const RUTA_WRANGLER_TIENDAPRO = join(RAIZ, 'apps', 'tiendapro-sitio', 'wrangler.jsonc');
+export function wranglerDeLaLanding(): Record<string, unknown> {
+  return {
+    $schema: '../../node_modules/wrangler/config-schema.json',
+    name: WORKER_TIENDAPRO,
+    compatibility_date: FECHA_COMPATIBILIDAD,
+    assets: { directory: './dist', not_found_handling: '404-page' },
+    workers_dev: false,
+    routes: [
+      { pattern: DOMINIO_DE_LA_MARCA, custom_domain: true },
+      { pattern: `www.${DOMINIO_DE_LA_MARCA}`, custom_domain: true },
+    ],
+    env: {
+      staging: { name: `${WORKER_TIENDAPRO}-staging`, workers_dev: true, routes: [] },
+    },
+  };
+}
+
+export const textoWranglerDeLaLanding = (): string => comoTexto(wranglerDeLaLanding());
+
 export const textoWranglerDeLaCeldaDeLaTienda = (celda: Celda): string =>
   comoTexto(wranglerDeLaCeldaDeLaTienda(celda));
 export const textoWranglerDelSitioDeLaTienda = (config: ConfigCeldas): string =>
@@ -678,6 +703,7 @@ if (process.argv[1]?.endsWith('generar-wrangler.ts')) {
   for (const [ruta, texto] of [
     [RUTA_WRANGLER_TIENDA_SITIO, textoWranglerDelSitioDeLaTienda(config)],
     [RUTA_WRANGLER_TIENDA_PANEL, textoWranglerDelPanelDeLaTienda(config)],
+    [RUTA_WRANGLER_TIENDAPRO, textoWranglerDeLaLanding()],
   ] as const) {
     mkdirSync(join(ruta, '..'), { recursive: true });
     writeFileSync(ruta, texto);
