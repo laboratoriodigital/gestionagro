@@ -64,6 +64,25 @@ export function wranglerDelSitio(config: ConfigCeldas): Record<string, unknown> 
 
 export const CRON_CONCILIACION = '*/15 * * * *';
 
+/**
+ * HU-C10.2 CA3: el límite por IP de pedir un enlace para entrar, con Workers Rate Limiting (los
+ * mismos periodos de 10 o 60 segundos que la Tienda, bitácora tienda3 11). El tope de 3 por correo
+ * y hora lo lleva la base; este frena a quien pide para muchos correos desde una sola IP.
+ */
+export const LIMITE_CORREO_DEL_CORE = {
+  produccion: '1001',
+  staging: '1101',
+  limit: 5,
+  period: 60,
+} as const;
+const limitadorDelCore = (staging: boolean) => [
+  {
+    name: 'LIMITE_CORREO',
+    namespace_id: staging ? LIMITE_CORREO_DEL_CORE.staging : LIMITE_CORREO_DEL_CORE.produccion,
+    simple: { limit: LIMITE_CORREO_DEL_CORE.limit, period: LIMITE_CORREO_DEL_CORE.period },
+  },
+];
+
 export function wranglerDelCore(config: ConfigCeldas): Record<string, unknown> {
   const { core } = config;
   const base = (nombre: string) => [
@@ -89,6 +108,7 @@ export function wranglerDelCore(config: ConfigCeldas): Record<string, unknown> {
     // La conciliación de pagos (HU-E0.7), cada 15 min. Con el vigía de la celda son 4 de los 5
     // Cron Triggers que da la cuenta gratuita.
     triggers: { crons: [CRON_CONCILIACION] },
+    ratelimits: limitadorDelCore(false),
     observability: { enabled: true },
     env: {
       staging: {
@@ -97,6 +117,7 @@ export function wranglerDelCore(config: ConfigCeldas): Record<string, unknown> {
         routes: [],
         d1_databases: base(`${core.d1}_staging`),
         triggers: { crons: [CRON_CONCILIACION] },
+        ratelimits: limitadorDelCore(true),
       },
     },
   };

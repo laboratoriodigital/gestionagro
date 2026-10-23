@@ -86,6 +86,24 @@ h2 {
   margin: 0;
   accent-color: var(--acento);
 }
+/* HU-C10.2: entrar con un enlace al correo, debajo de Google. */
+.entrar-correo {
+  display: grid;
+  gap: var(--espacio-4);
+  justify-items: start;
+  padding-top: var(--espacio-6);
+  border-top: var(--borde-ancho) solid var(--borde);
+}
+.entrar-correo .ed1-campo {
+  width: 100%;
+}
+.entrar-correo__o,
+.entrar-correo__estado {
+  margin: 0;
+}
+.entrar-correo__estado:empty {
+  display: none;
+}
 
 /* La barra de arriba: la tienda y el rol, siempre a la vista. */
 .barra {

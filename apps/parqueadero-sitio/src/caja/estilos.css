@@ -534,6 +534,15 @@ legend {
   gap: var(--espacio-1);
 }
 
+/* HU-C10.2: entrar con un enlace al correo, debajo de Google. */
+.entrar-correo {
+  display: grid;
+  gap: var(--espacio-3);
+  margin-top: var(--espacio-4);
+  padding-top: var(--espacio-4);
+  border-top: 1px solid var(--linea);
+}
+
 .campo input,
 .campo select,
 .campo textarea {

@@ -42,8 +42,11 @@ import politicaDeLaCuenta from '../../../content/cuenta/privacidad/politica.json
   type: 'json',
 };
 import { decidirAutorizacion, inicioDeAutorizacion } from './autorizar.ts';
+import { mandarAvisos } from './avisos-por-correo.ts';
 import { registrarCliente } from './clientes-oauth.ts';
 import { KS_CORE, KS_PAGOS, ksDelProducto, PRODUCTO_CORE } from './constantes.ts';
+import { pasoDeLaCopia } from './copia.ts';
+import { correoDelCore } from './correo.ts';
 import { espaciosDeLaCuenta } from './cuenta.ts';
 import {
   callbackDrive,
@@ -63,6 +66,7 @@ import {
   renovar,
   salir,
 } from './entrar.ts';
+import { abrirEnlace, type Limitador, pedirEnlace, verEnlace } from './entrar-con-correo.ts';
 import {
   cambiarRol,
   quitarDelEquipo,
@@ -122,6 +126,24 @@ export interface Env {
   BOLD_IDENTIDAD?: string;
   BOLD_SECRETA?: string;
   BOLD_AMBIENTE?: string;
+  /**
+   * HU-C10.1: los correos del CORE. Staging manda con la cuenta de Gmail; producción, con Resend
+   * (`correo.ts`). Sin ellos, entrar con correo y los avisos dicen «no disponible».
+   */
+  CORREO_GMAIL_CLIENTE_ID?: string;
+  CORREO_GMAIL_CLIENTE_SECRETO?: string;
+  CORREO_GMAIL_REFRESH?: string;
+  CORREO_GMAIL_REMITENTE?: string;
+  RESEND_API_KEY?: string;
+  /** HU-C10.2 CA3: el límite por IP de pedir un enlace (Workers Rate Limiting). */
+  LIMITE_CORREO?: Limitador;
+  /** HU-C11.4: la copia semanal en el Drive del dueño (`copia.ts`). Sin ellos, no se hace. */
+  COPIA_LLAVE?: string;
+  COPIA_DRIVE_CLIENTE_ID?: string;
+  COPIA_DRIVE_CLIENTE_SECRETO?: string;
+  COPIA_DRIVE_REFRESH?: string;
+  COPIA_CF_TOKEN?: string;
+  COPIA_CF_CUENTA?: string;
 }
 
 export interface Dependencias {
@@ -432,6 +454,16 @@ export function crearApp(dependencias: Dependencias = {}) {
   app.post('/api/core/auth/canje', (c) => canje(c, c.get('entorno')));
   app.post('/api/core/auth/refrescar', (c) => renovar(c, c.get('entorno')));
   app.post('/api/core/auth/salir', (c) => salir(c, c.get('entorno')));
+  // HU-C10.2: entrar con un enlace al correo; termina en el mismo canje que Google.
+  app.post('/api/core/auth/correo/pedir', (c) =>
+    pedirEnlace(c, {
+      ...c.get('entorno'),
+      correoDe: (producto) => correoDelCore(c.env, producto, fetchDeLaRed),
+      limitador: c.env.LIMITE_CORREO,
+    }),
+  );
+  app.post('/api/core/auth/correo/ver', (c) => verEnlace(c, c.get('entorno')));
+  app.post('/api/core/auth/correo/abrir', (c) => abrirEnlace(c, c.get('entorno')));
   // Copia en el Drive del productor (HU-E8.4, etapa 1): mismo CORS, kill switch y configuración.
   const conDrive = (
     c: Context<{ Bindings: Env; Variables: { entorno: Entorno } }>,
@@ -484,6 +516,33 @@ export default {
         Date.now(),
       ).then((n) => {
         if (n > 0) console.log(`agro-core: ${n} aviso(s) de radicados enviados`);
+      }),
+    );
+    // HU-C10.3: los avisos de vencimiento por correo, en la primera vuelta de cada hora del día.
+    ctx.waitUntil(
+      mandarAvisos(
+        env.DB,
+        catalogoDelDestino(env.DESTINO),
+        (producto) => correoDelCore(env, producto, (...a) => fetch(...a)),
+        { destino: env.DESTINO, origenes: origenesDe(env) },
+        Date.now(),
+      ).then((n) => {
+        if (n > 0) console.log(`agro-core: ${n} aviso(s) de vencimiento por correo`);
+      }),
+    );
+    // HU-C11.4: un paso de la copia semanal fuera de Cloudflare por vuelta.
+    ctx.waitUntil(
+      pasoDeLaCopia(
+        env.DB,
+        env,
+        {
+          fetch: (...a) => fetch(...a),
+          telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
+        },
+        Date.now(),
+      ).then((r) => {
+        if (r.estado === 'hecha') console.log(`agro-core: copia de ${r.base} (${r.bytes} bytes)`);
+        if (r.estado === 'cierre') console.log(`agro-core: copia cerrada, ${r.borradas} rotadas`);
       }),
     );
   },

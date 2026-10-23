@@ -67,7 +67,7 @@ export interface Conexion {
   ahora?: () => number;
 }
 
-const SIN_SESION = 'Tu sesión venció. Vuelve a entrar con Google.';
+const SIN_SESION = 'Tu sesión venció. Vuelve a entrar.';
 
 export async function conAcceso(
   c: Conexion,

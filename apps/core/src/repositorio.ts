@@ -132,6 +132,76 @@ export async function usuarioDeIdentidad(
   return { id, nuevo: true };
 }
 
+/** El correo como lo guarda la identidad `correo`: sin espacios y en minúsculas. */
+export const correoNormalizado = (correo: string) => correo.trim().toLowerCase();
+
+/**
+ * Usuario de quien entró con un enlace a su correo (HU-C10.2). El enlace prueba que la persona
+ * recibe en esa dirección, igual que Google prueba la suya: si ya tiene cuenta con ese correo (entró
+ * con Google), es la misma persona y se le agrega la identidad `correo`, sin cuenta nueva. Si no
+ * tiene ninguna, se crea con el correo como nombre, que la persona ve al entrar.
+ *
+ * Escribe 1 fila (identidad) la primera vez de alguien que ya tenía cuenta, 2 (usuario e identidad)
+ * la de alguien nuevo, y nada las siguientes.
+ */
+export async function usuarioDeCorreo(
+  db: BaseD1,
+  correo: string,
+  reloj: Reloj = relojDelSistema,
+  /** Versión de la política del agro, como en `usuarioDeIdentidad`. */
+  politica: string | null = null,
+): Promise<{ id: string; nuevo: boolean }> {
+  const sub = correoNormalizado(sinEspacios(correo, 'el correo'));
+  const ahora = reloj();
+  const conPolitica = async (usuarioId: string, versionActual: string | null) => {
+    if (politica && versionActual !== politica) {
+      await db
+        .prepare('UPDATE usuario SET politica_version = ?, politica_aceptada = ? WHERE id = ?')
+        .bind(politica, iso(ahora), usuarioId)
+        .run();
+    }
+  };
+  const existente = await db
+    .prepare(
+      `SELECT i.usuario_id, u.politica_version FROM identidad i
+         JOIN usuario u ON u.id = i.usuario_id
+        WHERE i.proveedor = ? AND i.sub = ?`,
+    )
+    .bind('correo', sub)
+    .first<{ usuario_id: string; politica_version: string | null }>();
+  if (existente) {
+    await conPolitica(existente.usuario_id, existente.politica_version);
+    return { id: existente.usuario_id, nuevo: false };
+  }
+  // Por `usuario_por_correo` (0012). Si hubiera dos con el mismo correo, el primero que entró.
+  const conCuenta = await db
+    .prepare(
+      'SELECT id, politica_version FROM usuario WHERE lower(email) = ? ORDER BY creado LIMIT 1',
+    )
+    .bind(sub)
+    .first<{ id: string; politica_version: string | null }>();
+  if (conCuenta) {
+    await db
+      .prepare('INSERT INTO identidad (proveedor, sub, usuario_id, creada) VALUES (?, ?, ?, ?)')
+      .bind('correo', sub, conCuenta.id, iso(ahora))
+      .run();
+    await conPolitica(conCuenta.id, conCuenta.politica_version);
+    return { id: conCuenta.id, nuevo: false };
+  }
+  const id = uuidv7(() => ahora);
+  await db.batch([
+    db
+      .prepare(
+        'INSERT INTO usuario (id, nombre, email, creado, politica_version, politica_aceptada) VALUES (?, ?, ?, ?, ?, ?)',
+      )
+      .bind(id, sub, sub, iso(ahora), politica, politica ? iso(ahora) : null),
+    db
+      .prepare('INSERT INTO identidad (proveedor, sub, usuario_id, creada) VALUES (?, ?, ?, ?)')
+      .bind('correo', sub, id, iso(ahora)),
+  ]);
+  return { id, nuevo: true };
+}
+
 export interface Organizacion extends Ubicacion {
   id: string;
   nombre: string;

@@ -7,6 +7,7 @@
  * transmisión (HU-Q7.11 CA1). Una caja vinculada sin la versión vigente queda en pausa y los
  * vuelve a pedir aquí (CA3).
  */
+import { pedirEnlaceDeEntrada } from '@ed1/correo/entrar';
 import { alcance } from '@ed1/parqueadero-schema/sync';
 import { useEffect, useState } from 'preact/hooks';
 import {
@@ -28,8 +29,10 @@ import {
   subirParqueadero,
   sumarCaja,
   urlDeEntrada,
+  VERSION_DE_LA_POLITICA,
 } from './cuenta.ts';
 import type { BaseDeLaCaja, Meta, Sesion } from './datos.ts';
+import { EntrarConCorreo } from './EntrarConCorreo.tsx';
 import { urlDelCore } from './entorno.ts';
 import { fechaBogota, horaBogota } from './fecha.ts';
 import { type EstadoDeLaFirma, estadoDeLaFirma } from './firma.ts';
@@ -207,7 +210,6 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
         ) : (
           <Terminos marcado={marcado} alMarcar={setMarcado} />
         )}
-        <p class="ayuda">Por ahora se entra con una cuenta de Google.</p>
         <button
           type="button"
           class="boton boton-principal"
@@ -219,6 +221,20 @@ export function Cuenta({ db, reloj, nube, regreso, alAjustes, alVolver }: Props)
         >
           Entrar con Google
         </button>
+        <EntrarConCorreo
+          puede={vigentes || marcado}
+          antes={async () => {
+            if (!vigentes) await aceptarTerminos(db, reloj);
+          }}
+          pedir={(correo) =>
+            pedirEnlaceDeEntrada(core, {
+              correo,
+              producto: 'parqueadero',
+              vuelta: `${location.origin}/caja/`,
+              politica: VERSION_DE_LA_POLITICA,
+            })
+          }
+        />
         {avisos}
         {volver}
       </section>

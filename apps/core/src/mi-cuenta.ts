@@ -102,13 +102,14 @@ export async function cerrarSesiones(c: Context, e: Entorno): Promise<Response> 
   const r = await deLaCuenta(c, e);
   if (r instanceof Response) return r;
   const ahora = e.ahora();
-  // CA2: una entrada con Google reciente. Renovar no la cambia (auth_time, HU-C4.3).
+  // CA2: una entrada reciente, con Google o con el correo (HU-C10.2). Renovar no la cambia
+  // (auth_time, HU-C4.3).
   if (!r.auth_time || ahora - r.auth_time * 1000 > ENTRADA_RECIENTE_MS) {
     return c.json(
       {
         estado: 'entrar-de-nuevo',
         motivo:
-          'Para cerrar sesiones, vuelve a entrar con Google. Así sabemos que eres tú y no alguien con tu teléfono.',
+          'Para cerrar sesiones, vuelve a entrar. Así sabemos que eres tú y no alguien con tu teléfono.',
       },
       403,
     );
@@ -231,7 +232,10 @@ export function frase(
   const persona = typeof d['persona'] === 'string' ? nombreDe(d['persona']) : 'una persona';
   switch (h.accion) {
     case 'entrada':
-      return `${quien} entró con Google.`;
+      // HU-C10.2: una entrada sin proveedor es de antes del correo, cuando solo había Google.
+      return d['proveedor'] === 'correo'
+        ? `${quien} entró con un enlace a su correo.`
+        : `${quien} entró con Google.`;
     case 'invitacion_aceptada':
       return `${quien} se unió como ${String(d['rol'] ?? 'parte del equipo')}.`;
     case 'rol_cambiado':

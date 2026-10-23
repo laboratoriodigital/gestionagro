@@ -7,6 +7,7 @@
     "build": "vite build && node ../../scripts/armar-panel-tienda.ts && wrangler deploy --dry-run --outdir .wrangler/dry-run --env= && wrangler deploy --dry-run --outdir .wrangler/dry-run-staging --env staging"
   },
   "dependencies": {
+    "@ed1/correo": "workspace:*",
     "@ed1/dinero": "workspace:*",
     "@ed1/ids": "workspace:*",
     "@ed1/tienda-schema": "workspace:*",

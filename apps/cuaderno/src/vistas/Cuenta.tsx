@@ -5,6 +5,7 @@
  * - Al volver de Google, el código se quita de la barra de direcciones antes de canjearlo (P13).
  * - Sin señal y con el access vencido se muestra «sin sesión para sincronizar», no un error (CA2).
  */
+import { pedirEnlaceDeEntrada } from '@ed1/correo/entrar';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
 import { baseActiva } from '../almacen/fincas-locales.ts';
@@ -23,7 +24,12 @@ import {
   vencimientoDelPlan,
 } from '../almacen/sesion.ts';
 import { sesionDeLaFinca } from '../almacen/vinculo.ts';
-import { AceptarPolitica, urlDeEntrada } from '../componentes/AceptarPolitica.tsx';
+import {
+  AceptarPolitica,
+  urlDeEntrada,
+  VERSION_POLITICA,
+} from '../componentes/AceptarPolitica.tsx';
+import { EntrarConCorreo } from '../componentes/EntrarConCorreo.tsx';
 import { fechaCorta } from '../formato.ts';
 import { FincaEnLaNube } from './FincaEnLaNube.tsx';
 import { FincasDelTelefono, irAFinca, usarFincasLocales } from './FincasDelTelefono.tsx';
@@ -203,8 +209,8 @@ export function Cuenta() {
       ) : (
         <>
           <p>
-            El cuaderno funciona sin cuenta. Con una cuenta de Google, tus registros podrán
-            respaldarse en la nube y tu equipo podrá anotar desde sus teléfonos.
+            El cuaderno funciona sin cuenta. Con una cuenta, tus registros podrán respaldarse en la
+            nube y tu equipo podrá anotar desde sus teléfonos.
           </p>
           <AceptarPolitica acepta={acepta} alCambiar={setAcepta} />
           <div class="acciones">
@@ -217,6 +223,16 @@ export function Cuenta() {
               Entrar con Google
             </button>
           </div>
+          <EntrarConCorreo
+            puede={enLinea && acepta}
+            pedir={(correo) =>
+              pedirEnlaceDeEntrada(core, {
+                correo,
+                vuelta: `${location.origin}/agro/app/cuenta/`,
+                politica: VERSION_POLITICA,
+              })
+            }
+          />
           {!enLinea && <p class="ayuda">Necesitas señal para entrar. Puedes seguir registrando.</p>}
           <FincasDelTelefono lista={locales} />
         </>

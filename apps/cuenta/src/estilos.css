@@ -107,6 +107,34 @@
   min-height: var(--objetivo-tactil);
 }
 
+/* HU-C10.2: entrar con un enlace al correo, debajo de Google. */
+.portada__correo {
+  display: grid;
+  gap: var(--espacio-4);
+  justify-items: start;
+  padding-top: var(--espacio-6);
+  border-top: var(--borde-ancho) solid var(--borde);
+}
+
+.portada__correo[hidden],
+.portada__correo [hidden] {
+  display: none;
+}
+
+.portada__correo .ed1-campo {
+  width: 100%;
+}
+
+.portada__correo [role="status"]:empty {
+  display: none;
+}
+
+/* La página que abre el enlace (`/entrar/correo/`). */
+.enlace[hidden],
+.enlace [hidden] {
+  display: none;
+}
+
 .portada__acepto input {
   width: 1.25rem;
   height: 1.25rem;

@@ -209,9 +209,7 @@ export async function renovar(
     return {
       sesion: null,
       motivo:
-        estado === 403
-          ? OTRA_APLICACION
-          : (datos.motivo ?? 'Tu sesión venció. Vuelve a entrar con Google.'),
+        estado === 403 ? OTRA_APLICACION : (datos.motivo ?? 'Tu sesión venció. Vuelve a entrar.'),
     };
   }
   if (estado !== 200) return { sesion, motivo: null };

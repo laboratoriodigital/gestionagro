@@ -1,0 +1,47 @@
+---
+/**
+ * Abrir el enlace que llegó al correo (HU-C10.2). El código viene en el fragmento (`#enlace=…`), que
+ * no llega a ningún servidor; `abrir-enlace.ts` lo saca de la barra, pregunta para quién es sin
+ * gastarlo y, al tocar «Entrar», lo gasta y sigue a la app con `#entrar=`, como al volver de Google.
+ *
+ * Pide un toque a propósito: los filtros de correo abren los enlaces para revisarlos, y algunos
+ * corren la página. Sin el toque, el filtro entraría por la persona y gastaría su enlace.
+ */
+import { Aviso } from '@ed1/ui/v2/componentes';
+import Base from '../../layouts/Base.astro';
+---
+<Base
+  titulo="Entrar con tu correo · Laboratorio Digital"
+  descripcion="Abre el enlace que te enviamos para entrar a tu cuenta."
+>
+  <main class="portada enlace">
+    <h1 class="portada__titulo">Entrar con tu correo</h1>
+
+    <p class="ed1-contenido ed1-contenido--cargando" role="status" data-enlace-cargando>
+      Revisando tu enlace…
+    </p>
+
+    <section class="portada__accion" data-enlace-vigente hidden>
+      <p class="portada__texto">
+        Vas a entrar a <strong data-enlace-producto></strong> como{' '}
+        <strong data-enlace-correo></strong>.
+      </p>
+      <div class="portada__botones">
+        <button class="ed1-boton ed1-boton--primario" type="button" data-enlace-entrar>
+          Entrar
+        </button>
+      </div>
+      <p class="portada__detalle">Si no fuiste tú quien pidió este enlace, cierra esta página.</p>
+    </section>
+
+    <div class="portada__aviso" data-enlace-error hidden>
+      <Aviso tono="peligro" titulo="No pudimos usar este enlace">
+        <p data-enlace-error-texto>Este enlace ya se usó o venció. Pide otro desde la aplicación.</p>
+      </Aviso>
+    </div>
+  </main>
+</Base>
+
+<script>
+  import '../../abrir-enlace.ts';
+</script>
