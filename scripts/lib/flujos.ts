@@ -31,6 +31,31 @@ export interface Flujo {
 }
 
 const TIEMPO_MAXIMO_MIN = 15;
+/**
+ * Con el repositorio público, los minutos de los equipos estándar de GitHub no se cobran: el tope de
+ * 15 cuidaba los 2.000 del mes del privado, no el reloj. El 23 oct 2026 el PR #230 se cortó en 15
+ * porque el espejo de Ubuntu bajó las dependencias de Playwright a 34 kB/s (11 minutos), con el
+ * mismo código que el #229 verificó en 9½ (bitácora core 13). Un trabajo puede pedir más solo con
+ * la forma de abajo, que vuelve a 15 o menos si el repositorio pasa a privado.
+ */
+const TIEMPO_MAXIMO_PUBLICO_MIN = 30;
+const TIEMPO_POR_VISIBILIDAD =
+  /^\$\{\{\s*github\.event\.repository\.private\s*&&\s*(\d+)\s*\|\|\s*(\d+)\s*\}\}$/;
+
+/** Si el `timeout-minutes` de un trabajo está dentro de lo permitido. */
+function tiempoValido(t: unknown): boolean {
+  if (typeof t === 'number') return t > 0 && t <= TIEMPO_MAXIMO_MIN;
+  const m = typeof t === 'string' ? TIEMPO_POR_VISIBILIDAD.exec(t.trim()) : null;
+  if (!m) return false;
+  const privado = Number(m[1]);
+  const publico = Number(m[2]);
+  return (
+    privado > 0 &&
+    privado <= TIEMPO_MAXIMO_MIN &&
+    publico > 0 &&
+    publico <= TIEMPO_MAXIMO_PUBLICO_MIN
+  );
+}
 
 export function revisarPipefail(archivo: string, flujo: Flujo): Hallazgo[] {
   const hallazgos: Hallazgo[] = [];
@@ -53,13 +78,12 @@ export function revisarTiempos(archivo: string, flujo: Flujo): Hallazgo[] {
     // GitHub no acepta «timeout-minutes» en un trabajo con «uses»: lo cuida el flujo llamado,
     // que también pasa por esta revisión.
     if (typeof trabajo.uses === 'string') return [];
-    const t = trabajo['timeout-minutes'];
-    return typeof t === 'number' && t > 0 && t <= TIEMPO_MAXIMO_MIN
+    return tiempoValido(trabajo['timeout-minutes'])
       ? []
       : [
           {
             archivo,
-            motivo: `jobs.${id}: necesita «timeout-minutes» entre 1 y ${TIEMPO_MAXIMO_MIN}`,
+            motivo: `jobs.${id}: necesita «timeout-minutes» entre 1 y ${TIEMPO_MAXIMO_MIN}, o «\${{ github.event.repository.private && N || M }}» con N hasta ${TIEMPO_MAXIMO_MIN} y M hasta ${TIEMPO_MAXIMO_PUBLICO_MIN}`,
           },
         ];
   });

@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.2.0] - 2026-10-23
+
+El comerciante sin Google entra al panel con un enlace a su correo.
+
 ### Agregado
 - El panel deja entrar con un enlace al correo, para el comerciante sin Google (HU-C10.2, HU-T13.4): debajo de «Entrar con Google», con la misma política aceptada. El enlace llega desde `avisos@tiendapro.co`.
 

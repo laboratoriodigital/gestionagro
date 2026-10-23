@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.9.0] - 2026-10-23
+
+El operador sin Google entra a la caja con un enlace a su correo.
+
 ### Agregado
 - «Cuenta y nube» deja entrar con un enlace al correo del operador, para quien no tiene Google (HU-C10.2, HU-Q7.6), con los mismos términos aceptados.
 
