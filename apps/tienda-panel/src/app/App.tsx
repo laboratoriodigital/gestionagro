@@ -32,7 +32,7 @@ import {
 } from './sesion.ts';
 import { AjusteDeSeccion, Ajustes } from './vistas/Ajustes.tsx';
 import { Anotar } from './vistas/Anotar.tsx';
-import { Baja } from './vistas/Baja.tsx';
+import { Baja, TiendaDadaDeBaja } from './vistas/Baja.tsx';
 import { Cobro } from './vistas/Cobro.tsx';
 import { Coleccion, Colecciones } from './vistas/Colecciones.tsx';
 import { Datos } from './vistas/Datos.tsx';
@@ -238,6 +238,15 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
           Intentar otra vez
         </button>
       </main>
+    );
+  // HU-T18.13: una tienda dada de baja no abre el panel: solo descargar lo suyo y los datos de sus
+  // compradores, que la API sigue atendiendo.
+  else if (yo.datos.tienda?.estado === 'baja' && ruta !== '/mas/datos/' && ruta !== '/mas/titular/')
+    cuerpo = (
+      <TiendaDadaDeBaja
+        nombre={yo.datos.tienda.nombre}
+        hasta={yo.datos.tienda.descargarHasta ?? null}
+      />
     );
   // HU-T7.2 CA1: sin los términos vigentes, el propietario los ve antes que el resto del panel.
   else if (

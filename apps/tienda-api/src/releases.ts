@@ -114,14 +114,15 @@ export async function guardarRelease(
 
 /**
  * Las tiendas de un shard cuya versión publicada se horneó con otra release, del anillo 1 primero.
- * Recorre las tiendas del shard (pocas por celda) y su versión publicada por la llave primaria.
+ * Recorre las tiendas del shard (pocas por celda) y su versión publicada por la llave primaria. Una
+ * tienda dada de baja no se vuelve a hornear (HU-T18.13).
  */
 async function pendientes(db: BaseD1, release: string) {
   const { results } = await db
     .prepare(
       `SELECT t.org_id, t.anillo FROM tienda t
          JOIN publicacion p ON p.org_id = t.org_id AND p.version = t.version_publicada
-        WHERE p.release IS NOT ? ORDER BY t.anillo, t.org_id LIMIT 50`,
+        WHERE p.release IS NOT ? AND t.estado <> 'baja' ORDER BY t.anillo, t.org_id LIMIT 50`,
     )
     .bind(release)
     .all<{ org_id: string; anillo: number }>();

@@ -60,7 +60,7 @@ import {
 } from './alta.ts';
 import { avisame, PeticionDeAvisame } from './avisame.ts';
 import { recibirAvisoDeBold } from './avisos.ts';
-import { darDeBaja } from './baja.ts';
+import { DIAS_PARA_BORRAR, darDeBaja } from './baja.ts';
 import {
   confirmarPedido,
   leerPedido,
@@ -353,6 +353,9 @@ function clavesDe(env: Env): ClavePublica[] {
 }
 
 const VUELVE_A_ENTRAR = 'Tu sesión venció o no es de la tienda. Vuelve a entrar.';
+/** HU-T18.13: lo que dice la API cuando se quiere cambiar una tienda dada de baja. */
+export const TIENDA_DADA_DE_BAJA =
+  'Tu tienda está dada de baja y ya no se puede cambiar. Puedes descargar lo suyo durante 30 días desde la baja.';
 const LECTURA = new Set(['GET', 'HEAD', 'OPTIONS']);
 /** Rutas que van por POST pero solo leen: siguen con `ks:tienda` apagado. */
 const SOLO_LEEN = new Set([
@@ -670,6 +673,16 @@ export function crearApp(
       shard: acceso.shard,
       db,
     });
+    // HU-T18.13: una tienda dada de baja ya no cambia (P1): se lee, se descarga y se atienden los
+    // derechos de sus compradores (`titular/*`) hasta que se borran sus datos.
+    if (!LECTURA.has(c.req.method) && !c.req.path.startsWith('/api/panel/v1/titular/')) {
+      const fila = await db
+        .prepare('SELECT estado FROM tienda WHERE org_id = ?')
+        .bind(acceso.org)
+        .first<{ estado: string }>();
+      if (fila?.estado === 'baja')
+        return c.json({ estado: 'dada-de-baja', motivo: TIENDA_DADA_DE_BAJA }, 409);
+    }
     return siguiente();
   });
 
@@ -1214,16 +1227,31 @@ export function crearApp(
         .bind(anillo, s.org, anillo)
         .run();
     }
+    const fila = await s.db
+      .prepare('SELECT slug, nombre, estado, baja_pedida FROM tienda WHERE org_id = ?')
+      .bind(s.org)
+      .first<{ slug: string; nombre: string; estado: string; baja_pedida: string | null }>();
     // HU-T13.5: el plan del token, guardado en la tienda; si cambió, sus direcciones y lo publicado
-    // quedan como lo deja el plan nuevo.
-    if (await guardarElPlan(s.db, s.org, s.plan, s.planVence)) {
+    // quedan como lo deja el plan nuevo. HU-T18.13: nunca en una tienda dada de baja, que no vuelve.
+    if (fila?.estado !== 'baja' && (await guardarElPlan(s.db, s.org, s.plan, s.planVence))) {
       const ctx = contextoDePublicacion(c, s.org, s.shard, 'sistema:plan');
       if (ctx) enSegundoPlano(c, aplicarElPlan({ ...ctx, instante: ctx.ahora }, 'sistema:plan'));
     }
-    const tienda = await s.db
-      .prepare('SELECT slug, nombre, estado FROM tienda WHERE org_id = ?')
-      .bind(s.org)
-      .first<{ slug: string; nombre: string; estado: string }>();
+    // HU-T18.13: dada de baja, el panel dice hasta cuándo se puede descargar.
+    const tienda = fila
+      ? {
+          slug: fila.slug,
+          nombre: fila.nombre,
+          estado: fila.estado,
+          ...(fila.estado === 'baja' && fila.baja_pedida
+            ? {
+                descargarHasta: new Date(
+                  Date.parse(fila.baja_pedida) + DIAS_PARA_BORRAR * 86_400_000,
+                ).toISOString(),
+              }
+            : {}),
+        }
+      : null;
     // HU-T14.4 CA3: el píxel de Meta solo se ofrece con el dominio propio como dirección principal.
     const control = c.env[CONTROL] as BaseD1 | undefined;
     const canonica = control
