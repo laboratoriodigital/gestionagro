@@ -4,7 +4,17 @@
 
 **Solo `mitiendapro.co`.** `tiendapro.co` es la marca y no aloja tiendas: no se inscribe (HU-T18.7 CA3).
 
-## 0. Antes de pedirla: la respuesta de Cloudflare
+## 0. Antes de pedirla
+
+La plantilla del PR pide cosas que no dependen del código. Sin ellas el PR se cierra, y una solicitud rechazada queda en el registro público de la lista:
+
+- **Usuarios.** La PSL solo considera proyectos con 2.000 a 3.000 usuarios distintos o más, contados como los comercios con tienda en `mitiendapro.co`, no como sus visitantes. Se pide el número real o estimado y si es lo uno o lo otro. Con la Tienda recién abierta, todavía no se cumple: la inscripción espera a que haya comercios (revisado el 22 oct 2026).
+- **El contacto de abuso, publicado.** Tiene que verse en `https://tiendapro.co/`: el pie dice «Reportar una tienda» con `abuse@tiendapro.co`. Hace falta que la landing esté en producción.
+- **Un correo de rol, vigilado.** No uno personal: `psl@tiendapro.co`, reenviado con Email Routing (zona `tiendapro.co` › Email › Email Routing › Routing rules) a un buzón que se lea. La PSL exige respuesta en máximo 30 días mientras el dominio esté en la lista.
+- **Dos años de registro.** Lo verifica el dueño en el registrador de `mitiendapro.co`, con la renovación automática encendida.
+- **La respuesta de Cloudflare**, abajo.
+
+### La respuesta de Cloudflare
 
 La bitácora tienda3 51 dejó una pregunta abierta: si Cloudflare for SaaS (los dominios propios de los comercios, con `origen.mitiendapro.co`) sigue funcionando en una zona inscrita fuera de Enterprise, y si la zona se podría volver a crear si algún día se borra. Las zonas inscritas que ya sirven en Cloudflare con comodín y certificado (`bearblog.dev`, `srv.us`, `vp4.me`) dicen que lo demás sigue.
 
@@ -16,16 +26,8 @@ La bitácora tienda3 51 dejó una pregunta abierta: si Cloudflare for SaaS (los 
 ## 1. Abrir el PR en GitHub
 
 1. Entra a <https://github.com/publicsuffix/list> y crea un *fork* con tu cuenta.
-2. En tu fork, edita `public_suffix_list.dat`. Busca la sección `===BEGIN PRIVATE DOMAINS===` y agrega, en orden alfabético por el nombre de la organización:
-
-   ```text
-   // TiendaPro : https://tiendapro.co
-   // Submitted by Laboratorio Digital <laboratoriodigital.la@gmail.com>
-   mitiendapro.co
-   ```
-3. Abre el PR contra `publicsuffix/list`. La plantilla pide marcar sus casillas y explicar la razón. Este texto sirve, en inglés como piden:
-
-   > TiendaPro is a Colombian online store platform. Each merchant's store is served at `<store>.mitiendapro.co`, operated by different, unrelated merchants. We request inclusion so browsers isolate cookies and site data between stores and so one store's reputation does not affect the others. `mitiendapro.co` only hosts merchant stores; our own site lives on a separate domain (`tiendapro.co`). The domain is registered for more than two years. We are not working around any third-party limit.
+2. En tu fork, edita `public_suffix_list.dat` y agrega la entrada en `===BEGIN PRIVATE DOMAINS===`, en el lugar y con el texto de `tienda-psl-descripcion-del-pr.md`.
+3. Abre el PR contra `publicsuffix/list` y pega en la plantilla las casillas y los textos de `tienda-psl-descripcion-del-pr.md`.
 
 4. Copia la dirección del PR, por ejemplo `https://github.com/publicsuffix/list/pull/1234`.
 

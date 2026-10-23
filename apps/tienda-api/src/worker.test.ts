@@ -93,7 +93,21 @@ describe('GET /api/salud, la prueba de humo del despliegue', () => {
       keks: [],
       ambiente: null,
       comerciosDePrueba: 0,
+      alta: 'sin-turnstile',
     });
+  });
+
+  it('HU-T18.6 CA3 · dice si el alta está lista, con las dos llaves de Turnstile, nunca su valor', async () => {
+    const leer = async (extra: Record<string, string>) => {
+      const texto = await (await pedir('/api/salud', env(extra))).text();
+      expect(texto).not.toContain('llave-de-prueba');
+      return (JSON.parse(texto) as { alta: string }).alta;
+    };
+    expect(
+      await leer({ TURNSTILE_SITIO: 'llave-de-prueba-1', TURNSTILE_SECRETO: 'llave-de-prueba-2' }),
+    ).toBe('lista');
+    // ❌ Con una sola, abrir una tienda sigue diciendo «todavía no disponible».
+    expect(await leer({ TURNSTILE_SITIO: 'llave-de-prueba-1' })).toBe('sin-turnstile');
   });
 
   it('dice su ambiente, el de su configuración (HU-T2.9 CA3)', async () => {

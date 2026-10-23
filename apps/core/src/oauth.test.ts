@@ -50,6 +50,13 @@ describe('HU-C9.2 · metadatos del servidor de autorización', () => {
         },
       ],
     };
-    expect(alcancesDelCatalogo(catalogo)).toEqual(['agro:registros:leer']);
+    // La Tienda está activa desde HU-T18.6: sus alcances del MCP del comercio se ofrecen.
+    expect(alcancesDelCatalogo(catalogo)).toEqual([
+      'agro:registros:leer',
+      'tienda:inventario:ajustar',
+      'tienda:inventario:leer',
+      'tienda:pedidos:estado',
+      'tienda:pedidos:leer',
+    ]);
   });
 });

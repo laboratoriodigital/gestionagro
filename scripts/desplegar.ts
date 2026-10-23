@@ -23,6 +23,7 @@ import { sentenciasDeCeldas } from '../apps/core/src/celdas.ts';
 import { killSwitchesDelCore } from '../apps/core/src/constantes.ts';
 import { SITIO } from '../apps/sitio/src/lib/seo.ts';
 import { claveKillSwitch } from '../packages/kill-switch/src/index.ts';
+import { direccionDeLaTienda } from '../packages/tienda-schema/src/alta.ts';
 import { hostDeStaging } from '../packages/tienda-schema/src/ensayos.ts';
 import { DOMINIO_DE_LA_MARCA } from '../packages/tienda-schema/src/marca.ts';
 import { generarClavePrivada } from '../packages/tokens/src/index.ts';
@@ -1135,6 +1136,12 @@ async function prepararCeldaDeLaTienda(
         panel,
         sitio,
         apiPorFuera: urlQueNoDebeResponder(celda, dest),
+        // HU-T18.6 CA3: con el comodín de este ambiente, una dirección que nadie tiene.
+        ...(celda.comodin === true || (celda.comodin === 'staging' && staging)
+          ? {
+              sinTiendaEnLaZona: `https://${direccionDeLaTienda(`humo-${Date.now().toString(36)}`, dest)}`,
+            }
+          : {}),
       },
       ensayos,
       { ambiente: dest },

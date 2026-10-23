@@ -17,6 +17,14 @@
     {
       "pattern": "origen.mitiendapro.co",
       "custom_domain": true
+    },
+    {
+      "pattern": "*/*",
+      "zone_name": "mitiendapro.co"
+    },
+    {
+      "pattern": "*.mitiendapro.co/*",
+      "zone_name": "mitiendapro.co"
     }
   ],
   "services": [

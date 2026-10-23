@@ -25,7 +25,7 @@
    gh secret set TURNSTILE_SECRETO --env staging
    ```
 
-   Repite los dos con `--env produccion` cuando la Tienda se lance.
+   Repite los dos con `--env produccion` (hecho el 22 oct 2026, para el lanzamiento). La prueba de humo de cada despliegue falla si al alta le falta alguno (`alta` en `/api/salud`).
 3. Despliega: los secretos llegan al Worker solo con el despliegue siguiente. Guardarlos no basta (validación del 20 oct 2026). Sin ellos, la pantalla dice «Abrir una tienda todavía no está disponible» y nada se crea.
 
 ### 2. Las direcciones de las tiendas nuevas
@@ -39,8 +39,8 @@ Hoy el despacho solo recibe las direcciones de los comercios de prueba. Para las
 
    Los nombres que ya existen (`origen.`) tienen sus propios registros, y ganan. El de `laboratorio-digital.app` se queda: lleva las direcciones de antes a las nuevas con un 301.
 2. Marca la celda de la Tienda en `infrastructure/celdas.json`, por PR. El despliegue agrega al despacho:
-   - con `"comodin": "staging"` (hoy, D-T14), solo `*--staging.mitiendapro.co/*` en staging (y, para el 301, `*--staging.laboratorio-digital.app/*`);
-   - con `"comodin": true`, al lanzar, también `*.mitiendapro.co/*` en producción.
+   - con `"comodin": "staging"` (hasta el lanzamiento, D-T14), solo `*--staging.mitiendapro.co/*` en staging (y, para el 301, `*--staging.laboratorio-digital.app/*`);
+   - con `"comodin": true` (desde el lanzamiento, HU-T18.6), también `*.mitiendapro.co/*` en producción. La prueba de humo pide una dirección que nadie tiene y exige la página «sin tienda».
 
    El comodín de `laboratorio-digital.app` también cubre la dirección de las fotos (`img--staging.`, `img.`), que siguen ahí: el despacho las deja pasar a su origen sin tomarlas por una tienda.
 3. Revisa después del despliegue que `app.tiendapro.co`, `img.`, `img--staging.` y el parqueadero sigan respondiendo: una foto de Ensayo Dos en staging tiene que verse.

@@ -4,7 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.0.0] - 2026-10-22
+
+TiendaPro abre al público. Cualquier comerciante entra a `tiendapro.co`, abre su tienda gratis en `app.tiendapro.co` y la tiene en `<nombre>.mitiendapro.co`, con los planes Gratis, Pro e IA Pro. Lo que hasta hoy estaba solo en staging (abrir una tienda, pagar el plan y conectar un dominio propio) queda abierto en producción.
+
 ### Agregado
+- TiendaPro abierta a todos (HU-T18.6): abrir una tienda desde el panel, con la verificación de que es una persona; las tiendas nuevas responden en su dirección de `mitiendapro.co` con su candado desde el primer momento; el plan se paga con Bold; y el dominio propio se conecta desde «Más › Tu dominio».
+- El despliegue revisa, sin abrir una tienda, que el alta esté lista y que una dirección nueva de `mitiendapro.co` llegue a la plataforma con su candado. Si algo falta, lo dice y no da el despliegue por bueno.
 - La página de TiendaPro en `tiendapro.co` (sprint L2): qué es, cómo te llega un pedido por WhatsApp, lo que incluye, lo que hacen los asistentes de inteligencia artificial, los tres planes con sus precios y las preguntas frecuentes, con «Crear mi tienda gratis» en cada parte. Una tienda de ejemplo que cambia entre panadería, ropa y belleza, y un pedido que avanza en el teléfono al bajar. Abre rápido en cualquier teléfono y no usa programas de terceros.
 - Los términos y la política de datos de TiendaPro, publicados en la página.
 

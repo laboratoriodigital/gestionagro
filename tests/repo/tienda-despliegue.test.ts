@@ -249,7 +249,8 @@ describe('la prueba de humo', () => {
   it('HU-T2.9 · en producción, la API dice «produccion» y ningún comercio de prueba', async () => {
     const salud = (cuerpo: object) => ({
       ...sana,
-      [`${urls.panel}/api/salud`]: () => Response.json({ estado: 'ok', kek: 'ok', ...cuerpo }),
+      [`${urls.panel}/api/salud`]: () =>
+        Response.json({ estado: 'ok', kek: 'ok', alta: 'lista', ...cuerpo }),
     });
     const prod = { ambiente: 'produccion' as const };
     expect(
@@ -271,12 +272,67 @@ describe('la prueba de humo', () => {
     ]);
   });
 
+  describe('HU-T18.6 CA3 · el humo del lanzamiento, sin abrir una tienda', () => {
+    const prod = { ambiente: 'produccion' as const };
+    const enLaZona = 'https://humo-abc.mitiendapro.co';
+    const lanzada = (alta: string, zona: () => Response) => ({
+      ...sana,
+      [`${urls.panel}/api/salud`]: () =>
+        Response.json({
+          estado: 'ok',
+          kek: 'ok',
+          ambiente: 'produccion',
+          comerciosDePrueba: 0,
+          alta,
+        }),
+      [`${enLaZona}/`]: zona,
+    });
+    const sinTienda = () =>
+      new Response('<h1>Esta dirección no tiene tienda</h1>', { status: 404 });
+
+    it('el alta lista y una dirección cualquiera de la zona que dice «sin tienda» pasan', async () => {
+      expect(
+        await humoDeLaTienda(
+          nube(lanzada('lista', sinTienda)),
+          { ...urls, sinTiendaEnLaZona: enLaZona },
+          [],
+          prod,
+        ),
+      ).toEqual({ fallas: [], avisos: [] });
+    });
+
+    it('❌ sin las llaves de Turnstile, el alta no está lista: es una falla', async () => {
+      const r = await humoDeLaTienda(nube(lanzada('sin-turnstile', sinTienda)), urls, [], prod);
+      expect(r.fallas).toEqual([
+        'abrir una tienda en produccion dice «todavía no disponible»: faltan TURNSTILE_SITIO o TURNSTILE_SECRETO en ese ambiente de GitHub (alta: sin-turnstile)',
+      ]);
+    });
+
+    it('❌ una dirección de la zona que no llega al despacho es una falla', async () => {
+      const r = await humoDeLaTienda(
+        nube(lanzada('lista', () => new Response('error 522', { status: 522 }))),
+        { ...urls, sinTiendaEnLaZona: enLaZona },
+        [],
+        prod,
+      );
+      expect(r.fallas).toEqual([
+        `${enLaZona}/ respondió 522 sin la página «sin tienda»: el comodín no lleva las tiendas nuevas al despacho`,
+      ]);
+    });
+  });
+
   it('❌ HU-T2.9 CA3 · el panel de un destino que responde la API de otro ambiente es una falla', async () => {
     const r = await humoDeLaTienda(
       nube({
         ...sana,
         [`${urls.panel}/api/salud`]: () =>
-          Response.json({ estado: 'ok', kek: 'ok', ambiente: 'staging', comerciosDePrueba: 0 }),
+          Response.json({
+            estado: 'ok',
+            kek: 'ok',
+            ambiente: 'staging',
+            comerciosDePrueba: 0,
+            alta: 'lista',
+          }),
       }),
       urls,
       [],

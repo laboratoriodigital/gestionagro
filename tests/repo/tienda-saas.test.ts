@@ -74,12 +74,20 @@ describe('la configuración con SaaS activo', () => {
   const tienda = config.celdas.find((c) => c.producto === 'tienda');
   if (!tienda) throw new Error('sin la celda de la Tienda');
 
-  it('hoy, sin la marca, nada cambia: ni la zona en la API ni la ruta de toda la zona', () => {
-    expect(tienda.saas).toBeUndefined();
-    const api = wranglerDeLaCeldaDeLaTienda(tienda) as { vars: Record<string, string> };
+  it('la celda está marcada: el dueño activó SaaS en mitiendapro.co el 22 oct 2026', () => {
+    expect(tienda.saas).toBe(true);
+  });
+
+  it('❌ sin la marca, nada cambia: ni la zona en la API ni la ruta de toda la zona', () => {
+    const { saas: _, ...sinMarca } = tienda;
+    const sinSaas = {
+      ...config,
+      celdas: config.celdas.map((c) => (c === tienda ? sinMarca : c)),
+    };
+    const api = wranglerDeLaCeldaDeLaTienda(sinMarca) as { vars: Record<string, string> };
     expect(api.vars['ZONA_TIENDAS']).toBeUndefined();
-    const sitio = wranglerDelSitioDeLaTienda(config) as { routes: unknown[] };
-    expect(sitio.routes).toHaveLength(1);
+    const sitio = wranglerDelSitioDeLaTienda(sinSaas) as { routes: unknown[] };
+    expect(sitio.routes).not.toContainEqual(expect.objectContaining({ pattern: '*/*' }));
   });
 
   it('con la marca: la API de producción sabe su zona y el despacho recibe los dominios propios', () => {
@@ -146,7 +154,12 @@ describe('las tiendas nuevas del alta (HU-T13.4)', () => {
     });
   });
 
-  it('la celda de la Tienda tiene hoy el comodín solo en staging (D-T14)', () => {
-    expect(config.celdas.find((c) => c.producto === 'tienda')?.comodin).toBe('staging');
+  it('desde el lanzamiento (HU-T18.6), la celda de la Tienda tiene el comodín en los dos ambientes', () => {
+    expect(config.celdas.find((c) => c.producto === 'tienda')?.comodin).toBe(true);
+    const sitio = wranglerDelSitioDeLaTienda(config) as { routes: unknown[] };
+    expect(sitio.routes).toContainEqual({
+      pattern: `*.${ZONA_DE_LAS_TIENDAS}/*`,
+      zone_name: ZONA_DE_LAS_TIENDAS,
+    });
   });
 });
