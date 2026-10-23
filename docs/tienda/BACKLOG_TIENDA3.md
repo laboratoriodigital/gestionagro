@@ -345,6 +345,7 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **T18** (festivo) | 9–20 ago | **M7.** Los agentes preparan pedidos que una persona confirma | HU-T15.2 (2), HU-T15.3 (2), HU-T15.4 (5), HU-T15.5 (3), HU-T15.6 (2), HU-T15.7 (5) | 19 | M7 |
 | **L1** | 22 oct 2026 | **Lanzamiento, parte 1.** La marca TiendaPro: las tiendas en `mitiendapro.co`, el panel en `tiendapro.co`, los tres planes y los correos con Resend | HU-T18.1 (5), HU-T18.2 (3), HU-T18.3 (5), HU-T18.4 (3) | 16 | — (construido el 22 oct 2026; HU-T18.1 a HU-T18.3 validadas el mismo día; HU-T18.4 se valida al lanzar) |
 | **L2** | después de L1 | **Lanzamiento, parte 2.** La landing de `tiendapro.co`, el alta abierta en producción y la Public Suffix List | HU-T18.5 (5), HU-T18.6 (3), HU-T18.7 (1) | 9 | Lanzamiento |
+| **L3** | 23 oct 2026 | **Después del lanzamiento.** Lo que pidió el dueño al probar TiendaPro en producción: textos, precio de IA Pro y la factura solo en IA Pro, lo legal vigente y sencillo, los errores que llevan a su campo, la baja que se cumple y la carga por lotes en Pro | HU-T18.8 (1), HU-T18.9 (2), HU-T18.10 (2), HU-T18.11 (5), HU-T18.12 (2), HU-T18.13 (2) | 14 | — |
 | **T19** | 23 ago–3 sep | **M8.** La factura, en el facturador del comercio | HU-T16.1 (2), HU-T16.2 (5), HU-T16.3 (3), HU-T16.4 (2) | 12 | M8 |
 | **T20** | 6–17 sep | Holgura: lo que traiga la validación con los primeros comercios | — | 0 | — |
 
@@ -1555,7 +1556,7 @@ Formato de cada historia, el del CORE:
 
 #### HU-T16.2 · `DocumentoFiscal` y la migración 0002
 - **Capa:** base y paquete · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** T19 · **Depende de:** HU-T16.1 · **Estado:** Refinada
-- Como comerciante del plan intermedio, quiero facturar mis pedidos en el facturador que ya uso.
+- Como comerciante de IA Pro, quiero facturar mis pedidos en el facturador que ya uso.
 - **Respaldo:** TIENDA §14.5 (puntos 1 a 3).
 - **CA1.** El adaptador `DocumentoFiscal` con el primer facturador, y la tabla `factura` en su migración 0002, con la receta.
 - **CA2 ❌.** Un documento que no salió del facturador nunca se llama «factura»: el PDF del pedido dice «resumen».
@@ -1566,7 +1567,7 @@ Formato de cada historia, el del CORE:
 - Como comerciante, quiero emitir la factura de un pedido con un toque.
 - **Respaldo:** TIENDA §14.5 (punto 2); §12.3 (entrada reciente).
 - **CA1.** La credencial se cifra como las llaves de Bold y pide entrada reciente; «Emitir factura» en un pedido pagado o confirmado.
-- **CA2 ❌.** Solo en el plan intermedio o superior; un error del facturador se muestra con su motivo y no marca nada como facturado.
+- **CA2 ❌.** Solo en IA Pro (HU-T18.9, 23 oct 2026); un error del facturador se muestra con su motivo y no marca nada como facturado.
 - **Aceptación de M8:** una factura de prueba emitida en la cuenta de pruebas del facturador.
 - **Work items:** WI-T16.3.1 `[código]` · WI-T16.3.2 `[prueba]` · WI-T16.3.3 `[dueño]` la cuenta de pruebas.
 
@@ -1708,6 +1709,59 @@ Formato de cada historia, el del CORE:
 - **Espera (22 oct 2026, decidido por el dueño):** la plantilla de la PSL pide de 2.000 a 3.000 comercios con tienda en el dominio y el contacto de abuso publicado en `tiendapro.co`. Con la Tienda sin abrir no se cumple ninguno de los dos, así que el PR se abre cuando los haya. CA2 (Search Console) no depende de esto y puede hacerse cuando `tiendapro.co` esté en producción.
 - **Work items:** WI-T18.7.0 `[dueño]` la pregunta a Cloudflare · WI-T18.7.1 `[dueño]` el registro `_psl` y abrir el PR · WI-T18.7.2 `[dueño]` Search Console
 
+
+#### HU-T18.8 · «Pan de bonos» en la landing
+- **Capa:** sitio · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** L3 · **Depende de:** HU-T18.5 · **Estado:** Construida (23 oct 2026), por validar
+- Como dueño, quiero que las conversaciones de ejemplo hablen como mis clientes.
+- **Respaldo:** pedido del dueño del 23 oct 2026: el plural es «pan de bonos».
+- **CA1.** En la franja de la IA, lo que pide el cliente dice «12 pan de bonos» y «pan de bonos para el sábado»; el nombre del producto en la línea del pedido sigue «Pan de bono».
+- **Work items:** WI-T18.8.1 `[código]`
+
+#### HU-T18.9 · IA Pro a COP 49.900 y la factura solo en IA Pro
+- **Capa:** contenido y CORE · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** L3 · **Depende de:** HU-T18.3 · **Estado:** Construida (23 oct 2026), por validar
+- Como dueño, quiero que IA Pro cueste COP 49.900 y sea el único plan con la factura en el facturador del comercio.
+- **Respaldo:** decisión del dueño del 23 oct 2026 (D-T3 revisada).
+- **CA1.** IA Pro: 49.900 al mes, 142.000 por 3, 269.000 por 6 y 499.000 por 12 (regla de PLATAFORMA §4.2), en `planes.json`, TIENDA §1.4, la landing y el panel.
+- **CA2.** `factura_integrada` solo en IA Pro; Pro ya no la lista.
+- **CA3 ❌.** Lo ya pagado no cambia: el CORE guarda el precio nuevo como una fila nueva de `plan_precio`.
+- **Cómo quedó:** sale a producción con la versión siguiente del CORE, que lleva el catálogo nuevo.
+- **Work items:** WI-T18.9.1 `[código]` · WI-T18.9.2 `[prueba]`
+
+#### HU-T18.10 · Los términos y la política vigentes, en palabras sencillas
+- **Capa:** contenido · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** L3 · **Depende de:** HU-T18.6 · **Estado:** Construida (23 oct 2026), por validar
+- Como dueño, quiero que lo legal salga sin el aviso de borrador y que cualquiera lo entienda.
+- **Respaldo:** decisión del dueño del 23 oct 2026: el negocio no está formalizado todavía y asume el riesgo de publicarlo sin revisión de abogado.
+- **CA1.** Los términos (versión 2) y la política de la cuenta (versión 2) quedan `vigente`: el alta, el panel y `tiendapro.co` ya no muestran el aviso de borrador.
+- **CA2.** En palabras sencillas y sin nombrar a los proveedores de la plataforma: quien ayuda se dice por lo que hace. Bold sí se nombra, porque es la cuenta del propio comercio.
+- **CA3 ❌.** Una prueba falla si los términos nombran a Cloudflare, Google, Gmail o Resend.
+- **Cómo quedó:** al cambiar la versión, el panel pide aceptar los términos otra vez y el CORE la política. La custodia de las llaves de Bold no cambió (versión 1).
+- **Work items:** WI-T18.10.1 `[código]` · WI-T18.10.2 `[prueba]`
+
+#### HU-T18.11 · Cargar productos por lotes y subir un respaldo, en Pro e IA Pro
+- **Capa:** panel y API · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** L3 · **Depende de:** HU-T12.2, HU-T10.7 · **Estado:** Construida (23 oct 2026), por validar
+- Como comerciante de Pro, quiero subir mis productos desde una hoja de Excel y volver a subir mi respaldo.
+- **Respaldo:** pedido del dueño del 23 oct 2026; la carga del operador de HU-T12.2 ya existía en la API, sin pantalla.
+- **CA1.** «Más › Cargar productos y respaldos»: la plantilla, la hoja en CSV (coma, punto y coma o tabulador; UTF-8 o el de Windows), una fila por combinación, y el respaldo de «Descargar todo». Primero dice todo lo que está mal, con su fila, y lo que va a entrar; luego carga por partes.
+- **CA2.** Lo que la hoja no trae no se toca en lo que ya existe: una hoja con solo nombre y precio no borra la descripción, el retracto, el SKU, el inventario ni la dirección del producto, y conserva su lugar. Un producto creado en el panel se actualiza con su respaldo, sin duplicarse.
+- **CA3 ❌.** En Gratis la API responde 403 «plan»; el panel ofrece Pro. Hasta 500 filas por hoja.
+- **Cómo quedó:** `carga_por_lotes` en `funciones.json`. La hoja «Productos» de «Descargar todo» trae ahora la descripción y los nombres de las opciones, para que vaya y vuelva. Las fotos no viajan: se ponen en cada producto. Falta comprobar en staging el tiempo de cómputo de una hoja de 500 filas en el plan gratuito.
+- **Work items:** WI-T18.11.1 `[código]` · WI-T18.11.2 `[prueba]` · WI-T18.11.3 `[dueño]` probar con una hoja real en staging
+
+#### HU-T18.12 · Un error del formulario lleva a su campo
+- **Capa:** panel · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** L3 · **Depende de:** HU-T3.5 · **Estado:** Construida (23 oct 2026), por validar
+- Como comerciante, quiero que al equivocarme el panel me lleve al campo que tengo que corregir.
+- **Respaldo:** pedido del dueño del 23 oct 2026.
+- **CA1.** Con errores, el resumen de arriba los lista y el foco va solo al primer campo con error, en el centro de la pantalla; cada error del resumen lleva a su campo.
+- **CA2 ❌.** Si el campo no se encuentra, el foco queda en el resumen.
+- **Work items:** WI-T18.12.1 `[código]` · WI-T18.12.2 `[prueba]`
+
+#### HU-T18.13 · La baja de una tienda se cumple al momento
+- **Capa:** API y panel · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** L3 · **Depende de:** HU-T13.7 · **Estado:** Construida (23 oct 2026), por validar
+- Como dueño, quiero que una tienda dada de baja no se pueda seguir usando.
+- **Respaldo:** prueba del dueño del 23 oct 2026: dio de baja su tienda, volvió a entrar a los pocos segundos y el panel seguía completo (bitácora tienda3 57).
+- **CA1.** La tienda sale de internet al darla de baja (ya era así). Quien vuelve a entrar ve «está dada de baja», hasta cuándo puede descargar lo suyo y los datos de sus compradores; su cuenta sigue activa.
+- **CA2 ❌.** La API responde 409 a toda escritura en una tienda dada de baja, salvo los derechos de sus compradores; el asistente del comercio no la atiende, el re-horneado la salta y un cambio de plan no la vuelve a publicar.
+- **Work items:** WI-T18.13.1 `[código]` · WI-T18.13.2 `[prueba]`
 
 ## 9. Preparadas, sin sprint
 
@@ -1858,6 +1912,8 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | T17c | 5 | 0 (en validación: HU-T5.16 y HU-T5.17) | Construido el 21 oct 2026, con lo que pidió la validación de la vitrina y atoms.com como referencia. Buscar bajó encima de la lista, con las categorías y «Ordenar por» debajo, y muestra las coincidencias con foto y precio al escribir. La bienvenida va de lado a lado, con el texto y el botón sobre la foto (bitácora tienda3 47). Espera al dueño: publicar y revisar en el teléfono |
 | T18 | 19 | 0 (en validación: HU-T15.2 a HU-T15.7) | Construido el 21 oct 2026. Cada tienda publica su API en OpenAPI 3.1 y cómo comprar en ella, con su huella; el asistente de un comprador busca, cotiza y le deja un pedido que la persona confirma y paga, y lo que nadie confirma se cancela a las 48 h. verificar-agentes revisa las dos tiendas de prueba. El MCP del comercio está construido, pero el CORE no lo autoriza mientras la Tienda siga pausada (bitácora tienda3 48). **Aceptación de M7 cumplida el 21 oct 2026** con Claude en Ensayo Dos (bitácora tienda3 49 y 50: lo que encontró la prueba). Espera al dueño: decidir cuándo pasa la Tienda a activa, para el MCP del comercio |
 | L1 | 16 | 13 (HU-T18.1, HU-T18.2 y HU-T18.3, validadas el 22 oct; HU-T18.4 se valida al lanzar) | Construido y validado el 22 oct 2026 (#222 y el arreglo #223, bitácora tienda3 52). Las tiendas viven en mitiendapro.co y las direcciones de antes llevan a ellas; el panel y los correos dicen TiendaPro; Gratis, Pro e IA Pro con sus límites; producción manda con Resend. El dueño activó Email Routing de abuse@tiendapro.co y agregó el panel nuevo a Turnstile. La PSL de L2 se verificó de primera mano (bitácora tienda3 51) |
+| L2 | 9 | 0 (HU-T18.5 por validar; HU-T18.6 en producción desde el 22 oct 2026; HU-T18.7 en espera por decisión del dueño) | Construido el 22 oct 2026: la landing de tiendapro.co (#225) y el lanzamiento con tienda-v1.0.0 y core-v0.7.0 (#226). El primer despliegue de la Tienda a producción se detuvo por un error interno de D1 y se siguió con la celda c1 a mano (bitácora tienda3 55). La PSL espera a tener comercios |
+| L3 | 14 | 0 (en validación: HU-T18.8 a HU-T18.13) | Construido el 23 oct 2026 con lo que pidió el dueño al probar TiendaPro en producción. Sale a staging al fusionar; a producción, con la versión que confirme el dueño |
 
 ---
 

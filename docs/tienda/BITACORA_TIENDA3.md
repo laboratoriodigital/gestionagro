@@ -1393,3 +1393,32 @@ La regla: **lo que se apaga se apaga con un color que cumple el contraste, nunca
 La regla: **después de fusionar una versión se lee el resumen del despliegue, no el color del paso; un error interno de Cloudflare se repite solo en la celda que falló, con el flujo a mano.**
 
 *Ficha:* tienda3 · *(Cloudflare)* · 🟡 Medio · P1, P7 · tienda-1.0.0 · 2026-10-22
+
+**56 · La carga habría borrado de un producto lo que la hoja no traía.**
+
+*Qué pasó.* El 23 oct 2026, al abrir la carga de la API (HU-T12.2) a los comercios de Pro (HU-T18.11), revisé qué pasa si alguien baja su hoja de productos, cambia precios en Excel y la vuelve a subir. La carga se hizo para el operador, con archivos completos: al actualizar un producto escribía todas sus columnas. Con una hoja, que no trae descripción, retracto, IVA ni dirección, habría dejado la descripción vacía, el retracto en «aplica», el IVA sin decir y la dirección del producto sacada del nombre, que rompe sus enlaces. En una combinación sin la columna de inventario, lo habría dejado «sin contar». Además, un producto creado en el panel se habría duplicado al subir su respaldo, porque no tiene referencia externa. Nada de esto llegó a un comercio.
+
+*El arreglo.*
+- La carga actualiza solo lo que trae el archivo: en el producto y en cada combinación, un dato que el archivo no trae no se toca (`undefined`), y uno vacío se quita (`null`). Lo nuevo nace con lo de siempre. Un producto conserva su lugar en la tienda.
+- Al subir un respaldo, un producto creado en el panel adopta su id como referencia y se actualiza en vez de duplicarse.
+- La hoja «Productos» de «Descargar todo» trae la descripción y los nombres de las opciones, para que vaya y vuelva.
+
+**Lo prueban** `importar.test.ts` (una hoja con solo nombre y precio, y el respaldo de un producto del panel) y `carga-por-lotes.test.ts` (la hoja de «Descargar todo» que vuelve a entrar).
+
+La regla: **una herramienta del operador que se abre a los comercios se revisa con lo que ellos van a subir, no con lo que el operador subía.**
+
+*Ficha:* tienda3 · *(mía)* · 🟡 Medio · P1, P21 · tienda-1.0.0 · 2026-10-23
+
+**57 · Una tienda dada de baja se podía seguir editando y volver a publicar.**
+
+*Qué pasó.* El 23 oct 2026 el dueño probó TiendaPro en producción: abrió una tienda, la dio de baja desde «Más» y descargó todo. Volvió a entrar a los pocos segundos y el panel seguía completo. La tienda sí había salido de internet (sus direcciones se retiraron), pero nada impedía guardar productos o publicar, y abrir el panel podía aplicarle un cambio de plan que la volvía a hornear.
+
+*La causa.* HU-T13.7 hizo la baja y el borrado a los 30 días, pero no cerró la tienda para escribir: se probó la baja, no lo que pasa después.
+
+*El arreglo.* La API del panel responde 409 «dada-de-baja» a toda escritura, salvo los derechos de los compradores (`titular/*`); el asistente del comercio no la atiende; el re-horneado por release la salta; y abrir el panel no le aplica un cambio de plan. El panel muestra «está dada de baja», hasta cuándo se descarga lo suyo y que la cuenta sigue activa: la baja es de la tienda, no de la cuenta.
+
+**Lo prueban** `baja-panel.test.ts` (guardar, publicar y cambiar ajustes dan 409; leer y exportar siguen) y la e2e de la pantalla.
+
+La regla: **un estado final se prueba por lo que ya no se puede hacer después, no solo por el cambio que lo produce.**
+
+*Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟡 Medio · P1 · tienda-1.0.0 · 2026-10-23

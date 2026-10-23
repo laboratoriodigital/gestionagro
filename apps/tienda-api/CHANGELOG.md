@@ -4,6 +4,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- Cargar productos por lotes y subir un respaldo, en Pro e IA Pro (HU-T18.11): en «Más › Cargar productos y respaldos» bajas la plantilla, escribes tus productos en Excel (una fila por talla o color) y los subes de una vez; también sirve la hoja de «Descargar todo». Antes de cargar te dice todo lo que está mal, con su fila, y lo que va a entrar. Los nuevos se crean y los que ya existen solo cambian en lo que trae la hoja. El respaldo de «Descargar todo» vuelve a poner tus productos, colecciones, envíos, cupones, páginas y ajustes, sin borrar nada.
+
+### Cambiado
+- IA Pro cuesta COP 49.900 al mes y es el plan con la factura en tu propio facturador (HU-T18.9). Lo que ya pagaste no cambia.
+- Los términos del servicio y la política de datos de tu cuenta ya están vigentes, en palabras más sencillas (HU-T18.10). Como cambiaron, el panel te los muestra otra vez para aceptarlos.
+- Cuando un formulario tiene errores, el panel te lleva al primer campo que hay que corregir (HU-T18.12).
+- La hoja de productos de «Descargar todo» trae la descripción y el nombre de las opciones.
+- En la página de TiendaPro, los clientes piden «pan de bonos».
+
+### Corregido
+- Una tienda dada de baja ya no se puede cambiar ni volver a publicar (HU-T18.13): al entrar, el panel dice que está dada de baja y hasta cuándo puedes descargar lo suyo.
+
 ## [1.0.0] - 2026-10-22
 
 TiendaPro abre al público. Cualquier comerciante entra a `tiendapro.co`, abre su tienda gratis en `app.tiendapro.co` y la tiene en `<nombre>.mitiendapro.co`, con los planes Gratis, Pro e IA Pro. Lo que hasta hoy estaba solo en staging (abrir una tienda, pagar el plan y conectar un dominio propio) queda abierto en producción.
