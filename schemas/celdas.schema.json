@@ -165,6 +165,10 @@
             "pattern": "^[a-z0-9-]{3,55}$",
             "description": "El bucket R2 público de las fotos (HU-T5.6): el único con dominio propio (img.laboratorio-digital.app). Nunca el mismo que `almacen`, que guarda respaldos y exportaciones con datos personales; cargarCeldas lo exige."
           },
+          "saas": {
+            "type": "boolean",
+            "description": "HU-T13.1: el dueño ya activó Cloudflare for SaaS en la zona de las tiendas, con su origen de respaldo, y guardó CF_SAAS_TOKEN en produccion (docs/runbooks/tienda-conectar-un-dominio.md). Solo entonces la API de producción sabe su zona y el despacho recibe los dominios propios. Staging nunca: el origen de respaldo es uno por zona y es el de producción."
+          },
           "comodin": {
             "enum": [true, false, "staging"],
             "description": "HU-T13.4: el dueño ya creó el registro DNS comodín * de la zona de las tiendas, mitiendapro.co desde HU-T18.1 (docs/runbooks/tienda-alta.md). true: el despacho recibe las tiendas nuevas en los dos ambientes; staging: solo en staging, mientras la Tienda no se lanza (D-T14)."
