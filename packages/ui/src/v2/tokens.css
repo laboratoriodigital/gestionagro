@@ -54,6 +54,15 @@
   --tiempo-medio: 250ms;
   --tiempo-largo: 400ms;
   --curva-salida: cubic-bezier(0.2, 0, 0, 1);
+  --boletin-tinta: #1d3a8a;
+  --boletin-tinta-palido: #dbe3f5;
+  --boletin-regla: #c9d3ea;
+  --boletin-superior: #166534;
+  --boletin-alto: #1d3a8a;
+  --boletin-basico: #94490a;
+  --boletin-bajo: #b91c1c;
+  --boletin-atencion-fondo: #fdf0e1;
+  --boletin-atencion-texto: #7a3d06;
 
   --superficie: #ffffff;
   --superficie-2: #f6f6f5;

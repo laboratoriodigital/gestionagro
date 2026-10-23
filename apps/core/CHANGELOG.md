@@ -7,6 +7,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ### Agregado
 - La consola del dueño v0 (EC13, HC8; D-C8): `cuenta.laboratorio-digital.com/consola/` muestra lo que entró hoy, en la semana y en el mes, lo que vence, lo que creció, las solicitudes de datos por vencer, la copia de la semana y los correos del día. Se entra como a la cuenta, con la app `consola`; solo ven datos los correos de `CONSOLA_CORREOS` y con una entrada de menos de 12 h. Solo lee y solo números: no entra a los datos de ningún cliente ni nombra personas, y cada vista queda en la auditoría. La migración 0014 agrega los índices que la consola necesita.
 
+### Cambiado
+- La consola del dueño se lee como el boletín del día: una fila por producto (CultivoPro, Parqueadero, TiendaPro), siempre en el mismo orden, con la plata de hoy, de la semana y del mes, un sello de desempeño (Superior, Alto, Básico o Bajo) y una observación; tocar la fila abre su detalle. Debajo, las observaciones generales (solicitudes de datos, copia y correos) con su runbook, y la regla con la que se califica, escrita. Siempre clara, de borde a borde en el teléfono y como tabla en pantallas anchas. Es la primera pantalla del rediseño del ecosistema (`DESIGN.md`).
+
 ## [0.8.0] - 2026-10-23
 
 Entrar con un enlace al correo, los avisos de vencimiento por correo y la copia semanal fuera de Cloudflare (HC7).

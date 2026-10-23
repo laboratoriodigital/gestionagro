@@ -1,13 +1,12 @@
 /**
- * La consola del dueño en el navegador (HU-C13.5). Entra como la cuenta (`sesion.ts`), con la app
- * `consola` y su propia sesión en este navegador: canjea el `#entrar=` de la vuelta, renueva con el
- * refresh guardado y pide los cuatro bloques al CORE. Todo lo que llega se pinta como texto, y nada
- * de esta página escribe en el CORE salvo «Salir».
+ * La consola del dueño en el navegador (HU-C13.5), como boletín del día. Entra como la cuenta
+ * (`sesion.ts`), con la app `consola` y su propia sesión en este navegador: canjea el `#entrar=` de
+ * la vuelta, renueva con el refresh guardado y pide los cuatro bloques al CORE. Con «hoy» y «creció»
+ * arma la fila de cada producto y su desempeño; con «revisar» y «roto», las observaciones generales.
+ * Todo lo que llega se pinta como texto, y nada de esta página escribe en el CORE salvo «Salir».
  */
 const CLAVE = 'ed1-consola';
 const CLAVE_DISPOSITIVO = 'ed1-cuenta-dispositivo';
-const BLOQUES = ['hoy', 'crecio', 'revisar', 'roto'] as const;
-type Bloque = (typeof BLOQUES)[number];
 
 interface Guardado {
   refresh: string;
@@ -15,8 +14,10 @@ interface Guardado {
 
 let acceso: string | null = null;
 
-const uno = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s);
-const todos = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelectorAll<T>(s);
+const uno = <T extends HTMLElement = HTMLElement>(s: string, raiz: ParentNode = document) =>
+  raiz.querySelector<T>(s);
+const todos = <T extends HTMLElement = HTMLElement>(s: string, raiz: ParentNode = document) =>
+  raiz.querySelectorAll<T>(s);
 
 function leer(): Guardado | null {
   try {
@@ -85,8 +86,8 @@ async function canjear(codigo: string): Promise<boolean> {
 }
 
 /**
- * Una sola renovación a la vez: los cuatro bloques la piden juntos, y un refresh que rota mientras
- * otro bloque lo usa sacaría al dueño de la consola.
+ * Una sola renovación a la vez: los bloques la piden juntos, y un refresh que rota mientras otro
+ * bloque lo usa sacaría al dueño de la consola.
  */
 let renovando: Promise<boolean> | null = null;
 function renovar(): Promise<boolean> {
@@ -112,15 +113,73 @@ async function renovarAhora(): Promise<boolean> {
   return true;
 }
 
-// ── Pintar ──────────────────────────────────────────────────────────────────────────────────
+type Bloque = 'hoy' | 'crecio' | 'revisar' | 'roto';
+type Leido = { datos: Record<string, unknown> } | { motivo: string } | { fuera: true };
+
+/** Un bloque del CORE, renovando una vez si el acceso venció. `fuera` si no hay nada que mostrar. */
+async function bloque(nombre: Bloque): Promise<Leido> {
+  for (let intento = 0; intento < 2; intento++) {
+    if (!acceso && !(await renovar())) {
+      return leer()
+        ? { motivo: 'Sin conexión: no pudimos hablar con la plataforma.' }
+        : { fuera: true };
+    }
+    const { r, cuerpo } = await alCore(`/api/core/consola/${nombre}`, {});
+    if (r?.status === 401 && intento === 0) {
+      acceso = null;
+      continue;
+    }
+    if (r?.status === 403) {
+      if (cuerpo['estado'] === 'entrar-de-nuevo') aLaEntrada(String(cuerpo['motivo']));
+      else {
+        pintar(false);
+        for (const el of todos('[data-sin-sesion]')) el.hidden = true;
+        decir(String(cuerpo['motivo'] ?? 'Esta página no es para tu cuenta.'));
+      }
+      return { fuera: true };
+    }
+    if (!r?.ok) {
+      return { motivo: String(cuerpo['motivo'] ?? 'No se pudo leer. Intenta de nuevo.') };
+    }
+    return { datos: cuerpo };
+  }
+  return { motivo: 'No se pudo leer. Intenta de nuevo.' };
+}
+
+// ── Formatos ───────────────────────────────────────────────────────────────────────────────
 
 const pesos = (n: number) => `COP ${n.toLocaleString('es-CO')}`;
-const FECHA = new Intl.DateTimeFormat('es-CO', {
+const FECHA_CORTA = new Intl.DateTimeFormat('es-CO', {
   day: 'numeric',
   month: 'short',
   timeZone: 'America/Bogota',
 });
-const fecha = (iso: string) => FECHA.format(new Date(iso.length === 10 ? `${iso}T17:00:00Z` : iso));
+const fecha = (iso: string) =>
+  FECHA_CORTA.format(new Date(iso.length === 10 ? `${iso}T17:00:00Z` : iso)).replace('.', '');
+const DIA_MS = 24 * 60 * 60 * 1000;
+const DIA_SEMANA = new Intl.DateTimeFormat('es-CO', {
+  weekday: 'short',
+  day: 'numeric',
+  timeZone: 'America/Bogota',
+});
+
+/**
+ * El periodo del boletín y el día, como en la franja de uno: «Semana del 19 al 25 de oct ·
+ * viernes 23». La semana va de lunes a domingo, en días de Bogotá (UTC−5, sin horario de verano).
+ */
+export function periodoDelDia(ahora: number): string {
+  const bogota = new Date(ahora - 5 * 60 * 60 * 1000);
+  const lunes = new Date(bogota.getTime() - ((bogota.getUTCDay() + 6) % 7) * DIA_MS);
+  const domingo = new Date(lunes.getTime() + 6 * DIA_MS);
+  const mes = (d: Date) => fecha(d.toISOString().slice(0, 10)).split(' ').slice(1).join(' ');
+  const desde =
+    mes(lunes) === mes(domingo)
+      ? String(lunes.getUTCDate())
+      : fecha(lunes.toISOString().slice(0, 10));
+  return `Semana del ${desde} al ${fecha(domingo.toISOString().slice(0, 10))} · ${DIA_SEMANA.format(new Date(ahora)).replace(',', '').replace('.', '')}`;
+}
+const plural = (n: number, singular: string, varios: string) =>
+  `${n} ${n === 1 ? singular : varios}`;
 
 function nodo<K extends keyof HTMLElementTagNameMap>(etiqueta: K, clase = '', texto?: string) {
   const el = document.createElement(etiqueta);
@@ -129,254 +188,291 @@ function nodo<K extends keyof HTMLElementTagNameMap>(etiqueta: K, clase = '', te
   return el;
 }
 
-function subtitulo(texto: string) {
-  return nodo('h3', 'portada__subtitulo-menor', texto);
+// ── Cada producto: su fila del boletín ─────────────────────────────────────────────────────
+
+interface Grupo {
+  producto: string;
+  medio: string;
+  pagos: number;
+  cop: number;
+}
+interface Hoy {
+  entro: Record<'hoy' | 'semana' | 'mes', { total_cop: number; detalle: Grupo[] }>;
+  vencen: { espacio: string; producto: string; plan: string; vence: string; aviso: string }[];
+  para_revisar: { producto: string; medio: string; cop: number; estado: string; desde: string }[];
+}
+interface Crecio {
+  espacios_nuevos: { producto: string; semanas: { n: number }[] }[];
+  por_plan: { producto: string; plan: string; gratuito: boolean; espacios: number }[];
+  pagaron_por_primera_vez: { producto: string; espacios: number }[];
+  interes: { producto: string; plan: string; personas: number }[];
 }
 
-/** Una lista de filas de texto; vacía, dice lo que corresponde. */
-function lista(filas: string[][], vacio: string): HTMLElement {
-  if (filas.length === 0) return nodo('p', 'portada__detalle', vacio);
-  const ul = nodo('ul', 'ed1-lista');
-  for (const [titulo, detalle] of filas) {
-    const li = nodo('li', 'ed1-lista__elemento');
-    li.append(nodo('p', 'portada__fila-titulo', titulo ?? ''));
-    if (detalle) li.append(nodo('p', 'portada__detalle', detalle));
-    ul.append(li);
-  }
-  return ul;
-}
-
-/** Una cifra grande con su etiqueta. */
-function cifra(etiqueta: string, valor: string, detalle?: string): HTMLElement {
-  const caja = nodo('div', 'consola__cifra');
-  caja.append(
-    nodo('p', 'consola__cifra-etiqueta', etiqueta),
-    nodo('p', 'consola__cifra-valor', valor),
-  );
-  if (detalle) caja.append(nodo('p', 'portada__detalle', detalle));
-  return caja;
-}
-
-type Datos = Record<string, unknown>;
-interface Suma {
-  total_cop: number;
-  detalle: { producto: string; medio: string; pagos: number; cop: number }[];
-}
-
-const AVISO: Record<string, string> = {
-  'en-gracia': 'en gracia',
-  'vence-en-1-dia': 'vence mañana',
-  'vence-en-7-dias': 'vence esta semana',
+export type Desempeno = 'superior' | 'alto' | 'basico' | 'bajo';
+const NOMBRE_DEL_DESEMPENO: Record<Desempeno, string> = {
+  superior: 'Superior',
+  alto: 'Alto',
+  basico: 'Básico',
+  bajo: 'Bajo',
 };
 
-const PINTORES: Record<Bloque, (d: Datos) => HTMLElement[]> = {
-  hoy(d) {
-    const entro = d['entro'] as Record<'hoy' | 'semana' | 'mes', Suma>;
-    const cifras = nodo('div', 'consola__cifras');
-    cifras.append(
-      cifra('Hoy', pesos(entro.hoy.total_cop)),
-      cifra('Últimos 7 días', pesos(entro.semana.total_cop)),
-      cifra('Este mes', pesos(entro.mes.total_cop)),
+/** La fila de un producto: sus cifras, su desempeño por la regla escrita en la página y su observación. */
+export function filaDelProducto(producto: string, hoy: Hoy, crecio: Crecio) {
+  const suma = (ventana: 'hoy' | 'semana' | 'mes') =>
+    hoy.entro[ventana].detalle
+      .filter((g) => g.producto === producto)
+      .reduce((s, g) => s + g.cop, 0);
+  const enRevision = hoy.para_revisar.filter(
+    (p) => p.producto === producto && p.estado === 'revisar',
+  );
+  const esperando = hoy.para_revisar.filter(
+    (p) => p.producto === producto && p.estado !== 'revisar',
+  );
+  const vencen = hoy.vencen.filter((v) => v.producto === producto);
+  const enGracia = vencen.filter((v) => v.aviso === 'en-gracia');
+  const nuevos =
+    crecio.espacios_nuevos.find((e) => e.producto === producto)?.semanas.at(-1)?.n ?? 0;
+  const semana = suma('semana');
+  let desempeno: Desempeno;
+  let observacion: string;
+  if (enRevision.length > 0) {
+    desempeno = 'bajo';
+    observacion = `${plural(enRevision.length, 'pago en revisión', 'pagos en revisión')}: míralo en Bold.`;
+  } else if (esperando.length > 0 || vencen.length > 0) {
+    desempeno = 'basico';
+    const partes = [
+      vencen.length - enGracia.length > 0
+        ? `${plural(vencen.length - enGracia.length, 'plan vence', 'planes vencen')} esta semana`
+        : null,
+      enGracia.length > 0
+        ? `${plural(enGracia.length, 'espacio en gracia', 'espacios en gracia')}`
+        : null,
+      esperando.length > 0
+        ? `${plural(esperando.length, 'pago esperando', 'pagos esperando')} hace más de una hora`
+        : null,
+    ].filter(Boolean);
+    observacion = `${partes.join(' · ')}.`;
+  } else if (semana > 0 || nuevos > 0) {
+    desempeno = 'superior';
+    const partes = [
+      semana > 0 ? 'Entró plata' : null,
+      nuevos > 0 ? plural(nuevos, 'espacio nuevo', 'espacios nuevos') : null,
+    ].filter(Boolean);
+    observacion = `${partes.join(' · ')}.`;
+  } else {
+    desempeno = 'alto';
+    observacion = 'Al día. Sin novedades esta semana.';
+  }
+  return {
+    hoy: suma('hoy'),
+    semana,
+    mes: suma('mes'),
+    desempeno,
+    observacion,
+    vencen,
+    pendientes: [...enRevision, ...esperando],
+    planes: crecio.por_plan.filter((p) => p.producto === producto),
+    primeros: crecio.pagaron_por_primera_vez.find((p) => p.producto === producto)?.espacios ?? 0,
+    interes: crecio.interes.filter((i) => i.producto === producto),
+    nuevos,
+  };
+}
+
+function filaDetalle(titulo: string, filas: string[], vacio: string): HTMLElement[] {
+  const h = nodo('h4', 'materia__apartado', titulo);
+  if (filas.length === 0) return [h, nodo('p', 'materia__vacio', vacio)];
+  const ul = nodo('ul', 'materia__items');
+  for (const f of filas) ul.append(nodo('li', '', f));
+  return [h, ul];
+}
+
+function pintarMateria(li: HTMLElement, f: ReturnType<typeof filaDelProducto>) {
+  li.dataset['desempeno'] = f.desempeno;
+  const sello = uno('[data-sello]', li);
+  if (sello) {
+    sello.textContent = NOMBRE_DEL_DESEMPENO[f.desempeno];
+    sello.setAttribute('aria-label', `Desempeño: ${NOMBRE_DEL_DESEMPENO[f.desempeno]}`);
+    sello.classList.add('sello--estampado');
+  }
+  const set = (sel: string, texto: string) => {
+    const el = uno(sel, li);
+    if (el) el.textContent = texto;
+  };
+  set('[data-hoy]', pesos(f.hoy));
+  // La etiqueta «Semana» o «Mes» queda en su lugar: en la tabla ancha la dice el encabezado.
+  set('[data-semana] [data-valor]', pesos(f.semana));
+  set('[data-mes] [data-valor]', pesos(f.mes));
+  set('[data-observacion]', f.observacion);
+  uno('[data-detalle]', li)?.replaceChildren(
+    ...filaDetalle(
+      'Vencen',
+      f.vencen.map(
+        (v) =>
+          `${v.espacio} · ${v.plan} · ${v.aviso === 'en-gracia' ? 'en gracia desde' : 'vence el'} ${fecha(v.vence)}`,
+      ),
+      'Ningún plan vence esta semana.',
+    ),
+    ...filaDetalle(
+      'Pagos para revisar',
+      f.pendientes.map(
+        (p) =>
+          `${p.medio} · ${pesos(p.cop)} · ${p.estado === 'revisar' ? 'en revisión' : 'esperando'} desde ${fecha(p.desde)}`,
+      ),
+      'Ninguno.',
+    ),
+    ...filaDetalle(
+      'Espacios por plan',
+      f.planes.map(
+        (p) =>
+          // «gratis» solo cuando el nombre del plan no lo dice ya («Gratis», «Gratuito»).
+          `${p.plan} · ${plural(p.espacios, 'espacio', 'espacios')}${p.gratuito && !/^grat/i.test(p.plan) ? ' · gratis' : ''}`,
+      ),
+      'Todavía no hay espacios.',
+    ),
+    ...filaDetalle(
+      'Este mes',
+      [
+        `${plural(f.primeros, 'espacio pagó', 'espacios pagaron')} por primera vez`,
+        `${plural(f.nuevos, 'espacio nuevo', 'espacios nuevos')} esta semana`,
+        ...f.interes.map((i) => `${i.plan} · ${plural(i.personas, 'interesado', 'interesados')}`),
+      ],
+      '',
+    ),
+  );
+}
+
+async function cargarMaterias(): Promise<number> {
+  const error = uno('[data-error-materias]');
+  if (error) error.hidden = true;
+  const [hoy, crecio] = await Promise.all([bloque('hoy'), bloque('crecio')]);
+  if ('fuera' in hoy || 'fuera' in crecio) return 0;
+  if ('motivo' in hoy || 'motivo' in crecio) {
+    const texto = uno('[data-error-materias-texto]');
+    if (texto)
+      texto.textContent = 'motivo' in hoy ? hoy.motivo : (crecio as { motivo: string }).motivo;
+    if (error) error.hidden = false;
+    return 0;
+  }
+  let atencion = 0;
+  for (const li of todos('[data-producto]')) {
+    const f = filaDelProducto(
+      li.dataset['producto'] ?? '',
+      hoy.datos as unknown as Hoy,
+      crecio.datos as unknown as Crecio,
     );
-    const vencen = d['vencen'] as {
-      espacio: string;
-      producto: string;
-      plan: string;
-      vence: string;
-      aviso: string;
-    }[];
-    const raros = d['para_revisar'] as {
-      producto: string;
-      medio: string;
-      cop: number;
-      estado: string;
-      desde: string;
-    }[];
-    return [
-      cifras,
-      lista(
-        entro.mes.detalle.map((g) => [
-          `${g.producto} · ${g.medio}`,
-          `${g.pagos} ${g.pagos === 1 ? 'pago' : 'pagos'} · ${pesos(g.cop)} este mes`,
-        ]),
-        'Este mes todavía no entró ningún pago.',
-      ),
-      subtitulo('Vencen'),
-      lista(
-        vencen.map((v) => [
-          `${v.espacio} · ${v.producto}`,
-          `Plan ${v.plan} · ${AVISO[v.aviso] ?? v.aviso} · ${fecha(v.vence)}`,
-        ]),
-        'Ningún plan vence esta semana.',
-      ),
-      subtitulo('Pagos para revisar'),
-      lista(
-        raros.map((p) => [
-          `${p.producto} · ${p.medio} · ${pesos(p.cop)}`,
-          `${p.estado === 'revisar' ? 'En revisión' : 'Esperando'} desde ${fecha(p.desde)}`,
-        ]),
-        'No hay pagos para revisar.',
-      ),
-    ];
-  },
-  crecio(d) {
-    const cuentas = d['cuentas_nuevas'] as { semana: string; n: number }[];
-    const espacios = d['espacios_nuevos'] as { producto: string; semanas: { n: number }[] }[];
-    const planes = d['por_plan'] as {
-      producto: string;
-      plan: string;
-      gratuito: boolean;
-      espacios: number;
-    }[];
-    const primeros = d['pagaron_por_primera_vez'] as { producto: string; espacios: number }[];
-    const interes = d['interes'] as { producto: string; plan: string; personas: number }[];
-    const total = (xs: { n: number }[]) => xs.reduce((s, x) => s + x.n, 0);
-    const cifras = nodo('div', 'consola__cifras');
-    cifras.append(
-      cifra(
-        'Cuentas nuevas esta semana',
-        String(cuentas.at(-1)?.n ?? 0),
-        `${total(cuentas)} en 8 semanas`,
-      ),
-      cifra(
-        'Pagaron por primera vez este mes',
-        String(primeros.reduce((s, p) => s + p.espacios, 0)),
-      ),
-    );
-    return [
-      cifras,
-      subtitulo('Espacios nuevos'),
-      lista(
-        espacios.map((e) => [
-          e.producto,
-          `${e.semanas.at(-1)?.n ?? 0} esta semana · ${total(e.semanas)} en 8 semanas`,
-        ]),
-        'No hubo espacios nuevos en 8 semanas.',
-      ),
-      subtitulo('Espacios por plan'),
-      lista(
-        planes.map((p) => [
-          `${p.producto} · ${p.plan}`,
-          `${p.espacios} ${p.gratuito ? '· gratis' : '· pago'}`,
-        ]),
-        'Todavía no hay espacios.',
-      ),
-      subtitulo('Lista de interés'),
-      lista(
-        interes.map((i) => [`${i.producto} · ${i.plan}`, `${i.personas} interesados`]),
-        'Nadie se ha anotado.',
-      ),
-    ];
-  },
-  revisar(d) {
-    const radicados = d['radicados'] as {
+    pintarMateria(li, f);
+    if (f.desempeno === 'bajo' || f.desempeno === 'basico') atencion++;
+  }
+  return atencion;
+}
+
+// ── Observaciones generales ────────────────────────────────────────────────────────────────
+
+function pintarNota(
+  id: string,
+  estado: 'bien' | 'atencion' | 'error',
+  resumen: string,
+  items: string[] = [],
+) {
+  const li = uno(`[data-general="${id}"]`);
+  if (!li) return;
+  li.dataset['estado'] = estado;
+  const r = uno('[data-resumen]', li);
+  if (r) r.textContent = resumen;
+  uno('[data-lista]', li)?.replaceChildren(...items.map((t) => nodo('li', '', t)));
+}
+
+async function cargarGenerales(): Promise<number> {
+  const [revisar, roto] = await Promise.all([bloque('revisar'), bloque('roto')]);
+  let atencion = 0;
+  if ('datos' in revisar) {
+    const rad = revisar.datos['radicados'] as {
       numero: string;
       tipo: string;
       vence: string;
       dias_habiles: number;
       urgente: boolean;
     }[];
-    if (radicados.length === 0) {
-      return [nodo('p', 'portada__detalle', 'No hay solicitudes de datos abiertas.')];
-    }
-    const ul = nodo('ul', 'ed1-lista');
-    for (const r of radicados) {
-      const li = nodo('li', 'ed1-lista__elemento');
-      const titulo = nodo('p', 'portada__fila-titulo', `${r.numero} · ${r.tipo}`);
-      if (r.urgente) titulo.append(' ', nodo('span', 'ed1-etiqueta consola__urgente', 'Urgente'));
-      const quedan =
-        r.dias_habiles < 0
-          ? 'venció'
-          : `${r.dias_habiles} ${r.dias_habiles === 1 ? 'día hábil' : 'días hábiles'}`;
-      li.append(
-        titulo,
-        nodo('p', 'portada__detalle', `Responder a más tardar el ${fecha(r.vence)} · ${quedan}`),
-      );
-      ul.append(li);
-    }
-    return [ul];
-  },
-  roto(d) {
-    const copia = d['copia'] as {
+    const urgentes = rad.filter((r) => r.urgente).length;
+    if (urgentes > 0) atencion++;
+    pintarNota(
+      'datos',
+      urgentes > 0 ? 'atencion' : 'bien',
+      rad.length === 0
+        ? 'Ninguna abierta.'
+        : `${plural(rad.length, 'abierta', 'abiertas')}${urgentes > 0 ? `, ${plural(urgentes, 'vence', 'vencen')} en 3 días hábiles o menos` : ''}.`,
+      rad.map((r) => {
+        const quedan =
+          r.dias_habiles < 0 ? 'venció' : plural(r.dias_habiles, 'día hábil', 'días hábiles');
+        return `${r.numero} · ${r.tipo} · hasta el ${fecha(r.vence)} · ${quedan}`;
+      }),
+    );
+  } else if ('motivo' in revisar) pintarNota('datos', 'error', revisar.motivo);
+
+  if ('datos' in roto) {
+    const copia = roto.datos['copia'] as {
       semana: string;
       bases: { base: string; estado: string; intentos: number; motivo: string | null }[];
     };
-    const correos = d['correos'] as {
+    const correos = roto.datos['correos'] as {
       cupo: number;
       usados: number;
       por_estado: { tipo: string; estado: string; motivo: string | null; n: number }[];
     };
+    const fallidas = copia.bases.filter((b) => b.estado === 'fallida');
+    const hechas = copia.bases.filter((b) => b.estado === 'hecha').length;
+    if (fallidas.length > 0) atencion++;
+    pintarNota(
+      'copia',
+      fallidas.length > 0 ? 'atencion' : 'bien',
+      copia.bases.length === 0
+        ? `La de la semana del ${fecha(copia.semana)} todavía no empieza, o no está configurada.`
+        : `${hechas} de ${copia.bases.length} bases copiadas, semana del ${fecha(copia.semana)}.`,
+      fallidas.map(
+        (b) =>
+          `${b.base}: falló ${plural(b.intentos, 'vez', 'veces')}, ${b.motivo ?? 'sin motivo'}`,
+      ),
+    );
     const fallidos = correos.por_estado.filter((c) => c.estado === 'fallido');
-    const cifras = nodo('div', 'consola__cifras');
-    cifras.append(cifra('Correos de hoy', `${correos.usados} de ${correos.cupo}`));
-    return [
-      subtitulo(`Copia de la semana del ${fecha(copia.semana)}`),
-      lista(
-        copia.bases.map((b) => [
-          b.base,
-          b.estado === 'hecha'
-            ? 'Hecha'
-            : b.estado === 'fallida'
-              ? `Falló ${b.intentos} ${b.intentos === 1 ? 'vez' : 'veces'}: ${b.motivo ?? 'sin motivo'}`
-              : 'Pendiente',
-        ]),
-        'La copia de esta semana todavía no empieza, o no está configurada.',
+    if (fallidos.length > 0) atencion++;
+    pintarNota(
+      'correos',
+      fallidos.length > 0 ? 'atencion' : 'bien',
+      `${correos.usados} de ${correos.cupo} del cupo de hoy.`,
+      fallidos.map(
+        (c) =>
+          `${c.tipo === 'aviso' ? 'Avisos' : 'Enlaces'} que no salieron: ${c.n} · ${c.motivo ?? ''}`,
       ),
-      cifras,
-      lista(
-        fallidos.map((c) => [
-          `${c.tipo === 'aviso' ? 'Avisos' : 'Enlaces'} que no salieron`,
-          `${c.n} · ${c.motivo ?? ''}`,
-        ]),
-        'Hoy no falló ningún correo.',
-      ),
-    ];
-  },
-};
-
-function mostrar(bloque: Bloque, estado: 'cargando' | 'error' | 'lista', causa?: string) {
-  const b = uno(`[data-bloque="${bloque}"]`);
-  if (!b) return;
-  for (const el of b.querySelectorAll<HTMLElement>('[data-estado]'))
-    el.hidden = el.dataset['estado'] !== estado;
-  const p = b.querySelector('[data-causa]');
-  if (causa && p) p.textContent = causa;
+    );
+  } else if ('motivo' in roto) {
+    pintarNota('copia', 'error', roto.motivo);
+    pintarNota('correos', 'error', roto.motivo);
+  }
+  return atencion;
 }
 
-async function cargar(bloque: Bloque): Promise<void> {
-  mostrar(bloque, 'cargando');
-  for (let intento = 0; intento < 2; intento++) {
-    if (!acceso && !(await renovar())) {
-      if (leer()) mostrar(bloque, 'error', 'Sin conexión: no pudimos hablar con el CORE.');
-      return;
-    }
-    const { r, cuerpo } = await alCore(`/api/core/consola/${bloque}`, {});
-    if (r?.status === 401 && intento === 0) {
-      acceso = null;
-      continue;
-    }
-    if (r?.status === 403) {
-      if (cuerpo['estado'] === 'entrar-de-nuevo') {
-        aLaEntrada(String(cuerpo['motivo']));
-      } else {
-        pintar(false);
-        for (const el of todos('[data-sin-sesion]')) el.hidden = true;
-        decir(String(cuerpo['motivo'] ?? 'Esta página no es para tu cuenta.'));
-      }
-      return;
-    }
-    if (!r?.ok) {
-      mostrar(
-        bloque,
-        'error',
-        String(cuerpo['motivo'] ?? 'No se pudo leer este bloque. Intenta de nuevo.'),
-      );
-      return;
-    }
-    const contenido = uno(`[data-bloque="${bloque}"] [data-estado="lista"]`);
-    contenido?.replaceChildren(...PINTORES[bloque](cuerpo));
-    mostrar(bloque, 'lista');
-    return;
+// ── El día ─────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * El renglón guía: los productos y los que piden atención, y aparte las observaciones generales.
+ * Nunca un número de pendientes mayor que el de productos en la misma frase.
+ */
+export function renglonGuia(productos: number, atencion: number, observaciones: number): string {
+  const partes = [
+    plural(productos, 'producto', 'productos'),
+    atencion === 0 ? 'todos al día' : `${atencion} ${atencion === 1 ? 'pide' : 'piden'} atención`,
+    ...(observaciones > 0 ? [plural(observaciones, 'observación', 'observaciones')] : []),
+  ];
+  return partes.join(' · ');
+}
+
+async function cargarTodo() {
+  const productos = todos('[data-producto]').length;
+  const [materias, generales] = await Promise.all([cargarMaterias(), cargarGenerales()]);
+  const guia = uno('[data-guia]');
+  if (guia) {
+    guia.textContent = renglonGuia(productos, materias, generales);
+    guia.dataset['estado'] = materias + generales === 0 ? 'bien' : 'atencion';
   }
 }
 
@@ -389,6 +485,8 @@ async function salir(boton: HTMLButtonElement) {
 }
 
 async function iniciar() {
+  const f = uno('[data-fecha]');
+  if (f) f.textContent = periodoDelDia(Date.now());
   for (const el of todos<HTMLInputElement>('input[data-vuelta]')) {
     el.value = `${location.origin}${location.pathname}`;
   }
@@ -400,18 +498,16 @@ async function iniciar() {
   for (const b of todos<HTMLButtonElement>('button[data-salir]')) {
     b.addEventListener('click', () => void salir(b));
   }
-  for (const bloque of BLOQUES) {
-    uno<HTMLButtonElement>(`[data-bloque="${bloque}"] button[data-reintentar]`)?.addEventListener(
-      'click',
-      () => void cargar(bloque),
-    );
-  }
+  uno<HTMLButtonElement>('button[data-reintentar-materias]')?.addEventListener(
+    'click',
+    () => void cargarTodo(),
+  );
   if (!leer()) {
     pintar(false);
     return;
   }
   pintar(true);
-  await Promise.all(BLOQUES.map(cargar));
+  await cargarTodo();
 }
 
-void iniciar();
+if (typeof document !== 'undefined') void iniciar();

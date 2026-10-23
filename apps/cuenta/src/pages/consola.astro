@@ -1,56 +1,69 @@
 ---
 /**
- * La consola del dueño v0 (HU-C13.5, ED1 §31.1 y §32). Se entra como a la cuenta, con la app
- * `consola` (D-C8); solo las direcciones de `CONSOLA_CORREOS` reciben datos. Los bloques van en el
- * orden del Command Center y `consola.ts` los llena: solo números, ningún dato de una persona y
- * ningún botón que cambie algo. Lo que se hace con lo que se ve está en cada runbook.
+ * La consola del dueño (EC13), como el boletín del periodo: cada producto en su fila, siempre en
+ * el mismo lugar, con su plata de hoy, su desempeño sellado y una observación. Debajo, las
+ * observaciones de toda la plataforma. Se entra como a la cuenta, con la app `consola` (D-C8);
+ * solo lee, y lo que se hace con lo que se ve está en cada runbook.
+ *
+ * Siempre clara: el dueño la mira de mañana, en el teléfono, con luz natural.
  */
 import { Aviso, Boton } from '@ed1/ui/v2/componentes';
 import politica from '../../../../content/cuenta/privacidad/politica.json';
+import registro from '../../../../infrastructure/productos.json';
 import EntrarConCorreo from '../componentes/EntrarConCorreo.astro';
 import Base from '../layouts/Base.astro';
+import '../consola.css';
 
 const RUNBOOKS = 'https://github.com/laboratoriodigital/gestionagro/blob/main/docs/runbooks';
-const bloques = [
+/** Los productos con espacios, en el orden del registro: el lugar de cada uno nunca cambia. */
+const productos = registro.productos
+  .filter((p) => p.organizaciones !== false && p.estado === 'activo')
+  .map((p) => ({ id: p.id, nombre: p.nombre }));
+const generales = [
   {
-    id: 'hoy',
-    titulo: 'Hoy',
-    ayuda: 'Lo que entró y lo que vence. Lo que está en revisión va aparte y no se suma.',
-    runbook: { texto: 'Registrar un pago en efectivo', href: `${RUNBOOKS}/pago-en-efectivo.md` },
+    id: 'datos',
+    titulo: 'Solicitudes de datos personales',
+    runbook: { texto: 'Cómo responder', href: `${RUNBOOKS}/datos-del-responsable.md` },
   },
   {
-    id: 'crecio',
-    titulo: 'Lo que creció',
-    ayuda:
-      'Cuentas y espacios nuevos de las últimas 8 semanas, los planes de hoy y quién pagó por primera vez este mes.',
-    runbook: null,
-  },
-  {
-    id: 'revisar',
-    titulo: 'Para revisar',
-    ayuda: 'Las solicitudes de datos personales abiertas (Ley 1581), con su fecha límite.',
-    runbook: { texto: 'Responder una solicitud', href: `${RUNBOOKS}/datos-del-responsable.md` },
-  },
-  {
-    id: 'roto',
-    titulo: 'Lo que se rompió',
-    ayuda: 'La copia de esta semana en tu Drive y los correos de hoy.',
+    id: 'copia',
+    titulo: 'Copia de la semana en tu Drive',
     runbook: { texto: 'Si la copia falla', href: `${RUNBOOKS}/copia-en-drive.md` },
+  },
+  {
+    id: 'correos',
+    titulo: 'Correos de hoy',
+    runbook: { texto: 'Si los correos no salen', href: `${RUNBOOKS}/correo-de-gmail.md` },
   },
 ] as const;
 ---
-<Base titulo="Consola" descripcion="Cómo va Laboratorio Digital, de un vistazo y solo para leer.">
-  <main class="portada consola">
-    <h1 class="portada__titulo">Consola</h1>
+<Base
+  titulo="Consola"
+  descripcion="Cómo va cada producto de Laboratorio Digital, de un vistazo y solo para leer."
+  tema="claro"
+  sinEncabezado
+  sinPie
+>
+  <main class="boletin" data-productos={JSON.stringify(productos)}>
+    <header class="boletin__franja">
+      <div class="boletin__titulo">
+        <h1>Boletín del día</h1>
+        <p class="boletin__fecha" data-fecha>Laboratorio Digital</p>
+      </div>
+      <button class="boletin__salir" type="button" data-salir data-con-sesion hidden>Salir</button>
+    </header>
 
-    <div class="portada__aviso" data-error hidden>
+    <div class="boletin__aviso" data-error hidden>
       <Aviso tono="peligro" titulo="No se puede mostrar la consola">
         <p data-error-texto>Esta página no es para tu cuenta.</p>
       </Aviso>
     </div>
 
-    <section class="portada__accion" data-sin-sesion>
-      <p class="portada__nota" data-sin-sesion-texto>Entra con la cuenta del dueño.</p>
+    <section class="boletin__entrar" data-sin-sesion aria-labelledby="titulo-entrar">
+      <h2 id="titulo-entrar" class="boletin__subtitulo">Entra con la cuenta del dueño</h2>
+      <p class="boletin__nota" data-sin-sesion-texto>
+        La consola solo la ve el dueño de Laboratorio Digital.
+      </p>
       <form class="portada__formulario" method="get" action="/api/core/auth/google/inicio">
         <input type="hidden" name="producto" value="consola" />
         <input type="hidden" name="politica" value={politica.version} />
@@ -64,44 +77,103 @@ const bloques = [
       <EntrarConCorreo id="consola" />
     </section>
 
-    <section class="portada__accion" data-con-sesion hidden>
-      <p class="portada__nota">
-        Solo para leer. Lo que se hace con lo que ves está en cada runbook.
-      </p>
-      <div class="portada__botones">
-        <button class="ed1-boton ed1-boton--secundario" type="button" data-salir>Salir</button>
+    <p class="boletin__guia" data-con-sesion hidden role="status" data-guia>
+      {productos.length} productos · revisando…
+    </p>
+
+    <section class="boletin__materias" data-con-sesion hidden aria-labelledby="titulo-materias">
+      <h2 id="titulo-materias" class="boletin__oculto">Cómo va cada producto</h2>
+      <div class="boletin__columnas" aria-hidden="true">
+        <span>Producto y desempeño</span>
+        <span>Hoy</span>
+        <span>Semana</span>
+        <span>Mes</span>
+        <span>Observación</span>
+        <span></span>
       </div>
+      <ol class="boletin__lista">
+        {
+          productos.map((p) => (
+            <li class="materia" data-producto={p.nombre} data-desempeno="cargando">
+              <details class="materia__detalle">
+                <summary class="materia__fila">
+                  <span class="materia__cabeza">
+                    <h3 class="materia__nombre">{p.nombre}</h3>
+                    <span class="sello" data-sello aria-label="Desempeño: calculando">
+                      …
+                    </span>
+                  </span>
+                  <span class="materia__cifra">
+                    <span class="materia__valor" data-hoy>
+                      —
+                    </span>
+                    <span class="materia__unidad">hoy</span>
+                  </span>
+                  <span class="materia__periodo">
+                    <span data-semana>
+                      <span class="materia__etiqueta">Semana </span>
+                      <span data-valor>…</span>
+                    </span>
+                    <span data-mes>
+                      <span class="materia__etiqueta">Mes </span>
+                      <span data-valor>…</span>
+                    </span>
+                  </span>
+                  <span class="materia__observacion" data-observacion>
+                    Leyendo el día…
+                  </span>
+                  <svg class="materia__chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </summary>
+                <div class="materia__cuerpo" data-detalle />
+              </details>
+            </li>
+          ))
+        }
+      </ol>
+      <p class="boletin__error" role="alert" data-error-materias hidden>
+        <span data-error-materias-texto>No se pudo leer cómo va cada producto.</span>
+        <button class="boletin__reintentar" type="button" data-reintentar-materias>
+          Intentar de nuevo
+        </button>
+      </p>
     </section>
 
-    {
-      bloques.map((b) => (
-        <section
-          class="portada__espacios consola__bloque"
-          data-con-sesion
-          hidden
-          data-bloque={b.id}
-          aria-labelledby={`titulo-${b.id}`}
-        >
-          <h2 class="portada__subtitulo" id={`titulo-${b.id}`}>{b.titulo}</h2>
-          <p class="portada__detalle">{b.ayuda}</p>
-          <p class="ed1-contenido ed1-contenido--cargando" role="status" data-estado="cargando">
-            Cargando…
-          </p>
-          <div class="ed1-contenido ed1-contenido--error" role="alert" data-estado="error" hidden>
-            <p data-causa>No se pudo leer este bloque.</p>
-            <button class="ed1-boton ed1-boton--secundario" type="button" data-reintentar>
-              Intentar de nuevo
-            </button>
-          </div>
-          <div class="consola__contenido" data-estado="lista" hidden></div>
-          {b.runbook && (
-            <p class="portada__detalle">
-              <a href={b.runbook.href} rel="noopener">{b.runbook.texto}</a>
-            </p>
-          )}
-        </section>
-      ))
-    }
+    <div class="boletin__pie">
+    <section class="boletin__generales" data-con-sesion hidden aria-labelledby="titulo-generales">
+      <h2 id="titulo-generales" class="boletin__subtitulo">Observaciones generales</h2>
+      <ul class="boletin__notas">
+        {
+          generales.map((g) => (
+            <li class="nota" data-general={g.id} data-estado="cargando">
+              <div class="nota__texto">
+                <h3 class="nota__titulo">{g.titulo}</h3>
+                <p class="nota__resumen" data-resumen>
+                  Cargando…
+                </p>
+                <ul class="nota__lista" data-lista />
+              </div>
+              <a class="nota__runbook" href={g.runbook.href} rel="noopener">
+                {g.runbook.texto}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="boletin__regla" data-con-sesion hidden aria-labelledby="titulo-regla">
+      <h2 id="titulo-regla" class="boletin__subtitulo">Cómo se califica</h2>
+      <dl class="regla">
+        <div><dt><span class="sello sello--quieto" data-desempeno="superior">Superior</span></dt><dd>Al día, y esta semana entró plata o llegaron espacios nuevos.</dd></div>
+        <div><dt><span class="sello sello--quieto" data-desempeno="alto">Alto</span></dt><dd>Al día, sin novedades.</dd></div>
+        <div><dt><span class="sello sello--quieto" data-desempeno="basico">Básico</span></dt><dd>Hay planes que vencen o están en gracia, o un pago esperando hace más de una hora.</dd></div>
+        <div><dt><span class="sello sello--quieto" data-desempeno="bajo">Bajo</span></dt><dd>Hay un pago en revisión.</dd></div>
+      </dl>
+      <p class="boletin__nota">Solo para leer: nada de esta página cambia algo.</p>
+    </section>
+    </div>
   </main>
 </Base>
 

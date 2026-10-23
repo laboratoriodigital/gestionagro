@@ -15,9 +15,13 @@ interface Props {
   descripcion: string;
   /** Fija el tema (la galería muestra los dos); sin él, el del sistema. */
   tema?: 'claro' | 'oscuro';
+  /** Sin el encabezado común: la página trae el suyo (la consola, con su franja). */
+  sinEncabezado?: boolean;
+  /** Sin el pie común: la consola termina en su propia regla, sin enlaces que no le tocan. */
+  sinPie?: boolean;
 }
 
-const { titulo, descripcion, tema } = Astro.props;
+const { titulo, descripcion, tema, sinEncabezado = false, sinPie = false } = Astro.props;
 const marca = 'Laboratorio Digital';
 ---
 <!doctype html>
@@ -32,11 +36,15 @@ const marca = 'Laboratorio Digital';
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
-    <Encabezado marca={marca} inicio="/" enlaces={[]} />
+    {sinEncabezado ? null : <Encabezado marca={marca} inicio="/" enlaces={[]} />}
     <slot />
-    <Pie
-      enlaces={[{ texto: 'CultivoPro', href: 'https://cultivopro.co/' }]}
-      nota="Laboratorio Digital · Hecho en Colombia."
-    />
+    {
+      sinPie ? null : (
+        <Pie
+          enlaces={[{ texto: 'CultivoPro', href: 'https://cultivopro.co/' }]}
+          nota="Laboratorio Digital · Hecho en Colombia."
+        />
+      )
+    }
   </body>
 </html>
