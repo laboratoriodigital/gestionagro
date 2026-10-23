@@ -4,8 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.7.0] - 2026-10-22
+
+El CORE abre TiendaPro en producción: crea sus tiendas y cobra sus planes.
+
 ### Cambiado
-- La Tienda es TiendaPro (D-T15, HU-T18.2): el CORE la nombra así y acepta su panel de producción en `app.tiendapro.co` y su MCP del comercio en `mcp.tiendapro.co`. Sigue pausada en producción.
+- La Tienda está activa en producción (HU-T18.6): el CORE crea sus organizaciones, cobra sus planes con Bold y ofrece los permisos del asistente del comercio (ver y cambiar el estado de los pedidos, ver y ajustar el inventario). En staging ya no se activa aparte: `activos_en_staging` queda vacío.
+- La Tienda es TiendaPro (D-T15, HU-T18.2): el CORE la nombra así y acepta su panel de producción en `app.tiendapro.co` y su MCP del comercio en `mcp.tiendapro.co`.
 - Los planes de la Tienda son Gratis, Pro e IA Pro (HU-T18.3). La migración 0011 pasa las organizaciones de Entrada e Intermedio a Pro y las de Alto a IA Pro, sin tocar hasta cuándo les dura lo pagado; los planes de antes quedan retirados, sin borrarse.
 
 ## [0.6.0] - 2026-10-20
