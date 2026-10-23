@@ -596,6 +596,9 @@ export function crearApp(
       // shards. En producción, la prueba de humo exige 0.
       ambiente: c.env.AMBIENTE ?? null,
       comerciosDePrueba: await comerciosDePrueba(shards),
+      // HU-T18.6 CA3: si el alta puede abrir tiendas. Sin las dos llaves de Turnstile dice «todavía
+      // no disponible»; solo se dice si están, nunca su valor.
+      alta: c.env.TURNSTILE_SITIO && c.env.TURNSTILE_SECRETO ? 'lista' : 'sin-turnstile',
       // HU-T17.1: si las tareas periódicas corren a tiempo. Staging no tiene cron: dice «nunca».
       ...(c.env.FLAGS
         ? { tareas: await estadoDeLasTareas(c.env.FLAGS as unknown as KvDeTareas, TAREAS, ahora()) }

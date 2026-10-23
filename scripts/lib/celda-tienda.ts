@@ -532,10 +532,14 @@ export function urlQueNoDebeResponder(celda: Celda, destino: Destino): string {
  * La prueba de humo: la salud de las dos bases por el panel, la portada del panel, la página «sin
  * tienda» del despacho y que la API no responda en workers.dev. Una frase por falla; los avisos
  * (la KEK que falta) no son fallas.
+ *
+ * HU-T18.6 CA3, la del lanzamiento, sin abrir una tienda (no hay sesión en el despliegue): el alta
+ * tiene sus llaves de Turnstile y, con el comodín, una dirección cualquiera de la zona llega al
+ * despacho con su candado y dice «sin tienda».
  */
 export async function humoDeLaTienda(
   fetchFn: Fetch,
-  urls: { panel: string; sitio: string; apiPorFuera: string },
+  urls: { panel: string; sitio: string; apiPorFuera: string; sinTiendaEnLaZona?: string },
   ensayos: readonly ComercioDeEnsayo[] = [],
   /** HU-T2.9 CA3: el ambiente del destino; la API tiene que decir el mismo y sus comercios de prueba. */
   esperado?: { ambiente: Destino },
@@ -558,6 +562,7 @@ export async function humoDeLaTienda(
       kek?: string;
       ambiente?: string | null;
       comerciosDePrueba?: number;
+      alta?: string;
     } = {};
     try {
       cuerpo = (await salud.json()) as typeof cuerpo;
@@ -584,6 +589,11 @@ export async function humoDeLaTienda(
             : `hay ${cuerpo.comerciosDePrueba ?? '?'} comercios de prueba en ${esperado.ambiente}, y se esperaban ${ensayos.length}`,
         );
       }
+      if (esperado && cuerpo.alta !== 'lista') {
+        fallas.push(
+          `abrir una tienda en ${esperado.ambiente} dice «todavía no disponible»: faltan TURNSTILE_SITIO o TURNSTILE_SECRETO en ese ambiente de GitHub (alta: ${cuerpo.alta ?? '?'})`,
+        );
+      }
     }
   }
   const portada = await pedir(`${urls.panel}/`);
@@ -600,6 +610,18 @@ export async function humoDeLaTienda(
       !(await sinTienda.text()).includes('Esta dirección no tiene tienda'))
   ) {
     fallas.push(`${urls.sitio}/ respondió ${sinTienda.status} sin la página «sin tienda»`);
+  }
+  if (urls.sinTiendaEnLaZona) {
+    const enLaZona = await pedir(`${urls.sinTiendaEnLaZona}/`);
+    if (
+      enLaZona &&
+      (enLaZona.status !== 404 ||
+        !(await enLaZona.text()).includes('Esta dirección no tiene tienda'))
+    ) {
+      fallas.push(
+        `${urls.sinTiendaEnLaZona}/ respondió ${enLaZona.status} sin la página «sin tienda»: el comodín no lleva las tiendas nuevas al despacho`,
+      );
+    }
   }
   const porFuera = await pedir(`${urls.apiPorFuera}/api/salud`);
   if (porFuera && porFuera.status !== 404) {
