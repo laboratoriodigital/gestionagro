@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.1.0] - 2026-10-23
+
+Lo que pidió el dueño después del lanzamiento: la carga por lotes en Pro, IA Pro a COP 49.900 con la factura, lo legal vigente y en palabras sencillas, los errores que llevan a su campo y la baja que se cumple.
+
 ### Agregado
 - Cargar productos por lotes y subir un respaldo, en Pro e IA Pro (HU-T18.11): en «Más › Cargar productos y respaldos» bajas la plantilla, escribes tus productos en Excel (una fila por talla o color) y los subes de una vez; también sirve la hoja de «Descargar todo». Antes de cargar te dice todo lo que está mal, con su fila, y lo que va a entrar. Los nuevos se crean y los que ya existen solo cambian en lo que trae la hoja. El respaldo de «Descargar todo» vuelve a poner tus productos, colecciones, envíos, cupones, páginas y ajustes, sin borrar nada.
 
