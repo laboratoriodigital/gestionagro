@@ -59,7 +59,7 @@ export function correoDelIdToken(idToken: string): string | null {
 }
 
 /** Espera la vuelta de Google en 127.0.0.1; devuelve el código si el `state` es el que se mandó. */
-function esperarLaVuelta(
+export function esperarLaVuelta(
   state: string,
   minutos = 5,
 ): Promise<{ puerto: number; codigo: Promise<string> }> {
@@ -225,7 +225,7 @@ export async function darPermiso(ambiente: Ambiente, mundo: Mundo): Promise<Resu
   return { ok: true, remitente };
 }
 
-function mundoReal(): Mundo {
+export function mundoReal(): Mundo {
   // Una salida que se calla mientras se pega el secreto.
   let callada = false;
   const salida = new Writable({
