@@ -10,6 +10,7 @@ import { Aviso, Boton } from '@ed1/ui/v2/componentes';
 import politica from '../../../../content/cuenta/privacidad/politica.json';
 import celdas from '../../../../infrastructure/celdas.json';
 import registro from '../../../../infrastructure/productos.json';
+import EntrarConCorreo from '../componentes/EntrarConCorreo.astro';
 import Base from '../layouts/Base.astro';
 
 const apps = registro.productos
@@ -88,6 +89,7 @@ const bloques = [
         </label>
         <Boton tipo="submit">Entrar con Google</Boton>
       </form>
+      <EntrarConCorreo id="portada" />
     </section>
 
     <section class="portada__accion" data-con-sesion hidden>
@@ -189,7 +191,7 @@ const bloques = [
           {b.id === 'sesiones' && (
             <div class="portada__reentrar" role="alert" data-reentrar hidden>
               <p data-reentrar-texto>
-                Para cerrar sesiones, vuelve a entrar con Google. Así sabemos que eres tú.
+                Para cerrar sesiones, vuelve a entrar. Así sabemos que eres tú.
               </p>
               <button class="ed1-boton ed1-boton--primario" type="button" data-reentrar-boton>
                 Entrar de nuevo
@@ -210,4 +212,5 @@ const bloques = [
 
 <script>
   import '../sesion.ts';
+  import '../entrar-con-correo.ts';
 </script>

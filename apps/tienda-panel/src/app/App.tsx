@@ -9,6 +9,7 @@
  * - Si la sesión vence (401 aun renovando), aparece «vuelve a entrar» encima de lo que se estaba
  *   haciendo, sin navegar ni recargar (CA2); los formularios guardan su borrador.
  */
+import { pedirEnlaceDeEntrada } from '@ed1/correo/entrar';
 import { puede } from '@ed1/tienda-schema/permisos';
 import { Aviso } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
@@ -23,12 +24,14 @@ import {
   leerRegreso,
   leerSesion,
   MENSAJES_DE_ERROR,
+  PRODUCTO,
   pantallaDe,
   renovar,
   type Sesion,
   salir,
   urlDeEntrada,
   urlDelCore,
+  VERSION_DE_LA_POLITICA,
 } from './sesion.ts';
 import { AjusteDeSeccion, Ajustes } from './vistas/Ajustes.tsx';
 import { Anotar } from './vistas/Anotar.tsx';
@@ -95,6 +98,17 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
   const entrar = useCallback(() => {
     location.assign(urlDeEntrada(core, `${location.origin}${location.pathname}`));
   }, [core]);
+  // HU-C10.2: el enlace al correo vuelve a la misma pantalla que Google.
+  const pedirEnlace = useCallback(
+    (correo: string) =>
+      pedirEnlaceDeEntrada(core, {
+        correo,
+        producto: PRODUCTO,
+        vuelta: `${location.origin}${location.pathname}`,
+        politica: VERSION_DE_LA_POLITICA,
+      }),
+    [core],
+  );
 
   // Al abrir: el regreso de la cuenta y la sesión guardada.
   useEffect(() => {
@@ -196,7 +210,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         }}
       />
     );
-  else if (pantalla === 'entrar') cuerpo = <Entrar aviso={aviso} alEntrar={entrar} />;
+  else if (pantalla === 'entrar')
+    cuerpo = <Entrar aviso={aviso} alEntrar={entrar} alPedirEnlace={pedirEnlace} />;
   else if (pantalla === 'sin-tienda' && sesion)
     cuerpo = (
       <SinTienda

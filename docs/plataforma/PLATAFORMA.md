@@ -439,7 +439,7 @@ Los números siguen el orden en que se construyen, no el del diseño: la auditor
 
 | Migración | Llega con | Qué hace |
 |---|---|---|
-| `0010_entrar_con_correo.sql` (era 0007, 0008 y 0009; la 0009 real es la de los radicados, HU-C7.7) | Proveedor de correo (§4.11) | `proveedor_identidad` (`google`, `correo`) como referencia. Rehace `identidad`, que es solo hija, con la receta. Crea `enlace_correo`: huella del código, correo, producto, vuelta, 15 min, un uso. Índice `enlace_por_correo` para el tope de 3 por hora |
+| `0012_entrar_con_correo.sql` (era 0007, 0008, 0009 y 0010; HU-C10.2, en `infrastructure/migraciones/core/`) | Proveedor de correo (§4.11) | `proveedor_identidad` (`google`, `correo`) como referencia. Rehace `identidad`, que es solo hija, con la receta. Crea `enlace_correo`: huella del código, correo, producto, vuelta, 15 min, un uso. Índice `enlace_por_correo` para el tope de 3 por hora |
 | `0007_auditoria.sql` (era 0008; ya en `infrastructure/migraciones/core/`, HU-C2.4) | P1 de la plataforma | `auditoria`: lo que toca seguridad o dinero (entradas, roles, pagos, concesiones a agentes), una fila por hecho. Índice parcial por organización |
 | `0008_oauth_para_agentes.sql` (era 0009; ya en `infrastructure/migraciones/core/`, HU-C9.2) | P5 de la plataforma (§5.4) | `alcance` (por producto, con `mueve_dinero CHECK = 0`), `cliente_oauth`, `concesion_oauth`, `codigo_oauth` (PKCE S256 obligatorio) y `refresco_oauth` (rotación y detección de reuso) |
 | `00xx_contraer_*.sql` | Una versión después de que ningún código lea lo viejo | Quita `usuario.politica_*`, los `DEFAULT 'agro'` de transición y la aceptación de tokens v1 (§4.6) |
@@ -563,6 +563,8 @@ CORS: `ORIGENES_APP` pasa a ser la unión de los orígenes de todos los producto
 3. La app lo canjea por POST y recibe access y refresh, igual que con Google.
 
 **Topes:** 3 enlaces por correo por hora (índice `enlace_por_correo`) y un límite por IP con el binding de rate limiting.
+
+**Cómo quedó (HU-C10.2, 23 oct 2026):** la migración es la 0012. El enlace lleva a `/entrar/correo/` de la cuenta, que pregunta para quién es sin gastarlo y lo gasta al tocar «Entrar», porque los filtros de correo abren los enlaces; después sigue a la app con el mismo `#entrar=<código>` de Google. Producción manda con Resend y staging con Gmail, con el remitente del producto (`productos.json › correo`) o `cuenta@laboratorio-digital.com` (D-C6). Los avisos de vencimiento (HU-C10.3) usan el mismo correo y la tabla `correo_del_core`.
 
 **El proveedor de correo.**
 

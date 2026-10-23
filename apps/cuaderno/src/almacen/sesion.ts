@@ -175,7 +175,7 @@ export async function renovarSiHaceFalta(
   if (estado === 'activa' && !opciones.forzar) return { sesion, aviso: null };
   if (estado === 'vencida') {
     await salirDeLaCuenta(db);
-    return { sesion: null, aviso: 'La sesión venció. Vuelve a entrar con Google.' };
+    return { sesion: null, aviso: 'La sesión venció. Vuelve a entrar.' };
   }
   if (!enLinea()) return { sesion, aviso: null };
   let r: Response;
@@ -196,7 +196,7 @@ export async function renovarSiHaceFalta(
   };
   if (r.status === 401) {
     await salirDeLaCuenta(db);
-    return { sesion: null, aviso: datos.motivo ?? 'La sesión venció. Vuelve a entrar con Google.' };
+    return { sesion: null, aviso: datos.motivo ?? 'La sesión venció. Vuelve a entrar.' };
   }
   if (!r.ok) return { sesion, aviso: null }; // CORE en pausa o caído: se reintenta después
   const renovada = await guardar(

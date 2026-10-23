@@ -173,6 +173,15 @@ export const SECRETOS_DE_LA_PARTE: Readonly<Record<Parte, readonly string[]>> = 
     'TELEGRAM_CHAT_ID',
     // HU-T2.10 CA2: el dueño, propietario de los comercios de prueba de la Tienda en staging.
     'TIENDA_CORREO_DUENO_STAGING',
+    // HU-C10.1: el enlace para entrar y los avisos, por Gmail en staging y por Resend en producción.
+    ...CORREO_GMAIL,
+    'RESEND_API_KEY',
+    // HU-C11.4: la llave de la copia y el permiso del Drive del dueño.
+    'COPIA_LLAVE',
+    'COPIA_DRIVE_CLIENTE_ID',
+    'COPIA_DRIVE_CLIENTE_SECRETO',
+    'COPIA_DRIVE_REFRESH',
+    'COPIA_CF_TOKEN',
   ],
   // El vigía de la celda del agro mide con el token de métricas y avisa por Telegram.
   agro: [...CLOUDFLARE, 'CF_METRICAS_TOKEN', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'],

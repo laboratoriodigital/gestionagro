@@ -9,6 +9,7 @@
  */
 import { Aviso, Boton } from '@ed1/ui/v2/componentes';
 import politica from '../../../../content/cuenta/privacidad/politica.json';
+import EntrarConCorreo from '../componentes/EntrarConCorreo.astro';
 import Base from '../layouts/Base.astro';
 ---
 <Base
@@ -42,6 +43,7 @@ import Base from '../layouts/Base.astro';
         </label>
         <Boton tipo="submit">Entrar con Google</Boton>
       </form>
+      <EntrarConCorreo id="autorizar" />
     </section>
 
     <section class="portada__espacios" data-con-sesion hidden>
@@ -81,4 +83,5 @@ import Base from '../layouts/Base.astro';
 
 <script>
   import '../autorizar.ts';
+  import '../entrar-con-correo.ts';
 </script>

@@ -97,6 +97,50 @@ export function configDelCore(
   return { ...generada, env: { ...env, staging: agregar(env['staging'] ?? {}) } };
 }
 
+/** La cuenta de Gmail que envía en staging (PLATAFORMA §4.11), como en la Tienda. */
+const CORREO_GMAIL_DEL_CORE = [
+  'CORREO_GMAIL_CLIENTE_ID',
+  'CORREO_GMAIL_CLIENTE_SECRETO',
+  'CORREO_GMAIL_REFRESH',
+  'CORREO_GMAIL_REMITENTE',
+] as const;
+
+/**
+ * Los secretos opcionales del CORE en cada destino (HU-C10.1): producción manda con Resend y nunca
+ * con Gmail; staging, con la cuenta de Gmail. La copia en el Drive del dueño (HU-C11.4) va en los
+ * dos: staging la ensaya con sus propias bases.
+ */
+export function secretosOpcionalesDelCore(destino: Destino): string[] {
+  return [
+    ...(destino === 'produccion' ? ['RESEND_API_KEY'] : CORREO_GMAIL_DEL_CORE),
+    ...SECRETOS_DE_LA_COPIA,
+    'COPIA_CF_CUENTA',
+  ];
+}
+
+/** HU-C11.4: la llave de la copia y el permiso de Drive del dueño (`docs/runbooks/copia-en-drive.md`). */
+export const SECRETOS_DE_LA_COPIA = [
+  'COPIA_LLAVE',
+  'COPIA_DRIVE_CLIENTE_ID',
+  'COPIA_DRIVE_CLIENTE_SECRETO',
+  'COPIA_DRIVE_REFRESH',
+  // El token de Cloudflare de propósito «copia» (HU-C11.5): solo exportar las bases.
+  'COPIA_CF_TOKEN',
+] as const;
+
+/**
+ * El valor de un secreto opcional del CORE en el ambiente del despliegue. La cuenta de Cloudflare de
+ * la copia es la misma del despliegue (ADR-23): no tiene secreto propio.
+ */
+export const valorOpcionalDelCore = (
+  nombre: string,
+  entorno: Readonly<Record<string, string | undefined>>,
+): string | undefined => {
+  if (nombre !== 'COPIA_CF_CUENTA') return entorno[nombre];
+  // Sin el token de la copia, la cuenta no le sirve al Worker y no se carga.
+  return entorno['COPIA_CF_TOKEN'] ? entorno['CF_ACCOUNT_ID'] : undefined;
+};
+
 /**
  * Secretos que el despliegue carga en el Worker del CORE (ARQUITECTURA §7.5). La clave de firma
  * se genera solo si el Worker no tiene una: cambiarla invalidaría todas las sesiones.
@@ -119,6 +163,12 @@ export async function secretosDelCore(
     token: undefined,
     chat: undefined,
   },
+  /**
+   * HU-C10.1 y HU-C11.4: los que el CORE usa si están y sin los que dice «no disponible»: el correo
+   * y la copia en el Drive del dueño (`secretosOpcionalesDelCore`). Solo van los que tienen valor:
+   * uno vacío no pisa el que ya tiene el Worker.
+   */
+  opcionales: Readonly<Record<string, string | undefined>> = {},
 ): Promise<Record<string, string>> {
   const sufijo = bold?.ambiente === 'produccion' ? 'PRODUCCION' : 'PRUEBAS';
   const mediaBold = bold && Boolean(bold.identidad) !== Boolean(bold.secreta);
@@ -146,6 +196,9 @@ export async function secretosDelCore(
     ...(telegram.token && telegram.chat
       ? { TELEGRAM_BOT_TOKEN: telegram.token, TELEGRAM_CHAT_ID: telegram.chat }
       : {}),
+    ...Object.fromEntries(
+      Object.entries(opcionales).flatMap(([k, v]) => (v?.trim() ? [[k, v.trim()]] : [])),
+    ),
     ...(existentes.includes('CORE_JWT_PRIVATE_KEY')
       ? {}
       : { CORE_JWT_PRIVATE_KEY: await nuevaClave() }),

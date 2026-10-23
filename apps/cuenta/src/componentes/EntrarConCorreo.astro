@@ -1,0 +1,24 @@
+---
+/**
+ * «¿No tienes Google?» (HU-C10.2): va debajo del formulario de Google, en la misma sección, y usa
+ * su casilla y sus datos (`entrar-con-correo.ts`). Escondido hasta que el script lo prepara: sin
+ * JavaScript no podría pedir nada, y un formulario que no funciona no se muestra.
+ */
+const { id } = Astro.props as { id: string };
+---
+<form class="portada__correo" data-entrar-correo novalidate hidden>
+  <p class="portada__nota">¿No tienes Google? Te enviamos un enlace a tu correo.</p>
+  <div class="ed1-campo">
+    <label class="ed1-campo__etiqueta" for={`${id}-correo`}>Tu correo</label>
+    <input
+      class="ed1-campo__control"
+      id={`${id}-correo`}
+      type="email"
+      inputmode="email"
+      autocomplete="email"
+    />
+    <p class="ed1-campo__error" id={`${id}-correo-error`} data-entrar-correo-error hidden></p>
+  </div>
+  <button class="ed1-boton ed1-boton--secundario" type="submit">Enviarme un enlace</button>
+  <p class="portada__nota" role="status" data-entrar-correo-estado></p>
+</form>

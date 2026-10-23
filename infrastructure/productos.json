@@ -136,6 +136,9 @@
         "al_agotarse": ["ks:tienda-horno", "ks:tienda-mcp"],
         "d1_filas_escritas_dia": 5000
       },
+      "correo": {
+        "remitente": "avisos@tiendapro.co"
+      },
       "recursos_oauth": [
         {
           "produccion": "https://mcp.tiendapro.co",

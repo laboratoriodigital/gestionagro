@@ -48,6 +48,12 @@ export interface Producto {
    * crea en `encendido` en el KV de flags de las celdas del producto (HU-Q7.13).
    */
   kill_switches?: string[];
+  /**
+   * El remitente propio de los correos del CORE para este producto (HU-C10.1, decisión del dueño
+   * del 23 oct 2026), en un dominio de su marca verificado en el proveedor. Sin él, salen del
+   * remitente del CORE, con el nombre del producto delante.
+   */
+  correo?: { remitente: string };
   /** Los servidores del producto que aceptan tokens de agentes (RFC 8707, HU-C9.4), por destino. */
   recursos_oauth?: { produccion: string; staging: string }[];
   /** Lo que un agente puede pedir sobre una organización del producto (HU-C9.2). */

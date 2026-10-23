@@ -78,6 +78,13 @@ h1 {
   color: var(--color-texto-suave);
 }
 
+/* HU-C10.2: entrar con un enlace al correo, debajo de Google. */
+.entrar-correo {
+  margin-block-start: var(--espacio-4);
+  padding-block-start: var(--espacio-4);
+  border-block-start: 1px solid var(--color-borde);
+}
+
 /* Formularios (HU-E3.3): objetivos de 48 px, texto grande, error junto al campo. */
 .campo,
 .opciones,

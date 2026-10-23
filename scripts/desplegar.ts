@@ -118,6 +118,8 @@ import {
   productosDeLasBases,
   resultadosDeLaSalida,
   secretosDelCore,
+  secretosOpcionalesDelCore,
+  valorOpcionalDelCore,
 } from './lib/d1-core.ts';
 import {
   causaDeWrangler,
@@ -535,6 +537,9 @@ async function desplegarCore(
             ambiente: 'pruebas',
           },
       { token: process.env['TELEGRAM_BOT_TOKEN'], chat: process.env['TELEGRAM_CHAT_ID'] },
+      Object.fromEntries(
+        secretosOpcionalesDelCore(dest).map((k) => [k, valorOpcionalDelCore(k, process.env)]),
+      ),
     );
   } catch (e) {
     return { ok: false, detalle: [`CORE: ${(e as Error).message}`] };

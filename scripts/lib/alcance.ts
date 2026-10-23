@@ -42,7 +42,7 @@ export function esDocumento(ruta: string): boolean {
  */
 export function esDeLaBase(ruta: string): boolean {
   const r = ruta.replaceAll('\\', '/');
-  return /^(packages\/d1\/|infrastructure\/migraciones\/|apps\/(core|api-celda|parqueadero-api|tienda-api)\/|tests\/integracion\/|scripts\/tienda\/simulacro-de-restauracion\.ts$|pnpm-lock\.yaml$)/.test(
+  return /^(packages\/d1\/|infrastructure\/migraciones\/|apps\/(core|api-celda|parqueadero-api|tienda-api)\/|tests\/integracion\/|scripts\/tienda\/simulacro-de-restauracion\.ts$|scripts\/copia\/simulacro\.ts$|pnpm-lock\.yaml$)/.test(
     r,
   );
 }

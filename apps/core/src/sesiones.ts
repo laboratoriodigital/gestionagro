@@ -136,9 +136,7 @@ export async function canjearCodigo(
     )
     .first<{ usuario_id: string; producto: string; creado: string }>();
   if (!fila) {
-    throw new SesionInvalida(
-      'Este enlace de entrada ya se usó o venció. Vuelve a tocar «Entrar con Google».',
-    );
+    throw new SesionInvalida('Este enlace de entrada ya se usó o venció. Vuelve a entrar.');
   }
   return {
     usuarioId: fila.usuario_id,
@@ -167,7 +165,7 @@ export async function refrescar(db: BaseD1, refresh: string, ahora: number): Pro
     }>();
   const expira = sesion ? Date.parse(sesion.expira) : 0;
   if (!sesion || sesion.dispositivo === SIN_CANJEAR || expira <= ahora) {
-    throw new SesionInvalida('La sesión venció. Vuelve a entrar con Google.');
+    throw new SesionInvalida('La sesión venció. Vuelve a entrar.');
   }
   if (sesion.revocado) {
     throw new SesionInvalida(
