@@ -28,7 +28,12 @@ export type Accion =
   /** Una persona dio acceso a un agente sobre una organización (HU-C9.4). */
   | 'concesion_creada'
   /** Se quitó el acceso de un agente: a pedido, o por reuso de un refresh (HU-C9.5, HU-C9.6). */
-  | 'concesion_revocada';
+  | 'concesion_revocada'
+  /**
+   * El dueño vio un bloque de la consola (HU-C13.1 CA4). Es la única lectura que se registra: la
+   * consola ve números de toda la plataforma, y lo que ve alguien así queda dicho.
+   */
+  | 'consola_vista';
 
 export interface Hecho {
   instante: string;

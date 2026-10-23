@@ -187,6 +187,22 @@
       "tipos": [],
       "roles": [],
       "politica": "content/cuenta/privacidad/politica.json"
+    },
+    {
+      "id": "consola",
+      "nombre": "Consola del dueño",
+      "estado": "activo",
+      "organizaciones": false,
+      "app": {
+        "origenes": {
+          "produccion": "https://cuenta.laboratorio-digital.com",
+          "staging": "https://agro-core-staging.laboratoriodigital-la.workers.dev"
+        },
+        "rutas_de_vuelta": ["/consola/"]
+      },
+      "tipos": [],
+      "roles": [],
+      "politica": "content/cuenta/privacidad/politica.json"
     }
   ]
 }

@@ -120,6 +120,8 @@ jobs:
           COPIA_DRIVE_CLIENTE_SECRETO: ${{ secrets.COPIA_DRIVE_CLIENTE_SECRETO }}
           COPIA_DRIVE_REFRESH: ${{ secrets.COPIA_DRIVE_REFRESH }}
           COPIA_CF_TOKEN: ${{ secrets.COPIA_CF_TOKEN }}
+          # HU-C13.1 (D-C8): las direcciones del dueño que ven la consola.
+          CONSOLA_CORREOS: ${{ secrets.CONSOLA_CORREOS }}
           DESTINO: ${{ inputs.destino }}
           SOLO_CELDA: ${{ inputs.solo_celda }}
           PRODUCTOS: ${{ inputs.productos }}
