@@ -27,11 +27,13 @@ export function Privacidad() {
           agregarán antes de que sea la política vigente.
         </p>
       ) : null}
-      <p>
-        Con tu cuenta entras al panel de tu tienda. Aquí te contamos qué guardamos de ti, para qué y
-        cómo puedes consultarlo, corregirlo o pedir que lo borremos. De los datos de tus compradores
-        responde tu tienda, con su propia política.
-      </p>
+      <p>{politica.presentacion}</p>
+      <h2>Qué guardamos y para qué</h2>
+      <ul>
+        {politica.que_guardamos.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ul>
       <h2>Quién responde por tus datos</h2>
       <dl class="datos">
         {datos.map(([etiqueta, valor]) => (
@@ -60,12 +62,7 @@ export function Privacidad() {
         ))}
       </ul>
       <h2>Tus derechos</h2>
-      <p>
-        Puedes conocer, actualizar y corregir tus datos, pedir que los borremos y revocar esta
-        autorización. Escríbenos a {r.correo ?? CORREO_DE_REPORTES}: te respondemos las consultas en
-        máximo 10 días hábiles y los reclamos en máximo 15 (Ley 1581 de 2012). Si no quedas
-        conforme, puedes acudir a la Superintendencia de Industria y Comercio.
-      </p>
+      <p>{politica.derechos.replace('{correo}', r.correo ?? CORREO_DE_REPORTES)}</p>
       <p>
         <a href="/">Volver al panel</a>
       </p>

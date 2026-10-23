@@ -78,8 +78,17 @@ test('HU-T18.5 CA2 y HU-T18.6 CA2 · los términos y la política, sin huecos a 
   for (const ruta of ['/legal/terminos/', '/legal/datos/']) {
     await page.goto(`${LANDING}${ruta}`);
     await expect(page.locator('main')).not.toContainText(/por completar|\{\w+\}/);
+    // HU-T18.10: vigentes y sin nombrar a los proveedores de la plataforma.
+    await expect(page.locator('main')).not.toContainText(/Borrador|Cloudflare|Google|Gmail|Resend/);
     await sinFallasDeAxe(page, ruta);
   }
+  await page.goto(`${LANDING}/legal/datos/`);
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Qué guardamos y para qué' }),
+  ).toBeVisible();
+  await expect(page.locator('main')).toContainText(
+    /Escríbenos a \S+@\S+: respondemos tus consultas/,
+  );
   await page.goto(`${LANDING}/llms.txt`);
   await expect(page.locator('body')).toContainText('# TiendaPro');
 });
