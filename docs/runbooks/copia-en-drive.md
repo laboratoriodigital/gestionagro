@@ -87,7 +87,7 @@ El simulacro no usa Cloudflare ni GitHub: es lo mismo que harías el día que la
 - **«el token de la copia no puede exportar»:** revisa el paso 3.
 - **«el volcado de … pasa de 50 MB»:** esa base ya no cabe en una vuelta del plan gratuito. Hay que partirla o activar Workers Paid: avísale al asistente.
 - **El Drive pasa del 70 %:** libera espacio o amplía el plan de Google One antes de que las copias dejen de caber.
-- **«el export de … no terminó en 10 preguntas»:** Cloudflare no entregó el volcado a tiempo. Hasta el 24 oct 2026 era un error de la copia (bitácora core 16); si vuelve, avísale al asistente con el texto de la consola.
+- **«el export de … no terminó en 10 preguntas»:** Cloudflare no entregó el volcado a tiempo. Hasta el 23 oct 2026 era un error de la copia (bitácora core 16); si vuelve, avísale al asistente con el texto de la consola.
 
 ### Volver a intentar la semana sin esperar al lunes
 
