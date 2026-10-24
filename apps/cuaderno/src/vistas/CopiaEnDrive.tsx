@@ -4,7 +4,7 @@
  * - Guardar: pide el permiso a Google (un viaje y vuelta) y sube la copia a la carpeta
  *   «CultivoPro · respaldos» del Drive de la persona.
  * - Traer: lista las copias de esa carpeta y entrega la elegida a la revisión de Respaldo, que
- *   muestra qué agregaría antes de unir.
+ *   muestra qué agregaría antes de unir. Es restaurar: solo con el plan que lo incluye (HU-E0.13).
  * - No se respalda solo en segundo plano: una app web no puede pedirle permiso a Google sin que
  *   la persona lo vea. A los 7 días sin copia, la pantalla lo recuerda.
  */
@@ -44,6 +44,8 @@ type Estado =
 
 export function CopiaEnDrive(props: {
   hayFinca: boolean;
+  /** Si el plan deja restaurar una copia (`restaurar_copia`); si no, no se ofrece traer. */
+  puedeTraer: boolean;
   /** Entrega el archivo traído a la revisión de Respaldo. */
   alTraer: (texto: string) => Promise<void>;
 }) {
@@ -167,14 +169,16 @@ export function CopiaEnDrive(props: {
             Guardar copia en mi Google Drive
           </button>
         )}
-        <button
-          type="button"
-          class="secundario"
-          disabled={!enLinea || trabajando}
-          onClick={() => void pedir('traer')}
-        >
-          Traer una copia de mi Google Drive
-        </button>
+        {props.puedeTraer && (
+          <button
+            type="button"
+            class="secundario"
+            disabled={!enLinea || trabajando}
+            onClick={() => void pedir('traer')}
+          >
+            Traer una copia de mi Google Drive
+          </button>
+        )}
       </div>
       {estado.tipo === 'trabajando' && (
         <p class="ayuda" role="status">

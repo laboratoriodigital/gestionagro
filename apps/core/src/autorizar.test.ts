@@ -161,8 +161,8 @@ describe('HU-C9.4 · GET /oauth/authorize', () => {
     }
   });
 
-  it('P1 ❌ · en producción no hay autorizar hasta el canje de tokens', async () => {
-    expect((await autorizar(BUENO, 'produccion')).status).toBe(404);
+  it('en producción también se autoriza (HC6 aceptada el 24 oct 2026)', async () => {
+    expect((await autorizar(BUENO, 'produccion')).status).not.toBe(404);
   });
 });
 
@@ -339,8 +339,8 @@ describe('HU-C9.5 · el canje del código y el refresh rotado', () => {
     ).toMatchObject({ detalle: expect.stringContaining('reuso de refresh') });
   });
 
-  it('P1 ❌ · en producción no hay canje todavía', async () => {
-    expect((await canjear(conCodigo('x'), 'produccion')).status).toBe(404);
+  it('en producción también hay canje: un código que no existe se rechaza, no da 404', async () => {
+    expect((await canjear(conCodigo('x'), 'produccion')).status).not.toBe(404);
   });
 });
 

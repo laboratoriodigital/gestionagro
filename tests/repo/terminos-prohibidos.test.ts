@@ -61,7 +61,8 @@ describe('las dos fincas de prueba (ARQUITECTURA §10)', () => {
     expect(FINCA_ENSAYO_UNO.areas.filter((a) => a.tipo === 'nave')).toHaveLength(3);
     expect(FINCA_ENSAYO_DOS.finca.nombre).toBe('Finca Ensayo Dos');
     expect(FINCA_ENSAYO_DOS.finca.regimen).toBe('convencional');
-    expect(FINCA_ENSAYO_DOS.areas.filter((a) => a.tipo === 'bloque')).toHaveLength(5);
+    // Tres bloques: lo que cabe en el plan Gratis (HU-E0.13).
+    expect(FINCA_ENSAYO_DOS.areas.filter((a) => a.tipo === 'bloque')).toHaveLength(3);
     expect(FINCA_ENSAYO_DOS.cultivo.unidad_cosecha).toBe('tallos');
   });
 

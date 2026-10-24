@@ -25,7 +25,7 @@ Sin dirección, revisa staging. Como segunda opinión, abre <https://isitagentre
 
 ## El asistente de la finca (HU-C9.7, HU-E0.12)
 
-El MCP del cuaderno vive en la celda: `https://agro-api-c0-staging.laboratoriodigital-la.workers.dev/mcp` en staging y `https://mcp.cultivopro.co/mcp` en producción, cuando se encienda. Pide OAuth del CORE, solo lee y es del plan Finca. Cómo probarlo con un asistente de verdad: `docs/runbooks/asistente-de-la-finca.md`.
+El MCP del cuaderno vive en la celda: `https://agro-api-c0-staging.laboratoriodigital-la.workers.dev/mcp` en staging y `https://mcp.cultivopro.co/mcp` en producción, encendido desde el 24 oct 2026 (sirve desde que se publica la versión del CORE que lo trae). Pide OAuth del CORE, solo lee y es del plan Finca. Cómo probarlo con un asistente de verdad: `docs/runbooks/asistente-de-la-finca.md`.
 
 ## Las tiendas (HU-T15.1 a HU-T15.7)
 

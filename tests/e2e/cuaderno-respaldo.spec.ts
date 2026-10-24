@@ -1,12 +1,13 @@
 /**
  * Respaldo (HU-E3.13) en un teléfono de 360 px, con las dos fincas de prueba (P4). El «otro
- * teléfono» es un contexto nuevo del navegador: su IndexedDB arranca vacía.
+ * teléfono» es un contexto nuevo del navegador: su IndexedDB arranca vacía. Restaurar una copia es
+ * del plan Finca (HU-E0.13): el teléfono que restaura tiene esa sesión; descargar sigue gratis.
  */
 import { readFileSync } from 'node:fs';
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { APP, configurar, irASeccion } from './ayudas.ts';
+import { APP, configurar, conPlan, irASeccion } from './ayudas.ts';
 
 async function registrarClima(page: Page, area: string) {
   await irASeccion(page, 'Registrar');
@@ -55,6 +56,8 @@ for (const f of FINCAS_DE_PRUEBA) {
       const otro = await browser.newContext({ viewport: { width: 360, height: 780 } });
       const telefono = await otro.newPage();
       await telefono.goto(`${origen}${APP}respaldo/`);
+      await conPlan(telefono, 'finca');
+      await telefono.reload();
       await expect(telefono.getByText('Todavía no hay finca en este teléfono.')).toBeVisible();
       await telefono.getByLabel('Archivo de respaldo (.json)').setInputFiles(ruta);
       const resumen = telefono.locator('[data-prueba="respaldo-resumen"]');
@@ -83,6 +86,24 @@ for (const f of FINCAS_DE_PRUEBA) {
     });
   });
 }
+
+test('HU-E0.13: con el plan Gratis se descarga, pero restaurar lo dice y lleva a los planes', async ({
+  page,
+}) => {
+  const f = FINCAS_DE_PRUEBA[0] as FincaDePrueba;
+  await configurar(page, f);
+  await abrirRespaldo(page);
+  await expect(page.getByRole('button', { name: 'Descargar respaldo completo' })).toBeEnabled();
+  await expect(page.getByLabel('Archivo de respaldo (.json)')).toHaveCount(0);
+  const aviso = page.locator('[data-prueba="tope-del-plan"]');
+  await expect(aviso).toContainText(
+    'Con el plan Gratis no se puede restaurar una copia en el teléfono: eso viene con el plan Finca.',
+  );
+  await expect(aviso.getByRole('link', { name: 'Ver los planes' })).toHaveAttribute(
+    'href',
+    '/agro/app/planes/',
+  );
+});
 
 test('CA4: el CSV de clima trae BOM, «;» y coma decimal', async ({ page }) => {
   const f = FINCAS_DE_PRUEBA[0] as FincaDePrueba;
@@ -113,6 +134,8 @@ test('P21: un archivo cortado no importa nada y lo dice; la pantalla cumple WCAG
     page.getByRole('button', { name: 'Descargar respaldo completo' }).click(),
   ]);
   const texto = readFileSync(await descarga.path(), 'utf8');
+  await conPlan(page, 'finca');
+  await page.reload();
   await page.getByLabel('Archivo de respaldo (.json)').setInputFiles({
     name: 'cortado.json',
     mimeType: 'application/json',

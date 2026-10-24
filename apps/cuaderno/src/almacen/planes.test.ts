@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import configFotos from '../../../../content/agro/cuaderno/fotos.json' with { type: 'json' };
 import { funcionActiva } from './funciones.ts';
+import { topeDelPlan } from './limites.ts';
 import { AVISO_PRECIO, CON_ESPERA, PLANES } from './planes.ts';
 
 const incluye = (plan: string, texto: string) =>
@@ -16,6 +17,24 @@ const propio = (plan: string, texto: string) =>
   (PLANES.find((p) => p.id === plan)?.incluye ?? []).some(
     (x) => x.includes(texto) && !x.startsWith('Todo lo del plan'),
   );
+
+describe('lo que cabe en cada plan (HU-E0.13)', () => {
+  it('el Gratis dice sus topes de áreas y personas, los mismos que limitan el código', () => {
+    const areas = topeDelPlan('areas', 'gratuito');
+    const miembros = topeDelPlan('miembros', 'gratuito');
+    expect([areas, miembros]).toEqual([3, 2]);
+    expect(incluye('gratuito', `Hasta ${areas} áreas y ${miembros} personas con cuenta`)).toBe(
+      true,
+    );
+  });
+
+  it('el plan Finca no tiene topes y lo dice; un plan desconocido cuenta como el Gratis', () => {
+    expect(topeDelPlan('areas', 'finca')).toBeNull();
+    expect(topeDelPlan('miembros', 'finca')).toBeNull();
+    expect(propio('finca', 'Áreas y personas sin límite')).toBe(true);
+    expect(topeDelPlan('areas', 'inventado')).toBe(3);
+  });
+});
 
 describe('planes con precio visible (HU-E0.6)', () => {
   it('los cuatro planes de la escalera, y la lista de espera solo para los pagos', () => {
@@ -93,6 +112,9 @@ describe('planes con precio visible (HU-E0.6)', () => {
       funcionActiva('asistente_ia', 'finca'),
     );
     expect(incluye('gratuito', 'asistente')).toBe(funcionActiva('asistente_ia', 'gratuito'));
+    // Restaurar una copia: del plan Finca; descargarla sigue gratis (HU-E0.13).
+    expect(propio('finca', 'Restaurar una copia')).toBe(funcionActiva('restaurar_copia', 'finca'));
+    expect(incluye('gratuito', 'Restaurar')).toBe(funcionActiva('restaurar_copia', 'gratuito'));
     // Calendario de carencias: hoy gratis.
     expect(incluye('gratuito', 'Calendario de carencias')).toBe(
       funcionActiva('calendario_carencias', 'gratuito'),

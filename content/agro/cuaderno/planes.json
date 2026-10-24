@@ -1,5 +1,5 @@
 {
-  "nota": "Planes con precio visible (HU-E0.6). Los precios son los «Precios propuestos» del Estudio de mercado, como precio de lanzamiento tentativo (CA2). «Me interesa» solo deja la señal, sin cobrar. Desde el 3 oct 2026 (HU-E0.7) el plan Finca también se paga en línea; el aviso lo dice, y una prueba no deja que diga «no se cobra nada» mientras algún plan tenga `cobro_mensual_cop`. Lo que el código limita por plan sale de funciones.json y fotos.json; una prueba ata este archivo a esos dos. Lo que todavía no existe dice «pronto». `cobro_mensual_cop` es lo que el CORE cobra en línea por un mes (HU-E0.7): un número exacto, dentro del rango de `precio`, que fija el dueño; un plan sin él no se puede pagar en línea. `cobro` (HU-C1.2, ADR-22) da el monto por periodo de 1, 3, 6 y 12 meses: `cobro[1]` es igual a `cobro_mensual_cop` mientras existan los dos, y a más meses el mes no sale más caro. Los montos de 3, 6 y 12 meses son la propuesta de PLATAFORMA §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo), aceptada por el dueño con las recomendaciones del plan del CORE. Desde HU-C5.3 el CORE cobra cualquiera de esos periodos con su precio de la base, y la pantalla de Planes los ofrece con el total, el valor por mes y el ahorro (HU-C5.7).",
+  "nota": "Planes con precio visible (HU-E0.6). Los precios son los «Precios propuestos» del Estudio de mercado, como precio de lanzamiento tentativo (CA2). «Me interesa» solo deja la señal, sin cobrar. Desde el 3 oct 2026 (HU-E0.7) el plan Finca también se paga en línea; el aviso lo dice, y una prueba no deja que diga «no se cobra nada» mientras algún plan tenga `cobro_mensual_cop`. Lo que el código limita por plan sale de funciones.json y fotos.json; una prueba ata este archivo a esos dos. Lo que todavía no existe dice «pronto». `cobro_mensual_cop` es lo que el CORE cobra en línea por un mes (HU-E0.7): un número exacto, dentro del rango de `precio`, que fija el dueño; un plan sin él no se puede pagar en línea. `cobro` (HU-C1.2, ADR-22) da el monto por periodo de 1, 3, 6 y 12 meses: `cobro[1]` es igual a `cobro_mensual_cop` mientras existan los dos, y a más meses el mes no sale más caro. Los montos de 3, 6 y 12 meses son la propuesta de PLATAFORMA §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo), aceptada por el dueño con las recomendaciones del plan del CORE. Desde HU-C5.3 el CORE cobra cualquiera de esos periodos con su precio de la base, y la pantalla de Planes los ofrece con el total, el valor por mes y el ahorro (HU-C5.7). `limites` (HU-E0.13, decisión del dueño del 24 oct 2026) es lo que cabe en un plan: `areas`, las áreas principales de la finca (las camas y los surcos no cuentan); `miembros`, las personas con cuenta en la finca, contando al propietario (un enlace de invitación que espera no cuenta, pero con la finca llena no deja entrar a nadie); `organizaciones_por_cuenta`, cuántas fincas de ese plan puede tener en la nube una misma cuenta. Un plan sin `limites` no tiene tope. Al llegar al tope no se agrega más, pero nada de lo que ya existe se esconde ni se borra.",
   "aviso_precio": "Precio de lanzamiento tentativo. El plan Finca ya lo puedes pagar aquí mismo, por 1, 3, 6 o 12 meses. Los demás todavía no se cobran: si te interesan, avísanos y te contamos antes de que empiecen.",
   "planes": [
     {
@@ -8,10 +8,12 @@
       "gratuito": true,
       "precio": "COP 0",
       "para_quien": "Para empezar y para la finca pequeña.",
+      "limites": { "areas": 3, "miembros": 2, "organizaciones_por_cuenta": 1 },
       "incluye": [
         "Calculadoras de DPV y de carencias, sin registro",
         "Cuaderno de campo en tu teléfono, aunque no haya señal",
-        "Tu finca en la nube con tu cuenta de Google, y tu equipo",
+        "Tu finca en la nube con tu cuenta de Google",
+        "Hasta 3 áreas y 2 personas con cuenta, contándote a ti",
         "Calendario de carencias: qué nave puedes cosechar hoy",
         "Lotes de venta con su etiqueta QR"
       ]
@@ -25,13 +27,15 @@
       "para_quien": "Para la finca que quiere saber cuánto le cuesta producir.",
       "incluye": [
         "Todo lo del plan Gratis",
+        "Áreas y personas sin límite",
+        "Restaurar una copia de tu finca en el teléfono",
         "Costos: bodega de insumos, mano de obra, costo por kilo y margen",
         "Fotos en el monitoreo de plagas y enfermedades",
         "Aplicaciones, monitoreo y cosecha por cama o surco, con la incidencia en plantas",
         "El logo de tu finca en la etiqueta QR de cada lote",
         "Calendario de carencias impreso para la puerta de la nave",
         "Carpeta de cumplimiento en PDF para auditorías",
-        "Tu asistente de inteligencia artificial conectado al cuaderno: carencias, costos, bodega y rendimiento (pronto)"
+        "Tu asistente de inteligencia artificial conectado al cuaderno: carencias, costos, bodega y rendimiento"
       ]
     },
     {

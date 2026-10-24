@@ -32,8 +32,8 @@ describe('HU-C9.2 · metadatos del servidor de autorización', () => {
     expect(m['scopes_supported']).toContain('agro:registros:leer');
   });
 
-  it('P1 ❌ · en producción, o sin destino, no se anuncia lo que todavía no canjea tokens', async () => {
-    expect((await pedir('produccion')).status).toBe(404);
+  it('en producción también se anuncia (HC6 aceptada el 24 oct 2026); ❌ sin destino, no', async () => {
+    expect((await pedir('produccion')).status).toBe(200);
     expect((await pedir(undefined)).status).toBe(404);
   });
 

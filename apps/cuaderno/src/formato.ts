@@ -23,8 +23,9 @@ export const NOMBRE_TIPO: Record<string, string> = {
   surco: 'Surco',
 };
 
+/** Cómo produce la finca. «Orgánico» es como muchos productores lo dicen (pedido del dueño, 24 oct 2026). */
 export const NOMBRE_REGIMEN: Record<string, string> = {
-  ecologico: 'Ecológico',
+  ecologico: 'Ecológico/orgánico',
   convencional: 'Convencional',
 };
 

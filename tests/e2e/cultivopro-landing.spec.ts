@@ -133,8 +133,8 @@ test('HU-E0.12 · el asistente: con el plan Finca, sus seis superpoderes, sus ga
     'Tu finca, con superpoderes.',
   );
   await expect(asistente).toContainText('Con el plan Finca');
-  // Mientras el servidor de permisos solo responda en staging, dice «Pronto» (P1).
-  await expect(asistente.getByText('Pronto', { exact: true })).toBeVisible();
+  // Encendido en producción el 24 oct 2026: ya no dice «Pronto».
+  await expect(asistente.getByText('Pronto', { exact: true })).toHaveCount(0);
   await expect(asistente.locator('.superpoder')).toHaveCount(6);
   await expect(asistente).toContainText('¿Qué insumo se me va a acabar este mes?');
   await expect(asistente).toContainText('Nunca mueve dinero');

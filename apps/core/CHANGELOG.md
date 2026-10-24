@@ -4,6 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- Los topes de un plan (HU-E0.13): `limites` de cada `planes.json` llega al catálogo del CORE. Con `miembros`, una organización llena no crea invitaciones y un enlace de antes no deja entrar a nadie más, sin gastarse; con `organizaciones_por_cuenta` en el plan gratuito, una cuenta no crea otra organización gratuita de ese producto si ya tiene las que caben (las de un plan pagado no cuentan). Un plan sin la clave no tiene tope, y nadie que ya esté sale.
+
+### Cambiado
+- El servidor de permisos para asistentes (OAuth 2.1) responde también en producción (HU-C9.7, HC6): el dueño lo probó en staging con un asistente real el 24 oct 2026. Con él, el asistente de la finca de CultivoPro se conecta en `mcp.cultivopro.co`.
+
 ## [0.10.0] - 2026-10-24
 
 La cuenta con orden: los asistentes con acceso a la vista, sin bajar por las sesiones.

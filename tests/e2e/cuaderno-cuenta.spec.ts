@@ -519,6 +519,37 @@ test.describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
     expect(pedidos).toEqual([{ rol: 'supervisor' }]);
   });
 
+  test('HU-E0.13: con el plan Gratis y dos personas, no se ofrece invitar y lo dice', async ({
+    page,
+  }) => {
+    await fincaConUnClima(page);
+    await coreFalso(page);
+    await nubeFalsa(page, (op) => ({ id: op.id, estado: 'aceptado' }));
+    await page.route(`${CORE}/api/core/equipo/ver`, (r) =>
+      r.fulfill({
+        json: {
+          miembros: [
+            { usuario_id: 'u1', nombre: 'Persona Ensayo', rol: 'propietario', tu: true },
+            { usuario_id: 'u2', nombre: 'Persona Ensayo Dos', rol: 'operario', tu: false },
+          ],
+        },
+        headers: permitir,
+      }),
+    );
+    await cuenta(page);
+    await entrar(page);
+    await page.getByRole('button', { name: 'Subir mi finca a la nube' }).click();
+    const equipo = page.locator('[data-prueba="tu-equipo"]');
+    const aviso = equipo.locator('[data-prueba="tope-del-plan"]');
+    await expect(aviso).toContainText(
+      'Con el plan Gratis caben 2 personas con cuenta en la finca, contándote a ti.',
+    );
+    await expect(aviso.getByRole('link', { name: 'Ver los planes' })).toBeVisible();
+    await expect(equipo.getByRole('button', { name: 'Preparar invitación' })).toHaveCount(0);
+    // Las dos personas siguen con su acceso.
+    await expect(equipo.locator('[data-prueba="miembro"]')).toHaveCount(2);
+  });
+
   test('CA2 y CA4: quien recibe el enlace entra con Google, se une y la finca baja a su teléfono', async ({
     page,
   }) => {

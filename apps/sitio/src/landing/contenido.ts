@@ -24,9 +24,10 @@ export const PLANES_DEL_CUADERNO = '/agro/app/planes/';
  *
  * `ASISTENTE_EN_PRODUCCION` dice si ya se puede conectar en cultivopro.co: el servidor de permisos
  * del CORE solo responde en staging hasta la prueba con un asistente real (HU-C9.7, HC6). Mientras
- * sea `false`, la sección dice «Pronto» (P1: nada finge estar disponible).
+ * sea `false`, la sección dice «Pronto» (P1: nada finge estar disponible). Encendido el 24 oct 2026,
+ * con el servidor de permisos en producción.
  */
-export const ASISTENTE_EN_PRODUCCION = false;
+export const ASISTENTE_EN_PRODUCCION = true;
 export const ASISTENTE_EN_FINCA = funciones.asistente_ia.finca;
 
 /** Lo que el asistente responde, con una pregunta de ejemplo: cada uno es una herramienta del MCP. */
@@ -229,6 +230,11 @@ export function enFrase(nombres: readonly string[]): string {
   return `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}`;
 }
 
+/** Los topes del plan Gratis (HU-E0.13), de `limites` en planes.json: la misma fuente del cuaderno (P2). */
+const TOPES_DEL_GRATIS = (
+  planes.planes.find((p) => 'limites' in p) as { limites: { areas: number; miembros: number } }
+).limites;
+
 export const PREGUNTAS = [
   {
     pregunta: '¿Funciona sin internet?',
@@ -242,8 +248,7 @@ export const PREGUNTAS = [
   },
   {
     pregunta: '¿Cuánto cuesta?',
-    respuesta:
-      'Empezar no cuesta nada y el plan Gratis no vence. Cuando quieras saber cuánto te cuesta producir, pasas al plan Finca y lo pagas por 1, 3, 6 o 12 meses, sin permanencia.',
+    respuesta: `Empezar no cuesta nada y el plan Gratis no vence: trae hasta ${TOPES_DEL_GRATIS.areas} áreas y ${TOPES_DEL_GRATIS.miembros} personas con cuenta, contándote a ti. Cuando tu finca crezca o quieras saber cuánto te cuesta producir, pasas al plan Finca y lo pagas por 1, 3, 6 o 12 meses, sin permanencia.`,
   },
   {
     pregunta: '¿Mi equipo puede anotar desde su teléfono?',

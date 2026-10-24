@@ -71,4 +71,4 @@ Compara cada cifra con la pantalla del cuaderno: deben ser iguales, porque salen
 
 ## 6. Cuéntame cómo fue
 
-Con lo que pase, anoto la aceptación en HU-C9.7 y HU-E0.12. Si todo sale bien, el siguiente PR enciende el servidor de permisos en producción (`servidorOAuthActivo` del CORE) y quita el «Pronto» de la landing (`ASISTENTE_EN_PRODUCCION` en `apps/sitio/src/landing/contenido.ts`). Luego se conecta con `https://mcp.cultivopro.co/mcp`.
+Con lo que pase, anoto la aceptación en HU-C9.7 y HU-E0.12. El dueño lo probó en staging el 24 oct 2026 y funcionó bien, así que se encendió en producción: `servidorOAuthActivo` del CORE responde en `produccion` y la landing ya no dice «Pronto» (`ASISTENTE_EN_PRODUCCION` en `apps/sitio/src/landing/contenido.ts`). Desde que se publica esa versión del CORE, se conecta con `https://mcp.cultivopro.co/mcp`.

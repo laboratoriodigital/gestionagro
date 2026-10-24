@@ -6,7 +6,7 @@ import type { FincaDePrueba } from '../fixtures/fincas.ts';
 
 export const APP = '/agro/app/';
 export const TIPO = { nave: 'Nave', bloque: 'Bloque', lote: 'Lote' } as const;
-export const REGIMEN = { ecologico: 'Ecológico', convencional: 'Convencional' } as const;
+export const REGIMEN = { ecologico: 'Ecológico/orgánico', convencional: 'Convencional' } as const;
 
 type AreaDePrueba = Pick<FincaDePrueba['areas'][number], 'tipo' | 'nombre' | 'area_m2'>;
 

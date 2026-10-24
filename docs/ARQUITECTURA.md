@@ -751,7 +751,7 @@ El vigía horario mide contra la cuota total de la cuenta, no solo contra la par
 ## 10. Calidad y pruebas
 
 - **Pirámide:** funciones puras (agro-calc, esquemas) → Worker con D1 local → e2e con Playwright en viewport de teléfono.
-- **Siempre dos fincas de prueba**, `Finca Ensayo Uno` (hortaliza, 3 naves) y `Finca Ensayo Dos` (flores, 5 bloques). Una lista `terminos-prohibidos.json` impide que el nombre real de una finca o de una persona entre al código o a las pruebas (P4).
+- **Siempre dos fincas de prueba**, `Finca Ensayo Uno` (hortaliza, 3 naves) y `Finca Ensayo Dos` (flores, 3 bloques: lo que cabe en el plan Gratis desde HU-E0.13; tenía 5). Una lista `terminos-prohibidos.json` impide que el nombre real de una finca o de una persona entre al código o a las pruebas (P4).
 - **Control negativo obligatorio:** toda aserción nueva se ve en rojo con su defecto puesto antes de fusionarla, y el pull request dice cuál fue (P5).
 - **Pruebas de reloj:** las baterías que usan fechas corren con `TZ=America/Bogota` y `TZ=Pacific/Kiritimati`, el último día del mes, el 29 de febrero y a las 18:59 y 19:01 hora Bogotá (reinicio de cuota) (P8).
 - **Caos de sincronización:**

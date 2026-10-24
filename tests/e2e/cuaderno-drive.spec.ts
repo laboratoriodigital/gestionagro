@@ -1,13 +1,13 @@
 /**
  * Copia en el Google Drive del productor (HU-E8.4, etapa 1) en un teléfono de 360 px. El CORE y
  * Google Drive se reemplazan interceptando la red: esta prueba no ve Google de verdad (P17). El
- * permiso real se prueba en staging (P16).
+ * permiso real se prueba en staging (P16). Traer una copia es restaurar: del plan Finca (HU-E0.13).
  */
 import { createHash } from 'node:crypto';
 import { AxeBuilder } from '@axe-core/playwright';
 import { type BrowserContext, expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { APP, configurar, irASeccion } from './ayudas.ts';
+import { APP, configurar, conPlan, irASeccion } from './ayudas.ts';
 import { coreFalso, crearDrive, T0 } from './drive-falso.ts';
 
 async function registrarClima(page: Page, area: string) {
@@ -68,6 +68,8 @@ for (const f of FINCAS_DE_PRUEBA) {
       await drive.atender(telefono);
       await coreFalso(telefono);
       await telefono.goto(`${new URL(page.url()).origin}${APP}respaldo/`);
+      await conPlan(telefono, 'finca');
+      await telefono.reload();
       await expect(
         seccion(telefono).getByRole('button', { name: 'Guardar copia en mi Google Drive' }),
       ).toHaveCount(0);
@@ -127,9 +129,10 @@ test('sin señal no ofrece hablar con Google; a los 7 días sin copia lo recuerd
   await expect(
     seccion(page).getByRole('button', { name: 'Guardar copia en mi Google Drive' }),
   ).toBeDisabled();
+  // Con el plan Gratis no se ofrece traer una copia (HU-E0.13).
   await expect(
     seccion(page).getByRole('button', { name: 'Traer una copia de mi Google Drive' }),
-  ).toBeDisabled();
+  ).toHaveCount(0);
   await context.setOffline(false);
 
   const { violations } = await new AxeBuilder({ page })
