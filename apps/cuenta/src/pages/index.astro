@@ -23,9 +23,23 @@ const apps = registro.productos
         : [p.app.origenes.produccion, p.app.origenes.staging],
   }));
 
+/**
+ * Los bloques de la cuenta, en el orden del boceto aprobado por el dueño el 24 oct 2026: primero
+ * lo que más importa controlar (los asistentes), después las sesiones, los pagos, la actividad y
+ * los datos. `corto` es el nombre en el índice.
+ */
 const bloques = [
   {
+    id: 'asistentes',
+    titulo: 'Asistentes con acceso',
+    corto: 'Asistentes',
+    ayuda:
+      'Los asistentes, como Claude o ChatGPT, a los que les diste permiso sobre tus espacios. Quita el acceso cuando quieras: deja de servir de inmediato.',
+    vacio: 'Ningún asistente tiene acceso a tus espacios.',
+  },
+  {
     id: 'sesiones',
+    corto: 'Sesiones',
     titulo: 'Dónde has entrado',
     ayuda: 'Si perdiste un teléfono o entraste en un equipo prestado, cierra aquí esa sesión.',
     vacio: 'No tienes otras sesiones abiertas.',
@@ -33,25 +47,21 @@ const bloques = [
   {
     id: 'pagos',
     titulo: 'Tus pagos',
+    corto: 'Pagos',
     ayuda: 'Lo que se ha pagado en los espacios que administras, y hasta cuándo cubre.',
     vacio: 'Todavía no hay pagos en los espacios que administras.',
   },
   {
-    id: 'asistentes',
-    titulo: 'Asistentes con acceso',
-    ayuda:
-      'Los asistentes, como Claude o ChatGPT, a los que les diste permiso sobre tus espacios. Quita el acceso cuando quieras: deja de servir de inmediato.',
-    vacio: 'Ningún asistente tiene acceso a tus espacios.',
-  },
-  {
     id: 'actividad',
     titulo: 'Lo que pasó en tus espacios',
+    corto: 'Actividad',
     ayuda: 'Quién entró, se unió, cambió de rol o pagó, en los espacios que administras.',
     vacio: 'Todavía no ha pasado nada que mostrar.',
   },
   {
     id: 'datos',
     titulo: 'Tus datos',
+    corto: 'Tus datos',
     ayuda:
       'Descarga lo que guardamos de ti, o pídenos consultarlo, corregirlo o borrarlo. Cada solicitud tiene un número y una fecha límite para responderte, como dice la ley.',
     vacio: 'Todavía no has hecho solicitudes sobre tus datos.',
@@ -63,11 +73,26 @@ const bloques = [
   descripcion="Tu cuenta de Laboratorio Digital: tus aplicaciones, tus sesiones y tus pagos en un solo lugar."
 >
   <main class="portada" data-apps={JSON.stringify(apps)}>
-    <h1 class="portada__titulo">Tu cuenta, en un solo lugar.</h1>
-    <p class="portada__texto">
-      Aquí vas a ver las aplicaciones que usas con tu cuenta, desde qué equipos entraste y lo que
-      has pagado. Todo lo tuyo, sin tener que buscarlo en cada aplicación.
-    </p>
+    <div class="portada__presentacion" data-sin-sesion>
+      <h1 class="portada__titulo">Tu cuenta, en un solo lugar.</h1>
+      <p class="portada__texto">
+        Aquí vas a ver las aplicaciones que usas con tu cuenta, desde qué equipos entraste y lo que
+        has pagado. Todo lo tuyo, sin tener que buscarlo en cada aplicación.
+      </p>
+    </div>
+
+    <header class="cuenta-franja" data-con-sesion hidden>
+      <p class="cuenta-franja__marca">Laboratorio Digital</p>
+      <h1 class="cuenta-franja__saludo">Hola, <span data-nombre></span></h1>
+      <p class="cuenta-franja__resumen" data-resumen></p>
+      <div class="cuenta-franja__pie">
+        <p class="cuenta-franja__quien">Entraste como <strong data-nombre></strong>.</p>
+        <div class="portada__botones">
+          <a class="ed1-boton cuenta-franja__boton" data-vuelve-enlace hidden href="/">Volver</a>
+          <button class="ed1-boton cuenta-franja__boton" type="button" data-salir>Salir</button>
+        </div>
+      </div>
+    </header>
 
     <div class="portada__aviso" data-error hidden>
       <Aviso tono="peligro" titulo="Algo no salió bien">
@@ -92,16 +117,17 @@ const bloques = [
       <EntrarConCorreo id="portada" />
     </section>
 
-    <section class="portada__accion" data-con-sesion hidden>
-      <p class="portada__nota">Entraste como <strong data-nombre></strong>.</p>
-      <div class="portada__botones">
-        <a class="ed1-boton ed1-boton--primario" data-vuelve-enlace hidden href="/">Volver</a>
-        <button class="ed1-boton ed1-boton--secundario" type="button" data-salir>Salir</button>
+    <div class="cuenta-cuerpo" data-con-sesion hidden>
+    <nav class="cuenta-indice" aria-label="Secciones de tu cuenta">
+      <a href="#seccion-espacios">Espacios</a>
+      {bloques.map((b) => <a href={`#seccion-${b.id}`}>{b.corto}</a>)}
+    </nav>
+    <div class="cuenta-bloques">
+    <section class="portada__espacios cuenta-tarjeta cuenta-tarjeta--ancha" id="seccion-espacios" aria-labelledby="titulo-espacios">
+      <div class="cuenta-tarjeta__cabeza">
+        <h2 class="portada__subtitulo" id="titulo-espacios">Tus espacios</h2>
+        <span class="cuenta-tarjeta__cuantos" data-cuantos-espacios></span>
       </div>
-    </section>
-
-    <section class="portada__espacios" data-con-sesion hidden aria-labelledby="titulo-espacios">
-      <h2 class="portada__subtitulo" id="titulo-espacios">Tus espacios</h2>
       <p class="ed1-contenido ed1-contenido--cargando" role="status" data-espacios-cargando>
         Cargando tus espacios…
       </p>
@@ -127,13 +153,15 @@ const bloques = [
       /* HU-C7.5 a HU-C7.8: cada bloque se llena desde sesion.ts con su ruta del CORE. */
       bloques.map((b) => (
         <section
-          class="portada__espacios"
-          data-con-sesion
-          hidden
+          class={`portada__espacios cuenta-tarjeta${b.id === 'datos' ? ' cuenta-tarjeta--ancha' : ''}`}
+          id={`seccion-${b.id}`}
           data-bloque={b.id}
           aria-labelledby={`titulo-${b.id}`}
         >
-          <h2 class="portada__subtitulo" id={`titulo-${b.id}`}>{b.titulo}</h2>
+          <div class="cuenta-tarjeta__cabeza">
+            <h2 class="portada__subtitulo" id={`titulo-${b.id}`}>{b.titulo}</h2>
+            <span class="cuenta-tarjeta__cuantos" data-cuantos />
+          </div>
           <p class="portada__detalle">{b.ayuda}</p>
           {b.id === 'datos' && (
             <div class="portada__datos">
@@ -143,8 +171,9 @@ const bloques = [
                 </button>
                 <p class="portada__detalle" role="status" data-descarga-estado />
               </div>
+              <details class="cuenta-plegable">
+              <summary class="cuenta-plegable__titulo">Hacer una solicitud</summary>
               <form class="portada__radicar" data-radicar novalidate>
-                <h3 class="portada__subtitulo-menor">Hacer una solicitud</h3>
                 <div class="ed1-campo">
                   <label class="ed1-campo__etiqueta" for="radicar-tipo">Qué necesitas</label>
                   <select class="ed1-campo__control" id="radicar-tipo" name="tipo">
@@ -173,6 +202,7 @@ const bloques = [
                   <p data-radicado-texto />
                 </div>
               </form>
+              </details>
               <h3 class="portada__subtitulo-menor">Tus solicitudes</h3>
             </div>
           )}
@@ -207,6 +237,8 @@ const bloques = [
         </section>
       ))
     }
+    </div>
+    </div>
   </main>
 </Base>
 

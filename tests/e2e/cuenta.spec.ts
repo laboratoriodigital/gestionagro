@@ -329,7 +329,9 @@ test.describe('HU-C7.5, HU-C7.6 y HU-C7.8 · lo mío en la cuenta', () => {
     const monto = pagos.getByText('COP 210.000');
     await expect(monto).toBeVisible();
     expect(await monto.evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/Geist Mono/);
-    await expect(pagos.getByText(/del 01 nov 2026 al 01 may 2027 · Aprobado/)).toBeVisible();
+    await expect(pagos.getByText(/del 01 nov 2026 al 01 may 2027 · pagado el/)).toBeVisible();
+    // HU-C7.9: el estado va como insignia junto al monto.
+    await expect(pagos.getByText('Aprobado', { exact: true })).toBeVisible();
     const actividad = page.getByRole('region', { name: 'Lo que pasó en tus espacios' });
     await expect(actividad.getByText('Ana cambió a Luis de operario a supervisor.')).toBeVisible();
     // La hora de Bogotá: 13:30 UTC son las 8:30 a. m.
@@ -439,6 +441,8 @@ test('HU-C7.7 · tus datos: descargarlos y radicar una supresión con su número
   );
   await expect(datos.getByText('Listo: el archivo quedó en tus descargas.')).toBeVisible();
 
+  // HU-C7.9: la solicitud se abre al pedirla.
+  await datos.getByText('Hacer una solicitud').click();
   await datos.getByLabel('Qué necesitas').selectOption('supresion');
   await datos.getByLabel('Cuéntanos').fill('Borrar');
   await datos.getByRole('button', { name: 'Enviar solicitud' }).click();
@@ -470,4 +474,71 @@ test('HU-C7.7 · tus datos: descargarlos y radicar una supresión con su número
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('HU-C7.9 · la portada con orden: saludo con resumen, índice, asistentes arriba y listas resumidas', async ({
+  page,
+}) => {
+  await conSesionGuardada(page, [{ status: 200, json: DOS_ESPACIOS }]);
+  const sesiones = Array.from({ length: 8 }, (_, i) => ({
+    id: `s${i}`,
+    producto_nombre: 'CultivoPro',
+    dispositivo: `00000${i}`,
+    creado: '2026-10-01T12:00:00.000Z',
+    ultimo_uso: '2026-10-20T12:00:00.000Z',
+    esta: i === 0,
+  }));
+  await page.route(`${CUENTA}/api/core/cuenta/sesiones`, (r) => r.fulfill({ json: { sesiones } }));
+  await page.route(`${CUENTA}/api/core/cuenta/asistentes`, (r) =>
+    r.fulfill({
+      json: {
+        asistentes: [
+          {
+            id: 'k1',
+            cliente: 'Asistente Ensayo',
+            espacio: 'Finca La Esperanza',
+            producto_nombre: 'CultivoPro',
+            puede: ['Leer los registros de tu finca. No puede cambiar nada.'],
+            creada: '2026-10-24T12:00:00.000Z',
+            ultimo_uso: null,
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto(`${CUENTA}/`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Hola, Ana');
+  await expect(page.getByText('2 espacios · 1 asistente con acceso')).toBeVisible();
+  await expect(page.getByText('Entraste como Ana.')).toBeVisible();
+  const indice = page.getByRole('navigation', { name: 'Secciones de tu cuenta' });
+  await expect(indice.getByRole('link')).toHaveText([
+    'Espacios',
+    'Asistentes',
+    'Sesiones',
+    'Pagos',
+    'Actividad',
+    'Tus datos',
+  ]);
+  // Los asistentes, justo después de los espacios: es lo que más importa controlar.
+  expect(await page.locator('.cuenta-bloques h2').allTextContents()).toEqual([
+    'Tus espacios',
+    'Asistentes con acceso',
+    'Dónde has entrado',
+    'Tus pagos',
+    'Lo que pasó en tus espacios',
+    'Tus datos',
+  ]);
+  // Una lista larga muestra las primeras y el resto con «Ver todas».
+  const bloque = page.getByRole('region', { name: 'Dónde has entrado' });
+  await expect(bloque.getByRole('listitem')).toHaveCount(5);
+  await expect(bloque.getByText('8', { exact: true })).toBeVisible();
+  await bloque.getByRole('button', { name: 'Ver las 8 sesiones' }).click();
+  await expect(bloque.getByRole('listitem')).toHaveCount(8);
+  await indice.getByRole('link', { name: 'Asistentes' }).click();
+  await expect(page.getByRole('region', { name: 'Asistentes con acceso' })).toBeInViewport();
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 });

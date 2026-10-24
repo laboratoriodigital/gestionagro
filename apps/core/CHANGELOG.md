@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- La portada de la cuenta, con orden (HU-C7.9): una franja con el saludo y lo que tienes, un índice de secciones, cada bloque en su tarjeta con su conteo y los asistentes con acceso justo después de los espacios. Las listas largas muestran las primeras filas y el resto con «Ver todas»; los planes y el estado de los pagos van como insignias, y la solicitud de datos se abre al pedirla.
+
 ## [0.9.0] - 2026-10-23
 
 La consola del dueño, como el boletín del día (HC8), y la copia semanal en Drive que por fin llega.
