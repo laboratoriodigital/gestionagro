@@ -884,6 +884,160 @@ a {
   transform: translateY(1.25rem);
 }
 
+/* El asistente, en el verde bosque (HU-E0.12) ------------------------------------------------ */
+
+.asistente {
+  display: grid;
+  gap: var(--espacio-8);
+  justify-items: start;
+  padding: clamp(4rem, 9vw, 7rem) var(--margen);
+  background: var(--reticula), var(--bosque);
+  color: var(--en-bosque);
+}
+
+.asistente__cabeza {
+  display: grid;
+  gap: var(--espacio-8);
+  width: 100%;
+}
+
+.asistente__texto {
+  display: grid;
+  gap: var(--espacio-4);
+  align-content: start;
+  max-width: 36rem;
+}
+
+.asistente__texto h2 {
+  font-size: var(--texto-titulo-1);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+}
+
+.asistente__texto > p:last-child {
+  color: var(--en-bosque-suave);
+  font-size: 1.0625rem;
+}
+
+.etiqueta-pronto {
+  display: inline-block;
+  margin-inline-start: var(--espacio-2);
+  padding: 0.1rem 0.6rem;
+  border-radius: var(--radio-pildora);
+  background: var(--boletin-atencion-fondo);
+  color: var(--boletin-atencion-texto);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.asistente__charla {
+  display: grid;
+  gap: var(--espacio-2);
+  align-content: start;
+  max-width: 30rem;
+  padding: var(--espacio-4);
+  border-radius: var(--radio-tarjeta);
+  background: var(--papel-2);
+  color: var(--texto);
+  font-size: var(--texto-pequeno);
+}
+
+.charla__quien,
+.charla__nota {
+  font-size: var(--texto-etiqueta);
+  color: var(--texto-suave);
+}
+
+.globo {
+  max-width: 88%;
+  padding: var(--espacio-2) var(--espacio-3);
+  line-height: 1.4;
+}
+
+.globo--persona {
+  justify-self: end;
+  border-radius: 1rem 1rem 0.25rem 1rem;
+  background: var(--hoja);
+  color: #ffffff;
+}
+
+.globo--asistente {
+  justify-self: start;
+  border-radius: 1rem 1rem 1rem 0.25rem;
+  background: var(--papel);
+}
+
+.superpoderes {
+  display: grid;
+  gap: var(--espacio-3);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.superpoder {
+  display: grid;
+  gap: var(--espacio-2);
+  padding: var(--espacio-4);
+  border: var(--borde-ancho) solid var(--bosque-borde);
+  border-radius: var(--radio-tarjeta);
+  background: rgb(14 42 28 / 0.6);
+}
+
+.superpoder__titulo {
+  font-size: var(--texto-titulo-3);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.superpoder__pregunta {
+  color: var(--en-bosque-suave);
+  font-style: italic;
+}
+
+.garantias-asistente {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2) var(--espacio-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--texto-pequeno);
+}
+
+.garantias-asistente li::before {
+  content: "";
+  display: inline-block;
+  width: 0.35rem;
+  height: 0.65rem;
+  margin-right: var(--espacio-2);
+  border-right: 2px solid var(--lima);
+  border-bottom: 2px solid var(--lima);
+  transform: rotate(45deg) translateY(-0.1rem);
+}
+
+@media (min-width: 44rem) {
+  .superpoderes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 60rem) {
+  .asistente {
+    padding-inline: max(var(--margen), calc((100% - var(--ancho-pagina)) / 2));
+  }
+
+  .asistente__cabeza {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: center;
+  }
+
+  .superpoderes {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 /* Lo que incluye ----------------------------------------------------------------------------- */
 
 .incluye {

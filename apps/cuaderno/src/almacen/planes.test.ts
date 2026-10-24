@@ -88,6 +88,11 @@ describe('planes con precio visible (HU-E0.6)', () => {
       funcionActiva('calendario_imprimible', 'finca'),
     );
     expect(incluye('gratuito', 'impreso')).toBe(funcionActiva('calendario_imprimible', 'gratuito'));
+    // El asistente de inteligencia artificial: del plan Finca (HU-E0.12).
+    expect(propio('finca', 'asistente de inteligencia artificial')).toBe(
+      funcionActiva('asistente_ia', 'finca'),
+    );
+    expect(incluye('gratuito', 'asistente')).toBe(funcionActiva('asistente_ia', 'gratuito'));
     // Calendario de carencias: hoy gratis.
     expect(incluye('gratuito', 'Calendario de carencias')).toBe(
       funcionActiva('calendario_carencias', 'gratuito'),

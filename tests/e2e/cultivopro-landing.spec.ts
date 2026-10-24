@@ -123,3 +123,23 @@ test('HU-E0.10 · la landing tiene su gemelo en Markdown y entra al sitemap', as
   expect(md.status()).toBe(200);
   expect(await md.text()).toContain('Así trabaja contigo, desde la nave');
 });
+
+test('HU-E0.12 · el asistente: con el plan Finca, sus seis superpoderes, sus garantías y «Pronto»', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const asistente = page.locator('[data-prueba="asistente"]');
+  await expect(asistente.getByRole('heading', { level: 2 })).toHaveText(
+    'Tu finca, con superpoderes.',
+  );
+  await expect(asistente).toContainText('Con el plan Finca');
+  // Mientras el servidor de permisos solo responda en staging, dice «Pronto» (P1).
+  await expect(asistente.getByText('Pronto', { exact: true })).toBeVisible();
+  await expect(asistente.locator('.superpoder')).toHaveCount(6);
+  await expect(asistente).toContainText('¿Qué insumo se me va a acabar este mes?');
+  await expect(asistente).toContainText('Nunca mueve dinero');
+  await expect(asistente.getByRole('link', { name: 'Ver el plan Finca' })).toHaveAttribute(
+    'href',
+    '#planes',
+  );
+});

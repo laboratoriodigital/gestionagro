@@ -57,7 +57,7 @@
       "alcances": [
         {
           "id": "agro:registros:leer",
-          "descripcion": "Leer los registros de tu finca: riegos, aplicaciones, cosechas, monitoreos y clima. No puede cambiar nada."
+          "descripcion": "Leer los registros de tu finca y lo que sale de ellos: carencias, costos, bodega y rendimiento. No puede cambiar nada."
         }
       ]
     },

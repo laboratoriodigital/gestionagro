@@ -291,6 +291,23 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `En revisión` (construi
   - WI-E0.11.2 Barra de abajo, hoja «Anotar» y «Más» (2 h).
   - WI-E0.11.3 Las e2e van a las secciones por la barra o por «Más» (`irASeccion`) (1 h).
 
+#### HU-E0.12 · El asistente de la finca, con el plan Finca
+**Como** dueño de una finca con el plan Finca **quiero** preguntarle a mi asistente de inteligencia artificial qué nave puedo cosechar, cuánto me cuesta el kilo, qué insumo se me acaba, qué nave rinde más y qué apliqué en el semestre **para** decidir sin abrir pantalla por pantalla.
+- **Peldaño:** premium (plan Finca) · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** fuera de sprint, a pedido del dueño (24 oct 2026) · **Depende de:** HU-C9.7, HU-C5.6, HU-E7.3, HU-E6.6 · **Estado:** En revisión (rama `feat/cuaderno-inicio`; el dueño aprobó el boceto «Tu finca, con superpoderes» y pidió que fuera del plan Finca con todas sus funciones)
+- **Premisas:** `PRODUCT.md`: los asistentes leen o actúan con permiso y nunca mueven dinero; este solo lee. ARQUITECTURA §2.4: costos, bodega y carpeta ya son del plan Finca, así que el asistente que los responde también (decisión del dueño). ADR-5 dice que la celda no ejecuta reportes; la excepción es la de HU-C9.7: la celda calcula solo para responderle al asistente, con lo que ya tiene. P2: las cuentas salieron del cuaderno a `@ed1/agro-schema` (`cuentas-de-la-finca.ts`) y las usan los dos. P1: hasta probarlo con un asistente real en staging, la landing dice «Pronto».
+- **Criterios de aceptación:**
+  1. El MCP del cuaderno responde, además del calendario y los últimos registros, el costo por kilo, la bodega con lo usado en 30 días y para cuántos días alcanza, el rendimiento por nave y las aplicaciones de un periodo, con las mismas cifras de las pantallas.
+  2. ❌ Con el plan gratuito, o con el plan Finca vencido, cada herramienta responde que el asistente viene con el plan Finca, sin leer nada. El plan sale de la copia de la celda (`plan_de_org`) y el interruptor es `asistente_ia` en `funciones.json`.
+  3. La landing presenta el asistente con el plan Finca, sus seis superpoderes y sus garantías, con «Pronto» mientras no esté en producción; se muestra solo si `funciones.json` lo da al plan Finca.
+  4. El plan Finca lo dice en `planes.json`, con «(pronto)», y una prueba ata ese texto a `funciones.json`.
+  5. `docs/runbooks/asistente-de-la-finca.md` dice cómo probarlo en staging con Claude o ChatGPT, y qué no debe pasar.
+- **Patrones:** P1, P2, P8 (fechas de la finca, no del servidor).
+- **WI:**
+  - WI-E0.12.1 Las cuentas de la finca a `@ed1/agro-schema`, y el cuaderno sobre ellas (2 h).
+  - WI-E0.12.2 Cuatro herramientas nuevas en el MCP y el filtro por plan, con pruebas (3 h).
+  - WI-E0.12.3 La sección de la landing y el runbook (2 h).
+  - WI-E0.12.4 Prueba con un asistente real en staging (dueño, 40 min).
+
 ### E1 · Cimientos
 
 #### HU-E1.1 · Monorepo que corre igual en Windows y en CI

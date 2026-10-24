@@ -23,6 +23,10 @@ node scripts/verificar-agentes.ts https://cultivopro.co
 
 Sin dirección, revisa staging. Como segunda opinión, abre <https://isitagentready.com> con `cultivopro.co` desde tu computador: su puntaje no es el criterio, pero si dice algo que el script no ve, avísame.
 
+## El asistente de la finca (HU-C9.7, HU-E0.12)
+
+El MCP del cuaderno vive en la celda: `https://agro-api-c0-staging.laboratoriodigital-la.workers.dev/mcp` en staging y `https://mcp.cultivopro.co/mcp` en producción, cuando se encienda. Pide OAuth del CORE, solo lee y es del plan Finca. Cómo probarlo con un asistente de verdad: `docs/runbooks/asistente-de-la-finca.md`.
+
 ## Las tiendas (HU-T15.1 a HU-T15.7)
 
 Cada tienda hornea lo suyo: `robots.txt`, `llms.txt`, los gemelos `.md`, `/openapi.json` con su catálogo en `/.well-known/api-catalog`, y `/.well-known/agent-skills/comprar/SKILL.md` con su huella. Si el comercio encendió el MCP en Ajustes › Agentes, también `/.well-known/mcp/server-card.json`, y `POST /mcp` responde.

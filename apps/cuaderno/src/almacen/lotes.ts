@@ -16,7 +16,12 @@
  *   vigente (HU-E6.3). Un lote no se corrige por debajo de lo ya despachado.
  * - **Saldo** (HU-E6.3): lo que queda por despachar. Solo lo ve quien ve los despachos.
  */
-import { ErrorDeValidacion, fechaAgronomica, type Registro } from '@ed1/agro-schema';
+import {
+  ErrorDeValidacion,
+  fechaAgronomica,
+  type Registro,
+  vigenteDeCadaLote,
+} from '@ed1/agro-schema';
 import { cabeceraDeRegistro, type OpcionesDeRegistro } from './cabecera.ts';
 import { soloVigentes } from './consultas.ts';
 import type { CuadernoDb } from './db.ts';
@@ -99,18 +104,8 @@ async function lotesDe(db: CuadernoDb, fincaId: string) {
   return { todos, vigentes };
 }
 
-/** De cualquier versión de un lote (también una corregida) al id de su versión vigente. */
-export function vigenteDeCadaLote(todos: readonly Registro[]): (id: string) => string {
-  const siguiente = new Map(
-    todos.flatMap((l) => (l.anula_id ? [[l.anula_id, l.id] as const] : [])),
-  );
-  return (id) => {
-    let actual = id;
-    for (let n = 0; n < 1000 && siguiente.has(actual); n++)
-      actual = siguiente.get(actual) ?? actual;
-    return actual;
-  };
-}
+/** De cualquier versión de un lote al id de su versión vigente: vive en `@ed1/agro-schema`. */
+export { vigenteDeCadaLote };
 
 /** Lo despachado de cada lote vigente, por su id, sumando los despachos vigentes. */
 export async function despachadoPorLote(

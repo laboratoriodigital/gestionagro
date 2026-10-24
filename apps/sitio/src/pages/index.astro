@@ -1,9 +1,12 @@
 ---
 import {
+  ASISTENTE_EN_FINCA,
+  ASISTENTE_EN_PRODUCCION,
   CALCULADORAS,
   CUADERNO,
   DESCRIPCION,
   enFrase,
+  GARANTIAS_DEL_ASISTENTE,
   HOJA,
   LO_QUE_INCLUYE,
   MARCA,
@@ -12,6 +15,7 @@ import {
   PREGUNTAS,
   pesos,
   planesDeLaLanding,
+  SUPERPODERES,
   TITULO,
 } from '../landing/contenido.ts';
 /**
@@ -70,6 +74,46 @@ const jsonLd = {
   </section>
 
   <Trabajo />
+
+  {/* Solo si el plan Finca trae el asistente (`funciones.json`): la página no promete lo que el plan no da. */}
+  {ASISTENTE_EN_FINCA && (
+  <section class="asistente" id="asistente" aria-labelledby="asistente-titulo" data-prueba="asistente">
+    <div class="asistente__cabeza">
+      <div class="asistente__texto aparece">
+        <p class="antetitulo antetitulo--lima">
+          Inteligencia artificial · Con el plan Finca
+          {!ASISTENTE_EN_PRODUCCION && <span class="etiqueta-pronto">Pronto</span>}
+        </p>
+        <h2 id="asistente-titulo">Tu finca, con superpoderes.</h2>
+        <p>
+          Conecta tu cuaderno con el asistente de inteligencia artificial que ya usas en el teléfono.
+          Le preguntas como a un agrónomo que se sabe de memoria cada nave, cada aplicación y cada
+          kilo, y te responde con los datos de tu finca.
+        </p>
+      </div>
+      <div class="asistente__charla aparece" role="img" aria-label="Conversación de ejemplo con un asistente conectado al cuaderno: qué nave se puede cosechar hoy y cuánto costó el kilo de tomate">
+        <p class="charla__quien">Tu asistente, conectado a tu cuaderno</p>
+        <p class="globo globo--persona">¿Qué nave puedo cosechar hoy, y qué se anotó ayer?</p>
+        <p class="globo globo--asistente">Las naves 1 y 3. La 2 tuvo aplicación el miércoles: desde el sábado. Ayer hubo un riego en la Nave 1 y una cosecha de <span class="cifra">184 kg</span> en la Nave 3.</p>
+        <p class="globo globo--persona">¿Cuánto me costó el kilo de tomate este ciclo?</p>
+        <p class="globo globo--asistente">Al menos <span class="cifra">{pesos(1840)}</span> por kilo vendible: insumos y jornales de las naves 1 y 2. Te faltan los precios de dos compras.</p>
+        <p class="charla__nota">Conversación de ejemplo.</p>
+      </div>
+    </div>
+    <ul class="superpoderes">
+      {SUPERPODERES.map((s) => (
+        <li class="superpoder aparece">
+          <p class="superpoder__titulo">{s.titulo}</p>
+          <p class="superpoder__pregunta">«{s.pregunta}»</p>
+        </li>
+      ))}
+    </ul>
+    <ul class="garantias-asistente">
+      {GARANTIAS_DEL_ASISTENTE.map((g) => <li>{g}</li>)}
+    </ul>
+    <a class="boton boton--lima" href="#planes">Ver el plan Finca</a>
+  </section>
+  )}
 
   <section class="incluye" aria-labelledby="incluye-titulo">
     <h2 id="incluye-titulo" class="aparece">Todo lo de tu finca, en un solo cuaderno</h2>

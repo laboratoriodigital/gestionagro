@@ -4,6 +4,7 @@
  * Las fincas del teléfono son de ejemplo y lo dicen (P4): ningún nombre real.
  */
 
+import funciones from '../../../../content/agro/cuaderno/funciones.json' with { type: 'json' };
 import planes from '../../../../content/agro/cuaderno/planes.json' with { type: 'json' };
 import marca from '../../../../content/marca.json' with { type: 'json' };
 import { SITIO } from '../lib/seo.ts';
@@ -16,6 +17,37 @@ export const ORIGEN = SITIO;
 export const CUADERNO = '/agro/app/';
 export const CALCULADORAS = '/herramientas/agro/';
 export const PLANES_DEL_CUADERNO = '/agro/app/planes/';
+
+/**
+ * El asistente de inteligencia artificial (HU-E0.12): del plan Finca en adelante, por el mismo
+ * interruptor que lo limita en la celda (`asistente_ia` de `funciones.json`, P2).
+ *
+ * `ASISTENTE_EN_PRODUCCION` dice si ya se puede conectar en cultivopro.co: el servidor de permisos
+ * del CORE solo responde en staging hasta la prueba con un asistente real (HU-C9.7, HC6). Mientras
+ * sea `false`, la sección dice «Pronto» (P1: nada finge estar disponible).
+ */
+export const ASISTENTE_EN_PRODUCCION = false;
+export const ASISTENTE_EN_FINCA = funciones.asistente_ia.finca;
+
+/** Lo que el asistente responde, con una pregunta de ejemplo: cada uno es una herramienta del MCP. */
+export const SUPERPODERES = [
+  { titulo: 'Saber qué cosechar', pregunta: '¿Qué nave puedo cosechar hoy?' },
+  { titulo: 'La semana en un minuto', pregunta: '¿Qué se anotó esta semana en la finca?' },
+  { titulo: 'El costo de cada kilo', pregunta: '¿Cuánto me costó el kilo de tomate este ciclo?' },
+  { titulo: 'La bodega que avisa', pregunta: '¿Qué insumo se me va a acabar este mes?' },
+  { titulo: 'Comparar naves y ciclos', pregunta: '¿Qué nave rindió más por metro cuadrado?' },
+  {
+    titulo: 'Listo para la auditoría',
+    pregunta: 'Resúmeme las aplicaciones de los últimos seis meses.',
+  },
+] as const;
+
+export const GARANTIAS_DEL_ASISTENTE = [
+  'Solo con tu permiso',
+  'Solo consulta: no anota ni borra',
+  'Nunca mueve dinero',
+  'Le quitas el permiso cuando quieras',
+] as const;
 
 export const TITULO = `${MARCA} · Tu cuaderno de campo, aunque no haya señal`;
 export const DESCRIPCION =
