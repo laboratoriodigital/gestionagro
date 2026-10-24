@@ -12,6 +12,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ### Arreglado
 - La copia semanal fuera de Cloudflare dejaba la carpeta vacía en el Drive del dueño: corría en segundo plano, y Cloudflare corta ese trabajo 30 segundos después de que termina la vuelta del cron, a mitad de la subida. Ahora la vuelta espera la copia. Además, cada intento se anota antes de empezar: si la vuelta se corta, la consola lo dice («la vuelta del cron se cortó antes de terminar») y a la tercera llega el aviso por Telegram.
+- La copia semanal nunca bajaba el volcado: buscaba el enlace del export de D1 donde la API no lo pone, y se rendía con «el export … no terminó en 10 preguntas». Ahora lo lee donde Cloudflare lo entrega, y un export que Cloudflare da por fallido dice su causa. La consola ya no cuenta el cierre de la semana como una base más («1 de 5» eran 0 de 4).
 
 ## [0.8.0] - 2026-10-23
 

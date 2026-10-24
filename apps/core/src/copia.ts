@@ -268,9 +268,22 @@ async function exportar(
       throw new FallaDeLaCopia(`el token de la copia no puede exportar ${base} (${r.status})`);
     }
     if (!r.ok) throw new FallaDeLaCopia(`Cloudflare no exportó ${base} (${r.status})`);
-    const resultado = (d['result'] ?? {}) as { at_bookmark?: string; signed_url?: string };
-    if (resultado.signed_url) {
-      const bajada = await dep.fetch(resultado.signed_url);
+    // La forma de la API: `result.status`, `result.at_bookmark` y, al terminar, el enlace un nivel
+    // más adentro, en `result.result.signed_url` (bitácora core 16).
+    const resultado = (d['result'] ?? {}) as {
+      at_bookmark?: string;
+      status?: string;
+      error?: string;
+      result?: { signed_url?: string };
+    };
+    if (resultado.status === 'error') {
+      throw new FallaDeLaCopia(
+        `Cloudflare no exportó ${base}: ${resultado.error ?? 'sin causa en la respuesta'}`,
+      );
+    }
+    const enlace = resultado.result?.signed_url;
+    if (enlace) {
+      const bajada = await dep.fetch(enlace);
       if (!bajada.ok) throw new FallaDeLaCopia(`no se pudo bajar el volcado de ${base}`);
       const largo = Number(bajada.headers.get('content-length') ?? '0');
       if (largo > TOPE_DEL_VOLCADO) {

@@ -328,9 +328,10 @@ describe('HU-C13.4 · lo que hay que revisar y lo que se rompió', () => {
     await db
       .prepare(
         `INSERT INTO copia_base (semana, base, estado, intentos, motivo, actualizado) VALUES
-         ('2026-10-19', 'agro_core', 'hecha', 1, NULL, ?), ('2026-10-19', 'tienda_c1_s1', 'fallida', 3, 'Drive respondió 403', ?)`,
+         ('2026-10-19', 'agro_core', 'hecha', 1, NULL, ?), ('2026-10-19', 'tienda_c1_s1', 'fallida', 3, 'Drive respondió 403', ?),
+         ('2026-10-19', '_cierre', 'hecha', 1, NULL, ?)`,
       )
-      .bind(iso(T0), iso(T0))
+      .bind(iso(T0), iso(T0), iso(T0))
       .run();
     await db
       .prepare(

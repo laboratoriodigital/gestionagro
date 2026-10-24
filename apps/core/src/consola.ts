@@ -337,7 +337,8 @@ async function roto(e: Entorno): Promise<Record<string, unknown>> {
   const semana = semanaDe(ahora);
   const copia = await e.db
     .prepare(
-      'SELECT base, estado, intentos, bytes, motivo, actualizado FROM copia_base WHERE semana = ? ORDER BY base',
+      // `_cierre` es la rotación de la semana, no una base: no se cuenta entre las copiadas.
+      "SELECT base, estado, intentos, bytes, motivo, actualizado FROM copia_base WHERE semana = ? AND base <> '_cierre' ORDER BY base",
     )
     .bind(semana)
     .all<{
