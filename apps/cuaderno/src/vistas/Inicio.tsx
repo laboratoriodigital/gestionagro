@@ -13,6 +13,7 @@ import { leerFinca } from '../almacen/finca.ts';
 import { type EstadoPersistencia, pedirPersistencia } from '../almacen/persistencia.ts';
 import { Asistente } from './Asistente.tsx';
 import { Bienvenida } from './Bienvenida.tsx';
+import { Hoy } from './Hoy.tsx';
 import { MiFinca } from './MiFinca.tsx';
 
 const TEXTO_PERSISTENCIA: Record<EstadoPersistencia, string> = {
@@ -73,14 +74,17 @@ export function Inicio() {
       {estado.cargando ? (
         <p>Abriendo tu cuaderno…</p>
       ) : estado.datos ? (
-        <MiFinca
-          db={db}
-          finca={estado.datos.finca}
-          areas={estado.datos.areas}
-          ciclos={estado.datos.ciclos}
-          cultivos={estado.datos.cultivos}
-          alCambiar={cargar}
-        />
+        <>
+          <Hoy finca={estado.datos.finca} areas={estado.datos.areas} ciclos={estado.datos.ciclos} />
+          <MiFinca
+            db={db}
+            finca={estado.datos.finca}
+            areas={estado.datos.areas}
+            ciclos={estado.datos.ciclos}
+            cultivos={estado.datos.cultivos}
+            alCambiar={cargar}
+          />
+        </>
       ) : estado.bienvenida ? (
         <Bienvenida alEmpezar={sinCuenta} />
       ) : (

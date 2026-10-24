@@ -9,13 +9,10 @@ import { expect, type Page, test } from '@playwright/test';
 import { RUTAS_APP } from '../../apps/cuaderno/src/rutas.ts';
 import { RAIZ } from '../../scripts/lib/repo.ts';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { agregarInsumo, configurar, ROL } from './ayudas.ts';
+import { agregarInsumo, configurar, irASeccion, ROL } from './ayudas.ts';
 
 async function irA(page: Page, seccion: 'Personas' | 'Insumos') {
-  await page
-    .getByRole('navigation', { name: 'Secciones del cuaderno' })
-    .getByRole('link', { name: seccion })
-    .click();
+  await irASeccion(page, seccion);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(seccion);
 }
 

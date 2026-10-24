@@ -6,9 +6,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA } from '../fixtures/fincas.ts';
-import { configurar, conPlan, ROL } from './ayudas.ts';
-
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
+import { configurar, conPlan, irASeccion, ROL } from './ayudas.ts';
 
 for (const f of FINCAS_DE_PRUEBA) {
   test(`${f.finca.nombre} · CA1 y CA2: por m² y por planta, con lo que se vende`, async ({
@@ -27,7 +25,7 @@ for (const f of FINCAS_DE_PRUEBA) {
     await page.getByRole('button', { name: 'Iniciar ciclo', exact: true }).click();
     // Una cosecha: el área de prueba con su cantidad y 10 % de descarte.
     const cosechado = area.area_m2 * 2;
-    await nav(page).getByRole('link', { name: 'Registrar' }).click();
+    await irASeccion(page, 'Registrar');
     await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
     await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
     await page.getByLabel('Cantidad cosechada').fill(String(cosechado));
@@ -38,7 +36,7 @@ for (const f of FINCAS_DE_PRUEBA) {
     await page.getByRole('button', { name: 'Guardar cosecha' }).click();
     await expect(page.getByText('Cosecha guardada en este teléfono.')).toBeVisible();
 
-    await nav(page).getByRole('link', { name: 'Rendimiento' }).click();
+    await irASeccion(page, 'Rendimiento');
     const tabla = page.locator('[data-prueba="rendimiento-tabla"]');
     const fila = tabla.locator('[data-prueba="rendimiento-fila"]');
     await expect(fila).toHaveCount(1);
@@ -78,7 +76,7 @@ async function cosechar(
   persona: string,
   horas: string,
 ) {
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
   const form = page.locator('[data-prueba="formulario-cosecha"]');
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area });
@@ -100,7 +98,7 @@ async function prepararConPersona(page: Page, plan: string, rol = 'propietario')
   if (!f || !area || !p) throw new Error('faltan datos de la finca de prueba');
   await configurar(page, f);
   await conPlan(page, plan, rol);
-  await nav(page).getByRole('link', { name: 'Personas' }).click();
+  await irASeccion(page, 'Personas');
   await page.getByRole('button', { name: 'Agregar persona' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
   await page.getByRole('radio', { name: ROL[p.rol], exact: true }).check();
@@ -114,7 +112,7 @@ test('HU-E7.4 · CA1 y CA3: con el plan Exportador, kg por hora de cada persona 
   const { area, persona } = await prepararConPersona(page, 'exportador');
   await cosechar(page, area, '60', persona, '4');
   await cosechar(page, area, '500', persona, '');
-  await nav(page).getByRole('link', { name: 'Rendimiento' }).click();
+  await irASeccion(page, 'Rendimiento');
   const seccion = page.locator('[data-prueba="rendimiento-por-persona"]');
   const fila = seccion.locator('[data-prueba="fila-persona"]');
   await expect(fila).toHaveCount(1);
@@ -129,7 +127,7 @@ test('HU-E7.4 · CA1 y CA3: con el plan Exportador, kg por hora de cada persona 
 
 test('HU-E7.4: con el plan Finca dice que viene con el plan Exportador', async ({ page }) => {
   await prepararConPersona(page, 'finca');
-  await nav(page).getByRole('link', { name: 'Rendimiento' }).click();
+  await irASeccion(page, 'Rendimiento');
   await expect(page.locator('[data-prueba="rendimiento-persona-plan"]')).toContainText(
     'viene con el plan Exportador',
   );
@@ -140,7 +138,7 @@ test('HU-E7.4 · CA2: un operario no ve el rendimiento por persona', async ({ pa
   if (!FINCA) throw new Error('falta la finca de prueba');
   await configurar(page, FINCA);
   await conPlan(page, 'exportador', 'operario');
-  await nav(page).getByRole('link', { name: 'Rendimiento' }).click();
+  await irASeccion(page, 'Rendimiento');
   await expect(page.getByRole('heading', { level: 1, name: 'Rendimiento' })).toBeVisible();
   await expect(page.locator('[data-prueba="rendimiento-por-persona"]')).toHaveCount(0);
 });

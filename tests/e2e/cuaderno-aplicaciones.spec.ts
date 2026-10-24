@@ -5,7 +5,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { agregarInsumo, configurar, ROL, vigilarTexto } from './ayudas.ts';
+import { agregarInsumo, configurar, irASeccion, ROL, vigilarTexto } from './ayudas.ts';
 
 /** 10/12/2026 a las 9:30 en Bogotá. */
 const APLICADO = new Date('2026-12-10T14:30:00Z');
@@ -21,25 +21,24 @@ const TRES_DIAS: FincaDePrueba['insumos'][number] = {
   permitido_ecologico: true,
 };
 
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
 const form = (page: Page) => page.locator('[data-prueba="formulario-aplicacion"]');
 
 async function preparar(page: Page, f: FincaDePrueba) {
   await configurar(page, f);
-  await nav(page).getByRole('link', { name: 'Personas' }).click();
+  await irASeccion(page, 'Personas');
   const p = f.personas[0];
   if (!p) throw new Error('sin personas');
   await page.getByRole('button', { name: 'Agregar persona' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
   await page.getByRole('radio', { name: ROL[p.rol], exact: true }).check();
   await page.getByRole('button', { name: 'Guardar persona' }).click();
-  await nav(page).getByRole('link', { name: 'Insumos' }).click();
+  await irASeccion(page, 'Insumos');
   for (const i of [...f.insumos, TRES_DIAS]) await agregarInsumo(page, i);
   return p.nombre;
 }
 
 async function abrirAplicaciones(page: Page) {
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Aplicaciones', exact: true }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Aplicaciones' })).toBeVisible();
 }
@@ -83,7 +82,7 @@ for (const f of FINCAS_DE_PRUEBA) {
         `Aplicación · Producto Tres Días · 2 cm³ por litro · ${persona}`,
       );
 
-      await nav(page).getByRole('link', { name: 'Áreas' }).click();
+      await irASeccion(page, 'Áreas');
       const nave = areaEnFinca(page, area);
       await expect(nave.locator('[data-prueba="carencia"]')).toHaveText(
         'No cosechar hasta el 13/12 (Producto Tres Días)',
@@ -151,7 +150,7 @@ test('CA4 y CA5: carencia desconocida bloquea en rojo; en finca ecológica apare
   await expect(page.locator('[data-prueba="aviso-ecologico"]')).toHaveCount(0);
 
   await aplicar(page, area, sinCarencia.nombre_comercial, persona);
-  await nav(page).getByRole('link', { name: 'Áreas' }).click();
+  await irASeccion(page, 'Áreas');
   const carencia = areaEnFinca(page, area).locator('[data-prueba="carencia"]');
   await expect(carencia).toHaveText(
     `Carencia desconocida de ${sinCarencia.nombre_comercial}: no cosechar hasta completarla en Insumos`,
@@ -172,7 +171,7 @@ test.describe('con el teléfono en otro huso horario', () => {
     const persona = await preparar(page, f);
     await abrirAplicaciones(page);
     await aplicar(page, area, TRES_DIAS.nombre_comercial, persona);
-    await nav(page).getByRole('link', { name: 'Áreas' }).click();
+    await irASeccion(page, 'Áreas');
     const nave = areaEnFinca(page, area);
     await expect(nave.locator('[data-prueba="carencia"]')).toHaveText(
       'No cosechar hasta el 13/12 (Producto Tres Días)',

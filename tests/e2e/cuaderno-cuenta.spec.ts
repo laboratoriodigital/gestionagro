@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCA_ENSAYO_UNO } from '../fixtures/fincas.ts';
-import { APP, configurar } from './ayudas.ts';
+import { APP, barra, configurar, irASeccion } from './ayudas.ts';
 
 // Las direcciones reales de staging: la CSP del cuaderno solo deja conectarse a ellas (HU-E0.5).
 const { core, celdas } = JSON.parse(readFileSync('infrastructure/celdas.json', 'utf8')) as {
@@ -200,10 +200,7 @@ async function nubeFalsa(
 
 async function fincaConUnClima(page: Page) {
   await configurar(page, FINCA_ENSAYO_UNO);
-  await page
-    .getByRole('navigation', { name: 'Secciones del cuaderno' })
-    .getByRole('link', { name: 'Registrar' })
-    .click();
+  await irASeccion(page, 'Registrar');
   await page
     .getByLabel('Área', { exact: true })
     .selectOption({ label: FINCA_ENSAYO_UNO.areas[0]?.nombre ?? '' });
@@ -264,10 +261,7 @@ test('HU-E3.14 CA3: lo que la nube no acepta se ve en rojo con su motivo, y sigu
   await expect(page.locator('[data-prueba="datos-rechazados"]')).toHaveText(
     '1 dato no fue aceptado por la nube. Siguen en este teléfono; en «Cuenta» ves por qué.',
   );
-  await page
-    .getByRole('navigation', { name: 'Secciones del cuaderno' })
-    .getByRole('link', { name: 'Historial' })
-    .click();
+  await irASeccion(page, 'Historial');
   await expect(page.getByText('24').first()).toBeVisible(); // el registro sigue ahí
 });
 
@@ -338,11 +332,8 @@ test('HU-E5.3 CA4: un teléfono nuevo baja la finca de su cuenta y la ve en Áre
   await expect(page.locator('[data-prueba="nube-sync"]')).toContainText(
     'Se bajaron 2 cambios del equipo.',
   );
-  await page
-    .getByRole('navigation', { name: 'Secciones del cuaderno' })
-    .getByRole('link', { name: 'Áreas' })
-    .click();
-  await expect(page.getByText('Bloque 1')).toBeVisible();
+  await irASeccion(page, 'Áreas');
+  await expect(page.locator('[data-prueba="area"]').getByText('Bloque 1')).toBeVisible();
   await expect(page.locator('[data-prueba="indicador-datos"]')).toHaveText(
     'Sin registros pendientes',
   );
@@ -385,10 +376,7 @@ test('bitácora agro 22: lo que se registra con la finca en la nube sube solo, s
   );
   const antes = lotes.length;
   // Un registro nuevo, sin tocar «Sincronizar ahora» ni recargar.
-  await page
-    .getByRole('navigation', { name: 'Secciones del cuaderno' })
-    .getByRole('link', { name: 'Registrar' })
-    .click();
+  await irASeccion(page, 'Registrar');
   await page
     .getByLabel('Área', { exact: true })
     .selectOption({ label: FINCA_ENSAYO_UNO.areas[0]?.nombre ?? '' });
@@ -610,8 +598,11 @@ test.describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
   test('«Unirme» no aparece en el menú', async ({ page }) => {
     await page.goto(`${APP}unirme/`);
     await expect(page.locator('[data-prueba="unirme-sin-invitacion"]')).toBeVisible();
+    await expect(barra(page).getByRole('link', { name: 'Unirme' })).toHaveCount(0);
+    // Tampoco en «Más», donde están todas las secciones (HU-E0.11).
+    await irASeccion(page, 'Más');
     await expect(
-      page.getByRole('navigation', { name: 'Secciones del cuaderno' }).getByRole('link', {
+      page.getByRole('navigation', { name: 'Todas las secciones' }).getByRole('link', {
         name: 'Unirme',
       }),
     ).toHaveCount(0);
@@ -625,11 +616,7 @@ test.describe('HU-E4.5 · la interfaz esconde lo que el rol no puede (la celda d
     org_id: ORG,
     organizaciones: [{ org_id: ORG, nombre: 'Finca Ensayo Uno', rol }],
   });
-  const ir = (page: Page, seccion: string) =>
-    page
-      .getByRole('navigation', { name: 'Secciones del cuaderno' })
-      .getByRole('link', { name: seccion })
-      .click();
+  const ir = (page: Page, seccion: string) => irASeccion(page, seccion);
 
   test('operario: registra, pero no cambia áreas, insumos ni personas', async ({ page }) => {
     await page.route(`${API_STAGING}/**`, (ruta) => ruta.abort());

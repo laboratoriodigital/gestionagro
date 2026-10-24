@@ -28,6 +28,12 @@ export const NOMBRE_REGIMEN: Record<string, string> = {
   convencional: 'Convencional',
 };
 
+/** «Producción ecológica»: el adjetivo concuerda con «producción». */
+export const PRODUCCION: Record<string, string> = {
+  ecologico: 'Producción ecológica',
+  convencional: 'Producción convencional',
+};
+
 /** «Nave 1» o, para una cama o un surco, «Nave 1 · Cama 2». Una sola regla para las listas (P2). */
 export function nombreDeArea(
   areas: readonly { id: string; nombre: string; padre_id: string | null }[],

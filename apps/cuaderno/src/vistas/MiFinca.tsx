@@ -34,7 +34,7 @@ import {
   usarPlegables,
 } from '../componentes/Plegables.tsx';
 import { Vencimientos } from '../componentes/Vencimientos.tsx';
-import { fechaHora, metros, NOMBRE_REGIMEN, NOMBRE_TIPO } from '../formato.ts';
+import { fechaHora, metros, NOMBRE_TIPO } from '../formato.ts';
 import { CicloDeArea } from './CicloDeArea.tsx';
 import { SoloConsulta, usarPermisos } from './usarPermisos.tsx';
 
@@ -57,12 +57,6 @@ const mensaje = (error: unknown) =>
  * Formulario de un área. `elegirTipo`: «principal» (nave, bloque o lote, en lista),
  * «subarea» (cama o surco) o nada al editar, porque el tipo de un área no cambia.
  */
-
-/** «Producción ecológica»: el adjetivo concuerda con «producción». */
-const PRODUCCION: Record<string, string> = {
-  ecologico: 'Producción ecológica',
-  convencional: 'Producción convencional',
-};
 
 /** «Nave · 600 m²», o solo «600 m²» si el nombre ya dice el tipo («Nave 1»). */
 function conTipo(a: { nombre: string; tipo: string; area_m2: number }): string {
@@ -342,13 +336,9 @@ export function MiFinca(props: {
     );
 
   return (
-    <section aria-labelledby="titulo-finca">
-      <h1 id="titulo-finca">{props.finca.nombre}</h1>
-      <p>
-        {props.finca.municipio} ·{' '}
-        {PRODUCCION[props.finca.regimen] ?? NOMBRE_REGIMEN[props.finca.regimen]}
-      </p>
-      <h2>Áreas</h2>
+    // El nombre de la finca, su municipio y su régimen van arriba, en «Hoy» (HU-E0.11).
+    <section aria-labelledby="titulo-areas" id="areas">
+      <h2 id="titulo-areas">Áreas</h2>
       {!cambia && <SoloConsulta rol={permisos.rol} que="las áreas y sus ciclos" />}
       {principales.length > 1 && <ControlesPlegables p={plegables} que="áreas" id="areas" />}
       <ul class="areas" data-prueba="areas">

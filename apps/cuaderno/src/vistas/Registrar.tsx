@@ -10,6 +10,7 @@ import { leerCiclos } from '../almacen/ciclos.ts';
 import { pendientesDeSubir, ultimosRegistros } from '../almacen/consultas.ts';
 import { leerFinca } from '../almacen/finca.ts';
 import { leerPersonas } from '../almacen/personas.ts';
+import { escucharPedidos, TIPOS, type TipoRegistro, tomarPedido } from '../anotar.ts';
 import { FotoDelRegistro } from '../componentes/FotoDelRegistro.tsx';
 import { Paginador, usarPaginacion } from '../componentes/Paginador.tsx';
 import { resumenDe } from '../componentes/resumen.ts';
@@ -76,16 +77,6 @@ function UltimosRegistros(props: {
   );
 }
 
-const TIPOS = [
-  { id: 'clima', titulo: 'Clima' },
-  { id: 'riego', titulo: 'Riego' },
-  { id: 'labor', titulo: 'Labores' },
-  { id: 'aplicacion', titulo: 'Aplicaciones' },
-  { id: 'cosecha', titulo: 'Cosecha' },
-  { id: 'monitoreo', titulo: 'Monitoreo' },
-] as const;
-type TipoRegistro = (typeof TIPOS)[number]['id'];
-
 export function Registrar() {
   const estado = usarFinca();
   const permisos = usarPermisos();
@@ -95,8 +86,19 @@ export function Registrar() {
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
   const [personas, setPersonas] = useState<Map<string, string>>(new Map());
-  // Un enlace con valores de clima (#t=…) abre directo en Clima (HU-E3.8, CA3).
-  const [tipo, setTipo] = useState<TipoRegistro>('clima');
+  // Un enlace con valores de clima (#t=…) abre directo en Clima (HU-E3.8, CA3). «Anotar» de la
+  // barra de abajo abre el tipo elegido (HU-E0.11).
+  const [tipo, setTipo] = useState<TipoRegistro>(
+    () => tomarPedido(window.location.hash) ?? 'clima',
+  );
+  useEffect(
+    () =>
+      escucharPedidos(() => {
+        const pedido = tomarPedido('');
+        if (pedido) setTipo(pedido);
+      }),
+    [],
+  );
   const fincaId = !estado.cargando && estado.finca ? estado.finca.id : null;
   // La calculadora de carencias (#aplicacion=…) abre Aplicaciones con su fecha y hora (HU-E10.2).
   const [cuandoInicial, setCuandoInicial] = useState<{ fecha: string; hora: string }>();

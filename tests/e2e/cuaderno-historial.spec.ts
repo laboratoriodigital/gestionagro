@@ -5,7 +5,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { configurar, ROL } from './ayudas.ts';
+import { configurar, irASeccion, ROL } from './ayudas.ts';
 
 /** 10/12/2026 a las 10:00 en Bogotá. */
 const HOY = new Date('2026-12-10T15:00:00Z');
@@ -14,11 +14,10 @@ test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(HOY);
 });
 
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
 const items = (page: Page) => page.locator('[data-prueba="historial"] > li');
 
 async function registrarClima(page: Page, area: string, t: string, hr: string) {
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Clima', exact: true }).click();
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area });
   await page.getByLabel('Temperatura del aire (°C)').fill(t);
@@ -28,7 +27,7 @@ async function registrarClima(page: Page, area: string, t: string, hr: string) {
 }
 
 async function abrirHistorial(page: Page) {
-  await nav(page).getByRole('link', { name: 'Historial' }).click();
+  await irASeccion(page, 'Historial');
   await expect(page.getByRole('heading', { level: 1, name: 'Historial' })).toBeVisible();
 }
 
@@ -69,7 +68,7 @@ for (const f of FINCAS_DE_PRUEBA) {
       await expect(page.getByRole('button', { name: /borrar|eliminar/i })).toHaveCount(0);
 
       // Registrar muestra solo la versión vigente.
-      await nav(page).getByRole('link', { name: 'Registrar' }).click();
+      await irASeccion(page, 'Registrar');
       const ultimos = page.locator('[data-prueba="registro-clima"]');
       await expect(ultimos).toHaveCount(1);
       await expect(ultimos).toContainText('26 °C');
@@ -83,13 +82,13 @@ test('corregir un riego y una labor abre el formulario con lo guardado', async (
   const p = f.personas[0];
   if (!p) throw new Error('sin personas');
   await configurar(page, f);
-  await nav(page).getByRole('link', { name: 'Personas' }).click();
+  await irASeccion(page, 'Personas');
   await page.getByRole('button', { name: 'Agregar persona' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
   await page.getByRole('radio', { name: ROL[p.rol], exact: true }).check();
   await page.getByRole('button', { name: 'Guardar persona' }).click();
 
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Riego', exact: true }).click();
   const riego = page.locator('[data-prueba="formulario-riego"]');
   await riego.getByLabel(area, { exact: true }).check();

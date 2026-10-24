@@ -7,9 +7,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA } from '../fixtures/fincas.ts';
-import { configurar, conPlan } from './ayudas.ts';
-
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
+import { configurar, conPlan, irASeccion } from './ayudas.ts';
 
 /** Una foto PNG grande de ruido, hecha en el navegador. */
 async function fotoGrande(page: Page): Promise<Buffer> {
@@ -39,7 +37,7 @@ test('CA3: con el plan gratuito no se ofrecen fotos, y el monitoreo se guarda ig
   const area = f?.areas[0];
   if (!f || !area) throw new Error('sin finca');
   await configurar(page, f);
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Monitoreo', exact: true }).click();
   const form = page.locator('[data-prueba="formulario-monitoreo"]');
   await expect(form.locator('[data-prueba="fotos-plan"]')).toHaveText(
@@ -69,7 +67,7 @@ for (const f of FINCAS_DE_PRUEBA) {
     const png = await fotoGrande(page);
     expect(png.length).toBeGreaterThan(150 * 1024);
     await context.setOffline(true);
-    await nav(page).getByRole('link', { name: 'Registrar' }).click();
+    await irASeccion(page, 'Registrar');
     await page.getByRole('button', { name: 'Monitoreo', exact: true }).click();
     const form = page.locator('[data-prueba="formulario-monitoreo"]');
     await form.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
@@ -160,10 +158,7 @@ for (const f of FINCAS_DE_PRUEBA) {
     await expect(imagen).toHaveCount(0);
 
     // En Historial, el mismo registro también ofrece su foto.
-    await page
-      .getByRole('navigation', { name: 'Secciones del cuaderno' })
-      .getByRole('link', { name: 'Historial' })
-      .click();
+    await irASeccion(page, 'Historial');
     const enHistorial = page.locator('[data-prueba="historial-monitoreo"]');
     await enHistorial.getByRole('button', { name: 'Ver foto' }).click();
     await expect(enHistorial.locator('[data-prueba="foto-en-otro-telefono"]')).toBeVisible();

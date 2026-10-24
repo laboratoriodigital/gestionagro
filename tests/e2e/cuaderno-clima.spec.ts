@@ -5,25 +5,19 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { configurar } from './ayudas.ts';
+import { configurar, irASeccion } from './ayudas.ts';
 
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date('2027-01-15T15:00:00Z'));
 });
 
 async function irARegistrar(page: Page) {
-  await page
-    .getByRole('navigation', { name: 'Secciones del cuaderno' })
-    .getByRole('link', { name: 'Registrar' })
-    .click();
+  await irASeccion(page, 'Registrar');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Registrar');
 }
 
 async function iniciarCiclo(page: Page, f: FincaDePrueba, area: string) {
-  await page
-    .getByRole('navigation', { name: 'Secciones del cuaderno' })
-    .getByRole('link', { name: 'Áreas' })
-    .click();
+  await irASeccion(page, 'Áreas');
   await page.getByRole('button', { name: `Iniciar ciclo en ${area}` }).click();
   await page.getByLabel('Cultivo', { exact: true }).selectOption({ label: 'Otro cultivo…' });
   await page.getByLabel('Nombre del cultivo').fill(f.cultivo.nombre);

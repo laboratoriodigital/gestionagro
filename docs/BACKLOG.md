@@ -261,7 +261,7 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `En revisión` (construi
 
 #### HU-E0.10 · La landing de CultivoPro y la bienvenida del cuaderno
 **Como** productor que llega a `cultivopro.co` **quiero** ver de un vistazo qué hace el cuaderno, cuánto cuesta y cómo empezar, y al abrirlo por primera vez poder entrar con mi cuenta o empezar sin ella **para** decidir rápido y no perderme en la primera pantalla.
-- **Peldaño:** visitante → usuario (la raíz era una redirección a las herramientas; ahora presenta el cuaderno y lleva a él) · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** fuera de sprint, a pedido del dueño (23 oct 2026) · **Depende de:** HU-E0.8, HU-E0.6, HU-C10.2 · **Estado:** En revisión (PR #235, rama `feat/cultivopro-landing`; boceto aprobado por el dueño el 23 oct 2026: la propuesta «hermana de TiendaPro» con las franjas en verde bosque de «invernadero de noche», y con animación al bajar)
+- **Peldaño:** visitante → usuario (la raíz era una redirección a las herramientas; ahora presenta el cuaderno y lleva a él) · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** fuera de sprint, a pedido del dueño (23 oct 2026) · **Depende de:** HU-E0.8, HU-E0.6, HU-C10.2 · **Estado:** En validación (fusionada a `main` el 24 oct 2026 en el PR #235; llega a producción con la próxima versión del agro, y falta que el dueño la recorra en staging; boceto aprobado por el dueño el 23 oct 2026: la propuesta «hermana de TiendaPro» con las franjas en verde bosque de «invernadero de noche», y con animación al bajar)
 - **Premisas:** el dueño dijo que la única interfaz que le gusta es la landing de TiendaPro (`PRODUCT.md`, evaluación del 23 oct): esta copia su estructura y cambia el cobre por el verde de la marca. El estudio de mercado pone «móvil y sin conexión» entre lo que el productor ya espera (§ competencia) y el cuaderno como app que guarda en el teléfono (§ ED1, browser-first): por eso el titular es «funciona aunque no haya señal». ED1 §28: la cuenta es opcional, y la bienvenida deja empezar sin ella. `PRODUCT.md`: sin testimonios ni cifras inventadas, fincas de ejemplo con nombre de ensayo, precios solo de `planes.json`.
 - **Criterios de aceptación:**
   1. Dada la raíz de `cultivopro.co`, cuando se abre, entonces responde 200 con la landing (ya no redirige), entra al sitemap y tiene su gemelo en Markdown; las calculadoras siguen en `/herramientas/agro/` y su marca lleva a la raíz.
@@ -275,6 +275,38 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `En revisión` (construi
   - WI-E0.10.2 Escena de los pasos, aparecer al bajar y contador del DPV en `landing/escena.ts` (1 h).
   - WI-E0.10.3 Quitar la redirección de la raíz, sitemap, prueba de humo del despliegue (1 h).
   - WI-E0.10.4 Bienvenida del cuaderno y sus pruebas (2 h).
+
+#### HU-E0.11 · El cuaderno abre con lo de hoy
+**Como** productor que abre el cuaderno en la nave **quiero** ver de entrada qué nave puedo cosechar hoy, lo último que se anotó y un botón grande para anotar **para** no buscar entre once secciones con las manos ocupadas.
+- **Peldaño:** usuario recurrente · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** fuera de sprint, a pedido del dueño (23 oct 2026) · **Depende de:** HU-E0.10, HU-E9.1 · **Estado:** En revisión (rama `feat/cuaderno-inicio`; el dueño aprobó el 23 oct 2026 el boceto «Cuaderno · Inicio nuevo y Anotar»)
+- **Premisas:** el dueño evaluó el cuaderno como «muy básico» y pidió el mismo mundo visual de la landing (`PRODUCT.md`). ARQUITECTURA §3, P20: el teléfono de 360 px con las manos ocupadas manda; la barra de abajo deja los cinco objetivos al alcance del pulgar. El estado de hoy sale del mismo cálculo de «Carencias» y del MCP (P2), y lo desconocido se dice como desconocido (P1).
+- **Criterios de aceptación:**
+  1. Dada una finca en el teléfono, cuando abro el cuaderno, entonces veo arriba, sobre el verde bosque, la fecha, el nombre de la finca y «Hoy puedes cosechar en N naves», y debajo cada nave con su cultivo, la semana del ciclo y si se puede cosechar, desde qué día o que falta la carencia; y lo último anotado. Las áreas siguen debajo, con todo lo que se hacía con ellas.
+  2. La barra de abajo lleva Inicio, Carencias, Anotar, Historial y Más, y «Más» lista todas las secciones por grupo, con las mismas reglas de antes (Rendimiento y Costos solo con finca; Unirme y Planes nunca).
+  3. «Anotar» abre una hoja con los seis registros del día, lo más anotado primero, y lleva a Registrar con el formulario elegido; si Registrar ya está abierto, cambia de formulario sin salir.
+  4. axe sin fallas en la hoja y nada se sale de lo ancho a 360 px.
+- **Patrones:** P1, P2, P20.
+- **WI:**
+  - WI-E0.11.1 «Hoy» y su cálculo, con pruebas (2 h).
+  - WI-E0.11.2 Barra de abajo, hoja «Anotar» y «Más» (2 h).
+  - WI-E0.11.3 Las e2e van a las secciones por la barra o por «Más» (`irASeccion`) (1 h).
+
+#### HU-E0.12 · El asistente de la finca, con el plan Finca
+**Como** dueño de una finca con el plan Finca **quiero** preguntarle a mi asistente de inteligencia artificial qué nave puedo cosechar, cuánto me cuesta el kilo, qué insumo se me acaba, qué nave rinde más y qué apliqué en el semestre **para** decidir sin abrir pantalla por pantalla.
+- **Peldaño:** premium (plan Finca) · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** fuera de sprint, a pedido del dueño (24 oct 2026) · **Depende de:** HU-C9.7, HU-C5.6, HU-E7.3, HU-E6.6 · **Estado:** En revisión (rama `feat/cuaderno-inicio`; el dueño aprobó el boceto «Tu finca, con superpoderes» y pidió que fuera del plan Finca con todas sus funciones)
+- **Premisas:** `PRODUCT.md`: los asistentes leen o actúan con permiso y nunca mueven dinero; este solo lee. ARQUITECTURA §2.4: costos, bodega y carpeta ya son del plan Finca, así que el asistente que los responde también (decisión del dueño). ADR-5 dice que la celda no ejecuta reportes; la excepción es la de HU-C9.7: la celda calcula solo para responderle al asistente, con lo que ya tiene. P2: las cuentas salieron del cuaderno a `@ed1/agro-schema` (`cuentas-de-la-finca.ts`) y las usan los dos. P1: hasta probarlo con un asistente real en staging, la landing dice «Pronto».
+- **Criterios de aceptación:**
+  1. El MCP del cuaderno responde, además del calendario y los últimos registros, el costo por kilo, la bodega con lo usado en 30 días y para cuántos días alcanza, el rendimiento por nave y las aplicaciones de un periodo, con las mismas cifras de las pantallas.
+  2. ❌ Con el plan gratuito, o con el plan Finca vencido, cada herramienta responde que el asistente viene con el plan Finca, sin leer nada. El plan sale de la copia de la celda (`plan_de_org`) y el interruptor es `asistente_ia` en `funciones.json`.
+  3. La landing presenta el asistente con el plan Finca, sus seis superpoderes y sus garantías, con «Pronto» mientras no esté en producción; se muestra solo si `funciones.json` lo da al plan Finca.
+  4. El plan Finca lo dice en `planes.json`, con «(pronto)», y una prueba ata ese texto a `funciones.json`.
+  5. `docs/runbooks/asistente-de-la-finca.md` dice cómo probarlo en staging con Claude o ChatGPT, y qué no debe pasar.
+- **Patrones:** P1, P2, P8 (fechas de la finca, no del servidor).
+- **WI:**
+  - WI-E0.12.1 Las cuentas de la finca a `@ed1/agro-schema`, y el cuaderno sobre ellas (2 h).
+  - WI-E0.12.2 Cuatro herramientas nuevas en el MCP y el filtro por plan, con pruebas (3 h).
+  - WI-E0.12.3 La sección de la landing y el runbook (2 h).
+  - WI-E0.12.4 Prueba con un asistente real en staging (dueño, 40 min).
 
 ### E1 · Cimientos
 

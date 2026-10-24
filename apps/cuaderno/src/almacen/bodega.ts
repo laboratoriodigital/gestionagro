@@ -9,24 +9,27 @@
  *   descuenta ni suma costo, y se cuenta para decirlo.
  * - **Existencia negativa** se avisa sin bloquear nada en el campo (CA3).
  * - **Costo por nave y ciclo:** el costo de cada salida, por el área y el ciclo de su aplicación.
+ *
+ * Las cuentas viven en `@ed1/agro-schema` (HU-E0.12), las mismas del asistente de la finca; aquí
+ * se leen los datos del teléfono y se registran las compras y los ajustes.
  */
-import { bodega, type Movimiento } from '@ed1/agro-calc';
-import { aVersionVigente, ErrorDeValidacion, type Registro } from '@ed1/agro-schema';
-import type { DatosAplicacionGuardada } from './aplicaciones.ts';
+import {
+  type CostoDeArea,
+  costoDeInsumosPorArea as costoDeInsumosPorAreaDe,
+  type DatosMovimiento,
+  ErrorDeValidacion,
+  type ExistenciaDeInsumo,
+  estadoDeBodega as estadoDeBodegaDe,
+  type Registro,
+} from '@ed1/agro-schema';
 import { cabeceraDeRegistro } from './cabecera.ts';
-import { soloVigentes } from './consultas.ts';
+import { datosDeLaFinca } from './datos-de-la-finca.ts';
 import type { CuadernoDb } from './db.ts';
 import { guardarRegistro } from './guardar.ts';
 
-export interface DatosMovimiento {
-  insumo_id: string;
-  insumo: string;
-  clase: 'compra' | 'ajuste';
-  cantidad: number;
-  unidad: string;
-  precio_total_cop: number | null;
-  nota: string | null;
-}
+export type { CostoDeArea, DatosMovimiento, ExistenciaDeInsumo };
+
+const TIPOS_DE_LA_BODEGA = ['movimiento_insumo', 'aplicacion'] as const;
 
 export interface NuevoMovimiento {
   insumoId: string;
@@ -36,31 +39,6 @@ export interface NuevoMovimiento {
   precioTotal: number | null;
   nota: string;
 }
-
-export interface ExistenciaDeInsumo {
-  insumoId: string;
-  insumo: string;
-  unidad: string;
-  existencia: number;
-  costoUnitario: number | null;
-  /** Valor de lo que hay; nulo si el costo no se conoce o no hay existencia. */
-  valor: number | null;
-  quedoNegativa: boolean;
-  /** Aplicaciones de este insumo sin cantidad anotada: no descontaron. */
-  sinCantidad: number;
-}
-
-export interface CostoDeArea {
-  areaId: string;
-  cicloId: string | null;
-  /** Suma de lo conocido. */
-  costo: number;
-  aplicaciones: number;
-  /** Aplicaciones cuyo costo no se conoce (sin cantidad o sin precio de compra). */
-  sinCosto: number;
-}
-
-const redondear = (x: number) => Math.round(x);
 
 export async function registrarMovimiento(
   db: CuadernoDb,
@@ -114,82 +92,12 @@ export async function registrarMovimiento(
   );
 }
 
-const orden = (a: Registro, b: Registro) =>
-  a.instante_evento === b.instante_evento
-    ? a.id < b.id
-      ? -1
-      : 1
-    : a.instante_evento < b.instante_evento
-      ? -1
-      : 1;
-
-/** La bodega de cada insumo y el costo de cada aplicación, calculados una sola vez. */
-async function calcular(db: CuadernoDb, fincaId: string) {
-  const deTipo = async (tipo: string) =>
-    soloVigentes(
-      db,
-      await db.registro
-        .where('tipo')
-        .equals(tipo)
-        .filter((r) => r.finca_id === fincaId)
-        .toArray(),
-    );
-  const [insumos, movimientos, aplicaciones] = await Promise.all([
-    db.insumo.where('finca_id').equals(fincaId).toArray(),
-    deTipo('movimiento_insumo'),
-    deTipo('aplicacion'),
-  ]);
-  const costoDe = new Map<string, number | null>();
-  const existencias: ExistenciaDeInsumo[] = [];
-  for (const insumo of insumos) {
-    const suyos = [
-      ...movimientos.filter((r) => (r.datos as DatosMovimiento).insumo_id === insumo.id),
-      ...aplicaciones.filter((r) => (r.datos as DatosAplicacionGuardada).insumo_id === insumo.id),
-    ].sort(orden);
-    let sinCantidad = 0;
-    const lista: Movimiento[] = suyos.flatMap((r): Movimiento[] => {
-      if (r.tipo === 'movimiento_insumo') {
-        const d = r.datos as DatosMovimiento;
-        return [
-          d.clase === 'compra'
-            ? { id: r.id, tipo: 'entrada', cantidad: d.cantidad, precioTotal: d.precio_total_cop }
-            : { id: r.id, tipo: 'ajuste', cantidad: d.cantidad },
-        ];
-      }
-      const d = aVersionVigente('aplicacion', r.v, r.datos).datos as DatosAplicacionGuardada;
-      if (d.cantidadUsada === null) {
-        sinCantidad += 1;
-        return [];
-      }
-      return [{ id: r.id, tipo: 'salida', cantidad: d.cantidadUsada }];
-    });
-    const b = bodega(lista);
-    for (const [id, costo] of b.costoDeSalida) costoDe.set(id, costo);
-    if (suyos.length === 0) continue;
-    existencias.push({
-      insumoId: insumo.id,
-      insumo: insumo.nombre_comercial,
-      unidad: insumo.unidad,
-      existencia: b.existencia,
-      costoUnitario: b.costoUnitario,
-      valor:
-        b.costoUnitario === null || b.existencia <= 0
-          ? null
-          : redondear(b.existencia * b.costoUnitario),
-      quedoNegativa: b.existencia < 0,
-      sinCantidad,
-    });
-  }
-  return { existencias, aplicaciones, costoDe };
-}
-
+/** Lo que hay de cada insumo con movimientos, por nombre. */
 export async function estadoDeBodega(
   db: CuadernoDb,
   fincaId: string,
 ): Promise<ExistenciaDeInsumo[]> {
-  return (await calcular(db, fincaId)).existencias.sort((a, b) =>
-    a.insumo.localeCompare(b.insumo, 'es'),
-  );
+  return estadoDeBodegaDe(await datosDeLaFinca(db, fincaId, TIPOS_DE_LA_BODEGA));
 }
 
 /** Costo de los insumos aplicados por área y ciclo. */
@@ -197,23 +105,5 @@ export async function costoDeInsumosPorArea(
   db: CuadernoDb,
   fincaId: string,
 ): Promise<CostoDeArea[]> {
-  const { aplicaciones, costoDe } = await calcular(db, fincaId);
-  const por = new Map<string, CostoDeArea>();
-  for (const r of aplicaciones) {
-    const areaId = r.area_ids[0] ?? '';
-    const clave = `${areaId}|${r.ciclo_id ?? ''}`;
-    const fila = por.get(clave) ?? {
-      areaId,
-      cicloId: r.ciclo_id,
-      costo: 0,
-      aplicaciones: 0,
-      sinCosto: 0,
-    };
-    const costo = costoDe.get(r.id);
-    fila.aplicaciones += 1;
-    if (costo === undefined || costo === null) fila.sinCosto += 1;
-    else fila.costo = redondear(fila.costo + costo);
-    por.set(clave, fila);
-  }
-  return [...por.values()];
+  return costoDeInsumosPorAreaDe(await datosDeLaFinca(db, fincaId, TIPOS_DE_LA_BODEGA));
 }
