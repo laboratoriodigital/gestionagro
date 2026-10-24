@@ -120,6 +120,14 @@ describe('los planes y lo que permite cada uno', () => {
     expect(de('mcp_del_comercio')).toEqual([false, false, true]);
   });
 
+  it('❌ ningún plan promete la factura mientras no se resuelva con qué facturador (HU-T16.1, 24 oct 2026)', () => {
+    for (const p of planes())
+      expect(
+        (p as { incluye?: string[] }).incluye?.filter((t) => /factura/i.test(t)),
+        p.id,
+      ).toEqual([]);
+  });
+
   it('❌ un plan en funciones.json que no está en planes.json, o uno que falta', () => {
     const malas = {
       productos: { gratis: 10, pro: null, 'ia-pro': null, alto: null },

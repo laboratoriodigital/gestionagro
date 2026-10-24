@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.2.1] - 2026-10-24
+
+### Cambiado
+- IA Pro ya no promete la factura con tu propio facturador: llega cuando esté lista. El plan y su precio no cambian.
+
 ## [1.2.0] - 2026-10-23
 
 El comerciante sin Google entra al panel con un enlace a su correo.

@@ -1,5 +1,5 @@
 {
-  "nota": "Planes de TiendaPro (HU-T18.3, D-T3 decidida por el dueño el 22 oct 2026): Gratis, Pro e IA Pro. El 23 oct 2026 el dueño subió IA Pro a COP 49.900 y dejó la factura solo en IA Pro. `cobro` da el monto por periodo de 1, 3, 6 y 12 meses con la regla de PLATAFORMA §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo). Los cuatro niveles del estudio (`gratis`, `entrada`, `intermedio` y `alto`) quedaron retirados: el despliegue los marca así en el CORE sin borrarlos (P21), y las migraciones pasan las tiendas que los tenían a Pro o a IA Pro, con lo pagado. En producción no se cobra mientras la Tienda esté «pausada» en productos.json (D-T14). Lo que permite cada plan está en funciones.json, y una prueba ata los dos archivos.",
+  "nota": "Planes de TiendaPro (HU-T18.3, D-T3 decidida por el dueño el 22 oct 2026): Gratis, Pro e IA Pro. El 23 oct 2026 el dueño subió IA Pro a COP 49.900 y dejó la factura solo en IA Pro; el 24 oct pidió no prometerla hasta resolver con qué facturador se hace (HU-T16.1): funciones.json la sigue diciendo de IA Pro, pero ningún plan la lista. `cobro` da el monto por periodo de 1, 3, 6 y 12 meses con la regla de PLATAFORMA §4.2 (5 % menos en el trimestre, 10 % en el semestre y dos meses de regalo en el año, redondeado a miles hacia abajo). Los cuatro niveles del estudio (`gratis`, `entrada`, `intermedio` y `alto`) quedaron retirados: el despliegue los marca así en el CORE sin borrarlos (P21), y las migraciones pasan las tiendas que los tenían a Pro o a IA Pro, con lo pagado. En producción no se cobra mientras la Tienda esté «pausada» en productos.json (D-T14). Lo que permite cada plan está en funciones.json, y una prueba ata los dos archivos.",
   "planes": [
     {
       "id": "gratis",
@@ -49,7 +49,6 @@
       "incluye": [
         "Todo lo del plan Pro",
         "Tu asistente con inteligencia artificial gestiona tu tienda: pedidos e inventario",
-        "La factura con tu propio facturador",
         "Todo tu equipo, sin límite de personas"
       ]
     }
