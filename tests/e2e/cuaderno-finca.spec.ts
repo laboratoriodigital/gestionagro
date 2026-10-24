@@ -180,6 +180,8 @@ test('revisión del dueño: con muchas áreas se pliegan; se abren una a una o t
     await page.getByLabel('Nombre', { exact: true }).fill(`Nave ${n}`);
     await page.getByLabel('Tamaño (m²)').fill('600');
     await page.getByRole('button', { name: 'Guardar' }).click();
+    // Guardada antes de seguir: recargar a mitad de la escritura la perdería.
+    await expect(page.locator('[data-prueba="area"]')).toHaveCount(n);
   }
   // Al volver a abrir la pantalla, con siete áreas, arrancan plegadas.
   await page.reload();
