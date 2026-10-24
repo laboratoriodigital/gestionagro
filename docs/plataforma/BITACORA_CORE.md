@@ -544,7 +544,7 @@ La regla: **un trabajo que espera a otros servicios no va en `waitUntil` de un c
 *(Después: bitácora core 16. Con este arreglo en staging, la consola dijo la causa real, y no era el corte: el export de D1 nunca entregaba su enlace. El corte de `waitUntil` sigue siendo un límite real y su arreglo se queda; lo que esta entrada afirma como causa del 23 oct, no.)*
 
 **16 · El export de D1 nunca «terminaba»: la copia buscaba el enlace en el nivel equivocado.**
-El 24 oct 2026, con el arreglo de la bitácora core 15 en staging, la consola dijo por fin por qué no llegaba la copia, y no era el corte de la vuelta.
+El 23 oct 2026, con el arreglo de la bitácora core 15 en staging, la consola dijo por fin por qué no llegaba la copia, y no era el corte de la vuelta.
 *Síntoma literal.* «1 de 5 bases copiadas, semana del 19 de oct.» y, para cada una de las 4 bases, «falló 3 veces, el export de agro_core_staging no terminó en 10 preguntas».
 *Causa raíz.* La API de D1 («Export D1 Database as SQL») responde `result.status`, `result.at_bookmark` y, al terminar, el enlace un nivel más adentro: `result.result.signed_url`. La copia lo buscaba en `result.signed_url`, nunca lo veía y preguntaba hasta rendirse. La prueba tenía el mismo error porque el Cloudflare de mentira lo escribí yo con la forma que supuse, sin mirar la documentación: código y prueba coincidían en algo falso. La carpeta vacía no venía de una subida cortada: con las 4 bases agotadas, el cierre de la semana corre, busca la carpeta para rotar y, al no hallarla, la crea. Y «5 bases» contaba el cierre como si fuera una base.
 *Cómo se reprodujo.* En staging, leyendo la consola del dueño; la forma de la respuesta, en la documentación de la API de Cloudflare.
@@ -553,4 +553,6 @@ El 24 oct 2026, con el arreglo de la bitácora core 15 en staging, la consola di
 
 La regla: **el doble de prueba de una API ajena se escribe desde su documentación, citada al lado, nunca desde lo que el código supone: si los dos salen de la misma suposición, la prueba no prueba nada. Y no se afirma la causa de una falla en producción sin el motivo que ella misma dejó escrito.**
 
-*Ficha:* core · *(mío)* · 🟠 Medio (la copia fuera de Cloudflare no existía desde el 23 oct) · P16, P18 · core-0.9.0 · 2026-10-24
+*Ficha:* core · *(mío)* · 🟠 Medio (la copia fuera de Cloudflare no existía desde el 23 oct) · P16, P18 · core-0.9.0 · 2026-10-23
+
+*(Hoy, 23 oct 2026: desplegado en staging y con la semana reiniciada (`docs/runbooks/copia-en-drive.md`), la copia llegó al Drive del dueño. El primer reinicio no había tocado la base: la consulta mostró las filas del 23 oct intactas. Un reinicio se comprueba con la misma consulta antes de esperar al cron.)*
