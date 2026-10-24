@@ -796,7 +796,7 @@ Formato de cada historia:
 - **Work items:** WI-C7.8.1 `[código]` · WI-C7.8.2 `[prueba]`.
 
 #### HU-C7.9 · La portada de la cuenta, con orden
-- **Capa:** app · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** fuera de sprint, a pedido del dueño (24 oct 2026) · **Depende de:** HU-C7.4 a HU-C7.8, HU-C9.6 · **Estado:** En revisión (rama `feat/asistente-en-produccion`; boceto aprobado por el dueño el 24 oct 2026)
+- **Capa:** app · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** fuera de sprint, a pedido del dueño (24 oct 2026) · **Depende de:** HU-C7.4 a HU-C7.8, HU-C9.6 · **Estado:** En validación (fusionada en el PR #239 y publicada con CORE 0.10.0 el 24 oct 2026; falta que el dueño la recorra en producción; boceto aprobado el 24 oct 2026)
 - Como persona con varias apps, quiero encontrar de un vistazo mis espacios, los asistentes con acceso, mis sesiones, mis pagos y mis datos, sin bajar por una lista sin fin.
 - **Por qué:** el dueño no encontró «Asistentes con acceso»: quedaba debajo de unas 35 sesiones. Dijo que la información estaba «como tirada».
 - **CA1.** Con sesión, una franja azul tinta (el boletín de la consola, DESIGN.md) saluda por el nombre y cuenta los espacios y los asistentes con acceso; sin sesión, la presentación de siempre.

@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.6.0] - 2026-10-24
+
+CultivoPro con cara nueva: la landing en la raíz de cultivopro.co, la bienvenida y el inicio del cuaderno con lo de hoy, y el asistente de la finca del plan Finca, que en producción sigue en «Pronto» hasta encender su servidor de permisos.
+
 ### Agregado
 - El asistente de la finca, del plan Finca en adelante (HU-E0.12): el MCP del cuaderno responde también el costo por kilo, la bodega (lo que queda, lo usado en 30 días y para cuántos días alcanza), el rendimiento por nave y las aplicaciones de un periodo, con las mismas cuentas del cuaderno, que pasan a `@ed1/agro-schema`. Con otro plan o con el plan vencido responde que viene con el plan Finca. La landing lo presenta como «Tu finca, con superpoderes», con «Pronto» hasta encenderlo en producción, y `docs/runbooks/asistente-de-la-finca.md` dice cómo probarlo en staging.
 - El cuaderno abre con lo de hoy (HU-E0.11): sobre el verde bosque, la fecha, la finca y cuántas naves se pueden cosechar; debajo, cada nave con su cultivo, la semana del ciclo y si se puede cosechar o desde qué día, y lo último anotado. Las secciones bajan a una barra al alcance del pulgar (Inicio, Carencias, Anotar, Historial y Más), «Anotar» abre los seis registros del día con lo más anotado primero, y «Más» reúne el resto por grupo.

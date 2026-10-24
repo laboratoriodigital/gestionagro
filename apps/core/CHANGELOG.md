@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.10.0] - 2026-10-24
+
+La cuenta con orden: los asistentes con acceso a la vista, sin bajar por las sesiones.
+
 ### Cambiado
 - La portada de la cuenta, con orden (HU-C7.9): una franja con el saludo y lo que tienes, un índice de secciones, cada bloque en su tarjeta con su conteo y los asistentes con acceso justo después de los espacios. Las listas largas muestran las primeras filas y el resto con «Ver todas»; los planes y el estado de los pagos van como insignias, y la solicitud de datos se abre al pedirla.
 
