@@ -10,6 +10,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ### Cambiado
 - La consola del dueño se lee como el boletín del día: una fila por producto (CultivoPro, Parqueadero, TiendaPro), siempre en el mismo orden, con la plata de hoy, de la semana y del mes, un sello de desempeño (Superior, Alto, Básico o Bajo) y una observación; tocar la fila abre su detalle. Debajo, las observaciones generales (solicitudes de datos, copia y correos) con su runbook, y la regla con la que se califica, escrita. Siempre clara, de borde a borde en el teléfono y como tabla en pantallas anchas. Es la primera pantalla del rediseño del ecosistema (`DESIGN.md`).
 
+### Arreglado
+- La copia semanal fuera de Cloudflare dejaba la carpeta vacía en el Drive del dueño: corría en segundo plano, y Cloudflare corta ese trabajo 30 segundos después de que termina la vuelta del cron, a mitad de la subida. Ahora la vuelta espera la copia. Además, cada intento se anota antes de empezar: si la vuelta se corta, la consola lo dice («la vuelta del cron se cortó antes de terminar») y a la tercera llega el aviso por Telegram.
+
 ## [0.8.0] - 2026-10-23
 
 Entrar con un enlace al correo, los avisos de vencimiento por correo y la copia semanal fuera de Cloudflare (HC7).

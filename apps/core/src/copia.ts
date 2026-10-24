@@ -49,6 +49,8 @@ export const TOPE_DEL_VOLCADO = 50 * 1024 * 1024;
 export const ESPERAS_DEL_EXPORT = 10;
 export const AVISO_DE_CUOTA = 0.7;
 const CIERRE = '_cierre';
+/** El motivo que queda si la vuelta no llega a anotar ni el éxito ni la falla. */
+export const CORTADA = 'la vuelta del cron se cortó antes de terminar';
 const CF = 'https://api.cloudflare.com/client/v4';
 const TOKEN_DE_GOOGLE = 'https://oauth2.googleapis.com/token';
 const DRIVE = 'https://www.googleapis.com/drive/v3';
@@ -123,6 +125,19 @@ export async function pasoDeLaCopia(
     );
     return pasoDeLaCopia(db, env, dep, ahora);
   }
+  // Una base que sigue `pendiente` con sus intentos agotados es una vuelta que el cron cortó tres
+  // veces a mitad de camino: nadie llegó a anotarla como fallida. Se anota ahora y se avisa.
+  for (const r of results) {
+    if (r.estado !== 'pendiente' || r.intentos < INTENTOS_POR_BASE) continue;
+    await db
+      .prepare(
+        "UPDATE copia_base SET estado = 'fallida', actualizado = ? WHERE semana = ? AND base = ?",
+      )
+      .bind(iso, semana, r.base)
+      .run();
+    r.estado = 'fallida';
+    await avisarFalla(dep, r.base, semana, CORTADA);
+  }
   const porHacer = (r: { estado: string; intentos: number }) =>
     r.estado !== 'hecha' && r.intentos < INTENTOS_POR_BASE;
   // En el orden de celdas.json: el CORE primero. Una base que agotó sus intentos ya avisó y no
@@ -135,12 +150,20 @@ export async function pasoDeLaCopia(
   const base = siguiente?.base ?? CIERRE;
   const intentos = (siguiente ?? cierre)?.intentos ?? 0;
   const drive = conDrive(env, dep.fetch);
+  // El intento se anota antes de empezar: si el cron corta la vuelta (tiempo o CPU), la base no
+  // queda como si nadie la hubiera tocado, y a la tercera se avisa (bitácora core 15).
+  await db
+    .prepare(
+      "UPDATE copia_base SET estado = 'pendiente', intentos = intentos + 1, motivo = ?, actualizado = ? WHERE semana = ? AND base = ?",
+    )
+    .bind(CORTADA, iso, semana, base)
+    .run();
   try {
     if (base === CIERRE) {
       const r = await cerrarLaSemana(drive, env, dep);
       await db
         .prepare(
-          "UPDATE copia_base SET estado = 'hecha', intentos = intentos + 1, motivo = NULL, actualizado = ? WHERE semana = ? AND base = ?",
+          "UPDATE copia_base SET estado = 'hecha', motivo = NULL, actualizado = ? WHERE semana = ? AND base = ?",
         )
         .bind(iso, semana, CIERRE)
         .run();
@@ -162,7 +185,7 @@ export async function pasoDeLaCopia(
     }
     await db
       .prepare(
-        "UPDATE copia_base SET estado = 'hecha', intentos = intentos + 1, bytes = ?, huella = ?, filas = ?, archivo = ?, motivo = NULL, actualizado = ? WHERE semana = ? AND base = ?",
+        "UPDATE copia_base SET estado = 'hecha', bytes = ?, huella = ?, filas = ?, archivo = ?, motivo = NULL, actualizado = ? WHERE semana = ? AND base = ?",
       )
       .bind(
         archivo.length,
@@ -182,20 +205,28 @@ export async function pasoDeLaCopia(
         : `falla inesperada (${(e as Error).name})`;
     await db
       .prepare(
-        "UPDATE copia_base SET estado = 'fallida', intentos = intentos + 1, motivo = ?, actualizado = ? WHERE semana = ? AND base = ?",
+        "UPDATE copia_base SET estado = 'fallida', motivo = ?, actualizado = ? WHERE semana = ? AND base = ?",
       )
       .bind(motivo, iso, semana, base)
       .run();
     console.error(`agro-core: la copia de ${base} no salió (${motivo})`);
-    if (intentos + 1 >= INTENTOS_POR_BASE && dep.telegram) {
-      await enviarTelegram(
-        dep.telegram,
-        `La copia semanal fuera de Cloudflare de ${base} (semana del ${semana}) no salió tras ${INTENTOS_POR_BASE} intentos: ${motivo}. Revisa docs/runbooks/copia-en-drive.md.`,
-        dep.fetch,
-      );
-    }
+    if (intentos + 1 >= INTENTOS_POR_BASE) await avisarFalla(dep, base, semana, motivo);
     return { estado: 'fallida', base, motivo };
   }
+}
+
+async function avisarFalla(
+  dep: DependenciasDeLaCopia,
+  base: string,
+  semana: string,
+  motivo: string,
+): Promise<void> {
+  if (!dep.telegram) return;
+  await enviarTelegram(
+    dep.telegram,
+    `La copia semanal fuera de Cloudflare de ${base} (semana del ${semana}) no salió tras ${INTENTOS_POR_BASE} intentos: ${motivo}. Revisa docs/runbooks/copia-en-drive.md.`,
+    dep.fetch,
+  );
 }
 
 /** Exporta una base con la API de D1 y devuelve el volcado SQL. */

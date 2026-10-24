@@ -527,3 +527,15 @@ El 23 oct 2026, al rediseñar la consola del dueño como el boletín del día (H
 La regla: **un color se prueba contra el fondo donde se lee, no contra el blanco. Si el fondo se calcula, la prueba hace el mismo cálculo.**
 
 *Ficha:* core · *(mío)* · 🟢 Bajo (no llegó a publicarse) · P18 · core-0.9.0 · 2026-10-23
+
+**15 · La copia semanal creaba la carpeta en Drive y no dejaba nada adentro, y no avisaba.**
+El 23 oct 2026, con el permiso de Drive ya dado (HU-C11.4), el dueño encontró la carpeta de las copias en su Drive, vacía. No llegó ningún aviso por Telegram.
+*Síntoma literal.* «se creó la carpeta pero no hay contenido».
+*Causa raíz.* El cron del CORE dejaba la copia en `ctx.waitUntil`, y Cloudflare dice que `waitUntil` «can extend execution for up to 30 seconds» después de que la vuelta termina. Una vuelta de la copia pregunta por el export de D1 cada 3 segundos, lo baja, lo cifra, busca o crea la carpeta, sube el archivo y lo vuelve a bajar: pasa de 30 segundos, y Cloudflare la cortaba después de crear la carpeta. Cortada, no corría ni el éxito ni el `catch`: la base seguía `pendiente` con 0 intentos, la vuelta siguiente lo intentaba igual y nunca llegaba a la tercera para avisar. En las pruebas el Drive y el export contestaban al instante, así que nada medía el reloj. La vuelta de un cron esperada (no en `waitUntil`) tiene 15 minutos de reloj; la CPU sigue en 10 ms en el plan gratuito.
+*Cómo se reprodujo.* Sin acceso a la base de staging desde aquí: la causa sale del orden del código (la carpeta se crea justo antes de subir) y del límite escrito de Cloudflare. La prueba nueva reproduce el corte con una subida que no contesta nunca.
+*Arreglo.* El cron espera la copia (`await pasoDeLaCopia`); lo demás sigue en `waitUntil`. El intento se anota antes de empezar, con el motivo «la vuelta del cron se cortó antes de terminar»: el éxito o la falla lo reemplazan. Una base `pendiente` con sus 3 intentos gastados es una vuelta cortada tres veces: se marca `fallida` y se avisa por Telegram.
+**Lo prueban** `apps/core/src/copia.test.ts`: tres vueltas que se quedan en la subida dejan la base con 1, 2 y 3 intentos y ese motivo, y la cuarta la da por fallida, avisa una vez y sigue con la otra base; y el cron espera la copia en vez de dejarla en `waitUntil`. Control negativo: sin anotar el intento antes de empezar, esa prueba y la de la copia dañada se ponen en rojo.
+
+La regla: **un trabajo que espera a otros servicios no va en `waitUntil` de un cron: va esperado. Y todo trabajo que el entorno puede matar anota su intento antes de empezar, o su muerte no deja rastro.**
+
+*Ficha:* core · *(mío)* · 🟠 Medio (la copia fuera de Cloudflare no existía, sin aviso) · P16, P7 · core-0.9.0 · 2026-10-23
