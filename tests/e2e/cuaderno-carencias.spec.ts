@@ -5,7 +5,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { agregarInsumo, configurar, conPlan, ROL } from './ayudas.ts';
+import { agregarInsumo, configurar, conPlan, irASeccion, ROL } from './ayudas.ts';
 
 /** 10/12/2026 a las 9:30 en Bogotá; en Tokio ya es el 11/12. */
 const APLICADO = new Date('2026-12-10T14:30:00Z');
@@ -21,7 +21,6 @@ const TRES_DIAS: FincaDePrueba['insumos'][number] = {
   permitido_ecologico: true,
 };
 
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
 const form = (page: Page) => page.locator('[data-prueba="formulario-aplicacion"]');
 
 test.use({ timezoneId: 'Asia/Tokyo' });
@@ -35,17 +34,17 @@ for (const f of FINCAS_DE_PRUEBA) {
       const area = f.areas[f.areas.length - 1]?.nombre ?? '';
       const otra = f.areas[0]?.nombre ?? '';
       await configurar(page, f);
-      await nav(page).getByRole('link', { name: 'Personas' }).click();
+      await irASeccion(page, 'Personas');
       const p = f.personas[0];
       if (!p) throw new Error('sin personas');
       await page.getByRole('button', { name: 'Agregar persona' }).click();
       await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
       await page.getByRole('radio', { name: ROL[p.rol], exact: true }).check();
       await page.getByRole('button', { name: 'Guardar persona' }).click();
-      await nav(page).getByRole('link', { name: 'Insumos' }).click();
+      await irASeccion(page, 'Insumos');
       await agregarInsumo(page, TRES_DIAS);
 
-      await nav(page).getByRole('link', { name: 'Registrar' }).click();
+      await irASeccion(page, 'Registrar');
       await page.getByRole('button', { name: 'Aplicaciones', exact: true }).click();
       await form(page).getByLabel(area, { exact: true }).check();
       await page
@@ -57,7 +56,7 @@ for (const f of FINCAS_DE_PRUEBA) {
       await page.getByRole('button', { name: 'Guardar aplicación' }).click();
       await expect(page.locator('[data-prueba="aplicacion-guardada"]')).toBeVisible();
 
-      await nav(page).getByRole('link', { name: 'Carencias' }).click();
+      await irASeccion(page, 'Carencias');
       await expect(page.getByRole('heading', { level: 1 })).toHaveText('¿Qué puedo cosechar hoy?');
       const hoy = (nombre: string) =>
         page
@@ -105,7 +104,7 @@ test('el calendario impreso es del plan Finca: una hoja horizontal con cada áre
   const f = FINCAS_DE_PRUEBA[0];
   if (!f) throw new Error('falta la finca de prueba');
   await configurar(page, f);
-  await nav(page).getByRole('link', { name: 'Carencias' }).click();
+  await irASeccion(page, 'Carencias');
   // Gratis: se ve en el teléfono, pero imprimirlo es del plan Finca.
   await expect(page.locator('[data-prueba="imprimible-plan"]')).toContainText(
     'viene con el plan Finca',

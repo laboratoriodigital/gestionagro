@@ -12,9 +12,7 @@ import {
   mensajeAFirmar,
 } from '../../packages/trazabilidad/src/index.ts';
 import { FINCA_ENSAYO_UNO } from '../fixtures/fincas.ts';
-import { configurar, conPlan } from './ayudas.ts';
-
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
+import { configurar, conPlan, irASeccion } from './ayudas.ts';
 
 const DATOS: DatosQr = {
   v: 1,
@@ -105,7 +103,7 @@ test('CA1 y CA4: sin señal, el lote da una etiqueta de 5 × 5 cm «sin confirma
   if (!area) throw new Error('sin áreas');
   await configurar(page, FINCA_ENSAYO_UNO);
   await context.setOffline(true);
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
   await page.getByLabel('Cantidad cosechada').fill('20');
@@ -113,7 +111,7 @@ test('CA1 y CA4: sin señal, el lote da una etiqueta de 5 × 5 cm «sin confirma
   await form.getByLabel('kg', { exact: true }).check();
   await form.getByLabel('Primera', { exact: true }).check();
   await page.getByRole('button', { name: 'Guardar cosecha' }).click();
-  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  await irASeccion(page, 'Lotes');
   await page.locator('[data-prueba="elegir-cosechas"] input[type=checkbox]').first().check();
   await page.getByRole('button', { name: 'Armar lote' }).click();
   const codigo = (await page.locator('.codigo-lote').first().textContent()) ?? '';
@@ -156,7 +154,7 @@ test('revisión del dueño: imprimir la etiqueta da una sola hoja de 5 × 5 cm',
   await configurar(page, FINCA_ENSAYO_UNO);
   const area = FINCA_ENSAYO_UNO.areas[0];
   if (!area) throw new Error('sin áreas');
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
   await page.getByLabel('Cantidad cosechada').fill('20');
@@ -164,7 +162,7 @@ test('revisión del dueño: imprimir la etiqueta da una sola hoja de 5 × 5 cm',
   await form.getByLabel('kg', { exact: true }).check();
   await form.getByLabel('Primera', { exact: true }).check();
   await page.getByRole('button', { name: 'Guardar cosecha' }).click();
-  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  await irASeccion(page, 'Lotes');
   await page.locator('[data-prueba="elegir-cosechas"] input[type=checkbox]').first().check();
   await page.getByRole('button', { name: 'Armar lote' }).click();
   const codigo = (await page.locator('.codigo-lote').first().textContent()) ?? '';
@@ -184,7 +182,7 @@ async function abrirEtiqueta(page: Page): Promise<string> {
   await configurar(page, FINCA_ENSAYO_UNO);
   const area = FINCA_ENSAYO_UNO.areas[0];
   if (!area) throw new Error('sin áreas');
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
   await page.getByLabel('Cantidad cosechada').fill('20');
@@ -192,7 +190,7 @@ async function abrirEtiqueta(page: Page): Promise<string> {
   await form.getByLabel('kg', { exact: true }).check();
   await form.getByLabel('Primera', { exact: true }).check();
   await page.getByRole('button', { name: 'Guardar cosecha' }).click();
-  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  await irASeccion(page, 'Lotes');
   await page.locator('[data-prueba="elegir-cosechas"] input[type=checkbox]').first().check();
   await page.getByRole('button', { name: 'Armar lote' }).click();
   const codigo = (await page.locator('.codigo-lote').first().textContent()) ?? '';
@@ -307,7 +305,7 @@ test('con el plan gratuito, la etiqueta dice que el logo viene con el plan Finca
 async function abrirEtiquetaDesdeAqui(page: Page): Promise<string> {
   const area = FINCA_ENSAYO_UNO.areas[0];
   if (!area) throw new Error('sin áreas');
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
   await page.getByLabel('Cantidad cosechada').fill('20');
@@ -315,7 +313,7 @@ async function abrirEtiquetaDesdeAqui(page: Page): Promise<string> {
   await form.getByLabel('kg', { exact: true }).check();
   await form.getByLabel('Primera', { exact: true }).check();
   await page.getByRole('button', { name: 'Guardar cosecha' }).click();
-  await nav(page).getByRole('link', { name: 'Lotes' }).click();
+  await irASeccion(page, 'Lotes');
   await page.locator('[data-prueba="elegir-cosechas"] input[type=checkbox]').first().check();
   await page.getByRole('button', { name: 'Armar lote' }).click();
   const codigo = (await page.locator('.codigo-lote').first().textContent()) ?? '';

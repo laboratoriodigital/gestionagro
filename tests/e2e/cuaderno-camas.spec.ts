@@ -3,11 +3,9 @@
  * 360 px: aplicar solo en una cama bloquea cosechar su nave entera pero no la cama vecina, y el
  * monitoreo de una cama dice la incidencia en plantas.
  */
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { FINCA_ENSAYO_UNO, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { agregarInsumo, configurar, conPlan, ROL } from './ayudas.ts';
-
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
+import { agregarInsumo, configurar, conPlan, irASeccion, ROL } from './ayudas.ts';
 
 const TRES_DIAS: FincaDePrueba['insumos'][number] = {
   nombre_comercial: 'Producto Tres Días',
@@ -40,7 +38,7 @@ test('plan Finca: aplicar en una cama bloquea cosechar su nave, no la cama vecin
       `Cama ${n} · 40 m²`,
     );
   }
-  await nav(page).getByRole('link', { name: 'Personas' }).click();
+  await irASeccion(page, 'Personas');
   await page.getByRole('button', { name: 'Agregar persona' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
   await page.getByRole('radio', { name: ROL[p.rol], exact: true }).check();
@@ -48,11 +46,11 @@ test('plan Finca: aplicar en una cama bloquea cosechar su nave, no la cama vecin
   await expect(
     page.locator('[data-prueba="personas-activas"] li').filter({ hasText: p.nombre }),
   ).toHaveCount(1);
-  await nav(page).getByRole('link', { name: 'Insumos' }).click();
+  await irASeccion(page, 'Insumos');
   await agregarInsumo(page, TRES_DIAS);
 
   // Aplicación solo en la Cama 2.
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Aplicaciones', exact: true }).click();
   const form = page.locator('[data-prueba="formulario-aplicacion"]');
   await form.getByText(`Solo algunas camas de ${nave}`).click();
@@ -104,7 +102,7 @@ test('plan Finca: aplicar en una cama bloquea cosechar su nave, no la cama vecin
 
 test('plan gratuito: sin elegir camas ni plantas', async ({ page }) => {
   await configurar(page, FINCA_ENSAYO_UNO);
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Monitoreo', exact: true }).click();
   await expect(page.locator('[data-prueba="monitoreo-plantas"]')).toHaveCount(0);
   await expect(page.getByLabel('Cama o surco (opcional)')).toHaveCount(0);

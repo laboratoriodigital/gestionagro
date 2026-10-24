@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCA_ENSAYO_UNO } from '../fixtures/fincas.ts';
-import { configurar, conPlan } from './ayudas.ts';
+import { barra, configurar, conPlan, irASeccion } from './ayudas.ts';
 
 const { core } = JSON.parse(readFileSync('infrastructure/celdas.json', 'utf8')) as {
   core: { url_staging: string };
@@ -87,14 +87,19 @@ test('CA4: a Planes se llega por enlaces; registrar no muestra planes ni ventana
   page,
 }) => {
   await configurar(page, FINCA_ENSAYO_UNO);
-  const nav = page.getByRole('navigation', { name: 'Secciones del cuaderno' });
-  await expect(nav.getByRole('link', { name: 'Planes' })).toHaveCount(0);
-  await nav.getByRole('link', { name: 'Registrar' }).click();
+  await expect(barra(page).getByRole('link', { name: 'Planes' })).toHaveCount(0);
+  await irASeccion(page, 'Más');
+  await expect(
+    page.getByRole('navigation', { name: 'Todas las secciones' }).getByRole('link', {
+      name: 'Planes',
+    }),
+  ).toHaveCount(0);
+  await irASeccion(page, 'Registrar');
   await expect(page.getByRole('heading', { level: 1, name: 'Registrar' })).toBeVisible();
   await expect(page.locator('a[href*="/planes"]')).toHaveCount(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   // Desde el aviso de Costos, sí.
-  await nav.getByRole('link', { name: 'Costos' }).click();
+  await irASeccion(page, 'Costos');
   await page
     .locator('[data-prueba="costos-plan"]')
     .getByRole('link', { name: 'Ver los planes' })

@@ -4,7 +4,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { configurar } from './ayudas.ts';
+import { configurar, irASeccion } from './ayudas.ts';
 
 const DPV = '/herramientas/agro/calculadora-dpv/';
 const f = FINCAS_DE_PRUEBA[0] as FincaDePrueba;
@@ -83,10 +83,7 @@ test('CA2: sin cuaderno, explica en una línea qué es, lo abre sin pedir cuenta
   await expect(page.locator('main').getByText(/cuenta|contraseña|correo/i)).toHaveCount(0);
 
   await configurar(page, f);
-  await page
-    .getByRole('navigation', { name: 'Secciones del cuaderno' })
-    .getByRole('link', { name: 'Registrar' })
-    .click();
+  await irASeccion(page, 'Registrar');
   await expect(page.locator('[data-prueba="lectura-de-calculadora"]')).toBeVisible();
   await expect(page.getByLabel('Temperatura del aire (°C)')).toHaveValue('23');
   await expect(page.getByLabel('Humedad relativa (%)')).toHaveValue('75');

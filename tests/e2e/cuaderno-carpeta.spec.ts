@@ -7,12 +7,10 @@ import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { PDFDocument } from 'pdf-lib';
 import { FINCA_ENSAYO_UNO } from '../fixtures/fincas.ts';
-import { configurar, conPlan } from './ayudas.ts';
-
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
+import { configurar, conPlan, irASeccion } from './ayudas.ts';
 
 async function cosechar(page: Page, area: string) {
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
   const form = page.locator('[data-prueba="formulario-cosecha"]');
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area });
@@ -38,7 +36,7 @@ test('con el plan gratuito, la carpeta dice que viene con el plan Finca y no baj
   const pedidos: string[] = [];
   page.on('request', (r) => pedidos.push(r.url()));
   await configurar(page, FINCA_ENSAYO_UNO);
-  await nav(page).getByRole('link', { name: 'Respaldo' }).click();
+  await irASeccion(page, 'Respaldo');
   await expect(page.locator('[data-prueba="carpeta-plan"]')).toContainText(
     'viene con el plan Finca',
   );
@@ -62,7 +60,7 @@ test('CA1 y CA2: con el plan Finca, el PDF sale del teléfono; después funciona
     .poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)))
     .toBe(true);
   await cosechar(page, area);
-  await nav(page).getByRole('link', { name: 'Respaldo' }).click();
+  await irASeccion(page, 'Respaldo');
   const carpeta = page.locator('[data-prueba="carpeta-cumplimiento"]');
   await expect(carpeta).toContainText('no certifica el cumplimiento de ninguna norma');
   // Abrir la carpeta con el plan Finca trae el generador por adelantado.
@@ -80,7 +78,7 @@ test('CA1 y CA2: con el plan Finca, el PDF sale del teléfono; después funciona
   // Sin señal y con la app recargada: el generador sale de la caché del teléfono.
   await context.setOffline(true);
   await page.reload();
-  await nav(page).getByRole('link', { name: 'Respaldo' }).click();
+  await irASeccion(page, 'Respaldo');
   const otra = await descargarCarpeta(page);
   expect((await PDFDocument.load(readFileSync(await otra.path()))).getPageCount()).toBeGreaterThan(
     0,
@@ -94,7 +92,7 @@ test('CA1 y CA2: con el plan Finca, el PDF sale del teléfono; después funciona
 test('un operario no ve la carpeta', async ({ page }) => {
   await configurar(page, FINCA_ENSAYO_UNO);
   await conPlan(page, 'finca', 'operario');
-  await nav(page).getByRole('link', { name: 'Respaldo' }).click();
+  await irASeccion(page, 'Respaldo');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.locator('[data-prueba="carpeta-cumplimiento"]')).toHaveCount(0);
 });

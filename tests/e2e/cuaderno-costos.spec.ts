@@ -2,11 +2,9 @@
  * Costos de los insumos (HU-E7.1) en un teléfono de 360 px, sin señal. Los costos son del plan
  * Finca (ARQUITECTURA §2.4): con el gratuito, la pantalla dice qué trae el plan.
  */
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { FINCA_ENSAYO_UNO, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { agregarInsumo, configurar, conPlan, ROL } from './ayudas.ts';
-
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
+import { agregarInsumo, configurar, conPlan, irASeccion, ROL } from './ayudas.ts';
 
 const INSUMO: FincaDePrueba['insumos'][number] = {
   nombre_comercial: 'Producto Bodega',
@@ -21,7 +19,7 @@ const INSUMO: FincaDePrueba['insumos'][number] = {
 
 test('con el plan gratuito, «Costos» dice qué trae el plan Finca', async ({ page }) => {
   await configurar(page, FINCA_ENSAYO_UNO);
-  await nav(page).getByRole('link', { name: 'Costos' }).click();
+  await irASeccion(page, 'Costos');
   await expect(page.locator('[data-prueba="costos-plan"]')).toContainText(
     'Los costos vienen con el plan Finca',
   );
@@ -37,17 +35,17 @@ test('CA1, CA2 y CA3: compra, aplicación con cantidad, bodega y costo por nave,
   if (!area || !p) throw new Error('faltan datos de la finca de prueba');
   await configurar(page, f);
   await conPlan(page, 'finca');
-  await nav(page).getByRole('link', { name: 'Personas' }).click();
+  await irASeccion(page, 'Personas');
   await page.getByRole('button', { name: 'Agregar persona' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
   await page.getByRole('radio', { name: ROL[p.rol], exact: true }).check();
   await page.getByRole('button', { name: 'Guardar persona' }).click();
-  await nav(page).getByRole('link', { name: 'Insumos' }).click();
+  await irASeccion(page, 'Insumos');
   await agregarInsumo(page, INSUMO);
   await context.setOffline(true);
 
   // Compra de 1.000 mL por $ 80.000.
-  await nav(page).getByRole('link', { name: 'Costos' }).click();
+  await irASeccion(page, 'Costos');
   await page
     .locator('[data-prueba="pestanas-costos"]')
     .getByRole('button', { name: 'Bodega', exact: true })
@@ -60,7 +58,7 @@ test('CA1, CA2 y CA3: compra, aplicación con cantidad, bodega y costo por nave,
   await expect(compra.getByRole('status')).toHaveText('Compra guardada en este teléfono.');
 
   // Aplicación con 2 mL/L en 20 L: la app sugiere 40 mL y se usa.
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Aplicaciones', exact: true }).click();
   const form = page.locator('[data-prueba="formulario-aplicacion"]');
   await form.getByLabel(area.nombre, { exact: true }).check();
@@ -75,7 +73,7 @@ test('CA1, CA2 y CA3: compra, aplicación con cantidad, bodega y costo por nave,
   await page.getByRole('button', { name: 'Guardar aplicación' }).click();
   await expect(page.locator('[data-prueba="aplicacion-guardada"]')).toBeVisible();
 
-  await nav(page).getByRole('link', { name: 'Costos' }).click();
+  await irASeccion(page, 'Costos');
   await page
     .locator('[data-prueba="pestanas-costos"]')
     .getByRole('button', { name: 'Bodega', exact: true })
@@ -115,14 +113,14 @@ test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su
   if (!area || !p) throw new Error('faltan datos de la finca de prueba');
   await configurar(page, f);
   await conPlan(page, 'finca');
-  await nav(page).getByRole('link', { name: 'Personas' }).click();
+  await irASeccion(page, 'Personas');
   await page.getByRole('button', { name: 'Agregar persona' }).click();
   await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
   await page.getByRole('radio', { name: ROL[p.rol], exact: true }).check();
   await page.getByRole('button', { name: 'Guardar persona' }).click();
 
   // El valor general del jornal, desde el primero del año.
-  await nav(page).getByRole('link', { name: 'Costos' }).click();
+  await irASeccion(page, 'Costos');
   await page
     .locator('[data-prueba="pestanas-costos"]')
     .getByRole('button', { name: 'Mano de obra', exact: true })
@@ -140,7 +138,7 @@ test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su
   );
 
   // Una labor de 4 horas.
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Labores', exact: true }).click();
   const form = page.locator('[data-prueba="formulario-labor"]');
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
@@ -149,7 +147,7 @@ test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su
   await page.getByLabel('Horas por persona').fill('4');
   await page.getByRole('button', { name: 'Guardar labor' }).click();
 
-  await nav(page).getByRole('link', { name: 'Costos' }).click();
+  await irASeccion(page, 'Costos');
   await page
     .locator('[data-prueba="pestanas-costos"]')
     .getByRole('button', { name: 'Mano de obra', exact: true })
@@ -168,7 +166,7 @@ test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su
     .click();
   const porKilo = page.locator('[data-prueba="costo-por-kilo"]');
   await expect(porKilo.locator('[data-prueba="costo-por-unidad"]')).toHaveText('sin cosecha');
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Cosecha', exact: true }).click();
   const cosecha = page.locator('[data-prueba="formulario-cosecha"]');
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area.nombre });
@@ -177,7 +175,7 @@ test('HU-E7.2: con el jornal general, una labor de 4 h cuesta medio jornal en su
   await cosecha.getByLabel('Primera', { exact: true }).check();
   await page.getByRole('button', { name: 'Guardar cosecha' }).click();
   await expect(page.getByText('Cosecha guardada en este teléfono.')).toBeVisible();
-  await nav(page).getByRole('link', { name: 'Costos' }).click();
+  await irASeccion(page, 'Costos');
   // «Costo por kilo» es la primera pestaña: abre ahí.
   await expect(porKilo.locator('[data-prueba="costo-por-unidad"]')).toHaveText('$ 800 por kg');
   await expect(porKilo.locator('[data-prueba="margen"]')).toHaveText('sin ventas');

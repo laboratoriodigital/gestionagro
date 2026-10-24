@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCA_ENSAYO_DOS, FINCA_ENSAYO_UNO } from '../fixtures/fincas.ts';
-import { APP, configurar } from './ayudas.ts';
+import { APP, configurar, irASeccion } from './ayudas.ts';
 
 const { core, celdas } = JSON.parse(readFileSync('infrastructure/celdas.json', 'utf8')) as {
   core: { url_staging: string };
@@ -16,11 +16,7 @@ const CORE = core.url_staging;
 const API = celdas[0]?.api_staging ?? '';
 const permitir = { 'access-control-allow-origin': '*' };
 
-const menu = (page: Page, nombre: string) =>
-  page
-    .getByRole('navigation', { name: 'Secciones del cuaderno' })
-    .getByRole('link', { name: nombre })
-    .click();
+const menu = (page: Page, nombre: string) => irASeccion(page, nombre);
 
 async function unClima(page: Page, temperatura: string) {
   await menu(page, 'Registrar');

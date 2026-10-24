@@ -6,12 +6,10 @@ import { readFileSync } from 'node:fs';
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { APP, configurar } from './ayudas.ts';
-
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
+import { APP, configurar, irASeccion } from './ayudas.ts';
 
 async function registrarClima(page: Page, area: string) {
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area });
   await page.getByLabel('Temperatura del aire (°C)').fill('24,5');
   await page.getByLabel('Humedad relativa (%)').fill('70');
@@ -20,7 +18,7 @@ async function registrarClima(page: Page, area: string) {
 }
 
 async function abrirRespaldo(page: Page) {
-  await nav(page).getByRole('link', { name: 'Respaldo' }).click();
+  await irASeccion(page, 'Respaldo');
   await expect(page.getByRole('heading', { level: 1, name: 'Respaldo' })).toBeVisible();
 }
 
@@ -72,13 +70,13 @@ for (const f of FINCAS_DE_PRUEBA) {
       ).toBeVisible();
       await telefono.getByRole('link', { name: 'Ver la finca' }).click();
       await expect(telefono.getByRole('heading', { level: 1 })).toHaveText(f.finca.nombre);
-      await nav(telefono).getByRole('link', { name: 'Historial' }).click();
+      await irASeccion(telefono, 'Historial');
       await expect(telefono.locator('[data-prueba="historial-clima"]')).toContainText(
         'Clima · 24,5 °C · 70 %',
       );
 
       // Importar otra vez el mismo archivo no duplica nada.
-      await nav(telefono).getByRole('link', { name: 'Respaldo' }).click();
+      await irASeccion(telefono, 'Respaldo');
       await telefono.getByLabel('Archivo de respaldo (.json)').setInputFiles(ruta);
       await expect(telefono.getByRole('button', { name: 'No hay nada nuevo' })).toBeDisabled();
       await otro.close();

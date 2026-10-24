@@ -7,13 +7,11 @@ import { createHash } from 'node:crypto';
 import { AxeBuilder } from '@axe-core/playwright';
 import { type BrowserContext, expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { APP, configurar } from './ayudas.ts';
+import { APP, configurar, irASeccion } from './ayudas.ts';
 import { coreFalso, crearDrive, T0 } from './drive-falso.ts';
 
-const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
-
 async function registrarClima(page: Page, area: string) {
-  await nav(page).getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByLabel('Área', { exact: true }).selectOption({ label: area });
   await page.getByLabel('Temperatura del aire (°C)').fill('24,5');
   await page.getByLabel('Humedad relativa (%)').fill('70');
@@ -35,7 +33,7 @@ for (const f of FINCAS_DE_PRUEBA) {
       const pedidos = await coreFalso(page);
       await configurar(page, f);
       await registrarClima(page, f.areas[0]?.nombre ?? '');
-      await nav(page).getByRole('link', { name: 'Respaldo' }).click();
+      await irASeccion(page, 'Respaldo');
       await expect(seccion(page).locator('[data-prueba="ultima-copia-drive"]')).toHaveText(
         'Todavía no has guardado una copia en tu Drive.',
       );
@@ -96,7 +94,7 @@ test('si la persona cancela en Google, lo dice y no guarda nada', async ({ page 
   await drive.atender(page);
   await coreFalso(page, 'cancelada');
   await configurar(page, f);
-  await nav(page).getByRole('link', { name: 'Respaldo' }).click();
+  await irASeccion(page, 'Respaldo');
   await seccion(page).getByRole('button', { name: 'Guardar copia en mi Google Drive' }).click();
   await expect(seccion(page).locator('[data-prueba="drive-error"]')).toHaveText(
     'Cancelaste el permiso en Google. No se guardó ni se trajo nada.',
@@ -114,7 +112,7 @@ test('sin señal no ofrece hablar con Google; a los 7 días sin copia lo recuerd
   await drive.atender(page);
   await coreFalso(page);
   await configurar(page, f);
-  await nav(page).getByRole('link', { name: 'Respaldo' }).click();
+  await irASeccion(page, 'Respaldo');
   await seccion(page).getByRole('button', { name: 'Guardar copia en mi Google Drive' }).click();
   await expect(seccion(page).locator('[data-prueba="drive-hecho"]')).toBeVisible();
 

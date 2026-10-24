@@ -5,7 +5,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { configurar, ROL } from './ayudas.ts';
+import { configurar, irASeccion, ROL } from './ayudas.ts';
 
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date('2027-01-15T15:00:00Z'));
@@ -13,8 +13,7 @@ test.beforeEach(async ({ page }) => {
 
 async function configurarConPersonas(page: Page, f: FincaDePrueba) {
   await configurar(page, f);
-  const nav = page.getByRole('navigation', { name: 'Secciones del cuaderno' });
-  await nav.getByRole('link', { name: 'Personas' }).click();
+  await irASeccion(page, 'Personas');
   for (const p of f.personas) {
     await page.getByRole('button', { name: 'Agregar persona' }).click();
     await page.getByLabel('Nombre', { exact: true }).fill(p.nombre);
@@ -22,7 +21,7 @@ async function configurarConPersonas(page: Page, f: FincaDePrueba) {
     await page.getByRole('button', { name: 'Guardar persona' }).click();
   }
   await expect(page.locator('[data-prueba="personas-activas"] li')).toHaveCount(f.personas.length);
-  await nav.getByRole('link', { name: 'Registrar' }).click();
+  await irASeccion(page, 'Registrar');
   await page.getByRole('button', { name: 'Labores', exact: true }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Labores' })).toBeVisible();
 }

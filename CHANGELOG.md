@@ -5,6 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- El cuaderno abre con lo de hoy (HU-E0.11): sobre el verde bosque, la fecha, la finca y cuántas naves se pueden cosechar; debajo, cada nave con su cultivo, la semana del ciclo y si se puede cosechar o desde qué día, y lo último anotado. Las secciones bajan a una barra al alcance del pulgar (Inicio, Carencias, Anotar, Historial y Más), «Anotar» abre los seis registros del día con lo más anotado primero, y «Más» reúne el resto por grupo.
 - La landing de CultivoPro en la raíz de `cultivopro.co` (HU-E0.10): qué es el cuaderno, cómo trabaja sin señal, lo que incluye, las calculadoras gratuitas, los planes de `planes.json` y las preguntas, en el sistema de diseño v2 con el verde de la marca. Al bajar, el teléfono de «Así trabaja contigo» cambia de pantalla en cada paso; sin JavaScript o con el movimiento reducido todo queda quieto y completo. Entra al sitemap y tiene su gemelo en Markdown.
 - La bienvenida del cuaderno (HU-E0.10): un teléfono sin finca y sin cuenta ve primero un saludo con «Entrar con Google», «Recibir un enlace en mi correo» y «Empezar en este teléfono, sin cuenta». Quien empieza sin cuenta va al asistente de siempre y no la vuelve a ver.
 - El cuaderno deja entrar con un enlace al correo, debajo de «Entrar con Google», con la misma política aceptada (HU-C10.2). `@ed1/correo/entrar` es lo que pide el enlace, el mismo en las cuatro apps.

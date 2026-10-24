@@ -5,7 +5,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { FINCA_ENSAYO_UNO, FINCAS_DE_PRUEBA } from '../fixtures/fincas.ts';
-import { abrirSinCuenta, configurar } from './ayudas.ts';
+import { abrirSinCuenta, configurar, irASeccion } from './ayudas.ts';
 
 test('CA2: nombre, municipio y régimen arrancan vacíos, y vacíos no avanzan', async ({ page }) => {
   await abrirSinCuenta(page);
@@ -216,19 +216,13 @@ test('revisión del dueño: un área nueva sin nada asociado se elimina; una con
   await expect(page.getByText('Bloque Nuevo')).toHaveCount(0);
 
   // Con un registro, no: dice por qué.
-  await page
-    .getByRole('navigation', { name: 'Secciones del cuaderno' })
-    .getByRole('link', { name: 'Registrar' })
-    .click();
+  await irASeccion(page, 'Registrar');
   await page.getByLabel('Área', { exact: true }).selectOption({ label: primera });
   await page.getByLabel('Temperatura del aire (°C)').fill('24');
   await page.getByLabel('Humedad relativa (%)').fill('70');
   await page.getByRole('button', { name: 'Guardar clima' }).click();
   await expect(page.getByText('Guardado en este teléfono.')).toBeVisible();
-  await page
-    .getByRole('navigation', { name: 'Secciones del cuaderno' })
-    .getByRole('link', { name: 'Áreas' })
-    .click();
+  await irASeccion(page, 'Áreas');
   await page.getByRole('button', { name: `Eliminar ${primera}` }).click();
   await expect(page.locator('[data-prueba="eliminar-area"]')).toContainText(
     `No se puede eliminar «${primera}»: tiene 1 registro`,

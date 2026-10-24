@@ -21,6 +21,30 @@ export async function llenarAreas(page: Page, areas: readonly AreaDePrueba[]) {
   }
 }
 
+/** La barra de abajo del cuaderno (HU-E0.11): Inicio, Carencias, Anotar, Historial y Más. */
+export const barra = (page: Page) =>
+  page.getByRole('navigation', { name: 'Secciones del cuaderno' });
+
+/**
+ * Va a una sección del cuaderno como lo haría la persona: por la barra de abajo si está ahí, o por
+ * «Más», donde están todas (HU-E0.11). «Áreas» es la misma pantalla que «Inicio».
+ */
+export async function irASeccion(page: Page, seccion: string) {
+  const enLaBarra = barra(page).getByRole('link', {
+    name: seccion === 'Áreas' ? 'Inicio' : seccion,
+    exact: true,
+  });
+  if ((await enLaBarra.count()) > 0) {
+    await enLaBarra.click();
+    return;
+  }
+  await barra(page).getByRole('link', { name: 'Más', exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Todas las secciones' })
+    .getByRole('link', { name: seccion, exact: true })
+    .click();
+}
+
 /**
  * Abre el cuaderno y, si sale la bienvenida de un teléfono nuevo (HU-E0.10), elige «empezar sin
  * cuenta»: queda el asistente de la finca, como antes de la bienvenida.

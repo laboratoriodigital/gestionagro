@@ -3,15 +3,14 @@
  * pantalla se agrega allí y aquí su componente.
  */
 import type { ComponentType } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { LocationProvider, Route, Router, useLocation } from 'preact-iso';
 import marca from '../../../content/marca.json' with { type: 'json' };
 import { AvisoActualizacion } from './AvisoActualizacion.tsx';
 import { AvisoDePausa } from './AvisoDePausa.tsx';
 import { AvisoDeReemplazo } from './AvisoDeReemplazo.tsx';
-import { escucharActividad } from './actividad.ts';
-import { cuaderno } from './almacen/abierto.ts';
-import { leerFinca } from './almacen/finca.ts';
+import { Anotar } from './componentes/Anotar.tsx';
+import { Icono } from './componentes/Iconos.tsx';
 import { FincaActiva } from './FincaActiva.tsx';
 import { IndicadorDatos } from './IndicadorDatos.tsx';
 import { RUTAS_APP, rutaDe } from './rutas.ts';
@@ -23,6 +22,7 @@ import { Historial } from './vistas/Historial.tsx';
 import { Inicio } from './vistas/Inicio.tsx';
 import { Insumos } from './vistas/Insumos.tsx';
 import { Lotes } from './vistas/Lotes.tsx';
+import { Mas } from './vistas/Mas.tsx';
 import { NoEncontrada } from './vistas/NoEncontrada.tsx';
 import { Personas } from './vistas/Personas.tsx';
 import { Planes } from './vistas/Planes.tsx';
@@ -40,6 +40,7 @@ const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> =
   insumos: Insumos,
   respaldo: Respaldo,
   cuenta: Cuenta,
+  mas: Mas,
   unirme: Unirme,
   lotes: Lotes,
   rendimiento: Rendimiento,
@@ -51,55 +52,56 @@ const PANTALLAS: Record<(typeof RUTAS_APP)[number]['segmento'], ComponentType> =
 const sinBarraFinal = (ruta: string) => (ruta.endsWith('/') ? ruta.slice(0, -1) : ruta);
 
 /**
- * Las secciones en una sola fila que se desliza de lado: en un teléfono de 360 px, once enlaces en
- * tres filas se comían un tercio de la pantalla en cada vista. La sección abierta se lleva a la
- * vista al cambiar de pantalla, sin mover la página.
+ * La barra de abajo (HU-E0.11), al alcance del pulgar: Inicio, Carencias, Anotar, Historial y Más.
+ * Reemplaza la fila de once secciones que se deslizaba de lado arriba; las demás viven en «Más».
+ * «Anotar» no es una sección: abre la hoja con los seis registros del día.
  */
-/**
- * ¿Hay finca en este teléfono? Se mira al abrir y después de cada escritura (crear la finca,
- * restaurar un respaldo), como `FincaActiva`. Mientras no se sabe, se cuenta que sí: es el caso de
- * todos los días, y así el menú no salta al abrir.
- */
-function usarHayFinca(): boolean {
-  const [hay, setHay] = useState(true);
-  useEffect(() => {
-    const mirar = () => void leerFinca(cuaderno()).then((d) => setHay(Boolean(d?.finca)));
-    mirar();
-    return escucharActividad((a) => {
-      if (a.escriturasEnCurso === 0) mirar();
-    });
-  }, []);
-  return hay;
-}
+const EN_LA_BARRA = [
+  { segmento: '', titulo: 'Inicio', icono: 'inicio' },
+  { segmento: 'carencias', titulo: 'Carencias', icono: 'carencias' },
+  null,
+  { segmento: 'historial', titulo: 'Historial', icono: 'historial' },
+  { segmento: 'mas', titulo: 'Más', icono: 'mas' },
+] as const;
 
-function Navegacion() {
+function BarraInferior() {
   const { path } = useLocation();
-  const hayFinca = usarHayFinca();
-  const nav = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const barra = nav.current;
-    const actual = barra?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (!barra || !actual) return;
-    const centro = actual.offsetLeft - (barra.clientWidth - actual.offsetWidth) / 2;
-    barra.scrollTo({ left: Math.max(0, centro) });
-  }, [path]);
+  const [anotar, setAnotar] = useState(false);
   return (
-    <nav class="navegacion" aria-label="Secciones del cuaderno" ref={nav}>
-      {RUTAS_APP.filter(
-        (r) => (!('enMenu' in r) || r.enMenu) && (hayFinca || !('requiereFinca' in r)),
-      ).map((r) => {
-        const ruta = rutaDe(r.segmento);
-        return (
-          <a
-            key={ruta}
-            href={ruta}
-            aria-current={sinBarraFinal(path) === sinBarraFinal(ruta) ? 'page' : undefined}
-          >
-            {r.titulo}
-          </a>
-        );
-      })}
-    </nav>
+    <>
+      <nav class="barra-inferior" aria-label="Secciones del cuaderno">
+        {EN_LA_BARRA.map((r) => {
+          if (!r) {
+            return (
+              <button
+                key="anotar"
+                type="button"
+                class="barra-inferior__anotar"
+                aria-haspopup="dialog"
+                onClick={() => setAnotar(true)}
+              >
+                <span class="barra-inferior__circulo">
+                  <Icono nombre="anotar" />
+                </span>
+                Anotar
+              </button>
+            );
+          }
+          const ruta = rutaDe(r.segmento);
+          return (
+            <a
+              key={ruta}
+              href={ruta}
+              aria-current={sinBarraFinal(path) === sinBarraFinal(ruta) ? 'page' : undefined}
+            >
+              <Icono nombre={r.icono} />
+              {r.titulo}
+            </a>
+          );
+        })}
+      </nav>
+      <Anotar abierta={anotar} alCerrar={() => setAnotar(false)} />
+    </>
   );
 }
 
@@ -120,7 +122,6 @@ export function App() {
           <FincaActiva />
           <IndicadorDatos />
         </div>
-        <Navegacion />
       </header>
       <AvisoActualizacion />
       <AvisoDePausa />
@@ -141,6 +142,7 @@ export function App() {
         {marca.nombre} · {marca.cuaderno} · versión {__VERSION_APP__} ·{' '}
         <a href="/agro/guia/">Cómo se usa</a>
       </footer>
+      <BarraInferior />
     </LocationProvider>
   );
 }
