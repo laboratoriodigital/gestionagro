@@ -1725,6 +1725,7 @@ Formato de cada historia, el del CORE:
 - **CA2.** `factura_integrada` solo en IA Pro; Pro ya no la lista.
 - **CA3 ❌.** Lo ya pagado no cambia: el CORE guarda el precio nuevo como una fila nueva de `plan_precio`.
 - **Cómo quedó:** sale a producción con la versión siguiente del CORE, que lleva el catálogo nuevo.
+- **Cambio del 24 oct 2026 (decisión del dueño):** IA Pro deja de prometer la factura hasta resolver con qué facturador se hace (HU-T16.1: Bold no tiene una API para emitirla desde otro sistema). `funciones.json` la sigue diciendo de IA Pro, para cuando llegue; `planes.json` no la lista y una prueba lo exige. Sale con tienda-v1.2.1.
 - **Work items:** WI-T18.9.1 `[código]` · WI-T18.9.2 `[prueba]`
 
 #### HU-T18.10 · Los términos y la política vigentes, en palabras sencillas
