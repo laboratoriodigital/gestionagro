@@ -3,10 +3,11 @@
  * mentira: el export de D1 que contesta por partes, y un Drive que guarda en memoria lo que se le
  * sube. Que el permiso de Drive real y el token de Cloudflare sirvan se comprueba en staging (P16).
  */
+import { readFileSync } from 'node:fs';
 import type { BaseD1 } from '@ed1/d1';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { baseDelCore, vaciarCore } from './base-de-prueba.ts';
-import { type EnvDeCopia, INTENTOS_POR_BASE, pasoDeLaCopia } from './copia.ts';
+import { CORTADA, type EnvDeCopia, INTENTOS_POR_BASE, pasoDeLaCopia } from './copia.ts';
 import {
   basesDeLaCopia,
   CopiaIlegible,
@@ -40,6 +41,8 @@ let avisos: string[];
 let exportResponde = 200;
 let preguntasAntesDeListo = 1;
 let dañarAlSubir = false;
+/** Con esto, la subida a Drive no contesta nunca: así se ve una vuelta que el cron corta. */
+let alSubirSeCorta: (() => void) | null = null;
 let cuota = { usage: '1000', limit: '10000' };
 const env: EnvDeCopia = {
   DESTINO: 'staging',
@@ -72,6 +75,10 @@ const fetchFalso: typeof fetch = async (entrada, init) => {
   if (url.hostname === 'oauth2.googleapis.com') return Response.json({ access_token: 'acceso' });
   if (url.pathname === '/drive/v3/about') return Response.json({ storageQuota: cuota });
   if (url.pathname === '/upload/drive/v3/files') {
+    if (alSubirSeCorta) {
+      alSubirSeCorta();
+      return new Promise<Response>(() => undefined);
+    }
     const cuerpo = new Uint8Array(await new Response(init?.body as BodyInit).arrayBuffer());
     const texto = new TextDecoder('latin1').decode(cuerpo);
     const meta = JSON.parse(/\r\n\r\n(\{.*?\})\r\n--/.exec(texto)?.[1] ?? '{}') as {
@@ -134,6 +141,7 @@ beforeEach(async () => {
   exportResponde = 200;
   preguntasAntesDeListo = 1;
   dañarAlSubir = false;
+  alSubirSeCorta = null;
   cuota = { usage: '1000', limit: '10000' };
 });
 
@@ -191,6 +199,37 @@ describe('HU-C11.4 · la copia semanal', () => {
     expect(r).toMatchObject({ estado: 'fallida' });
     expect(r.estado === 'fallida' && r.motivo).toContain('no puede exportar');
     expect([...drive.values()].filter((a) => a.parent)).toHaveLength(0);
+  });
+
+  it('❌ una vuelta que el cron corta a mitad deja su intento anotado; a la tercera, falla y avisa', async () => {
+    const fila = () =>
+      db
+        .prepare("SELECT estado, intentos, motivo FROM copia_base WHERE base = 'agro_core_staging'")
+        .first<{ estado: string; intentos: number; motivo: string | null }>();
+    for (let i = 1; i <= INTENTOS_POR_BASE; i++) {
+      // La vuelta se queda en la subida, como cuando el cron la mata: ni éxito ni falla anotados.
+      await new Promise<void>((llego) => {
+        alSubirSeCorta = llego;
+        void paso();
+      });
+      expect(await fila()).toEqual({ estado: 'pendiente', intentos: i, motivo: CORTADA });
+    }
+    expect(avisos).toHaveLength(0);
+    alSubirSeCorta = null;
+    // La vuelta siguiente la da por fallida, avisa una vez y sigue con la otra base.
+    expect(await paso()).toMatchObject({ estado: 'hecha', base: 'agro_c0_s1_staging' });
+    expect(await fila()).toMatchObject({ estado: 'fallida', intentos: INTENTOS_POR_BASE });
+    expect(avisos).toHaveLength(1);
+    expect(avisos[0]).toContain(CORTADA);
+    expect(await paso()).toMatchObject({ estado: 'cierre' });
+    expect(avisos).toHaveLength(1);
+  });
+
+  it('el cron espera la copia: en `waitUntil` muere 30 s después de terminar la vuelta', () => {
+    const fuente = readFileSync(new URL('./worker.ts', import.meta.url), 'utf8');
+    const programado = fuente.slice(fuente.indexOf('async scheduled('));
+    expect(programado).toContain('await pasoDeLaCopia(');
+    expect(programado).not.toMatch(/waitUntil\(\s*pasoDeLaCopia/);
   });
 
   it('el export que tarda se espera en la misma vuelta; si no termina, falla', async () => {

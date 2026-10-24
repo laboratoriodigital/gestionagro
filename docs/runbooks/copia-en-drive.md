@@ -82,6 +82,7 @@ El simulacro no usa Cloudflare ni GitHub: es lo mismo que harías el día que la
 
 ## Si algo falla
 
+- **La carpeta está pero vacía, y la consola dice «la vuelta del cron se cortó antes de terminar»:** Cloudflare cortó la vuelta antes de subir el archivo. Cada vuelta lo vuelve a intentar sola, hasta 3 veces; a la tercera llega el aviso por Telegram. Si se repite cada semana, avísale al asistente: puede ser el tiempo de CPU del plan gratuito (bitácora core 15).
 - **«el permiso del Drive del dueño no sirve»:** el permiso venció o lo quitaste. Vuelve al paso 2 (sin `--llave-nueva`).
 - **«el token de la copia no puede exportar»:** revisa el paso 3.
 - **«el volcado de … pasa de 50 MB»:** esa base ya no cabe en una vuelta del plan gratuito. Hay que partirla o activar Workers Paid: avísale al asistente.

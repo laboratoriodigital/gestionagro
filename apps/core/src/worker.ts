@@ -510,7 +510,7 @@ export default {
    * Cron Trigger cada 15 min (HU-E0.7): concilia los pagos que siguen esperando, por si alguien
    * pagó y no volvió a la pantalla. Sin llaves del proveedor no hace nada.
    */
-  scheduled(_evento: unknown, env: Env, ctx: ContextoProgramado) {
+  async scheduled(_evento: unknown, env: Env, ctx: ContextoProgramado): Promise<void> {
     ctx.waitUntil(
       conciliarPagos(
         env.DB,
@@ -543,20 +543,22 @@ export default {
         if (n > 0) console.log(`agro-core: ${n} aviso(s) de vencimiento por correo`);
       }),
     );
-    // HU-C11.4: un paso de la copia semanal fuera de Cloudflare por vuelta.
-    ctx.waitUntil(
-      pasoDeLaCopia(
-        env.DB,
-        env,
-        {
-          fetch: (...a) => fetch(...a),
-          telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
-        },
-        Date.now(),
-      ).then((r) => {
-        if (r.estado === 'hecha') console.log(`agro-core: copia de ${r.base} (${r.bytes} bytes)`);
-        if (r.estado === 'cierre') console.log(`agro-core: copia cerrada, ${r.borradas} rotadas`);
-      }),
+    // HU-C11.4: un paso de la copia semanal fuera de Cloudflare por vuelta. Se espera aquí y no con
+    // `waitUntil`: lo que se deja en `waitUntil` muere 30 s después de que la vuelta termina, y la
+    // copia espera el export de D1 y sube y baja el archivo; esperada, la vuelta tiene sus 15 min
+    // (bitácora core 15).
+    const copia = await pasoDeLaCopia(
+      env.DB,
+      env,
+      {
+        fetch: (...a) => fetch(...a),
+        telegram: { token: env.TELEGRAM_BOT_TOKEN, chat: env.TELEGRAM_CHAT_ID },
+      },
+      Date.now(),
     );
+    if (copia.estado === 'hecha')
+      console.log(`agro-core: copia de ${copia.base} (${copia.bytes} bytes)`);
+    if (copia.estado === 'cierre')
+      console.log(`agro-core: copia cerrada, ${copia.borradas} rotadas`);
   },
 };
