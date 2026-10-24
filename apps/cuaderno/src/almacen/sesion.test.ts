@@ -15,6 +15,7 @@ import {
   leerSesion,
   renovarSiHaceFalta,
   type Sesion,
+  urlDeLaCuenta,
   urlDelCore,
 } from './sesion.ts';
 import { CLAVE_VINCULO, sesionDeLaFinca } from './vinculo.ts';
@@ -186,6 +187,12 @@ describe('URL del CORE por host (celdas.json)', () => {
     expect(urlDelCore('agro.ejemplo.test', config)).toBe('https://core');
     expect(urlDelCore('agro-sitio-staging.x.workers.dev', config)).toBe('https://core-stg');
     expect(urlDelCore('localhost', config)).toBe('https://core-stg');
+  });
+
+  it('la cuenta de Laboratorio Digital: la de producción en el dominio; si no, la del CORE de staging', () => {
+    const conCuenta = { ...config, cuenta: 'https://cuenta.ejemplo.test/' };
+    expect(urlDeLaCuenta('agro.ejemplo.test', conCuenta)).toBe('https://cuenta.ejemplo.test/');
+    expect(urlDeLaCuenta('localhost', conCuenta)).toBe('https://core-stg/');
   });
 });
 

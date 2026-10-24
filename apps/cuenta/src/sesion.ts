@@ -161,30 +161,93 @@ const nodo = <K extends keyof HTMLElementTagNameMap>(
   return el;
 };
 
-/** Una tarjeta por espacio, con las clases de `Tarjeta` del sistema de diseño. Solo texto: nada de HTML. */
+/**
+ * Una tarjeta por espacio (HU-C7.9): el nombre, la app y el rol, el plan como insignia y el enlace
+ * para abrirlo. Solo texto: nada de HTML.
+ */
 function tarjeta(e: Espacio): HTMLLIElement {
   const li = document.createElement('li');
-  const caja = nodo('section', 'ed1-tarjeta');
-  caja.append(nodo('h3', 'ed1-tarjeta__titulo', e.nombre));
-  const cuerpo = nodo('div', 'ed1-tarjeta__cuerpo');
+  const caja = nodo('section', 'cuenta-espacio');
+  const cabeza = nodo('div', 'cuenta-espacio__cabeza');
+  cabeza.append(
+    nodo('h3', 'cuenta-espacio__nombre', e.nombre),
+    nodo('span', 'cuenta-insignia cuenta-insignia--tinta', `Plan ${e.plan_nombre}`),
+  );
   const rol = e.rol.charAt(0).toUpperCase() + e.rol.slice(1);
-  cuerpo.append(nodo('p', 'portada__detalle', `${e.producto_nombre} · ${rol}`));
-  const plan = nodo('p', 'portada__detalle', `Plan ${e.plan_nombre}`);
+  const detalle = nodo('p', 'portada__detalle', `${e.producto_nombre} · ${rol}`);
   if (e.plan_vence) {
-    plan.append(' · vence ', nodo('span', 'ed1-etiqueta', fecha(e.plan_vence)));
+    detalle.append(' · vence ', nodo('span', 'ed1-etiqueta', fecha(e.plan_vence)));
   }
-  cuerpo.append(plan);
-  caja.append(cuerpo);
+  caja.append(cabeza, detalle);
   if (e.abrir) {
-    const pie = nodo('div', 'ed1-tarjeta__pie');
-    const enlace = nodo('a', 'ed1-boton ed1-boton--primario', `Abrir en ${e.producto_nombre}`);
+    const enlace = nodo('a', 'cuenta-espacio__abrir', `Abrir en ${e.producto_nombre}`);
     enlace.href = e.abrir;
-    pie.append(enlace);
-    caja.append(pie);
+    caja.append(enlace);
   }
   li.className = 'ed1-revelar';
   li.append(caja);
   return li;
+}
+
+// ── Orden de la portada (HU-C7.9) ─────────────────────────────────────────
+
+/** Cuántas filas se ven de entrada en cada lista; el resto, con «Ver todas». */
+const A_LA_VISTA: Record<string, number> = { espacios: 3, sesiones: 5, pagos: 5, actividad: 5 };
+
+/** El texto del botón que muestra el resto de una lista. */
+const VER_TODAS: Record<string, (n: number) => string> = {
+  espacios: (n) => `Ver los ${n} espacios`,
+  sesiones: (n) => `Ver las ${n} sesiones`,
+  pagos: (n) => `Ver los ${n} pagos`,
+  actividad: (n) => `Ver todo (${n})`,
+};
+
+/**
+ * Deja a la vista las primeras filas de una lista larga y pone, después de ella, un botón que
+ * muestra las demás. Las filas escondidas siguen en la página: el botón solo las destapa.
+ */
+function resumir(id: string, lista: Element | null | undefined) {
+  if (!lista) return;
+  lista.parentElement?.querySelector(':scope > [data-ver-todas]')?.remove();
+  const limite = A_LA_VISTA[id];
+  const filas = [...lista.children] as HTMLElement[];
+  if (!limite || filas.length <= limite) return;
+  for (const f of filas.slice(limite)) f.hidden = true;
+  const boton = nodo(
+    'button',
+    'ed1-boton ed1-boton--texto cuenta-ver-todas',
+    VER_TODAS[id]?.(filas.length) ?? `Ver todas (${filas.length})`,
+  );
+  boton.type = 'button';
+  boton.dataset['verTodas'] = '';
+  boton.addEventListener('click', () => {
+    for (const f of filas) f.hidden = false;
+    boton.remove();
+  });
+  lista.after(boton);
+}
+
+/** Lo que cuenta la franja: cuántos espacios y cuántos asistentes con acceso. */
+const resumen: { espacios: number | null; asistentes: number | null } = {
+  espacios: null,
+  asistentes: null,
+};
+function pintarResumen() {
+  const partes: string[] = [];
+  if (resumen.espacios !== null)
+    partes.push(`${resumen.espacios} ${resumen.espacios === 1 ? 'espacio' : 'espacios'}`);
+  if (resumen.asistentes !== null)
+    partes.push(
+      resumen.asistentes === 1
+        ? '1 asistente con acceso'
+        : `${resumen.asistentes} asistentes con acceso`,
+    );
+  for (const el of todos('[data-resumen]')) el.textContent = partes.join(' · ');
+}
+
+/** El número junto al título de un bloque; vacío mientras no se sabe o si no hay nada. */
+function pintarCuantos(selector: string, n: number | null) {
+  for (const el of todos(selector)) el.textContent = n ? String(n) : '';
 }
 
 /** Renueva con el refresh guardado. Si la sesión ya no sirve, la olvida y lo dice. */
@@ -235,12 +298,16 @@ async function cargarEspacios() {
     mostrarEspacios('error', cuerpo.motivo ?? 'No pudimos traer tus espacios. Intenta de nuevo.');
     return;
   }
+  resumen.espacios = cuerpo.espacios.length;
+  pintarResumen();
+  pintarCuantos('[data-cuantos-espacios]', cuerpo.espacios.length);
   if (cuerpo.espacios.length === 0) {
     mostrarEspacios('vacio');
     return;
   }
   for (const lista of todos('[data-espacios-lista]')) {
     lista.replaceChildren(...cuerpo.espacios.map(tarjeta));
+    resumir('espacios', lista);
   }
   mostrarEspacios('lista');
 }
@@ -380,11 +447,21 @@ function filaDePago(p: PagoVisible): HTMLLIElement {
       : p.meses === 1
         ? 'un mes'
         : `${p.meses} meses`;
-  // El monto a la derecha, como la acción de las otras listas: las cifras quedan en columna.
+  // El monto a la derecha, como la acción de las otras listas: las cifras quedan en columna. Debajo,
+  // el estado como insignia: verde lo aprobado, gris lo que no se terminó (HU-C7.9).
+  const lado = nodo('div', 'cuenta-pago');
+  lado.append(
+    nodo('span', 'portada__monto', pesos(p.monto_cop)),
+    nodo(
+      'span',
+      `cuenta-insignia ${p.estado === 'aprobado' ? 'cuenta-insignia--exito' : 'cuenta-insignia--suave'}`,
+      ESTADO_DEL_PAGO[p.estado] ?? p.estado,
+    ),
+  );
   return fila(
     [document.createTextNode(`${p.plan_nombre} · ${p.espacio}`)],
-    `${periodo} · ${ESTADO_DEL_PAGO[p.estado] ?? p.estado} · pagado el ${fecha(p.creado)}`,
-    nodo('span', 'portada__monto', pesos(p.monto_cop)),
+    `${periodo} · pagado el ${fecha(p.creado)}`,
+    lado,
   );
 }
 
@@ -540,13 +617,18 @@ async function cargarBloque<T>(
     );
     return null;
   }
+  pintarCuantos(`[data-bloque="${id}"] [data-cuantos]`, lista.length);
+  if (id === 'asistentes') {
+    resumen.asistentes = lista.length;
+    pintarResumen();
+  }
   if (lista.length === 0) {
     mostrarBloque(id, 'vacio');
     return lista;
   }
-  bloque(id)
-    ?.querySelector('[data-estado="lista"]')
-    ?.replaceChildren(...lista.map(pintarFila));
+  const ul = bloque(id)?.querySelector('[data-estado="lista"]');
+  ul?.replaceChildren(...lista.map(pintarFila));
+  resumir(id, ul);
   mostrarBloque(id, 'lista');
   return lista;
 }

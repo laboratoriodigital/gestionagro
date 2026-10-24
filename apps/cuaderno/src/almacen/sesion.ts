@@ -57,6 +57,17 @@ export function urlDelCore(
   return hostname === config.dominio ? config.url : config.url_staging;
 }
 
+/**
+ * La cuenta de Laboratorio Digital según el host del cuaderno: los asistentes con acceso, las
+ * sesiones, los pagos y los datos de la persona (HU-C7.5 a HU-C9.6). En staging la sirve el CORE.
+ */
+export function urlDeLaCuenta(
+  hostname: string,
+  config: { dominio: string; url_staging: string; cuenta: string } = __CORE__,
+): string {
+  return hostname === config.dominio ? config.cuenta : `${config.url_staging}/`;
+}
+
 /** El plan de la finca de la sesión; sin finca en la nube o sin dato, el gratuito. */
 export const planDeLaFinca = (sesion: Sesion | null): string =>
   sesion?.organizaciones.find((o) => o.org_id === sesion.org_id)?.plan ?? 'gratuito';

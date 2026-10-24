@@ -22,7 +22,10 @@ const { version } = JSON.parse(
 // host. Sale de celdas.json, la fuente única (P2); el despliegue falla si no coincide.
 const { sitio, core } = JSON.parse(
   readFileSync(new URL('../../infrastructure/celdas.json', import.meta.url), 'utf8'),
-) as { sitio: { dominio: string }; core: { url: string; url_staging: string } };
+) as {
+  sitio: { dominio: string };
+  core: { dominio: string; url: string; url_staging: string };
+};
 
 export default defineConfig({
   base: '/agro/app/',
@@ -32,6 +35,8 @@ export default defineConfig({
       dominio: sitio.dominio,
       url: core.url,
       url_staging: core.url_staging,
+      // La cuenta de Laboratorio Digital en producción; en staging la sirve el mismo CORE.
+      cuenta: `https://${core.dominio}/`,
     }),
   },
   build: {

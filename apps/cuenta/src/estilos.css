@@ -342,3 +342,261 @@
   display: grid;
   gap: var(--espacio-2);
 }
+
+/* ── La portada con orden (HU-C7.9) ───────────────────────────────────────
+   Boceto aprobado por el dueño el 24 oct 2026: la franja azul tinta del boletín con el saludo, un
+   índice de secciones, y cada bloque en su tarjeta con su conteo y la lista resumida. */
+
+.portada__presentacion[hidden],
+.cuenta-franja[hidden],
+.cuenta-cuerpo[hidden] {
+  display: none;
+}
+
+.cuenta-franja {
+  display: grid;
+  gap: var(--espacio-2);
+  margin-inline: calc(-1 * var(--espacio-4));
+  padding: var(--espacio-6) var(--espacio-4);
+  background: var(--boletin-tinta);
+  color: var(--gris-0);
+}
+
+.cuenta-franja p {
+  margin: 0;
+}
+
+.cuenta-franja__marca,
+.cuenta-franja__resumen,
+.cuenta-franja__quien {
+  color: var(--boletin-tinta-palido);
+  font-size: var(--texto-pequeno);
+}
+
+.cuenta-franja__saludo {
+  margin: 0;
+  font-size: var(--texto-titulo-1);
+  font-weight: var(--peso-display);
+  letter-spacing: var(--interletrado-display);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.cuenta-franja__pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  margin-top: var(--espacio-2);
+}
+
+.cuenta-franja__quien strong {
+  color: var(--gris-0);
+}
+
+.cuenta-franja__boton {
+  border: var(--borde-ancho) solid var(--boletin-tinta-palido);
+  background: transparent;
+  color: var(--gris-0);
+}
+
+.cuenta-franja__boton:hover {
+  background: var(--gris-0);
+  color: var(--boletin-tinta);
+}
+
+.cuenta-cuerpo {
+  display: grid;
+  gap: var(--espacio-4);
+  margin-top: var(--espacio-4);
+}
+
+/* El índice: en el teléfono, pastillas que se acomodan en dos filas, sin deslizar de lado. */
+.cuenta-indice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
+.cuenta-indice a {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--objetivo-tactil);
+  padding: 0 var(--espacio-4);
+  border-radius: var(--radio-pildora);
+  background: var(--superficie-2);
+  color: var(--texto);
+  font-size: var(--texto-pequeno);
+  font-weight: var(--peso-fuerte);
+  text-decoration: none;
+}
+
+.cuenta-indice a:hover {
+  background: var(--boletin-tinta-palido);
+  color: var(--boletin-tinta);
+}
+
+.cuenta-bloques {
+  display: grid;
+  gap: var(--espacio-4);
+  align-items: start;
+}
+
+/* Cada bloque, una tarjeta. Reemplaza el espacio grande entre bloques de antes. */
+.cuenta-tarjeta.portada__espacios {
+  max-width: none;
+  margin-top: 0;
+  padding: var(--espacio-4);
+  border: var(--borde-ancho) solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--superficie);
+  scroll-margin-top: 5rem;
+}
+
+.cuenta-tarjeta__cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.cuenta-tarjeta__cuantos {
+  font-family: var(--fuente-mono);
+  font-size: var(--texto-pequeno);
+  color: var(--texto-suave);
+}
+
+.cuenta-tarjeta .portada__subtitulo {
+  font-size: var(--texto-titulo-3);
+}
+
+.cuenta-ver-todas {
+  justify-self: start;
+}
+
+/* Las insignias: el plan de un espacio y el estado de un pago. Solo tokens. */
+.cuenta-insignia {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem var(--espacio-2);
+  border-radius: var(--radio-pildora);
+  font-size: var(--texto-etiqueta);
+  font-weight: var(--peso-fuerte);
+  white-space: nowrap;
+}
+
+.cuenta-insignia--tinta {
+  background: var(--boletin-tinta-palido);
+  color: var(--boletin-tinta);
+}
+
+.cuenta-insignia--exito {
+  border: var(--borde-ancho) solid var(--exito);
+  color: var(--exito);
+}
+
+.cuenta-insignia--suave {
+  background: var(--superficie-2);
+  color: var(--texto-suave);
+}
+
+.cuenta-pago {
+  display: grid;
+  justify-items: end;
+  gap: var(--espacio-1);
+}
+
+/* Los espacios: tarjetas pequeñas en una cuadrícula. */
+.cuenta-tarjeta .portada__lista {
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--espacio-3);
+}
+
+.cuenta-espacio {
+  display: grid;
+  gap: var(--espacio-2);
+  height: 100%;
+  padding: var(--espacio-3) var(--espacio-4);
+  border: var(--borde-ancho) solid var(--borde);
+  border-radius: var(--radio-campo);
+}
+
+.cuenta-espacio__cabeza {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+}
+
+.cuenta-espacio__nombre {
+  margin: 0;
+  font-size: var(--texto-base);
+  font-weight: var(--peso-fuerte);
+  overflow-wrap: anywhere;
+}
+
+.cuenta-espacio__abrir {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--objetivo-tactil);
+  color: var(--acento);
+  font-weight: var(--peso-fuerte);
+}
+
+/* Tus datos: la solicitud se abre al pedirla. */
+.cuenta-plegable {
+  border-top: var(--borde-ancho) solid var(--borde);
+}
+
+.cuenta-plegable__titulo {
+  display: flex;
+  align-items: center;
+  min-height: var(--objetivo-tactil);
+  font-weight: var(--peso-fuerte);
+  cursor: pointer;
+}
+
+@media (min-width: 48rem) {
+  .cuenta-franja {
+    margin-inline: calc(-1 * var(--espacio-8));
+    padding: var(--espacio-8);
+    border-radius: 0 0 var(--radio-tarjeta) var(--radio-tarjeta);
+  }
+}
+
+/* En el computador: el índice fijo a la izquierda y los bloques en dos columnas. */
+@media (min-width: 64rem) {
+  .cuenta-cuerpo {
+    grid-template-columns: 12rem minmax(0, 1fr);
+    gap: var(--espacio-8);
+    margin-top: var(--espacio-8);
+  }
+
+  /* En el computador, el índice se queda a la vista al bajar. */
+  .cuenta-indice {
+    position: sticky;
+    top: var(--espacio-4);
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-self: start;
+  }
+
+  .cuenta-indice a {
+    background: transparent;
+  }
+
+  .cuenta-bloques {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cuenta-tarjeta--ancha {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Con sesión, la franja va pegada arriba: sin el aire de la presentación. */
+.portada:has(.cuenta-franja:not([hidden])) {
+  padding-top: 0;
+}

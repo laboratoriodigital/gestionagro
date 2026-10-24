@@ -65,7 +65,7 @@ Compara cada cifra con la pantalla del cuaderno: deben ser iguales, porque salen
 ## 5. Lo que no debe pasar
 
 1. **Sin plan Finca:** antes de que la celda copie el plan, o en otra finca con el plan Gratis, cualquier pregunta debe responder que el asistente viene con el plan Finca, sin dar datos.
-2. **Acceso quitado:** en la cuenta de staging, **Asistentes con acceso → Quitar acceso** junto a Claude. La siguiente pregunta debe fallar con «Quitaron este acceso», sin datos.
+2. **Acceso quitado:** abre tu cuenta de Laboratorio Digital de staging, <https://agro-core-staging.laboratoriodigital-la.workers.dev/> (no la pantalla «Cuenta» del cuaderno: desde ella, el enlace **Abrir mi cuenta** lleva ahí). Entra con el mismo Google y, en **Asistentes con acceso**, toca **Quitar acceso** junto a Claude. La siguiente pregunta debe fallar con «Quitaron este acceso», sin datos.
 3. **Interruptor apagado:** apaga `ks:agro-mcp` en staging (`docs/runbooks/kill-switch.md`). En un par de minutos el asistente debe decir que está en pausa, y el cuaderno sigue igual. Vuelve a encenderlo.
 4. **Pedirle que anote:** «Anota un riego de 1.000 litros en la Nave 2.» Debe decir que no puede: solo lee.
 

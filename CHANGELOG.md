@@ -29,6 +29,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Los campos del sistema de diseño cuentan su borde y su relleno dentro del ancho: uno al 100 % ya no se sale de la pantalla de un teléfono.
 
 ### Cambiado
+- «Más» en el cuaderno: cada grupo va en su tarjeta, con el título en una franja verde, y cada sección con su ícono; antes los títulos casi no se distinguían de las secciones (revisión del dueño, 24 oct 2026). «Cuenta» enlaza a la cuenta de Laboratorio Digital, donde están los asistentes con acceso, las sesiones, los pagos y los datos.
 - La raíz de `cultivopro.co` ya no redirige a `/herramientas/agro/`: muestra la landing, y la marca de las páginas de herramientas lleva a ella. La prueba de humo del despliegue pide la landing en la raíz (HU-E0.10).
 - El título de un commit o de un PR puede tener hasta 120 caracteres; antes eran 72, y un título de 77 detenía el CI.
 - En Planes, cualquiera puede comparar los periodos del plan Finca (el total, lo que sale al mes y el ahorro), aunque no haya entrado o no tenga su finca en la nube. Pagar sigue siendo solo para quien la administra.

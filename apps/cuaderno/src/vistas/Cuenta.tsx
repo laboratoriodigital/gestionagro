@@ -20,6 +20,7 @@ import {
   planDeLaFinca,
   type Sesion,
   salirDeLaCuenta,
+  urlDeLaCuenta,
   urlDelCore,
   vencimientoDelPlan,
 } from '../almacen/sesion.ts';
@@ -199,6 +200,14 @@ export function Cuenta() {
             </a>
           </p>
           <h2>Tu cuenta</h2>
+          <p>
+            Los asistentes de inteligencia artificial con acceso a tu finca, desde dónde entraste,
+            tus pagos y tus datos están en tu cuenta de Laboratorio Digital, la misma para todas
+            nuestras aplicaciones.{' '}
+            <a href={urlDeLaCuenta(location.hostname)} data-prueba="ir-a-la-cuenta">
+              Abrir mi cuenta
+            </a>
+          </p>
           <div class="acciones">
             <button type="button" class="secundario" onClick={() => void salir()}>
               Salir de la cuenta

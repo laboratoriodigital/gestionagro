@@ -146,6 +146,12 @@ test('salir de la cuenta borra la sesión del teléfono y vuelve a ofrecer entra
   await cuenta(page);
   await entrar(page);
   await expect(page.locator('[data-prueba="cuenta-estado"]')).toBeVisible();
+  // Los asistentes con acceso, las sesiones y los pagos están en la cuenta de Laboratorio Digital:
+  // fuera del dominio de producción, la del CORE de staging (revisión del dueño, 24 oct 2026).
+  await expect(page.getByRole('link', { name: 'Abrir mi cuenta' })).toHaveAttribute(
+    'href',
+    `${CORE}/`,
+  );
   await page.getByRole('button', { name: 'Salir de la cuenta' }).click();
   await expect(page.locator('[data-prueba="cuenta-mensaje"]')).toHaveText(
     'Saliste de la cuenta. Tus registros siguen en este teléfono.',

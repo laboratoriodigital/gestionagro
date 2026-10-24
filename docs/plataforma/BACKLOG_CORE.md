@@ -795,6 +795,18 @@ Formato de cada historia:
 - **CA2 ❌.** Solo quien administra la ve.
 - **Work items:** WI-C7.8.1 `[código]` · WI-C7.8.2 `[prueba]`.
 
+#### HU-C7.9 · La portada de la cuenta, con orden
+- **Capa:** app · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** fuera de sprint, a pedido del dueño (24 oct 2026) · **Depende de:** HU-C7.4 a HU-C7.8, HU-C9.6 · **Estado:** En revisión (rama `feat/asistente-en-produccion`; boceto aprobado por el dueño el 24 oct 2026)
+- Como persona con varias apps, quiero encontrar de un vistazo mis espacios, los asistentes con acceso, mis sesiones, mis pagos y mis datos, sin bajar por una lista sin fin.
+- **Por qué:** el dueño no encontró «Asistentes con acceso»: quedaba debajo de unas 35 sesiones. Dijo que la información estaba «como tirada».
+- **CA1.** Con sesión, una franja azul tinta (el boletín de la consola, DESIGN.md) saluda por el nombre y cuenta los espacios y los asistentes con acceso; sin sesión, la presentación de siempre.
+- **CA2.** Un índice lleva a cada sección: pastillas en el teléfono, fijo a la izquierda en el computador.
+- **CA3.** Cada bloque es una tarjeta con su conteo, en este orden: espacios, asistentes con acceso, sesiones, pagos, actividad y datos.
+- **CA4.** Las listas largas muestran las primeras (3 espacios, 5 sesiones, 5 pagos, 5 hechos) y el resto con «Ver todas».
+- **CA5.** El plan de cada espacio y el estado de cada pago van como insignias; la solicitud de datos se abre al pedirla.
+- **CA6 ❌.** A 360 px nada se sale de la pantalla y axe no encuentra fallas.
+- **Work items:** WI-C7.9.1 `[código]` · WI-C7.9.2 `[prueba]` (`tests/e2e/cuenta.spec.ts`).
+
 ### EC8 · Legible por agentes, capa estática
 
 #### HU-C8.1 · Agentes y señales en `robots.txt`
