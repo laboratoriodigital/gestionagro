@@ -1096,27 +1096,47 @@ button.tipo-anotar .icono {
   border-radius: 999px;
 }
 
-/* HU-E0.11: «Más», todas las secciones por grupo. */
+/* HU-E0.11: «Más», todas las secciones por grupo. Cada grupo es una tarjeta: el título va en una
+   franja verde y cada sección es una fila con su ícono, para que no se confundan (revisión del
+   dueño, 24 oct 2026: «muy plana»). */
+.menu-mas__grupo {
+  margin-block: var(--espacio-3);
+  border: 1px solid var(--color-borde);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--color-fondo);
+}
 .menu-mas__grupo h2 {
-  margin: var(--espacio-4) 0 var(--espacio-1);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
+  margin: 0;
+  padding: var(--espacio-2) var(--espacio-3);
+  background: #e8f2e3;
+  color: #17532c;
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-texto-suave);
 }
 .menu-mas ul {
   margin: 0;
   padding: 0;
   list-style: none;
 }
+.menu-mas li + li {
+  border-block-start: 1px solid var(--color-borde);
+}
 .menu-mas a {
   display: flex;
   align-items: center;
-  min-height: var(--objetivo-tactil);
-  border-block-start: 1px solid var(--color-borde);
+  gap: var(--espacio-3);
+  min-height: 3.25rem;
+  padding-inline: var(--espacio-3);
   color: var(--color-texto);
+  font-size: 1.0625rem;
   font-weight: 600;
   text-decoration: none;
+}
+.menu-mas a .icono {
+  flex: none;
+  color: var(--color-marca);
 }
 /* La flecha se dibuja con bordes: un carácter en `content` entraría en el nombre del enlace. */
 .menu-mas a::after {
