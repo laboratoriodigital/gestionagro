@@ -87,5 +87,16 @@ El simulacro no usa Cloudflare ni GitHub: es lo mismo que harías el día que la
 - **«el token de la copia no puede exportar»:** revisa el paso 3.
 - **«el volcado de … pasa de 50 MB»:** esa base ya no cabe en una vuelta del plan gratuito. Hay que partirla o activar Workers Paid: avísale al asistente.
 - **El Drive pasa del 70 %:** libera espacio o amplía el plan de Google One antes de que las copias dejen de caber.
+- **«el export de … no terminó en 10 preguntas»:** Cloudflare no entregó el volcado a tiempo. Hasta el 24 oct 2026 era un error de la copia (bitácora core 16); si vuelve, avísale al asistente con el texto de la consola.
+
+### Volver a intentar la semana sin esperar al lunes
+
+Una base que falló 3 veces no se vuelve a intentar hasta la semana siguiente. Para que el cron la retome ya (staging; para producción, quita `_staging` y `--env staging`), desde `apps/core` y con tu sesión de Cloudflare (`npx wrangler login`):
+
+```bash
+npx wrangler d1 execute agro_core_staging --env staging --remote --command "UPDATE copia_base SET estado = 'pendiente', intentos = 0, motivo = NULL WHERE semana = '2026-10-19'"
+```
+
+Cambia la fecha por el lunes de la semana que ves en la consola. El cron sube una base cada 15 minutos.
 
 **Pendiente de revisión con abogado** (WI-C11.4.4): son copias de datos de terceros en una cuenta personal. Ver `docs/runbooks/datos-del-responsable.md`.

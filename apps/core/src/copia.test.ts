@@ -40,6 +40,8 @@ let drive: Map<
 let avisos: string[];
 let exportResponde = 200;
 let preguntasAntesDeListo = 1;
+/** Con un texto, el export termina en `status: 'error'` con esa causa. */
+let exportFalla: string | null = null;
 let dañarAlSubir = false;
 /** Con esto, la subida a Drive no contesta nunca: así se ve una vuelta que el cron corta. */
 let alSubirSeCorta: (() => void) | null = null;
@@ -68,8 +70,24 @@ const fetchFalso: typeof fetch = async (entrada, init) => {
     const id = url.pathname.split('/').at(-2) ?? '';
     const cuerpo = JSON.parse(String(init?.body)) as { current_bookmark?: string };
     const n = Number(cuerpo.current_bookmark ?? '0');
-    if (n < preguntasAntesDeListo) return Response.json({ result: { at_bookmark: String(n + 1) } });
-    return Response.json({ result: { signed_url: `https://volcados.test/${id.slice(3)}` } });
+    // La forma de la API de D1 (developers.cloudflare.com/api, «Export D1 Database as SQL»): el
+    // enlace llega en `result.result.signed_url`, solo cuando el export terminó.
+    const respuesta = (result: Record<string, unknown>) =>
+      Response.json({
+        errors: [],
+        messages: [],
+        success: true,
+        result: { type: 'export', ...result },
+      });
+    if (exportFalla) return respuesta({ status: 'error', success: false, error: exportFalla });
+    if (n < preguntasAntesDeListo)
+      return respuesta({ status: 'active', success: true, at_bookmark: String(n + 1) });
+    return respuesta({
+      status: 'complete',
+      success: true,
+      at_bookmark: String(n),
+      result: { filename: `${id}.sql`, signed_url: `https://volcados.test/${id.slice(3)}` },
+    });
   }
   if (url.hostname === 'volcados.test') return new Response(VOLCADO(url.pathname.slice(1)));
   if (url.hostname === 'oauth2.googleapis.com') return Response.json({ access_token: 'acceso' });
@@ -140,6 +158,7 @@ beforeEach(async () => {
   avisos = [];
   exportResponde = 200;
   preguntasAntesDeListo = 1;
+  exportFalla = null;
   dañarAlSubir = false;
   alSubirSeCorta = null;
   cuota = { usage: '1000', limit: '10000' };
@@ -198,6 +217,14 @@ describe('HU-C11.4 · la copia semanal', () => {
     const r = await paso();
     expect(r).toMatchObject({ estado: 'fallida' });
     expect(r.estado === 'fallida' && r.motivo).toContain('no puede exportar');
+    expect([...drive.values()].filter((a) => a.parent)).toHaveLength(0);
+  });
+
+  it('❌ un export que Cloudflare termina en error falla con la causa que da, sin subir nada', async () => {
+    exportFalla = 'database is too large';
+    const r = await paso();
+    expect(r).toMatchObject({ estado: 'fallida' });
+    expect(r.estado === 'fallida' && r.motivo).toContain('database is too large');
     expect([...drive.values()].filter((a) => a.parent)).toHaveLength(0);
   });
 

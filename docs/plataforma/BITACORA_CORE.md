@@ -258,6 +258,7 @@ Cuatro reglas que no se rompen:
 Van aparte porque no son fallos de código: son cosas que dije con seguridad y no eran ciertas.
 
 - **«Esta lectura solo responde 200 con ese permiso»** (HU-C11.5, 12 oct 2026), dicho de la lista de Workers de la cuenta. Con un token que solo tiene Account Analytics, Cloudflare respondió 200 y el despliegue se detuvo con el token bien hecho. Bitácora core 10.
+- **«La copia se cortaba a mitad de la subida por los 30 s de `waitUntil`»** (HU-C11.4, 23 oct 2026), dicho de la carpeta vacía en el Drive del dueño sin haber visto la base de staging. El límite existe y el arreglo se queda, pero no era la causa: el export de D1 nunca devolvía el enlace donde la copia lo buscaba, y la carpeta la creaba el cierre de la semana. Bitácora core 16.
 
 ---
 
@@ -539,3 +540,17 @@ El 23 oct 2026, con el permiso de Drive ya dado (HU-C11.4), el dueño encontró 
 La regla: **un trabajo que espera a otros servicios no va en `waitUntil` de un cron: va esperado. Y todo trabajo que el entorno puede matar anota su intento antes de empezar, o su muerte no deja rastro.**
 
 *Ficha:* core · *(mío)* · 🟠 Medio (la copia fuera de Cloudflare no existía, sin aviso) · P16, P7 · core-0.9.0 · 2026-10-23
+
+*(Después: bitácora core 16. Con este arreglo en staging, la consola dijo la causa real, y no era el corte: el export de D1 nunca entregaba su enlace. El corte de `waitUntil` sigue siendo un límite real y su arreglo se queda; lo que esta entrada afirma como causa del 23 oct, no.)*
+
+**16 · El export de D1 nunca «terminaba»: la copia buscaba el enlace en el nivel equivocado.**
+El 24 oct 2026, con el arreglo de la bitácora core 15 en staging, la consola dijo por fin por qué no llegaba la copia, y no era el corte de la vuelta.
+*Síntoma literal.* «1 de 5 bases copiadas, semana del 19 de oct.» y, para cada una de las 4 bases, «falló 3 veces, el export de agro_core_staging no terminó en 10 preguntas».
+*Causa raíz.* La API de D1 («Export D1 Database as SQL») responde `result.status`, `result.at_bookmark` y, al terminar, el enlace un nivel más adentro: `result.result.signed_url`. La copia lo buscaba en `result.signed_url`, nunca lo veía y preguntaba hasta rendirse. La prueba tenía el mismo error porque el Cloudflare de mentira lo escribí yo con la forma que supuse, sin mirar la documentación: código y prueba coincidían en algo falso. La carpeta vacía no venía de una subida cortada: con las 4 bases agotadas, el cierre de la semana corre, busca la carpeta para rotar y, al no hallarla, la crea. Y «5 bases» contaba el cierre como si fuera una base.
+*Cómo se reprodujo.* En staging, leyendo la consola del dueño; la forma de la respuesta, en la documentación de la API de Cloudflare.
+*Arreglo.* El enlace se lee en `result.result.signed_url`; un export que termina con `status: 'error'` falla de una vez con la causa que da Cloudflare, en vez de agotar las preguntas. El Cloudflare de mentira contesta ahora con la forma documentada (`status`, `result.result.filename` y `signed_url`). La consola no cuenta `_cierre` entre las bases.
+**Lo prueban** `apps/core/src/copia.test.ts` (las 16, con la respuesta documentada, y una nueva: el export en error falla con su causa, sin subir nada) y `apps/core/src/consola.test.ts` (con una fila `_cierre`, la consola lista solo las bases). Controles negativos: leer el enlace donde se leía antes pone 7 pruebas de la copia en rojo; sin el filtro, la de la consola.
+
+La regla: **el doble de prueba de una API ajena se escribe desde su documentación, citada al lado, nunca desde lo que el código supone: si los dos salen de la misma suposición, la prueba no prueba nada. Y no se afirma la causa de una falla en producción sin el motivo que ella misma dejó escrito.**
+
+*Ficha:* core · *(mío)* · 🟠 Medio (la copia fuera de Cloudflare no existía desde el 23 oct) · P16, P18 · core-0.9.0 · 2026-10-24
