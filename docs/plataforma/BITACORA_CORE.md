@@ -554,3 +554,5 @@ El 24 oct 2026, con el arreglo de la bitácora core 15 en staging, la consola di
 La regla: **el doble de prueba de una API ajena se escribe desde su documentación, citada al lado, nunca desde lo que el código supone: si los dos salen de la misma suposición, la prueba no prueba nada. Y no se afirma la causa de una falla en producción sin el motivo que ella misma dejó escrito.**
 
 *Ficha:* core · *(mío)* · 🟠 Medio (la copia fuera de Cloudflare no existía desde el 23 oct) · P16, P18 · core-0.9.0 · 2026-10-24
+
+*(Hoy, 24 oct 2026: desplegado en staging y con la semana reiniciada (`docs/runbooks/copia-en-drive.md`), la copia llegó al Drive del dueño. El primer reinicio no había tocado la base: la consulta mostró las filas del 23 oct intactas. Un reinicio se comprueba con la misma consulta antes de esperar al cron.)*
