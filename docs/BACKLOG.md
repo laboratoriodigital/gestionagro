@@ -293,13 +293,13 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `En revisión` (construi
 
 #### HU-E0.12 · El asistente de la finca, con el plan Finca
 **Como** dueño de una finca con el plan Finca **quiero** preguntarle a mi asistente de inteligencia artificial qué nave puedo cosechar, cuánto me cuesta el kilo, qué insumo se me acaba, qué nave rinde más y qué apliqué en el semestre **para** decidir sin abrir pantalla por pantalla.
-- **Peldaño:** premium (plan Finca) · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** fuera de sprint, a pedido del dueño (24 oct 2026) · **Depende de:** HU-C9.7, HU-C5.6, HU-E7.3, HU-E6.6 · **Estado:** En validación (fusionada a `main` el 24 oct 2026 en el PR #238. **El dueño lo probó en staging con un asistente real el 24 oct 2026 y funcionó bien** (WI-E0.12.4, la aceptación de HC6 que pedía HU-C9.7). Falta encenderlo en producción: el servidor de permisos del CORE y quitar el «Pronto» de la landing; el boceto lo aprobó el dueño el 24 oct 2026)
+- **Peldaño:** premium (plan Finca) · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** fuera de sprint, a pedido del dueño (24 oct 2026) · **Depende de:** HU-C9.7, HU-C5.6, HU-E7.3, HU-E6.6 · **Estado:** En validación (fusionada a `main` el 24 oct 2026 en el PR #238. **El dueño lo probó en staging con un asistente real el 24 oct 2026 y funcionó bien** (WI-E0.12.4, la aceptación de HC6 que pedía HU-C9.7). Encendido en la rama `feat/limites-plan-gratis`: el servidor de permisos del CORE responde en producción y la landing ya no dice «Pronto»; llega a producción al publicar la próxima versión del CORE y del agro. El boceto lo aprobó el dueño el 24 oct 2026)
 - **Premisas:** `PRODUCT.md`: los asistentes leen o actúan con permiso y nunca mueven dinero; este solo lee. ARQUITECTURA §2.4: costos, bodega y carpeta ya son del plan Finca, así que el asistente que los responde también (decisión del dueño). ADR-5 dice que la celda no ejecuta reportes; la excepción es la de HU-C9.7: la celda calcula solo para responderle al asistente, con lo que ya tiene. P2: las cuentas salieron del cuaderno a `@ed1/agro-schema` (`cuentas-de-la-finca.ts`) y las usan los dos. P1: hasta probarlo con un asistente real en staging, la landing dice «Pronto».
 - **Criterios de aceptación:**
   1. El MCP del cuaderno responde, además del calendario y los últimos registros, el costo por kilo, la bodega con lo usado en 30 días y para cuántos días alcanza, el rendimiento por nave y las aplicaciones de un periodo, con las mismas cifras de las pantallas.
   2. ❌ Con el plan gratuito, o con el plan Finca vencido, cada herramienta responde que el asistente viene con el plan Finca, sin leer nada. El plan sale de la copia de la celda (`plan_de_org`) y el interruptor es `asistente_ia` en `funciones.json`.
-  3. La landing presenta el asistente con el plan Finca, sus seis superpoderes y sus garantías, con «Pronto» mientras no esté en producción; se muestra solo si `funciones.json` lo da al plan Finca.
-  4. El plan Finca lo dice en `planes.json`, con «(pronto)», y una prueba ata ese texto a `funciones.json`.
+  3. La landing presenta el asistente con el plan Finca, sus seis superpoderes y sus garantías, con «Pronto» mientras no esté en producción (ya no lo dice desde el 24 oct 2026); se muestra solo si `funciones.json` lo da al plan Finca.
+  4. El plan Finca lo dice en `planes.json` (con «(pronto)» hasta encenderlo en producción), y una prueba ata ese texto a `funciones.json`.
   5. `docs/runbooks/asistente-de-la-finca.md` dice cómo probarlo en staging con Claude o ChatGPT, y qué no debe pasar.
 - **Patrones:** P1, P2, P8 (fechas de la finca, no del servidor).
 - **WI:**
@@ -307,6 +307,24 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `En revisión` (construi
   - WI-E0.12.2 Cuatro herramientas nuevas en el MCP y el filtro por plan, con pruebas (3 h).
   - WI-E0.12.3 La sección de la landing y el runbook (2 h).
   - WI-E0.12.4 Prueba con un asistente real en staging (dueño, 40 min).
+
+#### HU-E0.13 · Lo que cabe en el plan Gratis
+**Como** dueño de CultivoPro **quiero** que el plan Gratis tenga topes claros de áreas, personas y fincas en la nube, y que restaurar una copia sea del plan Finca **para** que la finca que crece tenga una razón para pagar, sin quitarle nada a nadie.
+- **Peldaño:** usuario recurrente → premium · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** fuera de sprint, a pedido del dueño (24 oct 2026) · **Depende de:** HU-E0.6, HU-E4.4, HU-E4.3, HU-E3.13, HU-E8.4, HU-C5.6 · **Estado:** En validación (rama `feat/limites-plan-gratis`; llega a producción al publicar la próxima versión del CORE y del agro; decisión del dueño del 24 oct 2026)
+- **Premisas:** el dueño pidió primero saber qué podía hacer una cuenta gratis y cuándo se le obliga a pagar: la respuesta fue que nunca, porque el Gratis no tenía topes. Con la propuesta y su impacto a la vista (en producción, 4 cuentas, 1 finca en la nube y 0 invitados: nadie pasa los topes), decidió «3 áreas y 2 personas en total, incluido el propietario; restaurar una copia solo en plan Finca; descargar como está ahora». ARQUITECTURA §2.4: el gratuito trae y retiene; el plan Finca es el de la finca que crece. P2: los topes viven en `limites` de `planes.json`, la misma fuente del cuaderno, la celda, el CORE y los textos; restaurar es `restaurar_copia` en `funciones.json`. Nada de lo que ya existe se esconde ni se borra al llegar al tope (P1).
+- **Criterios de aceptación:**
+  1. Con el plan Gratis caben 3 áreas principales activas; las camas y los surcos no cuentan. El asistente de una finca nueva ofrece hasta 3 filas y lo dice, «Mi finca» deja de ofrecer «Agregar área» y lo dice con «Ver los planes», y la celda pone en cuarentena, con el motivo, un área principal que llegue por encima del tope. Con el plan Finca vigente no hay tope; vencido, vuelve a contar el Gratis.
+  2. Con el plan Gratis caben 2 personas con cuenta, contando al propietario: con la finca llena, el CORE no crea otra invitación y un enlace de antes no deja entrar a nadie más, sin gastarse; «Tu equipo» lo dice y lleva a los planes. Las personas que solo se anotan por su nombre en «Personas» no tienen tope.
+  3. Una cuenta tiene una finca del plan Gratis en la nube: la segunda no se crea y el CORE lo dice; si la primera pasa a un plan pagado, cabe otra gratis.
+  4. Restaurar una copia (importar el archivo de respaldo o traer una copia de Drive) es del plan Finca; con el Gratis se descarga, se guarda en Drive y se exporta igual que antes, y la pantalla lo dice con «Ver los planes».
+  5. ❌ Nada de lo que existe se esconde ni se borra: con más áreas o personas que el tope, todo sigue a la vista y nadie pierde el acceso; solo no se agrega más.
+  6. `planes.json` dice «Hasta 3 áreas y 2 personas con cuenta» en el Gratis y «Áreas y personas sin límite» y «Restaurar una copia» en el Finca, y una prueba ata esos textos a los topes y a `funciones.json`.
+- **Patrones:** P1, P2.
+- **WI:**
+  - WI-E0.13.1 `limites` en `planes.json`, al catálogo del CORE, y `restaurar_copia` (1 h).
+  - WI-E0.13.2 El CORE: invitaciones y fincas en la nube, con pruebas (2 h).
+  - WI-E0.13.3 La celda: el tope de áreas al subir, con pruebas (1 h).
+  - WI-E0.13.4 El cuaderno: asistente, «Mi finca», «Tu equipo» y «Respaldo», con sus e2e (3 h).
 
 ### E1 · Cimientos
 

@@ -3,8 +3,9 @@
  *
  * Presupuesto de consultas (CA1, P17): D1 gratuito admite 50 por invocación. Este endpoint hace
  * 4 lecturas (registros y catálogos ya guardados, la finca de la organización y las versiones
- * anteriores de los catálogos del lote) y UNA escritura por operación, todas en un solo `batch`,
- * que es una transacción: o queda el lote o no queda nada. 25 operaciones = 29 consultas.
+ * anteriores de los catálogos del lote), una quinta si el lote trae un área principal (el plan y las
+ * áreas que ya tiene, HU-E0.13) y UNA escritura por operación, todas en un solo `batch`, que es una
+ * transacción: o queda el lote o no queda nada. 25 operaciones = 30 consultas.
  *
  * Por operación:
  * - **Registro:** `INSERT OR IGNORE` por id. Si ya estaba, `duplicado` (CA2).
@@ -20,6 +21,10 @@
  * Permisos (HU-E4.5): el rol sale del token y la matriz de `@ed1/sync` decide. Un rol que
  * no escribe nada (asesor, auditor) recibe 403 sin tocar la base. Una operación que ese rol no
  * puede escribir va a cuarentena con el motivo en palabras: el lote sigue y nada se pierde.
+ *
+ * Áreas del plan (HU-E0.13): en un plan con `limites.areas` (el Gratis), un área principal activa
+ * que se agrega o se vuelve a activar por encima del tope va a cuarentena con el motivo. Las camas y
+ * los surcos no cuentan, y lo que ya estaba en la nube no se toca.
  *
  * Tenant (HU-E5.1): la organización sale del token. Un dato que dice ser de otra organización, de
  * otra finca, o un id que ya usa otra organización, va a cuarentena.
@@ -39,6 +44,7 @@ import {
   validarOperacion,
 } from '@ed1/agro-schema/sync';
 import type { SentenciaD1 } from '@ed1/d1';
+import configPlanes from '../../../content/agro/cuaderno/planes.json' with { type: 'json' };
 import { nivelDeLaCelda, respuestaDePausa } from './nivel.ts';
 import type { ContextoCelda } from './worker.ts';
 
@@ -52,6 +58,17 @@ type Plan =
       /** Qué responder si la sentencia no cambió ninguna fila. */
       siCero: 'duplicado' | 'aceptado' | 'reintentar';
     };
+
+/** Las áreas principales activas que caben en cada plan con tope (`limites.areas` de planes.json). */
+const TOPE_DE_AREAS = new Map(
+  configPlanes.planes.flatMap((p) =>
+    'limites' in p ? [[p.id, { tope: p.limites.areas, plan: p.nombre }] as const] : [],
+  ),
+);
+
+/** Un área principal y activa: la que cuenta para el tope del plan. */
+const esPrincipalActiva = (datos: { padre_id?: unknown; activa?: unknown }) =>
+  datos.padre_id === null && datos.activa === true;
 
 const marcadores = (n: number) => Array.from({ length: n }, () => '?').join(', ');
 /** Los datos de un catálogo sin su número de versión: para saber si ya se tenían. */
@@ -104,7 +121,10 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
   const anteriores = validas
     .filter((o) => o.entidad !== 'registro')
     .map((o) => `${o.entidad_id}@v${o.version}`);
-  const [registros, catalogos, fincaDeLaOrg, historial] = await Promise.all([
+  const traeAreaPrincipal = validas.some(
+    (o) => o.entidad === 'area' && esPrincipalActiva(o.catalogo as { padre_id?: unknown }),
+  );
+  const [registros, catalogos, fincaDeLaOrg, historial, delPlan] = await Promise.all([
     idsRegistro.length > 0
       ? db
           .prepare(
@@ -133,7 +153,26 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
           .bind(org, ...anteriores)
           .all<{ id: string; datos: string }>()
       : { results: [] },
+    traeAreaPrincipal
+      ? db
+          .prepare(
+            `SELECT (SELECT plan FROM plan_de_org WHERE org_id = ?1) AS plan,
+                    (SELECT plan_vence FROM plan_de_org WHERE org_id = ?1) AS plan_vence,
+                    (SELECT count(*) FROM catalogo WHERE org_id = ?1 AND entidad = 'area'
+                       AND json_extract(datos, '$.padre_id') IS NULL
+                       AND json_extract(datos, '$.activa') = 1) AS principales`,
+          )
+          .bind(org)
+          .first<{ plan: string | null; plan_vence: string | null; principales: number }>()
+      : null,
   ]);
+  // Sin copia del plan, o vencido, cuenta el gratuito, como en el asistente (HU-C5.6).
+  const planVigente =
+    delPlan?.plan && !(delPlan.plan_vence && Date.parse(delPlan.plan_vence) <= ahora())
+      ? delPlan.plan
+      : 'gratuito';
+  const topeDeAreas = delPlan ? (TOPE_DE_AREAS.get(planVigente) ?? null) : null;
+  let principales = delPlan?.principales ?? 0;
   const yaVisto = new Map(historial.results.map((h) => [h.id, sinVersion(h.datos)]));
   const registroGuardado = new Map(registros.results.map((r) => [r.id, r]));
   const catalogoGuardado = new Map(catalogos.results.map((r) => [r.id, r]));
@@ -224,6 +263,20 @@ export async function push(c: ContextoCelda, ahora: () => number): Promise<Respo
       return cuarentena(op.id, 'Ese id ya lo usa otra organización', entrada);
     if (guardado && guardado.entidad !== op.entidad)
       return cuarentena(op.id, `Ese id ya es un ${guardado.entidad}`, entrada);
+    if (
+      op.entidad === 'area' &&
+      esPrincipalActiva(cat as { padre_id?: unknown }) &&
+      !(guardado && esPrincipalActiva(JSON.parse(guardado.datos) as { padre_id?: unknown }))
+    ) {
+      if (topeDeAreas && principales >= topeDeAreas.tope) {
+        return cuarentena(
+          op.id,
+          `Con el plan ${topeDeAreas.plan} caben ${topeDeAreas.tope} áreas principales en la finca; las camas y los surcos no cuentan. Para agregar otra, cambia de plan.`,
+          entrada,
+        );
+      }
+      principales += 1;
+    }
     if (!guardado || cat.version > guardado.version) {
       // Un solo upsert, que solo actualiza si la versión es mayor; el trigger catalogo_a_historial
       // guarda la anterior (migración 0002). Si no cambia nada, otro teléfono escribió en ese

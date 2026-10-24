@@ -31,20 +31,6 @@
       "nombre": "Bloque C",
       "area_m2": 1800,
       "plantas": 12500
-    },
-    {
-      "id": "0192f3a0-0000-7000-8000-000000000114",
-      "tipo": "bloque",
-      "nombre": "Bloque D",
-      "area_m2": 1800,
-      "plantas": 12500
-    },
-    {
-      "id": "0192f3a0-0000-7000-8000-000000000115",
-      "tipo": "bloque",
-      "nombre": "Bloque E",
-      "area_m2": 1500,
-      "plantas": 10000
     }
   ],
   "personas": [

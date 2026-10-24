@@ -6,14 +6,53 @@
  *
  * Idempotente: el teléfono genera el id (UUIDv7). Si la respuesta se pierde y el teléfono
  * reintenta, recibe la misma organización y no se crea otra.
+ *
+ * Una cuenta tiene a lo sumo `limites.organizaciones_por_cuenta` organizaciones del plan gratuito
+ * de su producto, entre las que administra (HU-E0.13); las de un plan pagado no cuentan. Sin ese
+ * tope en el plan gratuito, sin límite.
  */
 import { id as esquemaId } from '@ed1/ids';
 import { TokenInvalido, verificarAcceso } from '@ed1/tokens';
 import type { Context } from 'hono';
 import { SinCeldaDisponible } from './asignacion.ts';
 import type { Entorno } from './entrar.ts';
-import { PRODUCTO_POR_DEFECTO, productoDe, rolAdministra } from './productos.ts';
+import {
+  type CatalogoDelCore,
+  PRODUCTO_POR_DEFECTO,
+  planEnElToken,
+  planesDe,
+  productoDe,
+  rolAdministra,
+  topeDelPlan,
+} from './productos.ts';
 import { crearOrganizacion, ErrorDelCore } from './repositorio.ts';
+
+/** Si la cuenta ya tiene todas las organizaciones gratuitas que caben; null si cabe otra. */
+async function sinCupoGratuito(
+  e: Entorno,
+  catalogo: CatalogoDelCore,
+  usuario: string,
+  producto: string,
+): Promise<{ tope: number; plan: string } | null> {
+  const gratuito = planesDe(catalogo, producto).find((p) => p.gratuito);
+  const tope =
+    gratuito && topeDelPlan(catalogo, producto, gratuito.id, 'organizaciones_por_cuenta');
+  if (!gratuito || !tope) return null;
+  const suyas = await e.db
+    .prepare(
+      `SELECT o.producto, o.plan AS plan_pagado, o.plan_vence AS vence_pagado, m.rol
+         FROM organizacion o JOIN membresia m ON m.org_id = o.id
+        WHERE m.usuario_id = ? AND o.producto = ?`,
+    )
+    .bind(usuario, producto)
+    .all<{ producto: string; plan_pagado: string; vence_pagado: string | null; rol: string }>();
+  const gratis = suyas.results.filter(
+    (o) =>
+      rolAdministra(catalogo, producto, o.rol) &&
+      planEnElToken(catalogo, o, e.ahora()).plan === gratuito.id,
+  ).length;
+  return gratis >= tope.tope ? tope : null;
+}
 
 export async function crearOrganizacionDeLaFinca(c: Context, e: Entorno): Promise<Response> {
   const token = c.req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
@@ -56,6 +95,17 @@ export async function crearOrganizacionDeLaFinca(c: Context, e: Entorno): Promis
       return c.json({ estado: 'ajena', motivo: 'Esa finca es de otra cuenta.' }, 409);
     }
     return c.json({ org_id: existente.id, nombre: existente.nombre, ya_existia: true });
+  }
+  const sinCupo = await sinCupoGratuito(e, e.catalogo, usuario, producto);
+  if (sinCupo) {
+    const cuantas = sinCupo.tope === 1 ? 'una finca' : `${sinCupo.tope} fincas`;
+    return c.json(
+      {
+        estado: 'limite-del-plan',
+        motivo: `Con el plan ${sinCupo.plan}, cada cuenta tiene ${cuantas} en la nube, y la tuya ya está. Para subir otra, pasa a otro plan la que ya tienes.`,
+      },
+      409,
+    );
   }
   try {
     const org = await crearOrganizacion(

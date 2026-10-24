@@ -26,6 +26,7 @@ import {
   TIPOS_PRINCIPALES,
   TIPOS_SUBAREA,
 } from '../almacen/finca.ts';
+import { topeDelPlan } from '../almacen/limites.ts';
 import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
 import {
   ABIERTAS_HASTA,
@@ -36,7 +37,7 @@ import {
 import { Vencimientos } from '../componentes/Vencimientos.tsx';
 import { fechaHora, metros, NOMBRE_TIPO } from '../formato.ts';
 import { CicloDeArea } from './CicloDeArea.tsx';
-import { SoloConsulta, usarPermisos } from './usarPermisos.tsx';
+import { SoloConsulta, TopeDelPlan, usarPermisos } from './usarPermisos.tsx';
 
 type Abierto =
   | { tipo: 'editar' | 'subarea' | 'historial'; areaId: string }
@@ -307,6 +308,9 @@ export function MiFinca(props: {
   const activas = props.areas.filter((a) => a.activa);
   const principales = activas.filter((a) => a.padre_id === null);
   const hijas = (id: string) => activas.filter((a) => a.padre_id === id);
+  // HU-E0.13: en un plan con tope, la siguiente área principal no se ofrece; las que hay se quedan.
+  const tope = permisos.plan === undefined ? null : topeDelPlan('areas', permisos.plan);
+  const lleno = tope !== null && principales.length >= tope;
   // Con muchas naves, camas y surcos, cada área se pliega (revisión del dueño, 3 oct 2026).
   const plegables = usarPlegables(
     principales.map((a) => a.id),
@@ -446,13 +450,18 @@ export function MiFinca(props: {
           alCancelar={() => setAbierto(null)}
         />
       ) : (
-        cambia && (
+        cambia &&
+        (lleno && permisos.plan ? (
+          <TopeDelPlan plan={permisos.plan}>
+            {`caben ${tope} áreas en la finca. Las camas y los surcos de cada una no cuentan, y para agregar otra área pasas a otro plan.`}
+          </TopeDelPlan>
+        ) : (
           <div class="acciones">
             <button type="button" onClick={() => setAbierto({ tipo: 'nueva-area' })}>
               Agregar área
             </button>
           </div>
-        )
+        ))
       )}
     </section>
   );

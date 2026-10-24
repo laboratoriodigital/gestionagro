@@ -22,6 +22,7 @@ interface PlanDelCatalogo {
   gratuito?: boolean;
   cobro_mensual_cop?: number;
   cobro?: Record<string, number>;
+  limites?: Record<string, number>;
 }
 
 export interface ParteDelCatalogo {
@@ -44,6 +45,7 @@ function parte(registro: RegistroDeProductos): ParteDelCatalogo {
         ...(x.gratuito === undefined ? {} : { gratuito: x.gratuito }),
         ...(x.cobro_mensual_cop === undefined ? {} : { cobro_mensual_cop: x.cobro_mensual_cop }),
         ...(x.cobro === undefined ? {} : { cobro: x.cobro }),
+        ...(x.limites === undefined ? {} : { limites: x.limites }),
       }),
     );
   }

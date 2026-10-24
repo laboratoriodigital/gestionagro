@@ -12,7 +12,12 @@
         {
           "id": "gratuito",
           "nombre": "Gratis",
-          "gratuito": true
+          "gratuito": true,
+          "limites": {
+            "areas": 3,
+            "miembros": 2,
+            "organizaciones_por_cuenta": 1
+          }
         },
         {
           "id": "finca",

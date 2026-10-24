@@ -4,12 +4,15 @@
  * - Importar primero revisa el archivo completo y muestra qué agregaría; nada se escribe hasta
  *   confirmar, y si algo falla no queda nada a medias (CA2, P21).
  * - Funciona en un teléfono nuevo, sin finca: así se restaura el cuaderno al cambiar de teléfono.
+ * - Restaurar (importar un archivo o traer una copia de Drive) es del plan Finca en adelante
+ *   (`restaurar_copia` de funciones.json, HU-E0.13); descargar y guardar en Drive siguen gratis.
  * - La última descarga se recuerda en `meta` para avisar si hace mucho que no se respalda.
  * - Copia en el Google Drive de la persona (HU-E8.4, etapa 1): `CopiaEnDrive.tsx`.
  */
 import { fechaAgronomica, type TablaExportada } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
+import { funcionActiva } from '../almacen/funciones.ts';
 import {
   analizarArchivo,
   csvDeTipo,
@@ -24,6 +27,7 @@ import { fechaHora } from '../formato.ts';
 import { CarpetaCumplimiento } from './CarpetaCumplimiento.tsx';
 import { CopiaEnDrive } from './CopiaEnDrive.tsx';
 import { usarFinca } from './usarFinca.tsx';
+import { TopeDelPlan, usarPermisos } from './usarPermisos.tsx';
 
 const CLAVE_ULTIMO = 'ultimo_respaldo';
 
@@ -61,6 +65,8 @@ export function Respaldo() {
   const [errores, setErrores] = useState<readonly string[]>([]);
   const [importado, setImportado] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
+  const { plan } = usarPermisos();
+  const restaura = plan !== undefined && funcionActiva('restaurar_copia', plan);
 
   useEffect(() => {
     void cuaderno()
@@ -100,6 +106,7 @@ export function Respaldo() {
 
   /** La misma revisión para un archivo elegido y para una copia traída de Drive (P2). */
   const revisarTexto = async (texto: string) => {
+    if (!restaura) return;
     setResumen(null);
     setErrores([]);
     setImportado(null);
@@ -156,7 +163,7 @@ export function Respaldo() {
       <h1 id="titulo-respaldo">Respaldo</h1>
       <p>
         Tu cuaderno vive en este teléfono. Descarga un respaldo y guárdalo fuera de él (correo,
-        Drive o un computador): si pierdes el teléfono, lo restauras en otro.
+        Drive o un computador): si pierdes el teléfono, tus datos siguen a salvo.
       </p>
 
       <h2>Descargar</h2>
@@ -190,75 +197,88 @@ export function Respaldo() {
         </>
       ) : (
         <p class="ayuda">
-          Todavía no hay finca en este teléfono. Puedes restaurar un respaldo abajo.
+          {restaura
+            ? 'Todavía no hay finca en este teléfono. Puedes restaurar un respaldo abajo.'
+            : 'Todavía no hay finca en este teléfono.'}
         </p>
       )}
 
-      <CopiaEnDrive hayFinca={Boolean(finca)} alTraer={revisarTexto} />
+      <CopiaEnDrive hayFinca={Boolean(finca)} puedeTraer={restaura} alTraer={revisarTexto} />
 
       <h2>Importar</h2>
-      <p class="ayuda">
-        Importar agrega lo que falta y no cambia nada de lo que ya está en este teléfono.
-      </p>
-      <div class="campo">
-        <label for="respaldo-archivo">Archivo de respaldo (.json)</label>
-        <input
-          id="respaldo-archivo"
-          type="file"
-          accept=".json,application/json"
-          disabled={trabajando}
-          onChange={(e) => void elegirArchivo(e)}
-        />
-      </div>
-      {errores.length > 0 && (
-        <div class="error" role="alert" data-prueba="respaldo-errores">
-          <p>No se importó nada:</p>
-          <ul>
-            {errores.map((m) => (
-              <li key={m}>{m}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {resumen && (
-        <div class="estado" data-prueba="respaldo-resumen">
-          <p>Respaldo del {fechaHora(resumen.archivo.generado)}. Esto es lo que se agregaría:</p>
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Datos</th>
-                <th scope="col">Nuevos</th>
-                <th scope="col">Ya estaban</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(Object.keys(resumen.tablas) as TablaExportada[]).map((t) => (
-                <tr key={t}>
-                  <th scope="row">{NOMBRE_TABLA[t]}</th>
-                  <td>{resumen.tablas[t].nuevas}</td>
-                  <td>{resumen.tablas[t].existentes}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div class="acciones">
-            <button
-              type="button"
-              disabled={trabajando || nuevas === 0}
-              onClick={() => void confirmar()}
-            >
-              {nuevas === 0 ? 'No hay nada nuevo' : `Importar ${nuevas} datos nuevos`}
-            </button>
-            <button type="button" class="secundario" onClick={() => setResumen(null)}>
-              Cancelar
-            </button>
+      {plan !== undefined && !restaura ? (
+        <TopeDelPlan plan={plan}>
+          no se puede restaurar una copia en el teléfono: eso viene con el plan Finca. Descargar tu
+          copia y guardarla en tu Google Drive sigue siendo gratis.
+        </TopeDelPlan>
+      ) : (
+        <>
+          <p class="ayuda">
+            Importar agrega lo que falta y no cambia nada de lo que ya está en este teléfono.
+          </p>
+          <div class="campo">
+            <label for="respaldo-archivo">Archivo de respaldo (.json)</label>
+            <input
+              id="respaldo-archivo"
+              type="file"
+              accept=".json,application/json"
+              disabled={trabajando}
+              onChange={(e) => void elegirArchivo(e)}
+            />
           </div>
-        </div>
-      )}
-      {importado && (
-        <p class="exito" role="status">
-          {importado} <a href="/agro/app/">Ver la finca</a>
-        </p>
+          {errores.length > 0 && (
+            <div class="error" role="alert" data-prueba="respaldo-errores">
+              <p>No se importó nada:</p>
+              <ul>
+                {errores.map((m) => (
+                  <li key={m}>{m}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {resumen && (
+            <div class="estado" data-prueba="respaldo-resumen">
+              <p>
+                Respaldo del {fechaHora(resumen.archivo.generado)}. Esto es lo que se agregaría:
+              </p>
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Datos</th>
+                    <th scope="col">Nuevos</th>
+                    <th scope="col">Ya estaban</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(Object.keys(resumen.tablas) as TablaExportada[]).map((t) => (
+                    <tr key={t}>
+                      <th scope="row">{NOMBRE_TABLA[t]}</th>
+                      <td>{resumen.tablas[t].nuevas}</td>
+                      <td>{resumen.tablas[t].existentes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div class="acciones">
+                <button
+                  type="button"
+                  disabled={trabajando || nuevas === 0}
+                  onClick={() => void confirmar()}
+                >
+                  {nuevas === 0 ? 'No hay nada nuevo' : `Importar ${nuevas} datos nuevos`}
+                </button>
+                <button type="button" class="secundario" onClick={() => setResumen(null)}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+          {importado && (
+            <p class="exito" role="status">
+              {importado} <a href="/agro/app/">Ver la finca</a>
+            </p>
+          )}
+        </>
       )}
     </section>
   );

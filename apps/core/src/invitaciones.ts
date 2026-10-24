@@ -11,6 +11,10 @@
  *   membresía solo se crea si el código quedó marcado para esta persona: dos teléfonos con el
  *   mismo enlace no entran los dos.
  *
+ * En un plan con tope de personas (`limites.miembros`, HU-E0.13) no se crea una invitación si la
+ * organización ya está llena, y tampoco se acepta: varios enlaces pueden esperar, pero solo entra
+ * quien todavía cabe. Nadie que ya esté sale por el tope.
+ *
  * El código viaja siempre en el cuerpo de un POST, nunca en una URL (CA2, P13): en el enlace va en
  * el fragmento `#`, que no llega a ningún servidor.
  */
@@ -21,9 +25,11 @@ import type { Entorno } from './entrar.ts';
 import {
   CATALOGO,
   PRODUCTO_POR_DEFECTO,
+  planVigenteDe,
   productoDeOrganizacion,
   rolAdministra,
   rolesInvitablesDe,
+  topeDelPlan,
 } from './productos.ts';
 import type { Rol } from './repositorio.ts';
 
@@ -50,6 +56,21 @@ async function sesionDe(c: Context, e: Entorno) {
 const sinSesion = (c: Context) =>
   c.json({ estado: 'sin-sesion', motivo: 'Entra con tu cuenta para continuar.' }, 401);
 
+/** El tope de personas del plan de la organización, si ya se llenó; null si todavía cabe alguien. */
+async function organizacionLlena(
+  e: Entorno,
+  org: string,
+): Promise<{ tope: number; plan: string } | null> {
+  const vigente = await planVigenteDe(e.db, e.catalogo, org, e.ahora());
+  const tope = vigente && topeDelPlan(e.catalogo, vigente.producto, vigente.plan, 'miembros');
+  if (!tope) return null;
+  const fila = await e.db
+    .prepare('SELECT count(*) AS n FROM membresia WHERE org_id = ?')
+    .bind(org)
+    .first<{ n: number }>();
+  return (fila?.n ?? 0) >= tope.tope ? tope : null;
+}
+
 async function cuerpo(c: Context): Promise<Record<string, unknown>> {
   const leido = (await c.req.json().catch(() => ({}))) as unknown;
   return typeof leido === 'object' && leido !== null ? (leido as Record<string, unknown>) : {};
@@ -70,6 +91,16 @@ export async function crearInvitacion(c: Context, e: Entorno): Promise<Response>
   const { rol } = await cuerpo(c);
   if (typeof rol !== 'string' || !rolesInvitablesDe(e.catalogo, producto).includes(rol)) {
     return c.json({ estado: 'invalido', motivo: 'Elige el rol de la persona que invitas.' }, 400);
+  }
+  const llena = await organizacionLlena(e, sesion.org);
+  if (llena) {
+    return c.json(
+      {
+        estado: 'limite-del-plan',
+        motivo: `En el plan ${llena.plan} caben ${llena.tope} personas con cuenta, contándote a ti. Para sumar a alguien más, cambia de plan.`,
+      },
+      409,
+    );
   }
   const codigo = secretoAlAzar();
   const ahora = e.ahora();
@@ -163,6 +194,16 @@ export async function aceptarInvitacion(c: Context, e: Entorno): Promise<Respons
       {
         estado: 'ya-miembro',
         motivo: `Ya eres parte de ${d.finca} como ${ya.rol}. No necesitas esta invitación.`,
+      },
+      409,
+    );
+  }
+  const llena = await organizacionLlena(e, d.org_id);
+  if (llena) {
+    return c.json(
+      {
+        estado: 'limite-del-plan',
+        motivo: `${d.finca} ya tiene las ${llena.tope} personas que caben en su plan. Pídele a ${d.invita} que cambie de plan para que puedas entrar.`,
       },
       409,
     );

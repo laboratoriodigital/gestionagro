@@ -2,14 +2,15 @@
  * El CORE como servidor de autorización OAuth 2.1 para agentes (PLATAFORMA §5.4, ADR-41). Lo de
  * este sprint (HU-C9.2): los metadatos de RFC 8414 en `/.well-known/oauth-authorization-server`.
  *
- * **Solo en staging por ahora** (P1): los metadatos anuncian `/oauth/token` y `/oauth/revoke`, que
- * llegan con HU-C9.5 y HU-C9.6. Anunciarlos en producción antes sería prometer lo que no responde.
- * El despliegue de producción sigue diciendo 404 hasta que `servidorOAuthActivo` cambie.
+ * **En staging y en producción.** Producción se encendió el 24 oct 2026, cuando el dueño conectó un
+ * asistente real al MCP del cuaderno en staging y funcionó (la aceptación de HC6, HU-C9.7). Sin
+ * destino (una prueba o un Worker mal configurado) sigue sin anunciarse (P1).
  */
 import type { CatalogoDelCore } from './productos.ts';
 
-/** Los destinos donde el servidor ya se anuncia. Producción entra con el canje (HU-C9.5). */
-export const servidorOAuthActivo = (destino: string | undefined) => destino === 'staging';
+/** Los destinos donde el servidor se anuncia y atiende. */
+export const servidorOAuthActivo = (destino: string | undefined) =>
+  destino === 'staging' || destino === 'produccion';
 
 /** Los alcances de todos los productos activos, como los declara `productos.json`. */
 export function alcancesDelCatalogo(catalogo: CatalogoDelCore): string[] {

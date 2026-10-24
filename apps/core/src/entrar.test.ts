@@ -1436,6 +1436,50 @@ describe('HU-E4.3 · crear la organización de la finca del teléfono', () => {
     expect(await r.json()).toMatchObject({ motivo: 'Esa finca es de otra cuenta.' });
   });
 
+  describe('HU-E0.13 · una finca gratis en la nube por cuenta', () => {
+    const OTRA = '0199a1b2-0000-7000-8000-000000000002';
+
+    it('la segunda finca gratis no se crea, y lo dice en palabras', async () => {
+      const s = await sesionNueva();
+      expect((await crear(s.acceso, { id: ORG, nombre: 'Finca Ensayo Uno' })).status).toBe(201);
+      const r = await crear(s.acceso, { id: OTRA, nombre: 'Finca Ensayo Dos' });
+      expect(r.status).toBe(409);
+      expect(await r.json()).toMatchObject({
+        estado: 'limite-del-plan',
+        motivo:
+          'Con el plan Gratis, cada cuenta tiene una finca en la nube, y la tuya ya está. Para subir otra, pasa a otro plan la que ya tienes.',
+      });
+      expect(
+        (await db.prepare('SELECT count(*) AS n FROM organizacion').first<{ n: number }>())?.n,
+      ).toBe(1);
+      // Reintentar la que ya tiene sigue funcionando.
+      expect((await crear(s.acceso, { id: ORG, nombre: 'Finca Ensayo Uno' })).status).toBe(200);
+    });
+
+    it('con la primera en un plan pagado vigente, la segunda gratis sí se crea; vencido, ya no', async () => {
+      const s = await sesionNueva();
+      await crear(s.acceso, { id: ORG, nombre: 'Finca Ensayo Uno' });
+      await db
+        .prepare("UPDATE organizacion SET plan = 'finca', plan_vence = ? WHERE id = ?")
+        .bind(new Date(T0 + 30 * 24 * 60 * 60 * 1000).toISOString(), ORG)
+        .run();
+      expect((await crear(s.acceso, { id: OTRA, nombre: 'Finca Ensayo Dos' })).status).toBe(201);
+      await db
+        .prepare('UPDATE organizacion SET plan_vence = ? WHERE id = ?')
+        .bind(new Date(T0 - 1000).toISOString(), ORG)
+        .run();
+      const tercera = await crear(s.acceso, {
+        id: '0199a1b2-0000-7000-8000-000000000003',
+        nombre: 'Finca Ensayo Tres',
+      });
+      expect(tercera.status).toBe(409);
+      // Las dos que ya existían siguen ahí: el tope no esconde ni borra nada.
+      expect(
+        (await db.prepare('SELECT count(*) AS n FROM organizacion').first<{ n: number }>())?.n,
+      ).toBe(2);
+    });
+  });
+
   it('sin token responde 401; sin id válido, 400', async () => {
     expect((await crear(null, { id: ORG, nombre: 'Finca Ensayo Uno' })).status).toBe(401);
     const s = await sesionNueva();
@@ -1644,6 +1688,8 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
 
   it('CA1 y CA3: sirve una sola vez; usada o vencida dice por qué y a quién pedir otra', async () => {
     const { cuerpo } = await invitar();
+    // Antes de que la finca se llene (HU-E0.13: en el plan Gratis caben dos personas).
+    const otra = await invitar();
     const uno = await sesionDe('google-uno');
     await conToken('/api/core/invitaciones/aceptar', uno.acceso, { codigo: cuerpo.codigo });
     // La misma persona otra vez: no falla, ya es suya.
@@ -1661,7 +1707,6 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
       motivo: 'Este enlace ya se usó. Pídele a Persona Ensayo que te mande uno nuevo.',
     });
 
-    const otra = await invitar();
     reloj = T0 + 7 * 24 * 60 * 60 * 1000 + 1;
     const vencida = await post('/api/core/invitaciones/ver', { codigo: otra.cuerpo.codigo });
     expect(await vencida.json()).toMatchObject({
@@ -1684,6 +1729,70 @@ describe('HU-E4.4 · invitar al equipo por WhatsApp', () => {
           .first<{ n: number }>()
       )?.n,
     ).toBe(1);
+  });
+
+  describe('HU-E0.13 · en el plan Gratis caben dos personas con cuenta', () => {
+    const contar = async (sql: string) => (await db.prepare(sql).first<{ n: number }>())?.n;
+
+    it('con la finca llena no se crea otra invitación, y lo dice en palabras', async () => {
+      const { cuerpo } = await invitar();
+      const uno = await sesionDe('google-uno');
+      await conToken('/api/core/invitaciones/aceptar', uno.acceso, { codigo: cuerpo.codigo });
+      const p = await propietario();
+      const r = await conToken('/api/core/invitaciones', p.acceso, { rol: 'operario' });
+      expect(r.status).toBe(409);
+      expect(await r.json()).toMatchObject({
+        estado: 'limite-del-plan',
+        motivo:
+          'En el plan Gratis caben 2 personas con cuenta, contándote a ti. Para sumar a alguien más, cambia de plan.',
+      });
+      expect(await contar('SELECT count(*) AS n FROM invitacion')).toBe(1);
+    });
+
+    it('un enlace de antes no deja entrar a una tercera persona, y el enlace no se gasta', async () => {
+      const primera = await invitar();
+      const segunda = await invitar();
+      const uno = await sesionDe('google-uno');
+      await conToken('/api/core/invitaciones/aceptar', uno.acceso, {
+        codigo: primera.cuerpo.codigo,
+      });
+      const dos = await sesionDe('google-dos');
+      const r = await conToken('/api/core/invitaciones/aceptar', dos.acceso, {
+        codigo: segunda.cuerpo.codigo,
+      });
+      expect(r.status).toBe(409);
+      expect(await r.json()).toMatchObject({
+        estado: 'limite-del-plan',
+        motivo:
+          'Finca Ensayo Uno ya tiene las 2 personas que caben en su plan. Pídele a Persona Ensayo que cambie de plan para que puedas entrar.',
+      });
+      expect(await contar('SELECT count(*) AS n FROM membresia')).toBe(2);
+      expect(await contar('SELECT count(*) AS n FROM invitacion WHERE usada IS NULL')).toBe(1);
+    });
+
+    it('con el plan Finca vigente entra la tercera; al vencer, nadie sale', async () => {
+      const primera = await invitar();
+      const segunda = await invitar();
+      await conToken('/api/core/invitaciones/aceptar', (await sesionDe('google-uno')).acceso, {
+        codigo: primera.cuerpo.codigo,
+      });
+      await db
+        .prepare("UPDATE organizacion SET plan = 'finca', plan_vence = ? WHERE id = ?")
+        .bind(new Date(T0 + 30 * 24 * 60 * 60 * 1000).toISOString(), ORG)
+        .run();
+      const r = await conToken(
+        '/api/core/invitaciones/aceptar',
+        (await sesionDe('google-dos')).acceso,
+        { codigo: segunda.cuerpo.codigo },
+      );
+      expect(r.status).toBe(200);
+      reloj = T0 + 31 * 24 * 60 * 60 * 1000;
+      expect(await contar('SELECT count(*) AS n FROM membresia')).toBe(3);
+      const p = await propietario();
+      expect((await conToken('/api/core/invitaciones', p.acceso, { rol: 'operario' })).status).toBe(
+        409,
+      );
+    });
   });
 
   it('quien ya es parte de la finca no gasta la invitación', async () => {

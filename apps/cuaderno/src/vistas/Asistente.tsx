@@ -10,6 +10,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { abrirFormulario } from '../actividad.ts';
 import type { CuadernoDb } from '../almacen/db.ts';
 import { crearFincaConAreas, type DatosArea, TIPOS_PRINCIPALES } from '../almacen/finca.ts';
+import { nombreDelPlan, topeDelPlan } from '../almacen/limites.ts';
+import { planDeLaFinca } from '../almacen/sesion.ts';
 import { Campo, CampoSeleccion, Opciones } from '../componentes/Campo.tsx';
 import { metros, NOMBRE_REGIMEN, NOMBRE_TIPO } from '../formato.ts';
 
@@ -24,8 +26,12 @@ interface FilaArea {
   m2: string;
 }
 
+/** Una finca nueva todavía no está en la nube: nace en el plan gratuito y con su tope de áreas (HU-E0.13). */
+const PLAN_DE_LA_FINCA_NUEVA = planDeLaFinca(null);
+const TOPE_DE_AREAS = topeDelPlan('areas', PLAN_DE_LA_FINCA_NUEVA);
+
 const REGIMENES = [
-  { valor: 'ecologico', texto: NOMBRE_REGIMEN['ecologico'] ?? 'Ecológico' },
+  { valor: 'ecologico', texto: NOMBRE_REGIMEN['ecologico'] ?? 'Ecológico/orgánico' },
   { valor: 'convencional', texto: NOMBRE_REGIMEN['convencional'] ?? 'Convencional' },
 ] as const;
 
@@ -201,24 +207,32 @@ export function Asistente(props: { db: CuadernoDb; alTerminar: () => void }) {
               )}
             </fieldset>
           ))}
-          <button
-            type="button"
-            class="secundario"
-            onClick={() =>
-              setFilas([
-                ...filas,
-                // El tipo de la fila anterior se propone: casi siempre se repite. Se puede cambiar.
-                {
-                  clave: Math.max(...filas.map((f) => f.clave)) + 1,
-                  tipo: filas.at(-1)?.tipo ?? '',
-                  nombre: '',
-                  m2: '',
-                },
-              ])
-            }
-          >
-            Agregar otra área
-          </button>
+          {TOPE_DE_AREAS !== null && filas.length >= TOPE_DE_AREAS ? (
+            <p class="ayuda" data-prueba="tope-del-plan">
+              Con el plan {nombreDelPlan(PLAN_DE_LA_FINCA_NUEVA)} caben {TOPE_DE_AREAS} áreas. Las
+              camas y los surcos de cada una no cuentan, y si después necesitas más áreas, puedes
+              cambiar de plan.
+            </p>
+          ) : (
+            <button
+              type="button"
+              class="secundario"
+              onClick={() =>
+                setFilas([
+                  ...filas,
+                  // El tipo de la fila anterior se propone: casi siempre se repite. Se puede cambiar.
+                  {
+                    clave: Math.max(...filas.map((f) => f.clave)) + 1,
+                    tipo: filas.at(-1)?.tipo ?? '',
+                    nombre: '',
+                    m2: '',
+                  },
+                ])
+              }
+            >
+              Agregar otra área
+            </button>
+          )}
           <div class="acciones">
             <button type="button" class="secundario" onClick={() => setPaso(1)}>
               Atrás

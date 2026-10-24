@@ -23,12 +23,18 @@ export interface CatalogoDelCore {
   planes: Readonly<Record<string, readonly PlanDelProducto[]>>;
 }
 
-/** Lo que el CORE usa de un plan: su nombre, si es el gratuito y lo que cobra por un mes. */
+/** Lo que el CORE usa de un plan: su nombre, si es el gratuito, lo que cobra por un mes y sus topes. */
 export interface PlanDelProducto {
   id: string;
   nombre: string;
   gratuito?: boolean;
   cobro_mensual_cop?: number;
+  /**
+   * Lo que cabe en el plan (HU-E0.13): el CORE mira `miembros` (personas con cuenta, contando a quien
+   * administra) y `organizaciones_por_cuenta`; las demás claves son de la celda. Sin
+   * la clave, sin tope.
+   */
+  limites?: Readonly<Record<string, number>>;
 }
 
 /**
@@ -190,6 +196,35 @@ export function planEnElToken(
   if (ahora < vence) return { plan: org.plan_pagado, plan_vence: Math.floor(vence / 1000) };
   const gratuito = planesDe(catalogo, org.producto).find((p) => p.gratuito)?.id ?? 'gratuito';
   return { plan: gratuito, plan_vence: null };
+}
+
+/** El tope de un plan para esa clave de `limites`; null si el plan no tiene tope (HU-E0.13). */
+export function topeDelPlan(
+  catalogo: CatalogoDelCore,
+  producto: string,
+  plan: string,
+  clave: string,
+): { tope: number; plan: string } | null {
+  const delPlan = planesDe(catalogo, producto).find((p) => p.id === plan);
+  const tope = delPlan?.limites?.[clave];
+  return delPlan && typeof tope === 'number' ? { tope, plan: delPlan.nombre } : null;
+}
+
+/** El plan que vale hoy para una organización, con su producto; null si no existe. */
+export async function planVigenteDe(
+  db: BaseD1,
+  catalogo: CatalogoDelCore,
+  orgId: string,
+  ahora: number,
+): Promise<{ producto: string; plan: string } | null> {
+  const org = await db
+    .prepare(
+      'SELECT producto, plan AS plan_pagado, plan_vence AS vence_pagado FROM organizacion WHERE id = ?',
+    )
+    .bind(orgId)
+    .first<{ producto: string; plan_pagado: string; vence_pagado: string | null }>();
+  if (!org) return null;
+  return { producto: org.producto, plan: planEnElToken(catalogo, org, ahora).plan };
 }
 
 export type AvisoDelPlan = 'en-gracia' | 'vence-en-1-dia' | 'vence-en-7-dias';

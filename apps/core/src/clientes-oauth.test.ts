@@ -98,8 +98,8 @@ describe('HU-C9.3 · registro dinámico (RFC 7591)', () => {
     ).toBe(201);
   });
 
-  it('P1 ❌ · en producción no hay registro hasta que exista el canje de tokens', async () => {
-    expect((await registrar(AGENTE, '203.0.113.7', 'produccion')).status).toBe(404);
+  it('en producción también hay registro de clientes (HC6 aceptada el 24 oct 2026)', async () => {
+    expect((await registrar(AGENTE, '203.0.113.7', 'produccion')).status).not.toBe(404);
   });
 });
 

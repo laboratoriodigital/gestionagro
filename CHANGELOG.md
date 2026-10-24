@@ -4,6 +4,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- Lo que cabe en el plan Gratis (HU-E0.13, decisión del dueño del 24 oct 2026): hasta 3 áreas principales (las camas y los surcos no cuentan) y 2 personas con cuenta, contando al propietario. El asistente de una finca nueva ofrece hasta 3 áreas, «Mi finca» y «Tu equipo» dicen el tope con «Ver los planes», y la celda pone en cuarentena un área principal que llegue por encima. Los topes viven en `limites` de `planes.json`, la misma fuente del cuaderno, la celda, el CORE y los textos. Nada de lo que ya existe se esconde ni se borra.
+
+### Cambiado
+- Restaurar una copia en el teléfono (importar el respaldo o traer una copia de Drive) es del plan Finca (`restaurar_copia` en `funciones.json`); descargarla, exportar a CSV y guardarla en Drive siguen gratis.
+- El asistente de la finca ya no dice «Pronto» en la landing ni en los planes: se encendió en producción (HU-E0.12).
+- Al crear una finca, la producción ecológica se llama «Ecológico/orgánico», como la dicen muchos productores.
+- La finca de prueba «Finca Ensayo Dos» tiene tres bloques, lo que cabe en el plan Gratis.
+
 ## [0.6.0] - 2026-10-24
 
 CultivoPro con cara nueva: la landing en la raíz de cultivopro.co, la bienvenida y el inicio del cuaderno con lo de hoy, y el asistente de la finca del plan Finca, que en producción sigue en «Pronto» hasta encender su servidor de permisos.

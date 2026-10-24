@@ -5,7 +5,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { FINCA_ENSAYO_UNO, FINCAS_DE_PRUEBA } from '../fixtures/fincas.ts';
-import { abrirSinCuenta, configurar, irASeccion } from './ayudas.ts';
+import { abrirSinCuenta, configurar, conPlan, irASeccion } from './ayudas.ts';
 
 test('CA2: nombre, municipio y régimen arrancan vacíos, y vacíos no avanzan', async ({ page }) => {
   await abrirSinCuenta(page);
@@ -125,13 +125,15 @@ test.describe('ajustes de la revisión del dueño (1 oct 2026)', () => {
   });
 
   test('después del registro inicial se agregan más áreas, de cualquier tipo', async ({ page }) => {
-    await configurar(page, f);
+    // Dos, para que la tercera quepa en el plan Gratis (HU-E0.13).
+    const dosAreas = f.areas.slice(0, 2);
+    await configurar(page, f, dosAreas);
     await page.getByRole('button', { name: 'Agregar área' }).click();
     await page.getByLabel('Tipo').selectOption({ label: 'Bloque' });
     await page.getByLabel('Nombre', { exact: true }).fill('Bloque Nuevo');
     await page.getByLabel('Tamaño (m²)').fill('800');
     await page.getByRole('button', { name: 'Guardar' }).click();
-    await expect(page.locator('[data-prueba="area"]')).toHaveCount(f.areas.length + 1);
+    await expect(page.locator('[data-prueba="area"]')).toHaveCount(dosAreas.length + 1);
     await expect(
       page.locator('[data-prueba="area"]').filter({ hasText: 'Bloque Nuevo · 800 m²' }),
     ).toHaveCount(1);
@@ -163,12 +165,26 @@ test('revisión del dueño: con muchas áreas se pliegan; se abren una a una o t
   page,
 }) => {
   const f = FINCA_ENSAYO_UNO;
-  const naves = Array.from({ length: 7 }, (_, i) => ({
+  const naves = Array.from({ length: 3 }, (_, i) => ({
     tipo: 'nave' as const,
     nombre: `Nave ${i + 1}`,
     area_m2: 600,
   }));
   await configurar(page, f, naves);
+  // Las otras cuatro, con el plan Finca: el Gratis deja tres (HU-E0.13).
+  await conPlan(page, 'finca');
+  await page.reload();
+  for (let n = 4; n <= 7; n++) {
+    await page.getByRole('button', { name: 'Agregar área' }).click();
+    await page.getByLabel('Tipo').selectOption({ label: 'Nave' });
+    await page.getByLabel('Nombre', { exact: true }).fill(`Nave ${n}`);
+    await page.getByLabel('Tamaño (m²)').fill('600');
+    await page.getByRole('button', { name: 'Guardar' }).click();
+    // Guardada antes de seguir: recargar a mitad de la escritura la perdería.
+    await expect(page.locator('[data-prueba="area"]')).toHaveCount(n);
+  }
+  // Al volver a abrir la pantalla, con siete áreas, arrancan plegadas.
+  await page.reload();
   const area = (n: number) =>
     page
       .locator('[data-prueba="area"]')
@@ -200,19 +216,20 @@ test('revisión del dueño: un área nueva sin nada asociado se elimina; una con
 }) => {
   const f = FINCA_ENSAYO_UNO;
   const primera = f.areas[0]?.nombre ?? '';
-  await configurar(page, f);
+  const dosAreas = f.areas.slice(0, 2);
+  await configurar(page, f, dosAreas);
   await page.getByRole('button', { name: 'Agregar área' }).click();
   await page.getByLabel('Tipo').selectOption({ label: 'Bloque' });
   await page.getByLabel('Nombre', { exact: true }).fill('Bloque Nuevo');
   await page.getByLabel('Tamaño (m²)').fill('800');
   await page.getByRole('button', { name: 'Guardar' }).click();
-  await expect(page.locator('[data-prueba="area"]')).toHaveCount(f.areas.length + 1);
+  await expect(page.locator('[data-prueba="area"]')).toHaveCount(dosAreas.length + 1);
 
   await page.getByRole('button', { name: 'Eliminar Bloque Nuevo' }).click();
   const aviso = page.locator('[data-prueba="eliminar-area"]');
   await expect(aviso).toContainText('¿Eliminar «Bloque Nuevo»?');
   await aviso.getByRole('button', { name: 'Sí, eliminar' }).click();
-  await expect(page.locator('[data-prueba="area"]')).toHaveCount(f.areas.length);
+  await expect(page.locator('[data-prueba="area"]')).toHaveCount(dosAreas.length);
   await expect(page.getByText('Bloque Nuevo')).toHaveCount(0);
 
   // Con un registro, no: dice por qué.
@@ -228,4 +245,39 @@ test('revisión del dueño: un área nueva sin nada asociado se elimina; una con
     `No se puede eliminar «${primera}»: tiene 1 registro`,
   );
   await expect(page.getByRole('button', { name: 'Sí, eliminar' })).toHaveCount(0);
+});
+
+test('HU-E0.13: en el plan Gratis caben 3 áreas; las camas no cuentan y con el plan Finca hay más', async ({
+  page,
+}) => {
+  const f = FINCA_ENSAYO_UNO;
+  await abrirSinCuenta(page);
+  await page.getByLabel('Nombre de la finca').fill(f.finca.nombre);
+  await page.getByLabel('Municipio').fill(f.finca.municipio);
+  await page.getByLabel('Ecológico').check();
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+  for (let i = 1; i < 3; i++) await page.getByRole('button', { name: 'Agregar otra área' }).click();
+  // La tercera fila ya es el tope: no se ofrece otra y lo dice.
+  await expect(page.getByRole('button', { name: 'Agregar otra área' })).toHaveCount(0);
+  await expect(page.locator('[data-prueba="tope-del-plan"]')).toContainText(
+    'Con el plan Gratis caben 3 áreas.',
+  );
+
+  await configurar(page, f);
+  await expect(page.getByRole('button', { name: 'Agregar área' })).toHaveCount(0);
+  const aviso = page.locator('[data-prueba="tope-del-plan"]');
+  await expect(aviso).toContainText('Con el plan Gratis caben 3 áreas en la finca.');
+  await expect(aviso.getByRole('link', { name: 'Ver los planes' })).toHaveAttribute(
+    'href',
+    '/agro/app/planes/',
+  );
+  // Las camas de cada área sí se agregan.
+  await expect(
+    page.getByRole('button', { name: `Agregar cama o surco en ${f.areas[0]?.nombre}` }),
+  ).toBeVisible();
+
+  await conPlan(page, 'finca');
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Agregar área' })).toBeVisible();
+  await expect(page.locator('[data-prueba="tope-del-plan"]')).toHaveCount(0);
 });

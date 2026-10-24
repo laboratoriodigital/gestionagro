@@ -9,7 +9,11 @@ import { cambiarRol, leerEquipo, type Miembro, quitarDelEquipo } from '../almace
 import { NOMBRE_ROL, ROLES_PARA_INVITAR } from '../almacen/invitacion.ts';
 import { ErrorDeSesion, urlDelCore } from '../almacen/sesion.ts';
 
-export function PersonasConAcceso(props: { enLinea: boolean }) {
+export function PersonasConAcceso(props: {
+  enLinea: boolean;
+  /** Cuántas personas tienen acceso, cada vez que se lee el equipo (para el tope del plan). */
+  alContar?: (cuantas: number) => void;
+}) {
   const [miembros, setMiembros] = useState<Miembro[] | null>(null);
   const [confirmando, setConfirmando] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -19,7 +23,10 @@ export function PersonasConAcceso(props: { enLinea: boolean }) {
   const cargar = () => {
     if (!props.enLinea) return;
     leerEquipo(cuaderno(), core)
-      .then(setMiembros)
+      .then((m) => {
+        setMiembros(m);
+        props.alContar?.(m.length);
+      })
       .catch((e: unknown) =>
         setError(e instanceof ErrorDeSesion ? e.message : 'No se pudo leer el equipo.'),
       );

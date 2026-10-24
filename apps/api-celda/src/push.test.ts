@@ -177,6 +177,13 @@ const contar = async (tabla: string, org?: string) =>
       .first<{ n: number }>()
   )?.n;
 
+/** La copia del plan que la celda guarda de la organización (HU-C5.6). */
+const conPlan = (org: string, plan: string, vence: string | null = null) =>
+  db
+    .prepare('INSERT INTO plan_de_org (org_id, plan, plan_vence, actualizado) VALUES (?, ?, ?, ?)')
+    .bind(org, plan, vence, actualizado)
+    .run();
+
 /** Una finca de prueba con un área, ya en la nube. */
 async function fincaEnLaNube(org: string, f = FINCA_ENSAYO_UNO) {
   const finca = nuevoId();
@@ -201,6 +208,8 @@ describe('CA1 · lotes de ≤ 25 operaciones, dentro de las 50 consultas de D1 g
   });
 
   it('un lote lleno de catálogos actualizados también cabe', async () => {
+    // Con el plan Finca, sin tope de áreas (HU-E0.13).
+    await conPlan(ORG_UNO, 'finca');
     const finca = nuevoId();
     const areas = Array.from({ length: LOTE_MAXIMO - 1 }, () => nuevoId());
     await push(ORG_UNO, [
@@ -226,6 +235,55 @@ describe('CA1 · lotes de ≤ 25 operaciones, dentro de las 50 consultas de D1 g
     );
     expect(r.estado).toBe(413);
     expect(await contar('registro')).toBe(0);
+  });
+});
+
+describe('HU-E0.13 · en el plan Gratis caben 3 áreas principales', () => {
+  const MOTIVO =
+    'Con el plan Gratis caben 3 áreas principales en la finca; las camas y los surcos no cuentan. Para agregar otra, cambia de plan.';
+  const camaOp = (id: string, fincaId: string, padre: string): Operacion => {
+    const op = areaOp(id, fincaId, 'Cama 1');
+    return { ...op, datos: { ...(op.datos as object), padre_id: padre, tipo: 'cama' } };
+  };
+
+  it('la cuarta va a cuarentena con el motivo; las camas no cuentan y reenviar no cuenta dos veces', async () => {
+    const { finca, area } = await fincaEnLaNube(ORG_UNO);
+    const [b, c, d] = [nuevoId(), nuevoId(), nuevoId()];
+    const r = await push(ORG_UNO, [
+      areaOp(b, finca, 'Nave 2'),
+      camaOp(nuevoId(), finca, area),
+      areaOp(c, finca, 'Nave 3'),
+      areaOp(d, finca, 'Nave 4'),
+    ]);
+    expect(r.cuerpo.acks.map((a) => a.estado)).toEqual([
+      'aceptado',
+      'aceptado',
+      'aceptado',
+      'cuarentena',
+    ]);
+    expect(r.cuerpo.acks[3]?.motivo).toBe(MOTIVO);
+    expect(
+      (await push(ORG_UNO, [areaOp(b, finca, 'Nave 2')])).cuerpo.acks.map((a) => a.estado),
+    ).toEqual(['duplicado']);
+    // Renombrar una de las tres sigue funcionando.
+    const op = areaOp(c, finca, 'Nave 3 renombrada');
+    const v2 = { ...op, id: `${c}@v2`, version: 2, datos: { ...(op.datos as object), version: 2 } };
+    expect((await push(ORG_UNO, [v2])).cuerpo.acks[0]?.estado).toBe('aceptado');
+  });
+
+  it('con el plan Finca vigente entra la cuarta; vencido, cuenta el Gratis', async () => {
+    await conPlan(ORG_UNO, 'finca', '2099-01-01T00:00:00.000Z');
+    const { finca } = await fincaEnLaNube(ORG_UNO);
+    const r = await push(
+      ORG_UNO,
+      ['Nave 2', 'Nave 3', 'Nave 4'].map((n) => areaOp(nuevoId(), finca, n)),
+    );
+    expect(r.cuerpo.acks.every((a) => a.estado === 'aceptado')).toBe(true);
+    await db.prepare("UPDATE plan_de_org SET plan_vence = '2026-01-01T00:00:00.000Z'").run();
+    const quinta = await push(ORG_UNO, [areaOp(nuevoId(), finca, 'Nave 5')]);
+    expect(quinta.cuerpo.acks[0]).toMatchObject({ estado: 'cuarentena', motivo: MOTIVO });
+    // Las cuatro que ya estaban siguen en la nube: el tope no esconde ni borra nada.
+    expect(await contar('catalogo', ORG_UNO)).toBe(5);
   });
 });
 
