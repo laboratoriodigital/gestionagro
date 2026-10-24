@@ -847,3 +847,68 @@ label.boton.secundario {
   margin-block: var(--espacio-2);
   border-radius: var(--radio);
 }
+
+/* HU-E0.10: la bienvenida de un teléfono sin finca y sin cuenta. El saludo va sobre el verde bosque
+   de la landing, con su retícula de invernadero; las acciones, sobre el fondo de siempre, para
+   leerlas al sol. */
+.bienvenida-entrada {
+  margin-block: var(--espacio-3) var(--espacio-4);
+  border: 1px solid var(--color-borde);
+  border-radius: 1.25rem;
+  overflow: hidden;
+}
+.bienvenida-entrada__saludo {
+  padding: var(--espacio-5, 2rem) var(--espacio-3) var(--espacio-4);
+  background:
+    repeating-linear-gradient(90deg, rgb(197 232 108 / 0.07) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(0deg, rgb(197 232 108 / 0.07) 0 1px, transparent 1px 40px), #0e2a1c;
+  color: #eef3e6;
+}
+.bienvenida-entrada__saludo h1 {
+  margin: var(--espacio-3) 0 var(--espacio-2);
+  font-size: 1.625rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.bienvenida-entrada__saludo p {
+  margin: 0;
+  color: #b9c7b4;
+}
+.bienvenida-entrada__hoja {
+  width: 2.75rem;
+  height: 2.75rem;
+  fill: #c5e86c;
+}
+.bienvenida-entrada__cuerpo {
+  padding: var(--espacio-3);
+}
+.acciones--columna {
+  flex-direction: column;
+}
+.bienvenida-entrada button {
+  border-radius: 999px;
+}
+.bienvenida-entrada .entrar-correo {
+  margin-block-start: 0;
+}
+.bienvenida-entrada__sin-cuenta {
+  margin-block-start: var(--espacio-4);
+  padding: var(--espacio-3);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+}
+.bienvenida-entrada__sin-cuenta p {
+  margin: 0;
+}
+button.enlace {
+  display: block;
+  margin-block: var(--espacio-1);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-marca);
+  text-align: start;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}

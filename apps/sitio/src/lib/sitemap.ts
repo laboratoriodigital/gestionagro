@@ -8,10 +8,15 @@ import { esHerramienta, SITIO, urlDe } from './seo.ts';
 const escapar = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+/**
+ * La landing de la raíz va siempre (HU-E0.10): es la portada de la marca y no espera revisión
+ * agronómica. El índice de herramientas entra solo con alguna activa.
+ */
 export function urlsDelSitemap(productos: readonly Producto[]): string[] {
+  const raiz = `${SITIO}/`;
   const activos = productos.filter((p) => esHerramienta(p) && p.estado === 'activo');
-  if (activos.length === 0) return [];
-  return [`${SITIO}/herramientas/agro/`, ...activos.map((p) => urlDe(p.slug)).sort()];
+  if (activos.length === 0) return [raiz];
+  return [raiz, `${SITIO}/herramientas/agro/`, ...activos.map((p) => urlDe(p.slug)).sort()];
 }
 
 export function sitemapXml(productos: readonly Producto[]): string {

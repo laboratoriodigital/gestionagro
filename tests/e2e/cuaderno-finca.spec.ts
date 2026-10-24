@@ -5,10 +5,10 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { FINCA_ENSAYO_UNO, FINCAS_DE_PRUEBA } from '../fixtures/fincas.ts';
-import { APP, configurar } from './ayudas.ts';
+import { abrirSinCuenta, configurar } from './ayudas.ts';
 
 test('CA2: nombre, municipio y régimen arrancan vacíos, y vacíos no avanzan', async ({ page }) => {
-  await page.goto(APP);
+  await abrirSinCuenta(page);
   await expect(page.getByLabel('Nombre de la finca')).toHaveValue('');
   await expect(page.getByLabel('Municipio')).toHaveValue('');
   await expect(page.getByLabel('Ecológico')).not.toBeChecked();
@@ -22,7 +22,7 @@ test('CA2: nombre, municipio y régimen arrancan vacíos, y vacíos no avanzan',
 });
 
 test('un tamaño ilegible no avanza y lo dice junto al campo', async ({ page }) => {
-  await page.goto(APP);
+  await abrirSinCuenta(page);
   await page.getByLabel('Nombre de la finca').fill('Finca Ensayo Uno');
   await page.getByLabel('Municipio').fill('Municipio Ensayo A');
   await page.getByLabel('Ecológico').check();
@@ -81,7 +81,7 @@ for (const f of FINCAS_DE_PRUEBA) {
 }
 
 test('el asistente y la finca cumplen WCAG 2.1 AA', async ({ page }) => {
-  await page.goto(APP);
+  await abrirSinCuenta(page);
   const revisar = async () => {
     const { violations } = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -112,7 +112,7 @@ test.describe('ajustes de la revisión del dueño (1 oct 2026)', () => {
   });
 
   test('un área sin tipo no avanza y lo dice junto al campo', async ({ page }) => {
-    await page.goto(APP);
+    await abrirSinCuenta(page);
     await page.getByLabel('Nombre de la finca').fill(f.finca.nombre);
     await page.getByLabel('Municipio').fill(f.finca.municipio);
     await page.getByLabel('Ecológico').check();

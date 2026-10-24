@@ -39,13 +39,14 @@ describe('SEO derivado del contrato (HU-E1.6, CA1)', () => {
 });
 
 describe('sitemap (CA1)', () => {
-  it('no incluye borradores', () => {
-    expect(urlsDelSitemap([con({ estado: 'borrador' })])).toEqual([]);
-    expect(sitemapXml([con({ estado: 'borrador' })])).not.toContain('<url>');
+  it('no incluye borradores: con solo borradores queda la landing de la raíz (HU-E0.10)', () => {
+    expect(urlsDelSitemap([con({ estado: 'borrador' })])).toEqual([`${SITIO}/`]);
+    expect(sitemapXml([con({ estado: 'borrador' })])).not.toContain('calculadora-dpv');
   });
 
-  it('incluye las herramientas activas y el índice', () => {
+  it('incluye la landing, las herramientas activas y el índice', () => {
     expect(urlsDelSitemap([con({ estado: 'activo' })])).toEqual([
+      `${SITIO}/`,
       `${SITIO}/herramientas/agro/`,
       `${SITIO}/herramientas/agro/calculadora-dpv/`,
     ]);
@@ -54,6 +55,8 @@ describe('sitemap (CA1)', () => {
   it('no incluye el cuaderno (no es herramienta pública)', () => {
     const cuaderno = productos.find((p) => p.id === 'agro-cuaderno');
     expect(cuaderno).toBeDefined();
-    expect(urlsDelSitemap([{ ...(cuaderno as Producto), estado: 'activo' }])).toEqual([]);
+    expect(urlsDelSitemap([{ ...(cuaderno as Producto), estado: 'activo' }])).toEqual([
+      `${SITIO}/`,
+    ]);
   });
 });

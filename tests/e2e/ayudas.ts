@@ -21,13 +21,25 @@ export async function llenarAreas(page: Page, areas: readonly AreaDePrueba[]) {
   }
 }
 
+/**
+ * Abre el cuaderno y, si sale la bienvenida de un teléfono nuevo (HU-E0.10), elige «empezar sin
+ * cuenta»: queda el asistente de la finca, como antes de la bienvenida.
+ */
+export async function abrirSinCuenta(page: Page) {
+  await page.goto(APP);
+  const empezar = page.getByRole('button', { name: 'Empezar en este teléfono, sin cuenta' });
+  const asistente = page.getByRole('heading', { level: 1, name: 'Tu finca', exact: true });
+  await expect(empezar.or(asistente)).toBeVisible();
+  if (await empezar.isVisible()) await empezar.click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tu finca');
+}
+
 export async function configurar(
   page: Page,
   f: FincaDePrueba,
   areas: readonly AreaDePrueba[] = f.areas,
 ) {
-  await page.goto(APP);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tu finca');
+  await abrirSinCuenta(page);
   await page.getByLabel('Nombre de la finca').fill(f.finca.nombre);
   await page.getByLabel('Municipio').fill(f.finca.municipio);
   await page.getByLabel(REGIMEN[f.finca.regimen]).check();

@@ -13,6 +13,7 @@ import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 const PAGINAS = [
+  '/',
   '/herramientas/agro/',
   '/herramientas/agro/calculadora-dpv/',
   '/agro/guia/',
@@ -127,16 +128,16 @@ test.describe('página útil de la DPV (HU-E2.5)', () => {
   });
 });
 
-test('la raíz redirige con un 301 al índice de herramientas, sin página intermedia', async ({
+test('HU-E0.10 · la raíz es la landing, sin redirección, y la marca de las herramientas lleva a ella', async ({
   page,
 }) => {
   const r = await page.request.get('/', { maxRedirects: 0 });
-  expect(r.status()).toBe(301);
-  expect(r.headers()['location']).toBe('/herramientas/agro/');
-  await page.goto('/');
-  await expect(page).toHaveURL(/\/herramientas\/agro\/$/);
+  expect(r.status()).toBe(200);
+  await page.goto('/herramientas/agro/');
+  await page.locator('.cabecera .marca').click();
+  await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-    'Herramientas agronómicas gratuitas',
+    'Tu cuaderno de campo. Funciona aunque no haya señal.',
   );
 });
 

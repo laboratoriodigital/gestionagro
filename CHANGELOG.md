@@ -5,6 +5,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 ## [Sin publicar]
 
 ### Agregado
+- La landing de CultivoPro en la raíz de `cultivopro.co` (HU-E0.10): qué es el cuaderno, cómo trabaja sin señal, lo que incluye, las calculadoras gratuitas, los planes de `planes.json` y las preguntas, en el sistema de diseño v2 con el verde de la marca. Al bajar, el teléfono de «Así trabaja contigo» cambia de pantalla en cada paso; sin JavaScript o con el movimiento reducido todo queda quieto y completo. Entra al sitemap y tiene su gemelo en Markdown.
+- La bienvenida del cuaderno (HU-E0.10): un teléfono sin finca y sin cuenta ve primero un saludo con «Entrar con Google», «Recibir un enlace en mi correo» y «Empezar en este teléfono, sin cuenta». Quien empieza sin cuenta va al asistente de siempre y no la vuelve a ver.
 - El cuaderno deja entrar con un enlace al correo, debajo de «Entrar con Google», con la misma política aceptada (HU-C10.2). `@ed1/correo/entrar` es lo que pide el enlace, el mismo en las cuatro apps.
 - `scripts/copia/permiso-de-drive.ts` y `scripts/copia/simulacro.ts` (HU-C11.4): el dueño da una vez el permiso del Drive donde van las copias semanales, con la llave que solo él guarda, y cada trimestre restaura las copias en su computador para comprobar que se abren y cuadran.
 - `@ed1/correo` manda también con Resend (`correoResend`, HU-T18.4): una clave de API y una dirección del dominio verificado, detrás de la misma interfaz. Sin la clave responde «no disponible» sin tocar la red, y lo que Resend rechaza nunca cuenta como enviado. Cada correo sale como «<nombre> vía <marca>»: la marca la elige el producto (TiendaPro para la Tienda) y, si no dice, Laboratorio Digital.
@@ -25,6 +27,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 - Los campos del sistema de diseño cuentan su borde y su relleno dentro del ancho: uno al 100 % ya no se sale de la pantalla de un teléfono.
 
 ### Cambiado
+- La raíz de `cultivopro.co` ya no redirige a `/herramientas/agro/`: muestra la landing, y la marca de las páginas de herramientas lleva a ella. La prueba de humo del despliegue pide la landing en la raíz (HU-E0.10).
 - El título de un commit o de un PR puede tener hasta 120 caracteres; antes eran 72, y un título de 77 detenía el CI.
 - En Planes, cualquiera puede comparar los periodos del plan Finca (el total, lo que sale al mes y el ahorro), aunque no haya entrado o no tenga su finca en la nube. Pagar sigue siendo solo para quien la administra.
 - El despliegue corre en tres pasos, CORE, agro y parqueadero, y cada uno recibe solo sus secretos: las llaves de Bold y de Google solo llegan al del CORE, y el token de métricas y Telegram solo al del agro. Una parte sin nada que desplegar termina en segundos (HU-C11.3).
