@@ -1,0 +1,88 @@
+---
+/**
+ * «Así trabaja contigo, desde la nave»: el momento propio de la página. El teléfono queda fijo
+ * mientras bajan los cuatro pasos, y cada paso cambia su pantalla (`data-paso`, que pone
+ * `escena.ts` al verlo): anotar, guardar sin señal, subir al volver la señal y saber qué cosechar.
+ * Sin JavaScript, o con el movimiento reducido, se ve la primera pantalla y los pasos se leen
+ * igual. Todo es de ejemplo y lo dice.
+ */
+import { FINCA_DE_EJEMPLO, PASOS } from './contenido.ts';
+
+const pendientes = [
+  { que: 'Aplicación', donde: 'Nave 2', hora: '7:52' },
+  { que: 'Riego', donde: 'Nave 1', hora: '8:10' },
+  { que: 'Cosecha · 184 kg', donde: 'Nave 3', hora: '9:30' },
+];
+---
+<section class="trabajo" id="como-funciona" aria-labelledby="trabajo-titulo" data-trabajo data-paso="anota">
+  <div class="trabajo__cabeza">
+    <h2 id="trabajo-titulo">Así trabaja contigo, desde la nave</h2>
+    <p>Sin cuadernos de papel que se mojan ni planillas que se pasan a limpio en la noche. Anotas una vez y todos lo ven.</p>
+  </div>
+
+  <div class="trabajo__cuerpo">
+    <div class="trabajo__escena" aria-hidden="true">
+      <div class="telefono telefono--trabajo">
+        <div class="telefono__pantalla">
+          <div class="pantalla pantalla--anota">
+            <p class="pantalla__finca">{FINCA_DE_EJEMPLO} · Nave 2</p>
+            <p class="pantalla__titulo">Nueva aplicación</p>
+            <p class="campo-falso"><span>Producto</span><span>Extracto de ajo</span></p>
+            <p class="campo-falso"><span>Dosis</span><span class="cifra">2 cc por litro</span></p>
+            <p class="campo-falso"><span>Carencia</span><span class="cifra">3 días</span></p>
+            <p class="campo-falso"><span>Quién aplicó</span><span>Operario 1</span></p>
+            <p class="boton-falso">Guardar</p>
+          </div>
+
+          <div class="pantalla pantalla--guarda">
+            <p class="senal senal--sin"><span class="senal__punto"></span>Sin señal · <span class="cifra">3</span> registros esperando</p>
+            <ul class="registros">
+              {pendientes.map((r) => (
+                <li class="registro">
+                  <span><strong>{r.que}</strong><br />{r.donde} · <span class="cifra">{r.hora}</span></span>
+                  <span class="registro__marca">En el teléfono</span>
+                </li>
+              ))}
+            </ul>
+            <p class="pantalla__suave">Puedes seguir anotando: nada se pierde.</p>
+            <p class="boton-falso">Anotar</p>
+          </div>
+
+          <div class="pantalla pantalla--sube">
+            <p class="senal senal--al-dia"><span class="senal__punto"></span>Al día</p>
+            <ul class="registros">
+              {pendientes.map((r) => (
+                <li class="registro registro--subido">
+                  <span><strong>{r.que}</strong><br />{r.donde} · <span class="cifra">{r.hora}</span></span>
+                  <span class="registro__marca">Subido</span>
+                </li>
+              ))}
+            </ul>
+            <p class="pantalla__suave">Tu equipo ya lo ve.</p>
+          </div>
+
+          <div class="pantalla pantalla--cosecha">
+            <p class="pantalla__finca">{FINCA_DE_EJEMPLO}</p>
+            <p class="pantalla__titulo">¿Qué cosecho hoy?</p>
+            <ul class="naves__lista">
+              <li class="nave nave--lista"><span>Nave 1</span><span class="nave__estado">Se puede cosechar</span></li>
+              <li class="nave nave--carencia"><span>Nave 2</span><span class="nave__estado">Desde el sábado</span></li>
+              <li class="nave nave--lista"><span>Nave 3</span><span class="nave__estado">Se puede cosechar</span></li>
+            </ul>
+            <p class="pantalla__suave">La Nave 2 tuvo aplicación el miércoles: carencia de <span class="cifra">3</span> días.</p>
+          </div>
+        </div>
+      </div>
+      <p class="trabajo__nota">Registros de ejemplo.</p>
+    </div>
+
+    <ol class="trabajo__pasos">
+      {PASOS.map((p) => (
+        <li class="paso" data-paso={p.id}>
+          <h3>{p.titulo}</h3>
+          <p>{p.texto}</p>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>

@@ -1,14 +1,18 @@
 /**
  * Inicio del cuaderno. Sin finca, abre el asistente (HU-E3.3); con finca, la muestra.
+ * Un teléfono sin finca y sin cuenta ve antes la bienvenida (HU-E0.10), hasta que entra o elige
+ * empezar sin cuenta.
  * Pide almacenamiento persistente y dice el resultado en palabras (ARQUITECTURA §5.3, regla 6).
  */
 import type { Area, Ciclo, Cultivo, Finca } from '@ed1/agro-schema';
 import { useEffect, useState } from 'preact/hooks';
 import { cuaderno } from '../almacen/abierto.ts';
+import { empezarSinCuenta, leerEstadoDeEntrada, mostrarBienvenida } from '../almacen/bienvenida.ts';
 import { leerCiclos, leerCultivos } from '../almacen/ciclos.ts';
 import { leerFinca } from '../almacen/finca.ts';
 import { type EstadoPersistencia, pedirPersistencia } from '../almacen/persistencia.ts';
 import { Asistente } from './Asistente.tsx';
+import { Bienvenida } from './Bienvenida.tsx';
 import { MiFinca } from './MiFinca.tsx';
 
 const TEXTO_PERSISTENCIA: Record<EstadoPersistencia, string> = {
@@ -24,6 +28,7 @@ type Estado =
   | {
       cargando: false;
       datos: { finca: Finca; areas: Area[]; ciclos: Ciclo[]; cultivos: Cultivo[] } | null;
+      bienvenida: boolean;
     };
 
 export function Inicio() {
@@ -41,8 +46,19 @@ export function Inicio() {
             cultivos: await leerCultivos(db, base.finca.id),
           }
         : null;
-      setEstado({ cargando: false, datos });
+      const entrada = await leerEstadoDeEntrada(db);
+      setEstado({
+        cargando: false,
+        datos,
+        bienvenida: mostrarBienvenida({ hayFinca: datos !== null, ...entrada }),
+      });
     })();
+  };
+
+  const sinCuenta = () => {
+    void empezarSinCuenta(db).then(() =>
+      setEstado((e) => (e.cargando ? e : { ...e, bienvenida: false })),
+    );
   };
 
   useEffect(() => {
@@ -65,6 +81,8 @@ export function Inicio() {
           cultivos={estado.datos.cultivos}
           alCambiar={cargar}
         />
+      ) : estado.bienvenida ? (
+        <Bienvenida alEmpezar={sinCuenta} />
       ) : (
         <>
           <p class="bienvenida">

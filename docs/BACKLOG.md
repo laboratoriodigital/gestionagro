@@ -130,7 +130,7 @@ La velocidad real se anota al cierre de cada sprint en §7.
 
 | Épica | Objetivo | Hito | Pts |
 |---|---|---|---|
-| E0 · Decisiones y validación | Cerrar la Fase 0 del agro y medir la demanda; marca, guías y cobro | H0, H3, H7 | 17 |
+| E0 · Decisiones y validación | Cerrar la Fase 0 del agro y medir la demanda; marca, guías, landing y cobro | H0, H3, H7 | 20 |
 | E1 · Cimientos | Monorepo, CI, contratos, despliegue por anillos, publicación continua y seguridad | H0, H1 | 20 (HU-E1.4 cancelada) |
 | E2 · Herramienta DPV | Primera herramienta gratuita, puerta al cuaderno | H1 | 13 (+2 preparada) |
 | E3 · Cuaderno offline | Registrar la operación sin señal | H2 | 29 |
@@ -251,6 +251,23 @@ Estados posibles: `Refinada` (cumple DoR), `En sprint`, `Terminada`, `Preparada`
 #### HU-E0.9 · Guías para el productor y para el vendedor
 **Como** productor o vendedor **quiero** una guía sencilla de cómo se usa y cómo se vende **para** empezar sin ayuda.
 - **Peldaño:** usuario recurrente · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** fuera de sprint · **Estado:** Terminada (3 oct 2026, v0.2.0: `/agro/guia/` y `/agro/vendedores/`, en lenguaje de campo, sin términos técnicos)
+
+#### HU-E0.10 · La landing de CultivoPro y la bienvenida del cuaderno
+**Como** productor que llega a `cultivopro.co` **quiero** ver de un vistazo qué hace el cuaderno, cuánto cuesta y cómo empezar, y al abrirlo por primera vez poder entrar con mi cuenta o empezar sin ella **para** decidir rápido y no perderme en la primera pantalla.
+- **Peldaño:** visitante → usuario (la raíz era una redirección a las herramientas; ahora presenta el cuaderno y lleva a él) · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** fuera de sprint, a pedido del dueño (23 oct 2026) · **Depende de:** HU-E0.8, HU-E0.6, HU-C10.2 · **Estado:** En revisión (rama `feat/cultivopro-landing`; boceto aprobado por el dueño el 23 oct 2026: la propuesta «hermana de TiendaPro» con las franjas en verde bosque de «invernadero de noche», y con animación al bajar)
+- **Premisas:** el dueño dijo que la única interfaz que le gusta es la landing de TiendaPro (`PRODUCT.md`, evaluación del 23 oct): esta copia su estructura y cambia el cobre por el verde de la marca. El estudio de mercado pone «móvil y sin conexión» entre lo que el productor ya espera (§ competencia) y el cuaderno como app que guarda en el teléfono (§ ED1, browser-first): por eso el titular es «funciona aunque no haya señal». ED1 §28: la cuenta es opcional, y la bienvenida deja empezar sin ella. `PRODUCT.md`: sin testimonios ni cifras inventadas, fincas de ejemplo con nombre de ensayo, precios solo de `planes.json`.
+- **Criterios de aceptación:**
+  1. Dada la raíz de `cultivopro.co`, cuando se abre, entonces responde 200 con la landing (ya no redirige), entra al sitemap y tiene su gemelo en Markdown; las calculadoras siguen en `/herramientas/agro/` y su marca lleva a la raíz.
+  2. Dada la landing, cuando se lee a 360 y a 1280 px, entonces dice qué es, cómo trabaja sin señal, lo que incluye, las calculadoras gratuitas, los planes de `planes.json` (los que no se cobran todavía dicen «pronto») y las preguntas; «Empezar» y «Entrar» llevan al cuaderno; axe sin fallas y nada se sale de lo ancho.
+  3. Dado «Así trabaja contigo», cuando se baja por sus cuatro pasos, entonces el teléfono cambia de pantalla (anotar, sin señal, al día, qué cosechar); las partes de abajo aparecen al llegar y la cifra del DPV cuenta hasta su valor. Sin JavaScript o con el movimiento reducido, todo se ve quieto y completo.
+  4. Dado un teléfono sin finca, sin cuenta, sin invitación y sin otra finca, cuando abre el cuaderno, entonces ve la bienvenida: entrar con Google o con un enlace al correo (con la política aceptada y señal, como en «Cuenta») o empezar sin cuenta. Empezar sin cuenta abre el asistente y se recuerda en el teléfono.
+  5. ❌ Con finca, con sesión, con una invitación por aceptar o agregando otra finca, la bienvenida no sale.
+- **Patrones:** P1 (sin señal lo dice y no finge), P2 (precios y marca de una sola fuente), P4 (fincas de ejemplo), P20 (todo se lee sin JavaScript).
+- **WI:**
+  - WI-E0.10.1 Landing en `apps/sitio/src/pages/index.astro` con el sistema de diseño v2 y el tema `cultivopro` (2 h).
+  - WI-E0.10.2 Escena de los pasos, aparecer al bajar y contador del DPV en `landing/escena.ts` (1 h).
+  - WI-E0.10.3 Quitar la redirección de la raíz, sitemap, prueba de humo del despliegue (1 h).
+  - WI-E0.10.4 Bienvenida del cuaderno y sus pruebas (2 h).
 
 ### E1 · Cimientos
 

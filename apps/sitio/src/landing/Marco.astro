@@ -1,0 +1,77 @@
+---
+/**
+ * El marco de la landing de CultivoPro (HU-E0.10): la marca, la navegación mínima y el pie. Usa el
+ * sistema de diseño v2 con el verde de CultivoPro (`data-producto="cultivopro"`), como TiendaPro
+ * usa su cobre. Tema claro siempre: la página se mira en el teléfono, de día y en el campo.
+ */
+import '@ed1/ui/v2/fuentes.css';
+import '@ed1/ui/v2/tokens.css';
+import './landing.css';
+import { CALCULADORAS, CUADERNO, HOJA, MARCA, ORIGEN } from './contenido.ts';
+
+interface Props {
+  titulo: string;
+  descripcion: string;
+  jsonLd: Record<string, unknown>;
+}
+const { titulo, descripcion, jsonLd } = Astro.props;
+const canonical = `${ORIGEN}/`;
+---
+<!doctype html>
+<html lang="es-CO" data-producto="cultivopro" data-tema="claro">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{titulo}</title>
+    <meta name="description" content={descripcion} />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="text/markdown" href="/index.md" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/agro/app/iconos/icono-192.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={MARCA} />
+    <meta property="og:title" content={titulo} />
+    <meta property="og:description" content={descripcion} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="es_CO" />
+    <meta property="og:image" content={`${ORIGEN}/marca/cultivopro-logo-1560.png`} />
+    {
+      /* «<» escapado: un texto con «</script>» en el contenido no puede cerrar la etiqueta. */
+      <script
+        type="application/ld+json"
+        set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')}
+      />
+    }
+  </head>
+  <body>
+    <a class="saltar" href="#contenido">Ir al contenido</a>
+    <header class="franja">
+      <a class="marca" href="/" aria-label={`${MARCA}, inicio`}>
+        <svg class="marca__hoja" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d={HOJA} /></svg>{MARCA}
+      </a>
+      <nav class="franja__nav" aria-label="Principal">
+        <a href="/#como-funciona">Cómo funciona</a>
+        <a href={CALCULADORAS}>Calculadoras</a>
+        <a href="/#planes">Planes</a>
+        <a href="/#preguntas">Preguntas</a>
+      </nav>
+      <a class="franja__entrar" href={CUADERNO}>Entrar</a>
+      <a class="boton boton--chico" href={CUADERNO}>Empezar</a>
+    </header>
+    <main id="contenido">
+      <slot />
+    </main>
+    <footer class="pie">
+      <div class="pie__marca">
+        <p class="marca"><svg class="marca__hoja" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d={HOJA} /></svg>{MARCA}</p>
+        <p>Cuaderno de campo y herramientas para tu invernadero. Un producto de Laboratorio Digital.</p>
+      </div>
+      <nav class="pie__enlaces" aria-label="Más información">
+        <a href={CALCULADORAS}>Calculadoras gratuitas</a>
+        <a href="/agro/guia/">Cómo se usa el cuaderno</a>
+        <a href="/agro/privacidad/">Política de tratamiento de datos</a>
+      </nav>
+    </footer>
+  </body>
+</html>

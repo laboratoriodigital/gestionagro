@@ -210,10 +210,7 @@ describe('verificar el token antes de desplegar (CA2, P12)', () => {
 
 describe('prueba de humo (CA5, P11)', () => {
   const sano = {
-    'GET https://s.dev/': {
-      estado: 301,
-      cabeceras: { location: 'https://s.dev/herramientas/agro/' },
-    },
+    'GET https://s.dev/': { estado: 200, texto: '<h1>Tu cuaderno de campo.</h1>' },
     'GET https://s.dev/herramientas/agro/calculadora-dpv/': {
       estado: 200,
       texto: 'Calculadora de DPV',
@@ -252,12 +249,15 @@ describe('prueba de humo (CA5, P11)', () => {
     expect(pedidos.filter((p) => p.startsWith('POST'))).toEqual(['POST https://s.dev/api/eventos']);
   });
 
-  it('detecta una raíz que no redirige (la página intermedia de antes)', async () => {
+  it('detecta una raíz sin la landing (HU-E0.10): la redirección de antes ya no sirve', async () => {
     const { fn } = fetchFalso({
       ...sano,
-      'GET https://s.dev/': { estado: 200, texto: 'Redirecting to…' },
+      'GET https://s.dev/': {
+        estado: 301,
+        cabeceras: { location: 'https://s.dev/herramientas/agro/' },
+      },
     });
-    expect((await humo(fn, 'https://s.dev'))[0]).toMatch(/^\/: respondió 200/);
+    expect((await humo(fn, 'https://s.dev'))[0]).toBe('/: respondió 301, se esperaba 200');
   });
 
   it('detecta una API que no valida y una app sin noindex', async () => {

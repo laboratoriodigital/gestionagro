@@ -1,0 +1,49 @@
+---
+/**
+ * La primera pantalla: un teléfono con «Hoy en tus naves» de una finca de ejemplo, que el
+ * visitante cambia entre tomate, pepino y flores. Son radios de verdad (teclado y lector de
+ * pantalla incluidos) y el cambio lo hace la hoja con `:has()`, sin JavaScript. Detrás, el campo
+ * verde con la hoja de la marca que se dibuja sola. Dice que es un ejemplo.
+ */
+import { CULTIVOS_DE_EJEMPLO, FINCA_DE_EJEMPLO, HOJA } from './contenido.ts';
+---
+<div class="hoy">
+  <svg class="hoy__hoja" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d={HOJA} pathLength="1" /></svg>
+  <fieldset class="hoy__cultivos">
+    <legend>Mira una finca de ejemplo</legend>
+    {CULTIVOS_DE_EJEMPLO.map((c, i) => (
+      <label class="pildora">
+        <input type="radio" name="cultivo" value={c.id} id={`cultivo-${c.id}`} checked={i === 0} />
+        <span>{c.etiqueta}</span>
+      </label>
+    ))}
+  </fieldset>
+
+  <div class="telefono" role="img" aria-label="Un cuaderno de ejemplo en un teléfono: qué nave se puede cosechar hoy">
+    <div class="telefono__pantalla">
+      {CULTIVOS_DE_EJEMPLO.map((c) => (
+        <div class="naves" data-cultivo={c.id}>
+          <p class="naves__finca">{FINCA_DE_EJEMPLO} · {c.etiqueta}</p>
+          <p class="naves__titulo">Hoy en tus naves</p>
+          <ul class="naves__lista">
+            {c.naves.map((n) => (
+              <li class={`nave nave--${n.estado}`}>
+                <span>{n.nombre}</span>
+                <span class="nave__estado">{n.texto}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="naves__subtitulo">Hoy anotaste</p>
+          <ul class="registros">
+            {c.anotado.map(([que, hora]) => (
+              <li class="registro"><span>{que}</span><span class="cifra">{hora}</span></li>
+            ))}
+          </ul>
+          <p class="naves__guardado">Guardado en tu teléfono</p>
+          <p class="boton-falso">Anotar</p>
+        </div>
+      ))}
+    </div>
+  </div>
+  <p class="hoy__nota">Finca de ejemplo. Así se ve en tu teléfono.</p>
+</div>

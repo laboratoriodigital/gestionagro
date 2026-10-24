@@ -1,0 +1,173 @@
+---
+import {
+  CALCULADORAS,
+  CUADERNO,
+  DESCRIPCION,
+  enFrase,
+  HOJA,
+  LO_QUE_INCLUYE,
+  MARCA,
+  ORIGEN,
+  PLANES_DEL_CUADERNO,
+  PREGUNTAS,
+  pesos,
+  planesDeLaLanding,
+  TITULO,
+} from '../landing/contenido.ts';
+/**
+ * La landing de CultivoPro en la raíz de cultivopro.co (HU-E0.10): qué es el cuaderno, cómo trabaja
+ * sin señal, lo que incluye, las calculadoras gratuitas, los planes y las preguntas, con «Empezar»
+ * al alcance en cada parte. Boceto aprobado por el dueño el 23 oct 2026: la propuesta «hermana de
+ * TiendaPro» con las franjas en verde bosque de «invernadero de noche».
+ */
+import Hoy from '../landing/Hoy.astro';
+import Marco from '../landing/Marco.astro';
+import Trabajo from '../landing/Trabajo.astro';
+
+const { disponibles, pronto } = planesDeLaLanding();
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebApplication',
+      name: MARCA,
+      url: `${ORIGEN}/`,
+      description: DESCRIPCION,
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      inLanguage: 'es-CO',
+      isAccessibleForFree: true,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'COP' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: PREGUNTAS.map((q) => ({
+        '@type': 'Question',
+        name: q.pregunta,
+        acceptedAnswer: { '@type': 'Answer', text: q.respuesta },
+      })),
+    },
+  ],
+};
+---
+<Marco titulo={TITULO} descripcion={DESCRIPCION} jsonLd={jsonLd}>
+  <section class="portada" aria-labelledby="portada-titulo">
+    <div class="portada__texto">
+      <p class="antetitulo">Cuaderno de campo para tu invernadero</p>
+      <h1 id="portada-titulo">Tu cuaderno de campo. <span class="portada__giro">Funciona aunque no haya señal.</span></h1>
+      <p class="portada__frase">
+        Anota labores, aplicaciones y cosechas desde la nave. Tu equipo anota contigo, y sabes qué
+        puedes cosechar hoy.
+      </p>
+      <div class="acciones">
+        <a class="boton" href={CUADERNO}>Empezar gratis</a>
+        <a class="enlace-flecha" href="#planes">Ver planes</a>
+      </div>
+      <p class="portada__letra">Gratis para empezar, sin tarjeta y sin permanencia.</p>
+    </div>
+    <Hoy />
+  </section>
+
+  <Trabajo />
+
+  <section class="incluye" aria-labelledby="incluye-titulo">
+    <h2 id="incluye-titulo" class="aparece">Todo lo de tu finca, en un solo cuaderno</h2>
+    <dl class="incluye__lista">
+      {LO_QUE_INCLUYE.map((i) => (
+        <div class="incluye__punto aparece">
+          <dt>{i.titulo}</dt>
+          <dd>{i.texto}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  <section class="calculadoras" aria-labelledby="calculadoras-titulo">
+    <div class="calculadoras__texto">
+      <p class="antetitulo antetitulo--lima">Gratis y sin registro</p>
+      <h2 id="calculadoras-titulo">Calculadoras para la nave, en tu bolsillo</h2>
+      <p>
+        ¿Cómo está el déficit de presión de vapor de tu nave? ¿Desde qué día puedes cosechar después
+        de una aplicación? Respuestas rápidas que funcionan en tu teléfono, sin crear cuenta.
+      </p>
+      <p>Lo que escribes no sale de tu teléfono.</p>
+      <a class="boton boton--lima" href={CALCULADORAS}>Abrir las calculadoras</a>
+    </div>
+    <div class="calculadoras__muestras" role="img" aria-label="Dos resultados de ejemplo: DPV de 1,2 kilopascales, en rango para tomate, y cosecha desde el sábado 26">
+      <div class="muestra" data-contador>
+        <p class="muestra__que">DPV de la nave</p>
+        <p class="muestra__cifra cifra"><span data-cifra="1.2">1,2</span> kPa</p>
+        <p class="muestra__barra"><span></span></p>
+        <p class="muestra__nota">En rango para tomate</p>
+      </div>
+      <div class="muestra">
+        <p class="muestra__que">Carencia</p>
+        <p class="muestra__cifra cifra">sáb 26</p>
+        <p class="muestra__nota">Cosechar desde</p>
+      </div>
+      <p class="muestras__nota">Resultados de ejemplo.</p>
+    </div>
+  </section>
+
+  <section class="planes" id="planes" aria-labelledby="planes-titulo">
+    <div class="planes__cabeza aparece">
+      <h2 id="planes-titulo">Empieza gratis. Crece cuando tu finca lo pida.</h2>
+      <p>Pagas por meses, sin permanencia. El plan Gratis no vence.</p>
+    </div>
+    <ul class="planes__lista">
+      {disponibles.map((p) => (
+        <li class={`plan aparece${p.gratuito ? '' : ' plan--destacado'}`}>
+          <h3 class="plan__nombre">{p.nombre}</h3>
+          <p class="plan__para">{p.paraQuien}</p>
+          <p class="plan__precio">
+            <span class="cifra">{p.gratuito ? '$0' : pesos(p.precioMes)}</span>
+            <span class="plan__periodo">{p.gratuito ? 'para siempre' : 'al mes'}</span>
+          </p>
+          {p.anual && p.anual.ahorro > 0 && (
+            <p class="plan__anual">Pagando un año, <span class="cifra">{pesos(p.anual.total)}</span>: ahorras <span class="cifra">{pesos(p.anual.ahorro)}</span>.</p>
+          )}
+          <ul class="plan__incluye">
+            {p.incluye.map((i) => <li>{i}</li>)}
+          </ul>
+          <a class={`boton${p.gratuito ? ' boton--borde' : ''}`} href={p.gratuito ? CUADERNO : PLANES_DEL_CUADERNO}>
+            {p.gratuito ? 'Empezar gratis' : `Empezar con ${p.nombre}`}
+          </a>
+        </li>
+      ))}
+      {pronto.length > 0 && (
+        <li class="plan plan--pronto aparece">
+          <h3 class="plan__nombre">{enFrase(pronto.map((p) => p.nombre))}</h3>
+          <p class="plan__pronto">Pronto</p>
+          <ul class="plan__incluye plan__incluye--pronto">
+            {pronto.map((p) => <li><strong>{p.nombre}.</strong> {p.paraQuien}</li>)}
+          </ul>
+          <a class="enlace-flecha" href={PLANES_DEL_CUADERNO}>Avísame cuando estén</a>
+        </li>
+      )}
+    </ul>
+    <p class="planes__nota">Precios en pesos colombianos. Precio de lanzamiento. Empiezas en Gratis y cambias de plan desde tu cuaderno cuando quieras.</p>
+  </section>
+
+  <section class="preguntas" id="preguntas" aria-labelledby="preguntas-titulo">
+    <h2 id="preguntas-titulo" class="aparece">Preguntas frecuentes</h2>
+    <div class="preguntas__lista">
+      {PREGUNTAS.map((q) => (
+        <details>
+          <summary>{q.pregunta}</summary>
+          <p>{q.respuesta}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+
+  <section class="cierre" aria-labelledby="cierre-titulo">
+    <svg class="cierre__hoja" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d={HOJA} /></svg>
+    <h2 id="cierre-titulo">Tu próxima cosecha, anotada desde hoy.</h2>
+    <div class="acciones">
+      <a class="boton boton--lima" href={CUADERNO}>Empezar gratis</a>
+      <p class="cierre__letra">Gratis para empezar, sin tarjeta y sin permanencia.</p>
+    </div>
+  </section>
+</Marco>
+<script src="../landing/escena.ts"></script>

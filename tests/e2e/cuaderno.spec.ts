@@ -2,12 +2,13 @@
  * PWA del cuaderno (HU-E3.1) en un teléfono de 360 px. Se esperan estados, no tiempos (P19).
  */
 import { expect, type Page, test } from '@playwright/test';
+import { abrirSinCuenta } from './ayudas.ts';
 
 const APP = '/agro/app/';
 
 /** Abre la app y espera a que el service worker la controle (segunda carga). */
 async function abrirControlada(page: Page) {
-  await page.goto(APP);
+  await abrirSinCuenta(page);
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
   await page.reload();
   await expect

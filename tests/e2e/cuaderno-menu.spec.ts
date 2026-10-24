@@ -5,7 +5,7 @@
  */
 import { expect, type Page, test } from '@playwright/test';
 import { FINCAS_DE_PRUEBA, type FincaDePrueba } from '../fixtures/fincas.ts';
-import { APP, configurar } from './ayudas.ts';
+import { APP, abrirSinCuenta, configurar } from './ayudas.ts';
 
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Secciones del cuaderno' });
 const SOLO_CON_FINCA = ['Rendimiento', 'Costos'];
@@ -13,7 +13,7 @@ const SOLO_CON_FINCA = ['Rendimiento', 'Costos'];
 test('sin finca el menú no ofrece Rendimiento ni Costos; al crearla aparecen sin recargar', async ({
   page,
 }) => {
-  await page.goto(APP);
+  await abrirSinCuenta(page);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tu finca');
   for (const nombre of SOLO_CON_FINCA) {
     await expect(nav(page).getByRole('link', { name: nombre, exact: true })).toHaveCount(0);
