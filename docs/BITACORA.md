@@ -844,3 +844,22 @@ La regla: **lo que se imprime se prueba sobre el documento impreso: hojas y tama
 La regla: **una decisión de producto se valida contra el documento que la decide, no contra el que la hace posible. Primero la escalera y el estudio; después la cuota.**
 
 *Ficha:* agro · *(mío)* · 🟡 Medio · P18, P20 · 0.1.0 · 2026-10-02
+
+**30 · El backlog decía «En sprint» de 58 historias que llevaban semanas en producción.**
+
+*Qué pasó.* El 23 oct 2026, con el PR #235 abierto, el dueño pidió validar lo pendiente del backlog. `docs/BACKLOG.md` tenía 58 historias en «En sprint», con ramas como `feat/e3.2-almacen-local`, y sus estados decían cosas como «se cierra al fusionar con CI en verde» o «CA6 ocurre al fusionar a `main`». Todas estaban en producción desde la v0.1.0 (1 oct), la v0.2.0 (3 oct) o la v0.4.0 (6 oct). Leído tal cual, el backlog decía que casi nada estaba hecho.
+
+*Causa raíz.*
+- El estado se escribía al construir, en la rama, y se dejaba para «al fusionar» el paso a «Terminada». Al fusionar no había un paso que lo hiciera: el CHANGELOG sí se actualizaba (lo exige una guardia), el backlog no.
+- Del 1 al 12 oct se construyeron catorce sprints de historias en doce días, varias por PR; el ritmo no dejó una pausa para cerrar.
+- No existía un estado para «en producción, pero falta algo que no es código» (el agrónomo, el abogado, una prueba en la finca). Sin ese estado, una historia con un solo criterio externo pendiente se quedaba en «En sprint» junto con las que de verdad estaban a medias.
+
+*Cómo se reprodujo.* Cruzando cada historia con la versión del CHANGELOG que la nombra (`scripts` de un solo uso en el scratchpad, no en el repositorio) y leyendo sus criterios de aceptación contra lo que dice el código: por ejemplo, HU-E8.1 CA3 decía «hoy `ks:agro-cuaderno` no apaga nada», y `apps/api-celda/src/worker.ts` ya lo atiende.
+
+*Arreglo.* 49 historias pasan a «Terminada» con la versión en que llegaron a producción, y 9 a un estado nuevo, «En validación», que nombra lo que falta y de quién es. §0 del backlog resume lo pendiente en orden y §7 registra que S2 a S15 se construyeron del 1 al 12 oct. El detalle de cada estado se conserva: solo cambia el comienzo (regla 2 de esta bitácora).
+
+**Lo prueba** la lectura de `docs/BACKLOG.md`: ninguna historia de E0 a E10 queda en «En sprint». No hay control negativo automático; su control es esta entrada y la regla de abajo.
+
+La regla: **el estado de una historia se cambia en el mismo PR que la lleva a producción, como el CHANGELOG. «Se cierra al fusionar» no es un estado: es una tarea que nadie hace.**
+
+*Ficha:* agro · *(mío)* · 🟢 Bajo · P18 · 0.5.0 · 2026-10-23
