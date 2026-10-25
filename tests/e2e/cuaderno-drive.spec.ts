@@ -68,6 +68,8 @@ for (const f of FINCAS_DE_PRUEBA) {
       await drive.atender(telefono);
       await coreFalso(telefono);
       await telefono.goto(`${new URL(page.url()).origin}${APP}respaldo/`);
+      // El cuaderno ya abrió su base: escribir la sesión antes la dejaría a medio crear.
+      await expect(telefono.getByRole('heading', { level: 1, name: 'Respaldo' })).toBeVisible();
       await conPlan(telefono, 'finca');
       await telefono.reload();
       await expect(
