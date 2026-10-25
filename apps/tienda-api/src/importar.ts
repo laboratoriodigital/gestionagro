@@ -128,8 +128,55 @@ function varianteDeLaLinea(
   return null;
 }
 
+/**
+ * HU-T18.11: los productos que ya tiene la tienda, para no chocar con sus direcciones. Un producto
+ * se reconoce por su referencia externa o, si se creó en el panel, por su id (el que lleva en
+ * «Descargar todo»).
+ */
+export interface ProductoExistente {
+  id: string;
+  slug: string;
+  ref_externa: string | null;
+}
+
+/**
+ * Las direcciones que la carga puede usar: la que pide un producto, si nadie más la tiene; si la
+ * tiene otro producto de la tienda o del archivo, la siguiente libre («pan-de-bono-2»). Sin esto,
+ * un producto de la hoja con el nombre de uno del panel hacía fallar su parte entera.
+ */
+function direccionesLibres(existentes: readonly ProductoExistente[]) {
+  const dueños = new Map<string, Set<string>>();
+  for (const e of existentes) {
+    dueños.set(e.slug, new Set([e.id, ...(e.ref_externa ? [e.ref_externa] : [])]));
+  }
+  const yaEsta = new Set(
+    existentes.flatMap((e) => [e.id, ...(e.ref_externa ? [e.ref_externa] : [])]),
+  );
+  const usadas = new Set<string>();
+  return {
+    /** Si el producto ya está en la tienda: entonces su fila no se inserta. */
+    existe: (ref: string) => yaEsta.has(ref),
+    para(ref: string, pedida: string): string {
+      for (let n = 1; ; n++) {
+        const candidata = n === 1 ? pedida : `${pedida.slice(0, 96)}-${n}`;
+        const de = dueños.get(candidata);
+        if ((!de || de.has(ref)) && !usadas.has(candidata)) {
+          usadas.add(candidata);
+          return candidata;
+        }
+      }
+    },
+  };
+}
+
 /** Las sentencias de la carga, en orden: ajustes, colecciones, productos, variantes, el resto. */
-export function planDeLaCarga(c: CargaTienda, org: string, ahora: string): Plan {
+export function planDeLaCarga(
+  c: CargaTienda,
+  org: string,
+  ahora: string,
+  existentes: readonly ProductoExistente[] = [],
+): Plan {
+  const libres = direccionesLibres(existentes);
   const s: Sentencia[] = [];
   const poner = (sql: string, ...params: Sentencia['params']) => s.push({ sql, params });
 
@@ -169,6 +216,14 @@ export function planDeLaCarga(c: CargaTienda, org: string, ahora: string): Plan 
       org,
       p.refExterna,
     );
+    // La dirección: la que trae el archivo, o la del nombre si el producto es nuevo, siempre libre.
+    // Un producto que ya está y no trae dirección conserva la suya (su fila no se inserta).
+    const slug =
+      p.slug !== undefined
+        ? libres.para(p.refExterna, p.slug)
+        : libres.existe(p.refExterna)
+          ? slugDe(p.nombre)
+          : libres.para(p.refExterna, slugDe(p.nombre));
     const conRetracto = p.retracto ?? { aplica: true as const };
     const retracto = conRetracto.aplica ? 'aplica' : 'no_aplica';
     const motivo = conRetracto.aplica ? null : conRetracto.motivo;
@@ -179,7 +234,7 @@ export function planDeLaCarga(c: CargaTienda, org: string, ahora: string): Plan 
       ['nombre', p.nombre],
       ['opciones', json(p.opciones)],
       ...(p.estado === undefined ? [] : [['estado', p.estado] as [string, string]]),
-      ...(p.slug === undefined ? [] : [['slug', p.slug] as [string, string]]),
+      ...(p.slug === undefined ? [] : [['slug', slug] as [string, string]]),
       ...(p.descripcionMd === undefined
         ? []
         : [['descripcion_md', p.descripcionMd] as [string, string]]),
@@ -210,7 +265,7 @@ export function planDeLaCarga(c: CargaTienda, org: string, ahora: string): Plan 
        ON CONFLICT (org_id, ref_externa) WHERE ref_externa IS NOT NULL DO NOTHING`,
       org,
       idDelProductoCargado(p.refExterna),
-      p.slug ?? slugDe(p.nombre),
+      slug,
       p.nombre,
       p.descripcionMd ?? '',
       p.estado ?? 'borrador',
@@ -452,7 +507,15 @@ export async function revisarLaCarga(
     }
   }
   if (problemas.length > 0) return { ok: false, problemas };
-  return { ok: true, carga: r.carga, plan: planDeLaCarga(r.carga, org, ahora) };
+  // HU-T18.11: una sola consulta con las direcciones que ya hay, para no chocar con ellas. Corre en
+  // cada parte, así que cuenta dentro de las 50 consultas por solicitud del plan gratuito.
+  const { results: existentes } = r.carga.productos.length
+    ? await db
+        .prepare('SELECT id, slug, ref_externa FROM producto WHERE org_id = ? AND borrado IS NULL')
+        .bind(org)
+        .all<ProductoExistente>()
+    : { results: [] };
+  return { ok: true, carga: r.carga, plan: planDeLaCarga(r.carga, org, ahora, existentes) };
 }
 
 /** Aplica una parte del plan, en un lote atómico. */
