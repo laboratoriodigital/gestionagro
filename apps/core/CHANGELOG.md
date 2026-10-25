@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.11.0] - 2026-10-24
+
+El servidor de permisos para asistentes, en producción, y los topes de cada plan.
+
 ### Agregado
 - Los topes de un plan (HU-E0.13): `limites` de cada `planes.json` llega al catálogo del CORE. Con `miembros`, una organización llena no crea invitaciones y un enlace de antes no deja entrar a nadie más, sin gastarse; con `organizaciones_por_cuenta` en el plan gratuito, una cuenta no crea otra organización gratuita de ese producto si ya tiene las que caben (las de un plan pagado no cuentan). Un plan sin la clave no tiene tope, y nadie que ya esté sale.
 

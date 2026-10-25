@@ -56,6 +56,8 @@ for (const f of FINCAS_DE_PRUEBA) {
       const otro = await browser.newContext({ viewport: { width: 360, height: 780 } });
       const telefono = await otro.newPage();
       await telefono.goto(`${origen}${APP}respaldo/`);
+      // El cuaderno ya abrió su base: escribir la sesión antes la dejaría a medio crear.
+      await expect(telefono.getByText('Todavía no hay finca en este teléfono.')).toBeVisible();
       await conPlan(telefono, 'finca');
       await telefono.reload();
       await expect(telefono.getByText('Todavía no hay finca en este teléfono.')).toBeVisible();

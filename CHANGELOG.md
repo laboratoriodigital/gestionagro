@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.7.0] - 2026-10-24
+
+El plan Gratis con topes claros (3 áreas, 2 personas con cuenta y restaurar copias con el plan Finca) y el asistente de la finca encendido en producción.
+
 ### Agregado
 - Lo que cabe en el plan Gratis (HU-E0.13, decisión del dueño del 24 oct 2026): hasta 3 áreas principales (las camas y los surcos no cuentan) y 2 personas con cuenta, contando al propietario. El asistente de una finca nueva ofrece hasta 3 áreas, «Mi finca» y «Tu equipo» dicen el tope con «Ver los planes», y la celda pone en cuarentena un área principal que llegue por encima. Los topes viven en `limites` de `planes.json`, la misma fuente del cuaderno, la celda, el CORE y los textos. Nada de lo que ya existe se esconde ni se borra.
 
