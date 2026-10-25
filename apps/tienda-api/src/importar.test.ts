@@ -473,4 +473,43 @@ describe('subir un respaldo de «Descargar todo» (HU-T18.11)', () => {
       stock: 7,
     });
   });
+
+  it('❌ un producto de la hoja con el nombre de uno del panel no choca: toma la dirección libre siguiente', async () => {
+    // El 24 oct 2026 la hoja de prueba del dueño falló en su primera parte: «Pan de bono» ya estaba
+    // en su tienda, creado en el panel, y las dos direcciones chocaban (UNIQUE de producto.slug).
+    await shard
+      .prepare(
+        `INSERT INTO producto (org_id, id, slug, nombre, descripcion_md, estado, opciones, retracto,
+           solo_mayores, posicion, creado, actualizado)
+         VALUES (?, 'p-pan-del-panel', 'pan-de-bono', 'Pan de bono', 'Del panel.', 'activo', '[]',
+           'aplica', 0, 0, 'x', 'x')`,
+      )
+      .bind(ORG)
+      .run();
+    const hoja = {
+      formato: 'tienda-import/1',
+      tienda: { slug: 'carga', nombre: 'Tienda de carga' },
+      ajustes: {},
+      productos: ['PAN-01', 'PAN-02'].map((refExterna) => ({
+        refExterna,
+        nombre: 'Pan de bono',
+        opciones: [],
+        variantes: [{ valores: [], precioCop: 1500 }],
+      })),
+    };
+    // Dos con el mismo nombre en el archivo siguen siendo un problema que se dice antes de cargar.
+    expect((await revisarLaCarga(shard, ORG, hoja, AHORA)).ok).toBe(false);
+    await aplicarTodo({ ...hoja, productos: hoja.productos.slice(0, 1) });
+    await aplicarTodo({ ...hoja, productos: hoja.productos.slice(0, 1) });
+    const { results } = await shard
+      .prepare(
+        "SELECT id, slug, descripcion_md FROM producto WHERE org_id = ? AND nombre = 'Pan de bono' ORDER BY slug",
+      )
+      .bind(ORG)
+      .all();
+    expect(results).toEqual([
+      { id: 'p-pan-del-panel', slug: 'pan-de-bono', descripcion_md: 'Del panel.' },
+      { id: 'imp-p-PAN-01', slug: 'pan-de-bono-2', descripcion_md: '' },
+    ]);
+  });
 });

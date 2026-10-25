@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.2.2] - 2026-10-24
+
+### Corregido
+- Cargar productos por lotes ya no falla cuando un producto de la hoja se llama igual que uno que ya está en tu tienda: el nuevo toma otra dirección («pan-de-bono-2») y el que ya estaba no cambia. Si una parte no se puede cargar, el panel dice cuántas entraron.
+
 ## [1.2.1] - 2026-10-24
 
 ### Cambiado

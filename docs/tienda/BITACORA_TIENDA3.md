@@ -1436,3 +1436,17 @@ La regla: **un estado final se prueba por lo que ya no se puede hacer después, 
 La regla: **lo que mueve el foco lo hace en el mismo instante del cambio que lo causa, nunca después: después, la persona ya está en otro lado.**
 
 *Ficha:* tienda3 · *(mía)* · 🟡 Medio · P1 · tienda-1.0.0 · 2026-10-23
+
+**59 · La carga por lotes fallaba si un producto de la hoja se llamaba como uno de la tienda.**
+
+*Qué pasó.* El 24 oct 2026 el dueño subió la hoja de 15 productos de prueba en su tienda. La revisión dijo «15 productos, 27 combinaciones y 6 colecciones», pero al cargar salió «Se cargó hasta la parte 0 de 3. Esta parte no se aplicó».
+
+*La causa.* La tienda ya tenía productos creados en el panel con el mismo nombre que algunos de la hoja. La carga le da a un producto nuevo la dirección de su nombre (`pan-de-bono`), y esa dirección ya era de otro: la base la rechazó (`UNIQUE constraint failed: producto.slug`) y, como cada parte es un lote, no entró nada de ella. La revisión solo miraba que no hubiera direcciones repetidas dentro del archivo, no contra la tienda. Las pruebas cargaban en tiendas vacías. Además, el mensaje decía «la parte 0», que no se entiende.
+
+*El arreglo.* Al revisar, una sola consulta trae las direcciones que ya hay, y un producto nuevo toma la libre siguiente (`pan-de-bono-2`). El que ya estaba no cambia, y uno que vuelve a cargarse conserva la suya. Corre en cada parte, así que suma una consulta a las 50 del plan gratuito (quedan unas 43). El panel dice cuántas partes entraron.
+
+**Lo prueba** `importar.test.ts`: un producto de la hoja con el nombre de uno del panel, cargado dos veces, sin choque y sin duplicarse. Sin el arreglo falla con el mismo error que vio el dueño.
+
+La regla: **una carga se prueba sobre una tienda que ya tiene cosas, no sobre una vacía.**
+
+*Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟡 Medio · P1 · tienda-1.2.1 · 2026-10-24

@@ -153,7 +153,10 @@ export function Cargar({
         return setPaso({
           tipo: 'error',
           cual,
-          motivo: `Se cargó hasta la parte ${parte} de ${resumen.partes}. ${r.motivo} Vuelve a subir el mismo archivo: lo que ya entró no se repite.`,
+          motivo:
+            r.estado === 'fallida'
+              ? `Entraron ${parte} de ${resumen.partes} partes y la siguiente no se pudo cargar. Vuelve a subir el mismo archivo: lo que ya entró no se repite.`
+              : `Entraron ${parte} de ${resumen.partes} partes. ${r.motivo}`,
         });
       }
       parte = r.datos.siguiente;
