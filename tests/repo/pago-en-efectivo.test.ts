@@ -142,4 +142,18 @@ describe('el script del flujo', () => {
     expect(f.on['workflow_dispatch']?.inputs['confirmar']?.default).toBe('no');
     for (const paso of f.jobs.registrar.steps) expect(paso.run ?? '').not.toContain('${{');
   });
+
+  it('❌ ofrece cada producto con planes de productos.json: TiendaPro faltaba (26 oct 2026)', () => {
+    const f = parse(
+      readFileSync(join(RAIZ, '.github/workflows/registrar-pago-en-efectivo.yml'), 'utf8'),
+    ) as { on: { workflow_dispatch: { inputs: { producto: { options: string[] } } } } };
+    const productos = JSON.parse(
+      readFileSync(join(RAIZ, 'infrastructure/productos.json'), 'utf8'),
+    ) as { productos: { id: string; planes?: string; estado: string }[] };
+    const conPlanes = productos.productos
+      .filter((p) => p.planes && p.estado === 'activo')
+      .map((p) => p.id);
+    expect(conPlanes).toContain('tienda');
+    expect([...f.on.workflow_dispatch.inputs.producto.options].sort()).toEqual(conPlanes.sort());
+  });
 });
