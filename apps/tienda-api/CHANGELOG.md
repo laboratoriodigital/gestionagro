@@ -4,6 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.4.1] - 2026-10-26
+
+### Cambiado
+- La página de TiendaPro cuenta lo que ya trae cada tienda y no decía: «Avísame por WhatsApp» en lo agotado, subir el catálogo de una vez, volver a la versión anterior al publicar y descargar todo lo tuyo en cualquier plan. Suma dos preguntas: si TiendaPro cobra comisión por tus ventas (no) y si la tienda abre bien en cualquier teléfono.
+
 ## [1.4.0] - 2026-10-26
 
 Quien espera un producto agotado se lo dice a la tienda por WhatsApp, y el comerciante sabe a quién avisarle.

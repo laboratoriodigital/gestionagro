@@ -146,21 +146,38 @@ export const LO_QUE_INCLUYE = [
   },
   {
     titulo: 'Tu propio dominio',
-    texto: `Empieza en ${ZONA_DE_LAS_TIENDAS} y, cuando quieras, conecta tutienda.co con el candado listo.`,
+    texto: `Empieza en ${ZONA_DE_LAS_TIENDAS} y, cuando quieras, conecta tutienda.co tú mismo desde el panel, con el candado listo.`,
   },
   {
     titulo: 'Listo para Google y Meta',
-    texto: 'Tu catálogo sale listo para Google y Meta, y se pone al día cada vez que publicas.',
+    texto:
+      'Tu catálogo sale listo para Google y Meta y se pone al día cada vez que publicas. Verificas tu tienda en Google desde el panel.',
   },
   {
-    titulo: 'Tus existencias, a la vista',
+    titulo: 'Lo agotado no se pierde',
     texto:
-      'Llevas lo que te queda desde el panel, y lo agotado se muestra así, con «Avísame cuando haya».',
+      'Cuando algo se acaba, tu cliente toca «Avísame por WhatsApp» y te escribe. Cuando vuelva a llegar, sabes a quién avisarle.',
   },
   {
     titulo: 'Lo que pide la ley, listo',
     texto:
       'Términos, privacidad, retracto, garantía y un formulario de solicitudes con su número de radicado, armados con tus datos.',
+  },
+  // 26 oct 2026: lo que ya hace TiendaPro y la landing no decía (contraste con el mercado, §2).
+  {
+    titulo: 'Sube tu catálogo de una vez',
+    texto:
+      'Escribe tus productos en una hoja de cálculo, con tallas, colores y precios, y súbelos todos juntos. Antes de cargar, te dice qué falta y en qué fila.',
+  },
+  {
+    titulo: 'Publica sin miedo',
+    texto:
+      'Cada vez que publicas queda guardada una versión. Si algo no te gustó, vuelves a la anterior en segundos.',
+  },
+  {
+    titulo: 'Lo tuyo es tuyo',
+    texto:
+      'Descarga tu tienda cuando quieras, en cualquier plan: productos, colecciones, envíos, cupones y pedidos, listos para volver a subir.',
   },
 ] as const;
 
@@ -209,6 +226,16 @@ export const PREGUNTAS = [
     pregunta: '¿Cuánto cuesta empezar?',
     respuesta:
       'Nada. El plan Gratis no vence: hasta 10 productos y los pedidos a tu WhatsApp. Cuando quieras cobrar en línea o tener tu dominio, pasas a Pro.',
+  },
+  {
+    pregunta: '¿TiendaPro cobra comisión por mis ventas?',
+    respuesta:
+      'No. Pagas tu plan y nada más, venda lo que vendas. En los pagos en línea, Bold cobra su tarifa en tu cuenta, como en cualquier venta con Bold.',
+  },
+  {
+    pregunta: '¿Mi tienda abre bien en cualquier teléfono?',
+    respuesta:
+      'Sí. Está hecha primero para el teléfono y abre rápido aun con datos lentos o en un celular sencillo, que es como compran la mayoría de tus clientes.',
   },
   {
     pregunta: '¿Cómo me pagan mis clientes?',

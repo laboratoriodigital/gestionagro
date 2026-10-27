@@ -3,7 +3,7 @@
 **Fecha:** 26 oct 2026 · **Pedido por:** el dueño · **Versión de TiendaPro contrastada:** tienda 1.4.0 (en #249)
 **Fuentes:** la página de funcionalidades de Tiendanube Colombia ([tiendanube.com/co/funcionalidades](https://www.tiendanube.com/co/funcionalidades), leída el 26 oct 2026) y su página de planes (S16 del estudio, leída otra vez el mismo día). De TiendaPro: el código de `main`, `TIENDA-3.0.md` y `BACKLOG_TIENDA3.md`.
 **Lo que manda:** ED1 → `ARQUITECTURA.md` (P1–P21) → `TIENDA-3.0.md`. Ninguna propuesta de este documento rompe sus premisas; las que chocan con ellas van en §5, con la razón.
-**Lo que sale de aquí:** `BACKLOG_PERFECCIONAMIENTO.md`, con las historias propuestas, por priorizar con el dueño.
+**Lo que sale de aquí:** `BACKLOG_PERFECCIONAMIENTO.md`, refinado el 26 oct 2026 en los sprints PF1 a PF3, con los productos digitales y las compras sin terminar en Pro, por decisión del dueño.
 
 > Cuidado al leer: de Tiendanube solo sabemos lo que su página dice, no cómo funciona por dentro ni qué tan bien. «Igual» quiere decir que los dos lo ofrecen, no que lo hayamos medido lado a lado.
 
@@ -16,7 +16,7 @@
 | **Ya lo hacemos mejor** | 14 | Pedido por WhatsApp completo, contraentrega con recaudo, agentes de IA (MCP), plan gratis y Pro más barato con dominio, velocidad medida, lo legal de Colombia resuelto, tus datos sin límite de exportación |
 | **Lo hacemos igual** | 14 | Catálogo con variantes, cupones, envíos por ciudad, inventario automático, GA4 y Meta, feeds de Google y Meta, equipo de 1, 3 o sin límite, dominio con SSL, panel en el celular |
 | **Lo tenemos a medias: opción de mejora** | 15 | Compras sin terminar, correos de estado al comprador, promociones por cantidad, acciones masivas, filtros de pedidos, temas listos, redes sociales en la tienda, ayuda para el comerciante |
-| **Con disparador: backlog de perfeccionamiento** | 11 | TikTok, crédito con Addi y otras pasarelas, transportadoras integradas, varias bodegas, mayoristas, tienda física, idiomas, API de conversiones, productos digitales, email marketing |
+| **Con disparador** | 10 | TikTok, crédito con Addi y otras pasarelas, transportadoras integradas, varias bodegas, mayoristas, tienda física, idiomas, API de conversiones, email marketing. Los productos digitales pasaron al backlog el 26 oct 2026 |
 | **No lo haremos, a propósito** | 4 | Código fuente editable por el comercio, tienda de aplicaciones de terceros, contraseñas, cobrar por conversación de IA |
 
 **La conclusión.** TiendaPro ya compite en lo que más pesa para el comercio pequeño de Colombia que vende por WhatsApp: el pedido, el cobro, la entrega contra pago y lo legal. Tiendanube gana en **amplitud**: más plantillas, más pasarelas, transportadoras, canales (TikTok, tienda física) y un ecosistema de aplicaciones. La mayoría de esa amplitud ya está en `BACKLOG_TIENDA3.md` §9 con su disparador, y debe seguir esperando a que un comercio real la pida. Lo que sí conviene hacer pronto es lo que mueve ventas sin romper nada: **las compras sin terminar, los correos de estado al comprador, las promociones por cantidad y las acciones masivas**.
@@ -106,7 +106,7 @@ Varios ya estaban en `BACKLOG_TIENDA3.md` §9; aquí se suman los que trae Tiend
 | Varios idiomas y monedas | La fase LATAM de ED1 | §9 |
 | API de conversiones de Meta | Un comercio con pauta que lo pida | §9 |
 | **TikTok (catálogo y botón de compra)** | Tres comercios que vendan por TikTok lo piden. El feed de Meta ya es la base | Nuevo |
-| **Productos digitales** | Tres comercios lo piden. Pide entregar un archivo después del pago, sin exponerlo | Nuevo |
+| **Productos digitales** | **Ya no espera:** el dueño la pasó al backlog el 26 oct 2026 (EP6, sprint PF2) | Nuevo |
 | **Email marketing** | Un comercio con base de compradores que aceptaron recibir correos. Se resuelve exportando a su herramienta (Doppler, Perfit), no construyéndola | Nuevo |
 
 ### 5.2 Lo que no se hará, y por qué

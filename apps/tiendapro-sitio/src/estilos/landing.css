@@ -928,11 +928,20 @@ a {
   .incluye__lista {
     grid-template-columns: 1fr 1fr;
   }
+
+  /* Con un número impar de puntos, el último no queda solo en su fila. */
+  .incluye__punto:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (min-width: 70rem) {
   .incluye__lista {
     grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .incluye__punto:last-child:nth-child(odd) {
+    grid-column: auto;
   }
 }
 
