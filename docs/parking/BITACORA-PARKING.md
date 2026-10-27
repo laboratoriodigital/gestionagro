@@ -1172,3 +1172,21 @@ La regla: **una señal que cuenta un problema necesita el camino para resolverlo
 La regla: **lo que la caja da por perdido tiene que estar perdido de verdad; y lo que nadie pidió no se imprime.**
 
 *Ficha:* parqueadero · *(mío y del terreno)* · 🔴 Alto · P1, P15, P17 · parqueadero-0.8.0 · 2026-10-19
+
+**44 · El teléfono del parqueadero no pudo subir a la nube: otra caja, vacía, ya tenía su lugar.**
+
+*Qué pasó.* El 27 oct 2026 el dueño sumó un segundo teléfono al parqueadero del primer cliente. No bajaron los ajustes ni las entradas de la serie A. En el primer teléfono, «Cuenta y nube» seguía ofreciendo «Subir este parqueadero», y al tocarlo la nube lo rechazaba.
+
+*Síntoma literal.* «Al registrar una nueva caja con la misma cuenta en otro celular no se ven las entradas con numeración A. Adicionalmente […] no toma los valores de la configuración del parqueadero ya configurados en el primer celular» (el dueño). En el primero: «Este parqueadero ya tiene cajas en la nube. Una caja con recibos propios no se suma a él […]».
+
+*Causa raíz.* Consultado en la base de producción, solo lectura y con permiso del dueño: el parqueadero tenía **una caja, la serie A, sin un solo registro ni ajuste en la nube**. Su id nació el 19 oct a las 23:03, 14 s después de aceptar los términos, y la caja entró el 20 oct a las 14:09, al quedar pagado el plan. El teléfono que hoy tiene el parqueadero tiene otro id: la nube no lo reconoce como suyo y, por la regla de HU-Q7.6, una caja con recibos propios no entra donde ya hay cajas. *Inferencia*, sin poder ver ese teléfono: la caja de la nube es otro almacenamiento (otro navegador o un teléfono que se configuró ese día), que entró y nunca subió nada. La regla era mía: miraba si había cajas, no si alguna tenía algo arriba.
+
+*Cómo se reprodujo.* En `dispositivos.test.ts`, con una caja de hace 7 días sin nada arriba: reclamar respondía `con-cajas`.
+
+*Arreglo.* `reclamar` deja entrar a la caja que trae la sede cuando el parqueadero no tiene registros ni ajustes en la nube y sus cajas entraron hace más de una hora: las borra (no tienen nada) y la caja entra con su serie y sus números. La hora le da a una caja recién reclamada tiempo de subir lo suyo. Lo que la reemplazada suba con su serie va a cuarentena, porque la base exige que la serie sea de la caja que hizo el recibo. Sale en la `0.9.2`.
+
+**Lo prueban** `dispositivos.test.ts`: la caja vacía de hace días no cierra el paso y lo de ella va a cuarentena; ❌ la de media hora, la que subió algo y la que no trae sede sí lo cierran.
+
+La regla: **una caja que no subió nada no tiene números que defender; no le cierra el paso a la que sí los tiene.**
+
+*Ficha:* parqueadero · *(mío)* · 🔴 Alto · P1, P21 · parqueadero-0.9.2 · 2026-10-27

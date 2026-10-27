@@ -17,6 +17,7 @@ import {
   ORG_DOS,
   ORG_UNO,
   pedir,
+  T0,
   token,
   vaciarShard,
 } from './prueba.fixture.ts';
@@ -107,6 +108,45 @@ describe('POST /api/v1/reclamar (HU-Q7.6)', () => {
     const r = await reclamarCaja({ dispositivo: 'otra-caja-con-recibos' });
     expect(r.status).toBe(409);
     expect(r.cuerpo['estado']).toBe('con-cajas');
+  });
+
+  /** Una caja que entró hace `horas` y no subió nada, como el teléfono vacío de la bitácora 44. */
+  const vaciaDeHace = (horas: number, id = 'telefono-vacio', serie = 'A') =>
+    e.db
+      .prepare(
+        `INSERT INTO dispositivo (org_id, id, serie, nombre, estado, creado) VALUES (?, ?, ?, ?, 'activo', ?)`,
+      )
+      .bind(ORG_UNO, id, serie, `Caja ${serie}`, new Date(T0 - horas * 3_600_000).toISOString())
+      .run();
+
+  it('bitácora 44 · una caja que en una hora no subió nada no le cierra el paso a la del parqueadero', async () => {
+    await vaciaDeHace(7 * 24);
+    const r = await reclamarCaja();
+    expect(r.status).toBe(201);
+    expect(r.cuerpo).toMatchObject({ resultado: 'reclamado', caja: { serie: 'A' } });
+    const filas = await e.db.prepare('SELECT id, serie FROM dispositivo').all();
+    expect(filas.results).toEqual([{ id: DISPOSITIVO, serie: 'A' }]);
+    const subida = await subir([deCatalogo(SEDE_ENSAYO_UNO), deRegistro(ENTRADA_ENSAYO)]);
+    expect(subida.cuerpo.acks?.map((a) => a.estado)).toEqual(['aceptado', 'aceptado']);
+    // Lo que la caja reemplazada intente subir con la serie A va a cuarentena, no a la cuenta.
+    const ajeno = entrada(9, { dispositivo_id: 'telefono-vacio', serie: 'A' });
+    expect((await subir([deRegistro(ajeno)], 'telefono-vacio')).cuerpo.acks?.[0]?.estado).toBe(
+      'cuarentena',
+    );
+  });
+
+  it('❌ bitácora 44 · la caja vacía de hace menos de una hora, o con algo arriba, sí lo cierra', async () => {
+    await vaciaDeHace(0.5);
+    expect((await reclamarCaja()).cuerpo['estado']).toBe('con-cajas');
+    await vaciarShard(e.db);
+    await vaciaDeHace(48);
+    await subir([deCatalogo(SEDE_ENSAYO_UNO)], 'telefono-vacio');
+    expect((await reclamarCaja()).cuerpo['estado']).toBe('con-cajas');
+    await vaciarShard(e.db);
+    await vaciaDeHace(48);
+    expect((await reclamarCaja({ sede_id: null })).cuerpo['estado']).toBe('con-cajas');
+    const n = await e.db.prepare('SELECT count(*) AS n FROM dispositivo').first<{ n: number }>();
+    expect(n?.n).toBe(1);
   });
 
   it('❌ no reclama un parqueadero de la nube que tiene otra sede', async () => {

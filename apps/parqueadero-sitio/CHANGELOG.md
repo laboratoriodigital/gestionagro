@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.9.2] - 2026-10-27
+
+El teléfono del parqueadero sube a la nube aunque otro haya entrado antes sin subir nada.
+
+### Corregido
+- Una caja que entró a la nube y en una hora no subió nada ya no le cierra el paso a la que trae el parqueadero: «Subir este parqueadero» la reemplaza y la caja conserva su serie y sus números. Con algo ya arriba, la regla de siempre: un teléfono nuevo se suma vacío (HU-Q13.9, bitácora 44).
+
 ## [0.9.1] - 2026-10-27
 
 La placa se lee de lejos en el recibo.
