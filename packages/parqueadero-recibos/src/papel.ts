@@ -53,6 +53,36 @@ export function partir(texto: string, columnas: number): string[] {
   return lineas;
 }
 
+/**
+ * La placa con protagonismo (pedido del dueño, 27 oct 2026): en negrita, al doble de alto y de
+ * ancho y centrada, con el vehículo en la misma línea si cabe en la mitad de las columnas
+ * («ABC123  Carro»). Ocupa el alto de dos líneas: una más que la línea «Placa … Carro» de antes,
+ * para no gastar papel. Una placa larga va sola, y el vehículo debajo, en letra normal.
+ */
+export function bloquesDeLaPlaca(
+  placa: string,
+  vehiculo: string,
+  columnas: number,
+  preparar: (t: string) => string,
+): Bloque[] {
+  const mitad = Math.floor(columnas / 2);
+  const grande = (texto: string): Bloque => ({
+    tipo: 'texto',
+    texto,
+    alinear: 'centro',
+    negrita: true,
+    grande: true,
+  });
+  const junta = preparar(`${placa}  ${vehiculo}`);
+  if (junta.length <= mitad) return [grande(junta)];
+  return [
+    ...partir(preparar(placa), mitad).map(grande),
+    ...partir(preparar(vehiculo), columnas).map(
+      (texto): Bloque => ({ tipo: 'texto', texto, alinear: 'centro' }),
+    ),
+  ];
+}
+
 /** Los bloques del recibo. Solo `texto` de una línea, `regla` y `qr`: lo que se ve es lo que sale. */
 export function papel(recibo: Recibo, o: OpcionesDePapel): Bloque[] {
   const col = o.columnas;
@@ -85,7 +115,7 @@ export function papel(recibo: Recibo, o: OpcionesDePapel): Bloque[] {
   if (recibo.clase === 'entrada' || !recibo.salida) {
     par('RECIBO DE ENTRADA', recibo.numero, true);
     texto(f(recibo.entrada));
-    par(`Placa ${recibo.placa}`, vehiculo);
+    bloques.push(...bloquesDeLaPlaca(recibo.placa, vehiculo, col, preparar));
     texto(`Estado: ${recibo.estado.length ? recibo.estado.join('; ') : 'sin novedad'}`);
     regla();
     for (const l of lineasDeTarifa(recibo.tarifa)) texto(l);
@@ -101,7 +131,7 @@ export function papel(recibo: Recibo, o: OpcionesDePapel): Bloque[] {
     const sa = recibo.salida;
     par('RECIBO DE SALIDA', recibo.numero, true);
     texto(`Entrada ${sa.entradaNumero}`);
-    par(`Placa ${recibo.placa}`, vehiculo);
+    bloques.push(...bloquesDeLaPlaca(recibo.placa, vehiculo, col, preparar));
     par('Entró', f(recibo.entrada));
     par('Salió', f(sa.instante));
     par('Tiempo', `${sa.minutos} min`);

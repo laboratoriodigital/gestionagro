@@ -12,7 +12,7 @@ import {
   type Registro,
   type Sede,
 } from '@ed1/parqueadero-schema';
-import { partir } from './papel.ts';
+import { bloquesDeLaPlaca, partir } from './papel.ts';
 import {
   faltantesDeSede,
   fechaHora,
@@ -65,7 +65,7 @@ export function papelDeLaMensualidad(
   regla();
   par('MENSUALIDAD', numeroDeRecibo(pago.serie, pago.consecutivo), true);
   texto(fechaHora(Date.parse(pago.instante_evento), o.desfaseMin, sede?.formato_hora === '12h'));
-  par(`Placa ${d.placa}`, nombreDelVehiculo(d.vehiculo));
+  bloques.push(...bloquesDeLaPlaca(d.placa, nombreDelVehiculo(d.vehiculo), col, preparar));
   par('Desde', dia(d.desde));
   par('Hasta (incluido)', dia(d.hasta));
   regla();

@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- `@ed1/parqueadero-recibos`: `bloquesDeLaPlaca` pone la placa en negrita, al doble de alto y de ancho, con el vehículo al lado si cabe; el papel de la entrada, la salida y la mensualidad la usan (HU-Q13.8).
+
 ## [0.7.0] - 2026-10-24
 
 El plan Gratis con topes claros (3 áreas, 2 personas con cuenta y restaurar copias con el plan Finca) y el asistente de la finca encendido en producción.
