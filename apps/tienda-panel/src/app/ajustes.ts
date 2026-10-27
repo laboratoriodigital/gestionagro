@@ -276,7 +276,14 @@ export const CAMPOS: Record<Seccion, readonly CampoDeAjuste[]> = {
       tipo: 'parrafo',
       ayuda: 'Si lo dejas vacío, la tienda usa uno sencillo que nombra lo que mides.',
     },
-    { campo: 'googleVerificacion', etiqueta: 'Código de Google Search Console', tipo: 'texto' },
+    {
+      campo: 'googleVerificacion',
+      etiqueta: 'Código de Google Search Console',
+      tipo: 'texto',
+      // HU-T14.8 CA2: la propiedad de dominio pide un DNS que el comercio no tiene en mitiendapro.co.
+      ayuda:
+        'En Search Console agrega tu tienda como «Prefijo de URL», con su dirección completa, y elige «Etiqueta HTML». Pega aquí el código o la etiqueta entera, guarda y publica; luego toca «Verificar» en Google.',
+    },
   ],
   agentes: [
     {

@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- En «Ajustes › Medición», el código de Google Search Console explica cómo obtenerlo: agregar la tienda como «Prefijo de URL» y elegir «Etiqueta HTML».
+
 ### Agregado
 - El Inicio del panel muestra la dirección de tu tienda en línea, con «Abrir mi tienda» y «Copiar»; si todavía no la publicaste, te lleva a publicarla.
 
