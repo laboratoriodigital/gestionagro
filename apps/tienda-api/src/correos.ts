@@ -236,7 +236,12 @@ export interface DatosDelResumen {
   tablero: Tablero;
   ayer: Cifras;
   solicitudes: FilaDeSolicitud[];
+  /** HU-T6.5, 26 oct 2026: las agotadas que más personas esperan (solo la cuenta, nunca quiénes). */
+  esperan?: readonly { nombre: string; clave: string; personas: number }[];
 }
+
+/** Cuántas agotadas con personas esperando nombra el resumen; las demás están en el inventario. */
+export const ESPERAS_EN_EL_RESUMEN = 5;
 
 /** El resumen de la mañana. `null` si no hay nada que hacer ni nada vendido ayer: no se manda. */
 export function resumenDiario(d: DatosDelResumen): { asunto: string; texto: string } | null {
@@ -251,6 +256,10 @@ export function resumenDiario(d: DatosDelResumen): { asunto: string; texto: stri
     p.recaudosAtrasados &&
       `${cuantos(p.recaudosAtrasados, 'recaudo atrasado', 'recaudos atrasados')}: la transportadora lleva más de 3 días hábiles sin liquidar${p.recaudosAtrasados === 1 ? 'lo' : 'los'}.`,
     p.agotados && `${cuantos(p.agotados, 'variante agotada', 'variantes agotadas')}.`,
+    ...(d.esperan ?? []).map((e) => {
+      const detalle = e.clave.split('|').filter(Boolean).join(', ');
+      return `${cuantos(e.personas, 'persona espera', 'personas esperan')} ${e.nombre}${detalle ? ` (${detalle})` : ''}: avísales por WhatsApp cuando haya.`;
+    }),
   ].filter((t): t is string => Boolean(t));
   const porVencer = d.solicitudes.filter((s) => s.alerta !== null);
   if (tareas.length === 0 && porVencer.length === 0 && d.ayer.vendidos === 0) return null;
@@ -321,15 +330,33 @@ export async function resumenDeLaTienda(
   if (await yaNoSeManda(c, clave)) return 'repetido';
   const q = { db: c.db, org: c.org, actor: 'sistema', instante: c.ahora };
   const inicioDeHoy = Date.parse(`${dia}T00:00:00-05:00`);
-  const [deTablero, ayer, { solicitudes }] = await Promise.all([
+  const [deTablero, ayer, { solicitudes }, { results: esperan }] = await Promise.all([
     tablero(q, ahoraMs),
     cifras(q, {
       desde: new Date(inicioDeHoy - 86_400_000).toISOString(),
       hasta: new Date(inicioDeHoy).toISOString(),
     }),
     listarSolicitudes(q, ahoraMs),
+    c.db
+      .prepare(
+        `SELECT p.nombre, v.clave, i.personas
+           FROM interes_reposicion i
+           JOIN variante v ON v.org_id = i.org_id AND v.id = i.variante_id
+           JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
+          WHERE i.org_id = ? AND i.personas > 0 AND p.borrado IS NULL
+          ORDER BY i.personas DESC, p.nombre, v.clave LIMIT ?`,
+      )
+      .bind(c.org, ESPERAS_EN_EL_RESUMEN)
+      .all<{ nombre: string; clave: string; personas: number }>(),
   ]);
-  const r = resumenDiario({ tienda: t.nombre, dia, tablero: deTablero, ayer, solicitudes });
+  const r = resumenDiario({
+    tienda: t.nombre,
+    dia,
+    tablero: deTablero,
+    ayer,
+    solicitudes,
+    esperan,
+  });
   if (!r) return 'sin-novedad';
   const para = t.resumen;
   return mandarUnaVez(c, clave, 'resumen', () => ({ para, ...r, nombre: t.nombre }));

@@ -114,6 +114,20 @@ describe('determinismo y lo que nunca llega al HTML', () => {
     expect(a.huella).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  it('HU-T6.5, 26 oct 2026: «Avísame» abre el WhatsApp de la tienda con el mensaje listo; sin WhatsApp, solo suma', async () => {
+    const ficha = (t: TiendaParaHornear) =>
+      hornear(t).then((a) => a.get('/p/camisa-de-lino/index.html')?.contenido ?? '');
+    const con = await ficha(paraHornear(ENSAYO_UNO));
+    expect(con).toContain(
+      `href="https://wa.me/573000000001?text=${encodeURIComponent(`Hola, avísame cuando tengas Camisa de lino: https://${hostDeStaging(ENSAYO_UNO.slug)}/p/camisa-de-lino/`)}"`,
+    );
+    expect(con).toContain('data-avisame-whatsapp="573000000001"');
+    expect(con).toContain('>Avísame por WhatsApp</a>');
+    const sin = await ficha(paraHornear(ENSAYO_UNO, { whatsapp: '' }));
+    expect(sin).toContain('type="button" data-avisame-boton>Avísame cuando haya</button>');
+    expect(sin).not.toContain('data-avisame-whatsapp');
+  });
+
   it('el lastmod del sitemap sale del dato, no del reloj', async () => {
     const sitemap = (await hornear(paraHornear(ENSAYO_DOS))).get('/sitemap.xml')?.contenido ?? '';
     expect(sitemap).toContain('<lastmod>2026-10-13</lastmod>');

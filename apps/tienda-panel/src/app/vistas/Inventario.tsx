@@ -296,8 +296,8 @@ export function Existencias({
               : `${fila.esperan} personas pidieron que les avises`}
           </h2>
           <p class="nota">
-            Te escribieron por WhatsApp desde la tienda: ahí están sus números. Cuando les avises,
-            márcalo aquí.
+            Desde la tienda te escriben a tu WhatsApp «Hola, avísame cuando tengas…»: ahí están sus
+            números. Cuando les avises, márcalo aquí.
           </p>
           <Confirmar
             abrir="Ya les avisé"

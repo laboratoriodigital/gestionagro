@@ -196,10 +196,20 @@ test('HU-T6.5 · «Avísame cuando haya» en una combinación agotada, una sola 
   await page.locator('label.pildora', { hasText: /^L$/ }).click();
   await page.locator('label.pildora', { hasText: 'Azul' }).click();
   await expect(page.locator('[data-boton]')).toHaveText('Agotada');
-  const boton = page.getByRole('button', { name: 'Avísame cuando haya' });
-  await boton.click();
+  // 26 oct 2026: con el WhatsApp de la tienda, «Avísame» abre su chat con la combinación elegida.
+  const enlace = page.getByRole('link', { name: 'Avísame por WhatsApp' });
+  const href = new URL((await enlace.getAttribute('href')) ?? '');
+  expect(`${href.origin}${href.pathname}`).toBe('https://wa.me/573000000001');
+  expect(href.searchParams.get('text')).toMatch(
+    /^Hola, avísame cuando tengas Camisa de lino \(L, Azul\): https:\/\/\S+\/p\/camisa-de-lino\/$/,
+  );
+  // WhatsApp no se abre de verdad: la pestaña nueva se responde aquí.
+  await page.context().route('https://wa.me/**', (r) => r.fulfill({ body: 'WhatsApp' }));
+  const chat = page.waitForEvent('popup');
+  await enlace.click();
+  await (await chat).close();
   await expect(page.locator('[data-avisame-estado]')).toHaveText(
-    'Listo: la tienda sabe que esperas esta combinación.',
+    'Listo: envía el mensaje en WhatsApp y la tienda te escribe cuando haya.',
   );
   expect(pedidas).toEqual([JSON.stringify({ variante: 'v-camisa-l-azul' })]);
 
@@ -209,7 +219,11 @@ test('HU-T6.5 · «Avísame cuando haya» en una combinación agotada, una sola 
   await expect(page.locator('[data-avisame-estado]')).toHaveText(
     'Ya le dijiste a la tienda que esperas esta combinación.',
   );
-  await expect(boton).toBeHidden();
+  // El chat sigue a la mano, pero escribir otra vez no vuelve a contar.
+  const otra = page.waitForEvent('popup');
+  await enlace.click();
+  await (await otra).close();
+  expect(pedidas).toHaveLength(1);
 });
 
 /**
