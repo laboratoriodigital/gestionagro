@@ -259,7 +259,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q10** | 25 ene–5 feb | Firma sin red por dispositivo y su verificación; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q11.4 (2), HU-Q11.5 (2). HU-Q8.3 pasó a Q11 (espera R2) | 14 | — |
 | **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). HU-Q8.5, HU-Q8.6 y HU-Q10.3 en el PR #156; HU-Q8.4 en el #157, sin el número del abonado; HU-Q11.6 y HU-Q11.7 en el #158 con la `v0.3.0` de la entrega. HU-Q8.3 hecha en el #158, con las fotos en el Drive de la cuenta (decisión del dueño, 12 oct 2026); HU-Q8.7 espera M1 en producción (HU-Q7.12) | 17 | M2, **`v1.0.0`** |
 | **Q12** | 22 feb–5 mar | Sin el disparador de M3 (12 oct 2026), como dice la nota de abajo: el cobro del plan por periodo, que HC4 desbloqueó (#161). EQ9 sigue preparada | HU-Q7.10 (3) | 3 | — |
-| **Q13** | 8–19 mar | Sin el disparador de M3 (14 oct 2026): lo que pidió el dueño con el cliente en operación. EQ9 sigue preparada | HU-Q13.1 (1), HU-Q13.2 (3), HU-Q13.3 (2), HU-Q13.4 (2), HU-Q13.5 (2), HU-Q13.6 (1), HU-Q13.7 (2), HU-Q13.8 (1) | 14 | `v0.6.0`, `v0.7.0`, `v0.7.1`, `v0.7.2`, `v0.8.0`, `v0.9.1` |
+| **Q13** | 8–19 mar | Sin el disparador de M3 (14 oct 2026): lo que pidió el dueño con el cliente en operación. EQ9 sigue preparada | HU-Q13.1 (1), HU-Q13.2 (3), HU-Q13.3 (2), HU-Q13.4 (2), HU-Q13.5 (2), HU-Q13.6 (1), HU-Q13.7 (2), HU-Q13.8 (1), HU-Q13.9 (1) | 15 | `v0.6.0`, `v0.7.0`, `v0.7.1`, `v0.7.2`, `v0.8.0`, `v0.9.1`, `v0.9.2` |
 
 **Total:** 229 puntos en 14 sprints. M0: 116 (Q0–Q5). M1: 57 (Q6–Q9). M2: 31 (Q10–Q11). M3: 25 (Q12–Q13).
 
@@ -870,12 +870,19 @@ Pedido del dueño del 14 oct 2026, con el primer parqueadero ya operando. Sin el
 - **CA4 ❌.** Lo que la caja dio por no salido no se imprime cuando la impresora despierta (prueba con una impresora falsa que se queda dormida a mitad de un recibo). Lo que la impresora ya recibió en su memoria no se puede retirar: la caja no lo ve (ver bitácora 43).
 
 #### HU-Q13.8 · La placa con protagonismo en el papel
-- **Capa:** recibos · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** Q13 · **Estado:** En revisión (rama `feat/placa-destacada`)
+- **Capa:** recibos · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** Q13 · **Estado:** Hecha (`v0.9.1`, 27 oct 2026)
 - Como cajero, quiero ver la placa grande en el recibo, para encontrar el vehículo y comparar sin acercar el papel.
 - **Respaldo:** el dueño, 2026-10-27: «quiero que la placa del vehículo que se imprime en el recibo tenga más protagonismo, un poco más grande y visible sin agrandar mucho el espacio de impresión para no desperdiciar papel».
 - **CA1.** En el papel de la entrada, la salida y la mensualidad, la placa sale en negrita, al doble de alto y de ancho y centrada, con el vehículo en la misma línea («ABC123  Carro»). Reemplaza la línea «Placa ABC123 … Carro»: el recibo crece el alto de una sola línea.
 - **CA2.** La hoja del diálogo de impresión la muestra igual (la misma marca de letra grande). La pantalla, el enlace y WhatsApp no cambian.
 - **CA3 ❌.** Una placa que no cabe con el vehículo en la mitad de las columnas va sola, y el vehículo debajo en letra normal: ninguna línea se sale del papel.
+
+#### HU-Q13.9 · Una caja que no subió nada no bloquea la del parqueadero
+- **Capa:** API de la celda · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q13 · **Estado:** En revisión (rama `fix/caja-vacia-no-bloquea`)
+- Como propietario, quiero subir a la nube la caja donde está mi parqueadero aunque otra haya entrado antes sin subir nada, para sumar un segundo teléfono sin configurar todo de nuevo.
+- **Respaldo:** el dueño, 2026-10-27: «al registrar una nueva caja con la misma cuenta en otro celular no se ven las entradas con numeración A», y en la caja del parqueadero «Este parqueadero ya tiene cajas en la nube…». Bitácora 44.
+- **CA1.** `POST /api/v1/reclamar` acepta la caja que trae la sede cuando el parqueadero no tiene registros ni ajustes en la nube y sus cajas entraron hace más de una hora: las reemplaza y la caja conserva su serie y sus números.
+- **CA2 ❌.** Una caja de menos de una hora, o un parqueadero con algo en la nube, sigue cerrando el paso (`con-cajas`). Lo que la caja reemplazada suba con su serie va a cuarentena.
 
 ---
 
@@ -996,7 +1003,7 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 | Q9 | 15 | Solo staging | #154. HU-Q7.10 espera HC4 y HU-Q7.12 es la `v0.5.0` |
 | Q10 | 14 | Solo staging | #155 |
 | Q11 | 17 | Lo que no necesita la nube, en la `v0.3.0` de la entrega | #156–#158: 20 puntos hechos (HU-Q8.3, HU-Q8.4, HU-Q8.5, HU-Q8.6, HU-Q10.3, HU-Q11.6 y HU-Q11.7, estas dos sin sprint); HU-Q8.7 espera M1 en producción |
-| Q13 | 14 | Con la `0.6.0` a la `0.8.0` y la `0.9.1` | HU-Q13.1 a HU-Q13.8, pedidas por el dueño del 14 al 27 oct 2026 |
+| Q13 | 15 | Con la `0.6.0` a la `0.8.0`, la `0.9.1` y la `0.9.2` | HU-Q13.1 a HU-Q13.9, pedidas por el dueño del 14 al 27 oct 2026 |
 | Q12 | 3 | En producción con la `0.5.0` | HU-Q7.10, sin el disparador de M3. HU-Q7.12 (M1 en producción) espera la decisión del dueño |
 
 Desde el 12 oct 2026, un PR y un push por sprint completo, para ahorrar minutos de Actions (decisión del dueño).

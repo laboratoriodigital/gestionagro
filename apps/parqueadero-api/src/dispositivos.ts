@@ -5,7 +5,9 @@
  *
  * - `POST /api/v1/reclamar`: la primera caja, la que trae lo del piloto, entra con la serie que ya
  *   usa (la «A» de M0) y sus mismos números. Solo en un parqueadero sin otras cajas: con otra caja
- *   en la nube, los números de esta chocarían con los suyos. Es idempotente.
+ *   en la nube, los números de esta chocarían con los suyos. Es idempotente. Unas cajas que en
+ *   una hora no subieron nada, en un parqueadero sin nada en la nube, no cuentan: la que trae el
+ *   parqueadero las reemplaza (bitácora 44).
  * - `POST /api/v1/dispositivos`: una caja nueva recibe la siguiente serie libre (A, B, …, Z, AA…).
  *   Nunca la de una caja retirada: sus recibos siguen valiendo con esa serie (CA2). Idempotente.
  * - `POST /api/v1/dispositivos/retirar`: la caja retirada no sube ni baja nada más (CA3); lo que
@@ -132,6 +134,29 @@ const publica = (d: FilaDispositivo) => ({
   retirado: d.retirado,
 });
 
+/** Lo que una caja tiene para subir lo suyo antes de que otra con el parqueadero la reemplace. */
+export const ESPERA_DE_UNA_CAJA_VACIA_MS = 60 * 60_000;
+
+/**
+ * El parqueadero no tiene nada en la nube y sus cajas llevan más de una hora sin subir nada: un
+ * teléfono que se sumó antes que el del parqueadero, o una entrada que se quedó a mitad.
+ */
+async function sinNadaArriba(
+  db: BaseD1,
+  org: string,
+  cajas: readonly FilaDispositivo[],
+  ahora: number,
+): Promise<boolean> {
+  if (cajas.some((d) => ahora - Date.parse(d.creado) < ESPERA_DE_UNA_CAJA_VACIA_MS)) return false;
+  const fila = await db
+    .prepare(
+      'SELECT EXISTS (SELECT 1 FROM registro WHERE org_id = ?) AS r, EXISTS (SELECT 1 FROM catalogo WHERE org_id = ?) AS c',
+    )
+    .bind(org, org)
+    .first<{ r: number; c: number }>();
+  return fila?.r === 0 && fila.c === 0;
+}
+
 /** `POST /api/v1/reclamar` (HU-Q7.6 CA2 y CA3): la primera caja conserva su serie. */
 export async function reclamar(c: ContextoCelda, ahora: () => number): Promise<Response> {
   const negado = sinPermiso(c);
@@ -165,7 +190,12 @@ export async function reclamar(c: ContextoCelda, ahora: () => number): Promise<R
     );
   }
   if (propia) return c.json({ resultado: 'ya-reclamado', caja: publica(propia) });
-  if (cajas.length > 0) {
+  // Bitácora 44: una caja que en una hora no subió nada no le cierra el paso a la que trae el
+  // parqueadero. Sin registros ni ajustes en la nube, ninguna caja tiene números que choquen.
+  const reemplaza =
+    cajas.length > 0 && sede !== null && (await sinNadaArriba(db, org, cajas, ahora()));
+  if (reemplaza) await db.prepare('DELETE FROM dispositivo WHERE org_id = ?').bind(org).run();
+  if (cajas.length > 0 && !reemplaza) {
     return c.json(
       {
         estado: 'con-cajas',
