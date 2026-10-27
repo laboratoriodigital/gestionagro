@@ -4,7 +4,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.4.0] - 2026-10-26
+
+Quien espera un producto agotado se lo dice a la tienda por WhatsApp, y el comerciante sabe a quién avisarle.
+
+### Agregado
+- En la ficha de un producto agotado, «Avísame por WhatsApp» abre el chat de la tienda con el mensaje listo: el producto, la combinación elegida y su enlace. Quien lo envía le deja su número a la tienda en su propio WhatsApp; la tienda sigue sin guardar datos de nadie, solo cuántos esperan. Si la tienda no tiene WhatsApp, el botón solo suma a la cuenta, como antes.
+- El resumen diario nombra las combinaciones agotadas que más personas esperan, para avisarles cuando haya.
+
 ### Cambiado
+- En el inventario, el aviso de quienes esperan dice dónde están sus mensajes: en tu WhatsApp, con «Hola, avísame cuando tengas…».
 - En «Ajustes › Medición», el código de Google Search Console explica cómo obtenerlo: agregar la tienda como «Prefijo de URL» y elegir «Etiqueta HTML».
 
 ## [1.3.0] - 2026-10-26

@@ -1462,3 +1462,17 @@ La regla: **una carga se prueba sobre una tienda que ya tiene cosas, no sobre un
 La regla: **un work item que se aplaza a otra historia se anota en esa historia; si no, se pierde entre las dos.**
 
 *Ficha:* tienda3 · *(mía)* · 🟢 Bajo · P3 · tienda-1.3.0 · 2026-10-26
+
+**61 · «Avísame cuando haya» le decía al comerciante que tenía números que nunca le llegaron.**
+
+*Qué pasó.* El 26 oct 2026 el dueño preguntó dónde ve el comerciante a quien pidió que le avisen. En el inventario, la combinación decía «3 personas pidieron que les avises» y debajo «Te escribieron por WhatsApp desde la tienda: ahí están sus números». Pero el botón de la ficha solo sumaba a la cuenta: no abría WhatsApp. El comerciante sabía cuántos y no a quién.
+
+*La causa.* HU-T6.5 se diseñó «sin datos de nadie» (CA2), y eso estaba bien. El texto del panel (HU-T8.5) se escribió suponiendo que el comprador además escribía por WhatsApp, y ninguna prueba unía la ficha con el panel: cada lado tenía su prueba y las dos pasaban.
+
+*El arreglo.* Con el WhatsApp de la tienda, el botón es un enlace a su chat con el mensaje listo, y la isla pone la combinación elegida. Suma una vez por teléfono, como antes; escribir otra vez no vuelve a contar. El número lo deja quien envía, en el WhatsApp del comerciante: la tienda sigue sin guardar nada de nadie. El resumen diario nombra las combinaciones que más personas esperan.
+
+**Lo prueban** la e2e de la ficha (el enlace con «(L, Azul)», la cuenta una sola vez y el chat a la mano al volver), el horno con y sin WhatsApp, y el resumen con las esperas. La e2e también encontró que, al sumar, la isla volvía a pintar el botón con el id de la combinación en vez de la combinación: la ficha decía «Revisa tu conexión» con la red bien.
+
+La regla: **un texto que le promete algo al comerciante se prueba contra lo que hace el comprador, no solo contra su pantalla.**
+
+*Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟡 Medio · P2 · tienda-1.4.0 · 2026-10-26

@@ -189,7 +189,7 @@ function ficha(): void {
       quedan.textContent = q ? (q === 1 ? 'Queda 1' : `Quedan ${q}`) : '';
     }
     if (avisame) avisame.hidden = estado.tipo !== 'agotada';
-    if (estado.tipo === 'agotada') pintarAvisame(estado.variante.id);
+    if (estado.tipo === 'agotada') pintarAvisame(estado.variante);
     for (const o of opciones) {
       for (const input of form.querySelectorAll<HTMLInputElement>(
         `input[name="${CSS.escape(o.nombre)}"]`,
@@ -205,7 +205,9 @@ function ficha(): void {
   };
   // HU-T6.5: «Avísame cuando haya». El teléfono recuerda por cuáles ya se preguntó, así nadie suma
   // dos veces la misma (bitácora tienda3 11); a la tienda no le llega ningún dato de la persona.
-  const botonAvisame = form.querySelector<HTMLButtonElement>('[data-avisame-boton]');
+  // 26 oct 2026: con el WhatsApp de la tienda es un enlace a su chat; el número se lo deja quien envía.
+  const botonAvisame = form.querySelector<HTMLElement>('[data-avisame-boton]');
+  const porWhatsapp = botonAvisame instanceof HTMLAnchorElement ? botonAvisame : null;
   const estadoAvisame = form.querySelector<HTMLElement>('[data-avisame-estado]');
   const pedidas = (): string[] => {
     try {
@@ -215,19 +217,29 @@ function ficha(): void {
       return [];
     }
   };
-  let agotadaActual = '';
-  const pintarAvisame = (variante: string) => {
+  let agotadaActual: VarianteDeLaFicha | undefined;
+  const pintarAvisame = (variante: VarianteDeLaFicha) => {
     agotadaActual = variante;
-    const ya = pedidas().includes(variante);
-    if (botonAvisame) botonAvisame.hidden = ya;
+    const ya = pedidas().includes(variante.id);
+    if (porWhatsapp) {
+      // El enlace queda a la mano aunque ya haya sumado: escribir otra vez no vuelve a contar.
+      const d = porWhatsapp.dataset;
+      const detalle = variante.clave.split('|').filter(Boolean).join(', ');
+      const texto = `Hola, avísame cuando tengas ${d['avisameProducto']}${detalle ? ` (${detalle})` : ''}: ${d['avisameUrl']}`;
+      porWhatsapp.href = `https://wa.me/${d['avisameWhatsapp']}?text=${encodeURIComponent(texto)}`;
+    } else if (botonAvisame) botonAvisame.hidden = ya;
     decir(
       estadoAvisame,
       ya ? 'Ya le dijiste a la tienda que esperas esta combinación.' : undefined,
     );
   };
   botonAvisame?.addEventListener('click', async () => {
-    const variante = agotadaActual;
-    botonAvisame.disabled = true;
+    const elegida = agotadaActual;
+    if (!elegida) return;
+    const variante = elegida.id;
+    // El enlace abre el chat solo, en otra pestaña: esta se queda y suma la cuenta aparte.
+    if (porWhatsapp && pedidas().includes(variante)) return;
+    if (botonAvisame instanceof HTMLButtonElement) botonAvisame.disabled = true;
     try {
       const r = await fetch('/api/v1/avisame', {
         method: 'POST',
@@ -236,8 +248,14 @@ function ficha(): void {
       });
       if (r.ok || r.status === 409) {
         almacen.escribir(CLAVE_AVISAME, JSON.stringify([...pedidas(), variante].slice(-50)));
-        pintarAvisame(variante);
-        if (r.ok) decir(estadoAvisame, 'Listo: la tienda sabe que esperas esta combinación.');
+        pintarAvisame(elegida);
+        if (r.ok)
+          decir(
+            estadoAvisame,
+            porWhatsapp
+              ? 'Listo: envía el mensaje en WhatsApp y la tienda te escribe cuando haya.'
+              : 'Listo: la tienda sabe que esperas esta combinación.',
+          );
         else decir(estadoAvisame, 'Esta combinación ya está disponible: recarga la página.');
       } else {
         decir(estadoAvisame, 'No pudimos avisarle a la tienda. Intenta de nuevo en un minuto.');
@@ -245,7 +263,7 @@ function ficha(): void {
     } catch {
       decir(estadoAvisame, 'No pudimos avisarle a la tienda. Revisa tu conexión.');
     } finally {
-      botonAvisame.disabled = false;
+      if (botonAvisame instanceof HTMLButtonElement) botonAvisame.disabled = false;
     }
   });
 

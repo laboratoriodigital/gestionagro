@@ -647,6 +647,25 @@ describe('HU-T14.3 · el resumen diario', () => {
     ).toBe('Comercio Ensayo Uno · lo de hoy, viernes 16 de octubre');
   });
 
+  it('HU-T6.5, 26 oct 2026: nombra las agotadas que más personas esperan, sin decir quiénes', () => {
+    const r = resumenDiario({
+      tienda: 'Comercio Ensayo Uno',
+      dia: '2026-10-16',
+      tablero: tableroCon({}),
+      ayer: { ...ayer, vendidos: 0, ventasCop: 0 },
+      solicitudes: [],
+      esperan: [
+        { nombre: 'Camisa de lino', clave: 'L|Azul', personas: 3 },
+        { nombre: 'Bolso', clave: '', personas: 1 },
+      ],
+    });
+    // Solo con personas esperando, ya hay algo que hacer: sale.
+    expect(r?.texto).toContain(
+      '- 3 personas esperan Camisa de lino (L, Azul): avísales por WhatsApp cuando haya.',
+    );
+    expect(r?.texto).toContain('- 1 persona espera Bolso: avísales por WhatsApp cuando haya.');
+  });
+
   it('CA2 · sale a la hora de Bogotá que eligió el comercio, una vez al día, al correo de Avisos', async () => {
     const g = gmail();
     await ajuste('avisos', { correo: 'avisos-uno@ejemplo.test', hora: '08:30' }).run();

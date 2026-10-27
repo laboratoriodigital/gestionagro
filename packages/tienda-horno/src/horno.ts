@@ -703,6 +703,20 @@ ${p.cuerpo}
    * condiciones. Sin JavaScript se lee entera; con él, el botón dice qué falta (`vitrina.ts`). Las
    * variantes van como datos, no como código: `<script type="application/json">` no se ejecuta.
    */
+  /**
+   * HU-T6.5, 26 oct 2026 (decisión del dueño): con el WhatsApp de la tienda, «Avísame» abre su chat con
+   * el mensaje listo («avísame cuando tengas…»), y la isla pone la combinación elegida. Quien lo envía le
+   * deja su número al comerciante en su propio WhatsApp; la tienda sigue sin guardar nada de nadie, solo
+   * la cuenta. Sin WhatsApp, el botón de antes, que solo suma.
+   */
+  const whatsappDeLaTienda = presente(t.whatsapp) ? t.whatsapp.replace(/\D/g, '') : '';
+  const botonAvisame = (p: ProductoParaHornear) => {
+    if (!whatsappDeLaTienda)
+      return '<button class="boton boton--secundario" type="button" data-avisame-boton>Avísame cuando haya</button>';
+    const enlace = url(`/p/${p.slug}/`);
+    const texto = encodeURIComponent(`Hola, avísame cuando tengas ${p.nombre}: ${enlace}`);
+    return `<a class="boton boton--secundario" href="https://wa.me/${whatsappDeLaTienda}?text=${texto}" target="_blank" rel="noopener nofollow" data-avisame-boton data-avisame-whatsapp="${whatsappDeLaTienda}" data-avisame-producto="${escaparHtml(p.nombre)}" data-avisame-url="${escaparHtml(enlace)}">Avísame por WhatsApp</a>`;
+  };
   const fichaHtml = (p: ProductoParaHornear, opcionesLista: string) => {
     const variantes = [...p.variantes]
       .sort((a, b) => (a.id < b.id ? -1 : 1))
@@ -761,7 +775,7 @@ ${p.cuerpo}
       `<p class="quedan" data-quedan${quedanInicial ? '' : ' hidden'}>${quedanInicial ? (quedanInicial === 1 ? 'Queda 1' : `Quedan ${quedanInicial}`) : ''}</p>`,
       `<p class="precio__nota">${notaDelPrecio}</p>`,
       '</div>',
-      `<form class="eleccion" data-eleccion>${grupos}${mayoria}<div class="avisame" data-avisame hidden><p>Esta combinación está agotada.</p><button class="boton boton--secundario" type="button" data-avisame-boton>Avísame cuando haya</button><p class="aviso" data-avisame-estado role="status" hidden></p></div><p class="aviso" data-aviso role="status" hidden></p><button class="boton boton--principal" type="submit" data-boton aria-disabled="${inicial.tipo !== 'lista'}">${escaparHtml(inicial.texto)}</button></form>`,
+      `<form class="eleccion" data-eleccion>${grupos}${mayoria}<div class="avisame" data-avisame hidden><p>Esta combinación está agotada.</p>${botonAvisame(p)}<p class="aviso" data-avisame-estado role="status" hidden></p></div><p class="aviso" data-aviso role="status" hidden></p><button class="boton boton--principal" type="submit" data-boton aria-disabled="${inicial.tipo !== 'lista'}">${escaparHtml(inicial.texto)}</button></form>`,
       // HU-T5.8 CA3: compartir. Sin JavaScript, el enlace de WhatsApp; con él, el menú del teléfono.
       `<p class="compartir"><a class="boton boton--secundario" href="https://wa.me/?text=${encodeURIComponent(`${p.nombre} ${url(`/p/${p.slug}/`)}`)}" target="_blank" rel="noopener" data-compartir="${escaparHtml(url(`/p/${p.slug}/`))}" data-compartir-titulo="${escaparHtml(p.nombre)}">Compartir</a></p>`,
       `<ul class="condiciones">${condiciones(p)
