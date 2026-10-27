@@ -259,7 +259,7 @@ La caja es una herramienta de trabajo, no una vitrina: se usa de pie, al sol, co
 | **Q10** | 25 ene–5 feb | Firma sin red por dispositivo y su verificación; el generador de recibo y el sitio | HU-Q8.1 (5), HU-Q8.2 (5), HU-Q11.4 (2), HU-Q11.5 (2). HU-Q8.3 pasó a Q11 (espera R2) | 14 | — |
 | **Q11** | 8–19 feb | **M2.** Fotos en la nube, mensualidades, reportes, lo que ahorra el parqueadero y el soporte medido | HU-Q8.3 (3), HU-Q8.4 (3), HU-Q8.5 (3), HU-Q8.6 (3), HU-Q8.7 (2), HU-Q10.3 (3). HU-Q8.5, HU-Q8.6 y HU-Q10.3 en el PR #156; HU-Q8.4 en el #157, sin el número del abonado; HU-Q11.6 y HU-Q11.7 en el #158 con la `v0.3.0` de la entrega. HU-Q8.3 hecha en el #158, con las fotos en el Drive de la cuenta (decisión del dueño, 12 oct 2026); HU-Q8.7 espera M1 en producción (HU-Q7.12) | 17 | M2, **`v1.0.0`** |
 | **Q12** | 22 feb–5 mar | Sin el disparador de M3 (12 oct 2026), como dice la nota de abajo: el cobro del plan por periodo, que HC4 desbloqueó (#161). EQ9 sigue preparada | HU-Q7.10 (3) | 3 | — |
-| **Q13** | 8–19 mar | Sin el disparador de M3 (14 oct 2026): lo que pidió el dueño con el cliente en operación. EQ9 sigue preparada | HU-Q13.1 (1), HU-Q13.2 (3), HU-Q13.3 (2), HU-Q13.4 (2), HU-Q13.5 (2), HU-Q13.6 (1), HU-Q13.7 (2) | 13 | `v0.6.0`, `v0.7.0`, `v0.7.1`, `v0.7.2`, `v0.8.0` |
+| **Q13** | 8–19 mar | Sin el disparador de M3 (14 oct 2026): lo que pidió el dueño con el cliente en operación. EQ9 sigue preparada | HU-Q13.1 (1), HU-Q13.2 (3), HU-Q13.3 (2), HU-Q13.4 (2), HU-Q13.5 (2), HU-Q13.6 (1), HU-Q13.7 (2), HU-Q13.8 (1) | 14 | `v0.6.0`, `v0.7.0`, `v0.7.1`, `v0.7.2`, `v0.8.0`, `v0.9.1` |
 
 **Total:** 229 puntos en 14 sprints. M0: 116 (Q0–Q5). M1: 57 (Q6–Q9). M2: 31 (Q10–Q11). M3: 25 (Q12–Q13).
 
@@ -491,7 +491,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.9.1 `[código]` exportar · WI-Q7.9.2 `[prueba]` ida y vuelta · WI-Q7.9.3 `[código]` pantalla.
 
 #### HU-Q7.10 · El cobro del plan por periodo
-- **Capa:** CORE y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q12 (HC4 llegó con el #161) · **Depende de:** HU-C5.3, HU-C5.5 y HU-C5.6 (HC4), HU-Q7.1, D-Q5 · **Estado:** En revisión (rama `feat/q12-sprint`, 12 oct 2026), en staging. **CA1 cambia de forma:** el CORE no le avisa a la celda; la celda lee el plan del token, que el CORE ya emite con la gracia del producto (HU-C5.5), y la caja renueva su acceso al volver de Bold (bitácora, «Cambios de rumbo»). Pagar lo ve quien tiene «Equipo, plan y pago» (el propietario, §11.2). El precio lo fijó el dueño el 13 oct 2026: COP 29.900 al mes. Pendiente: WI-Q7.10.4
+- **Capa:** CORE y caja · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** Q12 (HC4 llegó con el #161) · **Depende de:** HU-C5.3, HU-C5.5 y HU-C5.6 (HC4), HU-Q7.1, D-Q5 · **Estado:** Hecha: en producción con la `v0.5.0` (13 oct 2026); el primer cliente tiene el plan pagado hasta el 20 oct 2027 (en efectivo, HU-C5.8). **CA1 cambia de forma:** el CORE no le avisa a la celda; la celda lee el plan del token, que el CORE ya emite con la gracia del producto (HU-C5.5), y la caja renueva su acceso al volver de Bold (bitácora, «Cambios de rumbo»). Pagar lo ve quien tiene «Equipo, plan y pago» (el propietario, §11.2). El precio lo fijó el dueño el 13 oct 2026: COP 29.900 al mes. Pendiente: WI-Q7.10.4
 - Como propietario, quiero pagar 1, 3, 6 o 12 meses del plan con Bold desde la caja, para no depender de un link manual.
 - **Respaldo:** PARQUEADERO §11.1 (`gracia_dias: 7`) y §14.2; PLATAFORMA §4.13; estudio §10.3.
 - **CA1.** La caja muestra el plan, su vencimiento (`plan_vence` del token) y «Pagar», que abre el cobro del CORE con el producto `parqueadero`. El CORE avisa el pago a la celda (`POST /api/servicio/plan`).
@@ -813,14 +813,14 @@ La escalera de ED1 §38 aplicada (PARQUEADERO §2.4; estudio §12): las herramie
 Pedido del dueño del 14 oct 2026, con el primer parqueadero ya operando. Sin el disparador de M3, Q13 lo toma (§6.1).
 
 #### HU-Q13.1 · Hora militar u hora con a. m. y p. m.
-- **Capa:** caja y recibos · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** Q13 · **Estado:** En revisión (rama `feat/q13-sprint`)
+- **Capa:** caja y recibos · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** Q13 · **Estado:** Hecha (`v0.6.0`, 14 oct 2026)
 - Como parqueadero, quiero ver y entregar las horas como las lee mi gente: `18:05` o `6:05 p. m.`.
 - **CA1.** Ajustes › «Cómo se escribe la hora»: militar (por omisión) o con a. m. y p. m. Las pantallas de la caja, el papel, el WhatsApp, la pantalla del recibo, el cierre de turno y el recibo de la mensualidad la usan.
 - **CA2.** `/r/` muestra la misma hora que el papel: el enlace la lleva en su versión 3 (`h: 1`). Un recibo con hora militar sigue saliendo en la versión de siempre.
 - **CA3 ❌.** La medianoche y el mediodía son las 12 (`12:05 a. m.`, `12:00 p. m.`), nunca las 0.
 
 #### HU-Q13.2 · Tarifa de domingos y festivos
-- **Capa:** paquete, caja y recibos · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q13 · **Estado:** En revisión (rama `feat/q13-sprint`)
+- **Capa:** paquete, caja y recibos · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** Q13 · **Estado:** Hecha (`v0.6.0`, 14 oct 2026)
 - Como parqueadero, quiero cobrar otro valor por minuto y otro día completo los domingos y festivos, para el carro y la moto, sin que sea obligatorio configurarlo.
 - **CA1.** Cada tarifa tiene, opcionales, «Por minuto en domingos y festivos» y «Día completo en domingos y festivos» (que cuenta desde los mismos minutos del día completo de siempre). Sin ellos, el domingo cobra como cualquier día.
 - **CA2.** Cada minuto vale según el día de Bogotá en que empieza: domingo o festivo de Colombia (`@ed1/calendario`, Ley 51 de 1983), o día normal. El día completo de un bloque de 24 h es el del día en que empieza el bloque. El tope por día sigue igual. La línea del recibo dice «con domingo o festivo».
@@ -828,14 +828,14 @@ Pedido del dueño del 14 oct 2026, con el primer parqueadero ya operando. Sin el
 - **CA4.** El recibo, el aviso de tarifas y `/r/` muestran la tarifa de festivo; el enlace la lleva en su versión 3 (`fs`).
 
 #### HU-Q13.3 · La mensualidad por días calendario o hábiles
-- **Capa:** paquete y caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q13 · **Estado:** En revisión (rama `feat/q13-sprint`)
+- **Capa:** paquete y caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q13 · **Estado:** Hecha (`v0.6.0`, 14 oct 2026)
 - Como parqueadero, quiero que una mensualidad empezada cobre solo los días que cuento: todos, o los hábiles.
 - **CA1.** Ajustes › «Una mensualidad empezada cobra»: días calendario (como antes) o días hábiles, de lunes a viernes que no son festivo en Colombia.
 - **CA2.** Con hábiles, el prorrateo cuenta los hábiles que cubre sobre los del periodo entero, a la centena hacia abajo. Un periodo entero vale el valor del mes, sin importar cuántos hábiles tenga.
 - **CA3.** La vigencia del abono no cambia: un abonado entra sin pagar cualquier día de su periodo. Lo que cambia es cuánto se cobra un periodo empezado.
 
 #### HU-Q13.4 · Los meses de la mensualidad, de fecha a fecha o del 1 al último día
-- **Capa:** paquete y caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q13 · **Estado:** En revisión (rama `feat/mensualidad-por-mes`)
+- **Capa:** paquete y caja · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** Q13 · **Estado:** Hecha (`v0.7.0`, 14 oct 2026)
 - Como parqueadero, quiero que la mensualidad vaya del 1 al último día del mes, y que si se contrata a mitad de mes esos días se cobren en proporción.
 - **Respaldo:** pedido del dueño del 2026-10-14: «inicia el primero de cada mes y finaliza el último día del mes… esos 15 días se cobran proporcionales», y «dejar ambas opciones como configuración igual que las anteriores».
 - **CA1.** Ajustes › «Los meses de la mensualidad van»: de fecha a fecha (como siempre, por omisión) o del 1 al último día del mes.
@@ -843,7 +843,7 @@ Pedido del dueño del 14 oct 2026, con el primer parqueadero ya operando. Sin el
 - **CA3 ❌.** Sin la opción, todo sigue de fecha a fecha: los abonados de antes no cambian. El liquidador del sitio (HU-Q11.6) sigue con sus dos formas.
 
 #### HU-Q13.5 · Quién debe y quién está al día, y cómo se llegó al cobro de la mensualidad
-- **Capa:** paquete y caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q13 · **Estado:** En revisión (rama `fix/mensualidad-cobro`)
+- **Capa:** paquete y caja · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q13 · **Estado:** Hecha (`v0.7.1`, 14 oct 2026)
 - Como cajero, quiero ver en la lista qué abonado debe y cuál ya pagó, y que el cobro de la mensualidad diga sus fechas y su valor correctos con el detalle del prorrateo.
 - **Respaldo:** el dueño, 2026-10-14: «la fecha que muestra luego de pagar la mensualidad está mal, el valor también», «mostrar el detalle del prorrateo en el cobro de la mensualidad» y «en la sección de abonados no se distingue quién debe y quién ya pagó». Bitácora 40.
 - **CA1.** La lista y el detalle dicen la cuenta de cada abonado con su color: «Al día hasta el …» (verde), «Debe desde el …» (rojo), «Venció el …» (amarillo) o «Inactivo». Al día es haber pagado en la caja hasta hoy y hasta el fin de la vigencia.
@@ -852,7 +852,7 @@ Pedido del dueño del 14 oct 2026, con el primer parqueadero ya operando. Sin el
 - **CA4 ❌.** «No cobrar ahora» no deja al abonado al día: entra como abonado (HU-Q13.3 CA3), pero la lista dice que debe. Dos mensualidades cobradas en el mismo minuto se anulan de la última a la primera.
 
 #### HU-Q13.6 · Las entregas pendientes se ven, se reimprimen y bajan
-- **Capa:** caja · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q13 · **Estado:** En revisión (rama `fix/entregas-pendientes`)
+- **Capa:** caja · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q13 · **Estado:** Hecha (`v0.7.2`, 14 oct 2026)
 - Como cajero, quiero saber qué recibos no salieron por la impresora y poder imprimirlos otra vez, y que la cuenta baje cuando salen.
 - **Respaldo:** pregunta del dueño del 2026-10-14 sobre la señal «entregas pendientes»; aprobó el ajuste propuesto («haz el ajuste que propones»). Bitácora 42.
 - **CA1.** Con entregas pendientes, la señal de la cabecera se toca y abre la lista: un recibo por fila (tipo, número y placa), cuántas veces no salió, la hora de la última y su motivo.
@@ -861,13 +861,21 @@ Pedido del dueño del 14 oct 2026, con el primer parqueadero ya operando. Sin el
 - **CA4 ❌.** Un papel que no salió no quita la fila: la suma a la misma. El registro nunca se toca; solo la lista de lo que falta entregar.
 
 #### HU-Q13.7 · El recibo de salida en papel solo si lo piden, y nada dado por perdido sale después
-- **Capa:** caja y `@ed1/impresion` · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q13 · **Estado:** En revisión (rama `fix/impresion-en-rafaga`)
+- **Capa:** caja y `@ed1/impresion` · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q13 · **Estado:** Hecha (`v0.8.0`, 19 oct 2026)
 - Como parqueadero, quiero que el recibo de salida no se imprima si el conductor no lo pide, y que la impresora nunca saque de golpe recibos que la caja ya dio por no salidos.
 - **Respaldo:** el dueño, 2026-10-19: «luego de un día de trabajo, al cobrar todas las entradas y no imprimir el recibo de salida, la impresora imprimió de largo todos esos recibos de salida que no se necesitaban». Bitácora 43.
 - **CA1.** Ajustes › «¿Y el recibo de salida?»: «Igual que el de entrada» (como siempre, por omisión) o «En papel solo si lo pide». A pedido, el de salida no se imprime al abrirse ni al volver; sigue en la pantalla, por WhatsApp y con «Imprimir».
 - **CA2.** El de entrada no cambia: sale como diga «¿Cuándo sale el recibo en papel?». Es el que la ley exige al recibir el vehículo (Ley 1480 art. 18).
 - **CA3.** Cuando la cola deja de esperar a la impresora (45 s), le pide al adaptador que corte el trabajo: por el puerto serie descarta lo que el navegador tenía por mandar y suelta el puerto; por Bluetooth no manda un trozo más. Un trabajo nuevo no reactiva el cortado.
 - **CA4 ❌.** Lo que la caja dio por no salido no se imprime cuando la impresora despierta (prueba con una impresora falsa que se queda dormida a mitad de un recibo). Lo que la impresora ya recibió en su memoria no se puede retirar: la caja no lo ve (ver bitácora 43).
+
+#### HU-Q13.8 · La placa con protagonismo en el papel
+- **Capa:** recibos · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** Q13 · **Estado:** En revisión (rama `feat/placa-destacada`)
+- Como cajero, quiero ver la placa grande en el recibo, para encontrar el vehículo y comparar sin acercar el papel.
+- **Respaldo:** el dueño, 2026-10-27: «quiero que la placa del vehículo que se imprime en el recibo tenga más protagonismo, un poco más grande y visible sin agrandar mucho el espacio de impresión para no desperdiciar papel».
+- **CA1.** En el papel de la entrada, la salida y la mensualidad, la placa sale en negrita, al doble de alto y de ancho y centrada, con el vehículo en la misma línea («ABC123  Carro»). Reemplaza la línea «Placa ABC123 … Carro»: el recibo crece el alto de una sola línea.
+- **CA2.** La hoja del diálogo de impresión la muestra igual (la misma marca de letra grande). La pantalla, el enlace y WhatsApp no cambian.
+- **CA3 ❌.** Una placa que no cabe con el vehículo en la mitad de las columnas va sola, y el vehículo debajo en letra normal: ninguna línea se sale del papel.
 
 ---
 
@@ -988,7 +996,7 @@ Se piden todas al principio, con su recomendación. Las de PARQUEADERO §19.2 co
 | Q9 | 15 | Solo staging | #154. HU-Q7.10 espera HC4 y HU-Q7.12 es la `v0.5.0` |
 | Q10 | 14 | Solo staging | #155 |
 | Q11 | 17 | Lo que no necesita la nube, en la `v0.3.0` de la entrega | #156–#158: 20 puntos hechos (HU-Q8.3, HU-Q8.4, HU-Q8.5, HU-Q8.6, HU-Q10.3, HU-Q11.6 y HU-Q11.7, estas dos sin sprint); HU-Q8.7 espera M1 en producción |
-| Q13 | 13 | Con la `0.6.0`, la `0.7.0`, la `0.7.1`, la `0.7.2` y la `0.8.0` | HU-Q13.1 a HU-Q13.7, pedidas por el dueño del 14 al 19 oct 2026 |
+| Q13 | 14 | Con la `0.6.0` a la `0.8.0` y la `0.9.1` | HU-Q13.1 a HU-Q13.8, pedidas por el dueño del 14 al 27 oct 2026 |
 | Q12 | 3 | En producción con la `0.5.0` | HU-Q7.10, sin el disparador de M3. HU-Q7.12 (M1 en producción) espera la decisión del dueño |
 
 Desde el 12 oct 2026, un PR y un push por sprint completo, para ahorrar minutos de Actions (decisión del dueño).

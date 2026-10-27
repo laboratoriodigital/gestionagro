@@ -13,6 +13,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   armarRecibo,
+  bloquesDeLaPlaca,
   COLUMNAS_WHATSAPP,
   enlaceCompleto,
   enlaceCorto,
@@ -133,7 +134,7 @@ describe('la maqueta de §6.2 y del anexo B', () => {
       '-'.repeat(32),
       'RECIBO DE ENTRADA       A-000123',
       '06/10/2026 18:05',
-      'Placa ABC123               Carro',
+      'ABC123  Carro',
       'Estado: rayon puerta trasera',
       'derecha',
       '-'.repeat(32),
@@ -163,7 +164,7 @@ describe('la maqueta de §6.2 y del anexo B', () => {
       '-'.repeat(32),
       'RECIBO DE SALIDA        A-000124',
       'Entrada A-000123',
-      'Placa ABC123               Carro',
+      'ABC123  Carro',
       'Entro           06/10/2026 18:05',
       'Salio           06/10/2026 21:05',
       'Tiempo                   180 min',
@@ -409,5 +410,32 @@ describe('el texto de responsabilidad de la sede (HU-Q4.5 CA1)', () => {
       expect(l.length).toBeLessThanOrEqual(COLUMNAS);
     }
     expect(lineas.join(' ')).toContain(largo.split(' ').slice(-3).join(' '));
+  });
+});
+
+describe('la placa con protagonismo (pedido del dueño, 27 oct 2026)', () => {
+  const igual = (t: string) => t;
+
+  it('grande, en negrita y centrada, con el vehículo al lado: una sola línea de doble alto', () => {
+    expect(bloquesDeLaPlaca('ABC123', 'Carro', COLUMNAS, igual)).toEqual([
+      { tipo: 'texto', texto: 'ABC123  Carro', alinear: 'centro', negrita: true, grande: true },
+    ]);
+    for (const [, r] of RECIBOS) {
+      const grandes = papel(r, { columnas: COLUMNAS, paginaDeCodigos: 'cp850', qr: null }).filter(
+        (b) => b.tipo === 'texto' && b.grande,
+      );
+      expect(grandes).toHaveLength(1);
+    }
+  });
+
+  it('❌ una placa larga no se sale del papel: va sola, y el vehículo debajo en letra normal', () => {
+    const bloques = bloquesDeLaPlaca('CD123456789', 'Camioneta', COLUMNAS, igual);
+    expect(bloques).toEqual([
+      { tipo: 'texto', texto: 'CD123456789', alinear: 'centro', negrita: true, grande: true },
+      { tipo: 'texto', texto: 'Camioneta', alinear: 'centro' },
+    ]);
+    for (const b of bloques) {
+      if (b.tipo === 'texto' && b.grande) expect(b.texto.length).toBeLessThanOrEqual(COLUMNAS / 2);
+    }
   });
 });

@@ -38,7 +38,7 @@ describe('el recibo de una mensualidad (HU-Q8.4)', () => {
     expect(todo).toContain(SEDE_ENSAYO_UNO.nombre.toUpperCase());
     expect(todo).toMatch(/MENSUALIDAD +A-000130/);
     expect(todo).toContain('06/10/2026 10:00');
-    expect(todo).toMatch(/Placa ABC12D +Moto/);
+    expect(todo).toContain('ABC12D  Moto');
     expect(todo).toMatch(/Desde +01\/11\/2026/);
     expect(todo).toMatch(/Hasta \(incluido\) +30\/11\/2026/);
     expect(todo).toMatch(/TOTAL +\$60\.000/);

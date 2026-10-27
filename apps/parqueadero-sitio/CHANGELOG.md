@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.9.1] - 2026-10-27
+
+La placa se lee de lejos en el recibo.
+
+### Cambiado
+- En el papel de la entrada, la salida y la mensualidad, la placa sale en negrita, al doble de alto y de ancho y centrada, con el vehículo al lado (HU-Q13.8). Reemplaza la línea «Placa … Carro»: el recibo crece una sola línea. Una placa muy larga va sola y el vehículo debajo.
+
 ## [0.9.0] - 2026-10-23
 
 El operador sin Google entra a la caja con un enlace a su correo.
