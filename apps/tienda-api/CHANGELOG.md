@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.3.0] - 2026-10-26
+
+El comerciante encuentra su tienda desde el panel, y quien llega a una tienda que todavía no abre ve una página con la cara de TiendaPro.
+
 ### Agregado
 - El Inicio del panel muestra la dirección de tu tienda en línea, con «Abrir mi tienda» y «Copiar»; si todavía no la publicaste, te lleva a publicarla.
 
