@@ -111,6 +111,7 @@ import {
 } from './dominios.ts';
 import { exportarTienda } from './exportar.ts';
 import { feedsDelPanel } from './feeds-del-panel.ts';
+import { direccionesDelPlan } from './hosts.ts';
 import { aplicarParte, revisarLaCarga } from './importar.ts';
 import {
   ajustarInventario,
@@ -1253,15 +1254,23 @@ export function crearApp(
         }
       : null;
     // HU-T14.4 CA3: el píxel de Meta solo se ofrece con el dominio propio como dirección principal.
+    // 26 oct 2026: y el panel muestra la dirección de la tienda, la que su plan deja como principal.
     const control = c.env[CONTROL] as BaseD1 | undefined;
-    const canonica = control
-      ? await control
-          .prepare(
-            "SELECT tipo FROM dominio INDEXED BY dominio_por_tienda WHERE org_id = ? AND estado = 'activo' AND rol = 'canonico'",
-          )
-          .bind(s.org)
-          .first<{ tipo: string }>()
-      : null;
+    const activas = control
+      ? (
+          await control
+            .prepare(
+              "SELECT hostname, tipo, rol FROM dominio INDEXED BY dominio_por_tienda WHERE org_id = ? AND estado = 'activo'",
+            )
+            .bind(s.org)
+            .all<{ hostname: string; tipo: string; rol: string }>()
+        ).results
+      : [];
+    const canonica = activas.find((d) => d.rol === 'canonico');
+    const { canonico: direccion } = direccionesDelPlan(
+      activas,
+      limitesDeLaTienda(s.plan).dominioPropio,
+    );
     // HU-T8.1 CA1: lo que permite el plan, para que el panel esconda lo que no hay. Lo decide la API.
     return c.json({
       org: s.org,
@@ -1269,6 +1278,7 @@ export function crearApp(
       plan: s.plan,
       planVence: s.planVence === null ? null : new Date(s.planVence * 1000).toISOString(),
       dominioPropio: canonica?.tipo === 'propio' && limitesDeLaTienda(s.plan).dominioPropio,
+      direccion: direccion ?? null,
       funciones: s.plan ? funcionesDelPlan(funciones as unknown as FuncionesPorPlan, s.plan) : null,
       tienda: tienda ?? null,
       // HU-T7.2 CA1: si falta aceptar los términos vigentes, el panel los pide antes de seguir.

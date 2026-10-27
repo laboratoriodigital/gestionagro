@@ -171,18 +171,49 @@ export function archivoDeLaRuta(ruta: string, markdown: boolean): string {
   return ruta;
 }
 
-const pagina = (titulo: string, texto: string) => `<!doctype html>
+/**
+ * 26 oct 2026: las páginas de aviso del despacho (sin tienda, sin publicar, en pausa, suspendida…)
+ * con la cara de TiendaPro: una tarjeta centrada, el cobre de la marca y el modo oscuro del teléfono.
+ * El despacho no sabe la release de la vitrina, así que su hoja va en la página, permitida solo por
+ * su huella en la CSP (`HUELLA_DEL_ESTILO`, que una prueba vuelve a calcular). Ningún script. Los
+ * textos son nuestros: nunca llevan nada de una tienda.
+ */
+export const ESTILO_DE_AVISO =
+  ':root{color-scheme:light dark;--fondo:#f6f6f5;--superficie:#fff;--texto:#0b0b0a;--suave:#5a5a54;--borde:#d9d9d6;--acento:#9c4a1a}@media (prefers-color-scheme:dark){:root{--fondo:#0b0b0a;--superficie:#171715;--texto:#f6f6f5;--suave:#bdbdb9;--borde:#2a2a26;--acento:#f0a878}}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--fondo);color:var(--texto);font:17px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}main{width:min(100%,30rem);padding:40px 28px 28px;border:1px solid var(--borde);border-radius:24px;background:var(--superficie);text-align:center}.icono{display:block;width:56px;height:56px;margin:0 auto 20px;color:var(--acento)}h1{margin:0 0 12px;font-size:clamp(1.5rem,5vw,1.875rem);line-height:1.15;letter-spacing:-.02em;text-wrap:balance}p{margin:0 0 12px;color:var(--suave);text-wrap:pretty}.nota{font-size:.9375rem}a{color:var(--acento);font-weight:600;text-underline-offset:3px}.pie{margin:24px 0 0;padding-top:16px;border-top:1px solid var(--borde);font-size:.8125rem}';
+export const HUELLA_DEL_ESTILO = 'sha256-PdVf5Ql/CXyj4In9Ha5fOxOGfX+yJd36Cs4/dbH0U1k=';
+
+const ICONOS = {
+  tienda:
+    '<svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 4.6 4h14.8L21 9.5"/><path d="M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12.5V20h14v-7.5"/><path d="M10 20v-4.5h4V20"/></svg>',
+  buscar:
+    '<svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4"/><path d="M8.5 11h5"/></svg>',
+  reloj:
+    '<svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  pausa:
+    '<svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10 9v6M14 9v6"/></svg>',
+} as const;
+
+const DE_TIENDAPRO = 'Tiendas en línea con <a href="https://tiendapro.co">TiendaPro</a>';
+
+const pagina = (
+  titulo: string,
+  texto: string,
+  o: { icono?: keyof typeof ICONOS; nota?: string; pie?: string } = {},
+) => `<!doctype html>
 <html lang="es-CO">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>${titulo}</title>
+<style>${ESTILO_DE_AVISO}</style>
 </head>
 <body>
 <main>
+${ICONOS[o.icono ?? 'tienda']}
 <h1>${titulo}</h1>
 <p>${texto}</p>
+${o.nota ? `<p class="nota">${o.nota}</p>\n` : ''}<p class="pie">${o.pie ?? DE_TIENDAPRO}</p>
 </main>
 </body>
 </html>
@@ -190,7 +221,7 @@ const pagina = (titulo: string, texto: string) => `<!doctype html>
 
 const CABECERAS_DE_AVISO = {
   'content-type': 'text/html; charset=utf-8',
-  'content-security-policy': "default-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+  'content-security-policy': `default-src 'none'; style-src '${HUELLA_DEL_ESTILO}'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'no-referrer',
   'cache-control': 'public, max-age=60',
@@ -228,13 +259,21 @@ export const sinTienda = (): Response =>
     pagina(
       'Esta dirección no tiene tienda',
       'Revisa que esté bien escrita. Si alguien te la compartió, pídele el enlace de nuevo.',
+      {
+        icono: 'buscar',
+        pie: '¿Quieres tu propia tienda en línea? <a href="https://tiendapro.co">Créala gratis en TiendaPro</a>',
+      },
     ),
     { status: 404, headers: CABECERAS_DE_AVISO },
   );
 
 const sinPublicar = (): Response =>
   new Response(
-    pagina('Esta tienda todavía no abre', 'Vuelve pronto: está preparando su catálogo.'),
+    pagina(
+      'Esta tienda abre pronto',
+      'Está preparando su catálogo. Vuelve en unos días para ver sus productos.',
+      { nota: '¿Es tu tienda? Entra a tu panel de TiendaPro y toca «Publicar».' },
+    ),
     { status: 404, headers: { ...CABECERAS_DE_AVISO, 'cache-control': 'no-store' } },
   );
 
@@ -278,6 +317,7 @@ const vistaVencida = (): Response =>
     pagina(
       'Esta vista previa ya no está',
       'Las vistas previas duran un día. Pide otra desde el panel de tu tienda.',
+      { icono: 'reloj' },
     ),
     {
       status: 404,
@@ -287,10 +327,10 @@ const vistaVencida = (): Response =>
 
 const noEsta = (): Response =>
   new Response(
-    pagina(
-      'Esta página no existe',
-      'Puede que el producto ya no esté. Vuelve a la portada de la tienda.',
-    ),
+    pagina('Esta página no existe', 'Puede que el producto ya no esté.', {
+      icono: 'buscar',
+      nota: '<a href="/">Ir a la portada de la tienda</a>',
+    }),
     { status: 404, headers: CABECERAS_DE_AVISO },
   );
 
@@ -298,10 +338,13 @@ const noEsta = (): Response =>
 export const enPausa = (deTodas: boolean): Response =>
   new Response(
     deTodas
-      ? pagina('Volvemos pronto', 'Estamos haciendo un ajuste. Vuelve en unos minutos.')
+      ? pagina('Volvemos pronto', 'Estamos haciendo un ajuste. Vuelve en unos minutos.', {
+          icono: 'reloj',
+        })
       : pagina(
           'Esta tienda no está disponible por ahora',
           'Vuelve más tarde, o escríbele a la tienda por su WhatsApp.',
+          { icono: 'reloj' },
         ),
     {
       status: 503,
@@ -318,6 +361,7 @@ export const suspendida = (): Response =>
     pagina(
       'Esta tienda no está disponible',
       'La plataforma la suspendió mientras revisa algo. Si compraste aquí, escríbele a la tienda por su WhatsApp.',
+      { icono: 'pausa' },
     ),
     { status: 451, headers: { ...CABECERAS_DE_AVISO, 'cache-control': 'no-store' } },
   );

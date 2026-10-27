@@ -4,6 +4,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Agregado
+- El Inicio del panel muestra la dirección de tu tienda en línea, con «Abrir mi tienda» y «Copiar»; si todavía no la publicaste, te lleva a publicarla.
+
+### Cambiado
+- Las páginas que ve un visitante cuando una tienda todavía no abre, no existe o está en pausa ahora tienen la cara de TiendaPro. La de una tienda sin publicar dice «Esta tienda abre pronto» y le explica a su dueño cómo publicarla.
+
 ## [1.2.2] - 2026-10-24
 
 ### Corregido

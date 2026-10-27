@@ -17,7 +17,9 @@ const DOS = '0199e0a0-0000-7000-8000-0000000000c2';
 const PERSONA = '0199e0a0-0000-7000-8000-0000000000d1';
 
 let shard: BaseD1;
+let control: BaseD1;
 let cerrar: () => Promise<void>;
+let cerrarControl: () => Promise<void>;
 let firmante: Firmante;
 let otroFirmante: Firmante;
 
@@ -38,12 +40,33 @@ beforeAll(async () => {
       .bind(org, slug, nombre)
       .run();
   }
+  // 26 oct 2026: la dirección de la tienda sale de la base de control, como la deja su plan.
+  ({ db: control, cerrar: cerrarControl } = await baseLocal({
+    configuracion: 'apps/tienda-api/wrangler.c1.jsonc',
+    binding: 'tienda_control',
+    base: 'tienda-control',
+  }));
+  await control.batch([
+    control
+      .prepare(
+        "INSERT INTO dominio (hostname, org_id, celda_id, tipo, rol, estado, creado, activado) VALUES ('ensayo-uno.mitiendapro.co', ?, 'c1', 'plataforma', 'alias', 'activo', 'x', 'x')",
+      )
+      .bind(UNO),
+    control
+      .prepare(
+        "INSERT INTO dominio (hostname, org_id, celda_id, tipo, rol, estado, creado, activado) VALUES ('www.ensayo-uno.com', ?, 'c1', 'propio', 'canonico', 'activo', 'x', 'x')",
+      )
+      .bind(UNO),
+  ]);
   // HU-T7.2: estas pruebas publican; la aceptación de los términos la prueba terminos.test.ts.
   await conTerminosAceptados(shard, [UNO, DOS], 'x');
   firmante = await firmanteDesde(await generarClavePrivada());
   otroFirmante = await firmanteDesde(await generarClavePrivada());
 }, 60_000);
-afterAll(async () => cerrar?.());
+afterAll(async () => {
+  await cerrar?.();
+  await cerrarControl?.();
+});
 
 const env = (): Env => ({
   CELDA: 'c1',
@@ -51,6 +74,7 @@ const env = (): Env => ({
   SECRETO_DESPACHO: SECRETO,
   CORE_CLAVES: JSON.stringify([firmante.publica]),
   tienda_c1_s1: shard,
+  tienda_control: control,
 });
 
 const token = async (
@@ -100,11 +124,25 @@ describe('GET /api/panel/v1/yo, con el token del CORE (HU-T2.8)', () => {
       plan: 'gratis',
       planVence: null,
       dominioPropio: false,
+      // Su dominio propio es la principal, pero el plan Gratis no lo incluye: la de TiendaPro.
+      direccion: 'ensayo-uno.mitiendapro.co',
       funciones: expect.objectContaining({ productos: 10, cobro_en_linea: expect.any(Boolean) }),
       tienda: { slug: 'ensayo-uno', nombre: 'Comercio Ensayo Uno', estado: 'borrador' },
       terminos: { aceptados: true },
       cobro: { faltan: [] },
     });
+  });
+
+  it('26 oct 2026: con un plan que incluye el dominio propio, la dirección es la suya', async () => {
+    const r = await pedir(await token({ plan: 'pro' }));
+    expect(await r.json()).toMatchObject({ dominioPropio: true, direccion: 'www.ensayo-uno.com' });
+    // Vuelve al plan del token de las demás pruebas.
+    await pedir(await token());
+  });
+
+  it('❌ una tienda sin direcciones activas no inventa una', async () => {
+    const r = await pedir(await token({ org: DOS, rol: 'colaborador' }));
+    expect((await r.json()).direccion).toBeNull();
   });
 
   it('el de Ensayo Dos llega a la suya: la tienda sale del token (P4)', async () => {

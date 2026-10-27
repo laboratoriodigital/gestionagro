@@ -635,3 +635,36 @@ h2 {
 .registros dd {
   overflow-wrap: anywhere;
 }
+
+/* 26 oct 2026: la dirección de la tienda en el Inicio, para abrirla y compartirla. */
+.direccion-de-la-tienda {
+  display: grid;
+  gap: var(--espacio-2);
+  padding: var(--espacio-4);
+  border: var(--borde-ancho) solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  background: var(--superficie);
+}
+.direccion-de-la-tienda__titulo {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: var(--texto-etiqueta);
+  letter-spacing: var(--interletrado-etiqueta);
+  text-transform: uppercase;
+}
+.direccion-de-la-tienda__url {
+  margin: 0;
+  font-size: var(--texto-titulo-3);
+  font-weight: var(--peso-fuerte);
+  overflow-wrap: anywhere;
+}
+.direccion-de-la-tienda__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2) var(--espacio-4);
+  margin: 0;
+}
+.direccion-de-la-tienda .nota {
+  margin: 0;
+}
