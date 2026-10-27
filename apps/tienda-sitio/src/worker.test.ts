@@ -3,6 +3,7 @@
  * caché de 30 s; un host sin tienda responde la página neutra, y las cabeceras internas que llegan
  * de afuera nunca llegan a la API (CA4).
  */
+import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MEDIOS_DE_LA_TIENDA } from '../../../scripts/generar-wrangler.ts';
 import {
@@ -13,6 +14,8 @@ import {
   crearDespacho,
   DIRECCIONES_DE_LA_PLATAFORMA,
   type Env,
+  ESTILO_DE_AVISO,
+  HUELLA_DEL_ESTILO,
   type Servicio,
 } from './worker.ts';
 
@@ -78,10 +81,23 @@ describe('un host sin tienda', () => {
       TIENDA_HOSTS: kv({}),
     });
     expect(r.status).toBe(404);
-    expect(await r.text()).toContain('<h1>Esta dirección no tiene tienda</h1>');
+    const html = await r.text();
+    expect(html).toContain('<h1>Esta dirección no tiene tienda</h1>');
+    // 26 oct 2026: con la cara de TiendaPro; su único estilo, permitido por su huella. Nada más carga.
+    expect(html).toContain('Créala gratis en TiendaPro');
+    expect(html).not.toMatch(/<script|<link|src=/);
     expect(r.headers.get('content-security-policy')).toBe(
-      "default-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      `default-src 'none'; style-src '${HUELLA_DEL_ESTILO}'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     );
+  });
+
+  it('la huella de la CSP es la de su estilo: cambiar uno sin la otra lo deja sin estilo', async () => {
+    const huella = createHash('sha256').update(ESTILO_DE_AVISO, 'utf8').digest('base64');
+    expect(HUELLA_DEL_ESTILO).toBe(`sha256-${huella}`);
+    const r = await crearDespacho().fetch(new Request('https://nadie.mitiendapro.co/'), {
+      TIENDA_HOSTS: kv({}),
+    });
+    expect(await r.text()).toContain(`<style>${ESTILO_DE_AVISO}</style>`);
   });
 
   it('❌ sin el KV, o con una entrada ilegible, también: y lo registra (P1)', async () => {

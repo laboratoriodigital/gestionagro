@@ -155,10 +155,12 @@ describe('la vitrina por el despacho (HU-T5.1)', () => {
     expect(await r.text()).toContain('Esta página no existe');
   });
 
-  it('❌ una tienda sin versión publicada: «todavía no abre»', async () => {
+  it('❌ una tienda sin versión publicada: «abre pronto», y a su dueño le dice cómo publicar', async () => {
     const r = await pedir(await montar({ version: null }), '/');
     expect(r.status).toBe(404);
-    expect(await r.text()).toContain('Esta tienda todavía no abre');
+    const html = await r.text();
+    expect(html).toContain('<h1>Esta tienda abre pronto</h1>');
+    expect(html).toContain('toca «Publicar»');
   });
 
   it('❌ sin almacén responde 503 y lo registra, nunca una página vacía', async () => {
