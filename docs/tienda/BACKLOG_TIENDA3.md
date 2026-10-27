@@ -348,6 +348,9 @@ Los de la vitrina vienen de TIENDA §1.3; los del panel y los de CSS, fuentes e 
 | **L3** | 23 oct 2026 | **Después del lanzamiento.** Lo que pidió el dueño al probar TiendaPro en producción: textos, precio de IA Pro y la factura solo en IA Pro, lo legal vigente y sencillo, los errores que llevan a su campo, la baja que se cumple y la carga por lotes en Pro | HU-T18.8 (1), HU-T18.9 (2), HU-T18.10 (2), HU-T18.11 (5), HU-T18.12 (2), HU-T18.13 (2) | 14 | — |
 | **T19** | 23 ago–3 sep | **M8.** La factura, en el facturador del comercio. **En espera** desde el 26 oct 2026: el dueño busca el proveedor de facturación del proyecto (Bold no tiene API para facturar) | HU-T16.1 (2), HU-T16.2 (5), HU-T16.3 (3), HU-T16.4 (2) | 12 | M8 |
 | **T20** | 6–17 sep | Holgura: lo que traiga la validación con los primeros comercios | — | 0 | — |
+| **PF1** | 27 oct–2 nov 2026 | **Perfeccionamiento 1.** Vender más y perder menos ventas (`BACKLOG_PERFECCIONAMIENTO.md`) | HU-P1.1 (5), HU-P1.2 (3), HU-P2.1 (3), HU-P3.1 (5), HU-P4.3 (1), HU-P5.1 (3) | 20 | tienda 1.5.0 |
+| **PF2** | 3–9 nov 2026 | **Perfeccionamiento 2.** Productos digitales y control del día a día | HU-P6.1 (5), HU-P6.2 (5), HU-P6.3 (2), HU-P2.2 (2), HU-P3.2 (2), HU-P1.3 (2) | 18 | tienda 1.6.0 |
+| **PF3** | 10–16 nov 2026 | **Perfeccionamiento 3.** Una vitrina más completa y más control | HU-P4.1 (3), HU-P4.2 (3), HU-P4.4 (2), HU-P1.4 (3), HU-P1.5 (3), HU-P3.3 (3), HU-P5.2 (2) | 19 | tienda 1.7.0 |
 
 **Lo real al 15 oct 2026:** T0 a T11 se construyeron entre el 6 y el 15 oct de 2026, meses antes de las fechas de esta tabla. Las fechas no se recalculan todavía: §6.2 las recalcula con la velocidad **validada**, que llega a 25 puntos (T0, y HU-T8.2 y HU-T8.3 de T8, el 15 oct), con 58 historias esperando validación frente al tope de 3 (§3.6). Se recalculan cuando el dueño valide lo construido de T1 a T11 (bitácora tienda3 13). *(Hoy, 19 oct 2026: T0 a T13 se construyeron entre el 6 y el 17 oct. T12 quedó a medias: HU-T11.2 y HU-T11.3 esperaban HU-T7.2, que esperaba los datos del encargado, y las tres pasan a T14, donde los términos salen con «por completar» hasta que el dueño los dé, como en el parqueadero. Entre el 16 y el 17 oct el plan gratuito pidió cinco arreglos fuera de los sprints (PR #194 y #199 a #203; bitácora tienda3 26 a 30). La velocidad validada sigue en 25 puntos, con 66 historias esperando validación. El 19 oct se midió que la tienda llena no se puede hornear en una solicitud del plan gratuito (bitácora tienda3 31): es una decisión del dueño.)*
 
@@ -1767,7 +1770,7 @@ Formato de cada historia, el del CORE:
 
 ## 9. Preparadas, sin sprint
 
-Desde el 26 oct 2026, lo que trajo el contraste con Tiendanube (`CONTRASTE-TIENDANUBE-2026-10.md`) vive en `BACKLOG_PERFECCIONAMIENTO.md`: 16 historias propuestas (45 puntos), por priorizar con el dueño. Sus disparadores nuevos van al final de esta tabla.
+Desde el 26 oct 2026, lo que trajo el contraste con Tiendanube (`CONTRASTE-TIENDANUBE-2026-10.md`) vive en `BACKLOG_PERFECCIONAMIENTO.md`: 19 historias (57 puntos), refinadas en los sprints PF1 a PF3 (§6.1) por decisión del dueño del 26 oct 2026. Sus disparadores nuevos van al final de esta tabla.
 
 | Historia | Disparador |
 |---|---|
@@ -1788,7 +1791,6 @@ Desde el 26 oct 2026, lo que trajo el contraste con Tiendanube (`CONTRASTE-TIEND
 | `@ed1/cifrado` también para el token de Drive del agro | Un tercer uso del cifrado de sobre (regla de tres, ED1 §3.11) |
 | Compras a crédito con Addi | Tres comercios con ticket alto lo piden; Addi pide persona jurídica (estudio S110). Contraste con Tiendanube §5.1 |
 | TikTok: catálogo y botón de compra | Tres comercios que venden por TikTok lo piden; el feed de Meta es la base. Contraste §5.1 |
-| Productos digitales | Tres comercios lo piden: entregar un archivo después del pago, sin exponerlo. Contraste §5.1 |
 | Email marketing | Un comercio con compradores que aceptaron recibir correos; se exporta a su herramienta (Doppler, Perfit), no se construye. Contraste §5.1 |
 
 ---
