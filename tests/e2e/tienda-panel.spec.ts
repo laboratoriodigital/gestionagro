@@ -3554,3 +3554,35 @@ test('HU-T18.13 · una tienda dada de baja no abre el panel: dice hasta cuándo 
     page.getByText('Tu cuenta sigue activa: la baja es solo de esta tienda.'),
   ).toBeVisible();
 });
+
+test('26 oct 2026 · el Inicio dice la dirección de la tienda, con abrirla y copiarla, y cómo publicar', async ({
+  page,
+}) => {
+  await coreFalso(page, sesion());
+  await apiFalsa(page);
+  await page.route(`${PANEL}/api/panel/v1/yo`, (ruta) =>
+    ruta.fulfill({ json: { ...yo(UNO), direccion: 'tecnologia.mitiendapro.co' } }),
+  );
+  await page.goto(`${PANEL}/`);
+  await entrar(page);
+  const bloque = page.getByRole('region', { name: 'Tu tienda en línea' });
+  await expect(bloque).toBeVisible();
+  await expect(bloque.getByRole('link', { name: 'tecnologia.mitiendapro.co' })).toHaveAttribute(
+    'href',
+    'https://tecnologia.mitiendapro.co',
+  );
+  await expect(bloque.getByRole('link', { name: 'Abrir mi tienda' })).toHaveAttribute(
+    'target',
+    '_blank',
+  );
+  // Sin publicar: dice que todavía no abre y lleva a publicar; el aviso de arriba no se repite.
+  await expect(bloque.getByRole('link', { name: 'Publicar mi tienda' })).toHaveAttribute(
+    'href',
+    '/mas/publicar/',
+  );
+  await expect(page.getByText('Tu tienda todavía no está publicada')).toHaveCount(0);
+  await sinFallasDeAxe(page);
+  await page.screenshot({
+    path: 'C:/Users/samy_/AppData/Local/Temp/claude/D--CoWork-gestionagro/9280ad66-cc95-4442-a718-6b2dddfe426d/scratchpad/panel-direccion.png',
+  });
+});

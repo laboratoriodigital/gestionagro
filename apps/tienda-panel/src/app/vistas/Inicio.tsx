@@ -143,6 +143,51 @@ function ElTablero({ t }: { t: Tablero }) {
   );
 }
 
+/**
+ * 26 oct 2026: la dirección de la tienda, a la mano en el Inicio: abrirla y copiarla para
+ * compartirla. Sin publicar, dice que todavía no abre y lleva a publicar.
+ */
+function TuDireccion({ direccion, publicada }: { direccion: string; publicada: boolean }) {
+  const [copiado, setCopiado] = useState(false);
+  const url = `https://${direccion}`;
+  return (
+    <section class="direccion-de-la-tienda" aria-labelledby="tu-tienda-en-linea">
+      <h2 id="tu-tienda-en-linea" class="direccion-de-la-tienda__titulo">
+        Tu tienda en línea
+      </h2>
+      <p class="direccion-de-la-tienda__url">
+        <a href={url} target="_blank" rel="noopener">
+          {direccion}
+        </a>
+      </p>
+      <p class="direccion-de-la-tienda__acciones">
+        <a class="ed1-boton ed1-boton--primario" href={url} target="_blank" rel="noopener">
+          Abrir mi tienda
+        </a>
+        <button
+          class="ed1-boton ed1-boton--texto"
+          type="button"
+          aria-label="Copiar el enlace de mi tienda"
+          onClick={() => {
+            void navigator.clipboard?.writeText(url).then(() => {
+              setCopiado(true);
+              setTimeout(() => setCopiado(false), 2000);
+            });
+          }}
+        >
+          {copiado ? 'Copiado' : 'Copiar'}
+        </button>
+      </p>
+      {publicada ? null : (
+        <p class="nota">
+          Todavía no abre: tus clientes la verán cuando la publiques.{' '}
+          <a href="/mas/publicar/">Publicar mi tienda</a>
+        </p>
+      )}
+    </section>
+  );
+}
+
 export function Inicio({
   yo,
   conexion,
@@ -167,6 +212,9 @@ export function Inicio({
   return (
     <main class="contenido">
       <h1>{yo.tienda?.nombre ?? 'Tu tienda'}</h1>
+      {yo.direccion && yo.tienda && yo.tienda.estado !== 'baja' ? (
+        <TuDireccion direccion={yo.direccion} publicada={yo.tienda.estado !== 'borrador'} />
+      ) : null}
       {yo.cobro && yo.cobro.faltan.length > 0 ? (
         <Aviso tono="peligro" titulo="El pago en línea todavía no funciona">
           Falta {enLista(yo.cobro.faltan)}.{' '}
@@ -183,7 +231,7 @@ export function Inicio({
           <a href="/mas/terminos/">Leerlos</a>
         </Aviso>
       ) : null}
-      {yo.tienda?.estado === 'borrador' ? (
+      {yo.tienda?.estado === 'borrador' && !yo.direccion ? (
         <Aviso tono="info" titulo="Tu tienda todavía no está publicada">
           Los compradores la verán cuando la publiques.
         </Aviso>

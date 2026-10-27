@@ -46,6 +46,8 @@ export interface Yo {
   planVence?: string | null;
   /** HU-T14.4: la dirección principal es el dominio propio, y el plan lo incluye. */
   dominioPropio?: boolean;
+  /** La dirección principal de la tienda, sin `https://` (la de su plan); null si no tiene. */
+  direccion?: string | null;
   funciones: Record<string, ValorDeFuncion> | null;
   tienda: {
     slug: string;
