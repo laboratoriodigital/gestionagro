@@ -23,6 +23,8 @@ import {
   formularioDe,
   opNueva,
   type ProductoDelPanel,
+  type PromocionEnPantalla,
+  promocionEnPantalla,
 } from '../catalogo.ts';
 import { Casilla, Confirmar, Texto } from '../componentes/index.ts';
 import { irA } from '../ruta.ts';
@@ -380,6 +382,11 @@ function Formulario({
         marcada={f.nuevo ?? false}
         alCambiar={(v) => poner('nuevo', v)}
       />
+      <Promocion
+        valor={f.promocion ?? promocionEnPantalla(null)}
+        alCambiar={(v) => poner('promocion', v)}
+        error={errorDe('promocion')}
+      />
       {falla ? (
         <Aviso tono="peligro" titulo="No se guardó">
           {falla}
@@ -499,5 +506,93 @@ export function Producto({
         </>
       )}
     </main>
+  );
+}
+
+/**
+ * HU-P1.2 (sprint PF1): la promoción por cantidad del producto. La tienda la anuncia en la ficha y
+ * la cotización la aplica; si tiene fecha de fin, ese día deja de aplicarse.
+ */
+export function Promocion({
+  valor,
+  alCambiar,
+  error,
+}: {
+  valor: PromocionEnPantalla;
+  alCambiar: (v: PromocionEnPantalla) => void;
+  error: string | undefined;
+}) {
+  const poner = (cambio: Partial<PromocionEnPantalla>) => alCambiar({ ...valor, ...cambio });
+  return (
+    <fieldset class="ed1-grupo" id="promocion">
+      <legend class="ed1-grupo__titulo">Promoción por cantidad</legend>
+      {error ? <p class="ed1-campo__error">{error}</p> : null}
+      <div class="ed1-campo">
+        <label class="ed1-campo__etiqueta" for="promocion-tipo">
+          Tipo
+        </label>
+        <select
+          class="ed1-campo__control"
+          id="promocion-tipo"
+          value={valor.tipo}
+          onChange={(e) =>
+            poner({ tipo: (e.target as HTMLSelectElement).value as PromocionEnPantalla['tipo'] })
+          }
+        >
+          <option value="">Sin promoción</option>
+          <option value="regalo">Lleva más, paga menos</option>
+          <option value="porcentaje">Un % menos por cantidad</option>
+        </select>
+      </div>
+      {valor.tipo === 'regalo' ? (
+        <div class="fila-de-campos">
+          <Texto
+            id="promocion-lleva"
+            etiqueta="Lleva"
+            valor={valor.lleva}
+            alCambiar={(v) => poner({ lleva: v })}
+          />
+          <Texto
+            id="promocion-paga"
+            etiqueta="Paga"
+            valor={valor.paga}
+            alCambiar={(v) => poner({ paga: v })}
+          />
+        </div>
+      ) : null}
+      {valor.tipo === 'porcentaje' ? (
+        <div class="fila-de-campos">
+          <Texto
+            id="promocion-porcentaje"
+            etiqueta="Porcentaje menos"
+            valor={valor.porcentaje}
+            alCambiar={(v) => poner({ porcentaje: v })}
+          />
+          <Texto
+            id="promocion-desde"
+            etiqueta="Desde cuántas unidades"
+            valor={valor.desde}
+            alCambiar={(v) => poner({ desde: v })}
+          />
+        </div>
+      ) : null}
+      {valor.tipo ? (
+        <div class="ed1-campo">
+          <label class="ed1-campo__etiqueta" for="promocion-hasta">
+            Último día<span class="ed1-campo__opcional"> (opcional)</span>
+          </label>
+          <input
+            class="ed1-campo__control"
+            id="promocion-hasta"
+            type="date"
+            value={valor.hasta}
+            onInput={(e) => poner({ hasta: (e.target as HTMLInputElement).value })}
+          />
+          <p class="nota">
+            Las unidades del mismo producto cuentan juntas, aunque sean de distinta talla o color.
+          </p>
+        </div>
+      ) : null}
+    </fieldset>
   );
 }

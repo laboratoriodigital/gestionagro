@@ -38,14 +38,47 @@ import {
 import {
   leerFormatos,
   limitesMasEstrictos,
+  promocionEnPalabras,
+  promocionVigente,
   type Seccion,
   validarSeccion,
 } from '@ed1/tienda-schema';
+import { REDES } from '@ed1/tienda-schema/redes';
+import { promocionLeida } from './catalogo.ts';
+import { tieneComprasSinTerminar } from './compras-pendientes.ts';
 import { claveDelHost, direccionesDelPlan, punteroDelHost } from './hosts.ts';
 import { estadoDeLaPrueba } from './llaves-de-bold.ts';
 import { apiPublica } from './openapi.ts';
 import { limitesDeLaTienda, planDeLaTienda } from './plan.ts';
 import { anotar } from './registro.ts';
+
+const MESES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+
+/**
+ * HU-P1.2: la promoción del producto en palabras, solo si sigue vigente al publicar. Si vence,
+ * la ficha lo dice («hasta el 2 de noviembre»): la cotización deja de aplicarla ese día aunque la
+ * ficha no se haya vuelto a hornear.
+ */
+export function promocionParaHornear(texto: string | null, ahora: string): { promocion?: string } {
+  const p = promocionLeida(texto);
+  if (!p || !promocionVigente(p, ahora)) return {};
+  const [, mes, dia] = (p.hasta ?? '').split('-').map(Number);
+  const hasta = p.hasta && mes && dia ? `, hasta el ${dia} de ${MESES[mes - 1]}` : '';
+  return { promocion: `${promocionEnPalabras(p)}${hasta}` };
+}
 
 /** Lo que la publicación usa de un bucket R2. */
 export interface Almacen {
@@ -125,6 +158,7 @@ interface FilaProducto {
   nuevo: number;
   actualizado: string;
   seo: string;
+  promocion: string | null;
 }
 
 /**
@@ -353,7 +387,7 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     ajustes.cobro?.['ambiente'] === 'produccion' ? 'produccion' : 'pruebas';
   const { results: productos } = await c.shard
     .prepare(
-      `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, actualizado, seo
+      `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, actualizado, seo, promocion
        FROM producto WHERE org_id = ? AND borrado IS NULL ORDER BY posicion, slug`,
     )
     .bind(c.org)
@@ -457,6 +491,7 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
         soloMayores: p.solo_mayores === 1,
         destacado: p.destacado === 1,
         ...(p.nuevo === 1 ? { nuevo: true } : {}),
+        ...promocionParaHornear(p.promocion, c.ahora),
       },
     ];
   });
@@ -516,6 +551,14 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     ...(identidad['frase'] ? { frase: identidad['frase'] as string } : {}),
     ...(contacto['whatsapp'] ? { whatsapp: contacto['whatsapp'] as string } : {}),
     ...(contacto['correo'] ? { correo: contacto['correo'] as string } : {}),
+    // HU-P4.3: solo las redes que la sección ya validó.
+    ...(REDES.some((r) => contacto[r])
+      ? {
+          redes: Object.fromEntries(
+            REDES.flatMap((r) => (typeof contacto[r] === 'string' ? [[r, contacto[r]]] : [])),
+          ),
+        }
+      : {}),
     apariencia: conDefectos('apariencia') as unknown as TiendaParaHornear['apariencia'],
     // HU-T5.13 y HU-T5.14: el logo, el ícono y el hero, ya validados por su sección.
     ...imagenesDeLaTienda(conDefectos('identidad'), conDefectos('apariencia'), tienda.nombre),
@@ -559,6 +602,8 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
         }
       : {}),
     plan: limites,
+    // HU-P1.1: el carrito ofrece recordar la compra, si el plan lo incluye.
+    ...((await tieneComprasSinTerminar(c.shard, c.org)) ? { comprasSinTerminar: true } : {}),
     ...(opciones.vistaPrevia ? { vistaPrevia: true } : {}),
   };
   const archivos = await hornear(datos);

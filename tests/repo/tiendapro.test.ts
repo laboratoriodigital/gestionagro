@@ -12,6 +12,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { CHAT_DE_SOPORTE, GUIAS } from '../../apps/tiendapro-sitio/src/ayuda.ts';
 import {
   llmsTxt,
   PANEL,
@@ -19,6 +20,7 @@ import {
   planesDeLaLanding,
   TIENDAS_DE_EJEMPLO,
 } from '../../apps/tiendapro-sitio/src/contenido.ts';
+import { RUTAS } from '../../apps/tiendapro-sitio/src/pages/sitemap.xml.ts';
 import plantilla from '../../content/tienda/comercio/terminos.json' with { type: 'json' };
 import politica from '../../content/tienda/privacidad/politica.json' with { type: 'json' };
 import {
@@ -27,6 +29,7 @@ import {
   llenarConLoQueHay,
   textoParaAceptar,
 } from '../../packages/tienda-schema/src/comercio.ts';
+import { GUIAS_DE_AYUDA, guiaDeAyuda } from '../../packages/tienda-schema/src/marca.ts';
 import {
   RUTA_WRANGLER_TIENDAPRO,
   textoWranglerDeLaLanding,
@@ -64,6 +67,19 @@ describe('la landing de TiendaPro (HU-T18.5)', () => {
       expect(t.direccion).toMatch(/^[a-z-]+\.mitiendapro\.co$/);
       expect(t.productos).toHaveLength(4);
     }
+  });
+
+  it('HU-P5.1 · la ayuda tiene una guía por cada una que enlaza el panel, con pasos y en el sitemap', () => {
+    expect(GUIAS.map((g) => g.slug)).toEqual([...GUIAS_DE_AYUDA]);
+    for (const g of GUIAS) {
+      expect(g.pasos.length, g.slug).toBeGreaterThanOrEqual(3);
+      expect(RUTAS).toContain(`/ayuda/${g.slug}/`);
+      expect(guiaDeAyuda(g.slug)).toBe(`https://tiendapro.co/ayuda/${g.slug}/`);
+      // Textos para el comerciante, sin lo técnico.
+      expect(JSON.stringify(g), g.slug).not.toMatch(/\b(API|DNS|[Ww]orker|deploy|R2|D1|KV)\b/);
+    }
+    expect(RUTAS).toContain('/ayuda/');
+    expect(CHAT_DE_SOPORTE).toMatch(/^https:\/\/wa\.me\/573008610480\?text=/);
   });
 
   it('llms.txt dice qué es, los tres planes y dónde crear la tienda (CA2)', () => {

@@ -59,6 +59,8 @@ describe('el total de TIENDA-3.0 §6', () => {
     expect(calcularTotal({ lineas })).toEqual({
       subtotal: 175_500,
       descuento: 0,
+      descuentoPromociones: 0,
+      descuentoCupon: 0,
       envio: 0,
       total: 175_500,
       avisos: [],
@@ -188,5 +190,67 @@ describe('reparto del descuento por mayor residuo', () => {
 
   it('un descuento mayor que el total lanza', () => {
     expect(() => repartirDescuento([100], 101)).toThrow(RangeError);
+  });
+});
+
+describe('HU-P1.2 · las promociones por cantidad', () => {
+  const pan = (cantidad: number) => ({ precioCop: 1_500, cantidad, producto: 'pan' });
+
+  it('lleva 3 y paga 2: por cada 3, una de regalo; con 2 no hay', () => {
+    const lleva3 = { pan: { tipo: 'regalo', lleva: 3, paga: 2 } } as const;
+    expect(calcularTotal({ lineas: [pan(2)], promociones: lleva3 }).descuento).toBe(0);
+    expect(calcularTotal({ lineas: [pan(3)], promociones: lleva3 }).descuento).toBe(1_500);
+    expect(calcularTotal({ lineas: [pan(7)], promociones: lleva3 }).descuento).toBe(3_000);
+  });
+
+  it('el regalo es la unidad más barata del producto, sumando sus combinaciones', () => {
+    const camisa = (precioCop: number, cantidad: number) => ({
+      precioCop,
+      cantidad,
+      producto: 'camisa',
+    });
+    const r = calcularTotal({
+      lineas: [camisa(129_000, 2), camisa(99_000, 1)],
+      promociones: { camisa: { tipo: 'regalo', lleva: 3, paga: 2 } },
+    });
+    expect(r.descuentoPromociones).toBe(99_000);
+  });
+
+  it('porcentaje desde N unidades, con el redondeo a favor del comprador', () => {
+    const p = { pan: { tipo: 'porcentaje', porcentaje: 10, desdeUnidades: 2 } } as const;
+    expect(calcularTotal({ lineas: [pan(1)], promociones: p }).descuento).toBe(0);
+    // 3 × 1.500 = 4.500; el 10 % es 450.
+    expect(calcularTotal({ lineas: [pan(3)], promociones: p }).descuento).toBe(450);
+  });
+
+  it('la promoción va primero y el cupón se calcula sobre lo que queda; cada uno dice lo suyo', () => {
+    const r = calcularTotal({
+      lineas: [pan(3), { precioCop: 10_000, cantidad: 1, producto: 'torta' }],
+      promociones: { pan: { tipo: 'regalo', lleva: 3, paga: 2 } },
+      cupon: { tipo: 'porcentaje', porcentaje: 10, minimoCop: 13_000 },
+    });
+    // 14.500 − 1.500 = 13.000; el cupón da el 10 % de eso.
+    expect(r).toMatchObject({
+      subtotal: 14_500,
+      descuentoPromociones: 1_500,
+      descuentoCupon: 1_300,
+      descuento: 2_800,
+      total: 11_700,
+    });
+  });
+
+  it('❌ una promoción imposible lanza: nunca regala de más ni descuenta el 100 %', () => {
+    expect(() =>
+      calcularTotal({
+        lineas: [pan(3)],
+        promociones: { pan: { tipo: 'regalo', lleva: 3, paga: 3 } },
+      }),
+    ).toThrow(MontoIlegible);
+    expect(() =>
+      calcularTotal({
+        lineas: [pan(3)],
+        promociones: { pan: { tipo: 'porcentaje', porcentaje: 100, desdeUnidades: 2 } },
+      }),
+    ).toThrow(MontoIlegible);
   });
 });

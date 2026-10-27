@@ -1476,3 +1476,27 @@ La regla: **un work item que se aplaza a otra historia se anota en esa historia;
 La regla: **un texto que le promete algo al comerciante se prueba contra lo que hace el comprador, no solo contra su pantalla.**
 
 *Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟡 Medio · P2 · tienda-1.4.0 · 2026-10-26
+
+**62 · Subir los precios un 5 % dejaba precios con centavos.**
+
+*Qué pasó.* El 27 oct 2026, al construir «Cambiar varios productos» (HU-P3.1), la prueba que compara el precio de la base con el de `precioDelLote` falló: la base guardó 135450,5 donde la cuenta daba 135450.
+
+*La causa.* La fórmula corre en SQL: `(precio_cop * (100 + ?1) + 50) / 100`, una división entera entre enteros. Pero el parámetro llega de JavaScript como un número que D1 enlaza como REAL, y con un REAL la división de SQLite deja decimales. La columna es INTEGER, pero su afinidad guarda el REAL tal cual. En producción habría dejado precios con centavos que `@ed1/dinero` después rechaza.
+
+*El arreglo.* `CAST(?1 AS INTEGER)` en las dos fórmulas, y la prueba que ata la cuenta de la base con la de `precioDelLote` en `@ed1/tienda-schema`.
+
+La regla: **en SQL, un número que llega de JavaScript es REAL hasta que se diga otra cosa: toda cuenta de pesos con un parámetro lleva su CAST.**
+
+*Ficha:* tienda3 · *(mía)* · 🟡 Medio · P1 · tienda-1.5.0 · 2026-10-27
+
+**63 · La tarjeta cortaba la promoción en su primera coma.**
+
+*Qué pasó.* El 27 oct 2026 la tarjeta de un producto con «Lleva 3, paga 2, hasta el 2 de noviembre» iba a mostrar solo «Lleva 3»: para quitar la fecha, el horno cortaba en la primera coma, y la promoción misma lleva una.
+
+*La causa.* Separar dos partes de un texto por un carácter que una de ellas también usa. La prueba de la tarjeta, escrita con el texto completo, lo encontró antes de llegar a una tienda.
+
+*El arreglo.* Se corta en «, hasta», que solo pone la fecha de fin.
+
+La regla: **lo que se arma para separarse después se separa por algo que solo pone quien lo arma; mejor aún, se pasa en dos campos.**
+
+*Ficha:* tienda3 · *(mía)* · 🟢 Bajo · P3 · tienda-1.5.0 · 2026-10-27

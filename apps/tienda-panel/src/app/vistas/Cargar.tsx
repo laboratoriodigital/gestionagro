@@ -18,6 +18,7 @@ import {
   problemaDeLaApi,
   respaldoDesde,
 } from '../carga-por-lotes.ts';
+import { Guia } from '../componentes/index.ts';
 
 interface Resumen {
   productos: number;
@@ -243,6 +244,7 @@ export function Cargar({
     <main class="contenido">
       {volver}
       <h1>Cargar productos y respaldos</h1>
+      <Guia guia="cargar-productos" />
 
       <h2>Tus productos, desde una hoja</h2>
       <p>

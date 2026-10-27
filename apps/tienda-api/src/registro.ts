@@ -165,6 +165,11 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('sac', 'aste', 'ó')} «${nombre}» de la papelera`;
     case 'productos.ordenar':
       return `${hizo('reorden', 'aste', 'ó')} los productos`;
+    // HU-P3.1: un cambio en lote, con cuántos productos tocó.
+    case 'productos.lote': {
+      const n = Number(despues['productos'] ?? 0);
+      return `${quien} ${tu ? 'decidiste' : 'decidió'} ${String(despues['cambio'] ?? 'cambiar')} de ${n === 1 ? '1 producto' : `${n} productos`}`;
+    }
     case 'variante.crear':
       return `${hizo('agreg', 'aste', 'ó')} la combinación ${combinacion(despues)} a «${nombre}»`;
     case 'variante.editar': {
@@ -192,6 +197,9 @@ export function enFrase(f: FilaDelRegistro, quienPregunta: string): string {
       return `${hizo('ajust', 'aste', 'ó')} las existencias de ${combinacion(despues)} en «${nombre}» de ${antes['stock']} a ${despues['stock']}`;
     case 'inventario.contar':
       return `${hizo('cont', 'aste', 'ó')} ${combinacion(despues)} de «${nombre}»: había ${antes['stock']}, hay ${despues['stock']}`;
+    // HU-P1.1: el comercio le escribió a quien dejó su compra sin terminar.
+    case 'compra.escrita':
+      return `${quien} ${tu ? 'le escribiste' : 'le escribió'} a quien dejó sin terminar la compra ${String(despues['codigo'] ?? '')}`;
     case 'avisame.atender': {
       const n = Number(antes['personas'] ?? 0);
       const a = n === 1 ? 'a la persona que esperaba' : `a las ${n} personas que esperaban`;

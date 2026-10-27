@@ -27,6 +27,7 @@ import {
   type ContextoDelAviso,
   type RespuestaDeBold,
 } from './avisos.ts';
+import { avisarAlComprador } from './avisos-al-comprador.ts';
 import { correosDeLaCelda, mandarResultadoDePrueba } from './correos.ts';
 import { type Ambiente, llavesDeBold } from './credenciales.ts';
 import { cerrarLinksVencidos } from './links.ts';
@@ -300,6 +301,31 @@ export const CONCILIAR: Tarea = {
                             `tienda-api: el correo de la prueba ${cobro} falló (${String(error)})`,
                           ),
                         ),
+                      );
+                    },
+                    // HU-P2.1: el pago que encontró la consulta, al comprador.
+                    alPagar: (pedido: string) => {
+                      correos.push(
+                        kekDelEntorno(e.kekTexto)
+                          .then((kek) =>
+                            avisarAlComprador(
+                              {
+                                db,
+                                org: org_id,
+                                ahora,
+                                correo,
+                                enLaCelda: (d) => correosDeLaCelda(bases, d),
+                              },
+                              kek,
+                              pedido,
+                              'pagado',
+                            ),
+                          )
+                          .catch((error) =>
+                            console.error(
+                              `tienda-api: el correo del pago de ${pedido} falló (${String(error)})`,
+                            ),
+                          ),
                       );
                     },
                   }

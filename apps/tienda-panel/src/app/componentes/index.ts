@@ -12,5 +12,6 @@ export { DatoTapado, type TipoDeDato } from './DatoTapado.tsx';
 export { Estado } from './Estado.tsx';
 export { ESTADOS_DE_PEDIDO, estadoDePedido, type Tono } from './estados.ts';
 export { type Regla, validarTodo } from './formulario.ts';
+export { Guia } from './Guia.tsx';
 export { type DatosDeFila, Fila, Lista } from './Lista.tsx';
 export { esActual, Navegacion, SECCIONES, type Seccion } from './Navegacion.tsx';

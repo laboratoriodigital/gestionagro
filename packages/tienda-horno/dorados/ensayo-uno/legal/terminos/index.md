@@ -49,4 +49,4 @@ Escríbenos por [Solicitudes](/solicitud/). Te respondemos dentro de los 15 día
 
 Estos términos se rigen por las leyes de Colombia, en especial el Estatuto del Consumidor (Ley 1480 de 2011) y sus cambios.
 
-Versión 4 de las plantillas, del 20 de octubre de 2026.
+Versión 5 de las plantillas, del 27 de octubre de 2026.

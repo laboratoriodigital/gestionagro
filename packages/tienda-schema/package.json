@@ -14,6 +14,7 @@
     "./medios": "./src/medios.ts",
     "./paginas": "./src/paginas.ts",
     "./permisos": "./src/permisos.ts",
+    "./redes": "./src/redes.ts",
     "./tapado": "./src/tapado.ts",
     "./titulos": "./src/titulos.ts",
     "./volumen": "./src/volumen.ts"

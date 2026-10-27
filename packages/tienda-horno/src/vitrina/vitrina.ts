@@ -503,6 +503,51 @@ async function carritoPagina(): Promise<void> {
     aplicar(r);
   };
 
+  // HU-P1.1: «Recordarme mi compra si no la termino». Sin la casilla no sale nada; al desmarcarla,
+  // la tienda borra lo que tenía. El dato se manda solo si parece un celular o un correo.
+  const recordarAcepta = venta?.querySelector<HTMLInputElement>('[data-recordar-acepta]');
+  const recordarContacto = venta?.querySelector<HTMLInputElement>('[data-recordar-contacto]');
+  const avisoRecordar = venta?.querySelector<HTMLElement>('[data-aviso-recordar]') ?? null;
+  let guardadoParaRecordar = false;
+  const recordar = async () => {
+    if (!recordarAcepta || !recordarContacto) return;
+    const acepta = recordarAcepta.checked;
+    const contacto = recordarContacto.value.trim();
+    if (!acepta && !guardadoParaRecordar) return decir(avisoRecordar, undefined);
+    if (acepta && !/^(\+?57)?\s*3[\d\s]{9,12}$|^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contacto)) {
+      return decir(avisoRecordar, 'Escribe tu celular (10 dígitos) o tu correo para recordártela.');
+    }
+    if (carrito.lineas.length === 0) return;
+    try {
+      const r = await fetch('/api/v1/carrito/recordar', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ codigo: carrito.codigo, lineas: carrito.lineas, contacto, acepta }),
+      });
+      if (!r.ok) {
+        return decir(
+          avisoRecordar,
+          r.status === 422
+            ? 'Revisa tu celular o tu correo.'
+            : 'No pudimos guardarlo. Intenta de nuevo.',
+        );
+      }
+      guardadoParaRecordar = acepta;
+      decir(
+        avisoRecordar,
+        acepta
+          ? 'Listo: si no terminas tu compra, la tienda te la recuerda.'
+          : 'Listo: no te la recordamos.',
+      );
+    } catch {
+      decir(avisoRecordar, 'No pudimos guardarlo. Revisa tu conexión.');
+    }
+  };
+  recordarAcepta?.addEventListener('change', () => void recordar());
+  recordarContacto?.addEventListener('change', () => {
+    if (recordarAcepta?.checked) void recordar();
+  });
+
   // HU-T6.1: enviar el pedido. El botón dice lo primero que falta; al tocarlo, lleva a ese campo.
   const boton = venta?.querySelector<HTMLButtonElement>('[data-enviar]');
   const avisoVenta = venta?.querySelector<HTMLElement>('[data-aviso-venta]') ?? null;

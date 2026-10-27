@@ -183,6 +183,30 @@ h1 {
   min-height: 48px;
   color: inherit;
 }
+/* HU-P4.3: las redes de la tienda, un ícono que se toca con el dedo. */
+.pie__redes {
+  display: flex;
+  gap: var(--espacio-2);
+  margin-block: var(--espacio-2);
+}
+.pie__redes a {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  color: var(--texto);
+}
+.pie__redes a:hover {
+  background: var(--superficie-2);
+}
+.red {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 /* --- Textos legales -------------------------------------------------------------------------- */
 .legal {
@@ -1003,6 +1027,18 @@ a.boton[hidden] {
   border-radius: 999px;
   background: var(--acento);
   color: var(--acento-texto, var(--superficie));
+  font-size: var(--texto-etiqueta, var(--texto-pequeno));
+  font-weight: var(--peso-fuerte);
+}
+
+/* HU-P1.2: la promoción por cantidad, en la ficha y en la tarjeta. */
+.promocion {
+  width: fit-content;
+  margin: 0;
+  padding: 0.125rem var(--espacio-2);
+  border: 1px solid var(--acento);
+  border-radius: 999px;
+  color: var(--texto);
   font-size: var(--texto-etiqueta, var(--texto-pequeno));
   font-weight: var(--peso-fuerte);
 }

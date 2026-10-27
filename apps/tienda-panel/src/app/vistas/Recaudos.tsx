@@ -7,7 +7,7 @@ import { Aviso, ResumenDeErrores, Tarjeta } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { type Conexion, pedirAlPanel } from '../api.ts';
 import { enPesos, opNueva } from '../catalogo.ts';
-import { Texto } from '../componentes/index.ts';
+import { Guia, Texto } from '../componentes/index.ts';
 import {
   antiguedad,
   type Recaudos as Datos,
@@ -121,6 +121,7 @@ export function Recaudos({
         <a href="/pedidos/">Pedidos</a>
       </p>
       <h1>Recaudos</h1>
+      <Guia guia="contraentrega" />
       <p class="nota">La plata de los pedidos contra entrega, desde que salen hasta tu cuenta.</p>
       {aviso ? (
         <Aviso tono="info" titulo="Listo">

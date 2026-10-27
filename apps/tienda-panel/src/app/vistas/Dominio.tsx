@@ -14,6 +14,7 @@ import { Aviso, ResumenDeErrores } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { Conexion } from '../api.ts';
 import { Confirmar } from '../componentes/Confirmar.tsx';
+import { Guia } from '../componentes/index.ts';
 import {
   algunoEspera,
   conectarDominio,
@@ -347,6 +348,7 @@ export function Dominio({
     <main class="contenido">
       {volver}
       <h1>Tu dominio</h1>
+      <Guia guia="dominio" />
       <p>
         Tu tienda puede vivir también en tu propio dominio, como www.mitienda.co. El dominio sigue
         siendo tuyo, en tu proveedor: solo le agregas unos registros, y tu tienda tiene su candado

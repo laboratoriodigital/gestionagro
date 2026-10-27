@@ -26,7 +26,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 
 | Sprint | Fechas (techo) | Objetivo | Historias | Puntos | Versión |
 |---|---|---|---|---:|---|
-| **PF1** | 27 oct – 2 nov 2026 | **Vender más y perder menos ventas:** compras sin terminar, promociones por cantidad, correos al comprador, cambios masivos, redes y la ayuda | HU-P1.1 (5), HU-P1.2 (3), HU-P2.1 (3), HU-P3.1 (5), HU-P4.3 (1), HU-P5.1 (3) | 20 | tienda 1.5.0 |
+| **PF1** | 27 oct – 2 nov 2026 (construido el 27 oct) | **Vender más y perder menos ventas:** compras sin terminar, promociones por cantidad, correos al comprador, cambios masivos, redes y la ayuda | HU-P1.1 (5), HU-P1.2 (3), HU-P2.1 (3), HU-P3.1 (5), HU-P4.3 (1), HU-P5.1 (3) | 20 | tienda 1.5.0 |
 | **PF2** | 3 – 9 nov 2026 | **Productos digitales y control del día a día** | HU-P6.1 (5), HU-P6.2 (5), HU-P6.3 (2), HU-P2.2 (2), HU-P3.2 (2), HU-P1.3 (2) | 18 | tienda 1.6.0 |
 | **PF3** | 10 – 16 nov 2026 | **Una vitrina más completa y más control** | HU-P4.1 (3), HU-P4.2 (3), HU-P4.4 (2), HU-P1.4 (3), HU-P1.5 (3), HU-P3.3 (3), HU-P5.2 (2) | 19 | tienda 1.7.0 |
 
@@ -51,7 +51,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 ## EP1 · Vender más
 
 #### HU-P1.1 · Compras sin terminar, con el permiso del comprador
-- **Capa:** vitrina, API y panel · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** PF1 · **Plan:** Pro (e IA Pro, que trae todo lo de Pro) · **Estado:** Refinada (plan decidido por el dueño el 26 oct 2026)
+- **Capa:** vitrina, API y panel · **Prioridad:** Must · **Puntos:** 5 · **Sprint:** PF1 · **Plan:** Pro (e IA Pro, que trae todo lo de Pro) · **Estado:** Construida (27 oct 2026, tienda 1.5.0), por validar. `compras-pendientes.ts`, migración 0021, `compras_sin_terminar` en funciones.json; la casilla en el carrito solo con ese plan.
 - Como comerciante, quiero ver quién dejó una compra sin terminar y escribirle, para no perder la venta.
 - **Referencia:** Tiendanube, «carritos abandonados». Estudio §8.4: la recuperación de carrito pide contactos autorizados.
 - **CA1.** En el carrito de una tienda Pro, el comprador puede dejar su WhatsApp o su correo y marcar «Recordarme mi compra si no la termino». La casilla viene **sin marcar**.
@@ -62,14 +62,14 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P1.1.1 `[código]` migración `compra_pendiente` (cifrada, con vencimiento) y `POST /api/v1/carrito/recordar` · WI-P1.1.2 `[código]` la casilla en la isla del carrito · WI-P1.1.3 `[código]` la lista en el panel y «Ya le escribí» · WI-P1.1.4 `[prueba]` sin casilla no hay fila; la purga; Gratis rechazada; e2e del carrito · WI-P1.1.5 `[doc]` la finalidad en la política de datos de la tienda (HU-T7.1).
 
 #### HU-P1.2 · Promociones por cantidad
-- **Capa:** API, horno y panel · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** PF1 · **Plan:** Pro · **Estado:** Refinada
+- **Capa:** API, horno y panel · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** PF1 · **Plan:** Pro · **Estado:** Construida (27 oct 2026, tienda 1.5.0), por validar. **Cambió al construir:** la promoción va en el producto (migración 0020, columna `promocion`) y no en una tabla aparte; ponerla a toda una categoría se hace con HU-P3.1. La cuenta está en `@ed1/dinero` (`descuentoPorCantidad`). Queda pendiente que «Descargar todo» y la carga la lleven (WI-P1.2.5).
 - Como comerciante, quiero ofrecer «lleva 3 y paga 2» o «10 % desde 2 unidades», para vender más por pedido.
 - **Referencia:** Tiendanube, «descuentos por cantidad».
 - **CA1.** En «Venta › Promociones», una promoción con producto o colección, cantidad mínima, y un porcentaje o unidades de regalo, con vigencia.
 - **CA2.** La ficha dice la promoción; el carrito la aplica y el resumen muestra el descuento en su línea.
 - **CA3 ❌.** El servidor la recalcula al cotizar: un carrito que dice otra cosa no se cobra. No se suma con otra promoción en el mismo producto; con un cupón, se aplica primero la promoción.
 - **Cuida:** «lo que el comprador vio es lo que paga» (TIENDA §1.3) y `@ed1/dinero` (pesos enteros, el reparto del descuento).
-- **Work items:** WI-P1.2.1 `[código]` tabla `promocion` y su cálculo en `cotizar` · WI-P1.2.2 `[código]` la pantalla del panel · WI-P1.2.3 `[código]` la etiqueta en la ficha (horno) · WI-P1.2.4 `[prueba]` los dos tipos, el redondeo y el ❌ del carrito alterado.
+- **Work items:** WI-P1.2.1 `[código]` tabla `promocion` y su cálculo en `cotizar` · WI-P1.2.2 `[código]` la pantalla del panel · WI-P1.2.3 `[código]` la etiqueta en la ficha (horno) · WI-P1.2.4 `[prueba]` los dos tipos, el redondeo y el ❌ del carrito alterado · WI-P1.2.5 `[código]` la promoción en «Descargar todo» y en la carga (pendiente).
 
 #### HU-P1.3 · Cupones por producto o colección
 - **Capa:** API y panel · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** PF2 · **Plan:** todos · **Estado:** Refinada
@@ -101,7 +101,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 ## EP2 · Avisarle a cada quien a tiempo
 
 #### HU-P2.1 · Los correos del pedido al comprador
-- **Capa:** API · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Refinada
+- **Capa:** API · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Construida (27 oct 2026, tienda 1.5.0), por validar. **Cambió al construir:** el correo no lleva el enlace de seguimiento, porque su secreto nace en el navegador y la base solo guarda su huella (TIENDA §8.4); dice el código y que el enlace es el del primer correo. Van con el tipo `acuse` del registro de correos, sin rehacer la tabla.
 - Como comprador, quiero saber por correo cuando confirman, cobran, despachan o cancelan mi pedido.
 - **Referencia:** Tiendanube, «e-mails automáticos» de pago, envío y cancelación.
 - **CA1.** Si el comprador dejó su correo, recibe un correo cuando el pedido se confirma, se paga, se despacha (con la guía, si la hay) y se cancela, siempre con el enlace de seguimiento.
@@ -121,7 +121,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 ## EP3 · Administrar más rápido
 
 #### HU-P3.1 · Cambiar varios productos a la vez
-- **Capa:** API y panel · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Refinada
+- **Capa:** API y panel · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Construida (27 oct 2026, tienda 1.5.0), por validar. `lote-de-productos.ts`; la pantalla en «Productos › Cambiar varios»; también pone o quita la promoción (HU-P1.2). Bitácora tienda3 62.
 - Como comerciante, quiero subir los precios un 5 % o esconder varios productos de una vez, sin la hoja de cálculo.
 - **Referencia:** Tiendanube, «acciones masivas».
 - **CA1.** En Productos, elegir varios (o una colección) y: cambiar el precio en un porcentaje o un valor, mostrar, esconder o borrar.
@@ -167,7 +167,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P4.2.1 `[código]` · WI-P4.2.2 `[prueba]` presupuesto y CLS a 360 px.
 
 #### HU-P4.3 · Las redes sociales de la tienda
-- **Capa:** paquete y horno · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Refinada
+- **Capa:** paquete y horno · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Construida (27 oct 2026, tienda 1.5.0), por validar. **Cambió al construir:** los tres campos son opcionales en la versión 1 de `contacto`: lo guardado antes sigue valiendo, sin traductor.
 - Como comerciante, quiero que mi tienda lleve a mi Instagram, TikTok y Facebook.
 - **CA1.** En «Ajustes › Contacto», los enlaces de Instagram, TikTok y Facebook; el pie de la tienda los muestra con su ícono.
 - **CA2 ❌.** Solo direcciones de esas redes (`instagram.com`, `tiktok.com`, `facebook.com`); ningún script de ellas en la página.
@@ -186,7 +186,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 ## EP5 · Acompañar al comerciante
 
 #### HU-P5.1 · La ayuda de TiendaPro
-- **Capa:** sitio · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Refinada
+- **Capa:** sitio · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Construida (27 oct 2026, tienda 1.5.0), por validar. WhatsApp de soporte 300 861 0480 (dueño, 26 oct 2026), en `WHATSAPP_DE_SOPORTE`.
 - Como comerciante, quiero una guía corta para cada cosa que tengo que hacer por primera vez.
 - **Referencia:** Tiendanube, más de 600 tutoriales y soporte por WhatsApp.
 - **CA1.** En `tiendapro.co/ayuda/`, guías de una pantalla: tu primer producto, publicar, conectar Bold, conectar tu dominio (con el caso de Hostinger y el «www»), cargar por lotes, atender un pedido contra entrega y verificar en Google.

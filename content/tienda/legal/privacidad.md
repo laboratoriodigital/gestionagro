@@ -21,6 +21,7 @@ No te pedimos datos sensibles. Si dejas que te avisen cuando vuelva un producto 
 - Responder tus preguntas, quejas, reclamos, retractos y garantías.
 - Cumplir lo que nos piden las leyes de comercio, contables y de impuestos.
 - Enviarte novedades de la tienda, solo si lo aceptas aparte. Puedes dejar de recibirlas cuando quieras.
+- Recordarte una compra que dejaste sin terminar, solo si lo pides en el carrito dejando tu WhatsApp o tu correo. Ese dato se borra a los 30 días, o antes si haces el pedido o desmarcas la casilla.
 
 No vendemos ni prestamos tus datos.
 

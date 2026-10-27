@@ -47,6 +47,11 @@ export interface ContextoDelAviso {
    * Nunca demora ni tumba la respuesta: quien lo da lo manda en segundo plano.
    */
   alResolverPrueba?: (cobroId: string, via: 'aviso' | 'consulta') => void;
+  /**
+   * HU-P2.1: un pedido quedó pagado (el aviso, la consulta o la conciliación): el correo al
+   * comprador. Como el de la prueba, nunca demora ni tumba la respuesta.
+   */
+  alPagar?: (pedidoId: string) => void;
 }
 
 const AvisoDeBold = z.object({
@@ -318,7 +323,16 @@ export async function aplicarRespuesta(
     if (!hacer.respaldo || !/CHECK/i.test(String(e))) throw e;
     await c.db.batch([...antes, ...hacer.respaldo]);
   }
-  if (r.tipo === 'aprobado') await reaplicarAnulaciones(c, k.id);
+  if (r.tipo === 'aprobado') {
+    await reaplicarAnulaciones(c, k.id);
+    try {
+      c.alPagar?.(k.pedido_id);
+    } catch (e) {
+      console.error(
+        `tienda-api: el correo del pago de ${k.pedido_id} no se pudo pedir (${String(e)})`,
+      );
+    }
+  }
   return true;
 }
 

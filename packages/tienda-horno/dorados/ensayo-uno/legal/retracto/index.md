@@ -17,4 +17,4 @@ Todos los productos de esta tienda admiten retracto.
 
 Cada producto dice en su página si admite retracto antes de que lo agregues a tu pedido.
 
-Versión 4 de las plantillas, del 20 de octubre de 2026.
+Versión 5 de las plantillas, del 27 de octubre de 2026.

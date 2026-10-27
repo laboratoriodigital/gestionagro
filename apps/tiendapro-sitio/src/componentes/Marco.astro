@@ -7,6 +7,7 @@
 import '@ed1/ui/v2/fuentes.css';
 import '@ed1/ui/v2/tokens.css';
 import '../estilos/landing.css';
+import { CHAT_DE_SOPORTE } from '../ayuda.ts';
 import { CORREO_DE_REPORTES, MARCA, ORIGEN, PANEL } from '../contenido.ts';
 
 interface Props {
@@ -46,6 +47,7 @@ const { titulo, descripcion, ruta, gemelo = false } = Astro.props;
         <a href="/#como-funciona">Cómo funciona</a>
         <a href="/#planes">Planes</a>
         <a href="/#preguntas">Preguntas</a>
+        <a href="/ayuda/">Ayuda</a>
       </nav>
       <a class="boton boton--chico" href={PANEL} data-panel>Crear tienda</a>
     </header>
@@ -57,6 +59,10 @@ const { titulo, descripcion, ruta, gemelo = false } = Astro.props;
         <p class="marca"><span class="marca__signo" aria-hidden="true"></span>{MARCA}</p>
         <p>Tiendas en línea para vender en Colombia. Un producto de Laboratorio Digital.</p>
       </div>
+      <nav class="pie__enlaces" aria-label="Ayuda">
+        <a href="/ayuda/">Ayuda para tu tienda</a>
+        <a href={CHAT_DE_SOPORTE} rel="noopener" target="_blank">Soporte por WhatsApp</a>
+      </nav>
       <nav class="pie__enlaces" aria-label="Información legal">
         <a href="/legal/datos/">Política de tratamiento de datos</a>
         <a href="/legal/terminos/">Términos del servicio</a>
