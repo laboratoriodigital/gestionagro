@@ -1767,6 +1767,8 @@ Formato de cada historia, el del CORE:
 
 ## 9. Preparadas, sin sprint
 
+Desde el 26 oct 2026, lo que trajo el contraste con Tiendanube (`CONTRASTE-TIENDANUBE-2026-10.md`) vive en `BACKLOG_PERFECCIONAMIENTO.md`: 16 historias propuestas (45 puntos), por priorizar con el dueño. Sus disparadores nuevos van al final de esta tabla.
+
 | Historia | Disparador |
 |---|---|
 | HU-T7.4 · Revisión legal de las plantillas (3) | Haya presupuesto para un abogado (TIENDA §20.2.7). Recomendado antes del alta abierta (M4). Corregir es cambiar una plantilla y re-hornear |
@@ -1784,6 +1786,10 @@ Formato de cada historia, el del CORE:
 | Disponibilidad de CultivoPro en la tienda del productor (feed firmado) | La finca cero abre su tienda. Hoy el cuaderno exporta el CSV con las columnas del catálogo (análisis de integración §9.1; HU-E6.5 del agro) |
 | Enlaces de seguimiento de la 2.0 | El dueño decide conservarlos al cortar (TIENDA §17.3, punto 6): tabla aparte, con su migración |
 | `@ed1/cifrado` también para el token de Drive del agro | Un tercer uso del cifrado de sobre (regla de tres, ED1 §3.11) |
+| Compras a crédito con Addi | Tres comercios con ticket alto lo piden; Addi pide persona jurídica (estudio S110). Contraste con Tiendanube §5.1 |
+| TikTok: catálogo y botón de compra | Tres comercios que venden por TikTok lo piden; el feed de Meta es la base. Contraste §5.1 |
+| Productos digitales | Tres comercios lo piden: entregar un archivo después del pago, sin exponerlo. Contraste §5.1 |
+| Email marketing | Un comercio con compradores que aceptaron recibir correos; se exporta a su herramienta (Doppler, Perfit), no se construye. Contraste §5.1 |
 
 ---
 
