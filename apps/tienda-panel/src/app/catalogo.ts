@@ -6,6 +6,21 @@
  * Unas existencias vacías no son «no se cuenta»: eso es una casilla aparte, a propósito.
  */
 
+/** HU-P1.2: la promoción por cantidad de un producto (`promocionDelProducto` de la API). */
+export type PromocionDelPanel =
+  | { tipo: 'regalo'; lleva: number; paga: number; hasta: string | null }
+  | { tipo: 'porcentaje'; porcentaje: number; desdeUnidades: number; hasta: string | null };
+
+/** La promoción como se escribe en la pantalla: todo texto, y `tipo` vacío si no hay. */
+export interface PromocionEnPantalla {
+  tipo: '' | 'regalo' | 'porcentaje';
+  lleva: string;
+  paga: string;
+  porcentaje: string;
+  desde: string;
+  hasta: string;
+}
+
 export interface ProductoDelPanel {
   id: string;
   version: number;
@@ -20,6 +35,8 @@ export interface ProductoDelPanel {
   /** HU-T5.10: va primero en la tienda; lleva la etiqueta «Nuevo». */
   destacado?: boolean;
   nuevo?: boolean;
+  /** HU-P1.2: la promoción por cantidad, como la guardó la API. */
+  promocion?: PromocionDelPanel | null;
   ivaPct: number | null;
   variantes: {
     id: string;
@@ -131,6 +148,7 @@ export interface FormularioDeProducto {
   /** HU-T5.10: va primero en la tienda; lleva la etiqueta «Nuevo». */
   destacado?: boolean;
   nuevo?: boolean;
+  promocion?: PromocionEnPantalla;
 }
 
 export const ESTADOS: readonly { id: string; texto: string }[] = [
@@ -205,7 +223,30 @@ export function formularioDe(p: ProductoDelPanel | null): FormularioDeProducto {
     soloMayores: p?.soloMayores ?? false,
     destacado: p?.destacado ?? false,
     nuevo: p?.nuevo ?? false,
+    promocion: promocionEnPantalla(p?.promocion ?? null),
   };
+}
+
+/** HU-P1.2: la promoción guardada, en los campos de la pantalla. */
+export function promocionEnPantalla(p: PromocionDelPanel | null): PromocionEnPantalla {
+  return {
+    tipo: p?.tipo ?? '',
+    lleva: p?.tipo === 'regalo' ? String(p.lleva) : '3',
+    paga: p?.tipo === 'regalo' ? String(p.paga) : '2',
+    porcentaje: p?.tipo === 'porcentaje' ? String(p.porcentaje) : '10',
+    desde: p?.tipo === 'porcentaje' ? String(p.desdeUnidades) : '2',
+    hasta: p?.hasta ?? '',
+  };
+}
+
+/** HU-P1.2: lo que va a la API. Un número ilegible va como texto: la API dice qué está mal. */
+export function promocionDelCuerpo(p: PromocionEnPantalla | undefined): unknown {
+  if (!p?.tipo) return null;
+  const n = (t: string) => (/^\d+$/.test(t.trim()) ? Number(t.trim()) : t);
+  const hasta = p.hasta.trim() || null;
+  return p.tipo === 'regalo'
+    ? { tipo: 'regalo', lleva: n(p.lleva), paga: n(p.paga), hasta }
+    : { tipo: 'porcentaje', porcentaje: n(p.porcentaje), desdeUnidades: n(p.desde), hasta };
 }
 
 /** La combinación de una clave, o una nueva vacía si todavía no se escribió nada en ella. */
@@ -255,6 +296,7 @@ export function cuerpoDe(
       soloMayores: f.soloMayores,
       destacado: f.destacado ?? false,
       nuevo: f.nuevo ?? false,
+      promocion: promocionDelCuerpo(f.promocion),
     },
   };
 }
@@ -272,6 +314,7 @@ export function campoDelProblema(
   if (!m) {
     if (campo.startsWith('opciones')) return 'opciones';
     if (campo.startsWith('retracto')) return 'retracto';
+    if (campo.startsWith('promocion')) return 'promocion';
     return campo || 'nombre';
   }
   const clave = enviadas[Number(m[1])];

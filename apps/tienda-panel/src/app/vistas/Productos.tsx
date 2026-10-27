@@ -112,6 +112,9 @@ export function Productos({
           <a class="ed1-boton ed1-boton--secundario" href="/productos/inventario/">
             Inventario
           </a>
+          <a class="ed1-boton ed1-boton--secundario" href="/productos/varios/">
+            Cambiar varios
+          </a>
         </div>
       )}
       <div class="ed1-campo">

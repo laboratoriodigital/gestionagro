@@ -87,6 +87,8 @@ describe('cotizar (HU-T5.5)', () => {
     expect(r).toEqual({
       subtotal: 258000,
       descuento: 0,
+      descuentoPromociones: 0,
+      descuentoCupon: 0,
       envio: 0,
       total: 258000,
       avisos: [],
@@ -193,6 +195,46 @@ function limitador(cupo: number): Limitador & { claves: string[] } {
     },
   };
 }
+
+describe('HU-P1.2 · la promoción por cantidad, leída de la base', () => {
+  const promocion = (p: unknown) =>
+    shard
+      .prepare("UPDATE producto SET promocion = ? WHERE org_id = ? AND id = 'p-camisa'")
+      .bind(p === null ? null : JSON.stringify(p), UNO)
+      .run();
+
+  it('lleva 2 y paga 1: el servidor la aplica, y la dice aparte del cupón', async () => {
+    await promocion({ tipo: 'regalo', lleva: 2, paga: 1, hasta: null });
+    const r = await cotizar(shard, UNO, { lineas: [{ variante: M, cantidad: 2 }] }, AHORA);
+    expect(r).toMatchObject({
+      subtotal: 258000,
+      descuentoPromociones: 129000,
+      descuentoCupon: 0,
+      descuento: 129000,
+      total: 129000,
+    });
+    await promocion(null);
+  });
+
+  it('❌ vencida o ilegible, no se aplica: nunca se cree lo que diga el navegador', async () => {
+    await promocion({ tipo: 'regalo', lleva: 2, paga: 1, hasta: '2026-10-13' });
+    const vencida = await cotizar(shard, UNO, { lineas: [{ variante: M, cantidad: 2 }] }, AHORA);
+    expect(vencida.descuento).toBe(0);
+    // Hasta el último día, en Colombia, sí.
+    await promocion({ tipo: 'regalo', lleva: 2, paga: 1, hasta: '2026-10-14' });
+    const ultimoDia = await cotizar(
+      shard,
+      UNO,
+      { lineas: [{ variante: M, cantidad: 2 }] },
+      '2026-10-15T04:30:00.000Z',
+    );
+    expect(ultimoDia.descuento).toBe(129000);
+    await promocion({ tipo: 'regalo', lleva: 2, paga: 2, hasta: null });
+    const ilegible = await cotizar(shard, UNO, { lineas: [{ variante: M, cantidad: 2 }] }, AHORA);
+    expect(ilegible.descuento).toBe(0);
+    await promocion(null);
+  });
+});
 
 describe('POST /api/v1/cotizar', () => {
   const env = (extra: Record<string, unknown> = {}): Env => ({

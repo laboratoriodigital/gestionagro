@@ -21,6 +21,8 @@ import {
   ordenarColecciones as esquemaOrdenar,
   type GuardarProducto,
   leerFormatos,
+  type PromocionDelProducto,
+  promocionDelProducto,
   revisarProducto,
   tocarProducto,
 } from '@ed1/tienda-schema';
@@ -138,6 +140,7 @@ interface FilaProducto {
   nuevo: number;
   iva_pct: number | null;
   seo: string;
+  promocion: string | null;
   version: number;
   borrado: string | null;
 }
@@ -154,7 +157,7 @@ interface FilaVariante {
 }
 
 const COLUMNAS_PRODUCTO =
-  'id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, iva_pct, seo, version, borrado';
+  'id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, iva_pct, seo, promocion, version, borrado';
 
 async function filaDelProducto(q: Quien, id: string) {
   return q.db
@@ -194,6 +197,17 @@ const slugsAnteriores = (seo: Record<string, unknown>): string[] =>
     ? ((seo['slugsAnteriores'] as unknown[]).filter((s) => typeof s === 'string') as string[])
     : [];
 
+/** HU-P1.2: la promoción guardada, validada otra vez; la que no se lee no existe (P1). */
+export function promocionLeida(texto: string | null): PromocionDelProducto | null {
+  if (!texto) return null;
+  try {
+    const r = promocionDelProducto.safeParse(JSON.parse(texto));
+    return r.success ? r.data : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Lo que el panel muestra de un producto: el producto, sus combinaciones activas y sus fotos. */
 export async function leerProducto(q: Quien, id: string) {
   const p = await filaDelProducto(q, id);
@@ -229,6 +243,8 @@ export async function leerProducto(q: Quien, id: string) {
     soloMayores: p.solo_mayores === 1,
     destacado: p.destacado === 1,
     nuevo: p.nuevo === 1,
+    // HU-P1.2: la que el esquema ya validó al guardar; una ilegible se muestra como ninguna.
+    promocion: promocionLeida(p.promocion),
     ivaPct: p.iva_pct,
     variantes: variantes.map((v) => ({
       id: v.id,
@@ -468,6 +484,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
       .slice(0, 20);
   }
   const retracto = d.retracto.aplica ? 'aplica' : 'no_aplica';
+  const promocion = d.promocion ? JSON.stringify(d.promocion) : null;
   const motivo = d.retracto.aplica ? null : d.retracto.motivo;
   const lote: SentenciaD1[] = [];
   const registro: Promise<SentenciaD1>[] = [];
@@ -483,7 +500,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
       q.db
         .prepare(
           `UPDATE producto SET slug = ?, nombre = ?, descripcion_md = ?, estado = ?, opciones = ?, retracto = ?,
-             retracto_motivo = ?, solo_mayores = ?, destacado = ?, nuevo = ?, iva_pct = ?, seo = ?, version = version + 1, actualizado = ?
+             retracto_motivo = ?, solo_mayores = ?, destacado = ?, nuevo = ?, iva_pct = ?, seo = ?, promocion = ?, version = version + 1, actualizado = ?
            WHERE org_id = ? AND id = ? AND version = ? AND borrado IS NULL`,
         )
         .bind(
@@ -499,6 +516,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
           d.nuevo ? 1 : 0,
           d.ivaPct,
           JSON.stringify(seo),
+          promocion,
           q.instante,
           q.org,
           id,
@@ -509,7 +527,8 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
     const antes = resumenDelProducto({ ...actual, opciones: JSON.parse(actual.opciones) });
     if (
       JSON.stringify(antes) !== JSON.stringify(nuevo) ||
-      actual.descripcion_md !== d.descripcionMd
+      actual.descripcion_md !== d.descripcionMd ||
+      (actual.promocion ?? null) !== promocion
     ) {
       registro.push(
         anotar(q.db, {
@@ -533,8 +552,8 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
       q.db
         .prepare(
           `INSERT INTO producto (org_id, id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo,
-             solo_mayores, destacado, nuevo, iva_pct, posicion, creado, actualizado)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+             solo_mayores, destacado, nuevo, iva_pct, promocion, posicion, creado, actualizado)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
              (SELECT coalesce(max(posicion), -1) + 1 FROM producto WHERE org_id = ?), ?, ?)`,
         )
         .bind(
@@ -551,6 +570,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
           d.destacado ? 1 : 0,
           d.nuevo ? 1 : 0,
           d.ivaPct,
+          promocion,
           q.org,
           q.instante,
           q.instante,

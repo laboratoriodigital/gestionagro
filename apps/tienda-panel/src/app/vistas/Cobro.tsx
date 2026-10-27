@@ -28,6 +28,7 @@ import {
   probarLlaves,
   pruebaEnPalabras,
 } from '../cobro.ts';
+import { Guia } from '../componentes/index.ts';
 import { leerTerminos, type TerminosDelPanel } from '../terminos.ts';
 import { Aceptable } from './Terminos.tsx';
 
@@ -388,6 +389,7 @@ export function Cobro({
     <main class="contenido">
       {volver}
       <h1>Cobro en línea</h1>
+      <Guia guia="cobro-en-linea" />
       <p>
         Tus compradores pagan con tarjeta, PSE, Bancolombia o billeteras, y el dinero llega a tu
         cuenta de Bold. TiendaPro no lo recibe ni lo toca.

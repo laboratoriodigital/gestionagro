@@ -3586,3 +3586,118 @@ test('26 oct 2026 · el Inicio dice la dirección de la tienda, con abrirla y co
     path: 'C:/Users/samy_/AppData/Local/Temp/claude/D--CoWork-gestionagro/9280ad66-cc95-4442-a718-6b2dddfe426d/scratchpad/panel-direccion.png',
   });
 });
+
+test('HU-P3.1 · cambiar varios productos: primero se ve qué cambia, después se aplica', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const pedidos: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/productos?*`, (r) =>
+    r.fulfill({
+      json: {
+        productos: [
+          {
+            id: 'p-camisa',
+            version: 1,
+            nombre: 'Camisa de lino',
+            estado: 'activo',
+            desde: 129000,
+            combinaciones: 3,
+            existencias: 4,
+          },
+          {
+            id: 'p-bolso',
+            version: 1,
+            nombre: 'Bolso tejido',
+            estado: 'activo',
+            desde: 98000,
+            combinaciones: 1,
+            existencias: 0,
+          },
+        ],
+        total: 2,
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/colecciones`, (r) =>
+    r.fulfill({ json: { colecciones: [] } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/productos/lote`, (r) => {
+    const cuerpo = r.request().postDataJSON() as Record<string, unknown>;
+    pedidos.push(cuerpo);
+    return r.fulfill({
+      json: cuerpo['vistaPrevia']
+        ? {
+            estado: 'vista-previa',
+            productos: 1,
+            combinaciones: 3,
+            nombres: ['Camisa de lino'],
+            ejemplo: { nombre: 'Camisa de lino', antes: 129000, despues: 135450 },
+          }
+        : { estado: 'guardado', id: 'lote', version: 1, productos: 1 },
+    });
+  });
+  await page.goto(`${PANEL}/productos/varios/`);
+  await page.getByLabel('Camisa de lino · $129.000').check();
+  await page.getByLabel('Cuánto, en porcentaje').fill('5');
+  await page.getByRole('button', { name: 'Revisar el cambio' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Cambia 1 producto y 3 combinaciones' }),
+  ).toBeVisible();
+  await expect(page.getByText('$135.450')).toBeVisible();
+  expect(pedidos[0]).toMatchObject({
+    ids: ['p-camisa'],
+    cambio: { tipo: 'precio', modo: 'porcentaje', cantidad: 5 },
+    vistaPrevia: true,
+  });
+  await page.getByText('Aplicar el cambio').click();
+  await page.getByRole('button', { name: 'Sí, aplicar' }).click();
+  await expect(page.getByText('Listo: cambiaste 1 producto.')).toBeVisible();
+  expect(pedidos[1]).toMatchObject({ vistaPrevia: false, op: pedidos[0]?.['op'] });
+  const [ancho, visible] = await page.evaluate(() => [
+    document.documentElement.scrollWidth,
+    document.documentElement.clientWidth,
+  ]);
+  expect(ancho).toBeLessThanOrEqual(visible ?? 0);
+});
+
+test('HU-P1.1 · compras sin terminar: escribirle por WhatsApp con el mensaje listo, y «Ya le escribí»', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  await page.route(`${PANEL}/api/panel/v1/yo`, (r) =>
+    r.fulfill({ json: { ...yo(UNO), funciones: { productos: null, compras_sin_terminar: true } } }),
+  );
+  let escritas = 0;
+  await page.route(`${PANEL}/api/panel/v1/compras-sin-terminar`, (r) =>
+    r.fulfill({
+      json: {
+        compras:
+          escritas > 0
+            ? []
+            : [
+                {
+                  codigo: 'ABC123',
+                  actualizado: '2026-10-27T15:00:00.000Z',
+                  totalCop: 258000,
+                  productos: ['2 × Camisa de lino (M, Arena)'],
+                  contacto: { tipo: 'whatsapp', valor: '+573001234567' },
+                },
+              ],
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/compras-sin-terminar/escrita`, (r) => {
+    escritas++;
+    return r.fulfill({ json: { estado: 'guardado' } });
+  });
+  await page.goto(`${PANEL}/pedidos/sin-terminar/`);
+  const enlace = page.getByRole('link', { name: 'Escribirle por WhatsApp' });
+  const href = new URL((await enlace.getAttribute('href')) ?? '');
+  expect(href.pathname).toBe('/573001234567');
+  expect(href.searchParams.get('text')).toContain('2 × Camisa de lino (M, Arena)');
+  await page.getByText('Ya le escribí', { exact: true }).click();
+  await page.getByRole('button', { name: 'Sí, ya le escribí' }).click();
+  await expect(page.getByText('No hay compras sin terminar por ahora.')).toBeVisible();
+  expect(escritas).toBe(1);
+});

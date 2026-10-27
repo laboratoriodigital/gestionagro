@@ -59,5 +59,10 @@
     "gratis": false,
     "pro": true,
     "ia-pro": true
+  },
+  "compras_sin_terminar": {
+    "gratis": false,
+    "pro": true,
+    "ia-pro": true
   }
 }

@@ -4,6 +4,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.5.0] - 2026-10-27
+
+Sprint PF1 del perfeccionamiento: vender más y perder menos ventas.
+
+### Agregado
+- **Compras sin terminar** (Pro e IA Pro): en el carrito, quien compra puede dejar su WhatsApp o su correo y marcar «Recordarme mi compra si no la termino», una casilla que nunca viene marcada. Si en 2 horas no hace el pedido, sale en «Pedidos › Compras sin terminar» con lo que llevaba; le escribes desde tu WhatsApp con el mensaje listo y marcas «Ya le escribí». El dato va cifrado y se borra a los 30 días o cuando hace el pedido.
+- **Promociones por cantidad** (en cada producto): «lleva 3, paga 2» o «10 % menos desde 2 unidades», con fecha de fin si quieres. La ficha y la tarjeta la anuncian; el carrito la aplica antes que el cupón.
+- **Correos al comprador** cuando su pedido se confirma, se paga, se despacha (con la transportadora y la guía) o se cancela, si dejó su correo.
+- **Cambiar varios productos a la vez**: en «Productos › Cambiar varios», sube o baja el precio en un porcentaje o en pesos, activa, archiva, pon o quita una promoción, o manda a la papelera, eligiendo uno por uno o toda una categoría. Antes de aplicar te dice qué cambia, con un ejemplo.
+- **Tus redes sociales** en el pie de la tienda: Instagram, TikTok y Facebook, en «Ajustes › Contacto».
+- **La ayuda de TiendaPro** en tiendapro.co/ayuda/: siete guías cortas (tu primer producto, publicar, cobrar con Bold, tu dominio, cargar por lotes, contraentrega y Google) y el WhatsApp de soporte. Las pantallas del panel enlazan a su guía.
+
+### Cambiado
+- La política de datos de cada tienda dice la nueva finalidad: recordarte una compra sin terminar, solo si lo pides.
+
 ## [1.4.1] - 2026-10-26
 
 ### Cambiado

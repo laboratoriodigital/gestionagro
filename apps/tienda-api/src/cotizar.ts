@@ -11,8 +11,16 @@
  * Solo lee: unas cuatro consultas y unas pocas filas por cotización.
  */
 import type { BaseD1 } from '@ed1/d1';
-import { type Cupon, calcularTotal, cobrableEnLinea, LIMITES } from '@ed1/dinero';
+import {
+  type Cupon,
+  calcularTotal,
+  cobrableEnLinea,
+  LIMITES,
+  type PromocionPorCantidad,
+} from '@ed1/dinero';
+import { promocionVigente } from '@ed1/tienda-schema';
 import { z } from 'zod';
+import { promocionLeida } from './catalogo.ts';
 
 export const PeticionDeCotizar = z.object({
   lineas: z
@@ -41,7 +49,11 @@ export type AvisoDeCotizar =
 
 export interface Cotizacion {
   subtotal: number;
+  /** Todo lo descontado: las promociones más el cupón. */
   descuento: number;
+  /** HU-P1.2: lo de las promociones por cantidad, y lo del cupón. */
+  descuentoPromociones: number;
+  descuentoCupon: number;
   envio: number;
   total: number;
   avisos: AvisoDeCotizar[];
@@ -56,9 +68,11 @@ export interface Cotizacion {
 
 interface FilaVariante {
   id: string;
+  producto_id: string;
   precio_cop: number;
   stock: number | null;
   reservado: number;
+  promocion: string | null;
 }
 
 /** Las líneas repetidas de una misma variante se suman, dentro del tope por línea. */
@@ -83,7 +97,7 @@ export async function cotizar(
   const avisos: AvisoDeCotizar[] = [];
   const { results: filas } = await db
     .prepare(
-      `SELECT v.id, v.precio_cop, v.stock, v.reservado FROM variante v
+      `SELECT v.id, v.producto_id, v.precio_cop, v.stock, v.reservado, p.promocion FROM variante v
        JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
        WHERE v.org_id = ? AND v.activa = 1 AND p.estado = 'activo' AND p.borrado IS NULL
          AND v.id IN (${pedidas.map(() => '?').join(', ')})`,
@@ -93,7 +107,22 @@ export async function cotizar(
   const porId = new Map(filas.map((f) => [f.id, f]));
 
   const carrito: Cotizacion['carrito'] = [];
-  const lineas: { precioCop: number; cantidad: number }[] = [];
+  const lineas: { precioCop: number; cantidad: number; producto: string }[] = [];
+  // HU-P1.2: la promoción vigente de cada producto, leída otra vez de la base.
+  const promociones: Record<string, PromocionPorCantidad> = {};
+  for (const f of filas) {
+    const promo = f.promocion ? promocionLeida(f.promocion) : null;
+    if (promo && promocionVigente(promo, ahora)) {
+      promociones[f.producto_id] =
+        promo.tipo === 'regalo'
+          ? { tipo: 'regalo', lleva: promo.lleva, paga: promo.paga }
+          : {
+              tipo: 'porcentaje',
+              porcentaje: promo.porcentaje,
+              desdeUnidades: promo.desdeUnidades,
+            };
+    }
+  }
   for (const l of pedidas) {
     const v = porId.get(l.variante);
     const disponibles = v
@@ -110,13 +139,15 @@ export async function cotizar(
       avisos.push({ codigo: 'cantidad_ajustada', variante: l.variante, cantidad });
     }
     carrito.push({ variante: l.variante, cantidad });
-    lineas.push({ precioCop: v.precio_cop, cantidad });
+    lineas.push({ precioCop: v.precio_cop, cantidad, producto: v.producto_id });
   }
   if (lineas.length === 0) {
     avisos.push({ codigo: 'carrito_vacio' });
     return {
       subtotal: 0,
       descuento: 0,
+      descuentoPromociones: 0,
+      descuentoCupon: 0,
       envio: 0,
       total: 0,
       avisos,
@@ -169,7 +200,7 @@ export async function cotizar(
     else avisos.push({ codigo: 'envio_invalido' });
   }
 
-  const t = calcularTotal({ lineas, cupon, envio });
+  const t = calcularTotal({ lineas, cupon, envio, promociones });
   for (const a of t.avisos) avisos.push({ codigo: a });
   const cobro = await db
     .prepare("SELECT datos FROM ajuste WHERE org_id = ? AND seccion = 'cobro'")
@@ -182,6 +213,8 @@ export async function cotizar(
   return {
     subtotal: t.subtotal,
     descuento: t.descuento,
+    descuentoPromociones: t.descuentoPromociones,
+    descuentoCupon: t.descuentoCupon,
     envio: t.envio,
     total: t.total,
     avisos,

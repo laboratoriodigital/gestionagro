@@ -1,7 +1,7 @@
 {
   "nota": "Las plantillas de los textos legales de cada tienda (HU-T7.1, TIENDA-3.0 §8.5, §14.3 y §14.4). Un solo lugar para todas las tiendas: el horno las llena con la ficha legal, el contacto, las formas de pago, los envíos y los productos de cada una. Lo que va entre llaves dobles es un dato de la tienda; si falta, queda a la vista y la compuerta no publica. Corregir un texto es editar su .md, subir `version` y correr `node scripts/tienda/generar-legal.ts`: las tiendas lo toman al volver a publicar, sin tocar el código (TIENDA §20.1). Es un borrador para que lo lea un abogado (WI-T7.1.4). Los textos no cuentan cómo está hecha la tienda: hablan de personas, datos y plazos.",
-  "version": "4",
-  "fecha": "2026-10-20",
+  "version": "5",
+  "fecha": "2026-10-27",
   "estado": "borrador",
   "revision": "requiere revisión de abogado (WI-T7.1.4)",
   "textos": [

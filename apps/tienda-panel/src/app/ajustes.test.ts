@@ -37,12 +37,20 @@ describe('ajustes del panel', () => {
       correo: 'ensayo@ejemplo.test',
     };
     const texto = aTexto('contacto', guardado);
-    expect(texto).toEqual({ whatsapp: '3001234567', correo: 'ensayo@ejemplo.test', horario: '' });
+    // HU-P4.3: las redes, vacías; la API quita lo vacío antes de validar.
+    const redes = { instagram: '', tiktok: '', facebook: '' };
+    expect(texto).toEqual({
+      whatsapp: '3001234567',
+      correo: 'ensayo@ejemplo.test',
+      horario: '',
+      ...redes,
+    });
     // `whatsappVerificado` lo pone la API, nunca el formulario.
     expect(aDatos('contacto', texto, guardado)).toEqual({
       whatsapp: '+573001234567',
       correo: 'ensayo@ejemplo.test',
       horario: '',
+      ...redes,
     });
 
     const venta = {

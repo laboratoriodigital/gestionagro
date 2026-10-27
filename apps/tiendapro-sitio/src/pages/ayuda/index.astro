@@ -1,0 +1,34 @@
+---
+/**
+ * La ayuda de TiendaPro (HU-P5.1, sprint PF1): las guías y el WhatsApp de soporte.
+ */
+import { CHAT_DE_SOPORTE, GUIAS } from '../../ayuda.ts';
+import Marco from '../../componentes/Marco.astro';
+import { MARCA } from '../../contenido.ts';
+---
+<Marco
+  titulo={`Ayuda · ${MARCA}`}
+  descripcion={`Guías cortas para abrir y manejar tu tienda en ${MARCA}: tu primer producto, publicar, cobrar con Bold, tu dominio y más.`}
+  ruta="/ayuda/"
+>
+  <article class="legal ayuda">
+    <h1>¿En qué te ayudamos?</h1>
+    <p>Una guía corta para cada cosa que haces por primera vez en tu tienda.</p>
+    <ul class="ayuda__lista">
+      {GUIAS.map((g) => (
+        <li>
+          <a class="ayuda__guia" href={`/ayuda/${g.slug}/`}>
+            <span class="ayuda__titulo">{g.titulo}</span>
+            <span class="ayuda__resumen">{g.resumen}</span>
+            {g.plan && <span class="ayuda__plan">Desde el plan {g.plan}</span>}
+          </a>
+        </li>
+      ))}
+    </ul>
+    <section class="ayuda__soporte" aria-labelledby="soporte-titulo">
+      <h2 id="soporte-titulo">¿No encuentras lo que buscas?</h2>
+      <p>Escríbenos por WhatsApp y te ayudamos con tu tienda.</p>
+      <p><a class="boton" href={CHAT_DE_SOPORTE} rel="noopener" target="_blank">Escribir a soporte</a></p>
+    </section>
+  </article>
+</Marco>

@@ -57,11 +57,13 @@ import { Productos } from './vistas/Productos.tsx';
 import { Publicar } from './vistas/Publicar.tsx';
 import { Recaudos } from './vistas/Recaudos.tsx';
 import { Registro } from './vistas/Registro.tsx';
+import { SinTerminar } from './vistas/SinTerminar.tsx';
 import { SinTienda } from './vistas/SinTienda.tsx';
 import { Solicitud, Solicitudes } from './vistas/Solicitudes.tsx';
 import { Terminos } from './vistas/Terminos.tsx';
 import { Titular } from './vistas/Titular.tsx';
 import { Unirme } from './vistas/Unirme.tsx';
+import { Varios } from './vistas/Varios.tsx';
 import { CuponDeLaTienda, EnvioDeLaTienda, Venta } from './vistas/Venta.tsx';
 
 const LIBRES = new Set(['/privacidad/', '/_galeria/', '/unirme/']);
@@ -284,6 +286,15 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
   else if (ruta === '/pedidos/') cuerpo = <Bandeja conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/pedidos/nuevo/')
     cuerpo = <Anotar conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/pedidos/sin-terminar/')
+    cuerpo = (
+      <SinTerminar
+        conexion={conexion}
+        tienda={yo.datos.tienda?.nombre}
+        funciones={yo.datos.funciones}
+        alVencer={setVencida}
+      />
+    );
   else if (ruta === '/pedidos/recaudos/')
     cuerpo = <Recaudos conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/pedidos/solicitudes/')
@@ -319,6 +330,8 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     cuerpo = <Colecciones conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/productos/inventario/')
     cuerpo = <Inventario conexion={conexion} alVencer={setVencida} />;
+  else if (ruta === '/productos/varios/')
+    cuerpo = <Varios conexion={conexion} alVencer={setVencida} />;
   else if (/^\/productos\/inventario\/[^/]+\/$/.test(ruta))
     cuerpo = (
       <Existencias

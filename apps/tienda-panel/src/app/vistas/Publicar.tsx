@@ -9,7 +9,7 @@
 import { Aviso } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { type Conexion, type FallaDeLaCompuerta, pedirAlPanel } from '../api.ts';
-import { Confirmar } from '../componentes/index.ts';
+import { Confirmar, Guia } from '../componentes/index.ts';
 import {
   avanceDe,
   cuando,
@@ -138,6 +138,7 @@ export function Publicar({
         <a href="/mas/">Más</a>
       </p>
       <h1>Publicar</h1>
+      <Guia guia="publicar" />
       <p class="nota">
         Lo que cambies en el panel sale en la tienda cuando publicas. Si algo no queda bien, vuelves
         a una versión anterior en segundos.

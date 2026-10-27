@@ -50,6 +50,50 @@ export function formatearPesos(valor: number): string {
 export interface Linea {
   precioCop: number;
   cantidad: number;
+  /** HU-P1.2: el producto de la línea; las de un mismo producto cuentan juntas para su promoción. */
+  producto?: string;
+}
+
+/**
+ * HU-P1.2 (sprint PF1): la promoción por cantidad de un producto. `porcentaje`: el porcentaje
+ * menos en todas sus unidades, desde `desdeUnidades`. `regalo`: por cada `lleva` unidades se
+ * pagan `paga`; las de regalo son las más baratas del producto, para que nunca cueste más.
+ */
+export type PromocionPorCantidad =
+  | { tipo: 'porcentaje'; porcentaje: number; desdeUnidades: number }
+  | { tipo: 'regalo'; lleva: number; paga: number };
+
+/** Lo que una promoción descuenta de las líneas de su producto. Lanza si la promoción no se lee. */
+export function descuentoPorCantidad(
+  lineas: readonly Linea[],
+  promocion: PromocionPorCantidad,
+): number {
+  const unidades = lineas.reduce((n, l) => n + l.cantidad, 0);
+  if (promocion.tipo === 'porcentaje') {
+    const { porcentaje: p, desdeUnidades: desde } = promocion;
+    if (!Number.isSafeInteger(p) || p < 1 || p > 90)
+      throw new MontoIlegible('promocion.porcentaje', p);
+    if (!Number.isSafeInteger(desde) || desde < 2)
+      throw new MontoIlegible('promocion.desdeUnidades', desde);
+    if (unidades < desde) return 0;
+    const base = lineas.reduce((s, l) => s + l.precioCop * l.cantidad, 0);
+    // Como el cupón: el redondeo favorece al comprador.
+    return Math.ceil((base * p) / 100);
+  }
+  const { lleva, paga } = promocion;
+  if (!Number.isSafeInteger(lleva) || lleva < 2 || lleva > 20)
+    throw new MontoIlegible('promocion.lleva', lleva);
+  if (!Number.isSafeInteger(paga) || paga < 1 || paga >= lleva)
+    throw new MontoIlegible('promocion.paga', paga);
+  let regalo = Math.floor(unidades / lleva) * (lleva - paga);
+  let descuento = 0;
+  for (const l of [...lineas].sort((a, b) => a.precioCop - b.precioCop)) {
+    const aqui = Math.min(regalo, l.cantidad);
+    descuento += aqui * l.precioCop;
+    regalo -= aqui;
+    if (regalo === 0) break;
+  }
+  return descuento;
 }
 
 export type Cupon =
@@ -67,7 +111,12 @@ export type Aviso = 'cupon_bajo_el_minimo';
 
 export interface Total {
   subtotal: number;
+  /** Todo lo descontado: las promociones más el cupón. */
   descuento: number;
+  /** HU-P1.2: lo que descontaron las promociones por cantidad. */
+  descuentoPromociones: number;
+  /** Lo que descontó el cupón. */
+  descuentoCupon: number;
   envio: number;
   total: number;
   avisos: Aviso[];
@@ -94,6 +143,8 @@ export function calcularTotal(entrada: {
   lineas: readonly Linea[];
   cupon?: Cupon | null;
   envio?: Envio | null;
+  /** HU-P1.2: la promoción de cada producto, por su id. Se aplica antes que el cupón. */
+  promociones?: Readonly<Record<string, PromocionPorCantidad>>;
 }): Total {
   const { lineas } = entrada;
   if (lineas.length === 0 || lineas.length > LIMITES.lineas) {
@@ -107,25 +158,42 @@ export function calcularTotal(entrada: {
       pesos(l.precioCop, `lineas[${i}].precioCop`) * cantidad(l.cantidad, `lineas[${i}].cantidad`);
   });
 
+  // HU-P1.2: primero las promociones por cantidad, producto por producto.
+  let descuentoPromociones = 0;
+  const promociones = entrada.promociones ?? {};
+  const porProducto = new Map<string, Linea[]>();
+  for (const l of lineas) {
+    if (l.producto === undefined || !Object.hasOwn(promociones, l.producto)) continue;
+    porProducto.set(l.producto, [...(porProducto.get(l.producto) ?? []), l]);
+  }
+  for (const [producto, suyas] of [...porProducto].sort(([a], [b]) => (a < b ? -1 : 1))) {
+    descuentoPromociones += descuentoPorCantidad(
+      suyas,
+      promociones[producto] as PromocionPorCantidad,
+    );
+  }
+  const base = subtotal - descuentoPromociones;
+
   const avisos: Aviso[] = [];
   const cupon = entrada.cupon ?? null;
-  let descuento = 0;
+  let descuentoCupon = 0;
   let envioGratisPorCupon = false;
   if (cupon) {
     const minimo = cupon.minimoCop === undefined ? 0 : pesos(cupon.minimoCop, 'cupon.minimoCop');
-    if (subtotal < minimo) {
+    if (base < minimo) {
       avisos.push('cupon_bajo_el_minimo');
     } else if (cupon.tipo === 'porcentaje') {
       const p = cupon.porcentaje;
       if (!Number.isSafeInteger(p) || p < 1 || p > 100)
         throw new MontoIlegible('cupon.porcentaje', p);
-      descuento = Math.ceil((subtotal * p) / 100);
+      descuentoCupon = Math.ceil((base * p) / 100);
     } else if (cupon.tipo === 'valor') {
-      descuento = Math.min(pesos(cupon.valorCop, 'cupon.valorCop'), subtotal);
+      descuentoCupon = Math.min(pesos(cupon.valorCop, 'cupon.valorCop'), base);
     } else {
       envioGratisPorCupon = true;
     }
   }
+  const descuento = descuentoPromociones + descuentoCupon;
 
   let envio = 0;
   if (entrada.envio && !envioGratisPorCupon) {
@@ -135,7 +203,15 @@ export function calcularTotal(entrada: {
     envio = gratis ? 0 : precio;
   }
 
-  return { subtotal, descuento, envio, total: subtotal - descuento + envio, avisos };
+  return {
+    subtotal,
+    descuento,
+    descuentoPromociones,
+    descuentoCupon,
+    envio,
+    total: subtotal - descuento + envio,
+    avisos,
+  };
 }
 
 /** Si un total se puede cobrar en línea, y si no, por qué (TIENDA-3.0 §6, punto 6). */

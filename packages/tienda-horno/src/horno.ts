@@ -22,6 +22,7 @@ import {
   NOMBRE_DEL_TIPO,
   TIPOS_DE_SOLICITUD,
 } from '@ed1/tienda-schema';
+import { enlaceDeRed, NOMBRE_DE_LA_RED, REDES, type Red } from '@ed1/tienda-schema/redes';
 import {
   catalogoDeLaApi,
   habilidadDeCompra,
@@ -90,6 +91,11 @@ export interface ProductoParaHornear {
   destacado?: boolean;
   /** HU-T5.10: lleva la etiqueta «Nuevo». */
   nuevo?: boolean;
+  /**
+   * HU-P1.2: la promoción por cantidad, ya en palabras («Lleva 3, paga 2, hasta el 2 de noviembre»).
+   * La cuenta la hace la cotización: esto solo la anuncia.
+   */
+  promocion?: string;
 }
 
 export interface ColeccionParaHornear {
@@ -111,6 +117,8 @@ export interface TiendaParaHornear {
   frase?: string;
   whatsapp?: string;
   correo?: string;
+  /** HU-P4.3: los perfiles de la tienda, ya validados por su sección (solo esas tres redes). */
+  redes?: Partial<Record<Red, string>>;
   apariencia: Apariencia;
   agentes: { search: 'yes' | 'no'; aiInput: 'yes' | 'no'; aiTrain: 'yes' | 'no' };
   googleVerificacion?: string;
@@ -123,6 +131,11 @@ export interface TiendaParaHornear {
    * entrega. La compuerta pide sus llaves y, para cobrar de verdad, el cobro de prueba (HU-T11.3).
    */
   cobroEnLinea?: boolean;
+  /**
+   * HU-P1.1: el carrito ofrece «Recordarme mi compra si no la termino», con el WhatsApp o el correo
+   * de quien compra y una casilla que nunca viene marcada. Solo en los planes que lo incluyen.
+   */
+  comprasSinTerminar?: boolean;
   /** HU-T11.3 CA2: cobra en el ambiente de pruebas de Bold; una franja lo dice en cada página. */
   cobroEnPruebas?: boolean;
   /** HU-T14.5: los feeds de productos que el comercio encendió en Ajustes › Agentes. */
@@ -270,6 +283,15 @@ export const EN_LA_PORTADA = 24;
 /** La lupa de buscar: se dibuja con el color del texto (`.lupa` en la hoja). */
 const LUPA =
   '<svg class="lupa" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+/** HU-P4.3: los íconos de las redes, de trazo, con el color del texto (`.red` en la hoja). */
+const ICONO_DE_LA_RED: Record<Red, string> = {
+  instagram:
+    '<svg class="red" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6"/></svg>',
+  tiktok:
+    '<svg class="red" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M14 3.5v11.2a3.8 3.8 0 1 1-3.8-3.8"/><path d="M14 3.5c.4 2.6 2.2 4.4 5 4.7"/></svg>',
+  facebook:
+    '<svg class="red" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5"/><path d="M13.2 20.5v-7.3h2.3l.4-2.7h-2.7V8.9c0-.8.3-1.3 1.4-1.3h1.4V5.2a17 17 0 0 0-2.1-.1c-2 0-3.4 1.2-3.4 3.5v1.9H8.2v2.7h2.3v7.3"/></svg>',
+};
 export const POR_PAGINA = 48;
 const precioDesde = (p: ProductoParaHornear) => Math.min(...p.variantes.map((v) => v.precioCop));
 /** «Desde» solo cuando las variantes cuestan distinto. */
@@ -353,6 +375,15 @@ export async function hornear(publicada: TiendaParaHornear): Promise<Map<string,
     t.cobroEnLinea && t.cobroEnPruebas
       ? '<p class="en-pruebas" role="note">Tienda en pruebas: los pagos en línea de esta tienda todavía no cobran de verdad.</p>\n'
       : '';
+  // HU-P4.3: las redes de la tienda en el pie, con su ícono y sin nada que cargue de ellas.
+  const perfiles = REDES.flatMap((r) => {
+    const enlace = t.redes?.[r];
+    return enlace && enlaceDeRed(r, enlace) === enlace ? [[r, enlace] as const] : [];
+  });
+  const redes =
+    perfiles.length > 0
+      ? `\n<nav class="pie__redes" aria-label="Redes de ${escaparHtml(t.nombre)}">${perfiles.map(([r, enlace]) => `<a href="${escaparHtml(enlace)}" rel="noopener me" target="_blank">${ICONO_DE_LA_RED[r]}<span class="oculto">${NOMBRE_DE_LA_RED[r]}</span></a>`).join('')}</nav>`
+      : '';
   // HU-T10.2 CA1: las páginas propias, enlazadas en el pie de cada página.
   const paginasPropias = [...(t.paginas ?? [])].sort((a, b) => (a.slug < b.slug ? -1 : 1));
   const propias =
@@ -430,7 +461,7 @@ ${enVista}${enPruebas}<header class="franja"><a class="marca" href="/">${marca()
 ${p.cuerpo}
 </main>
 <footer class="pie">
-<p class="pie__nombre">${escaparHtml(t.nombre)}</p>${identidad}${propias}
+<p class="pie__nombre">${escaparHtml(t.nombre)}</p>${identidad}${redes}${propias}
 <nav class="pie__enlaces" aria-label="Información legal">${TEXTOS_LEGALES.map((l) => `<a href="${l.ruta}">${escaparHtml(ENLACE_DEL_PIE[l.id] ?? l.titulo)}</a>`).join('')}</nav>
 <p><a href="https://www.sic.gov.co" rel="nofollow">Superintendencia de Industria y Comercio</a></p>
 <p><a href="mailto:${CORREO_DE_REPORTES}">Reportar esta tienda</a></p>${preferencias}${sello}
@@ -500,7 +531,7 @@ ${p.cuerpo}
     return antes ? ` <span class="precio__antes">Antes <s>${formatearPesos(antes)}</s></span>` : '';
   };
   const tarjeta = (p: ProductoParaHornear, prioridad = false, orden = 0) =>
-    `<li class="tarjeta" data-orden="${orden}" data-nombre="${escaparHtml(p.nombre.toLowerCase())}" data-precio="${precioDesde(p)}" data-fecha="${escaparHtml(p.actualizado)}"${p.nuevo ? ' data-nuevo' : ''}><a href="/p/${escaparHtml(p.slug)}/">${fotosDeTarjeta(p, prioridad)}${p.nuevo ? '<span class="etiqueta-nuevo">Nuevo</span>' : ''}<span class="tarjeta__nombre">${escaparHtml(p.nombre)}</span><span class="precio">${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}${antesEnTarjeta(p)}</span>${ultimasUnidades(p) ? '<span class="tarjeta__quedan">Últimas unidades</span>' : ''}</a></li>`;
+    `<li class="tarjeta" data-orden="${orden}" data-nombre="${escaparHtml(p.nombre.toLowerCase())}" data-precio="${precioDesde(p)}" data-fecha="${escaparHtml(p.actualizado)}"${p.nuevo ? ' data-nuevo' : ''}><a href="/p/${escaparHtml(p.slug)}/">${fotosDeTarjeta(p, prioridad)}${p.nuevo ? '<span class="etiqueta-nuevo">Nuevo</span>' : ''}${presente(p.promocion) ? `<span class="promocion">${escaparHtml((p.promocion as string).split(', hasta')[0] as string)}</span>` : ''}<span class="tarjeta__nombre">${escaparHtml(p.nombre)}</span><span class="precio">${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}${antesEnTarjeta(p)}</span>${ultimasUnidades(p) ? '<span class="tarjeta__quedan">Últimas unidades</span>' : ''}</a></li>`;
   // HU-T5.12 CA2: «Ordenar por». Sin JavaScript queda escondido y la lista va en el orden
   // recomendado; con él, ordena lo que muestra la página.
   const ordenar =
@@ -768,6 +799,7 @@ ${p.cuerpo}
       '<div class="ficha__datos">',
       p.nuevo ? '<p class="etiqueta-nuevo">Nuevo</p>' : '',
       `<h1>${escaparHtml(p.nombre)}</h1>`,
+      presente(p.promocion) ? `<p class="promocion">${escaparHtml(p.promocion as string)}</p>` : '',
       // HU-T5.8 CA1: el precio, el de antes, las existencias y la nota, en un bloque.
       '<div class="ficha__precio">',
       `<p class="precio" data-precio>${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}</p>`,
@@ -966,6 +998,9 @@ ${p.cuerpo}
       // HU-T11.4: pagando en línea no hay chat donde dar la entrega; van cifrados a la tienda.
       t.cobroEnLinea
         ? '<fieldset class="grupo" data-entrega hidden><legend>¿A quién se lo entregamos?</legend><label class="campo">Nombre de quien recibe<input name="nombre" maxlength="120" autocomplete="name"></label><label class="campo">Celular<input name="celular" type="tel" inputmode="tel" maxlength="20" autocomplete="tel"></label><label class="campo">Dirección (si te lo envían)<input name="direccion" maxlength="300" autocomplete="street-address"></label><label class="campo">Correo (opcional)<input name="correo" type="email" maxlength="200" autocomplete="email"></label></fieldset>'
+        : '',
+      t.comprasSinTerminar
+        ? '<fieldset class="grupo" data-recordar><legend>¿Te recordamos tu compra?</legend><label class="campo">Tu WhatsApp o tu correo<input name="recordar" maxlength="120" autocomplete="email" data-recordar-contacto></label><label class="acepto"><input type="checkbox" data-recordar-acepta><span>Recordarme mi compra si no la termino. La tienda solo usa este dato para eso y lo borra en 30 días.</span></label><p class="aviso" data-aviso-recordar role="status" hidden></p></fieldset>'
         : '',
       '<label class="acepto"><input type="checkbox" name="acepta" data-acepta><span>Acepto los <a href="/legal/terminos/">términos y condiciones</a> y la <a href="/legal/privacidad/">política de datos</a>.</span></label>',
       '<p class="aviso" data-aviso-venta role="status" hidden></p>',

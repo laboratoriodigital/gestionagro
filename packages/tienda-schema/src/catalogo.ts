@@ -44,6 +44,43 @@ export const varianteDelPanel = z.object({
 });
 export type VarianteDelPanel = z.infer<typeof varianteDelPanel>;
 
+/**
+ * HU-P1.2 (sprint PF1): la promoción por cantidad de un producto. `hasta` es el último día de la
+ * promoción, de Colombia (`AAAA-MM-DD`); sin él, no vence. La cuenta la hace `@ed1/dinero`.
+ */
+export const promocionDelProducto = z
+  .discriminatedUnion('tipo', [
+    z.object({
+      tipo: z.literal('porcentaje'),
+      porcentaje: z.number().int().min(1, 'desde el 1 %').max(90, 'hasta el 90 %'),
+      desdeUnidades: z.number().int().min(2, 'desde 2 unidades').max(200),
+      hasta: z.iso.date('una fecha AAAA-MM-DD').nullable().default(null),
+    }),
+    z.object({
+      tipo: z.literal('regalo'),
+      lleva: z.number().int().min(2, 'lleva al menos 2').max(20, 'hasta 20'),
+      paga: z.number().int().min(1, 'paga al menos 1'),
+      hasta: z.iso.date('una fecha AAAA-MM-DD').nullable().default(null),
+    }),
+  ])
+  .superRefine((p, ctx) => {
+    if (p.tipo === 'regalo' && p.paga >= p.lleva) {
+      ctx.addIssue({ code: 'custom', path: ['paga'], message: 'paga menos de las que lleva' });
+    }
+  });
+export type PromocionDelProducto = z.infer<typeof promocionDelProducto>;
+
+/** Si la promoción sigue vigente en ese instante: hasta el final de su último día en Colombia. */
+export const promocionVigente = (p: PromocionDelProducto, ahora: string): boolean =>
+  p.hasta === null || Date.parse(ahora) <= Date.parse(`${p.hasta}T23:59:59.999-05:00`);
+
+/** La promoción como se lee en la ficha: «Lleva 3, paga 2» o «10 % menos desde 2 unidades». */
+export function promocionEnPalabras(p: PromocionDelProducto): string {
+  return p.tipo === 'regalo'
+    ? `Lleva ${p.lleva}, paga ${p.paga}`
+    : `${p.porcentaje} % menos desde ${p.desdeUnidades} unidades`;
+}
+
 export const ESTADOS_DE_PRODUCTO = ['borrador', 'activo', 'archivado'] as const;
 
 export const guardarProducto = z.object({
@@ -78,12 +115,77 @@ export const guardarProducto = z.object({
   /** HU-T5.10: lo destacado va primero en la portada; lo nuevo lleva su etiqueta. */
   destacado: z.boolean().default(false),
   nuevo: z.boolean().default(false),
+  promocion: promocionDelProducto.nullable().default(null),
   ivaPct: z
     .union([z.literal(0), z.literal(5), z.literal(19)])
     .nullable()
     .default(null),
 });
 export type GuardarProducto = z.infer<typeof guardarProducto>;
+
+/** HU-P3.1: cuántos productos cambia un lote; cabe en una consulta con sus parámetros (D1: 100). */
+export const PRODUCTOS_POR_LOTE = 80;
+
+/**
+ * HU-P3.1 (sprint PF1): cambiar varios productos a la vez, elegidos uno por uno o por su categoría.
+ * `vistaPrevia` dice qué cambiaría sin escribir nada.
+ */
+export const cambioEnLote = z
+  .object({
+    op,
+    ids: z
+      .array(id)
+      .min(1)
+      .max(PRODUCTOS_POR_LOTE, `hasta ${PRODUCTOS_POR_LOTE} productos a la vez`)
+      .optional(),
+    coleccion: id.optional(),
+    cambio: z.discriminatedUnion('tipo', [
+      z.object({
+        tipo: z.literal('precio'),
+        modo: z.enum(['porcentaje', 'valor']),
+        /** Más o menos: `5` sube el 5 % (o $5); `-10` baja. */
+        cantidad: z
+          .number({ error: 'escribe cuánto cambia el precio' })
+          .int('sin decimales')
+          .refine((n) => n !== 0, 'un cambio de 0 no cambia nada'),
+      }),
+      z.object({ tipo: z.literal('estado'), estado: z.enum(ESTADOS_DE_PRODUCTO) }),
+      z.object({ tipo: z.literal('papelera') }),
+      z.object({ tipo: z.literal('promocion'), promocion: promocionDelProducto.nullable() }),
+    ]),
+    vistaPrevia: z.boolean().default(false),
+  })
+  .superRefine((d, ctx) => {
+    if ((d.ids === undefined) === (d.coleccion === undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['ids'], message: 'elige productos o una categoría' });
+    }
+    const k = d.cambio;
+    if (k.tipo === 'precio' && k.modo === 'porcentaje' && (k.cantidad < -90 || k.cantidad > 300)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['cambio', 'cantidad'],
+        message: 'entre −90 % y 300 %',
+      });
+    }
+    if (k.tipo === 'precio' && k.modo === 'valor' && Math.abs(k.cantidad) > 10_000_000) {
+      ctx.addIssue({ code: 'custom', path: ['cambio', 'cantidad'], message: 'hasta $10.000.000' });
+    }
+  });
+export type CambioEnLote = z.infer<typeof cambioEnLote>;
+
+/**
+ * El precio nuevo de un cambio en lote: el porcentaje se redondea al peso más cercano y nunca baja
+ * de $1. La misma cuenta la hace la base al aplicar (`lote-de-productos.ts`): una prueba las ata.
+ */
+export function precioDelLote(
+  actual: number,
+  modo: 'porcentaje' | 'valor',
+  cantidad: number,
+): number {
+  const nuevo =
+    modo === 'porcentaje' ? Math.floor((actual * (100 + cantidad) + 50) / 100) : actual + cantidad;
+  return Math.max(1, nuevo);
+}
 
 export const cambiarEstadoDeProducto = z.object({
   op,

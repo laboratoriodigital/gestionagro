@@ -18,4 +18,4 @@ Usamos lo que nos cuentas solo para atender tu solicitud, y lo guardamos cifrado
 
 Quien atiende las solicitudes es Comercio Ensayo Uno, NIT 900000001-1, en Calle de prueba 1, Medellín. Si no quedas conforme, puedes acudir a la Superintendencia de Industria y Comercio, en www.sic.gov.co.
 
-Versión 4 de las plantillas, del 20 de octubre de 2026.
+Versión 5 de las plantillas, del 27 de octubre de 2026.

@@ -32,6 +32,7 @@ import type { CorreoTransaccional } from '@ed1/correo';
 import type { BaseD1 } from '@ed1/d1';
 import { enviarTelegram } from '@ed1/telegram';
 import { borrarLasBajas } from './baja.ts';
+import { purgarComprasPendientes } from './compras-pendientes.ts';
 import { CONCILIAR } from './conciliar.ts';
 import { cancelarPreparadosVencidos, HORAS_PARA_CONFIRMAR } from './confirmar.ts';
 import { CORREOS } from './correos.ts';
@@ -407,6 +408,8 @@ export async function purgarTienda(
         .bind(org, limitePapelera),
     ),
     db.prepare('DELETE FROM operacion WHERE org_id = ? AND creada <= ?').bind(org, limiteOperacion),
+    // HU-P1.1: las compras sin terminar vencidas o que ya son un pedido.
+    purgarComprasPendientes(db, org, ahora),
   ];
   const resultados = await db.batch([...lote, ...purgarContactos(db, org, ahora)]);
   return {

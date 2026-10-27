@@ -13,6 +13,7 @@
  * tienda»).
  */
 import { z } from 'zod';
+import { enlaceDeRed, NOMBRE_DE_LA_RED, type Red } from './redes.ts';
 
 export const SECCIONES = {
   identidad: { publica: true },
@@ -38,6 +39,22 @@ export const celularColombia = z
   .regex(/^\+573\d{9}$/, 'debe ser un celular de Colombia: +57 y 10 dígitos que empiezan por 3');
 
 const correo = z.email('debe ser un correo válido');
+
+/** HU-P4.3: el usuario o el enlace del perfil en una red; se guarda el enlace completo. */
+const perfilEn = (red: Red) =>
+  z
+    .string()
+    .trim()
+    .max(200)
+    .transform((v, ctx) => {
+      const enlace = enlaceDeRed(red, v);
+      if (enlace) return enlace;
+      ctx.addIssue({
+        code: 'custom',
+        message: `escribe tu usuario de ${NOMBRE_DE_LA_RED[red]} (@tutienda) o el enlace de tu perfil`,
+      });
+      return z.NEVER;
+    });
 
 export const FORMAS_DE_PAGO = [
   'a_convenir',
@@ -74,6 +91,10 @@ const contactoV1 = z.object({
   whatsappVerificado: z.boolean().default(false),
   correo: correo.optional(),
   horario: texto(120).optional(),
+  // HU-P4.3 (sprint PF1): campos nuevos y opcionales; lo guardado antes sigue valiendo en v1.
+  instagram: perfilEn('instagram').optional(),
+  tiktok: perfilEn('tiktok').optional(),
+  facebook: perfilEn('facebook').optional(),
 });
 
 const apariencia = z.object({

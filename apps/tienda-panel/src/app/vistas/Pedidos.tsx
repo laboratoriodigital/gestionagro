@@ -185,6 +185,9 @@ export function Bandeja({
         <a class="ed1-boton ed1-boton--secundario" href="/pedidos/solicitudes/">
           Solicitudes
         </a>
+        <a class="ed1-boton ed1-boton--secundario" href="/pedidos/sin-terminar/">
+          Compras sin terminar
+        </a>
         <button
           class="ed1-boton ed1-boton--secundario"
           type="button"

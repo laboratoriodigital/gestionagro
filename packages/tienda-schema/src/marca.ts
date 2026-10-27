@@ -22,6 +22,28 @@ export const CORREO_DE_REPORTES = `abuse@${DOMINIO_DE_LA_MARCA}`;
  * SPF, DKIM y DMARC. La respuesta va al comercio (`Reply-To`), nunca aquí.
  */
 export const REMITENTE_DE_LOS_CORREOS = `avisos@${DOMINIO_DE_LA_MARCA}`;
+/**
+ * HU-P5.1 (sprint PF1): el WhatsApp de soporte de TiendaPro, para los comerciantes. Lo dio el dueño
+ * el 26 oct 2026; es público: va en la ayuda y en la landing.
+ */
+export const WHATSAPP_DE_SOPORTE = '573008610480';
+/** El enlace al chat de soporte, con un saludo listo. */
+export const CHAT_DE_SOPORTE = `https://wa.me/${WHATSAPP_DE_SOPORTE}?text=${encodeURIComponent('Hola, necesito ayuda con mi tienda de TiendaPro.')}`;
+/**
+ * HU-P5.1 (sprint PF1): las guías de la ayuda, en `tiendapro.co/ayuda/<guía>/`. El panel enlaza a
+ * ellas por su nombre y la landing las publica; una prueba ata las dos listas (P2).
+ */
+export const GUIAS_DE_AYUDA = [
+  'primer-producto',
+  'publicar',
+  'cobro-en-linea',
+  'dominio',
+  'cargar-productos',
+  'contraentrega',
+  'google',
+] as const;
+export type GuiaDeAyuda = (typeof GUIAS_DE_AYUDA)[number];
+export const guiaDeAyuda = (g: GuiaDeAyuda) => `https://${DOMINIO_DE_LA_MARCA}/ayuda/${g}/`;
 /** El panel de producción; el de staging vive en workers.dev. */
 export const PANEL_DE_PRODUCCION = `https://app.${DOMINIO_DE_LA_MARCA}/`;
 

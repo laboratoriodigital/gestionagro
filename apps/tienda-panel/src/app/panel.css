@@ -668,3 +668,29 @@ h2 {
 .direccion-de-la-tienda .nota {
   margin: 0;
 }
+
+/* HU-P1.2: dos campos cortos lado a lado («Lleva» y «Paga»), que bajan en el teléfono angosto. */
+.fila-de-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--espacio-4);
+}
+
+/* HU-P3.1: la lista para elegir varios productos, con su casilla al alcance del dedo. */
+.varios__lista {
+  display: grid;
+  gap: var(--espacio-1);
+  max-height: 24rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.varios__lista label {
+  min-height: 44px;
+}
+/* HU-P1.2: un select nunca empuja la pantalla del teléfono más allá de su ancho. */
+#promocion select,
+#promocion input {
+  max-width: 100%;
+}

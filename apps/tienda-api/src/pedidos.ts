@@ -415,7 +415,7 @@ export async function registrar(
         cotizacion.descuento,
         cotizacion.envio,
         cotizacion.total,
-        p.cupon && cotizacion.descuento > 0 ? p.cupon.toUpperCase() : null,
+        p.cupon && cotizacion.descuentoCupon > 0 ? p.cupon.toUpperCase() : null,
         p.envio ?? null,
         envio?.nombre ?? null,
         p.ciudad ?? null,

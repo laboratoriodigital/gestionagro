@@ -60,6 +60,7 @@ import {
 } from './alta.ts';
 import { avisame, PeticionDeAvisame } from './avisame.ts';
 import { recibirAvisoDeBold } from './avisos.ts';
+import { avisarAlComprador, type EstadoAvisado } from './avisos-al-comprador.ts';
 import { DIAS_PARA_BORRAR, darDeBaja } from './baja.ts';
 import {
   confirmarPedido,
@@ -95,6 +96,12 @@ import {
   perderEnvio,
 } from './ciclo.ts';
 import { iniciarCobro, PeticionDeCobro } from './cobros.ts';
+import {
+  listarComprasPendientes,
+  marcarEscrita,
+  PeticionDeRecordar,
+  recordarCompra,
+} from './compras-pendientes.ts';
 import { estadoDelCobro, PeticionDeEstadoDelCobro } from './conciliar.ts';
 import { confirmarPedidoDeAgente, PeticionDeConfirmar } from './confirmar.ts';
 import { correosDeLaCelda, mandarAcuse, mandarResultadoDePrueba } from './correos.ts';
@@ -130,6 +137,7 @@ import {
   usoDeLasKeks,
 } from './llaves.ts';
 import { comprobarIdentidad, guardarLlaves, leerElCobro, probarLlaves } from './llaves-de-bold.ts';
+import { cambiarEnLote } from './lote-de-productos.ts';
 import { atenderMcpDelComercio, documentoDelMcpDelComercio } from './mcp-comercio.ts';
 import { mcpEncendido, publicadoConMcp, responderMcp } from './mcp-publico.ts';
 import { type BucketDeFotos, fotoDeLaVariante, quitarFoto, subirFoto } from './medios.ts';
@@ -532,6 +540,16 @@ export function crearApp(
       // Sin contexto de ejecución (una prueba que no lo da): el trabajo sigue solo.
     }
   };
+  /** HU-P2.1: el correo de un estado del pedido al comprador, en segundo plano. */
+  const avisarDelEstado = (
+    c: ContextoTienda,
+    destino: { db: BaseD1; org: string },
+    pedido: string,
+    estado: EstadoAvisado,
+  ) =>
+    correoEnSegundoPlano(c, destino, `${estado} de ${pedido}`, async (ctx) =>
+      avisarAlComprador(ctx, await kekDelEntorno(textoDeLasKeks(c.env)), pedido, estado),
+    );
   const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
   // Solo el despacho y el panel: sin el secreto, la API no existe (TIENDA §14.1).
@@ -738,6 +756,32 @@ export function crearApp(
    * HU-T6.5: «Avísame cuando haya». Público, por el despacho; 10 por minuto por IP
    * (`LIMITE_AVISAME`, bitácora tienda3 11). No guarda ningún dato de la persona.
    */
+  /**
+   * HU-P1.1: guardar (o, sin la casilla, borrar) la compra sin terminar de este carrito. Público,
+   * por el despacho, con el límite de «Avísame»; solo en los planes que lo incluyen.
+   */
+  app.post('/api/v1/carrito/recordar', async (c) => {
+    const destino = tiendaDelDespacho(c);
+    if (!destino) return c.json(NO_EXISTE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_AVISAME, 'LIMITE_AVISAME'))) {
+      c.header('retry-after', '60');
+      return c.json({ estado: 'limite' }, 429);
+    }
+    const p = PeticionDeRecordar.safeParse(await c.req.json().catch(() => null));
+    if (!p.success) return c.json({ estado: 'invalido' }, 422);
+    const r = await recordarCompra(
+      destino.db,
+      destino.org,
+      await kekDelEntorno(textoDeLasKeks(c.env)),
+      p.data,
+      new Date(ahora()).toISOString(),
+    );
+    if (r.estado === 'plan') return c.json(r, 403);
+    if (r.estado === 'contacto' || r.estado === 'vacio') return c.json(r, 422);
+    if (r.estado === 'sin-llave') return c.json(r, 503);
+    return c.json(r);
+  });
+
   app.post('/api/v1/avisame', async (c) => {
     const destino = tiendaDelDespacho(c);
     if (!destino) return c.json(NO_EXISTE, 404);
@@ -988,6 +1032,7 @@ export function crearApp(
             correoEnSegundoPlano(c, destino, `prueba ${cobro}`, (ctx) =>
               mandarResultadoDePrueba(ctx, cobro, via),
             ),
+          alPagar: (pedido) => avisarDelEstado(c, destino, pedido, 'pagado'),
         },
         new Uint8Array(await c.req.arrayBuffer()),
         c.req.header('x-bold-signature') ?? null,
@@ -1027,6 +1072,7 @@ export function crearApp(
           correoEnSegundoPlano(c, destino, `prueba ${cobro}`, (ctx) =>
             mandarResultadoDePrueba(ctx, cobro, via),
           ),
+        alPagar: (pedido) => avisarDelEstado(c, destino, pedido, 'pagado'),
       },
       p.token,
       alProveedor,
@@ -1779,6 +1825,15 @@ export function crearApp(
     escrituraDelCatalogo((q, b) => tocarElProducto(q, b, 'restaurar')),
   );
   app.post('/api/panel/v1/productos/ordenar', escrituraDelCatalogo(ordenarProductos));
+  // HU-P3.1: cambiar varios productos a la vez, con su vista previa.
+  app.post('/api/panel/v1/productos/lote', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    const r = await cambiarEnLote(q, await c.req.json().catch(() => null));
+    if (r.estado === 'problemas') return c.json(r, 422);
+    if (r.estado === 'no-existe') return c.json(r, 404);
+    return c.json(r);
+  });
   app.get('/api/panel/v1/colecciones', async (c) => {
     const q = delCatalogo(c);
     if (q instanceof Response) return q;
@@ -2021,6 +2076,38 @@ export function crearApp(
     const r = await mensajeDeConfirmacion(q, await kekDe(c), await c.req.json().catch(() => null));
     return r.estado === 'ok' ? c.json(r) : c.json(r, ESTADO_DEL_CONTACTO[r.estado]);
   });
+  // HU-P1.1: las compras sin terminar. Muestran el contacto: el mismo permiso que ver la entrega.
+  const deLasCompras = (c: ContextoTienda) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede ver las compras sin terminar.');
+    if (q instanceof Response) return q;
+    const s = c.get('sesion');
+    if (
+      decidir(s.rol, 'pedidos.contacto_ver', s.authTime ?? 0, Math.floor(ahora() / 1000)) !==
+      'permitido'
+    ) {
+      return c.json(
+        { estado: 'prohibido', motivo: 'Tu rol no puede ver los datos de los compradores.' },
+        403,
+      );
+    }
+    return q;
+  };
+  app.get('/api/panel/v1/compras-sin-terminar', async (c) => {
+    const q = deLasCompras(c);
+    if (q instanceof Response) return q;
+    return c.json({ compras: await listarComprasPendientes(q, await kekDe(c)) });
+  });
+  app.post('/api/panel/v1/compras-sin-terminar/escrita', async (c) => {
+    const q = deLasCompras(c);
+    if (q instanceof Response) return q;
+    const cuerpo = (await c.req.json().catch(() => null)) as { codigo?: unknown } | null;
+    const hecho =
+      typeof cuerpo?.codigo === 'string' ? await marcarEscrita(q, cuerpo.codigo) : false;
+    return hecho
+      ? c.json({ estado: 'guardado' })
+      : c.json({ estado: 'no-existe', motivo: 'Esa compra ya no está en la lista.' }, 404);
+  });
+
   app.post('/api/panel/v1/pedidos/confirmar', async (c) => {
     const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede confirmar pedidos.');
     if (q instanceof Response) return q;
@@ -2030,7 +2117,10 @@ export function crearApp(
       ? await vigilarExistencias(c, await variantesDelPedido(q, pedido))
       : null;
     const r = await confirmarPedido(q, cuerpo);
-    if (r.estado === 'guardado') await despues?.();
+    if (r.estado === 'guardado') {
+      await despues?.();
+      if (pedido) avisarDelEstado(c, q, pedido, 'confirmado');
+    }
     return responderCatalogo(c, r);
   });
 
@@ -2038,7 +2128,12 @@ export function crearApp(
   app.post('/api/panel/v1/pedidos/despachar', async (c) => {
     const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede despachar pedidos.');
     if (q instanceof Response) return q;
-    return responderCatalogo(c, await despacharPedido(q, await c.req.json().catch(() => null)));
+    const cuerpo = (await c.req.json().catch(() => null)) as { pedido?: unknown } | null;
+    const r = await despacharPedido(q, cuerpo);
+    if (r.estado === 'guardado' && typeof cuerpo?.pedido === 'string') {
+      avisarDelEstado(c, q, cuerpo.pedido, 'despachado');
+    }
+    return responderCatalogo(c, r);
   });
 
   // HU-T9.5: entregar (y recaudar), devolver, perder y liquidar; la pantalla Recaudos.
@@ -2061,7 +2156,16 @@ export function crearApp(
     cambioDelPedido('recaudos.gestionar', liquidarRecaudos),
   );
   // HU-T9.6: cancelar, notas, un enlace de seguimiento nuevo y los pedidos anotados.
-  app.post('/api/panel/v1/pedidos/cancelar', cambioDelPedido('pedidos.gestionar', cancelarPedido));
+  app.post('/api/panel/v1/pedidos/cancelar', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede cambiar este pedido.');
+    if (q instanceof Response) return q;
+    const cuerpo = (await c.req.json().catch(() => null)) as { pedido?: unknown } | null;
+    const r = await cancelarPedido(q, cuerpo);
+    if (r.estado === 'guardado' && typeof cuerpo?.pedido === 'string') {
+      avisarDelEstado(c, q, cuerpo.pedido, 'cancelado');
+    }
+    return responderCatalogo(c, r);
+  });
   app.post('/api/panel/v1/pedidos/nota', cambioDelPedido('pedidos.gestionar', anotarNota));
   app.post('/api/panel/v1/pedidos/anotar', async (c) => {
     const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede anotar pedidos.');

@@ -77,6 +77,25 @@ export const CAMPOS: Record<Seccion, readonly CampoDeAjuste[]> = {
     },
     { campo: 'correo', etiqueta: 'Correo', tipo: 'correo' },
     { campo: 'horario', etiqueta: 'Horario de atención', tipo: 'texto' },
+    // HU-P4.3: las redes de la tienda, en el pie de cada página.
+    {
+      campo: 'instagram',
+      etiqueta: 'Instagram',
+      tipo: 'texto',
+      ayuda: 'Tu usuario (@tutienda) o el enlace de tu perfil.',
+    },
+    {
+      campo: 'tiktok',
+      etiqueta: 'TikTok',
+      tipo: 'texto',
+      ayuda: 'Tu usuario (@tutienda) o el enlace de tu perfil.',
+    },
+    {
+      campo: 'facebook',
+      etiqueta: 'Facebook',
+      tipo: 'texto',
+      ayuda: 'El nombre de tu página o el enlace de tu perfil.',
+    },
   ],
   apariencia: [
     { campo: 'acento', etiqueta: 'Color de acento', tipo: 'color' },

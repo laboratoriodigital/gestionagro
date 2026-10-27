@@ -15,6 +15,7 @@ import {
   siembraDelShard,
 } from '@ed1/tienda-schema/ensayos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { avisarAlComprador, correoDelEstado } from './avisos-al-comprador.ts';
 import {
   CORREOS,
   type ContextoDeCorreo,
@@ -27,7 +28,7 @@ import {
   TOPE_POR_TIENDA,
 } from './correos.ts';
 import { dekDeCredenciales, guardarCredencial } from './credenciales.ts';
-import { KEK_VIGENTE } from './llaves.ts';
+import { KEK_VIGENTE, kekDelEntorno } from './llaves.ts';
 import type { FilaDeSolicitud } from './panel-solicitudes.ts';
 import { periodos, type Tablero } from './panel-tablero.ts';
 import type { EntornoDeTareas } from './tareas.ts';
@@ -478,6 +479,55 @@ describe('HU-T14.3 · el acuse al comprador (HU-T11.9 CA1)', () => {
       UNO,
     );
     expect(fila).toEqual({ estado: 'fallido', motivo: 'falla' });
+  });
+});
+
+describe('HU-P2.1 · los correos del pedido al comprador', () => {
+  it('uno por estado, con el código y sin el secreto del seguimiento; ❌ un estado viejo no sale', async () => {
+    const g = gmail();
+    await cobrar('CRE001', g, 'compradora@ensayo.example');
+    const p = await uno<{ id: string }>(
+      "SELECT id FROM pedido WHERE org_id = ? AND codigo = 'CRE001'",
+      UNO,
+    );
+    if (!p) throw new Error('sin pedido');
+    const kek = await kekDelEntorno(KEK);
+    const c = contexto(g, AHORA);
+    // Todavía por pagar: el correo de «pagado» no sale.
+    expect(await avisarAlComprador(c, kek, p.id, 'pagado')).toBe('no-toca');
+    await shard
+      .prepare("UPDATE pedido SET estado = 'pagado' WHERE org_id = ? AND id = ?")
+      .bind(UNO, p.id)
+      .run();
+    expect(await avisarAlComprador(c, kek, p.id, 'pagado')).toBe('enviado');
+    expect(await avisarAlComprador(c, kek, p.id, 'pagado')).toBe('repetido');
+    const m = g.enviados.at(-1) as Enviado;
+    expect(m.para).toBe('<compradora@ensayo.example>');
+    expect(m.asunto).toBe('Recibimos tu pago del pedido CRE001');
+    expect(m.texto).toContain('Hola, Ensayo Dos Compradora:');
+    expect(m.texto).not.toContain('seguimiento-CRE001');
+    // Sin la llave no se abre el contacto: no hay a quién.
+    expect(await avisarAlComprador(c, null, p.id, 'pagado')).toBe('no-toca');
+  });
+
+  it('los textos de cada estado: lo que pasó y lo que sigue', () => {
+    const d = {
+      tienda: 'Lino Taller',
+      codigo: 'ABC123',
+      nombre: 'Ana',
+      totalCop: 129000,
+      responderA: true,
+    };
+    expect(correoDelEstado('confirmado', d).asunto).toBe('Lino Taller confirmó tu pedido ABC123');
+    const despachado = correoDelEstado('despachado', {
+      ...d,
+      transportadora: 'Servientrega',
+      guia: '123456',
+    });
+    expect(despachado.asunto).toBe('Tu pedido ABC123 va en camino');
+    expect(despachado.texto).toContain('Va con Servientrega, guía 123456.');
+    expect(correoDelEstado('cancelado', d).texto).toContain('la tienda te devuelve el dinero');
+    expect(correoDelEstado('pagado', { ...d, responderA: false }).texto).not.toContain('Responde');
   });
 });
 

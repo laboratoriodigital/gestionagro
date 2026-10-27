@@ -114,6 +114,51 @@ describe('determinismo y lo que nunca llega al HTML', () => {
     expect(a.huella).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  it('HU-P1.1 · el carrito ofrece recordar la compra solo con el plan que lo incluye, con la casilla sin marcar', async () => {
+    const carrito = async (comprasSinTerminar: boolean) =>
+      (
+        await hornear(paraHornear(ENSAYO_UNO, comprasSinTerminar ? { comprasSinTerminar } : {}))
+      ).get('/carrito/index.html')?.contenido ?? '';
+    const con = await carrito(true);
+    expect(con).toContain('<input type="checkbox" data-recordar-acepta>');
+    expect(con).not.toMatch(/data-recordar-acepta[^>]*checked/);
+    expect(await carrito(false)).not.toContain('data-recordar');
+  });
+
+  it('HU-P1.2 · la promoción en la ficha y, corta, en la tarjeta', async () => {
+    const t = paraHornear(ENSAYO_UNO);
+    t.productos = t.productos.map((p) =>
+      p.slug === 'camisa-de-lino'
+        ? { ...p, promocion: 'Lleva 3, paga 2, hasta el 2 de noviembre' }
+        : p,
+    );
+    const a = await hornear(t);
+    expect(a.get('/p/camisa-de-lino/index.html')?.contenido).toContain(
+      '<p class="promocion">Lleva 3, paga 2, hasta el 2 de noviembre</p>',
+    );
+    // La portada de Ensayo Uno es editorial: la tarjeta está en su colección.
+    expect(a.get('/c/lino/index.html')?.contenido).toContain(
+      '<span class="promocion">Lleva 3, paga 2</span>',
+    );
+  });
+
+  it('HU-P4.3 · las redes de la tienda en el pie de cada página; ❌ un enlace de otro lado no sale', async () => {
+    const portada = async (redes: NonNullable<TiendaParaHornear['redes']>) =>
+      (await hornear(paraHornear(ENSAYO_DOS, { redes }))).get('/index.html')?.contenido ?? '';
+    const con = await portada({
+      instagram: 'https://www.instagram.com/lino.taller',
+      tiktok: 'https://www.tiktok.com/@linotaller',
+    });
+    expect(con).toContain('<nav class="pie__redes" aria-label="Redes de Comercio Ensayo Dos">');
+    expect(con).toContain('href="https://www.instagram.com/lino.taller" rel="noopener me"');
+    expect(con).toContain('<span class="oculto">TikTok</span>');
+    expect(con).not.toContain('Facebook</span>');
+    // Lo que no pasó por la sección (otro dominio) no llega al HTML, y sin redes no hay nada.
+    const mal = await portada({ instagram: 'https://evil.example/x' });
+    expect(mal).not.toContain('evil.example');
+    expect(mal).not.toContain('pie__redes');
+  });
+
   it('HU-T6.5, 26 oct 2026: «Avísame» abre el WhatsApp de la tienda con el mensaje listo; sin WhatsApp, solo suma', async () => {
     const ficha = (t: TiendaParaHornear) =>
       hornear(t).then((a) => a.get('/p/camisa-de-lino/index.html')?.contenido ?? '');

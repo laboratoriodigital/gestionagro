@@ -1,0 +1,41 @@
+---
+/**
+ * Una guía de la ayuda de TiendaPro (HU-P5.1, sprint PF1): dónde empieza en el panel, los pasos y
+ * lo que conviene saber, con el WhatsApp de soporte al final.
+ */
+import { CHAT_DE_SOPORTE, GUIAS, type Guia } from '../../ayuda.ts';
+import Marco from '../../componentes/Marco.astro';
+import { MARCA, PANEL } from '../../contenido.ts';
+
+export function getStaticPaths() {
+  return GUIAS.map((una) => ({ params: { guia: una.slug }, props: { g: una } }));
+}
+
+const { g } = Astro.props as { g: Guia };
+---
+<Marco titulo={`${g.titulo} · Ayuda de ${MARCA}`} descripcion={g.resumen} ruta={`/ayuda/${g.slug}/`}>
+  <article class="legal ayuda">
+    <p class="ayuda__volver"><a href="/ayuda/">Toda la ayuda</a></p>
+    <h1>{g.titulo}</h1>
+    <p>{g.resumen}</p>
+    <p class="ayuda__donde">
+      En tu panel: <strong>{g.donde}</strong>{g.plan && <> · desde el plan {g.plan}</>}
+    </p>
+    <h2>Paso a paso</h2>
+    <ol class="ayuda__pasos">
+      {g.pasos.map((p) => <li>{p}</li>)}
+    </ol>
+    {g.notas && g.notas.length > 0 && (
+      <>
+        <h2>Bueno saber</h2>
+        <ul>
+          {g.notas.map((n) => <li>{n}</li>)}
+        </ul>
+      </>
+    )}
+    <p class="ayuda__acciones">
+      <a class="boton" href={PANEL} data-panel>Ir a mi panel</a>
+      <a class="enlace-flecha" href={CHAT_DE_SOPORTE} rel="noopener" target="_blank">¿Te quedaste? Escríbenos</a>
+    </p>
+  </article>
+</Marco>

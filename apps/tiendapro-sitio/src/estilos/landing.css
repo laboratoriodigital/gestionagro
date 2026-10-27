@@ -1386,3 +1386,73 @@ a {
   color: rgb(255 255 255 / 0.85);
   font-size: var(--texto-pequeno);
 }
+
+/* La ayuda (HU-P5.1) ------------------------------------------------------------------------- */
+
+.ayuda__lista {
+  display: grid;
+  gap: var(--espacio-3);
+  margin: var(--espacio-8) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ayuda__guia {
+  display: grid;
+  gap: var(--espacio-1);
+  padding: var(--espacio-4) var(--espacio-6);
+  border: var(--borde-ancho) solid var(--gris-200);
+  border-radius: var(--radio-campo);
+  color: inherit;
+  text-decoration: none;
+}
+
+.ayuda__guia:hover {
+  border-color: var(--texto);
+}
+
+.ayuda__titulo {
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--texto);
+}
+
+.ayuda__resumen {
+  color: var(--texto-suave);
+}
+
+.ayuda__plan {
+  font-size: var(--texto-pequeno);
+  color: var(--texto-suave);
+}
+
+.ayuda__volver {
+  font-size: var(--texto-pequeno);
+}
+
+.ayuda__donde {
+  margin-top: var(--espacio-4);
+  padding: var(--espacio-3) var(--espacio-4);
+  border-radius: var(--radio-campo);
+  background: var(--papel-2);
+}
+
+.legal .ayuda__pasos {
+  padding-left: 1.4rem;
+}
+
+.ayuda__pasos li + li {
+  margin-top: var(--espacio-3);
+}
+
+.ayuda__acciones,
+.ayuda__soporte {
+  margin-top: var(--espacio-12);
+}
+
+.ayuda__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-4) var(--espacio-6);
+}
