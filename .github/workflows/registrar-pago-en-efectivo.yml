@@ -18,13 +18,13 @@ on:
         required: true
         default: parqueadero
         type: choice
-        options: [parqueadero, agro]
+        options: [parqueadero, agro, tienda]
       cliente:
         description: "El correo de quien administra la cuenta del cliente, o el id de su organización"
         required: true
         type: string
       plan:
-        description: "El plan que pagó (parqueadero, finca…)"
+        description: "El plan que pagó (parqueadero, finca; en la tienda, pro o ia-pro)"
         required: true
         default: parqueadero
         type: string

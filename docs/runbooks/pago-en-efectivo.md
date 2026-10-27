@@ -13,9 +13,9 @@ Cuando un cliente te paga el plan en mano (el año del parqueadero, por ejemplo)
 1. En GitHub: **Actions** → **registrar-pago-en-efectivo** → **Run workflow**.
 2. Llena los campos:
    - **ambiente:** `produccion`.
-   - **producto:** `parqueadero` (o `agro` para una finca).
+   - **producto:** `parqueadero`, `agro` para una finca o `tienda` para TiendaPro.
    - **cliente:** el correo del cliente.
-   - **plan:** `parqueadero` (en el agro, `finca`).
+   - **plan:** `parqueadero` (en el agro, `finca`; en TiendaPro, `pro` o `ia-pro`).
    - **meses:** `12` para un año.
    - **monto:** vacío si pagó el precio; si te pagó otra cifra, escríbela (`280000` o `280.000`).
    - **nota:** cómo y dónde pagó, por ejemplo «Pagó el año en efectivo en la oficina, recibo 001».
@@ -23,7 +23,7 @@ Cuando un cliente te paga el plan en mano (el año del parqueadero, por ejemplo)
 3. Abre la corrida y mira el resumen. Te dice el parqueadero, el plan que tenía, hasta cuándo queda y el monto. Si el monto no es el precio del periodo, te avisa.
 4. Si todo está bien, corre el flujo otra vez con lo mismo y **confirmar: si**. El resumen dice «Pago en efectivo registrado».
 
-La caja del cliente ve el plan en la próxima hora, o enseguida si cierra sesión y vuelve a entrar.
+La caja del cliente ve el plan en la próxima hora, o enseguida si cierra sesión y vuelve a entrar. En TiendaPro, la tienda toma el plan cuando el comercio vuelve a abrir su panel: ahí se publica otra vez con lo que su plan permite.
 
 ## Si algo sale mal
 
