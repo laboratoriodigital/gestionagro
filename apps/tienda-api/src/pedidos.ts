@@ -359,6 +359,19 @@ export function lineasDelPedido(
   });
 }
 
+/** HU-P6.3: si todas estas combinaciones son de productos digitales. */
+export async function soloDigitales(db: BaseD1, org: string, variantes: readonly string[]) {
+  if (variantes.length === 0) return false;
+  const r = await db
+    .prepare(
+      `SELECT count(*) AS fisicas FROM variante v JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
+        WHERE v.org_id = ? AND v.id IN (SELECT value FROM json_each(?)) AND p.tipo <> 'digital'`,
+    )
+    .bind(org, JSON.stringify([...variantes]))
+    .first<{ fisicas: number }>();
+  return (r?.fisicas ?? 1) === 0;
+}
+
 export async function registrar(
   c: ContextoDePedido,
   p: PeticionDePedido,
@@ -391,6 +404,20 @@ export async function registrar(
   ).map((f) => f.forma);
   if (!ofrecidas.includes(p.forma)) {
     return { estado: 'forma', motivo: 'Esta tienda no ofrece esa forma de pago. Elige otra.' };
+  }
+  // HU-P6.3 CA3: lo digital no se entrega en una puerta: un pedido solo de digitales no va contra entrega.
+  if (
+    p.forma === 'contraentrega' &&
+    (await soloDigitales(
+      c.db,
+      c.org,
+      p.lineas.map((l) => l.variante),
+    ))
+  ) {
+    return {
+      estado: 'forma',
+      motivo: 'Lo digital se paga antes de descargarlo: elige otra forma de pago.',
+    };
   }
   const preparado = await prepararPedido(c, p);
   if ('estado' in preparado) return preparado;

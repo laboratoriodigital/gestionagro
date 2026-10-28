@@ -66,4 +66,4 @@ Si Comercio Ensayo Dos deja de vender en esta plataforma, tus datos de contacto 
 
 Si esta política cambia, la nueva versión se publica aquí. Cada pedido guarda la versión que aceptaste.
 
-Versión 5 de las plantillas, del 27 de octubre de 2026.
+Versión 6 de las plantillas, del 28 de octubre de 2026.

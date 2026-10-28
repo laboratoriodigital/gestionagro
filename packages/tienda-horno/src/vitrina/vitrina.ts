@@ -300,6 +300,8 @@ interface VarianteDelCatalogo {
 }
 interface ProductoConVariantes extends ProductoDelCatalogo {
   variantes: VarianteDelCatalogo[];
+  /** HU-P6.3: se descarga; no pide envío ni va contra entrega. */
+  digital?: boolean;
 }
 let catalogo: Promise<{ productos: ProductoConVariantes[] }> | undefined;
 /**
@@ -344,6 +346,8 @@ async function carritoPagina(): Promise<void> {
     productos.flatMap((p) => p.variantes.map((v) => [v.id, { producto: p, variante: v }] as const)),
   );
   let carrito = cargar();
+  // El cupón que escribió y aplicó; va en cada cotización y en el pedido.
+  let cuponAplicado = '';
   // Lo que ya no se vende sale del pedido, diciéndolo; con un cobro en pantalla, nada cambia.
   const saneado = sanear(
     carrito,
@@ -367,7 +371,27 @@ async function carritoPagina(): Promise<void> {
   };
   const elegido = (nombre: string) =>
     venta?.querySelector<HTMLInputElement>(`input[name="${nombre}"]:checked`)?.value ?? null;
-  const hayEnvios = (datosDeVenta.envios ?? []).length > 0;
+  // HU-P6.3: un pedido solo de digitales no pide envío ni ofrece la contraentrega.
+  const todoDigital = () =>
+    carrito.lineas.length > 0 &&
+    carrito.lineas.every((l) => porVariante.get(l.variante)?.producto.digital === true);
+  const hayEnviosDeLaTienda = (datosDeVenta.envios ?? []).length > 0;
+  const pintarLoDigital = () => {
+    const digital = todoDigital();
+    venta
+      ?.querySelector<HTMLInputElement>('input[name="envio"]')
+      ?.closest('fieldset')
+      ?.toggleAttribute('hidden', digital);
+    venta
+      ?.querySelector<HTMLInputElement>('input[name="ciudad"]')
+      ?.closest('label')
+      ?.toggleAttribute('hidden', digital);
+    const contraentrega = venta?.querySelector<HTMLInputElement>(
+      'input[name="forma"][value="contraentrega"]',
+    );
+    contraentrega?.closest('label')?.toggleAttribute('hidden', digital);
+    if (digital && contraentrega?.checked) contraentrega.checked = false;
+  };
 
   const pintar = () => {
     lista.replaceChildren(
@@ -418,6 +442,7 @@ async function carritoPagina(): Promise<void> {
     vacio.hidden = !vacioAhora;
     if (vaciarBoton) vaciarBoton.hidden = vacioAhora;
     resumen.hidden = vacioAhora;
+    pagina.querySelector<HTMLElement>('[data-cupon-bloque]')?.toggleAttribute('hidden', vacioAhora);
     if (venta) venta.hidden = vacioAhora;
     if (codigo) {
       codigo.textContent = carrito.codigo;
@@ -486,7 +511,7 @@ async function carritoPagina(): Promise<void> {
   };
   const confirmar = async () => {
     const pedido = carrito;
-    const r = await cotizarEnLaTienda(carrito, totalVisto, elegido('envio'));
+    const r = await cotizarEnLaTienda(carrito, totalVisto, elegido('envio'), cuponAplicado);
     // Bitácora tienda3 44: una respuesta que llega después de vaciar o cambiar el pedido es de otro
     // pedido; aplicarla devolvería lo que el comprador ya quitó.
     if (
@@ -501,7 +526,35 @@ async function carritoPagina(): Promise<void> {
     }
     decir(nota, elegido('envio') ? undefined : 'El envío se confirma antes de enviar el pedido.');
     aplicar(r);
+    // El cupón: si no sirve, se dice y se quita; si sirve, cuánto descontó.
+    if (cuponAplicado) {
+      const de = (c: string) => r.avisos?.some((a) => a.codigo === c);
+      const avisoCupon = pagina.querySelector<HTMLElement>('[data-aviso-cupon]');
+      if (de('cupon_invalido')) {
+        decir(avisoCupon, `El cupón ${cuponAplicado} no es válido o ya venció.`);
+        cuponAplicado = '';
+      } else if (de('cupon_bajo_el_minimo')) {
+        decir(avisoCupon, `El cupón ${cuponAplicado} pide una compra mayor.`);
+      } else if (de('cupon_no_aplica')) {
+        decir(avisoCupon, `El cupón ${cuponAplicado} no aplica a lo que llevas.`);
+      } else {
+        decir(
+          avisoCupon,
+          r.descuentoCupon
+            ? `Cupón ${cuponAplicado}: -${formato(r.descuentoCupon)}.`
+            : `Cupón ${cuponAplicado} aplicado.`,
+        );
+      }
+    }
   };
+
+  // 27 oct 2026: el cupón del carrito. «Aplicar» vuelve a cotizar con él.
+  pagina.querySelector('[data-aplicar-cupon]')?.addEventListener('click', () => {
+    cuponAplicado = (pagina.querySelector<HTMLInputElement>('[data-cupon]')?.value ?? '')
+      .trim()
+      .toUpperCase();
+    void confirmar();
+  });
 
   // HU-P1.1: «Recordarme mi compra si no la termino». Sin la casilla no sale nada; al desmarcarla,
   // la tienda borra lo que tenía. El dato se manda solo si parece un celular o un correo.
@@ -559,13 +612,14 @@ async function carritoPagina(): Promise<void> {
     estadoDeLaVenta({
       lineas: carrito.lineas.length,
       forma: elegido('forma'),
-      hayEnvios,
+      hayEnvios: hayEnviosDeLaTienda && !todoDigital(),
       envio: elegido('envio'),
       acepta: Boolean(acepta?.checked),
       entrega: faltaDeLaEntrega(entrega()) === null,
     });
   // HU-T11.4: pagando en línea se piden los datos de entrega y la nota dice dónde se paga.
   const pintarForma = () => {
+    pintarLoDigital();
     const enLinea = elegido('forma') === 'en_linea';
     venta?.querySelector<HTMLElement>('[data-entrega]')?.toggleAttribute('hidden', !enLinea);
     venta?.querySelector<HTMLElement>('[data-nota-venta]')?.toggleAttribute('hidden', enLinea);
@@ -609,6 +663,7 @@ async function carritoPagina(): Promise<void> {
           codigo: carrito.codigo,
           lineas: carrito.lineas,
           ...(elegido('envio') ? { envio: elegido('envio') } : {}),
+          ...(cuponAplicado ? { cupon: cuponAplicado } : {}),
           ...(ciudad() ? { ciudad: ciudad() } : {}),
           acepta: true,
           terminos: datosDeVenta.terminos,
@@ -738,6 +793,7 @@ async function carritoPagina(): Promise<void> {
             lineas: carrito.lineas,
             forma: elegido('forma'),
             ...(elegido('envio') ? { envio: elegido('envio') } : {}),
+            ...(cuponAplicado ? { cupon: cuponAplicado } : {}),
             ...(ciudad() ? { ciudad: ciudad() } : {}),
             acepta: true,
             terminos: datosDeVenta.terminos,
@@ -955,6 +1011,8 @@ async function alVolverDelPago(): Promise<void> {
 interface Cotizacion {
   subtotal: number;
   descuento: number;
+  descuentoCupon?: number;
+  avisos?: { codigo: string }[];
   envio: number;
   total: number;
   carrito: { variante: string; cantidad: number }[];
@@ -966,6 +1024,7 @@ async function cotizarEnLaTienda(
   c: Carrito,
   totalVisto: number,
   envio: string | null,
+  cupon = '',
 ): Promise<Cotizacion | null> {
   try {
     const r = await fetch('/api/v1/cotizar', {
@@ -975,6 +1034,7 @@ async function cotizarEnLaTienda(
         lineas: c.lineas.map((l) => ({ variante: l.variante, cantidad: l.cantidad })),
         totalVisto,
         ...(envio ? { envio } : {}),
+        ...(cupon ? { cupon } : {}),
       }),
     });
     return r.ok ? ((await r.json()) as Cotizacion) : null;
@@ -995,6 +1055,8 @@ interface Seguimiento {
   forma: string;
   transportadora: string | null;
   guia: string | null;
+  /** HU-P6.2: los archivos digitales del pedido, con su enlace temporal (`null`: ya no quedan). */
+  descargas?: { nombre: string; bytes: number; enlace: string | null }[];
 }
 
 /**
@@ -1075,6 +1137,27 @@ async function pedidoEnviado(): Promise<void> {
       return li;
     }),
   );
+  // HU-P6.2: lo digital, para descargar; el enlace lo da la API solo con el pago confirmado.
+  const descargas = raiz.querySelector<HTMLElement>('[data-descargas]');
+  if (descargas && s.descargas && s.descargas.length > 0) {
+    descargas.hidden = false;
+    descargas.querySelector('[data-descargas-lista]')?.replaceChildren(
+      ...s.descargas.map((d) => {
+        const li = document.createElement('li');
+        if (d.enlace) {
+          const a = document.createElement('a');
+          a.className = 'boton boton--secundario';
+          a.href = d.enlace;
+          a.textContent = `Descargar ${d.nombre}`;
+          a.setAttribute('download', d.nombre);
+          li.append(a);
+        } else {
+          li.textContent = `${d.nombre}: ya usaste sus descargas. Escríbele a la tienda.`;
+        }
+        return li;
+      }),
+    );
+  }
   raiz.querySelector('[data-acuse-pasos]')?.replaceChildren(
     ...s.pasos.map((p) => {
       const li = document.createElement('li');

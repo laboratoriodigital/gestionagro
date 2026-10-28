@@ -146,11 +146,10 @@ jobs:
           SOLO_CELDA: ${{ inputs.solo_celda }}
           PRODUCTOS: ${{ inputs.productos }}
         run: node scripts/desplegar.ts --destino "$DESTINO" --solo "$SOLO_CELDA" --productos "$PRODUCTOS" --parte parqueadero
-      # HU-T2.4: la Tienda, sola en su paso. Mientras no tenga tiendas (hasta HU-T2.9) no detiene la
-      # publicación de los otros productos: si falla, el paso queda en rojo y el resumen dice por qué,
-      # pero el trabajo sigue. Sin SECRETO_DESPACHO en el ambiente, falla diciendo cómo generarlo.
+      # HU-T2.4: la Tienda, sola en su paso. Desde el 27 oct 2026 (bitácora tienda3 64), con tiendas
+      # en producción, si falla el trabajo queda en rojo: el despliegue de la 1.5.0 se detuvo en la
+      # landing y se vio en verde. Sin SECRETO_DESPACHO en el ambiente, falla diciendo cómo generarlo.
       - name: Desplegar la Tienda
-        continue-on-error: true
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}

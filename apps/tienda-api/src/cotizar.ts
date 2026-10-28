@@ -43,6 +43,7 @@ export type AvisoDeCotizar =
   | { codigo: 'cantidad_ajustada'; variante: string; cantidad: number }
   | { codigo: 'cupon_invalido' }
   | { codigo: 'cupon_bajo_el_minimo' }
+  | { codigo: 'cupon_no_aplica' }
   | { codigo: 'envio_invalido' }
   | { codigo: 'total_cambio'; totalVisto: number }
   | { codigo: 'carrito_vacio' };
@@ -85,6 +86,39 @@ function juntar(lineas: PeticionDeCotizar['lineas']) {
     );
   }
   return [...por].map(([variante, cantidad]) => ({ variante, cantidad }));
+}
+
+/**
+ * HU-P1.3: los productos del carrito que entran en el alcance de un cupón: los que nombra y los de
+ * sus categorías. Un alcance ilegible no deja aplicar el cupón a nada (P1).
+ */
+async function productosDelAlcance(
+  db: BaseD1,
+  org: string,
+  texto: string,
+  lineas: readonly { producto: string }[],
+): Promise<string[]> {
+  let alcance: { productos?: unknown; colecciones?: unknown };
+  try {
+    alcance = JSON.parse(texto) as typeof alcance;
+  } catch {
+    return [];
+  }
+  const ids = (v: unknown) =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  const enElCarrito = [...new Set(lineas.map((l) => l.producto))];
+  const nombrados = ids(alcance.productos).filter((p) => enElCarrito.includes(p));
+  const colecciones = ids(alcance.colecciones);
+  if (colecciones.length === 0 || enElCarrito.length === 0) return nombrados;
+  const { results } = await db
+    .prepare(
+      `SELECT DISTINCT producto_id FROM coleccion_producto
+        WHERE org_id = ? AND coleccion_id IN (SELECT value FROM json_each(?))
+          AND producto_id IN (SELECT value FROM json_each(?))`,
+    )
+    .bind(org, JSON.stringify(colecciones), JSON.stringify(enElCarrito))
+    .all<{ producto_id: string }>();
+  return [...new Set([...nombrados, ...results.map((r) => r.producto_id)])];
 }
 
 export async function cotizar(
@@ -162,7 +196,7 @@ export async function cotizar(
   if (p.cupon) {
     const c = await db
       .prepare(
-        `SELECT tipo, valor, minimo_cop, desde, hasta, usos_maximos, usos FROM cupon
+        `SELECT tipo, valor, minimo_cop, desde, hasta, usos_maximos, usos, alcance FROM cupon
          WHERE org_id = ? AND codigo = ? AND activo = 1 AND borrado IS NULL`,
       )
       .bind(org, p.cupon.toUpperCase())
@@ -174,6 +208,7 @@ export async function cotizar(
         hasta: string | null;
         usos_maximos: number | null;
         usos: number;
+        alcance: string | null;
       }>();
     const vigente =
       c &&
@@ -181,11 +216,15 @@ export async function cotizar(
       (c.hasta === null || ahora <= c.hasta) &&
       (c.usos_maximos === null || c.usos < c.usos_maximos);
     if (!c || !vigente) avisos.push({ codigo: 'cupon_invalido' });
-    else if (c.tipo === 'porcentaje')
-      cupon = { tipo: 'porcentaje', porcentaje: c.valor, minimoCop: c.minimo_cop };
-    else if (c.tipo === 'valor')
-      cupon = { tipo: 'valor', valorCop: c.valor, minimoCop: c.minimo_cop };
-    else cupon = { tipo: 'envio_gratis', minimoCop: c.minimo_cop };
+    else {
+      const alcance = c.alcance ? await productosDelAlcance(db, org, c.alcance, lineas) : undefined;
+      const conAlcance = alcance ? { productos: alcance } : {};
+      if (c.tipo === 'porcentaje')
+        cupon = { tipo: 'porcentaje', porcentaje: c.valor, minimoCop: c.minimo_cop, ...conAlcance };
+      else if (c.tipo === 'valor')
+        cupon = { tipo: 'valor', valorCop: c.valor, minimoCop: c.minimo_cop, ...conAlcance };
+      else cupon = { tipo: 'envio_gratis', minimoCop: c.minimo_cop, ...conAlcance };
+    }
   }
 
   let envio: { precioCop: number; gratisDesdeCop: number | null } | null = null;

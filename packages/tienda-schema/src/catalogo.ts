@@ -116,6 +116,8 @@ export const guardarProducto = z.object({
   destacado: z.boolean().default(false),
   nuevo: z.boolean().default(false),
   promocion: promocionDelProducto.nullable().default(null),
+  /** HU-P6.1: un archivo que se descarga al pagar; no cuenta existencias ni pide envío. */
+  tipo: z.enum(['fisico', 'digital']).default('fisico'),
   ivaPct: z
     .union([z.literal(0), z.literal(5), z.literal(19)])
     .nullable()
@@ -226,6 +228,8 @@ export function revisarProducto(
     };
   }
   const p = r.data;
+  // HU-P6.1: un producto digital no se agota: sus combinaciones no cuentan existencias.
+  if (p.tipo === 'digital') p.variantes = p.variantes.map((v) => ({ ...v, stock: null }));
   const problemas: Problema[] = [];
   if (p.id && p.version === undefined) {
     problemas.push({ campo: 'version', mensaje: 'falta la versión que leíste' });

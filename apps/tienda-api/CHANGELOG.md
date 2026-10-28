@@ -4,6 +4,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.6.0] - 2026-10-28
+
+Sprint PF2 del perfeccionamiento: productos digitales y el control del día a día.
+
+### Agregado
+- **Productos digitales** (Pro e IA Pro): un producto puede ser digital, con un archivo por combinación (PDF, ZIP, MP3, MP4, JPG o PNG, de hasta 50 MB; hasta 1 GB por tienda). Tu cliente lo descarga desde el seguimiento de su pedido apenas su pago queda confirmado, con un enlace que vale 7 días y 5 descargas. Un pedido solo de digitales no pide envío ni va contra entrega. Guarda tus originales: estos archivos no entran en «Descargar todo».
+- **El cupón en el carrito:** tus clientes ya pueden escribir un cupón en su pedido y ver cuánto descontó. Antes solo servía por los asistentes.
+- **Cupones por categoría:** un cupón puede valer solo para algunas categorías; el descuento nunca pasa del valor de esos productos.
+- **Por agotarse:** con «Avisarme cuando queden» en «Ajustes › Avisos», el Inicio y el resumen de la mañana te dicen qué combinaciones llegaron a ese número.
+- **Pedidos por fecha y por canal**, y «Descargar estos pedidos» en una hoja, sin los datos de los compradores.
+
+### Cambiado
+- En la vista previa de tu tienda, el carrito ya muestra las promociones, los cupones y el envío: antes solo sumaba los precios.
+- La política de retracto de cada tienda explica el de los productos digitales.
+
 ## [1.5.0] - 2026-10-27
 
 Sprint PF1 del perfeccionamiento: vender más y perder menos ventas.

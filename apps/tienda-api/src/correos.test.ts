@@ -602,6 +602,7 @@ describe('HU-T14.3 · el resumen diario', () => {
         pagosSinExistencias: 0,
         cobrosARevisar: 0,
         agotados: 0,
+        porAgotarse: 0,
         ...pendientes,
       },
       contraentrega: {

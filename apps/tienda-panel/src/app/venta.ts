@@ -31,6 +31,8 @@ export interface CuponDelPanel {
   usos: number;
   activo: boolean;
   version: number;
+  /** HU-P1.3: los productos y las categorías en que aplica; `null`, en todo el carrito. */
+  alcance?: { productos: string[]; colecciones: string[] } | null;
 }
 
 /** Sin otro pacto, un pedido llega en máximo 30 días calendario (Ley 2439). */
@@ -138,6 +140,9 @@ export interface FormularioDeCupon {
   hasta: string;
   usosMaximos: string;
   activo: boolean;
+  /** HU-P1.3: las categorías elegidas; los productos que traiga de la API se conservan. */
+  colecciones?: string[];
+  productos?: string[];
 }
 
 export const formularioDeCupon = (c: CuponDelPanel | null): FormularioDeCupon => ({
@@ -149,6 +154,8 @@ export const formularioDeCupon = (c: CuponDelPanel | null): FormularioDeCupon =>
   hasta: c?.hasta ?? '',
   usosMaximos: c?.usosMaximos ? String(c.usosMaximos) : '',
   activo: c?.activo ?? true,
+  colecciones: c?.alcance?.colecciones ?? [],
+  productos: c?.alcance?.productos ?? [],
 });
 
 export function revisarCupon(
@@ -165,6 +172,7 @@ export function revisarCupon(
     hasta: string | null;
     usosMaximos: number | null;
     activo: boolean;
+    alcance: { productos: string[]; colecciones: string[] } | null;
   };
 } {
   const errores: Error[] = [];
@@ -217,6 +225,10 @@ export function revisarCupon(
       hasta,
       usosMaximos: usos,
       activo: f.activo,
+      alcance:
+        (f.colecciones?.length ?? 0) + (f.productos?.length ?? 0) > 0
+          ? { productos: f.productos ?? [], colecciones: f.colecciones ?? [] }
+          : null,
     },
   };
 }
@@ -245,6 +257,9 @@ export function cuponEnPalabras(c: CuponDelPanel): string {
       : c.usos >= c.usosMaximos
         ? `agotado: ${c.usos} de ${c.usosMaximos} usos`
         : `${c.usos} de ${c.usosMaximos} usos`,
+    c.alcance && c.alcance.colecciones.length + c.alcance.productos.length > 0
+      ? 'solo en algunos productos'
+      : null,
     c.activo ? null : 'apagado',
   ]
     .filter(Boolean)

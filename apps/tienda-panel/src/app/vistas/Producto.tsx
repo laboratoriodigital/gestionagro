@@ -28,6 +28,7 @@ import {
 } from '../catalogo.ts';
 import { Casilla, Confirmar, Texto } from '../componentes/index.ts';
 import { irA } from '../ruta.ts';
+import { ArchivosDigitales } from './ArchivosDigitales.tsx';
 import { Fotos } from './Fotos.tsx';
 
 type Error = { campo: string; mensaje: string };
@@ -387,6 +388,36 @@ function Formulario({
         alCambiar={(v) => poner('promocion', v)}
         error={errorDe('promocion')}
       />
+      <div class="ed1-campo" id="tipo">
+        <label class="ed1-campo__etiqueta" for="tipo-de-producto">
+          Tipo de producto
+        </label>
+        <select
+          class="ed1-campo__control"
+          id="tipo-de-producto"
+          value={f.tipo ?? 'fisico'}
+          onChange={(e) =>
+            poner('tipo', (e.target as HTMLSelectElement).value as 'fisico' | 'digital')
+          }
+        >
+          <option value="fisico">Físico: se entrega o se envía</option>
+          <option value="digital">Digital: un archivo que se descarga</option>
+        </select>
+        {errorDe('tipo') ? <p class="ed1-campo__error">{errorDe('tipo')}</p> : null}
+        {f.tipo === 'digital' ? (
+          <p class="nota">No cuenta existencias ni pide envío. Es de los planes Pro e IA Pro.</p>
+        ) : null}
+      </div>
+      {f.tipo === 'digital' && producto?.tipo === 'digital' ? (
+        <ArchivosDigitales
+          conexion={conexion}
+          variantes={producto.variantes.map((v) => ({
+            id: v.id,
+            nombre: v.valores.length > 0 ? v.valores.join(' · ') : 'El archivo',
+          }))}
+          alVencer={alVencer}
+        />
+      ) : null}
       {falla ? (
         <Aviso tono="peligro" titulo="No se guardó">
           {falla}

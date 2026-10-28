@@ -250,6 +250,7 @@ describe('cupones (HU-T10.1 CA1)', () => {
       usos: 0,
       activo: true,
       version: 1,
+      alcance: null,
     });
     // El envío gratis no guarda un valor; la vigencia vuelve como la escribió el comercio.
     expect(cupones.find((c) => c.codigo === 'ENVIOGRATIS')).toMatchObject({

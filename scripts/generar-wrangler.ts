@@ -521,6 +521,16 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
           },
         ]
       : [];
+  // HU-P6.1: el bucket privado de los productos digitales, también solo donde ya existe.
+  const digitales = (ambiente: 'produccion' | 'staging') =>
+    celda.digitales && celda.digitales_creados?.includes(ambiente)
+      ? [
+          {
+            binding: 'DIGITALES',
+            bucket_name: ambiente === 'staging' ? `${celda.digitales}-staging` : celda.digitales,
+          },
+        ]
+      : [];
   return {
     $schema: '../../node_modules/wrangler/config-schema.json',
     name: workerDeLaApiDeLaTienda(celda.id),
@@ -530,7 +540,11 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
     vars: { ...vars, ...medios, ...mcp(false) },
     ...alCore(false),
     d1_databases: bases(false),
-    r2_buckets: [{ binding: 'SITIOS', bucket_name: almacen }, ...fotos('produccion')],
+    r2_buckets: [
+      { binding: 'SITIOS', bucket_name: almacen },
+      ...fotos('produccion'),
+      ...digitales('produccion'),
+    ],
     // HU-T17.1 y D-T10: el quinto cron de la cuenta, solo en producción; staging no tiene.
     triggers: { crons: [CRON_DE_LA_TIENDA] },
     ratelimits: limitadoresDeLaTienda(false),
@@ -555,7 +569,11 @@ export function wranglerDeLaCeldaDeLaTienda(celda: Celda): Record<string, unknow
         },
         ...alCore(true),
         d1_databases: bases(true),
-        r2_buckets: [{ binding: 'SITIOS', bucket_name: `${almacen}-staging` }, ...fotos('staging')],
+        r2_buckets: [
+          { binding: 'SITIOS', bucket_name: `${almacen}-staging` },
+          ...fotos('staging'),
+          ...digitales('staging'),
+        ],
         triggers: { crons: [] },
         ratelimits: limitadoresDeLaTienda(true),
         analytics_engine_datasets: [{ binding: 'MEDICION', dataset: `${DATASET_TIENDA}_staging` }],

@@ -173,6 +173,17 @@
             "enum": [true, false, "staging"],
             "description": "HU-T13.4: el dueño ya creó el registro DNS comodín * de la zona de las tiendas, mitiendapro.co desde HU-T18.1 (docs/runbooks/tienda-alta.md). true: el despacho recibe las tiendas nuevas en los dos ambientes; staging: solo en staging, mientras la Tienda no se lanza (D-T14)."
           },
+          "digitales": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{3,55}$",
+            "description": "HU-P6.1: el bucket R2 privado de los productos digitales, sin dirección pública: la API entrega cada archivo con un enlace temporal. Nunca el mismo que medios. Lo crea el dueño: el token del despliegue no tiene permiso de R2."
+          },
+          "digitales_creados": {
+            "type": "array",
+            "items": { "enum": ["produccion", "staging"] },
+            "uniqueItems": true,
+            "description": "HU-P6.1: los ambientes donde el dueño ya creó el bucket de los productos digitales (27 oct 2026: los dos). Solo ahí la API lo enlaza como DIGITALES."
+          },
           "medios_creados": {
             "type": "array",
             "items": { "enum": ["produccion", "staging"] },

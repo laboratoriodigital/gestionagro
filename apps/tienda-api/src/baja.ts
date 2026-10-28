@@ -13,6 +13,7 @@
 import type { BaseD1 } from '@ed1/d1';
 import { z } from 'zod';
 import { guardarOperacion, type Problema, yaAplicada } from './catalogo.ts';
+import { type BucketDigital, borrarArchivosDeLaTienda } from './digitales.ts';
 import type { KvDeHosts, QuienDelDominio } from './dominios.ts';
 import { claveDelHost } from './hosts.ts';
 import { anotar } from './registro.ts';
@@ -114,6 +115,8 @@ export async function darDeBaja(
 export async function borrarLasBajas(e: {
   shards: [string, BaseD1][];
   almacen?: AlmacenDeRespaldos;
+  /** HU-P6.1: el bucket de los productos digitales; sus archivos se van con la tienda. */
+  digitales?: BucketDigital;
   instante: string;
 }): Promise<{ borradas: string[] }> {
   const limite = new Date(Date.parse(e.instante) - DIAS_PARA_BORRAR * DIA_MS).toISOString();
@@ -139,6 +142,7 @@ export async function borrarLasBajas(e: {
           cursor = l.truncated ? l.cursor : undefined;
         } while (cursor);
       }
+      await borrarArchivosDeLaTienda(db, org_id, e.digitales);
       await db.batch([
         db
           .prepare(

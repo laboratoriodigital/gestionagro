@@ -124,6 +124,8 @@ export interface FilaDePedido {
   numero: number;
   estado: string;
   formaPago: string;
+  /** HU-P3.2: por dónde llegó (tienda, WhatsApp, asistente, anotado en el panel o carga). */
+  canal: string;
   totalCop: number;
   creado: string;
   ciudad: string | null;
@@ -140,6 +142,7 @@ interface FilaCruda {
   numero: number;
   estado: string;
   forma_pago: string;
+  canal: string;
   total_cop: number;
   creado: string;
   ciudad: string | null;
@@ -149,7 +152,7 @@ interface FilaCruda {
   version: number;
 }
 
-const COLUMNAS = `p.id, p.numero, p.estado, p.forma_pago, p.total_cop, p.creado, p.ciudad, p.atencion, p.version,
+const COLUMNAS = `p.id, p.numero, p.estado, p.forma_pago, p.canal, p.total_cop, p.creado, p.ciudad, p.atencion, p.version,
   (SELECT SUM(l.cantidad) FROM pedido_linea l WHERE l.org_id = p.org_id AND l.pedido_id = p.id) AS articulos,
   CASE WHEN p.atencion = 'sin_existencias' THEN (SELECT MAX(k.actualizado) FROM cobro k
     WHERE k.org_id = p.org_id AND k.id > p.codigo || '-' AND k.id < p.codigo || '.'
@@ -166,6 +169,7 @@ async function enFilas(q: Quien, kek: Kek | null, crudas: FilaCruda[]): Promise<
     numero: f.numero,
     estado: f.estado,
     formaPago: f.forma_pago,
+    canal: f.canal,
     totalCop: f.total_cop,
     creado: f.creado,
     ciudad: f.ciudad,

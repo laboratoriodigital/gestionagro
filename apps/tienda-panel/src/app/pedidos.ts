@@ -13,6 +13,8 @@ export interface FilaDePedido {
   numero: number;
   estado: string;
   formaPago: string;
+  /** HU-P3.2: por dónde llegó; las filas de antes de la 1.6.0 no lo traen. */
+  canal?: string;
   totalCop: number;
   creado: string;
   ciudad: string | null;
@@ -79,6 +81,49 @@ export interface Filtros {
   estado: string;
   forma: string;
   texto: string;
+  /** HU-P3.2: por dónde llegó, y desde y hasta qué día de Colombia (`AAAA-MM-DD`). */
+  canal?: string;
+  desde?: string;
+  hasta?: string;
+}
+
+/** HU-P3.2: los canales como los lee el comercio. */
+export const CANALES: Readonly<Record<string, string>> = {
+  en_linea: 'La tienda, pagado en línea',
+  whatsapp: 'La tienda, por WhatsApp',
+  agente: 'Un asistente',
+  panel: 'Anotado en el panel',
+  carga: 'Cargado de una hoja',
+};
+
+/** El día de Colombia de un instante (UTC−5, sin horario de verano). */
+const diaEnColombia = (instante: string) =>
+  new Date(Date.parse(instante) - 5 * 3_600_000).toISOString().slice(0, 10);
+
+/**
+ * HU-P3.2: la hoja de los pedidos filtrados, sin datos de los compradores: número, día, estado,
+ * forma de pago, canal, artículos, total y ciudad. Separada por comas, con BOM para Excel.
+ */
+export function hojaDePedidos(pedidos: readonly FilaDePedido[]): string {
+  const celda = (v: string | number) => {
+    const t = String(v);
+    return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const filas = pedidos.map((p) =>
+    [
+      p.numero,
+      diaEnColombia(p.creado),
+      p.estado,
+      FORMAS_DE_PAGO[p.formaPago] ?? p.formaPago,
+      p.canal ? (CANALES[p.canal] ?? p.canal) : '',
+      p.articulos,
+      p.totalCop,
+      p.ciudad ?? '',
+    ]
+      .map(celda)
+      .join(','),
+  );
+  return `\uFEFF${['Pedido,Día,Estado,Forma de pago,Canal,Artículos,Total,Ciudad', ...filas].join('\n')}\n`;
 }
 
 const sinTildes = (t: string) =>
@@ -96,6 +141,9 @@ export function filtrar(pedidos: readonly FilaDePedido[], f: Filtros): FilaDePed
   return pedidos.filter((p) => {
     if (f.estado && p.estado !== f.estado) return false;
     if (f.forma && p.formaPago !== f.forma) return false;
+    if (f.canal && p.canal !== f.canal) return false;
+    if (f.desde && diaEnColombia(p.creado) < f.desde) return false;
+    if (f.hasta && diaEnColombia(p.creado) > f.hasta) return false;
     if (!texto) return true;
     const donde = sinTildes(
       [

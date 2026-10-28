@@ -108,6 +108,13 @@ import { correosDeLaCelda, mandarAcuse, mandarResultadoDePrueba } from './correo
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
 import { cuadrarTiendas, ventanaDeLaSemana } from './cuadre.ts';
 import {
+  archivosDeLaTienda,
+  type BucketDigital,
+  descargar,
+  enlacesDeDescarga,
+  subirArchivo,
+} from './digitales.ts';
+import {
   conectarDominio,
   elegirCanonico,
   type KvDeHosts,
@@ -239,6 +246,8 @@ export interface Env {
    * ya lo creó (`medios_creados` en `celdas.json`); sin él, subir responde 503 y lo dice.
    */
   FOTOS?: BucketDeFotos;
+  /** HU-P6.1: el bucket privado de los productos digitales. */
+  DIGITALES?: BucketDigital;
   /** El aviso al dueño (HU-T17.1): lo usa la tarea que reconstruye los hostnames. */
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
@@ -1101,7 +1110,45 @@ export function crearApp(
     const p = await cuerpoValido(c, PeticionDeSeguimiento);
     if (!p) return c.json(NO_ENCONTRADO, 404);
     const r = await seguimiento(destino.db, destino.org, p.codigo, p.secreto);
-    return r ? c.json(r) : c.json(NO_ENCONTRADO, 404);
+    if (!r) return c.json(NO_ENCONTRADO, 404);
+    // HU-P6.2: con el pago verificado, los enlaces de los archivos digitales del pedido.
+    const descargas = c.env.DIGITALES
+      ? await enlacesDeDescarga(destino.db, destino.org, p.codigo, new Date(ahora()).toISOString())
+      : [];
+    return c.json(descargas.length > 0 ? { ...r, descargas } : r);
+  });
+
+  /**
+   * HU-P6.2: bajar un archivo digital con su enlace temporal. Público, por el despacho, con el límite
+   * del seguimiento. Todo fallo dice lo mismo, sin decir por qué; el archivo sale como descarga.
+   */
+  app.get('/api/v1/descargas/:secreto', async (c) => {
+    const NO_SIRVE = 'Este enlace ya no sirve. Pide uno nuevo desde el seguimiento de tu pedido.';
+    const destino = tiendaDelDespacho(c);
+    if (!destino || !c.env.DIGITALES) return c.text(NO_SIRVE, 404);
+    if (!(await dentroDelLimite(c, c.env.LIMITE_SEGUIMIENTO, 'LIMITE_SEGUIMIENTO'))) {
+      return c.text('Son muchas descargas seguidas. Espera un minuto.', 429, {
+        'retry-after': '60',
+      });
+    }
+    const r = await descargar(
+      destino.db,
+      destino.org,
+      c.env.DIGITALES,
+      c.req.param('secreto'),
+      new Date(ahora()).toISOString(),
+    );
+    if (r.estado !== 'archivo') return c.text(NO_SIRVE, 404);
+    return new Response(r.cuerpo, {
+      headers: {
+        'content-type': r.tipo,
+        'content-length': String(r.bytes),
+        'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(r.nombre)}`,
+        'x-content-type-options': 'nosniff',
+        'cache-control': 'private, no-store',
+        'content-security-policy': "default-src 'none'; sandbox",
+      },
+    });
   });
 
   /**
@@ -1844,6 +1891,59 @@ export function crearApp(
   app.post('/api/panel/v1/colecciones/borrar', escrituraDelCatalogo(borrarLaColeccion));
 
   // HU-T8.3: las fotos. El teléfono manda solo las derivadas; el original no sale de él.
+  /**
+   * HU-P6.1: el archivo de una combinación de un producto digital. Llega el cuerpo tal cual, con su
+   * tipo, su tamaño, su nombre y su huella; va directo al bucket privado. Con el freno de R2
+   * (`ks:tienda-fotos`) apagado, tampoco se sube: el espacio de R2 es el mismo.
+   */
+  app.post('/api/panel/v1/digitales', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    if (c.env.FLAGS && (await lectorDe(c.env.FLAGS).apagado('tienda-fotos'))) {
+      return c.json(
+        { estado: 'apagado', motivo: 'Subir archivos está en pausa por ahora. Intenta más tarde.' },
+        503,
+      );
+    }
+    const cuerpo = c.req.raw.body;
+    if (!c.env.DIGITALES || !cuerpo) {
+      return c.json(
+        {
+          estado: 'sin-digitales',
+          motivo: 'Los productos digitales todavía no están listos aquí.',
+        },
+        503,
+      );
+    }
+    const r = await subirArchivo(
+      q,
+      c.env.DIGITALES,
+      {
+        variante: c.req.query('variante') ?? '',
+        nombre: decodeURIComponent(c.req.header('x-nombre') ?? 'archivo'),
+        tipo: (c.req.header('content-type') ?? '').split(';')[0]?.trim() ?? '',
+        bytes: Number(c.req.header('content-length') ?? 0),
+        huella: (c.req.header('x-huella') ?? '').toLowerCase(),
+      },
+      cuerpo,
+    );
+    if (r.estado === 'plan') {
+      return c.json(
+        { estado: 'plan', motivo: 'Vender productos digitales es de los planes Pro e IA Pro.' },
+        403,
+      );
+    }
+    if (r.estado === 'problemas') return c.json(r, 422);
+    if (r.estado === 'no-existe')
+      return c.json({ estado: 'no-existe', motivo: 'Esa combinación ya no está.' }, 404);
+    return c.json(r);
+  });
+  app.get('/api/panel/v1/digitales', async (c) => {
+    const q = delCatalogo(c);
+    if (q instanceof Response) return q;
+    return c.json(await archivosDeLaTienda(q));
+  });
+
   app.post('/api/panel/v1/medios/subir', async (c) => {
     const q = delCatalogo(c);
     if (q instanceof Response) return q;
@@ -2682,6 +2782,7 @@ export async function alCron(env: Env, instante: number): Promise<void> {
       ...(kekTexto ? { kekTexto } : {}),
       ...(saas ? { saas } : {}),
       ...(env.SITIOS ? { almacen: env.SITIOS as unknown as AlmacenDeRespaldos } : {}),
+      ...(env.DIGITALES ? { digitales: env.DIGITALES } : {}),
       ...(env.MEDIOS ? { medios: env.MEDIOS } : {}),
       ...(env.VITRINA_RELEASE ? { release: env.VITRINA_RELEASE } : {}),
       // HU-T14.6: el dataset de la medición, el mismo que `generar-wrangler.ts` enlaza.

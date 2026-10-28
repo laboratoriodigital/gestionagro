@@ -319,7 +319,33 @@ describe('el tablero (HU-T14.2)', () => {
       cobrosARevisar: 1,
       // La camisa L azul tiene 0.
       agotados: 1,
+      // Sin un mínimo en Avisos, ninguna está «por agotarse».
+      porAgotarse: 0,
     });
+  });
+
+  it('HU-P2.2 · con «Avisarme cuando queden» en Avisos, las que llegaron a ese número; ❌ las agotadas no', async () => {
+    const poner = (datos: unknown) =>
+      shard
+        .prepare(
+          `INSERT INTO ajuste (org_id, seccion, esquema, datos, actualizado, actualizado_por)
+           VALUES (?, 'avisos', 1, ?, '2026-10-27T00:00:00.000Z', 'usuario:prueba')
+           ON CONFLICT (org_id, seccion) DO UPDATE SET datos = excluded.datos`,
+        )
+        .bind(UNO, JSON.stringify(datos))
+        .run();
+    const variantes = await shard
+      .prepare(
+        'SELECT stock - reservado AS quedan FROM variante WHERE org_id = ? AND activa = 1 AND stock IS NOT NULL',
+      )
+      .bind(UNO)
+      .all<{ quedan: number }>();
+    const minimo = 1000;
+    await poner({ stockBajo: minimo });
+    const esperadas = variantes.results.filter((v) => v.quedan > 0 && v.quedan <= minimo).length;
+    expect(esperadas).toBeGreaterThan(0);
+    expect((await pedirTablero()).pendientes.porAgotarse).toBe(esperadas);
+    await poner({});
   });
 
   it('CA1: el margen de la contraentrega del mes, con sus dos fletes', async () => {

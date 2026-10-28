@@ -585,8 +585,14 @@ export function crearDespacho(
         });
       }
       if (esDeLaApi(url.pathname)) {
-        // HU-T8.6: desde la vista previa no se pide, no se paga ni se mide.
-        if (solicitud.method !== 'GET' && solicitud.method !== 'HEAD' && desdeLaVista(solicitud)) {
+        // HU-T8.6: desde la vista previa no se pide, no se paga ni se mide. Cotizar sí (27 oct
+        // 2026): solo lee, y sin él el carrito de la vista no mostraba promociones ni cupones.
+        if (
+          solicitud.method !== 'GET' &&
+          solicitud.method !== 'HEAD' &&
+          url.pathname !== '/api/v1/cotizar' &&
+          desdeLaVista(solicitud)
+        ) {
           return url.pathname === '/_m'
             ? new Response(null, { status: 204 })
             : Response.json(

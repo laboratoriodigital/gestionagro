@@ -96,10 +96,17 @@ export function descuentoPorCantidad(
   return descuento;
 }
 
-export type Cupon =
+export type Cupon = (
   | { tipo: 'porcentaje'; porcentaje: number; minimoCop?: number }
   | { tipo: 'valor'; valorCop: number; minimoCop?: number }
-  | { tipo: 'envio_gratis'; minimoCop?: number };
+  | { tipo: 'envio_gratis'; minimoCop?: number }
+) & {
+  /**
+   * HU-P1.3: los productos en que aplica. Sin él, todo el carrito. Con él, el descuento sale de esas
+   * líneas (después de su promoción) y nunca pasa de su valor; sin ninguna, el cupón no aplica.
+   */
+  productos?: readonly string[];
+};
 
 export interface Envio {
   precioCop: number;
@@ -107,7 +114,7 @@ export interface Envio {
   gratisDesdeCop: number | null;
 }
 
-export type Aviso = 'cupon_bajo_el_minimo';
+export type Aviso = 'cupon_bajo_el_minimo' | 'cupon_no_aplica';
 
 export interface Total {
   subtotal: number;
@@ -166,13 +173,24 @@ export function calcularTotal(entrada: {
     if (l.producto === undefined || !Object.hasOwn(promociones, l.producto)) continue;
     porProducto.set(l.producto, [...(porProducto.get(l.producto) ?? []), l]);
   }
+  const promoDe = new Map<string, number>();
   for (const [producto, suyas] of [...porProducto].sort(([a], [b]) => (a < b ? -1 : 1))) {
-    descuentoPromociones += descuentoPorCantidad(
-      suyas,
-      promociones[producto] as PromocionPorCantidad,
-    );
+    const d = descuentoPorCantidad(suyas, promociones[producto] as PromocionPorCantidad);
+    promoDe.set(producto, d);
+    descuentoPromociones += d;
   }
-  const base = subtotal - descuentoPromociones;
+  // HU-P1.3: la base del cupón es la de sus productos, si los nombra.
+  const delCupon = entrada.cupon?.productos ? new Set(entrada.cupon.productos) : null;
+  const suyasDelCupon = delCupon
+    ? lineas.filter((l) => l.producto !== undefined && delCupon.has(l.producto))
+    : lineas;
+  const base = delCupon
+    ? suyasDelCupon.reduce((s, l) => s + l.precioCop * l.cantidad, 0) -
+      [...new Set(suyasDelCupon.map((l) => l.producto as string))].reduce(
+        (s, p) => s + (promoDe.get(p) ?? 0),
+        0,
+      )
+    : subtotal - descuentoPromociones;
 
   const avisos: Aviso[] = [];
   const cupon = entrada.cupon ?? null;
@@ -180,7 +198,9 @@ export function calcularTotal(entrada: {
   let envioGratisPorCupon = false;
   if (cupon) {
     const minimo = cupon.minimoCop === undefined ? 0 : pesos(cupon.minimoCop, 'cupon.minimoCop');
-    if (base < minimo) {
+    if (delCupon && suyasDelCupon.length === 0) {
+      avisos.push('cupon_no_aplica');
+    } else if (base < minimo) {
       avisos.push('cupon_bajo_el_minimo');
     } else if (cupon.tipo === 'porcentaje') {
       const p = cupon.porcentaje;

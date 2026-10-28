@@ -113,7 +113,7 @@ export function Varios({
         rutaDeProductos({ q: buscar.trim() }),
       );
       if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
-      if (r.tipo === 'ok') setProductos(r.datos.productos);
+      if (r.tipo === 'ok') setProductos(r.datos.productos ?? []);
     }, 250);
     return () => clearTimeout(t);
   }, [conexion, buscar, alVencer]);
@@ -121,7 +121,7 @@ export function Varios({
     void (async () => {
       const r = await pedirAlPanel<{ colecciones: ColeccionDelPanel[] }>(conexion, 'colecciones');
       if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
-      if (r.tipo === 'ok') setColecciones(r.datos.colecciones);
+      if (r.tipo === 'ok') setColecciones(r.datos.colecciones ?? []);
     })();
   }, [conexion, alVencer]);
 

@@ -160,7 +160,7 @@ export async function listarVenta(q: Quien): Promise<{ envios: Envio[]; cupones:
       .all<FilaDeEnvio>(),
     q.db
       .prepare(
-        `SELECT codigo, tipo, valor, minimo_cop, desde, hasta, usos_maximos, usos, activo, version
+        `SELECT codigo, tipo, valor, minimo_cop, desde, hasta, usos_maximos, usos, activo, version, alcance
            FROM cupon WHERE org_id = ? AND borrado IS NULL ORDER BY codigo`,
       )
       .bind(q.org)
@@ -327,6 +327,13 @@ interface FilaDeCupon {
   usos: number;
   activo: number;
   version: number;
+  alcance: string | null;
+}
+
+/** HU-P1.3: dónde aplica un cupón; `null`, en todo el carrito. */
+export interface AlcanceDelCupon {
+  productos: string[];
+  colecciones: string[];
 }
 
 export interface Cupon {
@@ -343,7 +350,18 @@ export interface Cupon {
   usos: number;
   activo: boolean;
   version: number;
+  alcance: AlcanceDelCupon | null;
 }
+
+const alcanceDe = (t: string | null): AlcanceDelCupon | null => {
+  if (!t) return null;
+  try {
+    const a = JSON.parse(t) as Partial<AlcanceDelCupon>;
+    return { productos: a.productos ?? [], colecciones: a.colecciones ?? [] };
+  } catch {
+    return null;
+  }
+};
 
 const cuponDe = (c: FilaDeCupon): Cupon => ({
   codigo: c.codigo,
@@ -356,6 +374,7 @@ const cuponDe = (c: FilaDeCupon): Cupon => ({
   usos: c.usos,
   activo: c.activo === 1,
   version: c.version,
+  alcance: alcanceDe(c.alcance),
 });
 
 const Codigo = z
@@ -384,12 +403,26 @@ const GuardarCupon = z.object({
     .nullable()
     .default(null),
   activo: z.boolean().default(true),
+  /** HU-P1.3: los productos y las categorías en que aplica; vacío o `null`, en todo el carrito. */
+  alcance: z
+    .object({
+      productos: z
+        .array(z.string().regex(/^[A-Za-z0-9_-]{1,80}$/))
+        .max(50)
+        .default([]),
+      colecciones: z
+        .array(z.string().regex(/^[A-Za-z0-9_-]{1,80}$/))
+        .max(20)
+        .default([]),
+    })
+    .nullable()
+    .default(null),
 });
 
 const leerCupon = (q: Quien, codigo: string) =>
   q.db
     .prepare(
-      `SELECT codigo, tipo, valor, minimo_cop, desde, hasta, usos_maximos, usos, activo, version, borrado
+      `SELECT codigo, tipo, valor, minimo_cop, desde, hasta, usos_maximos, usos, activo, version, alcance, borrado
          FROM cupon WHERE org_id = ? AND codigo = ?`,
     )
     .bind(q.org, codigo)
@@ -439,6 +472,9 @@ export async function guardarCupon(q: Quien, cuerpo: unknown): Promise<Resultado
     d.hasta === null ? null : fin(d.hasta),
     d.usosMaximos,
     d.activo ? 1 : 0,
+    d.alcance && (d.alcance.productos.length > 0 || d.alcance.colecciones.length > 0)
+      ? JSON.stringify(d.alcance)
+      : null,
   ] as const;
   const r: Resultado = { estado: 'guardado', id: d.codigo, version: (fila?.version ?? 0) + 1 };
   // Uno en la papelera con el mismo código vuelve con lo nuevo y conserva sus usos: ya pasaron.
@@ -447,7 +483,7 @@ export async function guardarCupon(q: Quien, cuerpo: unknown): Promise<Resultado
         q.db
           .prepare(
             `UPDATE cupon SET tipo = ?, valor = ?, minimo_cop = ?, desde = ?, hasta = ?, usos_maximos = ?, activo = ?,
-               borrado = NULL, version = version + 1
+               alcance = ?, borrado = NULL, version = version + 1
              WHERE org_id = ? AND codigo = ? AND version = ?`,
           )
           .bind(...valores, q.org, d.codigo, fila.version),
@@ -456,8 +492,8 @@ export async function guardarCupon(q: Quien, cuerpo: unknown): Promise<Resultado
     : [
         q.db
           .prepare(
-            `INSERT INTO cupon (org_id, codigo, tipo, valor, minimo_cop, desde, hasta, usos_maximos, activo)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO cupon (org_id, codigo, tipo, valor, minimo_cop, desde, hasta, usos_maximos, activo, alcance)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(q.org, d.codigo, ...valores),
       ];
@@ -478,6 +514,7 @@ export async function guardarCupon(q: Quien, cuerpo: unknown): Promise<Resultado
         hasta: d.hasta,
         usosMaximos: d.usosMaximos,
         activo: d.activo,
+        alcance: d.alcance,
       }),
       instante: q.instante,
     }),

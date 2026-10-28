@@ -1223,11 +1223,19 @@ async function desplegarLaLanding(dest: Destino, cred: Credenciales, panel: stri
     return { ok: false, detalle: ['la landing de TiendaPro no está armada: falta su build'] };
   }
   armarLaLandingPara(dist, dest);
-  const deploy = wrangler(
-    '@ed1/tiendapro-sitio',
-    `deploy ${dest === 'staging' ? '--env staging' : '--env='}`,
-    cred,
-  );
+  // Bitácora tienda3 64: la subida de los archivos puede fallar una vez sin causa (código 10013);
+  // se reintenta tres veces antes de detener el despliegue.
+  let deploy = { ok: false, salida: '' };
+  for (let intento = 1; intento <= 3; intento++) {
+    deploy = wrangler(
+      '@ed1/tiendapro-sitio',
+      `deploy ${dest === 'staging' ? '--env staging' : '--env='}`,
+      cred,
+    );
+    if (deploy.ok) break;
+    console.log(`  la landing no subió (intento ${intento}); reintento en ${intento * 10} s`);
+    await new Promise((listo) => setTimeout(listo, intento * 10_000));
+  }
   if (!deploy.ok) {
     return {
       ok: false,

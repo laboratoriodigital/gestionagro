@@ -100,6 +100,11 @@ export interface Tablero {
     pagosSinExistencias: number;
     cobrosARevisar: number;
     agotados: number;
+    /**
+     * HU-P2.2: las que quedan en su mínimo o por debajo, sin estar agotadas. El mínimo es el de la
+     * combinación (`umbral_bajo`) o, si no tiene, el de «Ajustes › Avisos» (`stockBajo`).
+     */
+    porAgotarse: number;
   };
   /**
    * HU-T14.6: la última semana cuadrada, la base frente a la medición; `null` si no hay. Las
@@ -141,6 +146,30 @@ export async function cifras(q: Quien, p: Periodo): Promise<Cifras> {
   };
 }
 
+/**
+ * HU-P2.2: las que quedan en el mínimo de «Ajustes › Avisos» o por debajo, sin estar agotadas. Sin
+ * mínimo no se cuenta nada; con él, el índice `variante_por_quedan` lee solo esas.
+ */
+async function porAgotarseEn(q: Quien): Promise<number> {
+  const a = await q.db
+    .prepare(
+      "SELECT json_extract(datos, '$.stockBajo') AS minimo FROM ajuste WHERE org_id = ? AND seccion = 'avisos'",
+    )
+    .bind(q.org)
+    .first<{ minimo: number | null }>();
+  const minimo = Number(a?.minimo ?? 0);
+  if (!Number.isInteger(minimo) || minimo < 1) return 0;
+  return cuenta(
+    q,
+    `SELECT count(*) AS n FROM variante v INDEXED BY variante_por_quedan
+         JOIN producto p ON p.org_id = ? AND p.id = v.producto_id
+        WHERE v.org_id = ? AND v.activa = 1 AND v.stock IS NOT NULL AND p.borrado IS NULL
+          AND v.stock - v.reservado BETWEEN 1 AND ?`,
+    q.org,
+    minimo,
+  );
+}
+
 const cuenta = async (q: Quien, sql: string, ...mas: unknown[]) =>
   (
     await q.db
@@ -159,6 +188,7 @@ export async function tablero(q: Quien, ahoraMs: number): Promise<Tablero> {
     sinLiquidar,
     cobros,
     agotados,
+    porAgotarse,
     solicitudes,
     cuadre,
     ce,
@@ -189,6 +219,7 @@ export async function tablero(q: Quien, ahoraMs: number): Promise<Tablero> {
             AND v.stock IS NOT NULL AND v.stock <= v.reservado`,
       q.org,
     ),
+    porAgotarseEn(q),
     listarSolicitudes(q, ahoraMs),
     ultimoCuadre(q.db, q.org),
     q.db
@@ -224,6 +255,7 @@ export async function tablero(q: Quien, ahoraMs: number): Promise<Tablero> {
       pagosSinExistencias: solicitudes.reembolsos.length,
       cobrosARevisar: cobros,
       agotados,
+      porAgotarse,
     },
     cuadre,
     contraentrega: {
