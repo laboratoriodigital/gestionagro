@@ -1192,3 +1192,21 @@ La regla: **una caja que no subió nada no tiene números que defender; no le ci
 *Confirmado en producción.* «Ahora sí funcionó bien: subí a la nube la primera caja, los registros se fueron subiendo rápido, y la otra caja inmediatamente ya los veía, se configuró automáticamente y pudo registrar con otra numeración» (el dueño, 27 oct 2026).
 
 *Ficha:* parqueadero · *(mío)* · 🔴 Alto · P1, P21 · parqueadero-0.9.2 · 2026-10-27
+
+**45 · El recibo de una mensualidad solo se podía imprimir en la pantalla del cobro.**
+
+*Qué pasó.* El 28 oct 2026 el dueño no encontró cómo imprimir el recibo de una mensualidad. «Imprimir recibo» solo aparecía justo después de cobrarla; al salir de esa pantalla, solo volvía si el papel había fallado (entregas pendientes, bitácora 42).
+
+*Síntoma literal.* «No aparece la opción de imprimir recibo de una mensualidad» (el dueño).
+
+*Causa raíz.* Dos cosas mías. La ficha del abonado mostraba el número del último pago pero no ofrecía imprimirlo. Y `entregasDe` buscaba las impresiones de un recibo por su estadía: una mensualidad no tiene estadía, así que nunca encontraba las suyas y la pantalla del cobro contaba las copias solo en la memoria de esa vista. Abierta otra vez, una mensualidad ya impresa habría salido sin «COPIA».
+
+*Cómo se reprodujo.* En `mensualidades.test.ts`: después de dos impresiones, `vecesImpreso` de la mensualidad daba 0.
+
+*Arreglo.* La ficha del abonado tiene «Imprimir recibo» para el último pago, y abre la misma pantalla del cobro. `entregasDe` busca las de una mensualidad entre las entregas, por el recibo. La pantalla cuenta las copias desde la base, como el recibo de entrada y salida. Sale en la `0.9.3`.
+
+**Lo prueban** `mensualidades.test.ts` (las veces de cada mensualidad, sin mezclarse con otra) y la e2e de HU-Q8.4 (desde la ficha sale «COPIA 1»).
+
+La regla: **todo recibo que la caja da se puede volver a imprimir desde donde el cajero lo busca, y su cuenta de copias no depende de cómo se llegó a él.**
+
+*Ficha:* parqueadero · *(mío)* · 🟡 Medio · P1 · parqueadero-0.9.3 · 2026-10-28

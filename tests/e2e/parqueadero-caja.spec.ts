@@ -786,6 +786,19 @@ test.describe('la caja del parqueadero', () => {
     await revisar();
     await page.getByRole('button', { name: 'Volver a abonados' }).click();
 
+    // HU-Q13.10: desde la ficha del abonado, el recibo de su último pago; ya salió, así que es copia.
+    await page.getByTestId('abonado-fila').filter({ hasText: 'MNO78F' }).click();
+    await expect(page.getByTestId('detalle-abonado')).toContainText('A-000001');
+    await page.getByRole('button', { name: 'Imprimir recibo' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mensualidad A-000001');
+    const antesDeLaCopia = (await bytesImpresos(page)).length;
+    await page.getByRole('button', { name: 'Reimprimir' }).click();
+    await expect(page.getByTestId('estado-del-papel')).toHaveText('Copia 1 enviada a la impresora');
+    const copia = (await bytesImpresos(page)).slice(antesDeLaCopia);
+    expect(copia).toContain('COPIA 1');
+    expect(copia).toContain('A-000001');
+    await page.getByRole('button', { name: 'Volver a abonados' }).click();
+
     // HU-Q8.4 CA2: ocho días después, la lista y la entrada dicen que vence pronto.
     await page.clock.setFixedTime(new Date('2026-10-28T17:00:00Z'));
     await page.getByRole('button', { name: 'Volver al inicio' }).click();

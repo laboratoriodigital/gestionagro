@@ -44,6 +44,7 @@ import {
   pagadoHastaDeLosAbonados,
   pagosDelAbonado,
   registrarEntrega,
+  vecesImpreso,
 } from './almacen.ts';
 import type { BaseDeLaCaja } from './datos.ts';
 import { diaLocalBogota } from './fecha.ts';
@@ -350,6 +351,7 @@ export function Abonados({ db, ctx, control, mensualidad, alVolver }: Props) {
         a={elegido}
         estado={textoDeLaCuenta(cuenta(elegido))}
         alCobrar={() => setVista({ es: 'cobrar', id: elegido.id, primero: false })}
+        alImprimir={(pago) => setVista({ es: 'cobrado', pago })}
         alEditar={() => abrir(deAbonado(elegido))}
         alVolver={volverALaLista}
       />
@@ -443,6 +445,7 @@ function Detalle({
   a,
   estado,
   alCobrar,
+  alImprimir,
   alEditar,
   alVolver,
 }: {
@@ -451,6 +454,8 @@ function Detalle({
   readonly a: Abonado;
   readonly estado: string;
   readonly alCobrar: () => void;
+  /** El recibo del último pago, para imprimirlo o reimprimirlo (HU-Q13.10). */
+  readonly alImprimir: (pago: Registro) => void;
   readonly alEditar: () => void;
   readonly alVolver: () => void;
 }) {
@@ -497,6 +502,11 @@ function Detalle({
         </button>
       ) : (
         <p class="ayuda">Está inactivo: actívelo en «Editar» antes de cobrar.</p>
+      )}
+      {ultimo?.serie && ultimo.consecutivo !== null && (
+        <button type="button" class="boton" onClick={() => alImprimir(ultimo)}>
+          Imprimir recibo
+        </button>
       )}
       <button type="button" class="boton" onClick={alEditar}>
         Editar
@@ -675,7 +685,9 @@ function Cobrado({
   readonly alVolver: () => void;
 }) {
   const [estado, setEstado] = useState('');
-  const [veces, setVeces] = useState(0);
+  // Las veces que salió en papel, en esta caja o antes: desde la ficha o las entregas pendientes,
+  // un recibo ya impreso sale como copia (HU-Q13.10).
+  const veces = useConsulta(() => vecesImpreso(db, pago), 0, [pago.id]);
   const d = pago.datos as DatosDePagoAbonado;
   const numero = pago.serie && pago.consecutivo ? numeroDeRecibo(pago.serie, pago.consecutivo) : '';
 
@@ -685,14 +697,14 @@ function Cobrado({
       db.impresora.get('actual'),
       leerAjustes(db),
     ]);
-    const copia = veces > 0;
+    const n = await vecesImpreso(db, pago);
+    const copia = n > 0;
     const bloques = papelDeLaMensualidad(pago, sede, {
       columnas: impresora?.columnas ?? 32,
       paginaDeCodigos: impresora?.paginaDeCodigos ?? 'cp850',
       pie: ajuste?.pie ?? null,
     });
-    if (copia)
-      bloques.unshift({ tipo: 'texto', texto: `*** COPIA ${veces} ***`, alinear: 'centro' });
+    if (copia) bloques.unshift({ tipo: 'texto', texto: `*** COPIA ${n} ***`, alinear: 'centro' });
     const r = await control.imprimir(bloques, undefined, pago.id);
     if (r.ok) {
       await registrarEntrega(
@@ -701,12 +713,11 @@ function Cobrado({
         { canal: 'papel', copia, camino: impresora?.camino ?? null, resultado: 'enviado' },
         ctx,
       );
-      setVeces(veces + 1);
     }
     setEstado(
       r.ok
         ? copia
-          ? `Copia ${veces} enviada a la impresora`
+          ? `Copia ${n} enviada a la impresora`
           : 'Enviado a la impresora'
         : 'No salió: la impresora no está conectada o no respondió.',
     );

@@ -19,6 +19,8 @@ import {
   NoSeCobra,
   pagosDelAbonado,
   registrarEntrada,
+  registrarEntrega,
+  vecesImpreso,
 } from './almacen.ts';
 import { abrirBase } from './datos.ts';
 import { SinTurno } from './turno.ts';
@@ -117,5 +119,24 @@ describe('cobrar una mensualidad (HU-Q8.4)', () => {
     await anular(db, pago.id, { motivo: 'cobró dos veces', pin: '2468', operador: 'Caja 1' }, ctx);
     expect((await leerAbonados(db))[0]?.hasta).toBe('2026-10-31');
     expect(await pagosDelAbonado(db, abonado.id)).toEqual([]);
+  });
+
+  it('HU-Q13.10 · cuenta las veces que el recibo de una mensualidad salió en papel', async () => {
+    const { db, ctx, abonado } = await caja();
+    await abrirTurno(db, { operador: 'Caja 1', base: 0 }, ctx);
+    const pago = await cobrarMensualidad(db, abonado.id, NOVIEMBRE, ctx);
+    const otro = await cobrarMensualidad(
+      db,
+      abonado.id,
+      { ...NOVIEMBRE, desde: '2026-12-01', hasta: '2026-12-31' },
+      ctx,
+    );
+    const papel = { canal: 'papel', copia: false, camino: null, resultado: 'enviado' } as const;
+    expect(await vecesImpreso(db, pago)).toBe(0);
+    await registrarEntrega(db, pago, papel, ctx);
+    await registrarEntrega(db, pago, { ...papel, copia: true }, ctx);
+    await registrarEntrega(db, otro, papel, ctx);
+    expect(await vecesImpreso(db, pago)).toBe(2);
+    expect(await vecesImpreso(db, otro)).toBe(1);
   });
 });

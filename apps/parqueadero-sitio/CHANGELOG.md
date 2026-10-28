@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.9.3] - 2026-10-28
+
+El recibo de una mensualidad se imprime cuando lo pidan.
+
+### Corregido
+- La ficha del abonado tiene «Imprimir recibo» para su último pago: ya no hace falta imprimirlo en el momento del cobro. Si ya había salido en papel, sale como copia (HU-Q13.10, bitácora 45).
+
 ## [0.9.2] - 2026-10-27
 
 El teléfono del parqueadero sube a la nube aunque otro haya entrado antes sin subir nada.
