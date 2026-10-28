@@ -511,7 +511,7 @@ Refinadas, con sus criterios, bocetos y work items, en `BACKLOG-PARKING_MVP.md` 
 - **Work items:** WI-Q7.11.1 `[dueño]` datos de Laboratorio Digital como encargado · WI-Q7.11.2 `[código]` · WI-Q7.11.3 `[prueba]` · WI-Q7.11.4 `[doc]` política y términos.
 
 #### HU-Q7.12 · M1 en producción: dos cajas sin red que no repiten números
-- **Capa:** aceptación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q12 · **Depende de:** HU-Q7.1 a HU-Q7.11, HU-Q7.13, HU-Q10.1 · **Estado:** En validación (13 oct 2026): el dueño pidió M1 en producción con la caja del cliente ya en operación. Se publica con la `0.5.0` (y el CORE `0.5.0`, por el directorio y el precio) **antes** de la prueba de dos cajas, que va después en el campo (`docs/parking/validacion/m1-dos-cajas.md`). Pendientes: CA1 y CA2 en el campo, CA3 (la humo de producción no revisa todavía los parqueaderos de prueba) y WI-Q7.12.4 (la revisión del abogado)
+- **Capa:** aceptación · **Prioridad:** Must · **Puntos:** 2 · **Sprint:** Q12 · **Depende de:** HU-Q7.1 a HU-Q7.11, HU-Q7.13, HU-Q10.1 · **Estado:** En validación (13 oct 2026): el dueño pidió M1 en producción con la caja del cliente ya en operación. Se publica con la `0.5.0` (y el CORE `0.5.0`, por el directorio y el precio) **antes** de la prueba de dos cajas, que va después en el campo (`docs/parking/validacion/m1-dos-cajas.md`). 27 oct 2026, con la `0.9.2`: la caja del cliente subió a la nube con todo lo suyo y un segundo teléfono se sumó, bajó los ajustes y las entradas y registró con la serie B, con red (`m1-dos-cajas.md`). Pendientes: CA1 sin red en el campo, el respaldo semanal de CA2, CA3 (la humo de producción no revisa todavía los parqueaderos de prueba) y WI-Q7.12.4 (la revisión del abogado)
 - Como dueño, quiero ver el criterio de M1 cumplido en producción con el cliente, para publicar `v0.5.0` sabiendo que funciona.
 - **Respaldo:** PARQUEADERO §18 (criterio de M1).
 - **CA1.** En producción, dos teléfonos sin red registran entradas y salidas de la misma sede, se conectan y quedan con los mismos registros, sin números repetidos ni perdidos. Lo registra `docs/parking/validacion/m1-dos-cajas.md`.
@@ -878,11 +878,12 @@ Pedido del dueño del 14 oct 2026, con el primer parqueadero ya operando. Sin el
 - **CA3 ❌.** Una placa que no cabe con el vehículo en la mitad de las columnas va sola, y el vehículo debajo en letra normal: ninguna línea se sale del papel.
 
 #### HU-Q13.9 · Una caja que no subió nada no bloquea la del parqueadero
-- **Capa:** API de la celda · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q13 · **Estado:** En revisión (rama `fix/caja-vacia-no-bloquea`)
+- **Capa:** API de la celda · **Prioridad:** Must · **Puntos:** 1 · **Sprint:** Q13 · **Estado:** Hecha (`v0.9.2`, 27 oct 2026)
 - Como propietario, quiero subir a la nube la caja donde está mi parqueadero aunque otra haya entrado antes sin subir nada, para sumar un segundo teléfono sin configurar todo de nuevo.
 - **Respaldo:** el dueño, 2026-10-27: «al registrar una nueva caja con la misma cuenta en otro celular no se ven las entradas con numeración A», y en la caja del parqueadero «Este parqueadero ya tiene cajas en la nube…». Bitácora 44.
 - **CA1.** `POST /api/v1/reclamar` acepta la caja que trae la sede cuando el parqueadero no tiene registros ni ajustes en la nube y sus cajas entraron hace más de una hora: las reemplaza y la caja conserva su serie y sus números.
 - **CA2 ❌.** Una caja de menos de una hora, o un parqueadero con algo en la nube, sigue cerrando el paso (`con-cajas`). Lo que la caja reemplazada suba con su serie va a cuarentena.
+- **Confirmado en producción:** «Ahora sí funcionó bien: subí a la nube la primera caja, los registros se fueron subiendo rápido, y la otra caja inmediatamente ya los veía, se configuró automáticamente y pudo registrar con otra numeración» (el dueño, 27 oct 2026).
 
 ---
 

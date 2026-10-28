@@ -1189,4 +1189,6 @@ La regla: **lo que la caja da por perdido tiene que estar perdido de verdad; y l
 
 La regla: **una caja que no subió nada no tiene números que defender; no le cierra el paso a la que sí los tiene.**
 
+*Confirmado en producción.* «Ahora sí funcionó bien: subí a la nube la primera caja, los registros se fueron subiendo rápido, y la otra caja inmediatamente ya los veía, se configuró automáticamente y pudo registrar con otra numeración» (el dueño, 27 oct 2026).
+
 *Ficha:* parqueadero · *(mío)* · 🔴 Alto · P1, P21 · parqueadero-0.9.2 · 2026-10-27
