@@ -355,7 +355,14 @@ export const CAMPOS: Record<Seccion, readonly CampoDeAjuste[]> = {
   avisos: [
     { campo: 'correo', etiqueta: 'Correo para los avisos', tipo: 'correo' },
     { campo: 'hora', etiqueta: 'Hora del resumen (HH:MM)', tipo: 'texto' },
-    { campo: 'stockBajo', etiqueta: 'Avisarme cuando queden', tipo: 'numero' },
+    {
+      campo: 'stockBajo',
+      etiqueta: 'Avisarme cuando queden',
+      tipo: 'numero',
+      // HU-P2.2: el Inicio y el resumen diario dicen cuáles llegaron a este número.
+      ayuda:
+        'El Inicio y el resumen de la mañana te dicen qué combinaciones llegaron a este número, para reponer a tiempo.',
+    },
   ],
 };
 

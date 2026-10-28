@@ -261,6 +261,8 @@ function avisos(cot: Cotizacion): string[] {
         return 'El cupón no es válido.';
       case 'cupon_bajo_el_minimo':
         return 'El cupón pide una compra mayor.';
+      case 'cupon_no_aplica':
+        return 'El cupón no aplica a estos productos.';
       case 'envio_invalido':
         return 'Esa opción de envío no existe.';
       case 'carrito_vacio':

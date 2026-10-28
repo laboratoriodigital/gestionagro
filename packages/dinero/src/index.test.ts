@@ -254,3 +254,34 @@ describe('HU-P1.2 · las promociones por cantidad', () => {
     ).toThrow(MontoIlegible);
   });
 });
+
+describe('HU-P1.3 · el cupón solo en algunos productos', () => {
+  const lineas = [
+    { precioCop: 100_000, cantidad: 1, producto: 'camisa' },
+    { precioCop: 20_000, cantidad: 2, producto: 'jabon' },
+  ];
+
+  it('el porcentaje sale de sus productos, no del carrito entero', () => {
+    const r = calcularTotal({
+      lineas,
+      cupon: { tipo: 'porcentaje', porcentaje: 10, productos: ['jabon'] },
+    });
+    expect(r.descuentoCupon).toBe(4_000);
+  });
+
+  it('un valor no pasa del valor de sus productos', () => {
+    const r = calcularTotal({
+      lineas,
+      cupon: { tipo: 'valor', valorCop: 50_000, productos: ['jabon'] },
+    });
+    expect(r.descuentoCupon).toBe(40_000);
+  });
+
+  it('❌ sin ninguno de sus productos no aplica y lo dice', () => {
+    const r = calcularTotal({
+      lineas,
+      cupon: { tipo: 'porcentaje', porcentaje: 10, productos: ['vela'] },
+    });
+    expect(r).toMatchObject({ descuentoCupon: 0, avisos: ['cupon_no_aplica'] });
+  });
+});

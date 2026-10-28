@@ -43,6 +43,10 @@
     {
       "binding": "FOTOS",
       "bucket_name": "tienda-c1-medios"
+    },
+    {
+      "binding": "DIGITALES",
+      "bucket_name": "tienda-c1-digitales"
     }
   ],
   "triggers": {
@@ -184,6 +188,10 @@
         {
           "binding": "FOTOS",
           "bucket_name": "tienda-c1-medios-staging"
+        },
+        {
+          "binding": "DIGITALES",
+          "bucket_name": "tienda-c1-digitales-staging"
         }
       ],
       "triggers": {

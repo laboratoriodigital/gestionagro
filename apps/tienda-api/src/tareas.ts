@@ -37,6 +37,7 @@ import { CONCILIAR } from './conciliar.ts';
 import { cancelarPreparadosVencidos, HORAS_PARA_CONFIRMAR } from './confirmar.ts';
 import { CORREOS } from './correos.ts';
 import { cuadrarTiendas, ventanaDeLaSemana } from './cuadre.ts';
+import type { BucketDigital } from './digitales.ts';
 import { revisarDominios } from './dominios.ts';
 import { FRENO_R2 } from './freno-r2.ts';
 import { claveDelHost, direccionesDelPlan, punteroDelHost } from './hosts.ts';
@@ -67,6 +68,8 @@ export interface EntornoDeTareas {
   telegram: { token: string | undefined; chat: string | undefined };
   /** El almacén de la celda (`SITIOS`), donde van los respaldos; sin él, la semanal falla. */
   almacen?: AlmacenDeRespaldos;
+  /** HU-P6.1: el bucket privado de los productos digitales; la baja borra sus archivos. */
+  digitales?: BucketDigital;
   /** El host de las fotos (`MEDIOS`): los respaldos las nombran por su enlace. */
   medios?: string;
   /** La KEK de la celda: la conciliación descifra con ella las llaves de Bold (HU-T11.6). */
@@ -628,6 +631,7 @@ export const BAJAS: Tarea = {
     const r = await borrarLasBajas({
       shards: e.shards,
       ...(e.almacen ? { almacen: e.almacen } : {}),
+      ...(e.digitales ? { digitales: e.digitales } : {}),
       instante: new Date(instante).toISOString(),
     });
     return r.borradas.length > 0

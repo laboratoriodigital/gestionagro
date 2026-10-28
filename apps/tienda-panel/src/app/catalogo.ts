@@ -37,6 +37,8 @@ export interface ProductoDelPanel {
   nuevo?: boolean;
   /** HU-P1.2: la promoción por cantidad, como la guardó la API. */
   promocion?: PromocionDelPanel | null;
+  /** HU-P6.1: físico o digital. */
+  tipo?: 'fisico' | 'digital';
   ivaPct: number | null;
   variantes: {
     id: string;
@@ -149,6 +151,7 @@ export interface FormularioDeProducto {
   destacado?: boolean;
   nuevo?: boolean;
   promocion?: PromocionEnPantalla;
+  tipo?: 'fisico' | 'digital';
 }
 
 export const ESTADOS: readonly { id: string; texto: string }[] = [
@@ -224,6 +227,7 @@ export function formularioDe(p: ProductoDelPanel | null): FormularioDeProducto {
     destacado: p?.destacado ?? false,
     nuevo: p?.nuevo ?? false,
     promocion: promocionEnPantalla(p?.promocion ?? null),
+    tipo: p?.tipo ?? 'fisico',
   };
 }
 
@@ -270,7 +274,13 @@ export function cuerpoDe(
     const c = combinacion(f, clave);
     if (!c.vende) return [];
     enviadas.push(clave);
-    const stock = c.noSeCuenta ? null : c.stock.trim() === '' ? undefined : Number(c.stock);
+    // HU-P6.1: un producto digital no cuenta existencias.
+    const stock =
+      f.tipo === 'digital' || c.noSeCuenta
+        ? null
+        : c.stock.trim() === ''
+          ? undefined
+          : Number(c.stock);
     return [
       {
         valores,
@@ -297,6 +307,7 @@ export function cuerpoDe(
       destacado: f.destacado ?? false,
       nuevo: f.nuevo ?? false,
       promocion: promocionDelCuerpo(f.promocion),
+      tipo: f.tipo ?? 'fisico',
     },
   };
 }
@@ -315,6 +326,7 @@ export function campoDelProblema(
     if (campo.startsWith('opciones')) return 'opciones';
     if (campo.startsWith('retracto')) return 'retracto';
     if (campo.startsWith('promocion')) return 'promocion';
+    if (campo === 'tipo') return 'tipo';
     return campo || 'nombre';
   }
   const clave = enviadas[Number(m[1])];

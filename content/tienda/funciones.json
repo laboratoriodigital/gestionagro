@@ -64,5 +64,10 @@
     "gratis": false,
     "pro": true,
     "ia-pro": true
+  },
+  "productos_digitales": {
+    "gratis": false,
+    "pro": true,
+    "ia-pro": true
   }
 }

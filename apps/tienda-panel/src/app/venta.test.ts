@@ -79,6 +79,7 @@ describe('el formulario de cupón', () => {
         hasta: '2026-10-31',
         usosMaximos: 50,
         activo: true,
+        alcance: null,
       },
     });
     expect(revisarCupon({ ...f, tipo: 'envio_gratis', valor: '' }).cuerpo.valor).toBe(0);

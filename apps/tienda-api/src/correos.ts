@@ -256,6 +256,9 @@ export function resumenDiario(d: DatosDelResumen): { asunto: string; texto: stri
     p.recaudosAtrasados &&
       `${cuantos(p.recaudosAtrasados, 'recaudo atrasado', 'recaudos atrasados')}: la transportadora lleva más de 3 días hábiles sin liquidar${p.recaudosAtrasados === 1 ? 'lo' : 'los'}.`,
     p.agotados && `${cuantos(p.agotados, 'variante agotada', 'variantes agotadas')}.`,
+    // HU-P2.2: las que llegaron a su mínimo, para reponer a tiempo.
+    p.porAgotarse &&
+      `${cuantos(p.porAgotarse, 'variante por agotarse', 'variantes por agotarse')}: repón antes de que se acaben.`,
     ...(d.esperan ?? []).map((e) => {
       const detalle = e.clave.split('|').filter(Boolean).join(', ');
       return `${cuantos(e.personas, 'persona espera', 'personas esperan')} ${e.nombre}${detalle ? ` (${detalle})` : ''}: avísales por WhatsApp cuando haya.`;

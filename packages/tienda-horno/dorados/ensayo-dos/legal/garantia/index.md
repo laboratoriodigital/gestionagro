@@ -18,4 +18,4 @@ El daño causado por el mal uso, por no seguir las instrucciones, o por el desga
 
 Escríbenos por [Solicitudes](/solicitud/) con tu código de pedido y una foto del defecto. Te respondemos dentro de los 15 días hábiles siguientes. También puedes escribirnos al ensayo-dos@ejemplo.test o al +57 300 000 0002.
 
-Versión 5 de las plantillas, del 27 de octubre de 2026.
+Versión 6 de las plantillas, del 28 de octubre de 2026.

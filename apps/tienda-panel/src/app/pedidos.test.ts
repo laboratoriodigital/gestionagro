@@ -9,6 +9,7 @@ import {
   FALTA_TRANSPORTADORA,
   type FilaDePedido,
   filtrar,
+  hojaDePedidos,
   plazoSinExistencias,
   revisarAnotado,
   revisarDespacho,
@@ -190,5 +191,32 @@ describe('pagado sin existencias (HU-T11.7 CA2)', () => {
     expect(textoDeAtencion({ atencion: 'monto', atencionDesde: null }, ahora)).toBe(
       'Cobro a revisar: el monto no cuadra',
     );
+  });
+});
+
+describe('HU-P3.2 · filtrar por fecha y por canal, y la hoja de lo filtrado', () => {
+  const base = { estado: '', forma: '', texto: '' };
+  const pedidos = [
+    pedido(1045, { canal: 'whatsapp', creado: '2026-10-20T15:00:00.000Z' }),
+    pedido(1046, { canal: 'agente', creado: '2026-10-21T04:30:00.000Z' }),
+    pedido(1047, { canal: 'panel', creado: '2026-10-22T15:00:00.000Z', ciudad: 'Cali, Valle' }),
+  ];
+
+  it('por canal, y desde y hasta el día de Colombia', () => {
+    expect(filtrar(pedidos, { ...base, canal: 'agente' }).map((p) => p.numero)).toEqual([1046]);
+    // 04:30 UTC del 21 es todavía el 20 en Colombia.
+    expect(filtrar(pedidos, { ...base, hasta: '2026-10-20' }).map((p) => p.numero)).toEqual([
+      1045, 1046,
+    ]);
+    expect(filtrar(pedidos, { ...base, desde: '2026-10-21' }).map((p) => p.numero)).toEqual([1047]);
+  });
+
+  it('la hoja: sin datos de los compradores, con la coma entre comillas', () => {
+    const hoja = hojaDePedidos(pedidos);
+    expect(hoja.startsWith('\uFEFFPedido,Día,Estado')).toBe(true);
+    expect(hoja).toContain(
+      '1047,2026-10-22,pendiente,Transferencia,Anotado en el panel,1,129000,"Cali, Valle"',
+    );
+    expect(hoja).not.toContain('Ensayo D.');
   });
 });

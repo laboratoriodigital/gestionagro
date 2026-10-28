@@ -451,6 +451,11 @@ export function CuponDeLaTienda({
           opcional
           numerico
         />
+        <SoloEn
+          conexion={conexion}
+          elegidas={f.colecciones ?? []}
+          alCambiar={(colecciones) => setF((x) => (x ? { ...x, colecciones } : x))}
+        />
         <Casilla
           id="activo"
           etiqueta="Se puede usar en la tienda"
@@ -481,5 +486,51 @@ export function CuponDeLaTienda({
         />
       ) : null}
     </main>
+  );
+}
+
+/**
+ * HU-P1.3 (sprint PF2): el cupón solo en algunas categorías. Sin ninguna marcada, vale para todo el
+ * carrito, como antes. El descuento nunca pasa del valor de esos productos.
+ */
+function SoloEn({
+  conexion,
+  elegidas,
+  alCambiar,
+}: {
+  conexion: Conexion;
+  elegidas: readonly string[];
+  alCambiar: (colecciones: string[]) => void;
+}) {
+  const [colecciones, setColecciones] = useState<{ id: string; nombre: string }[]>([]);
+  useEffect(() => {
+    void (async () => {
+      const r = await pedirAlPanel<{ colecciones: { id: string; nombre: string }[] }>(
+        conexion,
+        'colecciones',
+      );
+      if (r.tipo === 'ok') setColecciones(r.datos.colecciones ?? []);
+    })();
+  }, [conexion]);
+  if (colecciones.length === 0) return null;
+  return (
+    <fieldset class="ed1-grupo" id="solo-en">
+      <legend class="ed1-grupo__titulo">¿Solo en algunas categorías?</legend>
+      <p class="nota">Si no marcas ninguna, vale para todo el pedido.</p>
+      {colecciones.map((c) => (
+        <label class="casilla" key={c.id} for={`solo-en-${c.id}`}>
+          <input
+            id={`solo-en-${c.id}`}
+            type="checkbox"
+            checked={elegidas.includes(c.id)}
+            onChange={(e) => {
+              const si = (e.target as HTMLInputElement).checked;
+              alCambiar(si ? [...elegidas, c.id] : elegidas.filter((x) => x !== c.id));
+            }}
+          />
+          {c.nombre}
+        </label>
+      ))}
+    </fieldset>
   );
 }

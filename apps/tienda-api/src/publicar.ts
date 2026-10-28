@@ -159,6 +159,7 @@ interface FilaProducto {
   actualizado: string;
   seo: string;
   promocion: string | null;
+  tipo: 'fisico' | 'digital';
 }
 
 /**
@@ -387,7 +388,7 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     ajustes.cobro?.['ambiente'] === 'produccion' ? 'produccion' : 'pruebas';
   const { results: productos } = await c.shard
     .prepare(
-      `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, actualizado, seo, promocion
+      `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, actualizado, seo, promocion, tipo
        FROM producto WHERE org_id = ? AND borrado IS NULL ORDER BY posicion, slug`,
     )
     .bind(c.org)
@@ -492,6 +493,7 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
         destacado: p.destacado === 1,
         ...(p.nuevo === 1 ? { nuevo: true } : {}),
         ...promocionParaHornear(p.promocion, c.ahora),
+        ...(p.tipo === 'digital' ? { digital: true } : {}),
       },
     ];
   });
@@ -604,6 +606,14 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     plan: limites,
     // HU-P1.1: el carrito ofrece recordar la compra, si el plan lo incluye.
     ...((await tieneComprasSinTerminar(c.shard, c.org)) ? { comprasSinTerminar: true } : {}),
+    ...((await c.shard
+      .prepare(
+        'SELECT 1 AS hay FROM cupon WHERE org_id = ? AND activo = 1 AND borrado IS NULL LIMIT 1',
+      )
+      .bind(c.org)
+      .first())
+      ? { hayCupones: true }
+      : {}),
     ...(opciones.vistaPrevia ? { vistaPrevia: true } : {}),
   };
   const archivos = await hornear(datos);

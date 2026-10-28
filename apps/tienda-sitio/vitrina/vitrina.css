@@ -1031,6 +1031,37 @@ a.boton[hidden] {
   font-weight: var(--peso-fuerte);
 }
 
+/* 27 oct 2026: el cupón del carrito, el campo y su botón en una fila que baja en el teléfono. */
+.cupon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--espacio-2);
+  margin-block: var(--espacio-4);
+}
+.cupon .campo {
+  flex: 1 1 12rem;
+}
+.cupon .aviso {
+  flex-basis: 100%;
+}
+
+/* HU-P6.2: las descargas del seguimiento. */
+.descargas ul {
+  display: grid;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* HU-P6.3: el aviso de un producto digital en su ficha. */
+.digital {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+
 /* HU-P1.2: la promoción por cantidad, en la ficha y en la tarjeta. */
 .promocion {
   width: fit-content;

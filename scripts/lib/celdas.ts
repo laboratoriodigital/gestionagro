@@ -34,6 +34,13 @@ export interface Celda {
    */
   medios_creados?: ('produccion' | 'staging')[];
   /**
+   * HU-P6.1 (sprint PF2): el bucket R2 **privado** de los productos digitales, aparte del de las
+   * fotos (que es público). Nunca tiene dirección pública: la API lo lee con un enlace temporal.
+   */
+  digitales?: string;
+  /** Los ambientes donde el dueño ya lo creó (27 oct 2026: los dos). Solo ahí se enlaza. */
+  digitales_creados?: ('produccion' | 'staging')[];
+  /**
    * HU-T13.1: el dueño ya activó Cloudflare for SaaS en la zona de las tiendas, con su origen de
    * respaldo (`docs/runbooks/tienda-conectar-un-dominio.md`). Solo entonces la API de producción sabe
    * su zona y el despacho recibe los dominios propios. Staging nunca: el origen de respaldo es uno

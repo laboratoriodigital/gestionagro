@@ -158,6 +158,10 @@ describe('la vista previa (HU-T8.6)', () => {
     }
     expect((await pedir('/_m', { method: 'POST', headers: desde, body: '{}' })).status).toBe(204);
     expect(llegaron).toEqual([]);
+    // 27 oct 2026: cotizar sí llega: solo lee, y deja ver la promoción y el cupón en la vista.
+    await pedir('/api/v1/cotizar', { method: 'POST', headers: desde, body: '{}' });
+    expect(llegaron).toHaveLength(1);
+    llegaron.length = 0;
     // Desde la tienda publicada, sí.
     await pedir('/api/v1/pedidos', {
       method: 'POST',

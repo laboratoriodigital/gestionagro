@@ -96,6 +96,8 @@ export interface ProductoParaHornear {
    * La cuenta la hace la cotización: esto solo la anuncia.
    */
   promocion?: string;
+  /** HU-P6.3: se descarga al pagar; la ficha lo dice y el carrito no pide envío si todo es digital. */
+  digital?: boolean;
 }
 
 export interface ColeccionParaHornear {
@@ -136,6 +138,11 @@ export interface TiendaParaHornear {
    * de quien compra y una casilla que nunca viene marcada. Solo en los planes que lo incluyen.
    */
   comprasSinTerminar?: boolean;
+  /**
+   * 27 oct 2026: la tienda tiene cupones activos; el carrito ofrece escribir uno. Hasta la 1.6.0 el
+   * carrito no lo pedía y los cupones solo servían por los asistentes (bitácora tienda3 65).
+   */
+  hayCupones?: boolean;
   /** HU-T11.3 CA2: cobra en el ambiente de pruebas de Bold; una franja lo dice en cada página. */
   cobroEnPruebas?: boolean;
   /** HU-T14.5: los feeds de productos que el comercio encendió en Ajustes › Agentes. */
@@ -800,6 +807,9 @@ ${p.cuerpo}
       p.nuevo ? '<p class="etiqueta-nuevo">Nuevo</p>' : '',
       `<h1>${escaparHtml(p.nombre)}</h1>`,
       presente(p.promocion) ? `<p class="promocion">${escaparHtml(p.promocion as string)}</p>` : '',
+      p.digital
+        ? '<p class="digital">Producto digital: lo descargas apenas tu pago quede confirmado, desde el seguimiento de tu pedido.</p>'
+        : '',
       // HU-T5.8 CA1: el precio, el de antes, las existencias y la nota, en un bloque.
       '<div class="ficha__precio">',
       `<p class="precio" data-precio>${variaElPrecio(p) ? 'Desde ' : ''}${formatearPesos(precioDesde(p))}</p>`,
@@ -987,6 +997,9 @@ ${p.cuerpo}
       '<ul class="lineas" data-lineas></ul>',
       '<p class="pedido__vaciar"><button type="button" class="boton boton--secundario" data-vaciar hidden>Vaciar el pedido</button></p>',
       '<div class="resumen" data-resumen hidden><p class="resumen__fila">Subtotal <span class="cifra" data-subtotal></span></p><p class="resumen__fila" data-fila-envio hidden>Envío <span class="cifra" data-envio></span></p><p class="resumen__fila" data-fila-descuento hidden>Descuento <span class="cifra" data-descuento></span></p><p class="resumen__fila resumen__total">Total <span class="cifra" data-total></span></p><p class="aviso aviso--fuerte" data-aviso-total role="alert" hidden></p><p class="resumen__nota" data-nota>El envío se confirma antes de enviar el pedido.</p></div>',
+      t.hayCupones
+        ? '<div class="cupon" data-cupon-bloque hidden><label class="campo">¿Tienes un cupón?<input name="cupon" maxlength="24" autocomplete="off" autocapitalize="characters" data-cupon></label><button type="button" class="boton boton--secundario" data-aplicar-cupon>Aplicar</button><p class="aviso" data-aviso-cupon role="status" hidden></p></div>'
+        : '',
       `<form class="venta" data-venta hidden novalidate>`,
       formas.length > 0
         ? `<fieldset class="grupo"><legend>¿Cómo quieres pagar?</legend>${formas.map(tarjetaDeForma).join('')}</fieldset>`
@@ -1041,6 +1054,8 @@ ${p.cuerpo}
       '<p class="acuse__estado">Estado: <strong data-acuse-estado></strong></p>',
       '<dl class="acuse__datos"><dt>Total</dt><dd class="cifra" data-acuse-total></dd><dt>Forma de pago</dt><dd data-acuse-forma></dd><dt>Entrega</dt><dd data-acuse-plazo></dd><dt>Guía</dt><dd data-acuse-guia>Te la damos al despachar.</dd></dl>',
       '<ul class="lineas lineas--acuse" data-acuse-lineas></ul>',
+      // HU-P6.2: los archivos de lo digital, con el pago confirmado.
+      '<section class="descargas" data-descargas hidden><h2>Tus descargas</h2><ul data-descargas-lista></ul><p class="nota">Cada enlace vale 7 días y hasta 5 descargas. Si vence, vuelve a abrir esta página.</p></section>',
       '<ol class="pasos" data-acuse-pasos></ol>',
       '<a class="boton boton--principal" data-acuse-whatsapp hidden>Enviar por WhatsApp</a>',
       '<p class="acuse__enlace">Guarda este enlace para seguir tu pedido: <a data-acuse-enlace></a></p>',
@@ -1222,6 +1237,7 @@ ${p.cuerpo}
         nombre: p.nombre,
         url: url(`/p/${p.slug}/`),
         ...(fotoPequena(p.fotos?.[0]) ? { foto: fotoPequena(p.fotos?.[0]) } : {}),
+        ...(p.digital ? { digital: true } : {}),
         variantes: [...p.variantes]
           .sort((a, b) => (a.id < b.id ? -1 : 1))
           .map((v) => ({

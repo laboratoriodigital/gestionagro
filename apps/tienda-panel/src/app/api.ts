@@ -84,11 +84,18 @@ export async function conAcceso(
 export async function pedirAlPanel<T>(
   c: Conexion,
   ruta: string,
-  opciones: { metodo?: 'GET' | 'POST'; cuerpo?: unknown; formulario?: FormData } = {},
+  opciones: {
+    metodo?: 'GET' | 'POST';
+    cuerpo?: unknown;
+    formulario?: FormData;
+    /** HU-P6.1: un archivo tal cual, con su tipo y sus cabeceras (nombre y huella). */
+    archivo?: { datos: Blob; cabeceras: Record<string, string> };
+  } = {},
 ): Promise<RespuestaDelPanel<T>> {
   const fetchFn = c.fetchFn ?? fetch;
   // HU-T8.3: las fotos van como formulario; el navegador pone su `content-type` con el límite.
   const cuerpo =
+    opciones.archivo?.datos ??
     opciones.formulario ??
     (opciones.cuerpo === undefined ? undefined : JSON.stringify(opciones.cuerpo));
   const pedir = (acceso: string) =>
@@ -97,6 +104,9 @@ export async function pedirAlPanel<T>(
       headers: {
         authorization: `Bearer ${acceso}`,
         ...(opciones.cuerpo === undefined ? {} : { 'content-type': 'application/json' }),
+        ...(opciones.archivo
+          ? { 'content-type': opciones.archivo.datos.type, ...opciones.archivo.cabeceras }
+          : {}),
       },
       ...(cuerpo === undefined ? {} : { body: cuerpo }),
     });

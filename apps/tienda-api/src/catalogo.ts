@@ -27,6 +27,7 @@ import {
   tocarProducto,
 } from '@ed1/tienda-schema';
 import type { z } from 'zod';
+import { vendeDigitales } from './digitales.ts';
 import { anotar } from './registro.ts';
 
 export type Problema = { campo: string; mensaje: string };
@@ -141,6 +142,7 @@ interface FilaProducto {
   iva_pct: number | null;
   seo: string;
   promocion: string | null;
+  tipo: 'fisico' | 'digital';
   version: number;
   borrado: string | null;
 }
@@ -157,7 +159,7 @@ interface FilaVariante {
 }
 
 const COLUMNAS_PRODUCTO =
-  'id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, iva_pct, seo, promocion, version, borrado';
+  'id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, iva_pct, seo, promocion, tipo, version, borrado';
 
 async function filaDelProducto(q: Quien, id: string) {
   return q.db
@@ -245,6 +247,7 @@ export async function leerProducto(q: Quien, id: string) {
     nuevo: p.nuevo === 1,
     // HU-P1.2: la que el esquema ya validó al guardar; una ilegible se muestra como ninguna.
     promocion: promocionLeida(p.promocion),
+    tipo: p.tipo,
     ivaPct: p.iva_pct,
     variantes: variantes.map((v) => ({
       id: v.id,
@@ -430,6 +433,14 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
   const revision = revisarProducto(cuerpo);
   if (!revision.ok) return { estado: 'problemas', problemas: revision.problemas };
   const d = revision.datos;
+  if (d.tipo === 'digital' && !(await vendeDigitales(q.db, q.org))) {
+    return {
+      estado: 'problemas',
+      problemas: [
+        { campo: 'tipo', mensaje: 'vender productos digitales es de los planes Pro e IA Pro' },
+      ],
+    };
+  }
   const previa = await yaAplicada(q, d.op);
   if (previa) return previa;
 
@@ -500,7 +511,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
       q.db
         .prepare(
           `UPDATE producto SET slug = ?, nombre = ?, descripcion_md = ?, estado = ?, opciones = ?, retracto = ?,
-             retracto_motivo = ?, solo_mayores = ?, destacado = ?, nuevo = ?, iva_pct = ?, seo = ?, promocion = ?, version = version + 1, actualizado = ?
+             retracto_motivo = ?, solo_mayores = ?, destacado = ?, nuevo = ?, iva_pct = ?, seo = ?, promocion = ?, tipo = ?, version = version + 1, actualizado = ?
            WHERE org_id = ? AND id = ? AND version = ? AND borrado IS NULL`,
         )
         .bind(
@@ -517,6 +528,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
           d.ivaPct,
           JSON.stringify(seo),
           promocion,
+          d.tipo,
           q.instante,
           q.org,
           id,
@@ -528,7 +540,8 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
     if (
       JSON.stringify(antes) !== JSON.stringify(nuevo) ||
       actual.descripcion_md !== d.descripcionMd ||
-      (actual.promocion ?? null) !== promocion
+      (actual.promocion ?? null) !== promocion ||
+      actual.tipo !== d.tipo
     ) {
       registro.push(
         anotar(q.db, {
@@ -552,8 +565,8 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
       q.db
         .prepare(
           `INSERT INTO producto (org_id, id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo,
-             solo_mayores, destacado, nuevo, iva_pct, promocion, posicion, creado, actualizado)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+             solo_mayores, destacado, nuevo, iva_pct, promocion, tipo, posicion, creado, actualizado)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
              (SELECT coalesce(max(posicion), -1) + 1 FROM producto WHERE org_id = ?), ?, ?)`,
         )
         .bind(
@@ -571,6 +584,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
           d.nuevo ? 1 : 0,
           d.ivaPct,
           promocion,
+          d.tipo,
           q.org,
           q.instante,
           q.instante,

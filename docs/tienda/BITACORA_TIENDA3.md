@@ -1500,3 +1500,51 @@ La regla: **en SQL, un número que llega de JavaScript es REAL hasta que se diga
 La regla: **lo que se arma para separarse después se separa por algo que solo pone quien lo arma; mejor aún, se pasa en dos campos.**
 
 *Ficha:* tienda3 · *(mía)* · 🟢 Bajo · P3 · tienda-1.5.0 · 2026-10-27
+
+**64 · La 1.5.0 se vio en verde con la landing sin publicar.**
+
+*Qué pasó.* El 28 oct 2026 el dueño abrió tiendapro.co/ayuda y vio «Esta página no existe». La 1.5.0 estaba fusionada y el despliegue de producción salió en verde.
+
+*La causa.* Dos cosas juntas. La subida de los archivos de la landing a Cloudflare falló una vez sin causa (`assets-upload-session`, código 10013) y el despliegue se detuvo en la celda c1, después de la API, el despacho y el panel. Y el paso «Desplegar la Tienda» tenía `continue-on-error: true`, de cuando la Tienda no tenía tiendas (HU-T2.4): el trabajo siguió en verde. Quedaron sin correr la landing y los pasos finales.
+
+*El arreglo.* La landing se sube con tres intentos. El paso de la Tienda ya no sigue si falla: con tiendas en producción, un despliegue a medias se tiene que ver en rojo. Para la 1.5.0, el dueño vuelve a correr «desplegar» en producción para la celda c1.
+
+La regla: **una excepción de «mientras no haya clientes» se anota con su fecha de vencimiento, y se quita cuando llegan.**
+
+*Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🔴 Alto · P1 · tienda-1.5.0 · 2026-10-28
+
+**65 · Los cupones se creaban en el panel, pero el carrito no tenía dónde escribirlos.**
+
+*Qué pasó.* El 28 oct 2026, al construir los cupones por categoría (HU-P1.3), no había dónde probarlos en la tienda: el carrito no tenía un campo para el cupón. La API y la cotización lo aceptaban desde HU-T5.5; el MCP público también. Ningún comprador de la página podía usarlo.
+
+*La causa.* HU-T10.1 construyó los cupones desde el panel y HU-T5.5 los aceptó en la cotización; la vitrina (HU-T5.4) se hizo antes y nadie unió las dos. Las pruebas de cada lado pasaban.
+
+*El arreglo.* «¿Tienes un cupón?» en el carrito, solo si la tienda tiene uno activo, con lo que descontó o por qué no aplica; va también en el pedido y en el cobro.
+
+La regla: **una función que se configura en el panel tiene su prueba desde la pantalla del comprador, no solo desde la API.** (Es la misma de la bitácora 61, otra vez.)
+
+*Ficha:* tienda3 · *(mía)* · 🔴 Alto · P1 · tienda-1.6.0 · 2026-10-28
+
+**66 · «Por agotarse» leía el catálogo entero en cada Inicio.**
+
+*Qué pasó.* El 28 oct 2026 la prueba de lecturas del tablero con la tienda llena (bitácora tienda3 26) falló: 15.180 filas, 12.003 de una sola consulta, la de «por agotarse». El tope es 5.000.
+
+*La causa.* La condición `stock - reservado <= mínimo` no tenía índice: para contar, SQLite recorría cada combinación.
+
+*El arreglo.* Un índice por lo que queda (`variante_por_quedan`, migración 0024), solo de las que cuentan existencias, y la consulta lee el mínimo antes: sin mínimo no cuenta nada.
+
+La regla: **lo nuevo del tablero pasa por la prueba de la tienda llena antes que por cualquier otra.**
+
+*Ficha:* tienda3 · *(mía)* · 🟡 Medio · P2 · tienda-1.6.0 · 2026-10-28
+
+**67 · En la vista previa, el carrito no mostraba la promoción.**
+
+*Qué pasó.* El 28 oct 2026 el dueño puso «lleva 3, paga 2» a la camisa, la abrió en la vista previa y el carrito no la mostró.
+
+*La causa.* Desde la vista previa, el despacho niega todo lo que no sea leer («no se pide, no se paga ni se mide», HU-T8.6), y cotizar es un POST: el carrito no supo el total del servidor y solo sumó los precios. En la tienda publicada sí se aplicaba.
+
+*El arreglo.* Cotizar sí pasa desde la vista previa: solo lee. Pedir, pagar y medir siguen negados.
+
+La regla: **lo que se niega por método se revisa por efecto: un POST que solo lee no es un pedido.**
+
+*Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟢 Bajo · P3 · tienda-1.6.0 · 2026-10-28

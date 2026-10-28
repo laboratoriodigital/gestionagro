@@ -26,6 +26,8 @@ export interface Tablero {
     pagosSinExistencias: number;
     cobrosARevisar: number;
     agotados: number;
+    /** HU-P2.2: en su mínimo o por debajo, sin estar agotadas. */
+    porAgotarse?: number;
   };
   contraentrega: {
     cerrados: number;
@@ -186,6 +188,13 @@ export function pendientesEnOrden(p: Tablero['pendientes']): Pendiente[] {
       clave: 'agotados',
       n: p.agotados,
       texto: plural(p.agotados, 'combinación agotada', 'combinaciones agotadas'),
+      href: '/productos/inventario/',
+      urgente: false,
+    },
+    {
+      clave: 'porAgotarse',
+      n: p.porAgotarse ?? 0,
+      texto: plural(p.porAgotarse ?? 0, 'combinación por agotarse', 'combinaciones por agotarse'),
       href: '/productos/inventario/',
       urgente: false,
     },

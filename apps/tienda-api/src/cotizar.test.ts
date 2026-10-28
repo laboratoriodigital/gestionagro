@@ -236,6 +236,36 @@ describe('HU-P1.2 · la promoción por cantidad, leída de la base', () => {
   });
 });
 
+describe('HU-P1.3 · el cupón con alcance, leído de la base', () => {
+  it('solo descuenta lo de su categoría; ❌ sin productos de ella, no aplica', async () => {
+    await shard
+      .prepare(
+        "INSERT INTO cupon (org_id, codigo, tipo, valor, alcance) VALUES (?, 'SOLOLINO', 'porcentaje', 10, ?)",
+      )
+      .bind(UNO, JSON.stringify({ productos: [], colecciones: ['col-nada'] }))
+      .run();
+    const r = await cotizar(
+      shard,
+      UNO,
+      { lineas: [{ variante: M, cantidad: 1 }], cupon: 'SOLOLINO' },
+      AHORA,
+    );
+    expect(r.descuentoCupon).toBe(0);
+    expect(r.avisos).toContainEqual({ codigo: 'cupon_no_aplica' });
+    await shard
+      .prepare("UPDATE cupon SET alcance = ? WHERE org_id = ? AND codigo = 'SOLOLINO'")
+      .bind(JSON.stringify({ productos: ['p-camisa'], colecciones: [] }), UNO)
+      .run();
+    const bien = await cotizar(
+      shard,
+      UNO,
+      { lineas: [{ variante: M, cantidad: 1 }], cupon: 'SOLOLINO' },
+      AHORA,
+    );
+    expect(bien.descuentoCupon).toBe(12900);
+  });
+});
+
 describe('POST /api/v1/cotizar', () => {
   const env = (extra: Record<string, unknown> = {}): Env => ({
     CELDA: 'c1',

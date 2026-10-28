@@ -27,7 +27,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 | Sprint | Fechas (techo) | Objetivo | Historias | Puntos | Versión |
 |---|---|---|---|---:|---|
 | **PF1** | 27 oct – 2 nov 2026 (construido el 27 oct) | **Vender más y perder menos ventas:** compras sin terminar, promociones por cantidad, correos al comprador, cambios masivos, redes y la ayuda | HU-P1.1 (5), HU-P1.2 (3), HU-P2.1 (3), HU-P3.1 (5), HU-P4.3 (1), HU-P5.1 (3) | 20 | tienda 1.5.0 |
-| **PF2** | 3 – 9 nov 2026 | **Productos digitales y control del día a día** | HU-P6.1 (5), HU-P6.2 (5), HU-P6.3 (2), HU-P2.2 (2), HU-P3.2 (2), HU-P1.3 (2) | 18 | tienda 1.6.0 |
+| **PF2** | 3 – 9 nov 2026 (construido el 28 oct) | **Productos digitales y control del día a día** | HU-P6.1 (5), HU-P6.2 (5), HU-P6.3 (2), HU-P2.2 (2), HU-P3.2 (2), HU-P1.3 (2) | 18 | tienda 1.6.0 |
 | **PF3** | 10 – 16 nov 2026 | **Una vitrina más completa y más control** | HU-P4.1 (3), HU-P4.2 (3), HU-P4.4 (2), HU-P1.4 (3), HU-P1.5 (3), HU-P3.3 (3), HU-P5.2 (2) | 19 | tienda 1.7.0 |
 
 **Por qué este orden.** PF1 junta lo que más mueve ventas y lo que el comerciante necesita para arrancar solo (la ayuda), sin nada que espere al dueño. PF2 lleva los productos digitales, que piden un almacén privado que crea el dueño (WI-P6.1.4) antes de empezar. PF3 es pulido de la vitrina y del panel.
@@ -72,7 +72,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P1.2.1 `[código]` tabla `promocion` y su cálculo en `cotizar` · WI-P1.2.2 `[código]` la pantalla del panel · WI-P1.2.3 `[código]` la etiqueta en la ficha (horno) · WI-P1.2.4 `[prueba]` los dos tipos, el redondeo y el ❌ del carrito alterado · WI-P1.2.5 `[código]` la promoción en «Descargar todo» y en la carga (pendiente).
 
 #### HU-P1.3 · Cupones por producto o colección
-- **Capa:** API y panel · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** PF2 · **Plan:** todos · **Estado:** Refinada
+- **Capa:** API y panel · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** PF2 · **Plan:** todos · **Estado:** Construida (28 oct 2026, tienda 1.6.0), por validar. Migración 0022 (`alcance`); `@ed1/dinero` calcula el cupón sobre sus productos. El panel elige categorías; los productos sueltos, por ahora solo por la API. **Al construirla apareció que el carrito no tenía dónde escribir un cupón** (bitácora tienda3 65): ahora lo tiene, si la tienda tiene cupones activos.
 - Como comerciante, quiero que un cupón aplique solo a unos productos, para hacer promociones puntuales.
 - **CA1.** Un cupón puede limitarse a productos o colecciones; sin límite, aplica a todo, como hoy.
 - **CA2 ❌.** Un carrito sin esos productos recibe «este cupón no aplica a tu compra», y el descuento nunca pasa del valor de esos productos.
@@ -110,7 +110,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P2.1.1 `[código]` los cuatro textos en `correos.ts` · WI-P2.1.2 `[código]` engancharlos a los cambios de estado · WI-P2.1.3 `[prueba]` uno por estado, el tope y el ❌.
 
 #### HU-P2.2 · «Por agotarse»
-- **Capa:** API y panel · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** PF2 · **Plan:** todos · **Estado:** Refinada
+- **Capa:** API y panel · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** PF2 · **Plan:** todos · **Estado:** Construida (28 oct 2026, tienda 1.6.0), por validar. **Cambió al construir:** el mínimo ya existía en «Ajustes › Avisos» (`stockBajo`) sin usarse; es el de toda la tienda, y el de cada combinación queda para después. Índice `variante_por_quedan` (migración 0024, bitácora tienda3 66).
 - Como comerciante, quiero saber antes de que algo se agote, para reponerlo a tiempo.
 - **CA1.** Cada combinación puede tener un mínimo; por defecto, ninguno.
 - **CA2.** El tablero y el resumen diario dicen cuáles están en su mínimo o por debajo.
@@ -121,7 +121,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 ## EP3 · Administrar más rápido
 
 #### HU-P3.1 · Cambiar varios productos a la vez
-- **Capa:** API y panel · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Construida (27 oct 2026, tienda 1.5.0), por validar. `lote-de-productos.ts`; la pantalla en «Productos › Cambiar varios»; también pone o quita la promoción (HU-P1.2). Bitácora tienda3 62.
+- **Capa:** API y panel · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Terminada (construida el 27 oct 2026; validada por el dueño el 28 oct 2026)
 - Como comerciante, quiero subir los precios un 5 % o esconder varios productos de una vez, sin la hoja de cálculo.
 - **Referencia:** Tiendanube, «acciones masivas».
 - **CA1.** En Productos, elegir varios (o una colección) y: cambiar el precio en un porcentaje o un valor, mostrar, esconder o borrar.
@@ -130,7 +130,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P3.1.1 `[código]` `POST /api/panel/v1/productos/lote` con vista previa · WI-P3.1.2 `[código]` la selección en el panel · WI-P3.1.3 `[prueba]` el redondeo, el todo o nada y el registro.
 
 #### HU-P3.2 · Filtrar los pedidos por fecha y por canal
-- **Capa:** panel y API · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** PF2 · **Plan:** todos · **Estado:** Refinada
+- **Capa:** panel y API · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** PF2 · **Plan:** todos · **Estado:** Construida (28 oct 2026, tienda 1.6.0), por validar. Filtra lo que ya cargó la bandeja, como los demás filtros; la hoja nunca lleva datos de los compradores.
 - Como comerciante, quiero ver los pedidos de la semana que llegaron por la tienda, o los que preparó un asistente.
 - **Referencia:** Tiendanube, filtros por estado, fecha, envío y canal.
 - **CA1.** La bandeja suma filtros por rango de fechas y por canal (tienda, anotado en el panel, asistente) a los que ya tiene.
@@ -167,7 +167,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P4.2.1 `[código]` · WI-P4.2.2 `[prueba]` presupuesto y CLS a 360 px.
 
 #### HU-P4.3 · Las redes sociales de la tienda
-- **Capa:** paquete y horno · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Construida (27 oct 2026, tienda 1.5.0), por validar. **Cambió al construir:** los tres campos son opcionales en la versión 1 de `contacto`: lo guardado antes sigue valiendo, sin traductor.
+- **Capa:** paquete y horno · **Prioridad:** Should · **Puntos:** 1 · **Sprint:** PF1 · **Plan:** todos · **Estado:** Terminada (construida el 27 oct 2026; validada por el dueño el 28 oct 2026)
 - Como comerciante, quiero que mi tienda lleve a mi Instagram, TikTok y Facebook.
 - **CA1.** En «Ajustes › Contacto», los enlaces de Instagram, TikTok y Facebook; el pie de la tienda los muestra con su ícono.
 - **CA2 ❌.** Solo direcciones de esas redes (`instagram.com`, `tiktok.com`, `facebook.com`); ningún script de ellas en la página.
@@ -212,7 +212,7 @@ Pedido del dueño del 26 oct 2026: guías, plantillas, cursos grabados, música 
 **Cómo encaja en la arquitectura.** El archivo vive en un almacén **privado** de R2, aparte del de las fotos (que es público). Nunca se hornea ni tiene una dirección pública: se entrega con un enlace temporal que firma la API después de que el pago está **verificado** (aviso firmado de Bold o conciliación, o el comerciante confirma la transferencia o el efectivo). Bajar el archivo no es una visita a una página: pasa por la API, que cuenta las descargas. El plan gratuito de R2 tiene 10 GB para toda la cuenta, así que cada archivo tiene tope y la cuenta de la tienda también.
 
 #### HU-P6.1 · El producto digital y su archivo
-- **Capa:** paquete, API y panel · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** PF2 · **Plan:** Pro e IA Pro · **Estado:** Refinada; espera WI-P6.1.4 del dueño
+- **Capa:** paquete, API y panel · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** PF2 · **Plan:** Pro e IA Pro · **Estado:** Construida (28 oct 2026, tienda 1.6.0), por validar. Buckets creados por el dueño el 28 oct 2026 (WI-P6.1.4). **Cambió al construir:** el archivo sube en una sola solicitud, directo a R2 y sin pasar por la memoria del Worker; R2 verifica la huella que calcula el panel. Topes del dueño: 50 MB y 1 GB; sin respaldo.
 - Como comerciante, quiero vender un archivo, para no tener que mandarlo a mano a cada comprador.
 - **CA1.** Un producto puede ser **digital**: lleva un archivo (PDF, ZIP, MP3, MP4, JPG o PNG) de hasta 50 MB, sin existencias ni peso; puede tener variantes (por ejemplo, «PDF» y «PDF + audio»), cada una con su archivo.
 - **CA2.** El archivo se sube desde el panel a la carpeta de la tienda en el almacén privado; el panel dice cuánto espacio lleva la tienda (tope de 1 GB por tienda).
@@ -221,7 +221,7 @@ Pedido del dueño del 26 oct 2026: guías, plantillas, cursos grabados, música 
 - **Work items:** WI-P6.1.1 `[código]` migración (`producto.tipo`, `archivo_digital`) y `tienda-schema` · WI-P6.1.2 `[código]` subir por partes al almacén privado · WI-P6.1.3 `[prueba]` tipos, tope, Gratis rechazada y que no salga en el horno · WI-P6.1.4 `[dueño]` crear el bucket privado `tienda-digitales` (y el de staging) en R2: el token del despliegue no tiene permiso de R2.
 
 #### HU-P6.2 · La entrega después del pago
-- **Capa:** API, vitrina y correo · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** PF2 · **Plan:** Pro e IA Pro · **Estado:** Refinada
+- **Capa:** API, vitrina y correo · **Prioridad:** Should · **Puntos:** 5 · **Sprint:** PF2 · **Plan:** Pro e IA Pro · **Estado:** Construida (28 oct 2026, tienda 1.6.0), por validar. Pendiente: «reenviar» desde el panel y el enlace en el correo, que necesita la dirección de la tienda (WI-P6.2.5).
 - Como comprador, quiero descargar lo que compré apenas pague, y volver a bajarlo si lo pierdo.
 - **CA1.** Con el pago verificado, el seguimiento del pedido (HU-T6.3) muestra «Descargar», y el correo del pedido (si dejó su correo) lleva el mismo enlace.
 - **CA2.** El enlace vale 7 días y 5 descargas; el comprador puede pedir uno nuevo desde el seguimiento, y el comerciante puede reenviarlo desde el pedido.
@@ -229,7 +229,7 @@ Pedido del dueño del 26 oct 2026: guías, plantillas, cursos grabados, música 
 - **Work items:** WI-P6.2.1 `[código]` el enlace firmado y su cuenta · WI-P6.2.2 `[código]` la descarga desde el almacén privado · WI-P6.2.3 `[código]` el seguimiento y el correo · WI-P6.2.4 `[prueba]` sin pago, vencido, gastado, de otro pedido y con un cobro de prueba de Bold.
 
 #### HU-P6.3 · La ficha y lo legal de lo digital
-- **Capa:** horno y legal · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** PF2 · **Plan:** Pro e IA Pro · **Estado:** Refinada
+- **Capa:** horno y legal · **Prioridad:** Should · **Puntos:** 2 · **Sprint:** PF2 · **Plan:** Pro e IA Pro · **Estado:** Construida (28 oct 2026, tienda 1.6.0), por validar. **Cambió al construir:** la excepción del retracto va en la política de retracto (plantillas v6), que el comprador ya acepta con los términos; la casilla aparte queda para la revisión legal (HU-T7.4).
 - Como comprador, quiero saber antes de pagar que es un archivo, cómo lo recibo y si puedo retractarme.
 - **CA1.** La ficha dice «Producto digital: lo descargas apenas pagues» y el tipo y tamaño del archivo; el carrito no pide dirección ni cobra envío si todo es digital.
 - **CA2.** Los términos de la tienda explican el retracto de lo digital según las excepciones de la Ley 1480 art. 47, y el carrito pide aceptarlo antes de pagar, con una casilla sin marcar. El texto exacto queda para la revisión legal (HU-T7.4): mientras tanto, la plantilla dice solo lo que la ley dice.

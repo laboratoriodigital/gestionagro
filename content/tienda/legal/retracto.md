@@ -15,6 +15,10 @@ La ley no permite el retracto en algunos productos: los perecederos, los hechos 
 
 Cada producto dice en su página si admite retracto antes de que lo agregues a tu pedido.
 
+## Productos digitales
+
+Un archivo que se descarga no se puede devolver como un producto físico. La ley no permite el retracto en los programas y contenidos digitales que ya se abrieron o descargaron. Si el producto digital tiene una falla, o no es lo que se anunció, escríbenos por [Solicitudes](/solicitud/) y lo resolvemos por su garantía.
+
 {{retracto_del_comercio}}
 
 Versión {{version}} de las plantillas, del {{fecha_plantilla}}.

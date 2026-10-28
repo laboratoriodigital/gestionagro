@@ -1924,7 +1924,8 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | L1 | 16 | 16 (HU-T18.1, HU-T18.2 y HU-T18.3, validadas el 22 oct; HU-T18.4, el 26 oct 2026) | Construido y validado el 22 oct 2026 (#222 y el arreglo #223, bitácora tienda3 52). Las tiendas viven en mitiendapro.co y las direcciones de antes llevan a ellas; el panel y los correos dicen TiendaPro; Gratis, Pro e IA Pro con sus límites; producción manda con Resend. El dueño activó Email Routing de abuse@tiendapro.co y agregó el panel nuevo a Turnstile. La PSL de L2 se verificó de primera mano (bitácora tienda3 51) |
 | L2 | 9 | 5 (HU-T18.5, el 26 oct 2026; HU-T18.6 en producción desde el 22 oct 2026; HU-T18.7 en espera por decisión del dueño) | Construido el 22 oct 2026: la landing de tiendapro.co (#225) y el lanzamiento con tienda-v1.0.0 y core-v0.7.0 (#226). El primer despliegue de la Tienda a producción se detuvo por un error interno de D1 y se siguió con la celda c1 a mano (bitácora tienda3 55). La PSL espera a tener comercios |
 | L3 | 14 | 12 (HU-T18.8 a HU-T18.12, el 26 oct 2026; HU-T18.13, la baja, por probar en staging) | Construido el 23 oct 2026 con lo que pidió el dueño al probar TiendaPro en producción. Sale a staging al fusionar; a producción, con la versión que confirme el dueño |
-| PF1 | 20 | 0 (en validación: HU-P1.1, HU-P1.2, HU-P2.1, HU-P3.1, HU-P4.3 y HU-P5.1) | Construido el 27 oct 2026, tienda 1.5.0. Ver `BACKLOG_PERFECCIONAMIENTO.md` |
+| PF1 | 20 | 6 (HU-P3.1 y HU-P4.3, el 28 oct 2026; en validación: HU-P1.1, HU-P1.2, HU-P2.1 y HU-P5.1) | Construido el 27 oct 2026, tienda 1.5.0. Ver `BACKLOG_PERFECCIONAMIENTO.md` |
+| PF2 | 18 | 0 (en validación: HU-P6.1, HU-P6.2, HU-P6.3, HU-P2.2, HU-P3.2 y HU-P1.3) | Construido el 28 oct 2026, tienda 1.6.0. Con él, el cupón en el carrito y la vista previa que cotiza |
 
 ---
 

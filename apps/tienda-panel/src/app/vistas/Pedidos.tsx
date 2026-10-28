@@ -26,12 +26,14 @@ import {
   Texto,
 } from '../componentes/index.ts';
 import {
+  CANALES,
   crearTurno,
   type FilaDePedido,
   type Filtros,
   FORMAS_DE_PAGO,
   type FormularioDeDespacho,
   filtrar,
+  hojaDePedidos,
   type PaginaDePedidos,
   revisarDespacho,
   textoDeAtencion,
@@ -73,7 +75,14 @@ export function Bandeja({
   const [siguiente, setSiguiente] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [leyendo, setLeyendo] = useState(false);
-  const [filtros, setFiltros] = useState<Filtros>({ estado: '', forma: '', texto: '' });
+  const [filtros, setFiltros] = useState<Filtros>({
+    estado: '',
+    forma: '',
+    texto: '',
+    canal: '',
+    desde: '',
+    hasta: '',
+  });
 
   /** Lee la primera página (`desde` nulo) o la siguiente. Solo pinta si su turno sigue vigente. */
   const leer = useCallback(
@@ -120,7 +129,27 @@ export function Bandeja({
       : { tipo: 'listo', elementos: filtrados };
   const elegir = (campo: keyof Filtros) => (e: Event) =>
     setFiltros((f) => ({ ...f, [campo]: (e.target as HTMLInputElement).value }));
-  const hayFiltros = Boolean(filtros.estado || filtros.forma || filtros.texto.trim());
+  const hayFiltros = Boolean(
+    filtros.estado ||
+      filtros.forma ||
+      filtros.texto.trim() ||
+      filtros.canal ||
+      filtros.desde ||
+      filtros.hasta,
+  );
+  // HU-P3.2: la hoja de lo que se ve con los filtros, sin datos de los compradores.
+  const descargar = () => {
+    const url = URL.createObjectURL(
+      new Blob([hojaDePedidos(filtrados ?? [])], { type: 'text/csv;charset=utf-8' }),
+    );
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pedidos.csv';
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
 
   return (
     <main class="contenido" aria-busy={leyendo ? 'true' : undefined}>
@@ -163,6 +192,48 @@ export function Bandeja({
           </select>
         </div>
         <div class="ed1-campo">
+          <label class="ed1-campo__etiqueta" for="filtro-canal">
+            Llegó por
+          </label>
+          <select
+            class="ed1-campo__control"
+            id="filtro-canal"
+            value={filtros.canal ?? ''}
+            onChange={elegir('canal')}
+          >
+            <option value="">Todos</option>
+            {Object.entries(CANALES).map(([id, texto]) => (
+              <option key={id} value={id}>
+                {texto}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div class="ed1-campo">
+          <label class="ed1-campo__etiqueta" for="filtro-desde">
+            Desde
+          </label>
+          <input
+            class="ed1-campo__control"
+            id="filtro-desde"
+            type="date"
+            value={filtros.desde ?? ''}
+            onInput={elegir('desde')}
+          />
+        </div>
+        <div class="ed1-campo">
+          <label class="ed1-campo__etiqueta" for="filtro-hasta">
+            Hasta
+          </label>
+          <input
+            class="ed1-campo__control"
+            id="filtro-hasta"
+            type="date"
+            value={filtros.hasta ?? ''}
+            onInput={elegir('hasta')}
+          />
+        </div>
+        <div class="ed1-campo">
           <label class="ed1-campo__etiqueta" for="filtro-texto">
             Número o comprador
           </label>
@@ -188,6 +259,11 @@ export function Bandeja({
         <a class="ed1-boton ed1-boton--secundario" href="/pedidos/sin-terminar/">
           Compras sin terminar
         </a>
+        {filtrados && filtrados.length > 0 ? (
+          <button class="ed1-boton ed1-boton--texto" type="button" onClick={descargar}>
+            Descargar estos pedidos
+          </button>
+        ) : null}
         <button
           class="ed1-boton ed1-boton--secundario"
           type="button"

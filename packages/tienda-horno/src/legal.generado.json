@@ -1,7 +1,7 @@
 {
   "nota": "Generado por scripts/tienda/generar-legal.ts desde content/tienda/legal/. No se edita a mano.",
-  "version": "5",
-  "fecha": "2026-10-27",
+  "version": "6",
+  "fecha": "2026-10-28",
   "textos": [
     {
       "id": "terminos",
@@ -25,7 +25,7 @@
       "id": "retracto",
       "titulo": "Derecho de retracto",
       "ruta": "/legal/retracto/",
-      "plantilla": "Si compras en {{nombre_tienda}} sin ver el producto en persona, puedes arrepentirte de la compra. Así lo dice el artículo 47 del Estatuto del Consumidor (Ley 1480 de 2011).\n\n## Cómo funciona\n\n- Tienes 5 días hábiles desde que recibes el producto para decirnos que te retractas.\n- Escríbenos por [Solicitudes](/solicitud/). Te damos un número para seguir tu solicitud.\n- Devuelve el producto como lo recibiste: sin usar y con sus empaques. El costo de devolverlo lo pagas tú.\n- Te devolvemos todo lo que pagaste, sin descuentos, dentro de los 15 días calendario siguientes a tu solicitud.\n\n## Productos que no admiten retracto\n\nLa ley no permite el retracto en algunos productos: los perecederos, los hechos a tu medida o personalizados, los de uso personal y otros que ella señala. En esta tienda:\n\n{{productos_sin_retracto}}\n\nCada producto dice en su página si admite retracto antes de que lo agregues a tu pedido.\n\n{{retracto_del_comercio}}\n\nVersión {{version}} de las plantillas, del {{fecha_plantilla}}.\n"
+      "plantilla": "Si compras en {{nombre_tienda}} sin ver el producto en persona, puedes arrepentirte de la compra. Así lo dice el artículo 47 del Estatuto del Consumidor (Ley 1480 de 2011).\n\n## Cómo funciona\n\n- Tienes 5 días hábiles desde que recibes el producto para decirnos que te retractas.\n- Escríbenos por [Solicitudes](/solicitud/). Te damos un número para seguir tu solicitud.\n- Devuelve el producto como lo recibiste: sin usar y con sus empaques. El costo de devolverlo lo pagas tú.\n- Te devolvemos todo lo que pagaste, sin descuentos, dentro de los 15 días calendario siguientes a tu solicitud.\n\n## Productos que no admiten retracto\n\nLa ley no permite el retracto en algunos productos: los perecederos, los hechos a tu medida o personalizados, los de uso personal y otros que ella señala. En esta tienda:\n\n{{productos_sin_retracto}}\n\nCada producto dice en su página si admite retracto antes de que lo agregues a tu pedido.\n\n## Productos digitales\n\nUn archivo que se descarga no se puede devolver como un producto físico. La ley no permite el retracto en los programas y contenidos digitales que ya se abrieron o descargaron. Si el producto digital tiene una falla, o no es lo que se anunció, escríbenos por [Solicitudes](/solicitud/) y lo resolvemos por su garantía.\n\n{{retracto_del_comercio}}\n\nVersión {{version}} de las plantillas, del {{fecha_plantilla}}.\n"
     },
     {
       "id": "garantia",
