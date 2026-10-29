@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Arreglado
+- **El despliegue a producción ya no se detiene por una falla pasajera de Cloudflare al subir archivos:** la API, la tienda del comprador y el panel se suben con tres intentos, como la landing.
+
 ## [1.8.0] - 2026-10-28
 
 El último cambio antes de producción: crear un producto es más corto y más claro.
@@ -18,7 +21,6 @@ El último cambio antes de producción: crear un producto es más corto y más c
 
 ### Arreglado
 - **El despliegue a staging ya no se detiene cuando un comercio de prueba cambia su bienvenida:** la prueba de humo reconoce la portada por el nombre del comercio, no por el título grande.
-- **El despliegue a producción ya no se detiene por una falla pasajera de Cloudflare al subir archivos:** la API, la tienda del comprador y el panel se suben con tres intentos, como la landing.
 
 ## [1.7.1] - 2026-10-28
 
