@@ -362,3 +362,94 @@ export const CONCILIAR: Tarea = {
     return `${total.consultas} consultas, ${total.movidos} cobros movidos, ${total.vencidos} vencidos${total.sinLlaves > 0 ? `; ${total.sinLlaves} sin llaves` : ''}${saltadas.length > 0 ? `; ${saltadas.length} tiendas saltadas por 429` : ''}`;
   },
 };
+
+/** Lo que el panel sabe del pago en línea de un pedido por pagar, después de preguntar. */
+export type PagoDelPedido =
+  | 'pagado'
+  | 'pendiente'
+  | 'esperando'
+  | 'vencido'
+  | 'sin-llaves'
+  | 'sin-respuesta';
+
+const ultimoCobroAbierto = (c: ContextoDelAviso, pedido: string) =>
+  c.db
+    .prepare(
+      `SELECT id, pedido_id, ambiente, estado, monto_cop, consultas, ultima_consulta, creado, vence, link
+         FROM cobro WHERE org_id = ? AND pedido_id = ? AND estado IN ('esperando', 'vencido')
+        ORDER BY creado DESC LIMIT 1`,
+    )
+    .bind(c.org, pedido)
+    .first<CobroEnEspera>();
+
+const estadoDelPedido = async (c: ContextoDelAviso, pedido: string) =>
+  (
+    await c.db
+      .prepare('SELECT estado FROM pedido WHERE org_id = ? AND id = ?')
+      .bind(c.org, pedido)
+      .first<{ estado: string }>()
+  )?.estado ?? null;
+
+/**
+ * El pago de un pedido por pagar, preguntado a Bold desde el panel: el respaldo del aviso cuando no
+ * llegó (staging no tiene la vuelta de cada hora). Primero cierra el link vencido, como al abrir el
+ * pedido; después pregunta por el último cobro, como mucho cada 20 s. Lo que Bold diga se aplica
+ * como un aviso; nunca se aprueba por lo que diga el panel (HU-T11.6 CA3).
+ */
+export async function preguntarPorElPago(
+  c: ContextoDelAviso,
+  pedido: string,
+  fetchFn: typeof fetch,
+): Promise<PagoDelPedido> {
+  await cerrarLinksVencidos(c, fetchFn, pedido);
+  const k = await ultimoCobroAbierto(c, pedido);
+  if (k) {
+    const desde = k.ultima_consulta ? Date.parse(c.ahora) - Date.parse(k.ultima_consulta) : null;
+    if (desde === null || desde >= SEGUNDOS_ENTRE_CONSULTAS * 1000) {
+      const kek = await kekDelEntorno(c.kekTexto);
+      const llaves = kek ? await llavesDeBold(c.db, c.org, k.ambiente, kek) : null;
+      if (!llaves) return 'sin-llaves';
+      try {
+        await consultarCobro(c, k, llaves, fetchFn);
+      } catch (e) {
+        console.error(`tienda-api: Bold no respondió por el cobro ${k.id} (${String(e)})`);
+        return 'sin-respuesta';
+      }
+    }
+  }
+  const estado = await estadoDelPedido(c, pedido);
+  if (estado === 'pagado') return 'pagado';
+  if (estado === 'pendiente') return 'pendiente';
+  const abierto = await ultimoCobroAbierto(c, pedido);
+  return abierto?.estado === 'esperando' && Date.parse(abierto.vence) > Date.parse(c.ahora)
+    ? 'esperando'
+    : 'vencido';
+}
+
+/**
+ * Antes de cancelar un pedido por pagar: su pago tiene que haber vencido sin pagarse. El que venció
+ * y sigue esperando se le pregunta a Bold una última vez, como un link vencido: si Bold no
+ * responde, no se cancela (vencer un pago no se arriesga). `listo` es que ya no hay pago en curso.
+ */
+export async function cerrarElPagoSinTerminar(
+  c: ContextoDelAviso,
+  pedido: string,
+  fetchFn: typeof fetch,
+): Promise<'listo' | 'en-curso' | 'movido' | 'sin-respuesta'> {
+  await cerrarLinksVencidos(c, fetchFn, pedido);
+  const k = await ultimoCobroAbierto(c, pedido);
+  if (k?.estado !== 'esperando') return 'listo';
+  if (Date.parse(k.vence) > Date.parse(c.ahora)) return 'en-curso';
+  const kek = await kekDelEntorno(c.kekTexto);
+  const llaves = kek ? await llavesDeBold(c.db, c.org, k.ambiente, kek) : null;
+  if (llaves) {
+    try {
+      if ((await consultarCobro(c, k, llaves, fetchFn)) === 'movido') return 'movido';
+    } catch (e) {
+      console.error(`tienda-api: Bold no respondió por el cobro ${k.id} (${String(e)})`);
+      return 'sin-respuesta';
+    }
+  }
+  await c.db.batch(vencerCobro(c, k));
+  return 'listo';
+}

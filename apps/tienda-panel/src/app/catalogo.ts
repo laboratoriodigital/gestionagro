@@ -148,6 +148,34 @@ export interface FilaDeProducto {
   desde: number | null;
   existencias: number | null;
   borrado: string | null;
+  /** La oferta programada que rige hoy o que viene; la que terminó no llega. */
+  oferta?: { porcentaje: number; desde: string; hasta: string; vigente: boolean } | null;
+}
+
+const MESES_CORTOS = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
+];
+
+/**
+ * «En oferta · 20 %» o «Oferta desde el 5 de nov», para la lista de productos. El mes va escrito
+ * aquí: cada navegador abrevia distinto.
+ */
+export function marcaDeLaOferta(o: FilaDeProducto['oferta']): string | null {
+  if (!o) return null;
+  if (o.vigente) return `En oferta · ${o.porcentaje} %`;
+  const [, m, d] = o.desde.split('-').map(Number);
+  return `Oferta desde el ${d} de ${MESES_CORTOS[(m ?? 1) - 1]}`;
 }
 
 /** Una página de la lista de productos: de a 50, con el total (bitácora tienda3 21). */

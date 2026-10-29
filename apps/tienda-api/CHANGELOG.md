@@ -4,6 +4,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.7.1] - 2026-10-28
+
+Lo que pidió la validación del sprint PF3.
+
+### Corregido
+- **Un pedido «Por pagar» ya no queda sin salida:** tiene «Preguntarle a Bold», por si el pago entró y el aviso no llegó. Si el pago venció sin pagarse, el pedido se puede cancelar; antes se le pregunta a Bold una última vez.
+- **Un pago que llega tarde a un pedido cancelado** queda a revisar, sin descontar el inventario, y el pedido dice que hay que devolver la plata desde Bold.
+- «Descargar estos pedidos» se ve como botón, igual que los de al lado.
+
+### Agregado
+- **La lista de productos marca la oferta programada:** «En oferta · 20 %» mientras rige, y «Oferta desde el 5 de nov» cuando viene.
+
 ## [1.7.0] - 2026-10-28
 
 Sprint PF3 del perfeccionamiento: una vitrina más completa y más control.

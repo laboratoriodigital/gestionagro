@@ -227,6 +227,24 @@ export function promocionLeida(texto: string | null): PromocionDelProducto | nul
   }
 }
 
+/**
+ * La marca de la oferta en la lista del panel: la que rige hoy o la que viene. La que ya terminó no
+ * se marca; sigue guardada en el producto hasta que se quite.
+ */
+export function ofertaEnLaLista(
+  guardada: string | null,
+  ahora: string,
+): { porcentaje: number; desde: string; hasta: string; vigente: boolean } | null {
+  const o = ofertaLeida(guardada);
+  if (!o || Date.parse(ahora) > Date.parse(`${o.hasta}T23:59:59.999-05:00`)) return null;
+  return {
+    porcentaje: o.porcentaje,
+    desde: o.desde,
+    hasta: o.hasta,
+    vigente: ofertaVigente(o, ahora),
+  };
+}
+
 /** Lo que el panel muestra de un producto: el producto, sus combinaciones activas y sus fotos. */
 export async function leerProducto(q: Quien, id: string) {
   const p = await filaDelProducto(q, id);
@@ -354,7 +372,7 @@ export async function listarProductos(
     q.db
       .prepare(
         `WITH elegidos AS MATERIALIZED (
-           SELECT p.id, p.slug, p.nombre, p.estado, p.version, p.posicion, p.borrado, p.combinaciones
+           SELECT p.id, p.slug, p.nombre, p.estado, p.version, p.posicion, p.borrado, p.combinaciones, p.oferta
              FROM producto p INDEXED BY producto_en_orden
             WHERE p.org_id = ? AND (p.borrado IS NULL) = ? AND (p.borrado IS NULL OR p.borrado >= ?)
               AND (? = '' OR lower(p.nombre) LIKE '%' || ? || '%')
@@ -363,7 +381,7 @@ export async function listarProductos(
               AND (? IS NULL OR (p.posicion, p.nombre, p.id) > (?, ?, ?))
             ORDER BY p.posicion, p.nombre, p.id LIMIT ?
          )
-         SELECT g.id, g.slug, g.nombre, g.estado, g.version, g.posicion, g.borrado, g.combinaciones,
+         SELECT g.id, g.slug, g.nombre, g.estado, g.version, g.posicion, g.borrado, g.combinaciones, g.oferta,
                 (SELECT min(v.precio_cop) FROM variante v INDEXED BY variante_por_producto
                   WHERE v.org_id = ? AND v.producto_id = g.id AND v.activa = 1) AS desde,
                 (SELECT CASE WHEN count(v.stock) = count(*) THEN sum(v.stock) END FROM variante v INDEXED BY variante_por_producto
@@ -392,6 +410,7 @@ export async function listarProductos(
         posicion: number;
         borrado: string | null;
         combinaciones: number;
+        oferta: string | null;
         desde: number | null;
         existencias: number | null;
         foto: string | null;
@@ -421,6 +440,7 @@ export async function listarProductos(
       existencias: r.existencias,
       foto: r.foto,
       borrado: r.borrado,
+      oferta: ofertaEnLaLista(r.oferta, q.instante),
     })),
     siguiente:
       pagina.results.length > limite && ultima

@@ -260,7 +260,7 @@ export function Bandeja({
           Compras sin terminar
         </a>
         {filtrados && filtrados.length > 0 ? (
-          <button class="ed1-boton ed1-boton--texto" type="button" onClick={descargar}>
+          <button class="ed1-boton ed1-boton--secundario" type="button" onClick={descargar}>
             Descargar estos pedidos
           </button>
         ) : null}
@@ -319,6 +319,8 @@ export function Bandeja({
 
 interface PedidoDelPanel extends FilaDePedido {
   canal: string;
+  /** El último cobro en línea: si espera o venció, se le pregunta a Bold; vencido, se cancela. */
+  pago: { estado: string; vence: string } | null;
   esperaAlComprador: boolean;
   subtotalCop: number;
   descuentoCop: number;
@@ -703,6 +705,33 @@ interface Contacto {
   textos?: { nombre: string; texto: string }[];
 }
 
+/** Lo que respondió Bold al preguntarle por el pago de un pedido. */
+const RESPUESTA_DE_BOLD: Record<string, { tono: 'info' | 'peligro'; texto: string }> = {
+  pagado: { tono: 'info', texto: 'Bold dice que el pago entró: el pedido quedó pagado.' },
+  pendiente: {
+    tono: 'info',
+    texto:
+      'El pago no se hizo: el pedido volvió a pendiente y puedes confirmarlo o cobrarlo otra vez.',
+  },
+  esperando: {
+    tono: 'info',
+    texto: 'Bold todavía no tiene el pago. Si el comprador está pagando, pregúntale en un rato.',
+  },
+  vencido: {
+    tono: 'info',
+    texto: 'Bold no tiene el pago y ya venció. Si el comprador no va a pagar, puedes cancelarlo.',
+  },
+  'sin-llaves': {
+    tono: 'peligro',
+    texto: 'Para preguntarle a Bold, guarda tus llaves en Ajustes › Cobro.',
+  },
+  'sin-respuesta': {
+    tono: 'peligro',
+    texto: 'Bold no respondió. Inténtalo otra vez en un momento.',
+  },
+  'sin-cambio': { tono: 'info', texto: 'Este pedido ya no está esperando el pago.' },
+};
+
 const EVENTOS: Record<string, string> = {
   nota: 'Nota',
   pago: 'Pago',
@@ -926,7 +955,20 @@ export function Pedido({
     pedido.estado === 'pendiente' && pedido.formaPago !== 'en_linea' && !pedido.esperaAlComprador;
   const porDespachar = pedido.estado === 'confirmado' || pedido.estado === 'pagado';
   const contraentrega = pedido.formaPago === 'contraentrega';
-  const cancelable = pedido.estado === 'pendiente' || pedido.estado === 'confirmado';
+  // Por pagar se cancela cuando su pago venció sin pagarse; la API le pregunta a Bold antes.
+  const pagoVencido =
+    pedido.estado === 'por_pagar' &&
+    (pedido.pago?.estado !== 'esperando' || Date.parse(pedido.pago.vence) <= Date.now());
+  const cancelable = pedido.estado === 'pendiente' || pedido.estado === 'confirmado' || pagoVencido;
+  const preguntar = async () => {
+    const r = await pedirAlPanel<{ pago: string }>(conexion, 'pedidos/preguntar', {
+      cuerpo: { pedido: pedido.id },
+    });
+    if (r.tipo === 'sin-sesion') return alVencer(r.motivo);
+    if (r.tipo !== 'ok') return setAviso({ tono: 'peligro', texto: r.motivo });
+    setAviso(RESPUESTA_DE_BOLD[r.datos.pago] ?? RESPUESTA_DE_BOLD['esperando'] ?? null);
+    await cargar();
+  };
   const hacerEnlace = async () => {
     const r = await pedirAlPanel<{ enlace: string }>(conexion, 'pedidos/enlace', {
       cuerpo: { pedido: pedido.id },
@@ -1102,6 +1144,29 @@ export function Pedido({
             solo.
           </p>
         </section>
+      ) : null}
+      {pedido.estado === 'por_pagar' ? (
+        <section class="acciones">
+          <h2>Esperando el pago</h2>
+          <p class="nota">
+            {pagoVencido
+              ? 'El pago venció y Bold no ha avisado que entró. Pregúntale antes de cancelar: si el comprador pagó, el pedido queda pagado.'
+              : 'Cuando el comprador pague, Bold avisa y el pedido queda pagado solo. Si ya pagó y no lo ves, pregúntale a Bold.'}
+          </p>
+          <button
+            class="ed1-boton ed1-boton--secundario"
+            type="button"
+            onClick={() => void preguntar()}
+          >
+            Preguntarle a Bold
+          </button>
+        </section>
+      ) : null}
+      {pedido.estado === 'cancelado' && pedido.pago?.estado === 'revisar' ? (
+        <Aviso tono="peligro" titulo="Llegó un pago de este pedido cancelado">
+          Bold avisó que el comprador pagó después de que lo cancelaste. Las unidades no salieron
+          del inventario: devuélvele la plata desde tu cuenta de Bold.
+        </Aviso>
       ) : null}
       {porConfirmar ? (
         <section class="acciones">

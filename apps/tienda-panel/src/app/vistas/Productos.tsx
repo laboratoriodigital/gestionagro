@@ -12,6 +12,7 @@ import {
   ESTADOS,
   enPesos,
   type FilaDeProducto,
+  marcaDeLaOferta,
   opNueva,
   type PaginaDeProductos,
   rutaDeProductos,
@@ -166,21 +167,35 @@ export function Productos({
                     accion: <a href="/productos/nuevo/">Crea el primero</a>,
                   }
           }
-          fila={(p: FilaDeProducto) => ({
-            href: `/productos/${p.id}/`,
-            dato: p.nombre,
-            ...(p.desde === null
-              ? {}
-              : { monto: p.combinaciones > 1 ? `desde ${enPesos(p.desde)}` : enPesos(p.desde) }),
-            estado: (
+          fila={(p: FilaDeProducto) => {
+            const estadoDelProducto = (
               <span class={`estado estado--${ESTADO_CORTO[p.estado]?.tono ?? 'neutro'}`}>
                 {ESTADO_CORTO[p.estado]?.texto ??
                   ESTADOS.find((e) => e.id === p.estado)?.texto ??
                   p.estado}
               </span>
-            ),
-            detalle: `${p.combinaciones === 1 ? '1 combinación' : `${p.combinaciones} combinaciones`} · ${existencias(p)}`,
-          })}
+            );
+            const oferta = marcaDeLaOferta(p.oferta);
+            return {
+              href: `/productos/${p.id}/`,
+              dato: p.nombre,
+              ...(p.desde === null
+                ? {}
+                : { monto: p.combinaciones > 1 ? `desde ${enPesos(p.desde)}` : enPesos(p.desde) }),
+              // La oferta programada, junto al estado: la que rige hoy y la que viene.
+              estado: oferta ? (
+                <span class="estados">
+                  {estadoDelProducto}
+                  <span class={`estado estado--${p.oferta?.vigente ? 'bien' : 'neutro'}`}>
+                    {oferta}
+                  </span>
+                </span>
+              ) : (
+                estadoDelProducto
+              ),
+              detalle: `${p.combinaciones === 1 ? '1 combinación' : `${p.combinaciones} combinaciones`} · ${existencias(p)}`,
+            };
+          }}
         />
       )}
       {estado.tipo === 'listo' && cuantosSeVen(vistos, total) ? (

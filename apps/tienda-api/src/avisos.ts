@@ -283,6 +283,34 @@ function anular(c: ContextoDelAviso, k: CobroDelAviso) {
   ];
 }
 
+/**
+ * Aprobado cuando el pedido ya se canceló (su pago había vencido sin pagarse): el cobro queda a
+ * revisar, sin tocar el inventario ni el pedido, para que el comercio devuelva la plata desde Bold.
+ * El tablero lo cuenta entre los cobros por revisar.
+ */
+function pagoDeUnCancelado(c: ContextoDelAviso, r: RespuestaDeBold, k: CobroDelAviso) {
+  return [
+    c.db
+      .prepare(
+        `UPDATE cobro SET estado = 'revisar', estado_proveedor = 'APPROVED', transaccion = ?, medio = ?,
+           actualizado = ? WHERE org_id = ? AND id = ?`,
+      )
+      .bind(r.transaccion, r.medio, c.ahora, c.org, k.id),
+    c.db
+      .prepare(
+        `UPDATE apartado SET estado = 'liberado', cerrado = ?
+          WHERE org_id = ? AND cobro_id = ? AND estado = 'activo'`,
+      )
+      .bind(c.ahora, c.org, k.id),
+    eventoDelPago(
+      c,
+      k,
+      { resultado: 'pagado_cancelado', transaccion: r.transaccion, pagado: r.total },
+      'cancelado',
+    ),
+  ];
+}
+
 const APROBADOS = new Set(['aprobado', 'aprobado_sin_existencias', 'revisar']);
 
 /** Lo que la respuesta hace con el cobro: las sentencias, o `null` si no le toca hacer nada. */
@@ -290,13 +318,20 @@ async function sentenciasDe(
   c: ContextoDelAviso,
   r: RespuestaDeBold,
   k: CobroDelAviso,
-): Promise<{ lote: SentenciaD1[]; respaldo?: SentenciaD1[] } | null> {
+): Promise<{ lote: SentenciaD1[]; respaldo?: SentenciaD1[]; cancelado?: true } | null> {
   const abierto = k.estado === 'esperando' || k.estado === 'vencido';
   switch (r.tipo) {
-    case 'aprobado':
+    case 'aprobado': {
       if (!abierto) return null;
+      const pedido = await c.db
+        .prepare('SELECT estado FROM pedido WHERE org_id = ? AND id = ?')
+        .bind(c.org, k.pedido_id)
+        .first<{ estado: string }>();
+      if (pedido?.estado === 'cancelado')
+        return { lote: pagoDeUnCancelado(c, r, k), cancelado: true };
       if (r.total !== k.monto_cop) return { lote: revisar(c, r, k) };
       return { lote: await aprobar(c, r, k), respaldo: aprobarSinExistencias(c, r, k) };
+    }
     case 'rechazado':
       return k.estado === 'esperando' ? { lote: rechazar(c, k) } : null;
     case 'anulado':
@@ -325,6 +360,8 @@ export async function aplicarRespuesta(
   }
   if (r.tipo === 'aprobado') {
     await reaplicarAnulaciones(c, k.id);
+    // El pago de un pedido cancelado no se le cuenta al comprador como pagado.
+    if (hacer.cancelado) return true;
     try {
       c.alPagar?.(k.pedido_id);
     } catch (e) {

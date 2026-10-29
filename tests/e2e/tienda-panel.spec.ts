@@ -3750,3 +3750,72 @@ test('HU-P4.1 · elegir un tema llena la apariencia, se ajusta después y se gua
     .analyze();
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });
+
+test('validación del 28 oct · un pedido por pagar se le pregunta a Bold y, vencido el pago, se cancela', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const pedido: Record<string, unknown> = {
+    ...filaDePedido(1060, { estado: 'por_pagar', formaPago: 'en_linea', articulos: 1 }),
+    canal: 'web',
+    subtotalCop: 129000,
+    descuentoCop: 0,
+    envioCop: 0,
+    cuponCodigo: null,
+    envioNombre: null,
+    totalCop: 129000,
+    lineas: [],
+    historia: [],
+    conContacto: false,
+    link: null,
+    pago: { estado: 'esperando', vence: '2026-10-19T15:15:00.000Z' },
+  };
+  const preguntas: unknown[] = [];
+  await page.route(`${PANEL}/api/panel/v1/pedidos/ped-1060`, (r) => r.fulfill({ json: pedido }));
+  await page.route(`${PANEL}/api/panel/v1/pedidos/preguntar`, (r) => {
+    preguntas.push(r.request().postDataJSON());
+    return r.fulfill({ json: { estado: 'ok', pago: 'vencido' } });
+  });
+  await page.goto(`${PANEL}/pedidos/ped-1060/`);
+  await expect(page.getByRole('heading', { level: 2, name: 'Esperando el pago' })).toBeVisible();
+  await expect(page.getByText(/El pago venció y Bold no ha avisado/)).toBeVisible();
+  await page.getByRole('button', { name: 'Preguntarle a Bold' }).click();
+  await expect(page.getByText(/Bold no tiene el pago y ya venció/)).toBeVisible();
+  expect(preguntas).toEqual([{ pedido: 'ped-1060' }]);
+  // Vencido el pago, se ofrece cancelar; confirmar a mano, no.
+  await expect(page.getByText('Cancelar el pedido', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Confirmar por WhatsApp' })).toHaveCount(0);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('validación del 28 oct · la lista de productos marca la oferta que rige y la que viene', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  await productosDeA50(page, [
+    {
+      ...filaDe(1, 'Camisa en oferta'),
+      oferta: { porcentaje: 20, desde: '2026-10-28', hasta: '2026-11-02', vigente: true },
+    },
+    {
+      ...filaDe(2, 'Camisa que viene'),
+      oferta: { porcentaje: 15, desde: '2026-11-05', hasta: '2026-11-08', vigente: false },
+    },
+    filaDe(3, 'Camisa sin oferta'),
+  ] as ReturnType<typeof filaDe>[]);
+  await page.goto(`${PANEL}/productos/`);
+  await expect(
+    page.getByRole('link', { name: /Camisa en oferta.*En oferta · 20 %/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: /Camisa que viene.*Oferta desde el 5 de nov/ }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: /Camisa sin oferta/ })).not.toContainText('Oferta');
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
