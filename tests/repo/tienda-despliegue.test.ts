@@ -6,6 +6,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { BaseD1 } from '../../packages/d1/src/index.ts';
 import { baseLocal } from '../../packages/d1/src/local.ts';
+import { ENSAYOS, hostDeStaging } from '../../packages/tienda-schema/src/ensayos.ts';
 import {
   celdasDeLaTienda,
   wranglerDeLaCeldaDeLaTienda,
@@ -220,6 +221,26 @@ describe('la prueba de humo', () => {
 
   it('con todo en su sitio no hay fallas ni avisos', async () => {
     expect(await humoDeLaTienda(nube(sana), urls)).toEqual({ fallas: [], avisos: [] });
+  });
+
+  it('la portada de un comercio de prueba se reconoce por su nombre, aunque cambie su bienvenida', async () => {
+    // El 29 oct 2026 el humo de staging falló porque al validar los temas se le puso a Comercio
+    // Ensayo Dos una bienvenida propia, y el humo buscaba el nombre en el título grande.
+    const [ensayo] = ENSAYOS;
+    if (!ensayo) throw new Error('sin comercios de prueba');
+    const host = `https://${hostDeStaging(ensayo.slug)}`;
+    const conPortada = (html: string) => ({
+      ...sana,
+      [`${host}/api/v1/tienda`]: () => Response.json({ nombre: ensayo.nombre }),
+      [`${host}/`]: () => new Response(html),
+    });
+    const suya = `<meta property="og:site_name" content="${ensayo.nombre}">\n<h1>Bienvenidos a la casa</h1>`;
+    expect(await humoDeLaTienda(nube(conPortada(suya)), urls, [ensayo])).toEqual({
+      fallas: [],
+      avisos: [],
+    });
+    const ajena = await humoDeLaTienda(nube(conPortada('<h1>Otra cosa</h1>')), urls, [ensayo]);
+    expect(ajena.fallas).toEqual([`${host}/ respondió 200 sin la portada de ${ensayo.nombre}`]);
   });
 
   it('la KEK que falta es un aviso, no una falla', async () => {

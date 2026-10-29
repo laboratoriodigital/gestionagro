@@ -16,6 +16,9 @@ El último cambio antes de producción: crear un producto es más corto y más c
 - **Lo que tu plan no incluye** (la oferta con fecha, el texto del comprador y los productos digitales) se dice en una línea, con el enlace a los planes.
 - El botón de guardar queda a mano, abajo, mientras escribes.
 
+### Arreglado
+- **El despliegue a staging ya no se detiene cuando un comercio de prueba cambia su bienvenida:** la prueba de humo reconoce la portada por el nombre del comercio, no por el título grande.
+
 ## [1.7.1] - 2026-10-28
 
 Lo que pidió la validación del sprint PF3.

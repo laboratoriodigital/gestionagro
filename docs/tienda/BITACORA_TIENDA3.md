@@ -1620,3 +1620,15 @@ La regla: **todo estado que solo mueve un tercero necesita, en la pantalla, una 
 La regla: **dos campos lado a lado en el teléfono se miran en una captura a 360 px, no solo en la prueba.**
 
 *Ficha:* tienda3 · *(mía)* · 🟢 Bajo · P3 · tienda-1.8.0 · 2026-10-28
+
+**74 · El despliegue a staging se detuvo por una bienvenida nueva.**
+
+*Qué pasó.* El 29 oct 2026, al fusionar el #258, el despliegue a staging falló en c1: la Tienda quedó desplegada, pero la prueba de humo dijo que la portada de Comercio Ensayo Dos respondía sin su portada, y c2 quedó sin tocar.
+
+*La causa.* Al validar los temas, el dueño le puso a ese comercio una bienvenida propia. La prueba buscaba el nombre del comercio en el título grande de la portada, que es justo lo que el comerciante puede cambiar.
+
+*El arreglo.* La prueba reconoce la portada por el nombre del sitio, que siempre es el del comercio. Una prueba nueva cubre una portada con bienvenida propia y otra que no es la del comercio.
+
+La regla: **la prueba de humo mira lo que el comerciante no puede cambiar, no lo que puede personalizar.**
+
+*Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟡 Medio · P2 · tienda-1.8.0 · 2026-10-29

@@ -644,11 +644,13 @@ export async function humoDeLaTienda(
     if (r.status !== 200 || nombre !== e.nombre) {
       fallas.push(`${url} respondió ${r.status} sin el nombre de ${e.nombre}`);
     }
-    // HU-T4.4: su portada, horneada y servida desde el almacén por el despacho.
+    // HU-T4.4: su portada, horneada y servida desde el almacén por el despacho. Se reconoce por
+    // el nombre del sitio, no por el título grande: el comerciante puede cambiar su bienvenida.
     const suPortada = await pedir(`https://${hostDeStaging(e.slug)}/`);
     if (
       suPortada &&
-      (suPortada.status !== 200 || !(await suPortada.text()).includes(`<h1>${e.nombre}</h1>`))
+      (suPortada.status !== 200 ||
+        !(await suPortada.text()).includes(`<meta property="og:site_name" content="${e.nombre}">`))
     ) {
       fallas.push(
         `https://${hostDeStaging(e.slug)}/ respondió ${suPortada.status} sin la portada de ${e.nombre}`,
