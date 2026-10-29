@@ -217,6 +217,22 @@ function wrangler(paquete: string, argumentos: string, cred: Credenciales, entra
   return { ok: r.status === 0, salida };
 }
 
+/**
+ * Bitácora tienda3 64 y 75: la subida de los archivos a Cloudflare puede fallar una vez sin causa
+ * (`assets-upload-session`, código 10013). Un `wrangler deploy` se reintenta tres veces antes de
+ * detener el despliegue; desplegar otra vez la misma versión no cambia nada.
+ */
+async function desplegarConIntentos(paquete: string, argumentos: string, cred: Credenciales) {
+  let deploy = { ok: false, salida: '' };
+  for (let intento = 1; intento <= 3; intento++) {
+    deploy = wrangler(paquete, `deploy ${argumentos}`, cred);
+    if (deploy.ok || intento === 3) break;
+    console.log(`  ${paquete} no subió (intento ${intento}); reintento en ${intento * 10} s`);
+    await new Promise((listo) => setTimeout(listo, intento * 10_000));
+  }
+  return deploy;
+}
+
 /** Un despliegue nuevo tarda unos segundos en verse en todas partes: hasta 5 intentos. */
 async function conReintentos(probar: () => Promise<string[]>): Promise<string[]> {
   let fallas: string[] = [];
@@ -1021,7 +1037,7 @@ async function prepararCeldaDeLaTienda(
   ];
   const urls: Record<string, string | null> = {};
   for (const [paquete, opciones, deEste] of pasos) {
-    const deploy = wrangler(paquete, `deploy ${opciones}`, cred);
+    const deploy = await desplegarConIntentos(paquete, opciones, cred);
     if (!deploy.ok) {
       return {
         ok: false,
@@ -1223,19 +1239,11 @@ async function desplegarLaLanding(dest: Destino, cred: Credenciales, panel: stri
     return { ok: false, detalle: ['la landing de TiendaPro no está armada: falta su build'] };
   }
   armarLaLandingPara(dist, dest);
-  // Bitácora tienda3 64: la subida de los archivos puede fallar una vez sin causa (código 10013);
-  // se reintenta tres veces antes de detener el despliegue.
-  let deploy = { ok: false, salida: '' };
-  for (let intento = 1; intento <= 3; intento++) {
-    deploy = wrangler(
-      '@ed1/tiendapro-sitio',
-      `deploy ${dest === 'staging' ? '--env staging' : '--env='}`,
-      cred,
-    );
-    if (deploy.ok) break;
-    console.log(`  la landing no subió (intento ${intento}); reintento en ${intento * 10} s`);
-    await new Promise((listo) => setTimeout(listo, intento * 10_000));
-  }
+  const deploy = await desplegarConIntentos(
+    '@ed1/tiendapro-sitio',
+    dest === 'staging' ? '--env staging' : '--env=',
+    cred,
+  );
   if (!deploy.ok) {
     return {
       ok: false,
