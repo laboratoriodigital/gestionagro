@@ -69,5 +69,20 @@
     "gratis": false,
     "pro": true,
     "ia-pro": true
+  },
+  "bienvenida_con_imagenes": {
+    "gratis": false,
+    "pro": true,
+    "ia-pro": true
+  },
+  "ofertas_programadas": {
+    "gratis": false,
+    "pro": true,
+    "ia-pro": true
+  },
+  "texto_del_comprador": {
+    "gratis": false,
+    "pro": true,
+    "ia-pro": true
   }
 }

@@ -4,6 +4,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.7.0] - 2026-10-28
+
+Sprint PF3 del perfeccionamiento: una vitrina más completa y más control.
+
+### Agregado
+- **Temas listos:** en «Ajustes › Apariencia», ocho estilos completos con nombre (Panadería, Moda, Belleza, Campo, Tecnología, Artesanías, Hogar y Minimal). Uno llena el color, la tinta, el estilo, la portada y la forma de las fotos, y cada cosa se puede cambiar después.
+- **Varias imágenes en la bienvenida** (Pro e IA Pro): hasta dos imágenes más, que se deslizan con el dedo, cada una con su texto y a dónde lleva. Tu portada sigue cargando igual de rápido: las de más cargan cuando se van a ver.
+- **Cómo sale en Google:** cada producto y cada página pueden tener su título y su descripción para buscadores, con una muestra de cómo se vería y un aviso si es muy largo. Sin escribirlos, todo queda como antes.
+- **Ofertas programadas** (Pro e IA Pro): un porcentaje menos en un producto, del primer día al último. Empieza y termina sola, sin volver a publicar, con el precio de siempre tachado al lado. Fuera de sus días nunca se cobra.
+- **Un texto del comprador** (Pro e IA Pro): un producto puede pedir «Nombre para grabar» o «Mensaje de la tarjeta», con su largo y si es obligatorio. Llega en el WhatsApp del pedido y en los datos de entrega, guardado con el mismo cuidado que ellos.
+- **El rol «Despachos»:** invita a alguien que solo vea y mueva los pedidos, lleve los recaudos y mire el inventario, sin tocar precios, productos ni ajustes.
+- **La calculadora de precios** en tiendapro.co/calculadora: a cuánto vender para que te quede lo que esperas, con la comisión de Bold y el envío. Gratis, sin registrarte y sin guardar nada.
+
 ## [1.6.0] - 2026-10-28
 
 Sprint PF2 del perfeccionamiento: productos digitales y el control del día a día.

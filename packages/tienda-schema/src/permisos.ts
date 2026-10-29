@@ -8,16 +8,20 @@
  * El colaborador hace todo lo del día a día, menos lo que decide a dónde llega la plata o quién
  * entra: cobro, dominio, equipo, plan, exportar datos personales, los derechos del titular y el
  * modo de pedido (TIENDA-3.0 §12.1). Tampoco acepta los términos en nombre de la tienda (HU-T7.2).
+ *
+ * HU-P3.3 (sprint PF3): «Despachos», para quien solo despacha. Ve y mueve los pedidos, lleva los
+ * recaudos y ve el inventario, sin cambiarlo; no toca precios, productos, ajustes ni la tienda.
  */
 import type { Seccion } from './secciones.ts';
 
-export const ROLES = ['propietario', 'colaborador'] as const;
+export const ROLES = ['propietario', 'colaborador', 'despachos'] as const;
 export type Rol = (typeof ROLES)[number];
 
 export const ACCIONES = [
   'sesion.ver',
   'tablero.ver',
   'catalogo.editar',
+  'inventario.ver',
   'inventario.ajustar',
   'avisame.atender',
   'pedidos.ver',
@@ -64,10 +68,26 @@ const SOLO_PROPIETARIO: ReadonlySet<Accion> = new Set<Accion>([
   'tienda.baja',
 ]);
 
+/** HU-P3.3: lo único que puede quien despacha. */
+const DE_DESPACHOS: ReadonlySet<Accion> = new Set<Accion>([
+  'sesion.ver',
+  'tablero.ver',
+  'inventario.ver',
+  'pedidos.ver',
+  'pedidos.gestionar',
+  'pedidos.contacto_ver',
+  'pedidos.link_pago',
+  'recaudos.gestionar',
+]);
+
 export const MATRIZ: Readonly<Record<Accion, readonly Rol[]>> = Object.fromEntries(
   ACCIONES.map((a) => [
     a,
-    SOLO_PROPIETARIO.has(a) ? ['propietario'] : ['propietario', 'colaborador'],
+    SOLO_PROPIETARIO.has(a)
+      ? ['propietario']
+      : DE_DESPACHOS.has(a)
+        ? ['propietario', 'colaborador', 'despachos']
+        : ['propietario', 'colaborador'],
   ]),
 ) as unknown as Record<Accion, readonly Rol[]>;
 

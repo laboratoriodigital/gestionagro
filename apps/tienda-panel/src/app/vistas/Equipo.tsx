@@ -17,6 +17,8 @@ import {
   enlaceDeWhatsApp,
   type Miembro,
   quitarDelEquipo,
+  ROLES_INVITABLES,
+  type RolInvitable,
   verEquipo,
 } from '../equipo.ts';
 import { NOMBRE_DEL_ROL } from './ElegirTienda.tsx';
@@ -42,6 +44,8 @@ export function Equipo({
   const [estado, setEstado] = useState<Estado>({ tipo: 'nada' });
   const [miembros, setMiembros] = useState<Miembro[] | null>(null);
   const [falla, setFalla] = useState<string | null>(null);
+  // HU-P3.3: a quién se invita: un colaborador o alguien que solo despacha.
+  const [invitado, setInvitado] = useState<RolInvitable>('colaborador');
   const gestiona = puede(rol, 'equipo.gestionar');
   const cargar = useCallback(async () => {
     const r = await verEquipo(conexion);
@@ -69,7 +73,7 @@ export function Equipo({
 
   const invitar = async () => {
     setEstado({ tipo: 'creando' });
-    const r = await crearInvitacion(conexion, { origen: location.origin, tienda });
+    const r = await crearInvitacion(conexion, { origen: location.origin, tienda, rol: invitado });
     setEstado(
       r.tipo === 'ok'
         ? { tipo: 'lista', enlace: r.enlace, mensaje: r.mensaje, expira: r.expira }
@@ -92,6 +96,10 @@ export function Equipo({
       <p>
         No puede cambiar el cobro, el dominio, el plan, el equipo ni cómo llegan los pedidos, ni
         descargar los datos de tus compradores.
+      </p>
+      <p>
+        En <strong>Despachos</strong>, solo ve y mueve los pedidos, lleva los recaudos y mira el
+        inventario: no cambia precios, productos, ajustes ni publica.
       </p>
       <h2>Quién tiene acceso</h2>
       {falla ? (
@@ -128,6 +136,21 @@ export function Equipo({
           Para invitar a alguien más, cambia de plan en <a href="/mas/plan/">Tu plan</a>.
         </p>
       ) : null}
+      <fieldset class="ed1-grupo">
+        <legend class="ed1-grupo__titulo">¿Cómo va a ayudarte?</legend>
+        {ROLES_INVITABLES.map((r) => (
+          <label class="casilla" key={r.id} for={`invitar-${r.id}`}>
+            <input
+              id={`invitar-${r.id}`}
+              type="radio"
+              name="rol-invitado"
+              checked={invitado === r.id}
+              onChange={() => setInvitado(r.id)}
+            />
+            {r.nombre}: {r.hace}
+          </label>
+        ))}
+      </fieldset>
       <button
         class="ed1-boton ed1-boton--primario"
         type="button"
@@ -135,7 +158,7 @@ export function Equipo({
         aria-busy={estado.tipo === 'creando' ? 'true' : undefined}
         onClick={() => void invitar()}
       >
-        Invitar a un colaborador
+        {invitado === 'despachos' ? 'Invitar a Despachos' : 'Invitar a un colaborador'}
       </button>
       {estado.tipo === 'error' ? (
         <Aviso tono="peligro" titulo="No se creó la invitación">

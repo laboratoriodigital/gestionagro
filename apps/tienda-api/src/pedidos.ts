@@ -21,8 +21,11 @@ import { formatearPesos, LIMITES } from '@ed1/dinero';
 import { NOMBRE_DE_LA_FORMA } from '@ed1/tienda-horno';
 import { formasDelPlan } from '@ed1/tienda-schema';
 import { z } from 'zod';
+import { precioDeHoy } from './catalogo.ts';
 import { type Cotizacion, cotizar } from './cotizar.ts';
+import { kekDelEntorno } from './llaves.ts';
 import { limitesDeLaTienda } from './plan.ts';
+import { type TextoDeLinea, textosDelPedido } from './textos-del-comprador.ts';
 
 const CROCKFORD = /^[0-9A-HJKMNP-TV-Z]{6}$/;
 const SECRETO = /^[A-Za-z0-9_-]{22}$/;
@@ -43,6 +46,8 @@ export const PeticionDePedido = z.object({
         variante: z.string().min(1).max(64),
         cantidad: z.number().int().min(1).max(LIMITES.unidadesPorLinea),
         mayorDeEdad: z.literal(true).optional(),
+        /** HU-P1.5: lo que pide el producto en su ficha; se valida contra la base. */
+        texto: z.string().trim().max(200).optional(),
       }),
     )
     .min(1)
@@ -70,7 +75,7 @@ export type ResultadoDePedido =
     }
   | { estado: 'cambio'; cotizacion: Cotizacion }
   | { estado: 'terminos' | 'cerrada' | 'codigo-en-uso' }
-  | { estado: 'forma' | 'edad'; motivo: string };
+  | { estado: 'forma' | 'edad' | 'texto'; motivo: string };
 
 export interface ContextoDePedido {
   db: BaseD1;
@@ -82,6 +87,8 @@ export interface ContextoDePedido {
   terminosPublicados: string | null;
   /** Un id nuevo para el pedido (UUID). */
   id: string;
+  /** HU-P1.5: la llave maestra, para cifrar los textos del comprador. Sin ella no se guardan. */
+  kekTexto?: string | undefined;
 }
 
 export async function sha256(texto: string): Promise<string> {
@@ -112,7 +119,14 @@ export interface DatosDelTexto {
   tienda: string;
   codigo: string;
   numero: number;
-  lineas: { nombre: string; opciones: string; cantidad: number; total: number }[];
+  lineas: {
+    nombre: string;
+    opciones: string;
+    cantidad: number;
+    total: number;
+    /** HU-P1.5: lo que escribió el comprador para este producto. */
+    texto?: string;
+  }[];
   envio: { nombre: string; cop: number } | null;
   descuento: { cupon: string | null; cop: number };
   total: number;
@@ -136,7 +150,7 @@ export function resumenDelPedido(d: DatosDelTexto): string[] {
     `Pedido ${d.codigo} · #${d.numero}`,
     ...d.lineas.map(
       (l) =>
-        `- ${l.cantidad} × ${l.nombre}${l.opciones ? ` (${l.opciones})` : ''}: ${formatearPesos(l.total)}`,
+        `- ${l.cantidad} × ${l.nombre}${l.opciones ? ` (${l.opciones})` : ''}: ${formatearPesos(l.total)}${l.texto ? `\n  Texto: «${l.texto}»` : ''}`,
     ),
     ...(d.envio ? [`Envío ${d.envio.nombre}: ${formatearPesos(d.envio.cop)}`] : []),
     ...(d.descuento.cop > 0
@@ -185,8 +199,9 @@ async function textoDesdeLaBase(
   pedidoId: string,
   tienda: string,
   secreto: string | null,
+  textos: readonly TextoDeLinea[] = [],
 ): Promise<{ numero: number; total: number; texto: string; codigo: string }> {
-  const d = await datosDelPedidoEscrito(c, pedidoId, tienda, secreto);
+  const d = await datosDelPedidoEscrito(c, pedidoId, tienda, secreto, textos);
   return { codigo: d.codigo, numero: d.numero, total: d.total, texto: textoDelPedido(d) };
 }
 
@@ -196,6 +211,8 @@ export async function datosDelPedidoEscrito(
   pedidoId: string,
   tienda: string,
   secreto: string | null,
+  /** HU-P1.5: los textos del comprador, que la base guarda cifrados; van debajo de su línea. */
+  textos: readonly TextoDeLinea[] = [],
 ): Promise<DatosDelTexto> {
   const p = await c.db
     .prepare(
@@ -217,15 +234,25 @@ export async function datosDelPedidoEscrito(
   if (!p) throw new Error('el pedido recién escrito no se pudo leer');
   const { results: lineas } = await c.db
     .prepare(
-      'SELECT nombre, opciones, cantidad, total_cop FROM pedido_linea WHERE org_id = ? AND pedido_id = ? ORDER BY linea',
+      'SELECT variante_id, nombre, opciones, cantidad, total_cop FROM pedido_linea WHERE org_id = ? AND pedido_id = ? ORDER BY linea',
     )
     .bind(c.org, pedidoId)
-    .all<{ nombre: string; opciones: string; cantidad: number; total_cop: number }>();
+    .all<{
+      variante_id: string;
+      nombre: string;
+      opciones: string;
+      cantidad: number;
+      total_cop: number;
+    }>();
+  const textoDe = new Map(textos.map((t) => [t.variante, t.texto]));
   return {
     tienda,
     codigo: p.codigo,
     numero: p.numero,
-    lineas: lineas.map((l) => ({ ...l, total: l.total_cop })),
+    lineas: lineas.map(({ variante_id, total_cop, ...l }) => {
+      const texto = textoDe.get(variante_id);
+      return { ...l, total: total_cop, ...(texto ? { texto } : {}) };
+    }),
     envio: p.envio_nombre ? { nombre: p.envio_nombre, cop: p.envio_cop } : null,
     descuento: { cupon: p.cupon_codigo, cop: p.descuento_cop },
     total: p.total_cop,
@@ -252,6 +279,7 @@ interface VarianteDelPedido {
   nombre: string;
   opciones: string;
   solo_mayores: number;
+  oferta: string | null;
 }
 
 /**
@@ -303,7 +331,7 @@ export async function prepararPedido(
 
   const { results: filas } = await c.db
     .prepare(
-      `SELECT v.id, v.clave, v.sku, v.precio_cop, p.id AS producto_id, p.nombre, p.opciones, p.solo_mayores
+      `SELECT v.id, v.clave, v.sku, v.precio_cop, p.id AS producto_id, p.nombre, p.opciones, p.solo_mayores, p.oferta
        FROM variante v JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
        WHERE v.org_id = ? AND v.id IN (${cotizacion.carrito.map(() => '?').join(', ')})`,
     )
@@ -331,13 +359,15 @@ export async function prepararPedido(
 
 /** Las líneas del pedido, con las copias del día (nombre, opciones, precio). */
 export function lineasDelPedido(
-  c: Pick<ContextoDePedido, 'db' | 'org' | 'id'>,
+  c: Pick<ContextoDePedido, 'db' | 'org' | 'id' | 'ahora'>,
   cotizacion: Cotizacion,
   porId: ReadonlyMap<string, VarianteDelPedido>,
 ) {
   return cotizacion.carrito.map((l, i) => {
     const v = porId.get(l.variante);
     if (!v) throw new Error(`la variante ${l.variante} se cotizó y no se pudo leer`);
+    // HU-P1.4: el mismo precio que la cotización de este instante, con la oferta si rige.
+    const precio = precioDeHoy(v.precio_cop, v.oferta, c.ahora);
     return c.db
       .prepare(
         `INSERT INTO pedido_linea (org_id, pedido_id, linea, producto_id, variante_id, nombre, opciones, sku,
@@ -352,9 +382,9 @@ export function lineasDelPedido(
         v.nombre,
         opcionesEnPalabras(v.opciones, v.clave),
         v.sku,
-        v.precio_cop,
+        precio,
         l.cantidad,
-        v.precio_cop * l.cantidad,
+        precio * l.cantidad,
       );
   });
 }
@@ -388,10 +418,18 @@ export async function registrar(
     if (!previo.seguimiento_huella || !igual(previo.seguimiento_huella, huellaDelSecreto)) {
       return { estado: 'codigo-en-uso' };
     }
+    // HU-P1.5: el reenvío trae los mismos textos; la base los guarda cifrados.
+    const leidos = await textosDelPedido(c.db, c.org, p.lineas);
     return {
       estado: 'duplicado',
       whatsapp: tienda.whatsapp,
-      ...(await textoDesdeLaBase(c, previo.id, tienda.nombre, p.seguimiento)),
+      ...(await textoDesdeLaBase(
+        c,
+        previo.id,
+        tienda.nombre,
+        p.seguimiento,
+        leidos.ok ? leidos.textos : [],
+      )),
     };
   }
 
@@ -419,9 +457,16 @@ export async function registrar(
       motivo: 'Lo digital se paga antes de descargarlo: elige otra forma de pago.',
     };
   }
+  // HU-P1.5: lo que pide cada producto en su ficha, contra la base.
+  const leidos = await textosDelPedido(c.db, c.org, p.lineas);
+  if (!leidos.ok) return { estado: 'texto', motivo: leidos.motivo };
   const preparado = await prepararPedido(c, p);
   if ('estado' in preparado) return preparado;
   const { cotizacion, porId, conEdad, envio } = preparado;
+  const textos = leidos.textos.filter((t) =>
+    cotizacion.carrito.some((l) => l.variante === t.variante),
+  );
+  const sobreDeLosTextos = await sobreDeTextos(c, textos);
 
   const sentencias = [
     c.db
@@ -466,6 +511,25 @@ export async function registrar(
         c.ahora,
         JSON.stringify({ canal: 'whatsapp', mayorDeEdad: [...conEdad].sort() }),
       ),
+    ...(sobreDeLosTextos
+      ? [
+          c.db
+            .prepare(
+              `INSERT INTO pedido_contacto (org_id, pedido_id, sobre, iv, llave_version, celular_indice, creado,
+                 purgar_despues) VALUES (?, ?, ?, ?, ?, NULL, ?, ${sobreDeLosTextos.purgarDespues})`,
+            )
+            .bind(
+              c.org,
+              c.id,
+              sobreDeLosTextos.sobre,
+              sobreDeLosTextos.iv,
+              sobreDeLosTextos.version,
+              c.ahora,
+              c.ahora,
+              c.org,
+            ),
+        ]
+      : []),
   ];
   try {
     await c.db.batch(sentencias);
@@ -477,8 +541,35 @@ export async function registrar(
   return {
     estado: 'registrado',
     whatsapp: tienda.whatsapp,
-    ...(await textoDesdeLaBase(c, c.id, tienda.nombre, p.seguimiento)),
+    ...(await textoDesdeLaBase(c, c.id, tienda.nombre, p.seguimiento, textos)),
   };
+}
+
+/**
+ * HU-P1.5: el sobre con los textos de un pedido por WhatsApp, que no tiene otros datos de entrega.
+ * Sin textos, nada; sin la llave maestra, tampoco: el WhatsApp los lleva igual, y se dice en el log.
+ */
+async function sobreDeTextos(c: ContextoDePedido, textos: readonly TextoDeLinea[]) {
+  if (textos.length === 0) return null;
+  const kek = await kekDelEntorno(c.kekTexto);
+  if (!kek) {
+    console.error('tienda-api: sin la KEK no se guardan los textos del comprador');
+    return null;
+  }
+  // Se importan aquí: `bandeja.ts` y `titular.ts` llegan a este módulo por los enlaces de pago, y
+  // arriba harían un ciclo que deja sus esquemas sin definir.
+  const [{ cifrarContacto }, { PURGAR_DESPUES }] = await Promise.all([
+    import('./bandeja.ts'),
+    import('./titular.ts'),
+  ]);
+  const sobre = await cifrarContacto(
+    c,
+    kek,
+    c.id,
+    { textos: textos.map(({ nombre, texto }) => ({ nombre, texto })) },
+    c.ahora,
+  );
+  return { ...sobre, purgarDespues: PURGAR_DESPUES };
 }
 
 export const PeticionDeSeguimiento = z.object({

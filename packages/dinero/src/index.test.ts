@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   calcularTotal,
   cobrableEnLinea,
+  comisionDeLaVenta,
   formatearPesos,
   LIMITES,
   MontoIlegible,
   pesos,
+  precioDeOferta,
+  precioParaGanar,
   repartirDescuento,
 } from './index.ts';
 
@@ -284,4 +287,67 @@ describe('HU-P1.3 · el cupón solo en algunos productos', () => {
     });
     expect(r).toMatchObject({ descuentoCupon: 0, avisos: ['cupon_no_aplica'] });
   });
+});
+
+describe('HU-P1.4 · precioDeOferta', () => {
+  it('un porcentaje menos; el redondeo favorece al comprador', () => {
+    expect(precioDeOferta(129000, 20)).toBe(103200);
+    expect(precioDeOferta(999, 15)).toBe(849);
+  });
+  it.each([0, 91, 2.5])('❌ el %s %% no se lee', (p) => {
+    expect(() => precioDeOferta(129000, p)).toThrow();
+  });
+});
+
+describe('HU-P5.2 · la calculadora de precios', () => {
+  const pse = { centesimas: 289, fijoCop: 900 };
+  it('la comisión con su IVA, redondeada al peso', () => {
+    // (100.000 × 2,89 % + 900) × 1,19 = 4.510,1
+    expect(comisionDeLaVenta(100000, pse, 19)).toBe(4510);
+    expect(comisionDeLaVenta(100000, { centesimas: 0, fijoCop: null }, 19)).toBe(0);
+  });
+
+  it('el precio deja el costo más lo que quiere ganar, después de la comisión y el envío', () => {
+    const r = precioParaGanar({
+      costoCop: 40000,
+      gananciaPct: 50,
+      envioCop: 8000,
+      comision: pse,
+      ivaPct: 19,
+    });
+    expect(r.precioCop % 100).toBe(0);
+    expect(r.precioCop - r.comisionCop - 8000 - 40000).toBe(r.gananciaCop);
+    expect(r.gananciaCop).toBeGreaterThanOrEqual(20000);
+    // Con $100 menos ya no alcanzaría: es el menor precio que sirve.
+    const menos = r.precioCop - 100;
+    expect(menos - comisionDeLaVenta(menos, pse, 19) - 8000 - 40000).toBeLessThan(20000);
+  });
+
+  it('sin comisión (contra entrega o transferencia) ni envío, el costo más la ganancia', () => {
+    expect(
+      precioParaGanar({
+        costoCop: 10000,
+        gananciaPct: 30,
+        envioCop: 0,
+        comision: { centesimas: 0, fijoCop: null },
+        ivaPct: 19,
+      }),
+    ).toEqual({ precioCop: 13000, comisionCop: 0, gananciaCop: 3000, margenPct: 23 });
+  });
+
+  it.each([[{ costoCop: -1 }], [{ costoCop: 1.5 }], [{ gananciaPct: -5 }]])(
+    '❌ %o no se lee',
+    (malo) => {
+      expect(() =>
+        precioParaGanar({
+          costoCop: 10000,
+          gananciaPct: 30,
+          envioCop: 0,
+          comision: pse,
+          ivaPct: 19,
+          ...malo,
+        }),
+      ).toThrow();
+    },
+  );
 });

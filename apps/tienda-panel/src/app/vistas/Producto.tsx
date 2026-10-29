@@ -21,14 +21,19 @@ import {
   ESTADOS,
   type FormularioDeProducto,
   formularioDe,
+  type OfertaEnPantalla,
+  ofertaEnPantalla,
   opNueva,
+  type PideTextoEnPantalla,
   type ProductoDelPanel,
   type PromocionEnPantalla,
+  pideTextoEnPantalla,
   promocionEnPantalla,
 } from '../catalogo.ts';
 import { Casilla, Confirmar, Texto } from '../componentes/index.ts';
 import { irA } from '../ruta.ts';
 import { ArchivosDigitales } from './ArchivosDigitales.tsx';
+import { EnGoogle } from './EnGoogle.tsx';
 import { Fotos } from './Fotos.tsx';
 
 type Error = { campo: string; mensaje: string };
@@ -41,6 +46,7 @@ function Formulario({
   conexion,
   almacen,
   producto,
+  tienda,
   alGuardar,
   guardado = null,
   alVencer,
@@ -49,6 +55,8 @@ function Formulario({
   conexion: Conexion;
   almacen: Almacen;
   producto: ProductoDelPanel | null;
+  /** El nombre de la tienda, para el título que sale en Google sin uno propio (HU-P4.4). */
+  tienda: string;
   alGuardar: (id: string) => void;
   /** Cuándo se guardó por última vez: se dice junto al botón, con el acceso a publicar. */
   guardado?: number | null;
@@ -388,6 +396,16 @@ function Formulario({
         alCambiar={(v) => poner('promocion', v)}
         error={errorDe('promocion')}
       />
+      <Oferta
+        valor={f.oferta ?? ofertaEnPantalla(null)}
+        alCambiar={(v) => poner('oferta', v)}
+        error={errorDe('oferta')}
+      />
+      <PideTexto
+        valor={f.pideTexto ?? pideTextoEnPantalla(null)}
+        alCambiar={(v) => poner('pideTexto', v)}
+        error={errorDe('pide-texto')}
+      />
       <div class="ed1-campo" id="tipo">
         <label class="ed1-campo__etiqueta" for="tipo-de-producto">
           Tipo de producto
@@ -418,6 +436,18 @@ function Formulario({
           alVencer={alVencer}
         />
       ) : null}
+      <EnGoogle
+        id="en-google"
+        valor={f.buscadores ?? { titulo: '', descripcion: '' }}
+        alCambiar={(v) => poner('buscadores', v)}
+        tituloDeFabrica={`${f.nombre.trim() || 'Tu producto'} · ${tienda}`}
+        descripcionDeFabrica={f.descripcion}
+        direccion={`/p/${f.slug.trim() || producto?.slug || 'tu-producto'}/`}
+        errores={{
+          titulo: errorDe('en-google-titulo'),
+          descripcion: errorDe('en-google-descripcion'),
+        }}
+      />
       {falla ? (
         <Aviso tono="peligro" titulo="No se guardó">
           {falla}
@@ -456,12 +486,14 @@ export function Producto({
   conexion,
   almacen,
   id,
+  tienda = 'tu tienda',
   alVencer,
 }: {
   conexion: Conexion;
   almacen: Almacen;
   /** `null`: uno nuevo. */
   id: string | null;
+  tienda?: string;
   alVencer: (motivo: string) => void;
 }) {
   const [producto, setProducto] = useState<ProductoDelPanel | null | 'cargando'>(
@@ -513,6 +545,7 @@ export function Producto({
             </Aviso>
           ) : null}
           <Formulario
+            tienda={tienda}
             key={producto ? `${producto.id}:${producto.version}` : 'nuevo'}
             conexion={conexion}
             almacen={almacen}
@@ -623,6 +656,123 @@ export function Promocion({
             Las unidades del mismo producto cuentan juntas, aunque sean de distinta talla o color.
           </p>
         </div>
+      ) : null}
+    </fieldset>
+  );
+}
+
+/**
+ * HU-P1.4 (sprint PF3): la oferta programada del producto. Un porcentaje menos en todas sus
+ * combinaciones, del primer día al último: empieza y termina sola, sin volver a publicar. La tienda
+ * la muestra con el precio de siempre tachado al lado.
+ */
+export function Oferta({
+  valor,
+  alCambiar,
+  error,
+}: {
+  valor: OfertaEnPantalla;
+  alCambiar: (v: OfertaEnPantalla) => void;
+  error: string | undefined;
+}) {
+  const poner = (cambio: Partial<OfertaEnPantalla>) => alCambiar({ ...valor, ...cambio });
+  return (
+    <fieldset class="ed1-grupo" id="oferta">
+      <legend class="ed1-grupo__titulo">Oferta programada</legend>
+      {error ? <p class="ed1-campo__error">{error}</p> : null}
+      <Casilla
+        id="oferta-activa"
+        etiqueta="Ponerle una oferta con fecha"
+        marcada={valor.activa}
+        alCambiar={(v) => poner({ activa: v })}
+      />
+      {valor.activa ? (
+        <>
+          <Texto
+            id="oferta-porcentaje"
+            etiqueta="Porcentaje menos"
+            numerico
+            valor={valor.porcentaje}
+            alCambiar={(v) => poner({ porcentaje: v })}
+          />
+          <div class="fila-de-campos">
+            <Texto
+              id="oferta-desde"
+              etiqueta="Primer día"
+              fecha
+              valor={valor.desde}
+              alCambiar={(v) => poner({ desde: v })}
+            />
+            <Texto
+              id="oferta-hasta"
+              etiqueta="Último día"
+              fecha
+              valor={valor.hasta}
+              alCambiar={(v) => poner({ hasta: v })}
+            />
+          </div>
+          <p class="nota">
+            Empieza a la medianoche del primer día y termina al final del último, en todas las
+            combinaciones. Es de los planes Pro e IA Pro.
+          </p>
+        </>
+      ) : null}
+    </fieldset>
+  );
+}
+
+/**
+ * HU-P1.5 (sprint PF3): pedirle un texto al comprador en la ficha, como «Nombre para grabar» o
+ * «Mensaje de la tarjeta». Llega con el pedido, en su WhatsApp y en los datos de entrega.
+ */
+export function PideTexto({
+  valor,
+  alCambiar,
+  error,
+}: {
+  valor: PideTextoEnPantalla;
+  alCambiar: (v: PideTextoEnPantalla) => void;
+  error: string | undefined;
+}) {
+  const poner = (cambio: Partial<PideTextoEnPantalla>) => alCambiar({ ...valor, ...cambio });
+  return (
+    <fieldset class="ed1-grupo" id="pide-texto">
+      <legend class="ed1-grupo__titulo">Un texto del comprador</legend>
+      {error ? <p class="ed1-campo__error">{error}</p> : null}
+      <Casilla
+        id="pide-texto-activo"
+        etiqueta="Pedirle un texto en la página del producto"
+        marcada={valor.activo}
+        alCambiar={(v) => poner({ activo: v })}
+      />
+      {valor.activo ? (
+        <>
+          <Texto
+            id="pide-texto-etiqueta"
+            etiqueta="Qué le pides"
+            ayuda="Por ejemplo: «Nombre para grabar» o «Mensaje de la tarjeta»."
+            valor={valor.etiqueta}
+            alCambiar={(v) => poner({ etiqueta: v })}
+          />
+          <Texto
+            id="pide-texto-largo"
+            etiqueta="Hasta cuántos caracteres"
+            ayuda="Hasta 200."
+            numerico
+            valor={valor.largo}
+            alCambiar={(v) => poner({ largo: v })}
+          />
+          <Casilla
+            id="pide-texto-obligatorio"
+            etiqueta="Sin este texto no se puede pedir"
+            marcada={valor.obligatorio}
+            alCambiar={(v) => poner({ obligatorio: v })}
+          />
+          <p class="nota">
+            Lo ves en el WhatsApp del pedido y en los datos de entrega. Es de los planes Pro e IA
+            Pro.
+          </p>
+        </>
       ) : null}
     </fieldset>
   );

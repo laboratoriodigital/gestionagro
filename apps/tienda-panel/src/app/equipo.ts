@@ -15,6 +15,22 @@ import { renovar, type Sesion } from './sesion.ts';
 
 export const CLAVE_INVITACION = 'invitacion_pendiente';
 export const ROL_INVITADO = 'colaborador';
+/** HU-P3.3: los roles que se pueden invitar, con lo que hacen en palabras. */
+export const ROLES_INVITABLES = [
+  {
+    id: 'colaborador',
+    nombre: 'Colaborador',
+    como: 'como colaborador',
+    hace: 'pedidos, productos e inventario',
+  },
+  {
+    id: 'despachos',
+    nombre: 'Despachos',
+    como: 'en los despachos',
+    hace: 'ver y despachar los pedidos y llevar los recaudos',
+  },
+] as const;
+export type RolInvitable = (typeof ROLES_INVITABLES)[number]['id'];
 
 export type Invitacion =
   | { estado: 'vigente'; tienda: string; rol: string; invita: string; expira: string }
@@ -60,8 +76,14 @@ const hastaEl = (expira: string) =>
   }).format(Date.parse(expira));
 
 /** El mensaje para WhatsApp: a qué tienda, con qué rol, el enlace y hasta cuándo sirve. */
-export function mensajeDeInvitacion(tienda: string, enlace: string, expira: string): string {
-  return `Hola. Te invito a ayudarme con la tienda ${tienda} en su panel, como colaborador: pedidos, productos e inventario. Abre este enlace y entra con tu cuenta de Google: ${enlace} (sirve una sola vez, hasta el ${hastaEl(expira)}).`;
+export function mensajeDeInvitacion(
+  tienda: string,
+  enlace: string,
+  expira: string,
+  rol: RolInvitable = ROL_INVITADO,
+): string {
+  const r = ROLES_INVITABLES.find((x) => x.id === rol) ?? ROLES_INVITABLES[0];
+  return `Hola. Te invito a ayudarme con la tienda ${tienda} en su panel, ${r.como}: ${r.hace}. Abre este enlace y entra con tu cuenta de Google: ${enlace} (sirve una sola vez, hasta el ${hastaEl(expira)}).`;
 }
 
 /** Enlace de WhatsApp con el mensaje listo, sin destinatario: quien invita elige a quién. */
@@ -71,7 +93,7 @@ export const enlaceDeWhatsApp = (mensaje: string) =>
 /** Crea la invitación en el CORE. El código va solo en el fragmento del enlace. */
 export async function crearInvitacion(
   c: Conexion,
-  opciones: { origen: string; tienda: string },
+  opciones: { origen: string; tienda: string; rol?: RolInvitable },
 ): Promise<
   | { tipo: 'ok'; enlace: string; mensaje: string; expira: string }
   | { tipo: 'error'; motivo: string }
@@ -81,7 +103,7 @@ export async function crearInvitacion(
   const r = await alCore(
     c.fetchFn ?? fetch,
     `${c.core}/api/core/invitaciones`,
-    { rol: ROL_INVITADO },
+    { rol: opciones.rol ?? ROL_INVITADO },
     sesion.acceso,
   );
   if (!r) return { tipo: 'error', motivo: SIN_SENAL };
@@ -100,7 +122,7 @@ export async function crearInvitacion(
     tipo: 'ok',
     enlace,
     expira,
-    mensaje: mensajeDeInvitacion(opciones.tienda, enlace, expira),
+    mensaje: mensajeDeInvitacion(opciones.tienda, enlace, expira, opciones.rol),
   };
 }
 

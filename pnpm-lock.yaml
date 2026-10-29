@@ -516,6 +516,9 @@ importers:
 
   apps/tiendapro-sitio:
     dependencies:
+      '@ed1/dinero':
+        specifier: workspace:*
+        version: link:../../packages/dinero
       '@ed1/tienda-schema':
         specifier: workspace:*
         version: link:../../packages/tienda-schema

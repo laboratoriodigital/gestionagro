@@ -7,7 +7,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./alta": "./src/alta.ts",
+    "./buscadores": "./src/buscadores.ts",
     "./comercio": "./src/comercio.ts",
+    "./comisiones": "./src/comisiones.ts",
     "./dominios": "./src/dominios.ts",
     "./ensayos": "./src/ensayos.ts",
     "./marca": "./src/marca.ts",
@@ -16,6 +18,7 @@
     "./permisos": "./src/permisos.ts",
     "./redes": "./src/redes.ts",
     "./tapado": "./src/tapado.ts",
+    "./temas": "./src/temas.ts",
     "./titulos": "./src/titulos.ts",
     "./volumen": "./src/volumen.ts"
   },

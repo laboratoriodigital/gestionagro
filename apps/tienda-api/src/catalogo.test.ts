@@ -220,6 +220,64 @@ describe('HU-T8.2 · productos con sus combinaciones', () => {
     expect(JSON.parse(fila?.seo ?? '{}')).toEqual({ slugsAnteriores: ['delantal-de-lino'] });
   });
 
+  it('HU-P4.4: lo de buscadores va con las direcciones; quien no lo manda no lo borra', async () => {
+    const seo = async (id: string) =>
+      JSON.parse(
+        (
+          await db
+            .prepare('SELECT seo FROM producto WHERE org_id = ? AND id = ?')
+            .bind(ORG, id)
+            .first<{ seo: string }>()
+        )?.seo ?? '{}',
+      );
+    const a = await guardarProducto(
+      quien(),
+      delantal({ buscadores: { titulo: '  Delantal de lino lavado  ', descripcion: '' } }),
+    );
+    if (a.estado !== 'guardado') throw new Error(a.estado);
+    expect(await seo(a.id)).toEqual({ titulo: 'Delantal de lino lavado' });
+    await guardarProducto(quien(), delantal({ id: a.id, version: 1, slug: 'delantal' }));
+    expect(await seo(a.id)).toEqual({
+      titulo: 'Delantal de lino lavado',
+      slugsAnteriores: ['delantal-de-lino'],
+    });
+    expect((await leerProducto(quien(), a.id))?.buscadores).toEqual({
+      titulo: 'Delantal de lino lavado',
+    });
+    await guardarProducto(
+      quien(),
+      delantal({ id: a.id, version: 2, slug: 'delantal', buscadores: { titulo: '' } }),
+    );
+    expect(await seo(a.id)).toEqual({ slugsAnteriores: ['delantal-de-lino'] });
+    const largo = await guardarProducto(
+      quien(),
+      delantal({ id: a.id, version: 3, buscadores: { titulo: 'x'.repeat(121) } }),
+    );
+    expect(largo.estado === 'problemas' && largo.problemas[0]?.campo).toBe('buscadores.titulo');
+  });
+
+  it('HU-P1.4: la oferta programada es de Pro; quien no la manda no la borra', async () => {
+    const plan = (p: string) =>
+      db.prepare('UPDATE tienda SET plan = ? WHERE org_id = ?').bind(p, ORG).run();
+    const oferta = { porcentaje: 20, desde: '2026-11-07', hasta: '2026-11-08' };
+    await plan('gratis');
+    const gratis = await guardarProducto(quien(), delantal({ oferta }));
+    expect(gratis.estado === 'problemas' && gratis.problemas[0]?.campo).toBe('oferta');
+    await plan('pro');
+    const a = await guardarProducto(quien(), delantal({ oferta }));
+    if (a.estado !== 'guardado') throw new Error(a.estado);
+    expect((await leerProducto(quien(), a.id))?.oferta).toEqual(oferta);
+    await guardarProducto(quien(), delantal({ id: a.id, version: 1 }));
+    expect((await leerProducto(quien(), a.id))?.oferta).toEqual(oferta);
+    const alReves = await guardarProducto(
+      quien(),
+      delantal({ id: a.id, version: 2, oferta: { ...oferta, hasta: '2026-11-01' } }),
+    );
+    expect(alReves.estado === 'problemas' && alReves.problemas[0]?.campo).toBe('oferta.hasta');
+    await guardarProducto(quien(), delantal({ id: a.id, version: 2, oferta: null }));
+    expect((await leerProducto(quien(), a.id))?.oferta).toBe(null);
+  });
+
   it('una dirección que usa otro producto no se toma', async () => {
     const a = await guardarProducto(quien(), delantal());
     if (a.estado !== 'guardado') throw new Error(a.estado);

@@ -177,6 +177,32 @@ export const CAMPOS: Record<Seccion, readonly CampoDeAjuste[]> = {
       tipo: 'texto',
       ayuda: 'Si lo dejas vacío, dice «Ver los productos».',
     },
+    // HU-P4.2: dos imágenes más, que se deslizan con el dedo (Pro e IA Pro).
+    ...(['segunda', 'tercera'] as const).flatMap((cual) => {
+      const Cual = cual === 'segunda' ? 'Segunda' : 'Tercera';
+      return [
+        {
+          campo: `hero.${cual}.imagen`,
+          etiqueta: `Bienvenida: ${cual} imagen`,
+          tipo: 'imagen',
+          ayuda:
+            'Se desliza con el dedo después de la primera. Es de los planes Pro e IA Pro; con el plan Gratis sale solo la primera.',
+        },
+        {
+          campo: `hero.${cual}.texto`,
+          etiqueta: `${Cual} imagen: qué muestra`,
+          tipo: 'texto',
+          ayuda: 'Va sobre la imagen, como «Nueva colección de lino». Hasta 80 caracteres.',
+        },
+        {
+          campo: `hero.${cual}.enlace`,
+          etiqueta: `${Cual} imagen: a dónde lleva`,
+          tipo: 'texto',
+          ayuda:
+            'Una dirección de tu tienda, como /c/lino/ o /p/camisa-de-lino/. Vacío: a los productos.',
+        },
+      ] satisfies CampoDeAjuste[];
+    }),
   ],
   venta: [
     {

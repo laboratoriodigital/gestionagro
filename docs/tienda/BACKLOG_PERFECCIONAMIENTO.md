@@ -28,7 +28,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 |---|---|---|---|---:|---|
 | **PF1** | 27 oct – 2 nov 2026 (construido el 27 oct) | **Vender más y perder menos ventas:** compras sin terminar, promociones por cantidad, correos al comprador, cambios masivos, redes y la ayuda | HU-P1.1 (5), HU-P1.2 (3), HU-P2.1 (3), HU-P3.1 (5), HU-P4.3 (1), HU-P5.1 (3) | 20 | tienda 1.5.0 |
 | **PF2** | 3 – 9 nov 2026 (construido el 28 oct) | **Productos digitales y control del día a día** | HU-P6.1 (5), HU-P6.2 (5), HU-P6.3 (2), HU-P2.2 (2), HU-P3.2 (2), HU-P1.3 (2) | 18 | tienda 1.6.0 |
-| **PF3** | 10 – 16 nov 2026 | **Una vitrina más completa y más control** | HU-P4.1 (3), HU-P4.2 (3), HU-P4.4 (2), HU-P1.4 (3), HU-P1.5 (3), HU-P3.3 (3), HU-P5.2 (2) | 19 | tienda 1.7.0 |
+| **PF3** | 10 – 16 nov 2026 (construido el 28 oct) | **Una vitrina más completa y más control** | HU-P4.1 (3), HU-P4.2 (3), HU-P4.4 (2), HU-P1.4 (3), HU-P1.5 (3), HU-P3.3 (3), HU-P5.2 (2) | 19 | tienda 1.7.0 |
 
 **Por qué este orden.** PF1 junta lo que más mueve ventas y lo que el comerciante necesita para arrancar solo (la ayuda), sin nada que espere al dueño. PF2 lleva los productos digitales, que piden un almacén privado que crea el dueño (WI-P6.1.4) antes de empezar. PF3 es pulido de la vitrina y del panel.
 
@@ -79,7 +79,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P1.3.1 `[código]` el alcance del cupón y su cálculo · WI-P1.3.2 `[prueba]`.
 
 #### HU-P1.4 · Ofertas programadas
-- **Capa:** API y horno · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro · **Estado:** Refinada
+- **Capa:** API y horno · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. **Cambió al construir:** la oferta es del producto y en porcentaje, igual para todas sus combinaciones, no un precio por combinación: un formulario corto y una sola regla (`precioDeOferta` en `@ed1/dinero`). Migración 0026. El horno recibe la hora como dato (`ahora`); la tarea `ofertas-programadas` re-hornea cada hora, desde la medianoche de Colombia, las tiendas con una oferta que empieza hoy o terminó ayer, una vez por día.
 - Como comerciante, quiero dejar lista la oferta del fin de semana, para que empiece y termine sola.
 - **Referencia:** Tiendanube, «activación programada por fecha».
 - **CA1.** El precio de oferta de una combinación puede tener fecha de inicio y de fin; fuera de ellas rige el precio normal.
@@ -88,7 +88,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P1.4.1 `[código]` las fechas en la variante y en `cotizar` · WI-P1.4.2 `[código]` el cron · WI-P1.4.3 `[prueba]`.
 
 #### HU-P1.5 · Un texto del comprador en la ficha
-- **Capa:** vitrina, API y panel · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro · **Estado:** Refinada
+- **Capa:** vitrina, API y panel · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. Migración 0027 (`pide_texto`). Un texto por línea: uno nuevo reemplaza al anterior. Va cifrado en el sobre de la entrega: en un pedido en línea con los demás datos; en uno por WhatsApp, en un sobre solo con los textos. El panel lo ve al abrir los datos de entrega. Un pedido que prepara un asistente o que se anota en el panel no lleva texto.
 - Como comerciante que personaliza, quiero pedir «nombre para grabar» o «mensaje de la tarjeta» en la ficha.
 - **Referencia:** Tiendanube, «campos personalizados».
 - **CA1.** Un producto puede pedir un texto, con su etiqueta y su largo máximo (hasta 200), obligatorio o no.
@@ -138,7 +138,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P3.2.1 `[código]` · WI-P3.2.2 `[prueba]`.
 
 #### HU-P3.3 · Un rol para quien solo despacha
-- **Capa:** paquete, API y panel · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro e IA Pro · **Estado:** Refinada
+- **Capa:** paquete, API y panel · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro e IA Pro · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. El rol `despachos` en `permisos.ts` y en `infrastructure/productos.json`, que lleva el CORE a 0.12.0. Una acción nueva, `inventario.ver`, separa ver el inventario de ajustarlo. El panel cambia «Productos» por «Inventario» y no ofrece lo que el rol no puede; la API lo niega con 403 (`panel-despachos.test.ts`).
 - Como comerciante, quiero que quien despacha vea y mueva los pedidos sin tocar precios ni productos.
 - **Referencia:** Tiendanube, «permisos específicos por perfil».
 - **CA1.** Un tercer rol, «Despachos», en la invitación del equipo: pedidos, recaudos e inventario de solo lectura.
@@ -150,7 +150,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 ## EP4 · Una vitrina más completa
 
 #### HU-P4.1 · Temas listos
-- **Capa:** horno y panel · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** todos · **Estado:** Refinada
+- **Capa:** horno y panel · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** todos · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. Ocho temas en `@ed1/tienda-schema/temas`, con los acentos del panel; una prueba del horno pasa cada uno en claro, en oscuro y con el modo del teléfono. **Cambió al construir:** para una tienda solo oscura, cada tema trae su acento aclarado (el horno no ajusta en silencio, bitácora tienda3 69). Elegirlo llena el formulario; la vista previa es la de «Publicar», después de guardar.
 - Como comerciante sin diseñador, quiero elegir un estilo completo con un toque, para que mi tienda se vea bien de una vez.
 - **Referencia:** Tiendanube, más de 60 plantillas.
 - **CA1.** Seis a ocho temas con nombre (por ejemplo: Panadería, Moda, Belleza, Campo, Tecnología, Minimal), cada uno una combinación de acento, tinta, estilo, portada y proporción.
@@ -159,7 +159,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P4.1.1 `[código]` los temas en `tienda-schema` · WI-P4.1.2 `[código]` el selector del panel · WI-P4.1.3 `[prueba]` contraste de cada tema.
 
 #### HU-P4.2 · Varias imágenes en la bienvenida
-- **Capa:** horno · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro · **Estado:** Refinada
+- **Capa:** horno · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. Dos imágenes más (`hero.segunda` y `hero.tercera`), con su texto y una dirección de la tienda. El plan va en `variasImagenes` (`bienvenida_con_imagenes` en funciones.json): un plan que baja las quita en el re-horneado, sin publicar.
 - Como comerciante, quiero mostrar dos o tres imágenes en la bienvenida, cada una con su enlace.
 - **Referencia:** Tiendanube, «banners, carruseles o videos».
 - **CA1.** Hasta 3 imágenes que se deslizan con el dedo, con CSS y sin librería.
@@ -174,7 +174,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P4.3.1 `[código]` el esquema de `contacto` (versión nueva con su traductor) y el pie · WI-P4.3.2 `[prueba]`.
 
 #### HU-P4.4 · Título y descripción para buscadores
-- **Capa:** paquete, horno y panel · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** PF3 · **Plan:** todos · **Estado:** Refinada
+- **Capa:** paquete, horno y panel · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** PF3 · **Plan:** todos · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. El del producto va en `producto.seo`, que ya existía; el de la página, en la migración 0025. **Cambió al construir:** sin texto propio, una página sigue sin descripción, como hoy (bitácora tienda3 70). Quien no lo manda (un asistente, la carga por lotes) no lo borra.
 - Como comerciante, quiero decidir cómo aparece mi producto en Google.
 - **Referencia:** Tiendanube, «personalización del SEO».
 - **CA1.** Producto y página pueden tener título y descripción para buscadores; sin ellos, salen de su nombre y su descripción, como hoy.
@@ -196,7 +196,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P5.1.1 `[doc]` las siete guías · WI-P5.1.2 `[código]` las páginas en `tiendapro-sitio` y su sitemap · WI-P5.1.3 `[código]` los enlaces del panel · WI-P5.1.4 `[dueño]` el WhatsApp de soporte.
 
 #### HU-P5.2 · La calculadora de precios
-- **Capa:** sitio · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** PF3 · **Plan:** gratis, en `tiendapro.co` · **Estado:** Refinada
+- **Capa:** sitio · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** PF3 · **Plan:** gratis, en `tiendapro.co` · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. En `tiendapro.co/calculadora/`. Las tarifas de Bold viven en `@ed1/tienda-schema/comisiones`, la misma tabla de la pantalla de cobro, con la fecha del Estudio (4 oct 2026). La ganancia es un porcentaje sobre el costo; el precio sube a los siguientes $100 y la comisión lleva su IVA (19 %).
 - Como persona que vende, quiero saber a cuánto vender para que me quede lo que espero, con la comisión de Bold y el envío.
 - **Referencia:** Tiendanube, herramientas gratis (calculadora de precios y de descuentos). Estudio: las herramientas gratis como entrada al producto.
 - **CA1.** Costo, margen deseado, forma de pago y envío dan el precio de venta y lo que queda en el bolsillo.

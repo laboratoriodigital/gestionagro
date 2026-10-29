@@ -27,6 +27,7 @@ import { opNueva } from '../catalogo.ts';
 import { Lista } from '../componentes/index.ts';
 import { CampoDeImagen } from './CampoDeImagen.tsx';
 import { FeedsDeLaTienda } from './Feeds.tsx';
+import { TemasListos } from './TemasListos.tsx';
 
 interface AjustesDelPanel {
   secciones: Partial<Record<Seccion, { datos: Record<string, unknown>; version: number }>>;
@@ -365,6 +366,14 @@ function Formulario({
         </Aviso>
       ) : null}
       <ResumenDeErrores errores={errores} />
+      {seccion === 'apariencia' ? (
+        <TemasListos
+          valores={valores}
+          alElegir={(v) => {
+            for (const [campo, valor] of Object.entries(v)) cambiar(campo, valor);
+          }}
+        />
+      ) : null}
       {campos.map((c) =>
         c.pide && !puede(rol, c.pide) ? (
           // HU-T10.5 CA2: se ve, pero lo cambia quien administra la tienda; la API también lo niega.

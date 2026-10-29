@@ -26,6 +26,8 @@ export interface LineaDelCarrito {
   cantidad: number;
   /** La confirmación de la edad (Ley 1480 art. 52), que queda en el pedido. */
   mayorDeEdad?: true;
+  /** HU-P1.5: lo que el comprador escribió en la ficha, si el producto lo pide. */
+  texto?: string;
 }
 
 export interface Carrito {
@@ -83,7 +85,8 @@ const lineaValida = (l: unknown): l is LineaDelCarrito => {
     x['variante'] !== '' &&
     Number.isSafeInteger(x['cantidad']) &&
     (x['cantidad'] as number) >= 1 &&
-    (x['mayorDeEdad'] === undefined || x['mayorDeEdad'] === true)
+    (x['mayorDeEdad'] === undefined || x['mayorDeEdad'] === true) &&
+    (x['texto'] === undefined || (typeof x['texto'] === 'string' && x['texto'].length <= 200))
   );
 };
 
@@ -156,8 +159,10 @@ export function agregar(
   c: Carrito,
   variante: string,
   cantidad = 1,
-  opciones: { mayorDeEdad?: boolean } = {},
+  opciones: { mayorDeEdad?: boolean; texto?: string } = {},
 ): { carrito: Carrito; tope?: Tope } {
+  // HU-P1.5: un texto nuevo reemplaza el de la línea: un pedido lleva uno por producto.
+  const texto = opciones.texto?.trim().slice(0, 200);
   const i = c.lineas.findIndex((l) => l.variante === variante);
   if (i < 0) {
     if (c.lineas.length >= TOPES.lineas) return { carrito: c, tope: 'lineas' };
@@ -165,6 +170,7 @@ export function agregar(
       variante,
       cantidad: Math.min(cantidad, TOPES.unidadesPorLinea),
       ...(opciones.mayorDeEdad ? { mayorDeEdad: true as const } : {}),
+      ...(texto ? { texto } : {}),
     };
     const carrito = { ...c, lineas: [...c.lineas, linea] };
     return cantidad > TOPES.unidadesPorLinea ? { carrito, tope: 'unidades' } : { carrito };
@@ -175,6 +181,7 @@ export function agregar(
     ...actual,
     cantidad: Math.min(suma, TOPES.unidadesPorLinea),
     ...(opciones.mayorDeEdad ? { mayorDeEdad: true as const } : {}),
+    ...(texto ? { texto } : {}),
   };
   const lineas = c.lineas.map((l, j) => (j === i ? linea : l));
   return suma > TOPES.unidadesPorLinea

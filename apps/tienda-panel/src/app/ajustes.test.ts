@@ -96,7 +96,16 @@ describe('ajustes del panel', () => {
       { 'hero.titulo': 'Lino', 'hero.imagen': texto['logo'] ?? '' },
       {},
     );
-    expect(hero['hero']).toEqual({ titulo: 'Lino', texto: '', imagen: logo, boton: '' });
+    // HU-P4.2: las imágenes de más van vacías, y la API las quita.
+    const vacia = { imagen: '', texto: '', enlace: '' };
+    expect(hero['hero']).toEqual({
+      titulo: 'Lino',
+      texto: '',
+      imagen: logo,
+      boton: '',
+      segunda: vacia,
+      tercera: vacia,
+    });
   });
 
   it('cada problema de la API llega a su campo, con un nombre que se entiende', () => {

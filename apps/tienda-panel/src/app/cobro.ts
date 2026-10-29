@@ -4,6 +4,7 @@
  * que las guarda: nunca en un borrador del teléfono, en la dirección ni en un log (CA4).
  */
 import { formatearPesos } from '@ed1/dinero';
+import { COMISIONES_DE_BOLD, porcentajeEnTexto } from '@ed1/tienda-schema/comisiones';
 import { type Conexion, pedirAlPanel } from './api.ts';
 import { opNueva } from './catalogo.ts';
 import { fechaLegible } from './terminos.ts';
@@ -118,15 +119,15 @@ export function enLista(cosas: readonly string[]): string {
 
 /**
  * Lo que cobra Bold en línea, antes del IVA de la comisión: la tabla de TIENDA-3.0 §9.7, que sale
- * del estudio §10.2 (una prueba las ata, P2). La paga el comercio.
+ * del estudio §10.2 (una prueba las ata, P2). La paga el comercio. HU-P5.2: la tabla vive en
+ * `@ed1/tienda-schema/comisiones`, la misma de la calculadora de precios.
  */
 export const COMISIONES: readonly { medio: string; porcentaje: string; fijoCop: number | null }[] =
-  [
-    { medio: 'Tarjeta Visa o Mastercard', porcentaje: '2,99 %', fijoCop: 900 },
-    { medio: 'PSE, Bancolombia y billeteras', porcentaje: '2,89 %', fijoCop: 900 },
-    { medio: 'QR en línea', porcentaje: '2,89 %', fijoCop: null },
-    { medio: 'Depósito inmediato', porcentaje: '3,59 %', fijoCop: 900 },
-  ];
+  COMISIONES_DE_BOLD.map((c) => ({
+    medio: c.medio,
+    porcentaje: porcentajeEnTexto(c.centesimas),
+    fijoCop: c.fijoCop,
+  }));
 
 /** «2,99 % + $900», como en la tabla del diseño. */
 export const comisionEnTexto = (c: (typeof COMISIONES)[number]) =>

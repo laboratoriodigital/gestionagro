@@ -20,7 +20,7 @@ import {
 } from '@ed1/dinero';
 import { promocionVigente } from '@ed1/tienda-schema';
 import { z } from 'zod';
-import { promocionLeida } from './catalogo.ts';
+import { precioDeHoy, promocionLeida } from './catalogo.ts';
 
 export const PeticionDeCotizar = z.object({
   lineas: z
@@ -74,6 +74,7 @@ interface FilaVariante {
   stock: number | null;
   reservado: number;
   promocion: string | null;
+  oferta: string | null;
 }
 
 /** Las líneas repetidas de una misma variante se suman, dentro del tope por línea. */
@@ -131,7 +132,7 @@ export async function cotizar(
   const avisos: AvisoDeCotizar[] = [];
   const { results: filas } = await db
     .prepare(
-      `SELECT v.id, v.producto_id, v.precio_cop, v.stock, v.reservado, p.promocion FROM variante v
+      `SELECT v.id, v.producto_id, v.precio_cop, v.stock, v.reservado, p.promocion, p.oferta FROM variante v
        JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
        WHERE v.org_id = ? AND v.activa = 1 AND p.estado = 'activo' AND p.borrado IS NULL
          AND v.id IN (${pedidas.map(() => '?').join(', ')})`,
@@ -173,7 +174,12 @@ export async function cotizar(
       avisos.push({ codigo: 'cantidad_ajustada', variante: l.variante, cantidad });
     }
     carrito.push({ variante: l.variante, cantidad });
-    lineas.push({ precioCop: v.precio_cop, cantidad, producto: v.producto_id });
+    // HU-P1.4: con la oferta programada, si rige ahora; una vencida nunca se cobra (CA3).
+    lineas.push({
+      precioCop: precioDeHoy(v.precio_cop, v.oferta, ahora),
+      cantidad,
+      producto: v.producto_id,
+    });
   }
   if (lineas.length === 0) {
     avisos.push({ codigo: 'carrito_vacio' });

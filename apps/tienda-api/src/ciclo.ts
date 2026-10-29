@@ -23,6 +23,7 @@ import {
   esOperacionRepetida,
   guardarOperacion,
   MOTIVO_CAMBIADO,
+  precioDeHoy,
   type Quien,
   type Resultado,
   SI_CAMBIO,
@@ -827,7 +828,7 @@ const Anotado = z.object({
     .max(10_000_000, { error: 'revisa el valor del envío' })
     .default(0),
   ciudad: z.string().trim().max(80).optional(),
-  contacto: ContactoDelPedido.optional(),
+  contacto: ContactoDelPedido.omit({ textos: true }).optional(),
 });
 
 const ALFABETO = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -852,7 +853,7 @@ export async function crearPedidoAnotado(
   const ids = [...new Set(d.lineas.map((l) => l.variante))];
   const { results } = await q.db
     .prepare(
-      `SELECT v.id, v.clave, v.sku, v.precio_cop, p.id AS producto_id, p.nombre, p.opciones
+      `SELECT v.id, v.clave, v.sku, v.precio_cop, p.id AS producto_id, p.nombre, p.opciones, p.oferta
          FROM variante v JOIN producto p ON p.org_id = v.org_id AND p.id = v.producto_id
         WHERE v.org_id = ? AND v.activa = 1 AND p.borrado IS NULL
           AND v.id IN (${ids.map(() => '?').join(', ')})`,
@@ -866,6 +867,7 @@ export async function crearPedidoAnotado(
       producto_id: string;
       nombre: string;
       opciones: string;
+      oferta: string | null;
     }>();
   const porId = new Map(results.map((v) => [v.id, v]));
   const faltan = d.lineas.flatMap((l, i) =>
@@ -887,7 +889,9 @@ export async function crearPedidoAnotado(
   const id = crypto.randomUUID();
   const lineas = d.lineas.map((l) => {
     const v = porId.get(l.variante) as (typeof results)[number];
-    return { ...l, v, total: v.precio_cop * l.cantidad };
+    // HU-P1.4: el precio de hoy, con la oferta programada si rige.
+    const precio = precioDeHoy(v.precio_cop, v.oferta, q.instante);
+    return { ...l, v, precio, total: precio * l.cantidad };
   });
   const subtotal = lineas.reduce((s, l) => s + l.total, 0);
   const total = subtotal + d.envioCop;
@@ -931,7 +935,7 @@ export async function crearPedidoAnotado(
           l.v.nombre,
           opcionesEnPalabras(l.v.opciones, l.v.clave),
           l.v.sku,
-          l.v.precio_cop,
+          l.precio,
           l.cantidad,
           l.total,
         ),

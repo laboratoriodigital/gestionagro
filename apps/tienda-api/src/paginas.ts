@@ -5,6 +5,7 @@
  * Una página no toma la dirección de un texto legal ni de una ruta del sistema (CA2).
  */
 import type { SentenciaD1 } from '@ed1/d1';
+import { type Buscadores, buscadoresLeidos } from '@ed1/tienda-schema/buscadores';
 import { GuardarPagina, leerDireccionDePagina } from '@ed1/tienda-schema/paginas';
 import { z } from 'zod';
 import {
@@ -29,6 +30,7 @@ interface FilaDePagina {
   cuerpo_md: string;
   visible: number;
   version: number;
+  seo: string | null;
 }
 
 export interface Pagina {
@@ -38,6 +40,7 @@ export interface Pagina {
   cuerpo: string;
   visible: boolean;
   version: number;
+  buscadores: Buscadores;
 }
 
 const paginaDe = (f: FilaDePagina): Pagina => ({
@@ -47,9 +50,20 @@ const paginaDe = (f: FilaDePagina): Pagina => ({
   cuerpo: f.cuerpo_md,
   visible: f.visible === 1,
   version: f.version,
+  buscadores: buscadoresDeLaPagina(f.seo),
 });
 
-const COLUMNAS = 'id, slug, titulo, cuerpo_md, visible, version';
+/** HU-P4.4: lo de buscadores de una página; lo ilegible no existe (P1). */
+export function buscadoresDeLaPagina(seo: string | null): Buscadores {
+  try {
+    const v = JSON.parse(seo ?? '{}') as unknown;
+    return v && typeof v === 'object' ? buscadoresLeidos(v as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+const COLUMNAS = 'id, slug, titulo, cuerpo_md, visible, version, seo';
 
 export async function listarPaginas(q: Quien): Promise<{ paginas: Pagina[] }> {
   const { results } = await q.db
@@ -122,12 +136,14 @@ export async function guardarPagina(q: Quien, cuerpo: unknown): Promise<Resultad
     version: (actual?.version ?? 0) + 1,
     slug: direccion.slug,
   };
-  const valores = [direccion.slug, d.titulo, d.cuerpo, d.visible ? 1 : 0, q.instante] as const;
+  // HU-P4.4: quien no lo manda no lo borra.
+  const seo = d.buscadores ? JSON.stringify(buscadoresLeidos(d.buscadores)) : (actual?.seo ?? null);
+  const valores = [direccion.slug, d.titulo, d.cuerpo, d.visible ? 1 : 0, seo, q.instante] as const;
   const lote: SentenciaD1[] = actual
     ? [
         q.db
           .prepare(
-            `UPDATE pagina SET slug = ?, titulo = ?, cuerpo_md = ?, visible = ?, actualizado = ?, version = version + 1
+            `UPDATE pagina SET slug = ?, titulo = ?, cuerpo_md = ?, visible = ?, seo = ?, actualizado = ?, version = version + 1
              WHERE org_id = ? AND id = ? AND version = ? AND borrado IS NULL`,
           )
           .bind(...valores, q.org, id, actual.version),
@@ -136,7 +152,7 @@ export async function guardarPagina(q: Quien, cuerpo: unknown): Promise<Resultad
     : [
         q.db
           .prepare(
-            'INSERT INTO pagina (org_id, id, slug, titulo, cuerpo_md, visible, actualizado) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO pagina (org_id, id, slug, titulo, cuerpo_md, visible, seo, actualizado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
           )
           .bind(q.org, id, ...valores),
       ];

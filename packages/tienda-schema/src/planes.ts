@@ -104,6 +104,8 @@ export interface LimitesDelPlan {
   sinMarca: boolean;
   /** HU-T18.3: los asistentes de los compradores preparan pedidos por el MCP público. */
   mcpPublico: boolean;
+  /** HU-P4.2: la bienvenida con dos o tres imágenes que se deslizan; sin esto, solo la primera. */
+  variasImagenes: boolean;
 }
 
 /**
@@ -136,6 +138,7 @@ export function limitesDelPlan(
     feeds: encendida('feeds'),
     sinMarca: encendida('sin_marca'),
     mcpPublico: encendida('mcp_publico'),
+    variasImagenes: encendida('bienvenida_con_imagenes'),
   };
 }
 
@@ -143,7 +146,8 @@ export function limitesDelPlan(
  * Lo que permiten los dos a la vez: el menor límite y solo lo que los dos encienden. El re-horneado
  * lo usa para que un plan que baja recorte enseguida y uno que sube espere a que el comercio publique
  * (y la compuerta revise lo que vuelve a mostrarse). `a` es lo guardado con la versión publicada: una
- * versión de antes de HU-T18.3 no trae `sinMarca` ni `mcpPublico`, y en ellos manda el plan de hoy.
+ * versión de antes de HU-T18.3 no trae `sinMarca` ni `mcpPublico` (ni una de antes de HU-P4.2,
+ * `variasImagenes`), y en ellos manda el plan de hoy.
  */
 export function limitesMasEstrictos(a: LimitesDelPlan, b: LimitesDelPlan): LimitesDelPlan {
   const menor = (x: number | null, y: number | null) =>
@@ -157,6 +161,7 @@ export function limitesMasEstrictos(a: LimitesDelPlan, b: LimitesDelPlan): Limit
     feeds: a.feeds && b.feeds,
     sinMarca: (a.sinMarca ?? b.sinMarca) && b.sinMarca,
     mcpPublico: (a.mcpPublico ?? b.mcpPublico) && b.mcpPublico,
+    variasImagenes: (a.variasImagenes ?? b.variasImagenes) && b.variasImagenes,
   };
 }
 

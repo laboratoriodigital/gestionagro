@@ -317,6 +317,12 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         alVencer={setVencida}
       />
     );
+  // HU-P3.3: quien no edita el catálogo va al inventario, que sí puede ver.
+  else if (
+    (ruta === '/productos/' || ruta === '/productos/papelera/') &&
+    !puede(yo.datos.rol, 'catalogo.editar')
+  )
+    cuerpo = <Inventario conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/productos/' || ruta === '/productos/papelera/')
     cuerpo = (
       <Productos
@@ -337,6 +343,7 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
       <Existencias
         key={ruta}
         conexion={conexion}
+        rol={yo.datos.rol}
         variante={decodeURIComponent(ruta.split('/')[3] ?? '')}
         alVencer={setVencida}
       />
@@ -354,6 +361,7 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     const id = decodeURIComponent(ruta.split('/')[2] ?? '');
     cuerpo = (
       <Producto
+        tienda={yo.datos.tienda?.nombre ?? 'tu tienda'}
         conexion={conexion}
         almacen={almacen}
         id={id === 'nuevo' ? null : id}
@@ -400,7 +408,13 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     );
   } else if (ruta === '/mas/cobro/') cuerpo = <Cobro conexion={conexion} alVencer={setVencida} />;
   else if (ruta === '/mas/paginas/' && puede(yo.datos.rol, 'paginas.editar'))
-    cuerpo = <Paginas conexion={conexion} alVencer={setVencida} />;
+    cuerpo = (
+      <Paginas
+        conexion={conexion}
+        tienda={yo.datos.tienda?.nombre ?? 'tu tienda'}
+        alVencer={setVencida}
+      />
+    );
   else if (ruta === '/mas/plan/')
     cuerpo = (
       <Plan
@@ -504,7 +518,7 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
         </Barra>
       ) : null}
       {cuerpo}
-      {conMarco ? <Navegacion ruta={ruta} /> : null}
+      {conMarco ? <Navegacion ruta={ruta} rol={yo.datos.rol} /> : null}
       {vencida && !libre ? <VuelveAEntrar motivo={vencida} alEntrar={entrar} /> : null}
       <AvisoActualizacion />
     </>

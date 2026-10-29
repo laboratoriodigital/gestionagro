@@ -1548,3 +1548,51 @@ La regla: **lo nuevo del tablero pasa por la prueba de la tienda llena antes que
 La regla: **lo que se niega por método se revisa por efecto: un POST que solo lee no es un pedido.**
 
 *Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟢 Bajo · P3 · tienda-1.6.0 · 2026-10-28
+
+**68 · Cifrar los textos del comprador dejó sin definir el esquema del contacto.**
+
+*Qué pasó.* El 28 oct 2026, al guardar cifrados los textos de un pedido por WhatsApp (HU-P1.5), cuatro pruebas de los derechos del titular fallaron con «expected a Zod schema»: `ContactoDelPedido` llegaba vacío a `titular.ts`.
+
+*La causa.* `pedidos.ts` empezó a importar `bandeja.ts` y `titular.ts`. Pero `bandeja.ts` llega a `pedidos.ts` por `links.ts`: el ciclo hacía que `titular.ts` se evaluara antes de que `bandeja.ts` terminara, y su esquema todavía no existía. Las pruebas de los pedidos pasaban; las del titular, que entran por otro lado, no.
+
+*El arreglo.* `pedidos.ts` importa esos dos módulos solo al cifrar, con `import()`, y lo dice en el código.
+
+La regla: **un módulo que casi todos importan no importa a los que lo importan; si lo necesita, lo carga en el momento.**
+
+*Ficha:* tienda3 · *(mía)* · 🟡 Medio · P2 · tienda-1.7.0 · 2026-10-28
+
+**69 · El tema «Minimal» no se habría podido publicar en una tienda solo oscura.**
+
+*Qué pasó.* El 28 oct 2026, al armar los temas listos (HU-P4.1), sus acentos eran los ocho del panel, que pasan en claro y en oscuro con el modo del teléfono. Pero en una tienda solo oscura el horno mide el acento contra el fondo oscuro, y el de «Minimal» (#1f1f1d) no se lee ahí: la compuerta lo habría rechazado al publicar.
+
+*La causa.* «Validado en claro y en oscuro» se probó con el modo del teléfono, donde el acento oscuro se deriva. El modo solo oscuro no deriva: exige que el elegido se lea.
+
+*El arreglo.* Cada tema trae también su acento aclarado para una tienda solo oscura (el que el horno sugeriría), y la prueba pasa cada tema por los tres modos.
+
+La regla: **un dato que va a una compuerta se prueba en cada modo en que esa compuerta mide distinto.**
+
+*Ficha:* tienda3 · *(mía)* · 🟡 Medio · P2 · tienda-1.7.0 · 2026-10-28
+
+**70 · La descripción para buscadores iba a cambiar todas las páginas publicadas.**
+
+*Qué pasó.* El 28 oct 2026, al construir HU-P4.4, la primera versión le ponía a cada página propia una descripción sacada del comienzo de su texto, aunque el comercio no escribiera nada. La prueba la mostró con las marcas de Markdown («**taller**») dentro de la descripción.
+
+*La causa.* «Sin ellos, salen de su nombre y su descripción, como hoy»: hoy una página no tiene descripción. Llenarla por defecto cambiaba lo publicado de todas las tiendas, y con un texto peor.
+
+*El arreglo.* Sin texto propio, la página queda como estaba. Solo cambia la de quien lo escribe.
+
+La regla: **una función nueva y opcional no cambia lo publicado de quien no la usa.**
+
+*Ficha:* tienda3 · *(mía)* · 🟢 Bajo · P3 · tienda-1.7.0 · 2026-10-28
+
+**71 · Una prueba del panel buscaba «Título» y encontró dos.**
+
+*Qué pasó.* El 28 oct 2026, con «Título para buscadores» en el editor de páginas (HU-P4.4), la prueba e2e de HU-T10.2 falló: `getByLabel('Título')` encontraba los dos campos.
+
+*La causa.* Playwright busca la etiqueta por pedazo de texto: un campo nuevo que empieza igual vuelve ambigua una prueba vieja.
+
+*El arreglo.* La prueba busca la etiqueta exacta.
+
+La regla: **en las pruebas, las etiquetas se buscan exactas.**
+
+*Ficha:* tienda3 · *(mía)* · 🟢 Bajo · P3 · tienda-1.7.0 · 2026-10-28

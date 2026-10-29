@@ -12,7 +12,7 @@
  * Un dato vacío, entre corchetes o `undefined` no llega al HTML ni al JSON-LD: se omite (bitácora
  * ecommerce 31). Todo texto con el nombre del comercio sale de sus datos.
  */
-import { formatearPesos } from '@ed1/dinero';
+import { formatearPesos, precioDeOferta } from '@ed1/dinero';
 import {
   CORREO_DE_REPORTES,
   DOMINIO_DE_LA_MARCA,
@@ -20,6 +20,8 @@ import {
   type LimitesDelPlan,
   MARCA,
   NOMBRE_DEL_TIPO,
+  type OfertaProgramada,
+  ofertaVigente,
   TIPOS_DE_SOLICITUD,
 } from '@ed1/tienda-schema';
 import { enlaceDeRed, NOMBRE_DE_LA_RED, REDES, type Red } from '@ed1/tienda-schema/redes';
@@ -98,6 +100,18 @@ export interface ProductoParaHornear {
   promocion?: string;
   /** HU-P6.3: se descarga al pagar; la ficha lo dice y el carrito no pide envío si todo es digital. */
   digital?: boolean;
+  /** HU-P4.4: cómo sale en Google. Sin él, el nombre con el de la tienda y la descripción. */
+  buscadores?: Buscadores;
+  /** HU-P1.4: un porcentaje menos en todas sus combinaciones, esos días de Colombia. */
+  oferta?: OfertaProgramada;
+  /** HU-P1.5: el texto que la ficha le pide al comprador, como «Nombre para grabar». */
+  pideTexto?: { etiqueta: string; largo: number; obligatorio: boolean };
+}
+
+/** HU-P4.4: el título y la descripción para buscadores que escribió el comercio. */
+export interface Buscadores {
+  titulo?: string;
+  descripcion?: string;
 }
 
 export interface ColeccionParaHornear {
@@ -109,6 +123,11 @@ export interface ColeccionParaHornear {
 export interface TiendaParaHornear {
   /** La dirección canónica, sin esquema: `ensayo-uno.mitiendapro.co`. */
   dominio: string;
+  /**
+   * HU-P1.4 CA3: la hora de este horneado, ISO 8601. El horno no lee el reloj: con ella decide qué
+   * oferta programada rige. Sin ella, ninguna.
+   */
+  ahora?: string;
   /** La versión de los archivos comunes de la vitrina (`/_t/<release>/`). */
   release: string;
   /** La organización: la carpeta de sus fotos en el bucket público. */
@@ -170,7 +189,14 @@ export interface TiendaParaHornear {
   logo?: FotoParaHornear;
   icono?: FotoParaHornear;
   /** HU-T5.14: el hero de la portada. */
-  hero?: { titulo?: string; texto?: string; imagen?: FotoParaHornear; boton?: string };
+  hero?: {
+    titulo?: string;
+    texto?: string;
+    imagen?: FotoParaHornear;
+    boton?: string;
+    /** HU-P4.2: hasta dos imágenes más, cada una con su enlace a la tienda. */
+    mas?: readonly { imagen: FotoParaHornear; texto?: string; enlace?: string }[];
+  };
   /** HU-T10.2: las páginas propias visibles, en Markdown, cada una en `/<slug>/`. */
   paginas?: readonly PaginaParaHornear[];
 }
@@ -179,6 +205,7 @@ export interface PaginaParaHornear {
   slug: string;
   titulo: string;
   cuerpo: string;
+  buscadores?: Buscadores;
 }
 
 const GA4 = /^G-[A-Z0-9]{4,12}$/;
@@ -335,9 +362,43 @@ interface Pagina {
   privada?: boolean;
 }
 
+/**
+ * HU-P1.4: las ofertas programadas que rigen a la hora del horneado. La combinación muestra el
+ * precio con la oferta y el normal tachado al lado; fuera de sus días, el normal, como siempre.
+ */
+export function conLasOfertas(t: TiendaParaHornear): TiendaParaHornear {
+  const ahora = t.ahora;
+  if (!ahora || !t.productos.some((p) => p.oferta)) return t;
+  return {
+    ...t,
+    productos: t.productos.map((p) =>
+      p.oferta && ofertaVigente(p.oferta, ahora)
+        ? {
+            ...p,
+            variantes: p.variantes.map((v) => ({
+              ...v,
+              precioCop: precioDeOferta(v.precioCop, (p.oferta as OfertaProgramada).porcentaje),
+              precioAntesCop: v.precioCop,
+            })),
+          }
+        : p,
+    ),
+  };
+}
+
+/**
+ * HU-P1.5: el campo del texto que pide el producto. Lo que escriba el comprador va con su línea y
+ * se guarda como texto: nunca se pinta como HTML (HU-T4.2).
+ */
+function pideTextoHtml(p: ProductoParaHornear): string {
+  const t = p.pideTexto;
+  if (!t) return '';
+  return `<div class="pide-texto"><label for="texto-del-comprador">${escaparHtml(t.etiqueta)}${t.obligatorio ? '' : ' <span class="pide-texto__opcional">(opcional)</span>'}</label><input id="texto-del-comprador" name="texto-del-comprador" type="text" maxlength="${t.largo}" autocomplete="off"${t.obligatorio ? ' required' : ''} data-texto-del-comprador><p class="pide-texto__ayuda">Hasta ${t.largo} caracteres.</p></div>`;
+}
+
 export async function hornear(publicada: TiendaParaHornear): Promise<Map<string, ArchivoHorneado>> {
   // HU-T13.5: lo que el plan permite, nada más.
-  const t = alPlan(publicada).tienda;
+  const t = conLasOfertas(alPlan(publicada).tienda);
   const url = (ruta: string) => `https://${t.dominio}${ruta}`;
   const productos = [...t.productos].sort((a, b) =>
     a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0,
@@ -626,7 +687,21 @@ ${p.cuerpo}
     const h = t.hero;
     if (!h || (!presente(h.titulo) && !presente(h.texto) && !h.imagen)) return null;
     const titulo = presente(h.titulo) ? h.titulo : t.nombre;
-    return `<section class="hero${h.imagen ? ' hero--con-foto' : ''}">${h.imagen ? imagen(h.imagen, 'hero__foto', '100vw', true, titulo) : ''}<div class="hero__texto"><h1>${escaparHtml(titulo)}</h1>${presente(h.texto) ? `<p>${escaparHtml(h.texto)}</p>` : ''}<a class="boton hero__boton" href="#productos">${escaparHtml(presente(h.boton) ? h.boton : 'Ver los productos')}</a></div></section>`;
+    const texto = `<div class="hero__texto"><h1>${escaparHtml(titulo)}</h1>${presente(h.texto) ? `<p>${escaparHtml(h.texto)}</p>` : ''}<a class="boton hero__boton" href="#productos">${escaparHtml(presente(h.boton) ? h.boton : 'Ver los productos')}</a></div>`;
+    const mas = (h.imagen && h.mas ? h.mas : []).slice(0, 2);
+    if (!h.imagen || mas.length === 0)
+      return `<section class="hero${h.imagen ? ' hero--con-foto' : ''}">${h.imagen ? imagen(h.imagen, 'hero__foto', '100vw', true, titulo) : ''}${texto}</section>`;
+    /**
+     * HU-P4.2: dos o tres imágenes que se deslizan con el dedo, con CSS y sin librería. Solo la
+     * primera carga de entrada (LCP); las otras, al acercarse. La siguiente asoma por el borde: así
+     * se nota que hay más. Cada una lleva a su dirección de la tienda, o a los productos.
+     */
+    const total = mas.length + 1;
+    const diapositivas = mas.map((d, i) => {
+      const nombre = presente(d.texto) ? d.texto : `${titulo}, imagen ${i + 2}`;
+      return `<a class="hero__diapositiva" href="${escaparHtml(d.enlace ?? '#productos')}" aria-label="${i + 2} de ${total}: ${escaparHtml(nombre)}">${imagen(d.imagen, 'hero__foto', '100vw', false, nombre)}${presente(d.texto) ? `<span class="hero__leyenda">${escaparHtml(d.texto)}</span>` : ''}</a>`;
+    });
+    return `<section class="hero hero--con-foto hero--carrusel" aria-roledescription="carrusel" aria-label="Bienvenida"><div class="hero__pista"><div class="hero__diapositiva" role="group" aria-roledescription="diapositiva" aria-label="1 de ${total}">${imagen(h.imagen, 'hero__foto', '100vw', true, titulo)}${texto}</div>${diapositivas.join('')}</div></section>`;
   };
   const cuerpoDeLaPortada = (): string[] => {
     if (productos.length === 0) {
@@ -817,7 +892,7 @@ ${p.cuerpo}
       `<p class="quedan" data-quedan${quedanInicial ? '' : ' hidden'}>${quedanInicial ? (quedanInicial === 1 ? 'Queda 1' : `Quedan ${quedanInicial}`) : ''}</p>`,
       `<p class="precio__nota">${notaDelPrecio}</p>`,
       '</div>',
-      `<form class="eleccion" data-eleccion>${grupos}${mayoria}<div class="avisame" data-avisame hidden><p>Esta combinación está agotada.</p>${botonAvisame(p)}<p class="aviso" data-avisame-estado role="status" hidden></p></div><p class="aviso" data-aviso role="status" hidden></p><button class="boton boton--principal" type="submit" data-boton aria-disabled="${inicial.tipo !== 'lista'}">${escaparHtml(inicial.texto)}</button></form>`,
+      `<form class="eleccion" data-eleccion>${grupos}${pideTextoHtml(p)}${mayoria}<div class="avisame" data-avisame hidden><p>Esta combinación está agotada.</p>${botonAvisame(p)}<p class="aviso" data-avisame-estado role="status" hidden></p></div><p class="aviso" data-aviso role="status" hidden></p><button class="boton boton--principal" type="submit" data-boton aria-disabled="${inicial.tipo !== 'lista'}">${escaparHtml(inicial.texto)}</button></form>`,
       // HU-T5.8 CA3: compartir. Sin JavaScript, el enlace de WhatsApp; con él, el menú del teléfono.
       `<p class="compartir"><a class="boton boton--secundario" href="https://wa.me/?text=${encodeURIComponent(`${p.nombre} ${url(`/p/${p.slug}/`)}`)}" target="_blank" rel="noopener" data-compartir="${escaparHtml(url(`/p/${p.slug}/`))}" data-compartir-titulo="${escaparHtml(p.nombre)}">Compartir</a></p>`,
       `<ul class="condiciones">${condiciones(p)
@@ -854,10 +929,12 @@ ${p.cuerpo}
         : [];
     pagina({
       ruta,
-      titulo: `${p.nombre} · ${t.nombre}`,
-      ...(presente(p.descripcion)
-        ? { descripcion: markdownPlano(p.descripcion).slice(0, 160) }
-        : {}),
+      titulo: presente(p.buscadores?.titulo) ? p.buscadores.titulo : `${p.nombre} · ${t.nombre}`,
+      ...(presente(p.buscadores?.descripcion)
+        ? { descripcion: p.buscadores.descripcion }
+        : presente(p.descripcion)
+          ? { descripcion: markdownPlano(p.descripcion).slice(0, 160) }
+          : {}),
       cuerpo: fichaHtml(p, opciones),
       ld: [
         {
@@ -1186,7 +1263,8 @@ ${p.cuerpo}
     const ruta = `/${p.slug}/`;
     pagina({
       ruta,
-      titulo: `${p.titulo} · ${t.nombre}`,
+      titulo: presente(p.buscadores?.titulo) ? p.buscadores.titulo : `${p.titulo} · ${t.nombre}`,
+      ...(presente(p.buscadores?.descripcion) ? { descripcion: p.buscadores.descripcion } : {}),
       cuerpo: `<h1>${escaparHtml(p.titulo)}</h1>\n<div class="legal">${markdownSeguro(p.cuerpo)}</div>`,
       ld: [
         migas([

@@ -215,6 +215,10 @@
                         "mayorDeEdad": {
                           "type": "boolean",
                           "const": true
+                        },
+                        "texto": {
+                          "type": "string",
+                          "maxLength": 200
                         }
                       },
                       "required": [

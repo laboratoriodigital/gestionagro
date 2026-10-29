@@ -323,3 +323,26 @@ describe('el formato de carga (TIENDA-3.0 §17.1)', () => {
     expect(revisarCarga(conCodigo).ok).toBe(false);
   });
 });
+
+describe('HU-P4.2 · las imágenes de más de la bienvenida', () => {
+  const imagen = {
+    huella: 'b'.repeat(64),
+    formato: 'webp',
+    ancho: 1600,
+    alto: 1000,
+    anchos: [400, 800, 1600],
+  };
+  it('llevan a una dirección de la tienda', () => {
+    const r = validarSeccion('apariencia', {
+      hero: { segunda: { imagen, texto: 'Nueva colección', enlace: '/c/lino/' } },
+    });
+    expect(r.ok).toBe(true);
+  });
+  it.each(['https://otra.com/', '//otra.com/', 'javascript:alert(1)', '/C/Lino'])(
+    '❌ %s no es una dirección de la tienda',
+    (enlace) => {
+      const r = validarSeccion('apariencia', { hero: { tercera: { imagen, enlace } } });
+      expect(r.ok).toBe(false);
+    },
+  );
+});

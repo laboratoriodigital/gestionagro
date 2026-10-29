@@ -125,6 +125,11 @@
           "id": "colaborador",
           "administra": false,
           "invitable": true
+        },
+        {
+          "id": "despachos",
+          "administra": false,
+          "invitable": true
         }
       ],
       "planes": "content/tienda/planes.json",

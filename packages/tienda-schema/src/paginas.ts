@@ -5,6 +5,7 @@
  * prueba del horno la ata a lo que de verdad hornea y sirve (P2).
  */
 import { z } from 'zod';
+import { buscadores } from './buscadores.ts';
 
 /**
  * El primer tramo de las rutas que hornea la vitrina o que atiende el despacho y la API. Ninguna
@@ -71,5 +72,7 @@ export const GuardarPagina = z.object({
     .min(1, { error: 'escribe el texto de la página' })
     .max(LARGO_DEL_CUERPO, { error: 'el texto es demasiado largo' }),
   visible: z.boolean(),
+  /** HU-P4.4: cómo sale en Google; sin esto, el título y el comienzo del texto. */
+  buscadores,
 });
 export type GuardarPagina = z.infer<typeof GuardarPagina>;
