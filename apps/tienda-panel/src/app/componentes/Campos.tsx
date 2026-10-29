@@ -15,6 +15,7 @@ export function Texto({
   numerico,
   fecha,
   deshabilitado,
+  etiquetaOculta,
 }: {
   id: string;
   etiqueta: string;
@@ -27,13 +28,15 @@ export function Texto({
   /** Una fecha `AAAA-MM-DD`, con el calendario del teléfono. */
   fecha?: boolean;
   deshabilitado?: boolean;
+  /** La etiqueta solo para el lector de pantalla: en una fila que ya dice de qué es. */
+  etiquetaOculta?: boolean;
 }) {
   const describe = [ayuda ? `${id}-ayuda` : null, error ? `${id}-error` : null]
     .filter(Boolean)
     .join(' ');
   return (
     <div class={`ed1-campo${error ? ' ed1-campo--con-error' : ''}`}>
-      <label class="ed1-campo__etiqueta" for={id}>
+      <label class={`ed1-campo__etiqueta${etiquetaOculta ? ' oculto' : ''}`} for={id}>
         {etiqueta}
         {opcional ? <span class="ed1-campo__opcional"> (opcional)</span> : null}
       </label>

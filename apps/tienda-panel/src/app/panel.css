@@ -790,3 +790,179 @@ h2 {
 .en-google__descripcion {
   font-size: var(--texto-pequeno);
 }
+
+/* El formulario de producto (validación del 28 oct 2026): lo básico arriba, lo demás plegado. */
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.segmentos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: var(--borde-ancho) solid var(--gris-300, var(--borde));
+  border-radius: var(--radio-campo);
+  overflow: hidden;
+}
+.segmentos__opcion {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: var(--objetivo-tactil);
+  padding: var(--espacio-1) var(--espacio-2);
+  text-align: center;
+  cursor: pointer;
+}
+.segmentos__opcion + .segmentos__opcion {
+  border-left: var(--borde-ancho) solid var(--borde);
+}
+.segmentos__control {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.segmentos__opcion:has(.segmentos__control:checked) {
+  background: var(--texto);
+  color: var(--superficie);
+  font-weight: var(--peso-fuerte);
+}
+.segmentos__opcion:has(.segmentos__control:focus-visible) {
+  outline: 2px solid var(--foco);
+  outline-offset: -4px;
+}
+.cajon {
+  border-top: var(--borde-ancho) solid var(--borde);
+}
+.cajon:last-of-type {
+  border-bottom: var(--borde-ancho) solid var(--borde);
+}
+.cajon__resumen {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--espacio-3);
+  min-height: var(--objetivo-tactil);
+  padding: var(--espacio-3) 0;
+  cursor: pointer;
+  list-style: none;
+}
+.cajon__resumen::-webkit-details-marker {
+  display: none;
+}
+.cajon__resumen::after {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  margin-inline-start: var(--espacio-1);
+}
+.cajon[open] > .cajon__resumen::after {
+  transform: rotate(-135deg);
+}
+.cajon__titulo {
+  font-weight: var(--peso-fuerte);
+}
+.cajon__estado {
+  margin-inline-start: auto;
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+  text-align: right;
+  min-width: 0;
+}
+.cajon__contenido {
+  display: grid;
+  gap: var(--espacio-4);
+  padding-bottom: var(--espacio-4);
+}
+.cajon--pequeno,
+.cajon--pequeno:last-of-type {
+  border: 0;
+}
+.cajon--pequeno > .cajon__resumen {
+  min-height: 0;
+  padding: var(--espacio-1) 0;
+  justify-content: flex-start;
+}
+.cajon--pequeno .cajon__titulo {
+  font-weight: inherit;
+  font-size: var(--texto-pequeno);
+  color: var(--texto-suave);
+}
+.combinaciones {
+  display: grid;
+  gap: var(--espacio-3);
+}
+.formulario-de-producto .fila-de-campos {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-3);
+}
+.formulario-de-producto .fila-de-campos > * {
+  min-width: 0;
+}
+.formulario-de-producto .fila-de-campos .ed1-campo__control {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.combinaciones__cabeza {
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+  margin-bottom: calc(-1 * var(--espacio-2));
+}
+.combinaciones__titulo {
+  margin: var(--espacio-2) 0 0;
+  font-size: var(--texto-base);
+}
+.formulario-de-producto .combinacion {
+  display: grid;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3) 0;
+  border-top: var(--borde-ancho) solid var(--borde);
+}
+.formulario-de-producto .combinacion__nombre {
+  margin: 0;
+  font-weight: var(--peso-fuerte);
+}
+.es-de-pro {
+  margin: 0;
+}
+.fotos--antes {
+  display: grid;
+  gap: var(--espacio-2);
+}
+.guardar-producto {
+  position: sticky;
+  bottom: calc(64px + env(safe-area-inset-bottom));
+  z-index: 1;
+  display: grid;
+  gap: var(--espacio-1);
+  margin-inline: calc(-1 * var(--espacio-4));
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--superficie);
+  border-top: var(--borde-ancho) solid var(--borde);
+}
+.guardar-producto p {
+  margin: 0;
+}
+.guardar-producto__nota {
+  color: var(--texto-suave);
+  font-size: var(--texto-pequeno);
+}
+@media (min-width: 64rem) {
+  .guardar-producto {
+    bottom: 0;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+}

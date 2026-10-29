@@ -362,6 +362,7 @@ export function App({ almacen: dado }: { almacen?: Almacen }) {
     cuerpo = (
       <Producto
         tienda={yo.datos.tienda?.nombre ?? 'tu tienda'}
+        funciones={yo.datos.funciones}
         conexion={conexion}
         almacen={almacen}
         id={id === 'nuevo' ? null : id}
