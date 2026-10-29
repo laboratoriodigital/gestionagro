@@ -699,6 +699,8 @@ interface Contacto {
   direccion?: string;
   ciudad?: string;
   notas?: string;
+  /** HU-P1.5: lo que escribió el comprador en la ficha de cada producto que lo pide. */
+  textos?: { nombre: string; texto: string }[];
 }
 
 const EVENTOS: Record<string, string> = {
@@ -995,6 +997,12 @@ export function Pedido({
                 <dd>{v}</dd>
               </div>
             ))}
+          {(contacto.textos ?? []).map((t, i) => (
+            <div key={`texto-${i}`}>
+              <dt>Texto para {t.nombre}</dt>
+              <dd>«{t.texto}»</dd>
+            </div>
+          ))}
         </dl>
       ) : pedido.conContacto ? (
         <>

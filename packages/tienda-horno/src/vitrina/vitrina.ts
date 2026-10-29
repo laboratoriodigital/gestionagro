@@ -148,6 +148,8 @@ function ficha(): void {
   const aviso = form.querySelector<HTMLElement>('[data-aviso]');
   // Ley 1480 art. 52: un producto solo para mayores pide confirmar la edad antes de agregarlo.
   const mayoria = form.querySelector<HTMLInputElement>('[data-mayoria]');
+  // HU-P1.5: el texto que pide el producto, si lo pide.
+  const campoTexto = form.querySelector<HTMLInputElement>('[data-texto-del-comprador]');
   const faltaLaEdad = () => Boolean(mayoria && !mayoria.checked);
   const elegidas = (): Record<string, string> =>
     Object.fromEntries(
@@ -283,7 +285,19 @@ function ficha(): void {
       mayoria?.focus();
       return;
     }
-    const r = agregar(cargar(), estado.variante.id, 1, { mayorDeEdad: Boolean(mayoria) });
+    const texto = campoTexto?.value.trim() ?? '';
+    if (campoTexto?.required && !texto) {
+      decir(
+        aviso,
+        `Escribe «${form.querySelector('label[for="texto-del-comprador"]')?.textContent?.trim() ?? 'el texto'}» antes de agregarlo.`,
+      );
+      campoTexto.focus();
+      return;
+    }
+    const r = agregar(cargar(), estado.variante.id, 1, {
+      mayorDeEdad: Boolean(mayoria),
+      ...(texto ? { texto } : {}),
+    });
     guardar(r.carrito);
     decir(aviso, r.tope ? AVISOS_DE_TOPE[r.tope] : 'Agregado a tu pedido.');
     if (!r.tope) contar('agregar_al_carrito');
@@ -410,6 +424,11 @@ async function carritoPagina(): Promise<void> {
               .filter(Boolean)
               .join(' — ')
           : '';
+        // HU-P1.5: lo que el comprador escribió, como texto (nunca como HTML).
+        const escrito = document.createElement('span');
+        escrito.className = 'linea__texto';
+        escrito.textContent = l.texto ? `«${l.texto}»` : '';
+        escrito.hidden = !l.texto;
         const cantidad = document.createElement('span');
         cantidad.className = 'linea__cantidad';
         const menos = document.createElement('button');
@@ -434,7 +453,7 @@ async function carritoPagina(): Promise<void> {
           pintar();
         });
         cantidad.append(menos, n, mas);
-        li.append(nombre, detalle, cantidad);
+        li.append(nombre, detalle, escrito, cantidad);
         return li;
       }),
     );
@@ -474,12 +493,14 @@ async function carritoPagina(): Promise<void> {
   };
   const aplicar = (r: Cotizacion) => {
     const alerta = resumen.querySelector<HTMLElement>('[data-aviso-total]');
-    const corregido = r.carrito.map((x) => ({
-      ...x,
-      ...(carrito.lineas.find((l) => l.variante === x.variante)?.mayorDeEdad
-        ? { mayorDeEdad: true as const }
-        : {}),
-    }));
+    const corregido = r.carrito.map((x) => {
+      const antes = carrito.lineas.find((l) => l.variante === x.variante);
+      return {
+        ...x,
+        ...(antes?.mayorDeEdad ? { mayorDeEdad: true as const } : {}),
+        ...(antes?.texto ? { texto: antes.texto } : {}),
+      };
+    });
     const cambiaron =
       JSON.stringify(corregido.map((l) => [l.variante, l.cantidad])) !==
       JSON.stringify(carrito.lineas.map((l) => [l.variante, l.cantidad]));

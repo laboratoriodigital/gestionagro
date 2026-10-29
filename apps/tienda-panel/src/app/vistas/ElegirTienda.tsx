@@ -9,6 +9,7 @@ import type { TiendaDeLaCuenta } from '../sesion.ts';
 export const NOMBRE_DEL_ROL: Readonly<Record<string, string>> = {
   propietario: 'Propietario',
   colaborador: 'Colaborador',
+  despachos: 'Despachos',
 };
 
 export function ElegirTienda({

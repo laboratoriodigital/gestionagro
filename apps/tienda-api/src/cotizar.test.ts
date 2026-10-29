@@ -236,6 +236,28 @@ describe('HU-P1.2 · la promoción por cantidad, leída de la base', () => {
   });
 });
 
+describe('HU-P1.4 · la oferta programada, leída de la base', () => {
+  const oferta = (o: unknown) =>
+    shard
+      .prepare("UPDATE producto SET oferta = ? WHERE org_id = ? AND id = 'p-camisa'")
+      .bind(o === null ? null : JSON.stringify(o), UNO)
+      .run();
+  const linea = { lineas: [{ variante: M, cantidad: 1 }] };
+
+  it('20 % menos, del primer día al último de Colombia; fuera de ellos, el precio normal', async () => {
+    await oferta({ porcentaje: 20, desde: '2026-10-14', hasta: '2026-10-15' });
+    expect((await cotizar(shard, UNO, linea, AHORA)).subtotal).toBe(103200);
+    // La medianoche de Colombia son las 5:00 UTC: antes no ha empezado, y al final del último sí rige.
+    expect((await cotizar(shard, UNO, linea, '2026-10-14T04:59:59.000Z')).subtotal).toBe(129000);
+    expect((await cotizar(shard, UNO, linea, '2026-10-16T04:59:59.000Z')).subtotal).toBe(103200);
+    // CA3: vencida nunca se cobra, aunque la vitrina todavía no se haya re-horneado.
+    expect((await cotizar(shard, UNO, linea, '2026-10-16T05:00:00.000Z')).subtotal).toBe(129000);
+    await oferta({ porcentaje: 95, desde: '2026-10-14', hasta: '2026-10-15' });
+    expect((await cotizar(shard, UNO, linea, AHORA)).subtotal).toBe(129000);
+    await oferta(null);
+  });
+});
+
 describe('HU-P1.3 · el cupón con alcance, leído de la base', () => {
   it('solo descuenta lo de su categoría; ❌ sin productos de ella, no aplica', async () => {
     await shard

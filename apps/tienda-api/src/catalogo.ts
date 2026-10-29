@@ -14,20 +14,26 @@
  *   y vuelve si se agrega otra vez.
  */
 import type { BaseD1, SentenciaD1 } from '@ed1/d1';
+import { precioDeOferta } from '@ed1/dinero';
 import {
+  buscadoresLeidos,
   cambiarEstadoDeProducto,
   borrarColeccion as esquemaBorrarColeccion,
   guardarColeccion as esquemaGuardarColeccion,
   ordenarColecciones as esquemaOrdenar,
   type GuardarProducto,
   leerFormatos,
+  ofertaLeida,
+  ofertaVigente,
   type PromocionDelProducto,
+  pideTextoLeido,
   promocionDelProducto,
   revisarProducto,
   tocarProducto,
 } from '@ed1/tienda-schema';
 import type { z } from 'zod';
 import { vendeDigitales } from './digitales.ts';
+import { tieneLaFuncion } from './plan.ts';
 import { anotar } from './registro.ts';
 
 export type Problema = { campo: string; mensaje: string };
@@ -142,6 +148,8 @@ interface FilaProducto {
   iva_pct: number | null;
   seo: string;
   promocion: string | null;
+  oferta: string | null;
+  pide_texto: string | null;
   tipo: 'fisico' | 'digital';
   version: number;
   borrado: string | null;
@@ -159,7 +167,7 @@ interface FilaVariante {
 }
 
 const COLUMNAS_PRODUCTO =
-  'id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, iva_pct, seo, promocion, tipo, version, borrado';
+  'id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, iva_pct, seo, promocion, oferta, pide_texto, tipo, version, borrado';
 
 async function filaDelProducto(q: Quien, id: string) {
   return q.db
@@ -186,7 +194,7 @@ const versionDe = (q: Quien, tabla: 'producto' | 'coleccion', id: string) => asy
       .first<{ version: number }>()
   )?.version ?? null;
 
-const seoDe = (t: string): Record<string, unknown> => {
+export const seoDe = (t: string): Record<string, unknown> => {
   try {
     const v = JSON.parse(t) as unknown;
     return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
@@ -198,6 +206,15 @@ const slugsAnteriores = (seo: Record<string, unknown>): string[] =>
   Array.isArray(seo['slugsAnteriores'])
     ? ((seo['slugsAnteriores'] as unknown[]).filter((s) => typeof s === 'string') as string[])
     : [];
+
+/**
+ * HU-P1.4: el precio de hoy de una combinación: con la oferta programada de su producto si rige
+ * en ese instante; si no, el normal. La cotización, el pedido y el horno usan esta misma regla.
+ */
+export function precioDeHoy(precioCop: number, oferta: string | null, ahora: string): number {
+  const o = ofertaLeida(oferta);
+  return o && ofertaVigente(o, ahora) ? precioDeOferta(precioCop, o.porcentaje) : precioCop;
+}
 
 /** HU-P1.2: la promoción guardada, validada otra vez; la que no se lee no existe (P1). */
 export function promocionLeida(texto: string | null): PromocionDelProducto | null {
@@ -247,7 +264,10 @@ export async function leerProducto(q: Quien, id: string) {
     nuevo: p.nuevo === 1,
     // HU-P1.2: la que el esquema ya validó al guardar; una ilegible se muestra como ninguna.
     promocion: promocionLeida(p.promocion),
+    oferta: ofertaLeida(p.oferta),
+    pideTexto: pideTextoLeido(p.pide_texto),
     tipo: p.tipo,
+    buscadores: buscadoresLeidos(seoDe(p.seo)),
     ivaPct: p.iva_pct,
     variantes: variantes.map((v) => ({
       id: v.id,
@@ -441,6 +461,25 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
       ],
     };
   }
+  if (d.oferta && !(await tieneLaFuncion(q.db, q.org, 'ofertas_programadas'))) {
+    return {
+      estado: 'problemas',
+      problemas: [
+        { campo: 'oferta', mensaje: 'las ofertas programadas son de los planes Pro e IA Pro' },
+      ],
+    };
+  }
+  if (d.pideTexto && !(await tieneLaFuncion(q.db, q.org, 'texto_del_comprador'))) {
+    return {
+      estado: 'problemas',
+      problemas: [
+        {
+          campo: 'pideTexto',
+          mensaje: 'pedir un texto al comprador es de los planes Pro e IA Pro',
+        },
+      ],
+    };
+  }
   const previa = await yaAplicada(q, d.op);
   if (previa) return previa;
 
@@ -488,7 +527,17 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
 
   const id = actual?.id ?? idNuevo('p');
   const version = (actual?.version ?? 0) + 1;
-  const seo = actual ? seoDe(actual.seo) : {};
+  // HU-P4.4: lo de buscadores va en `seo`, con las direcciones anteriores; vacío no se guarda, y
+  // quien no lo manda no lo borra.
+  const seo: Record<string, unknown> = {
+    ...(actual ? seoDe(actual.seo) : {}),
+    ...(d.buscadores
+      ? {
+          titulo: d.buscadores.titulo || undefined,
+          descripcion: d.buscadores.descripcion || undefined,
+        }
+      : {}),
+  };
   if (actual && actual.slug !== slug) {
     seo['slugsAnteriores'] = [...new Set([actual.slug, ...slugsAnteriores(seo)])]
       .filter((s) => s !== slug)
@@ -496,6 +545,15 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
   }
   const retracto = d.retracto.aplica ? 'aplica' : 'no_aplica';
   const promocion = d.promocion ? JSON.stringify(d.promocion) : null;
+  // HU-P1.4: quien no la manda (un asistente, la carga por lotes) no la borra.
+  const pideTexto =
+    d.pideTexto === undefined
+      ? (actual?.pide_texto ?? null)
+      : d.pideTexto
+        ? JSON.stringify(d.pideTexto)
+        : null;
+  const oferta =
+    d.oferta === undefined ? (actual?.oferta ?? null) : d.oferta ? JSON.stringify(d.oferta) : null;
   const motivo = d.retracto.aplica ? null : d.retracto.motivo;
   const lote: SentenciaD1[] = [];
   const registro: Promise<SentenciaD1>[] = [];
@@ -511,7 +569,7 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
       q.db
         .prepare(
           `UPDATE producto SET slug = ?, nombre = ?, descripcion_md = ?, estado = ?, opciones = ?, retracto = ?,
-             retracto_motivo = ?, solo_mayores = ?, destacado = ?, nuevo = ?, iva_pct = ?, seo = ?, promocion = ?, tipo = ?, version = version + 1, actualizado = ?
+             retracto_motivo = ?, solo_mayores = ?, destacado = ?, nuevo = ?, iva_pct = ?, seo = ?, promocion = ?, oferta = ?, pide_texto = ?, tipo = ?, version = version + 1, actualizado = ?
            WHERE org_id = ? AND id = ? AND version = ? AND borrado IS NULL`,
         )
         .bind(
@@ -528,6 +586,8 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
           d.ivaPct,
           JSON.stringify(seo),
           promocion,
+          oferta,
+          pideTexto,
           d.tipo,
           q.instante,
           q.org,
@@ -541,7 +601,10 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
       JSON.stringify(antes) !== JSON.stringify(nuevo) ||
       actual.descripcion_md !== d.descripcionMd ||
       (actual.promocion ?? null) !== promocion ||
-      actual.tipo !== d.tipo
+      (actual.oferta ?? null) !== oferta ||
+      (actual.pide_texto ?? null) !== pideTexto ||
+      actual.tipo !== d.tipo ||
+      JSON.stringify(buscadoresLeidos(seoDe(actual.seo))) !== JSON.stringify(buscadoresLeidos(seo))
     ) {
       registro.push(
         anotar(q.db, {
@@ -565,8 +628,8 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
       q.db
         .prepare(
           `INSERT INTO producto (org_id, id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo,
-             solo_mayores, destacado, nuevo, iva_pct, promocion, tipo, posicion, creado, actualizado)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+             solo_mayores, destacado, nuevo, iva_pct, seo, promocion, oferta, pide_texto, tipo, posicion, creado, actualizado)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
              (SELECT coalesce(max(posicion), -1) + 1 FROM producto WHERE org_id = ?), ?, ?)`,
         )
         .bind(
@@ -583,7 +646,10 @@ export async function guardarProducto(q: Quien, cuerpo: unknown): Promise<Result
           d.destacado ? 1 : 0,
           d.nuevo ? 1 : 0,
           d.ivaPct,
+          JSON.stringify(seo),
           promocion,
+          oferta,
+          pideTexto,
           d.tipo,
           q.org,
           q.instante,

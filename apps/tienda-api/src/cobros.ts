@@ -36,6 +36,7 @@ import {
   prepararPedido,
   sha256,
 } from './pedidos.ts';
+import { textosDelPedido } from './textos-del-comprador.ts';
 import { indiceDelContacto, PURGAR_DESPUES } from './titular.ts';
 
 /** Cuánto valen los apartados de un cobro: lo que tiene el comprador para pagar en Bold. */
@@ -83,7 +84,7 @@ export type ResultadoDeCobro =
   | { estado: 'cambio'; cotizacion: Cotizacion }
   | { estado: 'terminos' | 'cerrada' | 'codigo-en-uso' | 'renovar' }
   | {
-      estado: 'forma' | 'edad' | 'monto' | 'sin-linea' | 'ocupada' | 'pedido-existente';
+      estado: 'forma' | 'edad' | 'texto' | 'monto' | 'sin-linea' | 'ocupada' | 'pedido-existente';
       motivo: string;
     }
   | { estado: 'sin-existencias'; variante: string; motivo: string };
@@ -319,6 +320,9 @@ export async function iniciarCobro(
   // Lo vencido se libera antes de cotizar: si no, la última unidad de un pago abandonado parece
   // agotada hasta que pase el cron (HU-T11.6). El lote lo vuelve a hacer, por si otro apartó entre tanto.
   await vencerApartados(c, [...new Set(p.lineas.map((l) => l.variante))]).run();
+  // HU-P1.5: lo que pide cada producto en su ficha, contra la base; va en el sobre de la entrega.
+  const leidos = await textosDelPedido(c.db, c.org, p.lineas);
+  if (!leidos.ok) return { estado: 'texto', motivo: leidos.motivo };
   const preparado = await prepararPedido(c, p);
   if ('estado' in preparado) return preparado;
   const { cotizacion, porId, conEdad, envio } = preparado;
@@ -341,7 +345,16 @@ export async function iniciarCobro(
 
   const orden = `${p.codigo}-1`;
   const vence = new Date(Date.parse(c.ahora) + MINUTOS_DEL_COBRO * 60_000).toISOString();
-  const contacto = { ...p.entrega, ...(p.ciudad ? { ciudad: p.ciudad } : {}) };
+  const textos = leidos.textos.filter((t) =>
+    cotizacion.carrito.some((l) => l.variante === t.variante),
+  );
+  const contacto = {
+    ...p.entrega,
+    ...(p.ciudad ? { ciudad: p.ciudad } : {}),
+    ...(textos.length > 0
+      ? { textos: textos.map(({ nombre, texto }) => ({ nombre, texto })) }
+      : {}),
+  };
   const sobre = await cifrarContacto(c, kek, c.id, contacto, c.ahora);
   const indice = await indiceDelContacto(c, kek, contacto, c.ahora);
   const variantes = cotizacion.carrito.map((l) => l.variante);

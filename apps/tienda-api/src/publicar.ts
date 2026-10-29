@@ -36,19 +36,23 @@ import {
   tercerosDe,
 } from '@ed1/tienda-horno';
 import {
+  buscadoresLeidos,
   leerFormatos,
   limitesMasEstrictos,
+  ofertaLeida,
+  pideTextoLeido,
   promocionEnPalabras,
   promocionVigente,
   type Seccion,
   validarSeccion,
 } from '@ed1/tienda-schema';
 import { REDES } from '@ed1/tienda-schema/redes';
-import { promocionLeida } from './catalogo.ts';
+import { promocionLeida, seoDe } from './catalogo.ts';
 import { tieneComprasSinTerminar } from './compras-pendientes.ts';
 import { claveDelHost, direccionesDelPlan, punteroDelHost } from './hosts.ts';
 import { estadoDeLaPrueba } from './llaves-de-bold.ts';
 import { apiPublica } from './openapi.ts';
+import { buscadoresDeLaPagina } from './paginas.ts';
 import { limitesDeLaTienda, planDeLaTienda } from './plan.ts';
 import { anotar } from './registro.ts';
 
@@ -72,6 +76,10 @@ const MESES = [
  * la ficha lo dice («hasta el 2 de noviembre»): la cotización deja de aplicarla ese día aunque la
  * ficha no se haya vuelto a hornear.
  */
+/** HU-P4.4: solo si el comercio escribió algo; sin nada, el horno usa el nombre, como antes. */
+const conBuscadores = (b: { titulo?: string; descripcion?: string }) =>
+  b.titulo || b.descripcion ? { buscadores: b } : {};
+
 export function promocionParaHornear(texto: string | null, ahora: string): { promocion?: string } {
   const p = promocionLeida(texto);
   if (!p || !promocionVigente(p, ahora)) return {};
@@ -159,6 +167,8 @@ interface FilaProducto {
   actualizado: string;
   seo: string;
   promocion: string | null;
+  oferta: string | null;
+  pide_texto: string | null;
   tipo: 'fisico' | 'digital';
 }
 
@@ -341,10 +351,31 @@ function imagenesDeLaTienda(
 ): Pick<TiendaParaHornear, 'logo' | 'icono' | 'hero'> {
   const logo = comoFoto(identidad['logo'], nombre);
   const icono = comoFoto(identidad['icono'], nombre);
+  type Diapositiva = { imagen?: unknown; texto?: string; enlace?: string };
   const h = apariencia['hero'] as
-    | { titulo?: string; texto?: string; imagen?: unknown; boton?: string }
+    | {
+        titulo?: string;
+        texto?: string;
+        imagen?: unknown;
+        boton?: string;
+        segunda?: Diapositiva;
+        tercera?: Diapositiva;
+      }
     | undefined;
   const imagenDelHero = h ? comoFoto(h.imagen, h.titulo ?? nombre) : undefined;
+  // HU-P4.2: las de más, en su orden, solo las que tienen imagen. El plan las recorta en el horno.
+  const mas = [h?.segunda, h?.tercera].flatMap((d) => {
+    const foto = d ? comoFoto(d.imagen, d.texto ?? nombre) : undefined;
+    return foto && d
+      ? [
+          {
+            imagen: foto,
+            ...(d.texto ? { texto: d.texto } : {}),
+            ...(d.enlace ? { enlace: d.enlace } : {}),
+          },
+        ]
+      : [];
+  });
   return {
     ...(logo ? { logo } : {}),
     ...(icono ? { icono } : {}),
@@ -355,6 +386,7 @@ function imagenesDeLaTienda(
             ...(h.texto ? { texto: h.texto } : {}),
             ...(h.boton ? { boton: h.boton } : {}),
             ...(imagenDelHero ? { imagen: imagenDelHero } : {}),
+            ...(imagenDelHero && mas.length > 0 ? { mas } : {}),
           },
         }
       : {}),
@@ -388,7 +420,7 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     ajustes.cobro?.['ambiente'] === 'produccion' ? 'produccion' : 'pruebas';
   const { results: productos } = await c.shard
     .prepare(
-      `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, actualizado, seo, promocion, tipo
+      `SELECT id, slug, nombre, descripcion_md, estado, opciones, retracto, retracto_motivo, solo_mayores, destacado, nuevo, actualizado, seo, promocion, oferta, pide_texto, tipo
        FROM producto WHERE org_id = ? AND borrado IS NULL ORDER BY posicion, slug`,
     )
     .bind(c.org)
@@ -458,10 +490,10 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
   // HU-T10.2: las páginas propias visibles.
   const { results: paginas } = await c.shard
     .prepare(
-      'SELECT slug, titulo, cuerpo_md FROM pagina WHERE org_id = ? AND visible = 1 AND borrado IS NULL ORDER BY slug',
+      'SELECT slug, titulo, cuerpo_md, seo FROM pagina WHERE org_id = ? AND visible = 1 AND borrado IS NULL ORDER BY slug',
     )
     .bind(c.org)
-    .all<{ slug: string; titulo: string; cuerpo_md: string }>();
+    .all<{ slug: string; titulo: string; cuerpo_md: string; seo: string | null }>();
   const { canonico } = await direccionesDe(c);
   if (!canonico) return { falla: 'la tienda no tiene una dirección activa' };
 
@@ -494,6 +526,11 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
         ...(p.nuevo === 1 ? { nuevo: true } : {}),
         ...promocionParaHornear(p.promocion, c.ahora),
         ...(p.tipo === 'digital' ? { digital: true } : {}),
+        ...conBuscadores(buscadoresLeidos(seoDe(p.seo))),
+        // HU-P1.4: la oferta programada va como dato; el horno la aplica con `ahora`.
+        ...((o) => (o ? { oferta: o } : {}))(ofertaLeida(p.oferta)),
+        // HU-P1.5: el texto que la ficha le pide al comprador.
+        ...((t) => (t ? { pideTexto: t } : {}))(pideTextoLeido(p.pide_texto)),
       },
     ];
   });
@@ -547,6 +584,8 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
   const datos: TiendaParaHornear = {
     dominio: canonico,
     release: c.release,
+    // HU-P1.4 CA3: el horno no lee el reloj; la hora llega como dato.
+    ahora: c.ahora,
     org: c.org,
     ...(c.medios ? { medios: c.medios } : {}),
     nombre: (identidad['nombre'] as string | undefined) ?? tienda.nombre,
@@ -594,7 +633,14 @@ async function armarLaTienda(c: Contexto, opciones: { vistaPrevia?: boolean } = 
     productos: paraHornear,
     colecciones: [...porColeccion].map(([slug, col]) => ({ slug, ...col })),
     ...(paginas.length > 0
-      ? { paginas: paginas.map((p) => ({ slug: p.slug, titulo: p.titulo, cuerpo: p.cuerpo_md })) }
+      ? {
+          paginas: paginas.map((p) => ({
+            slug: p.slug,
+            titulo: p.titulo,
+            cuerpo: p.cuerpo_md,
+            ...conBuscadores(buscadoresDeLaPagina(p.seo)),
+          })),
+        }
       : {}),
     // HU-T11.4: el carrito ofrece pagar en línea; HU-T11.3: en pruebas, la franja lo dice.
     ...(quiereEnLinea
@@ -908,6 +954,8 @@ export async function rehornearExistencias(
         : limitesDeLaTienda(tienda.plan),
       // El release de la vitrina es el de ahora: los archivos comunes de antes ya no se sirven.
       release: c.release,
+      // HU-P1.4: las ofertas de lo publicado, con la hora de este re-horneado.
+      ahora: c.ahora,
       productos: h.datos.productos.map((p) => ({
         ...p,
         variantes: p.variantes.map((v) => {

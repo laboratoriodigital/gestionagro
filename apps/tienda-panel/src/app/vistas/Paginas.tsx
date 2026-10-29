@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'preact/hooks';
 import { type Conexion, pedirAlPanel } from '../api.ts';
 import { opNueva } from '../catalogo.ts';
 import { Casilla, Confirmar, Texto } from '../componentes/index.ts';
+import { EnGoogle } from './EnGoogle.tsx';
 
 interface Pagina {
   id: string;
@@ -18,6 +19,8 @@ interface Pagina {
   cuerpo: string;
   visible: boolean;
   version: number;
+  /** HU-P4.4: cómo sale en Google; sin él, el título y el comienzo del texto. */
+  buscadores?: { titulo?: string; descripcion?: string };
 }
 
 type Borrador = Omit<Pagina, 'id' | 'version'> & { id?: string; version?: number };
@@ -26,11 +29,13 @@ const NUEVA: Borrador = { slug: '', titulo: '', cuerpo: '', visible: true };
 function Editor({
   conexion,
   inicial,
+  tienda,
   alTerminar,
   alVencer,
 }: {
   conexion: Conexion;
   inicial: Borrador;
+  tienda: string;
   alTerminar: (mensaje: string) => void;
   alVencer: (motivo: string) => void;
 }) {
@@ -104,6 +109,21 @@ function Editor({
         marcada={f.visible}
         alCambiar={(v) => poner('visible', v)}
       />
+      <EnGoogle
+        id="en-google"
+        valor={{
+          titulo: f.buscadores?.titulo ?? '',
+          descripcion: f.buscadores?.descripcion ?? '',
+        }}
+        alCambiar={(v) => poner('buscadores', v)}
+        tituloDeFabrica={`${f.titulo.trim() || 'Tu página'} · ${tienda}`}
+        descripcionDeFabrica=""
+        direccion={`/${f.slug.trim() || 'tu-pagina'}/`}
+        errores={{
+          titulo: error('buscadores.titulo'),
+          descripcion: error('buscadores.descripcion'),
+        }}
+      />
       <div class="acciones">
         <button
           class="ed1-boton ed1-boton--primario"
@@ -127,9 +147,11 @@ function Editor({
 
 export function Paginas({
   conexion,
+  tienda = 'tu tienda',
   alVencer,
 }: {
   conexion: Conexion;
+  tienda?: string;
   alVencer: (motivo: string) => void;
 }) {
   const [paginas, setPaginas] = useState<Pagina[] | null>(null);
@@ -180,6 +202,7 @@ export function Paginas({
         <Editor
           conexion={conexion}
           inicial={editando}
+          tienda={tienda}
           alVencer={alVencer}
           alTerminar={(mensaje) => {
             setEditando(null);

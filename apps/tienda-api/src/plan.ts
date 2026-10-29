@@ -5,7 +5,12 @@
  * cobro y las tareas lo sepan sin sesión. Los límites salen de `content/tienda/funciones.json` (P2).
  */
 import type { BaseD1 } from '@ed1/d1';
-import { type FuncionesPorPlan, type LimitesDelPlan, limitesDelPlan } from '@ed1/tienda-schema';
+import {
+  type FuncionesPorPlan,
+  funcionesDelPlan,
+  type LimitesDelPlan,
+  limitesDelPlan,
+} from '@ed1/tienda-schema';
 import funciones from '../../../content/tienda/funciones.json' with { type: 'json' };
 import planes from '../../../content/tienda/planes.json' with { type: 'json' };
 
@@ -24,4 +29,10 @@ export async function planDeLaTienda(db: BaseD1, org: string): Promise<string | 
     .bind(org)
     .first<{ plan: string }>();
   return fila?.plan ?? null;
+}
+
+/** Si el plan guardado de la tienda enciende una función de `funciones.json` (HU-P1.4 y las que vengan). */
+export async function tieneLaFuncion(db: BaseD1, org: string, funcion: string): Promise<boolean> {
+  const plan = (await planDeLaTienda(db, org)) ?? PLAN_GRATUITO;
+  return funcionesDelPlan(funciones as unknown as FuncionesPorPlan, plan)?.[funcion] === true;
 }

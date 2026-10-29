@@ -1926,6 +1926,7 @@ Se piden todas al principio, con su recomendación. Las que vienen de TIENDA §2
 | L3 | 14 | 12 (HU-T18.8 a HU-T18.12, el 26 oct 2026; HU-T18.13, la baja, por probar en staging) | Construido el 23 oct 2026 con lo que pidió el dueño al probar TiendaPro en producción. Sale a staging al fusionar; a producción, con la versión que confirme el dueño |
 | PF1 | 20 | 6 (HU-P3.1 y HU-P4.3, el 28 oct 2026; en validación: HU-P1.1, HU-P1.2, HU-P2.1 y HU-P5.1) | Construido el 27 oct 2026, tienda 1.5.0. Ver `BACKLOG_PERFECCIONAMIENTO.md` |
 | PF2 | 18 | 0 (en validación: HU-P6.1, HU-P6.2, HU-P6.3, HU-P2.2, HU-P3.2 y HU-P1.3) | Construido el 28 oct 2026, tienda 1.6.0. Con él, el cupón en el carrito y la vista previa que cotiza |
+| PF3 | 19 | 0 (en validación: HU-P4.1, HU-P4.2, HU-P4.4, HU-P1.4, HU-P1.5, HU-P3.3 y HU-P5.2) | Construido el 28 oct 2026, tienda 1.7.0 y core 0.12.0 (el rol Despachos va en el catálogo del CORE) |
 
 ---
 

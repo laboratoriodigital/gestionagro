@@ -3206,7 +3206,7 @@ test('HU-T10.2 · CA1 y CA2: una página «Quiénes somos», con la dirección q
   await page.getByRole('link', { name: 'Páginas: quiénes somos y más' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Páginas' })).toBeVisible();
   await page.getByRole('button', { name: 'Nueva página' }).click();
-  await page.getByLabel('Título').fill('Quiénes somos');
+  await page.getByLabel('Título', { exact: true }).fill('Quiénes somos');
   await expect(page.getByLabel('Su dirección en tu tienda')).toHaveValue('quienes-somos');
   await page.getByLabel('El texto').fill('Un taller **familiar** de Medellín.');
 
@@ -3700,4 +3700,53 @@ test('HU-P1.1 · compras sin terminar: escribirle por WhatsApp con el mensaje li
   await page.getByRole('button', { name: 'Sí, ya le escribí' }).click();
   await expect(page.getByText('No hay compras sin terminar por ahora.')).toBeVisible();
   expect(escritas).toBe(1);
+});
+
+// ── Sprint PF3: los temas listos ──────────────────────────────────────────────────────────
+
+test('HU-P4.1 · elegir un tema llena la apariencia, se ajusta después y se guarda; axe sin fallas', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const apariencia = { datos: { modo: 'claro' } as Record<string, unknown>, version: 1 };
+  await page.route(`${PANEL}/api/panel/v1/ajustes`, (r) =>
+    r.fulfill({ json: { secciones: { apariencia }, faltantes: [] } }),
+  );
+  const guardados: { datos: Record<string, unknown> }[] = [];
+  await page.route(`${PANEL}/api/panel/v1/ajustes/guardar`, (r) => {
+    guardados.push(r.request().postDataJSON() as { datos: Record<string, unknown> });
+    return r.fulfill({ json: { estado: 'guardado', id: 'apariencia', version: 2 } });
+  });
+
+  await page.goto(`${PANEL}/mas/ajustes/apariencia/`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Apariencia' })).toBeVisible();
+  const temas = page.getByRole('group', { name: 'Temas listos' });
+  await expect(temas.getByRole('button')).toHaveCount(8);
+  await temas.getByRole('button', { name: /^Moda/ }).click();
+  await expect(temas.getByRole('button', { name: /^Moda/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByLabel('Estilo')).toHaveValue('editorial');
+  await expect(page.getByLabel('Forma de las fotos')).toHaveValue('4:5');
+  // Se ajusta después: ya no es el tema, y lo demás sigue como estaba.
+  await page.getByLabel('Forma de las fotos').selectOption('1:1');
+  await expect(temas.getByRole('button', { name: /^Moda/ })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  await page.getByRole('button', { name: 'Guardar apariencia' }).click();
+  await expect.poll(() => guardados.length).toBe(1);
+  expect(guardados[0]?.datos).toMatchObject({
+    acento: '#8a1c3c',
+    estilo: 'editorial',
+    portada: 'editorial',
+    proporcion: '1:1',
+    modo: 'claro',
+  });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 });

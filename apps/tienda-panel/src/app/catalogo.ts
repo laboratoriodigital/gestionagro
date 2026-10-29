@@ -11,6 +11,75 @@ export type PromocionDelPanel =
   | { tipo: 'regalo'; lleva: number; paga: number; hasta: string | null }
   | { tipo: 'porcentaje'; porcentaje: number; desdeUnidades: number; hasta: string | null };
 
+/** HU-P1.4: la oferta programada de un producto (`ofertaProgramada` de la API). */
+export interface OfertaDelPanel {
+  porcentaje: number;
+  desde: string;
+  hasta: string;
+}
+
+/** HU-P1.5: el texto que el producto le pide al comprador (`pideTexto` de la API). */
+export interface PideTextoDelPanel {
+  etiqueta: string;
+  largo: number;
+  obligatorio: boolean;
+}
+
+/** Como se escribe en la pantalla: todo texto, y `activo` falso si no pide nada. */
+export interface PideTextoEnPantalla {
+  activo: boolean;
+  etiqueta: string;
+  largo: string;
+  obligatorio: boolean;
+}
+
+export const pideTextoEnPantalla = (
+  t: PideTextoDelPanel | null | undefined,
+): PideTextoEnPantalla => ({
+  activo: Boolean(t),
+  etiqueta: t?.etiqueta ?? '',
+  largo: t ? String(t.largo) : '40',
+  obligatorio: t?.obligatorio ?? true,
+});
+
+/** HU-P1.5: lo que va a la API. Un número ilegible va como texto: la API dice qué está mal. */
+export function pideTextoDelCuerpo(t: PideTextoEnPantalla): unknown {
+  if (!t.activo) return null;
+  const largo = t.largo.trim();
+  return {
+    etiqueta: t.etiqueta.trim(),
+    largo: /^\d+$/.test(largo) ? Number(largo) : largo,
+    obligatorio: t.obligatorio,
+  };
+}
+
+/** La oferta como se escribe en la pantalla: todo texto, y `activa` falsa si no hay. */
+export interface OfertaEnPantalla {
+  activa: boolean;
+  porcentaje: string;
+  desde: string;
+  hasta: string;
+}
+
+/** HU-P1.4: la oferta guardada, en los campos de la pantalla. */
+export const ofertaEnPantalla = (o: OfertaDelPanel | null | undefined): OfertaEnPantalla => ({
+  activa: Boolean(o),
+  porcentaje: o ? String(o.porcentaje) : '20',
+  desde: o?.desde ?? '',
+  hasta: o?.hasta ?? '',
+});
+
+/** HU-P1.4: lo que va a la API. Un número ilegible va como texto: la API dice qué está mal. */
+export function ofertaDelCuerpo(o: OfertaEnPantalla): unknown {
+  if (!o.activa) return null;
+  const p = o.porcentaje.trim();
+  return {
+    porcentaje: /^\d+$/.test(p) ? Number(p) : p,
+    desde: o.desde.trim(),
+    hasta: o.hasta.trim(),
+  };
+}
+
 /** La promoción como se escribe en la pantalla: todo texto, y `tipo` vacío si no hay. */
 export interface PromocionEnPantalla {
   tipo: '' | 'regalo' | 'porcentaje';
@@ -37,8 +106,14 @@ export interface ProductoDelPanel {
   nuevo?: boolean;
   /** HU-P1.2: la promoción por cantidad, como la guardó la API. */
   promocion?: PromocionDelPanel | null;
+  /** HU-P1.4: la oferta programada. */
+  oferta?: OfertaDelPanel | null;
+  /** HU-P1.5: el texto que pide al comprador. */
+  pideTexto?: PideTextoDelPanel | null;
   /** HU-P6.1: físico o digital. */
   tipo?: 'fisico' | 'digital';
+  /** HU-P4.4: cómo sale en Google; sin él, el nombre y la descripción. */
+  buscadores?: { titulo?: string; descripcion?: string };
   ivaPct: number | null;
   variantes: {
     id: string;
@@ -151,7 +226,10 @@ export interface FormularioDeProducto {
   destacado?: boolean;
   nuevo?: boolean;
   promocion?: PromocionEnPantalla;
+  oferta?: OfertaEnPantalla;
+  pideTexto?: PideTextoEnPantalla;
   tipo?: 'fisico' | 'digital';
+  buscadores?: { titulo: string; descripcion: string };
 }
 
 export const ESTADOS: readonly { id: string; texto: string }[] = [
@@ -227,7 +305,13 @@ export function formularioDe(p: ProductoDelPanel | null): FormularioDeProducto {
     destacado: p?.destacado ?? false,
     nuevo: p?.nuevo ?? false,
     promocion: promocionEnPantalla(p?.promocion ?? null),
+    oferta: ofertaEnPantalla(p?.oferta),
+    pideTexto: pideTextoEnPantalla(p?.pideTexto),
     tipo: p?.tipo ?? 'fisico',
+    buscadores: {
+      titulo: p?.buscadores?.titulo ?? '',
+      descripcion: p?.buscadores?.descripcion ?? '',
+    },
   };
 }
 
@@ -307,7 +391,12 @@ export function cuerpoDe(
       destacado: f.destacado ?? false,
       nuevo: f.nuevo ?? false,
       promocion: promocionDelCuerpo(f.promocion),
+      // HU-P1.4: un borrador de antes no la trae; sin mandarla, la API deja la guardada.
+      ...(f.oferta ? { oferta: ofertaDelCuerpo(f.oferta) } : {}),
+      ...(f.pideTexto ? { pideTexto: pideTextoDelCuerpo(f.pideTexto) } : {}),
       tipo: f.tipo ?? 'fisico',
+      // HU-P4.4: un borrador de antes no lo trae; sin mandarlo, la API deja lo guardado.
+      ...(f.buscadores ? { buscadores: f.buscadores } : {}),
     },
   };
 }
@@ -326,7 +415,10 @@ export function campoDelProblema(
     if (campo.startsWith('opciones')) return 'opciones';
     if (campo.startsWith('retracto')) return 'retracto';
     if (campo.startsWith('promocion')) return 'promocion';
+    if (campo.startsWith('oferta')) return 'oferta';
+    if (campo.startsWith('pideTexto')) return 'pide-texto';
     if (campo === 'tipo') return 'tipo';
+    if (campo.startsWith('buscadores.')) return `en-google-${campo.slice('buscadores.'.length)}`;
     return campo || 'nombre';
   }
   const clave = enviadas[Number(m[1])];

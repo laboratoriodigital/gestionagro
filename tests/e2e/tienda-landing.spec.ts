@@ -92,3 +92,31 @@ test('HU-T18.5 CA2 y HU-T18.6 CA2 · los términos y la política, sin huecos a 
   await page.goto(`${LANDING}/llms.txt`);
   await expect(page.locator('body')).toContainText('# TiendaPro');
 });
+
+test('HU-P5.2 · la calculadora de precios: a cuánto vender, sin guardar nada, y axe sin fallas', async ({
+  page,
+}) => {
+  const deAfuera: string[] = [];
+  page.on('request', (r) => {
+    if (!r.url().startsWith(LANDING)) deAfuera.push(r.url());
+  });
+  await page.setViewportSize({ width: 360, height: 820 });
+  await page.goto(`${LANDING}/calculadora/`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('¿A cuánto lo vendo?');
+  await page.getByLabel('Lo que te cuesta el producto').fill('40.000');
+  await page.getByLabel('El envío que pagas tú').fill('8000');
+  await page.getByLabel('Cómo te paga tu cliente').selectOption('pse');
+  const resultado = page.locator('[data-resultado]');
+  await expect(resultado).toBeVisible();
+  // 40.000 + 30 % = 52.000, más el envío y la comisión de PSE con su IVA.
+  await expect(resultado.locator('[data-precio]')).toHaveText('$63.300');
+  await expect(resultado.locator('[data-ganancia]')).toHaveText('$12.052');
+  await page.getByLabel('Cómo te paga tu cliente').selectOption('sin-comision');
+  await expect(resultado.locator('[data-precio]')).toHaveText('$60.000');
+  await expect(page.getByText('consultadas el 4 de octubre de 2026')).toBeVisible();
+  // CA2: corre en el navegador y no guarda nada.
+  expect(await page.evaluate(() => [localStorage.length, document.cookie])).toEqual([0, '']);
+  expect(deAfuera).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await sinFallasDeAxe(page, 'calculadora');
+});

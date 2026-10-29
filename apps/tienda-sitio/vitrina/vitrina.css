@@ -1162,8 +1162,96 @@ a.boton[hidden] {
 .hero--con-foto .hero__boton:hover {
   background: color-mix(in srgb, var(--gris-0) 30%, transparent);
 }
+/* HU-P1.5: el texto que pide el producto en su ficha, y cómo se ve en el carrito. */
+.pide-texto {
+  display: grid;
+  gap: var(--espacio-2);
+}
+.pide-texto label {
+  font-weight: 600;
+}
+.pide-texto input {
+  min-height: 48px;
+  padding: var(--espacio-2) var(--espacio-3);
+  font: inherit;
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-campo);
+}
+.pide-texto__opcional,
+.pide-texto__ayuda {
+  color: var(--texto-suave);
+  font-weight: 400;
+}
+.pide-texto__ayuda {
+  margin: 0;
+  font-size: var(--texto-pequeno);
+}
+.linea__texto {
+  grid-column: 1 / -1;
+  color: var(--texto-suave);
+  overflow-wrap: anywhere;
+}
+
+/* HU-P4.2: la bienvenida con dos o tres imágenes. Se desliza con el dedo (scroll-snap, sin
+   librería) y la siguiente asoma por el borde para que se note que hay más. */
+.hero--carrusel {
+  display: block;
+}
+.hero--carrusel::after {
+  content: none;
+}
+.hero__pista {
+  display: flex;
+  gap: var(--espacio-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.hero__pista::-webkit-scrollbar {
+  display: none;
+}
+.hero__diapositiva {
+  position: relative;
+  display: grid;
+  align-items: end;
+  flex: 0 0 calc(100% - 2.5rem);
+  min-height: min(72svh, 34rem);
+  scroll-snap-align: start;
+  overflow: hidden;
+  color: var(--gris-0);
+  text-decoration: none;
+}
+.hero__diapositiva::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--gris-1000) 72%, transparent),
+    color-mix(in srgb, var(--gris-1000) 28%, transparent) 45%,
+    transparent 75%
+  );
+  pointer-events: none;
+}
+.hero__diapositiva:focus-visible {
+  outline: 3px solid var(--gris-0);
+  outline-offset: -6px;
+}
+.hero__leyenda {
+  position: relative;
+  z-index: 1;
+  padding: var(--espacio-8) var(--espacio-6);
+  font-size: var(--texto-titulo-3);
+  font-weight: 600;
+}
 @media (min-width: 48rem) {
   .hero {
+    min-height: min(80svh, 44rem);
+  }
+  .hero__diapositiva {
     min-height: min(80svh, 44rem);
   }
   .hero__texto {

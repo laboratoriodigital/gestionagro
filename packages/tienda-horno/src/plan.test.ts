@@ -25,6 +25,7 @@ const GRATIS: LimitesDelPlan = {
   feeds: false,
   sinMarca: false,
   mcpPublico: false,
+  variasImagenes: false,
 };
 const PAGO: LimitesDelPlan = {
   productos: null,
@@ -35,9 +36,10 @@ const PAGO: LimitesDelPlan = {
   feeds: true,
   sinMarca: true,
   mcpPublico: true,
+  variasImagenes: true,
 };
 /** Lo que guardó una versión publicada antes de HU-T18.3: sin el sello ni el MCP. */
-const { sinMarca: _s, mcpPublico: _m, ...DE_ANTES } = PAGO;
+const { sinMarca: _s, mcpPublico: _m, variasImagenes: _v, ...DE_ANTES } = PAGO;
 
 const producto = (slug: string, nombre: string): ProductoParaHornear => ({
   slug,
@@ -166,6 +168,7 @@ describe('los límites de funciones.json (HU-T13.5 CA2 y HU-T18.3)', () => {
       feeds: false,
       sinMarca: false,
       mcpPublico: false,
+      variasImagenes: false,
     });
   });
 
@@ -179,6 +182,7 @@ describe('los límites de funciones.json (HU-T13.5 CA2 y HU-T18.3)', () => {
       feeds: true,
       sinMarca: true,
       mcpPublico: true,
+      variasImagenes: true,
     });
     expect(limitesDelPlan(funciones as never, 'ia-pro', 'gratis')).toEqual({
       ...limitesDelPlan(funciones as never, 'pro', 'gratis'),

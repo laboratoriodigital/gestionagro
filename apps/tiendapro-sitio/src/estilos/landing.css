@@ -1456,3 +1456,89 @@ a {
   align-items: center;
   gap: var(--espacio-4) var(--espacio-6);
 }
+
+/* La calculadora de precios (HU-P5.2) ----------------------------------------------------------- */
+
+.calculadora__formulario {
+  display: grid;
+  gap: var(--espacio-4);
+  margin-top: var(--espacio-8);
+}
+
+.calculadora__campo {
+  display: grid;
+  gap: var(--espacio-2);
+  min-width: 0;
+  font-weight: 500;
+}
+
+.calculadora__campo small {
+  font-weight: 400;
+  color: var(--texto-suave);
+}
+
+.calculadora__campo input,
+.calculadora__campo select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: var(--espacio-2) var(--espacio-3);
+  font: inherit;
+  font-weight: 400;
+  color: var(--texto);
+  background: var(--papel);
+  border: var(--borde-ancho) solid var(--gris-300);
+  border-radius: var(--radio-campo);
+}
+
+.calculadora__campo input:focus-visible,
+.calculadora__campo select:focus-visible {
+  outline: 2px solid var(--cobre);
+  outline-offset: 2px;
+}
+
+.calculadora__aviso {
+  margin: 0;
+  color: var(--cobre-oscuro);
+}
+
+.calculadora__resultado {
+  margin-top: var(--espacio-8);
+  padding: var(--espacio-6);
+  border-radius: var(--radio-campo);
+  background: var(--papel-2);
+}
+
+.calculadora__precio {
+  margin: 0 0 var(--espacio-4);
+  font-size: 1.4rem;
+}
+
+.calculadora__precio strong {
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.calculadora__resultado dl {
+  display: grid;
+  gap: var(--espacio-2);
+  margin: 0;
+}
+
+.calculadora__resultado dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.calculadora__resultado dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.calculadora__nota {
+  font-size: var(--texto-pequeno);
+  color: var(--texto-suave);
+}

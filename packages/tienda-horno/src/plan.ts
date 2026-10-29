@@ -10,6 +10,7 @@
  * - Sin feeds, no se hornean.
  * - Sin el MCP público (Gratis, HU-T18.3), la tienda no lo anuncia; sin `sinMarca` (Gratis,
  *   HU-T18.2), el pie lleva el sello «Hecha con TiendaPro».
+ * - Sin `variasImagenes` (Gratis, HU-P4.2), la bienvenida lleva solo su primera imagen.
  */
 import { formasDelPlan, type LimitesDelPlan } from '@ed1/tienda-schema';
 import type { TiendaParaHornear } from './horno.ts';
@@ -56,5 +57,10 @@ export function alPlan(t: TiendaParaHornear, plan: LimitesDelPlan | undefined = 
     // HU-T18.3 CA3: el MCP público, solo en Pro e IA Pro. Una versión de antes no trae el campo.
     ...(mcp && plan.mcpPublico !== false ? { mcp } : {}),
   };
+  // HU-P4.2: las imágenes de más de la bienvenida, solo con el plan que las incluye.
+  if (tienda.hero?.mas && plan.variasImagenes !== true) {
+    const { mas: _mas, ...hero } = tienda.hero;
+    tienda.hero = hero;
+  }
   return { tienda, ocultos };
 }

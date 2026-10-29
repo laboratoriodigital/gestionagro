@@ -42,6 +42,7 @@ import { revisarDominios } from './dominios.ts';
 import { FRENO_R2 } from './freno-r2.ts';
 import { claveDelHost, direccionesDelPlan, punteroDelHost } from './hosts.ts';
 import { kekDelEntorno, reenvolverLlaves } from './llaves.ts';
+import { OFERTAS_PROGRAMADAS } from './ofertas.ts';
 import { limitesDeLaTienda } from './plan.ts';
 import type { Almacen } from './publicar.ts';
 import { barrerObjetos, mantenerSitio } from './purga-de-sitios.ts';
@@ -56,7 +57,7 @@ export type Frecuencia = 'hora' | 'dia' | 'semana';
 
 export interface KvDeTareas {
   get(clave: string): Promise<string | null>;
-  put(clave: string, valor: string): Promise<void>;
+  put(clave: string, valor: string, opciones?: { expirationTtl?: number }): Promise<void>;
 }
 
 export interface EntornoDeTareas {
@@ -736,4 +737,5 @@ export const TAREAS: readonly Tarea[] = [
   PLANES_VENCIDOS,
   CUADRE_DE_EVENTOS,
   PREPARADOS_VENCIDOS,
+  OFERTAS_PROGRAMADAS,
 ];

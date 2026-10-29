@@ -4,6 +4,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [0.12.0] - 2026-10-28
+
+Un rol nuevo para TiendaPro: quien solo despacha.
+
+### Agregado
+- El rol «despachos» de TiendaPro (HU-P3.3): quien administra una tienda puede invitar a alguien que solo despacha. El catálogo lo lee de `infrastructure/productos.json`; la tienda decide qué puede con su matriz de permisos.
+
 ## [0.11.0] - 2026-10-24
 
 El servidor de permisos para asistentes, en producción, y los topes de cada plan.

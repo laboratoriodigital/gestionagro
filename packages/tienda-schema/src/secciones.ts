@@ -97,6 +97,23 @@ const contactoV1 = z.object({
   facebook: perfilEn('facebook').optional(),
 });
 
+/**
+ * HU-P4.2 (sprint PF3): una imagen más de la bienvenida, con lo que muestra (su texto alternativo y
+ * su leyenda) y a dónde lleva: solo direcciones de la tienda, como `/c/lino/`.
+ */
+const diapositiva = z.object({
+  imagen: imagenDeLaTienda.optional(),
+  texto: texto(80).optional(),
+  enlace: z
+    .string()
+    .trim()
+    .regex(/^\/(?!\/)[a-z0-9\-/]*$/, {
+      error: 'una dirección de tu tienda, como /c/lino/ o /p/camisa-de-lino/',
+    })
+    .max(120)
+    .optional(),
+});
+
 const apariencia = z.object({
   acento: z
     .string()
@@ -115,6 +132,9 @@ const apariencia = z.object({
       texto: texto(240).optional(),
       imagen: imagenDeLaTienda.optional(),
       boton: texto(30).optional(),
+      /** HU-P4.2: hasta dos imágenes más, que se deslizan con el dedo (Pro e IA Pro). */
+      segunda: diapositiva.optional(),
+      tercera: diapositiva.optional(),
     })
     .optional(),
 });

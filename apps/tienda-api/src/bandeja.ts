@@ -45,6 +45,11 @@ export const ContactoDelPedido = z.object({
   direccion: z.string().max(300).optional(),
   ciudad: z.string().max(80).optional(),
   notas: z.string().max(600).optional(),
+  /** HU-P1.5: lo que el comprador escribió en la ficha de cada producto que lo pide. */
+  textos: z
+    .array(z.object({ nombre: z.string().max(140), texto: z.string().max(200) }))
+    .max(30)
+    .optional(),
 });
 export type ContactoDelPedido = z.infer<typeof ContactoDelPedido>;
 

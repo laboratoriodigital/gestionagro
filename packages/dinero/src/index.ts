@@ -96,6 +96,17 @@ export function descuentoPorCantidad(
   return descuento;
 }
 
+/**
+ * HU-P1.4 (sprint PF3): el precio de una combinación con la oferta programada de su producto, un
+ * porcentaje menos. Como el cupón, el redondeo favorece al comprador. Lanza si no se lee.
+ */
+export function precioDeOferta(precioCop: number, porcentaje: number): number {
+  const precio = pesos(precioCop, 'precioCop');
+  if (!Number.isSafeInteger(porcentaje) || porcentaje < 1 || porcentaje > 90)
+    throw new MontoIlegible('oferta.porcentaje', porcentaje);
+  return Math.floor((precio * (100 - porcentaje)) / 100);
+}
+
 export type Cupon = (
   | { tipo: 'porcentaje'; porcentaje: number; minimoCop?: number }
   | { tipo: 'valor'; valorCop: number; minimoCop?: number }
@@ -269,4 +280,63 @@ export function repartirDescuento(totalesDeLinea: readonly number[], descuento: 
     falta--;
   }
   return base;
+}
+
+/** HU-P5.2: lo que cobra el medio de pago, en centésimas de porcentaje y un cargo fijo. */
+export interface ComisionDelMedio {
+  centesimas: number;
+  fijoCop: number | null;
+}
+
+/**
+ * HU-P5.2 (sprint PF3): lo que se queda el medio de pago en una venta, con el IVA de su comisión.
+ * Se redondea al peso, como la factura de la pasarela.
+ */
+export function comisionDeLaVenta(
+  precioCop: number,
+  comision: ComisionDelMedio,
+  ivaPct: number,
+): number {
+  const precio = pesos(precioCop, 'precioCop');
+  if (precio === 0 || (comision.centesimas === 0 && !comision.fijoCop)) return 0;
+  const antesDelIva = (precio * comision.centesimas) / 10_000 + (comision.fijoCop ?? 0);
+  return Math.round((antesDelIva * (100 + ivaPct)) / 100);
+}
+
+/**
+ * HU-P5.2 (sprint PF3): a cuánto vender para que, después de la comisión (con su IVA) y del envío
+ * que asume quien vende, le quede su costo más lo que quiere ganar, un porcentaje sobre el costo.
+ * El precio sube al siguiente múltiplo de $100, como se ponen los precios; lo que queda se
+ * recalcula con ese precio. Lanza si un monto no se lee.
+ */
+export function precioParaGanar(e: {
+  costoCop: number;
+  gananciaPct: number;
+  envioCop: number;
+  comision: ComisionDelMedio;
+  ivaPct: number;
+}): { precioCop: number; comisionCop: number; gananciaCop: number; margenPct: number } {
+  const costo = pesos(e.costoCop, 'costoCop');
+  const envio = pesos(e.envioCop, 'envioCop');
+  if (!Number.isSafeInteger(e.gananciaPct) || e.gananciaPct < 0 || e.gananciaPct > 1000)
+    throw new MontoIlegible('gananciaPct', e.gananciaPct);
+  const { centesimas } = e.comision;
+  if (!Number.isSafeInteger(centesimas) || centesimas < 0 || centesimas >= 2000)
+    throw new MontoIlegible('comision', centesimas);
+  const queda = costo + Math.ceil((costo * e.gananciaPct) / 100);
+  // P − (P·t + F)·(1 + iva) − envío = lo que queda  ⇒  P = (queda + envío + F·(1 + iva)) / (1 − t·(1 + iva))
+  const conIva = (100 + e.ivaPct) / 100;
+  const exacto =
+    (queda + envio + (e.comision.fijoCop ?? 0) * conIva) / (1 - (centesimas / 10_000) * conIva);
+  let precio = Math.ceil(exacto / 100) * 100;
+  // El redondeo de la comisión puede pedir $100 más; nunca queda menos de lo pedido.
+  while (precio - comisionDeLaVenta(precio, e.comision, e.ivaPct) - envio < queda) precio += 100;
+  const comisionCop = comisionDeLaVenta(precio, e.comision, e.ivaPct);
+  const gananciaCop = precio - comisionCop - envio - costo;
+  return {
+    precioCop: precio,
+    comisionCop,
+    gananciaCop,
+    margenPct: precio === 0 ? 0 : Math.round((gananciaCop / precio) * 100),
+  };
 }

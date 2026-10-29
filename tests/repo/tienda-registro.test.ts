@@ -43,10 +43,11 @@ describe('la Tienda en productos.json (HU-T2.2)', () => {
     });
   });
 
-  it('con el propietario que administra y el colaborador que se invita (TIENDA §12.1)', () => {
+  it('con el propietario que administra, y el colaborador y Despachos que se invitan (TIENDA §12.1, HU-P3.3)', () => {
     expect(tienda().roles).toEqual([
       { id: 'propietario', administra: true, invitable: true },
       { id: 'colaborador', administra: false, invitable: true },
+      { id: 'despachos', administra: false, invitable: true },
     ]);
   });
 

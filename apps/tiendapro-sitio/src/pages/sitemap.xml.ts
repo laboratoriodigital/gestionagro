@@ -1,4 +1,5 @@
-// El sitemap de TiendaPro (HU-T18.5 CA2): la portada, los dos textos legales y la ayuda (HU-P5.1).
+// El sitemap de TiendaPro (HU-T18.5 CA2): la portada, los dos textos legales, la ayuda (HU-P5.1) y
+// la calculadora de precios (HU-P5.2).
 import { GUIAS } from '../ayuda.ts';
 import { ORIGEN } from '../contenido.ts';
 
@@ -8,6 +9,7 @@ export const RUTAS = [
   '/legal/terminos/',
   '/ayuda/',
   ...GUIAS.map((g) => `/ayuda/${g.slug}/`),
+  '/calculadora/',
 ];
 
 export const GET = () =>

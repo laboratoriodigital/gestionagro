@@ -1,0 +1,84 @@
+---
+/**
+ * La calculadora de precios (HU-P5.2, sprint PF3): gratis, para cualquiera que venda, tenga o no
+ * su tienda. Corre en el navegador y no guarda nada; las tarifas de Bold dicen cuándo se
+ * consultaron.
+ */
+import {
+  COMISIONES_CONSULTADAS,
+  COMISIONES_DE_BOLD,
+  IVA_DE_LA_COMISION,
+  porcentajeEnTexto,
+} from '@ed1/tienda-schema/comisiones';
+import Marco from '../../componentes/Marco.astro';
+import { MARCA, PANEL } from '../../contenido.ts';
+
+const consultadas = new Intl.DateTimeFormat('es-CO', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'America/Bogota',
+}).format(new Date(`${COMISIONES_CONSULTADAS}T12:00:00-05:00`));
+const fijo = (f: number | null) => (f ? ` + $${f.toLocaleString('es-CO')}` : '');
+---
+<Marco
+  titulo={`Calculadora de precios · ${MARCA}`}
+  descripcion="A cuánto vender para que te quede lo que esperas, con la comisión de Bold y el envío. Gratis y sin registrarte."
+  ruta="/calculadora/"
+>
+  <article class="legal calculadora">
+    <h1>¿A cuánto lo vendo?</h1>
+    <p>Escribe cuánto te cuesta, cuánto quieres ganar y cómo te pagan. Te decimos a cuánto venderlo para que te quede eso, con la comisión del pago y el envío.</p>
+    <form class="calculadora__formulario" data-calculadora novalidate>
+      <label class="calculadora__campo">
+        <span>Lo que te cuesta el producto</span>
+        <input name="costo" inputmode="numeric" autocomplete="off" placeholder="40.000" />
+      </label>
+      <label class="calculadora__campo">
+        <span>Cuánto quieres ganar, sobre el costo</span>
+        <select name="ganancia">
+          {[10, 20, 30, 40, 50, 60, 80, 100, 150, 200].map((p) => (
+            <option value={p} selected={p === 30}>{p} %</option>
+          ))}
+        </select>
+      </label>
+      <label class="calculadora__campo">
+        <span>El envío que pagas tú <small>(0 si lo paga tu cliente)</small></span>
+        <input name="envio" inputmode="numeric" autocomplete="off" placeholder="0" />
+      </label>
+      <label class="calculadora__campo">
+        <span>Cómo te paga tu cliente</span>
+        <select name="medio">
+          {COMISIONES_DE_BOLD.map((c) => (
+            <option value={c.id}>Bold: {c.medio}</option>
+          ))}
+          <option value="sin-comision">Contra entrega o transferencia</option>
+        </select>
+      </label>
+      <p class="calculadora__aviso" data-aviso role="status" hidden></p>
+    </form>
+    <section class="calculadora__resultado" data-resultado aria-live="polite" hidden>
+      <p class="calculadora__precio">Véndelo a <strong data-precio></strong></p>
+      <dl>
+        <div><dt>Se queda el pago (con su IVA)</dt><dd data-comision></dd></div>
+        <div><dt>Pagas de envío</dt><dd data-envio></dd></div>
+        <div><dt>Te queda de ganancia</dt><dd data-ganancia></dd></div>
+        <div><dt>Tu margen</dt><dd data-margen></dd></div>
+      </dl>
+    </section>
+    <h2>Cómo se calcula</h2>
+    <p>Al precio se le resta lo que cobra el medio de pago y el envío que asumes; lo que queda cubre tu costo y tu ganancia. Redondeamos el precio a los siguientes $100.</p>
+    <p>Tarifas públicas de Bold, consultadas el {consultadas}, más el {IVA_DE_LA_COMISION} % de IVA de la comisión:</p>
+    <ul>
+      {COMISIONES_DE_BOLD.map((c) => (
+        <li>{c.medio}: {porcentajeEnTexto(c.centesimas)}{fijo(c.fijoCop)}</li>
+      ))}
+    </ul>
+    <p class="calculadora__nota">Son de referencia: tu tarifa es la que acordaste con Bold. Con tarjeta puede haber una retención aparte. Esta página no guarda nada de lo que escribes.</p>
+    <p class="ayuda__acciones">
+      <a class="boton" href={PANEL} data-panel>Crear mi tienda gratis</a>
+      <a class="enlace-flecha" href="/ayuda/">Ver la ayuda</a>
+    </p>
+  </article>
+  <script src="../../calculadora.ts"></script>
+</Marco>

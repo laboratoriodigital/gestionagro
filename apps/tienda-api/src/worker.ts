@@ -851,11 +851,12 @@ export function crearApp(
         ahora: new Date(ahora()).toISOString(),
         terminosPublicados: await huellaPublicada(destino.db, destino.org, c.env.SITIOS),
         id: crypto.randomUUID(),
+        kekTexto: textoDeLasKeks(c.env),
       },
       p,
     );
     if (r.estado === 'registrado' || r.estado === 'duplicado') return c.json(r);
-    if (r.estado === 'forma' || r.estado === 'edad') return c.json(r, 422);
+    if (r.estado === 'forma' || r.estado === 'edad' || r.estado === 'texto') return c.json(r, 422);
     return c.json(r, 409);
   });
 
@@ -921,7 +922,7 @@ export function crearApp(
     }
     if (r.estado === 'sin-linea') return c.json(r, 503);
     if (r.estado === 'ocupada') return c.json(r, 429);
-    if (r.estado === 'forma' || r.estado === 'edad' || r.estado === 'monto') return c.json(r, 422);
+    if (['forma', 'edad', 'texto', 'monto'].includes(r.estado)) return c.json(r, 422);
     return c.json(r, 409);
   });
 
@@ -2070,10 +2071,13 @@ export function crearApp(
   };
 
   // HU-T8.5: el inventario y su libro, con los permisos `inventario.ajustar` y `avisame.atender`.
+  // HU-P3.3: verlo pide solo `inventario.ver` (también «Despachos»); cambiarlo, ajustar.
   const delInventario = (c: ContextoTienda) =>
     quienPuede(c, 'inventario.ajustar', 'Tu rol no puede ajustar el inventario.');
+  const verInventario = (c: ContextoTienda) =>
+    quienPuede(c, 'inventario.ver', 'Tu rol no puede ver el inventario.');
   app.get('/api/panel/v1/inventario', async (c) => {
-    const q = delInventario(c);
+    const q = verInventario(c);
     if (q instanceof Response) return q;
     return c.json(
       await listarInventario(q, {
@@ -2083,7 +2087,7 @@ export function crearApp(
     );
   });
   app.get('/api/panel/v1/inventario/:variante', async (c) => {
-    const q = delInventario(c);
+    const q = verInventario(c);
     if (q instanceof Response) return q;
     const cursor = Number(c.req.query('cursor'));
     const r = await libroDe(

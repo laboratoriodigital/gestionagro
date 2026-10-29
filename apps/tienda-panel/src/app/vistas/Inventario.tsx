@@ -5,6 +5,7 @@
  * Va de a 50 y se busca por el nombre del producto: con la tienda llena eran 12.000 combinaciones
  * de una vez (bitácora tienda3 21).
  */
+import { puede } from '@ed1/tienda-schema/permisos';
 import { Aviso, type EstadoDeContenido, ResumenDeErrores } from '@ed1/ui/v2/componentes';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { type Conexion, pedirAlPanel } from '../api.ts';
@@ -174,12 +175,16 @@ type Lectura =
 export function Existencias({
   conexion,
   variante,
+  rol = 'propietario',
   alVencer,
 }: {
   conexion: Conexion;
   variante: string;
+  /** HU-P3.3: quien solo despacha ve las existencias y su libro, sin cambiarlas. */
+  rol?: string;
   alVencer: (motivo: string) => void;
 }) {
+  const ajusta = puede(rol, 'inventario.ajustar');
   const [lectura, setLectura] = useState<Lectura>({ tipo: 'cargando' });
   const [tipo, setTipo] = useState<'ajuste' | 'conteo'>('ajuste');
   const [cantidad, setCantidad] = useState('');
@@ -288,7 +293,7 @@ export function Existencias({
           {aviso}
         </Aviso>
       ) : null}
-      {fila.esperan > 0 ? (
+      {fila.esperan > 0 && puede(rol, 'avisame.atender') ? (
         <section class="seccion">
           <h2>
             {fila.esperan === 1
@@ -307,7 +312,9 @@ export function Existencias({
           />
         </section>
       ) : null}
-      {fila.stock === null ? (
+      {!ajusta ? (
+        <p class="nota">Las existencias las ajusta quien administra la tienda o un colaborador.</p>
+      ) : fila.stock === null ? (
         <p>
           Esta combinación no cuenta existencias: se vende sin límite. Para contarlas, cámbialo en{' '}
           <a href={`/productos/${encodeURIComponent(fila.producto)}/`}>el producto</a>.

@@ -9,6 +9,7 @@
  *   comercio lo elige con `null` a propósito (bitácora ecommerce 54).
  */
 import { z } from 'zod';
+import { buscadores } from './buscadores.ts';
 import { TOPES } from './carga.ts';
 
 const op = z.string().regex(/^[A-Za-z0-9_-]{8,64}$/, 'la clave de la operación va de 8 a 64');
@@ -81,6 +82,61 @@ export function promocionEnPalabras(p: PromocionDelProducto): string {
     : `${p.porcentaje} % menos desde ${p.desdeUnidades} unidades`;
 }
 
+/**
+ * HU-P1.4 (sprint PF3): la oferta programada de un producto: un porcentaje menos en todas sus
+ * combinaciones, del primer día al último, de Colombia (`AAAA-MM-DD`). Fuera de esos días rige el
+ * precio normal. La tienda la muestra con el precio de antes tachado; la cotización la cobra.
+ */
+export const ofertaProgramada = z
+  .object({
+    porcentaje: z.number().int().min(1, 'desde el 1 %').max(90, 'hasta el 90 %'),
+    desde: z.iso.date('una fecha AAAA-MM-DD'),
+    hasta: z.iso.date('una fecha AAAA-MM-DD'),
+  })
+  .refine((o) => o.desde <= o.hasta, {
+    path: ['hasta'],
+    message: 'el último día va el mismo día del primero o después',
+  });
+export type OfertaProgramada = z.infer<typeof ofertaProgramada>;
+
+/** Si la oferta rige en ese instante: del comienzo de su primer día al final del último, en Colombia. */
+export const ofertaVigente = (o: OfertaProgramada, ahora: string): boolean =>
+  Date.parse(`${o.desde}T00:00:00.000-05:00`) <= Date.parse(ahora) &&
+  Date.parse(ahora) <= Date.parse(`${o.hasta}T23:59:59.999-05:00`);
+
+/** La oferta guardada, validada otra vez; la que no se lee no existe (P1). */
+export function ofertaLeida(guardada: string | null | undefined): OfertaProgramada | null {
+  if (!guardada) return null;
+  try {
+    const r = ofertaProgramada.safeParse(JSON.parse(guardada));
+    return r.success ? r.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * HU-P1.5 (sprint PF3): el texto que el producto le pide al comprador en su ficha, como «Nombre
+ * para grabar» o «Mensaje de la tarjeta»: su etiqueta, su largo (hasta 200) y si es obligatorio.
+ */
+export const pideTexto = z.object({
+  etiqueta: texto(60),
+  largo: z.number().int().min(1, 'al menos 1 carácter').max(200, 'hasta 200 caracteres'),
+  obligatorio: z.boolean(),
+});
+export type PideTexto = z.infer<typeof pideTexto>;
+
+/** Lo que pide el producto, validado otra vez; lo que no se lee no existe (P1). */
+export function pideTextoLeido(guardado: string | null | undefined): PideTexto | null {
+  if (!guardado) return null;
+  try {
+    const r = pideTexto.safeParse(JSON.parse(guardado));
+    return r.success ? r.data : null;
+  } catch {
+    return null;
+  }
+}
+
 export const ESTADOS_DE_PRODUCTO = ['borrador', 'activo', 'archivado'] as const;
 
 export const guardarProducto = z.object({
@@ -116,8 +172,14 @@ export const guardarProducto = z.object({
   destacado: z.boolean().default(false),
   nuevo: z.boolean().default(false),
   promocion: promocionDelProducto.nullable().default(null),
+  /** HU-P1.4: sin mandarla, queda la que había; `null` la quita. */
+  oferta: ofertaProgramada.nullable().optional(),
+  /** HU-P1.5: sin mandarlo, queda el que había; `null` lo quita. */
+  pideTexto: pideTexto.nullable().optional(),
   /** HU-P6.1: un archivo que se descarga al pagar; no cuenta existencias ni pide envío. */
   tipo: z.enum(['fisico', 'digital']).default('fisico'),
+  /** HU-P4.4: cómo sale en Google; sin esto, el nombre y la descripción. */
+  buscadores,
   ivaPct: z
     .union([z.literal(0), z.literal(5), z.literal(19)])
     .nullable()

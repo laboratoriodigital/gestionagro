@@ -694,3 +694,88 @@ h2 {
 #promocion input {
   max-width: 100%;
 }
+
+/* HU-P4.1 (sprint PF3): los temas listos, en dos columnas desde 360 px. */
+.temas__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--espacio-3);
+}
+.tema {
+  inline-size: 100%;
+  min-block-size: var(--objetivo-tactil);
+  display: grid;
+  gap: var(--espacio-1);
+  justify-items: start;
+  text-align: start;
+  font: inherit;
+  color: var(--texto);
+  background: var(--superficie);
+  border: var(--borde-ancho) solid var(--borde);
+  border-radius: var(--radio-tarjeta);
+  padding: var(--espacio-3);
+  cursor: pointer;
+}
+.tema[aria-pressed="true"] {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 2px var(--acento);
+}
+.tema:focus-visible {
+  outline: 2px solid var(--foco);
+  outline-offset: 2px;
+}
+.tema__muestra {
+  inline-size: 100%;
+  block-size: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radio-campo);
+  background: var(--muestra);
+  color: #ffffff;
+  font-weight: var(--peso-fuerte);
+}
+.tema__muestra--editorial {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+}
+.tema__nombre {
+  font-weight: var(--peso-fuerte);
+}
+.tema__para {
+  font-size: var(--texto-pequeno);
+  color: var(--texto-suave);
+}
+
+/* HU-P4.4 (sprint PF3): cómo sale en Google, con la muestra de un resultado. */
+.en-google {
+  display: grid;
+  gap: var(--espacio-3);
+}
+.en-google__muestra {
+  margin: 0;
+  display: grid;
+  gap: var(--espacio-1);
+  padding: var(--espacio-3);
+  background: var(--superficie);
+  border: var(--borde-ancho) solid var(--borde);
+  border-radius: var(--radio-campo);
+  overflow-wrap: anywhere;
+}
+.en-google__muestra p,
+.en-google__muestra figcaption {
+  margin: 0;
+}
+.en-google__direccion {
+  font-size: var(--texto-pequeno);
+  color: var(--texto-suave);
+}
+.en-google__titulo {
+  color: var(--acento);
+  font-size: var(--texto-titulo-3);
+}
+.en-google__descripcion {
+  font-size: var(--texto-pequeno);
+}

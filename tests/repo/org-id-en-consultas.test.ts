@@ -190,6 +190,8 @@ const TIENDA: Api = {
       'terminada la rotación se comprueba que la KEK vigente abre cada DEK del shard; solo sale cuántas no abre (llaves.ts, HU-T17.6 CA2)',
     "select org_id from tienda indexed by tienda_baja_por_borrar where estado = 'baja' and datos_borrados is null and baja_pedida <= ? limit 20":
       'la tarea diaria busca en el shard las tiendas dadas de baja hace 30 días; cada una se borra con su org_id = ? y nada sale en una respuesta (baja.ts, HU-T13.7)',
+    'select org_id from producto indexed by producto_oferta_empieza where oferta is not null':
+      'la tarea de cada hora busca en el shard las tiendas con una oferta programada que empieza hoy o terminó ayer, por sus dos índices parciales; cada una se re-hornea con su org_id = ? y solo salen los org_id (ofertas.ts, HU-P1.4)',
     "update pedido indexed by pedido_de_agente_por_confirmar set estado = 'cancelado'":
       'la tarea de cada hora cancela en todo el shard los pedidos que preparó un asistente y nadie confirmó en 48 horas; lee solo el índice parcial de los que esperan, no hay token y solo sale cuántos (confirmar.ts, HU-T15.5 CA2)',
   },

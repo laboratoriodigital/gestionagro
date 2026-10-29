@@ -44,6 +44,37 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(async () => cerrar());
 
+describe('HU-P4.4 · cómo sale en Google una página', () => {
+  it('se guarda, se lee y quien no lo manda no lo borra', async () => {
+    const r = await guardarPagina(
+      quien(),
+      pagina({
+        slug: 'envios',
+        titulo: 'Envíos',
+        buscadores: { titulo: 'Envíos a toda Colombia', descripcion: 'Cuánto tarda tu pedido.' },
+      }),
+    );
+    if (r.estado !== 'guardado') throw new Error(r.estado);
+    const leida = async () =>
+      (await listarPaginas(quien())).paginas.find((p) => p.id === r.id)?.buscadores;
+    expect(await leida()).toEqual({
+      titulo: 'Envíos a toda Colombia',
+      descripcion: 'Cuánto tarda tu pedido.',
+    });
+    await guardarPagina(
+      quien(),
+      pagina({ id: r.id, version: 1, slug: 'envios', titulo: 'Envíos y entregas' }),
+    );
+    expect((await leida())?.titulo).toBe('Envíos a toda Colombia');
+    await guardarPagina(
+      quien(),
+      pagina({ id: r.id, version: 2, slug: 'envios', titulo: 'Envíos', buscadores: {} }),
+    );
+    expect(await leida()).toEqual({});
+    await borrarPagina(quien(), { op: op(), id: r.id, version: 3 });
+  });
+});
+
 describe('las páginas propias (HU-T10.2)', () => {
   it('CA1: se crea, se edita con su versión y se borra a la papelera, y el registro lo dice', async () => {
     const creada = await guardarPagina(quien(), pagina());
@@ -57,6 +88,7 @@ describe('las páginas propias (HU-T10.2)', () => {
         cuerpo: 'Un taller familiar.',
         visible: true,
         version: 1,
+        buscadores: {},
       },
     ]);
     const editada = await guardarPagina(
