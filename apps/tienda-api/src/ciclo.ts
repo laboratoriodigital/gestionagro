@@ -662,33 +662,66 @@ const Cancelar = CambioDeEstado.extend({
   volvio: z.boolean({ error: 'di si las unidades vuelven al inventario' }),
 });
 
+/** Los cobros que impiden cancelar un pedido por pagar: el que espera y el que Bold aprobó. */
+const COBROS_ABIERTOS = "('esperando', 'aprobado', 'aprobado_sin_existencias', 'revisar')";
+
+const conPagoAbierto = async (q: Quien, pedido: string) =>
+  (await q.db
+    .prepare(
+      `SELECT 1 AS si FROM cobro WHERE org_id = ? AND pedido_id = ? AND estado IN ${COBROS_ABIERTOS}`,
+    )
+    .bind(q.org, pedido)
+    .first<{ si: number }>()) !== null;
+
+/** Por pagar a cancelado, solo si en el mismo instante no hay un cobro abierto (`SI_CAMBIO`). */
+const cancelarPorPagar = (q: Quien, id: string, version: number) => [
+  q.db
+    .prepare(
+      `UPDATE pedido SET estado = 'cancelado', cambiado_por = ?, version = version + 1, actualizado = ?
+        WHERE org_id = ? AND id = ? AND version = ? AND estado = 'por_pagar' AND NOT EXISTS
+          (SELECT 1 FROM cobro WHERE org_id = ? AND pedido_id = ? AND estado IN ${COBROS_ABIERTOS})`,
+    )
+    .bind(q.actor, q.instante, q.org, id, version, q.org, id),
+  q.db.prepare(SI_CAMBIO),
+];
+
 /**
  * CA2 y CA3: cancelar. Si el pedido ya había descontado el inventario, las unidades vuelven solo
- * si el comercio lo dice, y una sola vez: la línea deja de estar `descontado`. Un pago en línea en
- * curso o aprobado se cancela con su reembolso, que llega con el cobro en línea.
+ * si el comercio lo dice, y una sola vez: la línea deja de estar `descontado`. Un pago en línea
+ * aprobado se cancela con su reembolso, que llega con el cobro en línea. Un pedido por pagar se
+ * cancela cuando su pago venció sin pagarse: la ruta le pregunta a Bold antes
+ * (`cerrarElPagoSinTerminar`), y un pago que llegue tarde queda a revisar, sin tocar el inventario.
  */
 export async function cancelarPedido(q: Quien, cuerpo: unknown): Promise<Resultado> {
   const r0 = Cancelar.safeParse(cuerpo);
   if (!r0.success) return { estado: 'problemas', problemas: problemasDe(r0) };
   const d = r0.data;
   const fila = await leerFila(q, d.pedido);
-  if (fila && (fila.estado === 'por_pagar' || fila.estado === 'pagado'))
+  if (fila?.estado === 'pagado')
     return problemas({
       campo: 'pedido',
       mensaje:
-        'Este pedido tiene un pago en línea en curso o aprobado: se cancela con su reembolso, desde el cobro en línea.',
+        'Este pedido tiene un pago en línea aprobado: se cancela con su reembolso, desde el cobro en línea.',
+    });
+  if (fila?.estado === 'por_pagar' && (await conPagoAbierto(q, d.pedido)))
+    return problemas({
+      campo: 'pedido',
+      mensaje:
+        'El pago de este pedido sigue en curso. Pregúntale a Bold o espera a que venza para cancelarlo.',
     });
   const leido = await paraCambiar(
     q,
     d,
-    ['pendiente', 'confirmado'],
+    ['pendiente', 'confirmado', 'por_pagar'],
     'Este pedido ya salió o ya se cerró: no se puede cancelar.',
   );
   if ('r' in leido) return leido.r;
   const { p } = leido;
   const r: Resultado = { estado: 'guardado', id: d.pedido, version: p.version + 1 };
   const lote: SentenciaD1[] = [
-    ...cambiarEstado(q, d.pedido, d.version, ['pendiente', 'confirmado'], 'cancelado'),
+    ...(p.estado === 'por_pagar'
+      ? cancelarPorPagar(q, d.pedido, d.version)
+      : cambiarEstado(q, d.pedido, d.version, ['pendiente', 'confirmado'], 'cancelado')),
     ...(d.volvio ? devolverAlInventario(q, d.pedido, 'cancelacion') : []),
     await anotar(q.db, {
       org: q.org,

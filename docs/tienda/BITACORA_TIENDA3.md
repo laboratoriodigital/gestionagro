@@ -1596,3 +1596,15 @@ La regla: **una función nueva y opcional no cambia lo publicado de quien no la 
 La regla: **en las pruebas, las etiquetas se buscan exactas.**
 
 *Ficha:* tienda3 · *(mía)* · 🟢 Bajo · P3 · tienda-1.7.0 · 2026-10-28
+
+**72 · Un pedido «Por pagar» no tenía ni un botón.**
+
+*Qué pasó.* El 28 oct 2026, al validar el sprint PF3 en staging, el dueño pagó un pedido con un link de prueba y no vio cómo cambiarle el estado, en ese ni en ningún otro pedido pagado en línea.
+
+*La causa.* Un pedido por pagar solo lo mueve Bold, a propósito: nadie lo marca pagado a mano (HU-T11.6 CA3). El respaldo del aviso es la vuelta de cada hora, y staging no la tiene (el plan gratuito de Cloudflare). Si el aviso no llega, por ejemplo porque Bold tiene la dirección de producción, el pedido espera sin salida. En producción también: un comprador que abandona el pago deja el pedido por pagar para siempre, porque cancelar lo rechazaba.
+
+*El arreglo.* El pedido por pagar tiene «Preguntarle a Bold» (como mucho cada 20 s, y lo que Bold diga se aplica como un aviso). Con el pago vencido se puede cancelar: antes se le pregunta a Bold una última vez, y si no responde no se cancela. Un pago que llega tarde a un pedido cancelado queda a revisar, sin descontar el inventario, y el pedido pide devolver la plata desde Bold. Un índice nuevo (0028) lee los cobros de un pedido sin recorrer los de la tienda.
+
+La regla: **todo estado que solo mueve un tercero necesita, en la pantalla, una forma de preguntarle y una salida si nunca responde.**
+
+*Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🔴 Alto · P1 · tienda-1.7.1 · 2026-10-28

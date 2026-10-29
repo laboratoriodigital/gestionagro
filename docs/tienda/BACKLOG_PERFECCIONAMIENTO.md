@@ -79,7 +79,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P1.3.1 `[código]` el alcance del cupón y su cálculo · WI-P1.3.2 `[prueba]`.
 
 #### HU-P1.4 · Ofertas programadas
-- **Capa:** API y horno · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. **Cambió al construir:** la oferta es del producto y en porcentaje, igual para todas sus combinaciones, no un precio por combinación: un formulario corto y una sola regla (`precioDeOferta` en `@ed1/dinero`). Migración 0026. El horno recibe la hora como dato (`ahora`); la tarea `ofertas-programadas` re-hornea cada hora, desde la medianoche de Colombia, las tiendas con una oferta que empieza hoy o terminó ayer, una vez por día.
+- **Capa:** API y horno · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. **Cambió al construir:** la oferta es del producto y en porcentaje, igual para todas sus combinaciones, no un precio por combinación: un formulario corto y una sola regla (`precioDeOferta` en `@ed1/dinero`). Migración 0026. El horno recibe la hora como dato (`ahora`); la tarea `ofertas-programadas` re-hornea cada hora, desde la medianoche de Colombia, las tiendas con una oferta que empieza hoy o terminó ayer, una vez por día. **Validación del 28 oct 2026:** la lista de productos del panel marca la oferta que rige y la que viene (tienda 1.7.1).
 - Como comerciante, quiero dejar lista la oferta del fin de semana, para que empiece y termine sola.
 - **Referencia:** Tiendanube, «activación programada por fecha».
 - **CA1.** El precio de oferta de una combinación puede tener fecha de inicio y de fin; fuera de ellas rige el precio normal.
@@ -150,7 +150,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 ## EP4 · Una vitrina más completa
 
 #### HU-P4.1 · Temas listos
-- **Capa:** horno y panel · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** todos · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. Ocho temas en `@ed1/tienda-schema/temas`, con los acentos del panel; una prueba del horno pasa cada uno en claro, en oscuro y con el modo del teléfono. **Cambió al construir:** para una tienda solo oscura, cada tema trae su acento aclarado (el horno no ajusta en silencio, bitácora tienda3 69). Elegirlo llena el formulario; la vista previa es la de «Publicar», después de guardar.
+- **Capa:** horno y panel · **Prioridad:** Should · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** todos · **Estado:** Terminada (construida el 28 oct 2026, tienda 1.7.0; validada por el dueño el 28 oct 2026). Ocho temas en `@ed1/tienda-schema/temas`, con los acentos del panel; una prueba del horno pasa cada uno en claro, en oscuro y con el modo del teléfono. **Cambió al construir:** para una tienda solo oscura, cada tema trae su acento aclarado (el horno no ajusta en silencio, bitácora tienda3 69). Elegirlo llena el formulario; la vista previa es la de «Publicar», después de guardar.
 - Como comerciante sin diseñador, quiero elegir un estilo completo con un toque, para que mi tienda se vea bien de una vez.
 - **Referencia:** Tiendanube, más de 60 plantillas.
 - **CA1.** Seis a ocho temas con nombre (por ejemplo: Panadería, Moda, Belleza, Campo, Tecnología, Minimal), cada uno una combinación de acento, tinta, estilo, portada y proporción.
@@ -159,7 +159,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P4.1.1 `[código]` los temas en `tienda-schema` · WI-P4.1.2 `[código]` el selector del panel · WI-P4.1.3 `[prueba]` contraste de cada tema.
 
 #### HU-P4.2 · Varias imágenes en la bienvenida
-- **Capa:** horno · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. Dos imágenes más (`hero.segunda` y `hero.tercera`), con su texto y una dirección de la tienda. El plan va en `variasImagenes` (`bienvenida_con_imagenes` en funciones.json): un plan que baja las quita en el re-horneado, sin publicar.
+- **Capa:** horno · **Prioridad:** Could · **Puntos:** 3 · **Sprint:** PF3 · **Plan:** Pro · **Estado:** Terminada (construida el 28 oct 2026, tienda 1.7.0; validada por el dueño el 28 oct 2026). Dos imágenes más (`hero.segunda` y `hero.tercera`), con su texto y una dirección de la tienda. El plan va en `variasImagenes` (`bienvenida_con_imagenes` en funciones.json): un plan que baja las quita en el re-horneado, sin publicar.
 - Como comerciante, quiero mostrar dos o tres imágenes en la bienvenida, cada una con su enlace.
 - **Referencia:** Tiendanube, «banners, carruseles o videos».
 - **CA1.** Hasta 3 imágenes que se deslizan con el dedo, con CSS y sin librería.
@@ -196,7 +196,7 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **Work items:** WI-P5.1.1 `[doc]` las siete guías · WI-P5.1.2 `[código]` las páginas en `tiendapro-sitio` y su sitemap · WI-P5.1.3 `[código]` los enlaces del panel · WI-P5.1.4 `[dueño]` el WhatsApp de soporte.
 
 #### HU-P5.2 · La calculadora de precios
-- **Capa:** sitio · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** PF3 · **Plan:** gratis, en `tiendapro.co` · **Estado:** Construida (28 oct 2026, tienda 1.7.0), por validar. En `tiendapro.co/calculadora/`. Las tarifas de Bold viven en `@ed1/tienda-schema/comisiones`, la misma tabla de la pantalla de cobro, con la fecha del Estudio (4 oct 2026). La ganancia es un porcentaje sobre el costo; el precio sube a los siguientes $100 y la comisión lleva su IVA (19 %).
+- **Capa:** sitio · **Prioridad:** Could · **Puntos:** 2 · **Sprint:** PF3 · **Plan:** gratis, en `tiendapro.co` · **Estado:** Terminada (construida el 28 oct 2026, tienda 1.7.0; validada por el dueño el 28 oct 2026). En `tiendapro.co/calculadora/`. Las tarifas de Bold viven en `@ed1/tienda-schema/comisiones`, la misma tabla de la pantalla de cobro, con la fecha del Estudio (4 oct 2026). La ganancia es un porcentaje sobre el costo; el precio sube a los siguientes $100 y la comisión lleva su IVA (19 %).
 - Como persona que vende, quiero saber a cuánto vender para que me quede lo que espero, con la comisión de Bold y el envío.
 - **Referencia:** Tiendanube, herramientas gratis (calculadora de precios y de descuentos). Estudio: las herramientas gratis como entrada al producto.
 - **CA1.** Costo, margen deseado, forma de pago y envío dan el precio de venta y lo que queda en el bolsillo.

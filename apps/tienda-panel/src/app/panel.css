@@ -230,7 +230,14 @@ h2 {
   font-size: var(--texto-pequeno);
   min-width: 0;
 }
+/* Dos marcas en una fila: el estado del producto y su oferta programada. */
+.estados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-1) var(--espacio-3);
+}
 .fila > .estado,
+.fila > .estados,
 .fila > .fila__detalle {
   grid-column: 1 / -1;
 }
@@ -587,9 +594,13 @@ h2 {
     grid-column: auto;
     order: 2;
   }
-  .fila > .estado {
+  .fila > .estado,
+  .fila > .estados {
     grid-column: auto;
     order: 3;
+  }
+  .fila > .estados {
+    flex-direction: column;
   }
   .fila__monto {
     order: 4;

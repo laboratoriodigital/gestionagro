@@ -10,6 +10,7 @@ import {
   cuerpoDe,
   type FilaDeProducto,
   formularioDe,
+  marcaDeLaOferta,
   type ProductoDelPanel,
   pesos,
   rutaDeInventario,
@@ -172,5 +173,18 @@ describe('la lista de productos de a 50 (bitácora tienda3 21)', () => {
   it('la ruta del inventario lleva la búsqueda y el cursor', () => {
     expect(rutaDeInventario({})).toBe('inventario?q=');
     expect(rutaDeInventario({ q: 'lino', cursor: 'abc' })).toBe('inventario?q=lino&cursor=abc');
+  });
+});
+
+describe('la marca de la oferta en la lista de productos', () => {
+  it('dice la que rige hoy con su porcentaje y la que viene con su primer día', () => {
+    expect(
+      marcaDeLaOferta({ porcentaje: 20, desde: '2026-10-28', hasta: '2026-11-02', vigente: true }),
+    ).toBe('En oferta · 20 %');
+    expect(
+      marcaDeLaOferta({ porcentaje: 15, desde: '2026-11-05', hasta: '2026-11-08', vigente: false }),
+    ).toBe('Oferta desde el 5 de nov');
+    expect(marcaDeLaOferta(null)).toBeNull();
+    expect(marcaDeLaOferta(undefined)).toBeNull();
   });
 });

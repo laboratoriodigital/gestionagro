@@ -270,6 +270,11 @@ export interface PedidoDelPanel extends FilaDePedido {
   conContacto: boolean;
   /** HU-T11.8: el link de pago que sigue vigente, para volver a mandarlo. */
   link: { url: string; vence: string; mensaje: string } | null;
+  /**
+   * El último cobro en línea del pedido: si sigue esperando o venció, el panel ofrece preguntarle a
+   * Bold y, vencido, cancelar. `revisar` en un pedido cancelado es un pago que llegó tarde.
+   */
+  pago: { estado: string; vence: string } | null;
   /** HU-T9.4: con qué transportadora y qué guía salió. */
   transportadora: string | null;
   guia: string | null;
@@ -397,8 +402,15 @@ export async function leerPedido(
     )
     .bind(q.org, id)
     .first<{ link_url: string; vence: string; tienda: string }>();
+  const pago = await q.db
+    .prepare(
+      'SELECT estado, vence FROM cobro WHERE org_id = ? AND pedido_id = ? ORDER BY creado DESC LIMIT 1',
+    )
+    .bind(q.org, id)
+    .first<{ estado: string; vence: string }>();
   return {
     ...(fila as FilaDePedido),
+    pago: pago ? { estado: pago.estado, vence: pago.vence } : null,
     link: link
       ? {
           url: link.link_url,

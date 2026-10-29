@@ -13,6 +13,7 @@ import {
   leerProducto,
   listarColecciones,
   listarProductos,
+  ofertaEnLaLista,
   ordenarProductos,
   type Quien,
   tocarElProducto,
@@ -532,5 +533,23 @@ describe('HU-T5.10 · destacado y nuevo', () => {
     });
     if (b.estado !== 'guardado') throw new Error(b.estado);
     expect(await leerProducto(quien(), b.id)).toMatchObject({ destacado: false, nuevo: false });
+  });
+});
+
+describe('la oferta en la lista del panel', () => {
+  const oferta = JSON.stringify({ porcentaje: 20, desde: '2026-11-01', hasta: '2026-11-03' });
+  it('marca la que viene y la que rige; la que terminó o no se lee, no', () => {
+    expect(ofertaEnLaLista(oferta, '2026-10-28T15:00:00.000Z')).toEqual({
+      porcentaje: 20,
+      desde: '2026-11-01',
+      hasta: '2026-11-03',
+      vigente: false,
+    });
+    expect(ofertaEnLaLista(oferta, '2026-11-02T15:00:00.000Z')?.vigente).toBe(true);
+    // El último día dura hasta la medianoche de Colombia.
+    expect(ofertaEnLaLista(oferta, '2026-11-04T04:59:00.000Z')?.vigente).toBe(true);
+    expect(ofertaEnLaLista(oferta, '2026-11-04T05:00:00.000Z')).toBeNull();
+    expect(ofertaEnLaLista('{"porcentaje":200}', '2026-11-02T15:00:00.000Z')).toBeNull();
+    expect(ofertaEnLaLista(null, '2026-11-02T15:00:00.000Z')).toBeNull();
   });
 });

@@ -102,7 +102,12 @@ import {
   PeticionDeRecordar,
   recordarCompra,
 } from './compras-pendientes.ts';
-import { estadoDelCobro, PeticionDeEstadoDelCobro } from './conciliar.ts';
+import {
+  cerrarElPagoSinTerminar,
+  estadoDelCobro,
+  PeticionDeEstadoDelCobro,
+  preguntarPorElPago,
+} from './conciliar.ts';
 import { confirmarPedidoDeAgente, PeticionDeConfirmar } from './confirmar.ts';
 import { correosDeLaCelda, mandarAcuse, mandarResultadoDePrueba } from './correos.ts';
 import { cotizar, PeticionDeCotizar } from './cotizar.ts';
@@ -2135,6 +2140,39 @@ export function crearApp(
     const p = await leerPedido(q, await kekDe(c), c.req.param('id'));
     return p ? c.json(p) : c.json({ estado: 'no-existe', motivo: 'Ese pedido no está.' }, 404);
   });
+  // El pago en línea de un pedido, preguntado desde el panel: el respaldo del aviso de Bold.
+  const contextoDelPago = (c: ContextoTienda, q: Quien) => ({
+    db: q.db,
+    org: q.org,
+    ahora: q.instante,
+    kekTexto: textoDeLasKeks(c.env),
+    alPagar: (pedido: string) => avisarDelEstado(c, q, pedido, 'pagado'),
+  });
+  const NO_SE_CANCELA = {
+    'en-curso':
+      'El pago de este pedido sigue en curso. Pregúntale a Bold o espera a que venza para cancelarlo.',
+    movido: 'Bold acaba de responder por este pago: mira cómo quedó el pedido antes de cancelarlo.',
+    'sin-respuesta': 'Bold no respondió. Inténtalo otra vez en un momento.',
+  } as const;
+  app.post('/api/panel/v1/pedidos/preguntar', async (c) => {
+    const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede cambiar este pedido.');
+    if (q instanceof Response) return q;
+    const cuerpo = (await c.req.json().catch(() => null)) as { pedido?: unknown } | null;
+    const pedido = typeof cuerpo?.pedido === 'string' ? cuerpo.pedido.slice(0, 64) : null;
+    const fila = pedido
+      ? await q.db
+          .prepare('SELECT estado FROM pedido WHERE org_id = ? AND id = ?')
+          .bind(q.org, pedido)
+          .first<{ estado: string }>()
+      : null;
+    if (!pedido || !fila)
+      return c.json({ estado: 'no-existe', motivo: 'Ese pedido no está.' }, 404);
+    if (fila.estado !== 'por_pagar') return c.json({ estado: 'ok', pago: 'sin-cambio' });
+    return c.json({
+      estado: 'ok',
+      pago: await preguntarPorElPago(contextoDelPago(c, q), pedido, alProveedor),
+    });
+  });
   // HU-T11.8: cobrar con link el pedido que llegó por el chat.
   const ESTADO_DEL_LINK = {
     guardado: 200,
@@ -2264,6 +2302,23 @@ export function crearApp(
     const q = quienPuede(c, 'pedidos.gestionar', 'Tu rol no puede cambiar este pedido.');
     if (q instanceof Response) return q;
     const cuerpo = (await c.req.json().catch(() => null)) as { pedido?: unknown } | null;
+    // Un pedido por pagar se cancela con su pago vencido: antes, la última pregunta a Bold.
+    if (typeof cuerpo?.pedido === 'string') {
+      const cierre = await cerrarElPagoSinTerminar(
+        contextoDelPago(c, q),
+        cuerpo.pedido,
+        alProveedor,
+      );
+      if (cierre !== 'listo') {
+        return c.json(
+          {
+            estado: 'problemas',
+            problemas: [{ campo: 'pedido', mensaje: NO_SE_CANCELA[cierre] }],
+          },
+          422,
+        );
+      }
+    }
     const r = await cancelarPedido(q, cuerpo);
     if (r.estado === 'guardado' && typeof cuerpo?.pedido === 'string') {
       avisarDelEstado(c, q, cuerpo.pedido, 'cancelado');
