@@ -4,6 +4,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+## [1.8.0] - 2026-10-28
+
+El último cambio antes de producción: crear un producto es más corto y más claro.
+
+### Cambiado
+- **El formulario de producto, ordenado:** arriba lo básico (fotos, si se ve en tu tienda, nombre, precio, unidades y descripción). Lo demás va en cuatro secciones que se abren al tocarlas y dicen lo que tienen sin abrirlas: «Tallas, colores u otras opciones», «Vender más», «Personalizar», «Entrega y reglas» y «Cómo sale en Google». Una sección con un error se abre sola.
+- **Las fotos, al principio:** en un producto nuevo, «Guardar como borrador y agregar fotos» lo guarda sin que se vea y abre sus fotos.
+- **Cada combinación en una fila,** con su precio y sus unidades; lo demás de cada una (si se vende, si se cuentan, su referencia) en «Más de…».
+- **El precio tachado ya no se ofrece a un producto nuevo:** para eso está la oferta con fecha. El que ya lo tenía lo sigue mostrando, y se puede corregir o borrar.
+- **Lo que tu plan no incluye** (la oferta con fecha, el texto del comprador y los productos digitales) se dice en una línea, con el enlace a los planes.
+- El botón de guardar queda a mano, abajo, mientras escribes.
+
+### Arreglado
+- **El despliegue a staging ya no se detiene cuando un comercio de prueba cambia su bienvenida:** la prueba de humo reconoce la portada por el nombre del comercio, no por el título grande.
+
 ## [1.7.1] - 2026-10-28
 
 Lo que pidió la validación del sprint PF3.

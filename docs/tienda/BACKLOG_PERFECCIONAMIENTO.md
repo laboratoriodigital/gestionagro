@@ -14,11 +14,11 @@
 |---|---|---:|
 | **EP1 · Vender más** | HU-P1.1 a HU-P1.5 | 16 |
 | **EP2 · Avisarle a cada quien a tiempo** | HU-P2.1 y HU-P2.2 | 5 |
-| **EP3 · Administrar más rápido** | HU-P3.1 a HU-P3.3 | 10 |
+| **EP3 · Administrar más rápido** | HU-P3.1 a HU-P3.4 | 13 |
 | **EP4 · Una vitrina más completa** | HU-P4.1 a HU-P4.4 | 9 |
 | **EP5 · Acompañar al comerciante** | HU-P5.1 y HU-P5.2 | 5 |
 | **EP6 · Vender productos digitales** | HU-P6.1 a HU-P6.3 | 12 |
-| **Total** | 19 historias | **57** |
+| **Total** | 20 historias | **60** |
 
 ### 0.1 Los sprints
 
@@ -144,6 +144,16 @@ Tres sprints de unos 20 puntos, la velocidad planeada de la Tienda. Las fechas s
 - **CA1.** Un tercer rol, «Despachos», en la invitación del equipo: pedidos, recaudos e inventario de solo lectura.
 - **CA2 ❌.** La matriz de `permisos.ts` es la única fuente: la API rechaza lo que el rol no puede, aunque el panel no lo muestre.
 - **Work items:** WI-P3.3.1 `[código]` el rol en `permisos.ts` y en el CORE (membresía) · WI-P3.3.2 `[código]` el panel · WI-P3.3.3 `[prueba]` cada acción prohibida.
+
+#### HU-P3.4 · Un formulario de producto más cómodo
+- **Capa:** panel · **Prioridad:** Must · **Puntos:** 3 · **Sprint:** validación del PF3, antes de producción · **Plan:** todos · **Estado:** Construida (28 oct 2026, tienda 1.8.0), por validar. Pedida por el dueño el 28 oct 2026: «todo está muy largo, quizás un poco confuso para un usuario no tan experto». Diseño aprobado por el dueño ese día, con sus dos decisiones: las fotos de uno nuevo suben después de guardarlo como borrador, y el precio tachado deja de ofrecerse a uno nuevo (queda la oferta con fecha).
+- Como comerciante que no es experto, quiero crear un producto viendo solo lo necesario, para terminar rápido sin perderme.
+- **CA1.** Arriba, lo básico: fotos, si se ve en la tienda (tres botones), nombre, precio, unidades y descripción. Un producto simple se crea sin abrir nada más.
+- **CA2.** Lo demás, en secciones plegables con su resumen: opciones y combinaciones; vender más (destacado, nuevo, oferta, promoción); personalizar; entrega y reglas; cómo sale en Google. Una sección con un error se abre sola.
+- **CA3.** Cada combinación en una fila con precio y unidades; lo demás de cada una, en «Más de…».
+- **CA4.** El precio tachado solo se muestra si ya estaba. Lo que el plan no incluye se dice en una línea con el enlace a los planes.
+- **CA5 ❌.** A 360 px nada se sale de la pantalla y axe no encuentra fallas.
+- **Work items:** WI-P3.4.1 `[código]` el formulario y sus secciones · WI-P3.4.2 `[código]` guardar como borrador para subir fotos · WI-P3.4.3 `[prueba]` e2e a 360 px con axe.
 
 ---
 

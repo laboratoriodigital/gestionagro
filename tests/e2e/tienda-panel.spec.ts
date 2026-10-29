@@ -714,12 +714,15 @@ test('HU-T8.2 · CA1 y CA4: un vestido con tallas y colores; un precio vacío no
   await expect(page.getByText('Todavía no tienes productos.')).toBeVisible();
   await page.getByRole('link', { name: 'Nuevo producto' }).first().click();
   await page.getByLabel('Nombre', { exact: true }).fill('Vestido');
+  // Las opciones van en su sección, cerrada mientras no haya ninguna.
+  await page.getByText('Tallas, colores u otras opciones').click();
   await page.getByRole('button', { name: 'Agregar una opción' }).click();
   await page.getByLabel('Nombre de la opción 1').fill('Talla');
   await page.getByLabel('Valores de Talla').fill('S, M');
   await page.getByLabel('Precio de S', { exact: true }).fill('159.000');
-  await page.getByLabel('Existencias de S').fill('2');
-  await page.getByLabel('No se cuentan las de M').check();
+  await page.getByLabel('Unidades de S').fill('2');
+  await page.getByText('Más de M').click();
+  await page.getByLabel('No llevo la cuenta de M').check();
   await page.getByRole('button', { name: 'Crear producto' }).click();
   // CA4: M va sin precio, como `null`, y el error vuelve a su campo.
   await expect(page.locator('#c1-precio-error')).toHaveText('escribe el precio en pesos');
@@ -3355,6 +3358,7 @@ test('validación del 20 oct (T17b) · destacado y nuevo, y una foto que se mues
   expect(asignadas).toEqual([{ producto: 'p-lino', id: FOTO, variante: 'v-azul' }]);
   await expect(conQue).toHaveValue('v-azul');
 
+  await page.getByText('Vender más').click();
   await page.getByLabel('Destacado: va primero en tu tienda').check();
   await page.getByLabel('Nuevo: lleva la etiqueta «Nuevo»').check();
   await page.getByRole('button', { name: 'Guardar cambios' }).click();
@@ -3818,4 +3822,117 @@ test('validación del 28 oct · la lista de productos marca la oferta que rige y
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
   expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('validación del 28 oct · el producto: lo básico arriba, lo demás plegado y lo de Pro en una línea', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  const enviados: Record<string, unknown>[] = [];
+  await page.route(`${PANEL}/api/panel/v1/productos?*`, (r) =>
+    r.fulfill({ json: { productos: [] } }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/productos/guardar`, (r) => {
+    enviados.push(r.request().postDataJSON() as Record<string, unknown>);
+    return r.fulfill({ json: { estado: 'guardado', id: 'p-taza', version: 1, slug: 'taza' } });
+  });
+  await page.route(`${PANEL}/api/panel/v1/productos/p-taza`, (r) =>
+    r.fulfill({
+      json: {
+        id: 'p-taza',
+        version: 1,
+        slug: 'taza',
+        nombre: 'Taza',
+        descripcionMd: '',
+        estado: 'borrador',
+        enPapelera: false,
+        opciones: [],
+        retracto: { aplica: true },
+        soloMayores: false,
+        ivaPct: null,
+        variantes: [],
+        medios: [],
+      },
+    }),
+  );
+  await page.goto(`${PANEL}/productos/nuevo/`);
+  // Lo básico, a la vista; el precio tachado ya no se ofrece a uno nuevo.
+  await expect(page.getByLabel('Precio', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Unidades', { exact: true })).toBeVisible();
+  await expect(page.getByLabel(/Precio tachado|Precio antes/)).toHaveCount(0);
+  await expect(page.locator('#vender-mas .cajon__estado')).toHaveText('Nada todavía');
+  await expect(page.locator('#entrega .cajon__estado')).toHaveText('Físico · con retracto');
+  // En Gratis, la oferta con fecha y el texto del comprador se dicen en una línea.
+  await page.getByText('Vender más').click();
+  await expect(page.getByText('La oferta con fecha es de los planes Pro e IA Pro.')).toBeVisible();
+  await page.getByLabel('Destacado: va primero en tu tienda').check();
+  await expect(page.locator('#vender-mas .cajon__estado')).toHaveText('Destacado');
+  await page.getByText('Personalizar').click();
+  await expect(
+    page.getByText('Pedirle un texto al comprador es de los planes Pro e IA Pro.'),
+  ).toBeVisible();
+  // Las fotos de uno nuevo: se guarda como borrador aunque se haya elegido «En la tienda».
+  await page.getByLabel('Nombre', { exact: true }).fill('Taza');
+  await page.getByLabel('Precio', { exact: true }).fill('25.000');
+  await page.getByLabel('Unidades', { exact: true }).fill('8');
+  await page.getByRole('radio', { name: 'En la tienda' }).check();
+  await page.getByRole('button', { name: 'Guardar como borrador y agregar fotos' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Taza' })).toBeVisible();
+  expect(enviados).toEqual([expect.objectContaining({ nombre: 'Taza', estado: 'borrador' })]);
+  await expect(page.getByLabel('Agregar una foto')).toBeVisible();
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+test('validación del 28 oct · un error en una sección cerrada la abre, y el precio tachado que ya estaba se ve', async ({
+  page,
+}) => {
+  await enElPanel(page);
+  await page.route(`${PANEL}/api/panel/v1/productos/p-gorra`, (r) =>
+    r.fulfill({
+      json: {
+        id: 'p-gorra',
+        version: 3,
+        slug: 'gorra',
+        nombre: 'Gorra',
+        descripcionMd: '',
+        estado: 'activo',
+        enPapelera: false,
+        opciones: [],
+        retracto: { aplica: true },
+        soloMayores: false,
+        ivaPct: null,
+        variantes: [
+          {
+            id: 'v-gorra',
+            valores: [],
+            precioCop: 45000,
+            precioAntesCop: 60000,
+            stock: 3,
+            sku: null,
+            reservado: 0,
+          },
+        ],
+        medios: [],
+      },
+    }),
+  );
+  await page.route(`${PANEL}/api/panel/v1/productos/guardar`, (r) =>
+    r.fulfill({
+      status: 422,
+      json: {
+        estado: 'problemas',
+        problemas: [{ campo: 'slug', mensaje: 'esa dirección ya la usa otro producto' }],
+      },
+    }),
+  );
+  await page.goto(`${PANEL}/productos/p-gorra/`);
+  await page.getByText('Vender más').click();
+  await expect(page.getByLabel(/^Precio tachado/)).toHaveValue('60.000');
+  await expect(page.locator('#google')).not.toHaveAttribute('open', '');
+  await page.getByRole('button', { name: 'Guardar cambios' }).click();
+  await expect(page.locator('#google')).toHaveAttribute('open', '');
+  await expect(page.locator('#slug-error')).toHaveText('esa dirección ya la usa otro producto');
 });

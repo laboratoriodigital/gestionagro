@@ -1608,3 +1608,27 @@ La regla: **en las pruebas, las etiquetas se buscan exactas.**
 La regla: **todo estado que solo mueve un tercero necesita, en la pantalla, una forma de preguntarle y una salida si nunca responde.**
 
 *Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🔴 Alto · P1 · tienda-1.7.1 · 2026-10-28
+
+**73 · El formulario nuevo de producto se salía de la pantalla del teléfono.**
+
+*Qué pasó.* El 28 oct 2026, al construir HU-P3.4, la captura a 360 px mostró la página más ancha que la pantalla: el precio y las unidades, lado a lado, no cabían.
+
+*La causa.* Un campo de texto tiene un ancho propio, y en una cuadrícula una celda no se encoge por debajo de él si no se le dice. Dos campos en una fila de 360 px lo pasaban.
+
+*El arreglo.* En la fila, cada celda puede encogerse y el campo ocupa su celda entera. La prueba nueva pasa axe a 360 px, y la captura se revisó antes del PR.
+
+La regla: **dos campos lado a lado en el teléfono se miran en una captura a 360 px, no solo en la prueba.**
+
+*Ficha:* tienda3 · *(mía)* · 🟢 Bajo · P3 · tienda-1.8.0 · 2026-10-28
+
+**74 · El despliegue a staging se detuvo por una bienvenida nueva.**
+
+*Qué pasó.* El 29 oct 2026, al fusionar el #258, el despliegue a staging falló en c1: la Tienda quedó desplegada, pero la prueba de humo dijo que la portada de Comercio Ensayo Dos respondía sin su portada, y c2 quedó sin tocar.
+
+*La causa.* Al validar los temas, el dueño le puso a ese comercio una bienvenida propia. La prueba buscaba el nombre del comercio en el título grande de la portada, que es justo lo que el comerciante puede cambiar.
+
+*El arreglo.* La prueba reconoce la portada por el nombre del sitio, que siempre es el del comercio. Una prueba nueva cubre una portada con bienvenida propia y otra que no es la del comercio.
+
+La regla: **la prueba de humo mira lo que el comerciante no puede cambiar, no lo que puede personalizar.**
+
+*Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟡 Medio · P2 · tienda-1.8.0 · 2026-10-29
