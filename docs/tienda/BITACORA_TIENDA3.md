@@ -1632,3 +1632,15 @@ La regla: **dos campos lado a lado en el teléfono se miran en una captura a 360
 La regla: **la prueba de humo mira lo que el comerciante no puede cambiar, no lo que puede personalizar.**
 
 *Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟡 Medio · P2 · tienda-1.8.0 · 2026-10-29
+
+**75 · La 1.8.0 no llegó entera a producción por la misma falla de la 1.5.0.**
+
+*Qué pasó.* El 29 oct 2026, al fusionar el #259, staging salió bien, pero producción se detuvo en la celda c1. La API ya estaba desplegada (con su migración 0028); la tienda que ve el comprador, el panel y la landing quedaron en la versión anterior, y c2 quedó sin tocar.
+
+*La causa.* La subida de los archivos de la tienda del comprador a Cloudflare falló una vez sin causa (`assets-upload-session`, código 10013), igual que la de la landing en la bitácora 64. Esa vez el reintento se puso solo en la landing.
+
+*El arreglo.* Todo `wrangler deploy` de la Tienda (la API, la tienda del comprador, el panel y la landing) pasa por un mismo paso con tres intentos. Desplegar otra vez la misma versión no cambia nada, así que reintentar es seguro.
+
+La regla: **cuando una falla pasajera aparece en una pieza, el arreglo va a todas las piezas que hacen lo mismo, no solo a la que falló.**
+
+*Ficha:* tienda3 · *(mía; la encontró el dueño)* · 🟡 Medio · P2 · tienda-1.8.0 · 2026-10-29
