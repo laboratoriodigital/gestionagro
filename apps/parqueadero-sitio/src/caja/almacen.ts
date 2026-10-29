@@ -589,11 +589,15 @@ export async function registrarEntrega(
   return registro;
 }
 
-/** Las entregas de un recibo, en orden. */
+/**
+ * Las entregas de un recibo, en orden. Las de una mensualidad no tienen estadía: se buscan entre
+ * las entregas (HU-Q13.10).
+ */
 export const entregasDe = (db: BaseDeLaCaja, recibo: Registro): Promise<Registro[]> =>
-  db.registros
-    .where('estadia_id')
-    .equals(recibo.estadia_id ?? recibo.id)
+  (recibo.tipo === 'pago_abonado'
+    ? db.registros.where('tipo').equals('entrega_recibo')
+    : db.registros.where('estadia_id').equals(recibo.estadia_id ?? recibo.id)
+  )
     .filter(
       (r) => r.tipo === 'entrega_recibo' && (r.datos as DatosDeEntrega).recibo_id === recibo.id,
     )

@@ -19,3 +19,4 @@
 
 | Fecha | Caja A | Caja B | Registros iguales | Números sin repetir ni huecos | Respaldo en Drive | Observación |
 |---|---|---|---|---|---|---|
+| 2026-10-27 | `0.9.2`, subida con todo lo del piloto | `0.9.2`, sumada vacía | Sí, al momento | Cada una con su serie | Sin revisar | Con red: no es todavía la prueba sin red. La B bajó sola los ajustes y las entradas de la A (bitácora 44). |
