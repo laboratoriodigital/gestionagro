@@ -10,6 +10,7 @@ import {
   verificarAcceso,
   verificarConClaves,
 } from './index.ts';
+import { firmarTokenV1DePrueba } from './prueba.ts';
 
 const T0 = Date.UTC(2026, 9, 1, 12);
 const datos = {
@@ -19,6 +20,7 @@ const datos = {
   celda: 'c0',
   shard: 'agro_c0_s1',
   anillo: 1,
+  aud: 'agro',
 };
 
 describe('access token Ed25519 (ADR-10, CA5)', () => {
@@ -72,7 +74,7 @@ describe('verificar con las claves publicadas (celdas, HU-E5.1)', () => {
   });
 });
 
-describe('HU-C4.1 · fase N: las celdas aceptan v1 y v2 (PLATAFORMA §4.6)', () => {
+describe('HU-C4.5 · fase N+2: solo v2 (PLATAFORMA §4.6)', () => {
   const v2 = {
     ...datos,
     aud: 'agro',
@@ -84,22 +86,13 @@ describe('HU-C4.1 · fase N: las celdas aceptan v1 y v2 (PLATAFORMA §4.6)', () 
   /** Cada token, firmado de verdad, contra cada celda: lo que la celda acepta o por qué no. */
   const casos = [
     {
-      nombre: 'v1 sin aud',
-      version: 1,
-      d: datos,
-      agro: 'gratuito',
-      ensayo: 'Un token sin producto solo vale en agro',
-    },
-    {
       nombre: 'v2 del agro',
-      version: 2,
       d: v2,
       agro: 'finca',
       ensayo: 'El token es de agro y esta celda es de ensayo',
     },
     {
       nombre: 'v2 del ensayo',
-      version: 2,
       // Sin plan: la celda resuelve el mínimo.
       d: { ...datos, aud: 'ensayo' },
       agro: 'El token es de ensayo y esta celda es de agro',
@@ -107,42 +100,48 @@ describe('HU-C4.1 · fase N: las celdas aceptan v1 y v2 (PLATAFORMA §4.6)', () 
     },
   ] as const;
 
-  it.each(casos)(
-    '$nombre: agro → $agro · ensayo → $ensayo',
-    async ({ version, d, agro, ensayo }) => {
-      const f = await firmanteDesde(await generarClavePrivada());
-      const { token } = await firmarAcceso(f, d, T0, version);
-      const reclamos = await verificarConClaves([f.publica], token, T0);
-      for (const [producto, espera] of [
-        ['agro', agro],
-        ['ensayo', ensayo],
-      ] as const) {
-        if (espera === 'gratuito' || espera === 'finca') {
-          expect(aceptarEnProducto(reclamos, producto)).toMatchObject({ producto, plan: espera });
-        } else {
-          expect(() => aceptarEnProducto(reclamos, producto)).toThrow(espera);
-        }
-      }
-    },
-  );
-
-  it('v2 lleva su emisor y su versión; v1 sigue con los de siempre', async () => {
+  it.each(casos)('$nombre: agro → $agro · ensayo → $ensayo', async ({ d, agro, ensayo }) => {
     const f = await firmanteDesde(await generarClavePrivada());
-    const leer = async (version: 1 | 2) =>
-      verificarConClaves([f.publica], (await firmarAcceso(f, v2, T0, version)).token, T0);
-    expect(await leer(2)).toMatchObject({
+    const { token } = await firmarAcceso(f, d, T0);
+    const reclamos = await verificarConClaves([f.publica], token, T0);
+    for (const [producto, espera] of [
+      ['agro', agro],
+      ['ensayo', ensayo],
+    ] as const) {
+      if (espera === 'gratuito' || espera === 'finca') {
+        expect(aceptarEnProducto(reclamos, producto)).toMatchObject({ producto, plan: espera });
+      } else {
+        expect(() => aceptarEnProducto(reclamos, producto)).toThrow(espera);
+      }
+    }
+  });
+
+  it('el token lleva su emisor y su versión', async () => {
+    const f = await firmanteDesde(await generarClavePrivada());
+    const leer = async () =>
+      verificarConClaves([f.publica], (await firmarAcceso(f, v2, T0)).token, T0);
+    expect(await leer()).toMatchObject({
       iss: 'ed1-core',
       ver: 2,
       aud: 'agro',
       auth_time: T0 / 1000,
     });
-    expect(await leer(1)).toMatchObject({ iss: 'agro-core' });
-    expect((await leer(1)).ver).toBeUndefined();
   });
 
-  it('un v2 sin producto no se firma', async () => {
+  it('CA1 y CA3 ❌: un v1 firmado con la clave buena se rechaza, como un token que no sirve', async () => {
     const f = await firmanteDesde(await generarClavePrivada());
-    await expect(firmarAcceso(f, datos, T0, 2)).rejects.toThrow('Un token v2 nombra su producto');
+    const { aud: _, ...sinProducto } = datos;
+    const v1 = await firmarTokenV1DePrueba(f, sinProducto, T0);
+    await expect(verificarConClaves([f.publica], v1, T0)).rejects.toThrow(TokenInvalido);
+    await expect(verificarConClaves([f.publica], v1, T0)).rejects.toThrow(
+      'Un token v1 ya no se acepta',
+    );
+  });
+
+  it('un token sin producto no se firma', async () => {
+    const f = await firmanteDesde(await generarClavePrivada());
+    const sinProducto = { ...datos, aud: '' };
+    await expect(firmarAcceso(f, sinProducto, T0)).rejects.toThrow('Un token nombra su producto');
   });
 
   it('CA3 · un token de ed1-core sin aud o sin ver 2 se rechaza aunque la firma sea buena', async () => {
@@ -154,7 +153,8 @@ describe('HU-C4.1 · fase N: las celdas aceptan v1 y v2 (PLATAFORMA §4.6)', () 
       );
       return `${cuerpo}.${base64url(firma)}`;
     };
-    const base = { ...datos, iss: 'ed1-core', iat: T0 / 1000, exp: T0 / 1000 + 3600 };
+    const { aud: _sinAud, ...sinProducto } = datos;
+    const base = { ...sinProducto, iss: 'ed1-core', iat: T0 / 1000, exp: T0 / 1000 + 3600 };
     for (const r of [base, { ...base, ver: 2 }, { ...base, aud: 'agro' }]) {
       await expect(verificarConClaves([f.publica], await firmar(r), T0)).rejects.toThrow(
         'Un token de ed1-core trae ver 2 y su producto',

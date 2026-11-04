@@ -45,7 +45,7 @@ async function push(ops: object[], version: string) {
   const token = (
     await firmarAcceso(
       firmante,
-      { sub: 'u', org: ORG, rol: 'propietario', celda: 'c0', shard: SHARD, anillo: 1 },
+      { sub: 'u', org: ORG, rol: 'propietario', celda: 'c0', shard: SHARD, anillo: 1, aud: 'agro' },
       T0,
     )
   ).token;

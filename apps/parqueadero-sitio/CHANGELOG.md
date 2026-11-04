@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ## [Sin publicar]
 
+### Cambiado
+- La API del parqueadero rechaza los tokens v1 (HU-C4.5); la caja renueva y recibe un v2, como hasta hoy.
+
 ## [0.9.3] - 2026-10-28
 
 El recibo de una mensualidad se imprime cuando lo pidan.

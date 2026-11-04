@@ -210,7 +210,15 @@ describe('HU-C5.6 · la celda al día con los planes', () => {
     };
     const { token } = await firmarAcceso(
       firmante,
-      { sub: 'u1', org: ORG_A, rol: 'propietario', celda: 'c0', shard: SHARD, anillo: 1 },
+      {
+        sub: 'u1',
+        org: ORG_A,
+        rol: 'propietario',
+        celda: 'c0',
+        shard: SHARD,
+        anillo: 1,
+        aud: 'agro',
+      },
       HORA,
     );
     const app = crearApp({ ahora: () => HORA });

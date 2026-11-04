@@ -10,7 +10,6 @@ import {
   consumoDeLaNube,
   cuentasDelCore,
   eventosDeHerramientas,
-  tokensV1,
 } from '../../scripts/reporte-semanal.ts';
 
 const AHORA = Date.UTC(2026, 9, 5, 12);
@@ -259,49 +258,5 @@ describe('consumo de la nube y el issue', () => {
     expect(md).toContain('Search Console');
     // La intención de pago ya se mide (HU-E0.6): no figura como pendiente.
     expect(md).not.toContain('Intención de pago: llega');
-  });
-});
-
-describe('HU-C4.5 · tokens v1 de la semana', () => {
-  const kvs = [
-    { nombre: 'c0 producción', titulo: 'agro-c0-flags' },
-    { nombre: 'c0 staging', titulo: 'agro-c0-flags-staging' },
-  ];
-  const lista = {
-    result: [
-      { id: 'p', title: 'agro-c0-flags' },
-      { id: 's', title: 'agro-c0-flags-staging' },
-    ],
-  };
-
-  it('dice los días con marca de cada destino, y ninguno cuando no hay', async () => {
-    const { fn, pedidos } = cloudflare((url) =>
-      url.endsWith('namespaces?per_page=100')
-        ? { estado: 200, json: lista }
-        : url.includes('/s/values/tokens_v1%3A2026-10-03')
-          ? { estado: 200, json: 1 }
-          : { estado: 404, json: {} },
-    );
-    const s = await tokensV1(fn, 't', 'c', kvs, AHORA);
-    expect(s.lineas).toEqual([
-      '- c0 producción: ningún día con tokens v1.',
-      '- c0 staging: días con tokens v1: 2026-10-03.',
-    ]);
-    // Una lista y siete días por destino; solo lecturas.
-    expect(pedidos).toHaveLength(15);
-  });
-
-  it('un KV que no responde no se cuenta como «ningún día» (P1)', async () => {
-    const { fn } = cloudflare((url) =>
-      url.endsWith('namespaces?per_page=100')
-        ? { estado: 200, json: lista }
-        : { estado: 500, json: {} },
-    );
-    expect((await tokensV1(fn, 't', 'c', kvs, AHORA)).lineas[0]).toMatch(
-      /^No se pudo leer: KV respondió 500/,
-    );
-    expect((await tokensV1(fn, '', 'c', kvs, AHORA)).lineas[0]).toMatch(
-      /falta el secreto CF_API_TOKEN/,
-    );
   });
 });

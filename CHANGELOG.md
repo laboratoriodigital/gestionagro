@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 ### Cambiado
 - `@ed1/parqueadero-recibos`: `bloquesDeLaPlaca` pone la placa en negrita, al doble de alto y de ancho, con el vehículo al lado si cabe; el papel de la entrada, la salida y la mensualidad la usan (HU-Q13.8).
+- La celda del agro rechaza los tokens v1 (HU-C4.5): responde «sin-sesion» y el cuaderno renueva solo. Sale la marca diaria de v1 en su KV y su sección del reporte semanal. `@ed1/tokens` solo firma v2, con su producto, y `@ed1/tokens/prueba` firma un v1 solo para las pruebas.
 
 ## [0.7.0] - 2026-10-24
 
